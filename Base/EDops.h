@@ -360,7 +360,7 @@ endinstr;
 
 // ld a,r
 edinstr(0x5f,5)
-    // only the bottom 7 bits of R are advanced by memory refresh, so the top bit is preserved
+    // Only the bottom 7 bits of R are advanced by memory refresh, so the top bit is preserved
     r = (r & 0x80) | (radjust & 0x7f);
     a = r;
     f = (f & 1) | (a & 0xa8) | ((!a) << 6) | (iff2 << 2);
