@@ -21,7 +21,8 @@
 
 //#define NO_ZLIB           // Define this if Zlib is not available
 //#define DUMMY_SAASOUND    // Define this if the real SAASound library is not available
-
+//#define USE_OPENGL        // Define to enable (experimental) OpenGL mode
+//#define USE_CUSTOM_CURSOR // Define to draw our own GUI cursor, to avoid an SDL mouse droppings problem
 
 // If it's not one of these we'll assume big endian (we have a run-time check to fall back on anyway)
 #if !defined(__i386__) && !defined(WIN32) && !(defined(__alpha__) && !defined(__alpha)) && !defined(__arm__) && !(defined(__mips__) && !defined(__MIPSEL__))
@@ -65,12 +66,12 @@ using std::sort;
 #endif
 
 #ifndef NO_ZLIB
-#include "unzip.h"		// for unzOpen, unzClose, etc.  Part of the contrib/minizip in the ZLib source package
+#include "unzip.h"      // for unzOpen, unzClose, etc.  Part of the contrib/minizip in the ZLib source package
 #include "zlib.h"       // for gzopen, gzclose, etc.
 #endif
 
 #include "SAM.h"        // Various SAM constants
-#include "Util.h"
+#include "Util.h"       // TRACE macro and other utility functions
 
 
 #ifndef max
