@@ -30,6 +30,8 @@ class Video
         static void Update ();
         static void UpdatePalette ();
         static bool CreatePalettes (bool fDimmed_=false);
+
+        static HRESULT ClearSurface (LPDIRECTDRAWSURFACE pdds_);
 };
 
 
