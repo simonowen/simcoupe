@@ -20,7 +20,7 @@
 
 // ToDo:
 //  - change to handle multiple dirty regions
-//  - centre full-screen OpenGL, and fix cursor mapping
+//  - centre full-screen OpenGL, and fix cursor position mapping
 
 #include "SimCoupe.h"
 
@@ -34,6 +34,7 @@
 
 
 bool* Display::pafDirty;
+bool fClearScreen;
 SDL_Rect rSource, rTarget;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -45,6 +46,10 @@ inline DWORD PaletteDWORD (BYTE b1_, BYTE b2_, BYTE b3_, BYTE b4_)
     { return (aulPalette[b4_] << 24) | (aulPalette[b3_] << 16) | (aulPalette[b2_] << 8)  |  aulPalette[b1_]; }
 inline DWORD PaletteDWORD (BYTE b1_, BYTE b2_)
     { return (aulPalette[b2_] << 16) | aulPalette[b1_]; }
+inline DWORD MakeDWORD (BYTE b1_, BYTE b2_, BYTE b3_, BYTE b4_)
+    { return (b4_ << 24) | (b3_ << 16) | (b2_ << 8) | b1_; }
+inline DWORD MakeDWORD (BYTE b1_, BYTE b2_)
+    { return ((b2_ << 16) | b1_) * 0x0101UL; }
 
 #else
 
@@ -52,6 +57,10 @@ inline DWORD PaletteDWORD (BYTE b1_, BYTE b2_, BYTE b3_, BYTE b4_)
     { return (aulPalette[b1_] << 24) | (aulPalette[b2_] << 16) | (aulPalette[b3_] << 8)  |  aulPalette[b4_]; }
 inline DWORD PaletteDWORD (BYTE b1_, BYTE b2_)
     { return (aulPalette[b1_] << 16) | aulPalette[b2_]; }
+inline DWORD MakeDWORD (BYTE b1_, BYTE b2_, BYTE b3_, BYTE b4_)
+    { return (b1_ << 24) | (b2_ << 16) | (b3_ << 8) | b4_; }
+inline DWORD MakeDWORD (BYTE b1_, BYTE b2_)
+    { return ((b1_ << 16) | b2_) * 0x0101UL; }
 
 #endif
 
@@ -78,6 +87,9 @@ void Display::SetDirty ()
     // Mark all display lines dirty
     for (int i = 0, nHeight = Frame::GetHeight() ; i < nHeight ; i++)
         pafDirty[i] = true;
+
+    // Ensure the back buffer is cleared next time we draw
+    fClearScreen = true;
 }
 
 
@@ -89,8 +101,11 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
     // If we've changing from displaying the GUI back to scanline mode, clear the unused lines on the surface
     static bool fOldInterlace = false;
     bool fGUI = GUI::IsActive(), fInterlace = GetOption(scanlines) && !fGUI;
-    if (!fOldInterlace && fInterlace)
+    if (fInterlace && (fClearScreen || !fOldInterlace))
+    {
         SDL_FillRect(pSurface_, NULL, 0);
+        fClearScreen = false;
+    }
     fOldInterlace = fInterlace;
 
     // Lock the surface for direct access below
@@ -118,8 +133,6 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
     {
         case 8:
         {
-            static const DWORD BASE_COLOUR = PALETTE_OFFSET * 0x01010101UL;
-
             for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
             {
                 if (!pfDirty[y])
@@ -129,8 +142,8 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
                 {
                     for (int x = 0 ; x < nRightHi ; x++)
                     {
-                        pdw[0] = BASE_COLOUR + PaletteDWORD(pb[0], pb[1], pb[2], pb[3]);
-                        pdw[1] = BASE_COLOUR + PaletteDWORD(pb[4], pb[5], pb[6], pb[7]);
+                        pdw[0] = MakeDWORD(pb[0], pb[1], pb[2], pb[3]);
+                        pdw[1] = MakeDWORD(pb[4], pb[5], pb[6], pb[7]);
 
                         pdw += 2;
                         pb += 8;
@@ -140,17 +153,15 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
                 {
                     for (int x = 0 ; x < nRightLo ; x++)
                     {
-                        pdw[0] = BASE_COLOUR + PaletteDWORD(pb[0], pb[0], pb[1], pb[1]);
-                        pdw[1] = BASE_COLOUR + PaletteDWORD(pb[2], pb[2], pb[3], pb[3]);
-                        pdw[2] = BASE_COLOUR + PaletteDWORD(pb[4], pb[4], pb[5], pb[5]);
-                        pdw[3] = BASE_COLOUR + PaletteDWORD(pb[6], pb[6], pb[7], pb[7]);
+                        pdw[0] = MakeDWORD(pb[0], pb[1]);
+                        pdw[1] = MakeDWORD(pb[2], pb[3]);
+                        pdw[2] = MakeDWORD(pb[4], pb[5]);
+                        pdw[3] = MakeDWORD(pb[6], pb[7]);
 
                         pdw += 4;
                         pb += 8;
                     }
                 }
-
-                pfDirty[y] = false;
             }
         }
         break;
@@ -209,15 +220,15 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
                     {
                         BYTE *pb1 = (BYTE*)&aulPalette[pb[0]], *pb2 = (BYTE*)&aulPalette[pb[1]];
                         BYTE *pb3 = (BYTE*)&aulPalette[pb[2]], *pb4 = (BYTE*)&aulPalette[pb[3]];
-                        pdw[0] = (((DWORD)pb2[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
-                        pdw[1] = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[2]) << 16) | (((DWORD)pb2[0]) << 8) | pb2[1];
-                        pdw[2] = (((DWORD)pb4[0]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[2]) << 8) | pb3[0];
+                        pdw[0] = (((DWORD)pb2[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                        pdw[1] = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[0]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[1];
+                        pdw[2] = (((DWORD)pb4[2]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[0]) << 8) | pb3[2];
 
                         pb1 = (BYTE*)&aulPalette[pb[4]], pb2 = (BYTE*)&aulPalette[pb[5]];
                         pb3 = (BYTE*)&aulPalette[pb[6]], pb4 = (BYTE*)&aulPalette[pb[7]];
-                        pdw[3] = (((DWORD)pb2[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
-                        pdw[4] = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[2]) << 16) | (((DWORD)pb2[0]) << 8) | pb2[1];
-                        pdw[5] = (((DWORD)pb4[0]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[2]) << 8) | pb3[0];
+                        pdw[3] = (((DWORD)pb2[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                        pdw[4] = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[0]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[1];
+                        pdw[5] = (((DWORD)pb4[2]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[0]) << 8) | pb3[2];
 
                         pdw += 6;
                         pb += 8;
@@ -228,31 +239,29 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
                     for (int x = 0 ; x < nRightLo ; x++)
                     {
                         BYTE *pb1 = (BYTE*)&aulPalette[pb[0]], *pb2 = (BYTE*)&aulPalette[pb[1]];
-                        pdw[0]  = (((DWORD)pb1[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
-                        pdw[1]  = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[2]) << 16) | (((DWORD)pb1[0]) << 8) | pb1[1];
-                        pdw[2]  = (((DWORD)pb2[0]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[0];
+                        pdw[0]  = (((DWORD)pb1[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                        pdw[1]  = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[0]) << 16) | (((DWORD)pb1[2]) << 8) | pb1[1];
+                        pdw[2]  = (((DWORD)pb2[2]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[0]) << 8) | pb2[2];
 
                         pb1 = (BYTE*)&aulPalette[pb[2]], pb2 = (BYTE*)&aulPalette[pb[3]];
-                        pdw[3]  = (((DWORD)pb1[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
-                        pdw[4]  = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[2]) << 16) | (((DWORD)pb1[0]) << 8) | pb1[1];
-                        pdw[5]  = (((DWORD)pb2[0]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[0];
+                        pdw[3]  = (((DWORD)pb1[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                        pdw[4]  = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[0]) << 16) | (((DWORD)pb1[2]) << 8) | pb1[1];
+                        pdw[5]  = (((DWORD)pb2[2]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[0]) << 8) | pb2[2];
 
                         pb1 = (BYTE*)&aulPalette[pb[4]], pb2 = (BYTE*)&aulPalette[pb[5]];
-                        pdw[6]  = (((DWORD)pb1[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
-                        pdw[7]  = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[2]) << 16) | (((DWORD)pb1[0]) << 8) | pb1[1];
-                        pdw[8]  = (((DWORD)pb2[0]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[0];
+                        pdw[6]  = (((DWORD)pb1[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                        pdw[7]  = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[0]) << 16) | (((DWORD)pb1[2]) << 8) | pb1[1];
+                        pdw[8]  = (((DWORD)pb2[2]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[0]) << 8) | pb2[2];
 
                         pb1 = (BYTE*)&aulPalette[pb[6]], pb2 = (BYTE*)&aulPalette[pb[7]];
-                        pdw[9]  = (((DWORD)pb1[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
-                        pdw[10] = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[2]) << 16) | (((DWORD)pb1[0]) << 8) | pb1[1];
-                        pdw[11] = (((DWORD)pb2[0]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[0];
+                        pdw[9]  = (((DWORD)pb1[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                        pdw[10] = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[0]) << 16) | (((DWORD)pb1[2]) << 8) | pb1[1];
+                        pdw[11] = (((DWORD)pb2[2]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[0]) << 8) | pb2[2];
 
                         pdw += 12;
                         pb += 8;
                     }
                 }
-
-                pfDirty[y] = false;
             }
         }
         break;
@@ -602,11 +611,7 @@ void Display::Update (CScreen* pScreen_)
 #ifdef USE_OPENGL
     DrawChangesGL(pScreen_);
 #else
-    if (!DrawChanges(pScreen_, pBack))
-    {
-        TRACE("Display::Update(): DrawChanges() failed\n");
-        return;
-    }
+    DrawChanges(pScreen_, pBack);
 #endif
 }
 
