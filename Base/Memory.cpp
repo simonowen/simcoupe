@@ -21,7 +21,6 @@
 
 // Changes 1999-2001 by Simon Owen
 //  - added support for real 256K memory configuration
-//  - added fast boot option by temporarily patching the SAM ROMs
 //  - display memory writes now now catch-up/update the frame image
 //  - mode 1 look-up tables built during initialisation
 
