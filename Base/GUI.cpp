@@ -24,6 +24,7 @@
 //   - regular list box?
 //   - use icon for button arrows?
 //   - edit box cursor positioning
+//   - spin buttons?
 
 #include "SimCoupe.h"
 #include <ctype.h>
@@ -55,6 +56,8 @@ CWindow *GUI::s_pGUI, *GUI::s_pGarbage;
 int GUI::s_nX, GUI::s_nY;
 bool GUI::s_fModal;
 
+static DWORD dwLastClick = 0;   // Time of last double-click
+
 
 bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 {
@@ -73,7 +76,6 @@ bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
     else if (nMessage_ == GM_BUTTONDOWN)
     {
         static int nLastX, nLastY;
-        static DWORD dwLastClick = 0;
         static bool fDouble = false;
 
         // Work out how long it's been since the last click, and how much the mouse has moved
@@ -90,7 +92,7 @@ bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
         nLastX = nParam1_;
         nLastY = nParam2_;
 
-        // Remember whether we've processed a double-click, so two don't follow each other
+        // Remember whether we've processed a double-click, so a third click isn't another one
         fDouble = (nMessage_ == GM_BUTTONDBLCLK);
     }
 
@@ -131,8 +133,9 @@ bool GUI::Start (CWindow* pGUI_)
         return false;
     }
 
-    // Set the top level window
+    // Set the top level window and clear any last click time
     s_pGUI = pGUI_;
+    dwLastClick = 0;
 
     // Position the cursor off-screen, so ensure the first drawn position matches the native OS position
     s_nX = s_nY = -ICON_SIZE;
@@ -197,7 +200,7 @@ bool GUI::IsModal ()
 
 const RGBA* GUI::GetPalette ()
 {
-    static RGBA asCustom[] = { {77,97,133,255}, { 202,217,253,255} };   // A couple of extra custom colours
+    static RGBA asCustom[] = { {77,97,133,255}, {202,217,253,255} };   // A couple of custom colours
     static RGBA asPalette[N_GUI_COLOURS];
     static bool fPrepared = false;
 
@@ -299,8 +302,8 @@ bool CWindow::OnMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
         // Skip disabled windows, and the active window, as we're already done it
         if (pChild->IsEnabled() && pChild != m_pActive)
         {
-            // Hit test the control, and auto-activate it if we're over it
-            if ((nMessage_ & GM_MOUSE_MESSAGE) && (pChild->m_fHover = pChild->HitTest(nParam1_, nParam2_)))
+            // If we're clicking on a control, auto-activate it
+            if ((nMessage_ == GM_BUTTONDOWN) && (pChild->m_fHover = pChild->HitTest(nParam1_, nParam2_)))
                 pChild->Activate();
 
             fProcessed = pChild->OnMessage(nMessage_, nParam1_, nParam2_);
@@ -554,6 +557,26 @@ void CTextButton::Draw (CScreen* pScreen_)
     int nX = m_nX + fPressed + (m_nWidth - CScreen::GetStringWidth(GetText()))/2;
     int nY = m_nY + fPressed + (m_nHeight-CHAR_HEIGHT)/2 + 1;
     pScreen_->DrawString(nX, nY, GetText(), IsEnabled() ? (IsActive() ? BLACK : BLACK) : GREY_5);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+CImageButton::CImageButton (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_,
+    const GUI_ICON* pIcon_, int nDX_/*=0*/, int nDY_/*=0*/)
+    : CButton(pParent_, nX_, nY_, nWidth_, nHeight_), m_pIcon(pIcon_), m_nDX(nDX_), m_nDY(nDY_)
+{
+    m_nType = ctImageButton;
+}
+
+void CImageButton::Draw (CScreen* pScreen_)
+{
+    CButton::Draw(pScreen_);
+
+    bool fPressed = m_fPressed && IsOver();
+    int nX = m_nX + m_nDX + fPressed, nY = m_nY + m_nDY + fPressed;
+
+    pScreen_->DrawImage(nX, nY, ICON_SIZE, ICON_SIZE, reinterpret_cast<const BYTE*>(m_pIcon->abData),
+                        IsEnabled() ? m_pIcon->abPalette : m_pIcon->abPalette);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2246,7 +2269,7 @@ void CDialog::Activate ()
 bool CDialog::HitTest (int nX_, int nY_)
 {
     // The caption is outside the original dimensions, so we need a special test
-    return (nX_ >= m_nX-1) && (nX_ < (m_nX+m_nWidth+1)) && (nY_ >= m_nY-TITLE_HEIGHT) && (nY_ < (m_nY+m_nHeight+1));
+    return (nX_ >= m_nX-1) && (nX_ < (m_nX+m_nWidth+1)) && (nY_ >= m_nY-TITLE_HEIGHT) && (nY_ < (m_nY+1));
 }
 
 // Fill the dialog background
@@ -2384,7 +2407,7 @@ bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     }
 
     // If we're modal, absorb all messages to prevent any parent processing
-    return GUI::IsModal();
+    return m_fModal;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2396,7 +2419,7 @@ const int MSGBOX_LINE_HEIGHT = 15;
 const int MSGBOX_GAP = 13;
 
 CMessageBox::CMessageBox (CWindow* pParent_, const char* pcszBody_, const char* pcszCaption_, int nFlags_)
-    : CDialog(pParent_, 0, 0, pcszCaption_), m_nLines(0), m_pIcon(NULL)
+    : CDialog(pParent_, 0, 0, pcszCaption_, true), m_nLines(0), m_pIcon(NULL)
 {
     // We need to be recognisably different from a regular dialog, despite being based on one
     m_nType = ctMessageBox;
