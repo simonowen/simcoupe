@@ -2,7 +2,7 @@
 //
 // Options.h: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -49,8 +49,11 @@ typedef struct
 
     int     drive1;                 // Drive 1 type
     int     drive2;                 // Drive 2 type
-    bool    autoboot;               // Autoboot drive 1 on first startup?
     int     turboload;              // 0 for disabled, or sensitivity in number of frames
+    bool    saveprompt;             // Non-zero to prompt before saving changes
+    bool    autoboot;               // Autoboot drive 1 on first startup?
+    bool    dosboot;                // True to automagically boot DOS from non-bootable disks
+    char    dosdisk[MAX_PATH];      // Override DOS boot disk to use instead of the internal SAMDOS 2.2 image
 
     char    disk1[MAX_PATH];        // Floppy disk image in drive 1
     char    disk2[MAX_PATH];        // Floppy disk image in drive 2
@@ -62,7 +65,12 @@ typedef struct
     char    hddpath[MAX_PATH];      // Default hard disk path
     char    rompath[MAX_PATH];      // Default ROM path
     char    datapath[MAX_PATH];     // Default data path
-    char    mrufiles[MAX_PATH*9];   // Most recently used files
+    char    mru0[MAX_PATH];         // Most recently used files
+    char    mru1[MAX_PATH];         // Most recently used files
+    char    mru2[MAX_PATH];         // Most recently used files
+    char    mru3[MAX_PATH];         // Most recently used files
+    char    mru4[MAX_PATH];         // Most recently used files
+    char    mru5[MAX_PATH];         // Most recently used files
 
     int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
     bool    altforcntrl;            // Non-zero if Left-Alt is used for SAM Cntrl
@@ -70,6 +78,7 @@ typedef struct
     bool    keypadreset;            // Non-zero if Keypad-minus is used for Reset
     bool    samfkeys;               // Non-zero to use the PC function keys for the SAM keypad
     bool    mouse;                  // True to emulate the SAM mouse
+    bool    mouseesc;               // True to allow Esc to release the mouse capture
     bool    swap23;                 // True to swap mouse buttons 2 and 3
 
     char    joydev1[128];           // Joystick 1 device
@@ -80,7 +89,6 @@ typedef struct
     int     parallel1;              // Parallel port 1 function
     int     parallel2;              // Parallel port 2 function
     char    printerdev[128];        // Printer device name
-    bool    printeronline;          // True if the printer is ready
 
     int     serial1;                // Serial port 1 function
     int     serial2;                // Serial port 2 function
