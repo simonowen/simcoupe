@@ -19,6 +19,7 @@
 #define IDB_SHIFT                       186
 #define IDB_SYMBOL                      187
 #define IDB_SIMCOUPE                    191
+#define IDI_DISK                        192
 #define IDE_PAGE                        1001
 #define IDE_STATION_ID                  1002
 #define IDE_ROM                         1003
@@ -84,7 +85,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        192
+#define _APS_NEXT_RESOURCE_VALUE        193
 #define _APS_NEXT_COMMAND_VALUE         40155
 #define _APS_NEXT_CONTROL_VALUE         1101
 #define _APS_NEXT_SYMED_VALUE           102
