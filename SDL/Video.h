@@ -38,10 +38,12 @@ extern SDL_Surface *pBack, *pFront;
 
 #ifdef USE_OPENGL
 
+const int N_TEXTURES = 9;   // a 3x3 block of 256x256 textures is needed (at most) for the full display area
+
 #include <GL/gl.h>
 extern GLuint dlist;
 extern GLuint auTextures[];
-extern DWORD dwTextureData[6][256][256];
+extern DWORD dwTextureData[N_TEXTURES][256][256];
 
 #endif
 
