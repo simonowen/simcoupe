@@ -2,7 +2,7 @@
 //
 // Video.cpp: Win32 core video functionality using DirectDraw
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -62,12 +62,8 @@ bool Video::Init (bool fFirstInit_)
     Exit(true);
     TRACE("-> Video::Init(%s)\n", fFirstInit_ ? "first" : "");
 
-    // Turn off scanlines if we're using stretch to fit, as it looks ugly otherwise!
-    if (GetOption(stretchtofit))
-        SetOption(scanlines, false);
-
     // Create the main DirectDraw object
-    HRESULT hr = pfnDirectDrawCreate(GetOption(surface) ? NULL : (LPGUID)DDCREATE_EMULATIONONLY, &pdd, NULL);
+    HRESULT hr = pfnDirectDrawCreate(GetOption(hwaccel) ? NULL : (LPGUID)DDCREATE_EMULATIONONLY, &pdd, NULL);
     if (FAILED(hr))
         Message(msgError, "DirectDrawCreate() failed with %#08lx", hr);
     else
@@ -145,29 +141,24 @@ bool Video::Init (bool fFirstInit_)
                     Message(msgError, "Failed to create primary surface!", hr);
             }
 
-            // If we're running in a window we need a clipper to keep the image within the window
-            else if (!GetOption(fullscreen) && FAILED(hr = pdd->CreateClipper(0, &pddClipper, NULL)))
+            // Use a clipper to keep the emulator image within the window area
+            else if (FAILED(hr = pdd->CreateClipper(0, &pddClipper, NULL)))
                 Message(msgError, "CreateClipper() failed with %#08lx", hr);
+            else if (FAILED(hr = pddClipper->SetHWnd(0, g_hwnd)))
+                Message(msgError, "Clipper SetHWnd() failed with %#08lx", hr);
+            else if (FAILED(hr = pddsPrimary->SetClipper(pddClipper)))
+                Message(msgError, "SetClipper() failed with %#08lx", hr);
             else
             {
-                // If we're running windowed we need to use a clipper to keep our drawing within the client area of the window
-                if (!GetOption(fullscreen))
-                {
-                    // create a clipper for the primary surface
-                    if (FAILED(hr = pddClipper->SetHWnd(0, g_hwnd)))
-                        Message(msgError, "Clipper SetHWnd() failed with %#08lx", hr);
-                    else if (FAILED(hr = pddsPrimary->SetClipper(pddClipper)))
-                        Message(msgError, "SetClipper() failed with %#08lx", hr);
-                }
-
                 // Get the dimensions needed by the back buffer
                 dwWidth = Frame::GetWidth();
                 dwHeight = Frame::GetHeight();
 
                 // Are we to use a video overlay?
-                DDPIXELFORMAT ddpf;
-                if (GetOption(surface) >= 3)
+                if (GetOption(overlay))
                 {
+                    DDPIXELFORMAT ddpf;
+
                     // Create the overlay, but falling back to a Video surface if we can't
                     if (pddsFront = CreateOverlay(dwWidth, dwHeight, &ddpf))
                     {
@@ -188,26 +179,19 @@ bool Video::Init (bool fFirstInit_)
                             pddsFront = NULL;
                         }
                     }
-
-                    // If we failed to use the overlay, fall back to trying a video surface
-                    if (!pddsBack)
-                        SetOption(surface, 2);
                 }
 
                 // Set up the required capabilities for the back buffer
-                DWORD dwCaps = (GetOption(surface) < 2) ? DDSCAPS_SYSTEMMEMORY : 0;
                 DWORD dwRequiredFX = (DDFXCAPS_BLTSTRETCHX | DDFXCAPS_BLTSTRETCHY);
 
                 // Create the back buffer.  If we're using an overlay, try for the same pixel format
-                if (!pddsBack && !(pddsBack = CreateSurface(dwCaps, dwWidth, dwHeight, NULL, dwRequiredFX)))
+                if (!pddsBack && !(pddsBack = CreateSurface(0, dwWidth, dwHeight, NULL, dwRequiredFX)))
                     Message(msgError, "Failed to create back buffer (%#08lx)", hr);
                 else
                 {
                     // If we tried for a video memory backbuffer but didn't manage it, update the video option to show that
                     pddsBack->GetSurfaceDesc(&ddsd);
                     TRACE("Back buffer is in %s memory\n", (ddsd.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) ? "video" : "system");
-                    if (GetOption(surface) == 2 && !(ddsd.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY))
-                        SetOption(surface, 1);
 
                     // Create the SAM and DirectX palettes
                     if (CreatePalettes())
@@ -341,7 +325,7 @@ DWORD Video::GetOverlayColourKey ()
 }
 
 
-LPDIRECTDRAWSURFACE CreateOverlay (DWORD dwWidth_, DWORD dwHeight_, LPDDPIXELFORMAT pddpf_/*=NULL*/)
+LPDIRECTDRAWSURFACE CreateOverlay (DWORD dwWidth_, DWORD dwHeight_, LPDDPIXELFORMAT pddpf_)
 {
     static const DDPIXELFORMAT addpf[] =
     {
@@ -364,7 +348,7 @@ LPDIRECTDRAWSURFACE CreateOverlay (DWORD dwWidth_, DWORD dwHeight_, LPDDPIXELFOR
         ddsd.dwHeight = dwHeight_;
 
         // There's no reliable way to get the supported formats so we just have to try them until one works!
-        for (int i = (GetOption(surface) == 3) << 1 ; i < (sizeof addpf / sizeof addpf[0]) ; i++)
+        for (int i = 0 ; i < (sizeof addpf / sizeof addpf[0]) ; i++)
         {
             // Set the next pixel format to try
             ddsd.ddpfPixelFormat = addpf[i];
@@ -374,13 +358,9 @@ LPDIRECTDRAWSURFACE CreateOverlay (DWORD dwWidth_, DWORD dwHeight_, LPDDPIXELFOR
                 TRACE("Overlay CreateSurface() failed with %#08lx\n", hr);
             else
             {
-                // If the caller wants the pixel format, make a copy
-                if (pddpf_)
-                    *pddpf_ = addpf[i];
-
-                // Update the options to specify whether we're using an RGB or YUV overlay
-                SetOption(surface, (addpf[i].dwFlags & DDPF_RGB) ? 4 : 3);
-                break;
+                // Copy the pixel format used
+                *pddpf_ = addpf[i];
+               break;
             }
         }
     }
