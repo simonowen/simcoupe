@@ -25,21 +25,22 @@
 
 #include "Sound.h"
 
-namespace IO
+class IO
 {
-    bool Init (bool fPowerOnInit_=true, bool fReset_=true);
-    void Exit (bool fReInit_=false);
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    bool InitDrives (bool fInit_=true, bool fReInit_=true);
-    bool InitParallel (bool fInit_=true, bool fReInit_=true);
-    bool InitSerial (bool fInit_=true, bool fReInit_=true);
-    bool InitMidi (bool fInit_=true, bool fReInit_=true);
-    bool InitBeeper (bool fInit_=true, bool fReInit_=true);
+        static bool InitDrives (bool fInit_=true, bool fReInit_=true);
+        static bool InitParallel (bool fInit_=true, bool fReInit_=true);
+        static bool InitSerial (bool fInit_=true, bool fReInit_=true);
+        static bool InitMidi (bool fInit_=true, bool fReInit_=true);
+        static bool InitBeeper (bool fInit_=true, bool fReInit_=true);
 
-    BYTE In (WORD wPort_);
-    void Out (WORD wPort_, BYTE bVal_);
+        static BYTE In (WORD wPort_);
+        static void Out (WORD wPort_, BYTE bVal_);
 
-    void FrameUpdate ();
+        static void FrameUpdate ();
 };
 
 
