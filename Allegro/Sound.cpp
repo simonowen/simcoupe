@@ -368,20 +368,6 @@ void CSoundStream::AddData (BYTE* pbData_, int nLength_)
             }
         }
 
-        // Reverse the channels if we're in a stereo mode, as Allegro expects them swapped
-        if (m_nChannels == 2)
-        {
-            int nSamples = (nCopy + nNeed) / m_nSampleSize;
-
-            if (m_nBits == 8)
-                for (int i = nSamples ; i-- ; swap(pb[0], pb[1]), pb += 2);
-            else
-            {
-                WORD* pw = reinterpret_cast<WORD*>(pb);
-                for (int i = nSamples ; i-- ; swap(pw[0], pw[1]), pw += 2);
-            }
-        }
-
         free_audio_stream_buffer(m_pStream);
     }
 }
