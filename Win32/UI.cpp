@@ -93,7 +93,7 @@ enum eActions
     actChangeKeyMode, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actInsertFloppy2, actEjectFloppy2,
     actSaveFloppy2, actNewDisk, actSaveScreenshot, actFlushPrintJob, actDebugger, actImportData, actExportData,
     actDisplayOptions, actExitApplication, actToggleTurbo, actTempTurbo, actReleaseMouse, actPause, actToggleScanlines,
-    actChangeBorders, actChangeSurface, actFrameStep, MAX_ACTION
+    actChangeBorders, actChangeSurface, actFrameStep, actPrinterOnline, MAX_ACTION
 };
 
 const char* aszActions[MAX_ACTION] =
@@ -104,7 +104,7 @@ const char* aszActions[MAX_ACTION] =
     "Save changes to floppy 1", "Insert floppy 2", "Eject floppy 2", "Save changes to floppy 2", "New Disk",
     "Save screenshot", "Flush print job", "Debugger", "Import data", "Export data", "Display options",
     "Exit application", "Toggle turbo speed", "Turbo speed (when held)", "Release mouse capture", "Pause",
-    "Toggle scanlines", "Change viewable area", "Change video surface", "Step single frame"
+    "Toggle scanlines", "Change viewable area", "Change video surface", "Step single frame", "Toggle printer online"
 };
 
 
@@ -408,9 +408,8 @@ void UpdateMenuFromOptions ()
                           (GetOption(parallel2) == 1) ? pParallel2 : NULL;
 
     EnableItem(IDM_TOOLS_FLUSH_PRINTER, pPrinter && reinterpret_cast<CPrinterDevice*>(pPrinter)->IsFlushable());
-    EnableItem(IDM_TOOLS_PRINTER_READY, pPrinter);
-    EnableItem(IDM_TOOLS_PRINTER_READY, pPrinter);
-    CheckOption(IDM_TOOLS_PRINTER_READY, pPrinter && GetOption(printerready));
+    EnableItem(IDM_TOOLS_PRINTER_ONLINE, pPrinter);
+    CheckOption(IDM_TOOLS_PRINTER_ONLINE, GetOption(printeronline));
 }
 
 
@@ -580,11 +579,6 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 Frame::SaveFrame();
                 break;
 
-            case actFlushPrintJob:
-                IO::InitParallel();
-                Frame::SetStatus("Flushed any active print job");
-                break;
-
             case actDebugger:
                 GUI::Start(new CMessageBox(NULL, "Debugger not yet implemented", "Sorry!", mbInformation));
                 break;
@@ -594,7 +588,7 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actExportData:
-                DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_IMPORTEXPORT), g_hwnd, ImportExportDlgProc, 0);
+                DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_EXPORT), g_hwnd, ImportExportDlgProc, 0);
                 break;
 
             case actDisplayOptions:
@@ -699,6 +693,16 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 Frame::SetStatus("Using %s surface", aszSurfaceType[GetOption(surface)]);
                 break;
 
+            case actFlushPrintJob:
+                IO::InitParallel();
+                Frame::SetStatus("Flushed active print job");
+                break;
+
+            case actPrinterOnline:
+                SetOption(printeronline, !GetOption(printeronline));
+                Frame::SetStatus("Printer %s", GetOption(printeronline) ? "ONLINE" : "OFFLINE");
+                break;
+
             default:
                 return false;
         }
@@ -760,23 +764,8 @@ BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
     switch (uMsg_)
     {
         case WM_INITDIALOG:
-        {
-
-            HMENU hmenu = GetSystemMenu(hdlg_, FALSE);
-//          AppendMenu(hmenu, MF_STRING | (g_fTestMode ? MF_CHECKED : MF_UNCHECKED), IDM_TESTMODE, "&Test mode");
-
             CentreWindow(hdlg_);
-
             return 1;
-        }
-
-        case WM_SYSCOMMAND:
-            if (wParam_ == IDM_TESTMODE)
-            {
-                g_fTestMode = !g_fTestMode;
-                CheckMenuItem(GetSystemMenu(hdlg_, FALSE), static_cast<UINT>(wParam_), g_fTestMode ? MF_CHECKED : MF_UNCHECKED);
-            }
-            break;
 
         case WM_COMMAND:
             if (wParam_ == IDOK || wParam_ == IDCANCEL)
@@ -1252,10 +1241,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             switch (wId)
             {
                 case IDM_TOOLS_OPTIONS:         DoAction(actDisplayOptions);    break;
-                case IDM_TOOLS_FLUSH_PRINTER:   DoAction(actFlushPrintJob); break;
-                case IDM_TOOLS_PRINTER_READY:   SetOption(printerready, !GetOption(printerready)); break;
+                case IDM_TOOLS_FLUSH_PRINTER:   DoAction(actFlushPrintJob);     break;
+                case IDM_TOOLS_PRINTER_ONLINE:  DoAction(actPrinterOnline);     break;
 
-                case IDM_FILE_NEW_DISK:         DoAction(actNewDisk);       break;
+                case IDM_FILE_NEW_DISK:         DoAction(actNewDisk);           break;
 
                 case IDM_FILE_FLOPPY1_DEVICE:       if (GetOption(drive1) == 1) pDrive1->Insert("A:");  break;
                 case IDM_FILE_FLOPPY1_INSERT:       DoAction(actInsertFloppy1); break;
@@ -1271,7 +1260,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_FILE_EXPORT_DATA:          DoAction(actExportData);    break;
 
                 // Alt-F4 = exit
-                case IDM_FILE_EXIT:     PostMessage(hwnd_, WM_CLOSE, 0, 0L); break;
+                case IDM_FILE_EXIT:                 DoAction(actExitApplication); break;
 
                 // Items from help menu
                 case IDM_HELP_GENERAL:  ShellExecute(hwnd_, NULL, OSD::GetFilePath("ReadMe.txt"), NULL, "", SW_SHOWMAXIMIZED); break;
@@ -2590,6 +2579,13 @@ BOOL CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             SendMessage(hdlg_, WM_COMMAND, IDC_PARALLEL_1, 0L);
             SendMessage(hdlg_, WM_COMMAND, IDC_PARALLEL_2, 0L);
 
+            SendDlgItemMessage(hdlg_, IDC_PRINTER_ONLINE, BM_SETCHECK, GetOption(printeronline) ? BST_CHECKED : BST_UNCHECKED, 0L);
+
+            CIoDevice* pPrinter = (GetOption(parallel1) == 1) ? pParallel1 :
+                                  (GetOption(parallel2) == 1) ? pParallel2 : NULL;
+            EnableWindow(GetDlgItem(hdlg_, IDB_FLUSH_PRINT_JOB),
+                pPrinter && reinterpret_cast<CPrinterDevice*>(pPrinter)->IsFlushable());
+
             break;
         }
 
@@ -2604,6 +2600,7 @@ BOOL CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                 SendMessage(GetDlgItem(hdlg_, IDC_PRINTERS), CB_GETLBTEXT, SendMessage(GetDlgItem(hdlg_, IDC_PRINTERS),
                             CB_GETCURSEL, 0, 0L),reinterpret_cast<LPARAM>(const_cast<char*>(GetOption(printerdev))));
 
+                SetOption(printeronline, SendDlgItemMessage(hdlg_, IDC_PRINTER_ONLINE, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
                 if (Changed(parallel1) || Changed(parallel2) || lstrcmpi(opts.printerdev, GetOption(printerdev)))
                     IO::InitParallel();
@@ -2623,8 +2620,14 @@ BOOL CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                     bool fPrinter2 = (SendDlgItemMessage(hdlg_, IDC_PARALLEL_2, CB_GETCURSEL, 0, 0L) == 1);
 
                     EnableWindow(GetDlgItem(hdlg_, IDC_PRINTERS), fPrinter1 || fPrinter2);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_PRINTER_ONLINE), fPrinter1 || fPrinter2);
                     break;
                 }
+
+                case IDB_FLUSH_PRINT_JOB:
+                    IO::InitParallel();
+                    EnableWindow(GetDlgItem(hdlg_, IDB_FLUSH_PRINT_JOB), false);
+                    break;
             }
 
             break;
