@@ -743,6 +743,7 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_MAIN                ICON    DISCARDABLE     "Icons\\main.ico"
+IDI_DISK                ICON    DISCARDABLE     "Icons\\disk.ico"
 IDI_CLOCK               ICON    DISCARDABLE     "Icons\\clock.ico"
 IDI_DISPLAY             ICON    DISCARDABLE     "Icons\\display.ico"
 IDI_FLOPPY              ICON    DISCARDABLE     "Icons\\floppy.ico"
