@@ -96,9 +96,9 @@ OPTION aOptions[] =
     OPT("SerialDev1",   OT_STRING,  serialdev1,     ""),        // Serial port 1 device
     OPT("SerialDev2",   OT_STRING,  serialdev2,     ""),        // Serial port 2 device
 
-    OPT("Midi",         OT_INT,     midi,           1),         // Used for MIDI music, if available
-    OPT("MidiIn",       OT_INT,     midiin,         -1),        // MIDI-In device number
-    OPT("MidiOut",      OT_INT,     midiout,        -1),        // MIDI-Out device number
+    OPT("Midi",         OT_INT,     midi,           0),         // Nothing on MIDI port
+    OPT("MidiInDev",    OT_STRING,  midiindev,      ""),        // MIDI-In device
+    OPT("MidiOutDev",   OT_STRING,  midioutdev,     ""),        // MIDI-Out device
 //  OPT("NetworkId",    OT_INT,     networkid,      1),         // Network station number, or something, eventually
 
     OPT("SambusClock",  OT_BOOL,    sambusclock,    true),      // SAMBUS clock present
@@ -232,9 +232,6 @@ bool Options::Save ()
     FILE* hfOptions = fopen(OSD::GetFilePath(OPTIONS_FILE), "wb");
     if (!hfOptions)
         return false;
-
-    // Try to keep the file as backwards compatible with older Win32 files
-    fputs("[Options]\n", hfOptions);
 
     // Loop through each option to write out
     for (OPTION* p = aOptions ; p->pcszName ; p++)
