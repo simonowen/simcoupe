@@ -36,7 +36,7 @@ class UI
 
 
 // Some bits needed by other modules
-extern bool g_fActive;
+extern bool g_fActive, g_fFrameStep;
 extern HWND g_hwnd;
 extern HANDLE g_hEvent;
 extern HINSTANCE __hinstance;
