@@ -54,7 +54,6 @@
 #include "Parallel.h"
 #include "SAMDOS.h"
 #include "SDIDE.h"
-#include "Serial.h"
 #include "Sound.h"
 #include "Util.h"
 #include "Video.h"
@@ -890,13 +889,13 @@ void IO::UpdateInput()
     if (g_fAutoBoot && IsAtStartupScreen())
     {
         g_fAutoBoot = false;
-        nAutoBoot = 15 * pDrive1->IsInserted();
+        nAutoBoot = 10 * pDrive1->IsInserted();
     }
 
     // If actively auto-booting, press and release F9 to trigger the boot
     if (nAutoBoot)
     {
-        if (--nAutoBoot)
+        if (--nAutoBoot < 5)
             PressSamKey(SK_F9);
         else
             ReleaseSamKey(SK_F9);
@@ -984,6 +983,10 @@ bool IO::Rst8Hook ()
         delete pDrive1;
         pDrive1 = pBootDrive;
         pBootDrive = NULL;
+
+        // Suppress a NO AUTO* error caused by an autoboot by redirecting to the ROM "OK" message
+        if (read_byte(regs.PC.W) == 0x80 && GetSectionPage(SECTION_A) == ROM0)
+            regs.PC.W = 0x0e00;
     }
 
     // Are we about to trigger "NO DOS" in ROM1, and with DOS booting enabled?
@@ -995,7 +998,7 @@ bool IO::Rst8Hook ()
         if (*GetOption(dosdisk))
             pDisk = CDisk::Open(GetOption(dosdisk), true);
 
-        // Fall back on the built-in SAMDOS 2.2 image
+        // Fall back on the built-in SAMDOS2 image
         if (!pDisk)
             pDisk = CDisk::Open(abSAMDOS, sizeof(abSAMDOS), "mem:SAMDOS.sbt");
 
