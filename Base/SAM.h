@@ -27,7 +27,7 @@
 // Constants defining screen width and the visible portion of it (in 8 'pixel' blocks)
 #define WIDTH_BLOCKS            48                                      // Total generated screen width
 #define SCREEN_BLOCKS           32                                      // Blocks in main screen area
-#define BORDER_BLOCKS           ((WIDTH_BLOCKS-SCREEN_BLOCKS) >> 1)     // Total blocks for left and right border
+#define BORDER_BLOCKS           ((WIDTH_BLOCKS-SCREEN_BLOCKS) >> 1)     // Blocks for each of left and right border
 #define WIDTH_PIXELS            (WIDTH_BLOCKS << 3)
 #define BORDER_PIXELS           (BORDER_BLOCKS << 3)
 #define SCREEN_PIXELS           (SCREEN_BLOCKS << 3)
