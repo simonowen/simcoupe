@@ -77,6 +77,7 @@ class CDrive : public CDiskDevice
     protected:
         void ResetAll();
         void ModifyStatus (BYTE bEnable_, BYTE bReset_);
+        void ModifyReadStatus ();
 
         bool IsMotorOn () const { return (m_sRegs.bStatus & MOTOR_ON) != 0; }
         void SetMotor (bool fOn_);
