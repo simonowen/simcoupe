@@ -20,8 +20,8 @@
 #define SIMCOUPE_H
 
 // If it's not one of these we'll assume big endian (we have a run-time check to fall back on anyway)
-#if !defined(__BIG_ENDIAN__) && !defined(__i386__) && !defined(WIN32) && !(defined(__alpha__) && \
-    !defined(__alpha)) && !defined(__arm__) && !(defined(__mips__) && !defined(__MIPSEL__))
+#if !defined(__BIG_ENDIAN__) && !defined(__i386__) && !defined(_WIN32) && !defined(_WIN32_WCE) && \
+    !defined(__alpha__) && !defined(__alpha) && !defined(__arm__) && !defined(__mips__) && !defined(__MIPSEL__)
 #define __BIG_ENDIAN__
 #endif
 
@@ -42,7 +42,6 @@ typedef unsigned int        UINT;
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <errno.h>
 #include <limits.h>
 
 // To avoid relying on STL, we'll define our own swap template
@@ -50,6 +49,7 @@ template <class T> void swap (T& a, T& b) { T tmp=a; a=b; b=tmp; }
 
 // Windows CE lacks some headers
 #ifndef _WIN32_WCE
+#include <errno.h>
 #include <time.h>
 #include <sys/stat.h>
 #endif
