@@ -153,10 +153,6 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
     Exit(true);
     TRACE("-> Sound::Init(%s)\n", fFirstInit_ ? "first" : "");
 
-    // Correct any approximate/bad option values before we use them
-    int nChannels = GetOption(stereo) ? 2 : 1;
-
-
     // All sound disabled?
     if (!GetOption(sound))
         TRACE("Sound disabled, nothing to initialise\n");
