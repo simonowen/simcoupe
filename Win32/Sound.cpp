@@ -2,7 +2,7 @@
 //
 // Sound.cpp: Win32 sound implementation using DirectSound
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -627,7 +627,7 @@ void CDAC::GenerateExtra (BYTE* pb_, int nSamples_)
 
 UINT HCF (UINT x_, UINT y_)
 {
-    UINT uHCF = 1, uMin = static_cast<UINT>(sqrt(min(x_, y_)));
+    UINT uHCF = 1, uMin = min(x_, y_) >> 1;
 
     for (UINT uFactor = 2 ; uFactor <= uMin ; uFactor++)
     {
