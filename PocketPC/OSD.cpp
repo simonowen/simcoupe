@@ -2,7 +2,7 @@
 //
 // OSD.cpp: WinCE OS-dependant routines
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -82,11 +82,10 @@ DWORD OSD::GetTime ()
     if (!llFreq)
     {
         // If the best high-resolution timer is not available, fall back to the less accurate multimedia timer
-        if (!QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&llFreq)))
-            return GetTickCount();
-
-        // Convert frequency to millisecond units
-        llFreq /= 1000i64;
+        if (QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&llFreq)))
+            llFreq /= 1000i64;
+        else
+            llFreq = 1;
     }
 
     // Return the profile time as milliseconds
@@ -168,8 +167,9 @@ int OSD::FrameSync (bool fWait_/*=true*/)
     // Wait for next frame?
     if (fWait_)
     {
-        // Sit in a tight loop waiting
-        while ((GetTime() - dwLast) < 20);
+        // Sit in a tight loop waiting, yielding our timeslice until it's time
+        while ((GetTime() - dwLast) < 20)
+            Sleep(0);
 
         // Adjust the time and tick count for the new frame
         dwLast += 20;
