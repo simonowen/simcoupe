@@ -25,6 +25,7 @@
 #include "SimCoupe.h"
 #include "Options.h"
 
+#include "IO.h"
 #include "OSD.h"
 #include "Util.h"
 
@@ -36,7 +37,7 @@ enum { OT_BOOL, OT_INT, OT_STRING };
 typedef struct
 {
     const char* pcszName;                                       // Option name used in config file
-    int         nType;                                          // Option type
+    int nType;                                                  // Option type
 
     union { void* pv;  char* ppsz;  bool* pf;  int* pn; };      // Address of config variable
 
@@ -44,7 +45,7 @@ typedef struct
     int nDefault;
     bool fDefault;
 
-    bool        fSpecified;
+    bool fSpecified;
 }
 OPTION;
 
@@ -69,17 +70,20 @@ OPTION aOptions[] =
     OPT_N("Depth",        depth,          16),        // Full screen mode uses 16-bit colour
     OPT_N("Borders",      borders,        2),         // Same amount of borders as previous version
     OPT_F("StretchToFit", stretchtofit,   true),      // Stretch image to fit the display area
-    OPT_F("Filter",       filter,         true),      // Filter the stretched image
+    OPT_F("Filter",       filter,         true),      // Filter the stretched image (OpenGL only)
+    OPT_F("Overlay",      overlay,        true),      // Use a video overlay surface, if available
     OPT_N("Surface",      surface,        999),       // Try for the best possible by default
 
     OPT_S("ROM",          rom,            ""),        // No custom ROM (use built-in)
+    OPT_F("HDBootRom",    hdbootrom,      false),     // Don't use HDBOOT ROM patches
     OPT_F("FastReset",    fastreset,      true),      // Allow fast Z80 resets
+    OPT_F("AsicDelay",    asicdelay,      false),     // No ASIC startup delay of ~50ms
     OPT_N("MainMemory",   mainmem,        512),       // 512K main memory
     OPT_N("ExternalMem",  externalmem,    0),         // No external memory
 
     OPT_N("Drive1",       drive1,         1),         // Floppy drive 1 present
     OPT_N("Drive2",       drive2,         1),         // Floppy drive 2 present
-    OPT_F("AutoBoot",     autoboot,       false),     // Don't auto-boot inserted disk
+    OPT_F("AutoBoot",     autoboot,       true),      // Autoboot disks inserted at the startup screen
     OPT_N("TurboLoad",    turboload,      15),        // Accelerate disk access (medium sensitivity)
 
     OPT_S("Disk1",        disk1,          ""),        // No disk in floppy drive 1
@@ -88,10 +92,16 @@ OPTION aOptions[] =
     OPT_S("SDIDEDisk",    sdidedisk,      ""),        // No SD IDE hard disk
     OPT_S("YATBusDisk",   yatbusdisk,     ""),        // No YAMOD.ATBUS disk
 
+    OPT_S("FloppyPath",   floppypath,     ""),        // Default floppy path
+    OPT_S("HDDPath",      hddpath,        ""),        // Default hard disk path
+    OPT_S("ROMPath",      rompath,        ""),        // Default ROM path
+    OPT_S("DataPath",     datapath,       ""),        // Default data path
+
     OPT_N("KeyMapping",   keymapping,     1),         // SAM keyboard mapping
     OPT_F("AltForCntrl",  altforcntrl,    false),     // Left-Alt not used for SAM Cntrl
     OPT_F("AltGrForEdit", altgrforedit,   true),      // Right-Alt used for SAM Edit
-    OPT_F("KpMinusReset", kpminusreset,   true),      // Keypad-minus for Reset
+    OPT_F("KeypadReset",  keypadreset,    true),      // Keypad-minus for Reset
+    OPT_F("SAMFKeys",     samfkeys,       false),     // PC function keys not mapped to SAM keypad
     OPT_F("Mouse",        mouse,          false),     // Mouse not connected
 
     OPT_S("JoyDev1",      joydev1,        ""),        // Joystick 1 device
@@ -144,6 +154,19 @@ inline bool IsTrue (const char* pcsz_)
                     !strcasecmp(pcsz_, "yes") || !strcasecmp(pcsz_, "1"));
 }
 
+// Find a named option in the options list above
+OPTION* FindOption (const char* pcszName_)
+{
+    for (OPTION* p = aOptions ; p->pcszName ; p++)
+    {
+        if (!strcasecmp(pcszName_, p->pcszName))
+            return p;
+    }
+
+    return NULL;
+}
+
+// Set (optionally unspecified) options to their default values
 void Options::SetDefaults (bool fForce_/*=true*/)
 {
     // Process the full options list
@@ -168,22 +191,20 @@ void Options::SetDefaults (bool fForce_/*=true*/)
 // Find the address of the variable holding the specified option default
 void* Options::GetDefault (const char* pcszName_)
 {
-    // Look for the option in the list
-    for (OPTION* p = aOptions ; p->pcszName ; p++)
+    OPTION* p = FindOption(pcszName_);
+
+    if (p)
     {
-        if (!strcasecmp(pcszName_, p->pcszName))
+        switch (p->nType)
         {
-            switch (p->nType)
-            {
-                case OT_BOOL:       return &p->fDefault;
-                case OT_INT:        return &p->nDefault;
-//              case OT_STRING:     return &p->pcszDefault;     // Don't use - points to string table!
-            }
+            case OT_BOOL:       return &p->fDefault;
+            case OT_INT:        return &p->nDefault;
+//          case OT_STRING:     return &p->pcszDefault;     // Don't use - points to string table!
         }
     }
 
     // This should never happen, thanks to a compile-time check in the header
-    static void* pv;
+    static void* pv = NULL;
     return &pv;
 }
 
@@ -234,17 +255,26 @@ bool Options::Load (int argc_, char* argv_[])
     while (argc_ && --argc_)
     {
         const char* pcszOption = *++argv_;
-        if (*pcszOption++ == '-')
+        if (*pcszOption == '-' || *pcszOption == '/')
         {
             // Find the option in the list of known options
-            OPTION* p;
-            for (p = aOptions ; p->pcszName && strcasecmp(p->pcszName, pcszOption); p++);
+            OPTION* p = FindOption(pcszOption+1);
 
-            if (p->pcszName)
+            if (p)
             {
                 switch (p->nType)
                 {
-                    case OT_BOOL:   *p->pf = (argv_[1] && *argv_[1] == '-') || (argc_-- && IsTrue(*++argv_)); continue;
+                    case OT_BOOL:
+                    {
+                        *p->pf = (argv_[1] && *argv_[1] == '-') || (argc_-- && IsTrue(*++argv_));
+
+                        // For backwards compatability we must force the autoboot option if it's enabled
+                        if (!strcasecmp(p->pcszName, "AutoBoot"))
+                            g_fAutoBoot |= *p->pf;
+
+                        continue;
+                    }
+
                     case OT_INT:    *p->pn = atoi(*++argv_);    break;
                     case OT_STRING: strcpy(p->ppsz, *++argv_);  break;
                 }
@@ -255,7 +285,17 @@ bool Options::Load (int argc_, char* argv_[])
                 TRACE("Unknown command-line option: %s\n", pcszOption);
         }
         else
-            TRACE("Invalid command-line parameter: %s\n", pcszOption);
+        {
+            static int nDrive = 1;
+
+            // Bare filenames will be inserted into drive 1 then 2
+            switch (nDrive++)
+            {
+                case 1:  SetOption(disk1, pcszOption);  g_fAutoBoot = true;             break;
+                case 2:  SetOption(disk2, pcszOption);                                  break;
+                default: TRACE("Unexpected command-line parameter: %s\n", pcszOption);  break;
+            }
+        }
     }
 
     return true;
@@ -264,9 +304,6 @@ bool Options::Load (int argc_, char* argv_[])
 
 bool Options::Save ()
 {
-    // Some options are not persistant
-    SetOption(autoboot,false);
-
     // Open the options file for writing, fail if we can't
     FILE* hfOptions = fopen(OSD::GetFilePath(OPTIONS_FILE), "wb");
     if (!hfOptions)
