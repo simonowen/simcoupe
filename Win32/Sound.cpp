@@ -33,9 +33,14 @@
 #include "SimCoupe.h"
 #include <math.h>
 
-#include "SAASound.h"
 #define SOUND_IMPLEMENTATION
 #include "Sound.h"
+
+#ifdef USE_SAASOUND
+#include "SAASound.h"
+#else
+#include "../Extern/SAASound.h"
+#endif
 
 #include "CPU.h"
 #include "IO.h"
@@ -43,13 +48,8 @@
 #include "Util.h"
 #include "Profile.h"
 
-#ifndef DUMMY_SAASOUND
-#pragma comment(lib, "SAASound")
-#endif
-
 
 extern HWND g_hwnd;
-extern int g_nLine, g_nLineCycle;
 
 // Direct sound, primary buffer and secondary buffer interface pointers
 IDirectSound* g_pds = NULL;
@@ -621,7 +621,6 @@ void CDAC::GenerateExtra (BYTE* pb_, int nSamples_)
     if (pb_ != m_pbFrameSample)
         memmove(pb_, m_pbFrameSample, nSamples_*m_nSampleSize);
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
