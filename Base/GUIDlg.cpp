@@ -2,7 +2,7 @@
 //
 // GUIDlg.cpp: Dialog boxes using the GUI controls
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,13 +39,13 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     : CDialog(pParent_, 285, 220,  "About SimCoupe")
 {
     new CIconControl(this, 6, 6, &sSamIcon);
-    new CTextControl(this, 61, 10,  "SimCoupe v0.90 beta 5", YELLOW_8);
+    new CTextControl(this, 61, 10,  "SimCoupe v0.90 beta 8", YELLOW_8);
     new CTextControl(this, 61, 24,  "http://www.simcoupe.org/", YELLOW_8);
 
-    new CTextControl(this, 26, 46,  "Win32/SDL/Allegro versions and general overhaul:");
+    new CTextControl(this, 26, 46,  "Win32/SDL/Allegro/Pocket PC versions:");
     new CTextControl(this, 36, 59,  "Simon Owen <simon.owen@simcoupe.org>", GREY_7);
 
-    new CTextControl(this, 26, 78,  "Based on original DOS/X SimCoupe versions by:");
+    new CTextControl(this, 26, 78,  "Based on original DOS/X versions by:");
     new CTextControl(this, 36, 91,  "Allan Skillman <allan.skillman@arm.com>", GREY_7);
 
     new CTextControl(this, 26, 110,  "Additional technical enhancements:");
@@ -418,7 +418,7 @@ class CDisplayOptions : public CDialog
             m_pDepth->Select(anDepths[((GetOption(depth) >> 3) - 1) & 3]);
             m_pScale->Select(GetOption(scale)-1);
 
-            m_pFullScreen->SetChecked(GetOption(fullscreen));
+            m_pFullScreen->SetChecked(GetOption(fullscreen) != 0);
             m_pSync->SetChecked(GetOption(sync) != 0);
             m_pRatio54->SetChecked(GetOption(ratio5_4));
             m_pStretch->SetChecked(GetOption(stretchtofit));
