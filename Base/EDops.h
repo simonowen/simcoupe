@@ -29,633 +29,320 @@
 
 // Basic instruction header, specifying opcode and nominal T-States of the first M-Cycle (AFTER the ED code)
 // The first three T-States of the first M-Cycle are already accounted for
-#define edinstr(opcode, m1states)   case opcode: { \
+#define edinstr(m1states, opcode)   case opcode: { \
                                         g_nLineCycle += m1states - 3;
 
-#define input(reg)              {                                                                               \
-                                    reg = in_byte(bc);                                                          \
-                                    f = (f & 1) | (reg & 0xa8) | ((!reg) << 6) | parity(reg);                   \
-                                }
+// in r,(c)
+#define in_c(x)         ( \
+                            PORT_ACCESS(c), \
+                            x = in_byte(bc), \
+                            f = cy | parity(x) \
+                        )
 
-#define in_out_c_instr(opcode)  edinstr(opcode,4)                                                               \
-                                    PORT_ACCESS(c);
+// out (c),r
+#define out_c(x)        ( \
+                            PORT_ACCESS(c), \
+                            out_byte(bc,x) \
+                        )
 
+// sbc hl,rr
+#define sbc_hl(x)       do { \
+                            g_nLineCycle += 7; \
+                            WORD z = (x); \
+                            DWORD y = hl - z - cy; \
+                            f = (((y & 0xb800) ^ ((hl ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
+                                ((y >> 16) & 1) |                                   /* C          */ \
+                                (((hl ^ z) & (hl ^ y) & 0x8000) >> 13) |            /* V          */ \
+                                2;                                                  /* N          */ \
+                            f |= (!(hl = y)) << 6;                                  /* Z          */ \
+                        } while (0)
 
-#define sbchl(x) \
-            do /* 16-bit subtract */ \
-            { \
-                g_nLineCycle += 7; \
-                WORD z = (x); \
-                DWORD y = hl - z - cy; \
-                f = (((y & 0xb800) ^ ((hl ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
-                    ((y >> 16) & 1) |                                   /* C          */ \
-                    (((hl ^ z) & (hl ^ y) & 0x8000) >> 13) |            /* V          */ \
-                    2;                                                  /* N          */ \
-                f |= (!(hl = y)) << 6;                                  /* Z          */ \
-            } \
-            while (0)
+// adc hl,rr
+#define adc_hl(x)       do { \
+                            g_nLineCycle += 7; \
+                            WORD z = (x); \
+                            DWORD y = hl + z + cy; \
+                            f = (((y & 0xb800) ^ ((hl ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
+                                (y >> 16) |                                         /* C          */ \
+                                (((hl ^ ~z) & (hl ^ y) & 0x8000) >> 13);            /* V          */ \
+                            f |= (!(hl = y)) << 6;                                  /* Z          */ \
+                        } while (0)
 
-#define adchl(x) \
-            do /* 16-bit add */ \
-            { \
-                g_nLineCycle += 7; \
-                WORD z = (x); \
-                DWORD y = hl + z + cy; \
-                f = (((y & 0xb800) ^ ((hl ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
-                    (y >> 16) |                                         /* C          */ \
-                    (((hl ^ ~z) & (hl ^ y) & 0x8000) >> 13);            /* V          */ \
-                f |= (!(hl = y)) << 6;                                  /* Z          */ \
-             } \
-             while (0)
-
-#define neg ( \
-                a = -a, \
-                f = (a & 0xa8) |                                        /* S, 5, 3    */ \
-                    (((a & 0xf) != 0) << 4) |                           /* H          */ \
-                    (a != 0) |                                          /* C          */ \
-                    ((a == 0x80) << 2) |                                /* V          */ \
-                    2 |                                                 /* N          */ \
-                    ((!a) << 6)                                         /* Z          */ \
-            )
+// negate a
+#define neg             ( \
+                            a = -a, \
+                            f = (a & 0xa8) |                                        /* S, 5, 3    */ \
+                                (((a & 0xf) != 0) << 4) |                           /* H          */ \
+                                (a != 0) |                                          /* C          */ \
+                                ((a == 0x80) << 2) |                                /* V          */ \
+                                2 |                                                 /* N          */ \
+                                ((!a) << 6)                                         /* Z          */ \
+                        )
 
 // Load; increment; [repeat]
-#define ldi(loop)   do { \
-    BYTE x = timed_read_byte(hl); \
-    timed_write_byte(de,x); \
-    g_nLineCycle += 2; \
-    hl++; \
-    de++; \
-    bc--; \
-    f = (f & 0xc1) | (x & 0x28) | (((b | c) > 0) << 2); \
-    if (loop) { \
-        g_nLineCycle += 5; \
-        pc -= 2; \
-    } \
-} while (0)
+#define ldi(loop)       do { \
+                            BYTE x = timed_read_byte(hl); \
+                            timed_write_byte(de,x); \
+                            g_nLineCycle += 2; \
+                            hl++; \
+                            de++; \
+                            bc--; \
+                            f = (f & 0xc1) | (x & 0x28) | ((bc != 0) << 2); \
+                            if (loop) { \
+                                g_nLineCycle += 5; \
+                                pc -= 2; \
+                            } \
+                        } while (0)
 
 // Load; decrement; [repeat]
-#define ldd(loop)   do { \
-    BYTE x = timed_read_byte(hl); \
-    timed_write_byte(de,x); \
-    g_nLineCycle += 2; \
-    hl--; \
-    de--; \
-    bc--; \
-    f = (f & 0xc1) | (x & 0x28) | (((b | c) > 0) << 2); \
-    if (loop) { \
-        g_nLineCycle += 5; \
-        pc -= 2; \
-    } \
-} while (0)
+#define ldd(loop)       do { \
+                            BYTE x = timed_read_byte(hl); \
+                            timed_write_byte(de,x); \
+                            g_nLineCycle += 2; \
+                            hl--; \
+                            de--; \
+                            bc--; \
+                            f = (f & 0xc1) | (x & 0x28) | ((bc != 0) << 2); \
+                            if (loop) { \
+                                g_nLineCycle += 5; \
+                                pc -= 2; \
+                            } \
+                        } while (0)
 
 // Compare; increment; [repeat]
-#define cpi(loop)   do { \
-    BYTE carry = cy; \
-    cpa(timed_read_byte(hl)); \
-    g_nLineCycle += 2; \
-    hl++; \
-    bc--; \
-    f = (f & 0xfa) | carry | (((b | c) > 0) << 2); \
-    if (loop) { \
-        g_nLineCycle += 5; \
-        pc -= 2; \
-    } \
-} while (0)
+#define cpi(loop)       do { \
+                            BYTE carry = cy; \
+                            cp_a(timed_read_byte(hl)); \
+                            g_nLineCycle += 2; \
+                            hl++; \
+                            bc--; \
+                            f = (f & 0xfa) | carry | ((bc != 0) << 2); \
+                            if (loop) { \
+                                g_nLineCycle += 5; \
+                                pc -= 2; \
+                            } \
+                        } while (0)
 
 // Compare; decrement; [repeat]
-#define cpd(loop)   do { \
-    BYTE carry = cy; \
-    cpa(timed_read_byte(hl)); \
-    g_nLineCycle += 2; \
-    hl--; \
-    bc--; \
-    f = (f & 0xfa) | carry | (((b | c) > 0) << 2); \
-    if (loop) { \
-        g_nLineCycle += 5; \
-        pc -= 2; \
-    } \
-} while (0)
+#define cpd(loop)       do { \
+                            BYTE carry = cy; \
+                            cp_a(timed_read_byte(hl)); \
+                            g_nLineCycle += 2; \
+                            hl--; \
+                            bc--; \
+                            f = (f & 0xfa) | carry | ((bc != 0) << 2); \
+                            if (loop) { \
+                                g_nLineCycle += 5; \
+                                pc -= 2; \
+                            } \
+                        } while (0)
 
 // Input; increment; [repeat]
-#define ini(loop)   do { \
-    PORT_ACCESS(c); \
-    BYTE t = in_byte(bc); \
-    timed_write_byte(hl,t); \
-    hl++; \
-    b--; \
-    f = (b & 0xa8) | ((!b) << 6) | 2 | ((parity(b) ^ c) & 4); \
-    if (loop) { \
-        g_nLineCycle += 5; \
-        pc -= 2; \
-    } \
-} while (0)
+#define ini(loop)       do { \
+                            PORT_ACCESS(c); \
+                            BYTE t = in_byte(bc); \
+                            timed_write_byte(hl,t); \
+                            hl++; \
+                            b--; \
+                            f = F_NADD | (parity(b) ^ (c & F_PARITY)); \
+                            if (loop) { \
+                                g_nLineCycle += 5; \
+                                pc -= 2; \
+                            } \
+                        } while (0)
 
 // Input; decrement; [repeat]
-#define ind(loop)   do { \
-    PORT_ACCESS(c); \
-    BYTE t = in_byte(bc); \
-    timed_write_byte(hl,t); \
-    hl--; \
-    b--; \
-    f = (b & 0xa8) | ((!b) << 6) | 2 | ((parity(b) ^ c ^ 4) & 4); \
-    if (loop) { \
-        g_nLineCycle += 5; \
-        pc -= 2; \
-    } \
-} while (0)
+#define ind(loop)       do { \
+                            PORT_ACCESS(c); \
+                            BYTE t = in_byte(bc); \
+                            timed_write_byte(hl,t); \
+                            hl--; \
+                            b--; \
+                            f = F_NADD | (parity(b) ^ (c & F_PARITY) ^ F_PARITY); \
+                            if (loop) { \
+                                g_nLineCycle += 5; \
+                                pc -= 2; \
+                            } \
+                        } while (0)
 
 // I can't determine the correct flags outcome for the block OUT instructions.
 // Spec says that the carry flag is left unchanged and N is set to 1, but that
 // doesn't seem to be the case...
 
 // Output; increment; [repeat]
-#define oti(loop)  do { \
-    BYTE x = timed_read_byte(hl); \
-    b--; \
-    PORT_ACCESS(c); \
-    out_byte(bc,x); \
-    hl++; \
-    f = (f & 1) | 0x12 | (b & 0xa8) | ((!b) << 6); \
-    if (loop) { \
-        g_nLineCycle += 5; \
-        pc -= 2; \
-    } \
-} while (0)
+#define oti(loop)       do { \
+                            BYTE x = timed_read_byte(hl); \
+                            b--; \
+                            PORT_ACCESS(c); \
+                            out_byte(bc,x); \
+                            hl++; \
+                            f = cy | (b & 0xa8) | ((!b) << 6) | F_HCARRY | F_NADD; \
+                            if (loop) { \
+                                g_nLineCycle += 5; \
+                                pc -= 2; \
+                            } \
+                        } while (0)
 
 // Output; decrement; [repeat]
-#define otd(loop)   do { \
-    BYTE x = timed_read_byte(hl); \
-    b--; \
-    PORT_ACCESS(c); \
-    out_byte(bc,x); \
-    hl--; \
-    f = (f & 1) | 0x12 | (b & 0xa8) | ((!b) << 6); \
-    if (loop) { \
-        g_nLineCycle += 5; \
-        pc -= 2; \
-    } \
-} while (0)
+#define otd(loop)       do { \
+                            BYTE x = timed_read_byte(hl); \
+                            b--; \
+                            PORT_ACCESS(c); \
+                            out_byte(bc,x); \
+                            hl--; \
+                            f = cy | (b & 0xa8) | ((!b) << 6) | F_HCARRY | F_NADD; \
+                            if (loop) { \
+                                g_nLineCycle += 5; \
+                                pc -= 2; \
+                            } \
+                        } while (0)
 
 
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+
+BYTE op = timed_read_code_byte(pc++);
+radjust++;
+
+switch(op)
 {
-    BYTE op=timed_read_code_byte(pc++);
-    radjust++;
-
-    switch(op)
-    {
-
-// in b,(c)
-in_out_c_instr(0x40)
-    input(b);
-endinstr;
-
-// out (c),b
-in_out_c_instr(0x41)
-    out_byte(bc,b);
-endinstr;
-
-// sbc hl,bc
-edinstr(0x42,4)
-    sbchl(bc);
-endinstr;
-
-// ld (nn),bc
-edinstr(0x43,4)
-    WORD addr=timed_read_code_word(pc);
-    pc += 2;
-    timed_write_word(addr,bc);
-endinstr;
-
-// neg
-edinstr(0x44,4)
-    neg;
-endinstr;
-
-// retn
-edinstr(0x45,4)
-    retn;
-endinstr;
-
-// im 0
-edinstr(0x46,4)
-    im = 0;
-endinstr;
-
-// ld i,a
-edinstr(0x47,5)
-    i = a;
-endinstr;
-
-// in c,(c)
-in_out_c_instr(0x48)
-    input(c);
-endinstr;
-
-// out (c),c
-in_out_c_instr(0x49)
-    out_byte(bc,c);
-endinstr;
-
-// adc hl,bc
-edinstr(0x4a,4)
-    adchl(bc);
-endinstr;
-
-// ld bc,(nn)
-edinstr(0x4b,4)
-    WORD addr = timed_read_code_word(pc);
-    pc += 2;
-    bc = timed_read_word(addr);
-endinstr;
 
 
-// neg
-edinstr(0x4c,4)
-    neg;
-endinstr;
-
-// retn
-edinstr(0x4d,4)
-    retn;
-endinstr;
-
-// im 0/1
-edinstr(0x4e,4)
-    im = 0;
-endinstr;
-
-// ld r,a
-edinstr(0x4f,5)
-    radjust = r = a;
-endinstr;
+edinstr(4,0100) in_c(b);                                            endinstr;   // in b,(c)
+edinstr(4,0110) in_c(c);                                            endinstr;   // in c,(c)
+edinstr(4,0120) in_c(d);                                            endinstr;   // in d,(c)
+edinstr(4,0130) in_c(e);                                            endinstr;   // in e,(c)
+edinstr(4,0140) in_c(h);                                            endinstr;   // in h,(c)
+edinstr(4,0150) in_c(l);                                            endinstr;   // in l,(c)
+edinstr(4,0160) BYTE x; in_c(x);                                    endinstr;   // in x,(c) [result discarded, but flags still set]
+edinstr(4,0170) in_c(a);                                            endinstr;   // in a,(c)
 
 
-// in d,(c)
-in_out_c_instr(0x50)
-    input(d);
-endinstr;
-
-// out (c),d
-in_out_c_instr(0x51)
-    out_byte(bc,d);
-endinstr;
-
-// sbc hl,de
-edinstr(0x52,4)
-    sbchl(de);
-endinstr;
-
-// ld (nn),de
-edinstr(0x53,4)
-    WORD addr=timed_read_code_word(pc);
-    pc += 2;
-    timed_write_word(addr,de);
-endinstr;
+edinstr(4,0101) out_c(b);                                           endinstr;   // out (c),b
+edinstr(4,0111) out_c(c);                                           endinstr;   // out (c),c
+edinstr(4,0121) out_c(d);                                           endinstr;   // out (c),d
+edinstr(4,0131) out_c(e);                                           endinstr;   // out (c),e
+edinstr(4,0141) out_c(h);                                           endinstr;   // out (c),h
+edinstr(4,0151) out_c(l);                                           endinstr;   // out (c),l
+edinstr(4,0161) out_c(0);                                           endinstr;   // out (c),0 [output zero]
+edinstr(4,0171) out_c(a);                                           endinstr;   // out (c),a
 
 
-// neg
-edinstr(0x54,4)
-    neg;
-endinstr;
+edinstr(4,0102) sbc_hl(bc);                                         endinstr;   // sbc hl,bc
+edinstr(4,0112) adc_hl(bc);                                         endinstr;   // adc hl,bc
+edinstr(4,0122) sbc_hl(de);                                         endinstr;   // sbc hl,de
+edinstr(4,0132) adc_hl(de);                                         endinstr;   // adc hl,de
+edinstr(4,0142) sbc_hl(hl);                                         endinstr;   // sbc hl,hl
+edinstr(4,0152) adc_hl(hl);                                         endinstr;   // adc hl,hl
+edinstr(4,0162) sbc_hl(sp);                                         endinstr;   // sbc hl,sp
+edinstr(4,0172) adc_hl(sp);                                         endinstr;   // adc hl,sp
 
-// retn
-edinstr(0x55,4)
-    retn;
-endinstr;
 
-// im 1
-edinstr(0x56,4)
-    im = 1;
-endinstr;
+edinstr(4,0103) ld_pnn_rr(bc);                                      endinstr;   // ld (nn),bc
+edinstr(4,0113) ld_rr_pnn(bc);                                      endinstr;   // ld bc,(nn)
+edinstr(4,0123) ld_pnn_rr(de);                                      endinstr;   // ld (nn),de
+edinstr(4,0133) ld_rr_pnn(de);                                      endinstr;   // ld de,(nn)
+edinstr(4,0143) ld_pnn_rr(hl);                                      endinstr;   // ld (nn),hl
+edinstr(4,0153) ld_rr_pnn(hl);                                      endinstr;   // ld hl,(nn)
+edinstr(4,0163) ld_pnn_rr(sp);                                      endinstr;   // ld (nn),sp
+edinstr(4,0173) ld_rr_pnn(sp);                                      endinstr;   // ld sp,(nn)
+
+
+edinstr(4,0104) neg;                                                endinstr;   // neg
+edinstr(4,0114) neg;                                                endinstr;   // neg
+edinstr(4,0124) neg;                                                endinstr;   // neg
+edinstr(4,0134) neg;                                                endinstr;   // neg
+edinstr(4,0144) neg;                                                endinstr;   // neg
+edinstr(4,0154) neg;                                                endinstr;   // neg
+edinstr(4,0164) neg;                                                endinstr;   // neg
+edinstr(4,0174) neg;                                                endinstr;   // neg
+
+
+edinstr(4,0105) retn;                                               endinstr;   // retn
+edinstr(4,0115) retn;                                               endinstr;   // retn
+edinstr(4,0125) retn;                                               endinstr;   // retn
+edinstr(4,0135) retn;                                               endinstr;   // retn
+edinstr(4,0145) ret(true);                                          endinstr;   // reti
+edinstr(4,0155) ret(true);                                          endinstr;   // reti
+edinstr(4,0165) ret(true);                                          endinstr;   // reti
+edinstr(4,0175) ret(true);                                          endinstr;   // reti
+
+
+edinstr(4,0106) im = 0;                                             endinstr;   // im 0
+edinstr(4,0116) im = 0;                                             endinstr;   // im 0/1
+edinstr(4,0126) im = 1;                                             endinstr;   // im 1
+edinstr(4,0136) im = 2;                                             endinstr;   // im 2
+edinstr(4,0146) im = 0;                                             endinstr;   // im 0
+edinstr(4,0156) im = 0;                                             endinstr;   // im 0/1
+edinstr(4,0166) im = 1;                                             endinstr;   // im 1
+edinstr(4,0176) im = 2;                                             endinstr;   // im 2
+
+
+edinstr(5,0107) i = a;                                              endinstr;   // ld i,a
+edinstr(5,0117) radjust = r = a;                                    endinstr;   // ld r,a
 
 // ld a,i
-edinstr(0x57,5)
+edinstr(5,0127)
     a = i;
-    f = (f & 1) | (a & 0xa8) | ((!a) << 6) | (iff2 << 2);
-endinstr;
-
-// in e,(c)
-in_out_c_instr(0x58)
-    input(e);
-endinstr;
-
-// out (c),e
-in_out_c_instr(0x59)
-    out_byte(bc,e);
-endinstr;
-
-// adc hl,de
-edinstr(0x5a,4)
-    adchl(de);
-endinstr;
-
-// ld de,(nn)
-edinstr(0x5b,4)
-    WORD addr = timed_read_code_word(pc);
-    pc += 2;
-    de = timed_read_word(addr);
-endinstr;
-
-// neg
-edinstr(0x5c,4)
-    neg;
-endinstr;
-
-// retn
-edinstr(0x5d,4)
-    retn;
-endinstr;
-
-// im 2
-edinstr(0x5e,4)
-    im = 2;
+    f = cy | (a & 0xa8) | ((!a) << 6) | (iff2 << 2);
 endinstr;
 
 // ld a,r
-edinstr(0x5f,5)
+edinstr(5,0137)
     // Only the bottom 7 bits of R are advanced by memory refresh, so the top bit is preserved
-    r = (r & 0x80) | (radjust & 0x7f);
-    a = r;
-    f = (f & 1) | (a & 0xa8) | ((!a) << 6) | (iff2 << 2);
-endinstr;
-
-
-// in h,(c)
-in_out_c_instr(0x60)
-    input(h);
-endinstr;
-
-// out (c),h
-in_out_c_instr(0x61)
-    out_byte(bc,h);
-endinstr;
-
-// sbc hl,hl
-edinstr(0x62,4)
-    sbchl(hl);
-endinstr;
-
-// ld (nn),hl
-edinstr(0x63,4)
-    WORD addr=timed_read_code_word(pc);
-    pc += 2;
-    timed_write_word(addr,hl);
-endinstr;
-
-// neg
-edinstr(0x64,4)
-    neg;
-endinstr;
-
-// reti
-edinstr(0x65,4)
-    ret(true);
-endinstr;
-
-// im 0
-edinstr(0x66,4)
-    im = 0;
+    a = r = (r & 0x80) | (radjust & 0x7f);
+    f = cy | (a & 0xa8) | ((!a) << 6) | (iff2 << 2);
 endinstr;
 
 // rrd
-edinstr(0x67,4)
-    BYTE t=timed_read_byte(hl);
-    BYTE u=(a<<4)|(t>>4);
-    a=(a&0xf0)|(t&0x0f);
+edinstr(4,0147)
+    BYTE t = timed_read_byte(hl);
+    BYTE u = (a << 4) | (t >> 4);
+    a = (a & 0xf0) | (t & 0x0f);
     g_nLineCycle += 4;
     timed_write_byte(hl,u);
-    f=(f&1)|(a&0xa8)|((!a)<<6)|parity(a);
-endinstr;
-
-
-// in l,(c)
-in_out_c_instr(0x68)
-    input(l);
-endinstr;
-
-// out (c),l
-in_out_c_instr(0x69)
-    out_byte(bc,l);
-endinstr;
-
-// adc hl,hl
-edinstr(0x6a,4)
-    adchl(hl);
-endinstr;
-
-// ld hl,(nn)
-edinstr(0x6b,4)
-    WORD addr = timed_read_code_word(pc);
-    pc += 2;
-    hl = timed_read_word(addr);
-endinstr;
-
-
-// neg
-edinstr(0x6c,4)
-    neg;
-endinstr;
-
-// reti
-edinstr(0x6d,4)
-    ret(true);
-endinstr;
-
-// im 0/1
-edinstr(0x6e,4)
-    im = 0;
+    f = cy | parity(a);
 endinstr;
 
 // rld
-edinstr(0x6f,4)
+edinstr(4,0157)
     BYTE t = timed_read_byte(hl);
     BYTE u = (a & 0x0f) | (t << 4);
     a = (a & 0xf0) | (t >> 4);
     g_nLineCycle += 4;
     timed_write_byte(hl,u);
-    f = (f & 1) | (a & 0xa8) | ((!a) << 6) | parity(a);
+    f = cy | parity(a);
 endinstr;
 
 
-// in x,(c)   [result discarded, but flags still set]
-in_out_c_instr(0x70)
-    BYTE x;
-    input(x);
-endinstr;
-
-// out (c),0    [output zero]
-in_out_c_instr(0x71)
-    out_byte(bc,0);
-endinstr;
-
-// sbc hl,sp
-edinstr(0x72,4)
-    sbchl(sp);
-endinstr;
-
-// ld (nn),sp
-edinstr(0x73,4)
-    WORD addr=timed_read_code_word(pc);
-    pc += 2;
-    timed_write_word(addr,sp);
-endinstr;
+edinstr(4,0240) ldi(false);                                         endinstr;   // ldi
+edinstr(4,0250) ldd(false);                                         endinstr;   // ldd
+edinstr(4,0260) ldi(bc);                                            endinstr;   // ldir
+edinstr(4,0270) ldd(bc);                                            endinstr;   // lddr
 
 
-// neg
-edinstr(0x74,4)
-    neg;
-endinstr;
-
-// reti
-edinstr(0x75,4)
-    ret(true);
-endinstr;
-
-// im 1
-edinstr(0x76,4)
-    im = 1;
-endinstr;
+edinstr(4,0241) cpi(false);                                         endinstr;   // cpi
+edinstr(4,0251) cpd(false);                                         endinstr;   // cpd
+edinstr(4,0261) cpi((f & 0x44) == 4);                               endinstr;   // cpir
+edinstr(4,0271) cpd((f & 0x44) == 4);                               endinstr;   // cpdr
 
 
-// nop for 0x77
+edinstr(5,0242) ini(false);                                         endinstr;   // ini
+edinstr(5,0252) ind(false);                                         endinstr;   // ind
+edinstr(5,0262) ini(b);                                             endinstr;   // inir
+edinstr(5,0272) ind(b);                                             endinstr;   // indr
 
 
-// in a,(c)
-in_out_c_instr(0x78)
-    input(a);
-endinstr;
+edinstr(5,0243) oti(false);                                         endinstr;   // outi
+edinstr(5,0253) otd(false);                                         endinstr;   // outd
+edinstr(5,0263) oti(b);                                             endinstr;   // otir
+edinstr(5,0273) otd(b);                                             endinstr;   // otdr
 
-// out (c),a
-in_out_c_instr(0x79)
-    out_byte(bc,a);
-endinstr;
-
-// adc hl,sp
-edinstr(0x7a,4)
-    adchl(sp);
-endinstr;
-
-// ld sp,(nn)
-edinstr(0x7b,4)
-    WORD addr = timed_read_code_word(pc);
-    pc += 2;
-    sp = timed_read_word(addr);
-endinstr;
-
-// neg
-edinstr(0x7c,4)
-    neg;
-endinstr;
-
-// reti
-edinstr(0x7d,4)
-    ret(true);
-endinstr;
-
-// im 2
-edinstr(0x7e,4)
-    im = 2;
-endinstr;
-
-// nop for 0x7f to 0x9f
-
-// ldi
-edinstr(0xa0,4)
-    ldi(false);
-endinstr;
-
-// cpi
-edinstr(0xa1,4)
-    cpi(false);
-endinstr;
-
-// ini
-edinstr(0xa2,5)
-    ini(false);
-endinstr;
-
-// outi
-edinstr(0xa3,5)
-    oti(false);
-endinstr;
-
-// nop for 0xa4 -> 0xa7
-
-// ldd
-edinstr(0xa8,4)
-    ldd(false);
-endinstr;
-
-// cpd
-edinstr(0xa9,4)
-    cpd(false);
-endinstr;
-
-// ind
-edinstr(0xaa,5)
-    ind(false);
-endinstr;
-
-// outd
-edinstr(0xab,5)
-    otd(false);
-endinstr;
-
-// nop for 0xac -> 0xaf
-
-
-
-// Note: the Z80 implements "*R" as "*" followed by JR -2.  No reason to change this...
-
-// ldir
-edinstr(0xb0,4)
-    ldi(b|c);
-endinstr;
-
-// cpir
-edinstr(0xb1,4)
-    cpi((f & 0x44) == 4);
-endinstr;
-
-// inir
-edinstr(0xb2,5)
-    ini(b);
-endinstr;
-
-// otir
-edinstr(0xb3,5)
-    oti(b);
-endinstr;
-
-// nop for 0xb4 -> 0xb7
-
-
-// lddr
-edinstr(0xb8,4)
-    ldd(b|c);
-endinstr;
-
-// cpdr
-edinstr(0xb9,4)
-    cpd((f & 0x44) == 4);
-endinstr;
-
-// indr
-edinstr(0xba,5)
-    ind(b);
-endinstr;
-
-// otdr
-edinstr(0xbb,5)
-    otd(b);
-endinstr;
-
-// nop for 0xbc -> 0xff
 
 // Anything not explicitly handled is effectively a 2 byte NOP (with predictable timing)
 // Only the first three T-States are already accounted for
 default:
     g_nLineCycle++;
     break;
-}
 }

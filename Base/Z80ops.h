@@ -43,612 +43,358 @@
 
 // Basic instruction header, specifying opcode and nominal T-States of the first M-Cycle
 // The first three T-States of the first M-Cycle are already accounted for
-#define instr(opcode, m1states) case opcode: { \
+#define instr(m1states, opcode) case opcode: { \
                                     g_nLineCycle += m1states - 3;
-#define endinstr                }; break
+#define endinstr                } break
 
 // Indirect HL instructions affected by IX/IY prefixes
-#define HLinstr(opcode)         instr(opcode, 4) \
+#define HLinstr(opcode)         instr(4, opcode) \
                                     WORD addr; \
                                     if (pHlIxIy == &hl) \
                                         addr = hl; \
                                     else { \
-                                        addr = *pHlIxIy + (signed char)timed_read_code_byte(pc); \
-                                        pc++; \
+                                        addr = *pHlIxIy + (signed char)timed_read_code_byte(pc++); \
                                         g_nLineCycle += 5; \
                                     }
 
+#define cy              (f & F_CARRY)
 
-#define cy      (f & F_CARRY)
+#define xh              (((REGPAIR*)pHlIxIy)->B.h_)
+#define xl              (((REGPAIR*)pHlIxIy)->B.l_)
 
-#define xh      (((REGPAIR*)pHlIxIy)->B.h_)
-#define xl      (((REGPAIR*)pHlIxIy)->B.l_)
+// ld (nn),r
+#define ld_pnn_r(x)     ( timed_write_byte(timed_read_code_word(pc), x), pc += 2 )
 
+// ld r,(nn)
+#define ld_r_pnn(x)     ( x = timed_read_byte(timed_read_code_word(pc)), pc += 2 )
+
+// ld (nn),rr
+#define ld_pnn_rr(x)    ( timed_write_word(timed_read_code_word(pc), x), pc += 2 )
+
+// ld rr,(nn)
+#define ld_rr_pnn(x)    ( x = timed_read_word(timed_read_code_word(pc)), pc += 2 )
 
 // 8-bit increment and decrement
 #ifdef USE_FLAG_TABLES
-#define inc(var)    ( var++, f = (f & F_CARRY) | g_abInc[var] )
-#define dec(var)    ( var--, f = (f & F_CARRY) | g_abDec[var] )
+#define inc(var)        ( var++, f = cy | g_abInc[var] )
+#define dec(var)        ( var--, f = cy | g_abDec[var] )
 #else
-#define inc(var)    ( var++, f = (f & F_CARRY) | (var & 0xa8) | ((!var) << 6) | ((!( var & 0xf)) << 4) | ((var == 0x80) << 2) )
-#define dec(var)    ( var--, f = (f & F_CARRY) | (var & 0xa8) | ((!var) << 6) | ((!(~var & 0xf)) << 4) | ((var == 0x7f) << 2) | F_NADD )
+#define inc(var)        ( var++, f = cy | (var & 0xa8) | ((!var) << 6) | ((!( var & 0xf)) << 4) | ((var == 0x80) << 2) )
+#define dec(var)        ( var--, f = cy | (var & 0xa8) | ((!var) << 6) | ((!(~var & 0xf)) << 4) | ((var == 0x7f) << 2) | F_NADD )
 #endif
 
-#define addhl(x) \
-            do /* 16-bit add */ \
-            { \
-                g_nLineCycle += 7; \
-                WORD z = (x); \
-                DWORD y = *pHlIxIy + z; \
-                f = (f & 0xc4) |                                        /* S, Z, V    */ \
-                    (((y & 0x3800) ^ ((*pHlIxIy ^ z) & 0x1000)) >> 8) | /* 5, H, 3    */ \
-                    (y >> 16);                                          /* C          */ \
-                *pHlIxIy = y; \
-            } \
-            while (0)
+// 16-bit add
+#define add_hl(x)       do { \
+                            g_nLineCycle += 7; \
+                            WORD z = (x); \
+                            DWORD y = *pHlIxIy + z; \
+                            f = (f & 0xc4) |                                        /* S, Z, V    */ \
+                                (((y & 0x3800) ^ ((*pHlIxIy ^ z) & 0x1000)) >> 8) | /* 5, H, 3    */ \
+                                (y >> 16);                                          /* C          */ \
+                            *pHlIxIy = y; \
+                        } while (0)
 
+// 8-bit add
+#define add_a(x)        add_a1((x),0)
+#define adc_a(x)        add_a1((x),cy)
+#define add_a1(x,c)     do { \
+                            BYTE z = (x); \
+                            WORD y = a + z + (c); \
+                            f = ((y & 0xb8) ^ ((a ^ z) & 0x10)) |                   /* S, 5, H, 3 */ \
+                                (y >> 8) |                                          /* C          */ \
+                                (((a ^ ~z) & (a ^ y) & 0x80) >> 5);                 /* V          */ \
+                            f |= (!(a = y)) << 6;                                   /* Z          */ \
+                        } while (0)
 
-#define adda1(x,c) \
-            do /* 8-bit add */ \
-            { \
-                BYTE z = (x); \
-                WORD y = a + z + (c); \
-                f = ((y & 0xb8) ^ ((a ^ z) & 0x10)) |                   /* S, 5, H, 3 */ \
-                    (y >> 8) |                                          /* C          */ \
-                    (((a ^ ~z) & (a ^ y) & 0x80) >> 5);                 /* V          */ \
-                f |= (!(a = y)) << 6;                                   /* Z          */ \
-            } \
-            while (0)
+// 8-bit subtract
+#define sub_a(x)        sub_a1((x),0)
+#define sbc_a(x)        sub_a1((x),cy)
+#define sub_a1(x,c)     do { \
+                            BYTE z = (x); \
+                            WORD y = a - z - (c); \
+                            f = ((y & 0xb8) ^ ((a ^ z) & 0x10)) |                   /* S, 5, H, 3 */ \
+                                ((y >> 8) & 1) |                                    /* C          */ \
+                                (((a ^ z) & (a ^ y) & 0x80) >> 5) |                 /* V          */ \
+                                2;                                                  /* N          */ \
+                            f |= (!(a = y)) << 6;                                   /* Z          */ \
+                        } while (0)
 
-#define adda(x)     adda1((x),0)
-#define adca(x)     adda1((x),cy)
-
-#define suba1(x,c) \
-            do /* 8-bit subtract */ \
-            { \
-                BYTE z = (x); \
-                WORD y = a - z - (c); \
-                f = ((y & 0xb8) ^ ((a ^ z) & 0x10)) |                   /* S, 5, H, 3 */ \
-                    ((y >> 8) & 1) |                                    /* C          */ \
-                    (((a ^ z) & (a ^ y) & 0x80) >> 5) |                 /* V          */ \
-                    2;                                                  /* N          */ \
-                f |= (!(a = y)) << 6;                                   /* Z          */ \
-            } \
-            while (0)
-
-#define suba(x)     suba1((x),0)
-#define sbca(x)     suba1((x),cy)
-
+// 8-bit compare
 // Undocumented flags added by Ian Collier
-#define cpa(x) \
-            do /* 8-bit compare */ \
-            { \
-                BYTE z = (x); \
-                WORD y = a - z; \
-                f = ((y & 0x90) ^ ((a ^ z) & 0x10)) |                   /* S, H       */ \
-                    (z & 0x28) |                                        /* 5, 3       */ \
-                    ((y >> 8) & 1) |                                    /* C          */ \
-                    (((a ^ z) & (a ^ y) & 0x80) >> 5) |                 /* V          */ \
-                    2 |                                                 /* N          */ \
-                    ((!y) << 6);                                        /* Z          */ \
-            } \
-            while (0)
+#define cp_a(x)          do { \
+                            BYTE z = (x); \
+                            WORD y = a - z; \
+                            f = ((y & 0x90) ^ ((a ^ z) & 0x10)) |                   /* S, H       */ \
+                                (z & 0x28) |                                        /* 5, 3       */ \
+                                ((y >> 8) & 1) |                                    /* C          */ \
+                                (((a ^ z) & (a ^ y) & 0x80) >> 5) |                 /* V          */ \
+                                2 |                                                 /* N          */ \
+                                ((!y) << 6);                                        /* Z          */ \
+                        } while (0)
 
-#define anda(x) /* logical and */ do{\
-                      a&=(x);\
-                      f=(a&0xa8)|((!a)<<6)|0x10|parity(a);\
-                   } while(0)
+// logical and
+#define and_a(x)        ( a &= (x), f = parity(a) | F_HCARRY )
 
-#define xora(x) /* logical xor */ do{\
-                      a^=(x);\
-                      f=(a&0xa8)|((!a)<<6)|parity(a);\
-                   } while(0)
-#define ora(x) /* logical or */ do{\
-                      a|=(x);\
-                      f=(a&0xa8)|((!a)<<6)|parity(a);\
-                   } while(0)
+// logical xor
+#define xor_a(x)        ( a ^= (x), f = parity(a) )
 
-// Jump relative if condition is true
-#define jr(cc)  do { \
-                    if (cc) { \
-                        int j = (signed char)timed_read_code_byte(pc); \
-                        pc += j+1; \
-                        g_nLineCycle += 5; \
-                    } \
-                    else { \
-                        MEM_ACCESS(pc); \
-                        pc++; \
-                    } \
-                } while(0)
+// logical or
+#define or_a(x)         ( a |= (x), f = parity(a) )
 
-// Jump absolute if condition is true
-#define jp(cc)  do { \
-                    if (cc) \
-                        pc = timed_read_code_word(pc); \
-                    else { \
-                        MEM_ACCESS(pc); \
-                        MEM_ACCESS(pc + 1); \
-                        pc += 2; \
-                    } \
-                } while(0)
+// Jump relative
+#define jr(cc)          do { \
+                            if (cc) { \
+                                int j = (signed char)timed_read_code_byte(pc++); \
+                                pc += j; \
+                                g_nLineCycle += 5; \
+                            } \
+                            else { \
+                                MEM_ACCESS(pc); \
+                                pc++; \
+                            } \
+                        } while (0)
 
-// Call if condition is true
-#define call(cc)    do { \
-                        if (cc) { \
-                            WORD npc = timed_read_code_word(pc); \
-                            g_nLineCycle++; \
-                            push(pc+2); \
-                            pc = npc; \
-                        } \
-                        else { \
-                            MEM_ACCESS(pc); \
-                            MEM_ACCESS(pc + 1); \
-                            pc += 2; \
-                        } \
-                    } while(0)
+// Jump absolute
+#define jp(cc)          do { \
+                            if (cc) \
+                                pc = timed_read_code_word(pc); \
+                            else { \
+                                MEM_ACCESS(pc); \
+                                MEM_ACCESS(pc + 1); \
+                                pc += 2; \
+                            } \
+                        } while (0)
 
-// Return if condition is true
-#define ret(cc) do { if (cc) { pop(pc); Debug::OnRet(); } } while(0)
+// Call
+#define call(cc)        do { \
+                            if (cc) { \
+                                WORD npc = timed_read_code_word(pc); \
+                                g_nLineCycle++; \
+                                push(pc+2); \
+                                pc = npc; \
+                            } \
+                            else { \
+                                MEM_ACCESS(pc); \
+                                MEM_ACCESS(pc + 1); \
+                                pc += 2; \
+                            } \
+                        } while (0)
 
-#define retn    do { iff1=iff2; ret(true); } while (0)
+// Return
+#define ret(cc)         do { if (cc) { pop(pc); Debug::OnRet(); } } while (0)
+#define retn            do { iff1 = iff2; ret(true); } while (0)
 
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-// nop
-instr(0,4)
+
+instr(4,0000)                                                       endinstr;   // nop
+instr(4,0010)   swap(af,alt_af);                                    endinstr;   // ex af,af'
+instr(5,0020)   --b; jr(b);                                         endinstr;   // djnz e
+instr(4,0030)   jr(true);                                           endinstr;   // jr e
+instr(4,0040)   jr(!(f & F_ZERO));                                  endinstr;   // jr nz,e
+instr(4,0050)   jr(f & F_ZERO);                                     endinstr;   // jr z,e
+instr(4,0060)   jr(!cy);                                            endinstr;   // jr nc,e
+instr(4,0070)   jr(cy);                                             endinstr;   // jr c,e
+
+
+instr(4,0001)   bc = timed_read_code_word(pc); pc += 2;             endinstr;   // ld bc,nn
+instr(4,0011)   add_hl(bc);                                         endinstr;   // add hl/ix/iy,bc
+instr(4,0021)   de = timed_read_code_word(pc); pc += 2;             endinstr;   // ld de,nn
+instr(4,0031)   add_hl(de);                                         endinstr;   // add hl/ix/iy,de
+instr(4,0041)   *pHlIxIy = timed_read_code_word(pc); pc += 2;       endinstr;   // ld hl/ix/iy,nn
+instr(4,0051)   add_hl(*pHlIxIy);                                   endinstr;   // add hl/ix/iy,hl/ix/iy
+instr(4,0061)   sp = timed_read_code_word(pc); pc += 2;             endinstr;   // ld sp,nn
+instr(4,0071)   add_hl(sp);                                         endinstr;   // add hl/ix/iy,sp
+
+
+instr(4,0002)   timed_write_byte(bc,a);                             endinstr;   // ld (bc),a
+instr(4,0012)   a = timed_read_byte(bc);                            endinstr;   // ld a,(bc)
+instr(4,0022)   timed_write_byte(de,a);                             endinstr;   // ld (de),a
+instr(4,0032)   a = timed_read_byte(de);                            endinstr;   // ld a,(de)
+instr(4,0042)   ld_pnn_rr(*pHlIxIy);                                endinstr;   // ld (nn),hl/ix/iy
+instr(4,0052)   ld_rr_pnn(*pHlIxIy);                                endinstr;   // ld hl/ix/iy,(nn)
+instr(4,0062)   ld_pnn_r(a);                                        endinstr;   // ld (nn),a
+instr(4,0072)   ld_r_pnn(a);                                        endinstr;   // ld a,(nn)
+
+
+instr(6,0003)   ++bc;                                               endinstr;   // inc bc
+instr(6,0013)   --bc;                                               endinstr;   // dec bc
+instr(6,0023)   ++de;                                               endinstr;   // inc de
+instr(6,0033)   --de;                                               endinstr;   // dec de
+instr(6,0043)   ++*pHlIxIy;                                         endinstr;   // inc hl/ix/iy
+instr(6,0053)   --*pHlIxIy;                                         endinstr;   // dec hl/ix/iy
+instr(6,0063)   ++sp;                                               endinstr;   // inc sp
+instr(6,0073)   --sp;                                               endinstr;   // dec sp
+
+
+instr(4,0004)   inc(b);                                             endinstr;   // inc b
+instr(4,0014)   inc(c);                                             endinstr;   // inc c
+instr(4,0024)   inc(d);                                             endinstr;   // inc d
+instr(4,0034)   inc(e);                                             endinstr;   // inc e
+instr(4,0044)   inc(xh);                                            endinstr;   // inc h/ixh/iyh
+instr(4,0054)   inc(xl);                                            endinstr;   // inc l/ixl/iyl
+HLinstr(0064)   BYTE t = timed_read_byte(addr);
+                inc(t); g_nLineCycle++;
+                timed_write_byte(addr,t);                           endinstr;   // inc (hl/ix+d/iy+d)
+instr(4,0074)   inc(a);                                             endinstr;   // inc a
+
+
+instr(4,0005)   dec(b);                                             endinstr;   // dec b
+instr(4,0015)   dec(c);                                             endinstr;   // dec c
+instr(4,0025)   dec(d);                                             endinstr;   // dec d
+instr(4,0035)   dec(e);                                             endinstr;   // dec e
+instr(4,0045)   dec(xh);                                            endinstr;   // dec h/ixh/iyh
+instr(4,0055)   dec(xl);                                            endinstr;   // dec l/ixl/iyl
+HLinstr(0065)   BYTE t = timed_read_byte(addr);
+                dec(t); g_nLineCycle++;
+                timed_write_byte(addr,t);                           endinstr;   // dec (hl/ix+d/iy+d)
+instr(4,0075)   dec(a);                                             endinstr;   // dec a
+
+
+instr(4,0006)   b = timed_read_code_byte(pc++);                     endinstr;   // ld b,n
+instr(4,0016)   c = timed_read_code_byte(pc++);                     endinstr;   // ld c,n
+instr(4,0026)   d = timed_read_code_byte(pc++);                     endinstr;   // ld d,n
+instr(4,0036)   e = timed_read_code_byte(pc++);                     endinstr;   // ld e,n
+instr(4,0046)   xh = timed_read_code_byte(pc++);                    endinstr;   // ld h/ixh/iyh,n
+instr(4,0056)   xl = timed_read_code_byte(pc++);                    endinstr;   // ld l/ixl/iyl,n
+HLinstr(0066)   timed_write_byte(addr,timed_read_code_byte(pc++));  endinstr;   // ld (hl/ix+d/iy+d),n
+instr(4,0076)   a = timed_read_code_byte(pc++);                     endinstr;   // ld a,n
+
+
+// rlca
+instr(4,0007)
+    a = (a << 1) | (a >> 7);
+    f = (f & 0xc4) | (a & 0x29);
 endinstr;
 
-// ld bc,nn
-instr(1,4)
-    bc = timed_read_code_word(pc);
-    pc += 2;
-endinstr;
-
-// ld (bc),a
-instr(2,4)
-    timed_write_byte(bc,a);
-endinstr;
-
-// inc bc
-instr(3,6)
-    bc++;
-endinstr;
-
-
-// inc b
-instr(4,4)
-    inc(b);
-endinstr;
-
-// dec b
-instr(5,4)
-    dec(b);
-endinstr;
-
-// ld b,n
-instr(6,4)
-    b = timed_read_code_byte(pc);
-    pc++;
-endinstr;
-
-// rlc a
-instr(7,4)
-    a=(a<<1)|(a>>7);
-    f=(f&0xc4)|(a&0x29);
-endinstr;
-
-
-// ex af,af'
-instr(8,4)
-    swap(af,alt_af);
-endinstr;
-
-// add hl/ix/iy,bc
-instr(9,4)
-    addhl(bc);
-endinstr;
-
-// ld a,(bc)
-instr(10,4)
-    a = timed_read_byte(bc);
-endinstr;
-
-// dec bc
-instr(11,6)
-    bc--;
-endinstr;
-
-
-// inc c
-instr(12,4)
-    inc(c);
-endinstr;
-
-// dec c
-instr(13,4)
-    dec(c);
-endinstr;
-
-// ld c,n
-instr(14,4)
-    c = timed_read_code_byte(pc);
-    pc++;
-endinstr;
-
-// rrc a
-instr(15,4)
+// rrca
+instr(4,0017)
     f = (f & 0xc4) | (a & 1);
     a = (a >> 1) | (a << 7);
     f |= a & 0x28;
 endinstr;
 
-
-// djnz e
-instr(16,5)
-    --b;
-    jr(b);
-endinstr;
-
-// ld de,nn
-instr(17,4)
-    de = timed_read_code_word(pc);
-    pc += 2;
-endinstr;
-
-// ld (de),a
-instr(18,4)
-    timed_write_byte(de,a);
-endinstr;
-
-// inc de
-instr(19,6)
-    de++;
-endinstr;
-
-
-// inc d
-instr(20,4)
-    inc(d);
-endinstr;
-
-// dec d
-instr(21,4)
-    dec(d);
-endinstr;
-
-// ld d,n
-instr(22,4)
-    d = timed_read_code_byte(pc);
-    pc++;
-endinstr;
-
 // rla
-instr(23,4)
+instr(4,0027)
     int t = a >> 7;
-    a = (a << 1) | (f & F_CARRY);
+    a = (a << 1) | cy;
     f = (f & 0xc4) | (a & 0x28) | t;
 endinstr;
 
-
-// jr e
-instr(24,4)
-    jr(true);
-endinstr;
-
-// add hl/ix/iy,de
-instr(25,4)
-    addhl(de);
-endinstr;
-
-// ld a,(de)
-instr(26,4)
-    a = timed_read_byte(de);
-endinstr;
-
-// dec de
-instr(27,6)
-    de--;
-endinstr;
-
-
-// inc e
-instr(28,4)
-    inc(e);
-endinstr;
-
-// dec e
-instr(29,4)
-    dec(e);
-endinstr;
-
-// ld e,n
-instr(30,4)
-    e = timed_read_code_byte(pc);
-    pc++;
-endinstr;
-
 // rra
-instr(31,4)
+instr(4,0037)
     int t = a & F_CARRY;
     a = (a >> 1) | (f << 7);
     f = (f & 0xc4) | (a & 0x28) | t;
 endinstr;
 
-
-// jr nz,e
-instr(32,4)
-    jr(!(f & F_ZERO));
-endinstr;
-
-// ld hl,nn
-instr(33,4)
-    *pHlIxIy = timed_read_code_word(pc);
-    pc += 2;
-endinstr;
-
-// ld (nn),hl
-instr(34,4)
-    WORD addr = timed_read_code_word(pc);
-    pc += 2;
-    timed_write_word(addr,*pHlIxIy);
-endinstr;
-
-// inc hl
-instr(35,6)
-    (*pHlIxIy)++;
-endinstr;
-
-// inc h
-instr(36,4)
-    inc(xh);
-endinstr;
-
-// dec h
-instr(37,4)
-    dec(xh);
-endinstr;
-
-// ld h,n
-instr(38,4)
-    xh = timed_read_code_byte(pc);
-    pc++;
-endinstr;
-
 // daa
-instr(39,4)
-    BYTE incr=0, carry=cy;
-
-    if ((f & 0x10) || (a & 0x0f) > 9)
-        incr=6;
-
-    if ((f & 1) || (a >> 4) > 9)
+instr(4,0047)
+    BYTE incr = 0, carry = cy;
+    if ((f & F_HCARRY) || (a & 0x0f) > 9)
+        incr = 6;
+    if (cy || (a >> 4) > 9)
         incr |= 0x60;
-
-    if (f & 2)
-        suba(incr);
+    if (f & F_NADD)
+        sub_a(incr);
     else
     {
         if (a > 0x90 && (a & 15) > 9)
-            incr|=0x60;
+            incr |= 0x60;
 
-        adda(incr);
+        add_a(incr);
     }
-
-    f = ((f | carry) & 0xfb) | parity(a);
-endinstr;
-
-// jr z,e
-instr(40,4)
-    jr(f & F_ZERO);
-endinstr;
-
-// add hl,hl
-instr(41,4)
-    addhl(*pHlIxIy);
-endinstr;
-
-// ld hl,(nn)
-instr(42,4)
-    WORD addr = timed_read_code_word(pc);
-    *pHlIxIy = timed_read_word(addr);
-    pc += 2;
-endinstr;
-
-// dec hl
-instr(43,6)
-    (*pHlIxIy)--;
-endinstr;
-
-
-// inc l
-instr(44,4)
-    inc(xl);
-endinstr;
-
-// dec l
-instr(45,4)
-    dec(xl);
-endinstr;
-
-// ld l,n
-instr(46,4)
-    xl = timed_read_code_byte(pc);
-    pc++;
+    f = (f & ~F_PARITY) | (parity(a) & F_PARITY) | carry;  // NB, parity() also gives other flags
 endinstr;
 
 // cpl
-instr(47,4)
+instr(4,0057)
     a = ~a;
-    f = (f & 0xc5) | (a & 0x28) | 0x12;
-endinstr;
-
-
-// jr nc,e
-instr(48,4)
-    jr(!(f & F_CARRY));
-endinstr;
-
-// ld sp,nn
-instr(49,4)
-    sp = timed_read_code_word(pc);
-    pc += 2;
-endinstr;
-
-// ld (nn),a
-instr(50,4)
-    WORD addr = timed_read_code_word(pc);
-    pc += 2;
-    timed_write_byte(addr,a);
-endinstr;
-
-// inc sp
-instr(51,6)
-    sp++;
-endinstr;
-
-
-// inc (hl), inc (ix+d), inc (iy+d)
-HLinstr(52)
-    BYTE t=timed_read_byte(addr);
-    inc(t);
-    g_nLineCycle++;
-    timed_write_byte(addr,t);
-endinstr;
-
-// dec (hl), dec (ix+d), dec (iy+d)
-HLinstr(53)
-    BYTE t=timed_read_byte(addr);
-    dec(t);
-    g_nLineCycle++;
-    timed_write_byte(addr,t);
-endinstr;
-
-// ld (hl),n
-HLinstr(54)
-    BYTE t=timed_read_code_byte(pc);
-    timed_write_byte(addr,t);
-    pc++;
+    f = (f & 0xc5) | (a & 0x28) | F_HCARRY | F_NADD;
 endinstr;
 
 // scf
-instr(55,4)
-    f = (f & 0xc4) | 1 | (a & 0x28);
-endinstr;
-
-
-// jr c,e
-instr(56,4)
-    jr(f & F_CARRY);
-endinstr;
-
-// add hl,sp
-instr(57,4)
-    addhl(sp);
-endinstr;
-
-// ld a,(nn)
-instr(58,4)
-    WORD addr=timed_read_code_word(pc);
-    pc += 2;
-    a=timed_read_byte(addr);
-endinstr;
-
-// dec sp
-instr(59,6)
-    sp--;
-endinstr;
-
-
-// inc a
-instr(60,4)
-    inc(a);
-endinstr;
-
-// dec a
-instr(61,4)
-    dec(a);
-endinstr;
-
-// ld a,n
-instr(62,4)
-    a=timed_read_code_byte(pc);
-    pc++;
+instr(4,0067)
+    f = (f & 0xc4) | (a & 0x28) | F_CARRY;
 endinstr;
 
 // ccf
-instr(63,4)
-    f=(f&0xc4)|(cy^F_CARRY)|(cy<<4)|(a&0x28);
+instr(4,0077)
+    f = (f & 0xc4) | (cy ^ F_CARRY) | (cy << 4) | (a & 0x28);
 endinstr;
 
 
-instr(0x40,4)   {      } endinstr;                          // ld b,b
-instr(0x41,4)   { b=c; } endinstr;                          // ld b,c
-instr(0x42,4)   { b=d; } endinstr;                          // ld b,d
-instr(0x43,4)   { b=e; } endinstr;                          // ld b,e
-instr(0x44,4)   { b=xh; } endinstr;                         // ld b,h/ixh/iyh
-instr(0x45,4)   { b=xl; } endinstr;                         // ld b,l/ixl/iyl
-HLinstr(0x46)   { b = timed_read_byte(addr); }  endinstr;   // ld b,(hl)
-instr(0x47,4)   { b=a; } endinstr;                          // ld b,a
-
-instr(0x48,4)   { c=b;  } endinstr;                         // ld c,b
-instr(0x49,4)   {      } endinstr;                          // ld c,c
-instr(0x4a,4)   { c=d; } endinstr;                          // ld c,d
-instr(0x4b,4)   { c=e; } endinstr;                          // ld c,e
-instr(0x4c,4)   { c=xh; } endinstr;                         // ld c,h/ixh/iyh
-instr(0x4d,4)   { c=xl; } endinstr;                         // ld c,l/ixl/iyl
-HLinstr(0x4e)   { c = timed_read_byte(addr); }  endinstr;   // ld c,(hl)
-instr(0x4f,4)   { c=a; } endinstr;                          // ld c,a
+instr(4,0100)                                                       endinstr;   // ld b,b
+instr(4,0110)   c = b;                                              endinstr;   // ld c,b
+instr(4,0120)   d = b;                                              endinstr;   // ld d,b
+instr(4,0130)   e = b;                                              endinstr;   // ld e,b
+instr(4,0140)   xh = b;                                             endinstr;   // ld h/ixh/iyh,b
+instr(4,0150)   xl = b;                                             endinstr;   // ld l/ixl/iyl,b
+HLinstr(0160)   timed_write_byte(addr,b);                           endinstr;   // ld (hl/ix+d/iy+d),b
+instr(4,0170)   a = b;                                              endinstr;   // ld a,b
 
 
-instr(0x50,4)   { d=b; } endinstr;                          // ld d,b
-instr(0x51,4)   { d=c; } endinstr;                          // ld d,c
-instr(0x52,4)   {      } endinstr;                          // ld d,d
-instr(0x53,4)   { d=e; } endinstr;                          // ld d,e
-instr(0x54,4)   { d=xh; } endinstr;                         // ld d,h/ixh/iyh
-instr(0x55,4)   { d=xl; } endinstr;                         // ld d,l/ixl/iyl
-HLinstr(0x56)   { d = timed_read_byte(addr); }  endinstr;   // ld d,(hl)
-instr(0x57,4)   { d=a; } endinstr;                          // ld d,a
-
-instr(0x58,4)   { e=b; } endinstr;                          // ld e,b
-instr(0x59,4)   { e=c; } endinstr;                          // ld e,c
-instr(0x5a,4)   { e=d; } endinstr;                          // ld e,d
-instr(0x5b,4)   {      } endinstr;                          // ld e,e
-instr(0x5c,4)   { e=xh; } endinstr;                         // ld e,h/ixh/iyh
-instr(0x5d,4)   { e=xl; } endinstr;                         // ld e,l/ixl/iyl
-HLinstr(0x5e)   { e = timed_read_byte(addr); }  endinstr;   // ld e,(hl)
-instr(0x5f,4)   { e=a; } endinstr;                          // ld e,a
+instr(4,0101)   b = c;                                              endinstr;   // ld b,c
+instr(4,0111)                                                       endinstr;   // ld c,c
+instr(4,0121)   d = c;                                              endinstr;   // ld d,c
+instr(4,0131)   e = c;                                              endinstr;   // ld e,c
+instr(4,0141)   xh = c;                                             endinstr;   // ld h/ixh/iyh,c
+instr(4,0151)   xl = c;                                             endinstr;   // ld l/ixl/iyl,c
+HLinstr(0161)   timed_write_byte(addr,c);                           endinstr;   // ld (hl/ix+d/iy+d),c
+instr(4,0171)   a = c;                                              endinstr;   // ld a,c
 
 
-instr(0x60,4)   { xh=b; } endinstr;                         // ld h,b (or ixh/iyh ...)
-instr(0x61,4)   { xh=c; } endinstr;                         // ld h,c
-instr(0x62,4)   { xh=d; } endinstr;                         // ld h,d
-instr(0x63,4)   { xh=e; } endinstr;                         // ld h,e
-instr(0x64,4)   {       } endinstr;                         // ld h,h
-instr(0x65,4)   { xh=xl; } endinstr;                        // ld h,l
-HLinstr(0x66)   { h = timed_read_byte(addr); }  endinstr;   // ld h,(hl) - always into h
-instr(0x67,4)   { xh=a; } endinstr;                         // ld h,a
-
-instr(0x68,4)   { xl=b; } endinstr;                         // ld l,b (or ixl/iyl ...)
-instr(0x69,4)   { xl=c; } endinstr;                         // ld l,c
-instr(0x6a,4)   { xl=d; } endinstr;                         // ld l,d
-instr(0x6b,4)   { xl=e; } endinstr;                         // ld l,e
-instr(0x6c,4)   { xl=xh; } endinstr;                        // ld l,h
-instr(0x6d,4)   {       } endinstr;                         // ld l,l
-HLinstr(0x6e)   { l = timed_read_byte(addr); }  endinstr;   // ld l,(hl) - always into l
-instr(0x6f,4)   { xl=a; } endinstr;                         // ld l,a
+instr(4,0102)   b = d;                                              endinstr;   // ld b,d
+instr(4,0112)   c = d;                                              endinstr;   // ld c,d
+instr(4,0122)                                                       endinstr;   // ld d,d
+instr(4,0132)   e = d;                                              endinstr;   // ld e,d
+instr(4,0142)   xh = d;                                             endinstr;   // ld h/ixh/iyh,d
+instr(4,0152)   xl = d;                                             endinstr;   // ld l/ixl/iyl,d
+HLinstr(0162)   timed_write_byte(addr,d);                           endinstr;   // ld (hl/ix+d/iy+d),d
+instr(4,0172)   a = d;                                              endinstr;   // ld a,d
 
 
-HLinstr(0x70)   { timed_write_byte(addr,b); } endinstr; // ld (hl),b (or (ix+d)/(iy+d) ...)
-HLinstr(0x71)   { timed_write_byte(addr,c); } endinstr;    // ld (hl),c
-HLinstr(0x72)   { timed_write_byte(addr,d); } endinstr;    // ld (hl),d
-HLinstr(0x73)   { timed_write_byte(addr,e); } endinstr;    // ld (hl),e
-HLinstr(0x74)   { timed_write_byte(addr,h); } endinstr;    // ld (hl),h
-HLinstr(0x75)   { timed_write_byte(addr,l); } endinstr;    // ld (hl),l
+instr(4,0103)   b = e;                                              endinstr;   // ld b,e
+instr(4,0113)   c = e;                                              endinstr;   // ld c,e
+instr(4,0123)   d = e;                                              endinstr;   // ld d,e
+instr(4,0133)                                                       endinstr;   // ld e,e
+instr(4,0143)   xh = e;                                             endinstr;   // ld h/ixh/iyh,e
+instr(4,0153)   xl = e;                                             endinstr;   // ld l/ixl/iyl,e
+HLinstr(0163)   timed_write_byte(addr,e);                           endinstr;   // ld (hl/ix+d/iy+d),e
+instr(4,0173)   a = e;                                              endinstr;   // ld a,e
+
+
+instr(4,0104)   b = xh;                                             endinstr;   // ld b,h/ixh/iyh
+instr(4,0114)   c = xh;                                             endinstr;   // ld c,h/ixh/iyh
+instr(4,0124)   d = xh;                                             endinstr;   // ld d,h/ixh/iyh
+instr(4,0134)   e = xh;                                             endinstr;   // ld e,h/ixh/iyh
+instr(4,0144)                                                       endinstr;   // ld h/ixh/iyh,h/ixh/iyh
+instr(4,0154)   xl = xh;                                            endinstr;   // ld l/ixh/iyh,h/ixh/iyh
+HLinstr(0164)   timed_write_byte(addr,h);                           endinstr;   // ld (hl/ix+d/iy+d),h
+instr(4,0174)   a = xh;                                             endinstr;   // ld a,h/ixh/iyh
+
+
+instr(4,0105)   b = xl;                                             endinstr;   // ld b,l/ixl/iyl
+instr(4,0115)   c = xl;                                             endinstr;   // ld c,l/ixl/iyl
+instr(4,0125)   d = xl;                                             endinstr;   // ld d,l/ixl/iyl
+instr(4,0135)   e = xl;                                             endinstr;   // ld e,l/ixl/iyl
+instr(4,0145)   xh = xl;                                            endinstr;   // ld h/ixh/iyh,l/ixl/iyl
+instr(4,0155)                                                       endinstr;   // ld l/ixl/iyl,l/ixl/iyl
+HLinstr(0165)   timed_write_byte(addr,l);                           endinstr;   // ld (hl/ix+d/iy+d),l
+instr(4,0175)   a = xl;                                             endinstr;   // ld a,l/ixl/iyl
+
+
+HLinstr(0106)   b = timed_read_byte(addr);                          endinstr;   // ld b,(hl/ix+d/iy+d)
+HLinstr(0116)   c = timed_read_byte(addr);                          endinstr;   // ld c,(hl/ix+d/iy+d)
+HLinstr(0126)   d = timed_read_byte(addr);                          endinstr;   // ld d,(hl/ix+d/iy+d)
+HLinstr(0136)   e = timed_read_byte(addr);                          endinstr;   // ld e,(hl/ix+d/iy+d)
+HLinstr(0146)   h = timed_read_byte(addr);                          endinstr;   // ld h,(hl/ix+d/iy+d)
+HLinstr(0156)   l = timed_read_byte(addr);                          endinstr;   // ld l,(hl/ix+d/iy+d)
 
 // halt
-instr(0x76,4)
+instr(4,0166)
     pc--;
 
     // Halt with interrupt disabled? (and not at the same address as a previous break)
@@ -660,288 +406,191 @@ instr(0x76,4)
     }
 endinstr;
 
-HLinstr(0x77)   { timed_write_byte(addr,a); } endinstr;    // ld (hl),a
-
-instr(0x78,4)   { a=b; } endinstr;                          // ld a,b
-instr(0x79,4)   { a=c; } endinstr;                          // ld a,c
-instr(0x7a,4)   { a=d; } endinstr;                          // ld a,d
-instr(0x7b,4)   { a=e; } endinstr;                          // ld a,e
-instr(0x7c,4)   { a=xh; } endinstr;                         // ld a,h/ixh/iyh
-instr(0x7d,4)   { a=xl; } endinstr;                         // ld a,l/ixl/iyl
-HLinstr(0x7e)   { a = timed_read_byte(addr); }  endinstr;   // ld a,(hl)
-instr(0x7f,4)   {       } endinstr;                         // ld a,a
+HLinstr(0176)   a = timed_read_byte(addr);                          endinstr;   // ld a,(hl/ix+d/iy+d)
 
 
-
-instr(0x80,4)   { adda(b); } endinstr;                      // add a,b
-instr(0x81,4)   { adda(c); } endinstr;                      // add a,c
-instr(0x82,4)   { adda(d); } endinstr;                      // add a,d
-instr(0x83,4)   { adda(e); } endinstr;                      // add a,e
-instr(0x84,4)   { adda(xh); } endinstr;                     // add a,h/ixh/iyh
-instr(0x85,4)   { adda(xl); } endinstr;                     // add a,l/ixl/iyl
-HLinstr(0x86)   { adda(timed_read_byte(addr)); } endinstr;  // add a,(hl)
-instr(0x87,4)   { adda(a); } endinstr;                      // add a,a
-
-instr(0x88,4)   { adca(b); } endinstr;                      // adc a,b
-instr(0x89,4)   { adca(c); } endinstr;                      // adc a,c
-instr(0x8a,4)   { adca(d); } endinstr;                      // adc a,d
-instr(0x8b,4)   { adca(e); } endinstr;                      // adc a,e
-instr(0x8c,4)   { adca(xh); } endinstr;                     // adc a,h/ixh/iyh
-instr(0x8d,4)   { adca(xl); } endinstr;                     // adc a,l/ixl/iyl
-HLinstr(0x8e)   { adca(timed_read_byte(addr)); } endinstr;  // adc a,(hl)
-instr(0x8f,4)   { adca(a); } endinstr;                      // adc a,a
+instr(4,0107)   b = a;                                              endinstr;   // ld b,a
+instr(4,0117)   c = a;                                              endinstr;   // ld c,a
+instr(4,0127)   d = a;                                              endinstr;   // ld d,a
+instr(4,0137)   e = a;                                              endinstr;   // ld e,a
+instr(4,0147)   xh = a;                                             endinstr;   // ld h/ixh/iyh,a
+instr(4,0157)   xl = a;                                             endinstr;   // ld l/ixl/iyl,a
+HLinstr(0167)   timed_write_byte(addr,a);                           endinstr;   // ld (hl/ix+d/iy+d),a
+instr(4,0177)                                                       endinstr;   // ld a,a
 
 
-instr(0x90,4)   { suba(b); } endinstr;                      // sub b
-instr(0x91,4)   { suba(c); } endinstr;                      // sub c
-instr(0x92,4)   { suba(d); } endinstr;                      // sub d
-instr(0x93,4)   { suba(e); } endinstr;                      // sub e
-instr(0x94,4)   { suba(xh); } endinstr;                     // sub h/ixh/iyh
-instr(0x95,4)   { suba(xl); } endinstr;                     // sub l/ixl/iyl
-HLinstr(0x96)   { suba(timed_read_byte(addr)); } endinstr;  // sub (hl)
-instr(0x97,4)   { suba(a); } endinstr;                      // sub a
-
-instr(0x98,4)   { sbca(b); } endinstr;                      // sbc a,b
-instr(0x99,4)   { sbca(c); } endinstr;                      // sbc a,c
-instr(0x9a,4)   { sbca(d); } endinstr;                      // sbc a,d
-instr(0x9b,4)   { sbca(e); } endinstr;                      // sbc a,e
-instr(0x9c,4)   { sbca(xh); } endinstr;                     // sbc a,h/ixh/iyh
-instr(0x9d,4)   { sbca(xl); } endinstr;                     // sbc a,l/ixl/iyl
-HLinstr(0x9e)   { sbca(timed_read_byte(addr)); } endinstr;  // sbc a,(hl)
-instr(0x9f,4)   { sbca(a); } endinstr;                      // sbc a,a
+instr(4,0200)   add_a(b);                                           endinstr;   // add a,b
+instr(4,0210)   adc_a(b);                                           endinstr;   // adc a,b
+instr(4,0220)   sub_a(b);                                           endinstr;   // sub b
+instr(4,0230)   sbc_a(b);                                           endinstr;   // sbc a,b
+instr(4,0240)   and_a(b);                                           endinstr;   // and b
+instr(4,0250)   xor_a(b);                                           endinstr;   // xor b
+instr(4,0260)   or_a(b);                                            endinstr;   // or b
+instr(4,0270)   cp_a(b);                                            endinstr;   // cp b
 
 
-instr(0xa0,4)   { anda(b); } endinstr;                      // and b
-instr(0xa1,4)   { anda(c); } endinstr;                      // and c
-instr(0xa2,4)   { anda(d); } endinstr;                      // and d
-instr(0xa3,4)   { anda(e); } endinstr;                      // and e
-instr(0xa4,4)   { anda(xh); } endinstr;                     // and h/ixh/iyh
-instr(0xa5,4)   { anda(xl); } endinstr;                     // and l/ixl/iyl
-HLinstr(0xa6)   { anda(timed_read_byte(addr)); } endinstr;  // and (hl)
-instr(0xa7,4)   { anda(a); } endinstr;                      // and a
-
-instr(0xa8,4)   { xora(b); } endinstr;                      // xor b
-instr(0xa9,4)   { xora(c); } endinstr;                      // xor c
-instr(0xaa,4)   { xora(d); } endinstr;                      // xor d
-instr(0xab,4)   { xora(e); } endinstr;                      // xor e
-instr(0xac,4)   { xora(xh); } endinstr;                     // xor h/ixh/iyh
-instr(0xad,4)   { xora(xl); } endinstr;                     // xor l/ixl/iyl
-HLinstr(0xae)   { xora(timed_read_byte(addr)); } endinstr;  // xor (hl)
-instr(0xaf,4)   { xora(a); } endinstr;                      // xor a
+instr(4,0201)   add_a(c);                                           endinstr;   // add a,c
+instr(4,0211)   adc_a(c);                                           endinstr;   // adc a,c
+instr(4,0221)   sub_a(c);                                           endinstr;   // sub c
+instr(4,0231)   sbc_a(c);                                           endinstr;   // sbc a,c
+instr(4,0241)   and_a(c);                                           endinstr;   // and c
+instr(4,0251)   xor_a(c);                                           endinstr;   // xor c
+instr(4,0261)   or_a(c);                                            endinstr;   // or c
+instr(4,0271)   cp_a(c);                                            endinstr;   // cp c
 
 
-instr(0xb0,4)   { ora(b); } endinstr;                       // or b
-instr(0xb1,4)   { ora(c); } endinstr;                       // or c
-instr(0xb2,4)   { ora(d); } endinstr;                       // or d
-instr(0xb3,4)   { ora(e); } endinstr;                       // or e
-instr(0xb4,4)   { ora(xh); } endinstr;                      // or h/ixh/iyh
-instr(0xb5,4)   { ora(xl); } endinstr;                      // or l/ixl/iyl
-HLinstr(0xb6)   { ora(timed_read_byte(addr)); } endinstr;   // or (hl)
-instr(0xb7,4)   { ora(a); } endinstr;                       // or a
-
-instr(0xb8,4)   { cpa(b); } endinstr;                       // cp b
-instr(0xb9,4)   { cpa(c); } endinstr;                       // cp c
-instr(0xba,4)   { cpa(d); } endinstr;                       // cp d
-instr(0xbb,4)   { cpa(e); } endinstr;                       // cp e
-instr(0xbc,4)   { cpa(xh); } endinstr;                      // cp h/ixh/iyh
-instr(0xbd,4)   { cpa(xl); } endinstr;                      // cp l/ixl/iyl
-HLinstr(0xbe)   { cpa(timed_read_byte(addr)); } endinstr;   // cp (hl)
-instr(0xbf,4)   { cpa(a); } endinstr;                       // cp a
+instr(4,0202)   add_a(d);                                           endinstr;   // add a,d
+instr(4,0212)   adc_a(d);                                           endinstr;   // adc a,d
+instr(4,0222)   sub_a(d);                                           endinstr;   // sub d
+instr(4,0232)   sbc_a(d);                                           endinstr;   // sbc a,d
+instr(4,0242)   and_a(d);                                           endinstr;   // and d
+instr(4,0252)   xor_a(d);                                           endinstr;   // xor d
+instr(4,0262)   or_a(d);                                            endinstr;   // or d
+instr(4,0272)   cp_a(d);                                            endinstr;   // cp d
 
 
-// ret nz
-instr(0xc0,5)
-    ret(!(f & F_ZERO));
+instr(4,0203)   add_a(e);                                           endinstr;   // add a,e
+instr(4,0213)   adc_a(e);                                           endinstr;   // adc a,e
+instr(4,0223)   sub_a(e);                                           endinstr;   // sub e
+instr(4,0233)   sbc_a(e);                                           endinstr;   // sbc a,e
+instr(4,0243)   and_a(e);                                           endinstr;   // and e
+instr(4,0253)   xor_a(e);                                           endinstr;   // xor e
+instr(4,0263)   or_a(e);                                            endinstr;   // or e
+instr(4,0273)   cp_a(e);                                            endinstr;   // cp e
+
+
+instr(4,0204)   add_a(xh);                                          endinstr;   // add a,h/ixh/iyh
+instr(4,0214)   adc_a(xh);                                          endinstr;   // adc a,h/ixh/iyh
+instr(4,0224)   sub_a(xh);                                          endinstr;   // sub h/ixh/iyh
+instr(4,0234)   sbc_a(xh);                                          endinstr;   // sbc a,h/ixh/iyh
+instr(4,0244)   and_a(xh);                                          endinstr;   // and h/ixh/iyh
+instr(4,0254)   xor_a(xh);                                          endinstr;   // xor h/ixh/iyh
+instr(4,0264)   or_a(xh);                                           endinstr;   // or h/ixh/iyh
+instr(4,0274)   cp_a(xh);                                           endinstr;   // cp h/ixh/iyh
+
+
+instr(4,0205)   add_a(xl);                                          endinstr;   // add a,l/ixl/iyl
+instr(4,0215)   adc_a(xl);                                          endinstr;   // adc a,l/ixl/iyl
+instr(4,0225)   sub_a(xl);                                          endinstr;   // sub l/ixl/iyl
+instr(4,0235)   sbc_a(xl);                                          endinstr;   // sbc a,l/ixl/iyl
+instr(4,0245)   and_a(xl);                                          endinstr;   // and l/ixl/iyl
+instr(4,0255)   xor_a(xl);                                          endinstr;   // xor l/ixl/iyl
+instr(4,0265)   or_a(xl);                                           endinstr;   // or l/ixl/iyl
+instr(4,0275)   cp_a(xl);                                           endinstr;   // cp l/ixl/iyl
+
+
+HLinstr(0206)   add_a(timed_read_byte(addr));                       endinstr;   // add a,(hl/ix+d/iy+d)
+HLinstr(0216)   adc_a(timed_read_byte(addr));                       endinstr;   // adc a,(hl/ix+d/iy+d)
+HLinstr(0226)   sub_a(timed_read_byte(addr));                       endinstr;   // sub (hl/ix+d/iy+d)
+HLinstr(0236)   sbc_a(timed_read_byte(addr));                       endinstr;   // sbc a,(hl/ix+d/iy+d)
+HLinstr(0246)   and_a(timed_read_byte(addr));                       endinstr;   // and (hl/ix+d/iy+d)
+HLinstr(0256)   xor_a(timed_read_byte(addr));                       endinstr;   // xor (hl/ix+d/iy+d)
+HLinstr(0266)   or_a(timed_read_byte(addr));                        endinstr;   // or (hl/ix+d/iy+d)
+HLinstr(0276)   cp_a(timed_read_byte(addr));                        endinstr;   // cp (hl/ix+d/iy+d)
+
+
+instr(4,0207)   add_a(a);                                           endinstr;   // add a,a
+instr(4,0217)   adc_a(a);                                           endinstr;   // adc a,a
+instr(4,0227)   sub_a(a);                                           endinstr;   // sub a
+instr(4,0237)   sbc_a(a);                                           endinstr;   // sbc a,a
+instr(4,0247)   and_a(a);                                           endinstr;   // and a
+instr(4,0257)   xor_a(a);                                           endinstr;   // xor a
+instr(4,0267)   or_a(a);                                            endinstr;   // or a
+instr(4,0277)   cp_a(a);                                            endinstr;   // cp a
+
+
+instr(5,0300)   ret(!(f & F_ZERO));                                 endinstr;   // ret nz
+instr(5,0310)   ret(f & F_ZERO);                                    endinstr;   // ret z
+instr(5,0320)   ret(!cy);                                           endinstr;   // ret nc
+instr(5,0330)   ret(cy);                                            endinstr;   // ret c
+instr(5,0340)   ret(!(f & F_PARITY));                               endinstr;   // ret po
+instr(5,0350)   ret(f & F_PARITY);                                  endinstr;   // ret pe
+instr(5,0360)   ret(!(f & F_NEG));                                  endinstr;   // ret p
+instr(5,0370)   ret(f & F_NEG);                                     endinstr;   // ret m
+
+instr(4,0311)   ret(true);                                          endinstr;   // ret
+
+
+instr(4,0302)   jp(!(f & F_ZERO));                                  endinstr;   // jp nz,nn
+instr(4,0312)   jp(f & F_ZERO);                                     endinstr;   // jp z,nn
+instr(4,0322)   jp(!cy);                                            endinstr;   // jp nc,nn
+instr(4,0332)   jp(cy);                                             endinstr;   // jp c,nn
+instr(4,0342)   jp(!(f & F_PARITY));                                endinstr;   // jp po,nn
+instr(4,0352)   jp(f & F_PARITY);                                   endinstr;   // jp pe,nn
+instr(4,0362)   jp(!(f & F_NEG));                                   endinstr;   // jp p,nn
+instr(4,0372)   jp(f & F_NEG);                                      endinstr;   // jp m,nn
+
+instr(4,0303)   jp(true);                                           endinstr;   // jp nn
+
+
+instr(4,0304)   call(!(f & F_ZERO));                                endinstr;   // call nz,pq
+instr(4,0314)   call(f & F_ZERO);                                   endinstr;   // call z,nn
+instr(4,0324)   call(!cy);                                          endinstr;   // call nc,nn
+instr(4,0334)   call(cy);                                           endinstr;   // call c,nn
+instr(4,0344)   call(!(f & F_PARITY));                              endinstr;   // call po
+instr(4,0354)   call(f & F_PARITY);                                 endinstr;   // call pe,nn
+instr(4,0364)   call(!(f & F_NEG));                                 endinstr;   // call p,nn
+instr(4,0374)   call(f & F_NEG);                                    endinstr;   // call m,nn
+
+instr(4,0315)   call(true);                                         endinstr;   // call nn
+
+
+instr(4,0306)   add_a(timed_read_code_byte(pc++));                  endinstr;   // add a,n
+instr(4,0316)   adc_a(timed_read_code_byte(pc++));                  endinstr;   // adc a,n
+instr(4,0326)   sub_a(timed_read_code_byte(pc++));                  endinstr;   // sub n
+instr(4,0336)   sbc_a(timed_read_code_byte(pc++));                  endinstr;   // sbc a,n
+instr(4,0346)   and_a(timed_read_code_byte(pc++));                  endinstr;   // and n
+instr(4,0356)   xor_a(timed_read_code_byte(pc++));                  endinstr;   // xor n
+instr(4,0366)   or_a(timed_read_code_byte(pc++));                   endinstr;   // or n
+instr(4,0376)   cp_a(timed_read_code_byte(pc++));                   endinstr;   // cp n
+
+
+instr(4,0301)   pop(bc);                                            endinstr;   // pop bc
+instr(4,0321)   pop(de);                                            endinstr;   // pop de
+instr(4,0341)   pop(*pHlIxIy);                                      endinstr;   // pop hl/ix/iy
+instr(4,0361)   pop(af);                                            endinstr;   // pop af
+
+instr(4,0351)   pc = *pHlIxIy;                                      endinstr;   // jp (hl/ix/iy)
+instr(6,0371)   sp = *pHlIxIy;                                      endinstr;   // ld sp,hl/ix/iy
+
+instr(4,0331)   swap(bc,alt_bc); swap(de,alt_de); swap(hl,alt_hl);  endinstr;   // exx
+
+
+instr(5,0305)   push(bc);                                           endinstr;   // push bc
+instr(5,0325)   push(de);                                           endinstr;   // push de
+instr(5,0345)   push(*pHlIxIy);                                     endinstr;   // push hl
+instr(5,0365)   push(af);                                           endinstr;   // push af
+
+instr(4,0335)   pNewHlIxIy = &ix;                                   endinstr;   // [ix prefix]
+instr(4,0375)   pNewHlIxIy = &iy;                                   endinstr;   // [iy prefix]
+
+// [ed prefix]
+instr(4,0355)
+#include "EDops.h"
 endinstr;
 
-// pop bc
-instr(0xc1,4)
-    pop(bc);
-endinstr;
-
-//jp nz,nn
-instr(0xc2,4)
-    jp(!(f&F_ZERO));
-endinstr;
-
-//jp nn
-instr(0xc3,4)
-    jp(true);
-endinstr;
-
-// call nz,pq
-instr(0xc4,4)
-    call(!(f & F_ZERO));
-endinstr;
-
-// push bc
-instr(0xc5,5)
-    push(bc);
-endinstr;
-
-// add a,n
-instr(0xc6,4)
-    adda(timed_read_code_byte(pc));
-    pc++;
-endinstr;
-
-// rst 0
-instr(0xc7,5)
-    push(pc);
-    pc=0;
-endinstr;
-
-// ret z
-instr(0xc8,5)
-    ret(f & F_ZERO);
-endinstr;
-
-// ret
-instr(0xc9,4)
-    ret(true);
-endinstr;
-
-// jp z
-instr(0xca,4)
-    jp(f & F_ZERO);
-endinstr;
 
 // [cb prefix]
-instr(0xcb,4)
+instr(4,0313)
 #include "CBops.h"
 endinstr;
 
-// call z,nn
-instr(0xcc,4)
-    call(f & F_ZERO);
-endinstr;
-
-// call nn
-instr(0xcd,4)
-    call(true);
-endinstr;
-
-// adc a,n
-instr(0xce,4)
-    adca(timed_read_code_byte(pc));
-    pc++;
-endinstr;
-
-// rst 8
-instr(0xcf,5)
-    push(pc);
-    pc = 8;
-endinstr;
-
-// ret nc
-instr(0xd0,5)
-    ret(!cy);
-endinstr;
-
-// pop de
-instr(0xd1,4)
-    pop(de);
-endinstr;
-
-// jp nc,nn
-instr(0xd2,4)
-    jp(!cy);
-endinstr;
-
 // out (n),a
-instr(0xd3,4)
-    BYTE bPortLow = timed_read_code_byte(pc);
+instr(4,0323)
+    BYTE bPortLow = timed_read_code_byte(pc++);
     PORT_ACCESS(bPortLow);
-    out_byte((a<<8) + bPortLow,a);
-    pc++;
-endinstr;
-
-// call nc,nn
-instr(0xd4,4)
-    call(!cy);
-endinstr;
-
-// push de
-instr(0xd5,5)
-    push(de);
-endinstr;
-
-// sub n
-instr(0xd6,4)
-    suba(timed_read_code_byte(pc));
-    pc++;
-endinstr;
-
-// rst 16
-instr(0xd7,5)
-    push(pc);
-    pc = 16;
-endinstr;
-
-// ret c
-instr(0xd8,5)
-    ret(cy);
-endinstr;
-
-// exx
-instr(0xd9,4)
-    swap(bc,alt_bc);
-    swap(de,alt_de);
-    swap(hl,alt_hl);
-endinstr;
-
-// jp c,nn
-instr(0xda,4)
-    jp(cy);
+    out_byte((a << 8) | bPortLow, a);
 endinstr;
 
 // in a,(n)
-instr(0xdb,4)
-    BYTE bPortLow = timed_read_code_byte(pc);
+instr(4,0333)
+    BYTE bPortLow = timed_read_code_byte(pc++);
     PORT_ACCESS(bPortLow);
-    a = in_byte((a<<8)+bPortLow);
-    pc++;
-endinstr;
-
-// call c,nn
-instr(0xdc,4)
-    call(cy);
-endinstr;
-
-// [ix prefix]
-instr(0xdd,4)
-    pNewHlIxIy = &ix;
-endinstr;
-
-// sbc a,n
-instr(0xde,4)
-    sbca(timed_read_code_byte(pc));
-    pc++;
-endinstr;
-
-// rst 24
-instr(0xdf,5)
-    push(pc);
-    pc = 24;
-endinstr;
-
-// ret po
-instr(0xe0,5)
-    ret(!(f & F_PARITY));
-endinstr;
-
-// pop hl/ix/iy
-instr(0xe1,4)
-    pop(*pHlIxIy);
-endinstr;
-
-// jp po,nn
-instr(0xe2,4)
-    jp(!(f&F_PARITY));
+    a = in_byte((a << 8) | bPortLow);
 endinstr;
 
 // ex (sp),hl
-instr(0xe3,4)
+instr(4,0343)
     WORD t = timed_read_word(sp);
     g_nLineCycle++;
     timed_write_word_reversed(sp,*pHlIxIy);
@@ -949,159 +598,17 @@ instr(0xe3,4)
     g_nLineCycle += 2;
 endinstr;
 
-// call po
-instr(0xe4,4)
-    call(!(f & F_PARITY));
-endinstr;
+instr(4,0363)   iff1 = iff2 = 0;                                    endinstr;   // di
+instr(4,0373)   iff1 = iff2 = 1;                                    endinstr;   // ei
 
-// push hl
-instr(0xe5,5)
-    push(*pHlIxIy);
-endinstr;
-
-// and n
-instr(0xe6,4)
-    anda(timed_read_code_byte(pc));
-    pc++;
-endinstr;
-
-// rst 32
-instr(0xe7,5)
-    push(pc);
-    pc = 32;
-endinstr;
-
-// ret pe
-instr(0xe8,5)
-    ret(f&4);
-endinstr;
+instr(4,0353)   swap(de,hl);                                        endinstr;   // ex de,hl
 
 
-// jp (hl), jp (ix), jp (iy)
-instr(0xe9,4)
-    pc = *pHlIxIy;
-endinstr;
-
-// jp pe,nn
-instr(0xea,4)
-    jp(f & F_PARITY);
-endinstr;
-
-// ex de,hl
-instr(0xeb,4)
-    swap(de,hl);
-endinstr;
-
-// call pe,nn
-instr(0xec,4)
-    call(f & F_PARITY);
-endinstr;
-
-
-
-// [ed prefix]
-instr(0xed,4)
-#include "EDops.h"
-endinstr;
-
-// xor n
-instr(0xee,4)
-    xora(timed_read_code_byte(pc));
-    pc++;
-endinstr;
-
-// rst 40
-instr(0xef,5)
-    push(pc);
-    pc = 40;
-endinstr;
-
-// ret p
-instr(0xf0,5)
-    ret(!(f & F_NEG));
-endinstr;
-
-
-// pop af
-instr(0xf1,4)
-    pop(af);
-endinstr;
-
-// jp p,nn
-instr(0xf2,4)
-    jp(!(f & F_NEG));
-endinstr;
-
-// di
-instr(0xf3,4)
-    iff1 = iff2 = 0;
-endinstr;
-
-// call p,nn
-instr(0xf4,4)
-    call(!(f & F_NEG));
-endinstr;
-
-// push af
-instr(0xf5,5)
-    push(af);
-endinstr;
-
-// or n
-instr(0xf6,4)
-    ora(timed_read_code_byte(pc));
-    pc++;
-endinstr;
-
-// rst 48
-instr(0xf7,5)
-    push(pc);
-    pc = 48;
-endinstr;
-
-
-
-// ret m
-instr(0xf8,5)
-    ret(f & F_NEG);
-endinstr;
-
-// ld sp,hl
-instr(0xf9,6)
-    sp = *pHlIxIy;
-endinstr;
-
-// jp m,nn
-instr(0xfa,4)
-    jp(f & F_NEG);
-endinstr;
-
-// ei
-instr(0xfb,4)
-    // According to Z80 specs, interrupts are not enabled until AFTER THE NEXT instruction
-    // In CPU.cpp we'll disallow interrupts if the previous instruction was EI or DI
-    iff1 = iff2 = 1;
-endinstr;
-
-
-// call m,nn
-instr(0xfc,4)
-    call(f & F_NEG);
-endinstr;
-
-// [iy prefix]
-instr(0xfd,4)
-    pNewHlIxIy = &iy;
-endinstr;
-
-// cp n
-instr(0xfe,4)
-    cpa(timed_read_code_byte(pc));
-    pc++;
-endinstr;
-
-// rst 56
-instr(0xff,5)
-    push(pc);
-    pc = 56;
-endinstr;
+instr(5,0307)   push(pc); pc = 000;                                 endinstr;   // rst 0
+instr(5,0317)   push(pc); pc = 010;                                 endinstr;   // rst 8
+instr(5,0327)   push(pc); pc = 020;                                 endinstr;   // rst 16
+instr(5,0337)   push(pc); pc = 030;                                 endinstr;   // rst 24
+instr(5,0347)   push(pc); pc = 040;                                 endinstr;   // rst 32
+instr(5,0357)   push(pc); pc = 050;                                 endinstr;   // rst 40
+instr(5,0367)   push(pc); pc = 060;                                 endinstr;   // rst 48
+instr(5,0377)   push(pc); pc = 070;                                 endinstr;   // rst 56

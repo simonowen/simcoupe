@@ -52,7 +52,7 @@
 
 #undef USE_FLAG_TABLES      // Experimental - disabled for now
 
-// Look up table for the parity of all byte values
+// Look up table for the parity (and other common flags) for logical operations
 BYTE g_abParity[256];
 #define parity(a) (g_abParity[a])
 
@@ -114,7 +114,7 @@ inline void Mode1Interrupt ();
 inline void Mode2Interrupt ();
 
 // Since Java has no macros, changing helpers to be inlines like this should make things easier
-inline void rflags (BYTE b_, BYTE c_) { f = c_ | (b_ & 0xa8) | ((!b_) << 6) | parity(b_); }
+inline void rflags (BYTE b_, BYTE c_) { f = c_ | parity(b_); }
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -178,12 +178,15 @@ bool CPU::Init (bool fFirstInit_/*=false*/)
     // Power on initialisation requires some extra initialisation
     if (fFirstInit_)
     {
-        // Build the parity lookup table
+        // Build the parity lookup table (including other flags for logical operations)
         for (int n = 0x00 ; n <= 0xff ; n++)
         {
             BYTE b2 = n ^ (n >> 4);
             b2 ^= (b2 << 2);
-            g_abParity[n] = ~(b2 ^ (b2 >> 1)) & F_PARITY;
+            b2 = ~(b2 ^ (b2 >> 1)) & F_PARITY;
+            g_abParity[n] = (n & 0xa8) |    // S, 5, 3
+                            ((!n) << 6) |   // Z
+                            b2;             // P
 
 #ifdef USE_FLAG_TABLES
             g_abInc[n] = (n & 0xa8) | ((!n) << 6) | ((!( n & 0xf)) << 4) | ((n == 0x80) << 2);
@@ -321,8 +324,8 @@ inline void timed_write_word_reversed (WORD addr, WORD contents)
 }
 
 // 16-bit push and pop
-#define push(val)   do { sp -= 2; timed_write_word_reversed(sp,val); } while(0)
-#define pop(var)    do { var = timed_read_word(sp); sp += 2; } while(0)
+#define push(val)   ( sp -= 2, timed_write_word_reversed(sp,val) )
+#define pop(var)    ( var = timed_read_word(sp), sp += 2 )
 
 
 // Execute the CPU event specified
@@ -643,7 +646,7 @@ void CPU::InitTests ()
     if (h)
         Message(msgFatal, "Startup test: the Z80Regs structure is the wrong endian for this platform!");
 
-#if 0   // Enable this for in-depth testing of arithmetic operations
+#if 0   // Enable this for in-depth testing of 8-bit arithmetic operations
 
 #define TEST_8(op, bit, flag, condition) \
     if (((f >> (bit)) & 1) != (condition)) \
@@ -675,9 +678,45 @@ void CPU::InitTests ()
 
         do
         {
+            // AND
+            a = b;
+            and_a(c);
+            TEST_8(AND, 0, C, 0);
+            TEST_8(AND, 1, N, 0);
+            TEST_8(AND, 2, P, (1 ^ a ^ (a >> 1) ^ (a >> 2) ^ (a >> 3) ^ (a >> 4) ^ (a >> 5) ^ (a >> 6) ^ (a >> 7)) & 1);
+            TEST_8(AND, 3, 3, (a >> 3) & 1);
+            TEST_8(AND, 4, H, 1);
+            TEST_8(AND, 5, 5, (a >> 5) & 1);
+            TEST_8(AND, 6, Z, a == 0);
+            TEST_8(AND, 7, S, (signed char)a < 0);
+
+            // OR
+            a = b;
+            or_a(c);
+            TEST_8(OR, 0, C, 0);
+            TEST_8(OR, 1, N, 0);
+            TEST_8(OR, 2, P, (1 ^ a ^ (a >> 1) ^ (a >> 2) ^ (a >> 3) ^ (a >> 4) ^ (a >> 5) ^ (a >> 6) ^ (a >> 7)) & 1);
+            TEST_8(OR, 3, 3, (a >> 3) & 1);
+            TEST_8(OR, 4, H, 0);
+            TEST_8(OR, 5, 5, (a >> 5) & 1);
+            TEST_8(OR, 6, Z, a == 0);
+            TEST_8(OR, 7, S, (signed char)a < 0);
+
+            // XOR
+            a = b;
+            xor_a(c);
+            TEST_8(XOR, 0, C, 0);
+            TEST_8(XOR, 1, N, 0);
+            TEST_8(XOR, 2, P, (1 ^ a ^ (a >> 1) ^ (a >> 2) ^ (a >> 3) ^ (a >> 4) ^ (a >> 5) ^ (a >> 6) ^ (a >> 7)) & 1);
+            TEST_8(XOR, 3, 3, (a >> 3) & 1);
+            TEST_8(XOR, 4, H, 0);
+            TEST_8(XOR, 5, 5, (a >> 5) & 1);
+            TEST_8(XOR, 6, Z, a == 0);
+            TEST_8(XOR, 7, S, (signed char)a < 0);
+
             // CP
             a = c;
-            cpa(b);
+            cp_a(b);
             a = c - b;
             TEST_8(CP, 0, C, c - b != a);
             TEST_8(CP, 1, N, 1);
@@ -693,7 +732,7 @@ void CPU::InitTests ()
                 // 8-bit ADD/ADC (common routine for both)
                 a = c;
                 f = carry;
-                adca(b);
+                adc_a(b);
                 TEST_8(ADD/ADC A, 0, C, c + b + carry != a);
                 TEST_8(ADD/ADC A, 1, N, 0);
                 TEST_8(ADD/ADC A, 2, V, (signed char)c + (signed char)b + carry != (signed char)a);
@@ -706,7 +745,7 @@ void CPU::InitTests ()
                 // 8-bit SUB/SBC (common routine for both)
                 a = c;
                 f = carry;
-                sbca(b);
+                sbc_a(b);
                 TEST_8(SUB/SBC A, 0, C, c - b - carry != a);
                 TEST_8(SUB/SBC A, 1, N, 1);
                 TEST_8(SUB/SBC A, 2, V, (signed char)c - (signed char)b - carry != (signed char)a);
@@ -716,13 +755,14 @@ void CPU::InitTests ()
                 TEST_8(SUB/SBC A, 6, Z, a == 0);
                 TEST_8(SUB/SBC A, 7, S, (signed char)a < 0);
 
+#if 1   // Enable this for in-depth testing of 16-bit arithmetic operations
                 do
                 {
                     // 16-bit ADD (separate routine from ADC)
                     // Use the two carry states to test unaffected flags remain unchanged
                     hl = de;
                     f = -carry;
-                    addhl(bc);
+                    add_hl(bc);
                     TEST_16(ADD HL, 0, C, de + bc != hl);
                     TEST_16(ADD HL, 1, N, 0);
                     TEST_16(ADD HL, 2, V, carry);
@@ -735,7 +775,7 @@ void CPU::InitTests ()
                     // 16-bit ADC (separate routine from ADD)
                     hl = de;
                     f = carry;
-                    adchl(bc);
+                    adc_hl(bc);
                     TEST_16(ADC HL, 0, C, de + bc + carry != hl);
                     TEST_16(ADC HL, 1, N, 0);
                     TEST_16(ADC HL, 2, V, (signed short)de + (signed short)bc + carry != (signed short)hl);
@@ -748,7 +788,7 @@ void CPU::InitTests ()
                     // 16-bit SBC
                     hl = de;
                     f = carry;
-                    sbchl(bc);
+                    sbc_hl(bc);
                     TEST_16(SBC HL, 0, C, de - bc - carry != hl);
                     TEST_16(SBC HL, 1, N, 1);
                     TEST_16(SBC HL, 2, V, (signed short)de - (signed short)bc - carry != (signed short)hl);
@@ -759,6 +799,7 @@ void CPU::InitTests ()
                     TEST_16(SBC HL, 7, S, (signed short)hl < 0);
                 }
                 while ((++d, ++e) != 0);   // Doing the full range of de takes too long...
+#endif  // 16-bit tests (which can take a while)
             }
             while ((carry = !carry) != 0);
         }
@@ -769,5 +810,5 @@ void CPU::InitTests ()
 #undef TEST_16
 #undef TEST_8
 
-#endif
+#endif  // 8-bit tests
 }
