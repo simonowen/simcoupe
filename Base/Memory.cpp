@@ -54,7 +54,7 @@ BYTE* apbSectionWritePtrs[4];
 
 // Look-up tables for fast mapping between mode 1 display addresses and line numbers
 WORD g_awMode1LineToByte[SCREEN_LINES];
-BYTE g_abMode1ByteToLine[SCREEN_LINES*SCREEN_BLOCKS];
+BYTE g_abMode1ByteToLine[SCREEN_LINES];
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -105,10 +105,10 @@ bool Memory::Init (bool fFirstInit_/*=false*/)
 
 
     // Build the tables for fast mapping between mode 1 display addresses and line numbers
-    for (int nOffset = 0 ; nOffset < (int)sizeof g_abMode1ByteToLine ; nOffset++)
+    for (UINT uOffset = 0 ; uOffset < SCREEN_LINES ; uOffset++)
     {
-        g_abMode1ByteToLine[nOffset] = ((nOffset >> 5) & 0xc0) + ((nOffset >> 2) & 0x38) + ((nOffset >> 8) & 0x07);
-        g_awMode1LineToByte[g_abMode1ByteToLine[nOffset]] = (nOffset & ~0x1f);
+        g_abMode1ByteToLine[uOffset] = (uOffset & 0xc0) + ((uOffset << 3) & 0x38) + ((uOffset >> 3) & 0x07);
+        g_awMode1LineToByte[g_abMode1ByteToLine[uOffset]] = uOffset << 5;
     }
 
     // Load the ROMs, using the second file if the first doesn't contain both
