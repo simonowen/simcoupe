@@ -22,6 +22,8 @@
 //   - button repeat on scrollbar
 //   - add extra message box buttons
 //   - regular list box?
+//   - use icon for button arrows?
+//   - edit box cursor positioning
 
 #include "SimCoupe.h"
 #include <ctype.h>
@@ -121,15 +123,15 @@ bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 
 bool GUI::Start (CWindow* pGUI_)
 {
-    // If the GUI is active, we can only add message boxes
-    if (s_pGUI && pGUI_->GetType() != ctMessageBox)
+    // Reject the new GUI if it's already running
+    if (s_pGUI)
     {
         // Delete the supplied object tree and return failure
         delete pGUI_;
         return false;
     }
 
-    // Set the top-level GUI object
+    // Set the top level window
     s_pGUI = pGUI_;
 
     // Position the cursor off-screen, so ensure the first drawn position matches the native OS position
@@ -138,6 +140,8 @@ bool GUI::Start (CWindow* pGUI_)
     // Dim the background SAM screen and steal keyboard/mouse input
     Video::CreatePalettes();
     Input::Acquire(false, false);
+    Sound::Stop();
+    Sound::Silence();
 
     return true;
 }
@@ -151,6 +155,7 @@ void GUI::Stop ()
     // Restore the normal SAM palette
     Video::CreatePalettes();
     Display::SetDirty();
+    Sound::Play();
 
     // Give keyboard input back to the emulation
     Input::Acquire(false, true);
@@ -219,7 +224,7 @@ const RGBA* GUI::GetPalette ()
 ////////////////////////////////////////////////////////////////////////////////
 
 CWindow::CWindow (CWindow* pParent_/*=NULL*/, int nX_/*=0*/, int nY_/*=0*/, int nWidth_/*=0*/, int nHeight_/*=0*/, int nType_/*=ctUnknown*/)
-    : m_nX(nX_), m_nY(nY_), m_nWidth(nWidth_), m_nHeight(nHeight_), m_nType(nType_), m_pcszText(NULL), m_fEnabled(true), m_fHover(false),
+    : m_nX(nX_), m_nY(nY_), m_nWidth(nWidth_), m_nHeight(nHeight_), m_nType(nType_), m_pszText(NULL), m_fEnabled(true), m_fHover(false),
         m_pParent(NULL), m_pChildren(NULL), m_pNext(NULL), m_pActive(NULL)
 {
     if (pParent_)
@@ -243,7 +248,7 @@ CWindow::~CWindow ()
         delete pChild;
     }
 
-    delete m_pcszText;
+    delete m_pszText;
 }
 
 
@@ -346,11 +351,12 @@ void CWindow::SetParent (CWindow* pParent_/*=NULL*/)
 
 void CWindow::Destroy ()
 {
-    if (GetParent())
+    if (m_pParent)
     {
-        // Activate the parent and unlink us from it
-        GetParent()->Activate();
+        // Unlink us from the parent, and activate it once we're gone
+        CWindow* pParent = m_pParent;
         SetParent(NULL);
+        pParent->Activate();
     }
 
     // Schedule the object to be deleted when safe
@@ -367,12 +373,9 @@ void CWindow::Activate ()
 
 void CWindow::SetText (const char* pcszText_)
 {
-    if (!pcszText_)
-        pcszText_ = "";
-
     // Delete any old string and make a copy of the new one (take care in case the new string is the old one)
-    char* pcszOld = m_pcszText;
-    strcpy(m_pcszText = new char[strlen(pcszText_)+1], pcszText_);
+    char* pcszOld = m_pszText;
+    strcpy(m_pszText = new char[strlen(pcszText_)+1], pcszText_);
     delete pcszOld;
 }
 
@@ -435,8 +438,9 @@ void CWindow::Move (int nX_, int nY_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CTextControl::CTextControl (CWindow* pParent_/*=NULL*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, BYTE bColour_/*=WHITE*/)
-    : CWindow(pParent_, nX_, nY_, 0, 0, ctText), m_bColour(bColour_)
+CTextControl::CTextControl (CWindow* pParent_/*=NULL*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/,
+    BYTE bColour_/*=WHITE*/, BYTE bBackColour_/*=0*/)
+    : CWindow(pParent_, nX_, nY_, 0, 0, ctText), m_bColour(bColour_), m_bBackColour(bBackColour_)
 {
     SetText(pcszText_);
     m_nWidth = GetTextWidth();
@@ -444,6 +448,9 @@ CTextControl::CTextControl (CWindow* pParent_/*=NULL*/, int nX_/*=0*/, int nY_/*
 
 void CTextControl::Draw (CScreen* pScreen_)
 {
+    if (m_bBackColour)
+        pScreen_->FillRect(m_nX-1, m_nY-1, GetTextWidth()+2, 14, m_bBackColour);
+
     pScreen_->DrawString(m_nX, m_nY, GetText(), IsEnabled() ? m_bColour : GREY_5);
 }
 
@@ -598,8 +605,10 @@ void CDownButton::Draw (CScreen* pScreen_)
 const int PRETEXT_GAP = 5;
 const int BOX_SIZE = 11;
 
-CCheckBox::CCheckBox (CWindow* pParent_/*=NULL*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/)
-    : CWindow(pParent_, nX_, nY_, 0, BOX_SIZE, ctCheckBox), m_fChecked(false)
+CCheckBox::CCheckBox (CWindow* pParent_/*=NULL*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/,
+    BYTE bColour_/*=WHITE*/, BYTE bBackColour_/*=0*/)
+    : CWindow(pParent_, nX_, nY_, 0, BOX_SIZE, ctCheckBox),
+    m_fChecked(false), m_bColour(bColour_), m_bBackColour(bBackColour_)
 {
     SetText(pcszText_);
 }
@@ -614,6 +623,17 @@ void CCheckBox::SetText (const char* pcszText_)
 
 void CCheckBox::Draw (CScreen* pScreen_)
 {
+    // Draw the text to the right of the box, grey if the control is disabled
+    int nX = m_nX + BOX_SIZE + PRETEXT_GAP;
+    int nY = m_nY + (BOX_SIZE-CHAR_HEIGHT)/2 + 1;
+
+    // Fill the background if required
+    if (m_bBackColour)
+        pScreen_->FillRect(m_nX-1, m_nY-1, BOX_SIZE + PRETEXT_GAP+GetTextWidth()+2, BOX_SIZE+2, m_bBackColour);
+
+    // Draw the label text
+    pScreen_->DrawString(nX, nY, GetText(), IsEnabled() ? (IsActive() ? YELLOW_8 : m_bColour) : GREY_5);
+
     // Draw the empty check box
     pScreen_->FrameRect(m_nX, m_nY, BOX_SIZE, BOX_SIZE, !IsEnabled() ? GREY_5 : IsActive() ? YELLOW_8 : CUSTOM_2);
 
@@ -637,11 +657,6 @@ void CCheckBox::Draw (CScreen* pScreen_)
     // Box checked?
     if (m_fChecked)
         pScreen_->DrawImage(m_nX, m_nY, 11, 11, reinterpret_cast<BYTE*>(abCheck), IsEnabled() ? abEnabled : abDisabled);
-
-    // Draw the text to the right of the box, grey if the control is disabled
-    int nX = m_nX + BOX_SIZE + PRETEXT_GAP;
-    int nY = m_nY + (BOX_SIZE-CHAR_HEIGHT)/2 + 1;
-    pScreen_->DrawString(nX, nY, GetText(), IsEnabled() ? (IsActive() ? YELLOW_8 : GREY_7) : GREY_5);
 }
 
 bool CCheckBox::OnMessage (int nMessage_, int nParam1_, int nParam2_)
@@ -694,13 +709,12 @@ bool CCheckBox::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const size_t MAX_EDIT_LENGTH = 256;
+const size_t MAX_EDIT_LENGTH = 250;
 
 CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_/*=""*/)
     : CWindow(pParent_, nX_, nY_, nWidth_, CHAR_HEIGHT+5, ctEdit)
 {
-    // Allocate the fixed maximum size, and copy the initial text into it
-    strcpy(m_pcszText = new char[MAX_EDIT_LENGTH+1], pcszText_);
+    SetText(pcszText_);
 }
 
 void CEditControl::Draw (CScreen* pScreen_)
@@ -751,11 +765,18 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
             switch (nParam1_)
             {
+                case GK_UP:
+                case GK_DOWN:
+                case GK_LEFT:
+                case GK_RIGHT:
+                    // Eat these for future cursor handling
+                    return true;
+
                 // Backspace deletes the last character
                 case '\b':
-                    if (*m_pcszText)
+                    if (*m_pszText)
                     {
-                        m_pcszText[strlen(m_pcszText)-1] = '\0';
+                        m_pszText[strlen(m_pszText)-1] = '\0';
                         NotifyParent();
                     }
                     return true;
@@ -768,8 +789,8 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                         size_t nLen = strlen(GetText());
                         if (nLen < MAX_EDIT_LENGTH)
                         {
-                            m_pcszText[nLen] = nParam1_;
-                            m_pcszText[nLen+1] = '\0';
+                            char sz[MAX_EDIT_LENGTH+1], szNew[2] = { nParam1_, '\0' };
+                            SetText(strcat(strcpy(sz, GetText()), szNew));
                             NotifyParent();
                         }
 
@@ -1017,6 +1038,7 @@ bool CMenu::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             }
             return true;
 
+        case GM_BUTTONDBLCLK:
         case GM_BUTTONDOWN:
             // Button clicked (held?) on the menu, so remember it's happened
             if (IsOver())
@@ -1097,7 +1119,7 @@ const int COMBO_BORDER = 3;
 const int COMBO_HEIGHT = COMBO_BORDER + CHAR_HEIGHT + COMBO_BORDER;
 
 CComboBox::CComboBox (CWindow* pParent_/*=NULL*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nWidth_/*=0*/)
-    : CWindow(pParent_, nX_, nY_, nWidth_, COMBO_HEIGHT, ctButton),
+    : CWindow(pParent_, nX_, nY_, nWidth_, COMBO_HEIGHT, ctComboBox),
     m_nItems(0), m_nSelected(0), m_fPressed(false), m_pDropList(NULL)
 {
     SetText(pcszText_);
@@ -1403,9 +1425,9 @@ bool IsPrefix (const char* pcszPrefix_, const char* pcszName_)
 }
 
 
-CListView::CListView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
+CListView::CListView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, int nItemOffset_/*=0*/)
     : CWindow(pParent_, nX_, nY_, nWidth_, nHeight_, ctListView),
-    m_nItems(0), m_nSelected(0), m_nHoverItem(0), m_nAcross(0), m_nDown(0), m_pItems(NULL)
+    m_nItems(0), m_nSelected(0), m_nHoverItem(0), m_nAcross(0), m_nDown(0), m_nItemOffset(nItemOffset_), m_pItems(NULL)
 {
     // Create a scrollbar to cover the overall height, scrolling if necessary
     m_pScrollBar = new CScrollBar(this, m_nWidth-SCROLLBAR_WIDTH, 0, m_nHeight, 0, ITEM_SIZE);
@@ -1487,10 +1509,15 @@ void CListView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const
 {
     // If this is the selected item, draw a box round it (darkened if the control isn't active)
     if (nItem_ == m_nSelected)
-        pScreen_->FrameRect(nX_, nY_, ITEM_SIZE, ITEM_SIZE, IsActive() ? WHITE : GREY_6);
+    {
+        if (IsActive())
+            pScreen_->FillRect(nX_+1, nY_+1, ITEM_SIZE-2, ITEM_SIZE-2, BLUE_2);
+
+        pScreen_->FrameRect(nX_, nY_, ITEM_SIZE, ITEM_SIZE, IsActive() ? GREY_7 : GREY_5);
+    }
 
     if (pItem_->m_pIcon)
-        pScreen_->DrawImage(nX_+(ITEM_SIZE-ICON_SIZE)/2, nY_+5, ICON_SIZE, ICON_SIZE,
+        pScreen_->DrawImage(nX_+(ITEM_SIZE-ICON_SIZE)/2, nY_+m_nItemOffset+5, ICON_SIZE, ICON_SIZE,
                             reinterpret_cast<const BYTE*>(pItem_->m_pIcon->abData), pItem_->m_pIcon->abPalette);
 
     const char* pcsz = pItem_->m_pszLabel;
@@ -1545,17 +1572,24 @@ void CListView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const
         }
 
         // Output the two text lines using the small font, each centralised below the icon
+        nY_ += m_nItemOffset+42;
         pScreen_->SetFont(&sOldFont);
-        pScreen_->DrawString(nX_+(ITEM_SIZE-pScreen_->GetStringWidth(szLines[0]))/2, nY_+42, szLines[0], WHITE);
-        pScreen_->DrawString(nX_+(ITEM_SIZE-pScreen_->GetStringWidth(szLines[1]))/2, nY_+42+12, szLines[1], WHITE);
+        pScreen_->DrawString(nX_+(ITEM_SIZE-pScreen_->GetStringWidth(szLines[0]))/2, nY_, szLines[0], WHITE);
+        pScreen_->DrawString(nX_+(ITEM_SIZE-pScreen_->GetStringWidth(szLines[1]))/2, nY_+12, szLines[1], WHITE);
         pScreen_->SetFont(&sGUIFont);
     }
+}
+
+// Erase the control background
+void CListView::EraseBackground (CScreen* pScreen_)
+{
+    pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, BLUE_1);
 }
 
 void CListView::Draw (CScreen* pScreen_)
 {
     // Fill the main background of the control
-    pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, BLUE_1);
+    EraseBackground(pScreen_);
 
     // Fetch the current scrollbar position
     int nScrollPos = m_pScrollBar->GetPos();
@@ -1579,6 +1613,7 @@ void CListView::Draw (CScreen* pScreen_)
     pScreen_->SetClip();
     CWindow::Draw(pScreen_);
 }
+
 
 bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 {
@@ -1886,23 +1921,6 @@ const GUI_ICON* CFileView::GetFileIcon (const char* pcszFile_)
 }
 
 
-void CFileView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const CListViewItem* pItem_)
-{
-    CListView::DrawItem(pScreen_, nItem_, nX_, nY_, pItem_);
-/*
-    if (pItem_->m_pIcon == &sDiskIcon)
-    {
-        static char* aszDiskTypes[] = { "DSK", "SAD", "SDF", "SBT" };
-
-        pScreen_->SetFont(&sOldFont);
-        pScreen_->DrawString(nX_+(ITEM_SIZE/2)-(pScreen_->GetStringWidth(aszDiskTypes[nDiskType-1])/2),
-                                nY_+22, aszDiskTypes[nDiskType-1], BLACK);
-        pScreen_->SetFont(&sGUIFont);
-    }
-*/
-}
-
-
 // Get the full path of the current item
 const char* CFileView::GetFullPath () const
 {
@@ -2132,7 +2150,6 @@ CFrameControl::CFrameControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, 
 {
 }
 
-
 void CFrameControl::Draw (CScreen* pScreen_)
 {
     // If we've got a fill colour, use it now
@@ -2159,11 +2176,39 @@ CDialog::CDialog (CWindow* pParent_, int nWidth_, int nHeight_, const char* pcsz
 {
     SetText(pcszCaption_);
 
-    // Centralise the dialog on the screen by default
-    int nX = (Frame::GetWidth() - m_nWidth) >> 1, nY = (Frame::GetHeight() - m_nHeight) >> 1;
-    Move(nX, nY);
+    Centre();
+    CWindow::Activate();
+}
 
-    Activate();
+
+void CDialog::Centre ()
+{
+    // Centralise the dialog over the parent, or the full display if there isn't one
+    if (!m_pParent)
+        Move((Frame::GetWidth() - m_nWidth) >> 1, (Frame::GetHeight() - m_nHeight) >> 1);
+    else
+    {
+        int nX = GetParent()->m_nX, nY = GetParent()->m_nY;
+        nX += (GetParent()->m_nWidth - m_nWidth) >> 1;
+        nY += (GetParent()->m_nHeight - m_nHeight) >> 1;
+        Move(nX, nY);
+    }
+}
+
+// Activating the dialog will activate the first child control that accepts focus
+void CDialog::Activate ()
+{
+    // If there's no active window on the dialog, activate the tab-stop
+    if (m_pChildren)
+    {
+        // Look for the first control with a tab-stop
+        CWindow* p;
+        for (p = m_pChildren ; p && !p->IsTabStop() ; p = p->GetNext());
+
+        // If we found one, activate it
+        if (p)
+            p->Activate();
+    }
 }
 
 bool CDialog::HitTest (int nX_, int nY_)
@@ -2172,8 +2217,18 @@ bool CDialog::HitTest (int nX_, int nY_)
     return (nX_ >= m_nX-1) && (nX_ < (m_nX+m_nWidth+1)) && (nY_ >= m_nY-TITLE_HEIGHT) && (nY_ < (m_nY+m_nHeight+1));
 }
 
+// Fill the dialog background
+void CDialog::EraseBackground (CScreen* pScreen_)
+{
+    pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, m_nBodyColour);
+}
+
 void CDialog::Draw (CScreen* pScreen_)
 {
+    // Make sure there's always an active control
+    if (!m_pActive)
+        Activate();
+
 #if 0
     // Debug crosshairs to track mapped GUI cursor position
     pScreen_->DrawLine(GUI::s_nX, 0, 0, pScreen_->GetHeight(), WHITE);
@@ -2181,7 +2236,7 @@ void CDialog::Draw (CScreen* pScreen_)
 #endif
 
     // Fill dialog background and draw a 3D frame
-    pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, m_nBodyColour);
+    EraseBackground(pScreen_);
     pScreen_->FrameRect(m_nX-2, m_nY-TITLE_HEIGHT-2, m_nWidth+3, m_nHeight+TITLE_HEIGHT+3, DIALOG_FRAME_COLOUR);
     pScreen_->FrameRect(m_nX-1, m_nY-TITLE_HEIGHT-1, m_nWidth+3, m_nHeight+TITLE_HEIGHT+3, DIALOG_FRAME_COLOUR-2);
     pScreen_->Plot(m_nX+m_nWidth+1, m_nY-TITLE_HEIGHT-2, DIALOG_FRAME_COLOUR);
@@ -2199,6 +2254,7 @@ void CDialog::Draw (CScreen* pScreen_)
     CWindow::Draw(pScreen_);
 }
 
+
 bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 {
     // Pass to the active control, then the base implementation for the remaining child controls
@@ -2215,26 +2271,45 @@ bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 case '\t':
                 {
                     // Loop until we find an enabled control to stop on
-                    do {
-                        m_pActive = !m_pActive ? GetChildren() : nParam2_ ? m_pActive->GetPrev(true) : m_pActive->GetNext(true);
-                    }
-                    while (!m_pActive->IsTabStop() || !m_pActive->IsEnabled());
+                    while (m_pActive)
+                    {
+                        m_pActive = nParam2_ ? m_pActive->GetPrev(true) : m_pActive->GetNext(true);
 
-                    // Activate the control to show it has the focus
-                    m_pActive->Activate();
+                        // Stop once we find a suitable control
+                        if (m_pActive->IsTabStop() && m_pActive->IsEnabled())
+                            break;
+                    }
+
                     return true;
                 }
 
                 // Cursor left or right moves between controls of the same type
                 case GK_LEFT:
                 case GK_RIGHT:
+                case GK_UP:
+                case GK_DOWN:
                 {
-                    CWindow* pActive = !m_pActive ? GetChildren() :
-                        (nParam1_ == GK_LEFT) ? m_pActive->GetPrev(true) : m_pActive->GetNext(true);
+                    // Determine the next control 
+                    bool fPrev = (nParam1_ == GK_LEFT) || (nParam1_ == GK_UP);
 
-                    // Activate the next/previous control if it's the same type
-                    if (pActive && pActive->GetType() == GetType())
-                        (m_pActive = pActive)->Activate();
+                    // Look for the next enabled/tabstop control of the same type
+                    
+                    for (CWindow* p = m_pActive ; p ; )
+                    {
+                        p = fPrev ? p->GetPrev(true) : p->GetNext(true);
+                        
+                        // Stop if we're found a different control type
+                        if (p->GetType() != m_pActive->GetType())
+                            break;
+
+                        // If we've found a suitable control, activate it
+                        else if (p->IsEnabled() && p->IsTabStop())
+                        {
+                            p->Activate();
+                            break;
+                        }
+                    }
+
                     return true;
                 }
 
