@@ -287,9 +287,13 @@ void RasterComplete ()
 
 void Frame::Complete ()
 {
+    nFrame++;
+
     // Was the current frame drawn?
     if (fDrawFrame)
     {
+        nDrawnFrames++;
+
         if (!GUI::IsModal())
         {
             Update();
@@ -313,9 +317,6 @@ void Frame::Complete ()
             // Overlay the GUI over the SAM display
             GUI::Draw(g_pGuiScreen);
             Flip(g_pGuiScreen);
-
-            // Frame::End is not called, so we need to advance the frame counter manually
-            nFrame++;
         }
         else
         {
@@ -327,7 +328,9 @@ void Frame::Complete ()
         Redraw();
     }
 
-    Sync();
+    // Unless we're fast booting, sync to 50Hz and decide whether we should draw the next frame
+    if (!g_nFastBooting)
+        Sync();
 }
 
 // Start of frame
@@ -336,30 +339,21 @@ void Frame::Start ()
     // Last drawn position is the start of the frame
     nLastLine = nLastBlock = 0;
 
+    // Set up for drawing with the appropriate render object
     bool fHiRes = (vmpr_mode == MODE_3) && (s_nViewTop >= TOP_BORDER_LINES);
     g_pScreen->SetHiRes(0, fHiRes);
     g_pFrame = fHiRes ? pFrameHigh : pFrameLow;
-}
 
-// End of frame
-void Frame::End ()
-{
-    nFrame++;
-
-    if (fDrawFrame)
-        nDrawnFrames++;
-
-    // Toggle paper/ink colours every 16 frames for the flash attribute in modes 1 and 2
-    static int nFrame = 0;
-    if (!(++nFrame % 16))
+    // Toggle paper/ink colours every 16 emulated frames for the flash attribute in modes 1 and 2
+    static int nFlash = 0;
+    if (!(++nFlash % 16))
         g_fFlashPhase = !g_fFlashPhase;
 
     // If the status line has been visible long enough, hide it
     if (szStatus[0] && ((OSD::GetTime() - dwStatusTime) > STATUS_ACTIVE_TIME))
         szStatus[0] = '\0';
-
-    Start();
 }
+
 
 void Frame::Sync ()
 {
