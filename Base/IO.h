@@ -25,6 +25,16 @@
 
 #include "Sound.h"
 
+typedef struct
+{
+    BYTE    bRed;
+    BYTE    bGreen;
+    BYTE    bBlue;
+    BYTE    bAlpha;     // Likely to be only needed for 3D surfaces
+}
+RGBA;
+
+
 class IO
 {
     public:
@@ -41,6 +51,7 @@ class IO
         static void Out (WORD wPort_, BYTE bVal_);
 
         static void FrameUpdate ();
+        static const RGBA* GetPalette (bool fDimmed_=false);
 };
 
 

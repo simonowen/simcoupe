@@ -158,6 +158,9 @@ class CDisk
         virtual BYTE WriteData (BYTE* pbData_, UINT* puSize_) = 0;
         virtual bool Save () = 0;
         virtual BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_) = 0;
+        virtual bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_) { return false; }
+        virtual void WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_) { }
+        virtual void AbortAsyncOp () { }
 
     protected:
         UINT m_uSides, m_uTracks, m_uSectors, m_uSectorSize;
@@ -170,7 +173,7 @@ class CDisk
 
     protected:
         void SetModified (bool fModified_=true) { m_fModified = fModified_; }
-        
+
 };
 
 
@@ -228,7 +231,7 @@ class CSDFDisk : public CDisk
         BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
 
     protected:
-        SDF_TRACK_HEADER* m_pTrack;     // Last track 
+        SDF_TRACK_HEADER* m_pTrack;     // Last track
         SDF_SECTOR_HEADER* m_pFind;     // Last sector found with FindNext()
 };
 
@@ -271,6 +274,9 @@ class CFloppyDisk : public CDisk
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
         BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
+        bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_);
+        void WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_);
+        void AbortAsyncOp ();
 
     protected:
         CFloppyStream* m_pFloppy;

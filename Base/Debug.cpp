@@ -27,7 +27,17 @@
 //  and register view!
 
 // ToDo:
-//  - er, the actual implementation? ;-)
+//  - the new implementation using the new GUI
+
+/*
+ A F B C D E H L I R AF BC DE HL AF' BC' DE' HL' IX IY SP PC IM
+
+== != <> <= >= < >
+
+literal value or other register
+
+flag symbols?
+*/
 
 #include "SimCoupe.h"
 
@@ -39,36 +49,29 @@
 #include "Memory.h"
 #include "Options.h"
 
-namespace Debug
-{
 
-bool Init (bool fFirstInit_/*=false*/)
+bool Debug::Init (bool fFirstInit_/*=false*/)
 {
     return true;
 }
 
-
-void Exit (bool fReInit_/*=false*/)
+void Debug::Exit (bool fReInit_/*=false*/)
 {
 }
 
 
-void DrawString (CScreen* pScreen_, int nX_, int nY_, const char* pcsz_)
+static void DrawString (CScreen* pScreen_, int nX_, int nY_, const char* pcsz_)
 {
-    // Drawing is always relative to SAM's main screen area
-    const AREA* pArea = Frame::GetViewArea();
-
-    nX_ = (nX_ + ((BORDER_BLOCKS - pArea->left) << 1)) << 3;
-    (nY_ <<= 3) += TOP_BORDER_LINES - pArea->top;
+    nX_ <<= 3;
+    nY_ <<= 3;
 
     if (pScreen_)
-        pScreen_->DrawOpaqueString(nX_, nY_, pcsz_);
+        pScreen_->DrawString(nX_, nY_, pcsz_, 127);
 }
 
-void Display (CScreen* pScreen_)
+void Debug::Display (CScreen* pScreen_)
 {
     char sz[256];
-
     WORD w = regs.PC.W;
     int nY = 2;
 
@@ -76,8 +79,6 @@ void Display (CScreen* pScreen_)
     {
         int nLen = Disassemble(w, sz, sizeof sz);
         DrawString(pScreen_, 23, nY, sz);
-
-//      TRACE("%05d %s\n", w, sz);
 
         sprintf(sz, "%05d", w);
         DrawString(pScreen_, 0, nY, sz);
@@ -92,7 +93,6 @@ void Display (CScreen* pScreen_)
         nY++;
     }
 
-//  DrawString(pScreen_, 0, 0, "TurboMON 1.0");
     DrawString(pScreen_, 0, 0, "[Debugger test page - updated at the end of every frame!]");
 
     sprintf(sz, "BC %05d  BC' %05d", regs.BC.W, regs.BC_.W);
@@ -139,4 +139,17 @@ void Display (CScreen* pScreen_)
     }
 }
 
-};
+
+bool fDebug = false;
+
+void Debug::Dump (Z80Regs* pRegs_)
+{
+    // Primitive debug tracing, until real debugger is available
+    if (fDebug)
+    {
+        char sz[256];
+        Disassemble(pRegs_->PC.W, sz, sizeof sz);
+        TRACE("PC = %04x   %s\n", pRegs_->PC.W, sz);
+        TRACE("AF=%04x BC=%04x DE=%04x HL=%04x IX=%04x IY=%04x SP=%04x\n", pRegs_->AF.W, pRegs_->BC.W, pRegs_->DE.W, pRegs_->HL.W, pRegs_->IX.W, pRegs_->IY.W, pRegs_->SP.W);
+    }
+}

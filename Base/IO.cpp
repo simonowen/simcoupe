@@ -53,11 +53,10 @@
 #include "Serial.h"
 #include "Sound.h"
 #include "Util.h"
+#include "Video.h"
 
 extern int g_nLine;
 extern int g_nLineCycle;
-
-extern DWORD aulPalette[];  // 128 SAM colours
 
 CDiskDevice *pDrive1, *pDrive2;
 CIoDevice *pParallel1, *pParallel2;
@@ -144,7 +143,6 @@ void IO::Exit (bool fReInit_/*=false*/)
         Clock::Exit();
     }
 }
-
 
 
 bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
@@ -387,7 +385,7 @@ static inline void out_clut(WORD wPort_, BYTE bVal_)
         Frame::Update();
 
         // Update the clut entry and the mode 3 palette
-        clut[wPort_] = (DWORD)aulPalette[clutval[wPort_] = bVal_];
+        clut[wPort_] = static_cast<DWORD>(aulPalette[clutval[wPort_] = bVal_]);
         PaletteChange(hmpr);
     }
 }
@@ -794,4 +792,47 @@ void IO::FrameUpdate ()
     Clock::FrameUpdate();
 
     Sound::FrameUpdate();
+}
+
+const RGBA* IO::GetPalette (bool fDimmed_/*=false*/)
+{
+    static RGBA asPalette[N_PALETTE_COLOURS];
+    static bool fPrepared = false, fDimmed;
+
+    // If we've already got what's needed, return the current setup
+    if (fPrepared && fDimmed_ == fDimmed)
+        return asPalette;
+
+    // Look-up table for an even intensity spread, used to map SAM colours to RGB
+    static const BYTE abIntensities[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
+
+    // Build the full palette: SAM's 128 colours and the extra colours for the GUI
+    for (int i = 0; i < N_PALETTE_COLOURS ; i++)
+    {
+        // Convert from SAM palette position to 8-bit RGB
+        BYTE bRed   = abIntensities[(i&0x02)     | ((i&0x20) >> 3) | ((i&0x08) >> 3)];
+        BYTE bGreen = abIntensities[(i&0x04) >> 1| ((i&0x40) >> 4) | ((i&0x08) >> 3)];
+        BYTE bBlue  = abIntensities[(i&0x01) << 1| ((i&0x10) >> 2) | ((i&0x08) >> 3)];
+
+        // Dim if required
+        if (fDimmed_)
+        {
+            bRed   = (bRed   << 1) / 3;
+            bGreen = (bGreen << 1) / 3;
+            bBlue  = (bBlue  << 1) / 3;
+        }
+
+        // Store the calculated values for the entry
+        asPalette[i].bRed = bRed;
+        asPalette[i].bGreen = bGreen;
+        asPalette[i].bBlue = bBlue;
+        asPalette[i].bAlpha = 0xff;
+    }
+
+    // Remember the current state to cache the palette for future calls if possible
+    fPrepared = true;
+    fDimmed = fDimmed_;
+
+    // Return the freshly prepared palette
+    return asPalette;
 }

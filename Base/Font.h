@@ -21,6 +21,19 @@
 #ifndef FONT_H
 #define FONT_H
 
-extern "C" BYTE abFont[96][9];
+typedef struct
+{
+    WORD    wHeight, wCharSize;
+    BYTE    bFirst, bLast;
+
+    const BYTE* pcbData;
+}
+FONT;
+
+extern const BYTE abOldFont[];
+extern const BYTE abGUIFont[];
+
+static FONT sOldFont = { 8, 9, 32, 127, abOldFont };
+static FONT sNewFont = { 11, 12, 32, 127, abGUIFont };
 
 #endif

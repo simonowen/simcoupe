@@ -44,19 +44,24 @@ class CFloppyStream : public CStream
 
     public:
         bool IsOpen () const { return m_hDevice != INVALID_HANDLE_VALUE; }
-        bool Rewind () { m_dwPos = 0; return true; }
+        bool Rewind () { return true; }
         size_t Read (void* pvBuffer_, size_t uLen_) { return 0; }
         size_t Write (void* pvBuffer_, size_t uLen_) { return 0; }
 
         BYTE Read (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_);
         BYTE Write (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_);
+        bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_);
+        void WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_);
+        void AbortAsyncOp ();
 
     protected:
-        HANDLE  m_hDevice;
-        DWORD   m_dwPos;
+        HANDLE      m_hDevice;
+        OVERLAPPED  m_sOverlapped;
+        DWORD       m_dwResult;
 
     protected:
         void Close ();
+        BYTE TranslateError () const;
 };
 
 #endif  // FLOPPY_H

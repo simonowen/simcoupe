@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupé emulator
 //
-// Input.h: Win32 mouse and DirectInput keyboard input
+// GUIIcons.h: Handy icons for the GUI
 //
 //  Copyright (c) 1999-2001  Simon Owen
 //
@@ -18,25 +18,24 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#ifndef INPUT_H
-#define INPUT_H
+#ifndef GUIICONS_H
+#define GUIICONS_H
 
-class Input
+
+const int ICON_SIZE = 32;
+const int ICON_PALETTE_SIZE = 32;
+
+typedef struct
 {
-public:
-    static bool Init (bool fFirstInit_=false);
-    static void Exit (bool fReInit_=false);
-
-    static void Acquire (bool fKeyboard_=true, bool fMouse_=true);
-    static void Purge (bool fKeyboard_=true, bool fMouse_=true);
-
-    static void Update ();
-
-    static bool FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
+    BYTE abPalette[ICON_PALETTE_SIZE];
+    BYTE abData[ICON_SIZE][ICON_SIZE];
+}
+GUI_ICON;
 
 
-    // Used by the Win32 GUI in UI.cpp
-    static void FillJoystickCombo (HWND hwndCombo_);
-};
+// These are the icons currently available
+extern const GUI_ICON sSamIcon;
+extern const GUI_ICON sSoundIcon, sDisplayIcon, sKeyboardIcon, sMouseIcon, sHardwareIcon, sMidiIcon, sPortIcon;
+extern const GUI_ICON sDiskIcon, sFolderIcon;
 
 #endif

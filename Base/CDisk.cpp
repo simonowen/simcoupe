@@ -658,7 +658,7 @@ CFDIDisk::CFDIDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
     {
         pStream_->Rewind();
         pStream_->Read(&m_fdih, sizeof m_fdih);
-        
+
         m_uSides = m_fdih.bLastHead + 1;
         m_uTracks = ((m_fdih.abLastTrack[0] << 8) + m_fdih.abLastTrack[1]) + 1;
 
@@ -823,7 +823,7 @@ UINT CFDIDisk::FindInit (UINT uSide_, UINT uTrack_)
                 case 0x25:  pb += 0;    break;
                 case 0x26:  pb += 516;  break;
                 case 0x27:  pb += 514;  break;
-                    
+
                 default:
                     break;
             }
@@ -986,6 +986,24 @@ BYTE CFloppyDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT u
     // Not supported at present, though regular formats should be possible in the
     // future, even if just implemented as writing zeros (as with DSK images)
     return WRITE_PROTECT;
+}
+
+// Get the status of the current asynchronous operation, if any
+bool CFloppyDisk::GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_)
+{
+    return m_pFloppy->GetAsyncStatus(puSize_, pbStatus_);
+}
+
+// Wait for the current asynchronous operation to complete, if any
+void CFloppyDisk::WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_)
+{
+    m_pFloppy->WaitAsyncOp(puSize_, pbStatus_);
+}
+
+// Abort the current asynchronous operation, if any
+void CFloppyDisk::AbortAsyncOp ()
+{
+    m_pFloppy->AbortAsyncOp();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

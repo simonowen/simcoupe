@@ -33,41 +33,32 @@
 #include "Util.h"
 
 
-typedef struct
+class Frame
 {
-    int left;
-    int right;
-    int top;
-    int bottom;
-}
-AREA;
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
+        static void Start ();
+        static void End ();
 
-namespace Frame
-{
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
+        static void Update ();
+        static void Complete ();
+        static void TouchLines (int nFrom_, int nTo_);
+        static inline void TouchLine (int nLine_) { TouchLines(nLine_, nLine_); }
+        static void ChangeMode (BYTE bVal_);
 
-    void Start ();
-    void End ();
+        static void Sync ();
+        static void Clear ();
+        static void Redraw ();
+        static void SaveFrame (const char* pcszPath_=NULL);
 
-    void Update ();
-    void TouchLines (int nFrom_, int nTo_);
-    inline void TouchLine (int nLine_) { TouchLines(nLine_, nLine_); }
-    void ChangeMode (BYTE bVal_);
+        static CScreen* GetScreen ();
+        static int GetWidth ();
+        static int GetHeight ();
 
-    void Clear ();
-    void Flip ();
-    void Redraw ();
-    void SaveFrame (const char* pcszPath_=NULL);
-
-    CScreen* GetScreen ();
-    const AREA* GetViewArea ();
-
-    void SetStatus (const char *pcszFormat_, ...);
-
-    extern int s_nWidth, s_nHeight;
-}
+        static void SetStatus (const char *pcszFormat_, ...);
+};
 
 
 inline bool IsScreenLine (int nLine_) { return nLine_ >= (TOP_BORDER_LINES) && nLine_ < (TOP_BORDER_LINES+SCREEN_LINES); }
@@ -78,8 +69,9 @@ inline BYTE AttrFg (BYTE bAttr_) { return ((((bAttr_) >> 3) & 8) | ((bAttr_) & 7
 extern bool fDrawFrame;
 extern int g_nFrame;
 
-extern int s_nViewTop, s_nViewBottom;
-extern int s_nViewLeft, s_nViewRight;
+extern int s_nWidth, s_nHeight;         // hi-res pixels
+extern int s_nViewTop, s_nViewBottom;   // in lines
+extern int s_nViewLeft, s_nViewRight;   // in screen blocks
 
 extern BYTE *apbPageReadPtrs[],  *apbPageWritePtrs[];
 extern WORD g_awMode1LineToByte[192];
@@ -488,12 +480,11 @@ void CFrameXx1<fHiRes_>::ModeChange (BYTE bNewVal_, int nLine_, int nBlock_)
         BYTE* pb = m_pbScreenData + (nScreenLine << 7) + ((nBlock_ - BORDER_BLOCKS) << 2);
 
         // Extract the 4 ASIC bytes used to display a block
-        ab[0] = ab[1] = ((pb[0] >> 0) & 0x80) | ((pb[0] << 3) & 0x40) |
+        ab[0] = ab[1] = ( pb[0]       & 0x80) | ((pb[0] << 3) & 0x40) |
                         ((pb[1] >> 2) & 0x20) | ((pb[1] << 1) & 0x10) |
                         ((pb[2] >> 4) & 0x08) | ((pb[2] >> 1) & 0x04) |
-                        ((pb[3] >> 6) & 0x02) | ((pb[3] << 0) & 0x01);
+                        ((pb[3] >> 6) & 0x02) | ( pb[3]       & 0x01);
         ab[2] = ab[3] = pb[2];
-        
     }
 
     // Source mode 1 or 2
@@ -506,7 +497,7 @@ void CFrameXx1<fHiRes_>::ModeChange (BYTE bNewVal_, int nLine_, int nBlock_)
 
         // Extract the 4 ASIC bytes used to display a block
         BYTE bData = *pData, bAttr = *pAttr;
-        ab[0] = (bData & 0x77) | ((bData >> 0) & 0x80) | ((bData >> 3) & 0x08);
+        ab[0] = (bData & 0x77) | ( bData       & 0x80) | ((bData >> 3) & 0x08);
         ab[1] = (bData & 0x77) | ((bData << 2) & 0x80) | ((bData >> 1) & 0x08);
         ab[2] = (bAttr & 0x77) | ((bData << 4) & 0x80) | ((bData << 1) & 0x08);
         ab[3] = (bAttr & 0x77) | ((bData << 6) & 0x80) | ((bData << 3) & 0x08);

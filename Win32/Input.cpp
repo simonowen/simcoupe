@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupé emulator
 //
-// Input.cpp: Win32 input using DirectInput
+// Input.cpp: Win32 mouse and DirectInput keyboard input
 //
 //  Copyright (c) 1999-2001  Simon Owen
 //
@@ -25,6 +25,12 @@
 
 #include "SimCoupe.h"
 
+#include <dinput.h>
+#include <windows.h>
+#include <windowsx.h>
+
+#include "Display.h"
+#include "GUI.h"
 #include "Input.h"
 #include "IO.h"
 #include "Util.h"
@@ -33,10 +39,11 @@
 #include "UI.h"
 
 
-LPDIRECTINPUT pdi;
+#ifndef WM_MOUSEWHEEL
+#define WM_MOUSEWHEEL               0x020a
+#define GET_WHEEL_DELTA_WPARAM(w)   ((short)HIWORD(w))
+#endif
 
-namespace Input
-{
 const unsigned int KEYBOARD_BUFFER_SIZE = 20;
 
 typedef struct
@@ -54,7 +61,8 @@ typedef struct
 }
 SIMPLE_KEY;
 
-LPDIRECTINPUTDEVICE pdiKeyboard, pdiMouse;
+LPDIRECTINPUT pdi;
+LPDIRECTINPUTDEVICE pdiKeyboard;
 LPDIRECTINPUTDEVICE2 pdidJoystick1, pdidJoystick2;
 
 BYTE bComboKey, bComboShifts;
@@ -130,13 +138,12 @@ COMBINATION_KEY asSpectrumSymbols[] =
 ////////////////////////////////////////////////////////////////////////////////
 
 static bool InitKeyboard ();
-static bool InitMouse ();
 static bool InitJoysticks ();
 static void PrepareKeyTable (COMBINATION_KEY* asKeys_);
 static void PrepareKeyTable (SIMPLE_KEY* asKeys_);
 
 
-bool Init (bool fFirstInit_/*=false*/)
+bool Input::Init (bool fFirstInit_/*=false*/)
 {
     bool fRet = true;
 
@@ -155,11 +162,8 @@ bool Init (bool fFirstInit_/*=false*/)
     if (fRet)
     {
         InitKeyboard();
-
+        fMouseActive = false;
         Mouse::Init();
-        if (GetOption(mouse))
-            InitMouse();
-
         Purge();
     }
 
@@ -168,12 +172,11 @@ bool Init (bool fFirstInit_/*=false*/)
 }
 
 
-void Exit (bool fReInit_/*=false*/)
+void Input::Exit (bool fReInit_/*=false*/)
 {
     TRACE("-> Input::Exit(%s)\n", fReInit_ ? "reinit" : "");
 
     if (pdiKeyboard) { pdiKeyboard->Unacquire(); pdiKeyboard->Release(); pdiKeyboard = NULL; }
-    if (pdiMouse)    { pdiMouse->Unacquire(); pdiMouse->Release(); pdiMouse = NULL; }
 
     if (pdidJoystick1) { pdidJoystick1->Unacquire(); pdidJoystick1->Release(); pdidJoystick1 = NULL; }
     if (pdidJoystick2) { pdidJoystick2->Unacquire(); pdidJoystick2->Release(); pdidJoystick2 = NULL; }
@@ -221,21 +224,6 @@ bool InitKeyboard ()
     return false;
 }
 
-bool InitMouse ()
-{
-    HRESULT hr;
-
-    if (FAILED(hr = pdi->CreateDevice(GUID_SysMouse, &pdiMouse, NULL)))
-        TRACE("!!! Failed to create mouse device (%#08lx)\n", hr);
-    else if (FAILED(hr = pdiMouse->SetCooperativeLevel(g_hwnd, DISCL_EXCLUSIVE | DISCL_FOREGROUND)))
-        TRACE("!!! Failed to set cooperative level of mouse device (%#08lx)\n", hr);
-    else if (FAILED(hr = pdiMouse->SetDataFormat(&c_dfDIMouse)))
-        TRACE("!!! Failed to set data format of mouse device (%#08lx)\n", hr);
-    else
-        return true;
-
-    return false;
-}
 
 BOOL CALLBACK EnumJoystickProc (LPCDIDEVICEINSTANCE pdiDevice_, LPVOID lpv_)
 {
@@ -274,7 +262,7 @@ BOOL CALLBACK EnumJoystickProc (LPCDIDEVICEINSTANCE pdiDevice_, LPVOID lpv_)
             // No match
             else
                 pDevice->Release();
-            
+
             pdiJoystick->Release();
         }
     }
@@ -359,21 +347,31 @@ bool InitJoysticks ()
     return true;
 }
 
-void Acquire (bool fKeyboard_/*=true*/, bool fMouse_/*=true*/)
+void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 {
-    // Flush out any buffered data if we're changing the acquisition state
+    // Store the new mouse state, hiding/showing the cursor as appropriate
+    if (fMouseActive != fMouse_)
+    {
+        // Hide the cursor when the mouse is active for emulation
+        ShowCursor(!(fMouseActive = fMouse_));
+
+        // Mouse being acquired?
+        if (fMouse_)
+        {
+            // Calculate the central position in the client screen, and move the cursor there
+            RECT r;
+            GetClientRect(g_hwnd, &r);
+            POINT pt = { r.right/2, r.bottom/2 };
+            ClientToScreen(g_hwnd, &pt);
+            SetCursorPos(pt.x, pt.y);
+        }
+    }
+
+    // Flush out any buffered data
     Purge();
-
-    // Store the new keyboard state, and if we're unacquiring make sure we don't have the device anymore
-    if (!(fKeyboardActive = fKeyboard_) && pdiKeyboard)
-        pdiKeyboard->Unacquire();
-
-    // Store the new mouse state, and if we're unacquiring make sure we don't have the device anymore
-    if (!(fMouseActive = fMouse_) && pdiMouse)
-        pdiMouse->Unacquire();
 }
 
-void Purge (bool fKeyboard_/*=true*/, bool fMouse_/*=true*/)
+void Input::Purge (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 {
     if (fKeyboard_ && pdiKeyboard)
     {
@@ -383,6 +381,10 @@ void Purge (bool fKeyboard_/*=true*/, bool fMouse_/*=true*/)
 
         fPurgeKeyboard = true;
     }
+
+    // Eat any pending mouse messages
+    MSG msg;
+    while (PeekMessage(&msg, NULL, WM_MOUSEMOVE, WM_MOUSEMOVE, PM_REMOVE));
 }
 
 
@@ -390,9 +392,9 @@ bool ReadKeyboard ()
 {
     bool fRet = false;
 
-    if (!fKeyboardActive || !pdiKeyboard)
+    if (!pdiKeyboard || GUI::IsActive())
     {
-        Purge(true, false);
+        Input::Purge(true, false);
         return false;
     }
 
@@ -444,34 +446,6 @@ bool ReadKeyboard ()
 
     return true;
 }
-
-void ReadMouse ()
-{
-    HRESULT hr;
-
-    DIMOUSESTATE dims;
-    ZeroMemory(&dims, sizeof dims);
-
-    if (!fMouseActive || !pdiMouse)
-        return;
-
-    if (FAILED(hr = pdiMouse->Acquire()) || FAILED(hr = pdiMouse->GetDeviceState(sizeof dims, &dims)))
-        TRACE("!!! Failed to read mouse state! (%#08lx)\n", hr);
-
-    // If the mouse was moved, update the SAM mouse deltas
-    if (dims.lX || dims.lY)
-        Mouse::Move(dims.lX, -dims.lY);
-
-    // Just for fun, treat mouse wheel movements as cursor up/down
-    if (dims.lZ)
-        PressKey((dims.lZ > 0) ? DIK_UP : DIK_DOWN);
-
-    // Set the mouse buttons, swapping right and middle (if present) since some PC mice only have a single button
-    Mouse::SetButton(1, (dims.rgbButtons[0] & 0x80) != 0);
-    Mouse::SetButton(2, (dims.rgbButtons[2] & 0x80) != 0);
-    Mouse::SetButton(3, (dims.rgbButtons[1] & 0x80) != 0);
-}
-
 
 void ReadJoystick (LPDIRECTINPUTDEVICE2 pDevice_, int nBaseKey_)
 {
@@ -630,11 +604,10 @@ void SetSamKeyState ()
 }
 
 
-void Update ()
+void Input::Update ()
 {
     // Read keyboard and mouse
     ReadKeyboard();
-    ReadMouse();
 
     // Read the joysticks, if present
     if (pdidJoystick1) ReadJoystick(pdidJoystick1, DIK_6);
@@ -644,4 +617,186 @@ void Update ()
     SetSamKeyState();
 }
 
-}   // namespace Input
+
+// Send a mouse message to the GUI, after mapping the mouse position to the SAM screen
+bool SendGuiMouseMessage (int nMessage_, LPARAM lParam_, bool fScreenCoords_)
+{
+    // Extract the cursor position from the mouse message parameter
+    POINT pt = { GET_X_LPARAM(lParam_), GET_Y_LPARAM(lParam_) };
+
+    // Convert from screen to client coordinates if required
+    if (fScreenCoords_)
+        ScreenToClient(g_hwnd, &pt);
+
+    // Map from display position to SAM screen position
+    int nX = pt.x, nY = pt.y;
+    Display::DisplayToSam(&nX, &nY);
+
+    // Finally, send the message now we have the appropriate position
+    return GUI::SendMessage(nMessage_, nX, nY);
+}
+
+bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+{
+    switch (uMsg_)
+    {
+        // Mouse has been moved
+        case WM_NCMOUSEMOVE:
+            // Only pass on movement messages when running full-screen
+            if (GetOption(fullscreen))
+                SendGuiMouseMessage(GM_MOUSEMOVE, lParam_, true);
+            break;
+
+        case WM_MOUSEMOVE:
+        {
+            // Calculate the central position in the client screen
+            RECT r;
+            GetClientRect(hwnd_, &r);
+            POINT ptCentre = { r.right/2, r.bottom/2 };
+
+            // Get the mouse position and restrict the point to the closest window edge
+            int x = GET_X_LPARAM(lParam_), y = GET_Y_LPARAM(lParam_);
+            x = (x < 0) ? 0 : (x >= r.right) ? r.right-1 : x;
+            y = (y < 0) ? 0 : (y >= r.bottom) ? r.bottom-1 : y;
+
+            // Has the mouse moved since last time?
+            if ((x != ptCentre.x || y != ptCentre.y))
+            {
+                // If the GUI is active, pass the message to it
+                if (GUI::IsActive())
+                    SendGuiMouseMessage(GM_MOUSEMOVE, (y << 16) | x, false);
+
+                // Otherwise the SAM mouse must be active for it to be of interest
+                else if (fMouseActive)
+                {
+                    int x0 = ptCentre.x, y0 = ptCentre.y;
+
+                    // Convert the positions to SAM units
+                    Display::DisplayToSam(&x0, &y0);
+                    Display::DisplayToSam(&x, &y);
+
+                    // Move the SAM mouse by the
+                    Mouse::Move(x-x0, -(y-y0));
+
+                    // Move the cursor back to the centre of the screen to ensure we see the next movement
+                    ClientToScreen(hwnd_, &ptCentre);
+                    SetCursorPos(ptCentre.x, ptCentre.y);
+                }
+            }
+
+            break;
+        }
+
+        case WM_NCLBUTTONDOWN:
+        case WM_NCRBUTTONDOWN:
+        case WM_LBUTTONDOWN:
+        case WM_RBUTTONDOWN:
+        {
+            bool fNonClient = uMsg_ < WM_MOUSEFIRST;
+
+            // Ignore non-client clicks in windowed mode
+            if (fNonClient && !GetOption(fullscreen))
+                break;
+
+            // The GUI always gets first chance to process the message
+            if (GUI::IsActive())
+            {
+                SendGuiMouseMessage(GM_BUTTONDOWN, lParam_, fNonClient);
+                SetCapture(hwnd_);
+            }
+
+            // If the mouse isn't already captured, the click just acquires it (without clicking through)
+            else if (!fMouseActive)
+                Acquire();
+
+            // Pass the button press through to the mouse module
+            else
+            {
+                uMsg_ &= 0xf;
+                Mouse::SetButton((uMsg_ == 1) ? 1 : (uMsg_ == 4) ? 2 : 3, true);
+            }
+            break;
+        }
+
+        case WM_NCLBUTTONUP:
+        case WM_NCRBUTTONUP:
+        case WM_LBUTTONUP:
+        case WM_RBUTTONUP:
+        {
+            bool fNonClient = uMsg_ < WM_MOUSEFIRST;
+
+            // If we captured to catch the release, release it now
+            if (GetCapture() == hwnd_)
+                ReleaseCapture();
+
+            // Ignore non-client releases in windowed mode
+            if (fNonClient && !GetOption(fullscreen))
+                break;
+
+            // The GUI always gets first chance to process the message
+            if (GUI::IsActive())
+                SendGuiMouseMessage(GM_BUTTONUP, lParam_, fNonClient);
+
+            // Pass the button release through to the mouse module
+            else
+            {
+                uMsg_ &= 0xf;
+                Mouse::SetButton((uMsg_ == 2) ? 1 : (uMsg_ == 5) ? 2 : 3, false);
+            }
+            break;
+        }
+
+        case WM_MOUSEWHEEL:
+            if (GUI::IsActive())
+                GUI::SendMessage(GM_MOUSEWHEEL, (GET_WHEEL_DELTA_WPARAM(wParam_) < 0) ? 1 : -1);
+            else
+                PressKey((GET_WHEEL_DELTA_WPARAM(wParam_) > 0) ? DIK_DOWN : DIK_UP);
+            break;
+
+        case WM_CHAR:
+            // Pass the key-press to the GUI, and hide the cursor if it was accepted
+            if (GUI::SendMessage(GM_CHAR, static_cast<int>(wParam_), GetKeyState(VK_SHIFT) < 0))
+            {
+                SetCursor(NULL);
+                return true;
+            }
+            break;
+
+        case WM_KEYDOWN:
+        {
+            // Pass cursor key presses to the GUI, hiding the cursor if they're accepted
+            int anCursors[] = { GK_LEFT, GK_UP, GK_RIGHT, GK_DOWN };
+            if (wParam_ >= VK_LEFT && wParam_ <= VK_DOWN && GUI::SendMessage(GM_CHAR, anCursors[wParam_-VK_LEFT], 0))
+            {
+                SetCursor(NULL);
+                return true;
+            }
+
+            // Ignore key repeats for held keys
+            if (lParam_ & 0x40000000)
+                return true;
+            break;
+        }
+
+        case WM_ACTIVATEAPP:
+        {
+            bool fActive = (wParam_ != 0);
+
+            // Acquire the keyboard if activating, and release the mouse so we require a click
+            Acquire(false);
+            break;
+        }
+    }
+
+    // Message not processed
+    return false;
+}
+
+
+// Fill the supplied combo-box with the list of connected joysticks
+void Input::FillJoystickCombo (HWND hwndCombo_)
+{
+    HRESULT hr;
+    if (FAILED(hr = pdi->EnumDevices(DIDEVTYPE_JOYSTICK, EnumJoystickProc, reinterpret_cast<LPVOID>(hwndCombo_), DIEDFL_ATTACHEDONLY)))
+        TRACE("!!! Failed to enumerate joystick devices (%#08lx)\n", hr);
+}

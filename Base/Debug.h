@@ -24,12 +24,14 @@
 #include "CScreen.h"
 
 
-namespace Debug
+class Debug
 {
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    void Display (CScreen* pScreen_);
+        static void Display (CScreen* pScreen_);
+        static void Dump (Z80Regs* pRegs_);
 };
 
 #endif

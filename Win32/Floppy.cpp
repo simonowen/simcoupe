@@ -57,29 +57,19 @@ int GetOSType ()
 ////////////////////////////////////////////////////////////////////////////////
 
 
-/*static*/ bool CFloppyStream::IsRecognised (const char* pcszStream_)
-{
-    return (GetDriveType(pcszStream_) == DRIVE_REMOVABLE);
-}
-
-namespace Floppy
-{
-
-bool Init ()
+bool Floppy::Init ()
 {
     CFloppyStream::LoadDriver();
     return true;
 }
 
-void Exit (bool fReInit_/*=true*/)
+void Floppy::Exit (bool fReInit_/*=true*/)
 {
     if (!fReInit_)
         CFloppyStream::UnloadDriver();
 }
 
-}   // namespace Floppy
-
-
+////////////////////////////////////////////////////////////////////////////////
 
 /*static*/ bool CFloppyStream::LoadDriver ()
 {
@@ -214,77 +204,15 @@ void Exit (bool fReInit_/*=true*/)
     return fRet;
 }
 
+////////////////////////////////////////////////////////////////////////////////
 
-
-
-
-/*
-    HANDLE hDevice = CreateFile("\\\\.\\VWIN32", 0, 0, NULL, 0, FILE_FLAG_DELETE_ON_CLOSE, NULL);
-
-    BYTE* pb = new BYTE[102400];
-    memset(pb, 0, 102400);
-
-    for (int i = 0 ; i < 4 ; i++)
-    {
-        DIOC_REGISTERS regs;
-        regs.reg_EAX = 0x0201;       // Read sectors, 10 sectors
-        regs.reg_EBX = (DWORD)pb;   // 
-        regs.reg_ECX = 0x0001;      // cyl 0, sector 1
-        regs.reg_EDX = 0x0000;      // head 0, A:
-        regs.reg_Flags = 0x0001;     // assume error (carry flag is set) 
-
-        if (!DIOC_Int13(&reg) || (reg.reg_Flags & 0x0001))
-        {
-            TRACE("Error reading sectors!\n");  // error if carry flag is set
-
-            reg.reg_EAX = 0x0000;       // Reset disk, <none>
-            reg.reg_EDX = 0x0000;       // <none>, A:
-
-            if (!DIOC_Int13(&regs) || (regs.reg_Flags & 0x0001))
-            {
-                TRACE("Error resetting drive!\n");
-                break;
-            }
-        }
-        else
-            TRACE("Read %d successful\n");
-    }
-
-    delete pb;
-    CloseHandle(hDevice);
-
-    return false;   //(GetDriveType(pcszStream_) == DRIVE_REMOVABLE);
+/*static*/ bool CFloppyStream::IsRecognised (const char* pcszStream_)
+{
+    return (GetDriveType(pcszStream_) == DRIVE_REMOVABLE);
 }
-*/
-
-/*
-    {
-        m_hDevice = CreateFile("\\\\.\\VWIN32", GENERIC_READ | (fReadOnly_ ? 0 : GENERIC_WRITE),
-                                    0,  NULL, OPEN_EXISTING, FILE_FLAG_DELETE_ON_CLOSE, NULL);
-
-        if (m_hDevice != INVALID_HANDLE_VALUE)
-            return new CFloppyStream(hDevice, pcszStream_, fReadOnly_);
-    }
-    else
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 CFloppyStream::CFloppyStream (const char* pcszDrive_, bool fReadOnly_)
-    : CStream(pcszDrive_, fReadOnly_), m_hDevice(INVALID_HANDLE_VALUE)
+    : CStream(pcszDrive_, fReadOnly_), m_hDevice(INVALID_HANDLE_VALUE), m_dwResult(ERROR_SUCCESS)
 {
     // WinNT or W2K?
     if (GetOSType() != osWin9x)
@@ -293,12 +221,15 @@ CFloppyStream::CFloppyStream (const char* pcszDrive_, bool fReadOnly_)
         char szDevice[32] = "\\\\.\\";
         lstrcat(szDevice, pcszDrive_);
 
-        if ((m_hDevice = CreateFile(szDevice, GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL)) == INVALID_HANDLE_VALUE)
+        if ((m_hDevice = CreateFile(szDevice, GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE)
+        {
+            DWORD dwError = GetLastError();
             Message(msgWarning, "Failed to open floppy device!");
+        }
         else
         {
             // This is what we want the disk to look like
-            DISK_GEOMETRY dg = { { 80 }, F3_720_512, 2, 10, 512 };
+            DISK_GEOMETRY dg = { { NORMAL_DISK_TRACKS }, F3_720_512, NORMAL_DISK_SIDES, NORMAL_DISK_SECTORS, NORMAL_SECTOR_SIZE };
 
             DWORD dwRet;
             if (DeviceIoControl(m_hDevice, IOCTL_DISK_SET_DRIVE_GEOMETRY, &dg, sizeof dg, NULL, 0, &dwRet, NULL))
@@ -311,96 +242,169 @@ CFloppyStream::CFloppyStream (const char* pcszDrive_, bool fReadOnly_)
             }
         }
     }
-/*
-    else
-    {
-        m_hDevice = CreateFile("\\\\.\\VWIN32", 0, 0, NULL, 0, FILE_FLAG_DELETE_ON_CLOSE, NULL);
-
-        Reset();
-
-        // Check whether the drive supports the change-line, and remember for later use
-        DIOC_REGISTERS regs;
-        regs.reg_EAX = 0x1500;       // Get disk type, <none>
-        regs.reg_EDX = 0x0000;      // <none>, A:
-        regs.reg_Flags = 0x0001;     // assume error (carry flag is set)
-        m_fChangeSupported = (DIOC_Int13(&regs) && !(regs.reg_Flags & 0x0001) && ((regs.reg_EAX & 0xff00) == 0x0200));
-
-        Lock();
-    }
-*/
 }
-
 
 void CFloppyStream::Close ()
 {
     if (GetOSType() != osWin9x)
     {
-        if (m_hDevice && (m_hDevice!= INVALID_HANDLE_VALUE))
+        if (m_hDevice && (m_hDevice != INVALID_HANDLE_VALUE))
+        {
+            AbortAsyncOp();
             CloseHandle(m_hDevice);
+        }
+        m_hDevice = INVALID_HANDLE_VALUE;
     }
-/*
+}
+
+// Translate a Windows error to an appropriate FDC status code
+inline BYTE CFloppyStream::TranslateError () const
+{
+    switch (m_dwResult) {
+        case ERROR_SUCCESS:         return 0;
+        case ERROR_WRITE_PROTECT:   return WRITE_PROTECT;
+        case ERROR_CRC:             return CRC_ERROR;
+        case ERROR_IO_INCOMPLETE:
+        case ERROR_IO_PENDING:      return BUSY;
+        default:                    return RECORD_NOT_FOUND;
+    }
+}
+
+BYTE CFloppyStream::Read (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_)
+{
+//  TRACE("Reading sector from %d:%d:%d\n", uSide_, uTrack_, uSector_);
+    *puSize_ = 0;
+
+    if ((GetOSType() != osWin9x) && (m_hDevice != INVALID_HANDLE_VALUE))
+    {
+        AbortAsyncOp();
+        ZeroMemory(&m_sOverlapped, sizeof(m_sOverlapped));
+        m_sOverlapped.Offset = (uSide_ + NORMAL_DISK_SIDES * uTrack_) * (NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE) + ((uSector_-1) * NORMAL_SECTOR_SIZE);
+        DWORD dwProcessed = 0;
+        if (ReadFile(m_hDevice, pbData_, NORMAL_SECTOR_SIZE, &dwProcessed, &m_sOverlapped))
+        {
+            if (dwProcessed == NORMAL_SECTOR_SIZE)
+            {
+                m_dwResult = ERROR_SUCCESS;
+                *puSize_ = dwProcessed;
+            }
+            else
+            {
+                m_dwResult = ERROR_HANDLE_EOF;
+                TRACE("!!! Read (immediate) only %d bytes from side %d, track %d\n", dwProcessed, uSide_, uTrack_);
+            }
+        }
+        else
+        {
+            m_dwResult = GetLastError();
+            if (m_dwResult != ERROR_IO_PENDING)
+                TRACE("!!! Failed to read (immediate) from side %d, track %d (%#08lx)\n", uSide_, uTrack_, m_dwResult);
+        }
+    }
     else
-    {
-        if (m_hDevice != INVALID_HANDLE_VALUE)
-        {
-//          Unlock();
-            CloseHandle(m_hDevice);
-            m_hDevice = INVALID_HANDLE_VALUE;
-        }
-    }
-*/
+        m_dwResult = ERROR_HANDLE_EOF;
+
+    return TranslateError();
 }
 
-
-BYTE CFloppyStream::Read (int nSide_, int nTrack_, int nSector_, BYTE* pbData_, UINT* puSize_)
+BYTE CFloppyStream::Write (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_)
 {
-    if (GetOSType() != osWin9x)
+//  TRACE("Writing sector to %d:%d:%d\n", uSide_, uTrack_, uSector_);
+    *puSize_ = 0;
+
+    if ((GetOSType() != osWin9x) && (m_hDevice != INVALID_HANDLE_VALUE))
     {
-        long lPos = (nSide_ + 2 * nTrack_) * (10 * 512) + ((nSector_-1) * 512);
-
-        if (SetFilePointer(m_hDevice, lPos, NULL, FILE_BEGIN) == static_cast<DWORD>(lPos))
+        AbortAsyncOp();
+        ZeroMemory(&m_sOverlapped, sizeof(m_sOverlapped));
+        m_sOverlapped.Offset = (uSide_ + NORMAL_DISK_SIDES * uTrack_) * (NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE) + ((uSector_-1) * NORMAL_SECTOR_SIZE);
+        DWORD dwProcessed = 0;
+        if (WriteFile(m_hDevice, pbData_, NORMAL_SECTOR_SIZE, &dwProcessed, &m_sOverlapped))
         {
-//          TRACE("Reading sector from %d:%d:%d\n", nSide_, nTrack_, nSector_);
-
-            DWORD dwRead = 0;
-            if (ReadFile(m_hDevice, pbData_, *puSize_ = 512, &dwRead, NULL) && (dwRead == 512))
-                return 0;
+            if (dwProcessed == NORMAL_SECTOR_SIZE)
+            {
+                m_dwResult = ERROR_SUCCESS;
+                *puSize_ = dwProcessed;
+            }
             else
-                TRACE("!!! Failed to read side %d, track %d (%#08lx)\n", nSide_, nTrack_, GetLastError());
+            {
+                m_dwResult = ERROR_HANDLE_EOF;
+                TRACE("!!! Written (immediate) only %d bytes from side %d, track %d\n", dwProcessed, uSide_, uTrack_);
+            }
         }
         else
-            TRACE("!!! Failed to seek to side %d, track %d (%#08lx)\n", nSide_, nTrack_, GetLastError());
+        {
+            m_dwResult = GetLastError();
+            if (m_dwResult != ERROR_IO_PENDING)
+                TRACE("!!! Failed to write (immediate) to side %d, track %d (%#08lx)\n", uSide_, uTrack_, m_dwResult);
+        }
+    }
+    else
+        m_dwResult = ERROR_HANDLE_EOF;
 
+    return TranslateError();
+}
+
+// Get the status of the current asynchronous operation, if any
+bool CFloppyStream::GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_)
+{
+    // Only continue if the current operation is asynchronous
+    if (m_dwResult == ERROR_IO_PENDING)
+    {
+        if (HasOverlappedIoCompleted(&m_sOverlapped))
+            // Operation has completed
+            WaitAsyncOp(puSize_, pbStatus_);
+        else
+            // Operation is still in progress
+            *pbStatus_ = BUSY;
+        return true;
+    }
+    else
+        return false;
+}
+
+// Wait for the current asynchronous operation to complete, if any
+void CFloppyStream::WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_)
+{
+    // Only continue if the current operation is asynchronous
+    if (m_dwResult == ERROR_IO_PENDING)
+    {
         *puSize_ = 0;
-        return RECORD_NOT_FOUND;
-    }
 
-    *puSize_ = 0;
-    return RECORD_NOT_FOUND;
-}
-
-
-BYTE CFloppyStream::Write (int nSide_, int nTrack_, int nSector_, BYTE* pbData_, UINT* puSize_)
-{
-    if (GetOSType() != osWin9x)
-    {
-        long lPos = (nSide_ + 2 * nTrack_) * (10 * 512) + ((nSector_-1) * 512);
-
-        if (SetFilePointer(m_hDevice, lPos, NULL, FILE_BEGIN) == static_cast<DWORD>(lPos))
+        DWORD dwProcessed = 0;
+        if (GetOverlappedResult(m_hDevice, &m_sOverlapped, &dwProcessed, TRUE))
         {
-//          TRACE("Writing sector to %d:%d:%d\n", nSide_, nTrack_, nSector_);
-
-            DWORD dwWritten = 0;
-            if (WriteFile(m_hDevice, pbData_, *puSize_ = 512, &dwWritten, NULL) && (dwWritten == 512))
-                return 0;
+            if (dwProcessed == NORMAL_SECTOR_SIZE)
+            {
+                m_dwResult = ERROR_SUCCESS;
+                *puSize_ = dwProcessed;
+            }
             else
-                TRACE("!!! Failed to write side %d, track %d (%#08lx)\n", nSide_, nTrack_, GetLastError());
+            {
+                m_dwResult = ERROR_HANDLE_EOF;
+                TRACE("!!! Processed (asynchronous) only %d bytes\n", dwProcessed);
+            }
         }
         else
-            TRACE("!!! Failed to seek to side %d, track %d (%#08lx)\n", nSide_, nTrack_, GetLastError());
-
+        {
+            m_dwResult = GetLastError();
+            TRACE("!!! Failed to complete asynchronous operation (%#08lx)\n", m_dwResult);
+        }
+        *pbStatus_ = TranslateError();
     }
+}
 
-    *puSize_ = 0;
-    return RECORD_NOT_FOUND;
+// Abort the current asynchronous operation, if any
+void CFloppyStream::AbortAsyncOp ()
+{
+    // Only continue if the current operation is asynchronous
+    if (m_dwResult == ERROR_IO_PENDING)
+    {
+        if (CancelIo(m_hDevice))
+            m_dwResult = ERROR_SUCCESS;
+        else
+        {
+            m_dwResult = GetLastError();
+            TRACE("!!! Failed to abort asynchronous operation (%#08lx)\n", m_dwResult);
+        }
+    }
 }
