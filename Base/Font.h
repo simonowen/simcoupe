@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Font.h: Font data used for on-screen text
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 
 typedef struct
 {
-    WORD    wHeight, wCharSize;
+    WORD    wWidth, wHeight, wCharSize;
     BYTE    bFirst, bLast;
 
     const BYTE* pcbData;
