@@ -423,6 +423,8 @@ void CPU::ExecuteChunk ()
         CheckCpuEvents();
     }
 
+// Exclude the extra debugger core if we can't use it anyway
+#ifndef USE_LOWRES
     if (!Debug::IsBreakpointSet())
     {
         // Loop until we've reached the end of the frame
@@ -455,6 +457,7 @@ void CPU::ExecuteChunk ()
         }
     }
     else
+#endif	// USE_LOWRES
     {
         // Loop until we've reached the end of the frame
         for (g_fBreak = false ; !g_fBreak ; )
