@@ -41,7 +41,7 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     : CDialog(pParent_, 305, 220,  "About SimCoupe")
 {
     new CIconControl(this, 6, 6, &sSamIcon);
-    new CTextControl(this, 86, 10,  "SimCoupe v0.90 beta 10", BLACK);
+    new CTextControl(this, 86, 10,  "SimCoupe v0.90 beta 11", BLACK);
     new CTextControl(this, 86, 24,  "http://www.simcoupe.org/", GREY_3);
 
     new CTextControl(this, 41, 46,  "Win32/SDL/Allegro/Pocket PC versions:", BLUE_5);
@@ -336,7 +336,7 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
         if (m_pSize->IsEnabled())
         {
             char sz[MAX_PATH];
-            int nLen = strlen(strcpy(sz, m_pFile->GetText()));
+            size_t nLen = strlen(strcpy(sz, m_pFile->GetText()));
 
             // Append a .hdf extension if it doesn't already have one
             if (nLen > 4 && strcasecmp(sz + nLen - 4, ".hdf"))
@@ -1394,7 +1394,8 @@ void CImportDialog::OnNotify (CWindow* pWindow_, int nParam_)
         }
 
         UINT uPage = (s_uAddr < 0x4000) ? ROM0 : s_uPage;
-        UINT uOffset = s_uOffset, uLen = 0x7ffff, uRead = 0;
+        UINT uOffset = s_uOffset, uLen = 0x7ffff;
+        size_t uRead = 0;
 
         // Loop reading chunk blocks into the relevant pages
         for (UINT uChunk ; (uChunk = min(uLen, (0x4000 - uOffset))) ; uLen -= uChunk, uOffset = 0)
@@ -1454,7 +1455,8 @@ void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
         }
 
         UINT uPage = (s_uAddr < 0x4000) ? ROM0 : s_uPage;
-        UINT uOffset = s_uOffset, uLen = min(s_uLength, 0x84000), uWritten = 0;
+        UINT uOffset = s_uOffset, uLen = min(s_uLength, 0x84000);
+        size_t uWritten = 0;
 
         // Loop reading chunk blocks into the relevant pages
         for (UINT uChunk ; (uChunk = min(uLen, (0x4000 - uOffset))) ; uLen -= uChunk, uOffset = 0)
