@@ -22,10 +22,11 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-namespace Util
+class Util
 {
-    bool Init ();
-    void Exit ();
+    public:
+        static bool Init ();
+        static void Exit ();
 };
 
 
@@ -36,15 +37,13 @@ bool OpenLog ();
 void CloseLog ();
 
 void TraceOutputString (const char *pcszFormat, ...);
-void TraceOutputString (const BYTE *pcb_, UINT uLen_=0);
+void TraceOutputString (const BYTE *pcb_, size_t uLen_=0);
 
 #ifdef _DEBUG
 #define TRACE ::TraceOutputString
 #else
 void TraceOutputString (const char *, ...);
 #define TRACE 1 ? (void)0 : ::TraceOutputString
-//void TraceOutputString (const BYTE *pcb_, UINT uLen_);
 #endif
-
 
 #endif
