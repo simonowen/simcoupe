@@ -995,9 +995,9 @@ bool CFloppyDisk::GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_)
 }
 
 // Wait for the current asynchronous operation to complete, if any
-void CFloppyDisk::WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_)
+bool CFloppyDisk::WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_)
 {
-    m_pFloppy->WaitAsyncOp(puSize_, pbStatus_);
+    return m_pFloppy->WaitAsyncOp(puSize_, pbStatus_);
 }
 
 // Abort the current asynchronous operation, if any

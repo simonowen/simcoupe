@@ -159,7 +159,7 @@ class CDisk
         virtual bool Save () = 0;
         virtual BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_) = 0;
         virtual bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_) { return false; }
-        virtual void WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_) { }
+        virtual bool WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_) { return false; }
         virtual void AbortAsyncOp () { }
 
     protected:
@@ -275,7 +275,7 @@ class CFloppyDisk : public CDisk
         bool Save ();
         BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
         bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_);
-        void WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_);
+        bool WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_);
         void AbortAsyncOp ();
 
     protected:
