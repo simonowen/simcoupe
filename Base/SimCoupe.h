@@ -39,11 +39,7 @@
 #define _DEBUG
 #endif
 
-typedef unsigned long       DWORD;
-typedef unsigned short      WORD;
-typedef unsigned char       BYTE;
 typedef unsigned int        UINT;
-
 
 #include "OSD.h"            // OS-dependant stuff
 
