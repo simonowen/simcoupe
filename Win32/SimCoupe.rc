@@ -57,7 +57,7 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About SimCoupé"
 FONT 8, "MS Sans Serif"
 BEGIN
-    CTEXT           "SimCoupé v0.90 beta (2005/01/25)",IDC_STATIC,7,43,179,8
+    CTEXT           "SimCoupe v0.90",IDS_VERSION,7,43,179,8
     LTEXT           "http://www.simcoupe.org",ID_HOMEPAGE,55,54,82,8,
                     SS_NOTIFY
     LTEXT           "Win32/SDL/Allegro/PocketPC versions:\n     Simon Owen <simon.owen@simcoupe.org>",
