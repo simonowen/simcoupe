@@ -70,12 +70,12 @@ class CIoDevice
         virtual void FrameEnd () { }
 };
 
-enum { dskNone, dskImage, dskAtom, dskYATBus };
+enum { dskNone, dskImage, dskAtom, dskSDIDE, dskYATBus };
 
 class CDiskDevice :  public CIoDevice
 {
     public:
-        CDiskDevice (int nType_) : m_nType(nType_) { }
+        CDiskDevice (int nType_=dskNone) : m_nType(nType_) { }
         virtual ~CDiskDevice () { }
 
     public:
@@ -259,7 +259,7 @@ extern UINT clut[N_CLUT_REGS], clutval[N_CLUT_REGS], mode3clutval[4];
 extern BYTE status_reg;
 extern BYTE lpen, hpen;
 
-extern CDiskDevice *pDrive1, *pDrive2;
+extern CDiskDevice *pDrive1, *pDrive2, *pSDIDE, *pYATBus;
 extern CIoDevice *pParallel1, *pParallel2;
 
 #endif
