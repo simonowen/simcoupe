@@ -51,17 +51,17 @@ class CFloppyStream : public CStream
         BYTE Read (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_);
         BYTE Write (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_);
         bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_);
-        void WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_);
+        bool WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_);
         void AbortAsyncOp ();
+
+    protected:
+        void Close ();
+        BYTE TranslateError () const;
 
     protected:
         HANDLE      m_hDevice;
         OVERLAPPED  m_sOverlapped;
         DWORD       m_dwResult;
-
-    protected:
-        void Close ();
-        BYTE TranslateError () const;
 };
 
 #endif  // FLOPPY_H

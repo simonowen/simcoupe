@@ -363,7 +363,7 @@ bool CFloppyStream::GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_)
 }
 
 // Wait for the current asynchronous operation to complete, if any
-void CFloppyStream::WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_)
+bool CFloppyStream::WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_)
 {
     // Only continue if the current operation is asynchronous
     if (m_dwResult == ERROR_IO_PENDING)
@@ -389,8 +389,12 @@ void CFloppyStream::WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_)
             m_dwResult = GetLastError();
             TRACE("!!! Failed to complete asynchronous operation (%#08lx)\n", m_dwResult);
         }
+
         *pbStatus_ = TranslateError();
+        return true;
     }
+
+    return false;
 }
 
 // Abort the current asynchronous operation, if any
