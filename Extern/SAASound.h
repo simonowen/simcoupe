@@ -1,4 +1,9 @@
+// Part of SAASound copyright 1998-2004 Dave Hooper <dave@rebuzz.org>
+//
 // SAASound.h: interface for the CSAASound class.
+//
+// Version 3.2 (8th August 2004)
+// (c) 1998-2004 dave @ spc       <dave@rebuzz.org>
 //
 //////////////////////////////////////////////////////////////////////
 
@@ -27,7 +32,7 @@
 typedef unsigned long SAAPARAM;
 
 
-// command #defines for use with SendCommand function, eg,
+// command #defines for use with SendCommand function, eg, 
 // int nCurrentSampleRate = SendCommand(SAACMD_GetSampleRate,0);
 // or
 // int nError = SendCommand(SAACMD_SetSampleRate,44100);
