@@ -57,6 +57,7 @@ typedef struct
     int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
     bool    altforcntrl;            // Non-zero if Left-Alt is used for SAM Cntrl
     bool    altgrforedit;           // Non-zero if Right-Alt is used for SAM Edit
+    bool    kpminusreset;           // Non-zero if Keypad-minus is used for Reset
     bool    mouse;                  // True to emulate the SAM mouse
 
     char    joydev1[128];           // Joystick 1 device
