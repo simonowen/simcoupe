@@ -87,16 +87,11 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
     ProfileStart(Gfx);
 
     // If we've changing from displaying the GUI back to scanline mode, clear the unused lines on the surface
-    static bool fOldInterlace = false;
     bool fInterlace = GetOption(scanlines) && !GUI::IsActive();
-    if (!fOldInterlace && fInterlace)
-        Video::ClearSurface(pSurface_);
-    fOldInterlace = fInterlace;
-
 
     // Lock the surface,  without taking the Win16Mutex if possible
-    if (FAILED(hr = pSurface_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WAIT|DDLOCK_NOSYSLOCK, NULL))
-          && FAILED(hr = pSurface_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WAIT, NULL)))
+    if (FAILED(hr = pSurface_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT|DDLOCK_NOSYSLOCK, NULL))
+          && FAILED(hr = pSurface_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL)))
     {
         TRACE("!!! DrawChanges()  Failed to lock back surface (%#08lx)\n", hr);
         ProfileEnd();
@@ -114,10 +109,11 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
     BYTE *pbSAM = pScreen_->GetLine(0), *pb = pbSAM;
     LONG lPitch = pScreen_->GetPitch();
 
+    DWORD dwYUVBlack = ((awV[0] | awY[0]) << 16) | awU[0] | awY[0];
     bool fYUV = (ddsd.ddpfPixelFormat.dwFlags & DDPF_FOURCC) != 0;
     int nDepth = ddsd.ddpfPixelFormat.dwRGBBitCount;
     int nBottom = pScreen_->GetHeight() >> (GUI::IsActive() ? 0 : 1);
-    int nRightHi = pScreen_->GetPitch() >> 3, nRightLo = nRightHi >> 1;
+    int nWidth = pScreen_->GetPitch(), nRightHi = nWidth >> 3, nRightLo = nRightHi >> 1;
 
     switch (nDepth)
     {
@@ -140,6 +136,9 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                         pdw += 2;
                         pb += 8;
                     }
+
+                    if (fInterlace)
+                        memset(pdw, 0x00, nWidth);
                 }
                 else
                 {
@@ -152,6 +151,9 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                         pdw += 4;
                         pb += 8;
                     }
+
+                    if (fInterlace)
+                        memset(pdw, 0x00, nWidth);
                 }
 
                 pfDirty[y] = false;
@@ -161,6 +163,11 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 
         case 16:
         {
+            if (fYUV)
+                nWidth >>= 1;
+            else
+                nWidth <<= 1;
+
             for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
             {
                 if (!pfDirty[y])
@@ -182,6 +189,9 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                             pdw += 4;
                             pb += 8;
                         }
+
+                        if (fInterlace)
+                            memset(pdw, 0x00, nWidth);
                     }
                     else
                     {
@@ -200,6 +210,9 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                             pdw += 8;
                             pb += 8;
                         }
+
+                        if (fInterlace)
+                            memset(pdw, 0x00, nWidth);
                     }
                 }
 
@@ -219,6 +232,10 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                             pdw += 4;
                             pb += 8;
                         }
+
+                        if (fInterlace)
+                            for (int x = 0 ; x < nWidth ; x++)
+                                pdw[x] = dwYUVBlack;
                     }
                     else
                     {
@@ -237,6 +254,10 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                             pdw += 8;
                             pb += 8;
                         }
+
+                        if (fInterlace)
+                            for (int x = 0 ; x < nWidth ; x++)
+                                pdw[x] = dwYUVBlack;
                     }
                 }
 
@@ -247,6 +268,8 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 
         case 24:
         {
+            nWidth *= 3;
+
             for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
             {
                 if (!pfDirty[y])
@@ -271,6 +294,9 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                         pdw += 6;
                         pb += 8;
                     }
+
+                    if (fInterlace)
+                        memset(pdw, 0x00, nWidth);
                 }
                 else
                 {
@@ -299,6 +325,9 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                         pdw += 12;
                         pb += 8;
                     }
+
+                    if (fInterlace)
+                        memset(pdw, 0x00, nWidth);
                 }
 
                 pfDirty[y] = false;
@@ -308,6 +337,8 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 
         case 32:
         {
+            nWidth <<= 2;
+
             for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
             {
                 if (!pfDirty[y])
@@ -329,6 +360,9 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                         pdw += 8;
                         pb += 8;
                     }
+
+                    if (fInterlace)
+                        memset(pdw, 0x00, nWidth);
                 }
                 else
                 {
@@ -346,6 +380,9 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                         pdw += 16;
                         pb += 8;
                     }
+
+                    if (fInterlace)
+                        memset(pdw, 0x00, nWidth);
                 }
 
                 pfDirty[y] = false;
