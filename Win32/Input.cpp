@@ -77,7 +77,7 @@ BYTE bComboKey, bComboShifts;
 DWORD dwComboTime;
 
 
-bool fMouseActive, fCursorVisible = true, fPurgeKeyboard;
+bool fMouseActive, fPurgeKeyboard;
 
 BYTE abKeyStates[256], abKeys[256];
 inline bool IsPressed(BYTE bKey_)   { return (abKeyStates[bKey_] & 0x80) != 0; }
@@ -361,6 +361,14 @@ bool InitJoysticks ()
     return true;
 }
 
+
+// Return whether the emulation is using the mouse
+bool Input::IsMouseAcquired ()
+{
+    return fMouseActive;
+}
+
+
 void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 {
     // If the mouse is being acquired, move it to the centre of the screen
@@ -371,10 +379,6 @@ void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
         // Calculate the central position in the client screen
         GetClientRect(g_hwnd, &r);
         POINT pt = { r.right/2, r.bottom/2 };
-
-        // Hide the cursor if not already hidden
-        if (fCursorVisible)
-            ShowCursor(fCursorVisible = false);
 
         // Move the cursor there, and store the position for later comparison
         ClientToScreen(g_hwnd, &pt);
@@ -684,11 +688,6 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
         case WM_MOUSEMOVE:
         {
-            // Hide the mouse if it's been acquired for emulation use or the GUI is active
-            bool fShowCursor = !fMouseActive && !GUI::IsActive() && !GetOption(fullscreen);
-            if (fCursorVisible != fShowCursor)
-                ShowCursor(fCursorVisible = fShowCursor);
-
             // Mouse coordinates are in screen units, but need converting to our client coordinates
             RECT r;
             GetClientRect(hwnd_, &r);
@@ -820,12 +819,19 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
         case WM_KEYDOWN:
         {
-            // Pass cursor key presses to the GUI, hiding the cursor if they're accepted
-            int anCursors[] = { GK_LEFT, GK_UP, GK_RIGHT, GK_DOWN };
-            if (wParam_ >= VK_LEFT && wParam_ <= VK_DOWN && GUI::SendMessage(GM_CHAR, anCursors[wParam_-VK_LEFT], 0))
+            if (!GUI::IsActive())
+                break;
+
+            // Pass cursor and movement keys to the GUI
+            if (wParam_ >= VK_LEFT && wParam_ <= VK_DOWN)
             {
-                SetCursor(NULL);
-                return true;
+                int anCursors[] = { GK_LEFT, GK_UP, GK_RIGHT, GK_DOWN };
+                GUI::SendMessage(GM_CHAR, anCursors[wParam_-VK_LEFT], 0);
+            }
+            else if (wParam_ >= VK_PRIOR && wParam_ <= VK_HOME)
+            {
+                int anMovement[] = { GK_PAGEUP, GK_PAGEDOWN, GK_END, GK_HOME };
+                GUI::SendMessage(GM_CHAR, anMovement[wParam_-VK_PRIOR], 0);
             }
 
             // Ignore key repeats for held keys
