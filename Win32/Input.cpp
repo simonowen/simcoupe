@@ -89,8 +89,8 @@ SIMPLE_KEY asSamKeys [SK_MAX] =
     {-DIK_LSHIFT},  {'Z'},          {'X'},      {'C'},      {'V'},      {-DIK_NUMPAD1}, {-DIK_NUMPAD2}, {-DIK_NUMPAD3},
     {'A'},          {'S'},          {'D'},      {'F'},      {'G'},      {-DIK_NUMPAD4}, {-DIK_NUMPAD5}, {-DIK_NUMPAD6},
     {'Q'},          {'W'},          {'E'},      {'R'},      {'T'},      {-DIK_NUMPAD7}, {-DIK_NUMPAD8}, {-DIK_NUMPAD9},
-    {0},            {0},            {0},        {0},        {0},        {-DIK_ESCAPE},  {-DIK_TAB},     {-DIK_CAPITAL},
-    {0},            {0},            {0},        {0},        {0},        {0},            {0},            {-DIK_BACK},
+    {-DIK_1},       {-DIK_2},       {-DIK_3},   {-DIK_4},   {-DIK_5},   {-DIK_ESCAPE},  {-DIK_TAB},     {-DIK_CAPITAL},
+    {-DIK_0},       {-DIK_9},       {-DIK_8},   {-DIK_7},   {-DIK_6},   {0},            {0},            {-DIK_BACK},
     {'P'},          {'O'},          {'I'},      {'U'},      {'Y'},      {0},            {0},            {-DIK_NUMPAD0},
     {-DIK_RETURN},  {'L'},          {'K'},      {'J'},      {'H'},      {0},            {0},            {0},
     {-DIK_SPACE},   {-DIK_LCONTROL},{'M'},      {'N'},      {'B'},      {0},            {0},            {-DIK_INSERT},
@@ -121,6 +121,9 @@ COMBINATION_KEY asSamSymbols[] =
 // Symbols with Spectrum keyboard details
 COMBINATION_KEY asSpectrumSymbols[] =
 {
+    { '0', SK_NONE, SK_0 }, { '1', SK_NONE, SK_1 }, { '2', SK_NONE, SK_2 }, { '3', SK_NONE, SK_3 }, { '4', SK_NONE, SK_4 },
+    { '5', SK_NONE, SK_5 }, { '6', SK_NONE, SK_6 }, { '7', SK_NONE, SK_7 }, { '8', SK_NONE, SK_8 }, { '9', SK_NONE, SK_9 },
+
     { '!',  SK_SYMBOL, SK_1 },      { '@',  SK_SYMBOL, SK_2 },      { '#',  SK_SYMBOL, SK_3 },
     { '$',  SK_SYMBOL, SK_4 },      { '%',  SK_SYMBOL, SK_5 },      { '&',  SK_SYMBOL, SK_6 },
     { '\'', SK_SYMBOL, SK_7 },      { '(',  SK_SYMBOL, SK_8 },      { ')',  SK_SYMBOL, SK_9 },
