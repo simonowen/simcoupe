@@ -23,11 +23,13 @@
 
 #include "CStream.h"
 
-namespace Floppy
+class Floppy
 {
-    bool Init ();
-    void Exit (bool fReInit_=true);
-}
+    public:
+        static bool Init ();
+        static void Exit (bool fReInit_=true);
+};
+
 
 class CFloppyStream : public CStream
 {
@@ -43,11 +45,11 @@ class CFloppyStream : public CStream
     public:
         bool IsOpen () const { return m_hDevice != INVALID_HANDLE_VALUE; }
         bool Rewind () { m_dwPos = 0; return true; }
-        long Read (void* pvBuffer_, long lLen_) { return 0; }
-        long Write (void* pvBuffer_, long lLen_) { return 0; }
+        size_t Read (void* pvBuffer_, size_t uLen_) { return 0; }
+        size_t Write (void* pvBuffer_, size_t uLen_) { return 0; }
 
-        BYTE Read (int nSide_, int nTrack_, int nSector_, BYTE* pbData_, UINT* puSize_);
-        BYTE Write (int nSide_, int nTrack_, int nSector_, BYTE* pbData_, UINT* puSize_);
+        BYTE Read (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_);
+        BYTE Write (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_);
 
     protected:
         HANDLE  m_hDevice;
