@@ -33,6 +33,7 @@ public:
 
     static DWORD GetTime ();
     static const char* GetFilePath (const char* pcszFile_="");
+    static const char* GetFloppyDevice (int nDrive_);
     static bool IsHidden (const char* pcszPath_);
 
     static void DebugTrace (const char* pcsz_);
@@ -45,10 +46,12 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <sys/types.h>      // for _off_t definition
+#include <fcntl.h>
 #include "SDL.h"
 #define SDL
 
 #ifndef _WINDOWS
+#include <sys/ioctl.h>
 #include <dirent.h>
 #include <unistd.h>
 #define PATH_SEPARATOR      '/'
@@ -85,11 +88,23 @@ public:
 
 #define strcasecmp  _strcmpi
 #define mkdir(p,m)  _mkdir(p)
+#define lstat       stat
+#define ioctl(f,c,x)
+#define readlink(p,b,n) -1
+
 #define access      _access
+#define R_OK        4
+#define W_OK        2
+#define X_OK        1
+#define F_OK        0
+
+#define O_NONBLOCK  0           // Normally 04000, but not needed
 
 #define _S_ISTYPE(mode,mask)    (((mode) & _S_IFMT) == (mask))
 #define S_ISDIR(mode)           _S_ISTYPE((mode), _S_IFDIR)
 #define S_ISREG(mode)           _S_ISTYPE((mode), _S_IFREG)
+#define S_ISBLK(mode)           0
+#define S_ISLNK(mode)           0
 
 
 // Windows lacks direct.h, so we'll supply our own
