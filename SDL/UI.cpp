@@ -22,10 +22,6 @@
 //  At present this module only really contains the event processing
 //  code, for forwarding to other modules and processing fn keys
 
-// ToDo:
-//  - tidy up left over Win32 fragments
-//  - platform independant UI drawn directly to on a CScreen
-
 #include "SimCoupe.h"
 #include "SDL.h"
 
@@ -36,7 +32,7 @@
 #include "CPU.h"
 #include "Display.h"
 #include "Frame.h"
-#include "GUI.h"
+#include "GUIDlg.h"
 #include "Input.h"
 #include "Options.h"
 #include "OSD.h"
@@ -115,10 +111,10 @@ void ProcessKey (SDL_Event* pEvent_)
     bool fPress = pEvent_->type == SDL_KEYDOWN;
 
     // A function key?
-    if (pKey->sym >= SDLK_F1 && pKey->sym <= SDLK_F12)
+    if (pKey->sym >= SDLK_F1 && pKey->sym <= SDLK_F12 && !((pKey->mod & KMOD_ALT)))
     {
         // Read the current states of the control and shift keys
-        bool fCtrl  = (pKey->mod & KMOD_CTRL) != 0, fShift = (pKey->mod & KMOD_SHIFT) != 0;
+        bool fCtrl = (pKey->mod & KMOD_CTRL) != 0, fShift = (pKey->mod & KMOD_SHIFT) != 0;
 
         // Grab a copy of the function key definition string (could do with being converted to upper-case)
         char szKeys[256];
@@ -154,7 +150,7 @@ void ProcessKey (SDL_Event* pEvent_)
         case SDLK_KP_MULTIPLY:  DoAction(actNmiButton, fPress);         break;
         case SDLK_KP_PLUS:      DoAction(actTempTurbo, fPress);         break;
         case SDLK_SYSREQ:       DoAction(actSaveScreenshot, fPress);    break;
-//      case SDLK_SCROLLOCK:    // Pause key on some platforms comes through as scoll lock?
+        case SDLK_SCROLLOCK:    // Pause key on some platforms comes through as scoll lock?
         case SDLK_PAUSE:        DoAction((pKey->mod & KMOD_CTRL) ? actResetButton :
                                          (pKey->mod & KMOD_SHIFT) ? actFrameStep : actPause, fPress);   break;
         default:                break;
@@ -229,16 +225,15 @@ void UI::ShowMessage (eMsgType eType_, const char* pcszMessage_)
     switch (eType_)
     {
         case msgWarning:
-//          MessageBox(NULL, pcszMessage_, "Warning", MB_OK | MB_ICONEXCLAMATION);
+            GUI::Start(new CMessageBox(NULL, pcszMessage_, "Warning", mbWarning));
             break;
 
         case msgError:
-//          MessageBox(NULL, pcszMessage_, "Error", MB_OK | MB_ICONSTOP);
+            GUI::Start(new CMessageBox(NULL, pcszMessage_, "Error", mbError));
             break;
 
         // Something went seriously wrong!
         case msgFatal:
-//          MessageBox(NULL, pcszMessage_, "Fatal Error", MB_OK | MB_ICONSTOP);
             break;
 
         default:
@@ -246,25 +241,7 @@ void UI::ShowMessage (eMsgType eType_, const char* pcszMessage_)
     }
 }
 
-
-void UI::ResizeWindow (bool fUseOption_/*=false*/)
-{
-    Display::SetDirty();
-}
-
 ////////////////////////////////////////////////////////////////////////////////
-
-bool InsertDisk (CDiskDevice* pDrive_, const char* pName_)
-{
-    // Remember the read-only state of the previous disk
-    bool fReadOnly = !pDrive_->IsWriteable();
-
-    // Eject any previous disk, saving if necessary
-    pDrive_->Eject();
-
-    // Open the new disk (using the requested read-only mode), and insert it into the drive if successful
-    return pDrive_->Insert(pName_, fReadOnly);
-}
 
 void DoAction (int nAction_, bool fPressed_)
 {
@@ -301,12 +278,7 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actChangeWindowScale:
-#if 0
-// NOT SUPPORTED until either SDL supports stretching or we do it ourselves
-                SetOption(scale, (GetOption(scale) % 3) + 1);
-                UI::ResizeWindow(true);
-                Frame::SetStatus("%dx window scaling", GetOption(scale));
-#endif
+                GUI::Start(new CMessageBox(NULL, "Window scaling not supported under SDL", "Sorry!", mbInformation));
                 break;
 
             case actChangeFrameSkip:
@@ -328,10 +300,9 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actChangeMouse:
-                SetOption(mouse, (GetOption(mouse)+1) % 3);
+                SetOption(mouse, !GetOption(mouse));
                 Input::Acquire(GetOption(mouse) != 0);
-                Frame::SetStatus("Mouse %s", !GetOption(mouse) ? "disabled" :
-                                    GetOption(mouse)==1 ? "enabled" : "enabled (double X sensitivity)");
+                Frame::SetStatus("Mouse %s", !GetOption(mouse) ? "disabled" : "enabled");
                 break;
 
             case actChangeKeyMode:
@@ -342,11 +313,7 @@ void DoAction (int nAction_, bool fPressed_)
 
             case actInsertFloppy1:
                 if (GetOption(drive1) == 1)
-                {
-                    InsertDisk(pDrive1, GetOption(disk1));
-                    SetOption(disk1, pDrive1->GetImage());
-                    Frame::SetStatus("Inserted disk in drive 1");
-                }
+                    GUI::Start(new CInsertFloppy(1));
                 break;
 
             case actEjectFloppy1:
@@ -365,11 +332,7 @@ void DoAction (int nAction_, bool fPressed_)
 
             case actInsertFloppy2:
                 if (GetOption(drive2) == 1)
-                {
-                    InsertDisk(pDrive2, GetOption(disk2));
-                    SetOption(disk2, pDrive2->GetImage());
-                    Frame::SetStatus("Inserted disk in drive 2");
-                }
+                    GUI::Start(new CInsertFloppy(2));
                 break;
 
             case actEjectFloppy2:
@@ -387,6 +350,7 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actNewDisk:
+                GUI::Start(new CMessageBox(NULL, "New Disk not yet implemented", "Sorry!", mbInformation));
                 break;
 
             case actSaveScreenshot:
@@ -399,12 +363,15 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actDebugger:
+                GUI::Start(new CMessageBox(NULL, "Debugger not yet implemented", "Sorry!", mbInformation));
                 break;
 
             case actImportData:
+                GUI::Start(new CMessageBox(NULL, "Import Data not yet implemented", "Sorry!", mbInformation));
                 break;
 
             case actExportData:
+                GUI::Start(new CMessageBox(NULL, "Export Data not yet implemented", "Sorry!", mbInformation));
                 break;
 
             case actDisplayOptions:
@@ -509,37 +476,29 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             // To avoid an SDL bug (in 1.2.0 anyway), we'll do the following on key up instead of down
-
             case actToggleFullscreen:
                 SetOption(fullscreen, !GetOption(fullscreen));
                 Sound::Silence();
 
-                if (GetOption(fullscreen))
-                {
-                    // ToDo: remember the the window position before then re-initialising the video system
-                    Frame::Init();
-                }
-                else
-                {
-                    // Re-initialise the video system then set the window back how it was before
-                    Frame::Init();
+                // Reinitialise the video
+                Frame::Init();
 
-                    // ToDo: restore the window position and size
-                    UI::ResizeWindow();
-                }
-
+                // Grab the mouse automatically in full-screen, or release in windowed mode
+                Input::Acquire(GetOption(fullscreen), !GUI::IsActive());
                 break;
 
-#ifdef USE_OPENGL
             case actToggle5_4:
+#ifdef USE_OPENGL
                 SetOption(ratio5_4, !GetOption(ratio5_4));
 
 //              if (!GetOption(stretchtofit))
                     Frame::Init();
 
                 Frame::SetStatus("%s pixel size", GetOption(ratio5_4) ? "5:4" : "1:1");
-                break;
+#else
+                GUI::Start(new CMessageBox(NULL, "5:4 mode not available under SDL", "Sorry!", mbInformation));
 #endif
+                break;
         }
     }
 }
