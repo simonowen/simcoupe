@@ -141,12 +141,22 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
     return szPath;
 }
 
+
 // Return whether a file/directory is normally hidden from a directory listing
 bool OSD::IsHidden (const char* pcszFile_)
 {
     // Hide entries with the hidden or system attribute bits set
     DWORD dwAttrs = GetFileAttributes(pcszFile_);
     return (dwAttrs != 0xffffffff) && (dwAttrs & (FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM));
+}
+
+// Return the path to use for a given drive with direct floppy access
+const char* OSD::GetFloppyDevice (int nDrive_)
+{
+    static char szDevice[] = "_:";
+
+    szDevice[0] = 'A' + nDrive_-1;
+    return szDevice;
 }
 
 
