@@ -2,7 +2,7 @@
 //
 // OSD.h: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ class OSD
 #include <sys\types.h>  // for _off_t etc.
 #include <direct.h>     // for _mkdir
 #include <stdio.h>      // for FILE structure
-#include <winioctl.h>	// for DISK_GEOMETRY and IOCTL_DISK_GET_DRIVE_GEOMETRY
+#include <winioctl.h>   // for DISK_GEOMETRY and IOCTL_DISK_GET_DRIVE_GEOMETRY
 
 #pragma include_alias(<io.h>, <..\Include\IO.h>)
 #include <io.h>
@@ -63,8 +63,7 @@ class OSD
 #pragma warning(disable:4786)   // disable stupid 'debug symbols being truncated' warning
 
 #ifdef USE_ZLIB
-#define ZLIB_DLL
-#pragma comment(lib, "zlib")
+#pragma comment(lib, "zlib1")   // new 1.2.x version, required to avoid zlib binary mismatch problems
 #endif
 
 #ifdef USE_SAASOUND
