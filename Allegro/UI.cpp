@@ -358,7 +358,7 @@ void DoAction (int nAction_, bool fPressed_)
                 if (!g_fTurbo)
                 {
                     g_fTurbo = true;
-                    Sound::Silence();
+                    Sound::Stop();
                 }
                 break;
 
@@ -431,7 +431,7 @@ void DoAction (int nAction_, bool fPressed_)
             case actTempTurbo:
                 if (g_fTurbo)
                 {
-                    Sound::Silence();
+                    Sound::Play();
                     g_fTurbo = false;
                 }
                 break;
