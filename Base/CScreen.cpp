@@ -174,20 +174,23 @@ void CScreen::FillRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColou
 }
 
 // Draw a rectangle outline
-void CScreen::FrameRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_)
+void CScreen::FrameRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_, bool fRound_/*=false*/)
 {
-    // Single pixel with or height boxes can be drawn more efficiently
+    // Single pixel width or height boxes can be drawn more efficiently
     if (nWidth_ == 1)
         DrawLine(nX_, nY_, 0, nHeight_, bColour_);
     else if (nHeight_ == 1)
         DrawLine(nX_, nY_, nWidth_, 0, bColour_);
     else
     {
+        // Rounding offsets, if required
+        int nR = fRound_ ? 1 : 0, nR2 = nR+nR;
+
         // Draw lines for top, left, right and bottom
-        DrawLine(nX_, nY_, nWidth_, 0, bColour_);
-        DrawLine(nX_, nY_, 0, nHeight_, bColour_);
-        DrawLine(nX_+nWidth_-1, nY_, 0, nHeight_, bColour_);
-        DrawLine(nX_, nY_+nHeight_-1, nWidth_, 0, bColour_);
+        DrawLine(nX_+nR, nY_, nWidth_-nR2, 0, bColour_);
+        DrawLine(nX_, nY_+nR, 0, nHeight_-nR2, bColour_);
+        DrawLine(nX_+nWidth_-1, nY_+nR, 0, nHeight_-nR2, bColour_);
+        DrawLine(nX_+nR, nY_+nHeight_-1, nWidth_-nR2, 0, bColour_);
     }
 }
 

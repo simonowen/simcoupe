@@ -58,7 +58,7 @@ class CScreen
         void Plot (int nX_, int nY_, BYTE bColour_);
         void DrawLine (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_);
         void FillRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_);
-        void FrameRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_);
+        void FrameRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_, bool fRound_=false);
         void DrawImage (int nX_, int nY_, int nWidth_, int nHeight_, const BYTE* pbData_, const BYTE* pbPalette_);
         void DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_=false);
 
