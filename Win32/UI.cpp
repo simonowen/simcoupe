@@ -1822,7 +1822,7 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                         return BadField(hdlg_, IDE_LENGTH);
 
                     static OPENFILENAME ofn = { sizeof(ofn) };
-                    ofn.hwndOwner       = g_hwnd;
+                    ofn.hwndOwner       = hdlg_;
                     ofn.lpstrFilter     = "Data files (*.bin;*.dat;*.raw)\0*.bin;*.dat;*.raw\0All files (*.*)\0*.*\0";
                     ofn.lpstrFile       = szFile;
                     ofn.nMaxFile        = sizeof(szFile);
@@ -1835,7 +1835,7 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                         EndDialog(hdlg_, 0);
                         return TRUE;
                     }
-                    else if (!(f = fopen(szFile, fImport ? "rb" : "rw")))
+                    else if (!(f = fopen(szFile, fImport ? "rb" : "wb")))
                     {
                         MessageBox(hdlg_, "Failed to open file", fImport ? "Import" : "Export", MB_ICONEXCLAMATION);
                         EndDialog(hdlg_, 0);
