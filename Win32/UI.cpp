@@ -655,7 +655,6 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 }
 
                 Video::CreatePalettes();
-
                 Frame::Redraw();
                 Input::Purge();
                 break;
@@ -806,13 +805,6 @@ BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             }
             break;
 
-        // A click of any button will close the dialog
-        case WM_LBUTTONDOWN:
-        case WM_MBUTTONDOWN:
-        case WM_RBUTTONDOWN:
-            EndDialog(hdlg_, 0);
-            break;
-
         case WM_CTLCOLORSTATIC:
             // Make the text blue if it's the URL
             if (hwndURL == reinterpret_cast<HWND>(lParam_))
@@ -875,25 +867,19 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             PostQuitMessage(0);
             return 0;
 
-        // Main window gaining focus, so undim the palette
-        case WM_SETFOCUS:
-            Video::CreatePalettes(false);
-            break;
-
-        // Main window losing focus, so dim the palette and force a redraw
-        case WM_KILLFOCUS:
-            Video::CreatePalettes(true);
-            Frame::Redraw();
-            break;
-
         // Main window being activated or deactivated
         case WM_ACTIVATE:
         {
             TRACE("WM_ACTIVATE (%#08lx)\n", wParam_);
+            g_fActive = (wParam_ != WA_INACTIVE);
 
-            // When the main window becomes inactive (possibly due to a dialogue box), silence the sound
-            if (LOWORD(wParam_) == WA_INACTIVE && GetParent(reinterpret_cast<HWND>(lParam_)) == hwnd_)
+            // When the main window becomes inactive to a child window, silence the sound
+            if (!g_fActive && GetParent(reinterpret_cast<HWND>(lParam_)) == hwnd_)
                 Sound::Silence();
+
+            // Show the palette dimmed if the main window is no longer active
+            Video::CreatePalettes(!g_fActive);
+            Frame::Redraw();
 
             break;
         }
@@ -902,20 +888,20 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_ACTIVATEAPP:
         {
             TRACE("WM_ACTIVATEAPP (%#08lx)\n", wParam_);
-            g_fActive = (wParam_ != 0);
 
-            // Should be pause the emulation when inactive?
+            // Ensure the palette is correct if we're running fullscreen
+            if (g_fActive && GetOption(fullscreen))
+                Video::CreatePalettes();
+
+            // Should we pause when the window is inactive?
             if (GetOption(pauseinactive))
             {
-                // Silence the sound while we're not running
+                // Set an appropriate caption
+                SetWindowText(hwnd_, g_fActive ? WINDOW_CAPTION : WINDOW_CAPTION " - Paused");
+
+                // Silence the sound if paused while inactive
                 if (!g_fActive)
                     Sound::Silence();
-
-                // Dim the display while we're paused, or undim it when we get control again
-                Video::CreatePalettes();
-                Frame::Redraw();
-
-                SetWindowText(g_hwnd, g_fActive ? WINDOW_CAPTION : WINDOW_CAPTION " - Paused");
             }
 
             // Release the mouse and start the mouse hide delay
@@ -936,6 +922,12 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
             return 0;
         }
+
+
+        // Reinitialise the video if something changes
+        case WM_SYSCOLORCHANGE:
+            Display::Init();
+            break;
 
         // Input language has changed
         case WM_INPUTLANGCHANGE:
@@ -1124,11 +1116,11 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             return TRUE;
 
 
-        // Window has been moved
-        case WM_MOVE:
+        // Window is moving
+        case WM_MOVING:
             // Reposition any video overlay
             Frame::Redraw();
-            return 0;
+            break;
 
 
         // Mouse-hide timer has expired
@@ -1191,7 +1183,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             // If the Alt key is being used as the SAM 'Cntrl' key, stop Alt-key combinations activating the menu
             if (GetOption(altforcntrl) && (wParam_ & 0xfff0) == SC_KEYMENU && lParam_)
                 return 0;
-
             break;
 
         case WM_SYSKEYDOWN:
