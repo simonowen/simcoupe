@@ -2,7 +2,7 @@
 //
 // CDisk.h: C++ classes used for accessing all SAM disk image types
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,14 +34,14 @@ const UINT NORMAL_SECTOR_SIZE    = 512;  // Normally 512 bytes per sector
 
 const UINT NORMAL_DIRECTORY_TRACKS = 4;  // Normally 4 tracks in a SAMDOS directory
 
-const UINT MSDOS_DISK_SECTORS = 9;   // Double-density MS-DOS disks are 9 sectors per track
+const UINT DOS_DISK_SECTORS = 9;         // Double-density MS-DOS disks are 9 sectors per track
 
 const UINT SDF_TRACKSIZE = NORMAL_SECTOR_SIZE * 12;      // Large enough for any possible SAM disk format
 
 
 // The various disk format image sizes
 #define DSK_IMAGE_SIZE          (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE)
-#define MSDOS_IMAGE_SIZE        (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * MSDOS_DISK_SECTORS * NORMAL_SECTOR_SIZE)
+#define DOS_IMAGE_SIZE          (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * DOS_DISK_SECTORS * NORMAL_SECTOR_SIZE)
 
 const UINT DISK_FILE_HEADER_SIZE = 9;    // From SAM Technical Manual  (bType, wSize, wOffset, wUnused, bPages, bStartPage)
 
@@ -205,6 +205,7 @@ class CDisk
     public:
         static int GetType (CStream* pStream_);
         static CDisk* Open (const char* pcszDisk_, bool fReadOnly_=false);
+		static CDisk* Open (void* pv_, size_t uSize_, const char* pcszDisk_);
         void Close () { m_pStream->Close(); }
 
     // Public query functions
@@ -215,6 +216,8 @@ class CDisk
         UINT GetSpinPos (bool fAdvance_=false);
         bool IsReadOnly () const { return m_pStream->IsReadOnly(); }
         bool IsModified () const { return m_fModified; }
+
+        void SetModified (bool fModified_=true) { m_fModified = fModified_; }
 
     // Protected overrides
     public:
@@ -242,17 +245,13 @@ class CDisk
         UINT    m_uSpinPos;
         CStream*m_pStream;
         BYTE*   m_pbData;
-
-    protected:
-        void SetModified (bool fModified_=true) { m_fModified = fModified_; }
-
 };
 
 
 class CDSKDisk : public CDisk
 {
     public:
-        CDSKDisk (CStream* pStream_, bool fIMG_=false);
+        CDSKDisk (CStream* pStream_, UINT uSectors_=NORMAL_DISK_SECTORS, bool fIMG_=false);
         virtual ~CDSKDisk () { if (IsModified()) Save(); }
 
     public:
