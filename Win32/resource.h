@@ -3,7 +3,6 @@
 // Used by SimCoupe.rc
 //
 #define IDI_MAIN                        1
-#define IDI_DAVE                        2
 #define IDI_MISC                        3
 #define IDI_HARDWARE                    5
 #define IDI_MEMORY                      13
@@ -75,7 +74,6 @@
 #define IDC_EXTERNAL_MEMORY             1065
 #define IDC_MIDI_OUT                    1066
 #define IDC_SAMBUS_CLOCK                1067
-#define IDC_FILTER                      1068
 #define IDC_SAMPLE_SIZE                 1069
 #define IDC_MIDI_IN                     1070
 #define IDC_KEYBOARD_MAPPING            1073
@@ -165,7 +163,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        184
+#define _APS_NEXT_RESOURCE_VALUE        185
 #define _APS_NEXT_COMMAND_VALUE         40155
 #define _APS_NEXT_CONTROL_VALUE         1134
 #define _APS_NEXT_SYMED_VALUE           102
