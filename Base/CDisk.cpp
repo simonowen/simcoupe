@@ -50,8 +50,6 @@
             return dtSDF;
         else if (CSADDisk::IsRecognised(pStream_))
             return dtSAD;
-        else if (CDSKDisk::IsRecognised(pStream_))
-            return dtDSK;
         else if (CFileDisk::IsRecognised(pStream_))
         {
             // For now we'll only accept single files if they have a .SBT extension on the filename
@@ -59,6 +57,10 @@
             if (strlen(pcszDisk) > 4 && !strcasecmp(pcszDisk + strlen(pcszDisk) - 4, ".sbt"))
                 return dtSBT;
         }
+
+        // The original DSK format has no signature, so we try it last
+        if (CDSKDisk::IsRecognised(pStream_))
+            return dtDSK;
     }
 
     // Not recognised
@@ -91,29 +93,18 @@
 }
 
 
-CDisk::CDisk (CStream* pStream_)
+CDisk::CDisk (CStream* pStream_, int nType_)
+    : m_nType(nType_), m_uSides(0), m_uTracks(0), m_uSectors(0), m_uSectorSize(0),
+      m_uSide(0), m_uTrack(0), m_uSector(0), m_fModified(false), m_uSpinPos(1),
+      m_pStream(pStream_), m_pbData(NULL)
 {
-    // Save the supplied stream
-    m_pStream = pStream_;
-
-    // No geometry information, current track/size or spin position
-    m_uSides = m_uTracks = m_uSectors = m_uSector = 0;
-    m_uSide = m_uTrack = 0;
-    m_uSpinPos = 1;
-
-    // No sector data available
-    m_pbData = NULL;
-
-    // Disk not modified, yet
-    SetModified(false);
-
 }
 
-/*virtual*/ CDisk::~CDisk ()
+CDisk::~CDisk ()
 {
     // Delete the stream object and disk data memory we allocated
-    if (m_pStream) { delete m_pStream; m_pStream = NULL; }
-    if (m_pbData) { delete m_pbData; m_pbData = NULL; }
+    delete m_pStream;
+    delete m_pbData;
 }
 
 
@@ -204,21 +195,26 @@ bool CDisk::FindSector (UINT uSide_, UINT uTrack_, UINT uSector_, IDFIELD* pID_/
 
 /*static*/ bool CDSKDisk::IsRecognised (CStream* pStream_)
 {
-    bool fValid = false;
-    BYTE* pb = new BYTE[DSK_IMAGE_SIZE];
+    UINT uSize;
 
-    // It's only a DSK image if it's exactly the right size, since there's no signature to check for
-    if (pb)
+    // If we don't have a size (gzipped) we have no choice but to read enough to find out
+    if (!(uSize = pStream_->GetSize()))
     {
-        fValid = (pStream_->Rewind() && pStream_->Read(pb, DSK_IMAGE_SIZE) == DSK_IMAGE_SIZE && !pStream_->Read(pb, 1)) ||
-                 (pStream_->Rewind() && pStream_->Read(pb, MSDOS_IMAGE_SIZE) == MSDOS_IMAGE_SIZE && !pStream_->Read(pb, 1));
+        BYTE* pb = new BYTE[DSK_IMAGE_SIZE+1];
+
+        // Read 1 byte more than a full DSK image size, to check for larger files
+        if (pb && pStream_->Rewind())
+            uSize = pStream_->Read(pb, DSK_IMAGE_SIZE+1);
+
         delete pb;
     }
 
-    return fValid;
+    // Accept files that are a multiple of the track size, but no larger than a full disk
+    return uSize && uSize <= DSK_IMAGE_SIZE && !(uSize % (NORMAL_DISK_SECTORS*NORMAL_SECTOR_SIZE));
 }
 
-CDSKDisk::CDSKDisk (CStream* pStream_) : CDisk(pStream_)
+CDSKDisk::CDSKDisk (CStream* pStream_)
+    : CDisk(pStream_, dtDSK)
 {
     // The DSK geometry is fixed
     m_uSides = NORMAL_DISK_SIDES;
@@ -226,20 +222,20 @@ CDSKDisk::CDSKDisk (CStream* pStream_) : CDisk(pStream_)
     m_uSectors = NORMAL_DISK_SECTORS;
     m_uSectorSize = NORMAL_SECTOR_SIZE;
 
-    // Work out the disk size, allocate some memory for it
+    // Allocate some memory and clear it, just in case it's not a complete DSK image
     m_pbData = new BYTE[DSK_IMAGE_SIZE];
+    memset(m_pbData, 0, sizeof DSK_IMAGE_SIZE);
 
     // Read the data from any existing stream, or create and save a new disk
-    if (pStream_->IsOpen())
-    {
-        pStream_->Rewind();
-        m_uSectors = static_cast<UINT>(pStream_->Read(m_pbData, DSK_IMAGE_SIZE)) /
-                        (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_SECTOR_SIZE);
-    }
+    if (!pStream_->IsOpen())
+        SetModified();
     else
     {
-        memset(m_pbData, 0, DSK_IMAGE_SIZE);
-        SetModified();
+        pStream_->Rewind();
+
+        // If it's an MS-DOS image, treat as 9 sectors-per-track, otherwise 10 as normal for SAM
+        m_uSectors = (pStream_->Read(m_pbData, DSK_IMAGE_SIZE) == MSDOS_IMAGE_SIZE) ?
+                        MSDOS_DISK_SECTORS : NORMAL_DISK_SECTORS;
     }
 }
 
@@ -340,17 +336,25 @@ BYTE CDSKDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
     SAD_HEADER sh;
 
     // Read the header, check for the signature, and make sure the disk geometry is sensible
-    bool fRecognised = (pStream_->Rewind() && pStream_->Read(&sh, sizeof sh) == sizeof sh &&
+    bool fValid = (pStream_->Rewind() && pStream_->Read(&sh, sizeof sh) == sizeof(sh) &&
             !memcmp(sh.abSignature, SAD_SIGNATURE, sizeof sh.abSignature) &&
             sh.bSides && sh.bSides <= MAX_DISK_SIDES && sh.bTracks && sh.bTracks <= 127 &&
             sh.bSectorSizeDiv64 && (sh.bSectorSizeDiv64 <= (MAX_SECTOR_SIZE >> 6)) &&
             (sh.bSectorSizeDiv64 & -sh.bSectorSizeDiv64) == sh.bSectorSizeDiv64);
 
-    return fRecognised;
+    // If we know the stream size, validate the image size
+    if (fValid && pStream_->GetSize())
+    {
+        UINT uDiskSize = sizeof sh + sh.bSides * sh.bTracks * sh.bSectors * (sh.bSectorSizeDiv64 << 6);
+        fValid &= (pStream_->GetSize() == uDiskSize);
+    }
+
+    return fValid;
 }
 
 CSADDisk::CSADDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT uTracks_/*=NORMAL_DISK_TRACKS*/,
-    UINT uSectors_/*=NORMAL_DISK_SECTORS*/, UINT uSectorSize_/*=NORMAL_SECTOR_SIZE*/) : CDisk(pStream_)
+    UINT uSectors_/*=NORMAL_DISK_SECTORS*/, UINT uSectorSize_/*=NORMAL_SECTOR_SIZE*/)
+    : CDisk(pStream_, dtSAD)
 {
     SAD_HEADER sh = { "", uSides_, uTracks_, uSectors_, uSectorSize_ >> 6 };
 
@@ -494,23 +498,26 @@ BYTE CSADDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
 
 /*static*/ bool CSDFDisk::IsRecognised (CStream* pStream_)
 {
-    bool fValid = false;
+    UINT uSize;
 
-    BYTE* pb = new BYTE [SDF_IMAGE_SIZE];
-    if (pb)
+    // If we don't have a size (gzipped) we have no choice but to read enough to find out
+    if (!(uSize = pStream_->GetSize()))
     {
-        // Old files have no header and are a fixed size
-        if (pStream_->Rewind() && (pStream_->Read(pb, SDF_IMAGE_SIZE) == SDF_IMAGE_SIZE) && !pStream_->Read(pb, 1))
-            fValid = true;
+        BYTE* pb = new BYTE[SDF_IMAGE_SIZE+1];
+
+        // Read 1 byte more than a full DSK image size, to check for larger files
+        if (pb && pStream_->Rewind())
+            uSize = pStream_->Read(pb, SDF_IMAGE_SIZE+1);
 
         delete pb;
     }
 
-    return fValid;
+    // Accept files that are a multiple of the track size, but no larger than a full disk
+    return uSize == SDF_IMAGE_SIZE;
 }
 
 CSDFDisk::CSDFDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT uTracks_/*=MAX_DISK_TRACKS*/)
-    : CDisk(pStream_)
+    : CDisk(pStream_, dtSDF)
 {
     // Set up the fixed geometry used by old version
     m_uSides = NORMAL_DISK_SIDES;
@@ -636,7 +643,7 @@ BYTE CSDFDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
 }
 
 CFDIDisk::CFDIDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT uTracks_/*=MAX_DISK_TRACKS*/)
-    : CDisk(pStream_)
+    : CDisk(pStream_, dtFDI)
 {
     // SDF images don't have a fixed number of sectors per track or sector size
     m_uSectors = 0;
@@ -921,7 +928,8 @@ BYTE CFDIDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
     return CFloppyStream::IsRecognised(pStream_->GetName());
 }
 
-CFloppyDisk::CFloppyDisk (CStream* pStream_) : CDisk(pStream_)
+CFloppyDisk::CFloppyDisk (CStream* pStream_)
+    : CDisk(pStream_, dtFloppy)
 {
     // We can assume this as only CFloppyStream will recognise the real device, and we are always the disk used
     m_pFloppy = reinterpret_cast<CFloppyStream*>(pStream_);
@@ -1010,24 +1018,12 @@ void CFloppyDisk::AbortAsyncOp ()
 
 /*static*/ bool CFileDisk::IsRecognised (CStream* pStream_)
 {
-    bool fValid = false;
-
-    // Calculate the maximum size of a single file that will fit on a regular disk
-    UINT uMaxSize = ((NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS) - NORMAL_DIRECTORY_TRACKS) *
-                        NORMAL_DISK_SECTORS * (NORMAL_SECTOR_SIZE-2) - DISK_FILE_HEADER_SIZE;
-
-    BYTE* pb = new BYTE[uMaxSize];
-    if (pb)
-    {
-        // Only accept files that are within the size limit
-        fValid = pStream_->Rewind() && (pStream_->Read(pb, uMaxSize) <= uMaxSize || !pStream_->Read(pb, 1));
-        delete pb;
-    }
-
-    return fValid;
+    // Accept any file that isn't too big
+    return pStream_->GetSize() <= MAX_SAM_FILE_SIZE;
 }
 
-CFileDisk::CFileDisk (CStream* pStream_) : CDisk(pStream_)
+CFileDisk::CFileDisk (CStream* pStream_)
+    : CDisk(pStream_, dtFile)
 {
     // The DSK geometry is fixed
     m_uSides = NORMAL_DISK_SIDES;
@@ -1036,18 +1032,16 @@ CFileDisk::CFileDisk (CStream* pStream_) : CDisk(pStream_)
     m_uSectorSize = NORMAL_SECTOR_SIZE;
 
     // Work out the maximum file size, allocate some memory for it
-    UINT uMaxSize = ((NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS) - NORMAL_DIRECTORY_TRACKS) *
-                        NORMAL_DISK_SECTORS * (NORMAL_SECTOR_SIZE-2);
-    m_pbData = new BYTE[uMaxSize];
+    UINT uSize = MAX_SAM_FILE_SIZE + DISK_FILE_HEADER_SIZE;
+    m_pbData = new BYTE[uSize];
+    memset(m_pbData, 0, uSize);
 
     // Read the data from any existing stream, or show an empty disk as we don't support saving
-    if (!pStream_->IsOpen())
-        memset(m_pbData, 0, uMaxSize);
-    else
+    if (pStream_->IsOpen())
     {
         // Read in the file, leaving a 9-byte gap for the disk file header
         pStream_->Rewind();
-        m_uSize = static_cast<UINT>(pStream_->Read(m_pbData + DISK_FILE_HEADER_SIZE, uMaxSize - DISK_FILE_HEADER_SIZE));
+        m_uSize = static_cast<UINT>(pStream_->Read(m_pbData + DISK_FILE_HEADER_SIZE, MAX_SAM_FILE_SIZE));
 
         // Create the disk file header
         m_pbData[0] = 19;                           // CODE file type
