@@ -21,6 +21,8 @@
 #ifndef PNG_H
 #define PNG_H
 
+#ifdef USE_ZLIB
+
 #include "CScreen.h"
 
 // Define just the stuff we need - taken from libPNG's png.h
@@ -82,11 +84,8 @@ typedef struct tagPNG_INFO
 PNG_INFO, *PPNG_INFO;
 
 
-#ifndef NO_ZLIB
 bool SaveImage (FILE* hFile_, CScreen* pScreen_);
-#else
-inline bool SaveImage (FILE* hFile_, CScreen* pScreen_) { return false; }   // Can't do anything without Zlib
-#endif
 
-#endif
+#endif  // USE_ZLIB
 
+#endif  // PNG_H

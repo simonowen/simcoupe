@@ -25,18 +25,18 @@
 //  This module uses definitions and information taken from the libpng
 //  header files. See:  http://www.libpng.org/pub/png/libpng.html
 //
-//  This modules rules on Zlib for compression, and if NO_ZLIB is defined
-//  at compile time the whole implementation will be missing.  SaveImage()
-//  simply becomes a no-op, and the screenshot function will not work.
+//  This modules rules on Zlib for compression, and if USE_ZLIB is not
+//  defined at compile time the whole implementation will be missing.
+//  SaveImage() becomes a no-op, and the screenshot function will not work.
 
 #include "SimCoupe.h"
 #include "PNG.h"
 
+#ifdef USE_ZLIB
+#include "zlib.h"
+
 #include "Frame.h"
 #include "Options.h"
-
-#ifndef NO_ZLIB
-#include "zlib.h"
 
 
 // 32-bit values in PNG data are always network byte order (big endian), so define a helper macro if a conversion is needed
