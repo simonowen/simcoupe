@@ -34,7 +34,7 @@ class CStream
         bool IsReadOnly () const { return this && m_fReadOnly; }
         const char* GetPath () const { return m_pszPath; }
         const char* GetFile () const { return m_pszFile ? m_pszFile : m_pszPath; }
-        size_t GetSize () const { return m_nSize; }
+        size_t GetSize () const { return m_uSize; }
         virtual bool IsOpen () const = 0;
 
         virtual void Close () = 0;
@@ -44,10 +44,11 @@ class CStream
 
     protected:
         enum { modeClosed, modeReading, modeWriting };
-        int     m_nMode, m_nSize;
+        int     m_nMode;
 
-        bool    m_fReadOnly;
         char    *m_pszPath, *m_pszFile;
+        bool    m_fReadOnly;
+        size_t  m_uSize;
 };
 
 class CFileStream : public CStream
@@ -67,6 +68,26 @@ class CFileStream : public CStream
 
     protected:
         FILE* m_hFile;
+};
+
+class CMemStream : public CStream
+{
+    public:
+        CMemStream (void* pv_, size_t uSize_, const char* pcszPath_);
+        ~CMemStream () { Close(); }
+
+    public:
+        bool IsOpen () const { return m_nMode != modeClosed; }
+
+    public:
+        void Close ();
+        bool Rewind ();
+        size_t Read (void* pvBuffer_, size_t uLen_);
+        size_t Write (void* pvBuffer_, size_t uLen_);
+
+    protected:
+        BYTE* m_pbData;
+        size_t m_uPos;
 };
 
 

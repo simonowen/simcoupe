@@ -2,7 +2,7 @@
 //
 // CStream.cpp: Data stream abstraction classes
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 CStream::CStream (const char* pcszPath_, bool fReadOnly_/*=false*/)
-    : m_nMode(modeClosed), m_nSize(0), m_fReadOnly(fReadOnly_), m_pszFile(NULL)
+    : m_nMode(modeClosed), m_uSize(0), m_fReadOnly(fReadOnly_), m_pszFile(NULL)
 {
     // Keep a copy of the stream source as we'll need it for saving
     m_pszPath = strdup(pcszPath_);
@@ -57,12 +57,16 @@ CStream::~CStream ()
 {
     struct stat st;
 
+    // Reject empty strings immediately
+    if (!*pcszPath_)
+        return NULL;
+
     // Give the OS-specific floppy driver first go at the path
     if (CFloppyStream::IsRecognised(pcszPath_))
         return new CFloppyStream(pcszPath_, fReadOnly_);
 
     // Check for a regular file that we have read access to
-    else if (!::stat(pcszPath_, &st) && S_ISREG(st.st_mode) && !access(pcszPath_, R_OK))
+    if (!::stat(pcszPath_, &st) && S_ISREG(st.st_mode) && !access(pcszPath_, R_OK))
     {
         // If the file is read-only, the stream will be read-only
         FILE* file = (pcszPath_ && *pcszPath_) ? fopen(pcszPath_, "r+b") : NULL;
@@ -134,7 +138,7 @@ CFileStream::CFileStream (FILE* hFile_, const char* pcszPath_, bool fReadOnly_/*
     struct stat st;
 
     if (hFile_ && !stat(pcszPath_, &st))
-        m_nSize = st.st_size;
+        m_uSize = st.st_size;
 
     for (const char* p = pcszPath_ ; *p ; p++)
     {
@@ -196,6 +200,48 @@ size_t CFileStream::Write (void* pvBuffer_, size_t uLen_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+CMemStream::CMemStream (void* pv_, size_t uLen_, const char* pcszPath_)
+    : CStream(pcszPath_, true), m_uPos(0)
+{
+    m_nMode = modeReading;
+    m_uSize = uLen_;
+    m_pbData = reinterpret_cast<BYTE*>(pv_), 
+    m_pszFile = strdup(pcszPath_);
+}
+
+void CMemStream::Close ()
+{
+    m_nMode = modeClosed;
+}
+
+bool CMemStream::Rewind ()
+{
+    m_uPos = 0;
+    return true;
+}
+
+size_t CMemStream::Read (void* pvBuffer_, size_t uLen_)
+{
+    if (m_nMode != modeReading)
+    {
+        m_nMode = modeReading;
+        m_uPos = 0;
+    }
+
+    size_t uRead = min(m_uSize-m_uPos, uLen_);
+    memcpy(pvBuffer_, m_pbData+m_uPos, uRead);
+    m_uPos += uRead;
+    return uRead;
+}
+
+size_t CMemStream::Write (void* pvBuffer_, size_t uLen_)
+{
+    m_nMode = modeWriting;
+    return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 #ifdef USE_ZLIB
 
 CZLibStream::CZLibStream (gzFile hFile_, const char* pcszPath_, bool fReadOnly_/*=false*/)
@@ -213,7 +259,7 @@ CZLibStream::CZLibStream (gzFile hFile_, const char* pcszPath_, bool fReadOnly_/
     m_pszFile = strdup(pcszPath_);
 
     // We can't determine the size without an expensive seek, reading the whole file
-    m_nSize = 0;
+    m_uSize = 0;
 }
 
 void CZLibStream::Close ()
@@ -273,7 +319,7 @@ CZipStream::CZipStream (unzFile hFile_, const char* pcszPath_, bool fReadOnly_/*
     // Get details of the current file
     if (unzGetCurrentFileInfo(hFile_, &sInfo, szFile, sizeof(szFile), NULL, 0, NULL, 0) == UNZ_OK)
     {
-        m_nSize = sInfo.uncompressed_size;
+        m_uSize = sInfo.uncompressed_size;
         m_pszFile = strdup(szFile);
     }
 }
