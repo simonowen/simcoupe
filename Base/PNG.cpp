@@ -18,13 +18,16 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+// ToDo:
+//  - add support for saving the GUI too, which requires a special palette
+
 // Notes:
 //  This module uses definitions and information taken from the libpng
 //  header files. See:  http://www.libpng.org/pub/png/libpng.html
 //
 //  This modules rules on Zlib for compression, and if NO_ZLIB is defined
 //  at compile time the whole implementation will be missing.  SaveImage()
-//  simply becomes a no-op, and the screenshot function will not work
+//  simply becomes a no-op, and the screenshot function will not work.
 
 #include "SimCoupe.h"
 #include "PNG.h"
@@ -83,22 +86,22 @@ void OptimisePalette (PNG_INFO* pPNG_)
 
 
 // Write a PNG chunk block with header and CRC
-static bool WriteChunk (FILE* hFile_, DWORD dwType_, BYTE* pbData_, DWORD dwLength_)
+static bool WriteChunk (FILE* hFile_, DWORD dwType_, BYTE* pbData_, size_t uLength_)
 {
     // Write chunk length
-    DWORD dw = ntohul(dwLength_);
-    UINT uWritten = fwrite(&dw, 1, sizeof dw, hFile_);
+    DWORD dw = static_cast<DWORD>(ntohul(uLength_));
+    size_t uWritten = fwrite(&dw, 1, sizeof dw, hFile_);
 
     // Write type (big endian) and start CRC with it
     dw = ntohul(dwType_);
     uWritten += fwrite(&dw, 1, sizeof dw, hFile_);
     DWORD crc = crc32(0, reinterpret_cast<UINT8*>(&dw), sizeof dw);
 
-    if (dwLength_)
+    if (uLength_)
     {
         // Write and chunk data and include in CRC
-        uWritten += fwrite(pbData_, 1, dwLength_, hFile_);
-        crc = crc32(crc, pbData_, dwLength_);
+        uWritten += fwrite(pbData_, 1, uLength_, hFile_);
+        crc = crc32(crc, pbData_, static_cast<uInt>(uLength_));
     }
 
     // Write CRC (big endian)
@@ -106,7 +109,7 @@ static bool WriteChunk (FILE* hFile_, DWORD dwType_, BYTE* pbData_, DWORD dwLeng
     uWritten += fwrite(&dw, 1, sizeof dw, hFile_);
 
     // Return true if we wrote everything
-    return uWritten == ((3 * sizeof dw) + dwLength_);
+    return uWritten == ((3 * sizeof dw) + uLength_);
 }
 
 
@@ -173,16 +176,20 @@ static bool CompressImageData (PNG_INFO* pPNG_)
 bool SaveImage (FILE* hFile_, CScreen* pScreen_)
 {
     bool fRet = false;
-
     PNG_INFO png = { 0 };
 
+    // The generated image includes the full screen size, but requires the height to be doubled
     png.dwWidth = pScreen_->GetPitch();
-    png.dwHeight = pScreen_->GetHeight() << 1;
+    png.dwHeight = pScreen_->GetHeight();
 
+    // Allocate enough space for the palette
     png.uPaletteSize = N_PALETTE_COLOURS;
     png.pbPalette = new BYTE[3 * png.uPaletteSize];
+
+    // Work out the image size, allocate a block for it and zero it
     png.uSize = png.dwHeight * (png.dwWidth+1);
     png.pbImage = new BYTE[png.uSize];
+    memset(png.pbImage, 0, png.dwHeight * (png.dwWidth+1));
 
     if (png.pbPalette && png.pbImage)
     {
@@ -195,9 +202,11 @@ bool SaveImage (FILE* hFile_, CScreen* pScreen_)
             png.pbPalette[3*c+2] = ab[(c&0x01) << 1| ((c&0x10) >> 2) | ((c&0x08) >> 3)];
         }
 
-        // Double up the vertical lines of the image, leaving a filter byte zero before each line
-        memset(png.pbImage, 0, png.dwHeight * (png.dwWidth+1));
-        for (UINT u = 0; u < png.dwHeight ; u++)
+        // If scanlines are enabled, we'll skip every other line
+        UINT uStep = GetOption(scanlines) ? 2 : 1;
+
+        // Copy the image data, leaving a filter byte zero before each line
+        for (UINT u = 0; u < png.dwHeight ; u += uStep)
             memcpy(&png.pbImage[1 + u*(png.dwWidth+1)], pScreen_->GetHiResLine(u >> 1), png.dwWidth);
 
         // Remove unused palette entries
