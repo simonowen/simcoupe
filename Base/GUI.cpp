@@ -1973,16 +1973,16 @@ void CFileView::SetPath (const char* pcszPath_)
         strcpy(m_pszPath = new char[strlen(pcszPath_)+1], pcszPath_);
 
         // If the path doesn't end in a separator, we've got a filename too
-        char* pszFile = strrchr(pcszPath_, PATH_SEPARATOR);
-        if (pszFile && *++pszFile)
-            m_pszPath[pszFile-pcszPath_] = '\0';
+        const char* pcszFile = strrchr(pcszPath_, PATH_SEPARATOR);
+        if (pcszFile && *++pcszFile)
+            m_pszPath[pcszFile-pcszPath_] = '\0';
 
         // Fill the file list
         Refresh();
 
         // If we can find the file in the list, select it
         int nItem;
-        if (pszFile && (nItem = FindItem(pszFile)) != -1)
+        if (pcszFile && (nItem = FindItem(pcszFile)) != -1)
             Select(nItem);
     }
 }
