@@ -41,6 +41,7 @@ class CHardDisk : public CATADevice
 
     protected:
         static bool CalculateGeometry (ATA_GEOMETRY* pg_);
+        static void SetIdentityString (char* psz_, size_t uLen_, const char* pcszValue_);
 
     protected:
         char* m_pszDisk;

@@ -118,6 +118,17 @@ bool CHardDisk::IsBDOSDisk ()
     return true;
 }
 
+/*static*/ void CHardDisk::SetIdentityString (char* psz_, size_t uLen_, const char* pcszValue_)
+{
+    // Copy the string, padding out the extra length with spaces
+    memset(psz_, ' ', uLen_);
+    memcpy(psz_, pcszValue_, uLen_ = strlen(pcszValue_));
+
+    // Byte-swap the string for the expected endian
+    for (size_t i = 0 ; i < uLen_ ; i += 2)
+        swap(psz_[i], psz_[i+1]);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 typedef struct
@@ -156,17 +167,6 @@ RS_IDE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-static void SetIdentityString (char* psz_, size_t uLen_, const char* pcszValue_)
-{
-    // Copy the string, padding out the extra length with spaces
-    memset(psz_, ' ', uLen_);
-    memcpy(psz_, pcszValue_, uLen_ = strlen(pcszValue_));
-
-    // Byte-swap the string for the expected endian
-    for (size_t i = 0 ; i < uLen_ ; i += 2)
-        swap(psz_[i], psz_[i+1]);
-}
 
 /*static*/ bool CHDFHardDisk::Create (const char* pcszDisk_, UINT uCylinders_, UINT uHeads_, UINT uSectors_)
 {
