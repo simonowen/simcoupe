@@ -2,7 +2,7 @@
 //
 // Input.cpp: SDL keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +24,9 @@
 
 #include "SimCoupe.h"
 
+#include "Display.h"
+#include "Frame.h"
+#include "GUI.h"
 #include "Input.h"
 #include "IO.h"
 #include "Util.h"
@@ -32,8 +35,6 @@
 #include "UI.h"
 
 
-namespace Input
-{
 typedef struct
 {
     char    nChar;                  // Symbol character (if any)
@@ -51,7 +52,6 @@ SDL_Joystick *pJoystick1, *pJoystick2;
 SDLKey nComboKey;
 SDLMod nComboModifiers;
 DWORD dwComboTime;
-
 
 bool afKeyStates[SDLK_LAST], afKeys[SDLK_LAST];
 inline bool IsPressed(int nKey_)    { return afKeyStates[nKey_]; }
@@ -142,9 +142,14 @@ COMBINATION_KEY asSpectrumSymbols[] =
     { '\0' }
 };
 */
+
 ////////////////////////////////////////////////////////////////////////////////
 
-bool Init (bool fFirstInit_/*=false*/)
+bool ReadKeyboard ();
+void SetSamKeyState ();
+
+
+bool Input::Init (bool fFirstInit_/*=false*/)
 {
     Exit(true);
 
@@ -170,7 +175,7 @@ bool Init (bool fFirstInit_/*=false*/)
 }
 
 
-void Exit (bool fReInit_/*=false*/)
+void Input::Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
@@ -187,13 +192,29 @@ void Exit (bool fReInit_/*=false*/)
 }
 
 
-void Acquire (bool fKeyboard_/*=true*/, bool fMouse_/*=true*/)
+void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 {
     // Flush out any buffered data if we're changing the acquisition state
     Purge();
+
+    // Emulation mode doesn't need translations or key repeat, but the GUI needs both
+    if (fKeyboard_)
+    {
+        SDL_EnableUNICODE(0);
+        SDL_EnableKeyRepeat(0, 0);
+    }
+    else
+    {
+        SDL_EnableUNICODE(1);
+        SDL_EnableKeyRepeat(250, 30);
+    }
+
+    SDL_ShowCursor(!fMouse_);
 }
 
-void Purge (bool fKeyboard_/*=true*/, bool fMouse_/*=true*/)
+
+// Purge pending keyboard and/or mouse events
+void Input::Purge (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 {
     SDL_Event event;
 
@@ -226,7 +247,8 @@ void Purge (bool fKeyboard_/*=true*/, bool fMouse_/*=true*/)
 }
 
 
-void ProcessEvent (SDL_Event* pEvent_)
+// Process and SDL event message
+void Input::ProcessEvent (SDL_Event* pEvent_)
 {
     switch (pEvent_->type)
     {
@@ -242,6 +264,24 @@ void ProcessEvent (SDL_Event* pEvent_)
         {
             SDL_keysym* pKey = &pEvent_->key.keysym;
             TRACE("Key %s: %d\n", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym);
+//          Frame::SetStatus("Key %s: %d\n", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym);
+
+            // Pass any printable characters to the GUI
+            if (GUI::IsActive())
+            {
+                // Convert the cursor keys to GUI symbols
+                if (pKey->sym >= SDLK_UP && pKey->sym <= SDLK_LEFT)
+                {
+                    int anCursors[] = { GK_UP, GK_DOWN, GK_RIGHT, GK_LEFT };
+                    pKey->unicode = anCursors[pKey->sym - SDLK_UP];
+                }
+
+                // Pass any printable key-down messages to the GUI
+                if (pEvent_->type == SDL_KEYDOWN && pKey->unicode < 0x80)
+                    GUI::SendMessage(GM_CHAR, pKey->unicode, (pKey->mod & KMOD_LSHIFT) != 0);
+
+                break;
+            }
 
             // Update the master key table with the change
             SetKeyHeld(pKey->sym, pEvent_->type == SDL_KEYDOWN);
@@ -251,33 +291,102 @@ void ProcessEvent (SDL_Event* pEvent_)
 
         case SDL_MOUSEMOTION:
         {
-            // Only process mouse movement when it's active
-            if (SDL_ShowCursor(SDL_QUERY) == SDL_DISABLE)
-            {
-                // Make sure there's a motion to process, so we ignore any dummy 0,0 events
-                if (pEvent_->motion.xrel || pEvent_->motion.yrel)
-                {
-                    TRACE("Mouse move: X:%-03d Y:%-03d\n", pEvent_->motion.xrel, -pEvent_->motion.yrel);
-                    Mouse::Move(pEvent_->motion.xrel, -pEvent_->motion.yrel);
+//          Frame::SetStatus("Mouse:  %d %d", pEvent_->motion.xrel, pEvent_->motion.yrel);
 
-                    // SDL_WM_GrabInput doesn't work on all platforms, so we'll have to do with warping instead
-                    SDL_WarpMouse(WIDTH_PIXELS, HEIGHT_LINES);
+            // Mouse in use by the GUI?
+            if (GUI::IsActive())
+            {
+                int nX = pEvent_->motion.x, nY = pEvent_->motion.y;
+                Display::DisplayToSam(&nX, &nY);
+                GUI::SendMessage(GM_MOUSEMOVE, nX, nY);
+            }
+
+            // Is the mouse captured?
+            else if (SDL_ShowCursor(SDL_QUERY) == SDL_DISABLE)
+            {
+                // Work out the relative movement since last time
+                int nX = pEvent_->motion.x - (Frame::GetWidth() >> 1), nY = pEvent_->motion.y - (Frame::GetHeight() >> 1);
+
+                // Has it moved at all?             
+                if (nX || nY)
+                {
+                    // We need to track partial units, as we're higher resolution than SAM
+                    static int nXX, nYY;
+
+                    // Add on the new movement
+                    nXX += nX;
+                    nYY += nY;
+
+                    // How far has the mouse moved in SAM units?
+                    nX = nXX;
+                    nY = nYY;
+                    int nX2 = 0, nY2 = 0;
+                    Display::DisplayToSam(&nX, &nY);
+                    Display::DisplayToSam(&nX2, &nY2);
+                    nX -= nX2;
+                    nY -= nY2;
+
+                    // Update the SAM mouse position
+                    Mouse::Move(nX, -nY);
+                    TRACE("Mouse move: X:%-03d Y:%-03d\n", nX, nY);
+
+                    // How far is the SAM mouse movement in native units?
+                    nX2 = nY2 = 0;
+                    Display::SamToDisplay(&nX, &nY);
+                    Display::SamToDisplay(&nX2, &nY2);
+                    nX -= nX2;
+                    nY -= nY2;
+
+                    // Subtract the used portion of the movement, and leave the remainder for next time
+                    nXX -= nX;
+                    nYY -= nY;
+
+                    // Move the mouse back to the centre to stop it escaping
+                    SDL_WarpMouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
                 }
             }
             break;
         }
 
         case SDL_MOUSEBUTTONDOWN:
-            // Button presses activate the mouse
-            SDL_ShowCursor(SDL_DISABLE);
-            SDL_WarpMouse(WIDTH_PIXELS, HEIGHT_LINES);
+        {
+            int nX = pEvent_->button.x, nY = pEvent_->button.y;
 
-            // Fall through...
+            // Button presses go to the GUI if it's active
+            if (GUI::IsActive())
+            {
+                Display::DisplayToSam(&nX, &nY);
+                GUI::SendMessage(GM_BUTTONDOWN, nX, nY);
+            }
+
+            // If the mouse isn't grabbed, grab it now and hide the cursor (and ignore the button down event)
+            else if (SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE)
+            {
+                SDL_ShowCursor(SDL_DISABLE);
+                SDL_WarpMouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
+            }
+            else
+            {
+                Mouse::SetButton(pEvent_->button.button, true);
+                TRACE("Mouse button %d pressed\n", pEvent_->button.button);
+            }
+
+            break;
+        }
 
         case SDL_MOUSEBUTTONUP:
-
-            TRACE("Mouse button %d %s\n", pEvent_->button.button, (pEvent_->button.state == SDL_PRESSED) ? "pressed" : "released");
-            Mouse::SetButton(pEvent_->button.button, pEvent_->button.state == SDL_PRESSED);
+            // Button presses go to the GUI if it's active
+            if (GUI::IsActive())
+            {
+                int nX = pEvent_->button.x, nY = pEvent_->button.y;
+                Display::DisplayToSam(&nX, &nY);
+                GUI::SendMessage(GM_BUTTONUP, nX, nY);
+            }
+            else
+            {
+                TRACE("Mouse button %d released\n", pEvent_->button.button);
+                Mouse::SetButton(pEvent_->button.button, false);
+            }
             break;
 
         case SDL_JOYAXISMOTION:
@@ -312,6 +421,18 @@ void ProcessEvent (SDL_Event* pEvent_)
     }
 }
 
+
+void Input::Update ()
+{
+    // Read keyboard and mouse
+    ReadKeyboard();
+
+    // Update the SAM keyboard matrix from the current key state (including joystick movement)
+    SetSamKeyState();
+}
+
+
+// Read the current keyboard state, and make any special adjustments needed before it's processed
 bool ReadKeyboard ()
 {
     bool fRet = true;
@@ -425,8 +546,8 @@ void SetSamKeyState ()
     ReleaseAllSamKeys();
 
     // Return to ignore common Windows ALT- combinations so the SAM doesn't see them
-//  if (!GetOption(altforcntrl) && (IsPressed(SDLK_LALT) && (IsPressed(SDLK_TAB) || IsPressed(SDLK_ESCAPE) || IsPressed(SDLK_SPACE))))
-//      return;
+    if (!GetOption(altforcntrl) && (IsPressed(SDLK_LALT) && (IsPressed(SDLK_TAB) || IsPressed(SDLK_ESCAPE) || IsPressed(SDLK_SPACE))))
+        return;
 
     // Left and right shift keys are equivalent, and also complementary!
     bool fShiftToggle = IsPressed(SDLK_LSHIFT) && IsPressed(SDLK_RSHIFT);
@@ -449,21 +570,6 @@ void SetSamKeyState ()
     for (int i = 0 ; i < SK_MAX ; i++)
     {
         if (aeSamKeys[i] && IsPressed(aeSamKeys[i]))    // should be '.bScanCode' after OS mapping
-        {
-//          TRACE("%d pressed\n", aeSamKeys[i]);
             PressSamKey(i);
-        }
     }
 }
-
-
-void Update ()
-{
-    // Read keyboard and mouse
-    ReadKeyboard();
-
-    // Update the SAM keyboard matrix from the current key state (including joystick movement)
-    SetSamKeyState();
-}
-
-}   // namespace Input
