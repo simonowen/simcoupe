@@ -139,8 +139,16 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
         return false;
     }
 
+    // If we've changing from displaying the GUI back to scanline mode, clear the unused lines on the surface
+    static bool fOldInterlace = false;
+    bool fInterlace = GetOption(scanlines) && !GUI::IsActive();
+    if (!fOldInterlace && fInterlace)
+        Video::ClearSurface(pSurface_);
+    fOldInterlace = fInterlace;
+
+
     // Lock the surface,  without taking the Win16Mutex if possible
-    else if (FAILED(hr = pSurface_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WAIT|DDLOCK_NOSYSLOCK, NULL))
+    if (FAILED(hr = pSurface_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WAIT|DDLOCK_NOSYSLOCK, NULL))
           && FAILED(hr = pSurface_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WAIT, NULL)))
     {
         TRACE("!!! DrawChanges()  Failed to lock back surface (%#08lx)\n", hr);
@@ -148,9 +156,8 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
         return false;
     }
 
-
     // In scanline mode, treat the back buffer as full height, drawing alternate lines
-    if (GetOption(scanlines) && !GUI::IsActive())
+    if (fInterlace)
         ddsd.lPitch <<= 1;
 
     DWORD *pdwBack = reinterpret_cast<DWORD*>(ddsd.lpSurface), *pdw = pdwBack;
@@ -415,7 +422,7 @@ void Display::Update (CScreen* pScreen_)
 {
     HRESULT hr;
 
-    bool fHalfHeight_ = !GUI::IsActive() && !GetOption(scanlines);
+    bool fHalfHeight = !GUI::IsActive() && !GetOption(scanlines);
 
     // Don't draw if fullscreen but not active
     if (GetOption(fullscreen) && !g_fActive)
@@ -526,7 +533,7 @@ void Display::Update (CScreen* pScreen_)
             pddsFront->Blt(NULL, pddsBack, NULL, DDBLT_WAIT, 0);
 
 
-        if (fHalfHeight_)
+        if (fHalfHeight)
             rBack.bottom >>= 1;
 
         // Set up the destination colour key so the overlay doesn't appear over the top of everything
@@ -556,7 +563,7 @@ void Display::Update (CScreen* pScreen_)
     }
     else
     {
-        if (fHalfHeight_)
+        if (fHalfHeight)
             rBack.bottom >>= 1;
 
         // Offset to the client area if necessary
