@@ -2,7 +2,7 @@
 //
 // OSD.cpp: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -123,6 +123,13 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
         // Use a SimCoupe directory in the user's config/settings directory
         find_directory(B_USER_SETTINGS_DIRECTORY, 0, true, szPath, sizeof szPath);
         strcat(szPath, "/");
+#elif defined(__APPLE__)
+    // Use the Mac preferences directory
+    strcat(strcpy(szPath, getenv("HOME")), "/Library/Preferences/");
+
+    // Use a more appropriate settings file name
+    if (!strcasecmp(pcszFile_, "SimCoupe.cfg"))
+      pcszFile_ = "SimCoupe Preferences";
 #else
         // We'll use the user's home directory
         strcat(strcpy(szPath, getenv("HOME")), "/");
