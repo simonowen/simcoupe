@@ -32,7 +32,7 @@
 #include "CPU.h"
 #include "Display.h"
 #include "Frame.h"
-#include "GUI.h"
+#include "GUIDlg.h"
 #include "Input.h"
 #include "Mouse.h"
 #include "Options.h"
@@ -48,7 +48,7 @@ extern int main (int argc, char *argv[]);
 
 #include "resource.h"   // For menu and dialogue box symbols
 
-const int MOUSE_HIDE_TIME = 3000;
+const int MOUSE_HIDE_TIME = 3000;   // 3 seconds
 
 #ifdef _DEBUG
 #define WINDOW_CAPTION      "SimCoupé/Win32 [DEBUG]"
@@ -109,11 +109,11 @@ const char* aszActions[MAX_ACTION] =
 
 static char szDiskFilters [] =
 #ifdef USE_ZLIB
-    "All disks (*.DSK;*.SAD;*.SDF;*.GZ;*.ZIP)\0*.DSK;*.SAD;*.SDF;*.GZ;*.ZIP\0"
-    "Uncompressed (*.DSK;*.SAD;*.SDF)\0*.DSK;*.SAD;*.SDF\0"
-    "Compressed (*.GZ;*.ZIP)\0*.GZ;*.ZIP\0"
+    "All Disks (.dsk;.sad;.sdf;.sbt; .gz;.zip)\0*.dsk;*.sad;*.sdf;*.sbt;*.gz;*.zip\0"
+    "Disk Files (.dsk;.sad;.sdf;.sbt)\0*.dsk;*.sad;*.sdf;*.sbt\0"
+    "Compressed Files (.gz;.zip)\0*.gz;*.zip\0"
 #else
-    "All disks (*.DSK;*.SAD;*.SBT;*.SDF)\0*.DSK;*.SAD;*.SBT;*.SDF\0"
+    "All Disks (.dsk;.sad;.sdf;.sbt)\0*.dsk;*.sad;*.sdf;*.sbt\0"
 #endif
 
     "All Files (*.*)\0*.*\0";
@@ -512,8 +512,13 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
             case actInsertFloppy1:
                 if (GetOption(drive1) == 1)
                 {
-                    InsertDisk(pDrive1);
-                    SetOption(disk1, pDrive1->GetImage());
+                    if (GetAsyncKeyState(VK_SHIFT) < 0)
+                        GUI::Start(new CInsertFloppy(1));
+                    else
+                    {
+                        InsertDisk(pDrive1);
+                        SetOption(disk1, pDrive1->GetImage());
+                    }
                 }
                 break;
 
@@ -534,8 +539,13 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
             case actInsertFloppy2:
                 if (GetOption(drive2) == 1)
                 {
-                    InsertDisk(pDrive2);
-                    SetOption(disk2, pDrive2->GetImage());
+                    if (GetAsyncKeyState(VK_SHIFT) < 0)
+                        GUI::Start(new CInsertFloppy(2));
+                    else
+                    {
+                        InsertDisk(pDrive2);
+                        SetOption(disk2, pDrive2->GetImage());
+                    }
                 }
                 break;
 
@@ -567,7 +577,7 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actDebugger:
-//              Debug::Something();
+                GUI::Start(new CMessageBox(NULL, "Debugger not yet implemented", "Sorry!", mbInformation));
                 break;
 
             case actImportData:
@@ -580,7 +590,7 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
 
             case actDisplayOptions:
                 if (GetAsyncKeyState(VK_SHIFT) < 0)
-                    GUI::Start(new CTestDialog);    // COptionsDialog
+                    GUI::Start(new CTestDialog);
                 else
                 {
                     Video::CreatePalettes(true);
@@ -837,7 +847,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
             // Release the mouse and start the mouse hide delay
             Input::Acquire(false);
-            ulMouseTimer = SetTimer(hwnd_, 1, MOUSE_HIDE_TIME, NULL);
+            ulMouseTimer = SetTimer(hwnd_, 1989, MOUSE_HIDE_TIME, NULL);
             fHideCursor = false;
             break;
         }
@@ -1050,20 +1060,30 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
         // Mouse-hide timer has expired
         case WM_TIMER:
+            // Make sure the timer is ours
             if (wParam_ != ulMouseTimer)
                 break;
 
             // Kill the timer, and flag the mouse as hidden
             KillTimer(hwnd_, ulMouseTimer);
             fHideCursor = true;
-            // Fall through to WM_SETCURSOR...
+
+            // Generate a WM_SETCURSOR to update the cursor state
+            POINT pt;
+            GetCursorPos(&pt);
+            SetCursorPos(pt.x, pt.y);
+            return 0;
 
         case WM_SETCURSOR:
-            // Hide the cursor if it's not meant to be visible, and we're not in a menu or sizing/moving
-            if (fHideCursor && !fInMenu && !fSizingOrMoving && GetActiveWindow() == hwnd_)
+            // Hide the cursor unless it's being used for the Win32 GUI or the emulation using using it in windowed mode
+            if (fHideCursor || Input::IsMouseAcquired() || GUI::IsActive() || GetOption(fullscreen))
             {
-                SetCursor(NULL);
-                return TRUE;
+                // Only hide the cursor over the client area of the main window
+                if (LOWORD(lParam_) == HTCLIENT && reinterpret_cast<HWND>(wParam_) == hwnd_)
+                {
+                    SetCursor(NULL);
+                    return TRUE;
+                }
             }
             break;
 
