@@ -327,7 +327,7 @@ void DoAction (int nAction_, bool fPressed_)
 
             case actSaveFloppy1:
                 if (GetOption(drive1) == dskImage && pDrive1->IsModified() && pDrive1->Flush())
-                    Frame::SetStatus("Saved changes to disk in drive 2");
+                    Frame::SetStatus("Saved changes to disk in drive 1");
                 break;
 
             case actInsertFloppy2:
