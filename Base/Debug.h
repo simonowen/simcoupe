@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Debug.h: Integrated Z80 debugger
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,16 +22,74 @@
 #define DEBUG_H
 
 #include "CScreen.h"
-
+#include "GUI.h"
 
 class Debug
 {
     public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+        static bool Start();
+        static void Refresh ();
 
-        static void Display (CScreen* pScreen_);
-        static void Dump (Z80Regs* pRegs_);
+        static void OnRet ();
+
+        static bool IsActive ();
+        static bool IsBreakpointSet ();
+        static bool BreakpointHit ();
+};
+
+
+class CDisassembly : public CWindow
+{
+    public:
+        CDisassembly (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
+
+    public:
+        void SetAddress (WORD wAddr_);
+        void Draw (CScreen* pScreen_);
+};
+
+class CRegisterPanel : public CWindow
+{
+    public:
+        CRegisterPanel (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
+
+    public:
+        void Draw (CScreen* pScreen_);
+};
+
+class CCommandLine : public CEditControl
+{
+    public:
+        CCommandLine (CWindow* pParent_, int nX_, int nY_, int nWidth_);
+
+    public:
+        bool OnMessage (int nMessage_, int nParam1_=0, int nParam2_=0);
+        void Execute (const char* pcszCommand_);
+};
+
+
+class CDebugger : public CDialog
+{
+    public:
+        CDebugger (CWindow* pParent_=NULL);
+        ~CDebugger ();
+
+        void OnNotify (CWindow* pWindow_, int nParam_);
+        bool OnMessage (int nMessage_, int nParam1_=0, int nParam2_=0);
+        void EraseBackground (CScreen* pScreen_);
+        void Draw (CScreen* pScreen_);
+
+    protected:
+        void Refresh ();
+
+    protected:
+    public:
+        CImageButton *m_pStepInto, *m_pStepOver, *m_pStepOut, *m_pStepToCursor;
+        CTextButton *m_pClose;
+        CButton *m_pTransparent;
+        CCommandLine* m_pCmdLine;
+        CDisassembly* m_pDisassembly;
+        CRegisterPanel* m_pRegPanel;
 };
 
 #endif
