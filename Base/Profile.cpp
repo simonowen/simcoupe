@@ -2,7 +2,7 @@
 //
 // Profile.cpp: Emulator profiling for on-screen stats
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -76,7 +76,7 @@ void Profile::ProfileStart_ (PROFILE_T* pprofNew_)
             approfStack[++uStackPos] = pprofNew_;
 #ifdef _DEBUG
         else
-            UI::ShowMessage(msgFatal, "Profile stack overflow!\n");
+            Message(msgFatal, "Profile stack overflow!\n");
 #endif
     }
 }
@@ -91,7 +91,7 @@ void ProfileEnd ()
             uStackPos--;
 #ifdef _DEBUG
         else
-            UI::ShowMessage(msgFatal, "Profile stack underflow!\n");
+            Message(msgFatal, "Profile stack underflow!\n");
 #endif
     }
 }
