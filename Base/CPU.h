@@ -43,6 +43,8 @@ class CPU
 
         static void Reset (bool fPress_);
         static void NMI ();
+
+        static void InitTests ();
 };
 
 
