@@ -448,11 +448,12 @@ void CPU::Run ()
 
         // If fast booting is active, don't draw any video
         if (g_nFastBooting)
-            fDrawFrame = !--g_nFastBooting;
+            fDrawFrame = GUI::IsActive() || !--g_nFastBooting;
 
-        // Execute up to a frame's worth of instructions, generating the display as it goes
+        // CPU execution continues unless there is a modal GUI dialog active
         if (!GUI::IsModal())
         {
+            // Execute up to a frame's worth of instructions, generating the display as it goes
             ProfileStart(CPU);
             ExecuteChunk();
             ProfileEnd();
