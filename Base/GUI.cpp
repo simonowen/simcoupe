@@ -1903,7 +1903,7 @@ void CFileView::NotifyParent (int nParam_)
             }
 
             // Make sure we have access to the path before setting it
-            if (!szPath[0] || !access(szPath, X_OK))
+            if (!szPath[0] || OSD::CheckPathAccess(szPath))
                 SetPath(szPath);
             else
             {
@@ -2031,7 +2031,7 @@ void CFileView::Refresh ()
             char szRoot[] = { chDrive, ':', '\\', '\0' };
 
             // Can we access the root directory?
-            if (!access(szRoot, X_OK))
+            if (OSD::CheckPathAccess(szRoot))
             {
                 // Remove the backslash to leave just X:, and add to the list
                 szRoot[2] = '\0';
