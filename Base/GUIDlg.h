@@ -1,4 +1,4 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // GUIDlg.h: Dialog boxes using the GUI controls
 //
@@ -24,10 +24,19 @@
 #include "GUI.h"
 
 
+typedef struct
+{
+    const char* pcszDesc;       // Strings describing the filters, separated by '|' symbols
+    const char* pcszExts[10];   // Array of extensions for each string above, separated by ';' symbols
+}
+FILEFILTER;
+
+
 class CFileDialog : public CDialog
 {
     public:
-        CFileDialog (const char* pcszCaption_, const char* pcszPath_, CWindow* pParent_=NULL);
+        CFileDialog (const char* pcszCaption_, const char* pcszPath_,
+                     const FILEFILTER* pcFileFilter_, CWindow* pParent_=NULL);
 
     public:
         void OnNotify (CWindow* pWindow_, int nParam_);
@@ -39,6 +48,8 @@ class CFileDialog : public CDialog
         CComboBox* m_pFilter;
         CCheckBox* m_pShowHidden;
         CTextButton *m_pRefresh, *m_pOK, *m_pCancel;
+
+        const FILEFILTER* m_pcFileFilter;
 };
 
 
@@ -50,6 +61,17 @@ class CInsertFloppy : public CFileDialog
 
     protected:
         int m_nDrive;
+};
+
+
+class CBrowseROM : public CFileDialog
+{
+    public:
+        CBrowseROM (CEditControl* pEdit_, CWindow* pParent_=NULL);
+        void OnOK ();
+
+    protected:
+        CEditControl* m_pEdit;
 };
 
 
