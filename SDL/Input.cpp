@@ -45,9 +45,16 @@ COMBINATION_KEY;
 typedef struct
 {
     int     nChar;
-    SDLKey  nScanCode;
+    SDLKey  nKey;
 }
 SIMPLE_KEY;
+
+typedef struct
+{
+    SDLKey  nKey;
+    eSamKey nSamKey, nSamModifiers;
+}
+MAPPED_KEY;
 
 
 SDL_Joystick *pJoystick1, *pJoystick2;
@@ -71,7 +78,7 @@ SIMPLE_KEY asSamKeys [SK_MAX] =
     {0,SDLK_LSHIFT},{'z'},         {'x'},        {'c'},        {'v'},        {0,SDLK_KP1},   {0,SDLK_KP2},{0,SDLK_KP3},
     {'a'},          {'s'},         {'d'},        {'f'},        {'g'},        {0,SDLK_KP4},   {0,SDLK_KP5},{0,SDLK_KP6},
     {'q'},          {'w'},         {'e'},        {'r'},        {'t'},        {0,SDLK_KP7},   {0,SDLK_KP8},{0,SDLK_KP9},
-    {'1'},          {'2'},         {'3'},        {'4'},        {'5'},        {0,SDLK_ESCAPE},{0,SDLK_TAB},{0},
+    {'1'},          {'2'},         {'3'},        {'4'},        {'5'},        {0,SDLK_ESCAPE},{0,SDLK_TAB},{0,SDLK_CAPSLOCK},
     {'0'},          {'9'},         {'8'},        {'7'},        {'6'},        {0},            {0},         {0,SDLK_BACKSPACE},
     {'p'},          {'o'},         {'i'},        {'u'},        {'y'},        {0},            {0},         {0,SDLK_KP0},
     {0,SDLK_RETURN},{'l'},         {'k'},        {'j'},        {'h'},        {0},            {0},         {0},
@@ -82,16 +89,6 @@ SIMPLE_KEY asSamKeys [SK_MAX] =
 // Symbols with SAM keyboard details
 COMBINATION_KEY asSamSymbols[] =
 {
-    // Some useful combinations
-    { 0,    SK_DELETE,  SK_SHIFT,   SDLK_DELETE },
-    { 0,    SK_LEFT,    SK_CONTROL, SDLK_HOME },
-    { 0,    SK_RIGHT,   SK_CONTROL, SDLK_END },
-    { 0,    SK_F4,      SK_NONE,    SDLK_PAGEUP },
-    { 0,    SK_F1,      SK_NONE,    SDLK_PAGEDOWN },
-    { 0,    SK_EDIT,    SK_SYMBOL,  SDLK_NUMLOCK },
-    { 0,    SK_EDIT,    SK_NONE,    SDLK_MENU },
-    { 0,    SK_QUOTES,  SK_SHIFT,   SDLK_KP_PERIOD },
-
     { '!',  SK_SHIFT, SK_1 },       { '@',  SK_SHIFT, SK_2 },       { '#',  SK_SHIFT, SK_3 },
     { '$',  SK_SHIFT, SK_4 },       { '%',  SK_SHIFT, SK_5 },       { '&',  SK_SHIFT, SK_6 },
     { '\'', SK_SHIFT, SK_7 },       { '(',  SK_SHIFT, SK_8 },       { ')',  SK_SHIFT, SK_9 },
@@ -100,7 +97,7 @@ COMBINATION_KEY asSamSymbols[] =
     { '>',  SK_SYMBOL, SK_W },      { '[',  SK_SYMBOL, SK_R },      { ']',  SK_SYMBOL, SK_T },
     { '=',  SK_EQUALS, SK_NONE },   { '_',  SK_SHIFT, SK_EQUALS },  { '"',  SK_QUOTES, SK_NONE },
     { '`',  SK_SHIFT, SK_QUOTES },  { '{',  SK_SYMBOL, SK_F },      { '}',  SK_SYMBOL, SK_G },
-    { '^',  SK_SYMBOL, SK_H },      { 163,  SK_SYMBOL, SK_L },      { ';',  SK_SEMICOLON, SK_NONE },
+    { '^',  SK_SYMBOL, SK_H },      { 163/*£*/,  SK_SYMBOL, SK_L }, { ';',  SK_SEMICOLON, SK_NONE },
     { ':',  SK_COLON, SK_NONE },    { '?',  SK_SYMBOL, SK_X },      { '.',  SK_PERIOD, SK_NONE },
     { ',',  SK_COMMA, SK_NONE },    { '\\', SK_SHIFT, SK_INV },     { '|',  SK_SYMBOL, SK_L },
 
@@ -110,16 +107,31 @@ COMBINATION_KEY asSamSymbols[] =
 // Symbols with Spectrum keyboard details
 COMBINATION_KEY asSpectrumSymbols[] =
 {
-    { '!',  SK_SYMBOL, SK_1 },      { '@',  SK_SYMBOL, SK_2 },      { '#',  SK_SYMBOL, SK_3 },
-    { '$',  SK_SYMBOL, SK_4 },      { '%',  SK_SYMBOL, SK_5 },      { '&',  SK_SYMBOL, SK_6 },
-    { '\'', SK_SYMBOL, SK_7 },      { '(',  SK_SYMBOL, SK_8 },      { ')',  SK_SYMBOL, SK_9 },
-    { '_',  SK_SYMBOL, SK_0 },      { '<',  SK_SYMBOL, SK_R },      { '>',  SK_SYMBOL, SK_T },
-    { ';',  SK_SYMBOL, SK_O },      { '"',  SK_SYMBOL, SK_P },      { '-',  SK_SYMBOL, SK_J },
-    { '^',  SK_SYMBOL, SK_H },      { '+',  SK_SYMBOL, SK_K },      { '=',  SK_SYMBOL, SK_L },
-    { ':',  SK_SYMBOL, SK_Z },      { 163,  SK_SYMBOL, SK_X },      { '?',  SK_SYMBOL, SK_C },
-    { '/',  SK_SYMBOL, SK_V },      { '*',  SK_SYMBOL, SK_B },      { ',',  SK_SYMBOL, SK_N },
-    { '.',  SK_SYMBOL, SK_M },      { '\b', SK_SHIFT,  SK_0 },
+    { '!',  SK_SYMBOL, SK_1 },  { '@',  SK_SYMBOL, SK_2 },       { '#',  SK_SYMBOL, SK_3 },
+    { '$',  SK_SYMBOL, SK_4 },  { '%',  SK_SYMBOL, SK_5 },       { '&',  SK_SYMBOL, SK_6 },
+    { '\'', SK_SYMBOL, SK_7 },  { '(',  SK_SYMBOL, SK_8 },       { ')',  SK_SYMBOL, SK_9 },
+    { '_',  SK_SYMBOL, SK_0 },  { '<',  SK_SYMBOL, SK_R },       { '>',  SK_SYMBOL, SK_T },
+    { ';',  SK_SYMBOL, SK_O },  { '"',  SK_SYMBOL, SK_P },       { '-',  SK_SYMBOL, SK_J },
+    { '^',  SK_SYMBOL, SK_H },  { '+',  SK_SYMBOL, SK_K },       { '=',  SK_SYMBOL, SK_L },
+    { ':',  SK_SYMBOL, SK_Z },  { 163/*£*/,  SK_SYMBOL, SK_X },  { '?',  SK_SYMBOL, SK_C },
+    { '/',  SK_SYMBOL, SK_V },  { '*',  SK_SYMBOL, SK_B },       { ',',  SK_SYMBOL, SK_N },
+    { '.',  SK_SYMBOL, SK_M },  { '\b', SK_SHIFT,  SK_0 },
     { '\0' }
+};
+
+// Handy mappings from unused PC keys to a SAM combination
+MAPPED_KEY asPCMappings[] =
+{
+    // Some useful combinations
+    { SDLK_DELETE,    SK_DELETE, SK_SHIFT },
+    { SDLK_HOME,      SK_LEFT,   SK_CONTROL },
+    { SDLK_END,       SK_RIGHT,  SK_CONTROL },
+    { SDLK_PAGEUP,    SK_F4,     SK_NONE },
+    { SDLK_PAGEDOWN,  SK_F1,     SK_NONE },
+    { SDLK_NUMLOCK,   SK_EDIT,   SK_SYMBOL },
+    { SDLK_MENU,      SK_EDIT,   SK_NONE },
+    { SDLK_KP_PERIOD, SK_QUOTES, SK_SHIFT },
+    { SDLK_UNKNOWN }
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -277,11 +289,11 @@ bool UpdateKeyTable (SIMPLE_KEY* asKeys_, SDL_keysym* pKey_)
         if (asKeys_[i].nChar == pKey_->unicode)
         {
             // Log if the mapping is new
-            if (!asKeys_[i].nScanCode)
+            if (!asKeys_[i].nKey)
                 TRACE("%c maps to %d\n", pKey_->unicode, pKey_->sym);
 
             // Update the key mapping
-            asKeys_[i].nScanCode = pKey_->sym;
+            asKeys_[i].nKey = pKey_->sym;
             return true;
         }
     }
@@ -322,8 +334,22 @@ void ProcessKeyTable (SIMPLE_KEY* asKeys_)
     // Build the rest of the SAM matrix from the simple non-symbol PC keys
     for (int i = 0 ; i < SK_MAX ; i++)
     {
-        if (asKeys_[i].nScanCode && IsPressed(asKeys_[i].nScanCode))
+        if (asKeys_[i].nKey && IsPressed(asKeys_[i].nKey))
             PressSamKey(i);
+    }
+}
+
+// Process the additional keys mapped from PC to SAM, ignoring shift state
+void ProcessKeyTable (MAPPED_KEY* asKeys_)
+{
+    // Build the rest of the SAM matrix from the simple non-symbol PC keys
+    for (int i = 0 ; asKeys_[i].nKey != SDLK_UNKNOWN ; i++)
+    {
+        if (IsPressed(asKeys_[i].nKey))
+        {
+            PressSamKey(asKeys_[i].nSamKey);
+            PressSamKey(asKeys_[i].nSamModifiers);
+        }
     }
 }
 
@@ -334,7 +360,7 @@ void ProcessKeyTable (COMBINATION_KEY* asKeys_)
     if (IsPressed(SDLK_LSHIFT)) nShifts |= KMOD_LSHIFT;
     if (IsPressed(SDLK_LCTRL)) nShifts |= KMOD_LCTRL;
     if (IsPressed(SDLK_LALT)) nShifts |= KMOD_LALT;
-    if (IsPressed(SDLK_RALT)) nShifts |= (KMOD_RALT);
+    if (IsPressed(SDLK_RALT)) nShifts |= KMOD_RALT;
 
     // Have the shift states changed while a combo is in progress?
     if (nComboModifiers != KMOD_NONE && nComboModifiers != nShifts)
@@ -419,7 +445,13 @@ void SetSamKeyState ()
     if (fShiftToggle)
         ToggleKey(SDLK_LSHIFT);
 
+    // Process the simple key and additional PC key mappings
     ProcessKeyTable(asSamKeys);
+    ProcessKeyTable(asPCMappings);
+
+    // Caps/Num Lock act as toggle keys and need releasing here if pressed
+    if (IsPressed(SDLK_CAPSLOCK)) SetMasterKey(SDLK_CAPSLOCK, false);
+    if (IsPressed(SDLK_NUMLOCK)) SetMasterKey(SDLK_NUMLOCK, false);
 }
 
 
@@ -470,7 +502,8 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 break;
             }
 
-            else if (pEvent_->type == SDL_KEYDOWN)
+            // Process key presses (Caps/Num Lock are toggle keys, so we much treat a change as a press)
+            else if (pEvent_->type == SDL_KEYDOWN || pKey->sym == SDLK_CAPSLOCK || pKey->sym == SDLK_NUMLOCK)
             {
                 // Set the pressed key in the master key table
                 afKeys[pKey->sym] = true;
@@ -568,8 +601,8 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 GUI::SendMessage(GM_BUTTONDOWN, nX, nY);
             }
 
-            // If the mouse isn't grabbed, grab it now and hide the cursor (and ignore the button down event)
-            else if (!fMouseActive)
+            // Grab the mouse on a left-click, if not already active (don't let the emulation see the click either)
+            else if (!fMouseActive && pEvent_->button.button == 1)
             {
                 Acquire();
                 SDL_WarpMouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
