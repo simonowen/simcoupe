@@ -41,7 +41,7 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     : CDialog(pParent_, 305, 220,  "About SimCoupe")
 {
     new CIconControl(this, 6, 6, &sSamIcon);
-    new CTextControl(this, 86, 10,  "SimCoupe v0.90 beta (2005/01/25)", BLACK);
+    new CTextControl(this, 86, 10,  "SimCoupe v0.90 beta (2005/01/30)", BLACK);
     new CTextControl(this, 86, 24,  "http://www.simcoupe.org/", GREY_3);
 
     new CTextControl(this, 41, 46,  "Win32/SDL/Allegro/Pocket PC versions:", BLUE_5);
@@ -292,15 +292,15 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
         if (fExists)
         {
             // Fetch the existing disk geometry
-            HARDDISK_GEOMETRY geom;
-            pDisk->GetGeometry (&geom);
-            delete pDisk;
+            const ATA_GEOMETRY* pGeom = pDisk->GetGeometry ();
 
             // Initialise the edit controls with the current values
-            m_pCyls->SetValue(geom.uCylinders);
-            m_pHeads->SetValue(geom.uHeads);
-            m_pSectors->SetValue(geom.uSectors);
-            m_pSize->SetValue((geom.uTotalSectors + (1<<11)-1) >> 11);
+            m_pCyls->SetValue(pGeom->uCylinders);
+            m_pHeads->SetValue(pGeom->uHeads);
+            m_pSectors->SetValue(pGeom->uSectors);
+            m_pSize->SetValue((pGeom->uTotalSectors + (1<<11)-1) >> 11);
+
+            delete pDisk;
         }
 
         // The geometry is read-only for existing images
@@ -1055,7 +1055,21 @@ class CDiskOptions : public CDialog
 
                 // Re-init the other hard drive interfaces if anything has changed
                 if (ChangedString(sdidedisk) || ChangedString(yatbusdisk))
+                {
+                    if (ChangedString(sdidedisk))
+                    {
+                        delete pSDIDE;
+                        pSDIDE = NULL;
+                    }
+
+                    if (ChangedString(yatbusdisk))
+                    {
+                        delete pYATBus;
+                        pYATBus = NULL;
+                    }
+
                     IO::InitHDD();
+                }
 
                 // If the SDIDE path changed, check it was mounted ok
                 if (ChangedString(sdidedisk) && *GetOption(sdidedisk) && pSDIDE->GetType() != dskSDIDE)
