@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// Util.cpp: Logging, tracing, and other utility tasks
+// Util.cpp: Debug tracing, and other utility tasks
 //
 //  Copyright (c) 1999-2005  Simon Owen
 //  Copyright (c) 1996-2002  Allan Skillman
@@ -23,8 +23,7 @@
 //  - Added more comprehensive tracing function with variable arguments
 
 // ToDo:
-//  - tidy this mess up!
-//  - make better use of writing to the log for error conditions to help
+//  - make better use of writing to a log for error conditions to help
 //    troubleshoot any problems in release versions.  We currently rely
 //    too much on debug tracing in debug-only versions.
 
@@ -62,8 +61,6 @@ void Util::Exit ()
 }
 
 
-///////////////////////////////////////////////////////////////////////////////
-
 int Util::GetUniqueFile (const char* pcszTemplate_, int nNext_, char* psz_, int cb_)
 {
     char sz[MAX_PATH];
@@ -75,6 +72,24 @@ int Util::GetUniqueFile (const char* pcszTemplate_, int nNext_, char* psz_, int 
 
     strncpy(psz_, sz, cb_);
     return nNext_;
+}
+
+
+UINT Util::HCF (UINT x_, UINT y_)
+{
+    UINT uHCF = 1, uMin = min(x_, y_) >> 1;
+
+    for (UINT uFactor = 2 ; uFactor <= uMin ; uFactor++)
+    {
+        while (!(x_ % uFactor) && !(y_ % uFactor))
+        {
+            uHCF *= uFactor;
+            x_ /= uFactor;
+            y_ /= uFactor;
+        }
+    }
+
+    return uHCF;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

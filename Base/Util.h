@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// Util.h: Logging, tracing, and other utility tasks
+// Util.h: Debug tracing, and other utility tasks
 //
 //  Copyright (c) 1999-2005  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
@@ -30,6 +30,7 @@ class Util
 
     public:
         static int GetUniqueFile (const char* pcszTemplate_, int nNext_, char* psz_, int cb_);
+        static UINT HCF (UINT x_, UINT y_);
 };
 
 
