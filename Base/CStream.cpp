@@ -31,6 +31,7 @@
 
 #include "SimCoupe.h"
 #include "CStream.h"
+#include "CDisk.h"
 
 #include "Floppy.h"
 #include "Util.h"
@@ -38,29 +39,29 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 CStream::CStream (const char* pcszStream_, bool fReadOnly_/*=false*/)
+    : m_nMode(modeClosed), m_nSize(0), m_fReadOnly(fReadOnly_)
 {
-    // No file open initially
-    m_nMode = modeClosed;
-
-    // Save whether we're to treat the stream as read-only
-    m_fReadOnly = fReadOnly_;
-
     // Keep a copy of the stream source as we'll need it for saving
-    strcpy(m_pszStream = new char[1+strlen(pcszStream_)], pcszStream_);
+    m_pszStream = strdup(pcszStream_);
 }
 
-/*virtual*/ CStream::~CStream ()
+CStream::~CStream ()
 {
-    delete m_pszStream;
+    free(m_pszStream);
 }
 
 
 // Identify the stream and create an object to supply data from it
 /*static*/ CStream* CStream::Open (const char* pcszStream_, bool fReadOnly_/*=false*/)
 {
+    struct stat st;
+
+    // Give the OS-specific floppy driver first go at the path
     if (CFloppyStream::IsRecognised(pcszStream_))
         return new CFloppyStream(pcszStream_, fReadOnly_);
-    else
+
+    // Check for a regular file that we have read access to
+    else if (!::stat(pcszStream_, &st) && S_ISREG(st.st_mode) && !access(pcszStream_, R_OK))
     {
         // If the file is read-only, the stream will be read-only
         FILE* file = (pcszStream_ && *pcszStream_) ? fopen(pcszStream_, "r+b") : NULL;
@@ -127,6 +128,14 @@ CStream::CStream (const char* pcszStream_, bool fReadOnly_/*=false*/)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+CFileStream::CFileStream (FILE* hFile_, const char* pcszStream_, bool fReadOnly_/*=false*/)
+    : CStream(pcszStream_, fReadOnly_), m_hFile(hFile_)
+{
+    struct stat st;
+    if (!fstat(fileno(hFile_), &st))
+        m_nSize = st.st_size;
+}
+
 void CFileStream::Close ()
 {
     if (m_hFile)
@@ -180,6 +189,13 @@ size_t CFileStream::Write (void* pvBuffer_, size_t uLen_)
 
 #ifdef USE_ZLIB
 
+CZLibStream::CZLibStream (gzFile hFile_, const char* pcszStream_, bool fReadOnly_/*=false*/)
+    : CStream(pcszStream_, fReadOnly_), m_hFile(hFile_)
+{
+    // We can't determine the size without an expensive seek, reading the whole file
+    m_nSize = 0;
+}
+
 void CZLibStream::Close ()
 {
     if (m_hFile)
@@ -227,6 +243,17 @@ size_t CZLibStream::Write (void* pvBuffer_, size_t uLen_)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+CZipStream::CZipStream (unzFile hFile_, const char* pcszFile_, bool fReadOnly_/*=false*/)
+    : CStream(pcszFile_, fReadOnly_), m_hFile(hFile_)
+{
+    unz_file_info sInfo;
+    char szFile[MAX_PATH];
+
+    // Get details of the current file
+    if (unzGetCurrentFileInfo(hFile_, &sInfo, szFile, sizeof szFile, NULL, 0, NULL, 0) == UNZ_OK)
+        m_nSize = sInfo.uncompressed_size;
+}
 
 void CZipStream::Close ()
 {
