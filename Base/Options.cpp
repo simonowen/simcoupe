@@ -64,7 +64,8 @@ OPTION aOptions[] =
     OPT("Fullscreen",   OT_INT,     fullscreen,     0),         // Not full screen
     OPT("Depth",        OT_INT,     depth,          16),        // Full screen mode uses 16-bit colour
     OPT("Borders",      OT_INT,     borders,        2),         // Same amount of borders as previous version
-    OPT("StretchToFit", OT_BOOL,    stretchtofit,   true),      // Stretch image to fit
+    OPT("StretchToFit", OT_BOOL,    stretchtofit,   true),      // Stretch image to fit the display area
+    OPT("Filter",       OT_BOOL,    filter,         true),      // Filter the stretched image
     OPT("Surface",      OT_INT,     surface,        999),       // Try for the best possible by default
 
     OPT("ROM",          OT_STRING,  rom,            ""),        // No custom ROM (use built-in)

@@ -35,6 +35,7 @@ typedef struct
     int     depth;                  // Screen depth for full-screen
     int     borders;                // How much of the borders to show
     bool    stretchtofit;           // Stretch screen image to fit target area?
+    bool    filter;                 // Filter the stretched image? (if possible)
     int     surface;                // Surface type to use
 
     char    rom[MAX_PATH];          // SAM ROM image path
