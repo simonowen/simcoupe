@@ -52,23 +52,26 @@ BEGIN
     GROUPBOX        "Clock hardware",IDC_STATIC,45,7,170,57
 END
 
-IDD_ABOUT DIALOGEX 0, 0, 197, 134
+IDD_ABOUT DIALOGEX 0, 0, 217, 151
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About SimCoupé/Win32"
-FONT 8, "MS Sans Serif", 0, 0, 0x1
+FONT 8, "MS Sans Serif"
 BEGIN
-    LTEXT           "SimCoupé - a SAM Coupé emulator",IDC_STATIC,40,9,145,8
-    LTEXT           "Win32/SDL/Allegro versions and general overhaul:\n     Simon Owen (simon.owen@simcoupe.org)",
-                    IDC_STATIC,20,42,170,18
-    LTEXT           "Based on original SimCoupé versions by:\n     Allan Skillman (allan.skillman@simcoupe.org)",
-                    IDC_STATIC,20,67,170,18
-    LTEXT           "Additional technical enhancements:\n     Dave Laundon (dave.laundon@simcoupe.org)",
-                    IDC_STATIC,20,89,170,18
-    DEFPUSHBUTTON   "OK",IDOK,75,116,50,14
-    ICON            IDI_MAIN,IDI_SAM,7,7,20,20,0,WS_EX_TRANSPARENT
+    LTEXT           "SimCoupé v0.90 beta 4",IDC_STATIC,40,9,145,8
+    LTEXT           "Homepage: http://www.simcoupe.org/",IDC_STATIC,40,20,
+                    140,8
+    LTEXT           "Win32/SDL/Allegro versions and general overhaul:\n     Simon Owen <simon.owen@simcoupe.org>",
+                    IDC_STATIC,40,42,170,18
+    LTEXT           "Based on original SimCoupé versions by:\n     Allan Skillman <allan.skillman@arm.com>",
+                    IDC_STATIC,40,64,170,18
+    LTEXT           "Additional technical enhancements:\n     Dave Laundon <dave.laundon@simcoupe.org>",
+                    IDC_STATIC,40,86,170,18
+    LTEXT           "Phillips SAA 1099 sound chip emulation:\n     Dave Hooper <dave@rebuzz.org>",
+                    IDC_STATIC,40,108,170,18
+    DEFPUSHBUTTON   "OK",IDOK,84,133,50,14
+    ICON            IDI_MAIN,IDI_SAM,7,7,21,20,0,WS_EX_TRANSPARENT
     CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,7,34,
-                    183,1
-    LTEXT           "version 0.90 beta 3",IDC_STATIC,45,19,140,8
+                    203,1
 END
 
 IDD_EXPORT DIALOG DISCARDABLE  0, 0, 163, 142
@@ -330,28 +333,34 @@ FONT 8, "MS Sans Serif"
 BEGIN
     COMBOBOX        IDC_DRIVE1,123,18,85,80,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    EDITTEXT        IDE_IMAGE1,74,38,117,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDB_BROWSE1,194,38,14,14
+    EDITTEXT        IDE_IMAGE1,74,36,117,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDB_BROWSE1,194,36,14,14
     CONTROL         "Read only",IDC_READONLY1,"Button",BS_AUTOCHECKBOX | NOT 
-                    WS_VISIBLE | WS_TABSTOP,54,56,48,10
-    PUSHBUTTON      "Save",IDB_SAVE1,144,56,30,14
-    PUSHBUTTON      "Eject",IDB_EJECT1,178,56,30,14
-    COMBOBOX        IDC_DRIVE2,123,92,85,80,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_VISIBLE | WS_TABSTOP,54,53,48,10
+    PUSHBUTTON      "Save",IDB_SAVE1,153,53,26,11
+    PUSHBUTTON      "Eject",IDB_EJECT1,182,53,26,11
+    COMBOBOX        IDC_DRIVE2,123,81,85,80,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    EDITTEXT        IDE_IMAGE2,74,112,117,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDB_BROWSE2,194,112,14,14
+    EDITTEXT        IDE_IMAGE2,74,99,117,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDB_BROWSE2,194,99,14,14
     CONTROL         "Read only",IDC_READONLY2,"Button",BS_AUTOCHECKBOX | NOT 
-                    WS_VISIBLE | WS_TABSTOP,54,130,48,10
-    PUSHBUTTON      "Save",IDB_SAVE2,144,130,30,14
-    PUSHBUTTON      "Eject",IDB_EJECT2,178,130,30,14
-    GROUPBOX        "Drive 2",IDC_STATIC,45,81,170,68
+                    WS_VISIBLE | WS_TABSTOP,54,116,48,10
+    PUSHBUTTON      "Save",IDB_SAVE2,153,116,26,11
+    PUSHBUTTON      "Eject",IDB_EJECT2,182,116,26,11
+    GROUPBOX        "Drive 2",IDC_STATIC,45,70,170,59
     ICON            IDI_FLOPPY,IDC_STATIC,7,7,20,20
-    GROUPBOX        "Drive 1",IDC_STATIC,45,7,170,68
+    GROUPBOX        "Drive 1",IDC_STATIC,45,7,170,59
     LTEXT           "Device connected:",IDC_STATIC,54,21,62,8
-    LTEXT           "Device connected:",IDC_STATIC,52,95,62,8
-    LTEXT           "File:",IDC_STATIC,54,40,14,8
+    LTEXT           "Device connected:",IDC_STATIC,52,84,62,8
+    LTEXT           "File:",IDC_STATIC,54,38,14,8
     ICON            IDI_FLOPPY,IDC_STATIC,7,83,20,20
-    LTEXT           "File:",IDC_STATIC,54,114,14,8
+    LTEXT           "File:",IDC_STATIC,54,101,14,8
+    CONTROL         "&Fast disk access",IDC_TURBO_LOAD,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,53,138,67,10
+    COMBOBOX        IDC_SENSITIVITY,163,137,45,50,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Sensitivity:",IDS_SENSITIVITY,127,139,34,8
+    GROUPBOX        "",IDC_STATIC,45,130,170,23
 END
 
 IDD_PAGE_FNKEYS DIALOG DISCARDABLE  0, 0, 235, 156
@@ -433,9 +442,9 @@ BEGIN
     IDD_ABOUT, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 190
+        RIGHTMARGIN, 210
         TOPMARGIN, 7
-        BOTTOMMARGIN, 130
+        BOTTOMMARGIN, 147
     END
 
     IDD_EXPORT, DIALOG
@@ -629,8 +638,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,90,0,3
- PRODUCTVERSION 0,90,0,3
+ FILEVERSION 0,90,0,4
+ PRODUCTVERSION 0,90,0,4
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -648,14 +657,14 @@ BEGIN
             VALUE "Comments", "Win32 version by\t\tSimon Owen simon.owen@simcoupe.org http://www.simcoupe.org/\0"
             VALUE "CompanyName", "\0"
             VALUE "FileDescription", "A SAM Coupé emulator\0"
-            VALUE "FileVersion", "0.90 beta 3\0"
+            VALUE "FileVersion", "0.90 beta 4\0"
             VALUE "InternalName", "\0"
             VALUE "LegalCopyright", "Copyright © 1996-2002 The SimCoupé Team\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "\0"
-            VALUE "ProductVersion", "0.90 beta 3\0"
+            VALUE "ProductVersion", "0.90 beta 4\0"
             VALUE "SpecialBuild", "\0"
         END
     END
@@ -705,7 +714,7 @@ IDC_CURSOR              CURSOR  DISCARDABLE     "Cursors\\arrow.cur"
 // 24
 //
 
-CREATEPROCESS_MANIFEST_RESOURCE_ID 24      DISCARDABLE     "SimCoupe.exe.manifest"
+1                       24      DISCARDABLE     "SimCoupe.exe.manifest"
 #endif    // English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
 
