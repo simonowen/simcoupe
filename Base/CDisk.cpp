@@ -2,7 +2,7 @@
 //
 // CDisk.cpp: C++ classes used for accessing all SAM disk image types
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -209,8 +209,12 @@ bool CDisk::FindSector (UINT uSide_, UINT uTrack_, UINT uIdTrack_, UINT uSector_
         delete[] pb;
     }
 
-    // Accept files that are a multiple of the track size, but no larger than a full disk
-    return uSize && uSize <= DSK_IMAGE_SIZE && !(uSize % (NORMAL_DISK_SECTORS*NORMAL_SECTOR_SIZE));
+    // Calculate the cylinder size
+    UINT uCylSize = NORMAL_DISK_SIDES * NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE;
+
+    // Accept files that are a multiple of the cylinder size, but no larger than a full disk
+    // Note: this automatically includes 720K MS-DOS disks, handled in the constructor below
+    return uSize && uSize <= DSK_IMAGE_SIZE && !(uSize % uCylSize);
 }
 
 CDSKDisk::CDSKDisk (CStream* pStream_)
@@ -501,7 +505,8 @@ BYTE CSADDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
     UINT uSize;
 
     // Calculate the cylinder size, and the maximum size of an SDF image
-    UINT uCylSize = MAX_DISK_SIDES * SDF_TRACKSIZE, uMaxSize = uCylSize * MAX_DISK_TRACKS;
+    UINT uCylSize = MAX_DISK_SIDES * SDF_TRACKSIZE;
+    UINT uNormSize = uCylSize * NORMAL_DISK_TRACKS, uMaxSize = uCylSize * MAX_DISK_TRACKS;
 
     // If we don't have a size (gzipped) we have no choice but to read enough to find out
     if (!(uSize = pStream_->GetSize()))
@@ -516,7 +521,7 @@ BYTE CSADDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
     }
 
     // Return if the file size is sensible and an exact number of cylinders
-    return uSize <= uMaxSize && !(uSize % uCylSize);
+    return uSize && (uSize >= uNormSize && uSize <= uMaxSize) && !(uSize % uCylSize);
 }
 
 CSDFDisk::CSDFDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT uTracks_/*=MAX_DISK_TRACKS*/)
