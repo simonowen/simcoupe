@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // OSD.h: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -50,6 +50,16 @@ public:
 #include "SDL.h"
 #define SDL
 
+#ifndef SDL_DISABLE
+#define SDL_DISABLE  0
+#define SDL_ENABLE   1
+#endif
+
+#ifndef SDL_VIDEOEXPOSE
+#define SDL_VIDEOEXPOSE  17
+#endif
+
+
 #ifndef _WINDOWS
 #include <sys/ioctl.h>
 #include <dirent.h>
@@ -57,6 +67,9 @@ public:
 #define PATH_SEPARATOR      '/'
 #endif
 
+#ifdef __QNX__
+#include <strings.h>        // for strcasecmp
+#endif
 
 #ifdef _WINDOWS
 
