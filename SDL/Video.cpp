@@ -358,9 +358,12 @@ bool Video::CreatePalettes (bool fDimmed_)
     {
         // Look up the colour in the appropriate palette
         const RGBA* p = (i < N_PALETTE_COLOURS) ? &pSAM[i] : &pGUI[i-N_PALETTE_COLOURS];
-        BYTE bRed = p->bRed, bGreen = p->bGreen, bBlue = p->bBlue, bAlpha = p->bAlpha;
+        BYTE bRed = p->bRed, bGreen = p->bGreen, bBlue = p->bBlue;
 
 #ifdef USE_OPENGL
+        // We don't currently use alpha, but pick it up to allow for future translucent windows
+        BYTE bAlpha = p->bAlpha;
+
         // 32-bit RGBA?
         if (g_glDataType == GL_UNSIGNED_BYTE)
         {
