@@ -1,4 +1,4 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // GUI.cpp: GUI and controls for on-screen interface
 //
@@ -729,7 +729,7 @@ void CEditControl::Draw (CScreen* pScreen_)
 
     // The text could be too long for the control, so find the longest tail-segment that fits
     const char* pcsz = GetText();
-    while (CScreen::GetStringWidth(pcsz) >= (m_nWidth - 2))
+    while (CScreen::GetStringWidth(pcsz) >= (m_nWidth - 4))
         pcsz++;
 
     int nY = m_nY + (m_nHeight - CHAR_HEIGHT)/2;
