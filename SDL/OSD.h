@@ -21,31 +21,6 @@
 #ifndef OSD_H
 #define OSD_H
 
-// There's no SDL method to get a time stamp better than 1 millisecond yet
-#define GetProfileTime      GetTime
-
-
-class OSD
-{
-public:
-    static bool Init (bool fFirstInit_=false);
-    static void Exit (bool fReInit_=false);
-
-    static DWORD GetTime ();
-    static const char* GetFilePath (const char* pcszFile_="");
-    static const char* GetFloppyDevice (int nDrive_);
-    static bool CheckPathAccess (const char* pcszPath_);
-    static bool IsHidden (const char* pcszPath_);
-
-    static void DebugTrace (const char* pcsz_);
-    static int FrameSync (bool fWait_=true);
-
-    static int s_nTicks;
-};
-
-
-////////////////////////////////////////////////////////////////////////////////
-
 #define CUSTOM_MAIN
 
 #include <sys/types.h>      // for _off_t definition
@@ -68,15 +43,24 @@ public:
 
 
 #ifndef _WINDOWS
+
 #include <sys/ioctl.h>
 #include <dirent.h>
 #include <unistd.h>
+
 #define PATH_SEPARATOR      '/'
+
+typedef unsigned int        DWORD;  // must be 32-bit
+typedef unsigned short      WORD;   // must be 16-bit
+typedef unsigned char       BYTE;   // must be 8-bit
+
 #endif
+
 
 #ifdef __QNX__
 #include <strings.h>        // for strcasecmp
 #endif
+
 
 #ifdef _WINDOWS
 
@@ -142,5 +126,28 @@ struct dirent* readdir (DIR* hDir_);
 int closedir (DIR* hDir_);
 
 #endif  // _WINDOWS
+
+////////////////////////////////////////////////////////////////////////////////
+
+// There's no SDL method to get a time stamp better than 1 millisecond yet
+#define GetProfileTime      GetTime
+
+class OSD
+{
+public:
+    static bool Init (bool fFirstInit_=false);
+    static void Exit (bool fReInit_=false);
+
+    static DWORD GetTime ();
+    static const char* GetFilePath (const char* pcszFile_="");
+    static const char* GetFloppyDevice (int nDrive_);
+    static bool CheckPathAccess (const char* pcszPath_);
+    static bool IsHidden (const char* pcszPath_);
+
+    static void DebugTrace (const char* pcsz_);
+    static int FrameSync (bool fWait_=true);
+
+    static int s_nTicks;
+};
 
 #endif  // OSD_H
