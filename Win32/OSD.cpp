@@ -34,7 +34,11 @@ int OSD::s_nTicks;
 
 
 // Timer handler, called every 20ms - seemed more reliable than having it set the event directly, for some weird reason
+#ifdef _WIN64
+void CALLBACK TimeCallback (UINT uTimerID_, UINT uMsg_, DWORD_PTR dwUser_, DWORD dw1_, DWORD dw2_)
+#else
 void CALLBACK TimeCallback (UINT uTimerID_, UINT uMsg_, DWORD dwUser_, DWORD dw1_, DWORD dw2_)
+#endif
 {
     OSD::s_nTicks++;
 
@@ -50,19 +54,24 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
 
     bool fRet = false;
 
-    // We'll do our own error handling, so suppress any windows error dialogs
-    SetErrorMode(SEM_FAILCRITICALERRORS);
+    if (fFirstInit_)
+    {
+        // Initialise Windows common controls
+        InitCommonControls();
 
-    // Create an event that will be set every 20ms for the 50Hz sync
-    if (!(g_hEvent = CreateEvent(NULL, FALSE, FALSE, NULL)))
-        Message(msgWarning, "Failed to create sync event object (%#08lx)", GetLastError());
+        // We'll do our own error handling, so suppress any windows error dialogs
+        SetErrorMode(SEM_FAILCRITICALERRORS);
 
-    // Set a timer to fire every every 20ms for our 50Hz frame synchronisation
-    else if (!(g_hTimer = timeSetEvent(1000/EMULATED_FRAMES_PER_SECOND, 0, TimeCallback, 0, TIME_PERIODIC|TIME_CALLBACK_FUNCTION)))
-        Message(msgWarning, "Failed to start sync timer (%#08lx)", GetLastError());
+        // Create an event that will be set every 20ms for the 50Hz sync
+        if (!(g_hEvent = CreateEvent(NULL, FALSE, FALSE, NULL)))
+            Message(msgWarning, "Failed to create sync event object (%#08lx)", GetLastError());
 
-    else
-        fRet = UI::Init(fFirstInit_);
+        // Set a timer to fire every every 20ms for our 50Hz frame synchronisation
+        else if (!(g_hTimer = timeSetEvent(1000/EMULATED_FRAMES_PER_SECOND, 0, TimeCallback, 0, TIME_PERIODIC|TIME_CALLBACK_FUNCTION)))
+            Message(msgWarning, "Failed to start sync timer (%#08lx)", GetLastError());
+    }
+
+    fRet = UI::Init(fFirstInit_);
 
     TRACE("<- OSD::Init() returning %s\n", fRet ? "true" : "false");
     return fRet;
@@ -70,10 +79,13 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
 
 void OSD::Exit (bool fReInit_/*=false*/)
 {
-    if (g_hEvent)   { CloseHandle(g_hEvent); g_hEvent = NULL; }
-    if (g_hTimer)   { timeKillEvent(g_hTimer); g_hTimer = NULL; }
+    if (!fReInit_)
+    {
+        if (g_hEvent)   { CloseHandle(g_hEvent); g_hEvent = NULL; }
+        if (g_hTimer)   { timeKillEvent(g_hTimer); g_hTimer = NULL; }
+    }
 
-    UI::Exit();
+    UI::Exit(fReInit_);
 }
 
 
