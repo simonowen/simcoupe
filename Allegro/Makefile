@@ -29,17 +29,18 @@ USE_SAASOUND=1
 
 .SUFFIXES: .cpp .c
 
-CFLAGS=-O2 -I${ALLEGRO} -I${BASE} -I${EXTERN}
+CFLAGS=-O3 -fomit-frame-pointer -funroll-loops -finline-functions -I${ALLEGRO} -I${BASE} -I${EXTERN}
+#CFLAGS=-O2 -I${ALLEGRO} -I${BASE} -I${EXTERN}
 CXXFLAGS=${CFLAGS} -Wall
 LIBS=-L. -lm -lalleg
 
 BASE_SRC=${BASE}/ATA.cpp ${BASE}/Atom.cpp ${BASE}/CDisk.cpp \
  ${BASE}/CDrive.cpp ${BASE}/Clock.cpp ${BASE}/CPU.cpp ${BASE}/CScreen.cpp \
- ${BASE}/CStream.cpp ${BASE}/Debug.cpp ${BASE}/Disassem.cpp ${BASE}/Font.cpp \
- ${BASE}/Frame.cpp ${BASE}/GUI.cpp ${BASE}/GUIDlg.cpp ${BASE}/GUIIcons.cpp \
- ${BASE}/IO.cpp ${BASE}/Main.cpp ${BASE}/Memory.cpp ${BASE}/Mouse.cpp \
- ${BASE}/Options.cpp ${BASE}/PNG.cpp ${BASE}/Profile.cpp ${BASE}/Util.cpp \
- ${EXTERN}/SAASound.cpp
+ ${BASE}/CStream.cpp ${BASE}/Debug.cpp ${BASE}/Disassem.cpp ${BASE}/Expr.cpp \
+ ${BASE}/Font.cpp ${BASE}/Frame.cpp ${BASE}/GUI.cpp ${BASE}/GUIDlg.cpp \
+ ${BASE}/GUIIcons.cpp ${BASE}/IO.cpp ${BASE}/Main.cpp ${BASE}/Memory.cpp \
+ ${BASE}/Mouse.cpp ${BASE}/Options.cpp ${BASE}/PNG.cpp ${BASE}/Profile.cpp \
+ ${BASE}/SDIDE.cpp ${BASE}/Util.cpp ${EXTERN}/SAASound.cpp
 
 ALLEGRO_SRC= ${ALLEGRO}/Display.cpp ${ALLEGRO}/Floppy.cpp \
  ${ALLEGRO}/Input.cpp ${ALLEGRO}/MIDI.cpp ${ALLEGRO}/OSD.cpp \
