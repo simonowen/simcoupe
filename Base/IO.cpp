@@ -668,6 +668,10 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             if (fScreenOffChange || ((border ^ bVal_) & BORD_COLOUR_MASK))
                 Frame::Update();
 
+            // If the screen enable state has changed, consider a border change artefact
+            if (fScreenOffChange && (border & BORD_SOFF))
+                Frame::ChangeScreen(bVal_);
+
             // If the speaker bit has been toggled, generate a click
             if ((border ^ bVal_) & BORD_BEEP_MASK)
                 pBeeper->Out(wPort_, bVal_);
