@@ -31,10 +31,8 @@
 //  - buffering tweaks to help with sample block joins
 
 #include "SimCoupe.h"
-#include <math.h>
 
 #include "Sound.h"
-
 #include "../Extern/SAASound.h"
 
 #include "CPU.h"
@@ -51,8 +49,6 @@ extern HWND g_hwnd;
 // Direct sound, primary buffer and secondary buffer interface pointers
 IDirectSound* g_pds = NULL;
 IDirectSoundBuffer* g_pdsbPrimary;
-
-UINT HCF (UINT x_, UINT y_);
 
 CSoundStream* aStreams[SOUND_STREAMS];
 
@@ -179,6 +175,8 @@ void Sound::Exit (bool fReInit_/*=false*/)
 {
     TRACE("-> Sound::Exit(%s)\n", fReInit_ ? "reinit" : "");
 
+    ExitDirectSound(fReInit_);
+
     for (int i = 0 ; i < SOUND_STREAMS ; i++)
         delete aStreams[i], aStreams[i] = NULL;
 
@@ -191,8 +189,6 @@ void Sound::Exit (bool fReInit_/*=false*/)
         DestroyCSAASound(pSAASound);
         pSAASound = NULL;
     }
-
-    ExitDirectSound(fReInit_);
 
     TRACE("<- Sound::Exit()\n");
 }
@@ -258,14 +254,14 @@ void Sound::OutputDACRight (BYTE bVal_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CStreamBuffer::CStreamBuffer (int nFreq_, int nBits_, int nChannels_)
+CStreamBuffer::CStreamBuffer (int nChannels_)
     : m_nChannels(nChannels_), m_pbFrameSample(NULL), m_nSamplesThisFrame(0), m_uOffsetPerUnit(0), m_uPeriod(0)
 {
     // Any values not supplied will be taken from the current options
     if (!m_nChannels) m_nChannels = GetOption(stereo) ? 2 : 1;
 
     // Use some arbitrary units to keep the numbers manageably small...
-    UINT uUnits = HCF(SOUND_FREQ, EMULATED_TSTATES_PER_SECOND);
+    UINT uUnits = Util::HCF(SOUND_FREQ, EMULATED_TSTATES_PER_SECOND);
     m_uSamplesPerUnit = SOUND_FREQ / uUnits;
     m_uCyclesPerUnit = EMULATED_TSTATES_PER_SECOND / uUnits;
 
@@ -411,13 +407,13 @@ void CSoundStream::Silence (bool fFill_/*=false*/)
     DWORD dwLength1, dwLength2;
 
     // Silence the stored buffer
-    FillMemory(m_pbFrameSample, 0x00, m_nSampleBufferSize);
+    memset(m_pbFrameSample, 0x00, m_nSamplesPerFrame*m_nSampleSize);
 
     // Lock the buffer to obtain pointers and lengths for data writes
     if (SUCCEEDED(m_pdsb->Lock(0, 0, &pvWrite1, &dwLength1, &pvWrite2, &dwLength2, DSBLOCK_ENTIREBUFFER)))
     {
         // Silence the hardware buffer
-        FillMemory(pvWrite1, dwLength1, 0x00);
+        memset(pvWrite1, 0x00, dwLength1);
         m_pdsb->Unlock(pvWrite1, dwLength1, pvWrite2, dwLength2);
     }
 
@@ -583,23 +579,4 @@ void CDAC::GenerateExtra (BYTE* pb_, int nSamples_)
     // Re-use the specified amount from the previous sample, 
     if (pb_ != m_pbFrameSample)
         memmove(pb_, m_pbFrameSample, nSamples_*m_nSampleSize);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-UINT HCF (UINT x_, UINT y_)
-{
-    UINT uHCF = 1, uMin = min(x_, y_) >> 1;
-
-    for (UINT uFactor = 2 ; uFactor <= uMin ; uFactor++)
-    {
-        while (!(x_ % uFactor) && !(y_ % uFactor))
-        {
-            uHCF *= uFactor;
-            x_ /= uFactor;
-            y_ /= uFactor;
-        }
-    }
-
-    return uHCF;
 }
