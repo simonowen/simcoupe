@@ -33,7 +33,7 @@
 
 
 int nClipX, nClipY, nClipWidth, nClipHeight;    // Clip box for any screen drawing
-FONT* pFont = &sNewFont;
+const FONT* pFont = &sOldFont;
 
 
 CScreen::CScreen (int nWidth_, int nHeight_)
@@ -278,7 +278,7 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
 {
     int nWidth = 0;
 
-    for (BYTE bChar ; bChar = *pcsz_++ ; )
+    for (BYTE bChar ; (bChar = *pcsz_++) ; )
     {
         // Out-of-range characters will be drawn as an underscore
         if (bChar < pFont->bFirst || bChar > pFont->bLast)
@@ -292,7 +292,7 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
     return nWidth - CHAR_SPACING;
 }
 
-/*static*/ void CScreen::SetFont (FONT* pFont_)
+/*static*/ void CScreen::SetFont (const FONT* pFont_)
 {
     pFont = pFont_;
 }
