@@ -19,35 +19,57 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 // ToDo:
-//  - probably use SDL_mixer for MIDI, even tho it's software only at present
+//  - possibly use SDL_mixer for MIDI as a /dev/midi alternative
+//  - allow use of a MIDI IN device different from MIDI OUT
 
 #include "SimCoupe.h"
 
 #include "MIDI.h"
 #include "Options.h"
 
+#ifndef MIDIRESET
+#define MIDIRESET       (('M' << 8) | 01)
+#endif
 
 
 CMidiDevice::CMidiDevice ()
+    : m_nIn(0), m_nOut(0)
 {
-    // No previous data, status byte or handle
-    m_nOut = 0;
-    m_abOut[0] = '0';
+    // Clear the data buffers
+    memset(m_abIn, 0, sizeof m_abOut);
+    memset(m_abOut, 0, sizeof m_abOut);
 
-    // Open the MIDI device here
+    // Open the MIDI device read/write, or write only if that fails
+    if ((m_nDevice = open(GetOption(midioutdev), O_RDWR) == -1))
+        m_nDevice = open(GetOption(midioutdev), O_WRONLY);
+
+    // Reset the device to flush any partial messages
+    ioctl(m_nDevice,MIDIRESET,0);
 }
 
 
 CMidiDevice::~CMidiDevice ()
 {
     // Close the MIDI device here
+    if (m_nDevice != -1)
+        close(m_nDevice);
 }
 
 
 BYTE CMidiDevice::In (WORD wPort_)
 {
-    // No MIDI-IN support yet
-    return 0x00;
+    // If we've no data, read up to a buffer's worth
+    if (m_nOut <= 0 && m_nDevice != -1)
+        read(m_nDevice, m_abIn, sizeof m_abIn);
+
+    // If we've still no data, return zero
+    if (m_nOut <= 0)
+        return 0x00;
+
+    // Use the byte from the head of the buffer and shuffle the rest up
+    BYTE bRet = m_abIn[0];
+    memmove(m_abIn, m_abIn+1, --m_nOut);
+    return bRet;
 }
 
 
@@ -118,6 +140,8 @@ void CMidiDevice::Out (WORD wPort_, BYTE bVal_)
 #endif
 
     // Output the MIDI message here
+    if (m_nDevice != -1)
+        write(m_nDevice, m_abOut, m_nOut);
 
     // Prepare for the next message, clearing out 
     m_nOut = m_abOut[1] = m_abOut[2] = m_abOut[3] = 0;
