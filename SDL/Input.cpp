@@ -231,17 +231,21 @@ bool ReadKeyboard ()
     // Make a copy of the master key table with the real keyboard states
     memcpy(afKeyStates, afKeys, sizeof afKeyStates);
 
+    // Alt-Gr comes through as SDLK_MODE on some platforms and SDLK_RALT on others, so accept both
+    if (IsPressed(SDLK_MODE))
+        PressKey(SDLK_RALT);
+
     // If the option is set, Left-ALT does the same as Right-Control: to generate SAM Cntrl
     if (GetOption(altforcntrl) && IsPressed(SDLK_LALT))
         PressKey(SDLK_RCTRL);
 
-    // AltGr can optionally be used for SAM Edit
+    // Alt-Gr can optionally be used for SAM Edit
     if (GetOption(altgrforedit) && IsPressed(SDLK_RALT))
     {
-        // AltGr is usually seen with left-control down (NT/W2K), so release it
+        // Alt-Gr is usually seen with left-control down (NT/W2K), so release it
         ReleaseKey(SDLK_LCTRL);
 
-        // Release AltGr (needed for Win9x it seems) and press the context menu key (also used for SAM Edit)
+        // Release Alt-Gr (needed for Win9x it seems) and press the context menu key (also used for SAM Edit)
         ReleaseKey(SDLK_RALT);
         PressKey(SDLK_MENU);
     }
