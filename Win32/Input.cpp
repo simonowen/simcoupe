@@ -114,7 +114,7 @@ COMBINATION_KEY asSamSymbols[] =
     { '`',  SK_SHIFT, SK_QUOTES },  { '{',  SK_SYMBOL, SK_F },      { '}',  SK_SYMBOL, SK_G },
     { '^',  SK_SYMBOL, SK_H },      { (BYTE)'£', SK_SYMBOL, SK_L }, { ';',  SK_SEMICOLON, SK_NONE },
     { ':',  SK_COLON, SK_NONE },    { '?',  SK_SYMBOL, SK_X },      { '.',  SK_PERIOD, SK_NONE },
-    { ',',  SK_COMMA, SK_NONE },    { '\\', SK_SHIFT, SK_INV },     { '|',  SK_SYMBOL, SK_L },
+    { ',',  SK_COMMA, SK_NONE },    { '\\', SK_SHIFT, SK_INV },     { '|',  SK_SYMBOL, SK_9 },
 
     { '\0' }
 };
