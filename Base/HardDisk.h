@@ -34,8 +34,8 @@ HARDDISK_GEOMETRY;
 class CHardDisk
 {
     public:
-        CHardDisk () { }
-        virtual ~CHardDisk () { }
+        CHardDisk ();
+        virtual ~CHardDisk ();
 
     public:
         static CHardDisk* OpenObject (const char* pcszDisk_);
@@ -54,7 +54,7 @@ class CHardDisk
         bool IsBDOSDisk ();
 
     protected:
-        bool NormaliseGeometry (HARDDISK_GEOMETRY* pg_);
+        bool CalculateGeometry (HARDDISK_GEOMETRY* pg_);
 
     protected:
         HARDDISK_GEOMETRY m_sGeometry;
