@@ -2,7 +2,7 @@
 //
 // Sound.cpp: WinCE sound implementation using WaveOut
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -56,36 +56,18 @@ LPCSAASOUND pSAASound;  // SAASound.dll object - needs to exist as long as we do
 
 BYTE* buf;
 
+WAVEFORMATEX wf;
+
 HWAVEOUT hWaveOut;
 WAVEHDR* pWaveHeaders;
 BYTE* pbData;
 
 UINT uTotalBuffers, uCurrentBuffer;
-
-WAVEFORMATEX wf;
-
-long uBuffered;
-bool fSlow;
-
 UINT uMaxSamplesPerFrame, uSampleSize, uSampleBufferSize;
-
 
 void AddData (BYTE* pbData_, int nLength_);
 
 ////////////////////////////////////////////////////////////////////////////////
-
-void CALLBACK WaveOutCallback (HANDLE hWaveOut_, UINT uMsg_, DWORD dwUser_, DWORD dw1_, DWORD dw2_)
-{
-    if (uMsg_ == WOM_DONE)
-    {
-        // Decrement the buffer count
-        InterlockedDecrement(&uBuffered);
-
-        // Flag we're running slow if we've running low on data
-        fSlow |= (uBuffered <= (GetOption(latency)/2));
-    }
-}
-
 
 bool InitWaveOut ()
 {
@@ -101,24 +83,34 @@ bool InitWaveOut ()
     // Create a single sample buffer to hold all the data
     uSampleBufferSize = uMaxSamplesPerFrame * uSampleSize * uTotalBuffers;
     pbData = new BYTE[uSampleBufferSize];
-
     pWaveHeaders = new WAVEHDR[uTotalBuffers];
+
+    if (!pbData || !pWaveHeaders)
+    {
+        TRACE("!!! Out of memory allocating sound buffers\n");
+        return false;
+    }
+
     ZeroMemory(pWaveHeaders, sizeof(WAVEHDR) * uTotalBuffers);
 
-    // Open the single sound stream we use
-    if (pbData && pWaveHeaders && waveOutOpen(&hWaveOut, WAVE_MAPPER, &wf,
-        reinterpret_cast<DWORD>(WaveOutCallback), NULL, CALLBACK_FUNCTION) == MMSYSERR_NOERROR)
+    // Loop through the available devices rather than relying on the MIDI mapper, just in case
+    for (UINT id = 0; id < waveOutGetNumDevs(); id++)
     {
-        // Prepare all the headers, pointing at the relevant position in the sample buffer
-        for (UINT u = 0 ; u < uTotalBuffers ; u++)
+        // Attempt to open our single stream
+        if (waveOutOpen(&hWaveOut, id, &wf, NULL, NULL, CALLBACK_NULL) == MMSYSERR_NOERROR)
         {
-            pWaveHeaders[u].dwBufferLength = uMaxSamplesPerFrame * wf.nBlockAlign;
-            pWaveHeaders[u].lpData = reinterpret_cast<char*>(pbData + (pWaveHeaders[u].dwBufferLength * u));
-            waveOutPrepareHeader(hWaveOut, &pWaveHeaders[u], sizeof WAVEHDR);
-        }
+            // Prepare all the headers, pointing at the relevant position in the sample buffer
+            for (UINT u = 0 ; u < uTotalBuffers ; u++)
+            {
+                pWaveHeaders[u].dwBufferLength = uMaxSamplesPerFrame * wf.nBlockAlign;
+                pWaveHeaders[u].lpData = reinterpret_cast<char*>(pbData + (pWaveHeaders[u].dwBufferLength * u));
+                pWaveHeaders[u].dwFlags = WHDR_DONE;
+                waveOutPrepareHeader(hWaveOut, &pWaveHeaders[u], sizeof WAVEHDR);
+            }
 
-        Sound::Play();
-        return true;
+            Sound::Play();
+            return true;
+        }
     }
 
     return false;
@@ -157,12 +149,11 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
     UINT uFreq = SetOption(freq, (GetOption(freq) < 20000) ? 11025 : (GetOption(freq) < 40000) ? 22050 : 44100);
     UINT uChannels = GetOption(stereo) ? 2 : 1;
 
-    uTotalBuffers = GetOption(latency)+1;
-    uCurrentBuffer = uBuffered = 0;
-
     // Do this because 50Hz doesn't divide exactly in to 11025Hz...
     uMaxSamplesPerFrame = (uFreq+EMULATED_FRAMES_PER_SECOND-1) / EMULATED_FRAMES_PER_SECOND;
     uSampleSize = uChannels * uBits / 8;
+
+    uTotalBuffers = GetOption(latency)+1;
 
 
     // All sound disabled?
@@ -376,7 +367,14 @@ void CStreamBuffer::Update (bool fFrameEnd_)
         m_uUpdates++;
     else
     {
-        DWORD dwSpaceAvailable = (uTotalBuffers - uBuffered) * uMaxSamplesPerFrame;
+        int uFreeBuffers = 0;
+        for (UINT u = 0; u < uTotalBuffers ; u++)
+        {
+            if (pWaveHeaders[u].dwFlags & WHDR_DONE)
+                uFreeBuffers++;
+        }
+
+        DWORD dwSpaceAvailable = uFreeBuffers * uMaxSamplesPerFrame;
 
         // Is there enough space for all this frame's data?
         if (dwSpaceAvailable >= static_cast<DWORD>(m_nSamplesThisFrame))
@@ -385,11 +383,15 @@ void CStreamBuffer::Update (bool fFrameEnd_)
             AddData(m_pbFrameSample, m_nSamplesThisFrame*uSampleSize);
             dwSpaceAvailable -= m_nSamplesThisFrame;
 
-            if (fSlow && dwSpaceAvailable >= static_cast<DWORD>(uMaxSamplesPerFrame))
+            // Is the buffer only 1/4 full?
+            if (uFreeBuffers > (GetOption(latency)*3/4))
             {
-                GenerateExtra(m_pbFrameSample, uMaxSamplesPerFrame);
-                AddData(m_pbFrameSample, uMaxSamplesPerFrame*uSampleSize);
-                fSlow = false;
+                // Top up until 3/4 full
+                for ( ; uFreeBuffers > (GetOption(latency)/4) ; uFreeBuffers--)
+                {
+                    GenerateExtra(m_pbFrameSample, uMaxSamplesPerFrame);
+                    AddData(m_pbFrameSample, uMaxSamplesPerFrame*uSampleSize);
+                }
             }
         }
 
@@ -415,20 +417,25 @@ void AddData (BYTE* pbData_, int nLength_)
     if (nLength_ <= 0)
         return;
 
+    for (UINT u = 0; u <= uTotalBuffers; u++)
+    {
+        // Return if there are no free buffers (we should never be called if this is true)
+        if (u == uTotalBuffers)
+            return;
+
+        if (!pWaveHeaders[u].dwFlags || (pWaveHeaders[u].dwFlags & WHDR_DONE))
+        {
+            uCurrentBuffer = u;
+            break;
+        }
+    }
+
     // Copy the frame data into the buffer
     memcpy(pbData + (uMaxSamplesPerFrame*uSampleSize*uCurrentBuffer), pbData_, nLength_);
 
     // Write the block using a single header
-    if (waveOutWrite(hWaveOut, &pWaveHeaders[uCurrentBuffer], sizeof WAVEHDR) == MMSYSERR_NOERROR)
-    {
-        // Move to the next buffer, wrapping round at the end
-        uCurrentBuffer = (uCurrentBuffer + 1) % uTotalBuffers;
-
-        // Increment the count of used buffers
-        InterlockedIncrement(&uBuffered);
-    }
-    else
-        TRACE("waveOutWrite failed!\n");
+    if (waveOutWrite(hWaveOut, &pWaveHeaders[uCurrentBuffer], sizeof WAVEHDR) != MMSYSERR_NOERROR)
+        TRACE("!!! waveOutWrite failed!\n");
 }
 
 
