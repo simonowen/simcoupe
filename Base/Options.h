@@ -52,7 +52,7 @@ typedef struct
     int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
     bool    altforcntrl;            // Non-zero if Left-Alt is used for SAM Cntrl
     bool    altgrforedit;           // Non-zero if Right-Alt is used for SAM Edit
-    int     mouse;                  // Non-zero if we want the SAM mouse
+    bool    mouse;                  // True to emulate the SAM mouse
 
     char    joydev1[128];           // Joystick 1 device
     char    joydev2[128];           // Joystick 2 device number
@@ -62,6 +62,7 @@ typedef struct
     int     parallel1;              // Parallel port 1 function
     int     parallel2;              // Parallel port 2 function
     char    printerdev[128];        // Printer device name
+    bool    printerready;           // True if the printer is ready
 
     int     serial1;                // Serial port 1 function
     int     serial2;                // Serial port 2 function
@@ -77,7 +78,7 @@ typedef struct
     bool    dallasclock;            // Non-zero if we want DALLAS clock support
     bool    clocksync;              // Non-zero if clock(s) advanced relative to real time
 
-    int     sound;                  // Sound mode
+    bool    sound;                  // Sound enabled?
     bool    beeper;                 // Spectrum-style beeper?
 
     bool    saasound;               // SAA 1099 sound chip enabled?

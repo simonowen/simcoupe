@@ -80,7 +80,7 @@ OPTION aOptions[] =
     OPT("KeyMapping",   OT_INT,     keymapping,     1),         // SAM keyboard mapping
     OPT("AltForCntrl",  OT_BOOL,    altforcntrl,    false),     // Left-Alt not used for SAM Cntrl
     OPT("AltGrForEdit", OT_BOOL,    altgrforedit,   true),      // Right-Alt used for SAM Edit
-    OPT("Mouse",        OT_INT,     mouse,          1),         // Mouse connected
+    OPT("Mouse",        OT_BOOL,    mouse,          true),      // Mouse connected
 
     OPT("JoyDev1",      OT_STRING,  joydev1,        ""),        // Joystick 1 device
     OPT("JoyDev2",      OT_STRING,  joydev2,        ""),        // Joystick 2 device
@@ -90,6 +90,7 @@ OPTION aOptions[] =
     OPT("Parallel1",    OT_INT,     parallel1,      0),         // Nothing on parallel port 1
     OPT("Parallel2",    OT_INT,     parallel2,      0),         // Nothing on parallel port 2
     OPT("PrinterDev",   OT_STRING,  printerdev,     ""),        // Printer device
+    OPT("PrinterReady", OT_BOOL,    printerready,   true),      // Printer ready for action
 
     OPT("SerialDev1",   OT_STRING,  serialdev1,     ""),        // Serial port 1 device
     OPT("SerialDev2",   OT_STRING,  serialdev2,     ""),        // Serial port 2 device
