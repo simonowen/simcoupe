@@ -3,7 +3,7 @@
 // CPU.cpp: Z80 processor emulation and main emulation loop
 //
 //  Copyright (c) 2000-2003  Dave Laundon
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -535,34 +535,36 @@ void CPU::Reset (bool fPress_)
     // Set CPU operating mode
     fReset = fPress_;
 
-    // Certain registers are initialised on every reset
-    i = radjust = im = iff1 = iff2 = 0;
-    sp = 0x8000;
-    pc = 0x0000;
+    if (fReset)
+    {
+        // Certain registers are initialised on every reset
+        i = radjust = im = iff1 = iff2 = 0;
+        sp = 0x8000;
+        pc = 0x0000;
 
-    // No index prefix seen yet, and no last instruction (for EI/DI look-back)
-    pHlIxIy = pNewHlIxIy = &hl;
-    g_bOpcode = OP_NOP;
+        // No index prefix seen yet, and no last instruction (for EI/DI look-back)
+        pHlIxIy = pNewHlIxIy = &hl;
+        g_bOpcode = OP_NOP;
 
-    // Counter used to determine when each line should be drawn
-    g_nLineCycle = g_nPrevLineCycle = 0;
+        // Counter used to determine when each line should be drawn
+        g_nLineCycle = g_nPrevLineCycle = 0;
 
-    // Initialise the CPU events queue
-    for (int n = 0 ; n < MAX_EVENTS ; n++)
-        asCpuEvents[n].psNext = &asCpuEvents[(n+1) % MAX_EVENTS];
-    psFreeEvent = asCpuEvents;
-    psNextEvent = NULL;
+        // Initialise the CPU events queue
+        for (int n = 0 ; n < MAX_EVENTS ; n++)
+            asCpuEvents[n].psNext = &asCpuEvents[(n+1) % MAX_EVENTS];
+        psFreeEvent = asCpuEvents;
+        psNextEvent = NULL;
 
-    // Schedule the first end of line event, and an update check half way through the frame
-    AddCpuEvent(evtEndOfLine, g_dwCycleCounter + TSTATES_PER_LINE);
-    AddCpuEvent(evtInputUpdate, g_dwCycleCounter + TSTATES_PER_FRAME/2);
+        // Schedule the first end of line event, and an update check half way through the frame
+        AddCpuEvent(evtEndOfLine, g_dwCycleCounter + TSTATES_PER_LINE);
+        AddCpuEvent(evtInputUpdate, g_dwCycleCounter + TSTATES_PER_FRAME/2);
 
-    // Re-initialise memory (for configuration changes) and reset I/O
-    Memory::Init();
-    IO::Init();
-
+        // Re-initialise memory (for configuration changes) and reset I/O
+        IO::Init();
+        Memory::Init();
+    }
     // Set up the fast reset for first power-on, allowing UP TO 5 seconds before returning to normal mode
-    if (!fPress_ && GetOption(fastreset))
+    else if  (GetOption(fastreset))
         g_nFastBooting = EMULATED_FRAMES_PER_SECOND * 5;
 
     Debug::Refresh();
