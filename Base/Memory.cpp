@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Memory.cpp: Memory configuration and management
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -29,9 +29,10 @@
 #include "Memory.h"
 
 #include "CPU.h"
+#include "CStream.h"
 #include "Options.h"
 #include "OSD.h"
-#include "CStream.h"
+#include "SAMROM.h"
 #include "Util.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -57,7 +58,7 @@ BYTE g_abMode1ByteToLine[SCREEN_LINES*SCREEN_BLOCKS];
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static int LoadRomImage (const char* pcszImage_, int nPage_);
+static void LoadRoms ();
 
 
 // Allocate and initialise memory
@@ -111,8 +112,7 @@ bool Memory::Init (bool fFirstInit_/*=false*/)
     }
 
     // Load the ROMs, using the second file if the first doesn't contain both
-    if (LoadRomImage(GetOption(rom0), ROM0) < 2)
-        LoadRomImage(GetOption(rom1), ROM1);
+    LoadRoms();
 
     // Writes to the ROM are discarded
     apbPageWritePtrs[ROM0] = apbPageWritePtrs[ROM1] = apbPageWritePtrs[SCRATCH_WRITE];
@@ -122,23 +122,19 @@ bool Memory::Init (bool fFirstInit_/*=false*/)
 
 void Memory::Exit (bool fReInit_/*=false*/)
 {
-    if (!fReInit_) { delete pMemory; pMemory = NULL; }
+    if (!fReInit_) { delete[] pMemory; pMemory = NULL; }
 }
 
 
 // Read the ROM image into the ROM area of our paged memory block
-static int LoadRomImage (const char* pcszImage_, int nPage_)
+static void LoadRoms ()
 {
-    int nRead = 0;
     CStream* pROM;
 
-    // Attempt to open the ROM file from the SimCoupé directory, and then from anywhere in it can be found
-    if (!pcszImage_ || (!(pROM = CStream::Open(OSD::GetFilePath(pcszImage_))) && !(pROM = CStream::Open(pcszImage_))))
-    {
-        Message(msgError, "Error loading ROM image: %s", pcszImage_);
-        memset(apbPageReadPtrs[nPage_], 0, MEM_PAGE_SIZE);
-    }
-    else
+    const char* pcszROM = GetOption(rom);
+
+    // Use a custom ROM if supplied
+    if (*pcszROM && ((pROM = CStream::Open(OSD::GetFilePath(pcszROM))) || (pROM = CStream::Open(pcszROM))))
     {
         // Read the header+bootstrap code from what could be a ZX82 file (for Andy Wright's ROM images)
         BYTE abHeader[140];
@@ -148,11 +144,21 @@ static int LoadRomImage (const char* pcszImage_, int nPage_)
         if (memcmp(abHeader, "ZX82", 4))
             pROM->Rewind();
 
-        // Read the ROM(s), attempting to get both from the file if possible, then close the file
-        nRead = pROM->Read(apbPageReadPtrs[nPage_], MEM_PAGE_SIZE * ((nPage_ == ROM0) ? 2 : 1));
+        // Clear out any existing ROM data, and load the new ROM
+        memset(apbPageReadPtrs[ROM0], 0, MEM_PAGE_SIZE*2);
+        pROM->Read(apbPageReadPtrs[ROM0], MEM_PAGE_SIZE*2);
+
         delete pROM;
+        return;
     }
 
-    // Return the number of ROMs read
-    return nRead / MEM_PAGE_SIZE;
+    // Report the failure if there
+    if (*pcszROM)
+    {
+        Message(msgWarning, "Error loading custom ROM:\n%s\n\nReverting to built-in ROM image.", pcszROM);
+        SetOption(rom,"");
+    }
+
+    // Fall back on using the built-in ROM
+    memcpy(apbPageReadPtrs[ROM0], abSAMROM, sizeof abSAMROM);
 }
