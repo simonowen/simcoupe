@@ -2,7 +2,7 @@
 //
 // Input.cpp: Allegro keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include "SimCoupe.h"
 
+#include "Action.h"
 #include "Display.h"
 #include "Frame.h"
 #include "GUI.h"
@@ -419,18 +420,38 @@ bool ReadKeyboard ()
         }
     }
 
+    // Scan the full key range
     for (int i = 0 ; i < KEY_MAX ; i++)
     {
-        if (anKeys[i] == 2)
+        // Keep looking until we find a change
+        if (anKeys[i] != 2 && anKeys[i] != -1)
+            continue;
+
+        bool fPress = anKeys[i] == 2;
+        bool fCtrl  = !!(key_shifts & KB_CTRL_FLAG);
+        bool fAlt   = !!(key_shifts & KB_ALT_FLAG);
+        bool fShift = !!(key_shifts & KB_SHIFT_FLAG);
+
+        if (i >= KEY_F1 && i <= KEY_F12)
+            Action::Key(i-KEY_F1+1, fPress, fCtrl, fAlt, fShift);
+        else
         {
-            UI::ProcessKey(i, key_shifts);
-            anKeys[i] = 1;
+            switch (i)
+            {
+                case KEY_ESC:         if (GetOption(mouseesc)) Input::Acquire(false); break;
+                case KEY_ENTER:       if (fAlt) Action::Do(actToggleFullscreen, fPress); break;
+                case KEY_MINUS_PAD:   if (GetOption(keypadreset)) Action::Do(actResetButton, fPress);   break;
+                case KEY_SLASH_PAD:   Action::Do(actDebugger, fPress);          break;
+                case KEY_ASTERISK:    Action::Do(actNmiButton, fPress);         break;
+                case KEY_PLUS_PAD:    Action::Do(actTempTurbo, fPress);         break;
+                case KEY_PRTSCR:      Action::Do(actSaveScreenshot, fPress);    break;
+                case KEY_SCRLOCK:     // Pause key on some platforms comes through as scoll lock?
+                case KEY_PAUSE:       Action::Do((fCtrl ? actResetButton : (fShift ? actFrameStep : actPause)), fPress);   break;
+            }
         }
-        else if (anKeys[i] == -1)
-        {
-            UI::ProcessKey(i|0x80, key_shifts);
-            anKeys[i] = 0;
-        }
+
+        // Mark the key as processed
+        anKeys[i] = fPress ? 1 : 0;
     }
 
     // Make a copy of the master key table with the real keyboard states
