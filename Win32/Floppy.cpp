@@ -95,7 +95,7 @@ void Exit (bool fReInit_/*=true*/)
         TRACE("!!! Floppy driver (%s) not found\n", pcszDriver);
 
     // Open the with the Service Control Manager - requires administrative NT/W2K rights to do what we need!
-    if (!(hManager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS)))
+    else if (!(hManager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS)))
         TRACE("!!! Failed to open Service Control Manager (%#08lx)\n", GetLastError());
     else
     {
