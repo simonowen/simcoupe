@@ -26,7 +26,7 @@
 class Floppy
 {
     public:
-        static bool Init ();
+        static bool Init (bool fFirstInit_=false);
         static void Exit (bool fReInit_=true);
 };
 
