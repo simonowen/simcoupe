@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Display.h: SDL display rendering
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ class Display
         static bool Init (bool fFirstInit_=false);
         static void Exit (bool fReInit_=false);
 
+        static bool IsLineDirty (int nLine_) { return pafDirty[nLine_]; }
         static void SetLineDirty (int nLine_) { pafDirty[nLine_] = true; }
         static void SetDirty ();
 
