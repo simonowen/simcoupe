@@ -2,7 +2,7 @@
 //
 // OSD.h: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -140,6 +140,7 @@ public:
 
     static DWORD GetTime ();
     static const char* GetFilePath (const char* pcszFile_="");
+    static const char* GetDirPath (const char* pcszDir_="");
     static const char* GetFloppyDevice (int nDrive_);
     static bool CheckPathAccess (const char* pcszPath_);
     static bool IsHidden (const char* pcszPath_);
