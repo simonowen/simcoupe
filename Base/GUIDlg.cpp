@@ -456,7 +456,7 @@ class CDisplayOptions : public CDialog
 
                 SetOption(borders, m_pViewArea->GetSelected());
 
-                if (Changed(borders) || Changed(fullscreen) || (GetOption(fullscreen) && Changed(depth)))
+                if (Changed(borders) || Changed(fullscreen) || Changed(ratio5_4) || (GetOption(fullscreen) && Changed(depth)))
                 {
                     Frame::Init();
 
