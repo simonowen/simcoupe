@@ -131,6 +131,7 @@ MAPPED_KEY asSamMappings[] =
     { SDLK_NUMLOCK,   SK_EDIT,   SK_SYMBOL },
     { SDLK_MENU,      SK_EDIT,   SK_NONE },
     { SDLK_KP_PERIOD, SK_QUOTES, SK_SHIFT },
+    { SDLK_WORLD_0,   SK_EDIT,   SK_NONE },     // Weird +/- key on the Mac maps to Edit
     { SDLK_UNKNOWN }
 };
 
@@ -573,6 +574,21 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 pKey->sym = SDLK_KP6;
             else if (pKey->sym == 0x114 && pKey->scancode == 0x62)
                 pKey->sym = SDLK_KP4;
+
+            // OS X needs a few tweaks
+            if (pEvent_->type == SDL_KEYDOWN)
+            {
+                // Correct the unicode values for Shift-Tab and Backspace
+                if (pKey->sym == SDLK_TAB || pKey->sym == SDLK_BACKSPACE)
+                    pKey->unicode = pKey->sym;
+
+                // Apple-Q is a shortcut for quit, until we've a Cocoa GUI to do it properly
+                if (pKey->sym == SDLK_q && pKey->mod == 0x1000)
+                {
+                    SDL_Event event = { SDL_QUIT };
+                    SDL_PushEvent(&event);
+                }
+            }
 
             TRACE("Key %s: %d (mods=%d u=%d)\n", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym, pKey->mod, pKey->unicode);
 //          Frame::SetStatus("Key %s: %d (mods=%d u=%d)", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym, pKey->mod, pKey->unicode);
