@@ -2,7 +2,7 @@
 //
 // Display.cpp: Win32 display rendering
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -37,67 +37,22 @@
 
 bool* Display::pafDirty;
 
-RECT rLastOverlay, rSource, rTarget;
-DWORD dwColourKey;
-
-
-void SetOverlayColourKey ()
-{
-    LPDIRECTDRAWSURFACE pddsOverlay = pddsFront ? pddsFront : pddsBack;
-    DDSURFACEDESC ddsd = { sizeof ddsd };
-
-    // Are we using an overlay surface?
-    if (SUCCEEDED(pddsOverlay->GetSurfaceDesc(&ddsd)) && (ddsd.ddsCaps.dwCaps & DDSCAPS_OVERLAY))
-    {
-        DDSURFACEDESC ddsd = { sizeof ddsd };
-        pddsPrimary->GetSurfaceDesc(&ddsd);
-
-        HDC hdc;
-        pddsPrimary->GetDC(&hdc);
-
-        // Save the pixel from 0,0 on the display
-        COLORREF rgbPrev = GetPixel(hdc, 0, 0);
-
-        // Use the classic shocking pink if the display is palettised, or a nicer near-black colour otherwise
-        SetPixel(hdc, 0, 0, (ddsd.ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8) ? RGB(0xff,0x00,0xff) : RGB(0x08,0x08,0x08));
-
-        pddsPrimary->ReleaseDC(hdc);
-
-        // Lock the surface and see what the value is for the current mode
-        HRESULT hr;
-        if (FAILED(hr = pddsPrimary->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WAIT, NULL)))
-            TRACE("Failed to lock primary surface in SetOverlayColour() (%#08lx)\n", hr);
-        else
-        {
-            // Extract the real colour value for the colour key
-            dwColourKey = *reinterpret_cast<DWORD*>(ddsd.lpSurface);
-            pddsPrimary->Unlock(NULL);
-
-            // If less than 32-bit, limit the colour value to the number of bits used for the screen depth
-            if (ddsd.ddpfPixelFormat.dwRGBBitCount < 32)
-                dwColourKey &= (1 << ddsd.ddpfPixelFormat.dwRGBBitCount) - 1;
-
-            TRACE("Colour key used: %#08lx\n", dwColourKey);
-        }
-
-        // Restore the previous pixel
-        pddsPrimary->GetDC(&hdc);
-        SetPixel(hdc, 0, 0, rgbPrev);
-        pddsPrimary->ReleaseDC(hdc);
-    }
-}
+static RECT rLastOverlay, rSource, rTarget;
+static DWORD dwColourKey;
 
 
 bool Display::Init (bool fFirstInit_/*=false*/)
 {
+    bool fRet;
+
     Exit(true);
     TRACE("-> Display::Init(%s)\n", fFirstInit_ ? "first" : "");
 
     pafDirty = new bool[Frame::GetHeight()];
+    SetDirty();
 
-    bool fRet = Video::Init(fFirstInit_);
-    if (fRet)
-        SetOverlayColourKey();
+    if (fRet = Video::Init(fFirstInit_))
+		dwColourKey = Video::GetOverlayColourKey();
 
     TRACE("<- Display::Init() returning %s\n", fRet ? "true" : "false");
     return fRet;
@@ -105,11 +60,9 @@ bool Display::Init (bool fFirstInit_/*=false*/)
 
 void Display::Exit (bool fReInit_/*=false*/)
 {
-    Video::Exit(fReInit_);
     TRACE("-> Display::Exit(%s)\n", fReInit_ ? "reinit" : "");
-
-    if (pafDirty) { delete[] pafDirty; pafDirty = NULL; }
-
+    delete pafDirty; pafDirty = NULL;
+    Video::Exit(fReInit_);
     TRACE("<- Display::Exit()\n");
 }
 
@@ -128,16 +81,10 @@ void Display::SetDirty ()
 // Draw the changed lines in the appropriate colour depth and hi/low resolution
 bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 {
-    ProfileStart(Gfx);
-
     HRESULT hr;
     DDSURFACEDESC ddsd = { sizeof ddsd };
-    if (!pSurface_ || FAILED(hr = pSurface_->Restore()))
-    {
-        TRACE("!!! DrawChanges(): Failed to restore surface [%#08lx] (%#08lx)\n", pSurface_, hr);
-        ProfileEnd();
-        return false;
-    }
+
+    ProfileStart(Gfx);
 
     // If we've changing from displaying the GUI back to scanline mode, clear the unused lines on the surface
     static bool fOldInterlace = false;
@@ -421,29 +368,16 @@ void Display::Update (CScreen* pScreen_)
 {
     HRESULT hr;
 
-    bool fHalfHeight = !GUI::IsActive() && !GetOption(scanlines);
-
-    // Don't draw if fullscreen but not active
+    // Don't draw if fullscreen and not active
     if (GetOption(fullscreen) && !g_fActive)
         return;
 
-    // If the screen mode has changed we'll need to reinitialise the video
-    if (pddsPrimary && (FAILED(hr = pddsPrimary->Restore()) && hr == DDERR_WRONGMODE) && !GetOption(fullscreen))
+    // Check if we've lost the surface memory
+    if (!pddsPrimary || FAILED(hr = pddsPrimary->Restore()) || 
+        pddsFront && FAILED(hr = pddsFront->Restore()) ||
+        pddsBack && FAILED (hr = pddsBack->Restore()))
     {
-        TRACE("Display::Update(): DDERR_WRONGMODE, reinit video...\n");
-        Frame::Init();
         return;
-    }
-
-    // No primary surface pointer?
-    if (!pddsPrimary)
-    {
-        // Other programs may be using it, so be gentle
-        Sleep(1000);
-
-        // Have another go to grab it back, returning if we can't
-        if (!Frame::Init())
-            return;
     }
 
     // Now to get the image to the display...
@@ -458,6 +392,7 @@ void Display::Update (CScreen* pScreen_)
     pddsPrimary->GetSurfaceDesc(&ddsdPrimary);
 
     bool fOverlay = (ddsdBack.ddsCaps.dwCaps & DDSCAPS_OVERLAY) != 0;
+    bool fHalfHeight = !GUI::IsActive() && !GetOption(scanlines);
 
 
     // rBack is the total screen area
@@ -552,10 +487,7 @@ void Display::Update (CScreen* pScreen_)
 
         // Otherwise hide it for now
         else
-        {
-            TRACE("UpdateOverlay() failed with %#08lx\n", hr);
             pddsOverlay->UpdateOverlay(NULL, pddsPrimary, NULL, DDOVER_HIDE, NULL);
-        }
 
         // With the overlay in place, draw any changed lines
         DrawChanges(pScreen_, pddsBack);
