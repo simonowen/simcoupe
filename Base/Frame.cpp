@@ -46,9 +46,10 @@
 
 
 // SAM palette colours to use for the floppy drive LED states
-const BYTE LED_OFF_COLOUR       = 8;    // Dark grey light off colour
-const BYTE FLOPPY_LED_ON_COLOUR = 70;   // Light green floppy light on colour (or 98 for amber :-)
-const BYTE ATOM_LED_ON_COLOUR   = 32;   // Red hard disk light colour
+const BYTE FLOPPY_LED_ON_COLOUR = GREEN_4;    // Light green floppy light on colour
+const BYTE ATOM_LED_ON_COLOUR   = RED_3;      // Red hard disk light colour
+const BYTE LED_OFF_COLOUR       = GREY_2;     // Dark grey light off colour
+const BYTE UNDRAWN_COLOUR       = GREY_3;     // Mid grey for undrawn screen background
 
 const unsigned int STATUS_ACTIVE_TIME = 2000;   // Time the status text is visible for (in ms)
 const unsigned int FPS_IN_TURBO_MODE = 5;       // Number of FPS to limit to in Turbo mode
@@ -255,6 +256,29 @@ void Frame::Update ()
     ProfileEnd();
 }
 
+// Update the full frame image using the current video settings
+void Frame::UpdateAll ()
+{
+    // Keep the current position and last raster settings safe
+    int nSafeLastLine = nLastLine, nSafeLastBlock = nLastBlock;
+    int nSafeLine = g_nLine, nSafeLineCycle = g_nLineCycle;
+
+    // Set up an update region that covers the entire display
+    nLastLine = nLastBlock = 0;
+    g_nLine = HEIGHT_LINES;
+    g_nLineCycle = WIDTH_BLOCKS;
+
+    // Redraw using the current video/palette/border settings
+    Update();
+
+    // Restore the saved settings
+    g_nLine = nSafeLine;
+    g_nLineCycle = nSafeLineCycle;
+    nLastLine = nSafeLastLine;
+    nLastBlock = nSafeLastBlock;
+}
+
+
 // Fill the display after current raster position, currently with a dark grey
 void RasterComplete ()
 {
@@ -275,27 +299,29 @@ void RasterComplete ()
     // If there anything to clear?
     if (nTop <= nBottom)
     {
-        bool fHiRes = false;
-
         // Complete the undrawn section of the current line, if any
         if (nTop == (nLastLine-s_nViewTop))
         {
+            bool fHiRes;
+            BYTE* pLine = g_pScreen->GetLine(nTop, fHiRes); // Fetch fHiRes
+
             int nOffset = nLeft << (fHiRes ? 4 : 3), nWidth = Frame::GetWidth() - nOffset;
             if (nWidth > 0)
-                memset(g_pScreen->GetLine(nTop, fHiRes) + nOffset, GREY_3, nWidth);
+                memset(pLine + nOffset, UNDRAWN_COLOUR, nWidth);
 
             nTop++;
         }
 
         // Fill the remaining lines
         for (int i = nTop ; i < nBottom ; i++)
-            memset(g_pScreen->GetLine(i), GREY_3, Frame::GetWidth());
+            memset(g_pScreen->GetLine(i), UNDRAWN_COLOUR, Frame::GetWidth());
     }
 
     ProfileEnd();
 }
 
 
+// Complete the displayed frame at the end of an emulated frame
 void Frame::Complete ()
 {
     nFrame++;
@@ -309,8 +335,13 @@ void Frame::Complete ()
 
         if (!GUI::IsModal())
         {
-            Update();
-            RasterComplete();
+            if (0)  // ToDo: check debugger option for redraw type
+                UpdateAll();
+            else
+            {
+                Update();
+                RasterComplete();
+            }
         }
 
         // Save the screen if we have a path
