@@ -19,15 +19,20 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 //  ToDo:
-//   - finish CFileView
+//   - button repeat on scrollbar
+//   - add extra message box buttons
+//   - regular list box?
 
 #include "SimCoupe.h"
+#include <ctype.h>
 #include <sys/stat.h>
 #include "GUI.h"
 
+#include "Display.h"
 #include "Font.h"
 #include "Frame.h"
 #include "Input.h"
+#include "UI.h"
 #include "Video.h"
 
 
@@ -44,20 +49,16 @@ static const BYTE abGuiPalette [N_GUI_COLOURS] =
      0, 0                                   // Custom colours, defined in GetPalette() below
 };
 
-CWindow* GUI::s_pGUI;
+CWindow *GUI::s_pGUI, *GUI::s_pGarbage;
 int GUI::s_nX, GUI::s_nY;
-int GUI::s_nUsage = 0;
 bool GUI::s_fModal;
 
 
 bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 {
     // We're not interested in messages when we're inactive
-    if (!IsActive())
+    if (!s_pGUI)
         return false;
-
-    // Increment the usage counter to prevent the GUI being deleted during message processing
-    s_nUsage++;
 
     // Keep track of the mouse
     if (nMessage_ == GM_MOUSEMOVE)
@@ -66,58 +67,106 @@ bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
         s_nY = nParam2_;
     }
 
+    // Check for double-clicks
+    else if (nMessage_ == GM_BUTTONDOWN)
+    {
+        static int nLastX, nLastY;
+        static DWORD dwLastClick = 0;
+        static bool fDouble = false;
+
+        // Work out how long it's been since the last click, and how much the mouse has moved
+        DWORD dwNow = OSD::GetTime();
+        int nMovedSquared = (nLastX - nParam1_)*(nLastX - nParam1_) + (nLastY - nParam2_)*(nLastY - nParam2_);
+
+        // If the click is close enough to the last click (in space and time), convert it to a double-click
+        if (!fDouble && dwNow-dwLastClick < DOUBLE_CLICK_TIME &&
+            nMovedSquared < (DOUBLE_CLICK_THRESHOLD*DOUBLE_CLICK_THRESHOLD))
+            nMessage_ = GM_BUTTONDBLCLK;
+
+        // Remember the last time and position of the click
+        dwLastClick = dwNow;
+        nLastX = nParam1_;
+        nLastY = nParam2_;
+
+        // Remember whether we've processed a double-click, so two don't follow each other
+        fDouble = (nMessage_ == GM_BUTTONDBLCLK);
+    }
+
     // Pass the message to the active GUI component
     s_pGUI->OnMessage(nMessage_, nParam1_, nParam2_);
 
     // Send a move after a button up, to give a hit test after an effective mouse capture
-    if (nMessage_ == GM_BUTTONUP)
-        s_pGUI->OnMessage(GM_MOUSEMOVE, nParam1_, nParam2_);
+    if (s_pGUI && nMessage_ == GM_BUTTONUP)
+        s_pGUI->OnMessage(GM_MOUSEMOVE, s_nX, s_nY);
 
     // Stop the GUI if it was deleted during the last message
-    if (!--s_nUsage)
-        Stop();
+    if (s_pGarbage)
+    {
+        // Delete the destroyed window tree
+        delete s_pGarbage;
+        s_pGarbage = NULL;
+
+        // If the GUI still exists, update the activation state
+        if (s_pGUI)
+            s_pGUI->OnMessage(GM_MOUSEMOVE, s_nX, s_nY);
+
+        // Otherwise we're done
+        else
+            Stop();
+    }
 
     return true;
 }
 
 
-void GUI::Start (CWindow* pGUI_, bool fModal_/*=true*/)
+bool GUI::Start (CWindow* pGUI_)
 {
-    // Delete any previous GUI (this shouldn't ever happen though)
-    if (s_pGUI)
-        delete s_pGUI;
+    // If the GUI is active, we can only add message boxes
+    if (s_pGUI && pGUI_->GetType() != ctMessageBox)
+    {
+        // Delete the supplied object tree and return failure
+        delete pGUI_;
+        return false;
+    }
 
+    // Set the top-level GUI object
     s_pGUI = pGUI_;
-    s_fModal = fModal_;
-    s_nUsage = 1;
 
     // Position the cursor off-screen, so ensure the first drawn position matches the native OS position
     s_nX = s_nY = -ICON_SIZE;
 
-    // Dim the background SAM screen
+    // Dim the background SAM screen and steal keyboard/mouse input
     Video::CreatePalettes();
-
-    // Steal all keyboard and mouse input
     Input::Acquire(false, false);
+
+    return true;
 }
 
 void GUI::Stop ()
 {
-    // We can't delete the GUI if it's still in use, so wait until any active call returns
-    if (--s_nUsage > 0)
-        return;
-
+    // Delete any existing GUI object
     delete s_pGUI;
     s_pGUI = NULL;
 
     // Restore the normal SAM palette
     Video::CreatePalettes();
-    Frame::Clear();
+    Display::SetDirty();
 
     // Give keyboard input back to the emulation
     Input::Acquire(false, true);
 }
 
+void GUI::Delete (CWindow* pWindow_)
+{
+    // Link up the existing window to the garbage chain
+    pWindow_->SetParent(s_pGarbage);
+    if (!s_pGarbage)
+        s_pGarbage = pWindow_;
+
+    // If the top-most window is being removed, invalidate the main GUI pointer
+    if (pWindow_ == s_pGUI)
+        s_pGUI = NULL;
+}
 
 void GUI::Draw (CScreen* pScreen_)
 {
@@ -126,10 +175,19 @@ void GUI::Draw (CScreen* pScreen_)
         CScreen::SetFont(&sGUIFont);
         s_pGUI->Draw(pScreen_);
 
-        // The SDL cursor leaves sometimes leaves mouse droppings, so we'll draw our own
-        pScreen_->DrawImage(s_nX, s_nY, ICON_SIZE, ICON_SIZE,
-                    reinterpret_cast<const BYTE*>(sMouseCursor.abData), sMouseCursor.abPalette);
+        // When the program is inactive, hide the cursor off the top-left of the display
+        if (!g_fActive)
+            s_nX = s_nY = -ICON_SIZE;
+        else
+            pScreen_->DrawImage(s_nX, s_nY, ICON_SIZE, ICON_SIZE,
+                        reinterpret_cast<const BYTE*>(sMouseCursor.abData), sMouseCursor.abPalette);
     }
+}
+
+
+bool GUI::IsModal ()
+{
+    return s_pGUI && s_pGUI->GetType() >= ctDialog && reinterpret_cast<CDialog*>(s_pGUI)->IsModal();
 }
 
 const RGBA* GUI::GetPalette ()
@@ -162,22 +220,30 @@ const RGBA* GUI::GetPalette ()
 
 CWindow::CWindow (CWindow* pParent_/*=NULL*/, int nX_/*=0*/, int nY_/*=0*/, int nWidth_/*=0*/, int nHeight_/*=0*/, int nType_/*=ctUnknown*/)
     : m_nX(nX_), m_nY(nY_), m_nWidth(nWidth_), m_nHeight(nHeight_), m_nType(nType_), m_pcszText(NULL), m_fEnabled(true), m_fHover(false),
-        m_pParent(pParent_), m_pChildren(NULL), m_pNext(NULL), m_pActive(NULL)
+        m_pParent(NULL), m_pChildren(NULL), m_pNext(NULL), m_pActive(NULL)
 {
-    // If we've a parent, adjust our position to be relative to it
-    if (m_pParent)
+    if (pParent_)
     {
-        m_nX += m_pParent->m_nX;
-        m_nY += m_pParent->m_nY;
+        // Set the parent window
+        SetParent(pParent_);
 
-        m_pParent->AddChild(this);
+        // Adjust our position to be relative to the parent
+        m_nX += pParent_->m_nX;
+        m_nY += pParent_->m_nY;
     }
 }
 
 CWindow::~CWindow ()
 {
+    // Delete any child controls
+    while (m_pChildren)
+    {
+        CWindow* pChild = m_pChildren;
+        m_pChildren = m_pChildren->m_pNext;
+        delete pChild;
+    }
+
     delete m_pcszText;
-    Destroy();
 }
 
 
@@ -199,6 +265,13 @@ void CWindow::Draw (CScreen* pScreen_)
     // Draw the active control last to ensure it's shown above any other controls
     if (m_pActive)
         m_pActive->Draw(pScreen_);
+}
+
+// Notify the parent something has changed
+void CWindow::NotifyParent (int nParam_/*=0*/)
+{
+    if (m_pParent)
+        m_pParent->OnNotify(this, nParam_);
 }
 
 bool CWindow::OnMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
@@ -229,7 +302,6 @@ bool CWindow::OnMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
         }
     }
 
-    // Hit test the current window
     m_fHover = HitTest(nParam1_, nParam2_);
 
     // Return whether the message was processed
@@ -237,23 +309,9 @@ bool CWindow::OnMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 }
 
 
-void CWindow::AddChild (CWindow* pChild_)
+void CWindow::SetParent (CWindow* pParent_/*=NULL*/)
 {
-    if (!m_pChildren)
-        m_pChildren = pChild_;
-    else
-    {
-        for (CWindow* p = m_pChildren ; p != pChild_; p = p->GetNext())
-        {
-            if (!p->m_pNext)
-                p->m_pNext = pChild_;
-        }
-    }
-}
-
-void CWindow::Destroy ()
-{
-    // Unlink from the parent, if any
+    // Unlink from any existing parent
     if (m_pParent)
     {
         CWindow* pPrev = GetPrev();
@@ -265,17 +323,38 @@ void CWindow::Destroy ()
 
         if (m_pParent->m_pActive == this)
             m_pParent->m_pActive = NULL;
+
+        m_pParent = m_pNext = NULL;
     }
 
-    // Delete any child controls we have
-    while (m_pChildren)
+    // Set the new parent, if any
+    if (pParent_ && pParent_ != this)
     {
-        CWindow* pDelete = m_pChildren;
-        m_pChildren = m_pChildren->m_pNext;
-        delete pDelete;
+        m_pParent = pParent_;
+
+        if (!pParent_->m_pChildren)
+            pParent_->m_pChildren = this;
+        else
+        {
+            CWindow* p;
+            for (p = pParent_->m_pChildren ; p->GetNext() ; p = p->GetNext());
+            p->m_pNext = this;
+        }
+    }
+}
+
+
+void CWindow::Destroy ()
+{
+    if (GetParent())
+    {
+        // Activate the parent and unlink us from it
+        GetParent()->Activate();
+        SetParent(NULL);
     }
 
-    GUI::SendMessage(GM_MOUSEMOVE, GUI::s_nX, GUI::s_nY);
+    // Schedule the object to be deleted when safe
+    GUI::Delete(this);
 }
 
 
@@ -406,12 +485,13 @@ bool CButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             {
                 case ' ':
                 case '\r':
-                    GetParent()->OnCommand(this);
+                    NotifyParent();
                     return true;
             }
             break;
 
         case GM_BUTTONDOWN:
+        case GM_BUTTONDBLCLK:
             // If the click was over us, flag the button as pressed
             if (IsOver())
                 return m_fPressed = true;
@@ -420,7 +500,7 @@ bool CButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
         case GM_BUTTONUP:
             // If we were depressed and the mouse has been released over us, register a button press
             if (IsOver() && m_fPressed)
-                GetParent()->OnCommand(this);
+                NotifyParent();
 
             // Ignore button ups that aren't for us
             else if (!m_fPressed)
@@ -580,18 +660,19 @@ bool CCheckBox::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 case ' ':
                 case '\r':
                     SetChecked(!IsChecked());
-                    GetParent()->OnCommand(this);
+                    NotifyParent();
                     return true;
             }
             break;
         }
             
         case GM_BUTTONDOWN:
+        case GM_BUTTONDBLCLK:
             // Was the click over us?
             if (IsOver())
             {
                 SetChecked(!IsChecked());
-                GetParent()->OnCommand(this);
+                NotifyParent();
                 return fPressed = true;
             }
             break;
@@ -657,6 +738,7 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     switch (nMessage_)
     {
         case GM_BUTTONDOWN:
+        case GM_BUTTONDBLCLK:
             // Was the click over us?
             if (IsOver())
                 return true;
@@ -674,7 +756,7 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     if (*m_pcszText)
                     {
                         m_pcszText[strlen(m_pcszText)-1] = '\0';
-                        GetParent()->OnCommand(this);
+                        NotifyParent();
                     }
                     return true;
 
@@ -688,7 +770,7 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                         {
                             m_pcszText[nLen] = nParam1_;
                             m_pcszText[nLen+1] = '\0';
-                            GetParent()->OnCommand(this);
+                            NotifyParent();
                         }
 
                         return true;
@@ -784,7 +866,7 @@ bool CRadioButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     {
                         pPrev->Activate();
                         reinterpret_cast<CRadioButton*>(pPrev)->Select();
-                        GetParent()->OnCommand(this);
+                        NotifyParent();
                     }
                     return true;
                 }
@@ -796,7 +878,7 @@ bool CRadioButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     {
                         pNext->Activate();
                         reinterpret_cast<CRadioButton*>(pNext)->Select();
-                        GetParent()->OnCommand(this);
+                        NotifyParent();
                     }
                     return true;
                 }
@@ -805,11 +887,12 @@ bool CRadioButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
         }
 
         case GM_BUTTONDOWN:
+        case GM_BUTTONDBLCLK:
             // Was the click over us?
             if (IsOver())
             {
                 Select();
-                GetParent()->OnCommand(this);
+                NotifyParent();
                 return fPressed = true;
             }
             break;
@@ -891,7 +974,7 @@ void CMenu::Draw (CScreen* pScreen_)
 
         // Draw the string over the default background if not selected
         if (i != m_nSelected)
-            pScreen_->DrawString(nX+MENU_TEXT_GAP, nY+1, psz, BLACK);
+            pScreen_->DrawString(nX+MENU_TEXT_GAP, nY+2, psz, BLACK);
 
         // Otherwise draw the selected item as white on black
         else
@@ -911,15 +994,15 @@ bool CMenu::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             {
                 // Return uses the current selection
                 case '\r':
-                    GetParent()->OnCommand(this);
-                    delete this;
+                    NotifyParent();
+                    Destroy();
                     return true;
 
                 // Esc cancels
                 case '\x1b':
                     m_nSelected = -1;
-                    GetParent()->OnCommand(this);
-                    delete this;
+                    NotifyParent();
+                    Destroy();
                     return true;
 
                 // Move to the previous selection, wrapping to the bottom if necessary
@@ -941,8 +1024,8 @@ bool CMenu::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
             // Button clicked away from the menu, which cancels it
             m_nSelected = -1;
-            GetParent()->OnCommand(this);
-            delete this;
+            NotifyParent();
+            Destroy();
             return true;
 
         case GM_BUTTONUP:
@@ -958,8 +1041,8 @@ bool CMenu::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             }
 
             // Return the current selection
-            GetParent()->OnCommand(this);
-            delete this;
+            NotifyParent();
+            Destroy();
             return true;
 
         case GM_MOUSEMOVE:
@@ -1014,17 +1097,29 @@ const int COMBO_BORDER = 3;
 const int COMBO_HEIGHT = COMBO_BORDER + CHAR_HEIGHT + COMBO_BORDER;
 
 CComboBox::CComboBox (CWindow* pParent_/*=NULL*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nWidth_/*=0*/)
-    : CWindow(pParent_, nX_, nY_, nWidth_, COMBO_HEIGHT, ctButton), m_nItems(1), m_fPressed(false), m_pDropList(NULL)
+    : CWindow(pParent_, nX_, nY_, nWidth_, COMBO_HEIGHT, ctButton),
+    m_nItems(0), m_nSelected(0), m_fPressed(false), m_pDropList(NULL)
 {
     SetText(pcszText_);
-    Select(0);
-
-    for (const char* pcsz = GetText() ; (pcsz = strchr(pcsz,'|')) ; pcsz++, m_nItems++);
 }
 
 void CComboBox::Select (int nSelected_)
 {
-    m_nSelected = (nSelected_ < 0) ? 0 : (nSelected_ >= m_nItems) ? m_nItems-1 : nSelected_;
+    int nOldSelection = m_nSelected;
+    m_nSelected = (nSelected_ < 0 || !m_nItems) ? 0 : (nSelected_ >= m_nItems) ? m_nItems-1 : nSelected_;
+
+    // Nofify the parent if the selection has changed
+    if (m_nSelected != nOldSelection)
+        NotifyParent();
+}
+
+void CComboBox::SetText (const char* pcszText_)
+{
+    CWindow::SetText(pcszText_);
+
+    // Count the number of items in the list, then select the first one
+    for (m_nItems = !!*pcszText_ ; (pcszText_ = strchr(pcszText_,'|')) ; pcszText_++, m_nItems++);
+    Select(0);
 }
 
 void CComboBox::Draw (CScreen* pScreen_)
@@ -1096,10 +1191,19 @@ bool CComboBox::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 case GK_DOWN:
                     Select(m_nSelected+1);
                     return true;
+
+                case GK_HOME:
+                    Select(0);
+                    return true;
+
+                case GK_END:
+                    Select(m_nItems-1);
+                    return true;
             }
             break;
 
         case GM_BUTTONDOWN:
+        case GM_BUTTONDBLCLK:
             if (!IsOver())
                 break;
 
@@ -1121,13 +1225,13 @@ bool CComboBox::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-void CComboBox::OnCommand (CWindow* pWindow_)
+void CComboBox::OnNotify (CWindow* pWindow_, int nParam_/*=0*/)
 {
     if (pWindow_ == m_pDropList)
     {
-        int nSelected = ((CDropList*)pWindow_)->GetSelected();
+        int nSelected = m_pDropList->GetSelected();
         if (nSelected != -1)
-            m_nSelected = nSelected;
+            Select(nSelected);
 
         m_fPressed = false;
         m_pDropList = NULL;
@@ -1227,6 +1331,7 @@ bool CScrollBar::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             return true;
 
         case GM_BUTTONDOWN:
+        case GM_BUTTONDBLCLK:
             // Was the click over us when we have an range to scroll
             if (IsOver() && m_nMaxPos > 0)
             {
@@ -1274,7 +1379,7 @@ bool CScrollBar::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-void CScrollBar::OnCommand (CWindow* pWindow_)
+void CScrollBar::OnNotify (CWindow* pWindow_, int nParam_/*=0*/)
 {
     if (pWindow_ == m_pUp)
         SetPos(m_nPos - m_nStep);
@@ -1286,17 +1391,29 @@ void CScrollBar::OnCommand (CWindow* pWindow_)
 
 const int ITEM_SIZE = 72;
 
+// Helper to locate matches when a filename is typed
+bool IsPrefix (const char* pcszPrefix_, const char* pcszName_)
+{
+    // Skip any common characters at the start of the name
+    while (*pcszPrefix_ && *pcszName_ && tolower(*pcszPrefix_) == tolower(*pcszName_))
+        pcszPrefix_++, pcszName_++;
+
+    // Return true if the full prefix was matched
+    return !*pcszPrefix_;
+}
+
+
 CListView::CListView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
-    : CWindow(pParent_, nX_, nY_, nWidth_, nHeight_), m_nAcross(0), m_nDown(0)
+    : CWindow(pParent_, nX_, nY_, nWidth_, nHeight_, ctListView),
+    m_nItems(0), m_nSelected(0), m_nHoverItem(0), m_nAcross(0), m_nDown(0), m_pItems(NULL)
 {
     // Create a scrollbar to cover the overall height, scrolling if necessary
     m_pScrollBar = new CScrollBar(this, m_nWidth-SCROLLBAR_WIDTH, 0, m_nHeight, 0, ITEM_SIZE);
-
-    SetItems();
 }
 
 void CListView::Select (int nItem_)
 {
+    int nOldSelection = m_nSelected;
     m_nSelected = (nItem_ < 0) ? 0 : (nItem_ >= m_nItems) ? m_nItems-1 : nItem_;
 
     // Calculate the row containing the new item, and the vertical offset in the list overall
@@ -1305,101 +1422,168 @@ void CListView::Select (int nItem_)
     // If the new item is not completely visible, scroll the list so it _just_ is
     if (nOffset < 0 || nOffset >= (m_nHeight-ITEM_SIZE))
         m_pScrollBar->SetPos(nRow*ITEM_SIZE - ((nOffset < 0) ? 0 : (m_nHeight-ITEM_SIZE)));
+
+    // Inform the owner if the selection has changed
+    if (m_nSelected != nOldSelection)
+        NotifyParent();
 }
 
-void CListView::SetItems (int nItems_/*=0*/)
-{
-    m_nItems = nItems_;
 
-    // Calculate how many items can fit on a row, and how many rows are needed
+// Return the entry for the specified item, or the current item if none was specified
+const CListViewItem* CListView::GetItem (int nItem_/*=-1*/) const
+{
+    int i;
+
+    // If no item is specified, return the default
+    if (nItem_ == -1)
+        nItem_ = GetSelected();
+
+    // Linear search for the item - not so good for large directories!
+    const CListViewItem* pItem = m_pItems;
+    for (i = 0 ; pItem && i < nItem_ ; i++)
+        pItem = pItem->m_pNext;
+
+    // Return the item if found
+    return (i == nItem_) ? pItem : NULL;
+}
+
+// Find the item with the specified label (not case-sensitive)
+int CListView::FindItem (const char* pcszLabel_, int nStart_/*=0*/)
+{
+    // Linear search for the item - not so good for large directories!
+    int nItem = 0;
+    for (const CListViewItem* pItem = GetItem(nStart_) ; pItem ; pItem = pItem->m_pNext, nItem++)
+    {
+        if (!strcasecmp(pItem->m_pszLabel, pcszLabel_))
+            return nItem;
+    }
+
+    // Not found
+    return -1;
+}
+
+
+void CListView::SetItems (CListViewItem* pItems_)
+{
+    // Delete any existing list
+    for (CListViewItem* pNext ; m_pItems ; m_pItems = pNext)
+    {
+        pNext = m_pItems->m_pNext;
+        delete m_pItems;
+    }
+
+    // Count the number of items in the new list
+    for (m_nItems = 0, m_pItems = pItems_ ; pItems_ ; pItems_ = pItems_->m_pNext, m_nItems++);
+
+    // Calculate how many items on a row, and how many rows, and set the required scrollbar size
     m_nAcross = m_nWidth/ITEM_SIZE;
     m_nDown = (m_nItems+m_nAcross-1) / m_nAcross;
-
     m_pScrollBar->SetMaxPos(m_nDown*ITEM_SIZE);
+
+    Select(0);
 }
 
-void CListView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const GUI_ICON* pIcon_/*=NULL*/,
-                            const char* pcsz_/*=NULL*/)
+void CListView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const CListViewItem* pItem_)
 {
+    // If this is the selected item, draw a box round it (darkened if the control isn't active)
     if (nItem_ == m_nSelected)
-        pScreen_->FrameRect(nX_, nY_, ITEM_SIZE, ITEM_SIZE, YELLOW_6);
+        pScreen_->FrameRect(nX_, nY_, ITEM_SIZE, ITEM_SIZE, IsActive() ? WHITE : GREY_6);
 
-    if (pIcon_)
-        pScreen_->DrawImage(nX_+(ITEM_SIZE-32)/2, nY_+5, 32, 32, reinterpret_cast<const BYTE*>(pIcon_->abData), pIcon_->abPalette);
+    if (pItem_->m_pIcon)
+        pScreen_->DrawImage(nX_+(ITEM_SIZE-ICON_SIZE)/2, nY_+5, ICON_SIZE, ICON_SIZE,
+                            reinterpret_cast<const BYTE*>(pItem_->m_pIcon->abData), pItem_->m_pIcon->abPalette);
 
-    if (pcsz_)
+    const char* pcsz = pItem_->m_pszLabel;
+    if (pcsz)
     {
-        int nW = ITEM_SIZE - 6, nLine = 0;
-        const char *pszStart = pcsz_, *pszSpace = NULL;
+        int nLine = 0;
+        const char *pszStart = pcsz, *pszBreak = NULL;
         char szLines[2][64], sz[64];
-        szLines[0][0] = szLines[1][0] = '\0';
+        *szLines[0] = *szLines[1] = '\0';
 
-        while (*pcsz_ && nLine < 2)
+        // Spread the item text over up to 2 lines
+        while (nLine < 2)
         {
-            strncpy(sz, pszStart, pcsz_-pszStart)[pcsz_-pszStart] = '\0';
-            int len = CScreen::GetStringWidth(sz);
+            int nLen = pcsz-pszStart;
+            strncpy(sz, pszStart, nLen)[nLen] = '\0';
 
-            if (len > nW)
+            if (CScreen::GetStringWidth(sz) >= (ITEM_SIZE-2))
             {
-                if (nLine == 1 || !pszSpace)
+                sz[nLen-1] = '\0';
+                pcsz--;
+
+                if (nLine == 1 || !pszBreak)
                 {
                     if (nLine == 1)
-                        strcpy(&sz[pcsz_-pszStart-2], "...");
+                        strcpy(sz+(pcsz-pszStart-1), "...");
                     strcpy(szLines[nLine++], sz);
-                    pszStart = pcsz_;
+                    pszStart = pcsz;
                 }
                 else
                 {
                     if (nLine == 1)
-                        strcpy(&sz[pszSpace-pszStart-2], "...");
+                        strcpy(sz+(pszBreak-pszStart-2), "...");
                     else
-                        sz[pszSpace-pszStart] = '\0';
+                        sz[pszBreak-pszStart] = '\0';
+
                     strcpy(szLines[nLine++], sz);
-                    pszStart = pszSpace+1;
-                    pszSpace = NULL;
+                    pszStart = pszBreak + (*pszBreak == ' ');
+                    pszBreak = NULL;
                 }
             }
 
-            if (*pcsz_ == ' ')
-                pszSpace = pcsz_;
+            // Check for a break point position
+            if ((*pcsz =='.' || *pcsz == ' ') && pcsz != pszStart)
+                pszBreak = pcsz;
 
-            if (!*++pcsz_)
-                strcpy(szLines[nLine++], pszStart);
+            if (!*pcsz++)
+            {
+                if (nLine < 2)
+                    strcpy(szLines[nLine++], pszStart);
+                break;
+            }
         }
 
-        pScreen_->DrawString(nX_+32-(pScreen_->GetStringWidth(szLines[0])/2), nY_+39, szLines[0], WHITE);
-        pScreen_->DrawString(nX_+32-(pScreen_->GetStringWidth(szLines[1])/2), nY_+39+CHAR_HEIGHT+2, szLines[1], WHITE);
+        // Output the two text lines using the small font, each centralised below the icon
+        pScreen_->SetFont(&sOldFont);
+        pScreen_->DrawString(nX_+(ITEM_SIZE-pScreen_->GetStringWidth(szLines[0]))/2, nY_+42, szLines[0], WHITE);
+        pScreen_->DrawString(nX_+(ITEM_SIZE-pScreen_->GetStringWidth(szLines[1]))/2, nY_+42+12, szLines[1], WHITE);
+        pScreen_->SetFont(&sGUIFont);
     }
 }
 
 void CListView::Draw (CScreen* pScreen_)
 {
+    // Fill the main background of the control
     pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, BLUE_1);
 
-    m_nDown = (m_nItems+m_nAcross-1) / m_nAcross;
-
+    // Fetch the current scrollbar position
     int nScrollPos = m_pScrollBar->GetPos();
 
+    // Calculate the range of icons that are visible and need drawing
     int nStart = nScrollPos/ITEM_SIZE * m_nAcross, nOffset = nScrollPos % ITEM_SIZE;
     int nDepth = (m_nHeight + nOffset + ITEM_SIZE-1) / ITEM_SIZE;
     int nEnd = min(m_nItems, nStart + m_nAcross*nDepth);
 
-
+    // Clip to the main control, to keep partly drawn icons within our client area
     pScreen_->SetClip(m_nX, m_nY, m_nWidth, m_nHeight);
 
-    for (int i = nStart ; i < nEnd ; i++)
+    const CListViewItem* pItem = GetItem(nStart);
+    for (int i = nStart ; pItem && i < nEnd ; pItem=pItem->m_pNext, i++)
     {
         int x = m_nX + ((i % m_nAcross) * ITEM_SIZE), y = m_nY + (((i-nStart) / m_nAcross) * ITEM_SIZE) - nOffset;
-        DrawItem(pScreen_, i, x, y);
+        DrawItem(pScreen_, i, x, y, pItem);
     }
 
+    // Restore the default clip area
     pScreen_->SetClip();
-
     CWindow::Draw(pScreen_);
 }
 
 bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 {
+    static char szPrefix[16] = "";
+
     // Give the scrollbar first look at the message, but prevent it remaining active
     bool fRet = CWindow::OnMessage(nMessage_, nParam1_, nParam2_);
     m_pActive = NULL;
@@ -1434,8 +1618,85 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     break;
                 }
 
+                // Move up one screen full, staying on the same column
+                case GK_PAGEUP:
+                {
+                    int nUp = min(m_nHeight/ITEM_SIZE,m_nSelected/m_nAcross) * m_nAcross;
+                    Select(m_nSelected-nUp);
+                    break;
+                }
+
+                // Move down one screen full, staying on the same column
+                case GK_PAGEDOWN:
+                {
+                    int nDown = min(m_nHeight/ITEM_SIZE,(m_nItems-m_nSelected-1)/m_nAcross) * m_nAcross;
+                    Select(m_nSelected+nDown);
+                    break;
+                }
+
+                // Move to first item
+                case GK_HOME:
+                    Select(0);
+                    break;
+
+                // Move to last item
+                case GK_END:
+                    Select(m_nItems-1);
+                    break;
+
+                // Return selects the current item - like a double-click
+                case '\r':
+                    szPrefix[0] = '\0';
+                    NotifyParent(1);
+                    break;
+
                 default:
-                    return false;
+                {
+                    static DWORD dwLastChar = 0;
+                    DWORD dwNow = OSD::GetTime();
+
+                    // Clear the buffer on any non-printing characters or if too long since the last one
+                    if (!isprint(nParam1_) || (dwNow - dwLastChar > 1000))
+                        szPrefix[0] = '\0';
+
+                    // Ignore non-printable characters, or if the buffer is full
+                    if (!isprint(nParam1_) || strlen(szPrefix) >= 15)
+                        return false;
+
+                    // Ignore duplicates of the same first character, to skip to the next match
+                    if (!(strlen(szPrefix) == 1 && szPrefix[0] == nParam1_))
+                    {
+                        // Add the new character to the buffer
+                        char* psz = szPrefix + strlen(szPrefix);
+                        *psz++ = nParam1_;
+                        *psz = '\0';
+
+                        dwLastChar = dwNow;
+                    }
+
+                    // Look for a match, starting *after* the current selection if this is the first character
+                    int nItem = GetSelected() + (strlen(szPrefix) == 1);
+                    const CListViewItem* p = GetItem(nItem);
+
+                    bool fFound = false;
+                    for ( ; p && !(fFound = IsPrefix(szPrefix, p->m_pszLabel)) ; p = p->m_pNext, nItem++);
+
+                    // Nothing found from the item to the end of the list
+                    if (!fFound)
+                    {
+                        // Wrap to search from the start
+                        p = GetItem(nItem = 0);
+                        for ( ; p && !(fFound = IsPrefix(szPrefix, p->m_pszLabel)) ; p = p->m_pNext, nItem++);
+
+                        // No match, so give up
+                        if (!fFound)
+                            break;
+                    }
+
+                    // Select the matching item
+                    Select(nItem);
+                    break;
+                }
             }
 
             m_nHoverItem = -1;
@@ -1466,6 +1727,13 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 Select(m_nHoverItem);
             return true;
 
+        case GM_BUTTONDBLCLK:
+            if (!IsOver())
+                break;
+
+            NotifyParent(1);
+            return true;
+
         case GM_MOUSEWHEEL:
             m_nHoverItem = -1;
             return false;
@@ -1476,59 +1744,360 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CFileView::CFileView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
-    : CListView(pParent_, nX_, nY_, nWidth_, nHeight_), m_pFiles(NULL)
+// Compare two filenames, returning true if the 1st entry comes after the 2nd
+bool SortCompare (const char* pcsz1_, const char* pcsz2_)
 {
-    struct dirent* entry;
+    // Skip any common characters at the start of the name
+    while (*pcsz1_ && *pcsz2_ && tolower(*pcsz1_) == tolower(*pcsz2_))
+        pcsz1_++, pcsz2_++;
 
-#define PPP   "c:\\"
+    // Compare the first character that differs
+    return tolower(*pcsz1_) > tolower(*pcsz2_);
+}
 
-    DIR* dir = opendir(PPP);
-    if (dir)
+// Compare two file entries, returning true if the 1st entry comes after the 2nd
+bool SortCompare (CListViewItem* p1_, CListViewItem* p2_)
+{
+    // Drives come before directories, which come before files
+    if ((p1_->m_pIcon == &sFolderIcon) ^ (p2_->m_pIcon == &sFolderIcon))
+        return p2_->m_pIcon == &sFolderIcon;
+
+    // Compare the filenames
+    return SortCompare(p1_->m_pszLabel, p2_->m_pszLabel);
+}
+
+
+CFileView::CFileView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
+    : CListView(pParent_, nX_, nY_, nWidth_, nHeight_), m_pszPath(NULL), m_pszFilter(NULL), m_fShowHidden(false)
+{
+}
+
+CFileView::~CFileView()
+{
+    delete m_pszPath;
+    delete m_pszFilter;
+}
+
+
+bool CFileView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
+{
+    bool fRet = CListView::OnMessage(nMessage_, nParam1_, nParam2_);
+
+    // Backspace moves up a directory
+    if (!fRet && nMessage_ == GM_CHAR && nParam1_ == '\b')
     {
-        int nItems = 0;
-
-        while ((entry = readdir(dir)))
+        // We can only move up if there's a .. entry
+        int nItem = FindItem("..");
+        if (nItem != -1)
         {
-            FileEntry* pEntry = new FileEntry;
-            pEntry->psz = strdup(entry->d_name);
-
-            char sz[MAX_PATH];
-            struct stat st;
-            stat(strcat(strcpy(sz, PPP), pEntry->psz), &st);
-            pEntry->nType = (st.st_mode & S_IFDIR) ? ftDir : ftFile;
-
-            pEntry->pNext = m_pFiles;
-            m_pFiles = pEntry;
-                
-            nItems++;
+            Select(nItem);
+            NotifyParent(1);
+            fRet = true;
         }
+    }
 
-        closedir(dir);
+    return fRet;
+}
 
-        SetItems(nItems);
+void CFileView::NotifyParent (int nParam_)
+{
+    const CListViewItem* pItem = GetItem();
+
+    if (pItem && nParam_)
+    {
+        // Double-clicking to open a directory?
+        if (pItem->m_pIcon == &sFolderIcon)
+        {
+            // Make a copy of the current path to modify
+            char szPath[MAX_PATH];
+            strcpy(szPath, m_pszPath);
+
+            // Stepping up a level?
+            if (!strcmp(pItem->m_pszLabel, ".."))
+            {
+                // Strip the trailing [back]slash
+                szPath[strlen(szPath)-1] = '\0';
+
+                // Strip the current directory name, if we find another separator
+                char* psz = strrchr(szPath, PATH_SEPARATOR);
+                if (psz)
+                    psz[1] = '\0';
+
+                // Otherwise remove the drive letter to leave a blank path for a virtual drive list (DOS/Win32 only)
+                else
+                    szPath[0] = '\0';
+            }
+
+            // Change to a sub-directory
+            else
+            {
+                // Add the sub-directory name and a trailing backslash
+                char szSep[2] = { PATH_SEPARATOR, '\0' };
+                strcat(strcat(szPath, pItem->m_pszLabel), szSep);
+            }
+
+            // Make sure we have access to the path before setting it
+            if (!szPath[0] || !access(szPath, 1))
+                SetPath(szPath);
+            else
+            {
+                char szError[256];
+                sprintf(szError, "%s\\\n\nCan't access directory.", pItem->m_pszLabel);
+                new CMessageBox(this, szError, "Access Denied", mbError);
+            }
+        }
+    }
+
+    // Base handling, to notify parent
+    CWindow::NotifyParent(nParam_);
+}
+
+// Determine an appropriate icon for the supplied file name/extension
+const GUI_ICON* CFileView::GetFileIcon (const char* pcszFile_)
+{
+    // Determine the main file extension
+    char sz[MAX_PATH];
+    char* pszExt = strrchr(strcpy(sz, pcszFile_), '.');
+
+    int nCompressType = 0;
+    if (pszExt)
+    {
+        if (!strcasecmp(pszExt, ".gz")) nCompressType = 1;
+        if (!strcasecmp(pszExt, ".zip")) nCompressType = 2;
+
+        // Strip off the main extension and look for another
+        if (nCompressType)
+        {
+            *pszExt = '\0';
+            pszExt = strrchr(sz, '.');
+        }
+    }
+
+    int nDiskType = 0;
+    if (pszExt)
+    {
+        if (!strcasecmp(pszExt, ".dsk")) nDiskType = 1;
+        if (!strcasecmp(pszExt, ".sad")) nDiskType = 2;
+        if (!strcasecmp(pszExt, ".sdf")) nDiskType = 3;
+        if (!strcasecmp(pszExt, ".sbt")) nDiskType = 4;
+    }
+
+    return nCompressType ? &sCompressedIcon : nDiskType ? &sDiskIcon : &sDocumentIcon;
+}
+
+
+void CFileView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const CListViewItem* pItem_)
+{
+    CListView::DrawItem(pScreen_, nItem_, nX_, nY_, pItem_);
+/*
+    if (pItem_->m_pIcon == &sDiskIcon)
+    {
+        static char* aszDiskTypes[] = { "DSK", "SAD", "SDF", "SBT" };
+
+        pScreen_->SetFont(&sOldFont);
+        pScreen_->DrawString(nX_+(ITEM_SIZE/2)-(pScreen_->GetStringWidth(aszDiskTypes[nDiskType-1])/2),
+                                nY_+22, aszDiskTypes[nDiskType-1], BLACK);
+        pScreen_->SetFont(&sGUIFont);
+    }
+*/
+}
+
+
+// Get the full path of the current item
+const char* CFileView::GetFullPath () const
+{
+    static char szPath[MAX_PATH];
+    const CListViewItem* pItem;
+
+    if (!m_pszPath || !(pItem = GetItem()))
+        return NULL;
+
+    return strcat(strcpy(szPath, m_pszPath), pItem->m_pszLabel);
+}
+
+// Set a new path to browse
+void CFileView::SetPath (const char* pcszPath_)
+{
+    if (pcszPath_)
+    {
+        delete m_pszPath;
+        strcpy(m_pszPath = new char[strlen(pcszPath_)+1], pcszPath_);
+
+        // If the path doesn't end in a separator, we've got a filename too
+        char* pszFile = strrchr(pcszPath_, PATH_SEPARATOR);
+        if (pszFile && *++pszFile)
+            m_pszPath[pszFile-pcszPath_] = '\0';
+
+        // Fill the file list
+        Refresh();
+
+        // If we can find the file in the list, select it
+        int nItem;
+        if (pszFile && (nItem = FindItem(pszFile)) != -1)
+            Select(nItem);
     }
 }
 
-void CFileView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const GUI_ICON* pIcon_, const char* pcsz_)
+// Set a new file filter
+void CFileView::SetFilter (const char* pcszFilter_)
 {
-    FileEntry* pFile = m_pFiles;
-    for (int i = 0 ; i < nItem_ ; i++)
-        pFile = pFile->pNext;
+    if (pcszFilter_)
+    {
+        delete m_pszFilter;
+        strcpy(m_pszFilter = new char[strlen(pcszFilter_)+1], pcszFilter_);
+        Refresh();
+    }
+}
 
-    const GUI_ICON* pIcon = (pFile->nType) == ftDir ? &sFolderIcon : &sDiskIcon;
+// Set whether hidden files should be shown
+void CFileView::ShowHidden (bool fShow_)
+{
+    // Update the option and refresh the file list
+    m_fShowHidden = fShow_;
+    Refresh();
+}
 
-    CListView::DrawItem(pScreen_, nItem_, nX_, nY_, pIcon, pFile->psz);
 
-    char* aszE[] = { "DSK", "SAD", "SDF", "DSK", "DSK", "DSK", "SDF", "DSK", "SAD" };
-    if (nItem_ >= 2)
-        pScreen_->DrawString(nX_+(ITEM_SIZE/2)-(pScreen_->GetStringWidth(aszE[nItem_%9])/2), nY_+22, aszE[nItem_%9], BLACK);
+// Populate the list view with items from the path matching the current file filter
+void CFileView::Refresh ()
+{
+    // Return unless we've got both a path and a file filter
+    if (!m_pszPath || !m_pszFilter)
+        return;
+
+    // Make a copy of the current selection label name
+    const CListViewItem* pItem = GetItem();
+    char* pszLabel = pItem ? strdup(pItem->m_pszLabel) : NULL;
+
+    // Free any existing list before we allocate a new one
+    SetItems(NULL);
+    CListViewItem* pItems = NULL;
+
+    // An empty path gives a virtual drive list (only possible on DOS/Win32)
+    if (!*m_pszPath)
+    {
+        // Work through the letters backwards as we add to the head of the file chain
+        for (int chDrive = 'Z' ; chDrive >= 'A' ; chDrive--)
+        {
+            char szRoot[] = { chDrive, ':', '\\', '\0' };
+
+            // Can we access the root directory?
+            if (!access(szRoot, 1))
+            {
+                // Remove the backslash to leave just X:, and add to the list
+                szRoot[2] = '\0';
+                pItems = new CListViewItem(&sFolderIcon, szRoot, pItems);
+            }
+        }
+    }
+    else
+    {
+        DIR* dir = opendir(m_pszPath);
+        if (dir)
+        {
+            // Count the number of filter items to apply
+            int nFilters = *m_pszFilter ? 1 : 0;
+            char szFilters[256];
+            for (char* psz = strtok(strcpy(szFilters, m_pszFilter), ";") ; (psz = strtok(NULL, ";")) ; nFilters++);
+
+            for (struct dirent* entry ; (entry = readdir(dir)) ; )
+            {
+                char sz[MAX_PATH];
+                struct stat st;
+
+                // Ignore . and .. for now (we'll add .. back later if required)
+                if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
+                    continue;
+
+                // Should we remove hidden files from the listing?
+                if (!m_fShowHidden)
+                {
+                    // Form the full path of the current file
+                    char szPath[MAX_PATH];
+                    strcat(strcpy(szPath , m_pszPath), entry->d_name);
+
+                    // Skip the file if it's considered hidden
+                    if (OSD::IsHidden(szPath))
+                        continue;
+                }
+
+                // Examine the entry to see what it is
+                stat(strcat(strcpy(sz, m_pszPath), entry->d_name), &st);
+
+                // Only regular files are affected by the file filter
+                if (S_ISREG(st.st_mode))
+                {
+                    // If we have a filter list, apply it now
+                    if (nFilters)
+                    {
+                        int i;
+
+                        // Ignore files with no extension
+                        char* pszExt = strrchr(entry->d_name, '.');
+                        if (!pszExt)
+                            continue;
+
+                        // Compare the extension with each of the filters
+                        char* pszFilter = szFilters;
+                        for (i = 0 ; i < nFilters && strcasecmp(pszFilter, pszExt) ; i++, pszFilter += strlen(pszFilter)+1);
+
+                        // Ignore the entry if we didn't match it
+                        if (i == nFilters)
+                            continue;
+                    }
+                }
+
+                // Ignore anything that isn't a directory
+                else if (!S_ISDIR(st.st_mode))
+                    continue;
+
+                // Create a new list entry for the current item
+                CListViewItem* pNew = new CListViewItem(S_ISDIR(st.st_mode) ? &sFolderIcon :
+                                            GetFileIcon(entry->d_name), entry->d_name);
+
+                // Insert the item into the correct sort position
+                CListViewItem *p = pItems, *pPrev = NULL;
+                while (p && SortCompare(pNew, p))
+                {
+                    pPrev = p;
+                    p = p->m_pNext;
+                }
+
+                // Adjust the links to any neighbouring entries
+                if (pPrev) pPrev->m_pNext = pNew;
+                pNew->m_pNext = p;
+                if (pItems == p) pItems = pNew;
+            }
+
+            closedir(dir);
+        }
+
+        // If we're not a top-level directory, add a .. entry to the head of the list
+        // This prevents non-DOS/Win32 machines stepping back up to the device list level
+        if (strlen(m_pszPath) > 1)
+            pItems = new CListViewItem(&sFolderIcon, "..", pItems);
+    }
+
+    // Give the item list to the list control
+    SetItems(pItems);
+
+    // Was there a previous selection?
+    if (pszLabel)
+    {
+        // Look for it in the new list
+        int nItem = FindItem(pszLabel);
+        free(pszLabel);
+
+        // If found, select it
+        if (nItem != -1)
+            Select(nItem);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CIconControl::CIconControl (CWindow* pParent_, int nX_, int nY_, const GUI_ICON& rsIcon_, bool fSmall_)
-    : CWindow(pParent_,nX_,nY_,0,0,ctImage), m_sIcon(rsIcon_)
+CIconControl::CIconControl (CWindow* pParent_, int nX_, int nY_, const GUI_ICON* pIcon_, bool fSmall_)
+    : CWindow(pParent_,nX_,nY_,0,0,ctImage), m_pIcon(pIcon_)
 {
 }
 
@@ -1540,7 +2109,7 @@ void CIconControl::Draw (CScreen* pScreen_)
     if (!IsEnabled())
     {
         // Make a copy of the palette
-        memcpy(abGreyed, m_sIcon.abPalette, sizeof m_sIcon.abPalette);
+        memcpy(abGreyed, m_pIcon->abPalette, sizeof m_pIcon->abPalette);
 
         // Grey the icon by using shades of grey with approximate intensity
         for (int i = 0 ; i < ICON_PALETTE_SIZE ; i++)
@@ -1552,8 +2121,26 @@ void CIconControl::Draw (CScreen* pScreen_)
     }
 
     // Draw the icon, using the greyed palette if disabled
-    pScreen_->DrawImage(m_nX, m_nY, ICON_SIZE, ICON_SIZE, reinterpret_cast<BYTE*>(m_sIcon.abData),
-                        IsEnabled() ? m_sIcon.abPalette : abGreyed);
+    pScreen_->DrawImage(m_nX, m_nY, ICON_SIZE, ICON_SIZE, reinterpret_cast<const BYTE*>(m_pIcon->abData),
+                        IsEnabled() ? m_pIcon->abPalette : abGreyed);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+CFrameControl::CFrameControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_/*=WHITE*/, BYTE bFill_/*=0*/)
+    : CWindow(pParent_, nX_, nY_, nWidth_, nHeight_, ctFrame), m_bColour(bColour_), m_bFill(bFill_)
+{
+}
+
+
+void CFrameControl::Draw (CScreen* pScreen_)
+{
+    // If we've got a fill colour, use it now
+    if (m_bFill)
+        pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, m_bFill);
+
+    // Draw the frame around the area
+    pScreen_->FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, m_bColour);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1561,24 +2148,27 @@ void CIconControl::Draw (CScreen* pScreen_)
 const int TITLE_TEXT_COLOUR = WHITE;
 const int TITLE_BACK_COLOUR = BLUE_3;
 const int DIALOG_BACK_COLOUR = BLUE_2;
-const int DIALOG_FRAME_COLOUR = GREY_6;
+const int DIALOG_FRAME_COLOUR = GREY_7;
 
 const int TITLE_HEIGHT = 4 + CHAR_HEIGHT + 5;
 
 
-CDialog::CDialog (int nWidth_/*=0*/, int nHeight_/*=0*/, const char* pcszCaption_/*=""*/)
-    : CWindow(NULL, 0, 0, nWidth_, nHeight_, ctDialog)
+CDialog::CDialog (CWindow* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_, bool fModal_/*=true*/)
+    : CWindow(pParent_, 0, 0, nWidth_, nHeight_, ctDialog), m_fModal(fModal_), m_fDragging(false), m_nDragX(0),
+        m_nDragY(0), m_nTitleColour(TITLE_BACK_COLOUR), m_nBodyColour(DIALOG_BACK_COLOUR)
 {
     SetText(pcszCaption_);
 
-    // Centralise the dialog on the screen by default (well, slightly above centre)
-    int nW = Frame::GetWidth(), nH = Frame::GetHeight();
-    m_nX = (nW - m_nWidth)/2;
-    m_nY = (nH - m_nHeight)*3/8;
+    // Centralise the dialog on the screen by default
+    int nX = (Frame::GetWidth() - m_nWidth) >> 1, nY = (Frame::GetHeight() - m_nHeight) >> 1;
+    Move(nX, nY);
+
+    Activate();
 }
 
 bool CDialog::HitTest (int nX_, int nY_)
 {
+    // The caption is outside the original dimensions, so we need a special test
     return (nX_ >= m_nX-1) && (nX_ < (m_nX+m_nWidth+1)) && (nY_ >= m_nY-TITLE_HEIGHT) && (nY_ < (m_nY+m_nHeight+1));
 }
 
@@ -1590,16 +2180,20 @@ void CDialog::Draw (CScreen* pScreen_)
     pScreen_->DrawLine(0, GUI::s_nY, pScreen_->GetPitch(), 0, WHITE);
 #endif
 
-    // Fill dialog background and draw frame
-    pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, DIALOG_BACK_COLOUR);
-    pScreen_->FrameRect(m_nX-1, m_nY-1, m_nWidth+2, m_nHeight+2, DIALOG_FRAME_COLOUR);
+    // Fill dialog background and draw a 3D frame
+    pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, m_nBodyColour);
+    pScreen_->FrameRect(m_nX-2, m_nY-TITLE_HEIGHT-2, m_nWidth+3, m_nHeight+TITLE_HEIGHT+3, DIALOG_FRAME_COLOUR);
+    pScreen_->FrameRect(m_nX-1, m_nY-TITLE_HEIGHT-1, m_nWidth+3, m_nHeight+TITLE_HEIGHT+3, DIALOG_FRAME_COLOUR-2);
+    pScreen_->Plot(m_nX+m_nWidth+1, m_nY-TITLE_HEIGHT-2, DIALOG_FRAME_COLOUR);
+    pScreen_->Plot(m_nX-2, m_nY+m_nHeight+1, DIALOG_FRAME_COLOUR-2);
 
-    // Fill caption background and draw frame
-    pScreen_->FillRect(m_nX, m_nY-TITLE_HEIGHT, m_nWidth, TITLE_HEIGHT, TITLE_BACK_COLOUR);
-    pScreen_->FrameRect(m_nX-1, m_nY-TITLE_HEIGHT, m_nWidth+2, TITLE_HEIGHT, DIALOG_FRAME_COLOUR);
+    // Fill caption background and draw the diving line at the bottom of it
+    pScreen_->FillRect(m_nX, m_nY-TITLE_HEIGHT, m_nWidth, TITLE_HEIGHT-1, m_nTitleColour);
+    pScreen_->DrawLine(m_nX, m_nY-1, m_nWidth, 0, DIALOG_FRAME_COLOUR);
 
     // Draw caption text in the centre
-    pScreen_->DrawString(m_nX + (m_nWidth - GetTextWidth())/2, m_nY-TITLE_HEIGHT+5, GetText(), TITLE_TEXT_COLOUR, true);
+    pScreen_->DrawString(m_nX + (m_nWidth - CScreen::GetStringWidth(GetText(),true))/2,
+                         m_nY-TITLE_HEIGHT+5, GetText(), TITLE_TEXT_COLOUR, true);
 
     // Call the base to draw any child controls
     CWindow::Draw(pScreen_);
@@ -1607,10 +2201,6 @@ void CDialog::Draw (CScreen* pScreen_)
 
 bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 {
-    // These statics are safe as only one dialog can be dragged at once
-    static bool fDragging = false;
-    static int nStartX, nStartY;
-
     // Pass to the active control, then the base implementation for the remaining child controls
     if (CWindow::OnMessage(nMessage_, nParam1_, nParam2_))
         return true;
@@ -1648,42 +2238,126 @@ bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     return true;
                 }
 
-                // Esc
+                // Esc cancels the dialog
                 case '\x1b':
-                    GUI::Stop();
+                    Destroy();
                     break;
             }
             break;
         }
 
         case GM_BUTTONDOWN:
+        case GM_BUTTONDBLCLK:
             // Button down on the caption?
             if (IsOver() && nParam2_ < (m_nY+TITLE_HEIGHT))
             {
                 // Remember the offset from the window position to the drag location
-                nStartX = nParam1_ - m_nX;
-                nStartY = nParam2_ - m_nY;
+                m_nDragX = nParam1_ - m_nX;
+                m_nDragY = nParam2_ - m_nY;
 
                 // Flag we're dragging and return the message as processed
-                return fDragging = true;
+                return m_fDragging = true;
             }
             break;
 
         case GM_BUTTONUP:
             // If this is the button up after finishing a drag, clear the flag
-            if (fDragging)
-                return !(fDragging = false);
+            if (m_fDragging)
+                return !(m_fDragging = false);
             break;
 
         case GM_MOUSEMOVE:
             // If we're dragging, move the window to it's new position
-            if (fDragging)
+            if (m_fDragging)
             {
-                Move(nParam1_-nStartX, nParam2_-nStartY);
+                Move(nParam1_-m_nDragX, nParam2_-m_nDragY);
                 return true;
             }
             break;
     }
 
-    return false;
+    // If we're modal, absorb all messages to prevent any parent processing
+    return GUI::IsModal();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+const int MSGBOX_NORMAL_COLOUR = BLUE_2;
+const int MSGBOX_ERROR_COLOUR = RED_2;
+const int MSGBOX_BUTTON_SIZE = 50;
+const int MSGBOX_LINE_HEIGHT = 15;
+const int MSGBOX_GAP = 13;
+
+CMessageBox::CMessageBox (CWindow* pParent_, const char* pcszBody_, const char* pcszCaption_, int nFlags_)
+    : CDialog(pParent_, 0, 0, pcszCaption_), m_nLines(0), m_pIcon(NULL)
+{
+    // We need to be recognisably different from a regular dialog, despite being based on one
+    m_nType = ctMessageBox;
+
+    // Break the body text into lines
+    for (char *psz = m_pszBody = strdup(pcszBody_), *pszEOL = psz ; pszEOL && *psz ; psz += strlen(psz)+1, m_nLines++)
+    {
+        if ((pszEOL = strchr(psz, '\n')))
+            *pszEOL = '\0';
+
+        // Keep track of the maximum line width
+        int nLen = CScreen::GetStringWidth(psz);
+        if (nLen > m_nWidth)
+            m_nWidth = nLen;
+    }
+
+    // Calculate the text area height
+    m_nHeight = (MSGBOX_LINE_HEIGHT * m_nLines);
+
+    // Work out the icon to use, if any
+    const GUI_ICON* apIcons[] = { NULL, &sInformationIcon, &sWarningIcon, &sErrorIcon };
+    const GUI_ICON* pIcon = apIcons[(nFlags_ & 0x30) >> 4];
+
+    // Calculate the text area height, and increase to allow space for the icon if necessary
+    if (pIcon)
+    {
+        // Update the body width and height to allow for the icon
+        m_nWidth += ICON_SIZE + MSGBOX_GAP/2;
+
+        // Add the icon to the top-left of the dialog
+        m_pIcon = new CIconControl(this, MSGBOX_GAP/2, MSGBOX_GAP/2, pIcon);
+    }
+
+    // Work out the width of the button block, which depends on how many buttons are needed
+    int nButtons = 1;
+    int nButtonWidth = ((MSGBOX_BUTTON_SIZE+MSGBOX_GAP) * nButtons) - MSGBOX_GAP;
+
+    // Allow for a surrounding border
+    m_nWidth  += MSGBOX_GAP << 1;
+    m_nHeight += MSGBOX_GAP << 1;
+
+    // Centre the button block at the bottom of the dialog [ToDo: add remaining buttons]
+    int nButtonOffset = (m_nWidth-nButtonWidth) >> 1;
+    (new CTextButton(this, nButtonOffset, m_nHeight, "OK", MSGBOX_BUTTON_SIZE))->Activate();
+
+    // Allow for the button height and a small gap underneath it
+    m_nHeight += BUTTON_HEIGHT + MSGBOX_GAP/2;
+
+    // Centralise the dialog on the screen by default
+    int nX = (Frame::GetWidth() - m_nWidth) >> 1, nY = (Frame::GetHeight() - m_nHeight)*2/5;
+    Move(nX, nY);
+
+    // Error boxes are shown in red
+    if (pIcon == &sInformationIcon)
+        CDialog::SetColours(MSGBOX_NORMAL_COLOUR+2, MSGBOX_NORMAL_COLOUR);
+    else
+        CDialog::SetColours(MSGBOX_ERROR_COLOUR+1, MSGBOX_ERROR_COLOUR);
+}
+
+void CMessageBox::Draw (CScreen* pScreen_)
+{
+    CDialog::Draw(pScreen_);
+
+    // Calculate the x-offset to the body text
+    int nX = m_nX + MSGBOX_GAP + (m_pIcon ? ICON_SIZE + MSGBOX_GAP/2 : 0);
+
+    // Draw each line in the body text
+    const char* psz = m_pszBody;
+    for (int i = 0 ; i < m_nLines ; psz += strlen(psz)+1, i++)
+        pScreen_->DrawString(nX, m_nY+MSGBOX_GAP+(MSGBOX_LINE_HEIGHT*i), psz, WHITE);
 }
