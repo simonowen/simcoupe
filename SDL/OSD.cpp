@@ -54,6 +54,11 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
 {
     bool fRet = false;
 
+#ifdef _WINDOWS
+    // We'll do our own error handling, so suppress any windows error dialogs
+    SetErrorMode(SEM_FAILCRITICALERRORS);
+#endif
+
     // The only sub-system we _need_ is video
     if (SDL_Init(SDL_INIT_VIDEO))
         TRACE("!!! SDL_Init(SDL_INIT_VIDEO) failed: %s\n", SDL_GetError());
@@ -92,7 +97,7 @@ DWORD OSD::GetTime ()
 // Do whatever is necessary to locate an additional SimCoupe file - The Win32 version looks in the
 // same directory as the EXE, but other platforms could use an environment variable, etc.
 // If the path is already fully qualified (an OS-specific decision), return the same string
-const char* OSD::GetFilePath (const char* pcszFile_)
+const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 {
     static char szPath[512];
 
@@ -135,12 +140,27 @@ const char* OSD::GetFilePath (const char* pcszFile_)
     return szPath;
 }
 
+// Return whether a file/directory is normally hidden from a directory listing
+bool OSD::IsHidden (const char* pcszFile_)
+{
+#ifdef _WINDOWS
+    // Hide entries with the hidden or system attribute bits set
+    DWORD dwAttrs = GetFileAttributes(pcszFile_);
+    return (dwAttrs != 0xffffffff) && (dwAttrs & (FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM));
+#else
+    // Hide entries beginning with a dot
+    return *pcszFile_ == '.';
+#endif
+}
+
+
 void OSD::DebugTrace (const char* pcsz_)
 {
 #ifdef _WINDOWS
     OutputDebugString(pcsz_);
 #endif
 }
+
 
 int OSD::FrameSync (bool fWait_/*=true*/)
 {
