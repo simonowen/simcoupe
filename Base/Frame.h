@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Frame.h: Display frame generation
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -172,7 +172,7 @@ inline void CFrameXx1<fHiRes_>::LeftBorder (BYTE* pbLine_, int nFrom_, int nTo_)
     int nFrom = max(s_nViewLeft, nFrom_), nTo = min(nTo_, BORDER_BLOCKS);
 
     // Draw the required section of the left border, if any
-    if (nFrom <= nTo)
+    if (nFrom < nTo)
         memset_(pbLine_ + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), clutval[border_col], (nTo - nFrom) << (fHiRes_ ? 4 : 3));
 }
 
@@ -182,7 +182,7 @@ inline void CFrameXx1<fHiRes_>::RightBorder (BYTE* pbLine_, int nFrom_, int nTo_
     int nFrom = max((WIDTH_BLOCKS-BORDER_BLOCKS), nFrom_), nTo = min(nTo_, s_nViewRight);
 
     // Draw the required section of the right border, if any
-    if (nFrom <= nTo)
+    if (nFrom < nTo)
         memset_(pbLine_ + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), clutval[border_col], (nTo - nFrom) << (fHiRes_ ? 4 : 3));
 }
 
@@ -195,7 +195,7 @@ inline void CFrameXx1<fHiRes_>::BorderLine (int nLine_, int nFrom_, int nTo_)
     int nFrom = max(s_nViewLeft, nFrom_), nTo = min(nTo_, s_nViewRight);
 
     // Draw the required section of the border, if any
-    if (nFrom <= nTo)
+    if (nFrom < nTo)
         memset_(pbLine + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), clutval[border_col], (nTo - nFrom) << (fHiRes_ ? 4 : 3));
 }
 
@@ -208,7 +208,7 @@ inline void CFrameXx1<fHiRes_>::BlackLine (int nLine_, int nFrom_, int nTo_)
     int nFrom = max(s_nViewLeft, nFrom_), nTo = min(nTo_, s_nViewRight);
 
     // Draw the required section of the left border, if any
-    if (nFrom <= nTo)
+    if (nFrom < nTo)
         memset_(pbLine + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), 0, (nTo - nFrom) << (fHiRes_ ? 4 : 3));
 }
 
@@ -226,7 +226,7 @@ void CFrameXx1<fHiRes_>::Mode1Line (int nLine_, int nFrom_, int nTo_)
     int nFrom = max(BORDER_BLOCKS, nFrom_), nTo = min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
 
     // Draw the required section of the main screen, if any
-    if (nFrom <= nTo)
+    if (nFrom < nTo)
     {
         BYTE* pFrame = pbLine + ((nFrom - s_nViewLeft) << (fHiRes_ ? 4 : 3));
         BYTE* pbDataMem = m_pbScreenData + g_awMode1LineToByte[nLine_] + (nFrom - BORDER_BLOCKS);
@@ -287,7 +287,7 @@ void CFrameXx1<fHiRes_>::Mode2Line (int nLine_, int nFrom_, int nTo_)
     int nFrom = max(BORDER_BLOCKS, nFrom_), nTo = min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
 
     // Draw the required section of the main screen, if any
-    if (nFrom <= nTo)
+    if (nFrom < nTo)
     {
         BYTE* pFrame = pbLine + ((nFrom - s_nViewLeft) << (fHiRes_ ? 4 : 3));
         BYTE* pbDataMem = m_pbScreenData + (nLine_ << 5) + (nFrom - BORDER_BLOCKS);
@@ -348,7 +348,7 @@ void CFrameXx1<fHiRes_>::Mode3Line (int nLine_, int nFrom_, int nTo_)
     int nFrom = max(BORDER_BLOCKS, nFrom_), nTo = min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
 
     // Draw the required hi-res section of the main screen, if any
-    if (fHiRes_ && nFrom <= nTo)
+    if (fHiRes_ && nFrom < nTo)
     {
         BYTE* pFrame = pbLine + ((nFrom - s_nViewLeft) << 4);
         BYTE* pbDataMem = m_pbScreenData + (nLine_ << 7) + ((nFrom - BORDER_BLOCKS) << 2);
@@ -404,7 +404,7 @@ void CFrameXx1<fHiRes_>::Mode4Line (int nLine_, int nFrom_, int nTo_)
     int nFrom = max(BORDER_BLOCKS, nFrom_), nTo = min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
 
     // Draw the required section of the main screen, if any
-    if (nFrom <= nTo)
+    if (nFrom < nTo)
     {
         BYTE* pFrame = pbLine + ((nFrom - s_nViewLeft) << (fHiRes_ ? 4 : 3));
         BYTE* pbDataMem = ((nFrom - BORDER_BLOCKS) << 2) + m_pbScreenData + (nLine_ << 7);
