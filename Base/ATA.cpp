@@ -2,7 +2,7 @@
 //
 // ATA.cpp: ATA hard disk (and future ATAPI CD-ROM) emulation
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 #include "SimCoupe.h"
 
 #include "ATA.h"
-#include "HardDisk.h"
 #include "Frame.h"
 
 // ToDo:
@@ -29,17 +28,13 @@
 //  - implement additional packet commands for ATAPI CD-ROM support
 
 
-CATADevice::CATADevice (CHardDisk* pDisk_)
-    : m_pDisk(pDisk_)
+CATADevice::CATADevice ()
 {
+    memset(&m_sGeometry, 0, sizeof(m_sGeometry));
+    memset(&m_sIdentity, 0, sizeof(m_sIdentity));
+
     Reset();
 }
-
-CATADevice::~CATADevice ()
-{
-    delete m_pDisk;
-}
-
 
 // Device hard reset
 void CATADevice::Reset ()
@@ -215,14 +210,11 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                                     {
                                         TRACE(" %d sectors left in multi-sector write...\n", m_sRegs.bSectorCount);
 
-                                        HARDDISK_GEOMETRY geom;
-                                        m_pDisk->GetGeometry(&geom);
-
-                                        if (++m_sRegs.bSector > geom.uSectors)
+                                        if (++m_sRegs.bSector > m_sGeometry.uSectors)
                                         {
                                             m_sRegs.bSector = 1;
 
-                                            if (++m_sRegs.bDeviceHead == geom.uHeads)
+                                            if (++m_sRegs.bDeviceHead == m_sGeometry.uHeads)
                                             {
                                                 m_sRegs.bDeviceHead = 0;
 
@@ -487,7 +479,7 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
 
                             // Clear out the sector and copy in the identity data
                             memset(m_abSectorData+sizeof(DEVICEIDENTITY), 0, sizeof(m_abSectorData)-sizeof(DEVICEIDENTITY));
-                            memcpy(&m_abSectorData, m_pDisk->GetIdentity(), sizeof(DEVICEIDENTITY));
+                            memcpy(&m_abSectorData, &m_sIdentity, sizeof(m_sIdentity));
 
                             m_pbBuffer = m_abSectorData;
                             m_uBuffer = sizeof m_abSectorData;
@@ -613,20 +605,17 @@ bool CATADevice::ReadWriteSector (bool fWrite_)
     WORD wCylinder = (static_cast<WORD>(m_sRegs.bCylinderHigh) << 8) | m_sRegs.bCylinderLow;
     BYTE bHead = (m_sRegs.bDriveAddress >> 2) & 0x0f, bSector = m_sRegs.bSector;
 
-    HARDDISK_GEOMETRY geom;
-    m_pDisk->GetGeometry(&geom);
-
     // Only process requests within the disk geometry
-    if (bSector && bSector <= geom.uSectors && bHead < geom.uHeads && wCylinder < geom.uCylinders)
+    if (bSector && bSector <= m_sGeometry.uSectors && bHead < m_sGeometry.uHeads && wCylinder < m_sGeometry.uCylinders)
     {
         // Calculate the logical block number from the CHS position
-        UINT uSector = (wCylinder * geom.uHeads + bHead) * geom.uSectors + (bSector - 1);
+        UINT uSector = (wCylinder * m_sGeometry.uHeads + bHead) * m_sGeometry.uSectors + (bSector - 1);
 
         TRACE("%s CHS %u:%u:%u  [LBA=%u]\n", fWrite_ ? "Writing" : "Reading", wCylinder, bHead, bSector, uSector);
         if (fWrite_)
-            return m_pDisk->WriteSector(uSector, m_abSectorData);
+            return WriteSector(uSector, m_abSectorData);
         else
-            return m_pDisk->ReadSector(uSector, m_abSectorData);
+            return ReadSector(uSector, m_abSectorData);
     }
 
     return fRet;
