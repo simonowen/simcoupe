@@ -1,10 +1,10 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // CPU.cpp: Z80 processor emulation and main emulation loop
 //
+//  Copyright (c) 2000-2003  Dave Laundon
+//  Copyright (c) 1999-2003  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
-//  Copyright (c) 2000-2001  Dave Laundon
-//  Copyright (c) 1999-2001  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -94,6 +94,10 @@ BYTE g_abInc[256], g_abDec[256];
 #define sp      regs.SP.W
 #define pc      regs.PC.W
 
+#define ixh     regs.IX.B.h_
+#define ixl     regs.IX.B.l_
+#define iyh     regs.IY.B.h_
+#define iyl     regs.IY.B.l_
 #define sp_h    regs.SP.B.h_
 #define sp_l    regs.SP.B.l_
 
@@ -103,6 +107,11 @@ BYTE g_abInc[256], g_abDec[256];
 #define iff2    regs.IFF2
 #define im      regs.IM
 
+
+inline void CheckInterrupt ();
+inline void Mode0Interrupt ();
+inline void Mode1Interrupt ();
+inline void Mode2Interrupt ();
 
 // Since Java has no macros, changing helpers to be inlines like this should make things easier
 inline void rflags (BYTE b_, BYTE c_) { f = c_ | (b_ & 0xa8) | ((!b_) << 6) | parity(b_); }
@@ -135,23 +144,29 @@ int g_nLine;                // Scan line being generated (0 is the top of the ge
 int g_nLineCycle;           // Cycles so far in the current scanline
 int g_nPrevLineCycle;       // Cycles before current instruction began
 
-bool g_fFrameEnd, g_fPaused, fReset, g_fTurbo;
+bool fReset, g_fBreak, g_fPaused, g_fTurbo;
 int g_nFastBooting;
 
 DWORD g_dwCycleCounter;     // Global cycle counter used for various timings
 
 bool fDelayedEI;            // Flag and counter to carry out a delayed EI
 
+#ifdef _DEBUG
+bool g_fDebug;              // Debug only helper variable, to trigger the debugger when set
+#endif
+
 // Memory access contention table
 const int MEM_ACCESS_LINE = TSTATES_PER_LINE >> 6;
 int aMemAccesses[10 * MEM_ACCESS_LINE], *pMemAccessBase, *pMemAccess, nMemAccessIndex;
 bool fMemContention;
 
-Z80Regs regs;
+// Memory access tracking for the debugger
+BYTE *pbMemRead1, *pbMemRead2, *pbMemWrite1, *pbMemWrite2;
 
+Z80Regs regs;
+DWORD radjust;
 
 WORD* pHlIxIy, *pNewHlIxIy;
-unsigned int radjust;
 CPU_EVENT   asCpuEvents[MAX_EVENTS], *psNextEvent, *psFreeEvent;
 DWORD dwLastTime, dwFPSTime;
 
@@ -247,11 +262,26 @@ void CPU::UpdateContention ()
 }
 
 
-// Read a byte and update timing
+// Read an instruction byte and update timing
+inline BYTE timed_read_code_byte (WORD addr)
+{
+    MEM_ACCESS(addr);
+    return read_byte(addr);
+}
+
+// Read a data byte and update timing
 inline BYTE timed_read_byte (WORD addr)
 {
     MEM_ACCESS(addr);
-    return (read_byte(addr));
+    return *(pbMemRead1 = phys_read_addr(addr));
+}
+
+// Read a word and update timing
+inline WORD timed_read_code_word (WORD addr)
+{
+    MEM_ACCESS(addr);
+    MEM_ACCESS(addr + 1);
+    return read_word(addr);
 }
 
 // Read a word and update timing
@@ -259,30 +289,47 @@ inline WORD timed_read_word (WORD addr)
 {
     MEM_ACCESS(addr);
     MEM_ACCESS(addr + 1);
-    return (read_word(addr));
+    pbMemRead2 = (pbMemRead1 = phys_read_addr(addr)) + 1;
+    return (*pbMemRead1 | (*pbMemRead2 << 8));
 }
 
 // Write a byte and update timing
 inline void timed_write_byte (WORD addr, BYTE contents)
 {
+#if 0
+    check_video_write(addr);
     MEM_ACCESS(addr);
-    write_byte(addr, contents);
+    *(pbMemWrite1 = phys_write_addr(addr)) = contents;
+#else
+    MEM_ACCESS(addr);
+    if (*(pbMemWrite1 = phys_write_addr(addr)) != contents)
+    {
+        check_video_write(addr);
+        *pbMemWrite1 = contents;
+    }
+#endif
 }
 
 // Write a word and update timing
 inline void timed_write_word (WORD addr, WORD contents)
 {
+    check_video_write(addr);
     MEM_ACCESS(addr);
     MEM_ACCESS(addr + 1);
-    write_word(addr, contents);
+    pbMemWrite2 = (pbMemWrite1 = phys_write_addr(addr)) + 1;
+    *pbMemWrite1 = contents & 0xff;
+    *pbMemWrite2 = contents >> 8;
 }
 
 // Write a word and update timing (high-byte first - used by stack functions)
 inline void timed_write_word_reversed (WORD addr, WORD contents)
 {
+    check_video_write(addr);
     MEM_ACCESS(addr + 1);
     MEM_ACCESS(addr);
-    write_word(addr, contents);
+    pbMemWrite2 = (pbMemWrite1 = phys_write_addr(addr)) + 1;
+    *pbMemWrite1 = contents & 0xff;
+    *pbMemWrite2 = contents >> 8;
 }
 
 // 16-bit push and pop
@@ -339,7 +386,7 @@ void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
 
             // If we're at the end of the frame, signal it
             if (g_nLine >= HEIGHT_LINES)
-                g_fFrameEnd = true;
+                g_fBreak = true;
             else
             {
                 // Work out if we're in a vertical part of the screen that may be affected by contention
@@ -376,6 +423,8 @@ void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
 // Execute until the end of a frame, or a breakpoint, whichever comes first
 void CPU::ExecuteChunk ()
 {
+    ProfileStart(CPU);
+
     // Is the reset button is held in?
     if (fReset)
     {
@@ -384,56 +433,73 @@ void CPU::ExecuteChunk ()
         CheckCpuEvents();
     }
 
-    // Loop until we've reached the end of the frame
-    while (!g_fFrameEnd)
+    if (!Debug::IsBreakpointSet())
     {
-#ifdef _DEBUG
-        Debug::Dump(&regs);
-#endif
-
-        // Keep track of the current and previous state of whether we're processing an indexed instruction
-        pHlIxIy = pNewHlIxIy;
-        pNewHlIxIy = &hl;
-
-        // Fetch... (and advance PC)
-        MEM_ACCESS(pc);
-        g_bOpcode = read_byte(pc++);
-        radjust++;
-
-        // ... Decode ...
-        switch (g_bOpcode)
+        // Loop until we've reached the end of the frame
+        for (g_fBreak = false ; !g_fBreak ; )
         {
-            // ... Execute!
-#include "Z80ops.h"
-        }
+            // Keep track of the current and previous state of whether we're processing an indexed instruction
+            pHlIxIy = pNewHlIxIy;
+            pNewHlIxIy = &hl;
 
-        // Update the line/global counters and check/process for pending events
-        CheckCpuEvents();
+            // Fetch... (and advance PC)
+            g_bOpcode = timed_read_code_byte(pc++);
+            radjust++;
 
-        // Are there any active interrupts?
-        if (status_reg != STATUS_INT_NONE)
-        {
-            // Only process the interrupt if interrupts are enabled (and not delayed after a DI)
-            // ... and not in the middle of an indexed instruction
-            if (iff1 && (g_bOpcode != OP_EI) && (g_bOpcode != OP_DI) && (pNewHlIxIy == &hl))
+            // ... Decode ...
+            switch (g_bOpcode)
             {
-                // Disable maskable interrupts to prevent the handler being triggered again immediately
-                iff1 = iff2 = 0;
-
-                // Advance PC if we're stopped on a HALT, as we've got a maskable interrupt that it was waiting for
-                if (g_bOpcode == OP_HALT)
-                    pc++;
-
-                // The current interrupt mode determines how we handle the interrupt
-                switch (im)
-                {
-                    case 0:     Mode0Interrupt();   break;
-                    case 1:     Mode1Interrupt();   break;
-                    case 2:     Mode2Interrupt();   break;
-                }
+#include "Z80ops.h"     // ... Execute!
             }
+
+            // Update the line/global counters and check/process for pending events
+            CheckCpuEvents();
+
+            // Are there any active interrupts?
+            if (status_reg != STATUS_INT_NONE && iff1)
+                CheckInterrupt();
+
+#ifdef _DEBUG
+            if (g_fDebug) g_fDebug = !Debug::Start();
+#endif
         }
     }
+    else
+    {
+        // Loop until we've reached the end of the frame
+        for (g_fBreak = false ; !g_fBreak ; )
+        {
+            // Keep track of the current and previous state of whether we're processing an indexed instruction
+            pHlIxIy = pNewHlIxIy;
+            pNewHlIxIy = &hl;
+
+            // Fetch... (and advance PC)
+            g_bOpcode = timed_read_code_byte(pc++);
+            radjust++;
+
+            // ... Decode ...
+            switch (g_bOpcode)
+            {
+#include "Z80ops.h"     // ... Execute!
+            }
+
+            // Update the line/global counters and check/process for pending events
+            CheckCpuEvents();
+
+            // Are there any active interrupts?
+            if (status_reg != STATUS_INT_NONE && iff1)
+                CheckInterrupt();
+
+            if (pNewHlIxIy == &hl && Debug::BreakpointHit())
+                break;
+
+#ifdef _DEBUG
+            if (g_fDebug) g_fDebug = !Debug::Start();
+#endif
+        }
+    }
+
+    ProfileEnd();
 }
 
 
@@ -450,20 +516,15 @@ void CPU::Run ()
         if (g_nFastBooting)
             fDrawFrame = GUI::IsActive() || !--g_nFastBooting;
 
-        // CPU execution continues unless there is a modal GUI dialog active
-        if (!GUI::IsModal())
-        {
-            // Execute up to a frame's worth of instructions, generating the display as it goes
-            ProfileStart(CPU);
+        // CPU execution continues unless the debugger is active or there's a modal GUI dialog active
+        if (!Debug::IsActive() && !GUI::IsModal())
             ExecuteChunk();
-            ProfileEnd();
-        }
 
         // Complete and display the frame contents
         Frame::Complete();
 
         // The real end of the SAM frame requires some additional handling
-        if (g_fFrameEnd)
+        if (g_nLine >= HEIGHT_LINES)
         {
             // Only update I/O (sound etc.) if we're not fast booting
             if (!g_nFastBooting)
@@ -472,7 +533,6 @@ void CPU::Run ()
             // Step back up to start the next frame
             g_nLine -= HEIGHT_LINES;
             Frame::Start();
-            g_fFrameEnd = false;
         }
     }
 
@@ -514,13 +574,15 @@ void CPU::Reset (bool fPress_)
     // Set up the fast reset for first power-on, allowing UP TO 5 seconds before returning to normal mode
     if (!fPress_ && GetOption(fastreset))
         g_nFastBooting = EMULATED_FRAMES_PER_SECOND * 5;
+
+    Debug::Refresh();
 }
 
 
 void CPU::NMI()
 {
     // Advance PC if we're stopped on a HALT
-    if (timed_read_byte(pc) == OP_HALT)
+    if (timed_read_code_byte(pc) == OP_HALT)
         pc++;
 
     // Save the current maskable interrupt status in iff2 and disable interrupts
@@ -531,9 +593,35 @@ void CPU::NMI()
     // Call NMI handler at address 0x0066
     push(pc);
     pc = NMI_INTERRUPT_HANDLER;
+
+    CheckCpuEvents();
+    Debug::Refresh();
 }
 
-void CPU::Mode0Interrupt ()
+
+inline void CheckInterrupt ()
+{
+    // Only process if not delayed after a DI/EI and not in the middle of an indexed instruction
+    if ((g_bOpcode != OP_EI) && (g_bOpcode != OP_DI) && (pNewHlIxIy == &hl))
+    {
+        // Disable maskable interrupts to prevent the handler being triggered again immediately
+        iff1 = iff2 = 0;
+
+        // Advance PC if we're stopped on a HALT, as we've got a maskable interrupt that it was waiting for
+        if (g_bOpcode == OP_HALT)
+            pc++;
+
+        // The current interrupt mode determines how we handle the interrupt
+        switch (im)
+        {
+            case 0: Mode0Interrupt(); break;
+            case 1: Mode1Interrupt(); break;
+            case 2: Mode2Interrupt(); break;
+        }
+    }
+}
+
+inline void Mode0Interrupt ()
 {
     // Push PC onto the stack, and execute the interrupt handler
     g_nLineCycle += 6;
@@ -541,7 +629,7 @@ void CPU::Mode0Interrupt ()
     pc = IM1_INTERRUPT_HANDLER;
 }
 
-void CPU::Mode1Interrupt ()
+inline void Mode1Interrupt ()
 {
     // Push PC onto the stack, and execute the interrupt handler
     g_nLineCycle += 7;
@@ -549,7 +637,7 @@ void CPU::Mode1Interrupt ()
     pc = IM1_INTERRUPT_HANDLER;
 }
 
-void CPU::Mode2Interrupt ()
+inline void Mode2Interrupt ()
 {
     // Push PC onto the stack
     g_nLineCycle += 7;
@@ -558,3 +646,4 @@ void CPU::Mode2Interrupt ()
     // Fetch the IM 2 handler address from an address formed from I and 0xff (from the bus)
     pc = timed_read_word((i << 8) | 0xff);
 }
+
