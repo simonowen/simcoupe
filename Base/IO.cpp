@@ -82,10 +82,8 @@ UINT clut[N_CLUT_REGS], clutval[N_CLUT_REGS], mode3clutval[4];
 
 BYTE keyports[9];       // 8 rows of keys (+ 1 row for unscanned keys)
 
+bool fASICStartup = true;
 
-
-namespace IO
-{
 static inline void out_vmpr(BYTE bVal_);
 static inline void out_hmpr(BYTE bVal_);
 static inline void out_lmpr(BYTE bVal_);
@@ -93,44 +91,37 @@ static inline void out_lepr(BYTE bVal_);
 static inline void out_hepr(BYTE bVal_);
 
 
-
-bool Init (bool fPowerOnInit_/*=true*/, bool fReset_/*=true*/)
+bool IO::Init (bool fFirstInit_/*=false*/)
 {
     bool fRet = true;
-
     Exit(true);
 
     // Any sort of reset requires the paging to be reinitialised
-    if (fPowerOnInit_ || fReset_)
-    {
-        out_vmpr(0);                    // Video in page 0, screen mode 1
-        out_hmpr(0);                    // Page 0 in section A, page 1 in section B, ROM0 on, ROM off
-        out_lmpr(0);                    // Page 0 in section C, page 1 in section D
+    out_vmpr(0);                    // Video in page 0, screen mode 1
+    out_hmpr(0);                    // Page 0 in section A, page 1 in section B, ROM0 on, ROM off
+    out_lmpr(0);                    // Page 0 in section C, page 1 in section D
 
-        // Initialise external memory
-        out_lepr(0);
-        out_hepr(0);
+    // Initialise external memory
+    out_lepr(0);
+    out_hepr(0);
 
-        // Border black, speaker off
-        out_byte(BORDER_PORT, 0);
-    }
+    // Border black, speaker off
+    out_byte(BORDER_PORT, 0);
+
+
+    // No extended keys pressed, no active (or visible) interrupts
+    status_reg = 0xff;
+    line_int = 0xff;
+
+    // Clear lightpen/scan position
+    hpen = lpen = 0x00;
+
 
     // Also, if this is a power-on initialisation, set up the clut, etc.
-    if (fPowerOnInit_)
+    if (fFirstInit_)
     {
-        // Set up the default palette
-        for (int i = 0 ; i < N_CLUT_REGS ; i++)
-            clut[i] = aulPalette[clutval[i] = (i | (i & 7) << 4)];
-
         // No keys pressed initially
         ReleaseAllSamKeys();
-
-        // No extended keys pressed, no active (or visible) interrupts
-        status_reg = 0xff;
-
-        // Line interrupts disabled, and clear lightpen/scan position
-        line_int = 0xff;
-        hpen = lpen = 0x00;
 
         // Initialise all the devices
         fRet &= (InitDrives () && InitParallel() && InitSerial() && InitMidi() && InitBeeper() && Clock::Init());
@@ -140,7 +131,7 @@ bool Init (bool fPowerOnInit_/*=true*/, bool fReset_/*=true*/)
     return fRet;
 }
 
-void Exit (bool fReInit_/*=false*/)
+void IO::Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
@@ -156,7 +147,7 @@ void Exit (bool fReInit_/*=false*/)
 
 
 
-bool InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
+bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 {
     if (pDrive1 && ((!fInit_ && !fReInit_) || (pDrive1->GetType() != GetOption(drive1))))
     {
@@ -220,7 +211,7 @@ bool InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     return !fInit_ || (pDrive1 && pDrive2);
 }
 
-bool InitParallel (bool fInit_/*=true*/, bool fReInit_/*=true*/)
+bool IO::InitParallel (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 {
     if (pParallel1) { delete pParallel1; pParallel1 = NULL; }
     if (pParallel2) { delete pParallel2; pParallel2 = NULL; }
@@ -247,7 +238,7 @@ bool InitParallel (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     return !fInit_ || (pParallel1 && pParallel2);
 }
 
-bool InitSerial (bool fInit_/*=true*/, bool fReInit_/*=true*/)
+bool IO::InitSerial (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 {
     if (pSerial1) { delete pSerial1; pSerial1 = NULL; }
     if (pSerial2) { delete pSerial2; pSerial2 = NULL; }
@@ -262,7 +253,7 @@ bool InitSerial (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     return !fInit_ || (pSerial1 && pSerial2);
 }
 
-bool InitMidi (bool fInit_/*=true*/, bool fReInit_/*=true*/)
+bool IO::InitMidi (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 {
     if (pMidi) { delete pMidi; pMidi = NULL; }
 
@@ -278,7 +269,7 @@ bool InitMidi (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     return !fInit_ || pMidi;
 }
 
-bool InitBeeper (bool fInit_/*=true*/, bool fReInit_/*=true*/)
+bool IO::InitBeeper (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 {
     if (pBeeper) { delete pBeeper; pBeeper = NULL; }
 
@@ -402,9 +393,18 @@ static inline void out_clut(WORD wPort_, BYTE bVal_)
 }
 
 
-BYTE In (WORD wPort_)
+BYTE IO::In (WORD wPort_)
 {
     BYTE bPortLow = wPort_ & 0xff;
+
+    // The ASIC doesn't respond to I/O immediately after power-on
+    if (fASICStartup)
+    {
+        fASICStartup = g_dwCycleCounter < ASIC_STARTUP_DELAY;
+        if (bPortLow >= BASE_ASIC_PORT)
+            return 0x00;
+    }
+
 
     switch (bPortLow)
     {
@@ -431,8 +431,9 @@ BYTE In (WORD wPort_)
                 {
                     res &= keyports[2] & 0x1f;
 
-                    // Once the keyboard is being read we must have finished booted, so unpatch the ROM
-                    Memory::FastStartPatch(false);
+                    // Once the keyboard is being read we must have finished booted, so turn off the fast startup
+                    if (g_nFastBooting)
+                        g_nFastBooting = 0;
 
                     // With auto-booting enabled we'll tap F9 a few times (it's released by the normal key scan)
                     static int nFastBoot = 10 * GetOption(autoboot);
@@ -558,11 +559,18 @@ BYTE In (WORD wPort_)
 
 
 // The actual port input and output routines
-void Out (WORD wPort_, BYTE bVal_)
+void IO::Out (WORD wPort_, BYTE bVal_)
 {
     BYTE bPortLow = wPort_ & 0xff;
 
-    // border colour and (possibly) speaker control
+    // The ASIC doesn't respond to I/O immediately after power-on
+    if (fASICStartup)
+    {
+        fASICStartup = g_dwCycleCounter < ASIC_STARTUP_DELAY;
+        if (bPortLow >= BASE_ASIC_PORT)
+            return;
+    }
+
     switch (bPortLow)
     {
         case BORDER_PORT:
@@ -674,14 +682,13 @@ void Out (WORD wPort_, BYTE bVal_)
                 if (line_int < SCREEN_LINES)
                 {
                     // Offset Line and LineCycle from the point in the scan line that interrupts occur
-                    int nLine_ = g_nLine;
-                    int nLineCycle_ = g_nLineCycle - INT_START_TIME;
+                    int nLine_ = g_nLine, nLineCycle_ = g_nLineCycle - INT_START_TIME;
                     if (nLineCycle_ < 0)
                         nLineCycle_ += TSTATES_PER_LINE;
                     else
                         nLine_++;
 
-                    // Make sure timing and events are right upto date
+                    // Make sure timing and events are right up-to-date
                     CheckCpuEvents();
 
                     // Does the interrupt need to be active?
@@ -779,7 +786,7 @@ void Out (WORD wPort_, BYTE bVal_)
     }
 }
 
-void FrameUpdate ()
+void IO::FrameUpdate ()
 {
     pDrive1->FrameEnd();
     pDrive2->FrameEnd();
@@ -788,5 +795,3 @@ void FrameUpdate ()
 
     Sound::FrameUpdate();
 }
-
-};
