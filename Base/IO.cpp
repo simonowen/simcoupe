@@ -513,6 +513,10 @@ BYTE IO::In (WORD wPort_)
         case PRINTL2_DATA:
             return pParallel2->In(wPort_);
 
+        case QUAZAR_PORT:
+            // Not to be implemented
+            break;
+
         // Serial ports
         case SERIAL1:
             return pSerial1->In(wPort_);
@@ -716,6 +720,9 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             Sound::Out(wPort_, bVal_);
             break;
 
+        case QUAZAR_PORT:
+            // Not to be implemented
+            break;
 
         // Parallel ports 1 and 2
         case PRINTL1_STAT:
@@ -763,6 +770,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
         }
 
         default:
+        {
             // Floppy drive 1
             if ((wPort_ & FLOPPY_MASK) == FLOPPY1_BASE)
             {
@@ -782,6 +790,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             // Only unsupported hardware should reach here
             else
                 TRACE("*** Unhandled write: %#04x (LSB=%d), %#02x (%d)\n", wPort_, bPortLow, bVal_, bVal_);
+        }
     }
 }
 
