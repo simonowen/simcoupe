@@ -77,7 +77,7 @@ OPTION aOptions[] =
     OPT("Disk1",        OT_STRING,  disk1,          ""),        // No disk in floppy drive 1
     OPT("Disk2",        OT_STRING,  disk2,          ""),        // No disk in floppy drive 2
     OPT("AutoBoot",     OT_BOOL,    autoboot,       false),     // Don't auto-boot inserted disk
-    OPT("TurboLoad",    OT_INT,     turboload,      2),         // Accelerate disk access (high sensitivity)
+    OPT("TurboLoad",    OT_INT,     turboload,      15),        // Accelerate disk access (medium sensitivity)
 
     OPT("KeyMapping",   OT_INT,     keymapping,     1),         // SAM keyboard mapping
     OPT("AltForCntrl",  OT_BOOL,    altforcntrl,    false),     // Left-Alt not used for SAM Cntrl
