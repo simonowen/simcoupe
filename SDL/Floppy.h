@@ -24,11 +24,13 @@
 #include "CStream.h"
 #include "VL1772.h"
 
-namespace Floppy
+class Floppy
 {
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
-}
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
+};
+
 
 class CFloppyStream : public CStream
 {

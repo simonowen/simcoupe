@@ -19,20 +19,18 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 // ToDo:
-//	- the actual implementation!
+//  - the actual implementation!
 
 #include "SimCoupe.h"
 
-namespace Floppy
-{
+#include "Floppy.h"
 
-bool Init (bool fFirstInit_/*=false*/)
+
+bool Floppy::Init (bool fFirstInit_/*=false*/)
 {
-	return true;
+    return true;
 }
 
-void Exit (bool fReInit_/*=false*/)
+void Floppy::Exit (bool fReInit_/*=false*/)
 {
 }
-
-};
