@@ -145,6 +145,66 @@ RS_IDE;
 }
 
 
+static void SetIdentityString (char* psz_, int nLen_, const char* pcszValue_)
+{
+    // Copy the string, padding out the extra length with spaces
+    memset(psz_, ' ', nLen_);
+    memcpy(psz_, pcszValue_, nLen_ = strlen(pcszValue_));
+
+    // Byte-swap the string for the expected endian
+    for (int i = 0 ; i < nLen_ ; i += 2)
+        swap(psz_[i], psz_[i+1]);
+}
+
+/*static*/ bool CHDFHardDisk::Create (const char* pcszDisk_, UINT uCylinders_, UINT uHeads_, UINT uSectors_)
+{
+    bool fRet = false;
+
+    UINT uSize = uCylinders_ * uHeads_ * uSectors_ * 512;
+
+    RS_IDE sHeader = { {'R','S','-','I','D','E'}, 0x1a, 0x10, 0x00,  0x80, 0x00 };
+
+    sHeader.sIdentity.wCaps = 0x2241;                   // Fixed device, motor control, hard sectored, <= 5Mbps
+    sHeader.sIdentity.wLogicalCylinders = uCylinders_;
+    sHeader.sIdentity.wLogicalHeads = uHeads_;
+    sHeader.sIdentity.wBytesPerTrack = uSectors_ << 9;
+    sHeader.sIdentity.wBytesPerSector = 1 << 9;
+    sHeader.sIdentity.wSectorsPerTrack = uSectors_;
+
+    sHeader.sIdentity.wControllerType = 1;  // single port, single sector
+    sHeader.sIdentity.wBufferSize512 = 1;   // 512 bytes
+    sHeader.sIdentity.wLongECCBytes = 4;
+
+    sHeader.sIdentity.wReadWriteMulti = 0;  // no multi-sector handling
+
+    // The identity strings need to be padded with spaces and byte-swapped
+    SetIdentityString(sHeader.sIdentity.szSerialNumber, sizeof sHeader.sIdentity.szSerialNumber, "090");
+    SetIdentityString(sHeader.sIdentity.szFirmwareRev,  sizeof sHeader.sIdentity.szFirmwareRev, "0.90");
+    SetIdentityString(sHeader.sIdentity.szModelNumber,  sizeof sHeader.sIdentity.szModelNumber, "SimCoupe Disk");
+
+    // Create the file in binary mode
+    FILE* pFile = fopen(pcszDisk_, "wb");
+    if (pFile)
+    {
+        BYTE bNull = 0;
+
+        // Write the header, and extend the file up to the full size
+        fRet = fwrite(&sHeader, sizeof sHeader, 1, pFile) &&
+              !fseek(pFile, sizeof(sHeader) + uSize - 1, SEEK_SET) &&
+               fwrite(&bNull, sizeof bNull, 1, pFile);
+
+        // Close the file (this may be slow)
+        fclose(pFile);
+
+        // Remove the file if unsuccessful
+        if (!fRet)
+            unlink(pcszDisk_);
+    }
+
+    return fRet;
+}
+
+
 bool CHDFHardDisk::Open (const char* pcszDisk_)
 {
     Close();
