@@ -21,7 +21,6 @@
 #ifndef OSD_H
 #define OSD_H
 
-
 // disable stupid 'debug symbols being truncated' warning
 #pragma warning(disable:4786)
 
@@ -40,7 +39,12 @@
 #include <direct.h>     // for _mkdir
 #include <stdio.h>      // for FILE structure
 #include <winioctl.h>   // for DISK_GEOMETRY and IOCTL_DISK_GET_DRIVE_GEOMETRY
+#include <winspool.h>   // for print spooling
 #include <commctrl.h>   // for Windows common controls
+#include <commdlg.h>    // for Windows common dialogs
+#include <cderr.h>      // for common dialog errors
+#include <shellapi.h>   // for shell functions (ShellExecute, etc.)
+#include <Shlobj.h>     // for shell COM definitions
 
 #pragma include_alias(<io.h>, <..\Include\IO.h>)
 #include <io.h>
