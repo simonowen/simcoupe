@@ -26,7 +26,7 @@
 //  Floppy.cpp implementation exists.
 
 // Todo:
-//  - remove 100K file test done on zip archives (add a container layer?)
+//  - remove 32K file test done on zip archives (add a container layer?)
 //  - maybe add support for updating zip archives
 
 #include "SimCoupe.h"
@@ -83,7 +83,7 @@ CStream::CStream (const char* pcszStream_, bool fReadOnly_/*=false*/)
                 unzGetCurrentFileInfo(hfZip, &sInfo, szFile, sizeof szFile, NULL, 0, NULL, 0);
 
                 // Continue looking if it's too small to be considered [strictly this shouldn't really be done here!]
-                if (sInfo.uncompressed_size < 100000)
+                if (sInfo.uncompressed_size < 32768)
                     continue;
 
                 // Ok, so open and use the first file in the zip and use that
