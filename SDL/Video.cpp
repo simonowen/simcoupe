@@ -107,7 +107,7 @@ void InitGL ()
 {
     int nWidth = Frame::GetWidth(), nHeight = Frame::GetHeight();
 
-    glViewport(0, 0, GetOption(ratio5_4) ? (nWidth * 5)/4 : nWidth, nHeight << 1);
+    glViewport(0, 0, GetOption(ratio5_4) ? (nWidth * 5)/4 : nWidth, nHeight<<1);
 
     glEnable(GL_TEXTURE_2D);
     glGenTextures(6,auTextures);
@@ -139,8 +139,8 @@ void InitGL ()
     {
         for (int xx = 0 ; xx < 3 ; xx++)
         {
-            float flWidth = 2.0 * 256 / nWidth, flHeight = 256.0 / nHeight;
-            float flX = -1.0 + (2.0 * 256 * xx / nWidth), flY = -1.0 + (256.0 * yy / nHeight);
+            float flWidth = 2.0f * 256 / nWidth, flHeight = 2.0f * 256 / nHeight;
+            float flX = -1.0f + (2.0f * 256 * xx / nWidth), flY = -1.0f + (2.0f * 256 * yy / nHeight);
 
             if (flHeight)
             {
