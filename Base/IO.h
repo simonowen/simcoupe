@@ -2,7 +2,7 @@
 //
 // IO.h: SAM I/O port handling
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //  Copyright (c) 2000-2001  Dave Laundon
 //
@@ -52,11 +52,19 @@ class IO
         static BYTE In (WORD wPort_);
         static void Out (WORD wPort_, BYTE bVal_);
 
+        static void OutLmpr (BYTE bVal_);
+        static void OutHmpr (BYTE bVal_);
+        static void OutVmpr (BYTE bVal_);
+        static void OutLepr (BYTE bVal_);
+        static void OutHepr (BYTE bVal_);
+        static void OutClut (WORD wPort_, BYTE bVal_);
+
         static void FrameUpdate ();
         static void UpdateInput();
         static const RGBA* GetPalette (bool fDimmed_=false);
         static bool IsAtStartupScreen ();
         static void CheckAutoboot ();
+        static bool Rst8Hook ();
 };
 
 
@@ -96,6 +104,8 @@ class CDiskDevice :  public CIoDevice
         virtual bool IsModified () const { return false; }
         virtual bool IsLightOn () const { return false; }
         virtual bool IsActive () const { return IsLightOn(); }
+
+        virtual void SetModified (bool fModified_=true) { }
 
     protected:
         int m_nType;
