@@ -44,7 +44,10 @@ bool* Display::pafDirty;
 bool fClearScreen;
 
 Display::RECT rSource, rTarget;
+
+#ifndef ALLEGRO_DOS
 static BYTE abLine[WIDTH_PIXELS << 3];
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
