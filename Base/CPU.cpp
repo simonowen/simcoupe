@@ -40,6 +40,7 @@
 #include "Debug.h"
 #include "Display.h"
 #include "Frame.h"
+#include "GUI.h"
 #include "Input.h"
 #include "IO.h"
 #include "Memory.h"
@@ -134,14 +135,12 @@ int g_nLine;                // Scan line being generated (0 is the top of the ge
 int g_nLineCycle;           // Cycles so far in the current scanline
 int g_nPrevLineCycle;       // Cycles before current instruction began
 
-bool g_fDebugging;
-
-int nInterruptType;         // Type of Z80 interrupt to deal with
+bool g_fFrameEnd, g_fPaused, fReset, g_fTurbo;
+int g_nFastBooting;
 
 DWORD g_dwCycleCounter;     // Global cycle counter used for various timings
 
 bool fDelayedEI;            // Flag and counter to carry out a delayed EI
-bool g_fFlashPhase;         // Mode 1 and 2 flash phase, toggled every 16 frames
 
 // Memory access contention table
 const int MEM_ACCESS_LINE = TSTATES_PER_LINE >> 6;
@@ -153,93 +152,80 @@ Z80Regs regs;
 
 WORD* pHlIxIy, *pNewHlIxIy;
 unsigned int radjust;
-bool        g_fExecuteFrame;
 CPU_EVENT   asCpuEvents[MAX_EVENTS], *psNextEvent, *psFreeEvent;
 DWORD dwLastTime, dwFPSTime;
 
-namespace CPU
+
+bool CPU::Init (bool fFirstInit_/*=false*/)
 {
+    bool fRet = true;
 
-bool Init (bool fPowerOnInit_/*=true*/)
-{
-    int n;
-
-    // Sanity check the endian of the registers structure
-    hl = 1;
-    if (h)
-        Message(msgFatal, "EEK!  The Z80Regs structure is the wrong endian for this platform!\n");
-
-    // Initialise the Z80 registers (everything zero except ix and iy, which are 0xffff and Zero flag is set - strange!)
-    memset(&regs, 0, sizeof regs);
-    ix = iy = 0xffff;
-    f = F_ZERO;
-    radjust = 0;
-
-    // No index prefix seen yet
-    pHlIxIy = pNewHlIxIy = &hl;
-
-    // Set CPU operating mode
-    nInterruptType = fPowerOnInit_ ? Z80_none : Z80_pause;
-    g_bOpcode = OP_NOP;
-
-    // Counter used to determine when each line should be drawn
-    g_fDebugging = false;
-    g_nLineCycle = g_nPrevLineCycle = 0;
-
-    // Initialise the Cpu Events Queue and create the first line-end event
-    CPU_EVENT* psEvent_;
-    for (psEvent_ = asCpuEvents; psEvent_ < (asCpuEvents + MAX_EVENTS - 1); psEvent_++)
-        psEvent_->psNext = (psEvent_ + 1);
-    psFreeEvent = psEvent_->psNext = asCpuEvents;
-    psNextEvent = NULL;
-    AddCpuEvent(evtEndOfLine, g_dwCycleCounter + TSTATES_PER_LINE);
-
-    // Build the parity lookup table
-    for (n = 0x00 ; n <= 0xff ; n++)
+    // Power on initialisation requires some extra initialisation
+    if (fFirstInit_)
     {
-        BYTE b2 = n ^ (n >> 4);
-        b2 ^= (b2 << 2);
-        g_abParity[n] = ~(b2 ^ (b2 >> 1)) & F_PARITY;
+        // Sanity check the endian of the registers structure
+        hl = 1;
+        if (h)
+            Message(msgFatal, "EEK!  The Z80Regs structure is the wrong endian for this platform!\n");
+
+        // Most of the registers tend to only power-on defaults, and are not affected by a reset
+        af = bc = de = hl = alt_af = alt_bc = alt_de = alt_hl = ix = iy = 0xffff;
+
+        // Build the parity lookup table
+        for (int n = 0x00 ; n <= 0xff ; n++)
+        {
+            BYTE b2 = n ^ (n >> 4);
+            b2 ^= (b2 << 2);
+            g_abParity[n] = ~(b2 ^ (b2 >> 1)) & F_PARITY;
 
 #ifdef USE_FLAG_TABLES
-        g_abInc[n] = (n & 0xa8) | ((!n) << 6) | ((!( n & 0xf)) << 4) | ((n == 0x80) << 2);
-        g_abDec[n] = (n & 0xa8) | ((!n) << 6) | ((!(~n & 0xf)) << 4) | ((n == 0x7f) << 2) | F_NADD;
+            g_abInc[n] = (n & 0xa8) | ((!n) << 6) | ((!( n & 0xf)) << 4) | ((n == 0x80) << 2);
+            g_abDec[n] = (n & 0xa8) | ((!n) << 6) | ((!(~n & 0xf)) << 4) | ((n == 0x7f) << 2) | F_NADD;
 #endif
+        }
+
+        // Build the memory access contention table
+        // Note - instructions often overlap to the next line (hence the duplicates).
+        //  0, 1, 4 - border lines
+        //  2, 3    - screen lines
+        //  5 to 9  - mode 1 versions of the same
+        // Lines 0 and 2 (5 and 7) are used for normal border or screen lines, with 1 and 3 (6 and 8) being duplicates
+        // so if we overlap to the next line we will still get the correct contention.
+        // Lines 1 and 3 (6 and 8) are used for the last line of the border or screen so that if we overlap to the next
+        // line we will get the new correct contention.
+        // Line 0 is used continuously if we are in mode 3 or 4 and the screen is off.
+        pMemAccess = pMemAccessBase = aMemAccesses;
+        fMemContention = true;
+        nMemAccessIndex = 0;
+        for (int t = 0; t < MEM_ACCESS_LINE; ++t)
+        {
+            int m = t * TSTATES_PER_LINE / MEM_ACCESS_LINE;
+            aMemAccesses[0 * MEM_ACCESS_LINE + t] =
+            aMemAccesses[1 * MEM_ACCESS_LINE + t] =
+            aMemAccesses[4 * MEM_ACCESS_LINE + t] = 3;
+            aMemAccesses[2 * MEM_ACCESS_LINE + t] =
+            aMemAccesses[3 * MEM_ACCESS_LINE + t] =
+                (m >= BORDER_PIXELS && m < BORDER_PIXELS + SCREEN_PIXELS) ? 7 : 3;
+            aMemAccesses[5 * MEM_ACCESS_LINE + t] =
+            aMemAccesses[6 * MEM_ACCESS_LINE + t] =
+            aMemAccesses[9 * MEM_ACCESS_LINE + t] = (m & 0x40) ? 7 : 3;
+            aMemAccesses[7 * MEM_ACCESS_LINE + t] =
+            aMemAccesses[8 * MEM_ACCESS_LINE + t] = ((m & 0x40) ||
+                (m >= BORDER_PIXELS && m < BORDER_PIXELS + SCREEN_PIXELS)) ? 7 : 3;
+        }
+
+        // Set up RAM and initial I/O settings
+        fRet &= Memory::Init(true) && IO::Init(true);
     }
 
-    // Build the memory access contention table
-    // Note - instructions often overlap to the next line (hence the duplicates).
-    //  0, 1, 4 - border lines
-    //  2, 3    - screen lines
-    //  5 to 9  - mode 1 versions of the same
-    // Lines 0 and 2 (5 and 7) are used for normal border or screen lines, with 1 and 3 (6 and 8) being duplicates
-    // so if we overlap to the next line we will still get the correct contention.
-    // Lines 1 and 3 (6 and 8) are used for the last line of the border or screen so that if we overlap to the next
-    // line we will get the new correct contention.
-    // Line 0 is used continuously if we are in mode 3 or 4 and the screen is off.
-    pMemAccess = pMemAccessBase = aMemAccesses;
-    fMemContention = true;
-    nMemAccessIndex = 0;
-    for (n = 0; n < MEM_ACCESS_LINE; ++n) {
-        int     m = n * TSTATES_PER_LINE / MEM_ACCESS_LINE;
-        aMemAccesses[0 * MEM_ACCESS_LINE + n] =
-        aMemAccesses[1 * MEM_ACCESS_LINE + n] =
-        aMemAccesses[4 * MEM_ACCESS_LINE + n] = 3;
-        aMemAccesses[2 * MEM_ACCESS_LINE + n] =
-        aMemAccesses[3 * MEM_ACCESS_LINE + n] =
-            (m >= BORDER_PIXELS && m < BORDER_PIXELS + SCREEN_PIXELS) ? 7 : 3;
-        aMemAccesses[5 * MEM_ACCESS_LINE + n] =
-        aMemAccesses[6 * MEM_ACCESS_LINE + n] =
-        aMemAccesses[9 * MEM_ACCESS_LINE + n] = (m & 0x40) ? 7 : 3;
-        aMemAccesses[7 * MEM_ACCESS_LINE + n] =
-        aMemAccesses[8 * MEM_ACCESS_LINE + n] = ((m & 0x40) ||
-            (m >= BORDER_PIXELS && m < BORDER_PIXELS + SCREEN_PIXELS)) ? 7 : 3;
-    }
+    // Perform a general reset by pressing and releasing the reset button
+    Reset(true);
+    Reset(false);
 
-    return (!fPowerOnInit_ || Memory::Init()) && IO::Init(fPowerOnInit_);
+    return fRet;
 }
 
-void Exit (bool fReInit_/*=false*/)
+void CPU::Exit (bool fReInit_/*=false*/)
 {
     IO::Exit(fReInit_);
     Memory::Exit(fReInit_);
@@ -253,7 +239,7 @@ inline void SetContention ()
 }
 
 // Update contention flags based on mode/screen-off changes
-void UpdateContention ()
+void CPU::UpdateContention ()
 {
     fMemContention = !(BORD_SOFF && VMPR_MODE_3_OR_4);
     pMemAccessBase = aMemAccesses + ((vmpr_mode ^ MODE_1) ? 0 : (5 * MEM_ACCESS_LINE));
@@ -305,7 +291,7 @@ inline void timed_write_word_reversed (WORD addr, WORD contents)
 
 
 // Execute the CPU event specified
-void ExecuteEvent (CPU_EVENT sThisEvent)
+void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
 {
     switch (sThisEvent.nEvent)
     {
@@ -351,8 +337,10 @@ void ExecuteEvent (CPU_EVENT sThisEvent)
             // Add an event for the next line
             AddCpuEvent(evtEndOfLine, sThisEvent.dwTime + TSTATES_PER_LINE);
 
-            // Are we still inside the frame?
-            if (g_nLine < HEIGHT_LINES)
+            // If we're at the end of the frame, signal it
+            if (g_nLine >= HEIGHT_LINES)
+                g_fFrameEnd = true;
+            else
             {
                 // Work out if we're in a vertical part of the screen that may be affected by contention
                 nMemAccessIndex = MEM_ACCESS_LINE * (
@@ -368,37 +356,54 @@ void ExecuteEvent (CPU_EVENT sThisEvent)
                     // Add an event to check for LINE/FRAME interrupts
                     AddCpuEvent(evtStdIntStart, sThisEvent.dwTime + INT_START_TIME);
 
-                    // Update the input in the centre of the screen (well away from the frame boundary) to avoid the BASIC
-                    // keyboard scanner discarding key presses when it thinks keys have bounced.  This was the cause of the
-                    // first key press on the boot screen only clearing it (took AGES to track that down!)
+                    // Update the input in the centre of the screen (well away from the frame boundary) to avoid the ROM
+                    // keyboard scanner discarding key presses when it thinks keys have bounced.  In old versions this was
+                    // the cause of the first key press on the boot screen only clearing it (took AGES to track down!)
                     if (g_nLine == (HEIGHT_LINES / 2))
                         Input::Update();
                 }
             }
-            else
-                // Signal to stop executing instructions for this frame
-                g_fExecuteFrame = false;
-            break;
 
+            break;
     }
 }
 
 
-// The main z80 emulation loop
-void ExecuteFrame ()
+// Execute until the end of a frame, or a breakpoint, whichever comes first
+void CPU::ExecuteChunk ()
 {
-    g_fExecuteFrame = true;
+    // Is the reset button is held in?
+    if (fReset)
+    {
+        // Effectively halt the CPU for the full frame
+        g_nLineCycle += TSTATES_PER_FRAME;
+        CheckCpuEvents();
+    }
 
-    while (g_fExecuteFrame)
+    // Loop until we've reached the end of the frame
+    while (!g_fFrameEnd)
     {
 #ifdef _DEBUG
-        // Primitive debug tracing, until real debugger is available
-        if (g_fDebugging)
-            TRACE("A=%02x B=%02x C=%02x D=%02x E=%02x H=%02x L=%02x\n", regs.AF.B.h_, regs.BC.B.h_, regs.BC.B.l_, regs.DE.B.h_, regs.DE.B.l_, regs.HL.B.h_, regs.HL.B.l_);
+        Debug::Dump(&regs);
 #endif
 
-        // Update the line/global counters and check for pending events
+        // Keep track of the current and previous state of whether we're processing an indexed instruction
+        pHlIxIy = pNewHlIxIy;
+        pNewHlIxIy = &hl;
 
+        // Fetch... (and advance PC)
+        MEM_ACCESS(pc);
+        g_bOpcode = read_byte(pc++);
+        radjust++;
+
+        // ... Decode ...
+        switch (g_bOpcode)
+        {
+            // ... Execute!
+#include "Z80ops.h"
+        }
+
+        // Update the line/global counters and check/process for pending events
         CheckCpuEvents();
 
         // Are there any active interrupts?
@@ -408,124 +413,141 @@ void ExecuteFrame ()
             // ... and not in the middle of an indexed instruction
             if (iff1 && (g_bOpcode != OP_EI) && (g_bOpcode != OP_DI) && (pNewHlIxIy == &hl))
             {
-                // Advance PC if we're stopped on a HALT, as we've got an interrupt it was halted for
+                // Disable maskable interrupts to prevent the handler being triggered again immediately
+                iff1 = iff2 = 0;
+
+                // Advance PC if we're stopped on a HALT, as we've got a maskable interrupt that it was waiting for
                 if (g_bOpcode == OP_HALT)
                     pc++;
 
-                // Disable interrupts
-                iff1 = iff2 = 0;
-
-                // What we do next depends on the interrupt mode set
+                // The current interrupt mode determines how we handle the interrupt
                 switch (im)
                 {
-                    case 0:
-                        // Push PC onto the stack, and execute the interrupt handler
-                        g_nLineCycle += 6;
-                        push(pc);
-                        pc = IM1_INTERRUPT_HANDLER;
-                        break;
-
-                    case 1:
-                        // Push PC onto the stack, and execute the interrupt handler
-                        g_nLineCycle += 7;
-                        push(pc);
-                        pc = IM1_INTERRUPT_HANDLER;
-                        break;
-
-                    case 2:
-                        // Push PC onto the stack, and execute the IM 2 handler
-                        g_nLineCycle += 7;
-                        push(pc);
-                        // Fetch the IM 2 handler address from an address formed from I and 0xff (from the bus)
-                        pc = timed_read_word((i << 8) | 0xff);
-                        break;
+                    case 0:     Mode0Interrupt();   break;
+                    case 1:     Mode1Interrupt();   break;
+                    case 2:     Mode2Interrupt();   break;
                 }
             }
-        }
-
-        // Initialise, fetch instruction and advance program counter
-        pHlIxIy = pNewHlIxIy;
-        pNewHlIxIy = &hl;
-
-        MEM_ACCESS(pc);
-        g_bOpcode = (nInterruptType == Z80_pause) ? OP_NOP : read_byte(pc++);
-
-        radjust++;
-
-        // Execute the instruction
-        switch (g_bOpcode)
-        {
-#include "Z80ops.h"
         }
     }
 }
 
 
 // The main Z80 emulation loop
-void Run ()
+void CPU::Run ()
 {
     // Loop until told to quit
     while (UI::CheckEvents())
     {
-        if (GetOption(paused))
+        if (g_fPaused)
             continue;
 
-        // Execute a single frame's worth, generating the display as it goes
-        Frame::Start();
-        ProfileStart(CPU);
-        ExecuteFrame();
-        ProfileEnd();
-        Frame::End();
+        // If fast booting is active, don't draw any video
+        if (g_nFastBooting)
+            fDrawFrame = !--g_nFastBooting;
 
-        IO::FrameUpdate();
-
-        // Start back at top of top border
-        g_nLine = 0;
-
-        // Toggle paper/ink colours every 16 frames for for mode 1 and 2 flashing
-        static int nFrame = 0;
-        if (!(++nFrame % 16))
-            g_fFlashPhase = !g_fFlashPhase;
-
-        // Deal with non maskable interrupt types
-        switch (nInterruptType)
+        // Execute up to a frame's worth of instructions, generating the display as it goes
+        if (!GUI::IsModal())
         {
-            case Z80_none:      // Normal operation
-            case Z80_pause:     // CPU paused (for when reset is held down)
-                break;
+            ProfileStart(CPU);
+            ExecuteChunk();
+            ProfileEnd();
+        }
 
-            // Non-maskable interrupt
-            case Z80_nmi:
-                // Advance PC if we're stopped on a HALT
-                if (timed_read_byte(pc) == OP_HALT)
-                    pc++;
+        // Complete and display the frame contents
+        Frame::Complete();
 
-                // Save the interrupt status in iff2 and disable interrupts
-                iff2 = iff1;
-                iff1 = 0;
-                g_nLineCycle += 2;
+        // The real end of the SAM frame requires some additional handling
+        if (g_fFrameEnd)
+        {
+            if (!g_nFastBooting)
+            {
+                Frame::End();
+                IO::FrameUpdate();
+            }
 
-                // Call NMI handler at address 0x0066
-                push(pc);
-                pc = NMI_INTERRUPT_HANDLER;
-
-                nInterruptType = Z80_none;
-                break;
-
-            // Z80 reset
-            case Z80_reset:
-                Init(true);
-                nInterruptType = Z80_none;
-                break;
+            // Step back up to start the next frame
+            g_nLine -= HEIGHT_LINES;
+            g_fFrameEnd = false;
         }
     }
 
     TRACE("Quitting main emulation loop...\n");
 }
 
-void NMI()
+
+void CPU::Reset (bool fPress_)
 {
-    nInterruptType = Z80_nmi;
+    // Set CPU operating mode
+    fReset = fPress_;
+
+    // Certain registers are initialised on every reset
+    i = radjust = im = iff1 = iff2 = 0;
+    sp = 0x8000;
+    pc = 0x0000;
+
+    // No index prefix seen yet, and no last instruction (for EI/DI look-back)
+    pHlIxIy = pNewHlIxIy = &hl;
+    g_bOpcode = OP_NOP;
+
+    // Counter used to determine when each line should be drawn
+    g_nLineCycle = g_nPrevLineCycle = 0;
+
+    // Initialise the CPU events queue, and add the first line-end event
+    for (int n = 0 ; n < MAX_EVENTS ; n++)
+        asCpuEvents[n].psNext = &asCpuEvents[(n+1) % MAX_EVENTS];
+    psFreeEvent = asCpuEvents;
+    psNextEvent = NULL;
+    AddCpuEvent(evtEndOfLine, g_dwCycleCounter + TSTATES_PER_LINE);
+
+    // Re-initialise memory (for configuration changes) and reset I/O
+    Memory::Init();
+    IO::Init();
+
+    // Set up the fast reset for first power-on, allowing UP TO 5 seconds before returning to normal mode
+    if (!fPress_ && GetOption(fastreset))
+        g_nFastBooting = EMULATED_FRAMES_PER_SECOND * 5;
 }
 
-};  // namespace CPU
+
+void CPU::NMI()
+{
+    // Advance PC if we're stopped on a HALT
+    if (timed_read_byte(pc) == OP_HALT)
+        pc++;
+
+    // Save the current maskable interrupt status in iff2 and disable interrupts
+    iff2 = iff1;
+    iff1 = 0;
+    g_nLineCycle += 2;
+
+    // Call NMI handler at address 0x0066
+    push(pc);
+    pc = NMI_INTERRUPT_HANDLER;
+}
+
+void CPU::Mode0Interrupt ()
+{
+    // Push PC onto the stack, and execute the interrupt handler
+    g_nLineCycle += 6;
+    push(pc);
+    pc = IM1_INTERRUPT_HANDLER;
+}
+
+void CPU::Mode1Interrupt ()
+{
+    // Push PC onto the stack, and execute the interrupt handler
+    g_nLineCycle += 7;
+    push(pc);
+    pc = IM1_INTERRUPT_HANDLER;
+}
+
+void CPU::Mode2Interrupt ()
+{
+    // Push PC onto the stack
+    g_nLineCycle += 7;
+    push(pc);
+
+    // Fetch the IM 2 handler address from an address formed from I and 0xff (from the bus)
+    pc = timed_read_word((i << 8) | 0xff);
+}
