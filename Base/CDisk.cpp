@@ -158,7 +158,7 @@ bool CDisk::FindNext (IDFIELD* pIdField_/*=NULL*/, BYTE* pbStatus_/*=NULL*/)
 
 
 // Locate the specific sector on the disk
-bool CDisk::FindSector (UINT uSide_, UINT uTrack_, UINT uSector_, IDFIELD* pID_/*=NULL*/)
+bool CDisk::FindSector (UINT uSide_, UINT uTrack_, UINT uIdTrack_, UINT uSector_, IDFIELD* pID_/*=NULL*/)
 {
     // Assume 'record not found' with zero bytes read, until we discover otherwise
     bool fFound = false;
@@ -173,7 +173,7 @@ bool CDisk::FindSector (UINT uSide_, UINT uTrack_, UINT uSector_, IDFIELD* pID_/
         while (FindNext(&id, &bStatus))
         {
             // Check to see if the track and sector numbers match and the CRC is correct
-            if (id.bTrack == uTrack_ && id.bSector == uSector_ && !bStatus)
+            if (id.bTrack == uIdTrack_ && id.bSector == uSector_ && !bStatus)
             {
                 // Valid sector found
                 fFound = true;

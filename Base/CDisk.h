@@ -156,7 +156,7 @@ class CDisk
     public:
         virtual UINT FindInit (UINT uSide_, UINT uTrack_);
         virtual bool FindNext (IDFIELD* pIdField_=NULL, BYTE* pbStatus_=NULL);
-        virtual bool FindSector (UINT uSide_, UINT uTrack_, UINT uSector_, IDFIELD* pID_=NULL);
+        virtual bool FindSector (UINT uSide_, UINT uTrack_, UINT uIdTrack_, UINT uSector_, IDFIELD* pID_=NULL);
 
         virtual BYTE ReadData (BYTE* pbData_, UINT* puSize_) = 0;
         virtual BYTE WriteData (BYTE* pbData_, UINT* puSize_) = 0;
