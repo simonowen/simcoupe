@@ -128,6 +128,9 @@ void InitGL ()
     else
         g_glPixelFormat = GL_RGBA, g_glDataType = GL_UNSIGNED_BYTE;
 
+    // The row length depends on whether we're using 16-bit packed or regular 32-bit pixels
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, (g_glDataType == GL_UNSIGNED_BYTE) ? 256 : 512);
+
 
     // Check if the driver can access our buffers directly, instead of copying
     bool fAppleClientStorage = glExtension("GL_APPLE_client_storage");
@@ -157,7 +160,7 @@ void InitGL ()
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, uFilter);
 
         // Create the 256x256 texture tile
-        glTexImage2D(GL_TEXTURE_2D, 0, g_glPixelFormat, 256, 256, 0, g_glPixelFormat, g_glDataType, dwTextureData[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, g_glPixelFormat, g_glDataType, dwTextureData[i]);
         glBork("glTexImage2D");
     }
 
@@ -374,7 +377,7 @@ bool Video::CreatePalettes (bool fDimmed_)
                 if (g_glDataType == GL_UNSIGNED_SHORT_5_5_5_1_EXT)
                     dwRMask = 0xf800, dwGMask = 0x07c0, dwBMask = 0x003e, dwAMask = 0x0001;
                 else //if (g_glDataType == GL_UNSIGNED_SHORT_1_5_5_5_REV)
-                    dwRMask = 0x7c00, dwGMask = 0x03e0, dwBMask = 0x001f, dwAMask = 0x8000;
+                    dwAMask = 0x8000, dwRMask = 0x7c00, dwGMask = 0x03e0, dwBMask = 0x001f;
 
                 // Determine the component values from the bit masks
                 DWORD dwRed   = ((static_cast<DWORD>(dwRMask) * (bRed+1))   >> 8) & dwRMask;
@@ -387,7 +390,7 @@ bool Video::CreatePalettes (bool fDimmed_)
             }
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-            // Byte-swap on big endian machines as Display.cpp writes in DWORDs
+            // Reverse the byte order for big-endian, as we write in DWORDs in Display.cpp
             aulPalette[i] = ((aulPalette[i] << 24) & 0xff000000) | ((aulPalette[i] <<  8) & 0x00ff0000) |
                             ((aulPalette[i] >>  8) & 0x0000ff00) | ((aulPalette[i] >> 24) & 0x000000ff);
 #endif
