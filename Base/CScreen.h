@@ -63,7 +63,7 @@ class CScreen
         void DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_=false);
 
         static int GetStringWidth (const char* pcsz_);
-        static void SetFont (FONT* pFont_);
+        static void SetFont (const FONT* pFont_);
 
     protected:
         int m_nPitch, m_nHeight;    // Pitch (width of low-res lines is half the pitch) and height of the screen
