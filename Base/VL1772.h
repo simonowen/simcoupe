@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // VL1772.h: VL 1772 floppy disk controller definitions
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //  Copyright (c) 1999-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 
 #define MAX_DISK_SIDES          2       // Maximum number of sides for a disk image
 
-#define MAX_DISK_TRACKS         84      // Maxmimum number of tracks per side (docs say 0 to 244?)
+#define MAX_DISK_TRACKS         83      // Maxmimum number of tracks per side (docs say 0 to 244?)
 #define MAX_TRACK_SIZE          6250    // Maximum raw track data size (bytes)
 #define MAX_TRACK_SECTORS       (MAX_TRACK_SIZE - MIN_TRACK_OVERHEAD) / (MIN_SECTOR_OVERHEAD + MIN_SECTOR_SIZE)
 
@@ -35,6 +35,7 @@
 #define MIN_TRACK_OVERHEAD      32      // 32 bytes of 0x4e at the start of a track
 #define MIN_SECTOR_OVERHEAD     95      // 22+12+3+1+6+22+8+3+1+1+16 - see end of CDisk.cpp for details
 
+#define FLOPPY_RPM              300     // Floppy spins at 300rpm
 
 // Register values in bottom 2 bits of I/O port values
 enum { regCommand = 0, regStatus = regCommand, regTrack, regSector, regData };
