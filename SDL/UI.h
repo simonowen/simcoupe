@@ -2,7 +2,7 @@
 //
 // UI.h: SDL user interface
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,8 +21,6 @@
 #ifndef UI_H
 #define UI_H
 
-#include "SDL_thread.h"
-
 class UI
 {
     public:
@@ -30,10 +28,11 @@ class UI
         static void Exit (bool fReInit_=false);
 
         static bool CheckEvents ();
+        static bool DoAction (int nAction_, bool fPressed_=true);
         static void ShowMessage (eMsgType eType_, const char* pszMessage_);
 };
 
 
-extern bool g_fActive, g_fFrameStep;
+extern bool g_fActive;
 
 #endif  // UI_H
