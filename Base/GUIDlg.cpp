@@ -39,8 +39,8 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     : CDialog(pParent_, 285, 220,  "About SimCoupe")
 {
     new CIconControl(this, 6, 6, &sSamIcon);
-    new CTextControl(this, 61, 10,   "SimCoupe - a SAM Coupe emulator", YELLOW_8);
-    new CTextControl(this, 61, 24,  "Version 0.90 beta 3", YELLOW_8);
+    new CTextControl(this, 61, 10,  "SimCoupe v0.90 beta 4", YELLOW_8);
+    new CTextControl(this, 61, 24,  "Homepage: http://www.simcoupe.org/", YELLOW_8);
 
     new CTextControl(this, 26, 46,  "Win32/SDL/Allegro versions and general overhaul:");
     new CTextControl(this, 36, 59,  "Simon Owen <simon.owen@simcoupe.org>", GREY_7);
