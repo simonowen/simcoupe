@@ -224,7 +224,7 @@ CDSKDisk::CDSKDisk (CStream* pStream_)
 
     // Allocate some memory and clear it, just in case it's not a complete DSK image
     m_pbData = new BYTE[DSK_IMAGE_SIZE];
-    memset(m_pbData, 0, sizeof DSK_IMAGE_SIZE);
+    memset(m_pbData, 0, DSK_IMAGE_SIZE);
 
     // Read the data from any existing stream, or create and save a new disk
     if (!pStream_->IsOpen())
