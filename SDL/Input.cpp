@@ -279,6 +279,11 @@ bool UpdateKeyTable (SIMPLE_KEY* asKeys_, SDL_keysym* pKey_)
         pKey_->mod = static_cast<SDLMod>(pKey_->mod & ~KMOD_SHIFT);
     }
 
+    // Convert control characters to the base key, as it will be needed for SAM Symbol combinations
+    else if ((pKey_->mod & KMOD_CTRL) && pKey_->unicode < ' ')
+        pKey_->unicode += 'a'-1;
+
+
     for (int i = 0 ; i < SK_MAX ; i++)
     {
         // Is there a mapping entry for the symbol?
