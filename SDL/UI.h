@@ -24,17 +24,18 @@
 #include "SDL_thread.h"
 #include "Util.h"
 
-namespace UI
+class UI
 {
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
+	public:
+		static bool Init (bool fFirstInit_=false);
+		static void Exit (bool fReInit_=false);
 
-    bool CheckEvents ();
-    void ShowMessage (eMsgType eType_, const char* pszMessage_);
-    void ResizeWindow (bool fUseOption_=false);
+		static bool CheckEvents ();
+		static void ShowMessage (eMsgType eType_, const char* pszMessage_);
+		static void ResizeWindow (bool fUseOption_=false);
 };
 
-extern bool g_fActive;
-extern SDL_sem* pSemaphore;
+
+extern bool g_fActive, g_fFrameStep;
 
 #endif  // UI_H
