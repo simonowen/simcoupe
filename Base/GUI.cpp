@@ -1541,6 +1541,13 @@ CListView::CListView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHei
     m_pScrollBar = new CScrollBar(this, m_nWidth-SCROLLBAR_WIDTH, 0, m_nHeight, 0, ITEM_SIZE);
 }
 
+CListView::~CListView ()
+{
+    // Free any existing items
+    SetItems(NULL);
+}
+
+
 void CListView::Select (int nItem_)
 {
     int nOldSelection = m_nSelected;
