@@ -35,7 +35,7 @@ class CFloppyStream : public CStream
 {
     public:
         CFloppyStream (const char* pcszStream_, bool fReadOnly_);
-        virtual ~CFloppyStream () { Close(); }
+        virtual ~CFloppyStream () { RealClose(); }
 
     public:
         static bool IsRecognised (const char* pcszStream_);
@@ -55,7 +55,8 @@ class CFloppyStream : public CStream
         void AbortAsyncOp ();
 
     protected:
-        void Close ();
+        void Close () { }
+        void RealClose ();
         BYTE TranslateError () const;
 
     protected:

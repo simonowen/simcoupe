@@ -221,12 +221,8 @@ CFloppyStream::CFloppyStream (const char* pcszDrive_, bool fReadOnly_)
         char szDevice[32] = "\\\\.\\";
         lstrcat(szDevice, pcszDrive_);
 
-        if ((m_hDevice = CreateFile(szDevice, GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE)
-        {
-            DWORD dwError = GetLastError();
-            Message(msgWarning, "Failed to open floppy device!");
-        }
-        else
+        if ((m_hDevice = CreateFile(szDevice, GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
+                FILE_FLAG_OVERLAPPED, NULL)) != INVALID_HANDLE_VALUE)
         {
             // This is what we want the disk to look like
             DISK_GEOMETRY dg = { { NORMAL_DISK_TRACKS }, F3_720_512, NORMAL_DISK_SIDES, NORMAL_DISK_SECTORS, NORMAL_SECTOR_SIZE };
@@ -244,7 +240,7 @@ CFloppyStream::CFloppyStream (const char* pcszDrive_, bool fReadOnly_)
     }
 }
 
-void CFloppyStream::Close ()
+void CFloppyStream::RealClose ()
 {
     if (GetOSType() != osWin9x)
     {
