@@ -21,24 +21,31 @@
 #ifndef VIDEO_H
 #define VIDEO_H
 
-#include "SDL.h"
-
-namespace Video
+class Video
 {
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    void Update ();
-    bool CreatePalettes (bool fDimmed_=false);
-}
+        static void Update ();
+        static bool CreatePalettes (bool fDimmed_=false);
+};
 
-const int PALETTE_OFFSET = 10;      // Offset into palette to start from (we need to leave the first 10 for Windows' use)
 
+const int PALETTE_OFFSET = 10;      // Offset into palette to first useable position (mainly for Win32)
+
+extern DWORD aulPalette[];
+extern WORD awY[], awU[], awV[];
 extern SDL_Surface *pBack, *pFront;
-extern DWORD aulPalette[N_PALETTE_COLOURS];
-extern WORD awY[N_PALETTE_COLOURS], awU[N_PALETTE_COLOURS], awV[N_PALETTE_COLOURS];
 
-class CFrame;
-extern CFrame* g_pFrame;
+
+#ifdef USE_OPENGL
+
+#include <GL/gl.h>
+extern GLuint dlist;
+extern GLuint auTextures[];
+extern DWORD dwTextureData[6][256][256];
+
+#endif
 
 #endif  // VIDEO_H
