@@ -27,7 +27,7 @@ class CDeviceHardDisk : public CHardDisk
 {
     public:
         CDeviceHardDisk () : m_hDevice(INVALID_HANDLE_VALUE) { }
-        ~CDeviceHardDisk () { }
+        ~CDeviceHardDisk () { Close(); }
 
     public:
         bool IsOpen () const { return m_hDevice != INVALID_HANDLE_VALUE; }
