@@ -41,8 +41,9 @@ typedef unsigned int        UINT;
 #include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
-#include <limits.h>
+#include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 
 // To avoid relying on STL, we'll define our own swap template
 template <class T> void swap (T& a, T& b) { T tmp=a; a=b; b=tmp; }
