@@ -119,26 +119,14 @@ inline void rflags (BYTE b_, BYTE c_) { f = c_ | (b_ & 0xa8) | ((!b_) << 6) | pa
 //                  CPU can only access memory 1 out of every 8 T-States
 //              else
 //                  CPU can only access memory 1 out of every 4 T-States
-#define MEM_ACCESS(a)       do {g_nLineCycle += 3;                                                          \
-                                if (RPAGE(a) < N_PAGES_MAIN)                                                \
-                                    if ((fMaybeContended &&                                                 \
-                                         g_nLineCycle > BORDER_PIXELS - VIDEO_DELAY &&                      \
-                                         g_nLineCycle <= BORDER_PIXELS - VIDEO_DELAY + SCREEN_PIXELS) ||    \
-                                        (vmpr_mode == MODE_1 && (g_nLineCycle + VIDEO_DELAY) & 0x40)        \
-                                    )                                                                       \
-                                        g_nLineCycle = ROUND(g_nLineCycle, 8);                              \
-                                    else                                                                    \
-                                        g_nLineCycle = ROUND(g_nLineCycle, 4);} while (0)
+#define MEM_ACCESS(a)   ((g_nLineCycle += 3) |= (afContendedPages[VPAGE(a)]) ? pMemAccess[g_nLineCycle >> 6] : 0)
 
 // Update g_nLineCycle for one port access
 // This is the basic four T-State CPU I/O access
 // Longer I/O M-Cycles should have the extra T-States added after PORT_ACCESS
 // Logic -  if ASIC-controlled port:
 //              CPU can only access I/O port 1 out of every 8 T-States
-
-#define PORT_ACCESS(a)      do {g_nLineCycle += 4;                                      \
-                                if ((a) >= BASE_ASIC_PORT)                              \
-                                    g_nLineCycle = ROUND(g_nLineCycle, 8);} while (0)
+#define PORT_ACCESS(a)  ((g_nLineCycle += 4) |= ((a) >= BASE_ASIC_PORT) ? 7 : 0)
 
 
 BYTE g_bOpcode;             // The currently executing or previously executed instruction
@@ -155,8 +143,10 @@ DWORD g_dwCycleCounter;     // Global cycle counter used for various timings
 bool fDelayedEI;            // Flag and counter to carry out a delayed EI
 bool g_fFlashPhase;         // Mode 1 and 2 flash phase, toggled every 16 frames
 
-bool fMaybeContended;       // True if the main 256x192 area of the screen is contended
-bool fContended;            // True if the current instruction is contended
+// Memory access contention table
+const int MEM_ACCESS_LINE = TSTATES_PER_LINE >> 6;
+int aMemAccesses[10 * MEM_ACCESS_LINE], *pMemAccessBase, *pMemAccess, nMemAccessIndex;
+bool fMemContention;
 
 Z80Regs regs;
 
@@ -215,6 +205,35 @@ bool Init (bool fPowerOnInit_/*=true*/)
 #endif
     }
 
+    // Build the memory access contention table
+    // Note - instructions often overlap to the next line (hence the duplicates).
+    //  0, 1, 4 - border lines
+    //  2, 3    - screen lines
+    //  5 to 9  - mode 1 versions of the same
+    // Lines 0 and 2 (5 and 7) are used for normal border or screen lines, with 1 and 3 (6 and 8) being duplicates
+    // so if we overlap to the next line we will still get the correct contention.
+    // Lines 1 and 3 (6 and 8) are used for the last line of the border or screen so that if we overlap to the next
+    // line we will get the new correct contention.
+    // Line 0 is used continuously if we are in mode 3 or 4 and the screen is off.
+    pMemAccess = pMemAccessBase = aMemAccesses;
+    fMemContention = true;
+    nMemAccessIndex = 0;
+    for (n = 0; n < MEM_ACCESS_LINE; ++n) {
+        int     m = n * TSTATES_PER_LINE / MEM_ACCESS_LINE;
+        aMemAccesses[0 * MEM_ACCESS_LINE + n] =
+        aMemAccesses[1 * MEM_ACCESS_LINE + n] =
+        aMemAccesses[4 * MEM_ACCESS_LINE + n] = 3;
+        aMemAccesses[2 * MEM_ACCESS_LINE + n] =
+        aMemAccesses[3 * MEM_ACCESS_LINE + n] =
+            (m >= BORDER_PIXELS && m < BORDER_PIXELS + SCREEN_PIXELS) ? 7 : 3;
+        aMemAccesses[5 * MEM_ACCESS_LINE + n] =
+        aMemAccesses[6 * MEM_ACCESS_LINE + n] =
+        aMemAccesses[9 * MEM_ACCESS_LINE + n] = (m & 0x40) ? 7 : 3;
+        aMemAccesses[7 * MEM_ACCESS_LINE + n] =
+        aMemAccesses[8 * MEM_ACCESS_LINE + n] = ((m & 0x40) ||
+            (m >= BORDER_PIXELS && m < BORDER_PIXELS + SCREEN_PIXELS)) ? 7 : 3;
+    }
+
     return (!fPowerOnInit_ || Memory::Init()) && IO::Init(fPowerOnInit_);
 }
 
@@ -226,10 +245,17 @@ void Exit (bool fReInit_/*=false*/)
 
 
 // Work out if we're in a vertical part of the screen that may be affected by contention
+inline void SetContention ()
+{
+    pMemAccess = fMemContention ? (pMemAccessBase + nMemAccessIndex) : aMemAccesses;
+}
+
+// Update contention flags based on mode/screen-off changes
 void UpdateContention ()
 {
-    fMaybeContended = ((!BORD_SOFF || (vmpr_mode < MODE_3)) &&
-        (g_nLine >= TOP_BORDER_LINES && g_nLine < (TOP_BORDER_LINES+SCREEN_LINES)));
+    fMemContention = !(BORD_SOFF && VMPR_MODE_3_OR_4);
+    pMemAccessBase = aMemAccesses + ((vmpr_mode ^ MODE_1) ? 0 : (5 * MEM_ACCESS_LINE));
+    SetContention();
 }
 
 
@@ -327,7 +353,11 @@ void ExecuteEvent (CPU_EVENT sThisEvent)
             if (g_nLine < HEIGHT_LINES)
             {
                 // Work out if we're in a vertical part of the screen that may be affected by contention
-                UpdateContention();
+                nMemAccessIndex = MEM_ACCESS_LINE * (
+                    (((g_nLine >= TOP_BORDER_LINES) && (g_nLine < TOP_BORDER_LINES + SCREEN_LINES)) ? 2 : 0) +
+                    ((g_nLine == TOP_BORDER_LINES - 1) || (g_nLine == TOP_BORDER_LINES + SCREEN_LINES - 1))
+                );
+                SetContention();
 
                 // Are we on a line that may potentially require an interrupt at the start of the right border?
                 if (((g_nLine >= (TOP_BORDER_LINES - 1)) && (g_nLine < (TOP_BORDER_LINES - 1 + SCREEN_LINES))) ||
