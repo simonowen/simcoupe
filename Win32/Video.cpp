@@ -102,17 +102,26 @@ bool Video::Init (bool fFirstInit_)
                 while (FAILED(hr = pdd->SetDisplayMode(nWidth, nHeight, nDepth)))
                 {
                     TRACE("!!! Failed to set %dx%dx%d mode!\n", nWidth, nHeight, nDepth);
-                    if (nHeight == 768)
-                        nWidth = 800, nHeight = 600;
-                    else if (nHeight == 600)
-                        nWidth = 640, nHeight = 480;
-                    else if (nHeight == 480 && nDepth != 8)
-                        nWidth = 1024, nHeight = 768, nDepth >>= 1;
-                    else
+
+                    // If we're already on the lowest depth, try lower resolutions
+                    if (nDepth == 8)
                     {
-                        Message(msgError, "SetDisplayMode() failed with ALL modes! (%#08lx)\n", hr);
-                        return false;
+                        if (nHeight == 768)
+                            nWidth = 800, nHeight = 600;
+                        else if (nHeight == 600)
+                            nWidth = 640, nHeight = 480;
+                        else if (nHeight == 480)
+                        {
+                            Message(msgError, "SetDisplayMode() failed with ALL modes! (%#08lx)\n", hr);
+                            return false;
+                        }
                     }
+
+                    // Fall back to a lower depth
+                    else if (nDepth == 24)
+                        nDepth = 16;
+                    else
+                        nDepth >>= 1;
                 }
             }
 
