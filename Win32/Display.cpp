@@ -52,7 +52,7 @@ bool Display::Init (bool fFirstInit_/*=false*/)
     SetDirty();
 
     if (fRet = Video::Init(fFirstInit_))
-		dwColourKey = Video::GetOverlayColourKey();
+        dwColourKey = Video::GetOverlayColourKey();
 
     TRACE("<- Display::Init() returning %s\n", fRet ? "true" : "false");
     return fRet;
