@@ -2,7 +2,7 @@
 //
 // Options.cpp: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 #include "Util.h"
 
 const char* const OPTIONS_FILE = "SimCoupe.cfg";
-const int CFG_VERSION = 2;      // increment to force a config reset, if incompatible changes are made
+const int CFG_VERSION = 3;      // increment to force a config reset, if incompatible changes are made
 
 enum { OT_BOOL, OT_INT, OT_STRING };
 
@@ -84,8 +84,11 @@ OPTION aOptions[] =
 
     OPT_N("Drive1",       drive1,         1),         // Floppy drive 1 present
     OPT_N("Drive2",       drive2,         1),         // Floppy drive 2 present
-    OPT_F("AutoBoot",     autoboot,       true),      // Autoboot disks inserted at the startup screen
     OPT_N("TurboLoad",    turboload,      15),        // Accelerate disk access (medium sensitivity)
+    OPT_F("SavePrompt",   saveprompt,     true),      // Prompt before saving changes
+    OPT_F("AutoBoot",     autoboot,       true),      // Autoboot disks inserted at the startup screen
+    OPT_F("DosBoot",      dosboot,        true),      // Automagically boot DOS from non-bootable disks
+    OPT_S("DosDisk",      dosdisk,        ""),        // No override DOS disk, use internal SAMDOS 2.2
 
     OPT_S("Disk1",        disk1,          ""),        // No disk in floppy drive 1
     OPT_S("Disk2",        disk2,          ""),        // No disk in floppy drive 2
@@ -97,7 +100,12 @@ OPTION aOptions[] =
     OPT_S("HDDPath",      hddpath,        ""),        // Default hard disk path
     OPT_S("ROMPath",      rompath,        ""),        // Default ROM path
     OPT_S("DataPath",     datapath,       ""),        // Default data path
-    OPT_S("MRUFiles",     mrufiles,       ""),        // No recently used file list
+    OPT_S("MRU0",         mru0,           ""),        // No recently used files
+    OPT_S("MRU1",         mru1,           ""),
+    OPT_S("MRU2",         mru2,           ""),
+    OPT_S("MRU3",         mru3,           ""),
+    OPT_S("MRU4",         mru4,           ""),
+    OPT_S("MRU5",         mru5,           ""),
 
     OPT_N("KeyMapping",   keymapping,     1),         // SAM keyboard mapping
     OPT_F("AltForCntrl",  altforcntrl,    false),     // Left-Alt not used for SAM Cntrl
@@ -105,6 +113,7 @@ OPTION aOptions[] =
     OPT_F("KeypadReset",  keypadreset,    true),      // Keypad-minus for Reset
     OPT_F("SAMFKeys",     samfkeys,       false),     // PC function keys not mapped to SAM keypad
     OPT_F("Mouse",        mouse,          false),     // Mouse not connected
+    OPT_F("MouseEsc",     mouseesc,       true),      // Allow Esc to release the mouse capture
     OPT_F("Swap23",       swap23,         false),     // Don't swap mouse buttons 2 and 3
 
     OPT_S("JoyDev1",      joydev1,        ""),        // Joystick 1 device
@@ -115,7 +124,6 @@ OPTION aOptions[] =
     OPT_N("Parallel1",    parallel1,      0),         // Nothing on parallel port 1
     OPT_N("Parallel2",    parallel2,      0),         // Nothing on parallel port 2
     OPT_S("PrinterDev",   printerdev,     ""),        // Printer device
-    OPT_F("PrinterOnline",printeronline,  true),      // Printer online
 
     OPT_S("SerialDev1",   serialdev1,     ""),        // Serial port 1 device
     OPT_S("SerialDev2",   serialdev2,     ""),        // Serial port 2 device
@@ -144,9 +152,8 @@ OPTION aOptions[] =
 
     OPT_F("PauseInactive",pauseinactive,  false),     // Continue to run when inactive
 
-    OPT_S("LogFile",      logfile,        ""),        // No logfile
     OPT_S("FnKeys",       fnkeys,
-     "F1=12,SF1=13,AF1=35,CF1=14,F2=15,SF2=16,AF2=36,CF2=17,F3=28,SF3=11,CF3=10,F4=22,AF4=25,SF4=23,F5=5,SF5=7,F6=8,F7=6,F8=4,F9=9,SF9=19,F10=24,F11=0,F12=1,SF12=1,CF12=25"),
+     "F1=1,SF1=2,AF1=0,CF1=3,F2=5,SF2=6,AF2=36,CF2=7,F3=30,F4=11,SF4=12,AF4=8,F5=25,SF5=23,F6=26,F7=21,F8=22,F9=14,SF9=13,F10=9,SF10=10,F11=16,F12=15,CF12=8"),
 
     { NULL, 0 }
 };
