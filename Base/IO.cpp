@@ -488,15 +488,15 @@ BYTE IO::In (WORD wPort_)
                 {
                     res &= keyports[2] & 0x1f;
 
-                    // Once the keyboard is being read we must have finished booted, so turn off the fast startup
+                    // Once the keyboard is being read we must have finished booting, so turn off the fast startup
                     if (g_nFastBooting)
                         g_nFastBooting = 0;
 
                     // With auto-booting enabled we'll tap F9 a few times
-                    static int nFastBoot = 10 * GetOption(autoboot);
-                    if (nFastBoot && pDrive1->IsInserted())
+                    static UINT uAutoBoot = 10 * GetOption(autoboot);
+                    if (uAutoBoot && pDrive1->IsInserted())
                     {
-                        if (--nFastBoot & 1)
+                        if (--uAutoBoot & 1)
                             PressSamKey(SK_F9);
                         else
                             ReleaseSamKey(SK_F9);
