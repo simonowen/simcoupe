@@ -2,7 +2,7 @@
 //
 // CDrive.h: VL1772-02 floppy disk controller emulation
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -39,13 +39,15 @@ class CDrive : public CDiskDevice
         ~CDrive () { if (IsInserted()) Eject(); }
 
     public:
-        const char* GetImage () const { return m_pDisk ? m_pDisk->GetName() : ""; }
         bool IsInserted () const { return m_pDisk != NULL; }
         bool IsWriteable () const { return m_pDisk && !m_pDisk->IsReadOnly(); }
         bool IsModified () const { return m_pDisk != NULL && m_pDisk->IsModified(); }
 
         bool IsLightOn () const { return IsMotorOn() && m_pDisk; }
         bool IsActive () const { return IsLightOn () && m_nMotorDelay > (FLOPPY_MOTOR_ACTIVE_TIME - GetOption(turboload)); }
+
+        const char* GetPath () const { return m_pDisk ? m_pDisk->GetPath() : ""; }
+        const char* GetFile () const { return m_pDisk ? m_pDisk->GetFile() : ""; }
 
         void Reset ();
         bool Insert (const char* pcszSource_, bool fReadOnly_/*=false*/);
