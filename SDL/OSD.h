@@ -33,7 +33,7 @@ public:
 
     static DWORD GetTime ();
     static const char* GetFilePath (const char* pcszFile_="");
-    static bool IsHidden (const char* pcszFile_);
+    static bool IsHidden (const char* pcszPath_);
 
     static void DebugTrace (const char* pcsz_);
     static int FrameSync (bool fWait_=true);
