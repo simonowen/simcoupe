@@ -2,7 +2,7 @@
 //
 // UI.h: Allegro user interface
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,14 +30,14 @@ class UI
         static void Exit (bool fReInit_=false);
 
         static bool CheckEvents ();
+        static bool DoAction (int nAction_, bool fPressed_=true);
         static void ShowMessage (eMsgType eType_, const char* pszMessage_);
         static void ResizeWindow (bool fUseOption_=false);
 
         static void ProcessKey (BYTE bKey_, BYTE bMods_);
-        static void Quit ();
 };
 
 
-extern bool g_fActive, g_fFrameStep;
+extern bool g_fActive;
 
 #endif  // UI_H
