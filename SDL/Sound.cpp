@@ -270,7 +270,7 @@ void Sound::OutputDACRight (BYTE bVal_)
 ////////////////////////////////////////////////////////////////////////////////
 
 CStreamBuffer::CStreamBuffer (int nChannels_/*=NULL*/)
-    : m_nChannels(nChannels_), m_pbFrameSample(NULL), m_nSamplesThisFrame(0), m_uOffsetPerUnit(0), m_uPeriod(0)
+    : m_nChannels(nChannels_), m_nSamplesThisFrame(0), m_uOffsetPerUnit(0), m_uPeriod(0)
 {
     // Any values not supplied will be taken from the current options
     if (!m_nChannels) m_nChannels = GetOption(stereo) ? 2 : 1;
