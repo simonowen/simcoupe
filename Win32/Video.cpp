@@ -377,12 +377,9 @@ LPDIRECTDRAWSURFACE CreateSurface (DWORD dwCaps_, DWORD dwWidth_/*=0*/, DWORD dw
 }
 
 
-bool Video::CreatePalettes (bool fDimmed_)
+bool Video::CreatePalettes (bool fDimmed_/*=false*/)
 {
-    fDimmed_ |= g_fPaused || GUI::IsActive() || (!g_fActive && GetOption(pauseinactive));
-
-    // Free any existing DirectX palette
-    if (pddPal) { pddPal->Release(); pddPal = NULL; }
+    fDimmed_ |= (g_fPaused && !g_fFrameStep) || GUI::IsActive() || (!g_fActive && GetOption(pauseinactive));
 
     // Ok, let's look at what the target requirements are, as it determines the format we draw in
     DDSURFACEDESC ddsd = { sizeof ddsd };
@@ -407,7 +404,7 @@ bool Video::CreatePalettes (bool fDimmed_)
     // Build the full palette from SAM and GUI colours
     for (int i = 0; i < N_TOTAL_COLOURS ; i++)
     {
-        // Look up the 
+        // Look up the colour in the appropriate palette
         const RGBA* p = (i < N_PALETTE_COLOURS) ? &pSAM[i] : &pGUI[i-N_PALETTE_COLOURS];
         BYTE bRed = p->bRed, bGreen = p->bGreen, bBlue = p->bBlue;
 
@@ -470,6 +467,9 @@ bool Video::CreatePalettes (bool fDimmed_)
             aulPalette[i] = dwRed | dwGreen | dwBlue;
         }
     }
+
+    // Free any existing DirectX palette
+    if (pddPal) { pddPal->Release(); pddPal = NULL; }
 
     // In non-palettised modes the screen needs to be redrawn to reflect the changes
     if (!fPalette)
