@@ -111,10 +111,12 @@ void ProcessKey (SDL_Event* pEvent_)
     bool fPress = pEvent_->type == SDL_KEYDOWN;
 
     // A function key?
-    if (pKey->sym >= SDLK_F1 && pKey->sym <= SDLK_F12 && !((pKey->mod & KMOD_ALT)))
+    if (pKey->sym >= SDLK_F1 && pKey->sym <= SDLK_F12)
     {
-        // Read the current states of the control and shift keys
-        bool fCtrl = (pKey->mod & KMOD_CTRL) != 0, fShift = (pKey->mod & KMOD_SHIFT) != 0;
+        // Read the current state of the Ctrl/Alt/Shift keys
+        bool fCtrl  = (pKey->mod & KMOD_CTRL)  != 0;
+        bool fAlt   = (pKey->mod & KMOD_ALT)   != 0;
+        bool fShift = (pKey->mod & KMOD_SHIFT) != 0;
 
         // Grab a copy of the function key definition string (could do with being converted to upper-case)
         char szKeys[256];
@@ -123,8 +125,9 @@ void ProcessKey (SDL_Event* pEvent_)
         // Process each of the 'key=action' pairs in the string
         for (char* psz = strtok(szKeys, ", \t") ; psz ; psz = strtok(NULL, ", \t"))
         {
-            // Leading C and S characters indicate that Ctrl and/or Shift modifiers are required with the key
-            bool fCtrled = (*psz == 'C');   if (fCtrled) psz++;
+            // Leading C/A/S characters indicate that Ctrl/Alt/Shift modifiers are required with the key
+            bool fCtrled  = (*psz == 'C');  if (fCtrled)  psz++;
+            bool fAlted   = (*psz == 'A');  if (fAlted)   psz++;
             bool fShifted = (*psz == 'S');  if (fShifted) psz++;
 
             // Currently we only support function keys F1-F12
@@ -135,7 +138,7 @@ void ProcessKey (SDL_Event* pEvent_)
                     continue;
 
                 // If the Ctrl/Shift states match, perform the action
-                if (fCtrl == fCtrled && fShift == fShifted)
+                if (fCtrl == fCtrled && fAlt == fAlted && fShift == fShifted)
                     DoAction(strtoul(++psz, NULL, 0), fPress);
             }
         }
@@ -358,7 +361,7 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actDebugger:
-                GUI::Start(new CMessageBox(NULL, "Debugger not yet implemented", "Sorry!", mbInformation));
+				GUI::Start(new CMessageBox(NULL, "Debugger not yet implemented", "Sorry!", mbInformation));
                 break;
 
             case actImportData:
