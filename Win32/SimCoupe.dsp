@@ -145,6 +145,10 @@ SOURCE=..\Base\GUI.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\Base\GUIDlg.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\Base\GUIIcons.cpp
 # End Source File
 # Begin Source File
@@ -242,6 +246,10 @@ SOURCE=..\Base\Frame.h
 # Begin Source File
 
 SOURCE=..\Base\GUI.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\Base\GUIDlg.h
 # End Source File
 # Begin Source File
 
@@ -469,7 +477,7 @@ SOURCE=.\Cursors\arrow.cur
 # End Group
 # Begin Source File
 
-SOURCE=..\resource.h
+SOURCE=.\resource.h
 # End Source File
 # Begin Source File
 
