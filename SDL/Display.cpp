@@ -394,6 +394,9 @@ void DrawChangesGL (CScreen* pScreen_)
     // 16-bit?
     if (g_glDataType != GL_UNSIGNED_BYTE)
     {
+        // Halve the pitch since we're dealing in WORD-sized pixels
+        lPitchDW >>= 1;
+
         for (int y = 0 ; y < nBottom ; pb = pbSAM += lPitch, y++)
         {
             int x;
@@ -661,44 +664,44 @@ void DrawChangesGL (CScreen* pScreen_)
 
         if (nChangeFrom < 256)
         {
-            int y = max(nChangeFrom-0,0), h = min(nChangeTo-0,255)-y+1;
+            int y = max(nChangeFrom-0,0), h = min(nChangeTo-0,255)-y+1, d = y*lPitchDW;
 
             glBindTexture(GL_TEXTURE_2D,auTextures[0]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,g_glPixelFormat,g_glDataType,dwTextureData[0][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,g_glPixelFormat,g_glDataType,dwTextureData[0][0]+d);
 
             glBindTexture(GL_TEXTURE_2D,auTextures[1]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w2,h,g_glPixelFormat,g_glDataType,dwTextureData[1][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w2,h,g_glPixelFormat,g_glDataType,dwTextureData[1][0]+d);
 
             glBindTexture(GL_TEXTURE_2D,auTextures[2]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,g_glPixelFormat,g_glDataType,dwTextureData[2][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,g_glPixelFormat,g_glDataType,dwTextureData[2][0]+d);
         }
 
         if (nChangeFrom <= 511 && nChangeTo >= 256)
         {
-            int y = max(nChangeFrom-256,0), h = min(nChangeTo-256,255)-y+1;
+            int y = max(nChangeFrom-256,0), h = min(nChangeTo-256,255)-y+1, d = y*lPitchDW;
 
             glBindTexture(GL_TEXTURE_2D,auTextures[3]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,g_glPixelFormat,g_glDataType,dwTextureData[3][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,g_glPixelFormat,g_glDataType,dwTextureData[3][0]+d);
 
             glBindTexture(GL_TEXTURE_2D,auTextures[4]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w2,h,g_glPixelFormat,g_glDataType,dwTextureData[4][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w2,h,g_glPixelFormat,g_glDataType,dwTextureData[4][0]+d);
 
             glBindTexture(GL_TEXTURE_2D,auTextures[5]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,g_glPixelFormat,g_glDataType,dwTextureData[5][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,g_glPixelFormat,g_glDataType,dwTextureData[5][0]+d);
         }
 
         if (nChangeTo >= 512)
         {
-            int y = max(nChangeFrom-512,0), h = min(nChangeTo-512,255)-y+1;
+            int y = max(nChangeFrom-512,0), h = min(nChangeTo-512,255)-y+1, d = y*lPitchDW;
 
             glBindTexture(GL_TEXTURE_2D,auTextures[6]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,g_glPixelFormat,g_glDataType,dwTextureData[6][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,g_glPixelFormat,g_glDataType,dwTextureData[6][0]+d);
 
             glBindTexture(GL_TEXTURE_2D,auTextures[7]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w2,h,g_glPixelFormat,g_glDataType,dwTextureData[7][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w2,h,g_glPixelFormat,g_glDataType,dwTextureData[7][0]+d);
 
             glBindTexture(GL_TEXTURE_2D,auTextures[8]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,g_glPixelFormat,g_glDataType,dwTextureData[8][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,g_glPixelFormat,g_glDataType,dwTextureData[8][0]+d);
         }
     }
 
