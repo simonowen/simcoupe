@@ -377,7 +377,7 @@ void UpdateMenuFromOptions ()
 
     // If Ctrl-Shift is held when the menu is activated, we'll enable some disabled items
     g_fTestMode |= (GetAsyncKeyState(VK_SHIFT) < 0 && GetAsyncKeyState(VK_CONTROL) < 0);
-    EnableItem(IDM_FILE_FLOPPY1_DEVICE, g_fTestMode);
+//  EnableItem(IDM_FILE_FLOPPY1_DEVICE, g_fTestMode);
 //  EnableItem(IDM_FILE_FLOPPY2_DEVICE, g_fTestMode);
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 1 options
@@ -518,13 +518,8 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
             case actInsertFloppy1:
                 if (GetOption(drive1) == dskImage)
                 {
-                    if (GetAsyncKeyState(VK_SHIFT) < 0)
-                        GUI::Start(new CInsertFloppy(1));
-                    else
-                    {
-                        InsertDisk(pDrive1);
-                        SetOption(disk1, pDrive1->GetImage());
-                    }
+                    InsertDisk(pDrive1);
+                    SetOption(disk1, pDrive1->GetImage());
                 }
                 break;
 
@@ -545,13 +540,8 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
             case actInsertFloppy2:
                 if (GetOption(drive2) == dskImage)
                 {
-                    if (GetAsyncKeyState(VK_SHIFT) < 0)
-                        GUI::Start(new CInsertFloppy(2));
-                    else
-                    {
-                        InsertDisk(pDrive2);
-                        SetOption(disk2, pDrive2->GetImage());
-                    }
+                    InsertDisk(pDrive2);
+                    SetOption(disk2, pDrive2->GetImage());
                 }
                 break;
 
@@ -590,9 +580,7 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actDisplayOptions:
-                if (GetAsyncKeyState(VK_SHIFT) < 0)
-                    GUI::Start(new COptionsDialog);
-                else if (!GUI::IsActive())
+                if (!GUI::IsActive())
                     DisplayOptions();
                 break;
 
@@ -1301,17 +1289,36 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         // Menu and commands
         case WM_COMMAND:
         {
-            TRACE("WM_COMMAND\n");
-
             WORD wId = LOWORD(wParam_);
+
+            // If Shift is held, use the built-in versions of some dialogs
+            if (GetAsyncKeyState(VK_SHIFT) < 0)
+            {
+                switch (wId)
+                {
+                    case IDM_FILE_IMPORT_DATA:      GUI::Start(new CImportDialog);      return 0;
+                    case IDM_FILE_EXPORT_DATA:      GUI::Start(new CExportDialog);      return 0;
+                    case IDM_FILE_FLOPPY1_INSERT:   GUI::Start(new CInsertFloppy(1));   return 0;
+                    case IDM_FILE_FLOPPY2_INSERT:   GUI::Start(new CInsertFloppy(2));   return 0;
+                    case IDM_TOOLS_OPTIONS:         GUI::Start(new COptionsDialog);     return 0;
+                    case IDM_HELP_ABOUT:            GUI::Start(new CAboutDialog);       return 0;
+
+                    case IDM_FILE_NEW_DISK:
+                        GUI::Start(new CMessageBox(NULL, "No New Disk dialog yet...", "Sorry", mbInformation));
+                        return 0;
+                }
+            }
 
             switch (wId)
             {
+                case IDM_FILE_NEW_DISK:         DoAction(actNewDisk);           break;
+                case IDM_FILE_IMPORT_DATA:      DoAction(actImportData);        break;
+                case IDM_FILE_EXPORT_DATA:      DoAction(actExportData);        break;
+                case IDM_FILE_EXIT:             DoAction(actExitApplication);   break;
+
                 case IDM_TOOLS_OPTIONS:         DoAction(actDisplayOptions);    break;
                 case IDM_TOOLS_FLUSH_PRINTER:   DoAction(actFlushPrintJob);     break;
                 case IDM_TOOLS_PRINTER_ONLINE:  DoAction(actPrinterOnline);     break;
-
-                case IDM_FILE_NEW_DISK:         DoAction(actNewDisk);           break;
 
                 case IDM_FILE_FLOPPY1_DEVICE:       if (GetOption(drive1) == dskImage) pDrive1->Insert("A:");  break;
                 case IDM_FILE_FLOPPY1_INSERT:       DoAction(actInsertFloppy1); break;
@@ -1323,19 +1330,9 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_FILE_FLOPPY2_EJECT:        DoAction(actEjectFloppy2);  break;
                 case IDM_FILE_FLOPPY2_SAVE_CHANGES: DoAction(actSaveFloppy2);   break;
 
-                case IDM_FILE_IMPORT_DATA:          DoAction(actImportData);    break;
-                case IDM_FILE_EXPORT_DATA:          DoAction(actExportData);    break;
-
-                case IDM_FILE_EXIT:                 DoAction(actExitApplication); break;
-
                 // Items from help menu
                 case IDM_HELP_GENERAL:  ShellExecute(hwnd_, NULL, OSD::GetFilePath("ReadMe.txt"), NULL, "", SW_SHOWMAXIMIZED); break;
-                case IDM_HELP_ABOUT:
-                    if (GetAsyncKeyState(VK_SHIFT) < 0)
-                        GUI::Start(new CAboutDialog);
-                    else
-                        DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), g_hwnd, AboutDlgProc, NULL);
-                    break;
+                case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), g_hwnd, AboutDlgProc, NULL);   break;
             }
             break;
         }
@@ -1601,7 +1598,7 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
                 case IDB_BROWSE:
                 {
-                    if (!GetSaveLoadFile(hdlg_, "Binary files (*.bin)\0*.bin\0Data files (*.dat)\0*.dat\0All files (*.*)\0*.*\0",
+                    if (!GetSaveLoadFile(hdlg_, "Binary files (*.bin)\0*.bin\0All files (*.*)\0*.*\0",
                         NULL, szFile, sizeof szFile, fImport))
                         break;
 
@@ -2077,19 +2074,19 @@ BOOL CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                     {
                         GetDlgItemText(hdlg_, IDE_FILEPATH, szFile, sizeof szFile);
 
-                        // If we can, open the existing hard disk to retrieve the geometry
+                        // If we can, open the existing hard disk image to retrieve the geometry
                         CHardDisk* pDisk = CHardDisk::OpenObject(szFile);
                         if (pDisk)
                         {
                             // Fetch the existing disk geometry
-                            const HARDDISK_GEOMETRY* pGeom = pDisk->GetGeometry ();
+                            HARDDISK_GEOMETRY geom;
+                            pDisk->GetGeometry(&geom);
+                            delete pDisk;
 
                             // Initialise the edit controls with the current values
-                            wsprintf(sz, "%u", uCylinders = pGeom->uCylinders); SetDlgItemText(hdlg_, IDE_CYLINDERS, sz);
-                            wsprintf(sz, "%u", uHeads = pGeom->uHeads);         SetDlgItemText(hdlg_, IDE_HEADS, sz);
-                            wsprintf(sz, "%u", uSectors = pGeom->uSectors);     SetDlgItemText(hdlg_, IDE_SECTORS, sz);
-
-                            delete pDisk;
+                            wsprintf(sz, "%u", uCylinders = geom.uCylinders); SetDlgItemText(hdlg_, IDE_CYLINDERS, sz);
+                            wsprintf(sz, "%u", uHeads = geom.uHeads);         SetDlgItemText(hdlg_, IDE_HEADS, sz);
+                            wsprintf(sz, "%u", uSectors = geom.uSectors);     SetDlgItemText(hdlg_, IDE_SECTORS, sz);
                         }
                     }
                     break;
@@ -2151,7 +2148,7 @@ BOOL CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 
                         // Warn before overwriting existing files
                         if (!::stat(szFile, &st) && 
-                            MessageBox(hdlg_, "Overwrite existing file?", "Create", MB_YESNO|MB_ICONEXCLAMATION) == IDNO)
+                            MessageBox(hdlg_, "Overwrite existing file?", "Create", MB_YESNO|MB_ICONEXCLAMATION) != IDYES)
                             break;
 
                         // Create the new HDF image
@@ -2658,15 +2655,15 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 if (ChangedString(disk1) && !pDrive1->Insert(GetOption(disk1)))
                 {
                     Message(msgWarning, "Invalid disk: %s", GetOption(disk1));
-                    SetOption(disk1, "");
+                    SetOption(disk1, pDrive1->GetImage());
                     SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
                     return TRUE;
                 }
 
-                if (ChangedString(disk2) && !pDrive2->Insert(GetOption(disk2)))
+                if (ChangedString(disk2) && GetOption(drive2) == dskImage && !pDrive2->Insert(GetOption(disk2)))
                 {
                     Message(msgWarning, "Invalid disk: %s", GetOption(disk2));
-                    SetOption(disk2, "");
+                    SetOption(disk2, pDrive2->GetImage());
                     SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
                     return TRUE;
                 }
@@ -2682,9 +2679,7 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                     }
 
                     // Force the type of drive 2 as appropriate for the new string
-                    SetOption(drive2, *GetOption(atomdisk) ? 2 : 1);
-
-                    // Re-initialise the drives as necessary
+                    SetOption(drive2, *GetOption(atomdisk) ? dskAtom : dskImage);
                     IO::InitDrives();
 
                     // Ensure it was mounted ok
