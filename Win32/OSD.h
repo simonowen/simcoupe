@@ -55,6 +55,7 @@ class OSD
 #include <sys\types.h>  // for _off_t etc.
 #include <direct.h>     // for _mkdir
 #include <stdio.h>      // for FILE structure
+#include <winioctl.h>	// for DISK_GEOMETRY and IOCTL_DISK_GET_DRIVE_GEOMETRY
 
 #pragma include_alias(<io.h>, <..\Include\IO.h>)
 #include <io.h>
