@@ -2,7 +2,7 @@
 //
 // UI.cpp: Allegro user interface
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -53,23 +53,21 @@ bool g_fActive = true, g_fFrameStep, g_fQuit;
 
 enum eActions
 {
-    actNmiButton, actResetButton, actToggleSaaSound, actToggleBeeper, actToggleFullscreen,
-    actToggle5_4, actToggle50HzSync, actChangeWindowScale, actChangeFrameSkip, actChangeProfiler, actChangeMouse,
-    actChangeKeyMode, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actInsertFloppy2, actEjectFloppy2,
-    actSaveFloppy2, actNewDisk, actSaveScreenshot, actFlushPrintJob, actDebugger, actImportData, actExportData,
-    actDisplayOptions, actExitApplication, actToggleTurbo, actTempTurbo, actReleaseMouse, actPause, actFrameStep,
-    actPrinterOnline, actNewDisk1, actNewDisk2, MAX_ACTION
+    actNewDisk1, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actNewDisk2, actInsertFloppy2, actEjectFloppy2, actSaveFloppy2,
+    actExitApplication, actOptions, actDebugger, actImportData, actExportData, actSaveScreenshot, actChangeProfiler,
+    actResetButton, actNmiButton, actPause, actFrameStep, actToggleTurbo, actTempTurbo,
+    actToggleSync, actToggleFullscreen, actChangeWindowSize, actChangeBorders, actToggle5_4,
+    actChangeFrameSkip, actToggleScanlines, actToggleGreyscale, actToggleMute, actReleaseMouse,
+    MAX_ACTION
 };
 
 const char* aszActions[MAX_ACTION] =
 {
-    "NMI button", "Reset button", "Toggle SAA 1099 sound", "Toggle beeper sound", "Toggle fullscreen",
-    "Toggle 5:4 aspect ratio", "Toggle 50Hz frame sync", "Change window scale", "Change frame-skip mode",
-    "Change profiler mode", "Change mouse mode", "Change keyboard mode", "Insert floppy 1", "Eject floppy 1",
-    "Save changes to floppy 1", "Insert floppy 2", "Eject floppy 2", "Save changes to floppy 2", "New Disk",
-    "Save screenshot", "Flush print job", "Debugger", "Import data", "Export data", "Display options",
-    "Exit application", "Toggle turbo speed", "Turbo speed (when held)", "Release mouse capture", "Pause",
-    "Step single frame", "Toggle printer online", "New disk 1", "New disk 2"
+    "New disk 1", "Open disk 1", "Close disk 1", "Save disk 1", "New disk 2", "Open disk 2", "Close disk 2", "Save disk 2",
+    "Exit application", "Options", "Debugger", "Import data", "Export data", "Save screenshot", "Change profiler mode",
+    "Reset button", "NMI button", "Pause", "Step single frame", "Toggle turbo speed", "Turbo speed (when held)",
+    "Toggle frame sync", "Toggle fullscreen", "Change window size", "Change border size", "Toggle 5:4 display",
+    "Change frame-skip mode", "Toggle scanlines", "Toggle greyscale", "Mute sound", "Release mouse capture"
 };
 
 
@@ -142,8 +140,9 @@ void UI::ProcessKey (BYTE bKey_, BYTE bMods_)
     // Some additional function keys
     switch (bKey_)
     {
-        case KEY_ENTER:       if (fAlt) DoAction(actToggleFullscreen, fPress);    break;
-        case KEY_MINUS_PAD:   if (GetOption(kpminusreset)) DoAction(actResetButton, fPress);   break;
+        case KEY_ESC:         if (GetOption(mouseesc)) Input::Acquire(false); break;
+        case KEY_ENTER:       if (fAlt) DoAction(actToggleFullscreen, fPress); break;
+        case KEY_MINUS_PAD:   if (GetOption(keypadreset)) DoAction(actResetButton, fPress);   break;
         case KEY_SLASH_PAD:   DoAction(actDebugger, fPress);          break;
         case KEY_ASTERISK:    DoAction(actNmiButton, fPress);         break;
         case KEY_PLUS_PAD:    DoAction(actTempTurbo, fPress);         break;
@@ -229,30 +228,30 @@ void DoAction (int nAction_, bool fPressed_)
                 Sound::Stop();
                 break;
 
-            case actToggleSaaSound:
-                SetOption(saasound, !GetOption(saasound));
+            case actToggleMute:
+                SetOption(sound, !GetOption(sound));
                 Sound::Init();
-                Frame::SetStatus("SAA 1099 sound chip %s", GetOption(saasound) ? "enabled" : "disabled");
+                Frame::SetStatus("Sound %s", GetOption(sound) ? "enabled" : "muted");
                 break;
 
-            case actToggleBeeper:
-                SetOption(beeper, !GetOption(beeper));
-                Sound::Init();
-                Frame::SetStatus("Beeper %s", GetOption(beeper) ? "enabled" : "disabled");
+            case actToggleGreyscale:
+                SetOption(greyscale, !GetOption(greyscale));
+                Video::CreatePalettes();
                 break;
 
-            case actToggle50HzSync:
+            case actToggleSync:
                 SetOption(sync, !GetOption(sync));
                 Frame::SetStatus("Frame sync %s", GetOption(sync) ? "enabled" : "disabled");
                 break;
 
-            case actChangeWindowScale:
+            case actChangeWindowSize:
 #ifdef ALLEGRO_DOS
                 GUI::Start(new CMessageBox(NULL, "Window scaling not supported under DOS", "Sorry!", mbInformation));
 #else
                 SetOption(scale, (GetOption(scale) % 3) + 1);
                 Frame::Init();
-                Frame::SetStatus("%dx window scaling", GetOption(scale));
+                Frame::SetStatus("%u%% size", GetOption(scale)*50);
+                break;
 #endif
                 break;
 
@@ -274,27 +273,17 @@ void DoAction (int nAction_, bool fPressed_)
                 SetOption(profile, OSD::GetTime() ? (GetOption(profile)+1) % 4 : !GetOption(profile));
                 break;
 
-            case actChangeMouse:
-                SetOption(mouse, !GetOption(mouse));
-                Input::Acquire(GetOption(mouse) != 0);
-                Frame::SetStatus("Mouse %s", !GetOption(mouse) ? "disabled" : "enabled");
-                break;
-
-            case actChangeKeyMode:
-                SetOption(keymapping, (GetOption(keymapping)+1) % 3);
-                Frame::SetStatus(!GetOption(keymapping) ? "Raw keyboard mode" :
-                                GetOption(keymapping)==1 ? "SAM Coupe keyboard mode" : "Spectrum keyboard mode");
-                break;
-
             case actInsertFloppy1:
-                if (GetOption(drive1) == dskImage)
+                if (GetOption(drive1) != dskImage)
+                    Message(msgWarning, "Floppy drive %d is not present", 1);
+                else
                     GUI::Start(new CInsertFloppy(1));
                 break;
 
             case actEjectFloppy1:
                 if (GetOption(drive1) == dskImage && pDrive1->IsInserted())
                 {
-                    Frame::SetStatus("%s  ejected from drive 1", pDrive1->GetFile());
+                    Frame::SetStatus("%s  ejected from drive %d", pDrive1->GetFile(), 1);
                     pDrive1->Eject();
                 }
                 break;
@@ -305,14 +294,16 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actInsertFloppy2:
-                if (GetOption(drive2) == dskImage)
+                if (GetOption(drive2) != dskImage)
+                    Message(msgWarning, "Floppy drive %d is not present", 2);
+                else
                     GUI::Start(new CInsertFloppy(2));
                 break;
 
             case actEjectFloppy2:
                 if (GetOption(drive2) == dskImage && pDrive2->IsInserted())
                 {
-                    Frame::SetStatus("%s  ejected from drive 2", pDrive2->GetFile());
+                    Frame::SetStatus("%s  ejected from drive %d", pDrive2->GetFile(), 2);
                     pDrive2->Eject();
                 }
                 break;
@@ -323,8 +314,11 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actNewDisk1:
+                GUI::Start(new CNewDiskDialog(1));
+                break;
+
             case actNewDisk2:
-                GUI::Start(new CMessageBox(NULL, "New Disk not yet implemented", "Sorry!", mbInformation));
+                GUI::Start(new CNewDiskDialog(2));
                 break;
 
             case actSaveScreenshot:
@@ -343,7 +337,7 @@ void DoAction (int nAction_, bool fPressed_)
                 GUI::Start(new CExportDialog);
                 break;
 
-            case actDisplayOptions:
+            case actOptions:
                 GUI::Start(new COptionsDialog);
                 break;
 
@@ -386,7 +380,8 @@ void DoAction (int nAction_, bool fPressed_)
                 }
 
                 SetOption(frameskip, g_fPaused ? 1 : nFrameSkip);
-            }   // Fall through to actPause...
+            }
+            // Fall through to actPause...
 
             case actPause:
             {
@@ -413,16 +408,6 @@ void DoAction (int nAction_, bool fPressed_)
                 Frame::Redraw();
                 break;
             }
-
-            case actFlushPrintJob:
-                IO::InitParallel();
-                Frame::SetStatus("Flushed active print job");
-                break;
-
-            case actPrinterOnline:
-                SetOption(printeronline, !GetOption(printeronline));
-                Frame::SetStatus("Printer %s", GetOption(printeronline) ? "ONLINE" : "OFFLINE");
-                break;
         }
     }
 
