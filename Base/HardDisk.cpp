@@ -149,14 +149,14 @@ RS_IDE;
 }
 
 
-static void SetIdentityString (char* psz_, int nLen_, const char* pcszValue_)
+static void SetIdentityString (char* psz_, size_t uLen_, const char* pcszValue_)
 {
     // Copy the string, padding out the extra length with spaces
-    memset(psz_, ' ', nLen_);
-    memcpy(psz_, pcszValue_, nLen_ = strlen(pcszValue_));
+    memset(psz_, ' ', uLen_);
+    memcpy(psz_, pcszValue_, uLen_ = strlen(pcszValue_));
 
     // Byte-swap the string for the expected endian
-    for (int i = 0 ; i < nLen_ ; i += 2)
+    for (size_t i = 0 ; i < uLen_ ; i += 2)
         swap(psz_[i], psz_[i+1]);
 }
 

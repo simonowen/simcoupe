@@ -110,7 +110,7 @@ static const TOKEN asVariables[] =
     {NULL}
 };
 
-const TOKEN* LookupToken (const char* pcsz_, UINT uLen_, const TOKEN* pTokens_)
+const TOKEN* LookupToken (const char* pcsz_, size_t uLen_, const TOKEN* pTokens_)
 {
     for ( ; pTokens_->pcsz ; pTokens_++)
         if (strlen(pTokens_->pcsz) == uLen_ && !memcmp(pcsz_, pTokens_->pcsz, uLen_))
@@ -310,17 +310,24 @@ bool Expr::Term (int n_/*=0*/)
 
     while (1)
     {
-        int i, nLen = 0;
+        int i;
+        size_t uLen = 0;
 
         // Check for an operator at the current precedence level
-        for (i = 0 ; asBinaryOps[n_][i].pcsz && memcmp(asBinaryOps[n_][i].pcsz, p, nLen=strlen(asBinaryOps[n_][i].pcsz)) ; i++);
+        for (i = 0 ; asBinaryOps[n_][i].pcsz ; i++)
+        {
+            // Check for a matching operator
+            uLen = strlen(asBinaryOps[n_][i].pcsz);
+            if (!memcmp(asBinaryOps[n_][i].pcsz, p, uLen))
+                break;
+        };
 
         // Fall back if not found
         if (!asBinaryOps[n_][i].pcsz)
             return true;
 
         // Skip the operator on the input
-        p += nLen;
+        p += uLen;
 
         // Recurse, and drop out if we hit a problem
         if (!(fLast ? Factor() : Term(n_+1)))
