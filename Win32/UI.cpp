@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // UI.cpp: Win32 user interface
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -348,7 +348,7 @@ bool GetSaveLoadFile (HWND hwndParent_, LPCSTR pcszFilters_, LPCSTR pcszDefExt_,
 
 bool InsertDisk (CDiskDevice* pDrive_)
 {
-    static char szFile[_MAX_PATH] = "";
+    char szFile[_MAX_PATH] = "";
     static bool fReadOnly = false;
 
     // Eject any current disk, and use the path and read-only status from it for the open dialogue box
@@ -543,7 +543,7 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
 
             case actSaveFloppy1:
                 if (GetOption(drive1) == dskImage && pDrive1->IsModified() && pDrive1->Flush())
-                    Frame::SetStatus("Saved changes to disk in drive 2");
+                    Frame::SetStatus("Saved changes to disk in drive 1");
                 break;
 
             case actInsertFloppy2:
@@ -1143,8 +1143,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_KEYUP:
         case WM_KEYDOWN:
         {
+            bool fAlt = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+
             // Function key?
-            if (wParam_ >= VK_F1 && wParam_ <= VK_F12)
+            if (wParam_ >= VK_F1 && wParam_ <= VK_F12 && !fAlt)
             {
                 // Read the current states of the control and shift keys
                 bool fCtrl  = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
@@ -1409,14 +1411,15 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                 case IDB_BROWSE:
                 {
                     bool fReadOnly = true;
-                    if (!GetSaveLoadFile(g_hwnd, "Binary files (*.bin)\0*.bin\0Data files (*.dat)\0*.dat\0All files (*.*)\0*.*\0",
+                    if (!GetSaveLoadFile(hdlg_, "Binary files (*.bin)\0*.bin\0Data files (*.dat)\0*.dat\0All files (*.*)\0*.*\0",
                                     NULL, szFile, sizeof szFile, &fReadOnly, fImport))
                         break;
 
-                    SetWindowText(GetDlgItem(hdlg_, IDE_FILE), szFile);
+                    SetDlgItemText(hdlg_, IDE_FILE, szFile);
                     SendDlgItemMessage(hdlg_, IDE_FILE, EM_SETSEL, _MAX_PATH, -1);
                     break;
                 }
+
                 case IDOK:
                 {
                     // Addresses in the first 16K are taken from ROM0
@@ -1474,8 +1477,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
     static bool fCompress = false, fNonRealWorld = false;
     static int nInsertInto = 1;
     static char szFile [_MAX_PATH] = "empty.dsk";
-    static DWORD dwESP;
-
+    static bool fPrompt;
     char sz[32];
 
 
@@ -1501,13 +1503,16 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
 
             SendDlgItemMessage(hdlg_, IDC_NON_REAL_WORLD, BM_SETCHECK, fNonRealWorld ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_SETCHECK, fCompress ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SetWindowText(GetDlgItem(hdlg_, IDE_NEWFILE), szFile);
+            SetDlgItemText(hdlg_, IDE_NEWFILE, szFile);
             SendMessage(hdlg_, WM_COMMAND, IDR_DISK_TYPE_DSK + nType, 0L);
 
 #ifndef USE_ZLIB
             // If Zlib is not available, hide the compression check-box
             ShowWindow(GetDlgItem(hdlg_, IDC_COMPRESS), SW_HIDE);
 #endif
+
+            // Prompt for overwrite confirmation
+            fPrompt = true;
 
             return TRUE;
         }
@@ -1528,8 +1533,11 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                 {
                     if (HIWORD(wParam_) == EN_CHANGE)
                     {
+                        // We'll need to check the modified file
+                        fPrompt = true;
+
                         // Fetch the modified text
-                        GetWindowText(GetDlgItem(hdlg_, IDE_NEWFILE), szFile, sizeof szFile);
+                        GetDlgItemText(hdlg_, IDE_NEWFILE, szFile, sizeof szFile);
 
                         int nLen = lstrlen(szFile);
                         if (nLen > 4)
@@ -1582,14 +1590,14 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                     if (!fCompress && fDotGz)
                     {
                         szFile[nLen - 3] = '\0';
-                        SetWindowText(GetDlgItem(hdlg_, IDE_NEWFILE), szFile);
+                        SetDlgItemText(hdlg_, IDE_NEWFILE, szFile);
                     }
 
                     // Add the .gz suffix when checked
                     else if (fCompress && !fDotGz)
                     {
                         lstrcat(szFile, ".gz");
-                        SetWindowText(GetDlgItem(hdlg_, IDE_NEWFILE), szFile);
+                        SetDlgItemText(hdlg_, IDE_NEWFILE, szFile);
                     }
 
                     break;
@@ -1606,10 +1614,17 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                 {
                     bool fReadOnly = true;
                     if (!GetSaveLoadFile(g_hwnd, szDiskFilters, NULL, szFile, sizeof szFile, &fReadOnly, false))
+                    {
+                        GetDlgItemText(hdlg_, IDE_NEWFILE, szFile, sizeof szFile);
                         break;
+                    }
 
-                    SetWindowText(GetDlgItem(hdlg_, IDE_NEWFILE), szFile);
+                    SetDlgItemText(hdlg_, IDE_NEWFILE, szFile);
                     SendDlgItemMessage(hdlg_, IDE_NEWFILE, EM_SETSEL, _MAX_PATH, -1);
+
+                    // No need to prompt as the common dialog checked it for us
+                    fPrompt = false;
+
                     break;
                 }
 
@@ -1644,7 +1659,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                     // Update the file edit control, restoring the caret to the same position
                     DWORD dwStart = 0, dwEnd = 0;
                     SendDlgItemMessage(hdlg_, IDE_NEWFILE, EM_GETSEL, (WPARAM)&dwStart, (LPARAM)&dwEnd);
-                    SetWindowText(GetDlgItem(hdlg_, IDE_NEWFILE), szFile);
+                    SetDlgItemText(hdlg_, IDE_NEWFILE, szFile);
                     SendDlgItemMessage(hdlg_, IDE_NEWFILE, EM_SETSEL, dwStart, dwEnd);
 
                     // Enable only the geometry parameters that can be modified for this image type
@@ -1745,7 +1760,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                 {
                     // Does the file already exist?
                     DWORD dwAttrs = GetFileAttributes(szFile);
-                    if (dwAttrs != 0xffffffff)
+                    if (fPrompt && dwAttrs != 0xffffffff)
                     {
                         char szWarning[512];
                         wsprintf(szWarning, "%s already exists!\n\nOverwrite existing file?", szFile);
@@ -1792,7 +1807,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
 
                     // If we're to insert the new disk into a drive, do so now
                     if ((nInsertInto == 1 && pDrive1->Insert(szFile)) || (nInsertInto == 2 && pDrive2->Insert(szFile)))
-                        Frame::SetStatus("New disk inserted into drive %d\n", nInsertInto);
+                        Frame::SetStatus("New disk inserted into drive %d", nInsertInto);
                     else if (nInsertInto)
                         TRACE("!!! Failed to insert new disk!\n");
 
@@ -2010,8 +2025,7 @@ BOOL CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
             static const char* aszExternal[] = { "None", "1MB", "2MB", "3MB", "4MB", NULL };
             SetComboStrings(hdlg_, IDC_EXTERNAL_MEMORY, aszExternal, GetOption(externalmem));
 
-            SetWindowText(GetDlgItem(hdlg_, IDE_ROM0), GetOption(rom0));
-            SetWindowText(GetDlgItem(hdlg_, IDE_ROM1), GetOption(rom1));
+            SetDlgItemText(hdlg_, IDE_ROM, GetOption(rom));
 
             SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_SETCHECK, GetOption(fastreset) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
@@ -2025,14 +2039,13 @@ BOOL CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                 SetOption(mainmem, static_cast<int>((SendDlgItemMessage(hdlg_, IDC_MAIN_MEMORY, CB_GETCURSEL, 0, 0L) + 1) << 8));
                 SetOption(externalmem, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_EXTERNAL_MEMORY, CB_GETCURSEL, 0, 0L)));
 
-                GetWindowText(GetDlgItem(hdlg_, IDE_ROM0), const_cast<char*>(GetOption(rom0)), MAX_PATH);
-                GetWindowText(GetDlgItem(hdlg_, IDE_ROM1), const_cast<char*>(GetOption(rom1)), MAX_PATH);
+                GetDlgItemText(hdlg_, IDE_ROM, const_cast<char*>(GetOption(rom)), MAX_PATH);
 
                 SetOption(fastreset, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_GETCHECK, 0, 0L) == BST_CHECKED));
 
 /*
                 // Perform an automatic reset if anything changed (if used we'll need a warning message on property sheet!)
-                if (Changed(mainmem) || Changed(externalmem) || ChangedString(rom0) || ChangedString(rom1))
+                if (Changed(mainmem) || Changed(externalmem) || ChangedString(rom))
                     InterruptType = Z80_reset;
 */
             }
@@ -2042,7 +2055,23 @@ BOOL CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
 
         case WM_COMMAND:
         {
-//          SendMessage(GetParent(hdlg_), PSM_CHANGED, reinterpret_cast<WPARAM>(hdlg_), 0L);
+            switch (LOWORD(wParam_))
+            {
+                case IDB_BROWSE:
+                {
+                    char szFile[_MAX_PATH] = "";
+                    bool fReadOnly = true;
+
+                    if (!GetSaveLoadFile(hdlg_, "ROM images (*.rom)\0*.rom\0All files (*.*)\0*.*\0",
+                                    NULL, szFile, sizeof szFile, &fReadOnly, true))
+                        break;
+
+                    SetDlgItemText(hdlg_, IDE_ROM, szFile);
+                    SendDlgItemMessage(hdlg_, IDE_ROM, EM_SETSEL, _MAX_PATH, -1);
+                    break;
+                }
+
+            }
             break;
         }
     }
@@ -2216,21 +2245,18 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             static const char* aszBits[] = { "8-bit", "16-bit", NULL };
             SetComboStrings(hdlg_, IDC_SAMPLE_SIZE, aszBits, (GetOption(bits) >> 3)-1);
 
-            SendDlgItemMessage(hdlg_, IDC_STEREO, BM_SETCHECK, GetOption(stereo) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_FILTER, BM_SETCHECK, GetOption(filter) ? BST_CHECKED : BST_UNCHECKED, 0L);
-
-            SendDlgItemMessage(hdlg_, IDC_BEEPER, BM_SETCHECK, GetOption(beeper) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_SAASOUND_ENABLED, BM_SETCHECK, GetOption(saasound) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_SOUND_ENABLED, BM_SETCHECK, GetOption(sound) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendMessage(hdlg_, WM_COMMAND, IDC_SOUND_ENABLED, 0L);
-
-
             static const char* aszLatency[] = { "1 frame (best)", "2 frames", "3 frames", "4 frames", "5 frames (default)",
                                                 "10 frames", "15 frames", "20 frames", "25 frames", NULL };
             int nLatency = GetOption(latency);
             nLatency = (nLatency <= 5 ) ? nLatency - 1 : nLatency/5 + 3;
             SetComboStrings(hdlg_, IDC_LATENCY, aszLatency, nLatency);
 
+            SendDlgItemMessage(hdlg_, IDC_SOUND_ENABLED, BM_SETCHECK, GetOption(sound) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_SAASOUND_ENABLED, BM_SETCHECK, GetOption(saasound) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_BEEPER, BM_SETCHECK, GetOption(beeper) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_STEREO, BM_SETCHECK, GetOption(stereo) ? BST_CHECKED : BST_UNCHECKED, 0L);
+
+            SendMessage(hdlg_, WM_COMMAND, IDC_SOUND_ENABLED, 0L);
             break;
         }
 
@@ -2238,15 +2264,13 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
-                SetOption(freq, 11025 * (1 << SendDlgItemMessage(hdlg_, IDC_FREQ, CB_GETCURSEL, 0, 0L)));
-                SetOption(bits, static_cast<int>((SendDlgItemMessage(hdlg_, IDC_SAMPLE_SIZE, CB_GETCURSEL, 0, 0L) + 1)) << 3);
-
-                SetOption(stereo, SendDlgItemMessage(hdlg_, IDC_STEREO, BM_GETCHECK,  0, 0L) == BST_CHECKED);
-                SetOption(filter, SendDlgItemMessage(hdlg_, IDC_FILTER, BM_GETCHECK,  0, 0L) == BST_CHECKED);
-
                 SetOption(sound, SendDlgItemMessage(hdlg_, IDC_SOUND_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(beeper, SendDlgItemMessage(hdlg_, IDC_BEEPER, BM_GETCHECK,  0, 0L) == BST_CHECKED);
                 SetOption(saasound, SendDlgItemMessage(hdlg_, IDC_SAASOUND_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+
+                SetOption(freq, 11025 * (1 << SendDlgItemMessage(hdlg_, IDC_FREQ, CB_GETCURSEL, 0, 0L)));
+                SetOption(bits, static_cast<int>((SendDlgItemMessage(hdlg_, IDC_SAMPLE_SIZE, CB_GETCURSEL, 0, 0L) + 1)) << 3);
+                SetOption(stereo, SendDlgItemMessage(hdlg_, IDC_STEREO, BM_GETCHECK,  0, 0L) == BST_CHECKED);
 
                 int nLatency = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_LATENCY, CB_GETCURSEL, 0, 0L));
                 nLatency = (nLatency < 5) ? nLatency + 1 : (nLatency - 3) * 5;
@@ -2254,7 +2278,7 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
 
 
                 if (Changed(sound) || Changed(saasound) || Changed(beeper) ||
-                    Changed(freq) || Changed(bits) || Changed(stereo) || Changed(filter) || Changed(latency))
+                     Changed(freq) || Changed(bits) || Changed(stereo) || Changed(latency))
                     Sound::Init();
 
                 if (Changed(beeper))
@@ -2274,25 +2298,20 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 {
                     bool fSound = (SendDlgItemMessage(hdlg_, IDC_SOUND_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
-                    EnableWindow(GetDlgItem(hdlg_, IDS_LATENCY), fSound);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_LATENCY), fSound);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_STEREO), fSound);
+                    EnableWindow(GetDlgItem(hdlg_, IDS_FREQ), fSound);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_FREQ), fSound);
+                    EnableWindow(GetDlgItem(hdlg_, IDS_SAMPLE_SIZE), fSound);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_SAMPLE_SIZE), fSound);
+
                     EnableWindow(GetDlgItem(hdlg_, IDC_SAASOUND_ENABLED), fSound);
                     EnableWindow(GetDlgItem(hdlg_, IDC_BEEPER), fSound);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_STEREO), fSound);
+                    EnableWindow(GetDlgItem(hdlg_, IDS_LATENCY), fSound);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_LATENCY), fSound);
 
-#ifdef USE_SAASOUND
-                    bool fSAA = fSound && (SendDlgItemMessage(hdlg_, IDC_SAASOUND_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-#else
-                    bool fSAA = false;
+#ifndef USE_SAASOUND
                     EnableWindow(GetDlgItem(hdlg_, IDC_SAASOUND_ENABLED), false);
 #endif
-
-                    EnableWindow(GetDlgItem(hdlg_, IDS_FREQ), fSAA);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_FREQ), fSAA);
-                    EnableWindow(GetDlgItem(hdlg_, IDS_SAMPLE_SIZE), fSAA);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_SAMPLE_SIZE), fSAA);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_FILTER), false);     // Not supported by SAASound yet
-
                     break;
                 }
             }
@@ -2354,12 +2373,12 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 if (lDrive1 == 2)
                     SetOption(disk1, OSD::GetFloppyDevice(1));
                 else
-                    GetWindowText(GetDlgItem(hdlg_, IDE_IMAGE1), const_cast<char*>(GetOption(disk1)), MAX_PATH);
+                    GetDlgItemText(hdlg_, IDE_IMAGE1, const_cast<char*>(GetOption(disk1)), MAX_PATH);
 
                 if (lDrive2 == 2)
                     SetOption(disk2, OSD::GetFloppyDevice(2));
                 else
-                    GetWindowText(GetDlgItem(hdlg_, IDE_IMAGE2), const_cast<char*>(GetOption(disk2)), MAX_PATH);
+                    GetDlgItemText(hdlg_, IDE_IMAGE2, const_cast<char*>(GetOption(disk2)), MAX_PATH);
 
                 if (Changed(drive1) || Changed(drive2))
                     IO::InitDrives();
@@ -2400,8 +2419,8 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                     bool fFloppy = (lType == 1);
 
                     EnableWindow(GetDlgItem(hdlg_, IDE_IMAGE1), fFloppy);
-                    SetWindowText(GetDlgItem(hdlg_, IDE_IMAGE1), (lType == 1) ? GetOption(disk1) :
-                                                                 (lType == 2) ? OSD::GetFloppyDevice(1) : "");
+                    SetDlgItemText(hdlg_, IDE_IMAGE1, (lType == 1) ? GetOption(disk1) :
+                                                      (lType == 2) ? OSD::GetFloppyDevice(1) : "");
                     SendDlgItemMessage(hdlg_, IDE_IMAGE1, EM_SETSEL, _MAX_PATH, -1);
 
                     EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE1), fFloppy);
@@ -2416,8 +2435,8 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                     bool fFloppy = (lType == 1);
 
                     EnableWindow(GetDlgItem(hdlg_, IDE_IMAGE2), fFloppy);
-                    SetWindowText(GetDlgItem(hdlg_, IDE_IMAGE2), (lType == 1) ? GetOption(disk2) :
-                                                                 (lType == 2) ? OSD::GetFloppyDevice(2) : "");
+                    SetDlgItemText(hdlg_, IDE_IMAGE2, (lType == 1) ? GetOption(disk2) :
+                                                      (lType == 2) ? OSD::GetFloppyDevice(2) : "");
                     SendDlgItemMessage(hdlg_, IDE_IMAGE2, EM_SETSEL, _MAX_PATH, -1);
 
                     EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE2), fFloppy);
@@ -2443,11 +2462,11 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 case IDB_BROWSE1:
                 {
                     char sz[_MAX_PATH];
-                    GetWindowText(GetDlgItem(hdlg_, IDE_IMAGE1), sz, sizeof sz);
+                    GetDlgItemText(hdlg_, IDE_IMAGE1, sz, sizeof sz);
                     bool fReadOnly = false;
                     if (GetSaveLoadFile(hdlg_, szDiskFilters, NULL, sz, sizeof sz, &fReadOnly, true))
                     {
-                        SetWindowText(GetDlgItem(hdlg_, IDE_IMAGE1), sz);
+                        SetDlgItemText(hdlg_, IDE_IMAGE1, sz);
                         SendDlgItemMessage(hdlg_, IDE_IMAGE1, EM_SETSEL, _MAX_PATH, -1);
                     }
 
@@ -2457,11 +2476,11 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 case IDB_BROWSE2:
                 {
                     char sz[_MAX_PATH];
-                    GetWindowText(GetDlgItem(hdlg_, IDE_IMAGE2), sz, sizeof sz);
+                    GetDlgItemText(hdlg_, IDE_IMAGE2, sz, sizeof sz);
                     bool fReadOnly = false;
                     if (GetSaveLoadFile(hdlg_, szDiskFilters, NULL, sz, sizeof sz, &fReadOnly, true))
                     {
-                        SetWindowText(GetDlgItem(hdlg_, IDE_IMAGE2), sz);
+                        SetDlgItemText(hdlg_, IDE_IMAGE2, sz);
                         SendDlgItemMessage(hdlg_, IDE_IMAGE2, EM_SETSEL, _MAX_PATH, -1);
                     }
 
@@ -2479,12 +2498,12 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                     break;
 
                 case IDB_EJECT1:
-                    SetWindowText(GetDlgItem(hdlg_, IDE_IMAGE1), "");
+                    SetDlgItemText(hdlg_, IDE_IMAGE1, "");
                     EnableWindow(GetDlgItem(hdlg_, IDB_EJECT1), false);
                     break;
 
                 case IDB_EJECT2:
-                    SetWindowText(GetDlgItem(hdlg_, IDE_IMAGE2), "");
+                    SetDlgItemText(hdlg_, IDE_IMAGE2, "");
                     EnableWindow(GetDlgItem(hdlg_, IDB_EJECT2), false);
                     break;
             }
