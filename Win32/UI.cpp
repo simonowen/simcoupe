@@ -64,9 +64,7 @@ void SetComboStrings (HWND hdlg_, UINT uID_, const char** ppcsz_, int nDefault_=
 void DisplayOptions ();
 bool DoAction (int nAction_, bool fPressed_=true);
 
-bool g_fActive = true;
-bool g_fTestMode = false;
-bool g_fFrameStep = false;
+bool g_fActive = true, g_fFrameStep = false, g_fTestMode = false;
 
 
 HINSTANCE __hinstance;
@@ -622,16 +620,16 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 // Run for one frame then pause
                 static int nFrameSkip = 0;
 
-                g_fPaused = g_fFrameStep = !g_fFrameStep;
-                if (g_fFrameStep)
+                // On first entry, save the current frameskip setting
+                if (!g_fFrameStep)
                 {
                     nFrameSkip = GetOption(frameskip);
-                    // Make sure that one frame is drawn
-                    SetOption(frameskip, 1);
+                    g_fFrameStep = true;
                 }
-                else
-                    SetOption(frameskip, nFrameSkip);
-            }   // Fall through to actPause...
+
+                SetOption(frameskip, g_fPaused ? 1 : nFrameSkip);
+            }
+            // Fall through to actPause...
 
             case actPause:
             {
@@ -646,9 +644,10 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 {
                     Sound::Play();
                     SetWindowText(g_hwnd, WINDOW_CAPTION);
+                    g_fFrameStep = (nAction_ == actFrameStep);
                 }
 
-                Video::CreatePalettes(g_fPaused && (nAction_ == actPause));
+                Video::CreatePalettes();
 
                 Frame::Redraw();
                 Input::Purge();
