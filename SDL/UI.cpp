@@ -375,7 +375,7 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actDisplayOptions:
-                GUI::Start(new CTestDialog);
+                GUI::Start(new COptionsDialog);
                 break;
 
             case actExitApplication:
