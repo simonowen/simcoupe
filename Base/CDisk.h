@@ -130,11 +130,10 @@ TD0_DATA;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
 // Track header on each track in the SDF disk image
 typedef struct
 {
-    BYTE    bSectors;       // Number of sectors on this track
+    BYTE    bSectors;           // Number of sectors on this track
 
     // Block of 'bSectors' SECTOR_HEADER structures follow...
 }
@@ -143,17 +142,58 @@ SDF_TRACK_HEADER;
 // Sector header on each sector in the SDF disk image
 typedef struct
 {
-    BYTE    bIdStatus;      // Status error bits for after READ_ADDRESS command
-    BYTE    bDataStatus;    // Status error bits for after READ_XSECTOR commands
+    BYTE    bIdStatus;          // Status error bits for after READ_ADDRESS command
+    BYTE    bDataStatus;        // Status error bits for after READ_XSECTOR commands
 
-    IDFIELD sIdField;       // ID field containing sector details
+    IDFIELD sIdField;           // ID field containing sector details
 
     // Sector data follows here unless bIdStatus indicates an error (size is MIN_SECTOR_SIZE << sIdField.bSize)
 }
 SDF_SECTOR_HEADER;
 
+////////////////////////////////////////////////////////////////////////////////
 
-enum { dtUnknown, dtFloppy, dtFile, dtSDF, dtTD0, dtSAD, dtDSK, dtSBT };
+#define FDI_SIGNATURE           "FDI"
+
+typedef struct
+{
+    BYTE    abSignature[3];         // "FDI"
+    BYTE    bWriteProtect;          // Non-zero if write-protected
+    BYTE    bTracks[2];             // Tracks per side
+    BYTE    bSides[2];              // Disk sides
+    BYTE    bDescOffset[2];         // Offset of disk description
+    BYTE    bDataOffset[2];         // Data offset
+    BYTE    bExtraSize[2];          // Length of additional header in following field
+//  BYTE    abExtra[];              // Additional data
+                                    // Description data here (if description offset is non-zero)
+                                    // Main data starts here
+}
+FDI_HEADER;
+
+typedef struct
+{
+    BYTE    abTrackOffset[4];       // Track data offset, relative to start of main data block
+    BYTE    abReserved[2];          // Reserved (should be zero)
+    BYTE    bSectors;               // Number of sectors in track
+                                    // bSectors * FDI_SECTOR_HEADER structures follow here
+}
+FDI_TRACK_HEADER;
+
+typedef struct
+{
+    BYTE    bTrack;             // Track number in ID field
+    BYTE    bSide;              // Side number in ID field
+    BYTE    bSector;            // Sector number in ID field
+    BYTE    bSize;              // Sector size indicator:  (128 << bSize) gives the real size
+    BYTE    bFlags;             // Flags detailing special sector conditions
+    BYTE    bSectorOffset[2];   // Offset of sector data, relative to start of track data
+}
+FDI_SECTOR_HEADER;
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+enum { dtUnknown, dtFloppy, dtFile, dtFDI, dtSDF, dtTD0, dtSAD, dtDSK, dtSBT };
 
 class CDisk
 {
@@ -187,7 +227,7 @@ class CDisk
         virtual bool Save () = 0;
 
         virtual bool ReadTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_) { return false; }
-        virtual BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_) = 0;
+        virtual BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) = 0;
 
         virtual bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_) { return false; }
         virtual bool WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_) { return false; }
@@ -222,7 +262,7 @@ class CDSKDisk : public CDisk
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
 
     protected:
         bool m_fIMG;    // true if this is really an IMG rather than DSK image
@@ -244,7 +284,7 @@ class CSADDisk : public CDisk
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
 };
 
 
@@ -265,7 +305,7 @@ class CTD0Disk : public CDisk
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
         bool ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
 
     protected:
         void UnpackData (TD0_SECTOR* ps_, BYTE* pbSector_);
@@ -295,11 +335,37 @@ class CSDFDisk : public CDisk
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
         bool ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
 
     protected:
         SDF_TRACK_HEADER* m_pTrack;     // Last track
         SDF_SECTOR_HEADER* m_pFind;     // Last sector found with FindNext()
+};
+
+
+class CFDIDisk : public CDisk
+{
+    public:
+        CFDIDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=MAX_DISK_TRACKS);
+        virtual ~CFDIDisk () { if (IsModified()) Save(); }
+
+    public:
+        static bool IsRecognised (CStream* pStream_);
+
+    public:
+        UINT FindInit (UINT uSide_, UINT uTrack_);
+        bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
+        BYTE ReadData (BYTE* pbData_, UINT* puSize_);
+        BYTE WriteData (BYTE* pbData_, UINT* puSize_);
+        bool Save ();
+        bool ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
+
+    protected:
+        BYTE m_abData[MAX_DISK_SIDES][MAX_DISK_TRACKS][MAX_TRACK_SIZE];
+
+        FDI_TRACK_HEADER* m_pTrack;     // Last track
+        FDI_SECTOR_HEADER* m_pFind;     // Last sector found with FindNext()
 };
 
 
@@ -316,7 +382,7 @@ class CFloppyDisk : public CDisk
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
         bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_);
         bool WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_);
         void AbortAsyncOp ();
@@ -339,7 +405,7 @@ class CFileDisk : public CDisk
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
 
     protected:
         UINT  m_uSize;
