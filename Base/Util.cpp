@@ -2,7 +2,7 @@
 //
 // Util.cpp: Logging, tracing, and other utility tasks
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //  Copyright (c) 1996-2002  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -41,8 +41,6 @@
 
 
 static const int TRACE_BUFFER_SIZE = 2048;
-
-static FILE* hLogFile = NULL;
 static char* s_pszTrace;
 
 
@@ -54,22 +52,32 @@ bool Util::Init ()
         return false;
     }
 
-    OpenLog();
-
     return true;
 }
 
 
 void Util::Exit ()
 {
-    CloseLog();
-
     if (s_pszTrace) { delete[] s_pszTrace; s_pszTrace = NULL; }
 }
 
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
+int Util::GetUniqueFile (const char* pcszTemplate_, int nNext_, char* psz_, int cb_)
+{
+    char sz[MAX_PATH];
+    struct stat st;
+
+    do {
+        sprintf(sz, pcszTemplate_, nNext_++);
+    } while (!::stat(sz, &st));
+
+    strncpy(psz_, sz, cb_);
+    return nNext_;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 // Report an info, warning, error or fatal message.  Exit if a fatal message has been reported
 void Message (eMsgType eType_, const char* pcszFormat_, ...)
@@ -94,13 +102,6 @@ void Message (eMsgType eType_, const char* pcszFormat_, ...)
     // Write to the debugger
     TRACE("%s\n", szMessage);
 
-    // Write to file, if open
-    if (hLogFile)
-    {
-        fputs(szMessage, hLogFile);
-        fputc('\n', hLogFile);
-    }
-
     UI::ShowMessage(eType_, pszMessage);
 
     // Fatal error?
@@ -113,24 +114,7 @@ void Message (eMsgType eType_, const char* pcszFormat_, ...)
     }
 }
 
-// Log file utilities
-bool OpenLog ()
-{
-    if (!*GetOption(logfile) || (hLogFile = fopen(GetOption(logfile), "w")))
-        return true;
-
-    Message(msgWarning, "Can't open log file:\n\n%s", GetOption(logfile));
-    return false;
-}
-
-void CloseLog ()
-{
-    if (hLogFile)
-        fclose(hLogFile);
-}
-
 ////////////////////////////////////////////////////////////////////////////////
-
 
 #ifndef _DEBUG
 
