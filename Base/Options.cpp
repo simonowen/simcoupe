@@ -74,13 +74,14 @@ OPTION aOptions[] =
 
     OPT("Drive1",       OT_INT,     drive1,         1),         // Floppy drive 1 present
     OPT("Drive2",       OT_INT,     drive2,         1),         // Floppy drive 2 present
+    OPT("AutoBoot",     OT_BOOL,    autoboot,       false),     // Don't auto-boot inserted disk
+    OPT("TurboLoad",    OT_INT,     turboload,      15),        // Accelerate disk access (medium sensitivity)
+
     OPT("Disk1",        OT_STRING,  disk1,          ""),        // No disk in floppy drive 1
     OPT("Disk2",        OT_STRING,  disk2,          ""),        // No disk in floppy drive 2
     OPT("AtomDisk",     OT_STRING,  atomdisk,       ""),        // No Atom hard disk
     OPT("SDIDEDisk",    OT_STRING,  sdidedisk,      ""),        // No SD IDE hard disk
     OPT("YATBusDisk",   OT_STRING,  yatbusdisk,     ""),        // No YAMOD.ATBUS disk
-    OPT("AutoBoot",     OT_BOOL,    autoboot,       false),     // Don't auto-boot inserted disk
-    OPT("TurboLoad",    OT_INT,     turboload,      15),        // Accelerate disk access (medium sensitivity)
 
     OPT("KeyMapping",   OT_INT,     keymapping,     1),         // SAM keyboard mapping
     OPT("AltForCntrl",  OT_BOOL,    altforcntrl,    false),     // Left-Alt not used for SAM Cntrl

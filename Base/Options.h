@@ -44,13 +44,14 @@ typedef struct
 
     int     drive1;                 // Drive 1 type
     int     drive2;                 // Drive 2 type
+    bool    autoboot;               // Autoboot drive 1 on first startup?
+    int     turboload;              // 0 for disabled, or sensitivity in number of frames
+
     char    disk1[MAX_PATH];        // Floppy disk image in drive 1
     char    disk2[MAX_PATH];        // Floppy disk image in drive 2
     char    atomdisk[MAX_PATH];     // Hard disk image for Atom
     char    sdidedisk[MAX_PATH];    // Hard disk image for SD IDE interface
     char    yatbusdisk[MAX_PATH];   // Hard disk image for YAMOD.ATBUS interface
-    bool    autoboot;               // Autoboot drive 1 on first startup?
-    int     turboload;              // 0 for disabled, or sensitivity in number of frames
 
     int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
     bool    altforcntrl;            // Non-zero if Left-Alt is used for SAM Cntrl
