@@ -58,9 +58,9 @@ CScreen::CScreen (int nWidth_, int nHeight_)
 
 CScreen::~CScreen ()
 {
-    if (m_pbFrame)  { delete[] m_pbFrame;  m_pbFrame = NULL; }
-    if (m_pfHiRes)  { delete[] m_pfHiRes;  m_pfHiRes = NULL; }
-    if (m_ppbLines) { delete[] m_ppbLines; m_ppbLines = NULL; }
+    delete[] m_pbFrame;
+    delete[] m_pfHiRes;
+    delete[] m_ppbLines;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -250,6 +250,11 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
             nWidth = pFont->wWidth - nShift;
         }
 
+#ifdef USE_LOWRES
+        // Double the width, to account for skipped pixels, and force an odd pixel position
+        nWidth <<= 1;
+        nX_ |= 1;
+#endif
         // Only draw the character if it's not a space, and the entire width fits inside the clipping area
         if (bChar != ' ' && (nX_ >= nClipX) && (nX_ < (nClipX+nClipWidth-nWidth)))
         {
@@ -262,6 +267,17 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
 
                 if (!fBold_)
                 {
+#ifdef USE_LOWRES
+                    // Draw ever other pixel, since they're the only visible ones in low-res mode
+                    if (bData & 0x80) pLine[0]  = bInk_;
+                    if (bData & 0x40) pLine[2]  = bInk_;
+                    if (bData & 0x20) pLine[4]  = bInk_;
+                    if (bData & 0x10) pLine[6]  = bInk_;
+                    if (bData & 0x08) pLine[8]  = bInk_;
+                    if (bData & 0x04) pLine[10] = bInk_;
+                    if (bData & 0x02) pLine[12] = bInk_;
+                    if (bData & 0x01) pLine[14] = bInk_;
+#else
                     if (bData & 0x80) pLine[0] = bInk_;
                     if (bData & 0x40) pLine[1] = bInk_;
                     if (bData & 0x20) pLine[2] = bInk_;
@@ -270,6 +286,7 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
                     if (bData & 0x04) pLine[5] = bInk_;
                     if (bData & 0x02) pLine[6] = bInk_;
                     if (bData & 0x01) pLine[7] = bInk_;
+#endif
                 }
                 else
                 {
@@ -305,8 +322,14 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
         nWidth += (*pChar & 0xf) + CHAR_SPACING + fBold_;
     }
 
-    // Return the width, not including the final space
-    return nWidth - CHAR_SPACING;
+    // Don't include the trailing space
+    nWidth -= CHAR_SPACING;
+
+#ifdef USE_LOWRES
+    return nWidth << 1; // Double-spaced pixels need twice the room
+#else
+    return nWidth;
+#endif
 }
 
 /*static*/ void CScreen::SetFont (const GUIFONT* pFont_, bool fFixedWidth_/*=false*/)
