@@ -43,6 +43,7 @@
 #endif
 
 #include "CPU.h"
+#include "GUI.h"
 #include "IO.h"
 #include "Options.h"
 #include "Profile.h"
@@ -160,7 +161,7 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
         TRACE("Sound disabled, nothing to initialise\n");
     else if (!InitDirectSound())
     {
-        TRACE("DirectX initialisation failed\n");
+        TRACE("Sound initialisation failed\n");
         SetOption(sound,0);
     }
     else
@@ -193,9 +194,11 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
             SetOption(sound,0);
             Exit();
         }
-    }
 
-    Play();
+        // Start playing now unless the GUI is active
+        if (!GUI::IsActive())
+            Play();
+    }
 
     // Sound initialisation failure isn't fatal, so always return success
     TRACE("<- Sound::Init()\n");
