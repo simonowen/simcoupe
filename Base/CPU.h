@@ -59,7 +59,7 @@ class CPU
 
 extern DWORD g_dwCycleCounter;
 extern int g_nLine, g_nLineCycle, g_nPrevLineCycle;
-extern bool g_fFlashPhase, g_fFrameEnd, g_fPaused, g_fTurbo, g_fDebugging;
+extern bool g_fFrameEnd, g_fPaused, g_fTurbo;
 extern int g_nFastBooting;
 
 
