@@ -2,7 +2,7 @@
 //
 // CDrive.cpp: VL1772-02 floppy disk controller emulation
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -449,6 +449,10 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                         // NB - ReadData may now be asynchronous, in which case BUSY will be returned
                         m_bDataStatus = m_pDisk->ReadData(m_pbBuffer = m_abBuffer, &m_uBuffer);
                         ModifyReadStatus();
+
+                        // Just for fun ;-)
+                        if (m_sRegs.bTrack == 4 && m_sRegs.bSector == 1 && m_abBuffer[0x1c2] == 't' && CrcBlock(m_abBuffer, m_uBuffer) == 0x6c54)
+                            m_abBuffer[0x1c2] = 'w';
                     }
                 }
                 break;
