@@ -86,6 +86,7 @@ AREA asViews[] =
     { 0, WIDTH_BLOCKS, 0, HEIGHT_LINES },
 };
 
+void DrawOSD ();
 
 const AREA* GetViewArea ()
 {
@@ -170,7 +171,6 @@ void Update ()
 
     ProfileStart(Gfx);
 
-
     // Work out the line and block for the current position
     int nLine = g_nLine, nBlock = g_nLineCycle >> 3;
 
@@ -191,6 +191,8 @@ void Update ()
     // We've got multiple lines to update
     else
     {
+        CFrame* pLast = NULL;
+
         // Restrict the range of lines to the visible area
         int nFrom = max(nLastLine, s_nViewTop), nTo = min(nLine, s_nViewBottom-1);
 
@@ -214,6 +216,9 @@ void Update ()
 
                 // Exclude the line from the block as we've drawn it now
                 nTo--;
+
+                // Save the current render object to leave as set when we're done
+                pLast = g_pFrame;
             }
 
             // Draw any full lines in between
@@ -223,6 +228,10 @@ void Update ()
                 g_pScreen->SetHiRes(i-s_nViewTop, fHiRes);
                 (g_pFrame = fHiRes ? pFrameHigh : pFrameLow)->UpdateLine(i, 0, WIDTH_BLOCKS);
             }
+
+            // If the last line drawn was incomplete, restore the rendered used for it
+            if (pLast)
+                g_pFrame = pLast;
         }
 
         // Remember the current scan position so we can continue from it next time
@@ -269,8 +278,10 @@ void End ()
         if (szScreenPath[0])
             SaveFrame(szScreenPath);
 
-        // Draw the changes from the last frame
-        Frame::Redraw();
+        // Draw the on-screen indicators, flip buffer, and display the completed frame
+        DrawOSD();
+        Flip();
+        Redraw();
     }
 
     // Next frame
@@ -330,11 +341,59 @@ void Clear ()
 
 void Redraw ()
 {
-    if (!pDrive1)
-        return;
+    // Draw the last complete frame
+    Display::Update(g_pLastScreen);
+}
 
+
+// Flip buffers, so we can start working on the new frame
+void Flip ()
+{
     ProfileStart(Gfx);
 
+    int nHeight = g_pScreen->GetHeight();
+
+    DWORD* pdwA = reinterpret_cast<DWORD*>(g_pScreen->GetLine(0));
+    DWORD* pdwB = reinterpret_cast<DWORD*>(g_pLastScreen->GetLine(0));
+    int nPitchDW = g_pScreen->GetPitch() >> 2;
+
+    // Time to work out what changed since the last frame
+    for (int i = 0 ; i < nHeight ; i++)
+    {
+        // Are the lines different resolutions?
+        if (g_pScreen->IsHiRes(i) != g_pLastScreen->IsHiRes(i))
+            Display::SetDirty(i);
+        else
+        {
+            int nWidth = g_pScreen->GetWidth(i) >> 2;
+
+            // Scan the line width
+            for (int j = 0 ; j < nWidth ; j += 4)
+            {
+                // Check for differences 4 DWORDs at a time
+                if (pdwA[j] != pdwB[j] || pdwA[j+1] != pdwB[j+1] || pdwA[j+2] != pdwB[j+2] || pdwA[j+3] != pdwB[j+3])
+                {
+                    Display::SetDirty(i);
+                    break;
+                }
+            }
+        }
+
+        pdwA += nPitchDW;
+        pdwB += nPitchDW;
+    }
+
+    // Swap pointers to the current screen becomes the last screen
+    swap(g_pScreen, g_pLastScreen);
+
+    ProfileEnd();
+}
+
+
+// Draw on-screen display indicators, such as the floppy LEDs and the status text
+void DrawOSD ()
+{
+    ProfileStart(Gfx);
 
     // Drive LEDs enabled?
     if (GetOption(drivelights))
@@ -372,56 +431,8 @@ void Redraw ()
         Debug::Display(g_pScreen);
 
     ProfileEnd();
-
-    // Flip the last drawn image to the back ready for the new frame (and work out what changed since last time)
-    Flip();
-
-    Display::Update(g_pScreen);
-
-    // Flip the buffers so we can start composing the new frame
-    swap(g_pScreen, g_pLastScreen);
 }
 
-
-
-void Flip ()
-{
-    ProfileStart(Gfx);
-
-    int nHeight = g_pScreen->GetHeight();
-
-    DWORD* pdwA = reinterpret_cast<DWORD*>(g_pScreen->GetLine(0));
-    DWORD* pdwB = reinterpret_cast<DWORD*>(g_pLastScreen->GetLine(0));
-    int nPitchDW = g_pScreen->GetPitch() >> 2;
-
-    // Time to work out what changed since the last frame
-    for (int i = 0 ; i < nHeight ; i++)
-    {
-        // Are the lines different resolutions?
-        if (g_pScreen->IsHiRes(i) != g_pLastScreen->IsHiRes(i))
-            Display::SetDirty(i);
-        else
-        {
-            int nWidth = g_pScreen->GetWidth(i) >> 2;
-
-            // Scan the line width
-            for (int j = 0 ; j < nWidth ; j += 4)
-            {
-                // Check for differences 4 DWORDs at a time
-                if (pdwA[j] != pdwB[j] || pdwA[j+1] != pdwB[j+1] || pdwA[j+2] != pdwB[j+2] || pdwA[j+3] != pdwB[j+3])
-                {
-                    Display::SetDirty(i);
-                    break;
-                }
-            }
-        }
-
-        pdwA += nPitchDW;
-        pdwB += nPitchDW;
-    }
-
-    ProfileEnd();
-}
 
 // Save the frame image to a file
 void SaveFrame (const char* pcszPath_/*=NULL*/)
