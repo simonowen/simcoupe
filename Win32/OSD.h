@@ -35,6 +35,7 @@ class OSD
         static PROFILE_T GetProfileTime ();
         static DWORD GetTime ();
         static const char* GetFilePath (const char* pcszFile_="");
+        static const char* GetFloppyDevice (int nDrive_);
         static bool IsHidden (const char* pcszFile_);
 
         static void DebugTrace (const char* pcsz_);
@@ -52,6 +53,7 @@ class OSD
 #include <mmsystem.h>
 #include <sys\types.h>  // for _off_t etc.
 #include <direct.h>     // for _mkdir
+#include <stdio.h>      // for FILE structure
 
 #pragma include_alias(<io.h>, <..\Include\IO.h>)
 #include <io.h>
@@ -81,11 +83,18 @@ class OSD
 
 #define strcasecmp  _strcmpi
 #define mkdir(p,m)  _mkdir(p)
+
 #define access      _access
+#define R_OK        4
+#define W_OK        2
+#define X_OK        1
+#define F_OK        0
 
 #define _S_ISTYPE(mode,mask)    (((mode) & _S_IFMT) == (mask))
 #define S_ISDIR(mode)           _S_ISTYPE((mode), _S_IFDIR)
 #define S_ISREG(mode)           _S_ISTYPE((mode), _S_IFREG)
+#define S_ISBLK(mode)           0
+#define S_ISLNK(mode)           0
 
 
 // Windows lacks direct.h, so we'll supply our own
