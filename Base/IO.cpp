@@ -2,7 +2,7 @@
 //
 // IO.cpp: SAM I/O port handling
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //  Copyright (c) 2000-2001  Dave Laundon
 //
@@ -675,7 +675,9 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             // Store the new border value and extract the border colour for faster access by the video routines
             border = bVal_;
             border_col = BORD_VAL(bVal_);
-            keyboard = (keyboard & ~BORD_SOFF_MASK) | BORD_SOFF;
+
+            // Update the port read value, including the screen off status and reflecting MIC back to EAR
+            keyboard = (keyboard & BORD_KEY_MASK) | (border & BORD_SOFF) | ((border & BORD_MIC_MASK) << 3);
 
             // If the screen state has changed, we need to reconsider memory contention changes
             if (fScreenOffChange)
