@@ -2,7 +2,7 @@
 //
 // Input.cpp: Win32 mouse and DirectInput keyboard input
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -384,6 +384,9 @@ bool Input::IsMouseAcquired ()
 
 void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 {
+    // Only acquire the mouse if the SAM mouse is enabled
+    fMouse_ &= GetOption(mouse);
+
     // If the mouse is being acquired, move it to the centre of the screen
     if (fMouseActive != fMouse_ && (fMouseActive = fMouse_))
     {
@@ -778,16 +781,17 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
                 SetCapture(hwnd_);
             }
 
-            // If the mouse isn't already captured, the click just acquires it (without clicking through)
-            else if (!fMouseActive)
-                Acquire();
-
-            // Pass the button press through to the mouse module
-            else
+            // If the mouse is already active, pass on button presses
+            else if (fMouseActive)
             {
                 uMsg_ &= 0xf;
                 Mouse::SetButton((uMsg_ == 1) ? 1 : (uMsg_ == 4) ? 2 : 3, true);
             }
+
+            // Acquire the mouse if it's enabled
+            else if (GetOption(mouse))
+                Acquire();
+
             break;
         }
 
@@ -811,7 +815,7 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
                 SendGuiMouseMessage(GM_BUTTONUP, lParam_, fNonClient);
 
             // Pass the button release through to the mouse module
-            else
+            else if (fMouseActive)
             {
                 uMsg_ &= 0xf;
                 Mouse::SetButton((uMsg_ == 2) ? 1 : (uMsg_ == 5) ? 2 : 3, false);
