@@ -21,24 +21,23 @@
 #ifndef VIDEO_H
 #define VIDEO_H
 
-namespace Video
+class Video
 {
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    void Update ();
-    void UpdatePalette ();
-    bool CreatePalettes (bool fDimmed_=false);
-}
+        static void Update ();
+        static void UpdatePalette ();
+        static bool CreatePalettes (bool fDimmed_=false);
+};
 
 
-const int PALETTE_OFFSET = 10;		// Offset into palette to start from (we need to leave the first 10 for Windows' use)
+const int PALETTE_OFFSET = 10;      // Offset into physical palette for first SAM colour (Windows uses the first and last 10)
 
-extern DWORD aulPalette[N_PALETTE_COLOURS];
-extern WORD awY[N_PALETTE_COLOURS], awU[N_PALETTE_COLOURS], awV[N_PALETTE_COLOURS];
+
+extern DWORD aulPalette[];
+extern WORD awY[], awU[], awV[];
 extern LPDIRECTDRAWSURFACE pddsPrimary, pddsFront, pddsBack;
-
-class CFrame;
-extern CFrame* g_pFrame;
 
 #endif  // VIDEO_H
