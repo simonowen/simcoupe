@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /W3 /GX /Ot /Ow /Og /Oi /Oy /Ob2 /I "." /I ".." /I "..\Base" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "USE_SAASOUND" /D "USE_ZLIB" /FR /YX"SimCoupe.h" /FD /c
+# ADD CPP /nologo /W3 /Ot /Ow /Og /Oi /Oy /Ob2 /I "." /I ".." /I "..\Base" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "USE_SAASOUND" /D "USE_ZLIB" /FR /YX"SimCoupe.h" /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x809 /d "NDEBUG"
@@ -52,8 +52,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 winmm.lib comctl32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib /nologo /subsystem:windows /profile /map /machine:I386 /out:"Build/SimCoupe.exe"
+# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib /nologo /subsystem:windows /machine:I386
+# ADD LINK32 kernel32.lib user32.lib winmm.lib comctl32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib /nologo /subsystem:windows /profile /map /machine:I386 /out:"Build/SimCoupe.exe"
 
 !ELSEIF  "$(CFG)" == "SimCoupe - Win32 Debug"
 
@@ -69,7 +69,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /Gi /GX /Zi /Od /Oy /Gy /I "." /I ".." /I "..\Base" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "USE_SAASOUND" /D "USE_ZLIB" /FR /YX"SimCoupe.h" /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /Gi /Zi /Od /Oy /Gy /I "." /I ".." /I "..\Base" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "USE_SAASOUND" /D "USE_ZLIB" /FR /YX"SimCoupe.h" /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x809 /d "_DEBUG"
@@ -78,8 +78,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 winmm.lib comctl32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib /nologo /subsystem:windows /map /debug /machine:I386 /out:"Build/SimCoupeD.exe"
+# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 kernel32.lib user32.lib winmm.lib comctl32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib /nologo /subsystem:windows /map /debug /machine:I386 /out:"Build/SimCoupeD.exe"
 # SUBTRACT LINK32 /profile /pdb:none /incremental:no
 
 !ENDIF 
@@ -194,6 +194,10 @@ SOURCE=..\Base\SDIDE.cpp
 # Begin Source File
 
 SOURCE=..\Base\Util.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\Base\YATBus.cpp
 # End Source File
 # End Group
 # Begin Group "Base Header Files"
@@ -326,6 +330,10 @@ SOURCE=..\Base\Util.h
 # Begin Source File
 
 SOURCE=..\Base\VL1772.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\Base\YATBus.h
 # End Source File
 # Begin Source File
 
