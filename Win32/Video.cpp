@@ -62,6 +62,10 @@ bool Video::Init (bool fFirstInit_)
     Exit();
     TRACE("-> Video::Init(%s)\n", fFirstInit_ ? "first" : "");
 
+    // Turn off scanlines if we're using stretch to fit, as it looks ugly otherwise!
+    if (GetOption(stretchtofit))
+        SetOption(scanlines, false);
+
     // Create the main DirectDraw object
     HRESULT hr = DirectDrawCreate(GetOption(surface) ? NULL : (LPGUID)DDCREATE_EMULATIONONLY, &pdd, NULL);
     if (FAILED(hr))
