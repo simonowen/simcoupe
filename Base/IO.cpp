@@ -46,6 +46,7 @@
 #include "Floppy.h"
 #include "Frame.h"
 #include "GUI.h"
+#include "HardDisk.h"
 #include "Memory.h"
 #include "MIDI.h"
 #include "Mouse.h"
@@ -128,7 +129,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         ReleaseAllSamKeys();
 
         // Initialise all the devices
-        fRet &= (InitDrives () && InitParallel() && InitSerial() && InitMidi() && InitBeeper() && InitSDIDE() && Clock::Init());
+        fRet &= (InitDrives() && InitParallel() && InitSerial() && InitMidi() && InitBeeper() && InitSDIDE() && Clock::Init());
     }
 
     // Return true only if everything
@@ -182,9 +183,11 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
             switch (GetOption(drive1))
             {
                 case dskImage:
-                    if (!(pDrive1 = new CDrive)->Insert(GetOption(disk1)))
-                        SetOption(disk1, "");
+                {
+                    CDisk* pDisk = CDisk::Open(GetOption(disk1));
+                    pDrive1 = pDisk ? new CDrive(pDisk) : new CDiskDevice(dskNone);
                     break;
+                }
 
                 default:
                     pDrive1 = new CDiskDevice(dskNone);
@@ -197,13 +200,18 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
             switch (GetOption(drive2))
             {
                 case dskImage:
-                    if (!(pDrive2 = new CDrive)->Insert(GetOption(disk2)))
-                        SetOption(disk2, "");
+                {
+                    CDisk* pDisk = CDisk::Open(GetOption(disk2));
+                    pDrive2 = pDisk ? new CDrive(pDisk) : new CDiskDevice(dskNone);
                     break;
+                }
 
                 case dskAtom:
-                    pDrive2 = new CAtomDiskDevice;
+                {
+                    CHardDisk* pDisk = CHardDisk::OpenObject(GetOption(atomdisk));
+                    pDrive2 = pDisk ? new CAtomDiskDevice(pDisk) : new CDiskDevice(dskNone);
                     break;
+                }
 
                 default:
                     pDrive2 = new CDiskDevice(dskNone);
@@ -288,7 +296,10 @@ bool IO::InitSDIDE (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     if (pSDIDE) { delete pSDIDE; pSDIDE = NULL; }
 
     if (fInit_)
-        pSDIDE = new CSDIDEDevice;
+    {
+        CHardDisk* pDisk = CHardDisk::OpenObject(GetOption(sdidedisk));
+        pSDIDE = pDisk ? new CSDIDEDevice(pDisk) : new CIoDevice;
+    }
 
     return fInit_ || pSDIDE;
 }
