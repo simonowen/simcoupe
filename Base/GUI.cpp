@@ -1535,7 +1535,11 @@ void CIconControl::Draw (CScreen* pScreen_)
 
         // Grey the icon by using shades of grey with approximate intensity
         for (int i = 0 ; i < ICON_PALETTE_SIZE ; i++)
-            abGreyed[i] = GREY_1 + (abGreyed[i] & 0x07);
+        {
+            // Only change non-zero colours, to keep the background transparent
+            if (abGreyed[i])
+                abGreyed[i] = GREY_1 + (abGreyed[i] & 0x07);
+        }
     }
 
     // Draw the icon, using the greyed palette if disabled
