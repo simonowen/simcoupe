@@ -75,6 +75,8 @@ class CFileStream : public CStream
 
 #ifndef NO_ZLIB
 
+const BYTE GZ_SIGNATURE[] = { 0x1f, 0x8b };
+
 class CZLibStream : public CStream
 {
     public:

@@ -26,7 +26,6 @@
 //  Floppy.cpp implementation exists.
 
 // Todo:
-//  - take out the naughty gzip hack used to test for compressed files
 //  - remove 100K file test done on zip archives (add a container layer?)
 //  - maybe add support for updating zip archives
 
@@ -96,29 +95,30 @@ CStream::CStream (const char* pcszStream_, bool fReadOnly_/*=false*/)
             unzClose(hfZip);
         }
         else
-        {
-            // Try gzipped or regular file
-            gzFile hfGZip;
-            if ((hfGZip = gzopen(pcszStream_, "rb")))
-            {
-                // Naughty direct access to a member of gz_stream to determine if the file is compressed
-                bool fCompressed = !*reinterpret_cast<int*>(reinterpret_cast<BYTE*>(hfGZip)+88);
-
-                // Only use a CZLibStream object for real compressed data
-                if (fCompressed)
-                    return new CZLibStream(hfGZip, pcszStream_, fReadOnly_);
-
-                gzclose(hfGZip);
-#endif  // !NO_ZLIB
-
-                // Re-open the file using the regular file functions
-                FILE* hf;
-                if ((hf = fopen(pcszStream_, "rb")))
-                    return new CFileStream(hf, pcszStream_, fReadOnly_);
-#ifndef NO_ZLIB
-            }
-        }
 #endif
+        {
+            // Open the file using the regular CRT file functions
+            FILE* hf;
+            if ((hf = fopen(pcszStream_, "rb")))
+			{
+#ifndef NO_ZLIB
+				BYTE abSig[sizeof GZ_SIGNATURE];
+				if ((fread(abSig, 1, sizeof abSig, hf) != sizeof abSig) || memcmp(abSig, GZ_SIGNATURE, sizeof abSig))
+#endif
+					return new CFileStream(hf, pcszStream_, fReadOnly_);
+#ifndef NO_ZLIB
+				else
+				{
+					// Close the file so we can open it thru ZLib
+					fclose(hf);
+					// Try to open it as a gzipped file
+					gzFile hfGZip;
+					if ((hfGZip = gzopen(pcszStream_, "rb")))
+						return new CZLibStream(hfGZip, pcszStream_, fReadOnly_);
+				}
+#endif	// !NO_ZLIB
+			}
+        }
     }
 
     // Couldn't handle what we were given :-/
