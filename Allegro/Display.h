@@ -2,7 +2,7 @@
 //
 // Display.h: Allegro display rendering
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,8 +22,6 @@
 #define DISPLAY_H
 
 #include "CScreen.h"
-#include "Video.h"
-
 
 class Display
 {
@@ -34,6 +32,7 @@ class Display
         static bool Init (bool fFirstInit_=false);
         static void Exit (bool fReInit_=false);
 
+        static bool IsLineDirty (int nLine_) { return pafDirty[nLine_]; }
         static void SetLineDirty (int nLine_) { pafDirty[nLine_] = true; }
         static void SetDirty ();
 
