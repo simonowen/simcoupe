@@ -141,9 +141,7 @@ OPTION aOptions[] =
     OPT_F("SAASound",     saasound,       true),      // SAA 1099 sound chip enabled
     OPT_F("Beeper",       beeper,         true),      // Spectrum-style beeper enabled
 
-    OPT_N("Frequency",    freq,           44100),     // 44.1KHz
-    OPT_N("Bits",         bits,           16),        // 16-bit
-    OPT_F("Stereo",       stereo,         true),      // Stereo
+    OPT_F("Stereo",       stereo,         true),      // Stereo sound
     OPT_N("Latency",      latency,        5),         // Sound latency of five frames
 
     OPT_N("DriveLights",  drivelights,    1),         // Show drive activity lights

@@ -108,9 +108,7 @@ typedef struct
     bool    saasound;               // SAA 1099 sound chip enabled?
     bool    beeper;                 // Spectrum-style beeper?
 
-    int     freq;                   // Sound frequency
-    int     bits;                   // Bits per sample per channel
-    bool    stereo;                 // Stereo?
+    bool    stereo;                 // Stereo sound?
     int     latency;                // Amount of sound buffering
 
     int     drivelights;            // Show floppy drive LEDs
