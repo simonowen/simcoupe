@@ -443,11 +443,11 @@ void Frame::Sync ()
     // Fetch the frame number we should be up to, according to the running timer
     int nTicks = OSD::FrameSync(false);
 
-    // Determine whether a disk is currently active
-    bool fDiskActive = (pDrive1 && pDrive1->IsActive()) || (pDrive2 && pDrive2->IsActive());
+    // Determine whether we're running at increased speed during disk activity
+    bool fTurboDisk = GetOption(turboload) && (pDrive1 && pDrive1->IsActive()) || (pDrive2 && pDrive2->IsActive());
 
     // Running in Turbo mode?
-    if (!GUI::IsActive() && (g_fTurbo || (fDiskActive && GetOption(turboload))))
+    if (!GUI::IsActive() && (g_fTurbo || fTurboDisk))
     {
         static DWORD dwLastFrame;
 
