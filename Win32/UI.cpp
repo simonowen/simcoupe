@@ -577,8 +577,8 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
             case actInsertFloppy1:
                 if (GetOption(drive1) != dskImage)
                     Message(msgWarning, "Floppy drive %d is not present", 1);
-                else if (SaveDriveChanges(pDrive1) && InsertDisk(pDrive1))
-                    SetOption(disk1, pDrive1->GetPath());
+                else if (SaveDriveChanges(pDrive1))
+                    InsertDisk(pDrive1);
                 break;
 
             case actEjectFloppy1:
@@ -592,8 +592,8 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
             case actInsertFloppy2:
                 if (GetOption(drive2) != dskImage)
                     Message(msgWarning, "Floppy drive %d is not present", 2);
-                else if (SaveDriveChanges(pDrive2) && InsertDisk(pDrive2))
-                    SetOption(disk2, pDrive2->GetPath());
+                else if (SaveDriveChanges(pDrive2))
+                    InsertDisk(pDrive2);
                 break;
 
             case actEjectFloppy2:
@@ -2518,6 +2518,14 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
             AddComboString(hdlg_, IDC_SDIDE, "");
             AddComboString(hdlg_, IDC_YATBUS, "");
 
+            // Refresh the options from the active devices
+            if (GetOption(drive1) == dskImage) SetOption(disk1, pDrive1->GetPath());
+            if (GetOption(drive2) == dskImage) SetOption(disk2, pDrive2->GetPath());
+            if (GetOption(drive2) == dskAtom)  SetOption(atomdisk, pDrive2->GetPath());
+            SetOption(sdidedisk, pSDIDE->GetPath());
+            SetOption(yatbusdisk, pYATBus->GetPath());
+
+            // Set the edit controls to the current settings
             SetDlgItemPath(hdlg_, IDC_FLOPPY1, GetOption(disk1));
             SetDlgItemPath(hdlg_, IDC_FLOPPY2, GetOption(disk2));
             SetDlgItemPath(hdlg_, IDC_ATOM, GetOption(atomdisk));
@@ -2546,25 +2554,24 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
+                bool fFloppy1 = GetOption(drive1) == dskImage, fFloppy2 = GetOption(drive2) == dskImage;
+
                 GetDlgItemPath(hdlg_, IDC_FLOPPY1, const_cast<char*>(GetOption(disk1)), MAX_PATH);
                 GetDlgItemPath(hdlg_, IDC_FLOPPY2, const_cast<char*>(GetOption(disk2)), MAX_PATH);
                 GetDlgItemPath(hdlg_, IDC_ATOM,    const_cast<char*>(GetOption(atomdisk)), MAX_PATH);
                 GetDlgItemPath(hdlg_, IDC_SDIDE,   const_cast<char*>(GetOption(sdidedisk)), MAX_PATH);
                 GetDlgItemPath(hdlg_, IDC_YATBUS,  const_cast<char*>(GetOption(yatbusdisk)), MAX_PATH);
 
-                if (ChangedString(disk1) && SaveDriveChanges(pDrive1) && !pDrive1->Insert(GetOption(disk1)))
+                if (ChangedString(disk1) && fFloppy1 && SaveDriveChanges(pDrive1) && !pDrive1->Insert(GetOption(disk1)))
                 {
                     Message(msgWarning, "Invalid disk: %s", GetOption(disk1));
-                    SetOption(disk1, pDrive1->GetPath());
                     SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
                     return TRUE;
                 }
 
-                if (ChangedString(disk2) && GetOption(drive2) == dskImage &&
-                    SaveDriveChanges(pDrive2) && !pDrive2->Insert(GetOption(disk2)))
+                if (ChangedString(disk2) && fFloppy2 && SaveDriveChanges(pDrive2) && !pDrive2->Insert(GetOption(disk2)))
                 {
                     Message(msgWarning, "Invalid disk: %s", GetOption(disk2));
-                    SetOption(disk2, pDrive2->GetPath());
                     SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
                     return TRUE;
                 }
@@ -2579,15 +2586,14 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                         pDrive2 = NULL;
                     }
 
-                    // Force the type of drive 2 as appropriate for the new string
+                    // Set drive 2 to Atom if we've got a path, or floppy otherwise
                     SetOption(drive2, *GetOption(atomdisk) ? dskAtom : dskImage);
                     IO::InitDrives();
 
                     // Ensure it was mounted ok
                     if (*GetOption(atomdisk) && pDrive2->GetType() != dskAtom)
                     {
-                        Message(msgWarning, "Invalid disk: %s", GetOption(atomdisk));
-                        SetOption(atomdisk, "");
+                        Message(msgWarning, "Invalid Atom disk: %s", GetOption(atomdisk));
                         SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
                         return TRUE;
                     }
@@ -2600,8 +2606,7 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 // If the SDIDE path changed, check it was mounted ok
                 if (ChangedString(sdidedisk) && *GetOption(sdidedisk) && pSDIDE->GetType() != dskSDIDE)
                 {
-                    Message(msgWarning, "Invalid disk: %s", GetOption(sdidedisk));
-                    SetOption(sdidedisk, "");
+                    Message(msgWarning, "Invalid SDIDE disk: %s", GetOption(sdidedisk));
                     SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
                     return TRUE;
                 }
@@ -2609,8 +2614,7 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 // If the SDIDE path changed, check it was mounted ok
                 if (ChangedString(yatbusdisk) && *GetOption(yatbusdisk) && pYATBus->GetType() != dskYATBus)
                 {
-                    Message(msgWarning, "Invalid disk: %s", GetOption(yatbusdisk));
-                    SetOption(yatbusdisk, "");
+                    Message(msgWarning, "Invalid YATBUS disk: %s", GetOption(yatbusdisk));
                     SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
                     return TRUE;
                 }

@@ -196,10 +196,7 @@ void CInsertFloppy::OnOK ()
         bool fInserted = false;
 
         // Insert the disk into the appropriate drive
-        if (m_nDrive == 1)
-            fInserted = pDrive1->Insert(SetOption(disk1, pcszPath));
-        else
-            fInserted = pDrive2->Insert(SetOption(disk2, pcszPath));
+        fInserted = ((m_nDrive == 1) ? pDrive1 : pDrive2)->Insert(pcszPath);
 
         // If we succeeded, show a status message and close the file selector
         if (fInserted)
@@ -964,6 +961,12 @@ class CDiskOptions : public CDialog
         CDiskOptions (CWindow* pParent_)
             : CDialog(pParent_, 300, 241, "Disk Settings")
         {
+            if (GetOption(drive1) == dskImage) SetOption(disk1, pDrive1->GetPath());
+            if (GetOption(drive2) == dskImage) SetOption(disk2, pDrive2->GetPath());
+            if (GetOption(drive2) == dskAtom)  SetOption(atomdisk, pDrive2->GetPath());
+            SetOption(sdidedisk, pSDIDE->GetPath());
+            SetOption(yatbusdisk, pYATBus->GetPath());
+
             new CIconControl(this, 10, 10, &sFloppyDriveIcon);
 
             new CFrameControl(this, 50, 10, 238, 34);
@@ -1003,7 +1006,8 @@ class CDiskOptions : public CDialog
                 Destroy();
             else if (pWindow_ == m_pOK)
             {
-                char sz[MAX_PATH+128]="";
+                char sz[MAX_PATH+128];
+                bool fFloppy1 = GetOption(drive1) == dskImage, fFloppy2 = GetOption(drive2) == dskImage;
 
                 // Set the options from the edit control values
                 SetOption(disk1, m_pFloppy1->GetText());
@@ -1012,19 +1016,17 @@ class CDiskOptions : public CDialog
                 SetOption(sdidedisk, m_pSDIDE->GetText());
                 SetOption(yatbusdisk, m_pYATBus->GetText());
 
-                if (ChangedString(disk1) && !pDrive1->Insert(GetOption(disk1)))
+                if (ChangedString(disk1) && fFloppy1 && !pDrive1->Insert(GetOption(disk1)))
                 {
                     sprintf(sz, "Invalid disk image:\n\n%s", GetOption(disk1));
                     new CMessageBox(this, sz, "Floppy Drive 1", mbWarning);
-                    SetOption(disk1, pDrive1->GetPath());
                     return;
                 }
 
-                if (ChangedString(disk2) && GetOption(drive2) == dskImage && !pDrive2->Insert(GetOption(disk2)))
+                if (ChangedString(disk2) && fFloppy2 && !pDrive2->Insert(GetOption(disk2)))
                 {
                     sprintf(sz, "Invalid disk image:\n\n%s", GetOption(disk2));
                     new CMessageBox(this, sz, "Floppy Drive 2", mbWarning);
-                    SetOption(disk2, pDrive2->GetPath());
                     return;
                 }
 
@@ -1038,7 +1040,7 @@ class CDiskOptions : public CDialog
                         pDrive2 = NULL;
                     }
 
-                    // Force the type of drive 2 as appropriate for the new string
+                    // Set drive 2 to Atom if we've got a path, or floppy otherwise
                     SetOption(drive2, *GetOption(atomdisk) ? dskAtom : dskImage);
                     IO::InitDrives();
 
@@ -1047,7 +1049,6 @@ class CDiskOptions : public CDialog
                     {
                         sprintf(sz, "Invalid hard disk image:\n\n%s", GetOption(atomdisk));
                         new CMessageBox(this, sz, "Atom Disk", mbWarning);
-                        SetOption(atomdisk, "");
                         return;
                     }
                 }
@@ -1061,7 +1062,6 @@ class CDiskOptions : public CDialog
                 {
                     sprintf(sz, "Invalid hard disk image:\n\n%s", GetOption(sdidedisk));
                     new CMessageBox(this, sz, "SDIDE Disk", mbWarning);
-                    SetOption(sdidedisk, "");
                     return;
                 }
 
@@ -1070,7 +1070,6 @@ class CDiskOptions : public CDialog
                 {
                     sprintf(sz, "Invalid hard disk image:\n\n%s", GetOption(yatbusdisk));
                     new CMessageBox(this, sz, "YAMOD.ATBUS Disk", mbWarning);
-                    SetOption(yatbusdisk, "");
                     return;
                 }
 
@@ -1087,8 +1086,6 @@ class CDiskOptions : public CDialog
                 new CHDDProperties(m_pSDIDE, this, "SD-IDE Hard Disk");
             else if (pWindow_ == m_pBrowseYATBus)
                 new CHDDProperties(m_pYATBus, this, "YATBus Hard Disk");
-            {
-            }
         }
 
     protected:
