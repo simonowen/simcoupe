@@ -50,7 +50,7 @@ typedef struct
 OPTION;
 
 // Helper macro for structure definition below
-#define OPT(n,t,v,d)        { n, t, (void*)&g_sOptions.v, (DWORD)(d) }
+#define OPT(n,t,v,d)        { n, t, {(void*)&g_sOptions.v}, {(DWORD)(d)} }
 
 
 OPTION aOptions[] = 
@@ -129,7 +129,7 @@ OPTION aOptions[] =
     OPT("Paused",       OT_BOOL,    paused,         false),     // Not paused
     OPT("PauseInactive",OT_BOOL,    pauseinactive,  false),     // Continue to run when inactive
 
-    { 0, 0, 0, 0 }
+    { 0, 0, {0}, {0} }
 };
 
 inline bool IsTrue (const char* pcsz_)
