@@ -36,8 +36,9 @@ typedef struct
     int     borders;                // How much of the borders to show
     bool    stretchtofit;           // Stretch screen image to fit target area?
     bool    filter;                 // Filter the stretched image? (if possible)
-    bool    overlay;                // Use a video overlay surface, if available?
-    int     surface;                // Surface type to use
+    bool    overlay;                // Non-zero to use a video overlay surface, if available
+    bool    hwaccel;                // Non-zero to use hardware accelerated video
+    bool    greyscale;              // Non-zero to use greyscale instead of colour
 
     char    rom[MAX_PATH];          // SAM ROM image path
     bool    hdbootrom;              // Use HDBOOT ROM patches
@@ -61,6 +62,7 @@ typedef struct
     char    hddpath[MAX_PATH];      // Default hard disk path
     char    rompath[MAX_PATH];      // Default ROM path
     char    datapath[MAX_PATH];     // Default data path
+    char    mrufiles[MAX_PATH*9];   // Most recently used files
 
     int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
     bool    altforcntrl;            // Non-zero if Left-Alt is used for SAM Cntrl

@@ -72,7 +72,8 @@ OPTION aOptions[] =
     OPT_F("StretchToFit", stretchtofit,   true),      // Stretch image to fit the display area
     OPT_F("Filter",       filter,         true),      // Filter the stretched image (OpenGL only)
     OPT_F("Overlay",      overlay,        true),      // Use a video overlay surface, if available
-    OPT_N("Surface",      surface,        999),       // Try for the best possible by default
+    OPT_F("HWAccel",      hwaccel,        true),      // Use hardware accelerated video
+    OPT_F("Greyscale",    greyscale,      false),     // Colour display
 
     OPT_S("ROM",          rom,            ""),        // No custom ROM (use built-in)
     OPT_F("HDBootRom",    hdbootrom,      false),     // Don't use HDBOOT ROM patches
@@ -96,6 +97,7 @@ OPTION aOptions[] =
     OPT_S("HDDPath",      hddpath,        ""),        // Default hard disk path
     OPT_S("ROMPath",      rompath,        ""),        // Default ROM path
     OPT_S("DataPath",     datapath,       ""),        // Default data path
+    OPT_S("MRUFiles",     mrufiles,       ""),        // No recently used file list
 
     OPT_N("KeyMapping",   keymapping,     1),         // SAM keyboard mapping
     OPT_F("AltForCntrl",  altforcntrl,    false),     // Left-Alt not used for SAM Cntrl
