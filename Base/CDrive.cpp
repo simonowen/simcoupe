@@ -432,7 +432,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                     ModifyStatus(BUSY, TRACK00 | DELETED_DATA);
 
                     // Locate the sector, reset busy and signal record not found if we couldn't find it
-                    if (!m_pDisk || !m_pDisk->FindSector(nSide, m_sRegs.bTrack, m_sRegs.bSector))
+                    if (!m_pDisk || !m_pDisk->FindSector(nSide, m_nHeadPos, m_sRegs.bTrack, m_sRegs.bSector))
                         ModifyStatus(RECORD_NOT_FOUND, BUSY);
                     else
                     {
@@ -452,7 +452,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
 
                     // Locate the sector, reset busy and signal record not found if we couldn't find it
                     IDFIELD sID;
-                    if (!m_pDisk || !m_pDisk->FindSector(nSide, m_sRegs.bTrack, m_sRegs.bSector, &sID))
+                    if (!m_pDisk || !m_pDisk->FindSector(nSide, m_nHeadPos, m_sRegs.bTrack, m_sRegs.bSector, &sID))
                         ModifyStatus(RECORD_NOT_FOUND, BUSY);
                     else if (m_pDisk->IsReadOnly())
                         ModifyStatus(WRITE_PROTECT, BUSY);
@@ -477,7 +477,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
 
                     // Read an ID field into our general buffer
                     IDFIELD* pId = reinterpret_cast<IDFIELD*>(m_pbBuffer = m_abBuffer);
-                    BYTE bStatus = ReadAddress(nSide, m_sRegs.bTrack, pId);
+                    BYTE bStatus = ReadAddress(nSide, m_nHeadPos, pId);
 
                     // If successful set up the number of bytes available to read
                     if (!(bStatus & TYPE23_ERROR_MASK))
@@ -504,7 +504,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                     ModifyStatus(BUSY, TRACK00 | DELETED_DATA);
 
                     // Prepare the raw track layout for reading, fail if not found
-                    if (ReadTrack(nSide, m_sRegs.bTrack, m_pbBuffer = m_abBuffer, m_uBuffer = sizeof m_abBuffer))
+                    if (ReadTrack(nSide, m_nHeadPos, m_pbBuffer = m_abBuffer, m_uBuffer = sizeof m_abBuffer))
                         ModifyStatus(DRQ, 0);
                     else
                     {
@@ -594,7 +594,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                         case WRITE_TRACK:
                         {
                             // Examine and perform the format
-                            BYTE bStatus = WriteTrack(nSide, m_sRegs.bTrack, m_abBuffer, sizeof m_abBuffer);
+                            BYTE bStatus = WriteTrack(nSide, m_nHeadPos, m_abBuffer, sizeof m_abBuffer);
                             ModifyStatus(bStatus, BUSY|DRQ);
                         }
                         break;
