@@ -101,7 +101,7 @@ void Function (BYTE b_)
 
     switch (b_)
     {
-        case 'a':   pszOut += sprintf(pszOut, fHex ? "#%02hX%02hX" : "%d", *(reinterpret_cast<WORD*>(&pbOpcode[1])));   break;
+        case 'a':   pszOut += sprintf(pszOut, fHex ? "#%04hX" : "%d", (pbOpcode[2] << 8) | pbOpcode[1]);   break;
         case 'b':   *pszOut++ = '%'; for (i = 0 ; i < 8 ; i++) *pszOut++ = '0' + ((pbOpcode[1] >> (7-i)) & 1); break;
         case 'c':   *pszOut++ = '0' + ((pbOpcode[0] >> 3) & 7); break;
         case 'd':   if (pbOpcode[1]) pszOut += sprintf(pszOut, fHex ? "%c#%02hX" : "%c%d", fPositive ? '+' : '-', bDisp); break;
