@@ -32,7 +32,9 @@ public:
     static void Exit (bool fReInit_=false);
 
     static DWORD GetTime ();
-    static const char* GetFilePath (const char* pcszFile_);
+    static const char* GetFilePath (const char* pcszFile_="");
+    static bool IsHidden (const char* pcszFile_);
+
     static void DebugTrace (const char* pcsz_);
     static int FrameSync (bool fWait_=true);
 
@@ -48,7 +50,8 @@ public:
 
 #ifndef _WINDOWS
 #include <dirent.h>
-#define PATH_SEPARATOR      "/"
+#include <unistd.h>
+#define PATH_SEPARATOR      '/'
 #endif
 
 
@@ -56,6 +59,9 @@ public:
 
 #include <windows.h>
 #include <direct.h>
+
+#pragma include_alias(<io.h>, <..\Include\IO.h>)
+#include <io.h>
 
 #pragma comment(lib, "sdl")
 #pragma comment(lib, "sdlmain")
@@ -75,10 +81,16 @@ public:
 
 #pragma warning(disable:4786)   // Disable the stupid warning about debug symbols being truncated
 
-#define PATH_SEPARATOR      "\\"
+#define PATH_SEPARATOR      '\\'
 
 #define strcasecmp  _strcmpi
 #define mkdir(p,m)  _mkdir(p)
+#define access      _access
+
+#define _S_ISTYPE(mode,mask)    (((mode) & _S_IFMT) == (mask))
+#define S_ISDIR(mode)           _S_ISTYPE((mode), _S_IFDIR)
+#define S_ISREG(mode)           _S_ISTYPE((mode), _S_IFREG)
+
 
 // Windows lacks direct.h, so we'll supply our own
 struct dirent
