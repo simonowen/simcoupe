@@ -75,8 +75,10 @@ void ProfileStart_(PROFILE_T* pprofNew_)
         // Remember the new item to time and the start time
         if (uStackPos < (sizeof approfStack / sizeof approfStack[0]))
             approfStack[++uStackPos] = pprofNew_;
+#ifdef _DEBUG
         else
             UI::ShowMessage(msgFatal, "Profile stack overflow!\n");
+#endif
     }
 }
 
@@ -88,8 +90,10 @@ void ProfileEnd ()
 
         if (uStackPos)
             uStackPos--;
+#ifdef _DEBUG
         else
             UI::ShowMessage(msgFatal, "Profile stack underflow!\n");
+#endif
     }
 }
 
