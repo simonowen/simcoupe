@@ -98,8 +98,10 @@ extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 #define S_ISBLK(mode)           0
 #define S_ISLNK(mode)           0
 
-#ifndef MAXLONG_PTR
-typedef long    LONG_PTR;       // Needed for VC6 to compile out 64-bit compatible code
+// Needed if we're using the old 32-bit platform SDK
+#if !defined(_WIN64)
+typedef long LONG_PTR, *PLONG_PTR;
+typedef unsigned long ULONG_PTR, *PULONG_PTR;
 #endif
 
 
