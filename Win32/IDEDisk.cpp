@@ -66,15 +66,15 @@ bool CDeviceHardDisk::Open (const char* pcszDisk_)
 
             // Fill the identity structure as appropriate
             memset(&m_sIdentity, 0, sizeof m_sIdentity);
-            m_sIdentity.wCaps = 0x2241;         // Fixed device, motor control, hard sectored, <= 5Mbps
-            m_sIdentity.wLogicalCylinders = m_sGeometry.uCylinders;
-            m_sIdentity.wLogicalHeads = m_sGeometry.uHeads;
-            m_sIdentity.wBytesPerTrack = m_sGeometry.uSectors << 9;
-            m_sIdentity.wBytesPerSector = 1 << 9;
-            m_sIdentity.wSectorsPerTrack = m_sGeometry.uSectors;
-            m_sIdentity.wControllerType = 1;    // Single port, single sector
-            m_sIdentity.wBufferSize512 = m_sIdentity.wBytesPerSector >> 9;
-            m_sIdentity.wLongECCBytes = 4;
+            ATAPUT(m_sIdentity.wCaps, 0x2241);                              // Fixed device, motor control, hard sectored, <= 5Mbps
+            ATAPUT(m_sIdentity.wLogicalCylinders, m_sGeometry.uCylinders);
+            ATAPUT(m_sIdentity.wLogicalHeads, m_sGeometry.uHeads);
+            ATAPUT(m_sIdentity.wBytesPerTrack, m_sGeometry.uSectors << 9);
+            ATAPUT(m_sIdentity.wBytesPerSector, 1 << 9);
+            ATAPUT(m_sIdentity.wSectorsPerTrack, m_sGeometry.uSectors);
+            ATAPUT(m_sIdentity.wControllerType, 1);                         // Single port, single sector
+            ATAPUT(m_sIdentity.wBufferSize512, 1);
+            ATAPUT(m_sIdentity.wLongECCBytes, 4);
 
             SetIdentityString(m_sIdentity.szSerialNumber, sizeof m_sIdentity.szSerialNumber, "090");
             SetIdentityString(m_sIdentity.szFirmwareRev,  sizeof m_sIdentity.szFirmwareRev, "0.90");
