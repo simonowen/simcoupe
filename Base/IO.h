@@ -1,4 +1,4 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // IO.h: SAM I/O port handling
 //
@@ -46,7 +46,7 @@ class IO
         static bool InitSerial (bool fInit_=true, bool fReInit_=true);
         static bool InitMidi (bool fInit_=true, bool fReInit_=true);
         static bool InitBeeper (bool fInit_=true, bool fReInit_=true);
-        static bool InitSDIDE (bool fInit_=true, bool fReInit_=true);
+        static bool InitHDD (bool fInit_=true, bool fReInit_=true);
 
         static BYTE In (WORD wPort_);
         static void Out (WORD wPort_, BYTE bVal_);
@@ -63,13 +63,13 @@ class CIoDevice
         virtual ~CIoDevice () { }
 
     public:
-        virtual BYTE In (WORD wPort_) { return 0x00; }
+        virtual BYTE In (WORD wPort_) { return 0xff; }
         virtual void Out (WORD wPort_, BYTE bVal_) { }
 
         virtual void FrameEnd () { }
 };
 
-enum { dskNone, dskImage, dskAtom };
+enum { dskNone, dskImage, dskAtom, dskYATBus };
 
 class CDiskDevice :  public CIoDevice
 {
@@ -136,6 +136,9 @@ class CBeeperDevice : public CIoDevice
 
 #define QUAZAR_PORT         208         // Quazar Surround
 #define SID_PORT            212         // Quazar SID interface at 0xD4xx
+
+#define YATBUS_MASK         0xf0
+#define YATBUS_BASE         0xb0        // YAMOD.ATBUS hard disk interface
 
 // Floppy drives or ATOM hard disk - 111d0srr : d = drive, s = side, r = register
 #define FLOPPY_MASK         0xf8        // 11111000
