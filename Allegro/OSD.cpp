@@ -2,7 +2,7 @@
 //
 // OSD.cpp: Allegro common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -100,8 +100,8 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
     static char szExePath[MAX_PATH], szPath[512];
 
     // If the supplied file path looks absolute, use it as-is
-    if (*pcszFile_ == '/'
-#ifdef ALLEGRO_WINDOWS
+    if (*pcszFile_ == PATH_SEPARATOR
+#if defined(ALLEGRO_WINDOWS) || defined(ALLEGRO_DOS)
         || strchr(pcszFile_, ':')
 #endif
         )
@@ -133,6 +133,21 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 
     // Return a pointer to the new path
     return szPath;
+}
+
+// Same as GetFilePath but ensures a trailing backslash
+const char* OSD::GetDirPath (const char* pcszDir_/*=""*/)
+{
+    char *psz = const_cast<char*>(GetFilePath(pcszDir_)), *pszEnd = psz+lstrlen(psz);
+
+    // Append a [back]slash to non-empty strings that don't already have one
+    if (*psz && pszEnd[-1] != PATH_SEPARATOR)
+    {
+        pszEnd[0] = PATH_SEPARATOR;
+        pszEnd[1] = '\0';
+    }
+
+    return psz;
 }
 
 
