@@ -200,7 +200,7 @@ Section "Uninstall"
 	Delete $INSTDIR\tetris.dsk
 	Delete $INSTDIR\mnedemo1.dsk
 	Delete $INSTDIR\ReadMe.txt
-	RMDir $INSTDIR\SimCoupe
+	RMDir $INSTDIR
 
 	; Delete start menu items and group
 	!insertmacro MUI_STARTMENU_GETFOLDER SimCoupe $0
