@@ -2,7 +2,7 @@
 //
 // GUI.cpp: GUI and controls for on-screen interface
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,11 +21,10 @@
 //  ToDo:
 //   - CFileView derived class needed to supply file icons
 //   - button repeat on scrollbar
-//   - add extra message box buttons
+//   - add extra message box buttons (yes/no/cancel, etc.)
 //   - regular list box?
 //   - use icon for button arrows?
 //   - edit box cursor positioning
-//   - spin buttons?
 
 #include "SimCoupe.h"
 #include <ctype.h>
@@ -2029,8 +2028,8 @@ const GUI_ICON* CFileView::GetFileIcon (const char* pcszFile_)
     static const char* aExts[] = { ".dsk", ".sad", ".td0", ".sbt", ".mgt", ".img", ".sdf", ".cpm" };
     bool fDiskImage = false;
 
-    for (int i = 0 ; !fDiskImage && pszExt && i < sizeof(aExts)/sizeof(aExts[0]) ; i++)
-        fDiskImage = !strcasecmp(pszExt, aExts[i]);
+    for (UINT u = 0 ; !fDiskImage && pszExt && u < sizeof(aExts)/sizeof(aExts[0]) ; u++)
+        fDiskImage = !strcasecmp(pszExt, aExts[u]);
 
     return nCompressType ? &sCompressedIcon : fDiskImage ? &sDiskIcon : &sDocumentIcon;
 }
