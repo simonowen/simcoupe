@@ -39,12 +39,9 @@ class Sound
         static void OutputDAC (BYTE bVal_);            // Output to both channels
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////
 
-
-#ifdef SOUND_IMPLEMENTATION
-
+#define SOUND_STREAMS	2
 
 class CStreamBuffer
 {
@@ -91,7 +88,7 @@ class CSoundStream : public CStreamBuffer
         int GetSpaceAvailable ();
         void AddData (BYTE* pbSampleData_, int nLength_);
 
-    protected:
+    public:
         int m_nSampleBufferSize;
 
         IDirectSoundBuffer* m_pdsb;
@@ -138,7 +135,5 @@ class CDAC : public CSoundStream
         UINT m_uLeftTotal, m_uRightTotal;
         UINT m_uPrevPeriod;
 };
-
-#endif
 
 #endif  // SOUND_H
