@@ -2,7 +2,7 @@
 //
 // GUIDlg.cpp: Dialog boxes using the GUI controls
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,7 +23,9 @@
 
 #include "CDisk.h"
 #include "Frame.h"
+#include "HardDisk.h"
 #include "Input.h"
+#include "Memory.h"
 #include "Options.h"
 
 
@@ -36,27 +38,27 @@ OPTIONS g_opts;
 ////////////////////////////////////////////////////////////////////////////////
 
 CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
-    : CDialog(pParent_, 285, 220,  "About SimCoupe")
+    : CDialog(pParent_, 305, 220,  "About SimCoupe")
 {
     new CIconControl(this, 6, 6, &sSamIcon);
-    new CTextControl(this, 61, 10,  "SimCoupe v0.90 beta 8", YELLOW_8);
-    new CTextControl(this, 61, 24,  "http://www.simcoupe.org/", YELLOW_8);
+    new CTextControl(this, 86, 10,  "SimCoupe v0.90 beta 10", BLACK);
+    new CTextControl(this, 86, 24,  "http://www.simcoupe.org/", GREY_3);
 
-    new CTextControl(this, 26, 46,  "Win32/SDL/Allegro/Pocket PC versions:");
-    new CTextControl(this, 36, 59,  "Simon Owen <simon.owen@simcoupe.org>", GREY_7);
+    new CTextControl(this, 41, 46,  "Win32/SDL/Allegro/Pocket PC versions:", BLUE_5);
+    new CTextControl(this, 51, 59,  "Simon Owen <simon.owen@simcoupe.org>", BLACK);
 
-    new CTextControl(this, 26, 78,  "Based on original DOS/X versions by:");
-    new CTextControl(this, 36, 91,  "Allan Skillman <allan.skillman@arm.com>", GREY_7);
+    new CTextControl(this, 41, 78,  "Based on original DOS/X versions by:", BLUE_5);
+    new CTextControl(this, 51, 91,  "Allan Skillman <allan.skillman@arm.com>", BLACK);
 
-    new CTextControl(this, 26, 110,  "Additional technical enhancements:");
-    new CTextControl(this, 36, 123,  "Dave Laundon <dave.laundon@simcoupe.org>", GREY_7);
+    new CTextControl(this, 41, 110,  "Additional technical enhancements:", BLUE_5);
+    new CTextControl(this, 51, 123,  "Dave Laundon <dave.laundon@simcoupe.org>", BLACK);
 
-    new CTextControl(this, 26, 142,  "Phillips SAA 1099 sound chip emulation:");
-    new CTextControl(this, 36, 155,  "Dave Hooper <dave@rebuzz.org>", GREY_7);
+    new CTextControl(this, 41, 142,  "Phillips SAA 1099 sound chip emulation:", BLUE_5);
+    new CTextControl(this, 51, 155,  "Dave Hooper <dave@rebuzz.org>", BLACK);
 
-    new CTextControl(this, 26, 177, "See ReadMe.txt for additional information.", YELLOW_8);
+    new CTextControl(this, 41, 177, "See ReadMe.txt for additional information.", RED_3);
 
-    m_pCloseButton = new CTextButton(this, 115, 199, "Close", 55);
+    m_pCloseButton = new CTextButton(this, (m_nWidth-55)/2, m_nHeight-21, "Close", 55);
 }
 
 void CAboutDialog::OnNotify (CWindow* pWindow_, int nParam_)
@@ -64,6 +66,12 @@ void CAboutDialog::OnNotify (CWindow* pWindow_, int nParam_)
     if (pWindow_ == m_pCloseButton)
         Destroy();
 }
+
+void CAboutDialog::EraseBackground (CScreen* pScreen_)
+{
+    pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, WHITE);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -124,7 +132,7 @@ void CFileDialog::OnNotify (CWindow* pWindow_, int nParam_)
 ////////////////////////////////////////////////////////////////////////////////
 
 // File filter for disk images
-static const FILEFILTER sDiskFilter =
+static const FILEFILTER sFloppyFilter =
 {
 #ifdef USE_ZLIB
     "All Disks (.dsk;.sad;.sdf;.sbt; .gz;.zip)|"
@@ -152,7 +160,7 @@ static const FILEFILTER sDiskFilter =
 };
 
 CInsertFloppy::CInsertFloppy (int nDrive_, CWindow* pParent_/*=NULL*/)
-    : CFileDialog("", NULL, &sDiskFilter, pParent_), m_nDrive(nDrive_)
+    : CFileDialog("", NULL, &sFloppyFilter, pParent_), m_nDrive(nDrive_)
 {
     // Set the dialog caption to show which drive we're dealing with
     char szCaption[32] = "Insert Floppy x";
@@ -190,31 +198,22 @@ void CInsertFloppy::OnOK ()
     }
 
     // Report any error
-    char szBody[MAX_PATH];
-    sprintf(szBody, "%s:\n\nInvalid disk image!", m_pFileView->GetItem()->m_pszLabel);
+    char szBody[MAX_PATH+32];
+    sprintf(szBody, "Invalid disk image:\n\n%s", m_pFileView->GetItem()->m_pszLabel);
     new CMessageBox(this, szBody, "Open Failed", mbWarning);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// File filter for ROM images
-static const FILEFILTER sROMFilter =
-{
-    "ROM Images (.rom;.bin)|"
-    "All Files",
-
-    { ".rom;.bin", "" }
-};
-
-CBrowseROM::CBrowseROM (CEditControl* pEdit_, CWindow* pParent_/*=NULL*/)
-    : CFileDialog("Select Custom ROM", NULL, &sROMFilter, pParent_), m_pEdit(pEdit_)
+CFileBrowser::CFileBrowser (CEditControl* pEdit_, CWindow* pParent_, const char* pcszCaption_, const FILEFILTER* pcsFilter_)
+    : CFileDialog(pcszCaption_, NULL, pcsFilter_, pParent_), m_pEdit(pEdit_)
 {
     // Browse from the location of the previous image, or the default directory if none
-    m_pFileView->SetPath(*GetOption(rom) ? GetOption(rom) : OSD::GetFilePath());
+    m_pFileView->SetPath(*pEdit_->GetText() ? pEdit_->GetText() : OSD::GetFilePath());
 }
 
 // Handle OK being clicked when a file is selected
-void CBrowseROM::OnOK ()
+void CFileBrowser::OnOK ()
 {
     const char* pcszPath = m_pFileView->GetFullPath();
 
@@ -222,10 +221,128 @@ void CBrowseROM::OnOK ()
     {
         Destroy();
 
+        // Set the edit control text, activate it, and notify the parent of the change
         m_pEdit->SetText(pcszPath);
         m_pEdit->Activate();
+        m_pParent->OnNotify(m_pEdit,0);
+    }
+}
 
-        return;
+////////////////////////////////////////////////////////////////////////////////
+
+CHDDProperties::CHDDProperties (CEditControl* pEdit_, CWindow* pParent_, const char* pcszCaption_)
+    : CDialog(pParent_, 268, 170, pcszCaption_), m_pEdit(pEdit_)
+{
+    new CTextControl(this, 12, 13,  "File:");
+    m_pFile = new CEditControl(this, 35, 10, 199, pEdit_->GetText());
+    m_pBrowse = new CTextButton(this, 239, 10, "...", 17);
+
+    new CFrameControl(this, 12, 37, 244, 100);
+    new CTextControl(this, 17, 33, "Geometry", YELLOW_8, BLUE_2);
+
+    new CTextControl(this, 57, 53,  "Cylinders (1-16383):");
+    new CTextControl(this, 89, 73,  "Heads (2-16):");
+    new CTextControl(this, 82, 93,  "Sectors (1-63):");
+    new CTextControl(this, 81, 113, "Total size (MB):");
+
+    m_pCyls = new CEditControl(this, 167, 50,  40);
+    m_pHeads = new CEditControl(this, 167, 70,  20);
+    m_pSectors = new CEditControl(this, 167, 90,  20);
+    m_pSize = new CEditControl(this, 167, 110, 30);
+
+    m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
+    m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
+
+    // Force a refresh of the geometry from the current image (if any)
+    OnNotify(m_pFile,0);
+}
+
+void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
+{
+    static const FILEFILTER sHardDiskFilter =
+    {
+        "Hard disk images (*.hdf)|"
+        "All Files",
+
+        { ".hdf", "" }
+    };
+
+
+    if (pWindow_ == m_pCancel)
+        Destroy();
+    else if (pWindow_ == m_pBrowse)
+        new CFileBrowser(m_pFile, this, "Browse for HDF", &sHardDiskFilter);
+    else if (pWindow_ == m_pFile)
+    {
+        // If we can, open the existing hard disk image to retrieve the geometry
+        CHardDisk* pDisk = CHardDisk::OpenObject(m_pFile->GetText());
+        bool fExists = pDisk != NULL;
+
+        if (fExists)
+        {
+            // Fetch the existing disk geometry
+            HARDDISK_GEOMETRY geom;
+            pDisk->GetGeometry (&geom);
+            delete pDisk;
+
+            // Initialise the edit controls with the current values
+            m_pCyls->SetValue(geom.uCylinders);
+            m_pHeads->SetValue(geom.uHeads);
+            m_pSectors->SetValue(geom.uSectors);
+            m_pSize->SetValue((geom.uTotalSectors + (1<<11)-1) >> 11);
+        }
+
+        // The geometry is read-only for existing images
+        m_pCyls->Enable(!fExists);
+        m_pHeads->Enable(!fExists);
+        m_pSectors->Enable(!fExists);
+        m_pSize->Enable(!fExists);
+
+        // Set the text and state of the OK button, depending on the target file
+        m_pOK->SetText(fExists ? "OK" : "Create");
+        m_pOK->Enable(!!*m_pFile->GetText());
+    }
+    else if (pWindow_ == m_pCyls || pWindow_ == m_pHeads || pWindow_ == m_pSectors)
+    {
+        // Set the new size from the modified geometry
+        UINT uSize = ((m_pCyls->GetValue()*m_pHeads->GetValue()*m_pSectors->GetValue()) + (1<<11)-1) >> 11;
+        m_pSize->SetValue(uSize);
+    }
+    else if (pWindow_ == m_pSize)
+    {
+        // Fetch the updates size value
+        UINT uSize = m_pSize->GetValue();
+
+        // Set a disk geometry matching the new size
+        m_pCyls->SetValue((uSize << 2) & 0x3fff);
+        m_pHeads->SetValue(16);
+        m_pSectors->SetValue(32);
+    }
+    else if (pWindow_ == m_pOK)
+    {
+        // Fetch the geometry values
+        UINT uCyls = m_pCyls->GetValue();
+        UINT uHeads = m_pHeads->GetValue();
+        UINT uSectors = m_pSectors->GetValue();
+
+        // Check the geometry is within range, since the edit fields can be modified directly
+        if (!uCyls || (uCyls > 16383) || !uHeads || (uHeads > 16) || !uSectors || (uSectors > 63))
+        {
+            new CMessageBox(this, "Invalid disk geometry.", "Warning", MB_OK|MB_ICONEXCLAMATION);
+            return;
+        }
+
+        // Create the new HDF image
+        if (!CHDFHardDisk::Create(m_pFile->GetText(), uCyls, uHeads, uSectors))
+        {
+            new CMessageBox(this, "Failed to create new disk (disk full?)", "Warning", MB_OK|MB_ICONEXCLAMATION);
+            return;
+        }
+
+        Destroy();
+        m_pEdit->SetText(m_pFile->GetText());
+        m_pEdit->Activate();
+        m_pParent->OnNotify(m_pEdit,0);
     }
 }
 
@@ -236,6 +353,8 @@ void CBrowseROM::OnOK ()
 CTestDialog::CTestDialog (CWindow* pParent_/*=NULL*/)
     : CDialog(pParent_, 205, 198, "GUI Test")
 {
+    memset(m_apControls, 0, sizeof m_apControls);
+
     m_apControls[0] = new CEditControl(this, 8, 8, 190, "Edit control");
 
     m_apControls[1] = new CCheckBox(this, 8, 38, "Checked check-box");
@@ -251,10 +370,12 @@ CTestDialog::CTestDialog (CWindow* pParent_/*=NULL*/)
     m_apControls[7] = new CTextButton(this, 105, 103, "Button", 50);
     m_apControls[8] = new CScrollBar(this, 183,38,110,400);
 
-    m_apControls[9] = new CIconControl(this, 8, 133, &sErrorIcon);
+    m_apControls[9] = new CEditControl(this, 130, 133, 20, "0");
 
-    m_apControls[10] = new CTextControl(this, 40, 133, "<- Icon control");
-    m_apControls[11] = new CTextControl(this, 45, 149, "Coloured text control", GREEN_7);
+    m_apControls[11] = new CIconControl(this, 8, 133, &sErrorIcon);
+
+    m_apControls[12] = new CTextControl(this, 40, 133, "<- Icon control");
+    m_apControls[13] = new CTextControl(this, 45, 149, "Coloured text control", GREEN_7);
 
     m_pEnable = new CCheckBox(this, 8, m_nHeight-20, "Controls enabled");
     reinterpret_cast<CCheckBox*>(m_pEnable)->SetChecked();
@@ -273,8 +394,11 @@ void CTestDialog::OnNotify (CWindow* pWindow_, int nParam_)
         bool fIsChecked = reinterpret_cast<CCheckBox*>(m_pEnable)->IsChecked();
 
         // Update the enabled/disabled state of the control so we can see what they look like
-        for (int i = 0 ; i < 12 ; i++)
-            m_apControls[i]->Enable(fIsChecked);
+        for (int i = 0 ; i < (sizeof m_apControls / sizeof m_apControls[0]) ; i++)
+        {
+            if (m_apControls[i])
+                m_apControls[i]->Enable(fIsChecked);
+        }
     }
 }
 
@@ -295,12 +419,12 @@ COptionsDialog::COptionsDialog (CWindow* pParent_/*=NULL*/)
 
     CListViewItem* pItem = NULL;
 
-    // Add icons in reverse order to
+    // Add icons in reverse order
     pItem = new CListViewItem(&sSamIcon, "About", pItem);
     pItem = new CListViewItem(&sHardwareIcon, "Misc", pItem);
     pItem = new CListViewItem(&sPortIcon, "Parallel", pItem);
-    pItem = new CListViewItem(&sHardDiskIcon, "Hard Drives", pItem);
-    pItem = new CListViewItem(&sFloppyDriveIcon, "Floppy Drives", pItem);
+    pItem = new CListViewItem(&sFloppyDriveIcon, "Disks", pItem);
+    pItem = new CListViewItem(&sHardDiskIcon, "Drives", pItem);
     pItem = new CListViewItem(&sKeyboardIcon, "Input", pItem);
     pItem = new CListViewItem(&sMidiIcon, "MIDI", pItem);
     pItem = new CListViewItem(&sSoundIcon, "Sound", pItem);
@@ -334,7 +458,7 @@ class CSystemOptions : public CDialog
 
             new CTextControl(this, 63, 96, "Custom ROM image (32K):");
             m_pROM = new CEditControl(this, 63, 113, 196);
-            m_pBrowse = new CTextButton(this, 262, 113, "...", 15);
+            m_pBrowse = new CTextButton(this, 262, 113, "...", 17);
 
             m_pFastReset = new CCheckBox(this, 63, 139, "Enable fast power-on ROM reset.");
 
@@ -357,10 +481,18 @@ class CSystemOptions : public CDialog
     public:
         void OnNotify (CWindow* pWindow_, int nParam_)
         {
+            static const FILEFILTER sROMFilter =
+            {
+                "ROM Images (.rom;.bin)|"
+                "All Files",
+
+                { ".rom;.bin", "" }
+            };
+
             if (pWindow_ == m_pCancel)
                 Destroy();
             else if (pWindow_ == m_pBrowse)
-                new CBrowseROM(m_pROM, this);
+                new CFileBrowser(m_pROM, this, "Browse for ROM", &sROMFilter);
             else if (pWindow_ == m_pOK)
             {
                 SetOption(mainmem, (m_pMain->GetSelected()+1) << 8);
@@ -736,58 +868,44 @@ class CInputOptions : public CDialog
 };
 
 
-class CFloppyOptions : public CDialog
+class CDriveOptions : public CDialog
 {
     public:
-        CFloppyOptions (CWindow* pParent_)
+        CDriveOptions (CWindow* pParent_)
             : CDialog(pParent_, 300, 241, "Drive Settings")
         {
-            new CIconControl(this, 10, 10, &sFloppyDriveIcon);
+            new CIconControl(this, 10, 10, &sHardDiskIcon);
 
-            new CFrameControl(this, 50, 16, 238, 79);
+            new CFrameControl(this, 50, 16, 238, 38);
             new CTextControl(this, 60, 12, "Drive 1", YELLOW_8, BLUE_2);
 
-            new CTextControl(this, 63, 30, "Drive connected:");
-            m_pDrive1 = new CComboBox(this, 163, 27, "None|Floppy disk image|Device: /dev/fd0", 115);
+            new CTextControl(this, 63, 30, "Device connected:");
+            m_pDrive1 = new CComboBox(this, 163, 27, "None|Floppy disk image", 115);
 
-            new CTextControl(this, 63, 53, "File:");
-            m_pFile1 = new CEditControl(this, 90, 50, 188);
-            m_pSave1 = new CTextButton(this, 195, 71, "Save", 40);
-            m_pEject1 = new CTextButton(this, 238, 71, "Eject", 40);
+            new CFrameControl(this, 50, 64, 238, 38);
+            new CTextControl(this, 60, 60, "Drive 2", YELLOW_8, BLUE_2);
 
-            new CFrameControl(this, 50, 104, 238, 79);
-            new CTextControl(this, 60, 100, "Drive 2", YELLOW_8, BLUE_2);
+            new CTextControl(this, 63, 78, "Device connected:");
+            m_pDrive2 = new CComboBox(this, 163, 75, "None|Floppy disk image|Atom hard disk", 115);
 
-            new CTextControl(this, 63, 118, "Drive connected:");
-            m_pDrive2 = new CComboBox(this, 163, 115, "None|Floppy disk image|Device: /dev/fd1|Atom hard disk", 115);
+            new CFrameControl(this, 50, 112, 238, 35);
+            new CTextControl(this, 60, 108, "Options", YELLOW_8, BLUE_2);
 
-            new CTextControl(this, 63, 141, "File:");
-            m_pFile2 = new CEditControl(this, 90, 138, 188);
-            m_pSave2 = new CTextButton(this, 195, 159, "Save", 40);
-            m_pEject2 = new CTextButton(this, 238, 159, "Eject", 40);
-
-            new CFrameControl(this, 50, 189, 238, 25);
-            m_pTurboLoad = new CCheckBox(this, 60, 196, "Fast disk access");
-            new CTextControl(this, 165, 197, "Sensitivity:");
-            m_pSensitivity = new CComboBox(this, 220, 193, "Low|Medium|High", 62);
+            m_pTurboLoad = new CCheckBox(this, 60, 125, "Fast disk access");
+            new CTextControl(this, 165, 126, "Sensitivity:");
+            m_pSensitivity = new CComboBox(this, 220, 122, "Low|Medium|High", 62);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
 
             // Set the initial state from the options
-            bool fFloppy1 = GetOption(drive1) == 1 && !strcasecmp(GetOption(disk1), OSD::GetFloppyDevice(1));
-            bool fFloppy2 = GetOption(drive2) == 1 && !strcasecmp(GetOption(disk2), OSD::GetFloppyDevice(2));
-            bool fAtom = GetOption(drive2) == 2;
-
-            m_pDrive1->Select(fFloppy1 ? 2 : GetOption(drive1));
-            m_pDrive2->Select(fAtom ? 3 : fFloppy2 ? 2 : GetOption(drive2));
+            m_pDrive1->Select(GetOption(drive1));
+            m_pDrive2->Select(GetOption(drive2));
             m_pTurboLoad->SetChecked(GetOption(turboload) != 0);
             m_pSensitivity->Select(!GetOption(turboload) ? 1 : GetOption(turboload) <= 5 ? 2 :
                                                                GetOption(turboload) <= 50 ? 1 : 0);
 
             // Update the state of the controls to reflect the current settings
-            OnNotify(m_pDrive1,0);
-            OnNotify(m_pDrive2,0);
             OnNotify(m_pTurboLoad,0);
         }
 
@@ -798,14 +916,9 @@ class CFloppyOptions : public CDialog
                 Destroy();
             else if (pWindow_ == m_pOK)
             {
-                char sz[384]="";
-
                 int anDriveTypes[] = { dskNone, dskImage, dskImage, dskAtom };
                 SetOption(drive1, anDriveTypes[m_pDrive1->GetSelected()]);
                 SetOption(drive2, anDriveTypes[m_pDrive2->GetSelected()]);
-
-                SetOption(disk1, (m_pDrive1->GetSelected() == 2) ? OSD::GetFloppyDevice(1) : m_pFile1->GetText());
-                SetOption(disk2, (m_pDrive2->GetSelected() == 2) ? OSD::GetFloppyDevice(2) : m_pFile2->GetText());
 
                 int anSpeeds[] = { 100, 50, 5 };
                 SetOption(turboload, m_pTurboLoad->IsChecked() ? anSpeeds[m_pSensitivity->GetSelected()] : 0);
@@ -813,80 +926,156 @@ class CFloppyOptions : public CDialog
                 if (Changed(drive1) || Changed(drive2))
                     IO::InitDrives();
 
-                if (*GetOption(disk1) && ChangedString(disk1) && !pDrive1->Insert(GetOption(disk1)))
-                {
-                    sprintf(sz, "%s\n\nNot a valid disk", GetOption(disk1));
-                    new CMessageBox(this, sz, "Drive 1", mbWarning);
-                    SetOption(disk1, "");
-                }
-                else if (*GetOption(disk2) && ChangedString(disk2) && !pDrive2->Insert(GetOption(disk2)))
-                {
-                    sprintf(sz, "%s\n\nNot a valid disk", GetOption(disk2));
-                    new CMessageBox(this, sz, "Drive 2", mbWarning);
-                    SetOption(disk2, "");
-                }
-                else
-                    Destroy();
+                Destroy();
             }
             else if (pWindow_ == m_pTurboLoad)
                 m_pSensitivity->Enable(m_pTurboLoad->IsChecked());
-            else if (pWindow_ == m_pDrive1)
-            {
-                int nType = m_pDrive1->GetSelected();
-                bool fFloppy = (nType == 1);
-
-                m_pFile1->Enable(fFloppy);
-                m_pFile1->SetText(!nType ? "" : (nType == 1) ? GetOption(disk1) : OSD::GetFloppyDevice(1));
-                m_pSave1->Enable(fFloppy && pDrive1->IsModified());
-                m_pEject1->Enable(fFloppy && pDrive1->IsInserted());
-            }
-            else if (pWindow_ == m_pDrive2)
-            {
-                int nType = m_pDrive2->GetSelected();
-                bool fFloppy = (nType == 1);
-
-                m_pFile2->Enable(fFloppy);
-                m_pFile2->SetText(!nType ? "" : (nType == 1) ? GetOption(disk2) : OSD::GetFloppyDevice(2));
-                m_pSave2->Enable(fFloppy && pDrive2->IsModified());
-                m_pEject2->Enable(fFloppy && pDrive2->IsInserted());
-            }
-            else if (pWindow_ == m_pFile1)
-            {
-                m_pEject1->Enable(*m_pFile1->GetText() != 0);
-                m_pSave1->Enable(false);
-            }
-            else if (pWindow_ == m_pFile2)
-            {
-                m_pEject2->Enable(*m_pFile2->GetText() != 0);
-                m_pSave2->Enable(false);
-            }
-            else if (pWindow_ == m_pSave1)
-            {
-                pDrive1->Flush();
-                m_pSave1->Enable(false);
-            }
-            else if (pWindow_ == m_pSave2)
-            {
-                pDrive2->Flush();
-                m_pSave2->Enable(false);
-            }
-            else if (pWindow_ == m_pEject1)
-            {
-                m_pFile1->SetText("");
-                m_pEject1->Enable(false);
-            }
-            else if (pWindow_ == m_pEject2)
-            {
-                m_pFile2->SetText("");
-                m_pEject2->Enable(false);
-            }
         }
 
     protected:
         CComboBox *m_pDrive1, *m_pDrive2, *m_pSensitivity;
-        CEditControl *m_pFile1, *m_pFile2, *m_pMouse;
         CCheckBox* m_pTurboLoad;
-        CTextButton *m_pSave1, *m_pEject1, *m_pSave2, *m_pEject2;
+        CTextButton *m_pOK, *m_pCancel;
+};
+
+
+class CDiskOptions : public CDialog
+{
+    public:
+        CDiskOptions (CWindow* pParent_)
+            : CDialog(pParent_, 300, 241, "Disk Settings")
+        {
+            new CIconControl(this, 10, 10, &sFloppyDriveIcon);
+
+            new CFrameControl(this, 50, 10, 238, 34);
+            new CTextControl(this, 60, 6, "Floppy Drive 1", YELLOW_8, BLUE_2);
+            m_pFloppy1 = new CEditControl(this, 60, 20, 200, GetOption(disk1));
+            m_pBrowseFloppy1 = new CTextButton(this, 264, 20, "...", 17);
+
+            new CFrameControl(this, 50, 53, 238, 34);
+            new CTextControl(this, 60, 49, "Floppy Drive 2", YELLOW_8, BLUE_2);
+            m_pFloppy2 = new CEditControl(this, 60, 63, 200, GetOption(disk2));
+            m_pBrowseFloppy2 = new CTextButton(this, 264, 63, "...", 17);
+
+            new CFrameControl(this, 50, 96, 238, 34);
+            new CTextControl(this, 60, 92, "Atom Hard Disk", YELLOW_8, BLUE_2);
+            m_pAtom = new CEditControl(this, 60, 106, 200, GetOption(atomdisk));
+            m_pBrowseAtom = new CTextButton(this, 264, 106, "...", 17);
+
+            new CFrameControl(this, 50, 139, 238, 34);
+            new CTextControl(this, 60, 135, "SD-IDE Hard Disk", YELLOW_8, BLUE_2);
+            m_pSDIDE = new CEditControl(this, 60, 149, 200, GetOption(sdidedisk));
+            m_pBrowseSDIDE = new CTextButton(this, 264, 149, "...", 17);
+
+            new CFrameControl(this, 50, 182, 238, 34);
+            new CTextControl(this, 60, 178, "YAMOD.ATBUS Hard Disk", YELLOW_8, BLUE_2);
+            m_pYATBus = new CEditControl(this, 60, 192, 200, GetOption(yatbusdisk));
+            m_pBrowseYATBus = new CTextButton(this, 264, 192, "...", 17);
+
+            m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
+            m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
+        }
+
+    public:
+        void OnNotify (CWindow* pWindow_, int nParam_)
+        {
+
+            if (pWindow_ == m_pCancel)
+                Destroy();
+            else if (pWindow_ == m_pOK)
+            {
+                char sz[MAX_PATH+128]="";
+
+                // Set the options from the edit control values
+                SetOption(disk1, m_pFloppy1->GetText());
+                SetOption(disk2, m_pFloppy2->GetText());
+                SetOption(atomdisk, m_pAtom->GetText());
+                SetOption(sdidedisk, m_pSDIDE->GetText());
+                SetOption(yatbusdisk, m_pYATBus->GetText());
+
+                if (ChangedString(disk1) && !pDrive1->Insert(GetOption(disk1)))
+                {
+                    sprintf(sz, "Invalid disk image:\n\n%s", GetOption(disk1));
+                    new CMessageBox(this, sz, "Floppy Drive 1", mbWarning);
+                    SetOption(disk1, pDrive1->GetImage());
+                    return;
+                }
+
+                if (ChangedString(disk2) && GetOption(drive2) == dskImage && !pDrive2->Insert(GetOption(disk2)))
+                {
+                    sprintf(sz, "Invalid disk image:\n\n%s", GetOption(disk2));
+                    new CMessageBox(this, sz, "Floppy Drive 2", mbWarning);
+                    SetOption(disk2, pDrive2->GetImage());
+                    return;
+                }
+
+                // If the Atom path has changed, activate it
+                if (ChangedString(atomdisk))
+                {
+                    // If the Atom is active, force it to be remounted
+                    if (GetOption(drive2) == dskAtom)
+                    {
+                        delete pDrive2;
+                        pDrive2 = NULL;
+                    }
+
+                    // Force the type of drive 2 as appropriate for the new string
+                    SetOption(drive2, *GetOption(atomdisk) ? dskAtom : dskImage);
+                    IO::InitDrives();
+
+                    // Ensure it was mounted ok
+                    if (*GetOption(atomdisk) && pDrive2->GetType() != dskAtom)
+                    {
+                        sprintf(sz, "Invalid hard disk image:\n\n%s", GetOption(atomdisk));
+                        new CMessageBox(this, sz, "Atom Disk", mbWarning);
+                        SetOption(atomdisk, "");
+                        return;
+                    }
+                }
+
+                // Re-init the other hard drive interfaces if anything has changed
+                if (ChangedString(sdidedisk) || ChangedString(yatbusdisk))
+                    IO::InitHDD();
+
+                // If the SDIDE path changed, check it was mounted ok
+                if (ChangedString(sdidedisk) && *GetOption(sdidedisk) && pSDIDE->GetType() != dskSDIDE)
+                {
+                    sprintf(sz, "Invalid hard disk image:\n\n%s", GetOption(sdidedisk));
+                    new CMessageBox(this, sz, "SDIDE Disk", mbWarning);
+                    SetOption(sdidedisk, "");
+                    return;
+                }
+
+                // If the SDIDE path changed, check it was mounted ok
+                if (ChangedString(yatbusdisk) && *GetOption(yatbusdisk) && pYATBus->GetType() != dskYATBus)
+                {
+                    sprintf(sz, "Invalid hard disk image:\n\n%s", GetOption(yatbusdisk));
+                    new CMessageBox(this, sz, "YAMOD.ATBUS Disk", mbWarning);
+                    SetOption(yatbusdisk, "");
+                    return;
+                }
+
+                // If everything checked out, close the dialog
+                Destroy();
+            }
+            else if (pWindow_ == m_pBrowseFloppy1)
+                new CFileBrowser(m_pFloppy1, this, "Floppy 2 image", &sFloppyFilter);
+            else if (pWindow_ == m_pBrowseFloppy2)
+                new CFileBrowser(m_pFloppy2, this, "Floppy 1 image", &sFloppyFilter);
+            else if (pWindow_ == m_pBrowseAtom)
+                new CHDDProperties(m_pAtom, this, "Atom Hard Disk");
+            else if (pWindow_ == m_pBrowseSDIDE)
+                new CHDDProperties(m_pSDIDE, this, "SD-IDE Hard Disk");
+            else if (pWindow_ == m_pBrowseYATBus)
+                new CHDDProperties(m_pYATBus, this, "YATBus Hard Disk");
+            {
+            }
+        }
+
+    protected:
+        CEditControl *m_pFloppy1, *m_pFloppy2, *m_pAtom, *m_pSDIDE, *m_pYATBus;
+        CTextButton *m_pBrowseFloppy1, *m_pBrowseFloppy2, *m_pBrowseAtom, *m_pBrowseSDIDE, *m_pBrowseYATBus;
+        CCheckBox* m_pTurboLoad;
         CTextButton *m_pOK, *m_pCancel;
 };
 
@@ -1063,15 +1252,15 @@ void COptionsDialog::OnNotify (CWindow* pWindow_, int nParam_)
                 m_pStatus->SetText("Keyboard mapping and mouse settings.");
                 if (nParam_) new CInputOptions(this);
             }
-            else if (!strcasecmp(pItem->m_pszLabel, "floppy drives"))
+            else if (!strcasecmp(pItem->m_pszLabel, "drives"))
             {
-                m_pStatus->SetText("Floppy drive and image file setup.");
-                if (nParam_) new CFloppyOptions(this);
+                m_pStatus->SetText("Floppy disk drive configuration.");
+                if (nParam_) new CDriveOptions(this);
             }
-            else if (!strcasecmp(pItem->m_pszLabel, "hard drives"))
+            else if (!strcasecmp(pItem->m_pszLabel, "disks"))
             {
-                m_pStatus->SetText("IDE hard disk on ATOM and SD-IDE interfaces.");
-                if (nParam_) new CMessageBox(this, "Coming Soon...", "Hard Drives", mbInformation);
+                m_pStatus->SetText("Disks for floppy and hard disk drives.");
+                if (nParam_) new CDiskOptions(this);
             }
             else if (!strcasecmp(pItem->m_pszLabel, "parallel"))
             {
@@ -1090,4 +1279,191 @@ void COptionsDialog::OnNotify (CWindow* pWindow_, int nParam_)
             }
         }
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+char CImportDialog::s_szFile[MAX_PATH];
+UINT CImportDialog::s_uAddr = 32768, CImportDialog::s_uPage, CImportDialog::s_uOffset;
+bool CImportDialog::s_fUseBasic = true;
+
+CImportDialog::CImportDialog (CWindow* pParent_)
+    : CDialog(pParent_, 230, 165, "Import Data")
+{
+    new CTextControl(this, 10, 18,  "File:");
+    m_pFile = new CEditControl(this, 35, 15, 160, s_szFile);
+    m_pBrowse = new CTextButton(this, 200, 15, "...", 17);
+
+    m_pFrame = new CFrameControl(this, 10, 47, 208, 88);
+    new CTextControl(this, 20, 43, "Data", YELLOW_8, BLUE_2);
+
+    m_pBasic = new CRadioButton(this, 33, 65, "BASIC Address:", 45);
+    m_pPageOffset = new CRadioButton(this, 33, 90, "Page number:", 45);
+    new CTextControl(this, 50, 110, "Page offset:", WHITE);
+
+    m_pAddr = new CEditControl(this, 143, 63, 45, s_uAddr);
+    m_pPage = new CEditControl(this, 143, 88, 20, s_uPage);
+    m_pOffset = new CEditControl(this, 143, 108, 35, s_uOffset);
+
+    int nX = (m_nWidth - (50+8+50)) / 2;
+    m_pOK = new CTextButton(this, nX, m_nHeight-21, "OK", 50);
+    m_pCancel = new CTextButton(this, nX+50+8, m_nHeight-21, "Cancel", 50);
+
+    (s_fUseBasic ? m_pBasic : m_pPageOffset)->Select();
+    OnNotify(m_pBasic, 0);
+    OnNotify(s_fUseBasic ? m_pAddr : m_pPage, 0);
+}
+
+void CImportDialog::OnNotify (CWindow* pWindow_, int nParam_)
+{
+    static const FILEFILTER sImportFilter =
+    {
+        "Binary files (*.bin)|"
+        "All Files",
+
+        { ".bin", "" }
+    };
+
+    if (pWindow_ == m_pCancel)
+        Destroy();
+    else if (pWindow_ == m_pBrowse)
+        new CFileBrowser(m_pFile, this, "Select File", &sImportFilter);
+    else if (pWindow_ == m_pAddr)
+    {
+        // Fetch the modified address
+        s_uAddr = m_pAddr->GetValue();
+
+        // Calculate (and update) the new page and offset
+        s_uPage = (s_uAddr/16384 - 1) & 0x1f;
+        s_uOffset = s_uAddr & 0x3fff;
+        m_pPage->SetValue(s_uPage);
+        m_pOffset->SetValue(s_uOffset);
+    }
+    else if (pWindow_ == m_pPage || pWindow_ == m_pOffset)
+    {
+        // Fetch the modified page or offset
+        s_uPage = m_pPage->GetValue() & 0x1f;
+        s_uOffset = m_pOffset->GetValue();
+
+        // Calculate (and update) the new address
+        s_uAddr = ((s_uPage + 1) * 16384 + s_uOffset) % 0x84000;    // wrap at end of memory
+        m_pAddr->SetValue(s_uAddr);
+
+        // Normalise the internal page and offset from the address
+        s_uPage = (s_uAddr/16384 - 1) & 0x1f;
+        s_uOffset = s_uAddr & 0x3fff;
+    }
+    else if (pWindow_ == m_pBasic || pWindow_ == m_pPageOffset)
+    {
+        // Fetch the radio selection
+        s_fUseBasic = m_pBasic->IsSelected();
+
+        // Enable/disable the edit controls depending on the radio selection
+        m_pAddr->Enable(s_fUseBasic);
+        m_pPage->Enable(!s_fUseBasic);
+        m_pOffset->Enable(!s_fUseBasic);
+    }
+    else if (pWindow_ == m_pOK || nParam_)
+    {
+        // Fetch/update the stored filename
+        strncpy(s_szFile, m_pFile->GetText(), sizeof s_szFile);
+
+        FILE* hFile;
+        if (!s_szFile[0] || !(hFile = fopen(s_szFile, "rb")))
+        {
+            new CMessageBox(this, "Failed to open file for reading", "Error", mbWarning);
+            return;
+        }
+
+        UINT uPage = (s_uAddr < 0x4000) ? ROM0 : s_uPage;
+        UINT uOffset = s_uOffset, uLen = 0x7ffff, uRead = 0;
+
+        // Loop reading chunk blocks into the relevant pages
+        for (UINT uChunk ; uChunk = min(uLen, (0x4000 - uOffset)) ; uLen -= uChunk, uOffset = 0)
+        {
+            // Read directly into system memory
+            uRead += fread(&apbPageWritePtrs[uPage][uOffset], 1, uChunk, hFile);
+
+            // Stop reading if we've hit the end
+            if (feof(hFile))
+                break;
+
+            // If the first block was in ROM0 or we've passed memory end, wrap to page 0
+            if (++uPage >= N_PAGES_MAIN)
+                uPage = 0;
+        }
+
+        fclose(hFile);
+        Frame::SetStatus("%u bytes imported to %u", uRead, s_uAddr);
+        Destroy();
+    }
+}
+
+
+UINT CExportDialog::s_uLength = 16384;  // show 16K as the initial export length
+
+CExportDialog::CExportDialog (CWindow* pParent_)
+    : CImportDialog(pParent_)
+{
+    SetText("Export Data");
+
+    // Enlarge the input dialog for the new controls
+    int nOffset = 22;
+    Offset(0, -nOffset/2);
+    Inflate(0, nOffset);
+    m_pFrame->Inflate(0, nOffset);
+    m_pOK->Offset(0, nOffset);
+    m_pCancel->Offset(0, nOffset);
+
+    // Add the new controls for Export
+    new CTextControl(this, 50, 135, "Length:", WHITE);
+    m_pLength = new CEditControl(this, 143, 133, 45, s_uLength);
+}
+
+
+void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
+{
+    if (pWindow_ == m_pOK || nParam_)
+    {
+        // Fetch/update the stored filename
+        strncpy(s_szFile, m_pFile->GetText(), sizeof s_szFile);
+
+        FILE* hFile;
+        if (!s_szFile[0] || !(hFile = fopen(s_szFile, "wb")))
+        {
+            new CMessageBox(this, "Failed to open file for writing", "Error", mbWarning);
+            return;
+        }
+
+        UINT uPage = (s_uAddr < 0x4000) ? ROM0 : s_uPage;
+        UINT uOffset = s_uOffset, uLen = min(s_uLength, 0x84000), uWritten = 0;
+
+        // Loop reading chunk blocks into the relevant pages
+        for (UINT uChunk ; uChunk = min(uLen, (0x4000 - uOffset)) ; uLen -= uChunk, uWritten += uChunk, uOffset = 0)
+        {
+            // Write directly from system memory
+            uWritten += fwrite(&apbPageReadPtrs[uPage][uOffset], 1, uChunk, hFile);
+
+            if (ferror(hFile))
+            {
+                char sz[256];
+                sprintf(sz, "Error writing to file:\n\n%s", strerror(errno));
+                new CMessageBox(this, sz, "Error", mbWarning);    
+                fclose(hFile);
+                return;
+            }
+
+            // If the first block was in ROM0 or we've passed memory end, wrap to page 0
+            if (++uPage >= N_PAGES_MAIN)
+                uPage = 0;
+        }
+
+        fclose(hFile);
+        Frame::SetStatus("%u bytes exported from %u", uWritten, s_uAddr);
+        Destroy();
+    }
+
+    // Pass to the base handler
+    else
+        CImportDialog::OnNotify(pWindow_, nParam_);
 }
