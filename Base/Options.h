@@ -2,7 +2,7 @@
 //
 // Options.h: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -47,6 +47,8 @@ typedef struct
     int     drive2;                 // Drive 2 type
     char    disk1[MAX_PATH];        // Floppy disk image in drive 1
     char    disk2[MAX_PATH];        // Floppy disk image in drive 2
+    char    atomdisk[MAX_PATH];     // Hard disk image for Atom
+    char    sdidedisk[MAX_PATH];    // Hard disk image for SD IDE interface
     bool    autoboot;               // Autoboot drive 1 on first startup?
     int     turboload;              // 0 for disabled, or sensitivity in number of frames
 
