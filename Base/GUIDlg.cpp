@@ -2,7 +2,7 @@
 //
 // GUIDlg.cpp: Dialog boxes using the GUI controls
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     : CDialog(pParent_, 305, 220,  "About SimCoupe")
 {
     new CIconControl(this, 6, 6, &sSamIcon);
-    new CTextControl(this, 86, 10,  "SimCoupe v0.90 beta 11", BLACK);
+    new CTextControl(this, 86, 10,  "SimCoupe v0.90 beta (2005/01/25)", BLACK);
     new CTextControl(this, 86, 24,  "http://www.simcoupe.org/", GREY_3);
 
     new CTextControl(this, 41, 46,  "Win32/SDL/Allegro/Pocket PC versions:", BLUE_5);
@@ -56,7 +56,7 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     new CTextControl(this, 41, 142,  "Phillips SAA 1099 sound chip emulation:", BLUE_5);
     new CTextControl(this, 51, 155,  "Dave Hooper <dave@rebuzz.org>", BLACK);
 
-    new CTextControl(this, 41, 177, "See ReadMe.txt for additional information.", RED_3);
+    new CTextControl(this, 41, 177, "See ReadMe.txt for additional information", RED_3);
 
     m_pCloseButton = new CTextButton(this, (m_nWidth-55)/2, m_nHeight-21, "Close", 55);
 }
@@ -76,18 +76,24 @@ void CAboutDialog::EraseBackground (CScreen* pScreen_)
 ////////////////////////////////////////////////////////////////////////////////
 
 CFileDialog::CFileDialog (const char* pcszCaption_, const char* pcszPath_, const FILEFILTER* pcFileFilter_,
-    CWindow* pParent_/*=NULL*/) : CDialog(pParent_, 527, 339, pcszCaption_), m_pcFileFilter(pcFileFilter_)
+    CWindow* pParent_/*=NULL*/) : CDialog(pParent_, 527, 339+22, pcszCaption_), m_pcFileFilter(pcFileFilter_)
 {
     // Create all the controls for the dialog (the objects are deleted by the GUI when closed)
     m_pFileView = new CFileView(this, 2, 2, (7*72)+19, (4*72));
 
     new CFrameControl(this, 0, (4*72)+3, m_nWidth, 1, GREY_6);
 
-    new CTextControl(this, 3, m_nHeight-40,  "Path:");
-    m_pPath = new CTextControl(this, 36, m_nHeight-40,  "");
+    new CTextControl(this, 3, m_nHeight-61,  "File:", YELLOW_8);
+    if (0)
+        m_pFile = new CEditControl(this, 36, m_nHeight-64, 204, "");
+    else
+        m_pFile = new CTextControl(this, 36, m_nHeight-61, "");
 
-    new CTextControl(this, 3, m_nHeight-19,  "Filter:");
-    m_pFilter = new CComboBox(this, 36,m_nHeight-22, m_pcFileFilter->pcszDesc, 200);
+    new CTextControl(this, 3, m_nHeight-40,  "Path:", YELLOW_8);
+    m_pPath = new CTextControl(this, 36, m_nHeight-40, "");
+
+    new CTextControl(this, 3, m_nHeight-19,  "Filter:", YELLOW_8);
+    m_pFilter = new CComboBox(this, 36,m_nHeight-22, m_pcFileFilter->pcszDesc, 204);
 
     m_pShowHidden = new CCheckBox(this, 252, m_nHeight-19, "Show hidden files");
 
@@ -113,18 +119,30 @@ void CFileDialog::OnNotify (CWindow* pWindow_, int nParam_)
         m_pFileView->ShowHidden(m_pShowHidden->IsChecked());
     else if (pWindow_ == m_pFilter)
         m_pFileView->SetFilter(m_pcFileFilter->pcszExts[m_pFilter->GetSelected()]);
+    else if (pWindow_ == m_pFile)
+    {
+        int nItem = m_pFileView->FindItem(m_pFile->GetText());
+
+        if (nParam_)
+            OnOK();
+        else if (nItem != -1)
+            m_pFileView->Select(nItem);
+    }
     else if (pWindow_ == m_pFileView)
     {
         const CListViewItem* pItem = m_pFileView->GetItem();
+
         if (pItem)
         {
-            // Folder notifications simply update the displayed path
             if (pItem->m_pIcon == &sFolderIcon)
                 m_pPath->SetText(m_pFileView->GetPath());
+            else
+            {
+                m_pFile->SetText(pItem->m_pszLabel);
 
-            // Opening/double-clicking the file requires custom handling
-            else if (nParam_)
-                OnOK();
+                if (nParam_)
+                    OnOK();
+            }
         }
     }
 }
@@ -134,18 +152,20 @@ void CFileDialog::OnNotify (CWindow* pWindow_, int nParam_)
 // File filter for disk images
 static const FILEFILTER sFloppyFilter =
 {
-    "All Disks (.dsk;.sad;.td0;.sbt;.mgt;.img)|"
-    "SAM Disks (.dsk;.sad;.td0;.sbt)|"
-    "Spectrum Disks (.mgt;.img)|"
+    "All Disks (.dsk;.sad;.sdf;.sbt;.mgt;.img)|"
+    "Disk Images (.dsk;.sad;.sdf;.sbt)|"
 #ifdef USE_ZLIB
     "Compressed Files (.gz;.zip)|"
 #endif
     "All Files",
 
     {
-        ".dsk;.sad;.td0;.sbt;.mgt;.img;.sdf",
-        ".dsk;.sad;.td0;.sbt;.sdf",
-        ".mgt;.img",
+#ifdef USE_ZLIB
+        ".dsk;.sad;.sdf;.sbt;.mgt;.img;.td0;.cpm;.gz;.zip",
+#else
+        ".dsk;.sad;.sdf;.sbt;.mgt;.img;.td0;.cpm",
+#endif
+        ".dsk;.sad;.sdf;.sbt;.td0;.cpm",
 #ifdef USE_ZLIB
         ".gz;.zip",
 #endif
@@ -157,13 +177,13 @@ CInsertFloppy::CInsertFloppy (int nDrive_, CWindow* pParent_/*=NULL*/)
     : CFileDialog("", NULL, &sFloppyFilter, pParent_), m_nDrive(nDrive_)
 {
     // Set the dialog caption to show which drive we're dealing with
-    char szCaption[32] = "Insert Floppy x";
+    char szCaption[] = "Insert Floppy x";
     szCaption[strlen(szCaption)-1] = '0'+nDrive_;
     SetText(szCaption);
 
     // Browse from the location of the previous image, or the default directory if none
     const char* pcszImage = ((nDrive_ == 1) ? pDrive1 : pDrive2)->GetPath();
-    m_pFileView->SetPath(*pcszImage ? pcszImage : OSD::GetFilePath());
+    m_pFileView->SetPath(*pcszImage ? pcszImage : OSD::GetDirPath(GetOption(floppypath)));
 }
 
 // Handle OK being clicked when a file is selected
@@ -185,7 +205,7 @@ void CInsertFloppy::OnOK ()
         if (fInserted)
         {
             // Update the status text and close the dialog
-            Frame::SetStatus("%s  inserted into Drive %d", m_pFileView->GetItem()->m_pszLabel, m_nDrive);
+            Frame::SetStatus("%s  inserted into drive %d", m_pFileView->GetItem()->m_pszLabel, m_nDrive);
             Destroy();
             return;
         }
@@ -203,7 +223,7 @@ CFileBrowser::CFileBrowser (CEditControl* pEdit_, CWindow* pParent_, const char*
     : CFileDialog(pcszCaption_, NULL, pcsFilter_, pParent_), m_pEdit(pEdit_)
 {
     // Browse from the location of the previous image, or the default directory if none
-    m_pFileView->SetPath(*pEdit_->GetText() ? pEdit_->GetText() : OSD::GetFilePath());
+    m_pFileView->SetPath(*pEdit_->GetText() ? pEdit_->GetText() : OSD::GetDirPath());
 }
 
 // Handle OK being clicked when a file is selected
@@ -322,7 +342,7 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
         // Check the geometry is within range
         if (!uCyls || (uCyls > 16383) || !uHeads || (uHeads > 16) || !uSectors || (uSectors > 63))
         {
-            new CMessageBox(this, "Invalid disk geometry.", "Warning", mbWarning);
+            new CMessageBox(this, "Invalid disk geometry", "Warning", mbWarning);
             return;
         }
 
@@ -453,7 +473,7 @@ class CSystemOptions : public CDialog
         {
             new CIconControl(this, 10, 10, &sChipIcon);
 
-            new CFrameControl(this, 50, 17, 238, 45);
+            new CFrameControl(this, 50, 17, 238, 88);
             new CTextControl(this, 60, 13, "Memory", YELLOW_8, BLUE_2);
 
             new CTextControl(this, 63, 35, "Main:");
@@ -461,17 +481,18 @@ class CSystemOptions : public CDialog
             new CTextControl(this, 167, 35, "External:");
             m_pExternal = new CComboBox(this, 217, 32, "None|1MB|2MB|3MB|4MB", 60);
 
-            new CFrameControl(this, 50, 80, 238, 80);
-            new CTextControl(this, 60, 76, "System ROM", YELLOW_8, BLUE_2);
+            new CTextControl(this, 63, 65, "ROM image (blank for built-in v3.0):");
+            m_pROM = new CEditControl(this, 63, 78, 196);
+            m_pBrowse = new CTextButton(this, 262, 78, "...", 17);
 
-            new CTextControl(this, 63, 96, "Custom ROM image (32K):");
-            m_pROM = new CEditControl(this, 63, 113, 196);
-            m_pBrowse = new CTextButton(this, 262, 113, "...", 17);
+            new CFrameControl(this, 50, 117, 238, 77);
+            new CTextControl(this, 60, 114, "Settings", YELLOW_8, BLUE_2);
 
-            m_pFastReset = new CCheckBox(this, 63, 139, "Enable fast power-on ROM reset.");
+            m_pFastReset = new CCheckBox(this, 63, 132, "Fast boot after hardware reset");
+            m_pHdBootRom = new CCheckBox(this, 63, 153, "Patch ROM for hard disk booting");
+            m_pAsicDelay = new CCheckBox(this, 63, 174, "ASIC startup delay on first power-on");
 
-            new CTextControl(this, 50, 174, "Note: changes to the settings above require", GREY_7);
-            new CTextControl(this, 50, 189, "a SAM reset to take effect.", GREY_7);
+            new CTextControl(this, 58, 201, "Note: Changes require a reset to take effect", RED_8);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -501,19 +522,23 @@ class CSystemOptions : public CDialog
                 Destroy();
             else if (pWindow_ == m_pBrowse)
                 new CFileBrowser(m_pROM, this, "Browse for ROM", &sROMFilter);
+            else if (pWindow_ == m_pROM)
+                m_pHdBootRom->Enable(!*m_pROM->GetText());
             else if (pWindow_ == m_pOK)
             {
                 SetOption(mainmem, (m_pMain->GetSelected()+1) << 8);
                 SetOption(externalmem, m_pExternal->GetSelected());
                 SetOption(rom, m_pROM->GetText());
+                SetOption(hdbootrom, m_pHdBootRom->IsChecked());
                 SetOption(fastreset, m_pFastReset->IsChecked());
+                SetOption(asicdelay, m_pAsicDelay->IsChecked());
 
                 Destroy();
             }
         }
 
     protected:
-        CCheckBox *m_pFastReset;
+        CCheckBox *m_pFastReset, *m_pAsicDelay, *m_pHdBootRom;
         CComboBox *m_pMain, *m_pExternal;
         CEditControl *m_pROM;
         CTextButton *m_pOK, *m_pCancel, *m_pBrowse;
@@ -529,7 +554,7 @@ class CDisplayOptions : public CDialog
             new CIconControl(this, 10, 10, &sDisplayIcon);
 
             new CFrameControl(this, 50, 17, 238, 185, WHITE);
-            new CTextControl(this, 60, 13, "Settings", WHITE, BLUE_2);
+            new CTextControl(this, 60, 13, "Settings", YELLOW_8, BLUE_2);
 
             m_pFullScreen = new CCheckBox(this, 60, 35, "Full-screen");
 
@@ -645,24 +670,27 @@ class CSoundOptions : public CDialog
             : CDialog(pParent_, 300, 231, "Sound Settings")
         {
             new CIconControl(this, 10, 10, &sSoundIcon);
-            new CFrameControl(this, 50, 17, 238, 185, WHITE);
 
-            m_pSound = new CCheckBox(this, 60, 13, "Sound enabled", WHITE, BLUE_2);
+            new CFrameControl(this, 50, 17, 238, 100, WHITE);
+            new CTextControl(this, 60, 13, "Settings", YELLOW_8, BLUE_2);
 
-                m_pSAA = new CCheckBox(this, 70, 35, "Enable Philips SAA 1099 sound chip");
-                m_pBeeper = new CCheckBox(this, 70, 56, "Enable Spectrum-style beeper");
+            m_pSound = new CCheckBox(this, 63, 33, "Sound enabled");
+            m_pSAA = new CCheckBox(this, 63, 54, "Enable Philips SAA 1099 sound chip");
+            m_pBeeper = new CCheckBox(this, 63, 75, "Enable Spectrum-style beeper");
+            m_pStereo = new CCheckBox(this, 63, 96, "Stereo sound output");
 
-            new CFrameControl(this, 70, 84, 208, 100, WHITE);
-            new CTextControl(this, 80, 80, "Output", WHITE, BLUE_2);
+#ifndef USE_SAASOUND
+            m_pSAA->Enable(false);
+#endif
 
-                m_pFreqText = new CTextControl(this, 90, 97, "Frequency:");
-                m_pFreq = new CComboBox(this, 158, 94, "11025 Hz|22050 Hz|44100 Hz", 75);
-                m_pSampleSizeText = new CTextControl(this, 90, 119, "Sample size:");
-                m_pSampleSize = new CComboBox(this, 158, 116, "8-bit|16-bit", 60);
-                m_pLatencyText = new CTextControl(this, 90, 141, "Latency:");
-                m_pLatency = new CComboBox(this, 158, 138, "1 frame (best)|2 frames|3 frames|4 frames|5 frames (default)|10 frames|15 frames|20 frames|25 frames", 113);
-                m_pStereo = new CCheckBox(this, 90, 162, "Stereo output");
+            new CFrameControl(this, 50, 131, 238, 70, WHITE);
+            new CTextControl(this, 60, 127, "Buffering", YELLOW_8, BLUE_2);
 
+            new CTextControl(this, 63, 143, "Increase the value below if you're suffering");
+            new CTextControl(this, 63, 157, "from stuttering or other sound glitches:");
+
+            m_pLatencyText = new CTextControl(this, 63, 178, "Latency:");
+            m_pLatency = new CComboBox(this, 113, 175, "1 frame (best)|2 frames|3 frames|4 frames|5 frames (default)|10 frames|15 frames|20 frames|25 frames", 120);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -671,15 +699,11 @@ class CSoundOptions : public CDialog
             m_pSound->SetChecked(GetOption(sound));
             m_pSAA->SetChecked(GetOption(saasound));
             m_pBeeper->SetChecked(GetOption(beeper));
-
-            m_pFreq->Select(GetOption(freq)/11025 - 1);
-            m_pSampleSize->Select((GetOption(bits) >> 3)-1);
             m_pStereo->SetChecked(GetOption(stereo));
 
             int nLatency = GetOption(latency);
             m_pLatency->Select((nLatency <= 5 ) ? nLatency - 1 : nLatency/5 + 3);
 
-            // Update the state of the controls to reflect the current settings
             OnNotify(m_pSound,0);
         }
 
@@ -693,52 +717,38 @@ class CSoundOptions : public CDialog
                 SetOption(sound, m_pSound->IsChecked());
                 SetOption(saasound, m_pSAA->IsChecked());
                 SetOption(beeper, m_pBeeper->IsChecked());
-
-                SetOption(freq, 11025 * (1 << m_pFreq->GetSelected()));
-                SetOption(bits, (m_pSampleSize->GetSelected()+1) << 3);
                 SetOption(stereo, m_pStereo->IsChecked());
 
                 int nLatency = m_pLatency->GetSelected();
                 SetOption(latency, (nLatency < 5) ? nLatency + 1 : (nLatency - 3) * 5);
 
-                if (Changed(sound) || Changed(saasound) || Changed(beeper) ||
-                     Changed(freq) || Changed(bits) || Changed(stereo) || Changed(latency))
-                    Sound::Init();
+                if (Changed(sound) || Changed(saasound) || Changed(beeper) || Changed(stereo) || Changed(latency))
+                {
+                    if (!Sound::Init())
+                        new CMessageBox(GetParent(), "Sound init failed - device in use?", "Sound", mbWarning);
+                }
 
                 if (Changed(beeper))
                     IO::InitBeeper();
 
-                // If the sound was checked but the option isn't set, warn than it failed
-                if (m_pSound->IsChecked() && !GetOption(sound))
-                    new CMessageBox(GetParent(), "Sound init failed - device in use?", "Sound", mbWarning);
-
                 Destroy();
             }
-            else
+            else if (pWindow_ == m_pSound)
             {
                 bool fSound = m_pSound->IsChecked();
-
-                m_pFreqText->Enable(fSound);
-                m_pFreq->Enable(fSound);
-                m_pSampleSizeText->Enable(fSound);
-                m_pSampleSize->Enable(fSound);
 
                 m_pSAA->Enable(fSound);
                 m_pBeeper->Enable(fSound);
                 m_pStereo->Enable(fSound);
                 m_pLatencyText->Enable(fSound);
                 m_pLatency->Enable(fSound);
-
-#ifndef USE_SAASOUND
-                m_pSAA->Enable(false);
-#endif
             }
         }
 
     protected:
         CCheckBox *m_pSound, *m_pSAA, *m_pBeeper, *m_pStereo;
-        CComboBox *m_pFreq, *m_pSampleSize, *m_pLatency;
-        CTextControl *m_pLatencyText, *m_pFreqText, *m_pSampleSizeText;
+        CComboBox *m_pLatency;
+        CTextControl *m_pLatencyText;
         CTextButton *m_pOK, *m_pCancel;
 };
 
@@ -753,7 +763,7 @@ class CMidiOptions : public CDialog
             new CFrameControl(this, 50, 17, 238, 40);
             new CTextControl(this, 60, 13, "Active Device", YELLOW_8, BLUE_2);
             new CTextControl(this, 63, 33, "Device on MIDI port:");
-            m_pMidi = new CComboBox(this, 170, 30, "None|Midi device|Network", 90);
+            m_pMidi = new CComboBox(this, 170, 30, "None|Midi device", 90);
 
             new CFrameControl(this, 50, 72, 238, 68);
             new CTextControl(this, 60, 68, "Devices", YELLOW_8, BLUE_2);
@@ -763,12 +773,6 @@ class CMidiOptions : public CDialog
 
             new CTextControl(this, 63, 115, "MIDI In:");
             m_pMidiIn = new CComboBox(this, 115, 113, "/dev/midi", 160);
-
-            new CFrameControl(this, 50, 155, 238, 40);
-            new CTextControl(this, 60, 151, "Network (not currently supported)", YELLOW_8, BLUE_2);
-
-            new CTextControl(this, 63, 171, "Station ID:");
-            m_pStationId = new CEditControl(this, 120, 168, 20, "0");
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -801,15 +805,11 @@ class CMidiOptions : public CDialog
                 int nType = m_pMidi->GetSelected();
                 m_pMidiOut->Enable(nType == 1);
                 m_pMidiIn->Enable(nType == 1);
-                m_pStationId->Enable(nType == 2);
-
-                m_pStationId->Enable(false);
             }
         }
 
     protected:
         CComboBox *m_pMidi, *m_pMidiOut, *m_pMidiIn;
-        CEditControl *m_pStationId;
         CTextButton *m_pOK, *m_pCancel;
 };
 
@@ -821,25 +821,26 @@ class CInputOptions : public CDialog
             : CDialog(pParent_, 300, 241, "Input Settings")
         {
             new CIconControl(this, 10, 10, &sKeyboardIcon);
-            new CFrameControl(this, 50, 17, 238, 91);
+            new CFrameControl(this, 50, 17, 238, 111);
             new CTextControl(this, 60, 13, "Keyboard", YELLOW_8, BLUE_2);
 
             new CTextControl(this, 63, 35, "Mapping mode:");
             m_pKeyMapping = new CComboBox(this, 145, 32, "None (raw)|SAM Coupe|Sinclair Spectrum", 115);
 
 #ifdef __APPLE__
-            m_pAltForCntrl = new CCheckBox(this, 63, 63, "Use Alt for SAM Cntrl key.");
-            m_pAltGrForEdit = new CCheckBox(this, 63, 85, "Use Apple key for SAM Edit.");
+            m_pAltForCntrl = new CCheckBox(this, 63, 63, "Use Alt for SAM Cntrl key");
+            m_pAltGrForEdit = new CCheckBox(this, 63, 85, "Use Apple key for SAM Edit");
 #else
-            m_pAltForCntrl = new CCheckBox(this, 63, 63, "Use Left-Alt for SAM Cntrl key.");
-            m_pAltGrForEdit = new CCheckBox(this, 63, 85, "Use Alt-Gr key for SAM Edit.");
+            m_pAltForCntrl = new CCheckBox(this, 63, 63, "Use Left-Alt for SAM Cntrl key");
+            m_pAltGrForEdit = new CCheckBox(this, 63, 85, "Use Alt-Gr key for SAM Edit");
 #endif
+            m_pKeypadMinusReset = new CCheckBox(this, 63, 107, "Use keypad-minus key for reset");
 
-            new CIconControl(this, 10, 123, &sMouseIcon);
-            new CFrameControl(this, 50, 125, 238, 37);
-            new CTextControl(this, 60, 121, "Mouse", YELLOW_8, BLUE_2);
+            new CIconControl(this, 10, 143, &sMouseIcon);
+            new CFrameControl(this, 50, 145, 238, 37);
+            new CTextControl(this, 60, 141, "Mouse", YELLOW_8, BLUE_2);
 
-            m_pMouse = new CCheckBox(this, 63, 138, "Enable SAM mouse interface.");
+            m_pMouse = new CCheckBox(this, 63, 158, "Enable SAM mouse interface");
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -848,6 +849,7 @@ class CInputOptions : public CDialog
             m_pKeyMapping->Select(GetOption(keymapping));
             m_pAltForCntrl->SetChecked(GetOption(altforcntrl));
             m_pAltGrForEdit->SetChecked(GetOption(altgrforedit));
+            m_pKeypadMinusReset->SetChecked(GetOption(keypadreset));
             m_pMouse->SetChecked(GetOption(mouse));
 
             // Update the state of the controls to reflect the current settings
@@ -864,6 +866,7 @@ class CInputOptions : public CDialog
                 SetOption(keymapping, m_pKeyMapping->GetSelected());
                 SetOption(altforcntrl, m_pAltForCntrl->IsChecked());
                 SetOption(altgrforedit, m_pAltGrForEdit->IsChecked());
+                SetOption(keypadreset, m_pKeypadMinusReset->IsChecked());
                 SetOption(mouse, m_pMouse->IsChecked());
 
                 if (Changed(keymapping) || Changed(mouse))
@@ -875,7 +878,7 @@ class CInputOptions : public CDialog
 
     protected:
         CComboBox *m_pKeyMapping;
-        CCheckBox *m_pAltForCntrl, *m_pAltGrForEdit, *m_pMouse;
+        CCheckBox *m_pAltForCntrl, *m_pAltGrForEdit, *m_pKeypadMinusReset, *m_pMouse;
         CTextButton *m_pOK, *m_pCancel;
 };
 
@@ -900,12 +903,14 @@ class CDriveOptions : public CDialog
             new CTextControl(this, 63, 78, "Device connected:");
             m_pDrive2 = new CComboBox(this, 163, 75, "None|Floppy disk image|Atom hard disk", 115);
 
-            new CFrameControl(this, 50, 112, 238, 35);
+            new CFrameControl(this, 50, 112, 238, 53);
             new CTextControl(this, 60, 108, "Options", YELLOW_8, BLUE_2);
 
             m_pTurboLoad = new CCheckBox(this, 60, 125, "Fast disk access");
             new CTextControl(this, 165, 126, "Sensitivity:");
             m_pSensitivity = new CComboBox(this, 220, 122, "Low|Medium|High", 62);
+
+            m_pAutoBoot = new CCheckBox(this, 60, 145, "Auto-boot disks inserted at startup screen");
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -914,6 +919,7 @@ class CDriveOptions : public CDialog
             m_pDrive1->Select(GetOption(drive1));
             m_pDrive2->Select(GetOption(drive2));
             m_pTurboLoad->SetChecked(GetOption(turboload) != 0);
+            m_pAutoBoot->SetChecked(GetOption(autoboot) != 0);
             m_pSensitivity->Select(!GetOption(turboload) ? 1 : GetOption(turboload) <= 5 ? 2 :
                                                                GetOption(turboload) <= 50 ? 1 : 0);
 
@@ -934,6 +940,7 @@ class CDriveOptions : public CDialog
 
                 int anSpeeds[] = { 100, 50, 5 };
                 SetOption(turboload, m_pTurboLoad->IsChecked() ? anSpeeds[m_pSensitivity->GetSelected()] : 0);
+                SetOption(autoboot, m_pAutoBoot->IsChecked());
 
                 if (Changed(drive1) || Changed(drive2))
                     IO::InitDrives();
@@ -946,7 +953,7 @@ class CDriveOptions : public CDialog
 
     protected:
         CComboBox *m_pDrive1, *m_pDrive2, *m_pSensitivity;
-        CCheckBox* m_pTurboLoad;
+        CCheckBox *m_pTurboLoad, *m_pAutoBoot;
         CTextButton *m_pOK, *m_pCancel;
 };
 
@@ -1170,13 +1177,13 @@ class CMiscOptions : public CDialog
             new CTextControl(this, 60, 13, "Clocks", YELLOW_8, BLUE_2);
             m_pSambus = new CCheckBox(this, 63, 32, "SAMBUS Clock");
             m_pDallas = new CCheckBox(this, 63, 52, "DALLAS Clock");
-            m_pClockSync = new CCheckBox(this, 63, 72, "Advance SAM time relative to real time.");
+            m_pClockSync = new CCheckBox(this, 63, 72, "Advance SAM time relative to real time");
 
             new CFrameControl(this, 50, 109, 238, 102);
             new CTextControl(this, 60, 105, "Miscellaneous", YELLOW_8, BLUE_2);
-            m_pPauseInactive = new CCheckBox(this, 63, 124, "Pause the emulation when inactive.");
-            m_pDriveLights = new CCheckBox(this, 63, 144, "Show disk drive LEDs.");
-            m_pStatus = new CCheckBox(this, 63, 164, "Display status messages.");
+            m_pPauseInactive = new CCheckBox(this, 63, 124, "Pause the emulation when inactive");
+            m_pDriveLights = new CCheckBox(this, 63, 144, "Show disk drive LEDs");
+            m_pStatus = new CCheckBox(this, 63, 164, "Display status messages");
             new CTextControl(this, 63, 187, "Profiling stats:");
             m_pProfile = new CComboBox(this, 140, 184, "Disabled|Speed and frame rate|Details percentages|Detailed timings", 140);
 
@@ -1241,7 +1248,7 @@ void COptionsDialog::OnNotify (CWindow* pWindow_, int nParam_)
 
             if (!strcasecmp(pItem->m_pszLabel, "system"))
             {
-                m_pStatus->SetText("Main/external memory configuration and ROM image paths.");
+                m_pStatus->SetText("Main/external memory configuration and ROM image paths");
                 if (nParam_) new CSystemOptions(this);
             }
             else if (!strcasecmp(pItem->m_pszLabel, "display"))
@@ -1251,42 +1258,42 @@ void COptionsDialog::OnNotify (CWindow* pWindow_, int nParam_)
             }
             else if (!strcasecmp(pItem->m_pszLabel, "sound"))
             {
-                m_pStatus->SetText("Sound quality settings for SAA chip and beeper.");
+                m_pStatus->SetText("Sound quality settings for SAA chip and beeper");
                 if (nParam_) new CSoundOptions(this);
             }
             else if (!strcasecmp(pItem->m_pszLabel, "midi"))
             {
-                m_pStatus->SetText("MIDI settings for music and network.");
+                m_pStatus->SetText("MIDI settings for music and network");
                 if (nParam_) new CMidiOptions(this);
             }
             else if (!strcasecmp(pItem->m_pszLabel, "input"))
             {
-                m_pStatus->SetText("Keyboard mapping and mouse settings.");
+                m_pStatus->SetText("Keyboard mapping and mouse settings");
                 if (nParam_) new CInputOptions(this);
             }
             else if (!strcasecmp(pItem->m_pszLabel, "drives"))
             {
-                m_pStatus->SetText("Floppy disk drive configuration.");
+                m_pStatus->SetText("Floppy disk drive configuration");
                 if (nParam_) new CDriveOptions(this);
             }
             else if (!strcasecmp(pItem->m_pszLabel, "disks"))
             {
-                m_pStatus->SetText("Disks for floppy and hard disk drives.");
+                m_pStatus->SetText("Disks for floppy and hard disk drives");
                 if (nParam_) new CDiskOptions(this);
             }
             else if (!strcasecmp(pItem->m_pszLabel, "parallel"))
             {
-                m_pStatus->SetText("Parallel port settings for printer and DACs).");
+                m_pStatus->SetText("Parallel port settings for printer and DACs)");
                 if (nParam_) new CParallelOptions(this);
             }
             else if (!strcasecmp(pItem->m_pszLabel, "misc"))
             {
-                m_pStatus->SetText("Clock settings and miscellaneous front-end options.");
+                m_pStatus->SetText("Clock settings and miscellaneous front-end options");
                 if (nParam_) new CMiscOptions(this);
             }
             else if (!strcasecmp(pItem->m_pszLabel, "about"))
             {
-                m_pStatus->SetText("Display SimCoupe version number and credits.");
+                m_pStatus->SetText("Display SimCoupe version number and credits");
                 if (nParam_) new CAboutDialog(this);
             }
         }
@@ -1478,4 +1485,50 @@ void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
     // Pass to the base handler
     else
         CImportDialog::OnNotify(pWindow_, nParam_);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+char CNewDiskDialog::s_szFile[MAX_PATH];
+UINT CNewDiskDialog::s_uType = 0;
+bool CNewDiskDialog::s_fCompress, CNewDiskDialog::s_fFormat = true;
+
+CNewDiskDialog::CNewDiskDialog (int nDrive_, CWindow* pParent_/*=NULL*/)
+    : CDialog(pParent_, 355, 100, "New Disk")
+{
+    // Set the dialog caption to show which drive we're dealing with
+    char szCaption[] = "New Disk x";
+    szCaption[strlen(szCaption)-1] = '0'+nDrive_;
+    SetText(szCaption);
+
+    new CIconControl(this, 10, 10, &sDiskIcon);
+
+    new CTextControl(this, 60, 10,  "Select the type of disk to create:");
+    m_pType = new CComboBox(this, 60, 29, "Normal format DSK image (800K)|Normal format SAD image (800K)|"
+                                            "Extended 83-track SAD image (830K)|CP/M DOS image (720K)", 215);
+
+    m_pCompress = new CCheckBox(this, 60, 55, "Compress image to save space");
+    (m_pFormat = new CCheckBox(this, 60, 76, "Format image ready for use"))->Enable(false);
+
+    m_pType->Select(s_uType);
+    m_pFormat->SetChecked(s_fFormat);
+
+#ifdef USE_ZLIB
+    m_pCompress->SetChecked(s_fCompress);
+#else
+    m_pCompress->Enable(false);
+#endif
+
+    OnNotify(m_pType, 0);
+
+    m_pOK = new CTextButton(this, m_nWidth-65, 10, "OK", 55);
+    m_pCancel = new CTextButton(this, m_nWidth-65, 33, "Cancel", 55);
+}
+
+void CNewDiskDialog::OnNotify (CWindow* pWindow_, int nParam_)
+{
+    if (pWindow_ == m_pCancel)
+        Destroy();
+    else if (pWindow_ == m_pOK)
+        new CMessageBox(this, "New Disk isn't finished yet!", "Sorry", mbWarning);
 }
