@@ -493,7 +493,7 @@ void DoAction (int nAction_, bool fPressed_)
                 Frame::Init();
 
                 // Grab the mouse automatically in full-screen, or release in windowed mode
-                Input::Acquire(GetOption(fullscreen), !GUI::IsActive());
+                Input::Acquire(GetOption(fullscreen) != 0, !GUI::IsActive());
                 break;
 
             case actToggle5_4:
