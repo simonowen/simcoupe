@@ -133,6 +133,10 @@ SOURCE=..\Base\Disassem.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\Base\Expr.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\Base\Font.cpp
 # End Source File
 # Begin Source File
@@ -178,6 +182,10 @@ SOURCE=..\Base\PNG.cpp
 # Begin Source File
 
 SOURCE=..\Base\Profile.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\Base\SDIDE.cpp
 # End Source File
 # Begin Source File
 
@@ -237,6 +245,10 @@ SOURCE=..\Base\EDops.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\Base\Expr.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\Base\Font.h
 # End Source File
 # Begin Source File
@@ -286,6 +298,14 @@ SOURCE=..\Base\Profile.h
 # Begin Source File
 
 SOURCE=..\Base\SAM.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\Base\SAMROM.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\Base\SDIDE.h
 # End Source File
 # Begin Source File
 
