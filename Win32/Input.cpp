@@ -72,7 +72,7 @@ DWORD dwComboTime;
 POINT ptLast;   // Last mouse position in emulation mode
 
 
-bool fKeyboardActive, fMouseActive, fPurgeKeyboard;
+bool fMouseActive, fPurgeKeyboard;
 
 BYTE abKeyStates[256], abKeys[256];
 inline bool IsPressed(BYTE bKey_)   { return (abKeyStates[bKey_] & 0x80) != 0; }
@@ -99,7 +99,7 @@ SIMPLE_KEY asSamKeys [SK_MAX] =
 // Symbols with SAM keyboard details
 COMBINATION_KEY asSamSymbols[] =
 {
-    // Dave Laundon's suggestions - useful!   Would be nice to have them truly configurable...
+    // Some useful combinations
     { -DIK_DELETE,  SK_SHIFT, SK_DELETE },
     { -DIK_HOME,    SK_CONTROL, SK_LEFT },
     { -DIK_END,     SK_CONTROL, SK_RIGHT },
@@ -120,6 +120,7 @@ COMBINATION_KEY asSamSymbols[] =
     { '^',  SK_SYMBOL, SK_H },      { (BYTE)'£', SK_SYMBOL, SK_L }, { ';',  SK_SEMICOLON, SK_NONE },
     { ':',  SK_COLON, SK_NONE },    { '?',  SK_SYMBOL, SK_X },      { '.',  SK_PERIOD, SK_NONE },
     { ',',  SK_COMMA, SK_NONE },    { '\\', SK_SHIFT, SK_INV },     { '|',  SK_SYMBOL, SK_L },
+
     { '\0' }
 };
 
@@ -166,7 +167,7 @@ bool Input::Init (bool fFirstInit_/*=false*/)
     {
         InitKeyboard();
         fMouseActive = false;
-        Mouse::Init();
+        Mouse::Init(fFirstInit_);
         Purge();
     }
 
