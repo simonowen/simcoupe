@@ -2,7 +2,7 @@
 //
 // UI.cpp: SDL user interface
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,64 +23,23 @@
 //  code, for forwarding to other modules and processing fn keys
 
 #include "SimCoupe.h"
-#include "SDL.h"
-
 #include "UI.h"
 
-#include "CDrive.h"
-#include "Clock.h"
+#include "Action.h"
 #include "CPU.h"
-#include "Debug.h"
 #include "Display.h"
 #include "Frame.h"
-#include "GUIDlg.h"
+#include "GUI.h"
 #include "Input.h"
 #include "Options.h"
-#include "OSD.h"
-#include "Memory.h"
-#include "Sound.h"
-#include "Video.h"
 
-const char* const WINDOW_CAPTION =
-#if defined(__BEOS__) || defined(__QNX__)
-    "SimCoup\xc3\xa9/SDL"
-#elif defined(__APPLE__)
-    "SimCoup\x8e/SDL"
-#elif defined(WIN32) || defined(__linux__)
-    "SimCoup\xe9/SDL"
-#else
-    "SimCoupe/SDL"
-#endif
 #ifdef _DEBUG
-    " [DEBUG]"
+#define WINDOW_CAPTION      "SimCoupe/SDL [DEBUG]"
+#else
+#define WINDOW_CAPTION      "SimCoupe/SDL"
 #endif
-;
 
-void DoAction (int nAction_, bool fPressed_=true);
-
-bool g_fActive = true, g_fFrameStep = false;
-
-
-enum eActions
-{
-    actNmiButton, actResetButton, actToggleSaaSound, actToggleBeeper, actToggleFullscreen,
-    actToggle5_4, actToggle50HzSync, actChangeWindowScale, actChangeFrameSkip, actChangeProfiler, actChangeMouse,
-    actChangeKeyMode, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actInsertFloppy2, actEjectFloppy2,
-    actSaveFloppy2, actNewDisk, actSaveScreenshot, actFlushPrintJob, actDebugger, actImportData, actExportData,
-    actDisplayOptions, actExitApplication, actToggleTurbo, actTempTurbo, actReleaseMouse, actPause, actFrameStep,
-    actPrinterOnline, actNewDisk1, actNewDisk2, MAX_ACTION
-};
-
-const char* aszActions[MAX_ACTION] =
-{
-    "NMI button", "Reset button", "Toggle SAA 1099 sound", "Toggle beeper sound", "Toggle fullscreen",
-    "Toggle 5:4 aspect ratio", "Toggle 50Hz frame sync", "Change window scale", "Change frame-skip mode",
-    "Change profiler mode", "Change mouse mode", "Change keyboard mode", "Insert floppy 1", "Eject floppy 1",
-    "Save changes to floppy 1", "Insert floppy 2", "Eject floppy 2", "Save changes to floppy 2", "New Disk",
-    "Save screenshot", "Flush print job", "Debugger", "Import data", "Export data", "Display options",
-    "Exit application", "Toggle turbo speed", "Turbo speed (when held)", "Release mouse capture", "Pause",
-    "Step single frame", "Toggle printer online", "New disk 1", "New disk 2"
-};
+bool g_fActive = true;
 
 
 bool UI::Init (bool fFirstInit_/*=false*/)
@@ -98,7 +57,6 @@ bool UI::Init (bool fFirstInit_/*=false*/)
     return fRet;
 }
 
-
 void UI::Exit (bool fReInit_/*=false*/)
 {
     TRACE("-> UI::Exit(%s)\n", fReInit_ ? "reinit" : "");
@@ -109,61 +67,6 @@ void UI::Exit (bool fReInit_/*=false*/)
     TRACE("<- UI::Exit()\n");
 }
 
-
-void ProcessKey (SDL_Event* pEvent_)
-{
-    SDL_keysym* pKey = &pEvent_->key.keysym;
-    bool fPress = pEvent_->type == SDL_KEYDOWN;
-
-    // A function key?
-    if (pKey->sym >= SDLK_F1 && pKey->sym <= SDLK_F12)
-    {
-        // Read the current state of the Ctrl/Alt/Shift keys
-        bool fCtrl  = (pKey->mod & KMOD_CTRL)  != 0;
-        bool fAlt   = (pKey->mod & KMOD_ALT)   != 0;
-        bool fShift = (pKey->mod & KMOD_SHIFT) != 0;
-
-        // Grab a copy of the function key definition string (could do with being converted to upper-case)
-        char szKeys[256];
-        strcpy(szKeys, GetOption(fnkeys));
-
-        // Process each of the 'key=action' pairs in the string
-        for (char* psz = strtok(szKeys, ", \t") ; psz ; psz = strtok(NULL, ", \t"))
-        {
-            // Leading C/A/S characters indicate that Ctrl/Alt/Shift modifiers are required with the key
-            bool fCtrled  = (*psz == 'C');  if (fCtrled)  psz++;
-            bool fAlted   = (*psz == 'A');  if (fAlted)   psz++;
-            bool fShifted = (*psz == 'S');  if (fShifted) psz++;
-
-            // Currently we only support function keys F1-F12
-            if (*psz++ == 'F')
-            {
-                // If we've not found a matching key, keep looking...
-                if (pKey->sym != (SDLK_F1 + (int)strtoul(psz, &psz, 0) - 1))
-                    continue;
-
-                // If the Ctrl/Shift states match, perform the action
-                if (fCtrl == fCtrled && fAlt == fAlted && fShift == fShifted)
-                    DoAction(strtoul(++psz, NULL, 0), fPress);
-            }
-        }
-    }
-
-    // Some additional function keys
-    switch (pKey->sym)
-    {
-        case SDLK_RETURN:       if (pKey->mod & KMOD_ALT) DoAction(actToggleFullscreen, fPress);    break;
-        case SDLK_KP_MINUS:     if (GetOption(keypadreset)) DoAction(actResetButton, fPress);      break;
-        case SDLK_KP_DIVIDE:    DoAction(actDebugger, fPress);          break;
-        case SDLK_KP_MULTIPLY:  DoAction(actNmiButton, fPress);         break;
-        case SDLK_KP_PLUS:      DoAction(actTempTurbo, fPress);         break;
-        case SDLK_SYSREQ:       DoAction(actSaveScreenshot, fPress);    break;
-        case SDLK_SCROLLOCK:    // Pause key on some platforms comes through as scoll lock?
-        case SDLK_PAUSE:        DoAction((pKey->mod & KMOD_CTRL) ? actResetButton :
-                                         (pKey->mod & KMOD_SHIFT) ? actFrameStep : actPause, fPress);   break;
-        default:                break;
-    }
-}
 
 // Check and process any incoming messages
 bool UI::CheckEvents ()
@@ -176,7 +79,7 @@ bool UI::CheckEvents ()
 
     // Re-pause after a single frame-step
     if (g_fFrameStep)
-        DoAction(actFrameStep);
+        Action::Do(actFrameStep);
 
     while (1)
     {
@@ -187,12 +90,6 @@ bool UI::CheckEvents ()
                 case SDL_QUIT:
                     return false;
 
-                case SDL_KEYDOWN:
-                case SDL_KEYUP:
-                    Input::ProcessEvent(&event);
-                    ProcessKey(&event);
-                    break;
-
                 case SDL_JOYAXISMOTION:
                 case SDL_JOYHATMOTION:
                 case SDL_JOYBUTTONDOWN:
@@ -200,6 +97,8 @@ bool UI::CheckEvents ()
                 case SDL_MOUSEMOTION:
                 case SDL_MOUSEBUTTONDOWN:
                 case SDL_MOUSEBUTTONUP:
+                case SDL_KEYDOWN:
+                case SDL_KEYUP:
                     Input::ProcessEvent(&event);
                     break;
 
@@ -230,154 +129,25 @@ bool UI::CheckEvents ()
 
 void UI::ShowMessage (eMsgType eType_, const char* pcszMessage_)
 {
-    switch (eType_)
-    {
-        case msgWarning:
-            GUI::Start(new CMessageBox(NULL, pcszMessage_, "Warning", mbWarning));
-            break;
-
-        case msgError:
-            GUI::Start(new CMessageBox(NULL, pcszMessage_, "Error", mbError));
-            break;
-
-        // Something went seriously wrong!
-        case msgFatal:
-            break;
-
-        default:
-            break;
-    }
+    if (eType_ == msgInfo)
+        GUI::Start(new CMessageBox(NULL, pcszMessage_, WINDOW_CAPTION, mbInformation));
+    else if (eType_ == msgWarning)
+        GUI::Start(new CMessageBox(NULL, pcszMessage_, WINDOW_CAPTION, mbWarning));
+    else
+        GUI::Start(new CMessageBox(NULL, pcszMessage_, WINDOW_CAPTION, mbError));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void DoAction (int nAction_, bool fPressed_)
+bool UI::DoAction (int nAction_, bool fPressed_)
 {
-    // Key being pressed?
+    // Key pressed?
     if (fPressed_)
     {
         switch (nAction_)
         {
-            case actNmiButton:
-                CPU::NMI();
-                break;
-
-            case actResetButton:
-                // Simulate the reset button being held by part-resetting the CPU and I/O, and holding the sound chip
-                CPU::Reset(true);
-                Sound::Stop();
-                break;
-
-            case actToggleSaaSound:
-                SetOption(saasound, !GetOption(saasound));
-                Sound::Init();
-                Frame::SetStatus("SAA 1099 sound chip %s", GetOption(saasound) ? "enabled" : "disabled");
-                break;
-
-            case actToggleBeeper:
-                SetOption(beeper, !GetOption(beeper));
-                Sound::Init();
-                Frame::SetStatus("Beeper %s", GetOption(beeper) ? "enabled" : "disabled");
-                break;
-
-            case actToggle50HzSync:
-                SetOption(sync, !GetOption(sync));
-                Frame::SetStatus("Frame sync %s", GetOption(sync) ? "enabled" : "disabled");
-                break;
-
-            case actChangeWindowScale:
-                GUI::Start(new CMessageBox(NULL, "Window scaling not supported under SDL", "Sorry!", mbInformation));
-                break;
-
-            case actChangeFrameSkip:
-            {
-                SetOption(frameskip, (GetOption(frameskip)+1) % 11);
-
-                int n = GetOption(frameskip);
-                switch (n)
-                {
-                    case 0:     Frame::SetStatus("Automatic frame-skip");   break;
-                    case 1:     Frame::SetStatus("No frames skipped");      break;
-                    default:    Frame::SetStatus("Displaying every %d%s frame", n, (n==2) ? "nd" : (n==3) ? "rd" : "th");   break;
-                }
-                break;
-            }
-
-            case actChangeProfiler:
-                SetOption(profile, (GetOption(profile)+1) % 4);
-                break;
-
-            case actChangeMouse:
-                SetOption(mouse, !GetOption(mouse));
-                Input::Acquire(GetOption(mouse) != 0);
-                Frame::SetStatus("Mouse %s", !GetOption(mouse) ? "disabled" : "enabled");
-                break;
-
-            case actChangeKeyMode:
-                SetOption(keymapping, (GetOption(keymapping)+1) % 3);
-                Frame::SetStatus(!GetOption(keymapping) ? "Raw keyboard mode" :
-                                GetOption(keymapping)==1 ? "SAM Coupe keyboard mode" : "Spectrum keyboard mode");
-                break;
-
-            case actInsertFloppy1:
-                if (GetOption(drive1) == dskImage)
-                    GUI::Start(new CInsertFloppy(1));
-                break;
-
-            case actEjectFloppy1:
-                if (GetOption(drive1) == dskImage && pDrive1->IsInserted())
-                {
-                    Frame::SetStatus("%s  ejected from drive 1", pDrive1->GetFile());
-                    pDrive1->Eject();
-                }
-                break;
-
-            case actSaveFloppy1:
-                if (GetOption(drive1) == dskImage && pDrive1->IsModified() && pDrive1->Flush())
-                    Frame::SetStatus("%s  changes saved", pDrive1->GetFile());
-                break;
-
-            case actInsertFloppy2:
-                if (GetOption(drive2) == dskImage)
-                    GUI::Start(new CInsertFloppy(2));
-                break;
-
-            case actEjectFloppy2:
-                if (GetOption(drive2) == dskImage && pDrive2->IsInserted())
-                {
-                    Frame::SetStatus("%s  ejected from drive 2", pDrive2->GetFile());
-                    pDrive2->Eject();
-                }
-                break;
-
-            case actSaveFloppy2:
-                if (GetOption(drive2) == dskImage && pDrive2->IsModified() && pDrive2->Flush())
-                    Frame::SetStatus("%s  changes saved", pDrive2->GetFile());
-                break;
-
-            case actNewDisk1:
-            case actNewDisk2:
-                GUI::Start(new CMessageBox(NULL, "New Disk not yet implemented", "Sorry!", mbInformation));
-                break;
-
-            case actSaveScreenshot:
-                Frame::SaveFrame();
-                break;
-
-            case actDebugger:
-                Debug::Start();
-                break;
-
-            case actImportData:
-                GUI::Start(new CImportDialog);
-                break;
-
-            case actExportData:
-                GUI::Start(new CExportDialog);
-                break;
-
-            case actDisplayOptions:
-                GUI::Start(new COptionsDialog);
+            case actChangeWindowSize:
+                GUI::Start(new CMessageBox(NULL, "Window sizing is not supported under SDL", "Sorry!", mbInformation));
                 break;
 
             case actExitApplication:
@@ -387,127 +157,61 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
             }
 
-            case actToggleTurbo:
-            {
-                g_fTurbo = !g_fTurbo;
-                Sound::Silence();
-
-                Frame::SetStatus("Turbo mode %s", g_fTurbo ? "enabled" : "disabled");
-                break;
-            }
-
-            case actTempTurbo:
-                if (!g_fTurbo)
-                {
-                    g_fTurbo = true;
-                    Sound::Silence();
-                }
-                break;
-
-            case actReleaseMouse:
-                Input::Acquire(false);
-                Frame::SetStatus("Mouse capture released");
-                break;
-
-            case actFrameStep:
-            {
-                // Run for one frame then pause
-                static int nFrameSkip = 0;
-
-                // On first entry, save the current frameskip setting
-                if (!g_fFrameStep)
-                {
-                    nFrameSkip = GetOption(frameskip);
-                    g_fFrameStep = true;
-                }
-
-                SetOption(frameskip, g_fPaused ? 1 : nFrameSkip);
-            }   // Fall through to actPause...
-
             case actPause:
             {
-                g_fPaused = !g_fPaused;
-
+                // Reverse logic because we've the default processing hasn't occurred yet
                 if (g_fPaused)
-                {
-                    Sound::Stop();
-
-                    char szPaused[64];
-                    sprintf(szPaused, "%s - Paused", WINDOW_CAPTION);
-                    SDL_WM_SetCaption(szPaused, szPaused);
-                }
-                else
-                {
-                    Sound::Play();
                     SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);
-                    g_fFrameStep = (nAction_ == actFrameStep);
-                }
+                else
+                    SDL_WM_SetCaption(WINDOW_CAPTION " - Paused", WINDOW_CAPTION " - Paused");
 
-                Video::CreatePalettes();
-
-                Display::SetDirty();
-                Frame::Redraw();
-                break;
+                // Perform default processing
+                return false;
             }
 
-            case actFlushPrintJob:
-                IO::InitParallel();
-                Frame::SetStatus("Flushed active print job");
+            // Perform the switch on key-up, to avoid an SDL 1.2.x bug
+            case actToggleFullscreen:
                 break;
 
-            case actPrinterOnline:
-                SetOption(printeronline, !GetOption(printeronline));
-                Frame::SetStatus("Printer %s", GetOption(printeronline) ? "ONLINE" : "OFFLINE");
+            case actToggle5_4:
+#ifndef USE_OPENGL
+                GUI::Start(new CMessageBox(NULL, "5:4 mode is not available under SDL", "Sorry!", mbInformation));
+#endif
                 break;
+
+            // Not processed
+            default:
+                return false;
         }
     }
-
-    // Key released
-    else
+    else    // Key released
     {
         switch (nAction_)
         {
-            case actResetButton:
-                // Reset the CPU, and prepare fast reset if necessary
-                CPU::Reset(false);
-
-                // Start the fast-boot timer
-                if (GetOption(fastreset))
-                    g_nFastBooting = EMULATED_FRAMES_PER_SECOND * 5;
-
-                // Start the sound playing, so the sound chip continues to play the current settings
-                Sound::Play();
-                break;
-
-            case actTempTurbo:
-                if (g_fTurbo)
-                {
-                    Sound::Silence();
-                    g_fTurbo = false;
-                }
-                break;
-
             // To avoid an SDL bug (in 1.2.0 anyway), we'll do the following on key up instead of down
             case actToggleFullscreen:
                 SetOption(fullscreen, !GetOption(fullscreen));
                 Sound::Silence();
-
-                // Reinitialise the video
                 Frame::Init();
 
                 // Grab the mouse automatically in full-screen, or release in windowed mode
-                Input::Acquire(GetOption(fullscreen) != 0, !GUI::IsActive());
+                Input::Acquire(!!GetOption(fullscreen), !GUI::IsActive());
                 break;
 
             case actToggle5_4:
 #ifdef USE_OPENGL
                 SetOption(ratio5_4, !GetOption(ratio5_4));
                 Frame::Init();
-                Frame::SetStatus("%s pixel size", GetOption(ratio5_4) ? "5:4" : "1:1");
-#else
-                GUI::Start(new CMessageBox(NULL, "5:4 mode not available under SDL", "Sorry!", mbInformation));
+                Frame::SetStatus("%s aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
 #endif
                 break;
+
+            // Not processed
+            default:
+                return false;
         }
     }
+
+    // Action processed
+    return true;
 }
