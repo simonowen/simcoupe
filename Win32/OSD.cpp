@@ -29,20 +29,55 @@
 #include "UI.h"
 
 
-namespace OSD
+HANDLE g_hEvent;
+MMRESULT g_hTimer;
+
+int OSD::s_nTicks;
+
+
+// Timer handler, called every 20ms - seemed more reliable than having it set the event directly, for some weird reason
+void CALLBACK TimeCallback (UINT uTimerID_, UINT uMsg_, DWORD dwUser_, DWORD dw1_, DWORD dw2_)
 {
-bool Init (bool fFirstInit_/*=false*/)
-{
-    return UI::Init(fFirstInit_);
+    OSD::s_nTicks++;
+
+    // Signal that the next frame is due
+    SetEvent(g_hEvent);
 }
 
-void Exit (bool fReInit_/*=false*/)
+
+bool OSD::Init (bool fFirstInit_/*=false*/)
 {
+    UI::Exit(true);
+    TRACE("-> OSD::Init(%s)\n", fFirstInit_ ? "first" : "");
+
+    bool fRet = false;
+
+    // Create an event that will be set every 20ms for the 50Hz sync
+    if (!(g_hEvent = CreateEvent(NULL, FALSE, FALSE, NULL)))
+        Message(msgWarning, "Failed to create sync event object (%#08lx)", GetLastError());
+
+    // Set a timer to fire every every 20ms for our 50Hz frame synchronisation
+    else if (!(g_hTimer = timeSetEvent(1000/EMULATED_FRAMES_PER_SECOND, 0, TimeCallback, 0, TIME_PERIODIC|TIME_CALLBACK_FUNCTION)))
+        Message(msgWarning, "Failed to start sync timer (%#08lx)", GetLastError());
+
+    else
+        fRet = UI::Init(fFirstInit_);
+
+    TRACE("<- OSD::Init() returning %s\n", fRet ? "true" : "false");
+    return fRet;
+}
+
+void OSD::Exit (bool fReInit_/*=false*/)
+{
+    if (g_hEvent)   { CloseHandle(g_hEvent); g_hEvent = NULL; }
+    if (g_hTimer)   { timeKillEvent(g_hTimer); g_hTimer = NULL; }
+
+    UI::Exit();
 }
 
 
 // Return an accurate time stamp of type PROFILE_T (__int64 for Win32)
-PROFILE_T GetProfileTime ()
+PROFILE_T OSD::GetProfileTime ()
 {
     __int64 llNow;
 
@@ -57,7 +92,7 @@ PROFILE_T GetProfileTime ()
 
 // Return a time-stamp in milliseconds
 // Note: calling could should allow for the value wrapping by only comparing differences
-DWORD GetTime ()
+DWORD OSD::GetTime ()
 {
     static __int64 llFreq = 0;
 
@@ -80,7 +115,7 @@ DWORD GetTime ()
 // Do whatever is necessary to locate an additional SimCoupe file - The Win32 version looks in the
 // same directory as the EXE, but other platforms could use an environment variable, etc.
 // If the path is already fully qualified (an OS-specific decision), return the same string
-const char* GetFilePath (const char* pcszFile_)
+const char* OSD::GetFilePath (const char* pcszFile_)
 {
     static char szPath[MAX_PATH];
 
@@ -103,25 +138,38 @@ const char* GetFilePath (const char* pcszFile_)
     return szPath;
 }
 
-void DebugTrace (const char* pcsz_)
+void OSD::DebugTrace (const char* pcsz_)
 {
     OutputDebugString(pcsz_);
 }
 
-bool FrameSync (bool fWait_/*=true*/)
+int OSD::FrameSync (bool fWait_/*=true*/)
 {
-    bool fWait = WaitForSingleObject(g_hEvent, 0) == WAIT_TIMEOUT;
+    extern LPDIRECTDRAW pdd;
 
     if (fWait_)
-        WaitForSingleObject(g_hEvent, INFINITE);
+    {
+        switch (GetOption(sync))
+        {
+            case 1:
+                ResetEvent(g_hEvent);
+                WaitForSingleObject(g_hEvent, INFINITE);
+                break;
 
-    return fWait;
+            case 3:
+                pdd->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, NULL);
+                // Fall through...
+
+            case 2:
+                pdd->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, NULL);
+                break;
+        }
+    }
+
+    return s_nTicks;
 }
 
-};  // namespace OSD
-
-
-
+////////////////////////////////////////////////////////////////////////////////
 
 // Win32 lacks a few of the required POSIX functions, so we'll implement them ourselves...
 
