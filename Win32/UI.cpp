@@ -108,7 +108,7 @@ const char* aszActions[MAX_ACTION] =
 
 
 static char szDiskFilters [] =
-#ifndef NO_ZLIB
+#ifdef USE_ZLIB
     "All disks (*.DSK;*.SAD;*.SDF;*.GZ;*.ZIP)\0*.DSK;*.SAD;*.SDF;*.GZ;*.ZIP\0"
     "Uncompressed (*.DSK;*.SAD;*.SDF)\0*.DSK;*.SAD;*.SDF\0"
     "Compressed (*.GZ;*.ZIP)\0*.GZ;*.ZIP\0"
@@ -1472,7 +1472,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
             SetWindowText(GetDlgItem(hdlg_, IDE_NEWFILE), szFile);
             SendMessage(hdlg_, WM_COMMAND, IDR_DISK_TYPE_DSK + nType, 0L);
 
-#ifdef NO_ZLIB
+#ifndef USE_ZLIB
             // If Zlib is not available, hide the compression check-box
             ShowWindow(GetDlgItem(hdlg_, IDC_COMPRESS), SW_HIDE);
 #endif
@@ -1731,7 +1731,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
 
                     // Create the new stream, either compressed or uncompressed
                     CStream* pStream = NULL;
-#ifndef NO_ZLIB
+#ifdef USE_ZLIB
                     if (fCompress)
                         pStream = new CZLibStream(NULL, szFile);
                     else
@@ -2242,13 +2242,19 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 case IDC_BEEPER:
                 {
                     bool fSound = (SendDlgItemMessage(hdlg_, IDC_SOUND_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                    bool fSAA = fSound && (SendDlgItemMessage(hdlg_, IDC_SAASOUND_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
                     EnableWindow(GetDlgItem(hdlg_, IDS_LATENCY), fSound);
                     EnableWindow(GetDlgItem(hdlg_, IDC_LATENCY), fSound);
                     EnableWindow(GetDlgItem(hdlg_, IDC_STEREO), fSound);
                     EnableWindow(GetDlgItem(hdlg_, IDC_SAASOUND_ENABLED), fSound);
                     EnableWindow(GetDlgItem(hdlg_, IDC_BEEPER), fSound);
+
+#ifdef USE_SAASOUND
+                    bool fSAA = fSound && (SendDlgItemMessage(hdlg_, IDC_SAASOUND_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+#else
+                    bool fSAA = false;
+                    EnableWindow(GetDlgItem(hdlg_, IDC_SAASOUND_ENABLED), false);
+#endif
 
                     EnableWindow(GetDlgItem(hdlg_, IDS_FREQ), fSAA);
                     EnableWindow(GetDlgItem(hdlg_, IDC_FREQ), fSAA);
