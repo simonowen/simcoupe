@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // ATA.cpp: ATA hard disk (and future ATAPI CD-ROM) emulation
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,16 +19,13 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "SimCoupe.h"
+
 #include "ATA.h"
+#include "Frame.h"
 
 // ToDo:
 //  - add ATA interface layer to allow chaining of a slave device
 //  - implement additional packet commands for ATAPI CD-ROM support
-
-
-
-// Helper macro for identity structure strings, which are space padded and not NULL terminated
-#define SetIdentityString(f,v)  { memset((f), ' ', sizeof(f)); memcpy((f), (v), strlen(v)); }
 
 
 // Device hard reset
@@ -61,6 +58,12 @@ WORD CATADevice::In (WORD wPort_)
         case 1:
             switch (wPort_ & 0xff)
             {
+                // Reset
+                case 0xdf:
+                    // The reset should be when the data port is next read, but we'll assume that will happen next!
+                    Reset();
+                    break;
+
                 // Data register
                 case 0xf0:
                 {
@@ -70,16 +73,14 @@ WORD CATADevice::In (WORD wPort_)
                     else
                     {
                         // Pick out the next WORD of data
-                        wRet = (static_cast<WORD>(m_pbBuffer[0]) << 8) | m_pbBuffer[1];
+                        wRet = (static_cast<WORD>(m_pbBuffer[1]) << 8) | m_pbBuffer[0];
+
+                        // Advance to the next WORD of data, if any
+                        m_pbBuffer += sizeof(WORD);
+                        m_uBuffer -= sizeof(WORD);
 
                         if (!m_uBuffer)
                             TRACE("ATA: All data read\n");
-                        else
-                        {
-                            // Advance to the next WORD of data, if any
-                            m_pbBuffer += sizeof(WORD);
-                            m_uBuffer -= sizeof(WORD);
-                        }
                     }
 
                     break;
@@ -166,8 +167,8 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                     // Data expected?
                     if (m_uBuffer)
                     {
-                        m_pbBuffer[0] = wVal_ >> 8;
-                        m_pbBuffer[1] = wVal_ & 0xff;
+                        m_pbBuffer[0] = wVal_ & 0xff;
+                        m_pbBuffer[1] = wVal_ >> 8;
 
                         m_pbBuffer += sizeof(WORD);
                         m_uBuffer -= sizeof(WORD);
@@ -201,11 +202,11 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                                     {
                                         TRACE(" %d sectors left in multi-sector write...\n", m_sRegs.bSectorCount);
 
-                                        if (++m_sRegs.bSector > m_sIdentity.wSectorsPerTrack)
+                                        if (++m_sRegs.bSector > m_wSectorsPerTrack)
                                         {
                                             m_sRegs.bSector = 1;
 
-                                            if ((m_sRegs.bDeviceHead & 0x0f) != (m_sIdentity.wLogicalHeads - 1))
+                                            if ((m_sRegs.bDeviceHead & 0x0f) != (m_wLogicalHeads - 1))
                                                 m_sRegs.bDeviceHead++;
                                             else
                                             {
@@ -287,7 +288,6 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                     {
                         case 0x08:
 //                          TRACE("ATA: Disk command: Device Reset\n");
-
 #if 1
                             // No ATAPI support
                             m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_ERROR;
@@ -301,6 +301,14 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                             m_sRegs.bCylinderLow = 0x14;
                             m_sRegs.bCylinderHigh = 0xeb;
 #endif
+                            break;
+
+                        case 0x10:  // Recalibrate
+                            if (!DiskReadWrite(false))
+                            {
+                                m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_ERROR;
+                                m_sRegs.bError = ATA_ERROR_TK0NF;
+                            }
                             break;
 
                         case 0x20:  // Read Sectors (with retries)
@@ -397,7 +405,7 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                             TRACE("ATA: Disk command: Initialize Device Parameters\n");
 
                             // BDOS doesn't use these, so we'll implement them later!
-                            TRACE("  Sectors per track: %d, Heads = \n", m_sRegs.bSectorCount, (m_sRegs.bDeviceHead & 0x0f) + 1);
+                            TRACE("  Sectors per track: %d, Heads = %d\n", m_sRegs.bSectorCount, (m_sRegs.bDeviceHead & 0x0f) + 1);
 
                             break;
 
@@ -415,6 +423,7 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                         case 0x94:
                         case 0xe0:
                             TRACE("ATA: Disk command: Standby Immediate\n");
+                            Frame::SetStatus("HDD now in standby mode");
                             m_fAsleep = true;
                             break;
 
@@ -448,6 +457,7 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                         case 0x99:
                         case 0xe6:
                             TRACE("ATA: Disk command: Sleep\n");
+                            Frame::SetStatus("HDD now in sleep mode");
                             m_fAsleep = true;
                             break;
 
@@ -461,24 +471,9 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                         {
                             TRACE("ATA: Disk command: IDENTIFY\n");
 
-                            // All undefined fields are zeros
-                            memset(&m_abSectorData, 0, sizeof m_abSectorData);
-
-                            // Copy in what we've got
-                            memcpy(&m_abSectorData, &m_sIdentity, sizeof m_sIdentity);
-
-                            // Swap the byte order
-                            for (int i = 0 ; i < (int)sizeof(m_abSectorData) ; i += 2)
-                            {
-                                BYTE t = m_abSectorData[i];
-                                m_abSectorData[i] = m_abSectorData[i+1];
-                                m_abSectorData[i+1] = t;
-                            }
-
-                            DEVICEIDENTITY* pIdentity = reinterpret_cast<DEVICEIDENTITY*>(m_abSectorData);
-                            SetIdentityString(pIdentity->szSerialNumber, "0123456789");
-                            SetIdentityString(pIdentity->szFirmwareRev,  "0.90");
-                            SetIdentityString(pIdentity->szModelNumber,  "SimCoupe Disk");
+                            // Clear out the sector and copy in the identity data
+                            memset(m_abSectorData+sizeof(m_sIdentity), 0, sizeof(m_abSectorData)-sizeof(m_sIdentity));
+                            memcpy(&m_abSectorData, &m_sIdentity, sizeof(m_sIdentity));
 
                             m_pbBuffer = m_abSectorData;
                             m_uBuffer = sizeof m_abSectorData;
@@ -568,6 +563,86 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                 default:
                     TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
             }
+            break;
+        }
+
+        default:
+            TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// See http://www.ramsoft.bbk.org/tech/rs-hdf.txt
+typedef struct
+{
+    char    szSignature[6];             // RS-IDE
+    BYTE    bEOF;                       // 0x1a
+    BYTE    bRevision;                  // 0x10 for v1.0
+    BYTE    bFlags;                     // b0 = halved sector data
+    BYTE    bOffsetLow, bOffsetHigh;    // Offset from start of file to HDD data
+    BYTE    abReserved[11];             // Must be zero
+    DEVICEIDENTITY sIdentity;           // ATA device identity
+}
+RS_IDE;
+
+
+CHardDiskDevice::CHardDiskDevice (const char* pcszDisk_)
+    : m_hfDisk(NULL)
+{
+    if (*pcszDisk_ && (m_hfDisk = fopen(pcszDisk_, "r+b")))
+    {
+        RS_IDE sHeader;
+
+        if (!fread(&sHeader, sizeof sHeader, 1, m_hfDisk) || sHeader.bRevision != 0x10 ||
+            sHeader.bFlags & 1 || memcmp(sHeader.szSignature, "RS-IDE", sizeof sHeader.szSignature))
+            TRACE("Invalid or incompatible HDF file\n");
+        else
+        {
+            memcpy(&m_sIdentity, &sHeader.sIdentity, sizeof m_sIdentity);
+
+            BYTE* pbLogicalHeads = reinterpret_cast<BYTE*>(&m_sIdentity.wLogicalHeads);
+            m_wLogicalHeads = (pbLogicalHeads[1] << 8) | pbLogicalHeads[0];
+
+            BYTE* pbSectorsPerTrack = reinterpret_cast<BYTE*>(&m_sIdentity.wSectorsPerTrack);
+            m_wSectorsPerTrack = (pbSectorsPerTrack[1] << 8) | pbSectorsPerTrack[0];
         }
     }
+}
+
+CHardDiskDevice::~CHardDiskDevice ()
+{
+    // Close the hard disk header file
+    if (m_hfDisk)
+        fclose(m_hfDisk);
+}
+
+
+bool CHardDiskDevice::DiskReadWrite (bool fWrite_)
+{
+    bool fRet = false;
+
+    WORD wCylinder = (static_cast<WORD>(m_sRegs.bCylinderHigh) << 8) | m_sRegs.bCylinderLow;
+    BYTE bHead = (m_sRegs.bDriveAddress >> 2) & 0x0f, bSector = m_sRegs.bSector;
+
+    // Only process requests within the disk geometry
+    if (bSector && bSector <= m_wSectorsPerTrack && bHead < m_wLogicalHeads && wCylinder < m_sIdentity.wLogicalCylinders)
+    {
+        // Calculate the logical block number from the CHS position
+        UINT uBlock = (wCylinder * m_wLogicalHeads + bHead) * m_wSectorsPerTrack + (bSector - 1);
+        UINT uOffset = sizeof(RS_IDE) + (uBlock << 9);
+
+        TRACE("%s CHS %u:%u:%u  [LBA=%u @%u]\n", fWrite_ ? "Writing" : "Reading", wCylinder, bHead, bSector, uBlock, uOffset);
+
+        // Locate the block
+        if (m_hfDisk && !fseek(m_hfDisk, uOffset, SEEK_SET))
+        {
+            if (fWrite_)
+                fRet = fwrite(&m_abSectorData, sizeof m_abSectorData, 1, m_hfDisk) != 0;
+            else
+                fRet = fread(&m_abSectorData, sizeof m_abSectorData, 1, m_hfDisk) != 0;
+        }
+    }
+
+    return fRet;
 }
