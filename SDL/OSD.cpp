@@ -146,7 +146,7 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 // Same as GetFilePath but ensures a trailing [back]slash
 const char* OSD::GetDirPath (const char* pcszDir_/*=""*/)
 {
-    char *psz = const_cast<char*>(GetFilePath(pcszDir_)), *pszEnd = psz+lstrlen(psz);
+    char *psz = const_cast<char*>(GetFilePath(pcszDir_)), *pszEnd = psz+strlen(psz);
 
     // Append a [back]slash to non-empty strings that don't already have one
     if (*psz && pszEnd[-1] != PATH_SEPARATOR)
