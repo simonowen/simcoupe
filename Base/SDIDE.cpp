@@ -32,10 +32,10 @@
 #include "Options.h"
 
 
-CSDIDEDevice::CSDIDEDevice ()
-    : m_bAddressLatch(0), m_bDataLatch(0), m_fDataLatched(false)
+CSDIDEDevice::CSDIDEDevice (CHardDisk* pDisk_)
+    : m_pDisk(NULL), m_bAddressLatch(0), m_bDataLatch(0), m_fDataLatched(false)
 {
-    m_pDisk = new CHardDiskDevice(GetOption(sdidedisk));
+    m_pDisk = new CATADevice(pDisk_);
 }
 
 CSDIDEDevice::~CSDIDEDevice ()
@@ -54,8 +54,6 @@ BYTE CSDIDEDevice::In (WORD wPort_)
         case SDIDE_DATA:
             if (m_fDataLatched)
                 bRet = m_bDataLatch;
-            else if (!m_pDisk)
-                bRet = 0;
             else
             {
                 WORD wData = m_pDisk->In(0x0100 | m_bAddressLatch);
@@ -88,7 +86,7 @@ void CSDIDEDevice::Out (WORD wPort_, BYTE bVal_)
         case SDIDE_DATA:
             if (!m_fDataLatched)
                 m_bDataLatch = bVal_;
-            else if (m_pDisk)
+            else
                 m_pDisk->Out(0x0100 | m_bAddressLatch, (static_cast<WORD>(bVal_) << 8) | m_bDataLatch);
 
             m_fDataLatched = !m_fDataLatched;
