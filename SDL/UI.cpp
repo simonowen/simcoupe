@@ -2,7 +2,7 @@
 //
 // UI.cpp: SDL user interface
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include "CDrive.h"
 #include "Clock.h"
 #include "CPU.h"
+#include "Debug.h"
 #include "Display.h"
 #include "Frame.h"
 #include "GUIDlg.h"
@@ -361,7 +362,7 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actDebugger:
-				GUI::Start(new CMessageBox(NULL, "Debugger not yet implemented", "Sorry!", mbInformation));
+                Debug::Start();
                 break;
 
             case actImportData:
