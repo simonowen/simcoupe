@@ -123,6 +123,10 @@ void Mouse::Move (int nDeltaX_, int nDeltaY_)
 // Press or release a mouse button
 void Mouse::SetButton (int nButton_, bool fPressed_/*=true*/)
 {
+    // If enabled, swap mouse buttons 2 and 3
+    if (GetOption(swap23) && (nButton_ == 2 || nButton_ == 3))
+        nButton_ ^= 1;
+
     // Work out the bit position for the button
     BYTE bBit = 1 << (nButton_-1);
 
