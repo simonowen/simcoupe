@@ -32,7 +32,9 @@
 #include "CPU.h"
 #include "Display.h"
 #include "Frame.h"
+#include "GUI.h"
 #include "Input.h"
+#include "Mouse.h"
 #include "Options.h"
 #include "OSD.h"
 #include "Memory.h"
@@ -60,7 +62,7 @@ void CentreWindow (HWND hwnd_, HWND hwndParent_=NULL);
 void SetComboStrings (HWND hdlg_, UINT uID_, const char** ppcsz_, int nDefault_=-1);
 
 void DisplayOptions ();
-void DoAction (int nAction_, bool fPressed_=true);
+bool DoAction (int nAction_, bool fPressed_=true);
 
 bool g_fActive = true;
 bool g_fTestMode = false;
@@ -69,6 +71,7 @@ bool g_fFrameStep = false;
 
 HINSTANCE __hinstance;
 HWND g_hwnd;
+HMENU g_hmenu;
 extern HINSTANCE __hinstance;
 
 
@@ -76,7 +79,7 @@ WINDOWPLACEMENT g_wp;
 int nOptionPage = 0;                // Last active option property page
 const int MAX_OPTION_PAGES = 16;    // Maximum number of option propery pages
 bool fCentredOptions;
-Options::OPTIONS opts;
+OPTIONS opts;
 
 HHOOK g_hFnKeyHook;
 HWND hdlgNewFnKey;
@@ -112,20 +115,21 @@ static char szDiskFilters [] =
     "Uncompressed (*.DSK;*.SAD;*.SDF)\0*.DSK;*.SAD;*.SDF\0"
     "Compressed (*.GZ;*.ZIP)\0*.GZ;*.ZIP\0"
 #else
-    "All disks (*.DSK;*.SAD;*.SDF)\0*.DSK;*.SAD;*.SDF\0"
+    "All disks (*.DSK;*.SAD;*.SBT;*.SDF)\0*.DSK;*.SAD;*.SBT;*.SDF\0"
 #endif
 
     "All Files (*.*)\0*.*\0";
 
 static const char* aszBorders[] =
-	{ "No borders", "Small borders", "Short TV area (default)", "TV visible area", "Complete scan area", NULL };
+    { "No borders", "Small borders", "Short TV area (default)", "TV visible area", "Complete scan area", NULL };
 
 static const char* aszSurfaceType[] =
-	{ "Software Emulated", "System Memory", "Video Memory", "YUV Overlay", "RGB Overlay", NULL };
+    { "Software Emulated", "System Memory", "Video Memory", "YUV Overlay", "RGB Overlay", NULL };
 
 
 bool InitWindow ();
-
+void LocaliseMenu (HMENU hmenu_);
+void LocaliseWindows (HWND hwnd_);
 
 
 int WINAPI WinMain(HINSTANCE hinst_, HINSTANCE hinstPrev_, LPSTR pszCmdLine_, int nCmdShow_)
@@ -135,50 +139,25 @@ int WINAPI WinMain(HINSTANCE hinst_, HINSTANCE hinstPrev_, LPSTR pszCmdLine_, in
     return main(__argc, __argv);
 }
 
+////////////////////////////////////////////////////////////////////////////////
 
-HANDLE g_hEvent;
 
-
-namespace UI
+bool UI::Init (bool fFirstInit_/*=false*/)
 {
-MMRESULT g_hTimer;
-
-// Timer handler, called every 20ms - seemed more reliable than having it set the event directly, for some weird reason
-void CALLBACK TimeCallback (UINT uTimerID_, UINT uMsg_, DWORD dwUser_, DWORD dw1_, DWORD dw2_)
-{
-    // Signal that the next frame is due
-    SetEvent(g_hEvent);
-}
-
-
-bool Init (bool fFirstInit_/*=false*/)
-{
-    UI::Exit();
+    UI::Exit(true);
     TRACE("-> UI::Init(%s)\n", fFirstInit_ ? "first" : "");
 
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
 
-    // Create an event that will be set every 20ms for the 50Hz sync
-    if (!(g_hEvent = CreateEvent(NULL, FALSE, FALSE, NULL)))
-        Message(msgWarning, "Failed to create sync event object (%#08lx)", GetLastError());
-
-    // Set a timer to fire every every 20ms for our 50Hz frame synchronisation
-    else if (!(g_hTimer = timeSetEvent(1000/EMULATED_FRAMES_PER_SECOND, 0, TimeCallback, 0, TIME_PERIODIC|TIME_CALLBACK_FUNCTION)))
-        Message(msgWarning, "Failed to start sync timer (%#08lx)", GetLastError());
-
     // Set up the main window
     bool fRet = InitWindow();
-
     TRACE("<- UI::Init() returning %s\n", fRet ? "true" : "false");
     return fRet;
 }
 
-void Exit (bool fReInit_/*=false*/)
+void UI::Exit (bool fReInit_/*=false*/)
 {
     TRACE("-> UI::Exit(%s)\n", fReInit_ ? "reinit" : "");
-
-    if (g_hEvent)   { CloseHandle(g_hEvent); g_hEvent = NULL; }
-    if (g_hTimer)   { timeKillEvent(g_hTimer); g_hTimer = NULL; }
 
     if (g_hwnd)
     {
@@ -194,7 +173,7 @@ void Exit (bool fReInit_/*=false*/)
 
 
 // Check and process any incoming messages
-bool CheckEvents ()
+bool UI::CheckEvents ()
 {
     // Re-pause after a single frame-step
     if (g_fFrameStep)
@@ -216,7 +195,7 @@ bool CheckEvents ()
         }
 
         // Continue running if we're active or allowed to run in the background
-        if (!GetOption(paused) && (g_fActive || !GetOption(pauseinactive)))
+        if (!g_fPaused && (g_fActive || !GetOption(pauseinactive)))
             break;
 
         // Block until something happens
@@ -226,7 +205,7 @@ bool CheckEvents ()
     return true;
 }
 
-void ShowMessage (eMsgType eType_, const char* pcszMessage_)
+void UI::ShowMessage (eMsgType eType_, const char* pcszMessage_)
 {
     switch (eType_)
     {
@@ -239,20 +218,21 @@ void ShowMessage (eMsgType eType_, const char* pcszMessage_)
             break;
 
         // Something went seriously wrong!
-        case msgFatal:      MessageBox(NULL, pcszMessage_, "Fatal Error", MB_OK | MB_ICONSTOP);
-            Video::Exit();
-            DebugBreak();
-            abort();
+        case msgFatal:
+            MessageBox(NULL, pcszMessage_, "Fatal Error", MB_OK | MB_ICONSTOP);
             break;
     }
 }
 
 
-void ResizeWindow (bool fUseOption_/*=false*/)
+void UI::ResizeWindow (bool fUseOption_/*=false*/)
 {
     static bool fCentred = false;
 
-    int nWidth = (Frame::GetScreen()->GetPitch() >> 1) * GetOption(scale), nHeight = Frame::GetScreen()->GetHeight() * GetOption(scale);
+    // The default size is called 2x, when it's actually 1x!
+    int nWidth = (Frame::GetWidth() >> 1) * GetOption(scale);
+    int nHeight = (Frame::GetHeight() >> 1) * GetOption(scale);
+
     if (GetOption(ratio5_4))
         nWidth = MulDiv(nWidth, 5, 4);
 
@@ -312,8 +292,6 @@ void ResizeWindow (bool fUseOption_/*=false*/)
     // Ensure the window is repainted and the overlay also covers the
     Display::SetDirty();
 }
-
-};
 
 
 bool GetSaveLoadFile (HWND hwndParent_, LPCSTR pcszFilters_, LPCSTR pcszDefExt_, LPSTR pszFile_, DWORD cbSize_, bool* pfReadOnly_, bool fLoad_)
@@ -428,17 +406,12 @@ void UpdateMenuFromOptions ()
     CheckOption(IDM_FILE_FLOPPY2_DEVICE, fInserted && CFloppyStream::IsRecognised(pDrive2->GetImage()));
 
 
-//  CheckOption(IDM_HARDWARE_SYSTEM_SAM, GetOption(spectrum)==0);
-//  CheckOption(IDM_HARDWARE_SYSTEM_SPECTRUM, GetOption(spectrum)==1);
-
     EnableItem(IDM_TOOLS_FLUSH_PRINTER, GetOption(parallel1) == 1 || GetOption(parallel2) == 1);
 }
 
 
-void DoAction (int nAction_, bool fPressed_/*=true*/)
+bool DoAction (int nAction_, bool fPressed_/*=true*/)
 {
-    static int nSound = 1;
-
     // Key being pressed?
     if (fPressed_)
     {
@@ -449,8 +422,8 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actResetButton:
-                // Simulate the reset button being held by part-resetting the CPU and I/O, and holding the sound chip
-                CPU::Init(false);
+                // Simulate the reset button being held by resetting the CPU and I/O, and holding the sound chip
+                CPU::Reset(true);
                 Sound::Stop();
                 break;
 
@@ -482,7 +455,7 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
                     // Re-initialise the video system then set the window back how it was before
                     Frame::Init();
                     SetWindowPlacement(g_hwnd, &g_wp);
-                    UI::ResizeWindow();
+                    UI::ResizeWindow(true);
                 }
                 break;
 
@@ -491,7 +464,7 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
 
                 if (!GetOption(fullscreen))
                     UI::ResizeWindow(!GetOption(stretchtofit));
-                else if (!GetOption(stretchtofit))
+                else //if (!GetOption(stretchtofit))
                     Frame::Init();
 
                 Frame::SetStatus("%s pixel size", GetOption(ratio5_4) ? "5:4" : "1:1");
@@ -527,10 +500,9 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actChangeMouse:
-                SetOption(mouse, (GetOption(mouse)+1) % 3);
-                Input::Acquire(true, GetOption(mouse) != 0);
-                Frame::SetStatus("Mouse %s", !GetOption(mouse) ? "disabled" :
-                                    GetOption(mouse)==1 ? "enabled" : "enabled (double X sensitivity)");
+                SetOption(mouse, !GetOption(mouse));
+                Input::Acquire(GetOption(mouse) != 0);
+                Frame::SetStatus("Mouse %s", !GetOption(mouse) ? "disabled" : "enabled");
                 break;
 
             case actChangeKeyMode:
@@ -541,10 +513,10 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
 
             case actInsertFloppy1:
                 if (GetOption(drive1) == 1)
-				{
+                {
                     InsertDisk(pDrive1);
-					SetOption(disk1, pDrive1->GetImage());
-				}
+                    SetOption(disk1, pDrive1->GetImage());
+                }
                 break;
 
             case actEjectFloppy1:
@@ -563,17 +535,17 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
 
             case actInsertFloppy2:
                 if (GetOption(drive2) == 1)
-				{
+                {
                     InsertDisk(pDrive2);
-					SetOption(disk2, pDrive2->GetImage());
-				}
+                    SetOption(disk2, pDrive2->GetImage());
+                }
                 break;
 
             case actEjectFloppy2:
                 if (GetOption(drive2) == 1 && pDrive2->IsInserted())
                 {
                     pDrive2->Eject();
-					SetOption(disk2, "");
+                    SetOption(disk2, "");
                     Frame::SetStatus("Ejected disk from drive 2");
                 }
                 break;
@@ -597,7 +569,7 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actDebugger:
-                g_fDebugging = !g_fDebugging;
+//              Debug::Something();
                 break;
 
             case actImportData:
@@ -609,7 +581,14 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actDisplayOptions:
-                DisplayOptions();
+                if (GetAsyncKeyState(VK_SHIFT) < 0)
+                    GUI::Start(new CTestDialog);    // COptionsDialog
+                else
+                {
+                    Video::CreatePalettes(true);
+                    DisplayOptions();
+                    Video::CreatePalettes();
+                }
                 break;
 
             case actExitApplication:
@@ -618,23 +597,23 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
 
             case actToggleTurbo:
             {
-                SetOption(turbo, !GetOption(turbo));
+                g_fTurbo = !g_fTurbo;
                 Sound::Silence();
 
-                Frame::SetStatus("Turbo mode %s", GetOption(turbo) ? "enabled" : "disabled");
+                Frame::SetStatus("Turbo mode %s", g_fTurbo ? "enabled" : "disabled");
                 break;
             }
 
             case actTempTurbo:
-                if (!GetOption(turbo))
+                if (!g_fTurbo)
                 {
-                    SetOption(turbo, true);
+                    g_fTurbo = true;
                     Sound::Silence();
                 }
                 break;
 
             case actReleaseMouse:
-                Input::Acquire(true, false);
+                Input::Acquire(false);
                 Frame::SetStatus("Mouse capture released");
                 break;
 
@@ -643,7 +622,7 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
                 // Run for one frame then pause
                 static int nFrameSkip = 0;
 
-                SetOption(paused, (g_fFrameStep = !g_fFrameStep));
+                g_fPaused = g_fFrameStep = !g_fFrameStep;
                 if (g_fFrameStep)
                 {
                     nFrameSkip = GetOption(frameskip);
@@ -656,9 +635,9 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
 
             case actPause:
             {
-                bool fPaused = SetOption(paused, !GetOption(paused));
+                g_fPaused = !g_fPaused;
 
-                if (fPaused)
+                if (g_fPaused)
                 {
                     Sound::Stop();
                     SetWindowText(g_hwnd, WINDOW_CAPTION " - Paused");
@@ -669,8 +648,8 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
                     SetWindowText(g_hwnd, WINDOW_CAPTION);
                 }
 
-                Video::CreatePalettes(fPaused && (nAction_ == actPause));
-                Display::SetDirty();
+                Video::CreatePalettes(g_fPaused && (nAction_ == actPause));
+
                 Frame::Redraw();
                 Input::Purge();
                 break;
@@ -678,22 +657,32 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
 
             case actToggleScanlines:
                 SetOption(scanlines, !GetOption(scanlines));
-                Video::Init();
-				Frame::SetStatus("Scanlines %s", GetOption(scanlines) ? "enabled" : "disabled");
+
+                if (GetOption(stretchtofit))
+                {
+                    SetOption(stretchtofit, false);
+                    UI::ResizeWindow(true);
+                }
+
+//                Video::Init();
+                Frame::SetStatus("Scanlines %s", GetOption(scanlines) ? "enabled" : "disabled");
                 break;
 
-			case actChangeBorders:
-				SetOption(borders, (GetOption(borders)+1) % 5);
-				Frame::Init();
-				UI::ResizeWindow(true);
-				Frame::SetStatus(aszBorders[GetOption(borders)]);
-				break;
+            case actChangeBorders:
+                SetOption(borders, (GetOption(borders)+1) % 5);
+                Frame::Init();
+                UI::ResizeWindow(true);
+                Frame::SetStatus(aszBorders[GetOption(borders)]);
+                break;
 
-			case actChangeSurface:
-				SetOption(surface, GetOption(surface) ? GetOption(surface)-1 : 4);
-				Frame::Init();
-				Frame::SetStatus("Using %s surface", aszSurfaceType[GetOption(surface)]);
-				break;
+            case actChangeSurface:
+                SetOption(surface, GetOption(surface) ? GetOption(surface)-1 : 4);
+                Frame::Init();
+                Frame::SetStatus("Using %s surface", aszSurfaceType[GetOption(surface)]);
+                break;
+
+            default:
+                return false;
         }
     }
 
@@ -703,23 +692,29 @@ void DoAction (int nAction_, bool fPressed_/*=true*/)
         switch (nAction_)
         {
             case actResetButton:
-                // Normal power-on reset and restore sound
-                CPU::Init();
+                // Reset the CPU, and prepare fast reset if necessary
+                CPU::Reset(false);
+
+                // Start the sound playing, so the sound chip continues to play the current settings
                 Sound::Play();
                 break;
 
             case actTempTurbo:
-                if (GetOption(turbo))
+                if (g_fTurbo)
                 {
                     Sound::Silence();
-                    SetOption(turbo, false);
+                    g_fTurbo = false;
                 }
                 break;
+
+            default:
+                return false;
         }
     }
+
+    // Action processed
+    return true;
 }
-
-
 
 
 void CentreWindow (HWND hwnd_, HWND hwndParent_/*=NULL*/)
@@ -761,7 +756,7 @@ BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             if (wParam_ == IDM_TESTMODE)
             {
                 g_fTestMode = !g_fTestMode;
-                CheckMenuItem(GetSystemMenu(hdlg_, FALSE), wParam_, g_fTestMode ? MF_CHECKED : MF_UNCHECKED);
+                CheckMenuItem(GetSystemMenu(hdlg_, FALSE), static_cast<UINT>(wParam_), g_fTestMode ? MF_CHECKED : MF_UNCHECKED);
             }
             break;
 
@@ -775,12 +770,16 @@ BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 }
 
 
-long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     static bool fInMenu = false, fHideCursor = false, fSizingOrMoving = false;
-    static UINT ulMouseTimer = 0;
+    static UINT_PTR ulMouseTimer = 0;
 
 //  TRACE("WindowProc(%#04x,%#08x,%#08lx,%#08lx)\n", hwnd_, uMsg_, wParam_, lParam_);
+
+    // Input has first go at processing any messages
+    if (Input::FilterMessage(hwnd_, uMsg_, wParam_, lParam_))
+        return 0;
 
     switch (uMsg_)
     {
@@ -810,8 +809,9 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             TRACE("WM_ACTIVATE (%#08lx)\n", wParam_);
 
             // When the main window becomes inactive (possibly due to a dialogue box), silence the sound
-            if (LOWORD(wParam_) == WA_INACTIVE)
+            if (LOWORD(wParam_) == WA_INACTIVE && GetParent(reinterpret_cast<HWND>(lParam_)) == hwnd_)
                 Sound::Silence();
+
             break;
         }
 
@@ -829,17 +829,15 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
                     Sound::Silence();
 
                 // Dim the display while we're paused, or undim it when we get control again
-                Video::CreatePalettes(!g_fActive);
+                Video::CreatePalettes();
                 Display::SetDirty();
                 Frame::Redraw();
 
                 SetWindowText(g_hwnd, g_fActive ? WINDOW_CAPTION : WINDOW_CAPTION " - Paused");
             }
 
-            // Make sure the mouse is released, as we require a click in the client area before it's active
-            Input::Acquire(g_fActive, false);
-
-            // Start the mouse hide delay
+            // Release the mouse and start the mouse hide delay
+            Input::Acquire(false);
             ulMouseTimer = SetTimer(hwnd_, 1, MOUSE_HIDE_TIME, NULL);
             fHideCursor = false;
             break;
@@ -871,13 +869,6 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             break;
 
 
-        // Window being moved, size, or button is down elsewhere
-        case WM_NCLBUTTONDOWN:
-            // Silence the sound to stop it looping during the event
-            Sound::Silence();
-            break;
-
-
         // Menu is about to be activated
         case WM_INITMENU:
             UpdateMenuFromOptions();
@@ -895,7 +886,7 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
                 OffsetRect(&rWindow, -rWindow.left, -rWindow.top);
 
                 // Get the screen size, adjusting for 5:4 mode if necessary
-                int nWidth = Frame::GetScreen()->GetPitch() >> 1, nHeight = Frame::GetScreen()->GetHeight();
+                int nWidth = Frame::GetWidth() >> 1, nHeight = Frame::GetHeight() >> 1;
                 if (GetOption(ratio5_4))
                     nWidth = MulDiv(nWidth, 5, 4);
 
@@ -997,15 +988,15 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             // Silence the sound while the menu is being used
             Sound::Silence();
 
-            // Release the mouse and keyboard
-            Input::Acquire(false, false);
+            // Release the mouse
+            Input::Acquire(false);
             fInMenu = true;
             break;
 
         // If the window is being resized or moved, avoid flicker by not erasing the background - the CS_VREDRAW
         // and CS_HREDRAW window styles will ensure it's fully repainted anyway
         case WM_ERASEBKGND:
-            if (fSizingOrMoving && !GetOption(turbo))
+            if (fSizingOrMoving && !g_fTurbo)
                 return 1;
             break;
 
@@ -1019,20 +1010,18 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             // No longer in menu, so start timer to hide the mouse if not used again
             fInMenu = fHideCursor = false;
             ulMouseTimer = SetTimer(hwnd_, 1, MOUSE_HIDE_TIME, NULL);
-            Input::Acquire(true, false);
             break;
 
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
             BeginPaint(hwnd_, &ps);
-//          TRACE("Erase:%d, %d,%d,%d,%d\n", ps.fErase ? 1 : 0, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right, ps.rcPaint.bottom);
 
             // Make sure the entire display is updated to ensure the dirty areas are redrawn
             Display::SetDirty();
 
             // Forcibly redraw the screen if in windowed mode, using the menu in full-screen, or inactive and paused
-            if ((!GetOption(fullscreen) && !IsWindowEnabled(g_hwnd)) || fInMenu || fSizingOrMoving || GetOption(paused) || (!g_fActive && GetOption(pauseinactive)))
+            if ((!GetOption(fullscreen) && !IsWindowEnabled(g_hwnd)) || fInMenu || fSizingOrMoving || g_fPaused || (!g_fActive && GetOption(pauseinactive)))
                 Frame::Redraw();
 
             EndPaint(hwnd_, &ps);
@@ -1060,26 +1049,6 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             return 0;
 
 
-        // Mouse has been moved
-        case WM_MOUSEMOVE:
-        case WM_NCMOUSEMOVE:
-        {
-            static int nOldX, nOldY;
-
-            // Has the mouse moved since last time?
-            int nNewX = GET_X_LPARAM(lParam_), nNewY = GET_Y_LPARAM(lParam_);
-            if (nNewX != nOldX || nNewY != nOldY)
-            {
-                nOldX = nNewX;
-                nOldY = nNewY;
-
-                // Show the cursor, but set a timer to hide it if not moved for a few seconds
-                fHideCursor = false;
-                ulMouseTimer = SetTimer(hwnd_, 1, MOUSE_HIDE_TIME, NULL);
-            }
-            break;
-        }
-
         // Mouse-hide timer has expired
         case WM_TIMER:
             if (wParam_ != ulMouseTimer)
@@ -1100,20 +1069,29 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             break;
 
 
-        // If we try to release capture on the button down the Windows keyboard input gets screwed up for some reason
-        // To work around this Windows bug we have to do it on the button up, so capture the mouse now
-        case WM_LBUTTONDOWN:
-            SetCapture(hwnd_);
-            break;
+        // Mouse has been moved
+        case WM_MOUSEMOVE:
+        case WM_NCMOUSEMOVE:
+        {
+            static LPARAM lLastPos;
 
-        case WM_LBUTTONUP:
-            // Have we got the mouse capture?
-            if (GetCapture() == hwnd_)
+            // Has the mouse moved since last time?
+            if (lParam_ != lLastPos)
             {
-                // Yep, so release it and unaquire it safely now
-                ReleaseCapture();
-                Input::Acquire();
+                // Show the cursor, but set a timer to hide it if not moved for a few seconds
+                fHideCursor = false;
+                ulMouseTimer = SetTimer(hwnd_, 1, MOUSE_HIDE_TIME, NULL);
+
+                // Remember the new position
+                lLastPos = lParam_;
             }
+
+            return 0;
+        }
+
+        // Silence the sound during window drags, and other clicks in the non-client area
+        case WM_NCLBUTTONDOWN:
+            Sound::Silence();
             break;
 
         case WM_SYSCOMMAND:
@@ -1140,10 +1118,6 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
         case WM_KEYUP:
         case WM_KEYDOWN:
         {
-            // Ignore key repeats for keys held down
-            if ((uMsg_ == WM_KEYDOWN && lParam_ & 0x40000000))
-                break;
-
             // Function key?
             if (wParam_ >= VK_F1 && wParam_ <= VK_F12)
             {
@@ -1225,6 +1199,7 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
                     break;
 
                 case VK_SNAPSHOT:
+                case VK_SCROLL:
                     if (uMsg_ == WM_KEYUP)
                         DoAction(actSaveScreenshot);
                     break;
@@ -1243,7 +1218,6 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
         case WM_COMMAND:
         {
             TRACE("WM_COMMAND\n");
-//          Sound::Silence();
 
             WORD wId = LOWORD(wParam_);
 
@@ -1271,8 +1245,12 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
 
                 // Items from help menu
                 case IDM_HELP_GENERAL:  ShellExecute(hwnd_, NULL, OSD::GetFilePath("SimCoupe.txt"), NULL, "", SW_SHOWMAXIMIZED); break;
-//              case IDM_HELP_FAQ:      ShellExecute(hwnd_, NULL, "FAQ.txt", NULL, "", SW_SHOWMAXIMIZED); break;
-                case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), g_hwnd, AboutDlgProc, NULL); break;
+                case IDM_HELP_ABOUT:
+                    if (GetAsyncKeyState(VK_SHIFT) < 0)
+                        GUI::Start(new CAboutDialog);
+                    else
+                        DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), g_hwnd, AboutDlgProc, NULL);
+                    break;
             }
             break;
         }
@@ -1589,7 +1567,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                 case IDC_INSERT_INTO:
                 {
                     if (HIWORD(wParam_) == CBN_SELCHANGE)
-                        nInsertInto = SendDlgItemMessage(hdlg_, IDC_INSERT_INTO, CB_GETCURSEL, 0, 0L);
+                        nInsertInto = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_INSERT_INTO, CB_GETCURSEL, 0, 0L));
                     break;
                 }
 
@@ -1798,7 +1776,6 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
     return FALSE;
 }
 
-
 bool InitWindow ()
 {
     // set up and register window class
@@ -1809,12 +1786,14 @@ bool InitWindow ()
     wc.hIcon = LoadIcon(__hinstance, MAKEINTRESOURCE(IDI_MAIN));
     wc.hbrBackground = reinterpret_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
     wc.hCursor = LoadCursor(__hinstance, MAKEINTRESOURCE(IDC_CURSOR));
-    wc.lpszMenuName = MAKEINTRESOURCE(IDR_MENU);
     wc.lpszClassName = "SimCoupeClass";
+
+    HMENU g_hMenu = LoadMenu(wc.hInstance, MAKEINTRESOURCE(IDR_MENU));
+    LocaliseMenu(g_hMenu);
 
     // Create a window for the display (initially invisible)
     bool f = (RegisterClass(&wc) && (g_hwnd = CreateWindowEx(WS_EX_APPWINDOW, wc.lpszClassName, WINDOW_CAPTION, WS_OVERLAPPEDWINDOW,
-                                                            CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, NULL, NULL, __hinstance, NULL)));
+                                                            CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, NULL, g_hMenu, wc.hInstance, NULL)));
 
     return f;
 }
@@ -1894,8 +1873,8 @@ void FillPrintersCombo (HWND hwndCombo_)
     delete pbPrinterInfo;
 
     // Find the position of the item to select, or select the first one (None) if we can't find it
-    int nPos = SendMessage(hwndCombo_, CB_FINDSTRINGEXACT, -1, reinterpret_cast<LPARAM>(GetOption(printerdev)));
-    SendMessage(hwndCombo_, CB_SETCURSEL, (nPos == CB_ERR) ? 0 : nPos, 0L);
+    LRESULT lPos = SendMessage(hwndCombo_, CB_FINDSTRINGEXACT, -1, reinterpret_cast<LPARAM>(GetOption(printerdev)));
+    SendMessage(hwndCombo_, CB_SETCURSEL, (lPos == CB_ERR) ? 0 : lPos, 0L);
 }
 
 
@@ -1904,13 +1883,13 @@ void FillJoystickCombo (HWND hwndCombo_, const char* pcszSelected_)
     SendMessage(hwndCombo_, CB_RESETCONTENT, 0, 0L);
     SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>("None"));
 
-    pdi->EnumDevices(DIDEVTYPE_JOYSTICK, Input::EnumJoystickProc, reinterpret_cast<LPVOID>(hwndCombo_), DIEDFL_ATTACHEDONLY);
+    Input::FillJoystickCombo(hwndCombo_);
 
     // Find the position of the item to select, or select the first one (None) if we can't find it
-    int nPos = SendMessage(hwndCombo_, CB_FINDSTRINGEXACT, -1, reinterpret_cast<LPARAM>(pcszSelected_));
-    if (nPos == CB_ERR)
-        nPos = 0;
-    SendMessage(hwndCombo_, CB_SETCURSEL, nPos, 0L);
+    LRESULT lPos = SendMessage(hwndCombo_, CB_FINDSTRINGEXACT, -1, reinterpret_cast<LPARAM>(pcszSelected_));
+    if (lPos == CB_ERR)
+        lPos = 0;
+    SendMessage(hwndCombo_, CB_SETCURSEL, lPos, 0L);
 }
 
 
@@ -1951,10 +1930,12 @@ BOOL CALLBACK BasePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
             // If we've not yet centred the property sheet, do so now
             if (!fCentredOptions)
             {
+                LocaliseWindows(GetParent(hdlg_));
                 CentreWindow(GetParent(hdlg_));
                 fCentredOptions = true;
             }
 
+            LocaliseWindows(hdlg_);
 
             fRet = TRUE;
             break;
@@ -2010,13 +1991,13 @@ BOOL CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
-                SetOption(mainmem, (SendDlgItemMessage(hdlg_, IDC_MAIN_MEMORY, CB_GETCURSEL, 0, 0L) + 1) << 8);
-                SetOption(externalmem, SendDlgItemMessage(hdlg_, IDC_EXTERNAL_MEMORY, CB_GETCURSEL, 0, 0L));
+                SetOption(mainmem, static_cast<int>((SendDlgItemMessage(hdlg_, IDC_MAIN_MEMORY, CB_GETCURSEL, 0, 0L) + 1) << 8));
+                SetOption(externalmem, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_EXTERNAL_MEMORY, CB_GETCURSEL, 0, 0L)));
 
                 GetWindowText(GetDlgItem(hdlg_, IDE_ROM0), const_cast<char*>(GetOption(rom0)), MAX_PATH);
                 GetWindowText(GetDlgItem(hdlg_, IDE_ROM1), const_cast<char*>(GetOption(rom1)), MAX_PATH);
 
-                SetOption(fastreset, (SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_GETCHECK, 0, 0L) == BST_CHECKED));
+                SetOption(fastreset, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_GETCHECK, 0, 0L) == BST_CHECKED));
 
 /*
                 // Perform an automatic reset if anything changed (if used we'll need a warning message on property sheet!)
@@ -2061,7 +2042,10 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
             SendDlgItemMessage(hdlg_, IDC_SYNC, BM_SETCHECK, GetOption(sync) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_RATIO_5_4, BM_SETCHECK, GetOption(ratio5_4) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_STRETCH_TO_FIT, BM_SETCHECK, GetOption(stretchtofit) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_SETCHECK, GetOption(scanlines) ? BST_CHECKED : BST_UNCHECKED, 0L);
+
+            bool fScanlines = GetOption(scanlines) && !GetOption(stretchtofit);
+            SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_SETCHECK, fScanlines ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendMessage(hdlg_, WM_COMMAND, IDC_STRETCH_TO_FIT, 0L);
 
             SendDlgItemMessage(hdlg_, IDC_FRAMESKIP_AUTOMATIC, BM_SETCHECK, !GetOption(frameskip) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendMessage(hdlg_, WM_COMMAND, IDC_FRAMESKIP_AUTOMATIC, 0L);
@@ -2081,7 +2065,6 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
             SendMessage(hwndCombo, CB_SETCURSEL, (!GetOption(frameskip)) ? 0 : GetOption(frameskip) - 1, 0L);
 
             SetComboStrings(hdlg_, IDC_BORDERS, aszBorders, GetOption(borders));
-
             SetComboStrings(hdlg_, IDC_SURFACE_TYPE, aszSurfaceType, GetOption(surface));
 
             break;
@@ -2097,18 +2080,18 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
 
                 int anDepths[] = { 8, 16, 32 };
                 SetOption(depth, anDepths[SendDlgItemMessage(hdlg_, IDC_FULLSCREEN_DEPTH, CB_GETCURSEL, 0, 0L)]);
-                SetOption(scale, SendDlgItemMessage(hdlg_, IDC_WINDOW_SCALING, CB_GETCURSEL, 0, 0L) + 1);
+                SetOption(scale, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_WINDOW_SCALING, CB_GETCURSEL, 0, 0L) + 1));
 
-                SetOption(sync, SendDlgItemMessage(hdlg_, IDC_SYNC, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(ratio5_4, SendDlgItemMessage(hdlg_, IDC_RATIO_5_4, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+                SetOption(sync, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_SYNC, BM_GETCHECK, 0, 0L) == BST_CHECKED));
+                SetOption(ratio5_4, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_RATIO_5_4, BM_GETCHECK, 0, 0L) == BST_CHECKED));
                 SetOption(stretchtofit, SendDlgItemMessage(hdlg_, IDC_STRETCH_TO_FIT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(scanlines, SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
                 int nFrameSkip = SendDlgItemMessage(hdlg_, IDC_FRAMESKIP_AUTOMATIC, BM_GETCHECK, 0, 0L) != BST_CHECKED;
-                SetOption(frameskip, nFrameSkip ? SendDlgItemMessage(hdlg_, IDC_FRAMESKIP, CB_GETCURSEL, 0, 0L) + 1 : 0);
+                SetOption(frameskip, nFrameSkip ? static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FRAMESKIP, CB_GETCURSEL, 0, 0L)) + 1 : 0);
 
-                SetOption(surface, SendDlgItemMessage(hdlg_, IDC_SURFACE_TYPE, CB_GETCURSEL, 0, 0L));
-                SetOption(borders, SendDlgItemMessage(hdlg_, IDC_BORDERS, CB_GETCURSEL, 0, 0L));
+                SetOption(surface, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_SURFACE_TYPE, CB_GETCURSEL, 0, 0L)));
+                SetOption(borders, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_BORDERS, CB_GETCURSEL, 0, 0L)));
 
 
                 // Switching fullscreen <-> windowed?
@@ -2160,6 +2143,17 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                     break;
                 }
 
+                case IDC_STRETCH_TO_FIT:
+                {
+                    bool fStretch = (SendDlgItemMessage(hdlg_, IDC_STRETCH_TO_FIT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+
+                    if (fStretch)
+                        SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_SETCHECK, BST_UNCHECKED, 0L);
+
+                    EnableWindow(GetDlgItem(hdlg_, IDC_SCANLINES), !fStretch);
+                    break;
+                }
+
                 case IDC_FRAMESKIP_AUTOMATIC:
                 {
                     bool fAutomatic = (SendDlgItemMessage(hdlg_, IDC_FRAMESKIP_AUTOMATIC, BM_GETCHECK, 0, 0L) == BST_CHECKED);
@@ -2185,9 +2179,9 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
     {
         case WM_INITDIALOG:
         {
-            static const char* aszFrequency[] = { "11025 Hz", "22050 Hz", "44100 Hz", NULL };
-            static const int anFrequency[] = { 0, 1, 2, 2 };
-            SetComboStrings(hdlg_, IDC_FREQUENCY, aszFrequency, anFrequency[GetOption(frequency)/11025 - 1]);
+            static const char* aszFreq[] = { "11025 Hz", "22050 Hz", "44100 Hz", NULL };
+            static const int anFreq[] = { 0, 1, 2, 2 };
+            SetComboStrings(hdlg_, IDC_FREQ, aszFreq, anFreq[GetOption(freq)/11025 - 1]);
 
             static const char* aszBits[] = { "8-bit", "16-bit", NULL };
             SetComboStrings(hdlg_, IDC_SAMPLE_SIZE, aszBits, (GetOption(bits) >> 3)-1);
@@ -2204,7 +2198,7 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             static const char* aszLatency[] = { "1 frame (best)", "2 frames", "3 frames", "4 frames", "5 frames (default)",
                                                 "10 frames", "15 frames", "20 frames", "25 frames", NULL };
             int nLatency = GetOption(latency);
-            nLatency = (nLatency <= 6 ) ? nLatency - 2 : (nLatency - 1) / 5 + 3;
+            nLatency = (nLatency <= 5 ) ? nLatency - 1 : nLatency/5 + 3;
             SetComboStrings(hdlg_, IDC_LATENCY, aszLatency, nLatency);
 
             break;
@@ -2214,8 +2208,8 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
-                SetOption(frequency, 11025 * (1 << SendDlgItemMessage(hdlg_, IDC_FREQUENCY, CB_GETCURSEL, 0, 0L)));
-                SetOption(bits, (SendDlgItemMessage(hdlg_, IDC_SAMPLE_SIZE, CB_GETCURSEL, 0, 0L) + 1) << 3);
+                SetOption(freq, 11025 * (1 << SendDlgItemMessage(hdlg_, IDC_FREQ, CB_GETCURSEL, 0, 0L)));
+                SetOption(bits, static_cast<int>((SendDlgItemMessage(hdlg_, IDC_SAMPLE_SIZE, CB_GETCURSEL, 0, 0L) + 1)) << 3);
 
                 SetOption(stereo, SendDlgItemMessage(hdlg_, IDC_STEREO, BM_GETCHECK,  0, 0L) == BST_CHECKED);
                 SetOption(filter, SendDlgItemMessage(hdlg_, IDC_FILTER, BM_GETCHECK,  0, 0L) == BST_CHECKED);
@@ -2224,13 +2218,13 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 SetOption(beeper, SendDlgItemMessage(hdlg_, IDC_BEEPER, BM_GETCHECK,  0, 0L) == BST_CHECKED);
                 SetOption(saasound, SendDlgItemMessage(hdlg_, IDC_SAASOUND_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
-                int nLatency = SendDlgItemMessage(hdlg_, IDC_LATENCY, CB_GETCURSEL, 0, 0L);
-                nLatency = (nLatency < 5) ? nLatency + 2 : (nLatency - 3) * 5 + 1;
+                int nLatency = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_LATENCY, CB_GETCURSEL, 0, 0L));
+                nLatency = (nLatency <= 5) ? nLatency + 1 : (nLatency - 3) * 5;
                 SetOption(latency, nLatency);
 
 
                 if (Changed(sound) || Changed(saasound) || Changed(beeper) ||
-                    Changed(frequency) || Changed(bits) || Changed(stereo) || Changed(filter) || Changed(latency))
+                    Changed(freq) || Changed(bits) || Changed(stereo) || Changed(filter) || Changed(latency))
                     Sound::Init();
 
                 if (Changed(beeper))
@@ -2257,8 +2251,8 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                     EnableWindow(GetDlgItem(hdlg_, IDC_SAASOUND_ENABLED), fSound);
                     EnableWindow(GetDlgItem(hdlg_, IDC_BEEPER), fSound);
 
-                    EnableWindow(GetDlgItem(hdlg_, IDS_FREQUENCY), fSAA);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_FREQUENCY), fSAA);
+                    EnableWindow(GetDlgItem(hdlg_, IDS_FREQ), fSAA);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_FREQ), fSAA);
                     EnableWindow(GetDlgItem(hdlg_, IDS_SAMPLE_SIZE), fSAA);
                     EnableWindow(GetDlgItem(hdlg_, IDC_SAMPLE_SIZE), fSAA);
                     EnableWindow(GetDlgItem(hdlg_, IDC_FILTER), fSAA);
@@ -2300,7 +2294,6 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
             SendDlgItemMessage(hdlg_, IDE_IMAGE2, EM_SETSEL, _MAX_PATH, -1);
             EnableWindow(GetDlgItem(hdlg_, IDB_SAVE2), GetOption(drive2) == 1 && pDrive2->IsModified());
 
-
 //          bool fDirect1 = CFloppyStream::IsRecognised(GetOption(disk1));
 //          SendDlgItemMessage(hdlg_, IDC_DIRECT_FLOPPY1, BM_SETCHECK, fDirect1 ? BST_CHECKED : BST_UNCHECKED, 0L);
 
@@ -2311,8 +2304,8 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
-                SetOption(drive1, SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L));
-                SetOption(drive2, SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L));
+                SetOption(drive1, static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L)));
+                SetOption(drive2, static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L)));
                 GetWindowText(GetDlgItem(hdlg_, IDE_IMAGE1), const_cast<char*>(GetOption(disk1)), MAX_PATH);
                 GetWindowText(GetDlgItem(hdlg_, IDE_IMAGE2), const_cast<char*>(GetOption(disk2)), MAX_PATH);
 
@@ -2341,9 +2334,9 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
             {
                 case IDC_DRIVE1:
                 {
-                    int nDrive1 = SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L);
-                    EnableWindow(GetDlgItem(hdlg_, IDE_IMAGE1), nDrive1 != 0);
-                    EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE1), nDrive1 != 0);
+                    LRESULT lDrive1 = SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L);
+                    EnableWindow(GetDlgItem(hdlg_, IDE_IMAGE1), lDrive1 != 0);
+                    EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE1), lDrive1 != 0);
                     EnableWindow(GetDlgItem(hdlg_, IDB_SAVE1), pDrive1->IsModified());
                     EnableWindow(GetDlgItem(hdlg_, IDB_EJECT1), pDrive1->IsInserted());
                     break;
@@ -2351,11 +2344,11 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 
                 case IDC_DRIVE2:
                 {
-                    int nDrive2 = SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L);
-                    EnableWindow(GetDlgItem(hdlg_, IDE_IMAGE2), nDrive2 == 1);
-                    EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE2), nDrive2 == 1);
+                    LRESULT lDrive2 = SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L);
+                    EnableWindow(GetDlgItem(hdlg_, IDE_IMAGE2), lDrive2 == 1);
+                    EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE2), lDrive2 == 1);
                     EnableWindow(GetDlgItem(hdlg_, IDB_SAVE2), pDrive2->IsModified());
-                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT2), pDrive2->IsInserted());
+                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT2), 0 && GetOption(drive2) == 1 && pDrive2->IsInserted());
                     break;
                 }
 
@@ -2368,7 +2361,7 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 
                 case IDE_IMAGE2:
                 {
-                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT2), GetWindowTextLength(GetDlgItem(hdlg_, IDE_IMAGE2)));
+                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT2), GetOption(drive2) == 1 && GetWindowTextLength(GetDlgItem(hdlg_, IDE_IMAGE2)));
                     EnableWindow(GetDlgItem(hdlg_, IDB_SAVE2), false);
                     break;
                 }
@@ -2445,7 +2438,6 @@ BOOL CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             SendDlgItemMessage(hdlg_, IDC_ALTGR_FOR_EDIT, BM_SETCHECK, GetOption(altgrforedit) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
             SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_SETCHECK, GetOption(mouse) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_MOUSE_2X, BM_SETCHECK, (GetOption(mouse) == 2) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendMessage(hdlg_, WM_COMMAND, IDC_MOUSE_ENABLED, 0L);
 
             break;
@@ -2455,15 +2447,12 @@ BOOL CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
-                SetOption(keymapping, SendMessage(GetDlgItem(hdlg_, IDC_KEYBOARD_MAPPING), CB_GETCURSEL, 0, 0L));
+                SetOption(keymapping, static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_KEYBOARD_MAPPING), CB_GETCURSEL, 0, 0L)));
 
-                SetOption(altforcntrl, SendDlgItemMessage(hdlg_, IDC_ALT_FOR_CNTRL, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(altgrforedit, SendDlgItemMessage(hdlg_, IDC_ALTGR_FOR_EDIT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+                SetOption(altforcntrl, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALT_FOR_CNTRL, BM_GETCHECK, 0, 0L)) == BST_CHECKED);
+                SetOption(altgrforedit, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALTGR_FOR_EDIT, BM_GETCHECK, 0, 0L)) == BST_CHECKED);
 
-                bool fMouse = SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED;
-                bool f2x = SendDlgItemMessage(hdlg_, IDC_MOUSE_2X, BM_GETCHECK, 0, 0L) == BST_CHECKED;
-                SetOption(mouse, fMouse ? (f2x ? 2 : 1) : 0);
-
+                SetOption(mouse, SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
                 if (Changed(keymapping) || Changed(mouse) || Changed(deadzone1) || Changed(deadzone1) ||
                     lstrcmpi(opts.joydev1, GetOption(joydev1)) || lstrcmpi(opts.joydev2, GetOption(joydev2)))
@@ -2480,7 +2469,6 @@ BOOL CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 case IDC_MOUSE_ENABLED:
                 {
                     bool fMouse = SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED;
-                    EnableWindow(GetDlgItem(hdlg_, IDC_MOUSE_2X), fMouse);
                     break;
                 }
             }
@@ -2518,8 +2506,8 @@ BOOL CALLBACK JoystickPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
                 HWND hwndCombo1 = GetDlgItem(hdlg_, IDC_DEADZONE_1), hwndCombo2 = GetDlgItem(hdlg_, IDC_DEADZONE_2);
-                SetOption(deadzone1, 10 * SendMessage(hwndCombo1, CB_GETCURSEL, 0, 0L));
-                SetOption(deadzone2, 10 * SendMessage(hwndCombo2, CB_GETCURSEL, 0, 0L));
+                SetOption(deadzone1, 10 * static_cast<int>(SendMessage(hwndCombo1, CB_GETCURSEL, 0, 0L)));
+                SetOption(deadzone2, 10 * static_cast<int>(SendMessage(hwndCombo2, CB_GETCURSEL, 0, 0L)));
 
                 HWND hwndJoy1 = GetDlgItem(hdlg_, IDC_JOYSTICK1), hwndJoy2 = GetDlgItem(hdlg_, IDC_JOYSTICK2);
                 SendMessage(hwndJoy1, CB_GETLBTEXT, SendMessage(hwndJoy1, CB_GETCURSEL, 0, 0L), (LPARAM)GetOption(joydev1));
@@ -2534,11 +2522,11 @@ BOOL CALLBACK JoystickPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             switch (LOWORD(wParam_))
             {
                 case IDC_JOYSTICK1:
-                    EnableWindow(GetDlgItem(hdlg_, IDC_DEADZONE_1), SendDlgItemMessage(hdlg_, IDC_JOYSTICK1, CB_GETCURSEL, 0, 0L));
+                    EnableWindow(GetDlgItem(hdlg_, IDC_DEADZONE_1), SendDlgItemMessage(hdlg_, IDC_JOYSTICK1, CB_GETCURSEL, 0, 0L) != 0);
                     break;
 
                 case IDC_JOYSTICK2:
-                    EnableWindow(GetDlgItem(hdlg_, IDC_DEADZONE_2), SendDlgItemMessage(hdlg_, IDC_JOYSTICK2, CB_GETCURSEL, 0, 0L));
+                    EnableWindow(GetDlgItem(hdlg_, IDC_DEADZONE_2), SendDlgItemMessage(hdlg_, IDC_JOYSTICK2, CB_GETCURSEL, 0, 0L) != 0);
                     break;
             }
 
@@ -2573,8 +2561,8 @@ BOOL CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
-                SetOption(parallel1, SendDlgItemMessage(hdlg_, IDC_PARALLEL_1, CB_GETCURSEL, 0, 0L));
-                SetOption(parallel2, SendDlgItemMessage(hdlg_, IDC_PARALLEL_2, CB_GETCURSEL, 0, 0L));
+                SetOption(parallel1, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_PARALLEL_1, CB_GETCURSEL, 0, 0L)));
+                SetOption(parallel2, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_PARALLEL_2, CB_GETCURSEL, 0, 0L)));
 
                 SetOption(printerdev, "");
                 SendMessage(GetDlgItem(hdlg_, IDC_PRINTERS), CB_GETLBTEXT, SendMessage(GetDlgItem(hdlg_, IDC_PRINTERS),
@@ -2633,10 +2621,10 @@ BOOL CALLBACK MidiPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
-                SetOption(midi, SendDlgItemMessage(hdlg_, IDC_MIDI, CB_GETCURSEL, 0, 0L));
+                SetOption(midi, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_MIDI, CB_GETCURSEL, 0, 0L)));
 
-                SetOption(midiout, SendMessage(GetDlgItem(hdlg_, IDC_MIDI_OUT), CB_GETCURSEL, 0, 0L)-1);
-                SetOption(midiin, SendMessage(GetDlgItem(hdlg_, IDC_MIDI_IN), CB_GETCURSEL, 0, 0L)-1);
+                SetOption(midiout, static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_MIDI_OUT), CB_GETCURSEL, 0, 0L))-1);
+                SetOption(midiin, static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_MIDI_IN), CB_GETCURSEL, 0, 0L))-1);
 
 
                 if (Changed(midi) || Changed(midiin) || Changed(midiout))
@@ -2651,10 +2639,10 @@ BOOL CALLBACK MidiPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
             {
                 case IDC_MIDI:
                 {
-                    int nMidi = SendDlgItemMessage(hdlg_, IDC_MIDI, CB_GETCURSEL, 0, 0L);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_MIDI_OUT), nMidi == 1);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_MIDI_IN), /*nMidi == 1*/ FALSE);     // No MIDI-In support yet
-                    EnableWindow(GetDlgItem(hdlg_, IDE_STATION_ID), /*nMidi == 2*/ FALSE);  // No network support yet
+                    LRESULT lMidi = SendDlgItemMessage(hdlg_, IDC_MIDI, CB_GETCURSEL, 0, 0L);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_MIDI_OUT), lMidi == 1);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_MIDI_IN), /*lMidi == 1*/ FALSE);     // No MIDI-In support yet
+                    EnableWindow(GetDlgItem(hdlg_, IDE_STATION_ID), /*lMidi == 2*/ FALSE);  // No network support yet
                     break;
                 }
             }
@@ -2698,7 +2686,7 @@ BOOL CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 SetOption(drivelights, SendDlgItemMessage(hdlg_, IDC_DRIVE_LIGHTS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(status, SendDlgItemMessage(hdlg_, IDC_STATUS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
-                SetOption(profile, SendDlgItemMessage(hdlg_, IDC_PROFILE, CB_GETCURSEL, 0, 0L));
+                SetOption(profile, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_PROFILE, CB_GETCURSEL, 0, 0L)));
             }
 
             break;
@@ -2712,7 +2700,7 @@ BOOL CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 // Function to compare two function key list items, for sorting
 int CALLBACK FnKeysCompareFunc (LPARAM lParam1_, LPARAM lParam2_, LPARAM lParamSort_)
 {
-    return lParam1_ - lParam2_;
+    return static_cast<int>(lParam1_ - lParam2_);
 }
 
 
@@ -2770,23 +2758,25 @@ BOOL CALLBACK NewFnKeyProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             // If we're editing an entry we need to show the current settings
             if (lParam_)
             {
+                UINT uKey = static_cast<UINT>(lParam_);
+
                 // Get the name of the key being edited
-                GetKeyNameText(MapVirtualKeyEx(lParam_ >> 16, 0, GetKeyboardLayout(0)) << 16, szKey, sizeof szKey);
+                GetKeyNameText(MapVirtualKeyEx(uKey >> 16, 0, GetKeyboardLayout(0)) << 16, szKey, sizeof szKey);
 
                 // Locate the key in the list and select it
                 HWND hwndCombo = GetDlgItem(hdlg_, IDC_KEY);
-                int nPos = SendMessage(hwndCombo, CB_FINDSTRINGEXACT, -1, reinterpret_cast<LPARAM>(szKey));
-                SendMessage(hwndCombo, CB_SETCURSEL, (nPos == CB_ERR) ? 0 : nPos, 0L);
+                LRESULT lPos = SendMessage(hwndCombo, CB_FINDSTRINGEXACT, -1, reinterpret_cast<LPARAM>(szKey));
+                SendMessage(hwndCombo, CB_SETCURSEL, (lPos == CB_ERR) ? 0 : lPos, 0L);
 
                 // Check the appropriate modifier check-boxes
-                SendDlgItemMessage(hdlg_, IDC_CTRL,  BM_SETCHECK, (lParam_ & 0x8000) ? BST_CHECKED : BST_UNCHECKED, 0L);
-                SendDlgItemMessage(hdlg_, IDC_SHIFT, BM_SETCHECK, (lParam_ & 0x4000) ? BST_CHECKED : BST_UNCHECKED, 0L);
+                SendDlgItemMessage(hdlg_, IDC_CTRL,  BM_SETCHECK, (uKey & 0x8000) ? BST_CHECKED : BST_UNCHECKED, 0L);
+                SendDlgItemMessage(hdlg_, IDC_SHIFT, BM_SETCHECK, (uKey & 0x4000) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
                 // Locate the action in the list and select it
                 hwndCombo = GetDlgItem(hdlg_, IDC_ACTION);
-                int nAction = min(lParam_ & 0xff, MAX_ACTION-1);
-                nPos = SendMessage(hwndCombo, CB_FINDSTRINGEXACT, -1, reinterpret_cast<LPARAM>(aszActions[nAction]));
-                SendMessage(hwndCombo, CB_SETCURSEL, (nPos == CB_ERR) ? 0 : nPos, 0L);
+                UINT uAction = min(uKey & 0xff, MAX_ACTION-1);
+                lPos = SendMessage(hwndCombo, CB_FINDSTRINGEXACT, -1, reinterpret_cast<LPARAM>(aszActions[uAction]));
+                SendMessage(hwndCombo, CB_SETCURSEL, (lPos == CB_ERR) ? 0 : lPos, 0L);
             }
 
             // Select the first item in each combo to get them started
@@ -2810,29 +2800,29 @@ BOOL CALLBACK NewFnKeyProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             {
                 case IDOK:
                 {
-                    int nKey = SendDlgItemMessage(hdlg_, IDC_KEY, CB_GETCURSEL, 0, 0L);
-                    int nAction = SendDlgItemMessage(hdlg_, IDC_ACTION, CB_GETCURSEL, 0, 0L);
+                    LRESULT lKey = SendDlgItemMessage(hdlg_, IDC_KEY, CB_GETCURSEL, 0, 0L);
+                    UINT uAction = static_cast<UINT>(SendDlgItemMessage(hdlg_, IDC_ACTION, CB_GETCURSEL, 0, 0L));
 
                     char szAction[64];
-                    SendDlgItemMessage(hdlg_, IDC_ACTION, CB_GETLBTEXT, nAction, (LPARAM)&szAction);
+                    SendDlgItemMessage(hdlg_, IDC_ACTION, CB_GETLBTEXT, uAction, (LPARAM)&szAction);
 
                     // Look for the action in the list to find out the number (as there may be gaps if some are removed)
-                    for (nAction = 0 ; nAction < MAX_ACTION ; nAction++)
+                    for (uAction = 0 ; uAction < MAX_ACTION ; uAction++)
                     {
                         // Only add defined strings
-                        if (aszActions[nAction] && *aszActions[nAction] && !lstrcmpi(szAction, aszActions[nAction]))
+                        if (aszActions[uAction] && *aszActions[uAction] && !lstrcmpi(szAction, aszActions[uAction]))
                             break;
                     }
 
 
                     char szKey[32];
-                    SendDlgItemMessage(hdlg_, IDC_KEY, CB_GETLBTEXT, nKey, (LPARAM)&szKey);
+                    SendDlgItemMessage(hdlg_, IDC_KEY, CB_GETLBTEXT, lKey, (LPARAM)&szKey);
 
                     // Only F1-F12 are supported at the moment
                     if (szKey[0] == 'F')
                     {
                         // Pack the key-code, shift/ctrl states and action into a DWORD for the new item data
-                        DWORD dwParam = ((VK_F1 + strtoul(szKey+1, NULL, 0) - 1) << 16) | nAction;
+                        DWORD dwParam = ((VK_F1 + strtoul(szKey+1, NULL, 0) - 1) << 16) | uAction;
                         dwParam |= (SendDlgItemMessage(hdlg_, IDC_CTRL,   BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 0x8000 : 0;
                         dwParam |= (SendDlgItemMessage(hdlg_, IDC_SHIFT,  BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 0x4000 : 0;
 
@@ -2899,13 +2889,13 @@ BOOL CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
             // Add the first column for key sequence
             lvc.cx = 70;
             lvc.pszText = "Keypress";
-            lvc.cchTextMax = 1+strlen(lvc.pszText);
+            lvc.cchTextMax = static_cast<int>(strlen(lvc.pszText))+1;
             SendMessage(hwndList, LVM_INSERTCOLUMN, lvc.iSubItem = 0, reinterpret_cast<LPARAM>(&lvc));
 
             // Add the second column for action
             lvc.cx = 140;
             lvc.pszText = "Action";
-            lvc.cchTextMax = 1+strlen(lvc.pszText);
+            lvc.cchTextMax = static_cast<int>(strlen(lvc.pszText))+1;
             SendMessage(hwndList, LVM_INSERTCOLUMN, lvc.iSubItem = 1, reinterpret_cast<LPARAM>(&lvc));
 
 
@@ -2959,9 +2949,9 @@ BOOL CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     // List item changed?
                     case LVN_ITEMCHANGED:
                     {
-                        int nSelected = SendDlgItemMessage(hdlg_, IDL_FNKEYS, LVM_GETSELECTEDCOUNT, 0, 0L);
-                        EnableWindow(GetDlgItem(hdlg_, IDB_EDIT), nSelected == 1);
-                        EnableWindow(GetDlgItem(hdlg_, IDB_DELETE), nSelected != 0);
+                        LRESULT lSelected = SendDlgItemMessage(hdlg_, IDL_FNKEYS, LVM_GETSELECTEDCOUNT, 0, 0L);
+                        EnableWindow(GetDlgItem(hdlg_, IDB_EDIT), lSelected == 1);
+                        EnableWindow(GetDlgItem(hdlg_, IDB_DELETE), lSelected != 0);
 
                         break;
                     }
@@ -2974,8 +2964,8 @@ BOOL CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                         // The second column shows the action name
                         if (pnmv->item.iSubItem)
                         {
-                            int nAction = pnmv->item.lParam & 0xff;
-                            pnmv->item.pszText = const_cast<char*>((nAction < MAX_ACTION) ? aszActions[nAction] : aszActions[0]);
+                            LPARAM lAction = pnmv->item.lParam & 0xff;
+                            pnmv->item.pszText = const_cast<char*>((lAction < MAX_ACTION) ? aszActions[lAction] : aszActions[0]);
                         }
 
                         // The first column details the key combination
@@ -2989,7 +2979,7 @@ BOOL CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                                 lstrcat(szKey, "Shift-");
 
                             // Convert from virtual key-code to scan-code so we can get the name
-                            DWORD dwScanCode = MapVirtualKeyEx(pnmv->item.lParam >> 16, 0, GetKeyboardLayout(0));
+                            DWORD dwScanCode = MapVirtualKeyEx(static_cast<UINT>(pnmv->item.lParam) >> 16, 0, GetKeyboardLayout(0));
                             GetKeyNameText(dwScanCode << 16, szKey+lstrlen(szKey), sizeof szKey - lstrlen(szKey));
                             lstrcpyn(pnmv->item.pszText, szKey, pnmv->item.cchTextMax);
                         }
@@ -3010,10 +3000,10 @@ BOOL CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     lvi.mask = LVIF_PARAM;
 
                     HWND hwndList = GetDlgItem(hdlg_, IDL_FNKEYS);
-                    int nItems = SendMessage(hwndList, LVM_GETITEMCOUNT, 0, 0L);
+                    LRESULT lItems = SendMessage(hwndList, LVM_GETITEMCOUNT, 0, 0L);
 
                     // Look through all keys in the list
-                    for (int i = 0 ; i < nItems ; i++)
+                    for (int i = 0 ; i < lItems ; i++)
                     {
                         lvi.iItem = i;
 
@@ -3028,7 +3018,7 @@ BOOL CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                             if (lvi.lParam & 0x4000) strcat(szKeys, "S");
 
                             // Add the key name, '=', and the action number
-                            DWORD dwScanCode = MapVirtualKeyEx(lvi.lParam >> 16, 0, GetKeyboardLayout(0));
+                            DWORD dwScanCode = MapVirtualKeyEx(static_cast<UINT>(lvi.lParam) >> 16, 0, GetKeyboardLayout(0));
                             GetKeyNameText(dwScanCode << 16, szKeys+lstrlen(szKeys), sizeof szKeys - lstrlen(szKeys));
                             strcat(szKeys, "=");
                             wsprintf(szKeys+lstrlen(szKeys), "%d", lvi.lParam & 0xff);
@@ -3053,7 +3043,7 @@ BOOL CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     LVITEM lvi = { 0 };
 
                     HWND hwndList = GetDlgItem(hdlg_, IDL_FNKEYS);
-                    int nItems = SendMessage(hwndList, LVM_GETITEMCOUNT, 0, 0L), i;
+                    int nItems = static_cast<int>(SendMessage(hwndList, LVM_GETITEMCOUNT, 0, 0L)), i;
 
                     // If this is an edit we need to find the item being edited
                     if (LOWORD(wParam_) == IDB_EDIT)
@@ -3125,7 +3115,7 @@ BOOL CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                 case IDB_DELETE:
                 {
                     HWND hwndList = GetDlgItem(hdlg_, IDL_FNKEYS);
-                    for (int i = SendMessage(hwndList, LVM_GETITEMCOUNT, 0, 0L) -1 ; i >= 0 ; i--)
+                    for (int i = static_cast<int>(SendMessage(hwndList, LVM_GETITEMCOUNT, 0, 0L))-1 ; i >= 0 ; i--)
                     {
                         if (SendMessage(hwndList, LVM_GETITEMSTATE, i, LVIS_SELECTED) & LVIS_SELECTED)
                             SendMessage(hwndList, LVM_DELETEITEM, i, 0L);
@@ -3185,9 +3175,9 @@ void DisplayOptions ()
     psh.ppsp = aPages;
 
     // Save the current option state, flag that we've not centred the dialogue box, then display them for editing
-    opts = Options::GetOptions();
+    opts = Options::s_Options;
     fCentredOptions = false;
-    int nRet = PropertySheet(&psh);
+    INT_PTR nRet = PropertySheet(&psh);
 
     Options::Save();
 
@@ -3196,4 +3186,99 @@ void DisplayOptions ()
     if (Changed(serial1) || Changed(serial2))
         IO::InitSerial();
 */
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+bool LocaliseString (char* psz_, int nLen_)
+{
+    // ToDo: determine the message to use, and update the string passed in
+    return true;
+}
+
+
+void LocaliseMenu (HMENU hmenu_)
+{
+    char sz[128];
+
+    // Loop through all items on the menu
+    for (int nItem = 0, nMax = GetMenuItemCount(hmenu_); nItem < nMax ; nItem++)
+    {
+        // Fetch the text for the current menu item
+        GetMenuString(hmenu_, nItem, sz, sizeof sz, MF_BYPOSITION);
+
+        // Fetch the current state of the item, and submenu if it has one
+        UINT uMenuFlags = GetMenuState(hmenu_, nItem, MF_BYPOSITION) & (MF_GRAYED | MF_DISABLED | MF_CHECKED);
+        HMENU hmenuSub = GetSubMenu(hmenu_, nItem);
+
+        // Only consider changing items using a string
+        if (sz[0])
+        {
+            LocaliseString(sz, sizeof sz);
+
+            // Modify the menu, preserving the type and flags
+            UINT_PTR uptr = hmenuSub ? reinterpret_cast<UINT_PTR>(hmenuSub) : GetMenuItemID(hmenu_, nItem);
+            ModifyMenu (hmenu_, nItem, MF_BYPOSITION | uMenuFlags, uptr, sz);
+        }
+
+        // If the menu item has a sub-menu, recurively process it
+        if (hmenuSub)
+            LocaliseMenu(hmenuSub);
+    }
+}
+
+void LocaliseWindow (HWND hwnd)
+{
+    char sz[512];
+
+    char szClass[128];
+    GetClassName(hwnd, szClass, sizeof szClass);
+
+    // Tab controls need special handling for the text on each tab
+    if (!lstrcmpi(szClass, "SysTabControl32"))
+    {
+        // Find out the number of tabs on the control
+        LRESULT lItems = SendMessage(hwnd, TCM_GETITEMCOUNT, 0, 0L);
+
+        // Loop through each tab
+        for (int i = 0 ; i < lItems ; i++)
+        {
+            // Fill in the structure specifying what we want
+            TCITEM sItem;
+            sItem.mask = TCIF_TEXT;
+            sItem.pszText = sz;
+            sItem.cchTextMax = sizeof sz;
+
+            if (SendMessage(hwnd, TCM_GETITEM, i, (LPARAM)&sItem))
+            {
+                if (LocaliseString(sz, sizeof sz))
+                {
+                    // Shrink the tab size down and set the tab text with the expanded message
+                    SendMessage(hwnd, TCM_SETMINTABWIDTH, 0, (LPARAM)1);
+                    SendMessage(hwnd, TCM_SETITEM, i, (LPARAM)&sItem);
+                }
+            }
+        }
+    }
+    else
+    {
+        // Get the current window text
+        GetWindowText (hwnd, sz, sizeof sz);
+        if (LocaliseString(sz, sizeof sz))
+            SetWindowText(hwnd, sz);
+    }
+}
+
+
+BOOL CALLBACK LocaliseEnumProc (HWND hwnd, LPARAM lParam)
+{
+    // Fill the window text for this window
+    LocaliseWindow(hwnd);
+    return TRUE;
+}
+
+void LocaliseWindows (HWND hwnd_)
+{
+    EnumChildWindows(hwnd_, LocaliseEnumProc, NULL);
 }
