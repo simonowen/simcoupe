@@ -419,7 +419,7 @@ bool CreatePalettes (bool fDimmed_/*=false*/)
     }
 
 
-    static const BYTE ab[] = { 0x00, 0x3f, 0x5f, 0x7f, 0x9f, 0xbf, 0xdf, 0xff };
+    static const BYTE ab[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
 
     // Loop through SAM's full palette of 128 colours
     for (int i = 0; i < N_PALETTE_COLOURS ; i++)
