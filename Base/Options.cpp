@@ -29,7 +29,7 @@
 #include "Util.h"
 
 const char* const OPTIONS_FILE = "SimCoupe.cfg";
-const int CFG_VERSION = 1;		// increment to force a config reset, if incompatible changes are made
+const int CFG_VERSION = 1;      // increment to force a config reset, if incompatible changes are made
 
 enum { OT_BOOL, OT_INT, OT_STRING };
 
@@ -60,6 +60,7 @@ OPTION aOptions[] =
     OPT("Scale",        OT_INT,     scale,          2),         // Windowed display is 2x2
     OPT("Ratio5_4",     OT_BOOL,    ratio5_4,       false),     // Don't use 5:4 screen ratio
     OPT("Scanlines",    OT_BOOL,    scanlines,      false),     // Don't use scanlines
+    OPT("Mode3",        OT_INT,     mode3,          0),         // Show only odd mode3 pixels on low-res displays
     OPT("Fullscreen",   OT_INT,     fullscreen,     0),         // Not full screen
     OPT("Depth",        OT_INT,     depth,          16),        // Full screen mode uses 16-bit colour
     OPT("Borders",      OT_INT,     borders,        2),         // Same amount of borders as previous version

@@ -30,6 +30,7 @@ typedef struct
     int     scale;                  // Window scaling mode
     bool    ratio5_4;               // Use 5:4 screen ratio?
     bool    scanlines;              // Show scanlines?
+    int     mode3;                  // Which mode3 pixels to show on low-res displays?
     int     fullscreen;             // Start in full-screen mode?
     int     depth;                  // Screen depth for full-screen
     int     borders;                // How much of the borders to show
@@ -95,7 +96,7 @@ typedef struct
 
     bool    pauseinactive;          // Pause when not the active app?
 
-    char	logfile[MAX_PATH];      // log filename
+    char    logfile[MAX_PATH];      // log filename
     char    fnkeys[256];            // Function key bindings
 }
 OPTIONS;
