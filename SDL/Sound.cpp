@@ -100,6 +100,7 @@ void CSoundStream::SoundCallback (void *pvParam_, Uint8 *pbStream_, int nLen_)
     if (pDAC)
     {
         int nData = pDAC->m_pbNow - pDAC->m_pbStart;
+
         int nCopy = min(nData, nLen_), nLeft = nData-nCopy, nShort = nLen_-nCopy;
         SDL_MixAudio(pbStream_, pDAC->m_pbStart, nCopy, SDL_MIX_MAXVOLUME);
 
@@ -112,8 +113,8 @@ void CSoundStream::SoundCallback (void *pvParam_, Uint8 *pbStream_, int nLen_)
             SDL_MixAudio(pbStream_+nCopy, pDAC->m_pbStart, nShort, SDL_MIX_MAXVOLUME);
 
             int nPad = (pDAC->m_nSamplesPerFrame * GetOption(latency)) >> 1;
-            pDAC->Generate(pDAC->m_pbStart, nPad/pDAC->m_nSampleSize);
-            pDAC->m_pbNow = pDAC->m_pbStart + nPad;
+            pDAC->Generate(pDAC->m_pbStart, nPad);
+            pDAC->m_pbNow = pDAC->m_pbStart + (nPad*pDAC->m_nSampleSize);
         }
     }
 
@@ -387,15 +388,27 @@ void CSoundStream::AddData (BYTE* pbData_, int nLength_)
     }
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
+
+// Byte 16-bit sample values, as needed on big endian systems
+void ByteSwap16 (BYTE* pbSamples_, int nSamples_)
+{
+    for (PWORD pw = reinterpret_cast<PWORD>(pbSamples_) ; nSamples_-- ; pbSamples_++)
+        *pbSamples_ = (*pbSamples_ << 8) | (*pbSamples_ >> 8);
+}
 
 
 void CSAA::Generate (BYTE* pb_, int nSamples_)
 {
     // Samples could now be zero, so check...
     if (nSamples_ > 0)
+    {
         pSAASound->GenerateMany(pb_, nSamples_);
+
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+        ByteSwap(pb_, nSamples_);
+#endif
+    }
 }
 
 void CSAA::GenerateExtra (BYTE* pb_, int nSamples_)
@@ -407,7 +420,13 @@ void CSAA::GenerateExtra (BYTE* pb_, int nSamples_)
 
     // Normal SAA sound use, so generate more real samples to give a seamless join
     else if (nSamples_ > 0)
+    {
         pSAASound->GenerateMany(pb_, nSamples_);
+
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+        ByteSwap(pb_, nSamples_);
+#endif
+    }
 }
 
 void CSAA::Out (WORD wPort_, BYTE bVal_)
@@ -460,8 +479,12 @@ void CDAC::Generate (BYTE* pb_, int nSamples_)
         // Mono
         if (m_nChannels == 1)
         {
-            WORD *pw = reinterpret_cast<WORD*>(pb_), wSample = ((static_cast<WORD>(m_bLeft) + m_bRight - 0x100) / 2) * 0x101;
-            *pw++ = ((static_cast<WORD>(bFirstRight) + bFirstRight - 0x100) / 2) * 0x101;
+            WORD wFirstSample = (BYTE)(WORD)(((bFirstLeft+bFirstRight) >> 1) - 0x80) * 0x0101;
+            WORD wSample = (BYTE)(WORD)(((m_bLeft+m_bRight) >> 1) - 0x80) * 0x0101;
+
+            WORD *pw = reinterpret_cast<WORD*>(pb_);
+            *pw++ = wFirstSample;
+
             while (nSamples_--)
                 *pw++ = wSample;
         }
@@ -469,10 +492,19 @@ void CDAC::Generate (BYTE* pb_, int nSamples_)
         // Stereo
         else
         {
-            WORD wLeft = static_cast<WORD>(m_bLeft-0x80) << 8, wRight = static_cast<WORD>(m_bRight-0x80) << 8;
+            WORD wFirstLeft = static_cast<WORD>(bFirstLeft-0x80) * 0x0101, wFirstRight = static_cast<WORD>(bFirstRight-0x80) * 0x0101;
+            WORD wLeft = static_cast<WORD>(m_bLeft-0x80) * 0x0101, wRight = static_cast<WORD>(m_bRight-0x80) * 0x0101;
 
-            DWORD *pdw = reinterpret_cast<DWORD*>(pb_), dwSample = (static_cast<DWORD>(wRight) << 16) | wLeft;
-            *pdw++ = (static_cast<WORD>(bFirstRight-0x80) << 24) | (static_cast<WORD>(bFirstLeft-0x80) << 8);
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+            DWORD dwFirstSample = (wFirstRight << 16) | wFirstLeft;
+            DWORD dwSample = (wRight << 16) | wLeft;
+#else
+            DWORD dwFirstSample = (wFirstLeft << 16) | wFirstRight;
+            DWORD dwSample = (wLeft << 16) | wRight;
+#endif
+
+            DWORD *pdw = reinterpret_cast<DWORD*>(pb_);
+            *pdw++ = dwFirstSample;
 
             while (nSamples_--)
                 *pdw++ = dwSample;
