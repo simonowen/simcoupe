@@ -49,8 +49,6 @@
 #define SOUND_BITS      16
 
 
-SDL_AudioSpec sObtained;
-
 CSoundStream* aStreams[SOUND_STREAMS];
 
 CSoundStream*& pSAA = aStreams[0];     // SAA 1099 
@@ -126,19 +124,18 @@ bool InitSDLSound ()
 {
     SDL_AudioSpec sDesired = { 0 };
     sDesired.freq = SOUND_FREQ;
-    sDesired.format = AUDIO_S16SYS;
+    sDesired.format = AUDIO_S16LSB;
     sDesired.channels = GetOption(stereo) ? 2 : 1;
     sDesired.samples = 2048;
     sDesired.callback = CSoundStream::SoundCallback;
 
-    if (SDL_OpenAudio(&sDesired, &sObtained) < 0)
+    if (SDL_OpenAudio(&sDesired, NULL) < 0)
+    {
         TRACE("SDL_OpenAudio failed: %s\n", SDL_GetError());
-    else if (sObtained.freq != sDesired.freq || (sObtained.format != sDesired.format))
-        SDL_CloseAudio();
-    else
-        return true;
+        return false;
+    }
 
-    return false;
+    return true;
 }
 
 void ExitSDLSound ()
@@ -329,7 +326,7 @@ void CStreamBuffer::Update (bool fFrameEnd_)
 CSoundStream::CSoundStream (int nChannels_/*=0*/)
     : CStreamBuffer(nChannels_)
 {
-    m_nSampleBufferSize = sObtained.size + (m_nSamplesPerFrame * m_nSampleSize * GetOption(latency));
+    m_nSampleBufferSize = m_nSamplesPerFrame * m_nSampleSize * GetOption(latency);
     TRACE("Sample buffer size = %d samples\n", m_nSampleBufferSize/m_nSampleSize);
     m_pbEnd = (m_pbNow = m_pbStart = new BYTE[m_nSampleBufferSize]) + m_nSampleBufferSize;
 
@@ -352,7 +349,7 @@ void CSoundStream::Stop ()
 void CSoundStream::Silence (bool fFill_/*=false*/)
 {
     SDL_LockAudio();
-    memset(m_pbStart, sObtained.silence, m_pbEnd-m_pbStart);
+    memset(m_pbStart, 0x80, m_pbEnd-m_pbStart);
     m_pbNow = fFill_ ? m_pbEnd-1 : m_pbStart;
     SDL_UnlockAudio();
 }
@@ -390,38 +387,11 @@ void CSoundStream::AddData (BYTE* pbData_, int nLength_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-
-// Byte-swap 16-bit samples, as needed on big endian systems
-void ByteSwap16 (void* pv_, int nSamples_)
-{
-    for (WORD* pw = (WORD*)pv_ ; nSamples_-- ; pw++)
-      *pw = (*pw << 8) | (*pw >> 8);
-}
-
-void ByteSwap32 (void* pv_, int nSamples_)
-{
-    for (DWORD* pdw = (DWORD*)pv_ ; nSamples_-- ; pdw++)
-      *pdw = (*pdw << 24) | ((*pdw & 0x0000ff00) << 8) | ((*pdw & 0x00ff0000) >> 8) | (*pdw >> 24);
-}
-
-#endif  // SDL_BYTEORDER == SDL_BIG_ENDIAN
-
-
 void CSAA::Generate (BYTE* pb_, int nSamples_)
 {
     // Samples could now be zero, so check...
     if (nSamples_ > 0)
-    {
         pSAASound->GenerateMany(pb_, nSamples_);
-
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-        if (m_nChannels == 1)
-            ByteSwap16(pb_, nSamples_);
-        else
-            ByteSwap32(pb_, nSamples_);
-#endif
-    }
 }
 
 void CSAA::GenerateExtra (BYTE* pb_, int nSamples_)
@@ -433,16 +403,7 @@ void CSAA::GenerateExtra (BYTE* pb_, int nSamples_)
 
     // Normal SAA sound use, so generate more real samples to give a seamless join
     else if (nSamples_ > 0)
-    {
         pSAASound->GenerateMany(pb_, nSamples_);
-
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-        if (m_nChannels == 1)
-            ByteSwap16(pb_, nSamples_);
-        else
-            ByteSwap32(pb_, nSamples_);
-#endif
-    }
 }
 
 void CSAA::Out (WORD wPort_, BYTE bVal_)
@@ -511,13 +472,8 @@ void CDAC::Generate (BYTE* pb_, int nSamples_)
             WORD wFirstLeft = static_cast<WORD>(bFirstLeft-0x80) * 0x0101, wFirstRight = static_cast<WORD>(bFirstRight-0x80) * 0x0101;
             WORD wLeft = static_cast<WORD>(m_bLeft-0x80) * 0x0101, wRight = static_cast<WORD>(m_bRight-0x80) * 0x0101;
 
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
             DWORD dwFirstSample = (wFirstRight << 16) | wFirstLeft;
             DWORD dwSample = (wRight << 16) | wLeft;
-#else
-            DWORD dwFirstSample = (wFirstLeft << 16) | wFirstRight;
-            DWORD dwSample = (wLeft << 16) | wRight;
-#endif
 
             DWORD *pdw = reinterpret_cast<DWORD*>(pb_);
             *pdw++ = dwFirstSample;
