@@ -507,7 +507,7 @@ void Update (CScreen* pScreen_)
         DDOVERLAYFX ddofx = { sizeof ddofx };
         ddofx.dckDestColorkey.dwColorSpaceLowValue = ddofx.dckDestColorkey.dwColorSpaceHighValue = dwColourKey;
 
-        // If the overlay position is the same, force an update
+        // If the overlay position is the same, force an update [removed as this was very slow on some cards!]
         if (EqualRect(&rTo, &rLastOverlay))
             ;//pddsOverlay->UpdateOverlay(&rBack, pddsPrimary, &rTo, DDOVER_REFRESHALL|DDOVER_KEYDESTOVERRIDE, NULL);
 
@@ -516,7 +516,7 @@ void Update (CScreen* pScreen_)
             rLastOverlay = rTo;
 
         // Otherwise hide it for now
-        else if (hr)
+        else
         {
             TRACE("UpdateOverlay() failed with %#08lx\n", hr);
             pddsOverlay->UpdateOverlay(NULL, pddsPrimary, NULL, DDOVER_HIDE, NULL);
