@@ -2,7 +2,7 @@
 //
 // Atom.h: ATOM hard disk inteface
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,24 +29,6 @@ const BYTE ATOM_ADDR_MASK   = 0x07;
 const BYTE ATOM_NCS1        = 0x08;     // Chip select 1 (negative logic)
 const BYTE ATOM_NCS3        = 0x10;     // Chip select 3 (negative logic)
 const BYTE ATOM_NRESET      = 0x20;     // Reset pin (negative logic)
-
-
-// Hard disk device wrapping a hard disk image
-class CHardDiskDevice : public CATADevice
-{
-    public:
-        CHardDiskDevice ();
-        ~CHardDiskDevice ();
-
-    public:
-        bool DiskReadWrite (bool fWrite_);  // Override for disk reads and writes
-
-    protected:
-        bool Init ();
-
-    protected:
-        FILE* m_hfDisk;             // File containing HDD boot sector and (dynamically generated) record name list
-};
 
 
 class CAtomDiskDevice : public CDiskDevice
