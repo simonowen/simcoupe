@@ -2,7 +2,7 @@
 //
 // ATA.cpp: ATA hard disk (and future ATAPI CD-ROM) emulation
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -215,11 +215,14 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                                     {
                                         TRACE(" %d sectors left in multi-sector write...\n", m_sRegs.bSectorCount);
 
-                                        if (++m_sRegs.bSector > m_pDisk->GetGeometry()->uSectors)
+                                        HARDDISK_GEOMETRY geom;
+                                        m_pDisk->GetGeometry(&geom);
+
+                                        if (++m_sRegs.bSector > geom.uSectors)
                                         {
                                             m_sRegs.bSector = 1;
 
-                                            if (++m_sRegs.bDeviceHead == m_pDisk->GetGeometry()->uHeads)
+                                            if (++m_sRegs.bDeviceHead == geom.uHeads)
                                             {
                                                 m_sRegs.bDeviceHead = 0;
 
@@ -589,12 +592,14 @@ bool CATADevice::ReadWriteSector (bool fWrite_)
     WORD wCylinder = (static_cast<WORD>(m_sRegs.bCylinderHigh) << 8) | m_sRegs.bCylinderLow;
     BYTE bHead = (m_sRegs.bDriveAddress >> 2) & 0x0f, bSector = m_sRegs.bSector;
 
+    HARDDISK_GEOMETRY geom;
+    m_pDisk->GetGeometry(&geom);
+
     // Only process requests within the disk geometry
-    const HARDDISK_GEOMETRY* pg = m_pDisk->GetGeometry();
-    if (bSector && bSector <= pg->uSectors && bHead < pg->uHeads && wCylinder < pg->uCylinders)
+    if (bSector && bSector <= geom.uSectors && bHead < geom.uHeads && wCylinder < geom.uCylinders)
     {
         // Calculate the logical block number from the CHS position
-        UINT uSector = (wCylinder * pg->uHeads + bHead) * pg->uSectors + (bSector - 1);
+        UINT uSector = (wCylinder * geom.uHeads + bHead) * geom.uSectors + (bSector - 1);
 
         TRACE("%s CHS %u:%u:%u  [LBA=%u]\n", fWrite_ ? "Writing" : "Reading", wCylinder, bHead, bSector, uSector);
         if (fWrite_)
