@@ -2,7 +2,7 @@
 //
 // HardDisk.h: Hard disk abstraction layer
 //
-//  Copyright (c) 2004 Simon Owen
+//  Copyright (c) 2004-2005 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,49 +23,34 @@
 
 #include "ATA.h"
 
-typedef struct
-{
-    UINT uTotalSectors;
-    UINT uCylinders, uHeads, uSectors;
-}
-HARDDISK_GEOMETRY;
 
-
-class CHardDisk
+class CHardDisk : public CATADevice
 {
     public:
-        CHardDisk ();
+        CHardDisk (const char* pcszDisk_);
         virtual ~CHardDisk ();
 
     public:
         static CHardDisk* OpenObject (const char* pcszDisk_);
+        virtual bool Open () = 0;
 
-        const DEVICEIDENTITY* GetIdentity () const { return &m_sIdentity; }
-        void GetGeometry (HARDDISK_GEOMETRY* pGeom_) const { memcpy(pGeom_, &m_sGeometry, sizeof m_sGeometry); }
-
-        virtual bool IsOpen () const  = 0;
-        virtual bool Open (const char* pcszDisk_) = 0;
-        virtual void Close () = 0;
-
-        virtual bool ReadSector (UINT uSector_, BYTE* pb_) = 0;
-        virtual bool WriteSector (UINT uSector_, BYTE* pb_) = 0;
+        const char* GetPath () const { return m_pszDisk; }
 
         bool IsSDIDEDisk ();
         bool IsBDOSDisk ();
 
     protected:
-        bool CalculateGeometry (HARDDISK_GEOMETRY* pg_);
+        static bool CalculateGeometry (ATA_GEOMETRY* pg_);
 
     protected:
-        HARDDISK_GEOMETRY m_sGeometry;
-        DEVICEIDENTITY m_sIdentity;
+        char* m_pszDisk;
 };
 
 
 class CHDFHardDisk : public CHardDisk
 {
     public:
-        CHDFHardDisk () : m_hfDisk(NULL) { }
+        CHDFHardDisk (const char* pcszDisk_) : CHardDisk(pcszDisk_), m_hfDisk(NULL) { }
         ~CHDFHardDisk () { Close(); }
 
     public:
@@ -73,7 +58,7 @@ class CHDFHardDisk : public CHardDisk
 
     public:
         bool IsOpen () const { return m_hfDisk != NULL; }
-        bool Open (const char* pcszDisk_);
+        bool Open ();
         void Close ();
 
         bool ReadSector (UINT uSector_, BYTE* pb_);
