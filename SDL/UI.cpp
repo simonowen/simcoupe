@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // UI.cpp: SDL user interface
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -41,10 +41,10 @@
 #include "Video.h"
 
 const char* const WINDOW_CAPTION =
-#if defined(__BEOS__) || defined(__APPLE__)
-    "SimCoupÃ©/SDL"
+#if defined(__BEOS__) || defined(__APPLE__) || defined(__QNX__)
+    "SimCoup\xc3\xa9/SDL"
 #else
-    "SimCoupé/SDL"
+    "SimCoup\xe9/SDL"
 #endif
 #ifdef _DEBUG
     " [DEBUG]"
