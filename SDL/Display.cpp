@@ -576,22 +576,15 @@ void DrawChangesGL (CScreen* pScreen_)
         }
     }
 
-//  glViewport(0, 0, nWidth, Frame::GetHeight() << 1);
-
     glPushMatrix();
 
-/*
-    // Just for fun (for best effect it needs a translate before and after the rotate)
-    static float theta = 0.0f;
-    theta += 0.3f;
-    glRotatef(theta, 0.0f, 0.0f, 1.0f);
-*/
-
-    float flStretch = GUI::IsActive() ? -1.0 : -2.0;
-    glTranslatef(0.0, flStretch, 0.0);
-    glScalef(1.0f, flStretch, 1.0);
+    float flStretch = GUI::IsActive() ? -0.5f : -1.0f;
+    glTranslatef(0.0f, flStretch, 0.0f);
+    glScalef(1.0f, flStretch, 1.0f);
     glCallList(dlist);
+
     glPopMatrix();
+
 
     ProfileStart(Blt);
 
