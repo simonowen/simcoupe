@@ -42,7 +42,7 @@
 #include "Video.h"
 
 const char* const WINDOW_CAPTION =
-#if defined(__BEOS__) || defined(__APPLE__) || defined(__QNX__)
+#if defined(__BEOS__) || defined(__QNX__)
     "SimCoup\xc3\xa9/SDL"
 #else
     "SimCoup\xe9/SDL"
