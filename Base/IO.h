@@ -89,10 +89,10 @@ class CDiskDevice :  public CIoDevice
         virtual ~CDiskDevice () { }
 
     public:
-        virtual void Reset () { }
         virtual bool Insert (const char* pcszImage_, bool fReadOnly_=false) { return false; }
         virtual void Eject () { }
-        virtual bool Flush () { return false; }
+        virtual bool Save () { return true; }
+        virtual void Reset () { }
 
     public:
         virtual int GetType () const { return m_nType; }
@@ -100,7 +100,6 @@ class CDiskDevice :  public CIoDevice
         virtual const char* GetFile () const { return ""; }
 
         virtual bool IsInserted () const { return false; }
-        virtual bool IsWriteable () const { return false; }
         virtual bool IsModified () const { return false; }
         virtual bool IsLightOn () const { return false; }
         virtual bool IsActive () const { return IsLightOn(); }
