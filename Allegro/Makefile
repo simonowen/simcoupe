@@ -29,8 +29,8 @@ USE_SAASOUND=1
 
 .SUFFIXES: .cpp .c
 
-CFLAGS=-O2 -Wall -mcpu=pentium -I${ALLEGRO} -I${BASE} -I${EXTERN}
-CXXFLAGS=${CFLAGS}
+CFLAGS=-O2 -I${ALLEGRO} -I${BASE} -I${EXTERN}
+CXXFLAGS=${CFLAGS} -Wall
 LIBS=-L. -lm -lalleg
 
 BASE_SRC=${BASE}/ATA.cpp ${BASE}/Atom.cpp ${BASE}/CDisk.cpp \
