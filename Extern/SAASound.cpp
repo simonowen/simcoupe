@@ -22,8 +22,7 @@
 //  functionality to generate sample data representing silence.
 
 #include "SimCoupe.h"
-#include "../Extern/SAASound.h"
-
+#include "SAASound.h"
 
 #ifdef DUMMY_SAASOUND
 
@@ -107,13 +106,5 @@ int CSAASound::SendCommand(SAACMD nCommandID, long nData)
 {
     return 0;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-
-#else
-
-#ifdef _WINDOWS
-#pragma comment(lib, "SAASound")
-#endif
 
 #endif  // DUMMY_SAASOUND
