@@ -164,22 +164,13 @@ void CAddressDialog::OnNotify (CWindow* pWindow_, int nParam_)
 {
     if (pWindow_ == m_pAddress && nParam_)
     {
-        WORD wAddr = regs.PC.W;
+        int nAddr = regs.PC.W;
 
         const char* pcszExpr = m_pAddress->GetText();
-        if (*pcszExpr)
-        {
-            EXPR* pAddr = Expr::Compile(pcszExpr);
-            if (!pAddr)
-                return;
-            else
-            {
-                wAddr = Expr::Eval(pAddr);
-                Expr::Release(pAddr);
-            }
-        }
+        if (*pcszExpr && !Expr::Eval(pcszExpr, nAddr))
+            return;
 
-        pDebugger->SetAddress(wAddr);
+        pDebugger->SetAddress(nAddr);
         Destroy();
     }
 }
