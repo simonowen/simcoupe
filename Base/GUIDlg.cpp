@@ -1439,7 +1439,7 @@ void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
         UINT uOffset = s_uOffset, uLen = min(s_uLength, 0x84000), uWritten = 0;
 
         // Loop reading chunk blocks into the relevant pages
-        for (UINT uChunk ; (uChunk = min(uLen, (0x4000 - uOffset))) ; uLen -= uChunk, uWritten += uChunk, uOffset = 0)
+        for (UINT uChunk ; (uChunk = min(uLen, (0x4000 - uOffset))) ; uLen -= uChunk, uOffset = 0)
         {
             // Write directly from system memory
             uWritten += fwrite(&apbPageReadPtrs[uPage][uOffset], 1, uChunk, hFile);
