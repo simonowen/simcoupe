@@ -539,7 +539,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                     m_uBuffer = sizeof m_abBuffer;
 
                     // Fail if read-only
-                    if (m_pDisk->IsReadOnly())
+                    if (m_pDisk && m_pDisk->IsReadOnly())
                         ModifyStatus(WRITE_PROTECT, BUSY | DRQ);
 
                     // Signal we're ready to start receiving the track data
@@ -860,5 +860,5 @@ BYTE CDrive::WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
     }
 
     // Present the format to the disk for laying out
-    return m_pDisk->FormatTrack(uSide_, uTrack_, paID, nSectors);
+    return m_pDisk ? m_pDisk->FormatTrack(uSide_, uTrack_, paID, nSectors) : WRITE_PROTECT;
 }
