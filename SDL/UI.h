@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // UI.h: SDL user interface
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,16 +22,15 @@
 #define UI_H
 
 #include "SDL_thread.h"
-#include "Util.h"
 
 class UI
 {
-	public:
-		static bool Init (bool fFirstInit_=false);
-		static void Exit (bool fReInit_=false);
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-		static bool CheckEvents ();
-		static void ShowMessage (eMsgType eType_, const char* pszMessage_);
+        static bool CheckEvents ();
+        static void ShowMessage (eMsgType eType_, const char* pszMessage_);
 };
 
 
