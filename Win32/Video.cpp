@@ -470,13 +470,13 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
         // Other modes build up the require pixel format from the surface information
         else
         {
-            DWORD dwRMask = static_cast<DWORD>(ddsd.ddpfPixelFormat.dwRBitMask);
-            DWORD dwGMask = static_cast<DWORD>(ddsd.ddpfPixelFormat.dwGBitMask);
-            DWORD dwBMask = static_cast<DWORD>(ddsd.ddpfPixelFormat.dwBBitMask);
+            DWORD dwRMask = ddsd.ddpfPixelFormat.dwRBitMask;
+            DWORD dwGMask = ddsd.ddpfPixelFormat.dwGBitMask;
+            DWORD dwBMask = ddsd.ddpfPixelFormat.dwBBitMask;
 
-            DWORD dwRed   = ((static_cast<__int64>(dwRMask) * (bRed+1))   >> 8) & dwRMask;
-            DWORD dwGreen = ((static_cast<__int64>(dwGMask) * (bGreen+1)) >> 8) & dwGMask;
-            DWORD dwBlue  = ((static_cast<__int64>(dwBMask) * (bBlue+1))  >> 8) & dwBMask;
+            DWORD dwRed   = static_cast<DWORD>(((static_cast<__int64>(dwRMask) * (bRed+1))   >> 8) & dwRMask);
+            DWORD dwGreen = static_cast<DWORD>(((static_cast<__int64>(dwGMask) * (bGreen+1)) >> 8) & dwGMask);
+            DWORD dwBlue  = static_cast<DWORD>(((static_cast<__int64>(dwBMask) * (bBlue+1))  >> 8) & dwBMask);
 
             aulPalette[i] = dwRed | dwGreen | dwBlue;
         }
