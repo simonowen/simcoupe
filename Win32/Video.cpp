@@ -39,10 +39,14 @@ const int N_TOTAL_COLOURS = N_PALETTE_COLOURS+N_GUI_COLOURS;
 DWORD aulPalette[N_TOTAL_COLOURS];
 WORD awY[N_TOTAL_COLOURS], awU[N_TOTAL_COLOURS], awV[N_TOTAL_COLOURS];
 
+
+typedef HRESULT (WINAPI *PFNDIRECTDRAWCREATE)(GUID*,LPDIRECTDRAW*,IUnknown*);
+PFNDIRECTDRAWCREATE pfnDirectDrawCreate;
+
 // DirectDraw back and front surfaces
 LPDIRECTDRAWSURFACE pddsPrimary, pddsFront, pddsBack;
 
-
+HINSTANCE hinstDDraw;
 LPDIRECTDRAW pdd;
 LPDIRECTDRAWPALETTE pddPal;
 LPDIRECTDRAWCLIPPER pddClipper;
@@ -59,15 +63,29 @@ bool Video::Init (bool fFirstInit_)
 {
     bool fRet = false;
 
-    Exit();
+    Exit(true);
     TRACE("-> Video::Init(%s)\n", fFirstInit_ ? "first" : "");
 
     // Turn off scanlines if we're using stretch to fit, as it looks ugly otherwise!
     if (GetOption(stretchtofit))
         SetOption(scanlines, false);
 
+    if (fFirstInit_)
+    {
+        // Load DirectDraw and locate the initialisation function
+        if (hinstDDraw = LoadLibrary("DDRAW.DLL"))
+            pfnDirectDrawCreate = reinterpret_cast<PFNDIRECTDRAWCREATE>(GetProcAddress(hinstDDraw, "DirectDrawCreate"));
+
+        if (!pfnDirectDrawCreate)
+        {
+            Message(msgError, "This program requires DirectX 3 or later");
+            Exit();
+            return false;
+        }
+    }
+
     // Create the main DirectDraw object
-    HRESULT hr = DirectDrawCreate(GetOption(surface) ? NULL : (LPGUID)DDCREATE_EMULATIONONLY, &pdd, NULL);
+    HRESULT hr = pfnDirectDrawCreate(GetOption(surface) ? NULL : (LPGUID)DDCREATE_EMULATIONONLY, &pdd, NULL);
     if (FAILED(hr))
         Message(msgError, "DirectDrawCreate() failed with %#08lx", hr);
     else
@@ -247,6 +265,8 @@ void Video::Exit (bool fReInit_/*=false*/)
         TRACE("Releasing DD\n"); pdd->Release();
         pdd = NULL;
     }
+
+    if (!fReInit_ && hinstDDraw) { FreeLibrary(hinstDDraw); hinstDDraw = NULL; }
 
     TRACE("<- Video::Exit()\n");
 }
