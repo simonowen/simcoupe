@@ -1,9 +1,9 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // CDrive.cpp: VL1772-02 floppy disk controller emulation
 //
+//  Copyright (c) 1999-2002  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
-//  Copyright (c) 1999-2001  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@
 #include "SimCoupe.h"
 
 #include "CDrive.h"
+#include "CPU.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -162,6 +163,19 @@ BYTE CDrive::In (WORD wPort_)
             // Return value is the status byte
             bRet = m_sRegs.bStatus;
 
+            // Read address work-around for a SAM DICE bug, which relies on unimplemented controller timeouts
+            if (m_sRegs.bCommand == READ_ADDRESS)
+            {
+                static int n = 0;
+
+                // If the ID field data has been read, and busy cleared, reset the counter
+                if (!(bRet & BUSY))
+                    n = 0;
+                // If busy has been set for 16 reads, reset it to allow a stuck caller to continue
+                else if (!(++n & 0xf))
+                    m_sRegs.bStatus &= ~BUSY;
+            }
+
             // Type 1 command mode uses more status bits
             if (m_pDisk && !(m_sRegs.bCommand & 0x80))
             {
@@ -170,10 +184,8 @@ BYTE CDrive::In (WORD wPort_)
                     ModifyStatus(WRITE_PROTECT, 0);
 
                 // If a disk is present, the motor is on, and we're in type 1 status mode, toggle the index pulse
-                // status bit periodically to show the disk is present and spinning (not too frequently!)
-                // This needs to be changed so it's calculated using t-state time and not a fixed count!
-                static int nPulseCount = 1;
-                if (IsMotorOn() && !(++nPulseCount & 0x7))
+                // status bit periodically to show the disk is present and spinning
+                if (IsMotorOn() && (g_dwCycleCounter % (REAL_TSTATES_PER_SECOND / (FLOPPY_RPM/60))) < TSTATES_PER_FRAME)
                     bRet |= INDEX_PULSE;
             }
 
@@ -461,10 +473,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                 // Read address, read track, write track
                 case READ_ADDRESS:
                 {
-                    // The VL 1772 docs say BUSY should be set here, but SAM Dice relies on it not being set.
-                    // Either the docs are wrong or a data timeout is relied on to reset BUSY. However, SAM Dice
-                    // then goes on to read the data, which should no longer be available from the controller!
-                    ModifyStatus(/*BUSY |*/0, TRACK00 | DELETED_DATA);
+                    ModifyStatus(BUSY, TRACK00 | DELETED_DATA);
 
                     // Read an ID field into our general buffer
                     IDFIELD* pId = reinterpret_cast<IDFIELD*>(m_pbBuffer = m_abBuffer);
@@ -473,6 +482,8 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                     // If successful set up the number of bytes available to read
                     if (!(bStatus & TYPE23_ERROR_MASK))
                     {
+                        m_sRegs.bSector = pId->bTrack;
+
                         m_uBuffer = sizeof(IDFIELD);
                         ModifyStatus(bStatus|DRQ, 0);
                     }
