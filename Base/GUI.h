@@ -80,8 +80,8 @@ class GUI
         static int s_nUsage;
         static bool s_fModal;
 
-        friend CWindow;
-        friend CDialog;     // only needed for test cross-hair to access cursor position
+        friend class CWindow;
+        friend class CDialog;     // only needed for test cross-hair to access cursor position
 };
 
 ////////////////////////////////////////////////////////////////////////////////
