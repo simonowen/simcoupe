@@ -31,7 +31,7 @@ const BYTE ATOM_NCS3        = 0x10;     // Chip select 3 (negative logic)
 const BYTE ATOM_NRESET      = 0x20;     // Reset pin (negative logic)
 
 
-typedef list< pair<int,CDisk*> > CACHELIST;
+typedef list< pair<UINT,CDisk*> > CACHELIST;
 typedef vector<string> STRINGARRAY;
 
 // BDOS-specific disk implementation for convenient record access, and caching
@@ -53,7 +53,7 @@ class CBDOSDevice : public CATADevice
         STRINGARRAY m_asRecords;    // Array of paths for each record considered part of the disk
         CACHELIST m_lCached;        // MRU sorted cache of CDisk record objects
 
-        int m_nReservedSectors;     // Number of sectors on start of disk reserved for boot sector and record name list
+        UINT m_uReservedSectors;     // Number of sectors on start of disk reserved for boot sector and record name list
 };
 
 
@@ -70,14 +70,14 @@ class CAtomDiskDevice : public CDiskDevice
         void Out (WORD wPort_, BYTE bVal_);
         void FrameEnd ();
 
-        bool IsLightOn () const { return m_nLightDelay != 0; }
+        bool IsLightOn () const { return m_uLightDelay != 0; }
 
     protected:
         CBDOSDevice* m_pDisk;
 
         BYTE m_bAddressLatch, m_bDataLatch;
 
-        int m_nLightDelay;      // Delay before switching disk light off
+        UINT m_uLightDelay;      // Delay before switching disk light off
 };
 
 #endif
