@@ -77,6 +77,8 @@ extern HINSTANCE __hinstance;
 HHOOK g_hFnKeyHook;
 HWND hdlgNewFnKey;
 
+WNDPROC pfnStaticWndProc;           // Old static window procedure (internal value)
+
 WINDOWPLACEMENT g_wp;
 int nOptionPage = 0;                // Last active option property page
 const int MAX_OPTION_PAGES = 16;    // Maximum number of option propery pages
@@ -752,6 +754,22 @@ void CentreWindow (HWND hwnd_, HWND hwndParent_/*=NULL*/)
 }
 
 
+LRESULT CALLBACK URLWndProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+{
+    static HCURSOR hHand = LoadCursor(NULL, MAKEINTRESOURCE(32649));    // IDC_HAND, which may not be available
+
+    // Cursor query with a valid hand cursor?
+    if (uMsg_ == WM_SETCURSOR && hHand)
+    {
+        // Set the hand
+        SetCursor(hHand);
+        return TRUE;
+    }
+
+    // Pass unhandled messages to the old handler
+    return CallWindowProc(pfnStaticWndProc, hwnd_, uMsg_, wParam_, lParam_);
+}
+
 BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     static HFONT hfont;
@@ -772,6 +790,10 @@ BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             // Fetch the URL handle for later, and set the underline font
             hwndURL = GetDlgItem(hdlg_, ID_HOMEPAGE);
             SendMessage(hwndURL, WM_SETFONT, reinterpret_cast<WPARAM>(hfont), 0L);
+
+            // Subclass the static URL control, so we can set a custom cursor
+            pfnStaticWndProc = reinterpret_cast<WNDPROC>(SetWindowLong(hwndURL,
+                                    GWL_WNDPROC, reinterpret_cast<LONG>(URLWndProc)));
 
             CentreWindow(hdlg_);
             return 1;
@@ -2193,13 +2215,6 @@ BOOL CALLBACK BasePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
         {
             switch (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code)
             {
-/*
-                // Settings being applied?
-                case PSN_APPLY:
-                    // Hide the property sheet so any errors are reported on a clean background
-                    ShowWindow(GetParent(hdlg_), SW_HIDE);
-                    break;
-*/
                 // New page being selected?
                 case PSN_SETACTIVE:
                     // Find and remember the page number of the new active page
@@ -2554,16 +2569,12 @@ BOOL CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 else
                     SetOption(turboload, 0);
 
-                LRESULT lDrive1 = SendDlgItemMessage(hdlg_, IDC_DRIVE1, CB_GETCURSEL, 0, 0L);
-                LRESULT lDrive2 = SendDlgItemMessage(hdlg_, IDC_DRIVE2, CB_GETCURSEL, 0, 0L);
-
-                SetOption(drive1, lDrive1);
-                SetOption(drive2, lDrive2);
+                SetOption(drive1, SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L));
+                SetOption(drive2, SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L));
 
                 if (Changed(drive1) || Changed(drive2))
                     IO::InitDrives();
             }
-
             break;
         }
 
@@ -2577,7 +2588,6 @@ BOOL CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                     EnableWindow(GetDlgItem(hdlg_, IDC_SENSITIVITY), fTurboLoad);
                     break;
                 }
-
             }
             break;
         }
@@ -2637,7 +2647,6 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                     delete pDisk;
                 }
             }
-
             break;
         }
 
@@ -2788,7 +2797,6 @@ BOOL CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 if (Changed(keymapping) || Changed(mouse))
                     Input::Init();
             }
-
             break;
         }
 
@@ -2862,7 +2870,6 @@ BOOL CALLBACK JoystickPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                     EnableWindow(GetDlgItem(hdlg_, IDC_DEADZONE_2), SendDlgItemMessage(hdlg_, IDC_JOYSTICK2, CB_GETCURSEL, 0, 0L) != 0);
                     break;
             }
-
             break;
         }
     }
