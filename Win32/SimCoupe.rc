@@ -55,7 +55,7 @@ END
 IDD_ABOUT DIALOGEX 0, 0, 217, 151
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About SimCoupé/Win32"
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     LTEXT           "SimCoupé v0.90 beta 4",IDC_STATIC,40,9,145,8
     LTEXT           "Homepage: http://www.simcoupe.org/",IDC_STATIC,40,20,
@@ -171,29 +171,27 @@ STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Sound"
 FONT 8, "MS Sans Serif"
 BEGIN
+    ICON            IDI_SOUND,IDC_STATIC,7,7,20,20
     GROUPBOX        "",IDC_STATIC,45,7,170,131
     CONTROL         "Sound enabled",IDC_SOUND_ENABLED,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,49,7,64,10
-    CONTROL         "Enable SAA 1099 sound chip output",IDC_SAASOUND_ENABLED,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,23,131,10
-    COMBOBOX        IDC_FREQ,110,36,50,48,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
-    COMBOBOX        IDC_SAMPLE_SIZE,110,52,40,48,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Enable high quality filter",IDC_FILTER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,66,71,90,10
+    CONTROL         "Enable Philips SAA 1099 sound chip",
+                    IDC_SAASOUND_ENABLED,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,61,22,131,10
     CONTROL         "Enable Spectrum-style beeper",IDC_BEEPER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,54,93,148,10
-    CONTROL         "Stereo sound",IDC_STEREO,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,54,107,148,10
-    LTEXT           "Buffering (latency):",IDS_LATENCY,54,122,60,8
-    COMBOBOX        IDC_LATENCY,121,120,80,96,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    BS_AUTOCHECKBOX | WS_TABSTOP,61,36,110,10
+    GROUPBOX        "Output",IDC_STATIC,62,53,138,76
+    LTEXT           "Frequency:",IDS_FREQ,74,67,36,8
+    COMBOBOX        IDC_FREQ,118,64,50,48,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    LTEXT           "Frequency:",IDS_FREQ,66,39,36,8
-    LTEXT           "Sample size:",IDS_SAMPLE_SIZE,66,55,40,8
-    ICON            IDI_SOUND,IDC_STATIC,7,7,20,20
-    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,56,85,
-                    148,1
+    LTEXT           "Sample size:",IDS_SAMPLE_SIZE,74,83,40,8
+    COMBOBOX        IDC_SAMPLE_SIZE,118,80,40,48,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Latency:",IDS_LATENCY,74,99,28,8
+    COMBOBOX        IDC_LATENCY,118,96,73,96,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    CONTROL         "Stereo output",IDC_STEREO,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,74,114,58,10
 END
 
 IDD_PAGE_DISPLAY DIALOG DISCARDABLE  0, 0, 235, 158
@@ -259,23 +257,22 @@ STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "System"
 FONT 8, "MS Sans Serif"
 BEGIN
+    ICON            IDI_MEMORY,IDC_STATIC,7,7,20,20
+    GROUPBOX        "Memory",IDC_STATIC,45,7,170,33
+    LTEXT           "Main:",IDC_STATIC,53,23,20,8
     COMBOBOX        IDC_MAIN_MEMORY,76,20,43,50,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
+    LTEXT           "External:",IDC_STATIC,131,23,28,8
     COMBOBOX        IDC_EXTERNAL_MEMORY,163,20,43,60,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDE_ROM0,82,63,124,14,ES_AUTOHSCROLL
-    EDITTEXT        IDE_ROM1,82,83,124,14,ES_AUTOHSCROLL
+    GROUPBOX        "System ROM",IDC_STATIC,45,45,170,59
+    LTEXT           "Custom ROM image (32K):",IDC_STATIC,53,57,84,8
+    EDITTEXT        IDE_ROM,53,68,138,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDB_BROWSE,194,68,14,14
     CONTROL         "Enable fast power-on ROM reset.",IDC_FAST_RESET,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,82,106,121,10
-    LTEXT           "External:",IDC_STATIC,131,23,28,8
-    LTEXT           "Main:",IDC_STATIC,53,23,20,8
-    ICON            IDI_MEMORY,IDC_STATIC,7,7,20,20
+                    BS_AUTOCHECKBOX | WS_TABSTOP,53,90,121,10
     LTEXT           "NOTE: Changes to the settings above require a SAM reset to take effect.",
-                    IDC_STATIC,45,131,175,18
-    GROUPBOX        "Memory",IDC_STATIC,45,7,170,34
-    GROUPBOX        "ROM images",IDC_STATIC,45,52,170,67
-    LTEXT           "ROM 0:",IDC_STATIC,50,66,26,8
-    LTEXT           "ROM 1:",IDC_STATIC,50,85,26,8
+                    IDC_STATIC,45,112,175,18
 END
 
 IDD_PAGE_INPUT DIALOG DISCARDABLE  0, 0, 235, 156
