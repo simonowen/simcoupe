@@ -44,6 +44,7 @@ class IO
         static bool InitDrives (bool fInit_=true, bool fReInit_=true);
         static bool InitParallel (bool fInit_=true, bool fReInit_=true);
         static bool InitSerial (bool fInit_=true, bool fReInit_=true);
+        static bool InitClocks (bool fInit_=true, bool fReInit_=true);
         static bool InitMidi (bool fInit_=true, bool fReInit_=true);
         static bool InitBeeper (bool fInit_=true, bool fReInit_=true);
         static bool InitHDD (bool fInit_=true, bool fReInit_=true);
