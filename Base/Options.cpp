@@ -103,6 +103,7 @@ OPTION aOptions[] =
     OPT_F("KeypadReset",  keypadreset,    true),      // Keypad-minus for Reset
     OPT_F("SAMFKeys",     samfkeys,       false),     // PC function keys not mapped to SAM keypad
     OPT_F("Mouse",        mouse,          false),     // Mouse not connected
+    OPT_F("Swap23",       swap23,         false),     // Don't swap mouse buttons 2 and 3
 
     OPT_S("JoyDev1",      joydev1,        ""),        // Joystick 1 device
     OPT_S("JoyDev2",      joydev2,        ""),        // Joystick 2 device

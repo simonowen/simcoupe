@@ -68,6 +68,7 @@ typedef struct
     bool    keypadreset;            // Non-zero if Keypad-minus is used for Reset
     bool    samfkeys;               // Non-zero to use the PC function keys for the SAM keypad
     bool    mouse;                  // True to emulate the SAM mouse
+    bool    swap23;                 // True to swap mouse buttons 2 and 3
 
     char    joydev1[128];           // Joystick 1 device
     char    joydev2[128];           // Joystick 2 device number
