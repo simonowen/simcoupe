@@ -202,7 +202,6 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                         pdw[1] = BASE_COLOUR + ((pb[3] << 16) | pb[2]) * 0x101UL;
                         pdw[2] = BASE_COLOUR + ((pb[5] << 16) | pb[4]) * 0x101UL;
                         pdw[3] = BASE_COLOUR + ((pb[7] << 16) | pb[6]) * 0x101UL;
-
                         pdw += 4;
                         pb += 8;
                     }
@@ -436,8 +435,16 @@ void Display::Update (CScreen* pScreen_)
         return;
     }
 
+    // No primary surface pointer?
     if (!pddsPrimary)
-        return;
+    {
+        // Other programs may be using it, so be gentle
+        Sleep(1000);
+
+        // Have another go to grab it back, returning if we can't
+        if (!Frame::Init())
+            return;
+    }
 
     // Now to get the image to the display...
 
@@ -460,7 +467,6 @@ void Display::Update (CScreen* pScreen_)
     RECT rFrom = rBack;
     if (GetOption(ratio5_4))
         rFrom.right = MulDiv(rFrom.right, 5, 4);
-
 
     // rFront is the total target area we've got to play with
     RECT rFront;
