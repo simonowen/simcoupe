@@ -27,6 +27,17 @@
 #include "IDEDisk.h"
 
 
+CHardDisk::CHardDisk ()
+{
+    memset(&m_sGeometry, 0, sizeof(m_sGeometry));
+    memset(&m_sIdentity, 0, sizeof(m_sIdentity));
+}
+
+CHardDisk::~CHardDisk ()
+{
+}
+
+
 bool CHardDisk::IsSDIDEDisk ()
 {
     // Check for the HDOS free space file-info-block in sector 1
@@ -46,12 +57,8 @@ bool CHardDisk::IsBDOSDisk ()
 
 
 // Return a suitable CHS geometry covering the supplied number of sectors
-bool CHardDisk::NormaliseGeometry (HARDDISK_GEOMETRY* pg_)
+bool CHardDisk::CalculateGeometry (HARDDISK_GEOMETRY* pg_)
 {
-    // Return the supplied geometry if it's already valid for CHS
-    if (pg_->uCylinders <= 16383 && pg_->uHeads <= 16 && pg_->uSectors <= 63)
-        return false;
-
     // CHS can only handle up to 8GB, so truncate anything larger
     if (pg_->uTotalSectors > 16383*16*63)
         pg_->uTotalSectors = 16383*16*63;
