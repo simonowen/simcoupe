@@ -44,11 +44,12 @@ typedef struct
     int     mainmem;                // 256 or 512 for amount of main memory
     int     externalmem;            // Number of MB of external memory
 
-    char    disk1[MAX_PATH];        // Floppy disk image in drive 1
-    char    disk2[MAX_PATH];        // Floppy disk image in drive 2
     int     drive1;                 // Drive 1 type
     int     drive2;                 // Drive 2 type
-    bool    turboload;              // True to accelerate disk and tape loading
+    char    disk1[MAX_PATH];        // Floppy disk image in drive 1
+    char    disk2[MAX_PATH];        // Floppy disk image in drive 2
+    bool    autoboot;               // Autoboot drive 1 on first startup?
+    int     turboload;              // True to accelerate disk and tape loading
 
     int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
     bool    altforcntrl;            // Non-zero if Left-Alt is used for SAM Cntrl
@@ -96,8 +97,6 @@ typedef struct
     char    fnkeys[256];            // Function key bindings
 
     bool    pauseinactive;          // Pause when not the active app?
-
-    bool    autoboot;               // Autoboot drive 1 on first startup?
 }
 OPTIONS;
 
