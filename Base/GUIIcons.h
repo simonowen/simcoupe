@@ -1,6 +1,6 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
-// GUIIcons.h: Handy icons for the GUI
+// GUIIcons.h: Icons for the GUI
 //
 //  Copyright (c) 1999-2001  Simon Owen
 //
@@ -37,8 +37,8 @@ GUI_ICON;
 extern const GUI_ICON sMouseCursor;
 extern const GUI_ICON sSamIcon;
 extern const GUI_ICON sChipIcon, sSoundIcon, sDisplayIcon, sKeyboardIcon, sMouseIcon;
-extern const GUI_ICON sHardwareIcon, sMidiIcon, sPortIcon, sDriveIcon, sMiscIcon;
-extern const GUI_ICON sFolderIcon, sDocumentIcon, sDiskIcon, sCompressedIcon;
+extern const GUI_ICON sHardwareIcon, sMidiIcon, sPortIcon, sFloppyDriveIcon, sHardDiskIcon;
+extern const GUI_ICON sMiscIcon, sFolderIcon, sDocumentIcon, sDiskIcon, sCompressedIcon;
 extern const GUI_ICON sInformationIcon, sWarningIcon, sErrorIcon;
-
+extern const GUI_ICON sStepIntoIcon, sStepOverIcon, sStepOutIcon, sStepToCursorIcon;
 #endif

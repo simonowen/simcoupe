@@ -1,6 +1,6 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
-// GUIIcons.cpp: Handy icons for the GUI
+// GUIIcons.cpp: Icons for the GUI
 //
 //  Copyright (c) 1999-2001  Simon Owen
 //
@@ -57,7 +57,7 @@ const GUI_ICON sMouseCursor =
     }
 };
 
-const GUI_ICON sSamIcon = 
+const GUI_ICON sSamIcon =
 {
     { 0, BLACK, GREY_5, GREY_7 },
 
@@ -282,7 +282,7 @@ const GUI_ICON sMouseIcon =
     }
 };
 
-const GUI_ICON sHardwareIcon = 
+const GUI_ICON sHardwareIcon =
 {
     { 0, BLACK, GREY_5, GREY_6, WHITE, RED_3, RED_5, GREEN_5, GREEN_7, YELLOW_5 },
 
@@ -317,7 +317,7 @@ const GUI_ICON sHardwareIcon =
     }
 };
 
-const GUI_ICON sMidiIcon = 
+const GUI_ICON sMidiIcon =
 {
     { 0, BLACK, GREY_5, GREY_6, WHITE, RED_4 },
 
@@ -356,7 +356,7 @@ const GUI_ICON sMidiIcon =
     }
 };
 
-const GUI_ICON sPortIcon = 
+const GUI_ICON sPortIcon =
 {
     { 0, BLACK, GREY_5, GREY_6, WHITE, YELLOW_4, YELLOW_6 },
 
@@ -396,7 +396,7 @@ const GUI_ICON sPortIcon =
     }
 };
 
-const GUI_ICON sDriveIcon = 
+const GUI_ICON sFloppyDriveIcon =
 {
     { 0, GREY_1, GREY_4, GREY_6, WHITE, RED_4 },
 
@@ -432,7 +432,43 @@ const GUI_ICON sDriveIcon =
     }
 };
 
-const GUI_ICON sMiscIcon = 
+const GUI_ICON sHardDiskIcon =
+{
+    { 0, GREY_1, GREY_4, GREY_6, WHITE, RED_4 },
+
+    {
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0,0,0,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2 },
+        { 0,0,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,1 },
+        { 0,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,1 },
+        { 3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,2,2,2,2,1 },
+        { 3,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,5,5,3,2,3,2,1,1 },
+        { 3,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,5,5,3,2,2,2,1 },
+        { 3,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,1 },
+        { 3,4,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,2,2,2,1 },
+        { 3,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,1 },
+        { 3,4,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,2,2,2,1 },
+        { 3,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,1 },
+        { 3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1 },
+        { 0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 }
+    }
+};
+
+const GUI_ICON sMiscIcon =
 {
     { 0, GREY_1, GREY_4, GREY_6, WHITE, CYAN_5, CYAN_7, YELLOW_5, YELLOW_7 },
 
@@ -470,7 +506,7 @@ const GUI_ICON sMiscIcon =
 };
 
 
-const GUI_ICON sFolderIcon = 
+const GUI_ICON sFolderIcon =
 {
     { 0, YELLOW_1, YELLOW_2, YELLOW_3, YELLOW_4, YELLOW_5 },
 
@@ -510,7 +546,7 @@ const GUI_ICON sFolderIcon =
     }
 };
 
-const GUI_ICON sDocumentIcon = 
+const GUI_ICON sDocumentIcon =
 {
     { 0, GREY_7 },
 
@@ -550,7 +586,7 @@ const GUI_ICON sDocumentIcon =
     }
 };
 
-const GUI_ICON sDiskIcon = 
+const GUI_ICON sDiskIcon =
 {
     { 0, BLACK, GREY_6, WHITE, BLUE_4 },
 
@@ -589,7 +625,7 @@ const GUI_ICON sDiskIcon =
     }
 };
 
-const GUI_ICON sCompressedIcon = 
+const GUI_ICON sCompressedIcon =
 {
     { 0, GREY_3, WHITE, YELLOW_6, GREY_5, GREY_5 },
 
@@ -630,7 +666,7 @@ const GUI_ICON sCompressedIcon =
 };
 
 
-const GUI_ICON sInformationIcon = 
+const GUI_ICON sInformationIcon =
 {
     { 0, GREY_4, BLACK, GREY_1, BLUE_5, WHITE },
 
@@ -670,7 +706,7 @@ const GUI_ICON sInformationIcon =
     }
 };
 
-const GUI_ICON sWarningIcon = 
+const GUI_ICON sWarningIcon =
 {
     { 0, BLACK, YELLOW_6, GREY_1 },
 
@@ -710,7 +746,7 @@ const GUI_ICON sWarningIcon =
     }
 };
 
-const GUI_ICON sErrorIcon = 
+const GUI_ICON sErrorIcon =
 {
     { 0, RED_5, GREY_1, WHITE },
 
@@ -747,5 +783,90 @@ const GUI_ICON sErrorIcon =
         { 0,0,0,0,0,0,0,0,0,2,2,1,1,1,1,1,1,1,1,2,2,2,2,2 },
         { 0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,2,2,2,2,2,2,2 },
         { 0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,2,2,2 }
+    }
+};
+
+
+const GUI_ICON sStepIntoIcon =
+{
+    { 0, BLACK, GREY_5, BLUE_6 },
+
+    {
+        { 3,3,3,3,3,3,3,2 },
+        { 0,0,0,0,0,0,0,3,2 },
+        { 0,0,0,0,0,0,0,0,3 },
+        { 0,0,0,0,1,1,0,0,3,0,0,1,1 },
+        { 0,0,0,1,1,0,0,0,3,0,0,0,1,1 },
+        { 0,0,0,1,1,0,3,3,3,3,3,0,1,1 },
+        { 0,0,0,1,1,0,0,3,3,3,0,0,1,1 },
+        { 0,0,1,1,0,0,0,0,3,0,0,0,0,1,1 },
+        { 0,0,0,1,1,0,0,0,0,0,0,0,1,1 },
+        { 0,0,0,1,1,0,0,0,0,0,0,0,1,1 },
+        { 0,0,0,1,1,0,0,0,0,0,0,0,1,1 },
+        { 0,0,0,1,1,0,0,0,0,0,0,0,1,1 },
+        { 0,0,0,0,1,1,0,0,0,0,0,1,1 }
+    }
+};
+
+const GUI_ICON sStepOverIcon =
+{
+    { 0, BLACK, GREY_5, BLUE_6 },
+
+    {
+        { 2,3,3,3,3,3,3,3,3,3,3,2 },
+        { 3,0,0,0,0,0,0,0,0,0,0,3,2 },
+        { 0,0,0,0,0,0,0,0,0,0,0,0,3 },
+        { 0,0,0,1,1,0,1,1,0,0,0,0,3 },
+        { 0,0,1,1,0,0,0,1,1,0,0,0,3 },
+        { 0,0,1,1,0,0,0,1,1,0,0,0,3 },
+        { 0,0,1,1,0,0,0,1,1,0,3,3,3,3,3 },
+        { 0,0,1,1,0,0,0,1,1,0,0,3,3,3 },
+        { 0,1,1,0,0,0,0,0,1,1,0,0,3 },
+        { 0,0,1,1,0,0,0,1,1 },
+        { 0,0,1,1,0,0,0,1,1 },
+        { 0,0,1,1,0,0,0,1,1 },
+        { 0,0,1,1,0,0,0,1,1 },
+        { 0,0,0,1,1,0,1,1 }
+    }
+};
+
+const GUI_ICON sStepOutIcon =
+{
+    { 0, BLACK, GREY_5, BLUE_6 },
+
+    {
+        { 0,0,0,0,0,0,2,3,3,3,3,3,2 },
+        { 0,0,0,0,0,2,3,0,0,0,0,0,3,2 },
+        { 0,0,0,0,0,3,0,0,0,0,0,0,0,3 },
+        { 0,0,1,1,0,3,0,1,1,0,0,0,0,3 },
+        { 0,1,1,0,0,3,0,0,1,1,0,0,0,3 },
+        { 0,1,1,0,0,3,0,0,1,1,0,0,0,3 },
+        { 0,1,1,0,0,0,0,0,1,1,0,3,3,3,3,3 },
+        { 0,1,1,0,0,0,0,0,1,1,0,0,3,3,3 },
+        { 1,1,0,0,0,0,0,0,0,1,1,0,0,3 },
+        { 0,1,1,0,0,0,0,0,1,1 },
+        { 0,1,1,0,0,0,0,0,1,1 },
+        { 0,1,1,0,0,0,0,0,1,1 },
+        { 0,1,1,0,0,0,0,0,1,1 },
+        { 0,0,1,1,0,0,0,1,1 }
+    }
+};
+
+const GUI_ICON sStepToCursorIcon =
+{
+    { 0, BLACK, GREY_5, BLUE_6 },
+
+    {
+        { 0,0,0,3,0,0,0,1,1,0,0,0,1,1 },
+        { 0,0,0,3,3,0,1,1,0,0,0,0,0,1,1 },
+        { 3,3,3,3,3,3,1,1,0,0,0,0,0,1,1 },
+        { 0,0,0,3,3,0,1,1,0,0,0,0,0,1,1 },
+        { 0,0,0,3,0,0,1,1,0,0,0,0,0,1,1 },
+        { 0,0,0,0,0,1,1,0,0,0,0,0,0,0,1,1 },
+        { 0,0,0,0,0,0,1,1,0,0,0,0,0,1,1 },
+        { 0,0,0,0,0,0,1,1,0,0,0,0,0,1,1 },
+        { 0,0,0,0,0,0,1,1,0,0,0,0,0,1,1 },
+        { 0,0,0,0,0,0,1,1,0,0,0,0,0,1,1 },
+        { 0,0,0,0,0,0,0,1,1,0,0,0,1,1 }
     }
 };
