@@ -161,7 +161,10 @@ class CDisk
         virtual BYTE ReadData (BYTE* pbData_, UINT* puSize_) = 0;
         virtual BYTE WriteData (BYTE* pbData_, UINT* puSize_) = 0;
         virtual bool Save () = 0;
+
+        virtual bool ReadTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_) { return false; }
         virtual BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_) = 0;
+
         virtual bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_) { return false; }
         virtual bool WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_) { return false; }
         virtual void AbortAsyncOp () { }
@@ -233,35 +236,12 @@ class CSDFDisk : public CDisk
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
+        bool ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
         BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
 
     protected:
         SDF_TRACK_HEADER* m_pTrack;     // Last track
         SDF_SECTOR_HEADER* m_pFind;     // Last sector found with FindNext()
-};
-
-
-class CFDIDisk : public CDisk
-{
-    public:
-        CFDIDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=NORMAL_DISK_TRACKS);
-        virtual ~CFDIDisk ();
-
-    public:
-        static bool IsRecognised (CStream* pStream_);
-
-    public:
-        UINT FindInit (UINT uSide_, UINT uTrack_);
-        bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
-        BYTE ReadData (BYTE* pbData_, UINT* puSize_);
-        BYTE WriteData (BYTE* pbData_, UINT* puSize_);
-        bool Save ();
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
-
-    protected:
-        FDI_HEADER m_fdih;
-        FDI_TRACK_DESC* m_pTracks;
-        int* m_pnOffsets;
 };
 
 
