@@ -169,7 +169,8 @@ class CDisk
 
     // Public query functions
     public:
-        const char* GetName () { return m_pStream->GetName(); }
+        const char* GetPath () { return m_pStream->GetPath(); }
+        const char* GetFile () { return m_pStream->GetFile(); }
         int GetType () const { return m_nType; }
         UINT GetSpinPos (bool fAdvance_=false);
         bool IsReadOnly () const { return m_pStream->IsReadOnly(); }
@@ -211,7 +212,7 @@ class CDisk
 class CDSKDisk : public CDisk
 {
     public:
-        CDSKDisk (CStream* pStream_);
+        CDSKDisk (CStream* pStream_, bool fIMG_=false);
         virtual ~CDSKDisk () { if (IsModified()) Save(); }
 
     public:
@@ -222,6 +223,9 @@ class CDSKDisk : public CDisk
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
         BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
+
+    protected:
+        bool m_fIMG;    // true if this is really an IMG rather than DSK image
 };
 
 
