@@ -2,7 +2,7 @@
 //
 // PNG.cpp: Screenshot saving in PNG format
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -142,19 +142,19 @@ static bool CompressImageData (PNG_INFO* pPNG_)
     bool fRet = false;
 
     // ZLib says the compressed size could be at least 0.1% more than the source, plus 12 bytes
-    DWORD dwSize = ((pPNG_->uSize * 1001) / 1000) + 12;
-    BYTE* pbCompressed = new BYTE[dwSize];
+    uLongf ulSize = ((pPNG_->uSize * 1001) / 1000) + 12;
+    BYTE* pbCompressed = new BYTE[ulSize];
 
     if (pbCompressed)
     {
         // Compress the image, but clean-up if we don't manage it
-        if (compress(pbCompressed, &dwSize, pPNG_->pbImage, pPNG_->uSize) == Z_OK)
+        if (compress(pbCompressed, &ulSize, pPNG_->pbImage, pPNG_->uSize) == Z_OK)
         {
             // Delete the uncompressed version
             delete pPNG_->pbImage;
 
             // Save the compressed image and size
-            pPNG_->uCompressedSize = dwSize;
+            pPNG_->uCompressedSize = ulSize;
             pPNG_->pbImage = pbCompressed;
             pbCompressed = NULL;
 
