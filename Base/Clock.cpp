@@ -302,32 +302,32 @@ static void Update (SAMTIME* pst_, time_t* ptLapst_)
     time_t tNow = GetOption(clocksync) ? time(NULL) : tEmulated;
 
     // Work out how many seconds have passed since the last SAM time update
-    time_t tDiff = tNow - *ptLapst_;
+    int nDiff = tNow - *ptLapst_;
     *ptLapst_ = tNow;
 
     // Add on the change in number of seconds, reducing invalid values to 59 before-hand
-    tDiff = (nSecond = min(nSecond, 59) + tDiff) / 60;
+    nDiff = (nSecond = min(nSecond, 59) + nDiff) / 60;
     pst_->nSecond1 = (nSecond %= 60) % 10;
     pst_->nSecond10 = nSecond / 10;
 
     // If there's any time left, consider updating the minutes
-    if (tDiff)
+    if (nDiff)
     {
         // Add on the change in number of minutes, reducing invalid values to 59 before-hand
-        tDiff = (nMinute = min(nMinute, 59) + tDiff) / 60;
+        nDiff = (nMinute = min(nMinute, 59) + nDiff) / 60;
         pst_->nMinute1 = (nMinute %= 60) % 10;
         pst_->nMinute10 = nMinute / 10;
 
         // If there's any time left, consider updating the hours
-        if (tDiff)
+        if (nDiff)
         {
             // Add on the change in number of hours, reducing invalid values to 23 before-hand
-            tDiff = (nHour = min(nHour, 23) + tDiff) / 24;
+            nDiff = (nHour = min(nHour, 23) + nDiff) / 24;
             pst_->nHour1 = (nHour %= 24) % 10;
             pst_->nHour10 = nHour / 10;
 
             // Any remaining time is in days and affects the date
-            if (tDiff)
+            if (nDiff)
             {
                 // Limit the month so we know how many days are in the current month
                 nMonth = min(nMonth ? nMonth : 1, 12);
@@ -345,15 +345,15 @@ static void Update (SAMTIME* pst_, time_t* ptLapst_)
                     nDay = min((nDay ? nDay : 1), anDays[nMonth]);
 
                     // If there's not enough to complete the current month, add it on and finish
-                    if (nDay + tDiff <= anDays[nMonth])
+                    if (nDay + nDiff <= anDays[nMonth])
                     {
-                        pst_->nDay1 = (nDay += tDiff) % 10;
+                        pst_->nDay1 = (nDay += nDiff) % 10;
                         pst_->nDay10 = nDay / 10;
                         break;
                     }
 
                     // Complete the current month and set the day back to the first of the month
-                    tDiff -= anDays[nMonth] - nDay + 1;
+                    nDiff -= anDays[nMonth] - nDay + 1;
                     nDay = 1;
 
                     // If we've completed a year, move back to Jan and increment the year
