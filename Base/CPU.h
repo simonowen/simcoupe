@@ -3,7 +3,7 @@
 // CPU.h: Z80 processor emulation and main emulation loop
 //
 //  Copyright (c) 2000-2003  Dave Laundon
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -64,6 +64,10 @@ const BYTE OP_RET   = 0xc9;     // Z80 opcode for RET
 const BYTE OP_CALL  = 0xcd;     // Z80 opcode for CALL
 const BYTE OP_DI    = 0xf3;     // Z80 opcode for DI
 const BYTE OP_EI    = 0xfb;     // Z80 opcode for EI
+const BYTE OP_JPHL  = 0xe9;     // Z80 opcode for JP (HL)
+
+const BYTE IX_PREFIX = 0xdd;    // Opcode prefix used for IX instructions
+const BYTE IY_PREFIX = 0xfd;    // Opcode prefix used for IY instructions
 
 
 const WORD IM1_INTERRUPT_HANDLER = 0x0038;      // Interrupt mode 1 handler address
