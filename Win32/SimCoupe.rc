@@ -2,6 +2,11 @@
 //
 #include "resource.h"
 
+#ifndef RT_MANIFEST
+#define RT_MANIFEST 24
+#define CREATEPROCESS_MANIFEST_RESOURCE_ID 1
+#endif
+
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -55,7 +60,7 @@ END
 IDD_ABOUT DIALOGEX 0, 0, 197, 134
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About SimCoupé/Win32"
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     LTEXT           "SimCoupé - a SAM Coupé emulator",IDC_STATIC,40,9,145,8
     LTEXT           "Win32/SDL/Allegro versions and general overhaul:\n     Simon Owen (simon.owen@simcoupe.org)",
@@ -626,8 +631,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,9,0,6
- PRODUCTVERSION 0,9,0,6
+ FILEVERSION 0,90,0,3
+ PRODUCTVERSION 0,90,0,3
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -642,17 +647,17 @@ BEGIN
     BEGIN
         BLOCK "080904b0"
         BEGIN
-            VALUE "Comments", "Win32 port and enhancements by Simon Owen (simon.owen@simcoupe.org)\0"
-            VALUE "CompanyName", "-\0"
-            VALUE "FileDescription", "SimCoupe\0"
-            VALUE "FileVersion", "0, 9, 0, 6\0"
-            VALUE "InternalName", "SimCoupe\0"
-            VALUE "LegalCopyright", "\0"
+            VALUE "Comments", "Win32 version by\t\tSimon Owen simon.owen@simcoupe.org http://www.simcoupe.org/\0"
+            VALUE "CompanyName", "\0"
+            VALUE "FileDescription", "A SAM Coupé emulator\0"
+            VALUE "FileVersion", "0.90 beta 3\0"
+            VALUE "InternalName", "\0"
+            VALUE "LegalCopyright", "Copyright © 1996-2002 The SimCoupé Team\0"
             VALUE "LegalTrademarks", "\0"
-            VALUE "OriginalFilename", "SimCoupe.exe\0"
+            VALUE "OriginalFilename", "\0"
             VALUE "PrivateBuild", "\0"
-            VALUE "ProductName", "SimCoupe\0"
-            VALUE "ProductVersion", "0, 9, 0, 6\0"
+            VALUE "ProductName", "\0"
+            VALUE "ProductVersion", "0.90 beta 3\0"
             VALUE "SpecialBuild", "\0"
         END
     END
@@ -696,6 +701,13 @@ IDI_FNKEYS              ICON    DISCARDABLE     "Icons\\fnkeys.ico"
 //
 
 IDC_CURSOR              CURSOR  DISCARDABLE     "Cursors\\arrow.cur"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// RT_MANIFEST
+//
+
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST      DISCARDABLE     "SimCoupe.exe.manifest"
 #endif    // English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -710,3 +722,4 @@ IDC_CURSOR              CURSOR  DISCARDABLE     "Cursors\\arrow.cur"
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
+
