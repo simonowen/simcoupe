@@ -30,7 +30,7 @@ USE_SAASOUND=1
 
 .SUFFIXES: .cpp .c
 
-CFLAGS=-O2 -Wall -I${SDL} -I${BASE} $(shell sdl-config --cflags)
+CFLAGS=-O2 -Wall -I${SDL} -I${BASE} -I${EXTERN} $(shell sdl-config --cflags)
 CXXFLAGS=${CFLAGS}
 LIBS=-L. -L/usr/X11R6/lib -lm $(shell sdl-config --libs --cflags)
 
