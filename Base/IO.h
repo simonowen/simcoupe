@@ -236,7 +236,7 @@ extern UINT clut[N_CLUT_REGS], clutval[N_CLUT_REGS], mode3clutval[4];
 extern BYTE status_reg;
 extern BYTE lpen, hpen;
 
-
 extern CDiskDevice *pDrive1, *pDrive2;
+extern CIoDevice *pParallel1, *pParallel2;
 
 #endif
