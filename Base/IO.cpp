@@ -66,6 +66,7 @@ extern int g_nLineCycle;
 CDiskDevice *pDrive1, *pDrive2;
 CIoDevice *pParallel1, *pParallel2;
 CIoDevice *pSerial1, *pSerial2;
+CIoDevice *pSambus, *pDallas;
 CIoDevice *pMidi;
 CIoDevice *pBeeper;
 CIoDevice *pSDIDE, *pYATBus;
@@ -133,7 +134,8 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         ReleaseAllSamKeys();
 
         // Initialise all the devices
-        fRet &= (InitDrives() && InitParallel() && InitSerial() && InitMidi() && InitBeeper() && InitHDD() && Clock::Init());
+        fRet &= (InitDrives() && InitParallel() && InitSerial() && InitClocks() &&
+                 InitMidi() && InitBeeper() && InitHDD());
     }
 
     // Return true only if everything
@@ -144,14 +146,13 @@ void IO::Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
-        InitDrives(false, fReInit_);
-        InitParallel(false, fReInit_);
-        InitSerial(false, fReInit_);
-        InitMidi(false, fReInit_);
-        InitBeeper(false, fReInit_);
-        InitHDD(false, fReInit_);
-
-        Clock::Exit();
+        InitDrives(false, false);
+        InitParallel(false, false);
+        InitSerial(false, false);
+        InitClocks(false, false);
+        InitMidi(false, false);
+        InitBeeper(false, false);
+        InitHDD(false, false);
     }
 }
 
@@ -267,11 +268,25 @@ bool IO::InitSerial (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     if (fInit_)
     {
         // Serial ports are dummy for now
-        pSerial1 = new CModemDevice;
-        pSerial2 = new CModemDevice;
+        pSerial1 = new CIoDevice;
+        pSerial2 = new CIoDevice;
     }
 
     return !fInit_ || (pSerial1 && pSerial2);
+}
+
+bool IO::InitClocks (bool fInit_/*=true*/, bool fReInit_/*=true*/)
+{
+    delete pSambus; pSambus = NULL;
+    delete pDallas; pDallas = NULL;
+
+    if (fInit_)
+    {
+        pSambus = GetOption(sambusclock) ? new CSambusClock : new CIoDevice;
+        pDallas = GetOption(dallasclock) ? new CDallasClock : new CIoDevice;
+    }
+
+    return !fInit_ || (pSambus && pDallas);
 }
 
 bool IO::InitMidi (bool fInit_/*=true*/, bool fReInit_/*=true*/)
@@ -519,7 +534,7 @@ BYTE IO::In (WORD wPort_)
         case LMPR_PORT:     return lmpr;
 
         // SAMBUS and DALLAS clock ports
-        case CLOCK_PORT:    return Clock::In(wPort_);
+        case CLOCK_PORT:    return (wPort_ < 0xfe00) ? pSambus->In(wPort_) : pDallas->In(wPort_);
 
         // HPEN and LPEN ports
         case LPEN_PORT:
@@ -711,7 +726,10 @@ void IO::Out (WORD wPort_, BYTE bVal_)
 
         // SAMBUS and DALLAS clock ports
         case CLOCK_PORT:
-            Clock::Out(wPort_, bVal_);
+            if (wPort_ < 0xfe00)
+                pSambus->Out(wPort_, bVal_);
+            else
+                pDallas->Out(wPort_, bVal_);
             break;
 
         case CLUT_BASE_PORT:
@@ -866,7 +884,7 @@ void IO::FrameUpdate ()
     pDrive1->FrameEnd();
     pDrive2->FrameEnd();
 
-    Clock::FrameUpdate();
+    CClockDevice::FrameUpdate();
     Sound::FrameUpdate();
     Input::Update();
 }
