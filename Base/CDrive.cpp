@@ -2,7 +2,7 @@
 //
 // CDrive.cpp: VL1772-02 floppy disk controller emulation
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -18,14 +18,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
-// Changes 1999-2001 by Simon Owen:
-//  - implemented READ_ADDRESS, READ_TRACK and WRITE_TRACK
-//  - tightened up motor and spin-up flags, and a couple of BUSY bugs
-//  - added write-protection and direction flags
-//  - changed index flag to only pulse when disk inserted (for missing disk error)
-//  - real head position is now tracked properly for step without update
-//  - changed to use one set of registers per drive, instead of per disk side
 
 // ToDo:
 //  - real delayed spin-up (including 'hang' when command sent and no disk present)
@@ -62,27 +54,22 @@ void CDrive::Reset ()
 // Insert a new disk from the named source (usually a file)
 bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
 {
-    // If no image was supplied, simply eject the current disk
-    if (!pcszSource_ || !*pcszSource_)
-    {
-        Eject();
+	// Eject any existing disk
+	Eject();
+
+    // If no image was supplied there's nothing more to do
+    if (!*pcszSource_)
         return true;
-    }
 
-    // Open the new disk image, save+close the previous one if successful
-    CDisk* pNew = CDisk::Open(pcszSource_, fReadOnly_);
-    if (pNew)
-    {
-        delete m_pDisk;
-        m_pDisk = pNew;
+    // Open the new disk image
+    m_pDisk = CDisk::Open(pcszSource_, fReadOnly_);
 
-        // Check for auto booting if this is floppy drive 1
-        if (this == pDrive1)
-            IO::CheckAutoboot();
-    }
+	// If successful and we're working with drive 1, check for auto-booting
+    if (m_pDisk && this == pDrive1)
+        IO::CheckAutoboot();
 
-    // Return whether a new disk was inserted
-    return pNew != NULL;
+	// Return whether we were successful
+    return m_pDisk != NULL;
 }
 
 // Eject any inserted disk
