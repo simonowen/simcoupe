@@ -2,7 +2,7 @@
 //
 // UI.cpp: SDL user interface
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -366,11 +366,11 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actImportData:
-                GUI::Start(new CMessageBox(NULL, "Import Data not yet implemented", "Sorry!", mbInformation));
+                GUI::Start(new CImportDialog);
                 break;
 
             case actExportData:
-                GUI::Start(new CMessageBox(NULL, "Export Data not yet implemented", "Sorry!", mbInformation));
+                GUI::Start(new CExportDialog);
                 break;
 
             case actDisplayOptions:
