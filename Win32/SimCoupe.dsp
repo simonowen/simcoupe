@@ -157,6 +157,10 @@ SOURCE=..\Base\GUIIcons.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\Base\HardDisk.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\Base\IO.cpp
 # End Source File
 # Begin Source File
@@ -269,6 +273,10 @@ SOURCE=..\Base\GUIIcons.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\Base\HardDisk.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\Base\IO.h
 # End Source File
 # Begin Source File
@@ -337,6 +345,10 @@ SOURCE=.\Floppy.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\IDEDisk.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\Input.cpp
 # End Source File
 # Begin Source File
@@ -378,6 +390,10 @@ SOURCE=.\Display.h
 # Begin Source File
 
 SOURCE=.\Floppy.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\IDEDisk.h
 # End Source File
 # Begin Source File
 
