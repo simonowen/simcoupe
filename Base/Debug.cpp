@@ -18,6 +18,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+// ToDo: Finish the debugger!
+
 #include "SimCoupe.h"
 
 #include "Util.h"
@@ -551,6 +553,19 @@ void CCommandLine::Execute (const char* pcszCommand_)
         regs.IFF1 = 1;
     else if (!strcasecmp(pszCommand, "undo"))
         regs = sSafeRegs;
+    else if (!strcasecmp(pszCommand, "exit"))
+    {
+        // EI, IM 1, force NMI (super-break)
+        regs.IFF1 = 1;
+        regs.IM = 1;
+        regs.PC.W = NMI_INTERRUPT_HANDLER;
+
+        // Set up SAM BASIC paging
+        IO::Out(LMPR_PORT, 0x1f);
+        IO::Out(HMPR_PORT, 0x01);
+
+        pDebugger->Destroy();
+    }
     else if (!strcasecmp(pszCommand, "exx"))
     {
         // EXX
