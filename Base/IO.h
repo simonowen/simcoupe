@@ -2,8 +2,8 @@
 //
 // IO.h: SAM I/O port handling
 //
+//  Copyright (c) 1999-2003  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
-//  Copyright (c) 1999-2001  Simon Owen
 //  Copyright (c) 2000-2001  Dave Laundon
 //
 // This program is free software; you can redistribute it and/or modify
@@ -46,6 +46,7 @@ class IO
         static bool InitSerial (bool fInit_=true, bool fReInit_=true);
         static bool InitMidi (bool fInit_=true, bool fReInit_=true);
         static bool InitBeeper (bool fInit_=true, bool fReInit_=true);
+        static bool InitSDIDE (bool fInit_=true, bool fReInit_=true);
 
         static BYTE In (WORD wPort_);
         static void Out (WORD wPort_, BYTE bVal_);
@@ -132,7 +133,8 @@ class CBeeperDevice : public CIoDevice
 #define SOUND_ADDR          511         // Output (data)
 #define ATTR_PORT           255         // Input
 
-#define QUAZAR_PORT         208
+#define QUAZAR_PORT         208         // Quazar Surround
+#define SID_PORT            212         // Quazar SID interface at 0xD4xx
 
 // Floppy drives or ATOM hard disk - 111d0srr : d = drive, s = side, r = register
 #define FLOPPY_MASK         0xf8        // 11111000
@@ -151,6 +153,9 @@ class CBeeperDevice : public CIoDevice
 #define SERIAL1             236
 #define SERIAL2             237
 // Did I hear 238 and 239 SERIAL3 and SERIAL4?  what about the clock port?
+
+#define SDIDE_DATA          189
+#define SDIDE_REG           191
 
 #define LMPR_PAGE_MASK      0x1f
 #define LMPR_PAGE           (lmpr & LMPR_PAGE_MASK)
@@ -231,6 +236,9 @@ extern BYTE keyboard, keyports[9];
 // The SAM ports
 
 // Read / Write ports
+
+// Last port read/written
+extern WORD wPortRead, wPortWrite;
 
 // Paging ports for internal and external memory
 extern BYTE vmpr, hmpr, lmpr, lepr, hepr;
