@@ -73,7 +73,7 @@ extern int s_nViewTop, s_nViewBottom;   // in lines
 extern int s_nViewLeft, s_nViewRight;   // in screen blocks
 
 extern BYTE *apbPageReadPtrs[],  *apbPageWritePtrs[];
-extern WORD g_awMode1LineToByte[192];
+extern WORD g_awMode1LineToByte[SCREEN_LINES];
 
 // Generic base for all screen classes
 class CFrame
