@@ -2249,7 +2249,7 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 SetOption(saasound, SendDlgItemMessage(hdlg_, IDC_SAASOUND_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
                 int nLatency = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_LATENCY, CB_GETCURSEL, 0, 0L));
-                nLatency = (nLatency <= 5) ? nLatency + 1 : (nLatency - 3) * 5;
+                nLatency = (nLatency < 5) ? nLatency + 1 : (nLatency - 3) * 5;
                 SetOption(latency, nLatency);
 
 
