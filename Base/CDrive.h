@@ -35,7 +35,7 @@ const int FLOPPY_MOTOR_ACTIVE_TIME = (10 / (FLOPPY_RPM/60)) * EMULATED_FRAMES_PE
 class CDrive : public CDiskDevice
 {
     public:
-        CDrive ();
+        CDrive (CDisk* pDisk_=NULL);
         ~CDrive () { if (IsInserted()) Eject(); }
 
     public:

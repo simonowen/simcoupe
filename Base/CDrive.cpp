@@ -39,9 +39,9 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CDrive::CDrive ()
+CDrive::CDrive (CDisk* pDisk_/*=NULL*/)
     : CDiskDevice(dskImage),
-    m_pDisk(NULL), m_nHeadPos(0), m_pbBuffer(NULL), m_uBuffer(0), m_bDataStatus(0), m_nMotorDelay(0)
+    m_pDisk(pDisk_), m_nHeadPos(0), m_pbBuffer(NULL), m_uBuffer(0), m_bDataStatus(0), m_nMotorDelay(0)
 {
     // Track 0, sector 1 and head over track 0
     memset(&m_sRegs, 0, sizeof m_sRegs);
