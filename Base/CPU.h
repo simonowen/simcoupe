@@ -1,10 +1,10 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // CPU.h: Z80 processor emulation and main emulation loop
 //
+//  Copyright (c) 2000-2003  Dave Laundon
+//  Copyright (c) 1999-2003  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
-//  Copyright (c) 2000-2001  Dave Laundon
-//  Copyright (c) 1999-2001  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,16 +27,8 @@
 #include "IO.h"
 #include "Util.h"
 
-
-// CPU Event structure
-typedef struct _CPU_EVENT
-{
-    int     nEvent;
-    DWORD   dwTime;
-    struct  _CPU_EVENT  *psNext;
-}
-CPU_EVENT;
-
+struct _CPU_EVENT;
+struct _Z80Regs;
 
 class CPU
 {
@@ -46,27 +38,30 @@ class CPU
 
         static void Run ();
         static void UpdateContention ();
-        static void ExecuteEvent (CPU_EVENT sThisEvent);
+        static void ExecuteEvent (struct _CPU_EVENT sThisEvent);
         static void ExecuteChunk ();
 
         static void Reset (bool fPress_);
         static void NMI ();
-        static void Mode0Interrupt ();
-        static void Mode1Interrupt ();
-        static void Mode2Interrupt ();
 };
 
 
-extern DWORD g_dwCycleCounter;
+extern struct _Z80Regs regs;
+extern DWORD g_dwCycleCounter, radjust;
 extern int g_nLine, g_nLineCycle, g_nPrevLineCycle;
-extern bool g_fFrameEnd, g_fPaused, g_fTurbo;
+extern bool g_fBreak, g_fPaused, g_fTurbo;
 extern int g_nFastBooting;
-
+extern BYTE *pbMemRead1, *pbMemRead2, *pbMemWrite1, *pbMemWrite2;
 
 const BYTE OP_NOP   = 0x00;     // Z80 opcode for NOP
+const BYTE OP_DJNZ  = 0x10;     // Z80 opcode for DJNZ
+const BYTE OP_JR    = 0x18;     // Z80 opcode for JR
 const BYTE OP_HALT  = 0x76;     // Z80 opcode for HALT
-const BYTE OP_EI    = 0xfb;     // Z80 opcode for EI
+const BYTE OP_JP    = 0xc3;     // Z80 opcode for JP
+const BYTE OP_RET   = 0xc9;     // Z80 opcode for RET
+const BYTE OP_CALL  = 0xcd;     // Z80 opcode for CALL
 const BYTE OP_DI    = 0xf3;     // Z80 opcode for DI
+const BYTE OP_EI    = 0xfb;     // Z80 opcode for EI
 
 
 const WORD IM1_INTERRUPT_HANDLER = 0x0038;      // Interrupt mode 1 handler address
@@ -92,6 +87,16 @@ const BYTE F_ZERO       = 0x40;
 const BYTE F_NEG        = 0x80;
 
 
+// CPU Event structure
+typedef struct _CPU_EVENT
+{
+    int     nEvent;
+    DWORD   dwTime;
+    struct  _CPU_EVENT  *psNext;
+}
+CPU_EVENT;
+
+
 // NOTE: ENDIAN-SENSITIVE!
 typedef struct
 {
@@ -108,7 +113,7 @@ typedef struct
 }
 REGPAIR;
 
-typedef struct
+typedef struct _Z80Regs
 {
     REGPAIR AF, BC, DE, HL;
     REGPAIR AF_, BC_, DE_, HL_;
@@ -119,8 +124,6 @@ typedef struct
     BYTE    IFF1, IFF2, IM;
 }
 Z80Regs;
-
-extern Z80Regs regs;
 
 
 // CPU Event Queue data
