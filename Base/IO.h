@@ -52,6 +52,7 @@ class IO
         static void Out (WORD wPort_, BYTE bVal_);
 
         static void FrameUpdate ();
+        static void UpdateInput();
         static const RGBA* GetPalette (bool fDimmed_=false);
 };
 
@@ -211,7 +212,7 @@ class CBeeperDevice : public CIoDevice
 // Key constants used with the key macros below
 enum eSamKey
 {
-    SK_SHIFT, SK_Z, SK_X, SK_C, SK_V, SK_F1, SK_F2, SK_F3,
+    SK_MIN=0, SK_SHIFT=SK_MIN, SK_Z, SK_X, SK_C, SK_V, SK_F1, SK_F2, SK_F3,
     SK_A, SK_S, SK_D, SK_F, SK_G, SK_F4, SK_F5, SK_F6,
     SK_Q, SK_W, SK_E, SK_R, SK_T, SK_F7, SK_F8, SK_F9,
     SK_1, SK_2, SK_3, SK_4, SK_5, SK_ESCAPE, SK_TAB, SK_CAPS,
@@ -222,16 +223,15 @@ enum eSamKey
     SK_CONTROL, SK_UP, SK_DOWN, SK_LEFT, SK_RIGHT, SK_NONE, SK_MAX=SK_NONE
 };
 
-extern BYTE keyboard, keyports[9];
+extern BYTE keyboard, keyports[9], keybuffer[9];
+extern bool fInputDirty;
 
 // Helper macros for SAM keyboard matrix manipulation
-#define IsSamKeyPressed(n)      (!(keyports[n >> 3] & (1 << (n & 7))))
-#define PressSamKey(n)          (keyports[n >> 3] &= ~(1 << (n & 7)))
-#define ReleaseSamKey(n)        (keyports[n >> 3] |= (1 << (n & 7)))
-#define ToggleSamKey(n)         (keyports[n >> 3] ^= (1 << (n & 7)))
-#define ReleaseAllSamKeys()     do { memset(keyports, 0xff, sizeof keyports); keyboard = 0x5f; } while (0)
-
-
+inline bool IsSamKeyPressed (int k) { return !(keybuffer[(k) >> 3] & (1 << ((k) & 7))); }
+inline void PressSamKey (int k)     { keybuffer[(k) >> 3] &= ~(1 << ((k) & 7)); fInputDirty = true; }
+inline void ReleaseSamKey (int k)   { keybuffer[(k) >> 3] |=  (1 << ((k) & 7)); fInputDirty = true; }
+inline void ToggleSamKey (int k)    { keybuffer[(k) >> 3] ^=  (1 << ((k) & 7)); fInputDirty = true; }
+inline void ReleaseAllSamKeys ()    { memset(keybuffer, 0xff, sizeof keyports); keyboard = 0x5f; fInputDirty = true; }
 
 // The SAM ports
 

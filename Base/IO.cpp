@@ -47,6 +47,7 @@
 #include "Frame.h"
 #include "GUI.h"
 #include "HardDisk.h"
+#include "Input.h"
 #include "Memory.h"
 #include "MIDI.h"
 #include "Mouse.h"
@@ -86,8 +87,10 @@ BYTE hpen, lpen;
 UINT clut[N_CLUT_REGS], clutval[N_CLUT_REGS], mode3clutval[4];
 
 BYTE keyports[9];       // 8 rows of keys (+ 1 row for unscanned keys)
+BYTE keybuffer[9];      // working buffer for key changed, activated mid-frame
+bool fInputDirty;       // true if the input has been modified since the last frame
 
-bool fASICStartup = true;
+bool fASICStartup = true;   // On the first start the ASIC doesn't respond immediately
 
 static inline void out_vmpr(BYTE bVal_);
 static inline void out_hmpr(BYTE bVal_);
@@ -465,10 +468,15 @@ BYTE IO::In (WORD wPort_)
                     if (g_nFastBooting)
                         g_nFastBooting = 0;
 
-                    // With auto-booting enabled we'll tap F9 a few times (it's released by the normal key scan)
+                    // With auto-booting enabled we'll tap F9 a few times
                     static int nFastBoot = 10 * GetOption(autoboot);
-                    if (nFastBoot && (--nFastBoot & 1) && pDrive1->IsInserted())
-                        PressSamKey(SK_F9);
+                    if (nFastBoot && pDrive1->IsInserted())
+                    {
+                        if (--nFastBoot & 1)
+                            PressSamKey(SK_F9);
+                        else
+                            ReleaseSamKey(SK_F9);
+                    }
                 }
 
                 if (!(highbyte & 0x02)) res &= keyports[1] & 0x1f;
@@ -846,8 +854,18 @@ void IO::FrameUpdate ()
     pDrive2->FrameEnd();
 
     Clock::FrameUpdate();
-
     Sound::FrameUpdate();
+    Input::Update();
+}
+
+void IO::UpdateInput()
+{
+    // Copy the working buffer to the live port buffer
+    if (fInputDirty)
+    {
+        memcpy(keyports, keybuffer, sizeof keyports);
+        fInputDirty = false;
+    }
 }
 
 const RGBA* IO::GetPalette (bool fDimmed_/*=false*/)
