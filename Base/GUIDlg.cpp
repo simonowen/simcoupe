@@ -467,7 +467,7 @@ class CSoundOptions : public CDialog
                     m_pSampleSizeText = new CTextControl(this, 90, 79, "Sample size:");
                     m_pSampleSize = new CComboBox(this, 160, 76, "8-bit|16-bit", 60);
 
-                m_pFilter = new CCheckBox(this, 70, 102, "Enable high-pass filter");
+                m_pFilter = new CCheckBox(this, 70, 102, "Enable high quality filter");
 
             new CFrameControl(this, 63, 123, 212, 1, GREY_6);
 
@@ -702,43 +702,47 @@ class CDriveOptions : public CDialog
         {
             new CIconControl(this, 10, 10, &sDriveIcon);
 
-            new CFrameControl(this, 50, 17, 238, 88);
-            new CTextControl(this, 60, 13, "Drive 1", YELLOW_8, BLUE_2);
+            new CFrameControl(this, 50, 16, 238, 79);
+            new CTextControl(this, 60, 12, "Drive 1", YELLOW_8, BLUE_2);
 
-            new CTextControl(this, 63, 35, "Device connected:");
-            m_pDrive1 = new CComboBox(this, 168, 32, "None|Floppy drive|Device: /dev/fd0", 110);
+            new CTextControl(this, 63, 30, "Drive connected:");
+            m_pDrive1 = new CComboBox(this, 163, 27, "None|Floppy disk image|Device: /dev/fd0", 115);
 
-            new CTextControl(this, 63, 60, "File:");
-            m_pFile1 = new CEditControl(this, 90, 57, 188);
-            m_pSave1 = new CTextButton(this, 195, 77, "Save", 40);
-            m_pEject1 = new CTextButton(this, 238, 77, "Eject", 40);
+            new CTextControl(this, 63, 53, "File:");
+            m_pFile1 = new CEditControl(this, 90, 50, 188);
+            m_pSave1 = new CTextButton(this, 195, 71, "Save", 40);
+            m_pEject1 = new CTextButton(this, 238, 71, "Eject", 40);
 
-            new CFrameControl(this, 50, 117, 238, 88);
-            new CTextControl(this, 60, 113, "Drive 2", YELLOW_8, BLUE_2);
+            new CFrameControl(this, 50, 104, 238, 79);
+            new CTextControl(this, 60, 100, "Drive 2", YELLOW_8, BLUE_2);
 
-            new CTextControl(this, 63, 135, "Device connected:");
-            m_pDrive2 = new CComboBox(this, 168, 132, "None|Floppy drive|Device: /dev/fd1|Atom hard disk", 110);
+            new CTextControl(this, 63, 118, "Drive connected:");
+            m_pDrive2 = new CComboBox(this, 163, 115, "None|Floppy disk image|Device: /dev/fd1|Atom hard disk", 115);
 
-            new CTextControl(this, 63, 160, "File:");
-            m_pFile2 = new CEditControl(this, 90, 157, 188);
-            m_pSave2 = new CTextButton(this, 195, 177, "Save", 40);
-            m_pEject2 = new CTextButton(this, 238, 177, "Eject", 40);
+            new CTextControl(this, 63, 141, "File:");
+            m_pFile2 = new CEditControl(this, 90, 138, 188);
+            m_pSave2 = new CTextButton(this, 195, 159, "Save", 40);
+            m_pEject2 = new CTextButton(this, 238, 159, "Eject", 40);
+
+            new CFrameControl(this, 50, 189, 238, 25);
+            m_pTurboLoad = new CCheckBox(this, 60, 196, "Fast disk access");
+            new CTextControl(this, 165, 197, "Sensitivity:");
+            m_pSensitivity = new CComboBox(this, 220, 193, "Low|Medium|High", 62);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
 
             // Set the initial state from the options
             m_pDrive1->Select(GetOption(drive1));
-            m_pFile1->SetText(GetOption(disk1));
-            m_pSave1->Enable(pDrive1->IsModified());
-
             m_pDrive2->Select(GetOption(drive2));
-            m_pFile2->SetText(GetOption(disk2));
-            m_pSave2->Enable(pDrive2->IsModified());
+            m_pTurboLoad->SetChecked(GetOption(turboload) != 0);
+            m_pSensitivity->Select(!GetOption(turboload) ? 1 : GetOption(turboload) <= 5 ? 2 :
+                                                               GetOption(turboload) <= 50 ? 1 : 0);
 
             // Update the state of the controls to reflect the current settings
             OnNotify(m_pDrive1,0);
             OnNotify(m_pDrive2,0);
+            OnNotify(m_pTurboLoad,0);
         }
 
     public:
@@ -756,6 +760,9 @@ class CDriveOptions : public CDialog
 
                 SetOption(disk1, (m_pDrive1->GetSelected() == 2) ? OSD::GetFloppyDevice(1) : m_pFile1->GetText());
                 SetOption(disk2, (m_pDrive2->GetSelected() == 2) ? OSD::GetFloppyDevice(2) : m_pFile2->GetText());
+
+                int anSpeeds[] = { 100, 50, 5 };
+                SetOption(turboload, m_pTurboLoad->IsChecked() ? anSpeeds[m_pSensitivity->GetSelected()] : 0);
 
                 if (Changed(drive1) || Changed(drive2))
                     IO::InitDrives();
@@ -775,19 +782,25 @@ class CDriveOptions : public CDialog
                 else
                     Destroy();
             }
+            else if (pWindow_ == m_pTurboLoad)
+                m_pSensitivity->Enable(m_pTurboLoad->IsChecked());
             else if (pWindow_ == m_pDrive1)
             {
-                bool fFloppy = m_pDrive1->GetSelected() == 1, fDevice = m_pDrive1->GetSelected() == 2;
+                int nType = m_pDrive1->GetSelected();
+                bool fFloppy = (nType == 1);
+
                 m_pFile1->Enable(fFloppy);
-                m_pFile1->SetText(fDevice ? OSD::GetFloppyDevice(1) : GetOption(disk1));
+                m_pFile1->SetText(!nType ? "" : (nType == 1) ? GetOption(disk1) : OSD::GetFloppyDevice(1));
                 m_pSave1->Enable(fFloppy && pDrive1->IsModified());
                 m_pEject1->Enable(fFloppy && pDrive1->IsInserted());
             }
             else if (pWindow_ == m_pDrive2)
             {
-                bool fFloppy = m_pDrive2->GetSelected() == 1, fDevice = m_pDrive2->GetSelected() == 2;
+                int nType = m_pDrive2->GetSelected();
+                bool fFloppy = (nType == 1);
+
                 m_pFile2->Enable(fFloppy);
-                m_pFile2->SetText(fDevice ? OSD::GetFloppyDevice(2) : GetOption(disk2));
+                m_pFile2->SetText(!nType ? "" : (nType == 1) ? GetOption(disk2) : OSD::GetFloppyDevice(2));
                 m_pSave2->Enable(fFloppy && pDrive2->IsModified());
                 m_pEject2->Enable(fFloppy && pDrive2->IsInserted());
             }
@@ -824,8 +837,9 @@ class CDriveOptions : public CDialog
         }
 
     protected:
-        CComboBox *m_pDrive1, *m_pDrive2;
+        CComboBox *m_pDrive1, *m_pDrive2, *m_pSensitivity;
         CEditControl *m_pFile1, *m_pFile2, *m_pMouse;
+        CCheckBox* m_pTurboLoad;
         CTextButton *m_pSave1, *m_pEject1, *m_pSave2, *m_pEject2;
         CTextButton *m_pOK, *m_pCancel;
 };
