@@ -37,6 +37,7 @@
 #include "Mouse.h"
 #include "Options.h"
 #include "OSD.h"
+#include "Parallel.h"
 #include "Memory.h"
 #include "Sound.h"
 #include "Video.h"
@@ -403,8 +404,13 @@ void UpdateMenuFromOptions ()
     ModifyMenu(hmenu, IDM_FILE_FLOPPY2_EJECT, MF_STRING | (fInserted ? MF_ENABLED : MF_GRAYED), IDM_FILE_FLOPPY2_EJECT, szEject);
     CheckOption(IDM_FILE_FLOPPY2_DEVICE, fInserted && CFloppyStream::IsRecognised(pDrive2->GetImage()));
 
+    CIoDevice* pPrinter = (GetOption(parallel1) == 1) ? pParallel1 :
+                          (GetOption(parallel2) == 1) ? pParallel2 : NULL;
 
-    EnableItem(IDM_TOOLS_FLUSH_PRINTER, GetOption(parallel1) == 1 || GetOption(parallel2) == 1);
+    EnableItem(IDM_TOOLS_FLUSH_PRINTER, pPrinter && reinterpret_cast<CPrinterDevice*>(pPrinter)->IsFlushable());
+    EnableItem(IDM_TOOLS_PRINTER_READY, pPrinter);
+    EnableItem(IDM_TOOLS_PRINTER_READY, pPrinter);
+    CheckOption(IDM_TOOLS_PRINTER_READY, pPrinter && GetOption(printerready));
 }
 
 
@@ -474,10 +480,13 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actChangeWindowScale:
+            {
+                static const char* aszScaling[] = { "0.5", "1", "1.5"};
                 SetOption(scale, (GetOption(scale) % 3) + 1);
                 UI::ResizeWindow(true);
-                Frame::SetStatus("%dx window scaling", GetOption(scale));
+                Frame::SetStatus("%sx window scaling", aszScaling[GetOption(scale)-1]);
                 break;
+            }
 
             case actChangeFrameSkip:
             {
@@ -590,8 +599,8 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
 
             case actDisplayOptions:
                 if (GetAsyncKeyState(VK_SHIFT) < 0)
-                    GUI::Start(new CTestDialog);
-                else
+                    GUI::Start(new COptionsDialog);
+                else if (!GUI::IsActive())
                 {
                     Video::CreatePalettes(true);
                     DisplayOptions();
@@ -1244,6 +1253,8 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             {
                 case IDM_TOOLS_OPTIONS:         DoAction(actDisplayOptions);    break;
                 case IDM_TOOLS_FLUSH_PRINTER:   DoAction(actFlushPrintJob); break;
+                case IDM_TOOLS_PRINTER_READY:   SetOption(printerready, !GetOption(printerready)); break;
+
                 case IDM_FILE_NEW_DISK:         DoAction(actNewDisk);       break;
 
                 case IDM_FILE_FLOPPY1_DEVICE:       if (GetOption(drive1) == 1) pDrive1->Insert("A:");  break;
@@ -1263,7 +1274,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_FILE_EXIT:     PostMessage(hwnd_, WM_CLOSE, 0, 0L); break;
 
                 // Items from help menu
-                case IDM_HELP_GENERAL:  ShellExecute(hwnd_, NULL, OSD::GetFilePath("SimCoupe.txt"), NULL, "", SW_SHOWMAXIMIZED); break;
+                case IDM_HELP_GENERAL:  ShellExecute(hwnd_, NULL, OSD::GetFilePath("ReadMe.txt"), NULL, "", SW_SHOWMAXIMIZED); break;
                 case IDM_HELP_ABOUT:
                     if (GetAsyncKeyState(VK_SHIFT) < 0)
                         GUI::Start(new CAboutDialog);
@@ -2052,7 +2063,7 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
             int anDepths[] = { 0, 1, 2, 2 };
             SetComboStrings(hdlg_, IDC_FULLSCREEN_DEPTH, aszDepth, anDepths[((GetOption(depth) >> 3) - 1) & 3]);
 
-            static const char* aszScaling[] = { "1x", "2x", "3x", NULL };
+            static const char* aszScaling[] = { "0.5x", "1x", "1.5x", NULL };
             SetComboStrings(hdlg_, IDC_WINDOW_SCALING, aszScaling, GetOption(scale)-1);
 
             SendDlgItemMessage(hdlg_, IDC_FULLSCREEN, BM_SETCHECK, GetOption(fullscreen) ? BST_CHECKED : BST_UNCHECKED, 0L);
@@ -2337,16 +2348,16 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 if (Changed(drive1) || Changed(drive2))
                     IO::InitDrives();
 
-                if (*opts.disk1 && strcmpi(opts.disk1, GetOption(disk1)) && !pDrive1->Insert(GetOption(disk1)))
+                if (*GetOption(disk1) && strcmpi(opts.disk1, GetOption(disk1)) && !pDrive1->Insert(GetOption(disk1)))
                 {
-                    SetOption(disk1, "");
                     Message(msgWarning, "Invalid disk image: %s", GetOption(disk1));
+                    SetOption(disk1, "");
                 }
 
-                if (*opts.disk2 && strcmpi(opts.disk2, GetOption(disk2)) && !pDrive2->Insert(GetOption(disk2)))
+                if (*GetOption(disk2) && strcmpi(opts.disk2, GetOption(disk2)) && !pDrive2->Insert(GetOption(disk2)))
                 {
-                    SetOption(disk2, "");
                     Message(msgWarning, "Invalid disk image: %s", GetOption(disk2));
+                    SetOption(disk2, "");
                 }
             }
 
@@ -2362,8 +2373,8 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                     LRESULT lDrive1 = SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L);
                     EnableWindow(GetDlgItem(hdlg_, IDE_IMAGE1), lDrive1 != 0);
                     EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE1), lDrive1 != 0);
-                    EnableWindow(GetDlgItem(hdlg_, IDB_SAVE1), pDrive1->IsModified());
-                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT1), pDrive1->IsInserted());
+                    EnableWindow(GetDlgItem(hdlg_, IDB_SAVE1), (GetOption(drive1) == 1) && pDrive1->IsModified());
+                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT1), (GetOption(drive1) == 1) && pDrive1->IsInserted());
                     break;
                 }
 
