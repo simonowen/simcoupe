@@ -2,7 +2,7 @@
 //
 // UI.cpp: Win32 user interface
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -306,7 +306,6 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
 bool GetSaveLoadFile (HWND hwndParent_, LPCSTR pcszFilters_, LPCSTR pcszDefExt_, LPSTR pszFile_, DWORD cbSize_, bool fLoad_)
 {
     static int nFilterIndex = 0;
-    *pszFile_ = '\0';
 
     // Fill in the details for a fax file to select
     OPENFILENAME ofn = { sizeof ofn };
@@ -1495,7 +1494,7 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     static UINT uAddress = 32768, uLength = 0;
     static int nPage = 1;
     static WORD wOffset = 0;
-    static char szFile [_MAX_PATH];
+    static char szFile [_MAX_PATH] = "";
     static bool fBasicAddress = true, fUpdating = false, fImport = false;
     char sz[32];
 
@@ -1607,7 +1606,7 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                 case IDB_BROWSE:
                 {
                     if (!GetSaveLoadFile(hdlg_, "Binary files (*.bin)\0*.bin\0Data files (*.dat)\0*.dat\0All files (*.*)\0*.*\0",
-                                    NULL, szFile, sizeof szFile, fImport))
+                        NULL, szFile, sizeof szFile, fImport))
                         break;
 
                     SetDlgItemText(hdlg_, IDE_FILE, szFile);
@@ -2028,7 +2027,7 @@ BOOL CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
     static bool fUpdating;
     static UINT uCylinders, uHeads, uSectors, uTotalSize;
     static HWND hwndEdit;
-    static char szFile[MAX_PATH];
+    static char szFile[MAX_PATH] = "";
     char sz[32];
 
     switch (uMsg_)
@@ -2600,7 +2599,7 @@ BOOL CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
 // Browse for an image, setting a specified filter with the path selected
 void BrowseImage (HWND hdlg_, int nControl_, const char* pcszFilters_)
 {
-    char sz[MAX_PATH];
+    char sz[MAX_PATH] = "";
 
     HWND hctrl = GetDlgItem(hdlg_, nControl_);
     GetWindowText(hctrl, sz, sizeof sz);
