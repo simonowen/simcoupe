@@ -2,7 +2,7 @@
 //
 // HardDisk.cpp: Hard disk abstraction layer
 //
-//  Copyright (c) 2003 Simon Owen
+//  Copyright (c) 2004 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -129,6 +129,10 @@ RS_IDE;
 /*static*/ CHardDisk* CHardDisk::OpenObject (const char* pcszDisk_)
 {
     CHardDisk* pDisk;
+
+    // Make sure we have a disk to try
+    if (!pcszDisk_ || !*pcszDisk_)
+        return NULL;
 
     // Try for device path first
     if ((pDisk = new CDeviceHardDisk) && pDisk->Open(pcszDisk_))
