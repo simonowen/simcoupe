@@ -37,6 +37,7 @@ GUI_ICON;
 extern const GUI_ICON sMouseCursor;
 extern const GUI_ICON sSamIcon;
 extern const GUI_ICON sSoundIcon, sDisplayIcon, sKeyboardIcon, sMouseIcon, sHardwareIcon, sMidiIcon, sPortIcon;
-extern const GUI_ICON sDiskIcon, sFolderIcon;
+extern const GUI_ICON sFolderIcon, sDocumentIcon, sDiskIcon, sCompressedIcon;
+extern const GUI_ICON sInformationIcon, sWarningIcon, sErrorIcon;
 
 #endif
