@@ -979,20 +979,13 @@ bool IO::Rst8Hook ()
         delete pDrive1;
         pDrive1 = pBootDrive;
         pBootDrive = NULL;
-
-        // Suppress a NO AUTO* error caused by an autoboot by redirecting to the ROM "OK" message
-        if (read_byte(regs.PC.W) == 0x80 && GetSectionPage(SECTION_A) == ROM0)
-            regs.PC.W = 0x0e00;
     }
 
     // Are we about to trigger "NO DOS" in ROM1, and with DOS booting enabled?
     else if (regs.PC.W == 0xd977 && GetSectionPage(SECTION_D) == ROM1 && GetOption(dosboot))
     {
-        CDisk* pDisk = NULL;
-
         // If there's a custom boot disk, load it read-only
-        if (*GetOption(dosdisk))
-            pDisk = CDisk::Open(GetOption(dosdisk), true);
+        CDisk* pDisk = CDisk::Open(GetOption(dosdisk), true);
 
         // Fall back on the built-in SAMDOS2 image
         if (!pDisk)
