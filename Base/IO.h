@@ -2,7 +2,7 @@
 //
 // IO.h: SAM I/O port handling
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //  Copyright (c) 2000-2001  Dave Laundon
 //
@@ -190,8 +190,11 @@ class CBeeperDevice : public CIoDevice
 #define VMPR_MODE_3_OR_4    (vmpr & VMPR_MDE1_MASK)
 
 #define BORD_COLOUR_MASK    0x27
+#define BORD_KEY_MASK       0x1f
 #define BORD_MIC_MASK       0x08
 #define BORD_BEEP_MASK      0x10
+#define BORD_SPEN_MASK      0x20
+#define BORD_EAR_MASK       0x40
 #define BORD_SOFF_MASK      0x80
 #define BORD_VAL(x)         ((((x) & 0x20 ) >> 2) | ((x) & 0x07))
 #define BORD_COL(x)         ((x) & BORD_COLOUR_MASK)
