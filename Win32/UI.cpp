@@ -817,7 +817,11 @@ BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
             // Clicking the URL launches the homepage in the default browser
             else if (wParam_ == ID_HOMEPAGE)
-                ShellExecute(NULL, NULL, "http://www.simcoupe.org/", NULL, "", SW_SHOWMAXIMIZED); break;
+            {
+                if (ShellExecute(NULL, NULL, "http://www.simcoupe.org/", NULL, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
+                    MessageBox(hdlg_, "Failed to launch URL!", "Homepage", MB_ICONEXCLAMATION);
+                break;
+            }
             break;
     }
 
@@ -1338,7 +1342,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_FILE_FLOPPY2_SAVE_CHANGES: DoAction(actSaveFloppy2);   break;
 
                 // Items from help menu
-                case IDM_HELP_GENERAL:  ShellExecute(hwnd_, NULL, OSD::GetFilePath("ReadMe.txt"), NULL, "", SW_SHOWMAXIMIZED); break;
+                case IDM_HELP_GENERAL:
+                    if (ShellExecute(hwnd_, NULL, OSD::GetFilePath("ReadMe.txt"), NULL, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
+                        MessageBox(hwnd_, "Help file is missing!", "ReadMe.txt", MB_ICONEXCLAMATION);
+                    break;
                 case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), g_hwnd, AboutDlgProc, NULL);   break;
             }
             break;
