@@ -47,10 +47,8 @@ int main (int argc_, char* argv_[])
 #endif
 
 
-namespace Main
-{
 
-bool Init (int argc_, char* argv_[])
+bool Main::Init (int argc_, char* argv_[])
 {
     // Load settings and check command-line options
     if (!Util::Init() || !Options::Load(argc_, argv_))
@@ -60,7 +58,7 @@ bool Init (int argc_, char* argv_[])
     return OSD::Init() && Sound::Init(true) && Frame::Init(true) && Input::Init(true) && CPU::Init(true);
 }
 
-void Exit ()
+void Main::Exit ()
 {
     CPU::Exit();
     Input::Exit();
@@ -72,5 +70,3 @@ void Exit ()
 
     Util::Exit();
 }
-
-};  // namespace Main

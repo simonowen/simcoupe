@@ -37,8 +37,6 @@
 #include "Clock.h"
 #include "Options.h"
 
-namespace Clock
-{
 
 typedef struct tagSAMTIME
 {
@@ -73,7 +71,7 @@ static void Update (SAMTIME* pst_, time_t* ptLapst_);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool Init ()
+bool Clock::Init ()
 {
     // Set the time on the 2 clocks to the current time
     tSamBusLast = tDallasLast = InitTime(&stSamBus);
@@ -87,16 +85,16 @@ bool Init ()
     abDallasRegs[0x0b] = 0x00;                      // Update enabled
     abDallasRegs[0x0c] = 0x00;
     abDallasRegs[0x0d] = 0x80;                      // Valid RAM and Time
-    
+
     return true;
 }
 
-void Exit ()
+void Clock::Exit ()
 {
 }
 
 
-BYTE In (WORD wPort_)
+BYTE Clock::In (WORD wPort_)
 {
     // Strip off the bottom 8 bits (239 for CLOCK_PORT)
     wPort_ >>= 8;
@@ -165,13 +163,13 @@ BYTE In (WORD wPort_)
     return 0xff;
 }
 
-void Out (WORD wPort_, BYTE bVal_)
+void Clock::Out (WORD wPort_, BYTE bVal_)
 {
     // Strip off the bottom 8 bits (always 239 for CLOCK_PORT)
     wPort_ >>= 8;
 
     if (GetOption(sambusclock) && wPort_ < 0xfe)
-    {   
+    {
         // Get the current SAM time, unless the clock update is on hold
         if (!(abSambusRegs[0x0d] & 0x02))
             Update(&stSamBus, &tSamBusLast);
@@ -248,7 +246,7 @@ void Out (WORD wPort_, BYTE bVal_)
     }
 }
 
-void FrameUpdate ()
+void Clock::FrameUpdate ()
 {
     static int nFrames = 0;
 
@@ -401,5 +399,3 @@ static BYTE DallasDateValue (BYTE bH_, BYTE bL_)
     // Bit is set for binary, reset for BCD
     return (abDallasRegs[0x0b] & 0x02) ? (bH_ * 10) + bL_ : (bH_ << 4) | bL_;
 }
-
-};  // namespace Clock

@@ -22,14 +22,15 @@
 #ifndef MOUSE_H
 #define MOUSE_H
 
-namespace Mouse
+class Mouse
 {
-    void Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
+    public:
+        static void Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    BYTE Read (DWORD dwTime_);
-    void Move (int nDeltaX_, int nDeltaY_);
-    void SetButton (int nButton_, bool fPressed_=true);
+        static BYTE Read (DWORD dwTime_);
+        static void Move (int nDeltaX_, int nDeltaY_);
+        static void SetButton (int nButton_, bool fPressed_=true);
 };
 
 #endif

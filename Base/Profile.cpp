@@ -33,17 +33,16 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace Profile
-{
-PROFILE g_sProfile;
+PROFILE Profile::s_sProfile;
+
 PROFILE_T profTotal, profLast, *approfStack[10];
 UINT uStackPos = 0;
 
 
-void Reset ()
+void Profile::Reset ()
 {
     profTotal = 0;
-    memset(&g_sProfile, 0, sizeof g_sProfile);
+    memset(&s_sProfile, 0, sizeof s_sProfile);
     memset(&approfStack, 0, sizeof approfStack);
     uStackPos = 0;
 
@@ -66,7 +65,7 @@ void ProfileUpdate ()
     profLast = profNow;
 }
 
-void ProfileStart_(PROFILE_T* pprofNew_)
+void Profile::ProfileStart_ (PROFILE_T* pprofNew_)
 {
     if (GetOption(profile))
     {
@@ -98,9 +97,9 @@ void ProfileEnd ()
 }
 
 
-#define AddPercent(x)   sprintf(sz + strlen(sz), "  %s:%lu%%", #x, ((g_sProfile.prof##x + profTotal/200UL) * 100UL) / profTotal)
+#define AddPercent(x)   sprintf(sz + strlen(sz), "  %s:%lu%%", #x, ((s_sProfile.prof##x + profTotal/200UL) * 100UL) / profTotal)
 
-const char* GetStats ()
+const char* Profile::GetStats ()
 {
     static char sz[64];
     sz[0] = '\0';
@@ -134,5 +133,3 @@ const char* GetStats ()
 
     return sz;
 }
-
-};  // namespace Profile

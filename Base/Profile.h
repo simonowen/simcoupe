@@ -26,7 +26,7 @@
 #endif
 
 #ifndef AddTime
-#define AddTime(x)      sprintf(sz + strlen(sz), " %s:%lums", #x, g_sProfile.prof##x)
+#define AddTime(x)      sprintf(sz + strlen(sz), " %s:%lums", #x, s_sProfile.prof##x)
 #endif
 
 // The member names in this structure must be prof<something>
@@ -43,17 +43,18 @@ PROFILE;
 
 
 // Macros to reference values in the structure above
-#define ProfileStart(type)  Profile::ProfileStart_(&Profile::g_sProfile.prof##type)
+#define ProfileStart(type)  Profile::ProfileStart_(&Profile::s_sProfile.prof##type)
 #define ProfileEnd()        Profile::ProfileEnd_()
 
-namespace Profile
+class Profile
 {
-    void Reset ();
-    const char* GetStats ();
-    void ProfileStart_ (PROFILE_T* pdwNew_);
-    void ProfileEnd_ ();
+    public:
+        static void Reset ();
+        static const char* GetStats ();
+        static void ProfileStart_ (PROFILE_T* pdwNew_);
+        static void ProfileEnd_ ();
 
-    extern PROFILE g_sProfile;
+        static PROFILE s_sProfile;
 };
 
 #endif  // PROFILE_H

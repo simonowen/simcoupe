@@ -23,9 +23,6 @@
 //  - moved interrupt reset out of the main CPU loop, for speed reasons
 //  - removed the X mouse warp assumption
 
-// ToDo:
-//  - have mouse interrupt/reset as a CPU event, now it's no longer expensive
-
 #include "SimCoupe.h"
 #include "Mouse.h"
 
@@ -33,8 +30,6 @@
 #include "Options.h"
 #include "Util.h"
 
-namespace Mouse
-{
 
 #define MOUSE_ACTIVE_TIME       USECONDS_TO_TSTATES(100)        // Mouse remains active for 100us
 
@@ -63,19 +58,19 @@ static void Reset ();
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void Init (bool fFirstInit_/*=false*/)
+void Mouse::Init (bool fFirstInit_/*=false*/)
 {
     bButtons = 0xff;
     Reset();
 }
 
-void Exit (bool fReInit_/*=false*/)
+void Mouse::Exit (bool fReInit_/*=false*/)
 {
     Reset();
 }
 
 
-BYTE Read (DWORD dwTime_)
+BYTE Mouse::Read (DWORD dwTime_)
 {
     // If the mouse has been strobed, check to see if it's due a reset
     if ((fStrobed && ((dwTime_ - dwStrobeTime) >= MOUSE_ACTIVE_TIME)) || uBuffer >= sizeof(sMouse))
@@ -117,14 +112,14 @@ BYTE Read (DWORD dwTime_)
 }
 
 // Move the mouse
-void Move (int nDeltaX_, int nDeltaY_)
+void Mouse::Move (int nDeltaX_, int nDeltaY_)
 {
     nDeltaX += nDeltaX_;
     nDeltaY += nDeltaY_;
 }
 
 // Press or release a mouse button
-void SetButton (int nButton_, bool fPressed_/*=true*/)
+void Mouse::SetButton (int nButton_, bool fPressed_/*=true*/)
 {
     // Work out the bit position for the button
     BYTE bBit = 1 << (nButton_-1);
@@ -146,5 +141,3 @@ static void Reset ()
     memset(&sMouse, 0, sizeof sMouse);
     sMouse.bStrobe = sMouse.bDummy = sMouse.bButtons = 0xff;
 }
-
-};

@@ -21,15 +21,16 @@
 #ifndef CLOCK_H
 #define CLOCK_H
 
-namespace Clock
+class Clock
 {
-    bool Init ();
-    void Exit ();
+    public:
+        static bool Init ();
+        static void Exit ();
 
-    BYTE In (WORD wPort_);
-    void Out (WORD wPort_, BYTE bVal_);
+        static BYTE In (WORD wPort_);
+        static void Out (WORD wPort_, BYTE bVal_);
 
-    void FrameUpdate ();
+        static void FrameUpdate ();
 };
 
 #endif
