@@ -69,6 +69,10 @@ typedef struct
 MAPPED_KEY;
 
 
+typedef HRESULT (WINAPI *PFNDIRECTINPUTCREATE) (HINSTANCE, DWORD, LPDIRECTINPUTA*, LPUNKNOWN);
+PFNDIRECTINPUTCREATE pfnDirectInputCreate;
+HINSTANCE hinstDInput;
+
 LPDIRECTINPUT pdi;
 LPDIRECTINPUTDEVICE pdiKeyboard;
 LPDIRECTINPUTDEVICE2 pdidJoystick1, pdidJoystick2;
@@ -93,8 +97,8 @@ SIMPLE_KEY asSamKeys [SK_MAX] =
     {-DIK_LSHIFT},  {'Z'},          {'X'},      {'C'},      {'V'},      {-DIK_NUMPAD1}, {-DIK_NUMPAD2}, {-DIK_NUMPAD3},
     {'A'},          {'S'},          {'D'},      {'F'},      {'G'},      {-DIK_NUMPAD4}, {-DIK_NUMPAD5}, {-DIK_NUMPAD6},
     {'Q'},          {'W'},          {'E'},      {'R'},      {'T'},      {-DIK_NUMPAD7}, {-DIK_NUMPAD8}, {-DIK_NUMPAD9},
-    {'1'},          {'2'},          {'3'},      {'4'},      {'5'},      {-DIK_ESCAPE},  {-DIK_TAB},     {-DIK_CAPITAL},
-    {'0'},          {'9'},          {'8'},      {'7'},      {'6'},      {0},            {0},            {-DIK_BACK},
+    {0},            {0},            {0},        {0},        {0},        {-DIK_ESCAPE},  {-DIK_TAB},     {-DIK_CAPITAL},
+    {0},            {0},            {0},        {0},        {0},        {0},            {0},            {-DIK_BACK},
     {'P'},          {'O'},          {'I'},      {'U'},      {'Y'},      {0},            {0},            {-DIK_NUMPAD0},
     {-DIK_RETURN},  {'L'},          {'K'},      {'J'},      {'H'},      {0},            {0},            {0},
     {-DIK_SPACE},   {-DIK_LCONTROL},{'M'},      {'N'},      {'B'},      {0},            {0},            {-DIK_INSERT},
@@ -104,6 +108,9 @@ SIMPLE_KEY asSamKeys [SK_MAX] =
 // Symbols with SAM keyboard details
 COMBINATION_KEY asSamSymbols[] =
 {
+    { '0', SK_NONE, SK_0 }, { '1', SK_NONE, SK_1 }, { '2', SK_NONE, SK_2 }, { '3', SK_NONE, SK_3 }, { '4', SK_NONE, SK_4 },
+    { '5', SK_NONE, SK_5 }, { '6', SK_NONE, SK_6 }, { '7', SK_NONE, SK_7 }, { '8', SK_NONE, SK_8 }, { '9', SK_NONE, SK_9 },
+
     { '!',  SK_SHIFT, SK_1 },       { '@',  SK_SHIFT, SK_2 },       { '#',  SK_SHIFT, SK_3 },
     { '$',  SK_SHIFT, SK_4 },       { '%',  SK_SHIFT, SK_5 },       { '&',  SK_SHIFT, SK_6 },
     { '\'', SK_SHIFT, SK_7 },       { '(',  SK_SHIFT, SK_8 },       { ')',  SK_SHIFT, SK_9 },
@@ -172,29 +179,36 @@ static void PrepareKeyTable (SIMPLE_KEY* asKeys_);
 
 bool Input::Init (bool fFirstInit_/*=false*/)
 {
-    bool fRet = true;
+    bool fRet = false;
 
     Exit(true);
     TRACE("-> Input::Init(%s)\n", fFirstInit_ ? "first" : "");
 
-    // If we can find DirectInput 5.0 we can have joystick support
-    HRESULT hr;
-    if (SUCCEEDED(hr = DirectInputCreate(__hinstance, DIRECTINPUT_VERSION, &pdi, NULL)))
-        InitJoysticks();
-
-    // Otherwise just try for 3.0 (for NT4)
-    else if (FAILED(hr = DirectInputCreate(__hinstance, 0x0300, &pdi, NULL)))
-        fRet = false;
-
-    if (fRet)
+    if (fFirstInit_)
     {
-        InitKeyboard();
-        fMouseActive = false;
-        Mouse::Init(fFirstInit_);
-        Purge();
+        // Load DirectInput and locate the initialisation function
+        if (hinstDInput = LoadLibrary("DINPUT.DLL"))
+            pfnDirectInputCreate = reinterpret_cast<PFNDIRECTINPUTCREATE>(GetProcAddress(hinstDInput, "DirectInputCreateA"));
     }
 
-    TRACE("<- Input::Init() returning\n", fFirstInit_ ? "true" : "false");
+    if (pfnDirectInputCreate)
+    {
+        // If we can find DirectInput 5.0 we can have joystick support, otherwise fall back on 3.0 support for NT4
+        if (fRet = SUCCEEDED(pfnDirectInputCreate(__hinstance, DIRECTINPUT_VERSION, &pdi, NULL)))
+            InitJoysticks();
+        else
+            fRet = SUCCEEDED(pfnDirectInputCreate(__hinstance, 0x0300, &pdi, NULL));
+
+        if (fRet)
+        {
+            InitKeyboard();
+            fMouseActive = false;
+            Mouse::Init(fFirstInit_);
+            Purge();
+        }
+    }
+
+    TRACE("<- Input::Init() returning %s\n", fRet ? "true" : "false");
     return fRet;
 }
 
@@ -209,6 +223,8 @@ void Input::Exit (bool fReInit_/*=false*/)
     if (pdidJoystick2) { pdidJoystick2->Unacquire(); pdidJoystick2->Release(); pdidJoystick2 = NULL; }
 
     if (pdi) { pdi->Release(); pdi = NULL; }
+
+    if (!fReInit_ && hinstDInput) { FreeLibrary(hinstDInput); hinstDInput = NULL; }
 
     Mouse::Exit(fReInit_);
 
@@ -767,8 +783,10 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
         case WM_NCLBUTTONDOWN:
         case WM_NCRBUTTONDOWN:
+        case WM_NCMBUTTONDOWN:
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
+        case WM_MBUTTONDOWN:
         {
             bool fNonClient = uMsg_ < WM_MOUSEFIRST;
 
@@ -799,8 +817,10 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
         case WM_NCLBUTTONUP:
         case WM_NCRBUTTONUP:
+        case WM_NCMBUTTONUP:
         case WM_LBUTTONUP:
         case WM_RBUTTONUP:
+        case WM_MBUTTONUP:
         {
             bool fNonClient = uMsg_ < WM_MOUSEFIRST;
 
