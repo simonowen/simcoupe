@@ -6,6 +6,8 @@
    Copyright (C) 1998-2003 Gilles Vollant
 */
 
+#define _CRT_SECURE_NO_DEPRECATE	/* Added by SNO to stop VS 2005 moaning about "old" functions */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -94,7 +96,7 @@ uLong ZCALLBACK fread_file_func (opaque, stream, buf, size)
    uLong size;
 {
     uLong ret;
-    ret = fread(buf, 1, (size_t)size, (FILE *)stream);
+    ret = (uLong)fread(buf, 1, (size_t)size, (FILE *)stream);
     return ret;
 }
 
@@ -106,7 +108,7 @@ uLong ZCALLBACK fwrite_file_func (opaque, stream, buf, size)
    uLong size;
 {
     uLong ret;
-    ret = fwrite(buf, 1, (size_t)size, (FILE *)stream);
+    ret = (uLong)fwrite(buf, 1, (size_t)size, (FILE *)stream);
     return ret;
 }
 
