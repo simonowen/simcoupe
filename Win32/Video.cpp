@@ -25,20 +25,24 @@
 
 #include "Frame.h"
 #include "Display.h"
+#include "GUI.h"
+#include "IO.h"
 #include "Options.h"
 #include "UI.h"
 #include "Util.h"
 #include "Video.h"
 
+
+const int N_TOTAL_COLOURS = N_PALETTE_COLOURS+N_GUI_COLOURS;
+
 // SAM RGB values in appropriate format, and YUV values pre-shifted for overlay surface
-DWORD aulPalette[N_PALETTE_COLOURS];
-WORD awY[N_PALETTE_COLOURS], awU[N_PALETTE_COLOURS], awV[N_PALETTE_COLOURS];
+DWORD aulPalette[N_TOTAL_COLOURS];
+WORD awY[N_TOTAL_COLOURS], awU[N_TOTAL_COLOURS], awV[N_TOTAL_COLOURS];
 
 // DirectDraw back and front surfaces
 LPDIRECTDRAWSURFACE pddsPrimary, pddsFront, pddsBack;
 
-namespace Video
-{
+
 LPDIRECTDRAW pdd;
 LPDIRECTDRAWPALETTE pddPal;
 LPDIRECTDRAWCLIPPER pddClipper;
@@ -52,7 +56,7 @@ LPDIRECTDRAWSURFACE CreateOverlay (DWORD dwWidth_, DWORD dwHeight_, LPDDPIXELFOR
 
 
 // function to initialize DirectDraw in windowed mode
-bool Init (bool fFirstInit_)
+bool Video::Init (bool fFirstInit_)
 {
     bool fRet = false;
 
@@ -76,17 +80,13 @@ bool Init (bool fFirstInit_)
         else
         {
             // Get the dimensions of viewable area as displayed on the screen
-            CScreen* pScreen = Frame::GetScreen();
-            DWORD dwWidth = pScreen->GetPitch(), dwHeight = pScreen->GetHeight() << 1;
+            DWORD dwWidth = Frame::GetWidth(), dwHeight = Frame::GetHeight();
+            TRACE("Frame:: dwWidth = %lu, dwHeight = %lu\n", dwWidth, dwHeight);
             if (GetOption(ratio5_4))
                 dwWidth = MulDiv(dwWidth, 5, 4);
 
             // Work out the screen dimensions needed for full screen mode
             int nWidth, nHeight, nDepth = GetOption(depth);
-
-            // Note that the overlay is still 16-bit, so the bit depth of the background doesn't matter
-//          if (GetOption(fullscreen) && (GetOption(surface) >= 3))
-//              nDepth = 8;
 
             // Full screen mode requires a display mode change
             if (GetOption(fullscreen))
@@ -148,8 +148,8 @@ bool Init (bool fFirstInit_)
                 }
 
                 // Get the dimensions needed by the back buffer
-                dwWidth = pScreen->GetPitch();
-                dwHeight = pScreen->GetHeight() * (GetOption(scanlines) + 1);
+                dwWidth = Frame::GetWidth();
+                dwHeight = Frame::GetHeight();
 
                 // Are we to use a video overlay?
                 DDPIXELFORMAT ddpf;
@@ -180,7 +180,6 @@ bool Init (bool fFirstInit_)
                     if (!pddsBack)
                         SetOption(surface, 2);
                 }
-
 
                 // Set up the required capabilities for the back buffer
                 DWORD dwCaps = (GetOption(surface) < 2) ? DDSCAPS_SYSTEMMEMORY : 0;
@@ -215,7 +214,7 @@ bool Init (bool fFirstInit_)
 }
 
 // Cleanup DirectX by releasing all the interfaces we have
-void Exit(bool fReInit_/*=false*/)
+void Video::Exit (bool fReInit_/*=false*/)
 {
     TRACE("-> Video::Exit(%s)\n", fReInit_ ? "reinit" : "");
 
@@ -378,8 +377,10 @@ LPDIRECTDRAWSURFACE CreateSurface (DWORD dwCaps_, DWORD dwWidth_/*=0*/, DWORD dw
 }
 
 
-bool CreatePalettes (bool fDimmed_/*=false*/)
+bool Video::CreatePalettes (bool fDimmed_)
 {
+    fDimmed_ |= g_fPaused || GUI::IsActive() || (!g_fActive && GetOption(pauseinactive));
+
     // Free any existing DirectX palette
     if (pddPal) { pddPal->Release(); pddPal = NULL; }
 
@@ -401,44 +402,14 @@ bool CreatePalettes (bool fDimmed_/*=false*/)
         ReleaseDC(NULL, hdc);
     }
 
-    // To handle any 16-bit pixel format we need to build some look-up tables
-    WORD awRedTab[256], awGreenTab[256], awBlueTab[256];
-    if (uBPP == 16)
+    const RGBA *pSAM = IO::GetPalette(fDimmed_), *pGUI = GUI::GetPalette();
+
+    // Build the full palette from SAM and GUI colours
+    for (int i = 0; i < N_TOTAL_COLOURS ; i++)
     {
-        WORD wRMask = WORD(ddsd.ddpfPixelFormat.dwRBitMask);
-        WORD wGMask = WORD(ddsd.ddpfPixelFormat.dwGBitMask);
-        WORD wBMask = WORD(ddsd.ddpfPixelFormat.dwBBitMask);
-
-        // Create the lookup table
-        for (DWORD dw = 0; dw < 256 ; dw++)
-        {
-            awRedTab[dw] = dw ? WORD(((DWORD(wRMask) * (dw+1)) >> 8) & wRMask) : 0;
-            awGreenTab[dw] = dw ? WORD(((DWORD(wGMask * (dw+1))) >> 8) & wGMask) : 0;
-            awBlueTab[dw] = dw ? WORD(((DWORD(wBMask) * (dw+1)) >> 8) & wBMask) : 0;
-        }
-    }
-
-
-    static const BYTE ab[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
-
-    // Loop through SAM's full palette of 128 colours
-    for (int i = 0; i < N_PALETTE_COLOURS ; i++)
-    {
-        // Convert from SAM palette position to 3-bit RGB
-        BYTE bBlue  = ab[(i&0x01) << 1| ((i&0x10) >> 2) | ((i&0x08) >> 3)];
-        BYTE bRed   = ab[(i&0x02)     | ((i&0x20) >> 3) | ((i&0x08) >> 3)];
-        BYTE bGreen = ab[(i&0x04) >> 1| ((i&0x40) >> 4) | ((i&0x08) >> 3)];
-
-        if (fDimmed_)
-        {
-            bBlue = MulDiv(bBlue, 2, 3);
-            bRed = MulDiv(bRed, 2, 3);
-            bGreen = MulDiv(bGreen, 2, 3);
-        }
-
-        // Write the palette components, leaving the first 10 entries for menu colours etc.
-        PALETTEENTRY pe = { bRed, bGreen, bBlue, PC_NOCOLLAPSE };
-        pal[PALETTE_OFFSET+i] = pe;
+        // Look up the 
+        const RGBA* p = (i < N_PALETTE_COLOURS) ? &pSAM[i] : &pGUI[i-N_PALETTE_COLOURS];
+        BYTE bRed = p->bRed, bGreen = p->bGreen, bBlue = p->bBlue;
 
         // Using YUV on an overlay?
         if (fYUV)
@@ -447,14 +418,12 @@ bool CreatePalettes (bool fDimmed_/*=false*/)
             BYTE bY = static_cast<BYTE>(bRed *  0.299 + bGreen *  0.587 + bBlue *  0.114);
             BYTE bU = static_cast<BYTE>(bRed * -0.169 + bGreen * -0.332 + bBlue *  0.500  + 128.0);
             BYTE bV = static_cast<BYTE>(bRed *  0.500 + bGreen * -0.419 + bBlue * -0.0813 + 128.0);
-
 /*
             // YUV to RGB  (we don't actually need em here, but they're handy!)
             BYTE bR = BY + (1.4075 * (BV - 128));
             BYTE bG = BY - (0.3455 * (BU - 128) - (0.7169 * (BV - 128)));
             BYTE bB = BY + (1.7790 * (BU - 128));
 */
-
             // Pre-shift the YUV data for the two formats we currently support
             if (ddsd.ddpfPixelFormat.dwFourCC == MAKEFOURCC('Y','U','Y','2'))
             {
@@ -479,27 +448,33 @@ bool CreatePalettes (bool fDimmed_/*=false*/)
 
         // In 8 bit mode use offset palette positions to allow for system colours in the first 10
         else if (fPalette)
-            aulPalette[i] = PALETTE_OFFSET+i;
-
-        else if (uBPP == 16)
-            aulPalette[i] = awRedTab[bRed] | awGreenTab[bGreen] | awBlueTab[bBlue];
-
-        // 24-bit mode uses BGR format
-        else if (uBPP == 24)
         {
-            BYTE* pb = reinterpret_cast<BYTE*>(&aulPalette[i]);
-            *pb++ = bRed;
-            *pb++ = bGreen;
-            *pb++ = bBlue;
+            PALETTEENTRY pe = { bRed, bGreen, bBlue, PC_NOCOLLAPSE };
+
+            // Leave the first PALETTE_OFFSET entries for Windows GUI colours
+            pal[PALETTE_OFFSET+i] = pe;
+            aulPalette[i] = PALETTE_OFFSET+i;
         }
 
-        // In 32-bit mode use the full RGB values
+        // Other modes build up the require pixel format from the surface information
         else
-            aulPalette[i] = (static_cast<DWORD>(bRed) << 16) | (static_cast<DWORD>(bGreen) << 8) | bBlue;
+        {
+            DWORD dwRMask = static_cast<DWORD>(ddsd.ddpfPixelFormat.dwRBitMask);
+            DWORD dwGMask = static_cast<DWORD>(ddsd.ddpfPixelFormat.dwGBitMask);
+            DWORD dwBMask = static_cast<DWORD>(ddsd.ddpfPixelFormat.dwBBitMask);
+
+            DWORD dwRed   = ((static_cast<__int64>(dwRMask) * (bRed+1))   >> 8) & dwRMask;
+            DWORD dwGreen = ((static_cast<__int64>(dwGMask) * (bGreen+1)) >> 8) & dwGMask;
+            DWORD dwBlue  = ((static_cast<__int64>(dwBMask) * (bBlue+1))  >> 8) & dwBMask;
+
+            aulPalette[i] = dwRed | dwGreen | dwBlue;
+        }
     }
 
-    // Is the palette required?
-    if (fPalette)
+    // In non-palettised modes the screen needs to be redrawn to reflect the changes
+    if (!fPalette)
+        Display::SetDirty();
+    else
     {
         // Create and activate the palette
         if (FAILED(pdd->CreatePalette(DDPCAPS_8BIT, pal, &pddPal, NULL)))
@@ -509,14 +484,14 @@ bool CreatePalettes (bool fDimmed_/*=false*/)
     }
 
     // Because the pixel format may have changed, we need to refresh the SAM CLUT pixel values
-    for (i = 0 ; i < 16 ; i++)
-        clut[i] = aulPalette[clutval[i]];
+    for (int c = 0 ; c < 16 ; c++)
+        clut[c] = aulPalette[clutval[c]];
 
     return true;
 }
 
 
-void UpdatePalette ()
+void Video::UpdatePalette ()
 {
     if (pddPal)
     {
@@ -524,5 +499,3 @@ void UpdatePalette ()
         pddsPrimary->SetPalette(pddPal);
     }
 }
-
-}   // namespace Video
