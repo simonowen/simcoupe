@@ -1,0 +1,128 @@
+SimCoupé ChangeLog
+==================
+
+Version 0.81 (27th Feb 2001)
+----------------------------
+- CPU loop simplified and optimised using a new event model [Dave Laundon]
+- MIDI OUT interrupt timing now perfect (fixes a demo) [Dave Laundon]
+- Line interrupt now activated/deactivated on line port writes [Dave Laundon]
+- Improved pause feature to halt everything, instead of executing NOPs.
+- Support for background running, with optional pause when inactive.
+
+- Selectable screen area (no borders, TV view, full picture scan, ...).
+- Automatically accurate mode 3 on just the lines that need it.
+- Improved screen change detection for speed-up in most situations.
+- Now shows ASIC artefacts for mode 1/2 <=> 3/4 switches.
+- Screenshot save in PNG format.
+- Optional stretch-to-fit for better use of full-screen space.
+- Smarter window resizing to keep aspect, with snap sizes when shift held.
+- Improved internal screen handling, including on-screen text.
+- Improved mode switching, particularly Alt-TABing from full-screen.
+
+- Support for single file disk images, for easy use of SBT files.
+- Multi-sector reads now correctly leave BUSY flag set [fixes SAM Mines].
+- Implemented WRITE_TRACK floppy command for disk formatting.
+- Floppy 2 LED now replaced with red hard disk LED when ATOM active.
+
+- Mono and stereo parallel DAC sound support.
+- Removed DAC optimisation option - now detected automatically.
+- Parallel printer support to a windows printer (with manual flush option).
+- MIDI-Out to choice of Windows device.
+- Spectrum beeper implemented as DAC to sound better on slow systems.
+- Fixed quirky SAA sample playback (fixes Space demo on Fred 59) [Dave Hooper]
+
+- Clocks can now advance relative to emulated time as well as real time.
+- System time changes now handled at run-time.
+
+- Automatic support for most keyboard mappings.
+- Buffered input for better key responses on slower systems.
+- Redefineable function keys to assign the choice of emulator actions.
+- Turbo key (5fps, no sound), for zooming through slow running programs.
+- Temporary key release to avoid ")0"-type problems with key combinations.
+
+- Simpler option presentation with Win32 property sheet.
+- Main window now requires left-click before grabbing mouse control.
+- Hardware cursor over main window to avoid flicker and slow-down.
+- Windows cursor auto-hidden after 3 seconds.
+- Windowed mode now maintains the correct aspect ratio.
+- Emulator files accessed relative to the main EXE (allows shell associations).
+
+
+Version 0.80 alpha test 4 (21st Aug 2000)
+-----------------------------------------
+- Two-step video mode changing, with page change 1 cell after the mode.
+- Preliminary mono and stereo DAC support for parallel port 1.
+- New DAC optimisation option for better sample plackback on slow machines.
+- Support for reading real SAM disks under Windows NT/2000 with SAMDISK.SYS.
+- Clock advancing can now be linked to emulated time.
+- Improved leap-year detection, instead of just checking multiples of 4.
+- AltGr now only optionally for Edit key, as some keyboards use it for symbols.
+- Incomplete MIDI messages are discarded, for better resync on new playback.
+
+
+Version 0.80 alpha test 3 (22nd June 2000)
+------------------------------------------
+- Much improved contention timing for memory and I/O accesses [Dave Laundon]
+- MIDI OUT interrupt now supported [Dave Laundon]
+- Interrupt active times now perfect (fixes Defender).
+
+- Hardware overlay support for UYVY, YUY2 and RGB formats.
+- Added on-screen floppy activity indicators and status/profile text.
+
+- SAA address now masks unimportant bits before comparing (fixes MOD Player).
+- SAA calls no longer cached to allow fix consecutive writes to data port 511.
+- MIDI OUT support to the default Windows device.
+
+- Disk save support enabled, as the general disk appears to be reliable.
+- Floppy motor now switches off after 10 revolutions of idle.
+
+- Input now updated half way down screen to avoid key bounce side effects.
+- Run-time support for Windows keyboard mapping changes.
+
+- Preliminary serial port support for modem use.
+- Spectrum mode initialisation now sets up paging/palette as appropriate.
+- Disassembler re-written for compactness and complete instruction coverage.
+
+
+Version 0.80 alpha test (11th Nov 1999)
+---------------------------------------
+- Crude instruction rounding used to implement approximate memory contention.
+- Additional delay and rounding performed on I/O on ASIC-handled ports.
+- Improved active duration for interrupts.
+- Fixed INI/IND not setting Z flag when B reaches zero (fixes BDOS).
+- True 256K base memory configuration now available in addition to 512K.
+- HPEN reads now return appropriate line number.
+- ATTR reads allow border area detection (on-screen value always zero for now).
+
+- Cell-accurate display updating for much improved display of video effects.
+- Screen-off support to allow display disabling through border port.
+- 50Hz frame sync using multimedia timer to trigger an event.
+- Added full-screen mode and run-time switching to/from windowed mode.
+- Added automatic and manual frame skipping.
+- Auto fallback of video support to best available mode.
+- Corrected flash attribute frequency to every 16 frames (was 25).
+
+- Full SAA/beeper sound support using Dave Hooper's SAASound library.
+
+- Implemented READ_TRACK and READ_ADDRESS commands (fixes SAM DICE).
+- Enhanced index pulse, write protect and spin-up floppy controller flags.
+- All new disk imlementation for DSK/SAD files (save support disabled for now).
+- New SDF image format created to handle copy protected disks.
+- Support for gzipped and (read-only) zipped disk images.
+- Drag and drop file support to mount disk in drive 1.
+
+- Keyboard and mouse changed to use DirectInput, and joystick support added.
+- Preliminary ATOM hard disk emulation to give basic BDOS 1.4e support.
+- Fast boot option temporarily modifies the SAM ROMs for an instant boot.
+- Auto-boot option to automatically press F9 on bootup.
+- SAMBUS and DALLAS clocks supported.
+
+Version 0.80 pre-pre-alpha (8th Mar 1999)
+-----------------------------------------
+- Quick and dirty port, changing as little as possible to get code to run.
+- Added DirectX windowed display support for 8, 16 and 32-bit modes.
+- Added basic Win32 keyboard and mouse implementation.
+
+27th Feb 1999
+-------------
+Started porting the X version of SimCoupé 0.72 to Win32.
