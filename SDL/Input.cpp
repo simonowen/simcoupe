@@ -2,7 +2,7 @@
 //
 // Input.cpp: SDL keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -238,10 +238,8 @@ void Input::Purge (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 
 
 // Read the current keyboard state, and make any special adjustments needed before it's processed
-bool ReadKeyboard ()
+void ReadKeyboard ()
 {
-    bool fRet = true;
-
     // Make a copy of the master key table with the real keyboard states
     memcpy(afKeyStates, afKeys, sizeof afKeyStates);
 
@@ -272,8 +270,6 @@ bool ReadKeyboard ()
         if (IsPressed(SDLK_TAB))
             ReleaseKey(SDLK_TAB);
     }
-
-    return fRet;
 }
 
 
@@ -791,9 +787,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
 
 void Input::Update ()
 {
-    // Read keyboard
+    // Read the keyboard and update the SAM keyboard matrix from the current key states (including joystick movement)
     ReadKeyboard();
-
-    // Update the SAM keyboard matrix from the current key state (including joystick movement)
     SetSamKeyState();
 }
