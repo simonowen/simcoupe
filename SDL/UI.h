@@ -32,7 +32,6 @@ class UI
 
 		static bool CheckEvents ();
 		static void ShowMessage (eMsgType eType_, const char* pszMessage_);
-		static void ResizeWindow (bool fUseOption_=false);
 };
 
 
