@@ -90,6 +90,9 @@ void GUI::Start (CWindow* pGUI_, bool fModal_/*=true*/)
     s_fModal = fModal_;
     s_nUsage = 1;
 
+    // Position the cursor off-screen, so ensure the first drawn position matches the native OS position
+    s_nX = s_nY = -ICON_SIZE;
+
     // Dim the background SAM screen
     Video::CreatePalettes();
 
@@ -121,6 +124,12 @@ void GUI::Draw (CScreen* pScreen_)
     {
         CScreen::SetFont(&sNewFont);
         s_pGUI->Draw(pScreen_);
+
+#ifdef USE_CUSTOM_CURSOR
+        // The SDL cursor leaves sometimes leaves mouse droppings, so we'll draw our own
+        pScreen_->DrawImage(s_nX, s_nY, ICON_SIZE, ICON_SIZE,
+                    reinterpret_cast<const BYTE*>(sMouseCursor.abData), sMouseCursor.abPalette);
+#endif
     }
 }
 
@@ -531,7 +540,7 @@ void CCheckBox::Draw (CScreen* pScreen_)
 
     BYTE abEnabled[] = { 0, CUSTOM_2 }, abDisabled[] = { 0, GREY_5 };
 
-    static BYTE abCheck[11][11] = 
+    static BYTE abCheck[11][11] =
     {
         { 0,0,0,0,0,0,0,0,0,0,0 },
         { 0,0,0,0,0,0,0,0,0,0,0 },
