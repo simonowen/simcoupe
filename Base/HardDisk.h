@@ -2,7 +2,7 @@
 //
 // HardDisk.h: Hard disk abstraction layer
 //
-//  Copyright (c) 2003 Simon Owen
+//  Copyright (c) 2004 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ class CHardDisk
         static CHardDisk* OpenObject (const char* pcszDisk_);
 
         const DEVICEIDENTITY* GetIdentity () const { return &m_sIdentity; }
-        const HARDDISK_GEOMETRY* GetGeometry () const { return &m_sGeometry; }
+        void GetGeometry (HARDDISK_GEOMETRY* pGeom_) const { memcpy(pGeom_, &m_sGeometry, sizeof m_sGeometry); }
 
         virtual bool IsOpen () const  = 0;
         virtual bool Open (const char* pcszDisk_) = 0;
