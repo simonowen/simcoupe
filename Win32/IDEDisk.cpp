@@ -2,7 +2,7 @@
 //
 // IDEDisk.cpp: Platform-specific IDE direct disk access
 //
-//  Copyright (c) 2003-2004 Simon Owen
+//  Copyright (c) 2003-2005 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,30 +22,14 @@
 #include "IDEDisk.h"
 
 
-static void SetIdentityString (char* psz_, int nSize_, const char* pcsz_)
+bool CDeviceHardDisk::Open ()
 {
-    // Copy the string, padded with spaces and not NULL terminated
-    memset(psz_, ' ', nSize_);
-    memcpy(psz_, pcsz_, strlen(pcsz_));
-
-    // Byte-swap the string
-    for (int i = 0 ; i < nSize_ ; i += 2)
-    {
-        char t = psz_[i];
-        psz_[i] = psz_[i+1];
-        psz_[i+1] = t;
-    }
-}
-
-
-bool CDeviceHardDisk::Open (const char* pcszDisk_)
-{
-    m_hDevice = CreateFile(pcszDisk_, GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING, NULL, NULL);
+    m_hDevice = CreateFile(m_pszDisk, GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING, NULL, NULL);
 
     if (!IsOpen())
     {
         if (GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
-            TRACE("Failed to open %s (%#08lx)\n", pcszDisk_, GetLastError());
+            TRACE("Failed to open %s (%#08lx)\n", m_pszDisk, GetLastError());
     }
     else
     {
@@ -72,9 +56,9 @@ bool CDeviceHardDisk::Open (const char* pcszDisk_)
             ATAPUT(m_sIdentity.wBufferSize512, 1);
             ATAPUT(m_sIdentity.wLongECCBytes, 4);
 
-            SetIdentityString(m_sIdentity.szSerialNumber, sizeof m_sIdentity.szSerialNumber, "090");
-            SetIdentityString(m_sIdentity.szFirmwareRev,  sizeof m_sIdentity.szFirmwareRev, "0.90");
-            SetIdentityString(m_sIdentity.szModelNumber,  sizeof m_sIdentity.szModelNumber, "SAM IDE Device");
+            CHardDisk::SetIdentityString(m_sIdentity.szSerialNumber, sizeof(m_sIdentity.szSerialNumber), "090");
+            CHardDisk::SetIdentityString(m_sIdentity.szFirmwareRev,  sizeof(m_sIdentity.szFirmwareRev), "0.90");
+            CHardDisk::SetIdentityString(m_sIdentity.szModelNumber,  sizeof(m_sIdentity.szModelNumber), "SAM IDE Device");
 
             // For safety, only deal with existing BDOS or SDIDE hard disks
             if (IsBDOSDisk() || IsSDIDEDisk())
