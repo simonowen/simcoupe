@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Atom.cpp: ATOM hard disk inteface
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,10 +21,6 @@
 // For more information on Edwin Blink's ATOM interface, see:
 //  http://www.designing.myweb.nl/samcoupe/hardware/atomhdinterface/atom.htm
 
-// ToDo:
-//  - a non-BDOS-specific implementation, for when/if other apps use the Atom?
-//  - remove STL, to reduce possible porting problems?
-
 #include "SimCoupe.h"
 #include "Atom.h"
 
@@ -38,9 +34,7 @@ const char* const ATOM_HEADER_FILE = "Atom.dat";    // File containing boot sect
 CAtomDiskDevice::CAtomDiskDevice ()
     : CDiskDevice(dskAtom)
 {
-    // For now the ATOM disk relies on knowledge of the BDOS implementation, so make it easier to use
-    m_pDisk = new CBDOSDevice;
-
+    m_pDisk = new CHardDiskDevice;
     m_uLightDelay = 0;
 }
 
@@ -154,24 +148,22 @@ void CAtomDiskDevice::FrameEnd ()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CBDOSDevice::CBDOSDevice ()
+CHardDiskDevice::CHardDiskDevice ()
 {
     Init();
 }
 
-CBDOSDevice::~CBDOSDevice ()
+CHardDiskDevice::~CHardDiskDevice ()
 {
     // Close the hard disk header file
     if (m_hfDisk)
         fclose(m_hfDisk);
-
-    // Save and delete any cached disk objects
-    for (CACHELIST::iterator it = m_lCached.begin() ; it != m_lCached.end() ; delete (*it).second, it = m_lCached.erase(it));
 }
 
 
-bool CBDOSDevice::Init ()
+bool CHardDiskDevice::Init ()
 {
+/*
     // The default boot sector is empty, but if there's an existing boot sector we'll use that instead
     BYTE abBootSector[512];
     memset(abBootSector, 0, sizeof abBootSector);
@@ -279,14 +271,14 @@ bool CBDOSDevice::Init ()
     m_sIdentity.wLogicalHeads = 2;
     m_sIdentity.wSectorsPerTrack = 20;
     m_sIdentity.wLogicalCylinders = (uTotalSectors+39) / 40;
-
+*/
     return true;
 }
 
-bool CBDOSDevice::DiskReadWrite (bool fWrite_)
+bool CHardDiskDevice::DiskReadWrite (bool fWrite_)
 {
     bool fRet = false;
-
+/*
     WORD wCylinder = (static_cast<WORD>(m_sRegs.bCylinderHigh) << 8) | m_sRegs.bCylinderLow;
     BYTE bHead = (m_sRegs.bDriveAddress >> 2) & 0x0f, bSector = m_sRegs.bSector;
     TRACE("%s CHS %u:%u:%u\n", fWrite_ ? "Writing" : "Reading", wCylinder, bHead, bSector);
@@ -360,7 +352,7 @@ bool CBDOSDevice::DiskReadWrite (bool fWrite_)
             m_lCached.push_front(CACHELIST::value_type(uRecord,pDisk));
         }
 
-        // No disk, off the end of the disk, or sector not found?
+        // Locate the requested sector
         if (pDisk && pDisk->FindSector(uSide, uTrack, uSector))
         {
             UINT uSize;
@@ -391,6 +383,6 @@ bool CBDOSDevice::DiskReadWrite (bool fWrite_)
             }
         }
     }
-
+*/
     return fRet;
 }

@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Atom.h: ATOM hard disk inteface
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,15 +31,12 @@ const BYTE ATOM_NCS3        = 0x10;     // Chip select 3 (negative logic)
 const BYTE ATOM_NRESET      = 0x20;     // Reset pin (negative logic)
 
 
-typedef list< pair<UINT,CDisk*> > CACHELIST;
-typedef vector<string> STRINGARRAY;
-
-// BDOS-specific disk implementation for convenient record access, and caching
-class CBDOSDevice : public CATADevice
+// Hard disk device wrapping a hard disk image
+class CHardDiskDevice : public CATADevice
 {
     public:
-        CBDOSDevice ();
-        ~CBDOSDevice ();
+        CHardDiskDevice ();
+        ~CHardDiskDevice ();
 
     public:
         bool DiskReadWrite (bool fWrite_);  // Override for disk reads and writes
@@ -49,11 +46,6 @@ class CBDOSDevice : public CATADevice
 
     protected:
         FILE* m_hfDisk;             // File containing HDD boot sector and (dynamically generated) record name list
-
-        STRINGARRAY m_asRecords;    // Array of paths for each record considered part of the disk
-        CACHELIST m_lCached;        // MRU sorted cache of CDisk record objects
-
-        UINT m_uReservedSectors;     // Number of sectors on start of disk reserved for boot sector and record name list
 };
 
 
@@ -71,7 +63,7 @@ class CAtomDiskDevice : public CDiskDevice
         bool IsLightOn () const { return m_uLightDelay != 0; }
 
     protected:
-        CBDOSDevice* m_pDisk;
+        CHardDiskDevice* m_pDisk;
 
         BYTE m_bAddressLatch, m_bDataLatch;
 
