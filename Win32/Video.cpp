@@ -394,6 +394,11 @@ LPDIRECTDRAWSURFACE CreateSurface (DWORD dwCaps_, DWORD dwWidth_/*=0*/, DWORD dw
 
 bool Video::CreatePalettes (bool fDimmed_/*=false*/)
 {
+    // Don't attempt anything without a surface pointer
+    if (!pddsFront && !pddsBack)
+        return false;
+
+    // Whether the display is dimmed depends on a number of things
     fDimmed_ |= (g_fPaused && !g_fFrameStep) || GUI::IsActive() || (!g_fActive && GetOption(pauseinactive));
 
     // Ok, let's look at what the target requirements are, as it determines the format we draw in
