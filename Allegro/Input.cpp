@@ -2,7 +2,7 @@
 //
 // Input.cpp: Allegro keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -196,7 +196,7 @@ void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
     set_keyboard_rate(fKeyboard_ ? 0 : 250, fKeyboard_ ? 0 : 30);
 
     // Set the active state of the mouse
-    fMouseActive = fMouse_;
+    fMouseActive = fMouse_ && GetOption(mouse);
 }
 
 
@@ -562,17 +562,17 @@ void ReadMouse ()
         }
 
         // Grab the mouse on a left-click, if not already active (don't let the emulation see the click either)
-        else if (!fMouseActive && (mouse_b ^ nLastButtons))
-        {
-            Input::Acquire();
-            position_mouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
-        }
-        else
+        else if (fMouseActive)
         {
             // Set the current button states
             Mouse::SetButton(1, (mouse_b & 1) != 0);
             Mouse::SetButton(2, (mouse_b & 2) != 0);
             Mouse::SetButton(3, (mouse_b & 4) != 0);
+        }
+        else if (GetOption(mouse) && (mouse_b ^ nLastButtons))
+        {
+            Input::Acquire();
+            position_mouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
         }
 
         // Remember the button states
