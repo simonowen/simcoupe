@@ -1092,5 +1092,3 @@ endinstr;
 default:
     DebugBreak();
 #endif
-
-#undef end
