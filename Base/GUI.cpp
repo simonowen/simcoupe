@@ -22,6 +22,7 @@
 //   - finish CFileView
 
 #include "SimCoupe.h"
+#include <sys/stat.h>
 #include "GUI.h"
 
 #include "Font.h"
@@ -122,7 +123,7 @@ void GUI::Draw (CScreen* pScreen_)
 {
     if (s_pGUI)
     {
-        CScreen::SetFont(&sNewFont);
+        CScreen::SetFont(&sGUIFont);
         s_pGUI->Draw(pScreen_);
 
 #ifdef USE_CUSTOM_CURSOR
@@ -614,7 +615,7 @@ bool CCheckBox::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const int MAX_EDIT_LENGTH = 256;
+const size_t MAX_EDIT_LENGTH = 256;
 
 CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_/*=""*/)
     : CWindow(pParent_, nX_, nY_, nWidth_, CHAR_HEIGHT+5, ctEdit)
@@ -1015,12 +1016,12 @@ const int COMBO_BORDER = 3;
 const int COMBO_HEIGHT = COMBO_BORDER + CHAR_HEIGHT + COMBO_BORDER;
 
 CComboBox::CComboBox (CWindow* pParent_/*=NULL*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nWidth_/*=0*/)
-    : CWindow(pParent_, nX_, nY_, nWidth_, COMBO_HEIGHT, ctButton), m_fPressed(false), m_pDropList(NULL), m_nItems(1)
+    : CWindow(pParent_, nX_, nY_, nWidth_, COMBO_HEIGHT, ctButton), m_nItems(1), m_fPressed(false), m_pDropList(NULL)
 {
     SetText(pcszText_);
     Select(0);
 
-    for (const char* pcsz = GetText() ; pcsz=strchr(pcsz,'|') ; pcsz++, m_nItems++);
+    for (const char* pcsz = GetText() ; (pcsz = strchr(pcsz,'|')) ; pcsz++, m_nItems++);
 }
 
 void CComboBox::Select (int nSelected_)
@@ -1332,7 +1333,8 @@ void CListView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const
     {
         int nW = ITEM_SIZE - 6, nLine = 0;
         const char *pszStart = pcsz_, *pszSpace = NULL;
-        char szLines[2][64] = { 0 }, sz[64];
+        char szLines[2][64], sz[64];
+        szLines[0][0] = szLines[1][0] = '\0';
 
         while (*pcsz_ && nLine < 2)
         {
@@ -1488,7 +1490,7 @@ CFileView::CFileView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHei
     {
         int nItems = 0;
 
-        while (entry = readdir(dir))
+        while ((entry = readdir(dir)))
         {
             FileEntry* pEntry = new FileEntry;
             pEntry->psz = strdup(entry->d_name);
@@ -1496,7 +1498,7 @@ CFileView::CFileView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHei
             char sz[MAX_PATH];
             struct stat st;
             stat(strcat(strcpy(sz, PPP), pEntry->psz), &st);
-            pEntry->nType = (st.st_mode & _S_IFDIR) ? ftDir : ftFile;
+            pEntry->nType = (st.st_mode & S_IFDIR) ? ftDir : ftFile;
 
             pEntry->pNext = m_pFiles;
             m_pFiles = pEntry;
