@@ -46,7 +46,7 @@ const int FLOPPY_MOTOR_ACTIVE_TIME = (10 / (300 / 60 )) * EMULATED_FRAMES_PER_SE
 void CDrive::ResetAll ()
 {
     // No disk inserted
-    m_pDisk = NULL; 
+    m_pDisk = NULL;
 
     // Track 0, sector 1 and head over track 0
     memset(&m_sRegs, 0, sizeof m_sRegs);
@@ -66,7 +66,7 @@ void CDrive::ResetAll ()
 // Insert a new disk from the named source (usually a file)
 bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
 {
-    // If no image is 
+    // If no image is
     if (!pcszSource_ || !*pcszSource_)
         return Eject();
 
@@ -124,10 +124,42 @@ inline void CDrive::ModifyStatus (BYTE bSet_, BYTE bReset_)
         m_nMotorDelay = FLOPPY_MOTOR_ACTIVE_TIME;
 }
 
+// Set the status of a read operation before the data has been read by the CPU
+inline void CDrive::ModifyReadStatus ()
+{
+    // Report errors (other than CRC errors) and busy status (from asynchronous operations)
+    if (m_bDataStatus & ~CRC_ERROR)
+        ModifyStatus(m_bDataStatus, BUSY);
+
+    // Otherwise signal that data is available for reading
+    else
+        ModifyStatus(DRQ, 0);
+}
 
 BYTE CDrive::In (WORD wPort_)
 {
     BYTE bRet = 0x00;
+
+    // Update status from current asynchronous operation, if any
+    if (m_pDisk && m_pDisk->GetAsyncStatus(&m_uBuffer, &m_bDataStatus))
+    {
+        // Some commands require additional handling
+        switch (m_sRegs.bCommand)
+        {
+            case READ_1SECTOR:
+            case READ_MSECTOR:
+                ModifyReadStatus();
+                break;
+
+            case WRITE_1SECTOR:
+            case WRITE_MSECTOR:
+                ModifyStatus(m_bDataStatus, BUSY);
+                break;
+
+            default:
+                TRACE("!!! Unexpected command type behaving asynchronously (%d)!\n", m_sRegs.bCommand);
+        }
+    }
 
     // Register to read from is the bottom 3 bits of the port
     switch (wPort_ & 0x03)
@@ -217,12 +249,9 @@ BYTE CDrive::In (WORD wPort_)
                                         TRACE("FDC: Multiple-sector read moving to sector %d\n", id.bSector);
 
                                         // Read the data, reporting anything but CRC errors now
-                                        if ((m_bDataStatus = m_pDisk->ReadData(m_pbBuffer = m_abBuffer, &m_uBuffer)) & ~CRC_ERROR)
-                                            ModifyStatus(m_bDataStatus, BUSY);
-
-                                        // Signal that more data is available for reading
-                                        else
-                                            ModifyStatus(DRQ, 0);
+                                        // NB - ReadData may now be asynchronous, in which case BUSY will be returned
+                                        m_bDataStatus = m_pDisk->ReadData(m_pbBuffer = m_abBuffer, &m_uBuffer);
+                                        ModifyReadStatus();
                                     }
                                 }
                             }
@@ -267,7 +296,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                     ModifyStatus(SPIN_UP, 0);
             }
 
-            // The main command is taken from the top 2 
+            // The main command is taken from the top 2
             switch (m_sRegs.bCommand = bVal_ & 0xf0)
             {
                 // Type I commands
@@ -311,7 +340,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                         ModifyStatus(TRACK00, 0);
 
                         // Note: the track register is still zeroed, even tho we're in non-update mode!
-                        m_sRegs.bTrack = 0;         
+                        m_sRegs.bTrack = 0;
                     }
 
                     TRACE("FDC: STEP_NUPD (%s to track %d (%d))\n", m_sRegs.fDir ? "out" : "in", m_nHeadPos, m_sRegs.bTrack);
@@ -403,12 +432,9 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                     else
                     {
                         // Read the data, reporting anything but CRC errors now, as we can't check the CRC until we reach it at the end of the data on the disk
-                        if ((m_bDataStatus = m_pDisk->ReadData(m_pbBuffer = m_abBuffer, &m_uBuffer)) & ~CRC_ERROR)
-                            ModifyStatus(m_bDataStatus, BUSY);
-
-                        // Signal that data is available for reading
-                        else
-                            ModifyStatus(DRQ, 0);
+                        // NB - ReadData may now be asynchronous, in which case BUSY will be returned
+                        m_bDataStatus = m_pDisk->ReadData(m_pbBuffer = m_abBuffer, &m_uBuffer);
+                        ModifyReadStatus();
                     }
                 }
                 break;
@@ -508,6 +534,8 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                     TRACE("FDC: FORCE_INTERRUPT\n");
 
                     // Leave motor on but reset everything else
+                    if (m_pDisk)
+                        m_pDisk->AbortAsyncOp();
                     m_sRegs.bStatus &= MOTOR_ON;
 
                     // Return to type 1 mode
@@ -553,6 +581,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                             TRACE("FDC: Writing full sector: side %d, track %d, sector %d\n", nSide, m_sRegs.bTrack, m_sRegs.bSector);
 
                             UINT uWritten;
+                            // NB - WriteData may now be asynchronous, in which case BUSY will be returned
                             BYTE bStatus = m_pDisk->WriteData(m_abBuffer, &uWritten);
                             ModifyStatus(bStatus, BUSY|DRQ);
                         }
@@ -566,8 +595,8 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                         }
                         break;
 
-                    default:
-                        TRACE("!!! Unexpected data arrived!\n");
+                        default:
+                            TRACE("!!! Unexpected data arrived!\n");
                     }
                 }
             }
@@ -649,7 +678,10 @@ UINT CDrive::ReadTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_)
 
             // Fill in the sector data
             UINT uSize;
-            m_pDisk->ReadData(pb, &uSize);
+            // NB - ReadData may now be asynchronous, in which case BUSY will be returned
+            bStatus = m_pDisk->ReadData(pb, &uSize);
+            // If that's the case, WaitAsyncOp will wait until the operation has completed
+            m_pDisk->WaitAsyncOp(&uSize, &bStatus);
             pb += uSize;
 
             PutBlock(pb, 0xf7, 1);          // Data address mark: 1 byte of 0xf7
