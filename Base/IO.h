@@ -257,7 +257,7 @@ extern UINT clut[N_CLUT_REGS], clutval[N_CLUT_REGS], mode3clutval[4];
 
 // Read only ports
 extern BYTE status_reg;
-extern BYTE lpen, hpen;
+extern BYTE lpen;
 
 extern CDiskDevice *pDrive1, *pDrive2, *pSDIDE, *pYATBus;
 extern CIoDevice *pParallel1, *pParallel2;
