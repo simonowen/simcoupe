@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // CDisk.h: C++ classes used for accessing all SAM disk image types
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,8 +38,6 @@ const UINT MSDOS_DISK_SECTORS = 9;   // Double-density MS-DOS disks are 9 sector
 
 const UINT SDF_TRACKSIZE = NORMAL_SECTOR_SIZE * 12;      // Large enough for any possible SAM disk format
 
-const char SDF_SIGNATURE[] = "SDF"; // 4 bytes, including the terminating NULL
-
 
 // The various disk format image sizes
 #define DSK_IMAGE_SIZE          (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE)
@@ -70,41 +68,67 @@ SAD_HEADER;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define FDI_SIGNATURE           "Formatted Disk Image file\r\n"
+#define TD0_SIG_NORMAL          "TD"    // Normal compression (RLE)
+#define TD0_SIG_ADVANCED        "td"    // Huffman compression also used for everything after TD0_HEADER
 
+// Overall file header, always uncompressed
 typedef struct
 {
-    char achSignature[27];      // FDI_SIGNATURE from above
-    char achCreator[30];        // Who/what created the image, space padded
-    char achCRLF[2];            // <cr><lf>
-    char achComment[80];        // Comment, <eof> (0x1a) padded
-    char chEOF;                 // <eof>
-
-    BYTE abVersion[2];          // Image version number
-
-    BYTE abLastTrack[2];        // Big endian word containing last track number
-    BYTE bLastHead;             // Last head number
-
-    BYTE bDiskType;             // Disk type
-    BYTE bRotateSpeed;          // Base rotation speed in RPM
-    BYTE bFlags;
-
-    DWORD dwReserved;           // Reserved
+    BYTE    abSignature[2];
+    BYTE    bVolSequence;       // Volume sequence (zero for the first)
+    BYTE    bCheckSig;          // Check signature for multi-volume sets (all must match)
+    BYTE    bTDVersion;         // Teledisk version used to create the file (11 = v1.1)
+    BYTE    bSourceDensity;     // Source disk density (0 = 250K bps,  1 = 300K bps,  2 = 500K bps ; +128 = single-density FM)
+    BYTE    bDriveType;         // Source drive type (1 = 360K, 2 = 1.2M, 3 = 720K, 4 = 1.44M)
+    BYTE    bTrackDensity;      // 0 = source matches media density, 1 = double density, 2 = quad density)
+    BYTE    bDOSMode;           // Non-zero if disk was analysed according to DOS allocation
+    BYTE    bSurfaces;          // Disk sides stored in the image
+    BYTE    bCRCLow, bCRCHigh;  // 16-bit CRC for this header
 }
-FDI_HEADER;
+TD0_HEADER;
 
+// Optional comment block, present if bit 7 is set in bTrackDensity above
 typedef struct
 {
-    BYTE bType;                 // Track type
-    BYTE bSize;                 // Track data size / 256
+    BYTE    bCRCLow, bCRCHigh;  // 16-bit CRC covering the comment block
+    BYTE    bLenLow, bLenHigh;  // Comment block length
+    BYTE    bYear, bMon, bDay;  // Date of disk creation
+    BYTE    bHour, bMin, bSec;  // Time of disk creation
+//  BYTE    abData[];           // Comment data, in null-terminated blocks
 }
-FDI_TRACK_DESC;
+TD0_COMMENT;
+
+// Track header
+typedef struct
+{
+    BYTE    bSectors;           // Number of sectors in track
+    BYTE    bPhysTrack;         // Physical track we read from
+    BYTE    bPhysSide;          // Physical side we read from
+    BYTE    bCRC;               // Low 8-bits of track header CRC
+}
+TD0_TRACK;
+
+// Sector header
+typedef struct
+{
+    BYTE    bTrack;             // Track number in ID field
+    BYTE    bSide;              // Side number in ID field
+    BYTE    bSector;            // Sector number in ID field
+    BYTE    bSize;              // Sector size indicator:  (128 << bSize) gives the real size
+    BYTE    bFlags;             // Flags detailing special sector conditions
+    BYTE    bCRC;               // Low 8-bits of sector header CRC
+}
+TD0_SECTOR;
+
+// Data header, only present if a data block is available
+typedef struct
+{
+    BYTE    bOffLow, bOffHigh;  // Offset to next sector, from after this offset value
+    BYTE    bMethod;            // Storage method used for sector data (0 = raw, 1 = repeated 2-byte pattern, 2 = RLE block)
+}
+TD0_DATA;
 
 ////////////////////////////////////////////////////////////////////////////////
-
-
-// SDF chunk types
-enum { SDF_CT_END, SDF_CT_HEADER, SDF_CT_DATA, SDF_CT_TEXT };
 
 
 // Track header on each track in the SDF disk image
@@ -115,7 +139,6 @@ typedef struct
     // Block of 'bSectors' SECTOR_HEADER structures follow...
 }
 SDF_TRACK_HEADER;
-
 
 // Sector header on each sector in the SDF disk image
 typedef struct
@@ -130,7 +153,7 @@ typedef struct
 SDF_SECTOR_HEADER;
 
 
-enum { dtUnknown, dtFloppy, dtFile, dtSDF, dtSAD, dtDSK, dtSBT, dtFDI };
+enum { dtUnknown, dtFloppy, dtFile, dtSDF, dtTD0, dtSAD, dtDSK, dtSBT };
 
 class CDisk
 {
@@ -221,6 +244,37 @@ class CSADDisk : public CDisk
 };
 
 
+class CTD0Disk : public CDisk
+{
+    public:
+        CTD0Disk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES);
+        virtual ~CTD0Disk () { if (IsModified()) Save(); }
+
+    public:
+        static bool IsRecognised (CStream* pStream_);
+        static WORD CrcBlock (const void* pv_, UINT uLen_, WORD wCRC_=0);
+
+    public:
+        UINT FindInit (UINT uSide_, UINT uTrack_);
+        bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
+        BYTE ReadData (BYTE* pbData_, UINT* puSize_);
+        BYTE WriteData (BYTE* pbData_, UINT* puSize_);
+        bool Save ();
+        bool ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
+
+    protected:
+        void UnpackData (TD0_SECTOR* ps_, BYTE* pbSector_);
+
+    protected:
+        TD0_HEADER m_sHeader;   // File header
+        TD0_TRACK* m_pTrack;    // Last track
+        TD0_SECTOR* m_pFind;    // Last sector found with FindNext()
+
+        TD0_TRACK* m_auIndex[MAX_DISK_SIDES][MAX_DISK_TRACKS];  // Track pointers in m_pData block
+};
+
+
 class CSDFDisk : public CDisk
 {
     public:
@@ -285,6 +339,33 @@ class CFileDisk : public CDisk
 
     protected:
         UINT  m_uSize;
+};
+
+
+// Namespace wrapper for the Huffman decompression code, to keep the global namespace clean
+class LZSS
+{
+    public:
+        static UINT Unpack (BYTE* pIn_, UINT uSize_, BYTE* pOut_);
+
+    protected:
+        static void Init ();
+        static void RebuildTree ();
+        static void UpdateTree (int c);
+
+        static UINT GetChar () { return (pIn < pEnd) ? *pIn++ : 0; }
+        static UINT GetBit ();
+        static UINT GetByte ();
+        static UINT DecodeChar ();
+        static UINT DecodePosition ();
+
+    protected:
+        static BYTE ring_buff[], d_code[], d_len[];
+        static WORD freq[];
+        static short parent[], son[];
+
+        static BYTE *pIn, *pEnd;
+        static UINT uBits, uBitBuff, r;
 };
 
 #endif  // CDISK_H
