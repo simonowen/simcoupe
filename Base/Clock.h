@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Clock.h: SAMBUS and DALLAS clock emulation
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,16 +21,72 @@
 #ifndef CLOCK_H
 #define CLOCK_H
 
-class Clock
+#include "IO.h"
+
+
+typedef struct tagSAMTIME
+{
+    int nSecond10,  nSecond1;
+    int nMinute10,  nMinute1;
+    int nHour10,    nHour1;
+
+    int nDay10,     nDay1;
+    int nMonth10,   nMonth1;
+    int nYear10,    nYear1;
+}
+SAMTIME;
+
+
+class CClockDevice : public CIoDevice
 {
     public:
-        static bool Init ();
-        static void Exit ();
+        CClockDevice ();
 
-        static BYTE In (WORD wPort_);
-        static void Out (WORD wPort_, BYTE bVal_);
+    public:
+        void Reset ();
+        void Update ();
+        int GetDayOfWeek ();
 
+    public:
         static void FrameUpdate ();
+
+    protected:
+        time_t m_tLast;
+        SAMTIME m_st;
+
+        static time_t s_tEmulated;  // Holds the current time relative to the emulation speed
+};
+
+
+class CSambusClock : public CClockDevice
+{
+    public:
+        CSambusClock ();
+
+    public:
+        BYTE In (WORD wPort_);
+        void Out (WORD wPort_, BYTE bVal_);
+
+    protected:
+        BYTE m_abRegs[16];    // The 16 SamBus registers
+};
+
+
+class CDallasClock : public CClockDevice
+{
+    public:
+        CDallasClock ();
+
+    public:
+        BYTE In (WORD wPort_);
+        void Out (WORD wPort_, BYTE bVal_);
+
+    protected:
+        BYTE DateValue (BYTE bH_, BYTE bL_);
+
+    protected:
+        BYTE m_bReg;          // Currently selected DALLAS register
+        BYTE m_abRegs[128];   // DALLAS RAM
 };
 
 #endif
