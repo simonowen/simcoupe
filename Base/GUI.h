@@ -2,7 +2,7 @@
 //
 // GUI.h: GUI and controls for on-screen interface
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,8 +36,17 @@ const int GM_MOUSEWHEEL   = GM_MOUSE_MESSAGE | 5;
 
 const int GM_CHAR         = GM_KEYBOARD_MESSAGE | 1;
 
+// GUI constants for key modifiers
+enum { GKMOD_NONE = 0, GKMOD_SHIFT = 1, GKMOD_CTRL = 2 };
+
+// GUI constants for control keys
+enum { GK_CTRL_A = 0x01, GK_CTRL_B, GK_CTRL_C, GK_CTRL_D, GK_CTRL_E, GK_CTRL_F, GK_CTRL_G,
+       GK_CTRL_H, GK_CTRL_I, GK_CTRL_J, GK_CTRL_K, GK_CTRL_L, GK_CTRL_M, GK_CTRL_N,
+       GK_CTRL_O, GK_CTRL_P, GK_CTRL_Q, GK_CTRL_R, GK_CTRL_S, GK_CTRL_T, GK_CTRL_U,
+       GK_CTRL_V, GK_CTRL_W, GK_CTRL_X, GK_CTRL_Y, GK_CTRL_Z, GK_ESC };
+
 // GUI key constants for special keys
-enum { GK_NULL=235, GK_LEFT, GK_RIGHT, GK_UP, GK_DOWN,
+enum { GK_LEFT=235, GK_RIGHT, GK_UP, GK_DOWN,
        GK_HOME, GK_END, GK_PAGEUP, GK_PAGEDOWN,
        GK_KP0, GK_KP1, GK_KP2, GK_KP3, GK_KP4, GK_KP5, GK_KP6, GK_KP7, GK_KP8, GK_KP9,
        GK_MAX=GK_KP9};
@@ -122,12 +131,17 @@ class CWindow
         void Destroy ();
         void Enable (bool fEnable_=true) { m_fEnabled = fEnable_; }
         void Move (int nX_, int nY_);
+        void Offset (int ndX_, int ndY_);
+        void SetSize (int nWidth_, int nHeight_);
+        void Inflate (int ndW_, int ndH_);
 
     public:
-        virtual bool IsTabStop () { return true; }
+        virtual bool IsTabStop () const { return false; }
 
         virtual const char* GetText () const { return m_pszText; }
+        virtual UINT GetValue () const { return strtoul(m_pszText, NULL, 0); }
         virtual void SetText (const char* pcszText_);
+        virtual void SetValue (UINT u_);
         int GetTextWidth () const { return CScreen::GetStringWidth(m_pszText); }
 
         virtual void Activate ();
@@ -164,7 +178,6 @@ class CTextControl : public CWindow
         CTextControl (CWindow* pParent_=NULL, int nX_=0, int nY_=0, const char* pcszText_="", BYTE bColour=WHITE, BYTE bBackColour=0);
 
     public:
-        bool IsTabStop () { return false; }
         void Draw (CScreen* pScreen_);
 
     protected:
@@ -178,6 +191,9 @@ class CButton : public CWindow
         CButton (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
 
     public:
+        bool IsTabStop () const { return true; }
+        bool IsPressed () const { return m_fPressed; }
+
         void Draw (CScreen* pScreen_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
 
@@ -219,8 +235,6 @@ class CUpButton : public CButton
 {
     public:
         CUpButton (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
-
-    public:
         void Draw (CScreen* pScreen_);
 };
 
@@ -228,8 +242,6 @@ class CDownButton : public CButton
 {
     public:
         CDownButton (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
-
-    public:
         void Draw (CScreen* pScreen_);
 };
 
@@ -240,6 +252,7 @@ class CCheckBox : public CWindow
         CCheckBox (CWindow* pParent_, int nX_, int nY_, const char* pcszText_="", BYTE bColour_=WHITE, BYTE bBackColour_=0);
 
     public:
+        bool IsTabStop () const { return true; }
         bool IsChecked () const { return m_fChecked; }
         void SetChecked (bool fChecked_=true) { m_fChecked = fChecked_; }
 
@@ -257,8 +270,10 @@ class CEditControl : public CWindow
 {
     public:
         CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_="");
+        CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, UINT u_);
 
     public:
+        bool IsTabStop () const { return true; }
         void Draw (CScreen* pScreen_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
 };
@@ -270,7 +285,7 @@ class CRadioButton : public CWindow
         CRadioButton (CWindow* pParent_=NULL, int nX_=0, int nY_=0, const char* pcszText_="", int nWidth_=0);
 
     public:
-        bool IsTabStop () { return IsSelected(); }
+        bool IsTabStop () const { return IsSelected(); }
         bool IsSelected () const { return m_fSelected; }
         void Select (bool fSelected_=true);
         void SetText (const char* pcszText_);
@@ -322,6 +337,7 @@ class CComboBox : public CWindow
         CComboBox (CWindow* pParent_, int nX_, int nY_, const char* pcszText_, int nWidth_);
 
     public:
+        bool IsTabStop () const { return true; }
         int GetSelected () const { return m_nSelected; }
         const char* GetSelectedText ();
         void Select (int nSelected_);
@@ -345,6 +361,7 @@ class CScrollBar : public CWindow
         CScrollBar (CWindow* pParent_, int nX_, int nY_, int nHeight, int nMaxPos_, int nStep_=1);
 
     public:
+        bool IsTabStop () const { return true; }
         int GetPos () const { return m_nPos; }
         void SetPos (int nPosition_);
         void SetMaxPos (int nMaxPos_);
@@ -357,7 +374,7 @@ class CScrollBar : public CWindow
         int m_nPos, m_nMaxPos, m_nStep;
         int m_nScrollHeight, m_nThumbSize;
         bool m_fDragging;
-        CWindow *m_pUp, *m_pDown;
+        CButton *m_pUp, *m_pDown;
 };
 
 
@@ -367,7 +384,6 @@ class CIconControl : public CWindow
         CIconControl (CWindow* pParent_, int nX_, int nY_, const GUI_ICON* pIcon_, bool fSmall_=false);
 
     public:
-        bool IsTabStop () { return false; }
         void Draw (CScreen* pScreen_);
 
     protected:
@@ -382,7 +398,6 @@ class CFrameControl : public CWindow
         CFrameControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_=WHITE, BYTE bFill_=0);
 
     public:
-        bool IsTabStop () { return false; }
         bool HitTest (int nX_, int nY_) { return false; }
         void Draw (CScreen* pScreen_);
 
@@ -399,6 +414,9 @@ class CListViewItem
         virtual ~CListViewItem () { free(m_pszLabel); }
 
     public:
+        bool IsTabStop () const { return true; }
+
+    public:
         const GUI_ICON* m_pIcon;
         char* m_pszLabel;
         CListViewItem* m_pNext;
@@ -410,6 +428,7 @@ class CListView : public CWindow
         CListView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, int nItemOffset=0);
 
     public:
+        bool IsTabStop () const { return true; }
         int GetSelected () const { return m_nSelected; }
         void Select (int nItem_);
 
@@ -436,9 +455,11 @@ class CDialog : public CWindow
 {
     public:
         CDialog (CWindow* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_, bool fModal_=true);
+        ~CDialog ();
 
     public:
         bool IsModal () const { return m_fModal; }
+        bool IsActiveDialog () { return s_pActive == this; }
         void SetColours (int nTitle_, int nBody_) { m_nTitleColour = nTitle_; m_nBodyColour = nBody_; }
 
         void Centre ();
@@ -452,6 +473,8 @@ class CDialog : public CWindow
         bool m_fModal, m_fDragging;
         int m_nDragX, m_nDragY;
         int m_nTitleColour, m_nBodyColour;
+
+        static CWindow* s_pActive;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
