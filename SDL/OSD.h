@@ -60,7 +60,7 @@ public:
 #pragma comment(lib, "sdl")
 #pragma comment(lib, "sdlmain")
 
-#ifndef NO_ZLIB
+#ifdef USE_ZLIB
 #define ZLIB_DLL
 #pragma comment(lib, "zlib")
 #endif
