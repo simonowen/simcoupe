@@ -51,7 +51,7 @@ class CDrive : public CDiskDevice
 
         void Reset ();
         bool Insert (const char* pcszSource_, bool fReadOnly_/*=false*/);
-        bool Eject ();
+        void Eject ();
         bool Flush ();
 
         // Disk I/O calls used to drive us
