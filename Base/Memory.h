@@ -50,21 +50,19 @@ extern bool afContendedPages[4];
 // Map a 16-bit address through the memory indirection - allows fast paging
 inline int VPAGE (WORD wAddr_) { return wAddr_ >> 14; }
 inline int RPAGE (WORD wAddr_) { return anSectionPages[VPAGE(wAddr_)]; }
-inline BYTE MEM_R (WORD wAddr_) { return apbSectionReadPtrs[VPAGE(wAddr_)][wAddr_ & (MEM_PAGE_SIZE-1)]; }
-inline BYTE& MEM_W (WORD wAddr_) { return apbSectionWritePtrs[VPAGE(wAddr_)][wAddr_ & (MEM_PAGE_SIZE-1)]; }
 
 void write_to_screen_vmpr0 (WORD wAddr_);
 void write_to_screen_vmpr1 (WORD wAddr_);
 void write_word (WORD wAddr_, WORD wVal_);
 
-inline BYTE read_byte(WORD addr)
+inline BYTE read_byte(WORD wAddr_)
 {
-    return MEM_R(addr);
+    return apbSectionReadPtrs[VPAGE(wAddr_)][wAddr_ & (MEM_PAGE_SIZE-1)];
 }
 
-inline WORD read_word(WORD addr)
+inline WORD read_word(WORD wAddr_)
 {
-    return MEM_R(addr) | (MEM_R(addr+1) << 8);
+    return read_byte(wAddr_) | (read_byte(wAddr_+1) << 8);
 }
 
 inline void write_byte (WORD wAddr_, BYTE bVal_)
@@ -78,7 +76,7 @@ inline void write_byte (WORD wAddr_, BYTE bVal_)
         write_to_screen_vmpr1(wAddr_);
 
     // Write the byte to memory
-    MEM_W(wAddr_) = bVal_;
+    apbSectionWritePtrs[VPAGE(wAddr_)][wAddr_ & (MEM_PAGE_SIZE-1)] = bVal_;
 }
 
 inline void write_word(WORD wAddr_, WORD wVal_)
