@@ -2,7 +2,7 @@
 //
 // ATA.h: ATA hard disk (and future ATAPI CD-ROM) emulation
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -144,6 +144,9 @@ class CATADevice
         ATAregs m_sRegs;                // AT device registers
         DEVICEIDENTITY m_sIdentity;     // Disk identity, including capabilities and geometry
 
+        WORD    m_wSectorsPerTrack;     // Sectors per track in the correct endian
+        WORD    m_wLogicalHeads;        // Logical heads in the correct endian
+
         BYTE    m_abSectorData[512];    // Sector buffer used for all reads and writes
         BYTE    m_abVendorBytes[4];     // 4 for the ECC bytes for R/W Long operations
 
@@ -152,6 +155,21 @@ class CATADevice
 
         bool    m_fAsleep;              // true if we're asleep
         int     m_nMultiples;           // Number of sectors used for multiple sector operations (0 = unsupported)
+};
+
+
+// Hard disk device wrapping a hard disk image
+class CHardDiskDevice : public CATADevice
+{
+    public:
+        CHardDiskDevice (const char* pcszDisk_);
+        ~CHardDiskDevice ();
+
+    public:
+        bool DiskReadWrite (bool fWrite_);  // Override for disk reads and writes
+
+    protected:
+        FILE* m_hfDisk;
 };
 
 
