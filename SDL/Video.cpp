@@ -65,6 +65,7 @@ static BYTE abIconMask[128] =
 GLuint dlist;
 GLuint auTextures[N_TEXTURES];
 DWORD dwTextureData[N_TEXTURES][256][256];
+GLenum g_glPixelFormat, g_glDataType;
 
 
 void glBork (const char* pcsz_)
@@ -107,27 +108,60 @@ void InitGL ()
             rTarget.x = 0, rTarget.y = nY, rTarget.w = pFront->w, rTarget.h = nH2;
     }
 
-    // Hack: offset by 1 to stop the GUI half bleeding into the bottom line of the emulation view!
+    // Set up a pixel units to avoid messing about when calculating positioning
+    // Hack: offset down by 1 pixel to stop the GUI half bleeding into the bottom line of the emulation view!
     glViewport(rTarget.x, rTarget.y-1, rTarget.w, rTarget.h);
-    glBork("glViewport");
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity(); 
+    glOrtho(0,nWidth,0,nHeight,-1,1); 
+
+
+    // Check for Apple packed-pixel support, for OS X
+    if (glExtension("GL_APPLE_packed_pixel") && glExtension("GL_EXT_bgra"))
+        g_glPixelFormat = GL_BGRA_EXT, g_glDataType = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+
+    // Or 5-5-5-1 packed-pixel support for most other setup
+    else if (glExtension("GL_EXT_packed_pixels"))
+        g_glPixelFormat = GL_RGBA, g_glDataType = GL_UNSIGNED_SHORT_5_5_5_1_EXT;
+
+    // Falling back on plain 32-bit RGBA
+    else
+        g_glPixelFormat = GL_RGBA, g_glDataType = GL_UNSIGNED_BYTE;
+
+
+    // Check if the driver can access our buffers directly, instead of copying
+    bool fAppleClientStorage = glExtension("GL_APPLE_client_storage");
+
+    // Try for edge-clamped textures, to avoid visible seams between filtered tiles (mainly OS X)
+    GLuint uClamp = glExtension("GL_SGIS_texture_edge_clamp") ? GL_CLAMP_TO_EDGE : GL_CLAMP;
+
+    // Optionally (default=on) filter the image for a more TV-like appearance
+    GLuint uFilter = GetOption(filter) ? GL_LINEAR : GL_NEAREST;
+
 
     glEnable(GL_TEXTURE_2D);
     glGenTextures(N_TEXTURES,auTextures);
 
     for (int i = 0 ; i < N_TEXTURES ; i++)
     {
-        glBindTexture(GL_TEXTURE_2D,auTextures[i]);
+        glBindTexture(GL_TEXTURE_2D, auTextures[i]);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GetOption(filter) ? GL_LINEAR : GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GetOption(filter) ? GL_LINEAR : GL_NEAREST);
+        // Enable AGP transfers from our buffers if possible
+        if (fAppleClientStorage)
+            glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, dwTextureData[i]);
+        // Set the clamping and filtering texture parameters
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, uClamp);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, uClamp);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, uFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, uFilter);
+
+        // Create the 256x256 texture tile
+        glTexImage2D(GL_TEXTURE_2D, 0, g_glPixelFormat, 256, 256, 0, g_glPixelFormat, g_glDataType, dwTextureData[i]);
         glBork("glTexImage2D");
     }
 
-    dlist=glGenLists(1);
+    dlist = glGenLists(1);
     glNewList(dlist,GL_COMPILE);
 
     glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
@@ -137,24 +171,29 @@ void InitGL ()
     {
         for (int xx = 0 ; xx < 3 ; xx++)
         {
-            float flWidth = 2.0f * 256 / nWidth, flHeight = 2.0f * 256 / nHeight;
-            float flX = -1.0f + (2.0f * 256 * xx / nWidth), flY = -1.0f + (2.0f * 256 * yy / nHeight);
+            float flSize = 256.0f, flX = flSize*xx, flY = flSize*yy;
+            float flMin = 0.0f, flMax = 1.0f;
+            //flMin = 0.5f/256.0f, flMax = 1.0f-flMin;  // half-pixel experiment
 
-            if (flHeight)
-            {
-                glBindTexture(GL_TEXTURE_2D, auTextures[3*yy + xx]);
+            glBindTexture(GL_TEXTURE_2D, auTextures[3*yy + xx]);
 
-                glBegin(GL_QUADS);
-                glTexCoord2f(0.0,1.0); glVertex2f(flX,           flY + flHeight);
-                glTexCoord2f(0.0,0.0); glVertex2f(flX,           flY);
-                glTexCoord2f(1.0,0.0); glVertex2f(flX + flWidth, flY);
-                glTexCoord2f(1.0,1.0); glVertex2f(flX + flWidth, flY + flHeight);
-                glEnd();
-            }
+            glBegin(GL_QUADS);
+            glTexCoord2f(flMin,flMax); glVertex2f(flX,        flY+flSize);
+            glTexCoord2f(flMin,flMin); glVertex2f(flX,        flY);
+            glTexCoord2f(flMax,flMin); glVertex2f(flX+flSize, flY);
+            glTexCoord2f(flMax,flMax); glVertex2f(flX+flSize, flY+flSize);
+            glEnd();
         }
     }
 
     glEndList();
+}
+
+void ExitGL ()
+{
+    // Clean up the display list and textures
+    if (dlist) { glDeleteLists(dlist, 1); dlist = 0; }
+    if (auTextures[0]) glDeleteTextures(N_TEXTURES,auTextures);
 }
 
 #endif
@@ -167,7 +206,7 @@ bool Video::Init (bool fFirstInit_/*=false*/)
     // The lack of stretching support means the SDL version currently lacks certain features, so force the options for now
     SetOption(scanlines, true);
 #ifndef USE_OPENGL
-    SetOption(stretchtofit, false);
+    SetOption(stretchtofit,false);
     SetOption(ratio5_4, false);
 #endif
 
@@ -289,6 +328,10 @@ void Video::Exit (bool fReInit_/*=false*/)
 {
     TRACE("-> Video::Exit(%s)\n", fReInit_ ? "reinit" : "");
 
+#ifdef USE_OPENGL
+    ExitGL();
+#endif
+
     if (pBack) { SDL_FreeSurface(pBack); pBack = NULL; }
     if (pFront) { SDL_FreeSurface(pFront); pFront = NULL; }
     if (pIcon) { SDL_FreeSurface(pIcon); pIcon = NULL; }
@@ -319,11 +362,36 @@ bool Video::CreatePalettes (bool fDimmed_)
 
         // OpenGL?
         if (!pBack)
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-            aulPalette[i] = (bAlpha << 24) | (bBlue << 16) | (bGreen << 8) | bRed;
-#else
-            aulPalette[i] = (bRed << 24) | (bGreen << 16) | (bBlue << 8) | bAlpha;
+        {
+            DWORD dwRMask, dwGMask, dwBMask, dwAMask;
+
+            // 32-bit RGBA?
+            if (g_glDataType == GL_UNSIGNED_BYTE)
+                aulPalette[i] = (bAlpha << 24) | (bBlue << 16) | (bGreen << 8) | bRed;
+            else
+            {
+                // The component masks depend on the data type (pixel format assumed from above)
+                if (g_glDataType == GL_UNSIGNED_SHORT_5_5_5_1_EXT)
+                    dwRMask = 0xf800, dwGMask = 0x07c0, dwBMask = 0x003e, dwAMask = 0x0001;
+                else //if (g_glDataType == GL_UNSIGNED_SHORT_1_5_5_5_REV)
+                    dwRMask = 0x7c00, dwGMask = 0x03e0, dwBMask = 0x001f, dwAMask = 0x8000;
+
+                // Determine the component values from the bit masks
+                DWORD dwRed   = ((static_cast<DWORD>(dwRMask) * (bRed+1))   >> 8) & dwRMask;
+                DWORD dwGreen = ((static_cast<DWORD>(dwGMask) * (bGreen+1)) >> 8) & dwGMask;
+                DWORD dwBlue  = ((static_cast<DWORD>(dwBMask) * (bBlue+1))  >> 8) & dwBMask;
+                DWORD dwAlpha = ((static_cast<DWORD>(dwAMask) * (bAlpha+1)) >> 8) & dwAMask;
+
+                // Combine for the final pixel value
+                aulPalette[i] = dwRed | dwGreen | dwBlue | dwAlpha;
+            }
+
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+            // Byte-swap on big endian machines as Display.cpp writes in DWORDs
+            aulPalette[i] = ((aulPalette[i] << 24) & 0xff000000) | ((aulPalette[i] <<  8) & 0x00ff0000) |
+                            ((aulPalette[i] >>  8) & 0x0000ff00) | ((aulPalette[i] >> 24) & 0x000000ff);
 #endif
+        }
         else if (!fPalette)
             aulPalette[i] = SDL_MapRGB(pBack->format, bRed, bGreen, bBlue);
         else
