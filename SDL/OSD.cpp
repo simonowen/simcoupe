@@ -245,3 +245,20 @@ int closedir (DIR* hDir_)
 }
 
 #endif
+
+////////////////////////////////////////////////////////////////////////////////
+
+int main (int argc_, char* argv_[])
+{
+#ifdef __APPLE__
+    // OS X lacks a unique Right-Ctrl key, so enable the "Left-Alt for Cntrl" option by default
+    SetDefault(altforcntrl,true);
+#endif
+
+    if (Main::Init(argc_, argv_))
+        CPU::Run();
+
+    Main::Exit();
+
+    return 0;
+}
