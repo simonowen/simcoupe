@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Sound.h: SDL sound implementation
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -95,7 +95,6 @@ class CSoundStream : public CStreamBuffer
 };
 
 
-// The DirectX implementation of the sound driver
 class CSAA : public CSoundStream
 {
     public:
@@ -110,7 +109,7 @@ class CSAA : public CSoundStream
         void Update (bool fFrameEnd_=false);
 
     protected:
-        int m_nUpdates;     // Counter to keep track of the number of sound changed in a frame, for sample playback detection
+        int m_nUpdates;     // Counter of sound changes in a frame, for sample playback detection
 };
 
 
