@@ -34,12 +34,13 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
+#include <windowsx.h>   // for GET_X_LPARAM and GET_Y_LPARAM
 #include <mmsystem.h>   // for timeSetEvent
 #include <sys\types.h>  // for _off_t etc.
 #include <direct.h>     // for _mkdir
 #include <stdio.h>      // for FILE structure
 #include <winioctl.h>   // for DISK_GEOMETRY and IOCTL_DISK_GET_DRIVE_GEOMETRY
-#include <commctrl.h>	// for Windows common controls
+#include <commctrl.h>   // for Windows common controls
 
 #pragma include_alias(<io.h>, <..\Include\IO.h>)
 #include <io.h>
@@ -61,6 +62,17 @@
 
 #include <dsound.h>
 #include <ddraw.h>
+#include <dinput.h>
+
+extern HINSTANCE g_hinstDDraw, g_hinstDInput, g_hinstDSound;
+
+typedef HRESULT (WINAPI *PFNDIRECTDRAWCREATE)(GUID*,LPDIRECTDRAW*,IUnknown*);
+typedef HRESULT (WINAPI *PFNDIRECTINPUTCREATE) (HINSTANCE, DWORD, LPDIRECTINPUTA*, LPUNKNOWN);
+typedef HRESULT (WINAPI *PFNDIRECTSOUNDCREATE) (LPGUID, LPDIRECTSOUND*, LPUNKNOWN);
+
+extern PFNDIRECTDRAWCREATE pfnDirectDrawCreate;
+extern PFNDIRECTINPUTCREATE pfnDirectInputCreate;
+extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 
 // Make sure the DX5 (or higher) SDK was found
 #ifndef DSBLOCK_ENTIREBUFFER
