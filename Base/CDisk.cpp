@@ -94,14 +94,14 @@
 
 /*static*/ CDisk* CDisk::Open (void* pv_, size_t uSize_, const char* pcszDisk_)
 {
-	CStream* pStream = new CMemStream(pv_, uSize_, pcszDisk_);
-	return pStream ? new CFileDisk(pStream) : NULL;
+    CStream* pStream = new CMemStream(pv_, uSize_, pcszDisk_);
+    return pStream ? new CFileDisk(pStream) : NULL;
 }
 
 
 CDisk::CDisk (CStream* pStream_, int nType_)
     : m_nType(nType_), m_uSides(0), m_uTracks(0), m_uSectors(0), m_uSectorSize(0),
-      m_uSide(0), m_uTrack(0), m_uSector(0), m_fModified(false), m_uSpinPos(0),
+      m_uSide(0), m_uTrack(0), m_uSector(0), m_fModified(!pStream_->IsOpen()), m_uSpinPos(0),
       m_pStream(pStream_), m_pbData(NULL)
 {
 }
@@ -237,10 +237,8 @@ CDSKDisk::CDSKDisk (CStream* pStream_, UINT uSectors_/*=NORMAL_DISK_SECTORS*/, b
     m_pbData = new BYTE[DSK_IMAGE_SIZE];
     memset(m_pbData, (uSectors_ == NORMAL_DISK_SECTORS) ? 0x00 : 0xe5, DSK_IMAGE_SIZE);
 
-    // Read the data from any existing stream, or create and save a new disk
-    if (!pStream_->IsOpen())
-        SetModified();
-    else
+    // Read the data from any existing stream
+    if (pStream_->IsOpen())
     {
         pStream_->Rewind();
 
@@ -253,6 +251,8 @@ CDSKDisk::CDSKDisk (CStream* pStream_, UINT uSectors_/*=NORMAL_DISK_SECTORS*/, b
             const char* pcsz = pStream_->GetFile();
             m_fIMG = (strlen(pcsz) > 4 && !strcasecmp(pcsz + strlen(pcsz) - 4, ".img"));
         }
+
+        Close();
     }
 }
 
@@ -299,10 +299,10 @@ bool CDSKDisk::Save ()
     if (m_pStream->Rewind() && m_pStream->Write(m_pbData, uSize) == uSize)
     {
         SetModified(false);
+        m_pStream->Close();
         return true;
     }
 
-    TRACE("!!! CDSKDisk::Save() failed to write modified disk contents!\n");
     return false;
 }
 
@@ -385,7 +385,6 @@ CSADDisk::CSADDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
         memcpy(sh.abSignature, SAD_SIGNATURE, sizeof sh.abSignature);
     else
     {
-        // Read the header and extract the disk geometry
         pStream_->Rewind();
         pStream_->Read(&sh, sizeof sh);
     }
@@ -395,17 +394,14 @@ CSADDisk::CSADDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
     m_uSectors = sh.bSectors;
     m_uSectorSize = sh.bSectorSizeDiv64 << 6;
 
-    // Work out the disk size, allocate some memory for it and read it in
-    UINT uDiskSize = sizeof sh + m_uSides * m_uTracks * m_uSectors * m_uSectorSize;
+    UINT uDiskSize = sizeof(sh) + m_uSides * m_uTracks * m_uSectors * m_uSectorSize;
     memcpy(m_pbData = new BYTE[uDiskSize], &sh, sizeof sh);
+    memset(m_pbData + sizeof(sh), 0, uDiskSize - sizeof(sh));
 
-    // Read the contents if we've got a stream, or create and save a new one
     if (pStream_->IsOpen())
-        pStream_->Read(m_pbData + sizeof sh, uDiskSize - sizeof sh);
-    else
     {
-        memset(m_pbData + sizeof sh, 0, uDiskSize - sizeof sh);
-        SetModified();
+        pStream_->Read(m_pbData + sizeof(sh), uDiskSize - sizeof(sh));
+        pStream_->Close();
     }
 }
 
@@ -466,10 +462,10 @@ bool CSADDisk::Save ()
     if (m_pStream->Rewind() && m_pStream->Write(m_pbData, uDiskSize) == uDiskSize)
     {
         SetModified(false);
+        m_pStream->Close();
         return true;
     }
 
-    TRACE("!!! SADDisk::Save() failed to write modified disk contents!\n");
     return false;
 }
 
@@ -554,17 +550,14 @@ CSDFDisk::CSDFDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
     // Calculate the cylinder size, and the maximum size of an SDF image, and allocate memory for it
     UINT uCylSize = MAX_DISK_SIDES * SDF_TRACKSIZE, uMaxSize = uCylSize * MAX_DISK_TRACKS;
     m_pbData = new BYTE[uMaxSize];
+    memset(m_pbData, 0, uMaxSize);
 
     // Read the data from any existing stream, or create and save a new disk
     if (pStream_->IsOpen())
     {
         pStream_->Rewind();
         m_uTracks = static_cast<UINT>(pStream_->Read(m_pbData, uMaxSize)) / uCylSize;
-    }
-    else
-    {
-        memset(m_pbData, 0, uMaxSize);
-        SetModified();
+        pStream_->Close();
     }
 }
 
@@ -684,6 +677,7 @@ CFDIDisk::CFDIDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
 
         pStream_->Rewind();
         pStream_->Read(pb, uMaxSize);
+        pStream_->Close();
 
         FDI_HEADER* pfh = reinterpret_cast<FDI_HEADER*>(pb);
         m_uSides = pfh->bSides[0];
@@ -719,11 +713,6 @@ CFDIDisk::CFDIDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
         }
 
         delete[] pb;
-    }
-    else
-    {
-        m_uSides = m_uTracks = 0;
-        SetModified();
     }
 }
 
@@ -939,6 +928,7 @@ CFileDisk::CFileDisk (CStream* pStream_)
         // Read in the file, leaving a 9-byte gap for the disk file header
         pStream_->Rewind();
         m_uSize = static_cast<UINT>(pStream_->Read(m_pbData + DISK_FILE_HEADER_SIZE, MAX_SAM_FILE_SIZE));
+        pStream_->Close();
 
         // Create the disk file header
         m_pbData[0] = 19;                           // CODE file type
@@ -1088,6 +1078,7 @@ CTD0Disk::CTD0Disk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/)
     // Read in the rest of the file, which is still RLE-compressed
     size_t uSize = pStream_->GetSize()-sizeof(m_sHeader);
     pStream_->Read(m_pbData = new BYTE[uSize], uSize);
+    pStream_->Close();
 
     // If the file is using advanced compression we have Huffman data to unpack too
     if (m_sHeader.abSignature[0] == 't')
