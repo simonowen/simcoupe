@@ -66,30 +66,23 @@ bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
     if (!pcszSource_ || !*pcszSource_)
         return Eject();
 
-    CDisk* pCurrent = m_pDisk;
-
-    // Open the new disk image, restoring the original one if we fail
-    if (!(m_pDisk = CDisk::Open(pcszSource_, fReadOnly_)))
+    // Open the new disk image, save+close the previous one if successful
+    CDisk* pNew = CDisk::Open(pcszSource_, fReadOnly_);
+    if (pNew)
     {
-        m_pDisk = pCurrent;
-        return false;
+        delete m_pDisk;
+        m_pDisk = pNew;
     }
 
-    // Delete the previous disk
-    if (pCurrent)
-        delete pCurrent;
-
-    return true;
+    // Return whether a new disk was inserted
+    return pNew != NULL;
 }
 
 // Eject any inserted disk
 bool CDrive::Eject ()
 {
-    if (m_pDisk)
-    {
-        delete m_pDisk;
-        m_pDisk = NULL;
-    }
+    delete m_pDisk;
+    m_pDisk = NULL;
 
     return true;
 }
@@ -192,8 +185,7 @@ BYTE CDrive::In (WORD wPort_)
                 if (m_pDisk->IsReadOnly())
                     ModifyStatus(WRITE_PROTECT, 0);
 
-                // If a disk is present, the motor is on, and we're in type 1 status mode, toggle the index pulse
-                // status bit periodically to show the disk is present and spinning
+                // Toggle the index pulse status bit periodically to show the disk is spinning
                 if (IsMotorOn() && (g_dwCycleCounter % (REAL_TSTATES_PER_SECOND / (FLOPPY_RPM/60))) < TSTATES_PER_FRAME)
                     bRet |= INDEX_PULSE;
             }
