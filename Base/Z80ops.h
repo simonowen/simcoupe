@@ -1086,9 +1086,3 @@ instr(0xff,5)
     push(pc);
     pc = 56;
 endinstr;
-
-#ifdef _DEBUG
-// Nothing should reach here!
-default:
-    DebugBreak();
-#endif
