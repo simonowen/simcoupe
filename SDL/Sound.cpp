@@ -33,9 +33,14 @@
 #include "SimCoupe.h"
 #include <math.h>
 
-#include "SAASound.h"
 #define SOUND_IMPLEMENTATION
 #include "Sound.h"
+
+#ifdef USE_SAASOUND
+#include "SAASound.h"
+#else
+#include "../Extern/SAASound.h"
+#endif
 
 #include "CPU.h"
 #include "IO.h"
