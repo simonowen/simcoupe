@@ -1,4 +1,4 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // SimCoupe.h: Common SimCoupe header, included by all modules
 //
@@ -20,7 +20,8 @@
 #define SIMCOUPE_H
 
 // If it's not one of these we'll assume big endian (we have a run-time check to fall back on anyway)
-#if !defined(__i386__) && !defined(WIN32) && !(defined(__alpha__) && !defined(__alpha)) && !defined(__arm__) && !(defined(__mips__) && !defined(__MIPSEL__))
+#if !defined(__BIG_ENDIAN__) && !defined(__i386__) && !defined(WIN32) && !(defined(__alpha__) && \
+    !defined(__alpha)) && !defined(__arm__) && !(defined(__mips__) && !defined(__MIPSEL__))
 #define __BIG_ENDIAN__
 #endif
 
@@ -37,22 +38,14 @@ typedef unsigned int        UINT;
 #include "OSD.h"            // OS-dependant stuff
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <errno.h>
 
-// Pull in just the STL namespace elements we need
-#include <algorithm>
-using std::pair;
-#include <string>
-using std::string;
-using std::swap;
-#include <vector>
-using std::vector;
-#include <list>
-using std::list;
-using std::sort;
+// To avoid relying on STL, we'll define our own swap template
+template <class T> void swap (T& a, T& b) { T tmp=a; a=b; b=tmp; }
 
 // Windows CE lacks some headers
 #ifndef _WIN32_WCE
