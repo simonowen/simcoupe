@@ -1011,6 +1011,9 @@ class CMiscOptions : public CDialog
 
                 SetOption(profile, m_pProfile->GetSelected());
 
+                if (Changed(sambusclock) || Changed(dallasclock))
+                    IO::InitClocks();
+
                 Destroy();
             }
         }
