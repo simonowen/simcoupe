@@ -1,0 +1,58 @@
+; SimCoupe.inf - CabWiz information file
+
+[Version]
+Signature	= "$Windows NT$"
+Provider	= "Pocket"
+CESignature	= "$Windows CE$"
+
+[CEStrings]
+AppName = SimCoupe
+InstallDir = %CE1%\%AppName%
+
+
+[DefaultInstall]
+CopyFiles   = Files.Common
+CEShortcuts = Shortcuts
+AddReg      =
+
+[DefaultInstall.ARM]
+CopyFiles   = Files.ARM
+
+
+[SourceDisksNames]
+1 =, "Docs",, ..
+2 =, "CWD",, .
+
+[SourceDisksNames.ARM]
+3 =, "ARM Files",, ARMRel
+
+
+[SourceDisksFiles]
+ReadMe.txt   = 2
+SimCoupe.cfg = 2
+
+[SourceDisksFiles.ARM]
+SimCoupe.exe = 3
+SAASound.dll = 3
+zlibce.dll   = 3
+
+
+[DestinationDirs]
+Shortcuts      = ,%CE2%\Start Menu\Programs
+Files.Common   = 0,%InstallDir%
+Files.ARM      = 0,%InstallDir%
+DefaultDestDir = 0,%InstallDir%
+
+
+[Files.Common]
+ReadMe.txt
+SimCoupe.cfg
+
+[Files.ARM]
+SimCoupe.exe
+SAASound.dll
+zlibce.dll
+
+
+[Shortcuts]
+"SimCoupé",0,SimCoupe.exe
