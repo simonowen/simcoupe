@@ -71,8 +71,6 @@ CIoDevice *pBeeper;
 BYTE vmpr, hmpr, lmpr, lepr, hepr;
 BYTE vmpr_mode, vmpr_page1, vmpr_page2;
 
-BYTE mode3_bcd48 = 0;           // Mode 3 clut BCD bits 4 and 8 from HMPR
-
 BYTE border, border_col;
 
 BYTE keyboard;
@@ -81,7 +79,7 @@ BYTE line_int;
 
 BYTE hpen, lpen;
 
-UINT clut[N_CLUT_REGS], clutval[N_CLUT_REGS];
+UINT clut[N_CLUT_REGS], clutval[N_CLUT_REGS], mode3clutval[4];
 
 BYTE keyports[9];       // 8 rows of keys (+ 1 row for unscanned keys)
 
@@ -293,27 +291,31 @@ bool InitBeeper (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-static inline void out_lepr(BYTE val)
+static inline void PaletteChange (BYTE bHMPR_)
 {
-    lepr = val;
-
-    if (HMPR_MCNTRL)
-    {
-        int ExternalPage = N_PAGES_MAIN+val;
-        PageIn(SECTION_C, ExternalPage);
-    }
+    // Update the 4 colours available to mode 3 (note: the middle colours are switched)
+    BYTE mode3_bcd48 = (bHMPR_ & HMPR_MD3COL_MASK) >> 3;
+    mode3clutval[0] = clutval[mode3_bcd48 | 0];
+    mode3clutval[1] = clutval[mode3_bcd48 | 2];
+    mode3clutval[2] = clutval[mode3_bcd48 | 1];
+    mode3clutval[3] = clutval[mode3_bcd48 | 3];
 }
 
-static inline void out_hepr (BYTE val)
+
+static inline void out_lepr (BYTE bVal_)
 {
-    hepr = val;
+    lepr = bVal_;
 
     if (HMPR_MCNTRL)
-    {
-        int ExternalPage = N_PAGES_MAIN+val;
-        PageIn(SECTION_D, ExternalPage);
-    }
+        PageIn(SECTION_C, N_PAGES_MAIN + bVal_);
+}
+
+static inline void out_hepr (BYTE bVal_)
+{
+    hepr = bVal_;
+
+    if (HMPR_MCNTRL)
+        PageIn(SECTION_D, N_PAGES_MAIN + bVal_);
 }
 
 static inline void out_vmpr (BYTE bVal_)
@@ -321,21 +323,29 @@ static inline void out_vmpr (BYTE bVal_)
     // The ASIC changes mode before page, so consider an on-screen artifact from the mode change
     Frame::ChangeMode(bVal_);
 
-    vmpr = (bVal_ & 0x7f);
+    vmpr = (bVal_ & (VMPR_MODE_MASK|VMPR_PAGE_MASK));
     vmpr_mode = vmpr & VMPR_MODE_MASK;
 
     // Extract the page number(s) for faster access by the memory writing functions
-    vmpr_page1 = VMPR_SCREEN_PAGE;
-    vmpr_page2 = (vmpr_page1+1) & 0x1f;
+    vmpr_page1 = VMPR_PAGE;
+    vmpr_page2 = (vmpr_page1+1) & VMPR_PAGE_MASK;
 }
 
-static inline void out_hmpr (BYTE val)
+static inline void out_hmpr (BYTE bVal_)
 {
-    // Update the HMPR
-    hmpr = val;
+    // Have the mode3 BCD4/8 bits changed?
+    if ((hmpr ^ bVal_) & HMPR_MD3COL_MASK)
+    {
+        // The changes are effective immediately in mode 3
+        if (vmpr_mode == MODE_3)
+            Frame::Update();
 
-    // Update BCD bits 4 and 8 of the clut that is used by SAM mode 3
-    mode3_bcd48 = (hmpr & 0x60) >> 3;
+        // Update the mode 3 colours
+        PaletteChange(bVal_);
+    }
+
+    // Update the HMPR
+    hmpr = bVal_;
 
     // Put the relevant RAM bank into section C
     PageIn(SECTION_C, HMPR_PAGE);
@@ -344,7 +354,7 @@ static inline void out_hmpr (BYTE val)
     if (lmpr & LMPR_ROM1)
         PageIn(SECTION_D, ROM1);
     else
-        PageIn(SECTION_D,(HMPR_PAGE + 1)& 0x1f);
+        PageIn(SECTION_D,(HMPR_PAGE + 1) & HMPR_PAGE_MASK);
 
     // Perform changes to external memory
     if (HMPR_MCNTRL)
@@ -366,13 +376,13 @@ static inline void out_lmpr(BYTE val)
         PageIn(SECTION_A, ROM0);
 
     // Put the relevant bank into section B
-    PageIn(SECTION_B, (LMPR_PAGE + 1) & 0x1f);
+    PageIn(SECTION_B, (LMPR_PAGE + 1) & LMPR_PAGE_MASK);
 
     // Put either RAM or ROM 1 into section D
     if (lmpr & LMPR_ROM1)
         PageIn(SECTION_D, ROM1);
     else
-        PageIn(SECTION_D, (HMPR_PAGE + 1) &0x1f);
+        PageIn(SECTION_D, (HMPR_PAGE + 1) & HMPR_PAGE_MASK);
 }
 
 static inline void out_clut(WORD wPort_, BYTE bVal_)
@@ -380,10 +390,15 @@ static inline void out_clut(WORD wPort_, BYTE bVal_)
     wPort_ &= (N_CLUT_REGS-1);          // 16 clut registers, so only the bottom 4 bits are significant
     bVal_ &= (N_PALETTE_COLOURS-1);     // 128 colours, so only the bottom 7 bits are significant
 
+    // Has the clut value actually changed?
     if (clut[wPort_] != aulPalette[bVal_])
     {
+        // Draw up to the current point with the previous settings
         Frame::Update();
+
+        // Update the clut entry and the mode 3 palette
         clut[wPort_] = (DWORD)aulPalette[clutval[wPort_] = bVal_];
+        PaletteChange(hmpr);
     }
 }
 
@@ -456,7 +471,7 @@ BYTE In (WORD wPort_)
 
 
         // Banked memory management
-        case VMPR_PORT:     return vmpr | 0x80;
+        case VMPR_PORT:     return vmpr | 0x80;     // RXMIDI bit always one for now
         case HMPR_PORT:     return hmpr;
         case LMPR_PORT:     return lmpr;
 
@@ -517,7 +532,7 @@ BYTE In (WORD wPort_)
                 return 0;
 
             // Floppy drive 1
-            else if ((wPort_ & 0xf8) == FLOPPY1_BASE)
+            else if ((wPort_ & FLOPPY_MASK) == FLOPPY1_BASE)
             {
                 // Read from floppy drive 1, if present
                 if (GetOption(drive1))
@@ -525,7 +540,7 @@ BYTE In (WORD wPort_)
             }
 
             // Floppy drive 2 *OR* the ATOM hard disk
-            else if ((wPort_ & 0xf8) == FLOPPY2_BASE)
+            else if ((wPort_ & FLOPPY_MASK) == FLOPPY2_BASE)
             {
                 // Read from floppy drive 2 or Atom hard disk, if present
                 if (GetOption(drive2))
@@ -553,20 +568,20 @@ void Out (WORD wPort_, BYTE bVal_)
     {
         case BORDER_PORT:
         {
-            bool fScreenOffChange = ((border ^ bVal_) & 0x80) && ((vmpr_mode >= MODE_3));
+            bool fScreenOffChange = ((border ^ bVal_) & BORD_SOFF_MASK) && VMPR_MODE_3_OR_4;
 
             // Has the border colour has changed colour or the screen been enabled/disabled?
-            if (BORD_COL(bVal_) != border_col || fScreenOffChange)
+            if (fScreenOffChange || ((border ^ bVal_) & BORD_COLOUR_MASK))
                 Frame::Update();
 
             // If the speaker bit has been toggled, generate a click
-            if ((border ^ bVal_) & 0x10)
+            if ((border ^ bVal_) & BORD_BEEP_MASK)
                 pBeeper->Out(wPort_, bVal_);
 
             // Store the new border value and extract the border colour for faster access by the video routines
             border = bVal_;
             border_col = BORD_VAL(bVal_);
-            keyboard = (keyboard & 0x7f) | BORD_SOFF;
+            keyboard = (keyboard & ~BORD_SOFF_MASK) | BORD_SOFF;
 
             // If the screen state has changed, we need to reconsider memory contention changes
             if (fScreenOffChange)
@@ -583,7 +598,7 @@ void Out (WORD wPort_, BYTE bVal_)
             if (vmpr_mode != (bVal_ & VMPR_MODE_MASK))
             {
                 // Are either the current mode or the new mode 3 or 4?  i.e. bit MDE1 is set
-                if ((bVal_ | vmpr) & 0x40)
+                if ((bVal_ | vmpr) & VMPR_MDE1_MASK)
                 {
                     // Changes to the screen MODE are visible straight away
                     Frame::Update();
@@ -608,7 +623,7 @@ void Out (WORD wPort_, BYTE bVal_)
             }
 
             // Has the screen page changed?
-            if (vmpr_page1 != (bVal_ & 0x1f))
+            if (vmpr_page1 != (bVal_ & VMPR_PAGE_MASK))
             {
                 // Changes to screen PAGE aren't visible until 8 tstates later
                 // as the memory has been read by the ASIC already
@@ -623,13 +638,7 @@ void Out (WORD wPort_, BYTE bVal_)
 
         case HMPR_PORT:
             if (hmpr != bVal_)
-            {
-                // If we are in mode 3 and the BCD4/8 values have changed then we need to update the screen
-                if ((vmpr_mode == MODE_3) && (((bVal_ & 0x60) >> 3) != mode3_bcd48))
-                    Frame::Update();
-
                 out_hmpr(bVal_);
-            }
             break;
 
         case LMPR_PORT:
