@@ -34,8 +34,10 @@ class CMidiDevice : public CIoDevice
         void Out (WORD wPort_, BYTE bVal_);
 
     protected:
-        BYTE        m_abOut[256];   // Buffer to build up MIDI OUT messages
-        int         m_nOut;         // Number of bytes currently in abOut
+        BYTE    m_abIn[256], m_abOut[256];  // Buffers for MIDI IN and MIDI OUT data
+        int     m_nIn, m_nOut;              // Number of bytes in the buffers above
+
+        int     m_nDevice;                  // Device handle, or -1 if not open
 };
 
 #endif
