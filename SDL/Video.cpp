@@ -180,7 +180,7 @@ bool CreatePalettes (bool fDimmed_/*=false*/)
         }
     }
 
-    static const BYTE ab[] = { 0x00, 0x3f, 0x5f, 0x7f, 0x9f, 0xbf, 0xdf, 0xff };
+    static const BYTE ab[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
 
     SDL_Color acPalette[N_PALETTE_COLOURS];
 
@@ -203,7 +203,7 @@ bool CreatePalettes (bool fDimmed_/*=false*/)
             aulPalette[i] = SDL_MapRGB(pBack->format, bRed, bGreen, bBlue);
         else
         {
-            aulPalette[i] = i+10;
+            aulPalette[i] = PALETTE_OFFSET+i;
 
             acPalette[i].r = bRed;
             acPalette[i].g = bGreen;
