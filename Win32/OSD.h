@@ -2,7 +2,7 @@
 //
 // OSD.h: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -133,7 +133,7 @@ class OSD
 
         static PROFILE_T GetProfileTime ();
         static DWORD GetTime ();
-        static const char* GetFilePath (const char* pcszFile_="");
+        static const char* GetPath (const char* pcszPath_="", bool fDir=false);
         static const char* GetFloppyDevice (int nDrive_);
         static bool CheckPathAccess (const char* pcszPath_);
         static bool IsHidden (const char* pcszFile_);

@@ -2,7 +2,7 @@
 //
 // OSD.cpp: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -150,14 +150,14 @@ DWORD OSD::GetTime ()
 
 // Do whatever is necessary to locate an additional SimCoupe file - The Win32 version looks in the
 // same directory as the EXE, but other platforms could use an environment variable, etc.
-// If the path is already fully qualified (an OS-specific decision), return the same string
-const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
+// If the path is already fully qualified (an OS-specific decision), use the original string
+const char* OSD::GetPath (const char* pcszPath_/*=""*/, bool fDir_/*=false*/)
 {
     static char szPath[MAX_PATH];
 
-    // If the supplied file path looks absolute, use it as-is
-    if (*pcszFile_ == '\\' || strchr(pcszFile_, ':'))
-        lstrcpyn(szPath, pcszFile_, sizeof szPath);
+    // If the supplied path looks absolute, use it as-is
+    if (*pcszPath_ == '\\' || strchr(pcszPath_, ':'))
+        lstrcpyn(szPath, pcszPath_, sizeof szPath);
 
     // Form the full path relative to the current EXE file
     else
@@ -166,9 +166,12 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
         GetModuleFileName(__hinstance, szPath, sizeof szPath);
 
         // Strip the module file and append the supplied file/path
-        strrchr(szPath, '\\')[1] = '\0';
-        strcat(szPath, pcszFile_);
+        lstrcpy(strrchr(szPath, '\\')+1, pcszPath_);
     }
+
+    // If required and not already present, append a trailing backslash
+    if (fDir_ && szPath[0] && szPath[lstrlen(szPath)-1] != '\\')
+        lstrcat(szPath, "\\");
 
     // Return a pointer to the new path
     return szPath;
