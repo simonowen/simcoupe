@@ -27,6 +27,7 @@ class Input
         static bool Init (bool fFirstInit_=false);
         static void Exit (bool fReInit_=false);
 
+        static bool IsMouseAcquired ();
         static void Acquire (bool fKeyboard_=true, bool fMouse_=true);
         static void Purge (bool fKeyboard_=true, bool fMouse_=true);
 
