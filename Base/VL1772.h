@@ -2,7 +2,7 @@
 //
 // VL1772.h: VL 1772 floppy disk controller definitions
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //  Copyright (c) 1999-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -33,7 +33,7 @@
 #define MAX_SECTOR_SIZE         1024    // Maximum sector size in bytes
 
 #define MIN_TRACK_OVERHEAD      32      // 32 bytes of 0x4e at the start of a track
-#define MIN_SECTOR_OVERHEAD     95      // 22+12+3+1+6+22+8+3+1+1+16 - see end of CDisk.cpp for details
+#define MIN_SECTOR_OVERHEAD     95      // 22+12+3+1+6+22+8+3+1+1+16 - see CDrive::WriteTrack() for details
 
 #define FLOPPY_RPM              300     // Floppy spins at 300rpm
 
@@ -136,8 +136,8 @@ typedef struct
     BYTE    bSector;        // Sector number
     BYTE    bSize;          // 128 << bSize = sector size in bytes: 0=128K, 1=256K, 2=512K, 3=1024K
 
-    BYTE    bCRC1;          // ID field CRC byte 1
-    BYTE    bCRC2;          // ID field CRC byte 2
+    BYTE    bCRC1;          // ID field CRC MSB
+    BYTE    bCRC2;          // ID field CRC LSB
 }
 IDFIELD;
 
