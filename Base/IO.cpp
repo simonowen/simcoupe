@@ -59,6 +59,10 @@
 #include "Video.h"
 #include "YATBus.h"
 
+#ifdef USE_TESTHW
+#include "TestHW.cpp"
+#endif
+
 extern int g_nLine;
 extern int g_nLineCycle;
 
@@ -166,7 +170,7 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     if (pDrive1 && ((!fInit_ && !fReInit_) || (pDrive1->GetType() != GetOption(drive1))))
     {
         if (pDrive1->GetType() == dskImage)
-            SetOption(disk1, pDrive1->GetImage());
+            SetOption(disk1, pDrive1->GetPath());
 
         delete pDrive1;
         pDrive1 = NULL;
@@ -175,7 +179,7 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     if (pDrive2 && ((!fInit_ && !fReInit_) || (pDrive2->GetType() != GetOption(drive2))))
     {
         if (pDrive2->GetType() == dskImage)
-            SetOption(disk2, pDrive2->GetImage());
+            SetOption(disk2, pDrive2->GetPath());
 
         delete pDrive2;
         pDrive2 = NULL;
@@ -403,7 +407,7 @@ static inline void out_hmpr (BYTE bVal_)
     else
         PageIn(SECTION_D,(HMPR_PAGE + 1) & HMPR_PAGE_MASK);
 
-    // Perform changes to external memory
+    // External RAM has priority, even over ROM1
     if (HMPR_MCNTRL)
     {
         out_hepr(hepr);
@@ -588,10 +592,6 @@ BYTE IO::In (WORD wPort_)
         case PRINTL2_DATA:
             return pParallel2->In(wPort_);
 
-        case QUAZAR_PORT:
-            // Not to be implemented
-            break;
-
         // Serial ports
         case SERIAL1:
             return pSerial1->In(wPort_);
@@ -610,12 +610,8 @@ BYTE IO::In (WORD wPort_)
 
         default:
         {
-            // Dunno if there's a special reason these return zero!  Anyone?
-            if (bPortLow < 0x10)
-                return 0;
-
             // Floppy drive 1
-            else if ((wPort_ & FLOPPY_MASK) == FLOPPY1_BASE)
+            if ((wPort_ & FLOPPY_MASK) == FLOPPY1_BASE)
             {
                 // Read from floppy drive 1, if present
                 if (GetOption(drive1))
@@ -636,7 +632,13 @@ BYTE IO::In (WORD wPort_)
 
             // Only unsupported hardware should reach here
             else
+            {
+#ifdef USE_TESTHW
+                return TestHW::In(wPort_);
+#else
                 TRACE("*** Unhandled read: %#04x (%d)\n", wPort_, wPort_&0xff);
+#endif
+            }
         }
     }
 
@@ -813,14 +815,6 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             Sound::Out(wPort_, bVal_);
             break;
 
-        case QUAZAR_PORT:
-            // Not to be implemented
-            break;
-
-        case SID_PORT:
-            // Avoid unhandled write message for this known port
-            break;
-
         // Parallel ports 1 and 2
         case PRINTL1_STAT:
         case PRINTL1_DATA:
@@ -896,7 +890,13 @@ void IO::Out (WORD wPort_, BYTE bVal_)
 
             // Only unsupported hardware should reach here
             else
+            {
+#ifdef USE_TESTHW
+                TestHW::Out(wPort_, bVal_);
+#else
                 TRACE("*** Unhandled write: %#06x (LSB=%d), %#02x (%d)\n", wPort_, bPortLow, bVal_, bVal_);
+#endif
+            }
         }
     }
 }
