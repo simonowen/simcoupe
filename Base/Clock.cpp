@@ -2,7 +2,7 @@
 //
 // Clock.cpp: SAMBUS and DALLAS clock emulation
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -90,7 +90,7 @@ void CClockDevice::Update ()
     time_t tNow = GetOption(clocksync) ? time(NULL) : s_tEmulated;
 
     // Work out how many seconds have passed since the last SAM time update
-    int nDiff = tNow - m_tLast;
+    int nDiff = static_cast<int>(tNow - m_tLast);
     m_tLast = tNow;
 
     // Add on the change in number of seconds, reducing invalid values to 59 before-hand
