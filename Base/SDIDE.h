@@ -27,7 +27,7 @@
 class CSDIDEDevice : public CIoDevice
 {
     public:
-        CSDIDEDevice ();
+        CSDIDEDevice (CHardDisk* pDisk_);
         ~CSDIDEDevice ();
 
     public:
@@ -35,7 +35,7 @@ class CSDIDEDevice : public CIoDevice
         void Out (WORD wPort_, BYTE bVal_);
 
     protected:
-        CHardDiskDevice* m_pDisk;
+        CATADevice* m_pDisk;
 
         BYTE m_bAddressLatch, m_bDataLatch;
         bool m_fDataLatched;
