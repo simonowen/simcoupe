@@ -25,12 +25,12 @@
 //  invalid values written will persist until the digits require updating.
 //
 //  The handling of invalid values during a clock update is a bit of a grey
-//  area.  The current implementation acts on the pairs for each update
-//  treating out of range values to be the largest value that the pair can
+//  area.  The current implementation acts on pairs of digits for each update,
+//  treating out-of-range values to be the largest value that the pair can
 //  store, i.e. 77 seconds will wrap over to 00 on the next tick.
 
 // ToDo:
-//  - derive separate block devices CIoDevice
+//  - derive separate clock devices from CIoDevice?
 
 #include "SimCoupe.h"
 
