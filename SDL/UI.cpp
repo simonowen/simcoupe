@@ -287,6 +287,32 @@ void ResizeWindow (bool fUseOption_/*=false*/)
 };
 
 
+bool InsertDisk (CDiskDevice* pDrive_)
+{
+  // FT Can't remember the #define here
+    static char szFile[256] = "";
+    static bool fReadOnly = false;
+
+    // Eject any current disk, and use the path and read-only status from it for the open dialogue box
+    if (pDrive_->IsInserted())
+      strcpy(szFile, pDrive_->GetImage());
+
+    // Prompt for the a new disk to insert
+    //if (GetSaveLoadFile(g_hwnd, szDiskFilters, NULL, szFile, sizeof szFile, &fReadOnly, true))
+    //{
+        // Eject any previous disk, saving if necessary
+        pDrive_->Eject();
+
+        // Open the new disk (using the requested read-only mode), and insert it into the drive if successful
+        if (pDrive_->Insert(szFile, fReadOnly))
+            return true;
+	
+	Frame::SetStatus("Inserted disk in drive 1");
+	//}
+
+    return false;
+}
+
 void DoAction (int nAction_, bool fPressed_)
 {
     // Key being pressed?
@@ -362,10 +388,8 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actInsertFloppy1:
-/*
                 if (GetOption(drive1) == 1)
                     InsertDisk(pDrive1);
-*/
                 break;
 
             case actEjectFloppy1:
@@ -383,10 +407,8 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actInsertFloppy2:
-/*
                 if (GetOption(drive2) == 1)
                     InsertDisk(pDrive2);
-*/
                 break;
 
             case actEjectFloppy2:
