@@ -391,9 +391,9 @@ void Frame::Sync ()
         fDrawFrame = GetOption(frameskip) ? !(nFrame % GetOption(frameskip)) :
             ((nTicks >= EMULATED_FRAMES_PER_SECOND-2) && (nFrame != nDrawnFrames)) ? (nFrame > nTicks) : (nFrame >= nTicks);
 
-        // Sync if the option is enabled and we're ahead
+        // Sync if the option is enabled and we're not behind
         ProfileStart(Idle);
-        if (GetOption(sync) && (nFrame > nTicks))
+        if (GetOption(sync) && (nFrame >= nTicks))
             nTicks = OSD::FrameSync(true);
         ProfileEnd();
     }
