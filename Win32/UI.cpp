@@ -36,6 +36,7 @@
 #include "GUIDlg.h"
 #include "HardDisk.h"
 #include "Input.h"
+#include "Main.h"
 #include "Mouse.h"
 #include "Options.h"
 #include "OSD.h"
@@ -44,10 +45,9 @@
 #include "Sound.h"
 #include "Video.h"
 
-extern int __argc;
-extern char** __argv;
-extern int main (int argc, char *argv[]);
-
+// Sourced from MSVCRT.DLL
+__declspec(dllimport) int __argc;
+__declspec(dllimport) char** __argv;
 
 #include "resource.h"   // For menu and dialogue box symbols
 
@@ -66,7 +66,7 @@ void CentreWindow (HWND hwnd_, HWND hwndParent_=NULL);
 void DisplayOptions ();
 bool DoAction (int nAction_, bool fPressed_=true);
 
-bool g_fActive = true, g_fFrameStep = false, g_fTestMode = false;
+bool g_fActive = true, g_fFrameStep = false;
 
 
 HINSTANCE __hinstance;
@@ -98,7 +98,7 @@ enum eActions
     actChangeKeyMode, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actInsertFloppy2, actEjectFloppy2,
     actSaveFloppy2, actNewDisk, actSaveScreenshot, actFlushPrintJob, actDebugger, actImportData, actExportData,
     actDisplayOptions, actExitApplication, actToggleTurbo, actTempTurbo, actReleaseMouse, actPause, actToggleScanlines,
-    actChangeBorders, actChangeSurface, actFrameStep, actPrinterOnline, MAX_ACTION
+    actChangeBorders, actChangeSurface, actFrameStep, actPrinterOnline, actNewDisk1, actNewDisk2, MAX_ACTION
 };
 
 const char* aszActions[MAX_ACTION] =
@@ -109,17 +109,18 @@ const char* aszActions[MAX_ACTION] =
     "Save changes to floppy 1", "Insert floppy 2", "Eject floppy 2", "Save changes to floppy 2", "New Disk",
     "Save screenshot", "Flush print job", "Debugger", "Import data", "Export data", "Display options",
     "Exit application", "Toggle turbo speed", "Turbo speed (when held)", "Release mouse capture", "Pause",
-    "Toggle scanlines", "Change viewable area", "Change video surface", "Step single frame", "Toggle printer online"
+    "Toggle scanlines", "Change viewable area", "Change video surface", "Step single frame", "Toggle printer online",
+    "New disk 1", "New disk 2"
 };
 
 
 static char szFloppyFilters[] =
 #ifdef USE_ZLIB
-    "All Disks (.dsk;.sad;.sdf;.sbt; .gz;.zip)\0*.dsk;*.sad;*.sdf;*.sbt;*.gz;*.zip\0"
-    "Disk Files (.dsk;.sad;.sdf;.sbt)\0*.dsk;*.sad;*.sdf;*.sbt\0"
+    "All Disks (.dsk;.sad;.td0;.sbt; .gz;.zip)\0*.dsk;*.sad;*.td0;*.sbt;*.gz;*.zip\0"
+    "Disk Files (.dsk;.sad;.td0;.sbt)\0*.dsk;*.sad;*.td0;*.sbt\0"
     "Compressed Files (.gz;.zip)\0*.gz;*.zip\0"
 #else
-    "All Disks (.dsk;.sad;.sdf;.sbt)\0*.dsk;*.sad;*.sdf;*.sbt\0"
+    "All Disks (.dsk;.sad;.td0;.sbt)\0*.dsk;*.sad;*.td0;*.sbt\0"
 #endif
     "All Files (*.*)\0*.*\0";
 
@@ -166,14 +167,10 @@ void UI::Exit (bool fReInit_/*=false*/)
 {
     TRACE("-> UI::Exit(%s)\n", fReInit_ ? "reinit" : "");
 
-    if (g_hwnd)
-    {
-        // When we reach here during a normal shutdown the window will already have gone, so check first
-        if (IsWindow(g_hwnd))
-            DestroyWindow(g_hwnd);
-
-        g_hwnd = NULL;
-    }
+    // When we reach here during a normal shutdown the window will already have gone, so check first
+    if (g_hwnd && IsWindow(g_hwnd))
+        DestroyWindow(g_hwnd);
+    g_hwnd = NULL;
 
     TRACE("<- UI::Exit()\n");
 }
@@ -345,7 +342,7 @@ bool GetSaveLoadFile (HWND hwndParent_, LPCSTR pcszFilters_, LPCSTR pcszDefExt_,
 
 bool InsertDisk (CDiskDevice* pDrive_)
 {
-    char szFile[_MAX_PATH] = "";
+    char szFile[MAX_PATH] = "";
 
     // Eject any current disk, and use the path for the open dialogue box
     if (pDrive_->IsInserted())
@@ -375,11 +372,6 @@ void UpdateMenuFromOptions ()
 {
     HMENU hmenu = GetMenu(g_hwnd), hmenuFile = GetSubMenu(hmenu, 0);
 
-    // If Ctrl-Shift is held when the menu is activated, we'll enable some disabled items
-    g_fTestMode |= (GetAsyncKeyState(VK_SHIFT) < 0 && GetAsyncKeyState(VK_CONTROL) < 0);
-//  EnableItem(IDM_FILE_FLOPPY1_DEVICE, g_fTestMode);
-//  EnableItem(IDM_FILE_FLOPPY2_DEVICE, g_fTestMode);
-
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 1 options
     EnableMenuItem(hmenuFile, 1, (GetOption(drive1) == dskImage) ? MF_ENABLED|MF_BYPOSITION : MF_GRAYED|MF_BYPOSITION);
     EnableItem(IDM_FILE_FLOPPY1_SAVE_CHANGES, pDrive1->IsModified());
@@ -393,7 +385,7 @@ void UpdateMenuFromOptions ()
     CheckOption(IDM_FILE_FLOPPY1_DEVICE, fInserted && CFloppyStream::IsRecognised(pDrive1->GetImage()));
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 2 options
-    EnableMenuItem(hmenuFile, 2, (GetOption(drive2) == dskImage) ? MF_ENABLED|MF_BYPOSITION : MF_GRAYED|MF_BYPOSITION);
+    EnableMenuItem(hmenuFile, 1, (GetOption(drive2) == dskImage) ? MF_ENABLED|MF_BYPOSITION : MF_GRAYED|MF_BYPOSITION);
     EnableItem(IDM_FILE_FLOPPY2_SAVE_CHANGES, pDrive2->IsModified());
 
     fInserted = pDrive2->IsInserted();
@@ -559,8 +551,12 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                     Frame::SetStatus("Saved changes to disk in drive 2");
                 break;
 
-            case actNewDisk:
-                DialogBox(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc);
+            case actNewDisk1:
+                DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 1);
+                break;
+
+            case actNewDisk2:
+                DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 2);
                 break;
 
             case actSaveScreenshot:
@@ -904,7 +900,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_DROPFILES:
         {
             // Insert the first (or only) dropped file into drive 1
-            char szFile[_MAX_PATH]="";
+            char szFile[MAX_PATH]="";
             if (DragQueryFile(reinterpret_cast<HDROP>(wParam_), 0, szFile, sizeof szFile))
                 pDrive1->Insert(szFile);
 
@@ -1311,7 +1307,8 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
             switch (wId)
             {
-                case IDM_FILE_NEW_DISK:         DoAction(actNewDisk);           break;
+                case IDM_FILE_NEW_DISK1:        DoAction(actNewDisk1);          break;
+                case IDM_FILE_NEW_DISK2:        DoAction(actNewDisk2);          break;
                 case IDM_FILE_IMPORT_DATA:      DoAction(actImportData);        break;
                 case IDM_FILE_EXPORT_DATA:      DoAction(actExportData);        break;
                 case IDM_FILE_EXIT:             DoAction(actExitApplication);   break;
@@ -1485,7 +1482,7 @@ void FillJoystickCombo (HWND hwndCombo_, const char* pcszSelected_)
 BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     static UINT uAddr = 32768, uPage = 0, uOffset = 0, uLength = 0;
-    static char szFile [_MAX_PATH] = "";
+    static char szFile [MAX_PATH] = "";
     static bool fUseBasic = true, fUpdating = false, fImport = false;
     char sz[32];
 
@@ -1496,7 +1493,7 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             fImport = (lParam_ != 0);
 
             SetDlgItemText(hdlg_, IDE_FILE, szFile);
-            SendDlgItemMessage(hdlg_, IDE_FILE, EM_SETSEL, _MAX_PATH, -1);
+            SendDlgItemMessage(hdlg_, IDE_FILE, EM_SETSEL, MAX_PATH, -1);
 
             wsprintf(sz, "%u", uAddr); SetDlgItemText(hdlg_, IDE_ADDRESS, sz);
             SendMessage(hdlg_, WM_COMMAND, fUseBasic ? IDR_BASIC_ADDRESS : IDR_PAGE_OFFSET, 0);
@@ -1580,7 +1577,7 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                         break;
 
                     SetDlgItemText(hdlg_, IDE_FILE, szFile);
-                    SendDlgItemMessage(hdlg_, IDE_FILE, EM_SETSEL, _MAX_PATH, -1);
+                    SendDlgItemMessage(hdlg_, IDE_FILE, EM_SETSEL, MAX_PATH, -1);
                     break;
                 }
 
@@ -1678,14 +1675,10 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
 BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    static int nType = 0, nSides, nTracks, nSectors, nSectorSize;
-    static int nMaxTracks, nMaxSectors, nMaxSectorSize;
-    static bool fCompress = false, fNonRealWorld = false;
-    static int nInsertInto = 1;
-    static char szFile [_MAX_PATH] = "empty.dsk";
-    static bool fPrompt;
+    static int nType = 0, nDrive, nSides, nTracks, nSectors, nSectorSize, nMaxTracks;
+    static bool fCompress = false;
+    static char szFile [MAX_PATH] = "";
     char sz[32];
-
 
     switch (uMsg_)
     {
@@ -1694,8 +1687,10 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
             InitCommonControls();
             CentreWindow(hdlg_);
 
-            static const char* aszInsertInfo[] = { "None", "Drive 1", "Drive 2", NULL };
-            SetComboStrings(hdlg_, IDC_INSERT_INTO, aszInsertInfo, nInsertInto);
+            // Store the drive to insert into, and report it in the caption
+            nDrive = lParam_;
+            wsprintf(sz, "New Disk for Drive %d", nDrive);
+            SetWindowText(hdlg_, sz);
 
             for (int nSize = MIN_SECTOR_SIZE ; nSize <= MAX_SECTOR_SIZE ; nSize <<= 1)
             {
@@ -1703,23 +1698,21 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                 SendDlgItemMessage(hdlg_, IDC_SECTORSIZE, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(sz));
             }
 
+            // Set the spin buttons to the geometry limits
             SendDlgItemMessage(hdlg_, IDS_SIDES, UDM_SETRANGE, 0, MAKELONG(MAX_DISK_SIDES, 1));
-            SendDlgItemMessage(hdlg_, IDS_TRACKS, UDM_SETRANGE, 0, MAKELONG(127, 1));
-            SendDlgItemMessage(hdlg_, IDS_SECTORS, UDM_SETRANGE, 0, MAKELONG(255, 1));
+            SendDlgItemMessage(hdlg_, IDS_TRACKS, UDM_SETRANGE, 0, MAKELONG(NORMAL_DISK_TRACKS, 1));
+            SendDlgItemMessage(hdlg_, IDS_SECTORS, UDM_SETRANGE, 0, MAKELONG(NORMAL_DISK_SECTORS, 1));
 
-            SendDlgItemMessage(hdlg_, IDC_NON_REAL_WORLD, BM_SETCHECK, fNonRealWorld ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_SETCHECK, fCompress ? BST_CHECKED : BST_UNCHECKED, 0L);
+            // Set the path and type to trigger the initial checks
             SetDlgItemText(hdlg_, IDE_NEWFILE, szFile);
             SendMessage(hdlg_, WM_COMMAND, IDR_DISK_TYPE_DSK + nType, 0L);
 
-#ifndef USE_ZLIB
-            // If Zlib is not available, hide the compression check-box
-            ShowWindow(GetDlgItem(hdlg_, IDC_COMPRESS), SW_HIDE);
+#ifdef USE_ZLIB
+            SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_SETCHECK, fCompress ? BST_CHECKED : BST_UNCHECKED, 0L);
+#else
+            // Disable the compression check-box if zlib isn't available
+            EnableWindow(GetDlgItem(hdlg_, IDC_COMPRESS), FALSE);
 #endif
-
-            // Prompt for overwrite confirmation
-            fPrompt = true;
-
             return TRUE;
         }
 
@@ -1735,30 +1728,38 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                     EndDialog(hdlg_, 0);
                     return TRUE;
 
+                case IDB_BROWSE:
+                {
+                    if (!GetSaveLoadFile(g_hwnd, szFloppyFilters, NULL, szFile, sizeof szFile, false))
+                        break;
+
+                    SetDlgItemText(hdlg_, IDE_NEWFILE, szFile);
+                    SendDlgItemMessage(hdlg_, IDE_NEWFILE, EM_SETSEL, MAX_PATH, -1);
+                    break;
+                }
+
                 case IDE_NEWFILE:
                 {
                     if (fChange)
                     {
-                        // We'll need to check the modified file
-                        fPrompt = true;
-
-                        // Fetch the modified text
+                        // Fetch the modified path
                         GetDlgItemText(hdlg_, IDE_NEWFILE, szFile, sizeof szFile);
+                        EnableWindow(GetDlgItem(hdlg_, IDB_SAVE), szFile[0]);
 
                         int nLen = lstrlen(szFile);
                         if (nLen > 4)
                         {
-                            // Temporarily remove any .gz suffix
+                            // Temporarily remove any .gz extension
                             bool fDotGz = (nLen >= 3 && !lstrcmpi(szFile + nLen - 3, ".gz"));
                             if (fDotGz)
                                 szFile[nLen -= 3] = '\0';
 
-                            // Work out the type
-                            int nNewType =  (/*!lstrcmpi(szFile + nLen - 4, ".sdf")) ? 2 :
+                            // Determine the type from the file extension
+                            int nNewType =  (/*!lstrcmpi(szFile + nLen - 4, ".td0")) ? 2 :
                                             (*/!lstrcmpi(szFile + nLen - 4, ".sad")) ? 1 :
                                             (!lstrcmpi(szFile + nLen - 4, ".dsk")) ? 0 : nType;
 
-                            // Restore the .gz if we removed it
+                            // Restore the .gz extension if we removed it
                             if (fDotGz)
                                 lstrcat(szFile, ".gz");
 
@@ -1770,79 +1771,20 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                     break;
                 }
 
-                case IDC_NON_REAL_WORLD:
-                {
-                    fNonRealWorld = (SendDlgItemMessage(hdlg_, IDC_NON_REAL_WORLD, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-
-                    nMaxTracks = fNonRealWorld ? 127 : (!nType ? NORMAL_DISK_TRACKS : MAX_DISK_TRACKS);
-                    nMaxSectors = fNonRealWorld ? 255 : NORMAL_DISK_SECTORS;
-                    nMaxSectorSize = 128 << 2;
-
-                    // Set and set the current values so the limit is applied
-                    GetDlgItemText(hdlg_, IDE_SIDES, sz, sizeof sz); SetDlgItemText(hdlg_, IDE_SIDES, sz);
-                    GetDlgItemText(hdlg_, IDE_TRACKS, sz, sizeof sz); SetDlgItemText(hdlg_, IDE_TRACKS, sz);
-                    GetDlgItemText(hdlg_, IDE_SECTORS, sz, sizeof sz); SetDlgItemText(hdlg_, IDE_SECTORS, sz);
-
-                    break;
-                }
-
-                case IDC_COMPRESS:
-                {
-                    int nLen = lstrlen(szFile);
-                    fCompress = (SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                    bool fDotGz = (nLen >= 3 && !lstrcmpi(szFile + nLen - 3, ".gz"));
-
-                    // Remove the .gz suffix when unchecked
-                    if (!fCompress && fDotGz)
-                    {
-                        szFile[nLen - 3] = '\0';
-                        SetDlgItemText(hdlg_, IDE_NEWFILE, szFile);
-                    }
-
-                    // Add the .gz suffix when checked
-                    else if (fCompress && !fDotGz)
-                    {
-                        lstrcat(szFile, ".gz");
-                        SetDlgItemText(hdlg_, IDE_NEWFILE, szFile);
-                    }
-
-                    break;
-                }
-
-                case IDC_INSERT_INTO:
-                {
-                    if (HIWORD(wParam_) == CBN_SELCHANGE)
-                        nInsertInto = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_INSERT_INTO, CB_GETCURSEL, 0, 0L));
-                    break;
-                }
-
-                case IDB_BROWSE:
-                {
-                    if (!GetSaveLoadFile(g_hwnd, szFloppyFilters, NULL, szFile, sizeof szFile, false))
-                    {
-                        GetDlgItemText(hdlg_, IDE_NEWFILE, szFile, sizeof szFile);
-                        break;
-                    }
-
-                    SetDlgItemText(hdlg_, IDE_NEWFILE, szFile);
-                    SendDlgItemMessage(hdlg_, IDE_NEWFILE, EM_SETSEL, _MAX_PATH, -1);
-
-                    // No need to prompt as the common dialog checked it for us
-                    fPrompt = false;
-
-                    break;
-                }
-
                 case IDR_DISK_TYPE_DSK:
                 case IDR_DISK_TYPE_SAD:
-                case IDR_DISK_TYPE_SDF:
+                case IDR_DISK_TYPE_TD0:
                 {
                     nType = wControl - IDR_DISK_TYPE_DSK;
+
+                    // The track limit depends on the disk type
+                    nMaxTracks = !nType ? NORMAL_DISK_TRACKS : MAX_DISK_TRACKS;
+                    SendDlgItemMessage(hdlg_, IDS_TRACKS, UDM_SETRANGE, 0, MAKELONG(nMaxTracks, 1));
 
                     // Ensure only one radio button is selected
                     SendDlgItemMessage(hdlg_, IDR_DISK_TYPE_DSK, BM_SETCHECK, BST_UNCHECKED, 0);
                     SendDlgItemMessage(hdlg_, IDR_DISK_TYPE_SAD, BM_SETCHECK, BST_UNCHECKED, 0);
-                    SendDlgItemMessage(hdlg_, IDR_DISK_TYPE_SDF, BM_SETCHECK, BST_UNCHECKED, 0);
+                    SendDlgItemMessage(hdlg_, IDR_DISK_TYPE_TD0, BM_SETCHECK, BST_UNCHECKED, 0);
                     SendDlgItemMessage(hdlg_, wControl, BM_SETCHECK, BST_CHECKED, 0);
 
                     int nLen = lstrlen(szFile);
@@ -1853,13 +1795,16 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                         szFile[nLen -= 3] = '\0';
 
                     // Strip any type extension
-                    if (nLen > 4 && (/*!lstrcmpi(szFile + nLen - 4, ".sdf") ||*/
+                    if (nLen > 4 && (/*!lstrcmpi(szFile + nLen - 4, ".td0") ||*/
                         !lstrcmpi(szFile + nLen - 4, ".sad") || !lstrcmpi(szFile + nLen - 4, ".dsk")))
                         szFile[nLen -= 4] = '\0';
 
-                    // Restore the correct file extension type, and an extra .gz if the file is to be compressed
-                    lstrcat(szFile, /*nType == 2 ? ".sdf" : */nType == 1 ? ".sad" : ".dsk");
-                    lstrcat(szFile, fDotGz ? ".gz" : "");
+                    // If we've anything left, restore the correct file extension(s)
+                    if (lstrlen(szFile))
+                    {
+                        lstrcat(szFile, /*nType == 2 ? ".td0" : */nType == 1 ? ".sad" : ".dsk");
+                        lstrcat(szFile, fDotGz ? ".gz" : "");
+                    }
 
                     // Update the file edit control, restoring the caret to the same position
                     DWORD dwStart = 0, dwEnd = 0;
@@ -1889,13 +1834,36 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                 }
                 break;
 
+                case IDC_COMPRESS:
+                {
+                    int nLen = lstrlen(szFile);
+                    fCompress = (SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+                    bool fDotGz = (nLen >= 3 && !lstrcmpi(szFile + nLen - 3, ".gz"));
+
+                    // Remove the .gz suffix when unchecked
+                    if (!fCompress && fDotGz)
+                    {
+                        szFile[nLen - 3] = '\0';
+                        SetDlgItemText(hdlg_, IDE_NEWFILE, szFile);
+                    }
+
+                    // Add the .gz suffix when checked
+                    else if (fCompress && !fDotGz && nLen)
+                    {
+                        lstrcat(szFile, ".gz");
+                        SetDlgItemText(hdlg_, IDE_NEWFILE, szFile);
+                    }
+
+                    break;
+                }
+
                 case IDE_SIDES:
                     if (fChange)
                     {
                         GetDlgItemText(hdlg_, IDE_SIDES, sz, sizeof sz);
                         nSides = strtoul(sz, NULL, 0);
 
-                        if (nSides < 1)
+                        if (!nSides)
                             nSides = 1;
                         else if (nSides > MAX_DISK_SIDES)
                             nSides = MAX_DISK_SIDES;
@@ -1914,7 +1882,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                         GetDlgItemText(hdlg_, IDE_TRACKS, sz, sizeof sz);
                         nTracks = strtoul(sz, NULL, 0);
 
-                        if (nTracks < 1)
+                        if (!nTracks)
                             nTracks = 1;
                         else if (nMaxTracks && nTracks > nMaxTracks)
                             nTracks = nMaxTracks;
@@ -1932,9 +1900,9 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                     {
                         GetDlgItemText(hdlg_, IDE_SECTORS, sz, sizeof sz);
                         nSectors = strtoul(sz, NULL, 0);
-                        int nMax = fNonRealWorld ? nMaxSectors : (MAX_TRACK_SIZE - MIN_TRACK_OVERHEAD) / (nSectorSize + MIN_SECTOR_OVERHEAD);
+                        int nMax = (MAX_TRACK_SIZE - MIN_TRACK_OVERHEAD) / (nSectorSize + MIN_SECTOR_OVERHEAD);
 
-                        if (nSectors < 1)
+                        if (!nSectors)
                             nSectors = 1;
                         else if (nMax && nSectors > nMax)
                             nSectors = nMax;
@@ -1965,7 +1933,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                 {
                     // Does the file already exist?
                     DWORD dwAttrs = GetFileAttributes(szFile);
-                    if (fPrompt && dwAttrs != 0xffffffff)
+                    if (dwAttrs != 0xffffffff)
                     {
                         char szWarning[512];
                         wsprintf(szWarning, "%s already exists!\n\nOverwrite existing file?", szFile);
@@ -1974,12 +1942,6 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                         if (MessageBox(NULL, szWarning, "Warning", MB_ICONEXCLAMATION|MB_YESNO|MB_DEFBUTTON2) != IDYES)
                             break;
                     }
-
-                    // Eject any disk in the device we'll be inserting into
-                    if (nInsertInto == 1)
-                        pDrive1->Eject();
-                    else if (nInsertInto == 2)
-                        pDrive2->Eject();
 
                     // Create the new stream, either compressed or uncompressed
                     CStream* pStream = NULL;
@@ -1997,7 +1959,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                     else if (nType == 1)
                         pDisk = new CSADDisk(pStream, nSides, nTracks, nSectors, nSectorSize);
 //                  else if (nType == 2)
-//                      pDisk = new CSDFDisk(pStream, nSides, nTracks, nSectors, nSectorSize);
+//                      pDisk = new CTD0Disk(pStream, nSides, nTracks, nSectors, nSectorSize);
 
                     // Save the new disk and close it
                     bool fSaved = pDisk->Save();
@@ -2011,10 +1973,10 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                     }
 
                     // If we're to insert the new disk into a drive, do so now
-                    if ((nInsertInto == 1 && pDrive1->Insert(szFile)) || (nInsertInto == 2 && pDrive2->Insert(szFile)))
-                        Frame::SetStatus("New disk inserted into drive %d", nInsertInto);
-                    else if (nInsertInto)
-                        TRACE("!!! Failed to insert new disk!\n");
+                    if ((nDrive == 1 && pDrive1->Insert(szFile)) || (nDrive == 2 && pDrive2->Insert(szFile)))
+                        Frame::SetStatus("New disk inserted into drive %d", nDrive);
+                    else if (nDrive)
+                        Frame::SetStatus("Failed to insert new disk!");
 
                     // We're all done
                     EndDialog(hdlg_, 1);
@@ -2089,7 +2051,9 @@ BOOL CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 
                         // If we can, open the existing hard disk image to retrieve the geometry
                         CHardDisk* pDisk = CHardDisk::OpenObject(szFile);
-                        if (pDisk)
+                        bool fExists = pDisk != NULL;
+
+                        if (fExists)
                         {
                             // Fetch the existing disk geometry
                             HARDDISK_GEOMETRY geom;
@@ -2101,6 +2065,16 @@ BOOL CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                             wsprintf(sz, "%u", uHeads = geom.uHeads);         SetDlgItemText(hdlg_, IDE_HEADS, sz);
                             wsprintf(sz, "%u", uSectors = geom.uSectors);     SetDlgItemText(hdlg_, IDE_SECTORS, sz);
                         }
+
+                        // The geometry is read-only for existing images
+                        EnableWindow(GetDlgItem(hdlg_, IDE_CYLINDERS), !fExists);
+                        EnableWindow(GetDlgItem(hdlg_, IDE_HEADS), !fExists);
+                        EnableWindow(GetDlgItem(hdlg_, IDE_SECTORS), !fExists);
+                        EnableWindow(GetDlgItem(hdlg_, IDE_TOTALSIZE), !fExists);
+
+                        // Use an OK button to accept an existing file, or Create for a new one
+                        SetDlgItemText(hdlg_, IDB_CREATE, fExists ? "OK" : "Create");
+                        EnableWindow(GetDlgItem(hdlg_, IDB_CREATE), szFile[0]);
                     }
                     break;
 
@@ -2146,33 +2120,32 @@ BOOL CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 
                 case IDB_CREATE:
                 {
-                    GetDlgItemText(hdlg_, IDE_FILEPATH, szFile, sizeof szFile);
-
-                    // Make sure a file was specified
-                    if (!szFile[0])
-                        MessageBox(hdlg_, "Please specify the HDF file to create.", "Create", MB_OK|MB_ICONEXCLAMATION);
-
                     // Check the geometry is within range, since the edit fields can be modified directly
-                    else if (!uCylinders || (uCylinders > 16383) || !uHeads || (uHeads > 16) || !uSectors || (uSectors > 63))
+                    if (!uCylinders || (uCylinders > 16383) || !uHeads || (uHeads > 16) || !uSectors || (uSectors > 63))
                         MessageBox(hdlg_, "Invalid disk geometry.", "Create", MB_OK|MB_ICONEXCLAMATION);
                     else
                     {
-                        struct stat st;
-
-                        // Warn before overwriting existing files
-                        if (!::stat(szFile, &st) && 
-                            MessageBox(hdlg_, "Overwrite existing file?", "Create", MB_YESNO|MB_ICONEXCLAMATION) != IDYES)
-                            break;
-
-                        // Create the new HDF image
-                        else if (!CHDFHardDisk::Create(szFile, uCylinders, uHeads, uSectors))
-                            MessageBox(hdlg_, "Failed to create new disk (disk full?)", "Create", MB_OK|MB_ICONEXCLAMATION);
-                        else
+                        // If new values have been give, create a new disk using the supplied settings
+                        if (IsWindowEnabled(GetDlgItem(hdlg_, IDE_TOTALSIZE)))
                         {
-                            // Set the new path back in the parent dialog, and close our dialog
-                            SetWindowText(hwndEdit, szFile);
-                            EndDialog(hdlg_, 1);
+                            struct stat st;
+
+                            // Warn before overwriting existing files
+                            if (!::stat(szFile, &st) && 
+                                    MessageBox(hdlg_, "Overwrite existing file?", "Create", MB_YESNO|MB_ICONEXCLAMATION) != IDYES)
+                                break;
+
+                            // Create the new HDF image
+                            else if (!CHDFHardDisk::Create(szFile, uCylinders, uHeads, uSectors))
+                            {
+                                MessageBox(hdlg_, "Failed to create new disk (disk full?)", "Create", MB_OK|MB_ICONEXCLAMATION);
+                                break;
+                            }
                         }
+
+                        // Set the new path back in the parent dialog, and close our dialog
+                        SetWindowText(hwndEdit, szFile);
+                        EndDialog(hdlg_, 1);
                     }
 
                     return TRUE;
@@ -2274,14 +2247,14 @@ BOOL CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
             {
                 case IDB_BROWSE:
                 {
-                    char szFile[_MAX_PATH] = "";
+                    char szFile[MAX_PATH] = "";
 
                     if (!GetSaveLoadFile(hdlg_, "ROM images (*.rom)\0*.rom\0All files (*.*)\0*.*\0",
                                     NULL, szFile, sizeof szFile, true))
                         break;
 
                     SetDlgItemText(hdlg_, IDE_ROM, szFile);
-                    SendDlgItemMessage(hdlg_, IDE_ROM, EM_SETSEL, _MAX_PATH, -1);
+                    SendDlgItemMessage(hdlg_, IDE_ROM, EM_SETSEL, MAX_PATH, -1);
                     break;
                 }
 
