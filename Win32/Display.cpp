@@ -28,18 +28,17 @@
 
 #include "Display.h"
 #include "Frame.h"
+#include "GUI.h"
 #include "Options.h"
 #include "Profile.h"
 #include "Video.h"
 #include "UI.h"
 
 
-namespace Display
-{
-RECT rLastOverlay;
-bool* pafDirty;
-DWORD dwColourKey;
+bool* Display::pafDirty;
 
+RECT rLastOverlay, rSource, rTarget;
+DWORD dwColourKey;
 
 
 void SetOverlayColourKey ()
@@ -89,12 +88,12 @@ void SetOverlayColourKey ()
 }
 
 
-bool Init (bool fFirstInit_/*=false*/)
+bool Display::Init (bool fFirstInit_/*=false*/)
 {
     Exit(true);
     TRACE("-> Display::Init(%s)\n", fFirstInit_ ? "first" : "");
 
-    pafDirty = new bool[Frame::GetScreen()->GetHeight()];
+    pafDirty = new bool[Frame::GetHeight()];
 
     bool fRet = Video::Init(fFirstInit_);
     if (fRet)
@@ -104,7 +103,7 @@ bool Init (bool fFirstInit_/*=false*/)
     return fRet;
 }
 
-void Exit (bool fReInit_/*=false*/)
+void Display::Exit (bool fReInit_/*=false*/)
 {
     Video::Exit(fReInit_);
     TRACE("-> Display::Exit(%s)\n", fReInit_ ? "reinit" : "");
@@ -115,24 +114,19 @@ void Exit (bool fReInit_/*=false*/)
 }
 
 
-void SetDirty (int nLine_/*=-1*/)
+void Display::SetDirty ()
 {
-    if (nLine_ != -1)
-        pafDirty[nLine_] = true;
-    else
-    {
-        // Mark all display lines dirty
-        for (int i = 0, nHeight = Frame::GetScreen()->GetHeight() ; i < nHeight ; i++)
-            pafDirty[i] = true;
+    // Mark all display lines dirty
+    for (int i = 0, nHeight = Frame::GetHeight() ; i < nHeight ; i++)
+        pafDirty[i] = true;
 
-        // Ensure the overlay is updated to reflect the changes
-        SetRectEmpty(&rLastOverlay);
-    }
+    // Ensure the overlay is updated to reflect the changes
+    SetRectEmpty(&rLastOverlay);
 }
 
 
 // Draw the changed lines in the appropriate colour depth and hi/low resolution
-bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
+bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 {
     ProfileStart(Gfx);
 
@@ -154,12 +148,10 @@ bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
         return false;
     }
 
+
     // In scanline mode, treat the back buffer as full height, drawing alternate lines
-    if (GetOption(scanlines))
-    {
-        ddsd.dwHeight >>= 1;
+    if (GetOption(scanlines) && !GUI::IsActive())
         ddsd.lPitch <<= 1;
-    }
 
     DWORD *pdwBack = reinterpret_cast<DWORD*>(ddsd.lpSurface), *pdw = pdwBack;
     LONG lPitchDW = ddsd.lPitch >> 2;
@@ -170,7 +162,8 @@ bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 
     bool fYUV = (ddsd.ddpfPixelFormat.dwFlags & DDPF_FOURCC) != 0;
     int nDepth = ddsd.ddpfPixelFormat.dwRGBBitCount;
-    int nBottom = ddsd.dwHeight, nRightHi = ddsd.dwWidth >> 3, nRightLo = nRightHi >> 1;
+    int nBottom = pScreen_->GetHeight() >> (GUI::IsActive() ? 0 : 1);
+    int nRightHi = pScreen_->GetPitch() >> 3, nRightLo = nRightHi >> 1;
 
     switch (nDepth)
     {
@@ -312,15 +305,15 @@ bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                     {
                         BYTE *pb1 = (BYTE*)&aulPalette[pb[0]], *pb2 = (BYTE*)&aulPalette[pb[1]];
                         BYTE *pb3 = (BYTE*)&aulPalette[pb[2]], *pb4 = (BYTE*)&aulPalette[pb[3]];
-                        pdw[0] = (((DWORD)pb2[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
-                        pdw[1] = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[0]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[1];
-                        pdw[2] = (((DWORD)pb4[2]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[0]) << 8) | pb3[2];
+                        pdw[0] = (((DWORD)pb2[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
+                        pdw[1] = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[2]) << 16) | (((DWORD)pb2[0]) << 8) | pb2[1];
+                        pdw[2] = (((DWORD)pb4[0]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[2]) << 8) | pb3[0];
 
                         pb1 = (BYTE*)&aulPalette[pb[4]], pb2 = (BYTE*)&aulPalette[pb[5]];
                         pb3 = (BYTE*)&aulPalette[pb[6]], pb4 = (BYTE*)&aulPalette[pb[7]];
-                        pdw[3] = (((DWORD)pb2[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
-                        pdw[4] = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[0]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[1];
-                        pdw[5] = (((DWORD)pb4[2]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[0]) << 8) | pb3[2];
+                        pdw[3] = (((DWORD)pb2[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
+                        pdw[4] = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[2]) << 16) | (((DWORD)pb2[0]) << 8) | pb2[1];
+                        pdw[5] = (((DWORD)pb4[0]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[2]) << 8) | pb3[0];
 
                         pdw += 6;
                         pb += 8;
@@ -367,11 +360,10 @@ bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                 if (!pfDirty[y])
                     continue;
 
-                if (pScreen_->IsHiRes(y))
+                if (pfHiRes[y])
                 {
                     for (int x = 0 ; x < nRightHi ; x++)
                     {
-                        // Draw 8 pixels at a time
                         pdw[0] = aulPalette[pb[0]];
                         pdw[1] = aulPalette[pb[1]];
                         pdw[2] = aulPalette[pb[2]];
@@ -389,7 +381,6 @@ bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                 {
                     for (int x = 0 ; x < nRightLo ; x++)
                     {
-                        // Draw 8 pixels at a time
                         pdw[0]  = pdw[1]  = aulPalette[pb[0]];
                         pdw[2]  = pdw[3]  = aulPalette[pb[1]];
                         pdw[4]  = pdw[5]  = aulPalette[pb[2]];
@@ -420,9 +411,11 @@ bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 
 
 // Update the display to show anything that's changed since last time
-void Update (CScreen* pScreen_)
+void Display::Update (CScreen* pScreen_)
 {
     HRESULT hr;
+
+    bool fHalfHeight_ = !GUI::IsActive() && !GetOption(scanlines);
 
     // Don't draw if fullscreen but not active
     if (GetOption(fullscreen) && !g_fActive)
@@ -446,7 +439,6 @@ void Update (CScreen* pScreen_)
 
     // Now to get the image to the display...
 
-
     LPDIRECTDRAWSURFACE pddsOverlay = pddsFront ? pddsFront : pddsBack;
 
     DDSURFACEDESC ddsdBack, ddsdOverlay, ddsdPrimary;
@@ -456,17 +448,13 @@ void Update (CScreen* pScreen_)
     pddsOverlay->GetSurfaceDesc(&ddsdOverlay);
     pddsPrimary->GetSurfaceDesc(&ddsdPrimary);
 
-
     bool fOverlay = (ddsdBack.ddsCaps.dwCaps & DDSCAPS_OVERLAY) != 0;
-    int nDepth = ddsdBack.ddpfPixelFormat.dwRGBBitCount;
-
 
     // rBack is the total screen area
     RECT rBack = { 0, 0, ddsdBack.dwWidth, ddsdBack.dwHeight };
 
     // rFrom is the actual screen area that will be visible
     RECT rFrom = rBack;
-    rFrom.bottom <<= (1 - GetOption(scanlines));
     if (GetOption(ratio5_4))
         rFrom.right = MulDiv(rFrom.right, 5, 4);
         
@@ -489,7 +477,6 @@ void Update (CScreen* pScreen_)
     // rTo is the target area needed for our screen display
     RECT rTo = rFront;
 
-
     // Restrict the target area to maintain the aspect ratio?
     if (GetOption(stretchtofit) || !GetOption(fullscreen))
     {
@@ -508,7 +495,6 @@ void Update (CScreen* pScreen_)
 
     // Centre the target view within the target area
     OffsetRect(&rTo, (rFront.right - rTo.right) >> 1, (rFront.bottom - rTo.bottom) >> 1);
-
 
     ProfileStart(Blt);
 
@@ -540,6 +526,9 @@ void Update (CScreen* pScreen_)
             pddsFront->Blt(NULL, pddsBack, NULL, DDBLT_WAIT, 0);
 
 
+        if (fHalfHeight_)
+            rBack.bottom >>= 1;
+
         // Set up the destination colour key so the overlay doesn't appear over the top of everything
         DDOVERLAYFX ddofx = { sizeof ddofx };
         ddofx.dckDestColorkey.dwColorSpaceLowValue = ddofx.dckDestColorkey.dwColorSpaceHighValue = dwColourKey;
@@ -567,6 +556,9 @@ void Update (CScreen* pScreen_)
     }
     else
     {
+        if (fHalfHeight_)
+            rBack.bottom >>= 1;
+
         // Offset to the client area if necessary
         OffsetRect(&rTo, ptOffset.x, ptOffset.y);
 
@@ -592,7 +584,32 @@ void Update (CScreen* pScreen_)
     if (!IsRectEmpty(&rBottomBorder)) pddsPrimary->Blt(&rBottomBorder, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
 
 
+    // Remember the source and target rects for cursor position mapping in the GUI
+    rSource = rBack;
+    rTarget = rTo;
+
+    // Adjust for the client area when Windowed, and non-client area when full-screen
+    if (GetOption(fullscreen))
+        ClientToScreen(g_hwnd, &ptOffset);
+    OffsetRect(&rTarget, -ptOffset.x, -ptOffset.y);
+
     ProfileEnd();
 }
 
-};
+// Map a Windows client point to one relative to the SAM view port
+void Display::DisplayToSam (int* pnX_, int* pnY_)
+{
+    int nHalfWidth = !GUI::IsActive(), nHalfHeight = nHalfWidth && GetOption(scanlines);
+
+    *pnX_ = MulDiv(*pnX_ - rTarget.left, rSource.right, rTarget.right-rTarget.left) >> nHalfWidth;
+    *pnY_ = MulDiv(*pnY_ - rTarget.top, rSource.bottom, rTarget.bottom-rTarget.top) >> nHalfHeight;
+}
+
+// Map a point in the SAM view port to a point relative to the Windows client position
+void Display::SamToDisplay (int* pnX_, int* pnY_)
+{
+    int nHalfWidth = !GUI::IsActive(), nHalfHeight = nHalfWidth && GetOption(scanlines);
+
+    *pnX_ = MulDiv(*pnX_ << nHalfWidth, rTarget.right-rTarget.left, rSource.right) + rTarget.left;
+    *pnY_ = MulDiv(*pnY_ << nHalfHeight, rTarget.bottom-rTarget.top, rSource.bottom) + rTarget.top;
+}
