@@ -1,6 +1,6 @@
 !define VER_MAJOR 0
 !define VER_MINOR 90
-!define VER_BETA 14
+!define VER_BETA 20050131
 !define VER_DISPLAY ${VER_MAJOR}.${VER_MINOR}
 
 Name "SimCoupe"
@@ -104,7 +104,7 @@ Section "Manic Miner (demo)" SecManicMiner
 	File "..\manicm.dsk"
 
 !insertmacro MUI_STARTMENU_WRITE_BEGIN SimCoupe
-	CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Play Manic Miner.lnk" "$INSTDIR\SimCoupe.exe" '-autoboot 1 -drive1 1 -disk1 "$INSTDIR\manicm.dsk"' "$INSTDIR\SimCoupe.exe" 1
+	CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Play Manic Miner.lnk" "$INSTDIR\SimCoupe.exe" '"$INSTDIR\manicm.dsk"' "$INSTDIR\SimCoupe.exe" 1
 !insertmacro MUI_STARTMENU_WRITE_END
 
 SectionEnd
@@ -115,7 +115,7 @@ Section "Defender" SecDefender
 	File "..\defender.dsk"
 
 !insertmacro MUI_STARTMENU_WRITE_BEGIN SimCoupe
-	CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Play Defender.lnk" "$INSTDIR\SimCoupe.exe" '-autoboot 1 -drive1 1 -disk1 "$INSTDIR\defender.dsk"' "$INSTDIR\SimCoupe.exe" 1
+	CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Play Defender.lnk" "$INSTDIR\SimCoupe.exe" '"$INSTDIR\defender.dsk"' "$INSTDIR\SimCoupe.exe" 1
 !insertmacro MUI_STARTMENU_WRITE_END
 SectionEnd
 
@@ -125,7 +125,7 @@ Section "Tetris" SecTetris
 	File "..\tetris.dsk"
 
 !insertmacro MUI_STARTMENU_WRITE_BEGIN SimCoupe
-	CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Play Tetris.lnk" "$INSTDIR\SimCoupe.exe" '-autoboot 1 -drive1 1 -disk1 "$INSTDIR\tetris.dsk"' "$INSTDIR\SimCoupe.exe" 1
+	CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Play Tetris.lnk" "$INSTDIR\SimCoupe.exe" '"$INSTDIR\tetris.dsk"' "$INSTDIR\SimCoupe.exe" 1
 !insertmacro MUI_STARTMENU_WRITE_END
 SectionEnd
 
@@ -140,7 +140,7 @@ Section "MNEMOdemo 1" SecMneDemo1
 	File "..\mnedemo1.dsk"
 
 !insertmacro MUI_STARTMENU_WRITE_BEGIN SimCoupe
-	CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Run MNEMOdemo 1.lnk" "$INSTDIR\SimCoupe.exe" '-autoboot 1 -drive1 1 -disk1 "$INSTDIR\mnedemo1.dsk"' "$INSTDIR\SimCoupe.exe" 1
+	CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Run MNEMOdemo 1.lnk" "$INSTDIR\SimCoupe.exe" '"$INSTDIR\mnedemo1.dsk"' "$INSTDIR\SimCoupe.exe" 1
 !insertmacro MUI_STARTMENU_WRITE_END
 SectionEnd
 
@@ -149,21 +149,33 @@ SubSectionEnd
 
 SubSection "File associations" SecAssocs
 
-Section "Raw disks (.dsk)" SecDSK
+Section "Simple disks (.dsk)" SecDSK
 	SectionIn 1
 	Push ".dsk"
 	Call InstallFileAssoc
 SectionEnd
 
-Section "SAM disks (.sad)" SecSAD
+Section "SAM Disks (.sad)" SecSAD
 	SectionIn 1
 	Push ".sad"
 	Call InstallFileAssoc
 SectionEnd
 
-Section "Teledisk images (.td0)" SecTD0
+Section "SAM Disk Format (.sdf)" SecSDF
+	SectionIn 1
+	Push ".sdf"
+	Call InstallFileAssoc
+SectionEnd
+
+Section "Teledisk (.td0)" SecTD0
 	SectionIn 1
 	Push ".td0"
+	Call InstallFileAssoc
+SectionEnd
+
+Section "MGT +D (.mgt)" SecMGT
+	SectionIn 1
+	Push ".mgt"
 	Call InstallFileAssoc
 SectionEnd
 
@@ -187,7 +199,9 @@ SectionEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecAssocs} "Double-click support for disk image types"
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecDSK} "File association for .dsk images"
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecSAD} "File association for .sad images"
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecSDF} "File association for .sdf images"
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecTD0} "File association for .td0 images"
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecMGT} "File association for .mgt images"
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} "Adds a shortcut to start SimCoupe to the desktop"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
@@ -222,7 +236,11 @@ Section "Uninstall"
 	Call un.InstallFileAssoc
 	push ".sad"
 	Call un.InstallFileAssoc
+	push ".sdf"
+	Call un.InstallFileAssoc
 	push ".td0"
+	Call un.InstallFileAssoc
+	push ".mgt"
 	Call un.InstallFileAssoc
 
 SectionEnd
@@ -236,9 +254,11 @@ Function InstallFileAssoc
 	WriteRegStr HKCR $0 "" "SimCoupe.Disk"
 
 	WriteRegStr HKCR "SimCoupe.Disk" "" "SimCoupe Disk Image"
-	WriteRegStr HKCR "SimCoupe.Disk\shell" "" "open"
-	WriteRegStr HKCR "SimCoupe.Disk\DefaultIcon" "" "$INSTDIR\SimCoupe.exe,1"
-	WriteRegStr HKCR "SimCoupe.Disk\shell\open\command" "" '"$INSTDIR\SimCoupe.exe" -autoboot 1 -drive1 1 -disk1 "%1"'
+	WriteRegStr HKCR "SimCoupe.Disk\DefaultIcon" "" '"$INSTDIR\SimCoupe.exe",1'
+	WriteRegStr HKCR "SimCoupe.Disk\shell" "Boot with SimCoupe" "open"
+	WriteRegStr HKCR "SimCoupe.Disk\shell\open\command" "" '"$INSTDIR\SimCoupe.exe" "%1"'
+	WriteRegStr HKCR "SimCoupe.Disk\shell" "Open with SimCoupe" "insert"
+	WriteRegStr HKCR "SimCoupe.Disk\shell\insert\command" "" '"$INSTDIR\SimCoupe.exe" "%1"'
 
 FunctionEnd
 
