@@ -1,4 +1,4 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Floppy.cpp: Win32 direct floppy access
 //
@@ -23,9 +23,8 @@
 //  - maybe release SAMDISK.SYS under GPL after tidying it?
 
 #include "SimCoupe.h"
-#include <winioctl.h>
-#include "Floppy.h"
 
+#include "Floppy.h"
 #include "CDisk.h"
 #include "Util.h"
 
@@ -35,31 +34,36 @@
 #define NT_DRIVER_NAME      "SAMDISK"
 #define NT_DRIVER_DESC      "SAM Coupé Disk Filter"
 
+// Prototype for CancelIo, which isn't available on Windows 95
+typedef BOOL (WINAPI *PFNCANCELIO)(HANDLE);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-enum { osWin9x, osWinNT, osWin2K };
+enum ePlatform { osUnknown, osWin9x, osWinNT4, osWinNT5Plus };
+ePlatform nPlatform = osUnknown;
 
-int GetOSType ()
+ePlatform GetPlatformType ()
 {
-    OSVERSIONINFO osvi;
-    osvi.dwOSVersionInfoSize = sizeof osvi;
+    OSVERSIONINFO osvi = { sizeof osvi };
     GetVersionEx(&osvi);
 
+    // Win9x or WinMe?
     if (osvi.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS)
         return osWin9x;
-    else if (osvi.dwMajorVersion < 5)
-        return osWinNT;
-    else
-        return osWin2K;
+
+    // Must be NT4, or a higher NT-based OS
+    return (osvi.dwMajorVersion < 5) ? osWinNT4 : osWinNT5Plus;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-bool Floppy::Init ()
+bool Floppy::Init (bool fFirstInit_/*=false*/)
 {
-    CFloppyStream::LoadDriver();
+    nPlatform = GetPlatformType();
+
+    if (fFirstInit_)
+        CFloppyStream::LoadDriver();
+
     return true;
 }
 
@@ -77,7 +81,7 @@ void Floppy::Exit (bool fReInit_/*=true*/)
     SC_HANDLE hManager, hService = NULL;
 
     // Form the full path of the driver in the same location that SimCoupe.exe is running from
-    const char* pcszDriver = OSD::GetFilePath((GetOSType() == osWin2K) ? "SAMDISK.SYS" : "SAMDISKL.SYS");
+    const char* pcszDriver = OSD::GetFilePath((nPlatform != osWinNT4) ? "SAMDISK.SYS" : "SAMDISKL.SYS");
 
 
     // We can't do anything if the driver file is missing
@@ -151,8 +155,6 @@ void Floppy::Exit (bool fReInit_/*=true*/)
         TRACE("!!! Failed to open service control manager (%#08lx)\n", GetLastError());
     else
     {
-        const char* pcszDriver = OSD::GetFilePath((GetOSType() == osWin2K) ? "SAMDISK.SYS" : "SAMDISKL.SYS");
-
         // Open the existing service, create it if it's not already there
         if (!(hService = OpenService(hManager, NT_DRIVER_NAME, SERVICE_ALL_ACCESS)))
             TRACE("!!! Failed to open existing %s driver (%#08lx)\n", NT_DRIVER_NAME, GetLastError());
@@ -214,8 +216,8 @@ void Floppy::Exit (bool fReInit_/*=true*/)
 CFloppyStream::CFloppyStream (const char* pcszDrive_, bool fReadOnly_)
     : CStream(pcszDrive_, fReadOnly_), m_hDevice(INVALID_HANDLE_VALUE), m_dwResult(ERROR_SUCCESS)
 {
-    // WinNT or W2K?
-    if (GetOSType() != osWin9x)
+    // NT-based?
+    if (nPlatform >= osWinNT4)
     {
         // Ensure the device driver is loaded
         char szDevice[32] = "\\\\.\\";
@@ -242,7 +244,7 @@ CFloppyStream::CFloppyStream (const char* pcszDrive_, bool fReadOnly_)
 
 void CFloppyStream::RealClose ()
 {
-    if (GetOSType() != osWin9x)
+    if (nPlatform >= osWinNT4)
     {
         if (m_hDevice && (m_hDevice != INVALID_HANDLE_VALUE))
         {
@@ -256,7 +258,8 @@ void CFloppyStream::RealClose ()
 // Translate a Windows error to an appropriate FDC status code
 inline BYTE CFloppyStream::TranslateError () const
 {
-    switch (m_dwResult) {
+    switch (m_dwResult)
+    {
         case ERROR_SUCCESS:         return 0;
         case ERROR_WRITE_PROTECT:   return WRITE_PROTECT;
         case ERROR_CRC:             return CRC_ERROR;
@@ -271,7 +274,7 @@ BYTE CFloppyStream::Read (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData
 //  TRACE("Reading sector from %d:%d:%d\n", uSide_, uTrack_, uSector_);
     *puSize_ = 0;
 
-    if ((GetOSType() != osWin9x) && (m_hDevice != INVALID_HANDLE_VALUE))
+    if ((nPlatform >= osWinNT4) && (m_hDevice != INVALID_HANDLE_VALUE))
     {
         AbortAsyncOp();
         ZeroMemory(&m_sOverlapped, sizeof(m_sOverlapped));
@@ -308,7 +311,7 @@ BYTE CFloppyStream::Write (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbDat
 //  TRACE("Writing sector to %d:%d:%d\n", uSide_, uTrack_, uSector_);
     *puSize_ = 0;
 
-    if ((GetOSType() != osWin9x) && (m_hDevice != INVALID_HANDLE_VALUE))
+    if ((nPlatform >= osWinNT4) && (m_hDevice != INVALID_HANDLE_VALUE))
     {
         AbortAsyncOp();
         ZeroMemory(&m_sOverlapped, sizeof(m_sOverlapped));
@@ -399,7 +402,12 @@ void CFloppyStream::AbortAsyncOp ()
     // Only continue if the current operation is asynchronous
     if (m_dwResult == ERROR_IO_PENDING)
     {
-        if (CancelIo(m_hDevice))
+        // Dynamically bind to CancelIo
+        static PFNCANCELIO pfnCancelIo =
+            reinterpret_cast<PFNCANCELIO>(GetProcAddress(GetModuleHandle("KERNEL32"), "CancelIo"));
+
+        // Cancel the call if we have a valid pointer
+        if (pfnCancelIo && pfnCancelIo(m_hDevice))
             m_dwResult = ERROR_SUCCESS;
         else
         {
