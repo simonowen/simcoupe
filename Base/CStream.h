@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // CStream.h: Data stream abstraction classes
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,15 +24,16 @@
 class CStream
 {
     public:
-        CStream (const char* pcszStream_, bool fReadOnly_=false);
+        CStream (const char* pcszPath_, bool fReadOnly_=false);
         virtual ~CStream ();
 
     public:
-        static CStream* Open (const char* pcszStream_, bool fReadOnly_=false);
+        static CStream* Open (const char* pcszPath_, bool fReadOnly_=false);
 
     public:
         bool IsReadOnly () const { return this && m_fReadOnly; }
-        const char* GetName () const { return m_pszStream; }
+        const char* GetPath () const { return m_pszPath; }
+        const char* GetFile () const { return m_pszFile ? m_pszFile : m_pszPath; }
         size_t GetSize () const { return m_nSize; }
         virtual bool IsOpen () const = 0;
 
@@ -46,13 +47,13 @@ class CStream
         int     m_nMode, m_nSize;
 
         bool    m_fReadOnly;
-        char*   m_pszStream;
+        char    *m_pszPath, *m_pszFile;
 };
 
 class CFileStream : public CStream
 {
     public:
-        CFileStream (FILE* hFile_, const char* pcszStream_, bool fReadOnly_=false);
+        CFileStream (FILE* hFile_, const char* pcszPath_, bool fReadOnly_=false);
         ~CFileStream () { Close(); }
 
     public:
@@ -76,7 +77,7 @@ const BYTE GZ_SIGNATURE[] = { 0x1f, 0x8b };
 class CZLibStream : public CStream
 {
     public:
-        CZLibStream (gzFile hFile_, const char* pcszStream_, bool fReadOnly_=false);
+        CZLibStream (gzFile hFile_, const char* pcszPath_, bool fReadOnly_=false);
         ~CZLibStream () { Close(); }
 
     public:
@@ -95,7 +96,7 @@ class CZLibStream : public CStream
 class CZipStream : public CStream
 {
     public:
-        CZipStream (unzFile hFile_, const char* pcszFile_, bool fReadOnly_=false);
+        CZipStream (unzFile hFile_, const char* pcszPath_, bool fReadOnly_=false);
         ~CZipStream () { Close(); }
 
     public:
