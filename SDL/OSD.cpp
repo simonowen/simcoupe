@@ -141,6 +141,13 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 }
 
 
+// Check whether the specified path is accessible
+bool OSD::CheckPathAccess (const char* pcszPath_)
+{
+    return !access(pcszPath_, X_OK);
+}
+
+
 // Return whether a file/directory is normally hidden from a directory listing
 bool OSD::IsHidden (const char* pcszPath_)
 {
@@ -170,6 +177,8 @@ void OSD::DebugTrace (const char* pcsz_)
 {
 #ifdef _WINDOWS
     OutputDebugString(pcsz_);
+#else
+    fprintf(stderr, "%s", pcsz_);
 #endif
 }
 
