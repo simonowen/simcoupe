@@ -4,7 +4,7 @@
 //
 //  Copyright (c) 1994 Ian Collier
 //  Copyright (c) 1999-2003 by Dave Laundon
-//  Copyright (c) 1999-2004 by Simon Owen
+//  Copyright (c) 1999-2005 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -413,18 +413,7 @@ HLinstr(0136)   e = timed_read_byte(addr);                          endinstr;   
 HLinstr(0146)   h = timed_read_byte(addr);                          endinstr;   // ld h,(hl/ix+d/iy+d)
 HLinstr(0156)   l = timed_read_byte(addr);                          endinstr;   // ld l,(hl/ix+d/iy+d)
 
-// halt
-instr(4,0166)
-    pc--;
-
-    // Halt with interrupt disabled? (and not at the same address as a previous break)
-    static WORD wPC = 0;
-    if (!iff1 && pc != wPC)
-    {
-        wPC = pc;
-        Debug::Start();
-    }
-endinstr;
+instr(4,0166)   pc--;                                               endinstr;   // halt
 
 HLinstr(0176)   a = timed_read_byte(addr);                          endinstr;   // ld a,(hl/ix+d/iy+d)
 
@@ -625,7 +614,8 @@ instr(4,0353)   swap(de,hl);                                        endinstr;   
 
 
 instr(5,0307)   push(pc); pc = 000;                                 endinstr;   // rst 0
-instr(5,0317)   push(pc); pc = 010;                                 endinstr;   // rst 8
+
+instr(5,0317)   if (IO::Rst8Hook()) break; push(pc); pc = 010;      endinstr;   // rst 8
 instr(5,0327)   push(pc); pc = 020;                                 endinstr;   // rst 16
 instr(5,0337)   push(pc); pc = 030;                                 endinstr;   // rst 24
 instr(5,0347)   push(pc); pc = 040;                                 endinstr;   // rst 32
