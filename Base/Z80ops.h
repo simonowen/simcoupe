@@ -4,7 +4,7 @@
 //
 //  Copyright (c) 1994 Ian Collier
 //  Copyright (c) 1999-2003 by Dave Laundon
-//  Copyright (c) 1999-2003 by Simon Owen
+//  Copyright (c) 1999-2004 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -292,21 +292,41 @@ endinstr;
 
 // daa
 instr(4,0047)
-    BYTE incr = 0, carry = cy;
+    WORD acc = a;
+    BYTE carry = cy, incr = 0;
+
     if ((f & F_HCARRY) || (a & 0x0f) > 9)
         incr = 6;
-    if (cy || (a >> 4) > 9)
-        incr |= 0x60;
-    if (f & F_NADD)
-        sub_a(incr);
-    else
-    {
-        if (a > 0x90 && (a & 15) > 9)
-            incr |= 0x60;
 
-        add_a(incr);
+    if (f & F_NADD)
+    {
+        int hd = carry || a > 0x99;
+
+        if (incr)
+        {
+            acc = (acc - incr) & 0xff;
+
+            if ((a & 0x0f) > 5)
+                f &= ~F_HCARRY;
+        }
+
+        if (hd)
+            acc -= 0x160;
     }
-    f = (f & ~F_PARITY) | (parity(a) & F_PARITY) | carry;  // NB, parity() also gives other flags
+    else
+    {           
+        if (incr)
+        {
+            f = (f & ~F_HCARRY) | (((a & 0x0f) > 9) ? F_HCARRY : 0);
+            acc += incr;
+        }
+
+        if (carry || ((acc & 0x1f0) > 0x90))
+            acc += 0x60;
+    }
+
+    a = acc;
+    f = (a & 0xa8) | (!a << 6) | (f & 0x12) | (parity(a) & F_PARITY) | carry | !!(acc & 0x100);
 endinstr;
 
 // cpl
