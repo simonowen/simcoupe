@@ -46,7 +46,7 @@ CSDIDEDevice::~CSDIDEDevice ()
 
 BYTE CSDIDEDevice::In (WORD wPort_)
 {
-    BYTE bRet = 0x00;
+    BYTE bRet = 0xff;
 
     switch (wPort_ & 0xff)
     {
