@@ -2,7 +2,7 @@
 //
 // Input.cpp: Allegro keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -215,11 +215,6 @@ bool UpdateKeyTable (SIMPLE_KEY* asKeys_, int nKey_, int nMods_)
 {
     BYTE bCode = nKey_ >> 8, bChar = nKey_ & 0xff;
 
-    // Ignore symbols on the keypad
-    if (bCode >= KEY_SLASH_PAD && bCode <= KEY_ENTER_PAD ||
-        bCode >= KEY_0_PAD && bCode <= KEY_9_PAD)
-        return true;
-
     // Convert upper-case symbols to lower-case without shift
     if (bChar >= 'A' && bChar <= 'Z')
         bChar += 'a'-'A';
@@ -370,11 +365,17 @@ bool ReadKeyboard ()
         BYTE bKey = nKey >> 8, bChar = nKey & 0xff;
 //      Frame::SetStatus("Key: %02x  Char:%02x  Mods:%04x", bKey, bChar, nMods & 0xff);
 
+        // Ignore symbols on the keypad
+        if (bKey >= KEY_SLASH_PAD && bKey <= KEY_ENTER_PAD || bKey >= KEY_0_PAD && bKey <= KEY_9_PAD)
+            bChar = 0;
+
         // Pass any printable characters to the GUI
         if (GUI::IsActive())
         {
             // Convert the cursor keys to GUI symbols
-            if (bKey >= KEY_LEFT && bKey <= KEY_DOWN)
+            if (bKey >= KEY_0_PAD && bKey <= KEY_9_PAD)
+                bChar = GK_KP0 + bKey - KEY_0_PAD;
+            else if (bKey >= KEY_LEFT && bKey <= KEY_DOWN)
                 bChar = GK_LEFT + (bKey - KEY_LEFT);
             else if (bKey >= KEY_HOME && bKey <= KEY_PGDN)
                 bChar = GK_HOME + (bKey - KEY_HOME);
@@ -433,18 +434,6 @@ bool ReadKeyboard ()
         PressKey(KEY_MENU);
     }
 
-    // A couple of Windows niceties
-    if (IsPressed(KEY_ALT))
-    {
-        // Alt-Tab for switching apps should not be seen
-        if (IsPressed(KEY_TAB))
-            ReleaseKey(KEY_TAB);
-
-        // Alt-F4 for Close will close us gracefully
-        if (IsPressed(KEY_F4))
-            UI::Quit();
-    }
-
     return fRet;
 }
 
@@ -454,10 +443,6 @@ void SetSamKeyState ()
 {
     // No SAM keys are pressed initially
     ReleaseAllSamKeys();
-
-    // Return to ignore common Windows ALT- combinations so the SAM doesn't see them
-    if (!GetOption(altforcntrl) && (IsPressed(KEY_ALT) && (IsPressed(KEY_TAB) || IsPressed(KEY_ESC) || IsPressed(KEY_SPACE))))
-        return;
 
     // Left and right shift keys are equivalent, and also complementary!
     bool fShiftToggle = IsPressed(KEY_LSHIFT) && IsPressed(KEY_RSHIFT);
