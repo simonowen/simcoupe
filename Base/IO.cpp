@@ -1,4 +1,4 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // IO.cpp: SAM I/O port handling
 //
@@ -179,7 +179,7 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 
     if (fInit_)
     {
-        Floppy::Init();
+        Floppy::Init(fReInit_);
 
         if (!pDrive1)
         {
