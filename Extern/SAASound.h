@@ -59,8 +59,8 @@ typedef unsigned long SAACMD;
 #define BYTE unsigned char
 #endif
 
-#ifdef _WIN32
-#define SAAAPI _stdcall
+#if defined(WIN32) || defined(_WIN32_WCE)
+#define SAAAPI __stdcall
 #else
 #define SAAAPI
 #endif
@@ -94,8 +94,8 @@ public:
 
 typedef class CSAASound * LPCSAASOUND;
 
-LPCSAASOUND SAAAPI CreateCSAASound(void);
-void SAAAPI DestroyCSAASound(LPCSAASOUND object);
+LPCSAASOUND SAAAPI CreateCSAASound ();
+void SAAAPI DestroyCSAASound (LPCSAASOUND object);
 
 #endif  // __cplusplus
 
