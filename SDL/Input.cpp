@@ -56,6 +56,7 @@ SDLKey nComboKey;
 SDLMod nComboModifiers;
 DWORD dwComboTime;
 
+bool fMouseActive;
 
 bool afKeyStates[SDLK_LAST], afKeys[SDLK_LAST];
 inline bool IsPressed(int nKey_)    { return afKeyStates[nKey_]; }
@@ -141,6 +142,7 @@ bool Input::Init (bool fFirstInit_/*=false*/)
     }
 
     SDL_EnableUNICODE(1);
+    fMouseActive = false;
     Mouse::Init(fFirstInit_);
     Purge();
 
@@ -178,6 +180,7 @@ void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
     else
         SDL_EnableKeyRepeat(250, 30);
 
+    // Hide the mouse if it's been acquired for emulation use
     SDL_ShowCursor(!fMouse_);
 }
 
@@ -498,13 +501,17 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             // Mouse in use by the GUI?
             if (GUI::IsActive())
             {
+#ifdef USE_CUSTOM_CURSOR
+                // Hide the SDL cursor as we'll draw our own
+                SDL_ShowCursor(SDL_DISABLE);
+#endif
                 int nX = pEvent_->motion.x, nY = pEvent_->motion.y;
                 Display::DisplayToSam(&nX, &nY);
                 GUI::SendMessage(GM_MOUSEMOVE, nX, nY);
             }
 
             // Is the mouse captured?
-            else if (SDL_ShowCursor(SDL_QUERY) == SDL_DISABLE)
+            else if (fMouseActive)
             {
                 // Work out the relative movement since last time
                 int nX = pEvent_->motion.x - (Frame::GetWidth() >> 1), nY = pEvent_->motion.y - (Frame::GetHeight() >> 1);
@@ -562,7 +569,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             }
 
             // If the mouse isn't grabbed, grab it now and hide the cursor (and ignore the button down event)
-            else if (SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE)
+            else if (!fMouseActive)
             {
                 SDL_ShowCursor(SDL_DISABLE);
                 SDL_WarpMouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
