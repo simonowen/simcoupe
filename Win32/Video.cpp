@@ -20,9 +20,7 @@
 
 #include "SimCoupe.h"
 
-#include <ddraw.h>
-#include <mmsystem.h>
-
+#include "Action.h"
 #include "Frame.h"
 #include "Display.h"
 #include "GUI.h"
