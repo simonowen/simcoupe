@@ -6,7 +6,6 @@
 Name "SimCoupé"
 
 InstallDir $PROGRAMFILES\SimCoupe
-InstallDirRegKey HKLM Software\SimCoupe ""
 
 InstType "Full"
 InstType "Minimal"
@@ -67,7 +66,7 @@ Var STARTMENU_FOLDER
 Section "SimCoupé Core Files (required)" SecCore
 	SectionIn RO
 	SetOutPath $INSTDIR
-	RMDir /r $SMPROGRAMS\SimCoupe
+	RMDir /r $SMPROGRAMS\$STARTMENU_FOLDER
 
 	File "Build\SimCoupe.exe"
 	File "Build\SAASound.dll"
