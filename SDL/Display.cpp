@@ -72,6 +72,10 @@ bool Display::Init (bool fFirstInit_/*=false*/)
 
     pafDirty = new bool[Frame::GetHeight()];
 
+    // These will be updated to the appropriate values on the first draw
+    rSource.w = rTarget.w = Frame::GetWidth();
+    rSource.h = rTarget.h = Frame::GetHeight();
+
     return Video::Init(fFirstInit_);
 }
 
@@ -99,14 +103,14 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
     ProfileStart(Gfx);
 
     // If we've changing from displaying the GUI back to scanline mode, clear the unused lines on the surface
-    static bool fOldInterlace = false;
-    bool fGUI = GUI::IsActive(), fInterlace = GetOption(scanlines) && !fGUI;
-    if (fInterlace && (fClearScreen || !fOldInterlace))
+    static bool fOldScanlines = false;
+    bool fGUI = GUI::IsActive(), fScanlines = GetOption(scanlines) && !fGUI;
+    if (fScanlines && (fClearScreen || !fOldScanlines))
     {
         SDL_FillRect(pSurface_, NULL, 0);
         fClearScreen = false;
     }
-    fOldInterlace = fInterlace;
+    fOldScanlines = fScanlines;
 
     // Lock the surface for direct access below
     if (SDL_MUSTLOCK(pSurface_) && SDL_LockSurface(pSurface_) < 0)
@@ -117,7 +121,7 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
     }
 
     DWORD *pdwBack = reinterpret_cast<DWORD*>(pSurface_->pixels), *pdw = pdwBack;
-    long lPitchDW = pSurface_->pitch >> (fInterlace ? 1 : 2);
+    long lPitchDW = pSurface_->pitch >> (fScanlines ? 1 : 2);
     bool *pfDirty = Display::pafDirty, *pfHiRes = pScreen_->GetHiRes();
 
     BYTE *pbSAM = pScreen_->GetLine(0), *pb = pbSAM;
