@@ -1401,7 +1401,8 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                 case IDR_BASIC_ADDRESS:
                 case IDR_PAGE_OFFSET:
                     fBasicAddress = wControl == IDR_BASIC_ADDRESS;
-                    SendDlgItemMessage(hdlg_, fBasicAddress ? IDR_BASIC_ADDRESS : IDR_PAGE_OFFSET, BM_SETCHECK, BST_CHECKED, 0);
+                    SendDlgItemMessage(hdlg_, IDR_BASIC_ADDRESS, BM_SETCHECK,  fBasicAddress ? BST_CHECKED : BST_UNCHECKED, 0L);
+                    SendDlgItemMessage(hdlg_, IDR_PAGE_OFFSET,   BM_SETCHECK, !fBasicAddress ? BST_CHECKED : BST_UNCHECKED, 0L);
 
                     EnableWindow(GetDlgItem(hdlg_, IDE_ADDRESS), fBasicAddress);
                     EnableWindow(GetDlgItem(hdlg_, IDE_PAGE), !fBasicAddress);
@@ -2042,14 +2043,7 @@ BOOL CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                 GetDlgItemText(hdlg_, IDE_ROM, const_cast<char*>(GetOption(rom)), MAX_PATH);
 
                 SetOption(fastreset, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_GETCHECK, 0, 0L) == BST_CHECKED));
-
-/*
-                // Perform an automatic reset if anything changed (if used we'll need a warning message on property sheet!)
-                if (Changed(mainmem) || Changed(externalmem) || ChangedString(rom))
-                    InterruptType = Z80_reset;
-*/
             }
-
             break;
         }
 
