@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Options.cpp: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -67,8 +67,7 @@ OPTION aOptions[] =
     OPT("StretchToFit", OT_BOOL,    stretchtofit,   true),      // Stretch image to fit
     OPT("Surface",      OT_INT,     surface,        999),       // Try for the best possible by default
 
-    OPT("ROM0",         OT_STRING,  rom0,           "sam_rom0.rom"),
-    OPT("ROM1",         OT_STRING,  rom1,           "sam_rom1.rom"),
+    OPT("ROM",          OT_STRING,  rom,            ""),        // No custom ROM (use built-in)
     OPT("MainMemory",   OT_INT,     mainmem,        512),       // 512K main memory
     OPT("ExternalMem",  OT_INT,     externalmem,    0),         // No external memory
 
@@ -107,13 +106,12 @@ OPTION aOptions[] =
     OPT("ClockSync",    OT_BOOL,    clocksync,      true),      // Clocks advanced relative to real time
 
     OPT("Sound",        OT_BOOL,    sound,          true),      // Sound enabled
+    OPT("SAASound",     OT_BOOL,    saasound,       true),      // SAA 1099 sound chip enabled
     OPT("Beeper",       OT_BOOL,    beeper,         true),      // Spectrum-style beeper enabled
 
-    OPT("SAASound",     OT_BOOL,    saasound,       true),      // SAA 1099 sound chip enabled
     OPT("Frequency",    OT_INT,     freq,           22050),     // 22KHz
     OPT("Bits",         OT_INT,     bits,           16),        // 16-bit
     OPT("Stereo",       OT_BOOL,    stereo,         true),      // Stereo
-    OPT("Filter",       OT_BOOL,    filter,         false),     // Sound filter disabled (not implemented by SAASOUND yet)
     OPT("Latency",      OT_INT,     latency,        5),         // Sound latency of five frames
 
     OPT("DriveLights",  OT_INT,     drivelights,    1),         // Show drive activity lights

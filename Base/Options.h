@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Options.h: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,8 +39,7 @@ typedef struct
     bool    stretchtofit;           // Stretch screen image to fit target area?
     int     surface;                // Surface type to use
 
-    char    rom0[MAX_PATH];         // SAM ROM 0 image filename
-    char    rom1[MAX_PATH];         // SAM ROM 1 image filename
+    char    rom[MAX_PATH];          // SAM ROM image path
     int     mainmem;                // 256 or 512 for amount of main memory
     int     externalmem;            // Number of MB of external memory
 
@@ -81,13 +80,12 @@ typedef struct
     bool    clocksync;              // Non-zero if clock(s) advanced relative to real time
 
     bool    sound;                  // Sound enabled?
+    bool    saasound;               // SAA 1099 sound chip enabled?
     bool    beeper;                 // Spectrum-style beeper?
 
-    bool    saasound;               // SAA 1099 sound chip enabled?
     int     freq;                   // Sound frequency
     int     bits;                   // Bits per sample per channel
     bool    stereo;                 // Stereo?
-    bool    filter;                 // Enable sound filter?
     int     latency;                // Amount of sound buffering
 
     int     drivelights;            // Show floppy drive LEDs
