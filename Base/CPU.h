@@ -124,7 +124,7 @@ extern Z80Regs regs;
 
 
 // CPU Event Queue data
-enum    { evtStdIntStart, evtStdIntEnd, evtMidiOutIntStart, evtMidiOutIntEnd, evtEndOfLine };
+enum    { evtStdIntStart, evtStdIntEnd, evtMidiOutIntStart, evtMidiOutIntEnd, evtEndOfLine, evtInputUpdate };
 
 const int MAX_EVENTS = 16;
 
