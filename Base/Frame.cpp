@@ -357,25 +357,33 @@ void Flip ()
     DWORD* pdwB = reinterpret_cast<DWORD*>(g_pLastScreen->GetLine(0));
     int nPitchDW = g_pScreen->GetPitch() >> 2;
 
+
+    bool *pfHiRes = g_pScreen->GetHiRes(), *pfHiResLast = g_pLastScreen->GetHiRes();
+
+
     // Time to work out what changed since the last frame
     for (int i = 0 ; i < nHeight ; i++)
     {
         // Are the lines different resolutions?
-        if (g_pScreen->IsHiRes(i) != g_pLastScreen->IsHiRes(i))
+        if (pfHiRes[i] != pfHiResLast[i])
             Display::SetDirty(i);
         else
         {
             int nWidth = g_pScreen->GetWidth(i) >> 2;
+            DWORD *pA = pdwA, *pB = pdwB;
 
             // Scan the line width
             for (int j = 0 ; j < nWidth ; j += 4)
             {
                 // Check for differences 4 DWORDs at a time
-                if (pdwA[j] != pdwB[j] || pdwA[j+1] != pdwB[j+1] || pdwA[j+2] != pdwB[j+2] || pdwA[j+3] != pdwB[j+3])
+                if ((pA[0] ^ pB[0]) | (pA[1] ^ pB[1]) | (pA[2] ^ pB[2]) | (pA[3] ^ pB[3]))
                 {
                     Display::SetDirty(i);
                     break;
                 }
+
+                pA += 4;
+                pB += 4;
             }
         }
 
@@ -529,7 +537,7 @@ void ChangeMode (BYTE bVal_)
             }
 
             // Is the mode changing between 1/2 <-> 3/4 on the main screen?
-            if (((vmpr_mode ^ bVal_) & 0x40) && nBlock >= BORDER_BLOCKS)
+            if (((vmpr_mode ^ bVal_) & VMPR_MDE1_MASK) && nBlock >= BORDER_BLOCKS)
             {
                 // Draw the appropriate ASIC artefact caused by the mode change (discovered by Dave Laundon)
                 g_pFrame->ModeChange(bVal_, g_nLine, nBlock);
