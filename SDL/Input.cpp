@@ -181,7 +181,7 @@ void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
         SDL_EnableKeyRepeat(250, 30);
 
     // Hide the mouse if it's been acquired for emulation use
-    SDL_ShowCursor(!fMouse_);
+    SDL_ShowCursor(!(fMouseActive = fMouse_));
 }
 
 
@@ -430,7 +430,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
     {
         case SDL_ACTIVEEVENT:
         {
-            SDL_ShowCursor(pEvent_->active.gain ? SDL_ENABLE : SDL_DISABLE);
+            SDL_ShowCursor((pEvent_->active.gain && !fMouseActive) ? SDL_ENABLE : SDL_DISABLE);
             Purge();
             break;
         }
@@ -571,7 +571,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             // If the mouse isn't grabbed, grab it now and hide the cursor (and ignore the button down event)
             else if (!fMouseActive)
             {
-                SDL_ShowCursor(SDL_DISABLE);
+                Acquire();
                 SDL_WarpMouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
             }
             else
