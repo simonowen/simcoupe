@@ -163,7 +163,7 @@ bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 
     DWORD *pdwBack = reinterpret_cast<DWORD*>(ddsd.lpSurface), *pdw = pdwBack;
     LONG lPitchDW = ddsd.lPitch >> 2;
-    bool *pfDirty = pafDirty;
+    bool *pfDirty = pafDirty, *pfHiRes = pScreen_->GetHiRes();
 
     BYTE *pbSAM = pScreen_->GetLine(0), *pb = pbSAM;
     LONG lPitch = pScreen_->GetPitch();
@@ -176,19 +176,21 @@ bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
     {
         case 8:
         {
-            for (int y = 0 ; y < nBottom ; y++, pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, *pfDirty++ = false)
+            static const DWORD BASE_COLOUR = PALETTE_OFFSET * 0x01010101UL;
+
+            for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
             {
-                if (!*pfDirty)
+                if (!pfDirty[y])
                     continue;
 
-                if (pScreen_->IsHiRes(y))
+                if (pfHiRes[y])
                 {
                     for (int x = 0 ; x < nRightHi ; x++)
                     {
-                        *pdw++ = (aulPalette[pb[3]] << 24) | (aulPalette[pb[2]] << 16) |
-                                 (aulPalette[pb[1]] << 8)  |  aulPalette[pb[0]];
-                        *pdw++ = (aulPalette[pb[7]] << 24) | (aulPalette[pb[6]] << 16) |
-                                 (aulPalette[pb[5]] << 8)  |  aulPalette[pb[4]];
+                        pdw[0] = BASE_COLOUR + ((pb[3] << 24) | (pb[2] << 16) | (pb[1] << 8) | pb[0]);
+                        pdw[1] = BASE_COLOUR + ((pb[7] << 24) | (pb[6] << 16) | (pb[5] << 8) | pb[4]);
+
+                        pdw += 2;
                         pb += 8;
                     }
                 }
@@ -196,36 +198,43 @@ bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                 {
                     for (int x = 0 ; x < nRightLo ; x++)
                     {
-                        *pdw++ = ((aulPalette[pb[1]] << 16) | aulPalette[pb[0]]) * 0x101UL;
-                        *pdw++ = ((aulPalette[pb[3]] << 16) | aulPalette[pb[2]]) * 0x101UL;
-                        *pdw++ = ((aulPalette[pb[5]] << 16) | aulPalette[pb[4]]) * 0x101UL;
-                        *pdw++ = ((aulPalette[pb[7]] << 16) | aulPalette[pb[6]]) * 0x101UL;
+                        pdw[0] = BASE_COLOUR + ((pb[1] << 16) | pb[0]) * 0x101UL;
+                        pdw[1] = BASE_COLOUR + ((pb[3] << 16) | pb[2]) * 0x101UL;
+                        pdw[2] = BASE_COLOUR + ((pb[5] << 16) | pb[4]) * 0x101UL;
+                        pdw[3] = BASE_COLOUR + ((pb[7] << 16) | pb[6]) * 0x101UL;
+
+                        pdw += 4;
                         pb += 8;
                     }
                 }
+
+                pfDirty[y] = false;
             }
         }
         break;
 
         case 16:
         {
-            for (int y = 0 ; y < nBottom ; y++, pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, *pfDirty++ = false)
+            for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
             {
-                if (!*pfDirty)
+                if (!pfDirty[y])
                     continue;
 
                 // RBG?
                 if (!fYUV)
                 {
-                    if (pScreen_->IsHiRes(y))
+                    if (pfHiRes[y])
                     {
                         for (int x = 0 ; x < nRightHi ; x++)
                         {
                             // Draw 8 pixels at a time
-                            *pdw++ = (aulPalette[pb[1]] << 16) | aulPalette[pb[0]]; pb += 2;
-                            *pdw++ = (aulPalette[pb[1]] << 16) | aulPalette[pb[0]]; pb += 2;
-                            *pdw++ = (aulPalette[pb[1]] << 16) | aulPalette[pb[0]]; pb += 2;
-                            *pdw++ = (aulPalette[pb[1]] << 16) | aulPalette[pb[0]]; pb += 2;
+                            pdw[0] = (aulPalette[pb[1]] << 16) | aulPalette[pb[0]];
+                            pdw[1] = (aulPalette[pb[3]] << 16) | aulPalette[pb[2]];
+                            pdw[2] = (aulPalette[pb[5]] << 16) | aulPalette[pb[4]];
+                            pdw[3] = (aulPalette[pb[7]] << 16) | aulPalette[pb[6]];
+
+                            pdw += 4;
+                            pb += 8;
                         }
                     }
                     else
@@ -233,14 +242,17 @@ bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                         for (int x = 0 ; x < nRightLo ; x++)
                         {
                             // Draw 8 pixels at a time
-                            *pdw++ = aulPalette[*pb++] * 0x10001UL;
-                            *pdw++ = aulPalette[*pb++] * 0x10001UL;
-                            *pdw++ = aulPalette[*pb++] * 0x10001UL;
-                            *pdw++ = aulPalette[*pb++] * 0x10001UL;
-                            *pdw++ = aulPalette[*pb++] * 0x10001UL;
-                            *pdw++ = aulPalette[*pb++] * 0x10001UL;
-                            *pdw++ = aulPalette[*pb++] * 0x10001UL;
-                            *pdw++ = aulPalette[*pb++] * 0x10001UL;
+                            pdw[0] = aulPalette[pb[0]] * 0x10001UL;
+                            pdw[1] = aulPalette[pb[1]] * 0x10001UL;
+                            pdw[2] = aulPalette[pb[2]] * 0x10001UL;
+                            pdw[3] = aulPalette[pb[3]] * 0x10001UL;
+                            pdw[4] = aulPalette[pb[4]] * 0x10001UL;
+                            pdw[5] = aulPalette[pb[5]] * 0x10001UL;
+                            pdw[6] = aulPalette[pb[6]] * 0x10001UL;
+                            pdw[7] = aulPalette[pb[7]] * 0x10001UL;
+
+                            pdw += 8;
+                            pb += 8;
                         }
                     }
                 }
@@ -248,93 +260,111 @@ bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                 // YUV
                 else
                 {
-                    if (pScreen_->IsHiRes(y))
+                    if (pfHiRes[y])
                     {
                         for (int x = 0 ; x < nRightHi ; x++)
                         {
-                            *pdw++ = ((DWORD)(awV[pb[1]] | awY[pb[1]]) << 16) | awU[pb[0]] | awY[pb[0]];    pb += 2;
-                            *pdw++ = ((DWORD)(awV[pb[1]] | awY[pb[1]]) << 16) | awU[pb[0]] | awY[pb[0]];    pb += 2;
-                            *pdw++ = ((DWORD)(awV[pb[1]] | awY[pb[1]]) << 16) | awU[pb[0]] | awY[pb[0]];    pb += 2;
-                            *pdw++ = ((DWORD)(awV[pb[1]] | awY[pb[1]]) << 16) | awU[pb[0]] | awY[pb[0]];    pb += 2;
+                            BYTE b0, b1;
+                            b0 = pb[0]; b1 = pb[1]; pdw[0] = ((DWORD)(awV[b1] | awY[b1]) << 16) | awU[b0] | awY[b0];
+                            b0 = pb[2]; b1 = pb[3]; pdw[1] = ((DWORD)(awV[b1] | awY[b1]) << 16) | awU[b0] | awY[b0];
+                            b0 = pb[4]; b1 = pb[5]; pdw[2] = ((DWORD)(awV[b1] | awY[b1]) << 16) | awU[b0] | awY[b0];
+                            b0 = pb[6]; b1 = pb[7]; pdw[3] = ((DWORD)(awV[b1] | awY[b1]) << 16) | awU[b0] | awY[b0];
+
+                            pdw += 4;
+                            pb += 8;
                         }
                     }
                     else
                     {
                         for (int x = 0 ; x < nRightLo ; x++)
                         {
-                            *pdw++ = ((DWORD)(awV[*pb] | awY[*pb]) << 16) | awU[*pb] | awY[*pb]; pb++;
-                            *pdw++ = ((DWORD)(awV[*pb] | awY[*pb]) << 16) | awU[*pb] | awY[*pb]; pb++;
-                            *pdw++ = ((DWORD)(awV[*pb] | awY[*pb]) << 16) | awU[*pb] | awY[*pb]; pb++;
-                            *pdw++ = ((DWORD)(awV[*pb] | awY[*pb]) << 16) | awU[*pb] | awY[*pb]; pb++;
-                            *pdw++ = ((DWORD)(awV[*pb] | awY[*pb]) << 16) | awU[*pb] | awY[*pb]; pb++;
-                            *pdw++ = ((DWORD)(awV[*pb] | awY[*pb]) << 16) | awU[*pb] | awY[*pb]; pb++;
-                            *pdw++ = ((DWORD)(awV[*pb] | awY[*pb]) << 16) | awU[*pb] | awY[*pb]; pb++;
-                            *pdw++ = ((DWORD)(awV[*pb] | awY[*pb]) << 16) | awU[*pb] | awY[*pb]; pb++;
+                            BYTE b;
+                            b = pb[0]; pdw[0] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
+                            b = pb[1]; pdw[1] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
+                            b = pb[2]; pdw[2] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
+                            b = pb[3]; pdw[3] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
+                            b = pb[4]; pdw[4] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
+                            b = pb[5]; pdw[5] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
+                            b = pb[6]; pdw[6] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
+                            b = pb[7]; pdw[7] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
+
+                            pdw += 8;
+                            pb += 8;
                         }
                     }
                 }
+
+                pfDirty[y] = false;
             }
         }
         break;
 
         case 24:
         {
-            for (int y = 0 ; y < nBottom ; y++, pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, *pfDirty++ = false)
+            for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
             {
-                if (!*pfDirty)
+                if (!pfDirty[y])
                     continue;
 
-                if (pScreen_->IsHiRes(y))
+                if (pfHiRes[y])
                 {
                     for (int x = 0 ; x < nRightHi ; x++)
                     {
-                        BYTE *pb1 = (BYTE*)&aulPalette[*pb++], *pb2 = (BYTE*)&aulPalette[*pb++];
-                        BYTE *pb3 = (BYTE*)&aulPalette[*pb++], *pb4 = (BYTE*)&aulPalette[*pb++];
-                        *pdw++ = (((DWORD)pb2[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
-                        *pdw++ = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[0]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[1];
-                        *pdw++ = (((DWORD)pb4[2]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[0]) << 8) | pb3[2];
+                        BYTE *pb1 = (BYTE*)&aulPalette[pb[0]], *pb2 = (BYTE*)&aulPalette[pb[1]];
+                        BYTE *pb3 = (BYTE*)&aulPalette[pb[2]], *pb4 = (BYTE*)&aulPalette[pb[3]];
+                        pdw[0] = (((DWORD)pb2[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                        pdw[1] = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[0]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[1];
+                        pdw[2] = (((DWORD)pb4[2]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[0]) << 8) | pb3[2];
 
-                        pb1 = (BYTE*)&aulPalette[*pb++], pb2 = (BYTE*)&aulPalette[*pb++];
-                        pb3 = (BYTE*)&aulPalette[*pb++], pb4 = (BYTE*)&aulPalette[*pb++];
-                        *pdw++ = (((DWORD)pb2[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
-                        *pdw++ = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[0]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[1];
-                        *pdw++ = (((DWORD)pb4[2]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[0]) << 8) | pb3[2];
+                        pb1 = (BYTE*)&aulPalette[pb[4]], pb2 = (BYTE*)&aulPalette[pb[5]];
+                        pb3 = (BYTE*)&aulPalette[pb[6]], pb4 = (BYTE*)&aulPalette[pb[7]];
+                        pdw[3] = (((DWORD)pb2[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                        pdw[4] = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[0]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[1];
+                        pdw[5] = (((DWORD)pb4[2]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[0]) << 8) | pb3[2];
+
+                        pdw += 6;
+                        pb += 8;
                     }
                 }
                 else
                 {
                     for (int x = 0 ; x < nRightLo ; x++)
                     {
-                        BYTE *pb1 = (BYTE*)&aulPalette[*pb++], *pb2 = (BYTE*)&aulPalette[*pb++];
-                        *pdw++ = (((DWORD)pb1[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
-                        *pdw++ = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[2]) << 16) | (((DWORD)pb1[0]) << 8) | pb1[1];
-                        *pdw++ = (((DWORD)pb2[0]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[0];
+                        BYTE *pb1 = (BYTE*)&aulPalette[pb[0]], *pb2 = (BYTE*)&aulPalette[pb[1]];
+                        pdw[0]  = (((DWORD)pb1[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
+                        pdw[1]  = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[2]) << 16) | (((DWORD)pb1[0]) << 8) | pb1[1];
+                        pdw[2]  = (((DWORD)pb2[0]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[0];
 
-                        pb1 = (BYTE*)&aulPalette[*pb++], pb2 = (BYTE*)&aulPalette[*pb++];
-                        *pdw++ = (((DWORD)pb1[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
-                        *pdw++ = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[2]) << 16) | (((DWORD)pb1[0]) << 8) | pb1[1];
-                        *pdw++ = (((DWORD)pb2[0]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[0];
+                        pb1 = (BYTE*)&aulPalette[pb[2]], pb2 = (BYTE*)&aulPalette[pb[3]];
+                        pdw[3]  = (((DWORD)pb1[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
+                        pdw[4]  = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[2]) << 16) | (((DWORD)pb1[0]) << 8) | pb1[1];
+                        pdw[5]  = (((DWORD)pb2[0]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[0];
 
-                        pb1 = (BYTE*)&aulPalette[*pb++], pb2 = (BYTE*)&aulPalette[*pb++];
-                        *pdw++ = (((DWORD)pb1[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
-                        *pdw++ = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[2]) << 16) | (((DWORD)pb1[0]) << 8) | pb1[1];
-                        *pdw++ = (((DWORD)pb2[0]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[0];
+                        pb1 = (BYTE*)&aulPalette[pb[4]], pb2 = (BYTE*)&aulPalette[pb[5]];
+                        pdw[6]  = (((DWORD)pb1[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
+                        pdw[7]  = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[2]) << 16) | (((DWORD)pb1[0]) << 8) | pb1[1];
+                        pdw[8]  = (((DWORD)pb2[0]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[0];
 
-                        pb1 = (BYTE*)&aulPalette[*pb++], pb2 = (BYTE*)&aulPalette[*pb++];
-                        *pdw++ = (((DWORD)pb1[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
-                        *pdw++ = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[2]) << 16) | (((DWORD)pb1[0]) << 8) | pb1[1];
-                        *pdw++ = (((DWORD)pb2[0]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[0];
+                        pb1 = (BYTE*)&aulPalette[pb[6]], pb2 = (BYTE*)&aulPalette[pb[7]];
+                        pdw[9]  = (((DWORD)pb1[2]) << 24) | (((DWORD)pb1[0]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[2];
+                        pdw[10] = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[2]) << 16) | (((DWORD)pb1[0]) << 8) | pb1[1];
+                        pdw[11] = (((DWORD)pb2[0]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[0];
+
+                        pdw += 12;
+                        pb += 8;
                     }
                 }
+
+                pfDirty[y] = false;
             }
         }
         break;
 
         case 32:
         {
-            for (int y = 0 ; y < nBottom ; y++, pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, *pfDirty++ = false)
+            for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
             {
-                if (!*pfDirty)
+                if (!pfDirty[y])
                     continue;
 
                 if (pScreen_->IsHiRes(y))
@@ -342,14 +372,17 @@ bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                     for (int x = 0 ; x < nRightHi ; x++)
                     {
                         // Draw 8 pixels at a time
-                        *pdw++ = aulPalette[*pb++];
-                        *pdw++ = aulPalette[*pb++];
-                        *pdw++ = aulPalette[*pb++];
-                        *pdw++ = aulPalette[*pb++];
-                        *pdw++ = aulPalette[*pb++];
-                        *pdw++ = aulPalette[*pb++];
-                        *pdw++ = aulPalette[*pb++];
-                        *pdw++ = aulPalette[*pb++];
+                        pdw[0] = aulPalette[pb[0]];
+                        pdw[1] = aulPalette[pb[1]];
+                        pdw[2] = aulPalette[pb[2]];
+                        pdw[3] = aulPalette[pb[3]];
+                        pdw[4] = aulPalette[pb[4]];
+                        pdw[5] = aulPalette[pb[5]];
+                        pdw[6] = aulPalette[pb[6]];
+                        pdw[7] = aulPalette[pb[7]];
+
+                        pdw += 8;
+                        pb += 8;
                     }
                 }
                 else
@@ -357,17 +390,21 @@ bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                     for (int x = 0 ; x < nRightLo ; x++)
                     {
                         // Draw 8 pixels at a time
-                        pdw[0] = pdw[1] = aulPalette[*pb++];
-                        pdw[2] = pdw[3] = aulPalette[*pb++];
-                        pdw[4] = pdw[5] = aulPalette[*pb++];
-                        pdw[6] = pdw[7] = aulPalette[*pb++];
-                        pdw[8] = pdw[9] = aulPalette[*pb++];
-                        pdw[10] = pdw[11] = aulPalette[*pb++];
-                        pdw[12] = pdw[13] = aulPalette[*pb++];
-                        pdw[14] = pdw[15] = aulPalette[*pb++];
+                        pdw[0]  = pdw[1]  = aulPalette[pb[0]];
+                        pdw[2]  = pdw[3]  = aulPalette[pb[1]];
+                        pdw[4]  = pdw[5]  = aulPalette[pb[2]];
+                        pdw[6]  = pdw[7]  = aulPalette[pb[3]];
+                        pdw[8]  = pdw[9]  = aulPalette[pb[4]];
+                        pdw[10] = pdw[11] = aulPalette[pb[5]];
+                        pdw[12] = pdw[13] = aulPalette[pb[6]];
+                        pdw[14] = pdw[15] = aulPalette[pb[7]];
+
                         pdw += 16;
+                        pb += 8;
                     }
                 }
+
+                pfDirty[y] = false;
             }
         }
         break;
