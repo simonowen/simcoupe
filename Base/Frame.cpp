@@ -534,6 +534,7 @@ void DrawOSD (CScreen* pScreen_)
 // Save the frame image to a file
 void Frame::SaveFrame (const char* pcszPath_/*=NULL*/)
 {
+#ifdef USE_ZLIB
     // If no path is supplied we need to generate a unique one
     if (!pcszPath_)
     {
@@ -552,40 +553,40 @@ void Frame::SaveFrame (const char* pcszPath_/*=NULL*/)
         while (!::stat(szScreenPath, &st));
 
         // We'll leave the path in the buffer, so Frame::End() can spot it when the next frame is generated
+        return;
     }
 
-    // Save the latest screen image to the specified file
+    // Get the save path
+    const char* pcszFile = OSD::GetFilePath("");
+
+    // If the file is in the save path, we can refer to the file by it's name, to avoid a verbose path
+    if (!strncmp(szScreenPath, pcszFile, strlen(pcszFile)))
+        pcszFile = szScreenPath + strlen(pcszFile);
+
+    FILE* f = fopen(szScreenPath, "wb");
+    if (!f)
+        Frame::SetStatus("Failed to open %s for writing!", szScreenPath);
     else
     {
-        // Get the save path
-        const char* pcszFile = OSD::GetFilePath("");
+        bool fSaved = SaveImage(f, g_pScreen);
+        fclose(f);
 
-        // If the file is in the save path, we can refer to the file by it's name, to avoid a verbose path
-        if (!strncmp(szScreenPath, pcszFile, strlen(pcszFile)))
-            pcszFile = szScreenPath + strlen(pcszFile);
-
-
-        FILE* f = fopen(szScreenPath, "wb");
-        if (!f)
-            Frame::SetStatus("Failed to open %s for writing!", szScreenPath);
+        // If the save failed, delete the empty image
+        if (fSaved)
+            Frame::SetStatus("Saved screen to %s", pcszFile);
         else
         {
-            bool fSaved = SaveImage(f, g_pScreen);
-            fclose(f);
-
-            // If the save failed, delete the empty image
-            if (fSaved)
-                Frame::SetStatus("Saved screen to %s", pcszFile);
-            else
-            {
-                Frame::SetStatus("Failed to save screen to %s!", szScreenPath);
-                remove(szScreenPath);
-            }
+            Frame::SetStatus("Failed to save screen to %s!", szScreenPath);
+            remove(szScreenPath);
         }
-
-        // We've finished with the path now, so prevent it being saved again
-        szScreenPath[0] = '\0';
     }
+
+#else
+    Frame::SetStatus("Save screen not available without zLib", szScreenPath);
+#endif  // USE_ZLIB
+
+    // We've finished with the path now, so prevent it being saved again
+    szScreenPath[0] = '\0';
 }
 
 
