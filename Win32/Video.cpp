@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Video.cpp: Win32 core video functionality using DirectDraw
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -140,8 +140,9 @@ bool Video::Init (bool fFirstInit_)
             // Create the primary surface
             if (!(pddsPrimary = CreateSurface(DDSCAPS_PRIMARYSURFACE)))
             {
-                Exit(false);
-                Message(msgError, "Failed to create primary surface!", hr);
+                // Only report this failure on startup
+                if (fFirstInit_)
+                    Message(msgError, "Failed to create primary surface!", hr);
             }
 
             // If we're running in a window we need a clipper to keep the image within the window
@@ -421,6 +422,13 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
         // Look up the colour in the appropriate palette
         const RGBA* p = (i < N_PALETTE_COLOURS) ? &pSAM[i] : &pGUI[i-N_PALETTE_COLOURS];
         BYTE bRed = p->bRed, bGreen = p->bGreen, bBlue = p->bBlue;
+
+        // If colour is disabled, convert to the appropriate shade of grey
+        if (0)
+        {
+            BYTE bGrey = static_cast<BYTE>(0.30 * bRed + 0.59 * bGreen + 0.11 * bBlue);
+            bRed = bGreen = bBlue = bGrey;
+        }
 
         // Using YUV on an overlay?
         if (fYUV)
