@@ -2,7 +2,7 @@
 //
 // OSD.h: Allegro common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -90,8 +90,7 @@ public:
 #endif
 
 #ifdef USE_ZLIB
-#define ZLIB_DLL
-#pragma comment(lib, "zlib")
+#pragma comment(lib, "zlib1")   // new 1.2.x version, required to avoid zlib binary mismatch problems
 #endif
 
 #ifdef USE_SAASOUND

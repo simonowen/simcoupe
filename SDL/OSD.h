@@ -88,8 +88,7 @@ public:
 #pragma comment(lib, "sdlmain")
 
 #ifdef USE_ZLIB
-#define ZLIB_DLL
-#pragma comment(lib, "zlib")
+#pragma comment(lib, "zlib1")   // new 1.2.x version, required to avoid zlib binary mismatch problems
 #endif
 
 #ifdef USE_SAASOUND
