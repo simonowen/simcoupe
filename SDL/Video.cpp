@@ -226,9 +226,8 @@ bool Video::Init (bool fFirstInit_/*=false*/)
 
         int nDepth = GetOption(fullscreen) ? GetOption(depth) : 0;
 
-        // Should the surfaces be in video memory?  (they need to be for any hardware acceleration)
-        DWORD dwOptions =  ((GetOption(surface) >= 2) ? SDL_HWSURFACE : 0);
-        dwOptions |= (nDepth == 8) ? SDL_HWPALETTE : 0;
+        // Use a hardware surface if possible, and a palette if we're running in 8-bit mode
+        DWORD dwOptions =  SDL_HWSURFACE | (nDepth == 8) ? SDL_HWPALETTE : 0;
 
 #ifdef USE_OPENGL
             SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
