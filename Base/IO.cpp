@@ -2,7 +2,7 @@
 //
 // IO.cpp: SAM I/O port handling
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //  Copyright (c) 2000-2001  Dave Laundon
 //
@@ -52,6 +52,7 @@
 #include "Mouse.h"
 #include "Options.h"
 #include "Parallel.h"
+#include "SAMDOS.h"
 #include "SDIDE.h"
 #include "Serial.h"
 #include "Sound.h"
@@ -66,7 +67,7 @@
 extern int g_nLine;
 extern int g_nLineCycle;
 
-CDiskDevice *pDrive1, *pDrive2, *pSDIDE, *pYATBus;
+CDiskDevice *pDrive1, *pDrive2, *pSDIDE, *pYATBus, *pBootDrive;
 CIoDevice *pParallel1, *pParallel2;
 CIoDevice *pSerial1, *pSerial2;
 CIoDevice *pSambus, *pDallas;
@@ -97,36 +98,20 @@ bool fInputDirty;       // true if the input has been modified since the last fr
 bool fASICStartup;      // If set, the ASIC will be unresponsive shortly after first power-on
 bool g_fAutoBoot;       // Auto-boot the disk in drive 1 when we're at the startup screen
 
-static inline void out_vmpr(BYTE bVal_);
-static inline void out_hmpr(BYTE bVal_);
-static inline void out_lmpr(BYTE bVal_);
-static inline void out_lepr(BYTE bVal_);
-static inline void out_hepr(BYTE bVal_);
-
 
 bool IO::Init (bool fFirstInit_/*=false*/)
 {
     bool fRet = true;
     Exit(true);
 
-    // Any sort of reset requires the paging to be reinitialised
-    out_vmpr(0);                    // Video in page 0, screen mode 1
-    out_hmpr(0);                    // Page 0 in section A, page 1 in section B, ROM0 on, ROM off
-    out_lmpr(0);                    // Page 0 in section C, page 1 in section D
+    lepr = hepr = lpen = border = 0;
 
-    // Initialise external memory
-    out_lepr(0);
-    out_hepr(0);
-
-    // Border black, speaker off
-    out_byte(BORDER_PORT, 0);
-
+    OutLmpr(0);     // Page 0 in section C, page 1 in section D
+    OutHmpr(0);     // Page 0 in section A, page 1 in section B, ROM0 on, ROM off
+    OutVmpr(0);     // Video in page 0, screen mode 1
 
     // No extended keys pressed, no active interrupts
     status_reg = 0xff;
-
-    // Clear lightpen/scan X position
-    lpen = 0x00;
 
 
     // Also, if this is a power-on initialisation, set up the clut, etc.
@@ -171,6 +156,14 @@ void IO::Exit (bool fReInit_/*=false*/)
 
 bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 {
+    // The boot drive should never exist here, but we'll clean up if it does
+    if (pBootDrive)
+    {
+        delete pDrive1;
+        pDrive1 = pBootDrive;
+        pBootDrive = NULL;
+    }
+
     if (pDrive1 && ((!fInit_ && !fReInit_) || (pDrive1->GetType() != GetOption(drive1))))
     {
         if (pDrive1->GetType() == dskImage)
@@ -357,36 +350,27 @@ static inline void PaletteChange (BYTE bHMPR_)
 }
 
 
-static inline void out_lepr (BYTE bVal_)
+void IO::OutLmpr(BYTE val)
 {
-    lepr = bVal_;
+    lmpr = val;
 
-    if (HMPR_MCNTRL)
-        PageIn(SECTION_C, N_PAGES_MAIN + bVal_);
+    // Put either RAM or ROM 0 into section A
+    if (lmpr & LMPR_ROM0_OFF)
+        PageIn(SECTION_A, LMPR_PAGE);
+    else
+        PageIn(SECTION_A, ROM0);
+
+    // Put the relevant bank into section B
+    PageIn(SECTION_B, (LMPR_PAGE + 1) & LMPR_PAGE_MASK);
+
+    // Put either RAM or ROM 1 into section D
+    if (lmpr & LMPR_ROM1)
+        PageIn(SECTION_D, ROM1);
+    else
+        PageIn(SECTION_D, (HMPR_PAGE + 1) & HMPR_PAGE_MASK);
 }
 
-static inline void out_hepr (BYTE bVal_)
-{
-    hepr = bVal_;
-
-    if (HMPR_MCNTRL)
-        PageIn(SECTION_D, N_PAGES_MAIN + bVal_);
-}
-
-static inline void out_vmpr (BYTE bVal_)
-{
-    // The ASIC changes mode before page, so consider an on-screen artifact from the mode change
-    Frame::ChangeMode(bVal_);
-
-    vmpr = (bVal_ & (VMPR_MODE_MASK|VMPR_PAGE_MASK));
-    vmpr_mode = vmpr & VMPR_MODE_MASK;
-
-    // Extract the page number(s) for faster access by the memory writing functions
-    vmpr_page1 = VMPR_PAGE;
-    vmpr_page2 = (vmpr_page1+1) & VMPR_PAGE_MASK;
-}
-
-static inline void out_hmpr (BYTE bVal_)
+void IO::OutHmpr (BYTE bVal_)
 {
     // Have the mode3 BCD4/8 bits changed?
     if ((hmpr ^ bVal_) & HMPR_MD3COL_MASK)
@@ -414,33 +398,42 @@ static inline void out_hmpr (BYTE bVal_)
     // External RAM has priority, even over ROM1
     if (HMPR_MCNTRL)
     {
-        out_hepr(hepr);
-        out_lepr(lepr);
+        OutLepr(lepr);
+        OutHepr(hepr);
     }
 }
 
-
-static inline void out_lmpr(BYTE val)
+void IO::OutVmpr (BYTE bVal_)
 {
-    lmpr = val;
+    // The ASIC changes mode before page, so consider an on-screen artifact from the mode change
+    Frame::ChangeMode(bVal_);
 
-    // Put either RAM or ROM 0 into section A
-    if (lmpr & LMPR_ROM0_OFF)
-        PageIn(SECTION_A, LMPR_PAGE);
-    else
-        PageIn(SECTION_A, ROM0);
+    vmpr = (bVal_ & (VMPR_MODE_MASK|VMPR_PAGE_MASK));
+    vmpr_mode = vmpr & VMPR_MODE_MASK;
 
-    // Put the relevant bank into section B
-    PageIn(SECTION_B, (LMPR_PAGE + 1) & LMPR_PAGE_MASK);
-
-    // Put either RAM or ROM 1 into section D
-    if (lmpr & LMPR_ROM1)
-        PageIn(SECTION_D, ROM1);
-    else
-        PageIn(SECTION_D, (HMPR_PAGE + 1) & HMPR_PAGE_MASK);
+    // Extract the page number(s) for faster access by the memory writing functions
+    vmpr_page1 = VMPR_PAGE;
+    vmpr_page2 = (vmpr_page1+1) & VMPR_PAGE_MASK;
 }
 
-static inline void out_clut(WORD wPort_, BYTE bVal_)
+void IO::OutLepr (BYTE bVal_)
+{
+    lepr = bVal_;
+
+    if (HMPR_MCNTRL)
+        PageIn(SECTION_C, EXTMEM+bVal_);
+}
+
+void IO::OutHepr (BYTE bVal_)
+{
+    hepr = bVal_;
+
+    if (HMPR_MCNTRL)
+        PageIn(SECTION_D, EXTMEM+bVal_);
+}
+
+
+void IO::OutClut (WORD wPort_, BYTE bVal_)
 {
     wPort_ &= (N_CLUT_REGS-1);          // 16 clut registers, so only the bottom 4 bits are significant
     bVal_ &= (N_PALETTE_COLOURS-1);     // 128 colours, so only the bottom 7 bits are significant
@@ -679,7 +672,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
                     Frame::Update();
 
                     // Change only the screen MODE for the transition block
-                    out_vmpr((bVal_ & VMPR_MODE_MASK) | (vmpr & ~VMPR_MODE_MASK));
+                    OutVmpr((bVal_ & VMPR_MODE_MASK) | (vmpr & ~VMPR_MODE_MASK));
                 }
                 // Otherwise both modes are 1 or 2
                 else
@@ -690,7 +683,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
                     g_nLineCycle -= VIDEO_DELAY;
 
                     // Do the whole change here - the check below will not be triggered
-                    out_vmpr(bVal_);
+                    OutVmpr(bVal_);
                 }
 
                 // Video mode change may have affected memory contention
@@ -706,19 +699,19 @@ void IO::Out (WORD wPort_, BYTE bVal_)
                 Frame::Update();
                 g_nLineCycle -= VIDEO_DELAY;
 
-                out_vmpr(bVal_);
+                OutVmpr(bVal_);
             }
         }
         break;
 
         case HMPR_PORT:
             if (hmpr != bVal_)
-                out_hmpr(bVal_);
+                OutHmpr(bVal_);
             break;
 
         case LMPR_PORT:
             if (lmpr != bVal_)
-                out_lmpr(bVal_);
+                OutLmpr(bVal_);
             break;
 
         // SAMBUS and DALLAS clock ports
@@ -730,16 +723,16 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             break;
 
         case CLUT_BASE_PORT:
-            out_clut(wPort_ >> 8, bVal_);
+            OutClut(wPort_ >> 8, bVal_);
             break;
 
         // External memory
         case HEPR_PORT:
-            out_hepr(bVal_);
+            OutHepr(bVal_);
             break;
 
         case LEPR_PORT:
-            out_lepr(bVal_);
+            OutLepr(bVal_);
             break;
 
         case LINE_PORT:
@@ -897,13 +890,13 @@ void IO::UpdateInput()
     if (g_fAutoBoot && IsAtStartupScreen())
     {
         g_fAutoBoot = false;
-        nAutoBoot = 8 * pDrive1->IsInserted();
+        nAutoBoot = 15 * pDrive1->IsInserted();
     }
 
     // If actively auto-booting, press and release F9 to trigger the boot
     if (nAutoBoot)
     {
-        if (--nAutoBoot & 1)
+        if (--nAutoBoot)
             PressSamKey(SK_F9);
         else
             ReleaseSamKey(SK_F9);
@@ -980,4 +973,54 @@ void IO::CheckAutoboot ()
 {
     // Trigger autoboot if we're at the startup screen right now
     g_fAutoBoot |= GetOption(autoboot) && IO::IsAtStartupScreen();
+}
+
+
+bool IO::Rst8Hook ()
+{
+    // If a drive object exists, clean up after our boot attempt (which could fail if we're given a bad image)
+    if (pBootDrive)
+    {
+        delete pDrive1;
+        pDrive1 = pBootDrive;
+        pBootDrive = NULL;
+    }
+
+    // Are we about to trigger "NO DOS" in ROM1, and with DOS booting enabled?
+    else if (regs.PC.W == 0xd977 && GetSectionPage(SECTION_D) == ROM1 && GetOption(dosboot))
+    {
+        CDisk* pDisk = NULL;
+
+        // If there's a custom boot disk, load it read-only
+        if (*GetOption(dosdisk))
+            pDisk = CDisk::Open(GetOption(dosdisk), true);
+
+        // Fall back on the built-in SAMDOS 2.2 image
+        if (!pDisk)
+            pDisk = CDisk::Open(abSAMDOS, sizeof(abSAMDOS), "mem:SAMDOS.sbt");
+
+        if (pDisk)
+        {
+            // Switch to the temporary boot image
+            pBootDrive = pDrive1;
+            pDrive1 = new CDrive(pDisk);
+
+            // If successful, 
+            if (pDrive1)
+            {
+                // Jump back to BOOTEX to try again, and return that we processed the RST
+                regs.PC.W = 0xd8e5;
+                return true;
+            }
+            else
+            {
+                delete pDisk;
+                pDrive1 = pBootDrive;
+                pBootDrive = NULL;
+            }
+        }
+    }
+
+    // RST not processed
+    return false;
 }
