@@ -2,7 +2,7 @@
 //
 // Options.cpp: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -75,6 +75,8 @@ OPTION aOptions[] =
     OPT("Drive2",       OT_INT,     drive2,         1),         // Floppy drive 2 present
     OPT("Disk1",        OT_STRING,  disk1,          ""),        // No disk in floppy drive 1
     OPT("Disk2",        OT_STRING,  disk2,          ""),        // No disk in floppy drive 2
+    OPT("AtomDisk",     OT_STRING,  atomdisk,       ""),        // No Atom hard disk
+    OPT("SDIDEDisk",    OT_STRING,  sdidedisk,      ""),        // No SD IDE hard disk
     OPT("AutoBoot",     OT_BOOL,    autoboot,       false),     // Don't auto-boot inserted disk
     OPT("TurboLoad",    OT_INT,     turboload,      15),        // Accelerate disk access (medium sensitivity)
 
@@ -119,7 +121,7 @@ OPTION aOptions[] =
     OPT("Status",       OT_BOOL,    status,         true),      // Show status line for changed options, etc.
 
     OPT("FnKeys",       OT_STRING,  fnkeys,
-     "F1=12,SF1=13,CF1=14,F2=15,SF2=16,CF2=17,F3=28,SF3=11,CF3=10,F4=22,SF4=23,F5=5,SF5=7,F6=8,F7=6,F8=4,F9=9,SF9=19,F10=24,F11=0,F12=1,CF12=25"),
+     "F1=12,SF1=13,CF1=14,F2=15,SF2=16,CF2=17,F3=28,SF3=11,CF3=10,F4=22,AF4=25,SF4=23,F5=5,SF5=7,F6=8,F7=6,F8=4,F9=9,SF9=19,F10=24,F11=0,F12=1,CF12=25"),
 
     OPT("PauseInactive",OT_BOOL,    pauseinactive,  false),     // Continue to run when inactive
 
