@@ -654,24 +654,10 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
 
         case SDL_MOUSEMOTION:
         {
-            static int nRelX = 0, nRelY = 0;
+            // Fetch the current mouse position
+            int nX = pEvent_->motion.x, nY = pEvent_->motion.y;
 
-            // If another mouse move is due, store this one, and wait for the next before doing anything
-            SDL_Event sEvent;
-            if (SDL_PeepEvents(&sEvent, 1, SDL_GETEVENT, SDL_MOUSEMOTIONMASK))
-            {
-                AppleHack(&sEvent);
-
-                nRelX += sEvent.motion.xrel;
-                nRelY += sEvent.motion.yrel;
-                break;
-            }
-
-            // Adjust by any stored motion
-            int nX = pEvent_->motion.x + nRelX, nY = pEvent_->motion.y + nRelY;
-            nRelX = nRelY = 0;
-
-//          Frame::SetStatus("Mouse:  %d %d", pEvent_->motion.xrel, pEvent_->motion.yrel);
+//          Frame::SetStatus("Mouse: %d,%d", pEvent_->motion.x, pEvent_->motion.y);
 
             // Show the cursor in windowed mode unless the mouse is acquired or the GUI is active
             bool fShowCursor = !fMouseActive && !GUI::IsActive() && !GetOption(fullscreen);
