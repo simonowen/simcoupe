@@ -1,4 +1,4 @@
-# SimCoupe - A SAM Coupé emulator
+# SimCoupe - A SAM Coupe emulator
 #
 # SDL Makefile
 #
@@ -24,31 +24,27 @@ SDL=.
 BASE=../Base
 EXTERN=../Extern
 
-USE_SAASOUND=1
-USE_ZLIB=1
 USE_OPENGL=0
+USE_ZLIB=1
+USE_SAASOUND=1
 
 .SUFFIXES: .cpp .c
 
 CFLAGS=-O2 -Wall -I${SDL} -I${BASE} $(shell sdl-config --cflags)
 CXXFLAGS=${CFLAGS}
-LIBS=-L/usr/X11R6/lib -lm -lstdc++ $(shell sdl-config --libs --cflags)
+LIBS=-L. -L/usr/X11R6/lib -lm $(shell sdl-config --libs --cflags)
 
-SRC_FILES=${BASE}/ATA.cpp ${BASE}/Atom.cpp ${BASE}/CDisk.cpp \
+BASE_SRC=${BASE}/ATA.cpp ${BASE}/Atom.cpp ${BASE}/CDisk.cpp \
  ${BASE}/CDrive.cpp ${BASE}/Clock.cpp ${BASE}/CPU.cpp ${BASE}/CScreen.cpp \
  ${BASE}/CStream.cpp ${BASE}/Debug.cpp ${BASE}/Disassem.cpp ${BASE}/Font.cpp \
  ${BASE}/Frame.cpp ${BASE}/GUI.cpp ${BASE}/GUIDlg.cpp ${BASE}/GUIIcons.cpp \
  ${BASE}/IO.cpp ${BASE}/Main.cpp ${BASE}/Memory.cpp ${BASE}/Mouse.cpp \
  ${BASE}/Options.cpp ${BASE}/PNG.cpp ${BASE}/Profile.cpp ${BASE}/Util.cpp \
- ${SDL}/Display.cpp ${SDL}/Floppy.cpp ${SDL}/Input.cpp ${SDL}/MIDI.cpp \
- ${SDL}/OSD.cpp ${SDL}/Parallel.cpp ${SDL}/Serial.cpp ${SDL}/Sound.cpp \
- ${SDL}/UI.cpp ${SDL}/Video.cpp \
  ${EXTERN}/SAASound.cpp
-
-ifeq (${USE_SAASOUND},1)
-CFLAGS += -DUSE_SAASOUND
-LIBS += -lSAASound
-endif
+ 
+SDL_SRC=${SDL}/Display.cpp ${SDL}/Floppy.cpp ${SDL}/Input.cpp ${SDL}/MIDI.cpp \
+ ${SDL}/OSD.cpp ${SDL}/Parallel.cpp ${SDL}/Serial.cpp ${SDL}/Sound.cpp \
+ ${SDL}/UI.cpp ${SDL}/Video.cpp
 
 ifeq (${USE_OPENGL},1)
 CFLAGS += -DUSE_OPENGL
@@ -60,13 +56,18 @@ CFLAGS += -DUSE_ZLIB
 LIBS += -lz
 endif
 
-CXXFLAGS=${CFLAGS}
-OBJS=$(SRC_FILES:%.cpp=%.o) ${EXTERN}/unzip.o
+ifeq (${USE_SAASOUND},1)
+CFLAGS += -DUSE_SAASOUND
+LIBS += -lSAASound
+endif
+
+BASE_OBJS=$(BASE_SRC:%.cpp=%.o) ${EXTERN}/unzip.o
+SDL_OBJS=$(SDL_SRC:%.cpp=%.o)
 
 all:	${TARGET}
 
-${TARGET}:	${OBJS} Makefile
-	${CXX} -o ${TARGET} ${CXXFLAGS} ${OBJS} ${LIBS}
+${TARGET}:	${BASE_OBJS} ${SDL_OBJS} Makefile
+	${CXX} -o ${TARGET} ${CXXFLAGS} ${BASE_OBJS} ${SDL_OBJS} ${LIBS}
 
 .cpp.o:
 	${CXX} -o $@ -c $< ${CXXFLAGS}
