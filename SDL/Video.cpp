@@ -128,12 +128,10 @@ void InitGL ()
     else
         g_glPixelFormat = GL_RGBA, g_glDataType = GL_UNSIGNED_BYTE;
 
-    // The row length depends on whether we're using 16-bit packed or regular 32-bit pixels
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, (g_glDataType == GL_UNSIGNED_BYTE) ? 256 : 512);
 
-
-    // Check if the driver can access our buffers directly, instead of copying
-    bool fAppleClientStorage = glExtension("GL_APPLE_client_storage");
+    // Store textures locally if possible for an AGP transfer boost
+    if (glExtension("GL_APPLE_client_storage"))
+        glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
 
     // Try for edge-clamped textures, to avoid visible seams between filtered tiles (mainly OS X)
     GLuint uClamp = glExtension("GL_SGIS_texture_edge_clamp") ? GL_CLAMP_TO_EDGE : GL_CLAMP;
@@ -148,10 +146,6 @@ void InitGL ()
     for (int i = 0 ; i < N_TEXTURES ; i++)
     {
         glBindTexture(GL_TEXTURE_2D, auTextures[i]);
-
-        // Enable AGP transfers from our buffers if possible
-        if (fAppleClientStorage)
-            glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
 
         // Set the clamping and filtering texture parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, uClamp);
