@@ -52,6 +52,7 @@
 #define IDC_ALTGR_FOR_EDIT              1005
 #define IDE_NEWFILE                     1005
 #define IDE_TOTALSIZE                   1006
+#define IDC_KPMINUS_RESET               1006
 #define IDE_OFFSET                      1007
 #define IDC_SPIN1                       1015
 #define IDS_SIDES                       1015
@@ -106,7 +107,6 @@
 #define IDC_FULLSCREEN                  1092
 #define IDC_BEEPER                      1092
 #define IDC_CTRL                        1092
-#define IDC_NON_REAL_WORLD              1092
 #define IDC_PRINTER_ONLINE              1092
 #define IDC_MIDI                        1093
 #define IDC_SHIFT                       1093
@@ -162,7 +162,6 @@
 #define IDM_FILE_FLOPPY2_EJECT          40096
 #define IDM_FILE_IMPORT_DATA            40107
 #define IDM_FILE_EXPORT_DATA            40108
-#define IDM_FILE_NEW_DISK               40109
 #define IDM_FILE_FLOPPY1_SAVE_CHANGES   40119
 #define IDM_FILE_FLOPPY2_SAVE_CHANGES   40120
 #define IDM_FILE_FLOPPY1_DEVICE         40134
