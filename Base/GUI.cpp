@@ -1125,6 +1125,7 @@ CComboBox::CComboBox (CWindow* pParent_/*=NULL*/, int nX_/*=0*/, int nY_/*=0*/, 
     SetText(pcszText_);
 }
 
+
 void CComboBox::Select (int nSelected_)
 {
     int nOldSelection = m_nSelected;
@@ -1133,6 +1134,36 @@ void CComboBox::Select (int nSelected_)
     // Nofify the parent if the selection has changed
     if (m_nSelected != nOldSelection)
         NotifyParent();
+}
+
+void CComboBox::Select (const char* pcszItem_)
+{
+    char sz[256];
+
+    // Find the text for the current selection
+    char* psz = strtok(strcpy(sz, GetText()), "|");
+    for (int i = 0 ; psz && i < m_nSelected ; psz = strtok(NULL, "|"), i++)
+    {
+        // If we've found the item, select it
+        if (!strcasecmp(psz, pcszItem_))
+        {
+            Select(i);
+            break;
+        }
+    }
+}
+
+
+const char* CComboBox::GetSelectedText ()
+{
+    static char sz[256];
+
+    // Find the text for the current selection
+    char* psz = strtok(strcpy(sz, GetText()), "|");
+    for (int i = 0 ; psz && i < m_nSelected ; psz = strtok(NULL, "|"), i++);
+
+    // Return the item string if found
+    return psz ? psz : "";
 }
 
 void CComboBox::SetText (const char* pcszText_)
@@ -1872,7 +1903,7 @@ void CFileView::NotifyParent (int nParam_)
             }
 
             // Make sure we have access to the path before setting it
-            if (!szPath[0] || !access(szPath, 1))
+            if (!szPath[0] || !access(szPath, X_OK))
                 SetPath(szPath);
             else
             {
@@ -2000,7 +2031,7 @@ void CFileView::Refresh ()
             char szRoot[] = { chDrive, ':', '\\', '\0' };
 
             // Can we access the root directory?
-            if (!access(szRoot, 1))
+            if (!access(szRoot, X_OK))
             {
                 // Remove the backslash to leave just X:, and add to the list
                 szRoot[2] = '\0';
@@ -2065,13 +2096,14 @@ void CFileView::Refresh ()
                     }
                 }
 
-                // Ignore anything that isn't a directory
-                else if (!S_ISDIR(st.st_mode))
+                // Ignore anything that isn't a directory or a block device (or a symbolic link to one)
+                else if (!S_ISDIR(st.st_mode) && !S_ISBLK(st.st_mode))
                     continue;
 
                 // Create a new list entry for the current item
                 CListViewItem* pNew = new CListViewItem(S_ISDIR(st.st_mode) ? &sFolderIcon :
-                                            GetFileIcon(entry->d_name), entry->d_name);
+                                                        S_ISBLK(st.st_mode) ? &sMiscIcon :
+                                                        GetFileIcon(entry->d_name), entry->d_name);
 
                 // Insert the item into the correct sort position
                 CListViewItem *p = pItems, *pPrev = NULL;
