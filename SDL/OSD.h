@@ -65,11 +65,11 @@ public:
 #pragma comment(lib, "zlib")
 #endif
 
-#ifndef DUMMY_SAASOUND
+#ifdef USE_SAASOUND
 #pragma comment(lib, "SAASound")
 #endif
 
-#ifndef NO_OPENGL
+#ifdef USE_OPENGL
 #pragma comment(lib, "OpenGL32.lib")
 #endif
 
