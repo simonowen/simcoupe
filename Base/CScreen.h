@@ -23,11 +23,9 @@
 
 #include "Font.h"
 
-
-const int CHAR_HEIGHT = 11;     // Character cell dimensions
-
-const int CHAR_SPACING = 1;         // 1 pixel between each character
-const char CHAR_UNKNOWN = '_';      // Character to display when not available in charset
+const int CHAR_HEIGHT = sGUIFont.wHeight;   // Character cell dimensions
+const int CHAR_SPACING = 1;                 // 1 pixel between each character
+const char CHAR_UNKNOWN = '_';              // Character to display when not available in charset
 
 
 class CScreen
