@@ -36,12 +36,11 @@
 #define IDI_PRINTER                     225
 #define IDE_PAGE                        1001
 #define IDE_SIDES                       1001
-#define IDE_ROM0                        1001
 #define IDE_STATION_ID                  1001
 #define IDE_IMAGE1                      1001
+#define IDE_ROM                         1001
 #define IDC_COMPRESS                    1002
 #define IDC_ALT_FOR_CNTRL               1002
-#define IDE_ROM1                        1002
 #define IDE_IMAGE2                      1002
 #define IDE_TRACKS                      1003
 #define IDE_FILE                        1004
