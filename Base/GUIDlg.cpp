@@ -134,29 +134,23 @@ void CFileDialog::OnNotify (CWindow* pWindow_, int nParam_)
 // File filter for disk images
 static const FILEFILTER sFloppyFilter =
 {
+    "All Disks (.dsk;.sad;.td0;.sbt;.mgt;.img)|"
+    "SAM Disks (.dsk;.sad;.td0;.sbt)|"
+    "Spectrum Disks (.mgt;.img)|"
 #ifdef USE_ZLIB
-    "All Disks (.dsk;.sad;.sdf;.sbt; .gz;.zip)|"
-    "Disk Images (.dsk;.sad;.sdf;.sbt)|"
     "Compressed Files (.gz;.zip)|"
-    "All Files",
-
-    {
-        ".dsk;.sad;.sdf;.sbt;.gz;.zip",
-        ".dsk;.sad;.sdf;.sbt",
-        ".gz;.zip",
-        ""
-    }
-#else
-    "All Disks (.dsk;.sad;.sdf;.sbt)|"
-    "Disk Images (.dsk;.sad;.sdf;.sbt)|"
-    "All Files",
-
-    {
-        ".dsk;.sad;.sdf;.sbt",
-        ".dsk;.sad;.sdf;.sbt",
-        ""
-    }
 #endif
+    "All Files",
+
+    {
+        ".dsk;.sad;.td0;.sbt;.mgt;.img;.sdf",
+        ".dsk;.sad;.td0;.sbt;.sdf",
+        ".mgt;.img",
+#ifdef USE_ZLIB
+        ".gz;.zip",
+#endif
+        ""
+    }
 };
 
 CInsertFloppy::CInsertFloppy (int nDrive_, CWindow* pParent_/*=NULL*/)
@@ -168,7 +162,7 @@ CInsertFloppy::CInsertFloppy (int nDrive_, CWindow* pParent_/*=NULL*/)
     SetText(szCaption);
 
     // Browse from the location of the previous image, or the default directory if none
-    const char* pcszImage = ((nDrive_ == 1) ? pDrive1 : pDrive2)->GetImage();
+    const char* pcszImage = ((nDrive_ == 1) ? pDrive1 : pDrive2)->GetPath();
     m_pFileView->SetPath(*pcszImage ? pcszImage : OSD::GetFilePath());
 }
 
@@ -1015,7 +1009,7 @@ class CDiskOptions : public CDialog
                 {
                     sprintf(sz, "Invalid disk image:\n\n%s", GetOption(disk1));
                     new CMessageBox(this, sz, "Floppy Drive 1", mbWarning);
-                    SetOption(disk1, pDrive1->GetImage());
+                    SetOption(disk1, pDrive1->GetPath());
                     return;
                 }
 
@@ -1023,7 +1017,7 @@ class CDiskOptions : public CDialog
                 {
                     sprintf(sz, "Invalid disk image:\n\n%s", GetOption(disk2));
                     new CMessageBox(this, sz, "Floppy Drive 2", mbWarning);
-                    SetOption(disk2, pDrive2->GetImage());
+                    SetOption(disk2, pDrive2->GetPath());
                     return;
                 }
 
