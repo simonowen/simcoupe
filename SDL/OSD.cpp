@@ -141,15 +141,16 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 }
 
 // Return whether a file/directory is normally hidden from a directory listing
-bool OSD::IsHidden (const char* pcszFile_)
+bool OSD::IsHidden (const char* pcszPath_)
 {
 #ifdef _WINDOWS
     // Hide entries with the hidden or system attribute bits set
-    DWORD dwAttrs = GetFileAttributes(pcszFile_);
+    DWORD dwAttrs = GetFileAttributes(pcszPath_);
     return (dwAttrs != 0xffffffff) && (dwAttrs & (FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM));
 #else
     // Hide entries beginning with a dot
-    return *pcszFile_ == '.';
+    pcszPath_ = strrchr(pcszPath_, PATH_SEPARATOR);
+    return pcszPath_ && pcszPath_[1] == '.';
 #endif
 }
 
