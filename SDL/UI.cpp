@@ -312,12 +312,12 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actInsertFloppy1:
-                if (GetOption(drive1) == 1)
+                if (GetOption(drive1) == dskImage)
                     GUI::Start(new CInsertFloppy(1));
                 break;
 
             case actEjectFloppy1:
-                if (GetOption(drive1) == 1 && pDrive1->IsInserted())
+                if (GetOption(drive1) == dskImage && pDrive1->IsInserted())
                 {
                     SetOption(disk1, pDrive1->GetImage());
                     pDrive1->Eject();
@@ -326,17 +326,17 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actSaveFloppy1:
-                if (GetOption(drive1) == 1 && pDrive1->IsModified() && pDrive1->Flush())
+                if (GetOption(drive1) == dskImage && pDrive1->IsModified() && pDrive1->Flush())
                     Frame::SetStatus("Saved changes to disk in drive 2");
                 break;
 
             case actInsertFloppy2:
-                if (GetOption(drive2) == 1)
+                if (GetOption(drive2) == dskImage)
                     GUI::Start(new CInsertFloppy(2));
                 break;
 
             case actEjectFloppy2:
-                if (GetOption(drive2) == 1 && pDrive2->IsInserted())
+                if (GetOption(drive2) == dskImage && pDrive2->IsInserted())
                 {
                     SetOption(disk2, pDrive2->GetImage());
                     pDrive2->Eject();
@@ -345,7 +345,7 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actSaveFloppy2:
-                if (GetOption(drive2) == 1 && pDrive2->IsModified() && pDrive2->Flush())
+                if (GetOption(drive2) == dskImage && pDrive2->IsModified() && pDrive2->Flush())
                     Frame::SetStatus("Saved changes to disk in drive 2");
                 break;
 
