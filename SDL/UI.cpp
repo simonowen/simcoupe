@@ -44,8 +44,12 @@
 const char* const WINDOW_CAPTION =
 #if defined(__BEOS__) || defined(__QNX__)
     "SimCoup\xc3\xa9/SDL"
-#else
+#elif defined(__APPLE__)
+    "SimCoup\x8e/SDL"
+#elif defined(WIN32)
     "SimCoup\xe9/SDL"
+#else
+    "SimCoupe/SDL"
 #endif
 #ifdef _DEBUG
     " [DEBUG]"
@@ -64,7 +68,7 @@ enum eActions
     actChangeKeyMode, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actInsertFloppy2, actEjectFloppy2,
     actSaveFloppy2, actNewDisk, actSaveScreenshot, actFlushPrintJob, actDebugger, actImportData, actExportData,
     actDisplayOptions, actExitApplication, actToggleTurbo, actTempTurbo, actReleaseMouse, actPause, actFrameStep,
-    actPrinterOnline, MAX_ACTION
+    actPrinterOnline, actNewDisk1, actNewDisk2, MAX_ACTION
 };
 
 const char* aszActions[MAX_ACTION] =
@@ -75,7 +79,7 @@ const char* aszActions[MAX_ACTION] =
     "Save changes to floppy 1", "Insert floppy 2", "Eject floppy 2", "Save changes to floppy 2", "New Disk",
     "Save screenshot", "Flush print job", "Debugger", "Import data", "Export data", "Display options",
     "Exit application", "Toggle turbo speed", "Turbo speed (when held)", "Release mouse capture", "Pause",
-    "Step single frame", "Toggle printer online"
+    "Step single frame", "Toggle printer online", "New disk 1", "New disk 2"
 };
 
 
@@ -353,7 +357,8 @@ void DoAction (int nAction_, bool fPressed_)
                     Frame::SetStatus("Saved changes to disk in drive 2");
                 break;
 
-            case actNewDisk:
+            case actNewDisk1:
+            case actNewDisk2:
                 GUI::Start(new CMessageBox(NULL, "New Disk not yet implemented", "Sorry!", mbInformation));
                 break;
 
