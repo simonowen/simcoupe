@@ -21,8 +21,8 @@
 // Constants defining screen height and the visible portion of it
 #define HEIGHT_LINES            312                                         // Total generated screen lines
 #define SCREEN_LINES            192                                         // Lines in main screen area
-#define TOP_BORDER_LINES        68                                          // Total lines in top border area (including offscreen)
-#define BOTTOM_BORDER_LINES     (HEIGHT_LINES-SCREEN_LINES-TOP_BORDER_LINES)// Total lines in bottom border area
+#define TOP_BORDER_LINES        68                                          // Lines in top border (8 above central position)
+#define BOTTOM_BORDER_LINES     (HEIGHT_LINES-SCREEN_LINES-TOP_BORDER_LINES)// Lines in bottom border
 
 // Constants defining screen width and the visible portion of it (in 8 'pixel' blocks)
 #define WIDTH_BLOCKS            48                                      // Total generated screen width
@@ -40,6 +40,8 @@
 #define REAL_FRAMES_PER_SECOND      (REAL_TSTATES_PER_SECOND / TSTATES_PER_FRAME)   // Actually 50.08
 #define EMULATED_FRAMES_PER_SECOND  50
 #define EMULATED_TSTATES_PER_SECOND (EMULATED_FRAMES_PER_SECOND * TSTATES_PER_FRAME)
+
+#define ASIC_STARTUP_DELAY          291675  // approx. t-states after power-on before the ASIC responds to I/O (~49ms)
 
 #define USECONDS_TO_TSTATES(x)      (static_cast<long>(x) * (REAL_TSTATES_PER_SECOND / 1000000))
 
