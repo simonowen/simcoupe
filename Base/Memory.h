@@ -39,7 +39,7 @@ enum eSection { SECTION_A, SECTION_B, SECTION_C, SECTION_D };
 extern int anSectionPages[4];
 extern BYTE* apbSectionReadPtrs[4];
 extern BYTE* apbSectionWritePtrs[4];
-extern BYTE g_abMode1ByteToLine[6*1024];
+extern BYTE g_abMode1ByteToLine[SCREEN_LINES];
 extern WORD g_awMode1LineToByte[SCREEN_LINES];
 extern BYTE *apbPageReadPtrs[],  *apbPageWritePtrs[];
 extern bool afContendedPages[4];
@@ -114,7 +114,7 @@ inline void write_to_screen_vmpr0 (WORD wAddr_)
         case MODE_1:
             // If writing to the main screen data, invalidate the screen line we're writing to
             if (wAddr_ < 6144)
-                Frame::TouchLine(g_abMode1ByteToLine[wAddr_] + TOP_BORDER_LINES);
+                Frame::TouchLine(g_abMode1ByteToLine[wAddr_ >> 5] + TOP_BORDER_LINES);
 
             // If writing to the attribute area, invalidate the 8 lines containing the attribute
             else if (wAddr_ < 6912)
