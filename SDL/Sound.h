@@ -21,79 +21,90 @@
 #ifndef SOUND_H
 #define SOUND_H
 
-
-namespace Sound
+class Sound
 {
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
+public:
+    static bool Init (bool fFirstInit_=false);
+    static void Exit (bool fReInit_=false);
 
-    void Out (WORD wPort_, BYTE bVal_);     // SAA chip port output
-    void FrameUpdate ();
+    static void Out (WORD wPort_, BYTE bVal_);     // SAA chip port output
+    static void FrameUpdate ();
 
-    void Stop ();
-    void Play ();
-    void Silence ();                        // Silence current output
+    static void Stop ();
+    static void Play ();
+    static void Silence ();                        // Silence current output
 
-    void OutputDACLeft (BYTE bVal_);        // Output to left channel
-    void OutputDACRight (BYTE bVal_);       // Output to right channel
-    void OutputDAC (BYTE bVal_);            // Output to both channels
+    static void OutputDACLeft (BYTE bVal_);        // Output to left channel
+    static void OutputDACRight (BYTE bVal_);       // Output to right channel
+    static void OutputDAC (BYTE bVal_);            // Output to both channels
 };
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
 
-class CStreamingSound
+#ifdef SOUND_IMPLEMENTATION
+
+
+class CStreamBuffer
 {
     public:
-        CStreamingSound (int nFreq_=0, int nBits_=0, int nChannels_=0);
-        virtual ~CStreamingSound ();
+        CStreamBuffer (int nFreq_=0, int nBits_=0, int nChannels_=0);
+        virtual ~CStreamBuffer ();
 
     public:
-        virtual bool Init ();
-        virtual void Generate (BYTE* pb_, UINT uSamples_) = 0;
-        virtual void GenerateExtra (BYTE* pb_, UINT uSamples_);
+        virtual void Generate (BYTE* pb_, int nSamples_) = 0;
+        virtual void GenerateExtra (BYTE* pb_, int nSamples_) = 0;
 
     public:
-        virtual bool Play () { return true; }
-        virtual bool Stop()  { Silence(); return true; }
-        virtual void Silence ();
+        virtual void Silence (bool fFill_=false) = 0;
 
+        virtual int GetSpaceAvailable () = 0;
         virtual void Update (bool fFrameEnd_=false);
-        virtual void AddData (BYTE* pbSampleData_, UINT uSamples_);
-        virtual void Callback (Uint8 *pbStream_, int nLen_);
+        virtual void AddData (BYTE* pbSampleData_, int nSamples_) = 0;
 
     protected:
         int m_nFreq, m_nBits, m_nChannels;
-        UINT m_uSampleSize, m_uSamplesThisFrame;
-        UINT m_uSamplesPerUnit, m_uCyclesPerUnit;
-        UINT m_uPeriod, m_uOffsetPerUnit;
+        int m_nSampleSize, m_nSamplesThisFrame, m_nMaxSamplesPerFrame;
 
-        DWORD m_dwWriteOffset;
+        UINT m_uSamplesPerUnit, m_uCyclesPerUnit, m_uOffsetPerUnit;
+        UINT m_uPeriod;
+
         BYTE* m_pbFrameSample;
-        UINT m_uSampleBufferSize, m_uFrameOffset;
-
-        BYTE *m_pbStart, *m_pbNow, *m_pbEnd;
-        SDL_AudioSpec   m_sObtained;
-
-    protected:
-        static void SoundCallback (void *pvParam_, Uint8 *pbStream_, int nLen_);
-
-        bool InitSDLSound ();
-        void ExitSDLSound ();
 };
 
 
-// The SDL implementation of the sound driver
-class CSDLSAASound : public CStreamingSound
+class CSoundStream : public CStreamBuffer
 {
     public:
-        CSDLSAASound () : m_nUpdates(0) { }
-        ~CSDLSAASound () { }
+        CSoundStream (int nFreq_/*=0*/, int nBits_/*=0*/, int nChannels_/*=0*/);
+        ~CSoundStream ();
+
+    // Overrides
+    public:
+        void Silence (bool fFill_=false);
+
+        int GetSpaceAvailable ();
+        void AddData (BYTE* pbSampleData_, int nLength_);
+
+        BYTE *m_pbStart, *m_pbEnd, *m_pbNow;
+        int m_nSampleBufferSize;
 
     public:
-        void Generate (BYTE* pb_, UINT uSamples_);
-        void GenerateExtra (BYTE* pb_, UINT uSamples_);
+        static void SoundCallback (void *pvParam_, Uint8 *pbStream_, int nLen_);
+};
+
+
+// The DirectX implementation of the sound driver
+class CSAA : public CSoundStream
+{
+    public:
+        CSAA (int nFreq_/*=0*/, int nBits_/*=0*/, int nChannels_/*=0*/)
+            : CSoundStream(nFreq_, nBits_, nChannels_), m_nUpdates(0) { }
+
+    public:
+        void Generate (BYTE* pb_, int nSamples_);
+        void GenerateExtra (BYTE* pb_, int nSamples_);
 
         void Out (WORD wPort_, BYTE bVal_);
         void Update (bool fFrameEnd_=false);
@@ -103,62 +114,26 @@ class CSDLSAASound : public CStreamingSound
 };
 
 
-class CDAC : public CStreamingSound
+class CDAC : public CSoundStream
 {
     public:
-        CDAC () : CStreamingSound(0, 8, 2)      // 8-bit stereo stream using same frequency as primary
-        {
-            m_uLeftTotal = m_uRightTotal = m_uPrevPeriod = 0;
-            Output(0x80);
-        }
+        CDAC ();
 
     public:
+        void Generate (BYTE* pb_, int nSamples_);
+        void GenerateExtra (BYTE* pb_, int nSamples_);
+
         void OutputLeft (BYTE bVal_)            { Update(); m_bLeft = bVal_; }
         void OutputRight (BYTE bVal_)           { Update(); m_bRight = bVal_; }
         void Output (BYTE bVal_)                { Update(); m_bLeft = m_bRight = bVal_; }
 
-    public:
-        void Generate (BYTE* pb_, UINT uSamples_)
-        {
-            if (uSamples_ == 0)
-            {
-                // If we are still on the same sample then update the mean level that spans it
-                UINT uPeriod = m_uPeriod - m_uPrevPeriod;
-                m_uLeftTotal += m_bLeft * uPeriod;
-                m_uRightTotal += m_bRight * uPeriod;
-            }
-            else
-            {
-                // Otherwise output the mean level spanning the completed sample
-                UINT uPeriod = m_uCyclesPerUnit - m_uPrevPeriod;
-                *pb_++ = static_cast<BYTE>((m_uLeftTotal + m_bLeft * uPeriod) / m_uCyclesPerUnit);
-                *pb_++ = static_cast<BYTE>((m_uRightTotal + m_bRight * uPeriod) / m_uCyclesPerUnit);
-                uSamples_--;
-
-                // Fill in the block of complete samples at this level
-                if (m_bLeft == m_bRight)
-                    memset(pb_, m_bLeft, uSamples_ << 1);
-                else
-                {
-                    WORD *pw = reinterpret_cast<WORD*>(pb_), wSample = (static_cast<WORD>(m_bRight) << 8) | m_bLeft;
-
-                    while (uSamples_--)
-                        *pw++ = wSample;
-                }
-
-                // Initialise the mean level for the next sample
-                m_uLeftTotal = m_bLeft * m_uPeriod;
-                m_uRightTotal = m_bRight * m_uPeriod;
-            }
-
-            // Store the positon spanning the current sample
-            m_uPrevPeriod = m_uPeriod;
-        }
-
     protected:
         BYTE m_bLeft, m_bRight;
+
         UINT m_uLeftTotal, m_uRightTotal;
         UINT m_uPrevPeriod;
 };
+
+#endif
 
 #endif  // SOUND_H
