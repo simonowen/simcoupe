@@ -38,14 +38,14 @@ BASE_SRC=${BASE}/ATA.cpp ${BASE}/Atom.cpp ${BASE}/CDisk.cpp \
  ${BASE}/CDrive.cpp ${BASE}/Clock.cpp ${BASE}/CPU.cpp ${BASE}/CScreen.cpp \
  ${BASE}/CStream.cpp ${BASE}/Debug.cpp ${BASE}/Disassem.cpp ${BASE}/Expr.cpp \
  ${BASE}/Font.cpp ${BASE}/Frame.cpp ${BASE}/GUI.cpp ${BASE}/GUIDlg.cpp \
- ${BASE}/GUIIcons.cpp ${BASE}/IO.cpp ${BASE}/Main.cpp ${BASE}/Memory.cpp \
- ${BASE}/Mouse.cpp ${BASE}/Options.cpp ${BASE}/PNG.cpp ${BASE}/Profile.cpp \
- ${BASE}/SDIDE.cpp ${BASE}/Util.cpp ${EXTERN}/SAASound.cpp
+ ${BASE}/GUIIcons.cpp ${BASE}/HardDisk.cpp ${BASE}/IO.cpp ${BASE}/Main.cpp \
+ ${BASE}/Memory.cpp ${BASE}/Mouse.cpp ${BASE}/Options.cpp ${BASE}/PNG.cpp \
+ ${BASE}/Profile.cpp ${BASE}/SDIDE.cpp ${BASE}/Util.cpp ${EXTERN}/SAASound.cpp
 
 ALLEGRO_SRC= ${ALLEGRO}/Display.cpp ${ALLEGRO}/Floppy.cpp \
- ${ALLEGRO}/Input.cpp ${ALLEGRO}/MIDI.cpp ${ALLEGRO}/OSD.cpp \
- ${ALLEGRO}/Parallel.cpp ${ALLEGRO}/Serial.cpp ${ALLEGRO}/Sound.cpp \
- ${ALLEGRO}/UI.cpp ${ALLEGRO}/Video.cpp
+ ${ALLEGRO}/IDEDisk.cpp ${ALLEGRO}/Input.cpp ${ALLEGRO}/MIDI.cpp \
+ ${ALLEGRO}/OSD.cpp ${ALLEGRO}/Parallel.cpp ${ALLEGRO}/Serial.cpp \
+ ${ALLEGRO}/Sound.cpp ${ALLEGRO}/UI.cpp ${ALLEGRO}/Video.cpp
 
 ifeq (${USE_ZLIB},1)
 CFLAGS += -DUSE_ZLIB
