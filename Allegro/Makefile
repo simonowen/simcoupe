@@ -29,7 +29,7 @@ USE_SAASOUND=1
 
 .SUFFIXES: .cpp .c
 
-CFLAGS=-O3 -fomit-frame-pointer -funroll-loops -finline-functions -I${ALLEGRO} -I${BASE} -I${EXTERN}
+CFLAGS=-O3 -pedantic -fomit-frame-pointer -funroll-loops -finline-functions -I${ALLEGRO} -I${BASE} -I${EXTERN}
 #CFLAGS=-O2 -I${ALLEGRO} -I${BASE} -I${EXTERN}
 CXXFLAGS=${CFLAGS} -Wall
 LIBS=-L. -lm -lalleg
