@@ -93,6 +93,9 @@ BYTE g_abInc[256], g_abDec[256];
 #define sp      regs.SP.W
 #define pc      regs.PC.W
 
+#define sp_h    regs.SP.B.h_
+#define sp_l    regs.SP.B.l_
+
 #define r       regs.R
 #define i       regs.I          // This daft one means we can't use 'i' as a 'for' variable in this module!
 #define iff1    regs.IFF1
@@ -108,20 +111,31 @@ inline void rflags (BYTE b_, BYTE c_) { f = c_ | (b_ & 0xa8) | ((!b_) << 6) | pa
 //  H E L P E R   M A C R O S
 
 
-// True if we are in the main screen area and the address is in system ram
-// NOTE - Logic differs slightly from the setting of fContended as this is designed to be used AFTER
-// g_nLineCycle has been updated whereas fContended was used BEFORE tstates were calculated
-#define IS_CONTENDED(a)     (fMaybeContended &&                                                 \
-                             (g_nLineCycle > (BORDER_PIXELS - VIDEO_DELAY)) &&                  \
-                             (g_nLineCycle <= (BORDER_PIXELS + SCREEN_PIXELS - VIDEO_DELAY)) && \
-                             (RPAGE(a) < N_PAGES_MAIN))
-
 // Update g_nLineCycle for one memory access
-#define MEM_ACCESS(a)       do {g_nLineCycle += 4;                                      \
-                                if (IS_CONTENDED(a))                                    \
-                                    g_nLineCycle = ROUND(g_nLineCycle, 8);} while (0)
+// This is the basic three T-State CPU memory access
+// Longer memory M-Cycles should have the extra T-States added after MEM_ACCESS
+// Logic -  if in RAM:
+//              if we are in the main screen area, or one of the extra MODE 1 contended areas:
+//                  CPU can only access memory 1 out of every 8 T-States
+//              else
+//                  CPU can only access memory 1 out of every 4 T-States
+#define MEM_ACCESS(a)       do {g_nLineCycle += 3;                                                          \
+                                if (RPAGE(a) < N_PAGES_MAIN)                                                \
+                                    if ((fMaybeContended &&                                                 \
+                                         g_nLineCycle > BORDER_PIXELS - VIDEO_DELAY &&                      \
+                                         g_nLineCycle <= BORDER_PIXELS - VIDEO_DELAY + SCREEN_PIXELS) ||    \
+                                        (vmpr_mode == MODE_1 && (g_nLineCycle + VIDEO_DELAY) & 0x40)        \
+                                    )                                                                       \
+                                        g_nLineCycle = ROUND(g_nLineCycle, 8);                              \
+                                    else                                                                    \
+                                        g_nLineCycle = ROUND(g_nLineCycle, 4);} while (0)
 
 // Update g_nLineCycle for one port access
+// This is the basic four T-State CPU I/O access
+// Longer I/O M-Cycles should have the extra T-States added after PORT_ACCESS
+// Logic -  if ASIC-controlled port:
+//              CPU can only access I/O port 1 out of every 8 T-States
+
 #define PORT_ACCESS(a)      do {g_nLineCycle += 4;                                      \
                                 if ((a) >= BASE_ASIC_PORT)                              \
                                     g_nLineCycle = ROUND(g_nLineCycle, 8);} while (0)
@@ -245,12 +259,20 @@ inline void timed_write_byte (WORD addr, BYTE contents)
 inline void timed_write_word (WORD addr, WORD contents)
 {
     MEM_ACCESS(addr);
-    MEM_ACCESS((addr) + 1);
+    MEM_ACCESS(addr + 1);
+    write_word(addr, contents);
+}
+
+// Write a word and update timing (high-byte first - used by stack functions)
+inline void timed_write_word_reversed (WORD addr, WORD contents)
+{
+    MEM_ACCESS(addr + 1);
+    MEM_ACCESS(addr);
     write_word(addr, contents);
 }
 
 // 16-bit push and pop
-#define push(val)   do { sp -= 2; timed_write_word(sp,(val)); } while(0)
+#define push(val)   do { sp -= 2; timed_write_word_reversed(sp,val); } while(0)
 #define pop(var)    do { var = timed_read_word(sp); sp += 2; } while(0)
 
 
@@ -344,6 +366,7 @@ void ExecuteFrame ()
 #endif
 
         // Update the line/global counters and check for pending events
+
         CheckCpuEvents();
 
         // Are there any active interrupts?
@@ -360,27 +383,30 @@ void ExecuteFrame ()
                 // Disable interrupts
                 iff1 = iff2 = 0;
 
-                g_nLineCycle += 8;
-
                 // What we do next depends on the interrupt mode set
                 switch (im)
                 {
                     case 0:
-                        // Presumably the same, unless taking the instruction from the bus takes longer
+                        // Push PC onto the stack, and execute the interrupt handler
+                        g_nLineCycle += 6;
+                        push(pc);
+                        pc = IM1_INTERRUPT_HANDLER;
+                        break;
+
                     case 1:
                         // Push PC onto the stack, and execute the interrupt handler
+                        g_nLineCycle += 7;
                         push(pc);
                         pc = IM1_INTERRUPT_HANDLER;
                         break;
 
                     case 2:
-                        // Fetch the IM 2 handler address from an address formed from I and 0xff (from the bus)
-                        // This is done before pushing PC in case it changes the handler location!
-                        WORD wAddr = timed_read_word((i << 8) | 0xff);
-
                         // Push PC onto the stack, and execute the IM 2 handler
+                        g_nLineCycle += 7;
                         push(pc);
-                        pc = wAddr;
+                        // Fetch the IM 2 handler address from an address formed from I and 0xff (from the bus)
+                        pc = timed_read_word((i << 8) | 0xff);
+                        break;
                 }
             }
         }
@@ -439,19 +465,16 @@ void Run ()
             // Non-maskable interrupt
             case Z80_nmi:
                 // Advance PC if we're stopped on a HALT
-                if (read_byte(pc) == OP_HALT)
+                if (timed_read_byte(pc) == OP_HALT)
                     pc++;
 
                 // Save the interrupt status in iff2 and disable interrupts
                 iff2 = iff1;
                 iff1 = 0;
-
-                // Guessed timing for NMI, but not really important...
-                g_nLineCycle += 16;
+                g_nLineCycle += 2;
 
                 // Call NMI handler at address 0x0066
-                sp -= 2;
-                write_word(sp,pc);
+                push(pc);
                 pc = NMI_INTERRUPT_HANDLER;
 
                 nInterruptType = Z80_none;

@@ -70,8 +70,8 @@ const int INT_ACTIVE_TIME = 128;            // tstates interrupt is active and w
 const int INT_START_TIME = TSTATES_PER_LINE - BORDER_PIXELS - VIDEO_DELAY + 1;
 
 
-// Round a tstate value up to a given power of 2; and so the line total rounds up to the next whole multiple
-#define ROUND(t,n)          (((t) + (n)-1) & ~((n)-1))
+// Round a tstate value up to a given power of 2 (-1); and so the line total rounds up to the next whole multiple
+#define ROUND(t,n)          ((t)|((n)-1))
 #define A_ROUND(t,n)        (ROUND(g_nLineCycle+(t),n) - g_nLineCycle)
 
 // Z80 pseudo states to keep track of what we're doing

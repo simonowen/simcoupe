@@ -39,19 +39,21 @@
 ////////////////////////////////////////////////////////////////////////////////
 //  H E L P E R   M A C R O S
 
-#define instr(opcode)           case opcode: {
+// Basic instruction header, specifying opcode and nominal T-States of the first M-Cycle
+// The first three T-States of the first M-Cycle are already accounted for
+#define instr(opcode, m1states) case opcode: { \
+                                    g_nLineCycle += m1states - 3;
 #define endinstr                }; break
 
-#define HLinstr(opcode)         case opcode: \
-                                { \
+// Indirect HL instructions affected by IX/IY prefixes
+#define HLinstr(opcode)         instr(opcode, 4) \
                                     WORD addr; \
                                     if (pHlIxIy == &hl) \
                                         addr = hl; \
-                                    else \
-                                    { \
+                                    else { \
                                         addr = *pHlIxIy + (signed char)timed_read_byte(pc); \
-                                        g_nLineCycle += 4; \
                                         pc++; \
+                                        g_nLineCycle += 5; \
                                     }
 
 
@@ -74,7 +76,7 @@
 #define addhl(hi,lo) \
             do \
             { \
-                g_nLineCycle += 8; \
+                g_nLineCycle += 7; \
                 if(pHlIxIy == &hl) \
                 { \
                     WORD t; \
@@ -140,101 +142,137 @@
                       f=(a&0xa8)|((!a)<<6)|parity(a);\
                    } while(0)
 
-#define jr      do { int j = (signed char)timed_read_byte(pc); pc += j+1; g_nLineCycle += 4; } while(0)
-#define jp      (pc=timed_read_word(pc))
+// Jump relative if condition is true
+#define jr(cc)  do { \
+                    if (cc) { \
+                        int j = (signed char)timed_read_byte(pc); \
+                        pc += j+1; \
+                        g_nLineCycle += 5; \
+                    } \
+                    else { \
+                        MEM_ACCESS(pc); \
+                        pc++; \
+                    } \
+                } while(0)
 
-#define call    do { push(pc+2); jp; } while(0)
-#define ret     do { pop(pc); } while(0)
-#define retn    do { iff1=iff2; ret; } while (0)
+// Jump absolute if condition is true
+#define jp(cc)  do { \
+                    if (cc) \
+                        pc = timed_read_word(pc); \
+                    else { \
+                        MEM_ACCESS(pc); \
+                        MEM_ACCESS(pc + 1); \
+                        pc += 2; \
+                    } \
+                } while(0)
+
+// Call if condition is true
+#define call(cc)    do { \
+                        if (cc) { \
+                            WORD npc = timed_read_word(pc); \
+                            g_nLineCycle++; \
+                            push(pc+2); \
+                            pc = npc; \
+                        } \
+                        else { \
+                            MEM_ACCESS(pc); \
+                            MEM_ACCESS(pc + 1); \
+                            pc += 2; \
+                        } \
+                    } while(0)
+
+// Return if condition is true
+#define ret(cc) do { if (cc) pop(pc); } while(0)
+
+#define retn    do { iff1=iff2; ret(true); } while (0)
 
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 // nop
-instr(0) { } endinstr;
+instr(0,4)
+endinstr;
 
 // ld bc,nn
-instr(1)
+instr(1,4)
     bc = timed_read_word(pc);
     pc += 2;
 endinstr;
 
 // ld (bc),a
-instr(2)
+instr(2,4)
     timed_write_byte(bc,a);
 endinstr;
 
 // inc bc
-instr(3)
+instr(3,6)
     bc++;
-    g_nLineCycle += 4;
 endinstr;
 
 
 // inc b
-instr(4)
+instr(4,4)
     inc(b);
 endinstr;
 
 // dec b
-instr(5)
+instr(5,4)
     dec(b);
 endinstr;
 
 // ld b,n
-instr(6)
+instr(6,4)
     b = timed_read_byte(pc);
     pc++;
 endinstr;
 
 // rlc a
-instr(7)
+instr(7,4)
     a=(a<<1)|(a>>7);
     f=(f&0xc4)|(a&0x29);
 endinstr;
 
 
 // ex af,af'
-instr(8)
+instr(8,4)
     swap(af,alt_af);
 endinstr;
 
 // add hl/ix/iy,bc
-instr(9)
+instr(9,4)
     addhl(b,c);
 endinstr;
 
 // ld a,(bc)
-instr(10)
+instr(10,4)
     a = timed_read_byte(bc);
 endinstr;
 
 // dec bc
-instr(11)
+instr(11,6)
     bc--;
-    g_nLineCycle += 4;
 endinstr;
 
 
 // inc c
-instr(12)
+instr(12,4)
     inc(c);
 endinstr;
 
 // dec c
-instr(13)
+instr(13,4)
     dec(c);
 endinstr;
 
 // ld c,n
-instr(14)
+instr(14,4)
     c = timed_read_byte(pc);
     pc++;
 endinstr;
 
 // rrc a
-instr(15)
+instr(15,4)
     f = (f & 0xc4) | (a & 1);
     a = (a >> 1) | (a << 7);
     f |= a & 0x28;
@@ -242,159 +280,138 @@ endinstr;
 
 
 // djnz e
-instr(16)
-    g_nLineCycle += 4;
-    if(--b)
-        jr;     // 16 tstates for looping, regardless of screen contention
-    else
-    {
-        MEM_ACCESS(pc);
-        pc++;
-    }
+instr(16,5)
+    --b;
+    jr(b);
 endinstr;
 
 // ld de,nn
-instr(17)
+instr(17,4)
     de = timed_read_word(pc);
     pc += 2;
 endinstr;
 
 // ld (de),a
-instr(18)
+instr(18,4)
     timed_write_byte(de,a);
 endinstr;
 
 // inc de
-instr(19)
+instr(19,6)
     de++;
-    g_nLineCycle += 4;
 endinstr;
 
 
 // inc d
-instr(20)
+instr(20,4)
     inc(d);
 endinstr;
 
 // dec d
-instr(21)
+instr(21,4)
     dec(d);
 endinstr;
 
 // ld d,n
-instr(22)
+instr(22,4)
     d = timed_read_byte(pc);
     pc++;
 endinstr;
 
 // rla
-instr(23)
-{
+instr(23,4)
     int t = a >> 7;
     a = (a << 1) | (f & 1);
     f = (f & 0xc4) | (a & 0x28) | t;
-}
 endinstr;
 
 
 // jr e
-instr(24)
-    jr;
+instr(24,4)
+    jr(true);
 endinstr;
 
 // add hl/ix/iy,de
-instr(25)
+instr(25,4)
     addhl(d,e);
 endinstr;
 
 // ld a,(de)
-instr(26)
+instr(26,4)
     a = timed_read_byte(de);
 endinstr;
 
 // dec de
-instr(27)
+instr(27,6)
     de--;
-    g_nLineCycle += 4;
 endinstr;
 
 
 // inc e
-instr(28)
+instr(28,4)
     inc(e);
 endinstr;
 
 // dec e
-instr(29)
+instr(29,4)
     dec(e);
 endinstr;
 
 // ld e,n
-instr(30)
+instr(30,4)
     e = timed_read_byte(pc);
     pc++;
 endinstr;
 
 // rra
-instr(31)
-{
+instr(31,4)
     int t = a & 1;
     a = (a >> 1) | (f << 7);
     f = (f & 0xc4) | (a & 0x28) | t;
-}
 endinstr;
 
 
 // jr nz,e
-instr(32)
-    if (!(f & F_ZERO))
-        jr;
-    else {
-        MEM_ACCESS(pc);
-        pc++;
-    }
+instr(32,4)
+    jr(!(f & F_ZERO));
 endinstr;
 
 // ld hl,nn
-instr(33)
+instr(33,4)
     *pHlIxIy = timed_read_word(pc);
     pc += 2;
 endinstr;
 
 // ld (nn),hl
-instr(34)
-{
+instr(34,4)
     WORD addr = timed_read_word(pc);
     pc += 2;
     timed_write_word(addr,*pHlIxIy);
-}
 endinstr;
 
 // inc hl
-instr(35)
+instr(35,6)
     (*pHlIxIy)++;
-    g_nLineCycle += 4;
 endinstr;
 
 // inc h
-instr(36)
+instr(36,4)
     inc(xh);
 endinstr;
 
 // dec h
-instr(37)
+instr(37,4)
     dec(xh);
 endinstr;
 
 // ld h,n
-instr(38)
+instr(38,4)
     xh = timed_read_byte(pc);
     pc++;
 endinstr;
 
 // daa
-instr(39)
-{
+instr(39,4)
     BYTE incr=0, carry=cy;
 
     if ((f & 0x10) || (a & 0x0f) > 9)
@@ -414,111 +431,92 @@ instr(39)
     }
 
     f = ((f | carry) & 0xfb) | parity(a);
-}
 endinstr;
 
 // jr z,e
-instr(40)
-    if (f & F_ZERO)
-        jr;
-    else {
-        MEM_ACCESS(pc);
-        pc++;
-    }
+instr(40,4)
+    jr(f & F_ZERO);
 endinstr;
 
 // add hl,hl
-instr(41)
-    addhl(xh, xl);
+instr(41,4)
+    addhl(xh,xl);
 endinstr;
 
 // ld hl,(nn)
-instr(42)
-{
+instr(42,4)
     WORD addr = timed_read_word(pc);
     *pHlIxIy = timed_read_word(addr);
     pc += 2;
-}
 endinstr;
 
 // dec hl
-instr(43)
+instr(43,6)
     (*pHlIxIy)--;
-    g_nLineCycle += 4;
 endinstr;
 
 
 // inc l
-instr(44)
+instr(44,4)
     inc(xl);
 endinstr;
 
 // dec l
-instr(45)
+instr(45,4)
     dec(xl);
 endinstr;
 
 // ld l,n
-instr(46)
+instr(46,4)
     xl = timed_read_byte(pc);
     pc++;
 endinstr;
 
 // cpl
-instr(47)
+instr(47,4)
     a = ~a;
     f = (f & 0xc5) | (a & 0x28) | 0x12;
 endinstr;
 
 
 // jr nc,e
-instr(48)
-    if (!(f & F_CARRY))
-        jr;
-    else {
-        MEM_ACCESS(pc);
-        pc++;
-    }
+instr(48,4)
+    jr(!(f & F_CARRY));
 endinstr;
 
 // ld sp,nn
-instr(49)
+instr(49,4)
     sp = timed_read_word(pc);
     pc += 2;
 endinstr;
 
 // ld (nn),a
-instr(50)
-{
+instr(50,4)
     WORD addr = timed_read_word(pc);
     pc += 2;
     timed_write_byte(addr,a);
-}
 endinstr;
 
 // inc sp
-instr(51)
+instr(51,6)
     sp++;
-    g_nLineCycle += 4;
 endinstr;
 
 
 // inc (hl), inc (ix+d), inc (iy+d)
 HLinstr(52)
-{
     BYTE t=timed_read_byte(addr);
     inc(t);
+    g_nLineCycle++;
     timed_write_byte(addr,t);
-}
 endinstr;
 
 // dec (hl), dec (ix+d), dec (iy+d)
 HLinstr(53)
-{
     BYTE t=timed_read_byte(addr);
     dec(t);
+    g_nLineCycle++;
     timed_write_byte(addr,t);
-}
 endinstr;
 
 // ld (hl),n
@@ -529,119 +527,111 @@ HLinstr(54)
 endinstr;
 
 // scf
-instr(55)
+instr(55,4)
     f = (f & 0xc4) | 1 | (a & 0x28);
 endinstr;
 
 
 // jr c,e
-instr(56)
-    if (f & F_CARRY)
-        jr;
-    else {
-        MEM_ACCESS(pc);
-        pc++;
-    }
+instr(56,4)
+    jr(f & F_CARRY);
 endinstr;
 
 // add hl,sp
-instr(57)
-    addhl((sp>>8),(sp&0xff));
+instr(57,4)
+    addhl(sp_h,sp_l);
 endinstr;
 
 // ld a,(nn)
-instr(58)
-{
+instr(58,4)
     WORD addr=timed_read_word(pc);
     pc += 2;
     a=timed_read_byte(addr);
-}
 endinstr;
 
 // dec sp
-instr(59)
+instr(59,6)
     sp--;
-    g_nLineCycle += 4;
 endinstr;
 
 
 // inc a
-instr(60)
+instr(60,4)
     inc(a);
 endinstr;
 
 // dec a
-instr(61)
+instr(61,4)
     dec(a);
 endinstr;
 
 // ld a,n
-instr(62)
+instr(62,4)
     a=timed_read_byte(pc);
     pc++;
 endinstr;
 
 // ccf
-instr(63)
+instr(63,4)
     f=(f&0xc4)|(cy^1)|(cy<<4)|(a&0x28);
 endinstr;
 
 
-instr(0x40)     {      } endinstr;                          // ld b,b
-instr(0x41)     { b=c; } endinstr;                          // ld b,c
-instr(0x42)     { b=d; } endinstr;                          // ld b,d
-instr(0x43)     { b=e; } endinstr;                          // ld b,e
-instr(0x44)     { b=xh; } endinstr;                         // ld b,h/ixh/iyh
-instr(0x45)     { b=xl; } endinstr;                         // ld b,l/ixl/iyl
+instr(0x40,4)   {      } endinstr;                          // ld b,b
+instr(0x41,4)   { b=c; } endinstr;                          // ld b,c
+instr(0x42,4)   { b=d; } endinstr;                          // ld b,d
+instr(0x43,4)   { b=e; } endinstr;                          // ld b,e
+instr(0x44,4)   { b=xh; } endinstr;                         // ld b,h/ixh/iyh
+instr(0x45,4)   { b=xl; } endinstr;                         // ld b,l/ixl/iyl
 HLinstr(0x46)   { b = timed_read_byte(addr); }  endinstr;   // ld b,(hl)
-instr(0x47)     { b=a; } endinstr;                          // ld b,a
+instr(0x47,4)   { b=a; } endinstr;                          // ld b,a
 
-instr(0x48)     { c=b;  } endinstr;                         // ld c,b
-instr(0x49)     {      } endinstr;                          // ld c,c
-instr(0x4a)     { c=d; } endinstr;                          // ld c,d
-instr(0x4b)     { c=e; } endinstr;                          // ld c,e
-instr(0x4c)     { c=xh; } endinstr;                         // ld c,h/ixh/iyh
-instr(0x4d)     { c=xl; } endinstr;                         // ld c,l/ixl/iyl
+instr(0x48,4)   { c=b;  } endinstr;                         // ld c,b
+instr(0x49,4)   {      } endinstr;                          // ld c,c
+instr(0x4a,4)   { c=d; } endinstr;                          // ld c,d
+instr(0x4b,4)   { c=e; } endinstr;                          // ld c,e
+instr(0x4c,4)   { c=xh; } endinstr;                         // ld c,h/ixh/iyh
+instr(0x4d,4)   { c=xl; } endinstr;                         // ld c,l/ixl/iyl
 HLinstr(0x4e)   { c = timed_read_byte(addr); }  endinstr;   // ld c,(hl)
-instr(0x4f)     { c=a; } endinstr;                          // ld c,a
+instr(0x4f,4)   { c=a; } endinstr;                          // ld c,a
 
 
-instr(0x50)     { d=b; } endinstr;                          // ld d,b
-instr(0x51)     { d=c; } endinstr;                          // ld d,c
-instr(0x52)     {      } endinstr;                          // ld d,d
-instr(0x53)     { d=e; } endinstr;                          // ld d,e
-instr(0x54)     { d=xh; } endinstr;                         // ld d,h/ixh/iyh
-instr(0x55)     { d=xl; } endinstr;                         // ld d,l/ixl/iyl
+instr(0x50,4)   { d=b; } endinstr;                          // ld d,b
+instr(0x51,4)   { d=c; } endinstr;                          // ld d,c
+instr(0x52,4)   {      } endinstr;                          // ld d,d
+instr(0x53,4)   { d=e; } endinstr;                          // ld d,e
+instr(0x54,4)   { d=xh; } endinstr;                         // ld d,h/ixh/iyh
+instr(0x55,4)   { d=xl; } endinstr;                         // ld d,l/ixl/iyl
 HLinstr(0x56)   { d = timed_read_byte(addr); }  endinstr;   // ld d,(hl)
-instr(0x57)     { d=a; } endinstr;                          // ld d,a
+instr(0x57,4)   { d=a; } endinstr;                          // ld d,a
 
-instr(0x58)     { e=b; } endinstr;                          // ld e,b
-instr(0x59)     { e=c; } endinstr;                          // ld e,c
-instr(0x5a)     { e=d; } endinstr;                          // ld e,d
-instr(0x5b)     {      } endinstr;                          // ld e,e
-instr(0x5c)     { e=xh; } endinstr;                         // ld e,h/ixh/iyh
-instr(0x5d)     { e=xl; } endinstr;                         // ld e,l/ixl/iyl
+instr(0x58,4)   { e=b; } endinstr;                          // ld e,b
+instr(0x59,4)   { e=c; } endinstr;                          // ld e,c
+instr(0x5a,4)   { e=d; } endinstr;                          // ld e,d
+instr(0x5b,4)   {      } endinstr;                          // ld e,e
+instr(0x5c,4)   { e=xh; } endinstr;                         // ld e,h/ixh/iyh
+instr(0x5d,4)   { e=xl; } endinstr;                         // ld e,l/ixl/iyl
 HLinstr(0x5e)   { e = timed_read_byte(addr); }  endinstr;   // ld e,(hl)
-instr(0x5f)     { e=a; } endinstr;                          // ld e,a
+instr(0x5f,4)   { e=a; } endinstr;                          // ld e,a
 
 
-instr(0x60)     { xh=b; } endinstr;                         // ld h,b (or ixh/iyh ...)
-instr(0x61)     { xh=c; } endinstr;                         // ld h,c
-instr(0x62)     { xh=d; } endinstr;                         // ld h,d
-instr(0x63)     { xh=e; } endinstr;                         // ld h,e
-instr(0x64)     {       } endinstr;                         // ld h,h
-instr(0x65)     { xh=xl; } endinstr;                        // ld h,l
+instr(0x60,4)   { xh=b; } endinstr;                         // ld h,b (or ixh/iyh ...)
+instr(0x61,4)   { xh=c; } endinstr;                         // ld h,c
+instr(0x62,4)   { xh=d; } endinstr;                         // ld h,d
+instr(0x63,4)   { xh=e; } endinstr;                         // ld h,e
+instr(0x64,4)   {       } endinstr;                         // ld h,h
+instr(0x65,4)   { xh=xl; } endinstr;                        // ld h,l
 HLinstr(0x66)   { h = timed_read_byte(addr); }  endinstr;   // ld h,(hl) - always into h
-instr(0x67)     { xh=a; } endinstr;                         // ld h,a
+instr(0x67,4)   { xh=a; } endinstr;                         // ld h,a
 
-instr(0x68)     { xl=b; } endinstr;                         // ld l,b (or ixl/iyl ...)
-instr(0x69)     { xl=c; } endinstr;                         // ld l,c
-instr(0x6a)     { xl=d; } endinstr;                         // ld l,d
-instr(0x6b)     { xl=e; } endinstr;                         // ld l,e
-instr(0x6c)     { xl=xh; } endinstr;                        // ld l,h
-instr(0x6d)     {       } endinstr;                         // ld l,l
+instr(0x68,4)   { xl=b; } endinstr;                         // ld l,b (or ixl/iyl ...)
+instr(0x69,4)   { xl=c; } endinstr;                         // ld l,c
+instr(0x6a,4)   { xl=d; } endinstr;                         // ld l,d
+instr(0x6b,4)   { xl=e; } endinstr;                         // ld l,e
+instr(0x6c,4)   { xl=xh; } endinstr;                        // ld l,h
+instr(0x6d,4)   {       } endinstr;                         // ld l,l
 HLinstr(0x6e)   { l = timed_read_byte(addr); }  endinstr;   // ld l,(hl) - always into l
-instr(0x6f)     { xl=a; } endinstr;                         // ld l,a
+instr(0x6f,4)   { xl=a; } endinstr;                         // ld l,a
 
 
 HLinstr(0x70)   { timed_write_byte(addr,b); } endinstr;     // ld (hl),b (or (ix+d)/(iy+d) ...)
@@ -650,237 +640,197 @@ HLinstr(0x72)   { timed_write_byte(addr,d); } endinstr;     // ld (hl),d
 HLinstr(0x73)   { timed_write_byte(addr,e); } endinstr;     // ld (hl),e
 HLinstr(0x74)   { timed_write_byte(addr,h); } endinstr;     // ld (hl),h
 HLinstr(0x75)   { timed_write_byte(addr,l); } endinstr;     // ld (hl),l
-HLinstr(0x76)   { pc--; } endinstr;                         // halt
+instr(0x76,4)   { pc--; } endinstr;                         // halt
 HLinstr(0x77)   { timed_write_byte(addr,a); } endinstr;     // ld (hl),a
 
-instr(0x78)     { a=b; } endinstr;                          // ld a,b
-instr(0x79)     { a=c; } endinstr;                          // ld a,c
-instr(0x7a)     { a=d; } endinstr;                          // ld a,d
-instr(0x7b)     { a=e; } endinstr;                          // ld a,e
-instr(0x7c)     { a=xh; } endinstr;                         // ld a,h/ixh/iyh
-instr(0x7d)     { a=xl; } endinstr;                         // ld a,l/ixl/iyl
+instr(0x78,4)   { a=b; } endinstr;                          // ld a,b
+instr(0x79,4)   { a=c; } endinstr;                          // ld a,c
+instr(0x7a,4)   { a=d; } endinstr;                          // ld a,d
+instr(0x7b,4)   { a=e; } endinstr;                          // ld a,e
+instr(0x7c,4)   { a=xh; } endinstr;                         // ld a,h/ixh/iyh
+instr(0x7d,4)   { a=xl; } endinstr;                         // ld a,l/ixl/iyl
 HLinstr(0x7e)   { a = timed_read_byte(addr); }  endinstr;   // ld a,(hl)
-instr(0x7f)     {       } endinstr;                         // ld a,a
+instr(0x7f,4)   {       } endinstr;                         // ld a,a
 
 
 
-instr(0x80)     { adda(b); } endinstr;                      // add a,b
-instr(0x81)     { adda(c); } endinstr;                      // add a,c
-instr(0x82)     { adda(d); } endinstr;                      // add a,d
-instr(0x83)     { adda(e); } endinstr;                      // add a,e
-instr(0x84)     { adda(xh); } endinstr;                     // add a,h/ixh/iyh
-instr(0x85)     { adda(xl); } endinstr;                     // add a,l/ixl/iyl
+instr(0x80,4)   { adda(b); } endinstr;                      // add a,b
+instr(0x81,4)   { adda(c); } endinstr;                      // add a,c
+instr(0x82,4)   { adda(d); } endinstr;                      // add a,d
+instr(0x83,4)   { adda(e); } endinstr;                      // add a,e
+instr(0x84,4)   { adda(xh); } endinstr;                     // add a,h/ixh/iyh
+instr(0x85,4)   { adda(xl); } endinstr;                     // add a,l/ixl/iyl
 HLinstr(0x86)   { adda(timed_read_byte(addr)); } endinstr;  // add a,(hl)
-instr(0x87)     { adda(a); } endinstr;                      // add a,a
+instr(0x87,4)   { adda(a); } endinstr;                      // add a,a
 
-instr(0x88)     { adca(b); } endinstr;                      // adc a,b
-instr(0x89)     { adca(c); } endinstr;                      // adc a,c
-instr(0x8a)     { adca(d); } endinstr;                      // adc a,d
-instr(0x8b)     { adca(e); } endinstr;                      // adc a,e
-instr(0x8c)     { adca(xh); } endinstr;                     // adc a,h/ixh/iyh
-instr(0x8d)     { adca(xl); } endinstr;                     // adc a,l/ixl/iyl
+instr(0x88,4)   { adca(b); } endinstr;                      // adc a,b
+instr(0x89,4)   { adca(c); } endinstr;                      // adc a,c
+instr(0x8a,4)   { adca(d); } endinstr;                      // adc a,d
+instr(0x8b,4)   { adca(e); } endinstr;                      // adc a,e
+instr(0x8c,4)   { adca(xh); } endinstr;                     // adc a,h/ixh/iyh
+instr(0x8d,4)   { adca(xl); } endinstr;                     // adc a,l/ixl/iyl
 HLinstr(0x8e)   { adca(timed_read_byte(addr)); } endinstr;  // adc a,(hl)
-instr(0x8f)     { adca(a); } endinstr;                      // adc a,a
+instr(0x8f,4)   { adca(a); } endinstr;                      // adc a,a
 
 
-instr(0x90)     { suba(b); } endinstr;                      // sub b
-instr(0x91)     { suba(c); } endinstr;                      // sub c
-instr(0x92)     { suba(d); } endinstr;                      // sub d
-instr(0x93)     { suba(e); } endinstr;                      // sub e
-instr(0x94)     { suba(xh); } endinstr;                     // sub h/ixh/iyh
-instr(0x95)     { suba(xl); } endinstr;                     // sub l/ixl/iyl
+instr(0x90,4)   { suba(b); } endinstr;                      // sub b
+instr(0x91,4)   { suba(c); } endinstr;                      // sub c
+instr(0x92,4)   { suba(d); } endinstr;                      // sub d
+instr(0x93,4)   { suba(e); } endinstr;                      // sub e
+instr(0x94,4)   { suba(xh); } endinstr;                     // sub h/ixh/iyh
+instr(0x95,4)   { suba(xl); } endinstr;                     // sub l/ixl/iyl
 HLinstr(0x96)   { suba(timed_read_byte(addr)); } endinstr;  // sub (hl)
-instr(0x97)     { suba(a); } endinstr;                      // sub a
+instr(0x97,4)   { suba(a); } endinstr;                      // sub a
 
-instr(0x98)     { sbca(b); } endinstr;                      // sbc a,b
-instr(0x99)     { sbca(c); } endinstr;                      // sbc a,c
-instr(0x9a)     { sbca(d); } endinstr;                      // sbc a,d
-instr(0x9b)     { sbca(e); } endinstr;                      // sbc a,e
-instr(0x9c)     { sbca(xh); } endinstr;                     // sbc a,h/ixh/iyh
-instr(0x9d)     { sbca(xl); } endinstr;                     // sbc a,l/ixl/iyl
+instr(0x98,4)   { sbca(b); } endinstr;                      // sbc a,b
+instr(0x99,4)   { sbca(c); } endinstr;                      // sbc a,c
+instr(0x9a,4)   { sbca(d); } endinstr;                      // sbc a,d
+instr(0x9b,4)   { sbca(e); } endinstr;                      // sbc a,e
+instr(0x9c,4)   { sbca(xh); } endinstr;                     // sbc a,h/ixh/iyh
+instr(0x9d,4)   { sbca(xl); } endinstr;                     // sbc a,l/ixl/iyl
 HLinstr(0x9e)   { sbca(timed_read_byte(addr)); } endinstr;  // sbc a,(hl)
-instr(0x9f)     { sbca(a); } endinstr;                      // sbc a,a
+instr(0x9f,4)   { sbca(a); } endinstr;                      // sbc a,a
 
 
-instr(0xa0)     { anda(b); } endinstr;                      // and b
-instr(0xa1)     { anda(c); } endinstr;                      // and c
-instr(0xa2)     { anda(d); } endinstr;                      // and d
-instr(0xa3)     { anda(e); } endinstr;                      // and e
-instr(0xa4)     { anda(xh); } endinstr;                     // and h/ixh/iyh
-instr(0xa5)     { anda(xl); } endinstr;                     // and l/ixl/iyl
+instr(0xa0,4)   { anda(b); } endinstr;                      // and b
+instr(0xa1,4)   { anda(c); } endinstr;                      // and c
+instr(0xa2,4)   { anda(d); } endinstr;                      // and d
+instr(0xa3,4)   { anda(e); } endinstr;                      // and e
+instr(0xa4,4)   { anda(xh); } endinstr;                     // and h/ixh/iyh
+instr(0xa5,4)   { anda(xl); } endinstr;                     // and l/ixl/iyl
 HLinstr(0xa6)   { anda(timed_read_byte(addr)); } endinstr;  // and (hl)
-instr(0xa7)     { anda(a); } endinstr;                      // and a
+instr(0xa7,4)   { anda(a); } endinstr;                      // and a
 
-instr(0xa8)     { xora(b); } endinstr;                      // xor b
-instr(0xa9)     { xora(c); } endinstr;                      // xor c
-instr(0xaa)     { xora(d); } endinstr;                      // xor d
-instr(0xab)     { xora(e); } endinstr;                      // xor e
-instr(0xac)     { xora(xh); } endinstr;                     // xor h/ixh/iyh
-instr(0xad)     { xora(xl); } endinstr;                     // xor l/ixl/iyl
+instr(0xa8,4)   { xora(b); } endinstr;                      // xor b
+instr(0xa9,4)   { xora(c); } endinstr;                      // xor c
+instr(0xaa,4)   { xora(d); } endinstr;                      // xor d
+instr(0xab,4)   { xora(e); } endinstr;                      // xor e
+instr(0xac,4)   { xora(xh); } endinstr;                     // xor h/ixh/iyh
+instr(0xad,4)   { xora(xl); } endinstr;                     // xor l/ixl/iyl
 HLinstr(0xae)   { xora(timed_read_byte(addr)); } endinstr;  // xor (hl)
-instr(0xaf)     { xora(a); } endinstr;                      // xor a
+instr(0xaf,4)   { xora(a); } endinstr;                      // xor a
 
 
-instr(0xb0)     { ora(b); } endinstr;                       // or b
-instr(0xb1)     { ora(c); } endinstr;                       // or c
-instr(0xb2)     { ora(d); } endinstr;                       // or d
-instr(0xb3)     { ora(e); } endinstr;                       // or e
-instr(0xb4)     { ora(xh); } endinstr;                      // or h/ixh/iyh
-instr(0xb5)     { ora(xl); } endinstr;                      // or l/ixl/iyl
+instr(0xb0,4)   { ora(b); } endinstr;                       // or b
+instr(0xb1,4)   { ora(c); } endinstr;                       // or c
+instr(0xb2,4)   { ora(d); } endinstr;                       // or d
+instr(0xb3,4)   { ora(e); } endinstr;                       // or e
+instr(0xb4,4)   { ora(xh); } endinstr;                      // or h/ixh/iyh
+instr(0xb5,4)   { ora(xl); } endinstr;                      // or l/ixl/iyl
 HLinstr(0xb6)   { ora(timed_read_byte(addr)); } endinstr;   // or (hl)
-instr(0xb7)     { ora(a); } endinstr;                       // or a
+instr(0xb7,4)   { ora(a); } endinstr;                       // or a
 
-instr(0xb8)     { cpa(b); } endinstr;                       // cp b
-instr(0xb9)     { cpa(c); } endinstr;                       // cp c
-instr(0xba)     { cpa(d); } endinstr;                       // cp d
-instr(0xbb)     { cpa(e); } endinstr;                       // cp e
-instr(0xbc)     { cpa(xh); } endinstr;                      // cp h/ixh/iyh
-instr(0xbd)     { cpa(xl); } endinstr;                      // cp l/ixl/iyl
+instr(0xb8,4)   { cpa(b); } endinstr;                       // cp b
+instr(0xb9,4)   { cpa(c); } endinstr;                       // cp c
+instr(0xba,4)   { cpa(d); } endinstr;                       // cp d
+instr(0xbb,4)   { cpa(e); } endinstr;                       // cp e
+instr(0xbc,4)   { cpa(xh); } endinstr;                      // cp h/ixh/iyh
+instr(0xbd,4)   { cpa(xl); } endinstr;                      // cp l/ixl/iyl
 HLinstr(0xbe)   { cpa(timed_read_byte(addr)); } endinstr;   // cp (hl)
-instr(0xbf)     { cpa(a); } endinstr;                       // cp a
+instr(0xbf,4)   { cpa(a); } endinstr;                       // cp a
 
 
 // ret nz
-instr(0xc0);
-    if(!(f & F_ZERO))
-        ret;
-    g_nLineCycle += 4;
+instr(0xc0,5)
+    ret(!(f & F_ZERO));
 endinstr;
 
 // pop bc
-instr(0xc1)
+instr(0xc1,4)
     pop(bc);
 endinstr;
 
 //jp nz,nn
-instr(0xc2)
-    if(!(f&F_ZERO))
-        jp;
-    else
-    {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xc2,4)
+    jp(!(f&F_ZERO));
 endinstr;
 
 //jp nn
-instr(0xc3)
-    jp;
+instr(0xc3,4)
+    jp(true);
 endinstr;
 
 // call nz,pq
-instr(0xc4)
-    if(!(f & F_ZERO))
-        call;
-    else
-    {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xc4,4)
+    call(!(f & F_ZERO));
 endinstr;
 
 // push bc
-instr(0xc5)
+instr(0xc5,5)
     push(bc);
-    g_nLineCycle += 4;
 endinstr;
 
 // add a,n
-instr(0xc6)
+instr(0xc6,4)
     adda(timed_read_byte(pc));
     pc++;
 endinstr;
 
 // rst 0
-instr(0xc7)
+instr(0xc7,5)
     push(pc);
     pc=0;
 endinstr;
 
 // ret z
-instr(0xc8)
-    if(f & F_ZERO)
-        ret;
-    g_nLineCycle += 4;
+instr(0xc8,5)
+    ret(f & F_ZERO);
 endinstr;
 
 // ret
-instr(0xc9)
-    ret;
+instr(0xc9,4)
+    ret(true);
 endinstr;
 
 // jp z
-instr(0xca)
-    if (f & F_ZERO)
-        jp;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xca,4)
+    jp(f & F_ZERO);
 endinstr;
 
 // [cb prefix]
-// Note: The CB prefix timing is included in each CB instruction - No it's not any more!
-instr(0xcb)
+instr(0xcb,4)
 #include "CBops.h"
 endinstr;
 
 // call z,nn
-instr(0xcc)
-    if (f & F_ZERO)
-        call;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xcc,4)
+    call(f & F_ZERO);
 endinstr;
 
 // call nn
-instr(0xcd)
-    call;
+instr(0xcd,4)
+    call(true);
 endinstr;
 
 // adc a,n
-instr(0xce)
+instr(0xce,4)
     adca(timed_read_byte(pc));
     pc++;
 endinstr;
 
 // rst 8
-instr(0xcf)
+instr(0xcf,5)
     push(pc);
     pc = 8;
 endinstr;
 
 // ret nc
-instr(0xd0)
-    if(!cy)
-        ret;
-    g_nLineCycle += 4;
+instr(0xd0,5)
+    ret(!cy);
 endinstr;
 
 // pop de
-instr(0xd1)
+instr(0xd1,4)
     pop(de);
 endinstr;
 
 // jp nc,nn
-instr(0xd2)
-    if(!cy)
-        jp;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xd2,4)
+    jp(!cy);
 endinstr;
 
 // out (n), a
-instr(0xd3);
+instr(0xd3,4)
     BYTE bPortLow = timed_read_byte(pc);
     PORT_ACCESS(bPortLow);
     out_byte((a<<8) + bPortLow,a);
@@ -888,61 +838,46 @@ instr(0xd3);
 endinstr;
 
 // call nc,nn
-instr(0xd4)
-    if(!cy)
-        call;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xd4,4)
+    call(!cy);
 endinstr;
 
 // push de
-instr(0xd5)
+instr(0xd5,5)
     push(de);
-    g_nLineCycle += 4;
 endinstr;
 
 // sub n
-instr(0xd6)
+instr(0xd6,4)
     suba(timed_read_byte(pc));
     pc++;
 endinstr;
 
 // rst 16
-instr(0xd7)
+instr(0xd7,5)
     push(pc);
     pc = 16;
 endinstr;
 
 // ret c
-instr(0xd8)
-    if(cy)
-        ret;
-    g_nLineCycle += 4;
+instr(0xd8,5)
+    ret(cy);
 endinstr;
 
 // exx
-instr(0xd9)
+instr(0xd9,4)
     swap(bc,alt_bc);
     swap(de,alt_de);
     swap(hl,alt_hl);
 endinstr;
 
 // jp c,nn
-instr(0xda)
-    if(cy)
-        jp;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xda,4)
+    jp(cy);
 endinstr;
 
 // in a,(n)
-instr(0xdb)
+instr(0xdb,4)
     BYTE bPortLow = timed_read_byte(pc);
     PORT_ACCESS(bPortLow);
     a = in_byte((a<<8)+bPortLow);
@@ -950,206 +885,157 @@ instr(0xdb)
 endinstr;
 
 // call c,nn
-instr(0xdc)
-    if(cy)
-        call;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xdc,4)
+    call(cy);
 endinstr;
 
 // [ix prefix]
-instr(0xdd)
+instr(0xdd,4)
     pNewHlIxIy = &ix;
 endinstr;
 
 // sbc a,n
-instr(0xde)
+instr(0xde,4)
     sbca(timed_read_byte(pc));
     pc++;
 endinstr;
 
 // rst 24
-instr(0xdf)
+instr(0xdf,5)
     push(pc);
     pc = 24;
 endinstr;
 
 // ret po
-instr(0xe0)
-    if(!(f & F_PARITY))
-        ret;
-    g_nLineCycle += 4;
+instr(0xe0,5)
+    ret(!(f & F_PARITY));
 endinstr;
 
 // pop hl/ix/iy
-instr(0xe1)
+instr(0xe1,4)
     pop(*pHlIxIy);
 endinstr;
 
 // jp po,nn
-instr(0xe2)
-    if(!(f&F_PARITY))
-        jp;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xe2,4)
+    jp(!(f&F_PARITY));
 endinstr;
 
 // ex (sp),hl
-instr(0xe3)
+instr(0xe3,4)
     WORD t = timed_read_word(sp);
-    timed_write_word(sp,*pHlIxIy);
+    g_nLineCycle++;
+    timed_write_word_reversed(sp,*pHlIxIy);
     *pHlIxIy = t;
-    g_nLineCycle += 4;
+    g_nLineCycle += 2;
 endinstr;
 
 // call po
-instr(0xe4)
-    if (!(f & F_PARITY))
-        call;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xe4,4)
+    call(!(f & F_PARITY));
 endinstr;
 
 // push hl
-instr(0xe5)
+instr(0xe5,5)
     push(*pHlIxIy);
-    g_nLineCycle += 4;
 endinstr;
 
 // and n
-instr(0xe6)
+instr(0xe6,4)
     anda(timed_read_byte(pc));
     pc++;
 endinstr;
 
 // rst 32
-instr(0xe7)
+instr(0xe7,5)
     push(pc);
     pc = 32;
 endinstr;
 
 // ret pe
-instr(0xe8)
-    if (f&4)
-        ret;
-    g_nLineCycle += 4;
+instr(0xe8,5)
+    ret(f&4);
 endinstr;
 
 
 // jp (hl), jp (ix), jp (iy)
-instr(0xe9)
+instr(0xe9,4)
     pc = *pHlIxIy;
 endinstr;
 
 // jp pe,nn
-instr(0xea)
-    if (f & F_PARITY)
-        jp;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xea,4)
+    jp(f & F_PARITY);
 endinstr;
 
 // ex de,hl
-instr(0xeb)
+instr(0xeb,4)
     swap(de,hl);
 endinstr;
 
 // call pe,nn
-instr(0xec)
-    if (f & F_PARITY)
-        call;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xec,4)
+    call(f & F_PARITY);
 endinstr;
 
 
 
 // [ed prefix]
-instr(0xed)
+instr(0xed,4)
 #include "EDops.h"
 endinstr;
 
 // xor n
-instr(0xee)
+instr(0xee,4)
     xora(timed_read_byte(pc));
     pc++;
 endinstr;
 
 // rst 40
-instr(0xef)
+instr(0xef,5)
     push(pc);
     pc = 40;
 endinstr;
 
 // ret p
-instr(0xf0)
-    if (!(f & F_NEG))
-        ret;
-    g_nLineCycle += 4;
+instr(0xf0,5)
+    ret(!(f & F_NEG));
 endinstr;
 
 
 // pop af
-instr(0xf1);
+instr(0xf1,4)
     pop(af);
 endinstr;
 
 // jp p,nn
-instr(0xf2);
-    if (!(f & F_NEG))
-        jp;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xf2,4)
+    jp(!(f & F_NEG));
 endinstr;
 
 // di
-instr(0xf3);
+instr(0xf3,4)
     iff1 = iff2 = 0;
 endinstr;
 
-// call p,
-instr(0xf4);
-    if (!(f & F_NEG))
-        call;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+// call p,nn
+instr(0xf4,4)
+    call(!(f & F_NEG));
 endinstr;
 
 // push af
-instr(0xf5);
+instr(0xf5,5)
     push(af);
-    g_nLineCycle += 4;
 endinstr;
 
 // or n
-instr(0xf6);
+instr(0xf6,4)
     ora(timed_read_byte(pc));
     pc++;
 endinstr;
 
 // rst 48
-instr(0xf7);
+instr(0xf7,5)
     push(pc);
     pc = 48;
 endinstr;
@@ -1157,31 +1043,22 @@ endinstr;
 
 
 // ret m
-instr(0xf8);
-    if(f&0x80)
-        ret;
-    g_nLineCycle += 4;
+instr(0xf8,5)
+    ret(f&0x80);
 endinstr;
 
 // ld sp,hl
-instr(0xf9);
+instr(0xf9,6)
     sp = *pHlIxIy;
-    g_nLineCycle += 4;
 endinstr;
 
 // jp m,nn
-instr(0xfa);
-    if (f & F_NEG)
-        jp;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xfa,4)
+    jp(f & F_NEG);
 endinstr;
 
 // ei
-instr(0xfb);
+instr(0xfb,4)
     // According to Z80 specs, interrupts are not enabled until AFTER THE NEXT instruction
     // In CPU.cpp we'll disallow interrupts if the previous instruction was EI or DI
     iff1 = iff2 = 1;
@@ -1189,29 +1066,23 @@ endinstr;
 
 
 // call m,nn
-instr(0xfc);
-    if(f & F_NEG)
-        call;
-    else {
-        MEM_ACCESS(pc);
-        MEM_ACCESS(pc + 1);
-        pc += 2;
-    }
+instr(0xfc,4)
+    call(f & F_NEG);
 endinstr;
 
 // [iy prefix]
-instr(0xfd);
+instr(0xfd,4)
     pNewHlIxIy = &iy;
 endinstr;
 
 // cp n
-instr(0xfe);
+instr(0xfe,4)
     cpa(timed_read_byte(pc));
     pc++;
 endinstr;
 
 // rst 56
-instr(0xff);
+instr(0xff,5)
     push(pc);
     pc = 56;
 endinstr;
