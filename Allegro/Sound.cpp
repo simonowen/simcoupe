@@ -352,20 +352,33 @@ void CSoundStream::AddData (BYTE* pbData_, int nLength_)
             memmove(m_pbStart, m_pbStart+nCopy, nData-nCopy);
             m_pbNow = m_pbStart + nData-nCopy;
 
-            pb += nCopy;
             nNeed -= nCopy;
         }
 
         if (nNeed)
         {
             TRACE("Short by %d samples\n", nNeed/m_nSampleSize);
-            Generate(pb, nNeed/m_nSampleSize);
+            Generate(pb+nCopy, nNeed/m_nSampleSize);
 
             int nPad = (m_nSampleBufferSize >> 1);
             if (nCopy && nNeed != nPad)
             {
                 Generate(m_pbStart, nPad/m_nSampleSize);
                 m_pbNow = m_pbStart + nPad;
+            }
+        }
+
+        // Reverse the channels if we're in a stereo mode, as Allegro expects them swapped
+        if (m_nChannels == 2)
+        {
+            int nSamples = (nCopy + nNeed) / m_nSampleSize;
+
+            if (m_nBits == 8)
+                for (int i = nSamples ; i-- ; swap(pb[0], pb[1]), pb += 2);
+            else
+            {
+                WORD* pw = reinterpret_cast<WORD*>(pb);
+                for (int i = nSamples ; i-- ; swap(pw[0], pw[1]), pw += 2);
             }
         }
 
