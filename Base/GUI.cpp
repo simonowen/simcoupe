@@ -2026,19 +2026,13 @@ const GUI_ICON* CFileView::GetFileIcon (const char* pcszFile_)
         }
     }
 
-    int nDiskType = 0;
-    if (pszExt)
-    {
-        if (!strcasecmp(pszExt, ".dsk")) nDiskType = 1;
-        if (!strcasecmp(pszExt, ".sad")) nDiskType = 2;
-        if (!strcasecmp(pszExt, ".td0")) nDiskType = 3;
-        if (!strcasecmp(pszExt, ".sbt")) nDiskType = 4;
-        if (!strcasecmp(pszExt, ".mgt")) nDiskType = 5;
-        if (!strcasecmp(pszExt, ".img")) nDiskType = 6;
-        if (!strcasecmp(pszExt, ".sdf")) nDiskType = 7;
-    }
+    static const char* aExts[] = { ".dsk", ".sad", ".td0", ".sbt", ".mgt", ".img", ".sdf", ".cpm" };
+    bool fDiskImage = false;
 
-    return nCompressType ? &sCompressedIcon : nDiskType ? &sDiskIcon : &sDocumentIcon;
+    for (int i = 0 ; !fDiskImage && pszExt && i < sizeof(aExts)/sizeof(aExts[0]) ; i++)
+        fDiskImage = !strcasecmp(pszExt, aExts[i]);
+
+    return nCompressType ? &sCompressedIcon : fDiskImage ? &sDiskIcon : &sDocumentIcon;
 }
 
 
@@ -2113,7 +2107,7 @@ void CFileView::Refresh ()
     CListViewItem* pItems = NULL;
 
     // An empty path gives a virtual drive list (only possible on DOS/Win32)
-    if (!*m_pszPath)
+    if (!m_pszPath[0] || (!m_pszPath[1] && m_pszPath[1] != PATH_SEPARATOR))
     {
         // Work through the letters backwards as we add to the head of the file chain
         for (int chDrive = 'Z' ; chDrive >= 'A' ; chDrive--)
@@ -2137,7 +2131,7 @@ void CFileView::Refresh ()
             // Count the number of filter items to apply
             int nFilters = *m_pszFilter ? 1 : 0;
             char szFilters[256];
-            for (char* psz = strtok(strcpy(szFilters, m_pszFilter), ";") ; (psz = strtok(NULL, ";")) ; nFilters++);
+            for (char* psz = strtok(strcpy(szFilters, m_pszFilter), ";") ; psz && (psz = strtok(NULL, ";")) ; nFilters++);
 
             for (struct dirent* entry ; (entry = readdir(dir)) ; )
             {
@@ -2317,8 +2311,8 @@ CDialog::~CDialog ()
 
 void CDialog::Centre ()
 {
-    // Centralise the main display
-    Move((Frame::GetWidth() - m_nWidth) >> 1, (Frame::GetHeight() - m_nHeight) >> 1);
+    // Position the window slightly above centre
+    Move((Frame::GetWidth() - m_nWidth) >> 1, ((Frame::GetHeight() - m_nHeight) * 9/10) >> 1);
 }
 
 // Activating the dialog will activate the first child control that accepts focus
