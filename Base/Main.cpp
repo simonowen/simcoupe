@@ -47,7 +47,6 @@ int main (int argc_, char* argv_[])
 #endif
 
 
-
 bool Main::Init (int argc_, char* argv_[])
 {
     // Load settings and check command-line options
@@ -55,7 +54,7 @@ bool Main::Init (int argc_, char* argv_[])
         return 0;
 
     // Initialise all modules
-    return OSD::Init() && Sound::Init(true) && Frame::Init(true) && Input::Init(true) && CPU::Init(true);
+    return OSD::Init(true) && Sound::Init(true) && Frame::Init(true) && Input::Init(true) && CPU::Init(true);
 }
 
 void Main::Exit ()
