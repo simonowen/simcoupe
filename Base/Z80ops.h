@@ -1,8 +1,10 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Z80ops.h: Z80 instruction set emulation
 //
 //  Copyright (c) 1994 Ian Collier
+//  Copyright (c) 1999-2003 by Dave Laundon
+//  Copyright (c) 1999-2003 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -51,7 +53,7 @@
                                     if (pHlIxIy == &hl) \
                                         addr = hl; \
                                     else { \
-                                        addr = *pHlIxIy + (signed char)timed_read_byte(pc); \
+                                        addr = *pHlIxIy + (signed char)timed_read_code_byte(pc); \
                                         pc++; \
                                         g_nLineCycle += 5; \
                                     }
@@ -145,7 +147,7 @@
 // Jump relative if condition is true
 #define jr(cc)  do { \
                     if (cc) { \
-                        int j = (signed char)timed_read_byte(pc); \
+                        int j = (signed char)timed_read_code_byte(pc); \
                         pc += j+1; \
                         g_nLineCycle += 5; \
                     } \
@@ -158,7 +160,7 @@
 // Jump absolute if condition is true
 #define jp(cc)  do { \
                     if (cc) \
-                        pc = timed_read_word(pc); \
+                        pc = timed_read_code_word(pc); \
                     else { \
                         MEM_ACCESS(pc); \
                         MEM_ACCESS(pc + 1); \
@@ -169,7 +171,7 @@
 // Call if condition is true
 #define call(cc)    do { \
                         if (cc) { \
-                            WORD npc = timed_read_word(pc); \
+                            WORD npc = timed_read_code_word(pc); \
                             g_nLineCycle++; \
                             push(pc+2); \
                             pc = npc; \
@@ -182,7 +184,7 @@
                     } while(0)
 
 // Return if condition is true
-#define ret(cc) do { if (cc) pop(pc); } while(0)
+#define ret(cc) do { if (cc) { pop(pc); Debug::OnRet(); } } while(0)
 
 #define retn    do { iff1=iff2; ret(true); } while (0)
 
@@ -196,7 +198,7 @@ endinstr;
 
 // ld bc,nn
 instr(1,4)
-    bc = timed_read_word(pc);
+    bc = timed_read_code_word(pc);
     pc += 2;
 endinstr;
 
@@ -223,7 +225,7 @@ endinstr;
 
 // ld b,n
 instr(6,4)
-    b = timed_read_byte(pc);
+    b = timed_read_code_byte(pc);
     pc++;
 endinstr;
 
@@ -267,7 +269,7 @@ endinstr;
 
 // ld c,n
 instr(14,4)
-    c = timed_read_byte(pc);
+    c = timed_read_code_byte(pc);
     pc++;
 endinstr;
 
@@ -287,7 +289,7 @@ endinstr;
 
 // ld de,nn
 instr(17,4)
-    de = timed_read_word(pc);
+    de = timed_read_code_word(pc);
     pc += 2;
 endinstr;
 
@@ -314,7 +316,7 @@ endinstr;
 
 // ld d,n
 instr(22,4)
-    d = timed_read_byte(pc);
+    d = timed_read_code_byte(pc);
     pc++;
 endinstr;
 
@@ -359,7 +361,7 @@ endinstr;
 
 // ld e,n
 instr(30,4)
-    e = timed_read_byte(pc);
+    e = timed_read_code_byte(pc);
     pc++;
 endinstr;
 
@@ -378,13 +380,13 @@ endinstr;
 
 // ld hl,nn
 instr(33,4)
-    *pHlIxIy = timed_read_word(pc);
+    *pHlIxIy = timed_read_code_word(pc);
     pc += 2;
 endinstr;
 
 // ld (nn),hl
 instr(34,4)
-    WORD addr = timed_read_word(pc);
+    WORD addr = timed_read_code_word(pc);
     pc += 2;
     timed_write_word(addr,*pHlIxIy);
 endinstr;
@@ -406,7 +408,7 @@ endinstr;
 
 // ld h,n
 instr(38,4)
-    xh = timed_read_byte(pc);
+    xh = timed_read_code_byte(pc);
     pc++;
 endinstr;
 
@@ -445,7 +447,7 @@ endinstr;
 
 // ld hl,(nn)
 instr(42,4)
-    WORD addr = timed_read_word(pc);
+    WORD addr = timed_read_code_word(pc);
     *pHlIxIy = timed_read_word(addr);
     pc += 2;
 endinstr;
@@ -468,7 +470,7 @@ endinstr;
 
 // ld l,n
 instr(46,4)
-    xl = timed_read_byte(pc);
+    xl = timed_read_code_byte(pc);
     pc++;
 endinstr;
 
@@ -486,13 +488,13 @@ endinstr;
 
 // ld sp,nn
 instr(49,4)
-    sp = timed_read_word(pc);
+    sp = timed_read_code_word(pc);
     pc += 2;
 endinstr;
 
 // ld (nn),a
 instr(50,4)
-    WORD addr = timed_read_word(pc);
+    WORD addr = timed_read_code_word(pc);
     pc += 2;
     timed_write_byte(addr,a);
 endinstr;
@@ -521,7 +523,7 @@ endinstr;
 
 // ld (hl),n
 HLinstr(54)
-    BYTE t=timed_read_byte(pc);
+    BYTE t=timed_read_code_byte(pc);
     timed_write_byte(addr,t);
     pc++;
 endinstr;
@@ -544,7 +546,7 @@ endinstr;
 
 // ld a,(nn)
 instr(58,4)
-    WORD addr=timed_read_word(pc);
+    WORD addr=timed_read_code_word(pc);
     pc += 2;
     a=timed_read_byte(addr);
 endinstr;
@@ -567,7 +569,7 @@ endinstr;
 
 // ld a,n
 instr(62,4)
-    a=timed_read_byte(pc);
+    a=timed_read_code_byte(pc);
     pc++;
 endinstr;
 
@@ -634,14 +636,27 @@ HLinstr(0x6e)   { l = timed_read_byte(addr); }  endinstr;   // ld l,(hl) - alway
 instr(0x6f,4)   { xl=a; } endinstr;                         // ld l,a
 
 
-HLinstr(0x70)   { timed_write_byte(addr,b); } endinstr;     // ld (hl),b (or (ix+d)/(iy+d) ...)
-HLinstr(0x71)   { timed_write_byte(addr,c); } endinstr;     // ld (hl),c
-HLinstr(0x72)   { timed_write_byte(addr,d); } endinstr;     // ld (hl),d
-HLinstr(0x73)   { timed_write_byte(addr,e); } endinstr;     // ld (hl),e
-HLinstr(0x74)   { timed_write_byte(addr,h); } endinstr;     // ld (hl),h
-HLinstr(0x75)   { timed_write_byte(addr,l); } endinstr;     // ld (hl),l
-instr(0x76,4)   { pc--; } endinstr;                         // halt
-HLinstr(0x77)   { timed_write_byte(addr,a); } endinstr;     // ld (hl),a
+HLinstr(0x70)   { timed_write_byte(addr,b); } endinstr; // ld (hl),b (or (ix+d)/(iy+d) ...)
+HLinstr(0x71)   { timed_write_byte(addr,c); } endinstr;    // ld (hl),c
+HLinstr(0x72)   { timed_write_byte(addr,d); } endinstr;    // ld (hl),d
+HLinstr(0x73)   { timed_write_byte(addr,e); } endinstr;    // ld (hl),e
+HLinstr(0x74)   { timed_write_byte(addr,h); } endinstr;    // ld (hl),h
+HLinstr(0x75)   { timed_write_byte(addr,l); } endinstr;    // ld (hl),l
+
+// halt
+instr(0x76,4)
+    pc--;
+
+    // Halt with interrupt disabled? (and not at the same address as a previous break)
+    static WORD wPC = 0;
+    if (!iff1 && pc != wPC)
+    {
+        wPC = pc;
+        Debug::Start();
+    }
+endinstr;
+
+HLinstr(0x77)   { timed_write_byte(addr,a); } endinstr;    // ld (hl),a
 
 instr(0x78,4)   { a=b; } endinstr;                          // ld a,b
 instr(0x79,4)   { a=c; } endinstr;                          // ld a,c
@@ -762,7 +777,7 @@ endinstr;
 
 // add a,n
 instr(0xc6,4)
-    adda(timed_read_byte(pc));
+    adda(timed_read_code_byte(pc));
     pc++;
 endinstr;
 
@@ -804,7 +819,7 @@ endinstr;
 
 // adc a,n
 instr(0xce,4)
-    adca(timed_read_byte(pc));
+    adca(timed_read_code_byte(pc));
     pc++;
 endinstr;
 
@@ -829,9 +844,9 @@ instr(0xd2,4)
     jp(!cy);
 endinstr;
 
-// out (n), a
+// out (n),a
 instr(0xd3,4)
-    BYTE bPortLow = timed_read_byte(pc);
+    BYTE bPortLow = timed_read_code_byte(pc);
     PORT_ACCESS(bPortLow);
     out_byte((a<<8) + bPortLow,a);
     pc++;
@@ -849,7 +864,7 @@ endinstr;
 
 // sub n
 instr(0xd6,4)
-    suba(timed_read_byte(pc));
+    suba(timed_read_code_byte(pc));
     pc++;
 endinstr;
 
@@ -878,7 +893,7 @@ endinstr;
 
 // in a,(n)
 instr(0xdb,4)
-    BYTE bPortLow = timed_read_byte(pc);
+    BYTE bPortLow = timed_read_code_byte(pc);
     PORT_ACCESS(bPortLow);
     a = in_byte((a<<8)+bPortLow);
     pc++;
@@ -896,7 +911,7 @@ endinstr;
 
 // sbc a,n
 instr(0xde,4)
-    sbca(timed_read_byte(pc));
+    sbca(timed_read_code_byte(pc));
     pc++;
 endinstr;
 
@@ -942,7 +957,7 @@ endinstr;
 
 // and n
 instr(0xe6,4)
-    anda(timed_read_byte(pc));
+    anda(timed_read_code_byte(pc));
     pc++;
 endinstr;
 
@@ -987,7 +1002,7 @@ endinstr;
 
 // xor n
 instr(0xee,4)
-    xora(timed_read_byte(pc));
+    xora(timed_read_code_byte(pc));
     pc++;
 endinstr;
 
@@ -1030,7 +1045,7 @@ endinstr;
 
 // or n
 instr(0xf6,4)
-    ora(timed_read_byte(pc));
+    ora(timed_read_code_byte(pc));
     pc++;
 endinstr;
 
@@ -1077,7 +1092,7 @@ endinstr;
 
 // cp n
 instr(0xfe,4)
-    cpa(timed_read_byte(pc));
+    cpa(timed_read_code_byte(pc));
     pc++;
 endinstr;
 
