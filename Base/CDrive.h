@@ -47,6 +47,7 @@ class CDrive : public CDiskDevice
         bool IsLightOn () const { return IsMotorOn() && m_pDisk; }
         bool IsActive () const { return IsLightOn () && m_nMotorDelay > (FLOPPY_MOTOR_ACTIVE_TIME - GetOption(turboload)); }
 
+        void Reset ();
         bool Insert (const char* pcszSource_, bool fReadOnly_/*=false*/);
         bool Eject ();
         bool Flush ();
@@ -57,10 +58,10 @@ class CDrive : public CDiskDevice
         void FrameEnd ();
 
         // Functions to deal with the contents of the disk
-        BYTE ReadAddress (int nSide_, int nTrack_, IDFIELD* pIdField_);
-        UINT ReadTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_);
-        BYTE VerifyTrack (int nSide_, int nTrack_);
-        BYTE WriteTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_);
+        BYTE ReadAddress (UINT uSide_, UINT uTrack_, IDFIELD* pIdField_);
+        UINT ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
+        BYTE VerifyTrack (UINT uSide_, UINT uTrack_);
+        BYTE WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
 
         static WORD CrcBlock (void* pv_, int nLen_, WORD wCRC_=0xffff);
 
