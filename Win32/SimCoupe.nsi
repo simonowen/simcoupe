@@ -41,8 +41,8 @@ SilentInstall normal
 ; Header configuration commands
 Name 'SimCoupé'
 Icon 'Icons\inst.ico'
-Caption 'SimCoupé 0.90 beta 3 for Win32'
-OutFile 'Build\SimCoupe-0.90-beta-3-Win32.exe'
+Caption 'SimCoupé 0.90 beta 5 for Win32'
+OutFile 'Build\SimCoupe-0.90-beta-5-Win32.exe'
 
 ; License page configuration commands
 LicenseText 'Please read and agree to this licence before continuing.'
@@ -90,8 +90,6 @@ Section 'SimCoupé for Win32 (required)'
   File '..\SAASound.txt'
   File '..\License.txt'
   SetOverwrite off
-  File 'Build\SAM_ROM0.ROM'
-; File 'Build\SAM_ROM1.ROM' ; Not required now as SAM_ROM0 contains the whole ROM
   File '..\SamDemo1.dsk'    ; :)
   File '..\SamDemo2.dsk'    ; :)
   IfFileExists '$INSTDIR\SimCoupe Home Page.url' +2
