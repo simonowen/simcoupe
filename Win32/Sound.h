@@ -46,7 +46,7 @@ class Sound
 class CStreamBuffer
 {
     public:
-        CStreamBuffer (int nFreq_=0, int nBits_=0, int nChannels_=0);
+        CStreamBuffer (int nChannels_=0);
         virtual ~CStreamBuffer ();
 
     public:
