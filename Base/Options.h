@@ -21,104 +21,98 @@
 #ifndef OPTION_H
 #define OPTION_H
 
-namespace Options
+
+typedef struct
 {
-    bool Load (int argc_, char* argv[]);
-    bool Save ();
+    char logfile[MAX_PATH]; // log filename
 
-    typedef struct
-    {
-        char logfile[MAX_PATH]; // log filename
+    bool    fastreset;              // Fast SAM system reset?
 
-        bool    fastreset;              // Fast SAM system reset?
-        bool    spectrum;               // Start in Spectrum mode?
+    int     sync;                   // Syncronise the emulator to 50Hz
+    int     frameskip;              // 0 for auto, otherwise 'mod frameskip' used to decide which to draw
+    int     scale;                  // Window scaling mode
+    bool    ratio5_4;               // Use 5:4 screen ratio?
+    bool    scanlines;              // Show scanlines?
+    bool    fullscreen;             // Start in full-screen mode?
+    int     depth;                  // Screen depth for full-screen
+    int     borders;                // How much of the borders to show
+    bool    stretchtofit;           // Stretch screen image to fit target area?
+    int     surface;                // Surface type to use
 
-        int     sync;                   // Syncronise the emulator to 50Hz
-        int     frameskip;              // 0 for auto, otherwise 'mod frameskip' used to decide which to draw
-        int     scale;                  // Window scaling mode
-        bool    ratio5_4;               // Use 5:4 screen ratio?
-        bool    scanlines;              // Show scanlines?
-        bool    fullscreen;             // Start in full-screen mode?
-        int     depth;                  // Screen depth for full-screen
-        int     borders;                // How much of the borders to show
-        bool    stretchtofit;           // Stretch screen image to fit target area?
-        int     surface;                // Surface type to use
+    char    rom0[MAX_PATH];         // SAM ROM 0 image filename
+    char    rom1[MAX_PATH];         // SAM ROM 1 image filename
+    int     mainmem;                // 256 or 512 for amount of main memory
+    int     externalmem;            // Number of MB of external memory
 
-        char    rom0[MAX_PATH];         // SAM ROM 0 image filename
-        char    rom1[MAX_PATH];         // SAM ROM 1 image filename
-        char    spectrumrom[MAX_PATH];  // Default Spectrum ROM
-        int     mainmem;                // 256 or 512 for amount of main memory
-        int     externalmem;            // Number of MB of external memory
+    char    disk1[MAX_PATH];        // Floppy disk image in drive 1
+    char    disk2[MAX_PATH];        // Floppy disk image in drive 2
+    int     drive1;                 // Drive 1 type
+    int     drive2;                 // Drive 2 type
 
-        char    disk1[MAX_PATH];        // Floppy disk image in drive 1
-        char    disk2[MAX_PATH];        // Floppy disk image in drive 2
-        int     drive1;                 // Drive 1 type
-        int     drive2;                 // Drive 2 type
+    int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
+    bool    altforcntrl;            // Non-zero if Left-Alt is used for SAM Cntrl
+    bool    altgrforedit;           // Non-zero if Right-Alt is used for SAM Edit
+    int     mouse;                  // Non-zero if we want the SAM mouse
 
-        int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
-        int     altforcntrl;            // Non-zero if Left-Alt is used for SAM Cntrl
-        int     altgrforedit;           // Non-zero if Right-Alt is used for SAM Edit
-        int     mouse;                  // Non-zero if we want the SAM mouse
+    char    joydev1[128];           // Joystick 1 device
+    char    joydev2[128];           // Joystick 2 device number
+    int     deadzone1;              // Joystick 1 deadzone
+    int     deadzone2;              // Joystick 2 deadzone
 
-        char    joydev1[128];           // Joystick 1 device
-        char    joydev2[128];           // Joystick 2 device number
-        int     deadzone1;              // Joystick 1 deadzone
-        int     deadzone2;              // Joystick 2 deadzone
+    int     parallel1;              // Parallel port 1 function
+    int     parallel2;              // Parallel port 2 function
+    char    printerdev[128];        // Printer device name
 
-        int     parallel1;              // Parallel port 1 function
-        int     parallel2;              // Parallel port 2 function
-        char    printerdev[128];        // Printer device name
+    int     serial1;                // Serial port 1 function
+    int     serial2;                // Serial port 2 function
+    char    serialdev1[128];        // Serial port 1 device
+    char    serialdev2[128];        // Serial port 2 device
 
-        int     serial1;                // Serial port 1 function
-        int     serial2;                // Serial port 2 function
-        char    serialdev1[128];        // Serial port 1 device
-        char    serialdev2[128];        // Serial port 2 device
+    int     midi;                   // MIDI port function
+    int     midiin;                 // MIDI-In device
+    int     midiout;                // MIDI-Out device
+    int     networkid;              // Network station number
 
-        int     midi;                   // MIDI port function
-        int     midiin;                 // MIDI-In device
-        int     midiout;                // MIDI-Out device
-        int     networkid;              // Network station number
+    bool    sambusclock;            // Non-zero if we want SAMBUS clock support
+    bool    dallasclock;            // Non-zero if we want DALLAS clock support
+    bool    clocksync;              // Non-zero if clock(s) advanced relative to real time
 
-        bool    sambusclock;            // Non-zero if we want SAMBUS clock support
-        bool    dallasclock;            // Non-zero if we want DALLAS clock support
-        bool    clocksync;              // Non-zero if clock(s) advanced relative to real time
+    int     sound;                  // Sound mode
+    bool    beeper;                 // Spectrum-style beeper?
 
-        int     sound;                  // Sound mode
-        bool    beeper;                 // Spectrum-style beeper?
+    bool    saasound;               // SAA 1099 sound chip enabled?
+    int     freq;                   // Sound frequency
+    int     bits;                   // Bits per sample per channel
+    bool    stereo;                 // Stereo?
+    bool    filter;                 // Enable sound filter?
+    int     latency;                // Amount of sound buffering
 
-        bool    saasound;               // SAA 1099 sound chip enabled?
-        int     frequency;              // Sound frequency
-        int     bits;                   // Bits per sample per channel
-        bool    stereo;                 // Stereo?
-        bool    filter;                 // Enable sound filter?
-        int     latency;                // Amount of sound buffering
+    int     drivelights;            // Show floppy drive LEDs
+    int     profile;                // Show profile stats?
+    bool    status;                 // Show status line?
 
-        int     drivelights;            // Show floppy drive LEDs
-        int     profile;                // Show profile stats?
-        bool    status;                 // Show status line?
+    char    fnkeys[256];            // Function key bindings
 
-        char    fnkeys[256];            // Function key bindings
+    bool    pauseinactive;          // Pause when not the active app?
 
-        bool    autoboot;               // Autoboot drive 1 on first startup?
-        bool    turbo;                  // Turbo mode
+    bool    autoboot;               // Autoboot drive 1 on first startup?
+}
+OPTIONS;
 
-        bool    paused;                 // Not paused
-        bool    pauseinactive;          // Pause when not the active app?
 
-#ifdef _WIN32
-#endif
-    }
-    OPTIONS;
+class Options
+{
+    public:
+        static bool Options::Load (int argc_, char* argv[]);
+        static bool Options::Save ();
 
-    OPTIONS GetOptions();
-    extern OPTIONS g_sOptions;
-
-};  // namespace Options
+        static OPTIONS s_Options;
+};
 
 
 // Helper macros for getting/setting options
-#define GetOption(field)        (const_cast<const Options::OPTIONS*>(&Options::g_sOptions)->field)
-#define SetOption(field,value)  SetOption_(Options::g_sOptions.field, value)
+#define GetOption(field)        (const_cast<const OPTIONS*>(&Options::s_Options)->field)
+#define SetOption(field,value)  SetOption_(Options::s_Options.field, value)
 
 // inline functions so we can take advantage of function polymorphism
 inline bool SetOption_(bool& rfOption_, bool fValue_)   { return rfOption_ = fValue_; }

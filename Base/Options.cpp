@@ -30,11 +30,6 @@
 
 const char* const OPTIONS_FILE = "SimCoupe.cfg";
 
-
-namespace Options
-{
-OPTIONS g_sOptions;
-
 enum { OT_BOOL, OT_INT, OT_STRING };
 
 typedef struct
@@ -43,15 +38,17 @@ typedef struct
     int         nType;                                          // Option type
 
     union { void* pv;  char* ppsz;  bool* pf;  int* pn; };      // Address of config variable
-    union { DWORD dw;  bool f;  int n;  const char* pcsz; };    // Default value of option
+    union { ULONGLONG pu; DWORD dw;  bool f;  int n;  const char* pcsz; };    // Default value of option
 
     bool        fSpecified;
 }
 OPTION;
 
 // Helper macro for structure definition below
-#define OPT(n,t,v,d)        { n, t, {(void*)&g_sOptions.v}, {(DWORD)(d)} }
+#define OPT(n,t,v,d)        { n, t, {(void*)&Options::s_Options.v}, {(DWORD)(d)} }
 
+
+OPTIONS Options::s_Options;
 
 OPTION aOptions[] = 
 {
@@ -72,7 +69,6 @@ OPTION aOptions[] =
 
     OPT("ROM0",         OT_STRING,  rom0,           "sam_rom0.rom"),
     OPT("ROM1",         OT_STRING,  rom1,           "sam_rom1.rom"),
-    OPT("SpectrumROM",  OT_STRING,  spectrumrom,    "spectrum.rom"),
     OPT("MainMemory",   OT_INT,     mainmem,        512),       // 512K main memory
     OPT("ExternalMem",  OT_INT,     externalmem,    0),         // No external memory
 
@@ -101,7 +97,7 @@ OPTION aOptions[] =
     OPT("Midi",         OT_INT,     midi,           1),         // Used for MIDI music, if available
     OPT("MidiIn",       OT_INT,     midiin,         -1),        // MIDI-In device number
     OPT("MidiOut",      OT_INT,     midiout,        -1),        // MIDI-Out device number
-//  OPT("NetworkId",    OT_INT,     networkid,      1),         // Network station number, or something, soon
+//  OPT("NetworkId",    OT_INT,     networkid,      1),         // Network station number, or something, eventually
 
     OPT("SambusClock",  OT_BOOL,    sambusclock,    true),      // SAMBUS clock present
     OPT("DallasClock",  OT_BOOL,    dallasclock,    false),     // DALLAS clock not present
@@ -111,11 +107,11 @@ OPTION aOptions[] =
     OPT("Beeper",       OT_BOOL,    beeper,         true),      // Spectrum-style beeper enabled
 
     OPT("SAASound",     OT_BOOL,    saasound,       true),      // SAA 1099 sound chip enabled
-    OPT("Frequency",    OT_INT,     frequency,      22050),     // 22KHz
+    OPT("Frequency",    OT_INT,     freq,		    22050),     // 22KHz
     OPT("Bits",         OT_INT,     bits,           16),        // 16-bit
     OPT("Stereo",       OT_BOOL,    stereo,         true),      // Stereo
     OPT("Filter",       OT_BOOL,    filter,         false),     // Sound filter disabled (not implemented by SAASOUND yet)
-    OPT("Latency",      OT_INT,     latency,        6),         // Sound latency of five frames
+    OPT("Latency",      OT_INT,     latency,        5),         // Sound latency of five frames
 
     OPT("DriveLights",  OT_INT,     drivelights,    1),         // Show drive activity lights
     OPT("Profile",      OT_INT,     profile,        1),         // Show only speed and framerate
@@ -124,10 +120,9 @@ OPTION aOptions[] =
     OPT("FnKeys",       OT_STRING,  fnkeys,
      "F1=12,SF1=13,CF1=14,F2=15,SF2=16,CF2=17,F3=28,SF3=11,CF3=10,F4=22,SF4=23,F5=5,SF5=7,F6=8,F7=6,F8=4,F9=9,SF9=19,F10=24,F11=0,F12=1,CF12=25"),
 
-    OPT("AutoBoot",     OT_BOOL,    autoboot,       false),     // Don't auto-boot inserted disk
-    OPT("Turbo",        OT_BOOL,    turbo,          false),     // Not in turbo mode
-    OPT("Paused",       OT_BOOL,    paused,         false),     // Not paused
     OPT("PauseInactive",OT_BOOL,    pauseinactive,  false),     // Continue to run when inactive
+
+    OPT("AutoBoot",     OT_BOOL,    autoboot,       false),     // Don't auto-boot inserted disk
 
     { 0, 0, {0}, {0} }
 };
@@ -139,7 +134,7 @@ inline bool IsTrue (const char* pcsz_)
 }
 
 
-bool Load (int argc_, char* argv_[])
+bool Options::Load (int argc_, char* argv_[])
 {
     FILE* hfOptions = fopen(OSD::GetFilePath(OPTIONS_FILE), "rb");
     if (hfOptions)
@@ -226,14 +221,12 @@ bool Load (int argc_, char* argv_[])
 }
 
 
-bool Save ()
+bool Options::Save ()
 {
     // Some options are not persistant
     SetOption(autoboot,false);
-    SetOption(turbo,false);
-    SetOption(paused,false);
 
-
+	// Open the options file for writing, fail if we can't
     FILE* hfOptions = fopen(OSD::GetFilePath(OPTIONS_FILE), "wb");
     if (!hfOptions)
         return false;
@@ -255,10 +248,3 @@ bool Save ()
     fclose(hfOptions);
     return true;
 }
-
-OPTIONS GetOptions ()
-{
-    return g_sOptions;
-}
-
-};  // namespace Options
