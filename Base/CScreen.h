@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // CScreen.h: SAM screen handling, including on-screen display text
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -63,7 +63,7 @@ class CScreen
         void DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_=false);
 
         static int GetStringWidth (const char* pcsz_, bool fBold_=false);
-        static void SetFont (const GUIFONT* pFont_);
+        static void SetFont (const GUIFONT* pFont_, bool fFixedWidth_=false);
 
     protected:
         int m_nPitch, m_nHeight;    // Pitch (width of low-res lines is half the pitch) and height of the screen
