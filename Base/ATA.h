@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupé emulator
 //
-// ATA.h: ATA hard disk and ATAPI CD-ROM emulation
+// ATA.h: ATA hard disk (and future ATAPI CD-ROM) emulation
 //
 //  Copyright (c) 1999-2001  Simon Owen
 //
