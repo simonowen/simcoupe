@@ -29,9 +29,6 @@
 //  treating out-of-range values to be the largest value that the pair can
 //  store, i.e. 77 seconds will wrap over to 00 on the next tick.
 
-// ToDo:
-//  - derive separate clock devices from CIoDevice?
-
 #include "SimCoupe.h"
 
 #include "Clock.h"
