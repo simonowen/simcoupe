@@ -55,6 +55,8 @@ class IO
         static void FrameUpdate ();
         static void UpdateInput();
         static const RGBA* GetPalette (bool fDimmed_=false);
+        static bool IsAtStartupScreen ();
+        static void CheckAutoboot ();
 };
 
 
@@ -81,7 +83,7 @@ class CDiskDevice :  public CIoDevice
     public:
         virtual void Reset () { }
         virtual bool Insert (const char* pcszImage_, bool fReadOnly_=false) { return false; }
-        virtual bool Eject () { return false; }
+        virtual void Eject () { }
         virtual bool Flush () { return false; }
 
     public:
@@ -267,5 +269,6 @@ extern BYTE lpen;
 
 extern CDiskDevice *pDrive1, *pDrive2, *pSDIDE, *pYATBus;
 extern CIoDevice *pParallel1, *pParallel2;
+extern bool g_fAutoBoot;
 
 #endif
