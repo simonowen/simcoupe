@@ -146,13 +146,17 @@ void TraceOutputString (const BYTE *pcb, UINT uLen/*=0*/)
 
 DWORD g_dwStart;
 
-static void TraceOutputString (const char *pcszFormat_, const char *pcvArgs);
+static void TraceOutputString (const char *pcszFormat_, va_list pcvArgs);
 static void WriteTimeString (char* psz_);
 
 
 // Output a formatted debug message
 void TraceOutputString (const char *pcszFormat_, ...)
 {
+    // Prevent a crash if we're called after Exit()
+    if (!s_pszTrace)
+        return;
+
     // Get a pointer to the arguments
     va_list pcvArgs;
     va_start (pcvArgs, pcszFormat_);
@@ -164,12 +168,8 @@ void TraceOutputString (const char *pcszFormat_, ...)
 
 
 // Output a formatted debug message
-static void TraceOutputString (const char *pcszFormat_, const char *pcvArgs)
+static void TraceOutputString (const char *pcszFormat_, va_list pcvArgs_)
 {
-    // Prevent a crash if we're called after Exit()
-    if (!s_pszTrace)
-        return;
-
     // Write the time value to the start of the output
     WriteTimeString(s_pszTrace);
 
@@ -179,7 +179,7 @@ static void TraceOutputString (const char *pcszFormat_, const char *pcvArgs)
 
     // Format the string to a buffer, verify that it doesn't overflow and corrupt memory
     else
-        vsprintf(s_pszTrace+strlen(s_pszTrace), pcszFormat_, (va_list)pcvArgs);
+        vsprintf(s_pszTrace+strlen(s_pszTrace), pcszFormat_, pcvArgs_);
 
     // Output the debug message
     OSD::DebugTrace(s_pszTrace);
