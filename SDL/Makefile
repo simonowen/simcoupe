@@ -50,7 +50,7 @@ SDL_SRC=${SDL}/Display.cpp ${SDL}/Floppy.cpp ${SDL}/IDEDisk.cpp \
 
 ifeq (${USE_OPENGL},1)
 CFLAGS += -DUSE_OPENGL
-ifeq (,$(findstring -framework OpenGL,$(LIBS)))
+ifeq (,$(findstring OpenGL,$(LIBS)))
 LIBS += -lGL
 endif
 endif
