@@ -244,7 +244,8 @@ bool ReadKeyboard ()
     memcpy(afKeyStates, afKeys, sizeof afKeyStates);
 
     // Alt-Gr comes through as SDLK_MODE on some platforms and SDLK_RALT on others, so accept both
-    if (IsPressed(SDLK_MODE))
+    // Also map the Apple key to Right-Alt, optionally for use as SAM Edit (see below)
+    if (IsPressed(SDLK_MODE) || IsPressed(SDLK_LMETA))
         PressKey(SDLK_RALT);
 
     // If the option is set, Left-ALT does the same as Right-Control: to generate SAM Cntrl
@@ -468,21 +469,24 @@ void SetSamKeyState ()
 }
 
 
-// TEMPORARY HACK: SDL 1.2.7 is returns the y-coord reversed on OS X, so correct it
+// TEMPORARY HACK: SDL 1.2.7 returns the y-coord reversed on windowed OpenGL under OS X, so correct it
 void AppleHack (SDL_Event* pEvent_)
 {
-#if defined(__APPLE__)
-    switch (pEvent_->type)
+#if defined(USE_OPENGL) && defined(__APPLE__)
+    if (!GetOption(fullscreen))
     {
-        case SDL_MOUSEMOTION:
-            pEvent_->motion.y = Frame::GetHeight()-pEvent_->motion.y;
-            pEvent_->motion.yrel *= -1;
-            break;
+        switch (pEvent_->type)
+        {
+            case SDL_MOUSEMOTION:
+                pEvent_->motion.y = Frame::GetHeight()-pEvent_->motion.y;
+                pEvent_->motion.yrel *= -1;
+                break;
 
-        case SDL_MOUSEBUTTONDOWN:
-        case SDL_MOUSEBUTTONUP:
-            pEvent_->button.y = Frame::GetHeight()-pEvent_->button.y;
-            break;
+            case SDL_MOUSEBUTTONDOWN:
+            case SDL_MOUSEBUTTONUP:
+                pEvent_->button.y = Frame::GetHeight()-pEvent_->button.y;
+                break;
+        }
     }
 #endif
 }
