@@ -40,7 +40,6 @@ class Frame
         static void Exit (bool fReInit_=false);
 
         static void Start ();
-        static void End ();
 
         static void Update ();
         static void Complete ();
