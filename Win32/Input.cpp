@@ -45,7 +45,6 @@
 #endif
 
 const unsigned int KEYBOARD_BUFFER_SIZE = 20;
-const int MOUSE_CENTRE_THRESHOLD = 15;
 
 typedef struct
 {
