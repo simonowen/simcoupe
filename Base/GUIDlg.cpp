@@ -325,18 +325,32 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
         UINT uHeads = m_pHeads->GetValue();
         UINT uSectors = m_pSectors->GetValue();
 
-        // Check the geometry is within range, since the edit fields can be modified directly
+        // Check the geometry is within range
         if (!uCyls || (uCyls > 16383) || !uHeads || (uHeads > 16) || !uSectors || (uSectors > 63))
         {
             new CMessageBox(this, "Invalid disk geometry.", "Warning", mbWarning);
             return;
         }
 
-        // Create the new HDF image
-        if (!CHDFHardDisk::Create(m_pFile->GetText(), uCyls, uHeads, uSectors))
+        // If the size control is enabled, we know the image doesn't already exist
+        if (m_pSize->IsEnabled())
         {
-            new CMessageBox(this, "Failed to create new disk (disk full?)", "Warning", mbWarning);
-            return;
+            char sz[MAX_PATH];
+            int nLen = strlen(strcpy(sz, m_pFile->GetText()));
+
+            // Append a .hdf extension if it doesn't already have one
+            if (nLen > 4 && strcasecmp(sz + nLen - 4, ".hdf"))
+            {
+                strcat(sz, ".hdf");
+                m_pFile->SetText(sz);
+            }
+
+            // If new values have been give, create a new disk using the supplied settings
+            if (!CHDFHardDisk::Create(m_pFile->GetText(), uCyls, uHeads, uSectors))
+            {
+                new CMessageBox(this, "Failed to create new disk (disk full?)", "Warning", mbWarning);
+                return;
+            }
         }
 
         Destroy();
@@ -555,8 +569,7 @@ class CDisplayOptions : public CDialog
             m_pRatio54->SetChecked(GetOption(ratio5_4));
             m_pStretch->SetChecked(GetOption(stretchtofit));
 
-            bool fScanlines = GetOption(scanlines) && !GetOption(stretchtofit);
-            m_pScanlines->SetChecked(fScanlines);
+            m_pScanlines->SetChecked(GetOption(scanlines));
 
             m_pAutoFrameSkip->SetChecked(!GetOption(frameskip));
             m_pFrameSkip->Select(GetOption(frameskip) ? GetOption(frameskip)-1 : 0);
