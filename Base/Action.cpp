@@ -119,7 +119,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actSaveFloppy1:
-                if (GetOption(drive1) == dskImage && pDrive1->IsModified() && pDrive1->Flush())
+                if (GetOption(drive1) == dskImage && pDrive1->IsModified() && pDrive1->Save())
                     Frame::SetStatus("%s  changes saved", pDrive1->GetFile());
                 break;
 
@@ -139,7 +139,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actSaveFloppy2:
-                if (GetOption(drive2) == dskImage && pDrive2->IsModified() && pDrive2->Flush())
+                if (GetOption(drive2) == dskImage && pDrive2->IsModified() && pDrive2->Save())
                     Frame::SetStatus("%s  changes saved", pDrive2->GetFile());
                 break;
 
