@@ -846,6 +846,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
 //  TRACE("WindowProc(%#04x,%#08x,%#08lx,%#08lx)\n", hwnd_, uMsg_, wParam_, lParam_);
 
+    // If the keyboard is used, simulate early timer expiry to hide the cursor
+    if (uMsg_ == WM_KEYDOWN && ulMouseTimer)
+        PostMessage(hwnd_, WM_TIMER, ulMouseTimer, 0L);
+
     // Input has first go at processing any messages
     if (Input::FilterMessage(hwnd_, uMsg_, wParam_, lParam_))
         return 0;
@@ -1135,6 +1139,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
             // Kill the timer, and flag the mouse as hidden
             KillTimer(hwnd_, ulMouseTimer);
+            ulMouseTimer = 0;
             fHideCursor = true;
 
             // Generate a WM_SETCURSOR to update the cursor state
