@@ -44,14 +44,19 @@ class CFloppyStream : public CStream
     public:
         bool IsOpen () const { return false; }
         bool Rewind () { return false; }
-        long Read (void* pvBuffer_, long lLen_) { return 0; }
-        long Write (void* pvBuffer_, long lLen_) { return 0; }
+        size_t Read (void* pvBuffer_, size_t uLen_) { return 0; }
+        size_t Write (void* pvBuffer_, size_t uLen_) { return 0; }
 
-        BYTE Read (int nSide_, int nTrack_, int nSector_, BYTE* pbData_, UINT* puSize_) { return WRITE_PROTECT; }
+        BYTE Read (int nSide_, int nTrack_, int nSector_, BYTE* pbData_, UINT* puSize_) { return RECORD_NOT_FOUND; }
         BYTE Write (int nSide_, int nTrack_, int nSector_, BYTE* pbData_, UINT* puSize_) { return WRITE_PROTECT; }
+
+        bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_) { return false; }
+        bool WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_) { return false; }
+        void AbortAsyncOp () { }
 
     protected:
         void Close () { }
+        BYTE TranslateError () const;
 };
 
 #endif  // FLOPPY_H
