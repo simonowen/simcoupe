@@ -166,7 +166,7 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                 if (!pfDirty[y])
                     continue;
 
-                // RBG?
+                // RGB?
                 if (!fYUV)
                 {
                     if (pfHiRes[y])
