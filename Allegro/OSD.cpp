@@ -97,7 +97,8 @@ PROFILE_T OSD::GetProfileTime ()
 // If the path is already fully qualified (an OS-specific decision), return the same string
 const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 {
-    static char szExePath[MAX_PATH], szPath[512];
+    static char szPath[512];
+    char szExePath[MAX_PATH];
 
     // If the supplied file path looks absolute, use it as-is
     if (*pcszFile_ == PATH_SEPARATOR
@@ -135,7 +136,7 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
     return szPath;
 }
 
-// Same as GetFilePath but ensures a trailing backslash
+// Same as GetFilePath but ensures a trailing [back]slash
 const char* OSD::GetDirPath (const char* pcszDir_/*=""*/)
 {
     char *psz = const_cast<char*>(GetFilePath(pcszDir_)), *pszEnd = psz+lstrlen(psz);
