@@ -139,6 +139,7 @@
 #define IDC_TURBO_LOAD                  1130
 #define IDC_SENSITIVITY                 1131
 #define IDS_SENSITIVITY                 1132
+#define IDC_ALT                         1133
 #define IDI_SOUND                       3004
 #define IDI_MIDI                        4381
 #define IDM_FILE_EXIT                   40001
@@ -164,9 +165,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        183
+#define _APS_NEXT_RESOURCE_VALUE        184
 #define _APS_NEXT_COMMAND_VALUE         40155
-#define _APS_NEXT_CONTROL_VALUE         1133
+#define _APS_NEXT_CONTROL_VALUE         1134
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif
