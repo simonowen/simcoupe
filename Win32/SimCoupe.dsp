@@ -43,7 +43,8 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MD /W3 /Ot /Ow /Og /Oi /Oy /Ob2 /I "." /I ".." /I "..\Base" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "USE_SAASOUND" /D "USE_ZLIB" /FR /YX"SimCoupe.h" /FD /c
+# ADD CPP /nologo /MD /W3 /Ox /Ow /Og /Oi /Os /Ob2 /Gf /Gy /I "." /I ".." /I "..\Base" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "USE_SAASOUND" /D "USE_ZLIB" /FR /YX"SimCoupe.h" /FD /c
+# SUBTRACT CPP /Ot
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x809 /d "NDEBUG"
@@ -69,7 +70,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /Zi /Od /Oy /Gy /I "." /I ".." /I "..\Base" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "USE_SAASOUND" /D "USE_ZLIB" /FR /YX"SimCoupe.h" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /ZI /Od /Oy /I "." /I ".." /I "..\Base" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "USE_SAASOUND" /D "USE_ZLIB" /FR /YX"SimCoupe.h" /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x809 /d "_DEBUG"
@@ -91,6 +92,10 @@ LINK32=link.exe
 # Begin Group "Base Source Files"
 
 # PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=..\Base\Action.cpp
+# End Source File
 # Begin Source File
 
 SOURCE=..\Base\ATA.cpp
@@ -181,6 +186,10 @@ SOURCE=..\Base\Options.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\Base\Parallel.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\Base\PNG.cpp
 # End Source File
 # Begin Source File
@@ -203,6 +212,10 @@ SOURCE=..\Base\YATBus.cpp
 # Begin Group "Base Header Files"
 
 # PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=..\Base\Action.h
+# End Source File
 # Begin Source File
 
 SOURCE=..\Base\ATA.h
@@ -281,6 +294,10 @@ SOURCE=..\Base\HardDisk.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\Base\HDBOOT.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\Base\IO.h
 # End Source File
 # Begin Source File
@@ -301,6 +318,10 @@ SOURCE=..\Base\Options.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\Base\Parallel.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\Base\PNG.h
 # End Source File
 # Begin Source File
@@ -310,6 +331,10 @@ SOURCE=..\Base\Profile.h
 # Begin Source File
 
 SOURCE=..\Base\SAM.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\Base\SAMDOS.h
 # End Source File
 # Begin Source File
 
@@ -365,15 +390,11 @@ SOURCE=.\MIDI.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\ODMenu.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\OSD.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\Parallel.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\Serial.cpp
 # End Source File
 # Begin Source File
 
@@ -413,15 +434,11 @@ SOURCE=.\MIDI.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\ODMenu.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\OSD.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\Parallel.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\Serial.h
 # End Source File
 # Begin Source File
 
@@ -460,11 +477,19 @@ SOURCE=.\Icons\display.ico
 # End Source File
 # Begin Source File
 
+SOURCE=.\Icons\drive.ico
+# End Source File
+# Begin Source File
+
 SOURCE=.\Icons\floppy.ico
 # End Source File
 # Begin Source File
 
 SOURCE=.\Icons\fnkeys.ico
+# End Source File
+# Begin Source File
+
+SOURCE=.\Icons\folder.ico
 # End Source File
 # Begin Source File
 
@@ -526,6 +551,10 @@ SOURCE=.\Cursors\arrow.cur
 # Begin Group "Bitmaps"
 
 # PROP Default_Filter "bmp"
+# Begin Source File
+
+SOURCE=.\Bitmaps\menuicon.bmp
+# End Source File
 # Begin Source File
 
 SOURCE=.\Bitmaps\simcoupe.bmp
