@@ -30,7 +30,7 @@
 OPTIONS g_opts;
 
 // Helper macro for detecting options changes
-#define Changed(o)         (g_opts.o != GetOption(o))    
+#define Changed(o)         (g_opts.o != GetOption(o))
 #define ChangedString(o)   (strcasecmp(g_opts.o, GetOption(o)))
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -247,7 +247,7 @@ COptionsDialog::COptionsDialog (CWindow* pParent_/*=NULL*/)
 
     CListViewItem* pItem = NULL;
 
-    // Add icons in reverse order to 
+    // Add icons in reverse order to
     pItem = new CListViewItem(&sSamIcon, "About", pItem);
     pItem = new CListViewItem(&sHardwareIcon, "Misc", pItem);
     pItem = new CListViewItem(&sPortIcon, "Parallel", pItem);
@@ -513,7 +513,7 @@ class CSoundOptions : public CDialog
                 SetOption(stereo, m_pStereo->IsChecked());
 
                 int nLatency = m_pLatency->GetSelected();
-                SetOption(latency, (nLatency <= 5) ? nLatency + 1 : (nLatency - 3) * 5);
+                SetOption(latency, (nLatency < 5) ? nLatency + 1 : (nLatency - 3) * 5);
 
                 if (Changed(sound) || Changed(saasound) || Changed(beeper) || Changed(freq) ||
                     Changed(bits) || Changed(stereo) || Changed(filter) || Changed(latency))
@@ -550,7 +550,7 @@ class CSoundOptions : public CDialog
                 m_pFreq->Enable(fSAA);
                 m_pSampleSizeText->Enable(fSAA);
                 m_pSampleSize->Enable(fSAA);
-                m_pFilter->Enable(false);   // Not supported by SAASound yet
+                m_pFilter->Enable(fSAA);
             }
         }
 
@@ -859,7 +859,7 @@ class CParallelOptions : public CDialog
             new CFrameControl(this, 50, 17, 238, 91);
             new CTextControl(this, 60, 13, "Parallel Ports", YELLOW_8, BLUE_2);
             new CTextControl(this, 63, 33, "Devices connected to the parallel ports:");
-            
+
             new CTextControl(this, 77, 57, "Port 1:");
             m_pPort1 = new CComboBox(this, 125, 54, "None|Printer|Mono DAC|Stereo DAC", 120);
 
@@ -872,7 +872,7 @@ class CParallelOptions : public CDialog
             new CTextControl(this, 60, 116, "Printer Device", YELLOW_8, BLUE_2);
             new CTextControl(this, 63, 136, "The following printer will be used for raw");
             new CTextControl(this, 63, 150, "SAM printer output:");
-            
+
             m_pPrinter = new CComboBox(this, 63, 169, "<not currently supported>", 215);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
