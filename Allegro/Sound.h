@@ -23,28 +23,26 @@
 
 class Sound
 {
-public:
-    static bool Init (bool fFirstInit_=false);
-    static void Exit (bool fReInit_=false);
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    static void Out (WORD wPort_, BYTE bVal_);     // SAA chip port output
-    static void FrameUpdate ();
+        static void Out (WORD wPort_, BYTE bVal_);     // SAA chip port output
+        static void FrameUpdate ();
 
-    static void Stop ();
-    static void Play ();
-    static void Silence ();                        // Silence current output
+        static void Stop ();
+        static void Play ();
+        static void Silence ();                        // Silence current output
 
-    static void OutputDACLeft (BYTE bVal_);        // Output to left channel
-    static void OutputDACRight (BYTE bVal_);       // Output to right channel
-    static void OutputDAC (BYTE bVal_);            // Output to both channels
+        static void OutputDACLeft (BYTE bVal_);        // Output to left channel
+        static void OutputDACRight (BYTE bVal_);       // Output to right channel
+        static void OutputDAC (BYTE bVal_);            // Output to both channels
 };
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-#ifdef SOUND_IMPLEMENTATION
-
+#define SOUND_STREAMS   2
 
 class CStreamBuffer
 {
@@ -137,7 +135,5 @@ class CDAC : public CSoundStream
         UINT m_uLeftTotal, m_uRightTotal;
         UINT m_uPrevPeriod;
 };
-
-#endif
 
 #endif  // SOUND_H
