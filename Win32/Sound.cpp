@@ -33,10 +33,11 @@
 #include "SimCoupe.h"
 #include <math.h>
 
-#include "../Extern/SAASound.h"
+#include "SAASound.h"
 #define SOUND_IMPLEMENTATION
 #include "Sound.h"
 
+#include "CPU.h"
 #include "IO.h"
 #include "Options.h"
 #include "Util.h"
@@ -51,68 +52,124 @@ extern HWND g_hwnd;
 extern int g_nLine, g_nLineCycle;
 
 // Direct sound, primary buffer and secondary buffer interface pointers
-IDirectSound* CStreamingSound::s_pds = NULL;
-IDirectSoundBuffer* CStreamingSound::s_pdsbPrimary;
-int CStreamingSound::s_nUsage = 0;
+IDirectSound* g_pds = NULL;
+IDirectSoundBuffer* g_pdsbPrimary;
 
 UINT HCF (UINT x_, UINT y_);
 
+CSAA* pSAA;             // Pointer to the current driver object for dealing with the sound chip
+CDAC *pDAC;             // DAC object used for parallel DAC devices and the Spectrum-style beeper
 
-namespace Sound
-{
-CDirectXSAASound* pSAA;     // Pointer to the current driver object for dealing with the sound chip
-CDAC *pDAC;                 // DAC object used for parallel DAC devices and the Spectrum-style beeper
-
-LPCSAASOUND pSAASound;      // SAASound.dll object - needs to exist as long as we do, to preseve subtle internal states
+LPCSAASOUND pSAASound;  // SAASound.dll object - needs to exist as long as we do, to preseve subtle internal states
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool Init (bool fFirstInit_/*=false*/)
+bool InitDirectSound ()
+{
+    HRESULT hr;
+    bool fRet = false;
+
+    // Initialise DirectX
+    if (FAILED(hr = DirectSoundCreate(NULL, &g_pds, NULL)))
+        TRACE("!!! DirectSoundCreate failed (%#08lx)\n", hr);
+
+    // We want priority control over the sound format while we're active
+    else if (FAILED(hr = g_pds->SetCooperativeLevel(g_hwnd, DSSCL_PRIORITY)))
+        TRACE("!!! SetCooperativeLevel() failed (%#08lx)\n", hr);
+    else
+    {
+        DSBUFFERDESC dsbd = { sizeof DSBUFFERDESC };
+        dsbd.dwFlags = DSBCAPS_PRIMARYBUFFER;
+
+        // Create the primary buffer
+        if (FAILED(hr = g_pds->CreateSoundBuffer(&dsbd, &g_pdsbPrimary, NULL)))
+            TRACE("!!! CreateSoundBuffer() failed with primary buffer (%#08lx)\n", hr);
+
+        // Eliminate the mixing slowdown by setting the primary buffer to our required format
+        else
+        {
+            // Set up the sound format according to the sound options
+            WAVEFORMATEX wf = {0};
+            wf.wFormatTag = WAVE_FORMAT_PCM;
+            wf.nSamplesPerSec = GetOption(freq);
+            wf.wBitsPerSample = GetOption(bits);
+            wf.nChannels = GetOption(stereo) ? 2 : 1;
+            wf.nBlockAlign = wf.nChannels * wf.wBitsPerSample / 8;
+            wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign;
+
+            // Set the primary buffer format (closest match will be used if hardware doesn't support what we request)
+            if (FAILED(hr = g_pdsbPrimary->SetFormat(&wf)))
+                TRACE("!!! SetFormat() failed on primary buffer (%#08lx)\n", hr);
+
+            // Play the primary buffer all the time to eliminate the mixer delays in stopping and starting
+            else if (FAILED(hr = g_pdsbPrimary->Play(0, 0, DSBPLAY_LOOPING)))
+                TRACE("!!! Play() failed on primary buffer (%#08lx)\n", hr);
+            else
+                fRet = true;    // Success :-)
+        }
+    }
+
+    return fRet;
+}
+
+void ExitDirectSound ()
+{
+    if (g_pdsbPrimary)
+    {
+        g_pdsbPrimary->Stop();
+        g_pdsbPrimary->Release();
+        g_pdsbPrimary = NULL;
+    }
+
+    if (g_pds) { g_pds->Release(); g_pds = NULL; }
+}
+
+
+bool Sound::Init (bool fFirstInit_/*=false*/)
 {
     // Clear out any existing config before starting again
     Exit(true);
     TRACE("-> Sound::Init(%s)\n", fFirstInit_ ? "first" : "");
 
+    // Correct any approximate/bad option values before we use them
+    int nBits = SetOption(bits, (GetOption(bits) > 8) ? 16 : 8);
+    int nFreq = SetOption(freq, (GetOption(freq) < 20000) ? 11025 : (GetOption(freq) < 40000) ? 22050 : 44100);
+    int nChannels = GetOption(stereo) ? 2 : 1;
+
+
     // All sound disabled?
     if (!GetOption(sound))
         TRACE("Sound disabled, nothing to initialise\n");
+    else if (!InitDirectSound())
+    {
+        TRACE("DirectX initialisation failed\n");
+        SetOption(sound,0);
+    }
     else
     {
         // If the SAA 1099 chip is enabled, create its driver object
-        if (GetOption(saasound) && (pSAA = new CDirectXSAASound))
+        bool fNeedSAA = GetOption(saasound);
+        if (fNeedSAA && (pSAA = new CSAA(nFreq,nBits,nChannels)))
         {
-
-            // Initialise the driver, disabling it if it fails
-            if (!pSAA->Init())
-            {
-                delete pSAA;
-                pSAA = NULL;
-            }
-
             // Else, create the CSAASound object if it doesn't already exist
-            else if (pSAASound || (pSAASound = CreateCSAASound()))
+            if (pSAASound || (pSAASound = CreateCSAASound()))
             {
                 // Set the DLL parameters from the options, so it matches the setup of the primary sound buffer
-                pSAASound->SetSoundParameters(
-                    (GetOption(filter) ? SAAP_FILTER : SAAP_NOFILTER) |
-                    (GetOption(frequency) < 20000 ? SAAP_11025 : GetOption(frequency) < 40000 ? SAAP_22050 : SAAP_44100) |
-                    (GetOption(bits) < 12 ? SAAP_8BIT : SAAP_16BIT) |
-                    (GetOption(stereo) ? SAAP_STEREO : SAAP_MONO));
+                pSAASound->SetSoundParameters((GetOption(filter) ? SAAP_FILTER : SAAP_NOFILTER) |
+                    ((nFreq == 11025) ? SAAP_11025 : (nFreq == 22050) ? SAAP_22050 : SAAP_44100) |
+                    ((nBits == 8) ? SAAP_8BIT : SAAP_16BIT) | (GetOption(stereo) ? SAAP_STEREO : SAAP_MONO));
             }
         }
 
         // If a DAC is connected to a parallel port or the Spectrum-style beeper is enabled, we need a CDAC object
-        bool fNeedDAC = (GetOption(parallel1) >= 2 || GetOption(parallel2) >= 2 || GetOption(beeper));
+        bool fNeedDAC = GetOption(parallel1) >= 2 || GetOption(parallel2) >= 2 || GetOption(beeper);
 
         // Create and initialise a DAC, if required
-        if (fNeedDAC && (pDAC = new CDAC) && !pDAC->Init())
-        {
-            delete pDAC;
-            pDAC = NULL;
-        }
+        if (fNeedDAC)
+            pDAC = new CDAC;
 
         // If anything failed, disable the sound
-        if ((GetOption(saasound) && !pSAA) || (fNeedDAC && !pDAC))
+        if ((fNeedSAA && !pSAA) || (fNeedDAC && !pDAC))
         {
             Message(msgWarning, "Sound initialisation failed, disabling...");
             SetOption(sound,0);
@@ -120,12 +177,14 @@ bool Init (bool fFirstInit_/*=false*/)
         }
     }
 
+    Play();
+
     // Sound initialisation failure isn't fatal, so always return success
     TRACE("<- Sound::Init()\n");
     return true;
 }
 
-void Exit (bool fReInit_/*=false*/)
+void Sound::Exit (bool fReInit_/*=false*/)
 {
     TRACE("-> Sound::Exit(%s)\n", fReInit_ ? "reinit" : "");
 
@@ -138,20 +197,23 @@ void Exit (bool fReInit_/*=false*/)
         pSAASound = NULL;
     }
 
+    ExitDirectSound();
+
     TRACE("<- Sound::Exit()\n");
 }
 
-void Out (WORD wPort_, BYTE bVal_)
+
+void Sound::Out (WORD wPort_, BYTE bVal_)
 {
     if (pSAA)
         pSAA->Out(wPort_, bVal_);
 }
 
-void FrameUpdate ()
+void Sound::FrameUpdate ()
 {
     ProfileStart(Snd);
 
-    if (!GetOption(turbo))
+    if (!g_fTurbo)
     {
         if (pSAA) pSAA->Update(true);
         if (pDAC) pDAC->Update(true);
@@ -161,246 +223,219 @@ void FrameUpdate ()
 }
 
 
-void Silence ()
+void Sound::Silence ()
 {
     if (pSAA) pSAA->Silence();
     if (pDAC) pDAC->Silence();
 }
 
-void Stop ()
+void Sound::Stop ()
 {
     if (pSAA) { pSAA->Stop(); pSAA->Silence(); }
     if (pDAC) { pDAC->Stop(); pDAC->Silence(); }
 }
 
-void Play ()
+void Sound::Play ()
 {
     if (pSAA) { pSAA->Silence(); pSAA->Play(); }
     if (pDAC) { pDAC->Silence(); pDAC->Play(); }
 }
 
 
-void OutputDAC (BYTE bVal_)
+void Sound::OutputDAC (BYTE bVal_)
 {
     if (pDAC) pDAC->Output(bVal_);
 }
 
-void OutputDACLeft (BYTE bVal_)
+void Sound::OutputDACLeft (BYTE bVal_)
 {
     if (pDAC) pDAC->OutputLeft(bVal_);
 }
 
-void OutputDACRight (BYTE bVal_)
+void Sound::OutputDACRight (BYTE bVal_)
 {
     if (pDAC) pDAC->OutputRight(bVal_);
 }
 
+////////////////////////////////////////////////////////////////////////////////
 
-};  // namespace Sound
-
-
-
-
-bool CStreamingSound::InitDirectSound ()
+CStreamBuffer::CStreamBuffer (int nFreq_, int nBits_, int nChannels_)
+    : m_nFreq(nFreq_), m_nBits(nBits_), m_nChannels(nChannels_), m_pbFrameSample(NULL),
+      m_nSamplesThisFrame(0), m_uOffsetPerUnit(0), m_uPeriod(0)
 {
-    HRESULT hr;
-    bool fRet = false;
+    // Any values not supplied will be taken from the current options
+    if (!m_nFreq) m_nFreq = GetOption(freq);
+    if (!m_nBits) m_nBits = GetOption(bits);
+    if (!m_nChannels) m_nChannels = GetOption(stereo) ? 2 : 1;
 
-    // Initialise DirectX
-    if (FAILED(hr = DirectSoundCreate(NULL, &s_pds, NULL)))
-        TRACE("!!! DirectSoundCreate failed (%#08lx)\n", hr);
+    // Use some arbitrary units to keep the numbers manageably small...
+    UINT uUnits = HCF(m_nFreq, EMULATED_TSTATES_PER_SECOND);
+    m_uSamplesPerUnit = m_nFreq / uUnits;
+    m_uCyclesPerUnit = EMULATED_TSTATES_PER_SECOND / uUnits;
 
-    // We want priority control over the sound format while we're active
-    else if (FAILED(hr = s_pds->SetCooperativeLevel(g_hwnd, DSSCL_PRIORITY)))
-        TRACE("!!! SetCooperativeLevel() failed (%#08lx)\n", hr);
+    // Do this because 50Hz doesn't divide exactly in to 11025Hz...
+    m_nMaxSamplesPerFrame = (m_nFreq+EMULATED_FRAMES_PER_SECOND-1) / EMULATED_FRAMES_PER_SECOND;
+    m_nSampleSize = m_nChannels * m_nBits / 8;
+
+    m_pbFrameSample = new BYTE[m_nMaxSamplesPerFrame * m_nSampleSize];
+}
+
+CStreamBuffer::~CStreamBuffer ()
+{
+    delete m_pbFrameSample;
+}
+
+
+void CStreamBuffer::Update (bool fFrameEnd_)
+{
+    ProfileStart(Snd);
+
+    // Limit to a single frame's worth as the raster may be just into the next frame
+    UINT uRasterPos = ((g_nLine * TSTATES_PER_LINE) + g_nLineCycle);
+    uRasterPos = min(uRasterPos, TSTATES_PER_FRAME);
+
+    // Calculate the number of whole samples passed and the amount spanning in to the next sample
+    UINT uSamplesCyclesPerUnit = uRasterPos * m_uSamplesPerUnit + m_uOffsetPerUnit;
+    int nSamplesSoFar = uSamplesCyclesPerUnit / m_uCyclesPerUnit;
+    m_uPeriod = uSamplesCyclesPerUnit % m_uCyclesPerUnit;
+
+    // Generate and append the the additional sample(s) to our temporary buffer
+    m_nSamplesThisFrame = min(m_nSamplesThisFrame, nSamplesSoFar);
+    Generate(m_pbFrameSample + (m_nSamplesThisFrame * m_nSampleSize), nSamplesSoFar - m_nSamplesThisFrame);
+    m_nSamplesThisFrame = nSamplesSoFar;
+
+    if (fFrameEnd_)
+    {
+        DWORD dwSpaceAvailable = GetSpaceAvailable(), dwHoverSize = m_nMaxSamplesPerFrame * (GetOption(latency)+1)/2;
+
+        // Is there enough space for all this frame's data?
+        if (dwSpaceAvailable >= static_cast<DWORD>(m_nSamplesThisFrame))
+        {
+            // Add on the current frame's sample data
+            AddData(m_pbFrameSample, m_nSamplesThisFrame*m_nSampleSize);
+            dwSpaceAvailable -= m_nSamplesThisFrame;
+
+            // Have we fallen below the hover range?
+            if (dwSpaceAvailable > dwHoverSize)
+            {
+//              TRACE("Below hover range\n");
+
+                // Calculate the remaining space below the hover point
+                dwSpaceAvailable -= (dwHoverSize >> 1);
+
+                // Add as many additional full frames as are needed to get close to the hover point (without exceeding it)
+                while (m_nSamplesThisFrame && dwSpaceAvailable >= static_cast<DWORD>(m_nSamplesThisFrame))
+                {
+//                  TRACE(" Added generated frame\n");
+                    GenerateExtra(m_pbFrameSample, m_nSamplesThisFrame);
+                    AddData(m_pbFrameSample, m_nSamplesThisFrame*m_nSampleSize);
+                    dwSpaceAvailable -= m_nSamplesThisFrame;
+                }
+
+                // Top up the buffer to the hover point
+                if (dwSpaceAvailable)
+                {
+//                  TRACE(" Added part generated frame\n");
+                    GenerateExtra(m_pbFrameSample, dwSpaceAvailable);
+                    AddData(m_pbFrameSample, dwSpaceAvailable*m_nSampleSize);
+                }
+            }
+        }
+
+        // Else there's not enough space for the full frame of data, but we'll add what we can to leave us at the hover point
+        else if (dwSpaceAvailable >= (dwHoverSize >> 1))
+        {
+//          TRACE("Above hover range\n Adding part frame data\n");
+            AddData(m_pbFrameSample, (dwSpaceAvailable - (dwHoverSize >> 1)) * m_nSampleSize);
+        }
+
+        // Reset the sample counters for the next frame
+        m_uOffsetPerUnit += (TSTATES_PER_FRAME * m_uSamplesPerUnit) - (m_nSamplesThisFrame * m_uCyclesPerUnit);
+        m_nSamplesThisFrame = 0;
+    }
+
+    ProfileEnd();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+CSoundStream::CSoundStream (int nFreq_/*=0*/, int nBits_/*=0*/, int nChannels_/*=0*/)
+    : CStreamBuffer(nFreq_, nBits_, nChannels_), m_pdsb(NULL), m_dwWriteOffset(0)
+{
+    m_nSampleBufferSize = m_nMaxSamplesPerFrame * m_nSampleSize * (GetOption(latency)+1);
+
+    WAVEFORMATEX wf;
+    g_pdsbPrimary->GetFormat(&wf,  sizeof wf, NULL);
+    wf.cbSize = sizeof wf;
+
+    wf.nChannels = m_nChannels;
+    wf.wBitsPerSample = m_nBits;
+    wf.nSamplesPerSec = m_nFreq;
+
+    wf.nBlockAlign = m_nChannels * m_nBits / 8;
+    wf.nAvgBytesPerSec = m_nFreq * wf.nBlockAlign;
+
+
+    DSBUFFERDESC dsbd = { sizeof DSBUFFERDESC };
+    dsbd.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_GLOBALFOCUS;
+    dsbd.dwBufferBytes = m_nSampleBufferSize;
+    dsbd.lpwfxFormat = &wf;
+
+    m_pdsb = NULL;
+    HRESULT hr = g_pds->CreateSoundBuffer(&dsbd, &m_pdsb, NULL);
+
+    if (FAILED(hr))
+        TRACE("!!! CreateSoundBuffer failed (%#08lx)\n", hr);
     else
     {
-        DSBUFFERDESC dsbd;
-        ZeroMemory(&dsbd, sizeof dsbd);
-        dsbd.dwSize = sizeof DSBUFFERDESC;
-        dsbd.dwFlags = DSBCAPS_PRIMARYBUFFER;
-
-        // Create the primary buffer
-        if (FAILED(hr = s_pds->CreateSoundBuffer(&dsbd, &s_pdsbPrimary, NULL)))
-            TRACE("!!! CreateSoundBuffer() failed with primary buffer (%#08lx)\n", hr);
-
-        // Eliminate the mixing slowdown by setting the primary buffer to our required format
-        else
-        {
-            // Set up the sound format according to the sound options
-            WAVEFORMATEX wf;
-            wf.cbSize = sizeof WAVEFORMATEX;
-            wf.wFormatTag = WAVE_FORMAT_PCM;
-            wf.nChannels = GetOption(stereo) ? 2 : 1;
-            wf.wBitsPerSample = GetOption(bits) > 8 ? 16 : 8;
-            wf.nBlockAlign = wf.nChannels * wf.wBitsPerSample / 8;
-            wf.nSamplesPerSec = (GetOption(frequency) < 20000) ? 11025 : (GetOption(frequency) < 40000) ? 22050 : 44100;
-            wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign;
-
-            // Set the primary buffer format (closest match will be used if hardware doesn't support what we request)
-            if (FAILED(hr = s_pdsbPrimary->SetFormat(&wf)))
-                TRACE("!!! SetFormat() failed on primary buffer (%#08lx)\n", hr);
-
-            // Play the primary buffer all the time to eliminate the mixer delays in stopping and starting
-            else if (FAILED(hr = s_pdsbPrimary->Play(0, 0, DSBPLAY_LOOPING)))
-                TRACE("!!! Play() failed on primary buffer (%#08lx)\n", hr);
-
-            // Success :-)
-            else
-                fRet = true;
-        }
+        // Make sure the buffer contents is silence before playing
+        Silence();
+        Play();
     }
-
-    return fRet;
 }
 
-
-void CStreamingSound::ExitDirectSound ()
+CSoundStream::~CSoundStream ()
 {
-    if (s_pdsbPrimary)
-    {
-        s_pdsbPrimary->Stop();
-        s_pdsbPrimary->Release();
-        s_pdsbPrimary = NULL;
-    }
-
-    if (s_pds) { s_pds->Release(); s_pds = NULL; }
 }
 
 
-
-CStreamingSound::CStreamingSound (int nFreq_/*=0*/, int nBits_/*=0*/, int nChannels_/*=0*/)
+bool CSoundStream::Play ()
 {
-    m_pdsb = NULL;
-
-    m_nFreq = nFreq_;
-    m_nBits = nBits_;
-    m_nChannels = nChannels_;
-
-    m_pbFrameSample = NULL;
+    return m_pdsb && SUCCEEDED(m_pdsb->Play(0, 0, DSBPLAY_LOOPING));
 }
 
-CStreamingSound::~CStreamingSound ()
+bool CSoundStream::Stop ()
 {
-    if (m_pdsb) { m_pdsb->Release(); m_pdsb = NULL; }
-    if (m_pbFrameSample) { delete m_pbFrameSample; m_pbFrameSample = NULL; }
-
-    // If this is the last object we have to close down DirectSound
-    if (!--s_nUsage)
-        ExitDirectSound();
+    return m_pdsb && SUCCEEDED(m_pdsb->Stop());
 }
 
-
-bool CStreamingSound::Init ()
-{
-    bool fRet = true;
-
-    // If this is the first object we have to set up DirectSound
-    if (!s_nUsage++)
-        fRet = InitDirectSound();
-
-    if (fRet)
-    {
-        HRESULT hr;
-
-        WAVEFORMATEX wf;
-        s_pdsbPrimary->GetFormat(&wf,  sizeof wf, NULL);
-        wf.cbSize = sizeof wf;
-
-        if (!m_nFreq)
-            m_nFreq = wf.nSamplesPerSec;
-
-        if (!m_nBits)
-            m_nBits = wf.wBitsPerSample;
-
-        if (!m_nChannels)
-            m_nChannels = wf.nChannels;
-
-        wf.nChannels = m_nChannels;
-        wf.wBitsPerSample = m_nBits;
-        wf.nSamplesPerSec = m_nFreq;
-
-        wf.nBlockAlign = m_nChannels * m_nBits / 8;
-        wf.nAvgBytesPerSec = (m_nFreq) * wf.nBlockAlign;
-
-
-        // Use some arbitrary units to keep the numbers manageably small...
-        UINT uUnits = HCF(m_nFreq, EMULATED_TSTATES_PER_SECOND);
-        m_uSamplesPerUnit = m_nFreq / uUnits;
-        m_uCyclesPerUnit = EMULATED_TSTATES_PER_SECOND / uUnits;
-
-        // Do this because 50Hz doesn't divide exactly in to 11025Hz...
-        UINT uMaxSamplesPerFrame = m_nFreq / EMULATED_FRAMES_PER_SECOND;
-        if ((m_nFreq % EMULATED_FRAMES_PER_SECOND) > 0)
-            uMaxSamplesPerFrame++;
-        m_uSampleSize = m_nChannels * m_nBits / 8;
-        m_uSampleBufferSize = (uMaxSamplesPerFrame * m_uSampleSize * GetOption(latency));
-//      m_uSampleBufferSize = (m_uSampleBufferSize + (16-1)) & ~(16-1);
-
-        m_pbFrameSample = new BYTE[m_uSampleBufferSize];
-        m_nSamplesThisFrame = 0;
-        m_dwWriteOffset = 0;
-        m_uOffsetPerUnit = 0;
-        m_uPeriod = 0;
-
-
-        DSBUFFERDESC dsbd;
-        ZeroMemory(&dsbd, sizeof dsbd);
-        dsbd.dwSize = sizeof DSBUFFERDESC;
-        dsbd.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_GLOBALFOCUS;
-        dsbd.dwBufferBytes = m_uSampleBufferSize;
-        dsbd.lpwfxFormat = &wf;
-
-        m_pdsb = NULL;
-        if (FAILED(hr = s_pds->CreateSoundBuffer(&dsbd, &m_pdsb, NULL)))
-        {
-            TRACE("!!! CreateSoundBuffer failed (%#08lx)\n", hr);
-            fRet = false;
-        }
-        else
-        {
-            // Make sure the buffer contents is silent before playing
-            Silence();
-
-            // Play for as long as we're running
-            if (FAILED(hr = m_pdsb->Play(0, 0, DSBPLAY_LOOPING)))
-                TRACE("!!! Play failed on DirectSound buffer (%#08lx)\n", hr);
-        }
-    }
-
-    return fRet;
-}
-
-
-void CStreamingSound::Silence ()
+void CSoundStream::Silence (bool fFill_/*=false*/)
 {
     PVOID pvWrite1, pvWrite2;
     DWORD dwLength1, dwLength2;
 
+    // Silence is represented with different values for 8-bit and 16-bit
     BYTE bSilence = (m_nBits == 16) ? 0x00 : 0x80;
+    FillMemory(m_pbFrameSample, bSilence, m_nSampleBufferSize);
 
-    // Lock the entire buffer and fill will the values for silence
-    if (m_pdsb)
+    // Lock the buffer to obtain pointers and lengths for data writes
+    if (SUCCEEDED(m_pdsb->Lock(0, 0, &pvWrite1, &dwLength1, &pvWrite2, &dwLength2, DSBLOCK_ENTIREBUFFER)))
     {
-        FillMemory(m_pbFrameSample, bSilence, m_uSampleBufferSize);
-
-        if (SUCCEEDED(m_pdsb->Lock(0, 0, &pvWrite1, &dwLength1, &pvWrite2, &dwLength2, DSBLOCK_ENTIREBUFFER)))
-        {
-            FillMemory(pvWrite1, dwLength1, bSilence);
-            m_pdsb->Unlock(pvWrite1, dwLength1, pvWrite2, dwLength2);
-        }
-
-        // The new write offset will be the current write cursor position
-        DWORD dwPlayCursor, dwWriteCursor;
-        m_pdsb->GetCurrentPosition(&dwPlayCursor, &dwWriteCursor);
-        m_dwWriteOffset = dwPlayCursor;
+        // Fill with the appropriate silence value
+        FillMemory(pvWrite1, dwLength1, bSilence);
+        m_pdsb->Unlock(pvWrite1, dwLength1, pvWrite2, dwLength2);
     }
+
+    // The new write offset will be the current write cursor position
+    DWORD dwPlayCursor, dwWriteCursor;
+    m_pdsb->GetCurrentPosition(&dwPlayCursor, &dwWriteCursor);
+    m_dwWriteOffset = dwPlayCursor;
 
     m_nSamplesThisFrame = 0;
 }
 
 
-DWORD CStreamingSound::GetSpaceAvailable ()
+int CSoundStream::GetSpaceAvailable ()
 {
     HRESULT hr;
     DWORD dwPlayCursor, dwWriteCursor;
@@ -410,167 +445,181 @@ DWORD CStreamingSound::GetSpaceAvailable ()
         return 0;
 
     // The amount of space free depends on where the last write postion is relative to the play cursor
-    UINT uSpace = (m_dwWriteOffset <= dwPlayCursor) ? dwPlayCursor - m_dwWriteOffset :
-                    m_uSampleBufferSize - (m_dwWriteOffset - dwPlayCursor);
+    int nSpace = (m_dwWriteOffset <= dwPlayCursor) ? dwPlayCursor - m_dwWriteOffset :
+                    m_nSampleBufferSize - (m_dwWriteOffset - dwPlayCursor);
 
     // Return the number of samples
-    return uSpace / m_uSampleSize;
+    return nSpace / m_nSampleSize;
 }
 
-
-void CStreamingSound::Update (bool fFrameEnd_)
-{
-    ProfileStart(Snd);
-
-    // Got a DirectSound buffer pointer?
-    if (m_pdsb)
-    {
-        // Calculate the number of whole samples passed and the amount spanning in to the next sample
-        UINT uSamplesCyclesPerUnit = ((g_nLine * TSTATES_PER_LINE) + g_nLineCycle) * m_uSamplesPerUnit + m_uOffsetPerUnit;
-        int nSamplesSoFar = uSamplesCyclesPerUnit / m_uCyclesPerUnit;
-        m_uPeriod = uSamplesCyclesPerUnit % m_uCyclesPerUnit;
-
-        // Generate and append the the additional sample(s) to our temporary buffer
-        m_nSamplesThisFrame = min(m_nSamplesThisFrame, nSamplesSoFar);
-        Generate(m_pbFrameSample + (m_nSamplesThisFrame * m_uSampleSize), nSamplesSoFar - m_nSamplesThisFrame);
-        m_nSamplesThisFrame = nSamplesSoFar;
-
-        if (fFrameEnd_)
-        {
-            DWORD dwSpaceAvailable = GetSpaceAvailable();
-
-            // Is there enough space for all this frame's data?
-            if (dwSpaceAvailable >= m_nSamplesThisFrame)
-            {
-                // Add on the current frame's sample data
-                AddData(m_pbFrameSample, m_nSamplesThisFrame);
-                dwSpaceAvailable -= m_nSamplesThisFrame;
-
-                // Have we fallen below the hover range?
-                if (dwSpaceAvailable > m_nSamplesThisFrame)
-                {
-//                  OutputDebugString("Below hover range\n");
-
-                    // Calculate the remaining space below the hover point
-                    dwSpaceAvailable -= (m_nSamplesThisFrame >> 1);
-
-                    // Add as many additional full frames as are needed to get close to the hover point (without exceeding it)
-                    while (dwSpaceAvailable >= m_nSamplesThisFrame)
-                    {
-//                      OutputDebugString(" Added generated frame\n");
-                        GenerateExtra(m_pbFrameSample, m_nSamplesThisFrame);
-                        AddData(m_pbFrameSample, m_nSamplesThisFrame);
-                        dwSpaceAvailable -= m_nSamplesThisFrame;
-                    }
-
-                    // Top up the buffer to the hover point
-                    if (dwSpaceAvailable)
-                    {
-//                      OutputDebugString(" Added part generated frame\n");
-                        GenerateExtra(m_pbFrameSample, dwSpaceAvailable);
-                        AddData(m_pbFrameSample, dwSpaceAvailable);
-                    }
-                }
-            }
-
-            // Else there's not enough space for the full frame of data, but we'll add what we can to leave us at the hover point
-            else if (dwSpaceAvailable >= (m_nSamplesThisFrame >> 1))
-            {
-//              OutputDebugString("Above hover range\n");
-//              OutputDebugString(" Adding part frame data\n");
-                AddData(m_pbFrameSample, dwSpaceAvailable - (m_nSamplesThisFrame >> 1));
-            }
-
-
-            // Reset the sample counters for the next frame
-            m_uOffsetPerUnit += (TSTATES_PER_FRAME * m_uSamplesPerUnit) - (m_nSamplesThisFrame * m_uCyclesPerUnit);
-            m_nSamplesThisFrame = 0;
-        }
-    }
-
-    ProfileEnd();
-}
-
-
-void CStreamingSound::AddData (BYTE* pbSampleData_, int nSamples_)
+void CSoundStream::AddData (BYTE* pbData_, int nLength_)
 {
     LPVOID pvWrite1, pvWrite2;
     DWORD dwLength1, dwLength2;
 
-    // We must have some samples or there's be nothing to do
-    if (nSamples_ > 0)
+    if (nLength_ <= 0)
+        return;
+
+   // Lock the required buffer range so we can add the new data
+    HRESULT hr = m_pdsb->Lock(m_dwWriteOffset, nLength_, &pvWrite1, &dwLength1, &pvWrite2, &dwLength2, 0);
+    if (FAILED(hr))
+        TRACE("!!! Failed to lock sound buffer! (%#08lx)\n", hr);
+    else
     {
-        // Lock the required buffer range so we can add the new data
-        HRESULT hr = m_pdsb->Lock(m_dwWriteOffset, nSamples_ * m_uSampleSize, &pvWrite1, &dwLength1, &pvWrite2, &dwLength2, 0);
+        // Write the first part (maybe all)
+        memcpy(pvWrite1, pbData_, dwLength1);
+
+        // Write the second block if necessary
+        if (dwLength2)
+            memcpy(pvWrite2, pbData_+dwLength1, dwLength2);
+
+        // Unlock the buffer
+        hr = m_pdsb->Unlock(pvWrite1, dwLength1, pvWrite2, dwLength2);
         if (FAILED(hr))
-            TRACE("!!! Failed to lock sound buffer! (%#08lx)\n", hr);
-        else
-        {
-            // Write the first part (maybe all)
-            memcpy(pvWrite1, pbSampleData_, dwLength1);
+            TRACE("!!! Failed to unlock sound buffer! (%#08lx)\n", hr);
 
-            // Write the second block if necessary
-            if (dwLength2)
-                memcpy(pvWrite2, pbSampleData_+dwLength1, dwLength2);
-
-            // Unlock the buffer
-            hr = m_pdsb->Unlock(pvWrite1, dwLength1, pvWrite2, dwLength2);
-            if (FAILED(hr))
-                TRACE("!!! Failed to unlock sound buffer! (%#08lx)\n", hr);
-
-            // Work out the offset for the next write in the circular buffer
-            m_dwWriteOffset = (m_dwWriteOffset + dwLength1 + dwLength2) % m_uSampleBufferSize;
-        }
+        // Work out the offset for the next write in the circular buffer
+        m_dwWriteOffset = (m_dwWriteOffset + dwLength1 + dwLength2) % m_nSampleBufferSize;
     }
 }
 
 
-void CStreamingSound::GenerateExtra (BYTE* pb_, int nSamples_)
-{
-    // Re-use the specified amount from the previous sample, taking care of buffer overlaps
-    if (pb_ != m_pbFrameSample)
-        memmove(pb_, m_pbFrameSample, nSamples_*m_uSampleSize);
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 
 
-void CDirectXSAASound::Generate (BYTE* pb_, int nSamples_)
+void CSAA::Generate (BYTE* pb_, int nSamples_)
 {
     // Samples could now be zero, so check...
     if (nSamples_ > 0)
-        Sound::pSAASound->GenerateMany(pb_, nSamples_);
+        pSAASound->GenerateMany(pb_, nSamples_);
 }
 
-void CDirectXSAASound::GenerateExtra (BYTE* pb_, int nSamples_)
+void CSAA::GenerateExtra (BYTE* pb_, int nSamples_)
 {
-    // If at least one sound update is done per screen line, it's being used for sample playback,
+    // If at least one sound update is done per screen line then it's being used for sample playback,
     // so generate the fill-in data from previous data to try and keep it sounding about right
     if (m_nUpdates > HEIGHT_LINES)
-        CStreamingSound::GenerateExtra(pb_, nSamples_);
+        memmove(pb_, m_pbFrameSample, nSamples_*m_nSampleSize);
 
     // Normal SAA sound use, so generate more real samples to give a seamless join
-    else
-        Sound::pSAASound->GenerateMany(pb_, nSamples_);
+    else if (nSamples_ > 0)
+        pSAASound->GenerateMany(pb_, nSamples_);
 }
 
-void CDirectXSAASound::Out (WORD wPort_, BYTE bVal_)
+void CSAA::Out (WORD wPort_, BYTE bVal_)
 {
     Update();
 
     if ((wPort_ & SOUND_MASK) == SOUND_ADDR)
-        Sound::pSAASound->WriteAddress(bVal_);
+        pSAASound->WriteAddress(bVal_);
     else
-        Sound::pSAASound->WriteData(bVal_);
+        pSAASound->WriteData(bVal_);
 }
 
-void CDirectXSAASound::Update (bool fFrameEnd_/*=false*/)
+void CSAA::Update (bool fFrameEnd_/*=false*/)
 {
-    m_nUpdates++;
-    CStreamingSound::Update(fFrameEnd_);
-
-    if (fFrameEnd_)
+    // Count the updates in the current frame, to watch for sample playback
+    if (!fFrameEnd_)
+        m_nUpdates++;
+    else
         m_nUpdates = 0;
+
+    CStreamBuffer::Update(fFrameEnd_);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+CDAC::CDAC () : CSoundStream(0, 8, 2)   // Use 8-bit stereo mode, and let the mixer do the conversion
+{
+    m_uLeftTotal = m_uRightTotal = m_uPrevPeriod = 0;
+    m_bLeft = m_bRight = 0x80;
+}
+
+
+void CDAC::Generate (BYTE* pb_, int nSamples_)
+{
+    if (!nSamples_)
+    {
+        // If we are still on the same sample then update the mean level that spans it
+        UINT uPeriod = m_uPeriod - m_uPrevPeriod;
+        m_uLeftTotal += m_bLeft * uPeriod;
+        m_uRightTotal += m_bRight * uPeriod;
+    }
+    else if (nSamples_ > 0)
+    {
+        // Otherwise output the mean level spanning the completed sample
+        UINT uPeriod = m_uCyclesPerUnit - m_uPrevPeriod;
+        BYTE bFirstLeft = static_cast<BYTE>((m_uLeftTotal + m_bLeft * uPeriod) / m_uCyclesPerUnit);
+        BYTE bFirstRight = static_cast<BYTE>((m_uRightTotal + m_bRight * uPeriod) / m_uCyclesPerUnit);
+        nSamples_--;
+
+        // 8-bit?
+        if (m_nBits == 8)
+        {
+            // Mono?
+            if (m_nChannels == 1)
+            {
+                *pb_++ = (bFirstLeft >> 1) + (bFirstRight >> 1);
+                memset(pb_, (m_bLeft >> 1) + (m_bRight >> 1), nSamples_);
+            }
+
+            // Stereo
+            else
+            {
+                *pb_++ = bFirstLeft;
+                *pb_++ = bFirstRight;
+
+                // Fill in the block of complete samples at this level
+                if (m_bLeft == m_bRight)
+                    memset(pb_, m_bLeft, nSamples_ << 1);
+                else
+                {
+                    WORD *pw = reinterpret_cast<WORD*>(pb_), wSample = (static_cast<WORD>(m_bRight) << 8) | m_bLeft;
+                    while (nSamples_--)
+                        *pw++ = wSample;
+                }
+            }
+        }
+
+        // 16-bit
+        else
+        {
+            // Mono
+            if (m_nChannels == 1)
+            {
+                WORD *pw = reinterpret_cast<WORD*>(pb_), wSample = ((static_cast<WORD>(m_bLeft) + m_bRight - 0x100) / 2) * 0x101;
+                *pw++ = ((static_cast<WORD>(bFirstRight) + bFirstRight - 0x100) / 2) * 0x101;
+                while (nSamples_--)
+                    *pw++ = wSample;
+            }
+
+            // Stereo
+            else
+            {
+                WORD wLeft = static_cast<WORD>(m_bLeft-0x80) << 8, wRight = static_cast<WORD>(m_bRight-0x80) << 8;
+
+                DWORD *pdw = reinterpret_cast<DWORD*>(pb_), dwSample = (static_cast<DWORD>(wRight) << 16) | wLeft;
+                *pdw++ = (static_cast<WORD>(bFirstRight-0x80) << 24) | (static_cast<WORD>(bFirstLeft-0x80) << 8);
+
+                while (nSamples_--)
+                    *pdw++ = dwSample;
+            }
+        }
+
+        // Initialise the mean level for the next sample
+        m_uLeftTotal = m_bLeft * m_uPeriod;
+        m_uRightTotal = m_bRight * m_uPeriod;
+    }
+
+    // Store the positon spanning the current sample
+    m_uPrevPeriod = m_uPeriod;
+}
+
+void CDAC::GenerateExtra (BYTE* pb_, int nSamples_)
+{
+    // Re-use the specified amount from the previous sample, 
+    if (pb_ != m_pbFrameSample)
+        memmove(pb_, m_pbFrameSample, nSamples_*m_nSampleSize);
 }
 
 
@@ -578,7 +627,7 @@ void CDirectXSAASound::Update (bool fFrameEnd_/*=false*/)
 
 UINT HCF (UINT x_, UINT y_)
 {
-    UINT uHCF = 1, uMin = sqrt(min(x_, y_));
+    UINT uHCF = 1, uMin = static_cast<UINT>(sqrt(min(x_, y_)));
 
     for (UINT uFactor = 2 ; uFactor <= uMin ; uFactor++)
     {
