@@ -97,7 +97,7 @@
 #define IDC_DEADZONE_1                  1058
 #define IDC_DEADZONE_2                  1059
 #define IDC_STEREO                      1060
-#define IDC_FREQUENCY                   1062
+#define IDC_FREQ                        1062
 #define IDC_MOUSE_2X                    1063
 #define IDC_MAIN_MEMORY                 1064
 #define IDC_EXTERNAL_MEMORY             1065
@@ -157,7 +157,7 @@
 #define IDL_FNKEYS                      1111
 #define IDC_KEY                         1113
 #define IDC_ACTION                      1115
-#define IDS_FREQUENCY                   1116
+#define IDS_FREQ                        1116
 #define IDS_SAMPLE_SIZE                 1117
 #define IDS_LATENCY                     1118
 #define IDS_WINDOW_SCALING              1119
@@ -290,9 +290,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        181
+#define _APS_NEXT_RESOURCE_VALUE        183
 #define _APS_NEXT_COMMAND_VALUE         40154
-#define _APS_NEXT_CONTROL_VALUE         1128
+#define _APS_NEXT_CONTROL_VALUE         1129
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif
