@@ -136,7 +136,6 @@ CFileStream::CFileStream (FILE* hFile_, const char* pcszPath_, bool fReadOnly_/*
     if (hFile_ && !stat(pcszPath_, &st))
         m_nSize = st.st_size;
 
-    // Scan the path string to determine the filename component
     for (const char* p = pcszPath_ ; *p ; p++)
     {
         if (*p == PATH_SEPARATOR)
@@ -205,12 +204,13 @@ CZLibStream::CZLibStream (gzFile hFile_, const char* pcszPath_, bool fReadOnly_/
     char szFile[MAX_PATH];
     size_t nLen = strlen(strcpy(szFile, pcszPath_));
 
-    // Strip any .gz extension to give a cleaner filename
-    if (nLen > 3 && !strcasecmp(szFile + nLen - 3, ".gz"))
+    for (const char* p = pcszPath_ ; *p ; p++)
     {
-        szFile[nLen-3] = '\0';
-        m_pszFile = strdup(szFile);
+        if (*p == PATH_SEPARATOR)
+            pcszPath_ = p+1;
     }
+
+    m_pszFile = strdup(pcszPath_);
 
     // We can't determine the size without an expensive seek, reading the whole file
     m_nSize = 0;
