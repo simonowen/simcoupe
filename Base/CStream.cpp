@@ -132,7 +132,7 @@ CFileStream::CFileStream (FILE* hFile_, const char* pcszStream_, bool fReadOnly_
     : CStream(pcszStream_, fReadOnly_), m_hFile(hFile_)
 {
     struct stat st;
-    if (hFile_ && !fstat(fileno(hFile_), &st))
+    if (hFile_ && !stat(m_pszStream, &st))
         m_nSize = st.st_size;
 }
 
