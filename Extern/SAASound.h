@@ -5,35 +5,29 @@
 #ifndef SAASOUND_H_INCLUDED
 #define SAASOUND_H_INCLUDED
 
-#if _MSC_VER >= 1000
-#pragma once
-#endif // _MSC_VER >= 1000
-
-#ifndef SAASNDC_H_INCLUDED
-
 // Parameters for use with SetSoundParameters, for example,
 // SetSoundParameters(SAAP_NOFILTER | SAAP_44100 | SAA_16BIT | SAA_STEREO);
-#define SAAP_FILTER 0x00000300
-#define SAAP_NOFILTER 0x00000100
-#define SAAP_44100 0x00000030
-#define SAAP_22050 0x00000020
-#define SAAP_11025 0x00000010
-#define SAAP_16BIT 0x0000000c
-#define SAAP_8BIT 0x00000004
-#define SAAP_STEREO 0x00000003
-#define SAAP_MONO 0x00000001
+#define SAAP_FILTER     0x00000300
+#define SAAP_NOFILTER   0x00000100
+#define SAAP_44100      0x00000030
+#define SAAP_22050      0x00000020
+#define SAAP_11025      0x00000010
+#define SAAP_16BIT      0x0000000c
+#define SAAP_8BIT       0x00000004
+#define SAAP_STEREO     0x00000003
+#define SAAP_MONO       0x00000001
 
 // Bitmasks for use with GetCurrentSoundParameters, for example,
 // unsigned long CurrentSampleRateParameter = GetCurrentSoundParameters()
-#define SAAP_MASK_FILTER 0x00000300
-#define SAAP_MASK_SAMPLERATE 0x000000030
-#define SAAP_MASK_BITDEPTH 0x0000000c
-#define SAAP_MASK_CHANNELS 0x00000003
+#define SAAP_MASK_FILTER        0x00000300
+#define SAAP_MASK_SAMPLERATE    0x00000030
+#define SAAP_MASK_BITDEPTH      0x0000000c
+#define SAAP_MASK_CHANNELS      0x00000003
 
 typedef unsigned long SAAPARAM;
 
 
-// command #defines for use with SendCommand function, eg, 
+// command #defines for use with SendCommand function, eg,
 // int nCurrentSampleRate = SendCommand(SAACMD_GetSampleRate,0);
 // or
 // int nError = SendCommand(SAACMD_SetSampleRate,44100);
@@ -56,51 +50,80 @@ typedef unsigned long SAACMD;
 #define SAASENDCOMMAND_INVALIDPARAMETERS                0x80000003
 
 
-
 #ifndef BYTE
 #define BYTE unsigned char
 #endif
 
-#ifndef WINAPI
-#define WINAPI
+#ifdef _WIN32
+#define SAAAPI _stdcall
+#else
+#define SAAAPI
 #endif
 
-#endif // SAASNDC_H_INCLUDED
 
-#ifdef _WINDOWS
-extern "C"
-#endif
+#ifdef __cplusplus
+
 class CSAASound
 {
 public:
-    CSAASound();
-    ~CSAASound();
+    virtual ~CSAASound() { }
 
-    void SetSoundParameters(SAAPARAM uParam);
-    void WriteAddress(BYTE nReg);
-    void WriteData(BYTE nData);
-    void WriteAddressData(BYTE nReg, BYTE nData);
-    void Clear(void);
-    BYTE ReadAddress(void);
+    virtual void SetSoundParameters (SAAPARAM uParam) = 0;
+    virtual void WriteAddress (BYTE nReg) = 0;
+    virtual void WriteData (BYTE nData) = 0;
+    virtual void WriteAddressData (BYTE nReg, BYTE nData) = 0;
+    virtual void Clear () = 0;
+    virtual BYTE ReadAddress () = 0;
 
-    SAAPARAM GetCurrentSoundParameters(void);
-    unsigned long GetCurrentSampleRate(void);
-    static unsigned long GetSampleRate(SAAPARAM uParam);
-    unsigned short GetCurrentBytesPerSample(void);
-    static unsigned short GetBytesPerSample(SAAPARAM uParam);
+    virtual SAAPARAM GetCurrentSoundParameters () = 0;
+    virtual unsigned long GetCurrentSampleRate () = 0;
+    static unsigned long GetSampleRate (SAAPARAM uParam);
+    virtual unsigned short GetCurrentBytesPerSample () = 0;
+    static unsigned short GetBytesPerSample (SAAPARAM uParam);
 
-    void GenerateMany(BYTE * pBuffer, unsigned long nSamples);
-    void ClickClick(int bValue);
-// 'Generate' function is obsolete
-//  unsigned long Generate(void);
+    virtual void GenerateMany (BYTE * pBuffer, unsigned long nSamples) = 0;
 
-    int SendCommand(SAACMD nCommandID, long nData);
+    virtual int SendCommand (SAACMD nCommandID, long nData) = 0;
 
 };
 
 typedef class CSAASound * LPCSAASOUND;
 
-LPCSAASOUND WINAPI CreateCSAASound(void);
-void WINAPI DestroyCSAASound(LPCSAASOUND object);
+LPCSAASOUND SAAAPI CreateCSAASound(void);
+void SAAAPI DestroyCSAASound(LPCSAASOUND object);
+
+#endif  // __cplusplus
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef void * SAASND;
+
+// "C-style" interface for the CSAASound class
+SAASND SAAAPI newSAASND(void);
+void SAAAPI deleteSAASND(SAASND object);
+
+void SAAAPI SAASNDSetSoundParameters(SAASND object, SAAPARAM uParam);
+void SAAAPI SAASNDWriteAddress(SAASND object, BYTE nReg);
+void SAAAPI SAASNDWriteData(SAASND object, BYTE nData);
+void SAAAPI SAASNDWriteAddressData(SAASND object, BYTE nReg, BYTE nData);
+void SAAAPI SAASNDClear(SAASND object);
+BYTE SAAAPI SAASNDReadAddress(SAASND object);
+
+SAAPARAM SAAAPI SAASNDGetCurrentSoundParameters(SAASND object);
+unsigned short SAAAPI SAASNDGetCurrentBytesPerSample(SAASND object);
+unsigned short SAAAPI SAASNDGetBytesPerSample(SAAPARAM uParam);
+unsigned long SAAAPI SAASNDGetCurrentSampleRate(SAASND object);
+unsigned long SAAAPI SAASNDGetSampleRate(SAAPARAM uParam);
+
+void SAAAPI SAASNDGenerateMany(SAASND object, BYTE * pBuffer, unsigned long nSamples);
+int SAAAPI SAASNDSendCommand(SAACMD nCommandID, long nData);
+
+
+#ifdef __cplusplus
+}; // extern "C"
+#endif
 
 #endif  // SAASOUND_H_INCLUDED
