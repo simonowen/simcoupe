@@ -284,6 +284,7 @@
 #define IDM_TOOLS_OPTIONS               40147
 #define IDM_TEST                        40150
 #define IDM_TOOLS_FLUSH_PRINTER         40152
+#define IDM_TOOLS_PRINTER_READY         40154
 
 // Next default values for new objects
 // 
@@ -291,7 +292,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        183
-#define _APS_NEXT_COMMAND_VALUE         40154
+#define _APS_NEXT_COMMAND_VALUE         40155
 #define _APS_NEXT_CONTROL_VALUE         1129
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
