@@ -2,7 +2,7 @@
 //
 // CScreen.h: SAM screen handling, including on-screen display text
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -59,6 +59,7 @@ class CScreen
         void DrawLine (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_);
         void FillRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_);
         void FrameRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_, bool fRound_=false);
+        void Poke (int nX_, int nY_, const BYTE* pcbData_, UINT uLen_);
         void DrawImage (int nX_, int nY_, int nWidth_, int nHeight_, const BYTE* pbData_, const BYTE* pbPalette_);
         void DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_=false);
 
