@@ -73,17 +73,19 @@ HWND g_hwnd;
 HMENU g_hmenu;
 extern HINSTANCE __hinstance;
 
+HHOOK g_hFnKeyHook;
+HWND hdlgNewFnKey;
 
 WINDOWPLACEMENT g_wp;
 int nOptionPage = 0;                // Last active option property page
 const int MAX_OPTION_PAGES = 16;    // Maximum number of option propery pages
 bool fCentredOptions;
+
+
 OPTIONS opts;
-
-HHOOK g_hFnKeyHook;
-HWND hdlgNewFnKey;
-
-#define Changed(o)      (opts.o != GetOption(o))    // Helper macro for detecting options changes
+// Helper macro for detecting options changes
+#define Changed(o)        (opts.o != GetOption(o))
+#define ChangedString(o)  (strcasecmp(opts.o, GetOption(o)))
 
 
 enum eActions
@@ -383,7 +385,7 @@ void UpdateMenuFromOptions ()
 //  EnableItem(IDM_FILE_FLOPPY2_DEVICE, g_fTestMode);
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 1 options
-    EnableMenuItem(hmenuFile, 1, (GetOption(drive1) == 1) ? MF_ENABLED|MF_BYPOSITION : MF_GRAYED|MF_BYPOSITION);
+    EnableMenuItem(hmenuFile, 1, (GetOption(drive1) == dskImage) ? MF_ENABLED|MF_BYPOSITION : MF_GRAYED|MF_BYPOSITION);
     EnableItem(IDM_FILE_FLOPPY1_SAVE_CHANGES, pDrive1->IsModified());
 
     char szEject[128], szName[_MAX_FNAME], szExt[_MAX_EXT];
@@ -395,7 +397,7 @@ void UpdateMenuFromOptions ()
     CheckOption(IDM_FILE_FLOPPY1_DEVICE, fInserted && CFloppyStream::IsRecognised(pDrive1->GetImage()));
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 2 options
-    EnableMenuItem(hmenuFile, 2, (GetOption(drive2) == 1) ? MF_ENABLED|MF_BYPOSITION : MF_GRAYED|MF_BYPOSITION);
+    EnableMenuItem(hmenuFile, 2, (GetOption(drive2) == dskImage) ? MF_ENABLED|MF_BYPOSITION : MF_GRAYED|MF_BYPOSITION);
     EnableItem(IDM_FILE_FLOPPY2_SAVE_CHANGES, pDrive2->IsModified());
 
     fInserted = pDrive2->IsInserted();
@@ -518,7 +520,7 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actInsertFloppy1:
-                if (GetOption(drive1) == 1)
+                if (GetOption(drive1) == dskImage)
                 {
                     if (GetAsyncKeyState(VK_SHIFT) < 0)
                         GUI::Start(new CInsertFloppy(1));
@@ -531,7 +533,7 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actEjectFloppy1:
-                if (GetOption(drive1) == 1 && pDrive1->IsInserted())
+                if (GetOption(drive1) == dskImage && pDrive1->IsInserted())
                 {
                     pDrive1->Eject();
                     SetOption(disk1, "");
@@ -540,12 +542,12 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actSaveFloppy1:
-                if (GetOption(drive1) == 1 && pDrive1->IsModified() && pDrive1->Flush())
+                if (GetOption(drive1) == dskImage && pDrive1->IsModified() && pDrive1->Flush())
                     Frame::SetStatus("Saved changes to disk in drive 2");
                 break;
 
             case actInsertFloppy2:
-                if (GetOption(drive2) == 1)
+                if (GetOption(drive2) == dskImage)
                 {
                     if (GetAsyncKeyState(VK_SHIFT) < 0)
                         GUI::Start(new CInsertFloppy(2));
@@ -558,7 +560,7 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actEjectFloppy2:
-                if (GetOption(drive2) == 1 && pDrive2->IsInserted())
+                if (GetOption(drive2) == dskImage && pDrive2->IsInserted())
                 {
                     pDrive2->Eject();
                     SetOption(disk2, "");
@@ -567,7 +569,7 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actSaveFloppy2:
-                if (GetOption(drive2) == 1 && pDrive2->IsModified() && pDrive2->Flush())
+                if (GetOption(drive2) == dskImage && pDrive2->IsModified() && pDrive2->Flush())
                     Frame::SetStatus("Saved changes to disk in drive 2");
                 break;
 
@@ -1246,12 +1248,12 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
                 case IDM_FILE_NEW_DISK:         DoAction(actNewDisk);           break;
 
-                case IDM_FILE_FLOPPY1_DEVICE:       if (GetOption(drive1) == 1) pDrive1->Insert("A:");  break;
+                case IDM_FILE_FLOPPY1_DEVICE:       if (GetOption(drive1) == dskImage) pDrive1->Insert("A:");  break;
                 case IDM_FILE_FLOPPY1_INSERT:       DoAction(actInsertFloppy1); break;
                 case IDM_FILE_FLOPPY1_EJECT:        DoAction(actEjectFloppy1);  break;
                 case IDM_FILE_FLOPPY1_SAVE_CHANGES: DoAction(actSaveFloppy1);   break;
 
-                case IDM_FILE_FLOPPY2_DEVICE:       if (GetOption(drive2) == 1) pDrive2->Insert("B:");  break;
+                case IDM_FILE_FLOPPY2_DEVICE:       if (GetOption(drive2) == dskImage) pDrive2->Insert("B:");  break;
                 case IDM_FILE_FLOPPY2_INSERT:       DoAction(actInsertFloppy2); break;
                 case IDM_FILE_FLOPPY2_EJECT:        DoAction(actEjectFloppy2);  break;
                 case IDM_FILE_FLOPPY2_SAVE_CHANGES: DoAction(actSaveFloppy2);   break;
@@ -1826,7 +1828,7 @@ void FillMidiInCombo (HWND hwndCombo_)
 
     int nDevs = 0;//midiInGetNumDevs();
     SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>("<not currently supported>"));
-//  SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(nDevs ? "<default MIDI-In device>" : "<None>"));
+//  SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(nDevs ? "<default device>" : "<None>"));
 
     if (nDevs)
     {
@@ -1839,7 +1841,7 @@ void FillMidiInCombo (HWND hwndCombo_)
     }
 
     // Select the current device in the list, or the first one if that fails
-    if (SendMessage(hwndCombo_, CB_SETCURSEL, GetOption(midiin)+1, 0L) == CB_ERR)
+    if (SendMessage(hwndCombo_, CB_SETCURSEL, atoi(GetOption(midiindev))+1, 0L) == CB_ERR)
         SendMessage(hwndCombo_, CB_SETCURSEL, 0, 0L);
 }
 
@@ -1849,7 +1851,7 @@ void FillMidiOutCombo (HWND hwndCombo_)
     SendMessage(hwndCombo_, CB_RESETCONTENT, 0, 0L);
 
     int nDevs = midiOutGetNumDevs();
-    SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(nDevs ? "<default MIDI-Out device>" : "<None>"));
+    SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(nDevs ? "<default device>" : "<None>"));
 
     if (nDevs)
     {
@@ -1862,7 +1864,7 @@ void FillMidiOutCombo (HWND hwndCombo_)
     }
 
     // Select the current device in the list, or the first one if that fails
-    if (SendMessage(hwndCombo_, CB_SETCURSEL, GetOption(midiout)+1, 0L) == CB_ERR)
+    if (SendMessage(hwndCombo_, CB_SETCURSEL, atoi(GetOption(midioutdev))+1, 0L) == CB_ERR)
         SendMessage(hwndCombo_, CB_SETCURSEL, 0, 0L);
 }
 
@@ -2020,8 +2022,7 @@ BOOL CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
 
 /*
                 // Perform an automatic reset if anything changed (if used we'll need a warning message on property sheet!)
-                if (Changed(mainmem) || Changed(externalmem) || lstrcmpi(opts.rom0, GetOption(rom0)) ||
-                            lstrcmpi(opts.rom1, GetOption(rom1)))
+                if (Changed(mainmem) || Changed(externalmem) || ChangedString(rom0) || ChangedString(rom1))
                     InterruptType = Z80_reset;
 */
             }
@@ -2317,7 +2318,7 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 
             SetWindowText(GetDlgItem(hdlg_, IDE_IMAGE2), GetOption(disk2));
             SendDlgItemMessage(hdlg_, IDE_IMAGE2, EM_SETSEL, _MAX_PATH, -1);
-            EnableWindow(GetDlgItem(hdlg_, IDB_SAVE2), GetOption(drive2) == 1 && pDrive2->IsModified());
+            EnableWindow(GetDlgItem(hdlg_, IDB_SAVE2), GetOption(drive2) == dskImage && pDrive2->IsModified());
 
 //          bool fDirect1 = CFloppyStream::IsRecognised(GetOption(disk1));
 //          SendDlgItemMessage(hdlg_, IDC_DIRECT_FLOPPY1, BM_SETCHECK, fDirect1 ? BST_CHECKED : BST_UNCHECKED, 0L);
@@ -2362,8 +2363,8 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                     LRESULT lDrive1 = SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L);
                     EnableWindow(GetDlgItem(hdlg_, IDE_IMAGE1), lDrive1 != 0);
                     EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE1), lDrive1 != 0);
-                    EnableWindow(GetDlgItem(hdlg_, IDB_SAVE1), (GetOption(drive1) == 1) && pDrive1->IsModified());
-                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT1), (GetOption(drive1) == 1) && pDrive1->IsInserted());
+                    EnableWindow(GetDlgItem(hdlg_, IDB_SAVE1), (GetOption(drive1) == dskImage) && pDrive1->IsModified());
+                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT1), (GetOption(drive1) == dskImage) && pDrive1->IsInserted());
                     break;
                 }
 
@@ -2373,7 +2374,7 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                     EnableWindow(GetDlgItem(hdlg_, IDE_IMAGE2), lDrive2 == 1);
                     EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE2), lDrive2 == 1);
                     EnableWindow(GetDlgItem(hdlg_, IDB_SAVE2), pDrive2->IsModified());
-                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT2), 0 && GetOption(drive2) == 1 && pDrive2->IsInserted());
+                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT2), 0 && GetOption(drive2) == dskImage && pDrive2->IsInserted());
                     break;
                 }
 
@@ -2386,7 +2387,7 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 
                 case IDE_IMAGE2:
                 {
-                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT2), GetOption(drive2) == 1 && GetWindowTextLength(GetDlgItem(hdlg_, IDE_IMAGE2)));
+                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT2), GetOption(drive2) == dskImage && GetWindowTextLength(GetDlgItem(hdlg_, IDE_IMAGE2)));
                     EnableWindow(GetDlgItem(hdlg_, IDB_SAVE2), false);
                     break;
                 }
@@ -2479,8 +2480,7 @@ BOOL CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
 
                 SetOption(mouse, SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
-                if (Changed(keymapping) || Changed(mouse) || Changed(deadzone1) || Changed(deadzone1) ||
-                    lstrcmpi(opts.joydev1, GetOption(joydev1)) || lstrcmpi(opts.joydev2, GetOption(joydev2)))
+                if (Changed(keymapping) || Changed(mouse))
                     Input::Init();
             }
 
@@ -2537,6 +2537,9 @@ BOOL CALLBACK JoystickPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                 HWND hwndJoy1 = GetDlgItem(hdlg_, IDC_JOYSTICK1), hwndJoy2 = GetDlgItem(hdlg_, IDC_JOYSTICK2);
                 SendMessage(hwndJoy1, CB_GETLBTEXT, SendMessage(hwndJoy1, CB_GETCURSEL, 0, 0L), (LPARAM)GetOption(joydev1));
                 SendMessage(hwndJoy2, CB_GETLBTEXT, SendMessage(hwndJoy2, CB_GETCURSEL, 0, 0L), (LPARAM)GetOption(joydev2));
+
+                if (Changed(deadzone1) || Changed(deadzone1) || ChangedString(joydev1) || ChangedString(joydev2))
+                    Input::Init();
             }
 
             break;
@@ -2602,7 +2605,7 @@ BOOL CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
                 SetOption(printeronline, SendDlgItemMessage(hdlg_, IDC_PRINTER_ONLINE, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
-                if (Changed(parallel1) || Changed(parallel2) || lstrcmpi(opts.printerdev, GetOption(printerdev)))
+                if (Changed(parallel1) || Changed(parallel2) || ChangedString(printerdev))
                     IO::InitParallel();
             }
 
@@ -2660,13 +2663,15 @@ BOOL CALLBACK MidiPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
+                char sz[16];
+
                 SetOption(midi, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_MIDI, CB_GETCURSEL, 0, 0L)));
+                
+                // Update the MIDI IN and MIDI OUT device numbers
+                SetOption(midiindev,  itoa(SendDlgItemMessage(hdlg_, IDC_MIDI_IN,  CB_GETCURSEL, 0, 0L)-1, sz, 10));
+                SetOption(midioutdev, itoa(SendDlgItemMessage(hdlg_, IDC_MIDI_OUT, CB_GETCURSEL, 0, 0L)-1, sz, 10));
 
-                SetOption(midiout, static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_MIDI_OUT), CB_GETCURSEL, 0, 0L))-1);
-                SetOption(midiin, static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_MIDI_IN), CB_GETCURSEL, 0, 0L))-1);
-
-
-                if (Changed(midi) || Changed(midiin) || Changed(midiout))
+                if (Changed(midi) || ChangedString(midiindev) || ChangedString(midioutdev))
                     IO::InitMidi();
             }
 
