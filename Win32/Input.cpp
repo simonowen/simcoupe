@@ -616,8 +616,8 @@ void SetSamKeyState ()
     // No SAM keys are pressed initially
     ReleaseAllSamKeys();
 
-    // Return to ignore common Windows ALT- combinations so the SAM doesn't see them
-    if (!GetOption(altforcntrl) && (IsPressed(DIK_LMENU) && (IsPressed(DIK_TAB) || IsPressed(DIK_ESCAPE) || IsPressed(DIK_SPACE))))
+    // Return to ignore common Windows ALT- combinations so SAM doesn't see them
+    if (IsPressed(DIK_LMENU) && (IsPressed(DIK_TAB) || IsPressed(DIK_ESCAPE) || IsPressed(DIK_SPACE)))
         return;
 
     // Left and right shift keys are equivalent, and also complementary!
