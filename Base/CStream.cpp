@@ -100,24 +100,24 @@ CStream::CStream (const char* pcszStream_, bool fReadOnly_/*=false*/)
             // Open the file using the regular CRT file functions
             FILE* hf;
             if ((hf = fopen(pcszStream_, "rb")))
-			{
+            {
 #ifndef NO_ZLIB
-				BYTE abSig[sizeof GZ_SIGNATURE];
-				if ((fread(abSig, 1, sizeof abSig, hf) != sizeof abSig) || memcmp(abSig, GZ_SIGNATURE, sizeof abSig))
+                BYTE abSig[sizeof GZ_SIGNATURE];
+                if ((fread(abSig, 1, sizeof abSig, hf) != sizeof abSig) || memcmp(abSig, GZ_SIGNATURE, sizeof abSig))
 #endif
-					return new CFileStream(hf, pcszStream_, fReadOnly_);
+                    return new CFileStream(hf, pcszStream_, fReadOnly_);
 #ifndef NO_ZLIB
-				else
-				{
-					// Close the file so we can open it thru ZLib
-					fclose(hf);
-					// Try to open it as a gzipped file
-					gzFile hfGZip;
-					if ((hfGZip = gzopen(pcszStream_, "rb")))
-						return new CZLibStream(hfGZip, pcszStream_, fReadOnly_);
-				}
-#endif	// !NO_ZLIB
-			}
+                else
+                {
+                    // Close the file so we can open it thru ZLib
+                    fclose(hf);
+                    // Try to open it as a gzipped file
+                    gzFile hfGZip;
+                    if ((hfGZip = gzopen(pcszStream_, "rb")))
+                        return new CZLibStream(hfGZip, pcszStream_, fReadOnly_);
+                }
+#endif  // !NO_ZLIB
+            }
         }
     }
 
@@ -140,15 +140,12 @@ void CFileStream::Close ()
 bool CFileStream::Rewind ()
 {
     if (IsOpen())
-    {
-//      rewind(m_hFile);
         Close();
-    }
 
     return true;
 }
 
-long CFileStream::Read (void* pvBuffer_, long lLen_)
+size_t CFileStream::Read (void* pvBuffer_, size_t uLen_)
 {
     if (m_nMode != modeReading)
     {
@@ -160,11 +157,11 @@ long CFileStream::Read (void* pvBuffer_, long lLen_)
             m_nMode = modeReading;
     }
 
-    long lRead = m_hFile ? fread(pvBuffer_, 1, lLen_, m_hFile) : 0;
-    return (lRead == -1) ? 0 : lRead;
+    size_t uRead = m_hFile ? fread(pvBuffer_, 1, uLen_, m_hFile) : 0;
+    return (uRead == -1) ? 0 : uRead;
 }
 
-long CFileStream::Write (void* pvBuffer_, long lLen_)
+size_t CFileStream::Write (void* pvBuffer_, size_t uLen_)
 {
     if (m_nMode != modeWriting)
     {
@@ -176,7 +173,7 @@ long CFileStream::Write (void* pvBuffer_, long lLen_)
             m_nMode = modeWriting;
     }
 
-    return m_hFile ? fwrite(pvBuffer_, 1, lLen_, m_hFile) : 0;
+    return m_hFile ? fwrite(pvBuffer_, 1, uLen_, m_hFile) : 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -198,7 +195,7 @@ bool CZLibStream::Rewind ()
     return !IsOpen() || !gzrewind(m_hFile);
 }
 
-long CZLibStream::Read (void* pvBuffer_, long lLen_)
+size_t CZLibStream::Read (void* pvBuffer_, size_t uLen_)
 {
     if (m_nMode != modeReading)
     {
@@ -210,11 +207,11 @@ long CZLibStream::Read (void* pvBuffer_, long lLen_)
             m_nMode = modeReading;
     }
 
-    long lRead = m_hFile ? gzread(m_hFile, pvBuffer_, lLen_) : 0;
+    size_t lRead = m_hFile ? gzread(m_hFile, pvBuffer_, static_cast<unsigned>(uLen_)) : 0;
     return (lRead == -1) ? 0 : lRead;
 }
 
-long CZLibStream::Write (void* pvBuffer_, long lLen_)
+size_t CZLibStream::Write (void* pvBuffer_, size_t uLen_)
 {
     if (m_nMode != modeWriting)
     {
@@ -226,7 +223,7 @@ long CZLibStream::Write (void* pvBuffer_, long lLen_)
             m_nMode = modeWriting;
     }
 
-    return m_hFile ? gzwrite(m_hFile, pvBuffer_, lLen_) : 0;
+    return m_hFile ? gzwrite(m_hFile, pvBuffer_, static_cast<unsigned>(uLen_)) : 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -251,12 +248,12 @@ bool CZipStream::Rewind ()
     return unzOpenCurrentFile(m_hFile) == UNZ_OK;
 }
 
-long CZipStream::Read (void* pvBuffer_, long lLen_)
+size_t CZipStream::Read (void* pvBuffer_, size_t uLen_)
 {
-    return unzReadCurrentFile(m_hFile, pvBuffer_, lLen_);
+    return unzReadCurrentFile(m_hFile, pvBuffer_, static_cast<unsigned>(uLen_));
 }
 
-long CZipStream::Write (void* pvBuffer_, long lLen_)
+size_t CZipStream::Write (void* pvBuffer_, size_t uLen_)
 {
     // Currently there's no support for zip writing (yet)
     return 0;

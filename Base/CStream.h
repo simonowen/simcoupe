@@ -21,6 +21,8 @@
 #ifndef CSTREAM_H
 #define CSTREAM_H
 
+#include <stdio.h>	// for FILE structure
+
 class CStream
 {
     public:
@@ -36,8 +38,8 @@ class CStream
         virtual bool IsOpen () const = 0;
 
         virtual bool Rewind () = 0;
-        virtual long Read (void* pvBuffer_, long lLen_) = 0;
-        virtual long Write (void* pvBuffer_, long lLen_) = 0;
+        virtual size_t Read (void* pvBuffer_, size_t uLen_) = 0;
+        virtual size_t Write (void* pvBuffer_, size_t uLen_) = 0;
         
     protected:
         virtual void Close () = 0;
@@ -62,8 +64,8 @@ class CFileStream : public CStream
     public:
         bool IsOpen () const { return m_hFile != NULL; }
         bool Rewind ();
-        long Read (void* pvBuffer_, long lLen_);
-        long Write (void* pvBuffer_, long lLen_);
+        size_t Read (void* pvBuffer_, size_t uLen_);
+        size_t Write (void* pvBuffer_, size_t uLen_);
 
     protected:
         FILE* m_hFile;
@@ -87,8 +89,8 @@ class CZLibStream : public CStream
     public:
         bool IsOpen () const { return m_hFile != NULL; }
         bool Rewind ();
-        long Read (void* pvBuffer_, long lLen_);
-        long Write (void* pvBuffer_, long lLen_);
+        size_t Read (void* pvBuffer_, size_t uLen_);
+        size_t Write (void* pvBuffer_, size_t uLen_);
 
     protected:
         gzFile  m_hFile;
@@ -107,8 +109,8 @@ class CZipStream : public CStream
     public:
         bool IsOpen () const { return m_hFile != NULL; }
         bool Rewind ();
-        long Read (void* pvBuffer_, long lLen_);
-        long Write (void* pvBuffer_, long lLen_);
+        size_t Read (void* pvBuffer_, size_t uLen_);
+        size_t Write (void* pvBuffer_, size_t uLen_);
 
     protected:
         unzFile m_hFile;
