@@ -19,10 +19,8 @@
 #ifndef SIMCOUPE_H
 #define SIMCOUPE_H
 
-#ifndef _WINDOWS
 //#define NO_ZLIB           // Define this if Zlib is not available
-#define DUMMY_SAASOUND  // Define this if the SAASound library is not available
-#endif
+//#define DUMMY_SAASOUND    // Define this if the real SAASound library is not available
 
 
 // If it's not one of these we'll assume big endian (we have a run-time check to fall back on anyway)
