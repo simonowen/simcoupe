@@ -46,10 +46,6 @@
 
 extern HWND g_hwnd;
 
-typedef HRESULT (WINAPI *PFNDIRECTSOUNDCREATE) (LPGUID, LPDIRECTSOUND*, LPUNKNOWN);
-PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
-HINSTANCE hinstDSound;
-
 // Direct sound, primary buffer and secondary buffer interface pointers
 IDirectSound* g_pds = NULL;
 IDirectSoundBuffer* g_pdsbPrimary;
@@ -70,15 +66,8 @@ bool InitDirectSound (bool fFirstInit_)
     HRESULT hr;
     bool fRet = false;
 
-    if (fFirstInit_)
-    {
-        // Load DirectSound and locate the initialisation function
-        if (hinstDSound = LoadLibrary("DSOUND.DLL"))
-            pfnDirectSoundCreate = reinterpret_cast<PFNDIRECTSOUNDCREATE>(GetProcAddress(hinstDSound, "DirectSoundCreate"));
-    }
-
     // Initialise DirectX
-    if (!pfnDirectSoundCreate || FAILED(hr = pfnDirectSoundCreate(NULL, &g_pds, NULL)))
+    if (FAILED(hr = pfnDirectSoundCreate(NULL, &g_pds, NULL)))
         TRACE("!!! DirectSoundCreate failed (%#08lx)\n", hr);
 
     // We want priority control over the sound format while we're active
@@ -130,8 +119,6 @@ void ExitDirectSound (bool fReInit_)
     }
 
     if (g_pds) { g_pds->Release(); g_pds = NULL; }
-
-    if (!fReInit_ && hinstDSound) { FreeLibrary(hinstDSound); hinstDSound = NULL; }
 }
 
 
