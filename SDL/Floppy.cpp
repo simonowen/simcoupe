@@ -94,9 +94,9 @@ bool CFloppyStream::Open ()
     if (!IsOpen())
     {
         // Open the floppy in the appropriate mode, falling back to read-only if necessary
-        if (m_fReadOnly || (m_nFloppy = open(m_pszStream, /*O_NONBLOCK|*/O_EXCL|O_RDWR)) == -1)
+        if (m_fReadOnly || (m_nFloppy = open(m_pszPath, O_EXCL|O_RDWR)) == -1)
         {
-            m_nFloppy = open(m_pszStream, O_NONBLOCK|O_EXCL|O_RDONLY);
+            m_nFloppy = open(m_pszPath, O_EXCL|O_RDONLY);
             m_fReadOnly = true;
         }
 
