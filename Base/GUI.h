@@ -25,18 +25,22 @@
 #include "GUIIcons.h"
 #include "IO.h"
 
-
 const int GM_MOUSE_MESSAGE    = 0x40000000;
 const int GM_KEYBOARD_MESSAGE = 0x20000000;
 
-const int GM_BUTTONDOWN = GM_MOUSE_MESSAGE | 1;
-const int GM_BUTTONUP   = GM_MOUSE_MESSAGE | 2;
-const int GM_MOUSEMOVE  = GM_MOUSE_MESSAGE | 3;
-const int GM_MOUSEWHEEL = GM_MOUSE_MESSAGE | 4;
+const int GM_BUTTONUP     = GM_MOUSE_MESSAGE | 1;
+const int GM_BUTTONDOWN   = GM_MOUSE_MESSAGE | 2;
+const int GM_BUTTONDBLCLK = GM_MOUSE_MESSAGE | 3;
+const int GM_MOUSEMOVE    = GM_MOUSE_MESSAGE | 4;
+const int GM_MOUSEWHEEL   = GM_MOUSE_MESSAGE | 5;
 
-const int GM_CHAR       = GM_KEYBOARD_MESSAGE | 1;
+const int GM_CHAR         = GM_KEYBOARD_MESSAGE | 1;
 
-enum { GK_NULL, GK_LEFT, GK_RIGHT, GK_UP, GK_DOWN };        // Cursor key constants
+enum { GK_NULL=245, GK_LEFT, GK_RIGHT, GK_UP, GK_DOWN,
+       GK_HOME, GK_END, GK_PAGEUP, GK_PAGEDOWN, GK_MAX=GK_PAGEDOWN }; // Key constants
+
+const DWORD DOUBLE_CLICK_TIME = 400;    // Under 400ms between consecutive clicks counts as a double-click
+const int DOUBLE_CLICK_THRESHOLD = 10;  // Distance between clicks for double-clicks to be recognised
 
 
 enum
@@ -64,20 +68,20 @@ class GUI
 {
     public:
         static bool IsActive () { return s_pGUI != NULL; }
-        static bool IsModal () { return IsActive() && s_fModal; }
+        static bool IsModal ();
         static const RGBA* GetPalette ();
 
     public:
-        static void Start (CWindow* pGUI_, bool fModal_=true);
+        static bool Start (CWindow* pGUI_);
         static void Stop ();
 
         static void Draw (CScreen* pScreen_);
         static bool SendMessage (int nMessage_, int nParam1_=0, int nParam2_=0);
+        static void Delete (CWindow* pWindow_);
 
     protected:
-        static CWindow* s_pGUI;
+        static CWindow *s_pGUI, *s_pGarbage;
         static int s_nX, s_nY;
-        static int s_nUsage;
         static bool s_fModal;
 
         friend class CWindow;
@@ -86,7 +90,8 @@ class GUI
 
 ////////////////////////////////////////////////////////////////////////////////
 
-enum { ctUnknown, ctText, ctButton, ctCheckBox, ctEdit, ctRadio, ctMenu, ctImage, ctDialog };
+// Control types, as returned by GetType() from any base CWindow pointer
+enum { ctUnknown, ctText, ctButton, ctCheckBox, ctEdit, ctRadio, ctMenu, ctImage, ctFrame, ctListView, ctDialog, ctMessageBox };
 
 
 class CWindow
@@ -109,6 +114,7 @@ class CWindow
         CWindow* GetNext (bool fWrap_=false);
         CWindow* GetPrev (bool fWrap_=false);
 
+        void SetParent (CWindow* pParent_);
         void Destroy ();
         void Enable (bool fEnable_=true) { m_fEnabled = fEnable_; }
         void Move (int nX_, int nY_);
@@ -122,12 +128,14 @@ class CWindow
 
         virtual void Activate ();
         virtual bool HitTest (int nX_, int nY_);
-        virtual bool OnMessage (int nMessage_, int nParam1_=0, int nParam2_=0);
-        virtual void OnCommand (CWindow* pWindow_) { }
         virtual void Draw (CScreen* pScreen_) = 0;
 
+        virtual void NotifyParent (int nParam_=0);
+        virtual void OnNotify (CWindow* pWindow_, int nParam_) { }
+        virtual bool OnMessage (int nMessage_, int nParam1_=0, int nParam2_=0);
+
     protected:
-        void AddChild (CWindow* pChild_);
+        void RemoveChild ();
         void MoveRecurse (CWindow* pWindow_, int ndX_, int ndY_);
 
     protected:
@@ -293,10 +301,11 @@ class CComboBox : public CWindow
     public:
         int GetSelected () const { return m_nSelected; }
         void Select (int nSelected_);
+        void SetText (const char* pcszText_);
 
         void Draw (CScreen* pScreen_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
-        void OnCommand (CWindow* pWindow_);
+        void OnNotify (CWindow* pWindow_, int nParam_);
 
     protected:
         int m_nItems, m_nSelected;
@@ -317,7 +326,7 @@ class CScrollBar : public CWindow
 
         void Draw (CScreen* pScreen_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
-        void OnCommand (CWindow* pWindow_);
+        void OnNotify (CWindow* pWindow_, int nParam_);
 
     protected:
         int m_nPos, m_nMaxPos, m_nStep;
@@ -330,29 +339,44 @@ class CScrollBar : public CWindow
 class CIconControl : public CWindow
 {
     public:
-        CIconControl (CWindow* pParent_, int nX_, int nY_, const GUI_ICON& rsIcon_, bool fSmall_=false);
+        CIconControl (CWindow* pParent_, int nX_, int nY_, const GUI_ICON* pIcon_, bool fSmall_=false);
 
     public:
         bool IsTabStop () { return false; }
         void Draw (CScreen* pScreen_);
 
     protected:
-        GUI_ICON m_sIcon;
+        const GUI_ICON* m_pIcon;
         bool m_fSmall;
 };
 
 
-class CDialog : public CWindow
+class CFrameControl : public CWindow
 {
     public:
-        CDialog (int nWidth_=0, int nHeight_=0, const char* pcszCaption_="");
+        CFrameControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_=WHITE, BYTE bFill_=0);
 
     public:
-        bool HitTest (int nX_, int nY_);
+        bool IsTabStop () { return false; }
         void Draw (CScreen* pScreen_);
-        bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
+
+    public:
+        BYTE m_bColour, m_bFill;
 };
 
+
+class CListViewItem
+{
+    public:
+        CListViewItem (const GUI_ICON* pIcon_, const char* pcszLabel_, CListViewItem* pNext_=NULL) :
+            m_pIcon(pIcon_), m_pNext(pNext_) { m_pszLabel = strdup(pcszLabel_); }
+        virtual ~CListViewItem () { free(m_pszLabel); }
+
+    public:
+        const GUI_ICON* m_pIcon;
+        char* m_pszLabel;
+        CListViewItem* m_pNext;
+};
 
 class CListView : public CWindow
 {
@@ -362,146 +386,89 @@ class CListView : public CWindow
     public:
         int GetSelected () const { return m_nSelected; }
         void Select (int nItem_);
-        void SetItems (int nItems_=0);
 
-        virtual void DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const GUI_ICON* pIcon_=NULL, const char* pcsz_=NULL);
+        const CListViewItem* GetItem (int nItem_=-1) const;
+        int FindItem (const char* pcszLabel_, int nStart_=0);
+        void SetItems (CListViewItem* pItems_);
+
         void Draw (CScreen* pScreen_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
+
+        virtual void DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const CListViewItem* pItem_);
 
     protected:
         int m_nItems, m_nSelected, m_nHoverItem;
         int m_nAcross, m_nDown;
 
+        CListViewItem* m_pItems;
         CScrollBar* m_pScrollBar;
+};
+
+
+class CDialog : public CWindow
+{
+    public:
+        CDialog (CWindow* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_, bool fModal_=true);
+
+    public:
+        bool IsModal () const { return m_fModal; }
+        void SetColours (int nTitle_, int nBody_) { m_nTitleColour = nTitle_; m_nBodyColour = nBody_; }
+
+        bool HitTest (int nX_, int nY_);
+        void Draw (CScreen* pScreen_);
+        bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
+
+    protected:
+        bool m_fModal, m_fDragging;
+        int m_nDragX, m_nDragY;
+        int m_nTitleColour, m_nBodyColour;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 
-enum { ftDrive, ftDir, ftFile };
+enum { mbOk, mbOkCancel, mbYesNo, mbYesNoCancel, mbRetryCancel, mbInformation = 0x10, mbWarning = 0x20, mbError = 0x30 };
 
-struct FileEntry
+class CMessageBox : public CDialog
 {
-    char* psz;
-    int nType;
+    public:
+        CMessageBox (CWindow* pParent_, const char* pcszBody_, const char* pcszCaption_, int nFlags_);
+        ~CMessageBox () { if (m_pszBody) free(m_pszBody); }
 
-    FileEntry* pNext;
+    public:
+        void OnNotify (CWindow* pWindow_, int nParam_) { Destroy(); }
+        void Draw (CScreen* pScreen_);
+
+    protected:
+        int m_nLines;
+        char* m_pszBody;
+        CIconControl* m_pIcon;
 };
 
 class CFileView : public CListView
 {
     public:
         CFileView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
+        ~CFileView ();
 
     public:
-        void DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const GUI_ICON* pIcon_=NULL, const char* pcsz_=NULL);
+        const char* GetFullPath () const;
+        const char* GetPath () const { return m_pszPath; }
+        const char* GetFilter () const { return m_pszFilter; }
+        void SetPath (const char* pcszPath_);
+        void SetFilter (const char* pcszFilter_);
+        void ShowHidden (bool fShow_);
+
+        void Refresh ();
+        void NotifyParent (int nParam_);
+        bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
+        void DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const CListViewItem* pItem_);
+
+        static const GUI_ICON* GetFileIcon (const char* pcszFile_);
 
     protected:
-        FileEntry* m_pFiles;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-
-class CTestDialog : public CDialog
-{
-    public:
-        CTestDialog() : CDialog(205, 198, "GUI Test")
-        {
-            m_apControls[0] = new CEditControl(this, 8, 8, 190, "Edit control");
-
-            m_apControls[1] = new CCheckBox(this, 8, 38, "Checked check-box");
-            m_apControls[2] = new CCheckBox(this, 8, 54, "Unchecked check-box");
-            reinterpret_cast<CCheckBox*>(m_apControls[1])->SetChecked();
-
-            m_apControls[3] = new CRadioButton(this, 8, 78, "First option");
-            m_apControls[4] = new CRadioButton(this, 8, 94, "Second option");
-            m_apControls[5] = new CRadioButton(this, 8, 110, "Third option");
-            reinterpret_cast<CRadioButton*>(m_apControls[3])->Select();
-
-            m_apControls[6] = new CComboBox(this, 105,78, "Coch|Gwyn|Glas|Melyn", 70);
-            m_apControls[7] = new CTextButton(this, 105, 103, "Button", 50);
-            m_apControls[8] = new CScrollBar(this, 183,38,110,400);
-
-            m_apControls[9] = new CIconControl(this, 8, 133, sDisplayIcon);
-
-            m_apControls[10] = new CTextControl(this, 40, 133, "<- Icon control");
-            m_apControls[11] = new CTextControl(this, 45, 149, "Coloured text control", GREEN_7);
-
-            m_pEnable = new CCheckBox(this, 8, m_nHeight-20, "Controls enabled");
-            reinterpret_cast<CCheckBox*>(m_pEnable)->SetChecked();
-
-            m_pClose = new CTextButton(this, m_nWidth-55, m_nHeight-22, "Close", 50);
-
-            m_pEnable->Activate();
-        }
-
-    public:
-        void OnCommand (CWindow* pWindow_)
-        {
-            if (pWindow_ == m_pClose)
-                GUI::Stop();
-
-            else if (pWindow_ == m_pEnable)
-            {
-                bool fIsChecked = reinterpret_cast<CCheckBox*>(m_pEnable)->IsChecked();
-
-                for (int i = 0 ; i < 12 ; i++)
-                    m_apControls[i]->Enable(fIsChecked);
-            }
-        }
-
-    public:
-        CWindow *m_pEnable, *m_pClose, *m_apControls[12];
+        char *m_pszPath, *m_pszFilter;
+        bool m_fShowHidden;
 };
 
 
-class CAboutDialog : public CDialog
-{
-    public:
-        CAboutDialog () : CDialog(260, 184,  "About SimCoupe")
-        {
-            new CIconControl(this, 6, 6, sSamIcon);
-
-            new CTextControl(this, 51, 8,   "SimCoupe - a SAM Coupe emulator", YELLOW_8);
-            new CTextControl(this, 51, 22,  "Version 0.90 WIP (5)", YELLOW_8);
-
-            new CTextControl(this, 16, 44,  "Win32/SDL versions and general overhaul:");
-            new CTextControl(this, 26, 57,  "Simon Owen (simon.owen@simcoupe.org)", GREY_7);
-
-            new CTextControl(this, 16, 76,  "Based on original DOS/X SimCoupe versions by:");
-            new CTextControl(this, 26, 89,  "Allan Skillman (allan.skillman@arm.com)", GREY_7);
-
-            new CTextControl(this, 16, 108,  "Additional technical enhancements:");
-            new CTextControl(this, 26, 121,  "Dave Laundon (dave.laundon@simcoupe.org)", GREY_7);
-
-            new CTextControl(this, 16, 142, "See SimCoupe.txt for additional information.", YELLOW_8);
-
-            m_pCloseButton = new CTextButton(this, 105, 162, "Close", 50);
-        }
-
-    public:
-        void OnCommand (CWindow* pWindow_) { if (pWindow_ == m_pCloseButton) GUI::Stop(); }
-
-    protected:
-        CWindow* m_pCloseButton;
-};
-
-
-class CFileDialog : public CDialog
-{
-    public:
-        CFileDialog() : CDialog(485, 300, "Open Disk Image")
-        {
-            (new CFileView(this, 0, 0, m_nWidth, m_nHeight-20))->Activate();
-            new CEditControl(this, 0, m_nHeight-14, m_nWidth-110, "C:\\Sam Coupe\\Disks\\");
-            new CTextButton(this, m_nWidth - 99, m_nHeight-17, "OK", 46);
-            m_pCancel = new CTextButton(this, m_nWidth - 50, m_nHeight-17, "Cancel", 46);
-        }
-
-    public:
-        void CFileDialog::OnCommand (CWindow* pWindow_) { if (pWindow_ == m_pCancel) GUI::Stop(); }
-
-    protected:
-        CTextButton* m_pCancel;
-};
-
-#endif
+#endif // GUI_H
