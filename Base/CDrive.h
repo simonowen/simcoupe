@@ -36,37 +36,37 @@ class CDrive : public CDiskDevice
 {
     public:
         CDrive (CDisk* pDisk_=NULL);
-        ~CDrive () { if (IsInserted()) Eject(); }
+        ~CDrive () { Eject(); }
 
     public:
-        bool IsInserted () const { return !!m_pDisk; }
-        bool IsWriteable () const { return m_pDisk && !m_pDisk->IsReadOnly(); }
-        bool IsModified () const { return m_pDisk && m_pDisk->IsModified(); }
-        bool IsLightOn () const { return IsMotorOn() && m_pDisk; }
-        bool IsActive () const { return IsLightOn () && m_nMotorDelay > (FLOPPY_MOTOR_ACTIVE_TIME - GetOption(turboload)); }
-
-        const char* GetPath () const { return m_pDisk ? m_pDisk->GetPath() : ""; }
-        const char* GetFile () const { return m_pDisk ? m_pDisk->GetFile() : ""; }
-
-        void SetModified (bool fModified_=true) { if (m_pDisk) m_pDisk->SetModified(fModified_); }
-        bool Save () { return m_pDisk ? m_pDisk->Save() : true; }
-
-        void Reset ();
-        bool Insert (const char* pcszSource_, bool fReadOnly_/*=false*/);
-        void Eject ();
-        bool Flush ();
-
-        // Disk I/O calls used to drive us
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
         void FrameEnd ();
 
-        // Functions to deal with the contents of the disk
+    public:
         BYTE ReadAddress (UINT uSide_, UINT uTrack_, IDFIELD* pIdField_);
         UINT ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
         BYTE VerifyTrack (UINT uSide_, UINT uTrack_);
         BYTE WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
 
+    public:
+        bool Insert (const char* pcszSource_, bool fReadOnly_=false);
+        void Eject ();
+        bool Save () { return (m_pDisk && m_pDisk->IsModified()) ? m_pDisk->Save() : true; }
+        void Reset ();
+
+    public:
+        const char* GetPath () const { return m_pDisk ? m_pDisk->GetPath() : ""; }
+        const char* GetFile () const { return m_pDisk ? m_pDisk->GetFile() : ""; }
+
+        bool IsInserted () const { return !!m_pDisk; }
+        bool IsModified () const { return m_pDisk && m_pDisk->IsModified(); }
+        bool IsLightOn () const { return IsMotorOn() && m_pDisk; }
+        bool IsActive () const { return IsLightOn () && m_nMotorDelay > (FLOPPY_MOTOR_ACTIVE_TIME - GetOption(turboload)); }
+
+        void SetModified (bool fModified_=true) { if (m_pDisk) m_pDisk->SetModified(fModified_); }
+
+    public:
         static WORD CrcBlock (const void* pcv_, size_t uLen_, WORD wCRC_=0xffff);
 
     protected:
