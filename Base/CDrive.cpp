@@ -39,27 +39,13 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Time motor stays on after no further activity:  10 revolutions at 300rpm = 2 seconds
-const int FLOPPY_MOTOR_ACTIVE_TIME = (10 / (300 / 60 )) * EMULATED_FRAMES_PER_SECOND;
-
-
-void CDrive::ResetAll ()
+CDrive::CDrive ()
+    : m_pDisk(NULL), m_nHeadPos(0), m_pbBuffer(NULL), m_uBuffer(0), m_bDataStatus(0), m_nMotorDelay(0)
 {
-    // No disk inserted
-    m_pDisk = NULL;
-
     // Track 0, sector 1 and head over track 0
     memset(&m_sRegs, 0, sizeof m_sRegs);
     m_sRegs.bSector = 1;
     m_sRegs.bData = 0xff;
-    m_nHeadPos = 0;
-
-    // No data available for reading
-    m_pbBuffer = NULL;
-    m_uBuffer = 0;
-
-    // Motor off initially, so no delay yet
-    m_nMotorDelay = 0;
 }
 
 
@@ -80,7 +66,7 @@ bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
     }
 
     // Delete any existing disk
-     if (pCurrent)
+    if (pCurrent)
         delete pCurrent;
 
     return true;
