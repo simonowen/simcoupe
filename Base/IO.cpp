@@ -94,7 +94,8 @@ BYTE keyports[9];       // 8 rows of keys (+ 1 row for unscanned keys)
 BYTE keybuffer[9];      // working buffer for key changed, activated mid-frame
 bool fInputDirty;       // true if the input has been modified since the last frame
 
-bool fASICStartup = true;   // On the first start the ASIC doesn't respond immediately
+bool fASICStartup;      // If set, the ASIC will be unresponsive shortly after first power-on
+bool g_fAutoBoot;       // Auto-boot the disk in drive 1 when we're at the startup screen
 
 static inline void out_vmpr(BYTE bVal_);
 static inline void out_hmpr(BYTE bVal_);
@@ -131,6 +132,9 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     // Also, if this is a power-on initialisation, set up the clut, etc.
     if (fFirstInit_)
     {
+        // Set up the unresponsive ASIC unresponsive option for initial startup
+        fASICStartup = GetOption(asicdelay);
+
         // Line interrupts aren't cleared by a reset
         line_int = 0xff;
 
@@ -459,13 +463,8 @@ BYTE IO::In (WORD wPort_)
     BYTE bPortLow = (wPortRead = wPort_) & 0xff;
 
     // The ASIC doesn't respond to I/O immediately after power-on
-    if (fASICStartup)
-    {
-        fASICStartup = g_dwCycleCounter < ASIC_STARTUP_DELAY;
-        if (bPortLow >= BASE_ASIC_PORT)
-            return 0x00;
-    }
-
+    if (fASICStartup && (fASICStartup = g_dwCycleCounter < ASIC_STARTUP_DELAY) && bPortLow >= BASE_ASIC_PORT)
+        return 0x00;
 
     switch (bPortLow)
     {
@@ -488,25 +487,7 @@ BYTE IO::In (WORD wPort_)
                 if (!(highbyte & 0x20)) res &= keyports[5] & 0x1f;
                 if (!(highbyte & 0x10)) res &= keyports[4] & 0x1f;
                 if (!(highbyte & 0x08)) res &= keyports[3] & 0x1f;
-                if (!(highbyte & 0x04))
-                {
-                    res &= keyports[2] & 0x1f;
-
-                    // Once the keyboard is being read we must have finished booting, so turn off the fast startup
-                    if (g_nFastBooting)
-                        g_nFastBooting = 0;
-
-                    // With auto-booting enabled we'll tap F9 a few times
-                    static UINT uAutoBoot = 10 * GetOption(autoboot);
-                    if (uAutoBoot && pDrive1->IsInserted())
-                    {
-                        if (--uAutoBoot & 1)
-                            PressSamKey(SK_F9);
-                        else
-                            ReleaseSamKey(SK_F9);
-                    }
-                }
-
+                if (!(highbyte & 0x04)) res &= keyports[2] & 0x1f;
                 if (!(highbyte & 0x02)) res &= keyports[1] & 0x1f;
                 if (!(highbyte & 0x01)) res &= keyports[0] & 0x1f;
             }
@@ -579,10 +560,6 @@ BYTE IO::In (WORD wPort_)
             return 0x00;
         }
 
-        // External memory
-        case HEPR_PORT:     return hepr;
-        case LEPR_PORT:     return lepr;
-
         // Parallel ports
         case PRINTL1_STAT:
         case PRINTL1_DATA:
@@ -653,12 +630,8 @@ void IO::Out (WORD wPort_, BYTE bVal_)
     BYTE bPortLow = (wPortWrite = wPort_) & 0xff;
 
     // The ASIC doesn't respond to I/O immediately after power-on
-    if (fASICStartup)
-    {
-        fASICStartup = g_dwCycleCounter < ASIC_STARTUP_DELAY;
-        if (bPortLow >= BASE_ASIC_PORT)
-            return;
-    }
+    if (fASICStartup && (fASICStartup = g_dwCycleCounter < ASIC_STARTUP_DELAY) && bPortLow >= BASE_ASIC_PORT)
+        return;
 
     switch (bPortLow)
     {
@@ -917,6 +890,25 @@ void IO::UpdateInput()
     if (GetOption(turboload) && (pDrive1 && pDrive1->IsActive()) || (pDrive2 && pDrive2->IsActive()))
         Input::Purge(false);
 
+    // Non-zero to tap the F9 key
+    static int nAutoBoot = 0;
+
+    // If an auto-boot is required, make sure we're at the stripey startup screen
+    if (g_fAutoBoot && IsAtStartupScreen())
+    {
+        g_fAutoBoot = false;
+        nAutoBoot = 8 * pDrive1->IsInserted();
+    }
+
+    // If actively auto-booting, press and release F9 to trigger the boot
+    if (nAutoBoot)
+    {
+        if (--nAutoBoot & 1)
+            PressSamKey(SK_F9);
+        else
+            ReleaseSamKey(SK_F9);
+    }
+
     if (fInputDirty)
     {
         // Copy the working buffer to the live port buffer
@@ -966,4 +958,28 @@ const RGBA* IO::GetPalette (bool fDimmed_/*=false*/)
 
     // Return the freshly prepared palette
     return asPalette;
+}
+
+// Check if we're at the stripey SAM startup screen
+bool IO::IsAtStartupScreen ()
+{
+    // Use physical locations so we're not sensitive to the current paging state
+    BYTE* pbPalette = &apbPageReadPtrs[0][0x55d9 - 0x4000];
+    BYTE* pb = &apbPageReadPtrs[0][0x5600 - 0x4000];
+
+    // There are 16 stripes to check
+    for (int i = 0 ; i < 16 ; i++)
+    {
+        // Check the line interrupt position, CLUT value, and both colours
+        if (*pb++ != (i*11) || *pb++ != 0x00 || *pb++ != *pbPalette || *pb++ != *pbPalette++)
+            return false;
+    }
+
+    return true;
+}
+
+void IO::CheckAutoboot ()
+{
+    // Trigger autoboot if we're at the startup screen right now
+    g_fAutoBoot |= GetOption(autoboot) && IO::IsAtStartupScreen();
 }
