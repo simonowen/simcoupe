@@ -27,16 +27,16 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const int NORMAL_DISK_SIDES     = 2;    // Normally 2 sides per disk
-const int NORMAL_DISK_TRACKS    = 80;   // Normally 80 tracks per side
-const int NORMAL_DISK_SECTORS   = 10;   // Normally 10 sectors per track
-const int NORMAL_SECTOR_SIZE    = 512;  // Normally 512 bytes per sector
+const UINT NORMAL_DISK_SIDES     = 2;    // Normally 2 sides per disk
+const UINT NORMAL_DISK_TRACKS    = 80;   // Normally 80 tracks per side
+const UINT NORMAL_DISK_SECTORS   = 10;   // Normally 10 sectors per track
+const UINT NORMAL_SECTOR_SIZE    = 512;  // Normally 512 bytes per sector
 
-const int NORMAL_DIRECTORY_TRACKS = 4;  // Normally 4 tracks in a SAMDOS directory
+const UINT NORMAL_DIRECTORY_TRACKS = 4;  // Normally 4 tracks in a SAMDOS directory
 
-const int MSDOS_DISK_SECTORS = 9;   // Double-density MS-DOS disks are 9 sectors per track
+const UINT MSDOS_DISK_SECTORS = 9;   // Double-density MS-DOS disks are 9 sectors per track
 
-const int SDF_TRACKSIZE = NORMAL_SECTOR_SIZE * 12;      // Large enough for any possible SAM disk format
+const UINT SDF_TRACKSIZE = NORMAL_SECTOR_SIZE * 12;      // Large enough for any possible SAM disk format
 
 const char SDF_SIGNATURE[] = "SDF"; // 4 bytes, including the terminating NULL
 
@@ -44,9 +44,9 @@ const char SDF_SIGNATURE[] = "SDF"; // 4 bytes, including the terminating NULL
 // The various disk format image sizes
 #define DSK_IMAGE_SIZE          (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE)
 #define MSDOS_IMAGE_SIZE        (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * MSDOS_DISK_SECTORS * NORMAL_SECTOR_SIZE)
-#define OLD_SDF_IMAGE_SIZE      (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * SDF_TRACKSIZE)
+#define SDF_IMAGE_SIZE          (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * SDF_TRACKSIZE)
 
-const int DISK_FILE_HEADER_SIZE = 9;    // From SAM Technical Manual  (bType, wSize, wOffset, wUnused, bPages, bStartPage)
+const UINT DISK_FILE_HEADER_SIZE = 9;    // From SAM Technical Manual  (bType, wSize, wOffset, wUnused, bPages, bStartPage)
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -65,31 +65,43 @@ typedef struct
 }
 SAD_HEADER;
 
+////////////////////////////////////////////////////////////////////////////////
+
+#define FDI_SIGNATURE           "Formatted Disk Image file\r\n"
+
+typedef struct
+{
+    char achSignature[27];      // FDI_SIGNATURE from above
+    char achCreator[30];        // Who/what created the image, space padded
+    char achCRLF[2];            // <cr><lf>
+    char achComment[80];        // Comment, <eof> (0x1a) padded
+    char chEOF;                 // <eof>
+
+    BYTE abVersion[2];          // Image version number
+
+    BYTE abLastTrack[2];        // Big endian word containing last track number
+    BYTE bLastHead;             // Last head number
+
+    BYTE bDiskType;             // Disk type
+    BYTE bRotateSpeed;          // Base rotation speed in RPM
+    BYTE bFlags;
+
+    DWORD dwReserved;           // Reserved
+}
+FDI_HEADER;
+
+typedef struct
+{
+    BYTE bType;                 // Track type
+    BYTE bSize;                 // Track data size / 256
+}
+FDI_TRACK_DESC;
 
 ////////////////////////////////////////////////////////////////////////////////
 
 
 // SDF chunk types
 enum { SDF_CT_END, SDF_CT_HEADER, SDF_CT_DATA, SDF_CT_TEXT };
-
-
-typedef struct
-{
-    BYTE    bType;
-    DWORD   dwLength;
-
-    // dwLength bytes follow...
-}
-SDF_CHUNK;
-
-
-// SDF file header
-typedef struct
-{
-    BYTE    bTracks;            // Tracks per side (usually 80)
-    BYTE    bSides;             // Sides (usually 2)
-}
-SDF_HEADER;
 
 
 // Track header on each track in the SDF disk image
@@ -118,7 +130,7 @@ SDF_SECTOR_HEADER;
 class CDisk
 {
     public:
-        enum { dtUnknown, dtFloppy, dtSDF, dtSAD, dtDSK, dtSBT };
+        enum { dtUnknown, dtFloppy, dtSDF, dtSAD, dtDSK, dtSBT, dtFDI };
 
     // Constructor and virtual destructor
     public:
@@ -126,33 +138,33 @@ class CDisk
         virtual ~CDisk ();
 
     public:
-        static int GetType (const char* pcszDisk_);
+        static int GetType (CStream* pStream_);
         static CDisk* Open (const char* pcszDisk_, bool fReadOnly_=false);
 
     // Public query functions
     public:
         const char* GetName () { return m_pStream->GetName(); }
-        int GetSpinPos (bool fAdvance_=false);
+        UINT GetSpinPos (bool fAdvance_=false);
         bool IsReadOnly () const { return m_pStream->IsReadOnly(); }
         bool IsModified () const { return m_fModified; }
 
     // Protected overrides
     public:
-        virtual int FindInit (int nSide_, int nTrack_);
+        virtual UINT FindInit (UINT uSide_, UINT uTrack_);
         virtual bool FindNext (IDFIELD* pIdField_=NULL, BYTE* pbStatus_=NULL);
-        virtual bool FindSector (int nSide_, int nTrack_, int nSector_, IDFIELD* pID_=NULL);
+        virtual bool FindSector (UINT uSide_, UINT uTrack_, UINT uSector_, IDFIELD* pID_=NULL);
 
         virtual BYTE ReadData (BYTE* pbData_, UINT* puSize_) = 0;
         virtual BYTE WriteData (BYTE* pbData_, UINT* puSize_) = 0;
         virtual bool Save () = 0;
-        virtual BYTE FormatTrack (int nSide_, int nTrack_, IDFIELD* paID_, int nSectors_) = 0;
+        virtual BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_) = 0;
 
     protected:
-        int     m_nSides, m_nTracks, m_nSectors, m_nSectorSize;
-        int     m_nSide, m_nTrack, m_nSector;
-        bool    m_fModified;
+        UINT m_uSides, m_uTracks, m_uSectors, m_uSectorSize;
+        UINT m_uSide, m_uTrack, m_uSector;
+        bool     m_fModified;
 
-        int     m_nSpinPos;
+        UINT m_uSpinPos;
         CStream*m_pStream;
         BYTE*   m_pbData;
 
@@ -175,15 +187,15 @@ class CDSKDisk : public CDisk
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        BYTE FormatTrack (int nSide_, int nTrack_, IDFIELD* paID_, int nSectors_);
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
 };
 
 
 class CSADDisk : public CDisk
 {
     public:
-        CSADDisk (CStream* pStream_, int nSides_=NORMAL_DISK_SIDES, int nTracks_=NORMAL_DISK_TRACKS,
-                    int nSectors_=NORMAL_DISK_SECTORS, int nSectorSize_=NORMAL_SECTOR_SIZE);
+        CSADDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=NORMAL_DISK_TRACKS,
+                    UINT uSectors_=NORMAL_DISK_SECTORS, UINT uSectorSize_=NORMAL_SECTOR_SIZE);
         virtual ~CSADDisk () { if (IsModified()) Save(); }
 
     public:
@@ -194,30 +206,54 @@ class CSADDisk : public CDisk
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        BYTE FormatTrack (int nSide_, int nTrack_, IDFIELD* paID_, int nSectors_);
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
 };
 
 
 class CSDFDisk : public CDisk
 {
     public:
-        CSDFDisk (CStream* pStream_, int nSides_=NORMAL_DISK_SIDES, int nTracks_=MAX_DISK_TRACKS);
+        CSDFDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=MAX_DISK_TRACKS);
         virtual ~CSDFDisk () { if (IsModified()) Save(); }
 
     public:
         static bool IsRecognised (CStream* pStream_);
 
     public:
-        int FindInit (int nSide_, int nTrack_);
+        UINT FindInit (UINT uSide_, UINT uTrack_);
         bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        BYTE FormatTrack (int nSide_, int nTrack_, IDFIELD* paID_, int nSectors_);
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
 
     protected:
         SDF_TRACK_HEADER* m_pTrack;     // Last track 
         SDF_SECTOR_HEADER* m_pFind;     // Last sector found with FindNext()
+};
+
+
+class CFDIDisk : public CDisk
+{
+    public:
+        CFDIDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=NORMAL_DISK_TRACKS);
+        virtual ~CFDIDisk ();
+
+    public:
+        static bool IsRecognised (CStream* pStream_);
+
+    public:
+        UINT FindInit (UINT uSide_, UINT uTrack_);
+        bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
+        BYTE ReadData (BYTE* pbData_, UINT* puSize_);
+        BYTE WriteData (BYTE* pbData_, UINT* puSize_);
+        bool Save ();
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
+
+    protected:
+        FDI_HEADER m_fdih;
+        FDI_TRACK_DESC* m_pTracks;
+        int* m_pnOffsets;
 };
 
 
@@ -234,7 +270,7 @@ class CFloppyDisk : public CDisk
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        BYTE FormatTrack (int nSide_, int nTrack_, IDFIELD* paID_, int nSectors_);
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
 
     protected:
         CFloppyStream* m_pFloppy;
@@ -254,10 +290,10 @@ class CFileDisk : public CDisk
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        BYTE FormatTrack (int nSide_, int nTrack_, IDFIELD* paID_, int nSectors_);
+        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_);
 
     protected:
-        long    m_lSize;
+        UINT  m_uSize;
 };
 
 #endif  // CDISK_H
