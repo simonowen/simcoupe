@@ -102,6 +102,20 @@ bool UI::DoAction (int nAction_, bool fPressed_)
 #endif
                 return false;
 
+              case actToggleFullscreen:
+#ifdef ALLEGRO_DOS
+                GUI::Start(new CMessageBox(NULL, "Toggle fullscreen not available under DOS", "Sorry!", mbInformation));
+                break;
+#endif
+                return false;
+
+            case actToggle5_4:
+#ifdef ALLEGRO_DOS
+                GUI::Start(new CMessageBox(NULL, "5:4 mode not yet available", "Sorry!", mbInformation));
+                break;
+#endif
+                return false;
+
             case actExitApplication:
                 Quit();
                 break;
@@ -118,30 +132,9 @@ bool UI::DoAction (int nAction_, bool fPressed_)
         }
     }
 
-    // Key released
+    // Key release not processed
     else
-    {
-        switch (nAction_)
-        {
-              case actToggleFullscreen:
-#ifdef ALLEGRO_DOS
-                GUI::Start(new CMessageBox(NULL, "Toggle fullscreen not available under DOS", "Sorry!", mbInformation));
-                break;
-#endif
-                return false;
-
-            case actToggle5_4:
-#ifdef ALLEGRO_DOS
-                GUI::Start(new CMessageBox(NULL, "5:4 mode not yet available", "Sorry!", mbInformation));
-                break;
-#endif
-                return false;
-
-            // Not processed
-            default:
-                return false;
-        }
-    }
+    	return false;
 
     // Action processed
     return true;
