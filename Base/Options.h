@@ -21,25 +21,23 @@
 #ifndef OPTION_H
 #define OPTION_H
 
-
 typedef struct
 {
-    char logfile[MAX_PATH]; // log filename
-
-    bool    fastreset;              // Fast SAM system reset?
+    int     cfgversion;             // Config compatability number (set defaults if mismatched)
 
     int     sync;                   // Syncronise the emulator to 50Hz
     int     frameskip;              // 0 for auto, otherwise 'mod frameskip' used to decide which to draw
     int     scale;                  // Window scaling mode
     bool    ratio5_4;               // Use 5:4 screen ratio?
     bool    scanlines;              // Show scanlines?
-    bool    fullscreen;             // Start in full-screen mode?
+    int     fullscreen;             // Start in full-screen mode?
     int     depth;                  // Screen depth for full-screen
     int     borders;                // How much of the borders to show
     bool    stretchtofit;           // Stretch screen image to fit target area?
     int     surface;                // Surface type to use
 
     char    rom[MAX_PATH];          // SAM ROM image path
+    bool    fastreset;              // Fast SAM system reset?
     int     mainmem;                // 256 or 512 for amount of main memory
     int     externalmem;            // Number of MB of external memory
 
@@ -49,6 +47,7 @@ typedef struct
     char    disk2[MAX_PATH];        // Floppy disk image in drive 2
     char    atomdisk[MAX_PATH];     // Hard disk image for Atom
     char    sdidedisk[MAX_PATH];    // Hard disk image for SD IDE interface
+    char    yatbusdisk[MAX_PATH];   // Hard disk image for YAMOD.ATBUS interface
     bool    autoboot;               // Autoboot drive 1 on first startup?
     int     turboload;              // 0 for disabled, or sensitivity in number of frames
 
@@ -94,9 +93,10 @@ typedef struct
     int     profile;                // Show profile stats?
     bool    status;                 // Show status line?
 
-    char    fnkeys[256];            // Function key bindings
-
     bool    pauseinactive;          // Pause when not the active app?
+
+    char	logfile[MAX_PATH];      // log filename
+    char    fnkeys[256];            // Function key bindings
 }
 OPTIONS;
 
@@ -104,8 +104,11 @@ OPTIONS;
 class Options
 {
     public:
-        static bool Options::Load (int argc_, char* argv[]);
-        static bool Options::Save ();
+        static void SetDefaults (bool fForce_=true);
+        static void* GetDefault (const char* pcszName_);
+
+        static bool Load (int argc_, char* argv[]);
+        static bool Save ();
 
         static OPTIONS s_Options;
 };
@@ -114,10 +117,15 @@ class Options
 // Helper macros for getting/setting options
 #define GetOption(field)        (const_cast<const OPTIONS*>(&Options::s_Options)->field)
 #define SetOption(field,value)  SetOption_(Options::s_Options.field, value)
+#define SetDefault(field,value) SetDefault_(#field, value, Options::s_Options.field)
 
 // inline functions so we can take advantage of function polymorphism
 inline bool SetOption_(bool& rfOption_, bool fValue_)   { return rfOption_ = fValue_; }
 inline int SetOption_(int& rnOption_, int nValue_)      { return rnOption_ = nValue_; }
 inline const char* SetOption_(char* pszOption_, const char* pszValue_)  { return strcpy(pszOption_, pszValue_); }
+
+inline void SetDefault_(const char* pcszOption_, bool fValue_, bool&) { *((bool*)Options::GetDefault(pcszOption_)) = fValue_; }
+inline void SetDefault_(const char* pcszOption_, int nValue_, int&) { *((int*)Options::GetDefault(pcszOption_)) = nValue_; }
+inline void SetDefault_(const char* pcszOption_, char* pszValue_, char*&) { strcpy((char*)Options::GetDefault(pcszOption_), pszValue_); }
 
 #endif  // OPTION_H
