@@ -2,7 +2,7 @@
 //
 // Display.cpp: SDL display rendering
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -50,7 +50,8 @@ inline DWORD MakeDWORD (BYTE b1_, BYTE b2_, BYTE b3_, BYTE b4_)
     { return (b4_ << 24) | (b3_ << 16) | (b2_ << 8) | b1_; }
 inline DWORD MakeDWORD (BYTE b1_, BYTE b2_)
     { return ((b2_ << 16) | b1_) * 0x0101UL; }
-
+inline DWORD JoinWORDs (DWORD w1_, DWORD w2_)
+    { return ((w2_ << 16) | w1_); }
 #else
 
 inline DWORD PaletteDWORD (BYTE b1_, BYTE b2_, BYTE b3_, BYTE b4_)
@@ -61,7 +62,8 @@ inline DWORD MakeDWORD (BYTE b1_, BYTE b2_, BYTE b3_, BYTE b4_)
     { return (b1_ << 24) | (b2_ << 16) | (b3_ << 8) | b4_; }
 inline DWORD MakeDWORD (BYTE b1_, BYTE b2_)
     { return ((b1_ << 16) | b2_) * 0x0101UL; }
-
+inline DWORD JoinWORDs (DWORD w1_, DWORD w2_)
+    { return ((w1_ << 16) | w2_); }
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -381,7 +383,6 @@ void DrawChangesGL (CScreen* pScreen_)
     BYTE *pbSAM = pScreen_->GetLine(0), *pb = pbSAM;
     long lPitch = pScreen_->GetPitch();
 
-
     long lPitchDW = reinterpret_cast<DWORD*>(&dwTextureData[0][1]) - reinterpret_cast<DWORD*>(&dwTextureData[0][0]);
 
     DWORD *pdwBack1, *pdwBack2, *pdwBack3, *pdw1, *pdw2, *pdw3;
@@ -390,129 +391,245 @@ void DrawChangesGL (CScreen* pScreen_)
     pdw3 = pdwBack3 = reinterpret_cast<DWORD*>(&dwTextureData[2]);
 
 
-    for (int y = 0 ; y < nBottom ; pb = pbSAM += lPitch, y++)
+    // 16-bit?
+    if (g_glDataType != GL_UNSIGNED_BYTE)
     {
-        int x;
-
-        if (!pfDirty[y])
-            ;
-        else if (pfHiRes[y])
+        for (int y = 0 ; y < nBottom ; pb = pbSAM += lPitch, y++)
         {
-            for (x = 0 ; x < 32 ; x++)
-            {
-                pdw1[0] = aulPalette[pb[0]];
-                pdw1[1] = aulPalette[pb[1]];
-                pdw1[2] = aulPalette[pb[2]];
-                pdw1[3] = aulPalette[pb[3]];
-                pdw1[4] = aulPalette[pb[4]];
-                pdw1[5] = aulPalette[pb[5]];
-                pdw1[6] = aulPalette[pb[6]];
-                pdw1[7] = aulPalette[pb[7]];
+            int x;
 
-                pdw1 += 8;
-                pb += 8;
+            if (!pfDirty[y])
+                ;
+            else if (pfHiRes[y])
+            {
+                for (x = 0 ; x < 32 ; x++)
+                {
+                    pdw1[0] = JoinWORDs(aulPalette[pb[0]], aulPalette[pb[1]]);
+                    pdw1[1] = JoinWORDs(aulPalette[pb[2]], aulPalette[pb[3]]);
+                    pdw1[2] = JoinWORDs(aulPalette[pb[4]], aulPalette[pb[5]]);
+                    pdw1[3] = JoinWORDs(aulPalette[pb[6]], aulPalette[pb[7]]);
+
+                    pdw1 += 4;
+                    pb += 8;
+                }
+
+                for (x = 32 ; x < 64 ; x++)
+                {
+                    pdw2[0] = JoinWORDs(aulPalette[pb[0]], aulPalette[pb[1]]);
+                    pdw2[1] = JoinWORDs(aulPalette[pb[2]], aulPalette[pb[3]]);
+                    pdw2[2] = JoinWORDs(aulPalette[pb[4]], aulPalette[pb[5]]);
+                    pdw2[3] = JoinWORDs(aulPalette[pb[6]], aulPalette[pb[7]]);
+
+                    pdw2 += 4;
+                    pb += 8;
+                }
+
+                for (x = 64 ; x < nRightHi ; x++)
+                {
+                    pdw3[0] = JoinWORDs(aulPalette[pb[0]], aulPalette[pb[1]]);
+                    pdw3[1] = JoinWORDs(aulPalette[pb[2]], aulPalette[pb[3]]);
+                    pdw3[2] = JoinWORDs(aulPalette[pb[4]], aulPalette[pb[5]]);
+                    pdw3[3] = JoinWORDs(aulPalette[pb[6]], aulPalette[pb[7]]);
+
+                    pdw3 += 4;
+                    pb += 8;
+                }
+            }
+            else
+            {
+                for (x = 0 ; x < 16 ; x++)
+                {
+                    pdw1[0] = aulPalette[pb[0]] * 0x00010001UL;
+                    pdw1[1] = aulPalette[pb[1]] * 0x00010001UL;
+                    pdw1[2] = aulPalette[pb[2]] * 0x00010001UL;
+                    pdw1[3] = aulPalette[pb[3]] * 0x00010001UL;
+                    pdw1[4] = aulPalette[pb[4]] * 0x00010001UL;
+                    pdw1[5] = aulPalette[pb[5]] * 0x00010001UL;
+                    pdw1[6] = aulPalette[pb[6]] * 0x00010001UL;
+                    pdw1[7] = aulPalette[pb[7]] * 0x00010001UL;
+
+                    pdw1 += 8;
+                    pb += 8;
+                }
+
+                for (x = 16 ; x < 32 ; x++)
+                {
+                    pdw2[0] = aulPalette[pb[0]] * 0x00010001UL;
+                    pdw2[1] = aulPalette[pb[1]] * 0x00010001UL;
+                    pdw2[2] = aulPalette[pb[2]] * 0x00010001UL;
+                    pdw2[3] = aulPalette[pb[3]] * 0x00010001UL;
+                    pdw2[4] = aulPalette[pb[4]] * 0x00010001UL;
+                    pdw2[5] = aulPalette[pb[5]] * 0x00010001UL;
+                    pdw2[6] = aulPalette[pb[6]] * 0x00010001UL;
+                    pdw2[7] = aulPalette[pb[7]] * 0x00010001UL;
+
+                    pdw2 += 8;
+                    pb += 8;
+                }
+
+                for (x = 32 ; x < nRightLo ; x++)
+                {
+                    pdw3[0] = aulPalette[pb[0]] * 0x00010001UL;
+                    pdw3[1] = aulPalette[pb[1]] * 0x00010001UL;
+                    pdw3[2] = aulPalette[pb[2]] * 0x00010001UL;
+                    pdw3[3] = aulPalette[pb[3]] * 0x00010001UL;
+                    pdw3[4] = aulPalette[pb[4]] * 0x00010001UL;
+                    pdw3[5] = aulPalette[pb[5]] * 0x00010001UL;
+                    pdw3[6] = aulPalette[pb[6]] * 0x00010001UL;
+                    pdw3[7] = aulPalette[pb[7]] * 0x00010001UL;
+
+                    pdw3 += 8;
+                    pb += 8;
+                }
             }
 
-            for (x = 32 ; x < 64 ; x++)
+            if (y == 255)
             {
-                pdw2[0] = aulPalette[pb[0]];
-                pdw2[1] = aulPalette[pb[1]];
-                pdw2[2] = aulPalette[pb[2]];
-                pdw2[3] = aulPalette[pb[3]];
-                pdw2[4] = aulPalette[pb[4]];
-                pdw2[5] = aulPalette[pb[5]];
-                pdw2[6] = aulPalette[pb[6]];
-                pdw2[7] = aulPalette[pb[7]];
-
-                pdw2 += 8;
-                pb += 8;
+                pdw1 = pdwBack1 = reinterpret_cast<DWORD*>(&dwTextureData[3]);
+                pdw2 = pdwBack2 = reinterpret_cast<DWORD*>(&dwTextureData[4]);
+                pdw3 = pdwBack3 = reinterpret_cast<DWORD*>(&dwTextureData[5]);
             }
-
-            for (x = 64 ; x < nRightHi ; x++)
+            else if (y == 511)
             {
-                pdw3[0] = aulPalette[pb[0]];
-                pdw3[1] = aulPalette[pb[1]];
-                pdw3[2] = aulPalette[pb[2]];
-                pdw3[3] = aulPalette[pb[3]];
-                pdw3[4] = aulPalette[pb[4]];
-                pdw3[5] = aulPalette[pb[5]];
-                pdw3[6] = aulPalette[pb[6]];
-                pdw3[7] = aulPalette[pb[7]];
-
-                pdw3 += 8;
-                pb += 8;
+                pdw1 = pdwBack1 = reinterpret_cast<DWORD*>(&dwTextureData[6]);
+                pdw2 = pdwBack2 = reinterpret_cast<DWORD*>(&dwTextureData[7]);
+                pdw3 = pdwBack3 = reinterpret_cast<DWORD*>(&dwTextureData[8]);
             }
-        }
-        else
-        {
-            for (x = 0 ; x < 16 ; x++)
+            else
             {
-                pdw1[0]  = pdw1[1]  = aulPalette[pb[0]];
-                pdw1[2]  = pdw1[3]  = aulPalette[pb[1]];
-                pdw1[4]  = pdw1[5]  = aulPalette[pb[2]];
-                pdw1[6]  = pdw1[7]  = aulPalette[pb[3]];
-                pdw1[8]  = pdw1[9]  = aulPalette[pb[4]];
-                pdw1[10] = pdw1[11] = aulPalette[pb[5]];
-                pdw1[12] = pdw1[13] = aulPalette[pb[6]];
-                pdw1[14] = pdw1[15] = aulPalette[pb[7]];
-
-                pdw1 += 16;
-                pb += 8;
+                pdw1 = pdwBack1 += lPitchDW;
+                pdw2 = pdwBack2 += lPitchDW;
+                pdw3 = pdwBack3 += lPitchDW;
             }
-
-            for (x = 16 ; x < 32 ; x++)
-            {
-                pdw2[0]  = pdw2[1]  = aulPalette[pb[0]];
-                pdw2[2]  = pdw2[3]  = aulPalette[pb[1]];
-                pdw2[4]  = pdw2[5]  = aulPalette[pb[2]];
-                pdw2[6]  = pdw2[7]  = aulPalette[pb[3]];
-                pdw2[8]  = pdw2[9]  = aulPalette[pb[4]];
-                pdw2[10] = pdw2[11] = aulPalette[pb[5]];
-                pdw2[12] = pdw2[13] = aulPalette[pb[6]];
-                pdw2[14] = pdw2[15] = aulPalette[pb[7]];
-
-                pdw2 += 16;
-                pb += 8;
-            }
-
-            for (x = 32 ; x < nRightLo ; x++)
-            {
-                pdw3[0]  = pdw3[1]  = aulPalette[pb[0]];
-                pdw3[2]  = pdw3[3]  = aulPalette[pb[1]];
-                pdw3[4]  = pdw3[5]  = aulPalette[pb[2]];
-                pdw3[6]  = pdw3[7]  = aulPalette[pb[3]];
-                pdw3[8]  = pdw3[9]  = aulPalette[pb[4]];
-                pdw3[10] = pdw3[11] = aulPalette[pb[5]];
-                pdw3[12] = pdw3[13] = aulPalette[pb[6]];
-                pdw3[14] = pdw3[15] = aulPalette[pb[7]];
-
-                pdw3 += 16;
-                pb += 8;
-            }
-        }
-
-        if (y == 255)
-        {
-            pdw1 = pdwBack1 = reinterpret_cast<DWORD*>(&dwTextureData[3]);
-            pdw2 = pdwBack2 = reinterpret_cast<DWORD*>(&dwTextureData[4]);
-            pdw3 = pdwBack3 = reinterpret_cast<DWORD*>(&dwTextureData[5]);
-        }
-        else if (y == 511)
-        {
-            pdw1 = pdwBack1 = reinterpret_cast<DWORD*>(&dwTextureData[6]);
-            pdw2 = pdwBack2 = reinterpret_cast<DWORD*>(&dwTextureData[7]);
-            pdw3 = pdwBack3 = reinterpret_cast<DWORD*>(&dwTextureData[8]);
-        }
-        else
-        {
-            pdw1 = pdwBack1 += lPitchDW;
-            pdw2 = pdwBack2 += lPitchDW;
-            pdw3 = pdwBack3 += lPitchDW;
         }
     }
+    else    // 32-bit
+    {
+        for (int y = 0 ; y < nBottom ; pb = pbSAM += lPitch, y++)
+        {
+            int x;
 
+            if (!pfDirty[y])
+                ;
+            else if (pfHiRes[y])
+            {
+                for (x = 0 ; x < 32 ; x++)
+                {
+                    pdw1[0] = aulPalette[pb[0]];
+                    pdw1[1] = aulPalette[pb[1]];
+                    pdw1[2] = aulPalette[pb[2]];
+                    pdw1[3] = aulPalette[pb[3]];
+                    pdw1[4] = aulPalette[pb[4]];
+                    pdw1[5] = aulPalette[pb[5]];
+                    pdw1[6] = aulPalette[pb[6]];
+                    pdw1[7] = aulPalette[pb[7]];
+
+                    pdw1 += 8;
+                    pb += 8;
+                }
+
+                for (x = 32 ; x < 64 ; x++)
+                {
+                    pdw2[0] = aulPalette[pb[0]];
+                    pdw2[1] = aulPalette[pb[1]];
+                    pdw2[2] = aulPalette[pb[2]];
+                    pdw2[3] = aulPalette[pb[3]];
+                    pdw2[4] = aulPalette[pb[4]];
+                    pdw2[5] = aulPalette[pb[5]];
+                    pdw2[6] = aulPalette[pb[6]];
+                    pdw2[7] = aulPalette[pb[7]];
+
+                    pdw2 += 8;
+                    pb += 8;
+                }
+
+                for (x = 64 ; x < nRightHi ; x++)
+                {
+                    pdw3[0] = aulPalette[pb[0]];
+                    pdw3[1] = aulPalette[pb[1]];
+                    pdw3[2] = aulPalette[pb[2]];
+                    pdw3[3] = aulPalette[pb[3]];
+                    pdw3[4] = aulPalette[pb[4]];
+                    pdw3[5] = aulPalette[pb[5]];
+                    pdw3[6] = aulPalette[pb[6]];
+                    pdw3[7] = aulPalette[pb[7]];
+
+                    pdw3 += 8;
+                    pb += 8;
+                }
+            }
+            else
+            {
+                for (x = 0 ; x < 16 ; x++)
+                {
+                    pdw1[0]  = pdw1[1]  = aulPalette[pb[0]];
+                    pdw1[2]  = pdw1[3]  = aulPalette[pb[1]];
+                    pdw1[4]  = pdw1[5]  = aulPalette[pb[2]];
+                    pdw1[6]  = pdw1[7]  = aulPalette[pb[3]];
+                    pdw1[8]  = pdw1[9]  = aulPalette[pb[4]];
+                    pdw1[10] = pdw1[11] = aulPalette[pb[5]];
+                    pdw1[12] = pdw1[13] = aulPalette[pb[6]];
+                    pdw1[14] = pdw1[15] = aulPalette[pb[7]];
+
+                    pdw1 += 16;
+                    pb += 8;
+                }
+
+                for (x = 16 ; x < 32 ; x++)
+                {
+                    pdw2[0]  = pdw2[1]  = aulPalette[pb[0]];
+                    pdw2[2]  = pdw2[3]  = aulPalette[pb[1]];
+                    pdw2[4]  = pdw2[5]  = aulPalette[pb[2]];
+                    pdw2[6]  = pdw2[7]  = aulPalette[pb[3]];
+                    pdw2[8]  = pdw2[9]  = aulPalette[pb[4]];
+                    pdw2[10] = pdw2[11] = aulPalette[pb[5]];
+                    pdw2[12] = pdw2[13] = aulPalette[pb[6]];
+                    pdw2[14] = pdw2[15] = aulPalette[pb[7]];
+
+                    pdw2 += 16;
+                    pb += 8;
+                }
+
+                for (x = 32 ; x < nRightLo ; x++)
+                {
+                    pdw3[0]  = pdw3[1]  = aulPalette[pb[0]];
+                    pdw3[2]  = pdw3[3]  = aulPalette[pb[1]];
+                    pdw3[4]  = pdw3[5]  = aulPalette[pb[2]];
+                    pdw3[6]  = pdw3[7]  = aulPalette[pb[3]];
+                    pdw3[8]  = pdw3[9]  = aulPalette[pb[4]];
+                    pdw3[10] = pdw3[11] = aulPalette[pb[5]];
+                    pdw3[12] = pdw3[13] = aulPalette[pb[6]];
+                    pdw3[14] = pdw3[15] = aulPalette[pb[7]];
+
+                    pdw3 += 16;
+                    pb += 8;
+                }
+            }
+
+            if (y == 255)
+            {
+                pdw1 = pdwBack1 = reinterpret_cast<DWORD*>(&dwTextureData[3]);
+                pdw2 = pdwBack2 = reinterpret_cast<DWORD*>(&dwTextureData[4]);
+                pdw3 = pdwBack3 = reinterpret_cast<DWORD*>(&dwTextureData[5]);
+            }
+            else if (y == 511)
+            {
+                pdw1 = pdwBack1 = reinterpret_cast<DWORD*>(&dwTextureData[6]);
+                pdw2 = pdwBack2 = reinterpret_cast<DWORD*>(&dwTextureData[7]);
+                pdw3 = pdwBack3 = reinterpret_cast<DWORD*>(&dwTextureData[8]);
+            }
+            else
+            {
+                pdw1 = pdwBack1 += lPitchDW;
+                pdw2 = pdwBack2 += lPitchDW;
+                pdw3 = pdwBack3 += lPitchDW;
+            }
+        }
+    }
     ProfileEnd();
 
+
+    ProfileStart(Blt);
 
     // Calculate the source rectangle for the full visible area
     rSource.x = 0;
@@ -533,7 +650,8 @@ void DrawChangesGL (CScreen* pScreen_)
         // Clear the dirty flags for the changed block
         for (int i = nChangeFrom ; i <= nChangeTo ; pfDirty[i++] = false);
 
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 256);
+        // The row length depends on whether we're using 16-bit packed or regular 32-bit pixels
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, (g_glDataType == GL_UNSIGNED_BYTE) ? 256 : 512);
 
         // Work out the width of each texture used for the display image
         int nWidth = Frame::GetWidth(), w1, w2, w3;
@@ -549,13 +667,13 @@ void DrawChangesGL (CScreen* pScreen_)
             int y = max(nChangeFrom-0,0), h = min(nChangeTo-0,255)-y+1;
 
             glBindTexture(GL_TEXTURE_2D,auTextures[0]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[0][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,g_glPixelFormat,g_glDataType,dwTextureData[0][y]);
 
             glBindTexture(GL_TEXTURE_2D,auTextures[1]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w2,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[1][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w2,h,g_glPixelFormat,g_glDataType,dwTextureData[1][y]);
 
             glBindTexture(GL_TEXTURE_2D,auTextures[2]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[2][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,g_glPixelFormat,g_glDataType,dwTextureData[2][y]);
         }
 
         if (nChangeFrom <= 511 && nChangeTo >= 256)
@@ -563,13 +681,13 @@ void DrawChangesGL (CScreen* pScreen_)
             int y = max(nChangeFrom-256,0), h = min(nChangeTo-256,255)-y+1;
 
             glBindTexture(GL_TEXTURE_2D,auTextures[3]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[3][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,g_glPixelFormat,g_glDataType,dwTextureData[3][y]);
 
             glBindTexture(GL_TEXTURE_2D,auTextures[4]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w2,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[4][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w2,h,g_glPixelFormat,g_glDataType,dwTextureData[4][y]);
 
             glBindTexture(GL_TEXTURE_2D,auTextures[5]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[5][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,g_glPixelFormat,g_glDataType,dwTextureData[5][y]);
         }
 
         if (nChangeTo >= 512)
@@ -577,31 +695,33 @@ void DrawChangesGL (CScreen* pScreen_)
             int y = max(nChangeFrom-512,0), h = min(nChangeTo-512,255)-y+1;
 
             glBindTexture(GL_TEXTURE_2D,auTextures[6]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[6][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,g_glPixelFormat,g_glDataType,dwTextureData[6][y]);
 
             glBindTexture(GL_TEXTURE_2D,auTextures[7]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w2,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[7][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w2,h,g_glPixelFormat,g_glDataType,dwTextureData[7][y]);
 
             glBindTexture(GL_TEXTURE_2D,auTextures[8]);
-            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[8][y]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,g_glPixelFormat,g_glDataType,dwTextureData[8][y]);
         }
     }
 
     glPushMatrix();
+    float flHeight = static_cast<float>(nBottom);
 
     if (GUI::IsActive())
-        glScalef(1.0f, -1.0f, 1.0f);        // flip vertically
+    {
+        glScalef(1.0f, -1.0f, 1.0f);            // Flip vertically
+        glTranslatef(0.0f, -flHeight, 0.0f);    // Centre image
+    }
     else
     {
-        glTranslatef(0.0f, -1.0f, 0.0f);    // Shift to adjust for half height
-        glScalef(1.0f, -2.0f, 1.0f);        // flip vertically and double the image
+        glScalef(1.0f, -2.0f, 1.0f);            // Flip and double vertically
+        glTranslatef(0.0f, -flHeight/2, 0.0f);  // Centre image
     }
 
     glCallList(dlist);
     glPopMatrix();
 
-
-    ProfileStart(Blt);
 
     glFlush();
     SDL_GL_SwapBuffers();
