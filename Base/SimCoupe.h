@@ -2,6 +2,8 @@
 //
 // SimCoupe.h: Common SimCoupe header, included by all modules
 //
+//  Copyright (c) 1999-2004  Simon Owen
+//
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
@@ -20,9 +22,17 @@
 #define SIMCOUPE_H
 
 // If it's not one of these we'll assume big endian (we have a run-time check to fall back on anyway)
-#if !defined(__BIG_ENDIAN__) && !defined(__i386__) && !defined(_WIN32) && !defined(_WIN32_WCE) && \
-    !defined(__alpha__) && !defined(__alpha) && !defined(__arm__) && !defined(__mips__) && !defined(__MIPSEL__)
+#if (defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__ia64__) || defined(__x86_64__) || \
+    (defined(__alpha__) || defined(__alpha)) || (defined(__mips__) && defined(__MIPSEL__)) || \
+     defined(__arm__) || defined(__SYMBIAN32__) || defined(_WIN32_WCE) || defined(WIN32)) \
+     && !defined(__BIG_ENDIAN__)
+#ifndef __LITTLE_ENDIAN__
+#define __LITTLE_ENDIAN__
+#endif
+#else
+#ifndef __BIG_ENDIAN__
 #define __BIG_ENDIAN__
+#endif
 #endif
 
 #ifdef DEBUG
