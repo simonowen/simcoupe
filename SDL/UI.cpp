@@ -44,8 +44,6 @@
 #include "Sound.h"
 #include "Video.h"
 
-//const int MOUSE_HIDE_TIME = 3000;
-
 const char* const WINDOW_CAPTION =
 #if defined(__BEOS__) || defined(__APPLE__)
     "SimCoupé/SDL"
@@ -263,30 +261,16 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-bool InsertDisk (CDiskDevice* pDrive_, const char* pName)
+bool InsertDisk (CDiskDevice* pDrive_, const char* pName_)
 {
-    // FT Can't remember the #define here
-  //static char szFile[256] = "";
-    //static bool fReadOnly = false;
+    // Remember the read-only state of the previous disk
+    bool fReadOnly = !pDrive_->IsWriteable();
 
-    // Eject any current disk, and use the path and read-only status from it for the open dialogue box
-    //if (pDrive_->IsInserted())
-    //strcpy(szFile, pDrive_->GetImage());
+    // Eject any previous disk, saving if necessary
+    pDrive_->Eject();
 
-    // Prompt for the a new disk to insert
-    //if (GetSaveLoadFile(g_hwnd, szDiskFilters, NULL, szFile, sizeof szFile, &fReadOnly, true))
-    //{
-        // Eject any previous disk, saving if necessary
-        pDrive_->Eject();
-
-        // Open the new disk (using the requested read-only mode), and insert it into the drive if successful
-        if (pDrive_->Insert(pName))
-        return true;
-
-    //}
-
-    return false;
+    // Open the new disk (using the requested read-only mode), and insert it into the drive if successful
+    return pDrive_->Insert(pName_, fReadOnly);
 }
 
 void DoAction (int nAction_, bool fPressed_)
@@ -410,7 +394,6 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actNewDisk:
-//              DialogBox(__hinstance, MAKEINTRESOURCE(IDD_NEWDISK), g_hwnd, NewDiskDlgProc);
                 break;
 
             case actSaveScreenshot:
@@ -423,20 +406,16 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actDebugger:
-//              Debug::DoSomething();
                 break;
 
             case actImportData:
-//              DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_IMPORT), g_hwnd, ImportExportDlgProc, 1);
                 break;
 
             case actExportData:
-//              DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_IMPORTEXPORT), g_hwnd, ImportExportDlgProc, 0);
                 break;
 
             case actDisplayOptions:
                 GUI::Start(new CTestDialog);
-//              DisplayOptions();
                 break;
 
             case actExitApplication:
