@@ -39,8 +39,8 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     : CDialog(pParent_, 285, 220,  "About SimCoupe")
 {
     new CIconControl(this, 6, 6, &sSamIcon);
-    new CTextControl(this, 61, 10,  "SimCoupe v0.90 beta 4", YELLOW_8);
-    new CTextControl(this, 61, 24,  "Homepage: http://www.simcoupe.org/", YELLOW_8);
+    new CTextControl(this, 61, 10,  "SimCoupe v0.90 beta 5", YELLOW_8);
+    new CTextControl(this, 61, 24,  "http://www.simcoupe.org/", YELLOW_8);
 
     new CTextControl(this, 26, 46,  "Win32/SDL/Allegro versions and general overhaul:");
     new CTextControl(this, 36, 59,  "Simon Owen <simon.owen@simcoupe.org>", GREY_7);
@@ -299,9 +299,10 @@ COptionsDialog::COptionsDialog (CWindow* pParent_/*=NULL*/)
     pItem = new CListViewItem(&sSamIcon, "About", pItem);
     pItem = new CListViewItem(&sHardwareIcon, "Misc", pItem);
     pItem = new CListViewItem(&sPortIcon, "Parallel", pItem);
-    pItem = new CListViewItem(&sDriveIcon, "Drives", pItem);
+    pItem = new CListViewItem(&sHardDiskIcon, "Hard Drives", pItem);
+    pItem = new CListViewItem(&sFloppyDriveIcon, "Floppy Drives", pItem);
     pItem = new CListViewItem(&sKeyboardIcon, "Input", pItem);
-    pItem = new CListViewItem(&sMidiIcon, "Midi", pItem);
+    pItem = new CListViewItem(&sMidiIcon, "MIDI", pItem);
     pItem = new CListViewItem(&sSoundIcon, "Sound", pItem);
     pItem = new CListViewItem(&sDisplayIcon, "Display", pItem);
     pItem = new CListViewItem(&sChipIcon, "System", pItem);
@@ -735,13 +736,13 @@ class CInputOptions : public CDialog
 };
 
 
-class CDriveOptions : public CDialog
+class CFloppyOptions : public CDialog
 {
     public:
-        CDriveOptions (CWindow* pParent_)
+        CFloppyOptions (CWindow* pParent_)
             : CDialog(pParent_, 300, 241, "Drive Settings")
         {
-            new CIconControl(this, 10, 10, &sDriveIcon);
+            new CIconControl(this, 10, 10, &sFloppyDriveIcon);
 
             new CFrameControl(this, 50, 16, 238, 79);
             new CTextControl(this, 60, 12, "Drive 1", YELLOW_8, BLUE_2);
@@ -1059,10 +1060,15 @@ void COptionsDialog::OnNotify (CWindow* pWindow_, int nParam_)
                 m_pStatus->SetText("Keyboard mapping and mouse settings.");
                 if (nParam_) new CInputOptions(this);
             }
-            else if (!strcasecmp(pItem->m_pszLabel, "drives"))
+            else if (!strcasecmp(pItem->m_pszLabel, "floppy drives"))
             {
-                m_pStatus->SetText("Floppy drive setup, including Atom hard disk.");
-                if (nParam_) new CDriveOptions(this);
+                m_pStatus->SetText("Floppy drive and image file setup.");
+                if (nParam_) new CFloppyOptions(this);
+            }
+            else if (!strcasecmp(pItem->m_pszLabel, "hard drives"))
+            {
+                m_pStatus->SetText("IDE hard disk on ATOM and SD-IDE interfaces.");
+                if (nParam_) new CMessageBox(this, "Coming Soon...", "Hard Drives", mbInformation);
             }
             else if (!strcasecmp(pItem->m_pszLabel, "parallel"))
             {
