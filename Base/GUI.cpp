@@ -19,6 +19,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 //  ToDo:
+//   - CFileView derived class needed to supply file icons
 //   - button repeat on scrollbar
 //   - add extra message box buttons
 //   - regular list box?
@@ -2030,8 +2031,11 @@ const GUI_ICON* CFileView::GetFileIcon (const char* pcszFile_)
     {
         if (!strcasecmp(pszExt, ".dsk")) nDiskType = 1;
         if (!strcasecmp(pszExt, ".sad")) nDiskType = 2;
-        if (!strcasecmp(pszExt, ".sdf")) nDiskType = 3;
+        if (!strcasecmp(pszExt, ".td0")) nDiskType = 3;
         if (!strcasecmp(pszExt, ".sbt")) nDiskType = 4;
+        if (!strcasecmp(pszExt, ".mgt")) nDiskType = 5;
+        if (!strcasecmp(pszExt, ".img")) nDiskType = 6;
+        if (!strcasecmp(pszExt, ".sdf")) nDiskType = 7;
     }
 
     return nCompressType ? &sCompressedIcon : nDiskType ? &sDiskIcon : &sDocumentIcon;
