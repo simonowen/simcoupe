@@ -30,6 +30,7 @@
 
 #include "SimCoupe.h"
 #include "CDisk.h"
+#include "CDrive.h"
 
 #include "Floppy.h"
 
@@ -145,7 +146,12 @@ bool CDisk::FindNext (IDFIELD* pIdField_/*=NULL*/, BYTE* pbStatus_/*=NULL*/)
         pIdField_->bTrack = m_uTrack;
         pIdField_->bSector = m_uSector;
         pIdField_->bSize = 2;                       // 128 << 2 = 512 bytes
-        pIdField_->bCRC1 = pIdField_->bCRC2 = 0;
+
+        // Calculate and set the CRC for the ID field, including the 
+        WORD wCRC = CDrive::CrcBlock(reinterpret_cast<BYTE*>("\xa1\xa1\xa1\xfe"), 4);
+        wCRC = CDrive::CrcBlock(pIdField_, 4, wCRC);
+        pIdField_->bCRC1 = wCRC >> 8;
+        pIdField_->bCRC2 = wCRC & 0xff;
     }
 
     // Sector OK so reset all errors
