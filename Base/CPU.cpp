@@ -3,7 +3,7 @@
 // CPU.cpp: Z80 processor emulation and main emulation loop
 //
 //  Copyright (c) 2000-2003  Dave Laundon
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -113,8 +113,7 @@ inline void Mode0Interrupt ();
 inline void Mode1Interrupt ();
 inline void Mode2Interrupt ();
 
-// Since Java has no macros, changing helpers to be inlines like this should make things easier
-inline void rflags (BYTE b_, BYTE c_) { f = c_ | parity(b_); }
+#define rflags(b_,c_)   (f = (c_) | parity(b_))
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -641,7 +640,8 @@ inline void Mode2Interrupt ()
 // Perform some initial tests to confirm the emulator is functioning correctly!
 void CPU::InitTests ()
 {
-    // Sanity check the endian of the registers structure
+    // Sanity check the endian of the registers structure.  If this fails you'll need to add a new
+    // symbol test to the top of SimCoupe.h, to help identify the new little-endian platform
     hl = 1;
     if (h)
         Message(msgFatal, "Startup test: the Z80Regs structure is the wrong endian for this platform!");
