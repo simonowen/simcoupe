@@ -1037,7 +1037,10 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 SetOption(frameskip, nFrameSkip ? SendDlgItemMessage(hdlg_, IDC_FRAMESKIP, CB_GETCURSEL, 0, 0L) + 1 : 0);
 
                 if (Changed(fullscreen))
+                {
+                    ShowWindow(g_hwndSIP, GetOption(fullscreen) ? SW_HIDE : SW_SHOW);
                     Frame::Init();
+                }
             }
 
             break;
