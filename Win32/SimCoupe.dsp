@@ -481,6 +481,10 @@ SOURCE=.\resource.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\SimCoupe.exe.manifest
+# End Source File
+# Begin Source File
+
 SOURCE=.\SimCoupe.rc
 # End Source File
 # End Group
