@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // PNG.cpp: Screenshot saving in PNG format
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@
 #ifdef USE_ZLIB
 #include "zlib.h"
 
-#include "Frame.h"
+#include "IO.h"
 #include "Options.h"
 
 
@@ -193,13 +193,13 @@ bool SaveImage (FILE* hFile_, CScreen* pScreen_)
 
     if (png.pbPalette && png.pbImage)
     {
-        static const BYTE ab[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
+        const RGBA* pPalette = IO::GetPalette();
 
         for (int c = 0; c < N_PALETTE_COLOURS; c++)
         {
-            png.pbPalette[3*c]   = ab[(c&0x02)     | ((c&0x20) >> 3) | ((c&0x08) >> 3)];
-            png.pbPalette[3*c+1] = ab[(c&0x04) >> 1| ((c&0x40) >> 4) | ((c&0x08) >> 3)];
-            png.pbPalette[3*c+2] = ab[(c&0x01) << 1| ((c&0x10) >> 2) | ((c&0x08) >> 3)];
+            png.pbPalette[3*c]   = pPalette[c].bRed;
+            png.pbPalette[3*c+1] = pPalette[c].bGreen;
+            png.pbPalette[3*c+2] = pPalette[c].bBlue;
         }
 
         // If scanlines are enabled, we'll skip every other line
