@@ -36,8 +36,10 @@ class Display
 
         static void Update (CScreen* pScreen_);
 
-        static void DisplayToSam (int* pnX_, int* pnY_);
-        static void SamToDisplay (int* pnX_, int* pnY_);
+        static void DisplayToSamSize (int* pnX_, int* pnY_);
+        static void SamToDisplaySize (int* pnX_, int* pnY_);
+        static void DisplayToSamPoint (int* pnX_, int* pnY_);
+        static void SamToDisplayPoint (int* pnX_, int* pnY_);
 
         static bool* pafDirty;
 };

@@ -539,7 +539,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 SDL_ShowCursor(SDL_DISABLE);
 #endif
                 int nX = pEvent_->motion.x, nY = pEvent_->motion.y;
-                Display::DisplayToSam(&nX, &nY);
+                Display::DisplayToSamPoint(&nX, &nY);
                 GUI::SendMessage(GM_MOUSEMOVE, nX, nY);
             }
 
@@ -549,39 +549,28 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 // Work out the relative movement since last time
                 int nX = pEvent_->motion.x - (Frame::GetWidth() >> 1), nY = pEvent_->motion.y - (Frame::GetHeight() >> 1);
 
-                // Has it moved at all?             
+                // Has it moved at all?
                 if (nX || nY)
                 {
                     // We need to track partial units, as we're higher resolution than SAM
                     static int nXX, nYY;
 
                     // Add on the new movement
-                    nXX += nX;
-                    nYY += nY;
+                    nXX += nX, nYY += nY;
 
                     // How far has the mouse moved in SAM units?
-                    nX = nXX;
-                    nY = nYY;
-                    int nX2 = 0, nY2 = 0;
-                    Display::DisplayToSam(&nX, &nY);
-                    Display::DisplayToSam(&nX2, &nY2);
-                    nX -= nX2;
-                    nY -= nY2;
+                    nX = nXX, nY = nYY;
+                    Display::DisplayToSamSize(&nX, &nY);
 
                     // Update the SAM mouse position
                     Mouse::Move(nX, -nY);
                     TRACE("Mouse move: X:%-03d Y:%-03d\n", nX, nY);
 
                     // How far is the SAM mouse movement in native units?
-                    nX2 = nY2 = 0;
-                    Display::SamToDisplay(&nX, &nY);
-                    Display::SamToDisplay(&nX2, &nY2);
-                    nX -= nX2;
-                    nY -= nY2;
+                    Display::SamToDisplaySize(&nX, &nY);
 
                     // Subtract the used portion of the movement, and leave the remainder for next time
-                    nXX -= nX;
-                    nYY -= nY;
+                    nXX -= nX, nYY -= nY;
 
                     // Move the mouse back to the centre to stop it escaping
                     SDL_WarpMouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
@@ -597,7 +586,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             // Button presses go to the GUI if it's active
             if (GUI::IsActive())
             {
-                Display::DisplayToSam(&nX, &nY);
+                Display::DisplayToSamPoint(&nX, &nY);
                 GUI::SendMessage(GM_BUTTONDOWN, nX, nY);
             }
 
@@ -621,7 +610,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             if (GUI::IsActive())
             {
                 int nX = pEvent_->button.x, nY = pEvent_->button.y;
-                Display::DisplayToSam(&nX, &nY);
+                Display::DisplayToSamPoint(&nX, &nY);
                 GUI::SendMessage(GM_BUTTONUP, nX, nY);
             }
             else

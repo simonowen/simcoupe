@@ -611,20 +611,38 @@ void Display::Update (CScreen* pScreen_)
 }
 
 
-// Map a Windows client point to one relative to the SAM view port
-void Display::DisplayToSam (int* pnX_, int* pnY_)
+// Scale a client size/movement to one relative to the SAM view port size
+// Should round down and be consistent with positive and negative values
+void Display::DisplayToSamSize (int* pnX_, int* pnY_)
 {
     int nHalfWidth = !GUI::IsActive();
 
-    *pnX_ = ((*pnX_ - rTarget.x) * rSource.w / rTarget.w) >> nHalfWidth;
-    *pnY_ = ((*pnY_ - rTarget.y) * rSource.h / rTarget.h);
+    *pnX_ = *pnX_ * (rSource.w >> nHalfWidth) / rTarget.w;
+    *pnY_ = *pnY_ * rSource.h / rTarget.h;
 }
 
-// Map a point in the SAM view port to a point relative to the Windows client position
-void Display::SamToDisplay (int* pnX_, int* pnY_)
+// Scale a size/movement in the SAM view port to one relative to the client
+// Should round down and be consistent with positive and negative values
+void Display::SamToDisplaySize (int* pnX_, int* pnY_)
 {
     int nHalfWidth = !GUI::IsActive();
 
-    *pnX_ = ((*pnX_ << nHalfWidth) * rTarget.w / rSource.w) + rTarget.x;
-    *pnY_ = ((*pnY_)               * rTarget.h / rSource.h) + rTarget.y;
+    *pnX_ = *pnX_ * rTarget.w / (rSource.w >> nHalfWidth);
+    *pnY_ = *pnY_ * rTarget.h / rSource.h;
+}
+
+// Map a client point to one relative to the SAM view port
+void Display::DisplayToSamPoint (int* pnX_, int* pnY_)
+{
+    *pnX_ -= rTarget.x;
+    *pnY_ -= rTarget.y;
+    DisplayToSamSize(pnX_, pnY_);
+}
+
+// Map a point in the SAM view port to a point relative to the client position
+void Display::SamToDisplayPoint (int* pnX_, int* pnY_)
+{
+    SamToDisplaySize(pnX_, pnY_);
+    *pnX_ += rTarget.x;
+    *pnY_ += rTarget.y;
 }
