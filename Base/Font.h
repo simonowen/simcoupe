@@ -30,10 +30,8 @@ typedef struct
 }
 FONT;
 
-extern const BYTE abOldFont[];
-extern const BYTE abGUIFont[];
-
-static FONT sOldFont = { 8, 9, 32, 127, abOldFont };
-static FONT sNewFont = { 11, 12, 32, 127, abGUIFont };
+extern const BYTE abOldFont[], abGUIFont[];
+extern const FONT sOldFont, sGUIFont;
 
 #endif
+
