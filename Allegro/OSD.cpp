@@ -31,6 +31,7 @@
 
 volatile int OSD::s_nTicks;
 volatile DWORD dwTime;
+bool fAllegroInit = false;
 
 void TimerCallback ()
 {
@@ -50,10 +51,15 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
     signal(SIGINT, SIG_IGN);
 #endif
 
+#ifdef ALLEGRO_WINDOWS
+    // We'll do our own error handling, so suppress any windows error dialogs
+    SetErrorMode(SEM_FAILCRITICALERRORS);
+#endif
+
     LOCK_VARIABLE(OSD::s_nTicks);
     LOCK_FUNCTION((void*)TimerCallback);
 
-    if (fFirstInit_)
+    if (fFirstInit_ && !fAllegroInit)
         allegro_init();
 
     install_int_ex(TimerCallback, BPS_TO_TIMER(EMULATED_FRAMES_PER_SECOND));
@@ -91,11 +97,11 @@ PROFILE_T OSD::GetProfileTime ()
 // If the path is already fully qualified (an OS-specific decision), return the same string
 const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 {
-    static char szPath[512];
+    static char szExePath[MAX_PATH], szPath[512];
 
     // If the supplied file path looks absolute, use it as-is
     if (*pcszFile_ == '/'
-#ifdef _WINDOWS
+#ifdef ALLEGRO_WINDOWS
         || strchr(pcszFile_, ':')
 #endif
         )
@@ -104,23 +110,83 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
     // Form the full path relative to the current EXE file
     else
     {
-        // Get the full path of the running module
+        // Make sure Allegro is initialised, as get_executable_name() needs it
+        if (!fAllegroInit && !szPath[0])
+        {
+            allegro_init();
+            fAllegroInit = true;
 
-#if defined(_WINDOWS)
-        // Strip the module file and append the supplied file/path
-        GetModuleFileName(NULL, szPath, sizeof szPath);
-        strrchr(szPath, '\\')[1] = '\0';
-#else
-        szPath[0] = '\0';
-#endif
+            // Get the full path of the running module
+            get_executable_name(szExePath, sizeof szExePath);
+
+            // Strip the filename if a full path, otherwise use no path
+            char* psz = strrchr(szExePath, PATH_SEPARATOR);
+            if (psz)
+                psz[1] = '\0';
+            else
+                szExePath[0] = '\0';
+        }
 
         // Append the supplied file/path
-        strcat(szPath, pcszFile_);
+        strcat(strcpy(szPath, szExePath), pcszFile_);
     }
 
     // Return a pointer to the new path
     return szPath;
 }
+
+
+#if defined(ALLEGRO_DOS)
+// Taken from Allegro - shame this functionality isn't exposed!
+bool drive_exists (int drive)
+{
+   unsigned int old_drive;
+   bool fRet = false;
+   __dpmi_regs r;
+
+   // get actual drive
+   r.h.ah = 0x19;
+   __dpmi_int(0x21, &r);
+   old_drive = r.h.al;
+
+   // see if the drive is assigned as a valid drive
+   r.h.ah = 0x0E;
+   r.h.dl = drive;
+   __dpmi_int(0x21, &r);
+
+   r.h.ah = 0x19;
+   __dpmi_int(0x21, &r);
+
+   if (r.h.al == drive) {
+      // ok, now check if it is a logical drive
+      r.x.ax = 0x440E;
+      r.h.bl = drive+1;
+      __dpmi_int(0x21, &r);
+
+      if ((r.x.flags & 1) ||        // call failed
+          (r.h.al == 0) ||          // has no logical drives
+          (r.h.al == (drive+1)))    // not a logical drive
+         fRet = true;
+   }
+
+   // now we set the old drive
+   r.h.ah = 0x0E;
+   r.h.dl = old_drive;
+   __dpmi_int(0x21, &r);
+
+   return fRet;
+}
+#endif
+
+bool OSD::CheckPathAccess (const char* pcszPath_)
+{
+#if defined(ALLEGRO_DOS)
+    return (strlen(pcszPath_) > 3) ? true : drive_exists(pcszPath_[0]-'A') && !access(pcszPath_, D_OK);
+#endif
+
+    return !access(pcszPath_, X_OK);
+}
+
 
 // Return whether a file/directory is normally hidden from a directory listing
 bool OSD::IsHidden (const char* pcszPath_)
@@ -140,6 +206,7 @@ bool OSD::IsHidden (const char* pcszPath_)
 #endif
 }
 
+
 // Return the path to use for a given drive with direct floppy access
 const char* OSD::GetFloppyDevice (int nDrive_)
 {
@@ -156,8 +223,10 @@ const char* OSD::GetFloppyDevice (int nDrive_)
 
 void OSD::DebugTrace (const char* pcsz_)
 {
-#ifdef _WINDOWS
+#ifdef ALLEGRO_WINDOWS
     OutputDebugString(pcsz_);
+#else
+    fprintf(stderr, "%s", pcsz_);
 #endif
 }
 
@@ -171,7 +240,7 @@ int OSD::FrameSync (bool fWait_/*=true*/)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _WINDOWS
+#ifdef ALLEGRO_WINDOWS
 
 WIN32_FIND_DATA s_fd;
 struct dirent s_dir;
@@ -217,7 +286,7 @@ int closedir (DIR* hDir_)
     return FindClose(reinterpret_cast<HANDLE>(hDir_)) ? 0 : -1;
 }
 
-#endif  // _WINDOWS
+#endif  // ALLEGRO_WINDOWS
 
 
 // Allegro may need to do some magic of its own regarding main()
