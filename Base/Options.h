@@ -36,10 +36,13 @@ typedef struct
     int     borders;                // How much of the borders to show
     bool    stretchtofit;           // Stretch screen image to fit target area?
     bool    filter;                 // Filter the stretched image? (if possible)
+    bool    overlay;                // Use a video overlay surface, if available?
     int     surface;                // Surface type to use
 
     char    rom[MAX_PATH];          // SAM ROM image path
+    bool    hdbootrom;              // Use HDBOOT ROM patches
     bool    fastreset;              // Fast SAM system reset?
+    bool    asicdelay;              // ASIC startup delay of ~49ms
     int     mainmem;                // 256 or 512 for amount of main memory
     int     externalmem;            // Number of MB of external memory
 
@@ -54,10 +57,16 @@ typedef struct
     char    sdidedisk[MAX_PATH];    // Hard disk image for SD IDE interface
     char    yatbusdisk[MAX_PATH];   // Hard disk image for YAMOD.ATBUS interface
 
+    char    floppypath[MAX_PATH];   // Default floppy disk path
+    char    hddpath[MAX_PATH];      // Default hard disk path
+    char    rompath[MAX_PATH];      // Default ROM path
+    char    datapath[MAX_PATH];     // Default data path
+
     int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
     bool    altforcntrl;            // Non-zero if Left-Alt is used for SAM Cntrl
     bool    altgrforedit;           // Non-zero if Right-Alt is used for SAM Edit
-    bool    kpminusreset;           // Non-zero if Keypad-minus is used for Reset
+    bool    keypadreset;            // Non-zero if Keypad-minus is used for Reset
+    bool    samfkeys;               // Non-zero to use the PC function keys for the SAM keypad
     bool    mouse;                  // True to emulate the SAM mouse
 
     char    joydev1[128];           // Joystick 1 device
