@@ -2,7 +2,7 @@
 //
 // Sound.cpp: Win32 sound implementation using DirectSound
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -168,8 +168,7 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
         // If anything failed, disable the sound
         if ((fNeedSAA && !pSAA) || (fNeedDAC && !pDAC))
         {
-            Message(msgWarning, "Sound initialisation failed, disabling...");
-            SetOption(sound,0);
+            Message(msgWarning, "Sound initialisation failed");
             Exit();
         }
     }
