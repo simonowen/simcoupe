@@ -4,7 +4,7 @@
 //
 //  Copyright (c) 1994 Ian Collier
 //  Copyright (c) 1999-2003 by Dave Laundon
-//  Copyright (c) 1999-2003 by Simon Owen
+//  Copyright (c) 1999-2004 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -87,7 +87,8 @@
                             hl++; \
                             de++; \
                             bc--; \
-                            f = (f & 0xc1) | (x & 0x28) | ((bc != 0) << 2); \
+                            x += a; \
+                            f = (f & 0xc1) | (x & 0x08) | ((x & 0x02) << 4) | ((bc != 0) << 2); \
                             if (loop) { \
                                 g_nLineCycle += 5; \
                                 pc -= 2; \
@@ -102,7 +103,8 @@
                             hl--; \
                             de--; \
                             bc--; \
-                            f = (f & 0xc1) | (x & 0x28) | ((bc != 0) << 2); \
+                            x += a; \
+                            f = (f & 0xc1) | (x & 0x08) | ((x & 0x02) << 4) | ((bc != 0) << 2); \
                             if (loop) { \
                                 g_nLineCycle += 5; \
                                 pc -= 2; \
@@ -111,12 +113,14 @@
 
 // Compare; increment; [repeat]
 #define cpi(loop)       do { \
-                            BYTE carry = cy; \
-                            cp_a(timed_read_byte(hl)); \
+                            BYTE carry = cy, x = timed_read_byte(hl); \
+                            BYTE sum = a - x, z = a ^ x ^ sum; \
                             g_nLineCycle += 2; \
                             hl++; \
                             bc--; \
-                            f = (f & 0xfa) | carry | ((bc != 0) << 2); \
+                            f = (sum & 0x80) | (!sum << 6) | (((sum - ((z&0x10)>>4)) & 2) << 4) | (z & 0x10) | ((sum - ((z >> 4) & 1)) & 8) | ((bc != 0) << 2) | F_NADD | carry; \
+                            if ((sum & 15) == 8 && (z & 16) != 0)   \
+                                f &= ~8;    \
                             if (loop) { \
                                 g_nLineCycle += 5; \
                                 pc -= 2; \
@@ -125,12 +129,14 @@
 
 // Compare; decrement; [repeat]
 #define cpd(loop)       do { \
-                            BYTE carry = cy; \
-                            cp_a(timed_read_byte(hl)); \
+                            BYTE carry = cy, x = timed_read_byte(hl); \
+                            BYTE sum = a - x, z = a ^ x ^ sum; \
                             g_nLineCycle += 2; \
                             hl--; \
                             bc--; \
-                            f = (f & 0xfa) | carry | ((bc != 0) << 2); \
+                            f = (sum & 0x80) | (!sum << 6) | (((sum - ((z&0x10)>>4)) & 2) << 4) | (z & 0x10) | ((sum - ((z >> 4) & 1)) & 8) | ((bc != 0) << 2) | F_NADD | carry; \
+                            if ((sum & 15) == 8 && (z & 16) != 0)   \
+                                f &= ~8;    \
                             if (loop) { \
                                 g_nLineCycle += 5; \
                                 pc -= 2; \
