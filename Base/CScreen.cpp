@@ -174,11 +174,19 @@ void CScreen::FillRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColou
 // Draw a rectangle outline
 void CScreen::FrameRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_)
 {
-    // Draw lines for top, left, right and bottom
-    DrawLine(nX_, nY_, nWidth_, 0, bColour_);
-    DrawLine(nX_, nY_, 0, nHeight_, bColour_);
-    DrawLine(nX_+nWidth_-1, nY_, 0, nHeight_, bColour_);
-    DrawLine(nX_, nY_+nHeight_-1, nWidth_, 0, bColour_);
+    // Single pixel with or height boxes can be drawn more efficiently
+    if (nWidth_ == 1)
+        DrawLine(nX_, nY_, 0, nHeight_, bColour_);
+    else if (nHeight_ == 1)
+        DrawLine(nX_, nY_, nWidth_, 0, bColour_);
+    else
+    {
+        // Draw lines for top, left, right and bottom
+        DrawLine(nX_, nY_, nWidth_, 0, bColour_);
+        DrawLine(nX_, nY_, 0, nHeight_, bColour_);
+        DrawLine(nX_+nWidth_-1, nY_, 0, nHeight_, bColour_);
+        DrawLine(nX_, nY_+nHeight_-1, nWidth_, 0, bColour_);
+    }
 }
 
 // Draw an image from a matrix of palette colours
@@ -206,7 +214,7 @@ void CScreen::DrawImage (int nX_, int nY_, int nWidth_, int nHeight_, const BYTE
 }
 
 // Draw a proportionally spaced string of characters at a specified pixel position
-void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_)
+void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_/*=false*/)
 {
     int nFrom = max(nClipY,nY_);
     int nTo = nY_ + pFont->wHeight;
@@ -269,12 +277,12 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
         }
 
         // Move to the next character position
-        nX_ += nWidth + 1 + fBold_;
+        nX_ += nWidth + CHAR_SPACING + fBold_;
     }
 }
 
 // Get the on-screen width required for a specified string if drawn proportionally
-/*static*/ int CScreen::GetStringWidth (const char* pcsz_)
+/*static*/ int CScreen::GetStringWidth (const char* pcsz_, bool fBold_/*=false*/)
 {
     int nWidth = 0;
 
@@ -285,7 +293,7 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
             bChar = CHAR_UNKNOWN;
 
         const BYTE* pChar = pFont->pcbData + (bChar - pFont->bFirst) * pFont->wCharSize;
-        nWidth += (*pChar & 0xf) + CHAR_SPACING;
+        nWidth += (*pChar & 0xf) + CHAR_SPACING + fBold_;
     }
 
     // Return the width, not including the final space
