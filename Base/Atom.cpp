@@ -28,7 +28,7 @@ const unsigned int ATOM_LIGHT_DELAY = 2;    // Number of frames the hard disk LE
 
 
 CAtomDiskDevice::CAtomDiskDevice (CHardDisk* pDisk_)
-    : CDiskDevice(dskAtom), m_uLightDelay(0)
+    : CDiskDevice(dskAtom), m_bAddressLatch(0), m_bDataLatch(0), m_uLightDelay(0)
 {
     m_pDisk = new CATADevice(pDisk_);
 }
@@ -42,7 +42,7 @@ CAtomDiskDevice::~CAtomDiskDevice ()
 
 BYTE CAtomDiskDevice::In (WORD wPort_)
 {
-    BYTE bRet = 0x00;
+    BYTE bRet = 0xff;
 
     switch (wPort_ & 7)
     {
