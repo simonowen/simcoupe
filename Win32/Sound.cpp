@@ -228,15 +228,17 @@ void Sound::Silence ()
 void Sound::Stop ()
 {
     for (int i = 0 ; i < SOUND_STREAMS ; i++)
-        if (aStreams[i])
-            aStreams[i]->Stop(), aStreams[i]->Silence();
+        if (aStreams[i]) aStreams[i]->Stop();
+
+    Silence();
 }
 
 void Sound::Play ()
 {
+    Silence();
+
     for (int i = 0 ; i < SOUND_STREAMS ; i++)
-        if (aStreams[i])
-            aStreams[i]->Silence(), aStreams[i]->Play();
+        if (aStreams[i]) aStreams[i]->Play();
 }
 
 
