@@ -476,6 +476,9 @@ void Display::Update (CScreen* pScreen_)
     // If we're using an overlay we need to fill the visible area with the colour key
     if (fOverlay)
     {
+        if (fHalfHeight)
+            rBack.bottom >>= 1;
+
         if (!GetOption(fullscreen))
         {
             // Restrict the target area to what can actually be displayed, as the overlay can't overlay the screen edges
@@ -486,10 +489,10 @@ void Display::Update (CScreen* pScreen_)
             IntersectRect(&rClip, &rTo, &rClip);
 
             // Modify the source screen portion to include only the portion visible in the clipped area
-            SetRect(&rBack, MulDiv(rBack.right, rClip.left - rTo.left, rTo.right - rTo.left),
-                            MulDiv(rBack.bottom, rClip.top - rTo.top, rTo.bottom - rTo.top),
-                            MulDiv(rBack.right, rClip.right - rTo.left, rTo.right - rTo.left),
-                            MulDiv(rBack.bottom, rClip.bottom - rTo.top, rTo.bottom - rTo.top));
+            SetRect(&rBack, MulDiv(rBack.right, rClip.left, rTo.right),
+                            MulDiv(rBack.bottom, rClip.top, rTo.bottom),
+                            MulDiv(rBack.right, rClip.right, rTo.right),
+                            MulDiv(rBack.bottom, rClip.bottom, rTo.bottom));
 
             // Offset the target area to its final screen position in the window's client area
             OffsetRect(&(rTo = rClip), ptOffset.x, ptOffset.y);
@@ -500,9 +503,6 @@ void Display::Update (CScreen* pScreen_)
         if (pddsFront)
             pddsFront->Blt(NULL, pddsBack, NULL, DDBLT_WAIT, 0);
 
-
-        if (fHalfHeight)
-            rBack.bottom >>= 1;
 
         // Set up the destination colour key so the overlay doesn't appear over the top of everything
         DDOVERLAYFX ddofx = { sizeof ddofx };
