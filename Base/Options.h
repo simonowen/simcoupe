@@ -119,7 +119,6 @@ typedef struct
 
     bool    pauseinactive;          // Pause when not the active app?
 
-    char    logfile[MAX_PATH];      // log filename
     char    fnkeys[256];            // Function key bindings
 }
 OPTIONS;
