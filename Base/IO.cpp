@@ -920,11 +920,6 @@ void IO::UpdateInput()
 const RGBA* IO::GetPalette (bool fDimmed_/*=false*/)
 {
     static RGBA asPalette[N_PALETTE_COLOURS];
-    static bool fPrepared = false, fDimmed;
-
-    // If we've already got what's needed, return the current setup
-    if (fPrepared && fDimmed_ == fDimmed)
-        return asPalette;
 
     // Look-up table for an even intensity spread, used to map SAM colours to RGB
     static const BYTE abIntensities[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
@@ -945,16 +940,19 @@ const RGBA* IO::GetPalette (bool fDimmed_/*=false*/)
             bBlue  = (bBlue  << 1) / 3;
         }
 
+        // If greyscale is enabled, convert the colour a suitable intensity grey
+        if (GetOption(greyscale))
+        {
+            BYTE bGrey = static_cast<BYTE>(0.30 * bRed + 0.59 * bGreen + 0.11 * bBlue);
+            bRed = bGreen = bBlue = bGrey;
+        }
+
         // Store the calculated values for the entry
         asPalette[i].bRed = bRed;
         asPalette[i].bGreen = bGreen;
         asPalette[i].bBlue = bBlue;
         asPalette[i].bAlpha = 0xff;
     }
-
-    // Remember the current state to cache the palette for future calls if possible
-    fPrepared = true;
-    fDimmed = fDimmed_;
 
     // Return the freshly prepared palette
     return asPalette;
