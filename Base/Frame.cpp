@@ -2,7 +2,7 @@
 //
 // Frame.cpp: Display frame generation
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -85,7 +85,7 @@ REGION asViews[] =
     { SCREEN_BLOCKS, SCREEN_LINES },
     { SCREEN_BLOCKS+2, SCREEN_LINES+20 },
     { SCREEN_BLOCKS+4, SCREEN_LINES+48 },
-    { SCREEN_BLOCKS+4, SCREEN_LINES+72 },
+    { SCREEN_BLOCKS+4, SCREEN_LINES+74 },
     { WIDTH_BLOCKS, HEIGHT_LINES },
 };
 
@@ -141,8 +141,8 @@ bool Frame::Init (bool fFirstInit_/*=false*/)
 
 void Frame::Exit (bool fReInit_/*=false*/)
 {
-    Display::Exit(fReInit_);
     TRACE("-> Frame::Exit(%s)\n", fReInit_ ? "reinit" : "");
+    Display::Exit(fReInit_);
 
     if (pFrameHigh != pFrameLow)
         delete pFrameHigh;
@@ -297,12 +297,19 @@ void RasterComplete ()
     static DWORD dwCycleCounter;
 
     // Don't do anything if the current frame is being skipped or we've already completed the area
-    if (!fDrawFrame || (dwCycleCounter == g_dwCycleCounter))
+    if (dwCycleCounter == g_dwCycleCounter)
         return;
     else
         dwCycleCounter = g_dwCycleCounter;
 
     ProfileStart(Gfx);
+
+    // If this frame was being skipped, clear the whole buffer and start drawing from now
+    if (!fDrawFrame)
+    {
+        nLastLine = nLastBlock = 0;
+        fDrawFrame = true;
+    }
 
     // Work out the range that within the visible area
     int nLeft = max(s_nViewLeft, nLastBlock) - s_nViewLeft;
@@ -347,12 +354,14 @@ void Frame::Complete ()
 
         if (!GUI::IsModal())
         {
-            if (0)  // ToDo: check debugger option for redraw type
-                UpdateAll();
+            // ToDo: check debugger option for redraw type
+            int i = 0;
+            if (i)
+                UpdateAll();        // Update the entire display using the current video settings
             else
             {
-                Update();
-                RasterComplete();
+                Update();           // Draw up to the current raster point
+                RasterComplete();   // Grey the undefined area after the raster
             }
         }
 
@@ -660,17 +669,16 @@ void Frame::SetStatus (const char *pcszFormat_, ...)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-// Handle screen mode changes, which need special attention to implement ASIC artefacts caused by an 8 pixel
-// block being drawn in a new mode, but using the data already fetched from the display memory for the old mode
+// Handle screen mode changes, which may require converting low-res data to hi-res
+// Changes on the main screen may generate an artefact by using old data in the new mode (described by Dave Laundon)
 void Frame::ChangeMode (BYTE bVal_)
 {
-    // Is the current line in the main display area?
+    // Action only needs to be taken on main screen lines
     if (IsScreenLine(g_nLine))
     {
-        // Calculate the position of the change
         int nLine = g_nLine - s_nViewTop, nBlock = g_nLineCycle >> 3;
 
-        // Are we before the right-border?
+        // Changes into the right border can't affect appearance, so ignore them
         if (nBlock < (BORDER_BLOCKS+SCREEN_BLOCKS))
         {
             // Are we switching to mode 3 on a lo-res line?
@@ -684,7 +692,7 @@ void Frame::ChangeMode (BYTE bVal_)
             // Is the mode changing between 1/2 <-> 3/4 on the main screen?
             if (((vmpr_mode ^ bVal_) & VMPR_MDE1_MASK) && nBlock >= BORDER_BLOCKS)
             {
-                // Draw the appropriate ASIC artefact caused by the mode change (discovered by Dave Laundon)
+                // Draw the artefact and advance the draw position
                 pFrame->ModeChange(bVal_, g_nLine, nBlock);
                 nLastBlock += (VIDEO_DELAY >> 3);
             }
@@ -694,6 +702,25 @@ void Frame::ChangeMode (BYTE bVal_)
     // Update the mode in the rendering objects
     pFrameLow->SetMode(bVal_);
     pFrameHigh->SetMode(bVal_);
+}
+
+
+// Handle the screen being enabled, which causes a border pixel artefact (reported by Andrew Collier)
+void Frame::ChangeScreen (BYTE bVal_)
+{
+    int nBlock = g_nLineCycle >> 3;
+
+    // Only draw if the artefact cell is visible
+    if (g_nLine >= s_nViewTop && g_nLine < s_nViewBottom && nBlock >= s_nViewLeft && nBlock < s_nViewRight)
+    {
+        // Convert the used part of the line to high resolution
+        pScreen->GetHiResLine(g_nLine - s_nViewTop, nBlock);
+        pFrame = pFrameHigh;
+
+        // Draw the artefact and advance the draw position
+        pFrame->ScreenChange(bVal_, g_nLine, nBlock);
+        nLastBlock += (VIDEO_DELAY >> 3);
+    }
 }
 
 
