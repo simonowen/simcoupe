@@ -31,6 +31,9 @@ namespace Video
     bool CreatePalettes (bool fDimmed_=false);
 }
 
+
+const int PALETTE_OFFSET = 10;		// Offset into palette to start from (we need to leave the first 10 for Windows' use)
+
 extern DWORD aulPalette[N_PALETTE_COLOURS];
 extern WORD awY[N_PALETTE_COLOURS], awU[N_PALETTE_COLOURS], awV[N_PALETTE_COLOURS];
 extern LPDIRECTDRAWSURFACE pddsPrimary, pddsFront, pddsBack;

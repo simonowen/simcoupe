@@ -438,7 +438,7 @@ bool CreatePalettes (bool fDimmed_/*=false*/)
 
         // Write the palette components, leaving the first 10 entries for menu colours etc.
         PALETTEENTRY pe = { bRed, bGreen, bBlue, PC_NOCOLLAPSE };
-        pal[i+10] = pe;
+        pal[PALETTE_OFFSET+i] = pe;
 
         // Using YUV on an overlay?
         if (fYUV)
@@ -479,7 +479,7 @@ bool CreatePalettes (bool fDimmed_/*=false*/)
 
         // In 8 bit mode use offset palette positions to allow for system colours in the first 10
         else if (fPalette)
-            aulPalette[i] = i+10;
+            aulPalette[i] = PALETTE_OFFSET+i;
 
         else if (uBPP == 16)
             aulPalette[i] = awRedTab[bRed] | awGreenTab[bGreen] | awBlueTab[bBlue];
