@@ -426,6 +426,7 @@ class CListView : public CWindow
 {
     public:
         CListView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, int nItemOffset=0);
+        ~CListView ();
 
     public:
         bool IsTabStop () const { return true; }
