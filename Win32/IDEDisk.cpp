@@ -42,7 +42,12 @@ bool CDeviceHardDisk::Open (const char* pcszDisk_)
 {
     m_hDevice = CreateFile(pcszDisk_, GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING, NULL, NULL);
 
-    if (IsOpen())
+    if (!IsOpen())
+    {
+        if (GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
+            TRACE("Failed to open %s (%#08lx)\n", pcszDisk_, GetLastError());
+    }
+    else
     {
         DWORD dwRet;
         DISK_GEOMETRY dg;
