@@ -184,8 +184,10 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
             {
                 case dskImage:
                 {
-                    CDisk* pDisk = CDisk::Open(GetOption(disk1));
-                    pDrive1 = pDisk ? new CDrive(pDisk) : new CDiskDevice(dskNone);
+                    pDrive1 = new CDrive();
+
+                    if (*GetOption(disk1))
+                        pDrive1->Insert(GetOption(disk1));
                     break;
                 }
 
@@ -201,8 +203,11 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
             {
                 case dskImage:
                 {
-                    CDisk* pDisk = CDisk::Open(GetOption(disk2));
-                    pDrive2 = pDisk ? new CDrive(pDisk) : new CDiskDevice(dskNone);
+                    pDrive2 = new CDrive();
+
+                    if (*GetOption(disk2))
+                        pDrive2->Insert(GetOption(disk2));
+                    
                     break;
                 }
 
