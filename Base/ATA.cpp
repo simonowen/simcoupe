@@ -103,7 +103,9 @@ WORD CATADevice::In (WORD wPort_)
                         m_sRegs.bStatus ^= ATA_STATUS_INDEX;
 
                     // Update the DRQ bit to show whether data is expected or available
-                    (m_sRegs.bStatus &= ~ATA_STATUS_DRQ) |= (m_uBuffer ? ATA_STATUS_DRQ : 0);
+                    m_sRegs.bStatus &= ~ATA_STATUS_DRQ;
+                    if (m_uBuffer)
+                        m_sRegs.bStatus |= ATA_STATUS_DRQ;
 
                     // Return the current status
                     wRet = m_sRegs.bStatus;

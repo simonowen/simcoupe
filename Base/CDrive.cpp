@@ -113,7 +113,8 @@ void CDrive::FrameEnd ()
 inline void CDrive::ModifyStatus (BYTE bSet_, BYTE bReset_)
 {
     // Reset then set the specified bits
-    (m_sRegs.bStatus &= ~bReset_) |= bSet_;
+    m_sRegs.bStatus &= ~bReset_;
+    m_sRegs.bStatus |= bSet_;
 
     // If the motor enable bit is set, update the last used time
     if (bSet_ & MOTOR_ON)
