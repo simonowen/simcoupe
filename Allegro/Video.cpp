@@ -2,7 +2,7 @@
 //
 // Video.cpp: Allegro video handling for surfaces, screen modes, palettes etc.
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "SimCoupe.h"
 #include "Video.h"
 
+#include "Action.h"
 #include "Display.h"
 #include "Frame.h"
 #include "GUI.h"
