@@ -1,9 +1,9 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Memory.h: Memory configuration and management
 //
+//  Copyright (c) 1999-2002  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
-//  Copyright (c) 1999-2001  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -54,17 +54,19 @@ void write_to_screen_vmpr0 (WORD wAddr_);
 void write_to_screen_vmpr1 (WORD wAddr_);
 void write_word (WORD wAddr_, WORD wVal_);
 
-inline BYTE read_byte(WORD wAddr_)
+
+inline BYTE* phys_read_addr (WORD wAddr_)
 {
-    return apbSectionReadPtrs[VPAGE(wAddr_)][wAddr_ & (MEM_PAGE_SIZE-1)];
+    return &apbSectionReadPtrs[VPAGE(wAddr_)][wAddr_ & (MEM_PAGE_SIZE-1)];
 }
 
-inline WORD read_word(WORD wAddr_)
+inline BYTE* phys_write_addr (WORD wAddr_)
 {
-    return read_byte(wAddr_) | (read_byte(wAddr_+1) << 8);
+    return &apbSectionWritePtrs[VPAGE(wAddr_)][wAddr_ & (MEM_PAGE_SIZE-1)];
 }
 
-inline void write_byte (WORD wAddr_, BYTE bVal_)
+
+inline void check_video_write (WORD wAddr_)
 {
     // Does the write fall within the first display page?
     if (RPAGE(wAddr_) == vmpr_page1)
@@ -73,12 +75,25 @@ inline void write_byte (WORD wAddr_, BYTE bVal_)
     // Does the write fall within the second display page? (modes 3 and 4 only)
     else if ((RPAGE(wAddr_) == vmpr_page2) && (vmpr_mode > MODE_2))
         write_to_screen_vmpr1(wAddr_);
-
-    // Write the byte to memory
-    apbSectionWritePtrs[VPAGE(wAddr_)][wAddr_ & (MEM_PAGE_SIZE-1)] = bVal_;
 }
 
-inline void write_word(WORD wAddr_, WORD wVal_)
+
+inline BYTE read_byte (WORD wAddr_)
+{
+    return *phys_read_addr(wAddr_);
+}
+
+inline WORD read_word (WORD wAddr_)
+{
+    return read_byte(wAddr_) | (read_byte(wAddr_+1) << 8);
+}
+
+inline void write_byte (WORD wAddr_, BYTE bVal_)
+{
+    *phys_write_addr(wAddr_) = bVal_;
+}
+
+inline void write_word (WORD wAddr_, WORD wVal_)
 {
     // Write the low byte then the high byte
     write_byte(wAddr_, wVal_ & 0xff);
