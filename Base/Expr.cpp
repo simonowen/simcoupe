@@ -24,12 +24,12 @@
 #include "Memory.h"
 
 
-const char* p;
-EXPR *pHead, *pTail;
-
-////////////////////////////////////////////////////////////////////////////////
+static const char* p;
+static EXPR *pHead, *pTail;
+static int nFlags;
 
 const int MAX_FUNC_PARAMS = 5;
+
 
 EXPR Expr::True = { T_NUMBER, 1, NULL }, Expr::False = { T_NUMBER, 0, NULL };
 
@@ -110,7 +110,7 @@ static const TOKEN asVariables[] =
     {NULL}
 };
 
-const TOKEN* LookupToken (const char* pcsz_, size_t uLen_, const TOKEN* pTokens_)
+static const TOKEN* LookupToken (const char* pcsz_, size_t uLen_, const TOKEN* pTokens_)
 {
     for ( ; pTokens_->pcsz ; pTokens_++)
         if (strlen(pTokens_->pcsz) == uLen_ && !memcmp(pcsz_, pTokens_->pcsz, uLen_))
@@ -122,27 +122,29 @@ const TOKEN* LookupToken (const char* pcsz_, size_t uLen_, const TOKEN* pTokens_
 ////////////////////////////////////////////////////////////////////////////////
 
 // Compile an infix expression to an easy-to-process postfix expression list
-EXPR* Expr::Compile (const char* pcsz_, char** ppcszEnd_/*=NULL*/)
+EXPR* Expr::Compile (const char* pcsz_, char** ppszEnd_/*=NULL*/, int nFlags_/*=0*/)
 {
-    // Clear the expression list and set the expression string
+    // Clear the expression list and set the expression string and flags
     pHead = pTail = NULL;
     p = pcsz_;
+    nFlags = nFlags_;
 
     // Fail if the expression was bad, or there's unexpected garbage on the end
-    if (!Term() || (!ppcszEnd_ && *p))
+    if (!Term() || (!ppszEnd_ && *p))
     {
         Release(pHead);
         return NULL;
     }
 
     // Supply the end pointer if required
-    if (ppcszEnd_)
-        *ppcszEnd_ = const_cast<char*>(p);
+    if (ppszEnd_)
+        *ppszEnd_ = const_cast<char*>(p);
 
     // Return the expression list
     return pHead;
 }
 
+// Evaluate a compiled expression
 int Expr::Eval (const EXPR* pExpr_)
 {
     // Value stack
@@ -298,6 +300,32 @@ int Expr::Eval (const EXPR* pExpr_)
     return an[--n];
 }
 
+// Evaluate an expression, returning the value and whether it was valid
+bool Expr::Eval (const char* pcsz_, int& nValue_, int nFlags_/*=0*/)
+{
+    char* pszEnd = NULL;
+
+    // Fail obviously invalid inputs
+    if (!pcsz_ || !*pcsz_)
+        return false;
+
+    // Compile the expression, failing if there's an error
+    EXPR* pExpr = Compile(pcsz_, &pszEnd, nFlags_);
+    if (!pExpr)
+        return false;
+
+    // Evaluate and release the expression
+    int n = Eval(pExpr);
+    Release(pExpr);
+
+    // Fail if there's anything left in the input
+    if (*pszEnd)
+        return false;
+
+    // Expression valid
+    nValue_ = n;
+    return true;
+}
 
 // Parse an expression, optionally containing binary operators of a specified precedence level (or above)
 bool Expr::Term (int n_/*=0*/)
@@ -344,9 +372,52 @@ bool Expr::Factor ()
     // Strip leading whitespace
     for ( ; isspace(*p) ; p++);
 
-    // Decimal, hex or octal, using the standard C prefixes
-    if (isdigit(*p))
-        AddNode(T_NUMBER, strtoul(p, (char**)&p, 0));
+    // Starts with a valid hex digit?
+    if (isxdigit(*p))
+    {
+        // Parse as hex initially
+        const char* p2;
+        int nValue = strtoul(p, (char**)&p2, 16);
+
+        // Accept values using a C-style "0x" prefix
+        if (p[0] == '0' && tolower(p[1]) == 'x')
+        {
+            AddNode(T_NUMBER, nValue);
+            p = p2;
+        }
+
+        // Also accept hex values with an 'h' suffix
+        else if (tolower(*p2) == 'h')
+        {
+            AddNode(T_NUMBER, nValue);
+            p = p2+1;
+        }
+
+        // Check for binary values with a 'b' suffix
+        else if (*p == '0' || *p == '1')
+        {
+            nValue = 0;
+            for (p2 = p ; *p2 == '0' || *p2 == '1' ; p2++)
+                (nValue <<= 1) |= (*p2-'0');
+
+            // If there's a 'b' suffix it's binary
+            if (tolower(*p2) == 'b')
+            {
+                AddNode(T_NUMBER, nValue);
+                p = p2+1;
+            }
+            // Otherwise parse as decimal
+            else
+            {
+                AddNode(T_NUMBER, strtoul(p, (char**)&p, 10));
+            }
+        }
+        // Parse as decimal (leading zeroes should not give octal!)
+        else
+        {
+            AddNode(T_NUMBER, strtoul(p, (char**)&p, 10));
+        }
+    }
 
     // Hex value with explicit prefix?
     else if ((*p == '$' || *p == '&' || *p == '#') && isxdigit(p[1]))
@@ -390,6 +461,13 @@ bool Expr::Factor ()
         AddNode(T_UNARY_OP, anUnary[strchr(pcszUnary,op)-pcszUnary]);
     }
 
+    // Program Counter '$' symbol?
+    else if (*p == '$' && !(nFlags & noRegs))
+    {
+        AddNode(T_REGISTER, REG_PC);
+        p++;
+    }
+
     // Variable, operator or function?
     else if (isalpha(*p))
     {
@@ -414,7 +492,7 @@ bool Expr::Factor ()
             for ( ; isalnum(*p) || *p == '\'' ; p++);
 /*
             // Function?
-            if (*p == '(')
+            if (!(nFlags & noFuncs) && (*p == '('))
             {
                 int nParams = 0;
 
@@ -438,9 +516,9 @@ bool Expr::Factor ()
             }
             else
 */
-            if ((pToken = LookupToken(pcsz, p-pcsz, asRegisters)))
+            if (!(nFlags & noRegs) && (pToken = LookupToken(pcsz, p-pcsz, asRegisters)))
                 AddNode(T_REGISTER, pToken->nToken);
-            else if ((pToken = LookupToken(pcsz, p-pcsz, asVariables)))
+            else if (!(nFlags & noVars) && (pToken = LookupToken(pcsz, p-pcsz, asVariables)))
                 AddNode(T_VARIABLE, pToken->nToken);
             else
                 return false;
