@@ -25,16 +25,20 @@
 #define GetProfileTime      GetTime
 
 
-namespace OSD
+class OSD
 {
-    bool Init ();
-    void Exit ();
+public:
+    static bool Init (bool fFirstInit_=false);
+    static void Exit (bool fReInit_=false);
 
-    DWORD GetTime ();
-    const char* GetFilePath (const char* pcszFile_);
-    void DebugTrace (const char* pcsz_);
-    bool FrameSync (bool fWait_=true);
+    static DWORD GetTime ();
+    static const char* GetFilePath (const char* pcszFile_);
+    static void DebugTrace (const char* pcsz_);
+    static int FrameSync (bool fWait_=true);
+
+    static int s_nTicks;
 };
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -44,6 +48,7 @@ namespace OSD
 
 #ifndef _WINDOWS
 #include <dirent.h>
+#define PATH_SEPARATOR      "/"
 #endif
 
 
@@ -60,12 +65,20 @@ namespace OSD
 #pragma comment(lib, "zlib")
 #endif
 
+#ifndef DUMMY_SAASOUND
+#pragma comment(lib, "SAASound")
+#endif
+
+#ifndef NO_OPENGL
+#pragma comment(lib, "OpenGL32.lib")
+#endif
+
 #pragma warning(disable:4786)   // Disable the stupid warning about debug symbols being truncated
+
+#define PATH_SEPARATOR      "\\"
 
 #define strcasecmp  _strcmpi
 #define mkdir(p,m)  _mkdir(p)
-
-
 
 // Windows lacks direct.h, so we'll supply our own
 struct dirent
