@@ -1748,7 +1748,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
 
                 case IDB_BROWSE:
                 {
-                    if (!GetSaveLoadFile(g_hwnd, szFloppyFilters, NULL, szFile, sizeof szFile, false))
+                    if (!GetSaveLoadFile(hdlg_, szFloppyFilters, NULL, szFile, sizeof szFile, false))
                         break;
 
                     SetDlgItemText(hdlg_, IDE_NEWFILE, szFile);
