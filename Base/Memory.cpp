@@ -134,7 +134,10 @@ static int LoadRomImage (const char* pcszImage_, int nPage_)
 
     // Attempt to open the ROM file from the SimCoupé directory, and then from anywhere in it can be found
     if (!pcszImage_ || (!(pROM = CStream::Open(OSD::GetFilePath(pcszImage_))) && !(pROM = CStream::Open(pcszImage_))))
+    {
         Message(msgError, "Error loading ROM image: %s", pcszImage_);
+        memset(apbPageReadPtrs[nPage_], 0, MEM_PAGE_SIZE);
+    }
     else
     {
         // Read the header+bootstrap code from what could be a ZX82 file (for Andy Wright's ROM images)
