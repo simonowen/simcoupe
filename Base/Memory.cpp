@@ -34,6 +34,7 @@
 #include "CPU.h"
 #include "Options.h"
 #include "OSD.h"
+#include "CStream.h"
 #include "Util.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -59,32 +60,37 @@ BYTE g_abMode1ByteToLine[SCREEN_LINES*SCREEN_BLOCKS];
 
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace Memory
-{
-static int ReadRoms ();
+static int LoadRomImage (const char* pcszImage_, int nPage_);
+
 
 // Allocate and initialise memory
-bool Init ()
+bool Memory::Init (bool fFirstInit_/*=false*/)
 {
-    Exit(true);
-
-    // Allocate and clear all we're likely to need in a single block (512K + 4MB external + 2 ROMs + 2 scratch)
-    if (!pMemory && !(pMemory = new BYTE[TOTAL_PAGES * MEM_PAGE_SIZE]))
+    // Memory only requires one-off initialisation
+    if (fFirstInit_)
     {
-        Message(msgError, "Out of memory!");
-        return false;
+        // Allocate a single block for all we're likely to need (512K + 4MB external + 2 ROMs + 2 scratch)
+        if (!pMemory && !(pMemory = new BYTE[TOTAL_PAGES * MEM_PAGE_SIZE]))
+        {
+            Message(msgError, "Out of memory!");
+            return false;
+        }
+
+        // Stripe-initialise the RAM banks as seems to be the situation on the real unit
+        for (int i = 0 ; i < (ROM0 * MEM_PAGE_SIZE) ; i += 256)
+        {
+            memset(pMemory+i,     0x00, 128);
+            memset(pMemory+i+128, 0xff, 128);
+        }
+
+        // Fill the ROMs and scratch memory with 0xff for now
+        memset(pMemory+ROM0 * MEM_PAGE_SIZE, 0xff, (TOTAL_PAGES-ROM0) * MEM_PAGE_SIZE);
     }
 
-    // Clear out memory - allows use of the fast-boot option to skip SAM's memory check and initialisation
-    memset(pMemory, 0, TOTAL_PAGES * MEM_PAGE_SIZE);
 
     // Start with all memory available, and fully readable and writable
-    for (int i = 0 ; i < TOTAL_PAGES ; i++)
-        apbPageReadPtrs[i] = apbPageWritePtrs[i] = pMemory + (i * MEM_PAGE_SIZE);
-
-    // Read the ROMs and set the memory as read-only
-    ReadRoms();
-    apbPageWritePtrs[ROM0] = apbPageWritePtrs[ROM1] = apbPageWritePtrs[SCRATCH_WRITE];
+    for (int nPage = 0 ; nPage < TOTAL_PAGES ; nPage++)
+        apbPageReadPtrs[nPage] = apbPageWritePtrs[nPage] = pMemory + (nPage * MEM_PAGE_SIZE);
 
     // Are we in 256K mode?
     if (GetOption(mainmem) == 256)
@@ -107,96 +113,46 @@ bool Init ()
         g_awMode1LineToByte[g_abMode1ByteToLine[nOffset]] = (nOffset & ~0x1f);
     }
 
+    // Load the ROMs, using the second file if the first doesn't contain both
+    if (LoadRomImage(GetOption(rom0), ROM0) < 2)
+        LoadRomImage(GetOption(rom1), ROM1);
+
+    // Writes to the ROM are discarded
+    apbPageWritePtrs[ROM0] = apbPageWritePtrs[ROM1] = apbPageWritePtrs[SCRATCH_WRITE];
+
     return true;
 }
 
-void Exit (bool fReInit_/*=false*/)
+void Memory::Exit (bool fReInit_/*=false*/)
 {
-    if (!fReInit_ && pMemory) { delete pMemory; pMemory = NULL; }
+    if (!fReInit_) { delete pMemory; pMemory = NULL; }
 }
 
-// Patch ROM0 and ROM1 to speed up the initial boot 
-void FastStartPatch (bool fPatch_/*=true*/)
+
+// Read the ROM image into the ROM area of our paged memory block
+static int LoadRomImage (const char* pcszImage_, int nPage_)
 {
-    static bool fPatched = false;
+    int nRead = 0;
+    CStream* pROM;
 
-    // Check the option is enabled, and for ROM version 3.x before changing anything, just in case
-    if ((fPatched != fPatch_) && apbPageReadPtrs[ROM0][0x000f] / 10 == 3)
-    {
-        static BYTE abHDBoot1[] = { 0xd4, 0x39, 0xd1, 0x00, 0x00, 0xfa, 0x5f, 0x00, 0x52, 0x02, 0x00, 0x5f, 0xb9 };
-        static BYTE abHDBoot2[] = { 0x3A, 0xC2, 0x5B, 0xA7, 0x20, 0x15, 0x21, 0x3B, 0x5C, 0xCB, 0xEE, 0x2E, 0x08,
-                                    0x36, 0xC9, 0x18, 0x1C, 0xCD, 0x6C, 0xD9, 0x47, 0x79, 0xD3, 0xE0, 0x10, 0xFE,
-                                    0xC9, 0x11, 0x09, 0x00, 0xCD, 0x1B, 0x08, 0xAF, 0xCD, 0xB0, 0x3D, 0xCD, 0xB1,
-                                    0x1C, 0x28, 0xFB, 0xCD, 0xB5, 0x06, 0x21, 0x35, 0x18, 0x7d };
-
-        static BYTE abNormal1[sizeof abHDBoot1], abNormal2[sizeof abHDBoot2];
-
-        if (fPatched = fPatch_)
-        {
-            // Save the original contents
-            memcpy(abNormal1, &apbPageReadPtrs[ROM0][0x00b0], sizeof abHDBoot1);
-            memcpy(abNormal2, &apbPageReadPtrs[ROM0][0x0f7f], sizeof abHDBoot2);
-#if 0
-            // Make the Atom-boot modifications
-            memcpy(&apbPageReadPtrs[ROM0][0x00b0], abHDBoot1, sizeof abHDBoot1);
-            memcpy(&apbPageReadPtrs[ROM0][0x0f7f], abHDBoot2, sizeof abHDBoot2);
-            apbPageReadPtrs[ROM0][0x0001] = 0x31;
-            apbPageReadPtrs[ROM0][0x000f] = 0x1e;
-#else
-
-            // Make the fast-boot modifications
-            apbPageReadPtrs[ROM0][0x00b5] = 0x06;   // JR NZ,e -> LD B,e    to short-circuit BC delay loop
-            apbPageReadPtrs[ROM0][0x0796] = 0x06;   // JR NZ,e -> LD B,e    to short-circuit BC delay loop
-            apbPageReadPtrs[ROM1][0x2bc9] = 0x06;   // LDIR    -> LD B,176  to avoid page clear slowdown
-            apbPageReadPtrs[ROM1][0x2bd0] = 0x01;   // LD E,64 -> LD E,1    only one read/write test per page
-#endif
-        }
-        else
-        {
-            // Reverse the Atom boot patches
-            memcpy(&apbPageReadPtrs[ROM0][0x00b0], abNormal1, sizeof abHDBoot1);
-            memcpy(&apbPageReadPtrs[ROM0][0x0f7f], abNormal2, sizeof abHDBoot2);
-            apbPageReadPtrs[ROM0][0x0001] = 0xc3;
-            apbPageReadPtrs[ROM0][0x000f] = 0x1f;
-
-            // Reverse the fast-boot patches
-            apbPageReadPtrs[ROM0][0x00b5] = 0x20;
-            apbPageReadPtrs[ROM0][0x0796] = 0x10;
-            apbPageReadPtrs[ROM1][0x2bc9] = 0xed;
-            apbPageReadPtrs[ROM1][0x2bd0] = 0x40;
-        }
-    }
-}
-
-// Read the ROM image into the ROM area of our paged memory
-static bool LoadRomImage (const char* pcszImage_, int nPage_)
-{
-    FILE* file;
-    if (!(file = fopen(OSD::GetFilePath(pcszImage_), "rb")) && !(file = fopen(pcszImage_, "rb")))
+    // Attempt to open the ROM file from the SimCoupé directory, and then from anywhere in it can be found
+    if (!pcszImage_ || (!(pROM = CStream::Open(OSD::GetFilePath(pcszImage_))) && !(pROM = CStream::Open(pcszImage_))))
         Message(msgError, "Failed to open ROM image: %s", pcszImage_);
     else
     {
-        // Read the image, warning if the image is not exactly 16K
-        if (!fread(apbPageReadPtrs[nPage_], MEM_PAGE_SIZE, 1, file))
-            Message(msgWarning, "ROM image (%s) is too small (under 16K)!", pcszImage_);
+        // Read the header+bootstrap code from what could be a ZX82 file (for Andy Wright's ROM images)
+        BYTE abHeader[140];
+        pROM->Read(abHeader, sizeof abHeader);
 
-        fclose(file);
-        return true;
+        // If we don't find the ZX82 signature, rewind to read as a plain ROM file
+        if (memcmp(abHeader, "ZX82", 4))
+            pROM->Rewind();
+
+        // Read the ROM(s), attempting to get both from the file if possible, then close the file
+        nRead = pROM->Read(apbPageReadPtrs[nPage_], MEM_PAGE_SIZE * ((nPage_ == ROM0) ? 2 : 1));
+        delete pROM;
     }
 
-    return false;
+    // Return the number of ROMs read
+    return nRead / MEM_PAGE_SIZE;
 }
-
-int ReadRoms ()
-{
-    // Read in the two SAM ROM images
-    bool f = LoadRomImage(GetOption(rom0), ROM0) && LoadRomImage(GetOption(rom1), ROM1);
-
-    // The fast reset option requires a few temporary ROM patches that are reversed later
-    if (GetOption(fastreset))
-        FastStartPatch();
-
-    return f;
-}
-
-};  // namespace Memory
