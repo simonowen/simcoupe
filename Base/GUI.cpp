@@ -2,7 +2,7 @@
 //
 // GUI.cpp: GUI and controls for on-screen interface
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,7 +28,6 @@
 
 #include "SimCoupe.h"
 #include <ctype.h>
-#include <sys/stat.h>
 #include "GUI.h"
 
 #include "Display.h"
@@ -943,7 +942,10 @@ bool CRadioButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
         case GM_BUTTONUP:
             if (fPressed)
-                return !(fPressed = false);
+            {
+                fPressed = false;
+                return true;
+            }
             break;
     }
 
@@ -1435,7 +1437,10 @@ bool CScrollBar::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
         case GM_BUTTONUP:
             if (fDragging)
-                return !(fDragging = false);
+            {
+                fDragging = false;
+                return true;
+            }
             break;
 
         case GM_MOUSEMOVE:
@@ -2393,7 +2398,10 @@ bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
         case GM_BUTTONUP:
             // If this is the button up after finishing a drag, clear the flag
             if (m_fDragging)
-                return !(m_fDragging = false);
+            {
+                m_fDragging = false;
+                return true;
+            }
             break;
 
         case GM_MOUSEMOVE:
