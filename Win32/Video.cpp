@@ -48,6 +48,7 @@ DDCAPS ddcaps;
 
 HRESULT hr;
 
+HRESULT ClearSurface (LPDIRECTDRAWSURFACE pdds_);
 LPDIRECTDRAWSURFACE CreateSurface (DWORD dwCaps_, DWORD dwWidth_=0, DWORD dwHeight_=0, LPDDPIXELFORMAT pddpf_=NULL, DWORD dwRequiredCaps_=0);
 LPDIRECTDRAWSURFACE CreateOverlay (DWORD dwWidth_, DWORD dwHeight_, LPDDPIXELFORMAT pddpf_=NULL);
 
@@ -234,7 +235,7 @@ void Video::Exit (bool fReInit_/*=false*/)
 }
 
 
-HRESULT Video::ClearSurface (LPDIRECTDRAWSURFACE pdds_)
+HRESULT ClearSurface (LPDIRECTDRAWSURFACE pdds_)
 {
     HRESULT hr;
 
