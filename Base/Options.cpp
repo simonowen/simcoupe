@@ -291,8 +291,8 @@ bool Options::Load (int argc_, char* argv_[])
             // Bare filenames will be inserted into drive 1 then 2
             switch (nDrive++)
             {
-                case 1:  SetOption(disk1, pcszOption);  g_fAutoBoot = true;             break;
-                case 2:  SetOption(disk2, pcszOption);                                  break;
+                case 1:  SetOption(disk1, pcszOption);  SetOption(drive1,dskImage); g_fAutoBoot = true;  break;
+                case 2:  SetOption(disk2, pcszOption);  SetOption(drive2,dskImage);     break;
                 default: TRACE("Unexpected command-line parameter: %s\n", pcszOption);  break;
             }
         }
