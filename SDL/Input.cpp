@@ -148,7 +148,7 @@ bool Init (bool fFirstInit_/*=false*/)
 {
     Exit(true);
 
-    // Initialise the joysticks if any are 
+    // Initialise the joysticks if any are
     if ((*GetOption(joydev1) || *GetOption(joydev2)) && !SDL_InitSubSystem(SDL_INIT_JOYSTICK))
     {
         // Loop through the available devices for the ones to use (if any)
@@ -163,6 +163,8 @@ bool Init (bool fFirstInit_/*=false*/)
 
     Mouse::Init(fFirstInit_);
     Purge();
+    // Force all modifier keys off (avoids Ctrl getting stuck from Ctrl-F5 in Visual Studio)
+    SDL_SetModState(KMOD_NONE);
 
     return true;
 }
@@ -200,9 +202,6 @@ void Purge (bool fKeyboard_/*=true*/, bool fMouse_/*=true*/)
         // Remove any queued key events
         while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_KEYDOWNMASK|SDL_KEYUPMASK) > 0)
             ;
-
-        // Force all modifier keys off (avoids Ctrl getting stuck from Ctrl-F5 in Visual Studio)
-        SDL_SetModState(KMOD_NONE);
 
         // Release all keys
         memset(afKeyStates, 0, sizeof afKeyStates);
@@ -349,7 +348,7 @@ bool ReadKeyboard ()
             SDL_PushEvent(&event);
         }
     }
-        
+
     return fRet;
 }
 
