@@ -107,7 +107,7 @@ OPTION aOptions[] =
     OPT("Beeper",       OT_BOOL,    beeper,         true),      // Spectrum-style beeper enabled
 
     OPT("SAASound",     OT_BOOL,    saasound,       true),      // SAA 1099 sound chip enabled
-    OPT("Frequency",    OT_INT,     freq,		    22050),     // 22KHz
+    OPT("Frequency",    OT_INT,     freq,           22050),     // 22KHz
     OPT("Bits",         OT_INT,     bits,           16),        // 16-bit
     OPT("Stereo",       OT_BOOL,    stereo,         true),      // Stereo
     OPT("Filter",       OT_BOOL,    filter,         false),     // Sound filter disabled (not implemented by SAASOUND yet)
@@ -226,7 +226,7 @@ bool Options::Save ()
     // Some options are not persistant
     SetOption(autoboot,false);
 
-	// Open the options file for writing, fail if we can't
+    // Open the options file for writing, fail if we can't
     FILE* hfOptions = fopen(OSD::GetFilePath(OPTIONS_FILE), "wb");
     if (!hfOptions)
         return false;
