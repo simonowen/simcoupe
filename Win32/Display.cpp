@@ -2,7 +2,7 @@
 //
 // Display.cpp: Win32 display rendering
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -436,13 +436,8 @@ void Display::Update (CScreen* pScreen_)
         return;
     }
 
-    // Draw any changed lines
-    if (!DrawChanges(pScreen_, pddsBack))
-    {
-        TRACE("Display::Update(): DrawChanges() failed\n");
+    if (!pddsPrimary)
         return;
-    }
-
 
     // Now to get the image to the display...
 
@@ -456,6 +451,7 @@ void Display::Update (CScreen* pScreen_)
     pddsPrimary->GetSurfaceDesc(&ddsdPrimary);
 
     bool fOverlay = (ddsdBack.ddsCaps.dwCaps & DDSCAPS_OVERLAY) != 0;
+
 
     // rBack is the total screen area
     RECT rBack = { 0, 0, ddsdBack.dwWidth, ddsdBack.dwHeight };
@@ -503,8 +499,6 @@ void Display::Update (CScreen* pScreen_)
     // Centre the target view within the target area
     OffsetRect(&rTo, (rFront.right - rTo.right) >> 1, (rFront.bottom - rTo.bottom) >> 1);
 
-    ProfileStart(Blt);
-
     // If we're using an overlay we need to fill the visible area with the colour key
     if (fOverlay)
     {
@@ -540,6 +534,8 @@ void Display::Update (CScreen* pScreen_)
         DDOVERLAYFX ddofx = { sizeof ddofx };
         ddofx.dckDestColorkey.dwColorSpaceLowValue = ddofx.dckDestColorkey.dwColorSpaceHighValue = dwColourKey;
 
+        ProfileStart(Blt);
+
         // If the overlay position is the same, force an update [removed as this was very slow on some cards!]
         if (EqualRect(&rTo, &rLastOverlay))
             ;//pddsOverlay->UpdateOverlay(&rBack, pddsPrimary, &rTo, DDOVER_REFRESHALL|DDOVER_KEYDESTOVERRIDE, NULL);
@@ -555,13 +551,19 @@ void Display::Update (CScreen* pScreen_)
             pddsOverlay->UpdateOverlay(NULL, pddsPrimary, NULL, DDOVER_HIDE, NULL);
         }
 
+        // With the overlay in place, draw any changed lines
+        DrawChanges(pScreen_, pddsBack);
 
         // Fill the appropriate area with the colour key
         DDBLTFX bltfx = { sizeof bltfx };
         bltfx.dwFillColor = dwColourKey;
         pddsPrimary->Blt(&rTo, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
+
+        ProfileEnd();
     }
-    else
+
+    // Draw changes on the non-overlay surface
+    else if (DrawChanges(pScreen_, pddsBack))
     {
         if (fHalfHeight)
             rBack.bottom >>= 1;
@@ -585,10 +587,13 @@ void Display::Update (CScreen* pScreen_)
 
     DDBLTFX bltfx = { sizeof bltfx };
     bltfx.dwFillColor = 0;
+
+    ProfileStart(Blt);
     if (!IsRectEmpty(&rLeftBorder)) pddsPrimary->Blt(&rLeftBorder, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
     if (!IsRectEmpty(&rTopBorder)) pddsPrimary->Blt(&rTopBorder, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
     if (!IsRectEmpty(&rRightBorder)) pddsPrimary->Blt(&rRightBorder, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
     if (!IsRectEmpty(&rBottomBorder)) pddsPrimary->Blt(&rBottomBorder, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
+    ProfileEnd();
 
 
     // Remember the source and target rects for cursor position mapping in the GUI
@@ -599,8 +604,6 @@ void Display::Update (CScreen* pScreen_)
     if (GetOption(fullscreen))
         ClientToScreen(g_hwnd, &ptOffset);
     OffsetRect(&rTarget, -ptOffset.x, -ptOffset.y);
-
-    ProfileEnd();
 }
 
 // Scale a Windows client size/movement to one relative to the SAM view port size
