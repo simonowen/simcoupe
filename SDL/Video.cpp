@@ -240,7 +240,10 @@ bool Video::Init (bool fFirstInit_/*=false*/)
             SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
             if (GetOption(fullscreen))
+            {
                 dwOptions |= SDL_FULLSCREEN;
+                nDepth = 32;
+            }
 
             if (!(pFront = SDL_SetVideoMode(dwWidth, dwHeight, nDepth, (dwOptions | SDL_HWSURFACE | SDL_OPENGL))))
             {
@@ -370,7 +373,13 @@ bool Video::CreatePalettes (bool fDimmed_)
 
             // 32-bit RGBA?
             if (g_glDataType == GL_UNSIGNED_BYTE)
+            {
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
                 aulPalette[i] = (bAlpha << 24) | (bBlue << 16) | (bGreen << 8) | bRed;
+#else
+                aulPalette[i] = (bRed << 24) | (bGreen << 16) | (bBlue << 8) | bAlpha;
+#endif
+            }
             else
             {
                 // The component masks depend on the data type (pixel format assumed from above)
@@ -388,12 +397,6 @@ bool Video::CreatePalettes (bool fDimmed_)
                 // Combine for the final pixel value
                 aulPalette[i] = dwRed | dwGreen | dwBlue | dwAlpha;
             }
-
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-            // Reverse the byte order for big-endian, as we write in DWORDs in Display.cpp
-            aulPalette[i] = ((aulPalette[i] << 24) & 0xff000000) | ((aulPalette[i] <<  8) & 0x00ff0000) |
-                            ((aulPalette[i] >>  8) & 0x0000ff00) | ((aulPalette[i] >> 24) & 0x000000ff);
-#endif
         }
         else if (!fPalette)
             aulPalette[i] = SDL_MapRGB(pBack->format, bRed, bGreen, bBlue);
