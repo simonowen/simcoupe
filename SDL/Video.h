@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Video.h: SDL video handling for surfaces, screen modes, palettes etc.
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,7 +40,6 @@ extern SDL_Surface *pBack, *pFront;
 
 const int N_TEXTURES = 9;   // a 3x3 block of 256x256 textures is needed (at most) for the full display area
 
-#include <GL/gl.h>
 extern GLuint dlist;
 extern GLuint auTextures[];
 extern DWORD dwTextureData[N_TEXTURES][256][256];
