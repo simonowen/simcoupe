@@ -50,7 +50,6 @@ DDCAPS ddcaps;
 
 HRESULT hr;
 
-void ClearSurface (LPDIRECTDRAWSURFACE pdds_);
 LPDIRECTDRAWSURFACE CreateSurface (DWORD dwCaps_, DWORD dwWidth_=0, DWORD dwHeight_=0, LPDDPIXELFORMAT pddpf_=NULL, DWORD dwRequiredCaps_=0);
 LPDIRECTDRAWSURFACE CreateOverlay (DWORD dwWidth_, DWORD dwHeight_, LPDDPIXELFORMAT pddpf_=NULL);
 
@@ -239,23 +238,23 @@ void Video::Exit (bool fReInit_/*=false*/)
 }
 
 
-void ClearSurface (LPDIRECTDRAWSURFACE pdds_)
+HRESULT Video::ClearSurface (LPDIRECTDRAWSURFACE pdds_)
 {
+    HRESULT hr;
+
     // Get details on the surface to clear
     DDSURFACEDESC ddsd = { sizeof ddsd };
     pdds_->GetSurfaceDesc(&ddsd);
 
-    // Back is zero in RGB, but something different in YUV
-    DWORD dwColour = (ddsd.ddpfPixelFormat.dwFlags & DDPF_FOURCC) ? (((awV[0] | awY[0]) << 16) | awU[0] | awY[0]) : 0;
-
-    // Try and clear it with a simple blit
+    // Try and clear it with a simple blit, using the appropriate black colour
     DDBLTFX bltfx = { sizeof bltfx };
+    bltfx.dwFillColor = (ddsd.ddpfPixelFormat.dwFlags & DDPF_FOURCC) ? (((awV[0] | awY[0]) << 16) | awU[0] | awY[0]) : 0;
 
     // Hopefully this will work ok!
-    if (FAILED(pdds_->Blt(NULL, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx)))
+    if (FAILED(hr = pdds_->Blt(NULL, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx)))
     {
         // Bah, that failed so we'll have to do it the hard way!
-        if (SUCCEEDED(pdds_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WAIT, NULL)))
+        if (SUCCEEDED(hr = pdds_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WAIT, NULL)))
         {
             // Get the surface pointer, and convert width to pairs of (WORD-sized) pixels and pitch to DWORDs
             DWORD* pdw = reinterpret_cast<DWORD*>(ddsd.lpSurface);
@@ -267,12 +266,14 @@ void ClearSurface (LPDIRECTDRAWSURFACE pdds_)
             {
                 // Fill the line with the required colour
                 for (int j = 0 ; j < (int)ddsd.dwWidth ; j++)
-                    pdw[j] = dwColour;
+                    pdw[j] = bltfx.dwFillColor;
             }
 
             pdds_->Unlock(ddsd.lpSurface);
         }
     }
+
+    return hr;
 }
 
 LPDIRECTDRAWSURFACE CreateOverlay (DWORD dwWidth_, DWORD dwHeight_, LPDDPIXELFORMAT pddpf_/*=NULL*/)
@@ -489,7 +490,6 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
 
     return true;
 }
-
 
 void Video::UpdatePalette ()
 {
