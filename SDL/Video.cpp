@@ -63,8 +63,8 @@ static BYTE abIconMask[128] =
 #ifdef USE_OPENGL
 
 GLuint dlist;
-GLuint auTextures[6];
-DWORD dwTextureData[6][256][256];
+GLuint auTextures[N_TEXTURES];
+DWORD dwTextureData[N_TEXTURES][256][256];
 
 
 void glBork (const char* pcsz_)
@@ -83,50 +83,48 @@ void glBork (const char* pcsz_)
     }
 }
 
-void TestFormat (GLenum format, GLenum type)
-{
-    glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_RGB, 64, 64, 0, format, type, NULL);
-
-    GLenum error = glGetError();
-    if (error)
-        TRACE("Format:%d type:%d  NOT supported\n");
-    else
-    {
-        GLint r, g, b, a;
-        r = g = b = a = 0;
-        glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_RED_SIZE, &r);
-        glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_GREEN_SIZE, &g);
-        glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_BLUE_SIZE, &b);
-        glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_ALPHA_SIZE, &a);
-
-        TRACE("Format:%d type:%d  supported as:  [%d,%d,%d,%d]\n", r, g, b, a);
-    }
-}
-
 void InitGL ()
 {
     int nWidth = Frame::GetWidth(), nHeight = Frame::GetHeight();
+    int nW = GetOption(ratio5_4) ? nWidth * 5/4 : nWidth;
 
-    glViewport(0, 0, GetOption(ratio5_4) ? (nWidth * 5)/4 : nWidth, nHeight<<1);
+    if (!GetOption(stretchtofit))
+    {
+        // Centralise what we have without any scaling
+        int nX = (pFront->w-nW)>>1, nY = (pFront->h-nHeight)>>2;
+        rTarget.x = nX, rTarget.y = nY, rTarget.w = nW, rTarget.h = nHeight;
+    }
+    else
+    {
+        // Calculate the scaled widths/heights and positions we might need
+        int nW2 = nW * pFront->h / nHeight, nH2 = nHeight * pFront->w / nW;
+        int nX = (pFront->w-nW2)>>1, nY = (pFront->h-nH2)>>1;
+
+        // Scale to fill the width or the height, depending on which fits best
+        if (nH2 > pFront->h)
+            rTarget.x = nX, rTarget.y = 0, rTarget.w = nW2, rTarget.h = pFront->h;
+        else
+            rTarget.x = 0, rTarget.y = nY, rTarget.w = pFront->w, rTarget.h = nH2;
+    }
+
+    // Hack: offset by 1 to stop the GUI half bleeding into the bottom line of the emulation view!
+    glViewport(rTarget.x, rTarget.y-1, rTarget.w, rTarget.h);
+    glBork("glViewport");
 
     glEnable(GL_TEXTURE_2D);
-    glGenTextures(6,auTextures);
+    glGenTextures(N_TEXTURES,auTextures);
 
-    for (int i = 0 ; i < 6 ; i++)
+    for (int i = 0 ; i < N_TEXTURES ; i++)
     {
         glBindTexture(GL_TEXTURE_2D,auTextures[i]);
 
-        bool fFiltered = true;
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, fFiltered ? GL_LINEAR : GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, fFiltered ? GL_LINEAR : GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GetOption(filter) ? GL_LINEAR : GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GetOption(filter) ? GL_LINEAR : GL_NEAREST);
 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, dwTextureData[i]);
         glBork("glTexImage2D");
-
-        TestFormat(GL_RGB, GL_UNSIGNED_BYTE);
-        TestFormat(GL_RGBA, GL_UNSIGNED_BYTE);
     }
 
     dlist=glGenLists(1);
@@ -135,7 +133,7 @@ void InitGL ()
     glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
     glClear(GL_COLOR_BUFFER_BIT);
 
-    for (int yy = 0 ; yy < 2 ; yy++)
+    for (int yy = 0 ; yy < (N_TEXTURES/3) ; yy++)
     {
         for (int xx = 0 ; xx < 3 ; xx++)
         {
