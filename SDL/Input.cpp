@@ -518,6 +518,9 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
         {
             SDL_keysym* pKey = &pEvent_->key.keysym;
 
+            // Strip some modifiers flags to treat them as a normal keys
+            pKey->mod = static_cast<SDLMod>(pKey->mod & ~(KMOD_NUM|KMOD_CAPS|KMOD_MODE));
+
             // Fix any missing symbols that QNX doesn't supply correctly yet
             if (pEvent_->type == SDL_KEYDOWN && !pKey->unicode)
             {
