@@ -153,7 +153,7 @@ OPTION aOptions[] =
     OPT_F("PauseInactive",pauseinactive,  false),     // Continue to run when inactive
 
     OPT_S("FnKeys",       fnkeys,
-     "F1=1,SF1=2,AF1=0,CF1=3,F2=5,SF2=6,AF2=36,CF2=7,F3=30,F4=11,SF4=12,AF4=8,F5=25,SF5=23,F6=26,F7=21,F8=22,F9=14,SF9=13,F10=9,SF10=10,F11=16,F12=15,CF12=8"),
+     "F1=1,SF1=2,AF1=0,CF1=3,F2=5,SF2=6,AF2=4,CF2=7,F3=30,F4=11,SF4=12,AF4=8,F5=25,SF5=23,F6=26,F7=21,F8=22,F9=14,SF9=13,F10=9,SF10=10,F11=16,F12=15,CF12=8"),
 
     { NULL, 0 }
 };
@@ -209,7 +209,7 @@ void* Options::GetDefault (const char* pcszName_)
         {
             case OT_BOOL:       return &p->fDefault;
             case OT_INT:        return &p->nDefault;
-//          case OT_STRING:     return &p->pcszDefault;     // Don't use - points to string table!
+//          case OT_STRING:     return &p->pcszDefault;     // Don't use - points to read-only string table!
         }
     }
 
