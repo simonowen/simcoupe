@@ -310,7 +310,7 @@ bool Expr::Term (int n_/*=0*/)
 
     while (1)
     {
-        int i,nLen;
+        int i, nLen = 0;
 
         // Check for an operator at the current precedence level
         for (i = 0 ; asBinaryOps[n_][i].pcsz && memcmp(asBinaryOps[n_][i].pcsz, p, nLen=strlen(asBinaryOps[n_][i].pcsz)) ; i++);
