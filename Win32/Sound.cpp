@@ -33,14 +33,9 @@
 #include "SimCoupe.h"
 #include <math.h>
 
-#define SOUND_IMPLEMENTATION
 #include "Sound.h"
 
-#ifdef USE_SAASOUND
-#include "SAASound.h"
-#else
 #include "../Extern/SAASound.h"
-#endif
 
 #include "CPU.h"
 #include "IO.h"
@@ -57,8 +52,10 @@ IDirectSoundBuffer* g_pdsbPrimary;
 
 UINT HCF (UINT x_, UINT y_);
 
-CSAA* pSAA;             // Pointer to the current driver object for dealing with the sound chip
-CDAC *pDAC;             // DAC object used for parallel DAC devices and the Spectrum-style beeper
+CSoundStream* aStreams[SOUND_STREAMS];
+
+CSoundStream*& pSAA = aStreams[0];     // SAA 1099 
+CSoundStream*& pDAC = aStreams[1];     // DAC for parallel DACs and Spectrum-style beeper
 
 LPCSAASOUND pSAASound;  // SAASound.dll object - needs to exist as long as we do, to preseve subtle internal states
 
@@ -188,8 +185,8 @@ void Sound::Exit (bool fReInit_/*=false*/)
 {
     TRACE("-> Sound::Exit(%s)\n", fReInit_ ? "reinit" : "");
 
-    if (pSAA) { delete pSAA; pSAA = NULL; }
-    if (pDAC) { delete pDAC; pDAC = NULL; }
+    for (int i = 0 ; i < SOUND_STREAMS ; i++)
+        delete aStreams[i], aStreams[i] = NULL;
 
     if (pSAASound && !fReInit_)
     {
@@ -206,7 +203,7 @@ void Sound::Exit (bool fReInit_/*=false*/)
 void Sound::Out (WORD wPort_, BYTE bVal_)
 {
     if (pSAA)
-        pSAA->Out(wPort_, bVal_);
+        reinterpret_cast<CSAA*>(pSAA)->Out(wPort_, bVal_);
 }
 
 void Sound::FrameUpdate ()
@@ -215,8 +212,8 @@ void Sound::FrameUpdate ()
 
     if (!g_fTurbo)
     {
-        if (pSAA) pSAA->Update(true);
-        if (pDAC) pDAC->Update(true);
+        for (int i = 0 ; i < SOUND_STREAMS ; i++)
+            if (aStreams[i]) aStreams[i]->Update(true);
     }
 
     ProfileEnd();
@@ -225,36 +222,38 @@ void Sound::FrameUpdate ()
 
 void Sound::Silence ()
 {
-    if (pSAA) pSAA->Silence();
-    if (pDAC) pDAC->Silence();
+    for (int i = 0 ; i < SOUND_STREAMS ; i++)
+        if (aStreams[i]) aStreams[i]->Silence();
 }
 
 void Sound::Stop ()
 {
-    if (pSAA) { pSAA->Stop(); pSAA->Silence(); }
-    if (pDAC) { pDAC->Stop(); pDAC->Silence(); }
+    for (int i = 0 ; i < SOUND_STREAMS ; i++)
+        if (aStreams[i])
+            aStreams[i]->Stop(), aStreams[i]->Silence();
 }
 
 void Sound::Play ()
 {
-    if (pSAA) { pSAA->Silence(); pSAA->Play(); }
-    if (pDAC) { pDAC->Silence(); pDAC->Play(); }
+    for (int i = 0 ; i < SOUND_STREAMS ; i++)
+        if (aStreams[i])
+            aStreams[i]->Silence(), aStreams[i]->Play();
 }
 
 
 void Sound::OutputDAC (BYTE bVal_)
 {
-    if (pDAC) pDAC->Output(bVal_);
+    if (pDAC) reinterpret_cast<CDAC*>(pDAC)->Output(bVal_);
 }
 
 void Sound::OutputDACLeft (BYTE bVal_)
 {
-    if (pDAC) pDAC->OutputLeft(bVal_);
+    if (pDAC) reinterpret_cast<CDAC*>(pDAC)->OutputLeft(bVal_);
 }
 
 void Sound::OutputDACRight (BYTE bVal_)
 {
-    if (pDAC) pDAC->OutputRight(bVal_);
+    if (pDAC) reinterpret_cast<CDAC*>(pDAC)->OutputRight(bVal_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -397,6 +396,7 @@ CSoundStream::CSoundStream (int nFreq_/*=0*/, int nBits_/*=0*/, int nChannels_/*
 CSoundStream::~CSoundStream ()
 {
 }
+
 
 
 bool CSoundStream::Play ()
