@@ -64,7 +64,10 @@ bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
 {
     // If no image was supplied, simply eject the current disk
     if (!pcszSource_ || !*pcszSource_)
-        return Eject();
+    {
+        Eject();
+        return true;
+    }
 
     // Open the new disk image, save+close the previous one if successful
     CDisk* pNew = CDisk::Open(pcszSource_, fReadOnly_);
@@ -72,6 +75,10 @@ bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
     {
         delete m_pDisk;
         m_pDisk = pNew;
+
+        // Check for auto booting if this is floppy drive 1
+        if (this == pDrive1)
+            IO::CheckAutoboot();
     }
 
     // Return whether a new disk was inserted
@@ -79,12 +86,10 @@ bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
 }
 
 // Eject any inserted disk
-bool CDrive::Eject ()
+void CDrive::Eject ()
 {
     delete m_pDisk;
     m_pDisk = NULL;
-
-    return true;
 }
 
 bool CDrive::Flush ()
@@ -801,6 +806,7 @@ BYTE CDrive::WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
 
     int nSectors = 0, nMaxSectors = MAX_TRACK_SECTORS;
     IDFIELD* paID = new IDFIELD[nMaxSectors];
+    BYTE** papbData = new BYTE*[nMaxSectors];
 
 
     // Note: the spec mentions that some things could be as small as 2 bytes for the 1772-02
@@ -837,7 +843,8 @@ BYTE CDrive::WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
 
             fValid &= ExpectBlock(pb, pbEnd, 0xfb, 1, 1);   // Write data address mark: 1 byte of 0xfb
 
-            // Skip the data area (data in this area is very unlikely, and will only be implemented if needed!)
+            // Store a pointer to the data, and skip it in the source block
+            papbData[nSectors] = pb;
             pb += 128 << paID[nSectors].bSize;
             fValid &= (pb < pbEnd);
 
@@ -852,5 +859,10 @@ BYTE CDrive::WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
     }
 
     // Present the format to the disk for laying out
-    return m_pDisk ? m_pDisk->FormatTrack(uSide_, uTrack_, paID, nSectors) : WRITE_PROTECT;
+    BYTE bStatus = m_pDisk ? m_pDisk->FormatTrack(uSide_, uTrack_, paID, papbData, nSectors) : WRITE_PROTECT;
+
+    delete[] paID;
+    delete[] papbData;
+
+    return bStatus;
 }
