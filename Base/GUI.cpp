@@ -1572,7 +1572,7 @@ void CListView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const
         if (IsActive())
             pScreen_->FillRect(nX_+1, nY_+1, ITEM_SIZE-2, ITEM_SIZE-2, BLUE_2);
 
-        pScreen_->FrameRect(nX_, nY_, ITEM_SIZE, ITEM_SIZE, IsActive() ? GREY_7 : GREY_5);
+        pScreen_->FrameRect(nX_, nY_, ITEM_SIZE, ITEM_SIZE, IsActive() ? GREY_7 : GREY_5, true);
     }
 
     if (pItem_->m_pIcon)
@@ -2217,7 +2217,7 @@ void CFrameControl::Draw (CScreen* pScreen_)
         pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, m_bFill);
 
     // Draw the frame around the area
-    pScreen_->FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, m_bColour);
+    pScreen_->FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, m_bColour, true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
