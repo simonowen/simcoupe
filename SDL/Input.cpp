@@ -2,7 +2,7 @@
 //
 // Input.cpp: SDL keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -468,9 +468,30 @@ void SetSamKeyState ()
 }
 
 
+// TEMPORARY HACK: SDL 1.2.7 is returns the y-coord reversed on OS X, so correct it
+void AppleHack (SDL_Event* pEvent_)
+{
+#if defined(__APPLE__)
+    switch (pEvent_->type)
+    {
+        case SDL_MOUSEMOTION:
+            pEvent_->motion.y = Frame::GetHeight()-pEvent_->motion.y;
+            pEvent_->motion.yrel *= -1;
+            break;
+
+        case SDL_MOUSEBUTTONDOWN:
+        case SDL_MOUSEBUTTONUP:
+            pEvent_->button.y = Frame::GetHeight()-pEvent_->button.y;
+            break;
+    }
+#endif
+}
+
 // Process and SDL event message
 void Input::ProcessEvent (SDL_Event* pEvent_)
 {
+    AppleHack(pEvent_);
+
     switch (pEvent_->type)
     {
         case SDL_ACTIVEEVENT:
@@ -613,8 +634,10 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
 
             // If another mouse move is due, store this one, and wait for the next before doing anything
             SDL_Event sEvent;
-            if (SDL_PeepEvents(&sEvent, 1, SDL_PEEKEVENT, SDL_MOUSEMOTIONMASK))
+            if (SDL_PeepEvents(&sEvent, 1, SDL_GETEVENT, SDL_MOUSEMOTIONMASK))
             {
+                AppleHack(&sEvent);
+
                 nRelX += sEvent.motion.xrel;
                 nRelY += sEvent.motion.yrel;
                 break;
