@@ -119,7 +119,7 @@ BYTE Read (DWORD dwTime_)
 // Move the mouse
 void Move (int nDeltaX_, int nDeltaY_)
 {
-    nDeltaX += nDeltaX_ * GetOption(mouse); // Double X-sensitivity in 'mode 3' mouse mode
+    nDeltaX += nDeltaX_;
     nDeltaY += nDeltaY_;
 }
 
