@@ -65,11 +65,11 @@ using std::sort;
 #endif
 
 #ifndef NO_ZLIB
-#include "../Extern/unzip.h"    // for unzOpen, unzClose, etc.  Part of the contrib/minizip in the ZLib source package
-#include "zlib.h"           // for gzopen, gzclose, etc.
+#include "unzip.h"		// for unzOpen, unzClose, etc.  Part of the contrib/minizip in the ZLib source package
+#include "zlib.h"       // for gzopen, gzclose, etc.
 #endif
 
-#include "SAM.h"            // Various SAM constants
+#include "SAM.h"        // Various SAM constants
 #include "Util.h"
 
 
