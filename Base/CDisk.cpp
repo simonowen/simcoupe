@@ -98,7 +98,7 @@ CDisk::CDisk (CStream* pStream_)
 
     // No geometry information, current track/size or spin position
     m_uSides = m_uTracks = m_uSectors = m_uSector = 0;
-    m_uSide = m_uTrack = -1;
+    m_uSide = m_uTrack = 0;
     m_uSpinPos = 1;
 
     // No sector data available
@@ -305,7 +305,7 @@ BYTE CDSKDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
             fNormal &= (paID_[u].bSide == uSide_ && paID_[u].bTrack == uTrack_);
 
             // Sector size must be the same
-            fNormal &= ((128 << paID_[u].bSize) == m_uSectorSize);
+            fNormal &= ((128U << paID_[u].bSize) == m_uSectorSize);
 
             // Remember we've seen this sector number
             dwSectors |= (1 << (paID_[u].bSector-1));
@@ -462,7 +462,7 @@ BYTE CSADDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
             fNormal &= (paID_[u].bSide == uSide_ && paID_[u].bTrack == uTrack_);
 
             // Sector size must be the same
-            fNormal &= ((128 << paID_[u].bSize) == m_uSectorSize);
+            fNormal &= ((128U << paID_[u].bSize) == m_uSectorSize);
 
             // Remember we've seen this sector number
             dwSectors |= (1 << (paID_[u].bSector-1));
@@ -629,7 +629,7 @@ BYTE CSDFDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
 
 /*static*/ bool CFDIDisk::IsRecognised (CStream* pStream_)
 {
-    FDI_HEADER fdih = {0};
+    FDI_HEADER fdih;
 
     return (pStream_->Rewind() && (pStream_->Read(&fdih, sizeof fdih) == sizeof fdih) &&
             !memcmp(fdih.achSignature, FDI_SIGNATURE, sizeof fdih.achSignature));
@@ -663,8 +663,8 @@ CFDIDisk::CFDIDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
         m_uTracks = ((m_fdih.abLastTrack[0] << 8) + m_fdih.abLastTrack[1]) + 1;
 
         int nTotalTracks = m_uSides * m_uTracks;
-        int nTrackDescSize = nTotalTracks * sizeof FDI_TRACK_DESC;
-        int nDescSlack = (nTotalTracks > 180) ? 0 : 512 - (sizeof FDI_HEADER + nTrackDescSize);
+        int nTrackDescSize = nTotalTracks * sizeof(FDI_TRACK_DESC);
+        int nDescSlack = (nTotalTracks > 180) ? 0 : 512 - (sizeof(FDI_HEADER) + nTrackDescSize);
 
         m_pTracks = new FDI_TRACK_DESC[nTotalTracks];
         m_pnOffsets = new int[nTotalTracks];
@@ -710,8 +710,8 @@ UINT CFDIDisk::FindInit (UINT uSide_, UINT uTrack_)
     {
         TRACE("Sector-described track\n");
 
-        BYTE bEncoding = pb[0];
-        UINT uOffset = pb[3] << 16 | pb[2] << 8 | pb[1];
+//      BYTE bEncoding = pb[0];
+//      UINT uOffset = pb[3] << 16 | pb[2] << 8 | pb[1];
         pb += 4;
 
         for (BYTE b ; (b = *pb++) != 0xff ; )
