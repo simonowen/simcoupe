@@ -415,7 +415,7 @@ void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 
 void Input::Purge (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 {
-    if (fKeyboard_ && pdiKeyboard)
+    if (fKeyboard_)
     {
         ZeroMemory(abKeyStates, sizeof abKeyStates);
         ZeroMemory(abKeys, sizeof abKeys);
@@ -424,9 +424,11 @@ void Input::Purge (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
         fPurgeKeyboard = true;
     }
 
-    // Eat any pending mouse messages
-    MSG msg;
-    while (PeekMessage(&msg, NULL, WM_MOUSEMOVE, WM_MOUSEMOVE, PM_REMOVE));
+    if (fMouse_)
+    {
+        MSG msg;
+        while (PeekMessage(&msg, NULL, WM_MOUSEMOVE, WM_MOUSEMOVE, PM_REMOVE));
+    }
 }
 
 
