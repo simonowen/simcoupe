@@ -356,7 +356,12 @@ bool InsertDisk (CDiskDevice* pDrive_)
 
         // Open the new disk, and insert it into the drive if successful
         if (pDrive_->Insert(szFile))
+        {
+            char szName[MAX_PATH], szExt[MAX_PATH];
+            _splitpath(szFile, NULL, NULL, szName, szExt);
+            Frame::SetStatus("%s%s  inserted into Drive %d", szName, szExt, (pDrive_ == pDrive1) ? 1 : 2);
             return true;
+        }
 
         Message(msgWarning, "Invalid disk image: %s", szFile);
     }
@@ -371,6 +376,11 @@ bool InsertDisk (CDiskDevice* pDrive_)
 void UpdateMenuFromOptions ()
 {
     HMENU hmenu = GetMenu(g_hwnd), hmenuFile = GetSubMenu(hmenu, 0);
+
+    // Only enable the floppy device menu item on NT-based versions of Windows
+    OSVERSIONINFO ovi = { sizeof ovi };
+    GetVersionEx(&ovi);
+    EnableItem(IDM_FILE_FLOPPY1_DEVICE, ovi.dwPlatformId == VER_PLATFORM_WIN32_NT);
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 1 options
     EnableMenuItem(hmenuFile, 1, (GetOption(drive1) == dskImage) ? MF_ENABLED|MF_BYPOSITION : MF_GRAYED|MF_BYPOSITION);
