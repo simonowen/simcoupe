@@ -2,7 +2,7 @@
 //
 // Frame.cpp: Display frame generation
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ const BYTE ATOM_LED_ON_COLOUR   = RED_3;      // Red hard disk light colour
 const BYTE LED_OFF_COLOUR       = GREY_2;     // Dark grey light off colour
 const BYTE UNDRAWN_COLOUR       = GREY_3;     // Mid grey for undrawn screen background
 
-const unsigned int STATUS_ACTIVE_TIME = 2000;   // Time the status text is visible for (in ms)
+const unsigned int STATUS_ACTIVE_TIME = 2500;   // Time the status text is visible for (in ms)
 const unsigned int FPS_IN_TURBO_MODE = 5;       // Number of FPS to limit to in Turbo mode
 
 int s_nViewTop, s_nViewBottom;
@@ -599,33 +599,18 @@ void DrawOSD (CScreen* pScreen_)
 void Frame::SaveFrame (const char* pcszPath_/*=NULL*/)
 {
 #ifdef USE_ZLIB
+    static int nNext = 0;
+
     // If no path is supplied we need to generate a unique one
     if (!pcszPath_)
     {
-        struct stat st;
-        static int nNext = 0;
+        char szTemplate[MAX_PATH];
+        sprintf(szTemplate, "%ssnap%%04d.png", OSD::GetDirPath(GetOption(datapath)));
+        nNext = Util::GetUniqueFile(szTemplate, nNext, szScreenPath, sizeof(szScreenPath));
 
-        // Get the location to store the image
-        char* pszBase = szScreenPath + strlen(strcpy(szScreenPath, OSD::GetFilePath("")));
-
-        // Find the next file in the sequence that doesn't already exist
-        do
-        {
-            sprintf(pszBase, "snap%04d.png", nNext);
-            nNext++;
-        }
-        while (!::stat(szScreenPath, &st));
-
-        // We'll leave the path in the buffer, so Frame::End() can spot it when the next frame is generated
+        // Leave the path in the buffer, so Frame::End() can spot it when the next frame is generated
         return;
     }
-
-    // Get the save path
-    const char* pcszFile = OSD::GetFilePath("");
-
-    // If the file is in the save path, we can refer to the file by it's name, to avoid a verbose path
-    if (!strncmp(szScreenPath, pcszFile, strlen(pcszFile)))
-        pcszFile = szScreenPath + strlen(pcszFile);
 
     FILE* f = fopen(szScreenPath, "wb");
     if (!f)
@@ -637,7 +622,7 @@ void Frame::SaveFrame (const char* pcszPath_/*=NULL*/)
 
         // If the save failed, delete the empty image
         if (fSaved)
-            Frame::SetStatus("Saved screen to %s", pcszFile);
+            Frame::SetStatus("Saved snap%04d.png", nNext-1);
         else
         {
             Frame::SetStatus("Failed to save screen to %s!", szScreenPath);
