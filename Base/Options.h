@@ -71,8 +71,8 @@ typedef struct
     char    serialdev2[128];        // Serial port 2 device
 
     int     midi;                   // MIDI port function
-    int     midiin;                 // MIDI-In device
-    int     midiout;                // MIDI-Out device
+    char    midiindev[128];         // MIDI-In device
+    char    midioutdev[128];        // MIDI-Out device
     int     networkid;              // Network station number
 
     bool    sambusclock;            // Non-zero if we want SAMBUS clock support
