@@ -38,7 +38,7 @@ typedef struct
     int         nType;                                          // Option type
 
     union { void* pv;  char* ppsz;  bool* pf;  int* pn; };      // Address of config variable
-    union { ULONGLONG pu; DWORD dw;  bool f;  int n;  const char* pcsz; };    // Default value of option
+    union { DWORD dw;  bool f;  int n;  const char* pcsz; };    // Default value of option
 
     bool        fSpecified;
 }
