@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Frame.cpp: Display frame generation
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -311,7 +311,7 @@ void Frame::Complete ()
             for (int i = 0 ; i < GetHeight() ; i++)
             {
                 // In scanlines mode we'll fill alternate lines in black
-                if (i & 1 && GetOption(scanlines))
+                if ((i & 1) && GetOption(scanlines))
                     memset(g_pGuiScreen->GetLine(i), 0, GetWidth());
                 else
                 {
