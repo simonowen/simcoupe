@@ -2,7 +2,7 @@
 //
 // Disassem.cpp: Z80 disassembler
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,11 +21,7 @@
 // Notes:
 //  This is a Z80 to C conversion of the disassembler I did for TurboMON!
 //
-//  It was designed to be fairly compact, and is an utter nightmare to debug!
-
-// ToDo:
-//  - replace the globals with a 'state' structure passed around
-//  - replace read_byte() with a 4 byte parameter buffer, for re-use
+//  Fairly compact but an utter nightmare to debug!
 
 #include "SimCoupe.h"
 
@@ -36,7 +32,7 @@
 BYTE abIndexableOpcodes[] =
 {
     0x08, 0x8A, 0x0A, 0x8A, 0x3E, 0xBE, 0x3E, 0x08, 0x08, 0x8B, 0x0A, 0x4A, 0x3E, 0x3E, 0x3E, 0x08,
-    0x08, 0x08, 0x08, 0x08, 0x3E, 0x3E, 0x36, 0x08, 0x00, 0x87/*0x83*/, 0x00, 0x00, 0x3C, 0x3C, 0x3C, 0x00
+    0x08, 0x08, 0x08, 0x08, 0x3E, 0x3E, 0x36, 0x08, 0x00, 0x87, 0x00, 0x00, 0x3C, 0x3C, 0x3C, 0x00
 };
 
 static const char* const szUnused = "*[q* PREFIX*]";
@@ -57,7 +53,8 @@ static const char* const szEDprefix =
     "\xa9[j\xa1[|A,]\x99[I|R]\xa1[,A]|\xa1[R\x99[R|L]D|NOP]]]\2|"
     "\xa9[|\x91[\x83[LD|CP|IN|\xa1[OUT\x99[I|D]\2|OT]]\x99[I|D]\xa1[|R]\2]]]NOP\2";
 
-static const char* const szCBprefix = "%l[%i[e \xb3" "c\x87r\2]\xb3[|e %c,i\3]j\x87r,e* ci\3|e \xb3" "c\x87r%i[\2]]\3";
+static const char* const szCBprefix =
+    "%l[%i[e \xb3" "c\x87r\2]\xb3[|e %c,i\3]j\x87r,e* ci\3|e \xb3" "c\x87r%i[\2]]\3";
 
 static const char* aszStrings[] =
 {
@@ -76,7 +73,7 @@ static BYTE abStack[10], *pbStack;
 
 int nType = 0;
 
-bool fHex = false;
+bool fHex = true, fLowerCase = false;
 
 
 // Skip the rest of the [ ] block, including any nested blocks
@@ -101,17 +98,17 @@ void Function (BYTE b_)
 
     switch (b_)
     {
-        case 'a':   pszOut += sprintf(pszOut, fHex ? "#%04hX" : "%d", (pbOpcode[2] << 8) | pbOpcode[1]);   break;
+        case 'a':   pszOut += sprintf(pszOut, fHex ? "%04hX" : "%d", (pbOpcode[2] << 8) | pbOpcode[1]);   break;
         case 'b':   *pszOut++ = '%'; for (i = 0 ; i < 8 ; i++) *pszOut++ = '0' + ((pbOpcode[1] >> (7-i)) & 1); break;
         case 'c':   *pszOut++ = '0' + ((pbOpcode[0] >> 3) & 7); break;
-        case 'd':   if (pbOpcode[1]) pszOut += sprintf(pszOut, fHex ? "%c#%02hX" : "%c%d", fPositive ? '+' : '-', bDisp); break;
-        case 'e':   pszOut += sprintf(pszOut, fHex ? "#%04hX" : "%d", wPC + 2 + static_cast<signed char>(pbOpcode[1])); break;
+        case 'd':   if (pbOpcode[1]) pszOut += sprintf(pszOut, fHex ? "%c%02hX" : "%c%d", fPositive ? '+' : '-', bDisp); break;
+        case 'e':   pszOut += sprintf(pszOut, fHex ? "%04hX" : "%d", wPC + 2 + static_cast<signed char>(pbOpcode[1])); break;
         case 'f':   pszOut += sprintf(pszOut, fHex ? "%hX" : "%d", pbOpcode[0] & 0x38); break;
         case 'h':   *pbStack = ((pbOpcode[0] >> 3) & 7) == 6; break;
         case 'i':   *pbStack = nType; break;
         case 'l':   *pbStack = (pbOpcode[0] & 7) == 6; break;
-        case 'm':   pszOut += sprintf(pszOut, fHex ? "#%02hX" : "%d", pbOpcode[1 + (!nType ? 0 : 1)]); break;
-        case 'n':   pszOut += sprintf(pszOut, fHex ? "#%02hX" : "%d", pbOpcode[1]); break;
+        case 'm':   pszOut += sprintf(pszOut, fHex ? "%02hX" : "%d", pbOpcode[1 + (!nType ? 0 : 1)]); break;
+        case 'n':   pszOut += sprintf(pszOut, fHex ? "%02hX" : "%d", pbOpcode[1]); break;
     }
 }
 
@@ -157,6 +154,8 @@ int ParseStr (const char* pcsz_)
                     return nType ? b + 1 : b;
                 else if (b <= 6)
                     return nType ? b - 2 : b - 4;
+                else if (isalpha(b))
+                    *pszOut++ = fLowerCase ? (b | 0x20) : (b & ~0x20);
                 else
                     *pszOut++ = b;
         }
@@ -198,10 +197,18 @@ int Disassemble (WORD wPC_, char* psz_, int cbSize_)
     if (nType && !(abIndexableOpcodes[bOpcode & 31] & (1 << ((bOpcode >> 5) & 7))))
         pcszTable = szUnused;
 
+    // DD/FD CB instructions are a bit odd, as the main opcode byte comes after the offset
+    // If we move it back before the offset it'll fit the normal processing model
+    if (nType && pcszTable == szCBprefix)
+        pbOpcode--, *pbOpcode = pbOpcode[2];
+
     // Parse the instruction, terminate and copy the output to the supplied buffer
     int nLength = ParseStr(pcszTable);
     *pszOut = '\0';
-    strncpy(psz_, szOutput, min(cbSize_, pszOut-szOutput+1));
+
+    // Copy the output to the supplied buffer, taking care not to overflow it
+    int nLen = min(cbSize_-1, pszOut-szOutput+1);
+    strncpy(psz_, szOutput, nLen)[nLen] = '\0';
 
     // Return the instruction length
     return nLength;
