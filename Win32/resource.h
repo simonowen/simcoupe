@@ -3,19 +3,28 @@
 // Used by SimCoupe.rc
 //
 #define IDI_MAIN                        1
+#define IDI_DISK                        2
 #define IDI_MISC                        3
+#define IDI_MEMORY                      4
 #define IDI_HARDWARE                    5
-#define IDI_MEMORY                      13
-#define IDI_PORT                        23
-#define IDI_MOUSE                       100
+#define IDI_PORT                        6
+#define IDI_MOUSE                       7
+#define IDI_JOYSTICK                    8
+#define IDI_FLOPPY                      9
+#define IDI_KEYBOARD                    10
+#define IDI_CLOCK                       11
+#define IDI_PRINTER                     12
+#define IDI_NETWORK                     13
+#define IDI_FNKEYS                      14
+#define IDI_DISPLAY                     15
+#define IDI_SAM                         16
+#define IDI_SOUND                       17
+#define IDI_MIDI                        18
 #define IDR_MENU                        101
-#define IDI_JOYSTICK                    102
 #define IDD_EXPORT                      107
 #define IDD_ABOUT                       108
-#define IDI_FLOPPY                      110
 #define IDD_NEW_DISK                    119
 #define IDC_CURSOR                      123
-#define IDI_DISPLAY                     144
 #define IDD_PAGE_PARALLEL               164
 #define IDD_PAGE_SOUND                  165
 #define IDD_PAGE_DISPLAY                166
@@ -25,17 +34,12 @@
 #define IDD_PAGE_MIDI                   170
 #define IDD_PAGE_MISC                   171
 #define IDD_PAGE_DISKS                  172
-#define IDI_NETWORK                     173
 #define IDD_PAGE_FNKEYS                 173
-#define IDI_FNKEYS                      175
 #define IDD_NEW_FNKEY                   177
 #define IDD_IMPORT                      178
 #define IDD_PAGE_DRIVES                 179
 #define IDD_HARDDISK                    180
 #define IDB_SIMCOUPE                    185
-#define IDI_KEYBOARD                    200
-#define IDI_CLOCK                       201
-#define IDI_PRINTER                     225
 #define IDE_PAGE                        1001
 #define IDE_SIDES                       1001
 #define IDE_STATION_ID                  1001
@@ -126,7 +130,6 @@
 #define IDS_WINDOW_SCALING              1119
 #define IDS_FULLSCREEN_DEPTH            1120
 #define IDC_SOUND_ENABLED               1121
-#define IDI_SAM                         1122
 #define IDB_BROWSE                      1123
 #define IDS_LENGTH                      1124
 #define IDB_SAVE                        1126
@@ -150,8 +153,6 @@
 #define IDE_HEADS                       1145
 #define IDS_CYLINDERS                   1146
 #define IDS_HEADS                       1147
-#define IDI_SOUND                       3004
-#define IDI_MIDI                        4381
 #define IDM_FILE_EXIT                   40001
 #define IDM_HELP_ABOUT                  40050
 #define IDM_HELP_GENERAL                40051
@@ -175,7 +176,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        186
+#define _APS_NEXT_RESOURCE_VALUE        188
 #define _APS_NEXT_COMMAND_VALUE         40155
 #define _APS_NEXT_CONTROL_VALUE         1148
 #define _APS_NEXT_SYMED_VALUE           102
