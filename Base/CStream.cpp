@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // CStream.cpp: Data stream abstraction classes
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,33 +38,34 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CStream::CStream (const char* pcszStream_, bool fReadOnly_/*=false*/)
-    : m_nMode(modeClosed), m_nSize(0), m_fReadOnly(fReadOnly_)
+CStream::CStream (const char* pcszPath_, bool fReadOnly_/*=false*/)
+    : m_nMode(modeClosed), m_nSize(0), m_fReadOnly(fReadOnly_), m_pszFile(NULL)
 {
     // Keep a copy of the stream source as we'll need it for saving
-    m_pszStream = strdup(pcszStream_);
+    m_pszPath = strdup(pcszPath_);
 }
 
 CStream::~CStream ()
 {
-    free(m_pszStream);
+    free(m_pszPath);
+    if (m_pszFile) free(m_pszFile);
 }
 
 
 // Identify the stream and create an object to supply data from it
-/*static*/ CStream* CStream::Open (const char* pcszStream_, bool fReadOnly_/*=false*/)
+/*static*/ CStream* CStream::Open (const char* pcszPath_, bool fReadOnly_/*=false*/)
 {
     struct stat st;
 
     // Give the OS-specific floppy driver first go at the path
-    if (CFloppyStream::IsRecognised(pcszStream_))
-        return new CFloppyStream(pcszStream_, fReadOnly_);
+    if (CFloppyStream::IsRecognised(pcszPath_))
+        return new CFloppyStream(pcszPath_, fReadOnly_);
 
     // Check for a regular file that we have read access to
-    else if (!::stat(pcszStream_, &st) && S_ISREG(st.st_mode) && !access(pcszStream_, R_OK))
+    else if (!::stat(pcszPath_, &st) && S_ISREG(st.st_mode) && !access(pcszPath_, R_OK))
     {
         // If the file is read-only, the stream will be read-only
-        FILE* file = (pcszStream_ && *pcszStream_) ? fopen(pcszStream_, "r+b") : NULL;
+        FILE* file = (pcszPath_ && *pcszPath_) ? fopen(pcszPath_, "r+b") : NULL;
         fReadOnly_ |= !file;
         if (file)
             fclose(file);
@@ -72,16 +73,15 @@ CStream::~CStream ()
 #ifdef USE_ZLIB
         // Try and open it as a zip file
         unzFile hfZip;
-        if ((hfZip = unzOpen(pcszStream_)))
+        if ((hfZip = unzOpen(pcszPath_)))
         {
             // Iterate through the contents of the zip looking for a file with a suitable size
             for (int nRet = unzGoToFirstFile(hfZip) ; nRet == UNZ_OK ; nRet = unzGoToNextFile(hfZip))
             {
                 unz_file_info sInfo;
-                char szFile[MAX_PATH];
 
                 // Get details of the current file
-                unzGetCurrentFileInfo(hfZip, &sInfo, szFile, sizeof szFile, NULL, 0, NULL, 0);
+                unzGetCurrentFileInfo(hfZip, &sInfo, NULL, 0, NULL, 0, NULL, 0);
 
                 // Continue looking if it's too small to be considered [strictly this shouldn't really be done here!]
                 if (sInfo.uncompressed_size < 32768)
@@ -89,7 +89,7 @@ CStream::~CStream ()
 
                 // Ok, so open and use the first file in the zip and use that
                 if (unzOpenCurrentFile(hfZip) == UNZ_OK)
-                    return new CZipStream(hfZip, pcszStream_, true/*fReadOnly_*/);  // ZIPs are currently read-only
+                    return new CZipStream(hfZip, pcszPath_, true/*fReadOnly_*/);  // ZIPs are currently read-only
             }
 
             // Failed to open the first file, so close the zip
@@ -100,13 +100,13 @@ CStream::~CStream ()
         {
             // Open the file using the regular CRT file functions
             FILE* hf;
-            if ((hf = fopen(pcszStream_, "rb")))
+            if ((hf = fopen(pcszPath_, "rb")))
             {
 #ifdef USE_ZLIB
                 BYTE abSig[sizeof GZ_SIGNATURE];
                 if ((fread(abSig, 1, sizeof abSig, hf) != sizeof abSig) || memcmp(abSig, GZ_SIGNATURE, sizeof abSig))
 #endif
-                    return new CFileStream(hf, pcszStream_, fReadOnly_);
+                    return new CFileStream(hf, pcszPath_, fReadOnly_);
 #ifdef USE_ZLIB
                 else
                 {
@@ -114,8 +114,8 @@ CStream::~CStream ()
                     fclose(hf);
                     // Try to open it as a gzipped file
                     gzFile hfGZip;
-                    if ((hfGZip = gzopen(pcszStream_, "rb")))
-                        return new CZLibStream(hfGZip, pcszStream_, fReadOnly_);
+                    if ((hfGZip = gzopen(pcszPath_, "rb")))
+                        return new CZLibStream(hfGZip, pcszPath_, fReadOnly_);
                 }
 #endif  // USE_ZLIB
             }
@@ -128,12 +128,22 @@ CStream::~CStream ()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CFileStream::CFileStream (FILE* hFile_, const char* pcszStream_, bool fReadOnly_/*=false*/)
-    : CStream(pcszStream_, fReadOnly_), m_hFile(hFile_)
+CFileStream::CFileStream (FILE* hFile_, const char* pcszPath_, bool fReadOnly_/*=false*/)
+    : CStream(pcszPath_, fReadOnly_), m_hFile(hFile_)
 {
     struct stat st;
-    if (hFile_ && !stat(m_pszStream, &st))
+
+    if (hFile_ && !stat(pcszPath_, &st))
         m_nSize = st.st_size;
+
+    // Scan the path string to determine the filename component
+    for (const char* p = pcszPath_ ; *p ; p++)
+    {
+        if (*p == PATH_SEPARATOR)
+            pcszPath_ = p+1;
+    }
+
+    m_pszFile = strdup(pcszPath_);
 }
 
 void CFileStream::Close ()
@@ -162,7 +172,7 @@ size_t CFileStream::Read (void* pvBuffer_, size_t uLen_)
         Close();
 
         // Open the file for writing, using compression if the source file did
-        if ((m_hFile = fopen(m_pszStream, "rb")))
+        if ((m_hFile = fopen(m_pszPath, "rb")))
             m_nMode = modeReading;
     }
 
@@ -178,7 +188,7 @@ size_t CFileStream::Write (void* pvBuffer_, size_t uLen_)
         Close();
 
         // Open the file for writing, using compression if the source file did
-        if ((m_hFile = fopen(m_pszStream, "wb")))
+        if ((m_hFile = fopen(m_pszPath, "wb")))
             m_nMode = modeWriting;
     }
 
@@ -189,9 +199,19 @@ size_t CFileStream::Write (void* pvBuffer_, size_t uLen_)
 
 #ifdef USE_ZLIB
 
-CZLibStream::CZLibStream (gzFile hFile_, const char* pcszStream_, bool fReadOnly_/*=false*/)
-    : CStream(pcszStream_, fReadOnly_), m_hFile(hFile_)
+CZLibStream::CZLibStream (gzFile hFile_, const char* pcszPath_, bool fReadOnly_/*=false*/)
+    : CStream(pcszPath_, fReadOnly_), m_hFile(hFile_)
 {
+    char szFile[MAX_PATH];
+    size_t nLen = strlen(strcpy(szFile, pcszPath_));
+
+    // Strip any .gz extension to give a cleaner filename
+    if (nLen > 3 && !strcasecmp(szFile + nLen - 3, ".gz"))
+    {
+        szFile[nLen-3] = '\0';
+        m_pszFile = strdup(szFile);
+    }
+
     // We can't determine the size without an expensive seek, reading the whole file
     m_nSize = 0;
 }
@@ -219,7 +239,7 @@ size_t CZLibStream::Read (void* pvBuffer_, size_t uLen_)
         Close();
 
         // Open the file for writing, using compression if the source file did
-        if ((m_hFile = gzopen(m_pszStream, "rb")))
+        if ((m_hFile = gzopen(m_pszPath, "rb")))
             m_nMode = modeReading;
     }
 
@@ -235,7 +255,7 @@ size_t CZLibStream::Write (void* pvBuffer_, size_t uLen_)
         Close();
 
         // Open the file for writing, using compression if the source file did
-        if ((m_hFile = gzopen(m_pszStream, "wb9")))
+        if ((m_hFile = gzopen(m_pszPath, "wb9")))
             m_nMode = modeWriting;
     }
 
@@ -244,15 +264,18 @@ size_t CZLibStream::Write (void* pvBuffer_, size_t uLen_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CZipStream::CZipStream (unzFile hFile_, const char* pcszFile_, bool fReadOnly_/*=false*/)
-    : CStream(pcszFile_, fReadOnly_), m_hFile(hFile_)
+CZipStream::CZipStream (unzFile hFile_, const char* pcszPath_, bool fReadOnly_/*=false*/)
+    : CStream(pcszPath_, fReadOnly_), m_hFile(hFile_)
 {
     unz_file_info sInfo;
     char szFile[MAX_PATH];
 
     // Get details of the current file
-    if (unzGetCurrentFileInfo(hFile_, &sInfo, szFile, sizeof szFile, NULL, 0, NULL, 0) == UNZ_OK)
+    if (unzGetCurrentFileInfo(hFile_, &sInfo, szFile, sizeof(szFile), NULL, 0, NULL, 0) == UNZ_OK)
+    {
         m_nSize = sInfo.uncompressed_size;
+        m_pszFile = strdup(szFile);
+    }
 }
 
 void CZipStream::Close ()
