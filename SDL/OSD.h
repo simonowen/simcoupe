@@ -46,6 +46,8 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#define CUSTOM_MAIN
+
 #include <sys/types.h>      // for _off_t definition
 #include <fcntl.h>
 #include "SDL.h"
