@@ -55,11 +55,10 @@ END
 IDD_ABOUT DIALOGEX 0, 0, 217, 151
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About SimCoupé/Win32"
-FONT 8, "MS Sans Serif", 0, 0, 0x1
+FONT 8, "MS Sans Serif"
 BEGIN
-    LTEXT           "SimCoupé v0.90 beta 4",IDC_STATIC,40,9,145,8
-    LTEXT           "Homepage: http://www.simcoupe.org/",IDC_STATIC,40,20,
-                    140,8
+    LTEXT           "SimCoupé v0.90 beta 6",IDC_STATIC,40,9,145,8
+    LTEXT           "http://www.simcoupe.org/",IDC_STATIC,40,20,140,8
     LTEXT           "Win32/SDL/Allegro versions and general overhaul:\n     Simon Owen <simon.owen@simcoupe.org>",
                     IDC_STATIC,40,42,170,18
     LTEXT           "Based on original SimCoupé versions by:\n     Allan Skillman <allan.skillman@arm.com>",
@@ -69,7 +68,7 @@ BEGIN
     LTEXT           "Phillips SAA 1099 sound chip emulation:\n     Dave Hooper <dave@rebuzz.org>",
                     IDC_STATIC,40,108,170,18
     DEFPUSHBUTTON   "OK",IDOK,84,133,50,14
-    ICON            IDI_MAIN,IDI_SAM,7,7,21,20,0,WS_EX_TRANSPARENT
+    ICON            IDI_MAIN,IDI_SAM,7,7,20,20,0,WS_EX_TRANSPARENT
     CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,7,34,
                     203,1
 END
@@ -380,22 +379,23 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Key Binding"
 FONT 8, "MS Sans Serif"
 BEGIN
-    COMBOBOX        IDC_KEY,59,41,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_KEY,57,40,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     CONTROL         "&Ctrl",IDC_CTRL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    59,59,26,10
+                    27,58,26,10
+    CONTROL         "&Alt",IDC_ALT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,58,
+                    58,24,10
     CONTROL         "&Shift",IDC_SHIFT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    90,59,30,10
+                    87,58,30,10
     COMBOBOX        IDC_ACTION,15,90,111,100,CBS_DROPDOWNLIST | CBS_SORT | 
                     WS_VSCROLL | WS_TABSTOP
     DEFPUSHBUTTON   "OK",IDOK,24,113,40,14
     PUSHBUTTON      "Cancel",IDCANCEL,74,113,40,14
-    LTEXT           "Key:",IDC_STATIC,22,43,15,8
-    LTEXT           "Modifiers:",IDC_STATIC,22,59,31,8
+    LTEXT           "Key:",IDC_STATIC,35,42,15,8
     GROUPBOX        "Key",IDC_STATIC,5,5,130,70
     GROUPBOX        "Action",IDC_STATIC,5,79,130,29
-    LTEXT           "Select the key and required modifiers or simply press the required key(s).",
-                    IDC_STATIC,11,17,120,16
+    LTEXT           "Select the key and modifiers or simply press the required key(s).",
+                    IDC_STATIC,18,17,106,16
 END
 
 IDD_IMPORT DIALOG DISCARDABLE  0, 0, 163, 121
@@ -635,8 +635,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,90,0,4
- PRODUCTVERSION 0,90,0,4
+ FILEVERSION 0,90,0,6
+ PRODUCTVERSION 0,90,0,6
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -654,14 +654,14 @@ BEGIN
             VALUE "Comments", "Win32 version by\t\tSimon Owen simon.owen@simcoupe.org http://www.simcoupe.org/\0"
             VALUE "CompanyName", "\0"
             VALUE "FileDescription", "A SAM Coupé emulator\0"
-            VALUE "FileVersion", "0.90 beta 4\0"
+            VALUE "FileVersion", "0.90 beta 6\0"
             VALUE "InternalName", "\0"
             VALUE "LegalCopyright", "Copyright © 1996-2002 The SimCoupé Team\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "\0"
-            VALUE "ProductVersion", "0.90 beta 4\0"
+            VALUE "ProductVersion", "0.90 beta 6\0"
             VALUE "SpecialBuild", "\0"
         END
     END
