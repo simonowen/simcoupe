@@ -37,9 +37,9 @@ LIBS=-L/usr/X11R6/lib -lm -lstdc++ $(shell sdl-config --libs --cflags)
 SRC_FILES=${BASE}/ATA.cpp ${BASE}/Atom.cpp ${BASE}/CDisk.cpp \
  ${BASE}/CDrive.cpp ${BASE}/Clock.cpp ${BASE}/CPU.cpp ${BASE}/CScreen.cpp \
  ${BASE}/CStream.cpp ${BASE}/Debug.cpp ${BASE}/Disassem.cpp ${BASE}/Font.cpp \
- ${BASE}/Frame.cpp ${BASE}/GUI.cpp ${BASE}/GUIIcons.cpp ${BASE}/IO.cpp \
- ${BASE}/Main.cpp ${BASE}/Memory.cpp ${BASE}/Mouse.cpp ${BASE}/Options.cpp \
- ${BASE}/PNG.cpp ${BASE}/Profile.cpp ${BASE}/Util.cpp \
+ ${BASE}/Frame.cpp ${BASE}/GUI.cpp ${BASE}/GUIDlg.cpp ${BASE}/GUIIcons.cpp \
+ ${BASE}/IO.cpp ${BASE}/Main.cpp ${BASE}/Memory.cpp ${BASE}/Mouse.cpp \
+ ${BASE}/Options.cpp ${BASE}/PNG.cpp ${BASE}/Profile.cpp ${BASE}/Util.cpp \
  ${SDL}/Display.cpp ${SDL}/Floppy.cpp ${SDL}/Input.cpp ${SDL}/MIDI.cpp \
  ${SDL}/OSD.cpp ${SDL}/Parallel.cpp ${SDL}/Serial.cpp ${SDL}/Sound.cpp \
  ${SDL}/UI.cpp ${SDL}/Video.cpp \
@@ -75,4 +75,4 @@ ${TARGET}:	${OBJS} Makefile
 	${CC} -o $@ -c $< ${CFLAGS}
 
 clean:
-	rm -f ${TARGET} ${OBJS}
+	rm -f ${TARGET} ${BASE}/*.o ${SDL}/*.o ${EXTERN}/*.o
