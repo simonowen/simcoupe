@@ -2,7 +2,7 @@
 //
 // HardDisk.cpp: Hard disk abstraction layer
 //
-//  Copyright (c) 2004 Simon Owen
+//  Copyright (c) 2004-2005 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,14 +27,14 @@
 #include "IDEDisk.h"
 
 
-CHardDisk::CHardDisk ()
+CHardDisk::CHardDisk (const char* pcszDisk_)
 {
-    memset(&m_sGeometry, 0, sizeof(m_sGeometry));
-    memset(&m_sIdentity, 0, sizeof(m_sIdentity));
+    m_pszDisk = strdup(pcszDisk_);
 }
 
 CHardDisk::~CHardDisk ()
 {
+    free(m_pszDisk);
 }
 
 
@@ -57,7 +57,7 @@ bool CHardDisk::IsBDOSDisk ()
 
 
 // Return a suitable CHS geometry covering the supplied number of sectors
-bool CHardDisk::CalculateGeometry (HARDDISK_GEOMETRY* pg_)
+/*static*/ bool CHardDisk::CalculateGeometry (ATA_GEOMETRY* pg_)
 {
     // CHS can only handle up to 8GB, so truncate anything larger
     if (pg_->uTotalSectors > 16383*16*63)
@@ -142,12 +142,12 @@ RS_IDE;
         return NULL;
 
     // Try for device path first
-    if ((pDisk = new CDeviceHardDisk) && pDisk->Open(pcszDisk_))
+    if ((pDisk = new CDeviceHardDisk(pcszDisk_)) && pDisk->Open())
         return pDisk;
     delete pDisk;
 
     // Try for HDF disk image
-    if ((pDisk = new CHDFHardDisk) && pDisk->Open(pcszDisk_))
+    if ((pDisk = new CHDFHardDisk(pcszDisk_)) && pDisk->Open())
         return pDisk;
     delete pDisk;
 
@@ -155,6 +155,7 @@ RS_IDE;
     return NULL;
 }
 
+////////////////////////////////////////////////////////////////////////////////
 
 static void SetIdentityString (char* psz_, size_t uLen_, const char* pcszValue_)
 {
@@ -216,11 +217,11 @@ static void SetIdentityString (char* psz_, size_t uLen_, const char* pcszValue_)
 }
 
 
-bool CHDFHardDisk::Open (const char* pcszDisk_)
+bool CHDFHardDisk::Open ()
 {
     Close();
 
-    if (*pcszDisk_ && (m_hfDisk = fopen(pcszDisk_, "r+b")))
+    if (*m_pszDisk && (m_hfDisk = fopen(m_pszDisk, "r+b")))
     {
         RS_IDE sHeader;
 
