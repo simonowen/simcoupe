@@ -45,7 +45,6 @@ extern BYTE *apbPageReadPtrs[],  *apbPageWritePtrs[];
 extern bool afContendedPages[4];
 
 
-
 // Map a 16-bit address through the memory indirection - allows fast paging
 inline int VPAGE (WORD wAddr_) { return wAddr_ >> 14; }
 inline int RPAGE (WORD wAddr_) { return anSectionPages[VPAGE(wAddr_)]; }
@@ -54,6 +53,11 @@ void write_to_screen_vmpr0 (WORD wAddr_);
 void write_to_screen_vmpr1 (WORD wAddr_);
 void write_word (WORD wAddr_, WORD wVal_);
 
+
+inline BYTE* phys_read_addr (UINT uPage_, UINT uOffset_)
+{
+    return &apbSectionReadPtrs[uPage_ & (N_PAGES_MAIN-1)][uOffset_ & (MEM_PAGE_SIZE-1)];
+}
 
 inline BYTE* phys_read_addr (WORD wAddr_)
 {
