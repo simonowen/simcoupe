@@ -2,7 +2,7 @@
 //
 // Sound.cpp: SDL sound implementation
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -121,7 +121,7 @@ void CSoundStream::SoundCallback (void *pvParam_, Uint8 *pbStream_, int nLen_)
 }
 
 
-bool InitDirectSound ()
+bool InitSDLSound ()
 {
     bool fRet = false;
 
@@ -138,7 +138,7 @@ bool InitDirectSound ()
     return fRet;
 }
 
-void ExitDirectSound ()
+void ExitSDLSound ()
 {
     SDL_CloseAudio();
 }
@@ -160,7 +160,7 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
     // All sound disabled?
     if (!GetOption(sound))
         TRACE("Sound disabled, nothing to initialise\n");
-    else if (!InitDirectSound())
+    else if (!InitSDLSound())
     {
         TRACE("Sound initialisation failed\n");
         SetOption(sound,0);
@@ -210,7 +210,7 @@ void Sound::Exit (bool fReInit_/*=false*/)
 {
     TRACE("-> Sound::Exit(%s)\n", fReInit_ ? "reinit" : "");
 
-    ExitDirectSound();
+    ExitSDLSound();
 
     if (pSAA) { delete pSAA; pSAA = NULL; }
     if (pDAC) { delete pDAC; pDAC = NULL; }
@@ -304,7 +304,7 @@ CStreamBuffer::CStreamBuffer (int nFreq_, int nBits_, int nChannels_)
 
 CStreamBuffer::~CStreamBuffer ()
 {
-    delete m_pbFrameSample;
+    delete[] m_pbFrameSample;
 }
 
 
