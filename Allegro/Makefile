@@ -40,7 +40,8 @@ BASE_SRC=${BASE}/ATA.cpp ${BASE}/Atom.cpp ${BASE}/CDisk.cpp \
  ${BASE}/Font.cpp ${BASE}/Frame.cpp ${BASE}/GUI.cpp ${BASE}/GUIDlg.cpp \
  ${BASE}/GUIIcons.cpp ${BASE}/HardDisk.cpp ${BASE}/IO.cpp ${BASE}/Main.cpp \
  ${BASE}/Memory.cpp ${BASE}/Mouse.cpp ${BASE}/Options.cpp ${BASE}/PNG.cpp \
- ${BASE}/Profile.cpp ${BASE}/SDIDE.cpp ${BASE}/Util.cpp ${EXTERN}/SAASound.cpp
+ ${BASE}/Profile.cpp ${BASE}/SDIDE.cpp ${BASE}/Util.cpp ${BASE}/YATBus.cpp \
+ ${EXTERN}/SAASound.cpp
 
 ALLEGRO_SRC= ${ALLEGRO}/Display.cpp ${ALLEGRO}/Floppy.cpp \
  ${ALLEGRO}/IDEDisk.cpp ${ALLEGRO}/Input.cpp ${ALLEGRO}/MIDI.cpp \
