@@ -2,8 +2,8 @@
 //
 // Memory.cpp: Memory configuration and management
 //
-//  Copyright (c) 1996-2001  Allan Skillman
 //  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,9 +24,6 @@
 //  - added fast boot option by temporarily patching the SAM ROMs
 //  - display memory writes now now catch-up/update the frame image
 //  - mode 1 look-up tables built during initialisation
-
-// ToDo:
-//  - finish the ATOM auto-boot code that was started
 
 #include "SimCoupe.h"
 #include "Memory.h"
@@ -137,7 +134,7 @@ static int LoadRomImage (const char* pcszImage_, int nPage_)
 
     // Attempt to open the ROM file from the SimCoupé directory, and then from anywhere in it can be found
     if (!pcszImage_ || (!(pROM = CStream::Open(OSD::GetFilePath(pcszImage_))) && !(pROM = CStream::Open(pcszImage_))))
-        Message(msgError, "Failed to open ROM image: %s", pcszImage_);
+        Message(msgError, "Error loading ROM image: %s", pcszImage_);
     else
     {
         // Read the header+bootstrap code from what could be a ZX82 file (for Andy Wright's ROM images)
