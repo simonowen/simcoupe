@@ -833,13 +833,14 @@ class CInputOptions : public CDialog
             new CTextControl(this, 63, 35, "Mapping mode:");
             m_pKeyMapping = new CComboBox(this, 145, 32, "None (raw)|SAM Coupe|Sinclair Spectrum", 115);
 
-            m_pAltForCntrl = new CCheckBox(this, 63, 63, "Use Left-Alt for SAM Cntrl key.");
-            m_pAltGrForEdit = new CCheckBox(this, 63, 85,
-#ifndef __APPLE__
-            "Use Alt-Gr key for SAM Edit.");
+#ifdef __APPLE__
+            m_pAltForCntrl = new CCheckBox(this, 63, 63, "Use Alt for SAM Cntrl key.");
+            m_pAltGrForEdit = new CCheckBox(this, 63, 85, "Use Apple key for SAM Edit.");
 #else
-            "Use Apple key for SAM Edit.");
+            m_pAltForCntrl = new CCheckBox(this, 63, 63, "Use Left-Alt for SAM Cntrl key.");
+            m_pAltGrForEdit = new CCheckBox(this, 63, 85, "Use Alt-Gr key for SAM Edit.");
 #endif
+
             new CIconControl(this, 10, 123, &sMouseIcon);
             new CFrameControl(this, 50, 125, 238, 37);
             new CTextControl(this, 60, 121, "Mouse", YELLOW_8, BLUE_2);
