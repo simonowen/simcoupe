@@ -29,7 +29,7 @@
 
 
 // The original TurboMON font, still used for profiling/status text
-const FONT sOldFont = { 8, 9, 32, 127, abOldFont };
+const GUIFONT sOldFont = { 8, 9, 32, 127, abOldFont };
 
 const BYTE abOldFont[] =
 {
@@ -133,7 +133,7 @@ const BYTE abOldFont[] =
 
 
 // Sans-serif, around 9pt
-const FONT sGUIFont = { 11, 12, 32, 127, abGUIFont };
+const GUIFONT sGUIFont = { 11, 12, 32, 127, abGUIFont };
 
 const BYTE abGUIFont[] =
 {

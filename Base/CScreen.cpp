@@ -33,7 +33,7 @@
 
 
 int nClipX, nClipY, nClipWidth, nClipHeight;    // Clip box for any screen drawing
-const FONT* pFont = &sOldFont;
+const GUIFONT* pFont = &sOldFont;
 
 
 CScreen::CScreen (int nWidth_, int nHeight_)
@@ -292,7 +292,7 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
     return nWidth - CHAR_SPACING;
 }
 
-/*static*/ void CScreen::SetFont (const FONT* pFont_)
+/*static*/ void CScreen::SetFont (const GUIFONT* pFont_)
 {
     pFont = pFont_;
 }

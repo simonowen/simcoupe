@@ -28,10 +28,10 @@ typedef struct
 
     const BYTE* pcbData;
 }
-FONT;
+GUIFONT;
 
 extern const BYTE abOldFont[], abGUIFont[];
-extern const FONT sOldFont, sGUIFont;
+extern const GUIFONT sOldFont, sGUIFont;
 
 #endif
 
