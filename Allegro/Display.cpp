@@ -457,7 +457,6 @@ void Display::SamToDisplaySize (int* pnX_, int* pnY_)
 // Map a client point to one relative to the SAM view port
 void Display::DisplayToSamPoint (int* pnX_, int* pnY_)
 {
-//  Frame::SetStatus("Target x=%d y=%d  Source h=%d", rTarget.x, rTarget.y, rSource.h);
     *pnX_ -= rTarget.x;
     *pnY_ -= rTarget.y;
     DisplayToSamSize(pnX_, pnY_);
