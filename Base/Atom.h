@@ -2,7 +2,7 @@
 //
 // Atom.h: ATOM hard disk inteface
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,16 +33,17 @@ const BYTE ATOM_NRESET      = 0x20;     // Reset pin (negative logic)
 class CAtomDiskDevice : public CDiskDevice
 {
     public:
-        CAtomDiskDevice (CHardDisk* pDisk_);
+        CAtomDiskDevice (CATADevice* pDisk_);
         ~CAtomDiskDevice ();
 
     public:
-        void Reset ();
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
+        void Reset ();
         void FrameEnd ();
 
         bool IsLightOn () const { return m_uLightDelay != 0; }
+        const char* GetPath() const { return m_pDisk->GetPath(); }
 
     protected:
         CATADevice* m_pDisk;

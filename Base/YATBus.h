@@ -2,7 +2,7 @@
 //
 // Atom.h: YAMOD.ATBUS IDE interface
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,13 +27,15 @@
 class CYATBusDevice : public CDiskDevice
 {
     public:
-        CYATBusDevice (CHardDisk* pDisk_);
+        CYATBusDevice (CATADevice* pDisk_);
         ~CYATBusDevice ();
 
     public:
         void Reset ();
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
+
+        const char* GetPath() const { return m_pDisk->GetPath(); }
 
     protected:
         CATADevice* m_pDisk;
