@@ -851,8 +851,7 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     if (nParam1_ >= ' ' && nParam1_ <= 0x7f)
                     {
                         // Only add a character if we're not at the maximum length yet
-                        size_t nLen = strlen(GetText());
-                        if (nLen < MAX_EDIT_LENGTH)
+                        if (strlen(GetText()) < MAX_EDIT_LENGTH)
                         {
                             char sz[MAX_EDIT_LENGTH+1], szNew[2] = { nParam1_, '\0' };
                             SetText(strcat(strcpy(sz, GetText()), szNew));
@@ -1389,8 +1388,11 @@ void CScrollBar::SetMaxPos (int nMaxPos_)
 {
     m_nPos = 0;
 
-    // The scrollable area includes only what is not included in the current view
-    if ((m_nMaxPos = nMaxPos_ - m_nHeight) > 0)
+    // Determine how much of the height is not covered by the current view
+    m_nMaxPos = nMaxPos_ - m_nHeight;
+
+    // If we have a scrollable portion, set the thumb size to indicate how much
+    if (nMaxPos_ && m_nMaxPos > 0)
         m_nThumbSize = max(m_nHeight * m_nScrollHeight / nMaxPos_, 10);
 }
 
@@ -1646,12 +1648,12 @@ void CListView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const
         // Spread the item text over up to 2 lines
         while (nLine < 2)
         {
-            int nLen = pcsz-pszStart;
-            strncpy(sz, pszStart, nLen)[nLen] = '\0';
+            size_t uLen = pcsz-pszStart;
+            strncpy(sz, pszStart, uLen)[uLen] = '\0';
 
             if (CScreen::GetStringWidth(sz) >= (ITEM_SIZE-9))
             {
-                sz[nLen-1] = '\0';
+                sz[uLen-1] = '\0';
                 pcsz--;
 
                 if (nLine == 1 || !pszBreak)
