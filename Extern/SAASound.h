@@ -128,7 +128,7 @@ int SAAAPI SAASNDSendCommand(SAACMD nCommandID, long nData);
 
 
 #ifdef __cplusplus
-}; // extern "C"
+} // extern "C"
 #endif
 
 #endif  // SAASOUND_H_INCLUDED
