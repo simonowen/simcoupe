@@ -87,7 +87,7 @@ OPTION aOptions[] =
     OPT("KeyMapping",   OT_INT,     keymapping,     1),         // SAM keyboard mapping
     OPT("AltForCntrl",  OT_BOOL,    altforcntrl,    false),     // Left-Alt not used for SAM Cntrl
     OPT("AltGrForEdit", OT_BOOL,    altgrforedit,   true),      // Right-Alt used for SAM Edit
-    OPT("Mouse",        OT_BOOL,    mouse,          true),      // Mouse connected
+    OPT("Mouse",        OT_BOOL,    mouse,          false),     // Mouse not connected
 
     OPT("JoyDev1",      OT_STRING,  joydev1,        ""),        // Joystick 1 device
     OPT("JoyDev2",      OT_STRING,  joydev2,        ""),        // Joystick 2 device
