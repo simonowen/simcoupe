@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // CScreen.cpp: SAM screen handling, including on-screen display text
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -56,9 +56,9 @@ CScreen::CScreen (int nWidth_, int nHeight_)
 
 CScreen::~CScreen ()
 {
-    if (m_pbFrame) { delete m_pbFrame; m_pbFrame = NULL; }
-    if (m_pfHiRes) { delete m_pfHiRes; m_pfHiRes = NULL; }
-    if (m_ppbLines) { delete m_ppbLines; m_ppbLines = NULL; }
+    if (m_pbFrame)  { delete[] m_pbFrame;  m_pbFrame = NULL; }
+    if (m_pfHiRes)  { delete[] m_pfHiRes;  m_pfHiRes = NULL; }
+    if (m_ppbLines) { delete[] m_ppbLines; m_ppbLines = NULL; }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
