@@ -74,7 +74,7 @@ bool Display::Init (bool fFirstInit_/*=false*/)
 
     // These will be updated to the appropriate values on the first draw
     rSource.w = rTarget.w = Frame::GetWidth();
-    rSource.h = rTarget.h = Frame::GetHeight();
+    rSource.h = rTarget.h = Frame::GetHeight() << 1;
 
     return Video::Init(fFirstInit_);
 }
@@ -497,6 +497,12 @@ void DrawChangesGL (CScreen* pScreen_)
             pdw2 = pdwBack2 = reinterpret_cast<DWORD*>(&dwTextureData[4]);
             pdw3 = pdwBack3 = reinterpret_cast<DWORD*>(&dwTextureData[5]);
         }
+        else if (y == 511)
+        {
+            pdw1 = pdwBack1 = reinterpret_cast<DWORD*>(&dwTextureData[6]);
+            pdw2 = pdwBack2 = reinterpret_cast<DWORD*>(&dwTextureData[7]);
+            pdw3 = pdwBack3 = reinterpret_cast<DWORD*>(&dwTextureData[8]);
+        }
         else
         {
             pdw1 = pdwBack1 += lPitchDW;
@@ -508,21 +514,11 @@ void DrawChangesGL (CScreen* pScreen_)
     ProfileEnd();
 
 
-    int nWidth = pScreen_->GetPitch();
-
     // Calculate the source rectangle for the full visible area
     rSource.x = 0;
     rSource.y = 0;
-    rSource.w = nWidth;
+    rSource.w = pScreen_->GetPitch();
     rSource.h = nBottom;
-
-    if (GetOption(ratio5_4)) nWidth = (nWidth * 5)/4;
-
-    // Calculate the target rectangle on the target display
-    rTarget.x = ((pFront->w - nWidth) >> 1);
-    rTarget.y = ((pFront->h - rSource.h) >> 1);
-    rTarget.w = nWidth;
-    rTarget.h = rSource.h;
 
     // Find the first changed display line
     int nChangeFrom = 0;
@@ -539,6 +535,7 @@ void DrawChangesGL (CScreen* pScreen_)
 
         glPixelStorei(GL_UNPACK_ROW_LENGTH, 256);
 
+        // Work out the width of each texture used for the display image
         int nWidth = Frame::GetWidth(), w1, w2, w3;
         nWidth -= (w1 = min(nWidth, 256));
         w3 = (nWidth -= (w2 = min(nWidth, 256)));
@@ -549,7 +546,7 @@ void DrawChangesGL (CScreen* pScreen_)
 
         if (nChangeFrom < 256)
         {
-            int y = nChangeFrom, h = min(nChangeTo,255)-y+1;
+            int y = max(nChangeFrom-0,0), h = min(nChangeTo-0,255)-y+1;
 
             glBindTexture(GL_TEXTURE_2D,auTextures[0]);
             glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[0][y]);
@@ -561,9 +558,9 @@ void DrawChangesGL (CScreen* pScreen_)
             glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[2][y]);
         }
 
-        if (nChangeTo >= 256)
+        if (nChangeFrom <= 511 && nChangeTo >= 256)
         {
-            int y = max(nChangeFrom-256,0), h = nChangeTo-256-y+1;
+            int y = max(nChangeFrom-256,0), h = min(nChangeTo-256,255)-y+1;
 
             glBindTexture(GL_TEXTURE_2D,auTextures[3]);
             glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[3][y]);
@@ -574,15 +571,33 @@ void DrawChangesGL (CScreen* pScreen_)
             glBindTexture(GL_TEXTURE_2D,auTextures[5]);
             glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[5][y]);
         }
+
+        if (nChangeTo >= 512)
+        {
+            int y = max(nChangeFrom-512,0), h = min(nChangeTo-512,255)-y+1;
+
+            glBindTexture(GL_TEXTURE_2D,auTextures[6]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w1,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[6][y]);
+
+            glBindTexture(GL_TEXTURE_2D,auTextures[7]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w2,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[7][y]);
+
+            glBindTexture(GL_TEXTURE_2D,auTextures[8]);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,y,w3,h,GL_RGBA,GL_UNSIGNED_BYTE,dwTextureData[8][y]);
+        }
     }
 
     glPushMatrix();
 
-    float flStretch = GUI::IsActive() ? -0.5f : -1.0f;
-    glTranslatef(0.0f, flStretch, 0.0f);
-    glScalef(1.0f, flStretch, 1.0f);
-    glCallList(dlist);
+    if (GUI::IsActive())
+        glScalef(1.0f, -1.0f, 1.0f);        // flip vertically
+    else
+    {
+        glTranslatef(0.0f, -1.0f, 0.0f);    // Shift to adjust for half height
+        glScalef(1.0f, -2.0f, 1.0f);        // flip vertically and double the image
+    }
 
+    glCallList(dlist);
     glPopMatrix();
 
 
