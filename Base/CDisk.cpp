@@ -18,9 +18,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-// ToDo:
-//  - Complete FDI image support, once a reliable Disk2FDI is released.
-
 // Notes:
 //  SDF images lack a proper header, are read-only, and fixed at 80
 //  tracks per side.  The format is to be replaced by FDI, though
@@ -143,7 +140,7 @@ bool CDisk::FindNext (IDFIELD* pIdField_/*=NULL*/, BYTE* pbStatus_/*=NULL*/)
         pIdField_->bSize = 2;                       // 128 << 2 = 512 bytes
 
         // Calculate and set the CRC for the ID field, including the 
-        WORD wCRC = CDrive::CrcBlock(reinterpret_cast<BYTE*>("\xa1\xa1\xa1\xfe"), 4);
+        WORD wCRC = CDrive::CrcBlock("\xa1\xa1\xa1\xfe", 4);
         wCRC = CDrive::CrcBlock(pIdField_, 4, wCRC);
         pIdField_->bCRC1 = wCRC >> 8;
         pIdField_->bCRC2 = wCRC & 0xff;
@@ -633,7 +630,7 @@ bool CSDFDisk::Save ()
 bool CSDFDisk::ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
 {
     // Coming soon...
-    return false;
+	return false;
 }
 
 // Format a track using the specified format
