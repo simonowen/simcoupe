@@ -2,8 +2,8 @@
 //
 // IO.cpp: SAM I/O port handling
 //
+//  Copyright (c) 1999-2003  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
-//  Copyright (c) 1999-2001  Simon Owen
 //  Copyright (c) 2000-2001  Dave Laundon
 //
 // This program is free software; you can redistribute it and/or modify
@@ -51,6 +51,7 @@
 #include "Mouse.h"
 #include "Options.h"
 #include "Parallel.h"
+#include "SDIDE.h"
 #include "Serial.h"
 #include "Sound.h"
 #include "Util.h"
@@ -64,7 +65,10 @@ CIoDevice *pParallel1, *pParallel2;
 CIoDevice *pSerial1, *pSerial2;
 CIoDevice *pMidi;
 CIoDevice *pBeeper;
+CIoDevice *pSDIDE;
 
+// Port read/write addresses for I/O breakpoints
+WORD wPortRead, wPortWrite;
 
 // Paging ports for internal and external memory
 BYTE vmpr, hmpr, lmpr, lepr, hepr;
@@ -124,7 +128,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         ReleaseAllSamKeys();
 
         // Initialise all the devices
-        fRet &= (InitDrives () && InitParallel() && InitSerial() && InitMidi() && InitBeeper() && Clock::Init());
+        fRet &= (InitDrives () && InitParallel() && InitSerial() && InitMidi() && InitBeeper() && InitSDIDE() && Clock::Init());
     }
 
     // Return true only if everything
@@ -140,6 +144,7 @@ void IO::Exit (bool fReInit_/*=false*/)
         InitSerial(false, fReInit_);
         InitMidi(false, fReInit_);
         InitBeeper(false, fReInit_);
+        InitSDIDE(false, fReInit_);
 
         Clock::Exit();
     }
@@ -278,6 +283,16 @@ bool IO::InitBeeper (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     return fInit_ || pBeeper;
 }
 
+bool IO::InitSDIDE (bool fInit_/*=true*/, bool fReInit_/*=true*/)
+{
+    if (pSDIDE) { delete pSDIDE; pSDIDE = NULL; }
+
+    if (fInit_)
+        pSDIDE = new CSDIDEDevice;
+
+    return fInit_ || pSDIDE;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 static inline void PaletteChange (BYTE bHMPR_)
@@ -394,7 +409,7 @@ static inline void out_clut(WORD wPort_, BYTE bVal_)
 
 BYTE IO::In (WORD wPort_)
 {
-    BYTE bPortLow = wPort_ & 0xff;
+    BYTE bPortLow = (wPortRead = wPort_) & 0xff;
 
     // The ASIC doesn't respond to I/O immediately after power-on
     if (fASICStartup)
@@ -528,6 +543,11 @@ BYTE IO::In (WORD wPort_)
         case MIDI_PORT:
             return pMidi->In(wPort_);
 
+        // S D Software IDE interface
+        case SDIDE_REG:
+        case SDIDE_DATA:
+            return pSDIDE->In(wPort_);
+
         default:
         {
             // Dunno if there's a special reason these return zero!  Anyone?
@@ -564,7 +584,7 @@ BYTE IO::In (WORD wPort_)
 // The actual port input and output routines
 void IO::Out (WORD wPort_, BYTE bVal_)
 {
-    BYTE bPortLow = wPort_ & 0xff;
+    BYTE bPortLow = (wPortWrite = wPort_) & 0xff;
 
     // The ASIC doesn't respond to I/O immediately after power-on
     if (fASICStartup)
@@ -724,6 +744,10 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             // Not to be implemented
             break;
 
+        case SID_PORT:
+            // Avoid unhandled write message for this known port
+            break;
+
         // Parallel ports 1 and 2
         case PRINTL1_STAT:
         case PRINTL1_DATA:
@@ -769,6 +793,12 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             break;
         }
 
+        // S D Software IDE interface
+        case SDIDE_REG:
+        case SDIDE_DATA:
+            pSDIDE->Out(wPort_, bVal_);
+            break;
+
         default:
         {
             // Floppy drive 1
@@ -789,7 +819,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
 
             // Only unsupported hardware should reach here
             else
-                TRACE("*** Unhandled write: %#04x (LSB=%d), %#02x (%d)\n", wPort_, bPortLow, bVal_, bVal_);
+                TRACE("*** Unhandled write: %#06x (LSB=%d), %#02x (%d)\n", wPort_, bPortLow, bVal_, bVal_);
         }
     }
 }
