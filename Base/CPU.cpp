@@ -402,7 +402,7 @@ void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
             // Update the input in the centre of the screen (well away from the frame boundary) to avoid the ROM
             // keyboard scanner discarding key presses when it thinks keys have bounced.  In old versions this was
             // the cause of the first key press on the boot screen only clearing it (took AGES to track down!)
-            Input::Update();
+            IO::UpdateInput();
 
             // Schedule the next input check at the same time in the next frame
             AddCpuEvent(evtInputUpdate, sThisEvent.dwTime + TSTATES_PER_FRAME);
