@@ -41,16 +41,30 @@ void Exit (bool fReInit_/*=false*/)
 }
 
 
-// Return a DWORD containing a millisecond accurate time stamp
+// Return an accurate time stamp of type PROFILE_T (__int64 for Win32)
+PROFILE_T GetProfileTime ()
+{
+    __int64 llNow;
+
+    // Read the current 64-bit time value
+    if (QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&llNow)))
+        return llNow;
+
+    // If that failed, our only choice is to make it up using the multimedia version
+    return 1000i64 * timeGetTime();
+}
+
+
+// Return a time-stamp in milliseconds
 // Note: calling could should allow for the value wrapping by only comparing differences
 DWORD GetTime ()
 {
-    static __int64 llFreq = 0, llNow;
+    static __int64 llFreq = 0;
 
     // Need to read the frequency?
     if (!llFreq)
     {
-        // If the best high-resolution timer is not available, fall back to the less accurate multimedia version
+        // If the best high-resolution timer is not available, fall back to the less accurate multimedia timer
         if (!QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&llFreq)))
             return timeGetTime();
 
@@ -58,11 +72,8 @@ DWORD GetTime ()
         llFreq /= 1000i64;
     }
 
-    // Read the current 64-bit time value
-    QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&llNow));
-
-    // Convert to ms and return it
-    return static_cast<DWORD>(llNow / llFreq);
+    // Return the profile time as milliseconds
+    return static_cast<DWORD>(GetProfileTime() / llFreq);
 }
 
 

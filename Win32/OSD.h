@@ -21,11 +21,17 @@
 #ifndef OSD_H
 #define OSD_H
 
+// We can do more accurate profiling than the default
+#define PROFILE_T   __int64
+#define AddTime(x)  sprintf(sz + strlen(sz), " %s:%I64dus", #x, (g_sProfile.prof##x + 5) / 10i64)
+
+
 namespace OSD
 {
     bool Init (bool fFirstInit_=false);
     void Exit (bool fReInit_=false);
 
+    PROFILE_T GetProfileTime ();
     DWORD GetTime ();
     const char* GetFilePath (const char* pcszFile_);
     void DebugTrace (const char* pcsz_);
@@ -33,6 +39,7 @@ namespace OSD
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+
 
 #define STRICT
 #define WIN32_LEAN_AND_MEAN
