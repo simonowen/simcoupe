@@ -578,12 +578,12 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             // OS X needs a few tweaks
             if (pEvent_->type == SDL_KEYDOWN)
             {
-                // Correct the unicode values for Shift-Tab and Backspace
-                if (pKey->sym == SDLK_TAB || pKey->sym == SDLK_BACKSPACE)
+                // Correct the unicode values for Shift-Tab and Backspace, or if a Left-Alt modifier is used
+                if (pKey->sym == SDLK_TAB || pKey->sym == SDLK_BACKSPACE || pKey->mod & KMOD_LALT)
                     pKey->unicode = pKey->sym;
 
                 // Apple-Q is a shortcut for quit, until we've a Cocoa GUI to do it properly
-                if (pKey->sym == SDLK_q && pKey->mod == 0x1000)
+                else if (!GetOption(altforcntrl) && pKey->sym == SDLK_q && pKey->mod == KMOD_LMETA)
                 {
                     SDL_Event event = { SDL_QUIT };
                     SDL_PushEvent(&event);
