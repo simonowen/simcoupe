@@ -98,7 +98,7 @@ void ProfileEnd ()
 }
 
 
-#define AddPercent(x)   sprintf(sz + strlen(sz), " %s:%lu%%", #x, ((g_sProfile.prof##x + profTotal/200UL) * 100UL) / profTotal)
+#define AddPercent(x)   sprintf(sz + strlen(sz), "  %s:%lu%%", #x, ((g_sProfile.prof##x + profTotal/200UL) * 100UL) / profTotal)
 
 const char* GetStats ()
 {
