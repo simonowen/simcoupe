@@ -44,7 +44,6 @@ const char SDF_SIGNATURE[] = "SDF"; // 4 bytes, including the terminating NULL
 // The various disk format image sizes
 #define DSK_IMAGE_SIZE          (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE)
 #define MSDOS_IMAGE_SIZE        (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * MSDOS_DISK_SECTORS * NORMAL_SECTOR_SIZE)
-#define SDF_IMAGE_SIZE          (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * SDF_TRACKSIZE)
 
 const UINT DISK_FILE_HEADER_SIZE = 9;    // From SAM Technical Manual  (bType, wSize, wOffset, wUnused, bPages, bStartPage)
 
