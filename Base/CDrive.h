@@ -63,7 +63,7 @@ class CDrive : public CDiskDevice
         BYTE VerifyTrack (UINT uSide_, UINT uTrack_);
         BYTE WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
 
-        static WORD CrcBlock (void* pv_, int nLen_, WORD wCRC_=0xffff);
+        static WORD CrcBlock (const void* pcv_, int nLen_, WORD wCRC_=0xffff);
 
     protected:
         CDisk*      m_pDisk;        // The disk currently inserted in the drive, if any

@@ -647,7 +647,7 @@ BYTE CDrive::ReadAddress (UINT uSide_, UINT uTrack_, IDFIELD* pIdField_)
 
 
 // CRC-CCITT for id/data checksums, with bit and byte order swapped
-WORD CDrive::CrcBlock (void* pv_, int nLen_, WORD wCRC_/*=0xffff*/)
+WORD CDrive::CrcBlock (const void* pcv_, int nLen_, WORD wCRC_/*=0xffff*/)
 {
     static WORD awCRC[256];
 
@@ -667,7 +667,7 @@ WORD CDrive::CrcBlock (void* pv_, int nLen_, WORD wCRC_/*=0xffff*/)
     }
 
     // Update the CRC with each byte in the block
-    BYTE* pb = reinterpret_cast<BYTE*>(pv_);
+    const BYTE* pb = reinterpret_cast<const BYTE*>(pcv_);
     while (nLen_--)
         wCRC_ = (wCRC_ << 8) ^ awCRC[((wCRC_ >> 8) ^ *pb++) & 0xff];
 
