@@ -659,7 +659,7 @@ void Frame::SetStatus (const char *pcszFormat_, ...)
 {
     va_list pcvArgs;
     va_start (pcvArgs, pcszFormat_);
-    vsprintf(szStatus, pcszFormat_, reinterpret_cast<va_list>(pcvArgs));
+    vsprintf(szStatus, pcszFormat_, pcvArgs);
     va_end(pcvArgs);
 
     dwStatusTime = OSD::GetTime();
