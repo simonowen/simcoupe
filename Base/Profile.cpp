@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Profile.cpp: Emulator profiling for on-screen stats
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -97,7 +97,11 @@ void ProfileEnd ()
 }
 
 
+#ifdef USE_LOWRES
+#define AddPercent(x)   sprintf(sz + strlen(sz), "  %c:%lu%%", #x[0], ((s_sProfile.prof##x + profTotal/200UL) * 100UL) / profTotal)
+#else
 #define AddPercent(x)   sprintf(sz + strlen(sz), "  %s:%lu%%", #x, ((s_sProfile.prof##x + profTotal/200UL) * 100UL) / profTotal)
+#endif
 
 const char* Profile::GetStats ()
 {
