@@ -347,6 +347,7 @@ void DoAction (int nAction_, bool fPressed_)
 
             case actExitApplication:
                 UI::Quit();
+                break;
 
             case actToggleTurbo:
             {
