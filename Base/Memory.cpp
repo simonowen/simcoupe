@@ -47,6 +47,7 @@ BYTE* apbPageWritePtrs[TOTAL_PAGES];
 
 // Page numbers present in each of the 4 sections in the 64K address range
 int anSectionPages[4];
+bool afContendedPages[4];
 
 // Array of pointers for memory to use when reading from or writing to each each section
 BYTE* apbSectionReadPtrs[4];

@@ -43,6 +43,8 @@ extern BYTE* apbSectionWritePtrs[4];
 extern BYTE g_abMode1ByteToLine[6*1024];
 extern WORD g_awMode1LineToByte[SCREEN_LINES];
 extern BYTE *apbPageReadPtrs[],  *apbPageWritePtrs[];
+extern bool afContendedPages[4];
+
 
 
 // Map a 16-bit address through the memory indirection - allows fast paging
@@ -92,6 +94,7 @@ inline void PageIn (eSection nSection_, int nPage_)
 {
     // Remember the page that's now occupying the section
     anSectionPages[nSection_] = nPage_;
+    afContendedPages[nSection_] = (nPage_ < N_PAGES_MAIN);
 
     // Look up the relevant read and write pointers for the section
     apbSectionReadPtrs[nSection_] = apbPageReadPtrs[nPage_];
@@ -106,7 +109,7 @@ inline void PageIn (eSection nSection_, int nPage_)
 inline void write_to_screen_vmpr0 (WORD wAddr_)
 {
     // Limit the address to the 16K page we're considering
-    wAddr_ &= 0x3fff;
+    wAddr_ &= (MEM_PAGE_SIZE-1);
 
     // The display area affected by the write depends on the current screen mode
     switch (vmpr_mode)
@@ -142,7 +145,7 @@ inline void write_to_screen_vmpr0 (WORD wAddr_)
 inline void write_to_screen_vmpr1 (WORD wAddr_)
 {
     // Limit the address to the 16K page we're considering
-    wAddr_ &= 0x3fff;
+    wAddr_ &= (MEM_PAGE_SIZE-1);
 
     if (wAddr_ < 8192)
         Frame::TouchLine(((wAddr_ + MEM_PAGE_SIZE) >> 7) + TOP_BORDER_LINES);
