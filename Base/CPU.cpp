@@ -524,7 +524,7 @@ void CPU::Run ()
                 IO::FrameUpdate();
 
             // Step back up to start the next frame
-            g_nLine -= HEIGHT_LINES;
+            g_nLine %= HEIGHT_LINES;
             Frame::Start();
         }
     }
