@@ -55,7 +55,7 @@ END
 IDD_ABOUT DIALOGEX 0, 0, 193, 164
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About SimCoupé"
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     LTEXT           "SimCoupé v0.90 beta 10",IDC_STATIC,54,43,90,8
     LTEXT           "http://www.simcoupe.org",ID_HOMEPAGE,54,54,82,8,
@@ -99,47 +99,41 @@ BEGIN
     GROUPBOX        "Data",IDC_STATIC,7,24,149,91
 END
 
-IDD_NEW_DISK DIALOG DISCARDABLE  0, 0, 200, 151
+IDD_NEW_DISK DIALOG DISCARDABLE  0, 0, 200, 134
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "New Disk"
 FONT 8, "MS Sans Serif"
 BEGIN
     EDITTEXT        IDE_NEWFILE,26,7,151,14,ES_AUTOHSCROLL
     PUSHBUTTON      "...",IDB_BROWSE,179,7,14,14
-    EDITTEXT        IDE_SIDES,79,38,21,14,ES_AUTOHSCROLL | WS_DISABLED
+    EDITTEXT        IDE_SIDES,79,37,21,14,ES_AUTOHSCROLL | WS_DISABLED
     CONTROL         "Spin1",IDS_SIDES,"msctls_updown32",UDS_SETBUDDYINT | 
-                    UDS_AUTOBUDDY | UDS_ARROWKEYS,101,38,11,14
-    EDITTEXT        IDE_TRACKS,79,55,21,14,ES_AUTOHSCROLL | WS_DISABLED
+                    UDS_AUTOBUDDY | UDS_ARROWKEYS,101,37,11,14
+    EDITTEXT        IDE_TRACKS,79,54,21,14,ES_AUTOHSCROLL | WS_DISABLED
     CONTROL         "Spin1",IDS_TRACKS,"msctls_updown32",UDS_SETBUDDYINT | 
-                    UDS_AUTOBUDDY | UDS_ARROWKEYS,101,55,11,14
-    EDITTEXT        IDE_SECTORS,79,71,21,14,ES_AUTOHSCROLL | WS_DISABLED
+                    UDS_AUTOBUDDY | UDS_ARROWKEYS,101,54,11,14
+    EDITTEXT        IDE_SECTORS,79,70,21,14,ES_AUTOHSCROLL | WS_DISABLED
     CONTROL         "Spin1",IDS_SECTORS,"msctls_updown32",UDS_SETBUDDYINT | 
-                    UDS_AUTOBUDDY | UDS_ARROWKEYS,101,71,11,14
-    COMBOBOX        IDC_SECTORSIZE,79,89,34,54,CBS_DROPDOWNLIST | 
+                    UDS_AUTOBUDDY | UDS_ARROWKEYS,101,70,11,14
+    COMBOBOX        IDC_SECTORSIZE,79,88,34,54,CBS_DROPDOWNLIST | 
                     WS_DISABLED | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Allow non real-world geometry values",
-                    IDC_NON_REAL_WORLD,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    7,117,138,10
-    CONTROL         "Compress new disk image using gzip",IDC_COMPRESS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,131,138,10
+    CONTROL         "Compress",IDC_COMPRESS,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,139,89,47,10
     CONTROL         ".&DSK",IDR_DISK_TYPE_DSK,"Button",BS_AUTORADIOBUTTON | 
-                    WS_GROUP,141,36,33,10
+                    WS_GROUP,143,40,33,10
     CONTROL         ".&SAD",IDR_DISK_TYPE_SAD,"Button",BS_AUTORADIOBUTTON,
-                    141,50,33,10
-    CONTROL         ".SD&F",IDR_DISK_TYPE_SDF,"Button",BS_AUTORADIOBUTTON | 
-                    WS_DISABLED,141,64,32,10
-    COMBOBOX        IDC_INSERT_INTO,137,90,51,98,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
-    DEFPUSHBUTTON   "Save",IDB_SAVE,153,114,40,14
-    PUSHBUTTON      "Cancel",IDCANCEL,153,130,40,14
-    RTEXT           "Disk sides:",IDC_SIDES,13,40,60,8
-    RTEXT           "Tracks per side:",IDC_TRACKS,13,57,60,8
-    RTEXT           "Sectors per track:",IDC_SECTORS,13,74,60,8
-    GROUPBOX        "Type",IDC_STATIC,131,26,62,52
-    GROUPBOX        "Geometry",IDC_STATIC,7,26,117,82
-    RTEXT           "Sector size:",IDC_STATIC,15,91,60,8
+                    143,54,33,10
+    CONTROL         ".&TD0",IDR_DISK_TYPE_TD0,"Button",BS_AUTORADIOBUTTON | 
+                    WS_DISABLED,143,68,32,10
+    DEFPUSHBUTTON   "Save",IDB_SAVE,109,113,40,14
+    PUSHBUTTON      "Close",IDCLOSE,153,113,40,14
+    RTEXT           "Disk sides:",IDC_SIDES,13,39,60,8
+    RTEXT           "Tracks per side:",IDC_TRACKS,13,56,60,8
+    RTEXT           "Sectors per track:",IDC_SECTORS,13,73,60,8
+    GROUPBOX        "Type",IDC_STATIC,131,26,62,80
+    GROUPBOX        "Geometry",IDC_STATIC,7,26,117,80
+    RTEXT           "Sector size:",IDC_STATIC,15,90,60,8
     LTEXT           "File:",IDC_STATIC,7,9,14,8
-    GROUPBOX        "Insert into:",IDC_STATIC,131,79,62,29
 END
 
 IDD_PAGE_PARALLEL DIALOG DISCARDABLE  0, 0, 235, 156
@@ -435,33 +429,33 @@ BEGIN
     GROUPBOX        "Options",IDC_STATIC,45,78,170,31
 END
 
-IDD_HARDDISK DIALOG DISCARDABLE  0, 0, 183, 110
+IDD_HARDDISK DIALOG DISCARDABLE  0, 0, 189, 132
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Hard Disk Properties"
 FONT 8, "MS Sans Serif"
 BEGIN
-    EDITTEXT        IDE_FILEPATH,24,7,136,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDB_BROWSE,162,7,14,14
-    EDITTEXT        IDE_CYLINDERS,85,35,30,14,ES_AUTOHSCROLL
+    EDITTEXT        IDE_FILEPATH,24,7,141,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDB_BROWSE,168,7,14,14
+    EDITTEXT        IDE_CYLINDERS,102,35,30,14,ES_AUTOHSCROLL
     CONTROL         "Spin1",IDS_CYLINDERS,"msctls_updown32",UDS_SETBUDDYINT | 
-                    UDS_AUTOBUDDY | UDS_ARROWKEYS,116,35,11,14
-    EDITTEXT        IDE_HEADS,85,52,30,14,ES_AUTOHSCROLL
+                    UDS_AUTOBUDDY | UDS_ARROWKEYS,133,35,11,14
+    EDITTEXT        IDE_HEADS,102,52,30,14,ES_AUTOHSCROLL
     CONTROL         "Spin1",IDS_HEADS,"msctls_updown32",UDS_SETBUDDYINT | 
-                    UDS_AUTOBUDDY | UDS_ARROWKEYS,116,52,11,14
-    EDITTEXT        IDE_SECTORS,85,69,30,14,ES_AUTOHSCROLL
+                    UDS_AUTOBUDDY | UDS_ARROWKEYS,133,52,11,14
+    EDITTEXT        IDE_SECTORS,102,69,30,14,ES_AUTOHSCROLL
     CONTROL         "Spin1",IDS_SECTORS,"msctls_updown32",UDS_SETBUDDYINT | 
-                    UDS_AUTOBUDDY | UDS_ARROWKEYS,116,69,11,14
-    EDITTEXT        IDE_TOTALSIZE,85,86,30,14,ES_AUTOHSCROLL
+                    UDS_AUTOBUDDY | UDS_ARROWKEYS,133,69,11,14
+    EDITTEXT        IDE_TOTALSIZE,102,88,30,14,ES_AUTOHSCROLL
     CONTROL         "Spin1",IDS_TOTALSIZE,"msctls_updown32",UDS_SETBUDDYINT | 
-                    UDS_AUTOBUDDY | UDS_ARROWKEYS,116,86,11,14
-    DEFPUSHBUTTON   "Create",IDB_CREATE,135,70,36,14
-    PUSHBUTTON      "OK",IDOK,135,87,36,14
-    RTEXT           "Cylinders (1-16383):",IDC_STATIC,12,37,70,8
-    RTEXT           "Heads (2-16):",IDC_STATIC,12,54,70,8
-    RTEXT           "Sectors (1-63):",IDC_STATIC,12,72,70,8
-    GROUPBOX        "Geometry",IDC_STATIC,7,25,169,78
+                    UDS_AUTOBUDDY | UDS_ARROWKEYS,133,88,11,14
+    DEFPUSHBUTTON   "Create",IDB_CREATE,97,111,40,14
+    PUSHBUTTON      "Cancel",IDCANCEL,142,111,40,14
+    RTEXT           "Cylinders (1-16383):",IDC_STATIC,29,37,70,8
+    RTEXT           "Heads (2-16):",IDC_STATIC,29,54,70,8
+    RTEXT           "Sectors (1-63):",IDC_STATIC,29,72,70,8
+    GROUPBOX        "Geometry",IDC_STATIC,7,25,175,82
     LTEXT           "File:",IDC_STATIC,7,9,14,8
-    RTEXT           "Total size (MB):",IDC_STATIC,12,89,70,8
+    RTEXT           "Total size (MB):",IDC_STATIC,29,91,70,8
 END
 
 
@@ -502,7 +496,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 193
         TOPMARGIN, 7
-        BOTTOMMARGIN, 144
+        BOTTOMMARGIN, 127
     END
 
     IDD_PAGE_PARALLEL, DIALOG
@@ -604,9 +598,9 @@ BEGIN
     IDD_HARDDISK, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 176
+        RIGHTMARGIN, 182
         TOPMARGIN, 7
-        BOTTOMMARGIN, 103
+        BOTTOMMARGIN, 125
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -621,9 +615,9 @@ IDR_MENU MENU DISCARDABLE
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&New Disk...",                IDM_FILE_NEW_DISK
-        POPUP "Floppy &1"
+        POPUP "Drive &1"
         BEGIN
+            MENUITEM "&New...",                     IDM_FILE_NEW_DISK1
             MENUITEM "&Insert...",                  IDM_FILE_FLOPPY1_INSERT
             MENUITEM "&Eject",                      IDM_FILE_FLOPPY1_EJECT
             MENUITEM "&Save Changes",               IDM_FILE_FLOPPY1_SAVE_CHANGES
@@ -631,9 +625,10 @@ BEGIN
             MENUITEM SEPARATOR
             MENUITEM "Use Drive &A:",               IDM_FILE_FLOPPY1_DEVICE
         END
-        POPUP "Floppy &2"
+        POPUP "Drive &2"
         BEGIN
-            MENUITEM "&Insert",                     IDM_FILE_FLOPPY2_INSERT
+            MENUITEM "&New...",                     IDM_FILE_NEW_DISK2
+            MENUITEM "&Insert...",                  IDM_FILE_FLOPPY2_INSERT
             MENUITEM "&Eject",                      IDM_FILE_FLOPPY2_EJECT
             MENUITEM "&Save Changes",               IDM_FILE_FLOPPY2_SAVE_CHANGES
 
