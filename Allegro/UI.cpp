@@ -2,7 +2,7 @@
 //
 // UI.cpp: Allegro user interface
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 
 #include "UI.h"
 
+#include "Debug.h"
 #include "CDrive.h"
 #include "Clock.h"
 #include "CPU.h"
@@ -105,11 +106,13 @@ void UI::ProcessKey (BYTE bKey_, BYTE bMods_)
     bool fPress = !(bKey_ & 0x80);
     bKey_ &= 0x7f;
 
-    // Read the current states of the control and shift keys
-    bool fCtrl = (bMods_ & KB_CTRL_FLAG) != 0, fShift = (bMods_ & KB_SHIFT_FLAG) != 0, fAlt = (bMods_ & KB_ALT_FLAG) != 0;
-  
+    // Read the current states of the Ctrl/Alt/Shift keys
+    bool fCtrl  = (bMods_ & KB_CTRL_FLAG)  != 0;
+    bool fShift = (bMods_ & KB_SHIFT_FLAG) != 0;
+    bool fAlt   = (bMods_ & KB_ALT_FLAG)   != 0;
+
     // A function key?
-    if (bKey_ >= KEY_F1 && bKey_ <= KEY_F12 && !fAlt)
+    if (bKey_ >= KEY_F1 && bKey_ <= KEY_F12)
     {
         // Grab a copy of the function key definition string (could do with being converted to upper-case)
         char szKeys[256];
@@ -118,8 +121,9 @@ void UI::ProcessKey (BYTE bKey_, BYTE bMods_)
         // Process each of the 'key=action' pairs in the string
         for (char* psz = strtok(szKeys, ", \t") ; psz ; psz = strtok(NULL, ", \t"))
         {
-            // Leading C and S characters indicate that Ctrl and/or Shift modifiers are required with the key
-            bool fCtrled = (*psz == 'C');   if (fCtrled) psz++;
+            // Leading C/A/S characters indicate that Ctrl/Alt/Shift modifiers are required with the key
+            bool fCtrled  = (*psz == 'C');  if (fCtrled)  psz++;
+            bool fAlted   = (*psz == 'A');  if (fAlted)   psz++;
             bool fShifted = (*psz == 'S');  if (fShifted) psz++;
 
             // Currently we only support function keys F1-F12
@@ -129,8 +133,8 @@ void UI::ProcessKey (BYTE bKey_, BYTE bMods_)
                 if (bKey_ != (KEY_F1 + (int)strtoul(psz, &psz, 0) - 1))
                     continue;
 
-                // If the Ctrl/Shift states match, perform the action
-                if (fCtrl == fCtrled && fShift == fShifted)
+                // If the Ctrl/Alt/Shift states match, perform the action
+                if (fCtrl == fCtrled && fAlt == fAlted && fShift == fShifted)
                     DoAction(strtoul(++psz, NULL, 0), fPress);
             }
         }
@@ -156,11 +160,10 @@ void UI::ProcessKey (BYTE bKey_, BYTE bMods_)
 // Check and process any incoming messages
 bool UI::CheckEvents ()
 {
-    if (g_fPaused || GUI::IsModal())
-        Input::Update();
+    Input::Update();
 
     // Re-pause after a single frame-step
-    else if (g_fFrameStep)
+    if (g_fFrameStep)
         DoAction(actFrameStep);
 
     if (g_fPaused || (!g_fActive && GetOption(pauseinactive)))
@@ -330,7 +333,7 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actDebugger:
-                GUI::Start(new CMessageBox(NULL, "Debugger not yet implemented", "Sorry!", mbInformation));
+                Debug::Start();
                 break;
 
             case actImportData:
