@@ -288,6 +288,8 @@ void Frame::Complete ()
 {
     nFrame++;
 
+    ProfileStart(Gfx);
+
     // Was the current frame drawn?
     if (fDrawFrame)
     {
@@ -333,6 +335,8 @@ void Frame::Complete ()
         // Redraw what's new
         Redraw();
     }
+
+    ProfileEnd();
 
     // Unless we're fast booting, sync to 50Hz and decide whether we should draw the next frame
     if (!g_nFastBooting)
