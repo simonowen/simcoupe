@@ -2,7 +2,7 @@
 //
 // GUI.cpp: GUI and controls for on-screen interface
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -136,7 +136,7 @@ bool GUI::Start (CWindow* pGUI_)
     s_pGUI = pGUI_;
     dwLastClick = 0;
 
-    // Position the cursor off-screen, so ensure the first drawn position matches the native OS position
+    // Position the cursor off-screen, to ensure the first drawn position matches the native OS position
     s_nX = s_nY = -ICON_SIZE;
 
     // Dim the background SAM screen and steal keyboard/mouse input
@@ -166,9 +166,13 @@ void GUI::Stop ()
 void GUI::Delete (CWindow* pWindow_)
 {
     // Link up the existing window to the garbage chain
-    pWindow_->SetParent(s_pGarbage);
     if (!s_pGarbage)
         s_pGarbage = pWindow_;
+    else
+    {
+        s_pGarbage->SetParent(pWindow_);
+        s_pGarbage = pWindow_;
+    }
 
     // If the top-most window is being removed, invalidate the main GUI pointer
     if (pWindow_ == s_pGUI)
@@ -355,9 +359,12 @@ void CWindow::Destroy ()
 {
     if (m_pParent)
     {
-        // Unlink us from the parent, and activate it once we're gone
+        // Unlink us from the parent, keeping the local pointer for use in the destructor
         CWindow* pParent = m_pParent;
         SetParent(NULL);
+        m_pParent = pParent;
+
+        // Re-activate the parent now we're gone
         pParent->Activate();
     }
 
@@ -381,6 +388,12 @@ void CWindow::SetText (const char* pcszText_)
     delete pcszOld;
 }
 
+void CWindow::SetValue (UINT u_)
+{
+    char sz[16];
+    sprintf(sz, "%u", u_);
+    SetText(sz);
+}
 
 CWindow* CWindow::GetNext (bool fWrap_/*=false*/)
 {
@@ -436,6 +449,25 @@ void CWindow::Move (int nX_, int nY_)
 {
     // Perform a recursive relative move of the window and all children
     MoveRecurse(this, nX_ - m_nX, nY_ - m_nY);
+}
+
+void CWindow::Offset (int ndX_, int ndY_)
+{
+    // Perform a recursive relative move of the window and all children
+    MoveRecurse(this, ndX_, ndY_);
+}
+
+
+void CWindow::SetSize (int nWidth_, int nHeight_)
+{
+    if (nWidth_) m_nWidth = nWidth_;
+    if (nHeight_) m_nHeight = nHeight_;
+}
+
+void CWindow::Inflate (int ndW_, int ndH_)
+{
+    m_nWidth += ndW_;
+    m_nHeight += ndH_;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -494,7 +526,7 @@ bool CButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             {
                 case ' ':
                 case '\r':
-                    NotifyParent();
+                    NotifyParent(nParam1_ == '\r');
                     return true;
             }
             break;
@@ -734,9 +766,15 @@ bool CCheckBox::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 const size_t MAX_EDIT_LENGTH = 250;
 
 CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_/*=""*/)
-    : CWindow(pParent_, nX_, nY_, nWidth_, CHAR_HEIGHT+5, ctEdit)
+    : CWindow(pParent_, nX_, nY_, nWidth_, BUTTON_HEIGHT, ctEdit)
 {
     SetText(pcszText_);
+}
+
+CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, UINT u_)
+    : CWindow(pParent_, nX_, nY_, nWidth_, BUTTON_HEIGHT, ctEdit)
+{
+    SetValue(u_);
 }
 
 void CEditControl::Draw (CScreen* pScreen_)
@@ -793,6 +831,11 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 case GK_RIGHT:
                     // Eat these for future cursor handling
                     return true;
+
+                // Return possibly submits the dialog contents
+                case '\r':
+                    NotifyParent(1);
+                    break;
 
                 // Backspace deletes the last character
                 case '\b':
@@ -902,6 +945,7 @@ bool CRadioButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
             switch (nParam1_)
             {
+                case GK_LEFT:
                 case GK_UP:
                 {
                     CWindow* pPrev = GetPrev();
@@ -914,6 +958,7 @@ bool CRadioButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     return true;
                 }
 
+                case GK_RIGHT:
                 case GK_DOWN:
                 {
                     CWindow* pNext = GetNext();
@@ -925,6 +970,10 @@ bool CRadioButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     }
                     return true;
                 }
+
+                case '\r':
+                    NotifyParent(1);
+                    return true;
             }
             break;
         }
@@ -1045,7 +1094,7 @@ bool CMenu::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     return true;
 
                 // Esc cancels
-                case '\x1b':
+                case GK_ESC:
                     m_nSelected = -1;
                     NotifyParent();
                     Destroy();
@@ -1593,7 +1642,7 @@ void CListView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const
             int nLen = pcsz-pszStart;
             strncpy(sz, pszStart, nLen)[nLen] = '\0';
 
-            if (CScreen::GetStringWidth(sz) >= (ITEM_SIZE-2))
+            if (CScreen::GetStringWidth(sz) >= (ITEM_SIZE-9))
             {
                 sz[nLen-1] = '\0';
                 pcsz--;
@@ -1601,7 +1650,7 @@ void CListView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const
                 if (nLine == 1 || !pszBreak)
                 {
                     if (nLine == 1)
-                        strcpy(sz+(pcsz-pszStart-1), "...");
+                        strcpy(sz+(pcsz-pszStart-2), "...");
                     strcpy(szLines[nLine++], sz);
                     pszStart = pcsz;
                 }
@@ -2229,6 +2278,8 @@ const int DIALOG_FRAME_COLOUR = GREY_7;
 
 const int TITLE_HEIGHT = 4 + CHAR_HEIGHT + 5;
 
+CWindow* CDialog::s_pActive;
+
 
 CDialog::CDialog (CWindow* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_, bool fModal_/*=true*/)
     : CWindow(pParent_, 0, 0, nWidth_, nHeight_, ctDialog), m_fModal(fModal_), m_fDragging(false), m_nDragX(0),
@@ -2238,21 +2289,23 @@ CDialog::CDialog (CWindow* pParent_, int nWidth_, int nHeight_, const char* pcsz
 
     Centre();
     CWindow::Activate();
+
+    // Inherit dialog activation from the parent
+    if (s_pActive == GetParent())
+        s_pActive = this;
 }
 
+CDialog::~CDialog ()
+{
+    // Pass the dialog activation back to the parent window
+    if (s_pActive == this)
+        s_pActive = GetParent();
+}
 
 void CDialog::Centre ()
 {
-    // Centralise the dialog over the parent, or the full display if there isn't one
-    if (!m_pParent)
-        Move((Frame::GetWidth() - m_nWidth) >> 1, (Frame::GetHeight() - m_nHeight) >> 1);
-    else
-    {
-        int nX = GetParent()->m_nX, nY = GetParent()->m_nY;
-        nX += (GetParent()->m_nWidth - m_nWidth) >> 1;
-        nY += (GetParent()->m_nHeight - m_nHeight) >> 1;
-        Move(nX, nY);
-    }
+    // Centralise the main display
+    Move((Frame::GetWidth() - m_nWidth) >> 1, (Frame::GetHeight() - m_nHeight) >> 1);
 }
 
 // Activating the dialog will activate the first child control that accepts focus
@@ -2280,7 +2333,7 @@ bool CDialog::HitTest (int nX_, int nY_)
 // Fill the dialog background
 void CDialog::EraseBackground (CScreen* pScreen_)
 {
-    pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, m_nBodyColour);
+    pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, IsActiveDialog() ? m_nBodyColour : (m_nBodyColour & ~0x7));
 }
 
 void CDialog::Draw (CScreen* pScreen_)
@@ -2303,7 +2356,7 @@ void CDialog::Draw (CScreen* pScreen_)
     pScreen_->Plot(m_nX-2, m_nY+m_nHeight+1, DIALOG_FRAME_COLOUR-2);
 
     // Fill caption background and draw the diving line at the bottom of it
-    pScreen_->FillRect(m_nX, m_nY-TITLE_HEIGHT, m_nWidth, TITLE_HEIGHT-1, m_nTitleColour);
+    pScreen_->FillRect(m_nX, m_nY-TITLE_HEIGHT, m_nWidth, TITLE_HEIGHT-1, IsActiveDialog() ? m_nTitleColour : (m_nTitleColour & ~0x7));
     pScreen_->DrawLine(m_nX, m_nY-1, m_nWidth, 0, DIALOG_FRAME_COLOUR);
 
     // Draw caption text in the centre
@@ -2374,7 +2427,7 @@ bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 }
 
                 // Esc cancels the dialog
-                case '\x1b':
+                case GK_ESC:
                     Destroy();
                     break;
             }
