@@ -474,6 +474,13 @@ SOURCE=..\Extern\SAASound.h
 # Begin Source File
 
 SOURCE=..\Extern\unzip.c
+
+!IF  "$(CFG)" == "SimCoupe - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "SimCoupe - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
