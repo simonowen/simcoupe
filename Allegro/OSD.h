@@ -44,37 +44,18 @@
 #undef ASSERT
 
 
-#define PROFILE_T   DWORD
-
-
-class OSD
-{
-public:
-    static bool Init (bool fFirstInit_=false);
-    static void Exit (bool fReInit_=false);
-
-    static DWORD GetTime ();
-    static PROFILE_T GetProfileTime ();
-    static const char* GetFilePath (const char* pcszFile_="");
-    static const char* GetFloppyDevice (int nDrive_);
-    static bool CheckPathAccess (const char* pcszPath_);
-    static bool IsHidden (const char* pcszPath_);
-
-    static void DebugTrace (const char* pcsz_);
-    static int FrameSync (bool fWait_=true);
-
-    volatile static int s_nTicks;
-};
-
-
-////////////////////////////////////////////////////////////////////////////////
-
 #include <sys/types.h>      // for _off_t definition
 
 #define PATH_SEPARATOR      OTHER_PATH_SEPARATOR
 
 #ifndef _WINDOWS
+
 #include <dirent.h>
+
+typedef unsigned int        DWORD;  // must be 32-bit
+typedef unsigned short      WORD;   // must be 16-bit
+typedef unsigned char       BYTE;   // must be 8-bit
+
 #endif
 
 
@@ -131,5 +112,28 @@ struct dirent* readdir (DIR* hDir_);
 int closedir (DIR* hDir_);
 
 #endif  // _WINDOWS
+
+////////////////////////////////////////////////////////////////////////////////
+
+#define PROFILE_T   DWORD
+
+class OSD
+{
+public:
+    static bool Init (bool fFirstInit_=false);
+    static void Exit (bool fReInit_=false);
+
+    static DWORD GetTime ();
+    static PROFILE_T GetProfileTime ();
+    static const char* GetFilePath (const char* pcszFile_="");
+    static const char* GetFloppyDevice (int nDrive_);
+    static bool CheckPathAccess (const char* pcszPath_);
+    static bool IsHidden (const char* pcszPath_);
+
+    static void DebugTrace (const char* pcsz_);
+    static int FrameSync (bool fWait_=true);
+
+    volatile static int s_nTicks;
+};
 
 #endif  // OSD_H
