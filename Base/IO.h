@@ -129,31 +129,39 @@ class CBeeperDevice : public CIoDevice
 #define SERIAL2             237
 // Did I hear 238 and 239 SERIAL3 and SERIAL4?  what about the clock port?
 
-#define LMPR_PAGE           (lmpr & 0x1f)
+#define LMPR_PAGE_MASK      0x1f
+#define LMPR_PAGE           (lmpr & LMPR_PAGE_MASK)
 #define LMPR_ROM0_OFF       0x20
 #define LMPR_ROM1           0x40
 #define LMPR_WPROT          0x80
 
-#define HMPR_PAGE           (hmpr & 0x1f)
-#define HMPR_MD3COL         ((hmpr & 0x60) >> 3)
-#define HMPR_MCNTRL         (hmpr & 0x80)
-
-#define VMPR_MODE_MASK      0x60
-#define VMPR_PAGE_MASK      0x1f
-#define VMPR_SCREEN_PAGE    (vmpr & 0x1f)
-#define VMPR_SCREEN_MODE    (vmpr & VMPR_MODE_MASK)
-#define VMPR_MODE_3_OR_4    (vmpr & 0x40)
+#define HMPR_PAGE_MASK      0x1f
+#define HMPR_MD3COL_MASK    0x60
+#define HMPR_MCNTRL_MASK    0x80
+#define HMPR_PAGE           (hmpr & HMPR_PAGE_MASK)
+#define HMPR_MD3COL         (hmpr & HMPR_MD3_MASK)
+#define HMPR_MCNTRL         (hmpr & HMPR_MCNTRL_MASK)
 
 #define MODE_1              0x00
 #define MODE_2              0x20
 #define MODE_3              0x40
 #define MODE_4              0x60
 
-#define BORD_VAL(x)         ((((x) & 0x20 ) >> 2) | ((x) & 0x07))
-#define BORD_COL(x)         ((x) & 0x27)
-#define BORD_SOFF           (border & 0x80)
+#define VMPR_PAGE_MASK      0x1f
+#define VMPR_MODE_MASK      0x60
+#define VMPR_MDE0_MASK      0x20
+#define VMPR_MDE1_MASK      0x40
+#define VMPR_PAGE           (vmpr & VMPR_PAGE_MASK)
+#define VMPR_MODE           (vmpr & VMPR_MODE_MASK)
+#define VMPR_MODE_3_OR_4    (vmpr & VMPR_MDE1_MASK)
 
-#define MD3_SWITCH(x)       (((x) == 0x01 || (x) == 0x02) ? (x) ^ 0x03 : (x))
+#define BORD_COLOUR_MASK    0x27
+#define BORD_MIC_MASK       0x08
+#define BORD_BEEP_MASK      0x10
+#define BORD_SOFF_MASK      0x80
+#define BORD_VAL(x)         ((((x) & 0x20 ) >> 2) | ((x) & 0x07))
+#define BORD_COL(x)         ((x) & BORD_COLOUR_MASK)
+#define BORD_SOFF           (border & BORD_SOFF_MASK)
 
 #define LPEN_TXFMST         0x02    // Bit set if MIDI OUT is currently transmitting a byte
 
@@ -205,14 +213,12 @@ extern BYTE keyboard, keyports[9];
 extern BYTE vmpr, hmpr, lmpr, lepr, hepr;
 extern BYTE vmpr_mode, vmpr_page1, vmpr_page2;
 
-extern BYTE mode3_bcd48;
-
 extern BYTE border;
 extern BYTE border_col;
 
 // Write only ports
 extern BYTE line_int;
-extern UINT clut[N_CLUT_REGS], clutval[N_CLUT_REGS];
+extern UINT clut[N_CLUT_REGS], clutval[N_CLUT_REGS], mode3clutval[4];
 
 // Read only ports
 extern BYTE status_reg;
