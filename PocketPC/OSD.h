@@ -48,12 +48,16 @@ class OSD
 
 ////////////////////////////////////////////////////////////////////////////////
 
+inline void _ASSERTE(bool) { }
+
 #define USE_LOWRES
-#define CUSTOM_MAIN
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
 #include <windowsx.h>
+#include <atlconv.h>
+#include <aygshell.h>
+#include <sipapi.h>
 #include <mmsystem.h>
 #include <commdlg.h>
 #include <shellapi.h>
@@ -134,7 +138,5 @@ int stat (const char* psz_, struct stat* pst_);
 time_t time(time_t* pt_);
 struct tm * localtime (const time_t *);
 time_t mktime (struct tm*);
-
-inline void _ASSERTE(bool) { }
 
 #endif
