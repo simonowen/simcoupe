@@ -6,7 +6,7 @@
 #define WINVER  0x0400
 #endif
 
-#include <winresrc.h>
+#include <winres.h>
 
 #undef IDC_STATIC
 #define IDC_STATIC          (-1)
