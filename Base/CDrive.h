@@ -28,20 +28,18 @@
 #include "CDisk.h"
 
 
-enum { drvNone, drvFile, dskDevice, dskAtom };
-
 // Time motor stays on after no further activity:  10 revolutions at 300rpm (2 seconds)
 const int FLOPPY_MOTOR_ACTIVE_TIME = (10 / (300 / 60 )) * EMULATED_FRAMES_PER_SECOND;
 
 // Time since last floppy use for drive to be considered active
-const int FLOPPY_ACTIVE_THRESHOLD = 5;
+const int FLOPPY_ACTIVE_THRESHOLD = 20;
 
 
 class CDrive : public CDiskDevice
 {
     public:
         CDrive ();
-        virtual ~CDrive () { if (IsInserted()) Eject(); }
+        ~CDrive () { if (IsInserted()) Eject(); }
 
     public:
         const char* GetImage () const { return m_pDisk ? m_pDisk->GetName() : ""; }
@@ -49,7 +47,6 @@ class CDrive : public CDiskDevice
         bool IsWriteable () const { return m_pDisk && !m_pDisk->IsReadOnly(); }
         bool IsModified () const { return m_pDisk != NULL && m_pDisk->IsModified(); }
 
-        int GetType () const { return 1; }
         bool IsLightOn () const { return IsMotorOn() && m_pDisk; }
         bool IsActive () const { return m_nMotorDelay > (FLOPPY_MOTOR_ACTIVE_TIME - FLOPPY_ACTIVE_THRESHOLD); }
 
