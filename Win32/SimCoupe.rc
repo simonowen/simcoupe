@@ -52,23 +52,23 @@ BEGIN
     GROUPBOX        "Clock hardware",IDC_STATIC,45,7,170,57
 END
 
-IDD_ABOUT DIALOGEX 0, 0, 205, 143
+IDD_ABOUT DIALOGEX 0, 0, 197, 134
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About SimCoupé/Win32"
 FONT 8, "MS Sans Serif"
 BEGIN
-    LTEXT           "SimCoupé - a SAM Coupé emulator\n  version 0.90",
-                    IDC_STATIC,37,7,150,18
-    LTEXT           "Overhaul and Win32 port\n  by Simon Owen (simon.owen@simcoupe.org)",
-                    IDC_STATIC,37,27,159,18
-    LTEXT           "Based on original SimCoupé versions\n  by Allan Skillman (Allan.Skillman@arm.com)",
-                    IDC_STATIC,37,51,159,18
-    LTEXT           "Additional technical enhancements\n  by Dave Laundon (dave.laundon@simcoupe.org)",
-                    IDC_STATIC,37,74,159,18
-    LTEXT           "Phillips SAA1099 sound chip emulation\n  by Dave Hooper (no-brain@mindless.com)",
-                    IDC_STATIC,37,98,160,18
-    DEFPUSHBUTTON   "OK",IDOK,77,122,50,14
-    ICON            IDI_MAIN,IDI_SAM,7,7,21,20,0,WS_EX_TRANSPARENT
+    LTEXT           "SimCoupé - a SAM Coupé emulator",IDC_STATIC,40,9,145,8
+    LTEXT           "Win32/SDL versions and general overhaul:\n     Simon Owen (simon.owen@simcoupe.org)",
+                    IDC_STATIC,20,42,170,18
+    LTEXT           "Based on original SimCoupé versions by:\n     Allan Skillman (allan.skillman@simcoupe.org)",
+                    IDC_STATIC,20,67,170,18
+    LTEXT           "Additional technical enhancements:\n     Dave Laundon (dave.laundon@simcoupe.org)",
+                    IDC_STATIC,20,89,170,18
+    DEFPUSHBUTTON   "OK",IDOK,75,116,50,14
+    ICON            IDI_MAIN,IDI_SAM,7,7,20,20,0,WS_EX_TRANSPARENT
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,7,34,
+                    183,1
+    LTEXT           "version 0.90 WIP (5)",IDC_STATIC,45,19,140,8
 END
 
 IDD_EXPORT DIALOG DISCARDABLE  0, 0, 163, 142
@@ -170,7 +170,7 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,49,7,64,10
     CONTROL         "Enable SAA 1099 sound chip output",IDC_SAASOUND_ENABLED,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,23,131,10
-    COMBOBOX        IDC_FREQUENCY,110,36,50,48,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_FREQ,110,36,50,48,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     COMBOBOX        IDC_SAMPLE_SIZE,110,52,40,48,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
@@ -183,7 +183,7 @@ BEGIN
     LTEXT           "Buffering (latency):",IDS_LATENCY,54,122,60,8
     COMBOBOX        IDC_LATENCY,121,120,80,96,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    LTEXT           "Frequency:",IDS_FREQUENCY,66,39,36,8
+    LTEXT           "Frequency:",IDS_FREQ,66,39,36,8
     LTEXT           "Sample size:",IDS_SAMPLE_SIZE,66,55,40,8
     ICON            IDI_SOUND,IDC_STATIC,7,7,20,20
     CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,56,85,
@@ -264,7 +264,7 @@ BEGIN
     LTEXT           "External:",IDC_STATIC,131,23,28,8
     LTEXT           "Main:",IDC_STATIC,53,23,20,8
     ICON            IDI_MEMORY,IDC_STATIC,7,7,20,20
-    LTEXT           "Note: changes to settings on this screen will require a SAM reset for the changes to take effect.",
+    LTEXT           "NOTE: Changes to the settings above require a SAM reset to take effect.",
                     IDC_STATIC,45,131,175,18
     GROUPBOX        "Memory",IDC_STATIC,45,7,170,34
     GROUPBOX        "ROM images",IDC_STATIC,45,52,170,67
@@ -284,14 +284,12 @@ BEGIN
     CONTROL         "Use Alt-Gr for Edit key.",IDC_ALTGR_FOR_EDIT,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,54,52,108,10
     CONTROL         "Enabled",IDC_MOUSE_ENABLED,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,54,91,100,10
-    CONTROL         "Double X-sensitivity",IDC_MOUSE_2X,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,54,107,100,10
+                    WS_TABSTOP,54,90,100,10
     ICON            IDI_KEYBOARD,IDC_STATIC,7,7,20,20
     ICON            IDI_MOUSE,IDC_STATIC,7,80,20,20
     LTEXT           "Mapping mode:",IDC_STATIC,54,20,50,8
     GROUPBOX        "Keyboard",IDC_STATIC,45,7,170,65
-    GROUPBOX        "Mouse",IDC_STATIC,45,78,170,46
+    GROUPBOX        "Mouse",IDC_STATIC,45,77,170,29
 END
 
 IDD_PAGE_MIDI DIALOG DISCARDABLE  0, 0, 235, 156
@@ -360,12 +358,12 @@ FONT 8, "MS Sans Serif"
 BEGIN
     CONTROL         "List2",IDL_FNKEYS,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | LVS_NOSORTHEADER | WS_BORDER | 
-                    WS_TABSTOP,54,20,153,104
+                    WS_TABSTOP,54,20,155,104
     PUSHBUTTON      "&Add...",IDB_ADD,54,130,48,14
     PUSHBUTTON      "&Edit...",IDB_EDIT,106,130,48,14
     PUSHBUTTON      "&Delete",IDB_DELETE,158,130,48,14
     ICON            IDI_FNKEYS,-1,7,7,20,20
-    GROUPBOX        "Emulator function keys",-1,45,7,170,142
+    GROUPBOX        "Emulator function keys",-1,45,7,172,142
 END
 
 IDD_NEWFNKEY DIALOG DISCARDABLE  0, 0, 140, 132
@@ -432,9 +430,9 @@ BEGIN
     IDD_ABOUT, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 198
+        RIGHTMARGIN, 190
         TOPMARGIN, 7
-        BOTTOMMARGIN, 136
+        BOTTOMMARGIN, 130
     END
 
     IDD_EXPORT, DIALOG
@@ -553,10 +551,10 @@ IDR_MENU MENU DISCARDABLE
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&New Disk",                   IDM_FILE_NEW_DISK
+        MENUITEM "&New Disk...",                IDM_FILE_NEW_DISK
         POPUP "Floppy &1"
         BEGIN
-            MENUITEM "&Insert",                     IDM_FILE_FLOPPY1_INSERT
+            MENUITEM "&Insert...",                  IDM_FILE_FLOPPY1_INSERT
             MENUITEM "&Eject",                      IDM_FILE_FLOPPY1_EJECT
             MENUITEM "&Save Changes",               IDM_FILE_FLOPPY1_SAVE_CHANGES
 
@@ -574,14 +572,14 @@ BEGIN
             , GRAYED
         END
         MENUITEM SEPARATOR
-        MENUITEM "&Import Data",                IDM_FILE_IMPORT_DATA
-        MENUITEM "&Export Data",                IDM_FILE_EXPORT_DATA
+        MENUITEM "&Import Data...",             IDM_FILE_IMPORT_DATA
+        MENUITEM "&Export Data...",             IDM_FILE_EXPORT_DATA
         MENUITEM SEPARATOR
         MENUITEM "E&xit\tAlt-F4",               IDM_FILE_EXIT
     END
     POPUP "&Tools"
     BEGIN
-        MENUITEM "Options...",                  IDM_TOOLS_OPTIONS
+        MENUITEM "&Options...",                 IDM_TOOLS_OPTIONS
         MENUITEM SEPARATOR
         MENUITEM "Flush &print job",            IDM_TOOLS_FLUSH_PRINTER
     END
@@ -627,8 +625,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,9,0,0
- PRODUCTVERSION 0,9,0,0
+ FILEVERSION 0,9,0,5
+ PRODUCTVERSION 0,9,0,5
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -646,14 +644,14 @@ BEGIN
             VALUE "Comments", "Win32 port and enhancements by Simon Owen (simon.owen@simcoupe.org)\0"
             VALUE "CompanyName", "-\0"
             VALUE "FileDescription", "SimCoupe\0"
-            VALUE "FileVersion", "0, 9, 0, 0\0"
+            VALUE "FileVersion", "0, 9, 0, 5\0"
             VALUE "InternalName", "SimCoupe\0"
             VALUE "LegalCopyright", "\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "SimCoupe.exe\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "SimCoupe\0"
-            VALUE "ProductVersion", "0, 9, 0, 0\0"
+            VALUE "ProductVersion", "0, 9, 0, 5\0"
             VALUE "SpecialBuild", "\0"
         END
     END
