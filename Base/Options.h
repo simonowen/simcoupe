@@ -48,6 +48,7 @@ typedef struct
     char    disk2[MAX_PATH];        // Floppy disk image in drive 2
     int     drive1;                 // Drive 1 type
     int     drive2;                 // Drive 2 type
+    bool    turboload;              // True to accelerate disk and tape loading
 
     int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
     bool    altforcntrl;            // Non-zero if Left-Alt is used for SAM Cntrl
@@ -62,7 +63,7 @@ typedef struct
     int     parallel1;              // Parallel port 1 function
     int     parallel2;              // Parallel port 2 function
     char    printerdev[128];        // Printer device name
-    bool    printerready;           // True if the printer is ready
+    bool    printeronline;          // True if the printer is ready
 
     int     serial1;                // Serial port 1 function
     int     serial2;                // Serial port 2 function

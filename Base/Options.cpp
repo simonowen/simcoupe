@@ -76,6 +76,7 @@ OPTION aOptions[] =
     OPT("Disk2",        OT_STRING,  disk2,          "disk2"),   // Disk for floppy drive 2
     OPT("Drive1",       OT_INT,     drive1,         1),         // Floppy drive 1 present
     OPT("Drive2",       OT_INT,     drive2,         1),         // Floppy drive 2 present
+    OPT("TurboLoad",    OT_BOOL,    turboload,      true),      // Load disks and tapes at turbo speed
 
     OPT("KeyMapping",   OT_INT,     keymapping,     1),         // SAM keyboard mapping
     OPT("AltForCntrl",  OT_BOOL,    altforcntrl,    false),     // Left-Alt not used for SAM Cntrl
@@ -90,7 +91,7 @@ OPTION aOptions[] =
     OPT("Parallel1",    OT_INT,     parallel1,      0),         // Nothing on parallel port 1
     OPT("Parallel2",    OT_INT,     parallel2,      0),         // Nothing on parallel port 2
     OPT("PrinterDev",   OT_STRING,  printerdev,     ""),        // Printer device
-    OPT("PrinterReady", OT_BOOL,    printerready,   true),      // Printer ready for action
+    OPT("PrinterOnline",OT_BOOL,    printeronline,  true),      // Printer online
 
     OPT("SerialDev1",   OT_STRING,  serialdev1,     ""),        // Serial port 1 device
     OPT("SerialDev2",   OT_STRING,  serialdev2,     ""),        // Serial port 2 device
