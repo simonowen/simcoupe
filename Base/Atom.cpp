@@ -36,6 +36,7 @@ const char* const ATOM_HEADER_FILE = "Atom.dat";    // File containing boot sect
 
 
 CAtomDiskDevice::CAtomDiskDevice ()
+    : CDiskDevice(dskAtom)
 {
     // For now the ATOM disk relies on knowledge of the BDOS implementation, so make it easier to use
     m_pDisk = new CBDOSDevice;
