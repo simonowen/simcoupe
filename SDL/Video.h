@@ -32,10 +32,7 @@ class Video
 };
 
 
-const int PALETTE_OFFSET = 10;      // Offset into palette to first useable position (mainly for Win32)
-
 extern DWORD aulPalette[];
-extern WORD awY[], awU[], awV[];
 extern SDL_Surface *pBack, *pFront;
 
 
