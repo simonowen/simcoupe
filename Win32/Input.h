@@ -23,20 +23,18 @@
 
 class Input
 {
-public:
-    static bool Init (bool fFirstInit_=false);
-    static void Exit (bool fReInit_=false);
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    static void Acquire (bool fKeyboard_=true, bool fMouse_=true);
-    static void Purge (bool fKeyboard_=true, bool fMouse_=true);
+        static void Acquire (bool fKeyboard_=true, bool fMouse_=true);
+        static void Purge (bool fKeyboard_=true, bool fMouse_=true);
 
-    static void Update ();
+        static void Update ();
 
-    static bool FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
+        static bool FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
 
-
-    // Used by the Win32 GUI in UI.cpp
-    static void FillJoystickCombo (HWND hwndCombo_);
+        static void FillJoystickCombo (HWND hwndCombo_);    // Used by the Win32 GUI in UI.cpp
 };
 
 #endif
