@@ -740,7 +740,7 @@ void Out (WORD wPort_, BYTE bVal_)
 
                 // Create an event to begin an interrupt at the required time
                 AddCpuEvent(evtMidiOutIntStart, g_dwCycleCounter +
-                            A_ROUND(MIDI_TRANSMIT_TIME + 20, 32) - 20 - 32 - MIDI_INT_ACTIVE_TIME);
+                            A_ROUND(MIDI_TRANSMIT_TIME + 20, 32) - 20 - 32 - MIDI_INT_ACTIVE_TIME - 2);
 
                 // Output the byte using the platform specific implementation
                 pMidi->Out(wPort_, bVal_);
