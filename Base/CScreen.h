@@ -34,6 +34,7 @@ class CScreen
 
         bool IsHiRes (int nLine_) const { return m_pfHiRes[nLine_]; }
         void SetHiRes (int nLine_, bool fHiRes_) { m_pfHiRes[nLine_] = fHiRes_; }
+        bool* GetHiRes () { return m_pfHiRes; }
 
         int GetPitch () const { return m_nPitch; }
         int GetWidth (int nLine_) const { return IsHiRes(nLine_) ? m_nPitch : (m_nPitch >> 1); }
