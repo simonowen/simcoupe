@@ -36,6 +36,7 @@
 #include "CPU.h"
 #include "Display.h"
 #include "Frame.h"
+#include "GUI.h"
 #include "Input.h"
 #include "Options.h"
 #include "OSD.h"
@@ -46,7 +47,7 @@
 //const int MOUSE_HIDE_TIME = 3000;
 
 const char* const WINDOW_CAPTION =
-#ifdef __BEOS__
+#if defined(__BEOS__) || defined(__APPLE__)
     "SimCoupÃ©/SDL"
 #else
     "SimCoupé/SDL"
@@ -58,8 +59,7 @@ const char* const WINDOW_CAPTION =
 
 void DoAction (int nAction_, bool fPressed_=true);
 
-bool g_fActive = true;
-bool g_fFrameStep = false;
+bool g_fActive = true, g_fFrameStep = false;
 
 
 enum eActions
@@ -84,23 +84,9 @@ const char* aszActions[MAX_ACTION] =
 };
 
 
-SDL_sem* pSemaphore;
-
-namespace UI
+bool UI::Init (bool fFirstInit_/*=false*/)
 {
-SDL_TimerID pTimer;
-
-Uint32 TimerCallback (Uint32 uInterval_, void *pv_)
-{
-    if (SDL_SemValue(pSemaphore) <= 0)
-        SDL_SemPost(pSemaphore);
-
-    return uInterval_;
-}
-
-bool Init (bool fFirstInit_/*=false*/)
-{
-    bool fRet = false;
+    bool fRet = true;
 
     Exit(true);
     TRACE("-> UI::Init()\n");
@@ -108,29 +94,14 @@ bool Init (bool fFirstInit_/*=false*/)
     // Set the window caption
     SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);
 
-    if (fFirstInit_ && SDL_Init(SDL_INIT_TIMER) < 0)
-        TRACE("!!! SDL_Init(SDL_INIT_TIMER) failed: %s\n", SDL_GetError());
-    else
-    {
-        if (!(pSemaphore = SDL_CreateSemaphore(0)))
-            TRACE("!!! SDL_CreateSemaphore failed: %s\n", SDL_GetError());
-
-        if (!(pTimer = SDL_AddTimer(1000/EMULATED_FRAMES_PER_SECOND, TimerCallback, NULL)))
-            TRACE("!!! SDL_AddTimer failed: %s\n", SDL_GetError());
-
-        fRet = true;
-    }
-
     TRACE("<- UI::Init() returning %s\n", fRet ? "true" : "false");
     return fRet;
 }
 
-void Exit (bool fReInit_/*=false*/)
+
+void UI::Exit (bool fReInit_/*=false*/)
 {
     TRACE("-> UI::Exit(%s)\n", fReInit_ ? "reinit" : "");
-
-    if (pTimer) { SDL_RemoveTimer(pTimer); pTimer = NULL; }
-    if (pSemaphore) { SDL_DestroySemaphore(pSemaphore); pSemaphore = NULL; }
 
     if (!fReInit_)
         SDL_QuitSubSystem(SDL_INIT_TIMER);
@@ -192,7 +163,7 @@ void ProcessKey (SDL_Event* pEvent_)
 }
 
 // Check and process any incoming messages
-bool CheckEvents ()
+bool UI::CheckEvents ()
 {
     SDL_Event event;
 
@@ -217,11 +188,12 @@ bool CheckEvents ()
                     // Key not recognised by SDL?
                     if (!pKey->sym)
                     {
-                        // Check for some known unknown (!) UK keys
+                        // Check for some unusual (?!) UK keys
                         switch (pKey->scancode)
                         {
-                            case 0x56:  pKey->sym = SDLK_BACKQUOTE; break;      // UK backslash key
-                            case 0xc5:  pKey->sym = SDLK_PAUSE;     break;      // Pause key
+                            case SDLK_BACKQUOTE:
+//                          case 0x56:  pKey->sym = SDLK_BACKQUOTE; break;      // UK backslash key
+                            case 0xc5:  pKey->sym = SDLK_PAUSE;     break;      // UK Pause key
                         }
                     }
 
@@ -252,7 +224,7 @@ bool CheckEvents ()
         }
 
         // Continue running if we're active or allowed to run in the background
-        if (!GetOption(paused) && (g_fActive || !GetOption(pauseinactive)))
+        if (!g_fPaused && (g_fActive || !GetOption(pauseinactive)))
             break;
 
         SDL_WaitEvent(NULL);
@@ -261,7 +233,7 @@ bool CheckEvents ()
     return true;
 }
 
-void ShowMessage (eMsgType eType_, const char* pcszMessage_)
+void UI::ShowMessage (eMsgType eType_, const char* pcszMessage_)
 {
     switch (eType_)
     {
@@ -276,9 +248,6 @@ void ShowMessage (eMsgType eType_, const char* pcszMessage_)
         // Something went seriously wrong!
         case msgFatal:
 //          MessageBox(NULL, pcszMessage_, "Fatal Error", MB_OK | MB_ICONSTOP);
-            Video::Exit();
-//          DebugBreak();
-            abort();
             break;
 
         default:
@@ -287,12 +256,12 @@ void ShowMessage (eMsgType eType_, const char* pcszMessage_)
 }
 
 
-void ResizeWindow (bool fUseOption_/*=false*/)
+void UI::ResizeWindow (bool fUseOption_/*=false*/)
 {
     Display::SetDirty();
 }
 
-};
+////////////////////////////////////////////////////////////////////////////////
 
 
 bool InsertDisk (CDiskDevice* pDrive_, const char* pName)
@@ -313,9 +282,9 @@ bool InsertDisk (CDiskDevice* pDrive_, const char* pName)
 
         // Open the new disk (using the requested read-only mode), and insert it into the drive if successful
         if (pDrive_->Insert(pName))
-	    return true;
+        return true;
 
-	//}
+    //}
 
     return false;
 }
@@ -383,7 +352,7 @@ void DoAction (int nAction_, bool fPressed_)
 
             case actChangeMouse:
                 SetOption(mouse, (GetOption(mouse)+1) % 3);
-                Input::Acquire(true, GetOption(mouse) != 0);
+                Input::Acquire(GetOption(mouse) != 0);
                 Frame::SetStatus("Mouse %s", !GetOption(mouse) ? "disabled" :
                                     GetOption(mouse)==1 ? "enabled" : "enabled (double X sensitivity)");
                 break;
@@ -454,7 +423,7 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actDebugger:
-                g_fDebugging = !g_fDebugging;
+//              Debug::DoSomething();
                 break;
 
             case actImportData:
@@ -466,6 +435,7 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actDisplayOptions:
+                GUI::Start(new CTestDialog);
 //              DisplayOptions();
                 break;
 
@@ -478,23 +448,23 @@ void DoAction (int nAction_, bool fPressed_)
 
             case actToggleTurbo:
             {
-                SetOption(turbo, !GetOption(turbo));
+                g_fTurbo = !g_fTurbo;
                 Sound::Silence();
 
-                Frame::SetStatus("Turbo mode %s", GetOption(turbo) ? "enabled" : "disabled");
+                Frame::SetStatus("Turbo mode %s", g_fTurbo ? "enabled" : "disabled");
                 break;
             }
 
             case actTempTurbo:
-                if (!GetOption(turbo))
+                if (!g_fTurbo)
                 {
-                    SetOption(turbo, true);
+                    g_fTurbo = true;
                     Sound::Silence();
                 }
                 break;
 
             case actReleaseMouse:
-                Input::Acquire(true, false);
+                Input::Acquire(false);
                 Frame::SetStatus("Mouse capture released");
                 break;
 
@@ -503,22 +473,21 @@ void DoAction (int nAction_, bool fPressed_)
                 // Run for one frame then pause
                 static int nFrameSkip = 0;
 
-                SetOption(paused, (g_fFrameStep = !g_fFrameStep));
-                if (g_fFrameStep)
+                // On first entry, save the current frameskip setting
+                if (!g_fFrameStep)
                 {
                     nFrameSkip = GetOption(frameskip);
-                    // Make sure that one frame is drawn
-                    SetOption(frameskip, 1);
+                    g_fFrameStep = true;
                 }
-                else
-                    SetOption(frameskip, nFrameSkip);
+
+                SetOption(frameskip, g_fPaused ? 1 : nFrameSkip);
             }   // Fall through to actPause...
 
             case actPause:
             {
-                bool fPaused = SetOption(paused, !GetOption(paused));
+                g_fPaused = !g_fPaused;
 
-                if (fPaused)
+                if (g_fPaused)
                 {
                     Sound::Stop();
 
@@ -530,9 +499,11 @@ void DoAction (int nAction_, bool fPressed_)
                 {
                     Sound::Play();
                     SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);
+                    g_fFrameStep = (nAction_ == actFrameStep);
                 }
 
-                Video::CreatePalettes(fPaused && (nAction_ == actPause));
+                Video::CreatePalettes();
+
                 Display::SetDirty();
                 Frame::Redraw();
                 Input::Purge();
@@ -547,20 +518,26 @@ void DoAction (int nAction_, bool fPressed_)
         switch (nAction_)
         {
             case actResetButton:
-                // Normal power-on reset and restore sound
-                CPU::Init(true);
+                // Reset the CPU, and prepare fast reset if necessary
+                CPU::Init();
+
+                // Start the fast-boot timer
+                if (GetOption(fastreset))
+                    g_nFastBooting = EMULATED_FRAMES_PER_SECOND * 5;
+
+                // Start the sound playing, so the sound chip continues to play the current settings
                 Sound::Play();
                 break;
 
             case actTempTurbo:
-                if (GetOption(turbo))
+                if (g_fTurbo)
                 {
                     Sound::Silence();
-                    SetOption(turbo, false);
+                    g_fTurbo = false;
                 }
                 break;
 
-// To avoid an SDL bug (in 1.2.0 anyway), we'll do these on key up instead of down
+            // To avoid an SDL bug (in 1.2.0 anyway), we'll do the following on key up instead of down
 
             case actToggleFullscreen:
                 SetOption(fullscreen, !GetOption(fullscreen));
