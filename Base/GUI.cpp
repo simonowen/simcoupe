@@ -126,11 +126,9 @@ void GUI::Draw (CScreen* pScreen_)
         CScreen::SetFont(&sGUIFont);
         s_pGUI->Draw(pScreen_);
 
-#ifdef USE_CUSTOM_CURSOR
         // The SDL cursor leaves sometimes leaves mouse droppings, so we'll draw our own
         pScreen_->DrawImage(s_nX, s_nY, ICON_SIZE, ICON_SIZE,
                     reinterpret_cast<const BYTE*>(sMouseCursor.abData), sMouseCursor.abPalette);
-#endif
     }
 }
 
