@@ -42,6 +42,7 @@ class Frame
         static void Start ();
 
         static void Update ();
+        static void UpdateAll ();
         static void Complete ();
         static void TouchLines (int nFrom_, int nTo_);
         static inline void TouchLine (int nLine_) { TouchLines(nLine_, nLine_); }
