@@ -2,7 +2,7 @@
 //
 // UI.cpp: Win32 user interface
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include "CDrive.h"
 #include "Clock.h"
 #include "CPU.h"
+#include "Debug.h"
 #include "Display.h"
 #include "Frame.h"
 #include "GUIDlg.h"
@@ -190,8 +191,10 @@ bool UI::CheckEvents ()
             if (msg.message == WM_QUIT)
                 return false;
 
-            // Do keyboard translation for menu shortcuts etc. and dispatch it
-            TranslateMessage(&msg);
+            // Translation for menu shortcuts, but avoid producing keypad symbols
+            if (msg.message != WM_KEYDOWN || msg.wParam < VK_NUMPAD0 || msg.wParam > VK_DIVIDE)
+                TranslateMessage(&msg);
+
             DispatchMessage(&msg);
         }
 
@@ -584,7 +587,7 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actDebugger:
-                GUI::Start(new CMessageBox(NULL, "Debugger not yet implemented", "Sorry!", mbInformation));
+                Debug::Start();
                 break;
 
             case actImportData:
@@ -1120,8 +1123,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             break;
 
         case WM_SYSCOMMAND:
-            TRACE("wParam_ = %#08lx\n", wParam_);
-
             // If the Alt key is being used as the SAM 'Cntrl' key, stop Alt-key combinations activating the menu
             if (GetOption(altforcntrl) && (wParam_ & 0xfff0) == SC_KEYMENU && lParam_)
                 return 0;
@@ -1134,8 +1135,8 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             if (uMsg_ == WM_SYSKEYDOWN && wParam_ == VK_RETURN && (lParam_ & 0x60000000) == 0x20000000)
                 DoAction(actToggleFullscreen);
 
-            // Forward F10 on as a regular key instead of a system key
-            if (wParam_ == VK_F10)
+            // Forward the function keys on as regular keys instead of a system keys
+            if (wParam_ >= VK_F1 && wParam_ <= VK_F12)
                 return SendMessage(hwnd_, uMsg_ - WM_SYSKEYDOWN + WM_KEYDOWN, wParam_, lParam_);
 
             break;
@@ -1143,14 +1144,13 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_KEYUP:
         case WM_KEYDOWN:
         {
-            bool fAlt = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
-
             // Function key?
-            if (wParam_ >= VK_F1 && wParam_ <= VK_F12 && !fAlt)
+            if (wParam_ >= VK_F1 && wParam_ <= VK_F12)
             {
                 // Read the current states of the control and shift keys
-                bool fCtrl  = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
-                bool fShift = (GetAsyncKeyState(VK_SHIFT)   & 0x8000) != 0;
+                bool fCtrl  = GetAsyncKeyState(VK_CONTROL) < 0;
+                bool fAlt   = GetAsyncKeyState(VK_MENU)    < 0;
+                bool fShift = GetAsyncKeyState(VK_SHIFT)   < 0;
 
                 // Grab an upper-case copy of the function key definition string
                 char szKeys[256];
@@ -1159,8 +1159,9 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 // Process each of the 'key=action' pairs in the string
                 for (char* psz = strtok(szKeys, ", \t") ; psz ; psz = strtok(NULL, ", \t"))
                 {
-                    // Leading C and S characters indicate that Ctrl and/or Shift modifiers are required with the key
-                    bool fCtrled = (*psz == 'C');   if (fCtrled) psz++;
+                    // Leading C/A/S characters indicate that Ctrl/Alt/Shift modifiers are required with the key
+                    bool fCtrled  = (*psz == 'C');  if (fCtrled)  psz++;
+                    bool fAlted   = (*psz == 'A');  if (fAlt)     psz++;
                     bool fShifted = (*psz == 'S');  if (fShifted) psz++;
 
                     // Currently we only support function keys F1-F12
@@ -1171,18 +1172,18 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                             continue;
 
                         // The Ctrl/Shift states must match too
-                        if (fCtrl == fCtrled && fShift == fShifted)
+                        if (fCtrl == fCtrled && fShift == fShifted && fAlt == fAlted)
                         {
                             // Perform the action, passing whether this is a key press or release
                             DoAction(strtoul(++psz, NULL, 0), uMsg_ == WM_KEYDOWN);
-
-                            // Signal we've processed the key (mainly to stop F10 activating the menu)
-                            return 0;
+                            break;
                         }
                     }
                 }
-            }
 
+                // Stop further processing of the function keys
+                return 0;
+            }
 
             // Most of the emulator keys are handled above, but we've a few extra fixed mappings of our own (well, mine!)
             switch (wParam_)
@@ -1269,7 +1270,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_FILE_IMPORT_DATA:          DoAction(actImportData);    break;
                 case IDM_FILE_EXPORT_DATA:          DoAction(actExportData);    break;
 
-                // Alt-F4 = exit
                 case IDM_FILE_EXIT:                 DoAction(actExitApplication); break;
 
                 // Items from help menu
@@ -2881,7 +2881,8 @@ BOOL CALLBACK NewFnKeyProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
                 // Check the appropriate modifier check-boxes
                 SendDlgItemMessage(hdlg_, IDC_CTRL,  BM_SETCHECK, (uKey & 0x8000) ? BST_CHECKED : BST_UNCHECKED, 0L);
-                SendDlgItemMessage(hdlg_, IDC_SHIFT, BM_SETCHECK, (uKey & 0x4000) ? BST_CHECKED : BST_UNCHECKED, 0L);
+                SendDlgItemMessage(hdlg_, IDC_ALT,   BM_SETCHECK, (uKey & 0x4000) ? BST_CHECKED : BST_UNCHECKED, 0L);
+                SendDlgItemMessage(hdlg_, IDC_SHIFT, BM_SETCHECK, (uKey & 0x2000) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
                 // Locate the action in the list and select it
                 hwndCombo = GetDlgItem(hdlg_, IDC_ACTION);
@@ -2935,7 +2936,8 @@ BOOL CALLBACK NewFnKeyProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
                         // Pack the key-code, shift/ctrl states and action into a DWORD for the new item data
                         DWORD dwParam = ((VK_F1 + strtoul(szKey+1, NULL, 0) - 1) << 16) | uAction;
                         dwParam |= (SendDlgItemMessage(hdlg_, IDC_CTRL,   BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 0x8000 : 0;
-                        dwParam |= (SendDlgItemMessage(hdlg_, IDC_SHIFT,  BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 0x4000 : 0;
+                        dwParam |= (SendDlgItemMessage(hdlg_, IDC_ALT,    BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 0x4000 : 0;
+                        dwParam |= (SendDlgItemMessage(hdlg_, IDC_SHIFT,  BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 0x2000 : 0;
 
                         // Unhook any installed hook
                         if (g_hFnKeyHook)
@@ -2962,16 +2964,19 @@ BOOL CALLBACK NewFnKeyProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             break;
         }
 
+        case WM_SYSKEYDOWN:
         case WM_KEYDOWN:
         {
             if (wParam_ >= VK_F1 && wParam_ <= VK_F12)
             {
-                bool fCtrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
-                bool fShift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+                bool fCtrl  = GetAsyncKeyState(VK_CONTROL) < 0;
+                bool fAlt   = GetAsyncKeyState(VK_MENU)    < 0;
+                bool fShift = GetAsyncKeyState(VK_SHIFT)   < 0;
 
                 SendDlgItemMessage(hdlg_, IDC_KEY, CB_SETCURSEL, wParam_ - VK_F1, 0L);
-                SendDlgItemMessage(hdlg_, IDC_CTRL,  BM_SETCHECK, (GetAsyncKeyState(VK_CONTROL) & 0x8000) ? BST_CHECKED : BST_UNCHECKED, 0L);
-                SendDlgItemMessage(hdlg_, IDC_SHIFT, BM_SETCHECK, (GetAsyncKeyState(VK_SHIFT) & 0x8000) ? BST_CHECKED : BST_UNCHECKED, 0L);
+                SendDlgItemMessage(hdlg_, IDC_CTRL,  BM_SETCHECK, fCtrl  ? BST_CHECKED : BST_UNCHECKED, 0L);
+                SendDlgItemMessage(hdlg_, IDC_ALT,   BM_SETCHECK, fAlt   ? BST_CHECKED : BST_UNCHECKED, 0L);
+                SendDlgItemMessage(hdlg_, IDC_SHIFT, BM_SETCHECK, fShift ? BST_CHECKED : BST_UNCHECKED, 0L);
 
                 return 0;
             }
@@ -3021,15 +3026,17 @@ BOOL CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
             // Process each of the 'key=action' pairs in the string
             for (char* psz = strtok(szKeys, ", \t") ; psz ; psz = strtok(NULL, ", \t"))
             {
-                // Leading C and S characters indicate that Ctrl and/or Shift modifiers are required with the key
-                bool fCtrl = (*psz == 'C');     if (fCtrl) psz++;
+                // Leading C/A/S characters indicate that Ctrl/Alt/Shift modifiers are required with the key
+                bool fCtrl  = (*psz == 'C');    if (fCtrl)  psz++;
+                bool fAlt   = (*psz == 'A');    if (fAlt)   psz++;
                 bool fShift = (*psz == 'S');    if (fShift) psz++;
 
                 // Currently we only support function keys F1-F12
                 if (*psz++ == 'F')
                 {
-                    // Pack the key-code, shift/ctrl states and action into a DWORD for the item data, and insert the item
-                    lvi.lParam = ((VK_F1 + strtoul(psz, &psz, 0) - 1) << 16) | (fCtrl ? 0x8000 : 0) | (fShift ? 0x4000 : 0);
+                    // Pack the key-code, ctrl/alt/shift states and action into a DWORD for the item data, and insert the item
+                    lvi.lParam = ((VK_F1 + strtoul(psz, &psz, 0) - 1) << 16) |
+                                 (fCtrl ? 0x8000 : 0) | (fAlt ? 0x4000 : 0) | (fShift ? 0x2000 : 0);
                     lvi.lParam |= strtoul(++psz, NULL, 0);
                     SendMessage(hwndList, LVM_INSERTITEM, 0, reinterpret_cast<LPARAM>(&lvi));
                 }
@@ -3087,6 +3094,9 @@ BOOL CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                                 lstrcat(szKey, "Ctrl-");
 
                             if (pnmv->item.lParam & 0x4000)
+                                lstrcat(szKey, "Alt-");
+
+                            if (pnmv->item.lParam & 0x2000)
                                 lstrcat(szKey, "Shift-");
 
                             // Convert from virtual key-code to scan-code so we can get the name
@@ -3124,9 +3134,10 @@ BOOL CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                             // If there is a previous item, use a comma separator
                             if (szKeys[0]) strcat(szKeys, ",");
 
-                            // Add a C prefix for Ctrl and/or a S prefix for Shift
+                            // Add a C/A/S prefixes for Ctrl/Alt/Shift
                             if (lvi.lParam & 0x8000) strcat(szKeys, "C");
-                            if (lvi.lParam & 0x4000) strcat(szKeys, "S");
+                            if (lvi.lParam & 0x4000) strcat(szKeys, "A");
+                            if (lvi.lParam & 0x2000) strcat(szKeys, "S");
 
                             // Add the key name, '=', and the action number
                             DWORD dwScanCode = MapVirtualKeyEx(static_cast<UINT>(lvi.lParam) >> 16, 0, GetKeyboardLayout(0));
