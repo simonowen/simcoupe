@@ -2,7 +2,7 @@
 //
 // Atom.cpp: YAMOD.ATBUS IDE interface
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -35,6 +35,12 @@ CYATBusDevice::~CYATBusDevice ()
     delete m_pDisk;
 }
 
+
+void CYATBusDevice::Reset ()
+{
+    if (m_pDisk) 
+        m_pDisk->Reset();
+}
 
 BYTE CYATBusDevice::In (WORD wPort_)
 {

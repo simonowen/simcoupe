@@ -2,7 +2,7 @@
 //
 // Atom.h: YAMOD.ATBUS IDE interface
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ class CYATBusDevice : public CDiskDevice
         ~CYATBusDevice ();
 
     public:
+        void Reset ();
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
 

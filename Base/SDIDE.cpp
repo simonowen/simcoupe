@@ -2,7 +2,7 @@
 //
 // SDIDE.cpp: S D Software IDE interface
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -43,6 +43,12 @@ CSDIDEDevice::~CSDIDEDevice ()
     delete m_pDisk;
 }
 
+
+void CSDIDEDevice::Reset ()
+{
+    if (m_pDisk) 
+        m_pDisk->Reset();
+}
 
 BYTE CSDIDEDevice::In (WORD wPort_)
 {
