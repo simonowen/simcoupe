@@ -103,12 +103,11 @@ bool Frame::Init (bool fFirstInit_/*=false*/)
     nLastLine = nLastBlock = 0;
 
     int nBorders = min(GetOption(borders), (int)(sizeof asViews / sizeof asViews[0]) - 1);
-    const REGION* pView = &asViews[nBorders];
     s_nViewLeft = (WIDTH_BLOCKS - asViews[nBorders].w) >> 1;
     s_nViewRight = s_nViewLeft + asViews[nBorders].w;
 
     // If we're not showing the full scan image, offset the view to centre over the main screen area
-    if (s_nViewTop = (HEIGHT_LINES - asViews[nBorders].h) >> 1)
+    if ((s_nViewTop = (HEIGHT_LINES - asViews[nBorders].h) >> 1))
         s_nViewTop += (TOP_BORDER_LINES-BOTTOM_BORDER_LINES) >> 1;
     s_nViewBottom = s_nViewTop + asViews[nBorders].h;
 
