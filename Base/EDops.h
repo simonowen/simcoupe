@@ -1,8 +1,10 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // EDops.h: Z80 instruction set emulation (from xz80)
 //
 //  Copyright (c) 1994 Ian Collier
+//  Copyright (c) 1999-2003 by Dave Laundon
+//  Copyright (c) 1999-2003 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -184,8 +186,7 @@
 
 
 {
-    BYTE op=timed_read_byte(pc);
-    pc++;
+    BYTE op=timed_read_code_byte(pc++);
     radjust++;
 
     switch(op)
@@ -201,14 +202,14 @@ in_out_c_instr(0x41)
     out_byte(bc,b);
 endinstr;
 
-// sbc hl, bc
+// sbc hl,bc
 edinstr(0x42,4)
     sbchl(bc);
 endinstr;
 
-// ld (nn), bc
+// ld (nn),bc
 edinstr(0x43,4)
-    WORD addr=timed_read_word(pc);
+    WORD addr=timed_read_code_word(pc);
     pc += 2;
     timed_write_word(addr,bc);
 endinstr;
@@ -250,7 +251,7 @@ endinstr;
 
 // ld bc,(nn)
 edinstr(0x4b,4)
-    WORD addr = timed_read_word(pc);
+    WORD addr = timed_read_code_word(pc);
     pc += 2;
     bc = timed_read_word(addr);
 endinstr;
@@ -294,7 +295,7 @@ endinstr;
 
 // ld (nn),de
 edinstr(0x53,4)
-    WORD addr=timed_read_word(pc);
+    WORD addr=timed_read_code_word(pc);
     pc += 2;
     timed_write_word(addr,de);
 endinstr;
@@ -338,7 +339,7 @@ endinstr;
 
 // ld de,(nn)
 edinstr(0x5b,4)
-    WORD addr = timed_read_word(pc);
+    WORD addr = timed_read_code_word(pc);
     pc += 2;
     de = timed_read_word(addr);
 endinstr;
@@ -382,9 +383,9 @@ edinstr(0x62,4)
     sbchl(hl);
 endinstr;
 
-// ld (nn), hl
+// ld (nn),hl
 edinstr(0x63,4)
-    WORD addr=timed_read_word(pc);
+    WORD addr=timed_read_code_word(pc);
     pc += 2;
     timed_write_word(addr,hl);
 endinstr;
@@ -432,7 +433,7 @@ endinstr;
 
 // ld hl,(nn)
 edinstr(0x6b,4)
-    WORD addr = timed_read_word(pc);
+    WORD addr = timed_read_code_word(pc);
     pc += 2;
     hl = timed_read_word(addr);
 endinstr;
@@ -482,7 +483,7 @@ endinstr;
 
 // ld (nn),sp
 edinstr(0x73,4)
-    WORD addr=timed_read_word(pc);
+    WORD addr=timed_read_code_word(pc);
     pc += 2;
     timed_write_word(addr,sp);
 endinstr;
@@ -524,7 +525,7 @@ endinstr;
 
 // ld sp,(nn)
 edinstr(0x7b,4)
-    WORD addr = timed_read_word(pc);
+    WORD addr = timed_read_code_word(pc);
     pc += 2;
     sp = timed_read_word(addr);
 endinstr;
