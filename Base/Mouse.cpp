@@ -2,8 +2,8 @@
 //
 // Mouse.cpp: Mouse interface
 //
+//  Copyright (c) 1999-2004  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
-//  Copyright (c) 1999-2001  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -60,13 +60,15 @@ static void Reset ();
 
 void Mouse::Init (bool fFirstInit_/*=false*/)
 {
+    // Clear cached mouse data
+    nDeltaX = nDeltaY = 0;
     bButtons = 0xff;
+
     Reset();
 }
 
 void Mouse::Exit (bool fReInit_/*=false*/)
 {
-    Reset();
 }
 
 
