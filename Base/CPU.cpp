@@ -162,6 +162,8 @@ namespace CPU
 
 bool Init (bool fPowerOnInit_/*=true*/)
 {
+    int n;
+
     // Sanity check the endian of the registers structure
     hl = 1;
     if (h)
@@ -193,7 +195,7 @@ bool Init (bool fPowerOnInit_/*=true*/)
     AddCpuEvent(evtEndOfLine, g_dwCycleCounter + TSTATES_PER_LINE);
 
     // Build the parity lookup table
-    for (int n = 0x00 ; n <= 0xff ; n++)
+    for (n = 0x00 ; n <= 0xff ; n++)
     {
         BYTE b2 = n ^ (n >> 4);
         b2 ^= (b2 << 2);
