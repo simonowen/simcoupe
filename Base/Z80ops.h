@@ -87,9 +87,9 @@
                 } \
                 else \
                 { \
-                    WORD t = *pHlIxIy; \
-                    f = (f&0xc4) | (((t & 0xfff) + ((hi << 8) | lo) > 0xfff) << 4); \
-                    t += (hi << 8) | lo; \
+                    DWORD t = *pHlIxIy; \
+                    f = (f & 0xc4) | (((t & 0xfff) + (((hi) << 8) | (lo)) > 0xfff) << 4); \
+                    t += ((hi) << 8) | (lo); \
                     *pHlIxIy = t; \
                     f |= ((t >> 8) & 0x28) | (t >> 16); \
                 } \
@@ -321,7 +321,7 @@ endinstr;
 // rla
 instr(23,4)
     int t = a >> 7;
-    a = (a << 1) | (f & 1);
+    a = (a << 1) | (f & F_CARRY);
     f = (f & 0xc4) | (a & 0x28) | t;
 endinstr;
 
@@ -365,7 +365,7 @@ endinstr;
 
 // rra
 instr(31,4)
-    int t = a & 1;
+    int t = a & F_CARRY;
     a = (a >> 1) | (f << 7);
     f = (f & 0xc4) | (a & 0x28) | t;
 endinstr;
@@ -573,7 +573,7 @@ endinstr;
 
 // ccf
 instr(63,4)
-    f=(f&0xc4)|(cy^1)|(cy<<4)|(a&0x28);
+    f=(f&0xc4)|(cy^F_CARRY)|(cy<<4)|(a&0x28);
 endinstr;
 
 
@@ -1044,7 +1044,7 @@ endinstr;
 
 // ret m
 instr(0xf8,5)
-    ret(f&0x80);
+    ret(f & F_NEG);
 endinstr;
 
 // ld sp,hl
