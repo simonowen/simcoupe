@@ -2,7 +2,7 @@
 //
 // Display.cpp: Win32 display rendering
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -367,10 +367,6 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 void Display::Update (CScreen* pScreen_)
 {
     HRESULT hr;
-
-    // Don't draw if fullscreen and not active
-    if (GetOption(fullscreen) && !g_fActive)
-        return;
 
     // Check if we've lost the surface memory
     if (!pddsPrimary || FAILED(hr = pddsPrimary->Restore()) || 
