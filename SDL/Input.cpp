@@ -480,6 +480,29 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
         {
             SDL_keysym* pKey = &pEvent_->key.keysym;
 
+            // Fix any missing symbols that QNX doesn't supply correctly yet
+            if (pEvent_->type == SDL_KEYDOWN && !pKey->unicode)
+            {
+                bool fControlOnly = (pKey->mod & KMOD_CTRL) && !(pKey->mod & (KMOD_SHIFT|KMOD_ALT));
+
+                // Control-letter?
+                if (fControlOnly && pKey->sym >= SDLK_a && pKey->sym <= SDLK_z)
+                    pKey->unicode = pKey->sym - SDLK_a + 1;
+                else
+                {
+                    // Other special key symbol?
+                    switch (pKey->sym)
+                    {
+                        case SDLK_BACKSPACE:
+                        case SDLK_TAB:
+                        case SDLK_RETURN:
+                        case SDLK_ESCAPE:
+                            pKey->unicode = pKey->sym;
+                            break;
+                    }
+                }
+            }
+
             // Some keys don't seem to come through properly, so try and fix em
             if (pKey->sym == SDLK_UNKNOWN)
             {
@@ -490,12 +513,8 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 }
             }
 
-            // QNX fix - doesn't pass return through as unicode <cr>
-            else if (pKey->sym == SDLK_RETURN)
-                pKey->unicode = '\r';
-
-            TRACE("Key %s: %d (mods=%d)\n", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym, pKey->mod);
-//          Frame::SetStatus("Key %s: %d", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym);
+            TRACE("Key %s: %d (mods=%d u=%d)\n", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym, pKey->mod, pKey->unicode);
+//          Frame::SetStatus("Key %s: %d (mods=%d u=%d)", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym, pKey->mod, pKey->unicode);
 
             // Pass any printable characters to the GUI
             if (GUI::IsActive())
