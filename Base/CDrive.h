@@ -57,7 +57,6 @@ class CDrive : public CDiskDevice
         void FrameEnd ();
 
         // Functions to deal with the contents of the disk
-        bool FindSector  (int nSide_, int nTrack_, int nSector_, IDFIELD* pIdField_=NULL);
         BYTE ReadAddress (int nSide_, int nTrack_, IDFIELD* pIdField_);
         UINT ReadTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_);
         BYTE VerifyTrack (int nSide_, int nTrack_);
