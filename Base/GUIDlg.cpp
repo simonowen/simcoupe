@@ -161,7 +161,7 @@ void CInsertFloppy::OnOK ()
             pDrive2->Insert(SetOption(disk2, pcszPath));
 
         // Update the status text and close the dialog
-        Frame::SetStatus("%s  inserted into Drive 1", m_pFileView->GetItem()->m_pszLabel);
+        Frame::SetStatus("%s  inserted into Drive %d", m_pFileView->GetItem()->m_pszLabel, m_nDrive);
         Destroy();
     }
     else
