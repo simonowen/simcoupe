@@ -20,6 +20,7 @@
 
 #include "SimCoupe.h"
 
+#include "Action.h"
 #include "Display.h"
 #include "Frame.h"
 #include "GUI.h"
@@ -514,6 +515,38 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
         case SDL_KEYUP:
         {
             SDL_keysym* pKey = &pEvent_->key.keysym;
+
+            bool fPress = pEvent_->type == SDL_KEYDOWN;
+            bool fCtrl  = !!(pKey->mod & KMOD_CTRL);
+            bool fAlt   = !!(pKey->mod & KMOD_ALT);
+            bool fShift = !!(pKey->mod & KMOD_SHIFT);
+
+            // Check for function keys
+            if (pKey->sym >= SDLK_F1 && pKey->sym <= SDLK_F12)
+            {
+                Action::Key(pKey->sym-SDLK_F1+1, fPress, fCtrl, fAlt, fShift);
+                break;
+            }
+
+            // Some additional function keys
+            bool fAction = true;
+            switch (pKey->sym)
+            {
+                case SDLK_RETURN:       fAction = fAlt; if (fAction) Action::Do(actToggleFullscreen, fPress);   break;
+                case SDLK_KP_MINUS:     if (GetOption(keypadreset)) Action::Do(actResetButton, fPress);         break;
+                case SDLK_KP_DIVIDE:    Action::Do(actDebugger, fPress);          break;
+                case SDLK_KP_MULTIPLY:  Action::Do(actNmiButton, fPress);         break;
+                case SDLK_KP_PLUS:      Action::Do(actTempTurbo, fPress);         break;
+                case SDLK_SYSREQ:       Action::Do(actSaveScreenshot, fPress);    break;
+                case SDLK_SCROLLOCK:    // Pause key on some platforms comes through as scoll lock?
+                case SDLK_PAUSE:        Action::Do(fCtrl ? actResetButton : fShift ? actFrameStep : actPause, fPress);   break;
+                default:                fAction = false; break;
+            }
+
+            // Have we processed the key?
+            if (fAction)
+                break;
+
 
             // Strip some modifiers flags to treat them as a normal keys
             pKey->mod = static_cast<SDLMod>(pKey->mod & ~(KMOD_NUM|KMOD_CAPS|KMOD_MODE));
