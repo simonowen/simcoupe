@@ -29,6 +29,7 @@
 #include "Util.h"
 
 const char* const OPTIONS_FILE = "SimCoupe.cfg";
+const int CFG_VERSION = 1;		// increment to force a config reset, if incompatible changes are made
 
 enum { OT_BOOL, OT_INT, OT_STRING };
 
@@ -52,22 +53,21 @@ OPTIONS Options::s_Options;
 
 OPTION aOptions[] = 
 {
-    OPT("LogFile",      OT_STRING,  logfile,        ""),        // No logfile
-
-    OPT("FastReset",    OT_BOOL,    fastreset,      true),      // Allow fast Z80 resets
+    OPT("CfgVersion",   OT_INT,     cfgversion,     0),         // Config compatability number
 
     OPT("Sync",         OT_INT,     sync,           1),         // Sync to 50Hz
     OPT("FrameSkip",    OT_INT,     frameskip,      0),         // Auto frame-skipping
     OPT("Scale",        OT_INT,     scale,          2),         // Windowed display is 2x2
     OPT("Ratio5_4",     OT_BOOL,    ratio5_4,       false),     // Don't use 5:4 screen ratio
     OPT("Scanlines",    OT_BOOL,    scanlines,      false),     // Don't use scanlines
-    OPT("Fullscreen",   OT_BOOL,    fullscreen,     false),     // Not full screen
+    OPT("Fullscreen",   OT_INT,     fullscreen,     0),         // Not full screen
     OPT("Depth",        OT_INT,     depth,          16),        // Full screen mode uses 16-bit colour
     OPT("Borders",      OT_INT,     borders,        2),         // Same amount of borders as previous version
     OPT("StretchToFit", OT_BOOL,    stretchtofit,   true),      // Stretch image to fit
     OPT("Surface",      OT_INT,     surface,        999),       // Try for the best possible by default
 
     OPT("ROM",          OT_STRING,  rom,            ""),        // No custom ROM (use built-in)
+    OPT("FastReset",    OT_BOOL,    fastreset,      true),      // Allow fast Z80 resets
     OPT("MainMemory",   OT_INT,     mainmem,        512),       // 512K main memory
     OPT("ExternalMem",  OT_INT,     externalmem,    0),         // No external memory
 
@@ -77,6 +77,7 @@ OPTION aOptions[] =
     OPT("Disk2",        OT_STRING,  disk2,          ""),        // No disk in floppy drive 2
     OPT("AtomDisk",     OT_STRING,  atomdisk,       ""),        // No Atom hard disk
     OPT("SDIDEDisk",    OT_STRING,  sdidedisk,      ""),        // No SD IDE hard disk
+    OPT("YATBusDisk",   OT_STRING,  yatbusdisk,     ""),        // No YAMOD.ATBUS disk
     OPT("AutoBoot",     OT_BOOL,    autoboot,       false),     // Don't auto-boot inserted disk
     OPT("TurboLoad",    OT_INT,     turboload,      15),        // Accelerate disk access (medium sensitivity)
 
@@ -120,10 +121,11 @@ OPTION aOptions[] =
     OPT("Profile",      OT_INT,     profile,        1),         // Show only speed and framerate
     OPT("Status",       OT_BOOL,    status,         true),      // Show status line for changed options, etc.
 
+    OPT("PauseInactive",OT_BOOL,    pauseinactive,  false),     // Continue to run when inactive
+
+    OPT("LogFile",      OT_STRING,  logfile,        ""),        // No logfile
     OPT("FnKeys",       OT_STRING,  fnkeys,
      "F1=12,SF1=13,CF1=14,F2=15,SF2=16,CF2=17,F3=28,SF3=11,CF3=10,F4=22,AF4=25,SF4=23,F5=5,SF5=7,F6=8,F7=6,F8=4,F9=9,SF9=19,F10=24,F11=0,F12=1,CF12=25"),
-
-    OPT("PauseInactive",OT_BOOL,    pauseinactive,  false),     // Continue to run when inactive
 
     { 0, 0, {0}, {0} }
 };
@@ -134,6 +136,41 @@ inline bool IsTrue (const char* pcsz_)
                     !strcasecmp(pcsz_, "yes") || !strcasecmp(pcsz_, "1"));
 }
 
+void Options::SetDefaults (bool fForce_/*=true*/)
+{
+    // Process the full options list
+    for (OPTION* p = aOptions ; p->pcszName ; p++)
+    {
+        // Set the default if forcing defaults, or if we've not already 
+        if (fForce_ || !p->fSpecified)
+        {
+            switch (p->nType)
+            {
+                case OT_BOOL:       *p->pf = p->f;              break;
+                case OT_INT:        *p->pn = p->n;              break;
+                case OT_STRING:     strcpy(p->ppsz, p->pcsz);   break;
+            }
+        }
+    }
+
+    // Force the current compatability number
+    SetOption(cfgversion,CFG_VERSION);
+}
+
+// Find the address of the variable holding the specified option default
+void* Options::GetDefault (const char* pcszName_)
+{
+    // Look for the option in the list
+    for (OPTION* p = aOptions ; p->pcszName ; p++)
+    {
+        if (!strcasecmp(pcszName_, p->pcszName))
+            return &p->dw;
+    }
+
+    // This should never happen, thanks to a compile-time check in the header
+    static void* pv;
+    return &pv;
+}
 
 bool Options::Load (int argc_, char* argv_[])
 {
@@ -174,21 +211,9 @@ bool Options::Load (int argc_, char* argv_[])
         fclose(hfOptions);
     }
 
-    // Look through the option list again
-    for (OPTION* p = aOptions ; p->pcszName ; p++)
-    {
-        // If a value for this option wasn't found in the cfg file, use the default
-        if (!p->fSpecified)
-        {
-            switch (p->nType)
-            {
-                case OT_BOOL:       *p->pf = p->f;              break;
-                case OT_INT:        *p->pn = p->n;              break;
-                case OT_STRING:     strcpy(p->ppsz, p->pcsz);   break;
-            }
-        }
-    }
-
+    // Set the default values for any missing options, or all if the config version has changed
+    bool fIncompatible = GetOption(cfgversion) != CFG_VERSION;
+    SetDefaults(fIncompatible);
 
     // Process any commmand-line arguments to look for options
     while (argc_ && --argc_)
