@@ -24,7 +24,7 @@
 
 #define rlc(x)  (x = (x << 1) | (x >> 7), rflags(x, x & 1))
 #define rrc(x)  { BYTE t = x & 1;  x = (x >> 1) | (t << 7); rflags(x,t); }
-#define rl(x)   { BYTE t = x >> 7; x = (x << 1) | (f & 1);  rflags(x,t); }
+#define rl(x)   { BYTE t = x >> 7; x = (x << 1) | (f & F_CARRY);  rflags(x,t); }
 #define rr(x)   { BYTE t = x & 1;  x = (x >> 1) | (f << 7); rflags(x,t); }
 #define sla(x)  { BYTE t = x >> 7; x <<= 1;                 rflags(x,t); }
 #define sra(x)  { BYTE t = x & 1;  x = ((signed char)x) >> 1;rflags(x,t); }
