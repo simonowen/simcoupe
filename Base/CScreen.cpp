@@ -33,7 +33,9 @@
 
 
 int nClipX, nClipY, nClipWidth, nClipHeight;    // Clip box for any screen drawing
+
 const GUIFONT* pFont = &sOldFont;
+bool fFixedWidth = false;
 
 
 CScreen::CScreen (int nWidth_, int nHeight_)
@@ -220,6 +222,7 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
     int nTo = nY_ + pFont->wHeight;
     nTo = min(nClipY+nClipHeight-1, nTo);
 
+    // Return if the entrire character is clipped
     if (nFrom > nTo)
         return;
 
@@ -237,12 +240,18 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
         // Look up the font data for the character
         const BYTE* pbData = pFont->pcbData + (bChar - pFont->bFirst) * pFont->wCharSize;
 
-        // Pick up the spacing details, calculate the width and step back by the space preceding the character
+        // Retrieve the character width
         int nWidth = *pbData++ & 0x0f;
 
-        // Only draw the character if the entire width fits inside the clipping area
-        // Smarter clipping will only slow it down further, and can be added later if necessary
-        if ((nX_ >= nClipX) && (nX_ < (nClipX+nClipWidth-nWidth)))
+        if (fFixedWidth)
+        {
+            int nShift = pbData[-1] >> 4;
+            nX_ += nShift;
+            nWidth = pFont->wWidth - nShift;
+        }
+
+        // Only draw the character if it's not a space, and the entire width fits inside the clipping area
+        if (bChar != ' ' && (nX_ >= nClipX) && (nX_ < (nClipX+nClipWidth-nWidth)))
         {
             BYTE* pLine = GetLine(nFrom) + nX_;
             pbData += (nFrom - nY_);
@@ -277,7 +286,7 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
         }
 
         // Move to the next character position
-        nX_ += nWidth + CHAR_SPACING + fBold_;
+        nX_ += nWidth + CHAR_SPACING - fFixedWidth + fBold_;
     }
 }
 
@@ -300,7 +309,8 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
     return nWidth - CHAR_SPACING;
 }
 
-/*static*/ void CScreen::SetFont (const GUIFONT* pFont_)
+/*static*/ void CScreen::SetFont (const GUIFONT* pFont_, bool fFixedWidth_/*=false*/)
 {
     pFont = pFont_;
+    fFixedWidth = fFixedWidth_;
 }
