@@ -142,6 +142,7 @@
 #define IDS_LENGTH                      1184
 #define IDS_DOSDISK                     1186
 #define IDC_SAVE_PROMPT                 1187
+#define IDS_VERSION                     1188
 #define IDT_MENU                        7389
 #define IDM_FILE_EXIT                   40001
 #define IDM_HELP_ABOUT                  40050
@@ -204,7 +205,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        195
 #define _APS_NEXT_COMMAND_VALUE         40209
-#define _APS_NEXT_CONTROL_VALUE         1188
+#define _APS_NEXT_CONTROL_VALUE         1189
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif
