@@ -85,8 +85,8 @@ bool CDeviceHardDisk::Open (const char* pcszDisk_)
             SetIdentityString(m_sIdentity.szFirmwareRev,  sizeof m_sIdentity.szFirmwareRev, "0.90");
             SetIdentityString(m_sIdentity.szModelNumber,  sizeof m_sIdentity.szModelNumber, "SAM IDE Device");
 
-            // Changed a possible LBA-adjusted geometry to CHS
-            NormaliseGeometry(&m_sGeometry);
+            // Calculate CHS values suitable for the sector count (ignore existing geometry)
+            CalculateGeometry(&m_sGeometry);
 
             // For safety, only deal with existing BDOS or SDIDE hard disks
             if (IsBDOSDisk() || IsSDIDEDisk())
