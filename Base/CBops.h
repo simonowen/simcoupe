@@ -4,7 +4,7 @@
 //
 //  Copyright (c) 1994 Ian Collier
 //  Copyright (c) 1999-2003 by Dave Laundon
-//  Copyright (c) 1999-2003 by Simon Owen
+//  Copyright (c) 1999-2004 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,7 +33,8 @@
 #define sll(x)  { BYTE t = x >> 7; x = (x << 1) | 1;        rflags(x,t); }  // Z80 CPU bug: bit 0 always set in the result
 #define srl(x)  { BYTE t = x & 1;  x >>= 1;                 rflags(x,t); }
 
-#define bit(n,x) (f = (f & 1) | ((x & (1 << n)) ? n == 7 ? 0x90 : 0x10 : 0x54) | (x & 0x28))    // Sabre Wulf undocumented flag fix
+#define bit(n,x) (f = (f & 1) | ((x & (1 << n)) ? n == 7 ? 0x90 : 0x10 : 0x54) | (((op & 7) == 6) ? 0 : (x & 0x28)))
+
 #define set(n,x) (x |=  (1 << n))
 #define res(n,x) (x &= ~(1 << n))
 
