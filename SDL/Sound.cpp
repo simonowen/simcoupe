@@ -30,6 +30,10 @@
 //  - interpolation of DAC output to improve high frequencies
 //  - buffering tweaks to help with sample block joins
 
+// ToDo:
+//  - Use a circular buffer to improve efficiency, and merge the frame
+//    sample buffer with the main buffer?
+
 #include "SimCoupe.h"
 #include <math.h>
 
@@ -68,10 +72,39 @@ void CSoundStream::SoundCallback (void *pvParam_, Uint8 *pbStream_, int nLen_)
 
     ProfileStart(Snd);
 
+    if (pSAA)
+    {
+        // Determine how much sound data is available (in bytes)
+        int nData = pSAA->m_pbNow - pSAA->m_pbStart;
+
+        // Work out how much to use, how much will be left over, and how much we're short by (if any)
+        // Mix in as much of the sample data as we can, up to the size of the request
+        int nCopy = min(nData, nLen_), nLeft = nData-nCopy, nShort = nLen_-nCopy;
+        SDL_MixAudio(pbStream_, pSAA->m_pbStart, nCopy, SDL_MIX_MAXVOLUME);
+
+        // Move any remaining data to the start of the buffer
+        pSAA->m_pbNow = pSAA->m_pbStart + nLeft;
+        memmove(pSAA->m_pbStart, pSAA->m_pbStart + nCopy, nLeft);
+
+        // Are we still short of completing the request?
+        if (nShort)
+        {
+            // Generate the extra samples needed to complete the request
+            pSAA->GenerateExtra(pSAA->m_pbStart, nShort/pSAA->m_nSampleSize);
+            SDL_MixAudio(pbStream_+nCopy, pSAA->m_pbStart, nShort, SDL_MIX_MAXVOLUME);
+
+            // Half-fill the buffer to prevent immediate underflow
+            int nPad = (pSAA->m_nMaxSamplesPerFrame * GetOption(latency)) >> 1;
+            pSAA->Generate(pSAA->m_pbStart, nPad);
+            pSAA->m_pbNow = pSAA->m_pbStart + (nPad*pSAA->m_nSampleSize);
+        }
+    }
+
+    // Repeat the above for the DAC output
     if (pDAC)
     {
-        int nData = pDAC->m_pbNow - pDAC->m_pbStart, nCopy = min(nLen_, nData), nLeft = nData-nCopy, nShort = nLen_-nCopy;
-
+        int nData = pDAC->m_pbNow - pDAC->m_pbStart;
+        int nCopy = min(nData, nLen_), nLeft = nData-nCopy, nShort = nLen_-nCopy;
         SDL_MixAudio(pbStream_, pDAC->m_pbStart, nCopy, SDL_MIX_MAXVOLUME);
 
         pDAC->m_pbNow = pDAC->m_pbStart + nLeft;
@@ -79,40 +112,12 @@ void CSoundStream::SoundCallback (void *pvParam_, Uint8 *pbStream_, int nLen_)
 
         if (nShort)
         {
-            TRACE("DAC short by %d bytes of %d (%d copied)\n", nShort, nLen_, nCopy);
             pDAC->Generate(pDAC->m_pbStart, nShort/pDAC->m_nSampleSize);
             SDL_MixAudio(pbStream_+nCopy, pDAC->m_pbStart, nShort, SDL_MIX_MAXVOLUME);
 
-            int nPad = (nLen_ >> 1);
-            if (nCopy && nShort != nPad)
-            {
-                pDAC->Generate(pDAC->m_pbStart, nPad/pDAC->m_nSampleSize);
-                pDAC->m_pbNow = pDAC->m_pbStart + nPad;
-            }
-        }
-    }
-
-    if (pSAA)
-    {
-        int nData = pSAA->m_pbNow - pSAA->m_pbStart, nCopy = min(nLen_, nData), nLeft = nData-nCopy, nShort = nLen_-nCopy;
-
-        SDL_MixAudio(pbStream_, pSAA->m_pbStart, nCopy, SDL_MIX_MAXVOLUME);
-
-        pSAA->m_pbNow = pSAA->m_pbStart + nLeft;
-        memmove(pSAA->m_pbStart, pSAA->m_pbStart + nCopy, nLeft);
-
-        if (nShort)
-        {
-            TRACE("SAA short by %d bytes of %d (%d copied)\n", nShort, nLen_, nCopy);
-            pSAA->GenerateExtra(pSAA->m_pbStart, nShort/pSAA->m_nSampleSize);
-            SDL_MixAudio(pbStream_+nCopy, pSAA->m_pbStart, nShort, SDL_MIX_MAXVOLUME);
-
-            int nPad = (nLen_ >> 1);
-            if (nCopy && nShort != nPad)
-            {
-                pSAA->Generate(pSAA->m_pbStart, nPad/pSAA->m_nSampleSize);
-                pSAA->m_pbNow = pSAA->m_pbStart + nPad;
-            }
+            int nPad = (pDAC->m_nMaxSamplesPerFrame * GetOption(latency)) >> 1;
+            pDAC->Generate(pDAC->m_pbStart, nPad/pDAC->m_nSampleSize);
+            pDAC->m_pbNow = pDAC->m_pbStart + nPad;
         }
     }
 
@@ -128,7 +133,7 @@ bool InitDirectSound ()
     sDesired.freq = GetOption(freq);
     sDesired.format = (GetOption(bits) == 8) ? AUDIO_U8 : AUDIO_S16;
     sDesired.channels = GetOption(stereo) ? 2 : 1;
-    sDesired.samples = (GetOption(latency) <= 11) ? 2048 : (GetOption(latency) <= 16) ? 4096 : 8192;
+    sDesired.samples = (GetOption(freq) <= 11025) ? 512 : (GetOption(freq) <= 22050) ? 1024 : 2048;
     sDesired.callback = CSoundStream::SoundCallback;
 
     if (!(fRet = (SDL_OpenAudio(&sDesired, &sObtained) >= 0)))
@@ -327,15 +332,8 @@ void CStreamBuffer::Update (bool fFrameEnd_)
 
     if (fFrameEnd_)
     {
-//      DWORD dwSpaceAvailable = GetSpaceAvailable();
-
-        // Is there enough space for all this frame's data?
-//      if (dwSpaceAvailable >= m_nSamplesThisFrame)
-        {
-            // Add on the current frame's sample data
-            AddData(m_pbFrameSample, m_nSamplesThisFrame*m_nSampleSize);
-//          dwSpaceAvailable -= m_nSamplesThisFrame;
-        }
+        // Add on the current frame's sample data
+        AddData(m_pbFrameSample, m_nSamplesThisFrame*m_nSampleSize);
 
         // Reset the sample counters for the next frame
         m_uOffsetPerUnit += (TSTATES_PER_FRAME * m_uSamplesPerUnit) - (m_nSamplesThisFrame * m_uCyclesPerUnit);
@@ -350,9 +348,10 @@ void CStreamBuffer::Update (bool fFrameEnd_)
 CSoundStream::CSoundStream (int nFreq_/*=0*/, int nBits_/*=0*/, int nChannels_/*=0*/)
     : CStreamBuffer(nFreq_, nBits_, nChannels_)
 {
-    m_nSampleBufferSize = sObtained.size * 2 + (m_nMaxSamplesPerFrame * m_nSampleSize);
-
+    m_nSampleBufferSize = sObtained.size + (m_nMaxSamplesPerFrame * m_nSampleSize * GetOption(latency));
+    TRACE("Sample buffer size = %d samples\n", m_nSampleBufferSize/m_nSampleSize);
     m_pbEnd = (m_pbNow = m_pbStart = new BYTE[m_nSampleBufferSize]) + m_nSampleBufferSize;
+
     Silence();
 }
 
@@ -383,22 +382,18 @@ void CSoundStream::AddData (BYTE* pbData_, int nLength_)
     {
         SDL_LockAudio();
 
-        // How many samples do we have space for?
+        // Work out how much space we've got
         int nSpace = m_pbEnd - m_pbNow;
 
-        // Add as much of it as we can
-        int nAdd = min(nSpace, nLength_);
-        memcpy(m_pbNow, pbData_, nAdd);
-        m_pbNow += nAdd;
+        // Overflow?  If so, discard all we've got to force the callback to correct it
+        if (nLength_ > nSpace)
+            m_pbNow = m_pbStart;
 
-//      TRACE("Adding %d of %d bytes, %d bytes free\n", nAdd, nLength_, m_pbNow - m_pbStart);
-
-        // Did we have too much data?
-        if (nSpace < nLength_)
+        // Append the new block
+        else
         {
-            // Discard some data to get us back to a safe point where we won't overflow again immediately
-            m_pbNow = m_pbStart + sObtained.samples;
-            TRACE("!!! Sound over-flow: %d samples too many\n", (nLength_-nSpace)/m_nSampleSize);
+            memcpy(m_pbNow, pbData_, nLength_);
+            m_pbNow += nLength_;
         }
 
         SDL_UnlockAudio();
