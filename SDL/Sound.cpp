@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Sound.cpp: SDL sound implementation
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -179,7 +179,7 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
             if (pSAASound || (pSAASound = CreateCSAASound()))
             {
                 // Set the DLL parameters from the options, so it matches the setup of the primary sound buffer
-                pSAASound->SetSoundParameters((GetOption(filter) ? SAAP_FILTER : SAAP_NOFILTER) |
+                pSAASound->SetSoundParameters(SAAP_NOFILTER |
                     ((nFreq == 11025) ? SAAP_11025 : (nFreq == 22050) ? SAAP_22050 : SAAP_44100) |
                     ((nBits == 8) ? SAAP_8BIT : SAAP_16BIT) | (GetOption(stereo) ? SAAP_STEREO : SAAP_MONO));
             }
@@ -544,7 +544,7 @@ void CDAC::GenerateExtra (BYTE* pb_, int nSamples_)
 
 UINT HCF (UINT x_, UINT y_)
 {
-    UINT uHCF = 1, uMin = static_cast<UINT>(sqrt(min(x_, y_)));
+    UINT uHCF = 1, uMin = static_cast<UINT>(sqrt(static_cast<double>(min(x_, y_))));
 
     for (UINT uFactor = 2 ; uFactor <= uMin ; uFactor++)
     {
