@@ -91,7 +91,8 @@ class GUI
 ////////////////////////////////////////////////////////////////////////////////
 
 // Control types, as returned by GetType() from any base CWindow pointer
-enum { ctUnknown, ctText, ctButton, ctCheckBox, ctEdit, ctRadio, ctMenu, ctImage, ctFrame, ctListView, ctDialog, ctMessageBox };
+enum { ctUnknown, ctText, ctButton, ctCheckBox, ctComboBox, ctEdit, ctRadio,
+       ctMenu, ctImage, ctFrame, ctListView, ctDialog, ctMessageBox };
 
 
 class CWindow
@@ -122,12 +123,13 @@ class CWindow
     public:
         virtual bool IsTabStop () { return true; }
 
-        virtual const char* GetText () const { return m_pcszText; }
+        virtual const char* GetText () const { return m_pszText; }
         virtual void SetText (const char* pcszText_);
-        int GetTextWidth () const { return CScreen::GetStringWidth(m_pcszText); }
+        int GetTextWidth () const { return CScreen::GetStringWidth(m_pszText); }
 
         virtual void Activate ();
         virtual bool HitTest (int nX_, int nY_);
+        virtual void EraseBackground (CScreen* pScreen_) { }
         virtual void Draw (CScreen* pScreen_) = 0;
 
         virtual void NotifyParent (int nParam_=0);
@@ -143,25 +145,27 @@ class CWindow
         int m_nWidth, m_nHeight;
         int m_nType;
 
-        char* m_pcszText;
+        char* m_pszText;
 
         bool m_fEnabled, m_fHover;
 
         CWindow *m_pParent, *m_pChildren, *m_pNext, *m_pActive;
+
+        friend class CDialog;
 };
 
 
 class CTextControl : public CWindow
 {
     public:
-        CTextControl (CWindow* pParent_=NULL, int nX_=0, int nY_=0, const char* pcszText_="", BYTE bColour=WHITE);
+        CTextControl (CWindow* pParent_=NULL, int nX_=0, int nY_=0, const char* pcszText_="", BYTE bColour=WHITE, BYTE bBackColour=0);
 
     public:
         bool IsTabStop () { return false; }
         void Draw (CScreen* pScreen_);
 
     protected:
-        BYTE m_bColour;
+        BYTE m_bColour, m_bBackColour;
 };
 
 
@@ -215,7 +219,7 @@ class CDownButton : public CButton
 class CCheckBox : public CWindow
 {
     public:
-        CCheckBox (CWindow* pParent_, int nX_, int nY_, const char* pcszText_="");
+        CCheckBox (CWindow* pParent_, int nX_, int nY_, const char* pcszText_="", BYTE bColour_=WHITE, BYTE bBackColour_=0);
 
     public:
         bool IsChecked () const { return m_fChecked; }
@@ -227,6 +231,7 @@ class CCheckBox : public CWindow
 
     protected:
         bool m_fChecked;
+        BYTE m_bColour, m_bBackColour;
 };
 
 
@@ -358,6 +363,7 @@ class CFrameControl : public CWindow
 
     public:
         bool IsTabStop () { return false; }
+        bool HitTest (int nX_, int nY_) { return false; }
         void Draw (CScreen* pScreen_);
 
     public:
@@ -381,7 +387,7 @@ class CListViewItem
 class CListView : public CWindow
 {
     public:
-        CListView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
+        CListView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, int nItemOffset=0);
 
     public:
         int GetSelected () const { return m_nSelected; }
@@ -391,6 +397,7 @@ class CListView : public CWindow
         int FindItem (const char* pcszLabel_, int nStart_=0);
         void SetItems (CListViewItem* pItems_);
 
+        void EraseBackground (CScreen* pScreen_);
         void Draw (CScreen* pScreen_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
 
@@ -398,7 +405,7 @@ class CListView : public CWindow
 
     protected:
         int m_nItems, m_nSelected, m_nHoverItem;
-        int m_nAcross, m_nDown;
+        int m_nAcross, m_nDown, m_nItemOffset;
 
         CListViewItem* m_pItems;
         CScrollBar* m_pScrollBar;
@@ -414,8 +421,11 @@ class CDialog : public CWindow
         bool IsModal () const { return m_fModal; }
         void SetColours (int nTitle_, int nBody_) { m_nTitleColour = nTitle_; m_nBodyColour = nBody_; }
 
+        void Centre ();
+        void Activate ();
         bool HitTest (int nX_, int nY_);
         void Draw (CScreen* pScreen_);
+        void EraseBackground (CScreen* pScreen_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
 
     protected:
@@ -461,7 +471,6 @@ class CFileView : public CListView
         void Refresh ();
         void NotifyParent (int nParam_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
-        void DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const CListViewItem* pItem_);
 
         static const GUI_ICON* GetFileIcon (const char* pcszFile_);
 
