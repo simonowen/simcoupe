@@ -43,7 +43,6 @@ class OSD
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
 #define STRICT
 #define WIN32_LEAN_AND_MEAN
 
@@ -54,9 +53,13 @@ class OSD
 
 #pragma warning(disable:4786)   // disable stupid 'debug symbols being truncated' warning
 
-#ifndef NO_ZLIB
+#ifdef USE_ZLIB
 #define ZLIB_DLL
-#pragma comment(lib, "Zlib")
+#pragma comment(lib, "zlib")
+#endif
+
+#ifdef USE_SAASOUND
+#pragma comment(lib, "SAASound")
 #endif
 
 
