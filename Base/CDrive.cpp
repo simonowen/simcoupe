@@ -54,8 +54,8 @@ void CDrive::Reset ()
 // Insert a new disk from the named source (usually a file)
 bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
 {
-	// Eject any existing disk
-	Eject();
+    // Eject any existing disk
+    Eject();
 
     // If no image was supplied there's nothing more to do
     if (!*pcszSource_)
@@ -64,11 +64,11 @@ bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
     // Open the new disk image
     m_pDisk = CDisk::Open(pcszSource_, fReadOnly_);
 
-	// If successful and we're working with drive 1, check for auto-booting
+    // If successful and we're working with drive 1, check for auto-booting
     if (m_pDisk && this == pDrive1)
         IO::CheckAutoboot();
 
-	// Return whether we were successful
+    // Return whether we were successful
     return m_pDisk != NULL;
 }
 
@@ -77,11 +77,6 @@ void CDrive::Eject ()
 {
     delete m_pDisk;
     m_pDisk = NULL;
-}
-
-bool CDrive::Flush ()
-{
-    return (m_pDisk && (!m_pDisk->IsModified() || m_pDisk->Save()));
 }
 
 void CDrive::FrameEnd ()
