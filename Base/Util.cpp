@@ -1,9 +1,9 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Util.cpp: Logging, tracing, and other utility tasks
 //
-//  Copyright (c) 1996-2001  Allan Skillman
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1996-2002  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@ void Util::Exit ()
 {
     CloseLog();
 
-    if (s_pszTrace) { delete s_pszTrace; s_pszTrace = NULL; }
+    if (s_pszTrace) { delete[] s_pszTrace; s_pszTrace = NULL; }
 }
 
 
