@@ -23,19 +23,22 @@
 
 // We can do more accurate profiling than the default
 #define PROFILE_T   __int64
-#define AddTime(x)  sprintf(sz + strlen(sz), " %s:%I64dus", #x, (s_sProfile.prof##x + 5) / 10i64)
+#define AddTime(x)  sprintf(sz + strlen(sz), "  %s:%I64dus", #x, (s_sProfile.prof##x + 5) / 10i64)
 
 
-namespace OSD
+class OSD
 {
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    PROFILE_T GetProfileTime ();
-    DWORD GetTime ();
-    const char* GetFilePath (const char* pcszFile_);
-    void DebugTrace (const char* pcsz_);
-    bool FrameSync (bool fWait_=true);
+        static PROFILE_T GetProfileTime ();
+        static DWORD GetTime ();
+        static const char* GetFilePath (const char* pcszFile_);
+        static void DebugTrace (const char* pcsz_);
+        static int FrameSync (bool fWait_=true);
+
+        static int s_nTicks;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -69,6 +72,7 @@ namespace OSD
 #define strcasecmp      _strcmpi
 #define mkdir(p,m)  _mkdir(p)
 
+#define PATH_SEPARATOR          "\\"
 
 // Windows doesn't support dirent.h, so we'll provide our own version
 struct dirent
