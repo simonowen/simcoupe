@@ -419,7 +419,7 @@ class CTestDialog : public CDialog
 
             m_apControls[6] = new CComboBox(this, 105,78, "Coch|Gwyn|Glas|Melyn", 70);
             m_apControls[7] = new CTextButton(this, 105, 103, "Button", 50);
-            m_apControls[8] = new CScrollBar(this, 183,38,110,200);
+            m_apControls[8] = new CScrollBar(this, 183,38,110,400);
 
             m_apControls[9] = new CIconControl(this, 8, 133, sDisplayIcon);
 
