@@ -460,14 +460,13 @@ void CPU::Run ()
         // The real end of the SAM frame requires some additional handling
         if (g_fFrameEnd)
         {
+            // Only update I/O (sound etc.) if we're not fast booting
             if (!g_nFastBooting)
-            {
-                Frame::End();
                 IO::FrameUpdate();
-            }
 
             // Step back up to start the next frame
             g_nLine -= HEIGHT_LINES;
+            Frame::Start();
             g_fFrameEnd = false;
         }
     }
