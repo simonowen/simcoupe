@@ -328,14 +328,14 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
         // Check the geometry is within range, since the edit fields can be modified directly
         if (!uCyls || (uCyls > 16383) || !uHeads || (uHeads > 16) || !uSectors || (uSectors > 63))
         {
-            new CMessageBox(this, "Invalid disk geometry.", "Warning", MB_OK|MB_ICONEXCLAMATION);
+            new CMessageBox(this, "Invalid disk geometry.", "Warning", mbWarning);
             return;
         }
 
         // Create the new HDF image
         if (!CHDFHardDisk::Create(m_pFile->GetText(), uCyls, uHeads, uSectors))
         {
-            new CMessageBox(this, "Failed to create new disk (disk full?)", "Warning", MB_OK|MB_ICONEXCLAMATION);
+            new CMessageBox(this, "Failed to create new disk (disk full?)", "Warning", mbWarning);
             return;
         }
 
