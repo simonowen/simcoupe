@@ -167,18 +167,16 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     {
         if (pDrive1->GetType() == dskImage)
             SetOption(disk1, pDrive1->GetPath());
-
-        delete pDrive1;
-        pDrive1 = NULL;
+        delete pDrive1; pDrive1 = NULL;
     }
 
     if (pDrive2 && ((!fInit_ && !fReInit_) || (pDrive2->GetType() != GetOption(drive2))))
     {
         if (pDrive2->GetType() == dskImage)
             SetOption(disk2, pDrive2->GetPath());
-
-        delete pDrive2;
-        pDrive2 = NULL;
+        else if (pDrive2->GetType() == dskAtom)
+            SetOption(atomdisk, pDrive2->GetPath());
+        delete pDrive2; pDrive2 = NULL;
     }
 
     Floppy::Exit(fReInit_);
@@ -192,13 +190,8 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
             switch (GetOption(drive1))
             {
                 case dskImage:
-                {
-                    pDrive1 = new CDrive();
-
-                    if (*GetOption(disk1))
-                        pDrive1->Insert(GetOption(disk1));
+                    (pDrive1 = new CDrive())->Insert(GetOption(disk1));
                     break;
-                }
 
                 default:
                     pDrive1 = new CDiskDevice;
@@ -211,14 +204,8 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
             switch (GetOption(drive2))
             {
                 case dskImage:
-                {
-                    pDrive2 = new CDrive();
-
-                    if (*GetOption(disk2))
-                        pDrive2->Insert(GetOption(disk2));
-                    
+                    (pDrive2 = new CDrive())->Insert(GetOption(disk2));
                     break;
-                }
 
                 case dskAtom:
                 {
@@ -321,8 +308,17 @@ bool IO::InitBeeper (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 
 bool IO::InitHDD (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 {
-    delete pSDIDE; pSDIDE = NULL;
-    delete pYATBus; pYATBus = NULL;
+    if (pSDIDE)
+    {
+        SetOption(sdidedisk, pSDIDE->GetPath());
+        delete pSDIDE; pSDIDE = NULL;
+    }
+
+    if (pYATBus)
+    {
+        SetOption(yatbusdisk, pYATBus->GetPath());
+        delete pYATBus; pYATBus = NULL;
+    }
 
     if (fInit_)
     {
