@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Sound.cpp: Win32 sound implementation using DirectSound
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -155,7 +155,7 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
             if (pSAASound || (pSAASound = CreateCSAASound()))
             {
                 // Set the DLL parameters from the options, so it matches the setup of the primary sound buffer
-                pSAASound->SetSoundParameters((GetOption(filter) ? SAAP_FILTER : SAAP_NOFILTER) |
+                pSAASound->SetSoundParameters(SAAP_NOFILTER |
                     ((nFreq == 11025) ? SAAP_11025 : (nFreq == 22050) ? SAAP_22050 : SAAP_44100) |
                     ((nBits == 8) ? SAAP_8BIT : SAAP_16BIT) | (GetOption(stereo) ? SAAP_STEREO : SAAP_MONO));
             }
@@ -460,7 +460,7 @@ void CSoundStream::AddData (BYTE* pbData_, int nLength_)
     if (nLength_ <= 0)
         return;
 
-   // Lock the required buffer range so we can add the new data
+    // Lock the required buffer range so we can add the new data
     HRESULT hr = m_pdsb->Lock(m_dwWriteOffset, nLength_, &pvWrite1, &dwLength1, &pvWrite2, &dwLength2, 0);
     if (FAILED(hr))
         TRACE("!!! Failed to lock sound buffer! (%#08lx)\n", hr);
