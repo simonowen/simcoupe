@@ -24,6 +24,7 @@
 #include "SimCoupe.h"
 #include "Video.h"
 
+#include "Action.h"
 #include "Display.h"
 #include "Frame.h"
 #include "GUI.h"
