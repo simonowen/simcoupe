@@ -153,7 +153,7 @@ void ProcessKey (SDL_Event* pEvent_)
         case SDLK_KP_MULTIPLY:  DoAction(actNmiButton, fPress);         break;
         case SDLK_KP_PLUS:      DoAction(actTempTurbo, fPress);         break;
         case SDLK_SYSREQ:       DoAction(actSaveScreenshot, fPress);    break;
-        case SDLK_SCROLLOCK:    // Pause key on some platforms comes through as scoll lock?
+//      case SDLK_SCROLLOCK:    // Pause key on some platforms comes through as scoll lock?
         case SDLK_PAUSE:        DoAction((pKey->mod & KMOD_CTRL) ? actResetButton :
                                          (pKey->mod & KMOD_SHIFT) ? actFrameStep : actPause, fPress);   break;
         default:                break;
@@ -180,25 +180,9 @@ bool UI::CheckEvents ()
 
                 case SDL_KEYDOWN:
                 case SDL_KEYUP:
-                {
-                    SDL_keysym* pKey = &event.key.keysym;
-
-                    // Key not recognised by SDL?
-                    if (!pKey->sym)
-                    {
-                        // Check for some unusual (?!) UK keys
-                        switch (pKey->scancode)
-                        {
-                            case SDLK_BACKQUOTE:
-//                          case 0x56:  pKey->sym = SDLK_BACKQUOTE; break;      // UK backslash key
-                            case 0xc5:  pKey->sym = SDLK_PAUSE;     break;      // UK Pause key
-                        }
-                    }
-
+                    Input::ProcessEvent(&event);
                     ProcessKey(&event);
-                }
-
-                // Fall through ...
+                    break;
 
                 case SDL_JOYAXISMOTION:
                 case SDL_JOYHATMOTION:
@@ -538,6 +522,7 @@ void DoAction (int nAction_, bool fPressed_)
 
                 break;
 
+#ifdef USE_OPENGL
             case actToggle5_4:
                 SetOption(ratio5_4, !GetOption(ratio5_4));
 
@@ -545,8 +530,8 @@ void DoAction (int nAction_, bool fPressed_)
                     Frame::Init();
 
                 Frame::SetStatus("%s pixel size", GetOption(ratio5_4) ? "5:4" : "1:1");
-
                 break;
+#endif
         }
     }
 }
