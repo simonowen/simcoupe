@@ -132,6 +132,8 @@ class CBeeperDevice : public CIoDevice
 #define SOUND_ADDR          511         // Output (data)
 #define ATTR_PORT           255         // Input
 
+#define QUAZAR_PORT         208
+
 // Floppy drives or ATOM hard disk - 111d0srr : d = drive, s = side, r = register
 #define FLOPPY_MASK         0xf8        // 11111000
 #define FLOPPY1_BASE        224         // 224 to 231
