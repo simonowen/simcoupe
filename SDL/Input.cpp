@@ -120,7 +120,7 @@ COMBINATION_KEY asSpectrumSymbols[] =
 };
 
 // Handy mappings from unused PC keys to a SAM combination
-MAPPED_KEY asPCMappings[] =
+MAPPED_KEY asSamMappings[] =
 {
     // Some useful combinations
     { SDLK_DELETE,    SK_DELETE, SK_SHIFT },
@@ -131,6 +131,19 @@ MAPPED_KEY asPCMappings[] =
     { SDLK_NUMLOCK,   SK_EDIT,   SK_SYMBOL },
     { SDLK_MENU,      SK_EDIT,   SK_NONE },
     { SDLK_KP_PERIOD, SK_QUOTES, SK_SHIFT },
+    { SDLK_UNKNOWN }
+};
+
+// Handy mappings from unused PC keys to a Spectrum combination
+MAPPED_KEY asSpectrumMappings[] =
+{
+    // Some useful combinations
+    { SDLK_DELETE,    SK_0,      SK_SHIFT },
+    { SDLK_HOME,      SK_LEFT,   SK_NONE },
+    { SDLK_END,       SK_RIGHT,  SK_NONE },
+    { SDLK_PAGEUP,    SK_UP,     SK_NONE },
+    { SDLK_PAGEDOWN,  SK_DOWN,   SK_NONE },
+    { SDLK_CAPSLOCK,  SK_2,      SK_SHIFT },
     { SDLK_UNKNOWN }
 };
 
@@ -429,9 +442,17 @@ void SetSamKeyState ()
     // Process the key combinations required for the mode we're in
     switch (GetOption(keymapping))
     {
-        case 0:                                         break;  // Raw keyboard
-        case 1:     ProcessKeyTable(asSamSymbols);      break;  // SAM symbol keys
-        case 2:     ProcessKeyTable(asSpectrumSymbols); break;  // Spectrum symbol keys
+        // SAM keys
+        case 1:
+            ProcessKeyTable(asSamSymbols);
+            ProcessKeyTable(asSamMappings);
+            break;
+
+        // Spectrum mappings
+        case 2:
+            ProcessKeyTable(asSpectrumSymbols);
+            ProcessKeyTable(asSpectrumMappings);
+            break;
     }
 
     // Toggle shift if both shift keys are down to allow shifted versions of keys that are
@@ -439,9 +460,8 @@ void SetSamKeyState ()
     if (fShiftToggle)
         ToggleKey(SDLK_LSHIFT);
 
-    // Process the simple key and additional PC key mappings
+    // Process the simple key mappings
     ProcessKeyTable(asSamKeys);
-    ProcessKeyTable(asPCMappings);
 
     // Caps/Num Lock act as toggle keys and need releasing here if pressed
     if (IsPressed(SDLK_CAPSLOCK)) SetMasterKey(SDLK_CAPSLOCK, false);

@@ -118,7 +118,7 @@ COMBINATION_KEY asSpectrumSymbols[] =
 };
 
 // Handy mappings from unused PC keys to a SAM combination
-MAPPED_KEY asPCMappings[] =
+MAPPED_KEY asSamMappings[] =
 {
     // Some useful combinations
     { KEY_DEL,      SK_DELETE, SK_SHIFT },
@@ -129,6 +129,19 @@ MAPPED_KEY asPCMappings[] =
     { KEY_NUMLOCK,  SK_EDIT,   SK_SYMBOL },
     { KEY_MENU,     SK_EDIT,   SK_NONE },
     { KEY_DEL_PAD,  SK_QUOTES, SK_SHIFT },
+    { 0 }
+};
+
+// Handy mappings from unused PC keys to a Spectrum combination
+MAPPED_KEY asSpectrumMappings[] =
+{
+    // Some useful combinations
+    { KEY_DEL,      SK_0,      SK_SHIFT },
+    { KEY_HOME,     SK_LEFT,   SK_NONE },
+    { KEY_END,      SK_RIGHT,  SK_NONE },
+    { KEY_PGUP,     SK_UP,     SK_NONE },
+    { KEY_PGDN,     SK_DOWN,   SK_NONE },
+    { KEY_CAPSLOCK, SK_2,      SK_SHIFT },
     { 0 }
 };
 
@@ -451,9 +464,15 @@ void SetSamKeyState ()
     // Process the key combinations required for the mode we're in
     switch (GetOption(keymapping))
     {
-        case 0:                                         break;  // Raw keyboard
-        case 1:     ProcessKeyTable(asSamSymbols);      break;  // SAM symbol keys
-        case 2:     ProcessKeyTable(asSpectrumSymbols); break;  // Spectrum symbol keys
+        case 1: // SAM keys
+            ProcessKeyTable(asSamSymbols);
+            ProcessKeyTable(asSamMappings);
+            break;
+
+        case 2: // Spectrum mappings
+            ProcessKeyTable(asSpectrumSymbols);
+            ProcessKeyTable(asSpectrumMappings);
+            break;
     }
 
     // Toggle shift if both shift keys are down to allow shifted versions of keys that are
@@ -461,9 +480,8 @@ void SetSamKeyState ()
     if (fShiftToggle)
         ToggleKey(KEY_LSHIFT);
 
-    // Process the simple key and additional PC key mappings
+    // Process the simple key mappings
     ProcessKeyTable(asSamKeys);
-    ProcessKeyTable(asPCMappings);
 }
 
 
