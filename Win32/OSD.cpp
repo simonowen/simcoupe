@@ -26,9 +26,14 @@
 #include "Options.h"
 #include "UI.h"
 
-
 HANDLE g_hEvent;
 MMRESULT g_hTimer;
+
+HINSTANCE g_hinstDDraw, g_hinstDInput, g_hinstDSound;
+
+PFNDIRECTDRAWCREATE pfnDirectDrawCreate;
+PFNDIRECTINPUTCREATE pfnDirectInputCreate;
+PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 
 int OSD::s_nTicks;
 
@@ -56,6 +61,20 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
 
     if (fFirstInit_)
     {
+        g_hinstDDraw  = LoadLibrary("DDRAW.DLL");
+        g_hinstDInput = LoadLibrary("DINPUT.DLL");
+        g_hinstDSound = LoadLibrary("DSOUND.DLL");
+
+        if (g_hinstDDraw) pfnDirectDrawCreate = reinterpret_cast<PFNDIRECTDRAWCREATE>(GetProcAddress(g_hinstDDraw, "DirectDrawCreate"));
+        if (g_hinstDInput) pfnDirectInputCreate = reinterpret_cast<PFNDIRECTINPUTCREATE>(GetProcAddress(g_hinstDInput, "DirectInputCreateA"));
+        if (g_hinstDSound) pfnDirectSoundCreate = reinterpret_cast<PFNDIRECTSOUNDCREATE>(GetProcAddress(g_hinstDSound, "DirectSoundCreate"));
+
+        if (!pfnDirectDrawCreate || !pfnDirectInputCreate || !pfnDirectSoundCreate)
+        {
+            Message(msgError, "This program requires DirectX 3 or later to be installed.");
+            return false;
+        }
+
         // Initialise Windows common controls
         InitCommonControls();
 
@@ -83,6 +102,10 @@ void OSD::Exit (bool fReInit_/*=false*/)
     {
         if (g_hEvent)   { CloseHandle(g_hEvent); g_hEvent = NULL; }
         if (g_hTimer)   { timeKillEvent(g_hTimer); g_hTimer = NULL; }
+
+        if (g_hinstDDraw)  { FreeLibrary(g_hinstDDraw);  g_hinstDDraw  = NULL; pfnDirectDrawCreate=NULL;  }
+        if (g_hinstDInput) { FreeLibrary(g_hinstDInput); g_hinstDInput = NULL; pfnDirectInputCreate=NULL; }
+        if (g_hinstDSound) { FreeLibrary(g_hinstDSound); g_hinstDSound = NULL; pfnDirectSoundCreate=NULL; }
     }
 
     UI::Exit(fReInit_);
