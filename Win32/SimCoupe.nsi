@@ -1,11 +1,12 @@
 !define VER_MAJOR 0
 !define VER_MINOR 90
-!define VER_BETA 10
+!define VER_BETA 14
 !define VER_DISPLAY ${VER_MAJOR}.${VER_MINOR}
 
-Name "SimCoupé"
+Name "SimCoupe"
 
-InstallDir $PROGRAMFILES\SimCoupe
+InstallDir "$PROGRAMFILES\SimCoupe"
+InstallDirRegKey HKLM "Software\SimCoupe" ""
 
 InstType "Full"
 InstType "Minimal"
@@ -22,19 +23,22 @@ OutFile "SimCoupe-${VER_MAJOR}.${VER_MINOR}-beta${VER_BETA}.exe"
 !include "MUI.nsh"
 !include "Sections.nsh"
 
-;Caption "SimCoupe ${VER_DISPLAY} Setup"
-
 !define MUI_ABORTWARNING
 !define MUI_COMPONENTSPAGE_SMALLDESC
 !define MUI_UI_SMALLDESCRIPTION
 
-!define MUI_WELCOMEPAGE_TITLE "Welcome to the SimCoupé ${VER_DISPLAY} Setup Wizard"
-!define MUI_WELCOMEPAGE_TEXT "This wizard will guide you through the installation of SimCoupé, the SAM Coupé emulator.\r\n\r\n$_CLICK"
+!define MUI_WELCOMEPAGE_TITLE "Welcome to the SimCoupe ${VER_DISPLAY} Setup Wizard"
+!define MUI_WELCOMEPAGE_TEXT "This wizard will guide you through the installation of SimCoupe, the SAM Coupe emulator.\r\n\r\n$_CLICK"
 
-!define MUI_FINISHPAGE_LINK "Visit the SimCoupé website for the updates and support."
+!define MUI_STARTMENUPAGE_REGISTRY_ROOT "HKLM"
+!define MUI_STARTMENUPAGE_REGISTRY_KEY "Software\SimCoupe"
+!define MUI_STARTMENUPAGE_REGISTRY_VALUENAME "Start Menu Folder"
+!define MUI_STARTMENUPAGE_DEFAULTFOLDER "SimCoupe"
+
+!define MUI_FINISHPAGE_LINK "Visit the SimCoupe website for the updates and support."
 !define MUI_FINISHPAGE_LINK_LOCATION "http://www.simcoupe.org/"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\SimCoupe.exe"
-!define MUI_FINISHPAGE_RUN_TEXT "Run SimCoupé now"
+!define MUI_FINISHPAGE_RUN_TEXT "Run SimCoupe now"
 !define MUI_FINISHPAGE_SHOWREADME $INSTDIR\ReadMe.txt
 !define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
 !define MUI_FINISHPAGE_NOREBOOTSUPPORT
@@ -43,9 +47,8 @@ OutFile "SimCoupe-${VER_MAJOR}.${VER_MINOR}-beta${VER_BETA}.exe"
 Var STARTMENU_FOLDER
 
 ; Installer Pages
-!define MUI_PAGE_CUSTOMFUNCTION_LEAVE InstallCheck
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "../License.txt"
+!insertmacro MUI_PAGE_LICENSE "../LICENCE"
 !insertmacro MUI_PAGE_COMPONENTS
 
 !insertmacro MUI_PAGE_DIRECTORY
@@ -63,7 +66,7 @@ Var STARTMENU_FOLDER
 
 ; Sections
 
-Section "SimCoupé Core Files (required)" SecCore
+Section "SimCoupe Core Files (required)" SecCore
 	SectionIn RO
 	SetOutPath $INSTDIR
 	RMDir /r $SMPROGRAMS\$STARTMENU_FOLDER
@@ -73,8 +76,11 @@ Section "SimCoupé Core Files (required)" SecCore
 	File "Build\zlib1.dll"
 	File "..\ReadMe.txt"
 
+	; Store the installation directory
+	WriteRegStr HKLM "Software\SimCoupe" "" $INSTDIR
+
 	; Write the uninstall keys for Windows
-	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SimCoupe" "DisplayName" "SimCoupé ${VER_DISPLAY}"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SimCoupe" "DisplayName" "SimCoupe"
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SimCoupe" "UninstallString" '"$INSTDIR\uninstall.exe"'
 	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SimCoupe" "NoModify" 1
 	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SimCoupe" "NoRepair" 1
@@ -82,9 +88,9 @@ Section "SimCoupé Core Files (required)" SecCore
 
 !insertmacro MUI_STARTMENU_WRITE_BEGIN SimCoupe
 	CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER"
-	CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall SimCoupé.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
-	CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupé.lnk" "$INSTDIR\SimCoupe.exe" "" "$INSTDIR\SimCoupe.exe" 0
-	WriteINIStr "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupé Homepage.url" "InternetShortcut" "URL" "http://www.simcoupe.org/"
+	CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall SimCoupe.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
+	CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupe.lnk" "$INSTDIR\SimCoupe.exe" "" "$INSTDIR\SimCoupe.exe" 0
+	WriteINIStr "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupe Homepage.url" "InternetShortcut" "URL" "http://www.simcoupe.org/"
 !insertmacro MUI_STARTMENU_WRITE_END
 
 SectionEnd
@@ -166,7 +172,7 @@ SubSectionEnd
 
 Section "Add desktop shortcut" SecDesktop
 	SectionIn 1
-	CreateShortCut "$DESKTOP\SimCoupé.lnk" "$INSTDIR\SimCoupe.exe" "" "$INSTDIR\SimCoupe.exe" 0
+	CreateShortCut "$DESKTOP\SimCoupe.lnk" "$INSTDIR\SimCoupe.exe" "" "$INSTDIR\SimCoupe.exe" 0
 SectionEnd
 
 
@@ -182,7 +188,7 @@ SectionEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecDSK} "File association for .dsk images"
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecSAD} "File association for .sad images"
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecTD0} "File association for .td0 images"
-	!insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} "Adds a shortcut to start SimCoupé to the desktop"
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} "Adds a shortcut to start SimCoupe to the desktop"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 
@@ -204,10 +210,12 @@ Section "Uninstall"
 	; Delete start menu items and group
 	!insertmacro MUI_STARTMENU_GETFOLDER SimCoupe $0
 	Delete "$SMPROGRAMS\$0\*.*"
-	Delete "$DESKTOP\SimCoupé.lnk"
+	Delete "$DESKTOP\SimCoupe.lnk"
 	RMDir "$SMPROGRAMS\$0"
 
-	; Delete the uninstall entry from Add/Remove Programs
+	; Delete the product keys and uninstall entry from Add/Remove Programs
+	DeleteRegKey HKLM "Software\SimCoupe"
+	DeleteRegKey /ifempty HKLM "Software\SimCoupe"
 	DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SimCoupe"
 
 	push ".dsk"
@@ -227,7 +235,7 @@ Function InstallFileAssoc
 		WriteRegStr HKCR $0 "simcoupe_backup" $1
 	WriteRegStr HKCR $0 "" "SimCoupe.Disk"
 
-	WriteRegStr HKCR "SimCoupe.Disk" "" "SimCoupé Disk Image"
+	WriteRegStr HKCR "SimCoupe.Disk" "" "SimCoupe Disk Image"
 	WriteRegStr HKCR "SimCoupe.Disk\shell" "" "open"
 	WriteRegStr HKCR "SimCoupe.Disk\DefaultIcon" "" "$INSTDIR\SimCoupe.exe,1"
 	WriteRegStr HKCR "SimCoupe.Disk\shell\open\command" "" '"$INSTDIR\SimCoupe.exe" -autoboot 1 -drive1 1 -disk1 "%1"'
@@ -250,47 +258,11 @@ Function un.InstallFileAssoc
 FunctionEnd
 
 
-Function GetDXVersion
-	Push $0
-	Push $1
-
-	ReadRegStr $0 HKLM "Software\Microsoft\DirectX" "Version"
-	IfErrors noDirectX
-
-	StrCpy $1 $0 2 5    ; get the minor version
-	StrCpy $0 $0 2 2    ; get the major version
-	IntOp $0 $0 * 100   ; $0 = major * 100 + minor
-	IntOp $0 $0 + $1
-	Goto done
-
-noDirectX:
-	StrCpy $0 0
-
-done:
-	Pop $1
-	Exch $0
-FunctionEnd
-
-
-Function InstallCheck
-
-	Call GetDXVersion
-	Pop $R3
-	IntCmp $R3 300 ok 0 ok
-
-	MessageBox MB_YESNO|MB_ICONQUESTION "SimCoupé requires DirectX 3 or later to be installed.  Do you want to visit the DirectX homepage now?" IDNO +2
-		ExecShell open "http://www.microsoft.com/directx/"
-		Abort
-ok:
-
-FunctionEnd
-
-
 Function un.InstallCheck
 
 	FindWindow $5 "SimCoupeClass"
 	IntCmp $5 0 +3
-		MessageBox "MB_OK" "Please close SimCoupé before uninstalling!"
+		MessageBox "MB_OK" "Please close SimCoupe before uninstalling!"
 		Abort
 
 FunctionEnd
