@@ -22,9 +22,7 @@
 //  http://www.designing.myweb.nl/samcoupe/hardware/atomhdinterface/atom.htm
 
 #include "SimCoupe.h"
-
 #include "Atom.h"
-#include "Options.h"
 
 const unsigned int ATOM_LIGHT_DELAY = 2;    // Number of frames the hard disk LED remains on for after a command
 
@@ -65,7 +63,7 @@ BYTE CAtomDiskDevice::In (WORD wPort_)
                     break;
 
                 default:
-                    TRACE("ATOM: Unrecognised read from %#04x\n", wPort_);
+                    TRACE("Atom: Unrecognised read from %#04x\n", wPort_);
                     wData = 0x0000;
                     break;
             }
@@ -83,7 +81,7 @@ BYTE CAtomDiskDevice::In (WORD wPort_)
             break;
 
         default:
-            TRACE("ATOM: Unrecognised read from %#04x\n", wPort_);
+            TRACE("Atom: Unrecognised read from %#04x\n", wPort_);
             break;
     }
 
@@ -92,8 +90,6 @@ BYTE CAtomDiskDevice::In (WORD wPort_)
 
 void CAtomDiskDevice::Out (WORD wPort_, BYTE bVal_)
 {
-    BYTE bRet = 0x00;
-
     switch (wPort_ & 7)
     {
         // Address select
@@ -113,9 +109,6 @@ void CAtomDiskDevice::Out (WORD wPort_, BYTE bVal_)
         // Data low
         case 7:
             m_uLightDelay = ATOM_LIGHT_DELAY;
-
-            // Return the previously stored low-byte
-            bRet = m_bDataLatch;
 
             // Determine the latch being written to
             switch (~m_bAddressLatch & (ATOM_NCS1|ATOM_NCS3))
