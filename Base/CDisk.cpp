@@ -2,7 +2,7 @@
 //
 // CDisk.cpp: C++ classes used for accessing all SAM disk image types
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +24,11 @@
 //  read-only SDF support will remain for the forseeable future.
 //
 //  The CFloppyDisk implementation is OS-specific, and is in Floppy.cpp
+//
+//  Teledisk format details extracted from a document by Will Kranz,
+//  with extra information from Sergey Erokhin.  This document is still
+//  available on http://web.archive.org/ by looking up:
+//    http://home.earthlink.net/~will_kranz/wteledsk.htm
 
 #include "SimCoupe.h"
 #include "CDisk.h"
@@ -40,6 +45,8 @@
         // Try each type in turn to check for a match
         if (CFloppyDisk::IsRecognised(pStream_))
             return dtFloppy;
+        else if (CTD0Disk::IsRecognised(pStream_))
+            return dtTD0;
         else if (CSDFDisk::IsRecognised(pStream_))
             return dtSDF;
         else if (CSADDisk::IsRecognised(pStream_))
@@ -74,6 +81,7 @@
         switch (GetType(pStream))
         {
             case dtFloppy:  pDisk = new CFloppyDisk(pStream);   break;      // Direct floppy access
+            case dtTD0:     pDisk = new CTD0Disk(pStream);      break;      // .TD0
             case dtSDF:     pDisk = new CSDFDisk(pStream);      break;      // .SDF
             case dtSAD:     pDisk = new CSADDisk(pStream);      break;      // .SAD
             case dtDSK:     pDisk = new CDSKDisk(pStream);      break;      // .DSK
@@ -137,9 +145,9 @@ bool CDisk::FindNext (IDFIELD* pIdField_/*=NULL*/, BYTE* pbStatus_/*=NULL*/)
         pIdField_->bSide = m_uSide;
         pIdField_->bTrack = m_uTrack;
         pIdField_->bSector = m_uSector;
-        pIdField_->bSize = 2;                       // 128 << 2 = 512 bytes
+        pIdField_->bSize = 2;           // 128 << 2 = 512 bytes
 
-        // Calculate and set the CRC for the ID field, including the 
+        // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
         WORD wCRC = CDrive::CrcBlock("\xa1\xa1\xa1\xfe", 4);
         wCRC = CDrive::CrcBlock(pIdField_, 4, wCRC);
         pIdField_->bCRC1 = wCRC >> 8;
@@ -604,39 +612,24 @@ BYTE CSDFDisk::ReadData (BYTE *pbData_, UINT* puSize_)
 // Read the data for the last sector found
 BYTE CSDFDisk::WriteData (BYTE *pbData_, UINT* puSize_)
 {
-    // Fail if read-only
-//  if (IsReadOnly())
-        return WRITE_PROTECT;
-
-    // Copy the sector data
-    memcpy(reinterpret_cast<BYTE*>(m_pFind+1), pbData_, *puSize_ = MIN_SECTOR_SIZE << m_pFind->sIdField.bSize);
-    SetModified();
-
-    // Written ok
-    return 0;
+    return WRITE_PROTECT;
 }
 
 // Save the disk out to the stream
 bool CSDFDisk::Save ()
 {
-    if (IsModified())
-    {
-    }
-
-    return true;
+    return false;
 }
 
 // Read real track information for the disk, if available
 bool CSDFDisk::ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
 {
-    // Coming soon...
-	return false;
+    return false;
 }
 
 // Format a track using the specified format
 BYTE CSDFDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_)
 {
-    // Failed :-/
     return WRITE_PROTECT;
 }
 
@@ -871,4 +864,546 @@ BYTE CFileDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSe
 {
     // Read-only, formatting not supported
     return WRITE_PROTECT;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/*static*/ bool CTD0Disk::IsRecognised (CStream* pStream_)
+{
+    TD0_HEADER th;
+
+    // Read the header, check the signature, Teledisk version and basic geometry
+    bool fValid = (pStream_->Rewind() && pStream_->Read(&th, sizeof th) == sizeof(th) &&
+            (!memcmp(th.abSignature, TD0_SIG_NORMAL, sizeof th.abSignature) ||
+             !memcmp(th.abSignature, TD0_SIG_ADVANCED, sizeof th.abSignature)) &&
+             th.bTDVersion >= 10 && th.bTDVersion <= 21 &&
+             th.bSurfaces >= 1 && th.bSurfaces <= 2);
+
+    // Ensure the header CRC is correct before accepting the image
+    fValid &= (CrcBlock(&th, sizeof(th)-2) == ((th.bCRCHigh << 8) | th.bCRCLow));
+
+    return fValid;
+}
+
+CTD0Disk::CTD0Disk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/)
+    : CDisk(pStream_, dtTD0), m_pTrack(NULL), m_pFind(NULL)
+{
+    // We can't create .td0 images yet
+    if (!pStream_->IsOpen())
+    {
+        m_uSides = m_uTracks = 0;
+        return;
+    }
+
+    // Read the file header, and set up the basic geometry
+    pStream_->Rewind();
+    pStream_->Read(&m_sHeader, sizeof(m_sHeader));
+    m_uSides = m_sHeader.bSurfaces;
+    m_uTracks = MAX_DISK_TRACKS;
+
+    // Read in the rest of the file, which is still RLE-compressed
+    UINT uSize = pStream_->GetSize()-sizeof(m_sHeader);
+    pStream_->Read(m_pbData = new BYTE[uSize], uSize);
+
+    // If the file is using advanced compression we have Huffman data to unpack too
+    if (m_sHeader.abSignature[0] == 't')
+    {
+        // We don't know the unpacked size, so allocate a block large enough for any disk
+        BYTE* pb = new BYTE[MAX_DISK_SIDES*MAX_DISK_TRACKS*MAX_TRACK_SIZE];
+        uSize = LZSS::Unpack(m_pbData, uSize, pb);
+
+        // Shrink the buffer to the used size, and clean up
+        delete m_pbData;
+        memcpy(m_pbData = new BYTE[uSize], pb, uSize);
+        delete pb;
+    }
+
+    // We can now index the tracks in the image...
+    memset(m_auIndex, 0, sizeof m_auIndex);
+    BYTE* pb = m_pbData;
+
+    // Skip the comment field, if any
+    if (m_sHeader.bTrackDensity & 0x80)
+    {
+        TD0_COMMENT* ptc = reinterpret_cast<TD0_COMMENT*>(pb);
+        WORD wLen = (ptc->bLenHigh << 8) | ptc->bLenLow;
+        pb += sizeof(TD0_COMMENT) + wLen;
+    }
+
+    // Process tracks until we hit the end marker
+    for (TD0_TRACK* pt ; (pt = reinterpret_cast<TD0_TRACK*>(pb))->bSectors != 0xff ; )
+    {
+        // Store the track pointer in the index and advance by the header size
+        m_auIndex[pt->bPhysSide][pt->bPhysTrack] = pt;
+        pb += sizeof(TD0_TRACK);
+
+        // Loop through the sectors in the track
+        for (UINT uSector = 0 ; uSector < pt->bSectors ; uSector++)
+        {
+            TD0_SECTOR* ps = reinterpret_cast<TD0_SECTOR*>(pb);
+            pb += sizeof(TD0_SECTOR);
+
+            // Check if the sector has a data field
+            if (!(ps->bFlags & 0x30))
+            {
+                // Read the data header to obtain the length, and skip over it
+                TD0_DATA* pd = reinterpret_cast<TD0_DATA*>(pb);
+                pb += sizeof(pd->bOffLow)+sizeof(pd->bOffHigh) + ((pd->bOffHigh << 8) | pd->bOffLow);
+            }
+        }
+    }
+}
+
+// Unpack a possibly RLE-encoded data block
+void CTD0Disk::UnpackData (TD0_SECTOR* ps_, BYTE* pbSector_)
+{
+    UINT uSize = (MIN_SECTOR_SIZE << ps_->bSize);
+    TD0_DATA* pd = reinterpret_cast<TD0_DATA*>(ps_+1);
+    BYTE *pb = reinterpret_cast<BYTE*>(pd+1), *pEnd = pbSector_+uSize;
+
+    while (pbSector_ < pEnd)
+    {
+        switch (pd->bMethod)
+        {
+            case 0: // raw sector
+                memcpy(pbSector_, pb, uSize);
+                pbSector_ += uSize;
+                break;
+
+            case 1: // repeated 2-byte pattern
+            {
+                UINT uCount = (pb[1] << 8) | pb[0], uLen = uCount << 1;
+                BYTE b1 = pb[2], b2 = pb[3];
+                pb += 4;
+
+                while (uCount--)
+                {
+                    *pbSector_++ = b1;
+                    *pbSector_++ = b2;
+                }
+
+                pbSector_ += uLen;
+                break;
+            }
+
+            case 2: // RLE block
+            {
+                // Zero count means a literal data block
+                if (!pb[0])
+                {
+                    UINT uLen = pb[1];
+                    pb += 2;
+
+                    memcpy(pbSector_, pb, uLen);
+
+                    pbSector_ += uLen;
+                    pb += uLen;
+                }
+                else    // repeated fragment
+                {
+                    UINT uBlock = 1 << pb[0], uCount = pb[1];
+                    pb += 2;
+
+                    for ( ; uCount-- ; pbSector_ += uBlock)
+                        memcpy(pbSector_, pb, uBlock);
+
+                    pb += uBlock;
+                }
+                break;
+            }
+
+            default: // error!
+                return;
+        }
+    }
+}
+
+// Initialise the enumeration of all sectors in the track
+UINT CTD0Disk::FindInit (UINT uSide_, UINT uTrack_)
+{
+    // Validate the side, track and track pointer
+    if (uSide_ >= m_uSides || uTrack_ >= m_uTracks || !(m_pTrack = m_auIndex[uSide_][uTrack_]))
+        return m_uSectors = 0;
+
+    // Read the number of sectors available and reset the found sector pointer
+    m_uSectors = m_pTrack->bSectors;
+    m_pFind = NULL;
+
+    // Call the base and return the number of sectors in the track
+    return CDisk::FindInit(uSide_, uTrack_);
+}
+
+// Find the next sector in the current track
+bool CTD0Disk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
+{
+    bool fRet;
+
+    // Make sure there is a 'next' one
+    if (fRet = CDisk::FindNext())
+    {
+        if (!m_pFind)
+            m_pFind = reinterpret_cast<TD0_SECTOR*>(m_pTrack+1);
+        else
+        {
+            // We always have the sector header to skip
+            UINT uSize = sizeof(TD0_SECTOR);
+
+            // If data is present, adjust for the stored data size
+            if (!(m_pFind->bFlags & 0x30))
+            {
+                TD0_DATA* pd = reinterpret_cast<TD0_DATA*>(m_pFind+1);
+                uSize += sizeof(pd->bOffLow)+sizeof(pd->bOffHigh) + ((pd->bOffHigh << 8) | pd->bOffLow);
+            }
+
+            // Advance the pointer over the header and data to next header
+            m_pFind = reinterpret_cast<TD0_SECTOR*>(reinterpret_cast<BYTE*>(m_pFind) + uSize);
+        }
+
+        // Copy the ID field to the supplied buffer
+        pIdField_->bSide = m_pFind->bSide;
+        pIdField_->bTrack = m_pFind->bTrack;
+        pIdField_->bSector = m_pFind->bSector;
+        pIdField_->bSize = m_pFind->bSize;
+
+        // Set the ID field status
+        *pbStatus_ = 0;//(m_pFind->bFlags & 0x04) ? DELETED_DATA : 0;
+    }
+
+    // Return true if we're returning a new item
+    return fRet;
+}
+
+// Read the data for the last sector found
+BYTE CTD0Disk::ReadData (BYTE *pbData_, UINT* puSize_)
+{
+    // If there's no data for this sector, return an error
+    if (m_pFind->bFlags & 0x20)
+        return RECORD_NOT_FOUND;
+
+    // Fill the returned data size
+    *puSize_ = MIN_SECTOR_SIZE << m_pFind->bSize;
+
+    // If this is a not-allocated DOS sector, fill it with zeros, otherwise unpack the real sector data
+    if (m_pFind->bFlags & 0x10)
+        memset(pbData_, 0, *puSize_);
+    else
+        UnpackData(m_pFind, pbData_);
+
+    // Fill in the data size and return the statuany data CRC errors, or success
+    return (m_pFind->bFlags & 0x02) ? CRC_ERROR : 0;
+}
+
+// Read the data for the last sector found
+BYTE CTD0Disk::WriteData (BYTE *pbData_, UINT* puSize_)
+{
+    // Read-only for now
+    return WRITE_PROTECT;
+}
+
+// Save the disk out to the stream
+bool CTD0Disk::Save ()
+{
+    // Not supported yet
+    return false;
+}
+
+// Read real track information for the disk, if available
+bool CTD0Disk::ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
+{
+    // Fall back on generated track data, for now
+    return false;
+}
+
+// Format a track using the specified format
+BYTE CTD0Disk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_)
+{
+    // No formatting yet
+    return WRITE_PROTECT;
+}
+
+
+// Generate/update a Teledisk CRC (only used for small headers so not worth a look-up table)
+WORD CTD0Disk::CrcBlock (const void* pv_, UINT uLen_, WORD wCRC_/*=0*/)
+{
+    // Work through all bytes in the supplied block
+    for (const BYTE* p = reinterpret_cast<const BYTE*>(pv_) ; uLen_-- ; p++)
+    {
+        // Merge in the input byte
+        wCRC_ ^= (*p << 8);
+
+        // Shift through all 8 bits, using the (CCITT?) polynomial 0xa097
+        for (int i = 0 ; i < 8 ; i++)
+            wCRC_ = (wCRC_ << 1) ^ ((wCRC_ & 0x8000) ? 0xa097 : 0);
+    }
+
+    return wCRC_;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// LZSS Compression - adapted from the original C code by Haruhiko Okumura (1988)
+//
+// For algorithm/implementation details, as well as general compression info, see:
+//   http://www.fadden.com/techmisc/hdc/  (chapter 10 covers LZSS)
+// 
+// Tweaked and reformatted to improve my own understanding, and wrapped in a class
+// to avoid polluting the global namespace with the variables below.
+
+#define N           4096                  // ring buffer size
+#define F           60                    // lookahead buffer size
+#define THRESHOLD   2                     // match needs to be longer than this for position/length coding
+
+#define N_CHAR      (256 - THRESHOLD + F) // kinds of characters (character code = 0..N_CHAR-1)
+#define T           (N_CHAR * 2 - 1)      // size of table
+#define R           (T - 1)               // tree root position
+#define MAX_FREQ    0x8000                // updates tree when root frequency reached this value
+
+
+short LZSS::parent[T + N_CHAR];           // parent nodes (0..T-1) and leaf positions (rest)
+short LZSS::son[T];                       // pointers to child nodes (son[], son[] + 1)
+WORD LZSS::freq[T + 1];                   // frequency table
+
+BYTE LZSS::ring_buff[N + F - 1];          // text buffer for match strings
+UINT LZSS::r;                             // Ring buffer position
+
+BYTE *LZSS::pIn, *LZSS::pEnd;             // current and end input pointers
+UINT LZSS::uBits, LZSS::uBitBuff;         // buffered bit count and left-aligned bit buffer
+
+
+BYTE LZSS::d_len[] = { 3,3,4,4,4,5,5,5,5,6,6,6,7,7,7,8 };
+
+BYTE LZSS::d_code[256] =
+{
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+    0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+    0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
+    0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
+    0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
+    0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09,
+    0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B,
+    0x0C, 0x0C, 0x0C, 0x0C, 0x0D, 0x0D, 0x0D, 0x0D, 0x0E, 0x0E, 0x0E, 0x0E, 0x0F, 0x0F, 0x0F, 0x0F,
+    0x10, 0x10, 0x10, 0x10, 0x11, 0x11, 0x11, 0x11, 0x12, 0x12, 0x12, 0x12, 0x13, 0x13, 0x13, 0x13,
+    0x14, 0x14, 0x14, 0x14, 0x15, 0x15, 0x15, 0x15, 0x16, 0x16, 0x16, 0x16, 0x17, 0x17, 0x17, 0x17,
+    0x18, 0x18, 0x19, 0x19, 0x1A, 0x1A, 0x1B, 0x1B, 0x1C, 0x1C, 0x1D, 0x1D, 0x1E, 0x1E, 0x1F, 0x1F,
+    0x20, 0x20, 0x21, 0x21, 0x22, 0x22, 0x23, 0x23, 0x24, 0x24, 0x25, 0x25, 0x26, 0x26, 0x27, 0x27,
+    0x28, 0x28, 0x29, 0x29, 0x2A, 0x2A, 0x2B, 0x2B, 0x2C, 0x2C, 0x2D, 0x2D, 0x2E, 0x2E, 0x2F, 0x2F,
+    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
+};
+
+
+// Initialise the trees and state variables
+void LZSS::Init ()
+{
+    UINT i;
+
+    for (i = 0; i < N_CHAR; i++)
+    {
+        freq[i] = 1;
+        son[i] = i + T;
+        parent[i + T] = i;
+    }
+
+    i = 0;
+    for (int j = N_CHAR ; j <= R ; i += 2, j++)
+    {
+        freq[j] = freq[i] + freq[i + 1];
+        son[j] = i;
+        parent[i] = parent[i + 1] = j;
+    }
+
+    uBitBuff = uBits = 0;
+    memset(ring_buff, ' ', sizeof ring_buff);
+
+    freq[T] = 0xffff;
+    parent[R] = 0;
+
+    r = N - F;
+}
+
+// Rebuilt the tree
+void LZSS::RebuildTree ()
+{
+    UINT i, j, k, f, l;
+
+    // Collect leaf nodes in the first half of the table and replace the freq by (freq + 1) / 2
+    for (i = j = 0; i < T; i++)
+    {
+        if (son[i] >= T)
+        {
+            freq[j] = (freq[i] + 1) / 2;
+            son[j] = son[i];
+            j++;
+        }
+    }
+
+    // Begin constructing tree by connecting sons
+    for (i = 0, j = N_CHAR; j < T; i += 2, j++)
+    {
+        k = i + 1;
+        f = freq[j] = freq[i] + freq[k];
+        for (k = j - 1; f < freq[k]; k--);
+        k++;
+        l = (j - k) * sizeof(*freq);
+
+        memmove(&freq[k + 1], &freq[k], l);
+        freq[k] = f;
+        memmove(&son[k + 1], &son[k], l);
+        son[k] = i;
+    }
+
+    // Connect parent
+    for (i = 0 ; i < T ; i++)
+        if ((k = son[i]) >= T)
+            parent[k] = i;
+        else
+            parent[k] = parent[k + 1] = i;
+}
+
+
+// Increment frequency of given code by one, and update tree
+void LZSS::UpdateTree (int c)
+{
+    UINT i, j, k, l;
+
+    if (freq[R] == MAX_FREQ)
+        RebuildTree();
+
+    c = parent[c + T];
+
+    do
+    {
+        k = ++freq[c];
+
+        // If the order is disturbed, exchange nodes
+        if (k > freq[l = c + 1])
+        {
+            while (k > freq[++l]);
+            l--;
+            freq[c] = freq[l];
+            freq[l] = k;
+
+            i = son[c];
+            parent[i] = l;
+            if (i < T)
+                parent[i + 1] = l;
+
+            j = son[l];
+            son[l] = i;
+
+            parent[j] = c;
+            if (j < T)
+                parent[j + 1] = c;
+            son[c] = j;
+
+            c = l;
+        }
+    }
+    while ((c = parent[c]) != 0);  // Repeat up to root
+}
+
+
+// Get one bit
+UINT LZSS::GetBit ()
+{
+    if (!uBits--)
+    {
+        uBitBuff |= GetChar() << 8;
+        uBits = 7;
+    }
+
+    uBitBuff <<= 1;
+    return (uBitBuff >> 16) & 1;
+}
+
+// Get one byte
+UINT LZSS::GetByte ()
+{
+    if (uBits < 8)
+        uBitBuff |= GetChar() << (8 - uBits);
+    else
+        uBits -= 8;
+
+    uBitBuff <<= 8;
+    return (uBitBuff >> 16) & 0xff;
+}
+
+UINT LZSS::DecodeChar ()
+{
+    UINT c = son[R];
+
+    // Travel from root to leaf, choosing the smaller child node (son[]) if the
+    // read bit is 0, the bigger (son[]+1} if 1
+    while(c < T)
+        c = son[c + GetBit()];
+
+    c -= T;
+    UpdateTree(c);
+    return c;
+}
+
+UINT LZSS::DecodePosition ()
+{
+    UINT i, j, c;
+
+    // Recover upper 6 bits from table
+    i = GetByte();
+    c = d_code[i] << 6;
+    j = d_len[i >> 4];
+
+    // Read lower 6 bits verbatim
+    for (j -= 2 ; j-- ; i = (i << 1) | GetBit());
+
+    return c | (i & 0x3f);
+}
+
+
+// Unpack a given block into the supplied output buffer
+UINT LZSS::Unpack (BYTE* pIn_, UINT uSize_, BYTE* pOut_)
+{
+    UINT  i, j, c;
+    UINT uCount = 0;
+
+    // Store the input start/end positions and prepare to unpack
+    pEnd = (pIn = pIn_) + uSize_;
+    Init();
+
+    // Loop until we've processed all the input
+    while (pIn < pEnd)
+    {
+        c = DecodeChar();
+
+        // Single output character?
+        if (c < 256)
+        {
+            *pOut_++ = c;
+            uCount++;
+
+            // Update the ring buffer and position (wrapping if necessary)
+            ring_buff[r++] = c;
+            r &= (N - 1);
+        }
+        else
+        {
+            // Position in ring buffer and length
+            i = (r - DecodePosition() - 1) & (N - 1);
+            j = c - 255 + THRESHOLD;
+
+            // Output the block
+            for (UINT k = 0; k < j; k++)
+            {
+                c = ring_buff[(i + k) & (N - 1)];
+                *pOut_++ = c;
+                uCount++;
+
+                ring_buff[r++] = c;
+                r &= (N - 1);
+            }
+        }
+    }
+
+    // Return the unpacked size
+    return uCount;
 }
