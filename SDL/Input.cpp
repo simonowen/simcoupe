@@ -1,4 +1,4 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Input.cpp: SDL keyboard, mouse and joystick input
 //
@@ -489,6 +489,10 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                     case 0xc5:  pKey->sym = SDLK_PAUSE;     break;
                 }
             }
+
+            // QNX fix - doesn't pass return through as unicode <cr>
+            else if (pKey->sym == SDLK_RETURN)
+                pKey->unicode = '\r';
 
             TRACE("Key %s: %d (mods=%d)\n", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym, pKey->mod);
 //          Frame::SetStatus("Key %s: %d", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym);
