@@ -23,6 +23,7 @@
 #define CDRIVE_H
 
 #include "IO.h"
+#include "Options.h"
 
 #include "VL1772.h"
 #include "CDisk.h"
@@ -30,10 +31,6 @@
 
 // Time motor stays on after no further activity:  10 revolutions at 300rpm (2 seconds)
 const int FLOPPY_MOTOR_ACTIVE_TIME = (10 / (300 / 60 )) * EMULATED_FRAMES_PER_SECOND;
-
-// Time since last floppy use for drive to be considered active
-const int FLOPPY_ACTIVE_THRESHOLD = 20;
-
 
 class CDrive : public CDiskDevice
 {
@@ -48,7 +45,7 @@ class CDrive : public CDiskDevice
         bool IsModified () const { return m_pDisk != NULL && m_pDisk->IsModified(); }
 
         bool IsLightOn () const { return IsMotorOn() && m_pDisk; }
-        bool IsActive () const { return m_nMotorDelay > (FLOPPY_MOTOR_ACTIVE_TIME - FLOPPY_ACTIVE_THRESHOLD); }
+        bool IsActive () const { return IsLightOn () && m_nMotorDelay > (FLOPPY_MOTOR_ACTIVE_TIME - GetOption(turboload)); }
 
         bool Insert (const char* pcszSource_, bool fReadOnly_/*=false*/);
         bool Eject ();
