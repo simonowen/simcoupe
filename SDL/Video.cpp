@@ -18,7 +18,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-//  ToDo: possibly separate out the OpenGL and SDL code more?
+//  ToDo:
+//   - possibly separate out the OpenGL and SDL code further?
 
 #include "SimCoupe.h"
 #include "Video.h"
@@ -33,7 +34,6 @@ const int N_TOTAL_COLOURS = N_PALETTE_COLOURS + N_GUI_COLOURS;
 
 // SAM RGB values in appropriate format, and YUV values pre-shifted for overlay surface
 DWORD aulPalette[N_TOTAL_COLOURS];
-WORD awY[N_TOTAL_COLOURS], awU[N_TOTAL_COLOURS], awV[N_TOTAL_COLOURS];
 
 SDL_Surface *pBack, *pFront, *pIcon;
 
@@ -187,13 +187,14 @@ bool Video::Init (bool fFirstInit_/*=false*/)
 
         // In 5:4 mode we'll stretch the viewing surfaces by 25%
         if (GetOption(ratio5_4))
-            (dwWidth *= 5) >>= 2;
+            dwWidth = (dwWidth * 5) >> 2;
 
         const SDL_VideoInfo* pInfo = SDL_GetVideoInfo();
-        int nDepth = GetOption(fullscreen) ? GetOption(depth) : pInfo->vfmt->BitsPerPixel;
+        int nDepth = GetOption(fullscreen) ? GetOption(depth) : 0;
 
         // Should the surfaces be in video memory?  (they need to be for any hardware acceleration)
-        DWORD dwOptions = (GetOption(surface) >= 2) ? SDL_HWSURFACE : 0;
+        DWORD dwOptions =  ((GetOption(surface) >= 2) ? SDL_HWSURFACE : 0);
+        dwOptions |= (nDepth == 8) ? SDL_HWPALETTE : 0;
 
 #ifdef USE_OPENGL
             SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -201,7 +202,7 @@ bool Video::Init (bool fFirstInit_/*=false*/)
             if (GetOption(fullscreen))
                 dwOptions |= SDL_FULLSCREEN;
 
-            if (!(pFront = SDL_SetVideoMode(dwWidth, dwHeight, nDepth, (dwOptions | SDL_HWPALETTE | SDL_HWSURFACE | SDL_OPENGL))))
+            if (!(pFront = SDL_SetVideoMode(dwWidth, dwHeight, nDepth, (dwOptions | SDL_HWSURFACE | SDL_OPENGL))))
             {
                 char sz[128];
                 sprintf(sz, "SDL_SetVideoMode() failed: %s", SDL_GetError());
@@ -214,7 +215,7 @@ bool Video::Init (bool fFirstInit_/*=false*/)
 #else
         // Full screen mode requires a display mode change
         if (!GetOption(fullscreen))
-            pFront = SDL_SetVideoMode(dwWidth, dwHeight, nDepth, dwOptions | ((nDepth == 8) ? SDL_HWPALETTE : 0));
+            pFront = SDL_SetVideoMode(dwWidth, dwHeight, nDepth, dwOptions);
         else
         {
             int nWidth, nHeight;
@@ -228,17 +229,29 @@ bool Video::Init (bool fFirstInit_/*=false*/)
                 nWidth = 1024, nHeight = 768;
 
             // Set the video mode, or keep reducing the requirements until we find one
-            while (!(pFront = SDL_SetVideoMode(nWidth, nHeight, nDepth, SDL_FULLSCREEN | dwOptions | ((nDepth == 8) ? SDL_HWPALETTE : 0))))
+            while (!(pFront = SDL_SetVideoMode(nWidth, nHeight, nDepth, SDL_FULLSCREEN | dwOptions)))
             {
                 TRACE("!!! Failed to set %dx%dx%d mode: %s\n", nWidth, nHeight, nDepth, SDL_GetError());
-                if (nHeight == 768)
-                    nWidth = 800, nHeight = 600;
-                else if (nHeight == 600)
-                    nWidth = 640, nHeight = 480;
-                else if (nHeight == 480 && nDepth != 8)
-                    nWidth = 1024, nHeight = 768, nDepth >>= 1;
+
+                // If we're already on the lowest depth, try lower resolutions
+                if (nDepth == 8)
+                {
+                    if (nHeight == 768)
+                        nWidth = 800, nHeight = 600;
+                    else if (nHeight == 600)
+                        nWidth = 640, nHeight = 480;
+                    else if (nHeight == 480)
+                    {
+                        TRACE("SDL_SetVideoMode() failed with ALL modes!\n");
+                        return false;
+                    }
+                }
+
+                // Fall back to a lower depth
+                else if (nDepth == 24)
+                    nDepth = 16;
                 else
-                    break;
+                    nDepth >>= 1;
             }
 
             // Update the depth option, just in case it was changed above
@@ -249,7 +262,7 @@ bool Video::Init (bool fFirstInit_/*=false*/)
         if (!pFront)
             TRACE("Failed to create front buffer!\n");
 
-        // Create a 
+        // Create a back buffer in the same format as the front
         else if (!(pBack = SDL_CreateRGBSurface(dwOptions, dwWidth, dwHeight, pFront->format->BitsPerPixel,
                 pFront->format->Rmask, pFront->format->Gmask, pFront->format->Bmask, pFront->format->Amask)))
             TRACE("Can't create back buffer: %s\n", SDL_GetError());
@@ -294,6 +307,7 @@ bool Video::CreatePalettes (bool fDimmed_)
 {
     SDL_Color acPalette[N_TOTAL_COLOURS];
     bool fPalette = pBack && (pBack->format->BitsPerPixel == 8);
+    TRACE("CreatePalette: fPalette = %s\n", fPalette ? "true" : "false");
 
     fDimmed_ |= (g_fPaused && !g_fFrameStep) || GUI::IsActive() || (!g_fActive && GetOption(pauseinactive));
     const RGBA *pSAM = IO::GetPalette(fDimmed_), *pGUI = GUI::GetPalette();
@@ -306,12 +320,12 @@ bool Video::CreatePalettes (bool fDimmed_)
         BYTE bRed = p->bRed, bGreen = p->bGreen, bBlue = p->bBlue, bAlpha = p->bAlpha;
 
         if (!pBack)
-            aulPalette[i] = (bAlpha << 24) | (bBlue << 16) | (bGreen << 8) | bRed;
+            aulPalette[i] = (bAlpha << 24) | (bBlue << 16) | (bGreen << 8) | bRed;  // OpenGL
         else if (!fPalette)
             aulPalette[i] = SDL_MapRGB(pBack->format, bRed, bGreen, bBlue);
         else
         {
-            aulPalette[i] = PALETTE_OFFSET+i;
+            aulPalette[i] = i;
 
             acPalette[i].r = bRed;
             acPalette[i].g = bGreen;
@@ -319,9 +333,12 @@ bool Video::CreatePalettes (bool fDimmed_)
         }
     }
 
-    // If a palette is required, set it now
+    // If a palette is required, set it on both surfaces now
     if (fPalette)
-        SDL_SetPalette(pBack, SDL_LOGPAL|SDL_PHYSPAL, acPalette, PALETTE_OFFSET, N_TOTAL_COLOURS);
+    {
+        SDL_SetPalette(pBack,  SDL_LOGPAL, acPalette, 0, N_TOTAL_COLOURS);
+        SDL_SetPalette(pFront, SDL_LOGPAL|SDL_PHYSPAL, acPalette, 0, N_TOTAL_COLOURS);
+    }
 
     // Because the pixel format may have changed, we need to refresh the SAM CLUT pixel values
     for (int c = 0 ; c < 16 ; c++)
