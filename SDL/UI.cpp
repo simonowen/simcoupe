@@ -153,7 +153,7 @@ void ProcessKey (SDL_Event* pEvent_)
     switch (pKey->sym)
     {
         case SDLK_RETURN:       if (pKey->mod & KMOD_ALT) DoAction(actToggleFullscreen, fPress);    break;
-        case SDLK_KP_MINUS:     if (GetOption(kpminusreset)) DoAction(actResetButton, fPress);      break;
+        case SDLK_KP_MINUS:     if (GetOption(keypadreset)) DoAction(actResetButton, fPress);      break;
         case SDLK_KP_DIVIDE:    DoAction(actDebugger, fPress);          break;
         case SDLK_KP_MULTIPLY:  DoAction(actNmiButton, fPress);         break;
         case SDLK_KP_PLUS:      DoAction(actTempTurbo, fPress);         break;
