@@ -1,4 +1,4 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // GUI.h: GUI and controls for on-screen interface
 //
@@ -36,11 +36,14 @@ const int GM_MOUSEWHEEL   = GM_MOUSE_MESSAGE | 5;
 
 const int GM_CHAR         = GM_KEYBOARD_MESSAGE | 1;
 
-enum { GK_NULL=245, GK_LEFT, GK_RIGHT, GK_UP, GK_DOWN,
-       GK_HOME, GK_END, GK_PAGEUP, GK_PAGEDOWN, GK_MAX=GK_PAGEDOWN }; // Key constants
+// GUI key constants for special keys
+enum { GK_NULL=235, GK_LEFT, GK_RIGHT, GK_UP, GK_DOWN,
+       GK_HOME, GK_END, GK_PAGEUP, GK_PAGEDOWN,
+       GK_KP0, GK_KP1, GK_KP2, GK_KP3, GK_KP4, GK_KP5, GK_KP6, GK_KP7, GK_KP8, GK_KP9,
+       GK_MAX=GK_KP9};
 
 const DWORD DOUBLE_CLICK_TIME = 400;    // Under 400ms between consecutive clicks counts as a double-click
-const int DOUBLE_CLICK_THRESHOLD = 10;  // Distance between clicks for double-clicks to be recognised
+const int DOUBLE_CLICK_THRESHOLD = 5;   // Distance between clicks for double-clicks to be recognised
 
 
 enum
@@ -91,7 +94,7 @@ class GUI
 ////////////////////////////////////////////////////////////////////////////////
 
 // Control types, as returned by GetType() from any base CWindow pointer
-enum { ctUnknown, ctText, ctButton, ctCheckBox, ctComboBox, ctEdit, ctRadio,
+enum { ctUnknown, ctText, ctButton, ctImageButton, ctCheckBox, ctComboBox, ctEdit, ctRadio,
        ctMenu, ctImage, ctFrame, ctListView, ctDialog, ctMessageBox };
 
 
@@ -194,6 +197,21 @@ class CTextButton : public CButton
 
     protected:
         int m_nMinWidth;
+};
+
+
+class CImageButton : public CButton
+{
+    public:
+        CImageButton (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_,
+                        const GUI_ICON* pIcon_, int nDX_=0, int nDY_=0);
+
+    public:
+        void Draw (CScreen* pScreen_);
+
+    protected:
+        const GUI_ICON* m_pIcon;
+        int m_nDX, m_nDY;
 };
 
 
