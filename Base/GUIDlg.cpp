@@ -834,8 +834,12 @@ class CInputOptions : public CDialog
             m_pKeyMapping = new CComboBox(this, 145, 32, "None (raw)|SAM Coupe|Sinclair Spectrum", 115);
 
             m_pAltForCntrl = new CCheckBox(this, 63, 63, "Use Left-Alt for SAM Cntrl key.");
-            m_pAltGrForEdit = new CCheckBox(this, 63, 85, "Use Alt-Gr for SAM Edit key.");
-
+            m_pAltGrForEdit = new CCheckBox(this, 63, 85,
+#ifndef __APPLE__
+            "Use Alt-Gr key for SAM Edit.");
+#else
+            "Use Apple key for SAM Edit.");
+#endif
             new CIconControl(this, 10, 123, &sMouseIcon);
             new CFrameControl(this, 50, 125, 238, 37);
             new CTextControl(this, 60, 121, "Mouse", YELLOW_8, BLUE_2);
@@ -1072,9 +1076,9 @@ class CDiskOptions : public CDialog
                 Destroy();
             }
             else if (pWindow_ == m_pBrowseFloppy1)
-                new CFileBrowser(m_pFloppy1, this, "Floppy 2 image", &sFloppyFilter);
+                new CFileBrowser(m_pFloppy1, this, "Floppy 1 image", &sFloppyFilter);
             else if (pWindow_ == m_pBrowseFloppy2)
-                new CFileBrowser(m_pFloppy2, this, "Floppy 1 image", &sFloppyFilter);
+                new CFileBrowser(m_pFloppy2, this, "Floppy 2 image", &sFloppyFilter);
             else if (pWindow_ == m_pBrowseAtom)
                 new CHDDProperties(m_pAtom, this, "Atom Hard Disk");
             else if (pWindow_ == m_pBrowseSDIDE)
