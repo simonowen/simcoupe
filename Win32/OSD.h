@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // OSD.h: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ class OSD
         static DWORD GetTime ();
         static const char* GetFilePath (const char* pcszFile_="");
         static const char* GetFloppyDevice (int nDrive_);
+        static bool CheckPathAccess (const char* pcszPath_);
         static bool IsHidden (const char* pcszFile_);
 
         static void DebugTrace (const char* pcsz_);

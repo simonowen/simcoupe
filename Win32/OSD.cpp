@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // OSD.cpp: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -139,6 +139,13 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 
     // Return a pointer to the new path
     return szPath;
+}
+
+
+// Check whether the specified path is accessible
+bool OSD::CheckPathAccess (const char* pcszPath_)
+{
+    return !access(pcszPath_, X_OK);
 }
 
 
