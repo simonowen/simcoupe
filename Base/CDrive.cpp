@@ -2,7 +2,7 @@
 //
 // CDrive.cpp: VL1772-02 floppy disk controller emulation
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -633,13 +633,42 @@ BYTE CDrive::ReadAddress (int nSide_, int nTrack_, IDFIELD* pIdField_)
 }
 
 
+// CRC-CCITT for id/data checksums, with bit and byte order swapped
+WORD CDrive::CrcBlock (void* pv_, int nLen_, WORD wCRC_/*=0xffff*/)
+{
+    static WORD awCRC[256];
+
+    // Build the table if not already built
+    if (!awCRC[1])
+    {
+        for (int i = 0 ; i < 256 ; i++)
+        {
+            WORD w = i << 8;
+
+            // 8 shifts, for each bit in the update byte
+            for (int j = 0 ; j < 8 ; j++)
+                w = (w << 1) ^ ((w & 0x8000) ? 0x1021 : 0);
+
+            awCRC[i] = w;
+        }
+    }
+
+    // Update the CRC with each byte in the block
+    BYTE* pb = reinterpret_cast<BYTE*>(pv_);
+    while (nLen_--)
+        wCRC_ = (wCRC_ << 8) ^ awCRC[((wCRC_ >> 8) ^ *pb++) & 0xff];
+
+    // Return the updated CRC
+    return wCRC_;
+}
+
+
 // Helper macro for function below
-static void PutBlock (BYTE*& rpb_, BYTE bVal_, int nCount_)
+static void PutBlock (BYTE*& rpb_, BYTE bVal_, int nCount_=1)
 {
     while (nCount_--)
         *rpb_++ = bVal_;
 }
-
 
 // Construct the raw track from the information of each sector on the track to make it look real
 UINT CDrive::ReadTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_)
@@ -663,32 +692,42 @@ UINT CDrive::ReadTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_)
         {
             PutBlock(pb, 0x4e, 22);         // Gap 2: min 22 bytes of 0x4e
             PutBlock(pb, 0x00, 12);         // Gap 2: exactly 12 bytes of 0x00
+
             PutBlock(pb, 0xa1, 3);          // Gap 2: exactly 3 bytes of 0xf5 (written as 0xa1)
+            PutBlock(pb, 0xfe);             // ID address mark: 1 byte of 0xfe
 
-            PutBlock(pb, 0xfe, 1);          // ID address mark: 1 byte of 0xfe
+            PutBlock(pb, id.bTrack);        // Track number
+            PutBlock(pb, id.bSide);         // Disk side
+            PutBlock(pb, id.bSector);       // Sector number
+            PutBlock(pb, id.bSize);         // Sector size
 
-            PutBlock(pb, id.bTrack, 1);     // Track number
-            PutBlock(pb, id.bSide, 1);      // Disk side
-            PutBlock(pb, id.bSector, 1);    // Sector number
-            PutBlock(pb, id.bSize, 1);      // Sector size
-            PutBlock(pb, id.bCRC1, 1);      // CRC1
-            PutBlock(pb, id.bCRC2, 1);      // CRC2
+            PutBlock(pb, id.bCRC1);         // CRC MSB
+            PutBlock(pb, id.bCRC2);         // CRC LSB
 
             PutBlock(pb, 0x4e, 22);         // Gap 3: min 22 (spec says 24?) bytes of 0x4e
             PutBlock(pb, 0x00, 8);          // Gap 3: min 8 bytes of 0x00
+
+            BYTE* pbData = pb;              // Data CRC begins here
             PutBlock(pb, 0xa1, 3);          // Gap 3: exactly 3 bytes of 0xa1
 
-            PutBlock(pb, 0xfb, 1);          // Data address mark: 1 byte of 0xfb
+            PutBlock(pb, 0xfb);             // Data address mark: 1 byte of 0xfb
 
-            // Fill in the sector data
-            UINT uSize;
-            // NB - ReadData may now be asynchronous, in which case BUSY will be returned
-            bStatus = m_pDisk->ReadData(pb, &uSize);
-            // If that's the case, WaitAsyncOp will wait until the operation has completed
-            m_pDisk->WaitAsyncOp(&uSize, &bStatus);
-            pb += uSize;
+            // The data block only really exists if the ID field is valid
+            if (!(bStatus & CRC_ERROR))
+            {
+                // Read the sector contents
+                // NB - ReadData may now be asynchronous, in which case BUSY will be returned
+                // If that's the case, WaitAsyncOp will wait until the operation has completed
+                UINT uSize;
+                bStatus = m_pDisk->ReadData(pb, &uSize);
+                m_pDisk->WaitAsyncOp(&uSize, &bStatus);
+                pb += uSize;
 
-            PutBlock(pb, 0xf7, 1);          // Data address mark: 1 byte of 0xf7
+                // CRC the entire data area, ensuring it's invalid for data CRC errors
+                WORD wCRC = CrcBlock(pbData, pb-pbData) ^ (bStatus & CRC_ERROR);
+                PutBlock(pb, wCRC >> 8);    // CRC MSB
+                PutBlock(pb, wCRC & 0xff);  // CRC LSB
+            }
 
             PutBlock(pb, 0x4e, 16);         // Gap 4: min 16 bytes of 0x4e
         }
@@ -793,7 +832,7 @@ BYTE CDrive::WriteTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_)
             pb += 128 << paID[nSectors].bSize;
             fValid &= (pb < pbEnd);
 
-            fValid &= ExpectBlock(pb, pbEnd, 0xf7, 1, 1);   // Write data address mark: 1 byte of 0xf7
+            fValid &= ExpectBlock(pb, pbEnd, 0xf7, 1, 1);   // Write CRC bytes: 1 byte of 0xf7
 
             fValid &= ExpectBlock(pb, pbEnd, 0x4e, 16);     // Gap 4: min 16 bytes of 0x4e
 
