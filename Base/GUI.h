@@ -305,7 +305,9 @@ class CComboBox : public CWindow
 
     public:
         int GetSelected () const { return m_nSelected; }
+        const char* GetSelectedText ();
         void Select (int nSelected_);
+        void Select (const char* pcszItem_);
         void SetText (const char* pcszText_);
 
         void Draw (CScreen* pScreen_);
