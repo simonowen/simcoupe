@@ -550,7 +550,7 @@ class CSoundOptions : public CDialog
                 m_pFreq->Enable(fSAA);
                 m_pSampleSizeText->Enable(fSAA);
                 m_pSampleSize->Enable(fSAA);
-                m_pFilter->Enable(fSAA);
+                m_pFilter->Enable(false);   // Not supported by SAASound yet
             }
         }
 
@@ -733,8 +733,12 @@ class CDriveOptions : public CDialog
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
 
             // Set the initial state from the options
-            m_pDrive1->Select(GetOption(drive1));
-            m_pDrive2->Select(GetOption(drive2));
+            bool fFloppy1 = GetOption(drive1) == 1 && !lstrcmpi(GetOption(disk1), OSD::GetFloppyDevice(1));
+            bool fFloppy2 = GetOption(drive2) == 1 && !lstrcmpi(GetOption(disk2), OSD::GetFloppyDevice(2));
+            bool fAtom = GetOption(drive2) == 2;
+
+            m_pDrive1->Select(fFloppy1 ? 2 : GetOption(drive1));
+            m_pDrive2->Select(fAtom ? 3 : fFloppy2 ? 2 : GetOption(drive2));
             m_pTurboLoad->SetChecked(GetOption(turboload) != 0);
             m_pSensitivity->Select(!GetOption(turboload) ? 1 : GetOption(turboload) <= 5 ? 2 :
                                                                GetOption(turboload) <= 50 ? 1 : 0);

@@ -576,7 +576,7 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
             case actNewDisk:
                 Video::CreatePalettes(true);
                 DialogBox(__hinstance, MAKEINTRESOURCE(IDD_NEWDISK), g_hwnd, NewDiskDlgProc);
-                Video::CreatePalettes(false);
+                Video::CreatePalettes();
                 break;
 
             case actSaveScreenshot:
@@ -590,13 +590,13 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
             case actImportData:
                 Video::CreatePalettes(true);
                 DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_IMPORT), g_hwnd, ImportExportDlgProc, 1);
-                Video::CreatePalettes(false);
+                Video::CreatePalettes();
                 break;
 
             case actExportData:
                 Video::CreatePalettes(true);
                 DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_EXPORT), g_hwnd, ImportExportDlgProc, 0);
-                Video::CreatePalettes(false);
+                Video::CreatePalettes();
                 break;
 
             case actDisplayOptions:
@@ -2291,7 +2291,7 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                     EnableWindow(GetDlgItem(hdlg_, IDC_FREQ), fSAA);
                     EnableWindow(GetDlgItem(hdlg_, IDS_SAMPLE_SIZE), fSAA);
                     EnableWindow(GetDlgItem(hdlg_, IDC_SAMPLE_SIZE), fSAA);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_FILTER), fSAA);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_FILTER), false);     // Not supported by SAASound yet
 
                     break;
                 }
@@ -2313,17 +2313,17 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
     {
         case WM_INITDIALOG:
         {
+            bool fFloppy1 = GetOption(drive1) == 1 && !lstrcmpi(GetOption(disk1), OSD::GetFloppyDevice(1));
+            bool fFloppy2 = GetOption(drive2) == 1 && !lstrcmpi(GetOption(disk2), OSD::GetFloppyDevice(2));
+            bool fAtom = GetOption(drive2) == 2;
+
             static const char* aszDrives1[] = { "None", "Floppy drive", "Device: A:", NULL };
-            SetComboStrings(hdlg_, IDC_DRIVE1, aszDrives1, GetOption(drive1));
+            SetComboStrings(hdlg_, IDC_DRIVE1, aszDrives1, fFloppy1 ? 2 : GetOption(drive1));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE1, 0L);
 
-
             static const char* aszDrives2[] = { "None", "Floppy drive", "Device: B:", "Atom Hard Disk", NULL };
-            SetComboStrings(hdlg_, IDC_DRIVE2, aszDrives2, GetOption(drive2));
+            SetComboStrings(hdlg_, IDC_DRIVE2, aszDrives2, fAtom ? 3 : fFloppy2 ? 2 : GetOption(drive2));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE2, 0L);
-
-            if (GetOption(drive2) == 2)
-                SendDlgItemMessage(hdlg_, IDC_DRIVE2, CB_SETCURSEL, 3, 0L);
 
             static const char* aszSensitivity[] = { "Low", "Medium", "High", NULL };
             SetComboStrings(hdlg_, IDC_SENSITIVITY, aszSensitivity,
@@ -2368,12 +2368,16 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 {
                     Message(msgWarning, "Invalid disk: %s", GetOption(disk1));
                     SetOption(disk1, "");
+                    SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
+                    return TRUE;
                 }
 
                 if (*GetOption(disk2) && ChangedString(disk2) && !pDrive2->Insert(GetOption(disk2)))
                 {
                     Message(msgWarning, "Invalid disk: %s", GetOption(disk2));
                     SetOption(disk2, "");
+                    SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
+                    return TRUE;
                 }
             }
 
