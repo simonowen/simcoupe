@@ -33,7 +33,7 @@
 
 
 CSDIDEDevice::CSDIDEDevice (CHardDisk* pDisk_)
-    : m_pDisk(NULL), m_bAddressLatch(0), m_bDataLatch(0), m_fDataLatched(false)
+    : CDiskDevice(dskSDIDE), m_bAddressLatch(0), m_bDataLatch(0), m_fDataLatched(false)
 {
     m_pDisk = new CATADevice(pDisk_);
 }

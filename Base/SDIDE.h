@@ -24,7 +24,7 @@
 #include "IO.h"
 #include "ATA.h"
 
-class CSDIDEDevice : public CIoDevice
+class CSDIDEDevice : public CDiskDevice
 {
     public:
         CSDIDEDevice (CHardDisk* pDisk_);
