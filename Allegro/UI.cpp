@@ -2,7 +2,7 @@
 //
 // UI.cpp: Allegro user interface
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -58,7 +58,7 @@ enum eActions
     actChangeKeyMode, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actInsertFloppy2, actEjectFloppy2,
     actSaveFloppy2, actNewDisk, actSaveScreenshot, actFlushPrintJob, actDebugger, actImportData, actExportData,
     actDisplayOptions, actExitApplication, actToggleTurbo, actTempTurbo, actReleaseMouse, actPause, actFrameStep,
-    actPrinterOnline, MAX_ACTION
+    actPrinterOnline, actNewDisk1, actNewDisk2, MAX_ACTION
 };
 
 const char* aszActions[MAX_ACTION] =
@@ -69,7 +69,7 @@ const char* aszActions[MAX_ACTION] =
     "Save changes to floppy 1", "Insert floppy 2", "Eject floppy 2", "Save changes to floppy 2", "New Disk",
     "Save screenshot", "Flush print job", "Debugger", "Import data", "Export data", "Display options",
     "Exit application", "Toggle turbo speed", "Turbo speed (when held)", "Release mouse capture", "Pause",
-    "Step single frame", "Toggle printer online"
+    "Step single frame", "Toggle printer online", "New disk 1", "New disk 2"
 };
 
 
@@ -86,7 +86,6 @@ bool UI::Init (bool fFirstInit_/*=false*/)
     TRACE("<- UI::Init() returning %s\n", fRet ? "true" : "false");
     return fRet;
 }
-
 
 void UI::Exit (bool fReInit_/*=false*/)
 {
@@ -144,7 +143,7 @@ void UI::ProcessKey (BYTE bKey_, BYTE bMods_)
     switch (bKey_)
     {
         case KEY_ENTER:       if (fAlt) DoAction(actToggleFullscreen, fPress);    break;
-        case KEY_MINUS_PAD:   DoAction(actResetButton, fPress);       break;
+        case KEY_MINUS_PAD:   if (GetOption(kpminusreset)) DoAction(actResetButton, fPress);   break;
         case KEY_SLASH_PAD:   DoAction(actDebugger, fPress);          break;
         case KEY_ASTERISK:    DoAction(actNmiButton, fPress);         break;
         case KEY_PLUS_PAD:    DoAction(actTempTurbo, fPress);         break;
@@ -288,44 +287,44 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actInsertFloppy1:
-                if (GetOption(drive1) == 1)
+                if (GetOption(drive1) == dskImage)
                     GUI::Start(new CInsertFloppy(1));
                 break;
 
             case actEjectFloppy1:
-                if (GetOption(drive1) == 1 && pDrive1->IsInserted())
+                if (GetOption(drive1) == dskImage && pDrive1->IsInserted())
                 {
-                    SetOption(disk1, pDrive1->GetImage());
+                    Frame::SetStatus("%s  ejected from drive 1", pDrive1->GetFile());
                     pDrive1->Eject();
-                    Frame::SetStatus("Ejected disk from drive 1");
                 }
                 break;
 
             case actSaveFloppy1:
-                if (GetOption(drive1) == 1 && pDrive1->IsModified() && pDrive1->Flush())
-                    Frame::SetStatus("Saved changes to disk in drive 1");
+                if (GetOption(drive1) == dskImage && pDrive1->IsModified() && pDrive1->Flush())
+                    Frame::SetStatus("%s  changes saved", pDrive1->GetFile());
                 break;
 
             case actInsertFloppy2:
-                if (GetOption(drive2) == 1)
+                if (GetOption(drive2) == dskImage)
                     GUI::Start(new CInsertFloppy(2));
                 break;
 
             case actEjectFloppy2:
-                if (GetOption(drive2) == 1 && pDrive2->IsInserted())
+                if (GetOption(drive2) == dskImage && pDrive2->IsInserted())
                 {
-                    SetOption(disk2, pDrive2->GetImage());
+                    Frame::SetStatus("%s  ejected from drive 2", pDrive2->GetFile());
                     pDrive2->Eject();
-                    Frame::SetStatus("Ejected disk from drive 2");
                 }
                 break;
 
             case actSaveFloppy2:
-                if (GetOption(drive2) == 1 && pDrive2->IsModified() && pDrive2->Flush())
-                    Frame::SetStatus("Saved changes to disk in drive 2");
+                if (GetOption(drive2) == dskImage && pDrive2->IsModified() && pDrive2->Flush())
+                    Frame::SetStatus("%s  changes saved", pDrive2->GetFile());
                 break;
 
-            case actNewDisk:
+            case actNewDisk1:
+            case actNewDisk2:
+                GUI::Start(new CMessageBox(NULL, "New Disk not yet implemented", "Sorry!", mbInformation));
                 break;
 
             case actSaveScreenshot:
@@ -337,11 +336,11 @@ void DoAction (int nAction_, bool fPressed_)
                 break;
 
             case actImportData:
-                GUI::Start(new CMessageBox(NULL, "Import Data not yet implemented", "Sorry!", mbInformation));
+                GUI::Start(new CImportDialog);
                 break;
 
             case actExportData:
-                GUI::Start(new CMessageBox(NULL, "Export Data not yet implemented", "Sorry!", mbInformation));
+                GUI::Start(new CExportDialog);
                 break;
 
             case actDisplayOptions:
