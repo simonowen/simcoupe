@@ -47,11 +47,19 @@ class OSD
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// disable stupid 'debug symbols being truncated' warning
+#pragma warning(disable:4786)
+
+// Reverse the _s warnings that Microsoft forces on us
+#ifndef __USE_SECURE_LIB__
+#define _CRT_SECURE_NO_DEPRECATE
+#endif
+
 #define STRICT
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
-#include <mmsystem.h>
+#include <mmsystem.h>   // for timeSetEvent
 #include <sys\types.h>  // for _off_t etc.
 #include <direct.h>     // for _mkdir
 #include <stdio.h>      // for FILE structure
@@ -59,8 +67,6 @@ class OSD
 
 #pragma include_alias(<io.h>, <..\Include\IO.h>)
 #include <io.h>
-
-#pragma warning(disable:4786)   // disable stupid 'debug symbols being truncated' warning
 
 #ifdef USE_ZLIB
 #pragma comment(lib, "zlib1")   // new 1.2.x version, required to avoid zlib binary mismatch problems
@@ -71,31 +77,42 @@ class OSD
 #endif
 
 
-// For NT4 compatability we need to ensure than only DX3 features are used
+// For NT4 compatability we only use DX3 features, except for input which requires DX5
 #define DIRECTDRAW_VERSION      0x0300
 #define DIRECT3D_VERSION        0x0300
 #define DIRECTSOUND_VERSION     0x0300
-#define DIRECTINPUT_VERSION     0x0500  // DX5 is needed joystick support (since NT4 SP3 only has DX3, we'll do a run-time check)
+#define DIRECTINPUT_VERSION     0x0500  // we'll do a run-time check for DX5 before using it
 
 #include <dsound.h>
 #include <ddraw.h>
+
+// Make sure the DX5 (or higher) SDK was found
+#ifndef DSBLOCK_ENTIREBUFFER
+#error DX5 (or higher) SDK is required to build SimCoupe
+#endif
+
 
 #define PATH_SEPARATOR          '\\'
 
 #define strcasecmp  _strcmpi
 #define mkdir(p,m)  _mkdir(p)
 
-#define access      _access
 #define R_OK        4
 #define W_OK        2
 #define X_OK        1
 #define F_OK        0
+
+#define access(p,m)      _access((p),(m)&(R_OK|W_OK))
 
 #define _S_ISTYPE(mode,mask)    (((mode) & _S_IFMT) == (mask))
 #define S_ISDIR(mode)           _S_ISTYPE((mode), _S_IFDIR)
 #define S_ISREG(mode)           _S_ISTYPE((mode), _S_IFREG)
 #define S_ISBLK(mode)           0
 #define S_ISLNK(mode)           0
+
+#ifndef MAXLONG_PTR
+typedef long    LONG_PTR;       // Needed for VC6 to compile out 64-bit compatible code
+#endif
 
 
 // Windows lacks direct.h, so we'll supply our own
