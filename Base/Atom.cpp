@@ -344,7 +344,7 @@ bool CBDOSDevice::DiskReadWrite (bool fWrite_)
         }
 
         // If we didn't find a cached disk, load it now
-        if (!pDisk && uRecord < (int)m_asRecords.size() && (pDisk = CDisk::Open(m_asRecords[uRecord].c_str())))
+        if (!pDisk && uRecord < m_asRecords.size() && (pDisk = CDisk::Open(m_asRecords[uRecord].c_str())))
         {
             // Is the cache full?
             if (m_lCached.size() >= ATOM_CACHE_SIZE)
