@@ -189,7 +189,6 @@ bool Video::Init (bool fFirstInit_/*=false*/)
         if (GetOption(ratio5_4))
             dwWidth = (dwWidth * 5) >> 2;
 
-        const SDL_VideoInfo* pInfo = SDL_GetVideoInfo();
         int nDepth = GetOption(fullscreen) ? GetOption(depth) : 0;
 
         // Should the surfaces be in video memory?  (they need to be for any hardware acceleration)
