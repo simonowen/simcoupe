@@ -32,22 +32,6 @@
 int OSD::s_nTicks;
 
 
-// Overridden main(), so we can set some platform-specific defaults
-int main (int argc_, char* argv_[])
-{
-    SetDefault(latency,15);     // 15 frames (lots needed for now)
-    SetDefault(bits,8);         // 8-bit sound
-    SetDefault(stereo,0);       // Mono
-
-    if (Main::Init(argc_, argv_))
-        CPU::Run();
-
-    Main::Exit();
-
-    return 0;
-}
-
-
 bool OSD::Init (bool fFirstInit_/*=false*/)
 {
     UI::Exit(true);
