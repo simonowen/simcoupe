@@ -356,10 +356,10 @@ void CFrameXx1<fHiRes_>::Mode3Line (int nLine_, int nFrom_, int nTo_)
     // Work out the range that within the visible area
     int nFrom = max(BORDER_BLOCKS, nFrom_), nTo = min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
 
-    // Draw the required section of the main screen, if any
-    if (nFrom <= nTo)
+    // Draw the required hi-res section of the main screen, if any
+    if (fHiRes_ && nFrom <= nTo)
     {
-        BYTE* pFrame = pbLine + ((nFrom - s_nViewLeft) << (fHiRes_ ? 4 : 3));
+        BYTE* pFrame = pbLine + ((nFrom - s_nViewLeft) << 4);
         BYTE* pbDataMem = m_pbScreenData + (nLine_ << 7) + ((nFrom - BORDER_BLOCKS) << 2);
 
         // The actual screen line
@@ -367,52 +367,32 @@ void CFrameXx1<fHiRes_>::Mode3Line (int nLine_, int nFrom_, int nTo_)
         {
             BYTE bData;
 
-            if (!fHiRes_)
-            {
-                bData = *pbDataMem++;
-                pFrame[0] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0xc0) >> 6)];
-                pFrame[1] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x0c) >> 2)];
+            bData = pbDataMem[0];
+            pFrame[0] = mode3clutval[ bData         >> 6];
+            pFrame[1] = mode3clutval[(bData & 0x30) >> 4];
+            pFrame[2] = mode3clutval[(bData & 0x0c) >> 2];
+            pFrame[3] = mode3clutval[(bData & 0x03)     ];
 
-                bData = *pbDataMem++;
-                pFrame[2] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0xc0) >> 6)];
-                pFrame[3] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x0c) >> 2)];
+            bData = pbDataMem[1];
+            pFrame[4] = mode3clutval[ bData         >> 6];
+            pFrame[5] = mode3clutval[(bData & 0x30) >> 4];
+            pFrame[6] = mode3clutval[(bData & 0x0c) >> 2];
+            pFrame[7] = mode3clutval[(bData & 0x03)     ];
 
-                bData = *pbDataMem++;
-                pFrame[4] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0xc0) >> 6)];
-                pFrame[5] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x0c) >> 2)];
+            bData = pbDataMem[2];
+            pFrame[8]  = mode3clutval[ bData         >> 6];
+            pFrame[9]  = mode3clutval[(bData & 0x30) >> 4];
+            pFrame[10] = mode3clutval[(bData & 0x0c) >> 2];
+            pFrame[11] = mode3clutval[(bData & 0x03)     ];
 
-                bData = *pbDataMem++;
-                pFrame[6] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0xc0) >> 6)];
-                pFrame[7] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x0c) >> 2)];
-            }
-            else
-            {
-                bData = *pbDataMem++;
-                pFrame[0] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0xc0) >> 6)];
-                pFrame[1] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x30) >> 4)];
-                pFrame[2] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x0c) >> 2)];
-                pFrame[3] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x03)     )];
+            bData = pbDataMem[3];
+            pFrame[12] = mode3clutval[ bData         >> 6];
+            pFrame[13] = mode3clutval[(bData & 0x30) >> 4];
+            pFrame[14] = mode3clutval[(bData & 0x0c) >> 2];
+            pFrame[15] = mode3clutval[(bData & 0x03)     ];
 
-                bData = *pbDataMem++;
-                pFrame[4] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0xc0) >> 6)];
-                pFrame[5] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x30) >> 4)];
-                pFrame[6] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x0c) >> 2)];
-                pFrame[7] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x03)     )];
-
-                bData = *pbDataMem++;
-                pFrame[8]  = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0xc0) >> 6)];
-                pFrame[9]  = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x30) >> 4)];
-                pFrame[10] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x0c) >> 2)];
-                pFrame[11] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x03)     )];
-
-                bData = *pbDataMem++;
-                pFrame[12] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0xc0) >> 6)];
-                pFrame[13] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x30) >> 4)];
-                pFrame[14] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x0c) >> 2)];
-                pFrame[15] = clutval[mode3_bcd48 | MD3_SWITCH((bData & 0x03)     )];
-            }
-
-            pFrame += fHiRes_ ? 16 : 8;
+            pFrame += 16;
+            pbDataMem += 4;
         }
     }
 
@@ -445,42 +425,43 @@ void CFrameXx1<fHiRes_>::Mode4Line (int nLine_, int nFrom_, int nTo_)
 
             if (!fHiRes_)
             {
-                bData = *pbDataMem++;
-                pFrame[0] = clutval[(bData & 0xf0) >> 4];
-                pFrame[1] = clutval[ bData & 0x0f];
+                bData = pbDataMem[0];
+                pFrame[0] = clutval[bData >> 4];
+                pFrame[1] = clutval[bData & 0x0f];
 
-                bData = *pbDataMem++;
-                pFrame[2] = clutval[(bData & 0xf0) >> 4];
-                pFrame[3] = clutval[ bData & 0x0f];
+                bData = pbDataMem[1];
+                pFrame[2] = clutval[bData >> 4];
+                pFrame[3] = clutval[bData & 0x0f];
 
-                bData = *pbDataMem++;
-                pFrame[4] = clutval[(bData & 0xf0) >> 4];
-                pFrame[5] = clutval[ bData & 0x0f];
+                bData = pbDataMem[2];
+                pFrame[4] = clutval[bData >> 4];
+                pFrame[5] = clutval[bData & 0x0f];
 
-                bData = *pbDataMem++;
-                pFrame[6] = clutval[(bData & 0xf0) >> 4];
-                pFrame[7] = clutval[ bData & 0x0f];
+                bData = pbDataMem[3];
+                pFrame[6] = clutval[bData >> 4];
+                pFrame[7] = clutval[bData & 0x0f];
             }
             else
             {
-                bData = *pbDataMem++;   
-                pFrame[0] = pFrame[1] = clutval[(bData & 0xf0) >> 4];
-                pFrame[2] = pFrame[3] = clutval[ bData & 0x0f];
+                bData = pbDataMem[0];
+                pFrame[0]  = pFrame[1]  = clutval[bData >> 4];
+                pFrame[2]  = pFrame[3]  = clutval[bData & 0x0f];
 
-                bData = *pbDataMem++;
-                pFrame[4] = pFrame[5] = clutval[(bData & 0xf0) >> 4];
-                pFrame[6] = pFrame[7] = clutval[ bData & 0x0f];
+                bData = pbDataMem[1];
+                pFrame[4]  = pFrame[5]  = clutval[bData >> 4];
+                pFrame[6]  = pFrame[7]  = clutval[bData & 0x0f];
 
-                bData = *pbDataMem++;
-                pFrame[8] = pFrame[9]   = clutval[(bData & 0xf0) >> 4];
-                pFrame[10] = pFrame[11] = clutval[ bData & 0x0f];
+                bData = pbDataMem[2];
+                pFrame[8]  = pFrame[9]  = clutval[bData >> 4];
+                pFrame[10] = pFrame[11] = clutval[bData & 0x0f];
 
-                bData = *pbDataMem++;
-                pFrame[12] = pFrame[13] = clutval[(bData & 0xf0) >> 4];
-                pFrame[14] = pFrame[15] = clutval[ bData & 0x0f];
+                bData = pbDataMem[3];
+                pFrame[12] = pFrame[13] = clutval[bData >> 4];
+                pFrame[14] = pFrame[15] = clutval[bData & 0x0f];
             }
 
             pFrame += fHiRes_ ? 16 : 8;
+            pbDataMem += 4;
         }
     }
 
@@ -502,7 +483,7 @@ void CFrameXx1<fHiRes_>::ModeChange (BYTE bNewVal_, int nLine_, int nBlock_)
     BYTE ab[4];
 
     // Source mode 3 or 4?
-    if (VMPR_SCREEN_MODE >= MODE_3)
+    if (VMPR_MODE_3_OR_4)
     {
         BYTE* pb = m_pbScreenData + (nScreenLine << 7) + ((nBlock_ - BORDER_BLOCKS) << 2);
 
@@ -518,9 +499,9 @@ void CFrameXx1<fHiRes_>::ModeChange (BYTE bNewVal_, int nLine_, int nBlock_)
     // Source mode 1 or 2
     else
     {
-        BYTE* pData = m_pbScreenData + ((VMPR_SCREEN_MODE == MODE_1) ? g_awMode1LineToByte[nScreenLine] + (nBlock_ - BORDER_BLOCKS)
+        BYTE* pData = m_pbScreenData + ((VMPR_MODE == MODE_1) ? g_awMode1LineToByte[nScreenLine] + (nBlock_ - BORDER_BLOCKS)
                                                                      : (nScreenLine << 5) + (nBlock_ - BORDER_BLOCKS));
-        BYTE* pAttr = (VMPR_SCREEN_MODE == MODE_1) ? m_pbScreenData + 6144 + ((nScreenLine & 0xf8) << 2) + (nBlock_ - BORDER_BLOCKS)
+        BYTE* pAttr = (VMPR_MODE == MODE_1) ? m_pbScreenData + 6144 + ((nScreenLine & 0xf8) << 2) + (nBlock_ - BORDER_BLOCKS)
                                                    : pData + 0x2000;
 
         // Extract the 4 ASIC bytes used to display a block
