@@ -20,7 +20,6 @@
 #define SIMCOUPE_H
 
 //#define NO_ZLIB           // Define this if Zlib is not available
-//#define DUMMY_SAASOUND    // Define this if the real SAASound library is not available
 //#define USE_OPENGL        // Define to enable (experimental) OpenGL mode
 //#define USE_CUSTOM_CURSOR // Define to draw our own GUI cursor, to avoid an SDL mouse droppings problem
 
@@ -66,7 +65,7 @@ using std::sort;
 #endif
 
 #ifndef NO_ZLIB
-#include "unzip.h"      // for unzOpen, unzClose, etc.  Part of the contrib/minizip in the ZLib source package
+#include "../Extern/unzip.h"      // for unzOpen, unzClose, etc.  Part of the contrib/minizip in the ZLib source package
 #include "zlib.h"       // for gzopen, gzclose, etc.
 #endif
 
