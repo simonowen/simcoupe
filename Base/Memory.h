@@ -2,7 +2,7 @@
 //
 // Memory.h: Memory configuration and management
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -32,8 +32,7 @@ class Memory
 };
 
 
-// The ROMs and scratch memory go after the regular RAM
-enum { ROM0 = (N_PAGES_MAIN + (N_PAGES_1MB * MAX_EXTERNAL_MB)), ROM1, SCRATCH_READ, SCRATCH_WRITE, TOTAL_PAGES };
+enum { INTMEM, EXTMEM=N_PAGES_MAIN, ROM0=EXTMEM+(N_PAGES_1MB*MAX_EXTERNAL_MB), ROM1, SCRATCH_READ, SCRATCH_WRITE, TOTAL_PAGES };
 enum eSection { SECTION_A, SECTION_B, SECTION_C, SECTION_D };
 
 extern int anSectionPages[4];
@@ -104,6 +103,11 @@ inline void write_word (WORD wAddr_, WORD wVal_)
     write_byte(wAddr_+1, wVal_ >> 8);
 }
 
+
+inline int GetSectionPage (eSection nSection_)
+{
+    return anSectionPages[nSection_];
+}
 
 // Page in real memory page at <nSection_>, where <nSection_> is in range 0..3
 inline void PageIn (eSection nSection_, int nPage_)
