@@ -79,6 +79,7 @@ class CDiskDevice :  public CIoDevice
         virtual ~CDiskDevice () { }
 
     public:
+        virtual void Reset () { }
         virtual bool Insert (const char* pcszImage_, bool fReadOnly_=false) { return false; }
         virtual bool Eject () { return false; }
         virtual bool Flush () { return false; }
