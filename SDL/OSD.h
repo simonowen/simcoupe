@@ -21,6 +21,10 @@
 #ifndef OSD_H
 #define OSD_H
 
+// There's no SDL method to get a time stamp better than 1 millisecond yet
+#define GetProfileTime      GetTime
+
+
 namespace OSD
 {
     bool Init ();
