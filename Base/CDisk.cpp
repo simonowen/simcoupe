@@ -19,10 +19,6 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 // Notes:
-//  SDF images lack a proper header, are read-only, and fixed at 80
-//  tracks per side.  The format is to be replaced by FDI, though
-//  read-only SDF support will remain for the forseeable future.
-//
 //  The CFloppyDisk implementation is OS-specific, and is in Floppy.cpp
 //
 //  Teledisk format details extracted from a document by Will Kranz,
