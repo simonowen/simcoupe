@@ -1446,9 +1446,7 @@ void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
 
             if (ferror(hFile))
             {
-                char sz[256];
-                sprintf(sz, "Error writing to file:\n\n%s", strerror(errno));
-                new CMessageBox(this, sz, "Error", mbWarning);    
+                new CMessageBox(this, "Error writing to file (disk full?)", "Error", mbWarning);    
                 fclose(hFile);
                 return;
             }
