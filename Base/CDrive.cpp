@@ -40,7 +40,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Time motor stays on after no further activity:  10 revolutions at 300rpm = 2 seconds
-#define FLOPPY_MOTOR_ACTIVE_TIME        ((10 / (300 / 60 )) * EMULATED_TSTATES_PER_SECOND)
+const int FLOPPY_MOTOR_ACTIVE_TIME = (10 / (300 / 60 )) * EMULATED_FRAMES_PER_SECOND;
 
 
 void CDrive::ResetAll ()
@@ -57,6 +57,9 @@ void CDrive::ResetAll ()
     // No data available for reading
     m_pbBuffer = NULL;
     m_uBuffer = 0;
+
+    // Motor off initially, so no delay yet
+    m_nMotorDelay = 0;
 }
 
 
@@ -103,7 +106,7 @@ bool CDrive::Flush ()
 void CDrive::FrameEnd ()
 {
     // If the motor hasn't been used for 2 seconds, switch it off
-    if (IsMotorOn() && ((g_dwCycleCounter - m_dwLastMotorOn) >= FLOPPY_MOTOR_ACTIVE_TIME))
+    if (m_nMotorDelay && !--m_nMotorDelay)
         m_sRegs.bStatus &= ~MOTOR_ON;
 }
 
@@ -118,7 +121,7 @@ inline void CDrive::ModifyStatus (BYTE bSet_, BYTE bReset_)
 
     // If the motor enable bit is set, update the last used time
     if (bSet_ & MOTOR_ON)
-        m_dwLastMotorOn = g_dwCycleCounter;
+        m_nMotorDelay = FLOPPY_MOTOR_ACTIVE_TIME;
 }
 
 

@@ -72,7 +72,7 @@ class CDrive : public CDiskDevice
         UINT        m_uBuffer;
         BYTE        m_bDataStatus;  // Status value for end of data, where the data CRC can be checked
 
-        DWORD       m_dwLastMotorOn;
+        int         m_nMotorDelay;  // Delay before switching motor off
 
     protected:
         void ResetAll();
