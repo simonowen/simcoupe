@@ -28,7 +28,6 @@
 
 // ToDo:
 //  - change from dirty lines to dirty rectangles, to reduce rendering further
-//  - catch-up flips for partially drawn screens (for when using debugger)
 //  - maybe move away from the template class, as it's not as useful anymore
 
 #include "SimCoupe.h"
@@ -38,6 +37,7 @@
 #include "Debug.h"
 #include "CDrive.h"
 #include "Display.h"
+#include "GUI.h"
 #include "Options.h"
 #include "OSD.h"
 #include "PNG.h"
@@ -50,25 +50,22 @@ const BYTE LED_OFF_COLOUR       = 8;    // Dark grey light off colour
 const BYTE FLOPPY_LED_ON_COLOUR = 70;   // Light green floppy light on colour (or 98 for amber :-)
 const BYTE ATOM_LED_ON_COLOUR   = 32;   // Red hard disk light colour
 
-const unsigned int STATUS_ACTIVE_TIME = 1500;   // Time the status text is visible for (in ms)
+const unsigned int STATUS_ACTIVE_TIME = 2000;   // Time the status text is visible for (in ms)
+const unsigned int FPS_IN_TURBO_MODE = 5;       // Number of FPS to limit to in Turbo mode
 
 int s_nViewTop, s_nViewBottom;
 int s_nViewLeft, s_nViewRight;
 int s_nViewWidth, s_nViewHeight;
 
-
-namespace Frame
-{
-CScreen *g_pScreen, *g_pLastScreen;
+CScreen *g_pScreen, *g_pGuiScreen, *g_pLastScreen;
 CFrame *g_pFrame, *pFrameLow, *pFrameHigh;
 
-bool fDrawFrame;
+bool fDrawFrame, g_fFlashPhase;
 int nFrame;
 
 int nLastLine, nLastBlock;      // Line and block we've drawn up to so far this frame
 int nDrawnFrames;               // Frame number in last second and number of those actually drawn
 
-DWORD dwProfileTime;            // Time the profiler stats were updated
 DWORD dwStatusTime;             // Time the status line was made visible
 
 int s_nWidth, s_nHeight;
@@ -77,25 +74,25 @@ char szStatus[128], szProfile[128];
 char szScreenPath[MAX_PATH];
 
 
-AREA asViews[] =
+typedef struct
 {
-    { BORDER_BLOCKS, BORDER_BLOCKS+SCREEN_BLOCKS, TOP_BORDER_LINES, TOP_BORDER_LINES+SCREEN_LINES },
-    { BORDER_BLOCKS-1, BORDER_BLOCKS+SCREEN_BLOCKS+1, TOP_BORDER_LINES-10, TOP_BORDER_LINES+SCREEN_LINES+10 },
-    { BORDER_BLOCKS-2, BORDER_BLOCKS+SCREEN_BLOCKS+2, TOP_BORDER_LINES-24, TOP_BORDER_LINES+SCREEN_LINES+24 },
-    { BORDER_BLOCKS-2, BORDER_BLOCKS+SCREEN_BLOCKS+2, TOP_BORDER_LINES-36, TOP_BORDER_LINES+SCREEN_LINES+36 },
-    { 0, WIDTH_BLOCKS, 0, HEIGHT_LINES },
+    int w, h;
+}
+REGION;
+
+REGION asViews[] =
+{
+    { SCREEN_BLOCKS, SCREEN_LINES },
+    { SCREEN_BLOCKS+2, SCREEN_LINES+20 },
+    { SCREEN_BLOCKS+4, SCREEN_LINES+48 },
+    { SCREEN_BLOCKS+4, SCREEN_LINES+72 },
+    { WIDTH_BLOCKS, HEIGHT_LINES },
 };
 
-void DrawOSD ();
+void DrawOSD (CScreen* pScreen_);
+void Flip (CScreen*& rpScreen_);
 
-const AREA* GetViewArea ()
-{
-    int nBorders = min(GetOption(borders), (int)(sizeof asViews / sizeof asViews[0]) - 1);
-    return &asViews[nBorders];
-}
-
-
-bool Init (bool fFirstInit_/*=false*/)
+bool Frame::Init (bool fFirstInit_/*=false*/)
 {
     bool fRet = true;
 
@@ -105,25 +102,28 @@ bool Init (bool fFirstInit_/*=false*/)
     // Set the last line and block draw to the start of the display
     nLastLine = nLastBlock = 0;
 
+    int nBorders = min(GetOption(borders), (int)(sizeof asViews / sizeof asViews[0]) - 1);
+    const REGION* pView = &asViews[nBorders];
+    s_nViewLeft = (WIDTH_BLOCKS - asViews[nBorders].w) >> 1;
+    s_nViewRight = s_nViewLeft + asViews[nBorders].w;
 
-    const AREA* pView = GetViewArea();
+    // If we're not showing the full scan image, offset the view to centre over the main screen area
+    if (s_nViewTop = (HEIGHT_LINES - asViews[nBorders].h) >> 1)
+        s_nViewTop += (TOP_BORDER_LINES-BOTTOM_BORDER_LINES) >> 1;
+    s_nViewBottom = s_nViewTop + asViews[nBorders].h;
 
-    s_nViewLeft = pView->left;
-    s_nViewRight = pView->right;
-    s_nViewTop = pView->top;
-    s_nViewBottom = pView->bottom;
-
-    s_nWidth = (s_nViewRight - s_nViewLeft) << 4;       // convert from blocks to hi-res pixels
-    s_nHeight = s_nViewBottom - s_nViewTop;
+    // Convert the view area dimensions to hi-res pixels
+    s_nWidth = (s_nViewRight - s_nViewLeft) << 4;
+    s_nHeight = (s_nViewBottom - s_nViewTop) << 1;
 
     // Create the two screens and two render classes from the template
-    if ((g_pScreen = new CScreen(s_nWidth, s_nHeight)) && (g_pLastScreen = new CScreen(s_nWidth, s_nHeight)) &&
+    if ((g_pScreen = new CScreen(s_nWidth, s_nHeight)) &&
+        (g_pLastScreen = new CScreen(s_nWidth, s_nHeight)) &&
+        (g_pGuiScreen = new CScreen(s_nWidth, s_nHeight)) &&
         (pFrameLow = new CFrameXx1<false>) && (pFrameHigh = new CFrameXx1<true>))
     {
-        // Make sure the mode we're drawing reflects the current mode
-        g_pFrame = pFrameLow;
+        Start();
         ChangeMode(vmpr);
-
         fRet = Display::Init(fFirstInit_);
     }
     else
@@ -140,30 +140,41 @@ bool Init (bool fFirstInit_/*=false*/)
     return fRet;
 }
 
-void Exit (bool fReInit_/*=false*/)
+void Frame::Exit (bool fReInit_/*=false*/)
 {
     Display::Exit(fReInit_);
     TRACE("-> Frame::Exit(%s)\n", fReInit_ ? "reinit" : "");
 
-    if (pFrameLow)  { delete pFrameLow; pFrameLow = NULL; }
-    if (pFrameHigh) { delete pFrameHigh; pFrameHigh = NULL; }
+    delete pFrameLow; pFrameLow = NULL;
+    delete pFrameHigh; pFrameHigh = NULL;
     g_pFrame = NULL;
 
-    if (g_pScreen)  { delete g_pScreen; g_pScreen = NULL; }
-    if (g_pLastScreen){ delete g_pLastScreen; g_pLastScreen = NULL; }
+    delete g_pScreen; g_pScreen = NULL;
+    delete g_pGuiScreen; g_pGuiScreen = NULL;
+    delete g_pLastScreen; g_pLastScreen = NULL;
 
     TRACE("<- Frame::Exit()\n");
 }
 
 
-CScreen* GetScreen ()
+CScreen* Frame::GetScreen ()
 {
     return g_pScreen;
 }
 
+int Frame::GetWidth ()
+{
+    return g_pScreen->GetPitch();
+}
+
+int Frame::GetHeight ()
+{
+    return g_pScreen->GetHeight();
+}
+
 
 // Update the frame image to the current raster position
-void Update ()
+void Frame::Update ()
 {
     // Don't do anything if the current frame is being skipped
     if (!fDrawFrame)
@@ -173,8 +184,6 @@ void Update ()
 
     // Work out the line and block for the current position
     int nLine = g_nLine, nBlock = g_nLineCycle >> 3;
-    // Should actually be as below, but the above will have the same effect when it matters
-//  int nLine = g_nLine, nBlock = (g_nLineCycle + 1 - VIDEO_DELAY) >> 3;
 
     // The line-cycle value has not been adjusted at this point, and may need wrapping if it's too large
     if (nBlock >= WIDTH_BLOCKS)
@@ -183,7 +192,7 @@ void Update ()
         nLine++;
     }
 
-    // If we're still on the same line as last time we've only got one section to draw
+    // If we're still on the same line as last time we've only got a part line to draw
     if (nLine == nLastLine)
     {
         g_pFrame->UpdateLine(nLine, nLastBlock, nBlock);
@@ -244,15 +253,88 @@ void Update ()
     ProfileEnd();
 }
 
-
-// Start of frame
-void Start ()
+// Fill the display after current raster position, currently with a dark grey
+void RasterComplete ()
 {
+    // Don't do anything if the current frame is being skipped
     if (!fDrawFrame)
         return;
 
-    nLastLine = nLastBlock = 0;
+    ProfileStart(Gfx);
 
+    // Work out the range that within the visible area
+    int nLeft = max(s_nViewLeft, nLastBlock) - s_nViewLeft, nRight = s_nViewRight - s_nViewLeft;
+    int nTop = max(nLastLine, s_nViewTop) - s_nViewTop, nBottom = s_nViewBottom - s_nViewTop;
+
+    if (nTop <= nBottom)
+    {
+        bool fHiRes = false;
+
+        if (nLeft < nRight)
+        {
+            BYTE* pb = g_pScreen->GetLine(nTop, fHiRes);
+            int nOffset = nLeft << (fHiRes ? 4 : 3);
+            memset(pb+nOffset, GREY_2, Frame::GetWidth() - nOffset);
+        }
+
+        for (int i = nTop+1 ; i < nBottom ; i++)
+            memset(g_pScreen->GetLine(i), GREY_2, Frame::GetWidth());
+    }
+
+    ProfileEnd();
+}
+
+
+void Frame::Complete ()
+{
+    // Was the current frame drawn?
+    if (fDrawFrame)
+    {
+        if (!GUI::IsModal())
+        {
+            Update();
+            RasterComplete();
+        }
+
+        // Save the screen if we have a path
+        if (szScreenPath[0])
+            SaveFrame(szScreenPath);
+
+        if (GUI::IsActive())
+        {
+            // Make a copy of the current frame, doubling each line for the hi-res GUI screen
+            for (int i = 0 ; i < GetHeight() ; i++)
+            {
+                bool fHiRes;
+                memcpy(g_pGuiScreen->GetLine(i), g_pScreen->GetLine(i>>1, fHiRes), GetWidth());
+                g_pGuiScreen->SetHiRes(i, fHiRes);
+            }
+
+            // Overlay the GUI over the SAM display
+            GUI::Draw(g_pGuiScreen);
+            Flip(g_pGuiScreen);
+
+            // Frame::End is not called, so we need to advance the frame counter manually
+            nFrame++;
+        }
+        else
+        {
+            DrawOSD(g_pScreen);
+            Flip(g_pScreen);
+        }
+
+        // Redraw what's new
+        Redraw();
+    }
+
+    Sync();
+}
+
+// Start of frame
+void Frame::Start ()
+{
+    // Last drawn position is the start of the frame
+    nLastLine = nLastBlock = 0;
 
     bool fHiRes = (vmpr_mode == MODE_3) && (s_nViewTop >= TOP_BORDER_LINES);
     g_pScreen->SetHiRes(0, fHiRes);
@@ -260,77 +342,79 @@ void Start ()
 }
 
 // End of frame
-void End ()
+void Frame::End ()
+{
+    nFrame++;
+
+    if (fDrawFrame)
+        nDrawnFrames++;
+
+    // Toggle paper/ink colours every 16 frames for the flash attribute in modes 1 and 2
+    static int nFrame = 0;
+    if (!(++nFrame % 16))
+        g_fFlashPhase = !g_fFlashPhase;
+
+    // If the status line has been visible long enough, hide it
+    if (szStatus[0] && ((OSD::GetTime() - dwStatusTime) > STATUS_ACTIVE_TIME))
+        szStatus[0] = '\0';
+
+    Start();
+}
+
+void Frame::Sync ()
 {
     DWORD dwNow = OSD::GetTime();
 
-    // Was the current frame drawn?
-    if (fDrawFrame)
-    {
-        nDrawnFrames++;
+    // Fetch the frame number we should be up to, according to the running timer
+    int nTicks = OSD::FrameSync(false);
 
-        // Update to the end of the frame image
-        Update();
-
-        // If the status line has been visible long enough, hide it
-        if (szStatus[0] && ((dwNow - dwStatusTime) > STATUS_ACTIVE_TIME))
-            szStatus[0] = '\0';
-
-        // Save the screen if we have a path
-        if (szScreenPath[0])
-            SaveFrame(szScreenPath);
-
-        // Draw the on-screen indicators, flip buffer, and display the completed frame
-        DrawOSD();
-        Flip();
-        Redraw();
-    }
-
-    // Next frame
-    nFrame++;
-
-
-    // Turbo mode shows only 1 frame 50
-    if (GetOption(turbo))
+    // Running in Turbo mode?
+    if (g_fTurbo)
     {
         static DWORD dwLastFrame;
 
         // Draw 5 frames a second in turbo mode
-        if (fDrawFrame = ((dwNow - dwLastFrame) >= 200))
+        if (fDrawFrame = ((dwNow - dwLastFrame) >= 1000/FPS_IN_TURBO_MODE))
             dwLastFrame = dwNow;
     }
     else
     {
-        // Whether the next frame gets draw depends on the turbo and frame-skip settings
-        fDrawFrame = (!nDrawnFrames || (GetOption(frameskip) ? !(nFrame % GetOption(frameskip)) : OSD::FrameSync(false)));
+        // Whether the next frame gets draw depends on frame-skip setting...
+        // In auto-skip mode we'll draw unless we're behind, but leave some slack at the end of the frame just in case
+        fDrawFrame = GetOption(frameskip) ? !(nFrame % GetOption(frameskip)) :
+            ((nTicks >= EMULATED_FRAMES_PER_SECOND-2) && (nFrame != nDrawnFrames)) ? (nFrame > nTicks) : (nFrame >= nTicks);
 
-        // Frame sync if required
+        // Sync if the option is enabled and we're ahead
         ProfileStart(Idle);
-        if (GetOption(sync))
-            OSD::FrameSync();
+        if (GetOption(sync) && (nFrame > nTicks))
+            nTicks = OSD::FrameSync(true);
         ProfileEnd();
     }
 
-    // How long since the last profile update?
-    DWORD dwDiff = OSD::GetTime() - dwProfileTime;
 
-    // Are we as close to 1 seconds worth as we'll be?
-    if (dwDiff >= (1000 - (1000 / EMULATED_FRAMES_PER_SECOND / 2)))
+    // Show the profiler stats once a second
+    if (nTicks >= EMULATED_FRAMES_PER_SECOND)
     {
         // Format the profile string and reset it
         sprintf(szProfile, "%3d%%:%2dfps%s", nFrame * 2, nDrawnFrames, Profile::GetStats());
-        TRACE("%s\n", szProfile);
+        TRACE("%s   %d ticks  %d frames  %d drawn\n", szProfile, nTicks, nFrame, nDrawnFrames);
         Profile::Reset();
-        dwProfileTime = OSD::GetTime();
 
         // Reset frame counters to wait for the next second
         nFrame = nDrawnFrames = 0;
+
+        // If we've fallen too far behind, don't even attempt to catch up.  This avoids a quick burst of
+        // speed after unpausing, which can be a real problem when playing games!
+        if ((nTicks - nFrame) > 5)
+            OSD::s_nTicks = 0;
+        else
+            OSD::s_nTicks %= EMULATED_FRAMES_PER_SECOND;
     }
 }
 
 
 // Clear and invalidate the frame buffers
-void Clear ()
+void Frame::Clear ()
 {
     // Clear the frame buffers
     g_pScreen->Clear();
@@ -341,7 +425,7 @@ void Clear ()
 }
 
 
-void Redraw ()
+void Frame::Redraw ()
 {
     // Draw the last complete frame
     Display::Update(g_pLastScreen);
@@ -349,29 +433,27 @@ void Redraw ()
 
 
 // Flip buffers, so we can start working on the new frame
-void Flip ()
+void Flip (CScreen*& rpScreen_)
 {
     ProfileStart(Gfx);
 
-    int nHeight = g_pScreen->GetHeight();
+    int nHeight = rpScreen_->GetHeight() >> (GUI::IsActive() ? 0 : 1);
 
-    DWORD* pdwA = reinterpret_cast<DWORD*>(g_pScreen->GetLine(0));
+    DWORD* pdwA = reinterpret_cast<DWORD*>(rpScreen_->GetLine(0));
     DWORD* pdwB = reinterpret_cast<DWORD*>(g_pLastScreen->GetLine(0));
-    int nPitchDW = g_pScreen->GetPitch() >> 2;
+    int nPitchDW = rpScreen_->GetPitch() >> 2;
 
+    bool *pfHiRes = rpScreen_->GetHiRes(), *pfHiResLast = g_pLastScreen->GetHiRes();
 
-    bool *pfHiRes = g_pScreen->GetHiRes(), *pfHiResLast = g_pLastScreen->GetHiRes();
-
-
-    // Time to work out what changed since the last frame
+    // Work out what has changed since the last frame
     for (int i = 0 ; i < nHeight ; i++)
     {
         // Are the lines different resolutions?
         if (pfHiRes[i] != pfHiResLast[i])
-            Display::SetDirty(i);
+            Display::SetLineDirty(i);
         else
         {
-            int nWidth = g_pScreen->GetWidth(i) >> 2;
+            int nWidth = rpScreen_->GetWidth(i) >> 2;
             DWORD *pA = pdwA, *pB = pdwB;
 
             // Scan the line width
@@ -380,7 +462,7 @@ void Flip ()
                 // Check for differences 4 DWORDs at a time
                 if ((pA[0] ^ pB[0]) | (pA[1] ^ pB[1]) | (pA[2] ^ pB[2]) | (pA[3] ^ pB[3]))
                 {
-                    Display::SetDirty(i);
+                    Display::SetLineDirty(i);
                     break;
                 }
 
@@ -393,59 +475,64 @@ void Flip ()
         pdwB += nPitchDW;
     }
 
-    // Swap pointers to the current screen becomes the last screen
-    swap(g_pScreen, g_pLastScreen);
+    swap(g_pLastScreen, rpScreen_);
 
     ProfileEnd();
 }
 
 
 // Draw on-screen display indicators, such as the floppy LEDs and the status text
-void DrawOSD ()
+void DrawOSD (CScreen* pScreen_)
 {
     ProfileStart(Gfx);
+
+    int nWidth = pScreen_->GetPitch(), nHeight = pScreen_->GetHeight() >> 1;
 
     // Drive LEDs enabled?
     if (GetOption(drivelights))
     {
-        int nX = (GetOption(fullscreen) && GetOption(ratio5_4)) ? 20 : 4, nY = ((GetOption(drivelights)-1) & 1) ? -2 : 2;
+        int nX = (GetOption(fullscreen) && GetOption(ratio5_4)) ? 20 : 2;
+        int nY = ((GetOption(drivelights)-1) & 1) ? nHeight-4 : 2;
 
         // Floppy 1 light
         if (GetOption(drive1))
-            g_pScreen->FillRect(nX, nY, 14, 2, pDrive1->IsLightOn() ? FLOPPY_LED_ON_COLOUR : LED_OFF_COLOUR);
+            pScreen_->FillRect(nX, nY, 14, 2, pDrive1->IsLightOn() ? FLOPPY_LED_ON_COLOUR : LED_OFF_COLOUR);
 
         // Floppy 2 or Atom drive light
         if (GetOption(drive2))
         {
             BYTE bColour = (GetOption(drive2) == 1) ? FLOPPY_LED_ON_COLOUR : ATOM_LED_ON_COLOUR;
-            g_pScreen->FillRect(nX + 18, nY, 14, 2, pDrive2->IsLightOn() ? bColour : LED_OFF_COLOUR);
+            pScreen_->FillRect(nX + 18, nY, 14, 2, pDrive2->IsLightOn() ? bColour : LED_OFF_COLOUR);
         }
     }
+
+    // We'll use the old font for the simple on-screen text
+    CScreen::SetFont(&sOldFont);
 
     // Show the profiling statistics?
     if (GetOption(profile))
     {
-        g_pScreen->DrawString(-1, 2, szProfile, 0);
-        g_pScreen->DrawString(-2, 1, szProfile, 127);
+        int nX = nWidth - pScreen_->GetStringWidth(szProfile);
+
+        pScreen_->DrawString(nX-1, 2, szProfile, 0);
+        pScreen_->DrawString(nX-2, 1, szProfile, 127);
     }
 
     // Any active status line?
     if (GetOption(status) && szStatus[0])
     {
-        g_pScreen->DrawString(-1, -1, szStatus, 0);
-        g_pScreen->DrawString(-2, -2, szStatus, 127);
-    }
+        int nX = nWidth - pScreen_->GetStringWidth(szStatus);
 
-    // Debugger enabled?
-    if (g_fDebugging)
-        Debug::Display(g_pScreen);
+        pScreen_->DrawString(nX-1, nHeight-CHAR_HEIGHT-1, szStatus, 0);
+        pScreen_->DrawString(nX-2, nHeight-CHAR_HEIGHT-2, szStatus, 127);
+    }
 
     ProfileEnd();
 }
 
 
 // Save the frame image to a file
-void SaveFrame (const char* pcszPath_/*=NULL*/)
+void Frame::SaveFrame (const char* pcszPath_/*=NULL*/)
 {
     // If no path is supplied we need to generate a unique one
     if (!pcszPath_)
@@ -480,7 +567,7 @@ void SaveFrame (const char* pcszPath_/*=NULL*/)
 
         FILE* f = fopen(szScreenPath, "wb");
         if (!f)
-            SetStatus("Failed to open %s for writing!", szScreenPath);
+            Frame::SetStatus("Failed to open %s for writing!", szScreenPath);
         else
         {
             bool fSaved = SaveImage(f, g_pScreen);
@@ -488,10 +575,10 @@ void SaveFrame (const char* pcszPath_/*=NULL*/)
 
             // If the save failed, delete the empty image
             if (fSaved)
-                SetStatus("Saved screen to %s", pcszFile);
+                Frame::SetStatus("Saved screen to %s", pcszFile);
             else
             {
-                SetStatus("Failed to save screen to %s!", szScreenPath);
+                Frame::SetStatus("Failed to save screen to %s!", szScreenPath);
                 remove(szScreenPath);
             }
         }
@@ -503,7 +590,7 @@ void SaveFrame (const char* pcszPath_/*=NULL*/)
 
 
 // Set a status message, which will remain on screen for a few seconds
-void SetStatus (const char *pcszFormat_, ...)
+void Frame::SetStatus (const char *pcszFormat_, ...)
 {
     va_list pcvArgs;
     va_start (pcvArgs, pcszFormat_);
@@ -519,15 +606,13 @@ void SetStatus (const char *pcszFormat_, ...)
 
 // Handle screen mode changes, which need special attention to implement ASIC artefacts caused by an 8 pixel
 // block being drawn in a new mode, but using the data already fetched from the display memory for the old mode
-void ChangeMode (BYTE bVal_)
+void Frame::ChangeMode (BYTE bVal_)
 {
     // Is the current line in the main display area?
     if (IsScreenLine(g_nLine))
     {
         // Calculate the position of the change
         int nLine = g_nLine - s_nViewTop, nBlock = g_nLineCycle >> 3;
-        // Should actually be as below, but the above will have the same effect when it matters
-//      int nLine = g_nLine - s_nViewTop, nBlock = (g_nLineCycle + 1 - VIDEO_DELAY) >> 3;
 
         // Are we before the right-border?
         if (nBlock < (BORDER_BLOCKS+SCREEN_BLOCKS))
@@ -557,11 +642,9 @@ void ChangeMode (BYTE bVal_)
 
 
 // A screen line in a specified range is being written to, so we need to ensure it's up-to-date
-void TouchLines (int nFrom_, int nTo_)
+void Frame::TouchLines (int nFrom_, int nTo_)
 {
     // Is the line being modified in the area since we last update
     if (nTo_ >= nLastLine && nFrom_ <= g_nLine)
         Update();
 }
-
-}   // namespace Frame
