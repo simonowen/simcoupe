@@ -280,9 +280,10 @@ void RasterComplete ()
         // Complete the undrawn section of the current line, if any
         if (nTop == (nLastLine-s_nViewTop))
         {
-            BYTE* pb = g_pScreen->GetLine(nTop, fHiRes);
-            int nOffset = nLeft << (fHiRes ? 4 : 3);
-            memset(pb+nOffset, GREY_3, Frame::GetWidth() - nOffset);
+            int nOffset = nLeft << (fHiRes ? 4 : 3), nWidth = Frame::GetWidth() - nOffset;
+            if (nWidth > 0)
+                memset(g_pScreen->GetLine(nTop, fHiRes) + nOffset, GREY_3, nWidth);
+
             nTop++;
         }
 
