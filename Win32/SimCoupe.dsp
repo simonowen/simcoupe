@@ -525,6 +525,10 @@ SOURCE=.\Cursors\arrow.cur
 # End Group
 # Begin Source File
 
+SOURCE=.\afxres.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\resource.h
 # End Source File
 # Begin Source File
