@@ -39,7 +39,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 CStream::CStream (const char* pcszPath_, bool fReadOnly_/*=false*/)
-    : m_nMode(modeClosed), m_uSize(0), m_fReadOnly(fReadOnly_), m_pszFile(NULL)
+    : m_nMode(modeClosed), m_pszFile(NULL), m_fReadOnly(fReadOnly_), m_uSize(0)
 {
     // Keep a copy of the stream source as we'll need it for saving
     m_pszPath = strdup(pcszPath_);
@@ -247,9 +247,6 @@ size_t CMemStream::Write (void* pvBuffer_, size_t uLen_)
 CZLibStream::CZLibStream (gzFile hFile_, const char* pcszPath_, bool fReadOnly_/*=false*/)
     : CStream(pcszPath_, fReadOnly_), m_hFile(hFile_)
 {
-    char szFile[MAX_PATH];
-    size_t nLen = strlen(strcpy(szFile, pcszPath_));
-
     for (const char* p = pcszPath_ ; *p ; p++)
     {
         if (*p == PATH_SEPARATOR)
