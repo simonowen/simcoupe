@@ -33,14 +33,9 @@
 #include "SimCoupe.h"
 #include <math.h>
 
-#define SOUND_IMPLEMENTATION
 #include "Sound.h"
 
-#ifdef USE_SAASOUND
-#include "SAASound.h"
-#else
 #include "../Extern/SAASound.h"
-#endif
 
 #include "CPU.h"
 #include "IO.h"
@@ -53,8 +48,10 @@
 UINT HCF (UINT x_, UINT y_);
 
 
-CSAA* pSAA;     // Pointer to the current driver object for dealing with the sound chip
-CDAC *pDAC;     // DAC object used for parallel DAC devices and the Spectrum-style beeper
+CSoundStream* aStreams[SOUND_STREAMS];
+
+CSoundStream*& pSAA = aStreams[0];     // SAA 1099 
+CSoundStream*& pDAC = aStreams[1];     // DAC for parallel DACs and Spectrum-style beeper
 
 LPCSAASOUND pSAASound;      // SAASound.dll object - needs to exist as long as we do, to preseve subtle internal states
 
@@ -146,8 +143,8 @@ void Sound::Exit (bool fReInit_/*=false*/)
 
     ExitAllegroSound();
 
-    if (pSAA) { delete pSAA; pSAA = NULL; }
-    if (pDAC) { delete pDAC; pDAC = NULL; }
+    for (int i = 0 ; i < SOUND_STREAMS ; i++)
+        delete aStreams[i], aStreams[i] = NULL;
 
     if (pSAASound && !fReInit_)
     {
@@ -162,7 +159,7 @@ void Sound::Exit (bool fReInit_/*=false*/)
 void Sound::Out (WORD wPort_, BYTE bVal_)
 {
     if (pSAA)
-        pSAA->Out(wPort_, bVal_);
+        reinterpret_cast<CSAA*>(pSAA)->Out(wPort_, bVal_);
 }
 
 void Sound::FrameUpdate ()
@@ -171,8 +168,8 @@ void Sound::FrameUpdate ()
 
     if (!g_fTurbo)
     {
-        if (pSAA) pSAA->Update(true);
-        if (pDAC) pDAC->Update(true);
+        for (int i = 0 ; i < SOUND_STREAMS ; i++)
+            if (aStreams[i]) aStreams[i]->Update(true);
     }
 
     ProfileEnd();
@@ -181,36 +178,38 @@ void Sound::FrameUpdate ()
 
 void Sound::Silence ()
 {
-    if (pSAA) pSAA->Silence();
-    if (pDAC) pDAC->Silence();
+    for (int i = 0 ; i < SOUND_STREAMS ; i++)
+        if (aStreams[i]) aStreams[i]->Silence();
 }
 
 void Sound::Stop ()
 {
-    if (pSAA) pSAA->Stop();
-    if (pDAC) pDAC->Stop();
+    for (int i = 0 ; i < SOUND_STREAMS ; i++)
+        if (aStreams[i])
+            aStreams[i]->Stop(), aStreams[i]->Silence();
 }
 
 void Sound::Play ()
 {
-    if (pSAA) pSAA->Play();
-    if (pDAC) pDAC->Play();
+    for (int i = 0 ; i < SOUND_STREAMS ; i++)
+        if (aStreams[i])
+            aStreams[i]->Silence(), aStreams[i]->Play();
 }
 
 
 void Sound::OutputDAC (BYTE bVal_)
 {
-    if (pDAC) pDAC->Output(bVal_);
+    if (pDAC) reinterpret_cast<CDAC*>(pDAC)->Output(bVal_);
 }
 
 void Sound::OutputDACLeft (BYTE bVal_)
 {
-    if (pDAC) pDAC->OutputLeft(bVal_);
+    if (pDAC) reinterpret_cast<CDAC*>(pDAC)->OutputLeft(bVal_);
 }
 
 void Sound::OutputDACRight (BYTE bVal_)
 {
-    if (pDAC) pDAC->OutputRight(bVal_);
+    if (pDAC) reinterpret_cast<CDAC*>(pDAC)->OutputRight(bVal_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -382,7 +381,13 @@ void CSAA::Generate (BYTE* pb_, int nSamples_)
 {
     // Samples could now be zero, so check...
     if (nSamples_ > 0)
+    {
         pSAASound->GenerateMany(pb_, nSamples_);
+
+        // 16-bit samples need converting from signed to unsigned
+        if (m_nBits == 16)
+            for (nSamples_ <<= (m_nChannels-1) ; nSamples_-- ; pb_[1] ^= 0x80, pb_ += 2);
+    }
 }
 
 void CSAA::GenerateExtra (BYTE* pb_, int nSamples_)
@@ -394,7 +399,13 @@ void CSAA::GenerateExtra (BYTE* pb_, int nSamples_)
 
     // Normal SAA sound use, so generate more real samples to give a seamless join
     else if (nSamples_ > 0)
+    {
         pSAASound->GenerateMany(pb_, nSamples_);
+
+        // 16-bit samples need converting from signed to unsigned
+        if (m_nBits == 16)
+            for (nSamples_ <<= (m_nChannels-1) ; nSamples_-- ; pb_[1] ^= 0x80, pb_ += 2);
+    }
 }
 
 void CSAA::Out (WORD wPort_, BYTE bVal_)
@@ -480,8 +491,8 @@ void CDAC::Generate (BYTE* pb_, int nSamples_)
             // Mono
             if (m_nChannels == 1)
             {
-                WORD *pw = reinterpret_cast<WORD*>(pb_), wSample = ((static_cast<WORD>(m_bLeft) + m_bRight - 0x100) / 2) * 0x101;
-                *pw++ = ((static_cast<WORD>(bFirstRight) + bFirstRight - 0x100) / 2) * 0x101;
+                WORD *pw = reinterpret_cast<WORD*>(pb_), wSample = ((static_cast<WORD>(m_bLeft) + m_bRight) >> 1) * 0x0101;
+                *pw++ = ((static_cast<WORD>(bFirstRight) + bFirstRight) >> 1) * 0x0101;
                 while (nSamples_--)
                     *pw++ = wSample;
             }
@@ -489,10 +500,10 @@ void CDAC::Generate (BYTE* pb_, int nSamples_)
             // Stereo
             else
             {
-                WORD wLeft = static_cast<WORD>(m_bLeft-0x80) << 8, wRight = static_cast<WORD>(m_bRight-0x80) << 8;
+                WORD wLeft = static_cast<WORD>(m_bLeft) << 8, wRight = static_cast<WORD>(m_bRight) << 8;
 
                 DWORD *pdw = reinterpret_cast<DWORD*>(pb_), dwSample = (static_cast<DWORD>(wRight) << 16) | wLeft;
-                *pdw++ = (static_cast<WORD>(bFirstRight-0x80) << 24) | (static_cast<WORD>(bFirstLeft-0x80) << 8);
+                *pdw++ = (static_cast<WORD>(bFirstRight) << 24) | (static_cast<WORD>(bFirstLeft) << 8);
 
                 while (nSamples_--)
                     *pdw++ = dwSample;
@@ -514,7 +525,6 @@ void CDAC::GenerateExtra (BYTE* pb_, int nSamples_)
     if (pb_ != m_pbFrameSample)
         memmove(pb_, m_pbFrameSample, nSamples_*m_nSampleSize);
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
