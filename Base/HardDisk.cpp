@@ -168,18 +168,18 @@ static void SetIdentityString (char* psz_, int nLen_, const char* pcszValue_)
 
     RS_IDE sHeader = { {'R','S','-','I','D','E'}, 0x1a, 0x10, 0x00,  0x80, 0x00 };
 
-    sHeader.sIdentity.wCaps = 0x2241;                   // Fixed device, motor control, hard sectored, <= 5Mbps
-    sHeader.sIdentity.wLogicalCylinders = uCylinders_;
-    sHeader.sIdentity.wLogicalHeads = uHeads_;
-    sHeader.sIdentity.wBytesPerTrack = uSectors_ << 9;
-    sHeader.sIdentity.wBytesPerSector = 1 << 9;
-    sHeader.sIdentity.wSectorsPerTrack = uSectors_;
+    ATAPUT(sHeader.sIdentity.wCaps, 0x2241);                    // Fixed device, motor control, hard sectored, <= 5Mbps
+    ATAPUT(sHeader.sIdentity.wLogicalCylinders, uCylinders_);
+    ATAPUT(sHeader.sIdentity.wLogicalHeads, uHeads_);
+    ATAPUT(sHeader.sIdentity.wBytesPerTrack, uSectors_ << 9);
+    ATAPUT(sHeader.sIdentity.wBytesPerSector, 1 << 9);
+    ATAPUT(sHeader.sIdentity.wSectorsPerTrack, uSectors_);
 
-    sHeader.sIdentity.wControllerType = 1;  // single port, single sector
-    sHeader.sIdentity.wBufferSize512 = 1;   // 512 bytes
-    sHeader.sIdentity.wLongECCBytes = 4;
+    ATAPUT(sHeader.sIdentity.wControllerType, 1);  // single port, single sector
+    ATAPUT(sHeader.sIdentity.wBufferSize512, 1);   // 512 bytes
+    ATAPUT(sHeader.sIdentity.wLongECCBytes, 4);
 
-    sHeader.sIdentity.wReadWriteMulti = 0;  // no multi-sector handling
+    ATAPUT(sHeader.sIdentity.wReadWriteMulti, 0);  // no multi-sector handling
 
     // The identity strings need to be padded with spaces and byte-swapped
     SetIdentityString(sHeader.sIdentity.szSerialNumber, sizeof sHeader.sIdentity.szSerialNumber, "090");
@@ -225,14 +225,10 @@ bool CHDFHardDisk::Open (const char* pcszDisk_)
             // Use the identity structure from the header
             memcpy(&m_sIdentity, &sHeader.sIdentity, sizeof m_sIdentity);
 
-            BYTE* pbCylinders = reinterpret_cast<BYTE*>(&m_sIdentity.wLogicalCylinders);
-            BYTE* pbHeads = reinterpret_cast<BYTE*>(&m_sIdentity.wLogicalHeads);
-            BYTE* pbSectors = reinterpret_cast<BYTE*>(&m_sIdentity.wSectorsPerTrack);
-
-            // Fill the geometry, taking care of the source endian
-            m_sGeometry.uCylinders = (pbCylinders[1] << 8) | pbCylinders[0];
-            m_sGeometry.uHeads = (pbHeads[1] << 8) | pbHeads[0];
-            m_sGeometry.uSectors = (pbSectors[1] << 8) | pbSectors[0];
+            // Extract the disk geometry from the identity structure
+            m_sGeometry.uCylinders = ATAGET(m_sIdentity.wLogicalCylinders);
+            m_sGeometry.uHeads = ATAGET(m_sIdentity.wLogicalHeads);
+            m_sGeometry.uSectors = ATAGET(m_sIdentity.wSectorsPerTrack);
             m_sGeometry.uTotalSectors = m_sGeometry.uCylinders * m_sGeometry.uHeads * m_sGeometry.uSectors;
 
             return true;

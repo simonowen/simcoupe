@@ -2,7 +2,7 @@
 //
 // ATA.h: ATA hard disk (and future ATAPI CD-ROM) emulation
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -51,47 +51,62 @@ typedef struct tagATAregs
 ATAregs;
 
 
+// The identity structure must be packed to match the stored binary representation
+#pragma pack(1)
+
+typedef struct
+{
+	BYTE l, h;
+}
+ATAWORD;
+
 // Structure to data response to IDENTIFY command
 typedef struct
 {
-    WORD    wCaps;              // Bit 06: Fixed device
+    ATAWORD wCaps;              // Bit 06: Fixed device
 
-    WORD    wLogicalCylinders;  // Number of logical cylinders in the default translation mode
+    ATAWORD wLogicalCylinders;  // Number of logical cylinders in the default translation mode
 
-    WORD    wReserved;          // Reserved
+    ATAWORD wReserved;          // Reserved
 
-    WORD    wLogicalHeads;      // Number of logical heads in the default translation mode
-    WORD    wBytesPerTrack;     // Obsolete
-    WORD    wBytesPerSector;    // Obsolete
-    WORD    wSectorsPerTrack;   // Number of logical sectors per track
+    ATAWORD wLogicalHeads;      // Number of logical heads in the default translation mode
+    ATAWORD wBytesPerTrack;     // Obsolete
+    ATAWORD wBytesPerSector;    // Obsolete
+    ATAWORD wSectorsPerTrack;   // Number of logical sectors per track
 
-    WORD    wInterSectorGaps;   // Obsolete
-    WORD    wPhaseLockOscil;    // Obsolete
-    WORD    wVendorStatusWords; // Obsolete
+    ATAWORD wInterSectorGaps;   // Obsolete
+    ATAWORD wPhaseLockOscil;    // Obsolete
+    ATAWORD wVendorStatusWords; // Obsolete
 
     char    szSerialNumber[20]; // Serial number, 20 ASCII chars, right aligned & padded with 20h
 
-    WORD    wControllerType;    // Obsolete
-    WORD    wBufferSize512;     // Obsolete
+    ATAWORD wControllerType;    // Obsolete
+    ATAWORD wBufferSize512;     // Obsolete
 
-    WORD    wLongECCBytes;      // Number of ECC bytes passed to host on R/W long operations
+    ATAWORD wLongECCBytes;      // Number of ECC bytes passed to host on R/W long operations
 
     char    szFirmwareRev[8];   // Firmware revision, 8 ASCII chars, left aligned & space padded
 
     char    szModelNumber[40];  // Model Number, 40 ASCII chars, left aligned & space padded
 
-    WORD    wReadWriteMulti;    // READ/WRITE multiples implemented
+    ATAWORD wReadWriteMulti;    // READ/WRITE multiples implemented
 
-    WORD    wReserved2;         // Reserved (48)
-    WORD    wCapabilities;      // Capabilities
-    WORD    wReserved3;         // Reserved (50)
+    ATAWORD wReserved2;         // Reserved (48)
+    ATAWORD wCapabilities;      // Capabilities
+    ATAWORD wReserved3;         // Reserved (50)
 
-    WORD    wPIODataTransfer;   // PIO data transfer cycle timing mode
-    WORD    wDMADataTransfer;   // Single Word DMA data transfer cycle timing mode
+    ATAWORD wPIODataTransfer;   // PIO data transfer cycle timing mode
+    ATAWORD wDMADataTransfer;   // Single Word DMA data transfer cycle timing mode
 
     // etc. for later ATA versions
 }
 DEVICEIDENTITY;
+
+#pragma pack()
+
+// Helper macros for accessing the structure above - needed to be endian-safe
+#define ATAGET(x)		(((x.h) << 8) | (x.l))
+#define ATAPUT(x,n)		( x.l = ((n) & 0xff), x.h = ((n) >> 8) )
 
 
 // Device Control Register
