@@ -22,89 +22,58 @@
 //  functionality to generate sample data representing silence.
 
 #include "SimCoupe.h"
-#include "SAASound.h"
 
-#ifdef DUMMY_SAASOUND
-
-////////////////////////////////////////////////////////////////////////////////
-
-LPCSAASOUND WINAPI CreateCSAASound ()
-{
-    return reinterpret_cast<LPCSAASOUND>(new DWORD);
-}
-
-void WINAPI DestroyCSAASound (LPCSAASOUND p_)
-{
-    delete reinterpret_cast<DWORD*>(p_);
-}
+#ifndef USE_SAASOUND
+#include "./SAASound.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void CSAASound::SetSoundParameters (SAAPARAM dwParams_)
+class CSAASoundImpl : public CSAASound
 {
-    *reinterpret_cast<DWORD*>(this) = dwParams_;
+public:
+    CSAASoundImpl () : m_dwParams(0) {  }
+
+public:
+    void SetSoundParameters (SAAPARAM dwParams_) { m_dwParams = dwParams_; }
+    void WriteAddress (BYTE nReg) { }
+    void WriteData (BYTE nData) { }
+    void WriteAddressData (BYTE nReg, BYTE nData) { }
+    void Clear () { }
+    BYTE ReadAddress () { return 0x00; }
+
+    SAAPARAM GetCurrentSoundParameters () { return m_dwParams; }
+    unsigned long GetCurrentSampleRate () { return m_dwParams & SAAP_44100; }
+
+    unsigned short GetCurrentBytesPerSample ()
+        { return ((m_dwParams & 8) ? 2 : 1) * ((m_dwParams & 2) ? 2 : 1); }
+
+    void GenerateMany (BYTE* pBuffer_, unsigned long dwSamples_)
+        { memset(pBuffer_, (m_dwParams & 8) ? 0x00 : 0x80, dwSamples_ * GetCurrentBytesPerSample()); }
+
+    int SendCommand (SAACMD nCommandID, long nData) { return 0; }
+
+
+    static unsigned long GetSampleRate (SAAPARAM dwParams_)
+        { return dwParams_ & SAAP_16BIT; }
+
+    static unsigned short GetBytesPerSample (SAAPARAM dwParams_)
+        { return ((dwParams_ & 8) ? 2 : 1) * ((dwParams_ & 2) ? 2 : 1); }
+
+protected:
+    DWORD m_dwParams;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
+LPCSAASOUND SAAAPI CreateCSAASound ()
+{
+    return reinterpret_cast<LPCSAASOUND>(new CSAASoundImpl);
 }
 
-void CSAASound::WriteAddress (BYTE bReg_)
+void SAAAPI DestroyCSAASound (LPCSAASOUND pSAASound_)
 {
+    if (pSAASound_)
+        delete reinterpret_cast<CSAASoundImpl*>(pSAASound_);
 }
 
-void CSAASound::WriteData (BYTE bData_)
-{
-}
-
-void CSAASound::WriteAddressData (BYTE bReg_, BYTE bData_)
-{
-}
-
-void CSAASound::Clear ()
-{
-}
-
-BYTE CSAASound::ReadAddress ()
-{
-    return 0x00;
-}
-
-SAAPARAM CSAASound::GetCurrentSoundParameters ()
-{
-    return *reinterpret_cast<DWORD*>(this);
-}
-
-unsigned long CSAASound::GetCurrentSampleRate ()
-{
-    return *reinterpret_cast<DWORD*>(this) & SAAP_44100;
-}
-
-/*static*/ unsigned long CSAASound::GetSampleRate (SAAPARAM dwParams_)
-{
-    return dwParams_ & SAAP_16BIT;
-}
-
-unsigned short CSAASound::GetCurrentBytesPerSample ()
-{
-    DWORD dwParams = *reinterpret_cast<DWORD*>(this);
-    return ((dwParams & 8) ? 2 : 1) * ((dwParams & 2) ? 2 : 1);
-}
-
-/*static*/ unsigned short CSAASound::GetBytesPerSample (SAAPARAM dwParams_)
-{
-    return ((dwParams_ & 8) ? 2 : 1) * ((dwParams_ & 2) ? 2 : 1);
-}
-
-void CSAASound::GenerateMany(BYTE* pBuffer_, DWORD dwSamples_)
-{
-    // Generate as much silence as requested
-    memset(pBuffer_, (*reinterpret_cast<DWORD*>(this) & 8) ? 0x00 : 0x80, dwSamples_ * GetCurrentBytesPerSample());
-}
-
-void CSAASound::ClickClick(int bValue_)
-{
-}
-
-int CSAASound::SendCommand(SAACMD nCommandID, long nData)
-{
-    return 0;
-}
-
-#endif  // DUMMY_SAASOUND
+#endif  // !USE_SAASOUND
