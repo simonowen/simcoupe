@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // ATA.h: ATA hard disk (and future ATAPI CD-ROM) emulation
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,8 +20,6 @@
 
 #ifndef ATA_H
 #define ATA_H
-
-class CHardDisk;
 
 
 // ATA controller registers
@@ -56,7 +54,7 @@ ATAregs;
 
 typedef struct
 {
-	BYTE l, h;
+    BYTE l, h;
 }
 ATAWORD;
 
@@ -105,8 +103,8 @@ DEVICEIDENTITY;
 #pragma pack()
 
 // Helper macros for accessing the structure above - needed to be endian-safe
-#define ATAGET(x)		(((x.h) << 8) | (x.l))
-#define ATAPUT(x,n)		( x.l = ((n) & 0xff), x.h = ((n) >> 8) )
+#define ATAGET(x)       (((x.h) << 8) | (x.l))
+#define ATAPUT(x,n)     ( x.l = ((n) & 0xff), x.h = ((n) >> 8) )
 
 
 // Device Control Register
@@ -137,26 +135,40 @@ const BYTE ATA_ERROR_AMNF   = 0x01;     // Data address mark not found after cor
 const BYTE ERROR_DEVICE1    = 0x80;     // Value to OR with errors for 2nd device
 
 
+typedef struct
+{
+    UINT uTotalSectors;
+    UINT uCylinders, uHeads, uSectors;
+}
+ATA_GEOMETRY;
+
+
 // Base class for a generic ATA device
 class CATADevice
 {
-    // Construction and destruction
     public:
-        CATADevice (CHardDisk* pDisk_);
-        virtual ~CATADevice ();
+        CATADevice ();
+        virtual ~CATADevice () { }
 
-    // Operations
     public:
-        void Reset ();
         WORD In (WORD wPort_);
         void Out (WORD wPort_, WORD wVal_);
+
+        void Reset ();
+        const ATA_GEOMETRY* GetGeometry() const { return &m_sGeometry; };
+
+    public:
+        virtual const char* GetPath () const = 0;
+        virtual bool ReadSector (UINT uSector_, BYTE* pb_) = 0;
+        virtual bool WriteSector (UINT uSector_, BYTE* pb_) = 0;
 
     protected:
         bool ReadWriteSector (bool fWrite_);
 
     protected:
         ATAregs m_sRegs;                // AT device registers
-        CHardDisk* m_pDisk;             // Disk object holding the actual data
+        DEVICEIDENTITY m_sIdentity;     // Response to IDENTIFY command
+        ATA_GEOMETRY m_sGeometry;       // Device geometry
 
         BYTE    m_abSectorData[512];    // Sector buffer used for all reads and writes
         BYTE    m_abVendorBytes[4];     // 4 for the ECC bytes for R/W Long operations
