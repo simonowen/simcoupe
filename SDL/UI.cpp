@@ -63,7 +63,7 @@ enum eActions
     actChangeKeyMode, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actInsertFloppy2, actEjectFloppy2,
     actSaveFloppy2, actNewDisk, actSaveScreenshot, actFlushPrintJob, actDebugger, actImportData, actExportData,
     actDisplayOptions, actExitApplication, actToggleTurbo, actTempTurbo, actReleaseMouse, actPause, actFrameStep,
-    MAX_ACTION
+    actPrinterOnline, MAX_ACTION
 };
 
 const char* aszActions[MAX_ACTION] =
@@ -74,7 +74,7 @@ const char* aszActions[MAX_ACTION] =
     "Save changes to floppy 1", "Insert floppy 2", "Eject floppy 2", "Save changes to floppy 2", "New Disk",
     "Save screenshot", "Flush print job", "Debugger", "Import data", "Export data", "Display options",
     "Exit application", "Toggle turbo speed", "Turbo speed (when held)", "Release mouse capture", "Pause",
-    "Step single frame"
+    "Step single frame", "Toggle printer online"
 };
 
 
@@ -357,11 +357,6 @@ void DoAction (int nAction_, bool fPressed_)
                 Frame::SaveFrame();
                 break;
 
-            case actFlushPrintJob:
-                IO::InitParallel();
-                Frame::SetStatus("Flushed any active print job");
-                break;
-
             case actDebugger:
                 GUI::Start(new CMessageBox(NULL, "Debugger not yet implemented", "Sorry!", mbInformation));
                 break;
@@ -447,6 +442,16 @@ void DoAction (int nAction_, bool fPressed_)
                 Frame::Redraw();
                 break;
             }
+
+            case actFlushPrintJob:
+                IO::InitParallel();
+                Frame::SetStatus("Flushed active print job");
+                break;
+
+            case actPrinterOnline:
+                SetOption(printeronline, !GetOption(printeronline));
+                Frame::SetStatus("Printer %s", GetOption(printeronline) ? "ONLINE" : "OFFLINE");
+                break;
         }
     }
 
