@@ -2,7 +2,7 @@
 //
 // Input.cpp: Win32 mouse and DirectInput keyboard input
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -469,13 +469,30 @@ bool ReadKeyboard ()
         }
     }
 
-    // If the option is set, Left-ALT does the same as Right-Control: to generate SAM Cntrl
-    if (GetOption(altforcntrl) && IsPressed(DIK_LMENU))
-        PressKey(DIK_RCONTROL);
+    // Ensure certain Windows Alt-key combinations don't make it through to the emulation
+    if (IsPressed(DIK_LMENU))
+    {
+        int anIgnore[] = { DIK_TAB, DIK_ESCAPE, DIK_SPACE, DIK_RETURN };
 
-    // AltGr can be used with the regular function keys for the SAM keypad
-    bool fWindows = IsPressed(DIK_LWIN) || IsPressed(DIK_RWIN);
-    if (GetOption(samfkeys) != fWindows)
+        for (int i = 0 ; i < sizeof(anIgnore)/sizeof(anIgnore[0]) ; i++)
+        {
+            if (IsPressed(anIgnore[i]))
+            {
+                ReleaseKey(DIK_LMENU);
+                ReleaseKey(anIgnore[i]);
+            }
+        }
+    }
+
+    // Left-Alt can optionally be used as the SAM Cntrl key
+    if (GetOption(altforcntrl) && IsPressed(DIK_LMENU))
+    {
+        ReleaseKey(DIK_LMENU);
+        PressKey(DIK_RCONTROL);
+    }
+
+    // The Windows keys can be used with the regular function keys for the SAM keypad
+    if (GetOption(samfkeys) != (IsPressed(DIK_LWIN) || IsPressed(DIK_RWIN)))
     {
         for (int i = DIK_F1 ; i <= DIK_F10 ; i++)
         {
@@ -658,10 +675,6 @@ void SetSamKeyState ()
     // No SAM keys are pressed initially
     ReleaseAllSamKeys();
 
-    // Return to ignore common Windows ALT- combinations so SAM doesn't see them
-    if (IsPressed(DIK_LMENU) && (IsPressed(DIK_TAB) || IsPressed(DIK_ESCAPE) || IsPressed(DIK_SPACE)))
-        return;
-
     // Left and right shift keys are equivalent, and also complementary!
     bool fShiftToggle = IsPressed(DIK_LSHIFT) && IsPressed(DIK_RSHIFT);
     abKeyStates[DIK_LSHIFT] |= abKeyStates[DIK_RSHIFT];
@@ -705,14 +718,10 @@ void Input::Update ()
 
 
 // Send a mouse message to the GUI, after mapping the mouse position to the SAM screen
-bool SendGuiMouseMessage (int nMessage_, LPARAM lParam_, bool fScreenCoords_)
+bool SendGuiMouseMessage (int nMessage_, LPARAM lParam_)
 {
     // Extract the cursor position from the mouse message parameter
     POINT pt = { GET_X_LPARAM(lParam_), GET_Y_LPARAM(lParam_) };
-
-    // Convert from screen to client coordinates if required
-    if (fScreenCoords_)
-        ScreenToClient(g_hwnd, &pt);
 
     // Map from display position to SAM screen position
     int nX = pt.x, nY = pt.y;
@@ -724,132 +733,104 @@ bool SendGuiMouseMessage (int nMessage_, LPARAM lParam_, bool fScreenCoords_)
 
 bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
+    // Mouse button decoder table, from the lower 3 bits of the Windows message values
+    static int anMouseButtons[] = { 2, 1, 1, 0, 3, 3, 0, 2 };
+
     switch (uMsg_)
     {
-        // Mouse has been moved
-        case WM_NCMOUSEMOVE:
-            // Only pass on movement messages when running full-screen
-            if (GetOption(fullscreen))
-                SendGuiMouseMessage(GM_MOUSEMOVE, lParam_, true);
-            break;
-
         case WM_MOUSEMOVE:
         {
-            // Mouse coordinates are in screen units, but need converting to our client coordinates
+            int x = GET_X_LPARAM(lParam_), y = GET_Y_LPARAM(lParam_);
+
             RECT r;
             GetClientRect(hwnd_, &r);
 
-            // Get the mouse position and restrict the point to the closest window edge
-            int x = GET_X_LPARAM(lParam_), y = GET_Y_LPARAM(lParam_);
+            // Restrict the mouse position to the window edges
             x = (x < 0) ? 0 : (x >= r.right) ? r.right-1 : x;
             y = (y < 0) ? 0 : (y >= r.bottom) ? r.bottom-1 : y;
 
             // If the GUI is active, pass the message to it
             if (GUI::IsActive())
-                SendGuiMouseMessage(GM_MOUSEMOVE, (y << 16) | x, false);
-
-            // Otherwise the SAM mouse must be active for it to be of interest
-            else if (fMouseActive)
             {
-                // Calculate the central position in the client area
-                POINT ptCentre = { r.right/2, r.bottom/2 };
-
-                // Work out the relative movement since last time
-                int nX = x - ptCentre.x, nY = y - ptCentre.y;
-
-                // Has it moved at all?
-                if (nX || nY)
-                {
-                    // We need to track partial units, as we're higher resolution than SAM
-                    static int nXX, nYY;
-
-                    // Add on the new movement
-                    nXX += nX, nYY += nY;
-
-                    // How far has the mouse moved in SAM units?
-                    nX = nXX, nY = nYY;
-                    Display::DisplayToSamSize(&nX, &nY);
-
-                    // Update the SAM mouse position
-                    Mouse::Move(nX, -nY);
-                    TRACE("Mouse move: X:%-03d Y:%-03d\n", nX, nY);
-
-                    // How far is the SAM mouse movement in native units?
-                    Display::SamToDisplaySize(&nX, &nY);
-
-                    // Subtract the used portion of the movement, and leave the remainder for next time
-                    nXX -= nX, nYY -= nY;
-
-                    // Move the mouse back to the centre to stop it escaping
-                    ClientToScreen(hwnd_, &ptCentre);
-                    SetCursorPos(ptCentre.x, ptCentre.y);
-                }
+                SendGuiMouseMessage(GM_MOUSEMOVE, (y << 16) | x);
+                break;
             }
 
+            // Otherwise the SAM mouse must be active for it to be of interest
+            else if (!fMouseActive)
+                break;
+
+
+            // Calculate the central position in the client area
+            POINT ptCentre = { r.right/2, r.bottom/2 };
+
+            // Work out the relative movement since last time
+            int nX = x - ptCentre.x, nY = y - ptCentre.y;
+
+            // Has it moved at all?
+            if (nX || nY)
+            {
+                // We need to track partial units, as we're higher resolution than SAM
+                static int nXX, nYY;
+
+                // Add on the new movement
+                nXX += nX, nYY += nY;
+
+                // How far has the mouse moved in SAM units?
+                nX = nXX, nY = nYY;
+                Display::DisplayToSamSize(&nX, &nY);
+
+                // Update the SAM mouse position
+                Mouse::Move(nX, -nY);
+                TRACE("Mouse move: X:%-03d Y:%-03d\n", nX, nY);
+
+                // How far is the SAM mouse movement in native units?
+                Display::SamToDisplaySize(&nX, &nY);
+
+                // Subtract the used portion of the movement, and leave the remainder for next time
+                nXX -= nX, nYY -= nY;
+
+                // Move the mouse back to the centre to stop it escaping
+                ClientToScreen(hwnd_, &ptCentre);
+                SetCursorPos(ptCentre.x, ptCentre.y);
+            }
             break;
         }
 
-        case WM_NCLBUTTONDOWN:
-        case WM_NCRBUTTONDOWN:
-        case WM_NCMBUTTONDOWN:
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
         case WM_MBUTTONDOWN:
         {
-            bool fNonClient = uMsg_ < WM_MOUSEFIRST;
-
-            // Ignore non-client clicks in windowed mode
-            if (fNonClient && !GetOption(fullscreen))
-                break;
-
             // The GUI always gets first chance to process the message
             if (GUI::IsActive())
             {
-                SendGuiMouseMessage(GM_BUTTONDOWN, lParam_, fNonClient);
+                SendGuiMouseMessage(GM_BUTTONDOWN, lParam_);
                 SetCapture(hwnd_);
             }
 
             // If the mouse is already active, pass on button presses
             else if (fMouseActive)
-            {
-                uMsg_ &= 0xf;
-                Mouse::SetButton((uMsg_ == 1) ? 1 : (uMsg_ == 4) ? 2 : 3, true);
-            }
-
-            // Acquire the mouse if it's enabled
-            else if (GetOption(mouse))
-                Acquire();
+                Mouse::SetButton(anMouseButtons[uMsg_ & 0x7], true);
 
             break;
         }
 
-        case WM_NCLBUTTONUP:
-        case WM_NCRBUTTONUP:
-        case WM_NCMBUTTONUP:
         case WM_LBUTTONUP:
         case WM_RBUTTONUP:
         case WM_MBUTTONUP:
         {
-            bool fNonClient = uMsg_ < WM_MOUSEFIRST;
-
             // If we captured to catch the release, release it now
             if (GetCapture() == hwnd_)
                 ReleaseCapture();
 
-            // Ignore non-client releases in windowed mode
-            if (fNonClient && !GetOption(fullscreen))
-                break;
-
             // The GUI always gets first chance to process the message
             if (GUI::IsActive())
-                SendGuiMouseMessage(GM_BUTTONUP, lParam_, fNonClient);
+                SendGuiMouseMessage(GM_BUTTONUP, lParam_);
 
             // Pass the button release through to the mouse module
             else if (fMouseActive)
-            {
-                uMsg_ &= 0xf;
-                Mouse::SetButton((uMsg_ == 2) ? 1 : (uMsg_ == 5) ? 2 : 3, false);
-            }
+                Mouse::SetButton(anMouseButtons[uMsg_ & 0x7], false);
+
             break;
         }
 
@@ -900,13 +881,6 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
             }
 
             return false;
-        }
-
-        case WM_ACTIVATEAPP:
-        {
-            // Release the mouse so we require a click to grab it back
-            Acquire(false);
-            break;
         }
     }
 
