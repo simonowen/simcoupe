@@ -116,7 +116,8 @@ COMBINATION_KEY asSpectrumSymbols[] =
     { ':',  SK_SYMBOL, SK_Z },  { 163/*£*/,  SK_SYMBOL, SK_X },  { '?',  SK_SYMBOL, SK_C },
     { '/',  SK_SYMBOL, SK_V },  { '*',  SK_SYMBOL, SK_B },       { ',',  SK_SYMBOL, SK_N },
     { '.',  SK_SYMBOL, SK_M },  { '\b', SK_SHIFT,  SK_0 },
-    { '\0' }
+
+    { '\0', SK_NONE,    SK_NONE,    SDLK_UNKNOWN }
 };
 
 // Handy mappings from unused PC keys to a SAM combination
