@@ -37,9 +37,6 @@ class Util
 enum eMsgType { msgInfo, msgWarning, msgError, msgFatal };
 void Message (eMsgType eType_, const char* pcszFormat_, ...);
 
-bool OpenLog ();
-void CloseLog ();
-
 void TraceOutputString (const char *pcszFormat, ...);
 void TraceOutputString (const BYTE *pcb_, size_t uLen_=0);
 

@@ -54,7 +54,6 @@ bool Util::Init ()
     return true;
 }
 
-
 void Util::Exit ()
 {
     if (s_pszTrace) { delete[] s_pszTrace; s_pszTrace = NULL; }
@@ -92,32 +91,17 @@ UINT Util::HCF (UINT x_, UINT y_)
     return uHCF;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
 // Report an info, warning, error or fatal message.  Exit if a fatal message has been reported
 void Message (eMsgType eType_, const char* pcszFormat_, ...)
 {
     va_list args;
     va_start(args, pcszFormat_);
 
-    const char* pcszType_ = "";
-    switch (eType_)
-    {
-        case msgWarning:    pcszType_ = "warning: ";    break;
-        case msgError:      pcszType_ = "error: ";      break;
-        case msgInfo:       pcszType_ = "info: ";       break;
-        case msgFatal:      pcszType_ = "fatal: ";      break;
-    }
+    char szMessage[512];
+    vsprintf(szMessage, pcszFormat_, args);
 
-    static char szMessage[512];
-    strcpy(szMessage, pcszType_);
-    char* pszMessage = szMessage + strlen(szMessage);
-    vsprintf(pszMessage, pcszFormat_, args);
-
-    // Write to the debugger
     TRACE("%s\n", szMessage);
-
-    UI::ShowMessage(eType_, pszMessage);
+    UI::ShowMessage(eType_, szMessage);
 
     // Fatal error?
     if (eType_ == msgFatal)
@@ -152,11 +136,9 @@ static void WriteTimeString (char* psz_);
 // Output a formatted debug message
 void TraceOutputString (const char *pcszFormat_, ...)
 {
-    // Prevent a crash if we're called after Exit()
     if (!s_pszTrace)
         return;
 
-    // Get a pointer to the arguments
     va_list pcvArgs;
     va_start (pcvArgs, pcszFormat_);
 
