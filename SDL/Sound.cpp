@@ -393,8 +393,8 @@ void CSoundStream::AddData (BYTE* pbData_, int nLength_)
 // Byte-swap 16-bit samples, as needed on big endian systems
 void ByteSwap16 (BYTE* pbSamples_, int nSamples_)
 {
-    for (WORD *pw = reinterpret_cast<WORD*>(pbSamples_) ; nSamples_-- ; pbSamples_++)
-        *pbSamples_ = (*pbSamples_ << 8) | (*pbSamples_ >> 8);
+    for (WORD *pw = reinterpret_cast<WORD*>(pbSamples_) ; nSamples_-- ; pw++)
+        *pw = (*pw << 8) | (*pw >> 8);
 }
 
 
