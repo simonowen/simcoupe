@@ -2,7 +2,7 @@
 //
 // IDEDisk.cpp: Platform-specific IDE direct disk access
 //
-//  Copyright (c) 2003 Simon Owen
+//  Copyright (c) 2003-2004 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,8 +23,33 @@
 
 #ifdef __linux__
 
-#include <linux/fs.h>
-#include <linux/hdreg.h>
+// Rather than including the kernel headers, we'll define some values from them
+#define HDIO_GETGEO         0x0301      // get device geometry
+#define BLKGETSIZE          0x1260      // return device size /512 (long *arg)
+
+// Disk geometry structure returned by HDIO_GETGEO
+struct hd_geometry {
+    unsigned char heads;
+    unsigned char sectors;
+    unsigned short cylinders;
+    unsigned long start;
+};
+
+
+static void SetIdentityString (char* psz_, int nSize_, const char* pcsz_)
+{
+    // Copy the string, padded with spaces and not NULL terminate
+    memset(psz_, ' ', nSize_);
+    memcpy(psz_, pcsz_, strlen(pcsz_));
+
+    // Byte-swap the string
+    for (int i = 0 ; i < nSize_ ; i += 2)
+    {
+        char t = psz_[i];
+        psz_[i] = psz_[i+1];
+        psz_[i+1] = t;
+    }
+}
 
 bool CDeviceHardDisk::Open (const char* pcszDisk_)
 {
@@ -43,6 +68,22 @@ bool CDeviceHardDisk::Open (const char* pcszDisk_)
             m_sGeometry.uHeads = dg.heads;
             m_sGeometry.uSectors = dg.sectors;
             m_sGeometry.uTotalSectors = nSize;
+
+            // Fill the identity structure as appropriate
+            memset(&m_sIdentity, 0, sizeof m_sIdentity);
+            ATAPUT(m_sIdentity.wCaps, 0x2241);                              // Fixed device, motor control, hard sectored, <= 5Mbps
+            ATAPUT(m_sIdentity.wLogicalCylinders, m_sGeometry.uCylinders);
+            ATAPUT(m_sIdentity.wLogicalHeads, m_sGeometry.uHeads);
+            ATAPUT(m_sIdentity.wBytesPerTrack, m_sGeometry.uSectors << 9);
+            ATAPUT(m_sIdentity.wBytesPerSector, 1 << 9);
+            ATAPUT(m_sIdentity.wSectorsPerTrack, m_sGeometry.uSectors);
+            ATAPUT(m_sIdentity.wControllerType, 1);                         // Single port, single sector
+            ATAPUT(m_sIdentity.wBufferSize512, 1);
+            ATAPUT(m_sIdentity.wLongECCBytes, 4);
+
+            SetIdentityString(m_sIdentity.szSerialNumber, sizeof m_sIdentity.szSerialNumber, "090");
+            SetIdentityString(m_sIdentity.szFirmwareRev,  sizeof m_sIdentity.szFirmwareRev, "0.90");
+            SetIdentityString(m_sIdentity.szModelNumber,  sizeof m_sIdentity.szModelNumber, "SAM IDE Device");
 
             // Changed a possible LBA-adjusted geometry to CHS
             NormaliseGeometry(&m_sGeometry);
