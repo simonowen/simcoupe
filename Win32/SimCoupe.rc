@@ -180,8 +180,8 @@ BEGIN
                     WS_TABSTOP
     COMBOBOX        IDC_SAMPLE_SIZE,110,52,40,48,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Enable high-pass filter",IDC_FILTER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,66,71,85,10
+    CONTROL         "Enable high quality filter",IDC_FILTER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,66,71,90,10
     CONTROL         "Enable Spectrum-style beeper",IDC_BEEPER,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,54,93,148,10
     CONTROL         "Stereo sound",IDC_STEREO,"Button",BS_AUTOCHECKBOX | 
