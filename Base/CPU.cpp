@@ -355,15 +355,19 @@ void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
                 {
                     // Add an event to check for LINE/FRAME interrupts
                     AddCpuEvent(evtStdIntStart, sThisEvent.dwTime + INT_START_TIME);
-
-                    // Update the input in the centre of the screen (well away from the frame boundary) to avoid the ROM
-                    // keyboard scanner discarding key presses when it thinks keys have bounced.  In old versions this was
-                    // the cause of the first key press on the boot screen only clearing it (took AGES to track down!)
-                    if (g_nLine == (HEIGHT_LINES / 2))
-                        Input::Update();
                 }
             }
 
+            break;
+
+        case evtInputUpdate :
+            // Update the input in the centre of the screen (well away from the frame boundary) to avoid the ROM
+            // keyboard scanner discarding key presses when it thinks keys have bounced.  In old versions this was
+            // the cause of the first key press on the boot screen only clearing it (took AGES to track down!)
+            Input::Update();
+
+            // Schedule the next input check at the same time in the next frame
+            AddCpuEvent(evtInputUpdate, sThisEvent.dwTime + TSTATES_PER_FRAME);
             break;
     }
 }
@@ -492,12 +496,15 @@ void CPU::Reset (bool fPress_)
     // Counter used to determine when each line should be drawn
     g_nLineCycle = g_nPrevLineCycle = 0;
 
-    // Initialise the CPU events queue, and add the first line-end event
+    // Initialise the CPU events queue
     for (int n = 0 ; n < MAX_EVENTS ; n++)
         asCpuEvents[n].psNext = &asCpuEvents[(n+1) % MAX_EVENTS];
     psFreeEvent = asCpuEvents;
     psNextEvent = NULL;
+
+    // Schedule the first end of line event, and an update check half way through the frame
     AddCpuEvent(evtEndOfLine, g_dwCycleCounter + TSTATES_PER_LINE);
+    AddCpuEvent(evtInputUpdate, g_dwCycleCounter + TSTATES_PER_FRAME/2);
 
     // Re-initialise memory (for configuration changes) and reset I/O
     Memory::Init();
