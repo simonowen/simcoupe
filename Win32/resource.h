@@ -30,6 +30,7 @@
 #define IDI_FNKEYS                      175
 #define IDD_NEWFNKEY                    177
 #define IDD_IMPORT                      178
+#define IDB_SIMCOUPE                    185
 #define IDI_KEYBOARD                    200
 #define IDI_CLOCK                       201
 #define IDI_PRINTER                     225
@@ -138,6 +139,7 @@
 #define IDC_SENSITIVITY                 1131
 #define IDS_SENSITIVITY                 1132
 #define IDC_ALT                         1133
+#define ID_HOMEPAGE                     1134
 #define IDI_SOUND                       3004
 #define IDI_MIDI                        4381
 #define IDM_FILE_EXIT                   40001
@@ -163,9 +165,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        185
+#define _APS_NEXT_RESOURCE_VALUE        186
 #define _APS_NEXT_COMMAND_VALUE         40155
-#define _APS_NEXT_CONTROL_VALUE         1134
+#define _APS_NEXT_CONTROL_VALUE         1135
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif
