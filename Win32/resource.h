@@ -69,7 +69,7 @@
 #define IDC_SECTORSIZE                  1042
 #define IDR_DISK_TYPE_DSK               1045
 #define IDR_DISK_TYPE_SAD               1046
-#define IDR_DISK_TYPE_SDF               1047
+#define IDR_DISK_TYPE_TD0               1047
 #define IDC_MOUSE_ENABLED               1055
 #define IDC_JOYSTICK1                   1056
 #define IDC_JOYSTICK2                   1057
@@ -170,6 +170,8 @@
 #define IDM_TOOLS_OPTIONS               40147
 #define IDM_TOOLS_FLUSH_PRINTER         40152
 #define IDM_TOOLS_PRINTER_ONLINE        40154
+#define IDM_FILE_NEW_DISK1              40155
+#define IDM_FILE_NEW_DISK2              40156
 
 // Next default values for new objects
 // 
@@ -177,8 +179,8 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        188
-#define _APS_NEXT_COMMAND_VALUE         40155
-#define _APS_NEXT_CONTROL_VALUE         1148
+#define _APS_NEXT_COMMAND_VALUE         40157
+#define _APS_NEXT_CONTROL_VALUE         1149
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif
