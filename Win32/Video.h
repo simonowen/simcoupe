@@ -2,7 +2,7 @@
 //
 // Video.h: Win32 core video functionality using DirectDraw
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ class Video
         static bool CreatePalettes (bool fDimmed_=false);
 
         static HRESULT ClearSurface (LPDIRECTDRAWSURFACE pdds_);
+        static DWORD GetOverlayColourKey ();
 };
 
 

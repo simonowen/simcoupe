@@ -2,7 +2,7 @@
 //
 // Video.cpp: Win32 core video functionality using DirectDraw
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -289,6 +289,57 @@ HRESULT Video::ClearSurface (LPDIRECTDRAWSURFACE pdds_)
 
     return hr;
 }
+
+// Get an appropriate colour key value to display the overlay surface
+DWORD Video::GetOverlayColourKey ()
+{
+    DWORD dwColourKey = 0;
+    LPDIRECTDRAWSURFACE pddsOverlay = pddsFront ? pddsFront : pddsBack;
+    DDSURFACEDESC ddsd = { sizeof ddsd };
+
+    // Are we using an overlay surface?
+    if (SUCCEEDED(pddsOverlay->GetSurfaceDesc(&ddsd)) && (ddsd.ddsCaps.dwCaps & DDSCAPS_OVERLAY))
+    {
+        DDSURFACEDESC ddsd = { sizeof ddsd };
+        pddsPrimary->GetSurfaceDesc(&ddsd);
+
+        HDC hdc;
+        pddsPrimary->GetDC(&hdc);
+
+        // Save the pixel from 0,0 on the display
+        COLORREF rgbPrev = GetPixel(hdc, 0, 0);
+
+        // Use the classic shocking pink if the display is palettised, or a nicer near-black colour otherwise
+        SetPixel(hdc, 0, 0, (ddsd.ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8) ? RGB(0xff,0x00,0xff) : RGB(0x08,0x08,0x08));
+
+        pddsPrimary->ReleaseDC(hdc);
+
+        // Lock the surface and see what the value is for the current mode
+        HRESULT hr;
+        if (FAILED(hr = pddsPrimary->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WAIT, NULL)))
+            TRACE("Failed to lock primary surface in SetOverlayColour() (%#08lx)\n", hr);
+        else
+        {
+            // Extract the real colour value for the colour key
+            dwColourKey = *reinterpret_cast<DWORD*>(ddsd.lpSurface);
+            pddsPrimary->Unlock(NULL);
+
+            // If less than 32-bit, limit the colour value to the number of bits used for the screen depth
+            if (ddsd.ddpfPixelFormat.dwRGBBitCount < 32)
+                dwColourKey &= (1 << ddsd.ddpfPixelFormat.dwRGBBitCount) - 1;
+
+            TRACE("Colour key used: %#08lx\n", dwColourKey);
+        }
+
+        // Restore the previous pixel
+        pddsPrimary->GetDC(&hdc);
+        SetPixel(hdc, 0, 0, rgbPrev);
+        pddsPrimary->ReleaseDC(hdc);
+    }
+
+    return dwColourKey;
+}
+
 
 LPDIRECTDRAWSURFACE CreateOverlay (DWORD dwWidth_, DWORD dwHeight_, LPDDPIXELFORMAT pddpf_/*=NULL*/)
 {
