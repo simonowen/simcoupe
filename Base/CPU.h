@@ -97,7 +97,7 @@ typedef struct
 #ifndef __BIG_ENDIAN__
         struct { BYTE l_, h_; } B;  // Little endian
 #else
-        struct { BYTE h_, l_; } B;  // Big endian (untested!)
+        struct { BYTE h_, l_; } B;  // Big endian
 #endif
     };
 }
