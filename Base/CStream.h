@@ -21,7 +21,7 @@
 #ifndef CSTREAM_H
 #define CSTREAM_H
 
-#include <stdio.h>	// for FILE structure
+#include <stdio.h>  // for FILE structure
 
 class CStream
 {
@@ -75,7 +75,7 @@ class CFileStream : public CStream
 };
 
 
-#ifndef NO_ZLIB
+#ifdef USE_ZLIB
 
 const BYTE GZ_SIGNATURE[] = { 0x1f, 0x8b };
 
@@ -119,6 +119,6 @@ class CZipStream : public CStream
         void Close ();
 };
 
-#endif  // !NO_ZLIB
+#endif  // USE_ZLIB
 
 #endif  // CSTREAM_H

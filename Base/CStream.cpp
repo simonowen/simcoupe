@@ -68,7 +68,7 @@ CStream::CStream (const char* pcszStream_, bool fReadOnly_/*=false*/)
         if (file)
             fclose(file);
 
-#ifndef NO_ZLIB
+#ifdef USE_ZLIB
         // Try and open it as a zip file
         unzFile hfZip;
         if ((hfZip = unzOpen(pcszStream_)))
@@ -101,12 +101,12 @@ CStream::CStream (const char* pcszStream_, bool fReadOnly_/*=false*/)
             FILE* hf;
             if ((hf = fopen(pcszStream_, "rb")))
             {
-#ifndef NO_ZLIB
+#ifdef USE_ZLIB
                 BYTE abSig[sizeof GZ_SIGNATURE];
                 if ((fread(abSig, 1, sizeof abSig, hf) != sizeof abSig) || memcmp(abSig, GZ_SIGNATURE, sizeof abSig))
 #endif
                     return new CFileStream(hf, pcszStream_, fReadOnly_);
-#ifndef NO_ZLIB
+#ifdef USE_ZLIB
                 else
                 {
                     // Close the file so we can open it thru ZLib
@@ -116,7 +116,7 @@ CStream::CStream (const char* pcszStream_, bool fReadOnly_/*=false*/)
                     if ((hfGZip = gzopen(pcszStream_, "rb")))
                         return new CZLibStream(hfGZip, pcszStream_, fReadOnly_);
                 }
-#endif  // !NO_ZLIB
+#endif  // USE_ZLIB
             }
         }
     }
@@ -178,7 +178,7 @@ size_t CFileStream::Write (void* pvBuffer_, size_t uLen_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef NO_ZLIB
+#ifdef USE_ZLIB
 
 void CZLibStream::Close ()
 {
@@ -259,4 +259,4 @@ size_t CZipStream::Write (void* pvBuffer_, size_t uLen_)
     return 0;
 }
 
-#endif  // !NO_ZLIB
+#endif  // USE_ZLIB
