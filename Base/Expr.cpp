@@ -2,7 +2,7 @@
 //
 // Expr.cpp: Infix expression parsing and postfix evaluation
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ int Expr::nCount;
 void Expr::Release (EXPR* pExpr_)
 {
     // Take care not to free the built-in special expressions
-    if (pExpr_ != &Expr::True && pExpr_ != &False && pExpr_ != &Counter)
+    if (pExpr_ && pExpr_ != &Expr::True && pExpr_ != &False && pExpr_ != &Counter)
         for (EXPR* pDel ; (pDel = pExpr_) ; pExpr_ = pExpr_->pNext, delete pDel);
 }
 
@@ -447,6 +447,10 @@ bool Expr::Factor ()
         if (!Term() || *p++ != ')')
             return false;
     }
+
+    // Input not recognised
+    else
+        return false;
 
     // Strip trailing whitespace
     for ( ; isspace(*p) ; p++);
