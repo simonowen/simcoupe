@@ -55,9 +55,9 @@ END
 IDD_ABOUT DIALOGEX 0, 0, 193, 164
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About SimCoupé"
-FONT 8, "MS Sans Serif", 0, 0, 0x1
+FONT 8, "MS Sans Serif"
 BEGIN
-    LTEXT           "SimCoupé v0.90 beta 10",IDC_STATIC,54,43,90,8
+    LTEXT           "SimCoupé v0.90 beta 11",IDC_STATIC,54,43,90,8
     LTEXT           "http://www.simcoupe.org",ID_HOMEPAGE,54,54,82,8,
                     SS_NOTIFY
     LTEXT           "Win32/SDL/Allegro/PocketPC versions:\n     Simon Owen <simon.owen@simcoupe.org>",
@@ -76,27 +76,27 @@ BEGIN
                     179,1
 END
 
-IDD_EXPORT DIALOG DISCARDABLE  0, 0, 163, 142
+IDD_EXPORT DIALOG DISCARDABLE  0, 0, 163, 130
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Export Data"
 FONT 8, "MS Sans Serif"
 BEGIN
-    EDITTEXT        IDE_FILE,26,7,111,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDB_BROWSE,142,7,14,14
+    EDITTEXT        IDE_FILE,26,6,113,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDB_BROWSE,142,6,14,14
     CONTROL         "&BASIC Address:",IDR_BASIC_ADDRESS,"Button",
-                    BS_AUTORADIOBUTTON | BS_RIGHT | WS_GROUP,27,37,63,10
+                    BS_AUTORADIOBUTTON | BS_RIGHT | WS_GROUP,30,35,63,10
     CONTROL         "&Page number:",IDR_PAGE_OFFSET,"Button",
-                    BS_AUTORADIOBUTTON | BS_RIGHT,27,58,63,10
-    EDITTEXT        IDE_ADDRESS,103,36,31,14
-    EDITTEXT        IDE_PAGE,103,57,15,14
-    EDITTEXT        IDE_OFFSET,103,73,26,15
-    EDITTEXT        IDE_LENGTH,103,96,31,14
-    DEFPUSHBUTTON   "OK",IDOK,35,121,40,14
-    PUSHBUTTON      "Cancel",IDCANCEL,88,121,40,14
-    RTEXT           "Page Offset:",IDC_STATIC,27,75,63,8
-    LTEXT           "File:",IDC_STATIC,7,9,14,8
-    LTEXT           "Length:",IDS_LENGTH,65,99,25,8
-    GROUPBOX        "Data",IDC_STATIC,7,24,149,91
+                    BS_AUTORADIOBUTTON | BS_RIGHT,30,54,63,10
+    EDITTEXT        IDE_ADDRESS,98,33,31,14
+    EDITTEXT        IDE_PAGE,98,52,31,14
+    EDITTEXT        IDE_OFFSET,98,68,31,14
+    EDITTEXT        IDE_LENGTH,98,87,31,14
+    DEFPUSHBUTTON   "OK",IDOK,35,111,40,14
+    PUSHBUTTON      "Cancel",IDCANCEL,88,111,40,14
+    RTEXT           "Page Offset:",IDC_STATIC,30,70,63,8
+    LTEXT           "File:",IDC_STATIC,7,8,14,8
+    LTEXT           "Length:",IDS_LENGTH,68,89,25,8
+    GROUPBOX        "Data",IDC_STATIC,7,23,149,83
 END
 
 IDD_NEW_DISK DIALOG DISCARDABLE  0, 0, 200, 134
@@ -386,25 +386,25 @@ BEGIN
                     IDC_STATIC,18,17,106,16
 END
 
-IDD_IMPORT DIALOG DISCARDABLE  0, 0, 163, 121
+IDD_IMPORT DIALOG DISCARDABLE  0, 0, 163, 113
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Import Data"
 FONT 8, "MS Sans Serif"
 BEGIN
-    EDITTEXT        IDE_FILE,26,7,111,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDB_BROWSE,142,7,14,14
+    EDITTEXT        IDE_FILE,26,6,113,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDB_BROWSE,142,6,14,14
     CONTROL         "&BASIC Address:",IDR_BASIC_ADDRESS,"Button",
-                    BS_AUTORADIOBUTTON | BS_RIGHT | WS_GROUP,27,37,63,10
+                    BS_AUTORADIOBUTTON | BS_RIGHT | WS_GROUP,30,35,63,10
     CONTROL         "&Page number:",IDR_PAGE_OFFSET,"Button",
-                    BS_AUTORADIOBUTTON | BS_RIGHT,27,58,63,10
-    EDITTEXT        IDE_ADDRESS,103,36,31,14
-    EDITTEXT        IDE_PAGE,103,57,15,14
-    EDITTEXT        IDE_OFFSET,103,73,26,15
-    DEFPUSHBUTTON   "OK",IDOK,35,100,40,14
-    PUSHBUTTON      "Cancel",IDCANCEL,88,100,40,14
-    RTEXT           "Page Offset:",IDC_STATIC,27,75,63,8
-    LTEXT           "File:",IDC_STATIC,7,9,14,8
-    GROUPBOX        "Data",IDC_STATIC,7,24,149,69
+                    BS_AUTORADIOBUTTON | BS_RIGHT,30,54,63,10
+    EDITTEXT        IDE_ADDRESS,98,33,31,14
+    EDITTEXT        IDE_PAGE,98,52,31,14
+    EDITTEXT        IDE_OFFSET,98,68,31,14
+    DEFPUSHBUTTON   "OK",IDOK,35,94,40,14
+    PUSHBUTTON      "Cancel",IDCANCEL,88,94,40,14
+    RTEXT           "Page Offset:",IDC_STATIC,30,70,63,8
+    LTEXT           "File:",IDC_STATIC,7,8,14,8
+    GROUPBOX        "Data",IDC_STATIC,7,23,149,66
 END
 
 IDD_PAGE_DRIVES DIALOG DISCARDABLE  0, 0, 235, 156
@@ -487,8 +487,8 @@ BEGIN
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 156
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 135
+        TOPMARGIN, 5
+        BOTTOMMARGIN, 125
     END
 
     IDD_NEW_DISK, DIALOG
@@ -583,8 +583,8 @@ BEGIN
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 156
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 114
+        TOPMARGIN, 6
+        BOTTOMMARGIN, 108
     END
 
     IDD_PAGE_DRIVES, DIALOG
@@ -691,8 +691,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,90,0,10
- PRODUCTVERSION 0,90,0,10
+ FILEVERSION 0,90,0,11
+ PRODUCTVERSION 0,90,0,11
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -710,14 +710,14 @@ BEGIN
             VALUE "Comments", "http://www.simcoupe.org/\0"
             VALUE "CompanyName", "\0"
             VALUE "FileDescription", "A SAM Coupé emulator\0"
-            VALUE "FileVersion", "0.90 beta 10\0"
+            VALUE "FileVersion", "0.90 beta 11\0"
             VALUE "InternalName", "\0"
             VALUE "LegalCopyright", "\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "\0"
-            VALUE "ProductVersion", "0.90 beta 10\0"
+            VALUE "ProductVersion", "0.90 beta 11\0"
             VALUE "SpecialBuild", "\0"
         END
     END
@@ -779,13 +779,11 @@ IDB_SIMCOUPE            BITMAP  DISCARDABLE     "Bitmaps\\simcoupe.bmp"
 /////////////////////////////////////////////////////////////////////////////
 
 
-
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
 // Generated from the TEXTINCLUDE 3 resource.
 //
-
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
