@@ -306,12 +306,19 @@ void Frame::Complete ()
 
         if (GUI::IsActive())
         {
-            // Make a copy of the current frame, doubling each line for the hi-res GUI screen
+            // Make a double-height copy of the current frame for the GUI to overlay
             for (int i = 0 ; i < GetHeight() ; i++)
             {
-                bool fHiRes;
-                memcpy(g_pGuiScreen->GetLine(i), g_pScreen->GetLine(i>>1, fHiRes), GetWidth());
-                g_pGuiScreen->SetHiRes(i, fHiRes);
+                // In scanlines mode we'll fill alternate lines in black
+                if (i & 1 && GetOption(scanlines))
+                    memset(g_pGuiScreen->GetLine(i), 0, GetWidth());
+                else
+                {
+                    // Copy the frame data and hi-res status
+                    bool fHiRes;
+                    memcpy(g_pGuiScreen->GetLine(i), g_pScreen->GetLine(i>>1, fHiRes), GetWidth());
+                    g_pGuiScreen->SetHiRes(i, fHiRes);
+                }
             }
 
             // Overlay the GUI over the SAM display
