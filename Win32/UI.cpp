@@ -574,7 +574,9 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actNewDisk:
+                Video::CreatePalettes(true);
                 DialogBox(__hinstance, MAKEINTRESOURCE(IDD_NEWDISK), g_hwnd, NewDiskDlgProc);
+                Video::CreatePalettes(false);
                 break;
 
             case actSaveScreenshot:
@@ -586,11 +588,15 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actImportData:
+                Video::CreatePalettes(true);
                 DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_IMPORT), g_hwnd, ImportExportDlgProc, 1);
+                Video::CreatePalettes(false);
                 break;
 
             case actExportData:
+                Video::CreatePalettes(true);
                 DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_EXPORT), g_hwnd, ImportExportDlgProc, 0);
+                Video::CreatePalettes(false);
                 break;
 
             case actDisplayOptions:
@@ -1270,7 +1276,11 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                     if (GetAsyncKeyState(VK_SHIFT) < 0)
                         GUI::Start(new CAboutDialog);
                     else
+                    {
+                        Video::CreatePalettes(true);
                         DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), g_hwnd, AboutDlgProc, NULL);
+                        Video::CreatePalettes(false);
+                    }
                     break;
             }
             break;
@@ -1927,7 +1937,7 @@ void SetComboStrings (HWND hdlg_, UINT uID_, const char** ppcsz_, int nDefault_/
         SendMessage(hwndCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(*ppcsz_++));
 
     // Select the specified default, or the first item if there wasn't one
-    SendMessage(hwndCombo, CB_SETCURSEL, (nDefault_ == -1) ? 0 : nDefault_, 0);
+    SendMessage(hwndCombo, CB_SETCURSEL, (nDefault_ == -1) ? 0 : nDefault_, 0L);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2303,26 +2313,24 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
     {
         case WM_INITDIALOG:
         {
-            static const char* aszDrives1[] = { "None", "Floppy drive", NULL };
+            static const char* aszDrives1[] = { "None", "Floppy drive", "Device: A:", NULL };
             SetComboStrings(hdlg_, IDC_DRIVE1, aszDrives1, GetOption(drive1));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE1, 0L);
 
-            SetWindowText(GetDlgItem(hdlg_, IDE_IMAGE1), GetOption(disk1));
-            SendDlgItemMessage(hdlg_, IDE_IMAGE1, EM_SETSEL, _MAX_PATH, -1);
-            EnableWindow(GetDlgItem(hdlg_, IDB_SAVE1), pDrive1->IsModified());
 
-
-            static const char* aszDrives2[] = { "None", "Floppy drive", "Atom Hard Disk", NULL };
+            static const char* aszDrives2[] = { "None", "Floppy drive", "Device: B:", "Atom Hard Disk", NULL };
             SetComboStrings(hdlg_, IDC_DRIVE2, aszDrives2, GetOption(drive2));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE2, 0L);
 
-            SetWindowText(GetDlgItem(hdlg_, IDE_IMAGE2), GetOption(disk2));
-            SendDlgItemMessage(hdlg_, IDE_IMAGE2, EM_SETSEL, _MAX_PATH, -1);
-            EnableWindow(GetDlgItem(hdlg_, IDB_SAVE2), GetOption(drive2) == dskImage && pDrive2->IsModified());
+            if (GetOption(drive2) == 2)
+                SendDlgItemMessage(hdlg_, IDC_DRIVE2, CB_SETCURSEL, 3, 0L);
 
-//          bool fDirect1 = CFloppyStream::IsRecognised(GetOption(disk1));
-//          SendDlgItemMessage(hdlg_, IDC_DIRECT_FLOPPY1, BM_SETCHECK, fDirect1 ? BST_CHECKED : BST_UNCHECKED, 0L);
+            static const char* aszSensitivity[] = { "Low", "Medium", "High", NULL };
+            SetComboStrings(hdlg_, IDC_SENSITIVITY, aszSensitivity,
+                !GetOption(turboload) ? 1 : GetOption(turboload) <= 5 ? 2 : GetOption(turboload) <= 50 ? 1 : 0);
 
+            SendDlgItemMessage(hdlg_, IDC_TURBO_LOAD, BM_SETCHECK, GetOption(turboload) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendMessage(hdlg_, WM_COMMAND, IDC_TURBO_LOAD, 0L);
             break;
         }
 
@@ -2330,23 +2338,41 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
-                SetOption(drive1, static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L)));
-                SetOption(drive2, static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L)));
-                GetWindowText(GetDlgItem(hdlg_, IDE_IMAGE1), const_cast<char*>(GetOption(disk1)), MAX_PATH);
-                GetWindowText(GetDlgItem(hdlg_, IDE_IMAGE2), const_cast<char*>(GetOption(disk2)), MAX_PATH);
+                int anSpeeds[] = { 85, 15, 2 };
+                if (SendDlgItemMessage(hdlg_, IDC_TURBO_LOAD, BM_GETCHECK, 0, 0L) == BST_CHECKED)
+                    SetOption(turboload, anSpeeds[SendDlgItemMessage(hdlg_, IDC_SENSITIVITY, CB_GETCURSEL, 0, 0L)]);
+                else
+                    SetOption(turboload, 0);
+
+                LRESULT lDrive1 = SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L);
+                LRESULT lDrive2 = SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L);
+
+                int anDriveTypes[] = { dskNone, dskImage, dskImage, dskAtom };
+                SetOption(drive1, anDriveTypes[lDrive1]);
+                SetOption(drive2, anDriveTypes[lDrive2]);
+
+                if (lDrive1 == 2)
+                    SetOption(disk1, OSD::GetFloppyDevice(1));
+                else
+                    GetWindowText(GetDlgItem(hdlg_, IDE_IMAGE1), const_cast<char*>(GetOption(disk1)), MAX_PATH);
+
+                if (lDrive2 == 2)
+                    SetOption(disk2, OSD::GetFloppyDevice(2));
+                else
+                    GetWindowText(GetDlgItem(hdlg_, IDE_IMAGE2), const_cast<char*>(GetOption(disk2)), MAX_PATH);
 
                 if (Changed(drive1) || Changed(drive2))
                     IO::InitDrives();
 
-                if (*GetOption(disk1) && strcmpi(opts.disk1, GetOption(disk1)) && !pDrive1->Insert(GetOption(disk1)))
+                if (*GetOption(disk1) && ChangedString(disk1) && !pDrive1->Insert(GetOption(disk1)))
                 {
-                    Message(msgWarning, "Invalid disk image: %s", GetOption(disk1));
+                    Message(msgWarning, "Invalid disk: %s", GetOption(disk1));
                     SetOption(disk1, "");
                 }
 
-                if (*GetOption(disk2) && strcmpi(opts.disk2, GetOption(disk2)) && !pDrive2->Insert(GetOption(disk2)))
+                if (*GetOption(disk2) && ChangedString(disk2) && !pDrive2->Insert(GetOption(disk2)))
                 {
-                    Message(msgWarning, "Invalid disk image: %s", GetOption(disk2));
+                    Message(msgWarning, "Invalid disk: %s", GetOption(disk2));
                     SetOption(disk2, "");
                 }
             }
@@ -2358,23 +2384,41 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
         {
             switch (LOWORD(wParam_))
             {
+                case IDC_TURBO_LOAD:
+                {
+                    bool fTurboLoad = SendDlgItemMessage(hdlg_, IDC_TURBO_LOAD, BM_GETCHECK, 0, 0L) == BST_CHECKED;
+                    EnableWindow(GetDlgItem(hdlg_, IDC_SENSITIVITY), fTurboLoad);
+                }
+
                 case IDC_DRIVE1:
                 {
-                    LRESULT lDrive1 = SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L);
-                    EnableWindow(GetDlgItem(hdlg_, IDE_IMAGE1), lDrive1 != 0);
-                    EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE1), lDrive1 != 0);
-                    EnableWindow(GetDlgItem(hdlg_, IDB_SAVE1), (GetOption(drive1) == dskImage) && pDrive1->IsModified());
-                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT1), (GetOption(drive1) == dskImage) && pDrive1->IsInserted());
+                    LRESULT lType = SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L);
+                    bool fFloppy = (lType == 1);
+
+                    EnableWindow(GetDlgItem(hdlg_, IDE_IMAGE1), fFloppy);
+                    SetWindowText(GetDlgItem(hdlg_, IDE_IMAGE1), (lType == 1) ? GetOption(disk1) :
+                                                                 (lType == 2) ? OSD::GetFloppyDevice(1) : "");
+                    SendDlgItemMessage(hdlg_, IDE_IMAGE1, EM_SETSEL, _MAX_PATH, -1);
+
+                    EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE1), fFloppy);
+                    EnableWindow(GetDlgItem(hdlg_, IDB_SAVE1), fFloppy && pDrive1->IsModified());
+                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT1), fFloppy && pDrive1->IsInserted());
                     break;
                 }
 
                 case IDC_DRIVE2:
                 {
-                    LRESULT lDrive2 = SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L);
-                    EnableWindow(GetDlgItem(hdlg_, IDE_IMAGE2), lDrive2 == 1);
-                    EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE2), lDrive2 == 1);
-                    EnableWindow(GetDlgItem(hdlg_, IDB_SAVE2), pDrive2->IsModified());
-                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT2), 0 && GetOption(drive2) == dskImage && pDrive2->IsInserted());
+                    LRESULT lType = SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L);
+                    bool fFloppy = (lType == 1);
+
+                    EnableWindow(GetDlgItem(hdlg_, IDE_IMAGE2), fFloppy);
+                    SetWindowText(GetDlgItem(hdlg_, IDE_IMAGE2), (lType == 1) ? GetOption(disk2) :
+                                                                 (lType == 2) ? OSD::GetFloppyDevice(2) : "");
+                    SendDlgItemMessage(hdlg_, IDE_IMAGE2, EM_SETSEL, _MAX_PATH, -1);
+
+                    EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE2), fFloppy);
+                    EnableWindow(GetDlgItem(hdlg_, IDB_SAVE2), fFloppy && pDrive2->IsModified());
+                    EnableWindow(GetDlgItem(hdlg_, IDB_EJECT2), fFloppy && pDrive2->IsInserted());
                     break;
                 }
 
