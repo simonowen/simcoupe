@@ -2,7 +2,7 @@
 //
 // IDEDisk.cpp: Platform-specific IDE direct disk access
 //
-//  Copyright (c) 2003 Simon Owen
+//  Copyright (c) 2003-2004 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -50,19 +50,15 @@ bool CDeviceHardDisk::Open (const char* pcszDisk_)
     else
     {
         DWORD dwRet;
-        DISK_GEOMETRY dg;
         PARTITION_INFORMATION pi;
 
         // Read the drive geometry (possibly fake) and size, checking for a disk device
-        if (DeviceIoControl(m_hDevice, IOCTL_DISK_GET_DRIVE_GEOMETRY, NULL, 0, &dg, sizeof dg, &dwRet, NULL) &&
-            DeviceIoControl(m_hDevice, IOCTL_DISK_GET_PARTITION_INFO, NULL, 0, &pi, sizeof pi, &dwRet, NULL))
+        if (DeviceIoControl(m_hDevice, IOCTL_DISK_GET_PARTITION_INFO, NULL, 0, &pi, sizeof pi, &dwRet, NULL))
         {
             // Extract the disk geometry and size in sectors, and normalise to CHS
-            m_sGeometry.uCylinders = static_cast<UINT>(dg.Cylinders.QuadPart);
-            m_sGeometry.uHeads = dg.TracksPerCylinder;
-            m_sGeometry.uSectors = dg.SectorsPerTrack;
-            m_sGeometry.uTotalSectors = static_cast<UINT>(pi.PartitionLength.QuadPart/dg.BytesPerSector);
-            NormaliseGeometry(&m_sGeometry);
+            // We round down to the nearest 1K to fix a single sector error with some CF card readers
+            m_sGeometry.uTotalSectors = static_cast<UINT>(pi.PartitionLength.QuadPart >> 9) & ~1U;
+            CalculateGeometry(&m_sGeometry);
 
             // Fill the identity structure as appropriate
             memset(&m_sIdentity, 0, sizeof m_sIdentity);
