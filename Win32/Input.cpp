@@ -25,10 +25,6 @@
 
 #include "SimCoupe.h"
 
-#include <dinput.h>
-#include <windows.h>
-#include <windowsx.h>
-
 #include "Display.h"
 #include "GUI.h"
 #include "Input.h"
@@ -68,10 +64,6 @@ typedef struct
 }
 MAPPED_KEY;
 
-
-typedef HRESULT (WINAPI *PFNDIRECTINPUTCREATE) (HINSTANCE, DWORD, LPDIRECTINPUTA*, LPUNKNOWN);
-PFNDIRECTINPUTCREATE pfnDirectInputCreate;
-HINSTANCE hinstDInput;
 
 LPDIRECTINPUT pdi;
 LPDIRECTINPUTDEVICE pdiKeyboard;
@@ -184,28 +176,18 @@ bool Input::Init (bool fFirstInit_/*=false*/)
     Exit(true);
     TRACE("-> Input::Init(%s)\n", fFirstInit_ ? "first" : "");
 
-    if (fFirstInit_)
-    {
-        // Load DirectInput and locate the initialisation function
-        if (hinstDInput = LoadLibrary("DINPUT.DLL"))
-            pfnDirectInputCreate = reinterpret_cast<PFNDIRECTINPUTCREATE>(GetProcAddress(hinstDInput, "DirectInputCreateA"));
-    }
+    // If we can find DirectInput 5.0 we can have joystick support, otherwise fall back on 3.0 support for NT4
+    if (fRet = SUCCEEDED(pfnDirectInputCreate(__hinstance, DIRECTINPUT_VERSION, &pdi, NULL)))
+        InitJoysticks();
+    else
+        fRet = SUCCEEDED(pfnDirectInputCreate(__hinstance, 0x0300, &pdi, NULL));
 
-    if (pfnDirectInputCreate)
+    if (fRet)
     {
-        // If we can find DirectInput 5.0 we can have joystick support, otherwise fall back on 3.0 support for NT4
-        if (fRet = SUCCEEDED(pfnDirectInputCreate(__hinstance, DIRECTINPUT_VERSION, &pdi, NULL)))
-            InitJoysticks();
-        else
-            fRet = SUCCEEDED(pfnDirectInputCreate(__hinstance, 0x0300, &pdi, NULL));
-
-        if (fRet)
-        {
-            InitKeyboard();
-            fMouseActive = false;
-            Mouse::Init(fFirstInit_);
-            Purge();
-        }
+        InitKeyboard();
+        fMouseActive = false;
+        Mouse::Init(fFirstInit_);
+        Purge();
     }
 
     TRACE("<- Input::Init() returning %s\n", fRet ? "true" : "false");
@@ -223,8 +205,6 @@ void Input::Exit (bool fReInit_/*=false*/)
     if (pdidJoystick2) { pdidJoystick2->Unacquire(); pdidJoystick2->Release(); pdidJoystick2 = NULL; }
 
     if (pdi) { pdi->Release(); pdi = NULL; }
-
-    if (!fReInit_ && hinstDInput) { FreeLibrary(hinstDInput); hinstDInput = NULL; }
 
     Mouse::Exit(fReInit_);
 
@@ -493,15 +473,43 @@ bool ReadKeyboard ()
     if (GetOption(altforcntrl) && IsPressed(DIK_LMENU))
         PressKey(DIK_RCONTROL);
 
+    // AltGr can be used with the regular function keys for the SAM keypad
+    bool fWindows = IsPressed(DIK_LWIN) || IsPressed(DIK_RWIN);
+    if (GetOption(samfkeys) != fWindows)
+    {
+        for (int i = DIK_F1 ; i <= DIK_F10 ; i++)
+        {
+            if (IsPressed(i))
+            {
+                // Release the function key
+                ReleaseKey(i);
+                ReleaseKey(DIK_LWIN);
+                ReleaseKey(DIK_RWIN);
+
+                if (i == DIK_F10)
+                    PressKey(DIK_NUMPAD0);
+                else
+                {
+                    static const int anFn[] = { DIK_NUMPAD1, DIK_NUMPAD2, DIK_NUMPAD3, DIK_NUMPAD4, DIK_NUMPAD5,
+                                                DIK_NUMPAD6, DIK_NUMPAD7, DIK_NUMPAD8, DIK_NUMPAD9 };
+                    PressKey(anFn[i-DIK_F1]);
+                }
+
+                break;
+            }
+        }
+    }
+
     // AltGr can optionally be used for SAM Edit
     if (GetOption(altgrforedit) && IsPressed(DIK_RMENU))
     {
-        // AltGr is usually seen with left-control down (NT/W2K), so release it
-        ReleaseKey(DIK_LCONTROL);
-
-        // Release AltGr (needed for Win9x it seems) and press the context menu key (also used for SAM Edit)
+        // Release AltGr and press the context menu key (also used for SAM Edit)
         ReleaseKey(DIK_RMENU);
         PressKey(DIK_APPS);
+
+        // Also release Ctrl and Alt, which is how AltGr often behaves
+        ReleaseKey(DIK_LCONTROL);
+        ReleaseKey(DIK_LMENU);
     }
 
     return true;
@@ -896,9 +904,7 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
         case WM_ACTIVATEAPP:
         {
-            bool fActive = (wParam_ != 0);
-
-            // Acquire the keyboard if activating, and release the mouse so we require a click
+            // Release the mouse so we require a click to grab it back
             Acquire(false);
             break;
         }
