@@ -187,13 +187,10 @@ void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
     Purge();
 
     // Emulation mode doesn't use key repeats
-    if (fKeyboard_)
-        SDL_EnableKeyRepeat(0, 0);
-    else
-        SDL_EnableKeyRepeat(250, 30);
+    SDL_EnableKeyRepeat(fKeyboard_ ? 0 : 250, fKeyboard_ ? 0 : 30);
 
-    // Hide the mouse if it's been acquired for emulation use
-    SDL_ShowCursor(!(fMouseActive = fMouse_));
+    // Set the mouse acquisition state
+    fMouseActive = fMouse_;
 }
 
 
@@ -461,11 +458,18 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
     switch (pEvent_->type)
     {
         case SDL_ACTIVEEVENT:
-        {
-            SDL_ShowCursor((pEvent_->active.gain && !fMouseActive) ? SDL_ENABLE : SDL_DISABLE);
+            // Has the mouse escaped the window when active?
+            if (fMouseActive && pEvent_->active.state == SDL_APPMOUSEFOCUS && !pEvent_->active.gain)
+            {
+                int nX, nY;
+
+                // Grab it back and discard the displacement to the escape point
+                SDL_WarpMouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
+                SDL_GetRelativeMouseState(&nX, &nY);
+            }
+
             Purge();
             break;
-        }
 
         case SDL_KEYDOWN:
         case SDL_KEYUP:
@@ -531,13 +535,13 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
         {
 //          Frame::SetStatus("Mouse:  %d %d", pEvent_->motion.xrel, pEvent_->motion.yrel);
 
+            // Show the cursor in windowed mode unless the mouse is acquired or the GUI is active
+            bool fShowCursor = !fMouseActive && !GUI::IsActive() && !GetOption(fullscreen);
+            SDL_ShowCursor(fShowCursor ? SDL_ENABLE : SDL_DISABLE);
+
             // Mouse in use by the GUI?
             if (GUI::IsActive())
             {
-#ifdef USE_CUSTOM_CURSOR
-                // Hide the SDL cursor as we'll draw our own
-                SDL_ShowCursor(SDL_DISABLE);
-#endif
                 int nX = pEvent_->motion.x, nY = pEvent_->motion.y;
                 Display::DisplayToSamPoint(&nX, &nY);
                 GUI::SendMessage(GM_MOUSEMOVE, nX, nY);
@@ -564,7 +568,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
 
                     // Update the SAM mouse position
                     Mouse::Move(nX, -nY);
-                    TRACE("Mouse move: X:%-03d Y:%-03d\n", nX, nY);
+//                  TRACE("Mouse move: X:%-03d Y:%-03d\n", nX, nY);
 
                     // How far is the SAM mouse movement in native units?
                     Display::SamToDisplaySize(&nX, &nY);
@@ -655,7 +659,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
 
 void Input::Update ()
 {
-    // Read keyboard and mouse
+    // Read keyboard
     ReadKeyboard();
 
     // Update the SAM keyboard matrix from the current key state (including joystick movement)
