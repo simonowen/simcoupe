@@ -280,7 +280,7 @@ CStreamBuffer::CStreamBuffer (int nFreq_, int nBits_, int nChannels_)
 
 CStreamBuffer::~CStreamBuffer ()
 {
-    delete m_pbFrameSample;
+    delete[] m_pbFrameSample;
 }
 
 
