@@ -38,22 +38,29 @@ typedef struct _CPU_EVENT
 CPU_EVENT;
 
 
-namespace CPU
+class CPU
 {
-    bool Init (bool fPowerOnInit_=true);
-    void Exit (bool fReInit_=false);
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    void Run ();
-    void UpdateContention ();
-    void ExecuteEvent (CPU_EVENT sThisEvent);
+        static void Run ();
+        static void UpdateContention ();
+        static void ExecuteEvent (CPU_EVENT sThisEvent);
+        static void ExecuteChunk ();
 
-    void NMI ();
+        static void Reset (bool fPress_);
+        static void NMI ();
+        static void Mode0Interrupt ();
+        static void Mode1Interrupt ();
+        static void Mode2Interrupt ();
 };
+
 
 extern DWORD g_dwCycleCounter;
 extern int g_nLine, g_nLineCycle, g_nPrevLineCycle;
-extern bool g_fDebugging;
-extern bool g_fFlashPhase;
+extern bool g_fFlashPhase, g_fFrameEnd, g_fPaused, g_fTurbo, g_fDebugging;
+extern int g_nFastBooting;
 
 
 const BYTE OP_NOP   = 0x00;     // Z80 opcode for NOP
@@ -74,8 +81,6 @@ const int INT_START_TIME = TSTATES_PER_LINE - BORDER_PIXELS + 1;
 #define ROUND(t,n)          ((t)|((n)-1))
 #define A_ROUND(t,n)        (ROUND(g_nLineCycle+(t),n) - g_nLineCycle)
 
-// Z80 pseudo states to keep track of what we're doing
-enum { Z80_none, Z80_nmi, Z80_reset, Z80_pause };
 
 // Bit values for the F register
 const BYTE F_CARRY      = 0x01;
