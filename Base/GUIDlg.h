@@ -2,7 +2,7 @@
 //
 // GUIDlg.h: Dialog boxes using the GUI controls
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@ class CFileDialog : public CDialog
 
     protected:
         CFileView* m_pFileView;
+        CWindow* m_pFile;
         CTextControl* m_pPath;
         CComboBox* m_pFilter;
         CCheckBox* m_pShowHidden;
@@ -146,6 +147,24 @@ class CExportDialog : public CImportDialog
     protected:
         CEditControl *m_pLength;
         static UINT s_uLength;
+};
+
+
+class CNewDiskDialog : public CDialog
+{
+    public:
+        CNewDiskDialog (int nDrive_, CWindow* pParent_=NULL);
+        void OnNotify (CWindow* pWindow_, int nParam_);
+
+    protected:
+        CComboBox *m_pType;
+        CCheckBox *m_pCompress, *m_pFormat;
+        CTextButton *m_pOK, *m_pCancel;
+
+    protected:
+        static char s_szFile[MAX_PATH];
+        static UINT s_uType;
+        static bool s_fCompress, s_fFormat;
 };
 
 
