@@ -58,7 +58,7 @@ CAPTION "About SimCoupé/Win32"
 FONT 8, "MS Sans Serif"
 BEGIN
     LTEXT           "SimCoupé - a SAM Coupé emulator",IDC_STATIC,40,9,145,8
-    LTEXT           "Win32/SDL versions and general overhaul:\n     Simon Owen (simon.owen@simcoupe.org)",
+    LTEXT           "Win32/SDL/Allegro versions and general overhaul:\n     Simon Owen (simon.owen@simcoupe.org)",
                     IDC_STATIC,20,42,170,18
     LTEXT           "Based on original SimCoupé versions by:\n     Allan Skillman (allan.skillman@simcoupe.org)",
                     IDC_STATIC,20,67,170,18
@@ -68,7 +68,7 @@ BEGIN
     ICON            IDI_MAIN,IDI_SAM,7,7,20,20,0,WS_EX_TRANSPARENT
     CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,7,34,
                     183,1
-    LTEXT           "version 0.90 WIP (5)",IDC_STATIC,45,19,140,8
+    LTEXT           "version 0.90 beta 2",IDC_STATIC,45,19,140,8
 END
 
 IDD_EXPORT DIALOG DISCARDABLE  0, 0, 163, 142
@@ -625,8 +625,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,9,0,5
- PRODUCTVERSION 0,9,0,5
+ FILEVERSION 0,9,0,6
+ PRODUCTVERSION 0,9,0,6
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -644,14 +644,14 @@ BEGIN
             VALUE "Comments", "Win32 port and enhancements by Simon Owen (simon.owen@simcoupe.org)\0"
             VALUE "CompanyName", "-\0"
             VALUE "FileDescription", "SimCoupe\0"
-            VALUE "FileVersion", "0, 9, 0, 5\0"
+            VALUE "FileVersion", "0, 9, 0, 6\0"
             VALUE "InternalName", "SimCoupe\0"
             VALUE "LegalCopyright", "\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "SimCoupe.exe\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "SimCoupe\0"
-            VALUE "ProductVersion", "0, 9, 0, 5\0"
+            VALUE "ProductVersion", "0, 9, 0, 6\0"
             VALUE "SpecialBuild", "\0"
         END
     END
