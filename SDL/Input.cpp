@@ -573,7 +573,12 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
 
                 // Pass any printable key-down messages to the GUI
                 if (pEvent_->type == SDL_KEYDOWN && pKey->unicode <= GK_MAX)
-                    GUI::SendMessage(GM_CHAR, pKey->unicode, (pKey->mod & KMOD_SHIFT) != 0);
+                {
+                    int nMods = ((pKey->mod & KMOD_SHIFT) ? GKMOD_SHIFT : 0) |
+                                ((pKey->mod & KMOD_CTRL)  ? GKMOD_CTRL  : 0);
+
+                    GUI::SendMessage(GM_CHAR, pKey->unicode, nMods);
+                }
 
                 break;
             }

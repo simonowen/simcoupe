@@ -827,13 +827,19 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
             break;
 
         case WM_CHAR:
+        {
+            // Get the current shift states
+            int nMods = ((GetKeyState(VK_SHIFT)   < 0) ? GKMOD_SHIFT : 0) |
+                        ((GetKeyState(VK_CONTROL) < 0) ? GKMOD_CTRL : 0);
+
             // Pass the key-press to the GUI, and hide the cursor if it was accepted
-            if (GUI::SendMessage(GM_CHAR, static_cast<int>(wParam_), GetKeyState(VK_SHIFT) < 0))
+            if (GUI::SendMessage(GM_CHAR, static_cast<int>(wParam_), nMods))
             {
                 SetCursor(NULL);
                 return true;
             }
             break;
+        }
 
         case WM_KEYDOWN:
         {
@@ -841,18 +847,22 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
             if (!GUI::IsActive())
                 return (lParam_ & 0x40000000) != 0;
 
+            // Get the current shift states
+            int nMods = ((GetKeyState(VK_SHIFT)   < 0) ? GKMOD_SHIFT : 0) |
+                        ((GetKeyState(VK_CONTROL) < 0) ? GKMOD_CTRL : 0);
+
             // Map any special keys to the GUI equivalents
             if (wParam_ >= VK_NUMPAD0 && wParam_ <= VK_NUMPAD9)
-                GUI::SendMessage(GM_CHAR, GK_KP0+wParam_-VK_NUMPAD0, 0);
+                GUI::SendMessage(GM_CHAR, GK_KP0+wParam_-VK_NUMPAD0, nMods);
             else if (wParam_ >= VK_LEFT && wParam_ <= VK_DOWN)
             {
                 int anCursors[] = { GK_LEFT, GK_UP, GK_RIGHT, GK_DOWN };
-                GUI::SendMessage(GM_CHAR, anCursors[wParam_-VK_LEFT], 0);
+                GUI::SendMessage(GM_CHAR, anCursors[wParam_-VK_LEFT], nMods);
             }
             else if (wParam_ >= VK_PRIOR && wParam_ <= VK_HOME)
             {
                 int anMovement[] = { GK_PAGEUP, GK_PAGEDOWN, GK_END, GK_HOME };
-                GUI::SendMessage(GM_CHAR, anMovement[wParam_-VK_PRIOR], 0);
+                GUI::SendMessage(GM_CHAR, anMovement[wParam_-VK_PRIOR], nMods);
             }
 
             return false;

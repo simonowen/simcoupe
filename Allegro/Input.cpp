@@ -393,9 +393,13 @@ bool ReadKeyboard ()
             else if (bKey >= KEY_HOME && bKey <= KEY_PGDN)
                 bChar = GK_HOME + (bKey - KEY_HOME);
 
+            // Form the GUI modifiers to pass through
+            int nGuiMods = ((nMods & KB_SHIFT_FLAG) ? GKMOD_SHIFT : 0) |
+                           ((nMods & KB_CTRL_FLAG) ? GKMOD_CTRL : 0);
+
             // Pass any printable key-down messages to the GUI
             if (bChar)
-                GUI::SendMessage(GM_CHAR, bChar, (nMods & KB_SHIFT_FLAG) != 0);
+                GUI::SendMessage(GM_CHAR, bChar, nGuiMods);
 
             break;
         }
