@@ -39,7 +39,7 @@ CMidiDevice::CMidiDevice ()
     m_hMidiOut = NULL;
 
     // For now just open the default MIDI OUT device
-    MMRESULT res = midiOutOpen(&m_hMidiOut, GetOption(midiout), 0, 0, CALLBACK_NULL);
+    MMRESULT res = midiOutOpen(&m_hMidiOut, atoi(GetOption(midioutdev)), 0, 0, CALLBACK_NULL);
 }
 
 
