@@ -30,7 +30,7 @@
 
 
 // Time motor stays on after no further activity:  10 revolutions at 300rpm (2 seconds)
-const int FLOPPY_MOTOR_ACTIVE_TIME = (10 / (300 / 60 )) * EMULATED_FRAMES_PER_SECOND;
+const int FLOPPY_MOTOR_ACTIVE_TIME = (10 / (FLOPPY_RPM/60)) * EMULATED_FRAMES_PER_SECOND;
 
 class CDrive : public CDiskDevice
 {
