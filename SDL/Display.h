@@ -22,17 +22,24 @@
 #define DISPLAY_H
 
 #include "CScreen.h"
+#include "Video.h"
 
 
-namespace Display
+class Display
 {
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    bool IsDirty (int nLine_);
-    void SetDirty (int nLine_=-1);
+        static void SetLineDirty (int nLine_) { pafDirty[nLine_] = true; }
+        static void SetDirty ();
 
-    void Update (CScreen* pScreen_);
+        static void Update (CScreen* pScreen_);
+
+        static void DisplayToSam (int* pnX_, int* pnY_);
+        static void SamToDisplay (int* pnX_, int* pnY_);
+
+        static bool* pafDirty;
 };
 
 #endif  // DISPLAY_H
