@@ -74,61 +74,65 @@
 #define dec(var)    ( var--, f = (f & F_CARRY) | (var & 0xa8) | ((!var) << 6) | ((!(~var & 0xf)) << 4) | ((var == 0x7f) << 2) | F_NADD )
 #endif
 
-// add hl/ix/iy,dd
-#define addhl(hi,lo) \
-            do \
+#define addhl(x) \
+            do /* 16-bit add */ \
             { \
                 g_nLineCycle += 7; \
-                if(pHlIxIy == &hl) \
-                { \
-                    WORD t; \
-                    l = t = l + (lo); \
-                    f = (f & 0xc4) | (((t >>= 8) + (h & 0x0f) + ((hi) & 0x0f) > 15) << 4); \
-                    h = (t += h + (hi)); \
-                    f |= (h & 0x28) | (t >> 8); \
-                } \
-                else \
-                { \
-                    DWORD t = *pHlIxIy; \
-                    f = (f & 0xc4) | (((t & 0xfff) + (((hi) << 8) | (lo)) > 0xfff) << 4); \
-                    t += ((hi) << 8) | (lo); \
-                    *pHlIxIy = t; \
-                    f |= ((t >> 8) & 0x28) | (t >> 16); \
-                } \
+                WORD z = (x); \
+                DWORD y = *pHlIxIy + z; \
+                f = (f & 0xc4) |                                        /* S, Z, V    */ \
+                    (((y & 0x3800) ^ ((*pHlIxIy ^ z) & 0x1000)) >> 8) | /* 5, H, 3    */ \
+                    (y >> 16);                                          /* C          */ \
+                *pHlIxIy = y; \
             } \
-            while(0)
+            while (0)
 
 
-#define adda1(x,c) /* 8-bit add */ \
+#define adda1(x,c) \
+            do /* 8-bit add */ \
             { \
-                WORD y; \
                 BYTE z = (x); \
-                y = a + z + (c); \
-                f = (y&0xa8) | (y >> 8) | (((a&0x0f) + (z&0x0f) + (c) > 15) << 4) | (((~a^z) & 0x80 & (y^a)) >> 5); \
-                f |= (!(a = y)) << 6; \
-            }
+                WORD y = a + z + (c); \
+                f = ((y & 0xb8) ^ ((a ^ z) & 0x10)) |                   /* S, 5, H, 3 */ \
+                    (y >> 8) |                                          /* C          */ \
+                    (((a ^ ~z) & (a ^ y) & 0x80) >> 5);                 /* V          */ \
+                f |= (!(a = y)) << 6;                                   /* Z          */ \
+            } \
+            while (0)
 
 #define adda(x)     adda1((x),0)
 #define adca(x)     adda1((x),cy)
 
-#define suba1(x,c) /* 8-bit subtract */ do{WORD y;\
-                      BYTE z=(x);\
-                      y=(a-z-(c))&0x1ff;\
-                      f=(y&0xa8)|(y>>8)|(((a&0x0f)<(z&0x0f)+(c))<<4)|\
-                        (((a^z)&0x80&(y^a))>>5)|2;\
-                      f|=(!(a=y))<<6;\
-                   } while(0)
+#define suba1(x,c) \
+            do /* 8-bit subtract */ \
+            { \
+                BYTE z = (x); \
+                WORD y = a - z - (c); \
+                f = ((y & 0xb8) ^ ((a ^ z) & 0x10)) |                   /* S, 5, H, 3 */ \
+                    ((y >> 8) & 1) |                                    /* C          */ \
+                    (((a ^ z) & (a ^ y) & 0x80) >> 5) |                 /* V          */ \
+                    2;                                                  /* N          */ \
+                f |= (!(a = y)) << 6;                                   /* Z          */ \
+            } \
+            while (0)
 
 #define suba(x)     suba1((x),0)
 #define sbca(x)     suba1((x),cy)
 
 // Undocumented flags added by Ian Collier
-#define cpa(x) /* 8-bit compare */ do{WORD y;\
-                      BYTE z=(x);\
-                      y=(a-z)&0x1ff;\
-                      f=(y&0x80)|(z&0x28)|(y>>8)|(((a&0x0f)<(z&0x0f))<<4)|\
-                        (((a^z)&0x80&(y^a))>>5)|2|((!y)<<6);\
-                   } while(0)
+#define cpa(x) \
+            do /* 8-bit compare */ \
+            { \
+                BYTE z = (x); \
+                WORD y = a - z; \
+                f = ((y & 0x90) ^ ((a ^ z) & 0x10)) |                   /* S, H       */ \
+                    (z & 0x28) |                                        /* 5, 3       */ \
+                    ((y >> 8) & 1) |                                    /* C          */ \
+                    (((a ^ z) & (a ^ y) & 0x80) >> 5) |                 /* V          */ \
+                    2 |                                                 /* N          */ \
+                    ((!y) << 6);                                        /* Z          */ \
+            } \
+            while (0)
 
 #define anda(x) /* logical and */ do{\
                       a&=(x);\
@@ -243,7 +247,7 @@ endinstr;
 
 // add hl/ix/iy,bc
 instr(9,4)
-    addhl(b,c);
+    addhl(bc);
 endinstr;
 
 // ld a,(bc)
@@ -335,7 +339,7 @@ endinstr;
 
 // add hl/ix/iy,de
 instr(25,4)
-    addhl(d,e);
+    addhl(de);
 endinstr;
 
 // ld a,(de)
@@ -442,7 +446,7 @@ endinstr;
 
 // add hl,hl
 instr(41,4)
-    addhl(xh,xl);
+    addhl(*pHlIxIy);
 endinstr;
 
 // ld hl,(nn)
@@ -541,7 +545,7 @@ endinstr;
 
 // add hl,sp
 instr(57,4)
-    addhl(sp_h,sp_l);
+    addhl(sp);
 endinstr;
 
 // ld a,(nn)
