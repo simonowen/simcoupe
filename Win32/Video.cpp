@@ -61,8 +61,11 @@ bool Video::Init (bool fFirstInit_)
     Exit(true);
     TRACE("-> Video::Init(%s)\n", fFirstInit_ ? "first" : "");
 
-    // Create the main DirectDraw object
+    // Create the main DirectDraw object, reversing the acceleration option if the first attempt failed
     HRESULT hr = pfnDirectDrawCreate(GetOption(hwaccel) ? NULL : (LPGUID)DDCREATE_EMULATIONONLY, &pdd, NULL);
+    if (FAILED(hr))
+        hr = pfnDirectDrawCreate(!GetOption(hwaccel) ? NULL : (LPGUID)DDCREATE_EMULATIONONLY, &pdd, NULL);
+
     if (FAILED(hr))
         Message(msgError, "DirectDrawCreate() failed with %#08lx", hr);
     else
