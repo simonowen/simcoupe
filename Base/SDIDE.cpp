@@ -38,7 +38,6 @@ CSDIDEDevice::CSDIDEDevice ()
     m_pDisk = new CHardDiskDevice(GetOption(sdidedisk));
 }
 
-
 CSDIDEDevice::~CSDIDEDevice ()
 {
     delete m_pDisk;
@@ -77,8 +76,6 @@ BYTE CSDIDEDevice::In (WORD wPort_)
 
 void CSDIDEDevice::Out (WORD wPort_, BYTE bVal_)
 {
-    BYTE bRet = 0x00;
-
     switch (wPort_ & 0xff)
     {
         // Register (latched)
