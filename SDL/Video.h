@@ -40,9 +40,12 @@ extern SDL_Surface *pBack, *pFront;
 
 const int N_TEXTURES = 9;   // a 3x3 block of 256x256 textures is needed (at most) for the full display area
 
+#define glExtension(x)  !!strstr(reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS)), (x))
+
 extern GLuint dlist;
 extern GLuint auTextures[];
 extern DWORD dwTextureData[N_TEXTURES][256][256];
+extern GLenum g_glPixelFormat, g_glDataType;
 
 #endif
 
