@@ -41,6 +41,8 @@
         // Try each type in turn to check for a match
         if (CFloppyDisk::IsRecognised(pStream_))
             return dtFloppy;
+        else if (CFDIDisk::IsRecognised(pStream_))
+            return dtFDI;
         else if (CTD0Disk::IsRecognised(pStream_))
             return dtTD0;
         else if (CSDFDisk::IsRecognised(pStream_))
@@ -77,6 +79,7 @@
         switch (GetType(pStream))
         {
             case dtFloppy:  pDisk = new CFloppyDisk(pStream);   break;      // Direct floppy access
+            case dtFDI:     pDisk = new CFDIDisk(pStream);      break;      // .FDI
             case dtTD0:     pDisk = new CTD0Disk(pStream);      break;      // .TD0
             case dtSDF:     pDisk = new CSDFDisk(pStream);      break;      // .SDF
             case dtSAD:     pDisk = new CSADDisk(pStream);      break;      // .SAD
@@ -285,8 +288,10 @@ BYTE CDSKDisk::WriteData (BYTE *pbData_, UINT* puSize_)
 // Save the disk out to the stream
 bool CDSKDisk::Save ()
 {
+    size_t uSize = m_uSides*m_uTracks*m_uSectors*m_uSectorSize;
+
     // Write the image out as a single block
-    if (m_pStream->Rewind() && m_pStream->Write(m_pbData, DSK_IMAGE_SIZE) == DSK_IMAGE_SIZE)
+    if (m_pStream->Rewind() && m_pStream->Write(m_pbData, uSize) == uSize)
     {
         SetModified(false);
         return true;
@@ -297,7 +302,7 @@ bool CDSKDisk::Save ()
 }
 
 // Format a track using the specified format
-BYTE CDSKDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_)
+BYTE CDSKDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
 {
     // Disk must be writable and must be the same number of sectors
     if (!IsReadOnly() && uSectors_ == m_uSectors)
@@ -328,8 +333,10 @@ BYTE CDSKDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
             // Work out the offset for the required track
             long lPos = (uSide_ + 2 * uTrack_) * (m_uSectors * m_uSectorSize);
 
-            // Formatting it requires simply clearing the existing data
-            memset(m_pbData + lPos, 0, m_uSectors * m_uSectorSize);
+            // Process each sector to write the supplied data
+            for (UINT u = 0 ; u < uSectors_ ; u++)
+                memcpy(m_pbData + lPos + ((paID_[u].bSector-1) * m_uSectorSize), papbData_[u], m_uSectorSize);
+
             SetModified();
 
             // No error
@@ -462,7 +469,7 @@ bool CSADDisk::Save ()
 }
 
 // Format a track using the specified format
-BYTE CSADDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_)
+BYTE CSADDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
 {
     // Disk must be writable and must be the same number of sectors
     if (!IsReadOnly() && uSectors_ == m_uSectors)
@@ -487,14 +494,16 @@ BYTE CSADDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
         fNormal &= (dwSectors == ((1UL << m_uSectors) - 1));
 
 
-        // All all the above checks out it's a normal sector
+        // All all the above checks out it's a normal track
         if (fNormal)
         {
             // Work out the offset for the required track
             long lPos = sizeof(SAD_HEADER) + (m_uSide * m_uTracks + m_uTrack) * (m_uSectors * NORMAL_SECTOR_SIZE);
 
-            // Formatting it requires simply clearing the existing data
-            memset(m_pbData + lPos, 0, m_uSectors * m_uSectorSize);
+            // Process each sector to write the supplied data
+            for (UINT u = 0 ; u < uSectors_ ; u++)
+                memcpy(m_pbData + lPos + ((paID_[u].bSector-1) * m_uSectorSize), papbData_[u], m_uSectorSize);
+
             SetModified();
 
             // No error
@@ -629,11 +638,180 @@ bool CSDFDisk::ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_
 }
 
 // Format a track using the specified format
-BYTE CSDFDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_)
+BYTE CSDFDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
 {
     return WRITE_PROTECT;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
+/*static*/ bool CFDIDisk::IsRecognised (CStream* pStream_)
+{
+    FDI_HEADER fh;
+
+    // Read the header, check for the signature, and make sure the disk geometry is sensible
+    return (pStream_->Rewind() && pStream_->Read(&fh, sizeof fh) == sizeof(fh) &&
+            !memcmp(fh.abSignature, FDI_SIGNATURE, sizeof(fh.abSignature)) &&
+            fh.bSides[0] && !fh.bSides[1] && fh.bSides[0] <= MAX_DISK_SIDES &&
+            fh.bTracks[0] && !fh.bTracks[1] && fh.bTracks[0] <= MAX_DISK_TRACKS &&
+            fh.bDataOffset[0] > sizeof(fh));
+}
+
+CFDIDisk::CFDIDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT uTracks_/*=MAX_DISK_TRACKS*/)
+    : CDisk(pStream_, dtFDI), m_pTrack(NULL), m_pFind(NULL)
+{
+    m_uSides = uSides_;
+    m_uTracks = uTracks_;
+
+    memset(m_abData, 0, sizeof(m_abData));
+
+    // Read the data from any existing stream, or create and save a new disk
+    if (pStream_->IsOpen())
+    {
+        UINT uMaxSize = MAX_DISK_SIDES * MAX_DISK_TRACKS * MAX_TRACK_SIZE;
+
+        BYTE* pb = new BYTE[uMaxSize];
+        if (!pb)
+        {
+            m_uSides = m_uTracks = 0;
+            return;
+        }
+
+        pStream_->Rewind();
+        pStream_->Read(pb, uMaxSize);
+
+        FDI_HEADER* pfh = reinterpret_cast<FDI_HEADER*>(pb);
+        m_uSides = pfh->bSides[0];
+        m_uTracks = pfh->bTracks[0];
+
+        BYTE* pbData = pb + pfh->bDataOffset[0];
+        BYTE* pbHeaders = (BYTE*)&pfh->bExtraSize + sizeof(pfh->bExtraSize) + ((pfh->bExtraSize[1] << 8) | pfh->bExtraSize[0]);
+
+        for (UINT uTrack = 0 ; uTrack < m_uTracks ; uTrack++)
+        {
+            for (UINT uSide = 0 ; uSide < m_uSides ; uSide++)
+            {
+                FDI_TRACK_HEADER* pTrack = reinterpret_cast<FDI_TRACK_HEADER*>(m_abData[uSide][uTrack]);
+                memcpy(pTrack, pbHeaders, sizeof(*pTrack));
+                pbHeaders += sizeof(*pTrack);
+
+                BYTE* pbTrack = pbData + ((pTrack->abTrackOffset[3] << 24) | (pTrack->abTrackOffset[2] << 16) |
+                                          (pTrack->abTrackOffset[1] << 8)  |  pTrack->abTrackOffset[0]);
+
+                FDI_SECTOR_HEADER* pSector = reinterpret_cast<FDI_SECTOR_HEADER*>(pTrack+1);
+
+                for (UINT uSector = 0 ; uSector < pTrack->bSectors ; uSector++)
+                {
+                    memcpy(pSector, pbHeaders, sizeof(*pSector));
+                    pbHeaders += sizeof(*pSector);
+
+                    BYTE* pbSector = pbTrack + ((pSector->bSectorOffset[1] << 8) | pSector->bSectorOffset[0]);
+                    memcpy(pSector+1, pbSector, 128 << pSector->bSize);
+
+                    pSector = reinterpret_cast<FDI_SECTOR_HEADER*>(reinterpret_cast<BYTE*>(pSector+1) + (128 << pSector->bSize));
+                }
+            }
+        }
+
+        delete[] pb;
+    }
+    else
+    {
+        m_uSides = m_uTracks = 0;
+        SetModified();
+    }
+}
+
+
+// Initialise the enumeration of all sectors in the track
+UINT CFDIDisk::FindInit (UINT uSide_, UINT uTrack_)
+{
+    if (uSide_ >= m_uSides || uTrack_ >= m_uTracks)
+        return m_uSectors = 0;
+
+    // Locate the track in the buffer to determine the number of sectors available
+    m_pTrack = reinterpret_cast<FDI_TRACK_HEADER*>(m_abData[uSide_][uTrack_]);
+    m_uSectors = m_pTrack->bSectors;
+
+    m_pFind = NULL;
+
+    // Call the base and return the number of sectors in the track
+    return CDisk::FindInit(uSide_, uTrack_);
+}
+
+// Find the next sector in the current track
+bool CFDIDisk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
+{
+    bool fRet;
+
+    // Make sure there is a 'next' one
+    if (fRet = CDisk::FindNext())
+    {
+        if (!m_pFind)
+            m_pFind = reinterpret_cast<FDI_SECTOR_HEADER*>(m_pTrack+1);
+        else
+        {
+            // The data length is zero if there is a problem with the ID header
+            UINT uSize = (m_pFind->bFlags & 0x3f) ? (MIN_SECTOR_SIZE << m_pFind->bSize) : 0;
+
+            // Advance the pointer over the header and data to next header
+            m_pFind = reinterpret_cast<FDI_SECTOR_HEADER*>(reinterpret_cast<BYTE*>(m_pFind+1) + uSize);
+        }
+
+        // Copy the ID field to the supplied buffer
+        pIdField_->bTrack = m_pFind->bTrack;
+        pIdField_->bSide = m_pFind->bSide;
+        pIdField_->bSector = m_pFind->bSector;
+        pIdField_->bSize = m_pFind->bSize;
+        pIdField_->bCRC1 = 0;
+        pIdField_->bCRC2 = 0;
+
+        // Store the ID status
+        *pbStatus_ = (m_pFind->bFlags & 0x80) ? DELETED_DATA : 0;
+    }
+
+    // Return true if we're returning a new item
+    return fRet;
+}
+
+// Read the data for the last sector found
+BYTE CFDIDisk::ReadData (BYTE *pbData_, UINT* puSize_)
+{
+    // Return the data status to include a possible CRC error
+    BYTE bStatus = 0;
+    bStatus |= (m_pFind->bFlags & 0x80) ? DELETED_DATA : 0;
+    bStatus |= (m_pFind->bFlags & 0x3f) ? 0 : CRC_ERROR;
+
+    // Copy the sector data, if any
+    UINT uSize = (bStatus & CRC_ERROR) ? 0 : MIN_SECTOR_SIZE << m_pFind->bSize;
+    memcpy(pbData_, reinterpret_cast<BYTE*>(m_pFind+1), *puSize_ = uSize);
+
+    return bStatus;
+}
+
+// Read the data for the last sector found
+BYTE CFDIDisk::WriteData (BYTE *pbData_, UINT* puSize_)
+{
+    return WRITE_PROTECT;
+}
+
+// Save the disk out to the stream
+bool CFDIDisk::Save ()
+{
+    return false;
+}
+
+// Read real track information for the disk, if available
+bool CFDIDisk::ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
+{
+    return false;
+}
+
+// Format a track using the specified format
+BYTE CFDIDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
+{
+    return WRITE_PROTECT;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -703,7 +881,7 @@ bool CFloppyDisk::Save ()
 }
 
 // Format a track using the specified format
-BYTE CFloppyDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_)
+BYTE CFloppyDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
 {
     // Not supported at present, though regular formats should be possible in the
     // future, even if just implemented as writing zeros (as with DSK images)
@@ -861,7 +1039,7 @@ bool CFileDisk::Save ()
 }
 
 // Format a track using the specified format
-BYTE CFileDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_)
+BYTE CFileDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
 {
     // Read-only, formatting not supported
     return WRITE_PROTECT;
@@ -1116,7 +1294,7 @@ bool CTD0Disk::ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_
 }
 
 // Format a track using the specified format
-BYTE CTD0Disk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_)
+BYTE CTD0Disk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
 {
     // No formatting yet
     return WRITE_PROTECT;
