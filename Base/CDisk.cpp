@@ -49,9 +49,9 @@
             return dtSAD;
         else if (CFileDisk::IsRecognised(pStream_))
         {
-            // For now we'll only accept single files if they have a .SBT extension on the filename
-            const char* pcszDisk = pStream_->GetName();
-            if (strlen(pcszDisk) > 4 && !strcasecmp(pcszDisk + strlen(pcszDisk) - 4, ".sbt"))
+            // For now we'll only accept single files if they have a .SBT file extension
+            const char* pcsz = pStream_->GetFile();
+            if (strlen(pcsz) > 4 && !strcasecmp(pcsz + strlen(pcsz) - 4, ".sbt"))
                 return dtSBT;
         }
 
@@ -214,13 +214,12 @@ bool CDisk::FindSector (UINT uSide_, UINT uTrack_, UINT uIdTrack_, UINT uSector_
     // Calculate the cylinder size
     UINT uCylSize = NORMAL_DISK_SIDES * NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE;
 
-    // Accept files that are a multiple of the cylinder size, but no larger than a full disk
-    // Note: this automatically includes 720K MS-DOS disks, handled in the constructor below
-    return uSize && uSize <= DSK_IMAGE_SIZE && !(uSize % uCylSize);
+    // Accept 720K (9-sector DOS) disks and 800K (10-sector) SAM disks
+    return uSize == DSK_IMAGE_SIZE || uSize == MSDOS_IMAGE_SIZE;
 }
 
-CDSKDisk::CDSKDisk (CStream* pStream_)
-    : CDisk(pStream_, dtDSK)
+CDSKDisk::CDSKDisk (CStream* pStream_, bool fIMG_/*=false*/)
+    : CDisk(pStream_, dtDSK), m_fIMG(fIMG_)
 {
     // The DSK geometry is fixed
     m_uSides = NORMAL_DISK_SIDES;
@@ -242,6 +241,13 @@ CDSKDisk::CDSKDisk (CStream* pStream_)
         // If it's an MS-DOS image, treat as 9 sectors-per-track, otherwise 10 as normal for SAM
         m_uSectors = (pStream_->Read(m_pbData, DSK_IMAGE_SIZE) == MSDOS_IMAGE_SIZE) ?
                         MSDOS_DISK_SECTORS : NORMAL_DISK_SECTORS;
+
+        // Check for .img 800K images, which use a different track order
+        if (m_uSectors == NORMAL_DISK_SECTORS)
+        {
+            const char* pcsz = pStream_->GetFile();
+            m_fIMG = (strlen(pcsz) > 4 && !strcasecmp(pcsz + strlen(pcsz) - 4, ".img"));
+        }
     }
 }
 
@@ -249,8 +255,9 @@ CDSKDisk::CDSKDisk (CStream* pStream_)
 // Read the data for the last sector found
 BYTE CDSKDisk::ReadData (BYTE *pbData_, UINT* puSize_)
 {
-    // Work out the offset for the required data
-    long lPos = (m_uSide + NORMAL_DISK_SIDES * m_uTrack) * (m_uSectors * m_uSectorSize) + ((m_uSector-1) * m_uSectorSize);
+    // Work out the offset for the required data (DSK and IMG use different track interleaves)
+    long lPos = m_fIMG ? (m_uSide * m_uTracks + m_uTrack) : (m_uSide + NORMAL_DISK_SIDES * m_uTrack);
+    lPos = lPos * (m_uSectors * m_uSectorSize) + ((m_uSector-1) * m_uSectorSize);
 
     // Copy the sector data from the image buffer
     memcpy(pbData_, m_pbData + lPos, *puSize_ = m_uSectorSize);
@@ -266,8 +273,9 @@ BYTE CDSKDisk::WriteData (BYTE *pbData_, UINT* puSize_)
     if (IsReadOnly())
         return WRITE_PROTECT;
 
-    // Work out the offset for the required data
-    long lPos = (m_uSide + NORMAL_DISK_SIDES * m_uTrack) * (m_uSectors * m_uSectorSize) + ((m_uSector-1) * m_uSectorSize);
+    // Work out the offset for the required data (DSK and IMG use different track interleaves)
+    long lPos = m_fIMG ? (m_uSide * m_uTracks + m_uTrack) : (m_uSide + NORMAL_DISK_SIDES * m_uTrack);
+    lPos = lPos * (m_uSectors * m_uSectorSize) + ((m_uSector-1) * m_uSectorSize);
 
     // Copy the sector data to the image buffer, and set the modified flag
     memcpy(m_pbData + lPos, pbData_, *puSize_ = m_uSectorSize);
@@ -414,10 +422,10 @@ bool CSADDisk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
 BYTE CSADDisk::ReadData (BYTE *pbData_, UINT* puSize_)
 {
     // Work out the offset for the required data
-    long lPos = sizeof(SAD_HEADER) + (m_uSide * m_uTracks + m_uTrack) * (m_uSectors * NORMAL_SECTOR_SIZE) + ((m_uSector-1) * NORMAL_SECTOR_SIZE) ;
+    long lPos = sizeof(SAD_HEADER) + (m_uSide * m_uTracks + m_uTrack) * (m_uSectors * m_uSectorSize) + ((m_uSector-1) * m_uSectorSize) ;
 
     // Copy the sector data from the image buffer
-    memcpy(pbData_, m_pbData + lPos, *puSize_ = NORMAL_SECTOR_SIZE);
+    memcpy(pbData_, m_pbData + lPos, *puSize_ = m_uSectorSize);
 
     // Data is always perfect on SAD images, so return OK
     return 0;
@@ -431,10 +439,10 @@ BYTE CSADDisk::WriteData (BYTE *pbData_, UINT* puSize_)
         return WRITE_PROTECT;
 
     // Work out the offset for the required data
-    long lPos = sizeof(SAD_HEADER) + (m_uSide * m_uTracks + m_uTrack) * (m_uSectors * NORMAL_SECTOR_SIZE) + ((m_uSector-1) * NORMAL_SECTOR_SIZE) ;
+    long lPos = sizeof(SAD_HEADER) + (m_uSide * m_uTracks + m_uTrack) * (m_uSectors * m_uSectorSize) + ((m_uSector-1) * m_uSectorSize) ;
 
     // Copy the sector data to the image buffer, and set the modified flag
-    memcpy(m_pbData + lPos, pbData_, *puSize_ = NORMAL_SECTOR_SIZE);
+    memcpy(m_pbData + lPos, pbData_, *puSize_ = m_uSectorSize);
     SetModified();
 
     // Data is always perfect on SAD images, so return OK
@@ -634,7 +642,7 @@ BYTE CSDFDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
 
 /*static*/ bool CFloppyDisk::IsRecognised (CStream* pStream_)
 {
-    return CFloppyStream::IsRecognised(pStream_->GetName());
+    return CFloppyStream::IsRecognised(pStream_->GetPath());
 }
 
 CFloppyDisk::CFloppyDisk (CStream* pStream_)
@@ -781,8 +789,8 @@ BYTE CFileDisk::ReadData (BYTE *pbData_, UINT* puSize_)
         pbData_[0] = 19;
 
         // Strip any file extension and use up to the first 10 chars for the filename on the disk
-        const char *pcszName = m_pStream->GetName(), *pcszExt = strrchr(pcszName, '.'), *pcsz;
-        for (pcsz = pcszName+strlen(pcszName)-1 ; pcsz[-1] != '/' && pcsz[-1] != '\\' && pcsz > pcszName ; pcsz--);
+        const char *pcszName = m_pStream->GetFile(), *pcszExt = strrchr(pcszName, '.'), *pcsz;
+        for (pcsz = pcszName+strlen(pcszName)-1 ; pcsz[-1] != PATH_SEPARATOR && pcsz > pcszName ; pcsz--);
         size_t uLen = strlen(pcsz) - (pcszExt ? strlen(pcszExt) : 0);
         memset(pbData_+1, ' ', 10);
         memcpy(pbData_+1, pcsz, min(uLen, 10));
