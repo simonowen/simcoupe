@@ -59,6 +59,7 @@ const char* const WINDOW_CAPTION =
 void DoAction (int nAction_, bool fPressed_=true);
 
 bool g_fActive = true;
+bool g_fFrameStep = false;
 
 
 enum eActions
@@ -67,7 +68,8 @@ enum eActions
     actToggle5_4, actToggle50HzSync, actChangeWindowScale, actChangeFrameSkip, actChangeProfiler, actChangeMouse,
     actChangeKeyMode, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actInsertFloppy2, actEjectFloppy2,
     actSaveFloppy2, actNewDisk, actSaveScreenshot, actFlushPrintJob, actDebugger, actImportData, actExportData,
-    actDisplayOptions, actExitApplication, actToggleTurbo, actTempTurbo, actReleaseMouse, actPause, MAX_ACTION
+    actDisplayOptions, actExitApplication, actToggleTurbo, actTempTurbo, actReleaseMouse, actPause, actFrameStep,
+    MAX_ACTION
 };
 
 const char* aszActions[MAX_ACTION] =
@@ -77,7 +79,8 @@ const char* aszActions[MAX_ACTION] =
     "Change profiler mode", "Change mouse mode", "Change keyboard mode", "Insert floppy 1", "Eject floppy 1",
     "Save changes to floppy 1", "Insert floppy 2", "Eject floppy 2", "Save changes to floppy 2", "New Disk",
     "Save screenshot", "Flush print job", "Debugger", "Import data", "Export data", "Display options",
-    "Exit application", "Toggle turbo speed", "Turbo speed (when held)", "Release mouse capture", "Pause"
+    "Exit application", "Toggle turbo speed", "Turbo speed (when held)", "Release mouse capture", "Pause",
+    "Step single frame"
 };
 
 
@@ -181,8 +184,9 @@ void ProcessKey (SDL_Event* pEvent_)
         case SDLK_KP_MULTIPLY:  DoAction(actNmiButton, fPress);         break;
         case SDLK_KP_PLUS:      DoAction(actTempTurbo, fPress);         break;
         case SDLK_SYSREQ:       DoAction(actSaveScreenshot, fPress);    break;
-        case SDLK_SCROLLOCK:    DoAction(actPause, fPress);             break;
-        case SDLK_PAUSE:        DoAction((pKey->mod & KMOD_CTRL) ? actResetButton : actPause, fPress);  break;
+        case SDLK_SCROLLOCK:    // Pause key on some platforms comes through as scoll lock?
+        case SDLK_PAUSE:        DoAction((pKey->mod & KMOD_CTRL) ? actResetButton :
+                                         (pKey->mod & KMOD_SHIFT) ? actFrameStep : actPause, fPress);   break;
         default:                break;
     }
 }
@@ -191,6 +195,10 @@ void ProcessKey (SDL_Event* pEvent_)
 bool CheckEvents ()
 {
     SDL_Event event;
+
+    // Re-pause after a single frame-step
+    if (g_fFrameStep)
+        DoAction(actFrameStep);
 
     while (1)
     {
@@ -306,7 +314,7 @@ bool InsertDisk (CDiskDevice* pDrive_, const char* pName)
         // Open the new disk (using the requested read-only mode), and insert it into the drive if successful
         if (pDrive_->Insert(pName))
 	    return true;
-	
+
 	//}
 
     return false;
@@ -386,14 +394,13 @@ void DoAction (int nAction_, bool fPressed_)
                                 GetOption(keymapping)==1 ? "SAM Coupe keyboard mode" : "Spectrum keyboard mode");
                 break;
 
-	    case actInsertFloppy1:
-	        if (GetOption(drive1) == 1) 
-	        {
-		    InsertDisk(pDrive1, GetOption(disk1));
-		    SetOption(disk1, pDrive1->GetImage());
-		    Frame::SetStatus("Inserted disk in drive 1");
-
-		}
+            case actInsertFloppy1:
+                if (GetOption(drive1) == 1)
+                {
+                    InsertDisk(pDrive1, GetOption(disk1));
+                    SetOption(disk1, pDrive1->GetImage());
+                    Frame::SetStatus("Inserted disk in drive 1");
+                }
                 break;
 
             case actEjectFloppy1:
@@ -412,12 +419,12 @@ void DoAction (int nAction_, bool fPressed_)
 
             case actInsertFloppy2:
                 if (GetOption(drive2) == 1)
-		{
+                {
                     InsertDisk(pDrive2, GetOption(disk2));
-		    SetOption(disk2, pDrive2->GetImage());
-		    Frame::SetStatus("Inserted disk in drive 2");
+                    SetOption(disk2, pDrive2->GetImage());
+                    Frame::SetStatus("Inserted disk in drive 2");
                 }
-		break;
+                break;
 
             case actEjectFloppy2:
                 if (GetOption(drive2) == 1 && pDrive2->IsInserted())
@@ -491,6 +498,22 @@ void DoAction (int nAction_, bool fPressed_)
                 Frame::SetStatus("Mouse capture released");
                 break;
 
+            case actFrameStep:
+            {
+                // Run for one frame then pause
+                static int nFrameSkip = 0;
+
+                SetOption(paused, (g_fFrameStep = !g_fFrameStep));
+                if (g_fFrameStep)
+                {
+                    nFrameSkip = GetOption(frameskip);
+                    // Make sure that one frame is drawn
+                    SetOption(frameskip, 1);
+                }
+                else
+                    SetOption(frameskip, nFrameSkip);
+            }   // Fall through to actPause...
+
             case actPause:
             {
                 bool fPaused = SetOption(paused, !GetOption(paused));
@@ -509,7 +532,7 @@ void DoAction (int nAction_, bool fPressed_)
                     SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);
                 }
 
-                Video::CreatePalettes(fPaused);
+                Video::CreatePalettes(fPaused && (nAction_ == actPause));
                 Display::SetDirty();
                 Frame::Redraw();
                 Input::Purge();
