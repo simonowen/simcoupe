@@ -158,9 +158,6 @@ bool Input::Init (bool fFirstInit_/*=false*/)
     Mouse::Init(fFirstInit_);
     Purge();
 
-    // Force all modifier keys off (avoids Ctrl getting stuck from Ctrl-F5 in Visual Studio)
-    SDL_SetModState(KMOD_NONE);
-
     return true;
 }
 
@@ -198,12 +195,13 @@ void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 void Input::Purge (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 {
     SDL_Event event;
+    int n;
 
     if (fKeyboard_)
     {
-        // Remove any queued key events
-        while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_KEYDOWNMASK|SDL_KEYUPMASK) > 0)
-            ;
+        // Remove any queued key events and reset all key modifiers and 
+        while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_KEYDOWNMASK|SDL_KEYUPMASK) > 0);
+        SDL_SetModState(KMOD_NONE);
 
         // Release all keys
         memset(afKeyStates, 0, sizeof afKeyStates);
@@ -213,14 +211,11 @@ void Input::Purge (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 
     if (fMouse_)
     {
-        // Remove any queued mouse events
-        while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_MOUSEEVENTMASK) > 0)
-            ;
+        // Remove any queued mouse events and discard any relative mouse motion
+        while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_MOUSEEVENTMASK) > 0);
+        SDL_GetRelativeMouseState(&n, &n);
 
-        int nX, nY;
-        SDL_GetRelativeMouseState(&nX, &nY);
-
-        // No buttons pressed
+        // No SAM buttons pressed
         Mouse::SetButton(1, false);
         Mouse::SetButton(2, false);
         Mouse::SetButton(3, false);
@@ -273,6 +268,10 @@ bool ReadKeyboard ()
 // Update a combination key table with a symbol
 bool UpdateKeyTable (SIMPLE_KEY* asKeys_, SDL_keysym* pKey_)
 {
+    // Ignore symbols on the keypad
+    if (pKey_->sym >= SDLK_KP0 && pKey_->sym <= SDLK_KP_EQUALS)
+        return true;
+
     // Convert upper-case symbols to lower-case without shift
     if (pKey_->unicode >= 'A' && pKey_->unicode <= 'Z')
     {
@@ -486,7 +485,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 }
             }
 
-//          TRACE("Key %s: %d\n", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym);
+            TRACE("Key %s: %d (mods=%d)\n", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym, pKey->mod);
 //          Frame::SetStatus("Key %s: %d", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym);
 
             // Pass any printable characters to the GUI
@@ -498,9 +497,14 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                     int anCursors[] = { GK_UP, GK_DOWN, GK_RIGHT, GK_LEFT };
                     pKey->unicode = anCursors[pKey->sym - SDLK_UP];
                 }
+                else if (pKey->sym >= SDLK_HOME && pKey->sym <= SDLK_PAGEDOWN)
+                {
+                    int anMovement[] = { GK_HOME, GK_END, GK_PAGEUP, GK_PAGEDOWN };
+                    pKey->unicode = anMovement[pKey->sym - SDLK_HOME];
+                }
 
                 // Pass any printable key-down messages to the GUI
-                if (pEvent_->type == SDL_KEYDOWN && pKey->unicode < 0x80)
+                if (pEvent_->type == SDL_KEYDOWN && pKey->unicode <= GK_MAX)
                     GUI::SendMessage(GM_CHAR, pKey->unicode, (pKey->mod & KMOD_SHIFT) != 0);
 
                 break;
@@ -606,7 +610,16 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             if (GUI::IsActive())
             {
                 Display::DisplayToSamPoint(&nX, &nY);
-                GUI::SendMessage(GM_BUTTONDOWN, nX, nY);
+
+                switch (pEvent_->button.button)
+                {
+                    // Mouse wheel up and down
+                    case 4:  GUI::SendMessage(GM_MOUSEWHEEL, -1); break;
+                    case 5:  GUI::SendMessage(GM_MOUSEWHEEL,  1); break;
+
+                    // Any other mouse button
+                    default: GUI::SendMessage(GM_BUTTONDOWN, nX, nY); break;
+                }
             }
 
             // Grab the mouse on a left-click, if not already active (don't let the emulation see the click either)
