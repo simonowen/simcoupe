@@ -176,7 +176,8 @@ bool CBDOSDevice::Init ()
     memset(abBootSector, 0, sizeof abBootSector);
 
     // Form the full path of the file used for boot sector and record list
-    string sDir = OSD::GetFilePath(ATOM_SUBDIR), sFile = sDir + PATH_SEPARATOR + ATOM_HEADER_FILE;
+    char szSep[2] = { PATH_SEPARATOR, '\0' };
+    string sDir = OSD::GetFilePath(ATOM_SUBDIR), sFile = sDir + szSep + ATOM_HEADER_FILE;
 
     // Create the directory if it doesn't already exist
     if (mkdir(sDir.c_str(), S_IRWXU))
