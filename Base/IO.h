@@ -82,6 +82,7 @@ class CDiskDevice :  public CIoDevice
         virtual bool IsWriteable () const { return false; }
         virtual bool IsModified () const { return false; }
         virtual bool IsLightOn () const { return false; }
+        virtual bool IsActive () const { return IsLightOn(); }
 };
 
 
