@@ -29,11 +29,10 @@
 const unsigned int ATOM_LIGHT_DELAY = 2;    // Number of frames the hard disk LED remains on for after a command
 
 
-CAtomDiskDevice::CAtomDiskDevice ()
-    : CDiskDevice(dskAtom)
+CAtomDiskDevice::CAtomDiskDevice (CHardDisk* pDisk_)
+    : CDiskDevice(dskAtom), m_uLightDelay(0)
 {
-    m_pDisk = new CHardDiskDevice(GetOption(atomdisk));
-    m_uLightDelay = 0;
+    m_pDisk = new CATADevice(pDisk_);
 }
 
 

@@ -22,7 +22,6 @@
 #define ATOM_H
 
 #include "IO.h"
-#include "CDisk.h"
 #include "ATA.h"
 
 const BYTE ATOM_ADDR_MASK   = 0x07;
@@ -34,7 +33,7 @@ const BYTE ATOM_NRESET      = 0x20;     // Reset pin (negative logic)
 class CAtomDiskDevice : public CDiskDevice
 {
     public:
-        CAtomDiskDevice ();
+        CAtomDiskDevice (CHardDisk* pDisk_);
         ~CAtomDiskDevice ();
 
     public:
@@ -45,7 +44,7 @@ class CAtomDiskDevice : public CDiskDevice
         bool IsLightOn () const { return m_uLightDelay != 0; }
 
     protected:
-        CHardDiskDevice* m_pDisk;
+        CATADevice* m_pDisk;
 
         BYTE m_bAddressLatch, m_bDataLatch;
 
