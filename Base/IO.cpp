@@ -913,9 +913,13 @@ void IO::FrameUpdate ()
 
 void IO::UpdateInput()
 {
-    // Copy the working buffer to the live port buffer
+    // To avoid accidents, purge keyboard input during accelerated disk access
+    if (GetOption(turboload) && (pDrive1 && pDrive1->IsActive()) || (pDrive2 && pDrive2->IsActive()))
+        Input::Purge(false);
+
     if (fInputDirty)
     {
+        // Copy the working buffer to the live port buffer
         memcpy(keyports, keybuffer, sizeof keyports);
         fInputDirty = false;
     }
