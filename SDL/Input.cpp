@@ -200,7 +200,8 @@ void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
     SDL_EnableKeyRepeat(fKeyboard_ ? 0 : 250, fKeyboard_ ? 0 : 30);
 
     // Set the mouse acquisition state
-    fMouseActive = fMouse_;
+    if (fMouseActive = fMouse_ && GetOption(mouse))
+        SDL_WarpMouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
 }
 
 
@@ -228,10 +229,8 @@ void Input::Purge (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
         while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_MOUSEEVENTMASK) > 0);
         SDL_GetRelativeMouseState(&n, &n);
 
-        // No SAM buttons pressed
-        Mouse::SetButton(1, false);
-        Mouse::SetButton(2, false);
-        Mouse::SetButton(3, false);
+        // Reset the mouse
+        Mouse::Init();
     }
 }
 
@@ -696,16 +695,15 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             }
 
             // Grab the mouse on a left-click, if not already active (don't let the emulation see the click either)
-            else if (!fMouseActive && pEvent_->button.button == 1)
-            {
-                Acquire();
-                SDL_WarpMouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
-            }
-            else
+            else if (fMouseActive)
             {
                 Mouse::SetButton(pEvent_->button.button, true);
                 TRACE("Mouse button %d pressed\n", pEvent_->button.button);
             }
+
+            // If the mouse is enabled, a left-click acquires it
+            else if (GetOption(mouse) && pEvent_->button.button == 1)
+                Acquire();
 
             break;
         }
@@ -718,7 +716,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 Display::DisplayToSamPoint(&nX, &nY);
                 GUI::SendMessage(GM_BUTTONUP, nX, nY);
             }
-            else
+            else if (fMouseActive)
             {
                 TRACE("Mouse button %d released\n", pEvent_->button.button);
                 Mouse::SetButton(pEvent_->button.button, false);
