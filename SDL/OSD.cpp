@@ -1,0 +1,177 @@
+// Part of SimCoupe - A SAM Coupé emulator
+//
+// OSD.cpp: SDL common "OS-dependant" functions
+//
+//  Copyright (c) 1999-2001  Simon Owen
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+// Notes:
+//  This "OS-dependant" module for the SDL version required some yucky
+//  conditional blocks, but it's probably forgiveable in here!
+
+#include "SimCoupe.h"
+#include "OSD.h"
+
+#include "CPU.h"
+#include "Main.h"
+#include "Options.h"
+
+#ifdef __BEOS__
+#include <FindDirectory.h>
+#endif
+
+
+extern SDL_sem* pSemaphore;
+
+namespace OSD
+{
+bool Init ()
+{
+    // The only sub-system we _need_ is video
+    bool fRet = !SDL_Init(SDL_INIT_VIDEO);
+    if (!fRet)
+        TRACE("SDL_Init failed: %s\n", SDL_GetError());
+
+    return fRet;
+}
+
+void Exit ()
+{
+    SDL_Quit();
+}
+
+
+// Return a DWORD containing a millisecond accurate time stamp
+// Note: calling could should allow for the value wrapping by only comparing differences
+DWORD GetTime ()
+{
+    return SDL_GetTicks();
+}
+
+
+// Do whatever is necessary to locate an additional SimCoupe file - The Win32 version looks in the
+// same directory as the EXE, but other platforms could use an environment variable, etc.
+// If the path is already fully qualified (an OS-specific decision), return the same string
+const char* GetFilePath (const char* pcszFile_)
+{
+    static char szPath[512];
+
+    // If the supplied file path looks absolute, use it as-is
+    if (*pcszFile_ == '/'
+#ifdef _WINDOWS
+        || strchr(pcszFile_, ':')
+#endif
+        )
+        strncpy(szPath, pcszFile_, sizeof szPath);
+
+    // Form the full path relative to the current EXE file
+    else
+    {
+        // Get the full path of the running module
+
+#if defined(_WINDOWS)
+        // Strip the module file and append the supplied file/path
+        GetModuleFileName(NULL, szPath, sizeof szPath);
+        strrchr(szPath, '\\')[1] = '\0';
+
+#elif defined(__BEOS__)
+        // Use a SimCoupe directory in the user's config/settings directory
+        find_directory(B_USER_SETTINGS_DIRECTORY, 0, true, szPath, sizeof szPath);
+        strcat(szPath, "/SimCoupe");
+        mkdir(szPath, S_IRWXU);
+        strcat(szPath, "/");
+#else
+        // We'll use a .SimCoupe directory in the user's home directory
+        strcat(strcpy(szPath, getenv("HOME")), "/.SimCoupe");
+        mkdir(szPath, S_IRWXU);
+        strcat(szPath, "/");
+#endif
+
+        // Append the supplied file/path
+        strcat(szPath, pcszFile_);
+    }
+
+    // Return a pointer to the new path
+    return szPath;
+}
+
+void DebugTrace (const char* pcsz_)
+{
+#ifdef _WINDOWS
+    OutputDebugString(pcsz_);
+#endif
+}
+
+bool FrameSync (bool fWait_/*=true*/)
+{
+    bool fWait = SDL_SemTryWait(pSemaphore) != 0;
+
+    if (fWait_)
+        SDL_SemWait(pSemaphore);
+
+    return fWait;
+}
+
+};  // namespace OSD
+
+
+#ifdef _WINDOWS
+
+WIN32_FIND_DATA s_fd;
+struct dirent s_dir;
+
+DIR* opendir (const char* pcszDir_)
+{
+    static char szPath[_MAX_PATH];
+
+    memset(&s_dir, 0, sizeof s_dir);
+
+    // Append a wildcard to match all files
+    lstrcpy(szPath, pcszDir_);
+    if (szPath[lstrlen(szPath)-1] != '\\')
+        lstrcat(szPath, "\\");
+    lstrcat(szPath, "*");
+
+    // Find the first file, saving the details for later
+    HANDLE h = FindFirstFile(szPath, &s_fd);
+
+    // Return the handle if successful, otherwise NULL
+    return (h == INVALID_HANDLE_VALUE) ? NULL : reinterpret_cast<DIR*>(h);
+}
+
+struct dirent* readdir (DIR* hDir_)
+{
+    // All done?
+    if (!s_fd.cFileName[0])
+        return NULL;
+
+    // Copy the filename and set the length
+    s_dir.d_reclen = lstrlen(lstrcpyn(s_dir.d_name, s_fd.cFileName, sizeof s_dir.d_name));
+
+    // If we'd already reached the end
+    if (!FindNextFile(reinterpret_cast<HANDLE>(hDir_), &s_fd))
+        s_fd.cFileName[0] = '\0';
+
+    // Return the current entry
+    return &s_dir;
+}
+
+int closedir (DIR* hDir_)
+{
+    return FindClose(reinterpret_cast<HANDLE>(hDir_)) ? 0 : -1;
+}
+
+#endif

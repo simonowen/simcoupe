@@ -1,0 +1,714 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.K.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_PAGE_MISC DIALOG DISCARDABLE  0, 0, 235, 156
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Misc"
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "SAMBUS Clock",IDC_SAMBUS_CLOCK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,54,18,66,10
+    CONTROL         "DALLAS Clock",IDC_DALLAS_CLOCK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,54,33,63,10
+    CONTROL         "Advance SAM time relative to real time.",IDC_CLOCK_SYNC,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,48,139,10
+    CONTROL         "Pause the emulation when inactive.",IDC_PAUSE_INACTIVE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,89,154,10
+    CONTROL         "Show disk drive activity lights.",IDC_DRIVE_LIGHTS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,103,120,10
+    CONTROL         "Display status messages.",IDC_STATUS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,54,117,120,10
+    LTEXT           "Profiling statistics:",IDC_STATIC,54,133,56,8
+    COMBOBOX        IDC_PROFILE,117,131,90,72,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    GROUPBOX        "Misc",IDC_STATIC,45,76,170,70
+    ICON            IDI_CLOCK,IDC_STATIC,7,7,20,20
+    ICON            IDI_MISC,IDC_STATIC,7,79,20,20
+    GROUPBOX        "Clock hardware",IDC_STATIC,45,7,170,57
+END
+
+IDD_ABOUT DIALOGEX 0, 0, 205, 143
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About SimCoupé/Win32"
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "SimCoupé - a SAM Coupé emulator\n  version 0.90",
+                    IDC_STATIC,37,7,150,18
+    LTEXT           "Overhaul and Win32 port\n  by Simon Owen (simon.owen@simcoupe.org)",
+                    IDC_STATIC,37,27,159,18
+    LTEXT           "Based on original SimCoupé versions\n  by Allan Skillman (Allan.Skillman@arm.com)",
+                    IDC_STATIC,37,51,159,18
+    LTEXT           "Additional technical enhancements\n  by Dave Laundon (dave.laundon@simcoupe.org)",
+                    IDC_STATIC,37,74,159,18
+    LTEXT           "Phillips SAA1099 sound chip emulation\n  by Dave Hooper (no-brain@mindless.com)",
+                    IDC_STATIC,37,98,160,18
+    DEFPUSHBUTTON   "OK",IDOK,77,122,50,14
+    ICON            IDI_MAIN,IDI_SAM,7,7,21,20,0,WS_EX_TRANSPARENT
+END
+
+IDD_EXPORT DIALOG DISCARDABLE  0, 0, 163, 142
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Export Data"
+FONT 8, "MS Sans Serif"
+BEGIN
+    EDITTEXT        IDE_FILE,26,7,111,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDB_BROWSE,142,7,14,14
+    CONTROL         "&BASIC Address:",IDR_BASIC_ADDRESS,"Button",
+                    BS_AUTORADIOBUTTON | BS_RIGHT | WS_GROUP,27,37,63,10
+    CONTROL         "&Page number:",IDR_PAGE_OFFSET,"Button",
+                    BS_AUTORADIOBUTTON | BS_RIGHT,27,58,63,10
+    EDITTEXT        IDE_ADDRESS,103,36,31,14
+    EDITTEXT        IDE_PAGE,103,57,15,14
+    EDITTEXT        IDE_OFFSET,103,73,26,15
+    EDITTEXT        IDE_LENGTH,104,96,31,14
+    DEFPUSHBUTTON   "OK",IDOK,35,121,40,14
+    PUSHBUTTON      "Cancel",IDCANCEL,88,121,40,14
+    RTEXT           "Page Offset:",IDC_STATIC,27,75,62,8
+    LTEXT           "File:",IDC_STATIC,7,9,14,8
+    LTEXT           "Length:",IDS_LENGTH,65,99,25,8
+    GROUPBOX        "Data",IDC_STATIC,7,24,149,91
+END
+
+IDD_NEWDISK DIALOG DISCARDABLE  0, 0, 200, 151
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "New Disk"
+FONT 8, "MS Sans Serif"
+BEGIN
+    EDITTEXT        IDE_NEWFILE,26,7,151,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDB_BROWSE,179,7,14,14
+    EDITTEXT        IDE_SIDES,79,38,21,14,ES_AUTOHSCROLL | WS_DISABLED
+    CONTROL         "Spin1",IDS_SIDES,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_AUTOBUDDY | UDS_ARROWKEYS,101,38,11,14
+    EDITTEXT        IDE_TRACKS,79,55,21,14,ES_AUTOHSCROLL | WS_DISABLED
+    CONTROL         "Spin1",IDS_TRACKS,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_AUTOBUDDY | UDS_ARROWKEYS,101,55,11,14
+    EDITTEXT        IDE_SECTORS,79,71,21,14,ES_AUTOHSCROLL | WS_DISABLED
+    CONTROL         "Spin1",IDS_SECTORS,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_AUTOBUDDY | UDS_ARROWKEYS,101,71,11,14
+    COMBOBOX        IDC_SECTORSIZE,79,89,34,54,CBS_DROPDOWNLIST | 
+                    WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Allow non real-world geometry values",
+                    IDC_NON_REAL_WORLD,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+                    7,117,138,10
+    CONTROL         "Compress new disk image using gzip",IDC_COMPRESS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,131,138,10
+    CONTROL         ".&DSK",IDR_DISK_TYPE_DSK,"Button",BS_AUTORADIOBUTTON | 
+                    WS_GROUP,141,36,33,10
+    CONTROL         ".&SAD",IDR_DISK_TYPE_SAD,"Button",BS_AUTORADIOBUTTON,
+                    141,50,33,10
+    CONTROL         ".SD&F",IDR_DISK_TYPE_SDF,"Button",BS_AUTORADIOBUTTON | 
+                    WS_DISABLED,141,64,32,10
+    COMBOBOX        IDC_INSERT_INTO,137,90,51,98,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "Save",IDB_SAVE,153,114,40,14
+    PUSHBUTTON      "Cancel",IDCANCEL,153,130,40,14
+    RTEXT           "Disk sides:",IDC_SIDES,13,40,60,8
+    RTEXT           "Tracks per side:",IDC_TRACKS,13,57,60,8
+    RTEXT           "Sectors per track:",IDC_SECTORS,13,74,60,8
+    GROUPBOX        "Type",IDC_STATIC,131,26,62,52
+    GROUPBOX        "Geometry",IDC_STATIC,7,26,117,82
+    RTEXT           "Sector size:",IDC_STATIC,15,91,60,8
+    LTEXT           "File:",IDC_STATIC,7,9,14,8
+    GROUPBOX        "Insert into:",IDC_STATIC,131,79,62,29
+END
+
+IDD_PAGE_PARALLEL DIALOG DISCARDABLE  0, 0, 235, 156
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Parallel"
+FONT 8, "MS Sans Serif"
+BEGIN
+    COMBOBOX        IDC_PARALLEL_1,98,31,95,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    COMBOBOX        IDC_PARALLEL_2,98,48,95,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    COMBOBOX        IDC_PRINTERS,54,108,154,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    ICON            IDI_PRINTER,IDC_STATIC,7,78,20,20
+    ICON            IDI_PORT,IDC_STATIC,7,7,20,20
+    LTEXT           "The following Windows printer will be used for SAM printer output:",
+                    IDC_STATIC,54,86,152,18
+    GROUPBOX        "Printer device",IDC_STATIC,45,76,170,52
+    GROUPBOX        "Parallel ports",IDC_STATIC,45,7,170,60
+    LTEXT           "Devices connected to the SAM parallel ports:",
+                    IDC_STATIC,54,18,170,8
+    LTEXT           "Port 1:",IDC_STATIC,58,32,22,8
+    LTEXT           "Port 2:",IDC_STATIC,57,49,22,8
+END
+
+IDD_PAGE_SOUND DIALOG DISCARDABLE  0, 0, 235, 156
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Sound"
+FONT 8, "MS Sans Serif"
+BEGIN
+    GROUPBOX        "",IDC_STATIC,45,7,170,131
+    CONTROL         "Sound enabled",IDC_SOUND_ENABLED,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,49,7,64,10
+    CONTROL         "Enable SAA 1099 sound chip output",IDC_SAASOUND_ENABLED,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,23,131,10
+    COMBOBOX        IDC_FREQUENCY,110,36,50,48,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    COMBOBOX        IDC_SAMPLE_SIZE,110,52,40,48,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Enable high-pass filter",IDC_FILTER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,66,71,85,10
+    CONTROL         "Enable Spectrum-style beeper",IDC_BEEPER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,54,93,148,10
+    CONTROL         "Stereo sound",IDC_STEREO,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,54,107,148,10
+    LTEXT           "Buffering (latency):",IDS_LATENCY,54,122,60,8
+    COMBOBOX        IDC_LATENCY,121,120,80,96,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Frequency:",IDS_FREQUENCY,66,39,36,8
+    LTEXT           "Sample size:",IDS_SAMPLE_SIZE,66,55,40,8
+    ICON            IDI_SOUND,IDC_STATIC,7,7,20,20
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,56,85,
+                    148,1
+END
+
+IDD_PAGE_DISPLAY DIALOG DISCARDABLE  0, 0, 235, 158
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Display"
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "Full-screen:",IDC_FULLSCREEN,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,54,19,52,10
+    COMBOBOX        IDC_WINDOW_SCALING,156,30,30,50,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_FULLSCREEN_DEPTH,156,46,48,50,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Stretch to fit",IDC_STRETCH_TO_FIT,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,54,72,54,10
+    CONTROL         "Display scanlines",IDC_SCANLINES,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,125,72,70,10
+    CONTROL         "Sync. to 50Hz.",IDC_SYNC,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,54,86,63,10
+    CONTROL         "5:4 pixel aspect ratio.",IDC_RATIO_5_4,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,125,86,84,10
+    CONTROL         "Auto frame-skip",IDC_FRAMESKIP_AUTOMATIC,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,54,100,65,10
+    COMBOBOX        IDC_FRAMESKIP,122,98,88,70,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Viewable area:",IDC_STATIC,54,117,48,8
+    COMBOBOX        IDC_BORDERS,122,115,88,70,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "DirectX surface:",IDC_STATIC,54,133,52,8
+    COMBOBOX        IDC_SURFACE_TYPE,122,131,88,70,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    ICON            IDI_DISPLAY,IDC_STATIC,7,7,20,20
+    LTEXT           "Windowed mode scale:",IDS_WINDOW_SCALING,66,32,75,8
+    LTEXT           "Full-screen mode depth:",IDS_FULLSCREEN_DEPTH,66,48,76,
+                    8
+    GROUPBOX        "Settings",IDC_STATIC,45,7,170,144
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,56,64,
+                    148,1
+END
+
+IDD_PAGE_JOYSTICK DIALOG DISCARDABLE  0, 0, 235, 156
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Joystick"
+FONT 8, "MS Sans Serif"
+BEGIN
+    COMBOBOX        IDC_JOYSTICK1,54,20,150,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    COMBOBOX        IDC_DEADZONE_1,97,36,38,70,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    COMBOBOX        IDC_JOYSTICK2,54,70,150,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    COMBOBOX        IDC_DEADZONE_2,97,86,38,70,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Dead-zone:",IDC_STATIC,54,39,38,8
+    LTEXT           "Dead-zone:",IDC_STATIC,55,89,38,8
+    ICON            IDI_JOYSTICK,IDC_STATIC,7,7,20,20
+    GROUPBOX        "Joystick 2",IDC_STATIC,45,59,170,46
+    GROUPBOX        "Joystick 1",IDC_STATIC,45,7,170,46
+END
+
+IDD_PAGE_SYSTEM DIALOG DISCARDABLE  0, 0, 235, 156
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "System"
+FONT 8, "MS Sans Serif"
+BEGIN
+    COMBOBOX        IDC_MAIN_MEMORY,76,20,43,50,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_EXTERNAL_MEMORY,163,20,43,60,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDE_ROM0,82,63,124,14,ES_AUTOHSCROLL
+    EDITTEXT        IDE_ROM1,82,83,124,14,ES_AUTOHSCROLL
+    CONTROL         "Enable fast power-on ROM reset.",IDC_FAST_RESET,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,82,106,121,10
+    LTEXT           "External:",IDC_STATIC,131,23,28,8
+    LTEXT           "Main:",IDC_STATIC,53,23,20,8
+    ICON            IDI_MEMORY,IDC_STATIC,7,7,20,20
+    LTEXT           "Note: changes to settings on this screen will require a SAM reset for the changes to take effect.",
+                    IDC_STATIC,45,131,175,18
+    GROUPBOX        "Memory",IDC_STATIC,45,7,170,34
+    GROUPBOX        "ROM images",IDC_STATIC,45,52,170,67
+    LTEXT           "ROM 0:",IDC_STATIC,50,66,26,8
+    LTEXT           "ROM 1:",IDC_STATIC,50,85,26,8
+END
+
+IDD_PAGE_INPUT DIALOG DISCARDABLE  0, 0, 235, 156
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Input"
+FONT 8, "MS Sans Serif"
+BEGIN
+    COMBOBOX        IDC_KEYBOARD_MAPPING,118,17,80,50,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Use Left-ALT for Cntrl key.",IDC_ALT_FOR_CNTRL,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,54,38,108,10
+    CONTROL         "Use Alt-Gr for Edit key.",IDC_ALTGR_FOR_EDIT,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,54,52,108,10
+    CONTROL         "Enabled",IDC_MOUSE_ENABLED,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,54,91,100,10
+    CONTROL         "Double X-sensitivity",IDC_MOUSE_2X,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,54,107,100,10
+    ICON            IDI_KEYBOARD,IDC_STATIC,7,7,20,20
+    ICON            IDI_MOUSE,IDC_STATIC,7,80,20,20
+    LTEXT           "Mapping mode:",IDC_STATIC,54,20,50,8
+    GROUPBOX        "Keyboard",IDC_STATIC,45,7,170,65
+    GROUPBOX        "Mouse",IDC_STATIC,45,78,170,46
+END
+
+IDD_PAGE_MIDI DIALOG DISCARDABLE  0, 0, 235, 156
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "MIDI"
+FONT 8, "MS Sans Serif"
+BEGIN
+    COMBOBOX        IDC_MIDI,144,16,75,61,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_GROUP | WS_TABSTOP
+    COMBOBOX        IDC_MIDI_OUT,90,55,130,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_GROUP | WS_TABSTOP
+    COMBOBOX        IDC_MIDI_IN,90,75,130,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    EDITTEXT        IDE_STATION_ID,97,120,24,14,ES_AUTOHSCROLL | WS_DISABLED | 
+                    WS_GROUP
+    CONTROL         "Spin1",IDC_SPIN1,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS,122,120,
+                    10,14
+    LTEXT           "Device on SAM MIDI port:",IDC_STATIC,54,18,84,8
+    GROUPBOX        "Windows devices",IDC_STATIC,45,41,180,56
+    LTEXT           "MIDI Out:",IDC_STATIC,51,57,32,8
+    LTEXT           "MIDI In:",IDC_STATIC,51,77,26,8
+    GROUPBOX        "Network (not currently supported)",IDC_STATIC,45,107,
+                    180,34
+    LTEXT           "Station ID:",IDC_STATIC,54,123,34,8
+    ICON            IDI_MIDI,IDC_STATIC,7,43,20,20
+    ICON            IDI_NETWORK,IDC_STATIC,7,108,20,20
+    GROUPBOX        "Active device:",IDC_STATIC,45,7,180,26
+END
+
+IDD_PAGE_DISKS DIALOG DISCARDABLE  0, 0, 235, 156
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Drives"
+FONT 8, "MS Sans Serif"
+BEGIN
+    COMBOBOX        IDC_DRIVE1,123,18,85,80,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    EDITTEXT        IDE_IMAGE1,74,38,117,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDB_BROWSE1,194,38,14,14
+    CONTROL         "Read only",IDC_READONLY1,"Button",BS_AUTOCHECKBOX | NOT 
+                    WS_VISIBLE | WS_TABSTOP,54,56,48,10
+    PUSHBUTTON      "Save",IDB_SAVE1,144,56,30,14
+    PUSHBUTTON      "Eject",IDB_EJECT1,178,56,30,14
+    COMBOBOX        IDC_DRIVE2,123,92,85,80,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    EDITTEXT        IDE_IMAGE2,74,112,117,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDB_BROWSE2,194,112,14,14
+    CONTROL         "Read only",IDC_READONLY2,"Button",BS_AUTOCHECKBOX | NOT 
+                    WS_VISIBLE | WS_TABSTOP,54,130,48,10
+    PUSHBUTTON      "Save",IDB_SAVE2,144,130,30,14
+    PUSHBUTTON      "Eject",IDB_EJECT2,178,130,30,14
+    GROUPBOX        "Drive 2",IDC_STATIC,45,81,170,68
+    ICON            IDI_FLOPPY,IDC_STATIC,7,7,20,20
+    GROUPBOX        "Drive 1",IDC_STATIC,45,7,170,68
+    LTEXT           "Device connected:",IDC_STATIC,54,21,62,8
+    LTEXT           "Device connected:",IDC_STATIC,52,95,62,8
+    LTEXT           "File:",IDC_STATIC,54,40,14,8
+    ICON            IDI_FLOPPY,IDC_STATIC,7,83,20,20
+    LTEXT           "File:",IDC_STATIC,54,114,14,8
+END
+
+IDD_PAGE_FNKEYS DIALOG DISCARDABLE  0, 0, 235, 156
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "FnKeys"
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "List2",IDL_FNKEYS,"SysListView32",LVS_REPORT | 
+                    LVS_SHOWSELALWAYS | LVS_NOSORTHEADER | WS_BORDER | 
+                    WS_TABSTOP,54,20,153,104
+    PUSHBUTTON      "&Add...",IDB_ADD,54,130,48,14
+    PUSHBUTTON      "&Edit...",IDB_EDIT,106,130,48,14
+    PUSHBUTTON      "&Delete",IDB_DELETE,158,130,48,14
+    ICON            IDI_FNKEYS,-1,7,7,20,20
+    GROUPBOX        "Emulator function keys",-1,45,7,170,142
+END
+
+IDD_NEWFNKEY DIALOG DISCARDABLE  0, 0, 140, 132
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Key Binding"
+FONT 8, "MS Sans Serif"
+BEGIN
+    COMBOBOX        IDC_KEY,59,41,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    CONTROL         "&Ctrl",IDC_CTRL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+                    59,59,26,10
+    CONTROL         "&Shift",IDC_SHIFT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+                    90,59,30,10
+    COMBOBOX        IDC_ACTION,15,90,111,100,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,24,113,40,14
+    PUSHBUTTON      "Cancel",IDCANCEL,74,113,40,14
+    LTEXT           "Key:",IDC_STATIC,22,43,15,8
+    LTEXT           "Modifiers:",IDC_STATIC,22,59,31,8
+    GROUPBOX        "Key",IDC_STATIC,5,5,130,70
+    GROUPBOX        "Action",IDC_STATIC,5,79,130,29
+    LTEXT           "Select the key and required modifiers or simply press the required key(s).",
+                    IDC_STATIC,11,17,120,16
+END
+
+IDD_IMPORT DIALOG DISCARDABLE  0, 0, 163, 121
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Import Data"
+FONT 8, "MS Sans Serif"
+BEGIN
+    EDITTEXT        IDE_FILE,26,7,111,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDB_BROWSE,142,7,14,14
+    CONTROL         "&BASIC Address:",IDR_BASIC_ADDRESS,"Button",
+                    BS_AUTORADIOBUTTON | BS_RIGHT | WS_GROUP,27,37,63,10
+    CONTROL         "&Page number:",IDR_PAGE_OFFSET,"Button",
+                    BS_AUTORADIOBUTTON | BS_RIGHT,27,58,63,10
+    EDITTEXT        IDE_ADDRESS,103,36,31,14
+    EDITTEXT        IDE_PAGE,103,57,15,14
+    EDITTEXT        IDE_OFFSET,103,73,26,15
+    DEFPUSHBUTTON   "OK",IDOK,35,100,40,14
+    PUSHBUTTON      "Cancel",IDCANCEL,88,100,40,14
+    RTEXT           "Page Offset:",IDC_STATIC,27,75,62,8
+    LTEXT           "File:",IDC_STATIC,7,9,14,8
+    GROUPBOX        "Data",IDC_STATIC,7,24,149,69
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_PAGE_MISC, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 149
+    END
+
+    IDD_ABOUT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 198
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 136
+    END
+
+    IDD_EXPORT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 156
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 135
+    END
+
+    IDD_NEWDISK, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 193
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 144
+    END
+
+    IDD_PAGE_PARALLEL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 149
+    END
+
+    IDD_PAGE_SOUND, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 149
+    END
+
+    IDD_PAGE_DISPLAY, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 151
+    END
+
+    IDD_PAGE_JOYSTICK, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 149
+    END
+
+    IDD_PAGE_SYSTEM, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 149
+    END
+
+    IDD_PAGE_INPUT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 149
+    END
+
+    IDD_PAGE_MIDI, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 149
+    END
+
+    IDD_PAGE_DISKS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 149
+    END
+
+    IDD_PAGE_FNKEYS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 149
+    END
+
+    IDD_NEWFNKEY, DIALOG
+    BEGIN
+        LEFTMARGIN, 5
+        RIGHTMARGIN, 135
+        TOPMARGIN, 5
+        BOTTOMMARGIN, 127
+    END
+
+    IDD_IMPORT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 156
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 114
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU MENU DISCARDABLE 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&New Disk",                   IDM_FILE_NEW_DISK
+        POPUP "Floppy &1"
+        BEGIN
+            MENUITEM "&Insert",                     IDM_FILE_FLOPPY1_INSERT
+            MENUITEM "&Eject",                      IDM_FILE_FLOPPY1_EJECT
+            MENUITEM "&Save Changes",               IDM_FILE_FLOPPY1_SAVE_CHANGES
+
+            MENUITEM SEPARATOR
+            MENUITEM "Use Drive &A:",               IDM_FILE_FLOPPY1_DEVICE
+        END
+        POPUP "Floppy &2"
+        BEGIN
+            MENUITEM "&Insert",                     IDM_FILE_FLOPPY2_INSERT
+            MENUITEM "&Eject",                      IDM_FILE_FLOPPY2_EJECT
+            MENUITEM "&Save Changes",               IDM_FILE_FLOPPY2_SAVE_CHANGES
+
+            MENUITEM SEPARATOR
+            MENUITEM "Use Drive &B:",               IDM_FILE_FLOPPY2_DEVICE
+            , GRAYED
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "&Import Data",                IDM_FILE_IMPORT_DATA
+        MENUITEM "&Export Data",                IDM_FILE_EXPORT_DATA
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit\tAlt-F4",               IDM_FILE_EXIT
+    END
+    POPUP "&Tools"
+    BEGIN
+        MENUITEM "Options...",                  IDM_TOOLS_OPTIONS
+        MENUITEM SEPARATOR
+        MENUITEM "Flush &print job",            IDM_TOOLS_FLUSH_PRINTER
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&General",                    IDM_HELP_GENERAL
+        MENUITEM SEPARATOR
+        MENUITEM "&About...",                   IDM_HELP_ABOUT
+    END
+END
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+#ifndef _MAC
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 0,9,0,0
+ PRODUCTVERSION 0,9,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080904b0"
+        BEGIN
+            VALUE "Comments", "Win32 port and enhancements by Simon Owen (simon.owen@simcoupe.org)\0"
+            VALUE "CompanyName", "-\0"
+            VALUE "FileDescription", "SimCoupe\0"
+            VALUE "FileVersion", "0, 9, 0, 0\0"
+            VALUE "InternalName", "SimCoupe\0"
+            VALUE "LegalCopyright", "\0"
+            VALUE "LegalTrademarks", "\0"
+            VALUE "OriginalFilename", "SimCoupe.exe\0"
+            VALUE "PrivateBuild", "\0"
+            VALUE "ProductName", "SimCoupe\0"
+            VALUE "ProductVersion", "0, 9, 0, 0\0"
+            VALUE "SpecialBuild", "\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x809, 1200
+    END
+END
+
+#endif    // !_MAC
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_MAIN                ICON    DISCARDABLE     "Icons\\main.ico"
+IDI_CLOCK               ICON    DISCARDABLE     "Icons\\clock.ico"
+IDI_DISPLAY             ICON    DISCARDABLE     "Icons\\display.ico"
+IDI_FLOPPY              ICON    DISCARDABLE     "Icons\\floppy.ico"
+IDI_HARDWARE            ICON    DISCARDABLE     "Icons\\hardware.ico"
+IDI_JOYSTICK            ICON    DISCARDABLE     "Icons\\joystick.ico"
+IDI_KEYBOARD            ICON    DISCARDABLE     "Icons\\keyboard.ico"
+IDI_MEMORY              ICON    DISCARDABLE     "Icons\\memory.ico"
+IDI_MIDI                ICON    DISCARDABLE     "Icons\\midi.ico"
+IDI_MOUSE               ICON    DISCARDABLE     "Icons\\mouse.ico"
+IDI_PORT                ICON    DISCARDABLE     "Icons\\port.ico"
+IDI_PRINTER             ICON    DISCARDABLE     "Icons\\printer.ico"
+IDI_SOUND               ICON    DISCARDABLE     "Icons\\sound.ico"
+IDI_DAVE                ICON    DISCARDABLE     "Icons\\dave.ico"
+IDI_MISC                ICON    DISCARDABLE     "Icons\\misc.ico"
+IDI_NETWORK             ICON    DISCARDABLE     "icons\\network.ico"
+IDI_FNKEYS              ICON    DISCARDABLE     "Icons\\fnkeys.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Cursor
+//
+
+IDC_CURSOR              CURSOR  DISCARDABLE     "Cursors\\arrow.cur"
+#endif    // English (U.K.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
