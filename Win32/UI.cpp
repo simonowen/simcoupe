@@ -89,7 +89,7 @@ enum eActions
     actChangeKeyMode, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actInsertFloppy2, actEjectFloppy2,
     actSaveFloppy2, actNewDisk, actSaveScreenshot, actFlushPrintJob, actDebugger, actImportData, actExportData,
     actDisplayOptions, actExitApplication, actToggleTurbo, actTempTurbo, actReleaseMouse, actPause, actToggleScanlines,
-    MAX_ACTION
+	actChangeBorders, actChangeSurface, MAX_ACTION
 };
 
 const char* aszActions[MAX_ACTION] =
@@ -100,7 +100,7 @@ const char* aszActions[MAX_ACTION] =
     "Save changes to floppy 1", "Insert floppy 2", "Eject floppy 2", "Save changes to floppy 2", "New Disk",
     "Save screenshot", "Flush print job", "Debugger", "Import data", "Export data", "Display options",
     "Exit application", "Toggle turbo speed", "Turbo speed (when held)", "Release mouse capture", "Pause",
-    "Toggle scanlines"
+    "Toggle scanlines", "Change viewable area", "Change video surface"
 };
 
 
@@ -114,6 +114,13 @@ static char szDiskFilters [] =
 #endif
 
     "All Files (*.*)\0*.*\0";
+
+static const char* aszBorders[] =
+	{ "No borders", "Small borders", "Short TV area (default)", "TV visible area", "Complete scan area", NULL };
+
+static const char* aszSurfaceType[] =
+	{ "Software Emulated", "System Memory", "Video Memory", "YUV Overlay", "RGB Overlay", NULL };
+
 
 bool InitWindow ();
 
@@ -528,14 +535,17 @@ void DoAction (int nAction_, bool fPressed_=true)
 
             case actInsertFloppy1:
                 if (GetOption(drive1) == 1)
+				{
                     InsertDisk(pDrive1);
+					SetOption(disk1, pDrive1->GetImage());
+				}
                 break;
 
             case actEjectFloppy1:
                 if (GetOption(drive1) == 1 && pDrive1->IsInserted())
                 {
                     pDrive1->Eject();
-                    SetOption(disk1,"");
+                    SetOption(disk1, "");
                     Frame::SetStatus("Ejected disk from drive 1");
                 }
                 break;
@@ -547,14 +557,17 @@ void DoAction (int nAction_, bool fPressed_=true)
 
             case actInsertFloppy2:
                 if (GetOption(drive2) == 1)
+				{
                     InsertDisk(pDrive2);
+					SetOption(disk2, pDrive2->GetImage());
+				}
                 break;
 
             case actEjectFloppy2:
                 if (GetOption(drive2) == 1 && pDrive2->IsInserted())
                 {
                     pDrive2->Eject();
-                    SetOption(disk2,"");
+					SetOption(disk2, "");
                     Frame::SetStatus("Ejected disk from drive 2");
                 }
                 break;
@@ -644,7 +657,21 @@ void DoAction (int nAction_, bool fPressed_=true)
             case actToggleScanlines:
                 SetOption(scanlines, !GetOption(scanlines));
                 Video::Init();
+				Frame::SetStatus("Scanlines %s", GetOption(scanlines) ? "enabled" : "disabled");
                 break;
+
+			case actChangeBorders:
+				SetOption(borders, (GetOption(borders)+1) % 5);
+				Frame::Init();
+				UI::ResizeWindow(true);
+				Frame::SetStatus(aszBorders[GetOption(borders)]);
+				break;
+
+			case actChangeSurface:
+				SetOption(surface, GetOption(surface) ? GetOption(surface)-1 : 4);
+				Frame::Init();
+				Frame::SetStatus("Using %s surface", aszSurfaceType[GetOption(surface)]);
+				break;
         }
     }
 
@@ -2027,10 +2054,8 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
 
             SendMessage(hwndCombo, CB_SETCURSEL, (!GetOption(frameskip)) ? 0 : GetOption(frameskip) - 1, 0L);
 
-            static const char* aszBorders[] = { "No borders", "Small borders", "Short TV area (default)", "TV visible area", "Complete scan area", NULL };
             SetComboStrings(hdlg_, IDC_BORDERS, aszBorders, GetOption(borders));
 
-            static const char* aszSurfaceType[] = { "Software Emulated", "System Memory", "Video Memory", "YUV Overlay", "RGB Overlay", NULL };
             SetComboStrings(hdlg_, IDC_SURFACE_TYPE, aszSurfaceType, GetOption(surface));
 
             break;
@@ -2057,7 +2082,6 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 SetOption(frameskip, nFrameSkip ? SendDlgItemMessage(hdlg_, IDC_FRAMESKIP, CB_GETCURSEL, 0, 0L) + 1 : 0);
 
                 SetOption(surface, SendDlgItemMessage(hdlg_, IDC_SURFACE_TYPE, CB_GETCURSEL, 0, 0L));
-
                 SetOption(borders, SendDlgItemMessage(hdlg_, IDC_BORDERS, CB_GETCURSEL, 0, 0L));
 
 
@@ -2088,7 +2112,7 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                         Frame::Init();
 
                     if (Changed(stretchtofit) || Changed(borders) || Changed(scale) || Changed(ratio5_4))
-                        UI::ResizeWindow(!GetOption(stretchtofit));
+                        UI::ResizeWindow(Changed(borders) || !GetOption(stretchtofit));
                 }
             }
 
