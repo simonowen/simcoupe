@@ -45,6 +45,7 @@
 #endif
 
 const unsigned int KEYBOARD_BUFFER_SIZE = 20;
+const int MOUSE_CENTRE_THRESHOLD = 15;
 
 typedef struct
 {
@@ -67,6 +68,8 @@ LPDIRECTINPUTDEVICE2 pdidJoystick1, pdidJoystick2;
 
 BYTE bComboKey, bComboShifts;
 DWORD dwComboTime;
+
+POINT ptLast;   // Last mouse position in emulation mode
 
 
 bool fKeyboardActive, fMouseActive, fPurgeKeyboard;
@@ -358,10 +361,14 @@ void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
         // Mouse being acquired?
         if (fMouse_)
         {
-            // Calculate the central position in the client screen, and move the cursor there
             RECT r;
+
+            // Calculate the central position in the client screen
             GetClientRect(g_hwnd, &r);
             POINT pt = { r.right/2, r.bottom/2 };
+            ptLast = pt;
+
+            // Move the cursor there, and store the position for later comparison
             ClientToScreen(g_hwnd, &pt);
             SetCursorPos(pt.x, pt.y);
         }
@@ -649,38 +656,48 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
         case WM_MOUSEMOVE:
         {
-            // Calculate the central position in the client screen
             RECT r;
             GetClientRect(hwnd_, &r);
-            POINT ptCentre = { r.right/2, r.bottom/2 };
 
             // Get the mouse position and restrict the point to the closest window edge
             int x = GET_X_LPARAM(lParam_), y = GET_Y_LPARAM(lParam_);
             x = (x < 0) ? 0 : (x >= r.right) ? r.right-1 : x;
             y = (y < 0) ? 0 : (y >= r.bottom) ? r.bottom-1 : y;
 
-            // Has the mouse moved since last time?
-            if ((x != ptCentre.x || y != ptCentre.y))
+            // If the GUI is active, pass the message to it
+            if (GUI::IsActive())
+                SendGuiMouseMessage(GM_MOUSEMOVE, (y << 16) | x, false);
+
+            // Otherwise the SAM mouse must be active for it to be of interest
+            else if (fMouseActive)
             {
-                // If the GUI is active, pass the message to it
-                if (GUI::IsActive())
-                    SendGuiMouseMessage(GM_MOUSEMOVE, (y << 16) | x, false);
-
-                // Otherwise the SAM mouse must be active for it to be of interest
-                else if (fMouseActive)
+                // Has the cursor moved since last time?
+                if (x != ptLast.x || y != ptLast.y)
                 {
-                    int x0 = ptCentre.x, y0 = ptCentre.y;
+                    // Where from and to?
+                    int x0 = ptLast.x, y0 = ptLast.y;
+                    int x1 = ptLast.x = x, y1 = ptLast.y = y;
 
-                    // Convert the positions to SAM units
+                    // Calculate the central position in the client area, and how far we are from it
+                    POINT ptCentre = { r.right/2, r.bottom/2 };
+                    x -= ptCentre.x;
+                    y -= ptCentre.y;
+
+                    // Is the new position too far from the centre?
+                    if (x*x + y*y > (MOUSE_CENTRE_THRESHOLD*MOUSE_CENTRE_THRESHOLD))
+                    {
+                        // Yes, so move back to the centre to ensure we catch the next mouse movement
+                        ptLast = ptCentre;
+                        ClientToScreen(hwnd_, &ptCentre);
+                        SetCursorPos(ptCentre.x, ptCentre.y);
+                    }
+
+                    // Convert the points to SAM units
                     Display::DisplayToSam(&x0, &y0);
-                    Display::DisplayToSam(&x, &y);
+                    Display::DisplayToSam(&x1, &y1);
 
-                    // Move the SAM mouse by the
-                    Mouse::Move(x-x0, -(y-y0));
-
-                    // Move the cursor back to the centre of the screen to ensure we see the next movement
-                    ClientToScreen(hwnd_, &ptCentre);
-                    SetCursorPos(ptCentre.x, ptCentre.y);
+                    // Move the SAM mouse by the difference
+                    Mouse::Move(x1-x0, -(y1-y0));
                 }
             }
 
