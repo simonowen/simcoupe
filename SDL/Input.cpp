@@ -99,7 +99,7 @@ COMBINATION_KEY asSamSymbols[] =
     { '`',  SK_SHIFT, SK_QUOTES },  { '{',  SK_SYMBOL, SK_F },      { '}',  SK_SYMBOL, SK_G },
     { '^',  SK_SYMBOL, SK_H },      { 163/*£*/,  SK_SYMBOL, SK_L }, { ';',  SK_SEMICOLON, SK_NONE },
     { ':',  SK_COLON, SK_NONE },    { '?',  SK_SYMBOL, SK_X },      { '.',  SK_PERIOD, SK_NONE },
-    { ',',  SK_COMMA, SK_NONE },    { '\\', SK_SHIFT, SK_INV },     { '|',  SK_SYMBOL, SK_L },
+    { ',',  SK_COMMA, SK_NONE },    { '\\', SK_SHIFT, SK_INV },     { '|',  SK_SYMBOL, SK_9 },
 
     { '\0', SK_NONE,    SK_NONE,    SDLK_UNKNOWN }
 };
@@ -481,7 +481,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             {
                 switch (pKey->scancode)
                 {
-                    case 0x56:  pKey->sym = SDLK_BACKSLASH; break;
+                    case 0x56:  pKey->sym = SDLK_WORLD_95;  break;  // Use something unlikely to clash
                     case 0xc5:  pKey->sym = SDLK_PAUSE;     break;
                 }
             }
@@ -533,6 +533,21 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
 
         case SDL_MOUSEMOTION:
         {
+            static int nRelX = 0, nRelY = 0;
+
+            // If another mouse move is due, store this one, and wait for the next before doing anything
+            SDL_Event sEvent;
+            if (SDL_PeepEvents(&sEvent, 1, SDL_PEEKEVENT, SDL_MOUSEMOTIONMASK))
+            {
+                nRelX += sEvent.motion.xrel;
+                nRelY += sEvent.motion.yrel;
+                break;
+            }
+
+            // Adjust by any stored motion
+            int nX = pEvent_->motion.x + nRelX, nY = pEvent_->motion.y + nRelY;
+            nRelX = nRelY = 0;
+
 //          Frame::SetStatus("Mouse:  %d %d", pEvent_->motion.xrel, pEvent_->motion.yrel);
 
             // Show the cursor in windowed mode unless the mouse is acquired or the GUI is active
@@ -542,7 +557,6 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             // Mouse in use by the GUI?
             if (GUI::IsActive())
             {
-                int nX = pEvent_->motion.x, nY = pEvent_->motion.y;
                 Display::DisplayToSamPoint(&nX, &nY);
                 GUI::SendMessage(GM_MOUSEMOVE, nX, nY);
             }
@@ -550,8 +564,9 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             // Is the mouse captured?
             else if (fMouseActive)
             {
-                // Work out the relative movement since last time
-                int nX = pEvent_->motion.x - (Frame::GetWidth() >> 1), nY = pEvent_->motion.y - (Frame::GetHeight() >> 1);
+                // Work out the relative movement from the central point
+                nX -= (Frame::GetWidth()  >> 1);
+                nY -= (Frame::GetHeight() >> 1);
 
                 // Has it moved at all?
                 if (nX || nY)
