@@ -1126,7 +1126,7 @@ void CRegisterPanel::Draw (CScreen* pScreen_)
     pScreen_->DrawString(m_nX+36, m_nY+164, sz, RegCol(1,0));
 
     pScreen_->DrawString(m_nX, m_nY+176, "T-diff:", GREEN_8);
-    sprintf(sz, "%lu", g_dwCycleCounter-dwLastCycle);
+    sprintf(sz, "%u", g_dwCycleCounter-dwLastCycle);
     pScreen_->DrawString(m_nX+44, m_nY+176, sz, WHITE);
 
     pScreen_->SetFont(&sGUIFont);

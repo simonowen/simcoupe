@@ -26,7 +26,7 @@
 #endif
 
 #ifndef AddTime
-#define AddTime(x)      sprintf(sz + strlen(sz), " %s:%lums", #x, s_sProfile.prof##x)
+#define AddTime(x)      sprintf(sz + strlen(sz), " %s:%ums", #x, s_sProfile.prof##x)
 #endif
 
 // The member names in this structure must be prof<something>
