@@ -97,8 +97,7 @@ PROFILE_T OSD::GetProfileTime ()
 // If the path is already fully qualified (an OS-specific decision), return the same string
 const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 {
-    static char szPath[512];
-    char szExePath[MAX_PATH];
+    static char szPath[512], szExePath[MAX_PATH];
 
     // If the supplied file path looks absolute, use it as-is
     if (*pcszFile_ == PATH_SEPARATOR
