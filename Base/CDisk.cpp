@@ -95,7 +95,7 @@
 
 CDisk::CDisk (CStream* pStream_, int nType_)
     : m_nType(nType_), m_uSides(0), m_uTracks(0), m_uSectors(0), m_uSectorSize(0),
-      m_uSide(0), m_uTrack(0), m_uSector(0), m_fModified(false), m_uSpinPos(1),
+      m_uSide(0), m_uTrack(0), m_uSector(0), m_fModified(false), m_uSpinPos(0),
       m_pStream(pStream_), m_pbData(NULL)
 {
 }
@@ -172,8 +172,8 @@ bool CDisk::FindSector (UINT uSide_, UINT uTrack_, UINT uSector_, IDFIELD* pID_/
         // Loop through all the sectors in the track
         while (FindNext(&id, &bStatus))
         {
-            // Check to see if the side, track and sector numbers match, and the CRC is correct
-            if (id.bSide == uSide_ && id.bTrack == uTrack_ && id.bSector == uSector_ && !bStatus)
+            // Check to see if the track and sector numbers match and the CRC is correct
+            if (id.bTrack == uTrack_ && id.bSector == uSector_ && !bStatus)
             {
                 // Valid sector found
                 fFound = true;
@@ -206,7 +206,7 @@ bool CDisk::FindSector (UINT uSide_, UINT uTrack_, UINT uSector_, IDFIELD* pID_/
         if (pb && pStream_->Rewind())
             uSize = pStream_->Read(pb, DSK_IMAGE_SIZE+1);
 
-        delete pb;
+        delete[] pb;
     }
 
     // Accept files that are a multiple of the track size, but no larger than a full disk
@@ -500,45 +500,44 @@ BYTE CSADDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
 {
     UINT uSize;
 
+    // Calculate the cylinder size, and the maximum size of an SDF image
+    UINT uCylSize = MAX_DISK_SIDES * SDF_TRACKSIZE, uMaxSize = uCylSize * MAX_DISK_TRACKS;
+
     // If we don't have a size (gzipped) we have no choice but to read enough to find out
     if (!(uSize = pStream_->GetSize()))
     {
-        BYTE* pb = new BYTE[SDF_IMAGE_SIZE+1];
+        BYTE* pb = new BYTE[uMaxSize+1];
 
-        // Read 1 byte more than a full DSK image size, to check for larger files
+        // Read 1 byte more than the maximum SDF size, to check for larger files
         if (pb && pStream_->Rewind())
-            uSize = pStream_->Read(pb, SDF_IMAGE_SIZE+1);
+            uSize = pStream_->Read(pb, uMaxSize+1);
 
-        delete pb;
+        delete[] pb;
     }
 
-    // Accept files that are a multiple of the track size, but no larger than a full disk
-    return uSize == SDF_IMAGE_SIZE;
+    // Return if the file size is sensible and an exact number of cylinders
+    return uSize <= uMaxSize && !(uSize % uCylSize);
 }
 
 CSDFDisk::CSDFDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT uTracks_/*=MAX_DISK_TRACKS*/)
     : CDisk(pStream_, dtSDF)
 {
-    // Set up the fixed geometry used by old version
-    m_uSides = NORMAL_DISK_SIDES;
-    m_uTracks = NORMAL_DISK_TRACKS;
+    m_uSides = uSides_;
+    m_uTracks = uTracks_;
 
-    // SDF images don't have a fixed number of sectors per track or sector size
-    m_uSectors = m_uSectorSize = 0;
-
-    // Work out the disk size, allocate some memory for it
-    UINT uDiskSize = m_uSides * m_uTracks * SDF_TRACKSIZE;
-    m_pbData = new BYTE[uDiskSize];
+    // Calculate the cylinder size, and the maximum size of an SDF image, and allocate memory for it
+    UINT uCylSize = MAX_DISK_SIDES * SDF_TRACKSIZE, uMaxSize = uCylSize * MAX_DISK_TRACKS;
+    m_pbData = new BYTE[uMaxSize];
 
     // Read the data from any existing stream, or create and save a new disk
     if (pStream_->IsOpen())
     {
         pStream_->Rewind();
-        pStream_->Read(m_pbData, uDiskSize);
+        m_uTracks = pStream_->Read(m_pbData, uMaxSize) / uCylSize;
     }
     else
     {
-        memset(m_pbData, 0, uDiskSize);
+        memset(m_pbData, 0, uMaxSize);
         SetModified();
     }
 }
@@ -695,8 +694,8 @@ CFDIDisk::CFDIDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
     if (IsModified())
         Save();
 
-    delete m_pTracks;
-    delete m_pnOffsets;
+    delete[] m_pTracks;
+    delete[] m_pnOffsets;
 }
 
 
