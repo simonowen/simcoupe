@@ -1,8 +1,10 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // CBops.h: Z80 instruction set emulation (from xz80)
 //
 //  Copyright (c) 1994 Ian Collier
+//  Copyright (c) 1999-2003 by Dave Laundon
+//  Copyright (c) 1999-2003 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -46,12 +48,13 @@
     if (pHlIxIy != &hl)
     {
         // Get the offset
-        addr = *pHlIxIy + (signed char)timed_read_byte(pc);
+        addr = *pHlIxIy + (signed char)timed_read_code_byte(pc++);
         g_nLineCycle += 5;
-        pc++;
 
         // Extract the register to store the result in, and modify the opcode to be a regular indexed version
-        op = timed_read_byte(pc);
+        op = timed_read_code_byte(pc++);
+        g_nLineCycle++;
+
         reg = op & 7;
         op = (op & 0xf8) | 6;
 
@@ -62,14 +65,12 @@
     else
     {
         addr = hl;
-        op = timed_read_byte(pc);
+
+        op = timed_read_code_byte(pc++);
+        g_nLineCycle++;
+
         radjust++;
     }
-
-
-    // Skip the last instruction byte
-    g_nLineCycle++;
-    pc++;
 
     if (op < 0x40)
     {
