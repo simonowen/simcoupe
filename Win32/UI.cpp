@@ -883,7 +883,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_TIMECHANGE:
             // If we're keeping the SAM time synchronised with real time, update the SAM clock
             if (GetOption(clocksync))
-                Clock::Init();
+                IO::InitClocks();
             break;
 
 
@@ -2792,8 +2792,10 @@ BOOL CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 SetOption(status, SendDlgItemMessage(hdlg_, IDC_STATUS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
                 SetOption(profile, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_PROFILE, CB_GETCURSEL, 0, 0L)));
-            }
 
+                if (Changed(sambusclock) || Changed(dallasclock))
+                    IO::InitClocks();
+            }
             break;
         }
     }
