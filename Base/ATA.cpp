@@ -64,7 +64,7 @@ void CATADevice::Reset ()
 
 WORD CATADevice::In (WORD wPort_)
 {
-    WORD wRet = 0;
+    WORD wRet = 0xffff;
 
     switch ((wPort_ >> 8) & 3)
     {
