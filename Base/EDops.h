@@ -41,30 +41,42 @@
                                     PORT_ACCESS(c);
 
 
-#define sbchl(x) {    g_nLineCycle += 7;\
-                      WORD z=(x);\
-                      unsigned long t=(hl-z-cy)&0x1ffff;\
-                      f=((t>>8)&0xa8)|(t>>16)|2|\
-                        (((hl&0xfff)<(z&0xfff)+cy)<<4)|\
-                        (((hl^z)&(hl^t)&0x8000)>>13)|\
-                        ((!(t&0xffff))<<6)|2;\
-                      l=t;\
-                      h=t>>8;\
-                   }
+#define sbchl(x) \
+            do /* 16-bit subtract */ \
+            { \
+                g_nLineCycle += 7; \
+                WORD z = (x); \
+                DWORD y = hl - z - cy; \
+                f = (((y & 0xb800) ^ ((hl ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
+                    ((y >> 16) & 1) |                                   /* C          */ \
+                    (((hl ^ z) & (hl ^ y) & 0x8000) >> 13) |            /* V          */ \
+                    2;                                                  /* N          */ \
+                f |= (!(hl = y)) << 6;                                  /* Z          */ \
+            } \
+            while (0)
 
-#define adchl(x) {    g_nLineCycle += 7;\
-                      WORD z=(x);\
-                      unsigned long t=hl+z+cy;\
-                      f=((t>>8)&0xa8)|(t>>16)|\
-                        (((hl&0xfff)+(z&0xfff)+cy>0xfff)<<4)|\
-                        (((~hl^z)&(hl^t)&0x8000)>>13)|\
-                        ((!(t&0xffff))<<6)|2;\
-                      l=t;\
-                      h=t>>8;\
-                 }
+#define adchl(x) \
+            do /* 16-bit add */ \
+            { \
+                g_nLineCycle += 7; \
+                WORD z = (x); \
+                DWORD y = hl + z + cy; \
+                f = (((y & 0xb800) ^ ((hl ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
+                    (y >> 16) |                                         /* C          */ \
+                    (((hl ^ ~z) & (hl ^ y) & 0x8000) >> 13);            /* V          */ \
+                f |= (!(hl = y)) << 6;                                  /* Z          */ \
+             } \
+             while (0)
 
-#define neg (a=-a,\
-            f=(a&0xa8)|((!a)<<6)|(((a&15)>0)<<4)|((a==128)<<2)|2|(a>0))
+#define neg ( \
+                a = -a, \
+                f = (a & 0xa8) |                                        /* S, 5, 3    */ \
+                    (((a & 0xf) != 0) << 4) |                           /* H          */ \
+                    (a != 0) |                                          /* C          */ \
+                    ((a == 0x80) << 2) |                                /* V          */ \
+                    2 |                                                 /* N          */ \
+                    ((!a) << 6)                                         /* Z          */ \
+            )
 
 // Load; increment; [repeat]
 #define ldi(loop)   do { \
