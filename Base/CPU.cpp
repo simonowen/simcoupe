@@ -178,14 +178,6 @@ bool CPU::Init (bool fFirstInit_/*=false*/)
     // Power on initialisation requires some extra initialisation
     if (fFirstInit_)
     {
-        // Sanity check the endian of the registers structure
-        hl = 1;
-        if (h)
-            Message(msgFatal, "EEK!  The Z80Regs structure is the wrong endian for this platform!");
-
-        // Most of the registers tend to only power-on defaults, and are not affected by a reset
-        af = bc = de = hl = alt_af = alt_bc = alt_de = alt_hl = ix = iy = 0xffff;
-
         // Build the parity lookup table
         for (int n = 0x00 ; n <= 0xff ; n++)
         {
@@ -198,6 +190,12 @@ bool CPU::Init (bool fFirstInit_/*=false*/)
             g_abDec[n] = (n & 0xa8) | ((!n) << 6) | ((!(~n & 0xf)) << 4) | ((n == 0x7f) << 2) | F_NADD;
 #endif
         }
+
+        // Perform some initial tests to confirm the emulator is functioning correctly!
+        InitTests();
+
+        // Most of the registers tend to only power-on defaults, and are not affected by a reset
+        af = bc = de = hl = alt_af = alt_bc = alt_de = alt_hl = ix = iy = 0xffff;
 
         // Build the memory access contention table
         // Note - instructions often overlap to the next line (hence the duplicates).
@@ -276,7 +274,7 @@ inline BYTE timed_read_byte (WORD addr)
     return *(pbMemRead1 = phys_read_addr(addr));
 }
 
-// Read a word and update timing
+// Read an instruction word and update timing
 inline WORD timed_read_code_word (WORD addr)
 {
     MEM_ACCESS(addr);
@@ -284,52 +282,42 @@ inline WORD timed_read_code_word (WORD addr)
     return read_word(addr);
 }
 
-// Read a word and update timing
+// Read a data word and update timing
 inline WORD timed_read_word (WORD addr)
 {
     MEM_ACCESS(addr);
     MEM_ACCESS(addr + 1);
-    pbMemRead2 = (pbMemRead1 = phys_read_addr(addr)) + 1;
-    return (*pbMemRead1 | (*pbMemRead2 << 8));
+    return *(pbMemRead1 = phys_read_addr(addr)) | (*(pbMemRead2 = phys_read_addr(addr + 1)) << 8);
 }
 
 // Write a byte and update timing
 inline void timed_write_byte (WORD addr, BYTE contents)
 {
-#if 0
+    MEM_ACCESS(addr);
     check_video_write(addr);
-    MEM_ACCESS(addr);
     *(pbMemWrite1 = phys_write_addr(addr)) = contents;
-#else
-    MEM_ACCESS(addr);
-    if (*(pbMemWrite1 = phys_write_addr(addr)) != contents)
-    {
-        check_video_write(addr);
-        *pbMemWrite1 = contents;
-    }
-#endif
 }
 
 // Write a word and update timing
 inline void timed_write_word (WORD addr, WORD contents)
 {
-    check_video_write(addr);
     MEM_ACCESS(addr);
+    check_video_write(addr);
+    *(pbMemWrite1 = phys_write_addr(addr)) = contents & 0xff;
     MEM_ACCESS(addr + 1);
-    pbMemWrite2 = (pbMemWrite1 = phys_write_addr(addr)) + 1;
-    *pbMemWrite1 = contents & 0xff;
-    *pbMemWrite2 = contents >> 8;
+    check_video_write(addr + 1);
+    *(pbMemWrite2 = phys_write_addr(addr + 1)) = contents >> 8;
 }
 
 // Write a word and update timing (high-byte first - used by stack functions)
 inline void timed_write_word_reversed (WORD addr, WORD contents)
 {
-    check_video_write(addr);
     MEM_ACCESS(addr + 1);
+    check_video_write(addr + 1);
+    *(pbMemWrite2 = phys_write_addr(addr + 1)) = contents >> 8;
     MEM_ACCESS(addr);
-    pbMemWrite2 = (pbMemWrite1 = phys_write_addr(addr)) + 1;
-    *pbMemWrite1 = contents & 0xff;
-    *pbMemWrite2 = contents >> 8;
+    check_video_write(addr);
+    *(pbMemWrite1 = phys_write_addr(addr)) = contents & 0xff;
 }
 
 // 16-bit push and pop
@@ -647,3 +635,139 @@ inline void Mode2Interrupt ()
     pc = timed_read_word((i << 8) | 0xff);
 }
 
+// Perform some initial tests to confirm the emulator is functioning correctly!
+void CPU::InitTests ()
+{
+    // Sanity check the endian of the registers structure
+    hl = 1;
+    if (h)
+        Message(msgFatal, "Startup test: the Z80Regs structure is the wrong endian for this platform!");
+
+#if 0   // Enable this for in-depth testing of arithmetic operations
+
+#define TEST_8(op, bit, flag, condition) \
+    if (((f >> (bit)) & 1) != (condition)) \
+        Message(msgFatal, "Startup test: " #op " (%d,%d,%d): flag " #flag " is %d, but should be %d!", \
+            c, b, carry, ((f >> (bit)) & 1), (condition))
+#define TEST_16(op, bit, flag, condition) \
+    if (((f >> (bit)) & 1) != (condition)) \
+        Message(msgFatal, "Startup test: " #op " (%d,%d,%d): flag " #flag " is %d, but should be %d!", \
+            de, bc, carry, ((f >> (bit)) & 1), (condition))
+
+    // Check the state of CPU flags after arithmetic operations
+    pHlIxIy = &hl;
+    bc = 0;
+    de = 0;
+    BYTE carry = 0;
+    do
+    {
+        // NEG
+        a = b;
+        neg;
+        TEST_8(NEG, 0, C, 0 - b != a);
+        TEST_8(NEG, 1, N, 1);
+        TEST_8(NEG, 2, V, (signed char)0 - (signed char)b != (signed char)a);
+        TEST_8(NEG, 3, 3, (a >> 3) & 1);
+        TEST_8(NEG, 4, H, (0 & 0xF) - (b & 0xF) != (a & 0xF));
+        TEST_8(NEG, 5, 5, (a >> 5) & 1);
+        TEST_8(NEG, 6, Z, a == 0);
+        TEST_8(NEG, 7, S, (signed char)a < 0);
+
+        do
+        {
+            // CP
+            a = c;
+            cpa(b);
+            a = c - b;
+            TEST_8(CP, 0, C, c - b != a);
+            TEST_8(CP, 1, N, 1);
+            TEST_8(CP, 2, V, (signed char)c - (signed char)b != (signed char)a);
+            TEST_8(CP, 3, 3, (b >> 3) & 1);
+            TEST_8(CP, 4, H, (c & 0xF) - (b & 0xF) != (a & 0xF));
+            TEST_8(CP, 5, 5, (b >> 5) & 1);
+            TEST_8(CP, 6, Z, a == 0);
+            TEST_8(CP, 7, S, (signed char)a < 0);
+
+            do
+            {
+                // 8-bit ADD/ADC (common routine for both)
+                a = c;
+                f = carry;
+                adca(b);
+                TEST_8(ADD/ADC A, 0, C, c + b + carry != a);
+                TEST_8(ADD/ADC A, 1, N, 0);
+                TEST_8(ADD/ADC A, 2, V, (signed char)c + (signed char)b + carry != (signed char)a);
+                TEST_8(ADD/ADC A, 3, 3, (a >> 3) & 1);
+                TEST_8(ADD/ADC A, 4, H, (c & 0xF) + (b & 0xF) + carry != (a & 0xF));
+                TEST_8(ADD/ADC A, 5, 5, (a >> 5) & 1);
+                TEST_8(ADD/ADC A, 6, Z, a == 0);
+                TEST_8(ADD/ADC A, 7, S, (signed char)a < 0);
+
+                // 8-bit SUB/SBC (common routine for both)
+                a = c;
+                f = carry;
+                sbca(b);
+                TEST_8(SUB/SBC A, 0, C, c - b - carry != a);
+                TEST_8(SUB/SBC A, 1, N, 1);
+                TEST_8(SUB/SBC A, 2, V, (signed char)c - (signed char)b - carry != (signed char)a);
+                TEST_8(SUB/SBC A, 3, 3, (a >> 3) & 1);
+                TEST_8(SUB/SBC A, 4, H, (c & 0xF) - (b & 0xF) - carry != (a & 0xF));
+                TEST_8(SUB/SBC A, 5, 5, (a >> 5) & 1);
+                TEST_8(SUB/SBC A, 6, Z, a == 0);
+                TEST_8(SUB/SBC A, 7, S, (signed char)a < 0);
+
+                do
+                {
+                    // 16-bit ADD (separate routine from ADC)
+                    // Use the two carry states to test unaffected flags remain unchanged
+                    hl = de;
+                    f = -carry;
+                    addhl(bc);
+                    TEST_16(ADD HL, 0, C, de + bc != hl);
+                    TEST_16(ADD HL, 1, N, 0);
+                    TEST_16(ADD HL, 2, V, carry);
+                    TEST_16(ADD HL, 3, 3, (hl >> 11) & 1);
+                    TEST_16(ADD HL, 4, H, (de & 0xFFF) + (bc & 0xFFF) != (hl & 0xFFF));
+                    TEST_16(ADD HL, 5, 5, (hl >> 13) & 1);
+                    TEST_16(ADD HL, 6, Z, carry);
+                    TEST_16(ADD HL, 7, S, carry);
+
+                    // 16-bit ADC (separate routine from ADD)
+                    hl = de;
+                    f = carry;
+                    adchl(bc);
+                    TEST_16(ADC HL, 0, C, de + bc + carry != hl);
+                    TEST_16(ADC HL, 1, N, 0);
+                    TEST_16(ADC HL, 2, V, (signed short)de + (signed short)bc + carry != (signed short)hl);
+                    TEST_16(ADC HL, 3, 3, (hl >> 11) & 1);
+                    TEST_16(ADC HL, 4, H, (de & 0xFFF) + (bc & 0xFFF) + carry != (hl & 0xFFF));
+                    TEST_16(ADC HL, 5, 5, (hl >> 13) & 1);
+                    TEST_16(ADC HL, 6, Z, hl == 0);
+                    TEST_16(ADC HL, 7, S, (signed short)hl < 0);
+
+                    // 16-bit SBC
+                    hl = de;
+                    f = carry;
+                    sbchl(bc);
+                    TEST_16(SBC HL, 0, C, de - bc - carry != hl);
+                    TEST_16(SBC HL, 1, N, 1);
+                    TEST_16(SBC HL, 2, V, (signed short)de - (signed short)bc - carry != (signed short)hl);
+                    TEST_16(SBC HL, 3, 3, (hl >> 11) & 1);
+                    TEST_16(SBC HL, 4, H, (de & 0xFFF) - (bc & 0xFFF) - carry != (hl & 0xFFF));
+                    TEST_16(SBC HL, 5, 5, (hl >> 13) & 1);
+                    TEST_16(SBC HL, 6, Z, hl == 0);
+                    TEST_16(SBC HL, 7, S, (signed short)hl < 0);
+                }
+                while ((++d, ++e) != 0);   // Doing the full range of de takes too long...
+            }
+            while ((carry = !carry) != 0);
+        }
+        while (++c != 0);
+    }
+    while (++b != 0);
+
+#undef TEST_16
+#undef TEST_8
+
+#endif
+}
