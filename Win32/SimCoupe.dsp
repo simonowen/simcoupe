@@ -53,7 +53,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 kernel32.lib user32.lib winmm.lib comctl32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib /nologo /subsystem:windows /profile /map /machine:I386 /out:"Build/SimCoupe.exe"
+# ADD LINK32 kernel32.lib user32.lib winmm.lib comctl32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib dinput.lib dsound.lib dxguid.lib ole32.lib /nologo /subsystem:windows /profile /map /machine:I386 /out:"Build/SimCoupe.exe"
 
 !ELSEIF  "$(CFG)" == "SimCoupe - Win32 Debug"
 
@@ -79,7 +79,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib winmm.lib comctl32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib /nologo /subsystem:windows /map /debug /machine:I386 /out:"Build/SimCoupeD.exe"
+# ADD LINK32 kernel32.lib user32.lib winmm.lib comctl32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib dinput.lib dsound.lib dxguid.lib ole32.lib /nologo /subsystem:windows /map /debug /machine:I386 /out:"Build/SimCoupeD.exe"
 # SUBTRACT LINK32 /profile /pdb:none /incremental:no
 
 !ENDIF 
