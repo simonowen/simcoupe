@@ -43,10 +43,6 @@
         // Try each type in turn to check for a match
         if (CFloppyDisk::IsRecognised(pStream_))
             return dtFloppy;
-/*
-        else if (CFDIDisk::IsRecognised(pStream_))  // Not supported until Disk2FDI 1.0 is released
-            return dtFDI;
-*/
         else if (CSDFDisk::IsRecognised(pStream_))
             return dtSDF;
         else if (CSADDisk::IsRecognised(pStream_))
@@ -81,7 +77,6 @@
         switch (GetType(pStream))
         {
             case dtFloppy:  pDisk = new CFloppyDisk(pStream);   break;      // Direct floppy access
-//          case dtFDI:     pDisk = new CFDIDisk(pStream);      break;      // .FDI
             case dtSDF:     pDisk = new CSDFDisk(pStream);      break;      // .SDF
             case dtSAD:     pDisk = new CSADDisk(pStream);      break;      // .SAD
             case dtDSK:     pDisk = new CDSKDisk(pStream);      break;      // .DSK
@@ -531,7 +526,7 @@ BYTE CSADDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
 }
 
 CSDFDisk::CSDFDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT uTracks_/*=MAX_DISK_TRACKS*/)
-    : CDisk(pStream_, dtSDF)
+    : CDisk(pStream_, dtSDF), m_pTrack(NULL), m_pFind(NULL)
 {
     m_uSides = uSides_;
     m_uTracks = uTracks_;
@@ -634,6 +629,13 @@ bool CSDFDisk::Save ()
     return true;
 }
 
+// Read real track information for the disk, if available
+bool CSDFDisk::ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
+{
+    // Coming soon...
+    return false;
+}
+
 // Format a track using the specified format
 BYTE CSDFDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_)
 {
@@ -641,295 +643,6 @@ BYTE CSDFDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
     return WRITE_PROTECT;
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-
-/*static*/ bool CFDIDisk::IsRecognised (CStream* pStream_)
-{
-    FDI_HEADER fdih;
-
-    return (pStream_->Rewind() && (pStream_->Read(&fdih, sizeof fdih) == sizeof fdih) &&
-            !memcmp(fdih.achSignature, FDI_SIGNATURE, sizeof fdih.achSignature));
-}
-
-CFDIDisk::CFDIDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT uTracks_/*=MAX_DISK_TRACKS*/)
-    : CDisk(pStream_, dtFDI)
-{
-    // SDF images don't have a fixed number of sectors per track or sector size
-    m_uSectors = 0;
-    m_uSectorSize = 0;
-
-    // Work out the disk size, allocate some memory for it
-    UINT uDiskSize = m_uSides * m_uTracks * SDF_TRACKSIZE;
-    m_pbData = new BYTE[uDiskSize];
-
-    // Read the data from any existing stream, or create and save a new disk
-    if (!pStream_->IsOpen())
-    {
-        m_uSides = uSides_;
-        m_uTracks = uTracks_;
-
-        SetModified();
-    }
-    else
-    {
-        pStream_->Rewind();
-        pStream_->Read(&m_fdih, sizeof m_fdih);
-
-        m_uSides = m_fdih.bLastHead + 1;
-        m_uTracks = ((m_fdih.abLastTrack[0] << 8) + m_fdih.abLastTrack[1]) + 1;
-
-        int nTotalTracks = m_uSides * m_uTracks;
-        int nTrackDescSize = nTotalTracks * sizeof(FDI_TRACK_DESC);
-        int nDescSlack = (nTotalTracks > 180) ? 0 : 512 - (sizeof(FDI_HEADER) + nTrackDescSize);
-
-        m_pTracks = new FDI_TRACK_DESC[nTotalTracks];
-        m_pnOffsets = new int[nTotalTracks];
-        pStream_->Read(m_pTracks, nTrackDescSize);
-
-        int nPos = 0;
-        for (int i = 0 ; i < nTotalTracks ; i++)
-        {
-            m_pnOffsets[i] = nPos;
-            nPos += (m_pTracks[i].bType == 1) ? (m_pTracks[i].bSize & 0x0f) << 9 : m_pTracks[i].bSize << 8;
-        }
-
-        m_pbData = new BYTE[nPos];
-        pStream_->Read(m_pbData, nDescSlack);   // Discard any slack between the track descs and track data
-        pStream_->Read(m_pbData, nPos);
-    }
-}
-
-/*virtual*/ CFDIDisk::~CFDIDisk ()
-{
-    if (IsModified())
-        Save();
-
-    delete[] m_pTracks;
-    delete[] m_pnOffsets;
-}
-
-
-// Initialise the enumeration of all sectors in the track
-UINT CFDIDisk::FindInit (UINT uSide_, UINT uTrack_)
-{
-    m_uSectors = 0;
-
-    if (uSide_ >= m_uSides || uTrack_ >= m_uTracks)
-        return 0;
-
-    int uTrack = (uTrack_ * m_uSides) + uSide_;
-    BYTE* pb = m_pbData + m_pnOffsets[uTrack];
-
-    BYTE bType = m_pTracks[uTrack].bType;
-
-    if ((bType & 0xf0) == 0xe0)
-    {
-        TRACE("Sector-described track\n");
-
-//      BYTE bEncoding = pb[0];
-//      UINT uOffset = pb[3] << 16 | pb[2] << 8 | pb[1];
-        pb += 4;
-
-        for (BYTE b ; (b = *pb++) != 0xff ; )
-        {
-            switch (b)
-            {
-                case 0x00:  TRACE("one \"0\" bit\n");   break;
-                case 0x01:  TRACE("one \"1\" bit\n");   break;
-                case 0x02:  TRACE("standard MFM sync\n");   break;
-                case 0x03:  TRACE("standard Index sync\n"); break;
-                case 0x04:  TRACE("one MFM sync bit\n");    break;
-
-                case 0x05:
-                case 0x06:
-                case 0x07:
-                    TRACE("!!! Unknown data type! (%#02x)\n", b);
-                    break;
-
-                case 0x08:  // RLE MFM-encoded data
-                    TRACE("RLE MFM-encoded data: %d bytes of %#02x\n", pb[0], pb[1]);
-                    pb += 2;
-                    break;
-
-                case 0x09:  // RLE MFM-decoded data
-                    TRACE("RLE MFM-decoded data: %d bytes of %#02x\n", pb[0], pb[1]);
-                    pb += 2;
-                    break;
-
-                case 0x0b:  // MFM-encoded data
-                case 0x0d:  // MFM-decoded data
-                    pb += 2;
-                    break;
-
-                case 0x0a:  // MFM-encoded data
-                case 0x0c:  // MFM-decoded data
-                {
-                    int n = (((pb[0] << 8 | pb[1]) + 7) >> 3);
-                    pb += 2 + n;
-                    break;
-                }
-
-                case 0x10:  // standard IBM index address mark
-                    TRACE("standard IBM index address mark\n");
-                    break;
-
-                case 0x11:  // standard IBM pre-gap
-                    TRACE("standard IBM pre-gap\n");
-                    break;
-
-                case 0x12:  // standard ST pre-gap
-                    TRACE("standard ST pre-gap\n");
-                    break;
-
-                case 0x13:  // standard extended IBM sector header
-                    TRACE("standard extended IBM sector header: %02X %02X %02X %02X\n", pb[0], pb[1], pb[2], pb[3]);
-                    pb += 4;
-                    break;
-
-                case 0x14:  // standard mini-extended IBM sector header
-                    TRACE("standard mini-extended IBM sector header: %02X %02X %02X %02X\n", pb[0], pb[1], pb[2], pb[3]);
-                    pb += 4;
-                    break;
-
-                case 0x15:  // standard short IBM sector header
-                    TRACE("standard short IBM sector header: %02X\n", pb[0]);
-                    pb++;
-                    break;
-
-                case 0x16:  // standard mini-short IBM sector header
-                    TRACE("standard mini-short IBM sector header: %02X\n", pb[0]);
-                    pb++;
-                    break;
-
-                case 0x17:  // standard CRC-incorrect mini-extended IBM sector header
-                    TRACE("standard CRC-incorrect mini-extended IBM sector header: %02X %02X %02X %02X %02X %02X\n", pb[0], pb[1], pb[2], pb[3], pb[4], pb[5]);
-                    pb += 4 + 2;
-                    break;
-
-                case 0x18:  // standard CRC-incorrect mini-short IBM sector header
-                    TRACE("standard CRC-incorrect mini-short IBM sector header: %02X %02X %02X\n", pb[0], pb[1], pb[2]);
-                    pb += 1 + 2;
-                    break;
-
-                case 0x19:  // standard 512-byte CRC-correct IBM data
-                    TRACE("standard 512-byte CRC-correct IBM data\n");
-                    break;
-
-                case 0x1a:  // standard 128*2^x-byte CRC-correct IBM data
-                case 0x1b:  // standard 128*2^x-byte CRC-incorrect IBM data
-                    pb += 0;
-                    break;
-
-                case 0x1c:  // standard extended IBM sector
-                    TRACE("standard extended IBM sector: %02X %02X %02X %02X\n", pb[0], pb[1], pb[2], pb[3]);
-                    pb += 0;
-                    break;
-
-                case 0x1d:  // standard short IBM sector
-                    TRACE("standard short IBM sector: %02X\n", pb[0]);
-                    pb += 1 + 512;
-                    break;
-
-                // Amiga stuff
-                case 0x20:  pb += 20;   break;
-                case 0x21:  pb += 4;    break;
-                case 0x22:  pb += 2;    break;
-                case 0x23:  pb += 512;  break;
-                case 0x24:  pb += 0;    break;
-                case 0x25:  pb += 0;    break;
-                case 0x26:  pb += 516;  break;
-                case 0x27:  pb += 514;  break;
-
-                default:
-                    break;
-            }
-        }
-    }
-    else
-        TRACE("Unknown track type: %u\n", m_pTracks[uTrack].bType);
-/*
-    // Locate the track in the buffer to determine the number of sectors available
-    UINT uPos = 0;//(uSide_*m_uTracks + uTrack_) * FDI_TRACKSIZE;
-    m_pTrack = reinterpret_cast<FDI_TRACK_HEADER*>(m_pbData+uPos);
-    m_uSectors = m_pTrack->bSectors;
-
-    m_pFind = NULL;
-*/
-    // Call the base and return the number of sectors in the track
-    return CDisk::FindInit(uSide_, uTrack_);
-}
-
-// Find the next sector in the current track
-bool CFDIDisk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
-{
-    bool fRet = false;
-/*
-    // Make sure there is a 'next' one
-    if (fRet = CDisk::FindNext())
-    {
-        if (!m_pFind)
-            m_pFind = reinterpret_cast<FDI_SECTOR_HEADER*>(&m_pTrack[1]);
-        else
-        {
-            // The data length is zero if there is a problem with the ID header
-            UINT uSize = m_pFind->bIdStatus ? 0 : (MIN_SECTOR_SIZE << m_pFind->sIdField.bSize);
-
-            // Advance the pointer over the header and data to next header
-            m_pFind = reinterpret_cast<FDI_SECTOR_HEADER*>(reinterpret_cast<BYTE*>(m_pFind) + uSize + sizeof(FDI_SECTOR_HEADER));
-        }
-
-        // Copy the ID field to the supplied buffer, and store the ID status
-        memcpy(pIdField_, &m_pFind->sIdField, sizeof(*pIdField_));
-        *pbStatus_ = m_pFind->bIdStatus;
-    }
-*/
-    // Return true if we're returning a new item
-    return fRet;
-}
-
-// Read the data for the last sector found
-BYTE CFDIDisk::ReadData (BYTE *pbData_, UINT* puSize_)
-{
-    // Copy the sector data
-//  memcpy(pbData_, reinterpret_cast<BYTE*>(m_pFind+1), *puSize_ = MIN_SECTOR_SIZE << m_pFind->sIdField.bSize);
-
-    // Return the data status to include a possible CRC error
-    return CRC_ERROR;
-//  return m_pFind->bDataStatus;
-}
-
-// Read the data for the last sector found
-BYTE CFDIDisk::WriteData (BYTE *pbData_, UINT* puSize_)
-{
-    // Fail if read-only
-//  if (IsReadOnly())
-        return WRITE_PROTECT;
-
-    // Copy the sector data
-//  memcpy(reinterpret_cast<BYTE*>(m_pFind+1), pbData_, *puSize_ = MIN_SECTOR_SIZE << m_pFind->sIdField.bSize);
-    SetModified();
-
-    // Written ok
-    return 0;
-}
-
-// Save the disk out to the stream
-bool CFDIDisk::Save ()
-{
-    if (IsModified())
-    {
-    }
-
-    return true;
-}
-
-// Format a track using the specified format
-BYTE CFDIDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSectors_)
-{
-    // Failed :-/
-    return WRITE_PROTECT;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 
