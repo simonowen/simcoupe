@@ -1842,7 +1842,7 @@ void CFileView::NotifyParent (int nParam_)
             else
             {
                 char szError[256];
-                sprintf(szError, "%s\\\n\nCan't access directory.", pItem->m_pszLabel);
+                sprintf(szError, "%s%c\n\nCan't access directory.", pItem->m_pszLabel, PATH_SEPARATOR);
                 new CMessageBox(this, szError, "Access Denied", mbError);
             }
         }
