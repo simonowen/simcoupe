@@ -133,7 +133,7 @@ bool InitSDLSound ()
 
     if (SDL_OpenAudio(&sDesired, &sObtained) < 0)
         TRACE("SDL_OpenAudio failed: %s\n", SDL_GetError());
-    else if (sObtained.freq != SOUND_FREQ || (sObtained.format != AUDIO_S16SYS))
+    else if (sObtained.freq != sDesired.freq || (sObtained.format != sDesired.format))
         SDL_CloseAudio();
     else
         return true;
@@ -390,12 +390,22 @@ void CSoundStream::AddData (BYTE* pbData_, int nLength_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+
 // Byte-swap 16-bit samples, as needed on big endian systems
-void ByteSwap16 (BYTE* pbSamples_, int nSamples_)
+void ByteSwap16 (void* pv_, int nSamples_)
 {
-    for (WORD *pw = reinterpret_cast<WORD*>(pbSamples_) ; nSamples_-- ; pw++)
-        *pw = (*pw << 8) | (*pw >> 8);
+    for (WORD* pw = (WORD*)pv_ ; nSamples_-- ; pw++)
+      *pw = (*pw << 8) | (*pw >> 8);
 }
+
+void ByteSwap32 (void* pv_, int nSamples_)
+{
+    for (DWORD* pdw = (DWORD*)pv_ ; nSamples_-- ; pdw++)
+      *pdw = (*pdw << 24) | ((*pdw & 0x0000ff00) << 8) | ((*pdw & 0x00ff0000) >> 8) | (*pdw >> 24);
+}
+
+#endif  // SDL_BYTEORDER == SDL_BIG_ENDIAN
 
 
 void CSAA::Generate (BYTE* pb_, int nSamples_)
@@ -406,7 +416,10 @@ void CSAA::Generate (BYTE* pb_, int nSamples_)
         pSAASound->GenerateMany(pb_, nSamples_);
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-        ByteSwap16(pb_, nSamples_);
+        if (m_nChannels == 1)
+            ByteSwap16(pb_, nSamples_);
+        else
+            ByteSwap32(pb_, nSamples_);
 #endif
     }
 }
@@ -424,7 +437,10 @@ void CSAA::GenerateExtra (BYTE* pb_, int nSamples_)
         pSAASound->GenerateMany(pb_, nSamples_);
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-        ByteSwap16(pb_, nSamples_);
+        if (m_nChannels == 1)
+            ByteSwap16(pb_, nSamples_);
+        else
+            ByteSwap32(pb_, nSamples_);
 #endif
     }
 }
