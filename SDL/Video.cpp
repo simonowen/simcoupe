@@ -360,48 +360,48 @@ bool Video::CreatePalettes (bool fDimmed_)
         const RGBA* p = (i < N_PALETTE_COLOURS) ? &pSAM[i] : &pGUI[i-N_PALETTE_COLOURS];
         BYTE bRed = p->bRed, bGreen = p->bGreen, bBlue = p->bBlue, bAlpha = p->bAlpha;
 
-        // OpenGL?
-        if (!pBack)
+#ifdef USE_OPENGL
+        // 32-bit RGBA?
+        if (g_glDataType == GL_UNSIGNED_BYTE)
+        {
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+            aulPalette[i] = (bAlpha << 24) | (bBlue << 16) | (bGreen << 8) | bRed;
+#else
+            aulPalette[i] = (bRed << 24) | (bGreen << 16) | (bBlue << 8) | bAlpha;
+#endif
+        }
+        else
         {
             DWORD dwRMask, dwGMask, dwBMask, dwAMask;
 
-            // 32-bit RGBA?
-            if (g_glDataType == GL_UNSIGNED_BYTE)
-            {
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-                aulPalette[i] = (bAlpha << 24) | (bBlue << 16) | (bGreen << 8) | bRed;
-#else
-                aulPalette[i] = (bRed << 24) | (bGreen << 16) | (bBlue << 8) | bAlpha;
-#endif
-            }
-            else
-            {
-                // The component masks depend on the data type (pixel format assumed from above)
-                if (g_glDataType == GL_UNSIGNED_SHORT_5_5_5_1_EXT)
-                    dwRMask = 0xf800, dwGMask = 0x07c0, dwBMask = 0x003e, dwAMask = 0x0001;
-                else //if (g_glDataType == GL_UNSIGNED_SHORT_1_5_5_5_REV)
-                    dwAMask = 0x8000, dwRMask = 0x7c00, dwGMask = 0x03e0, dwBMask = 0x001f;
+            // The component masks depend on the data type (pixel format assumed from above)
+            if (g_glDataType == GL_UNSIGNED_SHORT_5_5_5_1_EXT)
+                dwRMask = 0xf800, dwGMask = 0x07c0, dwBMask = 0x003e, dwAMask = 0x0001;
+            else //if (g_glDataType == GL_UNSIGNED_SHORT_1_5_5_5_REV)
+                dwAMask = 0x8000, dwRMask = 0x7c00, dwGMask = 0x03e0, dwBMask = 0x001f;
 
-                // Determine the component values from the bit masks
-                DWORD dwRed   = ((static_cast<DWORD>(dwRMask) * (bRed+1))   >> 8) & dwRMask;
-                DWORD dwGreen = ((static_cast<DWORD>(dwGMask) * (bGreen+1)) >> 8) & dwGMask;
-                DWORD dwBlue  = ((static_cast<DWORD>(dwBMask) * (bBlue+1))  >> 8) & dwBMask;
-                DWORD dwAlpha = ((static_cast<DWORD>(dwAMask) * (bAlpha+1)) >> 8) & dwAMask;
+            // Determine the component values from the bit masks
+            DWORD dwRed   = ((static_cast<DWORD>(dwRMask) * (bRed+1))   >> 8) & dwRMask;
+            DWORD dwGreen = ((static_cast<DWORD>(dwGMask) * (bGreen+1)) >> 8) & dwGMask;
+            DWORD dwBlue  = ((static_cast<DWORD>(dwBMask) * (bBlue+1))  >> 8) & dwBMask;
+            DWORD dwAlpha = ((static_cast<DWORD>(dwAMask) * (bAlpha+1)) >> 8) & dwAMask;
 
-                // Combine for the final pixel value
-                aulPalette[i] = dwRed | dwGreen | dwBlue | dwAlpha;
-            }
+            // Combine for the final pixel value
+            aulPalette[i] = dwRed | dwGreen | dwBlue | dwAlpha;
         }
-        else if (!fPalette)
+#else
+        // Ask SDL to map non-palettised colours
+        if (!fPalette)
             aulPalette[i] = SDL_MapRGB(pBack->format, bRed, bGreen, bBlue);
         else
         {
+            // Set the palette index and components
             aulPalette[i] = i;
-
             acPalette[i].r = bRed;
             acPalette[i].g = bGreen;
             acPalette[i].b = bBlue;
         }
+#endif
     }
 
     // If a palette is required, set it on both surfaces now
