@@ -125,14 +125,14 @@ bool InitSDLSound ()
 {
     SDL_AudioSpec sDesired = { 0 };
     sDesired.freq = SOUND_FREQ;
-    sDesired.format = AUDIO_S16;
+    sDesired.format = AUDIO_S16SYS;
     sDesired.channels = GetOption(stereo) ? 2 : 1;
     sDesired.samples = 2048;
     sDesired.callback = CSoundStream::SoundCallback;
 
     if (SDL_OpenAudio(&sDesired, &sObtained) < 0)
         TRACE("SDL_OpenAudio failed: %s\n", SDL_GetError());
-    else if (sObtained.freq != SOUND_FREQ || sObtained.format != AUDIO_S16)
+    else if (sObtained.freq != SOUND_FREQ || (sObtained.format != AUDIO_S16SYS))
         SDL_CloseAudio();
     else
         return true;
