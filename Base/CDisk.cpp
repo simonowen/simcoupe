@@ -2,7 +2,7 @@
 //
 // CDisk.cpp: C++ classes used for accessing all SAM disk image types
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -51,9 +51,9 @@
             return dtSAD;
         else if (CFileDisk::IsRecognised(pStream_))
         {
-            // For now we'll only accept single files if they have a .SBT file extension
+            // For now we'll only accept single files if they have a .sbt or .sbt.gz file extension
             const char* pcsz = pStream_->GetFile();
-            if (strlen(pcsz) > 4 && !strcasecmp(pcsz + strlen(pcsz) - 4, ".sbt"))
+            if (strlen(pcsz) > 4 && (!strcasecmp(pcsz + strlen(pcsz) - 4, ".sbt") || !strcasecmp(pcsz + strlen(pcsz) - 4, ".sbt.gz")))
                 return dtSBT;
         }
 
@@ -68,12 +68,12 @@
 
 /*static*/ CDisk* CDisk::Open (const char* pcszDisk_, bool fReadOnly_/*=false*/)
 {
-    // First of all try and get a data stream for the disk
+    CDisk* pDisk = NULL;
+
+    // Fetch stream for the disk source
     CStream* pStream = CStream::Open(pcszDisk_, fReadOnly_);
 
     // A disk will only be returned if the stream format is recognised
-    CDisk* pDisk = NULL;
-
     if (pStream)
     {
         switch (GetType(pStream))
@@ -90,6 +90,12 @@
 
     // Return the disk pointer, or NULL if we didn't recognise it
     return pDisk;
+}
+
+/*static*/ CDisk* CDisk::Open (void* pv_, size_t uSize_, const char* pcszDisk_)
+{
+	CStream* pStream = new CMemStream(pv_, uSize_, pcszDisk_);
+	return pStream ? new CFileDisk(pStream) : NULL;
 }
 
 
@@ -214,22 +220,22 @@ bool CDisk::FindSector (UINT uSide_, UINT uTrack_, UINT uIdTrack_, UINT uSector_
         delete[] pb;
     }
 
-    // Accept 720K (9-sector DOS) disks and 800K (10-sector) SAM disks
-    return uSize == DSK_IMAGE_SIZE || uSize == MSDOS_IMAGE_SIZE;
+    // Accept 800K (10-sector) SAM disks and 720K (9-sector DOS) disks
+    return uSize == DSK_IMAGE_SIZE || uSize == DOS_IMAGE_SIZE;
 }
 
-CDSKDisk::CDSKDisk (CStream* pStream_, bool fIMG_/*=false*/)
-    : CDisk(pStream_, dtDSK), m_fIMG(fIMG_)
+CDSKDisk::CDSKDisk (CStream* pStream_, UINT uSectors_/*=NORMAL_DISK_SECTORS*/, bool fIMG_/*=false*/)
+    : CDisk(pStream_, dtDSK), m_fIMG(fIMG_ && uSectors_ == NORMAL_DISK_SECTORS)
 {
     // The DSK geometry is fixed
     m_uSides = NORMAL_DISK_SIDES;
     m_uTracks = NORMAL_DISK_TRACKS;
-    m_uSectors = NORMAL_DISK_SECTORS;
+    m_uSectors = uSectors_;
     m_uSectorSize = NORMAL_SECTOR_SIZE;
 
     // Allocate some memory and clear it, just in case it's not a complete DSK image
     m_pbData = new BYTE[DSK_IMAGE_SIZE];
-    memset(m_pbData, 0, DSK_IMAGE_SIZE);
+    memset(m_pbData, (uSectors_ == NORMAL_DISK_SECTORS) ? 0x00 : 0xe5, DSK_IMAGE_SIZE);
 
     // Read the data from any existing stream, or create and save a new disk
     if (!pStream_->IsOpen())
@@ -239,8 +245,7 @@ CDSKDisk::CDSKDisk (CStream* pStream_, bool fIMG_/*=false*/)
         pStream_->Rewind();
 
         // If it's an MS-DOS image, treat as 9 sectors-per-track, otherwise 10 as normal for SAM
-        m_uSectors = (pStream_->Read(m_pbData, DSK_IMAGE_SIZE) == MSDOS_IMAGE_SIZE) ?
-                        MSDOS_DISK_SECTORS : NORMAL_DISK_SECTORS;
+        m_uSectors = (pStream_->Read(m_pbData, DSK_IMAGE_SIZE) == DOS_IMAGE_SIZE) ? DOS_DISK_SECTORS : NORMAL_DISK_SECTORS;
 
         // Check for .img 800K images, which use a different track order
         if (m_uSectors == NORMAL_DISK_SECTORS)
