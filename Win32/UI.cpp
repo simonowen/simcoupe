@@ -309,12 +309,9 @@ bool SaveDriveChanges (CDiskDevice* pDrive_)
         }
     }
 
-    if (!pDrive_->Flush())
+    if (!pDrive_->Save())
     {
-        char sz[MAX_PATH];
-        wsprintf(sz, "Failed to save changes to %s", pDrive_->GetFile());
-
-        MessageBox(g_hwnd, sz, "SimCoupe", MB_ICONEXCLAMATION);
+        Message(msgWarning, "Failed to save changes to %s", pDrive_->GetPath());
         return false;
     }
 
@@ -484,7 +481,8 @@ void UpdateMenuFromOptions ()
     // Only enable the floppy device menu item on NT-based versions of Windows
     OSVERSIONINFO ovi = { sizeof ovi };
     GetVersionEx(&ovi);
-//  EnableItem(IDM_FILE_FLOPPY1_DEVICE, ovi.dwPlatformId == VER_PLATFORM_WIN32_NT && ovi.dwMajorVersion >= 5);
+    EnableItem(IDM_FILE_FLOPPY1_DEVICE, ovi.dwPlatformId == VER_PLATFORM_WIN32_NT && ovi.dwMajorVersion >= 5 &&
+                GetFileAttributes(OSD::GetFilePath("SAMDISK.SYS")) != 0xffffffff);
 //  EnableItem(IDM_FILE_FLOPPY2_DEVICE, ovi.dwPlatformId == VER_PLATFORM_WIN32_NT && ovi.dwMajorVersion >= 5);
 
     bool fFloppy1 = GetOption(drive1) == dskImage, fInserted1 = pDrive1->IsInserted();
@@ -719,6 +717,13 @@ BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
     {
         case WM_INITDIALOG:
         {
+#if 1
+            char szVersion[128];
+            GetDlgItemText(hdlg_, IDS_VERSION, szVersion, sizeof(szVersion));
+            wsprintf(szVersion+lstrlen(szVersion), " beta ("  __DATE__ ")");
+            SetDlgItemText(hdlg_, IDS_VERSION, szVersion);
+#endif
+
             // Grab the attributes of the current GUI font
             LOGFONT lf;
             GetObject(GetStockObject(DEFAULT_GUI_FONT), sizeof lf, &lf);
@@ -2063,9 +2068,8 @@ BOOL CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                     if (pDisk)
                     {
                         // Fetch the existing disk geometry
-                        HARDDISK_GEOMETRY dg;
-                        pDisk->GetGeometry(&dg);
-                        uSize = (dg.uTotalSectors + (1 << 11)-1) >> 11;
+                        const ATA_GEOMETRY* pGeom = pDisk->GetGeometry ();
+                        uSize = (pGeom->uTotalSectors + (1 << 11)-1) >> 11;
                         SetDlgItemInt(hdlg_, IDE_SIZE, uSize, FALSE);
 
                         delete pDisk;
@@ -2075,7 +2079,7 @@ BOOL CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                     EnableWindow(GetDlgItem(hdlg_, IDE_SIZE), !fExists);
 
                     // Use an OK button to accept an existing file, or Create for a new one
-                    SetDlgItemText(hdlg_, IDOK, fExists ? "OK" : "Create");
+                    SetDlgItemText(hdlg_, IDOK, fExists || !szFile[0] ? "OK" : "Create");
                     EnableWindow(GetDlgItem(hdlg_, IDOK), szFile[0]);
 
                     break;
@@ -2296,6 +2300,7 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
 
             SendMessage(hwndCombo, CB_SETCURSEL, (!GetOption(frameskip)) ? 0 : GetOption(frameskip) - 1, 0L);
             SendMessage(hdlg_, WM_COMMAND, IDC_HWACCEL, 0L);
+            SendMessage(hdlg_, WM_COMMAND, IDC_OVERLAY, 0L);
             break;
         }
 
@@ -2331,6 +2336,13 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 {
                     bool fHwAccel = (SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                     EnableWindow(GetDlgItem(hdlg_, IDC_OVERLAY), fHwAccel);
+                    break;
+                }
+
+                case IDC_OVERLAY:
+                {
+                    bool fOverlay = (SendDlgItemMessage(hdlg_, IDC_OVERLAY, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_8BIT_FULLSCREEN), !fOverlay);
                     break;
                 }
 
@@ -2601,7 +2613,21 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 
                 // Re-init the other hard drive interfaces if anything has changed
                 if (ChangedString(sdidedisk) || ChangedString(yatbusdisk))
+                {
+                    if (ChangedString(sdidedisk))
+                    {
+                        delete pSDIDE;
+                        pSDIDE = NULL;
+                    }
+
+                    if (ChangedString(yatbusdisk))
+                    {
+                        delete pYATBus;
+                        pYATBus = NULL;
+                    }
+
                     IO::InitHDD();
+                }
 
                 // If the SDIDE path changed, check it was mounted ok
                 if (ChangedString(sdidedisk) && *GetOption(sdidedisk) && pSDIDE->GetType() != dskSDIDE)
