@@ -2,7 +2,7 @@
 //
 // Input.cpp: SDL keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -491,6 +491,9 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                         case SDLK_RETURN:
                         case SDLK_ESCAPE:
                             pKey->unicode = pKey->sym;
+                            break;
+
+                        default:    // default is needed to keep gcc happy
                             break;
                     }
                 }
