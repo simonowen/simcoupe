@@ -68,7 +68,7 @@ inline BYTE AttrBg (BYTE bAttr_) { return (((bAttr_) >> 3) & 0xf); }
 inline BYTE AttrFg (BYTE bAttr_) { return ((((bAttr_) >> 3) & 8) | ((bAttr_) & 7)); }
 
 
-extern bool fDrawFrame;
+extern bool fDrawFrame, g_fFlashPhase;
 extern int g_nFrame;
 
 extern int s_nWidth, s_nHeight;         // hi-res pixels
