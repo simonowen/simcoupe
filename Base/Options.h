@@ -49,7 +49,7 @@ typedef struct
     char    disk1[MAX_PATH];        // Floppy disk image in drive 1
     char    disk2[MAX_PATH];        // Floppy disk image in drive 2
     bool    autoboot;               // Autoboot drive 1 on first startup?
-    int     turboload;              // True to accelerate disk and tape loading
+    int     turboload;              // 0 for disabled, or sensitivity in number of frames
 
     int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
     bool    altforcntrl;            // Non-zero if Left-Alt is used for SAM Cntrl
