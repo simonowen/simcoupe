@@ -1576,8 +1576,9 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                     if (!GetSaveLoadFile(hdlg_, "Binary files (*.bin)\0*.bin\0All files (*.*)\0*.*\0", NULL, szFile, sizeof szFile, fImport))
                         break;
 
-                    SetDlgItemText(hdlg_, IDE_FILE, szFile);
-                    SendDlgItemMessage(hdlg_, IDE_FILE, EM_SETSEL, MAX_PATH, -1);
+                    HWND hwndEdit = GetDlgItem(hdlg_, IDE_FILE);
+                    SetWindowText(hwndEdit, szFile);
+                    SetFocus(hwndEdit);
                     break;
                 }
 
