@@ -158,7 +158,7 @@ size_t CFileStream::Read (void* pvBuffer_, size_t uLen_)
     }
 
     size_t uRead = m_hFile ? fread(pvBuffer_, 1, uLen_, m_hFile) : 0;
-    return (uRead == -1) ? 0 : uRead;
+    return uRead;
 }
 
 size_t CFileStream::Write (void* pvBuffer_, size_t uLen_)
@@ -207,8 +207,8 @@ size_t CZLibStream::Read (void* pvBuffer_, size_t uLen_)
             m_nMode = modeReading;
     }
 
-    size_t lRead = m_hFile ? gzread(m_hFile, pvBuffer_, static_cast<unsigned>(uLen_)) : 0;
-    return (lRead == -1) ? 0 : lRead;
+    int nRead = m_hFile ? gzread(m_hFile, pvBuffer_, static_cast<unsigned>(uLen_)) : 0;
+    return (nRead == -1) ? 0 : static_cast<size_t>(nRead);
 }
 
 size_t CZLibStream::Write (void* pvBuffer_, size_t uLen_)
