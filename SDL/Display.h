@@ -45,4 +45,6 @@ class Display
         static bool* pafDirty;
 };
 
+extern SDL_Rect rSource, rTarget;
+
 #endif  // DISPLAY_H
