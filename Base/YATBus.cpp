@@ -2,7 +2,7 @@
 //
 // Atom.cpp: YAMOD.ATBUS IDE interface
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,10 +24,10 @@
 #include "SimCoupe.h"
 #include "YATBus.h"
 
-CYATBusDevice::CYATBusDevice (CHardDisk* pDisk_)
+CYATBusDevice::CYATBusDevice (CATADevice* pDisk_)
     : CDiskDevice(dskYATBus), m_bLatch(0), m_fDataLatched(false)
 {
-    m_pDisk = new CATADevice(pDisk_);
+    m_pDisk = pDisk_;
 }
 
 CYATBusDevice::~CYATBusDevice ()

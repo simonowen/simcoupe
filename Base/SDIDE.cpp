@@ -2,7 +2,7 @@
 //
 // SDIDE.cpp: S D Software IDE interface
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,10 +32,10 @@
 #include "Options.h"
 
 
-CSDIDEDevice::CSDIDEDevice (CHardDisk* pDisk_)
+CSDIDEDevice::CSDIDEDevice (CATADevice* pDisk_)
     : CDiskDevice(dskSDIDE), m_bAddressLatch(0), m_bDataLatch(0), m_fDataLatched(false)
 {
-    m_pDisk = new CATADevice(pDisk_);
+    m_pDisk = pDisk_;
 }
 
 CSDIDEDevice::~CSDIDEDevice ()
