@@ -2,7 +2,7 @@
 //
 // IDEDisk.cpp: Platform-specific IDE direct disk access
 //
-//  Copyright (c) 2003-2004 Simon Owen
+//  Copyright (c) 2003-2005 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,24 +36,9 @@ struct hd_geometry {
 };
 
 
-static void SetIdentityString (char* psz_, int nSize_, const char* pcsz_)
+bool CDeviceHardDisk::Open ()
 {
-    // Copy the string, padded with spaces and not NULL terminate
-    memset(psz_, ' ', nSize_);
-    memcpy(psz_, pcsz_, strlen(pcsz_));
-
-    // Byte-swap the string
-    for (int i = 0 ; i < nSize_ ; i += 2)
-    {
-        char t = psz_[i];
-        psz_[i] = psz_[i+1];
-        psz_[i+1] = t;
-    }
-}
-
-bool CDeviceHardDisk::Open (const char* pcszDisk_)
-{
-    m_hDevice = open(pcszDisk_, O_EXCL|O_RDWR);
+    m_hDevice = open(m_pszDisk, O_EXCL|O_RDWR);
 
     if (IsOpen())
     {
@@ -81,9 +66,9 @@ bool CDeviceHardDisk::Open (const char* pcszDisk_)
             ATAPUT(m_sIdentity.wBufferSize512, 1);
             ATAPUT(m_sIdentity.wLongECCBytes, 4);
 
-            SetIdentityString(m_sIdentity.szSerialNumber, sizeof m_sIdentity.szSerialNumber, "090");
-            SetIdentityString(m_sIdentity.szFirmwareRev,  sizeof m_sIdentity.szFirmwareRev, "0.90");
-            SetIdentityString(m_sIdentity.szModelNumber,  sizeof m_sIdentity.szModelNumber, "SAM IDE Device");
+            CHardDisk::SetIdentityString(m_sIdentity.szSerialNumber, sizeof(m_sIdentity.szSerialNumber), "090");
+            CHardDisk::SetIdentityString(m_sIdentity.szFirmwareRev,  sizeof(m_sIdentity.szFirmwareRev), "0.90");
+            CHardDisk::SetIdentityString(m_sIdentity.szModelNumber,  sizeof(m_sIdentity.szModelNumber), "SAM IDE Device");
 
             // Calculate CHS values suitable for the sector count (ignore existing geometry)
             CalculateGeometry(&m_sGeometry);
@@ -124,7 +109,7 @@ bool CDeviceHardDisk::WriteSector (UINT uSector_, BYTE* pb_)
 #else
 
 // Dummy implementation for non-Linux SDL versions
-bool CDeviceHardDisk::Open (const char*) { return false; }
+bool CDeviceHardDisk::Open () { return false; }
 void CDeviceHardDisk::Close () { }
 bool CDeviceHardDisk::ReadSector (UINT, BYTE*) { return false; }
 bool CDeviceHardDisk::WriteSector (UINT, BYTE*) { return false; }
