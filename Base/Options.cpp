@@ -134,7 +134,7 @@ OPTION aOptions[] =
     OPT_S("FnKeys",       fnkeys,
      "F1=12,SF1=13,AF1=35,CF1=14,F2=15,SF2=16,AF2=36,CF2=17,F3=28,SF3=11,CF3=10,F4=22,AF4=25,SF4=23,F5=5,SF5=7,F6=8,F7=6,F8=4,F9=9,SF9=19,F10=24,F11=0,F12=1,SF12=1,CF12=25"),
 
-    { 0, 0, {0}, {0} }
+    { NULL, 0 }
 };
 
 inline bool IsTrue (const char* pcsz_)
