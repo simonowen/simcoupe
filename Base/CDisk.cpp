@@ -244,7 +244,7 @@ CDSKDisk::CDSKDisk (CStream* pStream_)
 BYTE CDSKDisk::ReadData (BYTE *pbData_, UINT* puSize_)
 {
     // Work out the offset for the required data
-    long lPos = (m_uSide + 2 * m_uTrack) * (m_uSectors * m_uSectorSize) + ((m_uSector-1) * m_uSectorSize);
+    long lPos = (m_uSide + NORMAL_DISK_SIDES * m_uTrack) * (m_uSectors * m_uSectorSize) + ((m_uSector-1) * m_uSectorSize);
 
     // Copy the sector data from the image buffer
     memcpy(pbData_, m_pbData + lPos, *puSize_ = m_uSectorSize);
@@ -261,7 +261,7 @@ BYTE CDSKDisk::WriteData (BYTE *pbData_, UINT* puSize_)
         return WRITE_PROTECT;
 
     // Work out the offset for the required data
-    long lPos = (m_uSide + 2 * m_uTrack) * (m_uSectors * m_uSectorSize) + ((m_uSector-1) * m_uSectorSize);
+    long lPos = (m_uSide + NORMAL_DISK_SIDES * m_uTrack) * (m_uSectors * m_uSectorSize) + ((m_uSector-1) * m_uSectorSize);
 
     // Copy the sector data to the image buffer, and set the modified flag
     memcpy(m_pbData + lPos, pbData_, *puSize_ = m_uSectorSize);
