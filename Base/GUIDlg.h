@@ -64,10 +64,28 @@ class CAboutDialog : public CDialog
 };
 
 
+class COptionView : public CListView
+{
+    public:
+        COptionView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
+            : CListView (pParent_, nX_, nY_, nWidth_, nHeight_, 6) { }
+};
+
+class COptionsDialog : public CDialog
+{
+    public:
+        COptionsDialog (CWindow* pParent_=NULL);
+        void OnNotify (CWindow* pWindow_, int nParam_);
+
+    protected:
+        CListView* m_pOptions;
+};
+
+
 class CTestDialog : public CDialog
 {
     public:
-        CTestDialog(CWindow* pParent_=NULL);
+        CTestDialog (CWindow* pParent_=NULL);
         void OnNotify (CWindow* pWindow_, int nParam_);
 
     protected:
