@@ -2,7 +2,7 @@
 //
 // Frame.h: Display frame generation
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -47,6 +47,7 @@ class Frame
         static void TouchLines (int nFrom_, int nTo_);
         static inline void TouchLine (int nLine_) { TouchLines(nLine_, nLine_); }
         static void ChangeMode (BYTE bVal_);
+        static void ChangeScreen (BYTE bVal_);
 
         static void Sync ();
         static void Clear ();
@@ -123,6 +124,7 @@ class CFrame
         }
 
         virtual void ModeChange (BYTE bNewVal_, int nLine_, int nBlock_) = 0;
+        virtual void ScreenChange (BYTE bNewVal_, int nLine_, int nBlock_) = 0;
 
     protected:
         virtual void BorderLine (int nLine_, int nFrom_, int nTo_) = 0;
@@ -151,6 +153,7 @@ class CFrameXx1 : public CFrame
         void Mode3Line (int nLine_, int nFrom_, int nTo_);
         void Mode4Line (int nLine_, int nFrom_, int nTo_);
         void ModeChange (BYTE bNewVal_, int nLine_, int nBlock_);
+        void ScreenChange (BYTE bNewVal_, int nLine_, int nBlock_);
 
     protected:
         void LeftBorder (BYTE* pbLine_, int nFrom_, int nTo_);
@@ -485,11 +488,6 @@ void CFrameXx1<fHiRes_>::ModeChange (BYTE bNewVal_, int nLine_, int nBlock_)
 {
     int nScreenLine = nLine_ - TOP_BORDER_LINES;
 
-    // Make sure the mode change is on the main screen
-    if (nBlock_ < BORDER_BLOCKS || nBlock_ >= (BORDER_BLOCKS+SCREEN_BLOCKS))
-        return;
-
-
     BYTE ab[4];
 
     // Source mode 3 or 4?
@@ -571,6 +569,24 @@ void CFrameXx1<fHiRes_>::ModeChange (BYTE bNewVal_, int nLine_, int nBlock_)
             break;
         }
     }
+}
+
+
+template <bool fHiRes_>
+void CFrameXx1<fHiRes_>::ScreenChange (BYTE bNewVal_, int nLine_, int nBlock_)
+{
+    BYTE* pbLine = Frame::GetScreen()->GetLine(nLine_-s_nViewTop);
+    BYTE* pFrame = pbLine + ((nBlock_ - s_nViewLeft) << 4);
+
+    // Part of the first pixel is the previous border colour, from when the screen was disabled
+    // We don't have the resolution to show only part, so it'll appear brighter than the real SAM
+    pFrame[0] = clutval[border_col];
+
+    // The rest of the cell is the new border colour, even on the main screen since the ASIC has no data!
+    pFrame[1]  = pFrame[2]  = pFrame[3]  =
+    pFrame[4]  = pFrame[5]  = pFrame[6]  = pFrame[7] =
+    pFrame[8]  = pFrame[9]  = pFrame[10] = pFrame[11] = 
+    pFrame[12] = pFrame[13] = pFrame[14] = pFrame[15] = clutval[BORD_COL(bNewVal_)];
 }
 
 #endif  // FRAME_H
