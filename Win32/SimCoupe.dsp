@@ -523,6 +523,14 @@ SOURCE=.\Icons\sound.ico
 SOURCE=.\Cursors\arrow.cur
 # End Source File
 # End Group
+# Begin Group "Bitmaps"
+
+# PROP Default_Filter "bmp"
+# Begin Source File
+
+SOURCE=.\Bitmaps\simcoupe.bmp
+# End Source File
+# End Group
 # Begin Source File
 
 SOURCE=.\afxres.h
@@ -530,10 +538,6 @@ SOURCE=.\afxres.h
 # Begin Source File
 
 SOURCE=.\resource.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\Bitmaps\simcoupe.bmp
 # End Source File
 # Begin Source File
 
