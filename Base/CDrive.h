@@ -30,11 +30,17 @@
 
 enum { drvNone, drvFile, dskDevice, dskAtom };
 
+// Time motor stays on after no further activity:  10 revolutions at 300rpm (2 seconds)
+const int FLOPPY_MOTOR_ACTIVE_TIME = (10 / (300 / 60 )) * EMULATED_FRAMES_PER_SECOND;
+
+// Time since last floppy use for drive to be considered active
+const int FLOPPY_ACTIVE_THRESHOLD = 5;
+
 
 class CDrive : public CDiskDevice
 {
     public:
-        CDrive () { ResetAll(); }
+        CDrive ();
         virtual ~CDrive () { if (IsInserted()) Eject(); }
 
     public:
@@ -45,6 +51,7 @@ class CDrive : public CDiskDevice
 
         int GetType () const { return 1; }
         bool IsLightOn () const { return IsMotorOn() && m_pDisk; }
+        bool IsActive () const { return m_nMotorDelay > (FLOPPY_MOTOR_ACTIVE_TIME - FLOPPY_ACTIVE_THRESHOLD); }
 
         bool Insert (const char* pcszSource_, bool fReadOnly_/*=false*/);
         bool Eject ();
@@ -75,12 +82,10 @@ class CDrive : public CDiskDevice
         int         m_nMotorDelay;  // Delay before switching motor off
 
     protected:
-        void ResetAll();
         void ModifyStatus (BYTE bEnable_, BYTE bReset_);
         void ModifyReadStatus ();
 
         bool IsMotorOn () const { return (m_sRegs.bStatus & MOTOR_ON) != 0; }
-        void SetMotor (bool fOn_);
 };
 
 #endif
