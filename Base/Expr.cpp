@@ -361,8 +361,10 @@ bool Expr::Factor ()
         AddNode(T_NUMBER, *++p);
 
         // Ensure the closing quote matches the open
-        if (*++p != (p++)[-2])
+        if (p[-1] != p[1])
             return false;
+        else
+            p += 2;
     }
 
     // Unary operator symbol?
