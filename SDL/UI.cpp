@@ -46,7 +46,7 @@ const char* const WINDOW_CAPTION =
     "SimCoup\xc3\xa9/SDL"
 #elif defined(__APPLE__)
     "SimCoup\x8e/SDL"
-#elif defined(WIN32)
+#elif defined(WIN32) || defined(__linux__)
     "SimCoup\xe9/SDL"
 #else
     "SimCoupe/SDL"
