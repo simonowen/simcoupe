@@ -2,7 +2,7 @@
 //
 // OSD.h: WinCE OS-dependant routines
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,33 +20,6 @@
 
 #ifndef OSD_H
 #define OSD_H
-
-// We can do more accurate profiling than the default
-#define PROFILE_T   __int64
-#define AddTime(x)  sprintf(sz + strlen(sz), "  %s:%I64dus", #x, (s_sProfile.prof##x + 5) / 10i64)
-
-
-class OSD
-{
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
-
-        static PROFILE_T GetProfileTime ();
-        static DWORD GetTime ();
-        static const char* GetFilePath (const char* pcszFile_="");
-        static const char* GetFloppyDevice (int nDrive_);
-        static bool CheckPathAccess (const char* pcszPath_);
-        static bool IsHidden (const char* pcszFile_);
-
-        static void DebugTrace (const char* pcsz_);
-        static int FrameSync (bool fWait_=true);
-
-        static void OnTimer ();
-        static int s_nTicks;
-};
-
-////////////////////////////////////////////////////////////////////////////////
 
 inline void _ASSERTE(bool) { }
 
@@ -138,5 +111,32 @@ int stat (const char* psz_, struct stat* pst_);
 time_t time(time_t* pt_);
 struct tm * localtime (const time_t *);
 time_t mktime (struct tm*);
+
+////////////////////////////////////////////////////////////////////////////////
+
+// PockerPC can do more accurate profiling than the default
+#define PROFILE_T   __int64
+#define AddTime(x)  sprintf(sz + strlen(sz), "  %s:%I64dus", #x, (s_sProfile.prof##x + 5) / 10i64)
+
+
+class OSD
+{
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
+
+        static PROFILE_T GetProfileTime ();
+        static DWORD GetTime ();
+        static const char* GetFilePath (const char* pcszFile_="");
+        static const char* GetFloppyDevice (int nDrive_);
+        static bool CheckPathAccess (const char* pcszPath_);
+        static bool IsHidden (const char* pcszFile_);
+
+        static void DebugTrace (const char* pcsz_);
+        static int FrameSync (bool fWait_=true);
+
+        static void OnTimer ();
+        static int s_nTicks;
+};
 
 #endif

@@ -21,31 +21,6 @@
 #ifndef OSD_H
 #define OSD_H
 
-// We can do more accurate profiling than the default
-#define PROFILE_T   __int64
-#define AddTime(x)  sprintf(sz + strlen(sz), "  %s:%I64dus", #x, (s_sProfile.prof##x + 5) / 10i64)
-
-
-class OSD
-{
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
-
-        static PROFILE_T GetProfileTime ();
-        static DWORD GetTime ();
-        static const char* GetFilePath (const char* pcszFile_="");
-        static const char* GetFloppyDevice (int nDrive_);
-        static bool CheckPathAccess (const char* pcszPath_);
-        static bool IsHidden (const char* pcszFile_);
-
-        static void DebugTrace (const char* pcsz_);
-        static int FrameSync (bool fWait_=true);
-
-        static int s_nTicks;
-};
-
-////////////////////////////////////////////////////////////////////////////////
 
 // disable stupid 'debug symbols being truncated' warning
 #pragma warning(disable:4786)
@@ -64,6 +39,7 @@ class OSD
 #include <direct.h>     // for _mkdir
 #include <stdio.h>      // for FILE structure
 #include <winioctl.h>   // for DISK_GEOMETRY and IOCTL_DISK_GET_DRIVE_GEOMETRY
+#include <commctrl.h>	// for Windows common controls
 
 #pragma include_alias(<io.h>, <..\Include\IO.h>)
 #include <io.h>
@@ -129,5 +105,31 @@ typedef void* DIR;
 DIR* opendir (const char* pcszDir_);
 struct dirent* readdir (DIR* hDir_);
 int closedir (DIR* hDir_);
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Win32 can do more accurate profiling than the default
+#define PROFILE_T   __int64
+#define AddTime(x)  sprintf(sz + strlen(sz), "  %s:%I64dus", #x, (s_sProfile.prof##x + 5) / 10i64)
+
+
+class OSD
+{
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
+
+        static PROFILE_T GetProfileTime ();
+        static DWORD GetTime ();
+        static const char* GetFilePath (const char* pcszFile_="");
+        static const char* GetFloppyDevice (int nDrive_);
+        static bool CheckPathAccess (const char* pcszPath_);
+        static bool IsHidden (const char* pcszFile_);
+
+        static void DebugTrace (const char* pcsz_);
+        static int FrameSync (bool fWait_=true);
+
+        static int s_nTicks;
+};
 
 #endif
