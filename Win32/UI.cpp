@@ -2180,7 +2180,7 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                         Frame::Init();
 
                     if (Changed(stretchtofit) || Changed(borders) || Changed(scale) || Changed(ratio5_4))
-                        UI::ResizeWindow(Changed(borders) || !GetOption(stretchtofit));
+                        UI::ResizeWindow(Changed(borders) || Changed(scale) || !GetOption(stretchtofit));
                 }
             }
 
