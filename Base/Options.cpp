@@ -72,11 +72,12 @@ OPTION aOptions[] =
     OPT("MainMemory",   OT_INT,     mainmem,        512),       // 512K main memory
     OPT("ExternalMem",  OT_INT,     externalmem,    0),         // No external memory
 
-    OPT("Disk1",        OT_STRING,  disk1,          "disk1"),   // Disk for floppy drive 1
-    OPT("Disk2",        OT_STRING,  disk2,          "disk2"),   // Disk for floppy drive 2
     OPT("Drive1",       OT_INT,     drive1,         1),         // Floppy drive 1 present
     OPT("Drive2",       OT_INT,     drive2,         1),         // Floppy drive 2 present
-    OPT("TurboLoad",    OT_BOOL,    turboload,      true),      // Load disks and tapes at turbo speed
+    OPT("Disk1",        OT_STRING,  disk1,          ""),        // No disk in floppy drive 1
+    OPT("Disk2",        OT_STRING,  disk2,          ""),        // No disk in floppy drive 2
+    OPT("AutoBoot",     OT_BOOL,    autoboot,       false),     // Don't auto-boot inserted disk
+    OPT("TurboLoad",    OT_INT,     turboload,      2),         // Accelerate disk access (high sensitivity)
 
     OPT("KeyMapping",   OT_INT,     keymapping,     1),         // SAM keyboard mapping
     OPT("AltForCntrl",  OT_BOOL,    altforcntrl,    false),     // Left-Alt not used for SAM Cntrl
@@ -123,8 +124,6 @@ OPTION aOptions[] =
      "F1=12,SF1=13,CF1=14,F2=15,SF2=16,CF2=17,F3=28,SF3=11,CF3=10,F4=22,SF4=23,F5=5,SF5=7,F6=8,F7=6,F8=4,F9=9,SF9=19,F10=24,F11=0,F12=1,CF12=25"),
 
     OPT("PauseInactive",OT_BOOL,    pauseinactive,  false),     // Continue to run when inactive
-
-    OPT("AutoBoot",     OT_BOOL,    autoboot,       false),     // Don't auto-boot inserted disk
 
     { 0, 0, {0}, {0} }
 };
