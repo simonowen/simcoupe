@@ -69,6 +69,9 @@ class CHDFHardDisk : public CHardDisk
         ~CHDFHardDisk () { Close(); }
 
     public:
+        static bool Create (const char* pcszDisk_, UINT uCylinders_, UINT uHeads_, UINT uSectors_);
+
+    public:
         bool IsOpen () const { return m_hfDisk != NULL; }
         bool Open (const char* pcszDisk_);
         void Close ();
