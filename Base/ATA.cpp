@@ -580,6 +580,27 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
             break;
         }
 
+        case 3:
+        {
+            switch (wPort_ & 0xff)
+            {
+                case 0xf6:
+                {
+                    TRACE("ATA: Device control register set to %#02x\n", bVal);
+                    m_sRegs.bDeviceControl = bVal;
+
+                    // If SRST is set, perform a soft reset
+                    if (m_sRegs.bDeviceControl & 0x04)
+                        Reset();
+
+                    break;
+                }
+
+                default:
+                    TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
+            }
+        }
+
         default:
             TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
     }
