@@ -24,13 +24,12 @@
 
 #include "Frame.h"
 
-namespace Memory
+class Memory
 {
-    bool Init ();
-    void Exit (bool fReInit_=false);
-
-    void FastStartPatch (bool fPatch_=true);
-}
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
+};
 
 
 // The ROMs and scratch memory go after the regular RAM
