@@ -619,7 +619,7 @@ instr(4,0343)
 endinstr;
 
 instr(4,0363)   iff1 = iff2 = 0;                                    endinstr;   // di
-instr(4,0373)   iff1 = iff2 = 1;                                    endinstr;   // ei
+instr(4,0373)   iff1 = iff2 = 1;    g_nFastBooting = 0;             endinstr;   // ei
 
 instr(4,0353)   swap(de,hl);                                        endinstr;   // ex de,hl
 
