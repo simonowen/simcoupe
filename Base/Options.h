@@ -2,7 +2,7 @@
 //
 // Options.h: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -129,6 +129,6 @@ inline const char* SetOption_(char* pszOption_, const char* pszValue_)  { return
 
 inline void SetDefault_(const char* pcszOption_, bool fValue_, bool&) { *((bool*)Options::GetDefault(pcszOption_)) = fValue_; }
 inline void SetDefault_(const char* pcszOption_, int nValue_, int&) { *((int*)Options::GetDefault(pcszOption_)) = nValue_; }
-inline void SetDefault_(const char* pcszOption_, char* pszValue_, char*&) { strcpy((char*)Options::GetDefault(pcszOption_), pszValue_); }
+//inline void SetDefault_(const char* pcszOption_, char* pszValue_, char*&) { strcpy((char*)Options::GetDefault(pcszOption_), pszValue_); }
 
 #endif  // OPTION_H
