@@ -34,6 +34,7 @@ GUI_ICON;
 
 
 // These are the icons currently available
+extern const GUI_ICON sMouseCursor;
 extern const GUI_ICON sSamIcon;
 extern const GUI_ICON sSoundIcon, sDisplayIcon, sKeyboardIcon, sMouseIcon, sHardwareIcon, sMidiIcon, sPortIcon;
 extern const GUI_ICON sDiskIcon, sFolderIcon;
