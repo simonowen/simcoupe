@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Display.cpp: Win32 display rendering
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -108,7 +108,7 @@ void Display::Exit (bool fReInit_/*=false*/)
     Video::Exit(fReInit_);
     TRACE("-> Display::Exit(%s)\n", fReInit_ ? "reinit" : "");
 
-    if (pafDirty) { delete pafDirty; pafDirty = NULL; }
+    if (pafDirty) { delete[] pafDirty; pafDirty = NULL; }
 
     TRACE("<- Display::Exit()\n");
 }
