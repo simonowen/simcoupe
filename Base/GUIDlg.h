@@ -2,7 +2,7 @@
 //
 // GUIDlg.h: Dialog boxes using the GUI controls
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -64,14 +64,27 @@ class CInsertFloppy : public CFileDialog
 };
 
 
-class CBrowseROM : public CFileDialog
+class CFileBrowser : public CFileDialog
 {
     public:
-        CBrowseROM (CEditControl* pEdit_, CWindow* pParent_=NULL);
+        CFileBrowser (CEditControl* pEdit_, CWindow* pParent_, const char* pcszCaption_, const FILEFILTER* pcsFilter_);
         void OnOK ();
 
     protected:
         CEditControl* m_pEdit;
+};
+
+
+class CHDDProperties : public CDialog
+{
+    public:
+        CHDDProperties (CEditControl* pEdit_, CWindow* pParent_, const char* pcszCaption_);
+        void OnNotify (CWindow* pWindow_, int nParam_);
+
+    protected:
+        CEditControl *m_pEdit, *m_pFile;
+        CEditControl *m_pCyls, *m_pHeads, *m_pSectors, *m_pSize;
+        CTextButton *m_pBrowse, *m_pCreate, *m_pOK, *m_pCancel;
 };
 
 
@@ -80,6 +93,7 @@ class CAboutDialog : public CDialog
     public:
         CAboutDialog (CWindow* pParent_=NULL);
         void OnNotify (CWindow* pWindow_, int nParam_);
+        void EraseBackground (CScreen* pScreen_);
 
     protected:
         CWindow* m_pCloseButton;
@@ -105,6 +119,37 @@ class COptionsDialog : public CDialog
         CTextControl* m_pStatus;
 };
 
+class CImportDialog : public CDialog
+{
+    public:
+        CImportDialog (CWindow* pParent_=NULL);
+        void OnNotify (CWindow* pWindow_, int nParam_);
+
+    protected:
+        CEditControl *m_pFile, *m_pAddr, *m_pPage, *m_pOffset;
+        CTextButton *m_pBrowse, *m_pOK, *m_pCancel;
+        CRadioButton *m_pBasic, *m_pPageOffset;
+        CFrameControl *m_pFrame;
+
+    protected:
+        static char s_szFile[];
+        static UINT s_uAddr, s_uPage, s_uOffset;
+        static bool s_fUseBasic;
+};
+
+class CExportDialog : public CImportDialog
+{
+    public:
+        CExportDialog (CWindow* pParent_=NULL);
+        void OnNotify (CWindow* pWindow_, int nParam_);
+
+    protected:
+        CEditControl *m_pLength;
+        static UINT s_uLength;
+};
+
+
+#ifdef _DEBUG
 
 class CTestDialog : public CDialog
 {
@@ -113,7 +158,10 @@ class CTestDialog : public CDialog
         void OnNotify (CWindow* pWindow_, int nParam_);
 
     protected:
-        CWindow *m_pEnable, *m_pClose, *m_apControls[12];
+        CWindow *m_pEnable, *m_pClose, *m_apControls[32];
 };
+
+#endif  // _DEBUG
+
 
 #endif // GUIDLG_H
