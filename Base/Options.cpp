@@ -39,95 +39,99 @@ typedef struct
     int         nType;                                          // Option type
 
     union { void* pv;  char* ppsz;  bool* pf;  int* pn; };      // Address of config variable
-    union { DWORD dw;  bool f;  int n;  const char* pcsz; };    // Default value of option
+
+    const char* pcszDefault;                                    // Default value of option, with only appropriate type used
+    int nDefault;
+    bool fDefault;
 
     bool        fSpecified;
 }
 OPTION;
 
-// Helper macro for structure definition below
-#define OPT(n,t,v,d)        { n, t, {(void*)&Options::s_Options.v}, {(DWORD)(d)} }
-
+// Helper macros for structure definition below
+#define OPT_S(o,v,s)        { o, OT_STRING, {&Options::s_Options.v}, (s), 0,  false }
+#define OPT_N(o,v,n)        { o, OT_INT,    {&Options::s_Options.v}, "", (n), false }
+#define OPT_F(o,v,f)        { o, OT_BOOL,   {&Options::s_Options.v}, "",  0,  (f) }
 
 OPTIONS Options::s_Options;
 
 OPTION aOptions[] = 
 {
-    OPT("CfgVersion",   OT_INT,     cfgversion,     0),         // Config compatability number
+    OPT_N("CfgVersion",   cfgversion,     0),         // Config compatability number
 
-    OPT("Sync",         OT_INT,     sync,           1),         // Sync to 50Hz
-    OPT("FrameSkip",    OT_INT,     frameskip,      0),         // Auto frame-skipping
-    OPT("Scale",        OT_INT,     scale,          2),         // Windowed display is 2x2
-    OPT("Ratio5_4",     OT_BOOL,    ratio5_4,       false),     // Don't use 5:4 screen ratio
-    OPT("Scanlines",    OT_BOOL,    scanlines,      false),     // Don't use scanlines
-    OPT("Mode3",        OT_INT,     mode3,          0),         // Show only odd mode3 pixels on low-res displays
-    OPT("Fullscreen",   OT_INT,     fullscreen,     0),         // Not full screen
-    OPT("Depth",        OT_INT,     depth,          16),        // Full screen mode uses 16-bit colour
-    OPT("Borders",      OT_INT,     borders,        2),         // Same amount of borders as previous version
-    OPT("StretchToFit", OT_BOOL,    stretchtofit,   true),      // Stretch image to fit the display area
-    OPT("Filter",       OT_BOOL,    filter,         true),      // Filter the stretched image
-    OPT("Surface",      OT_INT,     surface,        999),       // Try for the best possible by default
+    OPT_N("Sync",         sync,           1),         // Sync to 50Hz
+    OPT_N("FrameSkip",    frameskip,      0),         // Auto frame-skipping
+    OPT_N("Scale",        scale,          2),         // Windowed display is 2x2
+    OPT_F("Ratio5_4",     ratio5_4,       false),     // Don't use 5:4 screen ratio
+    OPT_F("Scanlines",    scanlines,      false),     // Don't use scanlines
+    OPT_N("Mode3",        mode3,          0),         // Show only odd mode3 pixels on low-res displays
+    OPT_N("Fullscreen",   fullscreen,     0),         // Not full screen
+    OPT_N("Depth",        depth,          16),        // Full screen mode uses 16-bit colour
+    OPT_N("Borders",      borders,        2),         // Same amount of borders as previous version
+    OPT_F("StretchToFit", stretchtofit,   true),      // Stretch image to fit the display area
+    OPT_F("Filter",       filter,         true),      // Filter the stretched image
+    OPT_N("Surface",      surface,        999),       // Try for the best possible by default
 
-    OPT("ROM",          OT_STRING,  rom,            ""),        // No custom ROM (use built-in)
-    OPT("FastReset",    OT_BOOL,    fastreset,      true),      // Allow fast Z80 resets
-    OPT("MainMemory",   OT_INT,     mainmem,        512),       // 512K main memory
-    OPT("ExternalMem",  OT_INT,     externalmem,    0),         // No external memory
+    OPT_S("ROM",          rom,            ""),        // No custom ROM (use built-in)
+    OPT_F("FastReset",    fastreset,      true),      // Allow fast Z80 resets
+    OPT_N("MainMemory",   mainmem,        512),       // 512K main memory
+    OPT_N("ExternalMem",  externalmem,    0),         // No external memory
 
-    OPT("Drive1",       OT_INT,     drive1,         1),         // Floppy drive 1 present
-    OPT("Drive2",       OT_INT,     drive2,         1),         // Floppy drive 2 present
-    OPT("AutoBoot",     OT_BOOL,    autoboot,       false),     // Don't auto-boot inserted disk
-    OPT("TurboLoad",    OT_INT,     turboload,      15),        // Accelerate disk access (medium sensitivity)
+    OPT_N("Drive1",       drive1,         1),         // Floppy drive 1 present
+    OPT_N("Drive2",       drive2,         1),         // Floppy drive 2 present
+    OPT_F("AutoBoot",     autoboot,       false),     // Don't auto-boot inserted disk
+    OPT_N("TurboLoad",    turboload,      15),        // Accelerate disk access (medium sensitivity)
 
-    OPT("Disk1",        OT_STRING,  disk1,          ""),        // No disk in floppy drive 1
-    OPT("Disk2",        OT_STRING,  disk2,          ""),        // No disk in floppy drive 2
-    OPT("AtomDisk",     OT_STRING,  atomdisk,       ""),        // No Atom hard disk
-    OPT("SDIDEDisk",    OT_STRING,  sdidedisk,      ""),        // No SD IDE hard disk
-    OPT("YATBusDisk",   OT_STRING,  yatbusdisk,     ""),        // No YAMOD.ATBUS disk
+    OPT_S("Disk1",        disk1,          ""),        // No disk in floppy drive 1
+    OPT_S("Disk2",        disk2,          ""),        // No disk in floppy drive 2
+    OPT_S("AtomDisk",     atomdisk,       ""),        // No Atom hard disk
+    OPT_S("SDIDEDisk",    sdidedisk,      ""),        // No SD IDE hard disk
+    OPT_S("YATBusDisk",   yatbusdisk,     ""),        // No YAMOD.ATBUS disk
 
-    OPT("KeyMapping",   OT_INT,     keymapping,     1),         // SAM keyboard mapping
-    OPT("AltForCntrl",  OT_BOOL,    altforcntrl,    false),     // Left-Alt not used for SAM Cntrl
-    OPT("AltGrForEdit", OT_BOOL,    altgrforedit,   true),      // Right-Alt used for SAM Edit
-    OPT("Mouse",        OT_BOOL,    mouse,          false),     // Mouse not connected
+    OPT_N("KeyMapping",   keymapping,     1),         // SAM keyboard mapping
+    OPT_F("AltForCntrl",  altforcntrl,    false),     // Left-Alt not used for SAM Cntrl
+    OPT_F("AltGrForEdit", altgrforedit,   true),      // Right-Alt used for SAM Edit
+    OPT_F("Mouse",        mouse,          false),     // Mouse not connected
 
-    OPT("JoyDev1",      OT_STRING,  joydev1,        ""),        // Joystick 1 device
-    OPT("JoyDev2",      OT_STRING,  joydev2,        ""),        // Joystick 2 device
-    OPT("DeadZone1",    OT_INT,     deadzone1,      20),        // Joystick 1 deadzone is 20% around central position
-    OPT("DeadZone2",    OT_INT,     deadzone2,      20),        // Joystick 2 deadzone is 20% around central position
+    OPT_S("JoyDev1",      joydev1,        ""),        // Joystick 1 device
+    OPT_S("JoyDev2",      joydev2,        ""),        // Joystick 2 device
+    OPT_N("DeadZone1",    deadzone1,      20),        // Joystick 1 deadzone is 20% around central position
+    OPT_N("DeadZone2",    deadzone2,      20),        // Joystick 2 deadzone is 20% around central position
 
-    OPT("Parallel1",    OT_INT,     parallel1,      0),         // Nothing on parallel port 1
-    OPT("Parallel2",    OT_INT,     parallel2,      0),         // Nothing on parallel port 2
-    OPT("PrinterDev",   OT_STRING,  printerdev,     ""),        // Printer device
-    OPT("PrinterOnline",OT_BOOL,    printeronline,  true),      // Printer online
+    OPT_N("Parallel1",    parallel1,      0),         // Nothing on parallel port 1
+    OPT_N("Parallel2",    parallel2,      0),         // Nothing on parallel port 2
+    OPT_S("PrinterDev",   printerdev,     ""),        // Printer device
+    OPT_F("PrinterOnline",printeronline,  true),      // Printer online
 
-    OPT("SerialDev1",   OT_STRING,  serialdev1,     ""),        // Serial port 1 device
-    OPT("SerialDev2",   OT_STRING,  serialdev2,     ""),        // Serial port 2 device
+    OPT_S("SerialDev1",   serialdev1,     ""),        // Serial port 1 device
+    OPT_S("SerialDev2",   serialdev2,     ""),        // Serial port 2 device
 
-    OPT("Midi",         OT_INT,     midi,           0),         // Nothing on MIDI port
-    OPT("MidiInDev",    OT_STRING,  midiindev,      ""),        // MIDI-In device
-    OPT("MidiOutDev",   OT_STRING,  midioutdev,     ""),        // MIDI-Out device
-//  OPT("NetworkId",    OT_INT,     networkid,      1),         // Network station number, or something, eventually
+    OPT_N("Midi",         midi,           0),         // Nothing on MIDI port
+    OPT_S("MidiInDev",    midiindev,      ""),        // MIDI-In device
+    OPT_S("MidiOutDev",   midioutdev,     ""),        // MIDI-Out device
+//  OPT_N("NetworkId",    networkid,      1),         // Network station number, or something, eventually
 
-    OPT("SambusClock",  OT_BOOL,    sambusclock,    true),      // SAMBUS clock present
-    OPT("DallasClock",  OT_BOOL,    dallasclock,    false),     // DALLAS clock not present
-    OPT("ClockSync",    OT_BOOL,    clocksync,      true),      // Clocks advanced relative to real time
+    OPT_F("SambusClock",  sambusclock,    true),      // SAMBUS clock present
+    OPT_F("DallasClock",  dallasclock,    false),     // DALLAS clock not present
+    OPT_F("ClockSync",    clocksync,      true),      // Clocks advanced relative to real time
 
-    OPT("Sound",        OT_BOOL,    sound,          true),      // Sound enabled
-    OPT("SAASound",     OT_BOOL,    saasound,       true),      // SAA 1099 sound chip enabled
-    OPT("Beeper",       OT_BOOL,    beeper,         true),      // Spectrum-style beeper enabled
+    OPT_F("Sound",        sound,          true),      // Sound enabled
+    OPT_F("SAASound",     saasound,       true),      // SAA 1099 sound chip enabled
+    OPT_F("Beeper",       beeper,         true),      // Spectrum-style beeper enabled
 
-    OPT("Frequency",    OT_INT,     freq,           44100),     // 44.1KHz
-    OPT("Bits",         OT_INT,     bits,           16),        // 16-bit
-    OPT("Stereo",       OT_BOOL,    stereo,         true),      // Stereo
-    OPT("Latency",      OT_INT,     latency,        5),         // Sound latency of five frames
+    OPT_N("Frequency",    freq,           44100),     // 44.1KHz
+    OPT_N("Bits",         bits,           16),        // 16-bit
+    OPT_F("Stereo",       stereo,         true),      // Stereo
+    OPT_N("Latency",      latency,        5),         // Sound latency of five frames
 
-    OPT("DriveLights",  OT_INT,     drivelights,    1),         // Show drive activity lights
-    OPT("Profile",      OT_INT,     profile,        1),         // Show only speed and framerate
-    OPT("Status",       OT_BOOL,    status,         true),      // Show status line for changed options, etc.
+    OPT_N("DriveLights",  drivelights,    1),         // Show drive activity lights
+    OPT_N("Profile",      profile,        1),         // Show only speed and framerate
+    OPT_F("Status",       status,         true),      // Show status line for changed options, etc.
 
-    OPT("PauseInactive",OT_BOOL,    pauseinactive,  false),     // Continue to run when inactive
+    OPT_F("PauseInactive",pauseinactive,  false),     // Continue to run when inactive
 
-    OPT("LogFile",      OT_STRING,  logfile,        ""),        // No logfile
-    OPT("FnKeys",       OT_STRING,  fnkeys,
+    OPT_S("LogFile",      logfile,        ""),        // No logfile
+    OPT_S("FnKeys",       fnkeys,
      "F1=12,SF1=13,AF1=35,CF1=14,F2=15,SF2=16,AF2=36,CF2=17,F3=28,SF3=11,CF3=10,F4=22,AF4=25,SF4=23,F5=5,SF5=7,F6=8,F7=6,F8=4,F9=9,SF9=19,F10=24,F11=0,F12=1,SF12=1,CF12=25"),
 
     { 0, 0, {0}, {0} }
@@ -149,9 +153,9 @@ void Options::SetDefaults (bool fForce_/*=true*/)
         {
             switch (p->nType)
             {
-                case OT_BOOL:       *p->pf = p->f;              break;
-                case OT_INT:        *p->pn = p->n;              break;
-                case OT_STRING:     strcpy(p->ppsz, p->pcsz);   break;
+                case OT_BOOL:       *p->pf = p->fDefault;   break;
+                case OT_INT:        *p->pn = p->nDefault;   break;
+                case OT_STRING:     strcpy(p->ppsz, p->pcszDefault);   break;
             }
         }
     }
@@ -167,7 +171,14 @@ void* Options::GetDefault (const char* pcszName_)
     for (OPTION* p = aOptions ; p->pcszName ; p++)
     {
         if (!strcasecmp(pcszName_, p->pcszName))
-            return &p->dw;
+        {
+            switch (p->nType)
+            {
+                case OT_BOOL:       return &p->fDefault;
+                case OT_INT:        return &p->nDefault;
+//              case OT_STRING:     return &p->pcszDefault;     // Don't use - points to string table!
+            }
+        }
     }
 
     // This should never happen, thanks to a compile-time check in the header
@@ -202,9 +213,9 @@ bool Options::Load (int argc_, char* argv_[])
                     // Extract the appropriate value type from the string
                     switch (p->nType)
                     {
-                        case OT_BOOL:       *p->pf = *pszValue ? IsTrue(pszValue) : p->f;       break;
-                        case OT_INT:        *p->pn = *pszValue ? atoi(pszValue) : p->n;         break;
-                        case OT_STRING:     strcpy(p->ppsz, *pszValue ? pszValue : p->pcsz);    break;
+                        case OT_BOOL:       *p->pf = *pszValue ? IsTrue(pszValue) : p->fDefault;    break;
+                        case OT_INT:        *p->pn = *pszValue ? atoi(pszValue) : p->nDefault;      break;
+                        case OT_STRING:     strcpy(p->ppsz, *pszValue ? pszValue : p->pcszDefault); break;
                     }
                 }
             }
