@@ -2,7 +2,7 @@
 //
 // Disassem.h: Z80 disassembler
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,6 +21,6 @@
 #ifndef DISASSEM_H
 #define DISASSEM_H
 
-int Disassemble (WORD wPC_, char* psz_, int cbSize_);
+UINT Disassemble (BYTE* pb_, WORD wPC_=0, char* psz_=NULL, UINT cbSize_=0);
 
 #endif

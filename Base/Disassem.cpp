@@ -2,7 +2,7 @@
 //
 // Disassem.cpp: Z80 disassembler
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -68,7 +68,7 @@ static const char* aszStrings[] =
 
 static WORD wPC = 0;
 static char szOutput[64], *pszOut;
-static BYTE abOpcode[4], *pbOpcode, bOpcode;
+static BYTE bOpcode, *pbOpcode;
 static BYTE abStack[10], *pbStack;
 
 int nType = 0;
@@ -112,7 +112,7 @@ void Function (BYTE b_)
     }
 }
 
-int ParseStr (const char* pcsz_)
+UINT ParseStr (const char* pcsz_)
 {
     while (1)
     {
@@ -164,18 +164,15 @@ int ParseStr (const char* pcsz_)
     return 0;
 }
 
-int Disassemble (WORD wPC_, char* psz_, int cbSize_)
+UINT Disassemble (BYTE* pb_, WORD wPC_/*=0*/, char* psz_/*=NULL*/, UINT cbSize_/*=0*/)
 {
+    BYTE abOpcode[4];
+
     // Initialise our working variables
-    memset(szOutput, ' ', sizeof szOutput);
-    pszOut = szOutput;
-    pbOpcode = abOpcode;
+    memset(pszOut = szOutput, ' ', sizeof szOutput);
+    memcpy(pbOpcode = abOpcode, pb_, 4);
     *(pbStack = abStack) = 0;
     wPC = wPC_;
-
-    // Read 4 bytes (longest possible instruction length) from the current PC location
-    for (int i = 0 ; i < (int)sizeof(abOpcode) ; i++)
-        abOpcode[i] = read_byte(wPC+i);
 
     // Check for and skip any index prefix
     switch (*pbOpcode)
@@ -203,13 +200,16 @@ int Disassemble (WORD wPC_, char* psz_, int cbSize_)
         pbOpcode--, *pbOpcode = pbOpcode[2];
 
     // Parse the instruction, terminate and copy the output to the supplied buffer
-    int nLength = ParseStr(pcszTable);
+    UINT uLength = ParseStr(pcszTable);
     *pszOut = '\0';
 
-    // Copy the output to the supplied buffer, taking care not to overflow it
-    int nLen = min(cbSize_-1, pszOut-szOutput+1);
-    strncpy(psz_, szOutput, nLen)[nLen] = '\0';
+    // Copy the output to the supplied buffer (if any), taking care not to overflow it
+    if (psz_)
+    {
+        UINT uLen = min(cbSize_-1, pszOut-szOutput+1U);
+        strncpy(psz_, szOutput, uLen)[uLen] = '\0';
+    }
 
     // Return the instruction length
-    return nLength;
+    return uLength;
 }
