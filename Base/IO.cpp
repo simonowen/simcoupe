@@ -63,13 +63,12 @@
 extern int g_nLine;
 extern int g_nLineCycle;
 
-CDiskDevice *pDrive1, *pDrive2;
+CDiskDevice *pDrive1, *pDrive2, *pSDIDE, *pYATBus;
 CIoDevice *pParallel1, *pParallel2;
 CIoDevice *pSerial1, *pSerial2;
 CIoDevice *pSambus, *pDallas;
 CIoDevice *pMidi;
 CIoDevice *pBeeper;
-CIoDevice *pSDIDE, *pYATBus;
 
 // Port read/write addresses for I/O breakpoints
 WORD wPortRead, wPortWrite;
@@ -197,7 +196,7 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
                 }
 
                 default:
-                    pDrive1 = new CDiskDevice(dskNone);
+                    pDrive1 = new CDiskDevice;
                     break;
             }
         }
@@ -219,12 +218,12 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
                 case dskAtom:
                 {
                     CHardDisk* pDisk = CHardDisk::OpenObject(GetOption(atomdisk));
-                    pDrive2 = pDisk ? new CAtomDiskDevice(pDisk) : new CDiskDevice(dskNone);
+                    pDrive2 = pDisk ? new CAtomDiskDevice(pDisk) : new CDiskDevice;
                     break;
                 }
 
                 default:
-                    pDrive2 = new CDiskDevice(dskNone);
+                    pDrive2 = new CDiskDevice;
                     break;
             }
         }
@@ -323,10 +322,10 @@ bool IO::InitHDD (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     if (fInit_)
     {
         CHardDisk* pDisk = CHardDisk::OpenObject(GetOption(sdidedisk));
-        pSDIDE = pDisk ? new CSDIDEDevice(pDisk) : new CIoDevice;
+        pSDIDE = pDisk ? new CSDIDEDevice(pDisk) : new CDiskDevice;
 
         pDisk = CHardDisk::OpenObject(GetOption(yatbusdisk));
-        pYATBus = pDisk ? new CYATBusDevice(pDisk) : new CIoDevice;
+        pYATBus = pDisk ? new CYATBusDevice(pDisk) : new CDiskDevice;
     }
 
     return fInit_ || (pSDIDE && pYATBus);
