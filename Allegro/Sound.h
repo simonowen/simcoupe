@@ -2,7 +2,7 @@
 //
 // Sound.h: Allegro sound implementation
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,7 +39,6 @@ class Sound
         static void OutputDAC (BYTE bVal_);            // Output to both channels
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////
 
 #define SOUND_STREAMS   2
@@ -47,7 +46,7 @@ class Sound
 class CStreamBuffer
 {
     public:
-        CStreamBuffer (int nFreq_=0, int nBits_=0, int nChannels_=0);
+        CStreamBuffer (int nChannels_=0);
         virtual ~CStreamBuffer ();
 
     public:
@@ -64,20 +63,19 @@ class CStreamBuffer
         virtual void AddData (BYTE* pbSampleData_, int nSamples_) = 0;
 
     protected:
-        int m_nFreq, m_nBits, m_nChannels;
-        int m_nSampleSize, m_nSamplesThisFrame, m_nMaxSamplesPerFrame;
+        int m_nChannels, m_nSampleSize, m_nSamplesThisFrame, m_nSamplesPerFrame;
 
         UINT m_uSamplesPerUnit, m_uCyclesPerUnit, m_uOffsetPerUnit;
         UINT m_uPeriod;
 
-        BYTE* m_pbFrameSample;
+        BYTE *m_pbFrameSample;
 };
 
 
 class CSoundStream : public CStreamBuffer
 {
     public:
-        CSoundStream (int nFreq_/*=0*/, int nBits_/*=0*/, int nChannels_/*=0*/);
+        CSoundStream (int nChannels_/*=0*/);
         ~CSoundStream ();
 
     // Overrides
@@ -97,12 +95,10 @@ class CSoundStream : public CStreamBuffer
 };
 
 
-// The DirectX implementation of the sound driver
 class CSAA : public CSoundStream
 {
     public:
-        CSAA (int nFreq_/*=0*/, int nBits_/*=0*/, int nChannels_/*=0*/)
-            : CSoundStream(nFreq_, nBits_, nChannels_), m_nUpdates(0) { Play(); }
+        CSAA (int nChannels_/*=0*/) : CSoundStream(nChannels_), m_nUpdates(0) { }
 
     public:
         void Generate (BYTE* pb_, int nSamples_);
