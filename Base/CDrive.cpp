@@ -35,12 +35,12 @@
 #include "SimCoupe.h"
 
 #include "CDrive.h"
-#include "CPU.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
 CDrive::CDrive ()
-    : m_pDisk(NULL), m_nHeadPos(0), m_pbBuffer(NULL), m_uBuffer(0), m_bDataStatus(0), m_nMotorDelay(0)
+    : CDiskDevice(dskImage),
+    m_pDisk(NULL), m_nHeadPos(0), m_pbBuffer(NULL), m_uBuffer(0), m_bDataStatus(0), m_nMotorDelay(0)
 {
     // Track 0, sector 1 and head over track 0
     memset(&m_sRegs, 0, sizeof m_sRegs);
@@ -52,7 +52,7 @@ CDrive::CDrive ()
 // Insert a new disk from the named source (usually a file)
 bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
 {
-    // If no image is
+    // If no image was supplied, simply eject the current disk
     if (!pcszSource_ || !*pcszSource_)
         return Eject();
 
@@ -65,7 +65,7 @@ bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
         return false;
     }
 
-    // Delete any existing disk
+    // Delete the previous disk
     if (pCurrent)
         delete pCurrent;
 
@@ -93,7 +93,14 @@ void CDrive::FrameEnd ()
 {
     // If the motor hasn't been used for 2 seconds, switch it off
     if (m_nMotorDelay && !--m_nMotorDelay)
+    {
+        // Clear the motor-on bit
         m_sRegs.bStatus &= ~MOTOR_ON;
+
+        // Close any real floppy device to ensure any changes are flushed
+        if (m_pDisk && m_pDisk->GetType() == dtFloppy)
+            m_pDisk->Close();
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
