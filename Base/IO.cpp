@@ -20,12 +20,11 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-// Changes 1999-2001 by Simon Owen
+// Changes 1999-2003 by Simon Owen
 //  - hooked up newly supported hardware from other modules
 //  - most ports now correctly initialised to zero on reset (allow reset screens)
 //  - palette only pre-initialised on power-on
-//  - HPEN now returns the current line number
-//  - LPEN now treats right-border as part of following line
+//  - HPEN and LPEN now correct
 //  - ATTR port now allows on/off-screen detection (onscreen always zero tho)
 //  - clut values now cached, to allow runtime changes in pixel format
 
@@ -83,7 +82,7 @@ BYTE keyboard;
 BYTE status_reg;
 BYTE line_int;
 
-BYTE hpen, lpen;
+BYTE lpen;
 
 UINT clut[N_CLUT_REGS], clutval[N_CLUT_REGS], mode3clutval[4];
 
@@ -118,17 +117,19 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     out_byte(BORDER_PORT, 0);
 
 
-    // No extended keys pressed, no active (or visible) interrupts
+    // No extended keys pressed, no active interrupts
     status_reg = 0xff;
-    line_int = 0xff;
 
-    // Clear lightpen/scan position
-    hpen = lpen = 0x00;
+    // Clear lightpen/scan X position
+    lpen = 0x00;
 
 
     // Also, if this is a power-on initialisation, set up the clut, etc.
     if (fFirstInit_)
     {
+        // Line interrupts aren't cleared by a reset
+        line_int = 0xff;
+
         // No keys pressed initially
         ReleaseAllSamKeys();
 
@@ -136,6 +137,10 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         fRet &= (InitDrives() && InitParallel() && InitSerial() && InitClocks() &&
                  InitMidi() && InitBeeper() && InitHDD());
     }
+
+    // Initialise the drives back to a consistent state
+    pDrive1->Reset();
+    pDrive2->Reset();
 
     // Return true only if everything
     return fRet;
@@ -537,15 +542,27 @@ BYTE IO::In (WORD wPort_)
 
         // HPEN and LPEN ports
         case LPEN_PORT:
+        {
             if ((wPort_ & PEN_MASK) == LPEN_PORT)
-                return lpen;
+            {
+                // LPEN reflects the horizontal scan position in the main screen area only
+                BYTE bX = (g_nLine < TOP_BORDER_LINES || g_nLine >= (TOP_BORDER_LINES+SCREEN_LINES) ||
+                           g_nLineCycle < BORDER_PIXELS || g_nLineCycle >= (BORDER_PIXELS+SCREEN_PIXELS)) ? 0 :
+                            static_cast<BYTE>(g_nLineCycle - BORDER_PIXELS);
+
+                // Take the top 6 bits from the position, and the rest from the existing value
+                return (bX & 0xfc) | (lpen & 0x03);
+            }
             else
             {
-                // Return 192 for the top/bottom border areas, or the real line number
-                // Note: the right-border area is treated as part of the following line
-                return (g_nLine < TOP_BORDER_LINES || g_nLine >= (TOP_BORDER_LINES+SCREEN_LINES)) ? static_cast<BYTE>(SCREEN_LINES) :
-                        g_nLine - TOP_BORDER_LINES + (g_nLineCycle > (BORDER_PIXELS+SCREEN_PIXELS));
+                // HPEN treats the start of a line from the right border area, so adjust for it
+                int nLine = g_nLine + (g_nLineCycle + BORDER_PIXELS) / TSTATES_PER_LINE;
+
+                // Return 192 for the top/bottom border areas, or the main screen line number
+                return (nLine < TOP_BORDER_LINES || nLine >= (TOP_BORDER_LINES+SCREEN_LINES)) ?
+                    static_cast<BYTE>(SCREEN_LINES) : nLine - TOP_BORDER_LINES;
             }
+        }
 
         // Spectrum ATTR port
         case ATTR_PORT:
