@@ -2,7 +2,7 @@
 //
 // OSD.cpp: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,11 +28,6 @@
 #include "CPU.h"
 #include "Main.h"
 #include "Options.h"
-
-#ifdef __BEOS__
-#include <FindDirectory.h>
-#endif
-
 
 SDL_sem* pSemaphore;
 SDL_TimerID pTimer;
@@ -100,7 +95,7 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
     static char szPath[512];
 
     // If the supplied file path looks absolute, use it as-is
-    if (*pcszFile_ == '/'
+    if (*pcszFile_ == PATH_SEPARATOR
 #ifdef _WINDOWS
         || strchr(pcszFile_, ':')
 #endif
@@ -146,6 +141,21 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 
     // Append the supplied file/path, and return a pointer to it
     return strcat(szPath, pcszFile_);
+}
+
+// Same as GetFilePath but ensures a trailing [back]slash
+const char* OSD::GetDirPath (const char* pcszDir_/*=""*/)
+{
+    char *psz = const_cast<char*>(GetFilePath(pcszDir_)), *pszEnd = psz+lstrlen(psz);
+
+    // Append a [back]slash to non-empty strings that don't already have one
+    if (*psz && pszEnd[-1] != PATH_SEPARATOR)
+    {
+        pszEnd[0] = PATH_SEPARATOR;
+        pszEnd[1] = '\0';
+    }
+
+    return psz;
 }
 
 
