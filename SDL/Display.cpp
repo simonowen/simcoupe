@@ -202,7 +202,7 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
             {
                 if (!pfDirty[y])
                     continue;
-                
+
                 if (pScreen_->IsHiRes(y))
                 {
                     for (int x = 0 ; x < nRightHi ; x++)
@@ -263,7 +263,7 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
             {
                 if (!pfDirty[y])
                     continue;
-                
+
                 if (pfHiRes[y])
                 {
                     for (int x = 0 ; x < nRightHi ; x++)
@@ -361,7 +361,6 @@ void DrawChangesGL (CScreen* pScreen_)
 {
     ProfileStart(Gfx);
 
-    int nShift = GUI::IsActive() ? 0 : 1;
     int nBottom = Frame::GetHeight(), nRightHi = Frame::GetWidth() >> 3, nRightLo = nRightHi >> 1;
 
     bool *pfDirty = Display::pafDirty, *pfHiRes = pScreen_->GetHiRes();
@@ -531,9 +530,9 @@ void DrawChangesGL (CScreen* pScreen_)
         nWidth -= (w1 = min(nWidth, 256));
         w3 = (nWidth -= (w2 = min(nWidth, 256)));
 
-#if 0
-        w1 = w2 = w3 = 256; // The Banshee driver can't update partial horizontal regions, so use the full texture width
-#endif
+        // Some OpenGL drivers can't update partial horizontal regions, so use the full texture width
+        // nVidia drivers are fine, but Banshee and BeOS (software) drivers and known to suffer.
+        w1 = w2 = w3 = 256;
 
         if (nChangeFrom < 256)
         {
@@ -615,17 +614,17 @@ void Display::Update (CScreen* pScreen_)
 // Map a Windows client point to one relative to the SAM view port
 void Display::DisplayToSam (int* pnX_, int* pnY_)
 {
-    int nHalfWidth = !GUI::IsActive(), nHalfHeight = nHalfWidth && GetOption(scanlines);
+    int nHalfWidth = !GUI::IsActive();
 
-    *pnX_ = ((*pnX_ - rTarget.x) * rSource.w / (rTarget.w-rTarget.x)) >> nHalfWidth;
-    *pnY_ = ((*pnY_ - rTarget.y) * rSource.h / (rTarget.h-rTarget.y)) >> nHalfHeight;
+    *pnX_ = ((*pnX_ - rTarget.x) * rSource.w / rTarget.w) >> nHalfWidth;
+    *pnY_ = ((*pnY_ - rTarget.y) * rSource.h / rTarget.h);
 }
 
 // Map a point in the SAM view port to a point relative to the Windows client position
 void Display::SamToDisplay (int* pnX_, int* pnY_)
 {
-    int nHalfWidth = !GUI::IsActive(), nHalfHeight = nHalfWidth && GetOption(scanlines);
+    int nHalfWidth = !GUI::IsActive();
 
-    *pnX_ = ((*pnX_ << nHalfWidth) * (rTarget.w-rTarget.x) / rSource.w) + rTarget.x;
-    *pnY_ = ((*pnY_ << nHalfHeight) * (rTarget.h-rTarget.y) / rSource.h) + rTarget.y;
+    *pnX_ = ((*pnX_ << nHalfWidth) * rTarget.w / rSource.w) + rTarget.x;
+    *pnY_ = ((*pnY_)               * rTarget.h / rSource.h) + rTarget.y;
 }
