@@ -23,15 +23,17 @@
 
 #include "Util.h"
 
-namespace UI
+class UI
 {
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit=false);
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit=false);
 
-    bool CheckEvents ();
-    void ShowMessage (eMsgType eType_, const char* pszMessage_);
-    void ResizeWindow (bool fUseOption_=false);
+        static bool CheckEvents ();
+        static void ShowMessage (eMsgType eType_, const char* pszMessage_);
+        static void ResizeWindow (bool fUseOption_=false);
 };
+
 
 // Some bits needed by other modules
 extern bool g_fActive;
