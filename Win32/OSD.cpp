@@ -151,13 +151,13 @@ DWORD OSD::GetTime ()
 // Do whatever is necessary to locate an additional SimCoupe file - The Win32 version looks in the
 // same directory as the EXE, but other platforms could use an environment variable, etc.
 // If the path is already fully qualified (an OS-specific decision), use the original string
-const char* OSD::GetPath (const char* pcszPath_/*=""*/, bool fDir_/*=false*/)
+const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 {
     static char szPath[MAX_PATH];
 
     // If the supplied path looks absolute, use it as-is
-    if (*pcszPath_ == '\\' || strchr(pcszPath_, ':'))
-        lstrcpyn(szPath, pcszPath_, sizeof szPath);
+    if (*pcszFile_ == '\\' || strchr(pcszFile_, ':'))
+        lstrcpyn(szPath, pcszFile_, sizeof(szPath));
 
     // Form the full path relative to the current EXE file
     else
@@ -166,15 +166,23 @@ const char* OSD::GetPath (const char* pcszPath_/*=""*/, bool fDir_/*=false*/)
         GetModuleFileName(__hinstance, szPath, sizeof szPath);
 
         // Strip the module file and append the supplied file/path
-        lstrcpy(strrchr(szPath, '\\')+1, pcszPath_);
+        lstrcpy(strrchr(szPath, '\\')+1, pcszFile_);
     }
-
-    // If required and not already present, append a trailing backslash
-    if (fDir_ && szPath[0] && szPath[lstrlen(szPath)-1] != '\\')
-        lstrcat(szPath, "\\");
 
     // Return a pointer to the new path
     return szPath;
+}
+
+// Same as GetFilePath but ensures a trailing backslash
+const char* OSD::GetDirPath (const char* pcszDir_/*=""*/)
+{
+    char* psz = const_cast<char*>(GetFilePath(pcszDir_));
+
+    // Append a backslash to non-empty strings that don't already have one
+    if (*psz && psz[lstrlen(psz)-1] != '\\')
+        strcat(psz, "\\");
+
+    return psz;
 }
 
 
