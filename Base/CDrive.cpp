@@ -41,14 +41,23 @@
 
 CDrive::CDrive (CDisk* pDisk_/*=NULL*/)
     : CDiskDevice(dskImage),
-    m_pDisk(pDisk_), m_nHeadPos(0), m_pbBuffer(NULL), m_uBuffer(0), m_bDataStatus(0), m_nMotorDelay(0)
+    m_pDisk(pDisk_), m_pbBuffer(NULL)
+{
+    Reset ();
+}
+
+// Reset the controller back to default settings
+void CDrive::Reset ()
 {
     // Track 0, sector 1 and head over track 0
     memset(&m_sRegs, 0, sizeof m_sRegs);
     m_sRegs.bSector = 1;
     m_sRegs.bData = 0xff;
-}
 
+    m_uBuffer = 0;
+    m_bDataStatus = 0;
+    m_nHeadPos = m_nMotorDelay = 0;
+}
 
 // Insert a new disk from the named source (usually a file)
 bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
@@ -503,8 +512,12 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                     TRACE("FDC: READ_TRACK\n");
                     ModifyStatus(BUSY, TRACK00 | DELETED_DATA);
 
-                    // Prepare the raw track layout for reading, fail if not found
-                    if (ReadTrack(nSide, m_nHeadPos, m_pbBuffer = m_abBuffer, m_uBuffer = sizeof m_abBuffer))
+                    // See if the disk object has a real track for us
+                    if (m_pDisk && m_pDisk->ReadTrack(nSide, m_nHeadPos, m_pbBuffer = m_abBuffer, m_uBuffer = sizeof m_abBuffer))
+                        ModifyStatus(DRQ, 0);
+
+                    // Fall back to preparing a fake version built from the known sectors
+                    else if (ReadTrack(nSide, m_nHeadPos, m_pbBuffer = m_abBuffer, m_uBuffer = sizeof m_abBuffer))
                         ModifyStatus(DRQ, 0);
                     else
                     {
@@ -612,13 +625,13 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
 
 
 // Find and return the data for the next ID field seen on the spinning disk
-BYTE CDrive::ReadAddress (int nSide_, int nTrack_, IDFIELD* pIdField_)
+BYTE CDrive::ReadAddress (UINT uSide_, UINT uTrack_, IDFIELD* pIdField_)
 {
     // Assume we won't find a record until we do
     BYTE bRetStatus = RECORD_NOT_FOUND;
 
     // Only check for sectors if there are some to check
-    if (m_pDisk && m_pDisk->FindInit(nSide_, nTrack_))
+    if (m_pDisk && m_pDisk->FindInit(uSide_, uTrack_))
     {
         // Fetch and advance the disk spin position
         int nSpinPos = m_pDisk->GetSpinPos(true);
@@ -671,7 +684,7 @@ static void PutBlock (BYTE*& rpb_, BYTE bVal_, int nCount_=1)
 }
 
 // Construct the raw track from the information of each sector on the track to make it look real
-UINT CDrive::ReadTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_)
+UINT CDrive::ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
 {
     BYTE *pb = pbTrack_;
 
@@ -679,7 +692,7 @@ UINT CDrive::ReadTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_)
     memset(pbTrack_, 0, uSize_);
 
     // Only check for sectors if there are some to check
-    if (m_pDisk && m_pDisk->FindInit(nSide_, nTrack_))
+    if (m_pDisk && m_pDisk->FindInit(uSide_, uTrack_))
     {
         IDFIELD id;
         BYTE    bStatus;
@@ -739,13 +752,13 @@ UINT CDrive::ReadTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_)
 
 
 // Verify the track position on the disk by looking for a sector with the correct track number and a valid CRC
-BYTE CDrive::VerifyTrack (int nSide_, int nTrack_)
+BYTE CDrive::VerifyTrack (UINT uSide_, UINT uTrack_)
 {
     // Assume we won't find a matching record until we do
     BYTE bRetStatus = RECORD_NOT_FOUND;
 
     // Only check for sectors if there are some to check
-    if (m_pDisk && m_pDisk->FindInit(nSide_, nTrack_))
+    if (m_pDisk && m_pDisk->FindInit(uSide_, uTrack_))
     {
         IDFIELD id;
         BYTE    bStatus;
@@ -754,7 +767,7 @@ BYTE CDrive::VerifyTrack (int nSide_, int nTrack_)
         while (m_pDisk->FindNext(&id, &bStatus))
         {
             // Does the track number match where we are?
-            if (id.bTrack == nTrack_)
+            if (id.bTrack == uTrack_)
             {
                 // Combine any ID field CRC errors with the returned status
                 bRetStatus |= bStatus;
@@ -786,7 +799,7 @@ static bool ExpectBlock (BYTE*& rpb_, BYTE* pbEnd_, BYTE bVal_, int nMin_, int n
 }
 
 // Scan the raw track information for disk formatting
-BYTE CDrive::WriteTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_)
+BYTE CDrive::WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
 {
     BYTE *pb = pbTrack_, *pbEnd = pb + uSize_;
 
@@ -843,5 +856,5 @@ BYTE CDrive::WriteTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_)
     }
 
     // Present the format to the disk for laying out
-    return m_pDisk->FormatTrack(nSide_, nTrack_, paID, nSectors);
+    return m_pDisk->FormatTrack(uSide_, uTrack_, paID, nSectors);
 }
