@@ -153,7 +153,7 @@ void ProcessKey (SDL_Event* pEvent_)
     switch (pKey->sym)
     {
         case SDLK_RETURN:       if (pKey->mod & KMOD_ALT) DoAction(actToggleFullscreen, fPress);    break;
-        case SDLK_KP_MINUS:     DoAction(actResetButton, fPress);       break;
+        case SDLK_KP_MINUS:     if (GetOption(kpminusreset)) DoAction(actResetButton, fPress);      break;
         case SDLK_KP_DIVIDE:    DoAction(actDebugger, fPress);          break;
         case SDLK_KP_MULTIPLY:  DoAction(actNmiButton, fPress);         break;
         case SDLK_KP_PLUS:      DoAction(actTempTurbo, fPress);         break;
@@ -327,15 +327,14 @@ void DoAction (int nAction_, bool fPressed_)
             case actEjectFloppy1:
                 if (GetOption(drive1) == dskImage && pDrive1->IsInserted())
                 {
-                    SetOption(disk1, pDrive1->GetImage());
+                    Frame::SetStatus("%s  ejected from drive 1", pDrive1->GetFile());
                     pDrive1->Eject();
-                    Frame::SetStatus("Ejected disk from drive 1");
                 }
                 break;
 
             case actSaveFloppy1:
                 if (GetOption(drive1) == dskImage && pDrive1->IsModified() && pDrive1->Flush())
-                    Frame::SetStatus("Saved changes to disk in drive 1");
+                    Frame::SetStatus("%s  changes saved", pDrive1->GetFile());
                 break;
 
             case actInsertFloppy2:
@@ -346,15 +345,14 @@ void DoAction (int nAction_, bool fPressed_)
             case actEjectFloppy2:
                 if (GetOption(drive2) == dskImage && pDrive2->IsInserted())
                 {
-                    SetOption(disk2, pDrive2->GetImage());
+                    Frame::SetStatus("%s  ejected from drive 2", pDrive2->GetFile());
                     pDrive2->Eject();
-                    Frame::SetStatus("Ejected disk from drive 2");
                 }
                 break;
 
             case actSaveFloppy2:
                 if (GetOption(drive2) == dskImage && pDrive2->IsModified() && pDrive2->Flush())
-                    Frame::SetStatus("Saved changes to disk in drive 2");
+                    Frame::SetStatus("%s  changes saved", pDrive2->GetFile());
                 break;
 
             case actNewDisk1:
