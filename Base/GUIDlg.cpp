@@ -28,7 +28,10 @@
 
 
 OPTIONS g_opts;
-#define Changed(o)      (g_opts.o != GetOption(o))    // Helper macro for detecting options changes
+
+// Helper macro for detecting options changes
+#define Changed(o)         (g_opts.o != GetOption(o))    
+#define ChangedString(o)   (strcasecmp(g_opts.o, GetOption(o)))
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -150,26 +153,32 @@ CInsertFloppy::CInsertFloppy (int nDrive_, CWindow* pParent_/*=NULL*/)
 // Handle OK being clicked when a file is selected
 void CInsertFloppy::OnOK ()
 {
-    CDisk* pDisk;
     const char* pcszPath = m_pFileView->GetFullPath();
-    if (pcszPath && (pDisk = CDisk::Open(pcszPath)))
+
+    if (pcszPath)
     {
+        bool fInserted = false;
+
         // Insert the disk into the appropriate drive
         if (m_nDrive == 1)
-            pDrive1->Insert(SetOption(disk1, pcszPath));
+            fInserted = pDrive1->Insert(SetOption(disk1, pcszPath));
         else
-            pDrive2->Insert(SetOption(disk2, pcszPath));
+            fInserted = pDrive2->Insert(SetOption(disk2, pcszPath));
 
-        // Update the status text and close the dialog
-        Frame::SetStatus("%s  inserted into Drive %d", m_pFileView->GetItem()->m_pszLabel, m_nDrive);
-        Destroy();
+        // If we succeeded, show a status message and close the file selector
+        if (fInserted)
+        {
+            // Update the status text and close the dialog
+            Frame::SetStatus("%s  inserted into Drive %d", m_pFileView->GetItem()->m_pszLabel, m_nDrive);
+            Destroy();
+            return;
+        }
     }
-    else
-    {
-        char szBody[MAX_PATH];
-        sprintf(szBody, "%s:\n\nInvalid disk image!", m_pFileView->GetItem()->m_pszLabel);
-        new CMessageBox(this, szBody, "Open Failed", mbWarning);
-    }
+
+    // Report any error
+    char szBody[MAX_PATH];
+    sprintf(szBody, "%s:\n\nInvalid disk image!", m_pFileView->GetItem()->m_pszLabel);
+    new CMessageBox(this, szBody, "Open Failed", mbWarning);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -563,16 +572,16 @@ class CMidiOptions : public CDialog
             new CFrameControl(this, 50, 17, 238, 40);
             new CTextControl(this, 60, 13, "Active Device", YELLOW_8, BLUE_2);
             new CTextControl(this, 63, 33, "Device on MIDI port:");
-            m_pMidi = new CComboBox(this, 170, 30, "None|Midi synth|Network", 90);
+            m_pMidi = new CComboBox(this, 170, 30, "None|Midi device|Network", 90);
 
             new CFrameControl(this, 50, 72, 238, 68);
             new CTextControl(this, 60, 68, "Devices", YELLOW_8, BLUE_2);
 
             new CTextControl(this, 63, 88, "MIDI Out:");
-            m_pMidiOut = new CComboBox(this, 115, 85, "<not currently supported>", 160);
+            m_pMidiOut = new CComboBox(this, 115, 85, "/dev/midi", 160);
 
             new CTextControl(this, 63, 115, "MIDI In:");
-            m_pMidiIn = new CComboBox(this, 115, 113, "<not currently supported>", 160);
+            m_pMidiIn = new CComboBox(this, 115, 113, "/dev/midi", 160);
 
             new CFrameControl(this, 50, 155, 238, 40);
             new CTextControl(this, 60, 151, "Network (not currently supported)", YELLOW_8, BLUE_2);
@@ -598,10 +607,10 @@ class CMidiOptions : public CDialog
             else if (pWindow_ == m_pOK)
             {
                 SetOption(midi, m_pMidi->GetSelected());
-                SetOption(midiout, m_pMidiOut->GetSelected());
-                SetOption(midiin, m_pMidiIn->GetSelected());
+                SetOption(midioutdev, m_pMidiOut->GetSelectedText());
+                SetOption(midiindev, m_pMidiIn->GetSelectedText());
 
-                if (Changed(midi) || Changed(midiin) || Changed(midiout))
+                if (Changed(midi) || Changed(midiindev) || Changed(midioutdev))
                     IO::InitMidi();
 
                 Destroy();
@@ -613,8 +622,6 @@ class CMidiOptions : public CDialog
                 m_pMidiIn->Enable(nType == 1);
                 m_pStationId->Enable(nType == 2);
 
-                m_pMidiOut->Enable(false);
-                m_pMidiIn->Enable(false);
                 m_pStationId->Enable(false);
             }
         }
@@ -699,7 +706,7 @@ class CDriveOptions : public CDialog
             new CTextControl(this, 60, 13, "Drive 1", YELLOW_8, BLUE_2);
 
             new CTextControl(this, 63, 35, "Device connected:");
-            m_pDrive1 = new CComboBox(this, 170, 32, "None|Floppy drive", 108);
+            m_pDrive1 = new CComboBox(this, 168, 32, "None|Floppy drive|Device: /dev/fd0", 110);
 
             new CTextControl(this, 63, 60, "File:");
             m_pFile1 = new CEditControl(this, 90, 57, 188);
@@ -710,7 +717,7 @@ class CDriveOptions : public CDialog
             new CTextControl(this, 60, 113, "Drive 2", YELLOW_8, BLUE_2);
 
             new CTextControl(this, 63, 135, "Device connected:");
-            m_pDrive2 = new CComboBox(this, 170, 132, "None|Floppy drive|Atom hard disk", 108);
+            m_pDrive2 = new CComboBox(this, 168, 132, "None|Floppy drive|Device: /dev/fd1|Atom hard disk", 110);
 
             new CTextControl(this, 63, 160, "File:");
             m_pFile2 = new CEditControl(this, 90, 157, 188);
@@ -741,25 +748,27 @@ class CDriveOptions : public CDialog
                 Destroy();
             else if (pWindow_ == m_pOK)
             {
-                SetOption(drive1, m_pDrive1->GetSelected());
-                SetOption(drive2, m_pDrive2->GetSelected());
-                SetOption(disk1, m_pFile1->GetText());
-                SetOption(disk2, m_pFile2->GetText());
+                char sz[384]="";
+
+                int anDriveTypes[] = { dskNone, dskImage, dskImage, dskAtom };
+                SetOption(drive1, anDriveTypes[m_pDrive1->GetSelected()]);
+                SetOption(drive2, anDriveTypes[m_pDrive2->GetSelected()]);
+
+                SetOption(disk1, (m_pDrive1->GetSelected() == 2) ? OSD::GetFloppyDevice(1) : m_pFile1->GetText());
+                SetOption(disk2, (m_pDrive2->GetSelected() == 2) ? OSD::GetFloppyDevice(2) : m_pFile2->GetText());
 
                 if (Changed(drive1) || Changed(drive2))
                     IO::InitDrives();
 
-                char sz[384];
-                if (*GetOption(disk1) && strcasecmp(g_opts.disk1, GetOption(disk1)) && !pDrive1->Insert(GetOption(disk1)))
+                if (*GetOption(disk1) && ChangedString(disk1) && !pDrive1->Insert(GetOption(disk1)))
                 {
-                    sprintf(sz, "%s\n\nNot a valid disk image!", GetOption(disk1));
+                    sprintf(sz, "%s\n\nNot a valid disk", GetOption(disk1));
                     new CMessageBox(this, sz, "Drive 1", mbWarning);
                     SetOption(disk1, "");
                 }
-
-                else if (*GetOption(disk2) && strcasecmp(g_opts.disk2, GetOption(disk2)) && !pDrive2->Insert(GetOption(disk2)))
+                else if (*GetOption(disk2) && ChangedString(disk2) && !pDrive2->Insert(GetOption(disk2)))
                 {
-                    sprintf(sz, "%s\n\nNot a valid disk image!", GetOption(disk2));
+                    sprintf(sz, "%s\n\nNot a valid disk", GetOption(disk2));
                     new CMessageBox(this, sz, "Drive 2", mbWarning);
                     SetOption(disk2, "");
                 }
@@ -768,15 +777,17 @@ class CDriveOptions : public CDialog
             }
             else if (pWindow_ == m_pDrive1)
             {
-                bool fFloppy = m_pDrive1->GetSelected() == 1;
+                bool fFloppy = m_pDrive1->GetSelected() == 1, fDevice = m_pDrive1->GetSelected() == 2;
                 m_pFile1->Enable(fFloppy);
+                m_pFile1->SetText(fDevice ? OSD::GetFloppyDevice(1) : GetOption(disk1));
                 m_pSave1->Enable(fFloppy && pDrive1->IsModified());
                 m_pEject1->Enable(fFloppy && pDrive1->IsInserted());
             }
             else if (pWindow_ == m_pDrive2)
             {
-                bool fFloppy = m_pDrive2->GetSelected() == 1;
+                bool fFloppy = m_pDrive2->GetSelected() == 1, fDevice = m_pDrive2->GetSelected() == 2;
                 m_pFile2->Enable(fFloppy);
+                m_pFile2->SetText(fDevice ? OSD::GetFloppyDevice(2) : GetOption(disk2));
                 m_pSave2->Enable(fFloppy && pDrive2->IsModified());
                 m_pEject2->Enable(fFloppy && pDrive2->IsInserted());
             }
@@ -868,7 +879,7 @@ class CParallelOptions : public CDialog
                 SetOption(parallel2, m_pPort2->GetSelected());
                 SetOption(printerdev, "");
 
-                if (Changed(parallel1) || Changed(parallel2) || strcasecmp(g_opts.printerdev, GetOption(printerdev)))
+                if (Changed(parallel1) || Changed(parallel2) || ChangedString(printerdev))
                     IO::InitParallel();
 
                 Destroy();
