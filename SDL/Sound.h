@@ -2,7 +2,7 @@
 //
 // Sound.h: SDL sound implementation
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,33 +23,30 @@
 
 class Sound
 {
-public:
-    static bool Init (bool fFirstInit_=false);
-    static void Exit (bool fReInit_=false);
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    static void Out (WORD wPort_, BYTE bVal_);     // SAA chip port output
-    static void FrameUpdate ();
+        static void Out (WORD wPort_, BYTE bVal_);     // SAA chip port output
+        static void FrameUpdate ();
 
-    static void Stop ();
-    static void Play ();
-    static void Silence ();                        // Silence current output
+        static void Stop ();
+        static void Play ();
+        static void Silence ();                        // Silence current output
 
-    static void OutputDACLeft (BYTE bVal_);        // Output to left channel
-    static void OutputDACRight (BYTE bVal_);       // Output to right channel
-    static void OutputDAC (BYTE bVal_);            // Output to both channels
+        static void OutputDACLeft (BYTE bVal_);        // Output to left channel
+        static void OutputDACRight (BYTE bVal_);       // Output to right channel
+        static void OutputDAC (BYTE bVal_);            // Output to both channels
 };
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-#ifdef SOUND_IMPLEMENTATION
-
+#define SOUND_STREAMS   2
 
 class CStreamBuffer
 {
     public:
-        CStreamBuffer (int nFreq_=0, int nBits_=0, int nChannels_=0);
+        CStreamBuffer (int nChannels_=0);
         virtual ~CStreamBuffer ();
 
     public:
@@ -57,6 +54,8 @@ class CStreamBuffer
         virtual void GenerateExtra (BYTE* pb_, int nSamples_) = 0;
 
     public:
+        virtual void Play () = 0;
+        virtual void Stop () = 0;
         virtual void Silence (bool fFill_=false) = 0;
 
         virtual int GetSpaceAvailable () = 0;
@@ -64,24 +63,25 @@ class CStreamBuffer
         virtual void AddData (BYTE* pbSampleData_, int nSamples_) = 0;
 
     protected:
-        int m_nFreq, m_nBits, m_nChannels;
-        int m_nSampleSize, m_nSamplesThisFrame, m_nMaxSamplesPerFrame;
+        int m_nChannels, m_nSampleSize, m_nSamplesThisFrame, m_nSamplesPerFrame;
 
         UINT m_uSamplesPerUnit, m_uCyclesPerUnit, m_uOffsetPerUnit;
         UINT m_uPeriod;
 
-        BYTE* m_pbFrameSample;
+        BYTE *m_pbFrameSample;
 };
 
 
 class CSoundStream : public CStreamBuffer
 {
     public:
-        CSoundStream (int nFreq_/*=0*/, int nBits_/*=0*/, int nChannels_/*=0*/);
+        CSoundStream (int nChannels_/*=0*/);
         ~CSoundStream ();
 
     // Overrides
     public:
+        void Play ();
+        void Stop ();
         void Silence (bool fFill_=false);
 
         int GetSpaceAvailable ();
@@ -98,8 +98,7 @@ class CSoundStream : public CStreamBuffer
 class CSAA : public CSoundStream
 {
     public:
-        CSAA (int nFreq_/*=0*/, int nBits_/*=0*/, int nChannels_/*=0*/)
-            : CSoundStream(nFreq_, nBits_, nChannels_), m_nUpdates(0) { }
+        CSAA (int nChannels_/*=0*/) : CSoundStream(nChannels_), m_nUpdates(0) { }
 
     public:
         void Generate (BYTE* pb_, int nSamples_);
@@ -132,7 +131,5 @@ class CDAC : public CSoundStream
         UINT m_uLeftTotal, m_uRightTotal;
         UINT m_uPrevPeriod;
 };
-
-#endif
 
 #endif  // SOUND_H
