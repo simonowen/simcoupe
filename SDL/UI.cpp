@@ -89,8 +89,9 @@ bool UI::Init (bool fFirstInit_/*=false*/)
     Exit(true);
     TRACE("-> UI::Init()\n");
 
-    // Set the window caption
+    // Set the window caption and disable the cursor until needed
     SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);
+    SDL_ShowCursor(SDL_DISABLE);
 
     TRACE("<- UI::Init() returning %s\n", fRet ? "true" : "false");
     return fRet;
@@ -165,6 +166,10 @@ bool UI::CheckEvents ()
 {
     SDL_Event event;
 
+    // If the GUI is active the input won't be polled by CPU.cpp, so do it here
+    if (GUI::IsActive())
+        Input::Update();
+
     // Re-pause after a single frame-step
     if (g_fFrameStep)
         DoAction(actFrameStep);
@@ -197,6 +202,10 @@ bool UI::CheckEvents ()
                 case SDL_ACTIVEEVENT:
                     g_fActive = (event.active.gain != 0);
                     Input::ProcessEvent(&event);
+                    break;
+
+                case SDL_VIDEOEXPOSE:
+                    Display::SetDirty();
                     break;
 
                 default:
@@ -469,7 +478,6 @@ void DoAction (int nAction_, bool fPressed_)
 
                 Display::SetDirty();
                 Frame::Redraw();
-                Input::Purge();
                 break;
             }
         }
