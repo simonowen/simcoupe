@@ -2,7 +2,7 @@
 //
 // GUIIcons.cpp: Icons for the GUI
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ const GUI_ICON sMouseCursor =
 
 const GUI_ICON sSamIcon =
 {
-    { 0, GREY_2, GREY_5, GREY_7 },
+    { 0, GREY_2, GREY_6, GREY_7 },
 
     {
         { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 },
