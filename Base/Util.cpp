@@ -34,23 +34,19 @@
 
 #include "CPU.h"
 #include "Memory.h"
+#include "Main.h"
 #include "Options.h"
 #include "OSD.h"
 #include "UI.h"
 
 
+static const int TRACE_BUFFER_SIZE = 2048;
+
 static FILE* hLogFile = NULL;
-
-
-#define TRACE_BUFFER_SIZE       2048
-
-
 static char* s_pszTrace;
 
 
-namespace Util
-{
-bool Init ()
+bool Util::Init ()
 {
     if (!(s_pszTrace = new char[TRACE_BUFFER_SIZE]))
     {
@@ -64,7 +60,7 @@ bool Init ()
 }
 
 
-void Exit ()
+void Util::Exit ()
 {
     CloseLog();
 
@@ -72,8 +68,7 @@ void Exit ()
 }
 
 
-};  // namespace Util
-
+////////////////////////////////////////////////////////////////////////////////
 
 
 // Report an info, warning, error or fatal message.  Exit if a fatal message has been reported
@@ -106,8 +101,14 @@ void Message (eMsgType eType_, const char* pcszFormat_, ...)
 
     UI::ShowMessage(eType_, pszMessage);
 
+    // Fatal error?
     if (eType_ == msgFatal)
-        exit(EXIT_FAILURE);
+    {
+        // Flush any changed disk data first, then close everything else down and exit
+        IO::InitDrives(false, false);
+        Main::Exit();
+        exit(1);
+    }
 }
 
 // Log file utilities
@@ -184,7 +185,7 @@ static void TraceOutputString (const char *pcszFormat_, const char *pcvArgs)
 
 
 // Output a formatted debug message in hex blocks with ASCII
-void TraceOutputString (const BYTE *pcb, UINT uLen/*=0*/)
+void TraceOutputString (const BYTE *pcb, size_t uLen/*=0*/)
 {
     if (!s_pszTrace)
         return;
