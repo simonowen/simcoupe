@@ -1484,11 +1484,9 @@ void FillJoystickCombo (HWND hwndCombo_, const char* pcszSelected_)
 
 BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    static UINT uAddress = 32768, uLength = 0;
-    static int nPage = 1;
-    static WORD wOffset = 0;
+    static UINT uAddr = 32768, uPage = 0, uOffset = 0, uLength = 0;
     static char szFile [_MAX_PATH] = "";
-    static bool fBasicAddress = true, fUpdating = false, fImport = false;
+    static bool fUseBasic = true, fUpdating = false, fImport = false;
     char sz[32];
 
     switch (uMsg_)
@@ -1500,14 +1498,11 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             SetDlgItemText(hdlg_, IDE_FILE, szFile);
             SendDlgItemMessage(hdlg_, IDE_FILE, EM_SETSEL, _MAX_PATH, -1);
 
-            wsprintf(sz, "%u", uAddress); SetDlgItemText(hdlg_, IDE_ADDRESS, sz);
-            SendMessage(hdlg_, WM_COMMAND, fBasicAddress ? IDR_BASIC_ADDRESS : IDR_PAGE_OFFSET, 0);
+            wsprintf(sz, "%u", uAddr); SetDlgItemText(hdlg_, IDE_ADDRESS, sz);
+            SendMessage(hdlg_, WM_COMMAND, fUseBasic ? IDR_BASIC_ADDRESS : IDR_PAGE_OFFSET, 0);
 
-            if (!fImport && uLength)
-            {
-                wsprintf(sz, "%u", uLength);
-                SetDlgItemText(hdlg_, IDE_LENGTH, sz);
-            }
+            wsprintf(sz, "%u", uLength);
+            SetDlgItemText(hdlg_, IDE_LENGTH, sz);
 
             CentreWindow(hdlg_);
             return TRUE;
@@ -1524,45 +1519,17 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                     EndDialog(hdlg_, 0);
                     return TRUE;
 
-                case IDE_LENGTH:
-                case IDE_FILE:
-                    if (fChange)
-                    {
-                        bool fOK = true;
-
-                        if (!fImport)
-                        {
-                            GetDlgItemText(hdlg_, IDE_LENGTH, sz, sizeof sz);
-                            uLength = (fImport ? -1 : strtoul(sz, NULL, 0));
-                        }
-
-                        GetDlgItemText(hdlg_, IDE_FILE, szFile, sizeof szFile);
-                        SetLastError(NO_ERROR);
-                        DWORD dwAttrs = GetFileAttributes(szFile), dwError = GetLastError();
-
-                        // If we're importing, the file must exist and can't be a directory
-                        if (fImport)
-                            fOK = !dwError && !(dwAttrs & FILE_ATTRIBUTE_DIRECTORY);
-
-                        // When exporting there must be a length, and the file can't be a directory
-                        else
-                            fOK = strtoul(sz, NULL, 0) && (dwError == ERROR_FILE_NOT_FOUND || !(dwAttrs & FILE_ATTRIBUTE_DIRECTORY));
-
-                        EnableWindow(GetDlgItem(hdlg_, IDOK), fOK);
-                    }
-                    break;
-
                 case IDE_ADDRESS:
                     if (fChange && !fUpdating)
                     {
                         GetDlgItemText(hdlg_, IDE_ADDRESS, sz, sizeof sz);
-                        uAddress = strtoul(sz, NULL, 0) & 0x7ffff;
-                        nPage = static_cast<int>(uAddress/16384 - 1) & 0x1f;
-                        wOffset = static_cast<WORD>(uAddress) & 0x3fff;
+                        uAddr = strtoul(sz, NULL, 0) & 0x7ffff;
+                        uPage = (uAddr/16384 - 1) & 0x1f;
+                        uOffset = uAddr & 0x3fff;
 
                         fUpdating = true;
-                        wsprintf(sz, "%u", nPage);      SetDlgItemText(hdlg_, IDE_PAGE, sz);
-                        wsprintf(sz, "%u", wOffset);    SetDlgItemText(hdlg_, IDE_OFFSET, sz);
+                        wsprintf(sz, "%u", uPage);      SetDlgItemText(hdlg_, IDE_PAGE, sz);
+                        wsprintf(sz, "%u", uOffset);    SetDlgItemText(hdlg_, IDE_OFFSET, sz);
                         fUpdating = false;
                     }
                     break;
@@ -1572,34 +1539,44 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                     if (fChange && !fUpdating)
                     {
                         GetDlgItemText(hdlg_, IDE_PAGE, sz, sizeof sz);
-                        nPage = static_cast<int>(strtoul(sz, NULL, 0)) & 0x1f;
+                        uPage = strtoul(sz, NULL, 0) & 0x1f;
 
                         GetDlgItemText(hdlg_, IDE_OFFSET, sz, sizeof sz);
-                        wOffset = static_cast<WORD>(strtoul(sz, NULL, 0)) & 0x3fff;
+                        uOffset = strtoul(sz, NULL, 0);
 
                         fUpdating = true;
-                        uAddress = static_cast<DWORD>(nPage + 1) * 16384 + wOffset;
-                        wsprintf(sz, "%u", uAddress);
-                        SetDlgItemText(hdlg_, IDE_ADDRESS, sz);
+                        uAddr = ((uPage + 1) * 16384 + uOffset) % 0x84000;    // wrap at end of memory
+                        wsprintf(sz, "%u", uAddr);  SetDlgItemText(hdlg_, IDE_ADDRESS, sz);
                         fUpdating = false;
+
+                        // Normalise the internal page and offset from the address
+                        uPage = (uAddr/16384 - 1) & 0x1f;
+                        uOffset = uAddr & 0x3fff;
+                    }
+                    break;
+
+                case IDE_LENGTH:
+                    if (fChange)
+                    {
+                        GetDlgItemText(hdlg_, IDE_LENGTH, sz, sizeof sz);
+                        uLength = strtoul(sz, NULL, 0);
                     }
                     break;
 
                 case IDR_BASIC_ADDRESS:
                 case IDR_PAGE_OFFSET:
-                    fBasicAddress = wControl == IDR_BASIC_ADDRESS;
-                    SendDlgItemMessage(hdlg_, IDR_BASIC_ADDRESS, BM_SETCHECK,  fBasicAddress ? BST_CHECKED : BST_UNCHECKED, 0L);
-                    SendDlgItemMessage(hdlg_, IDR_PAGE_OFFSET,   BM_SETCHECK, !fBasicAddress ? BST_CHECKED : BST_UNCHECKED, 0L);
+                    fUseBasic = wControl == IDR_BASIC_ADDRESS;
+                    SendDlgItemMessage(hdlg_, IDR_BASIC_ADDRESS, BM_SETCHECK,  fUseBasic ? BST_CHECKED : BST_UNCHECKED, 0L);
+                    SendDlgItemMessage(hdlg_, IDR_PAGE_OFFSET,   BM_SETCHECK, !fUseBasic ? BST_CHECKED : BST_UNCHECKED, 0L);
 
-                    EnableWindow(GetDlgItem(hdlg_, IDE_ADDRESS), fBasicAddress);
-                    EnableWindow(GetDlgItem(hdlg_, IDE_PAGE), !fBasicAddress);
-                    EnableWindow(GetDlgItem(hdlg_, IDE_OFFSET), !fBasicAddress);
+                    EnableWindow(GetDlgItem(hdlg_, IDE_ADDRESS), fUseBasic);
+                    EnableWindow(GetDlgItem(hdlg_, IDE_PAGE), !fUseBasic);
+                    EnableWindow(GetDlgItem(hdlg_, IDE_OFFSET), !fUseBasic);
                     break;
 
                 case IDB_BROWSE:
                 {
-                    if (!GetSaveLoadFile(hdlg_, "Binary files (*.bin)\0*.bin\0All files (*.*)\0*.*\0",
-                        NULL, szFile, sizeof szFile, fImport))
+                    if (!GetSaveLoadFile(hdlg_, "Binary files (*.bin)\0*.bin\0All files (*.*)\0*.*\0", NULL, szFile, sizeof szFile, fImport))
                         break;
 
                     SetDlgItemText(hdlg_, IDE_FILE, szFile);
@@ -1607,16 +1584,34 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                     break;
                 }
 
+                case IDE_FILE:
+                    if (fChange)
+                    {
+                        bool fOK = true;
+
+                        GetDlgItemText(hdlg_, IDE_FILE, szFile, sizeof szFile);
+                        SetLastError(NO_ERROR);
+                        DWORD dwAttrs = GetFileAttributes(szFile), dwError = GetLastError();
+
+                        // If we're importing, the file must exist and can't be a directory
+                        if (fImport)
+                            fOK = !dwError && !(dwAttrs & FILE_ATTRIBUTE_DIRECTORY);
+                        else
+                            fOK = uLength && (dwError == ERROR_FILE_NOT_FOUND || !(dwAttrs & FILE_ATTRIBUTE_DIRECTORY));
+
+                        EnableWindow(GetDlgItem(hdlg_, IDOK), fOK);
+                    }
+                    break;
+
                 case IDOK:
                 {
-                    // Addresses in the first 16K are taken from ROM0
-                    if (uAddress < 0x4000)
-                        nPage = ROM0;
+                    // Fetch/update the stored filename
+                    GetDlgItemText(hdlg_, IDE_FILE, szFile, sizeof szFile);
 
                     // Prompt before overwriting existing output files
                     struct stat st;
                     if (!fImport && !stat(szFile, &st) &&
-                        MessageBox(hdlg_, "Overwrite existing file?", "Warning", MB_YESNO|MB_ICONEXCLAMATION) == IDNO)
+                        MessageBox(hdlg_, "Overwrite existing file?", "Warning", MB_YESNO|MB_ICONEXCLAMATION) != IDYES)
                         break;
 
                     FILE* hFile;
@@ -1624,29 +1619,47 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                         Message(msgError, "Failed to open %s for %s", szFile, fImport ? "reading" : "writing");
                     else
                     {
-                        // Limit the length to 512K as there's no point in reading more
-                        UINT uLen = fImport ? 0x7ffff : (uLength &= 0x7ffff);
+                        UINT uLen = fImport ? 0x7ffff : min(uLength, 0x84000), uDone = 0;
+                        uPage = (uAddr < 0x4000) ? ROM0 : uPage;
 
-                        // Loop while there's still data to
-                        while (uLen > 0)
+                        if (fImport)
                         {
-                            UINT uChunk = min(uLen, (0x4000U - wOffset));
-
-                            if (( fImport && fread(&apbPageWritePtrs[nPage][wOffset], uChunk, 1, hFile)) ||
-                                (!fImport && fwrite(&apbPageReadPtrs[nPage][wOffset], uChunk, 1, hFile)))
+                            for (UINT uChunk ; (uChunk = min(uLen, (0x4000 - uOffset))) ; uLen -= uChunk, uOffset = 0)
                             {
-                                uLen -= uChunk;
-                                wOffset = 0;
+                                // Read directly into system memory
+                                uDone += fread(&apbPageWritePtrs[uPage][uOffset], 1, uChunk, hFile);
+
+                                // Stop reading if we've hit the end
+                                if (feof(hFile))
+                                    break;
 
                                 // If the first block was in ROM0 or we've passed memory end, wrap to page 0
-                                if (++nPage >= N_PAGES_MAIN)
-                                    nPage = 0;
-                                continue;
+                                if (++uPage >= N_PAGES_MAIN)
+                                    uPage = 0;
                             }
 
-                            if (!fImport)
-                                Message(msgWarning, "Error writing to %s! (disk full?)", szFile);
-                            break;
+                            Frame::SetStatus("%u bytes imported to %u", uDone, uAddr);
+                        }
+                        else
+                        {
+                            for (UINT uChunk ; (uChunk = min(uLen, (0x4000 - uOffset))) ; uLen -= uChunk, uOffset = 0)
+                            {
+                                // Write directly from system memory
+                                uDone += fwrite(&apbPageReadPtrs[uPage][uOffset], 1, uChunk, hFile);
+
+                                if (ferror(hFile))
+                                {
+                                    Message(msgWarning, "Error writing to file (disk full?)", "Error");
+                                    fclose(hFile);
+                                    return FALSE;
+                                }
+
+                                // If the first block was in ROM0 or we've passed memory end, wrap to page 0
+                                if (++uPage >= N_PAGES_MAIN)
+                                    uPage = 0;
+                            }
+
+                            Frame::SetStatus("%u bytes exported from %u", uDone, uAddr);
                         }
 
                         fclose(hFile);
