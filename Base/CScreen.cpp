@@ -2,7 +2,7 @@
 //
 // CScreen.cpp: SAM screen handling, including on-screen display text
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -145,7 +145,7 @@ void CScreen::Plot (int nX_, int nY_, BYTE bColour_)
 void CScreen::DrawLine (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_)
 {
     // Horizontal line?
-    if (nWidth_)
+    if (nWidth_ > 0)
     {
         nHeight_ = 1;
         if (Clip(nX_, nY_, nWidth_, nHeight_))
@@ -153,7 +153,7 @@ void CScreen::DrawLine (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColou
     }
 
     // Vertical line
-    else if (nHeight_)
+    else if (nHeight_ > 0)
     {
         nWidth_ = 1;
         if (Clip(nX_, nY_, nWidth_, nHeight_))
@@ -217,6 +217,16 @@ void CScreen::DrawImage (int nX_, int nY_, int nWidth_, int nHeight_, const BYTE
         }
     }
 }
+
+// Copy a line of raw data to a specified point on the screen
+void CScreen::Poke (int nX_, int nY_, const BYTE* pcbData_, UINT uLen_)
+{
+    int nWidth = static_cast<int>(uLen_), nHeight_ = 1, nX = nX_;
+
+    if (Clip(nX_, nY_, nWidth, nHeight_))
+        memcpy(GetHiResLine(nY_++) + nX_, pcbData_+nX_-nX, nWidth);
+}
+
 
 // Draw a proportionally spaced string of characters at a specified pixel position
 void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_/*=false*/)
