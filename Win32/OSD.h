@@ -34,7 +34,9 @@ class OSD
 
         static PROFILE_T GetProfileTime ();
         static DWORD GetTime ();
-        static const char* GetFilePath (const char* pcszFile_);
+        static const char* GetFilePath (const char* pcszFile_="");
+        static bool IsHidden (const char* pcszFile_);
+
         static void DebugTrace (const char* pcsz_);
         static int FrameSync (bool fWait_=true);
 
@@ -50,6 +52,9 @@ class OSD
 #include <mmsystem.h>
 #include <sys\types.h>  // for _off_t etc.
 #include <direct.h>     // for _mkdir
+
+#pragma include_alias(<io.h>, <..\Include\IO.h>)
+#include <io.h>
 
 #pragma warning(disable:4786)   // disable stupid 'debug symbols being truncated' warning
 
@@ -72,12 +77,18 @@ class OSD
 #include <dsound.h>
 #include <ddraw.h>
 
-#define strcasecmp      _strcmpi
+#define PATH_SEPARATOR          '\\'
+
+#define strcasecmp  _strcmpi
 #define mkdir(p,m)  _mkdir(p)
+#define access      _access
 
-#define PATH_SEPARATOR          "\\"
+#define _S_ISTYPE(mode,mask)    (((mode) & _S_IFMT) == (mask))
+#define S_ISDIR(mode)           _S_ISTYPE((mode), _S_IFDIR)
+#define S_ISREG(mode)           _S_ISTYPE((mode), _S_IFREG)
 
-// Windows doesn't support dirent.h, so we'll provide our own version
+
+// Windows lacks direct.h, so we'll supply our own
 struct dirent
 {
     long            d_ino;
