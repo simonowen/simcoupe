@@ -40,11 +40,7 @@
 #define SOUND_IMPLEMENTATION
 #include "Sound.h"
 
-#ifdef USE_SAASOUND
 #include "SAASound.h"
-#else
-#include "../Extern/SAASound.h"
-#endif
 
 #include "CPU.h"
 #include "GUI.h"
