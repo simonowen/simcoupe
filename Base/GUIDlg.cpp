@@ -41,7 +41,7 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     : CDialog(pParent_, 305, 220,  "About SimCoupe")
 {
     new CIconControl(this, 6, 6, &sSamIcon);
-    new CTextControl(this, 86, 10,  "SimCoupe v0.90 beta (2005/01/30)", BLACK);
+    new CTextControl(this, 86, 10,  "SimCoupe v0.90 beta (2005/01/31)", BLACK);
     new CTextControl(this, 86, 24,  "http://www.simcoupe.org/", GREY_3);
 
     new CTextControl(this, 41, 46,  "Win32/SDL/Allegro/Pocket PC versions:", BLUE_5);
