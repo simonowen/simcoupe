@@ -186,7 +186,7 @@ bool SaveImage (FILE* hFile_, CScreen* pScreen_)
 
     if (png.pbPalette && png.pbImage)
     {
-        static const BYTE ab[] = { 0x00, 0x1f, 0x3f, 0x5f, 0x7f, 0x9f, 0xbf, 0xdf, 0xff };
+        static const BYTE ab[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
 
         for (int c = 0; c < N_PALETTE_COLOURS; c++)
         {
