@@ -252,13 +252,6 @@ bool ReadKeyboard ()
         // Alt-Tab for switching apps should not be seen
         if (IsPressed(SDLK_TAB))
             ReleaseKey(SDLK_TAB);
-
-        // Alt-F4 for Close will close us gracefully
-        if (IsPressed(SDLK_F4))
-        {
-            SDL_Event event = { SDL_QUIT };
-            SDL_PushEvent(&event);
-        }
     }
 
     return fRet;
@@ -268,10 +261,6 @@ bool ReadKeyboard ()
 // Update a combination key table with a symbol
 bool UpdateKeyTable (SIMPLE_KEY* asKeys_, SDL_keysym* pKey_)
 {
-    // Ignore symbols on the keypad
-    if (pKey_->sym >= SDLK_KP0 && pKey_->sym <= SDLK_KP_EQUALS)
-        return true;
-
     // Convert upper-case symbols to lower-case without shift
     if (pKey_->unicode >= 'A' && pKey_->unicode <= 'Z')
     {
@@ -503,6 +492,10 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 }
             }
 
+            // Ignore symbols on the keypad
+            if (pKey->sym >= SDLK_KP0 && pKey->sym <= SDLK_KP_EQUALS)
+                pKey->unicode = 0;
+
             // Some keys don't seem to come through properly, so try and fix em
             if (pKey->sym == SDLK_UNKNOWN)
             {
@@ -510,8 +503,25 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 {
                     case 0x56:  pKey->sym = SDLK_WORLD_95;  break;  // Use something unlikely to clash
                     case 0xc5:  pKey->sym = SDLK_PAUSE;     break;
+
+                    // Fill some missing keypad symbols on Solaris
+                    case 0x77:  pKey->sym = SDLK_KP1;       break;
+                    case 0x79:  pKey->sym = SDLK_KP3;       break;
+                    case 0x63:  pKey->sym = SDLK_KP5;       break;
+                    case 0x4b:  pKey->sym = SDLK_KP7;       break;
+                    case 0x4d:  pKey->sym = SDLK_KP9;       break;
                 }
             }
+
+            // Fix some keypad mappings known to be wrong on Solaris
+            else if (pKey->sym == 0x111 && pKey->scancode == 0x4c)
+                pKey->sym = SDLK_KP8;
+            else if (pKey->sym == 0x112 && pKey->scancode == 0x78)
+                pKey->sym = SDLK_KP2;
+            else if (pKey->sym == 0x113 && pKey->scancode == 0x64)
+                pKey->sym = SDLK_KP6;
+            else if (pKey->sym == 0x114 && pKey->scancode == 0x62)
+                pKey->sym = SDLK_KP4;
 
             TRACE("Key %s: %d (mods=%d u=%d)\n", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym, pKey->mod, pKey->unicode);
 //          Frame::SetStatus("Key %s: %d (mods=%d u=%d)", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym, pKey->mod, pKey->unicode);
@@ -520,7 +530,10 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             if (GUI::IsActive())
             {
                 // Convert the cursor keys to GUI symbols
-                if (pKey->sym >= SDLK_UP && pKey->sym <= SDLK_LEFT)
+                if (pKey->sym >= SDLK_KP0 && pKey->sym <= SDLK_KP9)
+                    pKey->unicode = GK_KP0 + pKey->sym - SDLK_KP0;
+
+                else if (pKey->sym >= SDLK_UP && pKey->sym <= SDLK_LEFT)
                 {
                     int anCursors[] = { GK_UP, GK_DOWN, GK_RIGHT, GK_LEFT };
                     pKey->unicode = anCursors[pKey->sym - SDLK_UP];
