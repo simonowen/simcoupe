@@ -22,12 +22,29 @@
 #define DEBUG_H
 
 #include "CScreen.h"
+#include "Expr.h"
 #include "GUI.h"
+#include "Memory.h"
+
+typedef struct tagBREAKPT
+{
+    union
+    {
+        const BYTE* pAddr;
+        struct { WORD wMask, wCompare; } Port;
+    };
+
+    EXPR* pExpr;
+    struct tagBREAKPT* pNext;
+}
+BREAKPT;
+
 
 class Debug
 {
     public:
-        static bool Start();
+        static bool Start (BREAKPT* pBreak_=NULL);
+        static void Stop ();
         static void Refresh ();
 
         static void OnRet ();
@@ -38,15 +55,158 @@ class Debug
 };
 
 
-class CDisassembly : public CWindow
+// Address wrapper - currently for regular WORD addresses, but with plans to extend to handle virtual addresses too
+class CAddr
 {
     public:
-        CDisassembly (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
+        CAddr (WORD wAddr_=0) : m_wAddr(wAddr_) { }
 
     public:
-        void SetAddress (WORD wAddr_);
+        UINT GetPC () const { return m_wAddr; }
+        BYTE* GetPhys () const { return phys_read_addr(m_wAddr); }
+
+        int sprint (char* psz_) { return sprintf(psz_, "%04X", m_wAddr); }
+
+    public:
+        UINT operator= (WORD wAddr_) { m_wAddr = wAddr_; return m_wAddr; }
+        bool operator== (const CAddr& addr_) { return m_wAddr == addr_.m_wAddr; }
+        bool operator!= (const CAddr& addr_) { return m_wAddr != addr_.m_wAddr; }
+        CAddr operator++ (int) { CAddr a(m_wAddr); m_wAddr++; Normalise(); return a; }
+        CAddr operator-- (int) { CAddr a(m_wAddr); m_wAddr--; Normalise(); return a; }
+        CAddr operator++ () { m_wAddr++; return Normalise(); }
+        CAddr operator-- () { m_wAddr--; return Normalise(); }
+        CAddr operator-= (UINT u_) { m_wAddr -= u_; return Normalise(); }
+        CAddr operator+= (UINT u_) { m_wAddr += u_; return Normalise(); }
+        CAddr operator+ (UINT u_) { CAddr a(m_wAddr + u_); return a.Normalise(); }
+        CAddr operator- (UINT u_) { CAddr a(m_wAddr - u_); return a.Normalise(); }
+        BYTE operator* () const { return read_byte(m_wAddr); }
+        BYTE operator[] (UINT u_) const { return read_byte(m_wAddr+u_); }
+
+        CAddr Normalise () { return *this; }
+
+    protected:
+        WORD m_wAddr;
+};
+
+
+class CView : public CWindow
+{
+    public:
+        CView (CWindow* pParent_) : CWindow(pParent_, 5, 5, 256, 240) { }
+
+    public:
+        bool OnMessage (int nMessage_, int nParam1_, int nParam2_) { return false; }
+
+        CAddr GetAddress () const { return m_addr; }
+        virtual void SetAddress (CAddr Addr_, bool fForceTop_=false) = 0;
+
+    public:
+        bool IsTabStop() const { return true; }
+
+    protected:
+        CAddr m_addr;
+};
+
+
+class CCodeView : public CView
+{
+    public:
+        CCodeView (CWindow* pParent_);
+        ~CCodeView () { delete m_pszData; m_pszData = NULL; }
+
+    public:
+        void SetAddress (CAddr Addr_, bool fForceTop_=false);
+        void Draw (CScreen* pScreen_);
+        bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
+
+    protected:
+        void SetFlowTarget ();
+        void cmdNavigate (int nKey_, int nMods_);
+
+    protected:
+        UINT m_uRows, m_uColumns, m_uTarget;
+        const char* m_pcszTarget;
+        char* m_pszData;
+
+        static CAddr s_aAddrs[];
+};
+
+
+class CTextView : public CView
+{
+    public:
+        CTextView (CWindow* pParent_);
+        ~CTextView () { delete m_pszData; m_pszData = NULL; }
+
+    public:
+        void SetAddress (CAddr addr_, bool fForceTop_=false);
+        void Draw (CScreen* pScreen_);
+        bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
+
+    protected:
+        bool cmdNavigate (int nKey_, int nMods_);
+
+    protected:
+        UINT m_uRows, m_uColumns;
+        char* m_pszData;
+
+        static CAddr s_aAddrs[];
+};
+
+class CNumView : public CView
+{
+    public:
+        CNumView (CWindow* pParent_);
+        ~CNumView () { delete m_pszData; m_pszData = NULL; }
+
+    public:
+        void SetAddress (CAddr addr_, bool fForceTop_=false);
+        void Draw (CScreen* pScreen_);
+        bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
+
+    protected:
+        bool cmdNavigate (int nKey_, int nMods_);
+
+    protected:
+        UINT m_uRows, m_uColumns;
+        char* m_pszData;
+
+        static CAddr s_aAddrs[];
+};
+
+/*
+class CMemView : public CView
+{
+    public:
+        CMemView (CWindow* pParent_);
+
+    public:
+        void SetAddress (WORD wAddr_, bool fForceTop_=false);
         void Draw (CScreen* pScreen_);
 };
+*/
+
+class CGraphicsView : public CView
+{
+    public:
+        CGraphicsView (CWindow* pParent_);
+        ~CGraphicsView () { delete m_pbData; }
+
+    public:
+        void SetAddress (CAddr addr_, bool fForceTop_=false);
+        void Draw (CScreen* pScreen_);
+        bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
+
+    protected:
+        bool cmdNavigate (int nKey_, int nMods_);
+
+    protected:
+        UINT m_uStrips, m_uStripWidth, m_uStripLines;
+        BYTE* m_pbData;
+
+        static UINT s_uMode, s_uWidth, s_uZoom;
+};
+
 
 class CRegisterPanel : public CWindow
 {
@@ -57,39 +217,39 @@ class CRegisterPanel : public CWindow
         void Draw (CScreen* pScreen_);
 };
 
-class CCommandLine : public CEditControl
-{
-    public:
-        CCommandLine (CWindow* pParent_, int nX_, int nY_, int nWidth_);
-
-    public:
-        bool OnMessage (int nMessage_, int nParam1_=0, int nParam2_=0);
-        void Execute (const char* pcszCommand_);
-};
-
 
 class CDebugger : public CDialog
 {
     public:
-        CDebugger (CWindow* pParent_=NULL);
+        CDebugger (BREAKPT* pBreak_=NULL);
         ~CDebugger ();
 
-        void OnNotify (CWindow* pWindow_, int nParam_);
         bool OnMessage (int nMessage_, int nParam1_=0, int nParam2_=0);
         void EraseBackground (CScreen* pScreen_);
         void Draw (CScreen* pScreen_);
+
+        void SetAddress (CAddr Addr_);
 
     protected:
         void Refresh ();
 
     protected:
-    public:
-        CImageButton *m_pStepInto, *m_pStepOver, *m_pStepOut, *m_pStepToCursor;
-        CTextButton *m_pClose;
-        CButton *m_pTransparent;
-        CCommandLine* m_pCmdLine;
-        CDisassembly* m_pDisassembly;
+        CView* m_pView;
         CRegisterPanel* m_pRegPanel;
+
+        static bool s_fTransparent;
+};
+
+class CAddressDialog : public CDialog
+{
+    public:
+        CAddressDialog (CWindow* pParent_=NULL);
+
+    public:
+        void OnNotify (CWindow* pWindow_, int nParam_);
+
+    protected:
+        CEditControl* m_pAddress;
 };
 
 #endif
