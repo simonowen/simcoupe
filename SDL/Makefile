@@ -69,7 +69,7 @@ CC=cc
 CXX=cc
 endif
 
-BASE_OBJS=$(BASE_SRC:%.cpp=%.o) ${EXTERN}/unzip.o
+BASE_OBJS=$(BASE_SRC:%.cpp=%.o) ${EXTERN}/unzip.o ${EXTERN}/ioapi.o
 SDL_OBJS=$(SDL_SRC:%.cpp=%.o)
 
 all:	${TARGET}

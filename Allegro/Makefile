@@ -58,7 +58,7 @@ CFLAGS += -DUSE_SAASOUND
 LIBS += -lSAASound
 endif
 
-BASE_OBJS=$(BASE_SRC:%.cpp=%.o) ${EXTERN}/unzip.o
+BASE_OBJS=$(BASE_SRC:%.cpp=%.o) ${EXTERN}/unzip.o ${EXTERN}/ioapi.o
 ALLEGRO_OBJS=$(ALLEGRO_SRC:%.cpp=%.o)
 
 all:	${TARGET}
