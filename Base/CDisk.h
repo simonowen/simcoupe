@@ -48,6 +48,10 @@ const char SDF_SIGNATURE[] = "SDF"; // 4 bytes, including the terminating NULL
 
 const UINT DISK_FILE_HEADER_SIZE = 9;    // From SAM Technical Manual  (bType, wSize, wOffset, wUnused, bPages, bStartPage)
 
+// Maximum size of a file that will fit on a SAM disk
+const UINT MAX_SAM_FILE_SIZE = ((NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS) - NORMAL_DIRECTORY_TRACKS) *
+                                NORMAL_DISK_SECTORS * (NORMAL_SECTOR_SIZE-2) - DISK_FILE_HEADER_SIZE;
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // The ID string for Aley Keprt's SAD disk image format (heh!)
@@ -127,23 +131,24 @@ typedef struct
 SDF_SECTOR_HEADER;
 
 
+enum { dtUnknown, dtFloppy, dtFile, dtSDF, dtSAD, dtDSK, dtSBT, dtFDI };
+
 class CDisk
 {
-    public:
-        enum { dtUnknown, dtFloppy, dtSDF, dtSAD, dtDSK, dtSBT, dtFDI };
-
     // Constructor and virtual destructor
     public:
-        CDisk (CStream* pStream_);
+        CDisk (CStream* pStream_, int nType_);
         virtual ~CDisk ();
 
     public:
         static int GetType (CStream* pStream_);
         static CDisk* Open (const char* pcszDisk_, bool fReadOnly_=false);
+        void Close () { m_pStream->Close(); }
 
     // Public query functions
     public:
         const char* GetName () { return m_pStream->GetName(); }
+        int GetType () const { return m_nType; }
         UINT GetSpinPos (bool fAdvance_=false);
         bool IsReadOnly () const { return m_pStream->IsReadOnly(); }
         bool IsModified () const { return m_fModified; }
@@ -163,11 +168,12 @@ class CDisk
         virtual void AbortAsyncOp () { }
 
     protected:
-        UINT m_uSides, m_uTracks, m_uSectors, m_uSectorSize;
-        UINT m_uSide, m_uTrack, m_uSector;
-        bool     m_fModified;
+        int     m_nType;
+        UINT    m_uSides, m_uTracks, m_uSectors, m_uSectorSize;
+        UINT    m_uSide, m_uTrack, m_uSector;
+        bool    m_fModified;
 
-        UINT m_uSpinPos;
+        UINT    m_uSpinPos;
         CStream*m_pStream;
         BYTE*   m_pbData;
 
