@@ -40,7 +40,6 @@
 #include "CPU.h"
 #include "IO.h"
 #include "Options.h"
-#include "Util.h"
 #include "Profile.h"
 
 SDL_AudioSpec sObtained;
