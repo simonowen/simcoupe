@@ -67,7 +67,7 @@ const WORD NMI_INTERRUPT_HANDLER = 0x0066;      // Non-maskable interrupt handle
 
 // This has been accurately measured on a real SAM using various tests (contact me for further details)
 const int INT_ACTIVE_TIME = 128;            // tstates interrupt is active and will be triggered
-const int INT_START_TIME = TSTATES_PER_LINE - BORDER_PIXELS - VIDEO_DELAY + 1;
+const int INT_START_TIME = TSTATES_PER_LINE - BORDER_PIXELS + 1;
 
 
 // Round a tstate value up to a given power of 2 (-1); and so the line total rounds up to the next whole multiple

@@ -56,7 +56,6 @@
 
 extern int g_nLine;
 extern int g_nLineCycle;
-extern bool fContended;
 
 extern DWORD aulPalette[];  // 128 SAM colours
 
@@ -487,7 +486,7 @@ BYTE In (WORD wPort_)
                 // Return 192 for the top/bottom border areas, or the real line number
                 // Note: the right-border area is treated as part of the following line
                 return (g_nLine < TOP_BORDER_LINES || g_nLine >= (TOP_BORDER_LINES+SCREEN_LINES)) ? static_cast<BYTE>(SCREEN_LINES) :
-                        g_nLine - TOP_BORDER_LINES + (g_nLineCycle > (BORDER_PIXELS+SCREEN_PIXELS-VIDEO_DELAY));
+                        g_nLine - TOP_BORDER_LINES + (g_nLineCycle > (BORDER_PIXELS+SCREEN_PIXELS));
             }
 
         // Spectrum ATTR port
@@ -749,7 +748,7 @@ void Out (WORD wPort_, BYTE bVal_)
 
                 // Create an event to begin an interrupt at the required time
                 AddCpuEvent(evtMidiOutIntStart, g_dwCycleCounter +
-                            A_ROUND(MIDI_TRANSMIT_TIME + 20, 32) - 20 - 32 - MIDI_INT_ACTIVE_TIME - 2);
+                            A_ROUND(MIDI_TRANSMIT_TIME + 16, 32) - 16 - 32 - MIDI_INT_ACTIVE_TIME + 2);
 
                 // Output the byte using the platform specific implementation
                 pMidi->Out(wPort_, bVal_);
