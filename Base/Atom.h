@@ -64,8 +64,6 @@ class CAtomDiskDevice : public CDiskDevice
         ~CAtomDiskDevice ();
 
     public:
-        int GetType () const { return dskAtom; }
-
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
         void FrameEnd ();
