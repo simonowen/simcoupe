@@ -166,7 +166,7 @@ bool CPU::Init (bool fFirstInit_/*=false*/)
         // Sanity check the endian of the registers structure
         hl = 1;
         if (h)
-            Message(msgFatal, "EEK!  The Z80Regs structure is the wrong endian for this platform!\n");
+            Message(msgFatal, "EEK!  The Z80Regs structure is the wrong endian for this platform!");
 
         // Most of the registers tend to only power-on defaults, and are not affected by a reset
         af = bc = de = hl = alt_af = alt_bc = alt_de = alt_hl = ix = iy = 0xffff;

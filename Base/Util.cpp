@@ -90,14 +90,16 @@ void Message (eMsgType eType_, const char* pcszFormat_, ...)
     strcpy(szMessage, pcszType_);
     char* pszMessage = szMessage + strlen(szMessage);
     vsprintf(pszMessage, pcszFormat_, args);
-    strcat(szMessage, "\n");
 
     // Write to the debugger
-    TRACE(szMessage);
+    TRACE("%s\n", szMessage);
 
     // Write to file, if open
     if (hLogFile)
+    {
         fputs(szMessage, hLogFile);
+        fputc('\n', hLogFile);
+    }
 
     UI::ShowMessage(eType_, pszMessage);
 
@@ -117,7 +119,7 @@ bool OpenLog ()
     if (!*GetOption(logfile) || (hLogFile = fopen(GetOption(logfile), "w")))
         return true;
 
-    Message(msgError, "can't open log file");
+    Message(msgWarning, "Can't open log file:\n\n%s", GetOption(logfile));
     return false;
 }
 
