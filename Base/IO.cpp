@@ -45,6 +45,7 @@
 #include "CPU.h"
 #include "Floppy.h"
 #include "Frame.h"
+#include "GUI.h"
 #include "Memory.h"
 #include "MIDI.h"
 #include "Mouse.h"
@@ -149,7 +150,7 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 {
     if (pDrive1 && ((!fInit_ && !fReInit_) || (pDrive1->GetType() != GetOption(drive1))))
     {
-        if (pDrive1->GetType() == 1)
+        if (pDrive1->GetType() == dskImage)
             SetOption(disk1, pDrive1->GetImage());
 
         delete pDrive1;
@@ -158,7 +159,7 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 
     if (pDrive2 && ((!fInit_ && !fReInit_) || (pDrive2->GetType() != GetOption(drive2))))
     {
-        if (pDrive2->GetType() == 1)
+        if (pDrive2->GetType() == dskImage)
             SetOption(disk2, pDrive2->GetImage());
 
         delete pDrive2;
@@ -175,13 +176,13 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
         {
             switch (GetOption(drive1))
             {
-                case 1:
-                    if ((pDrive1 = new CDrive) && !pDrive1->Insert(GetOption(disk1)))
+                case dskImage:
+                    if (!(pDrive1 = new CDrive)->Insert(GetOption(disk1)))
                         SetOption(disk1, "");
                     break;
 
                 default:
-                    pDrive1 = new CDiskDevice;
+                    pDrive1 = new CDiskDevice(dskNone);
                     break;
             }
         }
@@ -190,17 +191,17 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
         {
             switch (GetOption(drive2))
             {
-                case 1:
-                    if ((pDrive2 = new CDrive) && !pDrive2->Insert(GetOption(disk2)))
+                case dskImage:
+                    if (!(pDrive2 = new CDrive)->Insert(GetOption(disk2)))
                         SetOption(disk2, "");
                     break;
 
-                case 2:
+                case dskAtom:
                     pDrive2 = new CAtomDiskDevice;
                     break;
 
                 default:
-                    pDrive2 = new CDiskDevice;
+                    pDrive2 = new CDiskDevice(dskNone);
                     break;
             }
         }
