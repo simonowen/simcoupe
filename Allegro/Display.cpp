@@ -388,8 +388,8 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
         if (fScanlines)
             nChangeFrom <<= 1, nChangeTo <<= 1;
 
+		// Re-evaluate whether we need to stretch the image vertically
         nShift = !GetOption(scanlines) && !fGUI;
-        int nShift2 = fScanlines ? 0 : 1;
 
         // Calculate the dirty source and target areas - non-GUI displays require the height doubling
         Display::RECT rBack  = { rSource.x, nChangeFrom, rSource.w, (nChangeTo - nChangeFrom) + 1 };
