@@ -57,7 +57,7 @@ public:
     static PROFILE_T GetProfileTime ();
     static const char* GetFilePath (const char* pcszFile_="");
     static const char* GetFloppyDevice (int nDrive_);
-    static bool IsHidden (const char* pcszFile_);
+    static bool IsHidden (const char* pcszPath_);
 
     static void DebugTrace (const char* pcsz_);
     static int FrameSync (bool fWait_=true);
