@@ -49,8 +49,8 @@
 
 
 #define MEM_PAGE_SIZE               0x4000                      // Memory pages are 16K
-#define N_PAGES_MAIN                (0x80000/MEM_PAGE_SIZE)     // Number of pages in the SAM's main memory (512K)
-#define N_PAGES_1MB                 (0x100000/MEM_PAGE_SIZE)    // Number of pages in 1MB of memory
+#define N_PAGES_MAIN                (0x80000/MEM_PAGE_SIZE)     // Number of pages in the SAM's 512K main memory (32)
+#define N_PAGES_1MB                 (0x100000/MEM_PAGE_SIZE)    // Number of pages in 1MB of memory (64)
 #define MAX_EXTERNAL_MB             4                           // SAM supports 0 to 4 MB of external memory
 
 
