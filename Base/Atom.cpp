@@ -18,8 +18,11 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+// For more information on Edwin Blink's ATOM interface, see:
+//  http://www.designing.myweb.nl/samcoupe/hardware/atomhdinterface/atom.htm
+
 // ToDo:
-//  - a non-BDOS-specific implementation, for when other apps use the Atom?
+//  - a non-BDOS-specific implementation, for when/if other apps use the Atom?
 //  - remove STL, to reduce possible porting problems?
 
 #include "SimCoupe.h"
@@ -37,7 +40,7 @@ CAtomDiskDevice::CAtomDiskDevice ()
     // For now the ATOM disk relies on knowledge of the BDOS implementation, so make it easier to use
     m_pDisk = new CBDOSDevice;
 
-    m_nLightDelay = 0;
+    m_uLightDelay = 0;
 }
 
 
@@ -69,7 +72,6 @@ BYTE CAtomDiskDevice::In (WORD wPort_)
                     wData = m_pDisk->In(0x03f0 | (m_bAddressLatch & 0x7));
                     break;
 
-                
                 default:
                     TRACE("ATOM: Unrecognised read from %#04x\n", wPort_);
                     wData = 0x0000;
@@ -118,7 +120,7 @@ void CAtomDiskDevice::Out (WORD wPort_, BYTE bVal_)
 
         // Data low
         case 0xf7:
-            m_nLightDelay = ATOM_LIGHT_DELAY;
+            m_uLightDelay = ATOM_LIGHT_DELAY;
 
             // Return the previously stored low-byte
             bRet = m_bDataLatch;
@@ -145,8 +147,8 @@ void CAtomDiskDevice::Out (WORD wPort_, BYTE bVal_)
 void CAtomDiskDevice::FrameEnd ()
 {
     // If the drive light is currently on, reduce the counter
-    if (m_nLightDelay)
-        m_nLightDelay--;
+    if (m_uLightDelay)
+        m_uLightDelay--;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -174,11 +176,11 @@ bool CBDOSDevice::Init ()
     memset(abBootSector, 0, sizeof abBootSector);
 
     // Form the full path of the file used for boot sector and record list
-    string sDir = OSD::GetFilePath(ATOM_SUBDIR), sFile = sDir + "\\" + ATOM_HEADER_FILE;
+    string sDir = OSD::GetFilePath(ATOM_SUBDIR), sFile = sDir + PATH_SEPARATOR + ATOM_HEADER_FILE;
 
     // Create the directory if it doesn't already exist
     if (mkdir(sDir.c_str(), S_IRWXU))
-        TRACE("!!! Failed to create %s dir (%d)\n", errno);
+        TRACE("!!! Failed to create %s dir (%d)\n", sDir.c_str(), errno);
 
     // Try and open an existing file, or create a new one
     if ((m_hfDisk = fopen(sFile.c_str(), "rb")) != NULL)
@@ -201,7 +203,7 @@ bool CBDOSDevice::Init ()
     {
         // Add the full path of each directory entry to a list
         for (struct dirent* pDir ; (pDir = readdir(hDir)) ; )
-            m_asRecords.push_back(sDir + "\\" + pDir->d_name);
+            m_asRecords.push_back(sDir + PATH_SEPARATOR + pDir->d_name);
 
         closedir(hDir);
     }
@@ -225,12 +227,26 @@ bool CBDOSDevice::Init ()
             // Don't bother with the image if the first sector is unreadable
             if (fValid = (pDisk->FindSector(0, 0, 1) && !pDisk->ReadData(m_abSectorData, &uSize)))
             {
-                // If there's no BDOS signature, clear the record/volume label
-                if (memcmp(m_abSectorData + 0xe8, "BDOS", 4) && m_abSectorData[0xd2] == '*')
-                    memset(m_abSectorData + 0xd2, 0, 16);
+                BYTE abLabel[16] = {0};
+
+                // Check for a BDOS disk signature
+                if (!memcmp(m_abSectorData + 0xe8, "BDOS", 4))
+                {
+                    // Assmeble the 16 character label from its two locations
+                    memcpy(abLabel,     m_abSectorData + 0xd2, 10);
+                    memcpy(abLabel+10,  m_abSectorData + 0xfa, 6);
+                }
+
+                // Is this MasterDOS (or rather, not SAMDOS)
+                else if (m_abSectorData[0xd2] != 0x00 && m_abSectorData[0xd2] != 0xff)
+                {
+                    // Copy the label unless we find the special 'no label' marker
+                    if (m_abSectorData[0xd2] != '*')
+                        memcpy(abLabel, m_abSectorData + 0xd2, 10);
+                }
 
                 // Write out the record name to the list, and add the filename to the record list
-                if (fwrite(m_abSectorData + 0xd2, 1, 16, m_hfDisk))
+                if (fwrite(abLabel, 1, 16, m_hfDisk))
                     m_asRecords.push_back(sFile);
             }
 
@@ -246,10 +262,10 @@ bool CBDOSDevice::Init ()
     }
 
     // Find out how many records we have, and calculate the number of sectors for the boot sector and record list
-    int nRecords = m_asRecords.size();
-    m_nReservedSectors = 1 + ((nRecords + 31) / 32);    // Boot sector + record list sectors
-    int nTotalSectors = m_nReservedSectors + (nRecords * (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_DISK_SECTORS));
-    TRACE("%d records requires %d sectors (%d reserved)\n", nRecords, nTotalSectors, m_nReservedSectors);
+    UINT uRecords = static_cast<UINT>(m_asRecords.size());
+    m_uReservedSectors = 1 + ((uRecords + 31) / 32);    // Boot sector + record list sectors
+    UINT uTotalSectors = m_uReservedSectors + (uRecords * (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_DISK_SECTORS));
+    TRACE("%u records requires %u sectors (%u reserved)\n", uRecords, uTotalSectors, m_uReservedSectors);
 
     // Set up the device identity, mainly for the disk geometry (which is a perfect match to the the number of sectors needed)
     memset(&m_sIdentity, 0, sizeof m_sIdentity);
@@ -260,7 +276,7 @@ bool CBDOSDevice::Init ()
     // We can add up to 40 extra sectors without BDOS creating an additional small record on the end
     m_sIdentity.wLogicalHeads = 2;
     m_sIdentity.wSectorsPerTrack = 20;
-    m_sIdentity.wLogicalCylinders = (nTotalSectors+39) / 40;
+    m_sIdentity.wLogicalCylinders = (uTotalSectors+39) / 40;
 
     return true;
 }
@@ -274,12 +290,12 @@ bool CBDOSDevice::DiskReadWrite (bool fWrite_)
     TRACE("%s CHS %u:%u:%u\n", fWrite_ ? "Writing" : "Reading", wCylinder, bHead, bSector);
 
     // Calculate the logical block number from the CHS position
-    int nBlock = (wCylinder * m_sIdentity.wLogicalHeads + bHead) * m_sIdentity.wSectorsPerTrack + (bSector - 1);
+    UINT uBlock = (wCylinder * m_sIdentity.wLogicalHeads + bHead) * m_sIdentity.wSectorsPerTrack + (bSector - 1);
 
-    if (nBlock < m_nReservedSectors)
+    if (uBlock < m_uReservedSectors)
     {
         // Locate the block
-        if (m_hfDisk && !fseek(m_hfDisk, nBlock << 9, SEEK_SET))
+        if (m_hfDisk && !fseek(m_hfDisk, uBlock << 9, SEEK_SET))
         {
             // Write the data if we're writing
             if (fWrite_)
@@ -299,26 +315,25 @@ bool CBDOSDevice::DiskReadWrite (bool fWrite_)
     else
     {
         // Adjust the position to the start of the record data
-        nBlock -= m_nReservedSectors;
+        uBlock -= m_uReservedSectors;
 
         // Determine which record we're dealing with
-        int nRecordBlocks = (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_DISK_SECTORS);
-        int nRecord = nBlock / nRecordBlocks;
+        UINT uRecordBlocks = (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_DISK_SECTORS);
+        UINT uRecord = uBlock / uRecordBlocks;
 
         // Determine the position within the record/disk
-        int nSector = (nBlock % NORMAL_DISK_SECTORS) + 1;
-        int nTrack = (nBlock /= NORMAL_DISK_SECTORS) % NORMAL_DISK_TRACKS;
-        int nSide = (nBlock /= NORMAL_DISK_TRACKS) & 1;
+        UINT uSector = (uBlock % NORMAL_DISK_SECTORS) + 1;
+        UINT uTrack = (uBlock /= NORMAL_DISK_SECTORS) % NORMAL_DISK_TRACKS;
+        UINT uSide = (uBlock /= NORMAL_DISK_TRACKS) & 1;
 
 
-//      CACHELIST::iterator itCached = NULL;
         CDisk* pDisk = NULL;
 
         // Look for a cached disk for the current record
         for (CACHELIST::iterator it = m_lCached.begin() ; it != m_lCached.end() ; it++)
         {
             // Found it?
-            if ((*it).first == nRecord)
+            if ((*it).first == uRecord)
             {
                 // Extract the disk object, and make the entry MRU
                 pDisk = (*it).second;
@@ -329,7 +344,7 @@ bool CBDOSDevice::DiskReadWrite (bool fWrite_)
         }
 
         // If we didn't find a cached disk, load it now
-        if (!pDisk && nRecord < (int)m_asRecords.size() && (pDisk = CDisk::Open(m_asRecords[nRecord].c_str())))
+        if (!pDisk && uRecord < (int)m_asRecords.size() && (pDisk = CDisk::Open(m_asRecords[uRecord].c_str())))
         {
             // Is the cache full?
             if (m_lCached.size() >= ATOM_CACHE_SIZE)
@@ -340,11 +355,11 @@ bool CBDOSDevice::DiskReadWrite (bool fWrite_)
             }
 
             // Add the new entry as MRU
-            m_lCached.push_front(CACHELIST::value_type(nRecord,pDisk));
+            m_lCached.push_front(CACHELIST::value_type(uRecord,pDisk));
         }
 
         // No disk, off the end of the disk, or sector not found?
-        if (pDisk && pDisk->FindSector(nSide, nTrack, nSector))
+        if (pDisk && pDisk->FindSector(uSide, uTrack, uSector))
         {
             UINT uSize;
 
@@ -358,11 +373,11 @@ bool CBDOSDevice::DiskReadWrite (bool fWrite_)
                 fRet = true;
 
                 // Add the BDOS signature to the data if this is the first directory sector, to keep BDOS happy
-                if (!nSide && !nTrack && nSector == 1)
+                if (!uSide && !uTrack && uSector == 1)
                 {
                     // If there's no BDOS signature, clear the record/volume label to stop it displaying as junk
                     if (memcmp(m_abSectorData + 0xe8, "BDOS", 4))
-                        memset(m_abSectorData + 0xd2, 0, 16);
+                        m_abSectorData[0xd2] = '\0';
 
                     // If the floppy image is write-protected, mark the record as such too
                     if (pDisk->IsReadOnly())
