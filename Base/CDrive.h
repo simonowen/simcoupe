@@ -1,9 +1,9 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // CDrive.h: VL1772-02 floppy disk controller emulation
 //
+//  Copyright (c) 1999-2003  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
-//  Copyright (c) 1999-2001  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -61,6 +61,8 @@ class CDrive : public CDiskDevice
         UINT ReadTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_);
         BYTE VerifyTrack (int nSide_, int nTrack_);
         BYTE WriteTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_);
+
+        static WORD CrcBlock (void* pv_, int nLen_, WORD wCRC_=0xffff);
 
     protected:
         CDisk*      m_pDisk;        // The disk currently inserted in the drive, if any
