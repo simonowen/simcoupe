@@ -19,8 +19,10 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 // Notes:
-//  Uses OSD::GetTime(), which must return millisecond accurate time value
-//  for the module to work properly.
+//  Uses OSD::GetProfileTime() for an accurate time stamp.
+//  DWORD types are used for millisecond values by default, ut PROFILE_T
+//  can be re-defined on platforms that support more accurate values
+//  through the use of different types.
 
 #include "SimCoupe.h"
 #include "Profile.h"
@@ -34,45 +36,45 @@
 namespace Profile
 {
 PROFILE g_sProfile;
-DWORD dwTotal, dwLast, *apdwStack[10];
+PROFILE_T profTotal, profLast, *approfStack[10];
 UINT uStackPos = 0;
 
 
 void Reset ()
 {
-    dwTotal = 0;
+    profTotal = 0;
     memset(&g_sProfile, 0, sizeof g_sProfile);
-    memset(&apdwStack, 0, sizeof apdwStack);
+    memset(&approfStack, 0, sizeof approfStack);
     uStackPos = 0;
 
-    dwLast = OSD::GetTime();
+    profLast = OSD::GetProfileTime();
 }
 
 void ProfileUpdate ()
 {
     // Work out how much time has passed since the last check
-    DWORD dwNow = OSD::GetTime(), dwElapsed = dwNow - dwLast;
+    PROFILE_T profNow = OSD::GetProfileTime(), profElapsed = profNow - profLast;
 
     // If there was an item set, update it with the elapsed time
-    if (apdwStack[uStackPos])
+    if (approfStack[uStackPos])
     {
-        *apdwStack[uStackPos] += dwElapsed;
-        dwTotal += dwElapsed;
+        *approfStack[uStackPos] += profElapsed;
+        profTotal += profElapsed;
     }
 
     // Update the 'last' time for next time
-    dwLast = dwNow;
+    profLast = profNow;
 }
 
-void ProfileStart_(DWORD* pdwNew_)
+void ProfileStart_(PROFILE_T* pprofNew_)
 {
     if (GetOption(profile))
     {
         ProfileUpdate();
 
         // Remember the new item to time and the start time
-        if (uStackPos < (sizeof apdwStack / sizeof apdwStack[0]))
-            apdwStack[++uStackPos] = pdwNew_;
+        if (uStackPos < (sizeof approfStack / sizeof approfStack[0]))
+            approfStack[++uStackPos] = pprofNew_;
         else
             UI::ShowMessage(msgFatal, "Profile stack overflow!\n");
     }
@@ -92,15 +94,14 @@ void ProfileEnd ()
 }
 
 
-#define AddPercent(x)   sprintf(sz + strlen(sz), " %s:%lu%%", #x, ((g_sProfile.dw##x + dwTotal/200UL) * 100UL) / dwTotal)
-#define AddTime(x)      sprintf(sz + strlen(sz), " %s:%lums", #x, g_sProfile.dw##x)
+#define AddPercent(x)   sprintf(sz + strlen(sz), " %s:%lu%%", #x, ((g_sProfile.prof##x + profTotal/200UL) * 100UL) / profTotal)
 
 const char* GetStats ()
 {
     static char sz[64];
     sz[0] = '\0';
 
-    if (dwTotal)
+    if (profTotal)
     {
         switch (GetOption(profile))
         {
@@ -122,7 +123,6 @@ const char* GetStats ()
                 AddTime(Gfx);
                 AddTime(Snd);
                 AddTime(Blt);
-                AddTime(Idle);
                 break;
             }
         }

@@ -21,28 +21,36 @@
 #ifndef PROFILE_H
 #define PROFILE_H
 
-// The member names in this structure must be dw<something>
+#ifndef PROFILE_T
+#define PROFILE_T       DWORD
+#endif
+
+#ifndef AddTime
+#define AddTime(x)      sprintf(sz + strlen(sz), " %s:%lums", #x, g_sProfile.prof##x)
+#endif
+
+// The member names in this structure must be prof<something>
 typedef struct
 {
-    DWORD dwCPU;
-    DWORD dwGfx;
-    DWORD dwSnd;
-    DWORD dwBlt;
-    DWORD dwIdle;
-    DWORD dwOther;
+    PROFILE_T profCPU;
+    PROFILE_T profGfx;
+    PROFILE_T profSnd;
+    PROFILE_T profBlt;
+    PROFILE_T profIdle;
+    PROFILE_T profOther;
 }
 PROFILE;
 
 
 // Macros to reference values in the structure above
-#define ProfileStart(type)  Profile::ProfileStart_(&Profile::g_sProfile.dw##type)
+#define ProfileStart(type)  Profile::ProfileStart_(&Profile::g_sProfile.prof##type)
 #define ProfileEnd()        Profile::ProfileEnd_()
 
 namespace Profile
 {
     void Reset ();
     const char* GetStats ();
-    void ProfileStart_ (DWORD* pdwNew_);
+    void ProfileStart_ (PROFILE_T* pdwNew_);
     void ProfileEnd_ ();
 
     extern PROFILE g_sProfile;
