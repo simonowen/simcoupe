@@ -67,22 +67,30 @@ class CIoDevice
         virtual void FrameEnd () { }
 };
 
+enum { dskNone, dskImage, dskAtom };
 
 class CDiskDevice :  public CIoDevice
 {
+    public:
+        CDiskDevice (int nType_) : m_nType(nType_) { }
+        virtual ~CDiskDevice () { }
+
     public:
         virtual bool Insert (const char* pcszImage_, bool fReadOnly_=false) { return false; }
         virtual bool Eject () { return false; }
         virtual bool Flush () { return false; }
 
     public:
-        virtual int GetType () const { return 0; }
+        virtual int GetType () const { return m_nType; }
         virtual const char* GetImage () const { return ""; }
         virtual bool IsInserted () const { return false; }
         virtual bool IsWriteable () const { return false; }
         virtual bool IsModified () const { return false; }
         virtual bool IsLightOn () const { return false; }
         virtual bool IsActive () const { return IsLightOn(); }
+
+    protected:
+        int m_nType;
 };
 
 
