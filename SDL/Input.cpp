@@ -468,33 +468,9 @@ void SetSamKeyState ()
 }
 
 
-// TEMPORARY HACK: SDL 1.2.7 returns the y-coord reversed on windowed OpenGL under OS X, so correct it
-void AppleHack (SDL_Event* pEvent_)
-{
-#if defined(USE_OPENGL) && defined(__APPLE__)
-    if (!GetOption(fullscreen))
-    {
-        switch (pEvent_->type)
-        {
-            case SDL_MOUSEMOTION:
-                pEvent_->motion.y = Frame::GetHeight()-pEvent_->motion.y;
-                pEvent_->motion.yrel *= -1;
-                break;
-
-            case SDL_MOUSEBUTTONDOWN:
-            case SDL_MOUSEBUTTONUP:
-                pEvent_->button.y = Frame::GetHeight()-pEvent_->button.y;
-                break;
-        }
-    }
-#endif
-}
-
 // Process and SDL event message
 void Input::ProcessEvent (SDL_Event* pEvent_)
 {
-    AppleHack(pEvent_);
-
     switch (pEvent_->type)
     {
         case SDL_ACTIVEEVENT:
