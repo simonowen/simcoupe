@@ -81,8 +81,4 @@ template <class T> void swap (T& a, T& b) { T tmp=a; a=b; b=tmp; }
 #define MAX_PATH            260
 #endif
 
-#ifdef SC_INCLUDE
-#include SC_INCLUDE
-#endif
-
 #endif  // SIMCOUPE_H
