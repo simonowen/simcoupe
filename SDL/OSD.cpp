@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // OSD.cpp: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -122,14 +122,14 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 #elif defined(__BEOS__)
         // Use a SimCoupe directory in the user's config/settings directory
         find_directory(B_USER_SETTINGS_DIRECTORY, 0, true, szPath, sizeof szPath);
-        strcat(szPath, "/SimCoupe");
-        mkdir(szPath, S_IRWXU);
         strcat(szPath, "/");
 #else
-        // We'll use a .SimCoupe directory in the user's home directory
-        strcat(strcpy(szPath, getenv("HOME")), "/.SimCoupe");
-        mkdir(szPath, S_IRWXU);
-        strcat(szPath, "/");
+        // We'll use the user's home directory
+        strcat(strcpy(szPath, getenv("HOME")), "/");
+
+        // Use a Unixy name for the configuration file
+        if (!strcasecmp(pcszFile_, "SimCoupe.cfg"))
+            pcszFile_ = ".simcoupecfg";
 #endif
 
         // Append the supplied file/path
