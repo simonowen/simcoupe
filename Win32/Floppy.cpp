@@ -2,7 +2,7 @@
 //
 // Floppy.cpp: Win32 direct floppy access
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2004  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -61,7 +61,7 @@ bool Floppy::Init (bool fFirstInit_/*=false*/)
 {
     nPlatform = GetPlatformType();
 
-    if (fFirstInit_)
+    if (fFirstInit_ && GetPlatformType() == osWinNT5Plus)
         CFloppyStream::LoadDriver();
 
     return true;
@@ -69,7 +69,7 @@ bool Floppy::Init (bool fFirstInit_/*=false*/)
 
 void Floppy::Exit (bool fReInit_/*=true*/)
 {
-    if (!fReInit_)
+    if (!fReInit_ && GetPlatformType() == osWinNT5Plus)
         CFloppyStream::UnloadDriver();
 }
 
@@ -81,7 +81,7 @@ void Floppy::Exit (bool fReInit_/*=true*/)
     SC_HANDLE hManager, hService = NULL;
 
     // Form the full path of the driver in the same location that SimCoupe.exe is running from
-    const char* pcszDriver = OSD::GetFilePath((nPlatform != osWinNT4) ? "SAMDISK.SYS" : "SAMDISKL.SYS");
+    const char* pcszDriver = OSD::GetFilePath("SAMDISK.SYS");
 
 
     // We can't do anything if the driver file is missing
@@ -213,15 +213,15 @@ void Floppy::Exit (bool fReInit_/*=true*/)
     return (GetDriveType(pcszStream_) == DRIVE_REMOVABLE);
 }
 
-CFloppyStream::CFloppyStream (const char* pcszDrive_, bool fReadOnly_)
-    : CStream(pcszDrive_, fReadOnly_), m_hDevice(INVALID_HANDLE_VALUE), m_dwResult(ERROR_SUCCESS)
+CFloppyStream::CFloppyStream (const char* pcszDevice_, bool fReadOnly_)
+    : CStream(pcszDevice_, fReadOnly_), m_hDevice(INVALID_HANDLE_VALUE), m_dwResult(ERROR_SUCCESS)
 {
     // NT-based?
-    if (nPlatform >= osWinNT4)
+    if (nPlatform == osWinNT5Plus)
     {
         // Ensure the device driver is loaded
         char szDevice[32] = "\\\\.\\";
-        lstrcat(szDevice, pcszDrive_);
+        lstrcat(szDevice, pcszDevice_);
 
         if ((m_hDevice = CreateFile(szDevice, GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
                 FILE_FLAG_OVERLAPPED, NULL)) != INVALID_HANDLE_VALUE)
@@ -244,7 +244,7 @@ CFloppyStream::CFloppyStream (const char* pcszDrive_, bool fReadOnly_)
 
 void CFloppyStream::RealClose ()
 {
-    if (nPlatform >= osWinNT4)
+    if (nPlatform == osWinNT5Plus)
     {
         if (m_hDevice && (m_hDevice != INVALID_HANDLE_VALUE))
         {
@@ -274,7 +274,7 @@ BYTE CFloppyStream::Read (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData
 //  TRACE("Reading sector from %d:%d:%d\n", uSide_, uTrack_, uSector_);
     *puSize_ = 0;
 
-    if ((nPlatform >= osWinNT4) && (m_hDevice != INVALID_HANDLE_VALUE))
+    if ((nPlatform == osWinNT5Plus) && (m_hDevice != INVALID_HANDLE_VALUE))
     {
         AbortAsyncOp();
         ZeroMemory(&m_sOverlapped, sizeof(m_sOverlapped));
@@ -311,7 +311,7 @@ BYTE CFloppyStream::Write (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbDat
 //  TRACE("Writing sector to %d:%d:%d\n", uSide_, uTrack_, uSector_);
     *puSize_ = 0;
 
-    if ((nPlatform >= osWinNT4) && (m_hDevice != INVALID_HANDLE_VALUE))
+    if ((nPlatform == osWinNT5Plus) && (m_hDevice != INVALID_HANDLE_VALUE))
     {
         AbortAsyncOp();
         ZeroMemory(&m_sOverlapped, sizeof(m_sOverlapped));
