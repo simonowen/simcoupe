@@ -286,7 +286,7 @@ void DoAction (int nAction_, bool fPressed_)
 
             case actResetButton:
                 // Simulate the reset button being held by part-resetting the CPU and I/O, and holding the sound chip
-                CPU::Init(false);
+                CPU::Reset(true);
                 Sound::Stop();
                 break;
 
@@ -498,7 +498,7 @@ void DoAction (int nAction_, bool fPressed_)
         {
             case actResetButton:
                 // Reset the CPU, and prepare fast reset if necessary
-                CPU::Init();
+                CPU::Reset(false);
 
                 // Start the fast-boot timer
                 if (GetOption(fastreset))
