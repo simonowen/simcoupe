@@ -79,6 +79,8 @@ class COptionsDialog : public CDialog
 
     protected:
         CListView* m_pOptions;
+        CTextButton* m_pClose;
+        CTextControl* m_pStatus;
 };
 
 
