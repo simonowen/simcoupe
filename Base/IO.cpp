@@ -58,6 +58,7 @@
 #include "Sound.h"
 #include "Util.h"
 #include "Video.h"
+#include "YATBus.h"
 
 extern int g_nLine;
 extern int g_nLineCycle;
@@ -67,7 +68,7 @@ CIoDevice *pParallel1, *pParallel2;
 CIoDevice *pSerial1, *pSerial2;
 CIoDevice *pMidi;
 CIoDevice *pBeeper;
-CIoDevice *pSDIDE;
+CIoDevice *pSDIDE, *pYATBus;
 
 // Port read/write addresses for I/O breakpoints
 WORD wPortRead, wPortWrite;
@@ -132,7 +133,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         ReleaseAllSamKeys();
 
         // Initialise all the devices
-        fRet &= (InitDrives() && InitParallel() && InitSerial() && InitMidi() && InitBeeper() && InitSDIDE() && Clock::Init());
+        fRet &= (InitDrives() && InitParallel() && InitSerial() && InitMidi() && InitBeeper() && InitHDD() && Clock::Init());
     }
 
     // Return true only if everything
@@ -148,7 +149,7 @@ void IO::Exit (bool fReInit_/*=false*/)
         InitSerial(false, fReInit_);
         InitMidi(false, fReInit_);
         InitBeeper(false, fReInit_);
-        InitSDIDE(false, fReInit_);
+        InitHDD(false, fReInit_);
 
         Clock::Exit();
     }
@@ -233,8 +234,8 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 
 bool IO::InitParallel (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 {
-    if (pParallel1) { delete pParallel1; pParallel1 = NULL; }
-    if (pParallel2) { delete pParallel2; pParallel2 = NULL; }
+    delete pParallel1; pParallel1 = NULL;
+    delete pParallel2; pParallel2 = NULL;
 
     if (fInit_)
     {
@@ -260,8 +261,8 @@ bool IO::InitParallel (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 
 bool IO::InitSerial (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 {
-    if (pSerial1) { delete pSerial1; pSerial1 = NULL; }
-    if (pSerial2) { delete pSerial2; pSerial2 = NULL; }
+    delete pSerial1; pSerial1 = NULL;
+    delete pSerial2; pSerial2 = NULL;
 
     if (fInit_)
     {
@@ -275,7 +276,7 @@ bool IO::InitSerial (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 
 bool IO::InitMidi (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 {
-    if (pMidi) { delete pMidi; pMidi = NULL; }
+    delete pMidi; pMidi = NULL;
 
     if (fInit_)
     {
@@ -291,7 +292,7 @@ bool IO::InitMidi (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 
 bool IO::InitBeeper (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 {
-    if (pBeeper) { delete pBeeper; pBeeper = NULL; }
+    delete pBeeper; pBeeper = NULL;
 
     if (fInit_)
         pBeeper = GetOption(beeper) ? new CBeeperDevice : new CIoDevice;
@@ -299,17 +300,21 @@ bool IO::InitBeeper (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     return fInit_ || pBeeper;
 }
 
-bool IO::InitSDIDE (bool fInit_/*=true*/, bool fReInit_/*=true*/)
+bool IO::InitHDD (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 {
-    if (pSDIDE) { delete pSDIDE; pSDIDE = NULL; }
+    delete pSDIDE; pSDIDE = NULL;
+    delete pYATBus; pYATBus = NULL;
 
     if (fInit_)
     {
         CHardDisk* pDisk = CHardDisk::OpenObject(GetOption(sdidedisk));
         pSDIDE = pDisk ? new CSDIDEDevice(pDisk) : new CIoDevice;
+
+        pDisk = CHardDisk::OpenObject(GetOption(yatbusdisk));
+        pYATBus = pDisk ? new CYATBusDevice(pDisk) : new CIoDevice;
     }
 
-    return fInit_ || pSDIDE;
+    return fInit_ || (pSDIDE && pYATBus);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -594,6 +599,10 @@ BYTE IO::In (WORD wPort_)
                     return pDrive2->In(wPort_);
             }
 
+            // YAMOD.ATBUS hard disk interface
+            else if ((bPortLow & YATBUS_MASK) == YATBUS_BASE)
+                return pYATBus->In(wPort_);
+
             // Only unsupported hardware should reach here
             else
                 TRACE("*** Unhandled read: %#04x (%d)\n", wPort_, wPort_&0xff);
@@ -840,6 +849,10 @@ void IO::Out (WORD wPort_, BYTE bVal_)
                 if (GetOption(drive2))
                     pDrive2->Out(wPort_, bVal_);
             }
+
+            // YAMOD.ATBUS hard disk interface
+            else if ((bPortLow & YATBUS_MASK) == YATBUS_BASE)
+                pYATBus->Out(wPort_, bVal_);
 
             // Only unsupported hardware should reach here
             else
