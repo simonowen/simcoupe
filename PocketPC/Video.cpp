@@ -203,7 +203,7 @@ void Video::Exit (bool fReInit_/*=false*/)
         // Give the display back to Windows
         GXCloseDisplay();
 
-        // Clean up any 
+        // Clean up any palette
         if (hpalOld)
         {
             HDC hdc = GetDC(NULL);

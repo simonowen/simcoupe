@@ -77,7 +77,7 @@ KEYAREA asKeyAreas[] =
 };
 
 // Actions for each of the 10 function buttons, in the 3 shifted states
-static int anActions[][10] = 
+static int anActions[][10] =
 {
     { actInsertFloppy1, actInsertFloppy2, actDisplayOptions, actAbout, actPause, actTempTurbo, -1, -1, actResetButton, actExitApplication },
     { actEjectFloppy1, actEjectFloppy2, -1, -1, -1, -1, -1, -1, actNmiButton, actMinimise },

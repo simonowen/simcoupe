@@ -49,7 +49,7 @@ UINT HCF (UINT x_, UINT y_);
 
 CStreamBuffer* aStreams[SOUND_STREAMS];
 
-CStreamBuffer*& pSAA = aStreams[0];     // SAA 1099 
+CStreamBuffer*& pSAA = aStreams[0];     // SAA 1099
 CStreamBuffer*& pDAC = aStreams[1];     // DAC for parallel DACs and Spectrum-style beeper
 
 LPCSAASOUND pSAASound;  // SAASound.dll object - needs to exist as long as we do, to preseve subtle internal states
@@ -557,7 +557,7 @@ void CDAC::Generate (BYTE* pb_, int nSamples_)
 
 void CDAC::GenerateExtra (BYTE* pb_, int nSamples_)
 {
-    // Re-use the specified amount from the previous sample, 
+    // Re-use the specified amount from the previous sample,
     if (pb_ != m_pbFrameSample)
         memmove(pb_, m_pbFrameSample, nSamples_*uSampleSize);
 }
