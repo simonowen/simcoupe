@@ -162,7 +162,7 @@ bool Video::Init (bool fFirstInit_)
                     if (pddsFront = CreateOverlay(dwWidth, dwHeight, &ddpf))
                     {
                         // Is the overlay surface lockable?
-                        if (SUCCEEDED(hr = pddsFront->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WAIT, NULL)))
+                        if (SUCCEEDED(hr = pddsFront->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL)))
                         {
                             // If so, we'll use it directly for the back buffer
                             pddsFront->Unlock(ddsd.lpSurface);
@@ -251,7 +251,7 @@ HRESULT ClearSurface (LPDIRECTDRAWSURFACE pdds_)
     if (FAILED(hr = pdds_->Blt(NULL, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx)))
     {
         // Bah, that failed so we'll have to do it the hard way!
-        if (SUCCEEDED(hr = pdds_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WAIT, NULL)))
+        if (SUCCEEDED(hr = pdds_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL)))
         {
             // Get the surface pointer, and convert width to pairs of (WORD-sized) pixels and pitch to DWORDs
             DWORD* pdw = reinterpret_cast<DWORD*>(ddsd.lpSurface);
@@ -299,7 +299,7 @@ DWORD Video::GetOverlayColourKey ()
 
         // Lock the surface and see what the value is for the current mode
         HRESULT hr;
-        if (FAILED(hr = pddsPrimary->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WAIT, NULL)))
+        if (FAILED(hr = pddsPrimary->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, NULL)))
             TRACE("Failed to lock primary surface in SetOverlayColour() (%#08lx)\n", hr);
         else
         {
@@ -401,7 +401,7 @@ LPDIRECTDRAWSURFACE CreateSurface (DWORD dwCaps_, DWORD dwWidth_/*=0*/, DWORD dw
         TRACE("!!! Failed to create surface (%#08lx)\n", hr);
 
     // Make sure the surface is lockable, as some VRAM surfaces may not be
-    else if (SUCCEEDED(hr = pdds->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WAIT, NULL)))
+    else if (SUCCEEDED(hr = pdds->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL)))
         pdds->Unlock(ddsd.lpSurface);
 
     // If we've not just tried a system surface, try one now
