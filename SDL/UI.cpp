@@ -287,15 +287,15 @@ void ResizeWindow (bool fUseOption_/*=false*/)
 };
 
 
-bool InsertDisk (CDiskDevice* pDrive_)
+bool InsertDisk (CDiskDevice* pDrive_, const char* pName)
 {
-  // FT Can't remember the #define here
-    static char szFile[256] = "";
-    static bool fReadOnly = false;
+    // FT Can't remember the #define here
+  //static char szFile[256] = "";
+    //static bool fReadOnly = false;
 
     // Eject any current disk, and use the path and read-only status from it for the open dialogue box
-    if (pDrive_->IsInserted())
-      strcpy(szFile, pDrive_->GetImage());
+    //if (pDrive_->IsInserted())
+    //strcpy(szFile, pDrive_->GetImage());
 
     // Prompt for the a new disk to insert
     //if (GetSaveLoadFile(g_hwnd, szDiskFilters, NULL, szFile, sizeof szFile, &fReadOnly, true))
@@ -304,10 +304,9 @@ bool InsertDisk (CDiskDevice* pDrive_)
         pDrive_->Eject();
 
         // Open the new disk (using the requested read-only mode), and insert it into the drive if successful
-        if (pDrive_->Insert(szFile, fReadOnly))
-            return true;
+        if (pDrive_->Insert(pName))
+	    return true;
 	
-	Frame::SetStatus("Inserted disk in drive 1");
 	//}
 
     return false;
@@ -387,16 +386,21 @@ void DoAction (int nAction_, bool fPressed_)
                                 GetOption(keymapping)==1 ? "SAM Coupe keyboard mode" : "Spectrum keyboard mode");
                 break;
 
-            case actInsertFloppy1:
-                if (GetOption(drive1) == 1)
-                    InsertDisk(pDrive1);
+	    case actInsertFloppy1:
+	        if (GetOption(drive1) == 1) 
+	        {
+		    InsertDisk(pDrive1, GetOption(disk1));
+		    SetOption(disk1, pDrive1->GetImage());
+		    Frame::SetStatus("Inserted disk in drive 1");
+
+		}
                 break;
 
             case actEjectFloppy1:
                 if (GetOption(drive1) == 1 && pDrive1->IsInserted())
                 {
+                    SetOption(disk1, pDrive1->GetImage());
                     pDrive1->Eject();
-                    SetOption(disk1,"");
                     Frame::SetStatus("Ejected disk from drive 1");
                 }
                 break;
@@ -408,14 +412,18 @@ void DoAction (int nAction_, bool fPressed_)
 
             case actInsertFloppy2:
                 if (GetOption(drive2) == 1)
-                    InsertDisk(pDrive2);
-                break;
+		{
+                    InsertDisk(pDrive2, GetOption(disk2));
+		    SetOption(disk2, pDrive2->GetImage());
+		    Frame::SetStatus("Inserted disk in drive 2");
+                }
+		break;
 
             case actEjectFloppy2:
                 if (GetOption(drive2) == 1 && pDrive2->IsInserted())
                 {
+                    SetOption(disk2, pDrive2->GetImage());
                     pDrive2->Eject();
-                    SetOption(disk2,"");
                     Frame::SetStatus("Ejected disk from drive 2");
                 }
                 break;
