@@ -659,7 +659,7 @@ UINT CDrive::ReadTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_)
     }
 
     // Return the amount filled in
-    return pb - pbTrack_;
+    return static_cast<UINT>(pb - pbTrack_);
 }
 
 
