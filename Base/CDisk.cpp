@@ -211,9 +211,6 @@ bool CDisk::FindSector (UINT uSide_, UINT uTrack_, UINT uIdTrack_, UINT uSector_
         delete[] pb;
     }
 
-    // Calculate the cylinder size
-    UINT uCylSize = NORMAL_DISK_SIDES * NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE;
-
     // Accept 720K (9-sector DOS) disks and 800K (10-sector) SAM disks
     return uSize == DSK_IMAGE_SIZE || uSize == MSDOS_IMAGE_SIZE;
 }
