@@ -495,10 +495,7 @@ void DoAction (int nAction_, bool fPressed_)
             case actToggle5_4:
 #ifdef USE_OPENGL
                 SetOption(ratio5_4, !GetOption(ratio5_4));
-
-//              if (!GetOption(stretchtofit))
-                    Frame::Init();
-
+                Frame::Init();
                 Frame::SetStatus("%s pixel size", GetOption(ratio5_4) ? "5:4" : "1:1");
 #else
                 GUI::Start(new CMessageBox(NULL, "5:4 mode not available under SDL", "Sorry!", mbInformation));
