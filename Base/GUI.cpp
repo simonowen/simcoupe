@@ -254,7 +254,7 @@ CWindow::~CWindow ()
         delete pChild;
     }
 
-    delete m_pszText;
+    delete[] m_pszText;
 }
 
 
@@ -385,7 +385,7 @@ void CWindow::SetText (const char* pcszText_)
     // Delete any old string and make a copy of the new one (take care in case the new string is the old one)
     char* pcszOld = m_pszText;
     strcpy(m_pszText = new char[strlen(pcszText_)+1], pcszText_);
-    delete pcszOld;
+    delete[] pcszOld;
 }
 
 void CWindow::SetValue (UINT u_)
@@ -1917,8 +1917,8 @@ CFileView::CFileView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHei
 
 CFileView::~CFileView()
 {
-    delete m_pszPath;
-    delete m_pszFilter;
+    delete[] m_pszPath;
+    delete[] m_pszFilter;
 }
 
 
@@ -2046,7 +2046,7 @@ void CFileView::SetPath (const char* pcszPath_)
 {
     if (pcszPath_)
     {
-        delete m_pszPath;
+        delete[] m_pszPath;
         strcpy(m_pszPath = new char[strlen(pcszPath_)+1], pcszPath_);
 
         // If the path doesn't end in a separator, we've got a filename too
@@ -2069,7 +2069,7 @@ void CFileView::SetFilter (const char* pcszFilter_)
 {
     if (pcszFilter_)
     {
-        delete m_pszFilter;
+        delete[] m_pszFilter;
         strcpy(m_pszFilter = new char[strlen(pcszFilter_)+1], pcszFilter_);
         Refresh();
     }
