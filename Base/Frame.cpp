@@ -194,8 +194,11 @@ void Frame::Update ()
     // If we're still on the same line as last time we've only got a part line to draw
     if (nLine == nLastLine)
     {
-        g_pFrame->UpdateLine(nLine, nLastBlock, nBlock);
-        nLastBlock = nBlock;
+        if (nBlock > nLastBlock)
+        {
+            g_pFrame->UpdateLine(nLine, nLastBlock, nBlock);
+            nLastBlock = nBlock;
+        }
     }
 
     // We've got multiple lines to update
@@ -255,29 +258,37 @@ void Frame::Update ()
 // Fill the display after current raster position, currently with a dark grey
 void RasterComplete ()
 {
-    // Don't do anything if the current frame is being skipped
-    if (!fDrawFrame)
+    static DWORD dwCycleCounter;
+
+    // Don't do anything if the current frame is being skipped or we've already completed the area
+    if (!fDrawFrame || (dwCycleCounter == g_dwCycleCounter))
         return;
+    else
+        dwCycleCounter = g_dwCycleCounter;
 
     ProfileStart(Gfx);
 
     // Work out the range that within the visible area
-    int nLeft = max(s_nViewLeft, nLastBlock) - s_nViewLeft, nRight = s_nViewRight - s_nViewLeft;
+    int nLeft = max(s_nViewLeft, nLastBlock) - s_nViewLeft;
     int nTop = max(nLastLine, s_nViewTop) - s_nViewTop, nBottom = s_nViewBottom - s_nViewTop;
 
+    // If there anything to clear?
     if (nTop <= nBottom)
     {
         bool fHiRes = false;
 
-        if (nLeft < nRight)
+        // Complete the undrawn section of the current line, if any
+        if (nTop == (nLastLine-s_nViewTop))
         {
             BYTE* pb = g_pScreen->GetLine(nTop, fHiRes);
             int nOffset = nLeft << (fHiRes ? 4 : 3);
-            memset(pb+nOffset, GREY_2, Frame::GetWidth() - nOffset);
+            memset(pb+nOffset, GREY_3, Frame::GetWidth() - nOffset);
+            nTop++;
         }
 
-        for (int i = nTop+1 ; i < nBottom ; i++)
-            memset(g_pScreen->GetLine(i), GREY_2, Frame::GetWidth());
+        // Fill the remaining lines
+        for (int i = nTop ; i < nBottom ; i++)
+            memset(g_pScreen->GetLine(i), GREY_3, Frame::GetWidth());
     }
 
     ProfileEnd();
@@ -305,8 +316,13 @@ void Frame::Complete ()
         if (szScreenPath[0])
             SaveFrame(szScreenPath);
 
+        static bool fLastActive = false;
         if (GUI::IsActive())
         {
+            // If this is the first time we're showing the GUI, swap back the last complete SAM frame
+            if (!fLastActive)
+                swap(g_pScreen, g_pLastScreen);
+
             // Make a double-height copy of the current frame for the GUI to overlay
             for (int i = 0 ; i < GetHeight() ; i++)
             {
@@ -334,6 +350,8 @@ void Frame::Complete ()
 
         // Redraw what's new
         Redraw();
+
+        fLastActive = GUI::IsActive();
     }
 
     ProfileEnd();
