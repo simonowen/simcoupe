@@ -120,9 +120,12 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
     else
     {
 #if defined(__BEOS__)
-        // Files are relative to the user settings directory
-        find_directory(B_USER_SETTINGS_DIRECTORY, 0, true, szPath, sizeof szPath);
-        strcat(szPath, "/");
+        // Zeta breaks compatability by moving find_directory to libzeta.so :-/
+//      find_directory(B_USER_SETTINGS_DIRECTORY, 0, true, szPath, sizeof szPath);
+//      strcat(szPath, "/");
+
+        // Use a hard-coded path for now - can be fixed if/when Zeta is truly multi-user
+        strcpy(szPath, "/boot/home/config/settings/");
 #elif defined(__APPLE__)
         // Files are relative to the user preferences directory
         strcat(strcpy(szPath, getenv("HOME")), "/Library/Preferences/");
