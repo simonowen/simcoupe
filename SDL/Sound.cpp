@@ -390,10 +390,10 @@ void CSoundStream::AddData (BYTE* pbData_, int nLength_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Byte 16-bit sample values, as needed on big endian systems
+// Byte-swap 16-bit samples, as needed on big endian systems
 void ByteSwap16 (BYTE* pbSamples_, int nSamples_)
 {
-    for (PWORD pw = reinterpret_cast<PWORD>(pbSamples_) ; nSamples_-- ; pbSamples_++)
+    for (WORD *pw = reinterpret_cast<WORD*>(pbSamples_) ; nSamples_-- ; pbSamples_++)
         *pbSamples_ = (*pbSamples_ << 8) | (*pbSamples_ >> 8);
 }
 
@@ -406,7 +406,7 @@ void CSAA::Generate (BYTE* pb_, int nSamples_)
         pSAASound->GenerateMany(pb_, nSamples_);
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-        ByteSwap(pb_, nSamples_);
+        ByteSwap16(pb_, nSamples_);
 #endif
     }
 }
@@ -424,7 +424,7 @@ void CSAA::GenerateExtra (BYTE* pb_, int nSamples_)
         pSAASound->GenerateMany(pb_, nSamples_);
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-        ByteSwap(pb_, nSamples_);
+        ByteSwap16(pb_, nSamples_);
 #endif
     }
 }
