@@ -45,9 +45,14 @@
 #include "Sound.h"
 #include "Video.h"
 
-// Sourced from MSVCRT.DLL
+// Sourced argv/argv from either MSVCRT.DLL or the static CRT
+#ifdef _DLL
 __declspec(dllimport) int __argc;
 __declspec(dllimport) char** __argv;
+#else
+extern int __argc;
+extern char** __argv;
+#endif
 
 #include "resource.h"   // For menu and dialogue box symbols
 
@@ -253,10 +258,10 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
 
     if (GetOption(fullscreen))
     {
-        DWORD dwStyle = GetWindowStyle(g_hwnd);
-        dwStyle = WS_POPUP|WS_VISIBLE;
-        SetWindowLong(g_hwnd, GWL_STYLE, dwStyle);
+        // Change the window style to a visible pop-up, with no caption or border
+        SetWindowLong(g_hwnd, GWL_STYLE, WS_POPUP|WS_VISIBLE);
 
+        // Force the window to be top-most, and sized to fill the full screen
         RECT rect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
         SetWindowPos(g_hwnd, HWND_TOPMOST, rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top, 0);
     }
@@ -784,8 +789,13 @@ BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             SendMessage(hwndURL, WM_SETFONT, reinterpret_cast<WPARAM>(hfont), 0L);
 
             // Subclass the static URL control, so we can set a custom cursor
-            pfnStaticWndProc = reinterpret_cast<WNDPROC>(SetWindowLong(hwndURL,
-                                    GWL_WNDPROC, reinterpret_cast<LONG>(URLWndProc)));
+#if !defined(SetWindowLongPtr)
+            pfnStaticWndProc = (WNDPROC)SetWindowLong(hwndURL, GWL_WNDPROC, (LONG)URLWndProc);
+#elif defined(_WIN64)
+            pfnStaticWndProc = (WNDPROC)SetWindowLongPtr(hwndURL, GWLP_WNDPROC, (LONG_PTR)URLWndProc);
+#else
+            pfnStaticWndProc = (WNDPROC)(LONG_PTR)SetWindowLongPtr(hwndURL, GWLP_WNDPROC, (LONG)(LONG_PTR)URLWndProc);
+#endif
 
             CentreWindow(hdlg_);
             return 1;
@@ -808,7 +818,7 @@ BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
         case WM_CTLCOLORDLG:
             // Force a white background on the dialog (and statics, from above)
-            return (BOOL)GetStockObject(WHITE_BRUSH);
+            return (BOOL)(LONG_PTR)(GetStockObject(WHITE_BRUSH));
 
         case WM_COMMAND:
             // Esc or the X closes the dialog
@@ -1634,8 +1644,9 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                         Message(msgError, "Failed to open %s for %s", szFile, fImport ? "reading" : "writing");
                     else
                     {
-                        UINT uLen = fImport ? 0x7ffff : min(uLength, 0x84000), uDone = 0;
+                        UINT uLen = fImport ? 0x7ffff : min(uLength, 0x84000);
                         uPage = (uAddr < 0x4000) ? ROM0 : uPage;
+                        size_t uDone = 0;
 
                         if (fImport)
                         {
@@ -1706,7 +1717,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
             CentreWindow(hdlg_);
 
             // Store the drive to insert into, and report it in the caption
-            nDrive = lParam_;
+            nDrive = static_cast<int>(lParam_);
             wsprintf(sz, "New Disk for Drive %d", nDrive);
             SetWindowText(hdlg_, sz);
 
@@ -2565,8 +2576,8 @@ BOOL CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 else
                     SetOption(turboload, 0);
 
-                SetOption(drive1, SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L));
-                SetOption(drive2, SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L));
+                SetOption(drive1, (int)SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L));
+                SetOption(drive2, (int)SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L));
 
                 if (Changed(drive1) || Changed(drive2))
                     IO::InitDrives();
@@ -2975,8 +2986,8 @@ BOOL CALLBACK MidiPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 SetOption(midi, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_MIDI, CB_GETCURSEL, 0, 0L)));
                 
                 // Update the MIDI IN and MIDI OUT device numbers
-                SetOption(midiindev,  itoa(SendDlgItemMessage(hdlg_, IDC_MIDI_IN,  CB_GETCURSEL, 0, 0L)-1, sz, 10));
-                SetOption(midioutdev, itoa(SendDlgItemMessage(hdlg_, IDC_MIDI_OUT, CB_GETCURSEL, 0, 0L)-1, sz, 10));
+                SetOption(midiindev,  itoa((int)SendDlgItemMessage(hdlg_, IDC_MIDI_IN,  CB_GETCURSEL, 0, 0L)-1, sz, 10));
+                SetOption(midioutdev, itoa((int)SendDlgItemMessage(hdlg_, IDC_MIDI_OUT, CB_GETCURSEL, 0, 0L)-1, sz, 10));
 
                 if (Changed(midi) || ChangedString(midiindev) || ChangedString(midioutdev))
                     IO::InitMidi();
