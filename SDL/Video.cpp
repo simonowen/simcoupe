@@ -319,8 +319,13 @@ bool Video::CreatePalettes (bool fDimmed_)
         const RGBA* p = (i < N_PALETTE_COLOURS) ? &pSAM[i] : &pGUI[i-N_PALETTE_COLOURS];
         BYTE bRed = p->bRed, bGreen = p->bGreen, bBlue = p->bBlue, bAlpha = p->bAlpha;
 
+        // OpenGL?
         if (!pBack)
-            aulPalette[i] = (bAlpha << 24) | (bBlue << 16) | (bGreen << 8) | bRed;  // OpenGL
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+            aulPalette[i] = (bAlpha << 24) | (bBlue << 16) | (bGreen << 8) | bRed;
+#else
+            aulPalette[i] = (bRed << 24) | (bGreen << 16) | (bBlue << 8) | bAlpha;
+#endif
         else if (!fPalette)
             aulPalette[i] = SDL_MapRGB(pBack->format, bRed, bGreen, bBlue);
         else
