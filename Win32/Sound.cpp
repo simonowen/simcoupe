@@ -46,6 +46,10 @@
 
 extern HWND g_hwnd;
 
+typedef HRESULT (WINAPI *PFNDIRECTSOUNDCREATE) (LPGUID, LPDIRECTSOUND*, LPUNKNOWN);
+PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
+HINSTANCE hinstDSound;
+
 // Direct sound, primary buffer and secondary buffer interface pointers
 IDirectSound* g_pds = NULL;
 IDirectSoundBuffer* g_pdsbPrimary;
@@ -61,13 +65,20 @@ LPCSAASOUND pSAASound;  // SAASound.dll object - needs to exist as long as we do
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool InitDirectSound ()
+bool InitDirectSound (bool fFirstInit_)
 {
     HRESULT hr;
     bool fRet = false;
 
+    if (fFirstInit_)
+    {
+        // Load DirectSound and locate the initialisation function
+        if (hinstDSound = LoadLibrary("DSOUND.DLL"))
+            pfnDirectSoundCreate = reinterpret_cast<PFNDIRECTSOUNDCREATE>(GetProcAddress(hinstDSound, "DirectSoundCreate"));
+    }
+
     // Initialise DirectX
-    if (FAILED(hr = DirectSoundCreate(NULL, &g_pds, NULL)))
+    if (!pfnDirectSoundCreate || FAILED(hr = pfnDirectSoundCreate(NULL, &g_pds, NULL)))
         TRACE("!!! DirectSoundCreate failed (%#08lx)\n", hr);
 
     // We want priority control over the sound format while we're active
@@ -109,7 +120,7 @@ bool InitDirectSound ()
     return fRet;
 }
 
-void ExitDirectSound ()
+void ExitDirectSound (bool fReInit_)
 {
     if (g_pdsbPrimary)
     {
@@ -119,6 +130,8 @@ void ExitDirectSound ()
     }
 
     if (g_pds) { g_pds->Release(); g_pds = NULL; }
+
+    if (!fReInit_ && hinstDSound) { FreeLibrary(hinstDSound); hinstDSound = NULL; }
 }
 
 
@@ -137,7 +150,7 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
     // All sound disabled?
     if (!GetOption(sound))
         TRACE("Sound disabled, nothing to initialise\n");
-    else if (!InitDirectSound())
+    else if (!InitDirectSound(fFirstInit_))
     {
         TRACE("DirectX initialisation failed\n");
         SetOption(sound,0);
@@ -171,6 +184,10 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
             Message(msgWarning, "Sound initialisation failed");
             Exit();
         }
+
+#ifdef USE_TESTHW
+        TestHW::SoundInit(fFirstInit_);
+#endif
     }
 
     Play();
@@ -187,13 +204,17 @@ void Sound::Exit (bool fReInit_/*=false*/)
     for (int i = 0 ; i < SOUND_STREAMS ; i++)
         delete aStreams[i], aStreams[i] = NULL;
 
+#ifdef USE_TESTHW
+    TestHW::SoundExit(fReInit_);
+#endif
+
     if (pSAASound && !fReInit_)
     {
         DestroyCSAASound(pSAASound);
         pSAASound = NULL;
     }
 
-    ExitDirectSound();
+    ExitDirectSound(fReInit_);
 
     TRACE("<- Sound::Exit()\n");
 }
