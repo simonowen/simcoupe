@@ -304,16 +304,14 @@ bool GetSaveLoadFile (HWND hwndParent_, LPCSTR pcszFilters_, LPCSTR pcszDefExt_,
     *pszFile_ = '\0';
 
     // Fill in the details for a fax file to select
-    OPENFILENAME ofn;
-    ZeroMemory(&ofn, sizeof ofn);
-    ofn.lStructSize     = sizeof ofn;
-    ofn.hwndOwner       = hwndParent_;
-    ofn.lpstrFilter     = pcszFilters_;
-    ofn.lpstrFile       = pszFile_;
-    ofn.nMaxFile        = cbSize_;
-    ofn.lpstrDefExt     = pcszDefExt_;
-    ofn.nFilterIndex    = nFilterIndex;
-    ofn.Flags           = OFN_EXPLORER | (fLoad_ ? OFN_FILEMUSTEXIST : OFN_OVERWRITEPROMPT);
+    OPENFILENAME ofn = { sizeof ofn };
+    ofn.hwndOwner    = hwndParent_;
+    ofn.lpstrFilter  = pcszFilters_;
+    ofn.lpstrFile    = pszFile_;
+    ofn.nMaxFile     = cbSize_;
+    ofn.lpstrDefExt  = pcszDefExt_;
+    ofn.nFilterIndex = nFilterIndex;
+    ofn.Flags        = OFN_EXPLORER | (fLoad_ ? OFN_FILEMUSTEXIST : OFN_OVERWRITEPROMPT);
 
     // If supplied and set, check the read-only checkbox
     if (pfReadOnly_ && *pfReadOnly_)
@@ -577,9 +575,7 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actNewDisk:
-                Video::CreatePalettes(true);
                 DialogBox(__hinstance, MAKEINTRESOURCE(IDD_NEWDISK), g_hwnd, NewDiskDlgProc);
-                Video::CreatePalettes();
                 break;
 
             case actSaveScreenshot:
@@ -591,26 +587,18 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actImportData:
-                Video::CreatePalettes(true);
                 DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_IMPORT), g_hwnd, ImportExportDlgProc, 1);
-                Video::CreatePalettes();
                 break;
 
             case actExportData:
-                Video::CreatePalettes(true);
                 DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_EXPORT), g_hwnd, ImportExportDlgProc, 0);
-                Video::CreatePalettes();
                 break;
 
             case actDisplayOptions:
                 if (GetAsyncKeyState(VK_SHIFT) < 0)
                     GUI::Start(new COptionsDialog);
                 else if (!GUI::IsActive())
-                {
-                    Video::CreatePalettes(true);
                     DisplayOptions();
-                    Video::CreatePalettes();
-                }
                 break;
 
             case actExitApplication:
@@ -753,7 +741,7 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
 void CentreWindow (HWND hwnd_, HWND hwndParent_/*=NULL*/)
 {
     // If a window isn't specified get the parent window
-    if (!hwndParent_ || (IsIconic(hwndParent_) || !(hwndParent_ = GetParent(hwnd_))))
+    if ((hwndParent_ && IsIconic(hwndParent_)) || (!hwndParent_ && !(hwndParent_ = GetParent(hwnd_))))
         hwndParent_ = GetDesktopWindow();
 
     // Get the rectangles of the window to be centred and the parent window
@@ -772,15 +760,63 @@ void CentreWindow (HWND hwnd_, HWND hwndParent_/*=NULL*/)
 
 BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
+    static HFONT hfont;
+    static HWND hwndURL;
+
     switch (uMsg_)
     {
         case WM_INITDIALOG:
+        {
+            // Grab the attributes of the current GUI font
+            LOGFONT lf;
+            GetObject(GetStockObject(DEFAULT_GUI_FONT), sizeof lf, &lf);
+
+            // Add underline, and create it as a font to use for URLs
+            lf.lfUnderline = TRUE;
+            hfont = CreateFontIndirect(&lf);
+
+            // Fetch the URL handle for later, and set the underline font
+            hwndURL = GetDlgItem(hdlg_, ID_HOMEPAGE);
+            SendMessage(hwndURL, WM_SETFONT, reinterpret_cast<WPARAM>(hfont), 0L);
+
             CentreWindow(hdlg_);
             return 1;
+        }
+
+        case WM_DESTROY:
+            if (hfont)
+            {
+                DeleteObject(hfont);
+                hfont = NULL;
+            }
+            break;
+
+        // A click of any button will close the dialog
+        case WM_LBUTTONDOWN:
+        case WM_MBUTTONDOWN:
+        case WM_RBUTTONDOWN:
+            EndDialog(hdlg_, 0);
+            break;
+
+        case WM_CTLCOLORSTATIC:
+            // Make the text blue if it's the URL
+            if (hwndURL == reinterpret_cast<HWND>(lParam_))
+                SetTextColor(reinterpret_cast<HDC>(wParam_), RGB(0,0,255));
+
+            // Fall through...
+
+        case WM_CTLCOLORDLG:
+            // Force a white background on the dialog (and statics, from above)
+            return (BOOL)GetStockObject(WHITE_BRUSH);
 
         case WM_COMMAND:
-            if (wParam_ == IDOK || wParam_ == IDCANCEL)
+            // Esc or the X closes the dialog
+            if (wParam_ == IDCANCEL)
                 EndDialog(hdlg_, 0);
+
+            // Clicking the URL launches the homepage in the default browser
+            else if (wParam_ == ID_HOMEPAGE)
+                ShellExecute(NULL, NULL, "http://www.simcoupe.org/", NULL, "", SW_SHOWMAXIMIZED); break;
             break;
     }
 
@@ -820,6 +856,16 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             PostQuitMessage(0);
             return 0;
 
+        // Main window gaining focus, so undim the palette
+        case WM_SETFOCUS:
+            Video::CreatePalettes(false);
+            break;
+
+        // Main window losing focus, so dim the palette and force a redraw
+        case WM_KILLFOCUS:
+            Video::CreatePalettes(true);
+            Frame::Redraw();
+            break;
 
         // Main window being activated or deactivated
         case WM_ACTIVATE:
@@ -848,7 +894,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
                 // Dim the display while we're paused, or undim it when we get control again
                 Video::CreatePalettes();
-                Display::SetDirty();
                 Frame::Redraw();
 
                 SetWindowText(g_hwnd, g_fActive ? WINDOW_CAPTION : WINDOW_CAPTION " - Paused");
@@ -1278,11 +1323,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                     if (GetAsyncKeyState(VK_SHIFT) < 0)
                         GUI::Start(new CAboutDialog);
                     else
-                    {
-                        Video::CreatePalettes(true);
                         DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), g_hwnd, AboutDlgProc, NULL);
-                        Video::CreatePalettes(false);
-                    }
                     break;
             }
             break;
@@ -1321,7 +1362,6 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             }
 
             CentreWindow(hdlg_);
-
             return TRUE;
         }
 
