@@ -169,6 +169,7 @@ bool Video::Init (bool fFirstInit_/*=false*/)
     // The lack of stretching support means the SDL version currently lacks certain features, so force the options for now
     SetOption(scanlines, true);
 #ifndef USE_OPENGL
+    SetOption(stretchtofit, false);
     SetOption(ratio5_4, false);
 #endif
 
