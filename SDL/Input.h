@@ -2,7 +2,7 @@
 //
 // Input.h: SDL keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2002  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,16 +21,17 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-namespace Input
+class Input
 {
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
+    public:
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    void Acquire (bool fAcquireKeyboard_=true, bool fAcquireMouse_=true);
-    void Purge (bool fKeyboard_=true, bool fMouse_=true);
+        static void Acquire (bool fMouse_=true, bool fKeyboard_=true);
+        static void Purge (bool fMouse_=true, bool fKeyboard_=true);
 
-    void Update ();
-    void ProcessEvent (SDL_Event* pEvent_);
-}
+        static void Update ();
+        static void ProcessEvent (SDL_Event* pEvent_);
+};
 
 #endif
