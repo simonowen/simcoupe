@@ -346,7 +346,7 @@ class CFileDisk : public CDisk
 class LZSS
 {
     public:
-        static UINT Unpack (BYTE* pIn_, UINT uSize_, BYTE* pOut_);
+        static size_t Unpack (BYTE* pIn_, size_t uSize_, BYTE* pOut_);
 
     protected:
         static void Init ();

@@ -197,7 +197,7 @@ bool CDisk::FindSector (UINT uSide_, UINT uTrack_, UINT uIdTrack_, UINT uSector_
 
 /*static*/ bool CDSKDisk::IsRecognised (CStream* pStream_)
 {
-    UINT uSize;
+    size_t uSize;
 
     // If we don't have a size (gzipped) we have no choice but to read enough to find out
     if (!(uSize = pStream_->GetSize()))
@@ -504,7 +504,7 @@ BYTE CSADDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, UINT uSec
 
 /*static*/ bool CSDFDisk::IsRecognised (CStream* pStream_)
 {
-    UINT uSize;
+    size_t uSize;
 
     // Calculate the cylinder size, and the maximum size of an SDF image
     UINT uCylSize = MAX_DISK_SIDES * SDF_TRACKSIZE;
@@ -540,7 +540,7 @@ CSDFDisk::CSDFDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
     if (pStream_->IsOpen())
     {
         pStream_->Rewind();
-        m_uTracks = pStream_->Read(m_pbData, uMaxSize) / uCylSize;
+        m_uTracks = static_cast<UINT>(pStream_->Read(m_pbData, uMaxSize)) / uCylSize;
     }
     else
     {
@@ -898,7 +898,7 @@ CTD0Disk::CTD0Disk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/)
     m_uTracks = MAX_DISK_TRACKS;
 
     // Read in the rest of the file, which is still RLE-compressed
-    UINT uSize = pStream_->GetSize()-sizeof(m_sHeader);
+    size_t uSize = pStream_->GetSize()-sizeof(m_sHeader);
     pStream_->Read(m_pbData = new BYTE[uSize], uSize);
 
     // If the file is using advanced compression we have Huffman data to unpack too
@@ -1357,10 +1357,10 @@ UINT LZSS::DecodePosition ()
 
 
 // Unpack a given block into the supplied output buffer
-UINT LZSS::Unpack (BYTE* pIn_, UINT uSize_, BYTE* pOut_)
+size_t LZSS::Unpack (BYTE* pIn_, size_t uSize_, BYTE* pOut_)
 {
     UINT  i, j, c;
-    UINT uCount = 0;
+    size_t uCount = 0;
 
     // Store the input start/end positions and prepare to unpack
     pEnd = (pIn = pIn_) + uSize_;
