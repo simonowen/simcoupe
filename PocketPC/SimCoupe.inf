@@ -11,12 +11,9 @@ InstallDir = %CE1%\%AppName%
 
 
 [DefaultInstall]
-CopyFiles   = Files.Common
+CopyFiles   = Files.Common,Files.Disks
 CEShortcuts = Shortcuts
-AddReg      =
-
-[DefaultInstall.ARM]
-CopyFiles   = Files.ARM
+AddReg      = RegSettings.All
 
 
 [SourceDisksNames]
@@ -26,33 +23,53 @@ CopyFiles   = Files.ARM
 [SourceDisksNames.ARM]
 3 =, "ARM Files",, ARMRel
 
+[SourceDisksNames.SH3]
+4 =, "SH3 Files",, SH3Rel
+
+[SourceDisksNames.MIPS]
+5 =, "MIPS Files",, MIPSRel
 
 [SourceDisksFiles]
 ReadMe.txt   = 2
-SimCoupe.cfg = 2
+%AppName%.cfg = 2
+manicm.dsk = 2
 
 [SourceDisksFiles.ARM]
-SimCoupe.exe = 3
+%AppName%.exe = 3
 SAASound.dll = 3
-zlibce.dll   = 3
+zlib1.dll   = 3
+
+[SourceDisksFiles.SH3]
+%AppName%.exe = 4
+SAASound.dll = 4
+zlib1.dll   = 4
+
+[SourceDisksFiles.MIPS]
+%AppName%.exe = 5
+SAASound.dll = 5
+zlib1.dll   = 5
 
 
 [DestinationDirs]
-Shortcuts      = ,%CE2%\Start Menu\Programs
-Files.Common   = 0,%InstallDir%
-Files.ARM      = 0,%InstallDir%
 DefaultDestDir = 0,%InstallDir%
+Shortcuts      = ,%CE2%\Start Menu\Programs
+Files.Disks    = ,%CE5%\%AppName%
 
+[RegSettings.All]
+HKCR,.dsk,,0x00000000,dskfile
+HKCR,dskfile,,0x00000000,%AppName% Disk
+HKCR,dskfile\DefaultIcon,,0x00000000,"%InstallDir%\%AppName%.exe,-192"
+HKCR,dskfile\Shell\Open\Command,,0x00000000,"""%InstallDir%\%AppName%.exe""" -autoboot 1 -drive1 1 -disk1 %%1
 
 [Files.Common]
 ReadMe.txt
-SimCoupe.cfg
-
-[Files.ARM]
-SimCoupe.exe
+%AppName%.cfg
+%AppName%.exe
 SAASound.dll
-zlibce.dll
+zlib1.dll
 
+[Files.Disks]
+manicm.dsk
 
 [Shortcuts]
-"SimCoupé",0,SimCoupe.exe
+"SimCoupé",0,%AppName%.exe
