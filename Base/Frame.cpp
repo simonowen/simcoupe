@@ -172,9 +172,11 @@ void Update ()
     ProfileStart(Gfx);
 
     // Work out the line and block for the current position
-    int nLine = g_nLine, nBlock = (g_nLineCycle + 1) >> 3;
+    int nLine = g_nLine, nBlock = g_nLineCycle >> 3;
+    // Should actually be as below, but the above will have the same effect when it matters
+//  int nLine = g_nLine, nBlock = (g_nLineCycle + 1 - VIDEO_DELAY) >> 3;
 
-    // The line-cycle value has not been adjusted as this point, and may need wrapping if it's too large
+    // The line-cycle value has not been adjusted at this point, and may need wrapping if it's too large
     if (nBlock >= WIDTH_BLOCKS)
     {
         nBlock -= WIDTH_BLOCKS;
@@ -523,7 +525,9 @@ void ChangeMode (BYTE bVal_)
     if (IsScreenLine(g_nLine))
     {
         // Calculate the position of the change
-        int nLine = g_nLine - s_nViewTop, nBlock = (g_nLineCycle + 1) >> 3;
+        int nLine = g_nLine - s_nViewTop, nBlock = g_nLineCycle >> 3;
+        // Should actually be as below, but the above will have the same effect when it matters
+//      int nLine = g_nLine - s_nViewTop, nBlock = (g_nLineCycle + 1 - VIDEO_DELAY) >> 3;
 
         // Are we before the right-border?
         if (nBlock < (BORDER_BLOCKS+SCREEN_BLOCKS))
