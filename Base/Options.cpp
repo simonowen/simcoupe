@@ -114,7 +114,7 @@ OPTION aOptions[] =
     OPT("SAASound",     OT_BOOL,    saasound,       true),      // SAA 1099 sound chip enabled
     OPT("Beeper",       OT_BOOL,    beeper,         true),      // Spectrum-style beeper enabled
 
-    OPT("Frequency",    OT_INT,     freq,           22050),     // 22KHz
+    OPT("Frequency",    OT_INT,     freq,           44100),     // 44.1KHz
     OPT("Bits",         OT_INT,     bits,           16),        // 16-bit
     OPT("Stereo",       OT_BOOL,    stereo,         true),      // Stereo
     OPT("Latency",      OT_INT,     latency,        5),         // Sound latency of five frames
