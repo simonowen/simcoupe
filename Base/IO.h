@@ -86,7 +86,9 @@ class CDiskDevice :  public CIoDevice
 
     public:
         virtual int GetType () const { return m_nType; }
-        virtual const char* GetImage () const { return ""; }
+        virtual const char* GetPath () const { return ""; }
+        virtual const char* GetFile () const { return ""; }
+
         virtual bool IsInserted () const { return false; }
         virtual bool IsWriteable () const { return false; }
         virtual bool IsModified () const { return false; }
@@ -241,9 +243,9 @@ inline void ReleaseSamKey (int k)   { keybuffer[(k) >> 3] |=  (1 << ((k) & 7)); 
 inline void ToggleSamKey (int k)    { keybuffer[(k) >> 3] ^=  (1 << ((k) & 7)); fInputDirty = true; }
 inline void ReleaseAllSamKeys ()    { memset(keybuffer, 0xff, sizeof keyports); keyboard = 0x5f; fInputDirty = true; }
 
-// The SAM ports
-
-// Read / Write ports
+#ifdef USE_TESTHW
+#include "TestHW.h"
+#endif
 
 // Last port read/written
 extern WORD wPortRead, wPortWrite;
