@@ -545,6 +545,10 @@ SOURCE=..\Extern\SAASound.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\Bitmaps\simcoupe.bmp
+# End Source File
+# Begin Source File
+
 SOURCE=..\Extern\unzip.c
 # End Source File
 # Begin Source File
