@@ -650,9 +650,6 @@ void DrawChangesGL (CScreen* pScreen_)
         // Clear the dirty flags for the changed block
         for (int i = nChangeFrom ; i <= nChangeTo ; pfDirty[i++] = false);
 
-        // The row length depends on whether we're using 16-bit packed or regular 32-bit pixels
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, (g_glDataType == GL_UNSIGNED_BYTE) ? 256 : 512);
-
         // Work out the width of each texture used for the display image
         int nWidth = Frame::GetWidth(), w1, w2, w3;
         nWidth -= (w1 = min(nWidth, 256));
