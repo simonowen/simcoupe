@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Sound.h: Win32 sound implementation using DirectSound
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2005  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ class Sound
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SOUND_STREAMS	2
+#define SOUND_STREAMS   2
 
 class CStreamBuffer
 {
@@ -63,8 +63,8 @@ class CStreamBuffer
         virtual void AddData (BYTE* pbSampleData_, int nSamples_) = 0;
 
     protected:
-        int m_nFreq, m_nBits, m_nChannels;
-        int m_nSampleSize, m_nSamplesThisFrame, m_nMaxSamplesPerFrame;
+        int m_nChannels;
+        int m_nSampleSize, m_nSamplesThisFrame, m_nSamplesPerFrame;
 
         UINT m_uSamplesPerUnit, m_uCyclesPerUnit, m_uOffsetPerUnit;
         UINT m_uPeriod;
@@ -76,7 +76,7 @@ class CStreamBuffer
 class CSoundStream : public CStreamBuffer
 {
     public:
-        CSoundStream (int nFreq_/*=0*/, int nBits_/*=0*/, int nChannels_/*=0*/);
+        CSoundStream (int nChannels_/*=0*/);
         ~CSoundStream ();
 
     // Overrides
@@ -101,8 +101,7 @@ class CSoundStream : public CStreamBuffer
 class CSAA : public CSoundStream
 {
     public:
-        CSAA (int nFreq_/*=0*/, int nBits_/*=0*/, int nChannels_/*=0*/)
-            : CSoundStream(nFreq_, nBits_, nChannels_), m_nUpdates(0) { }
+        CSAA (int nChannels_/*=0*/) : CSoundStream(nChannels_), m_nUpdates(0) { }
 
     public:
         void Generate (BYTE* pb_, int nSamples_);
