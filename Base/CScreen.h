@@ -21,6 +21,15 @@
 #ifndef CSCREEN_H
 #define CSCREEN_H
 
+#include "Font.h"
+
+
+const int CHAR_HEIGHT = 11;     // Character cell dimensions
+
+const int CHAR_SPACING = 1;         // 1 pixel between each character
+const char CHAR_UNKNOWN = '_';      // Character to display when not available in charset
+
+
 class CScreen
 {
     public:
@@ -32,33 +41,36 @@ class CScreen
         BYTE* GetLine (int nLine_, bool &rfHiRes_) { rfHiRes_ = IsHiRes(nLine_); return m_ppbLines[nLine_]; }
         BYTE* GetHiResLine (int nLine_, int nWidth_=WIDTH_BLOCKS);
 
-        bool IsHiRes (int nLine_) const { return m_pfHiRes[nLine_]; }
-        void SetHiRes (int nLine_, bool fHiRes_) { m_pfHiRes[nLine_] = fHiRes_; }
-        bool* GetHiRes () { return m_pfHiRes; }
-
         int GetPitch () const { return m_nPitch; }
         int GetWidth (int nLine_) const { return IsHiRes(nLine_) ? m_nPitch : (m_nPitch >> 1); }
         int GetHeight () const { return m_nHeight; }
 
+        bool IsHiRes (int nLine_) const { return m_pfHiRes[nLine_]; }
+        void SetHiRes (int nLine_, bool fHiRes_) { m_pfHiRes[nLine_] = fHiRes_; }
+        bool* GetHiRes () { return m_pfHiRes; }
+
     public:
         void Clear ();
 
-        void MoveTo(int nX_, int nY_) { m_nX = nX_; m_nY = nY_; }
+        void SetClip (int nX_=0, int nY_=0, int nWidth_=0, int nHeight_=0);
+        bool Clip (int& rnX_, int& rnY_, int& rnWidth_, int& rnHeight_);
+
+        void Plot (int nX_, int nY_, BYTE bColour_);
+        void DrawLine (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_);
         void FillRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_);
+        void FrameRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_);
+        void DrawImage (int nX_, int nY_, int nWidth_, int nHeight_, const BYTE* pbData_, const BYTE* pbPalette_);
+        void DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_=false);
 
-        int GetStringWidth (const char* pcsz_);
-        void DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_);
-        void DrawOpaqueChar (BYTE bChar_, BYTE bInk_=0x7f, BYTE bPaper_=0x00);
-        void DrawOpaqueString (int nX_, int nY_, const char* pcsz_, BYTE bInk_=0x7f, BYTE bPaper_=0x00);
+        static int GetStringWidth (const char* pcsz_);
+        static void SetFont (FONT* pFont_);
 
-    public:
+    protected:
         int m_nPitch, m_nHeight;    // Pitch (width of low-res lines is half the pitch) and height of the screen
 
         BYTE *m_pbFrame;            // Screen data block
         bool* m_pfHiRes;            // Array of bools for whether each line is hi-res or not
         BYTE **m_ppbLines;          // Look-up table from line number to pointer to start of the line
-
-        int m_nX, m_nY;             // Current drawing position
 };
 
 #endif  // CSCREEN_H
