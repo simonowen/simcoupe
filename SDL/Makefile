@@ -32,7 +32,7 @@ USE_SAASOUND=1
 
 CFLAGS=-O2 -I${SDL} -I${BASE} -I${EXTERN} $(shell sdl-config --cflags)
 CXXFLAGS=${CFLAGS} -Wall
-LIBS=-L. -L/usr/X11R6/lib -lm $(shell sdl-config --libs --cflags)
+LIBS=-L. -lm $(shell sdl-config --libs --cflags)
 
 BASE_SRC=${BASE}/ATA.cpp ${BASE}/Atom.cpp ${BASE}/CDisk.cpp \
  ${BASE}/CDrive.cpp ${BASE}/Clock.cpp ${BASE}/CPU.cpp ${BASE}/CScreen.cpp \
@@ -49,7 +49,9 @@ SDL_SRC=${SDL}/Display.cpp ${SDL}/Floppy.cpp ${SDL}/IDEDisk.cpp \
 
 ifeq (${USE_OPENGL},1)
 CFLAGS += -DUSE_OPENGL
+ifeq (,$(findstring -framework OpenGL,$(LIBS)))
 LIBS += -lGL
+endif
 endif
 
 ifeq (${USE_ZLIB},1)
@@ -60,6 +62,11 @@ endif
 ifeq (${USE_SAASOUND},1)
 CFLAGS += -DUSE_SAASOUND
 LIBS += -lSAASound
+endif
+
+ifneq (,$(findstring -framework Carbon,$(LIBS)))
+CC=cc
+CXX=cc
 endif
 
 BASE_OBJS=$(BASE_SRC:%.cpp=%.o) ${EXTERN}/unzip.o
