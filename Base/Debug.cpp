@@ -528,8 +528,8 @@ void CCodeView::cmdNavigate (int nKey_, int nMods_)
             else
             {
                 BYTE ab[4];
-                for (int i = 0 ; i < sizeof ab ; i++)
-                    ab[i] = read_byte(regs.PC.W+i);
+                for (UINT u = 0 ; u < sizeof ab ; u++)
+                    ab[u] = read_byte(regs.PC.W+u);
 
                 addr = (regs.PC.W += Disassemble(ab));
             }
