@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Input.cpp: Win32 mouse and DirectInput keyboard input
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2003  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -819,11 +819,14 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
         case WM_KEYDOWN:
         {
+            // Ignore key repeats for held non-GUI keys
             if (!GUI::IsActive())
-                break;
+                return (lParam_ & 0x40000000) != 0;
 
-            // Pass cursor and movement keys to the GUI
-            if (wParam_ >= VK_LEFT && wParam_ <= VK_DOWN)
+            // Map any special keys to the GUI equivalents
+            if (wParam_ >= VK_NUMPAD0 && wParam_ <= VK_NUMPAD9)
+                GUI::SendMessage(GM_CHAR, GK_KP0+wParam_-VK_NUMPAD0, 0);
+            else if (wParam_ >= VK_LEFT && wParam_ <= VK_DOWN)
             {
                 int anCursors[] = { GK_LEFT, GK_UP, GK_RIGHT, GK_DOWN };
                 GUI::SendMessage(GM_CHAR, anCursors[wParam_-VK_LEFT], 0);
@@ -834,10 +837,7 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
                 GUI::SendMessage(GM_CHAR, anMovement[wParam_-VK_PRIOR], 0);
             }
 
-            // Ignore key repeats for held keys
-            if (lParam_ & 0x40000000)
-                return true;
-            break;
+            return false;
         }
 
         case WM_ACTIVATEAPP:
