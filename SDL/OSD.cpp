@@ -94,9 +94,7 @@ DWORD OSD::GetTime ()
 }
 
 
-// Do whatever is necessary to locate an additional SimCoupe file - The Win32 version looks in the
-// same directory as the EXE, but other platforms could use an environment variable, etc.
-// If the path is already fully qualified (an OS-specific decision), return the same string
+// Do whatever is necessary to locate an external file
 const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 {
     static char szPath[512];
@@ -107,44 +105,44 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
         || strchr(pcszFile_, ':')
 #endif
         )
-        strncpy(szPath, pcszFile_, sizeof szPath);
+        return strncpy(szPath, pcszFile_, sizeof szPath);
 
-    // Form the full path relative to the current EXE file
-    else
-    {
-        // Get the full path of the running module
+    // Relative paths need platform-specific treatment
 
 #if defined(_WINDOWS)
-        // Strip the module file and append the supplied file/path
-        GetModuleFileName(NULL, szPath, sizeof szPath);
-        strrchr(szPath, '\\')[1] = '\0';
-
-#elif defined(__BEOS__)
-        // Use a SimCoupe directory in the user's config/settings directory
+    // All Win32 files are relative to the EXE path
+    GetModuleFileName(NULL, szPath, sizeof szPath);
+    strrchr(szPath, '\\')[1] = '\0';
+#else
+    // If no file is given, fall back on the home directory
+    if (!*pcszFile_)
+        strcat(strcpy(szPath, getenv("HOME")), "/");
+    else
+    {
+#if defined(__BEOS__)
+        // Files are relative to the user settings directory
         find_directory(B_USER_SETTINGS_DIRECTORY, 0, true, szPath, sizeof szPath);
         strcat(szPath, "/");
 #elif defined(__APPLE__)
-    // Use the Mac preferences directory
-    strcat(strcpy(szPath, getenv("HOME")), "/Library/Preferences/");
+        // Files are relative to the user preferences directory
+        strcat(strcpy(szPath, getenv("HOME")), "/Library/Preferences/");
 
-    // Use a more appropriate settings file name
-    if (!strcasecmp(pcszFile_, "SimCoupe.cfg"))
-      pcszFile_ = "SimCoupe Preferences";
+        // Use a more appropriate settings file name
+        if (!strcasecmp(pcszFile_, "SimCoupe.cfg"))
+          pcszFile_ = "SimCoupe Preferences";
 #else
-        // We'll use the user's home directory
+        // Files are relative to the home directory
         strcat(strcpy(szPath, getenv("HOME")), "/");
 
-        // Use a Unixy name for the configuration file
+        // Use a more Unixy name for the configuration file
         if (!strcasecmp(pcszFile_, "SimCoupe.cfg"))
             pcszFile_ = ".simcoupecfg";
 #endif
-
-        // Append the supplied file/path
-        strcat(szPath, pcszFile_);
     }
+#endif
 
-    // Return a pointer to the new path
-    return szPath;
+    // Append the supplied file/path, and return a pointer to it
+    return strcat(szPath, pcszFile_);
 }
 
 
