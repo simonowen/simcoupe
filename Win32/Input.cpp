@@ -61,6 +61,14 @@ typedef struct
 }
 SIMPLE_KEY;
 
+typedef struct
+{
+    BYTE  bScanCode;
+    eSamKey nSamKey, nSamModifiers;
+}
+MAPPED_KEY;
+
+
 LPDIRECTINPUT pdi;
 LPDIRECTINPUTDEVICE pdiKeyboard;
 LPDIRECTINPUTDEVICE2 pdidJoystick1, pdidJoystick2;
@@ -69,7 +77,7 @@ BYTE bComboKey, bComboShifts;
 DWORD dwComboTime;
 
 
-bool fMouseActive, fPurgeKeyboard;
+bool fMouseActive, fCursorVisible = true, fPurgeKeyboard;
 
 BYTE abKeyStates[256], abKeys[256];
 inline bool IsPressed(BYTE bKey_)   { return (abKeyStates[bKey_] & 0x80) != 0; }
@@ -96,16 +104,6 @@ SIMPLE_KEY asSamKeys [SK_MAX] =
 // Symbols with SAM keyboard details
 COMBINATION_KEY asSamSymbols[] =
 {
-    // Some useful combinations
-    { -DIK_DELETE,  SK_SHIFT, SK_DELETE },
-    { -DIK_HOME,    SK_CONTROL, SK_LEFT },
-    { -DIK_END,     SK_CONTROL, SK_RIGHT },
-    { -DIK_PRIOR,   SK_F4, SK_NONE },
-    { -DIK_NEXT,    SK_F1, SK_NONE },
-    { -DIK_NUMLOCK, SK_SYMBOL, SK_EDIT },
-    { -DIK_APPS,    SK_EDIT, SK_NONE },
-    { -DIK_DECIMAL, SK_SHIFT, SK_QUOTES },
-
     { '!',  SK_SHIFT, SK_1 },       { '@',  SK_SHIFT, SK_2 },       { '#',  SK_SHIFT, SK_3 },
     { '$',  SK_SHIFT, SK_4 },       { '%',  SK_SHIFT, SK_5 },       { '&',  SK_SHIFT, SK_6 },
     { '\'', SK_SHIFT, SK_7 },       { '(',  SK_SHIFT, SK_8 },       { ')',  SK_SHIFT, SK_9 },
@@ -134,6 +132,21 @@ COMBINATION_KEY asSpectrumSymbols[] =
     { '/',  SK_SYMBOL, SK_V },      { '*',  SK_SYMBOL, SK_B },      { ',',  SK_SYMBOL, SK_N },
     { '.',  SK_SYMBOL, SK_M },      { '\b', SK_SHIFT,  SK_0 },
     { '\0' }
+};
+
+// Handy mappings from unused PC keys to a SAM combination
+MAPPED_KEY asPCMappings[] =
+{
+    // Some useful combinations
+    { DIK_DELETE,    SK_DELETE, SK_SHIFT },
+    { DIK_HOME,      SK_LEFT,   SK_CONTROL },
+    { DIK_END,       SK_RIGHT,  SK_CONTROL },
+    { DIK_PRIOR,     SK_F4,     SK_NONE },
+    { DIK_NEXT,      SK_F1,     SK_NONE },
+    { DIK_NUMLOCK,   SK_EDIT,   SK_SYMBOL },
+    { DIK_APPS,      SK_EDIT,   SK_NONE },
+    { DIK_DECIMAL,   SK_QUOTES, SK_SHIFT },
+    { 0 }
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -350,26 +363,31 @@ bool InitJoysticks ()
 
 void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 {
-    // Store the new mouse state, hiding/showing the cursor as appropriate
-    if (fMouseActive != fMouse_)
+    // If the mouse is being acquired, move it to the centre of the screen
+    if (fMouseActive != fMouse_ && (fMouseActive = fMouse_))
     {
-        // Hide the cursor when the mouse is active for emulation
-        ShowCursor(!(fMouseActive = fMouse_));
+        RECT r;
 
-        // Mouse being acquired?
-        if (fMouse_)
-        {
-            RECT r;
+        // Calculate the central position in the client screen
+        GetClientRect(g_hwnd, &r);
+        POINT pt = { r.right/2, r.bottom/2 };
 
-            // Calculate the central position in the client screen
-            GetClientRect(g_hwnd, &r);
-            POINT pt = { r.right/2, r.bottom/2 };
+        // Hide the cursor if not already hidden
+        if (fCursorVisible)
+            ShowCursor(fCursorVisible = false);
 
-            // Move the cursor there, and store the position for later comparison
-            ClientToScreen(g_hwnd, &pt);
-            SetCursorPos(pt.x, pt.y);
-        }
+        // Move the cursor there, and store the position for later comparison
+        ClientToScreen(g_hwnd, &pt);
+        SetCursorPos(pt.x, pt.y);
+
+        // Restrict the cursor to the client area
+        MapWindowPoints(g_hwnd, NULL, reinterpret_cast<POINT*>(&r.left), 2);
+        ClipCursor(&r);
     }
+
+    // If the mouse isn't active, ensure it's free to move anywhere
+    if (!fMouse_)
+        ClipCursor(NULL);
 
     // Flush out any buffered data
     Purge();
@@ -499,19 +517,35 @@ void PrepareKeyTable (COMBINATION_KEY* asKeys_)
 
     for (int i = 0 ; asKeys_[i].nChar ; i++)
     {
-        // Negative values are raw DirectInput key codes
-        if (asKeys_[i].nChar < 0)
-        {
-            asKeys_[i].bScanCode = -asKeys_[i].nChar;
-            asKeys_[i].bShifts = 0;
-        }
-
         // Convert the symbol to a virtual key sequence, and then to a keyboard scan-code (with shifted keys' states)
-        else if (asKeys_[i].nChar)
+        WORD wVirtual = VkKeyScanEx(asKeys_[i].nChar, hkl);
+        asKeys_[i].bScanCode = MapVirtualKeyEx(wVirtual & 0xff, 0, hkl);
+        asKeys_[i].bShifts = (wVirtual >> 8) & 7;
+    }
+}
+
+
+// Process simple key presses
+void ProcessKeyTable (SIMPLE_KEY* asKeys_)
+{
+    // Build the rest of the SAM matrix from the simple non-symbol PC keys
+    for (int i = 0 ; i < SK_MAX ; i++)
+    {
+        if (asKeys_[i].bScanCode && IsPressed(asKeys_[i].bScanCode))
+            PressSamKey(i);
+    }
+}
+
+// Process the additional keys mapped from PC to SAM, ignoring shift state
+void ProcessKeyTable (MAPPED_KEY* asKeys_)
+{
+    // Build the rest of the SAM matrix from the simple non-symbol PC keys
+    for (int i = 0 ; asKeys_[i].bScanCode ; i++)
+    {
+        if (IsPressed(asKeys_[i].bScanCode))
         {
-            WORD wVirtual = VkKeyScanEx(asKeys_[i].nChar, hkl);
-            asKeys_[i].bScanCode = MapVirtualKeyEx(wVirtual & 0xff, 0, hkl);
-            asKeys_[i].bShifts = (wVirtual >> 8) & 7;
+            PressSamKey(asKeys_[i].nSamKey);
+            PressSamKey(asKeys_[i].nSamModifiers);
         }
     }
 }
@@ -599,12 +633,9 @@ void SetSamKeyState ()
     if (fShiftToggle)
         ToggleKey(DIK_LSHIFT);
 
-    // Build the rest of the SAM matrix from the simple non-symbol PC keys
-    for (int i = 0 ; i < SK_MAX ; i++)
-    {
-        if (IsPressed(asSamKeys[i].bScanCode))
-            PressSamKey(i);
-    }
+    // Process the simple key and additional PC key mappings
+    ProcessKeyTable(asSamKeys);
+    ProcessKeyTable(asPCMappings);
 }
 
 
@@ -653,6 +684,12 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
         case WM_MOUSEMOVE:
         {
+            // Hide the mouse if it's been acquired for emulation use or the GUI is active
+            bool fShowCursor = !fMouseActive && !GUI::IsActive() && !GetOption(fullscreen);
+            if (fCursorVisible != fShowCursor)
+                ShowCursor(fCursorVisible = fShowCursor);
+
+            // Mouse coordinates are in screen units, but need converting to our client coordinates
             RECT r;
             GetClientRect(hwnd_, &r);
 
