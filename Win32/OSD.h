@@ -23,7 +23,7 @@
 
 // We can do more accurate profiling than the default
 #define PROFILE_T   __int64
-#define AddTime(x)  sprintf(sz + strlen(sz), " %s:%I64dus", #x, (g_sProfile.prof##x + 5) / 10i64)
+#define AddTime(x)  sprintf(sz + strlen(sz), " %s:%I64dus", #x, (s_sProfile.prof##x + 5) / 10i64)
 
 
 namespace OSD
