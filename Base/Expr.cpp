@@ -421,7 +421,10 @@ bool Expr::Factor ()
 
     // Hex value with explicit prefix?
     else if ((*p == '$' || *p == '&' || *p == '#') && isxdigit(p[1]))
-        AddNode(T_NUMBER, strtoul(++p, (char**)&p, 16));
+    {
+        p++;
+        AddNode(T_NUMBER, strtoul(p, (char**)&p, 16));
+    }
 
     // Binary value?
     else if (*p == '%' && (p[1] == '0' || p[1] == '1'))

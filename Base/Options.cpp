@@ -230,7 +230,8 @@ bool Options::Load (int argc_, char* argv_[])
                 continue;
 
             // Skip delimiters up to the value, and take the value up to a <CR> or <LF>
-            strtok(pszValue += strspn(++pszValue, " \t=\r\n"), "\r\n");
+            pszValue++;
+            strtok(pszValue += strspn(pszValue, " \t=\r\n"), "\r\n");
 
             // Look for the option in the list
             for (OPTION* p = aOptions ; p->pcszName ; p++)
