@@ -90,6 +90,8 @@ class CFrame
         {
             m_pLineUpdate = &CFrame::Mode1Line;
         }
+		
+        virtual ~CFrame () { }
 
     public:
         void SetMode (BYTE bVal_)
