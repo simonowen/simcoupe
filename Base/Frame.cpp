@@ -2,7 +2,7 @@
 //
 // Frame.cpp: Display frame generation
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -444,7 +444,9 @@ void Frame::Sync ()
     int nTicks = OSD::FrameSync(false);
 
     // Determine whether we're running at increased speed during disk activity
-    bool fTurboDisk = GetOption(turboload) && (pDrive1 && pDrive1->IsActive()) || (pDrive2 && pDrive2->IsActive());
+    bool fTurboDisk = GetOption(turboload) &&
+		((pDrive1 && pDrive1->IsActive() && pDrive1->GetType() != dtFloppy) ||
+		 (pDrive2 && pDrive2->IsActive() && pDrive2->GetType() != dtFloppy));
 
     // Running in Turbo mode?
     if (!GUI::IsActive() && (g_fTurbo || fTurboDisk))
@@ -631,7 +633,7 @@ void Frame::SaveFrame (const char* pcszPath_/*=NULL*/)
     }
 
 #else
-    Frame::SetStatus("Save screen not available without zLib", szScreenPath);
+    Frame::SetStatus("Save screen requires zLib", szScreenPath);
 #endif  // USE_ZLIB
 
     // We've finished with the path now, so prevent it being saved again
