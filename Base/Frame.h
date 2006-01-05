@@ -2,7 +2,7 @@
 //
 // Frame.h: Display frame generation
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -86,11 +86,7 @@ class CFrame
     typedef void (CFrame::* FNLINEUPDATE)(int nLine_, int nFrom_, int nTo_);
 
     public:
-        CFrame ()
-        {
-            m_pLineUpdate = &CFrame::Mode1Line;
-        }
-		
+        CFrame () { m_pLineUpdate = &CFrame::Mode1Line; }
         virtual ~CFrame () { }
 
     public:
