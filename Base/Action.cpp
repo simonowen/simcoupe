@@ -214,6 +214,10 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
 
             case actPause:
             {
+                // Prevent pausing when the GUI is active
+                if (GUI::IsActive())
+                    break;
+
                 g_fPaused = !g_fPaused;
 
                 if (g_fPaused)
