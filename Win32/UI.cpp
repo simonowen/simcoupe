@@ -2,7 +2,7 @@
 //
 // UI.cpp: Win32 user interface
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -54,6 +54,7 @@ extern char** __argv;
 #include "resource.h"   // For menu and dialogue box symbols
 
 const int MOUSE_HIDE_TIME = 2000;   // 2 seconds
+const UINT MOUSE_TIMER_ID = 42;
 
 #ifdef _DEBUG
 #define WINDOW_CAPTION      "SimCoupe/Win32 [DEBUG]"
@@ -351,8 +352,10 @@ bool InsertDisk (CDiskDevice* pDrive_)
     if (!SaveDriveChanges(pDrive_))
         return false;
 
-    // Prompt using the current image directory
-    if (pDrive_->IsInserted())
+    // Prompt using the current image directory, unless we're using a real drive
+    if (pDrive_->GetType() == dtFloppy)
+        szFile[0] = '\0';
+    else if (pDrive_->IsInserted())
         lstrcpyn(szFile, pDrive_->GetPath(), sizeof(szFile));
 
     ofn.hwndOwner       = g_hwnd;
@@ -478,11 +481,10 @@ void UpdateMenuFromOptions ()
 
     HMENU hmenu = g_hmenu, hmenuFile = GetSubMenu(hmenu, 0), hmenuFloppy2 = GetSubMenu(hmenuFile, 6);
 
-    // Only enable the floppy device menu item on NT-based versions of Windows
+    // Only enable the floppy device menu item on W2K or above
     OSVERSIONINFO ovi = { sizeof ovi };
     GetVersionEx(&ovi);
-    EnableItem(IDM_FILE_FLOPPY1_DEVICE, ovi.dwPlatformId == VER_PLATFORM_WIN32_NT && ovi.dwMajorVersion >= 5 &&
-                GetFileAttributes(OSD::GetFilePath("SAMDISK.SYS")) != 0xffffffff);
+    EnableItem(IDM_FILE_FLOPPY1_DEVICE, ovi.dwPlatformId == VER_PLATFORM_WIN32_NT && ovi.dwMajorVersion >= 5);
 //  EnableItem(IDM_FILE_FLOPPY2_DEVICE, ovi.dwPlatformId == VER_PLATFORM_WIN32_NT && ovi.dwMajorVersion >= 5);
 
     bool fFloppy1 = GetOption(drive1) == dskImage, fInserted1 = pDrive1->IsInserted();
@@ -808,6 +810,10 @@ static MENUICON aMenuIcons[] =
 // Hook function for catching the Windows key
 LRESULT CALLBACK WinKeyHookProc (int nCode_, WPARAM wParam_, LPARAM lParam_)
 {
+    // Is Alt-PrintScrn being release while using an overlay video surface?
+    if (GetOption(overlay) && lParam_ < 0 && wParam_ == VK_SNAPSHOT && GetAsyncKeyState(VK_LMENU) < 0)
+        PostMessage(g_hwnd, WM_USER+0, 1234, 5678L);
+
     // Is this a full-screen Windows key press?
     if (nCode_ >= 0 && GetOption(fullscreen) && lParam_ >= 0 && (wParam_ == VK_LWIN || wParam_ == VK_RWIN))
     {
@@ -837,7 +843,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
     // If the keyboard is used, simulate early timer expiry to hide the cursor
     if (uMsg_ == WM_KEYDOWN && ulMouseTimer)
-        ulMouseTimer = SetTimer(hwnd_, 1, 1, NULL);
+        ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, NULL);
 
     // Input has first go at processing any messages
     if (Input::FilterMessage(hwnd_, uMsg_, wParam_, lParam_))
@@ -920,7 +926,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             {
                 Input::Acquire(false);
                 fHideCursor = false;
-                ulMouseTimer = SetTimer(hwnd_, 1, MOUSE_HIDE_TIME, NULL);
+                ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, NULL);
             }
             break;
         }
@@ -1093,7 +1099,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_EXITMENULOOP:
             // No longer in menu, so start timer to hide the mouse if not used again
             fInMenu = fHideCursor = false;
-            ulMouseTimer = SetTimer(hwnd_, 1, MOUSE_HIDE_TIME, NULL);
+            ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, NULL);
             break;
 
 
@@ -1145,11 +1151,11 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         // Mouse-hide timer has expired
         case WM_TIMER:
             // Make sure the timer is ours
-            if (wParam_ != ulMouseTimer)
+            if (wParam_ != MOUSE_TIMER_ID)
                 break;
 
             // Kill the timer, and flag the mouse as hidden
-            KillTimer(hwnd_, ulMouseTimer);
+            KillTimer(hwnd_, MOUSE_TIMER_ID);
             ulMouseTimer = 0;
             fHideCursor = true;
 
@@ -1191,7 +1197,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             {
                 // Show the cursor, but set a timer to hide it if not moved for a few seconds
                 fHideCursor = false;
-                ulMouseTimer = SetTimer(hwnd_, 1, MOUSE_HIDE_TIME, NULL);
+                ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, NULL);
 
                 if (!GetMenu(g_hwnd))
                     SetMenu(g_hwnd, g_hmenu);
@@ -1206,10 +1212,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_LBUTTONDOWN:
         {
             // Acquire the mouse if it's enabled
-            if (GetOption(mouse) && !Input::IsMouseAcquired())
+            if (GetOption(mouse) && !GUI::IsActive() && !Input::IsMouseAcquired())
             {
                 Input::Acquire();
-                ulMouseTimer = SetTimer(hwnd_, 1, 1, NULL);
+                ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, NULL);
             }
 
             break;
@@ -1323,6 +1329,17 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             return 0;
         }
         break;
+
+        // Handler for Alt+PrintScrn being used with an overlay surface - warn the user
+        case WM_USER+0:
+        {
+            // Make sure it's really from us
+            if (wParam_ == 1234 && lParam_ == 5678)
+                MessageBox(hwnd_, "The Windows screenshot function cannot capture video card overlays.\n\n"
+                                  "On the Display tab in the options, de-select \"Use RGB/YUV video overlay\", then try again.",
+                                  "SimCoupe", MB_ICONEXCLAMATION);
+            break;
+        }
 
         // Menu and commands
         case WM_COMMAND:
@@ -1565,13 +1582,13 @@ void SetDlgItemPath (HWND hdlg_, int nId_, const char* pcsz_, bool fSelect_=fals
     }
 }
 
-int GetDlgItemValue (HWND hdlg_, int nId_)
+int GetDlgItemValue (HWND hdlg_, int nId_, int nDefault_=-1)
 {
     char sz[256];
     GetDlgItemText(hdlg_, nId_, sz, sizeof(sz));
 
     int nValue;
-    return Expr::Eval(sz, nValue, Expr::simple) ? nValue : 0;
+    return Expr::Eval(sz, nValue, Expr::simple) ? nValue : nDefault_;
 }
 
 void SetDlgItemValue (HWND hdlg_, int nId_, int nValue_)
@@ -1806,24 +1823,31 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                     GetDlgItemText(hdlg_, IDE_OFFSET,  szOffset,  sizeof(szOffset));
                     GetDlgItemText(hdlg_, IDE_LENGTH,  szLength,  sizeof(szLength));
 
-                    int nType = (int)SendDlgItemMessage(hdlg_, IDC_TYPE, CB_GETCURSEL, 0, 0L);
+                    nType = (int)SendDlgItemMessage(hdlg_, IDC_TYPE, CB_GETCURSEL, 0, 0L);
                     int nAddress = GetDlgItemValue(hdlg_, IDE_ADDRESS);
                     int nPage    = GetDlgItemValue(hdlg_, IDE_PAGE);
                     int nOffset  = GetDlgItemValue(hdlg_, IDE_OFFSET);
                     int nLength  = GetDlgItemValue(hdlg_, IDE_LENGTH);
 
-                    if (!nType && nAddress > 540671)
+                    // Allow offset to span pages
+                    if (nType && nOffset > 16384)
+                    {
+                        nPage += nOffset / 16384;
+                        nOffset %= 16384;
+                    }
+
+                    if (!nType && nAddress < 0 || nAddress > 540671)
                         return BadField(hdlg_, IDE_ADDRESS);
-                    else if (nType == 1 && nPage > 31 || nType == 2 && nPage > 255)
+                    else if (nType == 1 && nPage < 0 || nPage > 31 || nType == 2 && nPage > 255)
                         return BadField(hdlg_, IDE_PAGE);
-                    else if (nType && nOffset > 16384)
+                    else if (nType && nOffset < 0 || nOffset > 16384)
                         return BadField(hdlg_, IDE_OFFSET);
-                    else if (!fImport && !nLength)
+                    else if (!fImport && nLength <= 0)
                         return BadField(hdlg_, IDE_LENGTH);
 
                     static OPENFILENAME ofn = { sizeof(ofn) };
                     ofn.hwndOwner       = hdlg_;
-                    ofn.lpstrFilter     = "Data files (*.bin;*.dat;*.raw)\0*.bin;*.dat;*.raw\0All files (*.*)\0*.*\0";
+                    ofn.lpstrFilter     = "Data files (*.bin;*.dat;*.raw;*.txt)\0*.bin;*.dat;*.raw;*.txt\0All files (*.*)\0*.*\0";
                     ofn.lpstrFile       = szFile;
                     ofn.nMaxFile        = sizeof(szFile);
                     ofn.lpstrInitialDir = GetOption(datapath);
@@ -1859,11 +1883,9 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                         {
                             nDone += fread(&apbPageWritePtrs[nPage++][nOffset], 1, nChunk, f);
 
-                            // Stop at the end of the file or if we've hit the end of a logical block, but wrap from ROM0 to RAM0
-                            if (feof(f) || nPage == EXTMEM || nPage == ROM0)
+                            // Stop at the end of the file or if we've hit the end of a logical block
+                            if (feof(f) || nPage == EXTMEM || nPage == ROM0 || nPage >= N_PAGES_MAIN)
                                 break;
-                            else if (++nPage >= N_PAGES_MAIN)
-                                nPage = 0;
                         }
 
                         Frame::SetStatus("Imported %d bytes", nDone);
@@ -1881,11 +1903,9 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                                 return FALSE;
                             }
 
-                            // Stop if we've hit the end of a logical block, but wrap from ROM0 to RAM0
-                            if (nPage == EXTMEM || nPage == ROM0)
+                            // Stop if we've hit the end of a logical block
+                            if (nPage == EXTMEM || nPage == ROM0 || nPage == N_PAGES_MAIN)
                                 break;
-                            else if (++nPage >= N_PAGES_MAIN)
-                                nPage = 0;
                         }
 
                         Frame::SetStatus("Exported %d bytes", nDone);
@@ -2104,7 +2124,7 @@ BOOL CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 
                 case IDOK:
                 {
-                    uSize = GetDlgItemValue(hdlg_, IDE_SIZE);
+                    uSize = GetDlgItemValue(hdlg_, IDE_SIZE, 0);
                     UINT uCylinders = (uSize << 2) & 0x3fff;
 
                     // Check the geometry is within range, since the edit fields can be modified directly
@@ -2514,11 +2534,11 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
     {
         case WM_DEVICECHANGE:
             // Schdule a refresh of the device list at a safer time
-            uTimer = SetTimer(hdlg_, 1, 1000, NULL);
+            SetTimer(hdlg_, 1, 1000, NULL);
             break;
 
         case WM_TIMER:
-            KillTimer(hdlg_, uTimer);
+            KillTimer(hdlg_, 1);
             // Fall through...
 
         case WM_INITDIALOG:
