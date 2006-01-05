@@ -2,7 +2,7 @@
 //
 // GUI.cpp: GUI and controls for on-screen interface
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -124,8 +124,8 @@ bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 
 bool GUI::Start (CWindow* pGUI_)
 {
-    // Reject the new GUI if it's already running
-    if (s_pGUI)
+    // Reject the new GUI if it's already running, or if the emulator is paused
+    if (s_pGUI || g_fPaused)
     {
         // Delete the supplied object tree and return failure
         delete pGUI_;
@@ -156,7 +156,6 @@ void GUI::Stop ()
 
     // Restore the normal SAM palette
     Video::CreatePalettes();
-    Display::SetDirty();
     Sound::Play();
 
     // Give keyboard input back to the emulation
