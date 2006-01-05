@@ -2,7 +2,7 @@
 //
 // Video.h: Win32 core video functionality using DirectDraw
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,8 +38,8 @@ class Video
 const int PALETTE_OFFSET = 10;      // Offset into physical palette for first SAM colour (Windows uses the first and last 10)
 
 
-extern DWORD aulPalette[];
-extern WORD awY[], awU[], awV[];
+extern DWORD aulPalette[], aulScanline[];
+extern WORD awY[], awU[], awV[], awYs[], awUs[], awVs[];
 extern LPDIRECTDRAWSURFACE pddsPrimary, pddsFront, pddsBack;
 
-#endif  // VIDEO_H
+#endif

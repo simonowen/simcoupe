@@ -2,7 +2,7 @@
 //
 // Video.cpp: Win32 core video functionality using DirectDraw
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,8 +34,9 @@
 const int N_TOTAL_COLOURS = N_PALETTE_COLOURS+N_GUI_COLOURS;
 
 // SAM RGB values in appropriate format, and YUV values pre-shifted for overlay surface
-DWORD aulPalette[N_TOTAL_COLOURS];
-WORD awY[N_TOTAL_COLOURS], awU[N_TOTAL_COLOURS], awV[N_TOTAL_COLOURS];
+DWORD aulPalette[N_TOTAL_COLOURS], aulScanline[N_TOTAL_COLOURS];            // normal and scanline palettes
+WORD awY[N_TOTAL_COLOURS], awU[N_TOTAL_COLOURS], awV[N_TOTAL_COLOURS];      // YUV for regular palette
+WORD awYs[N_TOTAL_COLOURS], awUs[N_TOTAL_COLOURS], awVs[N_TOTAL_COLOURS];   // YUV for scanline palette
 
 // DirectDraw back and front surfaces
 LPDIRECTDRAWSURFACE pddsPrimary, pddsFront, pddsBack;
@@ -437,10 +438,7 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
     // Ok, let's look at what the target requirements are, as it determines the format we draw in
     DDSURFACEDESC ddsd = { sizeof ddsd };
     (pddsFront ? pddsFront : pddsBack)->GetSurfaceDesc(&ddsd);
-
-    bool fYUV = (ddsd.ddpfPixelFormat.dwFlags & DDPF_FOURCC) != 0;
     bool fPalette = (ddsd.ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8) != 0;
-    UINT uBPP = ddsd.ddpfPixelFormat.dwRGBBitCount;
 
     // Get the current Windows palette, so we can preserve the first and last 10 entries, which are used for
     // standard Windows UI components like menus and dialogue boxes, otherwise it looks crap!
@@ -452,6 +450,10 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
         ReleaseDC(NULL, hdc);
     }
 
+    // Determine the scanline brightness level adjustment, in the range -100 to +100
+    int nScanAdjust = GetOption(scanlevel) - 100;
+    if (nScanAdjust < -100) nScanAdjust = -100;
+
     const RGBA *pSAM = IO::GetPalette(fDimmed_), *pGUI = GUI::GetPalette();
 
     // Build the full palette from SAM and GUI colours
@@ -459,72 +461,62 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
     {
         // Look up the colour in the appropriate palette
         const RGBA* p = (i < N_PALETTE_COLOURS) ? &pSAM[i] : &pGUI[i-N_PALETTE_COLOURS];
-        BYTE bRed = p->bRed, bGreen = p->bGreen, bBlue = p->bBlue;
-
-        // If colour is disabled, convert to the appropriate shade of grey
-        if (0)
-        {
-            BYTE bGrey = static_cast<BYTE>(0.30 * bRed + 0.59 * bGreen + 0.11 * bBlue);
-            bRed = bGreen = bBlue = bGrey;
-        }
+        BYTE r = p->bRed, g = p->bGreen, b = p->bBlue;
 
         // Using YUV on an overlay?
-        if (fYUV)
+        if (ddsd.ddpfPixelFormat.dwFlags & DDPF_FOURCC)
         {
-            // RGB to YUV
-            BYTE bY = static_cast<BYTE>(bRed *  0.299 + bGreen *  0.587 + bBlue *  0.114);
-            BYTE bU = static_cast<BYTE>(bRed * -0.169 + bGreen * -0.332 + bBlue *  0.500  + 128.0);
-            BYTE bV = static_cast<BYTE>(bRed *  0.500 + bGreen * -0.419 + bBlue * -0.0813 + 128.0);
-/*
-            // YUV to RGB  (we don't actually need em here, but they're handy!)
-            BYTE bR = BY + (1.4075 * (BV - 128));
-            BYTE bG = BY - (0.3455 * (BU - 128) - (0.7169 * (BV - 128)));
-            BYTE bB = BY + (1.7790 * (BU - 128));
-*/
+            // Convert regular palette to YUV
+            BYTE y, u, v;
+            RGB2YUV(r,g,b, &y,&u,&v);
+            aulPalette[i] = (static_cast<DWORD>(b) << 16) | (static_cast<DWORD>(g) << 8) | r;
+
+            // Convert scanline palette to YUV
+            BYTE ys, us, vs;
+            AdjustBrightness(r,g,b, nScanAdjust);
+            RGB2YUV(r,g,b, &ys,&us,&vs);
+            aulScanline[i] = (static_cast<DWORD>(b) << 16) | (static_cast<DWORD>(g) << 8) | r;
+
             // Pre-shift the YUV data for the two formats we currently support
             if (ddsd.ddpfPixelFormat.dwFourCC == MAKEFOURCC('Y','U','Y','2'))
             {
-                awY[i] = bY;
-                awU[i] = WORD(bU) << 8;
-                awV[i] = WORD(bV) << 8;
+                awY[i] = y, awU[i] = u << 8, awV[i] = v << 8;
+                awYs[i] = ys, awUs[i] = us << 8, awVs[i] = vs << 8;
             }
             else if (ddsd.ddpfPixelFormat.dwFourCC == MAKEFOURCC('U','Y','V','Y'))
             {
-                awY[i] = WORD(bY) << 8;
-                awU[i] = bU;
-                awV[i] = bV;
+                awY[i] = WORD(y) << 8, awU[i] = u, awV[i] = v;
+                awYs[i] = WORD(ys) << 8, awUs[i] = us, awVs[i] = vs;
             }
             else
             {
                 TRACE("Unknown YUV FOURCC: %#08lx\n", ddsd.ddpfPixelFormat.dwFourCC);
                 DebugBreak();
             }
-
-            aulPalette[i] = (static_cast<DWORD>(bBlue) << 16) | (static_cast<DWORD>(bGreen) << 8) | bRed;
         }
 
         // In 8 bit mode use offset palette positions to allow for system colours in the first 10
         else if (fPalette)
         {
-            PALETTEENTRY pe = { bRed, bGreen, bBlue, PC_NOCOLLAPSE };
+            PALETTEENTRY pe = { r,g,b, PC_NOCOLLAPSE };
 
             // Leave the first PALETTE_OFFSET entries for Windows GUI colours
             pal[PALETTE_OFFSET+i] = pe;
             aulPalette[i] = PALETTE_OFFSET+i;
+            aulScanline[i] = PALETTE_OFFSET;    // not enough really palette colours to support it :-(
         }
 
         // Other modes build up the require pixel format from the surface information
         else
         {
-            DWORD dwRMask = ddsd.ddpfPixelFormat.dwRBitMask;
-            DWORD dwGMask = ddsd.ddpfPixelFormat.dwGBitMask;
-            DWORD dwBMask = ddsd.ddpfPixelFormat.dwBBitMask;
+            DDPIXELFORMAT *ddpf = &ddsd.ddpfPixelFormat;
 
-            DWORD dwRed   = static_cast<DWORD>(((static_cast<__int64>(dwRMask) * (bRed+1))   >> 8) & dwRMask);
-            DWORD dwGreen = static_cast<DWORD>(((static_cast<__int64>(dwGMask) * (bGreen+1)) >> 8) & dwGMask);
-            DWORD dwBlue  = static_cast<DWORD>(((static_cast<__int64>(dwBMask) * (bBlue+1))  >> 8) & dwBMask);
+            // Set regular pixel
+            aulPalette[i] = RGB2Native(r,g,b, ddpf->dwRBitMask, ddpf->dwGBitMask, ddpf->dwBBitMask);
 
-            aulPalette[i] = dwRed | dwGreen | dwBlue;
+            // Set scanline pixel
+            AdjustBrightness(r,g,b, nScanAdjust);
+            aulScanline[i] = RGB2Native(r,g,b, ddpf->dwRBitMask, ddpf->dwGBitMask, ddpf->dwBBitMask);
         }
     }
 
