@@ -78,17 +78,6 @@
 }
 
 
-CFloppyStream::CFloppyStream (const char* pcszStream_, bool fReadOnly_)
-    : CStream(pcszStream_, fReadOnly_), m_nFloppy(-1)
-{
-}
-
-CFloppyStream::~CFloppyStream ()
-{
-    Close();
-}
-
-
 bool CFloppyStream::Open ()
 {
     if (!IsOpen())

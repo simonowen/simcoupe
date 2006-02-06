@@ -27,8 +27,9 @@
 class CFloppyStream : public CStream
 {
     public:
-        CFloppyStream (const char* pcszStream_, bool fReadOnly_=false);
-        ~CFloppyStream ();
+        CFloppyStream (const char* pcszStream_, bool fReadOnly_=false)
+         : CStream(pcszStream_, fReadOnly_), m_nFloppy(-1) { }
+        ~CFloppyStream () { Close(); }
 
     public:
         static bool IsRecognised (const char* pcszStream_);
