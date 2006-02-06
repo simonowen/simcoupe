@@ -78,6 +78,17 @@
 }
 
 
+CFloppyStream::CFloppyStream (const char* pcszStream_, bool fReadOnly_)
+    : CStream(pcszStream_, fReadOnly_), m_nFloppy(-1)
+{
+}
+
+CFloppyStream::~CFloppyStream ()
+{
+    Close();
+}
+
+
 bool CFloppyStream::Open ()
 {
     if (!IsOpen())
@@ -113,42 +124,61 @@ void CFloppyStream::Close ()
 }
 
 
-bool CFloppyStream::ReadWrite (bool fRead_, UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_)
+BYTE CFloppyStream::ReadTrack (BYTE cyl_, BYTE head_, BYTE *pbData_)
 {
+    int i;
+
     // Open the device, if not already open
     if (!Open())
         return false;
+
+    PTRACK pt = (PTRACK)pbData_;
+    PSECTOR ps = (PSECTOR)(pt+1);
+    BYTE *pb = (BYTE*)(ps+(pt->sectors=NORMAL_DISK_SECTORS));
+
+    // Prepare the track container
+    for (i = 0 ; i < pt->sectors ; i++)
+    {
+        ps[i].cyl = cyl_;
+        ps[i].head = head_;
+        ps[i].sector = i+1;
+        ps[i].size = 2;
+        ps[i].status = 0;
+        ps[i].pbData = pb + i*NORMAL_SECTOR_SIZE;
+    }
 
     // Clear out the command structure
     struct floppy_raw_cmd rc;
     memset(&rc, 0, sizeof rc);
 
     // Set up details for the command
-    rc.flags = (fRead_ ? FD_RAW_READ : FD_RAW_WRITE) | FD_RAW_INTR;
-    rc.data  = pbData_;
-    rc.length= (*puSize_ = NORMAL_SECTOR_SIZE);
+    rc.flags = FD_RAW_READ  | FD_RAW_INTR | FD_RAW_NEED_SEEK;
+    rc.data  = pb;
+    rc.length = NORMAL_SECTOR_SIZE*NORMAL_DISK_SECTORS;
     rc.rate = 2;
-    rc.track = uTrack_;
+    rc.track = cyl_;
 
     // Set up the command and its parameters
-    BYTE abCommands[] = { fRead_ ? FD_READ : FD_WRITE, uSide_ << 2, uTrack_, uSide_, uSector_, 2, uSector_, 0x2a, 0xff };
+    BYTE abCommands[] = { FD_READ, head_ << 2, cyl_, head_, 1, 2, 1+NORMAL_DISK_SECTORS, 0x0a, 0xff };
     memcpy(rc.cmd, abCommands, sizeof abCommands);
-    rc.cmd_count = sizeof abCommands / sizeof abCommands[0];
+    rc.cmd_count = sizeof(abCommands) / sizeof(abCommands[0]);
 
-    // If we're changing track, flag the seek in the command
-    if (m_uTrack != uTrack_)
+    // Call failed?
+    if (ioctl(m_nFloppy, FDRAWCMD, &rc))
+        return RECORD_NOT_FOUND;
+ 
+    // Command successful?
+    if (!(rc.reply[0] & 0x40))
+        return BUSY;
+
+    // Missing address mark? (blank track)
+    if (rc.reply[1] & 0x01)
     {
-        rc.flags |= FD_RAW_NEED_SEEK;
-        m_uTrack = uTrack_;
+        pt->sectors = 0;
+        return BUSY;
     }
 
-    // Perform the actual command
-    return (!ioctl(m_nFloppy, FDRAWCMD, &rc) && !(rc.reply[0] & 0x40));
-}
-
-
-BYTE CFloppyStream::ReadTrack (BYTE cyl_, BYTE head_, PBYTE pbData_)
-{
+    // Other errors are fatal
     return RECORD_NOT_FOUND;
 }
 
@@ -157,12 +187,12 @@ BYTE CFloppyStream::ReadWrite (bool fRead_, BYTE bSide_, BYTE bTrack_, BYTE* pbD
     return RECORD_NOT_FOUND;
 }
 
-bool CFloppyStream::ReadCustomTrack (BYTE cyl_, BYTE head_, PBYTE pbData_)
+bool CFloppyStream::ReadCustomTrack (BYTE cyl_, BYTE head_, BYTE *pbData_)
 {
     return false;
 }
 
-bool CFloppyStream::ReadMGTTrack (BYTE cyl_, BYTE head_, PBYTE pbData_)
+bool CFloppyStream::ReadMGTTrack (BYTE cyl_, BYTE head_, BYTE *pbData_)
 {
     return false;
 }
@@ -189,12 +219,7 @@ void CFloppyStream::Close ()
 {
 }
 
-bool CFloppyStream::ReadWrite (bool fRead_, UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_)
-{
-    return false;
-}
-
-BYTE CFloppyStream::ReadTrack (BYTE cyl_, BYTE head_, PBYTE pbData_)
+BYTE CFloppyStream::ReadTrack (BYTE cyl_, BYTE head_, BYTE *pbData_)
 {
     return RECORD_NOT_FOUND;
 }
@@ -204,12 +229,12 @@ BYTE CFloppyStream::ReadWrite (bool fRead_, BYTE bSide_, BYTE bTrack_, BYTE* pbD
     return RECORD_NOT_FOUND;
 }
 
-bool CFloppyStream::ReadCustomTrack (BYTE cyl_, BYTE head_, PBYTE pbData_)
+bool CFloppyStream::ReadCustomTrack (BYTE cyl_, BYTE head_, BYTE *pbData_)
 {
     return false;
 }
 
-bool CFloppyStream::ReadMGTTrack (BYTE cyl_, BYTE head_, PBYTE pbData_)
+bool CFloppyStream::ReadMGTTrack (BYTE cyl_, BYTE head_, BYTE *pbData_)
 {
     return false;
 }

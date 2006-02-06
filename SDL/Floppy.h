@@ -27,9 +27,8 @@
 class CFloppyStream : public CStream
 {
     public:
-        CFloppyStream (const char* pcszStream_, bool fReadOnly_=false)
-            : CStream(pcszStream_, fReadOnly_), m_nFloppy(-1), m_uTrack(0) { }
-        ~CFloppyStream () { Close(); }
+        CFloppyStream (const char* pcszStream_, bool fReadOnly_=false);
+        ~CFloppyStream ();
 
     public:
         static bool IsRecognised (const char* pcszStream_);
@@ -44,20 +43,20 @@ class CFloppyStream : public CStream
         size_t Read (void* pvBuffer_, size_t uLen_) { return 0; }
         size_t Write (void* pvBuffer_, size_t uLen_) { return 0; }
 
-        BYTE ReadTrack (BYTE cyl_, BYTE head_, PBYTE pbData_);
+        BYTE ReadTrack (BYTE cyl_, BYTE head_, BYTE *pbData_);
         BYTE ReadWrite (bool fRead_, BYTE bSide_, BYTE bTrack_, BYTE* pbData_);
-        bool ReadCustomTrack (BYTE cyl_, BYTE head_, PBYTE pbData_);
-        bool ReadMGTTrack (BYTE cyl_, BYTE head_, PBYTE pbData_);
+        bool ReadCustomTrack (BYTE cyl_, BYTE head_, BYTE *pbData_);
+        bool ReadMGTTrack (BYTE cyl_, BYTE head_, BYTE *pbData_);
 
         bool IsBusy (BYTE* pbStatus_, bool fWait_);
 
     protected:
         bool Open ();
-        bool ReadWrite (bool fRead_, UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_);
 
     protected:
         int m_nFloppy;
-        UINT m_uTrack;
+
+        BYTE m_bCommand, m_bSide, m_bTrack, *m_pbData, m_bStatus;
 };
 
 #endif  // FLOPPY_H
