@@ -98,13 +98,10 @@ void Display::SetDirty ()
 // Draw the changed lines in the appropriate colour depth and hi/low resolution
 bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
 {
-    ProfileStart(Gfx);
-
     // Lock the surface for direct access below
     if (SDL_MUSTLOCK(pSurface_) && SDL_LockSurface(pSurface_) < 0)
     {
         TRACE("!!! SDL_LockSurface failed: %s\n", SDL_GetError());
-        ProfileEnd();
         return false;
     }
 
@@ -121,6 +118,8 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
     int nDepth = pSurface_->format->BitsPerPixel;
     int nBottom = pScreen_->GetHeight() >> nShift;
     int nWidth = pScreen_->GetPitch(), nRightHi = nWidth >> 3, nRightLo = nRightHi >> 1;
+
+    ProfileStart(Gfx);
 
     // What colour depth is the target surface?
     switch (nDepth)
@@ -576,8 +575,6 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
 // OpenGL version of DisplayChanges
 void DrawChangesGL (CScreen* pScreen_)
 {
-    ProfileStart(Gfx);
-
     bool fInterlace = GetOption(scanlines) && !GUI::IsActive();
 
     int nBottom = Frame::GetHeight();
@@ -595,6 +592,7 @@ void DrawChangesGL (CScreen* pScreen_)
     pdw2 = pdwBack2 = reinterpret_cast<DWORD*>(&dwTextureData[1]);
     pdw3 = pdwBack3 = reinterpret_cast<DWORD*>(&dwTextureData[2]);
 
+    ProfileStart(Gfx);
 
     // 16-bit?
     if (g_glDataType != GL_UNSIGNED_BYTE)
