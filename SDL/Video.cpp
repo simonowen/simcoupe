@@ -2,7 +2,7 @@
 //
 // Video.cpp: SDL video handling for surfaces, screen modes, palettes etc.
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@
 const int N_TOTAL_COLOURS = N_PALETTE_COLOURS + N_GUI_COLOURS;
 
 // SAM RGB values in appropriate format, and YUV values pre-shifted for overlay surface
-DWORD aulPalette[N_TOTAL_COLOURS];
+DWORD aulPalette[N_TOTAL_COLOURS], aulScanline[N_TOTAL_COLOURS];
 
 SDL_Surface *pBack, *pFront, *pIcon;
 
@@ -64,8 +64,8 @@ static BYTE abIconMask[128] =
 #ifdef USE_OPENGL
 
 GLuint dlist;
-GLuint auTextures[N_TEXTURES];
-DWORD dwTextureData[N_TEXTURES][256][256];
+GLuint auTextures[N_TEXTURES+1];
+DWORD dwTextureData[N_TEXTURES+1][256][256];
 GLenum g_glPixelFormat, g_glDataType;
 
 
@@ -89,6 +89,7 @@ void InitGL ()
 {
     int nWidth = Frame::GetWidth(), nHeight = Frame::GetHeight();
     int nW = GetOption(ratio5_4) ? nWidth * 5/4 : nWidth;
+    int i;
 
     if (!GetOption(stretchtofit))
     {
@@ -137,27 +138,50 @@ void InitGL ()
     // Try for edge-clamped textures, to avoid visible seams between filtered tiles (mainly OS X)
     GLuint uClamp = glExtension("GL_SGIS_texture_edge_clamp") ? GL_CLAMP_TO_EDGE : GL_CLAMP;
 
-    // Optionally (default=on) filter the image for a more TV-like appearance
-    GLuint uFilter = GetOption(filter) ? GL_LINEAR : GL_NEAREST;
-
 
     glEnable(GL_TEXTURE_2D);
-    glGenTextures(N_TEXTURES,auTextures);
+    glGenTextures(N_TEXTURES+1,auTextures);
 
-    for (int i = 0 ; i < N_TEXTURES ; i++)
+    for (i = 0 ; i < N_TEXTURES ; i++)
     {
         glBindTexture(GL_TEXTURE_2D, auTextures[i]);
 
         // Set the clamping and filtering texture parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, uClamp);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, uClamp);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, uFilter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, uFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GetOption(filter)?GL_LINEAR:GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GetOption(filter)?GL_LINEAR:GL_NEAREST);
 
         // Create the 256x256 texture tile
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, g_glPixelFormat, g_glDataType, dwTextureData[i]);
         glBork("glTexImage2D");
     }
+
+    
+    // Build the scanline intensity pixel, and merge in the endian-specific alpha channel
+    Uint32 ulScanline = (GetOption(scanlevel) * 0xff / 100) * 0x00010101;
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+    ulScanline |= 0xff000000;
+#else
+    ulScanline = (ulScanline << 8) | 0x000000ff;
+#endif
+
+    // Fill the scanline texture
+    for (i = 0 ; i < 256 ; i += 2)
+    {
+        for (int j = 0 ; j < 256 ; j++)
+        {
+            dwTextureData[N_TEXTURES][i][j] = ulScanline;
+            dwTextureData[N_TEXTURES][i+1][j] = 0xffffffff;
+        }
+    }
+
+    glBindTexture(GL_TEXTURE_2D, auTextures[N_TEXTURES]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, uClamp);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, uClamp);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GetOption(filter)?GL_LINEAR:GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GetOption(filter)?GL_LINEAR:GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, dwTextureData[N_TEXTURES]);
 
     dlist = glGenLists(1);
     glNewList(dlist,GL_COMPILE);
@@ -171,7 +195,6 @@ void InitGL ()
         {
             float flSize = 256.0f, flX = flSize*xx, flY = flSize*yy;
             float flMin = 0.0f, flMax = 1.0f;
-            //flMin = 0.5f/256.0f, flMax = 1.0f-flMin;  // half-pixel experiment
 
             glBindTexture(GL_TEXTURE_2D, auTextures[3*yy + xx]);
 
@@ -191,7 +214,7 @@ void ExitGL ()
 {
     // Clean up the display list and textures
     if (dlist) { glDeleteLists(dlist, 1); dlist = 0; }
-    if (auTextures[0]) glDeleteTextures(N_TEXTURES,auTextures);
+    if (auTextures[0]) glDeleteTextures(N_TEXTURES+1,auTextures);
 }
 
 #endif
@@ -201,16 +224,7 @@ bool Video::Init (bool fFirstInit_/*=false*/)
 {
     bool fRet = false;
 
-    // The lack of stretching support means the SDL version currently lacks certain features, so force the options for now
-    SetOption(scanlines, true);
-#ifndef USE_OPENGL
-    SetOption(stretchtofit,false);
-    SetOption(ratio5_4, false);
-#endif
-
-
     Exit(true);
-
     TRACE("-> Video::Init(%s)\n", fFirstInit_ ? "first" : "");
 
     if (fFirstInit_ && SDL_InitSubSystem(SDL_INIT_VIDEO) < 0)
@@ -221,10 +235,11 @@ bool Video::Init (bool fFirstInit_/*=false*/)
 
         DWORD dwWidth = Frame::GetWidth(), dwHeight = Frame::GetHeight();
 
+#ifdef USE_OPENGL
         // In 5:4 mode we'll stretch the viewing surfaces by 25%
         if (GetOption(ratio5_4))
             dwWidth = (dwWidth * 5) >> 2;
-
+#endif
         int nDepth = GetOption(fullscreen) ? GetOption(depth) : 0;
 
         // Use a hardware surface if possible, and a palette if we're running in 8-bit mode
@@ -350,6 +365,10 @@ bool Video::CreatePalettes (bool fDimmed_)
     bool fPalette = pBack && (pBack->format->BitsPerPixel == 8);
     TRACE("CreatePalette: fPalette = %s\n", fPalette ? "true" : "false");
 
+    // Determine the scanline brightness level adjustment, in the range -100 to +100
+    int nScanAdjust = GetOption(scanlines) ? (GetOption(scanlevel) - 100) : 0;
+    if (nScanAdjust < -100) nScanAdjust = -100;
+
     fDimmed_ |= (g_fPaused && !g_fFrameStep) || GUI::IsActive() || (!g_fActive && GetOption(pauseinactive));
     const RGBA *pSAM = IO::GetPalette(fDimmed_), *pGUI = GUI::GetPalette();
 
@@ -358,51 +377,57 @@ bool Video::CreatePalettes (bool fDimmed_)
     {
         // Look up the colour in the appropriate palette
         const RGBA* p = (i < N_PALETTE_COLOURS) ? &pSAM[i] : &pGUI[i-N_PALETTE_COLOURS];
-        BYTE bRed = p->bRed, bGreen = p->bGreen, bBlue = p->bBlue;
+        BYTE r = p->bRed, g = p->bGreen, b = p->bBlue;
 
 #ifdef USE_OPENGL
         // We don't currently use alpha, but pick it up to allow for future translucent windows
-        BYTE bAlpha = p->bAlpha;
+        BYTE a = p->bAlpha;
 
         // 32-bit RGBA?
         if (g_glDataType == GL_UNSIGNED_BYTE)
         {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-            aulPalette[i] = (bAlpha << 24) | (bBlue << 16) | (bGreen << 8) | bRed;
+            aulPalette[i] = (a << 24) | (b << 16) | (g << 8) | r;
+            AdjustBrightness(r,g,b, nScanAdjust);
+            aulScanline[i] = (a << 24) | (b << 16) | (g << 8) | r;
 #else
-            aulPalette[i] = (bRed << 24) | (bGreen << 16) | (bBlue << 8) | bAlpha;
+            aulPalette[i] = (r << 24) | (g << 16) | (b << 8) | a;
+            AdjustBrightness(r,g,b, nScanAdjust);
+            aulScanline[i] = (r << 24) | (g << 16) | (b << 8) | a;
 #endif
         }
-        else
+        else    // high-colour OpenGL
         {
             DWORD dwRMask, dwGMask, dwBMask, dwAMask;
 
-            // The component masks depend on the data type (pixel format assumed from above)
+            // The component masks depend on the data type
             if (g_glDataType == GL_UNSIGNED_SHORT_5_5_5_1_EXT)
                 dwRMask = 0xf800, dwGMask = 0x07c0, dwBMask = 0x003e, dwAMask = 0x0001;
-            else //if (g_glDataType == GL_UNSIGNED_SHORT_1_5_5_5_REV)
+            else
                 dwAMask = 0x8000, dwRMask = 0x7c00, dwGMask = 0x03e0, dwBMask = 0x001f;
 
-            // Determine the component values from the bit masks
-            DWORD dwRed   = ((static_cast<DWORD>(dwRMask) * (bRed+1))   >> 8) & dwRMask;
-            DWORD dwGreen = ((static_cast<DWORD>(dwGMask) * (bGreen+1)) >> 8) & dwGMask;
-            DWORD dwBlue  = ((static_cast<DWORD>(dwBMask) * (bBlue+1))  >> 8) & dwBMask;
-            DWORD dwAlpha = ((static_cast<DWORD>(dwAMask) * (bAlpha+1)) >> 8) & dwAMask;
+            // Set the normal pixel
+            aulPalette[i] = RGB2Native(r,g,b,a, dwRMask,dwGMask,dwBMask,dwAMask);
 
-            // Combine for the final pixel value
-            aulPalette[i] = dwRed | dwGreen | dwBlue | dwAlpha;
+            // Set the scanline pixel
+            AdjustBrightness(r,g,b, nScanAdjust);
+            aulScanline[i] = RGB2Native(r,g,b,a, dwRMask,dwGMask,dwBMask,dwAMask);
         }
 #else
         // Ask SDL to map non-palettised colours
         if (!fPalette)
-            aulPalette[i] = SDL_MapRGB(pBack->format, bRed, bGreen, bBlue);
+        {
+            aulPalette[i] = SDL_MapRGB(pBack->format, r,g,b);
+            AdjustBrightness(r,g,b, nScanAdjust);
+            aulScanline[i] = SDL_MapRGB(pBack->format, r,g,b);
+        }
         else
         {
             // Set the palette index and components
-            aulPalette[i] = i;
-            acPalette[i].r = bRed;
-            acPalette[i].g = bGreen;
-            acPalette[i].b = bBlue;
+            aulPalette[i] = aulScanline[i] = i;
+            acPalette[i].r = r;
+            acPalette[i].g = g;
+            acPalette[i].b = b;
         }
 #endif
     }

@@ -2,7 +2,7 @@
 //
 // IO.h: SAM I/O port handling
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //  Copyright (c) 2000-2001  Dave Laundon
 //
@@ -96,6 +96,7 @@ class CDiskDevice :  public CIoDevice
 
     public:
         virtual int GetType () const { return m_nType; }
+        virtual int GetDiskType () const { return -1; }
         virtual const char* GetPath () const { return ""; }
         virtual const char* GetFile () const { return ""; }
 

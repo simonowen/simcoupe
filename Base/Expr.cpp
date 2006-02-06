@@ -2,7 +2,7 @@
 //
 // Expr.cpp: Infix expression parsing and postfix evaluation
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -369,12 +369,17 @@ bool Expr::Term (int n_/*=0*/)
 // Parse a factor (number/variable/function) along with right-associative unary operators
 bool Expr::Factor ()
 {
+    bool fMatched = false;
+
     // Strip leading whitespace
     for ( ; isspace(*p) ; p++);
 
     // Starts with a valid hex digit?
     if (isxdigit(*p))
     {
+        // Assume we'll match the input
+        fMatched = true;
+
         // Parse as hex initially
         const char* p2;
         int nValue = strtoul(p, (char**)&p2, 16);
@@ -406,17 +411,23 @@ bool Expr::Factor ()
                 AddNode(T_NUMBER, nValue);
                 p = p2+1;
             }
-            // Otherwise parse as decimal
             else
-            {
-                AddNode(T_NUMBER, strtoul(p, (char**)&p, 10));
-            }
+                fMatched = false;
         }
-        // Parse as decimal (leading zeroes should not give octal!)
         else
+            fMatched = false;
+
+        if (!fMatched && isdigit(*p))
         {
+            // Parse as decimal (leading zeroes should not give octal!)
             AddNode(T_NUMBER, strtoul(p, (char**)&p, 10));
+            fMatched = true;
         }
+    }
+
+    if (fMatched)
+    {
+        // Nothing more to do
     }
 
     // Hex value with explicit prefix?

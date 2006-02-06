@@ -2,7 +2,7 @@
 //
 // OSD.h: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,9 +25,8 @@
 #pragma warning(disable:4786)
 
 // Reverse the _s warnings that Microsoft forces on us
-#ifndef __USE_SECURE_LIB__
 #define _CRT_SECURE_NO_DEPRECATE
-#endif
+#define _CRT_NONSTDC_NO_DEPRECATE
 
 #define STRICT
 #define WIN32_LEAN_AND_MEAN

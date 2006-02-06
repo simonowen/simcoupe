@@ -2,7 +2,7 @@
 //
 // CDrive.h: VL1772-02 floppy disk controller emulation
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -56,6 +56,7 @@ class CDrive : public CDiskDevice
         void Reset ();
 
     public:
+        int GetDiskType () const { return m_pDisk ? m_pDisk->GetType() : dtNone; }
         const char* GetPath () const { return m_pDisk ? m_pDisk->GetPath() : ""; }
         const char* GetFile () const { return m_pDisk ? m_pDisk->GetFile() : ""; }
 
@@ -79,11 +80,13 @@ class CDrive : public CDiskDevice
         UINT        m_uBuffer;
         BYTE        m_bDataStatus;  // Status value for end of data, where the data CRC can be checked
 
+        int         m_nState;       // Command state, for tracking multi-stage execution
         int         m_nMotorDelay;  // Delay before switching motor off
 
     protected:
         void ModifyStatus (BYTE bEnable_, BYTE bReset_);
         void ModifyReadStatus ();
+        void ExecuteNext ();
 
         bool IsMotorOn () const { return (m_sRegs.bStatus & MOTOR_ON) != 0; }
 };

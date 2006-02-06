@@ -1,9 +1,9 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Mouse.h: Mouse interface
 //
+//  Copyright (c) 1999-2006  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
-//  Copyright (c) 1999-2001  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by

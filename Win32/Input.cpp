@@ -2,7 +2,7 @@
 //
 // Input.cpp: Win32 mouse and DirectInput keyboard input
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -785,7 +785,6 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
                 // Update the SAM mouse position
                 Mouse::Move(nX, -nY);
-                TRACE("Mouse move: X:%-03d Y:%-03d\n", nX, nY);
 
                 // How far is the SAM mouse movement in native units?
                 Display::SamToDisplaySize(&nX, &nY);
@@ -871,7 +870,7 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
             // Map any special keys to the GUI equivalents
             if (wParam_ >= VK_NUMPAD0 && wParam_ <= VK_NUMPAD9)
-                GUI::SendMessage(GM_CHAR, GK_KP0+wParam_-VK_NUMPAD0, nMods);
+                GUI::SendMessage(GM_CHAR, GK_KP0+static_cast<int>(wParam_)-VK_NUMPAD0, nMods);
             else if (wParam_ >= VK_LEFT && wParam_ <= VK_DOWN)
             {
                 int anCursors[] = { GK_LEFT, GK_UP, GK_RIGHT, GK_DOWN };

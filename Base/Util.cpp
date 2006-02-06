@@ -2,7 +2,7 @@
 //
 // Util.cpp: Debug tracing, and other utility tasks
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //  Copyright (c) 1996-2002  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -111,6 +111,54 @@ void Message (eMsgType eType_, const char* pcszFormat_, ...)
         Main::Exit();
         exit(1);
     }
+}
+
+
+BYTE GetSizeCode (UINT uSize_)
+{
+    BYTE bCode;
+    for (bCode = 0 ; uSize_ > 128 ; bCode++, uSize_ >>= 1);
+    return bCode;
+}
+
+
+void AdjustBrightness (BYTE &r_, BYTE &g_, BYTE &b_, int nAdjust_)
+{
+    int nOffset = (nAdjust_ <= 0) ? 0 : nAdjust_;
+    int nMult = 100 - ((nAdjust_ <= 0) ? -nAdjust_ : nAdjust_);
+
+    r_ = nOffset + (r_ * nMult / 100);
+    g_ = nOffset + (g_ * nMult / 100);
+    b_ = nOffset + (b_ * nMult / 100);
+}
+
+void RGB2YUV (BYTE r_, BYTE g_, BYTE b_, BYTE *py_, BYTE *pu_, BYTE *pv_)
+{
+    *py_ = static_cast<BYTE>(r_ *  0.299 + g_ *  0.587 + b_ *  0.114);
+    *pu_ = static_cast<BYTE>(r_ * -0.169 + g_ * -0.332 + b_ *  0.500  + 128.0);
+    *pv_ = static_cast<BYTE>(r_ *  0.500 + g_ * -0.419 + b_ * -0.0813 + 128.0);
+}
+
+void YUV2RGB (BYTE y_, BYTE u_, BYTE v_, BYTE *pr_, BYTE *pg_, BYTE *pb_)
+{
+    *pr_ = static_cast<BYTE>(y_ + (1.4075 * (v_ - 128)));
+    *pg_ = static_cast<BYTE>(y_ - (0.3455 * (u_ - 128) - (0.7169 * (v_ - 128))));
+    *pb_ = static_cast<BYTE>(y_ + (1.7790 * (u_ - 128)));
+}
+
+DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_)
+{
+    return RGB2Native(r_,g_,b_,0, dwRMask_,dwGMask_,dwBMask_,0);
+}
+
+DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, BYTE a_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_, DWORD dwAMask_)
+{
+    DWORD dwRed   = static_cast<DWORD>(((static_cast<ULONGLONG>(dwRMask_) * (r_+1)) >> 8) & dwRMask_);
+    DWORD dwGreen = static_cast<DWORD>(((static_cast<ULONGLONG>(dwGMask_) * (g_+1)) >> 8) & dwGMask_);
+    DWORD dwBlue  = static_cast<DWORD>(((static_cast<ULONGLONG>(dwBMask_) * (b_+1)) >> 8) & dwBMask_);
+    DWORD dwAlpha = static_cast<DWORD>(((static_cast<ULONGLONG>(dwAMask_) * (a_+1)) >> 8) & dwAMask_);
+
+    return dwRed | dwGreen | dwBlue | dwAlpha;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Mouse.cpp: Mouse interface
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -31,7 +31,7 @@
 #include "Util.h"
 
 
-#define MOUSE_ACTIVE_TIME       USECONDS_TO_TSTATES(100)        // Mouse remains active for 100us
+#define MOUSE_RESET_TIME       USECONDS_TO_TSTATES(50)      // Mouse is reset 50us after the last read
 
 // Buffer structure for the mouse data
 typedef struct
@@ -47,14 +47,11 @@ MOUSEBUFFER;
 static MOUSEBUFFER sMouse;
 static UINT uBuffer;            // Read position in mouse data
 
-static bool fStrobed;           // true if the mouse has been strobed
-static DWORD dwStrobeTime;      // Global cycle time of last strobe
+static DWORD dwReadTime;        // Global cycle time of last mouse read
 
-static int nDeltaX, nDeltaY;    // Change in X and Y since last read
+static int nDeltaX, nDeltaY;    // System change in X and Y since last read
+static int nReadX, nReadY;      // Read change in X and Y
 static BYTE bButtons;           // Current button states
-
-
-static void Reset ();
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -62,9 +59,10 @@ void Mouse::Init (bool fFirstInit_/*=false*/)
 {
     // Clear cached mouse data
     nDeltaX = nDeltaY = 0;
-    bButtons = 0xff;
+    bButtons = 0;
 
-    Reset();
+    sMouse.bStrobe = sMouse.bDummy = 0xff;
+    uBuffer = 0;
 }
 
 void Mouse::Exit (bool fReInit_/*=false*/)
@@ -74,41 +72,47 @@ void Mouse::Exit (bool fReInit_/*=false*/)
 
 BYTE Mouse::Read (DWORD dwTime_)
 {
-    // If the mouse has been strobed, check to see if it's due a reset
-    if ((fStrobed && ((dwTime_ - dwStrobeTime) >= MOUSE_ACTIVE_TIME)) || uBuffer >= sizeof(sMouse))
-        Reset();
+    // If the read timeout has expired, reset the mouse back to non-strobed
+    if (uBuffer && (dwTime_ - dwReadTime) >= MOUSE_RESET_TIME)
+        uBuffer = 0;
 
-    // Is the first byte about to be read?
-    if (!uBuffer)
+    // If the first real data byte is about to be read, update the mouse buffer
+    if (uBuffer == 2)
     {
-        // Flag the mouse as strobed and remember the strobe time
-        fStrobed = true;
-        dwStrobeTime = dwTime_;
-
-        // Update the structure if there's something to show
-        if (nDeltaX|nDeltaY)
-        {
-            // Horizontal movement
-            sMouse.bX256 = (nDeltaX & 0xf00) >> 8;
-            sMouse.bX16  = (nDeltaX & 0x0f0) >> 4;
-            sMouse.bX1   = (nDeltaX & 0x00f);
-
-            // Vertical movement
-            sMouse.bY256 = (nDeltaY & 0xf00) >> 8;
-            sMouse.bY16  = (nDeltaY & 0x0f0) >> 4;
-            sMouse.bY1   = (nDeltaY & 0x00f);
-        }
-
         // Button states
-        sMouse.bButtons = bButtons;
+        sMouse.bButtons = ~bButtons;
+
+        // Horizontal movement
+        sMouse.bX256 = (nDeltaX & 0xf00) >> 8;
+        sMouse.bX16  = (nDeltaX & 0x0f0) >> 4;
+        sMouse.bX1   = (nDeltaX & 0x00f);
+
+        // Vertical movement
+        sMouse.bY256 = (nDeltaY & 0xf00) >> 8;
+        sMouse.bY16  = (nDeltaY & 0x0f0) >> 4;
+        sMouse.bY1   = (nDeltaY & 0x00f);
+
+        nReadX = nDeltaX;
+        nReadY = nDeltaY;
     }
 
-    // If we've still not returned all the mouse data, return the next byte
+    // Read the next byte
     BYTE bRet = reinterpret_cast<BYTE*>(&sMouse)[uBuffer++];
 
-    // If we've reached the end of the buffer, clear the mouse offsets (as they've been read)
-    if (uBuffer == sizeof(sMouse)-1)
-        nDeltaX = nDeltaY = 0;
+    // Has the full buffer been read?
+    if (uBuffer == sizeof(sMouse))
+    {
+        // Subtract the read values from the overall tracked changes
+        nDeltaX -= nReadX;
+        nDeltaY -= nReadY;
+        nReadX = nReadY = 0;
+
+        // Move back to the start of the data, but stay strobed
+        uBuffer = 1;
+    }
+
+    // Remember the last read time, so we timeout after the appropriate amount of time
+    dwReadTime = dwTime_;
 
     return bRet;
 }
@@ -132,18 +136,7 @@ void Mouse::SetButton (int nButton_, bool fPressed_/*=true*/)
 
     // Reset or set the bit depending on whether the button is being pressed or released
     if (fPressed_)
-        bButtons &= ~bBit;
-    else
         bButtons |= bBit;
-}
-
-static void Reset ()
-{
-    // Mouse not strobed, and next byte is the first byte
-    fStrobed = false;
-    uBuffer = 0;
-
-    // Initialise the mouse data
-    memset(&sMouse, 0, sizeof sMouse);
-    sMouse.bStrobe = sMouse.bDummy = sMouse.bButtons = 0xff;
+    else
+        bButtons &= ~bBit;
 }

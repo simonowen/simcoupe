@@ -109,9 +109,15 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
     GetModuleFileName(NULL, szPath, sizeof szPath);
     strrchr(szPath, '\\')[1] = '\0';
 #else
-    // If no file is given, fall back on the home directory
+    // If no file is given, fall back on the home directory (or ~/Documents on the Mac)
     if (!*pcszFile_)
+    {
+#if !defined(__APPLE__)
         strcat(strcpy(szPath, getenv("HOME")), "/");
+#else
+        strcat(strcpy(szPath, getenv("HOME")), "/Documents/");
+#endif
+    }
     else
     {
 #if defined(__BEOS__)

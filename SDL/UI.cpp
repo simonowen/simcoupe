@@ -2,7 +2,7 @@
 //
 // UI.cpp: SDL user interface
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -111,6 +111,57 @@ bool UI::CheckEvents ()
                     Display::SetDirty();
                     break;
 
+                case SDL_USEREVENT:
+                {
+                    switch (event.user.code)
+                    {
+                        case UE_OPENFILE:
+                        {
+                            char *psz = reinterpret_cast<char*>(event.user.data1);
+                            TRACE("UE_OPENFILE: %s\n", psz);
+
+                            if (GetOption(drive1) != dskImage)
+                                Message(msgWarning, "Floppy drive %d is not present", 1);
+                            else if (pDrive1->Insert(psz))
+                                Frame::SetStatus("%s  inserted into drive 1", pDrive1->GetFile());
+
+                            free(psz);
+                            break;
+                        }
+
+                        case UE_RESETBUTTON:
+                            Action::Do(actResetButton, true);
+                            Action::Do(actResetButton, false);
+                            break;
+
+                        case UE_TEMPTURBOON:
+                        case UE_TEMPTURBOOFF:
+                            Action::Do(actToggleTurbo,event.user.code == UE_TEMPTURBOON);
+                            break;
+
+                        case UE_TOGGLEFULLSCREEN:   Action::Do(actToggleFullscreen,false);break;
+                        case UE_TOGGLESYNC:         Action::Do(actToggleSync);      break;
+                        case UE_TOGGLEGREYSCALE:    Action::Do(actToggleGreyscale); break;
+                        case UE_NMIBUTTON:          Action::Do(actNmiButton);       break;
+                        case UE_TOGGLESCANLINES:    Action::Do(actToggleScanlines); break;
+                        case UE_TOGGLE54:           Action::Do(actToggle5_4);       break;
+                        case UE_DEBUGGER:           Action::Do(actDebugger);        break;
+                        case UE_SAVESCREENSHOT:     Action::Do(actSaveScreenshot);  break;
+                        case UE_CHANGEPROFILER:     Action::Do(actChangeProfiler);  break;
+                        case UE_PAUSE:              Action::Do(actPause);           break;
+                        case UE_TOGGLETURBO:        Action::Do(actToggleTurbo);     break;
+                        case UE_CHANGEFRAMESKIP:    Action::Do(actChangeFrameSkip); break;
+                        case UE_TOGGLEMUTE:         Action::Do(actToggleMute);      break;
+                        case UE_RELEASEMOUSE:       Action::Do(actReleaseMouse);    break;
+                        case UE_CHANGEWINDOWSIZE:   Action::Do(actChangeWindowSize);break;
+                        case UE_CHANGEBORDERS:      Action::Do(actChangeBorders);   break;
+
+                        default:
+                            TRACE("Unhandled SDL_event (%d)\n", event.type);
+                            break;
+                    }
+                }
+
                 default:
                     TRACE("Unhandled SDL_event (%d)\n", event.type);
                     break;
@@ -178,7 +229,6 @@ bool UI::DoAction (int nAction_, bool fPressed_)
                 GUI::Start(new CMessageBox(NULL, "5:4 mode is not available under SDL", "Sorry!", mbInformation));
 #endif
                 break;
-
             // Not processed
             default:
                 return false;
@@ -198,14 +248,13 @@ bool UI::DoAction (int nAction_, bool fPressed_)
                 Input::Acquire(!!GetOption(fullscreen), !GUI::IsActive());
                 break;
 
-            case actToggle5_4:
 #ifdef USE_OPENGL
+            case actToggle5_4:
                 SetOption(ratio5_4, !GetOption(ratio5_4));
                 Frame::Init();
                 Frame::SetStatus("%s aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
-#endif
                 break;
-
+#endif
             // Not processed
             default:
                 return false;

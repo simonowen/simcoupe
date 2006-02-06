@@ -28,6 +28,7 @@
 #include "Debug.h"
 #include "Display.h"
 #include "Expr.h"
+#include "Floppy.h"
 #include "Frame.h"
 #include "GUIDlg.h"
 #include "HardDisk.h"
@@ -97,11 +98,9 @@ OPTIONS opts;
 
 
 static char szFloppyFilters[] =
-    "All Disks (.dsk;.sad;.sdf;.mgt;.img;.sbt)\0*.dsk;*.sad;*.sdf;*.td0;*.mgt;*.img;*.sbt;*.sdf;*.cpm\0"
-    "SAM Disks (.dsk;.sad;.sdf;.sbt)\0*.dsk;*.sad;*.sdf;*.td0;*.sbt;*.sdf\0"
-    "Spectrum Disks (.mgt;.img)\0*.mgt;*.img;\0"
+    "Disk Images (dsk;sad;mgt;sdf;td0;sbt;cpm)\0*.dsk;*.sad;*.mgt;*.sdf;*.td0;*.sbt;*.cpm\0"
 #ifdef USE_ZLIB
-    "Compressed Files (.gz;.zip)\0*.gz;*.zip\0"
+    "Compressed Files (gz;zip)\0*.gz;*.zip\0"
 #endif
     "All Files (*.*)\0*.*\0";
 
@@ -353,7 +352,7 @@ bool InsertDisk (CDiskDevice* pDrive_)
         return false;
 
     // Prompt using the current image directory, unless we're using a real drive
-    if (pDrive_->GetType() == dtFloppy)
+    if (reinterpret_cast<CDrive*>(pDrive_)->GetDiskType() == dtFloppy)
         szFile[0] = '\0';
     else if (pDrive_->IsInserted())
         lstrcpyn(szFile, pDrive_->GetPath(), sizeof(szFile));
@@ -481,11 +480,9 @@ void UpdateMenuFromOptions ()
 
     HMENU hmenu = g_hmenu, hmenuFile = GetSubMenu(hmenu, 0), hmenuFloppy2 = GetSubMenu(hmenuFile, 6);
 
-    // Only enable the floppy device menu item on W2K or above
-    OSVERSIONINFO ovi = { sizeof ovi };
-    GetVersionEx(&ovi);
-    EnableItem(IDM_FILE_FLOPPY1_DEVICE, ovi.dwPlatformId == VER_PLATFORM_WIN32_NT && ovi.dwMajorVersion >= 5);
-//  EnableItem(IDM_FILE_FLOPPY2_DEVICE, ovi.dwPlatformId == VER_PLATFORM_WIN32_NT && ovi.dwMajorVersion >= 5);
+    // Only enable the floppy device menu item if it's available
+    EnableItem(IDM_FILE_FLOPPY1_DEVICE, CFloppyStream::IsAvailable());
+//  EnableItem(IDM_FILE_FLOPPY2_DEVICE, CFloppyStream::IsAvailable());
 
     bool fFloppy1 = GetOption(drive1) == dskImage, fInserted1 = pDrive1->IsInserted();
     bool fFloppy2 = GetOption(drive2) == dskImage, fInserted2 = pDrive2->IsInserted();
@@ -1995,13 +1992,13 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                         pStream = new CFileStream(NULL, szFile);
 
                     if (!nType)
-                        pDisk = new CDSKDisk(pStream);
+                        pDisk = new CMGTDisk(pStream);
                     else if (nType == 1)
                         pDisk = new CSADDisk(pStream, NORMAL_DISK_SIDES, NORMAL_DISK_TRACKS, NORMAL_DISK_SECTORS, NORMAL_SECTOR_SIZE);
                     else if (nType == 2)
                         pDisk = new CSADDisk(pStream, NORMAL_DISK_SIDES, MAX_DISK_TRACKS, NORMAL_DISK_SECTORS, NORMAL_SECTOR_SIZE);
                     else
-                        pDisk = new CDSKDisk(pStream, DOS_DISK_SECTORS);
+                        pDisk = new CMGTDisk(pStream, DOS_DISK_SECTORS);
 
                     // Save the new disk and close it
                     bool fSaved = pDisk->Save();

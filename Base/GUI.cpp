@@ -2105,7 +2105,7 @@ void CFileView::Refresh ()
     CListViewItem* pItems = NULL;
 
     // An empty path gives a virtual drive list (only possible on DOS/Win32)
-    if (!m_pszPath[0] || (!m_pszPath[1] && m_pszPath[1] != PATH_SEPARATOR))
+    if (!m_pszPath[0])
     {
         // Work through the letters backwards as we add to the head of the file chain
         for (int chDrive = 'Z' ; chDrive >= 'A' ; chDrive--)

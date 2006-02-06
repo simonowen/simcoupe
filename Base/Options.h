@@ -2,7 +2,7 @@
 //
 // Options.h: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,15 +30,16 @@ typedef struct
     int     scale;                  // Window scaling mode
     bool    ratio5_4;               // Use 5:4 screen ratio?
     bool    scanlines;              // Show scanlines?
+    int     scanlevel;              // Scanline brightness level
     int     mode3;                  // Which mode3 pixels to show on low-res displays?
     int     fullscreen;             // Start in full-screen mode?
     int     depth;                  // Screen depth for full-screen
     int     borders;                // How much of the borders to show
     bool    stretchtofit;           // Stretch screen image to fit target area?
-    bool    filter;                 // Filter the stretched image? (if possible)
     bool    overlay;                // Non-zero to use a video overlay surface, if available
     bool    hwaccel;                // Non-zero to use hardware accelerated video
     bool    greyscale;              // Non-zero to use greyscale instead of colour
+    bool    filter;                 // Non-zero to filter the OpenGL image when stretching
 
     char    rom[MAX_PATH];          // SAM ROM image path
     bool    hdbootrom;              // Use HDBOOT ROM patches

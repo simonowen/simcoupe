@@ -2,7 +2,7 @@
 //
 // GUIDlg.cpp: Dialog boxes using the GUI controls
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     : CDialog(pParent_, 305, 220,  "About SimCoupe")
 {
     new CIconControl(this, 6, 6, &sSamIcon);
-    new CTextControl(this, 86, 10,  "SimCoupe v0.90 beta (2005/01/31)", BLACK);
+    new CTextControl(this, 86, 10,  "SimCoupe v0.90 beta (2006/01/05)", BLACK);
     new CTextControl(this, 86, 24,  "http://www.simcoupe.org/", GREY_3);
 
     new CTextControl(this, 41, 46,  "Win32/SDL/Allegro/Pocket PC versions:", BLUE_5);
@@ -618,7 +618,8 @@ class CDisplayOptions : public CDialog
 
                 SetOption(borders, m_pViewArea->GetSelected());
 
-                if (Changed(borders) || Changed(fullscreen) || Changed(ratio5_4) || (GetOption(fullscreen) && Changed(depth)))
+                if (Changed(borders) || Changed(fullscreen) || Changed(ratio5_4) || Changed(scanlines) ||
+                    Changed(scanlevel) || (GetOption(fullscreen) && Changed(depth)))
                 {
                     Frame::Init();
 
@@ -640,13 +641,10 @@ class CDisplayOptions : public CDialog
 
                 m_pFrameSkip->Enable(!m_pAutoFrameSkip->IsChecked());
 
-                // SDL doesn't allow certain features to be changed at present
+#if defined(ALLEGRO_DOS) || (defined(SDL) && !defined(USE_OPENGL))
                 m_pScaleText->Enable(false);
                 m_pScale->Enable(false);
                 m_pStretch->Enable(false);
-
-#if defined(SDL) || defined(ALLEGRO_DOS)
-                m_pScanlines->Enable(false);
                 m_pRatio54->Enable(false);
 #endif
             }
@@ -824,11 +822,10 @@ class CInputOptions : public CDialog
             new CTextControl(this, 63, 35, "Mapping mode:");
             m_pKeyMapping = new CComboBox(this, 145, 32, "None (raw)|SAM Coupe|Sinclair Spectrum", 115);
 
-#ifdef __APPLE__
-            m_pAltForCntrl = new CCheckBox(this, 63, 63, "Use Alt for SAM Cntrl key");
-            m_pAltGrForEdit = new CCheckBox(this, 63, 85, "Use Apple key for SAM Edit");
-#else
             m_pAltForCntrl = new CCheckBox(this, 63, 63, "Use Left-Alt for SAM Cntrl key");
+#ifdef __APPLE__
+            m_pAltGrForEdit = new CCheckBox(this, 63, 85, "Use Right-Alt for SAM Edit");
+#else
             m_pAltGrForEdit = new CCheckBox(this, 63, 85, "Use Alt-Gr key for SAM Edit");
 #endif
             m_pKeypadMinusReset = new CCheckBox(this, 63, 107, "Use keypad-minus key for reset");
@@ -1415,13 +1412,9 @@ void CImportDialog::OnNotify (CWindow* pWindow_, int nParam_)
             // Read directly into system memory
             uRead += fread(&apbPageWritePtrs[uPage][uOffset], 1, uChunk, hFile);
 
-            // Stop reading if we've hit the end
-            if (feof(hFile))
+            // Stop reading if we've hit the end or reached the end of a logical block
+            if (feof(hFile) || uPage == EXTMEM || uPage == ROM0 || uPage == N_PAGES_MAIN)
                 break;
-
-            // If the first block was in ROM0 or we've passed memory end, wrap to page 0
-            if (++uPage >= N_PAGES_MAIN)
-                uPage = 0;
         }
 
         fclose(hFile);
@@ -1474,7 +1467,7 @@ void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
         for (UINT uChunk ; (uChunk = min(uLen, (0x4000 - uOffset))) ; uLen -= uChunk, uOffset = 0)
         {
             // Write directly from system memory
-            uWritten += fwrite(&apbPageReadPtrs[uPage][uOffset], 1, uChunk, hFile);
+            uWritten += fwrite(&apbPageReadPtrs[uPage++][uOffset], 1, uChunk, hFile);
 
             if (ferror(hFile))
             {
@@ -1484,8 +1477,8 @@ void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
             }
 
             // If the first block was in ROM0 or we've passed memory end, wrap to page 0
-            if (++uPage >= N_PAGES_MAIN)
-                uPage = 0;
+            if (uPage == EXTMEM || uPage == ROM0 || uPage == N_PAGES_MAIN)
+                break;
         }
 
         fclose(hFile);

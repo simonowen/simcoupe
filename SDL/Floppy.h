@@ -2,7 +2,7 @@
 //
 // Floppy.h: SDL direct floppy access
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,14 +24,6 @@
 #include "CStream.h"
 #include "VL1772.h"
 
-class Floppy
-{
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
-};
-
-
 class CFloppyStream : public CStream
 {
     public:
@@ -47,18 +39,17 @@ class CFloppyStream : public CStream
 
     public:
         bool IsOpen () const { return m_nFloppy != -1; }
+
         bool Rewind () { return false; }
         size_t Read (void* pvBuffer_, size_t uLen_) { return 0; }
         size_t Write (void* pvBuffer_, size_t uLen_) { return 0; }
 
-        BYTE Read (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_);
-        BYTE Write (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_);
+        BYTE ReadTrack (BYTE cyl_, BYTE head_, PBYTE pbData_);
+        BYTE ReadWrite (bool fRead_, BYTE bSide_, BYTE bTrack_, BYTE* pbData_);
+        bool ReadCustomTrack (BYTE cyl_, BYTE head_, PBYTE pbData_);
+        bool ReadMGTTrack (BYTE cyl_, BYTE head_, PBYTE pbData_);
 
-        bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_) { return false; }
-        bool WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_) { return false; }
-        void AbortAsyncOp () { }
-
-        BYTE TranslateError () const;
+        bool IsBusy (BYTE* pbStatus_, bool fWait_);
 
     protected:
         bool Open ();

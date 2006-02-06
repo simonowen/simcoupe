@@ -2,7 +2,7 @@
 //
 // Profile.cpp: Emulator profiling for on-screen stats
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -35,67 +35,6 @@
 
 PROFILE Profile::s_sProfile;
 
-PROFILE_T profTotal, profLast, *approfStack[10];
-UINT uStackPos = 0;
-
-
-void Profile::Reset ()
-{
-    profTotal = 0;
-    memset(&s_sProfile, 0, sizeof s_sProfile);
-    memset(&approfStack, 0, sizeof approfStack);
-    uStackPos = 0;
-
-    profLast = OSD::GetProfileTime();
-}
-
-void ProfileUpdate ()
-{
-    // Work out how much time has passed since the last check
-    PROFILE_T profNow = OSD::GetProfileTime(), profElapsed = profNow - profLast;
-
-    // If there was an item set, update it with the elapsed time
-    if (approfStack[uStackPos])
-    {
-        *approfStack[uStackPos] += profElapsed;
-        profTotal += profElapsed;
-    }
-
-    // Update the 'last' time for next time
-    profLast = profNow;
-}
-
-void Profile::ProfileStart_ (PROFILE_T* pprofNew_)
-{
-    if (GetOption(profile))
-    {
-        ProfileUpdate();
-
-        // Remember the new item to time and the start time
-        if (uStackPos < (sizeof approfStack / sizeof approfStack[0]))
-            approfStack[++uStackPos] = pprofNew_;
-#ifdef _DEBUG
-        else
-            Message(msgFatal, "Profile stack overflow!\n");
-#endif
-    }
-}
-
-void ProfileEnd ()
-{
-    if (GetOption(profile))
-    {
-        ProfileUpdate();
-
-        if (uStackPos)
-            uStackPos--;
-#ifdef _DEBUG
-        else
-            Message(msgFatal, "Profile stack underflow!\n");
-#endif
-    }
-}
-
 
 #ifdef USE_LOWRES
 #define AddPercent(x)   sprintf(sz + strlen(sz), "  %c:%lu%%", #x[0], ((s_sProfile.prof##x + profTotal/200UL) * 100UL) / profTotal)
@@ -107,6 +46,8 @@ const char* Profile::GetStats ()
 {
     static char sz[64];
     sz[0] = '\0';
+
+    PROFILE_T profTotal = s_sProfile.profCPU + s_sProfile.profGfx + s_sProfile.profSnd + s_sProfile.profBlt + s_sProfile.profIdle;
 
     if (profTotal)
     {

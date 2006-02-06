@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Disassem.cpp: Z80 disassembler
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ static const char* const szNormal =
     "\x99[PUSH k|CALL %a\3]|a\xa9[n\2]\x9b[|||n\2]%b\2|RST %f]\1]";
 
 static const char* const szEDprefix =
-    "\xb3[|\x87[!\x81[IN|OUT] [%h[\x9fr|X],](C)[|,%h[\x9fr|0]]\2|"
+    "\xb3[|\x87[!\x81[IN|OUT] [%h[\x9fr|X],](C)\x81[|,%h[\x9fr|0]]\2|"
     "\x99[SB|AD]C q,\xa3" "d|j\x99[p,]\xa3" "d\x99[|,p]\4|NEG|RET\x99[N|I]|IM \x9b[0|0**|1|2]|"
     "\xa9[j\xa1[|A,]\x99[I|R]\xa1[,A]|\xa1[R\x99[R|L]D|NOP]]]\2|"
     "\xa9[|\x91[\x83[LD|CP|IN|\xa1[OUT\x99[I|D]\2|OT]]\x99[I|D]\xa1[|R]\2]]]NOP\2";

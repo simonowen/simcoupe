@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Profile.h: Emulator profiling for on-screen stats
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -37,22 +37,19 @@ typedef struct
     PROFILE_T profSnd;
     PROFILE_T profBlt;
     PROFILE_T profIdle;
-    PROFILE_T profOther;
 }
 PROFILE;
 
 
 // Macros to reference values in the structure above
-#define ProfileStart(type)  Profile::ProfileStart_(&Profile::s_sProfile.prof##type)
-#define ProfileEnd()        Profile::ProfileEnd_()
+#define ProfileStart(type)  do { PROFILE_T profStart = OSD::GetProfileTime(), *pprofUpdate = &Profile::s_sProfile.prof##type
+#define ProfileEnd()        *pprofUpdate += OSD::GetProfileTime()-profStart; } while (0)
 
 class Profile
 {
     public:
-        static void Reset ();
+        static void Reset () { memset(&s_sProfile, 0, sizeof(s_sProfile)); }
         static const char* GetStats ();
-        static void ProfileStart_ (PROFILE_T* pdwNew_);
-        static void ProfileEnd_ ();
 
         static PROFILE s_sProfile;
 };

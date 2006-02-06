@@ -2,7 +2,7 @@
 //
 // CDrive.cpp: VL1772-02 floppy disk controller emulation
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 // ToDo:
 //  - real delayed spin-up (including 'hang' when command sent and no disk present)
 //  - data timeouts for type 2 commands
-//  - t-state based index pulses (current value seems tuned for MasterDOS)
 
 #include "SimCoupe.h"
 
@@ -42,7 +41,7 @@ CDrive::CDrive (CDisk* pDisk_/*=NULL*/)
 void CDrive::Reset ()
 {
     // Track 0, sector 1 and head over track 0
-    memset(&m_sRegs, 0, sizeof m_sRegs);
+    memset(&m_sRegs, 0, sizeof(m_sRegs));
     m_sRegs.bSector = 1;
     m_sRegs.bData = 0xff;
 
@@ -119,30 +118,112 @@ inline void CDrive::ModifyReadStatus ()
         ModifyStatus(DRQ, 0);
 }
 
-BYTE CDrive::In (WORD wPort_)
+
+void CDrive::ExecuteNext ()
 {
-    BYTE bRet = 0x00;
+    BYTE bStatus = m_sRegs.bStatus;
 
-    // Update status from current asynchronous operation, if any
-    if (m_pDisk && m_pDisk->GetAsyncStatus(&m_uBuffer, &m_bDataStatus))
+    // Continue processing the background
+    if (m_pDisk->IsBusy(&bStatus))
     {
-        // Some commands require additional handling
-        switch (m_sRegs.bCommand)
+        // Keep the drive motor on as we're busy
+        ModifyStatus(MOTOR_ON, 0);
+        return;
+    }
+
+    // Some commands require additional handling
+    switch (m_sRegs.bCommand)
+    {
+        case READ_1SECTOR:
+        case READ_MSECTOR:
         {
-            case READ_1SECTOR:
-            case READ_MSECTOR:
+            if (!m_pDisk->FindSector(m_sRegs.bSide, m_nHeadPos, m_sRegs.bTrack, m_sRegs.bSector))
+                ModifyStatus(RECORD_NOT_FOUND, BUSY);
+            else
+            {
+                // Read the data, reporting anything but CRC errors now, as we can't check the CRC until we reach it at the end of the data on the disk
+                m_bDataStatus = m_pDisk->ReadData(m_pbBuffer = m_abBuffer, &m_uBuffer);
                 ModifyReadStatus();
-                break;
 
-            case WRITE_1SECTOR:
-            case WRITE_MSECTOR:
-                ModifyStatus(m_bDataStatus, BUSY);
-                break;
+                // Just for fun ;-)
+                if (m_sRegs.bTrack == 4 && m_sRegs.bSector == 1 && m_abBuffer[0x1c2] == 't' && CrcBlock(m_abBuffer, m_uBuffer) == 0x6c54)
+                    m_abBuffer[0x1c2] = 'w';
+            }
+            break;
+        }
 
-            default:
-                TRACE("!!! Unexpected command type behaving asynchronously (%d)!\n", m_sRegs.bCommand);
+        case WRITE_1SECTOR:
+        case WRITE_MSECTOR:
+        {
+            // Locate the sector, reset busy and signal record not found if we couldn't find it
+            IDFIELD sID;
+            if (!m_pDisk->FindSector(m_sRegs.bSide, m_nHeadPos, m_sRegs.bTrack, m_sRegs.bSector, &sID))
+                ModifyStatus(RECORD_NOT_FOUND, BUSY);
+            else if (m_pDisk->IsReadOnly())
+                ModifyStatus(WRITE_PROTECT, BUSY);
+            else
+            {
+                // Prepare data pointer to receive data, and the amount we're expecting
+                m_pbBuffer = m_abBuffer;
+                m_uBuffer = 128 << sID.bSize;
+
+                // Signal that data is now requested for writing
+                ModifyStatus(DRQ, 0);
+            }
+            break;
+        }
+
+        case READ_ADDRESS:
+        {
+            // Read an ID field into our general buffer
+            IDFIELD* pId = reinterpret_cast<IDFIELD*>(m_pbBuffer = m_abBuffer);
+            BYTE bStatus = ReadAddress(m_sRegs.bSide, m_nHeadPos, pId);
+
+            // If successful set up the number of bytes available to read
+            if (!(bStatus & TYPE23_ERROR_MASK))
+            {
+                m_sRegs.bSector = pId->bTrack;
+
+                m_uBuffer = sizeof(IDFIELD);
+                ModifyStatus(bStatus|DRQ, BUSY);
+            }
+
+            // Set the error status, resetting BUSY so the client sees the error
+            else
+            {
+                ModifyStatus(bStatus, BUSY);
+                m_uBuffer = 0;
+            }
+
+            break;
+        }
+
+        case READ_TRACK:
+        {
+            // Prepare a fake version built from the known sectors
+            if (ReadTrack(m_sRegs.bSide, m_nHeadPos, m_pbBuffer = m_abBuffer, m_uBuffer = sizeof(m_abBuffer)))
+                ModifyStatus(DRQ, BUSY);
+            else
+            {
+                ModifyStatus(RECORD_NOT_FOUND, BUSY);
+                m_uBuffer = 0;
+            }
+
         }
     }
+}
+
+
+BYTE CDrive::In (WORD wPort_)
+{
+    BYTE bRet;
+
+    if (!m_pDisk)
+        return 0x00;
+
+    // Continue command execution if we're busy but not transferring data
+    if ((m_sRegs.bStatus & (BUSY|DRQ)) == BUSY)
+        ExecuteNext();
 
     // Register to read from is the bottom 3 bits of the port
     switch (wPort_ & 0x03)
@@ -152,25 +233,23 @@ BYTE CDrive::In (WORD wPort_)
             // Return value is the status byte
             bRet = m_sRegs.bStatus;
 
-            // Read address work-around for a SAM DICE bug, which relies on unimplemented controller timeouts
-            if (m_sRegs.bCommand == READ_ADDRESS)
-            {
-                static int n = 0;
-
-                // If the ID field data has been read, and busy cleared, reset the counter
-                if (!(bRet & BUSY))
-                    n = 0;
-                // If busy has been set for 16 reads, reset it to allow a stuck caller to continue
-                else if (!(++n & 0xf))
-                    m_sRegs.bStatus &= ~BUSY;
-            }
-
             // Type 1 command mode uses more status bits
-            if (m_pDisk && !(m_sRegs.bCommand & 0x80))
+            if (m_sRegs.bCommand <= STEP_OUT_UPD)
             {
                 // Set the write protect bit if the disk is read-only
                 if (m_pDisk->IsReadOnly())
-                    ModifyStatus(WRITE_PROTECT, 0);
+                    bRet |= WRITE_PROTECT;
+
+                // If spin-up wasn't disabled, flag it complete
+                if (!(m_sRegs.bCmdFlags & FLAG_SPINUP))
+                    bRet |= SPIN_UP;
+
+                // Set the track 0 bit state
+                if (!m_nHeadPos)
+                {
+                    bRet |= TRACK00;
+                    m_sRegs.bTrack = 0;         // this is updated even in non-update mode!
+                }
 
                 // Toggle the index pulse status bit periodically to show the disk is spinning
                 if (IsMotorOn() && (g_dwCycleCounter % (REAL_TSTATES_PER_SECOND / (FLOPPY_RPM/60))) < TSTATES_PER_FRAME)
@@ -195,21 +274,22 @@ BYTE CDrive::In (WORD wPort_)
         case regData:
         {
             // ToDo:  Use a real SAM to try booting BDOS without an ATOM connected, to see whether data written to the data
-            // register can be read back, when DRQ is not active.  BDOS hangs in SimCoupé as the 0xa0 (master select) is written,
+            // register can be read back, when DRQ is not active.  BDOS hangs in SimCoupe as the 0xa0 (master select) is written,
             // and happens to be read back from the data port.  BDOS think the drive is BUSY bit is set in the ATA status, and
             // waits forever for it to clear!
 
-            // Only consider returning data if some is available
+            // Data available?
             if (m_uBuffer)
             {
-                // Get the next byte
+                // Read the next byte into the data register
                 m_sRegs.bData = *m_pbBuffer++;
+                m_uBuffer--;
 
                 // Has all the data been read?
-                if (!--m_uBuffer)
+                if (!m_uBuffer)
                 {
                     // Reset BUSY and DRQ to show we're done
-                    ModifyStatus(0, BUSY | DRQ);
+                    ModifyStatus(0, BUSY|DRQ);
 
                     // Some commands require additional handling
                     switch (m_sRegs.bCommand)
@@ -242,7 +322,6 @@ BYTE CDrive::In (WORD wPort_)
                                         TRACE("FDC: Multiple-sector read moving to sector %d\n", id.bSector);
 
                                         // Read the data, reporting anything but CRC errors now
-                                        // NB - ReadData may now be asynchronous, in which case BUSY will be returned
                                         m_bDataStatus = m_pDisk->ReadData(m_pbBuffer = m_abBuffer, &m_uBuffer);
                                         ModifyReadStatus();
                                     }
@@ -267,147 +346,76 @@ BYTE CDrive::In (WORD wPort_)
 
 void CDrive::Out (WORD wPort_, BYTE bVal_)
 {
-    // Extract the side number the port refers to (0 or 1)
-    int nSide = ((wPort_) >> 2) & 1;
+    // Ignore the write if there's no disk
+    if (!m_pDisk)
+        return;
 
     // Register to write to is the bottom 3 bits of the port
     switch (wPort_ & 0x03)
     {
         case regCommand:
         {
-            // Reset the status as we're starting a new command
-            m_sRegs.bStatus = 0;
+            // If we're busy, accept only the FORCE_INTERRUPT command
+            if ((m_sRegs.bStatus & BUSY) && ((bVal_ & 0xf0) != FORCE_INTERRUPT))
+                return;
 
-            // Motor on
-            ModifyStatus(MOTOR_ON, 0);
+            // Extract side from port address
+            m_sRegs.bSide = ((wPort_) >> 2) & 1;
 
-            // Type 1 commands have additional status flags set
-            if (m_pDisk && !(m_sRegs.bCommand & 0x80))
-            {
-                // Flag spin-up complete if the spin-up bit is set in a type 1 command
-                if (!(bVal_ & FLAG_SPINUP))
-                    ModifyStatus(SPIN_UP, 0);
-            }
+            // Reset the status (except motor state) as we're starting a new command
+            ModifyStatus(m_sRegs.bStatus = MOTOR_ON, 0);
+            m_nState = 0;
+
+            m_sRegs.bCommand = bVal_ & 0xf0;
+            m_sRegs.bCmdFlags = bVal_ & 0x0f;
 
             // The main command is taken from the top 2
-            switch (m_sRegs.bCommand = bVal_ & 0xf0)
+            switch (m_sRegs.bCommand)
             {
                 // Type I commands
 
                 // Restore disk head to track 0
                 case RESTORE:
-                    ModifyStatus(TRACK00, SPIN_UP);
+                {
+                    // Move to track 0
                     m_sRegs.bTrack = m_nHeadPos = 0;
-
                     TRACE("FDC: RESTORE\n");
                     break;
+                }
 
-                // Seek a track (send the track number to the DATA reg)
+                // Seek the track in the data register
                 case SEEK:
-                    // The direction flag is affected by the direction we need to seek
+                {
+                    // Move the head and update the direction flag
                     m_sRegs.fDir = (m_sRegs.bData > m_sRegs.bTrack);
-
-                    // Move to the required track
                     m_sRegs.bTrack = m_nHeadPos = m_sRegs.bData;
-
-                    // If we're now at track zero, set the TRACK00 bit in the status
-                    if (!m_nHeadPos)
-                        ModifyStatus(TRACK00, 0);
 
                     TRACE("FDC: SEEK to track %d\n", m_sRegs.bData);
                     break;
+                }
 
-                // Step using current dir without updating track register
-                case STEP_NUPD:
-                    // If the direction flag is zero, step in
-                    if (!m_sRegs.fDir)
-                        m_nHeadPos++;
-
-                    // Only step out if we're not already at zero
-                    else if (m_nHeadPos)
-                        m_nHeadPos--;
-
-                    // The TRACK00 status bit reflects whether we're at track zero
-                    if (!m_nHeadPos)
-                    {
-                        ModifyStatus(TRACK00, 0);
-
-                        // Note: the track register is still zeroed, even tho we're in non-update mode!
-                        m_sRegs.bTrack = 0;
-                    }
-
-                    TRACE("FDC: STEP_NUPD (%s to track %d (%d))\n", m_sRegs.fDir ? "out" : "in", m_nHeadPos, m_sRegs.bTrack);
-                    break;
-
-                // Step drive using current direction flags
+                // Step in/out with/without update
                 case STEP_UPD:
-                    // If the direction flag is zero, step in
-                    if (!m_sRegs.fDir)
-                        m_sRegs.bTrack = ++m_nHeadPos;
-
-                    // Only step out if we're not already at zero
-                    else if (m_nHeadPos)
-                        m_sRegs.bTrack = --m_nHeadPos;
-
-                    // The TRACK00 status bit reflects whether we're at track zero
-                    if (!m_nHeadPos)
-                        ModifyStatus(TRACK00, 0);
-
-                    TRACE("FDC: STEP_UPD (%s to track %d)\n", m_sRegs.fDir ? "out" : "in", m_nHeadPos);
-                    break;
-
-                // Step in without updating track register
-                case STEP_IN_NUPD:
-                    // Step the real head in
-                    m_nHeadPos++;
-
-                    // Remember the direction we last moved
-                    m_sRegs.fDir = false;
-                    TRACE("FDC: STEP_IN_NUPD (to track %d (%d)\n", m_nHeadPos, m_sRegs.bTrack);
-                    break;
-
-                // Step in and increment track register
+                case STEP_NUPD:
                 case STEP_IN_UPD:
-                    // Move in a track and remember the direction we last moved
-                    m_sRegs.bTrack = ++m_nHeadPos;
-                    m_sRegs.fDir = false;
-                    TRACE("FDC: STEP_IN_UPD (to track %d)\n", m_nHeadPos);
-                    break;
-
-                // Step out without updating track register
-                case STEP_OUT_NUPD:
-                    // Only decrement the track register if it's not already zero
-                    if (m_nHeadPos)
-                        m_nHeadPos--;
-
-                    // If we're now at track zero, set the TRACK00 bit in the status and zero the track register
-                    if (!m_nHeadPos)
-                    {
-                        m_sRegs.bTrack = 0;         // Note: the FDC does clear this in non-update mode!
-                        ModifyStatus(TRACK00, 0);
-                    }
-
-                    // Remember the direction we last moved
-                    m_sRegs.fDir = true;
-                    TRACE("FDC: STEP_OUT_NUPD (to track %d (%d)\n", m_nHeadPos, m_sRegs.bTrack);
-                    break;
-
-                // Step out and decrement track register
+                case STEP_IN_NUPD:
                 case STEP_OUT_UPD:
-                    // Only decrement the track register if it's not already zero
-                    if (m_nHeadPos)
-                        m_sRegs.bTrack = --m_nHeadPos;
+                case STEP_OUT_NUPD:
+                {
+                    // Step in/out commands update the direction flag
+                    if (m_sRegs.bCommand & 0x40)
+                        m_sRegs.fDir = !!(m_sRegs.bCommand & FLAG_DIR);
 
-                    // If we're now at track zero, set the TRACK00 bit in the status
-                    if (!m_nHeadPos)
-                        ModifyStatus(TRACK00, 0);
-                    else
-                        ModifyStatus(0, TRACK00);
+                    // Step the head according to the direction flag
+                    m_nHeadPos += (m_sRegs.fDir ? -1 : +1);
 
-                    // Move in a track and remember the direction we last moved
-                    m_sRegs.fDir = true;
-                    TRACE("FDC: STEP_OUT_UPD (to track %d)\n", m_nHeadPos);
+                    // Update the track register if required
+                    if (m_sRegs.bCommand & FLAG_UPDATE)
+                        m_sRegs.bTrack = m_nHeadPos;
+
+                    TRACE("FDC: STEP to track %d (%d)\n", m_nHeadPos, m_sRegs.bTrack);
                     break;
+                }
 
 
                 // Type II Commands
@@ -416,114 +424,61 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                 case READ_1SECTOR:
                 case READ_MSECTOR:
                 {
-                    TRACE("FDC: READ_xSECTOR (from side %d, track %d, sector %d)\n", nSide, m_sRegs.bTrack, m_sRegs.bSector);
-                    ModifyStatus(BUSY, TRACK00 | DELETED_DATA);
+                    TRACE("FDC: READ_xSECTOR (from side %d, track %d, sector %d)\n", m_sRegs.bSide, m_sRegs.bTrack, m_sRegs.bSector);
+                    ModifyStatus(BUSY, 0);
 
-                    // Locate the sector, reset busy and signal record not found if we couldn't find it
-                    if (!m_pDisk || !m_pDisk->FindSector(nSide, m_nHeadPos, m_sRegs.bTrack, m_sRegs.bSector))
-                        ModifyStatus(RECORD_NOT_FOUND, BUSY);
-                    else
-                    {
-                        // Read the data, reporting anything but CRC errors now, as we can't check the CRC until we reach it at the end of the data on the disk
-                        // NB - ReadData may now be asynchronous, in which case BUSY will be returned
-                        m_bDataStatus = m_pDisk->ReadData(m_pbBuffer = m_abBuffer, &m_uBuffer);
-                        ModifyReadStatus();
-
-                        // Just for fun ;-)
-                        if (m_sRegs.bTrack == 4 && m_sRegs.bSector == 1 && m_abBuffer[0x1c2] == 't' && CrcBlock(m_abBuffer, m_uBuffer) == 0x6c54)
-                            m_abBuffer[0x1c2] = 'w';
-                    }
+                    m_pDisk->LoadTrack(m_sRegs.bSide, m_nHeadPos);
+                    break;
                 }
-                break;
 
                 // Write one or multiple sectors
                 case WRITE_1SECTOR:
                 case WRITE_MSECTOR:
+                {
                     TRACE("FDC: WRITE_xSECTOR\n");
-                    ModifyStatus(BUSY, TRACK00 | DELETED_DATA);
+                    ModifyStatus(BUSY, 0);
 
-                    // Locate the sector, reset busy and signal record not found if we couldn't find it
-                    IDFIELD sID;
-                    if (!m_pDisk || !m_pDisk->FindSector(nSide, m_nHeadPos, m_sRegs.bTrack, m_sRegs.bSector, &sID))
-                        ModifyStatus(RECORD_NOT_FOUND, BUSY);
-                    else if (m_pDisk->IsReadOnly())
-                        ModifyStatus(WRITE_PROTECT, BUSY);
-                    else
-                    {
-                        // Prepare data pointer to receive data, and the amount we're expecting
-                        m_pbBuffer = m_abBuffer;
-                        m_uBuffer = 128 << sID.bSize;
-
-                        // Signal that data is now requested for writing
-                        ModifyStatus(DRQ, 0);
-                    }
+                    m_pDisk->LoadTrack(m_sRegs.bSide, m_nHeadPos);
                     break;
-
+                }
 
                 // Type III Commands
 
                 // Read address, read track, write track
                 case READ_ADDRESS:
                 {
-                    ModifyStatus(BUSY, TRACK00 | DELETED_DATA);
+                    TRACE("FDC: READ_ADDRESS\n");
+                    ModifyStatus(BUSY, 0);
 
-                    // Read an ID field into our general buffer
-                    IDFIELD* pId = reinterpret_cast<IDFIELD*>(m_pbBuffer = m_abBuffer);
-                    BYTE bStatus = ReadAddress(nSide, m_nHeadPos, pId);
-
-                    // If successful set up the number of bytes available to read
-                    if (!(bStatus & TYPE23_ERROR_MASK))
-                    {
-                        m_sRegs.bSector = pId->bTrack;
-
-                        m_uBuffer = sizeof(IDFIELD);
-                        ModifyStatus(bStatus|DRQ, 0);
-                    }
-
-                    // Set the error status, resetting BUSY so the client sees the error
-                    else
-                    {
-                        ModifyStatus(bStatus, BUSY);
-                        m_uBuffer = 0;
-                    }
-
-                    TRACE("FDC: READ_ADDRESS (Track:%d Side:%d Sector:%d Size:%d) returned %#02x\n", pId->bSide, pId->bTrack, pId->bSector, 128 << pId->bSize, bStatus);
+                    m_pDisk->LoadTrack(m_sRegs.bSide, m_nHeadPos);
+                    break;
                 }
                 break;
 
                 case READ_TRACK:
+                {
                     TRACE("FDC: READ_TRACK\n");
-                    ModifyStatus(BUSY, TRACK00 | DELETED_DATA);
+                    ModifyStatus(BUSY, 0);
 
-                    // See if the disk object has a real track for us
-                    if (m_pDisk && m_pDisk->ReadTrack(nSide, m_nHeadPos, m_pbBuffer = m_abBuffer, m_uBuffer = sizeof m_abBuffer))
-                        ModifyStatus(DRQ, 0);
-
-                    // Fall back to preparing a fake version built from the known sectors
-                    else if (ReadTrack(nSide, m_nHeadPos, m_pbBuffer = m_abBuffer, m_uBuffer = sizeof m_abBuffer))
-                        ModifyStatus(DRQ, 0);
-                    else
-                    {
-                        ModifyStatus(RECORD_NOT_FOUND, BUSY);
-                        m_uBuffer = 0;
-                    }
+                    m_pDisk->LoadTrack(m_sRegs.bSide, m_nHeadPos);
                     break;
+                }
 
                 case WRITE_TRACK:
                     TRACE("FDC: WRITE_TRACK\n");
-                    ModifyStatus(BUSY | DRQ, TRACK00 | DELETED_DATA);
-
-                    // Set buffer pointer and count ready to write
-                    m_pbBuffer = m_abBuffer;
-                    m_uBuffer = sizeof m_abBuffer;
+                    ModifyStatus(BUSY, 0);
 
                     // Fail if read-only
-                    if (m_pDisk && m_pDisk->IsReadOnly())
-                        ModifyStatus(WRITE_PROTECT, BUSY | DRQ);
-
-                    // Signal we're ready to start receiving the track data
+                    if (m_pDisk->IsReadOnly())
+                        ModifyStatus(WRITE_PROTECT, BUSY);
                     else
+                    {
+                        // Set buffer pointer and count ready to write
+                        m_pbBuffer = m_abBuffer;
+                        m_uBuffer = sizeof(m_abBuffer);
+
                         ModifyStatus(DRQ, 0);
+                    }
                     break;
 
 
@@ -531,28 +486,35 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
 
                 // Force interrupt
                 case FORCE_INTERRUPT:
+                {
                     TRACE("FDC: FORCE_INTERRUPT\n");
 
-                    // Leave motor on but reset everything else
-                    if (m_pDisk)
-                        m_pDisk->AbortAsyncOp();
-                    m_sRegs.bStatus &= MOTOR_ON;
+                    BYTE bStatus;
+                    m_pDisk->IsBusy(&bStatus, true);    // Wait until any active command is complete
 
-                    // Return to type 1 mode
-                    m_sRegs.bCommand = 0;
+                    ModifyStatus(m_sRegs.bStatus &= MOTOR_ON,0);    // Leave motor on but reset everything else
+                    m_sRegs.bCommand = 0;                           // Return to type 1 mode
+                    m_uBuffer = 0;                                  // No data available/required
                     break;
+                }
             }
         }
         break;
 
         case regTrack:
             TRACE("FDC: Set TRACK to %d\n", bVal_);
-            m_sRegs.bTrack = bVal_;
+
+            // Only allow register write if we're not busy
+            if (!(m_sRegs.bStatus & BUSY))
+                m_sRegs.bTrack = bVal_;
             break;
 
         case regSector:
             TRACE("FDC: Set SECTOR to %d\n", bVal_);
-            m_sRegs.bSector = bVal_;
+
+            // Only allow register write if we're not busy
+            if (!(m_sRegs.bStatus & BUSY))
+                m_sRegs.bSector = bVal_;
             break;
 
         case regData:
@@ -570,7 +532,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                 if (!--m_uBuffer)
                 {
                     // Reset BUSY and DRQ to show we're done
-                    ModifyStatus(0, BUSY | DRQ);
+                    ModifyStatus(0, BUSY|DRQ);
 
                     // Some commands require additional handling
                     switch (m_sRegs.bCommand)
@@ -578,19 +540,20 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                         case WRITE_1SECTOR:
                         case WRITE_MSECTOR:
                         {
-                            TRACE("FDC: Writing full sector: side %d, track %d, sector %d\n", nSide, m_sRegs.bTrack, m_sRegs.bSector);
+                            TRACE("FDC: Writing full sector: side %d, track %d, sector %d\n", m_sRegs.bSide, m_sRegs.bTrack, m_sRegs.bSector);
 
                             UINT uWritten;
-                            // NB - WriteData may now be asynchronous, in which case BUSY will be returned
                             BYTE bStatus = m_pDisk->WriteData(m_abBuffer, &uWritten);
                             ModifyStatus(bStatus, BUSY|DRQ);
+
+                            // Add multi-sector writing here?
                         }
                         break;
 
                         case WRITE_TRACK:
                         {
                             // Examine and perform the format
-                            BYTE bStatus = WriteTrack(nSide, m_nHeadPos, m_abBuffer, sizeof m_abBuffer);
+                            BYTE bStatus = WriteTrack(m_sRegs.bSide, m_nHeadPos, m_abBuffer, sizeof(m_abBuffer));
                             ModifyStatus(bStatus, BUSY|DRQ);
                         }
                         break;
@@ -703,20 +666,20 @@ UINT CDrive::ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
             PutBlock(pb, 0x4e, 22);         // Gap 3: min 22 (spec says 24?) bytes of 0x4e
             PutBlock(pb, 0x00, 8);          // Gap 3: min 8 bytes of 0x00
 
-            BYTE* pbData = pb;              // Data CRC begins here
-            PutBlock(pb, 0xa1, 3);          // Gap 3: exactly 3 bytes of 0xa1
-
-            PutBlock(pb, 0xfb);             // Data address mark: 1 byte of 0xfb
-
             // The data block only really exists if the ID field is valid
             if (!(bStatus & CRC_ERROR))
             {
-                // Read the sector contents
-                // NB - ReadData may now be asynchronous, in which case BUSY will be returned
-                // If that's the case, WaitAsyncOp will wait until the operation has completed
+                BYTE* pbData = pb;              // Data CRC begins here
+                PutBlock(pb, 0xa1, 3);          // Gap 3: exactly 3 bytes of 0xa1
+
+                // Read the sector contents, leaving a gap for the address mark
                 UINT uSize;
-                bStatus = m_pDisk->ReadData(pb, &uSize);
-                m_pDisk->WaitAsyncOp(&uSize, &bStatus);
+                bStatus = m_pDisk->ReadData(pb+1, &uSize);
+
+                // Write the appropriate data address mark: 1 byte of 0xfb (normal) or 0xf8 (deleted)
+                PutBlock(pb, (bStatus & DELETED_DATA) ? 0xf8 : 0xfb);
+
+                // Advance past the data block
                 pb += uSize;
 
                 // CRC the entire data area, ensuring it's invalid for data CRC errors
@@ -810,11 +773,11 @@ BYTE CDrive::WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
 
 
             // If there's enough data copy the IDFIELD info (CRC not included as the FDC generates it, below)
-            if (pb + sizeof *paID <= pbEnd)
+            if (pb + sizeof(*paID) <= pbEnd)
             {
-                memcpy(&paID[nSectors], pb, sizeof *paID);
+                memcpy(&paID[nSectors], pb, sizeof(*paID));
                 paID[nSectors].bCRC1 = paID[nSectors].bCRC2 = 0;
-                pb += (sizeof *paID - sizeof paID->bCRC1 - sizeof paID->bCRC2);
+                pb += (sizeof(*paID) - sizeof(paID->bCRC1) - sizeof(paID->bCRC2));
             }
 
             fValid &= ExpectBlock(pb, pbEnd, 0xf7, 1, 1);   // Write CRC: 1 byte of 0xf7 (writes 2 CRC bytes)

@@ -2,7 +2,7 @@
 //
 // IO.cpp: SAM I/O port handling
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //  Copyright (c) 2000-2001  Dave Laundon
 //
@@ -179,12 +179,8 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
         delete pDrive2; pDrive2 = NULL;
     }
 
-    Floppy::Exit(fReInit_);
-
     if (fInit_)
     {
-        Floppy::Init(fReInit_);
-
         if (!pDrive1)
         {
             switch (GetOption(drive1))
@@ -923,9 +919,9 @@ const RGBA* IO::GetPalette (bool fDimmed_/*=false*/)
         // Dim if required
         if (fDimmed_)
         {
-            bRed   = (bRed   << 1) / 3;
-            bGreen = (bGreen << 1) / 3;
-            bBlue  = (bBlue  << 1) / 3;
+            bRed   = bRed   * 2/3;
+            bGreen = bGreen * 2/3;
+            bBlue  = bBlue  * 2/3;
         }
 
         // If greyscale is enabled, convert the colour a suitable intensity grey

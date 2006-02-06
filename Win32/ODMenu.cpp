@@ -305,8 +305,9 @@ LRESULT COwnerDrawnMenu::OnMenuChar (UINT nChar_, UINT nFlags_, HMENU hmenu_)
 {
     int anMatches[64], nFound = 0, nCurrent = -1;
 
-    int nItems = GetMenuItemCount(hmenu_);
-    for (int i = 0; i < nItems && nFound < 64 ; i++)
+    int nItems = GetMenuItemCount(hmenu_), i;
+
+    for (i = 0; i < nItems && nFound < 64 ; i++)
     {
         MENUITEMINFO info = { sizeof(info) };
         info.fMask = MIIM_TYPE | MIIM_STATE | MIIM_DATA;

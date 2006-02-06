@@ -2,7 +2,7 @@
 //
 // VL1772.h: VL 1772 floppy disk controller definitions
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //  Copyright (c) 1999-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -44,9 +44,12 @@ enum { regCommand = 0, regStatus = regCommand, regTrack, regSector, regData };
 // VL1772 registers
 typedef struct tagVL1772Regs
 {
-    BYTE    bCommand;   // Command register (write-only)
+    BYTE    bCommand;   // Command register (write-only), top 4 bits containing command
+    BYTE    bCmdFlags;  // lower 4 bits containing flags
+
     BYTE    bStatus;    // Status register (read-only)
 
+    BYTE    bSide;      // Side from port address
     BYTE    bTrack;     // Track number register value
     BYTE    bSector;    // Sector number register
     BYTE    bData;      // Data read from and to write to the controller
@@ -93,6 +96,7 @@ VL1772Regs;
 // Type 1 command flag bits
 #define FLAG_STEP_RATE      0x03    // Stepping rate bits: 00=6ms, 01=12ms, 10=2ms, 11=3ms
 #define FLAG_VERIFY         0x04    // Verify destination track
+#define FLAG_DIR            0x20    // Step direction (non-zero for stepping out towards track 0)
 #define FLAG_SPINUP         0x08    // Enable spin-up sequence
 #define FLAG_UPDATE         0x10    // Update track register
 

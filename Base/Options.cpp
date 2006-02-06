@@ -2,7 +2,7 @@
 //
 // Options.cpp: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 #include "Util.h"
 
 const char* const OPTIONS_FILE = "SimCoupe.cfg";
-const int CFG_VERSION = 3;      // increment to force a config reset, if incompatible changes are made
+const int CFG_VERSION = 4;      // increment to force a config reset, if incompatible changes are made
 
 enum { OT_BOOL, OT_INT, OT_STRING };
 
@@ -64,16 +64,17 @@ OPTION aOptions[] =
     OPT_N("FrameSkip",    frameskip,      0),         // Auto frame-skipping
     OPT_N("Scale",        scale,          2),         // Windowed display is 2x2
     OPT_F("Ratio5_4",     ratio5_4,       false),     // Don't use 5:4 screen ratio
-    OPT_F("Scanlines",    scanlines,      false),     // Don't use scanlines
+    OPT_F("Scanlines",    scanlines,      true),      // TV scanlines
+    OPT_N("ScanLevel",    scanlevel,      75),        // Scanlines are 75% brightness
     OPT_N("Mode3",        mode3,          0),         // Show only odd mode3 pixels on low-res displays
     OPT_N("Fullscreen",   fullscreen,     0),         // Not full screen
     OPT_N("Depth",        depth,          16),        // Full screen mode uses 16-bit colour
     OPT_N("Borders",      borders,        2),         // Same amount of borders as previous version
-    OPT_F("StretchToFit", stretchtofit,   true),      // Stretch image to fit the display area
-    OPT_F("Filter",       filter,         true),      // Filter the stretched image (OpenGL only)
+    OPT_F("StretchToFit", stretchtofit,   false),     // Don't stretch image to fit the display area
     OPT_F("Overlay",      overlay,        true),      // Use a video overlay surface, if available
     OPT_F("HWAccel",      hwaccel,        true),      // Use hardware accelerated video
     OPT_F("Greyscale",    greyscale,      false),     // Colour display
+    OPT_F("Filter",       filter,         false),     // Filter the OpenGL image when stretching
 
     OPT_S("ROM",          rom,            ""),        // No custom ROM (use built-in)
     OPT_F("HDBootRom",    hdbootrom,      false),     // Don't use HDBOOT ROM patches
@@ -264,7 +265,7 @@ bool Options::Load (int argc_, char* argv_[])
     while (argc_ && --argc_)
     {
         const char* pcszOption = *++argv_;
-        if (*pcszOption == '-' || *pcszOption == '/')
+        if (*pcszOption == '-')
         {
             // Find the option in the list of known options
             OPTION* p = FindOption(pcszOption+1);

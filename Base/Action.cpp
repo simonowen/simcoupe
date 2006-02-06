@@ -85,6 +85,12 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 Frame::SetStatus("%s aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
                 break;
 
+            case actToggleScanlines:
+                SetOption(scanlines, !GetOption(scanlines));
+                Video::CreatePalettes();
+                Frame::SetStatus("Scanlines %s", GetOption(scanlines) ? "enabled" : "disabled");
+                break;
+
             case actChangeFrameSkip:
             {
                 SetOption(frameskip, (GetOption(frameskip)+1) % 11);

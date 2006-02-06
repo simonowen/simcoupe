@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
-// Floppy.h: Win32 direct floppy access
+// Floppy.h: W2K/XP/W2K3 direct floppy access using fdrawcmd.sys
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,46 +23,39 @@
 
 #include "CStream.h"
 
-class Floppy
-{
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=true);
-};
-
-
 class CFloppyStream : public CStream
 {
     public:
         CFloppyStream (const char* pcszDevice_, bool fReadOnly_);
-        virtual ~CFloppyStream () { RealClose(); }
+        virtual ~CFloppyStream ();
 
     public:
+        static bool IsAvailable ();
         static bool IsRecognised (const char* pcszStream_);
-        static bool LoadDriver ();
-        static bool UnloadDriver ();
+
+    public:
+        void Close ();
+        unsigned long ThreadProc ();
 
     public:
         bool IsOpen () const { return m_hDevice != INVALID_HANDLE_VALUE; }
-        bool Rewind () { return true; }
+
+        bool Rewind () { return false; }
         size_t Read (void* pvBuffer_, size_t uLen_) { return 0; }
         size_t Write (void* pvBuffer_, size_t uLen_) { return 0; }
 
-        BYTE Read (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_);
-        BYTE Write (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_);
-        bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_);
-        bool WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_);
-        void AbortAsyncOp ();
+        BYTE ReadTrack (BYTE cyl_, BYTE head_, PBYTE pbData_);
+        BYTE ReadWrite (bool fRead_, BYTE bSide_, BYTE bTrack_, BYTE* pbData_);
+        bool ReadCustomTrack (BYTE cyl_, BYTE head_, PBYTE pbData_);
+        bool ReadMGTTrack (BYTE cyl_, BYTE head_, PBYTE pbData_);
+
+        bool IsBusy (BYTE* pbStatus_, bool fWait_);
 
     protected:
-        void Close () { }
-        void RealClose ();
-        BYTE TranslateError () const;
+        HANDLE  m_hDevice, m_hThread;
+        bool    m_fMGT;
 
-    protected:
-        HANDLE      m_hDevice;
-        OVERLAPPED  m_sOverlapped;
-        DWORD       m_dwResult;
+        BYTE    m_bCommand, m_bSide, m_bTrack, *m_pbData, m_bStatus;
 };
 
 #endif  // FLOPPY_H

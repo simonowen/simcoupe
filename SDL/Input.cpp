@@ -2,7 +2,7 @@
 //
 // Input.cpp: SDL keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -98,7 +98,7 @@ COMBINATION_KEY asSamSymbols[] =
     { '>',  SK_SYMBOL, SK_W },      { '[',  SK_SYMBOL, SK_R },      { ']',  SK_SYMBOL, SK_T },
     { '=',  SK_EQUALS, SK_NONE },   { '_',  SK_SHIFT, SK_EQUALS },  { '"',  SK_QUOTES, SK_NONE },
     { '`',  SK_SHIFT, SK_QUOTES },  { '{',  SK_SYMBOL, SK_F },      { '}',  SK_SYMBOL, SK_G },
-    { '^',  SK_SYMBOL, SK_H },      { 163/*£*/,  SK_SYMBOL, SK_L }, { ';',  SK_SEMICOLON, SK_NONE },
+    { '^',  SK_SYMBOL, SK_H },      { 163/*GBP*/, SK_SYMBOL, SK_L },{ ';',  SK_SEMICOLON, SK_NONE },
     { ':',  SK_COLON, SK_NONE },    { '?',  SK_SYMBOL, SK_X },      { '.',  SK_PERIOD, SK_NONE },
     { ',',  SK_COMMA, SK_NONE },    { '\\', SK_SHIFT, SK_INV },     { '|',  SK_SYMBOL, SK_9 },
 
@@ -114,7 +114,7 @@ COMBINATION_KEY asSpectrumSymbols[] =
     { '_',  SK_SYMBOL, SK_0 },  { '<',  SK_SYMBOL, SK_R },       { '>',  SK_SYMBOL, SK_T },
     { ';',  SK_SYMBOL, SK_O },  { '"',  SK_SYMBOL, SK_P },       { '-',  SK_SYMBOL, SK_J },
     { '^',  SK_SYMBOL, SK_H },  { '+',  SK_SYMBOL, SK_K },       { '=',  SK_SYMBOL, SK_L },
-    { ':',  SK_SYMBOL, SK_Z },  { 163/*£*/,  SK_SYMBOL, SK_X },  { '?',  SK_SYMBOL, SK_C },
+    { ':',  SK_SYMBOL, SK_Z },  { 163/*GBP*/, SK_SYMBOL, SK_X }, { '?',  SK_SYMBOL, SK_C },
     { '/',  SK_SYMBOL, SK_V },  { '*',  SK_SYMBOL, SK_B },       { ',',  SK_SYMBOL, SK_N },
     { '.',  SK_SYMBOL, SK_M },  { '\b', SK_SHIFT,  SK_0 },
 
@@ -245,8 +245,8 @@ void ReadKeyboard ()
     memcpy(afKeyStates, afKeys, sizeof afKeyStates);
 
     // Alt-Gr comes through as SDLK_MODE on some platforms and SDLK_RALT on others, so accept both
-    // Also map the Apple key to Right-Alt, optionally for use as SAM Edit (see below)
-    if (IsPressed(SDLK_MODE) || IsPressed(SDLK_LMETA))
+    // Right-Alt on the Mac somehow appears as SDLK_KP_ENTER, so we'll map that for now too!
+    if (IsPressed(SDLK_MODE) || IsPressed(SDLK_KP_ENTER))
         PressKey(SDLK_RALT);
 
     // If the option is set, Left-ALT does the same as Right-Control: to generate SAM Cntrl
@@ -434,6 +434,10 @@ void SetSamKeyState ()
     if (!GetOption(altforcntrl) && (IsPressed(SDLK_LALT) && (IsPressed(SDLK_TAB) || IsPressed(SDLK_ESCAPE) || IsPressed(SDLK_SPACE))))
         return;
 
+    // Ignore the Command key on the Mac, to hide shortcut combinations
+    if (IsPressed(SDLK_LMETA))
+        return;
+
     // Left and right shift keys are equivalent, and also complementary!
     bool fShiftToggle = IsPressed(SDLK_LSHIFT) && IsPressed(SDLK_RSHIFT);
     if (IsPressed(SDLK_RSHIFT)) PressKey(SDLK_LSHIFT);
@@ -590,13 +594,6 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 // Correct the unicode values for Shift-Tab and Backspace, or if a Left-Alt modifier is used
                 if (pKey->sym == SDLK_TAB || pKey->sym == SDLK_BACKSPACE || pKey->mod & KMOD_LALT)
                     pKey->unicode = pKey->sym;
-
-                // Apple-Q is a shortcut for quit, until we've a Cocoa GUI to do it properly
-                else if (!GetOption(altforcntrl) && pKey->sym == SDLK_q && pKey->mod == KMOD_LMETA)
-                {
-                    SDL_Event event = { SDL_QUIT };
-                    SDL_PushEvent(&event);
-                }
             }
 
             TRACE("Key %s: %d (mods=%d u=%d)\n", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym, pKey->mod, pKey->unicode);

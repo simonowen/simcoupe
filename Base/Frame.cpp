@@ -445,8 +445,8 @@ void Frame::Sync ()
 
     // Determine whether we're running at increased speed during disk activity
     bool fTurboDisk = GetOption(turboload) &&
-		((pDrive1 && pDrive1->IsActive() && pDrive1->GetType() != dtFloppy) ||
-		 (pDrive2 && pDrive2->IsActive() && pDrive2->GetType() != dtFloppy));
+        ((pDrive1 && pDrive1->IsActive() && (pDrive1->GetType() != dskImage || ((CDrive*)pDrive1)->GetDiskType() != dtFloppy)) ||
+         (pDrive2 && pDrive2->IsActive() && (pDrive2->GetType() != dskImage || ((CDrive*)pDrive2)->GetDiskType() != dtFloppy)));
 
     // Running in Turbo mode?
     if (!GUI::IsActive() && (g_fTurbo || fTurboDisk))

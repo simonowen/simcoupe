@@ -2,7 +2,7 @@
 //
 // Video.h: SDL video handling for surfaces, screen modes, palettes etc.
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ class Video
 };
 
 
-extern DWORD aulPalette[];
+extern DWORD aulPalette[], aulScanline[];
 extern SDL_Surface *pBack, *pFront;
 
 
@@ -44,7 +44,7 @@ const int N_TEXTURES = 9;   // a 3x3 block of 256x256 textures is needed (at mos
 
 extern GLuint dlist;
 extern GLuint auTextures[];
-extern DWORD dwTextureData[N_TEXTURES][256][256];
+extern DWORD dwTextureData[N_TEXTURES+1][256][256];
 extern GLenum g_glPixelFormat, g_glDataType;
 
 #endif

@@ -2,7 +2,7 @@
 //
 // Floppy.cpp: SDL direct floppy access
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,23 +19,12 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 // ToDo:
-//  - sector caching with disk change detection
 //  - some copy protected disk support
 
 #include "SimCoupe.h"
 
 #include "Floppy.h"
 #include "CDisk.h"
-
-
-bool Floppy::Init (bool fFirstInit_/*=false*/)
-{
-    return true;
-}
-
-void Floppy::Exit (bool fReInit_/*=false*/)
-{
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -157,14 +146,30 @@ bool CFloppyStream::ReadWrite (bool fRead_, UINT uSide_, UINT uTrack_, UINT uSec
     return (!ioctl(m_nFloppy, FDRAWCMD, &rc) && !(rc.reply[0] & 0x40));
 }
 
-BYTE CFloppyStream::Read (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_)
+
+BYTE CFloppyStream::ReadTrack (BYTE cyl_, BYTE head_, PBYTE pbData_)
 {
-    return ReadWrite(true, uSide_, uTrack_, uSector_, pbData_, puSize_) ? 0 : RECORD_NOT_FOUND;
+    return RECORD_NOT_FOUND;
 }
 
-BYTE CFloppyStream::Write (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_)
+BYTE CFloppyStream::ReadWrite (bool fRead_, BYTE bSide_, BYTE bTrack_, BYTE* pbData_)
 {
-    return ReadWrite(false, uSide_, uTrack_, uSector_, pbData_, puSize_) ? 0 : RECORD_NOT_FOUND;
+    return RECORD_NOT_FOUND;
+}
+
+bool CFloppyStream::ReadCustomTrack (BYTE cyl_, BYTE head_, PBYTE pbData_)
+{
+    return false;
+}
+
+bool CFloppyStream::ReadMGTTrack (BYTE cyl_, BYTE head_, PBYTE pbData_)
+{
+    return false;
+}
+
+bool CFloppyStream::IsBusy (BYTE* pbStatus_, bool fWait_)
+{
+    return false;
 }
 
 #else
@@ -189,14 +194,29 @@ bool CFloppyStream::ReadWrite (bool fRead_, UINT uSide_, UINT uTrack_, UINT uSec
     return false;
 }
 
-BYTE CFloppyStream::Read (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_)
+BYTE CFloppyStream::ReadTrack (BYTE cyl_, BYTE head_, PBYTE pbData_)
 {
     return RECORD_NOT_FOUND;
 }
 
-BYTE CFloppyStream::Write (UINT uSide_, UINT uTrack_, UINT uSector_, BYTE* pbData_, UINT* puSize_)
+BYTE CFloppyStream::ReadWrite (bool fRead_, BYTE bSide_, BYTE bTrack_, BYTE* pbData_)
 {
     return RECORD_NOT_FOUND;
+}
+
+bool CFloppyStream::ReadCustomTrack (BYTE cyl_, BYTE head_, PBYTE pbData_)
+{
+    return false;
+}
+
+bool CFloppyStream::ReadMGTTrack (BYTE cyl_, BYTE head_, PBYTE pbData_)
+{
+    return false;
+}
+
+bool CFloppyStream::IsBusy (BYTE* pbStatus_, bool fWait_)
+{
+    return false;
 }
 
 #endif

@@ -2,7 +2,7 @@
 //
 // PNG.cpp: Screenshot saving in PNG format
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,14 +18,11 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-// ToDo:
-//  - add support for saving the GUI too, which requires a special palette
-
 // Notes:
 //  This module uses definitions and information taken from the libpng
 //  header files. See:  http://www.libpng.org/pub/png/libpng.html
 //
-//  This modules rules on Zlib for compression, and if USE_ZLIB is not
+//  This modules relies on Zlib for compression, and if USE_ZLIB is not
 //  defined at compile time the whole implementation will be missing.
 //  SaveImage() becomes a no-op, and the screenshot function will not work.
 
@@ -35,8 +32,9 @@
 #ifdef USE_ZLIB
 #include "zlib.h"
 
-#include "IO.h"
+#include "GUI.h"
 #include "Options.h"
+#include "Util.h"
 
 
 // 32-bit values in PNG data are always network byte order (big endian), so define a helper macro if a conversion is needed
@@ -45,44 +43,6 @@
 #else
 #define ntohul(ul)  (ul)
 #endif
-
-
-// Remove palette entries not used by the image
-void OptimisePalette (PNG_INFO* pPNG_)
-{
-    BYTE abLookup[N_PALETTE_COLOURS], abOldPalette[3*N_PALETTE_COLOURS];
-    memset(abLookup, 0, sizeof abLookup);
-    memcpy(abOldPalette, pPNG_->pbPalette, 3*pPNG_->uPaletteSize);
-
-    // Scan the entire imagine to check which palette colours are actually being used
-    UINT u;
-    for (u = 0 ; u < pPNG_->uSize ; u++)
-        abLookup[pPNG_->pbImage[u]] = 1;
-
-    // Reduce the palette to remove entries not used in the image
-    UINT uPen = 0;
-    for (u = 0, uPen = 0 ; u < pPNG_->uPaletteSize ; u++)
-    {
-        // Skip the entry if it's not being used
-        if (!abLookup[u])
-            continue;
-
-        // Move the entry to the next free slot
-        pPNG_->pbPalette[3*uPen+0] = abOldPalette[3*u+0];
-        pPNG_->pbPalette[3*uPen+1] = abOldPalette[3*u+1];
-        pPNG_->pbPalette[3*uPen+2] = abOldPalette[3*u+2];
-
-        // Remember the new location of the old entry
-        abLookup[u] = uPen++;
-    }
-
-    // Remap the palette colours in the image to the optimised version
-    for (u = 0 ; u < pPNG_->uSize ; u++)
-        pPNG_->pbImage[u] = abLookup[pPNG_->pbImage[u]];
-
-    // Update the number of palette entries with the actual number in use
-    pPNG_->uPaletteSize = uPen;
-}
 
 
 // Write a PNG chunk block with header and CRC
@@ -119,17 +79,18 @@ static bool WriteFile (FILE* hFile_, PNG_INFO* pPNG_)
     char szProgram[] = "SimCoupe";
 
     // Prepare the image header describing what we've got
-    PNG_IHDR ihdr;
-    memset(&ihdr, 0, sizeof ihdr);
+    PNG_IHDR ihdr = { 0 };
     ihdr.dwWidth = ntohul(pPNG_->dwWidth);
     ihdr.dwHeight = ntohul(pPNG_->dwHeight);
     ihdr.bBitDepth = 8;
-    ihdr.bColourType = PNG_COLOR_TYPE_PALETTE;
+    ihdr.bColourType = PNG_COLOR_MASK_COLOR;
+    ihdr.bCompressionType = PNG_COMPRESSION_TYPE_BASE;
+    ihdr.bFilterType = PNG_FILTER_TYPE_DEFAULT;
+    ihdr.bInterlaceType = PNG_INTERLACE_NONE;
 
     // Write everything out, returning true only if everything succeeds
     return ((fwrite(PNG_SIGNATURE, 1, sizeof PNG_SIGNATURE - 1, hFile_) == sizeof PNG_SIGNATURE - 1) &&
             WriteChunk(hFile_, PNG_CN_IHDR, reinterpret_cast<BYTE*>(&ihdr), sizeof ihdr) &&
-            WriteChunk(hFile_, PNG_CN_PLTE, pPNG_->pbPalette, pPNG_->uPaletteSize*3) &&
             WriteChunk(hFile_, PNG_CN_IDAT, pPNG_->pbImage, pPNG_->uCompressedSize) &&
             WriteChunk(hFile_, PNG_CN_tEXt, reinterpret_cast<BYTE*>(szProgram), strlen(szProgram)) &&
             WriteChunk(hFile_, PNG_CN_IEND, NULL, 0));
@@ -145,29 +106,22 @@ static bool CompressImageData (PNG_INFO* pPNG_)
     uLongf ulSize = ((pPNG_->uSize * 1001) / 1000) + 12;
     BYTE* pbCompressed = new BYTE[ulSize];
 
-    if (pbCompressed)
+    // Compress the image data
+    if (pbCompressed && compress(pbCompressed, &ulSize, pPNG_->pbImage, pPNG_->uSize) == Z_OK)
     {
-        // Compress the image, but clean-up if we don't manage it
-        if (compress(pbCompressed, &ulSize, pPNG_->pbImage, pPNG_->uSize) == Z_OK)
-        {
-            // Delete the uncompressed version
-            delete pPNG_->pbImage;
+        // Delete the uncompressed version
+        delete[] pPNG_->pbImage;
 
-            // Save the compressed image and size
-            pPNG_->uCompressedSize = ulSize;
-            pPNG_->pbImage = pbCompressed;
-            pbCompressed = NULL;
+        // Save the compressed image and size
+        pPNG_->uCompressedSize = ulSize;
+        pPNG_->pbImage = pbCompressed;
+        pbCompressed = NULL;
 
-            // Success :-)
-            fRet = true;
-        }
-
-        // Failed, so just clean up
-        else
-            delete pbCompressed;
-
+        // Success :-)
+        fRet = true;
     }
 
+    delete[] pbCompressed;
     return fRet;
 }
 
@@ -175,51 +129,74 @@ static bool CompressImageData (PNG_INFO* pPNG_)
 // Process and save the supplied SAM image data to a file in PNG format
 bool SaveImage (FILE* hFile_, CScreen* pScreen_)
 {
-    bool fRet = false;
-    PNG_INFO png = { 0 };
+    // In 5:4 mode we need to stretch the output image
+    bool fStretch = GetOption(ratio5_4);
 
-    // The generated image includes the full screen size, but requires the height to be doubled
+    // Calculate the intensity reduction for scanlines, in the range -100 to +100
+    int nScanAdjust = GetOption(scanlines) ? (GetOption(scanlevel) - 100) : 0;
+    if (nScanAdjust < -100) nScanAdjust = -100;
+
+    PNG_INFO png = {0};
     png.dwWidth = pScreen_->GetPitch();
     png.dwHeight = pScreen_->GetHeight();
+    if (fStretch) png.dwWidth = png.dwWidth *5/4;
 
-    // Allocate enough space for the palette
-    png.uPaletteSize = N_PALETTE_COLOURS;
-    png.pbPalette = new BYTE[3 * png.uPaletteSize];
+    png.uSize = png.dwHeight * (1 + (png.dwWidth * 3));
+    if (!(png.pbImage = new BYTE[png.uSize]))
+        return false;
 
-    // Work out the image size, allocate a block for it and zero it
-    png.uSize = png.dwHeight * (png.dwWidth+1);
-    png.pbImage = new BYTE[png.uSize];
-    memset(png.pbImage, 0, png.dwHeight * (png.dwWidth+1));
+    memset(png.pbImage, 0, png.uSize);
+    const RGBA* pPal = IO::GetPalette();
 
-    if (png.pbPalette && png.pbImage)
+
+    BYTE *pb = png.pbImage;
+
+    for (UINT y = 0; y < png.dwHeight ; y++)
     {
-        const RGBA* pPalette = IO::GetPalette();
+        BYTE *pbS = pScreen_->GetHiResLine(y >> 1);
 
-        for (int c = 0; c < N_PALETTE_COLOURS; c++)
+        // Each image line begins with the filter type
+        *pb++ = PNG_FILTER_TYPE_DEFAULT;
+
+        for (UINT x = 0 ; x < png.dwWidth ; x++)
         {
-            png.pbPalette[3*c]   = pPalette[c].bRed;
-            png.pbPalette[3*c+1] = pPalette[c].bGreen;
-            png.pbPalette[3*c+2] = pPalette[c].bBlue;
+            // Map the image pixel back to the display pixel, allowing for 5:4 mode
+            int n = fStretch ? (x * 4/5) : x;
+            BYTE b = pbS[n];
+
+            // Look up the pixel components in the palette
+            BYTE red = pPal[b].bRed, green = pPal[b].bGreen, blue = pPal[b].bBlue;
+
+            // In 5:4 mode, 3/4 of pixels require blending with neighbouring pixels for output
+            if (fStretch && (n&3))
+            {
+                // Determine how much of the original pixel is on the left
+                int nPercent = 25*(n&3);
+                AdjustBrightness(red, green, blue, nPercent-100);
+
+                // Determine how much of the neighbouring pixel is on the right
+                BYTE b2 = pbS[n+1];
+                BYTE red2 = pPal[b2].bRed, green2 = pPal[b2].bGreen, blue2 = pPal[b2].bBlue;
+                AdjustBrightness(red2, green2, blue2, -nPercent);
+
+                // Combine the part pixels for the overall colour
+                red += red2;
+                green += green2;
+                blue += blue2;
+            }
+
+            // Odd lines are dimmed if scanlines are enabled
+            if (nScanAdjust && (y & 1))
+                AdjustBrightness(red, green, blue, nScanAdjust);
+
+            // Add the pixel to the image data
+            *pb++ = red, *pb++ = green, *pb++ = blue;
         }
-
-        // If scanlines are enabled, we'll skip every other line
-        UINT uStep = GetOption(scanlines) ? 2 : 1;
-
-        // Copy the image data, leaving a filter byte zero before each line
-        for (UINT u = 0; u < png.dwHeight ; u += uStep)
-            memcpy(&png.pbImage[1 + u*(png.dwWidth+1)], pScreen_->GetHiResLine(u >> 1), png.dwWidth);
-
-        // Remove unused palette entries
-        OptimisePalette(&png);
-
-        // Compress the data and write it out to the file
-        fRet = CompressImageData(&png) && WriteFile(hFile_, &png);
     }
 
-    // Clean up now we're done
-    delete png.pbPalette;
-    delete png.pbImage;
-
+    // Compress and write the image
+    bool fRet = CompressImageData(&png) && WriteFile(hFile_, &png);
+    delete[] png.pbImage;
     return fRet;
 }
 

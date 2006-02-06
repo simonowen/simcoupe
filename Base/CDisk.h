@@ -2,7 +2,7 @@
 //
 // CDisk.h: C++ classes used for accessing all SAM disk image types
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,14 +40,28 @@ const UINT SDF_TRACKSIZE = NORMAL_SECTOR_SIZE * 12;      // Large enough for any
 
 
 // The various disk format image sizes
-#define DSK_IMAGE_SIZE          (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE)
-#define DOS_IMAGE_SIZE          (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * DOS_DISK_SECTORS * NORMAL_SECTOR_SIZE)
+#define MGT_IMAGE_SIZE  (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE)
+#define DOS_IMAGE_SIZE  (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * DOS_DISK_SECTORS * NORMAL_SECTOR_SIZE)
 
 const UINT DISK_FILE_HEADER_SIZE = 9;    // From SAM Technical Manual  (bType, wSize, wOffset, wUnused, bPages, bStartPage)
 
 // Maximum size of a file that will fit on a SAM disk
 const UINT MAX_SAM_FILE_SIZE = ((NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS) - NORMAL_DIRECTORY_TRACKS) *
                                 NORMAL_DISK_SECTORS * (NORMAL_SECTOR_SIZE-2) - DISK_FILE_HEADER_SIZE;
+
+typedef struct
+{
+    int sectors;
+}
+TRACK, *PTRACK;
+
+typedef struct
+{
+    BYTE cyl, head, sector, size;
+    BYTE status;
+    BYTE *pbData;
+}
+SECTOR, *PSECTOR;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -153,47 +167,54 @@ SDF_SECTOR_HEADER;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define FDI_SIGNATURE           "FDI"
+#define DSK_SIGNATURE           "MV - CPC"
+#define EDSK_SIGNATURE          "EXTENDED CPC DSK File\r\nDisk-Info\r\n"
+#define EDSK_TRACK_SIGNATURE    "Track-Info\r\n"
+#define ESDK_MAX_TRACK_SIZE     0xff00
+#define EDSK_MAX_SECTORS        29
+
+#define ST1_765_CRC_ERROR       0x20
+#define ST2_765_DATA_NOT_FOUND  0x01
+#define ST2_765_CRC_ERROR       0x20
+#define ST2_765_CONTROL_MARK    0x40
 
 typedef struct
 {
-    BYTE    abSignature[3];         // "FDI"
-    BYTE    bWriteProtect;          // Non-zero if write-protected
-    BYTE    bTracks[2];             // Tracks per side
-    BYTE    bSides[2];              // Disk sides
-    BYTE    bDescOffset[2];         // Offset of disk description
-    BYTE    bDataOffset[2];         // Data offset
-    BYTE    bExtraSize[2];          // Length of additional header in following field
-//  BYTE    abExtra[];              // Additional data
-                                    // Description data here (if description offset is non-zero)
-                                    // Main data starts here
+    char szSignature[34];       // one of the signatures above, depending on DSK/EDSK
+    char szCreator[14];         // name of creator (utility/emulator)
+    BYTE bTracks;
+    BYTE bSides;
+    BYTE abTrackSize[2];        // fixed track size (DSK only)
 }
-FDI_HEADER;
+EDSK_HEADER;
 
 typedef struct
 {
-    BYTE    abTrackOffset[4];       // Track data offset, relative to start of main data block
-    BYTE    abReserved[2];          // Reserved (should be zero)
-    BYTE    bSectors;               // Number of sectors in track
-                                    // bSectors * FDI_SECTOR_HEADER structures follow here
+    char szSignature[13];       // Track-Info\r\n
+    BYTE bRate;                 // 0=unknown (default=250K), 1=250K/300K, 2=500K, 3=1M
+    BYTE bEncoding;             // 0=unknown (default=MFM), 1=FM, 2=MFM
+    BYTE bUnused;
+    BYTE bTrack;
+    BYTE bSide;
+    BYTE abUnused[2];
+    BYTE bSize;
+    BYTE bSectors;
+    BYTE bGap3;
+    BYTE bFill;
 }
-FDI_TRACK_HEADER;
+EDSK_TRACK;
 
 typedef struct
 {
-    BYTE    bTrack;             // Track number in ID field
-    BYTE    bSide;              // Side number in ID field
-    BYTE    bSector;            // Sector number in ID field
-    BYTE    bSize;              // Sector size indicator:  (128 << bSize) gives the real size
-    BYTE    bFlags;             // Flags detailing special sector conditions
-    BYTE    bSectorOffset[2];   // Offset of sector data, relative to start of track data
+    BYTE bTrack, bSide, bSector, bSize;
+    BYTE bStatus1, bStatus2;
+    BYTE bDatalow, bDatahigh;
 }
-FDI_SECTOR_HEADER;
+EDSK_SECTOR;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-enum { dtUnknown, dtFloppy, dtFile, dtFDI, dtSDF, dtTD0, dtSAD, dtDSK, dtSBT };
+enum { dtNone, dtUnknown, dtFloppy, dtFile, dtEDSK, dtSDF, dtTD0, dtSAD, dtMGT, dtSBT };
 
 class CDisk
 {
@@ -205,8 +226,8 @@ class CDisk
     public:
         static int GetType (CStream* pStream_);
         static CDisk* Open (const char* pcszDisk_, bool fReadOnly_=false);
-		static CDisk* Open (void* pv_, size_t uSize_, const char* pcszDisk_);
-        void Close () { m_pStream->Close(); }
+        static CDisk* Open (void* pv_, size_t uSize_, const char* pcszDisk_);
+        virtual void Close () { m_pStream->Close(); }
 
     // Public query functions
     public:
@@ -225,21 +246,19 @@ class CDisk
         virtual bool FindNext (IDFIELD* pIdField_=NULL, BYTE* pbStatus_=NULL);
         virtual bool FindSector (UINT uSide_, UINT uTrack_, UINT uIdTrack_, UINT uSector_, IDFIELD* pID_=NULL);
 
+        virtual BYTE LoadTrack (UINT uSide_, UINT uTrack_) { return 0; }
         virtual BYTE ReadData (BYTE* pbData_, UINT* puSize_) = 0;
         virtual BYTE WriteData (BYTE* pbData_, UINT* puSize_) = 0;
         virtual bool Save () = 0;
 
-        virtual bool ReadTrack (int nSide_, int nTrack_, BYTE* pbTrack_, UINT uSize_) { return false; }
         virtual BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) = 0;
 
-        virtual bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_) { return false; }
-        virtual bool WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_) { return false; }
-        virtual void AbortAsyncOp () { }
+        virtual bool IsBusy (BYTE* pbStatus_, bool fWait_=false) { return false; }
 
     protected:
         int     m_nType;
         UINT    m_uSides, m_uTracks, m_uSectors, m_uSectorSize;
-        UINT    m_uSide, m_uTrack, m_uSector;
+        UINT    m_uSide, m_uTrack, m_uSector, m_uSize;
         bool    m_fModified;
 
         UINT    m_uSpinPos;
@@ -248,11 +267,11 @@ class CDisk
 };
 
 
-class CDSKDisk : public CDisk
+class CMGTDisk : public CDisk
 {
     public:
-        CDSKDisk (CStream* pStream_, UINT uSectors_=NORMAL_DISK_SECTORS, bool fIMG_=false);
-        virtual ~CDSKDisk () { if (IsModified()) Save(); }
+        CMGTDisk (CStream* pStream_, UINT uSectors_=NORMAL_DISK_SECTORS, bool fIMG_=false);
+        virtual ~CMGTDisk () { if (IsModified()) Save(); }
 
     public:
         static bool IsRecognised (CStream* pStream_);
@@ -264,7 +283,7 @@ class CDSKDisk : public CDisk
         BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
 
     protected:
-        bool m_fIMG;    // true if this is really an IMG rather than DSK image
+        bool m_fIMG;    // true if this is really an IMG rather than MGT image
 };
 
 
@@ -303,7 +322,6 @@ class CTD0Disk : public CDisk
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        bool ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
         BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
 
     protected:
@@ -333,7 +351,6 @@ class CSDFDisk : public CDisk
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        bool ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
         BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
 
     protected:
@@ -342,11 +359,11 @@ class CSDFDisk : public CDisk
 };
 
 
-class CFDIDisk : public CDisk
+class CEDSKDisk : public CDisk
 {
     public:
-        CFDIDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=MAX_DISK_TRACKS);
-        virtual ~CFDIDisk () { if (IsModified()) Save(); }
+        CEDSKDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=MAX_DISK_TRACKS);
+        virtual ~CEDSKDisk ();
 
     public:
         static bool IsRecognised (CStream* pStream_);
@@ -357,14 +374,14 @@ class CFDIDisk : public CDisk
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        bool ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
         BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
 
     protected:
-        BYTE m_abData[MAX_DISK_SIDES][MAX_DISK_TRACKS][MAX_TRACK_SIZE];
+        EDSK_TRACK* m_apTracks[MAX_DISK_SIDES][MAX_DISK_TRACKS];
 
-        FDI_TRACK_HEADER* m_pTrack;     // Last track
-        FDI_SECTOR_HEADER* m_pFind;     // Last sector found with FindNext()
+        EDSK_TRACK* m_pTrack;     // Last track
+        EDSK_SECTOR* m_pFind;     // Last sector found with FindNext()
+        BYTE* m_pbFind;           // Last sector data
 };
 
 
@@ -377,17 +394,24 @@ class CFloppyDisk : public CDisk
         static bool IsRecognised (CStream* pStream_);
 
     public:
+        UINT FindInit (UINT uSide_, UINT uTrack_);
         bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
+        void Close () { m_uCacheTrack = 0U-1; }
+
+        BYTE LoadTrack (UINT uSide_, UINT uTrack_);
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
+
         BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
-        bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_);
-        bool WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_);
-        void AbortAsyncOp ();
+
+        bool IsBusy (BYTE* pbStatus_, bool fWait_);
 
     protected:
         CFloppyStream* m_pFloppy;
+        BYTE m_bStatus;
+        UINT m_uCacheSide, m_uCacheTrack;
+        BYTE m_abCache[NORMAL_DISK_SECTORS][NORMAL_SECTOR_SIZE];
 };
 
 

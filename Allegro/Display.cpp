@@ -41,12 +41,11 @@
 
 
 bool* Display::pafDirty;
-bool fClearScreen;
 
 Display::RECT rSource, rTarget;
 
 #ifdef ALLEGRO_DOS
-static BYTE abLine[WIDTH_PIXELS << 3];
+static BYTE abLine[WIDTH_PIXELS << 3], abScanLine[WIDTH_PIXELS << 3];
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -54,10 +53,10 @@ static BYTE abLine[WIDTH_PIXELS << 3];
 // Writing to the display in DWORDs makes it endian sensitive, so we need to cover both cases
 #ifndef __BIG_ENDIAN__
 
-inline DWORD PaletteDWORD (BYTE b1_, BYTE b2_, BYTE b3_, BYTE b4_)
-    { return (aulPalette[b4_] << 24) | (aulPalette[b3_] << 16) | (aulPalette[b2_] << 8)  |  aulPalette[b1_]; }
-inline DWORD PaletteDWORD (BYTE b1_, BYTE b2_)
-    { return (aulPalette[b2_] << 16) | aulPalette[b1_]; }
+inline DWORD PaletteDWORD (BYTE b1_, BYTE b2_, BYTE b3_, BYTE b4_, DWORD* pulPalette_)
+    { return (pulPalette_[b4_] << 24) | (pulPalette_[b3_] << 16) | (pulPalette_[b2_] << 8) | pulPalette_[b1_]; }
+inline DWORD PaletteDWORD (BYTE b1_, BYTE b2_, DWORD* pulPalette_)
+    { return (pulPalette_[b2_] << 16) | pulPalette_[b1_]; }
 inline DWORD MakeDWORD (BYTE b1_, BYTE b2_, BYTE b3_, BYTE b4_)
     { return (b4_ << 24) | (b3_ << 16) | (b2_ << 8) | b1_; }
 inline DWORD MakeDWORD (BYTE b1_, BYTE b2_)
@@ -65,10 +64,10 @@ inline DWORD MakeDWORD (BYTE b1_, BYTE b2_)
 
 #else
 
-inline DWORD PaletteDWORD (BYTE b1_, BYTE b2_, BYTE b3_, BYTE b4_)
-    { return (aulPalette[b1_] << 24) | (aulPalette[b2_] << 16) | (aulPalette[b3_] << 8)  |  aulPalette[b4_]; }
-inline DWORD PaletteDWORD (BYTE b1_, BYTE b2_)
-    { return (aulPalette[b1_] << 16) | aulPalette[b2_]; }
+inline DWORD PaletteDWORD (BYTE b1_, BYTE b2_, BYTE b3_, BYTE b4_, DWORD* pulPalette_)
+    { return (pulPalette_[b1_] << 24) | (pulPalette_[b2_] << 16) | (pulPalette_[b3_] << 8) | pulPalette_[b4_]; }
+inline DWORD PaletteDWORD (BYTE b1_, BYTE b2_, DWORD* pulPalette_)
+    { return (pulPalette_[b1_] << 16) | pulPalette_[b2_]; }
 inline DWORD MakeDWORD (BYTE b1_, BYTE b2_, BYTE b3_, BYTE b4_)
     { return (b1_ << 24) | (b2_ << 16) | (b3_ << 8) | b4_; }
 inline DWORD MakeDWORD (BYTE b1_, BYTE b2_)
@@ -83,6 +82,10 @@ bool Display::Init (bool fFirstInit_/*=false*/)
     Exit(true);
 
     pafDirty = new bool[Frame::GetHeight()];
+
+#ifdef ALLEGRO_DOS
+	memset(abScanLine, 0x00, sizeof(abScanLine));
+#endif
 
     return Video::Init(fFirstInit_);
 }
@@ -99,8 +102,6 @@ void Display::SetDirty ()
     // Mark all display lines dirty
     for (int i = 0, nHeight = Frame::GetHeight() ; i < nHeight ; i++)
         pafDirty[i] = true;
-
-    fClearScreen = true;
 }
 
 
@@ -118,33 +119,23 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
     acquire_bitmap(pSurface_);
     acquire_bitmap(pFront);
 
-    bool fGUI = GUI::IsActive(), fScanlines = GetOption(scanlines) && !fGUI;
+    bool fInterlace = !GUI::IsActive();
 
     DWORD *pdwBack = reinterpret_cast<DWORD*>(pSurface_->line[0]), *pdw = pdwBack;
-    long lPitchDW = (pSurface_->line[1] - pSurface_->line[0]) >> (fScanlines ? 1 : 2);
+    long lPitchDW = (pSurface_->line[1] - pSurface_->line[0]) >> (fInterlace ? 1 : 2);
     bool *pfDirty = Display::pafDirty, *pfHiRes = pScreen_->GetHiRes();
 
     BYTE *pbSAM = pScreen_->GetLine(0), *pb = pbSAM;
     long lPitch = pScreen_->GetPitch();
 
-    int nShift = fScanlines ? 1 : 0;
+    int nShift = fInterlace ? 1 : 0;
     int nDepth = bitmap_color_depth(pSurface_);
     int nBottom = pScreen_->GetHeight() >> nShift;
-    int nRightHi = pScreen_->GetPitch() >> 3, nRightLo = nRightHi >> 1;
-
-    // Clear the display if required
-    if (fClearScreen && fScanlines)
-    {
-        clear_to_color(pSurface_, 0);
-        fClearScreen = false;
-    }
-
-    int nWidth = pScreen_->GetPitch();
-    if (GetOption(ratio5_4))
-        nWidth = nWidth * 5/4;
+    int nWidth = pScreen_->GetPitch(), nRightHi = nWidth >> 3, nRightLo = nRightHi >> 1;
 
     // Calculate the offset to centralise the image on the screen (in native pixels)
-    int nOffset = (SCREEN_W - nWidth) >> 1;
+	int nDisplayedWidth = GetOption(ratio5_4) ? nWidth * 5/4 : nWidth;
+    int nOffset = (SCREEN_W - nDisplayedWidth) >> 1;
     pdw = reinterpret_cast<DWORD*>(reinterpret_cast<BYTE*>(pdw) + nOffset);
 
     // What colour depth is the target surface?
@@ -188,7 +179,7 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
                 }
 
 #ifdef ALLEGRO_DOS
-                // The DOS version updated the display directly with the changed line
+                // The DOS version updates the display directly with the changed line
                 DWORD dwOffset = bmp_write_line(pFront, y << nShift) + nOffset;
                 WORD wSegment = screen->seg, wLength = nRightHi << 1;
 
@@ -203,6 +194,41 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
                     : "S" (abLine), "b" (wSegment), "D" (dwOffset), "c" (wLength)
                     : "cc"
                 );
+/*
+				if (fInterlace)
+				{
+					dwOffset = bmp_write_line(pFront, (y << nShift)+1) + nOffset;
+
+					if (!GetOption(scanlines))
+					{
+						asm __volatile__ (" 	\n"
+							"push %%es			\n"
+							"cld				\n"
+							"movw %%bx, %%es	\n"
+							"rep				\n"
+							"movsl				\n"
+							"pop %%es"
+							: // no outputs
+							: "S" (abScanLine), "b" (wSegment), "D" (dwOffset), "c" (wLength)
+							: "cc"
+						);
+					}
+					else
+					{
+						asm __volatile__ (" 	\n"
+							"push %%es			\n"
+							"cld				\n"
+							"movw %%bx, %%es	\n"
+							"rep				\n"
+							"movsl				\n"
+							"pop %%es"
+							: // no outputs
+							: "S" (abLine), "b" (wSegment), "D" (dwOffset), "c" (wLength)
+							: "cc"
+						);
+					}
+				}
+*/
 #endif
             }
         }
@@ -221,10 +247,10 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
                 {
                     for (int x = 0 ; x < nRightHi ; x++)
                     {
-                        pdw[0] = PaletteDWORD(pb[0], pb[1]);
-                        pdw[1] = PaletteDWORD(pb[2], pb[3]);
-                        pdw[2] = PaletteDWORD(pb[4], pb[5]);
-                        pdw[3] = PaletteDWORD(pb[6], pb[7]);
+                        pdw[0] = PaletteDWORD(pb[0], pb[1], aulPalette);
+                        pdw[1] = PaletteDWORD(pb[2], pb[3], aulPalette);
+                        pdw[2] = PaletteDWORD(pb[4], pb[5], aulPalette);
+                        pdw[3] = PaletteDWORD(pb[6], pb[7], aulPalette);
 
                         pdw += 4;
                         pb += 8;
@@ -368,9 +394,9 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
     rSource.h = nBottom;
 
     // Calculate the target rectangle on the target display
-    rTarget.x = ((SCREEN_W - nWidth) >> 1);
+    rTarget.x = ((SCREEN_W - nDisplayedWidth) >> 1);
     rTarget.y = ((SCREEN_H - (rSource.h << nShift)) >> 1);
-    rTarget.w = nWidth;
+    rTarget.w = nDisplayedWidth;
     rTarget.h = rSource.h << nShift;
 
     // Find the first changed display line
@@ -388,11 +414,11 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
 
         // Dirty region updating only needs to be done for non-DOS versions
 #ifndef ALLEGRO_DOS
-        if (fScanlines)
+        if (fInterlace)
             nChangeFrom <<= 1, nChangeTo <<= 1;
 
 		// Re-evaluate whether we need to stretch the image vertically
-        nShift = !GetOption(scanlines) && !fGUI;
+        nShift = !GetOption(scanlines) && fInterlace;
 
         // Calculate the dirty source and target areas - non-GUI displays require the height doubling
         Display::RECT rBack  = { rSource.x, nChangeFrom, rSource.w, (nChangeTo - nChangeFrom) + 1 };
