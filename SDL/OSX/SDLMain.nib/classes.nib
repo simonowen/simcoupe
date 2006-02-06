@@ -1,0 +1,27 @@
+{
+    IBClasses = (
+        {CLASS = FirstResponder; LANGUAGE = ObjC; SUPERCLASS = NSObject; }, 
+        {
+            ACTIONS = {
+                appPreferences = id; 
+                fileOpen = id; 
+                helpHelp = id; 
+                helpHomepage = id; 
+                systemDebugger = id; 
+                systemMute = id; 
+                systemNMI = id; 
+                systemPause = id; 
+                systemReset = id; 
+                viewFrameSync = id; 
+                viewFullscreen = id; 
+                viewGreyscale = id; 
+                viewRatio54 = id; 
+                viewScanlines = id; 
+            }; 
+            CLASS = SDLMain; 
+            LANGUAGE = ObjC; 
+            SUPERCLASS = NSObject; 
+        }
+    ); 
+    IBVersion = 1; 
+}
