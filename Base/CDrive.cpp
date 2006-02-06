@@ -216,10 +216,10 @@ void CDrive::ExecuteNext ()
 
 BYTE CDrive::In (WORD wPort_)
 {
-    BYTE bRet;
+    BYTE bRet = 0x00;
 
     if (!m_pDisk)
-        return 0x00;
+        return bRet;
 
     // Continue command execution if we're busy but not transferring data
     if ((m_sRegs.bStatus & (BUSY|DRQ)) == BUSY)
