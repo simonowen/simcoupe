@@ -326,7 +326,7 @@ void CStreamBuffer::Update (bool fFrameEnd_)
 CSoundStream::CSoundStream (int nChannels_/*=0*/)
     : CStreamBuffer(nChannels_)
 {
-    m_nSampleBufferSize = m_nSamplesPerFrame * m_nSampleSize * GetOption(latency);
+    m_nSampleBufferSize = m_nSamplesPerFrame * m_nSampleSize * (GetOption(latency)+1);
     TRACE("Sample buffer size = %d samples\n", m_nSampleBufferSize/m_nSampleSize);
     m_pbEnd = (m_pbNow = m_pbStart = new BYTE[m_nSampleBufferSize]) + m_nSampleBufferSize;
 
