@@ -94,7 +94,6 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
           && FAILED(hr = pSurface_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL)))
     {
         TRACE("!!! DrawChanges()  Failed to lock back surface (%#08lx)\n", hr);
-        ProfileEnd();
         return false;
     }
 
@@ -647,10 +646,8 @@ void Display::Update (CScreen* pScreen_)
             IntersectRect(&rClip, &rTo, &rClip);
 
             // Modify the source screen portion to include only the portion visible in the clipped area
-            SetRect(&rBack, MulDiv(rBack.right, rClip.left, rTo.right),
-                            MulDiv(rBack.bottom, rClip.top, rTo.bottom),
-                            MulDiv(rBack.right, rClip.right, rTo.right),
-                            MulDiv(rBack.bottom, rClip.bottom, rTo.bottom));
+            SetRect(&rBack, 0, 0, MulDiv(rBack.right, rClip.right, rTo.right),
+                                  MulDiv(rBack.bottom, rClip.bottom, rTo.bottom));
 
             // Offset the target area to its final screen position in the window's client area
             OffsetRect(&(rTo = rClip), ptOffset.x, ptOffset.y);
