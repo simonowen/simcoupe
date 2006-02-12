@@ -309,22 +309,18 @@ BYTE CDrive::In (WORD wPort_)
                             if (!m_bDataStatus)
                             {
                                 IDFIELD id;
-                                BYTE bStatus;
 
-                                // Find the next sector on the track
-                                if (m_pDisk->FindNext(&id, &bStatus))
+                                // Advance the sector number
+                                m_sRegs.bSector++;
+
+                                // Are there any more sectors to return?
+                                if (m_pDisk->FindSector(m_sRegs.bSide, m_nHeadPos, m_sRegs.bTrack, m_sRegs.bSector, &id))
                                 {
-                                    // If there's an error, set the error and reset busy so it's seen
-                                    if (bStatus)
-                                        ModifyStatus(bStatus, BUSY);
-                                    else
-                                    {
-                                        TRACE("FDC: Multiple-sector read moving to sector %d\n", id.bSector);
+                                    TRACE("FDC: Multiple-sector read moving to sector %d\n", id.bSector);
 
-                                        // Read the data, reporting anything but CRC errors now
-                                        m_bDataStatus = m_pDisk->ReadData(m_pbBuffer = m_abBuffer, &m_uBuffer);
-                                        ModifyReadStatus();
-                                    }
+                                    // Read the data, reporting anything but CRC errors now
+                                    m_bDataStatus = m_pDisk->ReadData(m_pbBuffer = m_abBuffer, &m_uBuffer);
+                                    ModifyReadStatus();
                                 }
                             }
                             break;
