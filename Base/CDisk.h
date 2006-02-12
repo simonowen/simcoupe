@@ -171,7 +171,7 @@ SDF_SECTOR_HEADER;
 #define EDSK_SIGNATURE          "EXTENDED CPC DSK File\r\nDisk-Info\r\n"
 #define EDSK_TRACK_SIGNATURE    "Track-Info\r\n"
 #define ESDK_MAX_TRACK_SIZE     0xff00
-#define EDSK_MAX_SECTORS        29
+#define EDSK_MAX_SECTORS        ((256 - sizeof(EDSK_TRACK)) / sizeof(EDSK_SECTOR))  // = 29
 
 #define ST1_765_CRC_ERROR       0x20
 #define ST2_765_DATA_NOT_FOUND  0x01
@@ -270,7 +270,7 @@ class CDisk
 class CMGTDisk : public CDisk
 {
     public:
-        CMGTDisk (CStream* pStream_, UINT uSectors_=NORMAL_DISK_SECTORS, bool fIMG_=false);
+        CMGTDisk (CStream* pStream_, UINT uSectors_=NORMAL_DISK_SECTORS);
         virtual ~CMGTDisk () { if (IsModified()) Save(); }
 
     public:
@@ -281,9 +281,6 @@ class CMGTDisk : public CDisk
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
         BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
-
-    protected:
-        bool m_fIMG;    // true if this is really an IMG rather than MGT image
 };
 
 
@@ -362,7 +359,7 @@ class CSDFDisk : public CDisk
 class CEDSKDisk : public CDisk
 {
     public:
-        CEDSKDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=MAX_DISK_TRACKS);
+        CEDSKDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=NORMAL_DISK_TRACKS);
         virtual ~CEDSKDisk ();
 
     public:
@@ -378,6 +375,7 @@ class CEDSKDisk : public CDisk
 
     protected:
         EDSK_TRACK* m_apTracks[MAX_DISK_SIDES][MAX_DISK_TRACKS];
+        BYTE m_abSizes[MAX_DISK_SIDES][MAX_DISK_TRACKS];
 
         EDSK_TRACK* m_pTrack;     // Last track
         EDSK_SECTOR* m_pFind;     // Last sector found with FindNext()
@@ -411,7 +409,6 @@ class CFloppyDisk : public CDisk
         CFloppyStream* m_pFloppy;
         BYTE m_bStatus;
         UINT m_uCacheSide, m_uCacheTrack;
-        BYTE m_abCache[NORMAL_DISK_SECTORS][NORMAL_SECTOR_SIZE];
 };
 
 
