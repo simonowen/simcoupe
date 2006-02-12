@@ -40,8 +40,11 @@ OPTIONS g_opts;
 CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     : CDialog(pParent_, 305, 220,  "About SimCoupe")
 {
+    char szVersion[128] = "SimCoupe v0.90";
+    sprintf(szVersion+strlen(szVersion), " beta ("  __DATE__ ")");
+
     new CIconControl(this, 6, 6, &sSamIcon);
-    new CTextControl(this, 86, 10,  "SimCoupe v0.90 beta (2006/01/05)", BLACK);
+    new CTextControl(this, 86, 10,  szVersion, BLACK);
     new CTextControl(this, 86, 24,  "http://www.simcoupe.org/", GREY_3);
 
     new CTextControl(this, 41, 46,  "Win32/SDL/Allegro/Pocket PC versions:", BLUE_5);
@@ -152,20 +155,20 @@ void CFileDialog::OnNotify (CWindow* pWindow_, int nParam_)
 // File filter for disk images
 static const FILEFILTER sFloppyFilter =
 {
-    "All Disks (.dsk;.sad;.sdf;.sbt;.mgt;.img)|"
-    "Disk Images (.dsk;.sad;.sdf;.sbt)|"
 #ifdef USE_ZLIB
-    "Compressed Files (.gz;.zip)|"
+    "All Disks (dsk;sad;mgt;td0;sbt;gz;zip)|"
+#endif
+    "Disk Images (dsk;sad;mgt;td0;sbt)|"
+#ifdef USE_ZLIB
+    "Compressed Files (gz;zip)|"
 #endif
     "All Files",
 
     {
 #ifdef USE_ZLIB
-        ".dsk;.sad;.sdf;.sbt;.mgt;.img;.td0;.cpm;.gz;.zip",
-#else
-        ".dsk;.sad;.sdf;.sbt;.mgt;.img;.td0;.cpm",
+        ".dsk;.sad;.mgt;.sdf;.td0;.sbt;.cpm;.gz;.zip",
 #endif
-        ".dsk;.sad;.sdf;.sbt;.td0;.cpm",
+        ".dsk;.sad;.mgt;.sdf;.td0;.sbt;.cpm",
 #ifdef USE_ZLIB
         ".gz;.zip",
 #endif
@@ -1508,7 +1511,7 @@ CNewDiskDialog::CNewDiskDialog (int nDrive_, CWindow* pParent_/*=NULL*/)
     new CIconControl(this, 10, 10, &sDiskIcon);
 
     new CTextControl(this, 60, 10,  "Select the type of disk to create:");
-    m_pType = new CComboBox(this, 60, 29, "Normal format DSK image (800K)|Normal format SAD image (800K)|"
+    m_pType = new CComboBox(this, 60, 29, "Normal format MGT image (800K)|Normal format SAD image (800K)|"
                                             "Extended 83-track SAD image (830K)|CP/M DOS image (720K)", 215);
 
     m_pCompress = new CCheckBox(this, 60, 55, "Compress image to save space");
