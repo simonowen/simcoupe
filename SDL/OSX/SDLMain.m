@@ -159,11 +159,17 @@ static BOOL isFullyLaunched = NO;
 
 - (IBAction)appPreferences:(id)sender
 {
+	SDL_Event event = {0};
+	event.user.type = SDL_USEREVENT;
+	event.user.code = UE_OPTIONS;
+	SDL_PushEvent(&event);
+/*
 	if (options != nil)
 		[options release];
 
 	options = [Options alloc];
 	[NSBundle loadNibNamed:@"Options" owner:options];
+*/
 }
 
 - (IBAction)systemPause:(id)sender
