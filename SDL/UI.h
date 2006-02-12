@@ -60,5 +60,6 @@ extern bool g_fActive;
 #define UE_RELEASEMOUSE         (UE_BASE+18)
 #define UE_CHANGEWINDOWSIZE     (UE_BASE+19)
 #define UE_CHANGEBORDERS        (UE_BASE+20)
+#define UE_OPTIONS              (UE_BASE+21)
 
 #endif  // UI_H
