@@ -98,6 +98,9 @@ OPTIONS opts;
 
 
 static char szFloppyFilters[] =
+#ifdef USE_ZLIB
+    "All Disks (dsk;sad;mgt;sdf;td0;sbt;cpm;gz;zip)\0*.dsk;*.sad;*.mgt;*.sdf;*.td0;*.sbt;*.cpm;*.gz;*.zip\0"
+#endif
     "Disk Images (dsk;sad;mgt;sdf;td0;sbt;cpm)\0*.dsk;*.sad;*.mgt;*.sdf;*.td0;*.sbt;*.cpm\0"
 #ifdef USE_ZLIB
     "Compressed Files (gz;zip)\0*.gz;*.zip\0"
@@ -488,8 +491,8 @@ void UpdateMenuFromOptions ()
     bool fFloppy2 = GetOption(drive2) == dskImage, fInserted2 = pDrive2->IsInserted();
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 1 options
-    EnableItem(IDM_FILE_NEW_DISK1, fFloppy1);
-    EnableItem(IDM_FILE_FLOPPY1_INSERT, fFloppy1);
+    EnableItem(IDM_FILE_NEW_DISK1, fFloppy1 && !GUI::IsActive());
+    EnableItem(IDM_FILE_FLOPPY1_INSERT, fFloppy1 && !GUI::IsActive());
     EnableItem(IDM_FILE_FLOPPY1_EJECT, fFloppy1);
     EnableItem(IDM_FILE_FLOPPY1_SAVE_CHANGES, fFloppy1 && pDrive1->IsModified());
 
@@ -519,6 +522,10 @@ void UpdateMenuFromOptions ()
 
     CheckOption(IDM_SYSTEM_PAUSE, g_fPaused);
     CheckOption(IDM_SYSTEM_MUTESOUND, !GetOption(sound));
+
+    // The built-in GUI prevents some items from being used, so disable them if necessary
+    EnableItem(IDM_TOOLS_OPTIONS, !GUI::IsActive());
+    EnableItem(IDM_TOOLS_DEBUGGER, !g_fPaused && !GUI::IsActive());
 
     UpdateRecentFiles(hmenuFile, IDM_FILE_RECENT1, 2);
     UpdateRecentFiles(hmenuFloppy2, IDM_FLOPPY2_RECENT1, 0);
@@ -1373,18 +1380,24 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_TOOLS_DEBUGGER:        Action::Do(actDebugger);          break;
 
                 case IDM_FILE_FLOPPY1_DEVICE:
-                    if (GetOption(drive1) == dskImage && SaveDriveChanges(pDrive1) && pDrive1->Insert("A:"))
+                case IDM_FILE_FLOPPY2_DEVICE:
+                    if (!CFloppyStream::IsAvailable())
+                    {
+                        if (MessageBox(g_hwnd, "Real disk support requires a 3rd party driver.\n\nDo you want to download it?",
+                            "fdrawcmd.sys not found", MB_ICONQUESTION|MB_YESNO) == IDYES)
+                            ShellExecute(NULL, NULL, "http://simonowen.com/fdrawcmd/", NULL, "", SW_SHOWMAXIMIZED);
+                    }
+
+                    if (wId == IDM_FILE_FLOPPY1_DEVICE && GetOption(drive1) == dskImage && SaveDriveChanges(pDrive1) && pDrive1->Insert("A:"))
                         Frame::SetStatus("Using floppy drive %s", pDrive1->GetFile());
+                    else if (wId == IDM_FILE_FLOPPY2_DEVICE && GetOption(drive2) == dskImage && SaveDriveChanges(pDrive2) && pDrive2->Insert("B:"))
+                        Frame::SetStatus("Using floppy drive %s", pDrive2->GetFile());
+
                     break;
 
                 case IDM_FILE_FLOPPY1_INSERT:       Action::Do(actInsertFloppy1); break;
                 case IDM_FILE_FLOPPY1_EJECT:        Action::Do(actEjectFloppy1);  break;
                 case IDM_FILE_FLOPPY1_SAVE_CHANGES: Action::Do(actSaveFloppy1);   break;
-
-                case IDM_FILE_FLOPPY2_DEVICE:
-                    if (GetOption(drive2) == dskImage && SaveDriveChanges(pDrive2) && pDrive2->Insert("B:"))
-                        Frame::SetStatus("Using floppy drive %s", pDrive2->GetFile());
-                    break;
 
                 case IDM_FILE_FLOPPY2_INSERT:       Action::Do(actInsertFloppy2); break;
                 case IDM_FILE_FLOPPY2_EJECT:        Action::Do(actEjectFloppy2);  break;
@@ -1830,7 +1843,7 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                     if (nType && nOffset > 16384)
                     {
                         nPage += nOffset / 16384;
-                        nOffset %= 16384;
+                        nOffset &= 0x3fff;
                     }
 
                     if (!nType && nAddress < 0 || nAddress > 540671)
@@ -1864,7 +1877,10 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                     }
 
                     if (!nType)
-                        nPage = (nAddress < 0x4000) ? ROM0 : nPage;
+                    {
+                        nPage = (nAddress < 0x4000) ? ROM0 : (nAddress - 0x4000) / 0x4000;
+                        nOffset = nAddress & 0x3fff;
+                    }
                     else if (nType == 1)
                         nPage &= 0x1f;
                     else
@@ -1934,7 +1950,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
             wsprintf(sz, "New Disk %d", nDrive = static_cast<int>(lParam_));
             SetWindowText(hdlg_, sz);
 
-            static const char* aszTypes[] = { "Normal format DSK image (800K)", "Normal format SAD image (800K)", "Extended 83-track SAD image (830K)", "CP/M DOS image (720K)", NULL };
+            static const char* aszTypes[] = { "Flexible format EDSK image", "Normal format MGT image (800K)", "Normal format SAD image (800K)", "CP/M DOS image (720K)", NULL };
             SetComboStrings(hdlg_, IDC_TYPES, aszTypes, nType);
             SendMessage(hdlg_, WM_COMMAND, IDC_TYPES, 0L);
 
@@ -1958,11 +1974,22 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
                     EndDialog(hdlg_, 0);
                     return TRUE;
 
+                case IDC_TYPES:
+                    // Enable the format checkbox for EDSK only
+                    nType = (int)SendDlgItemMessage(hdlg_, IDC_TYPES, CB_GETCURSEL, 0, 0L);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_FORMAT), !nType);
+
+                    // Non-EDSK formats are fixed-format
+                    if (nType)
+                        SendDlgItemMessage(hdlg_, IDC_FORMAT, BM_SETCHECK, BST_CHECKED, 0L);
+
+                    break;
+
                 case IDOK:
                 {
                     // File extensions for each type, plus an additional extension if compressed
-                    static const char* aszTypes[] = { "dsk", "sad", "sad", "cpm" };
-                    static const char* aszCompress[] = { ".gz", "", "", ".gz" };
+                    static const char* aszTypes[] = { "dsk", "mgt", "sad", "cpm" };
+                    static const char* aszCompress[] = { ".gz", ".gz", "", ".gz" };
 
                     nType = (int)SendDlgItemMessage(hdlg_, IDC_TYPES, CB_GETCURSEL, 0, 0L);
                     fCompress = SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_GETCHECK, 0, 0L) == BST_CHECKED;
@@ -1991,14 +2018,45 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
 #endif
                         pStream = new CFileStream(NULL, szFile);
 
-                    if (!nType)
-                        pDisk = new CMGTDisk(pStream);
-                    else if (nType == 1)
-                        pDisk = new CSADDisk(pStream, NORMAL_DISK_SIDES, NORMAL_DISK_TRACKS, NORMAL_DISK_SECTORS, NORMAL_SECTOR_SIZE);
-                    else if (nType == 2)
-                        pDisk = new CSADDisk(pStream, NORMAL_DISK_SIDES, MAX_DISK_TRACKS, NORMAL_DISK_SECTORS, NORMAL_SECTOR_SIZE);
-                    else
-                        pDisk = new CMGTDisk(pStream, DOS_DISK_SECTORS);
+                    switch (nType)
+                    {
+                        case 0: pDisk = new CEDSKDisk(pStream); break;
+                        default:
+                        case 1: pDisk = new CMGTDisk(pStream);  break;
+                        case 2: pDisk = new CSADDisk(pStream, NORMAL_DISK_SIDES, NORMAL_DISK_TRACKS, NORMAL_DISK_SECTORS, NORMAL_SECTOR_SIZE); break;
+                        case 3: pDisk = new CMGTDisk(pStream, DOS_DISK_SECTORS); break;
+                    }
+
+                    // Format the EDSK image ready for use?
+                    if (nType == 0 && fFormat)
+                    {
+                        IDFIELD abIDs[NORMAL_DISK_SECTORS];
+
+                        // Create a data track to use during the format
+                        BYTE abSector[NORMAL_SECTOR_SIZE], *apbData[NORMAL_DISK_SECTORS];
+                        memset(abSector, 0, sizeof(abSector));
+
+                        // Prepare the tracks across the disk
+                        for (BYTE head = 0 ; head < NORMAL_DISK_SIDES ; head++)
+                        {
+                            for (BYTE cyl = 0 ; cyl < NORMAL_DISK_TRACKS ; cyl++)
+                            {
+                                for (BYTE sector = 0 ; sector < NORMAL_DISK_SECTORS ; sector++)
+                                {
+                                    abIDs[sector].bTrack = cyl;
+                                    abIDs[sector].bSide = head;
+                                    abIDs[sector].bSector = 1 + ((sector + NORMAL_DISK_SECTORS - (cyl%NORMAL_DISK_SECTORS)) % NORMAL_DISK_SECTORS);
+                                    abIDs[sector].bSize = 2;
+                                    abIDs[sector].bCRC1 = abIDs[sector].bCRC2 = 0;
+
+                                    // Point all data sectors to our reference sector
+                                    apbData[sector] = abSector;
+                                }
+
+                                pDisk->FormatTrack(head, cyl, abIDs, apbData, NORMAL_DISK_SECTORS);
+                            }
+                        }
+                    }
 
                     // Save the new disk and close it
                     bool fSaved = pDisk->Save();
