@@ -250,8 +250,7 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
         SetMenu(g_hwnd, NULL);
 
         // Force the window to be top-most, and sized to fill the full screen
-        RECT rect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
-        SetWindowPos(g_hwnd, HWND_TOPMOST, rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top, 0);
+        SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), 0);
     }
     else
     {
@@ -509,9 +508,6 @@ void UpdateMenuFromOptions ()
     ModifyMenu(hmenu, IDM_FILE_FLOPPY2_EJECT, MF_STRING | (fInserted2 ? MF_ENABLED : MF_GRAYED), IDM_FILE_FLOPPY2_EJECT, szEject);
     CheckOption(IDM_FILE_FLOPPY2_DEVICE, fInserted2 && CFloppyStream::IsRecognised(pDrive2->GetPath()));
 
-    CIoDevice* pPrinter = (GetOption(parallel1) == 1) ? pParallel1 :
-                          (GetOption(parallel2) == 1) ? pParallel2 : NULL;
-
     CheckOption(IDM_VIEW_FULLSCREEN, GetOption(fullscreen));
     CheckOption(IDM_VIEW_SYNC, GetOption(sync));
     CheckOption(IDM_VIEW_RATIO54, GetOption(ratio5_4));
@@ -646,13 +642,6 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
 
             case actToggleScanlines:
                 SetOption(scanlines, !GetOption(scanlines));
-
-                if (GetOption(stretchtofit))
-                {
-                    SetOption(stretchtofit, false);
-                    UI::ResizeWindow(true);
-                }
-
                 Frame::SetStatus("Scanlines %s", GetOption(scanlines) ? "enabled" : "disabled");
                 break;
 
@@ -1703,7 +1692,7 @@ void FillPrintersCombo (HWND hwndCombo_)
     delete pbPrinterInfo;
 
     // Find the position of the item to select, or select the first one (None) if we can't find it
-    LRESULT lPos = SendMessage(hwndCombo_, CB_FINDSTRINGEXACT, -1, reinterpret_cast<LPARAM>(GetOption(printerdev)));
+    LRESULT lPos = SendMessage(hwndCombo_, CB_FINDSTRINGEXACT, 0U-1, reinterpret_cast<LPARAM>(GetOption(printerdev)));
     SendMessage(hwndCombo_, CB_SETCURSEL, (lPos == CB_ERR) ? 0 : lPos, 0L);
 }
 
@@ -1716,7 +1705,7 @@ void FillJoystickCombo (HWND hwndCombo_, const char* pcszSelected_)
     Input::FillJoystickCombo(hwndCombo_);
 
     // Find the position of the item to select, or select the first one (None) if we can't find it
-    LRESULT lPos = SendMessage(hwndCombo_, CB_FINDSTRINGEXACT, -1, reinterpret_cast<LPARAM>(pcszSelected_));
+    LRESULT lPos = SendMessage(hwndCombo_, CB_FINDSTRINGEXACT, 0U-1, reinterpret_cast<LPARAM>(pcszSelected_));
     if (lPos == CB_ERR)
         lPos = 0;
     SendMessage(hwndCombo_, CB_SETCURSEL, lPos, 0L);
@@ -1773,7 +1762,6 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             SetComboStrings(hdlg_, IDC_TYPE, asz, nType);
 
             SendMessage(hdlg_, WM_COMMAND, IDC_TYPE, 0);
-            char *pszAddress = szAddress, *pszPage = szPage, *pszOffset = szOffset, *pszLength = szLength;
             SetDlgItemText(hdlg_, IDE_ADDRESS, szAddress);
             SetDlgItemText(hdlg_, IDE_PAGE, szPage);
             SetDlgItemText(hdlg_, IDE_OFFSET, szOffset);
@@ -2725,8 +2713,6 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 
         case WM_COMMAND:
         {
-            LPARAM lCtrl = reinterpret_cast<LPARAM>(GetDlgItem(hdlg_, LOWORD(wParam_)));
-
             switch (LOWORD(wParam_))
             {
                 case IDB_FLOPPY1:   BrowseImage(hdlg_, IDC_FLOPPY1, szFloppyFilters, GetOption(floppypath));   break;
@@ -3200,7 +3186,7 @@ BOOL CALLBACK NewFnKeyProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
                 // Locate the key in the list and select it
                 HWND hwndCombo = GetDlgItem(hdlg_, IDC_KEY);
-                LRESULT lPos = SendMessage(hwndCombo, CB_FINDSTRINGEXACT, -1, reinterpret_cast<LPARAM>(szKey));
+                LRESULT lPos = SendMessage(hwndCombo, CB_FINDSTRINGEXACT, 0U-1, reinterpret_cast<LPARAM>(szKey));
                 SendMessage(hwndCombo, CB_SETCURSEL, (lPos == CB_ERR) ? 0 : lPos, 0L);
 
                 // Check the appropriate modifier check-boxes
@@ -3211,7 +3197,7 @@ BOOL CALLBACK NewFnKeyProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
                 // Locate the action in the list and select it
                 hwndCombo = GetDlgItem(hdlg_, IDC_ACTION);
                 UINT uAction = min(uKey & 0xff, MAX_ACTION-1);
-                lPos = SendMessage(hwndCombo, CB_FINDSTRINGEXACT, -1, reinterpret_cast<LPARAM>(Action::aszActions[uAction]));
+                lPos = SendMessage(hwndCombo, CB_FINDSTRINGEXACT, 0U-1, reinterpret_cast<LPARAM>(Action::aszActions[uAction]));
                 SendMessage(hwndCombo, CB_SETCURSEL, (lPos == CB_ERR) ? 0 : lPos, 0L);
             }
 
@@ -3628,7 +3614,7 @@ void DisplayOptions ()
     // Save the current option state, flag that we've not centred the dialogue box, then display them for editing
     opts = Options::s_Options;
     fCentredOptions = false;
-    INT_PTR nRet = PropertySheet(&psh);
+    PropertySheet(&psh);
 
     Options::Save();
 }
