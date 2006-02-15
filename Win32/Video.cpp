@@ -98,7 +98,7 @@ bool Video::Init (bool fFirstInit_)
                     nWidth = 640, nHeight = 480;
                 else if (dwWidth <= 800 && dwHeight <= 600)
                     nWidth = 800, nHeight = 600;
-                else if (dwWidth <= 1024 && dwHeight <= 768)
+                else
                     nWidth = 1024, nHeight = 768;
 
                 // Loop while we can't select the mode we want
