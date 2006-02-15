@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // MIDI.cpp: Win32 MIDI interface
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ CMidiDevice::CMidiDevice ()
     m_hMidiOut = NULL;
 
     // For now just open the default MIDI OUT device
-    MMRESULT res = midiOutOpen(&m_hMidiOut, atoi(GetOption(midioutdev)), 0, 0, CALLBACK_NULL);
+    midiOutOpen(&m_hMidiOut, atoi(GetOption(midioutdev)), 0, 0, CALLBACK_NULL);
 }
 
 
