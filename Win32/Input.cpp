@@ -444,7 +444,7 @@ bool ReadKeyboard ()
     HRESULT hr;
     if (SUCCEEDED(hr = pdiKeyboard->Acquire()))
     {
-        DWORD dwItems = -1;
+        DWORD dwItems = 0U-1;
 
         // Now we've acquired the keyboard, we can purge it if flagged to do so
         if (fPurgeKeyboard)
