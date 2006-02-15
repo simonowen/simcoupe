@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // MIDI.h: Win32 MIDI interface
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,10 +34,10 @@ class CMidiDevice : public CIoDevice
         void Out (WORD wPort_, BYTE bVal_);
 
     protected:
-        HMIDIOUT    m_hMidiOut;     // Handle for Windows MIDI OUT device
+        HMIDIOUT m_hMidiOut;    // Handle for Windows MIDI OUT device
 
-        BYTE        m_abOut[256];   // Buffer to build up MIDI OUT messages
-        int         m_nOut;         // Number of bytes currently in abOut
+        BYTE m_abOut[256];      // Buffer to build up MIDI OUT messages
+        int  m_nOut;            // Number of bytes currently in abOut
 };
 
 
