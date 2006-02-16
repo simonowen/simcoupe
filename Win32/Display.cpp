@@ -108,7 +108,6 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
     BYTE *pbSAM = pScreen_->GetLine(0), *pb = pbSAM;
     LONG lPitch = pScreen_->GetPitch();
 
-    DWORD dwYUVBlack = ((awV[0] | awY[0]) << 16) | awU[0] | awY[0];
     bool fYUV = (ddsd.ddpfPixelFormat.dwFlags & DDPF_FOURCC) != 0;
     int nDepth = ddsd.ddpfPixelFormat.dwRGBBitCount;
     int nBottom = pScreen_->GetHeight() >> (GUI::IsActive() ? 0 : 1);
