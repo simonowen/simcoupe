@@ -4,7 +4,7 @@
 //
 //  Copyright (c) 1994 Ian Collier
 //  Copyright (c) 1999-2003 by Dave Laundon
-//  Copyright (c) 1999-2004 by Simon Owen
+//  Copyright (c) 1999-2006 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -54,7 +54,8 @@
                                 ((y >> 16) & 1) |                                   /* C          */ \
                                 (((hl ^ z) & (hl ^ y) & 0x8000) >> 13) |            /* V          */ \
                                 2;                                                  /* N          */ \
-                            f |= (!(hl = y)) << 6;                                  /* Z          */ \
+                            hl = y;                                                                  \
+                            f |= (!hl) << 6;                                        /* Z          */ \
                         } while (0)
 
 // adc hl,rr
@@ -65,7 +66,8 @@
                             f = (((y & 0xb800) ^ ((hl ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
                                 (y >> 16) |                                         /* C          */ \
                                 (((hl ^ ~z) & (hl ^ y) & 0x8000) >> 13);            /* V          */ \
-                            f |= (!(hl = y)) << 6;                                  /* Z          */ \
+                            hl = y;                                                                  \
+                            f |= (!hl) << 6;                                        /* Z          */ \
                         } while (0)
 
 // negate a

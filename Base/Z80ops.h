@@ -4,7 +4,7 @@
 //
 //  Copyright (c) 1994 Ian Collier
 //  Copyright (c) 1999-2003 by Dave Laundon
-//  Copyright (c) 1999-2005 by Simon Owen
+//  Copyright (c) 1999-2006 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -103,7 +103,8 @@
                             f = ((y & 0xb8) ^ ((a ^ z) & 0x10)) |                   /* S, 5, H, 3 */ \
                                 (y >> 8) |                                          /* C          */ \
                                 (((a ^ ~z) & (a ^ y) & 0x80) >> 5);                 /* V          */ \
-                            f |= (!(a = y)) << 6;                                   /* Z          */ \
+                            a = y;                                                                   \
+                            f |= (!a) << 6;                                         /* Z          */ \
                         } while (0)
 
 // 8-bit subtract
@@ -116,7 +117,8 @@
                                 ((y >> 8) & 1) |                                    /* C          */ \
                                 (((a ^ z) & (a ^ y) & 0x80) >> 5) |                 /* V          */ \
                                 2;                                                  /* N          */ \
-                            f |= (!(a = y)) << 6;                                   /* Z          */ \
+                            a = y;                                                                   \
+                            f |= (!a) << 6;                                         /* Z          */ \
                         } while (0)
 
 // 8-bit compare
