@@ -22,7 +22,22 @@
 #define FLOPPY_H
 
 #include "CStream.h"
-#include "VL1772.h"
+
+typedef struct
+{
+    int sectors;
+    BYTE cyl, head;     // physical track location
+}
+TRACK, *PTRACK;
+
+typedef struct
+{
+    BYTE cyl, head, sector, size;
+    BYTE status;
+    BYTE *pbData;
+}
+SECTOR, *PSECTOR;
+
 
 class CFloppyStream : public CStream
 {
@@ -39,25 +54,22 @@ class CFloppyStream : public CStream
 
     public:
         bool IsOpen () const { return m_nFloppy != -1; }
-
-        bool Rewind () { return false; }
-        size_t Read (void* pvBuffer_, size_t uLen_) { return 0; }
-        size_t Write (void* pvBuffer_, size_t uLen_) { return 0; }
-
-        BYTE ReadTrack (BYTE cyl_, BYTE head_, BYTE *pbData_);
-        BYTE ReadWrite (bool fRead_, BYTE bSide_, BYTE bTrack_, BYTE* pbData_);
-        bool ReadCustomTrack (BYTE cyl_, BYTE head_, BYTE *pbData_);
-        bool ReadMGTTrack (BYTE cyl_, BYTE head_, BYTE *pbData_);
-
         bool IsBusy (BYTE* pbStatus_, bool fWait_);
+
+        // The normal stream functions are not used
+        bool Rewind () { return false; }
+        size_t Read (void*, size_t) { return 0; }
+        size_t Write (void*, size_t) { return 0; }
+
+	BYTE StartCommand (BYTE bCommand_, PTRACK pTrack_=NULL, UINT uSector_=0, BYTE *pbData_=NULL);
 
     protected:
         bool Open ();
 
     protected:
-        int m_nFloppy;
-
-        BYTE m_bCommand, m_bSide, m_bTrack, *m_pbData, m_bStatus;
+        int  m_nFloppy;
+        UINT m_uSectors;    // Regular sector count, or zero for auto-detect (slower)
+        BYTE m_bStatus;     // Last command status
 };
 
 #endif  // FLOPPY_H
