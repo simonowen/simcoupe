@@ -346,7 +346,7 @@ BYTE CMGTDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* pap
 
 /*static*/ bool CSADDisk::IsRecognised (CStream* pStream_)
 {
-    SAD_HEADER sh = {0};
+    SAD_HEADER sh = {""};
 
     // Read the header, check for the signature, and make sure the disk geometry is sensible
     bool fValid = (pStream_->Rewind() && pStream_->Read(&sh, sizeof sh) == sizeof(sh) &&
@@ -1036,8 +1036,7 @@ bool CFloppyDisk::Save ()
 // Format a track using the specified format
 BYTE CFloppyDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
 {
-    UINT u, uDataTotal = 0;
-    UINT uSize = uSectors_ ? (128U << (paID_->bSize & 7)) : 0;
+    UINT uSize = uSectors_ ? (128U << (paID_->bSize & 7)) : 0, u;
 
     // Disk must be writeable and within track limit
     if (IsReadOnly() || uTrack_ >= MAX_DISK_TRACKS)
