@@ -55,6 +55,7 @@ typedef struct
     bool    autoboot;               // Autoboot drive 1 on first startup?
     bool    dosboot;                // True to automagically boot DOS from non-bootable disks
     char    dosdisk[MAX_PATH];      // Override DOS boot disk to use instead of the internal SAMDOS 2.2 image
+    bool    stdfloppy;              // Assume real disks are standard format, initially
 
     char    disk1[MAX_PATH];        // Floppy disk image in drive 1
     char    disk2[MAX_PATH];        // Floppy disk image in drive 2

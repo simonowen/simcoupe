@@ -90,6 +90,7 @@ OPTION aOptions[] =
     OPT_F("AutoBoot",     autoboot,       true),      // Autoboot disks inserted at the startup screen
     OPT_F("DosBoot",      dosboot,        true),      // Automagically boot DOS from non-bootable disks
     OPT_S("DosDisk",      dosdisk,        ""),        // No override DOS disk, use internal SAMDOS 2.2
+    OPT_F("StdFloppy",    stdfloppy,      true),      // Assume real disks are standard format, initially
 
     OPT_S("Disk1",        disk1,          ""),        // No disk in floppy drive 1
     OPT_S("Disk2",        disk2,          ""),        // No disk in floppy drive 2
