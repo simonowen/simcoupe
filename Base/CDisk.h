@@ -22,7 +22,7 @@
 #define CDISK_H
 
 #include "CStream.h"    // for the data stream abstraction
-#include "Floppy.h"
+#include "Floppy.h"     // native floppy support
 #include "VL1772.h"     // for the VL-1772 controller definitions
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -48,20 +48,6 @@ const UINT DISK_FILE_HEADER_SIZE = 9;    // From SAM Technical Manual  (bType, w
 // Maximum size of a file that will fit on a SAM disk
 const UINT MAX_SAM_FILE_SIZE = ((NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS) - NORMAL_DIRECTORY_TRACKS) *
                                 NORMAL_DISK_SECTORS * (NORMAL_SECTOR_SIZE-2) - DISK_FILE_HEADER_SIZE;
-
-typedef struct
-{
-    int sectors;
-}
-TRACK, *PTRACK;
-
-typedef struct
-{
-    BYTE cyl, head, sector, size;
-    BYTE status;
-    BYTE *pbData;
-}
-SECTOR, *PSECTOR;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -394,7 +380,7 @@ class CFloppyDisk : public CDisk
     public:
         UINT FindInit (UINT uSide_, UINT uTrack_);
         bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
-        void Close () { m_uCacheTrack = 0U-1; }
+        void Close () { m_pFloppy->Close(); m_uCacheTrack = 0U-1; }
 
         BYTE LoadTrack (UINT uSide_, UINT uTrack_);
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
@@ -407,7 +393,13 @@ class CFloppyDisk : public CDisk
 
     protected:
         CFloppyStream* m_pFloppy;
-        BYTE m_bStatus;
+
+        BYTE m_bCommand, m_bStatus;     // Current command and final status
+
+        PTRACK  m_pTrack;               // Current track
+        PSECTOR m_pSector;              // Pointer to first sector on track
+        BYTE   *m_pbWrite;              // Data for in-progress write, to copy if successful
+
         UINT m_uCacheSide, m_uCacheTrack;
 };
 
