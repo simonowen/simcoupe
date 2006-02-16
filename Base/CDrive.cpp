@@ -155,21 +155,32 @@ void CDrive::ExecuteNext ()
         case WRITE_1SECTOR:
         case WRITE_MSECTOR:
         {
-            // Locate the sector, reset busy and signal record not found if we couldn't find it
-            IDFIELD sID;
-            if (!m_pDisk->FindSector(m_sRegs.bSide, m_nHeadPos, m_sRegs.bTrack, m_sRegs.bSector, &sID))
-                ModifyStatus(RECORD_NOT_FOUND, BUSY);
-            else if (m_pDisk->IsReadOnly())
-                ModifyStatus(WRITE_PROTECT, BUSY);
+            if (m_nState == 0)
+            {
+                IDFIELD sID;
+
+                // Locate the sector, reset busy and signal record not found if we couldn't find it
+                if (!m_pDisk->FindSector(m_sRegs.bSide, m_nHeadPos, m_sRegs.bTrack, m_sRegs.bSector, &sID))
+                    ModifyStatus(RECORD_NOT_FOUND, BUSY);
+                else if (m_pDisk->IsReadOnly())
+                    ModifyStatus(WRITE_PROTECT, BUSY);
+                else
+                {
+                    // Prepare data pointer to receive data, and the amount we're expecting
+                    m_pbBuffer = m_abBuffer;
+                    m_uBuffer = 128U << (sID.bSize & 7);
+
+                    // Signal that data is now requested for writing
+                    ModifyStatus(DRQ, 0);
+                    m_nState++;
+                }
+            }
             else
             {
-                // Prepare data pointer to receive data, and the amount we're expecting
-                m_pbBuffer = m_abBuffer;
-                m_uBuffer = 128 << sID.bSize;
-
-                // Signal that data is now requested for writing
-                ModifyStatus(DRQ, 0);
+                // Write complete, so set its status and clear busy
+                ModifyStatus(bStatus, BUSY);
             }
+
             break;
         }
 
@@ -209,6 +220,13 @@ void CDrive::ExecuteNext ()
                 m_uBuffer = 0;
             }
 
+            break;
+        }
+
+        case WRITE_TRACK:
+        {
+            ModifyStatus(bStatus, BUSY);
+            break;
         }
     }
 }
@@ -431,7 +449,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                 case WRITE_1SECTOR:
                 case WRITE_MSECTOR:
                 {
-                    TRACE("FDC: WRITE_xSECTOR\n");
+                    TRACE("FDC: WRITE_xSECTOR (to side %d, track %d, sector %d)\n", m_sRegs.bSide, m_sRegs.bTrack, m_sRegs.bSector);
                     ModifyStatus(BUSY, 0);
 
                     m_pDisk->LoadTrack(m_sRegs.bSide, m_nHeadPos);
@@ -534,15 +552,21 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                     switch (m_sRegs.bCommand)
                     {
                         case WRITE_1SECTOR:
-                        case WRITE_MSECTOR:
                         {
-                            TRACE("FDC: Writing full sector: side %d, track %d, sector %d\n", m_sRegs.bSide, m_sRegs.bTrack, m_sRegs.bSector);
-
                             UINT uWritten;
                             BYTE bStatus = m_pDisk->WriteData(m_abBuffer, &uWritten);
-                            ModifyStatus(bStatus, BUSY|DRQ);
+                            ModifyStatus(bStatus, 0);
+                            break;
+                        }
+
+                        case WRITE_MSECTOR:
+                        {
+                            UINT uWritten;
+                            BYTE bStatus = m_pDisk->WriteData(m_abBuffer, &uWritten);
+                            ModifyStatus(bStatus, 0);
 
                             // Add multi-sector writing here?
+                            break;
                         }
                         break;
 
@@ -550,7 +574,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                         {
                             // Examine and perform the format
                             BYTE bStatus = WriteTrack(m_sRegs.bSide, m_nHeadPos, m_abBuffer, sizeof(m_abBuffer));
-                            ModifyStatus(bStatus, BUSY|DRQ);
+                            ModifyStatus(bStatus, 0);
                         }
                         break;
 
@@ -765,7 +789,7 @@ BYTE CDrive::WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
             fValid &= ExpectBlock(pb, pbEnd, 0x00, 12, 12); // Gap 2: exactly 12 bytes of 0x00
             fValid &= ExpectBlock(pb, pbEnd, 0xf5, 3, 3);   // Gap 2: exactly 3 bytes of 0xf5 (written as 0xa1)
 
-            fValid &= ExpectBlock(pb, pbEnd, 0xfe, 1, 1);   // Write ID address mark: 1 byte of 0xfe
+            fValid &= ExpectBlock(pb, pbEnd, 0xfe, 1, 1);   // ID address mark: 1 byte of 0xfe
 
 
             // If there's enough data copy the IDFIELD info (CRC not included as the FDC generates it, below)
@@ -776,20 +800,21 @@ BYTE CDrive::WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
                 pb += (sizeof(*paID) - sizeof(paID->bCRC1) - sizeof(paID->bCRC2));
             }
 
-            fValid &= ExpectBlock(pb, pbEnd, 0xf7, 1, 1);   // Write CRC: 1 byte of 0xf7 (writes 2 CRC bytes)
+            fValid &= ExpectBlock(pb, pbEnd, 0xf7, 1, 1);   // CRC: 1 byte of 0xf7 (writes 2 CRC bytes)
 
             fValid &= ExpectBlock(pb, pbEnd, 0x4e, 22);     // Gap 3: min 22 (spec says 24?) bytes of 0x4e
             fValid &= ExpectBlock(pb, pbEnd, 0x00, 8);      // Gap 3: min 8 bytes of 0x00
             fValid &= ExpectBlock(pb, pbEnd, 0xf5, 3, 3);   // Gap 3: exactly 3 bytes of 0xf5 (written as 0xa1)
 
-            fValid &= ExpectBlock(pb, pbEnd, 0xfb, 1, 1);   // Write data address mark: 1 byte of 0xfb
+            // Data or Deleted Data address mark: 1 byte of 0xfb or 0xf8
+            fValid &= (ExpectBlock(pb, pbEnd, 0xfb, 1, 1) || ExpectBlock(pb, pbEnd, 0xf8, 1, 1));
 
             // Store a pointer to the data, and skip it in the source block
             papbData[nSectors] = pb;
-            pb += 128 << paID[nSectors].bSize;
+            pb += 128 << (paID[nSectors].bSize & 7);
             fValid &= (pb < pbEnd);
 
-            fValid &= ExpectBlock(pb, pbEnd, 0xf7, 1, 1);   // Write CRC bytes: 1 byte of 0xf7
+            fValid &= ExpectBlock(pb, pbEnd, 0xf7, 1, 1);   // CRC: 1 byte of 0xf7
 
             fValid &= ExpectBlock(pb, pbEnd, 0x4e, 16);     // Gap 4: min 16 bytes of 0x4e
 
