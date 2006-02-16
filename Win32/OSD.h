@@ -31,6 +31,12 @@
 #define STRICT
 #define WIN32_LEAN_AND_MEAN
 
+// Enable a few helper warnings in debug mode, without using level 4
+#ifdef _DEBUG
+#pragma warning(3:4189)	// 'identifier' : local variable is initialized but not referenced
+#pragma warning(3:4701)	// local variable 'name' may be used without having been initialized
+#endif
+
 #include <windows.h>
 #include <windowsx.h>   // for GET_X_LPARAM and GET_Y_LPARAM
 #include <mmsystem.h>   // for timeSetEvent
@@ -44,6 +50,7 @@
 #include <cderr.h>      // for common dialog errors
 #include <shellapi.h>   // for shell functions (ShellExecute, etc.)
 #include <Shlobj.h>     // for shell COM definitions
+#include <process.h>    // for _beginthreadex/_endthreadex
 
 #pragma include_alias(<io.h>, <..\Include\IO.h>)
 #include <io.h>
