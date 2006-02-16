@@ -2,7 +2,7 @@
 //
 // HardDisk.cpp: Hard disk abstraction layer
 //
-//  Copyright (c) 2004-2005 Simon Owen
+//  Copyright (c) 2004-2006 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -63,7 +63,7 @@ bool CHardDisk::IsBDOSDisk ()
     if (pg_->uTotalSectors > 16383*16*63)
         pg_->uTotalSectors = 16383*16*63;
 
-    UINT uCylinders, uHeads, uSectors, uRound;
+    UINT uCylinders = 0, uHeads = 0, uSectors = 0, uRound;
 
     for (uRound = 0 ; uRound < 512 ; uRound = (uRound << 1) | 1)
     {
