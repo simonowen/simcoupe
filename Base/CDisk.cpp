@@ -346,7 +346,7 @@ BYTE CMGTDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* pap
 
 /*static*/ bool CSADDisk::IsRecognised (CStream* pStream_)
 {
-    SAD_HEADER sh;
+    SAD_HEADER sh = {0};
 
     // Read the header, check for the signature, and make sure the disk geometry is sensible
     bool fValid = (pStream_->Rewind() && pStream_->Read(&sh, sizeof sh) == sizeof(sh) &&
@@ -957,7 +957,8 @@ CFloppyDisk::CFloppyDisk (CStream* pStream_)
     m_pbData = new BYTE[MAX_TRACK_SIZE];
     m_uCacheTrack = 0U-1;
 
-    m_fModified = false;
+    m_pTrack = reinterpret_cast<PTRACK>(m_pbData);
+    m_pSector = reinterpret_cast<PSECTOR>(m_pTrack+1);
 }
 
 
@@ -966,8 +967,8 @@ UINT CFloppyDisk::FindInit (UINT uSide_, UINT uTrack_)
     if (uSide_ >= m_uSides || uTrack_ >= m_uTracks)
         return m_uSectors = 0;
 
-    PTRACK pt = (PTRACK)m_pbData;
-    m_uSectors = pt->sectors;
+    // LoadTrack will have been called, so the sector count will be correct
+    m_uSectors = m_pTrack->sectors;
 
     // Call the base and return the number of sectors in the track
     return CDisk::FindInit(uSide_, uTrack_);
@@ -979,19 +980,16 @@ bool CFloppyDisk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
 {
     bool fRet = CDisk::FindNext();
 
-    PTRACK pt = (PTRACK)m_pbData;
-    PSECTOR ps = (PSECTOR)(pt+1);
-    ps += (m_uSector-1);
-
     // Make sure there is a 'next' one
     if (fRet)
     {
+        PSECTOR ps = &m_pSector[m_uSector-1];
+
         // Construct a normal ID field for the sector
         pIdField_->bSide = ps->head;
         pIdField_->bTrack = ps->cyl;
         pIdField_->bSector = ps->sector;
         pIdField_->bSize = ps->size;
-        pIdField_->bCRC1 = pIdField_->bCRC2 = 0;
 
         // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
         WORD wCRC = CDrive::CrcBlock("\xa1\xa1\xa1\xfe", 4);
@@ -1010,42 +1008,93 @@ bool CFloppyDisk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
 // Read the data for the last sector found
 BYTE CFloppyDisk::ReadData (BYTE *pbData_, UINT* puSize_)
 {
-    PTRACK pt = (PTRACK)m_pbData;
-    PSECTOR ps = (PSECTOR)(pt+1)+m_uSector-1;
-    memcpy(pbData_, ps->pbData, *puSize_ = (128 << (ps->size & 3)));
+    PSECTOR ps = &m_pSector[m_uSector-1];
+    memcpy(pbData_, ps->pbData, *puSize_ = (128 << (ps->size & 7)));
     return ps->status;
 }
 
-// Write the data for a sector
+// Write the data for the last sector found
 BYTE CFloppyDisk::WriteData (BYTE *pbData_, UINT* puSize_)
 {
-    return WRITE_PROTECT;
+    // Save the write details, but don't update the cache yet
+    PSECTOR ps = &m_pSector[m_uSector-1];
+    m_pbWrite = pbData_;
+    *puSize_ = 128U << (ps->size & 7);
+
+    // Start the write command
+    m_bCommand = WRITE_1SECTOR;
+    return m_bStatus = m_pFloppy->StartCommand(WRITE_1SECTOR, m_pTrack, m_uSector-1, pbData_);
 }
 
 // Save the disk out to the stream
 bool CFloppyDisk::Save ()
 {
-    // Eveything's currently written immediately, but we'll need to do more if/when writes are cached
+    // Writes are live, so there's nothing to save
     return true;
 }
 
 // Format a track using the specified format
 BYTE CFloppyDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
 {
-    return WRITE_PROTECT;
+    UINT u, uDataTotal = 0;
+    UINT uSize = uSectors_ ? (128U << (paID_->bSize & 7)) : 0;
+
+    // Disk must be writeable and within track limit
+    if (IsReadOnly() || uTrack_ >= MAX_DISK_TRACKS)
+        return WRITE_PROTECT;
+
+    // For now, ensure all the sectors are the same size
+    for (u = 1 ; u < uSectors_ ; u++)
+        if (paID_[u].bSize != paID_->bSize)
+            return WRITE_PROTECT;
+
+    // Make sure the track contents aren't too big to format
+    if (((62+uSize+1)*uSectors_) >= (MAX_TRACK_SIZE-50))
+        return WRITE_PROTECT;
+
+    // Set up the initial track/sector/data pointers
+    PTRACK pt = m_pTrack;
+    PSECTOR ps = reinterpret_cast<PSECTOR>(pt+1);
+    BYTE *pb = reinterpret_cast<BYTE*>(ps+uSectors_);
+
+    // Complete a suitable track header
+    pt->sectors = uSectors_;
+    pt->cyl = uTrack_;
+    pt->head = uSide_;
+
+    // Prepare each of the supplied sectors
+    for (u = 0 ; u < uSectors_ ; u++)
+    {
+        // Complete the ID header, with no status conditions flagged
+        ps[u].cyl = paID_[u].bTrack;
+        ps[u].head = paID_[u].bSide;
+        ps[u].sector = paID_[u].bSector;
+        ps[u].size = paID_[u].bSize;
+        ps[u].status = 0;
+        ps[u].pbData = pb;
+
+        // Copy the sector data, advancing the pointer for the next one
+        memcpy(pb, papbData_[u], uSize);
+        pb += uSize;
+    }
+
+    return m_bStatus = m_pFloppy->StartCommand(WRITE_TRACK, m_pTrack);
 }
 
 BYTE CFloppyDisk::LoadTrack (UINT uSide_, UINT uTrack_)
 {
-    m_bStatus = 0;
-    m_uTrack = uTrack_;
-    m_uSide = uSide_;
+    // Return if the track is already cached
+    if (uTrack_ == m_uCacheTrack && uSide_ == m_uCacheSide)
+        return 0;
 
-    // If the track isn't already cached, read it
-    if (uSide_ != m_uCacheSide || uTrack_ != m_uCacheTrack)
-        m_bStatus = m_pFloppy->ReadTrack(uTrack_, uSide_, m_pbData);
+    // Prepare a fresh track
+    m_pTrack->sectors = 0;
+    m_pTrack->cyl = uTrack_;
+    m_pTrack->head = uSide_;
 
-    return m_bStatus;
+    // Read the track, setting busy if we've not finished yet
+    m_bCommand = READ_MSECTOR;
+    return m_bStatus = m_pFloppy->StartCommand(READ_MSECTOR, m_pTrack);
 }
 
 // Get the status of the current asynchronous operation, if any
@@ -1056,9 +1105,42 @@ bool CFloppyDisk::IsBusy (BYTE* pbStatus_, bool fWait_)
     // If we've just finished a request, update the track cache
     if (!fBusy && m_bStatus == BUSY)
     {
+        // Which command has just finished?
+        switch (m_bCommand)
+        {
+            // Load track
+            case READ_MSECTOR:
+                m_uCacheSide = m_pTrack->head;
+                m_uCacheTrack = m_pTrack->cyl;
+                break;
+
+            // Write sector
+            case WRITE_1SECTOR:
+                // Only write the data to the track cache if successful
+                if (!*pbStatus_)
+                {
+                    PSECTOR ps = &m_pSector[m_uSector-1];
+                    memcpy(ps->pbData, m_pbWrite, 128U << (ps->size & 7));
+                    ps->status &= ~CRC_ERROR;
+                }
+                break;
+
+            // Format track
+            case WRITE_TRACK:
+            {
+                // Cache the track if successful
+                m_uCacheTrack = *pbStatus_ ? 0U-1 : m_pTrack->cyl;
+                m_uCacheSide = m_pTrack->head;
+                break;
+            }
+
+            default:
+                TRACE("!!! Finished unknown command (%u)\n", m_bCommand);
+                break;
+        }
+
+        // Clear the status now we're done
         m_bStatus = 0;
-        m_uCacheSide = m_uSide;
-        m_uCacheTrack = m_uTrack;
     }
 
     return fBusy;
