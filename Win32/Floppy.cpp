@@ -147,7 +147,7 @@ bool CFloppyStream::IsBusy (BYTE* pbStatus_, bool fWait_)
 ///////////////////////////////////////////////////////////////////////////////
 
 // Read a single sector
-static BOOL ReadSector (HANDLE hDevice_, BYTE phead_, PSECTOR ps_)
+static BYTE ReadSector (HANDLE hDevice_, BYTE phead_, PSECTOR ps_)
 {
     BYTE bStatus = 0;
 
