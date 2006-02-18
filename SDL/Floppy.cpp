@@ -33,7 +33,12 @@
 
 #include <linux/fd.h>
 #include <linux/fdreg.h>
+#include <pthread.h>
 
+void *thread_proc (void *pv_)
+{
+    return reinterpret_cast<CFloppyStream*>(pv_)->ThreadProc();
+}
 
 /*static*/ bool CFloppyStream::IsRecognised (const char* pcszStream_)
 {
@@ -90,28 +95,63 @@ bool CFloppyStream::Open ()
             m_fReadOnly = true;
         }
 
-        // If we've opened it, set the SAM disk geometry
-        if (IsOpen())
-        {
-            struct floppy_struct fs = { 1600, 10, 2, 80, 0, 0x0c, 2, 0xdf, 0x17 };
-            if (ioctl(m_nFloppy, FDSETPRM, &fs))
-                Close();
-        }
+        // Set up the initial sector count if required
+        m_uSectors = GetOption(stdfloppy) ? NORMAL_DISK_SECTORS : 0;
     }
-
-    Close();
-
-    // Possibly reset/recalibrate here?
 
     return IsOpen();
 }
 
 void CFloppyStream::Close ()
 {
+    // Back to the default setting when the device is closed
     m_uSectors = GetOption(stdfloppy) ? NORMAL_DISK_SECTORS : 0;
 }
 
-/*
+
+// Start executing a floppy command
+BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSector_, BYTE *pbData_)
+{
+    // Wait for any in-progress operation to complete
+    BYTE bStatus;
+    IsBusy(&bStatus, true);
+
+    // Set up the command to perform
+    m_bCommand = bCommand_;
+    m_pTrack = pTrack_;
+    m_uSector = uSector_;
+    m_pbData = pbData_;
+    m_bStatus = 0;
+
+    // Create a new thread to perform it
+    m_fThreadDone = false;
+    return pthread_create(&m_hThread, NULL, thread_proc, (void*)this) ? LOST_DATA : BUSY;
+}
+
+bool CFloppyStream::IsBusy (BYTE* pbStatus_, bool fWait_)
+{
+    if (m_hThread)
+    {
+        void *pv;
+
+        // If we're not to wait and the thread isn't complete, we're still busy
+        if (!fWait_ && !m_fThreadDone)
+            return true;
+
+        // Reap the thread
+        pthread_join(m_hThread, &pv);
+
+        // Report the completion status, and invalidate the handles
+        *pbStatus_ = m_bStatus;
+        m_hThread = 0;
+        m_bStatus = 0;
+    }
+
+    // Not busy
+    return false;
+}
+
+
 // Read a single sector
 static BYTE ReadSector (int hDevice_, PTRACK pTrack_, UINT uSector_)
 {
@@ -128,9 +168,9 @@ static BYTE ReadSector (int hDevice_, PTRACK pTrack_, UINT uSector_)
     rc.rate = 2;
     rc.track = pt->cyl;
 
-    BYTE abCommand[] = { FD_READ, pt->head << 2, ps->cyl,ps->head,ps->sector,ps->size, ps->sector+1, 0x0a,0xff };
-    memcpy(rc.cmd, abCommand, sizeof(abCommand));
-    rc.cmd_count = sizeof(abCommand) / sizeof(abCommand[0]);
+    BYTE cmd[] = { FD_READ, pt->head << 2, ps->cyl,ps->head,ps->sector,ps->size, ps->sector+1, 0x0a,0xff };
+    memcpy(rc.cmd, cmd, sizeof(cmd));
+    rc.cmd_count = sizeof(cmd);
 
     if (!ioctl(hDevice_, FDRAWCMD, &rc))
     {
@@ -142,7 +182,6 @@ static BYTE ReadSector (int hDevice_, PTRACK pTrack_, UINT uSector_)
 
     return RECORD_NOT_FOUND;
 }
-*/
 
 // Write a single sector
 static BYTE WriteSector (int hDevice_, PTRACK pTrack_, UINT uSector_, BYTE *pbData_)
@@ -327,55 +366,130 @@ static bool ReadSimpleTrack (int hDevice_, PTRACK pTrack_, UINT &ruSectors_)
 
 static bool ReadCustomTrack (int hDevice_, PTRACK pTrack_)
 {
-    // Not implemented yet
-    return false;
+    int i;
+
+    PTRACK pt = pTrack_;
+    PSECTOR ps = (PSECTOR)(pt+1);
+
+    BYTE ab[128] = {0};
+    BYTE sector=0xef, size=0;
+
+    struct floppy_raw_cmd rc[64];
+    memset(&rc, 0, sizeof(rc));
+
+    rc[0].flags = FD_RAW_READ | FD_RAW_INTR | FD_RAW_NEED_SEEK;
+    rc[0].data  = ab;
+    rc[0].length = 128U << size;
+    rc[0].rate = 2;
+    rc[0].track = pt->cyl;
+
+    BYTE cmd0[] = { FD_READ, pt->head << 2, 0xef,0xef,sector,size, sector+1, 0x0a,0xff };
+    memcpy(rc[0].cmd, cmd0, sizeof(cmd0));
+    rc[0].cmd_count = sizeof(cmd0);
+
+    for (i = 1 ; i < (int)(sizeof(rc)/sizeof(rc[0])) ; i++)
+    {
+        rc[i].flags = FD_RAW_INTR;
+        rc[i].rate = rc[0].rate;
+
+        rc[i].cmd[0] = FD_READID;
+        rc[i].cmd[1] = pt->head << 2;
+        rc[i].cmd_count = 2;
+    }
+
+    if (ioctl(hDevice_, FDRAWCMD, &rc[0]))
+        return false;
+
+    // ID address mark missing?
+    if (rc[0].reply[1] & 0x01)
+    {
+        // Track is blank
+        pt->sectors = 0;
+        return true;
+    }
+
+    for (i = 1 ; i < (int)(sizeof(rc)/sizeof(rc[0])) ; i++)
+    {
+        ioctl(hDevice_, FDRAWCMD, &rc[i]);
+
+        // Track loop?
+        if (i > 1 && rc[i].reply[5] == rc[1].reply[5])
+        {
+            pt->sectors = i-1;
+            break;
+        }
+    }
+
+    // Set up the data pointer after the sector headers
+    BYTE *pb = (BYTE*)(ps+pt->sectors);
+
+    // Copy from the scanned headers to the track sector headers
+    // Use two passes in case we're not quick enough to do it in one
+    for (int i = 0, step = 2 ; i < step ; i++)
+    {
+        for (int j = i ; j < pt->sectors ; j += step)
+        {
+            ps[j].cyl = rc[j+1].reply[3];
+            ps[j].head = rc[j+1].reply[4];
+            ps[j].sector = rc[j+1].reply[5];
+            ps[j].size = rc[j+1].reply[6];
+
+            ps[j].pbData = pb;
+            pb += (128U << (ps[j].size & 7));
+
+            // Read the sector data
+            ps[j].status = ReadSector(hDevice_, pt, j);
+        }
+    }
+
+    return true;
 }
 
 
-// Start executing a floppy command
-BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSector_, BYTE *pbData_)
+void *CFloppyStream::ThreadProc ()
 {
     // Open the device, if not already open
-    Open();
+    if (!IsOpen())
+        Open();
 
-    switch (bCommand_)
+    switch (m_bCommand)
     {
         // Load track contents?
         case READ_MSECTOR:
+            // If we've got a sector count, read the track assuming that value
             if (m_uSectors)
-                ReadSimpleTrack(m_nFloppy, pTrack_, m_uSectors);
+                ReadSimpleTrack(m_nFloppy, m_pTrack, m_uSectors);
 
+            // If we've not sector count, scan and read the track (slower)
             if (!m_uSectors)
-                ReadCustomTrack(m_nFloppy, pTrack_);
+                ReadCustomTrack(m_nFloppy, m_pTrack);
 
-            // Track caching is always successful, as the sector status will be picked up later
-            m_bStatus = 0;
             break;
 
         // Write a sector?
         case WRITE_1SECTOR:
-            m_bStatus = WriteSector(m_nFloppy, pTrack_, uSector_, pbData_);
+        {
+            // Locate the sector to write
+            PSECTOR ps = reinterpret_cast<PSECTOR>(m_pTrack+1);
+            ps += m_uSector;
+
+            m_bStatus = WriteSector(m_nFloppy, m_pTrack, m_uSector, m_pbData);
             break;
+        }
 
         // Format track?
         case WRITE_TRACK:
-            m_bStatus = FormatTrack(m_nFloppy, pTrack_);
+            m_bStatus = FormatTrack(m_nFloppy, m_pTrack);
             break;
 
         default:
-            TRACE("!!! Unknown fdc stream command: %u\n", bCommand_);
+            TRACE("!!! Unknown fdc stream command: %u\n", m_bCommand);
             m_bStatus = LOST_DATA;
             break;
     }
 
-    return BUSY;
-}
-
-bool CFloppyStream::IsBusy (BYTE* pbStatus_, bool fWait_)
-{
-    *pbStatus_ = m_bStatus;
-    m_bStatus = 0;
-    return false;
+    m_fThreadDone = true;
+    return 0;
 }
 
 #else

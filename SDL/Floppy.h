@@ -43,7 +43,7 @@ class CFloppyStream : public CStream
 {
     public:
         CFloppyStream (const char* pcszStream_, bool fReadOnly_=false)
-         : CStream(pcszStream_, fReadOnly_), m_nFloppy(-1) { }
+         : CStream(pcszStream_, fReadOnly_), m_nFloppy(-1), m_hThread(0) { }
         ~CFloppyStream () { Close(); }
 
     public:
@@ -51,6 +51,7 @@ class CFloppyStream : public CStream
 
     public:
         void Close ();
+        void *ThreadProc ();
 
     public:
         bool IsOpen () const { return m_nFloppy != -1; }
@@ -61,15 +62,23 @@ class CFloppyStream : public CStream
         size_t Read (void*, size_t) { return 0; }
         size_t Write (void*, size_t) { return 0; }
 
-	BYTE StartCommand (BYTE bCommand_, PTRACK pTrack_=NULL, UINT uSector_=0, BYTE *pbData_=NULL);
+        BYTE StartCommand (BYTE bCommand_, PTRACK pTrack_=NULL, UINT uSector_=0, BYTE *pbData_=NULL);
 
     protected:
         bool Open ();
 
     protected:
-        int  m_nFloppy;
-        UINT m_uSectors;    // Regular sector count, or zero for auto-detect (slower)
-        BYTE m_bStatus;     // Last command status
+        int  m_nFloppy;                 // Floppy device handle
+        UINT m_uSectors;                // Regular sector count, or zero for auto-detect (slower)
+
+        pthread_t m_hThread;            // Thread handle
+        bool m_fThreadDone;             // True when thread has completed
+
+        BYTE m_bCommand, m_bStatus;     // Current command and final status
+
+        PTRACK  m_pTrack;               // Track for command
+        UINT    m_uSector;              // Zero-based sector for write command
+        BYTE   *m_pbData;               // Data to write (since track data is only updated when successful)
 };
 
 #endif  // FLOPPY_H
