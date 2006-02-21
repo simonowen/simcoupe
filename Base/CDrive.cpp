@@ -196,7 +196,7 @@ void CDrive::ExecuteNext ()
                 m_sRegs.bSector = pId->bTrack;
 
                 m_uBuffer = sizeof(IDFIELD);
-                ModifyStatus(bStatus|DRQ, BUSY);
+                ModifyStatus(bStatus|DRQ, 0);   // Don't clear BUSY yet!
             }
 
             // Set the error status, resetting BUSY so the client sees the error
@@ -272,6 +272,18 @@ BYTE CDrive::In (WORD wPort_)
                 // Toggle the index pulse status bit periodically to show the disk is spinning
                 if (IsMotorOn() && (g_dwCycleCounter % (REAL_TSTATES_PER_SECOND / (FLOPPY_RPM/60))) < TSTATES_PER_FRAME)
                     bRet |= INDEX_PULSE;
+            }
+
+            // SAM DICE relies on a strange error condition, which requires special handling
+            else if (m_sRegs.bCommand == READ_ADDRESS)
+            {
+                static int nBusyTimeout = 0;
+
+                // Clear busy after 16 polls of the status port
+                if (!(bRet & BUSY))
+                    nBusyTimeout = 0;
+                else if (!(++nBusyTimeout & 0x0f))
+                    ModifyStatus(0, BUSY);
             }
 
             break;
