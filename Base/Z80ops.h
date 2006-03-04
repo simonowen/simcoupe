@@ -624,3 +624,10 @@ instr(5,0347)   push(pc); pc = 040;                                 endinstr;   
 instr(5,0357)   push(pc); pc = 050;                                 endinstr;   // rst 40
 instr(5,0367)   push(pc); pc = 060;                                 endinstr;   // rst 48
 instr(5,0377)   push(pc); pc = 070;                                 endinstr;   // rst 56
+
+#undef instr
+#undef endinstr
+#undef HLinstr
+#undef inc
+#undef dec
+#undef edinstr
