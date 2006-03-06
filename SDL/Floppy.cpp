@@ -13,7 +13,7 @@
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//ª
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
@@ -496,11 +496,6 @@ void *CFloppyStream::ThreadProc ()
 // Dummy implementation for non-Linux SDL versions
 
 /*static*/ bool CFloppyStream::IsRecognised (const char* pcszStream_)
-{
-    return false;
-}
-
-bool CFloppyStream::Open ()
 {
     return false;
 }
