@@ -74,6 +74,7 @@ DWORD dwComboTime;
 
 
 bool fMouseActive, fPurgeKeyboard;
+POINT ptMouse;
 
 BYTE abKeyStates[256], abKeys[256];
 inline bool IsPressed(BYTE bKey_)   { return (abKeyStates[bKey_] & 0x80) != 0; }
@@ -393,11 +394,12 @@ void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 
         // Calculate the central position in the client screen
         GetClientRect(g_hwnd, &r);
-        POINT pt = { r.right/2, r.bottom/2 };
+        ptMouse.x = r.right/2;
+        ptMouse.y = r.bottom/2;
 
         // Move the cursor there, and store the position for later comparison
-        ClientToScreen(g_hwnd, &pt);
-        SetCursorPos(pt.x, pt.y);
+        ClientToScreen(g_hwnd, &ptMouse);
+        SetCursorPos(ptMouse.x, ptMouse.y);
 
         // Restrict the cursor to the client area
         MapWindowPoints(g_hwnd, NULL, reinterpret_cast<POINT*>(&r.left), 2);
@@ -764,11 +766,11 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
                 break;
 
 
-            // Calculate the central position in the client area
-            POINT ptCentre = { r.right/2, r.bottom/2 };
-
             // Work out the relative movement since last time
-            int nX = x - ptCentre.x, nY = y - ptCentre.y;
+            POINT ptCursor;
+            GetCursorPos(&ptCursor);
+            int nX = ptCursor.x - ptMouse.x, nY = ptCursor.y - ptMouse.y;
+            ptMouse = ptCursor;
 
             // Has it moved at all?
             if (nX || nY)
@@ -793,8 +795,10 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
                 nXX -= nX, nYY -= nY;
 
                 // Move the mouse back to the centre to stop it escaping
-                ClientToScreen(hwnd_, &ptCentre);
-                SetCursorPos(ptCentre.x, ptCentre.y);
+                ptMouse.x = r.right/2;
+                ptMouse.y = r.bottom/2;
+                ClientToScreen(hwnd_, &ptMouse);
+                SetCursorPos(ptMouse.x, ptMouse.y);
             }
             break;
         }
