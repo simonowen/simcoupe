@@ -71,8 +71,12 @@ class CFloppyStream : public CStream
         int  m_nFloppy;                 // Floppy device handle
         UINT m_uSectors;                // Regular sector count, or zero for auto-detect (slower)
 
+#ifdef __linux__
         pthread_t m_hThread;            // Thread handle
         bool m_fThreadDone;             // True when thread has completed
+#else
+        int m_hThread;                  // Dummy handle for non-Linux
+#endif
 
         BYTE m_bCommand, m_bStatus;     // Current command and final status
 
