@@ -65,6 +65,7 @@ SDLMod nComboModifiers;
 DWORD dwComboTime;
 
 bool fMouseActive;
+int nMouseX, nMouseY;
 
 bool afKeyStates[SDLK_LAST], afKeys[SDLK_LAST];
 inline bool IsPressed(int nKey_)    { return afKeyStates[nKey_]; }
@@ -204,7 +205,12 @@ void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
 
     // Set the mouse acquisition state
     if (fMouseActive = fMouse_ && GetOption(mouse))
-        SDL_WarpMouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
+    {
+        // Move the mouse to the centre of the window, to stop it escaping
+        nMouseX = Frame::GetWidth() >> 1;
+        nMouseY = Frame::GetHeight() >> 1;
+        SDL_WarpMouse(nMouseX, nMouseY);
+    }
 }
 
 
@@ -481,11 +487,10 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             // Has the mouse escaped the window when active?
             if (fMouseActive && pEvent_->active.state == SDL_APPMOUSEFOCUS && !pEvent_->active.gain)
             {
-                int nX, nY;
-
-                // Grab it back and discard the displacement to the escape point
-                SDL_WarpMouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
-                SDL_GetRelativeMouseState(&nX, &nY);
+                // Move the mouse to the centre of the window, to stop it escaping
+                nMouseX = Frame::GetWidth() >> 1;
+                nMouseY = Frame::GetHeight() >> 1;
+                SDL_WarpMouse(nMouseX, nMouseY);
             }
 
             Purge();
@@ -675,9 +680,12 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             // Is the mouse captured?
             else if (fMouseActive)
             {
-                // Work out the relative movement from the central point
-                nX -= (Frame::GetWidth()  >> 1);
-                nY -= (Frame::GetHeight() >> 1);
+                // Calculate the relative movement in native pixels
+                nX = -nMouseX;
+                nY = -nMouseY;
+                SDL_GetMouseState(&nMouseX, &nMouseY);
+                nX += nMouseX;
+                nY += nMouseY;
 
                 // Has it moved at all?
                 if (nX || nY)
@@ -703,7 +711,10 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                     nXX -= nX, nYY -= nY;
 
                     // Move the mouse back to the centre to stop it escaping
-                    SDL_WarpMouse(Frame::GetWidth() >> 1, Frame::GetHeight() >> 1);
+                    nMouseX = Frame::GetWidth() >> 1;
+                    nMouseY = Frame::GetHeight() >> 1;
+                    SDL_WarpMouse(nMouseX, nMouseY);
+
                 }
             }
             break;
