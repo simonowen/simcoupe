@@ -20,7 +20,6 @@
 
 // ToDo:
 //  - change to handle multiple dirty regions
-//  - centre full-screen OpenGL, and fix cursor position mapping
 
 #include "SimCoupe.h"
 
@@ -981,20 +980,28 @@ void Display::Update (CScreen* pScreen_)
 // Should round down and be consistent with positive and negative values
 void Display::DisplayToSamSize (int* pnX_, int* pnY_)
 {
-    int nHalfWidth = !GUI::IsActive();
+#ifdef USE_OPENGL
+    int nHalfWidth = !GUI::IsActive(), nHalfHeight = nHalfWidth;
+#else
+    int nHalfWidth = !GUI::IsActive(), nHalfHeight = 0;
+#endif
 
-    *pnX_ = *pnX_ * (rSource.w >> nHalfWidth) / rTarget.w;
-    *pnY_ = *pnY_ * rSource.h / rTarget.h;
+    *pnX_ = *pnX_ * (rSource.w >> nHalfWidth)  / rTarget.w;
+    *pnY_ = *pnY_ * (rSource.h >> nHalfHeight) / rTarget.h;
 }
 
 // Scale a size/movement in the SAM view port to one relative to the client
 // Should round down and be consistent with positive and negative values
 void Display::SamToDisplaySize (int* pnX_, int* pnY_)
 {
-    int nHalfWidth = !GUI::IsActive();
+#ifdef USE_OPENGL
+    int nHalfWidth = !GUI::IsActive(), nHalfHeight = nHalfWidth;
+#else
+    int nHalfWidth = !GUI::IsActive(), nHalfHeight = 0;
+#endif
 
     *pnX_ = *pnX_ * rTarget.w / (rSource.w >> nHalfWidth);
-    *pnY_ = *pnY_ * rTarget.h / rSource.h;
+    *pnY_ = *pnY_ * rTarget.h / (rSource.h >> nHalfHeight);
 }
 
 // Map a client point to one relative to the SAM view port
