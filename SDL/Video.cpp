@@ -133,13 +133,12 @@ void InitGL ()
     // Otherwise fall back on plain 32-bit RGBA
     else
         g_glPixelFormat = GL_RGBA, g_glDataType = GL_UNSIGNED_BYTE;
-/*
-    // Store textures locally if possible for an AGP transfer boost
-    // Note: this needs the AGL_NO_RECOVERY attribute enabled in SDL before OpenGL
-    // is initialised, and it isn't present in the standard build.
-    if (glExtension("GL_APPLE_client_storage"))
+
+    // Store Mac textures locally if possible for an AGP transfer boost
+    // Note: do this for ATI cards only at present, as both nVidia and Intel seems to suffer a performance hit
+    if (glExtension("GL_APPLE_client_storage") && !memcmp(glGetString(GL_RENDERER), "ATI", 3))
         glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
-*/
+
     // Try for edge-clamped textures, to avoid visible seams between filtered tiles (mainly OS X)
     GLuint uClamp = glExtension("GL_SGIS_texture_edge_clamp") ? GL_CLAMP_TO_EDGE : GL_CLAMP;
 
@@ -149,13 +148,16 @@ void InitGL ()
 
     for (i = 0 ; i < N_TEXTURES ; i++)
     {
+        // Use linear filtering if manually enabled, or we're in 5:4 mode
+        GLuint uFilter = (GetOption(filter) || GetOption(ratio5_4)) ? GL_LINEAR:GL_NEAREST;
+
         glBindTexture(GL_TEXTURE_2D, auTextures[i]);
 
         // Set the clamping and filtering texture parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, uClamp);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, uClamp);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GetOption(filter)?GL_LINEAR:GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GetOption(filter)?GL_LINEAR:GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, uFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, uFilter);
 
         // Create the 256x256 texture tile
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, g_glPixelFormat, g_glDataType, dwTextureData[i]);
