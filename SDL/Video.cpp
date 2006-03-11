@@ -114,27 +114,32 @@ void InitGL ()
     // Hack: offset down by 1 pixel to stop the GUI half bleeding into the bottom line of the emulation view!
     glViewport(rTarget.x, rTarget.y-1, rTarget.w, rTarget.h);
     glMatrixMode(GL_PROJECTION);
-    glLoadIdentity(); 
-    glOrtho(0,nWidth,0,nHeight,-1,1); 
+    glLoadIdentity();
+    glOrtho(0,nWidth,0,nHeight,-1,1);
 
 
-    // Check for Apple packed-pixel support, for OS X
+    // 16-bit packed pixel support halves the amount of data to move around
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+    // The first is PowerPC-only, as it's slow on Intel Mac Minis [Andrew Collier]
     if (glExtension("GL_APPLE_packed_pixel") && glExtension("GL_EXT_bgra"))
         g_glPixelFormat = GL_BGRA_EXT, g_glDataType = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+    else
+#endif
 
-    // Or 5-5-5-1 packed-pixel support for most other setup
-    else if (glExtension("GL_EXT_packed_pixels"))
+    // This is a fairly safe choice that should work well on most systems
+    if (glExtension("GL_EXT_packed_pixels"))
         g_glPixelFormat = GL_RGBA, g_glDataType = GL_UNSIGNED_SHORT_5_5_5_1_EXT;
 
-    // Falling back on plain 32-bit RGBA
+    // Otherwise fall back on plain 32-bit RGBA
     else
         g_glPixelFormat = GL_RGBA, g_glDataType = GL_UNSIGNED_BYTE;
-
-
+/*
     // Store textures locally if possible for an AGP transfer boost
+    // Note: this needs the AGL_NO_RECOVERY attribute enabled in SDL before OpenGL
+    // is initialised, and it isn't present in the standard build.
     if (glExtension("GL_APPLE_client_storage"))
         glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
-
+*/
     // Try for edge-clamped textures, to avoid visible seams between filtered tiles (mainly OS X)
     GLuint uClamp = glExtension("GL_SGIS_texture_edge_clamp") ? GL_CLAMP_TO_EDGE : GL_CLAMP;
 
