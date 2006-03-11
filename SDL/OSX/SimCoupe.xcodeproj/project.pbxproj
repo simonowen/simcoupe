@@ -6,241 +6,117 @@
 	objectVersion = 42;
 	objects = {
 
-/* Begin PBXApplicationTarget section */
-		29B97326FDCFA39411CA2CEA /* SimCoupe */ = {
-			isa = PBXApplicationTarget;
-			buildConfigurationList = 1301D3C8096B058800027BFC /* Build configuration list for PBXApplicationTarget "SimCoupe" */;
-			buildPhases = (
-				13E5AD96088FB77300EACEBE /* CopyFiles */,
-				29B97327FDCFA39411CA2CEA /* Headers */,
-				29B97328FDCFA39411CA2CEA /* Resources */,
-				29B9732BFDCFA39411CA2CEA /* Sources */,
-				29B9732DFDCFA39411CA2CEA /* Frameworks */,
-			);
-			buildSettings = {
-				FRAMEWORK_SEARCH_PATHS = (
-					/Library/Frameworks,
-					"/Users/si/SAASound-3.2/OSX/build",
-				);
-				HEADER_SEARCH_PATHS = "\"/Library/Frameworks/SDL.framework/Headers\"";
-				INSTALL_PATH = "$(HOME)/Applications";
-				LIBRARY_SEARCH_PATHS = "";
-				OPTIMIZATION_CFLAGS = "-O0";
-				OTHER_CFLAGS = (
-					"-DUSE_OPENGL",
-					"-DUSE_ZLIB",
-					"-DUSE_SAASOUND",
-				);
-				PRODUCT_NAME = SimCoupe;
-				SECTORDER_FLAGS = "";
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-				);
-				WRAPPER_EXTENSION = app;
-			};
-			comments = "A SAM Coupé Emulator";
-			dependencies = (
-			);
-			name = SimCoupe;
-			productInstallPath = "$(HOME)/Applications";
-			productName = SimCoupe;
-			productReference = 17587328FF379C6511CA2CBB /* SimCoupe.app */;
-			productSettingsXML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-<!DOCTYPE plist PUBLIC \"-//Apple Computer//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
-<plist version=\"1.0\">
-<dict>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>English</string>
-	<key>CFBundleDocumentTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>sad</string>
-				<string>SAD</string>
-			</array>
-			<key>CFBundleTypeName</key>
-			<string>SimCoupe Disk Image</string>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>dsk</string>
-				<string>DSK</string>
-			</array>
-			<key>CFBundleTypeName</key>
-			<string>SimCoupe Disk Image</string>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>sdf</string>
-				<string>SDF</string>
-			</array>
-			<key>CFBundleTypeName</key>
-			<string>SimCoupe Disk Image</string>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>mgt</string>
-				<string>MGT</string>
-			</array>
-			<key>CFBundleTypeName</key>
-			<string>SimCoupe Disk Image</string>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-		</dict>
-	</array>
-	<key>CFBundleExecutable</key>
-	<string>SimCoupe</string>
-	<key>CFBundleGetInfoString</key>
-	<string>0.90 beta x</string>
-	<key>CFBundleIconFile</key>
-	<string>SimCoupe.icns</string>
-	<key>CFBundleIdentifier</key>
-	<string>org.simcoupe.simcoupe</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>SimCoupe</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>0.90</string>
-	<key>CFBundleSignature</key>
-	<string>SIMC</string>
-	<key>CFBundleVersion</key>
-	<string>beta</string>
-	<key>NSMainNibFile</key>
-	<string>SDLMain.nib</string>
-	<key>NSPrincipalClass</key>
-	<string>SDLApplication</string>
-</dict>
-</plist>
-";
-		};
-/* End PBXApplicationTarget section */
-
 /* Begin PBXBuildFile section */
-		089C165EFE840E0CC02AAC07 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
-		1058C7A3FEA54F0111CA2CBB /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
-		1314531608A2C2EB008C1AB7 /* ReadMe.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1314531508A2C2EB008C1AB7 /* ReadMe.txt */; };
-		1314531B08A2C383008C1AB7 /* ReadMe-SDL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1314531A08A2C383008C1AB7 /* ReadMe-SDL.txt */; };
-		1314531D08A2C39F008C1AB7 /* ChangeLog.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1314531C08A2C39F008C1AB7 /* ChangeLog.txt */; };
-		13486F5D0891A08300DB38E0 /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 13486F5C0891A08300DB38E0 /* Credits.html */; };
-		134923390890664C001D048F /* SAASound.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 134923380890664C001D048F /* SAASound.framework */; };
-		1349234008906661001D048F /* SAASound.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 134923380890664C001D048F /* SAASound.framework */; };
-		1374D20209746C5E001B908F /* Options.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1374D20109746C5E001B908F /* Options.nib */; };
-		1374D22E09747359001B908F /* Options.h in Headers */ = {isa = PBXBuildFile; fileRef = 1374D22C09747359001B908F /* Options.h */; };
-		1374D22F09747359001B908F /* Options.m in Sources */ = {isa = PBXBuildFile; fileRef = 1374D22D09747359001B908F /* Options.m */; };
-		13A0FF05088EDF7C00E5436C /* Display.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE78088EDF7B00E5436C /* Display.cpp */; };
-		13A0FF06088EDF7C00E5436C /* Display.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE79088EDF7B00E5436C /* Display.h */; };
-		13A0FF07088EDF7C00E5436C /* Floppy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE7A088EDF7B00E5436C /* Floppy.cpp */; };
-		13A0FF08088EDF7C00E5436C /* Floppy.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE7B088EDF7B00E5436C /* Floppy.h */; };
-		13A0FF09088EDF7C00E5436C /* IDEDisk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE7C088EDF7B00E5436C /* IDEDisk.cpp */; };
-		13A0FF0A088EDF7C00E5436C /* IDEDisk.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE7D088EDF7B00E5436C /* IDEDisk.h */; };
-		13A0FF0B088EDF7C00E5436C /* Input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE7E088EDF7B00E5436C /* Input.cpp */; };
-		13A0FF0C088EDF7C00E5436C /* Input.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE7F088EDF7B00E5436C /* Input.h */; };
-		13A0FF0E088EDF7C00E5436C /* MIDI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE81088EDF7B00E5436C /* MIDI.cpp */; };
-		13A0FF0F088EDF7C00E5436C /* MIDI.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE82088EDF7B00E5436C /* MIDI.h */; };
-		13A0FF10088EDF7C00E5436C /* OSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE83088EDF7B00E5436C /* OSD.cpp */; };
-		13A0FF11088EDF7C00E5436C /* OSD.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE84088EDF7B00E5436C /* OSD.h */; };
-		13A0FF15088EDF7C00E5436C /* Sound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FEFC088EDF7C00E5436C /* Sound.cpp */; };
-		13A0FF16088EDF7C00E5436C /* Sound.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FEFD088EDF7C00E5436C /* Sound.h */; };
-		13A0FF17088EDF7C00E5436C /* UI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FEFE088EDF7C00E5436C /* UI.cpp */; };
-		13A0FF18088EDF7C00E5436C /* UI.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FEFF088EDF7C00E5436C /* UI.h */; };
-		13A0FF19088EDF7C00E5436C /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF00088EDF7C00E5436C /* Video.cpp */; };
-		13A0FF1A088EDF7C00E5436C /* Video.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF01088EDF7C00E5436C /* Video.h */; };
-		13A0FF69088EDFC100E5436C /* Action.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF21088EDFC000E5436C /* Action.cpp */; };
-		13A0FF6A088EDFC100E5436C /* Action.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF22088EDFC000E5436C /* Action.h */; };
-		13A0FF6B088EDFC100E5436C /* ATA.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF23088EDFC000E5436C /* ATA.cpp */; };
-		13A0FF6C088EDFC100E5436C /* ATA.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF24088EDFC000E5436C /* ATA.h */; };
-		13A0FF6D088EDFC100E5436C /* Atom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF25088EDFC000E5436C /* Atom.cpp */; };
-		13A0FF6E088EDFC100E5436C /* Atom.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF26088EDFC000E5436C /* Atom.h */; };
-		13A0FF6F088EDFC100E5436C /* CBops.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF27088EDFC000E5436C /* CBops.h */; };
-		13A0FF70088EDFC100E5436C /* CDisk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF28088EDFC000E5436C /* CDisk.cpp */; };
-		13A0FF71088EDFC100E5436C /* CDisk.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF29088EDFC000E5436C /* CDisk.h */; };
-		13A0FF72088EDFC100E5436C /* CDrive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF2A088EDFC000E5436C /* CDrive.cpp */; };
-		13A0FF73088EDFC100E5436C /* CDrive.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF2B088EDFC000E5436C /* CDrive.h */; };
-		13A0FF74088EDFC100E5436C /* Clock.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF2C088EDFC100E5436C /* Clock.cpp */; };
-		13A0FF75088EDFC100E5436C /* Clock.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF2D088EDFC100E5436C /* Clock.h */; };
-		13A0FF76088EDFC100E5436C /* CPU.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF2E088EDFC100E5436C /* CPU.cpp */; };
-		13A0FF77088EDFC100E5436C /* CPU.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF2F088EDFC100E5436C /* CPU.h */; };
-		13A0FF78088EDFC100E5436C /* CScreen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF30088EDFC100E5436C /* CScreen.cpp */; };
-		13A0FF79088EDFC100E5436C /* CScreen.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF31088EDFC100E5436C /* CScreen.h */; };
-		13A0FF7A088EDFC100E5436C /* CStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF32088EDFC100E5436C /* CStream.cpp */; };
-		13A0FF7B088EDFC100E5436C /* CStream.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF33088EDFC100E5436C /* CStream.h */; };
-		13A0FF7D088EDFC100E5436C /* Debug.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF39088EDFC100E5436C /* Debug.cpp */; };
-		13A0FF7E088EDFC100E5436C /* Debug.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF3A088EDFC100E5436C /* Debug.h */; };
-		13A0FF7F088EDFC100E5436C /* Disassem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF3B088EDFC100E5436C /* Disassem.cpp */; };
-		13A0FF80088EDFC100E5436C /* Disassem.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF3C088EDFC100E5436C /* Disassem.h */; };
-		13A0FF81088EDFC100E5436C /* EDops.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF3D088EDFC100E5436C /* EDops.h */; };
-		13A0FF82088EDFC100E5436C /* Expr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF3E088EDFC100E5436C /* Expr.cpp */; };
-		13A0FF83088EDFC100E5436C /* Expr.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF3F088EDFC100E5436C /* Expr.h */; };
-		13A0FF84088EDFC100E5436C /* Font.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF40088EDFC100E5436C /* Font.cpp */; };
-		13A0FF85088EDFC100E5436C /* Font.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF41088EDFC100E5436C /* Font.h */; };
-		13A0FF86088EDFC100E5436C /* Frame.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF42088EDFC100E5436C /* Frame.cpp */; };
-		13A0FF87088EDFC100E5436C /* Frame.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF43088EDFC100E5436C /* Frame.h */; };
-		13A0FF88088EDFC100E5436C /* GUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF44088EDFC100E5436C /* GUI.cpp */; };
-		13A0FF89088EDFC100E5436C /* GUI.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF45088EDFC100E5436C /* GUI.h */; };
-		13A0FF8A088EDFC100E5436C /* GUIDlg.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF46088EDFC100E5436C /* GUIDlg.cpp */; };
-		13A0FF8B088EDFC100E5436C /* GUIDlg.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF47088EDFC100E5436C /* GUIDlg.h */; };
-		13A0FF8C088EDFC100E5436C /* GUIIcons.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF48088EDFC100E5436C /* GUIIcons.cpp */; };
-		13A0FF8D088EDFC100E5436C /* GUIIcons.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF49088EDFC100E5436C /* GUIIcons.h */; };
-		13A0FF8E088EDFC100E5436C /* HardDisk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF4A088EDFC100E5436C /* HardDisk.cpp */; };
-		13A0FF8F088EDFC100E5436C /* HardDisk.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF4B088EDFC100E5436C /* HardDisk.h */; };
-		13A0FF90088EDFC100E5436C /* HDBOOT.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF4C088EDFC100E5436C /* HDBOOT.h */; };
-		13A0FF91088EDFC100E5436C /* IO.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF4D088EDFC100E5436C /* IO.cpp */; };
-		13A0FF92088EDFC100E5436C /* IO.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF4E088EDFC100E5436C /* IO.h */; };
-		13A0FF93088EDFC100E5436C /* Main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF4F088EDFC100E5436C /* Main.cpp */; };
-		13A0FF94088EDFC100E5436C /* Main.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF50088EDFC100E5436C /* Main.h */; };
-		13A0FF95088EDFC100E5436C /* Memory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF51088EDFC100E5436C /* Memory.cpp */; };
-		13A0FF96088EDFC100E5436C /* Memory.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF52088EDFC100E5436C /* Memory.h */; };
-		13A0FF97088EDFC100E5436C /* Mouse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF53088EDFC100E5436C /* Mouse.cpp */; };
-		13A0FF98088EDFC100E5436C /* Mouse.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF54088EDFC100E5436C /* Mouse.h */; };
-		13A0FF99088EDFC100E5436C /* Options.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF55088EDFC100E5436C /* Options.cpp */; };
-		13A0FF9A088EDFC100E5436C /* Options.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF56088EDFC100E5436C /* Options.h */; };
-		13A0FF9B088EDFC100E5436C /* Parallel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF57088EDFC100E5436C /* Parallel.cpp */; };
-		13A0FF9C088EDFC100E5436C /* Parallel.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF58088EDFC100E5436C /* Parallel.h */; };
-		13A0FF9D088EDFC100E5436C /* PNG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF59088EDFC100E5436C /* PNG.cpp */; };
-		13A0FF9E088EDFC100E5436C /* PNG.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5A088EDFC100E5436C /* PNG.h */; };
-		13A0FF9F088EDFC100E5436C /* Profile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF5B088EDFC100E5436C /* Profile.cpp */; };
-		13A0FFA0088EDFC100E5436C /* Profile.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5C088EDFC100E5436C /* Profile.h */; };
-		13A0FFA1088EDFC100E5436C /* SAM.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5D088EDFC100E5436C /* SAM.h */; };
-		13A0FFA2088EDFC100E5436C /* SAMDOS.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5E088EDFC100E5436C /* SAMDOS.h */; };
-		13A0FFA3088EDFC100E5436C /* SAMROM.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5F088EDFC100E5436C /* SAMROM.h */; };
-		13A0FFA4088EDFC100E5436C /* SDIDE.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF60088EDFC100E5436C /* SDIDE.cpp */; };
-		13A0FFA5088EDFC100E5436C /* SDIDE.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF61088EDFC100E5436C /* SDIDE.h */; };
-		13A0FFA6088EDFC100E5436C /* SimCoupe.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF62088EDFC100E5436C /* SimCoupe.h */; };
-		13A0FFA7088EDFC100E5436C /* Util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF63088EDFC100E5436C /* Util.cpp */; };
-		13A0FFA8088EDFC100E5436C /* Util.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF64088EDFC100E5436C /* Util.h */; };
-		13A0FFA9088EDFC100E5436C /* VL1772.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF65088EDFC100E5436C /* VL1772.h */; };
-		13A0FFAA088EDFC100E5436C /* YATBus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF66088EDFC100E5436C /* YATBus.cpp */; };
-		13A0FFAB088EDFC100E5436C /* YATBus.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF67088EDFC100E5436C /* YATBus.h */; };
-		13A0FFAC088EDFC100E5436C /* Z80ops.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF68088EDFC100E5436C /* Z80ops.h */; };
-		13A0FFB8088EDFFF00E5436C /* ioapi.c in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FFB2088EDFFF00E5436C /* ioapi.c */; };
-		13A0FFB9088EDFFF00E5436C /* ioapi.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FFB3088EDFFF00E5436C /* ioapi.h */; };
-		13A0FFBA088EDFFF00E5436C /* SAASound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FFB4088EDFFF00E5436C /* SAASound.cpp */; };
-		13A0FFBB088EDFFF00E5436C /* SAASound.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FFB5088EDFFF00E5436C /* SAASound.h */; };
-		13A0FFBC088EDFFF00E5436C /* unzip.c in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FFB6088EDFFF00E5436C /* unzip.c */; };
-		13A0FFBD088EDFFF00E5436C /* unzip.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FFB7088EDFFF00E5436C /* unzip.h */; };
-		13A0FFEB088EE18600E5436C /* SDLMain.nib in Resources */ = {isa = PBXBuildFile; fileRef = 13A0FFEA088EE18600E5436C /* SDLMain.nib */; };
-		13A0FFF0088EE20300E5436C /* SimCoupe.icns in Resources */ = {isa = PBXBuildFile; fileRef = 13A0FFEF088EE20300E5436C /* SimCoupe.icns */; };
-		13A0FFF5088EE31A00E5436C /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 13A0FFF4088EE31A00E5436C /* libz.dylib */; };
-		13A90797088FBB60006201C0 /* SDL.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 13E5AE69088FBB1F00EACEBE /* SDL.framework */; };
-		13E5AE6A088FBB1F00EACEBE /* SDL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13E5AE69088FBB1F00EACEBE /* SDL.framework */; };
-		B2F67ED804C74A3F00A80002 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2F67ED704C74A3F00A80002 /* OpenGL.framework */; };
-		F5A47AA101A0483001D3D55B /* SDLMain.h in Headers */ = {isa = PBXBuildFile; fileRef = F5A47A9D01A0482F01D3D55B /* SDLMain.h */; };
-		F5A47AA301A0483001D3D55B /* SDLMain.m in Sources */ = {isa = PBXBuildFile; fileRef = F5A47A9E01A0483001D3D55B /* SDLMain.m */; };
+		132CC52209B11512007955DE /* SAASound.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 134923380890664C001D048F /* SAASound.framework */; };
+		132CC52309B11512007955DE /* SDL.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 13E5AE69088FBB1F00EACEBE /* SDL.framework */; };
+		132CC52509B11512007955DE /* SDLMain.h in Headers */ = {isa = PBXBuildFile; fileRef = F5A47A9D01A0482F01D3D55B /* SDLMain.h */; };
+		132CC52609B11512007955DE /* Display.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE79088EDF7B00E5436C /* Display.h */; };
+		132CC52709B11512007955DE /* Floppy.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE7B088EDF7B00E5436C /* Floppy.h */; };
+		132CC52809B11512007955DE /* IDEDisk.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE7D088EDF7B00E5436C /* IDEDisk.h */; };
+		132CC52909B11512007955DE /* Input.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE7F088EDF7B00E5436C /* Input.h */; };
+		132CC52A09B11512007955DE /* MIDI.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE82088EDF7B00E5436C /* MIDI.h */; };
+		132CC52B09B11512007955DE /* OSD.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE84088EDF7B00E5436C /* OSD.h */; };
+		132CC52C09B11512007955DE /* Sound.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FEFD088EDF7C00E5436C /* Sound.h */; };
+		132CC52D09B11512007955DE /* UI.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FEFF088EDF7C00E5436C /* UI.h */; };
+		132CC52E09B11512007955DE /* Video.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF01088EDF7C00E5436C /* Video.h */; };
+		132CC52F09B11512007955DE /* Action.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF22088EDFC000E5436C /* Action.h */; };
+		132CC53009B11512007955DE /* ATA.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF24088EDFC000E5436C /* ATA.h */; };
+		132CC53109B11512007955DE /* Atom.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF26088EDFC000E5436C /* Atom.h */; };
+		132CC53209B11512007955DE /* CBops.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF27088EDFC000E5436C /* CBops.h */; };
+		132CC53309B11512007955DE /* CDisk.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF29088EDFC000E5436C /* CDisk.h */; };
+		132CC53409B11512007955DE /* CDrive.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF2B088EDFC000E5436C /* CDrive.h */; };
+		132CC53509B11512007955DE /* Clock.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF2D088EDFC100E5436C /* Clock.h */; };
+		132CC53609B11512007955DE /* CPU.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF2F088EDFC100E5436C /* CPU.h */; };
+		132CC53709B11512007955DE /* CScreen.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF31088EDFC100E5436C /* CScreen.h */; };
+		132CC53809B11512007955DE /* CStream.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF33088EDFC100E5436C /* CStream.h */; };
+		132CC53909B11512007955DE /* Debug.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF3A088EDFC100E5436C /* Debug.h */; };
+		132CC53A09B11512007955DE /* Disassem.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF3C088EDFC100E5436C /* Disassem.h */; };
+		132CC53B09B11512007955DE /* EDops.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF3D088EDFC100E5436C /* EDops.h */; };
+		132CC53C09B11512007955DE /* Expr.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF3F088EDFC100E5436C /* Expr.h */; };
+		132CC53D09B11512007955DE /* Font.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF41088EDFC100E5436C /* Font.h */; };
+		132CC53E09B11512007955DE /* Frame.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF43088EDFC100E5436C /* Frame.h */; };
+		132CC53F09B11512007955DE /* GUI.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF45088EDFC100E5436C /* GUI.h */; };
+		132CC54009B11512007955DE /* GUIDlg.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF47088EDFC100E5436C /* GUIDlg.h */; };
+		132CC54109B11512007955DE /* GUIIcons.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF49088EDFC100E5436C /* GUIIcons.h */; };
+		132CC54209B11512007955DE /* HardDisk.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF4B088EDFC100E5436C /* HardDisk.h */; };
+		132CC54309B11512007955DE /* HDBOOT.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF4C088EDFC100E5436C /* HDBOOT.h */; };
+		132CC54409B11512007955DE /* IO.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF4E088EDFC100E5436C /* IO.h */; };
+		132CC54509B11512007955DE /* Main.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF50088EDFC100E5436C /* Main.h */; };
+		132CC54609B11512007955DE /* Memory.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF52088EDFC100E5436C /* Memory.h */; };
+		132CC54709B11512007955DE /* Mouse.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF54088EDFC100E5436C /* Mouse.h */; };
+		132CC54809B11512007955DE /* Options.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF56088EDFC100E5436C /* Options.h */; };
+		132CC54909B11512007955DE /* Parallel.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF58088EDFC100E5436C /* Parallel.h */; };
+		132CC54A09B11512007955DE /* PNG.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5A088EDFC100E5436C /* PNG.h */; };
+		132CC54B09B11512007955DE /* Profile.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5C088EDFC100E5436C /* Profile.h */; };
+		132CC54C09B11512007955DE /* SAM.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5D088EDFC100E5436C /* SAM.h */; };
+		132CC54D09B11512007955DE /* SAMDOS.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5E088EDFC100E5436C /* SAMDOS.h */; };
+		132CC54E09B11512007955DE /* SAMROM.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5F088EDFC100E5436C /* SAMROM.h */; };
+		132CC54F09B11512007955DE /* SDIDE.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF61088EDFC100E5436C /* SDIDE.h */; };
+		132CC55009B11512007955DE /* SimCoupe.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF62088EDFC100E5436C /* SimCoupe.h */; };
+		132CC55109B11512007955DE /* Util.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF64088EDFC100E5436C /* Util.h */; };
+		132CC55209B11512007955DE /* VL1772.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF65088EDFC100E5436C /* VL1772.h */; };
+		132CC55309B11512007955DE /* YATBus.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF67088EDFC100E5436C /* YATBus.h */; };
+		132CC55409B11512007955DE /* Z80ops.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF68088EDFC100E5436C /* Z80ops.h */; };
+		132CC55509B11512007955DE /* ioapi.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FFB3088EDFFF00E5436C /* ioapi.h */; };
+		132CC55609B11512007955DE /* SAASound.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FFB5088EDFFF00E5436C /* SAASound.h */; };
+		132CC55709B11512007955DE /* unzip.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FFB7088EDFFF00E5436C /* unzip.h */; };
+		132CC55809B11512007955DE /* Options.h in Headers */ = {isa = PBXBuildFile; fileRef = 1374D22C09747359001B908F /* Options.h */; };
+		132CC55A09B11512007955DE /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
+		132CC55B09B11512007955DE /* SDLMain.nib in Resources */ = {isa = PBXBuildFile; fileRef = 13A0FFEA088EE18600E5436C /* SDLMain.nib */; };
+		132CC55C09B11512007955DE /* SimCoupe.icns in Resources */ = {isa = PBXBuildFile; fileRef = 13A0FFEF088EE20300E5436C /* SimCoupe.icns */; };
+		132CC55D09B11512007955DE /* ReadMe.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1314531508A2C2EB008C1AB7 /* ReadMe.txt */; };
+		132CC55E09B11512007955DE /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 13486F5C0891A08300DB38E0 /* Credits.html */; };
+		132CC55F09B11512007955DE /* ReadMe-SDL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1314531A08A2C383008C1AB7 /* ReadMe-SDL.txt */; };
+		132CC56009B11512007955DE /* ChangeLog.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1314531C08A2C39F008C1AB7 /* ChangeLog.txt */; };
+		132CC56109B11512007955DE /* Options.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1374D20109746C5E001B908F /* Options.nib */; };
+		132CC56309B11512007955DE /* SDLMain.m in Sources */ = {isa = PBXBuildFile; fileRef = F5A47A9E01A0483001D3D55B /* SDLMain.m */; };
+		132CC56409B11512007955DE /* Display.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE78088EDF7B00E5436C /* Display.cpp */; };
+		132CC56509B11512007955DE /* Floppy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE7A088EDF7B00E5436C /* Floppy.cpp */; };
+		132CC56609B11512007955DE /* IDEDisk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE7C088EDF7B00E5436C /* IDEDisk.cpp */; };
+		132CC56709B11512007955DE /* Input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE7E088EDF7B00E5436C /* Input.cpp */; };
+		132CC56809B11512007955DE /* MIDI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE81088EDF7B00E5436C /* MIDI.cpp */; };
+		132CC56909B11512007955DE /* OSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE83088EDF7B00E5436C /* OSD.cpp */; };
+		132CC56A09B11512007955DE /* Sound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FEFC088EDF7C00E5436C /* Sound.cpp */; };
+		132CC56B09B11512007955DE /* UI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FEFE088EDF7C00E5436C /* UI.cpp */; };
+		132CC56C09B11512007955DE /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF00088EDF7C00E5436C /* Video.cpp */; };
+		132CC56D09B11512007955DE /* Action.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF21088EDFC000E5436C /* Action.cpp */; };
+		132CC56E09B11512007955DE /* ATA.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF23088EDFC000E5436C /* ATA.cpp */; };
+		132CC56F09B11512007955DE /* Atom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF25088EDFC000E5436C /* Atom.cpp */; };
+		132CC57009B11512007955DE /* CDisk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF28088EDFC000E5436C /* CDisk.cpp */; };
+		132CC57109B11512007955DE /* CDrive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF2A088EDFC000E5436C /* CDrive.cpp */; };
+		132CC57209B11512007955DE /* Clock.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF2C088EDFC100E5436C /* Clock.cpp */; };
+		132CC57309B11512007955DE /* CPU.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF2E088EDFC100E5436C /* CPU.cpp */; };
+		132CC57409B11512007955DE /* CScreen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF30088EDFC100E5436C /* CScreen.cpp */; };
+		132CC57509B11512007955DE /* CStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF32088EDFC100E5436C /* CStream.cpp */; };
+		132CC57609B11512007955DE /* Debug.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF39088EDFC100E5436C /* Debug.cpp */; };
+		132CC57709B11512007955DE /* Disassem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF3B088EDFC100E5436C /* Disassem.cpp */; };
+		132CC57809B11512007955DE /* Expr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF3E088EDFC100E5436C /* Expr.cpp */; };
+		132CC57909B11512007955DE /* Font.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF40088EDFC100E5436C /* Font.cpp */; };
+		132CC57A09B11512007955DE /* Frame.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF42088EDFC100E5436C /* Frame.cpp */; };
+		132CC57B09B11512007955DE /* GUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF44088EDFC100E5436C /* GUI.cpp */; };
+		132CC57C09B11512007955DE /* GUIDlg.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF46088EDFC100E5436C /* GUIDlg.cpp */; };
+		132CC57D09B11512007955DE /* GUIIcons.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF48088EDFC100E5436C /* GUIIcons.cpp */; };
+		132CC57E09B11512007955DE /* HardDisk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF4A088EDFC100E5436C /* HardDisk.cpp */; };
+		132CC57F09B11512007955DE /* IO.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF4D088EDFC100E5436C /* IO.cpp */; };
+		132CC58009B11512007955DE /* Main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF4F088EDFC100E5436C /* Main.cpp */; };
+		132CC58109B11512007955DE /* Memory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF51088EDFC100E5436C /* Memory.cpp */; };
+		132CC58209B11512007955DE /* Mouse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF53088EDFC100E5436C /* Mouse.cpp */; };
+		132CC58309B11512007955DE /* Options.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF55088EDFC100E5436C /* Options.cpp */; };
+		132CC58409B11512007955DE /* Parallel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF57088EDFC100E5436C /* Parallel.cpp */; };
+		132CC58509B11512007955DE /* PNG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF59088EDFC100E5436C /* PNG.cpp */; };
+		132CC58609B11512007955DE /* Profile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF5B088EDFC100E5436C /* Profile.cpp */; };
+		132CC58709B11512007955DE /* SDIDE.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF60088EDFC100E5436C /* SDIDE.cpp */; };
+		132CC58809B11512007955DE /* Util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF63088EDFC100E5436C /* Util.cpp */; };
+		132CC58909B11512007955DE /* YATBus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF66088EDFC100E5436C /* YATBus.cpp */; };
+		132CC58A09B11512007955DE /* ioapi.c in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FFB2088EDFFF00E5436C /* ioapi.c */; };
+		132CC58B09B11512007955DE /* SAASound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FFB4088EDFFF00E5436C /* SAASound.cpp */; };
+		132CC58C09B11512007955DE /* unzip.c in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FFB6088EDFFF00E5436C /* unzip.c */; };
+		132CC58D09B11512007955DE /* Options.m in Sources */ = {isa = PBXBuildFile; fileRef = 1374D22D09747359001B908F /* Options.m */; };
+		132CC58F09B11512007955DE /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
+		132CC59009B11512007955DE /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2F67ED704C74A3F00A80002 /* OpenGL.framework */; };
+		132CC59109B11512007955DE /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 13A0FFF4088EE31A00E5436C /* libz.dylib */; };
+		132CC59209B11512007955DE /* SDL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13E5AE69088FBB1F00EACEBE /* SDL.framework */; };
+		132CC59309B11512007955DE /* SAASound.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 134923380890664C001D048F /* SAASound.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildStyle section */
@@ -280,14 +156,14 @@
 /* End PBXBuildStyle section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		13E5AD96088FB77300EACEBE /* CopyFiles */ = {
+		132CC52109B11512007955DE /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				1349234008906661001D048F /* SAASound.framework in CopyFiles */,
-				13A90797088FBB60006201C0 /* SDL.framework in CopyFiles */,
+				132CC52209B11512007955DE /* SAASound.framework in CopyFiles */,
+				132CC52309B11512007955DE /* SDL.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -296,11 +172,13 @@
 /* Begin PBXFileReference section */
 		089C165DFE840E0CC02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
-		1314531508A2C2EB008C1AB7 /* ReadMe.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = ReadMe.txt; path = /Users/si/SimCoupe/ReadMe.txt; sourceTree = "<absolute>"; };
-		1314531A08A2C383008C1AB7 /* ReadMe-SDL.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = "ReadMe-SDL.txt"; path = "/Users/si/SimCoupe/ReadMe-SDL.txt"; sourceTree = "<absolute>"; };
-		1314531C08A2C39F008C1AB7 /* ChangeLog.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = ChangeLog.txt; path = /Users/si/SimCoupe/ChangeLog.txt; sourceTree = "<absolute>"; };
+		1314531508A2C2EB008C1AB7 /* ReadMe.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = ReadMe.txt; path = ../../ReadMe.txt; sourceTree = "<group>"; };
+		1314531A08A2C383008C1AB7 /* ReadMe-SDL.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = "ReadMe-SDL.txt"; path = "../../ReadMe-SDL.txt"; sourceTree = "<group>"; };
+		1314531C08A2C39F008C1AB7 /* ChangeLog.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = ChangeLog.txt; path = ../../ChangeLog.txt; sourceTree = "<group>"; };
+		132CC59809B11512007955DE /* Info-SimCoupe.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Info-SimCoupe.plist"; sourceTree = "<group>"; };
+		132CC59909B11512007955DE /* SimCoupe.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SimCoupe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13486F5C0891A08300DB38E0 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
-		134923380890664C001D048F /* SAASound.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SAASound.framework; path = "../../../SAASound-3.2/OSX/build/SAASound.framework"; sourceTree = SOURCE_ROOT; };
+		134923380890664C001D048F /* SAASound.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SAASound.framework; path = /Library/Frameworks/SAASound.framework; sourceTree = "<absolute>"; };
 		1374D20109746C5E001B908F /* Options.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = Options.nib; sourceTree = "<group>"; };
 		1374D22C09747359001B908F /* Options.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Options.h; sourceTree = "<group>"; };
 		1374D22D09747359001B908F /* Options.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Options.m; sourceTree = "<group>"; };
@@ -399,7 +277,6 @@
 		13A0FFEF088EE20300E5436C /* SimCoupe.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = SimCoupe.icns; sourceTree = "<group>"; };
 		13A0FFF4088EE31A00E5436C /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = /usr/lib/libz.dylib; sourceTree = "<absolute>"; };
 		13E5AE69088FBB1F00EACEBE /* SDL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL.framework; path = /Library/Frameworks/SDL.framework; sourceTree = "<absolute>"; };
-		17587328FF379C6511CA2CBB /* SimCoupe.app */ = {isa = PBXFileReference; lastKnownFileType = wrapper.application; path = SimCoupe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		B2F67ED704C74A3F00A80002 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = /System/Library/Frameworks/OpenGL.framework; sourceTree = "<absolute>"; };
@@ -408,15 +285,15 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		29B9732DFDCFA39411CA2CEA /* Frameworks */ = {
+		132CC58E09B11512007955DE /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1058C7A3FEA54F0111CA2CBB /* Cocoa.framework in Frameworks */,
-				B2F67ED804C74A3F00A80002 /* OpenGL.framework in Frameworks */,
-				13A0FFF5088EE31A00E5436C /* libz.dylib in Frameworks */,
-				13E5AE6A088FBB1F00EACEBE /* SDL.framework in Frameworks */,
-				134923390890664C001D048F /* SAASound.framework in Frameworks */,
+				132CC58F09B11512007955DE /* Cocoa.framework in Frameworks */,
+				132CC59009B11512007955DE /* OpenGL.framework in Frameworks */,
+				132CC59109B11512007955DE /* libz.dylib in Frameworks */,
+				132CC59209B11512007955DE /* SDL.framework in Frameworks */,
+				132CC59309B11512007955DE /* SAASound.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -580,7 +457,7 @@
 		19C28FACFE9D520D11CA2CBB /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				17587328FF379C6511CA2CBB /* SimCoupe.app */,
+				132CC59909B11512007955DE /* SimCoupe.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -603,6 +480,7 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				132CC59809B11512007955DE /* Info-SimCoupe.plist */,
 				13486F5C0891A08300DB38E0 /* Credits.html */,
 				13A0FFEF088EE20300E5436C /* SimCoupe.icns */,
 				13A0FFEA088EE18600E5436C /* SDLMain.nib */,
@@ -624,66 +502,110 @@
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
-		29B97327FDCFA39411CA2CEA /* Headers */ = {
+		132CC52409B11512007955DE /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F5A47AA101A0483001D3D55B /* SDLMain.h in Headers */,
-				13A0FF06088EDF7C00E5436C /* Display.h in Headers */,
-				13A0FF08088EDF7C00E5436C /* Floppy.h in Headers */,
-				13A0FF0A088EDF7C00E5436C /* IDEDisk.h in Headers */,
-				13A0FF0C088EDF7C00E5436C /* Input.h in Headers */,
-				13A0FF0F088EDF7C00E5436C /* MIDI.h in Headers */,
-				13A0FF11088EDF7C00E5436C /* OSD.h in Headers */,
-				13A0FF16088EDF7C00E5436C /* Sound.h in Headers */,
-				13A0FF18088EDF7C00E5436C /* UI.h in Headers */,
-				13A0FF1A088EDF7C00E5436C /* Video.h in Headers */,
-				13A0FF6A088EDFC100E5436C /* Action.h in Headers */,
-				13A0FF6C088EDFC100E5436C /* ATA.h in Headers */,
-				13A0FF6E088EDFC100E5436C /* Atom.h in Headers */,
-				13A0FF6F088EDFC100E5436C /* CBops.h in Headers */,
-				13A0FF71088EDFC100E5436C /* CDisk.h in Headers */,
-				13A0FF73088EDFC100E5436C /* CDrive.h in Headers */,
-				13A0FF75088EDFC100E5436C /* Clock.h in Headers */,
-				13A0FF77088EDFC100E5436C /* CPU.h in Headers */,
-				13A0FF79088EDFC100E5436C /* CScreen.h in Headers */,
-				13A0FF7B088EDFC100E5436C /* CStream.h in Headers */,
-				13A0FF7E088EDFC100E5436C /* Debug.h in Headers */,
-				13A0FF80088EDFC100E5436C /* Disassem.h in Headers */,
-				13A0FF81088EDFC100E5436C /* EDops.h in Headers */,
-				13A0FF83088EDFC100E5436C /* Expr.h in Headers */,
-				13A0FF85088EDFC100E5436C /* Font.h in Headers */,
-				13A0FF87088EDFC100E5436C /* Frame.h in Headers */,
-				13A0FF89088EDFC100E5436C /* GUI.h in Headers */,
-				13A0FF8B088EDFC100E5436C /* GUIDlg.h in Headers */,
-				13A0FF8D088EDFC100E5436C /* GUIIcons.h in Headers */,
-				13A0FF8F088EDFC100E5436C /* HardDisk.h in Headers */,
-				13A0FF90088EDFC100E5436C /* HDBOOT.h in Headers */,
-				13A0FF92088EDFC100E5436C /* IO.h in Headers */,
-				13A0FF94088EDFC100E5436C /* Main.h in Headers */,
-				13A0FF96088EDFC100E5436C /* Memory.h in Headers */,
-				13A0FF98088EDFC100E5436C /* Mouse.h in Headers */,
-				13A0FF9A088EDFC100E5436C /* Options.h in Headers */,
-				13A0FF9C088EDFC100E5436C /* Parallel.h in Headers */,
-				13A0FF9E088EDFC100E5436C /* PNG.h in Headers */,
-				13A0FFA0088EDFC100E5436C /* Profile.h in Headers */,
-				13A0FFA1088EDFC100E5436C /* SAM.h in Headers */,
-				13A0FFA2088EDFC100E5436C /* SAMDOS.h in Headers */,
-				13A0FFA3088EDFC100E5436C /* SAMROM.h in Headers */,
-				13A0FFA5088EDFC100E5436C /* SDIDE.h in Headers */,
-				13A0FFA6088EDFC100E5436C /* SimCoupe.h in Headers */,
-				13A0FFA8088EDFC100E5436C /* Util.h in Headers */,
-				13A0FFA9088EDFC100E5436C /* VL1772.h in Headers */,
-				13A0FFAB088EDFC100E5436C /* YATBus.h in Headers */,
-				13A0FFAC088EDFC100E5436C /* Z80ops.h in Headers */,
-				13A0FFB9088EDFFF00E5436C /* ioapi.h in Headers */,
-				13A0FFBB088EDFFF00E5436C /* SAASound.h in Headers */,
-				13A0FFBD088EDFFF00E5436C /* unzip.h in Headers */,
-				1374D22E09747359001B908F /* Options.h in Headers */,
+				132CC52509B11512007955DE /* SDLMain.h in Headers */,
+				132CC52609B11512007955DE /* Display.h in Headers */,
+				132CC52709B11512007955DE /* Floppy.h in Headers */,
+				132CC52809B11512007955DE /* IDEDisk.h in Headers */,
+				132CC52909B11512007955DE /* Input.h in Headers */,
+				132CC52A09B11512007955DE /* MIDI.h in Headers */,
+				132CC52B09B11512007955DE /* OSD.h in Headers */,
+				132CC52C09B11512007955DE /* Sound.h in Headers */,
+				132CC52D09B11512007955DE /* UI.h in Headers */,
+				132CC52E09B11512007955DE /* Video.h in Headers */,
+				132CC52F09B11512007955DE /* Action.h in Headers */,
+				132CC53009B11512007955DE /* ATA.h in Headers */,
+				132CC53109B11512007955DE /* Atom.h in Headers */,
+				132CC53209B11512007955DE /* CBops.h in Headers */,
+				132CC53309B11512007955DE /* CDisk.h in Headers */,
+				132CC53409B11512007955DE /* CDrive.h in Headers */,
+				132CC53509B11512007955DE /* Clock.h in Headers */,
+				132CC53609B11512007955DE /* CPU.h in Headers */,
+				132CC53709B11512007955DE /* CScreen.h in Headers */,
+				132CC53809B11512007955DE /* CStream.h in Headers */,
+				132CC53909B11512007955DE /* Debug.h in Headers */,
+				132CC53A09B11512007955DE /* Disassem.h in Headers */,
+				132CC53B09B11512007955DE /* EDops.h in Headers */,
+				132CC53C09B11512007955DE /* Expr.h in Headers */,
+				132CC53D09B11512007955DE /* Font.h in Headers */,
+				132CC53E09B11512007955DE /* Frame.h in Headers */,
+				132CC53F09B11512007955DE /* GUI.h in Headers */,
+				132CC54009B11512007955DE /* GUIDlg.h in Headers */,
+				132CC54109B11512007955DE /* GUIIcons.h in Headers */,
+				132CC54209B11512007955DE /* HardDisk.h in Headers */,
+				132CC54309B11512007955DE /* HDBOOT.h in Headers */,
+				132CC54409B11512007955DE /* IO.h in Headers */,
+				132CC54509B11512007955DE /* Main.h in Headers */,
+				132CC54609B11512007955DE /* Memory.h in Headers */,
+				132CC54709B11512007955DE /* Mouse.h in Headers */,
+				132CC54809B11512007955DE /* Options.h in Headers */,
+				132CC54909B11512007955DE /* Parallel.h in Headers */,
+				132CC54A09B11512007955DE /* PNG.h in Headers */,
+				132CC54B09B11512007955DE /* Profile.h in Headers */,
+				132CC54C09B11512007955DE /* SAM.h in Headers */,
+				132CC54D09B11512007955DE /* SAMDOS.h in Headers */,
+				132CC54E09B11512007955DE /* SAMROM.h in Headers */,
+				132CC54F09B11512007955DE /* SDIDE.h in Headers */,
+				132CC55009B11512007955DE /* SimCoupe.h in Headers */,
+				132CC55109B11512007955DE /* Util.h in Headers */,
+				132CC55209B11512007955DE /* VL1772.h in Headers */,
+				132CC55309B11512007955DE /* YATBus.h in Headers */,
+				132CC55409B11512007955DE /* Z80ops.h in Headers */,
+				132CC55509B11512007955DE /* ioapi.h in Headers */,
+				132CC55609B11512007955DE /* SAASound.h in Headers */,
+				132CC55709B11512007955DE /* unzip.h in Headers */,
+				132CC55809B11512007955DE /* Options.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		132CC52009B11512007955DE /* SimCoupe */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 132CC59409B11512007955DE /* Build configuration list for PBXNativeTarget "SimCoupe" */;
+			buildPhases = (
+				132CC52109B11512007955DE /* CopyFiles */,
+				132CC52409B11512007955DE /* Headers */,
+				132CC55909B11512007955DE /* Resources */,
+				132CC56209B11512007955DE /* Sources */,
+				132CC58E09B11512007955DE /* Frameworks */,
+			);
+			buildRules = (
+			);
+			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
+				HEADER_SEARCH_PATHS = "\"/Library/Frameworks/SDL.framework/Headers\"";
+				INSTALL_PATH = "$(HOME)/Applications";
+				LIBRARY_SEARCH_PATHS = "";
+				OPTIMIZATION_CFLAGS = "-O0";
+				OTHER_CFLAGS = (
+					"-DUSE_OPENGL",
+					"-DUSE_ZLIB",
+					"-DUSE_SAASOUND",
+				);
+				PRODUCT_NAME = SimCoupe;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+				);
+				WRAPPER_EXTENSION = app;
+			};
+			comments = "A SAM Coupé Emulator";
+			dependencies = (
+			);
+			name = SimCoupe;
+			productInstallPath = "$(HOME)/Applications";
+			productName = SimCoupe;
+			productReference = 132CC59909B11512007955DE /* SimCoupe.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
@@ -699,77 +621,77 @@
 			mainGroup = 29B97314FDCFA39411CA2CEA /* SimCoupe */;
 			projectDirPath = "";
 			targets = (
-				29B97326FDCFA39411CA2CEA /* SimCoupe */,
+				132CC52009B11512007955DE /* SimCoupe */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		29B97328FDCFA39411CA2CEA /* Resources */ = {
+		132CC55909B11512007955DE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				089C165EFE840E0CC02AAC07 /* InfoPlist.strings in Resources */,
-				13A0FFEB088EE18600E5436C /* SDLMain.nib in Resources */,
-				13A0FFF0088EE20300E5436C /* SimCoupe.icns in Resources */,
-				1314531608A2C2EB008C1AB7 /* ReadMe.txt in Resources */,
-				13486F5D0891A08300DB38E0 /* Credits.html in Resources */,
-				1314531B08A2C383008C1AB7 /* ReadMe-SDL.txt in Resources */,
-				1314531D08A2C39F008C1AB7 /* ChangeLog.txt in Resources */,
-				1374D20209746C5E001B908F /* Options.nib in Resources */,
+				132CC55A09B11512007955DE /* InfoPlist.strings in Resources */,
+				132CC55B09B11512007955DE /* SDLMain.nib in Resources */,
+				132CC55C09B11512007955DE /* SimCoupe.icns in Resources */,
+				132CC55D09B11512007955DE /* ReadMe.txt in Resources */,
+				132CC55E09B11512007955DE /* Credits.html in Resources */,
+				132CC55F09B11512007955DE /* ReadMe-SDL.txt in Resources */,
+				132CC56009B11512007955DE /* ChangeLog.txt in Resources */,
+				132CC56109B11512007955DE /* Options.nib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		29B9732BFDCFA39411CA2CEA /* Sources */ = {
+		132CC56209B11512007955DE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F5A47AA301A0483001D3D55B /* SDLMain.m in Sources */,
-				13A0FF05088EDF7C00E5436C /* Display.cpp in Sources */,
-				13A0FF07088EDF7C00E5436C /* Floppy.cpp in Sources */,
-				13A0FF09088EDF7C00E5436C /* IDEDisk.cpp in Sources */,
-				13A0FF0B088EDF7C00E5436C /* Input.cpp in Sources */,
-				13A0FF0E088EDF7C00E5436C /* MIDI.cpp in Sources */,
-				13A0FF10088EDF7C00E5436C /* OSD.cpp in Sources */,
-				13A0FF15088EDF7C00E5436C /* Sound.cpp in Sources */,
-				13A0FF17088EDF7C00E5436C /* UI.cpp in Sources */,
-				13A0FF19088EDF7C00E5436C /* Video.cpp in Sources */,
-				13A0FF69088EDFC100E5436C /* Action.cpp in Sources */,
-				13A0FF6B088EDFC100E5436C /* ATA.cpp in Sources */,
-				13A0FF6D088EDFC100E5436C /* Atom.cpp in Sources */,
-				13A0FF70088EDFC100E5436C /* CDisk.cpp in Sources */,
-				13A0FF72088EDFC100E5436C /* CDrive.cpp in Sources */,
-				13A0FF74088EDFC100E5436C /* Clock.cpp in Sources */,
-				13A0FF76088EDFC100E5436C /* CPU.cpp in Sources */,
-				13A0FF78088EDFC100E5436C /* CScreen.cpp in Sources */,
-				13A0FF7A088EDFC100E5436C /* CStream.cpp in Sources */,
-				13A0FF7D088EDFC100E5436C /* Debug.cpp in Sources */,
-				13A0FF7F088EDFC100E5436C /* Disassem.cpp in Sources */,
-				13A0FF82088EDFC100E5436C /* Expr.cpp in Sources */,
-				13A0FF84088EDFC100E5436C /* Font.cpp in Sources */,
-				13A0FF86088EDFC100E5436C /* Frame.cpp in Sources */,
-				13A0FF88088EDFC100E5436C /* GUI.cpp in Sources */,
-				13A0FF8A088EDFC100E5436C /* GUIDlg.cpp in Sources */,
-				13A0FF8C088EDFC100E5436C /* GUIIcons.cpp in Sources */,
-				13A0FF8E088EDFC100E5436C /* HardDisk.cpp in Sources */,
-				13A0FF91088EDFC100E5436C /* IO.cpp in Sources */,
-				13A0FF93088EDFC100E5436C /* Main.cpp in Sources */,
-				13A0FF95088EDFC100E5436C /* Memory.cpp in Sources */,
-				13A0FF97088EDFC100E5436C /* Mouse.cpp in Sources */,
-				13A0FF99088EDFC100E5436C /* Options.cpp in Sources */,
-				13A0FF9B088EDFC100E5436C /* Parallel.cpp in Sources */,
-				13A0FF9D088EDFC100E5436C /* PNG.cpp in Sources */,
-				13A0FF9F088EDFC100E5436C /* Profile.cpp in Sources */,
-				13A0FFA4088EDFC100E5436C /* SDIDE.cpp in Sources */,
-				13A0FFA7088EDFC100E5436C /* Util.cpp in Sources */,
-				13A0FFAA088EDFC100E5436C /* YATBus.cpp in Sources */,
-				13A0FFB8088EDFFF00E5436C /* ioapi.c in Sources */,
-				13A0FFBA088EDFFF00E5436C /* SAASound.cpp in Sources */,
-				13A0FFBC088EDFFF00E5436C /* unzip.c in Sources */,
-				1374D22F09747359001B908F /* Options.m in Sources */,
+				132CC56309B11512007955DE /* SDLMain.m in Sources */,
+				132CC56409B11512007955DE /* Display.cpp in Sources */,
+				132CC56509B11512007955DE /* Floppy.cpp in Sources */,
+				132CC56609B11512007955DE /* IDEDisk.cpp in Sources */,
+				132CC56709B11512007955DE /* Input.cpp in Sources */,
+				132CC56809B11512007955DE /* MIDI.cpp in Sources */,
+				132CC56909B11512007955DE /* OSD.cpp in Sources */,
+				132CC56A09B11512007955DE /* Sound.cpp in Sources */,
+				132CC56B09B11512007955DE /* UI.cpp in Sources */,
+				132CC56C09B11512007955DE /* Video.cpp in Sources */,
+				132CC56D09B11512007955DE /* Action.cpp in Sources */,
+				132CC56E09B11512007955DE /* ATA.cpp in Sources */,
+				132CC56F09B11512007955DE /* Atom.cpp in Sources */,
+				132CC57009B11512007955DE /* CDisk.cpp in Sources */,
+				132CC57109B11512007955DE /* CDrive.cpp in Sources */,
+				132CC57209B11512007955DE /* Clock.cpp in Sources */,
+				132CC57309B11512007955DE /* CPU.cpp in Sources */,
+				132CC57409B11512007955DE /* CScreen.cpp in Sources */,
+				132CC57509B11512007955DE /* CStream.cpp in Sources */,
+				132CC57609B11512007955DE /* Debug.cpp in Sources */,
+				132CC57709B11512007955DE /* Disassem.cpp in Sources */,
+				132CC57809B11512007955DE /* Expr.cpp in Sources */,
+				132CC57909B11512007955DE /* Font.cpp in Sources */,
+				132CC57A09B11512007955DE /* Frame.cpp in Sources */,
+				132CC57B09B11512007955DE /* GUI.cpp in Sources */,
+				132CC57C09B11512007955DE /* GUIDlg.cpp in Sources */,
+				132CC57D09B11512007955DE /* GUIIcons.cpp in Sources */,
+				132CC57E09B11512007955DE /* HardDisk.cpp in Sources */,
+				132CC57F09B11512007955DE /* IO.cpp in Sources */,
+				132CC58009B11512007955DE /* Main.cpp in Sources */,
+				132CC58109B11512007955DE /* Memory.cpp in Sources */,
+				132CC58209B11512007955DE /* Mouse.cpp in Sources */,
+				132CC58309B11512007955DE /* Options.cpp in Sources */,
+				132CC58409B11512007955DE /* Parallel.cpp in Sources */,
+				132CC58509B11512007955DE /* PNG.cpp in Sources */,
+				132CC58609B11512007955DE /* Profile.cpp in Sources */,
+				132CC58709B11512007955DE /* SDIDE.cpp in Sources */,
+				132CC58809B11512007955DE /* Util.cpp in Sources */,
+				132CC58909B11512007955DE /* YATBus.cpp in Sources */,
+				132CC58A09B11512007955DE /* ioapi.c in Sources */,
+				132CC58B09B11512007955DE /* SAASound.cpp in Sources */,
+				132CC58C09B11512007955DE /* unzip.c in Sources */,
+				132CC58D09B11512007955DE /* Options.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -787,36 +709,73 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		1301D3C9096B058800027BFC /* Development */ = {
+		1301D3CE096B058800027BFC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				COPY_PHASE_STRIP = NO;
-				FRAMEWORK_SEARCH_PATHS = (
-					/Library/Frameworks,
-					"/Users/si/SAASound-3.2/OSX/build",
+				ARCHS = (
+					i386,
+					ppc,
 				);
-				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ALTIVEC_EXTENSIONS = YES;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
-				GCC_ENABLE_FIX_AND_CONTINUE = YES;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_WARN_PEDANTIC = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_LABEL = YES;
-				GCC_WARN_UNUSED_PARAMETER = NO;
-				GCC_WARN_UNUSED_VALUE = NO;
-				GCC_WARN_UNUSED_VARIABLE = YES;
+				GCC_ENABLE_SSE3_EXTENSIONS = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_VERSION_i386 = 4.0;
+				GCC_VERSION_ppc = 3.3;
+				MACOSX_DEPLOYMENT_TARGET = 10.2;
+				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
+				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
+				PREBINDING = "$(PREBINDING_$(CURRENT_ARCH))";
+				PREBINDING_i386 = NO;
+				PREBINDING_ppc = YES;
+				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
+				SDKROOT_ppc = /Developer/SDKs/MacOSX10.3.9.sdk;
+			};
+			name = Release;
+		};
+		1301D3CF096B058800027BFC /* Default */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					i386,
+					ppc,
+				);
+				GCC_ALTIVEC_EXTENSIONS = YES;
+				GCC_ENABLE_CPP_EXCEPTIONS = NO;
+				GCC_ENABLE_CPP_RTTI = NO;
+				GCC_ENABLE_SSE3_EXTENSIONS = YES;
+				GCC_VERSION_i386 = 4.0;
+				GCC_VERSION_ppc = 3.3;
+				MACOSX_DEPLOYMENT_TARGET = 10.2;
+				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
+				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
+				PREBINDING = "$(PREBINDING_$(CURRENT_ARCH))";
+				PREBINDING_i386 = NO;
+				PREBINDING_ppc = YES;
+				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
+				SDKROOT_ppc = /Developer/SDKs/MacOSX10.3.9.sdk;
+			};
+			name = Default;
+		};
+		131B716209C22C34000C5D11 /* Development */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
+				GCC_ENABLE_CPP_EXCEPTIONS = NO;
+				GCC_ENABLE_CPP_RTTI = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					USE_OPENGL,
+					USE_ZLIB,
+					USE_SAASOUND,
+					_DEBUG,
+				);
 				HEADER_SEARCH_PATHS = "\"/Library/Frameworks/SDL.framework/Headers\"";
+				INFOPLIST_FILE = "Info-SimCoupe.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				LIBRARY_SEARCH_PATHS = "";
-				OPTIMIZATION_CFLAGS = "-O0";
-				OTHER_CFLAGS = (
-					"-DUSE_OPENGL",
-					"-DUSE_ZLIB",
-					"-DUSE_SAASOUND",
-				);
+				OTHER_CFLAGS = "";
 				PRODUCT_NAME = SimCoupe;
 				SECTORDER_FLAGS = "";
 				WARNING_CFLAGS = (
@@ -829,26 +788,50 @@
 			};
 			name = Development;
 		};
-		1301D3CA096B058800027BFC /* Deployment */ = {
+		131B716309C22C34000C5D11 /* Development */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				COPY_PHASE_STRIP = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					/Library/Frameworks,
-					"/Users/si/SAASound-3.2/OSX/build",
+				ARCHS = (
+					i386,
+					ppc,
 				);
+				GCC_DEBUGGING_SYMBOLS = default;
+				GCC_ENABLE_CPP_EXCEPTIONS = NO;
+				GCC_ENABLE_CPP_RTTI = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_VERSION_i386 = 4.0;
+				GCC_VERSION_ppc = 3.3;
+				MACOSX_DEPLOYMENT_TARGET = 10.2;
+				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
+				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
+				PREBINDING = "$(PREBINDING_$(CURRENT_ARCH))";
+				PREBINDING_i386 = NO;
+				PREBINDING_ppc = YES;
+				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
+				SDKROOT_ppc = /Developer/SDKs/MacOSX10.3.9.sdk;
+			};
+			name = Development;
+		};
+		132CC59609B11512007955DE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_VARIANTS = normal;
+				COPY_PHASE_STRIP = YES;
+				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					USE_OPENGL,
+					USE_ZLIB,
+					USE_SAASOUND,
+					NDEBUG,
+				);
 				HEADER_SEARCH_PATHS = "\"/Library/Frameworks/SDL.framework/Headers\"";
+				INFOPLIST_FILE = "Info-SimCoupe.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				LIBRARY_SEARCH_PATHS = "";
-				OPTIMIZATION_CFLAGS = "-O0";
-				OTHER_CFLAGS = (
-					"-DUSE_OPENGL",
-					"-DUSE_ZLIB",
-					"-DUSE_SAASOUND",
-				);
+				OTHER_CFLAGS = "";
 				PRODUCT_NAME = SimCoupe;
 				SECTORDER_FLAGS = "";
 				WARNING_CFLAGS = (
@@ -859,24 +842,23 @@
 				WRAPPER_EXTENSION = app;
 				ZERO_LINK = NO;
 			};
-			name = Deployment;
+			name = Release;
 		};
-		1301D3CB096B058800027BFC /* Default */ = {
+		132CC59709B11512007955DE /* Default */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				FRAMEWORK_SEARCH_PATHS = (
-					/Library/Frameworks,
-					"/Users/si/SAASound-3.2/OSX/build",
+				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					USE_OPENGL,
+					USE_ZLIB,
+					USE_SAASOUND,
 				);
 				HEADER_SEARCH_PATHS = "\"/Library/Frameworks/SDL.framework/Headers\"";
+				INFOPLIST_FILE = "Info-SimCoupe.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				LIBRARY_SEARCH_PATHS = "";
-				OPTIMIZATION_CFLAGS = "-O0";
-				OTHER_CFLAGS = (
-					"-DUSE_OPENGL",
-					"-DUSE_ZLIB",
-					"-DUSE_SAASOUND",
-				);
+				OTHER_CFLAGS = "";
 				PRODUCT_NAME = SimCoupe;
 				SECTORDER_FLAGS = "";
 				WARNING_CFLAGS = (
@@ -888,46 +870,28 @@
 			};
 			name = Default;
 		};
-		1301D3CD096B058800027BFC /* Development */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-			};
-			name = Development;
-		};
-		1301D3CE096B058800027BFC /* Deployment */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-			};
-			name = Deployment;
-		};
-		1301D3CF096B058800027BFC /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-			};
-			name = Default;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1301D3C8096B058800027BFC /* Build configuration list for PBXApplicationTarget "SimCoupe" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				1301D3C9096B058800027BFC /* Development */,
-				1301D3CA096B058800027BFC /* Deployment */,
-				1301D3CB096B058800027BFC /* Default */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
-		};
 		1301D3CC096B058800027BFC /* Build configuration list for PBXProject "SimCoupe" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				1301D3CD096B058800027BFC /* Development */,
-				1301D3CE096B058800027BFC /* Deployment */,
+				1301D3CE096B058800027BFC /* Release */,
+				131B716309C22C34000C5D11 /* Development */,
 				1301D3CF096B058800027BFC /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Release;
+		};
+		132CC59409B11512007955DE /* Build configuration list for PBXNativeTarget "SimCoupe" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				132CC59609B11512007955DE /* Release */,
+				131B716209C22C34000C5D11 /* Development */,
+				132CC59709B11512007955DE /* Default */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
