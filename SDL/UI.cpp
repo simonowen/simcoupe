@@ -53,7 +53,28 @@ bool UI::Init (bool fFirstInit_/*=false*/)
     SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);
     SDL_ShowCursor(SDL_DISABLE);
 
+    // To help on platforms without a native GUI, we'll display a one-time welcome message
+#if !defined(__APPLE__) && !defined(_WINDOWS)
+    if (GetOption(firstrun))
+    {
+        // Clear the option so we don't show it again
+        SetOption(firstrun, 0);
+
+        // Simple message box showing some keys
+        GUI::Start(new CMessageBox(NULL,
+                    "Some useful keys to get you started:\n\n"
+                    "  F1 - Insert disk image\n"
+                    "  F10 - Options\n"
+                    "  F12 - Reset\n"
+                    "  Ctrl-F12 - Exit emulator\n\n"
+                    "Consult the ReadMe.txt for further details.",
+                    "Welcome to SimCoupe!",
+                    mbInformation));
+    }
+#endif
+
     TRACE("<- UI::Init() returning %s\n", fRet ? "true" : "false");
+
     return fRet;
 }
 
