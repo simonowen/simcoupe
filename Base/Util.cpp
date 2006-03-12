@@ -278,7 +278,7 @@ void WriteTimeString (char* psz_)
     DWORD dwMillisecs = dwElapsed % 1000, dwSecs = (dwElapsed /= 1000) % 60, dwMins = (dwElapsed /= 60) % 100;
 
     // Form the time string and send to the debugger
-    sprintf(psz_, "%02lu:%02lu.%03lu  %03d:%03d  ", dwMins, dwSecs, dwMillisecs, g_nLine, g_nLineCycle);
+    sprintf(psz_, "%02u:%02u.%03u  %03d:%03d  ", dwMins, dwSecs, dwMillisecs, g_nLine, g_nLineCycle);
 }
 
 #endif  // _DEBUG
