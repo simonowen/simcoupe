@@ -24,6 +24,7 @@
 typedef struct
 {
     int     cfgversion;             // Config compatability number (set defaults if mismatched)
+    bool    firstrun;               // Non-zero if this is the first time the emulator has been run
 
     int     sync;                   // Syncronise the emulator to 50Hz
     int     frameskip;              // 0 for auto, otherwise 'mod frameskip' used to decide which to draw
