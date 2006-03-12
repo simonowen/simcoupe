@@ -422,10 +422,10 @@ void CTestDialog::OnNotify (CWindow* pWindow_, int nParam_)
         bool fIsChecked = reinterpret_cast<CCheckBox*>(m_pEnable)->IsChecked();
 
         // Update the enabled/disabled state of the control so we can see what they look like
-        for (int i = 0 ; i < (sizeof m_apControls / sizeof m_apControls[0]) ; i++)
+        for (UINT u = 0 ; u < (sizeof(m_apControls) / sizeof(m_apControls[0])) ; u++)
         {
-            if (m_apControls[i])
-                m_apControls[i]->Enable(fIsChecked);
+            if (m_apControls[u])
+                m_apControls[u]->Enable(fIsChecked);
         }
     }
 }
