@@ -21,7 +21,7 @@ AddReg      = RegSettings.All
 2 =, "CWD",, .
 
 [SourceDisksNames.ARM]
-3 =, "ARM Files",, ARMRel
+3 =, "ARM Files",, ARMV4Rel
 
 [SourceDisksNames.SH3]
 4 =, "SH3 Files",, SH3Rel
@@ -32,7 +32,7 @@ AddReg      = RegSettings.All
 [SourceDisksFiles]
 ReadMe.txt   = 2
 %AppName%.cfg = 2
-manicm.dsk = 2
+manicm.mgt = 2
 
 [SourceDisksFiles.ARM]
 %AppName%.exe = 3
@@ -56,10 +56,13 @@ Shortcuts      = ,%CE2%\Start Menu\Programs
 Files.Disks    = ,%CE5%\%AppName%
 
 [RegSettings.All]
-HKCR,.dsk,,0x00000000,dskfile
-HKCR,dskfile,,0x00000000,%AppName% Disk
-HKCR,dskfile\DefaultIcon,,0x00000000,"%InstallDir%\%AppName%.exe,-192"
-HKCR,dskfile\Shell\Open\Command,,0x00000000,"""%InstallDir%\%AppName%.exe""" -autoboot 1 -drive1 1 -disk1 %%1
+HKCR,.mgt,,0x00000000,simcoupefile
+HKCR,.dsk,,0x00000000,simcoupefile
+HKCR,.sad,,0x00000000,simcoupefile
+HKCR,.sdf,,0x00000000,simcoupefile
+HKCR,simcoupefile,,0x00000000,%AppName% Disk
+HKCR,simcoupefile\DefaultIcon,,0x00000000,"%InstallDir%\%AppName%.exe,-192"
+HKCR,simcoupefile\Shell\Open\Command,,0x00000000,"""%InstallDir%\%AppName%.exe""" """%%1"""
 
 [Files.Common]
 ReadMe.txt
@@ -69,7 +72,7 @@ SAASound.dll
 zlib1.dll
 
 [Files.Disks]
-manicm.dsk
+manicm.mgt
 
 [Shortcuts]
-"SimCoupé",0,%AppName%.exe
+"SimCoupe",0,%AppName%.exe
