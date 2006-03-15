@@ -2,7 +2,7 @@
 //
 // Floppy.cpp: WinCE direct floppy access (dummy module)
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,12 +21,22 @@
 #include "SimCoupe.h"
 #include "Floppy.h"
 
-
-bool Floppy::Init (bool fFirstInit_/*=false*/)
+/*static*/ bool CFloppyStream::IsRecognised (const char* pcszStream_)
 {
-    return true;
+    return false;
 }
 
-void Floppy::Exit (bool fReInit_/*=false*/)
+void CFloppyStream::Close ()
 {
+}
+
+BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSector_, BYTE *pbData_)
+{
+    return BUSY;
+}
+
+bool CFloppyStream::IsBusy (BYTE* pbStatus_, bool fWait_)
+{
+    *pbStatus_ = LOST_DATA;
+    return false;
 }
