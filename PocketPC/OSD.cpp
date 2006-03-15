@@ -2,7 +2,7 @@
 //
 // OSD.cpp: WinCE OS-dependant routines
 //
-//  Copyright (c) 1999-2004 Simon Owen
+//  Copyright (c) 1999-2006 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -95,21 +95,21 @@ DWORD OSD::GetTime ()
 // Do whatever is necessary to locate an additional SimCoupe file - The Win32 version looks in the
 // same directory as the EXE, but other platforms could use an environment variable, etc.
 // If the path is already fully qualified (an OS-specific decision), return the same string
-const char* OSD::GetFilePath (const char* pcszFile_)
+const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 {
     USES_CONVERSION;
     static char szPath[_MAX_PATH];
 
-    // If the supplied file path looks absolute, use it as-is
+    // If the supplied path looks absolute, use it as-is
     if (*pcszFile_ == '\\' || strchr(pcszFile_, ':'))
-        strncpy(szPath, pcszFile_, sizeof szPath);
+        strncpy(szPath, pcszFile_, sizeof(szPath));
 
     // Form the full path relative to the current EXE file
     else
     {
         // Get the full path of the running module
         WCHAR wszPath[_MAX_PATH];
-        GetModuleFileName(__hinstance, wszPath, sizeof wszPath / sizeof WCHAR);
+        GetModuleFileName(__hinstance, wszPath, sizeof(wszPath)/sizeof(wszPath[0]));
 
         // Strip the module file and append the supplied file/path
         strcpy(szPath, W2A(wszPath));
@@ -120,6 +120,19 @@ const char* OSD::GetFilePath (const char* pcszFile_)
     // Return a pointer to the new path
     return szPath;
 }
+
+// Same as GetFilePath but ensures a trailing backslash
+const char* OSD::GetDirPath (const char* pcszDir_/*=""*/)
+{
+	char* psz = const_cast<char*>(GetFilePath(pcszDir_));
+
+	// Append a backslash to non-empty strings that don't already have one
+	if (*psz && psz[strlen(psz)-1] != '\\')
+		strcat(psz, "\\");
+
+	return psz;
+}
+
 
 // Check whether the specified path is accessible
 bool OSD::CheckPathAccess (const char* pcszPath_)
