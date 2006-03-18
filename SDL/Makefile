@@ -30,7 +30,7 @@ USE_SAASOUND=1
 
 .SUFFIXES: .cpp .c
 
-CFLAGS=-O2 -pedantic -D__STRICT_ANSI__ -I${SDL} -I${BASE} -I${EXTERN} $(shell sdl-config --cflags)
+CFLAGS=-O2 -pedantic -I${SDL} -I${BASE} -I${EXTERN} $(shell sdl-config --cflags)
 CXXFLAGS=${CFLAGS} -Wall
 LIBS=-L. -lm $(shell sdl-config --libs --cflags)
 
