@@ -562,6 +562,10 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 }
             }
 
+            // QNX has Return coming through as a newline, so fix it
+            if (pKey->unicode == 10)
+                pKey->unicode = SDLK_RETURN;
+
             // Ignore symbols on the keypad
             if (pKey->sym >= SDLK_KP0 && pKey->sym <= SDLK_KP_EQUALS)
                 pKey->unicode = 0;
