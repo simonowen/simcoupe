@@ -2,7 +2,7 @@
 //
 // Sound.cpp: WinCE sound implementation using WaveOut
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,8 +31,8 @@
 //  - buffering tweaks to help with sample block joins
 
 #include "SimCoupe.h"
-#include "Sound.h"
 
+#include "Sound.h"
 #include "../Extern/SAASound.h"
 
 #include "CPU.h"
@@ -41,12 +41,11 @@
 #include "Util.h"
 #include "Profile.h"
 
+#define SOUND_FREQ      22050
+#define SOUND_BITS      8
 
-extern HWND g_hwnd;
 
 // Direct sound, primary buffer and secondary buffer interface pointers
-UINT HCF (UINT x_, UINT y_);
-
 CStreamBuffer* aStreams[SOUND_STREAMS];
 
 CStreamBuffer*& pSAA = aStreams[0];     // SAA 1099
@@ -62,8 +61,8 @@ HWAVEOUT hWaveOut;
 WAVEHDR* pWaveHeaders;
 BYTE* pbData;
 
-UINT uTotalBuffers, uCurrentBuffer;
-UINT uMaxSamplesPerFrame, uSampleSize, uSampleBufferSize;
+UINT uTotalBuffers;
+UINT uSamplesPerFrame, uSampleSize, uSampleBufferSize;
 
 void AddData (BYTE* pbData_, int nLength_);
 
@@ -72,16 +71,16 @@ void AddData (BYTE* pbData_, int nLength_);
 bool InitWaveOut ()
 {
     // Used the wave format specified in the options
-    ZeroMemory(&wf, sizeof wf);
     wf.wFormatTag = WAVE_FORMAT_PCM;
-    wf.nSamplesPerSec = GetOption(freq);
-    wf.wBitsPerSample = GetOption(bits);
+    wf.nSamplesPerSec = SOUND_FREQ;
+    wf.wBitsPerSample = SOUND_BITS;
     wf.nChannels = GetOption(stereo) ? 2 : 1;
     wf.nBlockAlign = wf.nChannels * wf.wBitsPerSample / 8;
     wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign;
+    wf.cbSize = 0;
 
     // Create a single sample buffer to hold all the data
-    uSampleBufferSize = uMaxSamplesPerFrame * uSampleSize * uTotalBuffers;
+    uSampleBufferSize = uSamplesPerFrame * uSampleSize * uTotalBuffers;
     pbData = new BYTE[uSampleBufferSize];
     pWaveHeaders = new WAVEHDR[uTotalBuffers];
 
@@ -102,7 +101,7 @@ bool InitWaveOut ()
             // Prepare all the headers, pointing at the relevant position in the sample buffer
             for (UINT u = 0 ; u < uTotalBuffers ; u++)
             {
-                pWaveHeaders[u].dwBufferLength = uMaxSamplesPerFrame * wf.nBlockAlign;
+                pWaveHeaders[u].dwBufferLength = uSamplesPerFrame * wf.nBlockAlign;
                 pWaveHeaders[u].lpData = reinterpret_cast<char*>(pbData + (pWaveHeaders[u].dwBufferLength * u));
                 pWaveHeaders[u].dwFlags = WHDR_DONE;
                 waveOutPrepareHeader(hWaveOut, &pWaveHeaders[u], sizeof WAVEHDR);
@@ -145,16 +144,14 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
     TRACE("-> Sound::Init(%s)\n", fFirstInit_ ? "first" : "");
 
     // Correct any approximate/bad option values before we use them
-    UINT uBits = SetOption(bits, (GetOption(bits) > 8) ? 16 : 8);
-    UINT uFreq = SetOption(freq, (GetOption(freq) < 20000) ? 11025 : (GetOption(freq) < 40000) ? 22050 : 44100);
     UINT uChannels = GetOption(stereo) ? 2 : 1;
 
     // Do this because 50Hz doesn't divide exactly in to 11025Hz...
-    uMaxSamplesPerFrame = (uFreq+EMULATED_FRAMES_PER_SECOND-1) / EMULATED_FRAMES_PER_SECOND;
-    uSampleSize = uChannels * uBits / 8;
+    uSamplesPerFrame = SOUND_FREQ / EMULATED_FRAMES_PER_SECOND;
+    uSamplesPerFrame *= 4;
+    uSampleSize = uChannels * SOUND_BITS / 8;
 
     uTotalBuffers = GetOption(latency)+1;
-
 
     // All sound disabled?
     if (!GetOption(sound))
@@ -179,9 +176,7 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
             if (pSAASound || (pSAASound = CreateCSAASound()))
             {
                 // Set the DLL parameters from the options, so it matches the setup of the primary sound buffer
-                pSAASound->SetSoundParameters(SAAP_NOFILTER |
-                    ((uFreq == 11025) ? SAAP_11025 : (uFreq == 22050) ? SAAP_22050 : SAAP_44100) |
-                    ((uBits == 8) ? SAAP_8BIT : SAAP_16BIT) | (GetOption(stereo) ? SAAP_STEREO : SAAP_MONO));
+                pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_22050 | SAAP_8BIT | (GetOption(stereo) ? SAAP_STEREO : SAAP_MONO));
             }
         }
 
@@ -283,8 +278,7 @@ void Sound::Silence ()
     if (pbData)
     {
         // Fill the entire sample buffer with silence
-        BYTE bSilence = (GetOption(bits) == 16) ? 0x00 : 0x80;
-        FillMemory(pbData, bSilence, uSampleBufferSize);
+        FillMemory(pbData, 0x80, uSampleBufferSize);
     }
 }
 
@@ -298,8 +292,6 @@ void Sound::Stop ()
 
 void Sound::Play ()
 {
-    Silence();
-
     if (hWaveOut)
         waveOutRestart(hWaveOut);
 }
@@ -322,21 +314,23 @@ void Sound::OutputDACRight (BYTE bVal_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CStreamBuffer::CStreamBuffer (int nFreq_, int nBits_, int nChannels_)
-    : m_nFreq(nFreq_), m_nBits(nBits_), m_nChannels(nChannels_), m_pbFrameSample(NULL),
-      m_nSamplesThisFrame(0), m_uOffsetPerUnit(0), m_uPeriod(0), m_uUpdates(0)
+CStreamBuffer::CStreamBuffer (int nChannels_)
+    : m_nChannels(nChannels_), m_pbFrameSample(NULL), m_nSamplesThisFrame(0), m_uOffsetPerUnit(0), m_uPeriod(0), m_uUpdates(0)
 {
     // Any values not supplied will be taken from the current options
-    if (!m_nFreq) m_nFreq = GetOption(freq);
-    if (!m_nBits) m_nBits = GetOption(bits);
     if (!m_nChannels) m_nChannels = GetOption(stereo) ? 2 : 1;
-
+/*
+    // Test: tweak the frequency closer to measured values, to avoid over/under-runs
+    if (m_nFreq == 44100) m_nFreq = 44300;
+    if (m_nFreq == 22050) m_nFreq = 22150;
+    if (m_nFreq == 11050) m_nFreq = 11075;
+*/
     // Use some arbitrary units to keep the numbers manageably small...
-    UINT uUnits = HCF(m_nFreq, EMULATED_TSTATES_PER_SECOND);
-    m_uSamplesPerUnit = m_nFreq / uUnits;
+    UINT uUnits = Util::HCF(SOUND_FREQ, EMULATED_TSTATES_PER_SECOND);
+    m_uSamplesPerUnit = SOUND_FREQ / uUnits;
     m_uCyclesPerUnit = EMULATED_TSTATES_PER_SECOND / uUnits;
 
-    m_pbFrameSample = new BYTE[uMaxSamplesPerFrame * uSampleSize];
+    m_pbFrameSample = new BYTE[uSamplesPerFrame * uSampleSize];
 }
 
 CStreamBuffer::~CStreamBuffer ()
@@ -358,7 +352,7 @@ void CStreamBuffer::Update (bool fFrameEnd_)
     int nSamplesSoFar = uSamplesCyclesPerUnit / m_uCyclesPerUnit;
     m_uPeriod = uSamplesCyclesPerUnit % m_uCyclesPerUnit;
 
-    // Generate and append the the additional sample(s) to our temporary buffer
+    // Generate the additional sample(s) to our frame sample buffer
     m_nSamplesThisFrame = min(m_nSamplesThisFrame, nSamplesSoFar);
     Generate(m_pbFrameSample + (m_nSamplesThisFrame * uSampleSize), nSamplesSoFar - m_nSamplesThisFrame);
     m_nSamplesThisFrame = nSamplesSoFar;
@@ -367,6 +361,7 @@ void CStreamBuffer::Update (bool fFrameEnd_)
         m_uUpdates++;
     else
     {
+
         int uFreeBuffers = 0;
         for (UINT u = 0; u < uTotalBuffers ; u++)
         {
@@ -374,13 +369,15 @@ void CStreamBuffer::Update (bool fFrameEnd_)
                 uFreeBuffers++;
         }
 
-        DWORD dwSpaceAvailable = uFreeBuffers * uMaxSamplesPerFrame;
-
+        DWORD dwSpaceAvailable = uFreeBuffers * uSamplesPerFrame;
+#if 0
         // Is there enough space for all this frame's data?
         if (dwSpaceAvailable >= static_cast<DWORD>(m_nSamplesThisFrame))
+#endif
         {
             // Add on the current frame's sample data
             AddData(m_pbFrameSample, m_nSamplesThisFrame*uSampleSize);
+#if 0
             dwSpaceAvailable -= m_nSamplesThisFrame;
 
             // Is the buffer only 1/4 full?
@@ -389,10 +386,11 @@ void CStreamBuffer::Update (bool fFrameEnd_)
                 // Top up until 3/4 full
                 for ( ; uFreeBuffers > (GetOption(latency)/4) ; uFreeBuffers--)
                 {
-                    GenerateExtra(m_pbFrameSample, uMaxSamplesPerFrame);
-                    AddData(m_pbFrameSample, uMaxSamplesPerFrame*uSampleSize);
+                    GenerateExtra(m_pbFrameSample, uSamplesPerFrame);
+                    AddData(m_pbFrameSample, uSamplesPerFrame*uSampleSize);
                 }
             }
+#endif
         }
 
         // Reset the sample counters for the next frame
@@ -417,25 +415,21 @@ void AddData (BYTE* pbData_, int nLength_)
     if (nLength_ <= 0)
         return;
 
-    for (UINT u = 0; u <= uTotalBuffers; u++)
+    for (UINT u = 0; u < uTotalBuffers; u++)
     {
-        // Return if there are no free buffers (we should never be called if this is true)
-        if (u == uTotalBuffers)
-            return;
-
-        if (!pWaveHeaders[u].dwFlags || (pWaveHeaders[u].dwFlags & WHDR_DONE))
+        if (pWaveHeaders[u].dwFlags & WHDR_DONE)
         {
-            uCurrentBuffer = u;
+            // Copy the frame data into the buffer
+            memcpy(pbData + (uSamplesPerFrame*uSampleSize*u), pbData_, nLength_);
+
+            // Write the block using a single header
+            pWaveHeaders[u].dwBufferLength = nLength_;
+            if (waveOutWrite(hWaveOut, &pWaveHeaders[u], sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+                TRACE("!!! waveOutWrite failed!\n");
+
             break;
         }
     }
-
-    // Copy the frame data into the buffer
-    memcpy(pbData + (uMaxSamplesPerFrame*uSampleSize*uCurrentBuffer), pbData_, nLength_);
-
-    // Write the block using a single header
-    if (waveOutWrite(hWaveOut, &pWaveHeaders[uCurrentBuffer], sizeof WAVEHDR) != MMSYSERR_NOERROR)
-        TRACE("!!! waveOutWrite failed!\n");
 }
 
 
@@ -500,56 +494,27 @@ void CDAC::Generate (BYTE* pb_, int nSamples_)
         BYTE bFirstRight = static_cast<BYTE>((m_uRightTotal + m_bRight * uPeriod) / m_uCyclesPerUnit);
         nSamples_--;
 
-        // 8-bit?
-        if (m_nBits == 8)
+        // Mono?
+        if (m_nChannels == 1)
         {
-            // Mono?
-            if (m_nChannels == 1)
-            {
-                *pb_++ = (bFirstLeft >> 1) + (bFirstRight >> 1);
-                memset(pb_, (m_bLeft >> 1) + (m_bRight >> 1), nSamples_);
-            }
-
-            // Stereo
-            else
-            {
-                *pb_++ = bFirstLeft;
-                *pb_++ = bFirstRight;
-
-                // Fill in the block of complete samples at this level
-                if (m_bLeft == m_bRight)
-                    memset(pb_, m_bLeft, nSamples_ << 1);
-                else
-                {
-                    WORD *pw = reinterpret_cast<WORD*>(pb_), wSample = (static_cast<WORD>(m_bRight) << 8) | m_bLeft;
-                    while (nSamples_--)
-                        *pw++ = wSample;
-                }
-            }
+            *pb_++ = (bFirstLeft >> 1) + (bFirstRight >> 1);
+            memset(pb_, (m_bLeft >> 1) + (m_bRight >> 1), nSamples_);
         }
 
-        // 16-bit
+        // Stereo
         else
         {
-            // Mono
-            if (m_nChannels == 1)
-            {
-                WORD *pw = reinterpret_cast<WORD*>(pb_), wSample = ((static_cast<WORD>(m_bLeft) + m_bRight - 0x100) / 2) * 0x101;
-                *pw++ = ((static_cast<WORD>(bFirstRight) + bFirstRight - 0x100) / 2) * 0x101;
-                while (nSamples_--)
-                    *pw++ = wSample;
-            }
+            *pb_++ = bFirstLeft;
+            *pb_++ = bFirstRight;
 
-            // Stereo
+            // Fill in the block of complete samples at this level
+            if (m_bLeft == m_bRight)
+                memset(pb_, m_bLeft, nSamples_ << 1);
             else
             {
-                WORD wLeft = static_cast<WORD>(m_bLeft-0x80) << 8, wRight = static_cast<WORD>(m_bRight-0x80) << 8;
-
-                DWORD *pdw = reinterpret_cast<DWORD*>(pb_), dwSample = (static_cast<DWORD>(wRight) << 16) | wLeft;
-                *pdw++ = (static_cast<WORD>(bFirstRight-0x80) << 24) | (static_cast<WORD>(bFirstLeft-0x80) << 8);
-
+                WORD *pw = reinterpret_cast<WORD*>(pb_), wSample = (static_cast<WORD>(m_bRight) << 8) | m_bLeft;
                 while (nSamples_--)
-                    *pdw++ = dwSample;
+                    *pw++ = wSample;
             }
         }
 
@@ -567,23 +532,4 @@ void CDAC::GenerateExtra (BYTE* pb_, int nSamples_)
     // Re-use the specified amount from the previous sample,
     if (pb_ != m_pbFrameSample)
         memmove(pb_, m_pbFrameSample, nSamples_*uSampleSize);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-UINT HCF (UINT x_, UINT y_)
-{
-    UINT uHCF = 1, uMin = static_cast<UINT>(sqrt(min(x_, y_)));
-
-    for (UINT uFactor = 2 ; uFactor <= uMin ; uFactor++)
-    {
-        while (!(x_ % uFactor) && !(y_ % uFactor))
-        {
-            uHCF *= uFactor;
-            x_ /= uFactor;
-            y_ /= uFactor;
-        }
-    }
-
-    return uHCF;
 }
