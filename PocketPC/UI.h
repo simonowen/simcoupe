@@ -2,7 +2,7 @@
 //
 // UI.h: WinCE user interface
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,20 +31,21 @@ class UI
 
         static bool CheckEvents ();
         static void ShowMessage (eMsgType eType_, const char* pszMessage_);
-        static bool DoAction (int nAction_, bool fPressed_=true);
 };
 
 extern bool g_fActive, g_fFrameStep;
 extern HWND g_hwnd;
 
+bool DoAction (int nAction_, bool fPressed_=true);
+
 enum eActions
 {
-    actNmiButton, actResetButton, actToggleSaaSound, actToggleBeeper, actToggleFullscreen,
-    actToggle5_4, actToggle50HzSync, actChangeWindowScale, actChangeFrameSkip, actChangeProfiler, actChangeMouse,
-    actChangeKeyMode, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actInsertFloppy2, actEjectFloppy2,
-    actSaveFloppy2, actNewDisk, actSaveScreenshot, actFlushPrintJob, actDebugger, actImportData, actExportData,
-    actDisplayOptions, actExitApplication, actToggleTurbo, actTempTurbo, actReleaseMouse, actPause, actToggleScanlines,
-    actChangeBorders, actChangeSurface, actFrameStep, actPrinterOnline, actAbout, actMinimise, MAX_ACTION
+    actNewDisk1, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actNewDisk2, actInsertFloppy2, actEjectFloppy2, actSaveFloppy2,
+    actExitApplication, actOptions, actDebugger, actImportData, actExportData, actSaveScreenshot, actChangeProfiler,
+    actResetButton, actNmiButton, actPause, actFrameStep, actToggleTurbo, actTempTurbo,
+    actToggleSync, actToggleFullscreen, actChangeWindowSize, actChangeBorders, actToggle5_4,
+    actChangeFrameSkip, actToggleScanlines, actToggleGreyscale, actToggleMute, actReleaseMouse,
+    actAbout, actMinimise, MAX_ACTION
 };
 
 #endif  // UI_H
