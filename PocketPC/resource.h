@@ -1,5 +1,5 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Developer Studio generated include file.
+// Microsoft eMbedded Visual C++ generated include file.
 // Used by SimCoupe.rc
 //
 #define IDI_MAIN                        1
@@ -27,7 +27,9 @@
 #define IDE_FILE                        1005
 #define IDC_ALTGR_FOR_EDIT              1006
 #define IDE_OFFSET                      1007
+#define IDC_KPMINUS_RESET               1007
 #define IDC_SPIN1                       1008
+#define IDC_SAM_FKEYS                   1008
 #define IDR_BASIC_ADDRESS               1009
 #define IDR_PAGE_OFFSET                 1010
 #define IDE_ADDRESS                     1011
@@ -58,7 +60,9 @@
 #define IDC_PAUSE_INACTIVE              1036
 #define IDC_FAST_RESET                  1037
 #define IDC_FULLSCREEN                  1038
+#define IDC_HDBOOT_ROM                  1038
 #define IDC_BEEPER                      1039
+#define IDC_ASIC_DELAY                  1039
 #define IDC_PRINTER_ONLINE              1040
 #define IDC_MIDI                        1041
 #define IDC_LATENCY                     1042
@@ -79,6 +83,7 @@
 #define IDC_SENSITIVITY                 1057
 #define IDS_SENSITIVITY                 1058
 #define ID_HOMEPAGE                     1059
+#define IDS_VERSION                     1060
 
 // Next default values for new objects
 // 
