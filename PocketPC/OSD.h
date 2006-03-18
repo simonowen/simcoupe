@@ -112,12 +112,14 @@ time_t time(time_t* pt_);
 struct tm * localtime (const time_t *);
 time_t mktime (struct tm*);
 
+// We need true 64-bit values to calculate C-time values
+#define ULONGLONG   __int64
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // PockerPC can do more accurate profiling than the default
 #define PROFILE_T   __int64
 #define AddTime(x)  sprintf(sz + strlen(sz), "  %s:%I64dus", #x, (s_sProfile.prof##x + 5) / 10i64)
-
 
 class OSD
 {
