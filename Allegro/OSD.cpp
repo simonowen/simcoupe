@@ -2,7 +2,7 @@
 //
 // OSD.cpp: Allegro common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,8 +22,10 @@
 #include "OSD.h"
 
 #include "CPU.h"
+#include "Frame.h"
 #include "Main.h"
 #include "Options.h"
+#include "Parallel.h"
 
 #ifndef _DEBUG
 #include <signal.h>
@@ -33,13 +35,12 @@ volatile int OSD::s_nTicks;
 volatile DWORD dwTime;
 bool fAllegroInit = false;
 
-void TimerCallback ()
+extern "C" void TimerCallback ()
 {
     OSD::s_nTicks++;
     dwTime += (1000/EMULATED_FRAMES_PER_SECOND);
 }
-
-END_OF_FUNCTION(TimerCallback);
+END_OF_FUNCTION(TimerCallback)
 
 
 bool OSD::Init (bool fFirstInit_/*=false*/)
@@ -57,7 +58,7 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
 #endif
 
     LOCK_VARIABLE(OSD::s_nTicks);
-    LOCK_FUNCTION((void*)TimerCallback);
+    LOCK_FUNCTION(TimerCallback);
 
     if (fFirstInit_ && !fAllegroInit)
         allegro_init();
@@ -255,6 +256,15 @@ int OSD::FrameSync (bool fWait_/*=true*/)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Dummy printer device implementation
+CPrinterDevice::CPrinterDevice () { }
+CPrinterDevice::~CPrinterDevice () { }
+bool CPrinterDevice::Open () { return false; }
+void CPrinterDevice::Close () { }
+void CPrinterDevice::Write (BYTE *pb_, size_t uLen_) { }
+
+////////////////////////////////////////////////////////////////////////////////
+
 #ifdef ALLEGRO_WINDOWS
 
 WIN32_FIND_DATA s_fd;
@@ -306,4 +316,4 @@ int closedir (DIR* hDir_)
 
 // Allegro may need to do some magic of its own regarding main()
 extern int main (int argc_, char* argv_[]);
-END_OF_MAIN();
+END_OF_MAIN()
