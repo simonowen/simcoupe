@@ -587,6 +587,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 }
             }
 
+#if defined(sun) || defined(SOLARIS)
             // Fix some keypad mappings known to be wrong on Solaris
             else if (pKey->sym == 0x111 && pKey->scancode == 0x4c)
                 pKey->sym = SDLK_KP8;
@@ -596,7 +597,7 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 pKey->sym = SDLK_KP6;
             else if (pKey->sym == 0x114 && pKey->scancode == 0x62)
                 pKey->sym = SDLK_KP4;
-
+#endif
             // OS X needs a few tweaks
             if (pEvent_->type == SDL_KEYDOWN)
             {
