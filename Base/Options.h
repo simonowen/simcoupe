@@ -92,6 +92,8 @@ typedef struct
     int     parallel1;              // Parallel port 1 function
     int     parallel2;              // Parallel port 2 function
     char    printerdev[128];        // Printer device name
+    bool    printeronline;          // Non-zero if printer is online
+    int     flushdelay;             // Delay before auto-flushing print data
 
     int     serial1;                // Serial port 1 function
     int     serial2;                // Serial port 2 function

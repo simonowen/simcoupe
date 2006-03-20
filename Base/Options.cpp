@@ -126,7 +126,9 @@ OPTION aOptions[] =
 
     OPT_N("Parallel1",    parallel1,      0),         // Nothing on parallel port 1
     OPT_N("Parallel2",    parallel2,      0),         // Nothing on parallel port 2
-    OPT_S("PrinterDev",   printerdev,     ""),        // Printer device
+    OPT_S("PrinterDev",   printerdev,     ""),        // No printer device (save to file)
+    OPT_F("PrinterOnline",printeronline,  1),         // Printer is online
+    OPT_N("FlushDelay",   flushdelay,     2),         // Auto-flush printer data after 2 seconds
 
     OPT_S("SerialDev1",   serialdev1,     ""),        // Serial port 1 device
     OPT_S("SerialDev2",   serialdev2,     ""),        // Serial port 2 device
