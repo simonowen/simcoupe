@@ -63,6 +63,8 @@ const UINT MOUSE_TIMER_ID = 42;
 #define WINDOW_CAPTION      "SimCoupe/Win32"
 #endif
 
+#define PRINTER_PREFIX      "Printer: "
+
 BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
 BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
 void CentreWindow (HWND hwnd_, HWND hwndParent_=NULL);
@@ -523,6 +525,16 @@ void UpdateMenuFromOptions ()
     EnableItem(IDM_TOOLS_OPTIONS, !GUI::IsActive());
     EnableItem(IDM_TOOLS_DEBUGGER, !g_fPaused && !GUI::IsActive());
 
+    // Enable the Flush printer item if there's buffered data in either printer
+    bool fPrinter1 = GetOption(parallel1) == 1, fPrinter2 = GetOption(parallel2) == 1;
+    bool fFlush1 = fPrinter1 && reinterpret_cast<CPrintBuffer*>(pParallel1)->IsFlushable();
+    bool fFlush2 = fPrinter2 && reinterpret_cast<CPrintBuffer*>(pParallel2)->IsFlushable();
+    EnableItem(IDM_TOOLS_FLUSH_PRINTER, fFlush1 || fFlush2);
+
+    // Enable the online option if a printer is active, and check it if it's online
+    EnableItem(IDM_TOOLS_PRINTER_ONLINE, fPrinter1 || fPrinter2);
+    CheckOption(IDM_TOOLS_PRINTER_ONLINE, (fPrinter1 || fPrinter2) && GetOption(printeronline));
+
     UpdateRecentFiles(hmenuFile, IDM_FILE_RECENT1, 2);
     UpdateRecentFiles(hmenuFloppy2, IDM_FLOPPY2_RECENT1, 0);
 }
@@ -712,7 +724,8 @@ BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
     {
         case WM_INITDIALOG:
         {
-#if 1
+#if 0
+            // Append the date to beta version strings
             char szVersion[128];
             GetDlgItemText(hdlg_, IDS_VERSION, szVersion, sizeof(szVersion));
             wsprintf(szVersion+lstrlen(szVersion), " beta ("  __DATE__ ")");
@@ -1366,6 +1379,8 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_FILE_EXIT:             Action::Do(actExitApplication);   break;
 
                 case IDM_TOOLS_OPTIONS:         Action::Do(actOptions);           break;
+                case IDM_TOOLS_PRINTER_ONLINE:  Action::Do(actPrinterOnline);     break;
+                case IDM_TOOLS_FLUSH_PRINTER:   Action::Do(actFlushPrinter);      break;
                 case IDM_TOOLS_DEBUGGER:        Action::Do(actDebugger);          break;
 
                 case IDM_FILE_FLOPPY1_DEVICE:
@@ -1425,7 +1440,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 // Items from help menu
                 case IDM_HELP_GENERAL:
                     if (ShellExecute(hwnd_, NULL, OSD::GetFilePath("ReadMe.txt"), NULL, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
-                        MessageBox(hwnd_, "Can't find help file: ReadMe.txt", "SimCoupe", MB_ICONEXCLAMATION);
+                        MessageBox(hwnd_, "Can't find ReadMe.txt", "SimCoupe", MB_ICONEXCLAMATION);
                     break;
                 case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), g_hwnd, AboutDlgProc, NULL);   break;
 
@@ -1667,8 +1682,9 @@ void FillMidiOutCombo (HWND hwndCombo_)
 }
 
 
-void FillPrintersCombo (HWND hwndCombo_)
+void FillPrintersCombo (HWND hwndCombo_, LPCSTR pcszSelected_)
 {
+    int lSelected = 0;
     SendMessage(hwndCombo_, CB_RESETCONTENT, 0, 0L);
 
     // Dummy call to find out how much space is needed, then allocate it
@@ -1679,21 +1695,31 @@ void FillPrintersCombo (HWND hwndCombo_)
     // Fill in dummy printer names, in the hope this avoids a WINE bug
     static char* cszUnknown = "<unknown printer>";
     for (int i = 0 ; i < static_cast<int>(dwPrinters) ; i++)
-            reinterpret_cast<PRINTER_INFO_1*>(pbPrinterInfo)[i].pName = cszUnknown;
+        reinterpret_cast<PRINTER_INFO_1*>(pbPrinterInfo)[i].pName = cszUnknown;
+
+    // The first entry is to allow printing to auto-generated prntNNNN.bin files
+    SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>("File: prntNNNN.txt (auto-generated)"));
 
     // Enumerate the printers into the buffer we've allocated
     if (EnumPrinters(PRINTER_ENUM_LOCAL, NULL, 1, pbPrinterInfo, cbNeeded, &cbNeeded, &dwPrinters))
     {
         // Loop through all the printers found, adding each to the printers combo
         for (int i = 0 ; i < static_cast<int>(dwPrinters) ; i++)
-            SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(reinterpret_cast<PRINTER_INFO_1*>(pbPrinterInfo)[i].pName));
+        {
+            char szPrinter[256];
+            wsprintf(szPrinter, PRINTER_PREFIX "%s", reinterpret_cast<PRINTER_INFO_1*>(pbPrinterInfo)[i].pName);
+            SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(szPrinter));
+
+            // Remember the position of the currently selected printer (+1 since print-to-file is entry 0)
+            if (!lstrcmpi(szPrinter+lstrlen(PRINTER_PREFIX), pcszSelected_))
+                lSelected = i+1;
+        }
     }
 
-    delete pbPrinterInfo;
+    delete[] pbPrinterInfo;
 
-    // Find the position of the item to select, or select the first one (None) if we can't find it
-    LRESULT lPos = SendMessage(hwndCombo_, CB_FINDSTRINGEXACT, 0U-1, reinterpret_cast<LPARAM>(GetOption(printerdev)));
-    SendMessage(hwndCombo_, CB_SETCURSEL, (lPos == CB_ERR) ? 0 : lPos, 0L);
+    // Select the active printer
+    SendMessage(hwndCombo_, CB_SETCURSEL, lSelected, 0L);
 }
 
 
@@ -2968,10 +2994,14 @@ BOOL CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             SetComboStrings(hdlg_, IDC_PARALLEL_1, aszParallel, GetOption(parallel1));
             SetComboStrings(hdlg_, IDC_PARALLEL_2, aszParallel, GetOption(parallel2));
 
-            FillPrintersCombo(GetDlgItem(hdlg_, IDC_PRINTERS));
+            FillPrintersCombo(GetDlgItem(hdlg_, IDC_PRINTERS), GetOption(printerdev));
+
+            static const char* aszFlushDelay[] = { "Disabled", "After 1 second idle", "After 2 seconds idle", "After 3 seconds idle",
+                                                    "After 4 seconds idle", "After 5 seconds idle", NULL };
+            SetComboStrings(hdlg_, IDC_FLUSHDELAY, aszFlushDelay, GetOption(flushdelay));
+
             SendMessage(hdlg_, WM_COMMAND, IDC_PARALLEL_1, 0L);
             SendMessage(hdlg_, WM_COMMAND, IDC_PARALLEL_2, 0L);
-
             break;
         }
 
@@ -2983,9 +3013,17 @@ BOOL CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                 SetOption(parallel2, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_PARALLEL_2, CB_GETCURSEL, 0, 0L)));
 
                 SetOption(printerdev, "");
-                SendDlgItemMessage(hdlg_, IDC_PRINTERS, CB_GETLBTEXT,
-                    SendDlgItemMessage(hdlg_, IDC_PRINTERS, CB_GETCURSEL, 0, 0L),
-                        reinterpret_cast<LPARAM>(const_cast<char*>(GetOption(printerdev))));
+                LRESULT lPrinter = SendDlgItemMessage(hdlg_, IDC_PRINTERS, CB_GETCURSEL, 0, 0L);
+
+                // Fetch the printer name unless print-to-file is selected
+                if (lPrinter)
+                {
+                    char szPrinter[256];
+                    SendDlgItemMessage(hdlg_, IDC_PRINTERS, CB_GETLBTEXT, lPrinter, reinterpret_cast<LPARAM>(szPrinter));
+                    SetOption(printerdev, szPrinter+lstrlen(PRINTER_PREFIX));
+                }
+
+                SetOption(flushdelay, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FLUSHDELAY, CB_GETCURSEL, 0, 0L)));
 
                 if (Changed(parallel1) || Changed(parallel2) || ChangedString(printerdev))
                     IO::InitParallel();
@@ -3005,6 +3043,9 @@ BOOL CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                     bool fPrinter2 = (SendDlgItemMessage(hdlg_, IDC_PARALLEL_2, CB_GETCURSEL, 0, 0L) == 1);
 
                     EnableWindow(GetDlgItem(hdlg_, IDC_PRINTERS), fPrinter1 || fPrinter2);
+                    EnableWindow(GetDlgItem(hdlg_, IDS_PRINTERS), fPrinter1 || fPrinter2);
+                    EnableWindow(GetDlgItem(hdlg_, IDS_FLUSHDELAY), fPrinter1 || fPrinter2);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_FLUSHDELAY), fPrinter1 || fPrinter2);
                     break;
                 }
            }
