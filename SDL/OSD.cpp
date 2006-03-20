@@ -2,7 +2,7 @@
 //
 // OSD.cpp: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,8 +26,10 @@
 #include "OSD.h"
 
 #include "CPU.h"
+#include "Frame.h"
 #include "Main.h"
 #include "Options.h"
+#include "Parallel.h"
 
 SDL_sem* pSemaphore;
 SDL_TimerID pTimer;
@@ -96,7 +98,7 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 
     // If the supplied file path looks absolute, use it as-is
     if (*pcszFile_ == PATH_SEPARATOR
-#ifdef _WINDOWS
+#if defined(_WINDOWS) || defined(__AMIGAOS4__)
         || strchr(pcszFile_, ':')
 #endif
         )
@@ -108,6 +110,8 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
     // All Win32 files are relative to the EXE path
     GetModuleFileName(NULL, szPath, sizeof szPath);
     strrchr(szPath, '\\')[1] = '\0';
+#elif defined(__AMIGAOS4__)
+    strcpy(szPath, "PROGDIR:");
 #else
     // If no file is given, fall back on the home directory (or ~/Documents on the Mac)
     if (!*pcszFile_)
@@ -134,6 +138,9 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
         // Use a more appropriate settings file name
         if (!strcasecmp(pcszFile_, "SimCoupe.cfg"))
           pcszFile_ = "SimCoupe Preferences";
+#elif defined(__AMIGAOS4__)
+        // default is Progdir:
+        strcpy(szPath, "PROGDIR:");
 #else
         // Files are relative to the home directory
         strcat(strcpy(szPath, getenv("HOME")), "/");
@@ -157,7 +164,9 @@ const char* OSD::GetDirPath (const char* pcszDir_/*=""*/)
     // Append a [back]slash to non-empty strings that don't already have one
     if (*psz && pszEnd[-1] != PATH_SEPARATOR)
     {
+#if !defined (__AMIGAOS4__)
         pszEnd[0] = PATH_SEPARATOR;
+#endif
         pszEnd[1] = '\0';
     }
 
@@ -190,7 +199,11 @@ bool OSD::IsHidden (const char* pcszPath_)
 // Return the path to use for a given drive with direct floppy access
 const char* OSD::GetFloppyDevice (int nDrive_)
 {
+#if defined (__AMIGAOS4__)
+    static char szDevice[] = "DF0:";
+#else
     static char szDevice[] = "/dev/fd_";
+#endif
 
     szDevice[7] = '0' + nDrive_-1;
     return szDevice;
@@ -201,6 +214,8 @@ void OSD::DebugTrace (const char* pcsz_)
 {
 #ifdef _WINDOWS
     OutputDebugString(pcsz_);
+#elif defined (__AMIGAOS4__)
+    printf("%s", pcsz_);
 #else
     fprintf(stderr, "%s", pcsz_);
 #endif
@@ -214,6 +229,15 @@ int OSD::FrameSync (bool fWait_/*=true*/)
 
     return s_nTicks;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Dummy printer device implementation
+CPrinterDevice::CPrinterDevice () { }
+CPrinterDevice::~CPrinterDevice () { }
+bool CPrinterDevice::Open () { return false; }
+void CPrinterDevice::Close () { }
+void CPrinterDevice::Write (BYTE *pb_, size_t uLen_) { }
 
 ////////////////////////////////////////////////////////////////////////////////
 

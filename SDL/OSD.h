@@ -2,7 +2,7 @@
 //
 // OSD.h: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,7 +25,12 @@
 
 #include <sys/types.h>      // for _off_t definition
 #include <fcntl.h>
+
+#ifdef __AMIGAOS4__
+#include <SDL/SDL.h>
+#else
 #include "SDL.h"
+#endif
 #define SDL
 
 #ifdef USE_OPENGL
