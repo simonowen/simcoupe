@@ -2,7 +2,7 @@
 //
 // Parallel.cpp: Parallel interface
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,34 +21,50 @@
 #include "SimCoupe.h"
 #include "Parallel.h"
 
+#include "Frame.h"
+#include "Options.h"
 
-CPrinterDevice::CPrinterDevice ()
-    : m_bPrint(0), m_bStatus(0), m_fFailed(false), m_nPrinter(0)
+
+BYTE CPrintBuffer::In (WORD wPort_)
 {
+    BYTE bBusy = GetOption(printeronline) ? 0x00 : 0x01;
+    return (wPort_ & 1) ? (m_bStatus|bBusy) : 0x00;
 }
 
-CPrinterDevice::~CPrinterDevice ()
+void CPrintBuffer::Out (WORD wPort_, BYTE bVal_)
 {
-    Close();
-}
+    // Don't accept data if the printer is offline
+    if (!GetOption(printeronline))
+        return;
 
-
-BYTE CPrinterDevice::In (WORD wPort_)
-{
-    return (wPort_ & 1) ? m_bStatus : 0;
-}
-
-void CPrinterDevice::Out (WORD wPort_, BYTE bVal_)
-{
     // If the write is to the data port, save the byte for later
     if (!(wPort_ & 1))
         m_bPrint = bVal_;
-
     else
     {
         // If the printer is being strobed, write the data byte
         if ((m_bStatus & 0x01) && !(bVal_ & 0x01))
-            Write(m_bPrint);
+        {
+            // Add the new byte, and start the count-down to have it flushed
+            m_abBuffer[m_uBuffer++] = m_bPrint;
+            m_uFlushDelay = GetOption(flushdelay)*EMULATED_FRAMES_PER_SECOND;
+
+            // Open the output stream if not already open
+            if (!m_fOpen)
+            {
+                if (Open())
+                    Frame::SetStatus("Print job started");
+
+                m_fOpen = true;
+            }
+
+            // If we've filled the buffer, write it to the stream
+            if (m_uBuffer == sizeof(m_abBuffer))
+            {
+                Write(m_abBuffer, m_uBuffer);
+                m_uBuffer = 0;
+            }
+        }
 
         // Update the status with the strobe bit
         m_bStatus &= ~0x01;
@@ -56,56 +72,67 @@ void CPrinterDevice::Out (WORD wPort_, BYTE bVal_)
     }
 }
 
-
-bool CPrinterDevice::Open ()
+void CPrintBuffer::Flush ()
 {
-    Close();
+    // Do we have any unflushed data?
+    if (m_uBuffer)
+    {
+        // Write the remaining data
+        Write(m_abBuffer, m_uBuffer);
+        m_uBuffer = 0;
 
-    // Start print job here
+        // Close the device to finish the job
+        Close();
+        m_fOpen = false;
+    }
+}
 
-    // Signal the printer is ready to receive data
-    m_bStatus |= 0x81;
+void CPrintBuffer::FrameEnd ()
+{
+    // Flush the buffer when we've counted down to zero
+    if (m_uFlushDelay && !--m_uFlushDelay)
+        Flush();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool CPrinterFile::Open ()
+{
+    static int nNext = 0;
+    char szTemplate[MAX_PATH], szOutput[MAX_PATH];
+
+    sprintf(szTemplate, "%sprnt%%04d.txt", OSD::GetDirPath(GetOption(datapath)));
+    nNext = Util::GetUniqueFile(szTemplate, m_nPrint=nNext, szOutput, sizeof(szOutput));
+
+    m_hFile = fopen(szOutput, "wb");
+
+    if (!m_hFile)
+    {
+        Frame::SetStatus("Failed to open %s", szOutput);
+        return false;
+    }
+
     return true;
 }
 
-void CPrinterDevice::Close ()
+void CPrinterFile::Close ()
 {
-    if (IsOpen())
+    if (m_hFile)
     {
-        Flush();
+        fclose(m_hFile);
+        m_hFile = NULL;
 
-        // Finish print job here
-
-        m_bStatus = 0;
+        Frame::SetStatus("Print complete:  prnt%04d.txt", m_nPrint);
     }
 }
 
-void CPrinterDevice::Write (BYTE bPrint_)
+void CPrinterFile::Write (BYTE *pb_, size_t uLen_)
 {
-    // Start a new job if there isn't an existing one
-    if (IsOpen() || Open())
-    {
-        if (m_nPrinter < (int)sizeof m_abPrinter)
-        {
-            m_abPrinter[m_nPrinter++] = bPrint_;
-
-            if (m_nPrinter >= (int)sizeof m_abPrinter)
-                Flush();
-        }
-    }
+    if (m_hFile)
+        fwrite(pb_, uLen_, 1, m_hFile);
 }
 
-void CPrinterDevice::Flush ()
-{
-    if (m_nPrinter && IsOpen())
-    {
-        // Write data to printer here
-    }
-
-    m_nPrinter = 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 void CMonoDACDevice::Out (WORD wPort_, BYTE bVal_)
 {

@@ -2,7 +2,7 @@
 //
 // Parallel.cpp: Parallel interface
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,30 +25,66 @@
 #include "IO.h"
 
 
-class CPrinterDevice : public CIoDevice
+class CPrintBuffer : public CIoDevice
 {
     public:
-        CPrinterDevice();
-        ~CPrinterDevice ();
+        CPrintBuffer () : m_fOpen(false), m_bPrint(0), m_bStatus(0), m_uBuffer(0), m_uFlushDelay(0) { }
 
     public:
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
+        void FrameEnd ();
+
+        bool IsFlushable() const { return !!m_uBuffer; }
+        void Flush ();
 
     protected:
-        BYTE    m_bPrint, m_bStatus;
+        bool m_fOpen;
+        BYTE m_bPrint, m_bStatus;
 
-        bool    m_fFailed;              // true if we've failed to start a print job and complained
-        int     m_nPrinter;
-        BYTE    m_abPrinter[2048];
+        UINT m_uBuffer, m_uFlushDelay;
+        BYTE m_abBuffer[2048];
 
     protected:
         bool IsOpen () const { return false; }
 
-        virtual bool Open ();
-        virtual void Close ();
-        virtual void Write (BYTE bPrint_);
-        virtual void Flush ();
+        virtual bool Open () = 0;
+        virtual void Close () = 0;
+        virtual void Write (BYTE *pb_, size_t uLen_) = 0;
+};
+
+
+class CPrinterFile : public CPrintBuffer
+{
+    public:
+        CPrinterFile () : m_hFile(NULL) { }
+        ~CPrinterFile () { Close(); }
+
+    public:
+        bool Open ();
+        void Close ();
+        void Write (BYTE *pb_, size_t uLen_);
+
+    protected:
+        int m_nPrint;
+        FILE *m_hFile;
+};
+
+class CPrinterDevice : public CPrintBuffer
+{
+    public:
+        CPrinterDevice ();
+        ~CPrinterDevice ();
+
+    public:
+        bool Open ();
+        void Close ();
+        void Write (BYTE *pb_, size_t uLen_);
+
+    protected:
+#ifdef WIN32
+        HANDLE m_hPrinter;  // temporary!
+#endif
 };
 
 
