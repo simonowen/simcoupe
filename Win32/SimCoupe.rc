@@ -81,22 +81,25 @@ STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Parallel"
 FONT 8, "MS Sans Serif"
 BEGIN
-    COMBOBOX        IDC_PARALLEL_1,98,31,95,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_PARALLEL_1,95,32,95,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    COMBOBOX        IDC_PARALLEL_2,98,48,95,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_PARALLEL_2,95,50,95,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    COMBOBOX        IDC_PRINTERS,54,104,154,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_PRINTERS,54,99,154,55,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    ICON            IDI_PRINTER,IDC_STATIC,7,74,21,20
-    ICON            IDI_PORT,IDC_STATIC,7,7,21,20
-    LTEXT           "The following Windows printer will be used for SAM printer output:",
-                    IDC_STATIC,54,82,152,18
-    GROUPBOX        "Printer device",IDC_STATIC,45,72,170,70
-    GROUPBOX        "Parallel ports",IDC_STATIC,45,7,170,60
+    COMBOBOX        IDC_FLUSHDELAY,124,117,84,60,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    ICON            IDI_PRINTER,IDC_STATIC,7,78,20,20
+    ICON            IDI_PORT,IDC_STATIC,7,7,20,20
+    LTEXT           "SAM printer output will be sent to:",IDS_PRINTERS,54,88,
+                    153,8
+    GROUPBOX        "Printer device",IDC_STATIC,45,76,170,59
+    GROUPBOX        "Parallel ports",IDC_STATIC,45,7,170,63
     LTEXT           "Devices connected to the parallel ports:",IDC_STATIC,54,
-                    18,150,8
-    LTEXT           "Port 1:",IDC_STATIC,58,32,22,8
-    LTEXT           "Port 2:",IDC_STATIC,58,49,22,8
+                    19,150,8
+    LTEXT           "Port 1:",IDC_STATIC,69,34,22,8
+    LTEXT           "Port 2:",IDC_STATIC,69,52,22,8
+    LTEXT           "Auto-flush print data:",IDS_FLUSHDELAY,54,119,66,8
 END
 
 IDD_PAGE_SOUND DIALOG DISCARDABLE  0, 0, 235, 156
@@ -682,6 +685,9 @@ BEGIN
     POPUP "&Tools"
     BEGIN
         MENUITEM "&Options...",                 IDM_TOOLS_OPTIONS
+        MENUITEM SEPARATOR
+        MENUITEM "Printer &Online",             IDM_TOOLS_PRINTER_ONLINE
+        MENUITEM "&Flush Printer",              IDM_TOOLS_FLUSH_PRINTER
         MENUITEM SEPARATOR
         MENUITEM "&Debugger",                   IDM_TOOLS_DEBUGGER
     END
