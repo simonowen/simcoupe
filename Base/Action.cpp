@@ -2,7 +2,7 @@
 //
 // Action.cpp: Actions bound to functions keys, etc.
 //
-//  Copyright (c) 2005  Simon Owen
+//  Copyright (c) 2005-2006 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #include "GUIDlg.h"
 #include "Input.h"
 #include "Options.h"
+#include "Parallel.h"
 #include "UI.h"
 #include "Video.h"
 
@@ -38,7 +39,8 @@ const char* Action::aszActions[MAX_ACTION] =
     "Exit application", "Options", "Debugger", "Import data", "Export data", "Save screenshot", "Change profiler mode",
     "Reset button", "NMI button", "Pause", "Step single frame", "Toggle turbo speed", "Turbo speed (when held)",
     "Toggle frame sync", "Toggle fullscreen", "Change window size", "Change border size", "Toggle 5:4 display",
-    "Change frame-skip mode", "Toggle scanlines", "Toggle greyscale", "Mute sound", "Release mouse capture"
+    "Change frame-skip mode", "Toggle scanlines", "Toggle greyscale", "Mute sound", "Release mouse capture",
+    "Toggle printer online", "Flush printer", "About SimCoupe", "Minimise window"
 };
 
 bool g_fFrameStep;
@@ -248,6 +250,22 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
 
                 // Grab the mouse automatically in full-screen, or release in windowed mode
                 Input::Acquire(!!GetOption(fullscreen), !GUI::IsActive());
+                break;
+
+            case actPrinterOnline:
+                SetOption(printeronline, !GetOption(printeronline));
+                Frame::SetStatus("Printer %s", GetOption(printeronline) ? "online" : "offline");
+                break;
+
+            case actFlushPrinter:
+                // If port 1 is a printer, flush it
+                if (GetOption(parallel1) == 1)
+                    reinterpret_cast<CPrintBuffer*>(pParallel1)->Flush();
+
+                // If port 2 is a printer, flush it
+                if (GetOption(parallel2) == 1)
+                    reinterpret_cast<CPrintBuffer*>(pParallel2)->Flush();
+
                 break;
 
             // Not processed
