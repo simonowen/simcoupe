@@ -143,6 +143,9 @@
 #define IDS_DOSDISK                     1186
 #define IDC_SAVE_PROMPT                 1187
 #define IDS_VERSION                     1188
+#define IDC_FLUSHDELAY                  1190
+#define IDS_FLUSHDELAY                  1191
+#define IDS_PRINTERS                    1192
 #define IDT_MENU                        7389
 #define IDM_FILE_EXIT                   40001
 #define IDM_HELP_ABOUT                  40050
@@ -197,6 +200,8 @@
 #define IDM_TOOLS_DEBUGGER              40202
 #define IDM_SYSTEM_NMI                  40203
 #define IDM_SYSTEM_RESET                40204
+#define IDM_TOOLS_FLUSH_PRINTER         40209
+#define IDM_TOOLS_PRINTER_ONLINE        40210
 
 // Next default values for new objects
 // 
@@ -204,8 +209,8 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        195
-#define _APS_NEXT_COMMAND_VALUE         40209
-#define _APS_NEXT_CONTROL_VALUE         1189
+#define _APS_NEXT_COMMAND_VALUE         40211
+#define _APS_NEXT_CONTROL_VALUE         1193
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif
