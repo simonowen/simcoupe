@@ -2,7 +2,7 @@
 //
 // Floppy.h: Allegro direct floppy access
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,12 +24,20 @@
 #include "CStream.h"
 #include "VL1772.h"
 
-class Floppy
+typedef struct
 {
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
-};
+    int sectors;
+    BYTE cyl, head;     // physical track location
+}
+TRACK, *PTRACK;
+
+typedef struct
+{
+    BYTE cyl, head, sector, size;
+    BYTE status;
+    BYTE *pbData;
+}
+SECTOR, *PSECTOR;
 
 
 class CFloppyStream : public CStream
@@ -39,24 +47,21 @@ class CFloppyStream : public CStream
         virtual ~CFloppyStream () { Close(); }
 
     public:
-        static bool IsRecognised (const char* pcszStream_) { return false; }
+        static bool IsRecognised (const char* pcszStream_);
 
     public:
-        bool IsOpen () const { return false; }
+        void Close ();
+
+    public:
+        bool IsOpen () const;
+        bool IsBusy (BYTE* pbStatus_, bool fWait_);
+
+        // The normal stream functions are not used
         bool Rewind () { return false; }
-        size_t Read (void* pvBuffer_, size_t uLen_) { return 0; }
-        size_t Write (void* pvBuffer_, size_t uLen_) { return 0; }
+        size_t Read (void*, size_t) { return 0; }
+        size_t Write (void*, size_t) { return 0; }
 
-        BYTE Read (int nSide_, int nTrack_, int nSector_, BYTE* pbData_, UINT* puSize_) { return RECORD_NOT_FOUND; }
-        BYTE Write (int nSide_, int nTrack_, int nSector_, BYTE* pbData_, UINT* puSize_) { return WRITE_PROTECT; }
-
-        bool GetAsyncStatus (UINT* puSize_, BYTE* pbStatus_) { return false; }
-        bool WaitAsyncOp (UINT* puSize_, BYTE* pbStatus_) { return false; }
-        void AbortAsyncOp () { }
-
-    protected:
-        void Close () { }
-        BYTE TranslateError () const;
+        BYTE StartCommand (BYTE bCommand_, PTRACK pTrack_=NULL, UINT uSector_=0, BYTE *pbData_=NULL);
 };
 
 #endif  // FLOPPY_H
