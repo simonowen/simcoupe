@@ -2,7 +2,7 @@
 //
 // Video.cpp: Allegro video handling for surfaces, screen modes, palettes etc.
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -63,11 +63,10 @@ bool Video::Init (bool fFirstInit_/*=false*/)
     TRACE("-> Video::Init(%s)\n", fFirstInit_ ? "first" : "");
 
 #ifdef ALLEGRO_DOS
-    // Limit DOS to 8-bit full-screen, disable the stretching features, and force scanlines (for now)
+    // Limit DOS to 8-bit full-screen, disable the stretching features
     SetOption(depth, 8);
     SetOption(fullscreen, true);
     SetOption(ratio5_4, false);
-    SetOption(scanlines, true);
 #endif
 
     DWORD dwWidth = Frame::GetWidth(), dwHeight = Frame::GetHeight();
