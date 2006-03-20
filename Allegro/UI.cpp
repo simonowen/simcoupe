@@ -2,7 +2,7 @@
 //
 // UI.cpp: Allegro user interface
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ bool UI::Init (bool fFirstInit_/*=false*/)
     bool fRet = true;
     Exit(true);
 
-    set_window_close_hook(Quit);
+    set_close_button_callback(Quit);
     set_window_title(WINDOW_CAPTION);
 
     return fRet;
@@ -59,6 +59,29 @@ void UI::Exit (bool fReInit_/*=false*/)
 // Check and process any incoming messages
 bool UI::CheckEvents ()
 {
+    static bool fFirstCall = true;
+
+    // Welcome the user on the first run, but not the first call to this function
+    if (!fFirstCall && GetOption(firstrun))
+    {
+        // Clear the option so we don't show it again
+        SetOption(firstrun, 0);
+
+        // Simple message box showing some keys
+        GUI::Start(new CMessageBox(NULL,
+                    "Some useful keys to get you started:\n\n"
+                    "  F1 - Insert disk image\n"
+                    "  F10 - Options\n"
+                    "  F12 - Reset\n"
+                    "  Ctrl-F12 - Exit emulator\n\n"
+                    "Consult the ReadMe.txt for further details.",
+                    "Welcome to SimCoupe!",
+                    mbInformation));
+
+        // Disable scanlines by default in Allegro
+        SetOption(scanlines, false);
+    }
+
     Input::Update();
 
     // Re-pause after a single frame-step
@@ -66,8 +89,9 @@ bool UI::CheckEvents ()
         Action::Do(actFrameStep);
 
     if (g_fPaused || (!g_fActive && GetOption(pauseinactive)))
-        yield_timeslice();
+        rest(0);
 
+    fFirstCall = false;
     return !g_fQuit;
 }
 
@@ -134,7 +158,7 @@ bool UI::DoAction (int nAction_, bool fPressed_)
 
     // Key release not processed
     else
-    	return false;
+        return false;
 
     // Action processed
     return true;
