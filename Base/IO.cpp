@@ -229,7 +229,13 @@ bool IO::InitParallel (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     {
         switch (GetOption(parallel1))
         {
-            case 1:     pParallel1 = new CPrinterDevice;    break;
+            case 1:
+                if ((*GetOption(printerdev)))
+                    pParallel1 =  new CPrinterDevice;
+                else
+                    pParallel1 = new CPrinterFile;
+                break;
+
             case 2:     pParallel1 = new CMonoDACDevice;    break;
             case 3:     pParallel1 = new CStereoDACDevice;  break;
             default:    pParallel1 = new CIoDevice;         break;
@@ -237,7 +243,13 @@ bool IO::InitParallel (bool fInit_/*=true*/, bool fReInit_/*=true*/)
 
         switch (GetOption(parallel2))
         {
-            case 1:     pParallel2 = new CPrinterDevice;    break;
+            case 1:
+                if ((*GetOption(printerdev)))
+                    pParallel2 =  new CPrinterDevice;
+                else
+                    pParallel2 = new CPrinterFile;
+                break;
+
             case 2:     pParallel2 = new CMonoDACDevice;    break;
             case 3:     pParallel2 = new CStereoDACDevice;  break;
             default:    pParallel2 = new CIoDevice;         break;
@@ -862,6 +874,8 @@ void IO::FrameUpdate ()
 {
     pDrive1->FrameEnd();
     pDrive2->FrameEnd();
+    pParallel1->FrameEnd();
+    pParallel2->FrameEnd();
 
     CClockDevice::FrameUpdate();
     Sound::FrameUpdate();
