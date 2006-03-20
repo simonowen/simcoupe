@@ -2,7 +2,7 @@
 //
 // OSD.cpp: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,8 +22,10 @@
 
 #include "OSD.h"
 #include "CPU.h"
+#include "Frame.h"
 #include "Main.h"
 #include "Options.h"
+#include "Parallel.h"
 #include "UI.h"
 
 HANDLE g_hEvent;
@@ -243,6 +245,71 @@ int OSD::FrameSync (bool fWait_/*=true*/)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+CPrinterDevice::CPrinterDevice ()
+    : m_hPrinter(INVALID_HANDLE_VALUE)
+{
+}
+
+CPrinterDevice::~CPrinterDevice ()
+{
+    Close();
+}
+
+
+bool CPrinterDevice::Open ()
+{
+    PRINTER_DEFAULTS pd = { "RAW", NULL, PRINTER_ACCESS_USE };
+
+    if (m_hPrinter != INVALID_HANDLE_VALUE)
+        return true;
+
+    if (OpenPrinter(const_cast<char*>(GetOption(printerdev)), &m_hPrinter, &pd))
+    {
+        DOC_INFO_1 docinfo;
+        docinfo.pDocName = "SimCoupe print";
+        docinfo.pOutputFile = NULL;
+        docinfo.pDatatype = "RAW";
+
+        // Start the job
+        if (StartDocPrinter(m_hPrinter, 1, reinterpret_cast<BYTE*>(&docinfo)) && StartPagePrinter(m_hPrinter))
+            return true;
+
+        ClosePrinter(m_hPrinter);
+    }
+
+    Frame::SetStatus("Failed to open %s", GetOption(printerdev));
+    return false;
+}
+
+void CPrinterDevice::Close ()
+{
+    if (m_hPrinter != INVALID_HANDLE_VALUE)
+    {
+        EndPagePrinter(m_hPrinter);
+        EndDocPrinter(m_hPrinter);
+
+        ClosePrinter(m_hPrinter);
+        m_hPrinter = INVALID_HANDLE_VALUE;
+
+        Frame::SetStatus("Printed to %s", GetOption(printerdev));
+    }
+}
+
+void CPrinterDevice::Write (BYTE *pb_, size_t uLen_)
+{
+    if (m_hPrinter != INVALID_HANDLE_VALUE)
+    {
+        DWORD dwWritten;
+
+        if (!WritePrinter(m_hPrinter, pb_, uLen_, &dwWritten))
+        {
+            Close();
+            Frame::SetStatus("Printer error!");
+        }
+    }
+}
+
 
 // Win32 lacks a few of the required POSIX functions, so we'll implement them ourselves...
 
