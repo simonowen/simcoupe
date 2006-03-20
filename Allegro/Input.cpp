@@ -2,7 +2,7 @@
 //
 // Input.cpp: Allegro keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -154,7 +154,7 @@ void KeyCallback (int nScanCode_)
     // Update the master table with the press or release
     anKeys[nScanCode_ & 0x7f] = (nScanCode_ & 0x80) ? -1 : 2;
 }
-END_OF_FUNCTION(KeyCallback);
+END_OF_FUNCTION(KeyCallback)
 
 
 bool Input::Init (bool fFirstInit_/*=false*/)
@@ -168,7 +168,7 @@ bool Input::Init (bool fFirstInit_/*=false*/)
     key_led_flag = 0;
 
     LOCK_VARIABLE(anKeys);
-    LOCK_FUNCTION((void*)KeyCallback);
+    LOCK_FUNCTION(KeyCallback);
     keyboard_lowlevel_callback = KeyCallback;
 
     Mouse::Init(fFirstInit_);
