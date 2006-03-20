@@ -43,7 +43,7 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     char szVersion[128] = "SimCoupe v1.0";
 
 #if 0
-	// Append the date on beta versions, to save us updating the version number each time
+    // Append the date on beta versions, to save us updating the version number each time
     sprintf(szVersion+strlen(szVersion), " beta ("  __DATE__ ")");
 #endif
 
@@ -51,19 +51,27 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     new CTextControl(this, 86, 10,  szVersion, BLACK);
     new CTextControl(this, 86, 24,  "http://www.simcoupe.org/", GREY_3);
 
-    new CTextControl(this, 41, 46,  "Win32/SDL/Allegro/Pocket PC versions:", BLUE_5);
-    new CTextControl(this, 51, 59,  "Simon Owen <simon.owen@simcoupe.org>", BLACK);
+    int y = 46;
 
-    new CTextControl(this, 41, 78,  "Based on original DOS/X versions by:", BLUE_5);
-    new CTextControl(this, 51, 91,  "Allan Skillman <allan.skillman@arm.com>", BLACK);
+    new CTextControl(this, 41, y,    "Win32/SDL/Allegro/Pocket PC versions:", BLUE_5);
+    new CTextControl(this, 51, y+13, "Simon Owen <simon.owen@simcoupe.org>", BLACK); y += 32;
 
-    new CTextControl(this, 41, 110,  "Additional technical enhancements:", BLUE_5);
-    new CTextControl(this, 51, 123,  "Dave Laundon <dave.laundon@simcoupe.org>", BLACK);
+#if defined (__AMIGAOS4__)
+    new CTextControl(this, 41, y,    "AmigaOS 4 version:", BLUE_5);
+    new CTextControl(this, 51, y+13, "Ventzislav Tzvetkov <drHirudo@Amigascne.org>", BLACK); y += 32;
+    m_nHeight += 32;
+#endif
 
-    new CTextControl(this, 41, 142,  "Phillips SAA 1099 sound chip emulation:", BLUE_5);
-    new CTextControl(this, 51, 155,  "Dave Hooper <dave@rebuzz.org>", BLACK);
+    new CTextControl(this, 41, y,    "Based on original DOS/X versions by:", BLUE_5);
+    new CTextControl(this, 51, y+13, "Allan Skillman <allan.skillman@arm.com>", BLACK); y += 32;
 
-    new CTextControl(this, 41, 177, "See ReadMe.txt for additional information", RED_3);
+    new CTextControl(this, 41, y,    "Additional technical enhancements:", BLUE_5);
+    new CTextControl(this, 51, y+13, "Dave Laundon <dave.laundon@simcoupe.org>", BLACK); y += 32;
+
+    new CTextControl(this, 41, y,    "Phillips SAA 1099 sound chip emulation:", BLUE_5);
+    new CTextControl(this, 51, y+13, "Dave Hooper <dave@rebuzz.org>", BLACK); y += 32;
+
+    new CTextControl(this, 41, y+3, "See ReadMe.txt for additional information", RED_3);
 
     m_pCloseButton = new CTextButton(this, (m_nWidth-55)/2, m_nHeight-21, "Close", 55);
 }
