@@ -2,7 +2,7 @@
 //
 // Display.cpp: Allegro display rendering
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -84,7 +84,7 @@ bool Display::Init (bool fFirstInit_/*=false*/)
     pafDirty = new bool[Frame::GetHeight()];
 
 #ifdef ALLEGRO_DOS
-	memset(abScanLine, 0x00, sizeof(abScanLine));
+    memset(abScanLine, 0x00, sizeof(abScanLine));
 #endif
 
     return Video::Init(fFirstInit_);
@@ -108,8 +108,6 @@ void Display::SetDirty ()
 // Draw the changed lines in the appropriate colour depth and hi/low resolution
 bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
 {
-    ProfileStart(Gfx);
-
 #ifdef ALLEGRO_DOS
     // DOS treats the screen as the front surface
     pSurface_ = screen;
@@ -134,9 +132,11 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
     int nWidth = pScreen_->GetPitch(), nRightHi = nWidth >> 3, nRightLo = nRightHi >> 1;
 
     // Calculate the offset to centralise the image on the screen (in native pixels)
-	int nDisplayedWidth = GetOption(ratio5_4) ? nWidth * 5/4 : nWidth;
+    int nDisplayedWidth = GetOption(ratio5_4) ? nWidth * 5/4 : nWidth;
     int nOffset = (SCREEN_W - nDisplayedWidth) >> 1;
     pdw = reinterpret_cast<DWORD*>(reinterpret_cast<BYTE*>(pdw) + nOffset);
+
+    ProfileStart(Gfx);
 
     // What colour depth is the target surface?
     switch (nDepth)
@@ -183,52 +183,57 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
                 DWORD dwOffset = bmp_write_line(pFront, y << nShift) + nOffset;
                 WORD wSegment = screen->seg, wLength = nRightHi << 1;
 
-                asm __volatile__ (" 	\n"
-                    "push %%es			\n"
-                    "cld				\n"
-                    "movw %%bx, %%es	\n"
-                    "rep				\n"
-                    "movsl				\n"
+                asm __volatile__ ("     \n"
+                    "push %%es          \n"
+                    "cld                \n"
+                    "movw %%bx, %%es    \n"
+                    "rep                \n"
+                    "movsl              \n"
                     "pop %%es"
                     : /* no outputs */
                     : "S" (abLine), "b" (wSegment), "D" (dwOffset), "c" (wLength)
                     : "cc"
                 );
-/*
-				if (fInterlace)
-				{
-					dwOffset = bmp_write_line(pFront, (y << nShift)+1) + nOffset;
+                
+                if (fInterlace)
+                {
+                    DWORD dwOffset2 = bmp_write_line(pFront, (y << nShift)+1) + nOffset;
+                    DWORD wSegment2 = screen->seg, wLength2 = nWidth >> 2;
 
-					if (!GetOption(scanlines))
-					{
-						asm __volatile__ (" 	\n"
-							"push %%es			\n"
-							"cld				\n"
-							"movw %%bx, %%es	\n"
-							"rep				\n"
-							"movsl				\n"
-							"pop %%es"
-							: // no outputs
-							: "S" (abScanLine), "b" (wSegment), "D" (dwOffset), "c" (wLength)
-							: "cc"
-						);
-					}
-					else
-					{
-						asm __volatile__ (" 	\n"
-							"push %%es			\n"
-							"cld				\n"
-							"movw %%bx, %%es	\n"
-							"rep				\n"
-							"movsl				\n"
-							"pop %%es"
-							: // no outputs
-							: "S" (abLine), "b" (wSegment), "D" (dwOffset), "c" (wLength)
-							: "cc"
-						);
-					}
-				}
-*/
+                    if (GetOption(scanlines))
+                    {
+                        // Fill the scanline in black
+                        asm __volatile__ ("     \n"
+                            "push %%es          \n"
+                            "cld                \n"
+                            "movw %%bx, %%es    \n"
+                            "movl 0, %%eax      \n"
+                            "rep                \n"
+                            "stosl              \n"
+                            "pop %%es"
+                            : /* no outputs */
+                            : "b" (wSegment2), "D" (dwOffset2), "c" (wLength2)
+                            : "cc", "%eax"
+                        );
+                    }
+                    else
+                    {
+                        BYTE *pb = abLine;
+
+                        // Repeat the line copy to double up the image
+                        asm __volatile__ ("     \n"
+                            "push %%es          \n"
+                            "cld                \n"
+                            "movw %%bx, %%es    \n"
+                            "rep                \n"
+                            "movsl              \n"
+                            "pop %%es"
+                            : /* no outputs */
+                            : "S" (pb), "b" (wSegment2), "D" (dwOffset2), "c" (wLength2)
+                            : "cc"
+                        );
+                    }
+                }
 #endif
             }
         }
@@ -417,7 +422,7 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
         if (fInterlace)
             nChangeFrom <<= 1, nChangeTo <<= 1;
 
-		// Re-evaluate whether we need to stretch the image vertically
+        // Re-evaluate whether we need to stretch the image vertically
         nShift = !GetOption(scanlines) && fInterlace;
 
         // Calculate the dirty source and target areas - non-GUI displays require the height doubling
