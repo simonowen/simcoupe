@@ -32,7 +32,7 @@ USE_SAASOUND=1
 CFLAGS=-O3 -pedantic -fomit-frame-pointer -funroll-loops -finline-functions -I${ALLEGRO} -I${BASE} -I${EXTERN}
 #CFLAGS=-O2 -I${ALLEGRO} -I${BASE} -I${EXTERN}
 CXXFLAGS=${CFLAGS} -Wall
-LIBS=-L. -lm -lalleg
+LIBS=-L. -L/usr/local/lib -lm -lalleg
 
 BASE_SRC=${BASE}/Action.cpp ${BASE}/ATA.cpp ${BASE}/Atom.cpp ${BASE}/CDisk.cpp \
  ${BASE}/CDrive.cpp ${BASE}/Clock.cpp ${BASE}/CPU.cpp ${BASE}/CScreen.cpp \
