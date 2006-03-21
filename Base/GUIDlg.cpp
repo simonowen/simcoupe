@@ -1133,20 +1133,22 @@ class CParallelOptions : public CDialog
             new CTextControl(this, 60, 13, "Parallel Ports", YELLOW_8, BLUE_2);
             new CTextControl(this, 63, 33, "Devices connected to the parallel ports:");
 
-            new CTextControl(this, 77, 57, "Port 1:");
+            new CTextControl(this, 80, 57, "Port 1:");
             m_pPort1 = new CComboBox(this, 125, 54, "None|Printer|Mono DAC|Stereo DAC", 120);
 
-            new CTextControl(this, 77, 82, "Port 2:");
+            new CTextControl(this, 80, 82, "Port 2:");
             m_pPort2 = new CComboBox(this, 125, 79, "None|Printer|Mono DAC|Stereo DAC", 120);
 
             new CIconControl(this, 10, 113, &sPortIcon);
-            new CFrameControl(this, 50, 120, 238, 79);
+            new CFrameControl(this, 50, 120, 238, 84);
 
             new CTextControl(this, 60, 116, "Printer Device", YELLOW_8, BLUE_2);
-            new CTextControl(this, 63, 136, "The following printer will be used for raw");
-            new CTextControl(this, 63, 150, "SAM printer output:");
+            m_pPrinterText = new CTextControl(this, 63, 136, "SAM printer output will be sent to:");
+            m_pPrinter = new CComboBox(this, 63, 152, "File: prntNNNN.txt (auto-generated)", 213);
 
-            m_pPrinter = new CComboBox(this, 63, 169, "<not currently supported>", 215);
+            m_pFlushDelayText = new CTextControl(this, 63, 181, "Auto-flush data:");
+            m_pFlushDelay = new CComboBox(this, 151, 178, "Disabled|After 1 second idle|After 2 seconds idle|"
+                                          "After 3 seconds idle|After 4 seconds idle|After 5 seconds idle", 125);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -1154,6 +1156,7 @@ class CParallelOptions : public CDialog
             // Set the initial state from the options
             m_pPort1->Select(GetOption(parallel1));
             m_pPort2->Select(GetOption(parallel2));
+            m_pFlushDelay->Select(GetOption(flushdelay));
 
             // Update the state of the controls to reflect the current settings
             OnNotify(m_pPort1,0);
@@ -1168,6 +1171,7 @@ class CParallelOptions : public CDialog
             {
                 SetOption(parallel1, m_pPort1->GetSelected());
                 SetOption(parallel2, m_pPort2->GetSelected());
+                SetOption(flushdelay, m_pFlushDelay->GetSelected());
                 SetOption(printerdev, "");
 
                 if (Changed(parallel1) || Changed(parallel2) || ChangedString(printerdev))
@@ -1178,14 +1182,17 @@ class CParallelOptions : public CDialog
             else
             {
                 bool fPrinter1 = m_pPort1->GetSelected() == 1, fPrinter2 = m_pPort2->GetSelected() == 1;
+                m_pPrinterText->Enable(fPrinter1 || fPrinter2);
                 m_pPrinter->Enable(fPrinter1 || fPrinter2);
-                m_pPrinter->Enable(false);
+                m_pFlushDelayText->Enable(fPrinter1 || fPrinter2);
+                m_pFlushDelay->Enable(fPrinter1 || fPrinter2);
             }
         }
 
     protected:
-        CComboBox *m_pPort1, *m_pPort2, *m_pPrinter;
+        CComboBox *m_pPort1, *m_pPort2, *m_pPrinter, *m_pFlushDelay;
         CTextButton *m_pOK, *m_pCancel;
+        CTextControl *m_pPrinterText, *m_pFlushDelayText;
 };
 
 
