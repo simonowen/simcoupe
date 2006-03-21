@@ -817,7 +817,7 @@ bool CEDSKDisk::Save ()
 
     // Complete the disk header
     memcpy(peh->szSignature, EDSK_SIGNATURE, sizeof(peh->szSignature));
-    memcpy(peh->szCreator, "SimCoupe 0.90", sizeof(peh->szCreator));
+    memcpy(peh->szCreator, "SimCoupe 1.0 ", sizeof(peh->szCreator));
     peh->bTracks = m_uTracks;
     peh->bSides = m_uSides;
 

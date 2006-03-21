@@ -190,8 +190,8 @@ RS_IDE;
     ATAPUT(sHeader.sIdentity.wReadWriteMulti, 0);  // no multi-sector handling
 
     // The identity strings need to be padded with spaces and byte-swapped
-    SetIdentityString(sHeader.sIdentity.szSerialNumber, sizeof sHeader.sIdentity.szSerialNumber, "090");
-    SetIdentityString(sHeader.sIdentity.szFirmwareRev,  sizeof sHeader.sIdentity.szFirmwareRev, "0.90");
+    SetIdentityString(sHeader.sIdentity.szSerialNumber, sizeof sHeader.sIdentity.szSerialNumber, "100");
+    SetIdentityString(sHeader.sIdentity.szFirmwareRev,  sizeof sHeader.sIdentity.szFirmwareRev, "1.0");
     SetIdentityString(sHeader.sIdentity.szModelNumber,  sizeof sHeader.sIdentity.szModelNumber, "SimCoupe Disk");
 
     // Create the file in binary mode

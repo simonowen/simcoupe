@@ -56,8 +56,8 @@ bool CDeviceHardDisk::Open ()
             ATAPUT(m_sIdentity.wBufferSize512, 1);
             ATAPUT(m_sIdentity.wLongECCBytes, 4);
 
-            CHardDisk::SetIdentityString(m_sIdentity.szSerialNumber, sizeof(m_sIdentity.szSerialNumber), "090");
-            CHardDisk::SetIdentityString(m_sIdentity.szFirmwareRev,  sizeof(m_sIdentity.szFirmwareRev), "0.90");
+            CHardDisk::SetIdentityString(m_sIdentity.szSerialNumber, sizeof(m_sIdentity.szSerialNumber), "100");
+            CHardDisk::SetIdentityString(m_sIdentity.szFirmwareRev,  sizeof(m_sIdentity.szFirmwareRev), "1.0");
             CHardDisk::SetIdentityString(m_sIdentity.szModelNumber,  sizeof(m_sIdentity.szModelNumber), "SAM IDE Device");
 
             // For safety, only deal with existing BDOS or SDIDE hard disks
