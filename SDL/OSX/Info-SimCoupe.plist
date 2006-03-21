@@ -69,8 +69,6 @@
 	<string>1.0</string>
 	<key>CFBundleSignature</key>
 	<string>SIMC</string>
-	<key>CFBundleVersion</key>
-	<string>beta</string>
 	<key>NSMainNibFile</key>
 	<string>SDLMain.nib</string>
 	<key>NSPrincipalClass</key>
