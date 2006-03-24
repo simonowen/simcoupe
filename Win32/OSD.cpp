@@ -302,7 +302,7 @@ void CPrinterDevice::Write (BYTE *pb_, size_t uLen_)
     {
         DWORD dwWritten;
 
-        if (!WritePrinter(m_hPrinter, pb_, uLen_, &dwWritten))
+        if (!WritePrinter(m_hPrinter, pb_, static_cast<DWORD>(uLen_), &dwWritten))
         {
             Close();
             Frame::SetStatus("Printer error!");
