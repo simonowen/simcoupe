@@ -129,7 +129,9 @@ static bool CompressImageData (PNG_INFO* pPNG_)
 // Process and save the supplied SAM image data to a file in PNG format
 bool SaveImage (FILE* hFile_, CScreen* pScreen_)
 {
-    // In 5:4 mode we need to stretch the output image
+    int nDen = 5, nNum = 4;     // 5:4 mode
+
+    // Are we to stretch the saved image?
     bool fStretch = GetOption(ratio5_4);
 
     // Calculate the intensity reduction for scanlines, in the range -100 to +100
@@ -139,7 +141,7 @@ bool SaveImage (FILE* hFile_, CScreen* pScreen_)
     PNG_INFO png = {0};
     png.dwWidth = pScreen_->GetPitch();
     png.dwHeight = pScreen_->GetHeight();
-    if (fStretch) png.dwWidth = png.dwWidth *5/4;
+    if (fStretch) png.dwWidth = png.dwWidth *nDen/nNum;
 
     png.uSize = png.dwHeight * (1 + (png.dwWidth * 3));
     if (!(png.pbImage = new BYTE[png.uSize]))
@@ -160,24 +162,24 @@ bool SaveImage (FILE* hFile_, CScreen* pScreen_)
 
         for (UINT x = 0 ; x < png.dwWidth ; x++)
         {
-            // Map the image pixel back to the display pixel, allowing for 5:4 mode
-            int n = fStretch ? (x * 4/5) : x;
-            BYTE b = pbS[n];
+            // Map the image pixel back to the display pixel
+            int n = fStretch ? (x * nNum/nDen) : x;
+            BYTE b = pbS[n], b2 = pbS[n+1];
 
             // Look up the pixel components in the palette
             BYTE red = pPal[b].bRed, green = pPal[b].bGreen, blue = pPal[b].bBlue;
 
-            // In 5:4 mode, 3/4 of pixels require blending with neighbouring pixels for output
-            if (fStretch && (n&3))
+            // In stretch mode we may need to blend the neighbouring pixels
+            if (fStretch && (x % nDen))
             {
-                // Determine how much of the original pixel is on the left
-                int nPercent = 25*(n&3);
+                // Determine how much of the current pixel to use
+                int nPercent = (x%nDen)*100/nNum;
                 AdjustBrightness(red, green, blue, nPercent-100);
 
-                // Determine how much of the neighbouring pixel is on the right
-                BYTE b2 = pbS[n+1];
+                // Determine how much of the next pixel
+                int nPercent2 = 100-nPercent;
                 BYTE red2 = pPal[b2].bRed, green2 = pPal[b2].bGreen, blue2 = pPal[b2].bBlue;
-                AdjustBrightness(red2, green2, blue2, -nPercent);
+                AdjustBrightness(red2, green2, blue2, nPercent2-100);
 
                 // Combine the part pixels for the overall colour
                 red += red2;
