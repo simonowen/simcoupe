@@ -200,7 +200,10 @@ EDSK_SECTOR;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-enum { dtNone, dtUnknown, dtFloppy, dtFile, dtEDSK, dtSDF, dtTD0, dtSAD, dtMGT, dtSBT };
+enum { dtNone, dtUnknown, dtFloppy, dtFile, dtEDSK, dtSDF, dtTD0, dtSAD, dtMGT, dtSBT, dtCAPS };
+
+#define LOAD_DELAY  3   // Number of status reads to artificially stay busy for image file track loads
+                        // Pro-Dos relies on data not being available immediately a command is submitted
 
 class CDisk
 {
@@ -232,17 +235,17 @@ class CDisk
         virtual bool FindNext (IDFIELD* pIdField_=NULL, BYTE* pbStatus_=NULL);
         virtual bool FindSector (UINT uSide_, UINT uTrack_, UINT uIdTrack_, UINT uSector_, IDFIELD* pID_=NULL);
 
-        virtual BYTE LoadTrack (UINT uSide_, UINT uTrack_) { return 0; }
+        virtual BYTE LoadTrack (UINT uSide_, UINT uTrack_) { m_nBusy = LOAD_DELAY; return 0; }
         virtual BYTE ReadData (BYTE* pbData_, UINT* puSize_) = 0;
         virtual BYTE WriteData (BYTE* pbData_, UINT* puSize_) = 0;
         virtual bool Save () = 0;
 
         virtual BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) = 0;
 
-        virtual bool IsBusy (BYTE* pbStatus_, bool fWait_=false) { return false; }
+        virtual bool IsBusy (BYTE* pbStatus_, bool fWait_=false) { if (!m_nBusy) return false; m_nBusy--; return true; }
 
     protected:
-        int     m_nType;
+        int     m_nType, m_nBusy;
         UINT    m_uSides, m_uTracks, m_uSectors, m_uSectorSize;
         UINT    m_uSide, m_uTrack, m_uSector, m_uSize;
         bool    m_fModified;
