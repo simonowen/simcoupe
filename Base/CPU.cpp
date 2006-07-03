@@ -3,7 +3,7 @@
 // CPU.cpp: Z80 processor emulation and main emulation loop
 //
 //  Copyright (c) 2000-2003  Dave Laundon
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -423,9 +423,10 @@ void CPU::ExecuteChunk ()
         CheckCpuEvents();
     }
 
-// Exclude the extra debugger core if we can't use it anyway
+// Only check for breakpoints if we're NOT using low-res mode
 #ifndef USE_LOWRES
     if (!Debug::IsBreakpointSet())
+#endif
     {
         // Loop until we've reached the end of the frame
         for (g_fBreak = false ; !g_fBreak ; )
@@ -456,8 +457,8 @@ void CPU::ExecuteChunk ()
 #endif
         }
     }
+#ifndef USE_LOWRES
     else
-#endif	// USE_LOWRES
     {
         // Loop until we've reached the end of the frame
         for (g_fBreak = false ; !g_fBreak ; )
@@ -491,6 +492,7 @@ void CPU::ExecuteChunk ()
 #endif
         }
     }
+#endif  // USE_LOWRES
 
     ProfileEnd();
 }
