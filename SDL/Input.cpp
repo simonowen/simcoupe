@@ -157,17 +157,21 @@ bool Input::Init (bool fFirstInit_/*=false*/)
 {
     Exit(true);
 
-    // Initialise the joysticks if any are
-    if ((*GetOption(joydev1) || *GetOption(joydev2)) && !SDL_InitSubSystem(SDL_INIT_JOYSTICK))
+    // Initialise the joystick subsystem
+    if (!SDL_InitSubSystem(SDL_INIT_JOYSTICK))
     {
         // Loop through the available devices for the ones to use (if any)
         for (int i = 0 ; i < SDL_NumJoysticks() ; i++)
         {
-            if (!strcasecmp(SDL_JoystickName(i), GetOption(joydev1)))
+            // Match against the required joystick names, or auto-select the first available
+            if (!pJoystick1 && (!strcasecmp(SDL_JoystickName(i), GetOption(joydev1)) || !*GetOption(joydev1)))
                 pJoystick1 = SDL_JoystickOpen(i);
-            else if (!strcasecmp(SDL_JoystickName(i), GetOption(joydev2)))
+            else if (!pJoystick2 && (!strcasecmp(SDL_JoystickName(i), GetOption(joydev2)) || !*GetOption(joydev2)))
                 pJoystick2 = SDL_JoystickOpen(i);
         }
+
+        // Disable joystick events as we'll poll ourselves when necessary
+        SDL_JoystickEventState(SDL_DISABLE);
     }
 
     SDL_EnableUNICODE(1);
@@ -278,6 +282,40 @@ void ReadKeyboard ()
             ReleaseKey(SDLK_TAB);
     }
 }
+
+// Read the specified joystick
+void ReadJoystick (SDL_Joystick *pJoystick_, int nTolerance_, SDLKey *pnKeys_)
+{
+    // Fetch the number of buttons on the current joystick
+    int nButtons = SDL_JoystickNumButtons(pJoystick_);
+    bool fFire = false;
+
+    // Query the state of each button to determine if fire is pressed
+    for (int i = 0 ; !fFire && i < nButtons ; i++)
+        fFire |= !!SDL_JoystickGetButton(pJoystick_, i);
+
+    // Read the joystick X and Y axis, and the corresponding hat
+    int nX = SDL_JoystickGetAxis(pJoystick_, 0);
+    int nY = SDL_JoystickGetAxis(pJoystick_, 1);
+    Uint8 bHat = SDL_JoystickGetHat(pJoystick_, (pnKeys_[0]==SDLK_6)?0:1);
+
+    // Determine the analogue offset needed to consider the joystick moved
+    int nDeadZone = 32768*nTolerance_/100;
+
+    // Determine which directions are actually active
+    bool fLeft  = (nX < -nDeadZone) || (bHat & SDL_HAT_LEFT);
+    bool fRight = (nX >  nDeadZone) || (bHat & SDL_HAT_RIGHT);
+    bool fUp    = (nY < -nDeadZone) || (bHat & SDL_HAT_UP);
+    bool fDown  = (nY >  nDeadZone) || (bHat & SDL_HAT_DOWN);
+
+    // Simulate the key presses for the joystick movement and buttons
+    if (fLeft)  PressKey(pnKeys_[0]);   // Left
+    if (fRight) PressKey(pnKeys_[1]);   // Right
+    if (fDown)  PressKey(pnKeys_[2]);   // Down
+    if (fUp)    PressKey(pnKeys_[3]);   // Up
+    if (fFire)  PressKey(pnKeys_[4]);   // Fire
+}
+
 
 
 // Update a combination key table with a symbol
@@ -773,43 +811,32 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 Mouse::SetButton(pEvent_->button.button, false);
             }
             break;
-
-        case SDL_JOYAXISMOTION:
-        {
-            SDL_JoyAxisEvent* pJoy = &pEvent_->jaxis;
-            int nDeadZone = 0x7fffL * GetOption(deadzone1) / 100;
-
-            SetMasterKey(SDLK_6, !pJoy->axis && pJoy->value <= -nDeadZone);
-            SetMasterKey(SDLK_7, !pJoy->axis && pJoy->value >=  nDeadZone);
-            SetMasterKey(SDLK_8,  pJoy->axis && pJoy->value >=  nDeadZone);
-            SetMasterKey(SDLK_9,  pJoy->axis && pJoy->value <= -nDeadZone);
-
-            break;
-        }
-
-        case SDL_JOYHATMOTION:
-        {
-            int nHat = pEvent_->jhat.value;
-
-            SetMasterKey(SDLK_6, (nHat & SDL_HAT_LEFT) != 0);
-            SetMasterKey(SDLK_7, (nHat & SDL_HAT_RIGHT) != 0);
-            SetMasterKey(SDLK_8, (nHat & SDL_HAT_DOWN) != 0);
-            SetMasterKey(SDLK_9, (nHat & SDL_HAT_UP) != 0);
-
-            break;
-        }
-
-        case SDL_JOYBUTTONDOWN:
-        case SDL_JOYBUTTONUP:
-            afKeys[SDLK_0] = pEvent_->type == SDL_JOYBUTTONDOWN;
-            break;
     }
 }
 
 
 void Input::Update ()
 {
-    // Read the keyboard and update the SAM keyboard matrix from the current key states (including joystick movement)
+    // Read the keyboard and update the SAM keyboard matrix from the current key states
     ReadKeyboard();
+
+    // Any joysticks active?
+    if (pJoystick1 || pJoystick2)
+    {
+        static SDLKey anJoystick1[] = { SDLK_6, SDLK_7, SDLK_8, SDLK_9, SDLK_0 };
+        static SDLKey anJoystick2[] = { SDLK_1, SDLK_2, SDLK_3, SDLK_4, SDLK_5 };
+
+        // Update the current joystick states
+        SDL_JoystickUpdate();
+
+        // Read joystick 1 if present
+        if (pJoystick1)
+            ReadJoystick(pJoystick1, GetOption(deadzone1), anJoystick1);
+
+        // Read joystick 2 if present
+        if (pJoystick2)
+            ReadJoystick(pJoystick2, GetOption(deadzone2), anJoystick2);
+    }
+
     SetSamKeyState();
 }
