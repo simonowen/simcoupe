@@ -85,6 +85,8 @@ HWND hdlgNewFnKey;
 WNDPROC pfnStaticWndProc;           // Old static window procedure (internal value)
 
 WINDOWPLACEMENT g_wp;
+int nWindowDx, nWindowDy;
+
 int nOptionPage = 0;                // Last active option property page
 const int MAX_OPTION_PAGES = 16;    // Maximum number of option propery pages
 bool fCentredOptions;
@@ -256,9 +258,9 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
     }
     else
     {
-        // Leave a maximised window as it is
-        WINDOWPLACEMENT wp;
-        wp.length = sizeof wp;
+        WINDOWPLACEMENT wp = { sizeof(wp) };
+
+            // Leave a maximised window as it is
         if (!GetWindowPlacement(g_hwnd, &wp) || (wp.showCmd != SW_SHOWMAXIMIZED))
         {
             DWORD dwStyle = (GetWindowStyle(g_hwnd) & WS_VISIBLE) | WS_OVERLAPPEDWINDOW;
@@ -274,15 +276,18 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
             RECT rClient;
             GetClientRect(g_hwnd, &rClient);
 
-            // If the menu has wrapped the client area won't be big enough, so enlarge if necessary
-            if ((rClient.bottom - rClient.top) < nHeight)
+            // Ensure the client area is exactly what we wanted, and adjust it if not
+            // This can happen if a menu wraps because the window is small, or on buggy Vista versions
+            if (rClient.right != nWidth || rClient.bottom != nHeight)
             {
-                rect.bottom += GetSystemMetrics(SM_CYMENUSIZE);
-                SetWindowPos(g_hwnd, HWND_NOTOPMOST, 0, 0, rect.right-rect.left, rect.bottom-rect.top, SWP_NOMOVE);
+                nWindowDx = nWidth-rClient.right;
+                nWindowDy = nHeight-rClient.bottom;
+                SetWindowPos(g_hwnd, HWND_NOTOPMOST, 0, 0, rect.right-rect.left+nWindowDx, rect.bottom-rect.top+nWindowDy, SWP_NOMOVE);
             }
 
             if (!fCentred)
             {
+                nWindowDx = nWindowDy = 0;
                 fCentred = true;
                 ResizeWindow(true);
                 CentreWindow(g_hwnd);
@@ -654,6 +659,7 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
 
             case actToggleScanlines:
                 SetOption(scanlines, !GetOption(scanlines));
+                Display::SetDirty();
                 Frame::SetStatus("Scanlines %s", GetOption(scanlines) ? "enabled" : "disabled");
                 break;
 
@@ -816,8 +822,12 @@ static MENUICON aMenuIcons[] =
 // Hook function for catching the Windows key
 LRESULT CALLBACK WinKeyHookProc (int nCode_, WPARAM wParam_, LPARAM lParam_)
 {
+    // Check if we're using an overlay video surface
+    DDSURFACEDESC ddsdBack = { sizeof(ddsdBack) };
+    bool fOverlay = pddsBack && SUCCEEDED(pddsBack->GetSurfaceDesc(&ddsdBack)) && (ddsdBack.ddsCaps.dwCaps & DDSCAPS_OVERLAY);
+
     // Is Alt-PrintScrn being release while using an overlay video surface?
-    if (GetOption(overlay) && lParam_ < 0 && wParam_ == VK_SNAPSHOT && GetAsyncKeyState(VK_LMENU) < 0)
+    if (fOverlay && lParam_ < 0 && wParam_ == VK_SNAPSHOT && GetAsyncKeyState(VK_LMENU) < 0)
         PostMessage(g_hwnd, WM_USER+0, 1234, 5678L);
 
     // Is this a full-screen Windows key press?
@@ -952,10 +962,15 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 // Insert the image into drive 1, if available
                 if (GetOption(drive1) != dskImage)
                     Message(msgWarning, "Floppy drive %d is not present", 1);
-                else if (SaveDriveChanges(pDrive1) && pDrive1->Insert(szFile))
+                else if (SaveDriveChanges(pDrive1))
                 {
-                    Frame::SetStatus("%s  inserted into drive 1", pDrive1->GetFile());
-                    AddRecentFile(szFile);
+                    if (!pDrive1->Insert(szFile))
+                        Message(msgWarning, "Invalid disk image: %s", szFile);
+                    else
+                    {
+                        Frame::SetStatus("%s  inserted into drive 1", pDrive1->GetFile());
+                        AddRecentFile(szFile);
+                    }
                 }
             }
 
@@ -1005,6 +1020,8 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             // Determine how big the window would be for an nWidth*nHeight client area
             RECT rNonClient = { 0, 0, nWidth, nHeight };
             AdjustWindowRectEx(&rNonClient, GetWindowStyle(g_hwnd), TRUE, GetWindowExStyle(g_hwnd));
+            rNonClient.right += nWindowDx;
+            rNonClient.bottom += nWindowDy;
             OffsetRect(&rNonClient, -rNonClient.left, -rNonClient.top);
 
             // Remove the non-client region to leave just the client area
@@ -1102,6 +1119,13 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             Input::Acquire(false);
             break;
 
+        // Handle the exit for modal dialogues, when we get enabled
+        case WM_ENABLE:
+            if (!wParam_)
+                break;
+
+            // Fall through to WM_EXITMENULOOP...
+
         case WM_EXITMENULOOP:
             // No longer in menu, so start timer to hide the mouse if not used again
             fInMenu = fHideCursor = false;
@@ -1113,19 +1137,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_ERASEBKGND:
             return 1;
 
-        // Handle the exit for modal dialogues, when we get enabled
-        case WM_ENABLE:
-            if (!wParam_)
-                break;
-            // Fall through to WM_EXITMENULOOP...
-
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
             BeginPaint(hwnd_, &ps);
-
-            // Flag the entire display as dirty, just in case
-            Display::SetDirty();
 
             // Forcibly redraw the screen if in using the menu, sizing, moving, or inactive and paused
             if (fInMenu || fSizingOrMoving || g_fPaused || !g_fActive)
@@ -1341,7 +1356,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         {
             // Make sure it's really from us
             if (wParam_ == 1234 && lParam_ == 5678)
-                MessageBox(hwnd_, "The Windows screenshot function cannot capture video card overlays.\n\n"
+                MessageBox(hwnd_, "The Windows screenshot function cannot capture video overlays.\n\n"
                                   "On the Display tab in the options, de-select \"Use RGB/YUV video overlay\", then try again.",
                                   "SimCoupe", MB_ICONEXCLAMATION);
             break;
@@ -2423,8 +2438,13 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
             {
                 case IDC_HWACCEL:
                 {
+                    OSVERSIONINFO osvi = { sizeof osvi };
+                    GetVersionEx(&osvi);
+
+                    // Enable the overlay if hardware acceleration is enabled and we're not on Vista
+                    bool fVista = osvi.dwMajorVersion >= 6;
                     bool fHwAccel = (SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_OVERLAY), fHwAccel);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_OVERLAY), fHwAccel && !fVista);
                     break;
                 }
 
