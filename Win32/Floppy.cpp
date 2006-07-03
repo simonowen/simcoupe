@@ -72,9 +72,6 @@ bool Ioctl (HANDLE h_, DWORD dwCode_, LPVOID pIn_=NULL, DWORD cbIn_=0, LPVOID pO
 CFloppyStream::CFloppyStream (const char* pcszDevice_, bool fReadOnly_)
     : CStream(pcszDevice_, fReadOnly_), m_hDevice(INVALID_HANDLE_VALUE), m_hThread(NULL), m_uSectors(0)
 {
-    OSVERSIONINFO osvi = { sizeof osvi };
-    GetVersionEx(&osvi);
-
     if (IsAvailable())
     {
         const char* pcszDevice = !lstrcmpi(GetFile(), "A:") ? "\\\\.\\fdraw0" : "\\\\.\\fdraw1";
