@@ -157,8 +157,12 @@ bool Video::Init (bool fFirstInit_)
                 dwWidth = Frame::GetWidth();
                 dwHeight = Frame::GetHeight();
 
-                // Are we to use a video overlay?
-                if (GetOption(overlay))
+                // Determine which version of Windows we're running under
+                OSVERSIONINFO osvi = { sizeof osvi };
+                GetVersionEx(&osvi);
+
+                // Are we to use a video overlay? (not Vista as it disables DWM effects)
+                if (GetOption(overlay) && osvi.dwMajorVersion < 6)
                 {
                     DDPIXELFORMAT ddpf;
 
@@ -404,22 +408,26 @@ LPDIRECTDRAWSURFACE CreateSurface (DWORD dwCaps_, DWORD dwWidth_/*=0*/, DWORD dw
     if (FAILED(hr = pdd->CreateSurface(&ddsd, &pdds, NULL)))
         TRACE("!!! Failed to create surface (%#08lx)\n", hr);
 
-    // Make sure the surface is lockable, as some VRAM surfaces may not be
-    else if (SUCCEEDED(hr = pdds->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL)))
-        pdds->Unlock(ddsd.lpSurface);
-
-    // If we've not just tried a system surface, try one now
-    else if (!(ddsd.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY))
+    // Only back buffers need to be checked for lockability
+    if (!(dwCaps_ & DDSCAPS_PRIMARYSURFACE))
     {
-        // Release the unlockable surface as it's of no use to us
-        pdds->Release();
+        // Make sure the surface is lockable, as some VRAM surfaces may not be
+        if (SUCCEEDED(hr = pdds->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL)))
+            pdds->Unlock(ddsd.lpSurface);
 
-        // Force into system memory and try again
-        ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
-        ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+        // If we've not just tried a system surface, try one now
+        else if (!(ddsd.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY))
+        {
+            // Release the unlockable surface as it's of no use to us
+            pdds->Release();
 
-        if (FAILED(hr = pdd->CreateSurface(&ddsd, &pdds, NULL)))
-            TRACE("!!! Failed to create forced system surface (%#08lx)\n", hr);
+            // Force into system memory and try again
+            ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
+            ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+
+            if (FAILED(hr = pdd->CreateSurface(&ddsd, &pdds, NULL)))
+                TRACE("!!! Failed to create forced system surface (%#08lx)\n", hr);
+        }
     }
 
     return pdds;
