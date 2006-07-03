@@ -21,7 +21,7 @@
 #include "SimCoupe.h"
 #include "IDEDisk.h"
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 
 // Rather than including the kernel headers, we'll define some values from them
 #define HDIO_GETGEO         0x0301      // get device geometry
@@ -42,11 +42,15 @@ bool CDeviceHardDisk::Open ()
 
     if (IsOpen())
     {
-        struct hd_geometry dg;
         int nSize;
 
         // Read the drive geometry and size
-        if (ioctl(m_hDevice, HDIO_GETGEO, &dg) >= 0 && ioctl(m_hDevice, BLKGETSIZE, &nSize) >= 0)
+#ifdef __linux__
+        if (ioctl(m_hDevice, BLKGETSIZE, &nSize) >= 0)
+#else
+        long long llSize = 0;
+        if (ioctl(m_hDevice, DKIOCGETBLOCKCOUNT, &llSize) >= 0 && (nSize = static_cast<int>(llSize)))
+#endif
         {
             // Extract the disk geometry and size in sectors, and calculate a suitable CHS to report
             // We round down to the nearest 1K to fix a single sector error with some CF card readers
