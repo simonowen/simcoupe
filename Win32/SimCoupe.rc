@@ -402,12 +402,12 @@ BEGIN
     COMBOBOX        IDC_TYPE,79,27,110,81,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     EDITTEXT        IDE_ADDRESS,79,44,110,14,ES_AUTOHSCROLL
+    EDITTEXT        IDE_PAGE,79,44,110,14,ES_AUTOHSCROLL
     EDITTEXT        IDE_OFFSET,79,61,110,14,ES_AUTOHSCROLL
     EDITTEXT        IDE_LENGTH2,79,61,110,14,ES_AUTOHSCROLL | NOT WS_VISIBLE
     EDITTEXT        IDE_LENGTH,79,78,110,14,ES_AUTOHSCROLL
     DEFPUSHBUTTON   "OK",IDOK,197,27,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,197,44,50,14
-    EDITTEXT        IDE_PAGE,79,44,110,14,ES_AUTOHSCROLL
     ICON            IDI_MEMORY,IDC_STATIC,7,7,20,20
     RTEXT           "Export from:",IDC_STATIC,34,29,40,8
     RTEXT           "Page:",IDS_PAGE,44,46,30,8
@@ -749,10 +749,18 @@ BEGIN
     BEGIN
         BLOCK "080904b0"
         BEGIN
-            VALUE "Comments", "http://www.simcoupe.org/\0"
-            VALUE "FileDescription", "A SAM Coupé emulator\0"
+            VALUE "Comments", "http://www.simcoupe.org\0"
+            VALUE "CompanyName", "Simon Owen\0"
+            VALUE "FileDescription", "SAM Coupé emulator\0"
             VALUE "FileVersion", "1.0\0"
+            VALUE "InternalName", "SimCoupe\0"
+            VALUE "LegalCopyright", "Copyright © 2006\0"
+            VALUE "LegalTrademarks", "\0"
+            VALUE "OriginalFilename", "SimCoupe.exe\0"
+            VALUE "PrivateBuild", "\0"
+            VALUE "ProductName", "\0"
             VALUE "ProductVersion", "1.0\0"
+            VALUE "SpecialBuild", "\0"
         END
     END
     BLOCK "VarFileInfo"
