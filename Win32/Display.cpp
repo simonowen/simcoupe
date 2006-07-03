@@ -48,12 +48,11 @@ bool Display::Init (bool fFirstInit_/*=false*/)
     Exit(true);
     TRACE("-> Display::Init(%s)\n", fFirstInit_ ? "first" : "");
 
+    dwColourKey = 0;
     pafDirty = new bool[Frame::GetHeight()];
     SetDirty();
 
-    if (fRet = Video::Init(fFirstInit_))
-        dwColourKey = Video::GetOverlayColourKey();
-
+    fRet = Video::Init(fFirstInit_);
     TRACE("<- Display::Init() returning %s\n", fRet ? "true" : "false");
     return fRet;
 }
@@ -91,7 +90,7 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 
     // Lock the surface,  without taking the Win16Mutex if possible
     if (FAILED(hr = pSurface_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT|DDLOCK_NOSYSLOCK, NULL))
-          && FAILED(hr = pSurface_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL)))
+     && FAILED(hr = pSurface_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL)))
     {
         TRACE("!!! DrawChanges()  Failed to lock back surface (%#08lx)\n", hr);
         return false;
@@ -573,12 +572,9 @@ void Display::Update (CScreen* pScreen_)
 
     LPDIRECTDRAWSURFACE pddsOverlay = pddsFront ? pddsFront : pddsBack;
 
-    DDSURFACEDESC ddsdBack, ddsdOverlay, ddsdPrimary;
-    ddsdBack.dwSize = ddsdOverlay.dwSize = ddsdPrimary.dwSize = sizeof ddsdBack;
+    DDSURFACEDESC ddsdBack, ddsdPrimary;
+    ddsdBack.dwSize = ddsdPrimary.dwSize = sizeof ddsdBack;
     pddsBack->GetSurfaceDesc(&ddsdBack);
-
-    pddsOverlay->GetSurfaceDesc(&ddsdOverlay);
-    pddsPrimary->GetSurfaceDesc(&ddsdPrimary);
 
     bool fOverlay = (ddsdBack.ddsCaps.dwCaps & DDSCAPS_OVERLAY) != 0;
     bool fHalfHeight = !GUI::IsActive() && !GetOption(scanlines);
@@ -598,7 +594,10 @@ void Display::Update (CScreen* pScreen_)
 
     // Full-screen mode uses the full screen area
     if (GetOption(fullscreen))
+    {
+        pddsPrimary->GetSurfaceDesc(&ddsdPrimary);
         SetRect(&rFront, 0, 0, ddsdPrimary.dwWidth, ddsdPrimary.dwHeight);
+    }
 
     // For windowed mode we use the client area
     else
@@ -657,6 +656,9 @@ void Display::Update (CScreen* pScreen_)
         if (pddsFront)
             pddsFront->Blt(NULL, pddsBack, NULL, DDBLT_WAIT, 0);
 
+        // If we don't yet have a colour key, determine one now
+        if (!dwColourKey)
+            dwColourKey = Video::GetOverlayColourKey();
 
         // Set up the destination colour key so the overlay doesn't appear over the top of everything
         DDOVERLAYFX ddofx = { sizeof ddofx };
