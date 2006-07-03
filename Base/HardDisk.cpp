@@ -56,66 +56,33 @@ bool CHardDisk::IsBDOSDisk ()
 }
 
 
-// Return a suitable CHS geometry covering the supplied number of sectors
-/*static*/ bool CHardDisk::CalculateGeometry (ATA_GEOMETRY* pg_)
+// Calculate a suitable CHS geometry covering the supplied number of sectors
+/*static*/ void CHardDisk::CalculateGeometry (ATA_GEOMETRY* pg_)
 {
-    // CHS can only handle up to 8GB, so truncate anything larger
-    if (pg_->uTotalSectors > 16383*16*63)
-        pg_->uTotalSectors = 16383*16*63;
+    UINT uCylinders, uHeads, uSectors;
 
-    UINT uCylinders = 0, uHeads = 0, uSectors = 0, uRound;
+    // Start the head count to give balanced figures for smaller drives
+    uHeads = (pg_->uTotalSectors >= 65536) ? 8 : (pg_->uTotalSectors >= 32768) ? 4 : 2;
+    uSectors = 32;
 
-    for (uRound = 0 ; uRound < 512 ; uRound = (uRound << 1) | 1)
+    // Loop until we're (ideally) below 1024 cylinders
+    while ((pg_->uTotalSectors / uHeads / uSectors) > 1023)
     {
-        // A selection of small primes to use for factoring
-        static int anPrimes[] = { 7,5,3,2, 0 };
-
-        // Round the sector count down to the next power of 2 boundary
-        uCylinders = pg_->uTotalSectors & ~uRound;
-        uHeads = uSectors = 1;
-
-        // Loop through the prime number list
-        for (int i = 0 ; anPrimes[i] ; i++)
-        {
-            // Matched prime factor?
-            if (!(uCylinders % anPrimes[i]))
-            {
-                // Use 2 for the head value if possible
-                if (anPrimes[i] == 2 && uHeads <= 8)
-                {
-                    uHeads *= anPrimes[i];
-                    uCylinders /= anPrimes[i--];    // Repeat factor
-                }
-                // Consider any remaining factor for the sector count
-                else if (uSectors * anPrimes[i] <= 63)
-                {
-                    uSectors *= anPrimes[i];
-                    uCylinders /= anPrimes[i--];    // Repeat factor
-                }
-            }
-        }
-
-        // Stop if the cylinder is now in CHS range
-        if (uCylinders <= 16383)
+        if (uHeads < 16)
+            uHeads *= 2;
+        else if (uSectors != 63)
+            uSectors = 63;
+        else
             break;
     }
 
-    // Did we fail to find a suitable match?
-    if (uRound >= 512)
-    {
-        // Fall back on rounding up to the maximum track size (0-1007 extra sectors)
-        uCylinders = (pg_->uTotalSectors + 16*63 - 1) / (16*63);
-        uHeads = 16;
-        uSectors = 63;
-    }
+    // Calculate the cylinder limit at or below the total size
+    uCylinders = pg_->uTotalSectors / uHeads / uSectors;
 
-    // Update the supplied structure
-    pg_->uCylinders = uCylinders;
+    // Update the supplied structure, capping the cylinder value if necessary
+    pg_->uCylinders = (uCylinders > 16383) ? 16383 : uCylinders;
     pg_->uHeads = uHeads;
     pg_->uSectors = uSectors;
-    pg_->uTotalSectors = uCylinders * uHeads * uSectors;
-
-    return true;
 }
 
 /*static*/ void CHardDisk::SetIdentityString (char* psz_, size_t uLen_, const char* pcszValue_)
@@ -133,13 +100,13 @@ bool CHardDisk::IsBDOSDisk ()
 
 typedef struct
 {
-    char    szSignature[6];             // RS-IDE
-    BYTE    bEOF;                       // 0x1a
-    BYTE    bRevision;                  // 0x10 for v1.0
-    BYTE    bFlags;                     // b0 = halved sector data
-    BYTE    bOffsetLow, bOffsetHigh;    // Offset from start of file to HDD data
-    BYTE    abReserved[11];             // Must be zero
-    DEVICEIDENTITY sIdentity;           // ATA device identity
+    char szSignature[6];            // RS-IDE
+    BYTE bEOF;                      // 0x1a
+    BYTE bRevision;                 // 0x10 for v1.0, 0x11 for v1.1
+    BYTE bFlags;                    // b0 = halved sector data, b1 = ATAPI (HDF 1.1+)
+    BYTE bOffsetLow, bOffsetHigh;   // Offset from start of file to HDD data
+    BYTE abReserved[11];            // Must be zero
+                                    // Identity data follows: 106 bytes for HDF 1.0, 512 for HDF 1.1+
 }
 RS_IDE;
 
@@ -172,38 +139,43 @@ RS_IDE;
 {
     bool fRet = false;
 
-    UINT uSize = uCylinders_ * uHeads_ * uSectors_ * 512;
+    // Stored identity size is fixed for HDF 1.0, giving 128 bytes for the full header
+    BYTE abIdentity[128-sizeof(RS_IDE)];
+    DEVICEIDENTITY *pdi = reinterpret_cast<DEVICEIDENTITY*>(abIdentity);
 
-    RS_IDE sHeader = { {'R','S','-','I','D','E'}, 0x1a, 0x10, 0x00,  0x80, 0x00 };
+    UINT uDataOffset = sizeof(RS_IDE) + sizeof(abIdentity);
+    RS_IDE sHeader = { {'R','S','-','I','D','E'}, 0x1a, 0x10, 0x00,  uDataOffset%256, uDataOffset/256 };
 
-    ATAPUT(sHeader.sIdentity.wCaps, 0x2241);                    // Fixed device, motor control, hard sectored, <= 5Mbps
-    ATAPUT(sHeader.sIdentity.wLogicalCylinders, uCylinders_);
-    ATAPUT(sHeader.sIdentity.wLogicalHeads, uHeads_);
-    ATAPUT(sHeader.sIdentity.wBytesPerTrack, uSectors_ << 9);
-    ATAPUT(sHeader.sIdentity.wBytesPerSector, 1 << 9);
-    ATAPUT(sHeader.sIdentity.wSectorsPerTrack, uSectors_);
+    ATAPUT(pdi->wCaps, 0x2241);                    // Fixed device, motor control, hard sectored, <= 5Mbps
+    ATAPUT(pdi->wLogicalCylinders, uCylinders_);
+    ATAPUT(pdi->wLogicalHeads, uHeads_);
+    ATAPUT(pdi->wSectorsPerTrack, uSectors_);
+    ATAPUT(pdi->wBytesPerSector, 512);
+    ATAPUT(pdi->wBytesPerTrack, uSectors_*512);
 
-    ATAPUT(sHeader.sIdentity.wControllerType, 1);  // single port, single sector
-    ATAPUT(sHeader.sIdentity.wBufferSize512, 1);   // 512 bytes
-    ATAPUT(sHeader.sIdentity.wLongECCBytes, 4);
+    ATAPUT(pdi->wControllerType, 1);  // single port, single sector
+    ATAPUT(pdi->wBufferSize512, 1);   // 512 bytes
+    ATAPUT(pdi->wLongECCBytes, 4);
 
-    ATAPUT(sHeader.sIdentity.wReadWriteMulti, 0);  // no multi-sector handling
+    ATAPUT(pdi->wReadWriteMulti, 0);  // no multi-sector handling
 
     // The identity strings need to be padded with spaces and byte-swapped
-    SetIdentityString(sHeader.sIdentity.szSerialNumber, sizeof sHeader.sIdentity.szSerialNumber, "100");
-    SetIdentityString(sHeader.sIdentity.szFirmwareRev,  sizeof sHeader.sIdentity.szFirmwareRev, "1.0");
-    SetIdentityString(sHeader.sIdentity.szModelNumber,  sizeof sHeader.sIdentity.szModelNumber, "SimCoupe Disk");
+    SetIdentityString(pdi->szSerialNumber, sizeof(pdi->szSerialNumber), "100");
+    SetIdentityString(pdi->szFirmwareRev,  sizeof(pdi->szFirmwareRev), "1.0");
+    SetIdentityString(pdi->szModelNumber,  sizeof(pdi->szModelNumber), "SimCoupe Disk");
 
     // Create the file in binary mode
     FILE* pFile = fopen(pcszDisk_, "wb");
     if (pFile)
     {
+        UINT uDataSize = uCylinders_ * uHeads_ * uSectors_ * 512U;
         BYTE bNull = 0;
 
         // Write the header, and extend the file up to the full size
-        fRet = fwrite(&sHeader, sizeof sHeader, 1, pFile) &&
-              !fseek(pFile, sizeof(sHeader) + uSize - 1, SEEK_SET) &&
-               fwrite(&bNull, sizeof bNull, 1, pFile);
+        fRet = fwrite(&sHeader, sizeof(sHeader), 1, pFile) &&
+               fwrite(abIdentity, sizeof(abIdentity), 1, pFile) &&
+              !fseek(pFile, uDataSize - sizeof(bNull), SEEK_CUR) &&
+               fwrite(&bNull, sizeof(bNull), 1, pFile);
 
         // Close the file (this may be slow)
         fclose(pFile);
@@ -221,23 +193,38 @@ bool CHDFHardDisk::Open ()
 {
     Close();
 
-    if (*m_pszDisk && (m_hfDisk = fopen(m_pszDisk, "r+b")))
+    struct stat st;
+    if (*m_pszDisk && !::stat(m_pszDisk, &st) && (m_hfDisk = fopen(m_pszDisk, "r+b")))
     {
         RS_IDE sHeader;
 
-        if (!fread(&sHeader, sizeof sHeader, 1, m_hfDisk) || sHeader.bRevision != 0x10 ||
-            sHeader.bFlags & 1 || memcmp(sHeader.szSignature, "RS-IDE", sizeof sHeader.szSignature))
+        if (!fread(&sHeader, sizeof(sHeader), 1, m_hfDisk) || sHeader.bFlags & 3 ||
+            memcmp(sHeader.szSignature, "RS-IDE", sizeof(sHeader.szSignature)))
             TRACE("!!! Invalid or incompatible HDF file\n");
         else
         {
-            // Use the identity structure from the header
-            memcpy(&m_sIdentity, &sHeader.sIdentity, sizeof m_sIdentity);
+            // Clear out any existing identity data
+            memset(m_abIdentity, 0, sizeof(m_abIdentity));
 
-            // Extract the disk geometry from the identity structure
-            m_sGeometry.uCylinders = ATAGET(m_sIdentity.wLogicalCylinders);
-            m_sGeometry.uHeads = ATAGET(m_sIdentity.wLogicalHeads);
-            m_sGeometry.uSectors = ATAGET(m_sIdentity.wSectorsPerTrack);
-            m_sGeometry.uTotalSectors = m_sGeometry.uCylinders * m_sGeometry.uHeads * m_sGeometry.uSectors;
+            // Determine the offset to the device data and the sector size (fixed for now)
+            m_uDataOffset = (sHeader.bOffsetHigh << 8) | sHeader.bOffsetLow;
+            m_uSectorSize = 512;
+
+            // Calculate how much of the header is identity data
+            UINT uIdentity = m_uDataOffset - sizeof(sHeader);
+
+            // Read the identity data
+            if (m_uDataOffset < sizeof(sHeader) || !fread(m_abIdentity, min(uIdentity,sizeof(m_abIdentity)), 1, m_hfDisk))
+                TRACE("HDF data offset is invalid!\n");
+            else
+            {
+                // Extract the disk geometry from the identity structure
+                DEVICEIDENTITY *pdi = reinterpret_cast<DEVICEIDENTITY*>(m_abIdentity);
+                m_sGeometry.uCylinders = ATAGET(pdi->wLogicalCylinders);
+                m_sGeometry.uHeads = ATAGET(pdi->wLogicalHeads);
+                m_sGeometry.uSectors = ATAGET(pdi->wSectorsPerTrack);
+                m_sGeometry.uTotalSectors = (st.st_size-m_uDataOffset)/m_uSectorSize;
+            }
 
             return true;
         }
@@ -258,12 +245,12 @@ void CHDFHardDisk::Close ()
 
 bool CHDFHardDisk::ReadSector (UINT uSector_, BYTE* pb_)
 {
-    UINT uOffset = sizeof(RS_IDE) + (uSector_ << 9);
-    return m_hfDisk && !fseek(m_hfDisk, uOffset, SEEK_SET) && fread(pb_, 1<<9, 1, m_hfDisk);
+    UINT uOffset = m_uDataOffset + (uSector_ * m_uSectorSize);
+    return m_hfDisk && !fseek(m_hfDisk, uOffset, SEEK_SET) && fread(pb_, m_uSectorSize, 1, m_hfDisk);
 }
 
 bool CHDFHardDisk::WriteSector (UINT uSector_, BYTE* pb_)
 {
-    UINT uOffset = sizeof(RS_IDE) + (uSector_ << 9);
-    return m_hfDisk && !fseek(m_hfDisk, uOffset, SEEK_SET) && fwrite(pb_, 1<<9, 1, m_hfDisk);
+    UINT uOffset = m_uDataOffset + (uSector_ * m_uSectorSize);
+    return m_hfDisk && !fseek(m_hfDisk, uOffset, SEEK_SET) && fwrite(pb_, m_uSectorSize, 1, m_hfDisk);
 }
