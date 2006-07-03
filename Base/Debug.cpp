@@ -2,7 +2,7 @@
 //
 // Debug.cpp: Integrated Z80 debugger
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -1112,22 +1112,25 @@ void CRegisterPanel::Draw (CScreen* pScreen_)
     pScreen_->DrawString(m_nX+45, m_nY+108, szFlags, WHITE);
     pScreen_->DrawString(m_nX+45, m_nY+108, szFlags+9, RegCol(1,0));
 
+    pScreen_->DrawString(m_nX, m_nY+136, "ROM0", (lmpr&LMPR_ROM0_OFF)?GREY_3:WHITE);
+    pScreen_->DrawString(m_nX, m_nY+136, "      ROM1", (lmpr&LMPR_ROM1)?WHITE:GREY_3);
+    pScreen_->DrawString(m_nX, m_nY+136, "            WPROT", (lmpr&LMPR_WPROT)?WHITE:GREY_3);
 
-    pScreen_->DrawString(m_nX, m_nY+136, "L:    H:    V:", GREEN_8);
+    pScreen_->DrawString(m_nX, m_nY+148, "L:    H:    V:", GREEN_8);
     sprintf(sz, "  %02d    %02d    %02d", lmpr&0x1f, hmpr&0x1f, vmpr&0x1f);
-    pScreen_->DrawString(m_nX, m_nY+136, sz, WHITE);
-
-    pScreen_->DrawString(m_nX, m_nY+148, "LE:   HE:   M:", GREEN_8);
-    sprintf(sz, "   %02d    %02d   %01d", lepr&0x1f, hepr&0x1f, ((vmpr&VMPR_MODE_MASK)>>5)+1);
     pScreen_->DrawString(m_nX, m_nY+148, sz, WHITE);
 
-    pScreen_->DrawString(m_nX, m_nY+164, "Scan:", GREEN_8);
-    sprintf(sz, "%03d:%03d", g_nLine, g_nLineCycle+1);
-    pScreen_->DrawString(m_nX+36, m_nY+164, sz, RegCol(1,0));
+    pScreen_->DrawString(m_nX, m_nY+160, "LE:   HE:   M:", GREEN_8);
+    sprintf(sz, "   %02d    %02d   %01d", lepr&0x1f, hepr&0x1f, ((vmpr&VMPR_MODE_MASK)>>5)+1);
+    pScreen_->DrawString(m_nX, m_nY+160, sz, WHITE);
 
-    pScreen_->DrawString(m_nX, m_nY+176, "T-diff:", GREEN_8);
+    pScreen_->DrawString(m_nX, m_nY+176, "Scan:", GREEN_8);
+    sprintf(sz, "%03d:%03d", g_nLine, g_nLineCycle+1);
+    pScreen_->DrawString(m_nX+36, m_nY+176, sz, RegCol(1,0));
+
+    pScreen_->DrawString(m_nX, m_nY+188, "T-diff:", GREEN_8);
     sprintf(sz, "%u", g_dwCycleCounter-dwLastCycle);
-    pScreen_->DrawString(m_nX+44, m_nY+176, sz, WHITE);
+    pScreen_->DrawString(m_nX+44, m_nY+188, sz, WHITE);
 
     pScreen_->SetFont(&sGUIFont);
 }
