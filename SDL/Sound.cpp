@@ -2,7 +2,7 @@
 //
 // Sound.cpp: SDL sound implementation
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -281,7 +281,7 @@ CStreamBuffer::CStreamBuffer (int nChannels_/*=NULL*/)
     m_nSamplesPerFrame = SOUND_FREQ / EMULATED_FRAMES_PER_SECOND;
     m_nSampleSize = m_nChannels * SOUND_BITS / 8;
 
-    m_pbFrameSample = new BYTE[m_nSamplesPerFrame * m_nSampleSize];
+    m_pbFrameSample = new Uint8[m_nSamplesPerFrame * m_nSampleSize];
 }
 
 CStreamBuffer::~CStreamBuffer ()
@@ -328,7 +328,7 @@ CSoundStream::CSoundStream (int nChannels_/*=0*/)
 {
     m_nSampleBufferSize = m_nSamplesPerFrame * m_nSampleSize * (GetOption(latency)+1);
     TRACE("Sample buffer size = %d samples\n", m_nSampleBufferSize/m_nSampleSize);
-    m_pbEnd = (m_pbNow = m_pbStart = new BYTE[m_nSampleBufferSize]) + m_nSampleBufferSize;
+    m_pbEnd = (m_pbNow = m_pbStart = new Uint8[m_nSampleBufferSize]) + m_nSampleBufferSize;
 
     Silence();
 }
@@ -360,7 +360,7 @@ int CSoundStream::GetSpaceAvailable ()
     return m_pbEnd-m_pbNow;
 }
 
-void CSoundStream::AddData (BYTE* pbData_, int nLength_)
+void CSoundStream::AddData (Uint8* pbData_, int nLength_)
 {
     // We must have some samples or there's be nothing to do
     if (nLength_ > 0)
@@ -387,14 +387,14 @@ void CSoundStream::AddData (BYTE* pbData_, int nLength_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void CSAA::Generate (BYTE* pb_, int nSamples_)
+void CSAA::Generate (Uint8* pb_, int nSamples_)
 {
     // Samples could now be zero, so check...
     if (nSamples_ > 0)
-        pSAASound->GenerateMany(pb_, nSamples_);
+        pSAASound->GenerateMany(reinterpret_cast<BYTE*>(pb_), nSamples_);
 }
 
-void CSAA::GenerateExtra (BYTE* pb_, int nSamples_)
+void CSAA::GenerateExtra (Uint8* pb_, int nSamples_)
 {
     // If at least one sound update is done per screen line then it's being used for sample playback,
     // so generate the fill-in data from previous data to try and keep it sounding about right
@@ -403,7 +403,7 @@ void CSAA::GenerateExtra (BYTE* pb_, int nSamples_)
 
     // Normal SAA sound use, so generate more real samples to give a seamless join
     else if (nSamples_ > 0)
-        pSAASound->GenerateMany(pb_, nSamples_);
+        pSAASound->GenerateMany(reinterpret_cast<BYTE*>(pb_), nSamples_);
 }
 
 void CSAA::Out (WORD wPort_, BYTE bVal_)
@@ -436,7 +436,7 @@ CDAC::CDAC () : CSoundStream(0)
 }
 
 
-void CDAC::Generate (BYTE* pb_, int nSamples_)
+void CDAC::Generate (Uint8* pb_, int nSamples_)
 {
     if (!nSamples_)
     {
@@ -491,7 +491,7 @@ void CDAC::Generate (BYTE* pb_, int nSamples_)
     m_uPrevPeriod = m_uPeriod;
 }
 
-void CDAC::GenerateExtra (BYTE* pb_, int nSamples_)
+void CDAC::GenerateExtra (Uint8* pb_, int nSamples_)
 {
     // Re-use the specified amount from the previous sample,
     if (pb_ != m_pbFrameSample)

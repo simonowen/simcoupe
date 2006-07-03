@@ -50,8 +50,8 @@ class CStreamBuffer
         virtual ~CStreamBuffer ();
 
     public:
-        virtual void Generate (BYTE* pb_, int nSamples_) = 0;
-        virtual void GenerateExtra (BYTE* pb_, int nSamples_) = 0;
+        virtual void Generate (Uint8* pb_, int nSamples_) = 0;
+        virtual void GenerateExtra (Uint8* pb_, int nSamples_) = 0;
 
     public:
         virtual void Play () = 0;
@@ -60,7 +60,7 @@ class CStreamBuffer
 
         virtual int GetSpaceAvailable () = 0;
         virtual void Update (bool fFrameEnd_=false);
-        virtual void AddData (BYTE* pbSampleData_, int nSamples_) = 0;
+        virtual void AddData (Uint8* pbSampleData_, int nSamples_) = 0;
 
     protected:
         int m_nChannels, m_nSampleSize, m_nSamplesThisFrame, m_nSamplesPerFrame;
@@ -68,7 +68,7 @@ class CStreamBuffer
         UINT m_uSamplesPerUnit, m_uCyclesPerUnit, m_uOffsetPerUnit;
         UINT m_uPeriod;
 
-        BYTE *m_pbFrameSample;
+        Uint8 *m_pbFrameSample;
 };
 
 
@@ -85,9 +85,9 @@ class CSoundStream : public CStreamBuffer
         void Silence (bool fFill_=false);
 
         int GetSpaceAvailable ();
-        void AddData (BYTE* pbSampleData_, int nLength_);
+        void AddData (Uint8* pbSampleData_, int nLength_);
 
-        BYTE *m_pbStart, *m_pbEnd, *m_pbNow;
+        Uint8 *m_pbStart, *m_pbEnd, *m_pbNow;
         int m_nSampleBufferSize;
 
     public:
@@ -101,8 +101,8 @@ class CSAA : public CSoundStream
         CSAA (int nChannels_/*=0*/) : CSoundStream(nChannels_), m_nUpdates(0) { }
 
     public:
-        void Generate (BYTE* pb_, int nSamples_);
-        void GenerateExtra (BYTE* pb_, int nSamples_);
+        void Generate (Uint8* pb_, int nSamples_);
+        void GenerateExtra (Uint8* pb_, int nSamples_);
 
         void Out (WORD wPort_, BYTE bVal_);
         void Update (bool fFrameEnd_=false);
@@ -118,8 +118,8 @@ class CDAC : public CSoundStream
         CDAC ();
 
     public:
-        void Generate (BYTE* pb_, int nSamples_);
-        void GenerateExtra (BYTE* pb_, int nSamples_);
+        void Generate (Uint8* pb_, int nSamples_);
+        void GenerateExtra (Uint8* pb_, int nSamples_);
 
         void OutputLeft (BYTE bVal_)            { Update(); m_bLeft = bVal_; }
         void OutputRight (BYTE bVal_)           { Update(); m_bRight = bVal_; }
