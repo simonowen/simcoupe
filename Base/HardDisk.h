@@ -2,7 +2,7 @@
 //
 // HardDisk.h: Hard disk abstraction layer
 //
-//  Copyright (c) 2004-2005 Simon Owen
+//  Copyright (c) 2004-2006 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ class CHardDisk : public CATADevice
         bool IsBDOSDisk ();
 
     protected:
-        static bool CalculateGeometry (ATA_GEOMETRY* pg_);
+        static void CalculateGeometry (ATA_GEOMETRY* pg_);
         static void SetIdentityString (char* psz_, size_t uLen_, const char* pcszValue_);
 
     protected:
@@ -67,6 +67,7 @@ class CHDFHardDisk : public CHardDisk
 
     protected:
         FILE* m_hfDisk;
+        UINT m_uDataOffset, m_uSectorSize;
 };
 
 #endif
