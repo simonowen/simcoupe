@@ -2,7 +2,7 @@
 //
 // ATA.h: ATA hard disk (and future ATAPI CD-ROM) emulation
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -167,7 +167,7 @@ class CATADevice
 
     protected:
         ATAregs m_sRegs;                // AT device registers
-        DEVICEIDENTITY m_sIdentity;     // Response to IDENTIFY command
+        BYTE    m_abIdentity[512];      // Identity sector to return
         ATA_GEOMETRY m_sGeometry;       // Device geometry
 
         BYTE    m_abSectorData[512];    // Sector buffer used for all reads and writes

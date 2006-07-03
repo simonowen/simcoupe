@@ -2,7 +2,7 @@
 //
 // ATA.cpp: ATA hard disk (and future ATAPI CD-ROM) emulation
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@
 CATADevice::CATADevice ()
 {
     memset(&m_sGeometry, 0, sizeof(m_sGeometry));
-    memset(&m_sIdentity, 0, sizeof(m_sIdentity));
+    memset(&m_abIdentity, 0, sizeof(m_abIdentity));
 
     Reset();
 }
@@ -476,13 +476,9 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                         case 0xec:
                         {
                             TRACE("ATA: Disk command: IDENTIFY\n");
-
-                            // Clear out the sector and copy in the identity data
-                            memset(m_abSectorData+sizeof(DEVICEIDENTITY), 0, sizeof(m_abSectorData)-sizeof(DEVICEIDENTITY));
-                            memcpy(&m_abSectorData, &m_sIdentity, sizeof(m_sIdentity));
-
+                            memcpy(&m_abSectorData, &m_abIdentity, sizeof(m_abSectorData));
                             m_pbBuffer = m_abSectorData;
-                            m_uBuffer = sizeof m_abSectorData;
+                            m_uBuffer = sizeof(m_abSectorData);
                         }
                         break;
 
