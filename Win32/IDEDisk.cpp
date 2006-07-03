@@ -2,7 +2,7 @@
 //
 // IDEDisk.cpp: Platform-specific IDE direct disk access
 //
-//  Copyright (c) 2003-2005 Simon Owen
+//  Copyright (c) 2003-2006 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,26 +39,29 @@ bool CDeviceHardDisk::Open ()
         // Read the drive geometry (possibly fake) and size, checking for a disk device
         if (DeviceIoControl(m_hDevice, IOCTL_DISK_GET_PARTITION_INFO, NULL, 0, &pi, sizeof pi, &dwRet, NULL))
         {
-            // Extract the disk geometry and size in sectors, and normalise to CHS
+            // Extract the disk geometry and size in sectors, and calculate a suitable CHS to report
             // We round down to the nearest 1K to fix a single sector error with some CF card readers
             m_sGeometry.uTotalSectors = static_cast<UINT>(pi.PartitionLength.QuadPart >> 9) & ~1U;
             CalculateGeometry(&m_sGeometry);
 
-            // Fill the identity structure as appropriate
-            memset(&m_sIdentity, 0, sizeof m_sIdentity);
-            ATAPUT(m_sIdentity.wCaps, 0x2241);                              // Fixed device, motor control, hard sectored, <= 5Mbps
-            ATAPUT(m_sIdentity.wLogicalCylinders, m_sGeometry.uCylinders);
-            ATAPUT(m_sIdentity.wLogicalHeads, m_sGeometry.uHeads);
-            ATAPUT(m_sIdentity.wBytesPerTrack, m_sGeometry.uSectors << 9);
-            ATAPUT(m_sIdentity.wBytesPerSector, 1 << 9);
-            ATAPUT(m_sIdentity.wSectorsPerTrack, m_sGeometry.uSectors);
-            ATAPUT(m_sIdentity.wControllerType, 1);                         // Single port, single sector
-            ATAPUT(m_sIdentity.wBufferSize512, 1);
-            ATAPUT(m_sIdentity.wLongECCBytes, 4);
+            // Clear any existing identity data
+            DEVICEIDENTITY *pdi = reinterpret_cast<DEVICEIDENTITY*>(m_abIdentity);
+            memset(&m_abIdentity, 0, sizeof(m_abIdentity));
 
-            CHardDisk::SetIdentityString(m_sIdentity.szSerialNumber, sizeof(m_sIdentity.szSerialNumber), "100");
-            CHardDisk::SetIdentityString(m_sIdentity.szFirmwareRev,  sizeof(m_sIdentity.szFirmwareRev), "1.0");
-            CHardDisk::SetIdentityString(m_sIdentity.szModelNumber,  sizeof(m_sIdentity.szModelNumber), "SAM IDE Device");
+            // Fill the identity structure as appropriate
+            ATAPUT(pdi->wCaps, 0x2241);                              // Fixed device, motor control, hard sectored, <= 5Mbps
+            ATAPUT(pdi->wLogicalCylinders, m_sGeometry.uCylinders);
+            ATAPUT(pdi->wLogicalHeads, m_sGeometry.uHeads);
+            ATAPUT(pdi->wBytesPerTrack, m_sGeometry.uSectors << 9);
+            ATAPUT(pdi->wBytesPerSector, 1 << 9);
+            ATAPUT(pdi->wSectorsPerTrack, m_sGeometry.uSectors);
+            ATAPUT(pdi->wControllerType, 1);                         // Single port, single sector
+            ATAPUT(pdi->wBufferSize512, 1);
+            ATAPUT(pdi->wLongECCBytes, 4);
+
+            CHardDisk::SetIdentityString(pdi->szSerialNumber, sizeof(pdi->szSerialNumber), "100");
+            CHardDisk::SetIdentityString(pdi->szFirmwareRev,  sizeof(pdi->szFirmwareRev), "1.0");
+            CHardDisk::SetIdentityString(pdi->szModelNumber,  sizeof(pdi->szModelNumber), "SAM IDE Device");
 
             // For safety, only deal with existing BDOS or SDIDE hard disks
             if (IsBDOSDisk() || IsSDIDEDisk())
