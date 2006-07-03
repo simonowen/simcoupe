@@ -33,6 +33,10 @@
 #endif
 #define SDL
 
+#ifdef __APPLE__
+#include <sys/disk.h>       // for DKIOCGETBLOCKCOUNT
+#endif
+
 #ifdef USE_OPENGL
 #include "SDL_opengl.h"
 #endif
