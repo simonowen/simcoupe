@@ -170,8 +170,10 @@ bool Input::Init (bool fFirstInit_/*=false*/)
                 pJoystick2 = SDL_JoystickOpen(i);
         }
 
+#ifdef USE_JOYPOLLING
         // Disable joystick events as we'll poll ourselves when necessary
         SDL_JoystickEventState(SDL_DISABLE);
+#endif
     }
 
     SDL_EnableUNICODE(1);
@@ -811,6 +813,56 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 Mouse::SetButton(pEvent_->button.button, false);
             }
             break;
+
+
+#ifndef USE_JOYPOLLING
+
+        case SDL_JOYAXISMOTION:
+        {
+            SDL_JoyAxisEvent* p = &pEvent_->jaxis;
+            bool fJoystick1 = pJoystick1 && SDL_JoystickIndex(pJoystick1) == p->which;
+            SDLKey nBaseKey = fJoystick1 ? SDLK_6 : SDLK_1;
+            int nDeadZone = 32768 * (fJoystick1 ? GetOption(deadzone1) : GetOption(deadzone2)) / 100;
+
+            // X axis?
+            if (!p->axis)
+            {
+                SetMasterKey(nBaseKey+0, p->value < -nDeadZone);
+                SetMasterKey(nBaseKey+1, p->value >  nDeadZone);
+            }
+            else
+            {
+                SetMasterKey(nBaseKey+2, p->value >  nDeadZone);
+                SetMasterKey(nBaseKey+3, p->value < -nDeadZone);
+            }
+
+            break;
+        }
+
+        case SDL_JOYHATMOTION:
+        {
+            SDL_JoyHatEvent *p = &pEvent_->jhat;
+            int nHat = p->value;
+
+            SetMasterKey(SDLK_6, (nHat & SDL_HAT_LEFT) != 0);
+            SetMasterKey(SDLK_7, (nHat & SDL_HAT_RIGHT) != 0);
+            SetMasterKey(SDLK_8, (nHat & SDL_HAT_DOWN) != 0);
+            SetMasterKey(SDLK_9, (nHat & SDL_HAT_UP) != 0);
+
+            break;
+        }
+
+        case SDL_JOYBUTTONDOWN:
+        case SDL_JOYBUTTONUP:
+        {
+            SDL_JoyButtonEvent *p = &pEvent_->jbutton;
+            bool fJoystick1 = pJoystick1 && SDL_JoystickIndex(pJoystick1) == p->which;
+            SDLKey nButton = fJoystick1 ? SDLK_0 : SDLK_5;
+
+            SetMasterKey(nButton, pEvent_->type == SDL_JOYBUTTONDOWN);
+            break;
+        }
+#endif
     }
 }
 
@@ -820,6 +872,7 @@ void Input::Update ()
     // Read the keyboard and update the SAM keyboard matrix from the current key states
     ReadKeyboard();
 
+#ifdef USE_JOYPOLLING
     // Any joysticks active?
     if (pJoystick1 || pJoystick2)
     {
@@ -837,6 +890,7 @@ void Input::Update ()
         if (pJoystick2)
             ReadJoystick(pJoystick2, GetOption(deadzone2), anJoystick2);
     }
+#endif
 
     SetSamKeyState();
 }
