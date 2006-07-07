@@ -825,12 +825,12 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
             int nDeadZone = 32768 * (fJoystick1 ? GetOption(deadzone1) : GetOption(deadzone2)) / 100;
 
             // X axis?
-            if (!p->axis)
+            if (p->axis == 0)
             {
                 SetMasterKey(nBaseKey+0, p->value < -nDeadZone);
                 SetMasterKey(nBaseKey+1, p->value >  nDeadZone);
             }
-            else
+            else if (p->axis == 1)  // Y axis?
             {
                 SetMasterKey(nBaseKey+2, p->value >  nDeadZone);
                 SetMasterKey(nBaseKey+3, p->value < -nDeadZone);
