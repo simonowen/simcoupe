@@ -60,8 +60,10 @@
 #define PATH_SEPARATOR      '/'
 
 typedef unsigned int        DWORD;  // must be 32-bit
+#ifndef __AMIGAOS4__
 typedef unsigned short      WORD;   // must be 16-bit
 typedef unsigned char       BYTE;   // must be 8-bit
+#endif
 
 #endif
 
