@@ -80,7 +80,7 @@ OPTION aOptions[] =
     OPT_S("ROM",          rom,            ""),        // No custom ROM (use built-in)
     OPT_F("HDBootRom",    hdbootrom,      false),     // Don't use HDBOOT ROM patches
     OPT_F("FastReset",    fastreset,      true),      // Allow fast Z80 resets
-    OPT_F("AsicDelay",    asicdelay,      false),     // No ASIC startup delay of ~50ms
+    OPT_F("AsicDelay",    asicdelay,      true),      // ASIC startup delay of ~50ms
     OPT_N("MainMemory",   mainmem,        512),       // 512K main memory
     OPT_N("ExternalMem",  externalmem,    0),         // No external memory
 
@@ -284,7 +284,7 @@ bool Options::Load (int argc_, char* argv_[])
 
                         // For backwards compatability we must force the autoboot option if it's enabled
                         if (!strcasecmp(p->pcszName, "AutoBoot"))
-                            g_fAutoBoot |= *p->pf;
+                            g_fAutoBoot = *p->pf;
 
                         continue;
                     }
