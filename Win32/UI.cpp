@@ -895,6 +895,14 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             PostQuitMessage(0);
             return 0;
 
+        // System shutting down or using logging out
+        case WM_QUERYENDSESSION:
+            // Save without prompting, to avoid data loss
+            if (pDrive1) pDrive1->Save();
+            if (pDrive2) pDrive2->Save();
+            return TRUE;
+
+
         // Main window being activated or deactivated
         case WM_ACTIVATE:
         {
