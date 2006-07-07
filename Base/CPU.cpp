@@ -423,9 +423,11 @@ void CPU::ExecuteChunk ()
         CheckCpuEvents();
     }
 
-// Only check for breakpoints if we're NOT using low-res mode
-#ifndef USE_LOWRES
-    if (!Debug::IsBreakpointSet())
+// Execute the first CPU core block in low-res mode, or if only 1 CPU core is compiled in
+#if defined(USE_LOWRES) || defined(USE_ONECPUCORE)
+    if (1)
+#else
+    if (Debug::IsBreakpointSet())
 #endif
     {
         // Loop until we've reached the end of the frame
@@ -452,12 +454,19 @@ void CPU::ExecuteChunk ()
             if (status_reg != STATUS_INT_NONE && iff1)
                 CheckInterrupt();
 
+// Don't bother checking for breakpoints if the debugger isn't available
+#if !defined(USE_LOWRES)
+            // If we're not in an IX/IY instruction, check for breakpoints
+            if (pNewHlIxIy == &hl && Debug::BreakpointHit())
+                break;
+#endif
+
 #ifdef _DEBUG
             if (g_fDebug) g_fDebug = !Debug::Start();
 #endif
         }
     }
-#ifndef USE_LOWRES
+#if !defined(USE_LOWRES) && !defined(USE_ONECPUCORE)
     else
     {
         // Loop until we've reached the end of the frame
@@ -484,15 +493,12 @@ void CPU::ExecuteChunk ()
             if (status_reg != STATUS_INT_NONE && iff1)
                 CheckInterrupt();
 
-            if (pNewHlIxIy == &hl && Debug::BreakpointHit())
-                break;
-
 #ifdef _DEBUG
             if (g_fDebug) g_fDebug = !Debug::Start();
 #endif
         }
     }
-#endif  // USE_LOWRES
+#endif  // !defined(USE_LOWRES) && !defined(USE_ONECPUCORE)
 
     ProfileEnd();
 }
