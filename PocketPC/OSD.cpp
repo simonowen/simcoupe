@@ -27,6 +27,7 @@
 #include "Frame.h"
 #include "Main.h"
 #include "Options.h"
+#include "Parallel.h"
 #include "UI.h"
 
 int OSD::s_nTicks;
@@ -192,6 +193,15 @@ int OSD::FrameSync (bool fWait_/*=true*/)
     // Return the current tick count
     return s_nTicks;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Dummy printer device implementation
+CPrinterDevice::CPrinterDevice () { }
+CPrinterDevice::~CPrinterDevice () { }
+bool CPrinterDevice::Open () { return false; }
+void CPrinterDevice::Close () { }
+void CPrinterDevice::Write (BYTE *pb_, size_t uLen_) { }
 
 ////////////////////////////////////////////////////////////////////////////////
 
