@@ -64,7 +64,7 @@ BEGIN
                     IDC_STATIC,22,74,160,18
     LTEXT           "Based on original DOS/X versions by:\n     Allan Skillman <allan.skillman@arm.com>",
                     IDC_STATIC,22,96,160,18
-    LTEXT           "Additional technical enhancements:\n     Dave Laundon <dave.laundon@simcoupe.org>",
+    LTEXT           "CPU contention and sound enhancements:\n     Dave Laundon <dave.laundon@simcoupe.org>",
                     IDC_STATIC,22,118,160,18
     LTEXT           "Phillips SAA 1099 sound chip emulation:\n     Dave Hooper <dave@rebuzz.org>",
                     IDC_STATIC,22,140,160,18
@@ -338,14 +338,14 @@ BEGIN
                     146,10
     CONTROL         "Automagically boot non-bootable disks",IDC_DOSBOOT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,104,137,10
-    EDITTEXT        IDE_DOSDISK,65,128,126,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDB_BROWSE,194,128,14,14
+    EDITTEXT        IDE_DOSDISK,64,128,129,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDB_BROWSE,195,128,14,14
     ICON            IDI_DRIVE,IDC_STATIC,7,7,20,20
     GROUPBOX        "Drives:",IDC_STATIC,45,7,170,30
     LTEXT           "D1:",IDC_STATIC,52,20,12,8
     LTEXT           "D2:",IDC_STATIC,134,20,12,8
     GROUPBOX        "Options",IDC_STATIC,45,42,170,107
-    LTEXT           "DOS image (leave blank for SAMDOS2):",IDS_DOSDISK,65,
+    LTEXT           "DOS image (leave blank for SAMDOS2):",IDS_DOSDISK,64,
                     117,128,8
 END
 
