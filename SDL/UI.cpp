@@ -66,8 +66,9 @@ bool UI::Init (bool fFirstInit_/*=false*/)
                     "  F1 - Insert disk image\n"
                     "  F10 - Options\n"
                     "  F12 - Reset\n"
-                    "  Ctrl-F12 - Exit emulator\n\n"
-                    "Consult the ReadMe.txt for further details.",
+                    "  Ctrl-F12 - Exit emulator\n"
+                    "  Numpad-9 - Boot drive 1\n\n"
+                    "Consult the README for further details.",
                     "Welcome to SimCoupe!",
                     mbInformation));
     }
