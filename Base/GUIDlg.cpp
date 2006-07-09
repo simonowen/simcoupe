@@ -65,7 +65,7 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     new CTextControl(this, 41, y,    "Based on original DOS/X versions by:", BLUE_5);
     new CTextControl(this, 51, y+13, "Allan Skillman <allan.skillman@arm.com>", BLACK); y += 32;
 
-    new CTextControl(this, 41, y,    "Additional technical enhancements:", BLUE_5);
+    new CTextControl(this, 41, y,    "CPU contention and sound enhancements:", BLUE_5);
     new CTextControl(this, 51, y+13, "Dave Laundon <dave.laundon@simcoupe.org>", BLACK); y += 32;
 
     new CTextControl(this, 41, y,    "Phillips SAA 1099 sound chip emulation:", BLUE_5);
@@ -900,26 +900,28 @@ class CDriveOptions : public CDialog
         {
             new CIconControl(this, 10, 10, &sHardDiskIcon);
 
-            new CFrameControl(this, 50, 16, 238, 38);
-            new CTextControl(this, 60, 12, "Drive 1", YELLOW_8, BLUE_2);
+            new CFrameControl(this, 50, 16, 238, 42);
+            new CTextControl(this, 60, 12, "Drives", YELLOW_8, BLUE_2);
 
-            new CTextControl(this, 63, 30, "Device connected:");
-            m_pDrive1 = new CComboBox(this, 163, 27, "None|Floppy disk image", 115);
+            new CTextControl(this, 63, 32, "D1:");
+            m_pDrive1 = new CComboBox(this, 83, 29, "None|Floppy", 80);
 
-            new CFrameControl(this, 50, 64, 238, 38);
-            new CTextControl(this, 60, 60, "Drive 2", YELLOW_8, BLUE_2);
+            new CTextControl(this, 178, 32, "D2:");
+            m_pDrive2 = new CComboBox(this, 198, 29, "None|Floppy|Atom HDD", 80);
 
-            new CTextControl(this, 63, 78, "Device connected:");
-            m_pDrive2 = new CComboBox(this, 163, 75, "None|Floppy disk image|Atom hard disk", 115);
+            new CFrameControl(this, 50, 71, 238, 120);
+            new CTextControl(this, 60, 67, "Options", YELLOW_8, BLUE_2);
 
-            new CFrameControl(this, 50, 112, 238, 53);
-            new CTextControl(this, 60, 108, "Options", YELLOW_8, BLUE_2);
+            m_pTurboLoad = new CCheckBox(this, 60, 87, "Fast disk access");
+            new CTextControl(this, 165, 88, "Sensitivity:");
+            m_pSensitivity = new CComboBox(this, 220, 84, "Low|Medium|High", 58);
 
-            m_pTurboLoad = new CCheckBox(this, 60, 125, "Fast disk access");
-            new CTextControl(this, 165, 126, "Sensitivity:");
-            m_pSensitivity = new CComboBox(this, 220, 122, "Low|Medium|High", 62);
+            m_pAutoBoot = new CCheckBox(this, 60, 108, "Auto-boot disks at startup screen");
 
-            m_pAutoBoot = new CCheckBox(this, 60, 145, "Auto-boot disks inserted at startup screen");
+            m_pDosBoot = new CCheckBox(this, 60, 129, "Automagically boot non-bootable disks");
+            m_pDosBootText = new CTextControl(this, 77, 148, "DOS image (blank for SAMDOS 2.2):");
+            m_pDosDisk = new CEditControl(this, 77, 164, 182);
+            m_pBrowse = new CTextButton(this, 262, 164, "...", 17);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -929,11 +931,14 @@ class CDriveOptions : public CDialog
             m_pDrive2->Select(GetOption(drive2));
             m_pTurboLoad->SetChecked(GetOption(turboload) != 0);
             m_pAutoBoot->SetChecked(GetOption(autoboot) != 0);
+            m_pDosBoot->SetChecked(GetOption(dosboot) != 0);
+            m_pDosDisk->SetText(GetOption(dosdisk));
             m_pSensitivity->Select(!GetOption(turboload) ? 1 : GetOption(turboload) <= 5 ? 2 :
                                                                GetOption(turboload) <= 50 ? 1 : 0);
 
             // Update the state of the controls to reflect the current settings
             OnNotify(m_pTurboLoad,0);
+            OnNotify(m_pDosBoot,0);
         }
 
     public:
@@ -951,10 +956,21 @@ class CDriveOptions : public CDialog
                 SetOption(turboload, m_pTurboLoad->IsChecked() ? anSpeeds[m_pSensitivity->GetSelected()] : 0);
                 SetOption(autoboot, m_pAutoBoot->IsChecked());
 
+                SetOption(dosboot, m_pDosBoot->IsChecked());
+                SetOption(dosdisk, m_pDosDisk->GetText());
+
                 if (Changed(drive1) || Changed(drive2))
                     IO::InitDrives();
 
                 Destroy();
+            }
+            else if (pWindow_ == m_pBrowse)
+                new CFileBrowser(m_pDosDisk, this, "Browse for DOS Image", &sFloppyFilter);
+            else if (pWindow_ == m_pDosBoot)
+            {
+                m_pDosBootText->Enable(m_pDosBoot->IsChecked());
+                m_pDosDisk->Enable(m_pDosBoot->IsChecked());
+                m_pBrowse->Enable(m_pDosBoot->IsChecked());
             }
             else if (pWindow_ == m_pTurboLoad)
                 m_pSensitivity->Enable(m_pTurboLoad->IsChecked());
@@ -962,8 +978,10 @@ class CDriveOptions : public CDialog
 
     protected:
         CComboBox *m_pDrive1, *m_pDrive2, *m_pSensitivity;
-        CCheckBox *m_pTurboLoad, *m_pAutoBoot;
-        CTextButton *m_pOK, *m_pCancel;
+        CCheckBox *m_pTurboLoad, *m_pAutoBoot, *m_pDosBoot;
+        CEditControl *m_pDosDisk;
+        CTextControl *m_pDosBootText;
+        CTextButton *m_pOK, *m_pCancel, *m_pBrowse;
 };
 
 
