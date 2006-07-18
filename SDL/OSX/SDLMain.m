@@ -260,6 +260,12 @@ static BOOL isFullyLaunched = NO;
 	[self openResourceFile:@"ReadMe.txt"];
 }
 
+// Help -> View ChangeLog
+- (IBAction)helpChangeLog:(id)sender
+{
+	[self openResourceFile:@"ChangeLog.txt"];
+}
+
 // Help -> Homepage
 - (IBAction)helpHomepage:(id)sender
 {

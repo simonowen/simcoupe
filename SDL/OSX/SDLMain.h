@@ -26,6 +26,7 @@
 - (IBAction)systemDebugger:(id)sender;
 - (IBAction)systemMute:(id)sender;
 - (IBAction)helpHelp:(id)sender;
+- (IBAction)helpChangeLog:(id)sender;
 - (IBAction)helpHomepage:(id)sender;
 
 - (void)openResourceFile:( NSString *) fileName;
