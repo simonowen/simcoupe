@@ -12,6 +12,8 @@
 				<string>sad</string>
 				<string>SAD</string>
 			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>file_sad.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>SimCoupe Disk Image</string>
 			<key>CFBundleTypeRole</key>
@@ -23,6 +25,8 @@
 				<string>dsk</string>
 				<string>DSK</string>
 			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>file_dsk.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>SimCoupe Disk Image</string>
 			<key>CFBundleTypeRole</key>
@@ -34,6 +38,8 @@
 				<string>sdf</string>
 				<string>SDF</string>
 			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>file_sdf.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>SimCoupe Disk Image</string>
 			<key>CFBundleTypeRole</key>
@@ -42,13 +48,49 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
+				<string>sbt</string>
+				<string>SBT</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>file_dsk.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>SimCoupe Disk Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
+			<key>NSPersistentStoreTypeKey</key>
+			<string>XML</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
 				<string>mgt</string>
 				<string>MGT</string>
 			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>file_mgt.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>SimCoupe Disk Image</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>td0</string>
+				<string>TD0</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>file_td0.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>SimCoupe Disk Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
+			<key>NSPersistentStoreTypeKey</key>
+			<string>XML</string>
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
