@@ -4,7 +4,7 @@
 //
 //  Copyright (c) 1994 Ian Collier
 //  Copyright (c) 1999-2003 by Dave Laundon
-//  Copyright (c) 1999-2004 by Simon Owen
+//  Copyright (c) 1999-2006 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -77,23 +77,23 @@
     {
         switch(op)
         {
-            case  0: rlc(b); break;
-            case  1: rlc(c); break;
-            case  2: rlc(d); break;
-            case  3: rlc(e); break;
-            case  4: rlc(h); break;
-            case  5: rlc(l); break;
-            case  6: HLbitop; rlc(val); timed_write_byte(addr,val); break;
-            case  7: rlc(a); break;
+            case 0x00: rlc(b); break;
+            case 0x01: rlc(c); break;
+            case 0x02: rlc(d); break;
+            case 0x03: rlc(e); break;
+            case 0x04: rlc(h); break;
+            case 0x05: rlc(l); break;
+            case 0x06: HLbitop; rlc(val); timed_write_byte(addr,val); break;
+            case 0x07: rlc(a); break;
 
-            case  8: rrc(b); break;
-            case  9: rrc(c); break;
-            case 10: rrc(d); break;
-            case 11: rrc(e); break;
-            case 12: rrc(h); break;
-            case 13: rrc(l); break;
-            case 14: HLbitop; rrc(val); timed_write_byte(addr,val); break;
-            case 15: rrc(a); break;
+            case 0x08: rrc(b); break;
+            case 0x09: rrc(c); break;
+            case 0x0a: rrc(d); break;
+            case 0x0b: rrc(e); break;
+            case 0x0c: rrc(h); break;
+            case 0x0d: rrc(l); break;
+            case 0x0e: HLbitop; rrc(val); timed_write_byte(addr,val); break;
+            case 0x0f: rrc(a); break;
 
             case 0x10: rl(b); break;
             case 0x11: rl(c); break;
@@ -148,6 +148,10 @@
             case 0x3d: srl(l); break;
             case 0x3e: HLbitop; srl(val); timed_write_byte(addr,val); break;
             case 0x3f: srl(a); break;
+
+#ifdef NODEFAULT
+            default: NODEFAULT;
+#endif
         }
     }
     else
@@ -181,6 +185,10 @@
             case 0xc5: set(n,l); break;
             case 0xc6: HLbitop; set(n,val); timed_write_byte(addr,val); break;
             case 0xc7: set(n,a); break;
+
+#ifdef NODEFAULT
+            default: NODEFAULT;
+#endif
         }
     }
 
@@ -197,6 +205,10 @@
             case 5: l = val; break;
         //  case 6: break;              // This is the ordinary documented case
             case 7: a = val; break;
+
+#ifdef NODEFAULT
+            default: NODEFAULT;
+#endif
         }
     }
 

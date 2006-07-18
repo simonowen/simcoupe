@@ -625,6 +625,10 @@ instr(5,0357)   push(pc); pc = 050;                                 endinstr;   
 instr(5,0367)   push(pc); pc = 060;                                 endinstr;   // rst 48
 instr(5,0377)   push(pc); pc = 070;                                 endinstr;   // rst 56
 
+#ifdef NODEFAULT
+    default: NODEFAULT;
+#endif
+
 #undef instr
 #undef endinstr
 #undef HLinstr
