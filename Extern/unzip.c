@@ -34,7 +34,9 @@ woven in by Terry Thorsen 1/2003.
   version without encryption capabilities).
  */
 
-#define	NOUNCRYPT	/* Added by SNO to simplify SimCoupe use/updates */
+// The following 2 lines make SimCoupe builds much easier to manage
+#include "SimCoupe.h"
+#define NOUNCRYPT
 
 #include <stdio.h>
 #include <stdlib.h>
