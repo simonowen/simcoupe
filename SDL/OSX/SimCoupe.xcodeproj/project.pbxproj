@@ -117,43 +117,15 @@
 		132CC59109B11512007955DE /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 13A0FFF4088EE31A00E5436C /* libz.dylib */; };
 		132CC59209B11512007955DE /* SDL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13E5AE69088FBB1F00EACEBE /* SDL.framework */; };
 		132CC59309B11512007955DE /* SAASound.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 134923380890664C001D048F /* SAASound.framework */; };
+		1358F5CA0A6C12AE00D20135 /* file_blank.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C30A6C12AE00D20135 /* file_blank.icns */; };
+		1358F5CB0A6C12AE00D20135 /* file_dsk.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C40A6C12AE00D20135 /* file_dsk.icns */; };
+		1358F5CC0A6C12AE00D20135 /* file_mgt.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C50A6C12AE00D20135 /* file_mgt.icns */; };
+		1358F5CD0A6C12AE00D20135 /* file_sad.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C60A6C12AE00D20135 /* file_sad.icns */; };
+		1358F5CE0A6C12AE00D20135 /* file_sbt.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C70A6C12AE00D20135 /* file_sbt.icns */; };
+		1358F5CF0A6C12AE00D20135 /* file_sdf.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C80A6C12AE00D20135 /* file_sdf.icns */; };
+		1358F5D00A6C12AE00D20135 /* file_td0.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C90A6C12AE00D20135 /* file_td0.icns */; };
+		13F693EE0A6D7FA000962105 /* Volume.icns in Resources */ = {isa = PBXBuildFile; fileRef = 13F693ED0A6D7FA000962105 /* Volume.icns */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXBuildStyle section */
-		4A9504CCFFE6A4B311CA0CBA /* Development */ = {
-			isa = PBXBuildStyle;
-			buildSettings = {
-				COPY_PHASE_STRIP = NO;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_ENABLE_CPP_EXCEPTIONS = NO;
-				GCC_ENABLE_CPP_RTTI = NO;
-				GCC_ENABLE_FIX_AND_CONTINUE = YES;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_WARN_PEDANTIC = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_LABEL = YES;
-				GCC_WARN_UNUSED_PARAMETER = NO;
-				GCC_WARN_UNUSED_VALUE = NO;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				OPTIMIZATION_CFLAGS = "-O0";
-				ZERO_LINK = YES;
-			};
-			name = Development;
-		};
-		4A9504CDFFE6A4B311CA0CBA /* Deployment */ = {
-			isa = PBXBuildStyle;
-			buildSettings = {
-				COPY_PHASE_STRIP = YES;
-				GCC_ENABLE_CPP_EXCEPTIONS = NO;
-				GCC_ENABLE_CPP_RTTI = NO;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
-				ZERO_LINK = NO;
-			};
-			name = Deployment;
-		};
-/* End PBXBuildStyle section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		132CC52109B11512007955DE /* CopyFiles */ = {
@@ -176,9 +148,16 @@
 		1314531A08A2C383008C1AB7 /* ReadMe-SDL.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = "ReadMe-SDL.txt"; path = "../../ReadMe-SDL.txt"; sourceTree = "<group>"; };
 		1314531C08A2C39F008C1AB7 /* ChangeLog.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = ChangeLog.txt; path = ../../ChangeLog.txt; sourceTree = "<group>"; };
 		132CC59809B11512007955DE /* Info-SimCoupe.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Info-SimCoupe.plist"; sourceTree = "<group>"; };
-		132CC59909B11512007955DE /* SimCoupe.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SimCoupe.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		132CC59909B11512007955DE /* SimCoupe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SimCoupe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13486F5C0891A08300DB38E0 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
 		134923380890664C001D048F /* SAASound.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SAASound.framework; path = /Library/Frameworks/SAASound.framework; sourceTree = "<absolute>"; };
+		1358F5C30A6C12AE00D20135 /* file_blank.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_blank.icns; sourceTree = "<group>"; };
+		1358F5C40A6C12AE00D20135 /* file_dsk.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_dsk.icns; sourceTree = "<group>"; };
+		1358F5C50A6C12AE00D20135 /* file_mgt.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_mgt.icns; sourceTree = "<group>"; };
+		1358F5C60A6C12AE00D20135 /* file_sad.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_sad.icns; sourceTree = "<group>"; };
+		1358F5C70A6C12AE00D20135 /* file_sbt.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_sbt.icns; sourceTree = "<group>"; };
+		1358F5C80A6C12AE00D20135 /* file_sdf.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_sdf.icns; sourceTree = "<group>"; };
+		1358F5C90A6C12AE00D20135 /* file_td0.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_td0.icns; sourceTree = "<group>"; };
 		1374D20109746C5E001B908F /* Options.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = Options.nib; sourceTree = "<group>"; };
 		1374D22C09747359001B908F /* Options.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Options.h; sourceTree = "<group>"; };
 		1374D22D09747359001B908F /* Options.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Options.m; sourceTree = "<group>"; };
@@ -277,6 +256,7 @@
 		13A0FFEF088EE20300E5436C /* SimCoupe.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = SimCoupe.icns; sourceTree = "<group>"; };
 		13A0FFF4088EE31A00E5436C /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = /usr/lib/libz.dylib; sourceTree = "<absolute>"; };
 		13E5AE69088FBB1F00EACEBE /* SDL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL.framework; path = /Library/Frameworks/SDL.framework; sourceTree = "<absolute>"; };
+		13F693ED0A6D7FA000962105 /* Volume.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Volume.icns; sourceTree = "<group>"; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		B2F67ED704C74A3F00A80002 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = /System/Library/Frameworks/OpenGL.framework; sourceTree = "<absolute>"; };
@@ -454,6 +434,22 @@
 			name = Extern;
 			sourceTree = "<group>";
 		};
+		13F693EF0A6D7FAD00962105 /* Icons */ = {
+			isa = PBXGroup;
+			children = (
+				13F693ED0A6D7FA000962105 /* Volume.icns */,
+				13A0FFEF088EE20300E5436C /* SimCoupe.icns */,
+				1358F5C30A6C12AE00D20135 /* file_blank.icns */,
+				1358F5C40A6C12AE00D20135 /* file_dsk.icns */,
+				1358F5C50A6C12AE00D20135 /* file_mgt.icns */,
+				1358F5C60A6C12AE00D20135 /* file_sad.icns */,
+				1358F5C80A6C12AE00D20135 /* file_sdf.icns */,
+				1358F5C70A6C12AE00D20135 /* file_sbt.icns */,
+				1358F5C90A6C12AE00D20135 /* file_td0.icns */,
+			);
+			name = Icons;
+			sourceTree = "<group>";
+		};
 		19C28FACFE9D520D11CA2CBB /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -480,9 +476,9 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				13F693EF0A6D7FAD00962105 /* Icons */,
 				132CC59809B11512007955DE /* Info-SimCoupe.plist */,
 				13486F5C0891A08300DB38E0 /* Credits.html */,
-				13A0FFEF088EE20300E5436C /* SimCoupe.icns */,
 				13A0FFEA088EE18600E5436C /* SDLMain.nib */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
 				1374D20109746C5E001B908F /* Options.nib */,
@@ -576,26 +572,6 @@
 			);
 			buildRules = (
 			);
-			buildSettings = {
-				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
-				HEADER_SEARCH_PATHS = "\"/Library/Frameworks/SDL.framework/Headers\"";
-				INSTALL_PATH = "$(HOME)/Applications";
-				LIBRARY_SEARCH_PATHS = "";
-				OPTIMIZATION_CFLAGS = "-O0";
-				OTHER_CFLAGS = (
-					"-DUSE_OPENGL",
-					"-DUSE_ZLIB",
-					"-DUSE_SAASOUND",
-				);
-				PRODUCT_NAME = SimCoupe;
-				SECTORDER_FLAGS = "";
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-				);
-				WRAPPER_EXTENSION = app;
-			};
 			comments = "A SAM Coupé Emulator";
 			dependencies = (
 			);
@@ -611,12 +587,6 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = 1301D3CC096B058800027BFC /* Build configuration list for PBXProject "SimCoupe" */;
-			buildSettings = {
-			};
-			buildStyles = (
-				4A9504CCFFE6A4B311CA0CBA /* Development */,
-				4A9504CDFFE6A4B311CA0CBA /* Deployment */,
-			);
 			hasScannedForEncodings = 1;
 			mainGroup = 29B97314FDCFA39411CA2CEA /* SimCoupe */;
 			projectDirPath = "";
@@ -639,6 +609,14 @@
 				132CC55F09B11512007955DE /* ReadMe-SDL.txt in Resources */,
 				132CC56009B11512007955DE /* ChangeLog.txt in Resources */,
 				132CC56109B11512007955DE /* Options.nib in Resources */,
+				1358F5CA0A6C12AE00D20135 /* file_blank.icns in Resources */,
+				1358F5CB0A6C12AE00D20135 /* file_dsk.icns in Resources */,
+				1358F5CC0A6C12AE00D20135 /* file_mgt.icns in Resources */,
+				1358F5CD0A6C12AE00D20135 /* file_sad.icns in Resources */,
+				1358F5CE0A6C12AE00D20135 /* file_sbt.icns in Resources */,
+				1358F5CF0A6C12AE00D20135 /* file_sdf.icns in Resources */,
+				1358F5D00A6C12AE00D20135 /* file_td0.icns in Resources */,
+				13F693EE0A6D7FA000962105 /* Volume.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -726,9 +704,6 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.2;
 				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
 				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
-				PREBINDING = "$(PREBINDING_$(CURRENT_ARCH))";
-				PREBINDING_i386 = NO;
-				PREBINDING_ppc = YES;
 				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
 				SDKROOT_ppc = /Developer/SDKs/MacOSX10.3.9.sdk;
 			};
@@ -750,9 +725,6 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.2;
 				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
 				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
-				PREBINDING = "$(PREBINDING_$(CURRENT_ARCH))";
-				PREBINDING_i386 = NO;
-				PREBINDING_ppc = YES;
 				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
 				SDKROOT_ppc = /Developer/SDKs/MacOSX10.3.9.sdk;
 			};
@@ -776,6 +748,7 @@
 				INSTALL_PATH = "$(HOME)/Applications";
 				LIBRARY_SEARCH_PATHS = "";
 				OTHER_CFLAGS = "";
+				PREBINDING = NO;
 				PRODUCT_NAME = SimCoupe;
 				SECTORDER_FLAGS = "";
 				WARNING_CFLAGS = (
@@ -804,9 +777,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.2;
 				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
 				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
-				PREBINDING = "$(PREBINDING_$(CURRENT_ARCH))";
-				PREBINDING_i386 = NO;
-				PREBINDING_ppc = YES;
+				PREBINDING = NO;
 				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
 				SDKROOT_ppc = /Developer/SDKs/MacOSX10.3.9.sdk;
 			};
@@ -832,6 +803,7 @@
 				INSTALL_PATH = "$(HOME)/Applications";
 				LIBRARY_SEARCH_PATHS = "";
 				OTHER_CFLAGS = "";
+				PREBINDING = NO;
 				PRODUCT_NAME = SimCoupe;
 				SECTORDER_FLAGS = "";
 				WARNING_CFLAGS = (
@@ -859,6 +831,7 @@
 				INSTALL_PATH = "$(HOME)/Applications";
 				LIBRARY_SEARCH_PATHS = "";
 				OTHER_CFLAGS = "";
+				PREBINDING = NO;
 				PRODUCT_NAME = SimCoupe;
 				SECTORDER_FLAGS = "";
 				WARNING_CFLAGS = (
