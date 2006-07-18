@@ -5,6 +5,7 @@
             ACTIONS = {
                 appPreferences = id; 
                 fileOpen = id; 
+                helpChangeLog = id; 
                 helpHelp = id; 
                 helpHomepage = id; 
                 systemDebugger = id; 
