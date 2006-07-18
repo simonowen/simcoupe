@@ -2,7 +2,7 @@
 //
 // SimCoupe.h: Common SimCoupe header, included by all modules
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@
 #ifndef SIMCOUPE_H
 #define SIMCOUPE_H
 
+#ifdef __cplusplus
+
 // If it's not one of these we'll assume big endian (we have a run-time check to fall back on anyway)
 #if (defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__ia64__) || defined(__x86_64__) || \
     (defined(__alpha__) || defined(__alpha)) || (defined(__mips__) && defined(__MIPSEL__)) || \
@@ -35,13 +37,13 @@
 #endif
 #endif
 
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(_DEBUG)
 #define _DEBUG
 #endif
 
 typedef unsigned int        UINT;
 
-#include "OSD.h"            // OS-dependant stuff
+#include "OSD.h"    // OS-dependant stuff
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -49,9 +51,6 @@ typedef unsigned int        UINT;
 #include <stdlib.h>
 #include <ctype.h>
 #include <limits.h>
-
-// To avoid relying on STL, we'll define our own swap template
-template <class T> void swap (T& a, T& b) { T tmp=a; a=b; b=tmp; }
 
 // Windows CE lacks some headers
 #ifndef _WIN32_WCE
@@ -65,9 +64,11 @@ template <class T> void swap (T& a, T& b) { T tmp=a; a=b; b=tmp; }
 #include "zlib.h"               // for gzopen, gzclose, etc.
 #endif
 
+// To avoid relying on STL, we'll define our own swap template
+template <class T> void swap (T& a, T& b) { T tmp=a; a=b; b=tmp; }
+
 #include "SAM.h"        // Various SAM constants
 #include "Util.h"       // TRACE macro and other utility functions
-
 
 #ifndef max
 #define max(a,b)            (((a) > (b)) ? (a) : (b))
@@ -80,5 +81,7 @@ template <class T> void swap (T& a, T& b) { T tmp=a; a=b; b=tmp; }
 #ifndef MAX_PATH
 #define MAX_PATH            260
 #endif
+
+#endif	// __cplusplus
 
 #endif  // SIMCOUPE_H
