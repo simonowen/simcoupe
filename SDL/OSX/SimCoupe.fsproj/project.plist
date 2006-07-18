@@ -11,9 +11,9 @@
 	<key>Build Format</key>
 	<string>DMG (OS X only)</string>
 	<key>Custom Icon Path</key>
-	<string></string>
+	<string>Volume.icns</string>
 	<key>Disk Image Name</key>
-	<string>~/Desktop/SimCoupe-060310.dmg</string>
+	<string>~/Desktop/SimCoupe-1.0.dmg</string>
 	<key>Encode Format</key>
 	<string>None</string>
 	<key>Encryption Type</key>
@@ -48,7 +48,7 @@
 		</dict>
 		<dict>
 			<key>Origin</key>
-			<string>{173, 250}</string>
+			<string>{171, 250}</string>
 			<key>Path</key>
 			<string>/Users/si/SimCoupe/License.txt</string>
 			<key>Type</key>
@@ -72,7 +72,7 @@
 	<key>Show Toolbar</key>
 	<string>TRUE</string>
 	<key>Volume Name</key>
-	<string>SimCoupe 0.90 beta</string>
+	<string>SimCoupe 1.0</string>
 	<key>Window Frame</key>
 	<string>{{256, 56}, {527, 491}}</string>
 </dict>
