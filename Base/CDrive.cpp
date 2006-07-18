@@ -213,7 +213,7 @@ void CDrive::ExecuteNext ()
         {
             // Prepare a fake version built from the known sectors
             if (ReadTrack(m_sRegs.bSide, m_nHeadPos, m_pbBuffer = m_abBuffer, m_uBuffer = sizeof(m_abBuffer)))
-                ModifyStatus(DRQ, BUSY);
+                ModifyStatus(DRQ, 0);
             else
             {
                 ModifyStatus(RECORD_NOT_FOUND, BUSY);
@@ -225,7 +225,7 @@ void CDrive::ExecuteNext ()
 
         case WRITE_TRACK:
         {
-            ModifyStatus(bStatus, BUSY);
+            ModifyStatus(bStatus, 0);
             break;
         }
     }
