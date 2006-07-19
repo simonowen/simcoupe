@@ -44,19 +44,24 @@ void Expr::Release (EXPR* pExpr_)
         for (EXPR* pDel ; (pDel = pExpr_) ; pExpr_ = pExpr_->pNext, delete pDel);
 }
 
+// Add an expression chain to the current expression
+EXPR* AddNode (EXPR* pExpr_)
+{
+    if (!pHead)
+        return pHead = pTail = pExpr_;
+    else
+        return pTail = pTail->pNext = pExpr_;
+}
+
 // Add a new node to the end of the current expression
 EXPR* AddNode (int nType_, int nValue_)
 {
-    if (!pHead)
-        pHead = pTail = new EXPR;
-    else
-        pTail = pTail->pNext = new EXPR;
+    EXPR *pExpr = new EXPR;
+    pExpr->nType = nType_;
+    pExpr->nValue = nValue_;
+    pExpr->pNext = NULL;
 
-    pTail->nType = nType_;
-    pTail->nValue = nValue_;
-    pTail->pNext = NULL;
-
-    return pTail;
+    return AddNode(pExpr);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -80,7 +85,7 @@ static const TOKEN asBinaryOps[][5] =
     { {"<=",OP_LE},     {">=",OP_GE},       {"<",OP_LT},    {">",OP_GT} },
     { {"<<",OP_SHIFTL}, {">>",OP_SHIFTR} },
     { {"+",OP_ADD},     {"-",OP_SUB} },
-    { {"*",OP_MUL},     {"/",OP_DIV},       {"%",OP_MOD} },
+    { {"*",OP_MUL},     {"/",OP_DIV},       {"%",OP_MOD},   {"\\",OP_MOD} },
     { {NULL} }
 };
 
@@ -88,7 +93,7 @@ static const TOKEN asUnaryOps[] =
 {
     {"peek",OP_PEEK},
     {"dpeek",OP_DPEEK},
-    {"in",OP_IN},
+    {"in",OP_IN}, {"out",OP_OUT},
     {NULL}
 };
 
@@ -106,7 +111,9 @@ static const TOKEN asRegisters[] =
 static const TOKEN asVariables[] =
 {
     {"ei",VAR_EI}, {"di",VAR_DI},
-    {"dline",VAR_LINE}, {"sline",VAR_SLINE}, {"lcycles",VAR_LCYCLES},
+    {"dline",VAR_DLINE}, {"sline",VAR_SLINE}, {"lcycles",VAR_LCYCLES},
+    {"rom0",VAR_ROM0}, {"rom1",VAR_ROM1}, {"wprot",VAR_WPROT},
+    {"lmpr",VAR_LMPR}, {"hmpr",VAR_HMPR}, {"vmpr",VAR_VMPR}, {"mode",VAR_MODE}, {"lepr",VAR_LEPR}, {"hepr",VAR_HEPR},
     {NULL}
 };
 
@@ -174,7 +181,8 @@ int Expr::Eval (const EXPR* pExpr_)
                     case OP_DEREF:  x = read_byte(x); break;
                     case OP_PEEK:   x = read_byte(x); break;
                     case OP_DPEEK:  x = read_word(x); break;
-                    case OP_IN:     x = in_byte(x); break;
+                    case OP_IN:     x = (wPortRead  == x) || (x <= 0xff && ((wPortRead&0xff)  == x)); break;
+                    case OP_OUT:    x = (wPortWrite == x) || (x <= 0xff && ((wPortWrite&0xff) == x)); break;
                 }
 
                 // Push the result
@@ -261,9 +269,19 @@ int Expr::Eval (const EXPR* pExpr_)
 
                     case VAR_EI:        r = regs.IFF1;      break;
                     case VAR_DI:        r = !regs.IFF1;     break;
-                    case VAR_LINE:      r = g_nLine;        break;
+                    case VAR_DLINE:     r = g_nLine;        break;
                     case VAR_SLINE:     r = g_nLine - TOP_BORDER_LINES; break;
                     case VAR_LCYCLES:   r = g_nLineCycle;   break;
+
+                    case VAR_ROM0:      r = !(lmpr & LMPR_ROM0_OFF);  break;
+                    case VAR_ROM1:      r = !!(lmpr & LMPR_ROM1);     break;
+                    case VAR_WPROT:     r = !!(lmpr & LMPR_WPROT);    break;
+                    case VAR_LMPR:      r = LMPR_PAGE;                break;
+                    case VAR_HMPR:      r = HMPR_PAGE;                break;
+                    case VAR_VMPR:      r = VMPR_PAGE;                break;
+                    case VAR_MODE:      r = 1+(VMPR_MODE >> 5);       break;
+                    case VAR_LEPR:      r = lepr;                     break;
+                    case VAR_HEPR:      r = hepr;                     break;
 
                     case VAR_COUNT:     r = nCount ? !--nCount : 1; break;
                 }
@@ -460,19 +478,46 @@ bool Expr::Factor ()
     }
 
     // Unary operator symbol?
-    else if (*p == '-' || *p == '+' || *p == '~' || *p == '!' || *p == '*')
+    else if (*p == '-' || *p == '+' || *p == '~' || *p == '!' || *p == '*' || *p == '=')
     {
         static const char* pcszUnary = "-+~!*";
-        static int anUnary[] = { OP_UMINUS, OP_UPLUS, OP_BNOT, OP_NOT, OP_DEREF };
+        static int anUnary[] = { OP_UMINUS, OP_UPLUS, OP_BNOT, OP_NOT, OP_DEREF, OP_EVAL };
 
-        // Remember the operator
+        // Remember the operator, and the node connected to the operand
         char op = *p++;
+        EXPR *pOldTail = pTail;
 
         // Look for a factor for the unary operator
         if (!Factor())
             return false;
 
-        AddNode(T_UNARY_OP, anUnary[strchr(pcszUnary,op)-pcszUnary]);
+        // If it's not an eval operator, add the new node
+        if (op != '=')
+            AddNode(T_UNARY_OP, anUnary[strchr(pcszUnary,op)-pcszUnary]);
+
+        // Otherwise we need to evaluate the expression now and insert the current value
+        else
+        {
+            int n;
+
+            if (pOldTail)
+            {
+                // Step back to the old tail position for the operand
+                pTail = pOldTail;
+                n = Expr::Eval(pTail->pNext);
+                Release(pTail->pNext);
+                pTail->pNext = NULL;
+            }
+            else
+            {
+                // Use the full stored expression
+                n = Expr::Eval(pTail);
+                Release(pTail);
+                pHead = pTail = NULL;
+            }
+
+            AddNode(T_NUMBER, n);
+        }
     }
 
     // Program Counter '$' symbol?
