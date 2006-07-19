@@ -2,7 +2,7 @@
 //
 // GUI.h: GUI and controls for on-screen interface
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -46,10 +46,11 @@ enum { GK_CTRL_A = 0x01, GK_CTRL_B, GK_CTRL_C, GK_CTRL_D, GK_CTRL_E, GK_CTRL_F, 
        GK_CTRL_V, GK_CTRL_W, GK_CTRL_X, GK_CTRL_Y, GK_CTRL_Z, GK_ESC };
 
 // GUI key constants for special keys
-enum { GK_LEFT=235, GK_RIGHT, GK_UP, GK_DOWN,
+enum { GK_LEFT=225, GK_RIGHT, GK_UP, GK_DOWN,
        GK_HOME, GK_END, GK_PAGEUP, GK_PAGEDOWN,
        GK_KP0, GK_KP1, GK_KP2, GK_KP3, GK_KP4, GK_KP5, GK_KP6, GK_KP7, GK_KP8, GK_KP9,
-       GK_MAX=GK_KP9};
+       GK_CTRL_0, GK_CTRL_1, GK_CTRL_2, GK_CTRL_3, GK_CTRL_4, GK_CTRL_5, GK_CTRL_6, GK_CTRL_7, GK_CTRL_8, GK_CTRL_9, 
+       GK_MAX};
 
 const DWORD DOUBLE_CLICK_TIME = 400;    // Under 400ms between consecutive clicks counts as a double-click
 const int DOUBLE_CLICK_THRESHOLD = 5;   // Distance between clicks for double-clicks to be recognised
