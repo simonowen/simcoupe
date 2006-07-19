@@ -163,6 +163,28 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
                         pdw += 2;
                         pb += 8;
                     }
+
+#ifndef ALLEGRO_DOS
+                    if (fInterlace)
+                    {
+                        pb = pbSAM;
+                        pdw = pdwBack + lPitchDW/2;
+
+                        if (GetOption(scanlines))
+                            memset(pdw, 0x00, nWidth);
+                        else
+                        {
+                            for (int x = 0 ; x < nRightHi ; x++)
+                            {
+                                pdw[0] = MakeDWORD(pb[0], pb[1], pb[2], pb[3]);
+                                pdw[1] = MakeDWORD(pb[4], pb[5], pb[6], pb[7]);
+
+                                pdw += 2;
+                                pb += 8;
+                            }
+                        }
+                    }
+#endif
                 }
                 else
                 {
@@ -176,6 +198,29 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
                         pdw += 4;
                         pb += 8;
                     }
+#ifndef ALLEGRO_DOS
+                    if (fInterlace)
+                    {
+                        pb = pbSAM;
+                        pdw = pdwBack + lPitchDW/2;
+
+                        if (GetOption(scanlines))
+                            memset(pdw, 0x00, nWidth);
+                        else
+                        {
+                            for (int x = 0 ; x < nRightLo ; x++)
+                            {
+                                pdw[0] = MakeDWORD(pb[0], pb[1]);
+                                pdw[1] = MakeDWORD(pb[2], pb[3]);
+                                pdw[2] = MakeDWORD(pb[4], pb[5]);
+                                pdw[3] = MakeDWORD(pb[6], pb[7]);
+
+                                pdw += 4;
+                                pb += 8;
+                            }
+                        }
+                    }
+#endif
                 }
 
 #ifdef ALLEGRO_DOS
@@ -243,6 +288,8 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
 
         case 16:
         {
+            nWidth <<= 1;
+
             for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
             {
                 if (!pfDirty[y])
@@ -259,6 +306,28 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
 
                         pdw += 4;
                         pb += 8;
+                    }
+
+                    if (fInterlace)
+                    {
+                        pb = pbSAM;
+                        pdw = pdwBack + lPitchDW/2;
+
+                        if (!GetOption(scanlevel))
+                            memset(pdw, 0x00, nWidth);
+                        else
+                        {
+                            for (int x = 0 ; x < nRightHi ; x++)
+                            {
+                                pdw[0] = PaletteDWORD(pb[0], pb[1], aulScanline);
+                                pdw[1] = PaletteDWORD(pb[2], pb[3], aulScanline);
+                                pdw[2] = PaletteDWORD(pb[4], pb[5], aulScanline);
+                                pdw[3] = PaletteDWORD(pb[6], pb[7], aulScanline);
+
+                                pdw += 4;
+                                pb += 8;
+                            }
+                        }
                     }
                 }
                 else
@@ -277,6 +346,32 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
                         pdw += 8;
                         pb += 8;
                     }
+
+                    if (fInterlace)
+                    {
+                        pb = pbSAM;
+                        pdw = pdwBack + lPitchDW/2;
+
+                        if (!GetOption(scanlevel))
+                            memset(pdw, 0x00, nWidth);
+                        else
+                        {
+                            for (int x = 0 ; x < nRightLo ; x++)
+                            {
+                                pdw[0] = aulScanline[pb[0]] * 0x10001UL;
+                                pdw[1] = aulScanline[pb[1]] * 0x10001UL;
+                                pdw[2] = aulScanline[pb[2]] * 0x10001UL;
+                                pdw[3] = aulScanline[pb[3]] * 0x10001UL;
+                                pdw[4] = aulScanline[pb[4]] * 0x10001UL;
+                                pdw[5] = aulScanline[pb[5]] * 0x10001UL;
+                                pdw[6] = aulScanline[pb[6]] * 0x10001UL;
+                                pdw[7] = aulScanline[pb[7]] * 0x10001UL;
+
+                                pdw += 8;
+                                pb += 8;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -284,6 +379,8 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
 
         case 24:
         {
+            nWidth *= 3;
+
             for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
             {
                 if (!pfDirty[y])
@@ -307,6 +404,35 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
 
                         pdw += 6;
                         pb += 8;
+                    }
+
+                    if (fInterlace)
+                    {
+                        pb = pbSAM;
+                        pdw = pdwBack + lPitchDW/2;
+
+                        if (!GetOption(scanlevel))
+                            memset(pdw, 0x00, nWidth);
+                        else
+                        {
+                            for (int x = 0 ; x < nRightHi ; x++)
+                            {
+                                BYTE *pb1 = (BYTE*)&aulScanline[pb[0]], *pb2 = (BYTE*)&aulScanline[pb[1]];
+                                BYTE *pb3 = (BYTE*)&aulScanline[pb[2]], *pb4 = (BYTE*)&aulScanline[pb[3]];
+                                pdw[0] = (((DWORD)pb2[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                                pdw[1] = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[0]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[1];
+                                pdw[2] = (((DWORD)pb4[2]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[0]) << 8) | pb3[2];
+
+                                pb1 = (BYTE*)&aulScanline[pb[4]], pb2 = (BYTE*)&aulScanline[pb[5]];
+                                pb3 = (BYTE*)&aulScanline[pb[6]], pb4 = (BYTE*)&aulScanline[pb[7]];
+                                pdw[3] = (((DWORD)pb2[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                                pdw[4] = (((DWORD)pb3[1]) << 24) | (((DWORD)pb3[0]) << 16) | (((DWORD)pb2[2]) << 8) | pb2[1];
+                                pdw[5] = (((DWORD)pb4[2]) << 24) | (((DWORD)pb4[1]) << 16) | (((DWORD)pb4[0]) << 8) | pb3[2];
+
+                                pdw += 6;
+                                pb += 8;
+                            }
+                        }
                     }
                 }
                 else
@@ -336,6 +462,43 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
                         pdw += 12;
                         pb += 8;
                     }
+
+                    if (fInterlace)
+                    {
+                        pb = pbSAM;
+                        pdw = pdwBack + lPitchDW/2;
+
+                        if (!GetOption(scanlevel))
+                            memset(pdw, 0x00, nWidth);
+                        else
+                        {
+                            for (int x = 0 ; x < nRightLo ; x++)
+                            {
+                                BYTE *pb1 = (BYTE*)&aulScanline[pb[0]], *pb2 = (BYTE*)&aulScanline[pb[1]];
+                                pdw[0]  = (((DWORD)pb1[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                                pdw[1]  = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[0]) << 16) | (((DWORD)pb1[2]) << 8) | pb1[1];
+                                pdw[2]  = (((DWORD)pb2[2]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[0]) << 8) | pb2[2];
+
+                                pb1 = (BYTE*)&aulScanline[pb[2]], pb2 = (BYTE*)&aulScanline[pb[3]];
+                                pdw[3]  = (((DWORD)pb1[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                                pdw[4]  = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[0]) << 16) | (((DWORD)pb1[2]) << 8) | pb1[1];
+                                pdw[5]  = (((DWORD)pb2[2]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[0]) << 8) | pb2[2];
+
+                                pb1 = (BYTE*)&aulScanline[pb[4]], pb2 = (BYTE*)&aulScanline[pb[5]];
+                                pdw[6]  = (((DWORD)pb1[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                                pdw[7]  = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[0]) << 16) | (((DWORD)pb1[2]) << 8) | pb1[1];
+                                pdw[8]  = (((DWORD)pb2[2]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[0]) << 8) | pb2[2];
+
+                                pb1 = (BYTE*)&aulScanline[pb[6]], pb2 = (BYTE*)&aulScanline[pb[7]];
+                                pdw[9]  = (((DWORD)pb1[0]) << 24) | (((DWORD)pb1[2]) << 16) | (((DWORD)pb1[1]) << 8) | pb1[0];
+                                pdw[10] = (((DWORD)pb2[1]) << 24) | (((DWORD)pb2[0]) << 16) | (((DWORD)pb1[2]) << 8) | pb1[1];
+                                pdw[11] = (((DWORD)pb2[2]) << 24) | (((DWORD)pb2[1]) << 16) | (((DWORD)pb2[0]) << 8) | pb2[2];
+
+                                pdw += 12;
+                                pb += 8;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -343,6 +506,8 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
 
         case 32:
         {
+            nWidth <<= 2;
+
             for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
             {
                 if (!pfDirty[y])
@@ -364,6 +529,32 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
                         pdw += 8;
                         pb += 8;
                     }
+
+                    if (fInterlace)
+                    {
+                        pb = pbSAM;
+                        pdw = pdwBack + lPitchDW/2;
+
+                        if (!GetOption(scanlevel))
+                            memset(pdw, 0x00, nWidth);
+                        else
+                        {
+                            for (int x = 0 ; x < nRightHi ; x++)
+                            {
+                                pdw[0] = aulScanline[pb[0]];
+                                pdw[1] = aulScanline[pb[1]];
+                                pdw[2] = aulScanline[pb[2]];
+                                pdw[3] = aulScanline[pb[3]];
+                                pdw[4] = aulScanline[pb[4]];
+                                pdw[5] = aulScanline[pb[5]];
+                                pdw[6] = aulScanline[pb[6]];
+                                pdw[7] = aulScanline[pb[7]];
+
+                                pdw += 8;
+                                pb += 8;
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -380,6 +571,32 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
 
                         pdw += 16;
                         pb += 8;
+                    }
+
+                    if (fInterlace)
+                    {
+                        pb = pbSAM;
+                        pdw = pdwBack + lPitchDW/2;
+
+                        if (!GetOption(scanlevel))
+                            memset(pdw, 0x00, nWidth);
+                        else
+                        {
+                            for (int x = 0 ; x < nRightLo ; x++)
+                            {
+                                pdw[0]  = pdw[1]  = aulScanline[pb[0]];
+                                pdw[2]  = pdw[3]  = aulScanline[pb[1]];
+                                pdw[4]  = pdw[5]  = aulScanline[pb[2]];
+                                pdw[6]  = pdw[7]  = aulScanline[pb[3]];
+                                pdw[8]  = pdw[9]  = aulScanline[pb[4]];
+                                pdw[10] = pdw[11] = aulScanline[pb[5]];
+                                pdw[12] = pdw[13] = aulScanline[pb[6]];
+                                pdw[14] = pdw[15] = aulScanline[pb[7]];
+
+                                pdw += 16;
+                                pb += 8;
+                            }
+                        }
                     }
                 }
             }
@@ -415,20 +632,16 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
         for ( ; nChangeTo && !pfDirty[nChangeTo] ; nChangeTo--);
 
         // Clear the dirty flags for the changed block
-        for (int i = nChangeFrom ; i <= nChangeTo ; pfDirty[i++] = false);
+        for (int i = nChangeFrom ; i < nChangeTo ; pfDirty[i++] = false);
 
         // Dirty region updating only needs to be done for non-DOS versions
 #ifndef ALLEGRO_DOS
         if (fInterlace)
             nChangeFrom <<= 1, nChangeTo <<= 1;
 
-        // Re-evaluate whether we need to stretch the image vertically
-        nShift = !GetOption(scanlines) && fInterlace;
-
         // Calculate the dirty source and target areas - non-GUI displays require the height doubling
         Display::RECT rBack  = { rSource.x, nChangeFrom, rSource.w, (nChangeTo - nChangeFrom) + 1 };
-        Display::RECT rFront = { rTarget.x, rTarget.y + (nChangeFrom << nShift), rTarget.w,
-                                rTarget.y + ((nChangeTo - nChangeFrom + 1) << nShift) };
+        Display::RECT rFront = { rTarget.x, rTarget.y + nChangeFrom, rTarget.w, rTarget.y + (nChangeTo - nChangeFrom + 1) };
 
         // Blit if the source and target are the same size, otherwise stretch
         if (rBack.w == rFront.w && rBack.h == rFront.h)
