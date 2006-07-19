@@ -178,6 +178,8 @@ bool UI::CheckEvents ()
                         case UE_CHANGEWINDOWSIZE:   Action::Do(actChangeWindowSize);break;
                         case UE_CHANGEBORDERS:      Action::Do(actChangeBorders);   break;
                         case UE_OPTIONS:            Action::Do(actOptions);         break;
+                        case UE_IMPORTDATA:         Action::Do(actImportData);      break;
+                        case UE_EXPORTDATA:         Action::Do(actExportData);      break;
 
                         default:
                             TRACE("Unhandled SDL_event (%d)\n", event.type);
