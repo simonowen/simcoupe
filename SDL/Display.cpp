@@ -146,7 +146,7 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
                         pb = pbSAM;
                         pdw = pdwBack + lPitchDW/2;
 
-                        if (!GetOption(scanlines))
+                        if (GetOption(scanlines))
                             memset(pdw, 0x00, nWidth);
                         else
                         {
@@ -179,7 +179,7 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
                         pb = pbSAM;
                         pdw = pdwBack + lPitchDW/2;
 
-                        if (!GetOption(scanlines))
+                        if (GetOption(scanlines))
                             memset(pdw, 0x00, nWidth);
                         else
                         {
