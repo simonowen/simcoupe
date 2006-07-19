@@ -61,5 +61,7 @@ extern bool g_fActive;
 #define UE_CHANGEWINDOWSIZE     (UE_BASE+19)
 #define UE_CHANGEBORDERS        (UE_BASE+20)
 #define UE_OPTIONS              (UE_BASE+21)
+#define UE_IMPORTDATA           (UE_BASE+22)
+#define UE_EXPORTDATA           (UE_BASE+23)
 
 #endif  // UI_H
