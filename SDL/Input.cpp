@@ -656,6 +656,9 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 if (pKey->sym >= SDLK_KP0 && pKey->sym <= SDLK_KP9)
                     pKey->unicode = GK_KP0 + pKey->sym - SDLK_KP0;
 
+                else if (pKey->sym >= SDLK_0 && pKey->sym <= SDLK_9 && (pKey->mod & KMOD_CTRL))
+                    pKey->unicode = GK_CTRL_0 + pKey->sym - SDLK_0;
+
                 else if (pKey->sym >= SDLK_UP && pKey->sym <= SDLK_LEFT)
                 {
                     int anCursors[] = { GK_UP, GK_DOWN, GK_RIGHT, GK_LEFT };

@@ -875,6 +875,8 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
             // Map any special keys to the GUI equivalents
             if (wParam_ >= VK_NUMPAD0 && wParam_ <= VK_NUMPAD9)
                 GUI::SendMessage(GM_CHAR, GK_KP0+static_cast<int>(wParam_)-VK_NUMPAD0, nMods);
+            else if (wParam_ >= '0' && wParam_ <= '9' && (nMods & GKMOD_CTRL))
+                GUI::SendMessage(GM_CHAR, GK_CTRL_0+static_cast<int>(wParam_)-'0', nMods);
             else if (wParam_ >= VK_LEFT && wParam_ <= VK_DOWN)
             {
                 int anCursors[] = { GK_LEFT, GK_UP, GK_RIGHT, GK_DOWN };
