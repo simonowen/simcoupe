@@ -240,16 +240,20 @@ class CDebugger : public CDialog
         static bool s_fTransparent;
 };
 
-class CAddressDialog : public CDialog
+
+typedef bool (*PFNINPUTPROC)(EXPR *pExpr_);
+
+class CInputDialog : public CDialog
 {
     public:
-        CAddressDialog (CWindow* pParent_=NULL);
+        CInputDialog (CWindow* pParent_, const char* pcszCaption_, const char* pcszPrompt_, PFNINPUTPROC pfn_);
 
     public:
         void OnNotify (CWindow* pWindow_, int nParam_);
 
     protected:
-        CEditControl* m_pAddress;
+        CEditControl* m_pInput;
+        PFNINPUTPROC m_pfnNotify;
 };
 
 #endif

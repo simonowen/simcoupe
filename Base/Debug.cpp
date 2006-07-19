@@ -153,26 +153,89 @@ bool Debug::BreakpointHit ()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CAddressDialog::CAddressDialog (CWindow* pParent_/*=NULL*/)
-    : CDialog(pParent_, 182, 30, "New location")
+CInputDialog::CInputDialog (CWindow* pParent_/*=NULL*/, const char* pcszCaption_, const char* pcszPrompt_, PFNINPUTPROC pfnNotify_)
+    : CDialog(pParent_, 0,0, pcszCaption_), m_pfnNotify(pfnNotify_)
 {
-    new CTextControl(this, 5, 10,  "Address:", WHITE);
-    m_pAddress = new CEditControl(this, 52, 7, 123);
+    // Get the length of the prompt string, so we can position the edit box correctly
+    int n = CScreen::GetStringWidth(pcszPrompt_);
+
+    // Create the prompt text control and input edit control
+    new CTextControl(this, 5, 10,  pcszPrompt_, WHITE);
+    m_pInput = new CEditControl(this, 5+n+5, 7, 120);
+
+    // Size the dialog to fit the prompt and edit control
+    SetSize(8+n+120+8, 30);
+    Centre();
 }
 
-void CAddressDialog::OnNotify (CWindow* pWindow_, int nParam_)
+void CInputDialog::OnNotify (CWindow* pWindow_, int nParam_)
 {
-    if (pWindow_ == m_pAddress && nParam_)
+    if (pWindow_ == m_pInput && nParam_)
     {
-        int nAddr = regs.PC.W;
+        // Fetch and compile the input expression
+        const char* pcszExpr = m_pInput->GetText();
+        EXPR *pExpr = Expr::Compile(pcszExpr);
 
-        const char* pcszExpr = m_pAddress->GetText();
-        if (*pcszExpr && !Expr::Eval(pcszExpr, nAddr))
-            return;
-
-        pDebugger->SetAddress(nAddr);
-        Destroy();
+        // Close the dialog if the input was blank, or the notify handler tells us
+        if (!*pcszExpr || (pExpr && m_pfnNotify(pExpr)))
+            Destroy();
     }
+}
+
+
+// Notify handler for New Address input
+bool OnAddressNotify (EXPR *pExpr_)
+{
+    int nAddr = Expr::Eval(pExpr_);
+    pDebugger->SetAddress(nAddr);
+    return true;
+}
+
+// Notify handler for Execute Until expression
+bool OnUntilNotify (EXPR *pExpr_)
+{
+    Break.pExpr = pExpr_;
+    Debug::Stop();
+    return false;
+}
+
+// Notify handler for Change Lmpr input
+bool OnLmprNotify (EXPR *pExpr_)
+{
+    int nPage = Expr::Eval(pExpr_) & LMPR_PAGE_MASK;
+    IO::OutLmpr((lmpr & ~LMPR_PAGE_MASK) | nPage);
+    Debug::Refresh();
+    return true;
+}
+
+// Notify handler for Change Lmpr input
+bool OnHmprNotify (EXPR *pExpr_)
+{
+    int nPage = Expr::Eval(pExpr_) & HMPR_PAGE_MASK;
+    IO::OutHmpr((hmpr & ~HMPR_PAGE_MASK) | nPage);
+    Debug::Refresh();
+    return true;
+}
+
+// Notify handler for Change Lmpr input
+bool OnVmprNotify (EXPR *pExpr_)
+{
+    int nPage = Expr::Eval(pExpr_) & VMPR_PAGE_MASK;
+    IO::OutVmpr((vmpr & ~VMPR_PAGE_MASK) | nPage);
+    Debug::Refresh();
+    return true;
+}
+
+// Notify handler for Change Lmpr input
+bool OnModeNotify (EXPR *pExpr_)
+{
+    int nMode = Expr::Eval(pExpr_);
+    if (nMode < 1 || nMode > 4)
+        return false;
+
+    IO::OutVmpr((vmpr & ~VMPR_PAGE_MASK) | ((nMode-1) << 5));
+    Debug::Refresh();
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -270,7 +333,7 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
         switch (nParam1_)
         {
             case 'A':
-                new CAddressDialog(this);
+                new CInputDialog(this, "New location", "Address:", OnAddressNotify);
                 break;
 
             case 'D':
@@ -313,6 +376,44 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 break;
             }
 
+            case 'L':
+                new CInputDialog(this, "Change LMPR", "Page (0-31):", OnLmprNotify);
+                break;
+
+            case 'H':
+                new CInputDialog(this, "Change HMPR", "Page (0-31):", OnHmprNotify);
+                break;
+
+            case 'V':
+                new CInputDialog(this, "Change VMPR", "Page (0-31):", OnVmprNotify);
+                break;
+
+            case 'M':
+                new CInputDialog(this, "Change Mode", "Mode (1-4):", OnModeNotify);
+                break;
+
+
+            case 'U':
+                new CInputDialog(this, "Execute until", "Expression:", OnUntilNotify);
+                break;
+
+
+            case GK_CTRL_0:
+                IO::OutLmpr(lmpr ^ LMPR_ROM0_OFF);
+                Debug::Refresh();
+                break;
+
+            case GK_CTRL_1:
+                IO::OutLmpr(lmpr ^ LMPR_ROM1);
+                Debug::Refresh();
+                break;
+
+            case GK_CTRL_2:
+                IO::OutLmpr(lmpr ^ LMPR_WPROT);
+                Debug::Refresh();
+                break;
+
+
             case GK_CTRL_A:
                 swap(regs.AF.W, regs.AF_.W);
                 break;
@@ -330,6 +431,7 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 swap(regs.DE.W, regs.DE_.W);
                 swap(regs.HL.W, regs.HL_.W);
                 break;
+
 
             case GK_CTRL_T:
                 s_fTransparent = !s_fTransparent;
