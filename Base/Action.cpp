@@ -57,6 +57,13 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
         switch (nAction_)
         {
             case actResetButton:
+                // Ensure we're not paused, to avoid confusion
+                if (g_fPaused)
+                {
+                    g_fPaused = false;
+                    Video::CreatePalettes();
+                }
+
                 CPU::Reset(true);
                 Sound::Stop();
                 break;
