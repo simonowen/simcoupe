@@ -168,7 +168,7 @@ bool Input::Init (bool fFirstInit_/*=false*/)
     key_led_flag = 0;
 
     LOCK_VARIABLE(anKeys);
-    LOCK_FUNCTION(KeyCallback);
+    LOCK_FUNCTION(KeyCallback);     // Expect a warning here when building with gcc
     keyboard_lowlevel_callback = KeyCallback;
 
     Mouse::Init(fFirstInit_);
@@ -389,6 +389,8 @@ bool ReadKeyboard ()
             // Convert the cursor keys to GUI symbols
             if (bKey >= KEY_0_PAD && bKey <= KEY_9_PAD)
                 bChar = GK_KP0 + bKey - KEY_0_PAD;
+            else if (bKey >= KEY_0 && bKey <= KEY_9 && (nMods & KB_CTRL_FLAG))
+                bChar = GK_CTRL_0 + bKey - KEY_0;
             else if (bKey >= KEY_LEFT && bKey <= KEY_DOWN)
                 bChar = GK_LEFT + (bKey - KEY_LEFT);
             else if (bKey >= KEY_HOME && bKey <= KEY_PGDN)
