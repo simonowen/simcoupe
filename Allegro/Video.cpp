@@ -49,7 +49,7 @@ END_COLOR_DEPTH_LIST
 const int N_TOTAL_COLOURS = N_PALETTE_COLOURS + N_GUI_COLOURS;
 
 // SAM RGB values in the appropriate format
-DWORD aulPalette[N_TOTAL_COLOURS];
+DWORD aulPalette[N_TOTAL_COLOURS], aulScanline[N_TOTAL_COLOURS];
 
 BITMAP *pBack, *pFront;
 
@@ -178,6 +178,10 @@ bool Video::CreatePalettes (bool fDimmed_)
     int nDepth = bitmap_color_depth(pBack);
     bool fPalette = (nDepth == 8);
 
+    // Determine the scanline brightness level adjustment, in the range -100 to +100
+    int nScanAdjust = GetOption(scanlines) ? (GetOption(scanlevel) - 100) : 0;
+    if (nScanAdjust < -100) nScanAdjust = -100;
+
     fDimmed_ |= (g_fPaused && !g_fFrameStep) || GUI::IsActive() || (!g_fActive && GetOption(pauseinactive));
     const RGBA *pSAM = IO::GetPalette(fDimmed_), *pGUI = GUI::GetPalette();
 
@@ -186,18 +190,22 @@ bool Video::CreatePalettes (bool fDimmed_)
     {
         // Look up the colour in the appropriate palette
         const RGBA* p = (i < N_PALETTE_COLOURS) ? &pSAM[i] : &pGUI[i-N_PALETTE_COLOURS];
-        BYTE bRed = p->bRed, bGreen = p->bGreen, bBlue = p->bBlue;  //, bAlpha = p->bAlpha;
+        BYTE r = p->bRed, g = p->bGreen, b = p->bBlue;  //, a = p->bAlpha;
 
         if (!fPalette)
-            aulPalette[i] = makecol_depth(nDepth, bRed, bGreen, bBlue);
+        {
+            aulPalette[i] = makecol_depth(nDepth, r,g,b);
+            AdjustBrightness(r,g,b, nScanAdjust);
+            aulScanline[i] = makecol_depth(nDepth, r,g,b);
+        }
         else
         {
-            aulPalette[i] = i;
+            aulPalette[i] = aulScanline[i] = i;
 
             // The palette components are 6-bit
-            pal[i].r = bRed >> 2;
-            pal[i].g = bGreen >> 2;
-            pal[i].b = bBlue >> 2;
+            pal[i].r = r >> 2;
+            pal[i].g = g >> 2;
+            pal[i].b = b >> 2;
         }
     }
 

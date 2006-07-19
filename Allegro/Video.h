@@ -32,7 +32,7 @@ class Video
 };
 
 
-extern DWORD aulPalette[];
+extern DWORD aulPalette[], aulScanline[];
 extern BITMAP *pBack, *pFront;
 
 #endif  // VIDEO_H
