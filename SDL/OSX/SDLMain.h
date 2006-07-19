@@ -16,6 +16,8 @@
 
 - (IBAction)appPreferences:(id)sender;
 - (IBAction)fileOpen:(id)sender;
+- (IBAction)fileImportData:(id)sender;
+- (IBAction)fileExportData:(id)sender;
 - (IBAction)viewFullscreen:(id)sender;
 - (IBAction)viewFrameSync:(id)sender;
 - (IBAction)viewGreyscale:(id)sender;

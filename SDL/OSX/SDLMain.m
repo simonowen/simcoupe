@@ -253,6 +253,22 @@ static BOOL isFullyLaunched = NO;
 	SDL_PushEvent(&event);
 }
 
+- (IBAction)fileImportData:(id)sender
+{
+	SDL_Event event = {0};
+	event.user.type = SDL_USEREVENT;
+	event.user.code = UE_IMPORTDATA;
+	SDL_PushEvent(&event);
+}
+
+- (IBAction)fileExportData:(id)sender
+{
+	SDL_Event event = {0};
+	event.user.type = SDL_USEREVENT;
+	event.user.code = UE_EXPORTDATA;
+	SDL_PushEvent(&event);
+}
+
 
 // Help -> SimCoupe Help
 - (IBAction)helpHelp:(id)sender
@@ -269,7 +285,7 @@ static BOOL isFullyLaunched = NO;
 // Help -> Homepage
 - (IBAction)helpHomepage:(id)sender
 {
-	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.simcoupe.org/"]];
+	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.simcoupe.org"]];
 }
 
 
