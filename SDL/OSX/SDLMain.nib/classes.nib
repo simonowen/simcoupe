@@ -4,6 +4,8 @@
         {
             ACTIONS = {
                 appPreferences = id; 
+                fileExportData = id; 
+                fileImportData = id; 
                 fileOpen = id; 
                 helpChangeLog = id; 
                 helpHelp = id; 
