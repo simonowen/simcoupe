@@ -33,8 +33,8 @@
 
 // Enable a few helper warnings in debug mode, without using level 4
 #ifdef _DEBUG
-#pragma warning(3:4189)	// 'identifier' : local variable is initialized but not referenced
-#pragma warning(3:4701)	// local variable 'name' may be used without having been initialized
+#pragma warning(3:4189) // 'identifier' : local variable is initialized but not referenced
+#pragma warning(3:4701) // local variable 'name' may be used without having been initialized
 #endif
 
 #include <windows.h>
@@ -56,7 +56,7 @@
 #include <io.h>
 
 #ifdef USE_ZLIB
-#pragma comment(lib, "zlib1")   // new 1.2.x version, required to avoid zlib binary mismatch problems
+#pragma comment(lib, "zdll")   // zdll.lib is the official import library for 1.2.x versions
 #endif
 
 #ifdef USE_SAASOUND
@@ -89,6 +89,7 @@ extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 #error DX5 (or higher) SDK is required to build SimCoupe
 #endif
 
+//#define NODEFAULT     __assume(0)     // ToDo: find out why this doesn't work
 
 #define PATH_SEPARATOR          '\\'
 
