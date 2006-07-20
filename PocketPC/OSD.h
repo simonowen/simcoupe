@@ -26,6 +26,8 @@ inline void _ASSERTE(bool) { }
 #define USE_LOWRES
 #define WIN32_LEAN_AND_MEAN
 
+#define _CE_ALLOW_SINGLE_THREADED_OBJECTS_IN_MTA
+
 #include <windows.h>
 #include <windowsx.h>
 #include <atlconv.h>
@@ -37,10 +39,85 @@ inline void _ASSERTE(bool) { }
 #include <Prsht.h>      // needed for PROPSHEETPAGE under MIPS/SH3
 #include <commctrl.h>   // needed for COMCTL32_VERSION and TCS_BOTTOM under MIPS/SH3
 
-#ifndef GX_H
-#include <gx.h>         // GAPI header file
-#define GX_H
+#ifdef USE_ZLIB
+#pragma comment(lib, "zdll")   // zdll.lib is the official import library for 1.2.x versions
 #endif
+
+#ifdef USE_SAASOUND
+#pragma comment(lib, "SAASound")
+#endif
+
+
+// GAPI definitions taken from gx.h below
+
+#define GX_FULLSCREEN   0x01        // for OpenDisplay()
+
+#ifndef kfLandscape
+    #define kfLandscape 0x8         // Screen is rotated 270 degrees
+    #define kfPalette   0x10        // Pixel values are indexes into a palette
+    #define kfDirect    0x20        // Pixel values contain actual level information
+    #define kfDirect555 0x40        // 5 bits each for red, green and blue values in a pixel.
+    #define kfDirect565 0x80        // 5 red bits, 6 green bits and 5 blue bits per pixel
+    #define kfDirect888 0x100       // 8 bits each for red, green and blue values in a pixel.
+    #define kfDirect444 0x200       // 4 red, 4 green, 4 blue
+    #define kfDirectInverted 0x400
+#endif
+
+// From GAPI gx.h
+struct GXDisplayProperties {
+    DWORD cxWidth;
+    DWORD cyHeight;         // notice lack of 'th' in the word height.
+    long cbxPitch;          // number of bytes to move right one x pixel - can be negative.
+    long cbyPitch;          // number of bytes to move down one y pixel - can be negative.
+    long cBPP;              // # of bits in each pixel
+    DWORD ffFormat;         // format flags.
+};
+
+struct GXKeyList {
+    short vkUp;             // key for up
+    POINT ptUp;             // x,y position of key/button.  Not on screen but in screen coordinates.
+    short vkDown;
+    POINT ptDown;
+    short vkLeft;
+    POINT ptLeft;
+    short vkRight;
+    POINT ptRight;
+    short vkA;
+    POINT ptA;
+    short vkB;
+    POINT ptB;
+    short vkC;
+    POINT ptC;
+    short vkStart;
+    POINT ptStart;
+};
+
+typedef int (*GXOPENDISPLAYPROC)(HWND hWnd, DWORD dwFlags);
+typedef int (*GXCLOSEDISPLAYPROC)();
+typedef void * (*GXBEGINDRAWPROC)();
+typedef int (*GXENDDRAWPROC)();
+typedef int (*GXOPENINPUTPROC)();
+typedef int (*GXCLOSEINPUTPROC)();
+typedef GXDisplayProperties (*GXGETDISPLAYPROPERTIESPROC)();
+typedef GXKeyList (*GXGETDEFAULTKEYSPROC)(int iOptions);
+typedef int (*GXSUSPENDPROC)();
+typedef int (*GXRESUMEPROC)();
+typedef int (*GXSETVIEWPORTPROC)(DWORD dwTop, DWORD dwHeight, DWORD dwReserved1, DWORD dwReserved2 );
+typedef BOOL (*GXISDISPLAYDRAMBUFFERPROC)();
+
+extern GXOPENDISPLAYPROC GXOpenDisplay;
+extern GXCLOSEDISPLAYPROC GXCloseDisplay;
+extern GXBEGINDRAWPROC GXBeginDraw;
+extern GXENDDRAWPROC GXEndDraw;
+extern GXOPENINPUTPROC GXOpenInput;
+extern GXCLOSEINPUTPROC GXCloseInput;
+extern GXGETDISPLAYPROPERTIESPROC GXGetDisplayProperties;
+extern GXGETDEFAULTKEYSPROC GXGetDefaultKeys;
+extern GXSUSPENDPROC GXSuspend;
+extern GXRESUMEPROC GXResume;
+extern GXSETVIEWPORTPROC GXSetViewport;
+extern GXISDISPLAYDRAMBUFFERPROC GXIsDisplayDRAMBuffer;
+
 
 #pragma warning(disable:4244)
 
@@ -86,6 +163,7 @@ struct stat
     DWORD st_size;
 };
 
+#ifndef _TM_DEFINED
 struct tm
 {
     int tm_sec;
@@ -98,6 +176,7 @@ struct tm
     int tm_yday;
     int tm_isdst;
 };
+#endif
 
 
 DIR* opendir (const char* pcszDir_);
