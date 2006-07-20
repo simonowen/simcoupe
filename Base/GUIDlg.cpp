@@ -71,7 +71,7 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     new CTextControl(this, 41, y,    "Phillips SAA 1099 sound chip emulation:", BLUE_5);
     new CTextControl(this, 51, y+13, "Dave Hooper <dave@rebuzz.org>", BLACK); y += 32;
 
-    new CTextControl(this, 41, y+3, "See ReadMe.txt for additional information", RED_3);
+    new CTextControl(this, 41, y+3, "See README for additional information", RED_3);
 
     m_pCloseButton = new CTextButton(this, (m_nWidth-55)/2, m_nHeight-21, "Close", 55);
 }
