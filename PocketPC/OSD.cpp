@@ -31,6 +31,22 @@
 #include "UI.h"
 
 int OSD::s_nTicks;
+HINSTANCE hinstGAPI;
+
+GXOPENDISPLAYPROC GXOpenDisplay;
+GXCLOSEDISPLAYPROC GXCloseDisplay;
+GXBEGINDRAWPROC GXBeginDraw;
+GXENDDRAWPROC GXEndDraw;
+GXOPENINPUTPROC GXOpenInput;
+GXCLOSEINPUTPROC GXCloseInput;
+GXGETDISPLAYPROPERTIESPROC GXGetDisplayProperties;
+GXGETDEFAULTKEYSPROC GXGetDefaultKeys;
+GXSUSPENDPROC GXSuspend;
+GXRESUMEPROC GXResume;
+GXSETVIEWPORTPROC GXSetViewport;
+GXISDISPLAYDRAMBUFFERPROC GXIsDisplayDRAMBuffer;
+
+#define GAPI_BIND(pfn,type,func)	pfn = reinterpret_cast<type>(GetProcAddress(hinstGAPI, _T(func)))
 
 
 bool OSD::Init (bool fFirstInit_/*=false*/)
@@ -40,6 +56,35 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
 
     if (fFirstInit_)
     {
+        // Load official GAPI, then local GAPI, falling back on the GAPI emulator as a last resort
+        if (!(hinstGAPI = LoadLibrary(_T("\\Windows\\gx.dll")))
+         && !(hinstGAPI = LoadLibrary(_T("gx.dll")))
+         && !(hinstGAPI = LoadLibrary(_T("gapi_emu.dll"))))
+        {
+            UI::ShowMessage(msgError, "GAPI (gx.dll) not installed!\n\nSee FAQ for details.");
+            return false;
+        }
+
+        GAPI_BIND(GXOpenDisplay, GXOPENDISPLAYPROC, "?GXOpenDisplay@@YAHPAUHWND__@@K@Z");
+        GAPI_BIND(GXCloseDisplay, GXCLOSEDISPLAYPROC, "?GXCloseDisplay@@YAHXZ");
+        GAPI_BIND(GXBeginDraw, GXBEGINDRAWPROC, "?GXBeginDraw@@YAPAXXZ");
+        GAPI_BIND(GXEndDraw, GXENDDRAWPROC, "?GXEndDraw@@YAHXZ");
+        GAPI_BIND(GXOpenInput, GXOPENINPUTPROC, "?GXOpenInput@@YAHXZ");
+        GAPI_BIND(GXCloseInput, GXCLOSEINPUTPROC, "?GXCloseInput@@YAHXZ");
+        GAPI_BIND(GXGetDisplayProperties, GXGETDISPLAYPROPERTIESPROC, "?GXGetDisplayProperties@@YA?AUGXDisplayProperties@@XZ");
+        GAPI_BIND(GXGetDefaultKeys, GXGETDEFAULTKEYSPROC, "?GXGetDefaultKeys@@YA?AUGXKeyList@@H@Z");
+        GAPI_BIND(GXSuspend, GXSUSPENDPROC, "?GXSuspend@@YAHXZ");
+        GAPI_BIND(GXResume, GXRESUMEPROC, "?GXResume@@YAHXZ");
+        GAPI_BIND(GXSetViewport, GXSETVIEWPORTPROC, "?GXSetViewport@@YAHKKKK@Z");
+        GAPI_BIND(GXIsDisplayDRAMBuffer, GXISDISPLAYDRAMBUFFERPROC, "?GXIsDisplayDRAMBuffer@@YAHXZ");
+
+        // Reject the DLL if the 2 main entry/exit functions don't exist
+        if (!GXOpenDisplay || !GXCloseDisplay)
+        {
+            UI::ShowMessage(msgError, "Invalid GAPI (gx.dll) found!\n\nPlease reinstall.");
+            return false;
+        }
+
         // On startup we need to set the correct view
         if (GetOption(fullscreen))
             Frame::SetView(SCREEN_BLOCKS+4, SCREEN_LINES+48);   // landscape
@@ -56,6 +101,12 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
 void OSD::Exit (bool fReInit_/*=false*/)
 {
     UI::Exit();
+
+    if (!fReInit_ && hinstGAPI)
+    {
+        FreeLibrary(hinstGAPI);
+        hinstGAPI = NULL;
+    }
 }
 
 
@@ -125,13 +176,13 @@ const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
 // Same as GetFilePath but ensures a trailing backslash
 const char* OSD::GetDirPath (const char* pcszDir_/*=""*/)
 {
-	char* psz = const_cast<char*>(GetFilePath(pcszDir_));
+    char* psz = const_cast<char*>(GetFilePath(pcszDir_));
 
-	// Append a backslash to non-empty strings that don't already have one
-	if (*psz && psz[strlen(psz)-1] != '\\')
-		strcat(psz, "\\");
+    // Append a backslash to non-empty strings that don't already have one
+    if (*psz && psz[strlen(psz)-1] != '\\')
+        strcat(psz, "\\");
 
-	return psz;
+    return psz;
 }
 
 
