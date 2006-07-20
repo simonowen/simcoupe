@@ -44,7 +44,7 @@ typedef unsigned char       UINT8;
 
 
 // PNG header structure must be byte-packed
-#pragma pack(push,1)
+#pragma pack(1)
 
 typedef struct tagPNG_IHDR
 {
@@ -58,7 +58,7 @@ typedef struct tagPNG_IHDR
 }
 PNG_IHDR, *PPNG_IHDR;
 
-#pragma pack(pop)
+#pragma pack()
 
 
 // PNG support
