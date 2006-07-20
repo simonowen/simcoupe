@@ -58,9 +58,9 @@ const int MOUSE_HIDE_TIME = 2000;   // 2 seconds
 const UINT MOUSE_TIMER_ID = 42;
 
 #ifdef _DEBUG
-#define WINDOW_CAPTION      "SimCoupe/Win32 [DEBUG]"
+#define WINDOW_CAPTION      "SimCoupe [DEBUG]"
 #else
-#define WINDOW_CAPTION      "SimCoupe/Win32"
+#define WINDOW_CAPTION      "SimCoupe"
 #endif
 
 #define PRINTER_PREFIX      "Printer: "
@@ -1462,8 +1462,8 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
                 // Items from help menu
                 case IDM_HELP_GENERAL:
-                    if (ShellExecute(hwnd_, NULL, OSD::GetFilePath("ReadMe.txt"), NULL, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
-                        MessageBox(hwnd_, "Can't find ReadMe.txt", "SimCoupe", MB_ICONEXCLAMATION);
+                    if (ShellExecute(hwnd_, NULL, OSD::GetFilePath("SimCoupe.txt"), NULL, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
+                        MessageBox(hwnd_, "Can't find SimCoupe.txt", "SimCoupe", MB_ICONEXCLAMATION);
                     break;
                 case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), g_hwnd, AboutDlgProc, NULL);   break;
 
