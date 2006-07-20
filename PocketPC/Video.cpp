@@ -2,7 +2,7 @@
 //
 // Video.cpp: WinCE display rendering
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include "SimCoupe.h"
 
+#include "Action.h"
 #include "Frame.h"
 #include "Display.h"
 #include "GUI.h"
@@ -37,6 +38,9 @@ HPALETTE hpal, hpalOld;
 
 bool Video::CreatePalettes (bool fDimmed_/*=false*/)
 {
+    int i;
+
+    // Whether we're dimmed also depends on our active state
     fDimmed_ |= (g_fPaused && !g_fFrameStep) || (!g_fActive && GetOption(pauseinactive));
 
     // Video mode uses a palette?
@@ -78,7 +82,7 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
     const RGBA *pSAM = IO::GetPalette(fDimmed_), *pGUI = GUI::GetPalette();
 
     // Build the full palette from SAM and GUI colours
-    for (int i = 0; i < N_TOTAL_COLOURS ; i++)
+    for (i = 0; i < N_TOTAL_COLOURS ; i++)
     {
         // Look up the colour in the appropriate palette
         const RGBA* p = (i < N_PALETTE_COLOURS) ? &pSAM[i] : &pGUI[i-N_PALETTE_COLOURS];
