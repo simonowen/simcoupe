@@ -44,9 +44,9 @@ BEGIN
     CONTROL         "Display status messages",IDC_STATUS,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,13,112,130,10
     LTEXT           "Profiling stats:",IDC_STATIC,13,128,48,8
-    COMBOBOX        IDC_PROFILE,64,126,85,72,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_PROFILE,64,127,85,72,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    GROUPBOX        "Misc",IDC_STATIC,7,71,146,70
+    GROUPBOX        "Misc",IDC_STATIC,7,71,146,74
     GROUPBOX        "Clock hardware",IDC_STATIC,7,7,146,57
 END
 
@@ -65,7 +65,7 @@ BEGIN
     CONTROL         "Based on original DOS/X versions by:\n  Allan Skillman - allan.skillman@arm.com",
                     IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | WS_GROUP,4,97,
                     152,18
-    CONTROL         "Additional technical enhancements:\n  Dave Laundon - dave.laundon@simcoupe.org",
+    CONTROL         "CPU contention and sound enhancements:\n  Dave Laundon - dave.laundon@simcoupe.org",
                     IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | WS_GROUP,4,121,
                     152,18
     CONTROL         "Phillips SAA 1099 sound chip emulation:\n  Dave Hooper - dave@rebuzz.org",
@@ -107,23 +107,24 @@ STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Parallel"
 FONT 8, "MS Sans Serif"
 BEGIN
-    LTEXT           "Devices connected to the parallel ports:",IDC_STATIC,16,
-                    18,130,8
-    LTEXT           "Port 1:",IDC_STATIC,19,32,25,8
-    LTEXT           "Port 2:",IDC_STATIC,19,49,25,8
-    COMBOBOX        IDC_PARALLEL_1,48,31,95,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    LTEXT           "Devices connected to the parallel ports:",IDC_STATIC,15,
+                    18,132,8
+    LTEXT           "Port 1:",IDC_STATIC,20,32,22,8
+    COMBOBOX        IDC_PARALLEL_1,47,31,95,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    COMBOBOX        IDC_PARALLEL_2,48,48,95,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    LTEXT           "Port 2:",IDC_STATIC,20,49,22,8
+    COMBOBOX        IDC_PARALLEL_2,47,48,95,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    LTEXT           "The following printer will be used for SAM printer output:",
-                    IDC_STATIC,16,82,125,18
-    COMBOBOX        IDC_PRINTERS,16,104,127,50,CBS_DROPDOWNLIST | 
-                    WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_PRINTERS,14,84,133,50,CBS_DROPDOWNLIST | WS_DISABLED | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Auto-flush job after:",IDS_FLUSHDELAY,14,105,64,8
+    COMBOBOX        IDC_FLUSHDELAY,86,104,61,50,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
     CONTROL         "Printer Online",IDC_PRINTER_ONLINE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,16,123,58,10
-    PUSHBUTTON      "&Flush Job",IDB_FLUSH_PRINT_JOB,92,121,50,14
-    GROUPBOX        "Printer device",IDC_STATIC,7,72,146,70
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,124,58,10
+    PUSHBUTTON      "&Flush Job Now",IDB_FLUSH_PRINT_JOB,86,122,61,14
     GROUPBOX        "Parallel ports",IDC_STATIC,7,7,146,60
+    GROUPBOX        "Printer device",IDC_STATIC,7,72,146,70
 END
 
 IDD_PAGE_SOUND DIALOG DISCARDABLE  0, 0, 160, 156
@@ -140,12 +141,12 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,15,36,110,10
     CONTROL         "Stereo sound output",IDC_STEREO,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,15,50,80,10
-    LTEXT           "Increase the value below if you're suffering from sound stutters or other glitches:",
+    LTEXT           "Increase the value below if you're suffering from sound glitches:",
                     IDC_STATIC,13,82,134,17
     LTEXT           "Latency:",IDS_LATENCY,15,106,29,8
     COMBOBOX        IDC_LATENCY,48,105,79,96,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    GROUPBOX        "Buffering",IDC_STATIC,7,69,146,54
+    GROUPBOX        "Buffering",IDC_STATIC,7,69,146,55
     GROUPBOX        "",IDC_STATIC,7,7,146,59
 END
 
@@ -155,18 +156,19 @@ CAPTION "Display"
 FONT 8, "MS Sans Serif"
 BEGIN
     CONTROL         "Landscape mode",IDC_FULLSCREEN,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,15,19,71,10
+                    WS_TABSTOP,15,19,130,10
     CONTROL         "Sync. to 50Hz",IDC_SYNC,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,15,35,61,10
+                    WS_TABSTOP,15,35,130,10
     CONTROL         "Auto frame-skip",IDC_FRAMESKIP_AUTOMATIC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,15,50,65,10
-    COMBOBOX        IDC_FRAMESKIP,27,62,90,70,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    BS_AUTOCHECKBOX | WS_TABSTOP,15,51,130,10
+    COMBOBOX        IDC_FRAMESKIP,30,63,90,70,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    LTEXT           "Pixels to show:",IDC_STATIC,15,98,49,8
-    COMBOBOX        IDC_MODE3,70,95,60,70,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    LTEXT           "The Pocket PC display is wide enough to show only half the mode 3 pixels:",
+                    IDC_STATIC,15,98,130,17,NOT WS_GROUP
+    COMBOBOX        IDC_MODE3,24,119,100,70,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     GROUPBOX        "Settings",IDC_STATIC,7,7,146,74
-    GROUPBOX        "Mode 3",IDC_STATIC,7,85,146,29
+    GROUPBOX        "Mode 3",IDC_STATIC,7,85,146,54
 END
 
 IDD_PAGE_SYSTEM DIALOG DISCARDABLE  0, 0, 160, 156
@@ -175,10 +177,10 @@ CAPTION "System"
 FONT 8, "MS Sans Serif"
 BEGIN
     LTEXT           "Main:",IDC_STATIC,15,23,19,8
-    COMBOBOX        IDC_MAIN_MEMORY,35,21,35,50,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_MAIN_MEMORY,35,22,35,50,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "External:",IDC_STATIC,80,23,29,8
-    COMBOBOX        IDC_EXTERNAL_MEMORY,111,21,35,60,CBS_DROPDOWNLIST | 
+    LTEXT           "External:",IDC_STATIC,79,23,30,8
+    COMBOBOX        IDC_EXTERNAL_MEMORY,110,22,35,60,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "ROM image (blank for built-in (v3.0):",IDC_STATIC,15,39,
                     130,8
@@ -191,7 +193,7 @@ BEGIN
     CONTROL         "ASIC startup delay on first power-on",IDC_ASIC_DELAY,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,113,132,10
     CTEXT           "Changes require a SAM reset to take effect",IDC_STATIC,
-                    11,134,137,8
+                    10,134,139,8
     GROUPBOX        "Memory",IDC_STATIC,7,7,146,60
     GROUPBOX        "Settings",IDC_STATIC,7,76,146,51
 END
@@ -201,8 +203,8 @@ STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Input"
 FONT 8, "MS Sans Serif"
 BEGIN
-    LTEXT           "Mapping mode:",IDC_STATIC,15,20,49,8
-    COMBOBOX        IDC_KEYBOARD_MAPPING,68,18,80,50,CBS_DROPDOWNLIST | 
+    LTEXT           "Mapping mode:",IDC_STATIC,15,20,50,8
+    COMBOBOX        IDC_KEYBOARD_MAPPING,70,19,78,50,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     CONTROL         "Use Left-Alt for Cntrl key",IDC_ALT_FOR_CNTRL,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,15,38,130,10
@@ -214,8 +216,10 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,15,80,130,10
     CONTROL         "Enable mouse interface",IDC_MOUSE_ENABLED,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,15,117,130,10
+    CONTROL         "Swap mouse buttons 2 and 3",IDC_MOUSE_SWAP23,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,15,130,130,10
     GROUPBOX        "Keyboard",IDC_STATIC,7,7,146,94
-    GROUPBOX        "Mouse",IDC_STATIC,7,104,146,29
+    GROUPBOX        "Mouse",IDC_STATIC,7,104,146,41
 END
 
 IDD_PAGE_MIDI DIALOG DISCARDABLE  0, 0, 160, 156
@@ -223,24 +227,16 @@ STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "MIDI"
 FONT 8, "MS Sans Serif"
 BEGIN
-    COMBOBOX        IDC_MIDI,63,16,75,61,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_MIDI,63,17,75,61,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_GROUP | WS_TABSTOP
-    COMBOBOX        IDC_MIDI_OUT,49,55,98,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_MIDI_OUT,49,57,98,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_GROUP | WS_TABSTOP
-    COMBOBOX        IDC_MIDI_IN,49,75,98,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_MIDI_IN,49,77,98,50,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    EDITTEXT        IDE_STATION_ID,59,120,24,14,ES_AUTOHSCROLL | WS_DISABLED | 
-                    WS_GROUP
-    CONTROL         "Spin1",IDC_SPIN1,"msctls_updown32",UDS_SETBUDDYINT | 
-                    UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS,84,120,
-                    11,14
     LTEXT           "SAM device:",IDC_STATIC,14,18,45,8
     GROUPBOX        "Windows devices",IDC_STATIC,7,41,146,56
     LTEXT           "MIDI Out:",IDC_STATIC,12,57,34,8
     LTEXT           "MIDI In:",IDC_STATIC,12,77,34,8
-    GROUPBOX        "Network (not currently supported)",IDC_STATIC,7,107,146,
-                    34
-    LTEXT           "Station ID:",IDC_STATIC,16,123,40,8
     GROUPBOX        "Active device:",IDC_STATIC,7,7,146,26
 END
 
@@ -249,34 +245,29 @@ STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Drives"
 FONT 8, "MS Sans Serif"
 BEGIN
-    LTEXT           "Active device:",IDC_STATIC,18,20,49,8
-    COMBOBOX        IDC_DRIVE1,71,17,70,80,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    LTEXT           "D1:",IDC_STATIC,15,20,12,8
+    COMBOBOX        IDC_DRIVE1,29,19,48,80,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    LTEXT           "Active device:",IDC_STATIC,18,53,49,8
-    COMBOBOX        IDC_DRIVE2,71,50,70,80,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    LTEXT           "D2:",IDC_STATIC,83,20,12,8
+    COMBOBOX        IDC_DRIVE2,97,19,48,80,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    CONTROL         "&Turbo speed during disk activity",IDC_TURBO_LOAD,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,85,137,10
-    LTEXT           "Sensitivity:",IDS_SENSITIVITY,24,100,36,8
-    COMBOBOX        IDC_SENSITIVITY,62,98,40,50,CBS_DROPDOWNLIST | 
+    CONTROL         "&Accelerated disk loading speed",IDC_TURBO_LOAD,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,50,137,10
+    LTEXT           "Sensitivity:",IDS_SENSITIVITY,27,64,36,8
+    COMBOBOX        IDC_SENSITIVITY,67,63,61,50,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "Drive 2",IDC_STATIC,7,40,146,29
-    GROUPBOX        "Drive 1",IDC_STATIC,7,7,146,29
-    GROUPBOX        "Options",IDC_STATIC,7,73,146,43
-END
-
-IDD_PAGE_FNKEYS DIALOG DISCARDABLE  0, 0, 160, 156
-STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
-CAPTION "FnKeys"
-FONT 8, "MS Sans Serif"
-BEGIN
-    CONTROL         "List2",IDL_FNKEYS,"SysListView32",LVS_REPORT | 
-                    LVS_SHOWSELALWAYS | LVS_NOSORTHEADER | WS_BORDER | 
-                    WS_TABSTOP,8,20,144,104
-    PUSHBUTTON      "&Add...",IDB_ADD,13,130,39,14
-    PUSHBUTTON      "&Edit...",IDB_EDIT,60,130,39,14
-    PUSHBUTTON      "&Delete",IDB_DELETE,108,130,39,14
-    GROUPBOX        "Function keys",-1,7,7,146,142
+    CONTROL         "Ask before saving disk changes",IDC_SAVE_PROMPT,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,78,135,10
+    CONTROL         "Autoboot disks at start-up screen",IDC_AUTOBOOT,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,92,135,10
+    CONTROL         "Automagically boot non-bootable disks",IDC_DOSBOOT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,107,137,10
+    LTEXT           "DOS image (blank for SAMDOS 2.2):",IDS_DOSDISK,25,120,
+                    117,8
+    EDITTEXT        IDE_DOSDISK,25,131,105,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDB_BROWSE,132,131,14,14
+    GROUPBOX        "Drives",IDC_STATIC,7,7,146,29
+    GROUPBOX        "Options",IDC_STATIC,7,38,146,111
 END
 
 IDD_IMPORT DIALOG DISCARDABLE  0, 0, 160, 121
@@ -300,6 +291,45 @@ BEGIN
     GROUPBOX        "Data",IDC_STATIC,7,24,146,69
 END
 
+IDD_PAGE_KEYMAP DIALOG DISCARDABLE  0, 0, 160, 156
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Keymap"
+FONT 8, "MS Sans Serif"
+BEGIN
+    RTEXT           "Left:",IDC_STATIC,12,33,23,8
+    COMBOBOX        IDC_LEFT,38,31,40,120,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Right:",IDC_STATIC,12,50,23,8
+    COMBOBOX        IDC_RIGHT,38,48,40,120,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Up:",IDC_STATIC,81,33,23,8
+    COMBOBOX        IDC_UP,106,31,40,120,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Down:",IDC_STATIC,81,50,23,8
+    COMBOBOX        IDC_DOWN,106,48,40,120,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Action:",IDC_STATIC,10,67,25,8
+    COMBOBOX        IDC_START,38,65,40,120,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    RTEXT           "1:",IDC_STATIC,21,113,10,8
+    COMBOBOX        IDC_BUTTON1,36,111,40,120,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    RTEXT           "2:",IDC_STATIC,22,130,10,8
+    COMBOBOX        IDC_BUTTON2,36,128,40,120,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    RTEXT           "3:",IDC_STATIC,80,113,10,8
+    COMBOBOX        IDC_BUTTON3,94,111,40,120,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    RTEXT           "4:",IDC_STATIC,80,130,10,8
+    COMBOBOX        IDC_BUTTON4,94,128,40,120,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Control pad SAM key mappings:",IDC_STATIC,15,17,130,8
+    LTEXT           "Hardware button SAM key mappings:",IDC_STATIC,15,97,130,
+                    8
+    GROUPBOX        "Pad",IDC_STATIC,7,7,146,77
+    GROUPBOX        "Buttons",IDC_STATIC,7,86,146,63
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -307,7 +337,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO MOVEABLE PURE 
 BEGIN
     IDD_PAGE_MISC, DIALOG
     BEGIN
@@ -388,20 +418,20 @@ BEGIN
         BOTTOMMARGIN, 149
     END
 
-    IDD_PAGE_FNKEYS, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 153
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 149
-    END
-
     IDD_IMPORT, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 153
         TOPMARGIN, 7
         BOTTOMMARGIN, 114
+    END
+
+    IDD_PAGE_KEYMAP, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 153
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 149
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -413,18 +443,18 @@ END
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE DISCARDABLE 
+1 TEXTINCLUDE MOVEABLE PURE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE DISCARDABLE 
+2 TEXTINCLUDE MOVEABLE PURE 
 BEGIN
     "#include ""afxres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE DISCARDABLE 
+3 TEXTINCLUDE MOVEABLE PURE 
 BEGIN
     "\r\n"
     "\0"
@@ -457,17 +487,10 @@ BEGIN
         BLOCK "080904b0"
         BEGIN
             VALUE "Comments", "http://www.simcoupe.org/\0"
-            VALUE "CompanyName", "\0"
-            VALUE "FileDescription", "A SAM Coupé emulator\0"
+            VALUE "CompanyName", "Simon Owen\0"
+            VALUE "FileDescription", "SAM Coupé emulator\0"
             VALUE "FileVersion", "1.0\0"
-            VALUE "InternalName", "\0"
-            VALUE "LegalCopyright", "\0"
-            VALUE "LegalTrademarks", "\0"
-            VALUE "OriginalFilename", "\0"
-            VALUE "PrivateBuild", "\0"
-            VALUE "ProductName", "\0"
             VALUE "ProductVersion", "1.0\0"
-            VALUE "SpecialBuild", "\0"
         END
     END
     BLOCK "VarFileInfo"
@@ -494,10 +517,11 @@ IDI_DISK                ICON    DISCARDABLE     "Icons\\disk.ico"
 // Bitmap
 //
 
-IDB_NORMAL              BITMAP  DISCARDABLE     "Bitmaps\\normal.bmp"
-IDB_SHIFT               BITMAP  DISCARDABLE     "Bitmaps\\shift.bmp"
-IDB_SYMBOL              BITMAP  DISCARDABLE     "Bitmaps\\symbol.bmp"
-IDB_SIMCOUPE            BITMAP  DISCARDABLE     "Bitmaps\\simcoupe.bmp"
+IDB_NORMAL              BITMAP  MOVEABLE PURE   "Bitmaps\\normal.bmp"
+IDB_SHIFT               BITMAP  MOVEABLE PURE   "Bitmaps\\shift.bmp"
+IDB_SYMBOL              BITMAP  MOVEABLE PURE   "Bitmaps\\symbol.bmp"
+IDB_SIMCOUPE            BITMAP  MOVEABLE PURE   "Bitmaps\\simcoupe.bmp"
+IDB_JOYSTICK            BITMAP  MOVEABLE PURE   "bitmaps\\joystick.bmp"
 #endif    // English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
 
