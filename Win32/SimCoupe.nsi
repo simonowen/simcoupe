@@ -76,7 +76,9 @@ Section "SimCoupe Core Files (required)" SecCore
     File "Build\SimCoupe.exe"
     File "Build\SAASound.dll"
     File "Build\zlib1.dll"
-    File "..\ReadMe.txt"
+    File "..\SimCoupe.txt"
+    File "..\ChangeLog.txt"
+    File "..\SAASound.txt"
 
     ; Store the installation directory
     WriteRegStr HKLM "Software\SimCoupe" "" $INSTDIR
@@ -91,6 +93,7 @@ Section "SimCoupe Core Files (required)" SecCore
 !insertmacro MUI_STARTMENU_WRITE_BEGIN SimCoupe
     CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER"
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall SimCoupe.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
+    CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupe ReadMe.lnk" "$INSTDIR\SimCoupe.txt" "" "$INSTDIR\SimCoupe.txt" 0
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupe.lnk" "$INSTDIR\SimCoupe.exe" "" "$INSTDIR\SimCoupe.exe" 0
     WriteINIStr "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupe Homepage.url" "InternetShortcut" "URL" "http://www.simcoupe.org"
 !insertmacro MUI_STARTMENU_WRITE_END
@@ -175,7 +178,7 @@ Section "SAM Disk Format (.sdf)" SecSDF
     Call InstallFileAssoc
 SectionEnd
 
-Section "Teledisk images (.td0)" SecTD0
+Section "TeleDisk images (.td0)" SecTD0
     SectionIn 1
     Push ".td0"
     Call InstallFileAssoc
@@ -220,7 +223,9 @@ Section "Uninstall"
     Delete $INSTDIR\defender.mgt
     Delete $INSTDIR\tetris.mgt
     Delete $INSTDIR\mnedemo1.mgt
-    Delete $INSTDIR\ReadMe.txt
+    Delete $INSTDIR\SimCoupe.txt
+    Delete $INSTDIR\ChangeLog.txt
+    Delete $INSTDIR\SAASound.txt
     RMDir $INSTDIR
 
     ; Delete start menu items and group
