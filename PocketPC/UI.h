@@ -30,22 +30,11 @@ class UI
         static void Exit (bool fReInit_=false);
 
         static bool CheckEvents ();
+        static bool DoAction (int nAction_, bool fPressed_=true);
         static void ShowMessage (eMsgType eType_, const char* pszMessage_);
 };
 
-extern bool g_fActive, g_fFrameStep;
+extern bool g_fActive;
 extern HWND g_hwnd;
-
-bool DoAction (int nAction_, bool fPressed_=true);
-
-enum eActions
-{
-    actNewDisk1, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actNewDisk2, actInsertFloppy2, actEjectFloppy2, actSaveFloppy2,
-    actExitApplication, actOptions, actDebugger, actImportData, actExportData, actSaveScreenshot, actChangeProfiler,
-    actResetButton, actNmiButton, actPause, actFrameStep, actToggleTurbo, actTempTurbo,
-    actToggleSync, actToggleFullscreen, actChangeWindowSize, actChangeBorders, actToggle5_4,
-    actChangeFrameSkip, actToggleScanlines, actToggleGreyscale, actToggleMute, actReleaseMouse,
-    actAbout, actMinimise, MAX_ACTION
-};
 
 #endif  // UI_H
