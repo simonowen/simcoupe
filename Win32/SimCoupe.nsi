@@ -2,7 +2,7 @@
 
 !define VER_MAJOR 1
 !define VER_MINOR 0
-;!define VER_BETA 20060318
+;!define VER_BETA 20060720
 !define VER_DISPLAY ${VER_MAJOR}.${VER_MINOR}
 
 Name "SimCoupe"
@@ -38,10 +38,10 @@ OutFile "SimCoupe-${VER_MAJOR}.${VER_MINOR}-beta-${VER_BETA}.exe"
 !define MUI_STARTMENUPAGE_DEFAULTFOLDER "SimCoupe"
 
 !define MUI_FINISHPAGE_LINK "Visit the SimCoupe website for the updates and support."
-!define MUI_FINISHPAGE_LINK_LOCATION "http://www.simcoupe.org/"
+!define MUI_FINISHPAGE_LINK_LOCATION "http://www.simcoupe.org"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\SimCoupe.exe"
 !define MUI_FINISHPAGE_RUN_TEXT "Run SimCoupe now"
-!define MUI_FINISHPAGE_SHOWREADME $INSTDIR\ReadMe.txt
+!define MUI_FINISHPAGE_SHOWREADME $INSTDIR\SimCoupe.txt
 !define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
 !define MUI_FINISHPAGE_NOREBOOTSUPPORT
 
@@ -92,7 +92,7 @@ Section "SimCoupe Core Files (required)" SecCore
     CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER"
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall SimCoupe.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupe.lnk" "$INSTDIR\SimCoupe.exe" "" "$INSTDIR\SimCoupe.exe" 0
-    WriteINIStr "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupe Homepage.url" "InternetShortcut" "URL" "http://www.simcoupe.org/"
+    WriteINIStr "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupe Homepage.url" "InternetShortcut" "URL" "http://www.simcoupe.org"
 !insertmacro MUI_STARTMENU_WRITE_END
 
 SectionEnd
@@ -103,7 +103,7 @@ SubSection "Sample game disks" SecGames
 Section "Manic Miner (demo)" SecManicMiner
     SectionIn 1
     SetOutPath $INSTDIR
-    File "..\manicm.mgt"
+    File "..\Demos\manicm.mgt"
 
 !insertmacro MUI_STARTMENU_WRITE_BEGIN SimCoupe
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Play Manic Miner.lnk" "$INSTDIR\SimCoupe.exe" '"$INSTDIR\manicm.mgt"' "$INSTDIR\SimCoupe.exe" 1
@@ -114,7 +114,7 @@ SectionEnd
 Section "Defender" SecDefender
     SectionIn 1
     SetOutPath $INSTDIR
-    File "..\defender.mgt"
+    File "..\Demos\defender.mgt"
 
 !insertmacro MUI_STARTMENU_WRITE_BEGIN SimCoupe
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Play Defender.lnk" "$INSTDIR\SimCoupe.exe" '"$INSTDIR\defender.mgt"' "$INSTDIR\SimCoupe.exe" 1
@@ -124,7 +124,7 @@ SectionEnd
 Section "Tetris" SecTetris
     SectionIn 1
     SetOutPath $INSTDIR
-    File "..\tetris.mgt"
+    File "..\Demos\tetris.mgt"
 
 !insertmacro MUI_STARTMENU_WRITE_BEGIN SimCoupe
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Play Tetris.lnk" "$INSTDIR\SimCoupe.exe" '"$INSTDIR\tetris.mgt"' "$INSTDIR\SimCoupe.exe" 1
@@ -139,7 +139,7 @@ SubSection "Sample demo disks" SecDemos
 Section "MNEMOdemo 1" SecMneDemo1
     SectionIn 1
     SetOutPath $INSTDIR
-    File "..\mnedemo1.mgt"
+    File "..\Demos\mnedemo1.mgt"
 
 !insertmacro MUI_STARTMENU_WRITE_BEGIN SimCoupe
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Run MNEMOdemo 1.lnk" "$INSTDIR\SimCoupe.exe" '"$INSTDIR\mnedemo1.mgt"' "$INSTDIR\SimCoupe.exe" 1
@@ -163,7 +163,7 @@ Section "EDSK images (.dsk)" SecDSK
     Call InstallFileAssoc
 SectionEnd
 
-Section "SAM disks (.sad)" SecSAD
+Section "SAm Disks (.sad)" SecSAD
     SectionIn 1
     Push ".sad"
     Call InstallFileAssoc
@@ -192,11 +192,11 @@ SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
     !insertmacro MUI_DESCRIPTION_TEXT ${SecCore} "Core emulator program files"
-    !insertmacro MUI_DESCRIPTION_TEXT ${SecGames} "Sample games to get you started"
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecGames} "Sample games"
     !insertmacro MUI_DESCRIPTION_TEXT ${SecManicMiner} "Manic Miner, written by Matthew Holt"
     !insertmacro MUI_DESCRIPTION_TEXT ${SecDefender} "Defender, written by Chris Pile"
     !insertmacro MUI_DESCRIPTION_TEXT ${SecTetris} "Tetris, written by David Gommeren"
-    !insertmacro MUI_DESCRIPTION_TEXT ${SecDemos} "Sample demos to get you started"
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecDemos} "Sample demos"
     !insertmacro MUI_DESCRIPTION_TEXT ${SecMneDemo1} "MNEMOdemo 1, written by MNEMOtech"
     !insertmacro MUI_DESCRIPTION_TEXT ${SecAssocs} "Double-click support for disk image types"
     !insertmacro MUI_DESCRIPTION_TEXT ${SecMGT} "File association for .mgt images"
@@ -216,10 +216,10 @@ Section "Uninstall"
     Delete $INSTDIR\SAASound.dll
     Delete $INSTDIR\zlib1.dll
     Delete $INSTDIR\uninstall.exe
-    Delete $INSTDIR\manicm.dsk
-    Delete $INSTDIR\defender.dsk
-    Delete $INSTDIR\tetris.dsk
-    Delete $INSTDIR\mnedemo1.dsk
+    Delete $INSTDIR\manicm.mgt
+    Delete $INSTDIR\defender.mgt
+    Delete $INSTDIR\tetris.mgt
+    Delete $INSTDIR\mnedemo1.mgt
     Delete $INSTDIR\ReadMe.txt
     RMDir $INSTDIR
 
@@ -261,7 +261,7 @@ Function InstallFileAssoc
     WriteRegStr HKCR "SimCoupe.Disk\shell\boot" "" "Boot with SimCoupe"
     WriteRegStr HKCR "SimCoupe.Disk\shell\boot\command" "" '"$INSTDIR\SimCoupe.exe" "%1"'
     WriteRegStr HKCR "SimCoupe.Disk\shell\open" "" "Open with SimCoupe"
-    WriteRegStr HKCR "SimCoupe.Disk\shell\open\command" "" '"$INSTDIR\SimCoupe.exe" -drive1 1 -disk1 "%1"'
+    WriteRegStr HKCR "SimCoupe.Disk\shell\open\command" "" '"$INSTDIR\SimCoupe.exe" "%1" -autoboot 0'
 
 FunctionEnd
 
