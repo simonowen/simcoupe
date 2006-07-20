@@ -64,7 +64,6 @@
 		132CC55A09B11512007955DE /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		132CC55B09B11512007955DE /* SDLMain.nib in Resources */ = {isa = PBXBuildFile; fileRef = 13A0FFEA088EE18600E5436C /* SDLMain.nib */; };
 		132CC55C09B11512007955DE /* SimCoupe.icns in Resources */ = {isa = PBXBuildFile; fileRef = 13A0FFEF088EE20300E5436C /* SimCoupe.icns */; };
-		132CC55D09B11512007955DE /* ReadMe.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1314531508A2C2EB008C1AB7 /* ReadMe.txt */; };
 		132CC55E09B11512007955DE /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 13486F5C0891A08300DB38E0 /* Credits.html */; };
 		132CC56009B11512007955DE /* ChangeLog.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1314531C08A2C39F008C1AB7 /* ChangeLog.txt */; };
 		132CC56109B11512007955DE /* Options.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1374D20109746C5E001B908F /* Options.nib */; };
@@ -124,6 +123,7 @@
 		1358F5CF0A6C12AE00D20135 /* file_sdf.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C80A6C12AE00D20135 /* file_sdf.icns */; };
 		1358F5D00A6C12AE00D20135 /* file_td0.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C90A6C12AE00D20135 /* file_td0.icns */; };
 		13F693EE0A6D7FA000962105 /* Volume.icns in Resources */ = {isa = PBXBuildFile; fileRef = 13F693ED0A6D7FA000962105 /* Volume.icns */; };
+		13F694850A70303400962105 /* SimCoupe.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 13F694840A70303400962105 /* SimCoupe.rtf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -143,7 +143,6 @@
 /* Begin PBXFileReference section */
 		089C165DFE840E0CC02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
-		1314531508A2C2EB008C1AB7 /* ReadMe.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = ReadMe.txt; path = ../../ReadMe.txt; sourceTree = "<group>"; };
 		1314531C08A2C39F008C1AB7 /* ChangeLog.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = ChangeLog.txt; path = ../../ChangeLog.txt; sourceTree = "<group>"; };
 		132CC59809B11512007955DE /* Info-SimCoupe.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Info-SimCoupe.plist"; sourceTree = "<group>"; };
 		132CC59909B11512007955DE /* SimCoupe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SimCoupe.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -173,7 +172,7 @@
 		13A0FE84088EDF7B00E5436C /* OSD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OSD.h; path = ../OSD.h; sourceTree = "<group>"; };
 		13A0FEFC088EDF7C00E5436C /* Sound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Sound.cpp; path = ../Sound.cpp; sourceTree = "<group>"; };
 		13A0FEFD088EDF7C00E5436C /* Sound.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Sound.h; path = ../Sound.h; sourceTree = "<group>"; };
-		13A0FEFE088EDF7C00E5436C /* UI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = UI.cpp; path = ../UI.cpp; sourceTree = "<group>"; };
+		13A0FEFE088EDF7C00E5436C /* UI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; name = UI.cpp; path = ../UI.cpp; sourceTree = "<group>"; tabWidth = 4; usesTabs = 0; };
 		13A0FEFF088EDF7C00E5436C /* UI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UI.h; path = ../UI.h; sourceTree = "<group>"; };
 		13A0FF00088EDF7C00E5436C /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Video.cpp; path = ../Video.cpp; sourceTree = "<group>"; };
 		13A0FF01088EDF7C00E5436C /* Video.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Video.h; path = ../Video.h; sourceTree = "<group>"; };
@@ -255,6 +254,7 @@
 		13A0FFF4088EE31A00E5436C /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = /usr/lib/libz.dylib; sourceTree = "<absolute>"; };
 		13E5AE69088FBB1F00EACEBE /* SDL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL.framework; path = /Library/Frameworks/SDL.framework; sourceTree = "<absolute>"; };
 		13F693ED0A6D7FA000962105 /* Volume.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Volume.icns; sourceTree = "<group>"; };
+		13F694840A70303400962105 /* SimCoupe.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = SimCoupe.rtf; path = ../../SimCoupe.rtf; sourceTree = "<group>"; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		B2F67ED704C74A3F00A80002 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = /System/Library/Frameworks/OpenGL.framework; sourceTree = "<absolute>"; };
@@ -313,8 +313,8 @@
 		1314532108A2C3DC008C1AB7 /* ReadMe Files */ = {
 			isa = PBXGroup;
 			children = (
+				13F694840A70303400962105 /* SimCoupe.rtf */,
 				1314531C08A2C39F008C1AB7 /* ChangeLog.txt */,
-				1314531508A2C2EB008C1AB7 /* ReadMe.txt */,
 			);
 			name = "ReadMe Files";
 			sourceTree = "<group>";
@@ -601,7 +601,6 @@
 				132CC55A09B11512007955DE /* InfoPlist.strings in Resources */,
 				132CC55B09B11512007955DE /* SDLMain.nib in Resources */,
 				132CC55C09B11512007955DE /* SimCoupe.icns in Resources */,
-				132CC55D09B11512007955DE /* ReadMe.txt in Resources */,
 				132CC55E09B11512007955DE /* Credits.html in Resources */,
 				132CC56009B11512007955DE /* ChangeLog.txt in Resources */,
 				132CC56109B11512007955DE /* Options.nib in Resources */,
@@ -613,6 +612,7 @@
 				1358F5CF0A6C12AE00D20135 /* file_sdf.icns in Resources */,
 				1358F5D00A6C12AE00D20135 /* file_td0.icns in Resources */,
 				13F693EE0A6D7FA000962105 /* Volume.icns in Resources */,
+				13F694850A70303400962105 /* SimCoupe.rtf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
