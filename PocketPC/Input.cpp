@@ -21,6 +21,7 @@
 #include "SimCoupe.h"
 #include "resource.h"
 
+#include "Action.h"
 #include "CPU.h"
 #include "Display.h"
 #include "Input.h"
@@ -30,11 +31,17 @@
 #include "UI.h"
 #include "Video.h"
 
-GXKeyList g_gxkl;
+//GXKeyList g_gxkl;
 HWND g_hwndSIP;
 int nSipKey = SK_NONE, nSipMods;
-bool fSipDirty;
+bool fJoySip, fSipDirty;
+int actToggleJoySip = -2;
 
+// These are the common virtual key codes, but do some devices differ?
+enum { VK_BUTTON1 = 0xc1, VK_BUTTON2, VK_BUTTON3, VK_BUTTON4 };
+
+int anHwKeys[] = { VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN, VK_RETURN, VK_BUTTON1, VK_BUTTON2, VK_BUTTON3, VK_BUTTON4 };
+int anKeyMap[sizeof(anHwKeys)/sizeof(anHwKeys[0])];
 
 int nComboKey;
 short nComboModifiers;
@@ -196,10 +203,23 @@ KEYAREA asKeyAreas[] =
     { SK_NONE }
 };
 
-// Actions for each of the 10 function buttons, in the 3 shifted states
+// On-screen joystick
+KEYAREA asJoyAreas[] =
+{
+    { SK_6, 1,1, 33,29 },  { SK_7, 35,1, 33,29 },  { SK_9, 69,1, 33,29 },  { SK_8, 103,1, 33,29 },  { SK_0, 137,1,  71,29 },
+    { SK_1, 1,31, 33,29 }, { SK_2, 35,31, 33,29 }, { SK_4, 69,31, 33,29 }, { SK_3, 103,31, 33,29 }, { SK_5, 137,31, 71,29 },
+
+    // Function keys
+    { -1, 213,1 }, { -2, 225,1 }, { -3, 213,13 }, { -4, 225,13 }, { -5, 213,25 },
+    { -6, 225,25 },{ -7, 213,37 }, { -8, 225,37 }, { -9, 213,49 }, { -10, 225,49 },
+
+    { SK_NONE }
+};
+
+// Actions for each of the 10 function buttons, in the 3 shifted states: normal, shift and symbol
 static int anActions[][10] =
 {
-    { actInsertFloppy1, actInsertFloppy2, actOptions, actAbout, actPause, actTempTurbo, -1, -1, actResetButton, actExitApplication },
+    { actInsertFloppy1, actInsertFloppy2, actOptions, actToggleJoySip, actPause, actTempTurbo, -1, actAbout, actResetButton, actExitApplication },
     { actEjectFloppy1, actEjectFloppy2, -1, -1, -1, -1, -1, -1, actNmiButton, actMinimise },
     { actSaveFloppy1, actSaveFloppy2, -1, -1, -1, -1, -1, -1, -1, -1 }
 };
@@ -220,9 +240,22 @@ bool Input::Init (bool fFirstInit_/*=false*/)
 
         // Grab control of all the buttons
         GXOpenInput();
+    }
 
-        // Portrait keys, as we'll do our own landscape rotation
-        g_gxkl = GXGetDefaultKeys(GX_NORMALKEYS);
+    // Keymap defined?
+    if (*GetOption(keymap))
+    {
+        char szKeys[256];
+        strncpy(szKeys, GetOption(keymap), sizeof(szKeys));
+        char *psz = strtok(szKeys, ",");
+
+        // Assign the SAM key code for each pad/button mapping
+        for (int i = 0 ; i < sizeof(anKeyMap)/sizeof(anKeyMap[0]) ; i++)
+        {
+            int nKey = (psz && psz[0]) ? strtoul(psz, NULL, 0) : SK_NONE;
+            anKeyMap[i] = (nKey < SK_MAX) ? nKey : SK_NONE;
+            psz = strtok(NULL, ",");
+        }
     }
 
     // Initialise SAM mouse
@@ -247,12 +280,12 @@ void Input::Exit (bool fReInit_/*=false*/)
 
 
 // Find the key positioned under a given point, if any
-KEYAREA* FindKey (int nX_, int nY_)
+KEYAREA* FindKey (int nX_, int nY_, KEYAREA* pKeys_)
 {
     // The SIP is actually offset by 2 pixels
     nX_ -= 2;
 
-    for (KEYAREA* pKeys = &asKeyAreas[0] ; pKeys->nKey != SK_NONE ; pKeys++)
+    for (KEYAREA* pKeys = pKeys_ ; pKeys->nKey != SK_NONE ; pKeys++)
     {
         // Test the tap point against the key area
         if (nX_ >= pKeys->x && nX_ < pKeys->x+pKeys->w &&
@@ -290,7 +323,7 @@ HWND CreateSIP ()
 // SIP window procedure (duh!)
 long CALLBACK SIPWndProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    static HBITMAP hbmpNormal, hbmpShift, hbmpSymbol;
+    static HBITMAP hbmpNormal, hbmpShift, hbmpSymbol, hbmpJoystick;
 
     switch (uMsg_)
     {
@@ -299,6 +332,7 @@ long CALLBACK SIPWndProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             hbmpNormal = LoadBitmap(__hinstance, MAKEINTRESOURCE(IDB_NORMAL));
             hbmpShift = LoadBitmap(__hinstance, MAKEINTRESOURCE(IDB_SHIFT));
             hbmpSymbol = LoadBitmap(__hinstance, MAKEINTRESOURCE(IDB_SYMBOL));
+            hbmpJoystick = LoadBitmap(__hinstance, MAKEINTRESOURCE(IDB_JOYSTICK));
             return 0;
 
         case WM_DESTROY:
@@ -306,6 +340,7 @@ long CALLBACK SIPWndProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             DeleteObject(hbmpNormal);
             DeleteObject(hbmpShift);
             DeleteObject(hbmpSymbol);
+            DeleteObject(hbmpJoystick);
             break;
 
         case WM_PAINT:
@@ -314,7 +349,8 @@ long CALLBACK SIPWndProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             HDC hdc = BeginPaint(hwnd_, &ps);
 
             // Decide on the key layout to show, which depends on the shift keys
-            HBITMAP hbmpLayout = IsSamKeyPressed(SK_SHIFT) ? hbmpShift : IsSamKeyPressed(SK_SYMBOL) ? hbmpSymbol : hbmpNormal;
+            HBITMAP hbmpLayout = IsSamKeyPressed(SK_SHIFT) ? hbmpShift : IsSamKeyPressed(SK_SYMBOL) ?
+                                 hbmpSymbol : fJoySip ? hbmpJoystick : hbmpNormal;
 
             // Create a memory DC and off-screen bitmap, to avoid flicker
             HDC hdc1 = CreateCompatibleDC(hdc);
@@ -328,8 +364,10 @@ long CALLBACK SIPWndProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             SelectObject(hdc2, hbmpOld2);
             DeleteDC(hdc2);
 
+            KEYAREA *pSip = fJoySip ? asJoyAreas : asKeyAreas;
+
             // Look through the known keys, including the function buttons
-            for (KEYAREA* pKeys = &asKeyAreas[0] ; pKeys->nKey != SK_NONE ; pKeys++)
+            for (KEYAREA* pKeys = pSip ; pKeys->nKey != SK_NONE ; pKeys++)
             {
                 // Fill in the default size if needed
                 if (!pKeys->w)
@@ -352,11 +390,13 @@ long CALLBACK SIPWndProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
 
         case WM_LBUTTONDOWN:
         {
+            KEYAREA *pKey;
+            int nX = LOWORD(lParam_), nY = HIWORD(lParam_);
+
             fSipDirty = true;
 
             // Check if the stylus is over a SIP key
-            KEYAREA* pKey = FindKey(LOWORD(lParam_), HIWORD(lParam_));
-            if (!pKey)
+            if (!(pKey = FindKey(nX, nY, fJoySip ? asJoyAreas : asKeyAreas)))
                 break;
 
             // Capture the stylus so we see when it's released
@@ -367,12 +407,18 @@ long CALLBACK SIPWndProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             {
                 int nKey = -(pKey->nKey+1);
                 int nShift = IsSamKeyPressed(SK_SHIFT) ? SMOD_SHIFT : IsSamKeyPressed(SK_SYMBOL) ? SMOD_SYMBOL : SMOD_NONE;
+                int nAction = anActions[nShift][nKey];
 
-                // Perform the assigned action, if any
-                if (anActions[nShift][nKey] != -1)
+                // Special-case action
+                if (nAction == actToggleJoySip)
+                {
+                    fJoySip = !fJoySip;
+                    fSipDirty = true;
+                }
+                else if (nAction != -1)	// Standard action
                 {
                     nSipKey = pKey->nKey;
-                    DoAction(anActions[nShift][nKey]);
+                    Action::Do(nAction);
                 }
             }
             else
@@ -411,7 +457,7 @@ long CALLBACK SIPWndProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
 
                 // Perform the assigned release action, if any
                 if (anActions[nShift][nKey] != -1)
-                    DoAction(anActions[nShift][nKey], false);
+                    Action::Do(anActions[nShift][nKey], false);
             }
             else if (nSipKey != SK_NONE)
             {
@@ -474,7 +520,6 @@ void ReadKeyboard ()
         ReleaseKey(VK_LCONTROL);
         ReleaseKey(VK_LMENU);
     }
-
 }
 
 
@@ -634,10 +679,18 @@ void SetSamKeyState ()
     // No SAM keys are pressed initially
     ReleaseAllSamKeys();
 
+    // Set any SIP selection on the SAM keyboard
     if (nSipKey >= 0 && nSipKey != SK_NONE) PressSamKey(nSipKey);
     if (nSipMods & SMOD_SHIFT) PressSamKey(SK_SHIFT);
     if (nSipMods & SMOD_SYMBOL) PressSamKey(SK_SYMBOL);
     if (nSipMods & SMOD_CONTROL) PressSamKey(SK_CONTROL);
+
+    // If the control pad or hardware keys are pressed, activate the appropriate SAM key
+    for (int i = 0 ; i < sizeof(anHwKeys)/sizeof(anHwKeys[0]) ; i++)
+    {
+        if (IsPressed(anHwKeys[i]))
+            PressSamKey(anKeyMap[i]);
+    }
 
     // Left and right shift keys are equivalent, and also complementary!
     bool fShiftToggle = IsPressed(VK_LSHIFT) && IsPressed(VK_RSHIFT);
@@ -718,15 +771,35 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
         }
 
         case WM_LBUTTONDOWN:
+        case WM_LBUTTONDBLCLK:
+        {
             nLastX = GET_X_LPARAM(lParam_);
             nLastY = GET_Y_LPARAM(lParam_);
-            SetCapture(hwnd_);
-            break;
+            POINT pt = { nLastX, nLastY };
 
-        case WM_LBUTTONDBLCLK:
-            Mouse::SetButton(1);
+            if (uMsg_ == WM_LBUTTONDBLCLK)
+            {
+                RECT rect;
+                if (GetOption(fullscreen))
+                    SetRect(&rect, (g_gxdp.cxWidth-SCREEN_LINES)/2, (g_gxdp.cyHeight-SCREEN_PIXELS)/2, SCREEN_LINES, SCREEN_PIXELS);
+                else
+                    SetRect(&rect, 0, (g_gxdp.cyHeight-SIP_HEIGHT-SCREEN_LINES)/2, 240, SCREEN_LINES);
+
+                // Offset the width+height to give a screen rectangle
+                rect.right += rect.left-1;
+                rect.bottom += rect.top-1;
+
+                // If the mouse is enabled and the double-tap was on the main screen, treat it as a SAM mouse click
+                // Otherwise toggle between portrait and landscape modes
+                if (GetOption(mouse) && PtInRect(&rect, pt))
+                    Mouse::SetButton(1);
+                else
+                    Action::Do(actToggleFullscreen);
+            }
+
             SetCapture(hwnd_);
             break;
+        }
 
         case WM_LBUTTONUP:
             // If we captured to catch the release, release it now
@@ -776,8 +849,20 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
         {
             bool fPressed = !(uMsg_ & 1);
             WORD wKey = static_cast<WORD>(wParam_);
-            int nKey;
 
+            // In fullscreen more we rotate the pad to match the screen orientation
+            if (GetOption(fullscreen))
+            {
+                switch (wKey)
+                {
+                    case VK_LEFT:  wKey = VK_UP;	break;
+                    case VK_RIGHT: wKey = VK_DOWN;	break;
+                    case VK_UP:	   wKey = VK_RIGHT;	break;
+                    case VK_DOWN:  wKey = VK_LEFT;	break;
+                }
+            }
+
+            TRACE("%#02X %s\n", wKey, fPressed?"pressed":"released");
             afKeys[wKey & 0xff] = fPressed;
 
             switch (wKey)
@@ -803,88 +888,13 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
                     afKeys[VK_SHIFT] = 0;
                     break;
 
-
                 default:
-                    int i = 0;
                     break;
             }
 
             fSipDirty = true;
             break;
-
-            // TODO: Make these mappings user-definable in UI.cpp
-            int anKeys[] = { SK_6, SK_7, SK_8, SK_9, SK_SPACE, SK_SPACE, SK_ESCAPE, SK_RETURN };
-
-            // Landscape modes need the key directions rotating
-            if (GetOption(fullscreen))
-            {
-                // Force landscape left for now
-                if (1)
-                {
-                    // Rotated left
-                    swap(anKeys[3],anKeys[1]);
-                    swap(anKeys[1],anKeys[2]);
-                    swap(anKeys[2],anKeys[0]);
-                }
-                else
-                {
-                    // Rotated right
-                    swap(anKeys[3],anKeys[1]);
-                    swap(anKeys[1],anKeys[2]);
-                    swap(anKeys[2],anKeys[0]);
-                }
-            }
-
-            // Map what GAPI tells us are the hardware keys to the mappings above
-            // Unfortunately it doesn't always get the buttons right, so these are better detected somehow
-            if (wKey == g_gxkl.vkLeft)
-                nKey = anKeys[0];
-            else if (wKey == g_gxkl.vkRight)
-                nKey = anKeys[1];
-            else if (wKey == g_gxkl.vkDown)
-                nKey = anKeys[2];
-            else if (wKey == g_gxkl.vkUp)
-                nKey = anKeys[3];
-            else if (wKey == g_gxkl.vkA)
-                nKey = anKeys[4];
-            else if (wKey == g_gxkl.vkB)
-                nKey = anKeys[5];
-
-            // The button assignments below are hard-coded for now
-            else if (wKey == g_gxkl.vkC)
-            {
-                if (fPressed)
-                    DoAction(actToggleFullscreen);
-
-                return true;
-            }
-            else if (wKey == 194)   // This is missing from the GAPI key list?
-            {
-                Mouse::SetButton(1, fPressed);
-                return true;
-            }
-            else if (wKey == g_gxkl.vkStart)
-            {
-                // This duplicate prevents getting stuck in fullscreen during the beta testing
-                // if the other button mapping is unavailable for some reason
-                if (fPressed)
-                    DoAction(actToggleFullscreen);
-
-                return true;
-            }
-            else
-                break;
-
-            // Press or release the key, depending on the message
-            if (fPressed)
-                PressSamKey(nKey);
-            else
-                ReleaseSamKey(nKey);
-
-            // Force a SIP update
-            InvalidateRect(g_hwndSIP, NULL, FALSE);
-            return false;
-        }
+		}
     }
 
     // Message not processed
