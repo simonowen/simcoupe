@@ -273,7 +273,7 @@ static BOOL isFullyLaunched = NO;
 // Help -> SimCoupe Help
 - (IBAction)helpHelp:(id)sender
 {
-	[self openResourceFile:@"ReadMe.txt"];
+	[self openResourceFile:@"SimCoupe.rtf"];
 }
 
 // Help -> View ChangeLog
