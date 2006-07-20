@@ -22,6 +22,7 @@
 
 #include "UI.h"
 
+#include "Action.h"
 #include "CDrive.h"
 #include "Clock.h"
 #include "CPU.h"
@@ -32,6 +33,7 @@
 #include "Options.h"
 #include "OSD.h"
 #include "Memory.h"
+#include "Parallel.h"
 #include "Sound.h"
 #include "Video.h"
 
@@ -51,13 +53,13 @@ extern int __cdecl main (int argc, char *argv[]);
 
 BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
 BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
-void SetComboStrings (HWND hdlg_, UINT uID_, const TCHAR** ppcsz_, int nDefault_=-1);
+void SetComboStrings (HWND hdlg_, UINT uID_, LPCTSTR *ppcsz_, int nDefault_=-1);
 
 bool InitWindow ();
 void DisplayOptions ();
 
 
-bool g_fActive = true, g_fFrameStep = false, g_fTestMode = false;
+bool g_fActive = true, g_fTestMode = false;
 
 HINSTANCE __hinstance;
 HWND g_hwnd;
@@ -126,7 +128,7 @@ bool UI::CheckEvents ()
 /*
     // Re-pause after a single frame-step
     if (g_fFrameStep)
-        DoAction(actFrameStep);
+        Action::Do(actFrameStep);
 */
     while (1)
     {
@@ -228,7 +230,7 @@ bool GetSaveLoadFile (LPOPENFILENAME lpofn_, bool fLoad_)
             *lpofn_->lpstrFile = _T('\0');
         else
         {
-            TRACE("!!! GetSaveLoadFile() failed with %#08lx\n", CommDlgExtendedError());
+            TRACE("!!! GetSaveLoadFile() failed\n");
             return false;
         }
     }
@@ -266,7 +268,8 @@ bool InsertDisk (CDiskDevice* pDrive_)
     return false;
 }
 
-bool DoAction (int nAction_, bool fPressed_/*=true*/)
+
+bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
 {
     USES_CONVERSION;
 
@@ -275,22 +278,6 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
     {
         switch (nAction_)
         {
-            case actNmiButton:
-                CPU::NMI();
-                break;
-
-            case actResetButton:
-                // Simulate the reset button being held by resetting the CPU and I/O, and holding the sound chip
-                CPU::Reset(true);
-                Sound::Stop();
-                break;
-
-            case actToggleMute:
-                SetOption(sound, !GetOption(sound));
-                Sound::Init();
-                Frame::SetStatus("Sound %s", GetOption(sound) ? "enabled" : "muted");
-                break;
-
             case actToggleFullscreen:
                 Sound::Silence();
                 SetOption(fullscreen, !GetOption(fullscreen));
@@ -312,33 +299,6 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 Frame::Init();
                 break;
 
-            case actToggleSync:
-                SetOption(sync, !GetOption(sync));
-                Frame::SetStatus("Frame sync %s", GetOption(sync) ? "enabled" : "disabled");
-                break;
-
-            case actChangeFrameSkip:
-            {
-                SetOption(frameskip, (GetOption(frameskip)+1) % 11);
-
-                int n = GetOption(frameskip);
-                switch (n)
-                {
-                    case 0:     Frame::SetStatus("Automatic frame-skip");   break;
-                    case 1:     Frame::SetStatus("No frames skipped");      break;
-                    default:    Frame::SetStatus("Displaying every %d%s frame", n, (n==2) ? "nd" : (n==3) ? "rd" : "th");   break;
-                }
-                break;
-            }
-
-            case actChangeProfiler:
-                SetOption(profile, (GetOption(profile)+1) % 4);
-                break;
-
-            case actSaveScreenshot:
-                Frame::SaveFrame();
-                break;
-
             case actInsertFloppy1:
                 if (GetOption(drive1) != dskImage)
                     Message(msgWarning, "Floppy drive %d is not present", 1);
@@ -352,11 +312,6 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                     Frame::SetStatus("%s  ejected from drive %d", pDrive1->GetFile(), 1);
                     pDrive1->Eject();
                 }
-                break;
-
-            case actSaveFloppy1:
-                if (GetOption(drive1) == dskImage && pDrive1->IsModified() && pDrive1->Save())
-                    Frame::SetStatus("%s  changes saved", pDrive1->GetFile());
                 break;
 
             case actInsertFloppy2:
@@ -374,10 +329,6 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
                 }
                 break;
 
-            case actSaveFloppy2:
-                if (GetOption(drive2) == dskImage && pDrive2->IsModified() && pDrive2->Save())
-                    Frame::SetStatus("%s  changes saved", pDrive2->GetFile());
-                break;
 /*
             case actNewDisk1:
                 if (SaveDriveChanges(pDrive1))
@@ -420,23 +371,6 @@ bool DoAction (int nAction_, bool fPressed_/*=true*/)
             case actExitApplication:
                 ShowWindow(g_hwnd, SW_HIDE);
                 PostMessage(g_hwnd, WM_CLOSE, 0, 0L);
-                break;
-
-            case actToggleTurbo:
-            {
-                g_fTurbo = !g_fTurbo;
-                Sound::Silence();
-
-                Frame::SetStatus("Turbo mode %s", g_fTurbo ? "enabled" : "disabled");
-                break;
-            }
-
-            case actTempTurbo:
-                if (!g_fTurbo)
-                {
-                    g_fTurbo = true;
-                    Sound::Silence();
-                }
                 break;
 
             case actFrameStep:
@@ -618,7 +552,7 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             if (!SaveDriveChanges(pDrive1) || !SaveDriveChanges(pDrive2))
                 return 0;
 
-            ShowWindow(g_hwnd, SW_HIDE);
+            ShowWindow(hwnd_, SW_HIDE);
             break;
 
         // Main window is being destroyed
@@ -638,8 +572,11 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             break;
 
         case WM_PAINT:
-            Display::SetDirty();
-            break;
+            PAINTSTRUCT ps;
+            BeginPaint(hwnd_, &ps);
+            Frame::Redraw();
+            EndPaint(hwnd_, &ps);
+            return 0;
 
         case WM_ENABLE:
             // Prevent us from being disabled, so we can be closed when modal dialogs are active
@@ -664,7 +601,7 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
 
             // Alt-Return is used to toggle full-screen (ignore key repeats)
             else if (uMsg_ == WM_SYSKEYDOWN && wParam_ == VK_RETURN && (lParam_ & 0x60000000) == 0x20000000)
-                DoAction(actToggleFullscreen);
+                Action::Do(actToggleFullscreen);
 
             break;
 
@@ -685,7 +622,7 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
 
                 // Grab an upper-case copy of the function key definition string
                 char szKeys[256];
-                memcpy(szKeys, GetOption(fnkeys), sizeof(szKeys));
+                strncpy(szKeys, GetOption(fnkeys), sizeof(szKeys));
 
                 // Process each of the 'key=action' pairs in the string
                 for (char* psz = strtok(szKeys, ", \t") ; psz ; psz = strtok(NULL, ", \t"))
@@ -706,7 +643,7 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
                         if (fCtrl == fCtrled && fShift == fShifted && fAlt == fAlted)
                         {
                             // Perform the action, passing whether this is a key press or release
-                            DoAction(strtoul(++psz, NULL, 0), uMsg_ == WM_KEYDOWN);
+                            Action::Do(strtoul(++psz, NULL, 0), uMsg_ == WM_KEYDOWN);
                             break;
                         }
                     }
@@ -723,23 +660,23 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
                 case VK_SUBTRACT:
                 {
                     if (GetOption(keypadreset))
-                        DoAction(actResetButton, uMsg_ == WM_KEYDOWN);
+                        Action::Do(actResetButton, uMsg_ == WM_KEYDOWN);
                     break;
                 }
 
                 // Toggle the debugger
                 case VK_DIVIDE:
                     if (uMsg_ == WM_KEYDOWN)
-                        DoAction(actDebugger);
+                        Action::Do(actDebugger);
                     break;
 
                 case VK_MULTIPLY:
                     if (uMsg_ == WM_KEYDOWN)
-                        DoAction(actNmiButton);
+                        Action::Do(actNmiButton);
                     break;
 
                 case VK_ADD:
-                    DoAction(actTempTurbo, uMsg_ == WM_KEYDOWN);
+                    Action::Do(actTempTurbo, uMsg_ == WM_KEYDOWN);
                     break;
 
                 case VK_CANCEL:
@@ -752,18 +689,18 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
 
                         // Shift-pause single steps
                         else if (GetAsyncKeyState(VK_SHIFT) < 0)
-                            DoAction(actFrameStep);
+                            Action::Do(actFrameStep);
 
                         // Pause toggles pause mode
                         else
-                            DoAction(actPause);
+                            Action::Do(actPause);
                     }
                     break;
 
                 case VK_SNAPSHOT:
                 case VK_SCROLL:
                     if (uMsg_ == WM_KEYUP)
-                        DoAction(actSaveScreenshot);
+                        Action::Do(actSaveScreenshot);
                     break;
 
                 // Use the default behaviour for anything we're not using
@@ -794,7 +731,7 @@ long CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
                 Display::SetDirty();
                 Frame::Redraw();
 
-                SetWindowText(g_hwnd, g_fActive ? WINDOW_CAPTION : WINDOW_CAPTION _T(" - Paused"));
+                SetWindowText(hwnd_, g_fActive ? WINDOW_CAPTION : WINDOW_CAPTION _T(" - Paused"));
             }
             break;
         }
@@ -934,7 +871,7 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                 case IDB_BROWSE:
                 {
                     bool fReadOnly = true;
-                    if (!GetSaveLoadFile(g_hwnd, _T("Binary files (*.bin)\0*.bin\0Data files (*.dat)\0*.dat\0All files (*.*)\0*.*\0"),
+                    if (!GetSaveLoadFile(hwnd_, _T("Binary files (*.bin)\0*.bin\0Data files (*.dat)\0*.dat\0All files (*.*)\0*.*\0"),
                                     NULL, szFile, MAX_PATH, fImport))
                         break;
 
@@ -1021,7 +958,7 @@ bool InitWindow ()
 ////////////////////////////////////////////////////////////////////////////////
 
 // Helper function for filling a combo-box with strings and selecting one
-void SetComboStrings (HWND hdlg_, UINT uID_, const TCHAR** ppcsz_, int nDefault_)
+void SetComboStrings (HWND hdlg_, UINT uID_, LPCTSTR *ppcsz_, int nDefault_)
 {
     HWND hwndCombo = GetDlgItem(hdlg_, uID_);
 
@@ -1029,11 +966,31 @@ void SetComboStrings (HWND hdlg_, UINT uID_, const TCHAR** ppcsz_, int nDefault_
     SendMessage(hwndCombo, CB_RESETCONTENT, 0, 0L);
 
     // Add each string from the list
-    while (*ppcsz_)
-        SendMessage(hwndCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(*ppcsz_++));
+    for (int i = 0 ; ppcsz_[i] ; i++)
+    {
+        // Combo boxes are very tight, so add some leading padding
+        static TCHAR sz[128];
+        lstrcpy(sz, _T(" "));
+        lstrcat(sz, ppcsz_[i]);
 
-    // Select the specified default, or the first item if there wasn't one
-    SendMessage(hwndCombo, CB_SETCURSEL, (nDefault_ == -1) ? 0 : nDefault_, 0);
+        // Add the string, setting the item data to link it to its original position
+        int nIndex = SendMessage(hwndCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(sz));
+        SendMessage(hwndCombo, CB_SETITEMDATA, nIndex, i);
+
+        // If this is the default selection, select it
+        if (i == nDefault_)
+            SendMessage(hwndCombo, CB_SETCURSEL, nIndex, 0);
+    }
+}
+
+// Helper function to fetch the original index position of a sorted combo-box
+int GetComboIndex (HWND hdlg_, UINT uID_)
+{
+    HWND hwndCombo = GetDlgItem(hdlg_, uID_);
+    if (hwndCombo)
+        return SendMessage(hwndCombo, CB_GETITEMDATA, SendMessage(hwndCombo, CB_GETCURSEL, 0, 0L), 0L);
+
+    return CB_ERR;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1130,25 +1087,17 @@ BOOL CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     ofn.hwndOwner       = hdlg_;
                     ofn.lpstrFilter     = _T("ROM images (*.rom;*.zx82)\0*.rom;*.zx82\0All files (*.*)\0*.*\0");
                     ofn.lpstrFile       = szFile;
-                    ofn.nMaxFile        = sizeof(szFile);
+                    ofn.nMaxFile        = MAX_PATH;
                     ofn.Flags           = OFN_HIDEREADONLY;
 
                     if (GetSaveLoadFile(&ofn, true))
                     {
-                        SetDlgItemText(hdlg_, IDE_ROM, szFile);
-                        SendDlgItemMessage(hdlg_, IDE_ROM, EM_SETSEL, MAX_PATH, -1);
+                        HWND hctrl = GetDlgItem(hdlg_, IDE_ROM);
+                        SetWindowText(hctrl, szFile);
+                        SendMessage(hctrl, EM_SETSEL, 0, -1);
+                        SetFocus(hctrl);
                     }
 
-/*
-                    TCHAR szFile[MAX_PATH] = _T("");
-
-                    if (!GetSaveLoadFile(hdlg_, _T("ROM images (*.rom)\0*.rom\0All files (*.*)\0*.*\0"),
-                                            NULL, szFile, MAX_PATH, true))
-                        break;
-
-                    SetDlgItemText(hdlg_, IDE_ROM, szFile);
-                    SendDlgItemMessage(hdlg_, IDE_ROM, EM_SETSEL, MAX_PATH, -1);
-*/
                     break;
                 }
 
@@ -1175,7 +1124,7 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
 
             SendDlgItemMessage(hdlg_, IDC_SYNC, BM_SETCHECK, GetOption(sync) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
-            static const TCHAR* aszMode3[] = { _T("Odd pixels"), _T("Even pixels"), _T("Interlaced"), NULL };
+            static const TCHAR* aszMode3[] = { _T("Display only odd pixels"), _T("Display only even pixels"), _T("Interlaced (slow!)"), NULL };
             SetComboStrings(hdlg_, IDC_MODE3, aszMode3, GetOption(mode3));
 
             SendDlgItemMessage(hdlg_, IDC_FRAMESKIP_AUTOMATIC, BM_SETCHECK, !GetOption(frameskip) ? BST_CHECKED : BST_UNCHECKED, 0L);
@@ -1328,11 +1277,11 @@ BOOL CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
     {
         case WM_INITDIALOG:
         {
-            static const TCHAR* aszDrives1[] = { _T("None"), _T("Floppy drive"), NULL };
+            static const TCHAR* aszDrives1[] = { _T("None"), _T("Floppy"), NULL };
             SetComboStrings(hdlg_, IDC_DRIVE1, aszDrives1, GetOption(drive1));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE1, 0L);
 
-            static const TCHAR* aszDrives2[] = { _T("None"), _T("Floppy drive"), _T("Atom Hard Disk"), NULL };
+            static const TCHAR* aszDrives2[] = { _T("None"), _T("Floppy"), _T("Atom HDD"), NULL };
             SetComboStrings(hdlg_, IDC_DRIVE2, aszDrives2, GetOption(drive2));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE2, 0L);
 
@@ -1341,7 +1290,14 @@ BOOL CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 !GetOption(turboload) ? 1 : GetOption(turboload) <= 5 ? 2 : GetOption(turboload) <= 50 ? 1 : 0);
 
             SendDlgItemMessage(hdlg_, IDC_TURBO_LOAD, BM_SETCHECK, GetOption(turboload) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_SAVE_PROMPT, BM_SETCHECK, GetOption(saveprompt) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_AUTOBOOT, BM_SETCHECK, GetOption(autoboot) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_SETCHECK, GetOption(dosboot) ? BST_CHECKED : BST_UNCHECKED, 0L);
+
+            SetDlgItemText(hdlg_, IDE_DOSDISK, A2W(GetOption(dosdisk)));
+
             SendMessage(hdlg_, WM_COMMAND, IDC_TURBO_LOAD, 0L);
+            SendMessage(hdlg_, WM_COMMAND, IDC_DOSBOOT, 0L);
             break;
         }
 
@@ -1359,6 +1315,14 @@ BOOL CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 SetOption(drive1, SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L));
                 SetOption(drive2, SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L));
 
+                SetOption(saveprompt, SendDlgItemMessage(hdlg_, IDC_SAVE_PROMPT, BM_GETCHECK,  0, 0L) == BST_CHECKED);
+                SetOption(autoboot, SendDlgItemMessage(hdlg_, IDC_AUTOBOOT, BM_GETCHECK,  0, 0L) == BST_CHECKED);
+                SetOption(dosboot, SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_GETCHECK,  0, 0L) == BST_CHECKED);
+
+                TCHAR szDosBoot[MAX_PATH];
+                GetDlgItemText(hdlg_, IDE_DOSDISK, szDosBoot, MAX_PATH);
+                SetOption(dosdisk,W2A(szDosBoot));
+
                 if (Changed(drive1) || Changed(drive2))
                     IO::InitDrives();
             }
@@ -1373,6 +1337,39 @@ BOOL CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 {
                     bool fTurboLoad = SendDlgItemMessage(hdlg_, IDC_TURBO_LOAD, BM_GETCHECK, 0, 0L) == BST_CHECKED;
                     EnableWindow(GetDlgItem(hdlg_, IDC_SENSITIVITY), fTurboLoad);
+                    break;
+                }
+
+                case IDC_DOSBOOT:
+                {
+                    bool fDosBoot = SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_GETCHECK, 0, 0L) == BST_CHECKED;
+                    EnableWindow(GetDlgItem(hdlg_, IDS_DOSDISK), fDosBoot);
+                    EnableWindow(GetDlgItem(hdlg_, IDE_DOSDISK), fDosBoot);
+                    EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE), fDosBoot);
+                    break;
+                }
+
+                case IDB_BROWSE:
+                {
+                    static OPENFILENAME ofn = { sizeof(ofn) };
+
+                    TCHAR szFile[MAX_PATH] = _T("");
+                    GetDlgItemText(hdlg_, IDE_DOSDISK, szFile, sizeof(szFile));
+
+                    ofn.hwndOwner       = hdlg_;
+                    ofn.lpstrFilter     = szFloppyFilters;
+                    ofn.lpstrFile       = szFile;
+                    ofn.nMaxFile        = MAX_PATH;
+                    ofn.Flags           = OFN_HIDEREADONLY;
+
+                    if (GetSaveLoadFile(&ofn, true))
+                    {
+                        HWND hctrl = GetDlgItem(hdlg_, IDE_DOSDISK);
+                        SetWindowText(hctrl, szFile);
+                        SendMessage(hctrl, EM_SETSEL, 0, -1);
+                        SetFocus(hctrl);
+                    }
+
                     break;
                 }
             }
@@ -1399,6 +1396,7 @@ BOOL CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             SendDlgItemMessage(hdlg_, IDC_ALTGR_FOR_EDIT, BM_SETCHECK, GetOption(altgrforedit) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
             SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_SETCHECK, GetOption(mouse) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_MOUSE_SWAP23, BM_SETCHECK, GetOption(swap23) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendMessage(hdlg_, WM_COMMAND, IDC_MOUSE_ENABLED, 0L);
 
             break;
@@ -1414,6 +1412,7 @@ BOOL CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 SetOption(altgrforedit, SendDlgItemMessage(hdlg_, IDC_ALTGR_FOR_EDIT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
                 SetOption(mouse, (SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED));
+                SetOption(swap23,(SendDlgItemMessage(hdlg_, IDC_MOUSE_SWAP23, BM_GETCHECK, 0, 0L) == BST_CHECKED));
 
                 if (Changed(keymapping) || Changed(mouse))
                     Input::Init();
@@ -1421,6 +1420,91 @@ BOOL CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             break;
         }
     }
+
+    return fRet;
+}
+
+
+BOOL CALLBACK KeymapPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+{
+    BOOL fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+
+    switch (uMsg_)
+    {
+        case WM_INITDIALOG:
+        {
+            static const TCHAR* aszSamKeys[] = {
+                _T("Shift"), _T("Z"), _T("X"), _T("C"), _T("V"), _T("F1"), _T("F2"), _T("F3"),
+                _T("A"), _T("S"), _T("D"), _T("F"), _T("G"), _T("F4"), _T("F5"), _T("F6"),
+                _T("Q"), _T("W"), _T("E"), _T("R"), _T("T"), _T("F7"), _T("F8"), _T("F9"),
+                _T("1"), _T("2"), _T("3"), _T("4"), _T("5"), _T("Esc"), _T("Tab"), _T("Caps"),
+                _T("0"), _T("9"), _T("8"), _T("7"), _T("6"), _T("-"), _T("+"), _T("Delete"),
+                _T("P"), _T("O"), _T("I"), _T("U"), _T("Y"), _T("="), _T("\""), _T("F0"),
+                _T("Return"), _T("L"), _T("K"), _T("J"), _T("H"), _T(";"), _T(":"), _T("Edit"),
+                _T("Space"), _T("Symbol"), _T("M"), _T("N"), _T("B"), _T(","), _T("."), _T("Inv"),
+                _T("Cntrl"), _T("Up"), _T("Down"), _T("Left"), _T("Right"), _T("(none)"), NULL
+            };
+
+            // The control pad, action, and 4 hardware buttons
+            int anKeys[] = { IDC_LEFT, IDC_RIGHT, IDC_UP, IDC_DOWN, IDC_START,
+                             IDC_BUTTON1, IDC_BUTTON2, IDC_BUTTON3, IDC_BUTTON4 };
+
+            // Copy the keymap option string, as strtok will modify it
+            char szKeys[256];
+            strncpy(szKeys, GetOption(keymap), sizeof(szKeys));
+
+            // Expect a comma-separated list of SAM key codes
+            char *psz = strtok(szKeys, ",");
+
+            // Set the selection of each key combo to the current mapping
+            for (int i = 0 ; i < sizeof(anKeys)/sizeof(anKeys[0]) ; i++)
+            {
+                int nKey = (psz && psz[0]) ? strtoul(psz, NULL, 0) : SK_MAX;
+                if (nKey > SK_MAX) nKey = SK_MAX;
+                SetComboStrings(hdlg_, anKeys[i], aszSamKeys, nKey);
+                psz = strtok(NULL, ",");
+            }
+
+            break;
+        }
+
+        case WM_NOTIFY:
+        {
+            if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
+            {
+                int anKeys[] = { IDC_LEFT, IDC_RIGHT, IDC_UP, IDC_DOWN, IDC_START, IDC_BUTTON1, IDC_BUTTON2, IDC_BUTTON3, IDC_BUTTON4 };
+                int an[sizeof(anKeys)/sizeof(anKeys[0])];
+
+                // Fetch the new selection of each mapping combo box
+                for (int i = 0 ; i < sizeof(anKeys)/sizeof(anKeys[0]) ; i++)
+                    an[i] = GetComboIndex(hdlg_, anKeys[i]);
+
+                // Form the new keymap option string from the list of codes
+                char sz[128];
+                sprintf(sz, "%d,%d,%d,%d,%d,%d,%d,%d,%d", an[0],an[1],an[2],an[3],an[4],an[5],an[6],an[7],an[8]);
+                SetOption(keymap, sz);
+
+                // If the mappings have change, reinitialise the input to activate them
+                if (ChangedString(keymap))
+                    Input::Init();
+            }
+            break;
+        }
+
+        case WM_COMMAND:
+        {
+/*
+            switch (LOWORD(wParam_))
+            {
+                case IDB_TEST:
+                {
+                    DialogBox(__hinstance, MAKEINTRESOURCE(IDD_TEST), hdlg_, TestDlgProc);
+                }
+            }
+*/
+            break;
+        }
+}
 
     return fRet;
 }
@@ -1438,6 +1522,14 @@ BOOL CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             SetComboStrings(hdlg_, IDC_PARALLEL_1, aszParallel, GetOption(parallel1));
             SetComboStrings(hdlg_, IDC_PARALLEL_2, aszParallel, GetOption(parallel2));
 
+            static const TCHAR* aszPrinters[] = { _T("File: prntNNNN.txt (auto-generated)"), NULL };
+            SetComboStrings(hdlg_, IDC_PRINTERS, aszPrinters, 0);
+
+            static const TCHAR* aszDelay[] = { _T("Disabled"), _T("1 second idle"), _T("2 seconds idle"), _T("3 seconds idle"), _T("4 seconds idle"), _T("5 seconds idle"), NULL };
+            SetComboStrings(hdlg_, IDC_FLUSHDELAY, aszDelay, GetOption(flushdelay));
+
+            SendDlgItemMessage(hdlg_, IDC_PRINTER_ONLINE, BM_SETCHECK, GetOption(printeronline) ? BST_CHECKED : BST_UNCHECKED, 0L);
+
             SendMessage(hdlg_, WM_COMMAND, IDC_PARALLEL_1, 0L);
             SendMessage(hdlg_, WM_COMMAND, IDC_PARALLEL_2, 0L);
 
@@ -1450,6 +1542,10 @@ BOOL CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             {
                 SetOption(parallel1, SendDlgItemMessage(hdlg_, IDC_PARALLEL_1, CB_GETCURSEL, 0, 0L));
                 SetOption(parallel2, SendDlgItemMessage(hdlg_, IDC_PARALLEL_2, CB_GETCURSEL, 0, 0L));
+
+                SetOption(flushdelay, SendDlgItemMessage(hdlg_, IDC_FLUSHDELAY, CB_GETCURSEL, 0, 0L));
+
+                SetOption(printeronline, (SendDlgItemMessage(hdlg_, IDC_PRINTER_ONLINE, BM_GETCHECK, 0, 0L) == BST_CHECKED));
 
                 if (Changed(parallel1) || Changed(parallel2))
                     IO::InitParallel();
@@ -1467,8 +1563,22 @@ BOOL CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                     bool fPrinter1 = (SendDlgItemMessage(hdlg_, IDC_PARALLEL_1, CB_GETCURSEL, 0, 0L) == 1);
                     bool fPrinter2 = (SendDlgItemMessage(hdlg_, IDC_PARALLEL_2, CB_GETCURSEL, 0, 0L) == 1);
 
+                    bool fFlush1 = fPrinter1 && reinterpret_cast<CPrintBuffer*>(pParallel1)->IsFlushable();
+                    bool fFlush2 = fPrinter2 && reinterpret_cast<CPrintBuffer*>(pParallel2)->IsFlushable();
+
+                    EnableWindow(GetDlgItem(hdlg_, IDC_PRINTERS), fPrinter1 || fPrinter2);
+                    EnableWindow(GetDlgItem(hdlg_, IDS_FLUSHDELAY), fPrinter1 || fPrinter2);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_FLUSHDELAY), fPrinter1 || fPrinter2);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_PRINTER_ONLINE), fPrinter1 || fPrinter2);
+                    EnableWindow(GetDlgItem(hdlg_, IDB_FLUSH_PRINT_JOB), fFlush1 || fFlush2);
+
                     break;
                 }
+
+                case IDB_FLUSH_PRINT_JOB:
+                    Action::Do(actFlushPrinter);
+                    EnableWindow(GetDlgItem(hdlg_, IDB_FLUSH_PRINT_JOB), FALSE);
+                    break;
             }
             break;
         }
@@ -1565,14 +1675,15 @@ static void InitPage (PROPSHEETPAGE* pPage_, int nPage_, int nDialogId_, DLGPROC
 void DisplayOptions ()
 {
     // Initialise the pages to go on the sheet
-    PROPSHEETPAGE aPages[7];
+    PROPSHEETPAGE aPages[8];
     InitPage(aPages, 0, IDD_PAGE_SYSTEM,    SystemPageDlgProc);
     InitPage(aPages, 1, IDD_PAGE_DISPLAY,   DisplayPageDlgProc);
     InitPage(aPages, 2, IDD_PAGE_SOUND,     SoundPageDlgProc);
     InitPage(aPages, 3, IDD_PAGE_DRIVES,    DrivePageDlgProc);
     InitPage(aPages, 4, IDD_PAGE_INPUT,     InputPageDlgProc);
-    InitPage(aPages, 5, IDD_PAGE_PARALLEL,  ParallelPageDlgProc);
-    InitPage(aPages, 6, IDD_PAGE_MISC,      MiscPageDlgProc);
+    InitPage(aPages, 5, IDD_PAGE_KEYMAP,    KeymapPageDlgProc);
+    InitPage(aPages, 6, IDD_PAGE_PARALLEL,  ParallelPageDlgProc);
+    InitPage(aPages, 7, IDD_PAGE_MISC,      MiscPageDlgProc);
 
     PROPSHEETHEADER psh;
     ZeroMemory(&psh, sizeof psh);
