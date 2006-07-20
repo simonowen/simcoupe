@@ -1,5 +1,5 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft eMbedded Visual C++ generated include file.
+// Microsoft Visual C++ generated include file.
 // Used by SimCoupe.rc
 //
 #define IDI_MAIN                        1
@@ -13,7 +13,6 @@
 #define IDD_PAGE_MIDI                   170
 #define IDD_PAGE_MISC                   171
 #define IDD_PAGE_DRIVES                 172
-#define IDD_PAGE_FNKEYS                 173
 #define IDD_IMPORT                      178
 #define IDD_PAGE_KEYMAP                 179
 #define IDB_NORMAL                      185
@@ -68,10 +67,6 @@
 #define IDC_LATENCY                     1042
 #define IDC_DRIVE1                      1043
 #define IDC_DRIVE2                      1044
-#define IDB_DELETE                      1045
-#define IDB_EDIT                        1046
-#define IDB_ADD                         1047
-#define IDL_FNKEYS                      1048
 #define IDS_LATENCY                     1051
 #define IDC_SOUND_ENABLED               1052
 #define IDB_BROWSE                      1053
