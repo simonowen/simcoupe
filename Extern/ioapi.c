@@ -6,7 +6,7 @@
    Copyright (C) 1998-2003 Gilles Vollant
 */
 
-// The following 2 lines make SimCoupe builds much easier to manage
+/* The following 2 lines make SimCoupe builds much easier to manage */
 #include "SimCoupe.h"
 #define _CRT_SECURE_NO_DEPRECATE
 
