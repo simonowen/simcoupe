@@ -123,6 +123,7 @@ typedef struct
     bool    pauseinactive;          // Pause when not the active app?
 
     char    fnkeys[256];            // Function key bindings
+    char    keymap[256];            // Custom keymap
 }
 OPTIONS;
 
