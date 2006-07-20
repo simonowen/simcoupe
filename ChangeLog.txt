@@ -1,5 +1,92 @@
-SimCoupé ChangeLog
+SimCoupe ChangeLog
 ==================
+
+Version 1.0 (21st July 2006)
+----------------------------
+
+- Added SDL port (OpenGL and regular) for Linux, BeOS, QNX, etc.
+- Added Pocket PC port for ARM, MIPS and SH3 devices
+- Added Allegro port for an updated DOS version
+- Added built-in GUI for all platforms without native GUI support
+- Added full async real disk support for 2000/XP and Linux
+- Added read-write EDSK support for copy-protected disks
+- Added formatting support within limits of disk image capabilities
+- Added read-only support for TD0 (TeleDisk) and SBT disk images
+- Added support for 9-sector Pro-DOS disk images
+- Added correct WD1772 CRCs to read address and read track data
+- Added support for deleted data address marks in track reads/formats
+- Added auto-boot option for disks inserted at the start-up screen
+- Added delay to disk image accesses, to avoid Pro-DOS bug
+- Added turbo-load support, for accelerated speed during disk accesses
+- Added preliminary debugger support, with lots of future potential
+- Added partial scanline support for a more natural looking display
+- Added support for border pixel artefacts, as used by Fred65 menu
+- Added support for incomplete frame drawing, needed by the debugger
+- Added support for using real HDD devices under Win32, Linux and OS X
+- Added optional automagic DOS booting of non-bootable disks
+- Added internal SAMDOS 2.2 image, used by automagical DOS booting
+- Added internal SAM ROM v3.0 image, used as the default
+- Added support for ZX82 and gzipped external ROM images
+- Added built-in support for Edwin Blink's ATOM ROM booting patches
+- Added support for unresponsive ASIC during first ~49ms after power-on
+- Added support for SDIDE and YAMOD.ATBUS hard disk interfaces
+- Added print-to-file support for SAM printers
+- Added support for swapping mouse buttons 2 and 3
+- Added Alt as modifier option to function key bindings
+- Added missing SAM pipe symbol to keyboard map
+- Added option to swap function keys and numeric keypad operation
+- Added full HPEN and LPEN support, used by Defender and BSD demo
+- Added mouse-wheel support to generate cursor up/down
+- Added basic Vista beta 2 support by working around OS bugs
+- Added manifest for XP themed common controls [Win32]
+
+- Fixed ADC HL,rr incorrectly setting N flag
+- Fixed ADD IX/IY,rr failing to set carry for overflow, or H flag
+- Fixed disassembly of IN C,(C) and display of DDCB/FDCB index offsets
+- Fixed DAA to support all undocumented flags
+- Fixed ROM memory accesses to be uncontended [Dave Laundon]
+- Fixed contention across page boundaries [Dave Laundon]
+- Fixed Atom support to work correctly with latest BDOS versions
+- Fixed SAD support for sector sizes other than 512 bytes
+- Fixed index pulse to be based on disk speed rather than status reads
+- Fixed WD1772 sector searching so the head value is no longer compared
+- Fixed formatting to preserve embedded data, for Pro-DOS [thanks Steve P-T]
+- Fixed re-insert of same disk image losing old image changes
+- Fixed formatting crash when no disk present [thanks Josef Prokes]
+- Fixed auto-frameskip to avoid wasting time (old 25fps problem)
+- Fixed key-bounce issues by deferring input until mid-frame
+- Fixed digit input on Czech keyboards, which require a shift modifier
+- Fixed AltGr being seen as Ctrl-Alt on some Win9x setups
+- Fixed Ctrl-<digit> access to symbols [thanks Edwin Blink]
+- Fixed incorrect SAM palette spread, which made dark colours too bright
+- Fixed the PNG screenshot palette being too dark
+- Fixed pixel format colour issues by calculating them from bit masks
+- Fixed broken import/export which could crash with sizes over 16K
+- Fixed MIC writes not reflected back to EAR [thanks Edwin Blink]
+- Fixed reads from ports 0 to 15, which were always returning zero
+- Fixed mouse read timeout (now 50us) and timer reset on each byte read
+- Fixed accumulation of small mouse movements, for Legend of Eshan
+- Fixed external memory ports to be write-only [thanks Jiri Veleba]
+- Fixed autoboot to hold rather than tap F9, to avoid a 2nd boot attempt
+- Fixed building for 64-bit platforms [thanks Stuart Brady and Terry Froy]
+- Fixed disk image saving on Windows shutdown/restart [Win32]
+- Fixed display of mode 3 pixels in 24-bit mode [Win32]
+
+- Improved efficiency of contention table lookups [Dave Laundon]
+- Improved fast-boot to no longer require temporary ROM patching
+- Improved menu layout, adding icons and a MRU file list
+- Improved some overly complicated dialogs and options screens
+- Improved sensitivity and scaling of SAM mouse movements
+- Improved RAM, paging, CLUT and CPU register power-on states
+- Improved DAC interpolation for less harsh playback in MOD Player
+- Improved altforcntrl use by disabling Windows key when active [Win32]
+- Improved PNG screenshots to include 5:4 aspect, scanlines and greyscale
+
+- Changed to use a combined 32K ROM image instead of separate 16K files
+- Changed unconnected ports to return 0xff rather than 0x00
+- Changed to dynamically bind to DirectX, for better error reporting
+- Removed dynamic Atom HDD generated from floppy images
+
 
 Version 0.81a (9th March 2001)
 ------------------------------
@@ -8,8 +95,8 @@ Version 0.81a (9th March 2001)
 - Changed Win32 open file filter to include compressed archives by default.
 
 
-Version 0.81 (27th Feb 2001)
-----------------------------
+Version 0.81 (27th February 2001)
+---------------------------------
 - CPU loop simplified and optimised using a new event model [Dave Laundon]
 - MIDI OUT interrupt timing now perfect (fixes a demo) [Dave Laundon]
 - Line interrupt now activated/deactivated on line port writes [Dave Laundon]
@@ -55,8 +142,8 @@ Version 0.81 (27th Feb 2001)
 - Emulator files accessed relative to the main EXE (allows shell associations).
 
 
-Version 0.80 alpha test 4 (21st Aug 2000)
------------------------------------------
+Version 0.80 alpha test 4 (21st August 2000)
+--------------------------------------------
 - Two-step video mode changing, with page change 1 cell after the mode.
 - Preliminary mono and stereo DAC support for parallel port 1.
 - New DAC optimisation option for better sample plackback on slow machines.
@@ -91,8 +178,8 @@ Version 0.80 alpha test 3 (22nd June 2000)
 - Disassembler re-written for compactness and complete instruction coverage.
 
 
-Version 0.80 alpha test (11th Nov 1999)
----------------------------------------
+Version 0.80 alpha test (11th November 1999)
+--------------------------------------------
 - Crude instruction rounding used to implement approximate memory contention.
 - Additional delay and rounding performed on I/O on ASIC-handled ports.
 - Improved active duration for interrupts.
@@ -125,13 +212,13 @@ Version 0.80 alpha test (11th Nov 1999)
 - SAMBUS and DALLAS clocks supported.
 
 
-Version 0.80 pre-pre-alpha (8th Mar 1999)
------------------------------------------
+Version 0.80 pre-pre-alpha (8th March 1999)
+-------------------------------------------
 - Quick and dirty port, changing as little as possible to get code to run.
 - Added DirectX windowed display support for 8, 16 and 32-bit modes.
 - Added basic Win32 keyboard and mouse implementation.
 
 
-27th Feb 1999
--------------
-Started porting the X version of SimCoupé 0.72 to Win32.
+27th February 1999
+------------------
+- Started porting the X version of SimCoupe 0.72 to Win32.
