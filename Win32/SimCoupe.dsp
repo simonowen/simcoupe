@@ -55,6 +55,11 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib /nologo /subsystem:windows /machine:I386
 # ADD LINK32 kernel32.lib user32.lib winmm.lib comctl32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib dxguid.lib dinput.lib /nologo /subsystem:windows /profile /map /machine:I386 /out:"Build/SimCoupe.exe"
+# Begin Special Build Tool
+TargetPath=.\Build\SimCoupe.exe
+SOURCE="$(InputPath)"
+PostBuild_Cmds=@if exist \Utils\upx.exe \Utils\upx.exe -9 --compress-icons=0 "$(TargetPath)"
+# End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "SimCoupe - Win32 Debug"
 
