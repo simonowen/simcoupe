@@ -21,7 +21,7 @@ AddReg      = RegSettings.All
 2 =, "CWD",, .
 
 [SourceDisksNames.ARM]
-3 =, "ARM Files",, ARMV4Rel
+3 =, "ARM Files",, Release
 
 [SourceDisksNames.SH3]
 4 =, "SH3 Files",, SH3Rel
@@ -30,7 +30,7 @@ AddReg      = RegSettings.All
 5 =, "MIPS Files",, MIPSRel
 
 [SourceDisksFiles]
-ReadMe.txt   = 2
+%AppName%.html = 2
 %AppName%.cfg = 2
 manicm.mgt = 2
 
@@ -60,12 +60,13 @@ HKCR,.mgt,,0x00000000,simcoupefile
 HKCR,.dsk,,0x00000000,simcoupefile
 HKCR,.sad,,0x00000000,simcoupefile
 HKCR,.sdf,,0x00000000,simcoupefile
+HKCR,.td0,,0x00000000,simcoupefile
 HKCR,simcoupefile,,0x00000000,%AppName% Disk
 HKCR,simcoupefile\DefaultIcon,,0x00000000,"%InstallDir%\%AppName%.exe,-192"
 HKCR,simcoupefile\Shell\Open\Command,,0x00000000,"""%InstallDir%\%AppName%.exe""" """%%1"""
 
 [Files.Common]
-ReadMe.txt
+%AppName%.html
 %AppName%.cfg
 %AppName%.exe
 SAASound.dll
@@ -75,4 +76,5 @@ zlib1.dll
 manicm.mgt
 
 [Shortcuts]
+"SimCoupe ReadMe",0,%AppName%.html
 "SimCoupe",0,%AppName%.exe
