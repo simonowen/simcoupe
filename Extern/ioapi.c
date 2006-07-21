@@ -6,8 +6,10 @@
    Copyright (C) 1998-2003 Gilles Vollant
 */
 
-/* The following 2 lines make SimCoupe builds much easier to manage */
+/* These lines make SimCoupe builds much easier to manage */
+#ifdef _WIN32
 #include "SimCoupe.h"
+#endif
 #define _CRT_SECURE_NO_DEPRECATE
 
 #include <stdio.h>

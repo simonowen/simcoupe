@@ -34,8 +34,10 @@ woven in by Terry Thorsen 1/2003.
   version without encryption capabilities).
  */
 
-/* The following 2 lines make SimCoupe builds much easier to manage */
+/* These lines make SimCoupe builds much easier to manage */
+#ifdef _WIN32
 #include "SimCoupe.h"
+#endif
 #define NOUNCRYPT
 
 #include <stdio.h>
