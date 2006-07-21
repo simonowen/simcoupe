@@ -2,7 +2,7 @@
 //
 // ODMenu.cpp: Owner-draw Win32 menus with images
 //
-//  Copyright (c) 2005  Simon Owen
+//  Copyright (c) 2005-6 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -81,6 +81,20 @@ void COwnerDrawnMenu::Cleanup ()
 
 LRESULT COwnerDrawnMenu::WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_, LRESULT* plResult_)
 {
+    static OSVERSIONINFO ovi;
+
+    // Fetch the OS version if we haven't already
+    if (!ovi.dwOSVersionInfoSize)
+    {
+        ovi.dwOSVersionInfoSize = sizeof(ovi);
+        GetVersionEx(&ovi);
+    }
+
+    // Certain menu features aren't available on NT4, so give up now
+    if (ovi.dwPlatformId == VER_PLATFORM_WIN32_NT && ovi.dwMajorVersion == 4)
+        return 0;
+
+
     switch (uMsg_)
     {
         case WM_MEASUREITEM:
