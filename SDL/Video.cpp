@@ -200,16 +200,15 @@ void InitGL ()
     {
         for (int xx = 0 ; xx < 3 ; xx++)
         {
-            float flSize = 256.0f, flX = flSize*xx, flY = flSize*yy;
-            float flMin = 0.0f, flMax = 1.0f;
+            int nSize = 1 << 8, nX = xx << 8, nY = yy << 8;
 
             glBindTexture(GL_TEXTURE_2D, auTextures[3*yy + xx]);
 
             glBegin(GL_QUADS);
-            glTexCoord2f(flMin,flMax); glVertex2f(flX,        flY+flSize);
-            glTexCoord2f(flMin,flMin); glVertex2f(flX,        flY);
-            glTexCoord2f(flMax,flMin); glVertex2f(flX+flSize, flY);
-            glTexCoord2f(flMax,flMax); glVertex2f(flX+flSize, flY+flSize);
+            glTexCoord2i(0,1); glVertex2i(nX,       nY+nSize);
+            glTexCoord2i(0,0); glVertex2i(nX,       nY);
+            glTexCoord2i(1,0); glVertex2i(nX+nSize, nY);
+            glTexCoord2i(1,1); glVertex2i(nX+nSize, nY+nSize);
             glEnd();
         }
     }
