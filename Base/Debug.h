@@ -2,7 +2,7 @@
 //
 // Debug.h: Integrated Z80 debugger
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,12 +26,20 @@
 #include "GUI.h"
 #include "Memory.h"
 
+
+typedef struct tagBREAKPORT
+{
+    WORD wMask;
+    WORD wCompare;
+}
+BREAKPORT;
+
 typedef struct tagBREAKPT
 {
     union
     {
         const BYTE* pAddr;
-        struct { WORD wMask, wCompare; } Port;
+        BREAKPORT Port;
     };
 
     EXPR* pExpr;

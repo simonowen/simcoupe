@@ -3,7 +3,7 @@
 // CPU.h: Z80 processor emulation and main emulation loop
 //
 //  Copyright (c) 2000-2003  Dave Laundon
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2006  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -103,18 +103,19 @@ typedef struct _CPU_EVENT
 CPU_EVENT;
 
 
+#ifndef __BIG_ENDIAN__
+typedef struct { BYTE l_, h_; } REGBYTE;  // Little endian
+#else
+typedef struct { BYTE h_, l_; } REGBYTE;  // Big endian
+#endif
+
 // NOTE: ENDIAN-SENSITIVE!
 typedef struct
 {
     union
     {
         WORD    W;
-
-#ifndef __BIG_ENDIAN__
-        struct { BYTE l_, h_; } B;  // Little endian
-#else
-        struct { BYTE h_, l_; } B;  // Big endian
-#endif
+        REGBYTE B;
     };
 }
 REGPAIR;
