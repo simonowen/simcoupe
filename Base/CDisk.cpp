@@ -22,9 +22,8 @@
 //  The CFloppyDisk implementation is OS-specific, and is in Floppy.cpp
 //
 //  Teledisk format details extracted from a document by Will Kranz,
-//  with extra information from Sergey Erokhin.  This document is still
-//  available on http://web.archive.org/ by looking up:
-//    http://home.earthlink.net/~will_kranz/wteledsk.htm
+//  with extra information from Sergey Erokhin.  See:
+//    http://www.fpns.net/willy/wteledsk.htm
 
 #include "SimCoupe.h"
 #include "CDisk.h"
