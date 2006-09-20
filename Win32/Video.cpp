@@ -537,9 +537,9 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
     else
     {
         // Create and activate the palette
-        if (FAILED(pdd->CreatePalette(DDPCAPS_8BIT, pal, &pddPal, NULL)))
+        if (FAILED(hr = pdd->CreatePalette(DDPCAPS_8BIT, pal, &pddPal, NULL)))
             Message(msgError, "CreatePalette() failed with %#08lx", hr);
-        else if (FAILED(pddsPrimary->SetPalette(pddPal)))
+        else if (FAILED(hr = pddsPrimary->SetPalette(pddPal)))
             Message(msgError, "SetPalette() failed with %#08lx", hr);
     }
 
