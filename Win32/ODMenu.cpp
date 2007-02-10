@@ -91,7 +91,7 @@ LRESULT COwnerDrawnMenu::WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPA
     }
 
     // Certain menu features aren't available on NT4, so give up now
-    if (ovi.dwPlatformId == VER_PLATFORM_WIN32_NT && ovi.dwMajorVersion == 4)
+    if (ovi.dwPlatformId == VER_PLATFORM_WIN32_NT && ovi.dwMajorVersion <= 4)
         return 0;
 
 
@@ -370,6 +370,7 @@ void COwnerDrawnMenu::ConvertMenu (HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, b
     UINT uDefault = GetMenuDefaultItem(hmenu_, FALSE, GMDI_USEDISABLED);
 
     UINT nItems = GetMenuItemCount(hmenu_);
+
     for (UINT i = 0; i < nItems; i++)
     {
         char szItem[256] = "";
@@ -379,11 +380,18 @@ void COwnerDrawnMenu::ConvertMenu (HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, b
         info.dwTypeData = szItem;
         info.cch = sizeof(szItem);
         GetMenuItemInfo(hmenu_, i, TRUE, &info);
-        info.fMask = 0;
-
         CMenuItem* pmi = CMenuItem::GetItem(info.dwItemData);
+
+        // Reject foreign owner-drawn items
         if (info.dwItemData && !pmi)
             continue;
+
+        // Ignore system menu items
+        if (fSysMenu_ && info.wID >= 0xF000)
+            continue;
+
+        // Nothing to change, yet
+        info.fMask = 0;
 
         if (fConvert_)
         {
@@ -423,19 +431,18 @@ void COwnerDrawnMenu::ConvertMenu (HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, b
         }
         else
         {
-            if (info.fType & MFT_OWNERDRAW)
+            if (!(info.fType & MFT_OWNERDRAW))
+                lstrcpyn(szItem, info.dwTypeData, sizeof(szItem));
+            else
             {
                 info.fType &= ~MFT_OWNERDRAW;
                 info.fMask |= MIIM_TYPE;
-
                 lstrcpyn(szItem, pmi->szText, sizeof(szItem));
             }
-            else if (info.fType & MFT_STRING)
-                lstrcpyn(szItem, info.dwTypeData, sizeof(szItem));
 
             if (pmi)
             {
-                info.dwItemData = NULL;
+                info.dwItemData = 0;
                 info.fMask |= MIIM_DATA;
                 delete pmi;
             }
