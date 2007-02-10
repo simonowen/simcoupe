@@ -65,7 +65,7 @@ class COwnerDrawnMenu
         bool OnDrawItem (LPDRAWITEMSTRUCT lpds);
         void OnInitMenuPopup (HMENU hmenu_, UINT nIndex_, BOOL bSysMenu_);
         void OnMenuSelect (UINT nItemID_, UINT nFlags_, HMENU hmenuSys_);
-        LONG OnMenuChar (UINT nChar_, UINT nFlags_, HMENU hmenu_);
+        LRESULT OnMenuChar (UINT nChar_, UINT nFlags_, HMENU hmenu_);
 
         void DrawMenuText (HDC hdc, LPRECT rc, LPCSTR text, COLORREF color);
         bool DrawCheck (HDC hdc, RECT rc, UINT uType, UINT uState_);
