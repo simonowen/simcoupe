@@ -2,7 +2,7 @@
 //
 // Video.cpp: Win32 core video functionality using DirectDraw
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2007  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -539,8 +539,8 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
         // Create and activate the palette
         if (FAILED(hr = pdd->CreatePalette(DDPCAPS_8BIT, pal, &pddPal, NULL)))
             Message(msgError, "CreatePalette() failed with %#08lx", hr);
-        else if (FAILED(hr = pddsPrimary->SetPalette(pddPal)))
-            Message(msgError, "SetPalette() failed with %#08lx", hr);
+        else
+            pddsPrimary->SetPalette(pddPal);	// ignore any error as there's nothing we can do
     }
 
     // Because the pixel format may have changed, we need to refresh the SAM CLUT pixel values
