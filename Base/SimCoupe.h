@@ -1,4 +1,4 @@
-// Part of SimCoupe - A SAM Coupe emulator
+/* Part of SimCoupe - A SAM Coupe emulator
 //
 // SimCoupe.h: Common SimCoupe header, included by all modules
 //
@@ -17,13 +17,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*/
 
 #ifndef SIMCOUPE_H
 #define SIMCOUPE_H
 
 #ifdef __cplusplus
 
-// If it's not one of these we'll assume big endian (we have a run-time check to fall back on anyway)
+/* If it's not one of these we'll assume big endian (we have a run-time check to fall back on anyway) */
 #if (defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__ia64__) || defined(__x86_64__) || \
     (defined(__alpha__) || defined(__alpha)) || (defined(__mips__) && defined(__MIPSEL__)) || \
      defined(__arm__) || defined(__SYMBIAN32__) || defined(_WIN32_WCE) || defined(WIN32)) \
@@ -43,7 +44,7 @@
 
 typedef unsigned int        UINT;
 
-#include "OSD.h"    // OS-dependant stuff
+#include "OSD.h"    /* OS-dependent stuff */
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -52,23 +53,27 @@ typedef unsigned int        UINT;
 #include <ctype.h>
 #include <limits.h>
 
-// Windows CE lacks some headers
+/* Windows CE lacks some headers */
 #ifndef _WIN32_WCE
 #include <errno.h>
 #include <time.h>
 #include <sys/stat.h>
 #endif
 
-#ifdef USE_ZLIB
-#include "../Extern/unzip.h"    // for unzOpen, unzClose, etc.  Part of the contrib/minizip in the ZLib source package
-#include "zlib.h"               // for gzopen, gzclose, etc.
+#ifdef USE_LIBSPECTRUM
+#include "libspectrum.h"
 #endif
 
-// To avoid relying on STL, we'll define our own swap template
+#ifdef USE_ZLIB
+#include "../Extern/unzip.h"    /* for unzOpen, unzClose, etc.  Part of the contrib/minizip in the ZLib source package */
+#include "zlib.h"               /* for gzopen, gzclose, etc. */
+#endif
+
+/* To avoid relying on STL, we'll define our own swap template */
 template <class T> void swap (T& a, T& b) { T tmp=a; a=b; b=tmp; }
 
-#include "SAM.h"        // Various SAM constants
-#include "Util.h"       // TRACE macro and other utility functions
+#include "SAM.h"        /* Various SAM constants */
+#include "Util.h"       /* TRACE macro and other utility functions */
 
 #ifndef max
 #define max(a,b)            (((a) > (b)) ? (a) : (b))
@@ -82,6 +87,6 @@ template <class T> void swap (T& a, T& b) { T tmp=a; a=b; b=tmp; }
 #define MAX_PATH            260
 #endif
 
-#endif	// __cplusplus
+#endif	/* __cplusplus */
 
-#endif  // SIMCOUPE_H
+#endif  /* SIMCOUPE_H */
