@@ -2,7 +2,7 @@
 //
 // Disassem.cpp: Z80 disassembler
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2007  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -164,7 +164,7 @@ UINT ParseStr (const char* pcsz_)
     return 0;
 }
 
-UINT Disassemble (BYTE* pb_, WORD wPC_/*=0*/, char* psz_/*=NULL*/, UINT cbSize_/*=0*/)
+UINT Disassemble (BYTE* pb_, WORD wPC_/*=0*/, char* psz_/*=NULL*/, size_t cbSize_/*=0*/)
 {
     BYTE abOpcode[4];
 
@@ -206,7 +206,7 @@ UINT Disassemble (BYTE* pb_, WORD wPC_/*=0*/, char* psz_/*=NULL*/, UINT cbSize_/
     // Copy the output to the supplied buffer (if any), taking care not to overflow it
     if (psz_)
     {
-        UINT uLen = min(cbSize_-1, pszOut-szOutput+1U);
+        size_t uLen = min(cbSize_-1, pszOut-szOutput+1U);
         strncpy(psz_, szOutput, uLen)[uLen] = '\0';
     }
 
