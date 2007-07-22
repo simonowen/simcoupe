@@ -2,7 +2,7 @@
 //
 // Input.cpp: SDL keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2007  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -77,14 +77,14 @@ inline void SetMasterKey(int nKey_, bool fHeld_=true) { afKeys[nKey_] = fHeld_; 
 
 SIMPLE_KEY asSamKeys [SK_MAX] =
 {
-    {0,SDLK_LSHIFT},{'z'},         {'x'},        {'c'},        {'v'},        {0,SDLK_KP1},   {0,SDLK_KP2},{0,SDLK_KP3},
-    {'a'},          {'s'},         {'d'},        {'f'},        {'g'},        {0,SDLK_KP4},   {0,SDLK_KP5},{0,SDLK_KP6},
-    {'q'},          {'w'},         {'e'},        {'r'},        {'t'},        {0,SDLK_KP7},   {0,SDLK_KP8},{0,SDLK_KP9},
-    {'1',SDLK_1},   {'2',SDLK_2},  {'3',SDLK_3}, {'4',SDLK_4}, {'5',SDLK_5}, {0,SDLK_ESCAPE},{0,SDLK_TAB},{0,SDLK_CAPSLOCK},
-    {'0',SDLK_0},   {'9',SDLK_9},  {'8',SDLK_8}, {'7',SDLK_7}, {'6',SDLK_6}, {0},            {0},         {0,SDLK_BACKSPACE},
-    {'p'},          {'o'},         {'i'},        {'u'},        {'y'},        {0},            {0},         {0,SDLK_KP0},
-    {0,SDLK_RETURN},{'l'},         {'k'},        {'j'},        {'h'},        {0},            {0},         {0},
-    {' '},          {0,SDLK_LCTRL},{'m'},        {'n'},        {'b'},        {0},            {0},         {0,SDLK_INSERT},
+    {0,SDLK_LSHIFT},{'z'},         {'x'},        {'c'},        {'v'},   {0,SDLK_KP1},   {0,SDLK_KP2},{0,SDLK_KP3},
+    {'a'},          {'s'},         {'d'},        {'f'},        {'g'},   {0,SDLK_KP4},   {0,SDLK_KP5},{0,SDLK_KP6},
+    {'q'},          {'w'},         {'e'},        {'r'},        {'t'},   {0,SDLK_KP7},   {0,SDLK_KP8},{0,SDLK_KP9},
+    {'1'},          {'2'},         {'3'},        {'4'},        {'5'},   {0,SDLK_ESCAPE},{0,SDLK_TAB},{0,SDLK_CAPSLOCK},
+    {'0'},          {'9'},         {'8'},        {'7'},        {'6'},   {0},            {0},         {0,SDLK_BACKSPACE},
+    {'p'},          {'o'},         {'i'},        {'u'},        {'y'},   {0},            {0},         {0,SDLK_KP0},
+    {0,SDLK_RETURN},{'l'},         {'k'},        {'j'},        {'h'},   {0},            {0},         {0},
+    {' '},          {0,SDLK_LCTRL},{'m'},        {'n'},        {'b'},   {0},            {0},         {0,SDLK_INSERT},
     {0,SDLK_RCTRL}, {0,SDLK_UP},   {0,SDLK_DOWN},{0,SDLK_LEFT},{0,SDLK_RIGHT}
 };
 
@@ -153,6 +153,10 @@ MAPPED_KEY asSpectrumMappings[] =
 
 ////////////////////////////////////////////////////////////////////////////////
 
+void InitKeyTable (SIMPLE_KEY* asKeys_);
+void InitKeyTable (COMBINATION_KEY* asKeys_);
+
+
 bool Input::Init (bool fFirstInit_/*=false*/)
 {
     Exit(true);
@@ -175,6 +179,11 @@ bool Input::Init (bool fFirstInit_/*=false*/)
         SDL_JoystickEventState(SDL_DISABLE);
 #endif
     }
+
+    // Forget anything we've learned about key symbol mappings
+    InitKeyTable(asSamKeys);
+    InitKeyTable(asSamSymbols);
+    InitKeyTable(asSpectrumSymbols);
 
     SDL_EnableUNICODE(1);
     fMouseActive = false;
@@ -319,8 +328,30 @@ void ReadJoystick (SDL_Joystick *pJoystick_, int nTolerance_, SDLKey *pnKeys_)
 }
 
 
+// Initialise simple key table, forgetting anything we've learned
+void InitKeyTable (SIMPLE_KEY* asKeys_)
+{
+    // Processed the fixed SAM-size map
+    for (int i = 0 ; i < SK_MAX ; i++)
+    {
+        if (asKeys_[i].nChar)
+            asKeys_[i].nKey = SDLK_UNKNOWN;
+    }
+}
 
-// Update a combination key table with a symbol
+// Initialise combination key table, forgetting anything we've learned
+void InitKeyTable (COMBINATION_KEY* asKeys_)
+{
+    // Process all entries up to the end marker
+    for (int i = 0 ; asKeys_[i].nSamKey != SK_NONE ; i++)
+    {
+        asKeys_[i].nKey = SDLK_UNKNOWN;
+        asKeys_[i].nMods = 0;
+    }
+}
+
+
+// Update a simple key table with a symbol
 bool UpdateKeyTable (SIMPLE_KEY* asKeys_, SDL_keysym* pKey_)
 {
     // Convert upper-case symbols to lower-case without shift
@@ -533,7 +564,8 @@ void Input::ProcessEvent (SDL_Event* pEvent_)
                 SDL_WarpMouse(nMouseX, nMouseY);
             }
 
-            Purge();
+            // Re-initialise input to handle input mapping changes, etc.
+            Init();
             break;
 
         case SDL_KEYDOWN:
