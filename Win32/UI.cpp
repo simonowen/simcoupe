@@ -2,7 +2,7 @@
 //
 // UI.cpp: Win32 user interface
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -228,17 +228,26 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
 {
     static bool fCentred = false;
 
-    if (fUseOption_ && !GetOption(scale))
-        SetOption(scale, 2);
-
     // The default size is called 2x, when it's actually 1x!
-    int nWidth = (Frame::GetWidth() >> 1) * GetOption(scale);
-    int nHeight = (Frame::GetHeight() >> 1) * GetOption(scale);
+    int nWidth = Frame::GetWidth() >> 1;
+    int nHeight = Frame::GetHeight() >> 1;
 
+    // Apply 5:4 ratio if enabled
     if (GetOption(ratio5_4))
         nWidth = MulDiv(nWidth, 5, 4);
 
-    if (!fUseOption_)
+    RECT rClient;
+    GetClientRect(g_hwnd, &rClient);
+
+    if (fUseOption_ || !rClient.bottom)
+    {
+        if (!GetOption(scale))
+            SetOption(scale, 2);
+
+        nWidth *= GetOption(scale);
+        nHeight *= GetOption(scale);
+    }
+    else if (!fUseOption_)
     {
         RECT rClient;
         GetClientRect(g_hwnd, &rClient);
@@ -289,7 +298,7 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
             {
                 nWindowDx = nWindowDy = 0;
                 fCentred = true;
-                ResizeWindow(true);
+                ResizeWindow();
                 CentreWindow(g_hwnd);
             }
         }
@@ -751,11 +760,7 @@ INT_PTR CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
             SendMessage(hwndURL, WM_SETFONT, reinterpret_cast<WPARAM>(hfont), 0L);
 
             // Subclass the static URL control, so we can set a custom cursor
-#if defined(_WIN64)
-            pfnStaticWndProc = (WNDPROC)SetWindowLongPtr(hwndURL, GWLP_WNDPROC, (LONG_PTR)URLWndProc);
-#else
             pfnStaticWndProc = (WNDPROC)(LONG_PTR)SetWindowLongPtr(hwndURL, GWLP_WNDPROC, (LONG)(LONG_PTR)URLWndProc);
-#endif
 
             CentreWindow(hdlg_);
             return 1;
@@ -1570,8 +1575,8 @@ void ClipPath (char* pszPath_, size_t nLen_)
             break;
     }
 
-    // Do we have a clip segment longer than the ellipsis?
-    if (psz2 && (psz2-psz1) > 3)
+    // Do we have a clip segment longer than the ellipsis overhead?
+    if (psz2 && (psz2-psz1) > 4)
     {
         // Clip and join the remaining sections
         lstrcpy(psz1+1, "...");
@@ -1921,7 +1926,7 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                     else
                         nPage += EXTMEM;
 
-                    nLength = fImport ? 0x7ffff : min(nLength, 0x84000);
+                    if (fImport) nLength = 0x400000;    // 4MB max import
                     nPage = (nAddress < 0x4000) ? ROM0 : nPage;
                     size_t nDone = 0;
 
@@ -2627,13 +2632,20 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
 
     switch (uMsg_)
     {
+        case WM_CLOSE:
+            if (uTimer)
+                KillTimer(hdlg_, 1);
+            break;
+
         case WM_DEVICECHANGE:
             // Schdule a refresh of the device list at a safer time
-            SetTimer(hdlg_, 1, 1000, NULL);
+            uTimer = SetTimer(hdlg_, 1, 1000, NULL);
             break;
 
         case WM_TIMER:
             KillTimer(hdlg_, 1);
+            uTimer = 0;
+
             // Fall through...
 
         case WM_INITDIALOG:

@@ -2,7 +2,7 @@
 //
 // OSD.h: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -85,7 +85,11 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #pragma comment(lib, "sdlmain")
 
 #ifdef USE_ZLIB
-#pragma comment(lib, "zlib1")   // new 1.2.x version, required to avoid zlib binary mismatch problems
+#ifdef _WIN64
+#pragma comment(lib, "zlibwapi")   // zlibwapi.lib is the official import library for the x64 version
+#else
+#pragma comment(lib, "zdll")   // zdll.lib is the official import library for 1.2.x versions
+#endif
 #endif
 
 #ifdef USE_SAASOUND

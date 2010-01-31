@@ -2,7 +2,7 @@
 //
 // GUIDlg.cpp: Dialog boxes using the GUI controls
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -1443,7 +1443,7 @@ void CImportDialog::OnNotify (CWindow* pWindow_, int nParam_)
         }
 
         UINT uPage = (s_uAddr < 0x4000) ? ROM0 : s_uPage;
-        UINT uOffset = s_uOffset, uLen = 0x7ffff;
+        UINT uOffset = s_uOffset, uLen = 0x400000;  // 4MB max import
         size_t uRead = 0;
 
         // Loop reading chunk blocks into the relevant pages
@@ -1500,7 +1500,7 @@ void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
         }
 
         UINT uPage = (s_uAddr < 0x4000) ? ROM0 : s_uPage;
-        UINT uOffset = s_uOffset, uLen = min(s_uLength, 0x84000);
+        UINT uOffset = s_uOffset, uLen = s_uLength;
         size_t uWritten = 0;
 
         // Loop reading chunk blocks into the relevant pages

@@ -33,7 +33,7 @@
 #include <windows.h>
 #include <windowsx.h>   // for GET_X_LPARAM and GET_Y_LPARAM
 #include <mmsystem.h>   // for timeSetEvent
-#include <sys\types.h>  // for _off_t etc.
+#include <sys/types.h>  // for _off_t etc.
 #include <direct.h>     // for _mkdir
 #include <stdio.h>      // for FILE structure
 #include <winioctl.h>   // for DISK_GEOMETRY and IOCTL_DISK_GET_DRIVE_GEOMETRY
@@ -106,15 +106,15 @@ extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 #define S_ISBLK(mode)           0
 #define S_ISLNK(mode)           0
 
-// Needed if we're using the old 32-bit platform SDK
-#if !defined(_WIN64)
+// VC6 or an old SDK will mean some symbols are missing or different, so define them
+#if _MSC_VER <= 1200
 typedef long LONG_PTR, *PLONG_PTR;
 typedef unsigned long ULONG_PTR, *PULONG_PTR;
-#endif
-
-#if !defined(SetWindowLongPtr)
+typedef DWORD DWORD_PTR, *PDWORD_PTR;
+#define INT_PTR int
 #define SetWindowLongPtr SetWindowLong
 #define DWLP_MSGRESULT DWL_MSGRESULT
+#define GWLP_WNDPROC GWL_WNDPROC
 #endif
 
 // Windows lacks direct.h, so we'll supply our own
