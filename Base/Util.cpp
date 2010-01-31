@@ -2,7 +2,7 @@
 //
 // Util.cpp: Debug tracing, and other utility tasks
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //  Copyright (c) 1996-2002  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -134,16 +134,9 @@ void AdjustBrightness (BYTE &r_, BYTE &g_, BYTE &b_, int nAdjust_)
 
 void RGB2YUV (BYTE r_, BYTE g_, BYTE b_, BYTE *py_, BYTE *pu_, BYTE *pv_)
 {
-    *py_ = static_cast<BYTE>(r_ *  0.299 + g_ *  0.587 + b_ *  0.114);
-    *pu_ = static_cast<BYTE>(r_ * -0.169 + g_ * -0.332 + b_ *  0.500  + 128.0);
-    *pv_ = static_cast<BYTE>(r_ *  0.500 + g_ * -0.419 + b_ * -0.0813 + 128.0);
-}
-
-void YUV2RGB (BYTE y_, BYTE u_, BYTE v_, BYTE *pr_, BYTE *pg_, BYTE *pb_)
-{
-    *pr_ = static_cast<BYTE>(y_ + (1.4075 * (v_ - 128)));
-    *pg_ = static_cast<BYTE>(y_ - (0.3455 * (u_ - 128) - (0.7169 * (v_ - 128))));
-    *pb_ = static_cast<BYTE>(y_ + (1.7790 * (u_ - 128)));
+    *py_ = (unsigned char)( ( (  66 * r_ + 129 * g_ +  25 * b_ + 128) >> 8)  +  16 );
+    *pu_ = (unsigned char)( ( ( -38 * r_ -  74 * g_ + 112 * b_ + 128) >> 8)  + 128 );
+    *pv_ = (unsigned char)( ( ( 112 * r_ -  94 * g_ -  18 * b_ + 128) >> 8)  + 128 );
 }
 
 DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_)

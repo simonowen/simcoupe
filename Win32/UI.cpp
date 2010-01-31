@@ -2452,10 +2452,10 @@ INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
                     OSVERSIONINFO osvi = { sizeof osvi };
                     GetVersionEx(&osvi);
 
-                    // Enable the overlay if hardware acceleration is enabled and we're not on Vista
-                    bool fVista = osvi.dwMajorVersion >= 6;
+                    // Enable the overlay if hardware acceleration is enabled and we're not on Vista or later
+                    bool fVistaOrLater = osvi.dwMajorVersion >= 6;
                     bool fHwAccel = (SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_OVERLAY), fHwAccel && !fVista);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_OVERLAY), fHwAccel && !fVistaOrLater);
                     break;
                 }
 

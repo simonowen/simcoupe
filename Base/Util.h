@@ -2,7 +2,7 @@
 //
 // Util.h: Debug tracing, and other utility tasks
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -41,7 +41,6 @@ BYTE GetSizeCode (UINT uSize_);
 
 void AdjustBrightness (BYTE &r_, BYTE &g_, BYTE &b_, int nAdjust_);
 void RGB2YUV (BYTE r_, BYTE g_, BYTE b_, BYTE *py_, BYTE *pu_, BYTE *pv_);
-void YUV2RGB (BYTE y_, BYTE u_, BYTE v_, BYTE *pr_, BYTE *pg_, BYTE *pb_);
 DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_);
 DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, BYTE a_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_, DWORD dwAMask_);
 

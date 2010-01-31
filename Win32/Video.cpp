@@ -2,7 +2,7 @@
 //
 // Video.cpp: Win32 core video functionality using DirectDraw
 //
-//  Copyright (c) 1999-2007  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -161,7 +161,7 @@ bool Video::Init (bool fFirstInit_)
                 OSVERSIONINFO osvi = { sizeof osvi };
                 GetVersionEx(&osvi);
 
-                // Are we to use a video overlay? (not Vista as it disables DWM effects)
+                // Are we to use a video overlay? (not Vista or later as it disables the Desktop Window Manager)
                 if (GetOption(overlay) && osvi.dwMajorVersion < 6)
                 {
                     DDPIXELFORMAT ddpf;
