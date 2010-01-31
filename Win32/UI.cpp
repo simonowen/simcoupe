@@ -65,8 +65,8 @@ const UINT MOUSE_TIMER_ID = 42;
 
 #define PRINTER_PREFIX      "Printer: "
 
-BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
-BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
+INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
+INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
 void CentreWindow (HWND hwnd_, HWND hwndParent_=NULL);
 
 void DisplayOptions ();
@@ -250,7 +250,7 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
     if (GetOption(fullscreen))
     {
         // Change the window style to a visible pop-up, with no caption, border or menu
-        SetWindowLong(g_hwnd, GWL_STYLE, WS_POPUP|WS_VISIBLE);
+        SetWindowLongPtr(g_hwnd, GWL_STYLE, WS_POPUP|WS_VISIBLE);
         SetMenu(g_hwnd, NULL);
 
         // Force the window to be top-most, and sized to fill the full screen
@@ -264,7 +264,7 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
         if (!GetWindowPlacement(g_hwnd, &wp) || (wp.showCmd != SW_SHOWMAXIMIZED))
         {
             DWORD dwStyle = (GetWindowStyle(g_hwnd) & WS_VISIBLE) | WS_OVERLAPPEDWINDOW;
-            SetWindowLong(g_hwnd, GWL_STYLE, dwStyle);
+            SetWindowLongPtr(g_hwnd, GWL_STYLE, dwStyle);
             SetMenu(g_hwnd, g_hmenu);
 
             // Adjust the window rectangle to give the client area size required for the main window
@@ -721,7 +721,7 @@ LRESULT CALLBACK URLWndProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
     return CallWindowProc(pfnStaticWndProc, hwnd_, uMsg_, wParam_, lParam_);
 }
 
-BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     static HFONT hfont;
     static HWND hwndURL;
@@ -730,13 +730,13 @@ BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
     {
         case WM_INITDIALOG:
         {
-#if 0
-            // Append the date to beta version strings
+            // Append extra details to the version string
             char szVersion[128];
             GetDlgItemText(hdlg_, IDS_VERSION, szVersion, sizeof(szVersion));
-            wsprintf(szVersion+lstrlen(szVersion), " beta ("  __DATE__ ")");
-            SetDlgItemText(hdlg_, IDS_VERSION, szVersion);
+#ifdef _WIN64
+            lstrcat(szVersion, " x64");
 #endif
+            SetDlgItemText(hdlg_, IDS_VERSION, szVersion);
 
             // Grab the attributes of the current GUI font
             LOGFONT lf;
@@ -751,9 +751,7 @@ BOOL CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             SendMessage(hwndURL, WM_SETFONT, reinterpret_cast<WPARAM>(hfont), 0L);
 
             // Subclass the static URL control, so we can set a custom cursor
-#if !defined(SetWindowLongPtr)
-            pfnStaticWndProc = (WNDPROC)SetWindowLong(hwndURL, GWL_WNDPROC, (LONG)URLWndProc);
-#elif defined(_WIN64)
+#if defined(_WIN64)
             pfnStaticWndProc = (WNDPROC)SetWindowLongPtr(hwndURL, GWLP_WNDPROC, (LONG_PTR)URLWndProc);
 #else
             pfnStaticWndProc = (WNDPROC)(LONG_PTR)SetWindowLongPtr(hwndURL, GWLP_WNDPROC, (LONG)(LONG_PTR)URLWndProc);
@@ -1793,7 +1791,7 @@ BOOL BadField (HWND hdlg_, int nId_)
 }
 
 
-BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     static char szFile[MAX_PATH], szAddress[128]="32768", szPage[128]="1", szOffset[128]="0", szLength[128]="0";
     static int nType = 0;
@@ -1972,7 +1970,7 @@ BOOL CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 }
 
 
-BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     static int nType, nDrive;
     static bool fCompress, fFormat = true;
@@ -2131,7 +2129,7 @@ BOOL CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
 }
 
 
-BOOL CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     static UINT uSize = 32;
     static HWND hwndEdit;
@@ -2260,7 +2258,7 @@ BOOL CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 
 
 // Base handler for all options property pages
-BOOL CALLBACK BasePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK BasePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     static HWND ahwndPages[MAX_OPTION_PAGES];
 
@@ -2305,9 +2303,9 @@ BOOL CALLBACK BasePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 }
 
 
-BOOL CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    BOOL fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {
@@ -2383,9 +2381,9 @@ BOOL CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
 }
 
 
-BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    BOOL fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {
@@ -2479,9 +2477,9 @@ BOOL CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
 }
 
 
-BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    BOOL fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {
@@ -2530,9 +2528,9 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
 }
 
 
-BOOL CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    BOOL fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {
@@ -2622,10 +2620,10 @@ BOOL CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
     return fRet;
 }
 
-BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     static UINT_PTR uTimer;
-    BOOL fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {
@@ -2694,14 +2692,14 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 if (ChangedString(disk1) && fFloppy1 && SaveDriveChanges(pDrive1) && !pDrive1->Insert(GetOption(disk1)))
                 {
                     Message(msgWarning, "Invalid disk: %s", GetOption(disk1));
-                    SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
+                    SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
                     return TRUE;
                 }
 
                 if (ChangedString(disk2) && fFloppy2 && SaveDriveChanges(pDrive2) && !pDrive2->Insert(GetOption(disk2)))
                 {
                     Message(msgWarning, "Invalid disk: %s", GetOption(disk2));
-                    SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
+                    SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
                     return TRUE;
                 }
 
@@ -2723,7 +2721,7 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                     if (*GetOption(atomdisk) && pDrive2->GetType() != dskAtom)
                     {
                         Message(msgWarning, "Invalid Atom disk: %s", GetOption(atomdisk));
-                        SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
+                        SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
                         return TRUE;
                     }
                 }
@@ -2750,7 +2748,7 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 if (ChangedString(sdidedisk) && *GetOption(sdidedisk) && pSDIDE->GetType() != dskSDIDE)
                 {
                     Message(msgWarning, "Invalid SDIDE disk: %s", GetOption(sdidedisk));
-                    SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
+                    SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
                     return TRUE;
                 }
 
@@ -2758,7 +2756,7 @@ BOOL CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 if (ChangedString(yatbusdisk) && *GetOption(yatbusdisk) && pYATBus->GetType() != dskYATBus)
                 {
                     Message(msgWarning, "Invalid YATBUS disk: %s", GetOption(yatbusdisk));
-                    SetWindowLong(hdlg_, DWL_MSGRESULT, PSNRET_INVALID);
+                    SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
                     return TRUE;
                 }
             }
@@ -2844,9 +2842,9 @@ void BrowseFolder (HWND hdlg_, int nControl_, const char* pcszDefDir_)
     }
 }
 
-BOOL CALLBACK PathPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK PathPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    BOOL fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {
@@ -2888,9 +2886,9 @@ BOOL CALLBACK PathPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 }
 
 
-BOOL CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    BOOL fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {
@@ -2951,9 +2949,9 @@ BOOL CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
 }
 
 
-BOOL CALLBACK JoystickPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK JoystickPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    BOOL fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {
@@ -3010,9 +3008,9 @@ BOOL CALLBACK JoystickPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 }
 
 
-BOOL CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    BOOL fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {
@@ -3085,9 +3083,9 @@ BOOL CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     return fRet;
 }
 
-BOOL CALLBACK MidiPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK MidiPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    BOOL fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {
@@ -3140,9 +3138,9 @@ BOOL CALLBACK MidiPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 }
 
 
-BOOL CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    BOOL fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {
@@ -3221,7 +3219,7 @@ LRESULT CALLBACK GetMsgHookProc (int nCode_, WPARAM wParam_, LPARAM lParam_)
 }
 
 
-BOOL CALLBACK NewFnKeyProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK NewFnKeyProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     switch (uMsg_)
     {
@@ -3363,9 +3361,9 @@ BOOL CALLBACK NewFnKeyProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 }
 
 
-BOOL CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    BOOL fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {

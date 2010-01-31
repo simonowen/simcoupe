@@ -2,7 +2,7 @@
 //
 // OSD.h: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,13 +23,6 @@
 
 // disable stupid 'debug symbols being truncated' warning
 #pragma warning(disable:4786)
-
-// Reverse the _s warnings that Microsoft forces on us
-#define _CRT_SECURE_NO_DEPRECATE
-#define _CRT_NONSTDC_NO_DEPRECATE
-
-#define STRICT
-#define WIN32_LEAN_AND_MEAN
 
 // Enable a few helper warnings in debug mode, without using level 4
 #ifdef _DEBUG
@@ -56,7 +49,11 @@
 #include <io.h>
 
 #ifdef USE_ZLIB
+#ifdef _WIN64
+#pragma comment(lib, "zlibwapi")   // zlibwapi.lib is the official import library for the x64 version
+#else
 #pragma comment(lib, "zdll")   // zdll.lib is the official import library for 1.2.x versions
+#endif
 #endif
 
 #ifdef USE_SAASOUND
@@ -115,6 +112,10 @@ typedef long LONG_PTR, *PLONG_PTR;
 typedef unsigned long ULONG_PTR, *PULONG_PTR;
 #endif
 
+#if !defined(SetWindowLongPtr)
+#define SetWindowLongPtr SetWindowLong
+#define DWLP_MSGRESULT DWL_MSGRESULT
+#endif
 
 // Windows lacks direct.h, so we'll supply our own
 struct dirent

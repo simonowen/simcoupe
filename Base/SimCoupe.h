@@ -27,7 +27,7 @@
 /* If it's not one of these we'll assume big endian (we have a run-time check to fall back on anyway) */
 #if (defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__ia64__) || defined(__x86_64__) || \
     (defined(__alpha__) || defined(__alpha)) || (defined(__mips__) && defined(__MIPSEL__)) || \
-     defined(__arm__) || defined(__SYMBIAN32__) || defined(_WIN32_WCE) || defined(WIN32)) \
+     defined(__arm__) || defined(__SYMBIAN32__) || defined(_WIN32_WCE) || defined(_WIN32)) \
      && !defined(__BIG_ENDIAN__)
 #ifndef __LITTLE_ENDIAN__
 #define __LITTLE_ENDIAN__

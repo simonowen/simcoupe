@@ -206,7 +206,8 @@ UINT Disassemble (BYTE* pb_, WORD wPC_/*=0*/, char* psz_/*=NULL*/, size_t cbSize
     // Copy the output to the supplied buffer (if any), taking care not to overflow it
     if (psz_)
     {
-        size_t uLen = min(cbSize_-1, pszOut-szOutput+1U);
+		size_t uOutput = pszOut-szOutput+1U;
+        size_t uLen = min(cbSize_-1, uOutput);
         strncpy(psz_, szOutput, uLen)[uLen] = '\0';
     }
 

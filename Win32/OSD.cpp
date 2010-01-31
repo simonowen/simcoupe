@@ -41,11 +41,7 @@ int OSD::s_nTicks;
 
 
 // Timer handler, called every 20ms - seemed more reliable than having it set the event directly, for some weird reason
-#ifdef _WIN64
-void CALLBACK TimeCallback (UINT uTimerID_, UINT uMsg_, DWORD_PTR dwUser_, DWORD dw1_, DWORD dw2_)
-#else
-void CALLBACK TimeCallback (UINT uTimerID_, UINT uMsg_, DWORD dwUser_, DWORD dw1_, DWORD dw2_)
-#endif
+void CALLBACK TimeCallback (UINT uTimerID_, UINT uMsg_, DWORD_PTR dwUser_, DWORD_PTR dw1_, DWORD_PTR dw2_)
 {
     OSD::s_nTicks++;
 
