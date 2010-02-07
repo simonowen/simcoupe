@@ -2,7 +2,7 @@
 //
 // Frame.h: Display frame generation
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -63,13 +63,14 @@ class Frame
 };
 
 
+inline int GetRasterPos (int *pnLine_);
 inline bool IsScreenLine (int nLine_) { return nLine_ >= (TOP_BORDER_LINES) && nLine_ < (TOP_BORDER_LINES+SCREEN_LINES); }
 inline BYTE AttrBg (BYTE bAttr_) { return (((bAttr_) >> 3) & 0xf); }
 inline BYTE AttrFg (BYTE bAttr_) { return ((((bAttr_) >> 3) & 8) | ((bAttr_) & 7)); }
 
 
 extern bool fDrawFrame, g_fFlashPhase;
-extern int g_nFrame;
+extern int nFrame;
 
 extern int s_nWidth, s_nHeight;         // hi-res pixels
 extern int s_nViewTop, s_nViewBottom;   // in lines

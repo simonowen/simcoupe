@@ -2,7 +2,7 @@
 //
 // Mouse.h: Mouse interface
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -28,7 +28,8 @@ class Mouse
         static void Init (bool fFirstInit_=false);
         static void Exit (bool fReInit_=false);
 
-        static BYTE Read (DWORD dwTime_);
+        static void Reset ();
+        static BYTE Read ();
         static void Move (int nDeltaX_, int nDeltaY_);
         static void SetButton (int nButton_, bool fPressed_=true);
 };

@@ -4,7 +4,7 @@
 //
 //  Copyright (c) 1994 Ian Collier
 //  Copyright (c) 1999-2003 by Dave Laundon
-//  Copyright (c) 1999-2006 by Simon Owen
+//  Copyright (c) 1999-2010 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@
 #define res(n,x) (x &= ~(1 << n))
 
 #define HLbitop \
-    val = timed_read_byte(addr); g_nLineCycle++
+    val = timed_read_byte(addr); g_dwCycleCounter++
 
 {
     WORD addr;
@@ -50,11 +50,11 @@
     {
         // Get the offset
         addr = *pHlIxIy + (signed char)timed_read_code_byte(pc++);
-        g_nLineCycle += 5;
+        g_dwCycleCounter += 5;
 
         // Extract the register to store the result in, and modify the opcode to be a regular indexed version
         op = timed_read_code_byte(pc++);
-        g_nLineCycle++;
+        g_dwCycleCounter++;
 
         reg = op & 7;
         op = (op & 0xf8) | 6;
@@ -68,7 +68,7 @@
         addr = hl;
 
         op = timed_read_code_byte(pc++);
-        g_nLineCycle++;
+        g_dwCycleCounter++;
 
         radjust++;
     }

@@ -2,7 +2,7 @@
 //
 // Sound.cpp: SDL sound implementation
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -295,8 +295,7 @@ void CStreamBuffer::Update (bool fFrameEnd_)
     ProfileStart(Snd);
 
     // Limit to a single frame's worth as the raster may be just into the next frame
-    UINT uRasterPos = ((g_nLine * TSTATES_PER_LINE) + g_nLineCycle);
-    uRasterPos = min(uRasterPos, TSTATES_PER_FRAME);
+    UINT uRasterPos = min(g_dwCycleCounter, TSTATES_PER_FRAME);
 
     // Calculate the number of whole samples passed and the amount spanning in to the next sample
     UINT uSamplesCyclesPerUnit = uRasterPos * m_uSamplesPerUnit + m_uOffsetPerUnit;

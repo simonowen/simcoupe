@@ -2,7 +2,7 @@
 //
 // Expr.cpp: Infix expression parsing and postfix evaluation
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -269,10 +269,12 @@ int Expr::Eval (const EXPR* pExpr_)
 
                     case VAR_EI:        r = regs.IFF1;      break;
                     case VAR_DI:        r = !regs.IFF1;     break;
+/*
+                    // FIXME
                     case VAR_DLINE:     r = g_nLine;        break;
                     case VAR_SLINE:     r = g_nLine - TOP_BORDER_LINES; break;
                     case VAR_LCYCLES:   r = g_nLineCycle;   break;
-
+*/
                     case VAR_ROM0:      r = !(lmpr & LMPR_ROM0_OFF);  break;
                     case VAR_ROM1:      r = !!(lmpr & LMPR_ROM1);     break;
                     case VAR_WPROT:     r = !!(lmpr & LMPR_WPROT);    break;

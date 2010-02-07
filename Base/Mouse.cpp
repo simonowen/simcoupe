@@ -2,7 +2,7 @@
 //
 // Mouse.cpp: Mouse interface
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -47,8 +47,6 @@ MOUSEBUFFER;
 static MOUSEBUFFER sMouse;
 static UINT uBuffer;            // Read position in mouse data
 
-static DWORD dwReadTime;        // Global cycle time of last mouse read
-
 static int nDeltaX, nDeltaY;    // System change in X and Y since last read
 static int nReadX, nReadY;      // Read change in X and Y
 static BYTE bButtons;           // Current button states
@@ -70,12 +68,14 @@ void Mouse::Exit (bool fReInit_/*=false*/)
 }
 
 
-BYTE Mouse::Read (DWORD dwTime_)
+void Mouse::Reset ()
 {
-    // If the read timeout has expired, reset the mouse back to non-strobed
-    if (uBuffer && (dwTime_ - dwReadTime) >= MOUSE_RESET_TIME)
-        uBuffer = 0;
+    // No longer strobed
+    uBuffer = 0;
+}
 
+BYTE Mouse::Read ()
+{
     // If the first real data byte is about to be read, update the mouse buffer
     if (uBuffer == 2)
     {
@@ -111,8 +111,9 @@ BYTE Mouse::Read (DWORD dwTime_)
         uBuffer = 1;
     }
 
-    // Remember the last read time, so we timeout after the appropriate amount of time
-    dwReadTime = dwTime_;
+    // Cancel any pending reset event, and schedule a fresh one
+    if (uBuffer) CancelCpuEvent(evtMouseReset);
+    AddCpuEvent(evtMouseReset, g_dwCycleCounter + MOUSE_RESET_TIME);
 
     return bRet;
 }

@@ -2,7 +2,7 @@
 //
 // CDrive.cpp: VL1772-02 floppy disk controller emulation
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -270,7 +270,8 @@ BYTE CDrive::In (WORD wPort_)
                 }
 
                 // Toggle the index pulse status bit periodically to show the disk is spinning
-                if (IsMotorOn() && (g_dwCycleCounter % (REAL_TSTATES_PER_SECOND / (FLOPPY_RPM/60))) < TSTATES_PER_FRAME)
+                static int n = 0;
+                if (IsMotorOn() && !(++n % 1024))   // FIXME: use an event for the correct index timing
                     bRet |= INDEX_PULSE;
             }
 

@@ -2,7 +2,7 @@
 //
 // Frame.cpp: Display frame generation
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -195,14 +195,7 @@ void Frame::Update ()
     ProfileStart(Gfx);
 
     // Work out the line and block for the current position
-    int nLine = g_nLine, nBlock = g_nLineCycle >> 3;
-
-    // The line-cycle value has not been adjusted at this point, and may need wrapping if it's too large
-    if (nBlock >= WIDTH_BLOCKS)
-    {
-        nBlock -= WIDTH_BLOCKS;
-        nLine++;
-    }
+    int nLine, nBlock = GetRasterPos(&nLine) >> 3;
 
     // If we're still on the same line as last time we've only got a part line to draw
     if (nLine == nLastLine)
@@ -273,19 +266,17 @@ void Frame::UpdateAll ()
 {
     // Keep the current position and last raster settings safe
     int nSafeLastLine = nLastLine, nSafeLastBlock = nLastBlock;
-    int nSafeLine = g_nLine, nSafeLineCycle = g_nLineCycle;
+    DWORD dwSafeCycleCounter = g_dwCycleCounter;
 
     // Set up an update region that covers the entire display
     nLastLine = nLastBlock = 0;
-    g_nLine = HEIGHT_LINES;
-    g_nLineCycle = WIDTH_BLOCKS;
+    g_dwCycleCounter = TSTATES_PER_FRAME;
 
     // Redraw using the current video/palette/border settings
     Update();
 
     // Restore the saved settings
-    g_nLine = nSafeLine;
-    g_nLineCycle = nSafeLineCycle;
+    g_dwCycleCounter = dwSafeCycleCounter;
     nLastLine = nSafeLastLine;
     nLastBlock = nSafeLastBlock;
 }
@@ -295,12 +286,14 @@ void Frame::UpdateAll ()
 void RasterComplete ()
 {
     static DWORD dwCycleCounter;
+    static int nLastFrame;
 
     // Don't do anything if the current frame is being skipped or we've already completed the area
-    if (dwCycleCounter == g_dwCycleCounter)
+    if (dwCycleCounter == g_dwCycleCounter && nLastFrame == nFrame)
         return;
-    else
-        dwCycleCounter = g_dwCycleCounter;
+
+    dwCycleCounter = g_dwCycleCounter;
+    nLastFrame = nFrame;
 
     ProfileStart(Gfx);
 
@@ -655,24 +648,37 @@ void Frame::SetStatus (const char *pcszFormat_, ...)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+inline int GetRasterPos (int *pnLine_)
+{
+    if (g_dwCycleCounter >= BORDER_PIXELS)
+    {
+        DWORD dwScreenCycles = g_dwCycleCounter - BORDER_PIXELS;
+        *pnLine_ = dwScreenCycles / TSTATES_PER_LINE;
+        return dwScreenCycles % TSTATES_PER_LINE;
+    }
+
+    // FIXME: the very start of the interrupt frame is from the final line of the display
+    *pnLine_ = 0;
+    return 0;
+}
 
 // Handle screen mode changes, which may require converting low-res data to hi-res
 // Changes on the main screen may generate an artefact by using old data in the new mode (described by Dave Laundon)
 void Frame::ChangeMode (BYTE bVal_)
 {
-    // Action only needs to be taken on main screen lines
-    if (IsScreenLine(g_nLine))
-    {
-        int nLine = g_nLine - s_nViewTop, nBlock = g_nLineCycle >> 3;
+    int nLine, nBlock = GetRasterPos(&nLine) >> 3;
 
+    // Action only needs to be taken on main screen lines
+    if (IsScreenLine(nLine))
+    {
         // Changes into the right border can't affect appearance, so ignore them
         if (nBlock < (BORDER_BLOCKS+SCREEN_BLOCKS))
         {
             // Are we switching to mode 3 on a lo-res line?
-            if (((bVal_ & VMPR_MODE_MASK) == MODE_3) && !pScreen->IsHiRes(nLine))
+            if (((bVal_ & VMPR_MODE_MASK) == MODE_3) && !pScreen->IsHiRes(nLine-s_nViewTop))
             {
                 // Convert the used part of the line to high resolution, and use the high resolution object
-                pScreen->GetHiResLine(nLine, nBlock);
+                pScreen->GetHiResLine(nLine-s_nViewTop, nBlock);
                 pFrame = pFrameHigh;
             }
 
@@ -680,7 +686,7 @@ void Frame::ChangeMode (BYTE bVal_)
             if (((vmpr_mode ^ bVal_) & VMPR_MDE1_MASK) && nBlock >= BORDER_BLOCKS)
             {
                 // Draw the artefact and advance the draw position
-                pFrame->ModeChange(bVal_, g_nLine, nBlock);
+                pFrame->ModeChange(bVal_, nLine, nBlock);
                 nLastBlock += (VIDEO_DELAY >> 3);
             }
         }
@@ -695,26 +701,25 @@ void Frame::ChangeMode (BYTE bVal_)
 // Handle the screen being enabled, which causes a border pixel artefact (reported by Andrew Collier)
 void Frame::ChangeScreen (BYTE bVal_)
 {
-    int nBlock = g_nLineCycle >> 3;
+    int nLine, nBlock = GetRasterPos(&nLine) >> 3;
 
     // Only draw if the artefact cell is visible
-    if (g_nLine >= s_nViewTop && g_nLine < s_nViewBottom && nBlock >= s_nViewLeft && nBlock < s_nViewRight)
+    if (nLine >= s_nViewTop && nLine < s_nViewBottom && nBlock >= s_nViewLeft && nBlock < s_nViewRight)
     {
         // Convert the used part of the line to high resolution
-        pScreen->GetHiResLine(g_nLine - s_nViewTop, nBlock);
+        pScreen->GetHiResLine(nLine - s_nViewTop, nBlock);
         pFrame = pFrameHigh;
 
         // Draw the artefact and advance the draw position
-        pFrame->ScreenChange(bVal_, g_nLine, nBlock);
+        pFrame->ScreenChange(bVal_, nLine, nBlock);
         nLastBlock += (VIDEO_DELAY >> 3);
     }
 }
 
-
 // A screen line in a specified range is being written to, so we need to ensure it's up-to-date
 void Frame::TouchLines (int nFrom_, int nTo_)
 {
-    // Is the line being modified in the area since we last update
-    if (nTo_ >= nLastLine && nFrom_ <= g_nLine)
+    // Is the line being modified in the area since we last updated
+    if (nTo_ >= nLastLine && nFrom_ <= (int)((g_dwCycleCounter - BORDER_PIXELS) / TSTATES_PER_LINE))
         Update();
 }

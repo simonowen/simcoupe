@@ -3,7 +3,7 @@
 // CPU.h: Z80 processor emulation and main emulation loop
 //
 //  Copyright (c) 2000-2003  Dave Laundon
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -50,7 +50,6 @@ class CPU
 
 extern struct _Z80Regs regs;
 extern DWORD g_dwCycleCounter, radjust;
-extern int g_nLine, g_nLineCycle, g_nPrevLineCycle;
 extern bool g_fBreak, g_fPaused, g_fTurbo;
 extern int g_nFastBooting;
 extern BYTE *pbMemRead1, *pbMemRead2, *pbMemWrite1, *pbMemWrite2;
@@ -75,12 +74,11 @@ const WORD NMI_INTERRUPT_HANDLER = 0x0066;      // Non-maskable interrupt handle
 
 // This has been accurately measured on a real SAM using various tests (contact me for further details)
 const int INT_ACTIVE_TIME = 128;            // tstates interrupt is active and will be triggered
-const int INT_START_TIME = TSTATES_PER_LINE - BORDER_PIXELS + 1;
 
 
 // Round a tstate value up to a given power of 2 (-1); and so the line total rounds up to the next whole multiple
 #define ROUND(t,n)          ((t)|((n)-1))
-#define A_ROUND(t,n)        (ROUND(g_nLineCycle+(t),n) - g_nLineCycle)
+#define A_ROUND(t,n)        (ROUND(g_dwCycleCounter+(t),n) - g_dwCycleCounter)
 
 
 // Bit values for the F register
@@ -129,12 +127,15 @@ typedef struct _Z80Regs
 
     BYTE    I, R;
     BYTE    IFF1, IFF2, IM;
+
+    BYTE    halted;
+    DWORD   ints_enabled_at;
 }
 Z80Regs;
 
 
 // CPU Event Queue data
-enum    { evtStdIntStart, evtStdIntEnd, evtMidiOutIntStart, evtMidiOutIntEnd, evtEndOfLine, evtInputUpdate };
+enum    { evtStdIntEnd, evtLineIntStart, evtEndOfFrame, evtMidiOutIntStart, evtMidiOutIntEnd, evtEndOfLine, evtInputUpdate, evtMouseReset };
 
 const int MAX_EVENTS = 16;
 
@@ -148,7 +149,8 @@ inline void AddCpuEvent (int nEvent_, DWORD dwTime_)
     CPU_EVENT **ppsEvent = &psNextEvent;
 
     // Search through the queue while the events come before the new one
-    while (*ppsEvent && ((int)(dwTime_ - (*ppsEvent)->dwTime) > 0))
+    // New events with equal time are inserted after existing entries
+    while (*ppsEvent && (*ppsEvent)->dwTime <= dwTime_)
         ppsEvent = &((*ppsEvent)->psNext);
 
     // Set this event (note - psFreeEvent will never be NULL)
@@ -161,15 +163,30 @@ inline void AddCpuEvent (int nEvent_, DWORD dwTime_)
     psFreeEvent = psNextFree;
 }
 
+// Remove events of a specific type from the queue
+inline void CancelCpuEvent (int nEvent_)
+{
+    CPU_EVENT **ppsEvent = &psNextEvent;
+
+    while (*ppsEvent)
+    {
+        if ((*ppsEvent)->nEvent != nEvent_)
+            ppsEvent = &((*ppsEvent)->psNext);
+        else
+        {
+            CPU_EVENT *psNext = (*ppsEvent)->psNext;
+            (*ppsEvent)->psNext = psFreeEvent;
+            psFreeEvent = *ppsEvent;
+            *ppsEvent = psNext;
+        }
+    }
+}
+
 // Update the line/global counters and check for pending events
 inline void CheckCpuEvents ()
 {
-    // Add the instruction time to the global cycle counter
-    g_dwCycleCounter += (g_nLineCycle - g_nPrevLineCycle);
-    g_nPrevLineCycle = g_nLineCycle;
-
     // Check for pending CPU events (note - psNextEvent will never be NULL *at this stage*)
-    while ((int)(g_dwCycleCounter - psNextEvent->dwTime) >= 0)
+    while (g_dwCycleCounter >= psNextEvent->dwTime)
     {
         // Get the event from the queue and remove it before new events are added
         CPU_EVENT sThisEvent = *psNextEvent;
@@ -178,6 +195,14 @@ inline void CheckCpuEvents ()
         psNextEvent = sThisEvent.psNext;
         CPU::ExecuteEvent(sThisEvent);
     }
+}
+
+// Subtract a frame's worth of time from all events
+inline void CpuEventFrame (DWORD dwFrameTime_)
+{
+    // Process all queued events, due sometime in the next or a later frame
+    for (CPU_EVENT *psEvent = psNextEvent ; psEvent ; psEvent = psEvent->psNext)
+        psEvent->dwTime -= dwFrameTime_;
 }
 
 #endif  // Z80_H

@@ -4,7 +4,7 @@
 //
 //  Copyright (c) 1994 Ian Collier
 //  Copyright (c) 1999-2003 by Dave Laundon
-//  Copyright (c) 1999-2006 by Simon Owen
+//  Copyright (c) 1999-2010 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@
 // Basic instruction header, specifying opcode and nominal T-States of the first M-Cycle
 // The first three T-States of the first M-Cycle are already accounted for
 #define instr(m1states, opcode) case opcode: { \
-                                    g_nLineCycle += m1states - 3;
+                                    g_dwCycleCounter += m1states - 3;
 #define endinstr                } break
 
 // Indirect HL instructions affected by IX/IY prefixes
@@ -54,7 +54,7 @@
                                         addr = hl; \
                                     else { \
                                         addr = *pHlIxIy + (signed char)timed_read_code_byte(pc++); \
-                                        g_nLineCycle += 5; \
+                                        g_dwCycleCounter += 5; \
                                     }
 
 #define cy              (f & F_CARRY)
@@ -85,7 +85,7 @@
 
 // 16-bit add
 #define add_hl(x)       do { \
-                            g_nLineCycle += 7; \
+                            g_dwCycleCounter += 7; \
                             WORD z = (x); \
                             DWORD y = *pHlIxIy + z; \
                             f = (f & 0xc4) |                                        /* S, Z, V    */ \
@@ -148,7 +148,7 @@
                             if (cc) { \
                                 int j = (signed char)timed_read_code_byte(pc++); \
                                 pc += j; \
-                                g_nLineCycle += 5; \
+                                g_dwCycleCounter += 5; \
                             } \
                             else { \
                                 MEM_ACCESS(pc); \
@@ -171,7 +171,7 @@
 #define call(cc)        do { \
                             if (cc) { \
                                 WORD npc = timed_read_code_word(pc); \
-                                g_nLineCycle++; \
+                                g_dwCycleCounter++; \
                                 push(pc+2); \
                                 pc = npc; \
                             } \
@@ -238,7 +238,7 @@ instr(4,0034)   inc(e);                                             endinstr;   
 instr(4,0044)   inc(xh);                                            endinstr;   // inc h/ixh/iyh
 instr(4,0054)   inc(xl);                                            endinstr;   // inc l/ixl/iyl
 HLinstr(0064)   BYTE t = timed_read_byte(addr);
-                inc(t); g_nLineCycle++;
+                inc(t); g_dwCycleCounter++;
                 timed_write_byte(addr,t);                           endinstr;   // inc (hl/ix+d/iy+d)
 instr(4,0074)   inc(a);                                             endinstr;   // inc a
 
@@ -250,7 +250,7 @@ instr(4,0035)   dec(e);                                             endinstr;   
 instr(4,0045)   dec(xh);                                            endinstr;   // dec h/ixh/iyh
 instr(4,0055)   dec(xl);                                            endinstr;   // dec l/ixl/iyl
 HLinstr(0065)   BYTE t = timed_read_byte(addr);
-                dec(t); g_nLineCycle++;
+                dec(t); g_dwCycleCounter++;
                 timed_write_byte(addr,t);                           endinstr;   // dec (hl/ix+d/iy+d)
 instr(4,0075)   dec(a);                                             endinstr;   // dec a
 
@@ -415,7 +415,7 @@ HLinstr(0136)   e = timed_read_byte(addr);                          endinstr;   
 HLinstr(0146)   h = timed_read_byte(addr);                          endinstr;   // ld h,(hl/ix+d/iy+d)
 HLinstr(0156)   l = timed_read_byte(addr);                          endinstr;   // ld l,(hl/ix+d/iy+d)
 
-instr(4,0166)   pc--;                                               endinstr;   // halt
+instr(4,0166)   halted = 1; pc--;                                   endinstr;   // halt
 
 HLinstr(0176)   a = timed_read_byte(addr);                          endinstr;   // ld a,(hl/ix+d/iy+d)
 
@@ -603,14 +603,14 @@ endinstr;
 // ex (sp),hl
 instr(4,0343)
     WORD t = timed_read_word(sp);
-    g_nLineCycle++;
+    g_dwCycleCounter++;
     timed_write_word_reversed(sp,*pHlIxIy);
     *pHlIxIy = t;
-    g_nLineCycle += 2;
+    g_dwCycleCounter += 2;
 endinstr;
 
 instr(4,0363)   iff1 = iff2 = 0;                                    endinstr;   // di
-instr(4,0373)   iff1 = iff2 = 1;    g_nFastBooting = 0;             endinstr;   // ei
+instr(4,0373)   iff1 = iff2 = 1; g_nFastBooting = 0;                endinstr;   // ei
 
 instr(4,0353)   swap(de,hl);                                        endinstr;   // ex de,hl
 

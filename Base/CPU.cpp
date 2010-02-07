@@ -3,7 +3,7 @@
 // CPU.cpp: Z80 processor emulation and main emulation loop
 //
 //  Copyright (c) 2000-2003  Dave Laundon
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -44,6 +44,7 @@
 #include "Input.h"
 #include "IO.h"
 #include "Memory.h"
+#include "Mouse.h"
 #include "Options.h"
 #include "Profile.h"
 #include "UI.h"
@@ -106,6 +107,7 @@ BYTE g_abInc[256], g_abDec[256];
 #define iff1    regs.IFF1
 #define iff2    regs.IFF2
 #define im      regs.IM
+#define halted  regs.halted
 
 
 inline void CheckInterrupt ();
@@ -120,7 +122,7 @@ inline void Mode2Interrupt ();
 //  H E L P E R   M A C R O S
 
 
-// Update g_nLineCycle for one memory access
+// Update g_dwCycleCounter for one memory access
 // This is the basic three T-State CPU memory access
 // Longer memory M-Cycles should have the extra T-States added after MEM_ACCESS
 // Logic -  if in RAM:
@@ -128,36 +130,31 @@ inline void Mode2Interrupt ();
 //                  CPU can only access memory 1 out of every 8 T-States
 //              else
 //                  CPU can only access memory 1 out of every 4 T-States
-#define MEM_ACCESS(a)   ((g_nLineCycle += 3) |= (afContendedPages[VPAGE(a)]) ? pMemAccess[g_nLineCycle >> 6] : 0)
+#define MEM_ACCESS(a)   ( g_dwCycleCounter += 3, g_dwCycleCounter += (afContendedPages[VPAGE(a)]) ? pContention[g_dwCycleCounter] : 0 )
 
 // Update g_nLineCycle for one port access
 // This is the basic four T-State CPU I/O access
 // Longer I/O M-Cycles should have the extra T-States added after PORT_ACCESS
 // Logic -  if ASIC-controlled port:
 //              CPU can only access I/O port 1 out of every 8 T-States
-#define PORT_ACCESS(a)  ((g_nLineCycle += 4) |= ((a) >= BASE_ASIC_PORT) ? 7 : 0)
+#define PORT_ACCESS(a)  ( (g_dwCycleCounter += 4) += ((a) >= BASE_ASIC_PORT) ? abPortContention[g_dwCycleCounter&7] : 0 )
 
 
-BYTE g_bOpcode;             // The currently executing or previously executed instruction
-int g_nLine;                // Scan line being generated (0 is the top of the generated display, not the main screen)
-int g_nLineCycle;           // Cycles so far in the current scanline
-int g_nPrevLineCycle;       // Cycles before current instruction began
-
+BYTE bOpcode;
 bool fReset, g_fBreak, g_fPaused, g_fTurbo;
 int g_nFastBooting;
 
 DWORD g_dwCycleCounter;     // Global cycle counter used for various timings
-
-bool fDelayedEI;            // Flag and counter to carry out a delayed EI
 
 #ifdef _DEBUG
 bool g_fDebug;              // Debug only helper variable, to trigger the debugger when set
 #endif
 
 // Memory access contention table
-const int MEM_ACCESS_LINE = TSTATES_PER_LINE >> 6;
-int aMemAccesses[10 * MEM_ACCESS_LINE], *pMemAccessBase, *pMemAccess, nMemAccessIndex;
-bool fMemContention;
+BYTE abContention1[TSTATES_PER_FRAME+64], abContention234[TSTATES_PER_FRAME+64], abContentionOff[TSTATES_PER_FRAME+64];
+BYTE *pContention = abContention1;
+//                         T1 T2 T3 T4 T1 T2 T3 T4
+BYTE abPortContention[] = { 6, 5, 4, 3, 2, 1, 0, 7 };
 
 // Memory access tracking for the debugger
 BYTE *pbMemRead1, *pbMemRead2, *pbMemWrite1, *pbMemWrite2;
@@ -199,34 +196,17 @@ bool CPU::Init (bool fFirstInit_/*=false*/)
         // Most of the registers tend to only power-on defaults, and are not affected by a reset
         af = bc = de = hl = alt_af = alt_bc = alt_de = alt_hl = ix = iy = 0xffff;
 
-        // Build the memory access contention table
-        // Note - instructions often overlap to the next line (hence the duplicates).
-        //  0, 1, 4 - border lines
-        //  2, 3    - screen lines
-        //  5 to 9  - mode 1 versions of the same
-        // Lines 0 and 2 (5 and 7) are used for normal border or screen lines, with 1 and 3 (6 and 8) being duplicates
-        // so if we overlap to the next line we will still get the correct contention.
-        // Lines 1 and 3 (6 and 8) are used for the last line of the border or screen so that if we overlap to the next
-        // line we will get the new correct contention.
-        // Line 0 is used continuously if we are in mode 3 or 4 and the screen is off.
-        pMemAccess = pMemAccessBase = aMemAccesses;
-        fMemContention = true;
-        nMemAccessIndex = 0;
-        for (int t = 0; t < MEM_ACCESS_LINE; ++t)
+        // Build the memory access contention tables
+        for (UINT t2 = 0 ; t2 < sizeof(abContention1)/sizeof(abContention1[0]) ; t2++)
         {
-            int m = t * TSTATES_PER_LINE / MEM_ACCESS_LINE;
-            aMemAccesses[0 * MEM_ACCESS_LINE + t] =
-            aMemAccesses[1 * MEM_ACCESS_LINE + t] =
-            aMemAccesses[4 * MEM_ACCESS_LINE + t] = 3;
-            aMemAccesses[2 * MEM_ACCESS_LINE + t] =
-            aMemAccesses[3 * MEM_ACCESS_LINE + t] =
-                (m >= BORDER_PIXELS && m < BORDER_PIXELS + SCREEN_PIXELS) ? 7 : 3;
-            aMemAccesses[5 * MEM_ACCESS_LINE + t] =
-            aMemAccesses[6 * MEM_ACCESS_LINE + t] =
-            aMemAccesses[9 * MEM_ACCESS_LINE + t] = (m & 0x40) ? 7 : 3;
-            aMemAccesses[7 * MEM_ACCESS_LINE + t] =
-            aMemAccesses[8 * MEM_ACCESS_LINE + t] = ((m & 0x40) ||
-                (m >= BORDER_PIXELS && m < BORDER_PIXELS + SCREEN_PIXELS)) ? 7 : 3;
+            int nLine = t2 / TSTATES_PER_LINE, nLineCycle = t2 % TSTATES_PER_LINE;
+            bool fScreen = nLine >= TOP_BORDER_LINES && nLine < TOP_BORDER_LINES+SCREEN_LINES &&
+                           nLineCycle >= BORDER_PIXELS+BORDER_PIXELS;
+            bool fMode1 = !(nLineCycle & 0x40);
+
+            abContention1[t2] = ((t2+1)|((fScreen|fMode1)?7:3)) - 1 - t2;
+            abContention234[t2] = ((t2+1)|(fScreen?7:3)) - 1 - t2;
+            abContentionOff[t2] = ((t2+1)|3) - 1 - t2;
         }
 
         // Set up RAM and initial I/O settings
@@ -247,18 +227,11 @@ void CPU::Exit (bool fReInit_/*=false*/)
 }
 
 
-// Work out if we're in a vertical part of the screen that may be affected by contention
-inline void SetContention ()
-{
-    pMemAccess = fMemContention ? (pMemAccessBase + nMemAccessIndex) : aMemAccesses;
-}
-
-// Update contention flags based on mode/screen-off changes
+// Update contention table based on mode/screen-off changes
 void CPU::UpdateContention ()
 {
-    fMemContention = !(BORD_SOFF && VMPR_MODE_3_OR_4);
-    pMemAccessBase = aMemAccesses + ((vmpr_mode ^ MODE_1) ? 0 : (5 * MEM_ACCESS_LINE));
-    SetContention();
+    pContention = (vmpr_mode == MODE_1) ? abContention1 :
+                  (BORD_SOFF && VMPR_MODE_3_OR_4) ? abContentionOff : abContention234;
 }
 
 
@@ -332,79 +305,58 @@ void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
 {
     switch (sThisEvent.nEvent)
     {
-        case evtStdIntStart :
-            // Check for a LINE interrupt on the following line
-            if ((line_int < SCREEN_LINES) && (g_nLine == (line_int + TOP_BORDER_LINES - 1)))
-            {
-                // Signal the LINE interrupt, and start the interrupt counter
-                status_reg &= ~STATUS_INT_LINE;
-                AddCpuEvent(evtStdIntEnd, sThisEvent.dwTime + INT_ACTIVE_TIME);
-            }
-            // Check for a FRAME interrupt on the last line
-            else if (g_nLine == (HEIGHT_LINES - 1))
-            {
-                // Signal a FRAME interrupt, and start the interrupt counter
-                status_reg &= ~STATUS_INT_FRAME;
-                AddCpuEvent(evtStdIntEnd, sThisEvent.dwTime + INT_ACTIVE_TIME);
-            }
-            break;
-
-        case evtStdIntEnd :
+        case evtStdIntEnd:
             // Reset the interrupt as we're done
             status_reg |= (STATUS_INT_FRAME | STATUS_INT_LINE);
             break;
 
-        case evtMidiOutIntStart :
+        case evtMidiOutIntStart:
             // Begin the MIDI_OUT interrupt and add an event to end it
             status_reg &= ~STATUS_INT_MIDIOUT;
             AddCpuEvent(evtMidiOutIntEnd, sThisEvent.dwTime + MIDI_INT_ACTIVE_TIME);
             break;
 
-        case evtMidiOutIntEnd :
+        case evtMidiOutIntEnd:
             // Reset the interrupt and clear the 'transmitting' bit in LPEN as we're done
             status_reg |= STATUS_INT_MIDIOUT;
             lpen &= ~LPEN_TXFMST;
             break;
 
-        case evtEndOfLine :
-            // Subtract a line's worth of cycles and move to the next line down
-            g_nPrevLineCycle -= TSTATES_PER_LINE;
-            g_nLineCycle -= TSTATES_PER_LINE;
-            g_nLine++;
-            // Add an event for the next line
-            AddCpuEvent(evtEndOfLine, sThisEvent.dwTime + TSTATES_PER_LINE);
+        case evtLineIntStart:
+        {
+            // Begin the line interrupt and add an event to end it
+            status_reg &= ~STATUS_INT_LINE;
+            AddCpuEvent(evtStdIntEnd, sThisEvent.dwTime + INT_ACTIVE_TIME);
 
-            // If we're at the end of the frame, signal it
-            if (g_nLine >= HEIGHT_LINES)
-                g_fBreak = true;
-            else
-            {
-                // Work out if we're in a vertical part of the screen that may be affected by contention
-                nMemAccessIndex = MEM_ACCESS_LINE * (
-                    (((g_nLine >= TOP_BORDER_LINES) && (g_nLine < TOP_BORDER_LINES + SCREEN_LINES)) ? 2 : 0) +
-                    ((g_nLine == TOP_BORDER_LINES - 1) || (g_nLine == TOP_BORDER_LINES + SCREEN_LINES - 1))
-                );
-                SetContention();
-
-                // Are we on a line that may potentially require an interrupt at the start of the right border?
-                if (((g_nLine >= (TOP_BORDER_LINES - 1)) && (g_nLine < (TOP_BORDER_LINES - 1 + SCREEN_LINES))) ||
-                    (g_nLine == (HEIGHT_LINES - 1)))
-                {
-                    // Add an event to check for LINE/FRAME interrupts
-                    AddCpuEvent(evtStdIntStart, sThisEvent.dwTime + INT_START_TIME);
-                }
-            }
-
+            AddCpuEvent(evtLineIntStart, sThisEvent.dwTime + TSTATES_PER_FRAME);
             break;
+        }
 
-        case evtInputUpdate :
+        case evtEndOfFrame:
+        {
+            // Signal a FRAME interrupt, and start the interrupt counter
+            status_reg &= ~STATUS_INT_FRAME;
+            AddCpuEvent(evtStdIntEnd, sThisEvent.dwTime + INT_ACTIVE_TIME);
+
+            AddCpuEvent(evtEndOfFrame, sThisEvent.dwTime + TSTATES_PER_FRAME);
+
+            // Signal end of the frame
+            g_fBreak = true;
+            break;
+        }
+
+        case evtInputUpdate:
             // Update the input in the centre of the screen (well away from the frame boundary) to avoid the ROM
             // keyboard scanner discarding key presses when it thinks keys have bounced.  In old versions this was
             // the cause of the first key press on the boot screen only clearing it (took AGES to track down!)
             IO::UpdateInput();
 
-            // Schedule the next input check at the same time in the next frame
+            // Schedule the next input check at the same position in the next frame
             AddCpuEvent(evtInputUpdate, sThisEvent.dwTime + TSTATES_PER_FRAME);
+            break;
+
+        case evtMouseReset:
+            Mouse::Reset();
             break;
     }
 }
@@ -418,9 +370,8 @@ void CPU::ExecuteChunk ()
     // Is the reset button is held in?
     if (fReset)
     {
-        // Effectively halt the CPU for the full frame
-        g_nLineCycle += TSTATES_PER_FRAME;
-        CheckCpuEvents();
+        // Advance to the end of the frame
+        g_dwCycleCounter = TSTATES_PER_FRAME;
     }
 
 // Execute the first CPU core block in low-res mode, or if only 1 CPU core is compiled in
@@ -438,11 +389,11 @@ void CPU::ExecuteChunk ()
             pNewHlIxIy = &hl;
 
             // Fetch... (and advance PC)
-            g_bOpcode = timed_read_code_byte(pc++);
+            bOpcode = timed_read_code_byte(pc++);
             radjust++;
 
             // ... Decode ...
-            switch (g_bOpcode)
+            switch (bOpcode)
             {
 #include "Z80ops.h"     // ... Execute!
             }
@@ -477,11 +428,11 @@ void CPU::ExecuteChunk ()
             pNewHlIxIy = &hl;
 
             // Fetch... (and advance PC)
-            g_bOpcode = timed_read_code_byte(pc++);
+            bOpcode = timed_read_code_byte(pc++);
             radjust++;
 
             // ... Decode ...
-            switch (g_bOpcode)
+            switch (bOpcode)
             {
 #include "Z80ops.h"     // ... Execute!
             }
@@ -525,14 +476,19 @@ void CPU::Run ()
         Frame::Complete();
 
         // The real end of the SAM frame requires some additional handling
-        if (g_nLine >= HEIGHT_LINES)
+        if (g_dwCycleCounter >= TSTATES_PER_FRAME)
         {
+            CpuEventFrame(TSTATES_PER_FRAME);
+
             // Only update I/O (sound etc.) if we're not fast booting
             if (!g_nFastBooting)
+            {
                 IO::FrameUpdate();
+                Debug::FrameEnd();
+            }
 
             // Step back up to start the next frame
-            g_nLine %= HEIGHT_LINES;
+            g_dwCycleCounter %= TSTATES_PER_FRAME;
             Frame::Start();
         }
     }
@@ -552,13 +508,13 @@ void CPU::Reset (bool fPress_)
         i = radjust = im = iff1 = iff2 = 0;
         sp = 0x8000;
         pc = 0x0000;
+        halted = 0;
 
-        // No index prefix seen yet, and no last instruction (for EI/DI look-back)
+        // Index prefix not active
         pHlIxIy = pNewHlIxIy = &hl;
-        g_bOpcode = OP_NOP;
 
-        // Counter used to determine when each line should be drawn
-        g_nLineCycle = g_nPrevLineCycle = 0;
+        // Very start of frame
+        g_dwCycleCounter = 0;
 
         // Initialise the CPU events queue
         for (int n = 0 ; n < MAX_EVENTS ; n++)
@@ -566,9 +522,9 @@ void CPU::Reset (bool fPress_)
         psFreeEvent = asCpuEvents;
         psNextEvent = NULL;
 
-        // Schedule the first end of line event, and an update check half way through the frame
-        AddCpuEvent(evtEndOfLine, g_dwCycleCounter + TSTATES_PER_LINE);
-        AddCpuEvent(evtInputUpdate, g_dwCycleCounter + TSTATES_PER_FRAME/2);
+        // Schedule the first end of line event, and an update check 3/4 through the frame
+        AddCpuEvent(evtEndOfFrame, TSTATES_PER_FRAME);
+        AddCpuEvent(evtInputUpdate, TSTATES_PER_FRAME*3/4);
 
         // Re-initialise memory (for configuration changes) and reset I/O
         IO::Init();
@@ -584,20 +540,23 @@ void CPU::Reset (bool fPress_)
 
 void CPU::NMI()
 {
-    // Advance PC if we're stopped on a HALT
-    if (timed_read_code_byte(pc) == OP_HALT)
-        pc++;
-
-    // Save the current maskable interrupt status in iff2 and disable interrupts
+    // Preserve interrupt state then disable interrupts
     iff2 = iff1;
     iff1 = 0;
-    g_nLineCycle += 2;
+
+    // Advance PC if we're stopped on a HALT
+    if (halted)
+    {
+        pc++;
+        halted = 0;
+    }
+
+    push(pc);
 
     // Call NMI handler at address 0x0066
-    push(pc);
     pc = NMI_INTERRUPT_HANDLER;
+    g_dwCycleCounter += 2;
 
-    CheckCpuEvents();
     Debug::Refresh();
 }
 
@@ -605,50 +564,49 @@ void CPU::NMI()
 inline void CheckInterrupt ()
 {
     // Only process if not delayed after a DI/EI and not in the middle of an indexed instruction
-    if ((g_bOpcode != OP_EI) && (g_bOpcode != OP_DI) && (pNewHlIxIy == &hl))
+    if (bOpcode != OP_EI && bOpcode != OP_DI && (pNewHlIxIy == &hl))
     {
         // Disable maskable interrupts to prevent the handler being triggered again immediately
         iff1 = iff2 = 0;
 
-        // Advance PC if we're stopped on a HALT, as we've got a maskable interrupt that it was waiting for
-        if (g_bOpcode == OP_HALT)
+        // Advance PC if we're stopped on a HALT
+        if (halted)
+        {
             pc++;
+            halted = 0;
+        }
+
+        // Save the current PC on the stack
+        push(pc);
 
         // The current interrupt mode determines how we handle the interrupt
         switch (im)
         {
-            case 0: Mode0Interrupt(); break;
-            case 1: Mode1Interrupt(); break;
-            case 2: Mode2Interrupt(); break;
+            case 0:
+            {
+                pc = IM1_INTERRUPT_HANDLER;
+                g_dwCycleCounter += 6;
+                break;
+            }
+
+            case 1:
+            {
+                pc = IM1_INTERRUPT_HANDLER;
+                g_dwCycleCounter += 7;
+                break;
+            }
+
+            case 2:
+            {
+                // Fetch the IM 2 handler address from an address formed from I and 0xff (from the bus)
+                pc = timed_read_word((i << 8) | 0xff);
+                g_dwCycleCounter += 7;
+                break;
+            }
         }
     }
 }
 
-inline void Mode0Interrupt ()
-{
-    // Push PC onto the stack, and execute the interrupt handler
-    g_nLineCycle += 6;
-    push(pc);
-    pc = IM1_INTERRUPT_HANDLER;
-}
-
-inline void Mode1Interrupt ()
-{
-    // Push PC onto the stack, and execute the interrupt handler
-    g_nLineCycle += 7;
-    push(pc);
-    pc = IM1_INTERRUPT_HANDLER;
-}
-
-inline void Mode2Interrupt ()
-{
-    // Push PC onto the stack
-    g_nLineCycle += 7;
-    push(pc);
-
-    // Fetch the IM 2 handler address from an address formed from I and 0xff (from the bus)
-    pc = timed_read_word((i << 8) | 0xff);
-}
 
 // Perform some initial tests to confirm the emulator is functioning correctly!
 void CPU::InitTests ()

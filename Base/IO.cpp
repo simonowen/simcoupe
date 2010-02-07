@@ -2,7 +2,7 @@
 //
 // IO.cpp: SAM I/O port handling
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //  Copyright (c) 2000-2001  Dave Laundon
 //
@@ -63,9 +63,6 @@
 #include "TestHW.cpp"
 #endif
 
-extern int g_nLine;
-extern int g_nLineCycle;
-
 CDiskDevice *pDrive1, *pDrive2, *pSDIDE, *pYATBus, *pBootDrive;
 CIoDevice *pParallel1, *pParallel2;
 CIoDevice *pSerial1, *pSerial2;
@@ -117,7 +114,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     if (fFirstInit_)
     {
         // Set up the unresponsive ASIC unresponsive option for initial startup
-        fASICStartup = GetOption(asicdelay);
+//      fASICStartup = GetOption(asicdelay);
 
         // Line interrupts aren't cleared by a reset
         line_int = 0xff;
@@ -462,6 +459,9 @@ BYTE IO::In (WORD wPort_)
     if (fASICStartup && (fASICStartup = g_dwCycleCounter < ASIC_STARTUP_DELAY) && bPortLow >= BASE_ASIC_PORT)
         return 0x00;
 
+    // Ensure state is up-to-date
+    CheckCpuEvents();
+
     switch (bPortLow)
     {
         // keyboard 1 / mouse
@@ -474,7 +474,7 @@ BYTE IO::In (WORD wPort_)
                 res = keyports[8] & 0x1f;
 
                 if (GetOption(mouse) && res == 0x1f)
-                    res = Mouse::Read(g_dwCycleCounter) & 0x1f;
+                    res = Mouse::Read() & 0x1f;
             }
             else
             {
@@ -494,10 +494,6 @@ BYTE IO::In (WORD wPort_)
         // keyboard 2
         case STATUS_PORT:
         {
-            // Add on the instruction time to the line counter and the global counter
-            // This will make sure the value in status_reg is up to date
-            CheckCpuEvents();
-
             int highbyte = wPort_ >> 8, res = 0xe0;
 
             if (!(highbyte & 0x80)) res &= keyports[7] & 0xe0;
@@ -524,32 +520,32 @@ BYTE IO::In (WORD wPort_)
         // HPEN and LPEN ports
         case LPEN_PORT:
         {
+            int nLine = g_dwCycleCounter / TSTATES_PER_LINE, nLineCycle = g_dwCycleCounter % TSTATES_PER_LINE;
+
             if ((wPort_ & PEN_MASK) == LPEN_PORT)
             {
                 // LPEN reflects the horizontal scan position in the main screen area only
-                BYTE bX = (g_nLine < TOP_BORDER_LINES || g_nLine >= (TOP_BORDER_LINES+SCREEN_LINES) ||
-                           g_nLineCycle < BORDER_PIXELS || g_nLineCycle >= (BORDER_PIXELS+SCREEN_PIXELS)) ? 0 :
-                            static_cast<BYTE>(g_nLineCycle - BORDER_PIXELS);
+                BYTE bX = (nLine < TOP_BORDER_LINES || nLine >= (TOP_BORDER_LINES+SCREEN_LINES) ||
+                           nLineCycle < (BORDER_PIXELS+BORDER_PIXELS)) ? 0 :
+                            static_cast<BYTE>(nLineCycle - (BORDER_PIXELS+BORDER_PIXELS)) / 1;	/* tstate->pixel division here? */
 
                 // Take the top 6 bits from the position, and the rest from the existing value
                 return (bX & 0xfc) | (lpen & 0x03);
             }
-            else
-            {
-                // HPEN treats the start of a line from the right border area, so adjust for it
-                int nLine = g_nLine + (g_nLineCycle + BORDER_PIXELS) / TSTATES_PER_LINE;
 
-                // Return 192 for the top/bottom border areas, or the main screen line number
-                return (nLine < TOP_BORDER_LINES || nLine >= (TOP_BORDER_LINES+SCREEN_LINES)) ?
-                    static_cast<BYTE>(SCREEN_LINES) : nLine - TOP_BORDER_LINES;
-            }
+            // HPEN reflects the vertical scan position in the main screen area only
+            // Return 192 for the top/bottom border areas, or the main screen line number
+            return (nLine < TOP_BORDER_LINES || nLine >= (TOP_BORDER_LINES+SCREEN_LINES)) ?
+                static_cast<BYTE>(SCREEN_LINES) : (nLine - TOP_BORDER_LINES);
         }
 
         // Spectrum ATTR port
         case ATTR_PORT:
         {
+            int nLine = g_dwCycleCounter / TSTATES_PER_LINE;
+
             // Border lines return 0xff
-            if (g_nLine < TOP_BORDER_LINES && g_nLine >= (TOP_BORDER_LINES+SCREEN_LINES))
+            if (nLine < TOP_BORDER_LINES && nLine >= (TOP_BORDER_LINES+SCREEN_LINES))
                 return 0xff;
 
             // Strictly we need to check the mode and return the appropriate value, but for now we'll return zero
@@ -629,6 +625,9 @@ void IO::Out (WORD wPort_, BYTE bVal_)
     if (fASICStartup && (fASICStartup = g_dwCycleCounter < ASIC_STARTUP_DELAY) && bPortLow >= BASE_ASIC_PORT)
         return;
 
+    // Ensure state is up-to-date
+    CheckCpuEvents();
+
     switch (bPortLow)
     {
         case BORDER_PORT:
@@ -681,9 +680,9 @@ void IO::Out (WORD wPort_, BYTE bVal_)
                 else
                 {
                     // There are no visible changes in the transition block
-                    g_nLineCycle += VIDEO_DELAY;
+                    g_dwCycleCounter += VIDEO_DELAY;
                     Frame::Update();
-                    g_nLineCycle -= VIDEO_DELAY;
+                    g_dwCycleCounter -= VIDEO_DELAY;
 
                     // Do the whole change here - the check below will not be triggered
                     OutVmpr(bVal_);
@@ -698,9 +697,9 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             {
                 // Changes to screen PAGE aren't visible until 8 tstates later
                 // as the memory has been read by the ASIC already
-                g_nLineCycle += VIDEO_DELAY;
+                g_dwCycleCounter += VIDEO_DELAY;
                 Frame::Update();
-                g_nLineCycle -= VIDEO_DELAY;
+                g_dwCycleCounter -= VIDEO_DELAY;
 
                 OutVmpr(bVal_);
             }
@@ -742,41 +741,24 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             // Line changed?
             if (line_int != bVal_)
             {
+                // Cancel any existing line interrupt
+                if (line_int < SCREEN_LINES)
+                {
+                    CancelCpuEvent(evtLineIntStart);
+                    status_reg |= STATUS_INT_LINE;
+                }
+
                 // Set the new value
                 line_int = bVal_;
 
-                // Because of this change, does the LINE interrupt signal now need to be active, or not?
+                // Valid line interrupt set?
                 if (line_int < SCREEN_LINES)
                 {
-                    // Offset Line and LineCycle from the point in the scan line that interrupts occur
-                    int nLine_ = g_nLine, nLineCycle_ = g_nLineCycle - INT_START_TIME;
-                    if (nLineCycle_ < 0)
-                        nLineCycle_ += TSTATES_PER_LINE;
-                    else
-                        nLine_++;
+                    DWORD dwLineTime = (line_int+TOP_BORDER_LINES) * TSTATES_PER_LINE;
 
-                    // Make sure timing and events are right up-to-date
-                    CheckCpuEvents();
-
-                    // Does the interrupt need to be active?
-                    if ((nLine_ == (line_int + TOP_BORDER_LINES)) && (nLineCycle_ < INT_ACTIVE_TIME))
-                    {
-                        // If the interrupt is already active then we have only just passed into the right border
-                        // and the CheckCpuEvents above has taken care of it, so do nothing
-                        if (status_reg & STATUS_INT_LINE)
-                        {
-                            // Otherwise, set the interrupt ourselves and create an event to end it
-                            status_reg &= ~STATUS_INT_LINE;
-                            AddCpuEvent(evtStdIntEnd, g_dwCycleCounter - nLineCycle_ + INT_ACTIVE_TIME);
-                        }
-                    }
-                    else
-                        // Else make sure it isn't active
-                        status_reg |= STATUS_INT_LINE;
+                    // Schedule the line interrupt (could be active now, or already passed this frame)
+                    AddCpuEvent(evtLineIntStart, dwLineTime);
                 }
-                else
-                    // Else make sure it isn't active
-                    status_reg |= STATUS_INT_LINE;
             }
             break;
 
@@ -809,10 +791,6 @@ void IO::Out (WORD wPort_, BYTE bVal_)
         // MIDI OUT/Network
         case MIDI_PORT:
         {
-            // Add on the instruction time to the line counter and the global counter
-            // This will make sure the value in lpen is up to date
-            CheckCpuEvents();
-
             // Only transmit a new byte if one isn't already being sent
             if (!(lpen & LPEN_TXFMST))
             {
@@ -821,7 +799,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
 
                 // Create an event to begin an interrupt at the required time
                 AddCpuEvent(evtMidiOutIntStart, g_dwCycleCounter +
-                            A_ROUND(MIDI_TRANSMIT_TIME + 16, 32) - 16 - 32 - MIDI_INT_ACTIVE_TIME + 2);
+                            A_ROUND(MIDI_TRANSMIT_TIME + 16, 32) - 16 - 32 - MIDI_INT_ACTIVE_TIME + 1);
 
                 // Output the byte using the platform specific implementation
                 pMidi->Out(wPort_, bVal_);

@@ -2,7 +2,7 @@
 //
 // Debug.cpp: Integrated Z80 debugger
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ int nDebugX, nDebugY;
 Z80Regs sLastRegs;
 BYTE bLastStatus;
 DWORD dwLastCycle;
-
+int nLastFrames;
 
 CAddr GetPrevInstruction (CAddr addr_);
 bool IsExecBreakpoint (CAddr addr_);
@@ -74,6 +74,12 @@ void Debug::Stop ()
     if (pDebugger)
         pDebugger->Destroy();
 }
+
+void Debug::FrameEnd ()
+{
+    nLastFrames++;
+}
+
 
 // Called on every RETurn, for step-out implementation
 void Debug::OnRet ()
@@ -278,6 +284,7 @@ CDebugger::~CDebugger ()
 
     // Save the cycle counter for timing comparisons
     dwLastCycle = g_dwCycleCounter;
+    nLastFrames = 0;
 
     // Clear any cached data that could cause an immediate retrigger
     wPortRead = wPortWrite = 0;
@@ -1226,13 +1233,21 @@ void CRegisterPanel::Draw (CScreen* pScreen_)
     sprintf(sz, "   %02d    %02d   %01d", lepr&0x1f, hepr&0x1f, ((vmpr&VMPR_MODE_MASK)>>5)+1);
     pScreen_->DrawString(m_nX, m_nY+160, sz, WHITE);
 
+    int nLine = (g_dwCycleCounter < BORDER_PIXELS) ? HEIGHT_LINES-1 : (g_dwCycleCounter-BORDER_PIXELS) / TSTATES_PER_LINE;
+    int nLineCycle = (g_dwCycleCounter + TSTATES_PER_LINE - BORDER_PIXELS) % TSTATES_PER_LINE;
+
     pScreen_->DrawString(m_nX, m_nY+176, "Scan:", GREEN_8);
-    sprintf(sz, "%03d:%03d", g_nLine, g_nLineCycle+1);
+    sprintf(sz, "%03d:%03d", nLine, nLineCycle);
     pScreen_->DrawString(m_nX+36, m_nY+176, sz, RegCol(1,0));
 
+    DWORD dwCycleDiff = ((nLastFrames*TSTATES_PER_FRAME)+g_dwCycleCounter)-dwLastCycle;
     pScreen_->DrawString(m_nX, m_nY+188, "T-diff:", GREEN_8);
-    sprintf(sz, "%u", g_dwCycleCounter-dwLastCycle);
+    sprintf(sz, "%u", dwCycleDiff);
     pScreen_->DrawString(m_nX+44, m_nY+188, sz, WHITE);
+
+    pScreen_->DrawString(m_nX, m_nY+200, "T-states:", GREEN_8);		// Change back to T-diff!
+    sprintf(sz, "%u", g_dwCycleCounter);
+    pScreen_->DrawString(m_nX+58, m_nY+200, sz, WHITE);
 
     pScreen_->SetFont(&sGUIFont);
 }

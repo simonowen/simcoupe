@@ -4,7 +4,7 @@
 //
 //  Copyright (c) 1994 Ian Collier
 //  Copyright (c) 1999-2003 by Dave Laundon
-//  Copyright (c) 1999-2006 by Simon Owen
+//  Copyright (c) 1999-2010 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 // Basic instruction header, specifying opcode and nominal T-States of the first M-Cycle (AFTER the ED code)
 // The first three T-States of the first M-Cycle are already accounted for
 #define edinstr(m1states, opcode)   case opcode: { \
-                                        g_nLineCycle += m1states - 3;
+                                        g_dwCycleCounter += m1states - 3;
 
 // in r,(c)
 #define in_c(x)         ( \
@@ -47,7 +47,7 @@
 
 // sbc hl,rr
 #define sbc_hl(x)       do { \
-                            g_nLineCycle += 7; \
+                            g_dwCycleCounter += 7; \
                             WORD z = (x); \
                             DWORD y = hl - z - cy; \
                             f = (((y & 0xb800) ^ ((hl ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
@@ -60,7 +60,7 @@
 
 // adc hl,rr
 #define adc_hl(x)       do { \
-                            g_nLineCycle += 7; \
+                            g_dwCycleCounter += 7; \
                             WORD z = (x); \
                             DWORD y = hl + z + cy; \
                             f = (((y & 0xb800) ^ ((hl ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
@@ -85,14 +85,14 @@
 #define ldi(loop)       do { \
                             BYTE x = timed_read_byte(hl); \
                             timed_write_byte(de,x); \
-                            g_nLineCycle += 2; \
+                            g_dwCycleCounter += 2; \
                             hl++; \
                             de++; \
                             bc--; \
                             x += a; \
                             f = (f & 0xc1) | (x & 0x08) | ((x & 0x02) << 4) | ((bc != 0) << 2); \
                             if (loop) { \
-                                g_nLineCycle += 5; \
+                                g_dwCycleCounter += 5; \
                                 pc -= 2; \
                             } \
                         } while (0)
@@ -101,14 +101,14 @@
 #define ldd(loop)       do { \
                             BYTE x = timed_read_byte(hl); \
                             timed_write_byte(de,x); \
-                            g_nLineCycle += 2; \
+                            g_dwCycleCounter += 2; \
                             hl--; \
                             de--; \
                             bc--; \
                             x += a; \
                             f = (f & 0xc1) | (x & 0x08) | ((x & 0x02) << 4) | ((bc != 0) << 2); \
                             if (loop) { \
-                                g_nLineCycle += 5; \
+                                g_dwCycleCounter += 5; \
                                 pc -= 2; \
                             } \
                         } while (0)
@@ -117,14 +117,14 @@
 #define cpi(loop)       do { \
                             BYTE carry = cy, x = timed_read_byte(hl); \
                             BYTE sum = a - x, z = a ^ x ^ sum; \
-                            g_nLineCycle += 2; \
+                            g_dwCycleCounter += 2; \
                             hl++; \
                             bc--; \
                             f = (sum & 0x80) | (!sum << 6) | (((sum - ((z&0x10)>>4)) & 2) << 4) | (z & 0x10) | ((sum - ((z >> 4) & 1)) & 8) | ((bc != 0) << 2) | F_NADD | carry; \
                             if ((sum & 15) == 8 && (z & 16) != 0)   \
                                 f &= ~8;    \
                             if (loop) { \
-                                g_nLineCycle += 5; \
+                                g_dwCycleCounter += 5; \
                                 pc -= 2; \
                             } \
                         } while (0)
@@ -133,14 +133,14 @@
 #define cpd(loop)       do { \
                             BYTE carry = cy, x = timed_read_byte(hl); \
                             BYTE sum = a - x, z = a ^ x ^ sum; \
-                            g_nLineCycle += 2; \
+                            g_dwCycleCounter += 2; \
                             hl--; \
                             bc--; \
                             f = (sum & 0x80) | (!sum << 6) | (((sum - ((z&0x10)>>4)) & 2) << 4) | (z & 0x10) | ((sum - ((z >> 4) & 1)) & 8) | ((bc != 0) << 2) | F_NADD | carry; \
                             if ((sum & 15) == 8 && (z & 16) != 0)   \
                                 f &= ~8;    \
                             if (loop) { \
-                                g_nLineCycle += 5; \
+                                g_dwCycleCounter += 5; \
                                 pc -= 2; \
                             } \
                         } while (0)
@@ -154,7 +154,7 @@
                             b--; \
                             f = F_NADD | (parity(b) ^ (c & F_PARITY)); \
                             if (loop) { \
-                                g_nLineCycle += 5; \
+                                g_dwCycleCounter += 5; \
                                 pc -= 2; \
                             } \
                         } while (0)
@@ -168,7 +168,7 @@
                             b--; \
                             f = F_NADD | (parity(b) ^ (c & F_PARITY) ^ F_PARITY); \
                             if (loop) { \
-                                g_nLineCycle += 5; \
+                                g_dwCycleCounter += 5; \
                                 pc -= 2; \
                             } \
                         } while (0)
@@ -186,7 +186,7 @@
                             hl++; \
                             f = cy | (b & 0xa8) | ((!b) << 6) | F_HCARRY | F_NADD; \
                             if (loop) { \
-                                g_nLineCycle += 5; \
+                                g_dwCycleCounter += 5; \
                                 pc -= 2; \
                             } \
                         } while (0)
@@ -200,7 +200,7 @@
                             hl--; \
                             f = cy | (b & 0xa8) | ((!b) << 6) | F_HCARRY | F_NADD; \
                             if (loop) { \
-                                g_nLineCycle += 5; \
+                                g_dwCycleCounter += 5; \
                                 pc -= 2; \
                             } \
                         } while (0)
@@ -308,7 +308,7 @@ edinstr(4,0147)
     BYTE t = timed_read_byte(hl);
     BYTE u = (a << 4) | (t >> 4);
     a = (a & 0xf0) | (t & 0x0f);
-    g_nLineCycle += 4;
+    g_dwCycleCounter += 4;
     timed_write_byte(hl,u);
     f = cy | parity(a);
 endinstr;
@@ -318,7 +318,7 @@ edinstr(4,0157)
     BYTE t = timed_read_byte(hl);
     BYTE u = (a & 0x0f) | (t << 4);
     a = (a & 0xf0) | (t >> 4);
-    g_nLineCycle += 4;
+    g_dwCycleCounter += 4;
     timed_write_byte(hl,u);
     f = cy | parity(a);
 endinstr;
@@ -351,6 +351,6 @@ edinstr(5,0273) otd(b);                                             endinstr;   
 // Anything not explicitly handled is effectively a 2 byte NOP (with predictable timing)
 // Only the first three T-States are already accounted for
 default:
-    g_nLineCycle++;
+    g_dwCycleCounter++;
     break;
 }

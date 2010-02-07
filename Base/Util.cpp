@@ -270,8 +270,11 @@ void WriteTimeString (char* psz_)
     // Break the elapsed time into seconds, minutes and milliseconds
     DWORD dwMillisecs = dwElapsed % 1000, dwSecs = (dwElapsed /= 1000) % 60, dwMins = (dwElapsed /= 60) % 100;
 
+    DWORD dwScreenCycles = g_dwCycleCounter - BORDER_PIXELS;
+    int nLine = dwScreenCycles / TSTATES_PER_LINE, nLineCycle = dwScreenCycles % TSTATES_PER_LINE;
+
     // Form the time string and send to the debugger
-    sprintf(psz_, "%02u:%02u.%03u  %03d:%03d  ", dwMins, dwSecs, dwMillisecs, g_nLine, g_nLineCycle);
+    sprintf(psz_, "%02u:%02u.%03u  %03d:%03d  ", dwMins, dwSecs, dwMillisecs, nLine, nLineCycle);
 }
 
 #endif  // _DEBUG
