@@ -2,7 +2,7 @@
 //
 // Clock.cpp: SAMBUS and DALLAS clock emulation
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@
 time_t CClockDevice::s_tEmulated;
 
 CClockDevice::CClockDevice ()
+    : m_fBCD(true)
 {
     // Initialise the clock to the current date/time
     Reset();
@@ -46,117 +47,126 @@ CClockDevice::CClockDevice ()
 // Initialise a SAMTIME structure with the current date/time
 void CClockDevice::Reset ()
 {
-    // Get current local time, setting the class value if not yet set
+    // Get current local time
     m_tLast = time(NULL);
-    if (!s_tEmulated)
+
+    // Set the class time if unset or invalid
+    if (!s_tEmulated || s_tEmulated > m_tLast)
         s_tEmulated = m_tLast;
 
     // Break the current time into it's parts
     tm* ptm = localtime(&m_tLast);
 
-    m_st.nYear10 = ptm->tm_year / 10;
-    m_st.nYear1  = ptm->tm_year % 10;
+    m_st.nCentury = Encode((1900+ptm->tm_year) / 100);
+    m_st.nYear  = Encode(ptm->tm_year % 100);
+    m_st.nMonth = Encode(ptm->tm_mon+1);        // Change month from zero-based to one-based
+    m_st.nDay = Encode(ptm->tm_mday);
 
-    m_st.nMonth10 = ++ptm->tm_mon / 10;    // Change month from zero-based to one-based
-    m_st.nMonth1  = ptm->tm_mon % 10;
-
-    m_st.nDay10 = ptm->tm_mday / 10;
-    m_st.nDay1  = ptm->tm_mday % 10;
-
-    m_st.nHour10 = ptm->tm_hour / 10;
-    m_st.nHour1  = ptm->tm_hour % 10;
-
-    m_st.nMinute10 = ptm->tm_min / 10;
-    m_st.nMinute1  = ptm->tm_min % 10;
-
-    m_st.nSecond10 = ptm->tm_sec / 10;
-    m_st.nSecond1  = ptm->tm_sec % 10;
+    m_st.nHour = Encode(ptm->tm_hour);
+    m_st.nMinute  = Encode(ptm->tm_min);
+    m_st.nSecond  = Encode(ptm->tm_sec % 10);
 }
 
-void CClockDevice::Update ()
+int CClockDevice::Decode (int nValue_)
 {
-    // Get the time in more normal components
-    int nSecond = m_st.nSecond10 * 10 + m_st.nSecond1;
-    int nMinute = m_st.nMinute10 * 10 + m_st.nMinute1;
-    int nHour   = m_st.nHour10   * 10 + m_st.nHour1;
-    int nDay    = m_st.nDay10    * 10 + m_st.nDay1;
-    int nMonth  = m_st.nMonth10  * 10 + m_st.nMonth1;
-    int nYear   = m_st.nYear10   * 10 + m_st.nYear1;
+    return m_fBCD ? ((nValue_ & 0xf0) >> 4)*10 + (nValue_ & 0x0f) : nValue_;
+}
 
-    // The clocks are either always synchronised with real time, or stay relative to emulated time
+int CClockDevice::Encode (int nValue_)
+{
+    return m_fBCD ? ((nValue_ / 10) << 4) | (nValue_ % 10) : nValue_;
+}
+
+int CClockDevice::DateAdd (int &nValue_, int nAdd_, int nMax_)
+{
+    if (!nAdd_)
+        return 0;
+
+    nValue_ = Decode(nValue_);
+
+    // Limit the starting value to cause an immediate wrap
+    if (nValue_ > nMax_)
+        nValue_ = nMax_;
+
+    // Add the difference, clipping to the maximum
+    nValue_ += nAdd_;
+    int nCarry = nValue_ / (nMax_+1);
+    nValue_ %= (nMax_+1);
+
+    nValue_ = Encode(nValue_);
+
+    // Return the amount to carry
+    return nCarry;
+}
+
+bool CClockDevice::Update ()
+{
+    // The clocks are either synchronised to real time or stay relative to emulated time
     time_t tNow = GetOption(clocksync) ? time(NULL) : s_tEmulated;
+
+    // Same time as before?
+    if (tNow == m_tLast)
+        return false;
+    else if (tNow < m_tLast)
+    {
+        // Force a resync for negative differences (DST or manual change)
+        Reset();
+        return true;
+    }
 
     // Work out how many seconds have passed since the last SAM time update
     int nDiff = static_cast<int>(tNow - m_tLast);
     m_tLast = tNow;
 
-    // Add on the change in number of seconds, reducing invalid values to 59 before-hand
-    nDiff = (nSecond = min(nSecond, 59) + nDiff) / 60;
-    m_st.nSecond1 = (nSecond %= 60) % 10;
-    m_st.nSecond10 = nSecond / 10;
+    // Update the time, clipping to the maximum values
+    nDiff = DateAdd(m_st.nSecond, nDiff, 59);
+    nDiff = DateAdd(m_st.nMinute, nDiff, 59);
+    nDiff = DateAdd(m_st.nHour, nDiff, 23);
 
-    // If there's any time left, consider updating the minutes
-    if (nDiff)
+    // Any remaining time is in days and affects the date
+    while (nDiff > 0)
     {
-        // Add on the change in number of minutes, reducing invalid values to 59 before-hand
-        nDiff = (nMinute = min(nMinute, 59) + nDiff) / 60;
-        m_st.nMinute1 = (nMinute %= 60) % 10;
-        m_st.nMinute10 = nMinute / 10;
+        // Limit the month so we know how many days are in the current month
+        int nMonth  = Decode(m_st.nMonth);
+        nMonth = min(nMonth ? nMonth : 1, 12);
 
-        // If there's any time left, consider updating the hours
-        if (nDiff)
+        // Table for the number of days in each month
+        static int anDays[] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+
+        // Decode the year and determine whether it's a leap year
+        int nYear = Decode(m_st.nCentury)*100 + Decode(m_st.nYear);
+        anDays[2] = (!(nYear % 4) && ((nYear % 100) || !(nYear % 400))) ? 29 : 28;
+
+        // Limit the day to between 1 and the maximum for the current month
+        int nDay = Decode(m_st.nDay);
+        nDay = min((nDay ? nDay : 1), anDays[nMonth]);
+
+        // If there's not enough to complete the current month, add it on and finish
+        if (nDay + nDiff <= anDays[nMonth])
         {
-            // Add on the change in number of hours, reducing invalid values to 23 before-hand
-            nDiff = (nHour = min(nHour, 23) + nDiff) / 24;
-            m_st.nHour1 = (nHour %= 24) % 10;
-            m_st.nHour10 = nHour / 10;
+            // Update the day in the month
+            DateAdd(m_st.nDay, nDiff, anDays[nMonth]);
+            break;
+        }
 
-            // Any remaining time is in days and affects the date
-            if (nDiff)
-            {
-                // Limit the month so we know how many days are in the current month
-                nMonth = min(nMonth ? nMonth : 1, 12);
+        // Complete the current month and set the day back to the first of the month
+        nDiff -= anDays[nMonth] - nDay + 1;
+        m_st.nDay = 1;
 
-                while (1)
-                {
-                    // Table for the number of days in each month
-                    static int anDays[] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+        // Advance to the next month
+        DateAdd(m_st.nMonth, 1, 12);
 
-                    // The years are relative to 1900, so add that on before considering leap years
-                    nYear += 1900;
-                    anDays[2] = (!(nYear % 4) && ((nYear % 100) || !(nYear % 400))) ? 29 : 28;
-
-                    // Limit the day to between 1 and the maximum for the current month
-                    nDay = min((nDay ? nDay : 1), anDays[nMonth]);
-
-                    // If there's not enough to complete the current month, add it on and finish
-                    if (nDay + nDiff <= anDays[nMonth])
-                    {
-                        m_st.nDay1 = (nDay += nDiff) % 10;
-                        m_st.nDay10 = nDay / 10;
-                        break;
-                    }
-
-                    // Complete the current month and set the day back to the first of the month
-                    nDiff -= anDays[nMonth] - nDay + 1;
-                    nDay = 1;
-
-                    // If we've completed a year, move back to Jan and increment the year
-                    if (++nMonth > 12)
-                    {
-                        nMonth = 1;
-
-                        m_st.nYear1 = ++nYear % 10;
-                        m_st.nYear10 = nYear / 10;
-                    }
-
-                    // Update the month digits as they've changed
-                    m_st.nMonth1 = nMonth % 10;
-                    m_st.nMonth10 = nMonth / 10;
-                }
-            }
+        // If we've completed a year, move back to Jan and increment the year
+        if (!m_st.nMonth)
+        {
+            m_st.nMonth = 1;
+            int nCarry = DateAdd(m_st.nYear, 1, 99);
+            DateAdd(m_st.nCentury, nCarry, 99);
         }
     }
+
+    // Time updated
+    return true;
 }
 
 // Get the day of the week for the current SAMTIME
@@ -164,14 +174,15 @@ int CClockDevice::GetDayOfWeek ()
 {
     struct tm t, *ptm;
 
-    // Set the date and hour (just in case daylight savings is important)
-    t.tm_year = (m_st.nYear10  * 10) + m_st.nYear1;
-    t.tm_mon  = (m_st.nMonth10 * 10) + m_st.nMonth1 - 1;
-    t.tm_mday = (m_st.nDay10   * 10) + m_st.nDay1;
-    t.tm_hour = (m_st.nHour10  * 10) + m_st.nHour1;
+    // Set the date and hour, just in case daylight savings is important
+    t.tm_year = Decode(m_st.nCentury)*100 + Decode(m_st.nYear);
+    t.tm_mon  = m_st.nMonth - 1;
+    t.tm_mday = m_st.nDay;
+    t.tm_hour = m_st.nHour;
     t.tm_min  = t.tm_sec = 0;
 
     // Create a ctime value from the date
+    if (t.tm_year >= 1900) t.tm_year -= 1900;
     time_t tNow = mktime(&t);
 
     // Convert back to a tm structure to get the day of the week :-)
@@ -193,7 +204,7 @@ int CClockDevice::GetDayOfWeek ()
 CSambusClock::CSambusClock ()
 {
     // Clear the clock registers
-    memset(&m_abRegs, 0, sizeof m_abRegs);
+    memset(m_abRegs, 0, sizeof(m_abRegs));
 }
 
 BYTE CSambusClock::In (WORD wPort_)
@@ -201,38 +212,12 @@ BYTE CSambusClock::In (WORD wPort_)
     // Strip off the bottom 8 bits (239 for CLOCK_PORT)
     wPort_ >>= 8;
 
-    // Update the SAMBUS time, unless the clock update is disabled
-    if (!(m_abRegs[0x0d] & 0x02))
-        Update();
-    else
-        time(&m_tLast);
+    // Update the clock
+    Update();
 
     // The register is in the top 4 bits
-    switch (wPort_ &= 0xf0)
-    {
-        case 0x00:  return m_st.nSecond1;   // Seconds (ones)
-        case 0x10:  return m_st.nSecond10;  // Seconds (tens)
-        case 0x20:  return m_st.nMinute1;   // Minutes (ones)
-        case 0x30:  return m_st.nMinute10;  // Minutes (tens)
-        case 0x40:  return m_st.nHour1;     // Hours (ones)
-        case 0x50:  return m_st.nHour10;    // Hours (tens)
-        case 0x60:  return m_st.nDay1;      // Days (ones)
-        case 0x70:  return m_st.nDay10;     // Days (tens)
-        case 0x80:  return m_st.nMonth1;    // Months (ones)
-        case 0x90:  return m_st.nMonth10;   // Months (tens)
-        case 0xa0:  return m_st.nYear1;     // Year (ones)
-        case 0xb0:  return m_st.nYear10;    // Year (tens)
-        case 0xc0:  return localtime(&m_tLast)->tm_wday;   // Day of week (unsupported)
-
-        // These appear to be control registers
-        case 0xd0:  // bit 1 NZ for busy, bit 0 NZ for hold clock
-        case 0xe0:
-        case 0xf0:  // bit 3 NZ for test mode, bit 2 NZ for 24hr, other bits unknown
-            return m_abRegs[wPort_ >> 4];
-    }
-
-    // Unreachable
-    return 0xff;
+    BYTE bReg = (wPort_ >> 4) & 0x0f;
+    return m_abRegs[bReg];
 }
 
 void CSambusClock::Out (WORD wPort_, BYTE bVal_)
@@ -240,91 +225,140 @@ void CSambusClock::Out (WORD wPort_, BYTE bVal_)
     // Strip off the bottom 8 bits (always 239 for CLOCK_PORT)
     wPort_ >>= 8;
 
-    // Get the current SAM time, unless the clock update is on hold
-    if (!(m_abRegs[0x0d] & 0x02))
-        Update();
-    else
-        time(&m_tLast);
+    // Update the clock
+    Update();
+
+    // Determine the register location and perform the write
+    BYTE bReg = (wPort_ >> 4) & 0x0f;
+    m_abRegs[bReg] = bVal_;
 
     // SAMBUS clock only appears to use the lower 4 bits of the value
     bVal_ &= 0x0f;
 
-    // Make the modification depending on which port was written to
-    switch (wPort_ &= 0xf0)
+    // Post-write modifications
+    switch (bReg)
     {
-        // SAMBUS clock ports
-        case 0x00:  m_st.nSecond1 = bVal_;  break;  // Seconds (ones)
-        case 0x10:  m_st.nSecond10 = bVal_; break;  // Seconds (tens)
-        case 0x20:  m_st.nMinute1 = bVal_;  break;  // Minutes (ones)
-        case 0x30:  m_st.nMinute10 = bVal_; break;  // Minutes (tens)
-        case 0x40:  m_st.nHour1 = bVal_;    break;  // Hours (ones)
-        case 0x50:  m_st.nHour10 = bVal_;   break;  // Hours (tens)
-        case 0x60:  m_st.nDay1 = bVal_;     break;  // Days (ones)
-        case 0x70:  m_st.nDay10 = bVal_;    break;  // Days (tens)
-        case 0x80:  m_st.nMonth1 = bVal_;   break;  // Months (ones)
-        case 0x90:  m_st.nMonth10 = bVal_;  break;  // Months (tens)
-        case 0xa0:  m_st.nYear1 = bVal_;    break;  // Year (ones)
-        case 0xb0:  m_st.nYear10 = bVal_;   break;  // Year (tens)
+        // Set registers, assuming BCD to preserve all bits
+        case 0x00:  m_st.nSecond = (m_st.nSecond & 0xf0) |  bVal_;       break; // Seconds (ones)
+        case 0x01:  m_st.nSecond = (m_st.nSecond & 0x0f) | (bVal_ << 4); break; // Seconds (tens)
+        case 0x02:  m_st.nMinute = (m_st.nMinute & 0xf0) |  bVal_;       break; // Minutes (ones)
+        case 0x03:  m_st.nMinute = (m_st.nMinute & 0x0f) | (bVal_ << 4); break; // Minutes (tens)
+        case 0x04:  m_st.nHour   = (m_st.nHour   & 0xf0) |  bVal_;       break; // Hours (ones)
+        case 0x05:  m_st.nHour   = (m_st.nHour   & 0x0f) | (bVal_ << 4); break; // Hours (tens)
+        case 0x06:  m_st.nDay    = (m_st.nDay    & 0xf0) |  bVal_;       break; // Days (ones)
+        case 0x07:  m_st.nDay    = (m_st.nDay    & 0x0f) | (bVal_ << 4); break; // Days (tens)
+        case 0x08:  m_st.nMonth  = (m_st.nMonth  & 0xf0) |  bVal_;       break; // Months (ones)
+        case 0x09:  m_st.nMonth  = (m_st.nMonth  & 0x0f) | (bVal_ << 4); break; // Months (tens)
+        case 0x0a:  m_st.nYear   = (m_st.nYear   & 0xf0) |  bVal_;       break; // Year (ones)
+        case 0x0b:  m_st.nYear   = (m_st.nYear   & 0x0f) | (bVal_ << 4); break; // Year (tens)
 
-        case 0xc0:  break;  // unknown
+        case 0x0c:  break;  // unknown
 
         // These appear to be control registers
-        case 0xd0:  bVal_ &= ~0x02;     // bit 1 NZ for busy
-        case 0xe0:
-        case 0xf0:  // bit 3 NZ for test mode, bit 2 NZ for 24hr, other bits unknown
-            m_abRegs[wPort_ >> 4] = bVal_;
+        case 0x0d:
+            m_abRegs[bReg] &= ~0x02;    // clear busy bit
+            break;
+
+        case 0x0f:  // bit 3 NZ for test mode, bit 2 NZ for 24hr, other bits unknown
             break;
     }
 }
 
+bool CSambusClock::Update ()
+{
+    // Call base to update time values
+    if (!CClockDevice::Update())
+        return false;
+
+    // If the time update is disabled, do nothing more
+    if (m_abRegs[0x0d] & 0x02)
+        return false;
+
+    // Update registers with current time
+    m_abRegs[0x00] =  m_st.nSecond & 0x0f;          // Seconds (ones)
+    m_abRegs[0x01] = (m_st.nSecond & 0xf0) >> 4;    // Seconds (tens)
+    m_abRegs[0x02] =  m_st.nMinute & 0x0f;          // Minutes (ones)
+    m_abRegs[0x03] = (m_st.nMinute & 0xf0) >> 4;    // Minutes (tens)
+    m_abRegs[0x04] =  m_st.nHour   & 0x0f;          // Hours (ones)
+    m_abRegs[0x05] = (m_st.nHour   & 0xf0) >> 4;    // Hours (tens)
+    m_abRegs[0x06] =  m_st.nDay    & 0x0f;          // Days (ones)
+    m_abRegs[0x07] = (m_st.nDay    & 0xf0) >> 4;    // Days (tens)
+    m_abRegs[0x08] =  m_st.nMonth  & 0x0f;          // Months (ones)
+    m_abRegs[0x09] = (m_st.nMonth  & 0xf0) >> 4;    // Months (tens)
+    m_abRegs[0x0a] =  m_st.nYear   & 0x0f;          // Year (ones)
+    m_abRegs[0x0b] = (m_st.nYear   & 0xf0) >> 4;    // Year (tens)
+    m_abRegs[0x0c] = localtime(&m_tLast)->tm_wday;  // Day of week (unsupported)
+
+    return true;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
+
+#define BANK1 0x40  // Bank 1 register offset
+
 
 CDallasClock::CDallasClock ()
     : m_bReg(0)
 {
-    // Clear the RAM area
-    memset(&m_abRegs, 0, sizeof m_abRegs);
+    // Clear register and RAM areas
+    memset(m_abRegs, 0, sizeof(m_abRegs));
+    memset(m_abRAM, 0, sizeof(m_abRAM));
 
-    // Initialise some registers
-    m_abRegs[0x0a] = 0x20;      // Oscillators enabled
-    m_abRegs[0x0b] = 0x00;      // Update enabled
+    // Initialise control registers
+    m_abRegs[0x0a] = 0x20;      // Oscillators enabled (b5 set), original register bank (b4 clear)
+    m_abRegs[0x0b] = 0x02;      // Update enabled (b7 clear), BCD mode (b2 clear), 24 hour (b1 set)
     m_abRegs[0x0c] = 0x00;
-    m_abRegs[0x0d] = 0x80;      // Valid RAM and Time
+    m_abRegs[0x0d] = 0x80;      // Valid RAM and Time (b7 set)
+
+    // Set the model, serial number and (dummy) CRC
+    m_abRegs[0x40+BANK1] = 0x00;
+    memcpy(m_abRegs+0x41+BANK1, "\x11\x22\x33\x44\x55\x66", 6);
+    m_abRegs[0x47+BANK1] = 0xff;
 }
 
 BYTE CDallasClock::In (WORD wPort_)
 {
-    // Strip off the bottom 8 bits (239 for CLOCK_PORT)
-    wPort_ >>= 8;
+    // Update the clock
+    Update();
 
-    // Update the current SAM time if the update bit and oscillators are enabled
-    if (!(m_abRegs[0x0b] & 0x80) && ((m_abRegs[0x0a] & 0x70) == 0x20))
-        Update();
-    else
-        time(&m_tLast);
+    // Determine the register location to read from
+    BYTE bReg = m_bReg & 0x7f;
+    if (bReg >= 0x40 && (m_abRegs[0x0a] & 0x10)) bReg += BANK1;
 
-    switch (m_bReg)
+    // Pre-read processing
+    switch (bReg)
     {
-        // Time registers
-        case 0x00:  return DateValue(m_st.nSecond10, m_st.nSecond1);  // Seconds
-        case 0x02:  return DateValue(m_st.nMinute10, m_st.nMinute1);  // Minutes
-        case 0x04:  return DateValue(m_st.nHour10, m_st.nHour1);      // Hours
-        case 0x06:  return 1+GetDayOfWeek();                          // Day of week
-        case 0x07:  return DateValue(m_st.nDay10, m_st.nDay1);        // Day of the month
-        case 0x08:  return DateValue(m_st.nMonth10, m_st.nMonth1);    // Month
-        case 0x09:  return DateValue(m_st.nYear10, m_st.nYear1);      // Year
-
-        // Control registers that require special handling
-        case 0x0c:
+        // Extended RAM reads come from a separate data area
+        case 0x53+BANK1:
         {
-            BYTE bRet = m_abRegs[m_bReg];
-            m_abRegs[m_bReg] = 0x00;
-            return bRet;
-        }
+            // Determine the extended RAM offset
+            WORD wOffset = ((m_abRegs[0x51+BANK1] & 0x0f) << 8) | m_abRegs[0x50+BANK1];
 
-        default:
-            return m_abRegs[m_bReg & 0x7f];
+            // Update the extended RAM data port
+            m_abRegs[bReg] = m_abRAM[wOffset];
+
+            // Perform burst mode increment, if enabled
+            if ((m_abRegs[0x4a+BANK1] & 0x20) && !++m_abRegs[0x50+BANK1])
+                m_abRegs[0x51+BANK1]++;
+
+            break;
+        }
     }
+
+    // Perform the read
+    BYTE bRet = m_abRegs[bReg];
+
+    // Post-read side-effects
+    switch (bReg)
+    {
+        // Interrupt flags in register C are cleared when read
+        case 0x0c:
+            m_abRegs[bReg] = 0x00;
+            break;
+    }
+
+    // Return what was read
+    return bRet;
 }
 
 void CDallasClock::Out (WORD wPort_, BYTE bVal_)
@@ -332,42 +366,98 @@ void CDallasClock::Out (WORD wPort_, BYTE bVal_)
     // Strip off the bottom 8 bits (always 239 for CLOCK_PORT)
     wPort_ >>= 8;
 
-    // Get the current SAM time, unless the clock update has been disabled
-    if (!(m_abRegs[0x0b] & 0x80) && ((m_abRegs[0x0a] & 0x70) == 0x20))
-        Update();
-    else
-        time(&m_tLast);
+    // Update the clock
+    Update();
 
-    switch (wPort_ & 1)
+    // Register select?
+    if (!(wPort_ & 1))
     {
-        // Select a register
-        case 0:
-            m_bReg = bVal_ & 0x7f;
+        m_bReg = bVal_;
+        return;
+    }
+
+    // Determine the register location to write to
+    BYTE bReg = m_bReg & 0x7f;
+    if (bReg >= 0x40 && (m_abRegs[0x0a] & 0x10)) bReg += BANK1;
+
+    // Pre-write processing
+    switch (bReg)
+    {
+        // Control register A has b7 clear
+        case 0x0a:
+            bVal_ &= 0x7f;
             break;
 
-        // Write a register value
-        case 1:
-        {
-            switch (m_bReg)
-            {
-                // Some control registers need special handling, as not all bits are writeable
-                case 0x0a:  m_abRegs[m_bReg] = (m_abRegs[m_bReg] & 0x80) | (bVal_ & ~0x80); break;
-                case 0x0c:  break;      // All bits read-only
-                case 0x0d:  break;      // All bits read-only
+        // Control registers C+D are read-only
+        case 0x0c:
+        case 0x0d:
+            return;
 
-                default:
-                    m_abRegs[m_bReg] = bVal_;
-                    break;
-            }
+        default:
+            // Model and serial number are read-only
+            if (bReg >= 0x40+BANK1 && bReg <= 0x47+BANK1)
+                return;
+
+            break;
+    }
+
+    // Perform the write
+    m_abRegs[bReg] = bVal_;
+
+    // Post-write side-effects
+    switch (bReg)
+    {
+        case 0x00: m_st.nSecond = bVal_;    break;
+        case 0x02: m_st.nMinute = bVal_;    break;
+        case 0x04: m_st.nHour   = bVal_;    break;
+        case 0x07: m_st.nDay    = bVal_;    break;
+        case 0x08: m_st.nMonth  = bVal_;    break;
+        case 0x09: m_st.nYear   = bVal_;    break;
+
+        case 0x48+BANK1: m_st.nCentury = bVal_; break;
+
+        // Control register B
+        case 0x0b:
+            m_fBCD = !(m_abRegs[0x0b] & 0x04);
+            break;
+
+        // Extended RAM writes are to a separate data area
+        case 0x53+BANK1:
+        {
+            // Determine the extended RAM offset
+            WORD wOffset = ((m_abRegs[0x51+BANK1] & 0x0f) << 8) | m_abRegs[0x50+BANK1];
+
+            // Write the byte
+            m_abRAM[wOffset] = m_abRegs[bReg];
+
+            // Perform burst mode increment, if enabled
+            if ((m_abRegs[0x4a+BANK1] & 0x20) && !++m_abRegs[0x50+BANK1])
+                m_abRegs[0x51+BANK1]++;
+
             break;
         }
     }
 }
 
-
-// The format SAMBUS dates are returned in (BCD or binary) depends on bit 2 of register B
-BYTE CDallasClock::DateValue (BYTE bH_, BYTE bL_)
+bool CDallasClock::Update ()
 {
-    // Bit is set for binary, reset for BCD
-    return (m_abRegs[0x0b] & 0x02) ? (bH_ * 10) + bL_ : (bH_ << 4) | bL_;
+    // Call base to update time values
+    if (!CClockDevice::Update())
+        return false;
+
+    // If the update or oscillators are disabled, do nothing more
+    if ((m_abRegs[0x0b] & 0x80) || (m_abRegs[0x0a] & 0x70) != 0x20)
+        return false;
+
+    // Update registers with current time
+    m_abRegs[0x00] = m_st.nSecond;          // Seconds
+    m_abRegs[0x02] = m_st.nMinute;          // Minutes
+    m_abRegs[0x04] = m_st.nHour;            // Hours
+    m_abRegs[0x06] = 1+GetDayOfWeek();      // Day of week
+    m_abRegs[0x07] = m_st.nDay;             // Day of the month
+    m_abRegs[0x08] = m_st.nMonth;           // Month
+    m_abRegs[0x09] = m_st.nYear;            // Year
+    m_abRegs[0x48+BANK1] = m_st.nCentury;   // Century
+
+    return true;
 }

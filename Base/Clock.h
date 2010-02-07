@@ -2,7 +2,7 @@
 //
 // Clock.h: SAMBUS and DALLAS clock emulation
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,13 +26,14 @@
 
 typedef struct tagSAMTIME
 {
-    int nSecond10,  nSecond1;
-    int nMinute10,  nMinute1;
-    int nHour10,    nHour1;
+    int nSecond;
+    int nMinute;
+    int nHour;
 
-    int nDay10,     nDay1;
-    int nMonth10,   nMonth1;
-    int nYear10,    nYear1;
+    int nDay;
+    int nMonth;
+    int nYear;
+	int nCentury;
 }
 SAMTIME;
 
@@ -44,8 +45,12 @@ class CClockDevice : public CIoDevice
 
     public:
         void Reset ();
-        void Update ();
+        virtual bool Update ();
         int GetDayOfWeek ();
+
+		int Decode (int nValue_);
+		int Encode (int nValue_);
+		int DateAdd (int &nValue_, int nAdd_, int nMax_);
 
     public:
         static void FrameUpdate ();
@@ -53,6 +58,7 @@ class CClockDevice : public CIoDevice
     protected:
         time_t m_tLast;
         SAMTIME m_st;
+		bool m_fBCD;
 
         static time_t s_tEmulated;  // Holds the current time relative to the emulation speed
 };
@@ -66,6 +72,7 @@ class CSambusClock : public CClockDevice
     public:
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
+		bool Update ();
 
     protected:
         BYTE m_abRegs[16];    // The 16 SamBus registers
@@ -80,13 +87,12 @@ class CDallasClock : public CClockDevice
     public:
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
+		bool Update ();
 
     protected:
-        BYTE DateValue (BYTE bH_, BYTE bL_);
-
-    protected:
-        BYTE m_bReg;          // Currently selected DALLAS register
-        BYTE m_abRegs[128];   // DALLAS RAM
+        BYTE m_bReg;			// Currently selected DALLAS register
+        BYTE m_abRegs[128+64];  // DALLAS RAM, including additional bank 1 locations
+		BYTE m_abRAM[0x1000];	// 4K of extended RAM
 };
 
 #endif
