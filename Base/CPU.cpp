@@ -61,61 +61,9 @@ BYTE g_abParity[256];
 BYTE g_abInc[256], g_abDec[256];
 #endif
 
-
-#define a       regs.AF.B.h_
-#define f       regs.AF.B.l_
-#define b       regs.BC.B.h_
-#define c       regs.BC.B.l_
-#define d       regs.DE.B.h_
-#define e       regs.DE.B.l_
-#define h       regs.HL.B.h_
-#define l       regs.HL.B.l_
-
-#define af      regs.AF.W
-#define bc      regs.BC.W
-#define de      regs.DE.W
-#define hl      regs.HL.W
-
-#define a1      regs.AF_.B.h_
-#define f1      regs.AF_.B.l_
-#define b1      regs.BC_.B.h_
-#define c1      regs.BC_.B.l_
-#define d1      regs.DE_.B.h_
-#define e1      regs.DE_.B.l_
-#define h1      regs.HL_.B.h_
-#define l1      regs.HL_.B.l_
-
-#define alt_af  regs.AF_.W
-#define alt_bc  regs.BC_.W
-#define alt_de  regs.DE_.W
-#define alt_hl  regs.HL_.W
-
-#define ix      regs.IX.W
-#define iy      regs.IY.W
-#define sp      regs.SP.W
-#define pc      regs.PC.W
-
-#define ixh     regs.IX.B.h_
-#define ixl     regs.IX.B.l_
-#define iyh     regs.IY.B.h_
-#define iyl     regs.IY.B.l_
-#define sp_h    regs.SP.B.h_
-#define sp_l    regs.SP.B.l_
-
-#define r       regs.R
-#define i       regs.I          // This daft one means we can't use 'i' as a 'for' variable in this module!
-#define iff1    regs.IFF1
-#define iff2    regs.IFF2
-#define im      regs.IM
-#define halted  regs.halted
-
-
 inline void CheckInterrupt ();
-inline void Mode0Interrupt ();
-inline void Mode1Interrupt ();
-inline void Mode2Interrupt ();
 
-#define rflags(b_,c_)   (f = (c_) | parity(b_))
+#define rflags(b_,c_)   (F = (c_) | parity(b_))
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -160,11 +108,9 @@ BYTE abPortContention[] = { 6, 5, 4, 3, 2, 1, 0, 7 };
 BYTE *pbMemRead1, *pbMemRead2, *pbMemWrite1, *pbMemWrite2;
 
 Z80Regs regs;
-DWORD radjust;
 
 WORD* pHlIxIy, *pNewHlIxIy;
 CPU_EVENT   asCpuEvents[MAX_EVENTS], *psNextEvent, *psFreeEvent;
-DWORD dwLastTime, dwFPSTime;
 
 
 bool CPU::Init (bool fFirstInit_/*=false*/)
@@ -179,11 +125,10 @@ bool CPU::Init (bool fFirstInit_/*=false*/)
         {
             BYTE b2 = n ^ (n >> 4);
             b2 ^= (b2 << 2);
-            b2 = ~(b2 ^ (b2 >> 1)) & F_PARITY;
+            b2 = ~(b2 ^ (b2 >> 1)) & FLAG_P;
             g_abParity[n] = (n & 0xa8) |    // S, 5, 3
                             ((!n) << 6) |   // Z
                             b2;             // P
-
 #ifdef USE_FLAG_TABLES
             g_abInc[n] = (n & 0xa8) | ((!n) << 6) | ((!( n & 0xf)) << 4) | ((n == 0x80) << 2);
             g_abDec[n] = (n & 0xa8) | ((!n) << 6) | ((!(~n & 0xf)) << 4) | ((n == 0x7f) << 2) | F_NADD;
@@ -193,8 +138,9 @@ bool CPU::Init (bool fFirstInit_/*=false*/)
         // Perform some initial tests to confirm the emulator is functioning correctly!
         InitTests();
 
-        // Most of the registers tend to only power-on defaults, and are not affected by a reset
-        af = bc = de = hl = alt_af = alt_bc = alt_de = alt_hl = ix = iy = 0xffff;
+        // Clear all registers, but set IX/IY to 0xffff
+        memset(&regs, 0, sizeof(regs));
+        IX = IY = 0xffff;
 
         // Build the memory access contention tables
         for (UINT t2 = 0 ; t2 < sizeof(abContention1)/sizeof(abContention1[0]) ; t2++)
@@ -295,10 +241,6 @@ inline void timed_write_word_reversed (WORD addr, WORD contents)
     *(pbMemWrite1 = phys_write_addr(addr)) = contents & 0xff;
 }
 
-// 16-bit push and pop
-#define push(val)   ( sp -= 2, timed_write_word_reversed(sp,val) )
-#define pop(var)    ( var = timed_read_word(sp), sp += 2 )
-
 
 // Execute the CPU event specified
 void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
@@ -386,11 +328,11 @@ void CPU::ExecuteChunk ()
         {
             // Keep track of the current and previous state of whether we're processing an indexed instruction
             pHlIxIy = pNewHlIxIy;
-            pNewHlIxIy = &hl;
+            pNewHlIxIy = &HL;
 
             // Fetch... (and advance PC)
-            bOpcode = timed_read_code_byte(pc++);
-            radjust++;
+            bOpcode = timed_read_code_byte(PC++);
+            R++;
 
             // ... Decode ...
             switch (bOpcode)
@@ -402,13 +344,13 @@ void CPU::ExecuteChunk ()
             CheckCpuEvents();
 
             // Are there any active interrupts?
-            if (status_reg != STATUS_INT_NONE && iff1)
+            if (status_reg != STATUS_INT_NONE && IFF1)
                 CheckInterrupt();
 
 // Don't bother checking for breakpoints if the debugger isn't available
 #if !defined(USE_LOWRES)
             // If we're not in an IX/IY instruction, check for breakpoints
-            if (pNewHlIxIy == &hl && Debug::BreakpointHit())
+            if (pNewHlIxIy == &HL && Debug::BreakpointHit())
                 break;
 #endif
 
@@ -425,11 +367,11 @@ void CPU::ExecuteChunk ()
         {
             // Keep track of the current and previous state of whether we're processing an indexed instruction
             pHlIxIy = pNewHlIxIy;
-            pNewHlIxIy = &hl;
+            pNewHlIxIy = &HL;
 
             // Fetch... (and advance PC)
-            bOpcode = timed_read_code_byte(pc++);
-            radjust++;
+            bOpcode = timed_read_code_byte(PC++);
+            R++;
 
             // ... Decode ...
             switch (bOpcode)
@@ -441,7 +383,7 @@ void CPU::ExecuteChunk ()
             CheckCpuEvents();
 
             // Are there any active interrupts?
-            if (status_reg != STATUS_INT_NONE && iff1)
+            if (status_reg != STATUS_INT_NONE && IFF1)
                 CheckInterrupt();
 
 #ifdef _DEBUG
@@ -505,13 +447,13 @@ void CPU::Reset (bool fPress_)
     if (fReset)
     {
         // Certain registers are initialised on every reset
-        i = radjust = im = iff1 = iff2 = 0;
-        sp = 0x8000;
-        pc = 0x0000;
-        halted = 0;
+        I = R = R7 = IFF1 = IFF2 = 0;
+        PC = 0x0000;
+        regs.halted = 0;
+        bOpcode = 0x00; // not after EI
 
         // Index prefix not active
-        pHlIxIy = pNewHlIxIy = &hl;
+        pHlIxIy = pNewHlIxIy = &HL;
 
         // Very start of frame
         g_dwCycleCounter = 0;
@@ -540,21 +482,20 @@ void CPU::Reset (bool fPress_)
 
 void CPU::NMI()
 {
-    // Preserve interrupt state then disable interrupts
-    iff2 = iff1;
-    iff1 = 0;
+    // Disable interrupts
+    IFF1 = 0;
 
     // Advance PC if we're stopped on a HALT
-    if (halted)
+    if (regs.halted)
     {
-        pc++;
-        halted = 0;
+        PC++;
+        regs.halted = 0;
     }
 
-    push(pc);
+    push(PC);
 
     // Call NMI handler at address 0x0066
-    pc = NMI_INTERRUPT_HANDLER;
+    PC = NMI_INTERRUPT_HANDLER;
     g_dwCycleCounter += 2;
 
     Debug::Refresh();
@@ -564,34 +505,34 @@ void CPU::NMI()
 inline void CheckInterrupt ()
 {
     // Only process if not delayed after a DI/EI and not in the middle of an indexed instruction
-    if (bOpcode != OP_EI && bOpcode != OP_DI && (pNewHlIxIy == &hl))
+    if (bOpcode != OP_EI && bOpcode != OP_DI && (pNewHlIxIy == &HL))
     {
         // Disable maskable interrupts to prevent the handler being triggered again immediately
-        iff1 = iff2 = 0;
+        IFF1 = IFF2 = 0;
 
         // Advance PC if we're stopped on a HALT
-        if (halted)
+        if (regs.halted)
         {
-            pc++;
-            halted = 0;
+            PC++;
+            regs.halted = 0;
         }
 
         // Save the current PC on the stack
-        push(pc);
+        push(PC);
 
         // The current interrupt mode determines how we handle the interrupt
-        switch (im)
+        switch (IM)
         {
             case 0:
             {
-                pc = IM1_INTERRUPT_HANDLER;
+                PC = IM1_INTERRUPT_HANDLER;
                 g_dwCycleCounter += 6;
                 break;
             }
 
             case 1:
             {
-                pc = IM1_INTERRUPT_HANDLER;
+                PC = IM1_INTERRUPT_HANDLER;
                 g_dwCycleCounter += 7;
                 break;
             }
@@ -599,7 +540,7 @@ inline void CheckInterrupt ()
             case 2:
             {
                 // Fetch the IM 2 handler address from an address formed from I and 0xff (from the bus)
-                pc = timed_read_word((i << 8) | 0xff);
+                PC = timed_read_word((I << 8) | 0xff);
                 g_dwCycleCounter += 7;
                 break;
             }
@@ -613,25 +554,25 @@ void CPU::InitTests ()
 {
     // Sanity check the endian of the registers structure.  If this fails you'll need to add a new
     // symbol test to the top of SimCoupe.h, to help identify the new little-endian platform
-    hl = 1;
-    if (h)
+    HL = 1;
+    if (H)
         Message(msgFatal, "Startup test: the Z80Regs structure is the wrong endian for this platform!");
 
 #if 0   // Enable this for in-depth testing of 8-bit arithmetic operations
 
 #define TEST_8(op, bit, flag, condition) \
-    if (((f >> (bit)) & 1) != (condition)) \
+    if (((F >> (bit)) & 1) != (condition)) \
         Message(msgFatal, "Startup test: " #op " (%d,%d,%d): flag " #flag " is %d, but should be %d!", \
-            c, b, carry, ((f >> (bit)) & 1), (condition))
+            c, b, carry, ((F >> (bit)) & 1), (condition))
 #define TEST_16(op, bit, flag, condition) \
-    if (((f >> (bit)) & 1) != (condition)) \
+    if (((F >> (bit)) & 1) != (condition)) \
         Message(msgFatal, "Startup test: " #op " (%d,%d,%d): flag " #flag " is %d, but should be %d!", \
-            de, bc, carry, ((f >> (bit)) & 1), (condition))
+            DE, BC, carry, ((F >> (bit)) & 1), (condition))
 
     // Check the state of CPU flags after arithmetic operations
-    pHlIxIy = &hl;
-    bc = 0;
-    de = 0;
+    pHlIxIy = &HL;
+    BC = 0;
+    DE = 0;
     BYTE carry = 0;
     do
     {
@@ -702,7 +643,7 @@ void CPU::InitTests ()
             {
                 // 8-bit ADD/ADC (common routine for both)
                 a = c;
-                f = carry;
+                F = carry;
                 adc_a(b);
                 TEST_8(ADD/ADC A, 0, C, c + b + carry != a);
                 TEST_8(ADD/ADC A, 1, N, 0);
@@ -715,7 +656,7 @@ void CPU::InitTests ()
 
                 // 8-bit SUB/SBC (common routine for both)
                 a = c;
-                f = carry;
+                F = carry;
                 sbc_a(b);
                 TEST_8(SUB/SBC A, 0, C, c - b - carry != a);
                 TEST_8(SUB/SBC A, 1, N, 1);
@@ -731,45 +672,45 @@ void CPU::InitTests ()
                 {
                     // 16-bit ADD (separate routine from ADC)
                     // Use the two carry states to test unaffected flags remain unchanged
-                    hl = de;
-                    f = -carry;
-                    add_hl(bc);
-                    TEST_16(ADD HL, 0, C, de + bc != hl);
+                    HL = DE;
+                    F = -carry;
+                    add_hl(BC);
+                    TEST_16(ADD HL, 0, C, DE + BC != HL);
                     TEST_16(ADD HL, 1, N, 0);
                     TEST_16(ADD HL, 2, V, carry);
-                    TEST_16(ADD HL, 3, 3, (hl >> 11) & 1);
-                    TEST_16(ADD HL, 4, H, (de & 0xFFF) + (bc & 0xFFF) != (hl & 0xFFF));
-                    TEST_16(ADD HL, 5, 5, (hl >> 13) & 1);
+                    TEST_16(ADD HL, 3, 3, (HL >> 11) & 1);
+                    TEST_16(ADD HL, 4, H, (DE & 0xFFF) + (BC & 0xFFF) != (HL & 0xFFF));
+                    TEST_16(ADD HL, 5, 5, (HL >> 13) & 1);
                     TEST_16(ADD HL, 6, Z, carry);
                     TEST_16(ADD HL, 7, S, carry);
 
                     // 16-bit ADC (separate routine from ADD)
-                    hl = de;
-                    f = carry;
-                    adc_hl(bc);
-                    TEST_16(ADC HL, 0, C, de + bc + carry != hl);
+                    HL = DE;
+                    F = carry;
+                    adc_hl(BC);
+                    TEST_16(ADC HL, 0, C, DE + BC + carry != HL);
                     TEST_16(ADC HL, 1, N, 0);
-                    TEST_16(ADC HL, 2, V, (signed short)de + (signed short)bc + carry != (signed short)hl);
-                    TEST_16(ADC HL, 3, 3, (hl >> 11) & 1);
-                    TEST_16(ADC HL, 4, H, (de & 0xFFF) + (bc & 0xFFF) + carry != (hl & 0xFFF));
-                    TEST_16(ADC HL, 5, 5, (hl >> 13) & 1);
-                    TEST_16(ADC HL, 6, Z, hl == 0);
-                    TEST_16(ADC HL, 7, S, (signed short)hl < 0);
+                    TEST_16(ADC HL, 2, V, (signed short)DE + (signed short)BC + carry != (signed short)HL);
+                    TEST_16(ADC HL, 3, 3, (HL >> 11) & 1);
+                    TEST_16(ADC HL, 4, H, (DE & 0xFFF) + (BC & 0xFFF) + carry != (HL & 0xFFF));
+                    TEST_16(ADC HL, 5, 5, (HL >> 13) & 1);
+                    TEST_16(ADC HL, 6, Z, HL == 0);
+                    TEST_16(ADC HL, 7, S, (signed short)HL < 0);
 
                     // 16-bit SBC
-                    hl = de;
-                    f = carry;
-                    sbc_hl(bc);
-                    TEST_16(SBC HL, 0, C, de - bc - carry != hl);
+                    HL = DE;
+                    F = carry;
+                    sbc_hl(BC);
+                    TEST_16(SBC HL, 0, C, DE - BC - carry != HL);
                     TEST_16(SBC HL, 1, N, 1);
-                    TEST_16(SBC HL, 2, V, (signed short)de - (signed short)bc - carry != (signed short)hl);
-                    TEST_16(SBC HL, 3, 3, (hl >> 11) & 1);
-                    TEST_16(SBC HL, 4, H, (de & 0xFFF) - (bc & 0xFFF) - carry != (hl & 0xFFF));
-                    TEST_16(SBC HL, 5, 5, (hl >> 13) & 1);
-                    TEST_16(SBC HL, 6, Z, hl == 0);
-                    TEST_16(SBC HL, 7, S, (signed short)hl < 0);
+                    TEST_16(SBC HL, 2, V, (signed short)DE - (signed short)BC - carry != (signed short)HL);
+                    TEST_16(SBC HL, 3, 3, (HL >> 11) & 1);
+                    TEST_16(SBC HL, 4, H, (DE & 0xFFF) - (BC & 0xFFF) - carry != (HL & 0xFFF));
+                    TEST_16(SBC HL, 5, 5, (HL >> 13) & 1);
+                    TEST_16(SBC HL, 6, Z, HL == 0);
+                    TEST_16(SBC HL, 7, S, (signed short)HL < 0);
                 }
-                while ((++d, ++e) != 0);   // Doing the full range of de takes too long...
+                while ((++d, ++e) != 0);   // Doing the full range of DE takes too long...
 #endif  // 16-bit tests (which can take a while)
             }
             while ((carry = !carry) != 0);

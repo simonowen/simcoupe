@@ -88,7 +88,7 @@ void Debug::OnRet ()
     if (pStepOutStack)
     {
         // Get the physical location of the return address
-        const BYTE* pSP = phys_read_addr(regs.SP.W-2);
+        const BYTE* pSP = phys_read_addr(SP-2);
 
         // If the stack is at or just above the starting position, it should mean we've returned
         // Allow some generous slack for data that may have been on the stack above the address
@@ -123,7 +123,7 @@ bool Debug::BreakpointHit ()
     BREAKPT* p;
 
     // Fetch the 'physical' address of PC
-    BYTE* pPC = phys_read_addr(regs.PC.W);
+    BYTE* pPC = phys_read_addr(PC);
 
     // Special breakpoint used for stepping, where either condition is enough to trigger the breakpoint
     if (Break.pAddr == pPC || (Break.pExpr && Expr::Eval(Break.pExpr)))
@@ -257,7 +257,7 @@ CDebugger::CDebugger (BREAKPT* pBreak_/*=NULL*/)
 
     m_pRegPanel = new CRegisterPanel(this, 267, 8, 0, 0);
     m_pView = new CCodeView(this);
-    m_pView->SetAddress(regs.PC.W);
+    m_pView->SetAddress(PC);
 
     // Force a break from the main CPU loop, and refresh the debugger display
     g_fBreak = fDebugRefresh = true;
@@ -268,7 +268,7 @@ CDebugger::CDebugger (BREAKPT* pBreak_/*=NULL*/)
     pStepOutStack = NULL;
 
     // Form the R register value from the working parts we maintain
-    regs.R = (regs.R & 0x80) | (static_cast<BYTE>(radjust) & 0x7f);
+    R = (R7 & 0x80) | (R & 0x7f);
 }
 
 CDebugger::~CDebugger ()
@@ -280,7 +280,6 @@ CDebugger::~CDebugger ()
     // Remember the current register values so we know what's changed next time
     sLastRegs = regs;
     bLastStatus = status_reg;
-    radjust = regs.R;
 
     // Save the cycle counter for timing comparisons
     dwLastCycle = g_dwCycleCounter;
@@ -301,7 +300,7 @@ void CDebugger::SetAddress (CAddr addr_)
 
 void CDebugger::Refresh ()
 {
-    m_pView->SetAddress(regs.PC.W);
+    m_pView->SetAddress(PC);
 }
 
 
@@ -422,21 +421,21 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
 
             case GK_CTRL_A:
-                swap(regs.AF.W, regs.AF_.W);
+                swap(AF, AF_);
                 break;
 
             case GK_CTRL_D:
-                swap(regs.DE.W, regs.HL.W);
+                swap(DE, HL);
                 break;
 
             case GK_CTRL_I:
-                regs.IFF1 = !regs.IFF1;
+                IFF1 = !IFF1;
                 break;
 
             case GK_CTRL_X:
-                swap(regs.BC.W, regs.BC_.W);
-                swap(regs.DE.W, regs.DE_.W);
-                swap(regs.HL.W, regs.HL_.W);
+                swap(BC, BC_);
+                swap(DE, DE_);
+                swap(HL, HL_);
                 break;
 
 
@@ -533,7 +532,7 @@ void CCodeView::Draw (CScreen* pScreen_)
 
         BYTE bColour = WHITE;
 
-        if (s_aAddrs[u] == regs.PC.W)
+        if (s_aAddrs[u] == PC)
         {
             pScreen_->FillRect(nX, nY+1, m_nWidth, nHeight-3, YELLOW_7);
             bColour = BLACK;
@@ -619,7 +618,7 @@ void CCodeView::cmdNavigate (int nKey_, int nMods_)
             if (!nMods_)
                 addr = GetPrevInstruction(s_aAddrs[0]);
             else
-                addr = (regs.PC.W = GetPrevInstruction(CAddr(regs.PC.W)).GetPC());
+                addr = (PC = GetPrevInstruction(CAddr(PC)).GetPC());
             break;
 
         case GK_DOWN:
@@ -629,9 +628,9 @@ void CCodeView::cmdNavigate (int nKey_, int nMods_)
             {
                 BYTE ab[4];
                 for (UINT u = 0 ; u < sizeof ab ; u++)
-                    ab[u] = read_byte(regs.PC.W+u);
+                    ab[u] = read_byte(PC+u);
 
-                addr = (regs.PC.W += Disassemble(ab));
+                addr = (PC += Disassemble(ab));
             }
             break;
 
@@ -639,14 +638,14 @@ void CCodeView::cmdNavigate (int nKey_, int nMods_)
             if (!nMods_)
                 addr = s_aAddrs[0]-1;
             else
-                addr = --regs.PC.W;
+                addr = --PC;
             break;
 
         case GK_RIGHT:
             if (!nMods_)
                 addr = s_aAddrs[0]+1;
             else
-                addr = ++regs.PC.W;
+                addr = ++PC;
             break;
 
         case GK_PAGEDOWN:
@@ -691,14 +690,14 @@ void CCodeView::cmdNavigate (int nKey_, int nMods_)
 void CCodeView::SetFlowTarget ()
 {
     // Extract the two bytes at PC, which we'll assume are single byte opcode and operand
-    WORD wPC = regs.PC.W;
+    WORD wPC = PC;
     BYTE bOpcode = read_byte(wPC), bOperand = read_byte(wPC+1);
-    BYTE bFlags = regs.AF.B.l_, bCond = 0xff;
+    BYTE bFlags = F, bCond = 0xff;
 
     // Work out the possible next instruction addresses, which depend on the instruction found
     WORD wJpTarget = read_word(wPC+1);
     WORD wJrTarget = wPC + 2 + static_cast<signed char>(read_byte(wPC+1));
-    WORD wRetTarget = read_word(regs.SP.W);
+    WORD wRetTarget = read_word(SP);
     WORD wRstTarget = bOpcode & 0x38;
 
     // No instruction target or conditional jump helper string yet
@@ -710,7 +709,7 @@ void CCodeView::SetFlowTarget ()
     {
         case OP_DJNZ:
             // Set a pretend zero flag if B is 1 and would be decremented to zero
-            bFlags = (regs.BC.B.h_ == 1) ? F_ZERO : 0;
+            bFlags = (B == 1) ? FLAG_Z : 0;
             bCond = 0;
             // Fall thru...
 
@@ -718,10 +717,10 @@ void CCodeView::SetFlowTarget ()
         case OP_RET:    m_uTarget = wRetTarget; break;
         case OP_JP:
         case OP_CALL:   m_uTarget = wJpTarget;  break;
-        case OP_JPHL:   m_uTarget = regs.HL.W;  break;
+        case OP_JPHL:   m_uTarget = HL;  break;
 
-        case IX_PREFIX: if (bOperand == OP_JPHL) m_uTarget = regs.IX.W;  break;     // JP (IX)
-        case IY_PREFIX: if (bOperand == OP_JPHL) m_uTarget = regs.IY.W;  break;     // JP (IY)
+        case IX_PREFIX: if (bOperand == OP_JPHL) m_uTarget = IX;  break;     // JP (IX)
+        case IY_PREFIX: if (bOperand == OP_JPHL) m_uTarget = IY;  break;     // JP (IY)
 
         default:
             // JR cc ?
@@ -752,7 +751,7 @@ void CCodeView::SetFlowTarget ()
     // Have we got a condition to test?
     if (bCond <= 0x07)
     {
-        static const BYTE abFlags[] = { F_ZERO, F_CARRY, F_PARITY, F_NEG };
+        static const BYTE abFlags[] = { FLAG_Z, FLAG_C, FLAG_P, FLAG_N };
 
         // Invert the 'not' conditions to give a set bit for a mask
         bFlags ^= (bCond & 1) ? 0x00 : 0xff;
@@ -1181,23 +1180,29 @@ void CRegisterPanel::Draw (CScreen* pScreen_)
     pScreen_->DrawString(m_nX, m_nY+80,  "I        R",   GREEN_8);
     pScreen_->DrawString(m_nX, m_nY+92,  "IM",   GREEN_8);
 
-    sprintf(sz, "%04X", regs.AF.W); pScreen_->DrawString(m_nX+18, m_nY+00, sz, RegCol(regs.AF.W, sLastRegs.AF.W));
-    sprintf(sz, "%04X", regs.BC.W); pScreen_->DrawString(m_nX+18, m_nY+12, sz, RegCol(regs.BC.W, sLastRegs.BC.W));
-    sprintf(sz, "%04X", regs.DE.W); pScreen_->DrawString(m_nX+18, m_nY+24, sz, RegCol(regs.DE.W, sLastRegs.DE.W));
-    sprintf(sz, "%04X", regs.HL.W); pScreen_->DrawString(m_nX+18, m_nY+36, sz, RegCol(regs.HL.W, sLastRegs.HL.W));
-    sprintf(sz, "%04X", regs.IX.W); pScreen_->DrawString(m_nX+18, m_nY+52, sz, RegCol(regs.IX.W, sLastRegs.IX.W));
-    sprintf(sz, "%04X", regs.PC.W); pScreen_->DrawString(m_nX+18, m_nY+64, sz, RegCol(regs.PC.W, sLastRegs.PC.W));
-    sprintf(sz, "%02X", regs.I);    pScreen_->DrawString(m_nX+18, m_nY+80, sz, RegCol(regs.I, sLastRegs.I));
-    sprintf(sz, "%d", regs.IM);     pScreen_->DrawString(m_nX+18, m_nY+92, sz, RegCol(regs.IM, sLastRegs.IM));
+#define ShowReg(buf,fmt,dx,dy,reg)	\
+{	\
+    sprintf(buf, fmt, regs.reg); \
+    pScreen_->DrawString(m_nX+dx, m_nY+dy, buf, (regs.reg != sLastRegs.reg) ? RED_8 : WHITE);	\
+}
 
-    sprintf(sz, "%04X", regs.AF_.W); pScreen_->DrawString(m_nX+72, m_nY+00, sz, RegCol(regs.AF_.W, sLastRegs.AF_.W));
-    sprintf(sz, "%04X", regs.BC_.W); pScreen_->DrawString(m_nX+72, m_nY+12, sz, RegCol(regs.BC_.W, sLastRegs.BC_.W));
-    sprintf(sz, "%04X", regs.DE_.W); pScreen_->DrawString(m_nX+72, m_nY+24, sz, RegCol(regs.DE_.W, sLastRegs.DE_.W));
-    sprintf(sz, "%04X", regs.HL_.W); pScreen_->DrawString(m_nX+72, m_nY+36, sz, RegCol(regs.HL_.W, sLastRegs.HL_.W));
-    sprintf(sz, "%04X", regs.IY.W);  pScreen_->DrawString(m_nX+72, m_nY+52, sz, RegCol(regs.IY.W, sLastRegs.IY.W));
-    sprintf(sz, "%04X", regs.SP.W);  pScreen_->DrawString(m_nX+72, m_nY+64, sz, RegCol(regs.SP.W, sLastRegs.SP.W));
-    sprintf(sz, "%02X", regs.R);     pScreen_->DrawString(m_nX+72, m_nY+80, sz, RegCol(regs.R, sLastRegs.R));
-    sprintf(sz, "%s", regs.IFF1 ? "EI" : "DI"); pScreen_->DrawString(m_nX+36, m_nY+92, sz, RegCol(regs.IFF1, sLastRegs.IFF1));
+    ShowReg(sz, "%02X", 18,  0, af.b.h); ShowReg(sz, "%02X", 30,  0, af.b.l);
+    ShowReg(sz, "%02X", 18, 12, bc.b.h); ShowReg(sz, "%02X", 30, 12, bc.b.l);
+    ShowReg(sz, "%02X", 18, 24, de.b.h); ShowReg(sz, "%02X", 30, 24, de.b.l);
+    ShowReg(sz, "%02X", 18, 36, hl.b.h); ShowReg(sz, "%02X", 30, 36, hl.b.l);
+    ShowReg(sz, "%02X", 18, 52, ix.b.h); ShowReg(sz, "%02X", 30, 52, ix.b.l);
+    ShowReg(sz, "%02X", 18, 64, pc.b.h); ShowReg(sz, "%02X", 30, 64, pc.b.l);
+    ShowReg(sz, "%02X", 18, 80, i);		  ShowReg(sz, "%02X", 72, 80, r);
+
+    ShowReg(sz, "%02X", 72,  0, af_.b.h); ShowReg(sz, "%02X", 84,  0, af_.b.l);
+    ShowReg(sz, "%02X", 72, 12, bc_.b.h); ShowReg(sz, "%02X", 84, 12, bc_.b.l);
+    ShowReg(sz, "%02X", 72, 24, de_.b.h); ShowReg(sz, "%02X", 84, 24, de_.b.l);
+    ShowReg(sz, "%02X", 72, 36, hl_.b.h); ShowReg(sz, "%02X", 84, 36, hl_.b.l);
+    ShowReg(sz, "%02X", 72, 52, iy.b.h);  ShowReg(sz, "%02X", 84, 52, iy.b.l);
+    ShowReg(sz, "%02X", 72, 64, sp.b.h);  ShowReg(sz, "%02X", 84, 64, sp.b.l);
+
+    sprintf(sz, "%d", IM);			pScreen_->DrawString(m_nX+18, m_nY+92, sz, RegCol(IM, sLastRegs.im));
+    sprintf(sz, "%s", IFF1 ? "EI" : "DI"); pScreen_->DrawString(m_nX+36, m_nY+92, sz, RegCol(IFF1, sLastRegs.iff1));
 
     static char szSet2[] = "-----", szReset2[] = "OFIML";
     char szFlags2[] = "        \0        ", bDiff2 = status_reg ^ bLastStatus;
@@ -1212,11 +1217,11 @@ void CRegisterPanel::Draw (CScreen* pScreen_)
 
     pScreen_->DrawString(m_nX, m_nY+108, "Flags:", GREEN_8);
     static char szSet[] = "SZ5H3VNC", szReset[] = "--------";
-    char szFlags[] = "        \0        ", bDiff = regs.AF.B.l_ ^ sLastRegs.AF.B.l_;
+    char szFlags[] = "        \0        ", bDiff = F ^ sLastRegs.af.b.l;
     for (int i = 0 ; i < 8 ; i++)
     {
         BYTE bBit = 1 << (7-i);
-        szFlags[i + ((bDiff & bBit) ? 9 : 0)] = szReset[i] ^ ((regs.AF.B.l_ & bBit) ? (szReset[i] ^ szSet[i]) : 0);
+        szFlags[i + ((bDiff & bBit) ? 9 : 0)] = szReset[i] ^ ((F & bBit) ? (szReset[i] ^ szSet[i]) : 0);
     }
     pScreen_->DrawString(m_nX+45, m_nY+108, szFlags, WHITE);
     pScreen_->DrawString(m_nX+45, m_nY+108, szFlags+9, RegCol(1,0));
@@ -1295,19 +1300,19 @@ void CCommandLine::Execute (const char* pcszCommand_)
             WORD wMode = Expr::Eval(pReg);
 
             if (wMode <= 2)
-                regs.IM = wMode & 0xff;
+                IM = wMode & 0xff;
         }
     }
     else if (!strcasecmp(pszCommand, "di") && !(psz = strtok(NULL, " ")))
-        regs.IFF1 = 0;
+        IFF1 = 0;
     else if (!strcasecmp(pszCommand, "ei") && !(psz = strtok(NULL, " ")))
-        regs.IFF1 = 1;
+        IFF1 = 1;
     else if (!strcasecmp(pszCommand, "exit"))
     {
         // EI, IM 1, force NMI (super-break)
-        regs.IFF1 = 1;
-        regs.IM = 1;
-        regs.PC.W = NMI_INTERRUPT_HANDLER;
+        IFF1 = 1;
+        IM = 1;
+        PC = NMI_INTERRUPT_HANDLER;
 
         // Set up SAM BASIC paging
         IO::Out(LMPR_PORT, 0x1f);
@@ -1318,9 +1323,9 @@ void CCommandLine::Execute (const char* pcszCommand_)
     else if (!strcasecmp(pszCommand, "exx"))
     {
         // EXX
-        swap(regs.BC.W, regs.BC_.W);
-        swap(regs.DE.W, regs.DE_.W);
-        swap(regs.HL.W, regs.HL_.W);
+        swap(BC, BC_);
+        swap(DE, DE_);
+        swap(HL, HL_);
     }
     else if (!strcasecmp(pszCommand, "ex"))
     {
@@ -1329,7 +1334,7 @@ void CCommandLine::Execute (const char* pcszCommand_)
             (psz = strtok(NULL, " '"))  && !strcasecmp(psz, "af") &&
             !(psz = strtok(NULL, " ")))
         {
-            swap(regs.AF.W, regs.AF_.W);
+            swap(AF, AF_);
         }
     }
     else if (!strcasecmp(pszCommand, "u"))
@@ -1361,47 +1366,47 @@ void CCommandLine::Execute (const char* pcszCommand_)
 
                     switch (nReg)
                     {
-                        case REG_A:      regs.AF.B.h_ = b; break;
-                        case REG_F:      regs.AF.B.l_ = b; break;
-                        case REG_B:      regs.BC.B.h_ = b; break;
-                        case REG_C:      regs.BC.B.l_ = b; break;
-                        case REG_D:      regs.DE.B.h_ = b; break;
-                        case REG_E:      regs.DE.B.l_ = b; break;
-                        case REG_H:      regs.HL.B.h_ = b; break;
-                        case REG_L:      regs.HL.B.l_ = b; break;
-                        case REG_ALT_A:  regs.AF_.B.h_ = b; break;
-                        case REG_ALT_F:  regs.AF_.B.l_ = b; break;
-                        case REG_ALT_B:  regs.BC_.B.h_ = b; break;
-                        case REG_ALT_C:  regs.BC_.B.l_ = b; break;
-                        case REG_ALT_D:  regs.DE_.B.h_ = b; break;
-                        case REG_ALT_E:  regs.DE_.B.l_ = b; break;
-                        case REG_ALT_H:  regs.HL_.B.h_ = b; break;
-                        case REG_ALT_L:  regs.HL_.B.l_ = b; break;
+                        case REG_A:      A = b; break;
+                        case REG_F:      F = b; break;
+                        case REG_B:      B = b; break;
+                        case REG_C:      C = b; break;
+                        case REG_D:      D = b; break;
+                        case REG_E:      E = b; break;
+                        case REG_H:      H = b; break;
+                        case REG_L:      L = b; break;
+                        case REG_ALT_A:  A_ = b; break;
+                        case REG_ALT_F:  F_ = b; break;
+                        case REG_ALT_B:  B_ = b; break;
+                        case REG_ALT_C:  C_ = b; break;
+                        case REG_ALT_D:  D_ = b; break;
+                        case REG_ALT_E:  E_ = b; break;
+                        case REG_ALT_H:  H_ = b; break;
+                        case REG_ALT_L:  L_ = b; break;
 
-                        case REG_AF:     regs.AF.W  = w; break;
-                        case REG_BC:     regs.BC.W  = w; break;
-                        case REG_DE:     regs.DE.W  = w; break;
-                        case REG_HL:     regs.HL.W  = w; break;
-                        case REG_ALT_AF: regs.AF_.W = w; break;
-                        case REG_ALT_BC: regs.BC_.W = w; break;
-                        case REG_ALT_DE: regs.DE_.W = w; break;
-                        case REG_ALT_HL: regs.HL_.W = w; break;
+                        case REG_AF:     AF  = w; break;
+                        case REG_BC:     BC  = w; break;
+                        case REG_DE:     DE  = w; break;
+                        case REG_HL:     HL  = w; break;
+                        case REG_ALT_AF: AF_ = w; break;
+                        case REG_ALT_BC: BC_ = w; break;
+                        case REG_ALT_DE: DE_ = w; break;
+                        case REG_ALT_HL: HL_ = w; break;
 
-                        case REG_IX:     regs.IX.W = w; break;
-                        case REG_IY:     regs.IY.W = w; break;
-                        case REG_SP:     regs.SP.W = w; break;
-                        case REG_PC:     regs.PC.W = w; break;
+                        case REG_IX:     IX = w; break;
+                        case REG_IY:     IY = w; break;
+                        case REG_SP:     SP = w; break;
+                        case REG_PC:     PC = w; break;
 
-                        case REG_IXH:    regs.IX.B.h_ = b; break;
-                        case REG_IXL:    regs.IX.B.l_ = b; break;
-                        case REG_IYH:    regs.IY.B.h_ = b; break;
-                        case REG_IYL:    regs.IY.B.l_ = b; break;
+                        case REG_IXH:    IXH = b; break;
+                        case REG_IXL:    IXL = b; break;
+                        case REG_IYH:    IYH = b; break;
+                        case REG_IYL:    IYL = b; break;
 
-                        case REG_I:      regs.I = b; break;
-                        case REG_R:      regs.R = b; break;
-                        case REG_IFF1:   regs.IFF1 = !!b; break;
-                        case REG_IFF2:   regs.IFF2 = !!b; break;
-                        case REG_IM:     if (b <= 2) regs.IM = b; break;
+                        case REG_I:      I = b; break;
+                        case REG_R:      R7 = R = b; break;
+                        case REG_IFF1:   IFF1 = !!b; break;
+                        case REG_IFF2:   IFF2 = !!b; break;
+                        case REG_IM:     if (b <= 2) IM = b; break;
                     }
                 }
             }
@@ -1478,15 +1483,15 @@ void cmdStep (int nCount_/*=1*/)
     WORD wPC;
 
     // Skip any index prefixes on the instruction to reach the real opcode or a CD/ED prefix
-    for (wPC = regs.PC.W ; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX) ; wPC++);
+    for (wPC = PC ; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX) ; wPC++);
 
     // Stepping into a HALT (with interrupt enabled) will enter the appropriate interrupt handler
     // This is much friendlier than single-stepping NOPs up to the next interrupt!
-    if (bOpcode == OP_HALT && regs.IFF1)
+    if (bOpcode == OP_HALT && IFF1)
     {
         // For IM 2, form the address of the handler and break there
-        if (regs.IM == 2)
-            Break.pAddr = phys_read_addr(read_word((regs.I << 8) | 0xff));
+        if (IM == 2)
+            Break.pAddr = phys_read_addr(read_word((I << 8) | 0xff));
 
         // IM 0 and IM1 both use the handler at 0x0038
         else
@@ -1509,7 +1514,7 @@ void cmdStepOver ()
     WORD wPC;
 
     // Skip any index prefixes on the instruction to reach a CB/ED prefix or the real opcode
-    for (wPC = regs.PC.W ; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX) ; wPC++);
+    for (wPC = PC ; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX) ; wPC++);
     bOperand = read_byte(wPC+1);
 
     // 1-byte HALT or RST ?
@@ -1536,6 +1541,6 @@ void cmdStepOver ()
 void cmdStepOut ()
 {
     // Store the physical address of the current stack pointer, for checking on RETurn calls
-    pStepOutStack = phys_read_addr(regs.SP.W);
+    pStepOutStack = phys_read_addr(SP);
     Debug::Stop();
 }

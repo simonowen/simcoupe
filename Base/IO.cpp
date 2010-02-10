@@ -970,7 +970,7 @@ bool IO::Rst8Hook ()
     }
 
     // Are we about to trigger "NO DOS" in ROM1, and with DOS booting enabled?
-    else if (regs.PC.W == 0xd977 && GetSectionPage(SECTION_D) == ROM1 && GetOption(dosboot))
+    else if (PC == 0xd977 && GetSectionPage(SECTION_D) == ROM1 && GetOption(dosboot))
     {
         // If there's a custom boot disk, load it read-only
         CDisk* pDisk = CDisk::Open(GetOption(dosdisk), true);
@@ -989,7 +989,7 @@ bool IO::Rst8Hook ()
             if (pDrive1)
             {
                 // Jump back to BOOTEX to try again, and return that we processed the RST
-                regs.PC.W = 0xd8e5;
+                PC = 0xd8e5;
                 return true;
             }
             else

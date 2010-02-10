@@ -49,7 +49,7 @@ class CPU
 
 
 extern struct _Z80Regs regs;
-extern DWORD g_dwCycleCounter, radjust;
+extern DWORD g_dwCycleCounter;
 extern bool g_fBreak, g_fPaused, g_fTurbo;
 extern int g_nFastBooting;
 extern BYTE *pbMemRead1, *pbMemRead2, *pbMemWrite1, *pbMemWrite2;
@@ -80,15 +80,16 @@ const int INT_ACTIVE_TIME = 128;            // tstates interrupt is active and w
 #define ROUND(t,n)          ((t)|((n)-1))
 #define A_ROUND(t,n)        (ROUND(g_dwCycleCounter+(t),n) - g_dwCycleCounter)
 
-
 // Bit values for the F register
-const BYTE F_CARRY      = 0x01;
-const BYTE F_NADD       = 0x02;     // For BCD (DAA)
-const BYTE F_PARITY     = 0x04;
-const BYTE F_OVERFLOW   = 0x04;
-const BYTE F_HCARRY     = 0x10;     // For BCD (DAA)
-const BYTE F_ZERO       = 0x40;
-const BYTE F_NEG        = 0x80;
+#define FLAG_C	0x01
+#define FLAG_N	0x02
+#define FLAG_P	0x04
+#define FLAG_V	FLAG_P
+#define FLAG_3	0x08
+#define FLAG_H	0x10
+#define FLAG_5	0x20
+#define FLAG_Z	0x40
+#define FLAG_S	0x80
 
 
 // CPU Event structure
@@ -101,37 +102,81 @@ typedef struct _CPU_EVENT
 CPU_EVENT;
 
 
-#ifndef __BIG_ENDIAN__
-typedef struct { BYTE l_, h_; } REGBYTE;  // Little endian
-#else
-typedef struct { BYTE h_, l_; } REGBYTE;  // Big endian
-#endif
-
 // NOTE: ENDIAN-SENSITIVE!
 typedef struct
 {
     union
     {
-        WORD    W;
-        REGBYTE B;
+        WORD    w;
+#ifdef __BIG_ENDIAN__
+	struct { BYTE h, l; } b;  // Big endian
+#else
+	struct { BYTE l, h; } b;  // Little endian
+#endif
     };
 }
 REGPAIR;
 
 typedef struct _Z80Regs
 {
-    REGPAIR AF, BC, DE, HL;
-    REGPAIR AF_, BC_, DE_, HL_;
-    REGPAIR IX, IY;
-    REGPAIR SP, PC;
+    REGPAIR af, bc, de, hl;
+    REGPAIR af_, bc_, de_, hl_;
+    REGPAIR ix, iy;
+    REGPAIR sp, pc;
 
-    BYTE    I, R;
-    BYTE    IFF1, IFF2, IM;
-
+    BYTE    i, r, r7;
+    BYTE    iff1, iff2, im;
     BYTE    halted;
-    DWORD   ints_enabled_at;
 }
 Z80Regs;
+
+#define A       regs.af.b.h
+#define F       regs.af.b.l
+#define B       regs.bc.b.h
+#define C       regs.bc.b.l
+#define D       regs.de.b.h
+#define E       regs.de.b.l
+#define H       regs.hl.b.h
+#define L       regs.hl.b.l
+
+#define AF      regs.af.w
+#define BC      regs.bc.w
+#define DE      regs.de.w
+#define HL      regs.hl.w
+
+#define A_      regs.af_.b.h
+#define F_      regs.af_.b.l
+#define B_      regs.bc_.b.h
+#define C_      regs.bc_.b.l
+#define D_      regs.de_.b.h
+#define E_      regs.de_.b.l
+#define H_      regs.hl_.b.h
+#define L_      regs.hl_.b.l
+
+#define AF_		regs.af_.w
+#define BC_		regs.bc_.w
+#define DE_		regs.de_.w
+#define HL_		regs.hl_.w
+
+#define IX      regs.ix.w
+#define IY      regs.iy.w
+#define SP      regs.sp.w
+#define PC      regs.pc.w
+
+#define IXH     regs.ix.b.h
+#define IXL     regs.ix.b.l
+#define IYH     regs.iy.b.h
+#define IYL     regs.iy.b.l
+#define SPH     regs.sp.b.h
+#define SPL     regs.sp.b.l
+
+#define R       regs.r
+#define R7      regs.r7
+#define I       regs.i
+#define IFF1    regs.iff1
+#define IFF2    regs.iff2
+#define IM      regs.im
+#define IR		((I << 8) | (R7 & 0x80) | (R & 0x7f))
 
 
 // CPU Event Queue data
