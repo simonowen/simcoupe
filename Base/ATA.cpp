@@ -2,7 +2,7 @@
 //
 // ATA.cpp: ATA hard disk (and future ATAPI CD-ROM) emulation
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -54,6 +54,9 @@ void CATADevice::Reset ()
 
     // Multiple reads/writes disabled for now
     m_nMultiples = 0;
+
+    // Not using 8-bit mode
+    m_f8bit = false;
 }
 
 
@@ -61,67 +64,61 @@ WORD CATADevice::In (WORD wPort_)
 {
     WORD wRet = 0xffff;
 
-    switch ((wPort_ >> 8) & 3)
+    switch (~wPort_ & ATA_CS_MASK)
     {
-        case 1:
-            switch (wPort_ & 0xff)
+        case ATA_CS0:
+            switch (wPort_ & ATA_DA_MASK)
             {
-                // Reset
-                case 0xdf:
-                    // The reset should be when the data port is next read, but we'll assume that will happen next!
-                    Reset();
-                    break;
-
                 // Data register
-                case 0xf0:
+                case 0:
                 {
                     // Return zero if no more data is available
                     if (!m_uBuffer)
                         TRACE("ATA: Data read when no data available!\n");
                     else
                     {
-                        // Pick out the next WORD of data
-                        wRet = (static_cast<WORD>(m_pbBuffer[1]) << 8) | m_pbBuffer[0];
+                        // Read a byte
+                        m_sRegs.wData = *m_pbBuffer++;
+                        m_uBuffer--;
 
-                        // Advance to the next WORD of data, if any
-                        m_pbBuffer += sizeof(WORD);
-                        m_uBuffer -= sizeof(WORD);
+                        // In 16-bit mode read a second byte
+                        if (!m_f8bit)
+                        {
+                            m_sRegs.wData |= *m_pbBuffer++ << 8;
+                            m_uBuffer--;
+                        }
 
                         if (!m_uBuffer)
                             TRACE("ATA: All data read\n");
                     }
 
+                    // Return the data register
+                    wRet = m_sRegs.wData;
+
                     break;
                 }
 
-                case 0xf1:  wRet = m_sRegs.bError;          /*TRACE("ATA: READ error register\n");*/    break;
-                case 0xf2:  wRet = m_sRegs.bSectorCount;    /*TRACE("ATA: READ sector count\n");*/      break;
-                case 0xf3:  wRet = m_sRegs.bSector;         /*TRACE("ATA: READ sector number\n");*/     break;
-                case 0xf4:  wRet = m_sRegs.bCylinderLow;    /*TRACE("ATA: READ cylinder low\n");*/      break;
-                case 0xf5:  wRet = m_sRegs.bCylinderHigh;   /*TRACE("ATA: READ cylinder high\n");*/     break;
-                case 0xf6:  wRet = m_sRegs.bDeviceHead;     /*TRACE("ATA: READ device/head\n");*/       break;
+                case 1:  wRet = m_sRegs.bError;             break;
+                case 2:  wRet = m_sRegs.bSectorCount;       break;
+                case 3:  wRet = m_sRegs.bSector;            break;
+                case 4:  wRet = m_sRegs.bCylinderLow;       break;
+                case 5:  wRet = m_sRegs.bCylinderHigh;      break;
+                case 6:  wRet = m_sRegs.bDeviceHead & 0x0f; break;
 
                 // Status register
-                case 0xf7:
+                case 7:
                 {
-//                  TRACE("ATA: READ status\n");
-
-                    // Toggle the index bit in the status to make it look like the disk is spinning
-                    static int nPulse = 0;
-                    if (!m_fAsleep && !(++nPulse %= 10))
-                        m_sRegs.bStatus ^= ATA_STATUS_INDEX;
-
                     // Update the DRQ bit to show whether data is expected or available
-                    m_sRegs.bStatus &= ~ATA_STATUS_DRQ;
                     if (m_uBuffer)
                         m_sRegs.bStatus |= ATA_STATUS_DRQ;
+                    else
+                        m_sRegs.bStatus &= ~ATA_STATUS_DRQ;
 
                     // Return the current status
                     wRet = m_sRegs.bStatus;
 
-                    // If the request isn't for this device, return nothing
-                    // ToDo: check for our actual device number
-                    if ((m_sRegs.bDeviceHead & 0xff) >= 0xb0)
+                    // If the request is for the slave device, return nothing
+                    if (m_sRegs.bDeviceHead & 0x10)
                         wRet = 0;
                     break;
                 }
@@ -132,15 +129,15 @@ WORD CATADevice::In (WORD wPort_)
             }
             break;
 
-        case 3:
-            switch (wPort_ & 0xff)
+        case ATA_CS1:
+            switch (wPort_ & ATA_DA_MASK)
             {
                 // Alternate status register
-                case 0xf6:
+                case 6:
                     wRet = m_sRegs.bStatus;
                     break;
 
-                case 0xf7:
+                case 7:
                     TRACE("ATA: READ Drive Address (%#02x)\n", m_sRegs.bDriveAddress);
                     wRet = m_sRegs.bDriveAddress;
                     break;
@@ -164,22 +161,27 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
 
     BYTE bVal = wVal_ & 0xff;
 
-    switch ((wPort_ >> 8) & 3)
+    switch (~wPort_ & ATA_CS_MASK)
     {
-        case 1:
+        case ATA_CS0:
         {
-            switch (wPort_ & 0xff)
+            switch (wPort_ & ATA_DA_MASK)
             {
-                case 0xf0:
+                case 0:
                 {
                     // Data expected?
                     if (m_uBuffer)
                     {
-                        m_pbBuffer[0] = wVal_ & 0xff;
-                        m_pbBuffer[1] = wVal_ >> 8;
+                        // Write a byte
+                        *m_pbBuffer++ = wVal_ & 0xff;
+                        m_uBuffer--;
 
-                        m_pbBuffer += sizeof(WORD);
-                        m_uBuffer -= sizeof(WORD);
+                        // In 16-bit mode write a second byte
+                        if (!m_f8bit)
+                        {
+                            *m_pbBuffer++ = wVal_ >> 8;
+                            m_uBuffer--;
+                        }
 
                         // Received eveything we need?
                         if (!m_uBuffer)
@@ -245,31 +247,32 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                     return;
                 }
 
-                case 0xf1:
-                    TRACE("ATA: WRITE PRECOMPENSATION\n");
+                case 1:
+                    TRACE("ATA: WRITE features = %#02x\n", bVal);
+                    m_sRegs.bFeatures = bVal;
                     break;
 
-                case 0xf2:
+                case 2:
                     TRACE("ATA: WRITE sector count = %#02x\n", bVal);
                     m_sRegs.bSectorCount = bVal;
                     break;
 
-                case 0xf3:
+                case 3:
                     TRACE("ATA: WRITE sector number = %#02x\n", bVal);
                     m_sRegs.bSector = bVal;
                     break;
 
-                case 0xf4:
+                case 4:
                     TRACE("ATA: WRITE cylinder low = %#02x\n", bVal);
                     m_sRegs.bCylinderLow = bVal;
                     break;
 
-                case 0xf5:
+                case 5:
                     TRACE("ATA: WRITE cylinder high = %#02x\n", bVal);
                     m_sRegs.bCylinderHigh = bVal;
                     break;
 
-                case 0xf6:
+                case 6:
                 {
                     TRACE("ATA: WRITE device/head = %#02x\n", bVal);
                     m_sRegs.bDeviceHead = bVal;
@@ -285,7 +288,7 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                 }
                 break;
 
-                case 0xf7:
+                case 7:
                 {
                     // Assume the command will succeed for now
                     m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_DSC;
@@ -482,12 +485,25 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                         }
                         break;
 
+                        case 0xee:
+                        {
+                            TRACE("ATA: Disk command: IDENTIFY_DMA\n");
+                            memcpy(&m_abSectorData, &m_abIdentity, sizeof(m_abSectorData));
+                            m_pbBuffer = m_abSectorData;
+                            m_uBuffer = sizeof(m_abSectorData);
+                        }
+                        break;
+
                         case 0xef:
                             TRACE("ATA: Disk write: Set features (%#02x)\n", m_sRegs.bFeatures);
 
                             switch (m_sRegs.bFeatures)
                             {
-                                case 0x01:  TRACE(" Enable 8-bit data transfers\n");                                break;
+                                case 0x01:
+                                    TRACE(" Enable 8-bit data transfers\n");
+                                    m_f8bit = true;
+                                    break;
+
                                 case 0x02:  TRACE(" Enable write cache\n");                                         break;
                                 case 0x03:  TRACE(" Set transfer mode (to %d)\n", m_sRegs.bSectorCount);            break;
                                 case 0x33:  TRACE(" Disable retries\n");                                            break;
@@ -496,7 +512,19 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                                 case 0x55:  TRACE(" Disable read look-ahead feature\n");                            break;
                                 case 0x66:  TRACE(" Disable reverting to power-on defaults\n");                     break;
                                 case 0x77:  TRACE(" Disable ECC\n");                                                break;
-                                case 0x81:  TRACE(" Disable 8-bit transfers\n");                                    break;
+                                case 0x81:
+                                    TRACE(" Disable 8-bit transfers\n");
+                                    m_f8bit = false;
+
+                                    // Re-align to WORD transfers if necessary
+                                    if (m_uBuffer & 1)
+                                    {
+                                        m_pbBuffer++;
+                                        m_uBuffer--;
+                                    }
+
+                                    break;
+
                                 case 0x82:  TRACE(" Disable write-cache\n");                                        break;
                                 case 0x88:  TRACE(" Enable ECC\n");                                                 break;
                                 case 0x99:  TRACE(" Enable retries\n");                                             break;
@@ -564,15 +592,16 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
 
                 default:
                     TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
+                    break;
             }
             break;
         }
 
-        case 3:
+        case ATA_CS1:
         {
-            switch (wPort_ & 0xff)
+            switch (wPort_ & ATA_DA_MASK)
             {
-                case 0xf6:
+                case 6:
                 {
                     TRACE("ATA: Device control register set to %#02x\n", bVal);
                     m_sRegs.bDeviceControl = bVal;
@@ -586,33 +615,51 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
 
                 default:
                     TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
+                    break;
             }
+            break;
         }
 
         default:
             TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
+            break;
     }
 }
 
 bool CATADevice::ReadWriteSector (bool fWrite_)
 {
-    bool fRet = false;
+    UINT uSector = 0;
 
-    WORD wCylinder = (static_cast<WORD>(m_sRegs.bCylinderHigh) << 8) | m_sRegs.bCylinderLow;
-    BYTE bHead = (m_sRegs.bDriveAddress >> 2) & 0x0f, bSector = m_sRegs.bSector;
-
-    // Only process requests within the disk geometry
-    if (bSector && bSector <= m_sGeometry.uSectors && bHead < m_sGeometry.uHeads && wCylinder < m_sGeometry.uCylinders)
+    // LBA request?
+    if (m_sRegs.bDeviceHead & 0x40)
     {
-        // Calculate the logical block number from the CHS position
-        UINT uSector = (wCylinder * m_sGeometry.uHeads + bHead) * m_sGeometry.uSectors + (bSector - 1);
+        // Form the 28-bit LBA address
+        uSector = ((m_sRegs.bDeviceHead & 0x0f) << 24) | (m_sRegs.bCylinderHigh << 16) | (m_sRegs.bCylinderLow << 8) | m_sRegs.bSector;
 
+        // Fail if the location is outside the disk geometry
+        if (uSector >= m_sGeometry.uTotalSectors)
+            return false;
+
+        TRACE("%s LBA=%u\n", fWrite_ ? "Writing" : "Reading", uSector);
+    }
+    else // CHS request
+    {
+        // Collect the CHS values
+        WORD wCylinder = (static_cast<WORD>(m_sRegs.bCylinderHigh) << 8) | m_sRegs.bCylinderLow;
+        BYTE bHead = (m_sRegs.bDriveAddress >> 2) & 0x0f;
+        BYTE bSector = m_sRegs.bSector;
+
+        // Fail if the location is outside the disk geometry
+        if (!bSector || bSector > m_sGeometry.uSectors || bHead > m_sGeometry.uHeads || wCylinder > m_sGeometry.uCylinders)
+            return false;
+
+        // Calculate the logical block number from the CHS position
+        uSector = (wCylinder * m_sGeometry.uHeads + bHead) * m_sGeometry.uSectors + (bSector - 1);
         TRACE("%s CHS %u:%u:%u  [LBA=%u]\n", fWrite_ ? "Writing" : "Reading", wCylinder, bHead, bSector, uSector);
-        if (fWrite_)
-            return WriteSector(uSector, m_abSectorData);
-        else
-            return ReadSector(uSector, m_abSectorData);
     }
 
-    return fRet;
+    if (fWrite_)
+        return WriteSector(uSector, m_abSectorData);
+
+    return ReadSector(uSector, m_abSectorData);
 }

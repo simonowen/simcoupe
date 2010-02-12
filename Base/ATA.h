@@ -2,7 +2,7 @@
 //
 // ATA.h: ATA hard disk (and future ATAPI CD-ROM) emulation
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -96,6 +96,23 @@ typedef struct
     ATAWORD wPIODataTransfer;   // PIO data transfer cycle timing mode
     ATAWORD wDMADataTransfer;   // Single Word DMA data transfer cycle timing mode
 
+    ATAWORD wReserved4;         // Reserved (53)
+
+    ATAWORD wCurrentCylinders;  // Cylinders in current translation mode (54)
+    ATAWORD wCurrentHeads;      // Heads in current translation mode (55)
+    ATAWORD wCurrentSectors;    // Sectors/track in current translation mode (56)
+
+    ATAWORD wCurrentSectorsHigh;// Current cyls*heads*sectors (57)
+    ATAWORD wCurrentSectorsLow; // (58)
+
+    ATAWORD wMultipleSectors;   // Multiple sector setting (59)
+
+    ATAWORD wTotalSectorsHigh;  // Total LBA sectors (60)
+    ATAWORD wTotalSectorsLow;   // (61)
+
+    ATAWORD wSingleDmaTransfer; // Modes supporting single-word DMA transfers (62)
+    ATAWORD wMultiDmaTransfer;  // Modes supporting multi-word DMA transfers (63)
+
     // etc. for later ATA versions
 }
 DEVICEIDENTITY;
@@ -106,6 +123,12 @@ DEVICEIDENTITY;
 #define ATAGET(x)       (((x.h) << 8) | (x.l))
 #define ATAPUT(x,n)     ( x.l = ((n) & 0xff), x.h = ((n) >> 8) )
 
+
+// Address lines
+const BYTE ATA_CS0          = 0x08;     // Chip select 0 (negative logic)
+const BYTE ATA_CS1          = 0x10;     // Chip select 1 (negative logic)
+const BYTE ATA_CS_MASK      = 0x18;     // Chip select mask
+const BYTE ATA_DA_MASK      = 0x07;     // Device address mask
 
 // Device Control Register
 const BYTE ATA_DCR_SRST     = 0x04;     // Host Software Reset
@@ -169,6 +192,8 @@ class CATADevice
         ATAregs m_sRegs;                // AT device registers
         BYTE    m_abIdentity[512];      // Identity sector to return
         ATA_GEOMETRY m_sGeometry;       // Device geometry
+
+        bool    m_f8bit;                // true if 8-bit data transfers are enabled
 
         BYTE    m_abSectorData[512];    // Sector buffer used for all reads and writes
         BYTE    m_abVendorBytes[4];     // 4 for the ECC bytes for R/W Long operations
