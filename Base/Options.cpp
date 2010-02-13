@@ -83,6 +83,7 @@ OPTION aOptions[] =
     OPT_F("AsicDelay",    asicdelay,      true),      // ASIC startup delay of ~50ms
     OPT_N("MainMemory",   mainmem,        512),       // 512K main memory
     OPT_N("ExternalMem",  externalmem,    0),         // No external memory
+    OPT_F("NMOSZ80",      nmosz80,        1),         // NMOS rather than CMOS Z80?
 
     OPT_N("Drive1",       drive1,         1),         // Floppy drive 1 present
     OPT_N("Drive2",       drive2,         1),         // Floppy drive 2 present

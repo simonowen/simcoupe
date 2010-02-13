@@ -48,6 +48,7 @@ typedef struct
     bool    asicdelay;              // Enforce ASIC startup delay (~49ms)?
     int     mainmem;                // 256 or 512 for amount of main memory
     int     externalmem;            // Number of MB of external memory
+    bool    nmosz80;                // NMOS rather than CMOS Z80?
 
     int     drive1;                 // Drive 1 type
     int     drive2;                 // Drive 2 type
