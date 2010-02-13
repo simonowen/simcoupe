@@ -217,44 +217,44 @@ switch(op)
 {
 
 
-edinstr(4,0100) in_c(B);                                            endinstr;   // in B,(C)
-edinstr(4,0110) in_c(C);                                            endinstr;   // in C,(C)
-edinstr(4,0120) in_c(D);                                            endinstr;   // in D,(C)
-edinstr(4,0130) in_c(E);                                            endinstr;   // in E,(C)
-edinstr(4,0140) in_c(H);                                            endinstr;   // in H,(C)
-edinstr(4,0150) in_c(L);                                            endinstr;   // in L,(C)
-edinstr(4,0160) BYTE x; in_c(x);                                    endinstr;   // in x,(C) [result discarded, but flags still set]
-edinstr(4,0170) in_c(A);                                            endinstr;   // in a,(C)
+edinstr(4,0100) in_c(B);                                            endinstr;   // in b,(c)
+edinstr(4,0110) in_c(C);                                            endinstr;   // in c,(c)
+edinstr(4,0120) in_c(D);                                            endinstr;   // in d,(c)
+edinstr(4,0130) in_c(E);                                            endinstr;   // in e,(c)
+edinstr(4,0140) in_c(H);                                            endinstr;   // in h,(c)
+edinstr(4,0150) in_c(L);                                            endinstr;   // in l,(c)
+edinstr(4,0160) BYTE x; in_c(x);                                    endinstr;   // in x,(c) [result discarded, but flags still set]
+edinstr(4,0170) in_c(A);                                            endinstr;   // in a,(c)
 
 
-edinstr(4,0101) out_c(B);                                           endinstr;   // out (C),B
-edinstr(4,0111) out_c(C);                                           endinstr;   // out (C),C
-edinstr(4,0121) out_c(D);                                           endinstr;   // out (C),D
-edinstr(4,0131) out_c(E);                                           endinstr;   // out (C),E
-edinstr(4,0141) out_c(H);                                           endinstr;   // out (C),H
-edinstr(4,0151) out_c(L);                                           endinstr;   // out (C),L
-edinstr(4,0161) out_c(0);                                           endinstr;   // out (C),0
-edinstr(4,0171) out_c(A);                                           endinstr;   // out (C),a
+edinstr(4,0101) out_c(B);                                           endinstr;   // out (c),b
+edinstr(4,0111) out_c(C);                                           endinstr;   // out (c),c
+edinstr(4,0121) out_c(D);                                           endinstr;   // out (c),d
+edinstr(4,0131) out_c(E);                                           endinstr;   // out (c),e
+edinstr(4,0141) out_c(H);                                           endinstr;   // out (c),h
+edinstr(4,0151) out_c(L);                                           endinstr;   // out (c),l
+edinstr(4,0161) out_c(0);                                           endinstr;   // out (c),0
+edinstr(4,0171) out_c(A);                                           endinstr;   // out (c),a
 
 
-edinstr(4,0102) sbc_hl(BC);                                         endinstr;   // sbc HL,BC
-edinstr(4,0112) adc_hl(BC);                                         endinstr;   // adc HL,BC
-edinstr(4,0122) sbc_hl(DE);                                         endinstr;   // sbc HL,DE
-edinstr(4,0132) adc_hl(DE);                                         endinstr;   // adc HL,DE
-edinstr(4,0142) sbc_hl(HL);                                         endinstr;   // sbc HL,HL
-edinstr(4,0152) adc_hl(HL);                                         endinstr;   // adc HL,HL
-edinstr(4,0162) sbc_hl(SP);                                         endinstr;   // sbc HL,SP
-edinstr(4,0172) adc_hl(SP);                                         endinstr;   // adc HL,SP
+edinstr(4,0102) sbc_hl(BC);                                         endinstr;   // sbc hl,bc
+edinstr(4,0112) adc_hl(BC);                                         endinstr;   // adc hl,bc
+edinstr(4,0122) sbc_hl(DE);                                         endinstr;   // sbc hl,de
+edinstr(4,0132) adc_hl(DE);                                         endinstr;   // adc hl,de
+edinstr(4,0142) sbc_hl(HL);                                         endinstr;   // sbc hl,hl
+edinstr(4,0152) adc_hl(HL);                                         endinstr;   // adc hl,hl
+edinstr(4,0162) sbc_hl(SP);                                         endinstr;   // sbc hl,sp
+edinstr(4,0172) adc_hl(SP);                                         endinstr;   // adc hl,sp
 
 
-edinstr(4,0103) ld_pnn_rr(BC);                                      endinstr;   // ld (nn),BC
-edinstr(4,0113) ld_rr_pnn(BC);                                      endinstr;   // ld BC,(nn)
-edinstr(4,0123) ld_pnn_rr(DE);                                      endinstr;   // ld (nn),DE
-edinstr(4,0133) ld_rr_pnn(DE);                                      endinstr;   // ld DE,(nn)
-edinstr(4,0143) ld_pnn_rr(HL);                                      endinstr;   // ld (nn),HL
-edinstr(4,0153) ld_rr_pnn(HL);                                      endinstr;   // ld HL,(nn)
-edinstr(4,0163) ld_pnn_rr(SP);                                      endinstr;   // ld (nn),SP
-edinstr(4,0173) ld_rr_pnn(SP);                                      endinstr;   // ld SP,(nn)
+edinstr(4,0103) ld_pnn_rr(BC);                                      endinstr;   // ld (nn),bc
+edinstr(4,0113) ld_rr_pnn(BC);                                      endinstr;   // ld bc,(nn)
+edinstr(4,0123) ld_pnn_rr(DE);                                      endinstr;   // ld (nn),de
+edinstr(4,0133) ld_rr_pnn(DE);                                      endinstr;   // ld de,(nn)
+edinstr(4,0143) ld_pnn_rr(HL);                                      endinstr;   // ld (nn),hl
+edinstr(4,0153) ld_rr_pnn(HL);                                      endinstr;   // ld hl,(nn)
+edinstr(4,0163) ld_pnn_rr(SP);                                      endinstr;   // ld (nn),sp
+edinstr(4,0173) ld_rr_pnn(SP);                                      endinstr;   // ld sp,(nn)
 
 
 edinstr(4,0104) neg;                                                endinstr;   // neg
@@ -277,26 +277,26 @@ edinstr(4,0165) ret(true);                                          endinstr;   
 edinstr(4,0175) ret(true);                                          endinstr;   // reti
 
 
-edinstr(4,0106) IM = 0;                                             endinstr;   // IM 0
-edinstr(4,0116) IM = 0;                                             endinstr;   // IM 0/1
-edinstr(4,0126) IM = 1;                                             endinstr;   // IM 1
-edinstr(4,0136) IM = 2;                                             endinstr;   // IM 2
-edinstr(4,0146) IM = 0;                                             endinstr;   // IM 0
-edinstr(4,0156) IM = 0;                                             endinstr;   // IM 0/1
-edinstr(4,0166) IM = 1;                                             endinstr;   // IM 1
-edinstr(4,0176) IM = 2;                                             endinstr;   // IM 2
+edinstr(4,0106) IM = 0;                                             endinstr;   // im 0
+edinstr(4,0116) IM = 0;                                             endinstr;   // im 0/1
+edinstr(4,0126) IM = 1;                                             endinstr;   // im 1
+edinstr(4,0136) IM = 2;                                             endinstr;   // im 2
+edinstr(4,0146) IM = 0;                                             endinstr;   // im 0
+edinstr(4,0156) IM = 0;                                             endinstr;   // im 0/1
+edinstr(4,0166) IM = 1;                                             endinstr;   // im 1
+edinstr(4,0176) IM = 2;                                             endinstr;   // im 2
 
 
-edinstr(5,0107) I = A;                                              endinstr;   // ld I,a
-edinstr(5,0117) R7 = R = A;											endinstr;   // ld R,a
+edinstr(5,0107) I = A;                                              endinstr;   // ld i,a
+edinstr(5,0117) R7 = R = A;                                         endinstr;   // ld r,a
 
-// ld a,I
+// ld a,i
 edinstr(5,0127)
     A = I;
     F = cy | (A & 0xa8) | ((!A) << 6) | (IFF2 << 2);
 endinstr;
 
-// ld a,R
+// ld a,r
 edinstr(5,0137)
     // Only the bottom 7 bits of R are advanced by memory refresh, so the top bit is preserved
     A = R = (R7 & 0x80) | (R & 0x7f);
