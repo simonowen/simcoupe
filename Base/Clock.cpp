@@ -176,9 +176,9 @@ int CClockDevice::GetDayOfWeek ()
 
     // Set the date and hour, just in case daylight savings is important
     t.tm_year = Decode(m_st.nCentury)*100 + Decode(m_st.nYear);
-    t.tm_mon  = m_st.nMonth - 1;
-    t.tm_mday = m_st.nDay;
-    t.tm_hour = m_st.nHour;
+    t.tm_mon  = Decode(m_st.nMonth) - 1;
+    t.tm_mday = Decode(m_st.nDay);
+    t.tm_hour = Decode(m_st.nHour);
     t.tm_min  = t.tm_sec = 0;
 
     // Create a ctime value from the date

@@ -33,7 +33,7 @@ typedef struct tagSAMTIME
     int nDay;
     int nMonth;
     int nYear;
-	int nCentury;
+    int nCentury;
 }
 SAMTIME;
 
@@ -48,9 +48,9 @@ class CClockDevice : public CIoDevice
         virtual bool Update ();
         int GetDayOfWeek ();
 
-		int Decode (int nValue_);
-		int Encode (int nValue_);
-		int DateAdd (int &nValue_, int nAdd_, int nMax_);
+        int Decode (int nValue_);
+        int Encode (int nValue_);
+        int DateAdd (int &nValue_, int nAdd_, int nMax_);
 
     public:
         static void FrameUpdate ();
@@ -58,7 +58,7 @@ class CClockDevice : public CIoDevice
     protected:
         time_t m_tLast;
         SAMTIME m_st;
-		bool m_fBCD;
+        bool m_fBCD;
 
         static time_t s_tEmulated;  // Holds the current time relative to the emulation speed
 };
@@ -72,7 +72,7 @@ class CSambusClock : public CClockDevice
     public:
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
-		bool Update ();
+        bool Update ();
 
     protected:
         BYTE m_abRegs[16];    // The 16 SamBus registers
@@ -87,12 +87,12 @@ class CDallasClock : public CClockDevice
     public:
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
-		bool Update ();
+        bool Update ();
 
     protected:
-        BYTE m_bReg;			// Currently selected DALLAS register
+        BYTE m_bReg;            // Currently selected DALLAS register
         BYTE m_abRegs[128+64];  // DALLAS RAM, including additional bank 1 locations
-		BYTE m_abRAM[0x1000];	// 4K of extended RAM
+        BYTE m_abRAM[0x1000];   // 4K of extended RAM
 };
 
 #endif
