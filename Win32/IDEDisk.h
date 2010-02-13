@@ -2,7 +2,7 @@
 //
 // IDEDisk.h: Platform-specific IDE direct disk access
 //
-//  Copyright (c) 2003-2005 Simon Owen
+//  Copyright (c) 2003-2010 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,8 +26,8 @@
 class CDeviceHardDisk : public CHardDisk
 {
     public:
-        CDeviceHardDisk (const char* pcszDisk_) : CHardDisk(pcszDisk_), m_hDevice(INVALID_HANDLE_VALUE) { }
-        ~CDeviceHardDisk () { Close(); }
+        CDeviceHardDisk (const char* pcszDisk_);
+        ~CDeviceHardDisk ();
 
     public:
         bool IsOpen () const { return m_hDevice != INVALID_HANDLE_VALUE; }
@@ -38,7 +38,13 @@ class CDeviceHardDisk : public CHardDisk
         bool WriteSector (UINT uSector_, BYTE* pb_);
 
     protected:
-        HANDLE m_hDevice;
+        bool Lock ();
+        void Unlock ();
+
+    protected:
+        HANDLE m_hDevice, m_hLock;
+        BYTE *m_pbSector;
+        DWORD m_dwDriveLetters; // drive letters on our physical drive
 };
 
 #endif
