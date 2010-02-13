@@ -38,6 +38,7 @@ enum eMsgType { msgInfo, msgWarning, msgError, msgFatal };
 void Message (eMsgType eType_, const char* pcszFormat_, ...);
 
 BYTE GetSizeCode (UINT uSize_);
+void PatchBlock (BYTE *pb_, BYTE *pbPatch_);
 
 void AdjustBrightness (BYTE &r_, BYTE &g_, BYTE &b_, int nAdjust_);
 void RGB2YUV (BYTE r_, BYTE g_, BYTE b_, BYTE *py_, BYTE *pu_, BYTE *pv_);
@@ -55,7 +56,7 @@ void TraceOutputString (const char *, ...);
 #endif
 
 #ifndef ULONGLONG
-#define ULONGLONG	DWORD
+#define ULONGLONG   DWORD
 #endif
 
 #endif

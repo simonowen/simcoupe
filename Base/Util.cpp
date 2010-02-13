@@ -91,6 +91,7 @@ UINT Util::HCF (UINT x_, UINT y_)
     return uHCF;
 }
 
+
 // Report an info, warning, error or fatal message.  Exit if a fatal message has been reported
 void Message (eMsgType eType_, const char* pcszFormat_, ...)
 {
@@ -119,6 +120,34 @@ BYTE GetSizeCode (UINT uSize_)
     BYTE bCode;
     for (bCode = 0 ; uSize_ > 128 ; bCode++, uSize_ >>= 1);
     return bCode;
+}
+
+
+void PatchBlock (BYTE *pb_, BYTE *pbPatch_)
+{
+    for (;;)
+    {
+        // Flag+length in big-endian format
+        WORD wLen = (pbPatch_[0] << 8) | pbPatch_[1];
+        pbPatch_ += 2;
+
+        // End marker is zero
+        if (!wLen)
+            break;
+
+        // Top bit clear for skip
+        else if (!(wLen & 0x8000))
+            pb_ += wLen;
+
+        // Remaining 15 bits for copy length
+        else
+        {
+            wLen &= 0x7fff;
+            memcpy(pb_, pbPatch_, wLen);
+            pb_ += wLen;
+            pbPatch_ += wLen;
+        }
+    }
 }
 
 

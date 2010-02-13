@@ -2,7 +2,7 @@
 //
 // Memory.cpp: Memory configuration and management
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
-// Includes Edwin Blink's HDBOOT ROM modifications:
-//  http://home.wanadoo.nl/edwin.blink/samcoupe/software/bdos/hdboot.htm
 
 #include "SimCoupe.h"
 #include "Memory.h"
@@ -191,25 +188,28 @@ static void LoadRoms (BYTE* pb0_, BYTE* pb1_)
         SetOption(rom,"");
     }
 
-    // Use the built-in 3.0 ROM image
+    // Start with the built-in 3.0 ROM image
     memcpy(pb0_, abSAMROM, MEM_PAGE_SIZE);
     memcpy(pb1_, &abSAMROM[MEM_PAGE_SIZE], MEM_PAGE_SIZE);
 
+    // Edwin Blink's HDBOOT ROM enabled?
     if (GetOption(hdbootrom))
     {
-        // Apply Edwin Blink's HDBOOT ROM modifications
+        // What we patch depends on the HDD interface attached
+        switch (GetOption(drive2))
+        {
+            // Original Atom
+            case dskAtom:
+                // Patch from ROM30 to Atom
+                PatchBlock(pb0_, abAtomPatch0);
+                PatchBlock(pb1_, abAtomPatch1);
+                break;
 
-        // Patch the 6 code blocks from HDBOOT.h
-        memcpy(&pb0_[0x00b0], abHDBoot1, sizeof(abHDBoot1));
-        memcpy(&pb0_[0x0f7f], abHDBoot2, sizeof(abHDBoot2));
-        memcpy(&pb1_[0x18f9], abHDBoot3, sizeof(abHDBoot3));
-        memcpy(&pb1_[0x2bae], abHDBoot4, sizeof(abHDBoot4));
-        memcpy(&pb1_[0x35dd], abHDBoot5, sizeof(abHDBoot5));
-        memcpy(&pb1_[0x3bff], abHDBoot6, sizeof(abHDBoot6));
-
-        // A few additional small tweaks
-        pb0_[0x0001] = 0x31;
-        pb1_[0x3c44] = 0x05;
-        pb1_[0x3c45] = 0xf6;
+            // Atom Lite
+            case dskAtomLite:
+                PatchBlock(pb0_, abAtomLitePatch0);
+                PatchBlock(pb1_, abAtomLitePatch1);
+                break;
+        }
     }
 }
