@@ -856,7 +856,6 @@ void IO::FrameUpdate ()
     pParallel1->FrameEnd();
     pParallel2->FrameEnd();
 
-    CClockDevice::FrameUpdate();
     Sound::FrameUpdate();
     Input::Update();
 }

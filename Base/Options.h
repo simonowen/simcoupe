@@ -107,7 +107,6 @@ typedef struct
 
     bool    sambusclock;            // Enable SAMBUS clock support?
     bool    dallasclock;            // Enable DALLAS clock support?
-    bool    clocksync;              // Advanced emulated clocks relative to real time?
 
     bool    sound;                  // Sound enabled?
     bool    saasound;               // SAA 1099 sound chip enabled?

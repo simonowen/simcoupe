@@ -1218,22 +1218,21 @@ class CMiscOptions : public CDialog
 {
     public:
         CMiscOptions (CWindow* pParent_)
-            : CDialog(pParent_, 300, 241, "Misc Settings")
+            : CDialog(pParent_, 300, 221, "Misc Settings")
         {
             new CIconControl(this, 10, 15, &sHardwareIcon);
-            new CFrameControl(this, 50, 17, 238, 77);
+            new CFrameControl(this, 50, 17, 238, 57);
             new CTextControl(this, 60, 13, "Clocks", YELLOW_8, BLUE_2);
             m_pSambus = new CCheckBox(this, 63, 32, "SAMBUS Clock");
             m_pDallas = new CCheckBox(this, 63, 52, "DALLAS Clock");
-            m_pClockSync = new CCheckBox(this, 63, 72, "Advance SAM time relative to real time");
 
-            new CFrameControl(this, 50, 109, 238, 102);
-            new CTextControl(this, 60, 105, "Miscellaneous", YELLOW_8, BLUE_2);
-            m_pPauseInactive = new CCheckBox(this, 63, 124, "Pause the emulation when inactive");
-            m_pDriveLights = new CCheckBox(this, 63, 144, "Show disk drive LEDs");
-            m_pStatus = new CCheckBox(this, 63, 164, "Display status messages");
-            new CTextControl(this, 63, 187, "Profiling stats:");
-            m_pProfile = new CComboBox(this, 140, 184, "Disabled|Speed and frame rate|Details percentages|Detailed timings", 140);
+            new CFrameControl(this, 50, 89, 238, 102);
+            new CTextControl(this, 60, 85, "Miscellaneous", YELLOW_8, BLUE_2);
+            m_pPauseInactive = new CCheckBox(this, 63, 104, "Pause the emulation when inactive");
+            m_pDriveLights = new CCheckBox(this, 63, 124, "Show disk drive LEDs");
+            m_pStatus = new CCheckBox(this, 63, 144, "Display status messages");
+            new CTextControl(this, 63, 167, "Profiling stats:");
+            m_pProfile = new CComboBox(this, 140, 164, "Disabled|Speed and frame rate|Details percentages|Detailed timings", 140);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -1241,7 +1240,6 @@ class CMiscOptions : public CDialog
             // Set the initial state from the options
             m_pSambus->SetChecked(GetOption(sambusclock));
             m_pDallas->SetChecked(GetOption(dallasclock));
-            m_pClockSync->SetChecked(GetOption(clocksync));
 
             m_pPauseInactive->SetChecked(GetOption(pauseinactive));
             m_pDriveLights->SetChecked(GetOption(drivelights) != 0);
@@ -1259,7 +1257,6 @@ class CMiscOptions : public CDialog
             {
                 SetOption(sambusclock, m_pSambus->IsChecked());
                 SetOption(dallasclock, m_pDallas->IsChecked());
-                SetOption(clocksync, m_pClockSync->IsChecked());
 
                 SetOption(pauseinactive, m_pPauseInactive->IsChecked());
                 SetOption(drivelights, m_pDriveLights->IsChecked());

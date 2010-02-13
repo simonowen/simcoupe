@@ -35,21 +35,19 @@ BEGIN
                     WS_TABSTOP,54,22,66,10
     CONTROL         "DALLAS Clock",IDC_DALLAS_CLOCK,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,54,36,63,10
-    CONTROL         "Advance SAM time relative to real time",IDC_CLOCK_SYNC,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,50,137,10
     CONTROL         "Pause the emulation when inactive",IDC_PAUSE_INACTIVE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,84,154,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,71,154,10
     CONTROL         "Show disk drive activity lights",IDC_DRIVE_LIGHTS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,98,120,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,85,120,10
     CONTROL         "Show status messages",IDC_STATUS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,54,112,120,10
-    LTEXT           "Profiling statistics:",IDC_STATIC,54,128,56,8
-    COMBOBOX        IDC_PROFILE,117,126,90,72,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    BS_AUTOCHECKBOX | WS_TABSTOP,54,99,120,10
+    LTEXT           "Profiling statistics:",IDC_STATIC,54,115,56,8
+    COMBOBOX        IDC_PROFILE,117,113,90,72,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    GROUPBOX        "Miscellaneous",IDC_STATIC,45,69,170,76
-    ICON            IDI_CLOCK,IDC_STATIC,7,7,21,20
-    ICON            IDI_MISC,IDC_STATIC,7,72,21,20
-    GROUPBOX        "Clock hardware",IDC_STATIC,45,7,170,59
+    GROUPBOX        "Miscellaneous",IDC_STATIC,45,56,170,76
+    ICON            IDI_CLOCK,IDC_STATIC,7,7,20,20
+    ICON            IDI_MISC,IDC_STATIC,7,59,20,20
+    GROUPBOX        "Clock hardware",IDC_STATIC,45,7,170,46
 END
 
 IDD_ABOUT DIALOGEX 0, 0, 193, 164
@@ -200,7 +198,7 @@ END
 IDD_PAGE_INPUT DIALOGEX 0, 0, 235, 156
 STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Input"
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     COMBOBOX        IDC_KEYBOARD_MAPPING,118,17,80,50,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
@@ -755,8 +753,12 @@ BEGIN
             VALUE "FileVersion", "1.0\0"
             VALUE "InternalName", "SimCoupe\0"
             VALUE "LegalCopyright", "Copyright © 2006\0"
+            VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "SimCoupe.exe\0"
+            VALUE "PrivateBuild", "\0"
+            VALUE "ProductName", "\0"
             VALUE "ProductVersion", "1.0\0"
+            VALUE "SpecialBuild", "\0"
         END
     END
     BLOCK "VarFileInfo"

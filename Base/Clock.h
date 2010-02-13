@@ -52,15 +52,10 @@ class CClockDevice : public CIoDevice
         int Encode (int nValue_);
         int DateAdd (int &nValue_, int nAdd_, int nMax_);
 
-    public:
-        static void FrameUpdate ();
-
     protected:
         time_t m_tLast;
         SAMTIME m_st;
         bool m_fBCD;
-
-        static time_t s_tEmulated;  // Holds the current time relative to the emulation speed
 };
 
 

@@ -35,8 +35,6 @@
 #include "Options.h"
 
 
-time_t CClockDevice::s_tEmulated;
-
 CClockDevice::CClockDevice ()
     : m_fBCD(true)
 {
@@ -50,12 +48,8 @@ void CClockDevice::Reset ()
     // Get current local time
     m_tLast = time(NULL);
 
-    // Set the class time if unset or invalid
-    if (!s_tEmulated || s_tEmulated > m_tLast)
-        s_tEmulated = m_tLast;
-
     // Break the current time into it's parts
-    tm* ptm = localtime(&m_tLast);
+    tm *ptm = localtime(&m_tLast);
 
     m_st.nCentury = Encode((1900+ptm->tm_year) / 100);
     m_st.nYear  = Encode(ptm->tm_year % 100);
@@ -64,7 +58,7 @@ void CClockDevice::Reset ()
 
     m_st.nHour = Encode(ptm->tm_hour);
     m_st.nMinute  = Encode(ptm->tm_min);
-    m_st.nSecond  = Encode(ptm->tm_sec % 10);
+    m_st.nSecond  = Encode(ptm->tm_sec);
 }
 
 int CClockDevice::Decode (int nValue_)
@@ -101,13 +95,15 @@ int CClockDevice::DateAdd (int &nValue_, int nAdd_, int nMax_)
 
 bool CClockDevice::Update ()
 {
-    // The clocks are either synchronised to real time or stay relative to emulated time
-    time_t tNow = GetOption(clocksync) ? time(NULL) : s_tEmulated;
+    // The clocks stays synchronised to real time
+    time_t tNow = time(NULL);
 
     // Same time as before?
     if (tNow == m_tLast)
         return false;
-    else if (tNow < m_tLast)
+
+    // Before the previous time?!
+    if (tNow < m_tLast)
     {
         // Force a resync for negative differences (DST or manual change)
         Reset();
@@ -187,16 +183,6 @@ int CClockDevice::GetDayOfWeek ()
 
     // Convert back to a tm structure to get the day of the week :-)
     return (ptm = localtime(&tNow)) ? ptm->tm_wday : 0;
-}
-
-
-/*static*/ void CClockDevice::FrameUpdate ()
-{
-    static int nFrames = 0;
-
-    // Every one second we advance the emulation relative time
-    if (!(++nFrames %= EMULATED_FRAMES_PER_SECOND))
-        s_tEmulated++;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

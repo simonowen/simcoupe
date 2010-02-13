@@ -140,7 +140,6 @@ OPTION aOptions[] =
 
     OPT_F("SambusClock",  sambusclock,    true),      // SAMBUS clock present
     OPT_F("DallasClock",  dallasclock,    false),     // DALLAS clock not present
-    OPT_F("ClockSync",    clocksync,      true),      // Clocks advanced relative to real time
 
     OPT_F("Sound",        sound,          true),      // Sound enabled
     OPT_F("SAASound",     saasound,       true),      // SAA 1099 sound chip enabled
