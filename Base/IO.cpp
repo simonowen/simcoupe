@@ -919,7 +919,7 @@ const RGBA* IO::GetPalette (bool fDimmed_/*=false*/)
         // If greyscale is enabled, convert the colour a suitable intensity grey
         if (GetOption(greyscale))
         {
-            BYTE bGrey = static_cast<BYTE>(0.30 * bRed + 0.59 * bGreen + 0.11 * bBlue);
+            BYTE bGrey = static_cast<BYTE>(0.299 * bRed + 0.587 * bGreen + 0.114 * bBlue + 0.5);
             bRed = bGreen = bBlue = bGrey;
         }
 
