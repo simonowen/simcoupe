@@ -1064,14 +1064,19 @@ class CDiskOptions : public CDialog
                 if (ChangedString(atomdisk))
                 {
                     // If the Atom is active, force it to be remounted
-                    if (GetOption(drive2) == dskAtom)
+                    if (GetOption(drive2) >= dskAtom)
                     {
                         delete pDrive2;
                         pDrive2 = NULL;
                     }
 
-                    // Set drive 2 to Atom if we've got a path, or floppy otherwise
-                    SetOption(drive2, *GetOption(atomdisk) ? dskAtom : dskImage);
+                    // Set drive 2 to Atom if we've got no path, or Atom if Atom Lite wasn't already set
+                    if (!*GetOption(atomdisk))
+                        SetOption(drive2, dskImage);
+                    else if (GetOption(drive2) != dskAtomLite)
+                        SetOption(drive2, dskAtom);
+
+                    // Re-initialise the drives to activate any changes
                     IO::InitDrives();
 
                     // Ensure it was mounted ok
