@@ -1180,10 +1180,10 @@ void CRegisterPanel::Draw (CScreen* pScreen_)
     pScreen_->DrawString(m_nX, m_nY+80,  "I        R",   GREEN_8);
     pScreen_->DrawString(m_nX, m_nY+92,  "IM",   GREEN_8);
 
-#define ShowReg(buf,fmt,dx,dy,reg)	\
-{	\
+#define ShowReg(buf,fmt,dx,dy,reg)  \
+{   \
     sprintf(buf, fmt, regs.reg); \
-    pScreen_->DrawString(m_nX+dx, m_nY+dy, buf, (regs.reg != sLastRegs.reg) ? RED_8 : WHITE);	\
+    pScreen_->DrawString(m_nX+dx, m_nY+dy, buf, (regs.reg != sLastRegs.reg) ? RED_8 : WHITE);  \
 }
 
     ShowReg(sz, "%02X", 18,  0, af.b.h); ShowReg(sz, "%02X", 30,  0, af.b.l);
@@ -1192,7 +1192,7 @@ void CRegisterPanel::Draw (CScreen* pScreen_)
     ShowReg(sz, "%02X", 18, 36, hl.b.h); ShowReg(sz, "%02X", 30, 36, hl.b.l);
     ShowReg(sz, "%02X", 18, 52, ix.b.h); ShowReg(sz, "%02X", 30, 52, ix.b.l);
     ShowReg(sz, "%02X", 18, 64, pc.b.h); ShowReg(sz, "%02X", 30, 64, pc.b.l);
-    ShowReg(sz, "%02X", 18, 80, i);		  ShowReg(sz, "%02X", 72, 80, r);
+    ShowReg(sz, "%02X", 18, 80, i);      ShowReg(sz, "%02X", 72, 80, r);
 
     ShowReg(sz, "%02X", 72,  0, af_.b.h); ShowReg(sz, "%02X", 84,  0, af_.b.l);
     ShowReg(sz, "%02X", 72, 12, bc_.b.h); ShowReg(sz, "%02X", 84, 12, bc_.b.l);
@@ -1201,7 +1201,7 @@ void CRegisterPanel::Draw (CScreen* pScreen_)
     ShowReg(sz, "%02X", 72, 52, iy.b.h);  ShowReg(sz, "%02X", 84, 52, iy.b.l);
     ShowReg(sz, "%02X", 72, 64, sp.b.h);  ShowReg(sz, "%02X", 84, 64, sp.b.l);
 
-    sprintf(sz, "%d", IM);			pScreen_->DrawString(m_nX+18, m_nY+92, sz, RegCol(IM, sLastRegs.im));
+    sprintf(sz, "%d", IM);                 pScreen_->DrawString(m_nX+18, m_nY+92, sz, RegCol(IM, sLastRegs.im));
     sprintf(sz, "%s", IFF1 ? "EI" : "DI"); pScreen_->DrawString(m_nX+36, m_nY+92, sz, RegCol(IFF1, sLastRegs.iff1));
 
     static char szSet2[] = "-----", szReset2[] = "OFIML";
@@ -1250,7 +1250,7 @@ void CRegisterPanel::Draw (CScreen* pScreen_)
     sprintf(sz, "%u", dwCycleDiff);
     pScreen_->DrawString(m_nX+44, m_nY+188, sz, WHITE);
 
-    pScreen_->DrawString(m_nX, m_nY+200, "T-states:", GREEN_8);		// Change back to T-diff!
+    pScreen_->DrawString(m_nX, m_nY+200, "T-states:", GREEN_8);     // Change back to T-diff!
     sprintf(sz, "%u", g_dwCycleCounter);
     pScreen_->DrawString(m_nX+58, m_nY+200, sz, WHITE);
 

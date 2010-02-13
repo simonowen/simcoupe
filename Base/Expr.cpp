@@ -229,27 +229,27 @@ int Expr::Eval (const EXPR* pExpr_)
 
                 switch (pExpr_->nValue)
                 {
-                    case REG_A:         r = A;		break;
-                    case REG_F:         r = F;		break;
-                    case REG_B:         r = B;		break;
-                    case REG_C:         r = C;		break;
-                    case REG_D:         r = D;		break;
-                    case REG_E:         r = E;		break;
-                    case REG_H:         r = H;		break;
-                    case REG_L:         r = L;		break;
+                    case REG_A:         r = A;      break;
+                    case REG_F:         r = F;      break;
+                    case REG_B:         r = B;      break;
+                    case REG_C:         r = C;      break;
+                    case REG_D:         r = D;      break;
+                    case REG_E:         r = E;      break;
+                    case REG_H:         r = H;      break;
+                    case REG_L:         r = L;      break;
                     case REG_AF:        r = AF;     break;
                     case REG_BC:        r = BC;     break;
                     case REG_DE:        r = DE;     break;
                     case REG_HL:        r = HL;     break;
-                    case REG_ALT_A:     r = A_;		break;
-                    case REG_ALT_F:     r = F_;		break;
-                    case REG_ALT_B:     r = B_;		break;
-                    case REG_ALT_C:     r = C_;		break;
-                    case REG_ALT_D:     r = D_;		break;
-                    case REG_ALT_E:     r = E_;		break;
-                    case REG_ALT_H:     r = H_;		break;
-                    case REG_ALT_L:     r = L_;		break;
-                    case REG_ALT_AF:    r = AF_;	break;
+                    case REG_ALT_A:     r = A_;     break;
+                    case REG_ALT_F:     r = F_;     break;
+                    case REG_ALT_B:     r = B_;     break;
+                    case REG_ALT_C:     r = C_;     break;
+                    case REG_ALT_D:     r = D_;     break;
+                    case REG_ALT_E:     r = E_;     break;
+                    case REG_ALT_H:     r = H_;     break;
+                    case REG_ALT_L:     r = L_;     break;
+                    case REG_ALT_AF:    r = AF_;    break;
                     case REG_ALT_BC:    r = BC_;    break;
                     case REG_ALT_DE:    r = DE_;    break;
                     case REG_ALT_HL:    r = HL_;    break;

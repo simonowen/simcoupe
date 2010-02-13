@@ -81,15 +81,15 @@ const int INT_ACTIVE_TIME = 128;            // tstates interrupt is active and w
 #define A_ROUND(t,n)        (ROUND(g_dwCycleCounter+(t),n) - g_dwCycleCounter)
 
 // Bit values for the F register
-#define FLAG_C	0x01
-#define FLAG_N	0x02
-#define FLAG_P	0x04
-#define FLAG_V	FLAG_P
-#define FLAG_3	0x08
-#define FLAG_H	0x10
-#define FLAG_5	0x20
-#define FLAG_Z	0x40
-#define FLAG_S	0x80
+#define FLAG_C  0x01
+#define FLAG_N  0x02
+#define FLAG_P  0x04
+#define FLAG_V  FLAG_P
+#define FLAG_3  0x08
+#define FLAG_H  0x10
+#define FLAG_5  0x20
+#define FLAG_Z  0x40
+#define FLAG_S  0x80
 
 
 // CPU Event structure
@@ -109,9 +109,9 @@ typedef struct
     {
         WORD    w;
 #ifdef __BIG_ENDIAN__
-	struct { BYTE h, l; } b;  // Big endian
+    struct { BYTE h, l; } b;  // Big endian
 #else
-	struct { BYTE l, h; } b;  // Little endian
+    struct { BYTE l, h; } b;  // Little endian
 #endif
     };
 }
@@ -153,10 +153,10 @@ Z80Regs;
 #define H_      regs.hl_.b.h
 #define L_      regs.hl_.b.l
 
-#define AF_		regs.af_.w
-#define BC_		regs.bc_.w
-#define DE_		regs.de_.w
-#define HL_		regs.hl_.w
+#define AF_     regs.af_.w
+#define BC_     regs.bc_.w
+#define DE_     regs.de_.w
+#define HL_     regs.hl_.w
 
 #define IX      regs.ix.w
 #define IY      regs.iy.w
@@ -176,7 +176,7 @@ Z80Regs;
 #define IFF1    regs.iff1
 #define IFF2    regs.iff2
 #define IM      regs.im
-#define IR		((I << 8) | (R7 & 0x80) | (R & 0x7f))
+#define IR      ((I << 8) | (R7 & 0x80) | (R & 0x7f))
 
 
 // CPU Event Queue data
