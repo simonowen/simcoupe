@@ -117,6 +117,25 @@ typedef DWORD DWORD_PTR, *PDWORD_PTR;
 #define GWLP_WNDPROC GWL_WNDPROC
 #endif
 
+// From winioctl.h, since they're W2K+ only
+#ifndef IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS
+
+#define IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS    CTL_CODE(IOCTL_VOLUME_BASE, 0, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+typedef struct _DISK_EXTENT {
+    DWORD           DiskNumber;
+    LARGE_INTEGER   StartingOffset;
+    LARGE_INTEGER   ExtentLength;
+} DISK_EXTENT, *PDISK_EXTENT;
+
+typedef struct _VOLUME_DISK_EXTENTS {
+    DWORD       NumberOfDiskExtents;
+    DISK_EXTENT Extents[1];
+} VOLUME_DISK_EXTENTS, *PVOLUME_DISK_EXTENTS;
+
+#endif
+
+
 // Windows lacks direct.h, so we'll supply our own
 struct dirent
 {
