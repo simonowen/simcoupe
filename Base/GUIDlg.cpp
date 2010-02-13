@@ -907,7 +907,7 @@ class CDriveOptions : public CDialog
             m_pDrive1 = new CComboBox(this, 83, 29, "None|Floppy", 80);
 
             new CTextControl(this, 178, 32, "D2:");
-            m_pDrive2 = new CComboBox(this, 198, 29, "None|Floppy|Atom HDD", 80);
+            m_pDrive2 = new CComboBox(this, 198, 29, "None|Floppy|Atom|Atom Lite", 80);
 
             new CFrameControl(this, 50, 71, 238, 120);
             new CTextControl(this, 60, 67, "Options", YELLOW_8, BLUE_2);
@@ -948,7 +948,7 @@ class CDriveOptions : public CDialog
                 Destroy();
             else if (pWindow_ == m_pOK)
             {
-                int anDriveTypes[] = { dskNone, dskImage, dskImage, dskAtom };
+                int anDriveTypes[] = { dskNone, dskImage, dskImage, dskAtom, dskAtomLite };
                 SetOption(drive1, anDriveTypes[m_pDrive1->GetSelected()]);
                 SetOption(drive2, anDriveTypes[m_pDrive2->GetSelected()]);
 
@@ -993,7 +993,7 @@ class CDiskOptions : public CDialog
         {
             if (GetOption(drive1) == dskImage) SetOption(disk1, pDrive1->GetPath());
             if (GetOption(drive2) == dskImage) SetOption(disk2, pDrive2->GetPath());
-            if (GetOption(drive2) == dskAtom)  SetOption(atomdisk, pDrive2->GetPath());
+            if (GetOption(drive2) >= dskAtom)  SetOption(atomdisk, pDrive2->GetPath());
             SetOption(sdidedisk, pSDIDE->GetPath());
             SetOption(yatbusdisk, pYATBus->GetPath());
 

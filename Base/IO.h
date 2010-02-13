@@ -2,7 +2,7 @@
 //
 // IO.h: SAM I/O port handling
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //  Copyright (c) 2000-2001  Dave Laundon
 //
@@ -80,7 +80,7 @@ class CIoDevice
         virtual void FrameEnd () { }
 };
 
-enum { dskNone, dskImage, dskAtom, dskSDIDE, dskYATBus };
+enum { dskNone, dskImage, dskAtom, dskAtomLite, dskSDIDE, dskYATBus };
 
 class CDiskDevice :  public CIoDevice
 {

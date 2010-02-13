@@ -171,7 +171,7 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     {
         if (pDrive2->GetType() == dskImage)
             SetOption(disk2, pDrive2->GetPath());
-        else if (pDrive2->GetType() == dskAtom)
+        else if (pDrive2->GetType() >= dskAtom)
             SetOption(atomdisk, pDrive2->GetPath());
         delete pDrive2; pDrive2 = NULL;
     }
@@ -201,11 +201,12 @@ bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
                     break;
 
                 case dskAtom:
-                {
-                    CHardDisk* pDisk = CHardDisk::OpenObject(GetOption(atomdisk));
-                    pDrive2 = pDisk ? new CAtomDiskDevice(pDisk) : new CDiskDevice;
+                    pDrive2 = new CAtomDiskDevice(CHardDisk::OpenObject(GetOption(atomdisk)));
                     break;
-                }
+
+                case dskAtomLite:
+                    pDrive2 = new CAtomLiteDevice(CHardDisk::OpenObject(GetOption(atomdisk)));
+                    break;
 
                 default:
                     pDrive2 = new CDiskDevice;
@@ -527,7 +528,7 @@ BYTE IO::In (WORD wPort_)
                 // LPEN reflects the horizontal scan position in the main screen area only
                 BYTE bX = (nLine < TOP_BORDER_LINES || nLine >= (TOP_BORDER_LINES+SCREEN_LINES) ||
                            nLineCycle < (BORDER_PIXELS+BORDER_PIXELS)) ? 0 :
-                            static_cast<BYTE>(nLineCycle - (BORDER_PIXELS+BORDER_PIXELS)) / 1;	/* tstate->pixel division here? */
+                            static_cast<BYTE>(nLineCycle - (BORDER_PIXELS+BORDER_PIXELS)) / 1;  // tstate->pixel division here?
 
                 // Take the top 6 bits from the position, and the rest from the existing value
                 return (bX & 0xfc) | (lpen & 0x03);

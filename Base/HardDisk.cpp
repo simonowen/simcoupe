@@ -2,7 +2,7 @@
 //
 // HardDisk.cpp: Hard disk abstraction layer
 //
-//  Copyright (c) 2004-2006 Simon Owen
+//  Copyright (c) 2004-2010 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 //
 // Notes:
-//  - HDF spec: http://www.ramsoft.bbk.org/tech/rs-hdf.txt
+//  - HDF spec: http://web.archive.org/web/20080615063233/http://www.ramsoft.bbk.org/tech/rs-hdf.txt
 
 #include "SimCoupe.h"
 
@@ -47,12 +47,27 @@ bool CHardDisk::IsSDIDEDisk ()
 
 bool CHardDisk::IsBDOSDisk ()
 {
+    BYTE ab[512];
+
+    // Read the MBR for a possible BDOS boot sector
+    if (ReadSector(0, ab))
+    {
+        // Clear bits 7 and 5 (case) for the signature check
+        for (int i = 0 ; i < 4 ; i++) { ab[i+0x000] &= ~0xa0; ab[i+0x100] &= ~0xa0; }
+
+        // Check for byte-swapped (Atom) and normal (Atom Lite) boot signatures
+        if (!memcmp(ab+0x000, "OBTO", 4) || !memcmp(ab+0x100, "BOOT", 4))
+            return true;
+    }
+
     // Calculate the number of base sectors (boot sector + record list)
     UINT uBase = 1 + ((m_sGeometry.uTotalSectors/1600 + 32) / 32);
 
-    // Check for the BDOS signature (byte-swapped for the Atom) in record 1
-    BYTE ab[512];
-    return ReadSector(uBase, ab) && !memcmp(ab+232, "DBSO", 4);
+    // Read the first directory sector from record 1, and check for the BDOS signature
+    if (ReadSector(uBase, ab) && (!memcmp(ab+232, "DBSO", 4) || !memcmp(ab+232, "BDOS", 4)))
+        return true;
+
+    return false;
 }
 
 
@@ -140,24 +155,25 @@ RS_IDE;
     bool fRet = false;
 
     // Stored identity size is fixed for HDF 1.0, giving 128 bytes for the full header
-    BYTE abIdentity[128-sizeof(RS_IDE)];
+    BYTE abIdentity[128-sizeof(RS_IDE)] = {0};
     DEVICEIDENTITY *pdi = reinterpret_cast<DEVICEIDENTITY*>(abIdentity);
 
     UINT uDataOffset = sizeof(RS_IDE) + sizeof(abIdentity);
     RS_IDE sHeader = { {'R','S','-','I','D','E'}, 0x1a, 0x10, 0x00,  uDataOffset%256, uDataOffset/256 };
 
-    ATAPUT(pdi->wCaps, 0x2241);                    // Fixed device, motor control, hard sectored, <= 5Mbps
+    ATAPUT(pdi->wCaps, 0x2241);         // Fixed device, motor control, hard sectored, <= 5Mbps
     ATAPUT(pdi->wLogicalCylinders, uCylinders_);
     ATAPUT(pdi->wLogicalHeads, uHeads_);
     ATAPUT(pdi->wSectorsPerTrack, uSectors_);
     ATAPUT(pdi->wBytesPerSector, 512);
     ATAPUT(pdi->wBytesPerTrack, uSectors_*512);
 
-    ATAPUT(pdi->wControllerType, 1);  // single port, single sector
-    ATAPUT(pdi->wBufferSize512, 1);   // 512 bytes
+    ATAPUT(pdi->wControllerType, 1);    // single port, single sector
+    ATAPUT(pdi->wBufferSize512, 1);     // 512 bytes
     ATAPUT(pdi->wLongECCBytes, 4);
 
-    ATAPUT(pdi->wReadWriteMulti, 0);  // no multi-sector handling
+    ATAPUT(pdi->wReadWriteMulti, 0);	// no multi-sector handling
+    ATAPUT(pdi->wCapabilities, 0x0200);	// LBA supported
 
     // The identity strings need to be padded with spaces and byte-swapped
     SetIdentityString(pdi->szSerialNumber, sizeof(pdi->szSerialNumber), "100");
@@ -168,13 +184,13 @@ RS_IDE;
     FILE* pFile = fopen(pcszDisk_, "wb");
     if (pFile)
     {
-        UINT uDataSize = uCylinders_ * uHeads_ * uSectors_ * 512U;
+        off_t lDataSize = uCylinders_ * uHeads_ * uSectors_ * 512;
         BYTE bNull = 0;
 
         // Write the header, and extend the file up to the full size
         fRet = fwrite(&sHeader, sizeof(sHeader), 1, pFile) &&
                fwrite(abIdentity, sizeof(abIdentity), 1, pFile) &&
-              !fseek(pFile, uDataSize - sizeof(bNull), SEEK_CUR) &&
+              !fseek(pFile, lDataSize - sizeof(bNull), SEEK_CUR) &&
                fwrite(&bNull, sizeof(bNull), 1, pFile);
 
         // Close the file (this may be slow)
@@ -193,8 +209,7 @@ bool CHDFHardDisk::Open ()
 {
     Close();
 
-    struct stat st;
-    if (*m_pszDisk && !::stat(m_pszDisk, &st) && (m_hfDisk = fopen(m_pszDisk, "r+b")))
+    if (*m_pszDisk && (m_hfDisk = fopen(m_pszDisk, "r+b")))
     {
         RS_IDE sHeader;
 
@@ -223,7 +238,10 @@ bool CHDFHardDisk::Open ()
                 m_sGeometry.uCylinders = ATAGET(pdi->wLogicalCylinders);
                 m_sGeometry.uHeads = ATAGET(pdi->wLogicalHeads);
                 m_sGeometry.uSectors = ATAGET(pdi->wSectorsPerTrack);
-                m_sGeometry.uTotalSectors = (st.st_size-m_uDataOffset)/m_uSectorSize;
+
+                struct stat st;
+                fstat(fileno(m_hfDisk), &st);
+                m_sGeometry.uTotalSectors = static_cast<UINT>((st.st_size-m_uDataOffset)/m_uSectorSize);
             }
 
             return true;
@@ -245,12 +263,12 @@ void CHDFHardDisk::Close ()
 
 bool CHDFHardDisk::ReadSector (UINT uSector_, BYTE* pb_)
 {
-    UINT uOffset = m_uDataOffset + (uSector_ * m_uSectorSize);
-    return m_hfDisk && !fseek(m_hfDisk, uOffset, SEEK_SET) && fread(pb_, m_uSectorSize, 1, m_hfDisk);
+    off_t lOffset = m_uDataOffset + (uSector_ * m_uSectorSize);
+    return m_hfDisk && !fseek(m_hfDisk, lOffset, SEEK_SET) && fread(pb_, m_uSectorSize, 1, m_hfDisk);
 }
 
 bool CHDFHardDisk::WriteSector (UINT uSector_, BYTE* pb_)
 {
-    UINT uOffset = m_uDataOffset + (uSector_ * m_uSectorSize);
-    return m_hfDisk && !fseek(m_hfDisk, uOffset, SEEK_SET) && fwrite(pb_, m_uSectorSize, 1, m_hfDisk);
+    off_t lOffset = m_uDataOffset + (uSector_ * m_uSectorSize);
+    return m_hfDisk && !fseek(m_hfDisk, lOffset, SEEK_SET) && fwrite(pb_, m_uSectorSize, 1, m_hfDisk);
 }

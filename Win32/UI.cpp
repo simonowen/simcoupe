@@ -2549,7 +2549,7 @@ INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             SetComboStrings(hdlg_, IDC_DRIVE1, aszDrives1, GetOption(drive1));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE1, 0L);
 
-            static const char* aszDrives2[] = { "None", "Floppy", "Atom HDD", NULL };
+            static const char* aszDrives2[] = { "None", "Floppy", "Atom", "Atom Lite", NULL };
             SetComboStrings(hdlg_, IDC_DRIVE2, aszDrives2, GetOption(drive2));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE2, 0L);
 
@@ -2664,7 +2664,7 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
             // Refresh the options from the active devices
             if (GetOption(drive1) == dskImage) SetOption(disk1, pDrive1->GetPath());
             if (GetOption(drive2) == dskImage) SetOption(disk2, pDrive2->GetPath());
-            if (GetOption(drive2) == dskAtom)  SetOption(atomdisk, pDrive2->GetPath());
+            if (GetOption(drive2) >= dskAtom)  SetOption(atomdisk, pDrive2->GetPath());
             SetOption(sdidedisk, pSDIDE->GetPath());
             SetOption(yatbusdisk, pYATBus->GetPath());
 
@@ -2723,18 +2723,23 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 if (ChangedString(atomdisk))
                 {
                     // If the Atom is active, force it to be remounted
-                    if (GetOption(drive2) == dskAtom)
+                    if (GetOption(drive2) >= dskAtom)
                     {
                         delete pDrive2;
                         pDrive2 = NULL;
                     }
 
                     // Set drive 2 to Atom if we've got a path, or floppy otherwise
-                    SetOption(drive2, *GetOption(atomdisk) ? dskAtom : dskImage);
+                    if (!*GetOption(atomdisk))
+                        SetOption(drive2, dskImage);
+                    else if (GetOption(drive2) != dskAtomLite)
+                        SetOption(drive2, dskAtom);
+
+                    // Re-initialise the drives to activate any changes
                     IO::InitDrives();
 
                     // Ensure it was mounted ok
-                    if (*GetOption(atomdisk) && pDrive2->GetType() != dskAtom)
+                    if (*GetOption(atomdisk) && pDrive2->GetType() < dskAtom)
                     {
                         Message(msgWarning, "Invalid Atom disk: %s", GetOption(atomdisk));
                         SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);

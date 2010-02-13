@@ -2,7 +2,7 @@
 //
 // Atom.h: ATOM hard disk inteface
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,11 +23,13 @@
 
 #include "IO.h"
 #include "ATA.h"
+#include "Clock.h"
 
-const BYTE ATOM_ADDR_MASK   = 0x07;
-const BYTE ATOM_NCS1        = 0x08;     // Chip select 1 (negative logic)
-const BYTE ATOM_NCS3        = 0x10;     // Chip select 3 (negative logic)
-const BYTE ATOM_NRESET      = 0x20;     // Reset pin (negative logic)
+const BYTE ATOM_ADDR_MASK = 0x1f;   // Chip select mask
+const BYTE ATOM_REG_MASK  = 0x07;   // Device address mask
+const BYTE ATOM_NCS1      = 0x08;   // Chip select 1 (negative logic)
+const BYTE ATOM_NCS3      = 0x10;   // Chip select 3 (negative logic)
+const BYTE ATOM_NRESET    = 0x20;   // Reset pin (negative logic)
 
 
 class CAtomDiskDevice : public CDiskDevice
@@ -43,10 +45,38 @@ class CAtomDiskDevice : public CDiskDevice
         void FrameEnd ();
 
         bool IsLightOn () const { return m_uLightDelay != 0; }
-        const char* GetPath() const { return m_pDisk->GetPath(); }
+        const char* GetPath() const { return m_pDisk ? m_pDisk->GetPath() : ""; }
 
     protected:
         CATADevice* m_pDisk;
+
+        BYTE m_bAddressLatch, m_bDataLatch;
+
+        UINT m_uLightDelay;      // Delay before switching disk light off
+};
+
+
+const BYTE ATOM_LITE_ADDR_MASK = 0x1f;  // Chip select mask
+const BYTE ATOM_LITE_REG_MASK  = 0x07;  // Device address mask
+
+class CAtomLiteDevice : public CDiskDevice
+{
+    public:
+        CAtomLiteDevice (CATADevice* pDisk_);
+        ~CAtomLiteDevice ();
+
+    public:
+        BYTE In (WORD wPort_);
+        void Out (WORD wPort_, BYTE bVal_);
+        void Reset ();
+        void FrameEnd ();
+
+        bool IsLightOn () const { return m_uLightDelay != 0; }
+        const char* GetPath() const { return m_pDisk ? m_pDisk->GetPath() : ""; }
+
+    protected:
+        CATADevice* m_pDisk;
+        CDallasClock m_Dallas;
 
         BYTE m_bAddressLatch, m_bDataLatch;
 
