@@ -648,6 +648,7 @@ void Frame::SetStatus (const char *pcszFormat_, ...)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Fetch the current horizontal raster position (in cycles) and the current line
 inline int GetRasterPos (int *pnLine_)
 {
     if (g_dwCycleCounter >= BORDER_PIXELS)
@@ -660,6 +661,12 @@ inline int GetRasterPos (int *pnLine_)
     // FIXME: the very start of the interrupt frame is from the final line of the display
     *pnLine_ = 0;
     return 0;
+}
+
+// Fetch the 4 bytes the ASIC uses to generate the next 8-pixel cell
+void Frame::GetAsicData (BYTE *pb0_, BYTE *pb1_, BYTE *pb2_, BYTE *pb3_)
+{
+    pFrame->GetAsicData(pb0_, pb1_, pb2_, pb3_);
 }
 
 // Handle screen mode changes, which may require converting low-res data to hi-res

@@ -46,6 +46,7 @@ class Frame
         static void Complete ();
         static void TouchLines (int nFrom_, int nTo_);
         static inline void TouchLine (int nLine_) { TouchLines(nLine_, nLine_); }
+        static void GetAsicData (BYTE *pb0_, BYTE *pb1_, BYTE *pb2_, BYTE *pb3_);
         static void ChangeMode (BYTE bVal_);
         static void ChangeScreen (BYTE bVal_);
 
@@ -99,7 +100,7 @@ class CFrame
             m_pLineUpdate = apfnLineUpdates[(bVal_ & VMPR_MODE_MASK) >> 5];
 
             // Bit 0 of the VMPR page is always taken as zero for modes 3 and 4
-            int nPage = (bVal_ & 0x40) ? (bVal_ & VMPR_PAGE_MASK & ~1) : bVal_ & VMPR_PAGE_MASK;
+            int nPage = (bVal_ & VMPR_MDE1_MASK) ? (bVal_ & VMPR_PAGE_MASK & ~1) : bVal_ & VMPR_PAGE_MASK;
             m_pbScreenData = apbPageReadPtrs[nPage];
         }
 
@@ -119,6 +120,32 @@ class CFrame
                 // Top or bottom border
                 else// if (nLine_ < TOP_BORDER_LINES || nLine_ >= (TOP_BORDER_LINES+SCREEN_LINES))
                     BorderLine(nLine_, nFrom_, nTo_);
+            }
+        }
+
+        void GetAsicData (BYTE *pb0_, BYTE *pb1_, BYTE *pb2_, BYTE *pb3_)
+        {
+            int nLine = g_dwCycleCounter / TSTATES_PER_LINE, nBlock = (g_dwCycleCounter % TSTATES_PER_LINE) >> 3;
+
+            nLine -= TOP_BORDER_LINES;
+            nBlock -= BORDER_BLOCKS+BORDER_BLOCKS;
+            if (nBlock < 0) { nLine--; nBlock = SCREEN_BLOCKS-1; }
+            if (nLine < 0 || nLine >= SCREEN_LINES) { nLine = SCREEN_LINES-1; nBlock = SCREEN_BLOCKS-1; }
+
+            if (VMPR_MODE_3_OR_4)
+            {
+                BYTE* pb = m_pbScreenData + (nLine << 7) + (nBlock << 2);
+                *pb0_ = pb[0];
+                *pb1_ = pb[1];
+                *pb2_ = pb[2];
+                *pb3_ = pb[3];
+            }
+            else
+            {
+                BYTE* pData = m_pbScreenData + ((VMPR_MODE == MODE_1) ? g_awMode1LineToByte[nLine] + nBlock : (nLine << 5) + nBlock);
+                BYTE* pAttr = (VMPR_MODE == MODE_1) ? m_pbScreenData + 6144 + ((nLine & 0xf8) << 2) + nBlock : pData + 0x2000;
+                *pb0_ = *pb1_ = *pData;
+                *pb2_ = *pb3_ = *pAttr;
             }
         }
 
@@ -481,41 +508,33 @@ void CFrameXx1<fHiRes_>::Mode4Line (int nLine_, int nFrom_, int nTo_)
     RightBorder(pbLine, nFrom_, nTo_);
 }
 
-
 template <bool fHiRes_>
 void CFrameXx1<fHiRes_>::ModeChange (BYTE bNewVal_, int nLine_, int nBlock_)
 {
     int nScreenLine = nLine_ - TOP_BORDER_LINES;
-
     BYTE ab[4];
 
-    // Source mode 3 or 4?
+    // Fetch the 4 display data bytes for the original mode
+    BYTE b0, b1, b2, b3;
+    GetAsicData(&b0, &b1, &b2, &b3);
+
+    // Perform the necessary massaging the ASIC does to prepare for display
     if (VMPR_MODE_3_OR_4)
     {
-        BYTE* pb = m_pbScreenData + (nScreenLine << 7) + ((nBlock_ - BORDER_BLOCKS) << 2);
-
-        // Extract the 4 ASIC bytes used to display a block
-        ab[0] = ab[1] = ( pb[0]       & 0x80) | ((pb[0] << 3) & 0x40) |
-                        ((pb[1] >> 2) & 0x20) | ((pb[1] << 1) & 0x10) |
-                        ((pb[2] >> 4) & 0x08) | ((pb[2] >> 1) & 0x04) |
-                        ((pb[3] >> 6) & 0x02) | ( pb[3]       & 0x01);
-        ab[2] = ab[3] = pb[2];
+        // Mode 3+4
+        ab[0] = ab[1] = ( b0       & 0x80) | ((b0 << 3) & 0x40) |
+                        ((b1 >> 2) & 0x20) | ((b1 << 1) & 0x10) |
+                        ((b2 >> 4) & 0x08) | ((b2 >> 1) & 0x04) |
+                        ((b3 >> 6) & 0x02) | ( b3       & 0x01);
+        ab[2] = ab[3] = b2;
     }
-
-    // Source mode 1 or 2
     else
     {
-        BYTE* pData = m_pbScreenData + ((VMPR_MODE == MODE_1) ? g_awMode1LineToByte[nScreenLine] + (nBlock_ - BORDER_BLOCKS)
-                                                                     : (nScreenLine << 5) + (nBlock_ - BORDER_BLOCKS));
-        BYTE* pAttr = (VMPR_MODE == MODE_1) ? m_pbScreenData + 6144 + ((nScreenLine & 0xf8) << 2) + (nBlock_ - BORDER_BLOCKS)
-                                                   : pData + 0x2000;
-
-        // Extract the 4 ASIC bytes used to display a block
-        BYTE bData = *pData, bAttr = *pAttr;
-        ab[0] = (bData & 0x77) | ( bData       & 0x80) | ((bData >> 3) & 0x08);
-        ab[1] = (bData & 0x77) | ((bData << 2) & 0x80) | ((bData >> 1) & 0x08);
-        ab[2] = (bAttr & 0x77) | ((bData << 4) & 0x80) | ((bData << 1) & 0x08);
-        ab[3] = (bAttr & 0x77) | ((bData << 6) & 0x80) | ((bData << 3) & 0x08);
+        // Mode 1+2
+        ab[0] = (b0 & 0x77) | ( b0       & 0x80) | ((b0 >> 3) & 0x08);
+        ab[1] = (b1 & 0x77) | ((b1 << 2) & 0x80) | ((b1 >> 1) & 0x08);
+        ab[2] = (b2 & 0x77) | ((b0 << 4) & 0x80) | ((b0 << 1) & 0x08);
+        ab[3] = (b3 & 0x77) | ((b1 << 6) & 0x80) | ((b1 << 3) & 0x08);
     }
 
     // The target mode decides how the data actually appears in the transition block
@@ -523,13 +542,16 @@ void CFrameXx1<fHiRes_>::ModeChange (BYTE bNewVal_, int nLine_, int nBlock_)
     {
         case MODE_1:
         {
+            // Determine data+attr location for current cell, and preserve the values at each location
             BYTE* pData = m_pbScreenData + g_awMode1LineToByte[nScreenLine] + (nBlock_ - BORDER_BLOCKS), bData = *pData;
             BYTE* pAttr = m_pbScreenData + 6144 + ((nScreenLine & 0xf8) << 2) + (nBlock_ - BORDER_BLOCKS), bAttr = *pAttr;
 
+            // Write the artefact bytes from the old mode, and draw the cell
             *pData = ab[0];
             *pAttr = ab[2];
             Mode1Line(nLine_, nBlock_, nBlock_+1);
 
+            // Restore the original data+attr bytes
             *pData = bData;
             *pAttr = bAttr;
             break;
@@ -582,8 +604,8 @@ void CFrameXx1<fHiRes_>::ScreenChange (BYTE bNewVal_, int nLine_, int nBlock_)
     pFrame[0] = clutval[border_col];
 
     // The rest of the cell is the new border colour, even on the main screen since the ASIC has no data!
-    pFrame[1]  = pFrame[2]  = pFrame[3]  =
-    pFrame[4]  = pFrame[5]  = pFrame[6]  = pFrame[7] =
+                 pFrame[1]  = pFrame[2]  = pFrame[3]  =
+    pFrame[4]  = pFrame[5]  = pFrame[6]  = pFrame[7]  =
     pFrame[8]  = pFrame[9]  = pFrame[10] = pFrame[11] = 
     pFrame[12] = pFrame[13] = pFrame[14] = pFrame[15] = clutval[BORD_COL(bNewVal_)];
 }

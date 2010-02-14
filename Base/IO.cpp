@@ -82,8 +82,8 @@ BYTE border, border_col;
 BYTE keyboard;
 BYTE status_reg;
 BYTE line_int;
-
 BYTE lpen;
+BYTE attr;
 
 UINT clut[N_CLUT_REGS], clutval[N_CLUT_REGS], mode3clutval[4];
 
@@ -409,12 +409,14 @@ void IO::OutVmpr (BYTE bVal_)
     // The ASIC changes mode before page, so consider an on-screen artifact from the mode change
     Frame::ChangeMode(bVal_);
 
-    vmpr = (bVal_ & (VMPR_MODE_MASK|VMPR_PAGE_MASK));
-    vmpr_mode = vmpr & VMPR_MODE_MASK;
+    vmpr = bVal_ & (VMPR_MODE_MASK|VMPR_PAGE_MASK);
+    vmpr_mode = VMPR_MODE;
 
-    // Extract the page number(s) for faster access by the memory writing functions
+    // Extract the page number for faster access by the memory writing functions
     vmpr_page1 = VMPR_PAGE;
-    vmpr_page2 = (vmpr_page1+1) & VMPR_PAGE_MASK;
+
+    // The second page is only used by modes 3+4
+    vmpr_page2 = VMPR_MODE_3_OR_4 ? ((vmpr_page1+1) & VMPR_PAGE_MASK) : 0xff;
 }
 
 void IO::OutLepr (BYTE bVal_)
@@ -543,14 +545,14 @@ BYTE IO::In (WORD wPort_)
         // Spectrum ATTR port
         case ATTR_PORT:
         {
-            int nLine = g_dwCycleCounter / TSTATES_PER_LINE;
+            // If the display is off, return the cached attr value
+            if (VMPR_MODE_3_OR_4 && BORD_SOFF)
+                return attr;
 
-            // Border lines return 0xff
-            if (nLine < TOP_BORDER_LINES && nLine >= (TOP_BORDER_LINES+SCREEN_LINES))
-                return 0xff;
-
-            // Strictly we need to check the mode and return the appropriate value, but for now we'll return zero
-            return 0x00;
+            // Determine the 4 ASIC display bytes and return the 3rd, as documented
+            BYTE b1, b2, b3, b4;
+            Frame::GetAsicData(&b1, &b2, &b3, &b4);
+            return b3;
         }
 
         // Parallel ports
@@ -635,13 +637,25 @@ void IO::Out (WORD wPort_, BYTE bVal_)
         {
             bool fScreenOffChange = ((border ^ bVal_) & BORD_SOFF_MASK) && VMPR_MODE_3_OR_4;
 
-            // Has the border colour has changed colour or the screen been enabled/disabled?
+            // Has the border changed colour or the screen been enabled/disabled?
             if (fScreenOffChange || ((border ^ bVal_) & BORD_COLOUR_MASK))
                 Frame::Update();
 
-            // If the screen enable state has changed, consider a border change artefact
-            if (fScreenOffChange && (border & BORD_SOFF))
-                Frame::ChangeScreen(bVal_);
+            // Change of screen enable state?
+            if (fScreenOffChange)
+            {
+                // If the display is now enabled, consider a border change artefact
+                if (BORD_SOFF)
+                    Frame::ChangeScreen(bVal_);
+
+                // Otherwise determine the current ATTR value to return whilst disabled
+                else
+                {
+                    BYTE b1, b2, b3, b4;
+                    Frame::GetAsicData(&b1, &b2, &b3, &b4);
+                    attr = b3;
+                }
+            }
 
             // If the speaker bit has been toggled, generate a click
             if ((border ^ bVal_) & BORD_BEEP_MASK)
