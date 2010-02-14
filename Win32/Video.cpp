@@ -33,10 +33,8 @@
 
 const int N_TOTAL_COLOURS = N_PALETTE_COLOURS+N_GUI_COLOURS;
 
-// SAM RGB values in appropriate format, and YUV values pre-shifted for overlay surface
-DWORD aulPalette[N_TOTAL_COLOURS], aulScanline[N_TOTAL_COLOURS];            // normal and scanline palettes
-WORD awY[N_TOTAL_COLOURS], awU[N_TOTAL_COLOURS], awV[N_TOTAL_COLOURS];      // YUV for regular palette
-WORD awYs[N_TOTAL_COLOURS], awUs[N_TOTAL_COLOURS], awVs[N_TOTAL_COLOURS];   // YUV for scanline palette
+// SAM RGB values in native surface format
+DWORD aulPalette[N_TOTAL_COLOURS], aulScanline[N_TOTAL_COLOURS];    // normal and scanline palettes
 
 // DirectDraw back and front surfaces
 LPDIRECTDRAWSURFACE pddsPrimary, pddsFront, pddsBack;
@@ -51,7 +49,6 @@ HRESULT hr;
 
 HRESULT ClearSurface (LPDIRECTDRAWSURFACE pdds_);
 LPDIRECTDRAWSURFACE CreateSurface (DWORD dwCaps_, DWORD dwWidth_=0, DWORD dwHeight_=0, LPDDPIXELFORMAT pddpf_=NULL, DWORD dwRequiredCaps_=0);
-LPDIRECTDRAWSURFACE CreateOverlay (DWORD dwWidth_, DWORD dwHeight_, LPDDPIXELFORMAT pddpf_=NULL);
 
 
 // function to initialize DirectDraw in windowed mode
@@ -157,41 +154,10 @@ bool Video::Init (bool fFirstInit_)
                 dwWidth = Frame::GetWidth();
                 dwHeight = Frame::GetHeight();
 
-                // Determine which version of Windows we're running under
-                OSVERSIONINFO osvi = { sizeof osvi };
-                GetVersionEx(&osvi);
-
-                // Are we to use a video overlay? (not Vista or later as it disables the Desktop Window Manager)
-                if (GetOption(overlay) && osvi.dwMajorVersion < 6)
-                {
-                    DDPIXELFORMAT ddpf;
-
-                    // Create the overlay, but falling back to a Video surface if we can't
-                    if (pddsFront = CreateOverlay(dwWidth, dwHeight, &ddpf))
-                    {
-                        // Is the overlay surface lockable?
-                        if (SUCCEEDED(hr = pddsFront->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL)))
-                        {
-                            // If so, we'll use it directly for the back buffer
-                            pddsFront->Unlock(ddsd.lpSurface);
-                            swap(pddsBack, pddsFront);
-                            TRACE("Using lockable overlay surface directly\n");
-                        }
-
-                        // Create a new back buffer with the same pixel format as the front buffer
-                        else if (!(pddsBack = CreateSurface(0, dwWidth, dwHeight, &ddpf)))
-                        {
-                            // Free the overlay as we can't seem to do anything with it
-                            pddsFront->Release();
-                            pddsFront = NULL;
-                        }
-                    }
-                }
-
                 // Set up the required capabilities for the back buffer
                 DWORD dwRequiredFX = (DDFXCAPS_BLTSTRETCHX | DDFXCAPS_BLTSTRETCHY);
 
-                // Create the back buffer.  If we're using an overlay, try for the same pixel format
+                // Create the back buffer
                 if (!pddsBack && !(pddsBack = CreateSurface(0, dwWidth, dwHeight, NULL, dwRequiredFX)))
                     Message(msgError, "Failed to create back buffer (%#08lx)", hr);
                 else
@@ -245,134 +211,12 @@ void Video::Exit (bool fReInit_/*=false*/)
 
 HRESULT ClearSurface (LPDIRECTDRAWSURFACE pdds_)
 {
-    HRESULT hr;
-
-    // Get details on the surface to clear
-    DDSURFACEDESC ddsd = { sizeof ddsd };
-    pdds_->GetSurfaceDesc(&ddsd);
-
-    // Try and clear it with a simple blit, using the appropriate black colour
+    // Black fill colour
     DDBLTFX bltfx = { sizeof bltfx };
-    bltfx.dwFillColor = (ddsd.ddpfPixelFormat.dwFlags & DDPF_FOURCC) ? (((awV[0] | awY[0]) << 16) | awU[0] | awY[0]) : 0;
+    bltfx.dwFillColor = 0;
 
-    // Hopefully this will work ok!
-    if (FAILED(hr = pdds_->Blt(NULL, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx)))
-    {
-        // Bah, that failed so we'll have to do it the hard way!
-        if (SUCCEEDED(hr = pdds_->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL)))
-        {
-            // Get the surface pointer, and convert width to pairs of (WORD-sized) pixels and pitch to DWORDs
-            DWORD* pdw = reinterpret_cast<DWORD*>(ddsd.lpSurface);
-            ddsd.dwWidth >>= 1;
-            ddsd.lPitch >>= 2;
-
-            // Loop through each surface line
-            for (int i = 0 ; i < (int)ddsd.dwHeight; i++, pdw += ddsd.lPitch)
-            {
-                // Fill the line with the required colour
-                for (int j = 0 ; j < (int)ddsd.dwWidth ; j++)
-                    pdw[j] = bltfx.dwFillColor;
-            }
-
-            pdds_->Unlock(ddsd.lpSurface);
-        }
-    }
-
-    return hr;
-}
-
-// Get an appropriate colour key value to display the overlay surface
-DWORD Video::GetOverlayColourKey ()
-{
-    DWORD dwColourKey = 0;
-    LPDIRECTDRAWSURFACE pddsOverlay = pddsFront ? pddsFront : pddsBack;
-    DDSURFACEDESC ddsd = { sizeof ddsd };
-
-    // Are we using an overlay surface?
-    if (SUCCEEDED(pddsOverlay->GetSurfaceDesc(&ddsd)) && (ddsd.ddsCaps.dwCaps & DDSCAPS_OVERLAY))
-    {
-        DDSURFACEDESC ddsd = { sizeof ddsd };
-        pddsPrimary->GetSurfaceDesc(&ddsd);
-
-        HDC hdc;
-        pddsPrimary->GetDC(&hdc);
-
-        // Save the pixel from 0,0 on the display
-        COLORREF rgbPrev = GetPixel(hdc, 0, 0);
-
-        // Use the classic shocking pink if the display is palettised, or a nicer near-black colour otherwise
-        SetPixel(hdc, 0, 0, (ddsd.ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8) ? RGB(0xff,0x00,0xff) : RGB(0x08,0x08,0x08));
-
-        pddsPrimary->ReleaseDC(hdc);
-
-        // Lock the surface and see what the value is for the current mode
-        HRESULT hr;
-        if (FAILED(hr = pddsPrimary->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, NULL)))
-            TRACE("Failed to lock primary surface in SetOverlayColour() (%#08lx)\n", hr);
-        else
-        {
-            // Extract the real colour value for the colour key
-            dwColourKey = *reinterpret_cast<DWORD*>(ddsd.lpSurface);
-            pddsPrimary->Unlock(NULL);
-
-            // If less than 32-bit, limit the colour value to the number of bits used for the screen depth
-            if (ddsd.ddpfPixelFormat.dwRGBBitCount < 32)
-                dwColourKey &= (1 << ddsd.ddpfPixelFormat.dwRGBBitCount) - 1;
-
-            TRACE("Colour key used: %#08lx\n", dwColourKey);
-        }
-
-        // Restore the previous pixel
-        pddsPrimary->GetDC(&hdc);
-        SetPixel(hdc, 0, 0, rgbPrev);
-        pddsPrimary->ReleaseDC(hdc);
-    }
-
-    return dwColourKey;
-}
-
-
-LPDIRECTDRAWSURFACE CreateOverlay (DWORD dwWidth_, DWORD dwHeight_, LPDDPIXELFORMAT pddpf_)
-{
-    static const DDPIXELFORMAT addpf[] =
-    {
-        { sizeof DDPIXELFORMAT, DDPF_RGB, 0, 16, 0xf800, 0x07e0, 0x001f, 0 },           // 5-6-5 RGB
-        { sizeof DDPIXELFORMAT, DDPF_RGB, 0, 16, 0x7c00, 0x03e0, 0x001f, 0 },           // 5-5-5 RGB
-        { sizeof DDPIXELFORMAT, DDPF_FOURCC, MAKEFOURCC('U','Y','V','Y'), 0,0,0,0,0 },
-        { sizeof DDPIXELFORMAT, DDPF_FOURCC, MAKEFOURCC('Y','U','Y','2'), 0,0,0,0,0 },
-    };
-
-    LPDIRECTDRAWSURFACE pdds = NULL;
-
-
-    // If an overlay is requested, make sure the hardware supports them first
-    if (!(~ddcaps.dwCaps & (DDCAPS_OVERLAY | DDCAPS_OVERLAYSTRETCH)))
-    {
-        DDSURFACEDESC ddsd = { sizeof ddsd };
-        ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;
-        ddsd.ddsCaps.dwCaps = DDSCAPS_OVERLAY | DDSCAPS_VIDEOMEMORY;
-        ddsd.dwWidth = dwWidth_;
-        ddsd.dwHeight = dwHeight_;
-
-        // There's no reliable way to get the supported formats so we just have to try them until one works!
-        for (int i = 0 ; i < (sizeof addpf / sizeof addpf[0]) ; i++)
-        {
-            // Set the next pixel format to try
-            ddsd.ddpfPixelFormat = addpf[i];
-
-            // Make sure we can create and lock the surface before accepting it (some cards don't allow it)
-            if (FAILED(hr = pdd->CreateSurface(&ddsd, &pdds, NULL)))
-                TRACE("Overlay CreateSurface() failed with %#08lx\n", hr);
-            else
-            {
-                // Copy the pixel format used
-                *pddpf_ = addpf[i];
-               break;
-            }
-        }
-    }
-
-    return pdds;
+    // Fill the surface to clear it
+    return pdds_->Blt(NULL, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
 }
 
 LPDIRECTDRAWSURFACE CreateSurface (DWORD dwCaps_, DWORD dwWidth_/*=0*/, DWORD dwHeight_/*=0*/,
@@ -471,47 +315,15 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
         const RGBA* p = (i < N_PALETTE_COLOURS) ? &pSAM[i] : &pGUI[i-N_PALETTE_COLOURS];
         BYTE r = p->bRed, g = p->bGreen, b = p->bBlue;
 
-        // Using YUV on an overlay?
-        if (ddsd.ddpfPixelFormat.dwFlags & DDPF_FOURCC)
-        {
-            // Convert regular palette to YUV
-            BYTE y, u, v;
-            RGB2YUV(r,g,b, &y,&u,&v);
-            aulPalette[i] = (static_cast<DWORD>(b) << 16) | (static_cast<DWORD>(g) << 8) | r;
-
-            // Convert scanline palette to YUV
-            BYTE ys, us, vs;
-            AdjustBrightness(r,g,b, nScanAdjust);
-            RGB2YUV(r,g,b, &ys,&us,&vs);
-            aulScanline[i] = (static_cast<DWORD>(b) << 16) | (static_cast<DWORD>(g) << 8) | r;
-
-            // Pre-shift the YUV data for the two formats we currently support
-            if (ddsd.ddpfPixelFormat.dwFourCC == MAKEFOURCC('Y','U','Y','2'))
-            {
-                awY[i] = y, awU[i] = u << 8, awV[i] = v << 8;
-                awYs[i] = ys, awUs[i] = us << 8, awVs[i] = vs << 8;
-            }
-            else if (ddsd.ddpfPixelFormat.dwFourCC == MAKEFOURCC('U','Y','V','Y'))
-            {
-                awY[i] = WORD(y) << 8, awU[i] = u, awV[i] = v;
-                awYs[i] = WORD(ys) << 8, awUs[i] = us, awVs[i] = vs;
-            }
-            else
-            {
-                TRACE("Unknown YUV FOURCC: %#08lx\n", ddsd.ddpfPixelFormat.dwFourCC);
-                DebugBreak();
-            }
-        }
-
         // In 8 bit mode use offset palette positions to allow for system colours in the first 10
-        else if (fPalette)
+        if (fPalette)
         {
             PALETTEENTRY pe = { r,g,b, PC_NOCOLLAPSE };
 
             // Leave the first PALETTE_OFFSET entries for Windows GUI colours
+            // There aren't enough palette entries for scanlines, so use the same colour
             pal[PALETTE_OFFSET+i] = pe;
-            aulPalette[i] = PALETTE_OFFSET+i;
-            aulScanline[i] = PALETTE_OFFSET;    // not enough really palette colours to support it :-(
+            aulPalette[i] = aulScanline[i] = PALETTE_OFFSET+i;
         }
 
         // Other modes build up the require pixel format from the surface information
@@ -540,7 +352,7 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
         if (FAILED(hr = pdd->CreatePalette(DDPCAPS_8BIT, pal, &pddPal, NULL)))
             Message(msgError, "CreatePalette() failed with %#08lx", hr);
         else
-            pddsPrimary->SetPalette(pddPal);	// ignore any error as there's nothing we can do
+            pddsPrimary->SetPalette(pddPal);    // ignore any error as there's nothing we can do
     }
 
     // Because the pixel format may have changed, we need to refresh the SAM CLUT pixel values

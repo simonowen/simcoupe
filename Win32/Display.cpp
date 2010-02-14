@@ -37,8 +37,7 @@
 
 bool* Display::pafDirty;
 
-static RECT rLastOverlay, rSource, rTarget;
-static DWORD dwColourKey;
+static RECT rSource, rTarget;
 
 
 bool Display::Init (bool fFirstInit_/*=false*/)
@@ -48,7 +47,6 @@ bool Display::Init (bool fFirstInit_/*=false*/)
     Exit(true);
     TRACE("-> Display::Init(%s)\n", fFirstInit_ ? "first" : "");
 
-    dwColourKey = 0;
     pafDirty = new bool[Frame::GetHeight()];
     SetDirty();
 
@@ -71,9 +69,6 @@ void Display::SetDirty ()
     // Mark all display lines dirty
     for (int i = 0, nHeight = Frame::GetHeight() ; i < nHeight ; i++)
         pafDirty[i] = true;
-
-    // Ensure the overlay is updated to reflect the changes
-    SetRectEmpty(&rLastOverlay);
 }
 
 
@@ -107,7 +102,6 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
     BYTE *pbSAM = pScreen_->GetLine(0), *pb = pbSAM;
     LONG lPitch = pScreen_->GetPitch();
 
-    bool fYUV = (ddsd.ddpfPixelFormat.dwFlags & DDPF_FOURCC) != 0;
     int nDepth = ddsd.ddpfPixelFormat.dwRGBBitCount;
     int nBottom = pScreen_->GetHeight() >> (GUI::IsActive() ? 0 : 1);
     int nWidth = pScreen_->GetPitch(), nRightHi = nWidth >> 3, nRightLo = nRightHi >> 1;
@@ -166,166 +160,42 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 
         case 16:
         {
-            if (fYUV)
-                nWidth >>= 1;
-            else
-                nWidth <<= 1;
+            nWidth <<= 1;
 
             for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
             {
                 if (!pfDirty[y])
                     continue;
 
-                // RGB?
-                if (!fYUV)
+                if (pfHiRes[y])
                 {
-                    if (pfHiRes[y])
+                    for (int x = 0 ; x < nRightHi ; x++)
                     {
+                        // Draw 8 pixels at a time
+                        pdw[0] = (aulPalette[pb[1]] << 16) | aulPalette[pb[0]];
+                        pdw[1] = (aulPalette[pb[3]] << 16) | aulPalette[pb[2]];
+                        pdw[2] = (aulPalette[pb[5]] << 16) | aulPalette[pb[4]];
+                        pdw[3] = (aulPalette[pb[7]] << 16) | aulPalette[pb[6]];
+
+                        pdw += 4;
+                        pb += 8;
+                    }
+
+                    if (fInterlace)
+                    {
+                        pb = pbSAM;
+                        pdw = pdwBack + lPitchDW/2;
+
                         for (int x = 0 ; x < nRightHi ; x++)
                         {
                             // Draw 8 pixels at a time
-                            pdw[0] = (aulPalette[pb[1]] << 16) | aulPalette[pb[0]];
-                            pdw[1] = (aulPalette[pb[3]] << 16) | aulPalette[pb[2]];
-                            pdw[2] = (aulPalette[pb[5]] << 16) | aulPalette[pb[4]];
-                            pdw[3] = (aulPalette[pb[7]] << 16) | aulPalette[pb[6]];
+                            pdw[0] = (aulScanline[pb[1]] << 16) | aulScanline[pb[0]];
+                            pdw[1] = (aulScanline[pb[3]] << 16) | aulScanline[pb[2]];
+                            pdw[2] = (aulScanline[pb[5]] << 16) | aulScanline[pb[4]];
+                            pdw[3] = (aulScanline[pb[7]] << 16) | aulScanline[pb[6]];
 
                             pdw += 4;
                             pb += 8;
-                        }
-
-                        if (fInterlace)
-                        {
-                            pb = pbSAM;
-                            pdw = pdwBack + lPitchDW/2;
-
-                            for (int x = 0 ; x < nRightHi ; x++)
-                            {
-                                // Draw 8 pixels at a time
-                                pdw[0] = (aulScanline[pb[1]] << 16) | aulScanline[pb[0]];
-                                pdw[1] = (aulScanline[pb[3]] << 16) | aulScanline[pb[2]];
-                                pdw[2] = (aulScanline[pb[5]] << 16) | aulScanline[pb[4]];
-                                pdw[3] = (aulScanline[pb[7]] << 16) | aulScanline[pb[6]];
-
-                                pdw += 4;
-                                pb += 8;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        for (int x = 0 ; x < nRightLo ; x++)
-                        {
-                            // Draw 8 pixels at a time
-                            pdw[0] = aulPalette[pb[0]] * 0x10001UL;
-                            pdw[1] = aulPalette[pb[1]] * 0x10001UL;
-                            pdw[2] = aulPalette[pb[2]] * 0x10001UL;
-                            pdw[3] = aulPalette[pb[3]] * 0x10001UL;
-                            pdw[4] = aulPalette[pb[4]] * 0x10001UL;
-                            pdw[5] = aulPalette[pb[5]] * 0x10001UL;
-                            pdw[6] = aulPalette[pb[6]] * 0x10001UL;
-                            pdw[7] = aulPalette[pb[7]] * 0x10001UL;
-
-                            pdw += 8;
-                            pb += 8;
-                        }
-
-                        if (fInterlace)
-                        {
-                            pb = pbSAM;
-                            pdw = pdwBack + lPitchDW/2;
-
-                            for (int x = 0 ; x < nRightLo ; x++)
-                            {
-                                // Draw 8 pixels at a time
-                                pdw[0] = aulScanline[pb[0]] * 0x10001UL;
-                                pdw[1] = aulScanline[pb[1]] * 0x10001UL;
-                                pdw[2] = aulScanline[pb[2]] * 0x10001UL;
-                                pdw[3] = aulScanline[pb[3]] * 0x10001UL;
-                                pdw[4] = aulScanline[pb[4]] * 0x10001UL;
-                                pdw[5] = aulScanline[pb[5]] * 0x10001UL;
-                                pdw[6] = aulScanline[pb[6]] * 0x10001UL;
-                                pdw[7] = aulScanline[pb[7]] * 0x10001UL;
-
-                                pdw += 8;
-                                pb += 8;
-                            }
-                        }
-                    }
-                }
-
-                // YUV
-                else
-                {
-                    if (pfHiRes[y])
-                    {
-                        for (int x = 0 ; x < nRightHi ; x++)
-                        {
-                            BYTE b0, b1;
-                            b0 = pb[0]; b1 = pb[1]; pdw[0] = ((DWORD)(awV[b1] | awY[b1]) << 16) | awU[b0] | awY[b0];
-                            b0 = pb[2]; b1 = pb[3]; pdw[1] = ((DWORD)(awV[b1] | awY[b1]) << 16) | awU[b0] | awY[b0];
-                            b0 = pb[4]; b1 = pb[5]; pdw[2] = ((DWORD)(awV[b1] | awY[b1]) << 16) | awU[b0] | awY[b0];
-                            b0 = pb[6]; b1 = pb[7]; pdw[3] = ((DWORD)(awV[b1] | awY[b1]) << 16) | awU[b0] | awY[b0];
-
-                            pdw += 4;
-                            pb += 8;
-                        }
-
-                        if (fInterlace)
-                        {
-                            pb = pbSAM;
-                            pdw = pdwBack + lPitchDW/2;
-
-                            for (int x = 0 ; x < nRightHi ; x++)
-                            {
-                                BYTE b0, b1;
-                                b0 = pb[0]; b1 = pb[1]; pdw[0] = ((DWORD)(awVs[b1] | awYs[b1]) << 16) | awUs[b0] | awYs[b0];
-                                b0 = pb[2]; b1 = pb[3]; pdw[1] = ((DWORD)(awVs[b1] | awYs[b1]) << 16) | awUs[b0] | awYs[b0];
-                                b0 = pb[4]; b1 = pb[5]; pdw[2] = ((DWORD)(awVs[b1] | awYs[b1]) << 16) | awUs[b0] | awYs[b0];
-                                b0 = pb[6]; b1 = pb[7]; pdw[3] = ((DWORD)(awVs[b1] | awYs[b1]) << 16) | awUs[b0] | awYs[b0];
-
-                                pdw += 4;
-                                pb += 8;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        for (int x = 0 ; x < nRightLo ; x++)
-                        {
-                            BYTE b;
-                            b = pb[0]; pdw[0] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
-                            b = pb[1]; pdw[1] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
-                            b = pb[2]; pdw[2] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
-                            b = pb[3]; pdw[3] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
-                            b = pb[4]; pdw[4] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
-                            b = pb[5]; pdw[5] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
-                            b = pb[6]; pdw[6] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
-                            b = pb[7]; pdw[7] = ((DWORD)(awV[b] | awY[b]) << 16) | awU[b] | awY[b];
-
-                            pdw += 8;
-                            pb += 8;
-                        }
-
-                        if (fInterlace)
-                        {
-                            pb = pbSAM;
-                            pdw = pdwBack + lPitchDW/2;
-
-                            for (int x = 0 ; x < nRightLo ; x++)
-                            {
-                                BYTE b;
-                                b = pb[0]; pdw[0] = ((DWORD)(awVs[b] | awYs[b]) << 16) | awUs[b] | awYs[b];
-                                b = pb[1]; pdw[1] = ((DWORD)(awVs[b] | awYs[b]) << 16) | awUs[b] | awYs[b];
-                                b = pb[2]; pdw[2] = ((DWORD)(awVs[b] | awYs[b]) << 16) | awUs[b] | awYs[b];
-                                b = pb[3]; pdw[3] = ((DWORD)(awVs[b] | awYs[b]) << 16) | awUs[b] | awYs[b];
-                                b = pb[4]; pdw[4] = ((DWORD)(awVs[b] | awYs[b]) << 16) | awUs[b] | awYs[b];
-                                b = pb[5]; pdw[5] = ((DWORD)(awVs[b] | awYs[b]) << 16) | awUs[b] | awYs[b];
-                                b = pb[6]; pdw[6] = ((DWORD)(awVs[b] | awYs[b]) << 16) | awUs[b] | awYs[b];
-                                b = pb[7]; pdw[7] = ((DWORD)(awVs[b] | awYs[b]) << 16) | awUs[b] | awYs[b];
-
-                                pdw += 8;
-                                pb += 8;
-                            }
                         }
                     }
                 }
@@ -570,13 +440,10 @@ void Display::Update (CScreen* pScreen_)
 
     // Now to get the image to the display...
 
-    LPDIRECTDRAWSURFACE pddsOverlay = pddsFront ? pddsFront : pddsBack;
-
     DDSURFACEDESC ddsdBack, ddsdPrimary;
     ddsdBack.dwSize = ddsdPrimary.dwSize = sizeof ddsdBack;
     pddsBack->GetSurfaceDesc(&ddsdBack);
 
-    bool fOverlay = (ddsdBack.ddsCaps.dwCaps & DDSCAPS_OVERLAY) != 0;
     bool fHalfHeight = !GUI::IsActive() && !GetOption(scanlines);
 
 
@@ -628,69 +495,8 @@ void Display::Update (CScreen* pScreen_)
     // Centre the target view within the target area
     OffsetRect(&rTo, (rFront.right - rTo.right) >> 1, (rFront.bottom - rTo.bottom) >> 1);
 
-    // If we're using an overlay we need to fill the visible area with the colour key
-    if (fOverlay)
-    {
-        if (fHalfHeight)
-            rBack.bottom >>= 1;
-
-        if (!GetOption(fullscreen))
-        {
-            // Restrict the target area to what can actually be displayed, as the overlay can't overlay the screen edges
-            RECT rClip;
-            HDC hdc = GetDC(g_hwnd);
-            GetClipBox(hdc, &rClip);
-            ReleaseDC(g_hwnd, hdc);
-            IntersectRect(&rClip, &rTo, &rClip);
-
-            // Modify the source screen portion to include only the portion visible in the clipped area
-            SetRect(&rBack, 0, 0, MulDiv(rBack.right, rClip.right, rTo.right),
-                                  MulDiv(rBack.bottom, rClip.bottom, rTo.bottom));
-
-            // Offset the target area to its final screen position in the window's client area
-            OffsetRect(&(rTo = rClip), ptOffset.x, ptOffset.y);
-        }
-
-
-        // If we have a middle buffer, we need to blit the image onto it to get the overlay to display it
-        if (pddsFront)
-            pddsFront->Blt(NULL, pddsBack, NULL, DDBLT_WAIT, 0);
-
-        // If we don't yet have a colour key, determine one now
-        if (!dwColourKey)
-            dwColourKey = Video::GetOverlayColourKey();
-
-        // Set up the destination colour key so the overlay doesn't appear over the top of everything
-        DDOVERLAYFX ddofx = { sizeof ddofx };
-        ddofx.dckDestColorkey.dwColorSpaceLowValue = ddofx.dckDestColorkey.dwColorSpaceHighValue = dwColourKey;
-
-        ProfileStart(Blt);
-
-        // If the overlay position is the same, force an update [removed as this was very slow on some cards!]
-        if (EqualRect(&rTo, &rLastOverlay))
-            ;//pddsOverlay->UpdateOverlay(&rBack, pddsPrimary, &rTo, DDOVER_REFRESHALL|DDOVER_KEYDESTOVERRIDE, NULL);
-
-        // Otherwise if it's not empty, show it and update it
-        else if (!IsRectEmpty(&rTo) && SUCCEEDED(hr = pddsOverlay->UpdateOverlay(&rBack, pddsPrimary, &rTo, DDOVER_SHOW | DDOVER_KEYDESTOVERRIDE, &ddofx)))
-            rLastOverlay = rTo;
-
-        // Otherwise hide it for now
-        else
-            pddsOverlay->UpdateOverlay(NULL, pddsPrimary, NULL, DDOVER_HIDE, NULL);
-
-        // With the overlay in place, draw any changed lines
-        DrawChanges(pScreen_, pddsBack);
-
-        // Fill the appropriate area with the colour key
-        DDBLTFX bltfx = { sizeof bltfx };
-        bltfx.dwFillColor = dwColourKey;
-        pddsPrimary->Blt(&rTo, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
-
-        ProfileEnd();
-    }
-
-    // Draw changes on the non-overlay surface
-    else if (DrawChanges(pScreen_, pddsBack))
+    // Draw any changes
+    if (DrawChanges(pScreen_, pddsBack))
     {
         if (fHalfHeight)
             rBack.bottom >>= 1;

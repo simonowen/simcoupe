@@ -128,23 +128,21 @@ FONT 8, "MS Sans Serif"
 BEGIN
     CONTROL         "Use DirectDraw hardware acceleration",IDC_HWACCEL,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,22,138,10
-    CONTROL         "Use RGB/YUV video overlay",IDC_OVERLAY,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,54,36,108,10
     CONTROL         "Stretch full-screen display to fill screen",
                     IDC_STRETCH_TO_FIT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    54,50,135,10
+                    54,36,135,10
     CONTROL         "Limit full-screen display to 256 colours",
                     IDC_8BIT_FULLSCREEN,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,54,64,134,10
+                    WS_TABSTOP,54,50,134,10
     CONTROL         "Auto-skip to maintain full emulation speed",
                     IDC_FRAMESKIP_AUTOMATIC,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,54,100,145,10
-    COMBOBOX        IDC_FRAMESKIP,89,114,88,70,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP,54,86,145,10
+    COMBOBOX        IDC_FRAMESKIP,89,100,88,70,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    ICON            IDI_DISPLAY,IDC_STATIC,7,7,21,20
-    GROUPBOX        "Settings",IDC_STATIC,45,7,170,74
-    GROUPBOX        "Frame skipping",IDC_STATIC,45,88,170,47
-    LTEXT           "Show:",IDC_STATIC,66,116,21,8
+    ICON            IDI_DISPLAY,IDC_STATIC,7,7,20,20
+    GROUPBOX        "Settings",IDC_STATIC,45,7,170,60
+    GROUPBOX        "Frame skipping",IDC_STATIC,45,74,170,47
+    LTEXT           "Show:",IDC_STATIC,66,102,21,8
 END
 
 IDD_PAGE_JOYSTICK DIALOG DISCARDABLE  0, 0, 235, 156

@@ -41,7 +41,6 @@ BYTE GetSizeCode (UINT uSize_);
 void PatchBlock (BYTE *pb_, BYTE *pbPatch_);
 
 void AdjustBrightness (BYTE &r_, BYTE &g_, BYTE &b_, int nAdjust_);
-void RGB2YUV (BYTE r_, BYTE g_, BYTE b_, BYTE *py_, BYTE *pu_, BYTE *pv_);
 DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_);
 DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, BYTE a_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_, DWORD dwAMask_);
 

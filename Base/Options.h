@@ -37,7 +37,6 @@ typedef struct
     int     depth;                  // Screen depth for full-screen
     int     borders;                // How much of the borders to show
     bool    stretchtofit;           // Stretch screen image to fit target area?
-    bool    overlay;                // Use a video overlay surface, if available?
     bool    hwaccel;                // Use hardware accelerated video?
     bool    greyscale;              // Use greyscale instead of colour?
     bool    filter;                 // Filter the OpenGL image when stretching?

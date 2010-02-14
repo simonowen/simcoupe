@@ -304,7 +304,7 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
         }
     }
 
-    // Ensure the window is repainted and the overlay also covers the
+    // Ensure the window is repainted
     Display::SetDirty();
 }
 
@@ -829,14 +829,6 @@ static MENUICON aMenuIcons[] =
 // Hook function for catching the Windows key
 LRESULT CALLBACK WinKeyHookProc (int nCode_, WPARAM wParam_, LPARAM lParam_)
 {
-    // Check if we're using an overlay video surface
-    DDSURFACEDESC ddsdBack = { sizeof(ddsdBack) };
-    bool fOverlay = pddsBack && SUCCEEDED(pddsBack->GetSurfaceDesc(&ddsdBack)) && (ddsdBack.ddsCaps.dwCaps & DDSCAPS_OVERLAY);
-
-    // Is Alt-PrintScrn being release while using an overlay video surface?
-    if (fOverlay && lParam_ < 0 && wParam_ == VK_SNAPSHOT && GetAsyncKeyState(VK_LMENU) < 0)
-        PostMessage(g_hwnd, WM_USER+0, 1234, 5678L);
-
     // Is this a full-screen Windows key press?
     if (nCode_ >= 0 && GetOption(fullscreen) && lParam_ >= 0 && (wParam_ == VK_LWIN || wParam_ == VK_RWIN))
     {
@@ -1177,12 +1169,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             return TRUE;
 
 
-        // Reposition any video overlay if the window is moved
-        case WM_MOVING:
-            Frame::Redraw();
-            break;
-
-
         // Mouse-hide timer has expired
         case WM_TIMER:
             // Make sure the timer is ours
@@ -1364,17 +1350,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             return 0;
         }
         break;
-
-        // Handler for Alt+PrintScrn being used with an overlay surface - warn the user
-        case WM_USER+0:
-        {
-            // Make sure it's really from us
-            if (wParam_ == 1234 && lParam_ == 5678)
-                MessageBox(hwnd_, "The Windows screenshot function cannot capture video overlays.\n\n"
-                                  "On the Display tab in the options, de-select \"Use RGB/YUV video overlay\", then try again.",
-                                  "SimCoupe", MB_ICONEXCLAMATION);
-            break;
-        }
 
         // Menu and commands
         case WM_COMMAND:
@@ -2398,7 +2373,6 @@ INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
         case WM_INITDIALOG:
         {
             SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_SETCHECK, GetOption(hwaccel) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_OVERLAY, BM_SETCHECK, GetOption(overlay) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_STRETCH_TO_FIT, BM_SETCHECK, GetOption(stretchtofit) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_8BIT_FULLSCREEN, BM_SETCHECK, (GetOption(depth) == 8) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
@@ -2418,7 +2392,6 @@ INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
 
             SendMessage(hwndCombo, CB_SETCURSEL, (!GetOption(frameskip)) ? 0 : GetOption(frameskip) - 1, 0L);
             SendMessage(hdlg_, WM_COMMAND, IDC_HWACCEL, 0L);
-            SendMessage(hdlg_, WM_COMMAND, IDC_OVERLAY, 0L);
             break;
         }
 
@@ -2429,14 +2402,13 @@ INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
             if (ppsn->hdr.code == PSN_APPLY)
             {
                 SetOption(hwaccel, SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(overlay, SendDlgItemMessage(hdlg_, IDC_OVERLAY, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(stretchtofit, SendDlgItemMessage(hdlg_, IDC_STRETCH_TO_FIT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(depth, (SendDlgItemMessage(hdlg_, IDC_8BIT_FULLSCREEN, BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 8 : 16);
 
                 int nFrameSkip = SendDlgItemMessage(hdlg_, IDC_FRAMESKIP_AUTOMATIC, BM_GETCHECK, 0, 0L) != BST_CHECKED;
                 SetOption(frameskip, nFrameSkip ? static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FRAMESKIP, CB_GETCURSEL, 0, 0L)) + 1 : 0);
 
-                if (Changed(hwaccel) || Changed(overlay) || (Changed(depth) && GetOption(fullscreen)))
+                if (Changed(hwaccel) || (Changed(depth) && GetOption(fullscreen)))
                     Frame::Init();
 
                 if (Changed(stretchtofit))
@@ -2450,25 +2422,6 @@ INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
         {
             switch (LOWORD(wParam_))
             {
-                case IDC_HWACCEL:
-                {
-                    OSVERSIONINFO osvi = { sizeof osvi };
-                    GetVersionEx(&osvi);
-
-                    // Enable the overlay if hardware acceleration is enabled and we're not on Vista or later
-                    bool fVistaOrLater = osvi.dwMajorVersion >= 6;
-                    bool fHwAccel = (SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_OVERLAY), fHwAccel && !fVistaOrLater);
-                    break;
-                }
-
-                case IDC_OVERLAY:
-                {
-                    bool fOverlay = (SendDlgItemMessage(hdlg_, IDC_OVERLAY, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_8BIT_FULLSCREEN), !fOverlay);
-                    break;
-                }
-
                 case IDC_FRAMESKIP_AUTOMATIC:
                 {
                     bool fAutomatic = (SendDlgItemMessage(hdlg_, IDC_FRAMESKIP_AUTOMATIC, BM_GETCHECK, 0, 0L) == BST_CHECKED);

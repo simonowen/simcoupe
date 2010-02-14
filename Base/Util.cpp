@@ -161,13 +161,6 @@ void AdjustBrightness (BYTE &r_, BYTE &g_, BYTE &b_, int nAdjust_)
     b_ = nOffset + (b_ * nMult / 100);
 }
 
-void RGB2YUV (BYTE r_, BYTE g_, BYTE b_, BYTE *py_, BYTE *pu_, BYTE *pv_)
-{
-    *py_ = (unsigned char)( ( (  66 * r_ + 129 * g_ +  25 * b_ + 128) >> 8)  +  16 );
-    *pu_ = (unsigned char)( ( ( -38 * r_ -  74 * g_ + 112 * b_ + 128) >> 8)  + 128 );
-    *pv_ = (unsigned char)( ( ( 112 * r_ -  94 * g_ -  18 * b_ + 128) >> 8)  + 128 );
-}
-
 DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_)
 {
     return RGB2Native(r_,g_,b_,0, dwRMask_,dwGMask_,dwBMask_,0);

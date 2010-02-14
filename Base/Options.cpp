@@ -72,7 +72,6 @@ OPTION aOptions[] =
     OPT_N("Depth",        depth,          16),        // Full screen mode uses 16-bit colour
     OPT_N("Borders",      borders,        2),         // Same amount of borders as previous version
     OPT_F("StretchToFit", stretchtofit,   false),     // Don't stretch image to fit the display area
-    OPT_F("Overlay",      overlay,        false),     // Don't use a video overlay surface
     OPT_F("HWAccel",      hwaccel,        true),      // Use hardware accelerated video
     OPT_F("Greyscale",    greyscale,      false),     // Colour display
     OPT_F("Filter",       filter,         false),     // Filter the OpenGL image when stretching
