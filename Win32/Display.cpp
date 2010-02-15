@@ -199,6 +199,46 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
                         }
                     }
                 }
+                else 
+                {
+                    for (int x = 0 ; x < nRightLo ; x++)
+                    {
+                        // Draw 8 pixels at a time
+                        pdw[0] = aulPalette[pb[0]] * 0x10001UL;
+                        pdw[1] = aulPalette[pb[1]] * 0x10001UL;
+                        pdw[2] = aulPalette[pb[2]] * 0x10001UL;
+                        pdw[3] = aulPalette[pb[3]] * 0x10001UL;
+                        pdw[4] = aulPalette[pb[4]] * 0x10001UL;
+                        pdw[5] = aulPalette[pb[5]] * 0x10001UL;
+                        pdw[6] = aulPalette[pb[6]] * 0x10001UL;
+                        pdw[7] = aulPalette[pb[7]] * 0x10001UL;
+
+                        pdw += 8;
+                        pb += 8;
+                        }
+
+                        if (fInterlace)
+                        {
+                        pb = pbSAM;
+                        pdw = pdwBack + lPitchDW/2;
+
+                        for (int x = 0 ; x < nRightLo ; x++)
+                        {
+                        // Draw 8 pixels at a time
+                        pdw[0] = aulScanline[pb[0]] * 0x10001UL;
+                        pdw[1] = aulScanline[pb[1]] * 0x10001UL;
+                        pdw[2] = aulScanline[pb[2]] * 0x10001UL;
+                        pdw[3] = aulScanline[pb[3]] * 0x10001UL;
+                        pdw[4] = aulScanline[pb[4]] * 0x10001UL;
+                        pdw[5] = aulScanline[pb[5]] * 0x10001UL;
+                        pdw[6] = aulScanline[pb[6]] * 0x10001UL;
+                        pdw[7] = aulScanline[pb[7]] * 0x10001UL;
+
+                        pdw += 8;
+                        pb += 8;
+                        }
+                    }
+                }
 
                 pfDirty[y] = false;
             }
