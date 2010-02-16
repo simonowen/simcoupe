@@ -225,7 +225,7 @@ void CDrive::ExecuteNext ()
 
         case WRITE_TRACK:
         {
-            ModifyStatus(bStatus, 0);
+            ModifyStatus(bStatus, BUSY);
             break;
         }
     }

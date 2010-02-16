@@ -1076,6 +1076,7 @@ BYTE CFloppyDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* 
         pb += uSize;
     }
 
+    m_bCommand = WRITE_TRACK;
     return m_bStatus = m_pFloppy->StartCommand(WRITE_TRACK, m_pTrack);
 }
 
