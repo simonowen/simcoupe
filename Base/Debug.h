@@ -121,7 +121,7 @@ class CCodeView : public CView
 {
     public:
         CCodeView (CWindow* pParent_);
-        ~CCodeView () { delete m_pszData; m_pszData = NULL; }
+        ~CCodeView () { delete[] m_pszData; m_pszData = NULL; }
 
     public:
         void SetAddress (CAddr Addr_, bool fForceTop_=false);
@@ -145,7 +145,7 @@ class CTextView : public CView
 {
     public:
         CTextView (CWindow* pParent_);
-        ~CTextView () { delete m_pszData; m_pszData = NULL; }
+        ~CTextView () { delete[] m_pszData; m_pszData = NULL; }
 
     public:
         void SetAddress (CAddr addr_, bool fForceTop_=false);
@@ -166,7 +166,7 @@ class CNumView : public CView
 {
     public:
         CNumView (CWindow* pParent_);
-        ~CNumView () { delete m_pszData; m_pszData = NULL; }
+        ~CNumView () { delete[] m_pszData; m_pszData = NULL; }
 
     public:
         void SetAddress (CAddr addr_, bool fForceTop_=false);
@@ -199,7 +199,7 @@ class CGraphicsView : public CView
 {
     public:
         CGraphicsView (CWindow* pParent_);
-        ~CGraphicsView () { delete m_pbData; }
+        ~CGraphicsView () { delete[] m_pbData; }
 
     public:
         void SetAddress (CAddr addr_, bool fForceTop_=false);
