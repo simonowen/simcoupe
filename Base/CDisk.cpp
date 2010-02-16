@@ -87,7 +87,11 @@
         }
     }
 
-    // Return the disk pointer, or NULL if we didn't recognise it
+    // Unrecognised, so close the underlying stream
+    if (!pDisk)
+        delete pStream;
+
+    // Return the disk pointer (or NULL)
     return pDisk;
 }
 
