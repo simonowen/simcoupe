@@ -1204,8 +1204,8 @@ BYTE CFileDisk::ReadData (BYTE *pbData_, UINT* puSize_)
     // Clear the sector out
     memset(pbData_, 0, *puSize_ = m_uSectorSize);
 
-    // The first sector is the directory entry we need to fill
-    if (!m_uTrack && m_uSector == 1)
+    // The first directory sector?
+    if (m_uTrack == 0 && m_uSide == 0 && m_uSector == 1)
     {
         // CODE file type
         pbData_[0] = 19;
