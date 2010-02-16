@@ -2,7 +2,7 @@
 //
 // CStream.cpp: Data stream abstraction classes
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -107,8 +107,8 @@ CStream::~CStream ()
             if ((hf = fopen(pcszPath_, "rb")))
             {
 #ifdef USE_ZLIB
-                BYTE abSig[sizeof GZ_SIGNATURE];
-                if ((fread(abSig, 1, sizeof abSig, hf) != sizeof abSig) || memcmp(abSig, GZ_SIGNATURE, sizeof abSig))
+                BYTE abSig[sizeof(GZ_SIGNATURE)];
+                if ((fread(abSig, 1, sizeof(abSig), hf) != sizeof(abSig)) || memcmp(abSig, GZ_SIGNATURE, sizeof(abSig)))
 #endif
                     return new CFileStream(hf, pcszPath_, fReadOnly_);
 #ifdef USE_ZLIB
@@ -138,7 +138,7 @@ CFileStream::CFileStream (FILE* hFile_, const char* pcszPath_, bool fReadOnly_/*
     struct stat st;
 
     if (hFile_ && !stat(pcszPath_, &st))
-        m_uSize = st.st_size;
+        m_uSize = static_cast<size_t>(st.st_size);
 
     for (const char* p = pcszPath_ ; *p ; p++)
     {
@@ -253,7 +253,10 @@ CZLibStream::CZLibStream (gzFile hFile_, const char* pcszPath_, bool fReadOnly_/
             pcszPath_ = p+1;
     }
 
-    m_pszFile = strdup(pcszPath_);
+    char szFile[MAX_PATH+7];
+    strncpy(szFile, pcszPath_, MAX_PATH);
+    strcat(szFile, " (gzip)");
+    m_pszFile = strdup(szFile);
 
     // We can't determine the size without an expensive seek, reading the whole file
     m_uSize = 0;
@@ -311,12 +314,13 @@ CZipStream::CZipStream (unzFile hFile_, const char* pcszPath_, bool fReadOnly_/*
     : CStream(pcszPath_, fReadOnly_), m_hFile(hFile_)
 {
     unz_file_info sInfo;
-    char szFile[MAX_PATH];
+    char szFile[MAX_PATH+6];
 
     // Get details of the current file
-    if (unzGetCurrentFileInfo(hFile_, &sInfo, szFile, sizeof(szFile), NULL, 0, NULL, 0) == UNZ_OK)
+    if (unzGetCurrentFileInfo(hFile_, &sInfo, szFile, MAX_PATH, NULL, 0, NULL, 0) == UNZ_OK)
     {
         m_uSize = sInfo.uncompressed_size;
+        strcat(szFile, " (zip)");
         m_pszFile = strdup(szFile);
     }
 }
