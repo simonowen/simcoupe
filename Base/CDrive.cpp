@@ -123,6 +123,10 @@ void CDrive::ExecuteNext ()
 {
     BYTE bStatus = m_sRegs.bStatus;
 
+    // Nothing to do if there's no disk in the drive
+    if (!m_pDisk)
+        return;
+
     // Continue processing the background
     if (m_pDisk->IsBusy(&bStatus))
     {
@@ -254,14 +258,6 @@ BYTE CDrive::In (WORD wPort_)
             // Type 1 command mode uses more status bits
             if (m_sRegs.bCommand <= STEP_OUT_UPD)
             {
-                // Set the write protect bit if the disk is read-only
-                if (m_pDisk->IsReadOnly())
-                    bRet |= WRITE_PROTECT;
-
-                // If spin-up wasn't disabled, flag it complete
-                if (!(m_sRegs.bCmdFlags & FLAG_SPINUP))
-                    bRet |= SPIN_UP;
-
                 // Set the track 0 bit state
                 if (!m_nHeadPos)
                 {
@@ -269,10 +265,22 @@ BYTE CDrive::In (WORD wPort_)
                     m_sRegs.bTrack = 0;         // this is updated even in non-update mode!
                 }
 
-                // Toggle the index pulse status bit periodically to show the disk is spinning
-                static int n = 0;
-                if (IsMotorOn() && !(++n % 1024))   // FIXME: use an event for the correct index timing
-                    bRet |= INDEX_PULSE;
+                // The following only apply if there's a disk in the drive
+                if (m_pDisk)
+                {
+                    // Set the write protect bit if the disk is read-only
+                    if (m_pDisk->IsReadOnly())
+                        bRet |= WRITE_PROTECT;
+
+                    // If spin-up wasn't disabled, flag it complete
+                    if (!(m_sRegs.bCmdFlags & FLAG_SPINUP))
+                        bRet |= SPIN_UP;
+
+                    // Toggle the index pulse status bit periodically to show the disk is spinning
+                    static int n = 0;
+                    if (IsMotorOn() && !(++n % 1024))   // FIXME: use an event for the correct index timing
+                        bRet |= INDEX_PULSE;
+                }
             }
 
             // SAM DICE relies on a strange error condition, which requires special handling
@@ -304,11 +312,6 @@ BYTE CDrive::In (WORD wPort_)
 
         case regData:
         {
-            // ToDo:  Use a real SAM to try booting BDOS without an ATOM connected, to see whether data written to the data
-            // register can be read back, when DRQ is not active.  BDOS hangs in SimCoupe as the 0xa0 (master select) is written,
-            // and happens to be read back from the data port.  BDOS think the drive is BUSY bit is set in the ATA status, and
-            // waits forever for it to clear!
-
             // Data available?
             if (m_uBuffer)
             {
@@ -373,10 +376,6 @@ BYTE CDrive::In (WORD wPort_)
 
 void CDrive::Out (WORD wPort_, BYTE bVal_)
 {
-    // Ignore the write if there's no disk
-    if (!m_pDisk)
-        return;
-
     // Register to write to is the bottom 3 bits of the port
     switch (wPort_ & 0x03)
     {
@@ -404,20 +403,22 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                 // Restore disk head to track 0
                 case RESTORE:
                 {
+                    TRACE("FDC: RESTORE\n");
+
                     // Move to track 0
                     m_sRegs.bTrack = m_nHeadPos = 0;
-                    TRACE("FDC: RESTORE\n");
                     break;
                 }
 
                 // Seek the track in the data register
                 case SEEK:
                 {
+                    TRACE("FDC: SEEK to track %d\n", m_sRegs.bData);
+
                     // Move the head and update the direction flag
                     m_sRegs.fDir = (m_sRegs.bData > m_sRegs.bTrack);
                     m_sRegs.bTrack = m_nHeadPos = m_sRegs.bData;
 
-                    TRACE("FDC: SEEK to track %d\n", m_sRegs.bData);
                     break;
                 }
 
@@ -429,6 +430,8 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                 case STEP_OUT_UPD:
                 case STEP_OUT_NUPD:
                 {
+                    TRACE("FDC: STEP to track %d (%d)\n", m_nHeadPos, m_sRegs.bTrack);
+
                     // Step in/out commands update the direction flag
                     if (m_sRegs.bCommand & 0x40)
                         m_sRegs.fDir = !!(m_sRegs.bCommand & FLAG_DIR);
@@ -440,7 +443,6 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                     if (m_sRegs.bCommand & FLAG_UPDATE)
                         m_sRegs.bTrack = m_nHeadPos;
 
-                    TRACE("FDC: STEP to track %d (%d)\n", m_nHeadPos, m_sRegs.bTrack);
                     break;
                 }
 
@@ -452,9 +454,9 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                 case READ_MSECTOR:
                 {
                     TRACE("FDC: READ_xSECTOR (from side %d, track %d, sector %d)\n", m_sRegs.bSide, m_sRegs.bTrack, m_sRegs.bSector);
-                    ModifyStatus(BUSY, 0);
 
-                    m_pDisk->LoadTrack(m_sRegs.bSide, m_nHeadPos);
+                    ModifyStatus(BUSY, 0);
+                    if (m_pDisk) m_pDisk->LoadTrack(m_sRegs.bSide, m_nHeadPos);
                     break;
                 }
 
@@ -463,9 +465,9 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                 case WRITE_MSECTOR:
                 {
                     TRACE("FDC: WRITE_xSECTOR (to side %d, track %d, sector %d)\n", m_sRegs.bSide, m_sRegs.bTrack, m_sRegs.bSector);
-                    ModifyStatus(BUSY, 0);
 
-                    m_pDisk->LoadTrack(m_sRegs.bSide, m_nHeadPos);
+                    ModifyStatus(BUSY, 0);
+                    if (m_pDisk) m_pDisk->LoadTrack(m_sRegs.bSide, m_nHeadPos);
                     break;
                 }
 
@@ -475,9 +477,9 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                 case READ_ADDRESS:
                 {
                     TRACE("FDC: READ_ADDRESS\n");
-                    ModifyStatus(BUSY, 0);
 
-                    m_pDisk->LoadTrack(m_sRegs.bSide, m_nHeadPos);
+                    ModifyStatus(BUSY, 0);
+                    if (m_pDisk) m_pDisk->LoadTrack(m_sRegs.bSide, m_nHeadPos);
                     break;
                 }
                 break;
@@ -485,26 +487,27 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                 case READ_TRACK:
                 {
                     TRACE("FDC: READ_TRACK\n");
-                    ModifyStatus(BUSY, 0);
 
-                    m_pDisk->LoadTrack(m_sRegs.bSide, m_nHeadPos);
+                    ModifyStatus(BUSY, 0);
+                    if (m_pDisk) m_pDisk->LoadTrack(m_sRegs.bSide, m_nHeadPos);
                     break;
                 }
 
                 case WRITE_TRACK:
                     TRACE("FDC: WRITE_TRACK\n");
-                    ModifyStatus(BUSY, 0);
 
-                    // Fail if read-only
-                    if (m_pDisk->IsReadOnly())
-                        ModifyStatus(WRITE_PROTECT, BUSY);
-                    else
+                    if (m_pDisk)
                     {
-                        // Set buffer pointer and count ready to write
-                        m_pbBuffer = m_abBuffer;
-                        m_uBuffer = sizeof(m_abBuffer);
-
-                        ModifyStatus(DRQ, 0);
+                        // Fail if read-only
+                        if (m_pDisk->IsReadOnly())
+                            ModifyStatus(WRITE_PROTECT, 0);
+                        else
+                        {
+                            // Set buffer pointer and count ready to write
+                            m_pbBuffer = m_abBuffer;
+                            m_uBuffer = sizeof(m_abBuffer);
+                            ModifyStatus(BUSY|DRQ, 0);
+                        }
                     }
                     break;
 
@@ -517,11 +520,13 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                     TRACE("FDC: FORCE_INTERRUPT\n");
 
                     BYTE bStatus;
-                    m_pDisk->IsBusy(&bStatus, true);    // Wait until any active command is complete
+                    if (m_pDisk) m_pDisk->IsBusy(&bStatus, true);   // Wait until any active command is complete
 
-                    ModifyStatus(m_sRegs.bStatus &= MOTOR_ON,0);    // Leave motor on but reset everything else
-                    m_sRegs.bCommand = 0;                           // Return to type 1 mode
-                    m_uBuffer = 0;                                  // No data available/required
+                    ModifyStatus(m_sRegs.bStatus &= MOTOR_ON, ~MOTOR_ON);   // Leave motor on but reset everything else
+
+                    // Return to type 1 mode, no data available/required
+                    m_sRegs.bCommand = 0;
+                    m_uBuffer = 0;
                     break;
                 }
             }
@@ -824,7 +829,7 @@ BYTE CDrive::WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_)
 
             // Store a pointer to the data, and skip it in the source block
             papbData[nSectors] = pb;
-            pb += 128 << (paID[nSectors].bSize & 7);
+            pb += 128 << (paID[nSectors].bSize & 3);
             fValid &= (pb < pbEnd);
 
             fValid &= ExpectBlock(pb, pbEnd, 0xf7, 1, 1);   // CRC: 1 byte of 0xf7
