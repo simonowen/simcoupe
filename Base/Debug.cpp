@@ -214,7 +214,7 @@ bool OnLmprNotify (EXPR *pExpr_)
     return true;
 }
 
-// Notify handler for Change Lmpr input
+// Notify handler for Change Hmpr input
 bool OnHmprNotify (EXPR *pExpr_)
 {
     int nPage = Expr::Eval(pExpr_) & HMPR_PAGE_MASK;
@@ -223,7 +223,7 @@ bool OnHmprNotify (EXPR *pExpr_)
     return true;
 }
 
-// Notify handler for Change Lmpr input
+// Notify handler for Change Vmpr input
 bool OnVmprNotify (EXPR *pExpr_)
 {
     int nPage = Expr::Eval(pExpr_) & VMPR_PAGE_MASK;
@@ -232,7 +232,7 @@ bool OnVmprNotify (EXPR *pExpr_)
     return true;
 }
 
-// Notify handler for Change Lmpr input
+// Notify handler for Change Mode input
 bool OnModeNotify (EXPR *pExpr_)
 {
     int nMode = Expr::Eval(pExpr_);
@@ -848,8 +848,8 @@ bool CTextView::cmdNavigate (int nKey_, int nMods_)
         case GK_DOWN:       addr += 32; break;
         case GK_LEFT:       addr--;     break;
         case GK_RIGHT:      addr++;     break;
-        case GK_PAGEUP:     addr -= (m_uRows-1) << 5; break;
-        case GK_PAGEDOWN:   addr += (m_uRows-1) << 5; break;
+        case GK_PAGEUP:     addr -= m_uRows*32; break;
+        case GK_PAGEDOWN:   addr += m_uRows*32; break;
 
         default:
             return false;
@@ -934,12 +934,12 @@ bool CNumView::cmdNavigate (int nKey_, int nMods_)
         case 'n': case 'N':
             return true;
 
-        case GK_UP:         addr -= 12; break;
-        case GK_DOWN:       addr += 12; break;
+        case GK_UP:         addr -= 11; break;
+        case GK_DOWN:       addr += 11; break;
         case GK_LEFT:       addr--;     break;
         case GK_RIGHT:      addr++;     break;
-        case GK_PAGEUP:     addr -= (m_uRows-1) * 12; break;
-        case GK_PAGEDOWN:   addr += (m_uRows-1) * 12; break;
+        case GK_PAGEUP:     addr -= m_uRows*11; break;
+        case GK_PAGEDOWN:   addr += m_uRows*11; break;
 
         default:
             return false;
@@ -1431,8 +1431,8 @@ CAddr GetPrevInstruction (CAddr addr_)
             return a;
     }
 
-    // No match found, so return the same address
-    return addr_;
+    // No match found, so return 1 byte back instead
+    return addr_-1;
 }
 
 bool IsExecBreakpoint (CAddr addr_)
