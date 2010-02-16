@@ -2,7 +2,7 @@
 //
 // CDisk.cpp: C++ classes used for accessing all SAM disk image types
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -656,7 +656,7 @@ CEDSKDisk::CEDSKDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UIN
 
     BYTE ab[256];
     EDSK_HEADER* peh = reinterpret_cast<EDSK_HEADER*>(ab);
-    BYTE* pbSizes = ab+sizeof(EDSK_HEADER);
+    BYTE* pbSizes = reinterpret_cast<BYTE*>(peh+1);
 
     pStream_->Rewind();
     pStream_->Read(ab, sizeof(ab));
@@ -664,12 +664,15 @@ CEDSKDisk::CEDSKDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UIN
     m_uSides = peh->bSides;
     m_uTracks = peh->bTracks;
 
+    bool fEDSK = peh->szSignature[0] == EDSK_SIGNATURE[0];
+    WORD wDSKTrackSize = peh->abTrackSize[0] | (peh->abTrackSize[1] << 8);  // DSK only
+
     for (BYTE cyl = 0 ; cyl < peh->bTracks ; cyl++)
     {
         for (BYTE head = 0 ; head < peh->bSides ; head++)
         {
             // Nothing to do for empty tracks
-            UINT size = pbSizes[cyl*peh->bSides + head] << 8;
+            UINT size = fEDSK ? (pbSizes[cyl*peh->bSides + head] << 8) : wDSKTrackSize;
             if (!size)
                 continue;
 
@@ -1080,6 +1083,7 @@ BYTE CFloppyDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* 
         pb += uSize;
     }
 
+    // Start the format command
     m_bCommand = WRITE_TRACK;
     return m_bStatus = m_pFloppy->StartCommand(WRITE_TRACK, m_pTrack);
 }
