@@ -34,7 +34,6 @@ typedef struct
     int     scanlevel;              // Scanline brightness level
     int     mode3;                  // Which mode3 pixels to show on low-res displays?
     int     fullscreen;             // Start in full-screen mode?
-    int     depth;                  // Screen depth for full-screen
     int     borders;                // How much of the borders to show
     bool    stretchtofit;           // Stretch screen image to fit target area?
     bool    hwaccel;                // Use hardware accelerated video?

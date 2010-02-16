@@ -87,7 +87,6 @@ void CAboutDialog::EraseBackground (CScreen* pScreen_)
     pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, WHITE);
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 
 CFileDialog::CFileDialog (const char* pcszCaption_, const char* pcszPath_, const FILEFILTER* pcFileFilter_,
@@ -561,38 +560,34 @@ class CDisplayOptions : public CDialog
 {
     public:
         CDisplayOptions (CWindow* pParent_)
-            : CDialog(pParent_, 300, 231, "Display Settings")
+            : CDialog(pParent_, 300, 206, "Display Settings")
         {
             new CIconControl(this, 10, 10, &sDisplayIcon);
 
-            new CFrameControl(this, 50, 17, 238, 185, WHITE);
+            new CFrameControl(this, 50, 17, 238, 160, WHITE);
             new CTextControl(this, 60, 13, "Settings", YELLOW_8, BLUE_2);
 
             m_pFullScreen = new CCheckBox(this, 60, 35, "Full-screen");
 
                 m_pScaleText = new CTextControl(this, 85, 57, "Windowed mode scale:");
                 m_pScale = new CComboBox(this, 215, 54, "0.5x|1x|1.5x", 50);
-                m_pDepthText = new CTextControl(this, 85, 79, "Full-screen colour depth:");
-                m_pDepth = new CComboBox(this, 215, 76, "8-bit|16-bit|32-bit", 60);
 
-            new CFrameControl(this, 63, 102, 212, 1, GREY_6);
+            new CFrameControl(this, 63, 77, 212, 1, GREY_6);
 
-            m_pStretch = new CCheckBox(this, 60, 115, "Stretch to fit");
-            m_pSync = new CCheckBox(this, 60, 136, "Sync to 50Hz");
-            m_pAutoFrameSkip = new CCheckBox(this, 60, 157, "Auto frame-skip");
-            m_pScanlines = new CCheckBox(this, 165, 115, "Display scanlines");
-            m_pRatio54 = new CCheckBox(this, 165, 136, "5:4 pixel shape");
-            m_pFrameSkip = new CComboBox(this, 165, 154, "Show ALL frames|Show every 2nd|Show every 3rd|Show every 4th|Show every 5th|Show every 6th|Show every 7th|Show every 8th|Show every 9th|Show every 10th", 115);
+            m_pStretch = new CCheckBox(this, 60, 90, "Stretch to fit");
+            m_pSync = new CCheckBox(this, 60, 111, "Sync to 50Hz");
+            m_pAutoFrameSkip = new CCheckBox(this, 60, 132, "Auto frame-skip");
+            m_pScanlines = new CCheckBox(this, 165, 90, "Display scanlines");
+            m_pRatio54 = new CCheckBox(this, 165, 111, "5:4 pixel shape");
+            m_pFrameSkip = new CComboBox(this, 165, 129, "Show ALL frames|Show every 2nd|Show every 3rd|Show every 4th|Show every 5th|Show every 6th|Show every 7th|Show every 8th|Show every 9th|Show every 10th", 115);
 
-            new CTextControl(this, 60, 180, "Viewable area:");
-            m_pViewArea = new CComboBox(this, 140, 177, "No borders|Small borders|Short TV area (default)|TV visible area|Complete scan area", 140);
+            new CTextControl(this, 60, 155, "Viewable area:");
+            m_pViewArea = new CComboBox(this, 140, 152, "No borders|Small borders|Short TV area (default)|TV visible area|Complete scan area", 140);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
 
             // Set the initial state from the options
-            int anDepths[] = { 0, 1, 2, 2 };
-            m_pDepth->Select(anDepths[((GetOption(depth) >> 3) - 1) & 3]);
             m_pScale->Select(GetOption(scale)-1);
 
             m_pFullScreen->SetChecked(GetOption(fullscreen) != 0);
@@ -619,8 +614,6 @@ class CDisplayOptions : public CDialog
             {
                 SetOption(fullscreen, m_pFullScreen->IsChecked());
 
-                int anDepths[] = { 8, 16, 32 };
-                SetOption(depth, anDepths[m_pDepth->GetSelected()]);
                 SetOption(scale, m_pScale->GetSelected()+1);
 
                 SetOption(sync, m_pSync->IsChecked());
@@ -634,7 +627,7 @@ class CDisplayOptions : public CDialog
                 SetOption(borders, m_pViewArea->GetSelected());
 
                 if (Changed(borders) || Changed(fullscreen) || Changed(ratio5_4) || Changed(scanlines) ||
-                    Changed(scanlevel) || (GetOption(fullscreen) && Changed(depth)))
+                    Changed(scanlevel) || (GetOption(fullscreen)))
                 {
                     Frame::Init();
 
@@ -651,8 +644,6 @@ class CDisplayOptions : public CDialog
                 bool fFullScreen = m_pFullScreen->IsChecked();
                 m_pScaleText->Enable(!fFullScreen);
                 m_pScale->Enable(!fFullScreen);
-                m_pDepthText->Enable(fFullScreen);
-                m_pDepth->Enable(fFullScreen);
 
                 m_pFrameSkip->Enable(!m_pAutoFrameSkip->IsChecked());
 
@@ -667,8 +658,8 @@ class CDisplayOptions : public CDialog
 
     protected:
         CCheckBox *m_pFullScreen, *m_pStretch, *m_pSync, *m_pAutoFrameSkip, *m_pScanlines, *m_pRatio54;
-        CComboBox *m_pScale, *m_pDepth, *m_pFrameSkip, *m_pViewArea;
-        CTextControl *m_pScaleText, *m_pDepthText;
+        CComboBox *m_pScale, *m_pFrameSkip, *m_pViewArea;
+        CTextControl *m_pScaleText;
         CTextButton *m_pOK, *m_pCancel;
 };
 

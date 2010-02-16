@@ -69,7 +69,7 @@ bool Video::Init (bool fFirstInit_)
     else
     {
         // Get the driver capabilites so we know what we need to set up
-        ddcaps.dwSize = sizeof ddcaps;
+        ddcaps.dwSize = sizeof(ddcaps);
         pdd->GetCaps(&ddcaps, NULL);
 
         // Use exclusive mode for full-screen, or normal mode for windowed
@@ -78,58 +78,32 @@ bool Video::Init (bool fFirstInit_)
             Message(msgError, "SetCooperativeLevel() failed with %#08lx", hr);
         else
         {
-            // Get the dimensions of viewable area as displayed on the screen
-            DWORD dwWidth = Frame::GetWidth(), dwHeight = Frame::GetHeight();
-            TRACE("Frame:: dwWidth = %lu, dwHeight = %lu\n", dwWidth, dwHeight);
-            if (GetOption(ratio5_4))
-                dwWidth = MulDiv(dwWidth, 5, 4);
-
-            // Work out the screen dimensions needed for full screen mode
-            int nWidth, nHeight, nDepth = GetOption(depth);
+            DDSURFACEDESC ddsd = { sizeof(ddsd) };
 
             // Full screen mode requires a display mode change
             if (GetOption(fullscreen))
             {
-                // Work out the best-fit mode
-                if (dwWidth <= 640 && dwHeight <= 480)
-                    nWidth = 640, nHeight = 480;
-                else if (dwWidth <= 800 && dwHeight <= 600)
-                    nWidth = 800, nHeight = 600;
-                else
-                    nWidth = 1024, nHeight = 768;
+                // Set up safe fullscreen defaults that will fit the largest SAM view (768x624)
+                int nWidth = 1024, nHeight = 768, nDepth = 32;
+
+                // Fetch the windowed mode details to use for fullscreen
+                if (SUCCEEDED(pdd->GetDisplayMode(&ddsd)) && !(~ddsd.dwFlags & (DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT)))
+                {
+                    nWidth = ddsd.dwWidth;
+                    nHeight = ddsd.dwHeight;
+                    nDepth = ddsd.ddpfPixelFormat.dwRGBBitCount;
+                }
 
                 // Loop while we can't select the mode we want
-                while (FAILED(hr = pdd->SetDisplayMode(nWidth, nHeight, nDepth)))
+                if (FAILED(hr = pdd->SetDisplayMode(nWidth, nHeight, nDepth)))
                 {
-                    TRACE("!!! Failed to set %dx%dx%d mode!\n", nWidth, nHeight, nDepth);
-
-                    // If we're already on the lowest depth, try lower resolutions
-                    if (nDepth == 8)
-                    {
-                        if (nHeight == 768)
-                            nWidth = 800, nHeight = 600;
-                        else if (nHeight == 600)
-                            nWidth = 640, nHeight = 480;
-                        else if (nHeight == 480)
-                        {
-                            Message(msgError, "SetDisplayMode() failed with ALL modes! (%#08lx)\n", hr);
-                            return false;
-                        }
-                    }
-
-                    // Fall back to a lower depth
-                    else if (nDepth == 24)
-                        nDepth = 16;
-                    else
-                        nDepth >>= 1;
+                    TRACE("!!! Failed to set %dx%dx%d mode! (%#08lx)\n", nWidth, nHeight, nDepth, hr);
+                    return false;
                 }
             }
 
-            // Remember the depth we're using, just in case it changed
-            SetOption(depth, nDepth);
-
             // Set up what we need for the primary surface
-            DDSURFACEDESC ddsd = { sizeof ddsd };
+            memset(&ddsd, 0, sizeof(ddsd));
             ddsd.dwFlags = DDSD_CAPS;
             ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
@@ -151,8 +125,8 @@ bool Video::Init (bool fFirstInit_)
             else
             {
                 // Get the dimensions needed by the back buffer
-                dwWidth = Frame::GetWidth();
-                dwHeight = Frame::GetHeight();
+                DWORD dwWidth = Frame::GetWidth();
+                DWORD dwHeight = Frame::GetHeight();
 
                 // Set up the required capabilities for the back buffer
                 DWORD dwRequiredFX = (DDFXCAPS_BLTSTRETCHX | DDFXCAPS_BLTSTRETCHY);
@@ -212,7 +186,7 @@ void Video::Exit (bool fReInit_/*=false*/)
 HRESULT ClearSurface (LPDIRECTDRAWSURFACE pdds_)
 {
     // Black fill colour
-    DDBLTFX bltfx = { sizeof bltfx };
+    DDBLTFX bltfx = { sizeof(bltfx) };
     bltfx.dwFillColor = 0;
 
     // Fill the surface to clear it
@@ -224,7 +198,7 @@ LPDIRECTDRAWSURFACE CreateSurface (DWORD dwCaps_, DWORD dwWidth_/*=0*/, DWORD dw
 {
     LPDIRECTDRAWSURFACE pdds = NULL;
 
-    DDSURFACEDESC ddsd = { sizeof ddsd };
+    DDSURFACEDESC ddsd = { sizeof(ddsd) };
     ddsd.dwFlags = DDSD_CAPS;
     ddsd.ddsCaps.dwCaps = dwCaps_;
     ddsd.dwWidth = dwWidth_;
@@ -288,7 +262,7 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
     fDimmed_ |= (g_fPaused && !g_fFrameStep) || GUI::IsActive() || (!g_fActive && GetOption(pauseinactive));
 
     // Ok, let's look at what the target requirements are, as it determines the format we draw in
-    DDSURFACEDESC ddsd = { sizeof ddsd };
+    DDSURFACEDESC ddsd = { sizeof(ddsd) };
     (pddsFront ? pddsFront : pddsBack)->GetSurfaceDesc(&ddsd);
     bool fPalette = (ddsd.ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8) != 0;
 

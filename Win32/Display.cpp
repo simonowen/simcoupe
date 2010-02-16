@@ -2,7 +2,7 @@
 //
 // Display.cpp: Win32 display rendering
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -516,7 +516,7 @@ void Display::Update (CScreen* pScreen_)
     // rTo is the target area needed for our screen display
     RECT rTo = rFront;
 
-    // Restrict the target area to maintain the aspect ratio?
+    // Stretch to fit, preserving aspect ratio?
     if (GetOption(stretchtofit) || !GetOption(fullscreen))
     {
         // Fit to the width of the target region if it's too narrow
@@ -527,10 +527,18 @@ void Display::Update (CScreen* pScreen_)
         else if (MulDiv(rFrom.right, rFront.bottom, rFrom.bottom) > rFront.right)
             rTo.bottom = MulDiv(rFront.right, rFrom.bottom, rFrom.right);
     }
-
-    // No-stretch mode, useful for video cards that don't have hardware support
     else
-        SetRect(&rTo, 0, 0, rFrom.right, rFrom.bottom);
+    {
+        // Start from a low-res 1:1 pixel back image size
+        SetRect(&rTo, 0, 0, rFrom.right/2, rFrom.bottom/2);
+
+        // Permit pixel-doubling to scale, even in non-stretch mode
+        while (rTo.right*2 <= rFront.right && rTo.bottom*2 <= rFront.bottom)
+        {
+            rTo.right <<= 1;
+            rTo.bottom <<= 1;
+        }
+    }
 
     // Centre the target view within the target area
     OffsetRect(&rTo, (rFront.right - rTo.right) >> 1, (rFront.bottom - rTo.bottom) >> 1);

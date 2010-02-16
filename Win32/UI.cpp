@@ -586,8 +586,6 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
 
                 if (!GetOption(fullscreen))
                     UI::ResizeWindow(!GetOption(stretchtofit));
-                else if (!GetOption(stretchtofit))
-                    Frame::Init();
 
                 Frame::SetStatus("%s aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
                 break;
@@ -1062,20 +1060,21 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             int nScale = (rWindow.right + (nWidth >> 1)) / nWidth;
             SetOption(scale, nScale + !nScale);
 
-            // If we can't use free scaling, stick to multiples of half the screen size to stop software mode struggling
-            if ((GetAsyncKeyState(VK_SHIFT) < 0) ^ !GetOption(stretchtofit))
-            {
-                // Form the new client size
-                nWidth *= GetOption(scale);
-                nHeight *= GetOption(scale);
-            }
-            else
+            // Holding shift permits free scaling
+            if (GetAsyncKeyState(VK_SHIFT) < 0)
             {
                 if (rWindow.bottom != nHeight*GetOption(scale))
                     SetOption(scale, 0);
 
                 nWidth = rWindow.right;
                 nHeight = rWindow.bottom;
+            }
+            // Otherwise stick to exact multiples only
+            else
+            {
+                // Form the new client size
+                nWidth *= GetOption(scale);
+                nHeight *= GetOption(scale);
             }
 
             // Add the non-client region back on to give a full window size
@@ -2374,7 +2373,6 @@ INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
         {
             SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_SETCHECK, GetOption(hwaccel) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_STRETCH_TO_FIT, BM_SETCHECK, GetOption(stretchtofit) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_8BIT_FULLSCREEN, BM_SETCHECK, (GetOption(depth) == 8) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
             SendDlgItemMessage(hdlg_, IDC_FRAMESKIP_AUTOMATIC, BM_SETCHECK, !GetOption(frameskip) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendMessage(hdlg_, WM_COMMAND, IDC_FRAMESKIP_AUTOMATIC, 0L);
@@ -2403,12 +2401,11 @@ INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
             {
                 SetOption(hwaccel, SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(stretchtofit, SendDlgItemMessage(hdlg_, IDC_STRETCH_TO_FIT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(depth, (SendDlgItemMessage(hdlg_, IDC_8BIT_FULLSCREEN, BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 8 : 16);
 
                 int nFrameSkip = SendDlgItemMessage(hdlg_, IDC_FRAMESKIP_AUTOMATIC, BM_GETCHECK, 0, 0L) != BST_CHECKED;
                 SetOption(frameskip, nFrameSkip ? static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FRAMESKIP, CB_GETCURSEL, 0, 0L)) + 1 : 0);
 
-                if (Changed(hwaccel) || (Changed(depth) && GetOption(fullscreen)))
+                if (Changed(hwaccel))
                     Frame::Init();
 
                 if (Changed(stretchtofit))
