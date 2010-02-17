@@ -1527,8 +1527,8 @@ void cmdStepOver ()
         Break.pAddr = phys_read_addr(wPC+2);
 
     // 3-byte CALL, CALL cc or backwards JP cc?
-    else if (bOpcode == OP_CALL || (bOpcode & 0xc7) == 0xc4
-           || (bOpcode & 0xc7) == 0xc2 && read_word(wPC+1) <= wPC)
+    else if (bOpcode == OP_CALL || (bOpcode & 0xc7) == 0xc4 ||
+           ((bOpcode & 0xc7) == 0xc2 && read_word(wPC+1) <= wPC))
         Break.pAddr = phys_read_addr(wPC+3);
 
     // Single step if no instruction-specific breakpoint is set

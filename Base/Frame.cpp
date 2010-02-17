@@ -447,8 +447,11 @@ void Frame::Sync ()
     {
         static DWORD dwLastFrame;
 
-        // Draw 5 frames a second in turbo mode
-        if (fDrawFrame = ((dwNow - dwLastFrame) >= 1000/FPS_IN_TURBO_MODE))
+        // Should we draw a frame yet?
+        fDrawFrame = (dwNow - dwLastFrame) >= 1000/FPS_IN_TURBO_MODE;
+
+        // If so, remember the time we drew it
+        if (fDrawFrame)
             dwLastFrame = dwNow;
     }
     else

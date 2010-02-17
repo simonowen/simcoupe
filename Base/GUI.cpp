@@ -2,7 +2,7 @@
 //
 // GUI.cpp: GUI and controls for on-screen interface
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -1001,8 +1001,11 @@ bool CRadioButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
 void CRadioButton::Select (bool fSelected_/*=true*/)
 {
-    // Remember the new status, and if it's a selection we have more work to do...
-    if (m_fSelected = fSelected_)
+    // Remember the new status
+    m_fSelected = fSelected_;
+
+    // Of it's a selection we have more work to do...
+    if (m_fSelected)
     {
         // Search the control group
         for (CWindow* p = GetGroup() ; p && p->GetType() == ctRadio ; p = p->GetNext())
@@ -1305,7 +1308,8 @@ bool CComboBox::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             {
                 case ' ':
                 case '\r':
-                    if (m_fPressed = !m_fPressed)
+                    m_fPressed = !m_fPressed;
+                    if (m_fPressed)
                         (m_pDropList = new CDropList(this, 1, COMBO_HEIGHT, GetText(), m_nWidth-2))->Select(m_nSelected);
                     return true;
 

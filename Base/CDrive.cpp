@@ -518,7 +518,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                     BYTE bStatus;
                     if (m_pDisk) m_pDisk->IsBusy(&bStatus, true);   // Wait until any active command is complete
 
-                    ModifyStatus(m_sRegs.bStatus &= MOTOR_ON, ~MOTOR_ON);   // Leave motor on but reset everything else
+                    ModifyStatus(m_sRegs.bStatus &= MOTOR_ON, ~MOTOR_ON & 0xff);   // Leave motor on but reset everything else
 
                     // Return to type 1 mode, no data available/required
                     m_sRegs.bCommand = 0;

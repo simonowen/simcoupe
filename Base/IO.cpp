@@ -877,7 +877,7 @@ void IO::FrameUpdate ()
 void IO::UpdateInput()
 {
     // To avoid accidents, purge keyboard input during accelerated disk access
-    if (GetOption(turboload) && (pDrive1 && pDrive1->IsActive()) || (pDrive2 && pDrive2->IsActive()))
+    if (GetOption(turboload) && ((pDrive1 && pDrive1->IsActive()) || (pDrive2 && pDrive2->IsActive())))
         Input::Purge(false);
 
     // Non-zero to tap the F9 key

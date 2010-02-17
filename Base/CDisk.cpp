@@ -571,10 +571,10 @@ UINT CSDFDisk::FindInit (UINT uSide_, UINT uTrack_)
 // Find the next sector in the current track
 bool CSDFDisk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
 {
-    bool fRet;
+    bool fRet = CDisk::FindNext();
 
     // Make sure there is a 'next' one
-    if (fRet = CDisk::FindNext())
+    if (fRet)
     {
         if (!m_pFind)
             m_pFind = reinterpret_cast<SDF_SECTOR_HEADER*>(&m_pTrack[1]);
@@ -680,7 +680,7 @@ CEDSKDisk::CEDSKDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UIN
             EDSK_TRACK* pt = reinterpret_cast<EDSK_TRACK*>(pb);
 
             // Read the track, rejecting anything but 250Kbps MFM
-            if (pt && pStream_->Read(pt, size) != size || (pt->bRate && pt->bRate != 1) || (pt->bEncoding && pt->bEncoding != 1))
+            if (pt && (pStream_->Read(pt, size) != size || (pt->bRate && pt->bRate != 1) || (pt->bEncoding && pt->bEncoding != 1)))
             {
                 delete[] pb;
                 pt = NULL;
@@ -726,10 +726,10 @@ UINT CEDSKDisk::FindInit (UINT uSide_, UINT uTrack_)
 // Find the next sector in the current track
 bool CEDSKDisk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
 {
-    bool fRet;
+    bool fRet = CDisk::FindNext();
 
     // Make sure there is a 'next' one
-    if (fRet = CDisk::FindNext())
+    if (fRet)
     {
         // First sector required?
         if (!m_pFind)
@@ -1463,10 +1463,10 @@ UINT CTD0Disk::FindInit (UINT uSide_, UINT uTrack_)
 // Find the next sector in the current track
 bool CTD0Disk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
 {
-    bool fRet;
+    bool fRet = CDisk::FindNext();
 
     // Make sure there is a 'next' one
-    if (fRet = CDisk::FindNext())
+    if (fRet)
     {
         if (!m_pFind)
             m_pFind = reinterpret_cast<TD0_SECTOR*>(m_pTrack+1);

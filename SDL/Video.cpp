@@ -2,7 +2,7 @@
 //
 // Video.cpp: SDL video handling for surfaces, screen modes, palettes etc.
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -246,7 +246,8 @@ bool Video::Init (bool fFirstInit_/*=false*/)
         if (GetOption(ratio5_4))
             dwWidth = (dwWidth * 5) >> 2;
 #endif
-        int nDepth = GetOption(fullscreen) ? GetOption(depth) : 0;
+        // Use 16-bit for fullscreen or the current desktop depth
+        int nDepth = GetOption(fullscreen) ? 16 : 0;
 
         // Use a hardware surface if possible, and a palette if we're running in 8-bit mode
         DWORD dwOptions =  SDL_HWSURFACE | (nDepth == 8) ? SDL_HWPALETTE : 0;
@@ -311,9 +312,6 @@ bool Video::Init (bool fFirstInit_/*=false*/)
                 else
                     nDepth >>= 1;
             }
-
-            // Update the depth option, just in case it was changed above
-            SetOption(depth, nDepth);
         }
 
         // Did we fail to create the front buffer?

@@ -2,7 +2,7 @@
 //
 // Input.cpp: SDL keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2007  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -219,7 +219,10 @@ void Input::Acquire (bool fMouse_/*=true*/, bool fKeyboard_/*=true*/)
     SDL_EnableKeyRepeat(fKeyboard_ ? 0 : 250, fKeyboard_ ? 0 : 30);
 
     // Set the mouse acquisition state
-    if (fMouseActive = fMouse_ && GetOption(mouse))
+    fMouseActive = fMouse_;
+
+    // Mouse active?
+    if (GetOption(mouse))
     {
         // Move the mouse to the centre of the window, to stop it escaping
         nMouseX = Frame::GetWidth() >> 1;
