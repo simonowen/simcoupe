@@ -2,7 +2,7 @@
 //
 // SimCoupe.h: Common SimCoupe header, included by all modules
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -44,8 +44,6 @@
 
 typedef unsigned int        UINT;
 
-#include "OSD.h"    /* OS-dependent stuff */
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -69,23 +67,9 @@ typedef unsigned int        UINT;
 #include "zlib.h"               /* for gzopen, gzclose, etc. */
 #endif
 
-/* To avoid relying on STL, we'll define our own swap template */
-template <class T> void swap (T& a, T& b) { T tmp=a; a=b; b=tmp; }
-
+#include "OSD.h"		/* OS-dependent stuff */
 #include "SAM.h"        /* Various SAM constants */
 #include "Util.h"       /* TRACE macro and other utility functions */
-
-#ifndef max
-#define max(a,b)            (((a) > (b)) ? (a) : (b))
-#endif
-
-#ifndef min
-#define min(a,b)            (((a) < (b)) ? (a) : (b))
-#endif
-
-#ifndef MAX_PATH
-#define MAX_PATH            260
-#endif
 
 #endif	/* __cplusplus */
 

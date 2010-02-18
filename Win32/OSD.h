@@ -28,6 +28,8 @@
 #ifdef _DEBUG
 #pragma warning(3:4189) // 'identifier' : local variable is initialized but not referenced
 #pragma warning(3:4701) // local variable 'name' may be used without having been initialized
+#include <crtdbg.h>     // used for tracking heap allocations
+#define new new(_NORMAL_BLOCK,__FILE__, __LINE__)   // track allocation locations
 #endif
 
 #include <windows.h>
@@ -92,6 +94,11 @@ extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 
 #define strcasecmp  _strcmpi
 #define mkdir(p,m)  _mkdir(p)
+
+#define off_t	__int64
+#define fseek	_fseeki64
+#define fstat	_fstat64
+#define stat	_stat64
 
 #define R_OK        4
 #define W_OK        2
