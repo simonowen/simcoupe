@@ -130,7 +130,7 @@ bool CDeviceHardDisk::Lock ()
         szDrive[4] = 'A'+i;
 
         // Open it without accessing the drive contents
-        HANDLE h = CreateFile(szDrive, 0, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+        HANDLE h = CreateFile(szDrive, 0, 0, NULL, OPEN_EXISTING, 0, NULL);
         if (h == INVALID_HANDLE_VALUE)
             continue;
 
