@@ -599,9 +599,10 @@ void CFrameXx1<fHiRes_>::ScreenChange (BYTE bNewVal_, int nLine_, int nBlock_)
     BYTE* pbLine = Frame::GetScreen()->GetLine(nLine_-s_nViewTop);
     BYTE* pFrame = pbLine + ((nBlock_ - s_nViewLeft) << 4);
 
-    // Part of the first pixel is the previous border colour, from when the screen was disabled
-    // We don't have the resolution to show only part, so it'll appear brighter than the real SAM
-    pFrame[0] = clutval[border_col];
+    // Part of the first pixel is the previous border colour, from when the screen was disabled.
+    // We don't have the resolution to show only part, but using the most significant colour bits
+    // in the least significant position will reduce the intensity enough to be close
+    pFrame[0] = clutval[border_col] >> 4;
 
     // The rest of the cell is the new border colour, even on the main screen since the ASIC has no data!
                  pFrame[1]  = pFrame[2]  = pFrame[3]  =
