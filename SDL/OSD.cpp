@@ -2,7 +2,7 @@
 //
 // OSD.cpp: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -57,7 +57,7 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
 #endif
 
     // The only sub-system we _need_ is video
-    if (SDL_Init(SDL_INIT_VIDEO))
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
         TRACE("!!! SDL_Init(SDL_INIT_VIDEO) failed: %s\n", SDL_GetError());
     else if (SDL_Init(SDL_INIT_TIMER) < 0)
         TRACE("!!! SDL_Init(SDL_INIT_TIMER) failed: %s\n", SDL_GetError());
@@ -224,7 +224,7 @@ void OSD::DebugTrace (const char* pcsz_)
 
 int OSD::FrameSync (bool fWait_/*=true*/)
 {
-    if (fWait_)
+    if (fWait_ && pSemaphore)
         SDL_SemWait(pSemaphore);
 
     return s_nTicks;
