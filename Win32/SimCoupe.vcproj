@@ -218,11 +218,6 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="1"
-				EnableIntrinsicFunctions="true"
-				FavorSizeOrSpeed="2"
-				OmitFramePointers="true"
-				WholeProgramOptimization="true"
 				AdditionalIncludeDirectories=".;..;..\Base;..\SAASound;..\Extern"
 				PreprocessorDefinitions="_WIN32;NDEBUG;_WINDOWS,_CRT_SECURE_NO_DEPRECATE,_CRT_NONSTDC_NO_DEPRECATE,USE_ZLIB,USE_SAASOUND"
 				StringPooling="true"
@@ -312,11 +307,6 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="2"
-				FavorSizeOrSpeed="1"
-				OmitFramePointers="true"
-				WholeProgramOptimization="true"
 				AdditionalIncludeDirectories=".;..;..\Base;..\SAASound;..\Extern"
 				PreprocessorDefinitions="_WIN64;_WIN32;NDEBUG;_WINDOWS,_CRT_SECURE_NO_DEPRECATE,_CRT_NONSTDC_NO_DEPRECATE,USE_ZLIB,USE_SAASOUND"
 				StringPooling="true"
