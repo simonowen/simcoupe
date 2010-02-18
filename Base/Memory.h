@@ -2,7 +2,7 @@
 //
 // Memory.h: Memory configuration and management
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -76,7 +76,7 @@ inline void check_video_write (WORD wAddr_)
         write_to_screen_vmpr0(wAddr_);
 
     // Does the write fall within the second display page? (modes 3 and 4 only)
-    else if ((RPAGE(wAddr_) == vmpr_page2) && (vmpr_mode > MODE_2))
+    else if ((RPAGE(wAddr_) == vmpr_page2))
         write_to_screen_vmpr1(wAddr_);
 }
 
@@ -112,17 +112,18 @@ inline int GetSectionPage (eSection nSection_)
 // Page in real memory page at <nSection_>, where <nSection_> is in range 0..3
 inline void PageIn (eSection nSection_, int nPage_)
 {
-    // Remember the page that's now occupying the section
+    // Remember the page that's now occupying the section, and update the contention
     anSectionPages[nSection_] = nPage_;
     afContendedPages[nSection_] = (nPage_ < N_PAGES_MAIN);
 
-    // Look up the relevant read and write pointers for the section
+    // Set the memory read pointer
     apbSectionReadPtrs[nSection_] = apbPageReadPtrs[nPage_];
-    apbSectionWritePtrs[nSection_] = apbPageWritePtrs[nPage_];
 
-    // Check for write protected RAM in section A
+    // The write pointer depends whether section A has write-protected RAM
     if ((nSection_ == SECTION_A) && (lmpr & LMPR_WPROT))
         apbSectionWritePtrs[nSection_] = apbPageWritePtrs[SCRATCH_WRITE];
+    else
+        apbSectionWritePtrs[nSection_] = apbPageWritePtrs[nPage_];
 }
 
 

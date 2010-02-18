@@ -33,17 +33,17 @@
                                         g_dwCycleCounter += m1states - 3;
 
 // in R,(C)
-#define in_c(x)         ( \
-                            PORT_ACCESS(C), \
-                            x = in_byte(BC), \
-                            F = cy | parity(x) \
-                        )
+#define in_c(x)         { \
+                            PORT_ACCESS(C); \
+                            x = in_byte(BC); \
+                            F = cy | parity(x); \
+                        }
 
 // out (C),R
-#define out_c(x)        ( \
-                            PORT_ACCESS(C), \
-                            out_byte(BC,x) \
-                        )
+#define out_c(x)        { \
+                            PORT_ACCESS(C); \
+                            out_byte(BC,x); \
+                        }
 
 // sbc HL,rr
 #define sbc_hl(x)       do { \

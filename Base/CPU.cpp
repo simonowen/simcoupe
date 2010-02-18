@@ -78,14 +78,14 @@ inline void CheckInterrupt ();
 //                  CPU can only access memory 1 out of every 8 T-States
 //              else
 //                  CPU can only access memory 1 out of every 4 T-States
-#define MEM_ACCESS(a)   ( g_dwCycleCounter += 3, g_dwCycleCounter += (afContendedPages[VPAGE(a)]) ? pContention[g_dwCycleCounter] : 0 )
+#define MEM_ACCESS(a)   do { g_dwCycleCounter += 3; if (afContendedPages[VPAGE(a)]) g_dwCycleCounter += pContention[g_dwCycleCounter]; } while (0)
 
 // Update g_nLineCycle for one port access
 // This is the basic four T-State CPU I/O access
 // Longer I/O M-Cycles should have the extra T-States added after PORT_ACCESS
 // Logic -  if ASIC-controlled port:
 //              CPU can only access I/O port 1 out of every 8 T-States
-#define PORT_ACCESS(a)  ( (g_dwCycleCounter += 4) += ((a) >= BASE_ASIC_PORT) ? abPortContention[g_dwCycleCounter&7] : 0 )
+#define PORT_ACCESS(a)  { (g_dwCycleCounter += 4) += ((a) >= BASE_ASIC_PORT) ? abPortContention[g_dwCycleCounter&7] : 0; }
 
 
 BYTE bOpcode;
@@ -131,7 +131,7 @@ bool CPU::Init (bool fFirstInit_/*=false*/)
                             b2;             // P
 #ifdef USE_FLAG_TABLES
             g_abInc[n] = (n & 0xa8) | ((!n) << 6) | ((!( n & 0xf)) << 4) | ((n == 0x80) << 2);
-            g_abDec[n] = (n & 0xa8) | ((!n) << 6) | ((!(~n & 0xf)) << 4) | ((n == 0x7f) << 2) | F_NADD;
+            g_abDec[n] = (n & 0xa8) | ((!n) << 6) | ((!(~n & 0xf)) << 4) | ((n == 0x7f) << 2) | FLAG_N;
 #endif
         }
 
