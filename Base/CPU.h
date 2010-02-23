@@ -20,8 +20,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#ifndef Z80_H
-#define Z80_H
+#ifndef CPU_H
+#define CPU_H
 
 #include "SAM.h"
 #include "IO.h"
@@ -180,7 +180,7 @@ Z80Regs;
 
 
 // CPU Event Queue data
-enum    { evtStdIntEnd, evtLineIntStart, evtEndOfFrame, evtMidiOutIntStart, evtMidiOutIntEnd, evtEndOfLine, evtInputUpdate, evtMouseReset };
+enum    { evtStdIntEnd, evtLineIntStart, evtEndOfFrame, evtMidiOutIntStart, evtMidiOutIntEnd, evtEndOfLine, evtInputUpdate, evtMouseReset, evtBlueAlphaClock };
 
 const int MAX_EVENTS = 16;
 
@@ -250,4 +250,4 @@ inline void CpuEventFrame (DWORD dwFrameTime_)
         psEvent->dwTime -= dwFrameTime_;
 }
 
-#endif  // Z80_H
+#endif  // CPU_H

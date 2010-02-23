@@ -39,6 +39,7 @@
 #include "IO.h"
 
 #include "Atom.h"
+#include "BlueAlpha.h"
 #include "CDrive.h"
 #include "Clock.h"
 #include "CPU.h"
@@ -127,6 +128,9 @@ bool IO::Init (bool fFirstInit_/*=false*/)
                  InitMidi() && InitBeeper() && InitHDD());
     }
 
+    BlueAlphaSampler::Reset();
+    Sound::OutputDAC(0x80);
+
     // Initialise the drives back to a consistent state
     pDrive1->Reset();
     pDrive2->Reset();
@@ -139,6 +143,8 @@ void IO::Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
+        BlueAlphaSampler::Exit();
+
         InitDrives(false, false);
         InitParallel(false, false);
         InitSerial(false, false);
@@ -575,6 +581,21 @@ BYTE IO::In (WORD wPort_)
         case MIDI_PORT:
             return pMidi->In(wPort_);
 
+        // Blue Alpha Sampler
+        case BLUE_ALPHA_PORT:
+        {
+            int highbyte = wPort_ >> 8;
+
+            if ((highbyte & 0xfc) == 0x7c)
+                return BlueAlphaSampler::In(highbyte & 0x03);
+/*
+            else if (highbyte == 0xff)
+                return BlueAlphaVoiceBox::In(0);
+*/
+
+            break;
+        }
+
         // S D Software IDE interface
         case SDIDE_REG:
         case SDIDE_DATA:
@@ -821,6 +842,20 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             }
             break;
         }
+
+        // Blue Alpha Sampler
+        case BLUE_ALPHA_PORT:
+        {
+            int highbyte = wPort_ >> 8;
+
+            if ((highbyte & 0xfc) == 0x7c)
+                BlueAlphaSampler::Out(highbyte & 0x03, bVal_);
+/*
+            else if (highbyte == 0xff)
+                BlueAlphaVoiceBox::Out(0, bVal_);
+*/
+        }
+        break;
 
         // S D Software IDE interface
         case SDIDE_REG:

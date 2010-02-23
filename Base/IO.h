@@ -150,6 +150,8 @@ class CBeeperDevice : public CIoDevice
 #define SOUND_ADDR          511         // Output (data)
 #define ATTR_PORT           255         // Input
 
+#define BLUE_ALPHA_PORT     127         // Blue Alpha Sampler and VoiceBox
+
 #define QUAZAR_PORT         208         // Quazar Surround
 #define SID_PORT            212         // Quazar SID interface at 0xD4xx
 

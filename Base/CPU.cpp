@@ -35,8 +35,9 @@
 //  - general state saving (CPU registers already in a structure for it)
 
 #include "SimCoupe.h"
-
 #include "CPU.h"
+
+#include "BlueAlpha.h"
 #include "Debug.h"
 #include "Display.h"
 #include "Frame.h"
@@ -299,6 +300,12 @@ void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
 
         case evtMouseReset:
             Mouse::Reset();
+            break;
+
+        case evtBlueAlphaClock:
+            // Clock the sampler, scheduling the next event if it's still running
+            if (BlueAlphaSampler::Clock())
+                AddCpuEvent(evtBlueAlphaClock, sThisEvent.dwTime + BLUE_ALPHA_CLOCK_TIME);
             break;
     }
 }
