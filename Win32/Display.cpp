@@ -468,13 +468,17 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 // Update the display to show anything that's changed since last time
 void Display::Update (CScreen* pScreen_)
 {
-    HRESULT hr;
+    HRESULT hr = 0;
 
     // Check if we've lost the surface memory
     if (!pddsPrimary || FAILED(hr = pddsPrimary->Restore()) || 
         pddsFront && FAILED(hr = pddsFront->Restore()) ||
         pddsBack && FAILED (hr = pddsBack->Restore()))
     {
+        // Reinitialise the video system if the mode has changed
+        if (hr == DDERR_WRONGMODE)
+            Video::Init();
+
         return;
     }
 
