@@ -2,7 +2,7 @@
 //
 // Parallel.cpp: Parallel interface
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 BYTE CPrintBuffer::In (WORD wPort_)
 {
     BYTE bBusy = GetOption(printeronline) ? 0x00 : 0x01;
-    return (wPort_ & 1) ? (m_bStatus|bBusy) : 0x00;
+    return (wPort_ & 1) ? (m_bStatus|bBusy) : m_bData;
 }
 
 void CPrintBuffer::Out (WORD wPort_, BYTE bVal_)
@@ -39,22 +39,20 @@ void CPrintBuffer::Out (WORD wPort_, BYTE bVal_)
 
     // If the write is to the data port, save the byte for later
     if (!(wPort_ & 1))
-        m_bPrint = bVal_;
+        m_bData = bVal_;
     else
     {
-        // If the printer is being strobed, write the data byte
-        if ((m_bStatus & 0x01) && !(bVal_ & 0x01))
+        // If the printer is being strobed, write the data byte on rising edge
+        if (((m_bControl ^ bVal_) & 0x01) && (bVal_ & 0x1))
         {
             // Add the new byte, and start the count-down to have it flushed
-            m_abBuffer[m_uBuffer++] = m_bPrint;
+            m_abBuffer[m_uBuffer++] = m_bData;
             m_uFlushDelay = GetOption(flushdelay)*EMULATED_FRAMES_PER_SECOND;
 
             // Open the output stream if not already open
-            if (!m_fOpen)
+            if (!m_fOpen && Open())
             {
-                if (Open())
-                    Frame::SetStatus("Print job started");
-
+                Frame::SetStatus("Print job started");
                 m_fOpen = true;
             }
 
@@ -66,9 +64,8 @@ void CPrintBuffer::Out (WORD wPort_, BYTE bVal_)
             }
         }
 
-        // Update the status with the strobe bit
-        m_bStatus &= ~0x01;
-        m_bStatus |= (bVal_ & 0x01);
+        // Update strobe state
+        m_bControl = bVal_;
     }
 }
 
@@ -145,15 +142,22 @@ void CMonoDACDevice::Out (WORD wPort_, BYTE bVal_)
 
 void CStereoDACDevice::Out (WORD wPort_, BYTE bVal_)
 {
-    wPort_ &= 3;
-
-    // Sample value?
+    // Sample data?
     if (!(wPort_ & 1))
-        m_bVal = bVal_;
-
-    // Output to left or right channel
-    else if (bVal_ & 1)
-        Sound::OutputDACLeft(m_bVal);
+        m_bData = bVal_;
     else
-        Sound::OutputDACRight(m_bVal);
+    {
+        // Port strobed?
+        if ((m_bControl ^ bVal_) & 0x01)
+        {
+            // Output to left or right channel
+            if (bVal_ & 0x01)
+                Sound::OutputDACLeft(m_bData);
+            else
+                Sound::OutputDACRight(m_bData);
+        }
+
+        // Update strobe state
+        m_bControl = bVal_;
+    }
 }

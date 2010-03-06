@@ -2,7 +2,7 @@
 //
 // Parallel.cpp: Parallel interface
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2010  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 class CPrintBuffer : public CIoDevice
 {
     public:
-        CPrintBuffer () : m_fOpen(false), m_bPrint(0), m_bStatus(0), m_uBuffer(0), m_uFlushDelay(0) { }
+        CPrintBuffer () : m_fOpen(false), m_bControl(0), m_bData(0), m_bStatus(0), m_uBuffer(0), m_uFlushDelay(0) { }
 
     public:
         BYTE In (WORD wPort_);
@@ -40,10 +40,10 @@ class CPrintBuffer : public CIoDevice
 
     protected:
         bool m_fOpen;
-        BYTE m_bPrint, m_bStatus;
+        BYTE m_bControl, m_bData, m_bStatus;
 
         UINT m_uBuffer, m_uFlushDelay;
-        BYTE m_abBuffer[2048];
+        BYTE m_abBuffer[1024];
 
     protected:
         bool IsOpen () const { return false; }
@@ -98,13 +98,13 @@ class CMonoDACDevice : public CIoDevice
 class CStereoDACDevice : public CIoDevice
 {
     public:
-        CStereoDACDevice () : m_bVal(0x80) { }
+        CStereoDACDevice () : m_bControl(0x00), m_bData(0x80) { }
 
     public:
         void Out (WORD wPort_, BYTE bVal_);
 
     protected:
-        BYTE m_bVal;
+        BYTE m_bControl, m_bData;
 };
 
 #endif  // PARALLEL_H
