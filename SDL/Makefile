@@ -30,18 +30,18 @@ USE_SAASOUND=1
 
 .SUFFIXES: .cpp .c
 
-CFLAGS=-O2 -D__STRICT_ANSI__ -pedantic -I${SDL} -I${BASE} -I${EXTERN} $(shell sdl-config --cflags)
+CFLAGS=-O2 -Wall -I${SDL} -I${BASE} -I${EXTERN} $(shell sdl-config --cflags)
 CXXFLAGS=${CFLAGS} -Wall
 LIBS=-L. -lm $(shell sdl-config --libs --cflags)
 
-BASE_SRC=${BASE}/Action.cpp ${BASE}/ATA.cpp ${BASE}/Atom.cpp ${BASE}/CDisk.cpp \
- ${BASE}/CDrive.cpp ${BASE}/Clock.cpp ${BASE}/CPU.cpp ${BASE}/CScreen.cpp \
- ${BASE}/CStream.cpp ${BASE}/Debug.cpp ${BASE}/Disassem.cpp ${BASE}/Expr.cpp \
- ${BASE}/Font.cpp ${BASE}/Frame.cpp ${BASE}/GUI.cpp ${BASE}/GUIDlg.cpp \
- ${BASE}/GUIIcons.cpp ${BASE}/HardDisk.cpp ${BASE}/IO.cpp ${BASE}/Main.cpp \
- ${BASE}/Memory.cpp ${BASE}/Mouse.cpp ${BASE}/Options.cpp ${BASE}/Parallel.cpp \
- ${BASE}/PNG.cpp ${BASE}/Profile.cpp ${BASE}/SDIDE.cpp ${BASE}/Util.cpp \
- ${BASE}/YATBus.cpp \
+BASE_SRC=${BASE}/Action.cpp ${BASE}/ATA.cpp ${BASE}/Atom.cpp \
+ $(BASE)/BlueAlpha.cpp ${BASE}/CDisk.cpp ${BASE}/CDrive.cpp ${BASE}/Clock.cpp \
+ ${BASE}/CPU.cpp ${BASE}/CScreen.cpp ${BASE}/CStream.cpp ${BASE}/Debug.cpp \
+ ${BASE}/Disassem.cpp ${BASE}/Expr.cpp ${BASE}/Font.cpp ${BASE}/Frame.cpp \
+ ${BASE}/GUI.cpp ${BASE}/GUIDlg.cpp ${BASE}/GUIIcons.cpp ${BASE}/HardDisk.cpp \
+ ${BASE}/IO.cpp ${BASE}/Main.cpp ${BASE}/Memory.cpp ${BASE}/Mouse.cpp \
+ ${BASE}/Options.cpp ${BASE}/Parallel.cpp ${BASE}/PNG.cpp ${BASE}/Profile.cpp \
+ ${BASE}/SDIDE.cpp ${BASE}/Util.cpp ${BASE}/YATBus.cpp \
  ${EXTERN}/SAASound.cpp
 
 SDL_SRC=${SDL}/Display.cpp ${SDL}/Floppy.cpp ${SDL}/IDEDisk.cpp \
