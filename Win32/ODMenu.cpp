@@ -2,7 +2,7 @@
 //
 // ODMenu.cpp: Owner-draw Win32 menus with images
 //
-//  Copyright (c) 2005-6 Simon Owen
+//  Copyright (c) 1999-2010 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -387,7 +387,7 @@ void COwnerDrawnMenu::ConvertMenu (HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, b
             continue;
 
         // Ignore system menu items
-        if (fSysMenu_ && info.wID >= 0xF000)
+        if (fSysMenu_ || info.wID >= 0xF000)
             continue;
 
         // Nothing to change, yet
@@ -431,9 +431,7 @@ void COwnerDrawnMenu::ConvertMenu (HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, b
         }
         else
         {
-            if (!(info.fType & MFT_OWNERDRAW))
-                lstrcpyn(szItem, info.dwTypeData, sizeof(szItem));
-            else
+            if (info.fType & MFT_OWNERDRAW)
             {
                 info.fType &= ~MFT_OWNERDRAW;
                 info.fMask |= MIIM_TYPE;
