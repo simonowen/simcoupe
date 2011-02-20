@@ -2,7 +2,7 @@
 //
 // OSD.h: WinCE OS-dependant routines
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -206,7 +206,6 @@ class OSD
         static bool Init (bool fFirstInit_=false);
         static void Exit (bool fReInit_=false);
 
-        static PROFILE_T GetProfileTime ();
         static DWORD GetTime ();
         static const char* GetFilePath (const char* pcszFile_="");
         static const char* GetDirPath (const char* pcszDir_="");

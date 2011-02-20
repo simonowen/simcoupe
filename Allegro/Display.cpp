@@ -2,7 +2,7 @@
 //
 // Display.cpp: Allegro display rendering
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -35,7 +35,6 @@
 #include "Frame.h"
 #include "GUI.h"
 #include "Options.h"
-#include "Profile.h"
 #include "Video.h"
 #include "UI.h"
 
@@ -135,8 +134,6 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
     int nDisplayedWidth = GetOption(ratio5_4) ? nWidth * 5/4 : nWidth;
     int nOffset = (SCREEN_W - nDisplayedWidth) >> 1;
     pdw = reinterpret_cast<DWORD*>(reinterpret_cast<BYTE*>(pdw) + nOffset);
-
-    ProfileStart(Gfx);
 
     // What colour depth is the target surface?
     switch (nDepth)
@@ -605,10 +602,6 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
 #endif  // ALLEGRO_DOS
     }
 
-    ProfileEnd();
-
-    ProfileStart(Blt);
-
     // Calculate the source rectangle for the full visible area
     rSource.x = 0;
     rSource.y = 0;
@@ -654,8 +647,6 @@ bool DrawChanges (CScreen* pScreen_, BITMAP* pSurface_)
     // Unlock the bitmaps now we're done with em
     release_bitmap(pFront);
     release_bitmap(pSurface_);
-
-    ProfileEnd();
 
     // Success
     return true;

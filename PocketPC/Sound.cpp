@@ -2,7 +2,7 @@
 //
 // Sound.cpp: WinCE sound implementation using WaveOut
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,7 +39,6 @@
 #include "IO.h"
 #include "Options.h"
 #include "Util.h"
-#include "Profile.h"
 
 #define SOUND_FREQ      22050
 #define SOUND_BITS      8
@@ -232,8 +231,6 @@ void Sound::Out (WORD wPort_, BYTE bVal_)
 
 void Sound::FrameUpdate ()
 {
-    ProfileStart(Snd);
-
     if (!g_fTurbo)
     {
         // The code below is needed to share a single sound stream between both SAA and DAC/beeper
@@ -264,8 +261,6 @@ void Sound::FrameUpdate ()
         else if (pSAA)
             pSAA->Update(true);
     }
-
-    ProfileEnd();
 }
 
 
@@ -341,8 +336,6 @@ CStreamBuffer::~CStreamBuffer ()
 
 void CStreamBuffer::Update (bool fFrameEnd_)
 {
-    ProfileStart(Snd);
-
     // Limit to a single frame's worth as the raster may be just into the next frame
     UINT uRasterPos = min(g_dwCycleCounter, TSTATES_PER_FRAME);
 
@@ -397,8 +390,6 @@ void CStreamBuffer::Update (bool fFrameEnd_)
         m_nSamplesThisFrame = 0;
         m_uUpdates = 0;
     }
-
-    ProfileEnd();
 }
 
 void CStreamBuffer::Reset ()

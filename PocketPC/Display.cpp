@@ -2,7 +2,7 @@
 //
 // Display.cpp: WinCE display rendering
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@
 #include "Frame.h"
 #include "Input.h"
 #include "Options.h"
-#include "Profile.h"
 #include "Video.h"
 #include "UI.h"
 
@@ -68,9 +67,6 @@ void Display::Update (CScreen* pScreen_)
                            : reinterpret_cast<BYTE*>(GXBeginDraw());
     if (!pbLine)
         return;
-
-    // Since there's no blit stage, profile native screen drawing instead
-    ProfileStart(Blt);
 
     bool* pfHiRes = pScreen_->GetHiRes();
 
@@ -323,6 +319,4 @@ void Display::Update (CScreen* pScreen_)
     // Skip the iPAQ 3800 back-buffer copying, which we don't use/need
     if (!g_f3800)
         GXEndDraw();
-
-    ProfileEnd();
 }

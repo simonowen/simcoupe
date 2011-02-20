@@ -2,7 +2,7 @@
 //
 // GUIDlg.cpp: Dialog boxes using the GUI controls
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -1227,8 +1227,7 @@ class CMiscOptions : public CDialog
             m_pPauseInactive = new CCheckBox(this, 63, 104, "Pause the emulation when inactive");
             m_pDriveLights = new CCheckBox(this, 63, 124, "Show disk drive LEDs");
             m_pStatus = new CCheckBox(this, 63, 144, "Display status messages");
-            new CTextControl(this, 63, 167, "Profiling stats:");
-            m_pProfile = new CComboBox(this, 140, 164, "Disabled|Speed and frame rate|Details percentages|Detailed timings", 140);
+            m_pProfile = new CCheckBox(this, 140, 164, "Display emulation speed and framerate", 140);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -1240,8 +1239,7 @@ class CMiscOptions : public CDialog
             m_pPauseInactive->SetChecked(GetOption(pauseinactive));
             m_pDriveLights->SetChecked(GetOption(drivelights) != 0);
             m_pStatus->SetChecked(GetOption(status));
-
-            m_pProfile->Select(GetOption(profile));
+            m_pStatus->SetChecked(GetOption(profile));
         }
 
     public:
@@ -1257,8 +1255,7 @@ class CMiscOptions : public CDialog
                 SetOption(pauseinactive, m_pPauseInactive->IsChecked());
                 SetOption(drivelights, m_pDriveLights->IsChecked());
                 SetOption(status, m_pStatus->IsChecked());
-
-                SetOption(profile, m_pProfile->GetSelected());
+                SetOption(profile, m_pProfile->IsChecked());
 
                 if (Changed(sambusclock) || Changed(dallasclock))
                     IO::InitClocks();
@@ -1269,8 +1266,7 @@ class CMiscOptions : public CDialog
 
     protected:
         CCheckBox *m_pSambus, *m_pDallas, *m_pClockSync;
-        CCheckBox *m_pPauseInactive, *m_pDriveLights, *m_pStatus;
-        CComboBox *m_pProfile;
+        CCheckBox *m_pPauseInactive, *m_pDriveLights, *m_pStatus, *m_pProfile;
         CTextButton *m_pOK, *m_pCancel;
 };
 

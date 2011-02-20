@@ -2,7 +2,7 @@
 //
 // UI.cpp: Win32 user interface
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -3122,9 +3122,7 @@ INT_PTR CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
             SendDlgItemMessage(hdlg_, IDC_PAUSE_INACTIVE, BM_SETCHECK, GetOption(pauseinactive) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_DRIVE_LIGHTS, BM_SETCHECK, GetOption(drivelights) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_STATUS, BM_SETCHECK, GetOption(status) ? BST_CHECKED : BST_UNCHECKED, 0L);
-
-            static const char* aszProfile[] = { "Disabled", "Speed and frame rate", "Detailed percentages", "Detailed timings", NULL };
-            SetComboStrings(hdlg_, IDC_PROFILE, aszProfile, GetOption(profile));
+            SendDlgItemMessage(hdlg_, IDC_PROFILE, BM_SETCHECK, GetOption(profile) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
             break;
         }
@@ -3139,8 +3137,7 @@ INT_PTR CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 SetOption(pauseinactive, SendDlgItemMessage(hdlg_, IDC_PAUSE_INACTIVE, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(drivelights, SendDlgItemMessage(hdlg_, IDC_DRIVE_LIGHTS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(status, SendDlgItemMessage(hdlg_, IDC_STATUS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-
-                SetOption(profile, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_PROFILE, CB_GETCURSEL, 0, 0L)));
+                SetOption(profile, SendDlgItemMessage(hdlg_, IDC_STATUS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
                 if (Changed(sambusclock) || Changed(dallasclock))
                     IO::InitClocks();

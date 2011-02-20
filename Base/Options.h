@@ -2,7 +2,7 @@
 //
 // Options.h: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -116,7 +116,7 @@ typedef struct
     int     latency;                // Amount of sound buffering
 
     int     drivelights;            // Show floppy drive LEDs
-    int     profile;                // Show profile stats?
+    bool    profile;                // Show profile stats?
     bool    status;                 // Show status line?
 
     bool    pauseinactive;          // Pause when not the active app?

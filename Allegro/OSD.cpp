@@ -2,7 +2,7 @@
 //
 // OSD.cpp: Allegro common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -83,13 +83,6 @@ void OSD::Exit (bool fReInit_/*=false*/)
 DWORD OSD::GetTime ()
 {
     return dwTime;
-}
-
-// We certainly don't support higher resolution timing!
-PROFILE_T OSD::GetProfileTime ()
-{
-    // Returning zero will limit the profiler to displaying speed and FPS only
-    return 0;
 }
 
 

@@ -2,7 +2,7 @@
 //
 // Sound.cpp: Allegro sound implementation
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,7 +38,6 @@
 #include "CPU.h"
 #include "IO.h"
 #include "Options.h"
-#include "Profile.h"
 
 #define SOUND_FREQ      44100
 #define SOUND_BITS      16
@@ -149,15 +148,11 @@ void Sound::Out (WORD wPort_, BYTE bVal_)
 
 void Sound::FrameUpdate ()
 {
-    ProfileStart(Snd);
-
     if (!g_fTurbo)
     {
         for (int i = 0 ; i < SOUND_STREAMS ; i++)
             if (aStreams[i]) aStreams[i]->Update(true);
     }
-
-    ProfileEnd();
 }
 
 
@@ -222,8 +217,6 @@ CStreamBuffer::~CStreamBuffer ()
 
 void CStreamBuffer::Update (bool fFrameEnd_)
 {
-    ProfileStart(Snd);
-
     // Limit to a single frame's worth as the raster may be just into the next frame
     UINT uRasterPos = min(g_dwCycleCounter, TSTATES_PER_FRAME);
 
@@ -246,8 +239,6 @@ void CStreamBuffer::Update (bool fFrameEnd_)
         m_uOffsetPerUnit += (TSTATES_PER_FRAME * m_uSamplesPerUnit) - (m_nSamplesThisFrame * m_uCyclesPerUnit);
         m_nSamplesThisFrame = 0;
     }
-
-    ProfileEnd();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

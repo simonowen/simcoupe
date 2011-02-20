@@ -2,7 +2,7 @@
 //
 // Frame.h: Display frame generation
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -28,7 +28,6 @@
 
 #include "CPU.h"
 #include "IO.h"
-#include "Profile.h"
 #include "CScreen.h"
 #include "Util.h"
 

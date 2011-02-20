@@ -2,7 +2,7 @@
 //
 // Options.cpp: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -149,7 +149,7 @@ OPTION aOptions[] =
     OPT_N("Latency",      latency,        5),         // Sound latency of five frames
 
     OPT_N("DriveLights",  drivelights,    1),         // Show drive activity lights
-    OPT_N("Profile",      profile,        1),         // Show only speed and framerate
+    OPT_F("Profile",      profile,        true),      // Show only emulation speed and framerate
     OPT_F("Status",       status,         true),      // Show status line for changed options, etc.
 
     OPT_F("PauseInactive",pauseinactive,  false),     // Continue to run when inactive

@@ -2,7 +2,7 @@
 //
 // Display.cpp: SDL display rendering
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2011 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@
 #include "Frame.h"
 #include "GUI.h"
 #include "Options.h"
-#include "Profile.h"
 #include "Video.h"
 #include "UI.h"
 
@@ -117,8 +116,6 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
     int nDepth = pSurface_->format->BitsPerPixel;
     int nBottom = pScreen_->GetHeight() >> nShift;
     int nWidth = pScreen_->GetPitch(), nRightHi = nWidth >> 3, nRightLo = nRightHi >> 1;
-
-    ProfileStart(Gfx);
 
     // What colour depth is the target surface?
     switch (nDepth)
@@ -522,11 +519,6 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
     if (pSurface_ && SDL_MUSTLOCK(pSurface_))
         SDL_UnlockSurface(pSurface_);
 
-    ProfileEnd();
-
-    ProfileStart(Blt);
-
-
     // Calculate the source rectangle for the full visible area
     rSource.x = 0;
     rSource.y = 0;
@@ -562,8 +554,6 @@ bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
         SDL_UpdateRects(pFront, 1, &rectFront);
     }
 
-    ProfileEnd();
-
     // Success
     return true;
 }
@@ -590,8 +580,6 @@ void DrawChangesGL (CScreen* pScreen_)
     pdw1 = pdwBack1 = reinterpret_cast<DWORD*>(&dwTextureData[0]);
     pdw2 = pdwBack2 = reinterpret_cast<DWORD*>(&dwTextureData[1]);
     pdw3 = pdwBack3 = reinterpret_cast<DWORD*>(&dwTextureData[2]);
-
-    ProfileStart(Gfx);
 
     // 16-bit?
     if (g_glDataType != GL_UNSIGNED_BYTE)
@@ -831,10 +819,6 @@ void DrawChangesGL (CScreen* pScreen_)
             }
         }
     }
-    ProfileEnd();
-
-
-    ProfileStart(Blt);
 
     // Calculate the source rectangle for the full visible area
     rSource.x = 0;
@@ -953,8 +937,6 @@ void DrawChangesGL (CScreen* pScreen_)
 
     glFlush();
     SDL_GL_SwapBuffers();
-
-    ProfileEnd();
 }
 
 #endif

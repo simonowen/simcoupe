@@ -3,7 +3,7 @@
 // CPU.cpp: Z80 processor emulation and main emulation loop
 //
 //  Copyright (c) 2000-2003  Dave Laundon
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -47,7 +47,6 @@
 #include "Memory.h"
 #include "Mouse.h"
 #include "Options.h"
-#include "Profile.h"
 #include "UI.h"
 #include "Util.h"
 
@@ -314,8 +313,6 @@ void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
 // Execute until the end of a frame, or a breakpoint, whichever comes first
 void CPU::ExecuteChunk ()
 {
-    ProfileStart(CPU);
-
     // Is the reset button is held in?
     if (fReset)
     {
@@ -399,8 +396,6 @@ void CPU::ExecuteChunk ()
         }
     }
 #endif  // !defined(USE_LOWRES) && !defined(USE_ONECPUCORE)
-
-    ProfileEnd();
 }
 
 

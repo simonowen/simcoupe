@@ -2,7 +2,7 @@
 //
 // Sound.cpp: Win32 sound implementation using DirectSound
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,7 +39,6 @@
 #include "IO.h"
 #include "Options.h"
 #include "Util.h"
-#include "Profile.h"
 
 #define SOUND_FREQ      44100
 #define SOUND_BITS      16
@@ -52,7 +51,7 @@ IDirectSoundBuffer* g_pdsbPrimary;
 
 CSoundStream* aStreams[SOUND_STREAMS];
 
-CSoundStream*& pSAA = aStreams[0];     // SAA 1099 
+CSoundStream*& pSAA = aStreams[0];     // SAA 1099
 CSoundStream*& pDAC = aStreams[1];     // DAC for parallel DACs and Spectrum-style beeper
 
 LPCSAASOUND pSAASound;  // SAASound.dll object - needs to exist as long as we do, to preseve subtle internal states
@@ -202,15 +201,11 @@ void Sound::Out (WORD wPort_, BYTE bVal_)
 
 void Sound::FrameUpdate ()
 {
-    ProfileStart(Snd);
-
     if (!g_fTurbo)
     {
         for (int i = 0 ; i < SOUND_STREAMS ; i++)
             if (aStreams[i]) aStreams[i]->Update(true);
     }
-
-    ProfileEnd();
 }
 
 
@@ -279,8 +274,6 @@ CStreamBuffer::~CStreamBuffer ()
 
 void CStreamBuffer::Update (bool fFrameEnd_)
 {
-    ProfileStart(Snd);
-
     // Limit to a single frame's worth as the raster may be just into the next frame
     UINT uRasterPos = min(g_dwCycleCounter, TSTATES_PER_FRAME);
 
@@ -343,8 +336,6 @@ void CStreamBuffer::Update (bool fFrameEnd_)
         m_uOffsetPerUnit += (TSTATES_PER_FRAME * m_uSamplesPerUnit) - (m_nSamplesThisFrame * m_uCyclesPerUnit);
         m_nSamplesThisFrame = 0;
     }
-
-    ProfileEnd();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -575,7 +566,7 @@ void CDAC::Generate (BYTE* pb_, int nSamples_)
 
 void CDAC::GenerateExtra (BYTE* pb_, int nSamples_)
 {
-    // Re-use the specified amount from the previous sample, 
+    // Re-use the specified amount from the previous sample,
     if (pb_ != m_pbFrameSample)
         memmove(pb_, m_pbFrameSample, nSamples_*m_nSampleSize);
 }

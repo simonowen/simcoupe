@@ -2,7 +2,7 @@
 //
 // Frame.cpp: Display frame generation
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -193,8 +193,6 @@ void Frame::Update ()
     if (!fDrawFrame)
         return;
 
-    ProfileStart(Gfx);
-
     // Work out the line and block for the current position
     int nLine, nBlock = GetRasterPos(&nLine) >> 3;
 
@@ -258,8 +256,6 @@ void Frame::Update ()
         nLastLine = nLine;
         nLastBlock = nBlock;
     }
-
-    ProfileEnd();
 }
 
 // Update the full frame image using the current video settings
@@ -296,8 +292,6 @@ void RasterComplete ()
     dwCycleCounter = g_dwCycleCounter;
     nLastFrame = nFrame;
 
-    ProfileStart(Gfx);
-
     // If this frame was being skipped, clear the whole buffer and start drawing from now
     if (!fDrawFrame)
     {
@@ -329,8 +323,6 @@ void RasterComplete ()
         for (int i = nTop ; i < nBottom ; i++)
             memset(pScreen->GetLine(i), UNDRAWN_COLOUR, Frame::GetWidth());
     }
-
-    ProfileEnd();
 }
 
 
@@ -338,8 +330,6 @@ void RasterComplete ()
 void Frame::Complete ()
 {
     nFrame++;
-
-    ProfileStart(Gfx);
 
     // Was the current frame drawn?
     if (fDrawFrame)
@@ -401,8 +391,6 @@ void Frame::Complete ()
         fLastActive = GUI::IsActive();
     }
 
-    ProfileEnd();
-
     // Unless we're fast booting, sync to 50Hz and decide whether we should draw the next frame
     if (!g_nFastBooting)
         Sync();
@@ -462,10 +450,8 @@ void Frame::Sync ()
             ((nTicks >= EMULATED_FRAMES_PER_SECOND-1) && (nFrame != nDrawnFrames)) ? (nFrame > nTicks) : (nFrame >= nTicks);
 
         // Sync if the option is enabled and we're not behind
-        ProfileStart(Idle);
         if (GetOption(sync) && (nFrame >= nTicks))
             nTicks = OSD::FrameSync(true);
-        ProfileEnd();
     }
 
 
@@ -473,9 +459,8 @@ void Frame::Sync ()
     if (nTicks >= EMULATED_FRAMES_PER_SECOND)
     {
         // Format the profile string and reset it
-        sprintf(szProfile, "%3d%%:%2dfps%s", nFrame * 2, nDrawnFrames, Profile::GetStats());
+        sprintf(szProfile, "%3d%%:%2dfps", nFrame * 2, nDrawnFrames);
         TRACE("%s   %d ticks  %d frames  %d drawn\n", szProfile, nTicks, nFrame, nDrawnFrames);
-        Profile::Reset();
 
         // Reset frame counters to wait for the next second
         nFrame = nDrawnFrames = 0;
@@ -513,8 +498,6 @@ void Frame::Redraw ()
 // Flip buffers, so we can start working on the new frame
 void Flip (CScreen*& rpScreen_)
 {
-    ProfileStart(Gfx);
-
     int nHeight = rpScreen_->GetHeight() >> (GUI::IsActive() ? 0 : 1);
 
     DWORD* pdwA = reinterpret_cast<DWORD*>(rpScreen_->GetLine(0));
@@ -539,16 +522,12 @@ void Flip (CScreen*& rpScreen_)
     }
 
     swap(pLastScreen, rpScreen_);
-
-    ProfileEnd();
 }
 
 
 // Draw on-screen display indicators, such as the floppy LEDs and the status text
 void DrawOSD (CScreen* pScreen_)
 {
-    ProfileStart(Gfx);
-
     int nWidth = pScreen_->GetPitch(), nHeight = pScreen_->GetHeight() >> 1;
 
     // Drive LEDs enabled?
@@ -590,8 +569,6 @@ void DrawOSD (CScreen* pScreen_)
         pScreen_->DrawString(nX-2, nHeight-CHAR_HEIGHT-1, szStatus, 0);
         pScreen_->DrawString(nX-4, nHeight-CHAR_HEIGHT-2, szStatus, 127);
     }
-
-    ProfileEnd();
 }
 
 

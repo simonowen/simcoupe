@@ -526,10 +526,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\Base\Profile.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\Base\SDIDE.cpp"
 				>
 			</File>
@@ -902,10 +898,6 @@
 			</File>
 			<File
 				RelativePath="..\Base\PNG.h"
-				>
-			</File>
-			<File
-				RelativePath="..\Base\Profile.h"
 				>
 			</File>
 			<File

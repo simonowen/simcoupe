@@ -2,7 +2,7 @@
 //
 // Display.cpp: Win32 display rendering
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,6 @@
 #include "Frame.h"
 #include "GUI.h"
 #include "Options.h"
-#include "Profile.h"
 #include "Video.h"
 #include "UI.h"
 
@@ -77,8 +76,6 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 {
     HRESULT hr;
     DDSURFACEDESC ddsd = { sizeof ddsd };
-
-    ProfileStart(Gfx);
 
     // If we've changing from displaying the GUI back to scanline mode, clear the unused lines on the surface
     bool fInterlace = GetOption(scanlines) && !GUI::IsActive();
@@ -458,8 +455,6 @@ bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 
     pSurface_->Unlock(ddsd.lpSurface);
 
-    ProfileEnd();
-
     // Success
     return true;
 }
@@ -573,12 +568,10 @@ void Display::Update (CScreen* pScreen_)
     DDBLTFX bltfx = { sizeof bltfx };
     bltfx.dwFillColor = 0;
 
-    ProfileStart(Blt);
     if (!IsRectEmpty(&rLeftBorder)) pddsPrimary->Blt(&rLeftBorder, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
     if (!IsRectEmpty(&rTopBorder)) pddsPrimary->Blt(&rTopBorder, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
     if (!IsRectEmpty(&rRightBorder)) pddsPrimary->Blt(&rRightBorder, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
     if (!IsRectEmpty(&rBottomBorder)) pddsPrimary->Blt(&rBottomBorder, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
-    ProfileEnd();
 
 
     // Remember the source and target rects for cursor position mapping in the GUI

@@ -2,7 +2,7 @@
 //
 // OSD.h: Allegro common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -115,8 +115,6 @@ int closedir (DIR* hDir_);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define PROFILE_T   DWORD
-
 class OSD
 {
 public:
@@ -124,7 +122,6 @@ public:
     static void Exit (bool fReInit_=false);
 
     static DWORD GetTime ();
-    static PROFILE_T GetProfileTime ();
     static const char* GetFilePath (const char* pcszFile_="");
     static const char* GetDirPath (const char* pcszDir_="");
     static const char* GetFloppyDevice (int nDrive_);

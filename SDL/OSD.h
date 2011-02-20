@@ -2,7 +2,7 @@
 //
 // OSD.h: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -143,9 +143,6 @@ int closedir (DIR* hDir_);
 #endif  // _WINDOWS
 
 ////////////////////////////////////////////////////////////////////////////////
-
-// There's no SDL method to get a time stamp better than 1 millisecond yet
-#define GetProfileTime      GetTime
 
 class OSD
 {

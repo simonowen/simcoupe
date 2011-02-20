@@ -2,7 +2,7 @@
 //
 // OSD.h: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -161,18 +161,12 @@ int closedir (DIR* hDir_);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Win32 can do more accurate profiling than the default
-#define PROFILE_T   __int64
-#define AddTime(x)  sprintf(sz + strlen(sz), "  %s:%I64dus", #x, (s_sProfile.prof##x + 5) / 10i64)
-
-
 class OSD
 {
     public:
         static bool Init (bool fFirstInit_=false);
         static void Exit (bool fReInit_=false);
 
-        static PROFILE_T GetProfileTime ();
         static DWORD GetTime ();
         static const char* GetFilePath (const char* pcszFile_="");
         static const char* GetDirPath (const char* pcszDir_="");

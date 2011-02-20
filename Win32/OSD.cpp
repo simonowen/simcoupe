@@ -2,7 +2,7 @@
 //
 // OSD.cpp: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -110,39 +110,19 @@ void OSD::Exit (bool fReInit_/*=false*/)
 }
 
 
-// Return an accurate time stamp of type PROFILE_T (__int64 for Win32)
-PROFILE_T OSD::GetProfileTime ()
-{
-    __int64 llNow;
-
-    // Read the current 64-bit time value
-    if (QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&llNow)))
-        return llNow;
-
-    // If that failed, our only choice is to make it up using the multimedia version
-    return 1000i64 * timeGetTime();
-}
-
-
 // Return a time-stamp in milliseconds
-// Note: calling could should allow for the value wrapping by only comparing differences
 DWORD OSD::GetTime ()
 {
-    static __int64 llFreq = 0;
+	static LARGE_INTEGER llFreq;
+	LARGE_INTEGER llNow;
 
-    // Need to read the frequency?
-    if (!llFreq)
-    {
-        // If the best high-resolution timer is not available, fall back to the less accurate multimedia timer
-        if (!QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&llFreq)))
-            return timeGetTime();
+    // Read high frequency counter, falling back on the multimedia timer
+    if (!llFreq.QuadPart && !QueryPerformanceFrequency(&llFreq))
+        return timeGetTime();
 
-        // Convert frequency to millisecond units
-        llFreq /= 1000i64;
-    }
-
-    // Return the profile time as milliseconds
-    return static_cast<DWORD>(GetProfileTime() / llFreq);
+    // Read the current 64-bit time value, falling back on the multimedia timer
+    QueryPerformanceCounter(&llNow);
+    return static_cast<DWORD>((llNow.QuadPart * 1000i64) / llFreq.QuadPart);
 }
 
 
