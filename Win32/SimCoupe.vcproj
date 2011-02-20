@@ -434,6 +434,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\BlueAlpha.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\CDisk.cpp"
 				>
 			</File>
@@ -790,6 +794,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\Atom.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\BlueAlpha.h"
 				>
 			</File>
 			<File

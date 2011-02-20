@@ -2,7 +2,7 @@
 //
 // BlueAlpha.cpp: Blue Alpha Sampler
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 //
 // 
 // Note: This module supports only a subset of the 8255 PPI chip, as used
-// for normal 
+// for normal sampler operation.  Use outside that mode is currently undefined.
 
 #include "SimCoupe.h"
 #include "BlueAlpha.h"
@@ -61,6 +61,8 @@ void BlueAlphaSampler::Reset ()
     m_bPortB   = 0xff;  // no active features
     m_bPortC   = 0x00;  // no clock
     m_bControl = 0x18;  // control (initialised to BlueAlpha signature?)
+
+    Sound::OutputDAC(0x80);
 }
 
 bool BlueAlphaSampler::Clock ()

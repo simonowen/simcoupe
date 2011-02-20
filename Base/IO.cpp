@@ -2,7 +2,7 @@
 //
 // IO.cpp: SAM I/O port handling
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //  Copyright (c) 2000-2001  Dave Laundon
 //
@@ -129,7 +129,6 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     }
 
     BlueAlphaSampler::Reset();
-    Sound::OutputDAC(0x80);
 
     // Initialise the drives back to a consistent state
     pDrive1->Reset();
