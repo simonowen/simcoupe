@@ -35,7 +35,7 @@ CXXFLAGS=${CFLAGS} -Wall
 LIBS=-L. -L/usr/local/lib -lm -lalleg
 
 BASE_SRC=${BASE}/Action.cpp ${BASE}/ATA.cpp ${BASE}/Atom.cpp \
- $(BASE)/BlueAlpha.cpp ${BASE}/CDisk.cpp ${BASE}/CDrive.cpp ${BASE}/Clock.cpp \
+ ${BASE}/BlueAlpha.cpp ${BASE}/CDisk.cpp ${BASE}/CDrive.cpp ${BASE}/Clock.cpp \
  ${BASE}/CPU.cpp ${BASE}/CScreen.cpp ${BASE}/CStream.cpp ${BASE}/Debug.cpp \
  ${BASE}/Disassem.cpp ${BASE}/Expr.cpp ${BASE}/Font.cpp ${BASE}/Frame.cpp \
  ${BASE}/GUI.cpp ${BASE}/GUIDlg.cpp ${BASE}/GUIIcons.cpp ${BASE}/HardDisk.cpp \
