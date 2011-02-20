@@ -47,7 +47,6 @@
 		132CC54809B11512007955DE /* Options.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF56088EDFC100E5436C /* Options.h */; };
 		132CC54909B11512007955DE /* Parallel.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF58088EDFC100E5436C /* Parallel.h */; };
 		132CC54A09B11512007955DE /* PNG.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5A088EDFC100E5436C /* PNG.h */; };
-		132CC54B09B11512007955DE /* Profile.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5C088EDFC100E5436C /* Profile.h */; };
 		132CC54C09B11512007955DE /* SAM.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5D088EDFC100E5436C /* SAM.h */; };
 		132CC54D09B11512007955DE /* SAMDOS.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5E088EDFC100E5436C /* SAMDOS.h */; };
 		132CC54E09B11512007955DE /* SAMROM.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF5F088EDFC100E5436C /* SAMROM.h */; };
@@ -102,7 +101,6 @@
 		132CC58309B11512007955DE /* Options.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF55088EDFC100E5436C /* Options.cpp */; };
 		132CC58409B11512007955DE /* Parallel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF57088EDFC100E5436C /* Parallel.cpp */; };
 		132CC58509B11512007955DE /* PNG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF59088EDFC100E5436C /* PNG.cpp */; };
-		132CC58609B11512007955DE /* Profile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF5B088EDFC100E5436C /* Profile.cpp */; };
 		132CC58709B11512007955DE /* SDIDE.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF60088EDFC100E5436C /* SDIDE.cpp */; };
 		132CC58809B11512007955DE /* Util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF63088EDFC100E5436C /* Util.cpp */; };
 		132CC58909B11512007955DE /* YATBus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF66088EDFC100E5436C /* YATBus.cpp */; };
@@ -229,8 +227,6 @@
 		13A0FF58088EDFC100E5436C /* Parallel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Parallel.h; path = ../../Base/Parallel.h; sourceTree = "<group>"; };
 		13A0FF59088EDFC100E5436C /* PNG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = PNG.cpp; path = ../../Base/PNG.cpp; sourceTree = "<group>"; };
 		13A0FF5A088EDFC100E5436C /* PNG.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PNG.h; path = ../../Base/PNG.h; sourceTree = "<group>"; };
-		13A0FF5B088EDFC100E5436C /* Profile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Profile.cpp; path = ../../Base/Profile.cpp; sourceTree = "<group>"; };
-		13A0FF5C088EDFC100E5436C /* Profile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Profile.h; path = ../../Base/Profile.h; sourceTree = "<group>"; };
 		13A0FF5D088EDFC100E5436C /* SAM.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SAM.h; path = ../../Base/SAM.h; sourceTree = "<group>"; };
 		13A0FF5E088EDFC100E5436C /* SAMDOS.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SAMDOS.h; path = ../../Base/SAMDOS.h; sourceTree = "<group>"; };
 		13A0FF5F088EDFC100E5436C /* SAMROM.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SAMROM.h; path = ../../Base/SAMROM.h; sourceTree = "<group>"; };
@@ -400,8 +396,6 @@
 				13A0FF58088EDFC100E5436C /* Parallel.h */,
 				13A0FF59088EDFC100E5436C /* PNG.cpp */,
 				13A0FF5A088EDFC100E5436C /* PNG.h */,
-				13A0FF5B088EDFC100E5436C /* Profile.cpp */,
-				13A0FF5C088EDFC100E5436C /* Profile.h */,
 				13A0FF5D088EDFC100E5436C /* SAM.h */,
 				13A0FF5E088EDFC100E5436C /* SAMDOS.h */,
 				13A0FF5F088EDFC100E5436C /* SAMROM.h */,
@@ -537,7 +531,6 @@
 				132CC54809B11512007955DE /* Options.h in Headers */,
 				132CC54909B11512007955DE /* Parallel.h in Headers */,
 				132CC54A09B11512007955DE /* PNG.h in Headers */,
-				132CC54B09B11512007955DE /* Profile.h in Headers */,
 				132CC54C09B11512007955DE /* SAM.h in Headers */,
 				132CC54D09B11512007955DE /* SAMDOS.h in Headers */,
 				132CC54E09B11512007955DE /* SAMROM.h in Headers */,
@@ -658,7 +651,6 @@
 				132CC58309B11512007955DE /* Options.cpp in Sources */,
 				132CC58409B11512007955DE /* Parallel.cpp in Sources */,
 				132CC58509B11512007955DE /* PNG.cpp in Sources */,
-				132CC58609B11512007955DE /* Profile.cpp in Sources */,
 				132CC58709B11512007955DE /* SDIDE.cpp in Sources */,
 				132CC58809B11512007955DE /* Util.cpp in Sources */,
 				132CC58909B11512007955DE /* YATBus.cpp in Sources */,

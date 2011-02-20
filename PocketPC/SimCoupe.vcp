@@ -2400,7 +2400,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -2430,7 +2429,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -2458,7 +2456,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -2488,7 +2485,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -2516,7 +2512,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -2547,7 +2542,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -2578,7 +2572,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -2605,7 +2598,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -2633,7 +2625,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -2664,7 +2655,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -2695,7 +2685,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -2728,7 +2717,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -2761,7 +2749,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -2794,7 +2781,6 @@ DEP_CPP_CPU_C=\
 	"..\Base\GUI.h"\
 	"..\Base\GUIIcons.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Base\Z80ops.h"\
@@ -8409,274 +8395,6 @@ NODEP_CPP_PNG_C=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\Base\Profile.cpp
-
-!IF  "$(CFG)" == "SimCoupe - Win32 (WCE MIPS) Release"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\ioapi.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	
-NODEP_CPP_PROFI=\
-	".\conf.h"\
-	".\ipapi.h"\
-	".\lib.h"\
-	".\ygshell.h"\
-	
-
-!ELSEIF  "$(CFG)" == "SimCoupe - Win32 (WCE MIPS) Debug"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	
-NODEP_CPP_PROFI=\
-	".\conf.h"\
-	".\lib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "SimCoupe - Win32 (WCE SH3) Release"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\ioapi.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	
-NODEP_CPP_PROFI=\
-	".\conf.h"\
-	".\ipapi.h"\
-	".\lib.h"\
-	".\ygshell.h"\
-	
-
-!ELSEIF  "$(CFG)" == "SimCoupe - Win32 (WCE SH3) Debug"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	
-NODEP_CPP_PROFI=\
-	".\conf.h"\
-	".\lib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "SimCoupe - Win32 (WCE ARM) Release"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\ioapi.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	
-NODEP_CPP_PROFI=\
-	".\conf.h"\
-	".\ipapi.h"\
-	".\lib.h"\
-	".\ygshell.h"\
-	
-
-!ELSEIF  "$(CFG)" == "SimCoupe - Win32 (WCE ARM) Debug"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\ioapi.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	
-NODEP_CPP_PROFI=\
-	".\conf.h"\
-	".\ipapi.h"\
-	".\lib.h"\
-	".\x.h"\
-	".\ygshell.h"\
-	
-
-!ELSEIF  "$(CFG)" == "SimCoupe - Win32 (WCE x86) Release"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	
-NODEP_CPP_PROFI=\
-	"..\Base\zlib.h"\
-	"..\Extern\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "SimCoupe - Win32 (WCE x86) Debug"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	
-NODEP_CPP_PROFI=\
-	"..\Base\zlib.h"\
-	"..\Extern\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "SimCoupe - Win32 (WCE x86em) Release"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\ioapi.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	
-NODEP_CPP_PROFI=\
-	".\conf.h"\
-	".\ipapi.h"\
-	".\lib.h"\
-	".\x.h"\
-	".\ygshell.h"\
-	
-
-!ELSEIF  "$(CFG)" == "SimCoupe - Win32 (WCE x86em) Debug"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	
-NODEP_CPP_PROFI=\
-	".\conf.h"\
-	".\ipapi.h"\
-	".\lib.h"\
-	".\x.h"\
-	".\ygshell.h"\
-	
-
-!ELSEIF  "$(CFG)" == "SimCoupe - Win32 (WCE ARMV4) Debug"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\ioapi.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	{$(INCLUDE)}"aygshell.h"\
-	{$(INCLUDE)}"sipapi.h"\
-	{$(INCLUDE)}"winuserm.h"\
-	{$(INCLUDE)}"zconf.h"\
-	{$(INCLUDE)}"zlib.h"\
-	
-NODEP_CPP_PROFI=\
-	"C:\Windows CE Tools\wce420\Pocket PC 2003\Include\ARMV4\vibrate.h"\
-	
-
-!ELSEIF  "$(CFG)" == "SimCoupe - Win32 (WCE ARMV4) Release"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\ioapi.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	
-NODEP_CPP_PROFI=\
-	".\conf.h"\
-	".\inuserm.h"\
-	".\ipapi.h"\
-	".\lib.h"\
-	".\ygshell.h"\
-	"C:\Windows CE Tools\wce420\Pocket PC 2003\Include\ARMV4\vibrate.h"\
-	
-
-!ELSEIF  "$(CFG)" == "SimCoupe - Win32 (WCE emulator) Debug"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\ioapi.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	
-NODEP_CPP_PROFI=\
-	".\conf.h"\
-	".\inuserm.h"\
-	".\ipapi.h"\
-	".\lib.h"\
-	".\x.h"\
-	".\ygshell.h"\
-	"C:\Windows CE Tools\wce420\Pocket PC 2003\Include\emulator\vibrate.h"\
-	
-
-!ELSEIF  "$(CFG)" == "SimCoupe - Win32 (WCE emulator) Release"
-
-DEP_CPP_PROFI=\
-	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
-	"..\Base\SAM.h"\
-	"..\Base\SimCoupe.h"\
-	"..\Extern\unzip.h"\
-	".\OSD.h"\
-	".\UI.h"\
-	
-NODEP_CPP_PROFI=\
-	"..\Base\zlib.h"\
-	"..\Extern\zlib.h"\
-	".\x.h"\
-	
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
 SOURCE=..\Base\SDIDE.cpp
 
 !IF  "$(CFG)" == "SimCoupe - Win32 (WCE MIPS) Release"
@@ -9598,10 +9316,6 @@ SOURCE=..\Base\PNG.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\Base\Profile.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\Base\SAM.h
 # End Source File
 # Begin Source File
@@ -9650,7 +9364,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -9674,7 +9387,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\unzip.h"\
@@ -9695,7 +9407,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -9719,7 +9430,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\unzip.h"\
@@ -9740,7 +9450,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -9764,7 +9473,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -9789,7 +9497,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\unzip.h"\
@@ -9810,7 +9517,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\unzip.h"\
@@ -9831,7 +9537,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -9856,7 +9561,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\unzip.h"\
@@ -9880,7 +9584,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -9906,7 +9609,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -9932,7 +9634,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -9959,7 +9660,6 @@ DEP_CPP_DISPL=\
 	"..\Base\CScreen.h"\
 	"..\Base\Font.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\unzip.h"\
@@ -11371,7 +11071,6 @@ SOURCE=.\Sound.cpp
 DEP_CPP_SOUND=\
 	"..\Base\CPU.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -11391,7 +11090,6 @@ NODEP_CPP_SOUND=\
 
 DEP_CPP_SOUND=\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\SAASound.h"\
@@ -11409,7 +11107,6 @@ NODEP_CPP_SOUND=\
 DEP_CPP_SOUND=\
 	"..\Base\CPU.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -11429,7 +11126,6 @@ NODEP_CPP_SOUND=\
 
 DEP_CPP_SOUND=\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\SAASound.h"\
@@ -11447,7 +11143,6 @@ NODEP_CPP_SOUND=\
 DEP_CPP_SOUND=\
 	"..\Base\CPU.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -11468,7 +11163,6 @@ NODEP_CPP_SOUND=\
 DEP_CPP_SOUND=\
 	"..\Base\CPU.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -11489,7 +11183,6 @@ NODEP_CPP_SOUND=\
 
 DEP_CPP_SOUND=\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\SAASound.h"\
@@ -11506,7 +11199,6 @@ NODEP_CPP_SOUND=\
 
 DEP_CPP_SOUND=\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\SAASound.h"\
@@ -11524,7 +11216,6 @@ NODEP_CPP_SOUND=\
 DEP_CPP_SOUND=\
 	"..\Base\CPU.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -11546,7 +11237,6 @@ NODEP_CPP_SOUND=\
 DEP_CPP_SOUND=\
 	"..\Base\CPU.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\SAASound.h"\
@@ -11567,7 +11257,6 @@ NODEP_CPP_SOUND=\
 DEP_CPP_SOUND=\
 	"..\Base\CPU.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -11590,7 +11279,6 @@ NODEP_CPP_SOUND=\
 DEP_CPP_SOUND=\
 	"..\Base\CPU.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -11613,7 +11301,6 @@ NODEP_CPP_SOUND=\
 DEP_CPP_SOUND=\
 	"..\Base\CPU.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\ioapi.h"\
@@ -11637,7 +11324,6 @@ NODEP_CPP_SOUND=\
 DEP_CPP_SOUND=\
 	"..\Base\CPU.h"\
 	"..\Base\Options.h"\
-	"..\Base\Profile.h"\
 	"..\Base\SAM.h"\
 	"..\Base\SimCoupe.h"\
 	"..\Extern\SAASound.h"\

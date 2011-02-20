@@ -199,10 +199,6 @@ SOURCE=..\Base\PNG.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\Base\Profile.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=..\Base\SDIDE.cpp
 # End Source File
 # Begin Source File
@@ -328,10 +324,6 @@ SOURCE=..\Base\Parallel.h
 # Begin Source File
 
 SOURCE=..\Base\PNG.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\Base\Profile.h
 # End Source File
 # Begin Source File
 
