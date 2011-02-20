@@ -195,7 +195,7 @@ inline void CFrameXx1<fHiRes_>::LeftBorder (BYTE* pbLine_, int nFrom_, int nTo_)
 
     // Draw the required section of the left border, if any
     if (nFrom < nTo)
-        memset(pbLine_ + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), clutval[border_col], (nTo - nFrom) << (fHiRes_ ? 4 : 3));
+        memset(pbLine_ + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), clut[border_col], (nTo - nFrom) << (fHiRes_ ? 4 : 3));
 }
 
 template <bool fHiRes_>
@@ -205,7 +205,7 @@ inline void CFrameXx1<fHiRes_>::RightBorder (BYTE* pbLine_, int nFrom_, int nTo_
 
     // Draw the required section of the right border, if any
     if (nFrom < nTo)
-        memset(pbLine_ + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), clutval[border_col], (nTo - nFrom) << (fHiRes_ ? 4 : 3));
+        memset(pbLine_ + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), clut[border_col], (nTo - nFrom) << (fHiRes_ ? 4 : 3));
 }
 
 template <bool fHiRes_>
@@ -218,7 +218,7 @@ inline void CFrameXx1<fHiRes_>::BorderLine (int nLine_, int nFrom_, int nTo_)
 
     // Draw the required section of the border, if any
     if (nFrom < nTo)
-        memset(pbLine + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), clutval[border_col], (nTo - nFrom) << (fHiRes_ ? 4 : 3));
+        memset(pbLine + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), clut[border_col], (nTo - nFrom) << (fHiRes_ ? 4 : 3));
 }
 
 template <bool fHiRes_>
@@ -263,7 +263,7 @@ void CFrameXx1<fHiRes_>::Mode1Line (int nLine_, int nFrom_, int nTo_)
             if (g_fFlashPhase && (bAttr & 0x80))
                 swap(bInk, bPaper);
 
-            BYTE ink = clutval[bInk], paper = clutval[bPaper];
+            BYTE ink = clut[bInk], paper = clut[bPaper];
 
             if (!fHiRes_)
             {
@@ -324,7 +324,7 @@ void CFrameXx1<fHiRes_>::Mode2Line (int nLine_, int nFrom_, int nTo_)
             if (g_fFlashPhase && (bAttr & 0x80))
                 swap(bInk, bPaper);
 
-            BYTE ink = clutval[bInk], paper = clutval[bPaper];
+            BYTE ink = clut[bInk], paper = clut[bPaper];
 
             if (!fHiRes_)
             {
@@ -384,48 +384,48 @@ void CFrameXx1<fHiRes_>::Mode3Line (int nLine_, int nFrom_, int nTo_)
             {
                 // Use only the odd mode-3 pixels for the low-res version
                 bData = pbDataMem[0];
-                pFrame[0] = mode3clutval[(bData & 0x30) >> 4];
-                pFrame[1] = mode3clutval[(bData & 0x03)     ];
+                pFrame[0] = mode3clut[(bData & 0x30) >> 4];
+                pFrame[1] = mode3clut[(bData & 0x03)     ];
 
                 bData = pbDataMem[1];
-                pFrame[2] = mode3clutval[(bData & 0x30) >> 4];
-                pFrame[3] = mode3clutval[(bData & 0x03)     ];
+                pFrame[2] = mode3clut[(bData & 0x30) >> 4];
+                pFrame[3] = mode3clut[(bData & 0x03)     ];
 
                 bData = pbDataMem[2];
-                pFrame[4] = mode3clutval[(bData & 0x30) >> 4];
-                pFrame[5] = mode3clutval[(bData & 0x03)     ];
+                pFrame[4] = mode3clut[(bData & 0x30) >> 4];
+                pFrame[5] = mode3clut[(bData & 0x03)     ];
 
                 bData = pbDataMem[3];
-                pFrame[6] = mode3clutval[(bData & 0x30) >> 4];
-                pFrame[7] = mode3clutval[(bData & 0x03)     ];
+                pFrame[6] = mode3clut[(bData & 0x30) >> 4];
+                pFrame[7] = mode3clut[(bData & 0x03)     ];
 
                 pFrame += 8;
             }
             else
             {
                 bData = pbDataMem[0];
-                pFrame[0] = mode3clutval[ bData         >> 6];
-                pFrame[1] = mode3clutval[(bData & 0x30) >> 4];
-                pFrame[2] = mode3clutval[(bData & 0x0c) >> 2];
-                pFrame[3] = mode3clutval[(bData & 0x03)     ];
+                pFrame[0] = mode3clut[ bData         >> 6];
+                pFrame[1] = mode3clut[(bData & 0x30) >> 4];
+                pFrame[2] = mode3clut[(bData & 0x0c) >> 2];
+                pFrame[3] = mode3clut[(bData & 0x03)     ];
 
                 bData = pbDataMem[1];
-                pFrame[4] = mode3clutval[ bData         >> 6];
-                pFrame[5] = mode3clutval[(bData & 0x30) >> 4];
-                pFrame[6] = mode3clutval[(bData & 0x0c) >> 2];
-                pFrame[7] = mode3clutval[(bData & 0x03)     ];
+                pFrame[4] = mode3clut[ bData         >> 6];
+                pFrame[5] = mode3clut[(bData & 0x30) >> 4];
+                pFrame[6] = mode3clut[(bData & 0x0c) >> 2];
+                pFrame[7] = mode3clut[(bData & 0x03)     ];
 
                 bData = pbDataMem[2];
-                pFrame[8]  = mode3clutval[ bData         >> 6];
-                pFrame[9]  = mode3clutval[(bData & 0x30) >> 4];
-                pFrame[10] = mode3clutval[(bData & 0x0c) >> 2];
-                pFrame[11] = mode3clutval[(bData & 0x03)     ];
+                pFrame[8]  = mode3clut[ bData         >> 6];
+                pFrame[9]  = mode3clut[(bData & 0x30) >> 4];
+                pFrame[10] = mode3clut[(bData & 0x0c) >> 2];
+                pFrame[11] = mode3clut[(bData & 0x03)     ];
 
                 bData = pbDataMem[3];
-                pFrame[12] = mode3clutval[ bData         >> 6];
-                pFrame[13] = mode3clutval[(bData & 0x30) >> 4];
-                pFrame[14] = mode3clutval[(bData & 0x0c) >> 2];
-                pFrame[15] = mode3clutval[(bData & 0x03)     ];
+                pFrame[12] = mode3clut[ bData         >> 6];
+                pFrame[13] = mode3clut[(bData & 0x30) >> 4];
+                pFrame[14] = mode3clut[(bData & 0x0c) >> 2];
+                pFrame[15] = mode3clut[(bData & 0x03)     ];
 
                 pFrame += 16;
             }
@@ -464,38 +464,38 @@ void CFrameXx1<fHiRes_>::Mode4Line (int nLine_, int nFrom_, int nTo_)
             if (!fHiRes_)
             {
                 bData = pbDataMem[0];
-                pFrame[0] = clutval[bData >> 4];
-                pFrame[1] = clutval[bData & 0x0f];
+                pFrame[0] = clut[bData >> 4];
+                pFrame[1] = clut[bData & 0x0f];
 
                 bData = pbDataMem[1];
-                pFrame[2] = clutval[bData >> 4];
-                pFrame[3] = clutval[bData & 0x0f];
+                pFrame[2] = clut[bData >> 4];
+                pFrame[3] = clut[bData & 0x0f];
 
                 bData = pbDataMem[2];
-                pFrame[4] = clutval[bData >> 4];
-                pFrame[5] = clutval[bData & 0x0f];
+                pFrame[4] = clut[bData >> 4];
+                pFrame[5] = clut[bData & 0x0f];
 
                 bData = pbDataMem[3];
-                pFrame[6] = clutval[bData >> 4];
-                pFrame[7] = clutval[bData & 0x0f];
+                pFrame[6] = clut[bData >> 4];
+                pFrame[7] = clut[bData & 0x0f];
             }
             else
             {
                 bData = pbDataMem[0];
-                pFrame[0]  = pFrame[1]  = clutval[bData >> 4];
-                pFrame[2]  = pFrame[3]  = clutval[bData & 0x0f];
+                pFrame[0]  = pFrame[1]  = clut[bData >> 4];
+                pFrame[2]  = pFrame[3]  = clut[bData & 0x0f];
 
                 bData = pbDataMem[1];
-                pFrame[4]  = pFrame[5]  = clutval[bData >> 4];
-                pFrame[6]  = pFrame[7]  = clutval[bData & 0x0f];
+                pFrame[4]  = pFrame[5]  = clut[bData >> 4];
+                pFrame[6]  = pFrame[7]  = clut[bData & 0x0f];
 
                 bData = pbDataMem[2];
-                pFrame[8]  = pFrame[9]  = clutval[bData >> 4];
-                pFrame[10] = pFrame[11] = clutval[bData & 0x0f];
+                pFrame[8]  = pFrame[9]  = clut[bData >> 4];
+                pFrame[10] = pFrame[11] = clut[bData & 0x0f];
 
                 bData = pbDataMem[3];
-                pFrame[12] = pFrame[13] = clutval[bData >> 4];
-                pFrame[14] = pFrame[15] = clutval[bData & 0x0f];
+                pFrame[12] = pFrame[13] = clut[bData >> 4];
+                pFrame[14] = pFrame[15] = clut[bData & 0x0f];
             }
 
             pFrame += fHiRes_ ? 16 : 8;
@@ -601,13 +601,13 @@ void CFrameXx1<fHiRes_>::ScreenChange (BYTE bNewVal_, int nLine_, int nBlock_)
     // Part of the first pixel is the previous border colour, from when the screen was disabled.
     // We don't have the resolution to show only part, but using the most significant colour bits
     // in the least significant position will reduce the intensity enough to be close
-    pFrame[0] = clutval[border_col] >> 4;
+    pFrame[0] = clut[border_col] >> 4;
 
     // The rest of the cell is the new border colour, even on the main screen since the ASIC has no data!
                  pFrame[1]  = pFrame[2]  = pFrame[3]  =
     pFrame[4]  = pFrame[5]  = pFrame[6]  = pFrame[7]  =
     pFrame[8]  = pFrame[9]  = pFrame[10] = pFrame[11] = 
-    pFrame[12] = pFrame[13] = pFrame[14] = pFrame[15] = clutval[BORD_COL(bNewVal_)];
+    pFrame[12] = pFrame[13] = pFrame[14] = pFrame[15] = clut[BORD_COL(bNewVal_)];
 }
 
 #endif  // FRAME_H

@@ -329,10 +329,6 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
             pddsPrimary->SetPalette(pddPal);    // ignore any error as there's nothing we can do
     }
 
-    // Because the pixel format may have changed, we need to refresh the SAM CLUT pixel values
-    for (int c = 0 ; c < 16 ; c++)
-        clut[c] = aulPalette[clutval[c]];
-
     return true;
 }
 

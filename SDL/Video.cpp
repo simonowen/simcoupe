@@ -443,10 +443,6 @@ bool Video::CreatePalettes (bool fDimmed_)
         SDL_SetPalette(pFront, SDL_LOGPAL|SDL_PHYSPAL, acPalette, 0, N_TOTAL_COLOURS);
     }
 
-    // Because the pixel format may have changed, we need to refresh the SAM CLUT pixel values
-    for (int c = 0 ; c < 16 ; c++)
-        clut[c] = aulPalette[clutval[c]];
-
     // Ensure the display is redrawn to reflect the changes
     Display::SetDirty();
 

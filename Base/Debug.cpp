@@ -1042,8 +1042,8 @@ void CGraphicsView::SetAddress (CAddr addr_, bool fForceTop_)
                     BYTE b = *addr_++;
 
                     // To keep things simple, draw only the odd pixels
-                    memset(pb, mode3clutval[(b & 0x30) >> 4], s_uZoom); pb += s_uZoom;
-                    memset(pb, mode3clutval[(b & 0x03)     ], s_uZoom); pb += s_uZoom;
+                    memset(pb, mode3clut[(b & 0x30) >> 4], s_uZoom); pb += s_uZoom;
+                    memset(pb, mode3clut[(b & 0x03)     ], s_uZoom); pb += s_uZoom;
                 }
                 break;
             }
@@ -1054,8 +1054,8 @@ void CGraphicsView::SetAddress (CAddr addr_, bool fForceTop_)
                 {
                     BYTE b = *addr_++;
 
-                    memset(pb, clutval[b >> 4],  s_uZoom); pb += s_uZoom;
-                    memset(pb, clutval[b & 0xf], s_uZoom); pb += s_uZoom;
+                    memset(pb, clut[b >> 4],  s_uZoom); pb += s_uZoom;
+                    memset(pb, clut[b & 0xf], s_uZoom); pb += s_uZoom;
                 }
                 break;
             }

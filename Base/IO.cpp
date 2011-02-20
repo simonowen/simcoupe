@@ -86,7 +86,7 @@ BYTE line_int;
 BYTE lpen;
 BYTE attr;
 
-UINT clut[N_CLUT_REGS], clutval[N_CLUT_REGS], mode3clutval[4];
+UINT clut[N_CLUT_REGS], mode3clut[4];
 
 BYTE keyports[9];       // 8 rows of keys (+ 1 row for unscanned keys)
 BYTE keybuffer[9];      // working buffer for key changed, activated mid-frame
@@ -349,10 +349,10 @@ static inline void PaletteChange (BYTE bHMPR_)
 {
     // Update the 4 colours available to mode 3 (note: the middle colours are switched)
     BYTE mode3_bcd48 = (bHMPR_ & HMPR_MD3COL_MASK) >> 3;
-    mode3clutval[0] = clutval[mode3_bcd48 | 0];
-    mode3clutval[1] = clutval[mode3_bcd48 | 2];
-    mode3clutval[2] = clutval[mode3_bcd48 | 1];
-    mode3clutval[3] = clutval[mode3_bcd48 | 3];
+    mode3clut[0] = clut[mode3_bcd48 | 0];
+    mode3clut[1] = clut[mode3_bcd48 | 2];
+    mode3clut[2] = clut[mode3_bcd48 | 1];
+    mode3clut[3] = clut[mode3_bcd48 | 3];
 }
 
 
@@ -447,13 +447,13 @@ void IO::OutClut (WORD wPort_, BYTE bVal_)
     bVal_ &= (N_PALETTE_COLOURS-1);     // 128 colours, so only the bottom 7 bits are significant
 
     // Has the clut value actually changed?
-    if (clut[wPort_] != aulPalette[bVal_])
+    if (clut[wPort_] != bVal_)
     {
         // Draw up to the current point with the previous settings
         Frame::Update();
 
         // Update the clut entry and the mode 3 palette
-        clut[wPort_] = static_cast<DWORD>(aulPalette[clutval[wPort_] = bVal_]);
+        clut[wPort_] = bVal_;
         PaletteChange(hmpr);
     }
 }

@@ -273,7 +273,7 @@ extern BYTE border_col;
 
 // Write only ports
 extern BYTE line_int;
-extern UINT clut[N_CLUT_REGS], clutval[N_CLUT_REGS], mode3clutval[4];
+extern UINT clut[N_CLUT_REGS], mode3clut[4];
 
 // Read only ports
 extern BYTE status_reg;

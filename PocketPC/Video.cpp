@@ -128,10 +128,6 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
         ReleaseDC(g_hwnd, hdc);
     }
 
-    // Because the pixel format may have changed, we need to refresh the SAM CLUT pixel values
-    for (i = 0 ; i < 16 ; i++)
-        clut[i] = aulPalette[clutval[i]];
-
     return true;
 }
 

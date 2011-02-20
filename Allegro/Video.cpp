@@ -215,10 +215,6 @@ bool Video::CreatePalettes (bool fDimmed_)
     if (fPalette)
         set_palette_range(pal, 0, N_TOTAL_COLOURS-1, 1);
 
-    // Because the pixel format may have changed, we need to refresh the SAM CLUT pixel values
-    for (int c = 0 ; c < 16 ; c++)
-        clut[c] = aulPalette[clutval[c]];
-
     // Ensure the display is redrawn to reflect the changes
     Display::SetDirty();
 
