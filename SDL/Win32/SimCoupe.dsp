@@ -107,6 +107,10 @@ SOURCE=..\..\Base\Atom.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\Base\BlueAlpha.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\Base\CDisk.cpp
 # End Source File
 # Begin Source File
@@ -220,6 +224,10 @@ SOURCE=..\..\Base\ATA.h
 # Begin Source File
 
 SOURCE=..\..\Base\Atom.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Base\BlueAlpha.h
 # End Source File
 # Begin Source File
 

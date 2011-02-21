@@ -108,11 +108,7 @@ typedef struct
     bool    dallasclock;            // Enable DALLAS clock support?
 
     bool    sound;                  // Sound enabled?
-    bool    saasound;               // SAA 1099 sound chip enabled?
-    bool    beeper;                 // Spectrum-style beeper?
     int     samplerfreq;            // Blue Alpha Sampler clock frequency
-
-    bool    stereo;                 // Stereo sound?
     int     latency;                // Amount of sound buffering
 
     int     drivelights;            // Show floppy drive LEDs

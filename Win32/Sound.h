@@ -46,7 +46,7 @@ class Sound
 class CStreamBuffer
 {
     public:
-        CStreamBuffer (int nChannels_=0);
+        CStreamBuffer ();
         virtual ~CStreamBuffer ();
 
     public:
@@ -63,7 +63,6 @@ class CStreamBuffer
         virtual void AddData (BYTE* pbSampleData_, int nSamples_) = 0;
 
     protected:
-        int m_nChannels;
         int m_nSampleSize, m_nSamplesThisFrame, m_nSamplesPerFrame;
 
         UINT m_uSamplesPerUnit, m_uCyclesPerUnit, m_uOffsetPerUnit;
@@ -76,7 +75,7 @@ class CStreamBuffer
 class CSoundStream : public CStreamBuffer
 {
     public:
-        CSoundStream (int nChannels_/*=0*/);
+        CSoundStream ();
         ~CSoundStream ();
 
     // Overrides
@@ -101,7 +100,7 @@ class CSoundStream : public CStreamBuffer
 class CSAA : public CSoundStream
 {
     public:
-        CSAA (int nChannels_/*=0*/) : CSoundStream(nChannels_), m_nUpdates(0) { }
+        CSAA () : m_nUpdates(0) { }
 
     public:
         void Generate (BYTE* pb_, int nSamples_);

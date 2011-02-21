@@ -1,5 +1,5 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Developer Studio generated include file.
+// Microsoft Visual C++ generated include file.
 // Used by SimCoupe.rc
 //
 #define IDI_MAIN                        1
@@ -84,6 +84,7 @@
 #define IDC_FAST_RESET                  1092
 #define IDC_BEEPER                      1092
 #define IDC_CTRL                        1092
+#define IDC_STATUS2                     1092
 #define IDC_MIDI                        1093
 #define IDC_SHIFT                       1093
 #define IDC_ASIC_DELAY                  1093

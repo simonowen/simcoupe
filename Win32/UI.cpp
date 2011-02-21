@@ -2449,13 +2449,6 @@ INT_PTR CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             nLatency = (nLatency <= 5 ) ? nLatency - 1 : nLatency/5 + 3;
             SetComboStrings(hdlg_, IDC_LATENCY, aszLatency, nLatency);
 
-            SendDlgItemMessage(hdlg_, IDC_SAASOUND, BM_SETCHECK, GetOption(saasound) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_BEEPER, BM_SETCHECK, GetOption(beeper) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_STEREO, BM_SETCHECK, GetOption(stereo) ? BST_CHECKED : BST_UNCHECKED, 0L);
-
-#ifndef USE_SAASOUND
-            EnableWindow(GetDlgItem(hdlg_, IDC_SAASOUND), false);
-#endif
             break;
         }
 
@@ -2463,19 +2456,12 @@ INT_PTR CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
-                SetOption(saasound, SendDlgItemMessage(hdlg_, IDC_SAASOUND, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(beeper, SendDlgItemMessage(hdlg_, IDC_BEEPER, BM_GETCHECK,  0, 0L) == BST_CHECKED);
-                SetOption(stereo, SendDlgItemMessage(hdlg_, IDC_STEREO, BM_GETCHECK,  0, 0L) == BST_CHECKED);
-
                 int nLatency = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_LATENCY, CB_GETCURSEL, 0, 0L));
                 nLatency = (nLatency < 5) ? nLatency + 1 : (nLatency - 3) * 5;
                 SetOption(latency, nLatency);
 
-                if (Changed(saasound) || Changed(beeper) || Changed(stereo) || Changed(latency))
+                if (Changed(latency))
                     Sound::Init();
-
-                if (Changed(beeper))
-                    IO::InitBeeper();
             }
 
             break;
@@ -3137,7 +3123,7 @@ INT_PTR CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 SetOption(pauseinactive, SendDlgItemMessage(hdlg_, IDC_PAUSE_INACTIVE, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(drivelights, SendDlgItemMessage(hdlg_, IDC_DRIVE_LIGHTS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(status, SendDlgItemMessage(hdlg_, IDC_STATUS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(profile, SendDlgItemMessage(hdlg_, IDC_STATUS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+                SetOption(profile, SendDlgItemMessage(hdlg_, IDC_PROFILE, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
                 if (Changed(sambusclock) || Changed(dallasclock))
                     IO::InitClocks();

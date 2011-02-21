@@ -26,7 +26,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 // Dialog
 //
 
-IDD_PAGE_MISC DIALOG DISCARDABLE  0, 0, 235, 156
+IDD_PAGE_MISC DIALOGEX 0, 0, 235, 156
 STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Misc"
 FONT 8, "MS Sans Serif"
@@ -41,13 +41,12 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,85,120,10
     CONTROL         "Show status messages",IDC_STATUS,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,54,99,120,10
-    LTEXT           "Profiling statistics:",IDC_STATIC,54,115,56,8
-    COMBOBOX        IDC_PROFILE,117,113,90,72,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
     GROUPBOX        "Miscellaneous",IDC_STATIC,45,56,170,76
     ICON            IDI_CLOCK,IDC_STATIC,7,7,20,20
     ICON            IDI_MISC,IDC_STATIC,7,59,20,20
     GROUPBOX        "Clock hardware",IDC_STATIC,45,7,170,46
+    CONTROL         "Show speed and framerate",IDC_PROFILE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,54,113,120,10
 END
 
 IDD_ABOUT DIALOGEX 0, 0, 193, 164
@@ -100,25 +99,18 @@ BEGIN
     LTEXT           "Auto-flush print data:",IDS_FLUSHDELAY,54,119,66,8
 END
 
-IDD_PAGE_SOUND DIALOG DISCARDABLE  0, 0, 235, 156
+IDD_PAGE_SOUND DIALOGEX 0, 0, 235, 156
 STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Sound"
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
-    CONTROL         "Enable Philips SAA 1099 sound chip",IDC_SAASOUND,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,54,22,156,10
-    CONTROL         "Enable Spectrum-style beeper",IDC_BEEPER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,54,36,156,10
-    CONTROL         "Stereo sound output",IDC_STEREO,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,54,50,155,10
-    COMBOBOX        IDC_LATENCY,86,104,85,96,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_LATENCY,86,41,85,96,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    ICON            IDI_SOUND,IDC_STATIC,7,7,21,20
-    GROUPBOX        "Settings",IDC_STATIC,45,7,170,59
-    LTEXT           "Latency:",IDS_LATENCY,54,106,28,8
-    GROUPBOX        "Buffering",IDC_STATIC,45,70,170,55
+    ICON            IDI_SOUND,IDC_STATIC,7,7,20,20
+    LTEXT           "Latency:",IDS_LATENCY,54,43,28,8
+    GROUPBOX        "Buffering",IDC_STATIC,45,7,170,55
     LTEXT           "Increase the value below if you're suffering from sound stutters or other glitches:",
-                    IDC_STATIC,54,82,153,16
+                    IDC_STATIC,54,19,153,16
 END
 
 IDD_PAGE_DISPLAY DIALOG DISCARDABLE  0, 0, 235, 158
@@ -747,7 +739,7 @@ BEGIN
             VALUE "FileDescription", "SAM Coupé emulator\0"
             VALUE "FileVersion", "1.0\0"
             VALUE "InternalName", "SimCoupe\0"
-            VALUE "LegalCopyright", "Copyright © 2006\0"
+            VALUE "LegalCopyright", "Copyright © 1996-2011\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "SimCoupe.exe\0"
             VALUE "PrivateBuild", "\0"
@@ -801,10 +793,10 @@ IDC_CURSOR              CURSOR  DISCARDABLE     "Cursors\\arrow.cur"
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// 24
+// RT_MANIFEST
 //
 
-1                       24      MOVEABLE PURE   "SimCoupe.exe.manifest"
+1                       RT_MANIFEST MOVEABLE PURE "SimCoupe.exe.manifest"
 
 /////////////////////////////////////////////////////////////////////////////
 //

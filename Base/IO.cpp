@@ -312,7 +312,7 @@ bool IO::InitBeeper (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     delete pBeeper; pBeeper = NULL;
 
     if (fInit_)
-        pBeeper = GetOption(beeper) ? new CBeeperDevice : new CIoDevice;
+        pBeeper = new CBeeperDevice;
 
     return fInit_ || pBeeper;
 }

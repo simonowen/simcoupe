@@ -39,7 +39,7 @@
 #include "IO.h"
 #include "Options.h"
 
-#define SOUND_FREQ      44100
+#define SOUND_FREQ      44100   // If you change this, change SetSoundParameters() below
 #define SOUND_BITS      16
 #define FRAGMENT_SIZE   4096
 
@@ -87,27 +87,18 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
         TRACE("Sound initialisation failed\n");
     else
     {
-        // If the SAA 1099 chip is enabled, create its driver object
-        bool fNeedSAA = GetOption(saasound);
-        if (fNeedSAA && (pSAA = new CSAA(GetOption(stereo)?2:1)))
+        // Create the SAA 1099 objects
+        if ((pSAA = new CSAA) && (pSAASound || (pSAASound = CreateCSAASound())))
         {
-            // Else, create the CSAASound object if it doesn't already exist
-            if (pSAASound || (pSAASound = CreateCSAASound()))
-            {
-                // Set the DLL parameters from the options, so it matches the setup of the primary sound buffer
-                pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_44100 | SAAP_16BIT | (GetOption(stereo) ? SAAP_STEREO : SAAP_MONO));
-            }
+            // Set the DLL parameters from the options, so it matches the setup of the primary sound buffer
+            pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_44100 | SAAP_16BIT | SAAP_STEREO));
         }
 
-        // If a DAC is connected to a parallel port or the Spectrum-style beeper is enabled, we need a CDAC object
-        bool fNeedDAC = GetOption(parallel1) >= 2 || GetOption(parallel2) >= 2 || GetOption(beeper);
-
-        // Create and initialise a DAC, if required
-        if (fNeedDAC)
-            pDAC = new CDAC;
+        // Create and initialise a DAC, for Spectrum beeper and parallel port DACs
+        pDAC = new CDAC;
 
         // If anything failed, disable the sound
-        if ((fNeedSAA && !pSAA) || (fNeedDAC && !pDAC))
+        if (!pSAA || !pSAASound || !pDAC))
         {
             Message(msgWarning, "Sound initialisation failed");
             Exit();
@@ -192,19 +183,16 @@ void Sound::OutputDACRight (BYTE bVal_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CStreamBuffer::CStreamBuffer (int nChannels_/*=0*/)
-    : m_nChannels(nChannels_), m_nSamplesThisFrame(0), m_uOffsetPerUnit(0), m_uPeriod(0)
+CStreamBuffer::CStreamBuffer ()
+    : m_nSamplesThisFrame(0), m_uOffsetPerUnit(0), m_uPeriod(0)
 {
-    // Any values not supplied will be taken from the current options
-    if (!m_nChannels) m_nChannels = GetOption(stereo) ? 2 : 1;
-
     // Use some arbitrary units to keep the numbers manageably small...
     UINT uUnits = Util::HCF(SOUND_FREQ, EMULATED_TSTATES_PER_SECOND);
     m_uSamplesPerUnit = SOUND_FREQ / uUnits;
     m_uCyclesPerUnit = EMULATED_TSTATES_PER_SECOND / uUnits;
 
     m_nSamplesPerFrame = SOUND_FREQ / EMULATED_FRAMES_PER_SECOND;
-    m_nSampleSize = m_nChannels * SOUND_BITS / 8;
+    m_nSampleSize = 2 * SOUND_BITS / 8;
 
     m_pbFrameSample = new BYTE[m_nSamplesPerFrame * m_nSampleSize];
 }
@@ -243,8 +231,8 @@ void CStreamBuffer::Update (bool fFrameEnd_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CSoundStream::CSoundStream (int nChannels_/*=0*/)
-    : CStreamBuffer(nChannels_), m_pStream(NULL)
+CSoundStream::CSoundStream ()
+    : m_pStream(NULL)
 {
     m_nSampleBufferSize = (FRAGMENT_SIZE + (m_nSamplesPerFrame * GetOption(latency))) * m_nSampleSize;
     TRACE("Sample buffer size = %d samples\n", m_nSampleBufferSize/m_nSampleSize);
@@ -261,7 +249,7 @@ CSoundStream::~CSoundStream ()
 void CSoundStream::Play ()
 {
     if (!m_pStream)
-        m_pStream = play_audio_stream(FRAGMENT_SIZE, SOUND_BITS, (m_nChannels>1) ? 1 : 0, SOUND_FREQ, 255, 128);
+        m_pStream = play_audio_stream(FRAGMENT_SIZE, SOUND_BITS, 1, SOUND_FREQ, 255, 128);
 }
 
 void CSoundStream::Stop ()
@@ -350,7 +338,7 @@ void CSAA::Generate (BYTE* pb_, int nSamples_)
         pSAASound->GenerateMany(pb_, nSamples_);
 
         // 16-bit samples need converting from signed to unsigned
-        for (nSamples_ <<= (m_nChannels-1) ; nSamples_-- ; pb_[1] ^= 0x80, pb_ += 2);
+        for (nSamples_ <<= 1 ; nSamples_-- ; pb_[1] ^= 0x80, pb_ += 2);
     }
 }
 
@@ -367,7 +355,7 @@ void CSAA::GenerateExtra (BYTE* pb_, int nSamples_)
         pSAASound->GenerateMany(pb_, nSamples_);
 
         // 16-bit samples need converting from signed to unsigned
-        for (nSamples_ <<= (m_nChannels-1) ; nSamples_-- ; pb_[1] ^= 0x80, pb_ += 2);
+        for (nSamples_ <<= 1 ; nSamples_-- ; pb_[1] ^= 0x80, pb_ += 2);
     }
 }
 
@@ -394,7 +382,7 @@ void CSAA::Update (bool fFrameEnd_/*=false*/)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CDAC::CDAC () : CSoundStream(0)
+CDAC::CDAC () : CSoundStream()
 {
     m_uLeftTotal = m_uRightTotal = m_uPrevPeriod = 0;
     m_bLeft = m_bRight = 0x80;
@@ -418,26 +406,13 @@ void CDAC::Generate (BYTE* pb_, int nSamples_)
         BYTE bFirstRight = static_cast<BYTE>((m_uRightTotal + m_bRight * uPeriod) / m_uCyclesPerUnit);
         nSamples_--;
 
-        // Mono
-        if (m_nChannels == 1)
-        {
-            WORD *pw = reinterpret_cast<WORD*>(pb_), wSample = ((static_cast<WORD>(m_bLeft) + m_bRight) >> 1) * 0x0101;
-            *pw++ = ((static_cast<WORD>(bFirstRight) + bFirstRight) >> 1) * 0x0101;
-            while (nSamples_--)
-                *pw++ = wSample;
-        }
+        WORD wLeft = static_cast<WORD>(m_bLeft) << 8, wRight = static_cast<WORD>(m_bRight) << 8;
 
-        // Stereo
-        else
-        {
-            WORD wLeft = static_cast<WORD>(m_bLeft) << 8, wRight = static_cast<WORD>(m_bRight) << 8;
+        DWORD *pdw = reinterpret_cast<DWORD*>(pb_), dwSample = (static_cast<DWORD>(wRight) << 16) | wLeft;
+        *pdw++ = (static_cast<WORD>(bFirstRight) << 24) | (static_cast<WORD>(bFirstLeft) << 8);
 
-            DWORD *pdw = reinterpret_cast<DWORD*>(pb_), dwSample = (static_cast<DWORD>(wRight) << 16) | wLeft;
-            *pdw++ = (static_cast<WORD>(bFirstRight) << 24) | (static_cast<WORD>(bFirstLeft) << 8);
-
-            while (nSamples_--)
-                *pdw++ = dwSample;
-        }
+        while (nSamples_--)
+            *pdw++ = dwSample;
 
         // Initialise the mean level for the next sample
         m_uLeftTotal = m_bLeft * m_uPeriod;

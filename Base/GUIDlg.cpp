@@ -668,39 +668,33 @@ class CSoundOptions : public CDialog
 {
     public:
         CSoundOptions (CWindow* pParent_)
-            : CDialog(pParent_, 300, 231, "Sound Settings")
+            : CDialog(pParent_, 300, 168, "Sound Settings")
         {
             new CIconControl(this, 10, 10, &sSoundIcon);
 
-            new CFrameControl(this, 50, 17, 238, 100, WHITE);
+            new CFrameControl(this, 50, 17, 238, 37, WHITE);
             new CTextControl(this, 60, 13, "Settings", YELLOW_8, BLUE_2);
 
             m_pSound = new CCheckBox(this, 63, 33, "Sound enabled");
-            m_pSAA = new CCheckBox(this, 63, 54, "Enable Philips SAA 1099 sound chip");
-            m_pBeeper = new CCheckBox(this, 63, 75, "Enable Spectrum-style beeper");
-            m_pStereo = new CCheckBox(this, 63, 96, "Stereo sound output");
 
 #ifndef USE_SAASOUND
             m_pSAA->Enable(false);
 #endif
 
-            new CFrameControl(this, 50, 131, 238, 70, WHITE);
-            new CTextControl(this, 60, 127, "Buffering", YELLOW_8, BLUE_2);
+            new CFrameControl(this, 50, 68, 238, 70, WHITE);
+            new CTextControl(this, 60, 64, "Buffering", YELLOW_8, BLUE_2);
 
-            new CTextControl(this, 63, 143, "Increase the value below if you're suffering");
-            new CTextControl(this, 63, 157, "from stuttering or other sound glitches:");
+            new CTextControl(this, 63, 80, "Increase the value below if you're suffering");
+            new CTextControl(this, 63, 94, "from stuttering or other sound glitches:");
 
-            m_pLatencyText = new CTextControl(this, 63, 178, "Latency:");
-            m_pLatency = new CComboBox(this, 113, 175, "1 frame (best)|2 frames|3 frames|4 frames|5 frames (default)|10 frames|15 frames|20 frames|25 frames", 120);
+            m_pLatencyText = new CTextControl(this, 63, 115, "Latency:");
+            m_pLatency = new CComboBox(this, 113, 112, "1 frame (best)|2 frames|3 frames|4 frames|5 frames (default)|10 frames|15 frames|20 frames|25 frames", 120);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
 
             // Set the initial state from the options
             m_pSound->SetChecked(GetOption(sound));
-            m_pSAA->SetChecked(GetOption(saasound));
-            m_pBeeper->SetChecked(GetOption(beeper));
-            m_pStereo->SetChecked(GetOption(stereo));
 
             int nLatency = GetOption(latency);
             m_pLatency->Select((nLatency <= 5 ) ? nLatency - 1 : nLatency/5 + 3);
@@ -716,21 +710,15 @@ class CSoundOptions : public CDialog
             else if (pWindow_ == m_pOK)
             {
                 SetOption(sound, m_pSound->IsChecked());
-                SetOption(saasound, m_pSAA->IsChecked());
-                SetOption(beeper, m_pBeeper->IsChecked());
-                SetOption(stereo, m_pStereo->IsChecked());
 
                 int nLatency = m_pLatency->GetSelected();
                 SetOption(latency, (nLatency < 5) ? nLatency + 1 : (nLatency - 3) * 5);
 
-                if (Changed(sound) || Changed(saasound) || Changed(beeper) || Changed(stereo) || Changed(latency))
+                if (Changed(sound) || Changed(latency))
                 {
                     if (!Sound::Init())
                         new CMessageBox(GetParent(), "Sound init failed - device in use?", "Sound", mbWarning);
                 }
-
-                if (Changed(beeper))
-                    IO::InitBeeper();
 
                 Destroy();
             }
@@ -738,16 +726,13 @@ class CSoundOptions : public CDialog
             {
                 bool fSound = m_pSound->IsChecked();
 
-                m_pSAA->Enable(fSound);
-                m_pBeeper->Enable(fSound);
-                m_pStereo->Enable(fSound);
                 m_pLatencyText->Enable(fSound);
                 m_pLatency->Enable(fSound);
             }
         }
 
     protected:
-        CCheckBox *m_pSound, *m_pSAA, *m_pBeeper, *m_pStereo;
+        CCheckBox *m_pSound;
         CComboBox *m_pLatency;
         CTextControl *m_pLatencyText;
         CTextButton *m_pOK, *m_pCancel;
@@ -1227,7 +1212,7 @@ class CMiscOptions : public CDialog
             m_pPauseInactive = new CCheckBox(this, 63, 104, "Pause the emulation when inactive");
             m_pDriveLights = new CCheckBox(this, 63, 124, "Show disk drive LEDs");
             m_pStatus = new CCheckBox(this, 63, 144, "Display status messages");
-            m_pProfile = new CCheckBox(this, 140, 164, "Display emulation speed and framerate", 140);
+            m_pProfile = new CCheckBox(this, 63, 164, "Display emulation speed and framerate");
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -1239,7 +1224,7 @@ class CMiscOptions : public CDialog
             m_pPauseInactive->SetChecked(GetOption(pauseinactive));
             m_pDriveLights->SetChecked(GetOption(drivelights) != 0);
             m_pStatus->SetChecked(GetOption(status));
-            m_pStatus->SetChecked(GetOption(profile));
+            m_pProfile->SetChecked(GetOption(profile));
         }
 
     public:

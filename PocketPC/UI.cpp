@@ -2,7 +2,7 @@
 //
 // UI.cpp: WinCE user interface
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -93,7 +93,6 @@ int WINAPI WinMain (HINSTANCE hinst_, HINSTANCE hinstPrev_, LPWSTR pszCmdLine_, 
 
     // Override some defaults
     SetDefault(latency,15);     // 15 frames (lots needed for now)
-    SetDefault(stereo,0);       // Mono
 
     if (Main::Init(__argc, __argv))
         CPU::Run();
@@ -1205,10 +1204,6 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
         case WM_INITDIALOG:
         {
             SendDlgItemMessage(hdlg_, IDC_SOUND_ENABLED, BM_SETCHECK, GetOption(sound) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_SAASOUND_ENABLED, BM_SETCHECK, GetOption(saasound) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_BEEPER, BM_SETCHECK, GetOption(beeper) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_STEREO, BM_SETCHECK, GetOption(stereo) ? BST_CHECKED : BST_UNCHECKED, 0L);
-
             SendMessage(hdlg_, WM_COMMAND, IDC_SOUND_ENABLED, 0L);
 
             static const TCHAR* aszLatency[] = { _T("5 frames"), _T("10 frames"), _T("15 frames (default)"), _T("20 frames"), _T("25 frames"), NULL };
@@ -1224,20 +1219,13 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
                 SetOption(sound, SendDlgItemMessage(hdlg_, IDC_SOUND_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(saasound, SendDlgItemMessage(hdlg_, IDC_SAASOUND_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(beeper, SendDlgItemMessage(hdlg_, IDC_BEEPER, BM_GETCHECK,  0, 0L) == BST_CHECKED);
-                SetOption(stereo, SendDlgItemMessage(hdlg_, IDC_STEREO, BM_GETCHECK,  0, 0L) == BST_CHECKED);
 
                 int nLatency = SendDlgItemMessage(hdlg_, IDC_LATENCY, CB_GETCURSEL, 0, 0L);
                 nLatency = (nLatency + 1) * 5;
                 SetOption(latency, nLatency);
 
-
-                if (Changed(sound) || Changed(saasound) || Changed(beeper) || Changed(stereo) || Changed(latency))
+                if (Changed(sound) || Changed(latency))
                     Sound::Init();
-
-                if (Changed(beeper))
-                    IO::InitBeeper();
             }
             break;
         }
@@ -1250,9 +1238,6 @@ BOOL CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 {
                     bool fSound = (SendDlgItemMessage(hdlg_, IDC_SOUND_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
-                    EnableWindow(GetDlgItem(hdlg_, IDC_SAASOUND_ENABLED), fSound);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_BEEPER), fSound);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_STEREO), fSound);
                     EnableWindow(GetDlgItem(hdlg_, IDS_LATENCY), fSound);
                     EnableWindow(GetDlgItem(hdlg_, IDC_LATENCY), fSound);
 

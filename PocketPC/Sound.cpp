@@ -40,7 +40,7 @@
 #include "Options.h"
 #include "Util.h"
 
-#define SOUND_FREQ      22050
+#define SOUND_FREQ      22050   // If you change this, change SetSoundParameters() below
 #define SOUND_BITS      8
 
 
@@ -73,7 +73,7 @@ bool InitWaveOut ()
     wf.wFormatTag = WAVE_FORMAT_PCM;
     wf.nSamplesPerSec = SOUND_FREQ;
     wf.wBitsPerSample = SOUND_BITS;
-    wf.nChannels = GetOption(stereo) ? 2 : 1;
+    wf.nChannels = 2;
     wf.nBlockAlign = wf.nChannels * wf.wBitsPerSample / 8;
     wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign;
     wf.cbSize = 0;
@@ -142,13 +142,10 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
     Exit(true);
     TRACE("-> Sound::Init(%s)\n", fFirstInit_ ? "first" : "");
 
-    // Correct any approximate/bad option values before we use them
-    UINT uChannels = GetOption(stereo) ? 2 : 1;
-
     // Do this because 50Hz doesn't divide exactly in to 11025Hz...
     uSamplesPerFrame = SOUND_FREQ / EMULATED_FRAMES_PER_SECOND;
     uSamplesPerFrame *= 4;
-    uSampleSize = uChannels * SOUND_BITS / 8;
+    uSampleSize = 2 * SOUND_BITS / 8;
 
     uTotalBuffers = GetOption(latency)+1;
 
@@ -162,32 +159,18 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
     }
     else
     {
-        bool fNeedSAA = GetOption(saasound);
-
-#ifndef USE_SAASOUND
-        fNeedSAA = false;
-#endif
-
-        // If the SAA 1099 chip is enabled, create its driver object
-        if (fNeedSAA && (pSAA = new CSAA))
+        // Create the SAA 1099 objects
+        if ((pSAA = new CSAA) && (pSAASound || (pSAASound = CreateCSAASound())))
         {
-            // Else, create the CSAASound object if it doesn't already exist
-            if (pSAASound || (pSAASound = CreateCSAASound()))
-            {
-                // Set the DLL parameters from the options, so it matches the setup of the primary sound buffer
-                pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_22050 | SAAP_8BIT | (GetOption(stereo) ? SAAP_STEREO : SAAP_MONO));
-            }
+            // Set the DLL parameters from the options, so it matches the setup of the primary sound buffer
+            pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_22050 | SAAP_16BIT | SAAP_STEREO);
         }
 
-        // If a DAC is connected to a parallel port or the Spectrum-style beeper is enabled, we need a CDAC object
-        bool fNeedDAC = GetOption(parallel1) >= 2 || GetOption(parallel2) >= 2 || GetOption(beeper);
-
-        // Create and initialise a DAC, if required
-        if (fNeedDAC)
-            pDAC = new CDAC;
+        // Create and initialise a DAC, for Spectrum beeper and parallel port DACs
+        pDAC = new CDAC;
 
         // If anything failed, disable the sound
-        if ((fNeedSAA && !pSAA) || (fNeedDAC && !pDAC))
+        if (!pSAA || !pSAASound || !pDAC)
         {
             Message(msgWarning, "Sound initialisation failed");
             Exit();
@@ -309,11 +292,9 @@ void Sound::OutputDACRight (BYTE bVal_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CStreamBuffer::CStreamBuffer (int nChannels_)
-    : m_nChannels(nChannels_), m_pbFrameSample(NULL), m_nSamplesThisFrame(0), m_uOffsetPerUnit(0), m_uPeriod(0), m_uUpdates(0)
+CStreamBuffer::CStreamBuffer ()
+    : m_pbFrameSample(NULL), m_nSamplesThisFrame(0), m_uOffsetPerUnit(0), m_uPeriod(0), m_uUpdates(0)
 {
-    // Any values not supplied will be taken from the current options
-    if (!m_nChannels) m_nChannels = GetOption(stereo) ? 2 : 1;
 /*
     // Test: tweak the frequency closer to measured values, to avoid over/under-runs
     if (m_nFreq == 44100) m_nFreq = 44300;
@@ -484,28 +465,17 @@ void CDAC::Generate (BYTE* pb_, int nSamples_)
         BYTE bFirstRight = static_cast<BYTE>((m_uRightTotal + m_bRight * uPeriod) / m_uCyclesPerUnit);
         nSamples_--;
 
-        // Mono?
-        if (m_nChannels == 1)
-        {
-            *pb_++ = (bFirstLeft >> 1) + (bFirstRight >> 1);
-            memset(pb_, (m_bLeft >> 1) + (m_bRight >> 1), nSamples_);
-        }
+        *pb_++ = bFirstLeft;
+        *pb_++ = bFirstRight;
 
-        // Stereo
+        // Fill in the block of complete samples at this level
+        if (m_bLeft == m_bRight)
+            memset(pb_, m_bLeft, nSamples_ << 1);
         else
         {
-            *pb_++ = bFirstLeft;
-            *pb_++ = bFirstRight;
-
-            // Fill in the block of complete samples at this level
-            if (m_bLeft == m_bRight)
-                memset(pb_, m_bLeft, nSamples_ << 1);
-            else
-            {
-                WORD *pw = reinterpret_cast<WORD*>(pb_), wSample = (static_cast<WORD>(m_bRight) << 8) | m_bLeft;
-                while (nSamples_--)
-                    *pw++ = wSample;
-            }
+            WORD *pw = reinterpret_cast<WORD*>(pb_), wSample = (static_cast<WORD>(m_bRight) << 8) | m_bLeft;
+            while (nSamples_--)
+                *pw++ = wSample;
         }
 
         // Initialise the mean level for the next sample

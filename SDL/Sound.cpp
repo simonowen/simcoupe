@@ -120,7 +120,7 @@ bool InitSDLSound ()
     SDL_AudioSpec sDesired = { 0 };
     sDesired.freq = SOUND_FREQ;
     sDesired.format = AUDIO_S16LSB;
-    sDesired.channels = GetOption(stereo) ? 2 : 1;
+    sDesired.channels = 2;
     sDesired.samples = 2048;
     sDesired.callback = CSoundStream::SoundCallback;
 
@@ -153,27 +153,18 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
         TRACE("Sound initialisation failed\n");
     else
     {
-        // If the SAA 1099 chip is enabled, create its driver object
-        bool fNeedSAA = GetOption(saasound);
-        if (fNeedSAA && (pSAA = new CSAA(GetOption(stereo)?2:1)))
+        // Create the SAA 1099 objects
+        if ((pSAA = new CSAA) && (pSAASound || (pSAASound = CreateCSAASound())))
         {
-            // Else, create the CSAASound object if it doesn't already exist
-            if (pSAASound || (pSAASound = CreateCSAASound()))
-            {
-                // Set the DLL parameters from the options, so it matches the setup of the primary sound buffer
-                pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_44100 | SAAP_16BIT | (GetOption(stereo) ? SAAP_STEREO : SAAP_MONO));
-            }
+            // Set the DLL parameters from the options, so it matches the setup of the primary sound buffer
+            pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_44100 | SAAP_16BIT | SAAP_STEREO);
         }
 
-        // If a DAC is connected to a parallel port or the Spectrum-style beeper is enabled, we need a CDAC object
-        bool fNeedDAC = GetOption(parallel1) >= 2 || GetOption(parallel2) >= 2 || GetOption(beeper);
-
-        // Create and initialise a DAC, if required
-        if (fNeedDAC)
-            pDAC = new CDAC;
+        // Create and initialise a DAC, for Spectrum beeper and parallel port DACs
+        pDAC = new CDAC;
 
         // If anything failed, disable the sound
-        if ((fNeedSAA && !pSAA) || (fNeedDAC && !pDAC))
+        if (!pSAA || !pSAASound || !pDAC)
         {
             Message(msgWarning, "Sound initialisation failed");
             Exit();
@@ -195,8 +186,8 @@ void Sound::Exit (bool fReInit_/*=false*/)
 
     ExitSDLSound();
 
-    if (pSAA) { delete pSAA; pSAA = NULL; }
-    if (pDAC) { delete pDAC; pDAC = NULL; }
+    for (int i = 0 ; i < SOUND_STREAMS ; i++)
+        delete aStreams[i], aStreams[i] = NULL;
 
     if (pSAASound && !fReInit_)
     {
@@ -258,19 +249,16 @@ void Sound::OutputDACRight (BYTE bVal_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CStreamBuffer::CStreamBuffer (int nChannels_/*=NULL*/)
-    : m_nChannels(nChannels_), m_nSamplesThisFrame(0), m_uOffsetPerUnit(0), m_uPeriod(0)
+CStreamBuffer::CStreamBuffer ()
+    : m_nSamplesThisFrame(0), m_uOffsetPerUnit(0), m_uPeriod(0)
 {
-    // Any values not supplied will be taken from the current options
-    if (!m_nChannels) m_nChannels = GetOption(stereo) ? 2 : 1;
-
     // Use some arbitrary units to keep the numbers manageably small...
     UINT uUnits = Util::HCF(SOUND_FREQ, EMULATED_TSTATES_PER_SECOND);
     m_uSamplesPerUnit = SOUND_FREQ / uUnits;
     m_uCyclesPerUnit = EMULATED_TSTATES_PER_SECOND / uUnits;
 
     m_nSamplesPerFrame = SOUND_FREQ / EMULATED_FRAMES_PER_SECOND;
-    m_nSampleSize = m_nChannels * SOUND_BITS / 8;
+    m_nSampleSize = 2 * SOUND_BITS / 8;
 
     m_pbFrameSample = new Uint8[m_nSamplesPerFrame * m_nSampleSize];
 }
@@ -309,8 +297,7 @@ void CStreamBuffer::Update (bool fFrameEnd_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CSoundStream::CSoundStream (int nChannels_/*=0*/)
-    : CStreamBuffer(nChannels_)
+CSoundStream::CSoundStream ()
 {
     m_nSampleBufferSize = m_nSamplesPerFrame * m_nSampleSize * (GetOption(latency)+1);
     TRACE("Sample buffer size = %d samples\n", m_nSampleBufferSize/m_nSampleSize);
@@ -415,7 +402,7 @@ void CSAA::Update (bool fFrameEnd_/*=false*/)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CDAC::CDAC () : CSoundStream(0)
+CDAC::CDAC () : CSoundStream()
 {
     m_uLeftTotal = m_uRightTotal = m_uPrevPeriod = 0;
     m_bLeft = m_bRight = 0x80;
@@ -439,34 +426,17 @@ void CDAC::Generate (Uint8* pb_, int nSamples_)
         BYTE bFirstRight = static_cast<BYTE>((m_uRightTotal + m_bRight * uPeriod) / m_uCyclesPerUnit);
         nSamples_--;
 
-        // Mono
-        if (m_nChannels == 1)
-        {
-            WORD wFirstSample = (BYTE)(WORD)(((bFirstLeft+bFirstRight) >> 1) - 0x80) * 0x0101;
-            WORD wSample = (BYTE)(WORD)(((m_bLeft+m_bRight) >> 1) - 0x80) * 0x0101;
+        WORD wFirstLeft = static_cast<WORD>(bFirstLeft-0x80) * 0x0101, wFirstRight = static_cast<WORD>(bFirstRight-0x80) * 0x0101;
+        WORD wLeft = static_cast<WORD>(m_bLeft-0x80) * 0x0101, wRight = static_cast<WORD>(m_bRight-0x80) * 0x0101;
 
-            WORD *pw = reinterpret_cast<WORD*>(pb_);
-            *pw++ = wFirstSample;
+        DWORD dwFirstSample = (wFirstRight << 16) | wFirstLeft;
+        DWORD dwSample = (wRight << 16) | wLeft;
 
-            while (nSamples_--)
-                *pw++ = wSample;
-        }
+        DWORD *pdw = reinterpret_cast<DWORD*>(pb_);
+        *pdw++ = dwFirstSample;
 
-        // Stereo
-        else
-        {
-            WORD wFirstLeft = static_cast<WORD>(bFirstLeft-0x80) * 0x0101, wFirstRight = static_cast<WORD>(bFirstRight-0x80) * 0x0101;
-            WORD wLeft = static_cast<WORD>(m_bLeft-0x80) * 0x0101, wRight = static_cast<WORD>(m_bRight-0x80) * 0x0101;
-
-            DWORD dwFirstSample = (wFirstRight << 16) | wFirstLeft;
-            DWORD dwSample = (wRight << 16) | wLeft;
-
-            DWORD *pdw = reinterpret_cast<DWORD*>(pb_);
-            *pdw++ = dwFirstSample;
-
-            while (nSamples_--)
-                *pdw++ = dwSample;
-        }
+        while (nSamples_--)
+            *pdw++ = dwSample;
 
         // Initialise the mean level for the next sample
         m_uLeftTotal = m_bLeft * m_uPeriod;

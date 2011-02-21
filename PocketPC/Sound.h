@@ -2,7 +2,7 @@
 //
 // Sound.h: WinCE sound implementation using WaveOut
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ class Sound
 class CStreamBuffer
 {
     public:
-        CStreamBuffer (int nChannels_=0);
+        CStreamBuffer ();
         virtual ~CStreamBuffer ();
 
     public:
@@ -60,7 +60,6 @@ class CStreamBuffer
         virtual UINT GetUpdates () const { return m_uUpdates; }
 
     protected:
-        int m_nChannels;
         int m_nSampleSize, m_nSamplesThisFrame, m_nSamplesPerFrame;
 
         UINT m_uSamplesPerUnit, m_uCyclesPerUnit, m_uOffsetPerUnit;

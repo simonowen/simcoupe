@@ -141,11 +141,7 @@ OPTION aOptions[] =
     OPT_F("DallasClock",  dallasclock,    false),     // DALLAS clock not present
 
     OPT_F("Sound",        sound,          true),      // Sound enabled
-    OPT_F("SAASound",     saasound,       true),      // SAA 1099 sound chip enabled
-    OPT_F("Beeper",       beeper,         true),      // Spectrum-style beeper enabled
     OPT_N("SamplerFreq",  samplerfreq,    18000),     // Blue Alpha Sampler clock frequency (default=18KHz)
-
-    OPT_F("Stereo",       stereo,         true),      // Stereo sound
     OPT_N("Latency",      latency,        5),         // Sound latency of five frames
 
     OPT_N("DriveLights",  drivelights,    1),         // Show drive activity lights
