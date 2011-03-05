@@ -126,6 +126,15 @@ typedef DWORD DWORD_PTR, *PDWORD_PTR;
 #define GWLP_WNDPROC GWL_WNDPROC
 #endif
 
+#ifndef MAPVK_VK_TO_VSC
+#define MAPVK_VK_TO_VSC         0
+#endif
+
+#ifndef WM_MOUSEWHEEL
+#define WM_MOUSEWHEEL               0x020a
+#define GET_WHEEL_DELTA_WPARAM(w)   ((short)HIWORD(w))
+#endif
+
 // From winioctl.h, since they're W2K+ only
 #ifndef IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS
 

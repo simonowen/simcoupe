@@ -2,7 +2,7 @@
 //
 // GUI.cpp: GUI and controls for on-screen interface
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@
 #include "Font.h"
 #include "Frame.h"
 #include "Input.h"
+#include "Keyboard.h"
 #include "UI.h"
 #include "Video.h"
 
@@ -139,11 +140,9 @@ bool GUI::Start (CWindow* pGUI_)
     // Position the cursor off-screen, to ensure the first drawn position matches the native OS position
     s_nX = s_nY = -ICON_SIZE;
 
-    // Dim the background SAM screen and steal keyboard/mouse input
+    // Dim the background SAM screen and stop the sound
     Video::CreatePalettes();
-    Input::Acquire(false, false);
     Sound::Stop();
-    Sound::Silence();
 
     return true;
 }
@@ -154,12 +153,9 @@ void GUI::Stop ()
     delete s_pGUI;
     s_pGUI = NULL;
 
-    // Restore the normal SAM palette
+    // Restore the normal SAM palette and sound
     Video::CreatePalettes();
     Sound::Play();
-
-    // Give keyboard input back to the emulation
-    Input::Acquire(false, true);
 }
 
 void GUI::Delete (CWindow* pWindow_)
@@ -824,10 +820,10 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
             switch (nParam1_)
             {
-                case GK_UP:
-                case GK_DOWN:
-                case GK_LEFT:
-                case GK_RIGHT:
+                case HK_UP:
+                case HK_DOWN:
+                case HK_LEFT:
+                case HK_RIGHT:
                     // Eat these for future cursor handling
                     return true;
 
@@ -943,8 +939,8 @@ bool CRadioButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
             switch (nParam1_)
             {
-                case GK_LEFT:
-                case GK_UP:
+                case HK_LEFT:
+                case HK_UP:
                 {
                     CWindow* pPrev = GetPrev();
                     if (pPrev && pPrev->GetType() == GetType())
@@ -956,8 +952,8 @@ bool CRadioButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     return true;
                 }
 
-                case GK_RIGHT:
-                case GK_DOWN:
+                case HK_RIGHT:
+                case HK_DOWN:
                 {
                     CWindow* pNext = GetNext();
                     if (pNext && pNext->GetType() == GetType())
@@ -1095,19 +1091,19 @@ bool CMenu::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     return true;
 
                 // Esc cancels
-                case GK_ESC:
+                case '\x1b':
                     m_nSelected = -1;
                     NotifyParent();
                     Destroy();
                     return true;
 
                 // Move to the previous selection, wrapping to the bottom if necessary
-                case GK_UP:
+                case HK_UP:
                     Select((m_nSelected-1 + m_nItems) % m_nItems);
                     break;
 
                 // Move to the next selection, wrapping to the top if necessary
-                case GK_DOWN:
+                case HK_DOWN:
                     Select((m_nSelected+1) % m_nItems);
                     break;
             }
@@ -1313,19 +1309,19 @@ bool CComboBox::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                         (m_pDropList = new CDropList(this, 1, COMBO_HEIGHT, GetText(), m_nWidth-2))->Select(m_nSelected);
                     return true;
 
-                case GK_UP:
+                case HK_UP:
                     Select(m_nSelected-1);
                     return true;
 
-                case GK_DOWN:
+                case HK_DOWN:
                     Select(m_nSelected+1);
                     return true;
 
-                case GK_HOME:
+                case HK_HOME:
                     Select(0);
                     return true;
 
-                case GK_END:
+                case HK_END:
                     Select(m_nItems-1);
                     return true;
             }
@@ -1454,8 +1450,8 @@ bool CScrollBar::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
             switch (nParam1_)
             {
-                case GK_UP:     SetPos(m_nPos - m_nStep);   break;
-                case GK_DOWN:   SetPos(m_nPos + m_nStep);   break;
+                case HK_UP:     SetPos(m_nPos - m_nStep);   break;
+                case HK_DOWN:   SetPos(m_nPos + m_nStep);   break;
 
                 default:        return false;
             }
@@ -1753,16 +1749,16 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
             switch (nParam1_)
             {
-                case GK_LEFT:   Select(m_nSelected-1);  break;
-                case GK_RIGHT:  Select(m_nSelected+1);  break;
+                case HK_LEFT:   Select(m_nSelected-1);  break;
+                case HK_RIGHT:  Select(m_nSelected+1);  break;
 
-                case GK_UP:
+                case HK_UP:
                     // Only move up if we're not already on the top line
                     if (m_nSelected >= m_nAcross)
                         Select(m_nSelected-m_nAcross);
                     break;
 
-                case GK_DOWN:
+                case HK_DOWN:
                 {
                     // Calculate the row the new item would be on
                     int nNewRow = min(m_nSelected+m_nAcross,m_nItems-1) / m_nAcross;
@@ -1774,7 +1770,7 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 }
 
                 // Move up one screen full, staying on the same column
-                case GK_PAGEUP:
+                case HK_PGUP:
                 {
                     int nUp = min(m_nHeight/ITEM_SIZE,m_nSelected/m_nAcross) * m_nAcross;
                     Select(m_nSelected-nUp);
@@ -1782,7 +1778,7 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 }
 
                 // Move down one screen full, staying on the same column
-                case GK_PAGEDOWN:
+                case HK_PGDN:
                 {
                     int nDown = min(m_nHeight/ITEM_SIZE,(m_nItems-m_nSelected-1)/m_nAcross) * m_nAcross;
                     Select(m_nSelected+nDown);
@@ -1790,12 +1786,12 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 }
 
                 // Move to first item
-                case GK_HOME:
+                case HK_HOME:
                     Select(0);
                     break;
 
                 // Move to last item
-                case GK_END:
+                case HK_END:
                     Select(m_nItems-1);
                     break;
 
@@ -2406,13 +2402,13 @@ bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 }
 
                 // Cursor left or right moves between controls of the same type
-                case GK_LEFT:
-                case GK_RIGHT:
-                case GK_UP:
-                case GK_DOWN:
+                case HK_LEFT:
+                case HK_RIGHT:
+                case HK_UP:
+                case HK_DOWN:
                 {
                     // Determine the next control 
-                    bool fPrev = (nParam1_ == GK_LEFT) || (nParam1_ == GK_UP);
+                    bool fPrev = (nParam1_ == HK_LEFT) || (nParam1_ == HK_UP);
 
                     // Look for the next enabled/tabstop control of the same type
                     
@@ -2436,7 +2432,7 @@ bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 }
 
                 // Esc cancels the dialog
-                case GK_ESC:
+                case '\x1b':
                     Destroy();
                     break;
             }

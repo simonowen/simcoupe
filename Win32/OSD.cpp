@@ -113,8 +113,8 @@ void OSD::Exit (bool fReInit_/*=false*/)
 // Return a time-stamp in milliseconds
 DWORD OSD::GetTime ()
 {
-	static LARGE_INTEGER llFreq;
-	LARGE_INTEGER llNow;
+    static LARGE_INTEGER llFreq;
+    LARGE_INTEGER llNow;
 
     // Read high frequency counter, falling back on the multimedia timer
     if (!llFreq.QuadPart && !QueryPerformanceFrequency(&llFreq))

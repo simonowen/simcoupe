@@ -207,7 +207,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actReleaseMouse:
-                Input::Acquire(false);
+                Input::AcquireMouse(false);
                 Frame::SetStatus("Mouse capture released");
                 break;
 
@@ -254,9 +254,6 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 SetOption(fullscreen, !GetOption(fullscreen));
                 Sound::Silence();
                 Frame::Init();
-
-                // Grab the mouse automatically in full-screen, or release in windowed mode
-                Input::Acquire(!!GetOption(fullscreen), !GUI::IsActive());
                 break;
 
             case actPrinterOnline:

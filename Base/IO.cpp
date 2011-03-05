@@ -48,6 +48,7 @@
 #include "GUI.h"
 #include "HardDisk.h"
 #include "Input.h"
+#include "Keyboard.h"
 #include "Memory.h"
 #include "MIDI.h"
 #include "Mouse.h"
@@ -90,7 +91,6 @@ UINT clut[N_CLUT_REGS], mode3clut[4];
 
 BYTE keyports[9];       // 8 rows of keys (+ 1 row for unscanned keys)
 BYTE keybuffer[9];      // working buffer for key changed, activated mid-frame
-bool fInputDirty;       // true if the input has been modified since the last frame
 
 bool fASICStartup;      // If set, the ASIC will be unresponsive shortly after first power-on
 bool g_fAutoBoot;       // Auto-boot the disk in drive 1 when we're at the startup screen
@@ -120,8 +120,8 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         // Line interrupts aren't cleared by a reset
         line_int = 0xff;
 
-        // No keys pressed initially
-        ReleaseAllSamKeys();
+        // Release all keys
+        memset(keyports, 0xff, sizeof(keyports));
 
         // Initialise all the devices
         fRet &= (InitDrives() && InitParallel() && InitSerial() && InitClocks() &&
@@ -912,7 +912,7 @@ void IO::UpdateInput()
 {
     // To avoid accidents, purge keyboard input during accelerated disk access
     if (GetOption(turboload) && ((pDrive1 && pDrive1->IsActive()) || (pDrive2 && pDrive2->IsActive())))
-        Input::Purge(false);
+        Input::Purge();
 
     // Non-zero to tap the F9 key
     static int nAutoBoot = 0;
@@ -933,12 +933,8 @@ void IO::UpdateInput()
             ReleaseSamKey(SK_F9);
     }
 
-    if (fInputDirty)
-    {
-        // Copy the working buffer to the live port buffer
-        memcpy(keyports, keybuffer, sizeof keyports);
-        fInputDirty = false;
-    }
+    // Copy the working buffer to the live port buffer
+    memcpy(keyports, keybuffer, sizeof(keyports));
 }
 
 const RGBA* IO::GetPalette (bool fDimmed_/*=false*/)

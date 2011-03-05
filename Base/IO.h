@@ -221,7 +221,7 @@ class CBeeperDevice : public CIoDevice
 
 // Bits in the status register to RESET to signal the various interrupts
 #define STATUS_INT_LINE     0x01
-#define STATUS_INT_MOUSE    0x02        // Not currently used in SimCoupe as everything seems to poll the mouse
+#define STATUS_INT_MOUSE    0x02        // Part of original SAM design, but never used
 #define STATUS_INT_MIDIIN   0x04
 #define STATUS_INT_FRAME    0x08
 #define STATUS_INT_MIDIOUT  0x10
@@ -232,34 +232,12 @@ class CBeeperDevice : public CIoDevice
 #define MIDI_INT_ACTIVE_TIME    USECONDS_TO_TSTATES(16)
 
 
-
-// Key constants used with the key macros below
-enum eSamKey
-{
-    SK_MIN=0, SK_SHIFT=SK_MIN, SK_Z, SK_X, SK_C, SK_V, SK_F1, SK_F2, SK_F3,
-    SK_A, SK_S, SK_D, SK_F, SK_G, SK_F4, SK_F5, SK_F6,
-    SK_Q, SK_W, SK_E, SK_R, SK_T, SK_F7, SK_F8, SK_F9,
-    SK_1, SK_2, SK_3, SK_4, SK_5, SK_ESCAPE, SK_TAB, SK_CAPS,
-    SK_0, SK_9, SK_8, SK_7, SK_6, SK_MINUS, SK_PLUS, SK_DELETE,
-    SK_P, SK_O, SK_I, SK_U, SK_Y, SK_EQUALS, SK_QUOTES, SK_F0,
-    SK_RETURN, SK_L, SK_K, SK_J, SK_H, SK_SEMICOLON, SK_COLON, SK_EDIT,
-    SK_SPACE, SK_SYMBOL, SK_M, SK_N, SK_B, SK_COMMA, SK_PERIOD, SK_INV,
-    SK_CONTROL, SK_UP, SK_DOWN, SK_LEFT, SK_RIGHT, SK_NONE, SK_MAX=SK_NONE
-};
-
-extern BYTE keyboard, keyports[9], keybuffer[9];
-extern bool fInputDirty;
-
-// Helper macros for SAM keyboard matrix manipulation
-inline bool IsSamKeyPressed (int k) { return !(keybuffer[(k) >> 3] & (1 << ((k) & 7))); }
-inline void PressSamKey (int k)     { keybuffer[(k) >> 3] &= ~(1 << ((k) & 7)); fInputDirty = true; }
-inline void ReleaseSamKey (int k)   { keybuffer[(k) >> 3] |=  (1 << ((k) & 7)); fInputDirty = true; }
-inline void ToggleSamKey (int k)    { keybuffer[(k) >> 3] ^=  (1 << ((k) & 7)); fInputDirty = true; }
-inline void ReleaseAllSamKeys ()    { memset(keybuffer, 0xff, sizeof keyports); keyboard = 0x5f; fInputDirty = true; }
-
 #ifdef USE_TESTHW
 #include "TestHW.h"
 #endif
+
+// Keyboard matrix buffer
+extern BYTE keybuffer[9];
 
 // Last port read/written
 extern WORD wPortRead, wPortWrite;

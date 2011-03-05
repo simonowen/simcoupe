@@ -2,7 +2,7 @@
 //
 // Input.h: Win32 mouse and DirectInput keyboard input
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,13 +27,14 @@ class Input
         static bool Init (bool fFirstInit_=false);
         static void Exit (bool fReInit_=false);
 
-        static bool IsMouseAcquired ();
-        static void Acquire (bool fKeyboard_=true, bool fMouse_=true);
-        static void Purge (bool fKeyboard_=true, bool fMouse_=true);
-
         static void Update ();
-
         static bool FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
+
+        static bool IsMouseAcquired ();
+        static void AcquireMouse (bool fAcquire_);
+        static void Purge ();
+
+        static int MapChar (int nChar_, int *pnMods_=NULL);
 
         static void FillJoystickCombo (HWND hwndCombo_);    // Used by the Win32 GUI in UI.cpp
 };

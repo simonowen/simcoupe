@@ -804,14 +804,14 @@ class CInputOptions : public CDialog
 {
     public:
         CInputOptions (CWindow* pParent_)
-            : CDialog(pParent_, 300, 241, "Input Settings")
+            : CDialog(pParent_, 300, 219, "Input Settings")
         {
             new CIconControl(this, 10, 10, &sKeyboardIcon);
             new CFrameControl(this, 50, 17, 238, 111);
             new CTextControl(this, 60, 13, "Keyboard", YELLOW_8, BLUE_2);
 
             new CTextControl(this, 63, 35, "Mapping mode:");
-            m_pKeyMapping = new CComboBox(this, 145, 32, "None (raw)|SAM Coupe|Sinclair Spectrum", 115);
+            m_pKeyMapping = new CComboBox(this, 145, 32, "None (raw)|Auto-select|SAM Coupe|Sinclair Spectrum", 115);
 
             m_pAltForCntrl = new CCheckBox(this, 63, 63, "Use Left-Alt for SAM Cntrl key");
 #ifdef __APPLE__
@@ -853,9 +853,6 @@ class CInputOptions : public CDialog
                 SetOption(altgrforedit, m_pAltGrForEdit->IsChecked());
                 SetOption(keypadreset, m_pKeypadMinusReset->IsChecked());
                 SetOption(mouse, m_pMouse->IsChecked());
-
-                if (Changed(keymapping) || Changed(mouse))
-                    Input::Init();
 
                 Destroy();
             }

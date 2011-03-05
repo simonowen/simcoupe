@@ -58,6 +58,10 @@ void TraceOutputString (const char *, ...);
 #define ULONGLONG   DWORD
 #endif
 
+#ifndef _countof
+#define _countof(_Array) (sizeof(_Array)/sizeof(_Array[0]))
+#endif
+
 #ifndef max
 #define max(a,b)            (((a) > (b)) ? (a) : (b))
 #endif

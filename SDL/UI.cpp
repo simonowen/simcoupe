@@ -107,26 +107,17 @@ bool UI::CheckEvents ()
     {
         while (SDL_PollEvent(&event))
         {
+            // Input has first go at processing any messages
+            if (Input::FilterEvent(&event))
+                continue;
+
             switch (event.type)
             {
                 case SDL_QUIT:
                     return false;
 
-                case SDL_JOYAXISMOTION:
-                case SDL_JOYHATMOTION:
-                case SDL_JOYBUTTONDOWN:
-                case SDL_JOYBUTTONUP:
-                case SDL_MOUSEMOTION:
-                case SDL_MOUSEBUTTONDOWN:
-                case SDL_MOUSEBUTTONUP:
-                case SDL_KEYDOWN:
-                case SDL_KEYUP:
-                    Input::ProcessEvent(&event);
-                    break;
-
                 case SDL_ACTIVEEVENT:
                     g_fActive = (event.active.gain != 0);
-                    Input::ProcessEvent(&event);
                     break;
 
                 case SDL_VIDEOEXPOSE:
@@ -182,14 +173,10 @@ bool UI::CheckEvents ()
                         case UE_EXPORTDATA:         Action::Do(actExportData);      break;
 
                         default:
-                            TRACE("Unhandled SDL_event (%d)\n", event.type);
+                            TRACE("Unhandled user event (%d)\n", event.type);
                             break;
                     }
                 }
-
-                default:
-                    TRACE("Unhandled SDL_event (%d)\n", event.type);
-                    break;
             }
         }
 
@@ -268,9 +255,6 @@ bool UI::DoAction (int nAction_, bool fPressed_)
                 SetOption(fullscreen, !GetOption(fullscreen));
                 Sound::Silence();
                 Frame::Init();
-
-                // Grab the mouse automatically in full-screen, or release in windowed mode
-                Input::Acquire(!!GetOption(fullscreen), !GUI::IsActive());
                 break;
 
 #ifdef USE_OPENGL

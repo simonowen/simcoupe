@@ -175,6 +175,14 @@ SOURCE=..\..\Base\IO.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\Base\Joystick.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Base\Keyboard.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\Base\Main.cpp
 # End Source File
 # Begin Source File
@@ -304,6 +312,14 @@ SOURCE=..\..\Base\HDBOOT.h
 # Begin Source File
 
 SOURCE=..\..\Base\IO.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Base\Joystick.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Base\Keyboard.h
 # End Source File
 # Begin Source File
 

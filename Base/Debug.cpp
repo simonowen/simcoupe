@@ -2,7 +2,7 @@
 //
 // Debug.cpp: Integrated Z80 debugger
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,12 +20,13 @@
 
 #include "SimCoupe.h"
 
-#include "Util.h"
 #include "CPU.h"
 #include "Debug.h"
 #include "Disassem.h"
 #include "Frame.h"
+#include "Keyboard.h"
 #include "Options.h"
+#include "Util.h"
 
 
 // Helper macro to decide on item colour - bright cyan for changed or white for unchanged
@@ -332,33 +333,53 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     {
         fRet = true;
 
-        // Force upper-case
-        if (nParam1_ >= 'a' && nParam1_ <= 'z')
+        // Force lower-case
+        if (nParam1_ >= 'A' && nParam1_ <= 'Z')
             nParam1_ ^= ('a' ^ 'A');
+
+        bool fCtrl = !!(nParam2_ & HM_CTRL);
 
         switch (nParam1_)
         {
-            case 'A':
-                new CInputDialog(this, "New location", "Address:", OnAddressNotify);
+            case 'a':
+                if (fCtrl)
+                    swap(AF, AF_);
+                else
+                    new CInputDialog(this, "New location", "Address:", OnAddressNotify);
                 break;
 
-            case 'D':
+            case 'd':
             {
-                CAddr Addr = m_pView->GetAddress();
-                m_pView->Destroy();
-                (m_pView = new CCodeView(this))->SetAddress(Addr, true);
+                if (fCtrl)
+                    swap(DE, HL);
+                else
+                {
+                    CAddr Addr = m_pView->GetAddress();
+                    m_pView->Destroy();
+                    (m_pView = new CCodeView(this))->SetAddress(Addr, true);
+                }
                 break;
             }
 
-            case 'T':
+            case 'i':
+                if (fCtrl)
+                    IFF1 = !IFF1;
+                break;
+
+            case 't':
             {
-                CAddr Addr = m_pView->GetAddress();
-                m_pView->Destroy();
-                (m_pView = new CTextView(this))->SetAddress(Addr, true);
+                if (nParam2_ & HM_CTRL)
+                    s_fTransparent = !s_fTransparent;
+                else if (!nParam2_)
+                {
+                    CAddr Addr = m_pView->GetAddress();
+                    m_pView->Destroy();
+                    (m_pView = new CTextView(this))->SetAddress(Addr, true);
+                }
                 break;
             }
 
-            case 'N':
+            case 'n':
             {
                 CAddr Addr = m_pView->GetAddress();
                 m_pView->Destroy();
@@ -366,7 +387,7 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 break;
             }
 /*
-            case 'M':
+            case 'm':
             {
                 CAddr Addr = m_pView->GetAddress();
                 m_pView->Destroy();
@@ -374,7 +395,7 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 break;
             }
 */
-            case 'G':
+            case 'g':
             {
                 CAddr Addr = m_pView->GetAddress();
                 m_pView->Destroy();
@@ -382,65 +403,49 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 break;
             }
 
-            case 'L':
+            case 'l':
                 new CInputDialog(this, "Change LMPR", "Page (0-31):", OnLmprNotify);
                 break;
 
-            case 'H':
+            case 'h':
                 new CInputDialog(this, "Change HMPR", "Page (0-31):", OnHmprNotify);
                 break;
 
-            case 'V':
+            case 'v':
                 new CInputDialog(this, "Change VMPR", "Page (0-31):", OnVmprNotify);
                 break;
 
-            case 'M':
+            case 'm':
                 new CInputDialog(this, "Change Mode", "Mode (1-4):", OnModeNotify);
                 break;
 
+            case 'x':
+                if (fCtrl)
+                {
+                    swap(BC, BC_);
+                    swap(DE, DE_);
+                    swap(HL, HL_);
+                }
+                break;
 
-            case 'U':
+            case 'u':
                 new CInputDialog(this, "Execute until", "Expression:", OnUntilNotify);
                 break;
 
 
-            case GK_CTRL_0:
+            case HK_KP0:
                 IO::OutLmpr(lmpr ^ LMPR_ROM0_OFF);
                 Debug::Refresh();
                 break;
 
-            case GK_CTRL_1:
+            case HK_KP1:
                 IO::OutLmpr(lmpr ^ LMPR_ROM1);
                 Debug::Refresh();
                 break;
 
-            case GK_CTRL_2:
+            case HK_KP2:
                 IO::OutLmpr(lmpr ^ LMPR_WPROT);
                 Debug::Refresh();
-                break;
-
-
-            case GK_CTRL_A:
-                swap(AF, AF_);
-                break;
-
-            case GK_CTRL_D:
-                swap(DE, HL);
-                break;
-
-            case GK_CTRL_I:
-                IFF1 = !IFF1;
-                break;
-
-            case GK_CTRL_X:
-                swap(BC, BC_);
-                swap(DE, DE_);
-                swap(HL, HL_);
-                break;
-
-
-            case GK_CTRL_T:
-                s_fTransparent = !s_fTransparent;
                 break;
 
             default:
@@ -578,19 +583,19 @@ bool CCodeView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
             switch (nParam1_)
             {
-                case GK_KP7:  cmdStep();        break;
-                case GK_KP8:  cmdStepOver();    break;
-                case GK_KP9:  cmdStepOut();     break;
-                case GK_KP4:  cmdStep(10);      break;
-                case GK_KP5:  cmdStep(100);     break;
-                case GK_KP6:  cmdStep(1000);    break;
+                case HK_KP7:  cmdStep();        break;
+                case HK_KP8:  cmdStepOver();    break;
+                case HK_KP9:  cmdStepOut();     break;
+                case HK_KP4:  cmdStep(10);      break;
+                case HK_KP5:  cmdStep(100);     break;
+                case HK_KP6:  cmdStep(1000);    break;
 
-                case GK_UP:
-                case GK_DOWN:
-                case GK_LEFT:
-                case GK_RIGHT:
-                case GK_PAGEUP:
-                case GK_PAGEDOWN:
+                case HK_UP:
+                case HK_DOWN:
+                case HK_LEFT:
+                case HK_RIGHT:
+                case HK_PGUP:
+                case HK_PGDN:
                     cmdNavigate(nParam1_, nParam2_);
                     break;
 
@@ -602,6 +607,10 @@ bool CCodeView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             }
             break;
         }
+
+        case GM_MOUSEWHEEL:
+            cmdNavigate((nParam1_ < 0) ? HK_UP : HK_DOWN, 0);
+            break;
     }
 
     return fRet;
@@ -614,14 +623,14 @@ void CCodeView::cmdNavigate (int nKey_, int nMods_)
 
     switch (nKey_)
     {
-        case GK_UP:
+        case HK_UP:
             if (!nMods_)
                 addr = GetPrevInstruction(s_aAddrs[0]);
             else
                 addr = (PC = GetPrevInstruction(CAddr(PC)).GetPC());
             break;
 
-        case GK_DOWN:
+        case HK_DOWN:
             if (!nMods_)
                 addr = s_aAddrs[1];
             else
@@ -634,21 +643,21 @@ void CCodeView::cmdNavigate (int nKey_, int nMods_)
             }
             break;
 
-        case GK_LEFT:
+        case HK_LEFT:
             if (!nMods_)
                 addr = s_aAddrs[0]-1;
             else
                 addr = --PC;
             break;
 
-        case GK_RIGHT:
+        case HK_RIGHT:
             if (!nMods_)
                 addr = s_aAddrs[0]+1;
             else
                 addr = ++PC;
             break;
 
-        case GK_PAGEDOWN:
+        case HK_PGDN:
         {
             addr = s_aAddrs[m_uRows-1];
             BYTE ab[] = { addr[0], addr[1], addr[2], addr[3] };
@@ -656,7 +665,7 @@ void CCodeView::cmdNavigate (int nKey_, int nMods_)
             break;
         }
 
-        case GK_PAGEUP:
+        case HK_PGUP:
         {
             // Aim to have the current top instruction at the bottom
             CAddr a = s_aAddrs[0];
@@ -844,12 +853,12 @@ bool CTextView::cmdNavigate (int nKey_, int nMods_)
         case 't': case 'T':
             return true;
 
-        case GK_UP:         addr -= 32; break;
-        case GK_DOWN:       addr += 32; break;
-        case GK_LEFT:       addr--;     break;
-        case GK_RIGHT:      addr++;     break;
-        case GK_PAGEUP:     addr -= m_uRows*32; break;
-        case GK_PAGEDOWN:   addr += m_uRows*32; break;
+        case HK_UP:         addr -= 32; break;
+        case HK_DOWN:       addr += 32; break;
+        case HK_LEFT:       addr--;     break;
+        case HK_RIGHT:      addr++;     break;
+        case HK_PGUP:     addr -= m_uRows*32; break;
+        case HK_PGDN:   addr += m_uRows*32; break;
 
         default:
             return false;
@@ -934,12 +943,12 @@ bool CNumView::cmdNavigate (int nKey_, int nMods_)
         case 'n': case 'N':
             return true;
 
-        case GK_UP:         addr -= 11; break;
-        case GK_DOWN:       addr += 11; break;
-        case GK_LEFT:       addr--;     break;
-        case GK_RIGHT:      addr++;     break;
-        case GK_PAGEUP:     addr -= m_uRows*11; break;
-        case GK_PAGEDOWN:   addr += m_uRows*11; break;
+        case HK_UP:         addr -= 11; break;
+        case HK_DOWN:       addr += 11; break;
+        case HK_LEFT:       addr--;     break;
+        case HK_RIGHT:      addr++;     break;
+        case HK_PGUP:       addr -= m_uRows*11; break;
+        case HK_PGDN:       addr += m_uRows*11; break;
 
         default:
             return false;
@@ -1108,42 +1117,42 @@ bool CGraphicsView::cmdNavigate (int nKey_, int nMods_)
             s_uMode = nKey_-'0';
             break;
 
-        case GK_UP:
+        case HK_UP:
             if (!nMods_)
                 addr -= s_uWidth;
             else if (s_uZoom < 16)
                 s_uZoom++;
             break;
 
-        case GK_DOWN:
+        case HK_DOWN:
             if (!nMods_)
                 addr += s_uWidth;
             else if (s_uZoom > 1)
                 s_uZoom--;
             break;
 
-        case GK_LEFT:
+        case HK_LEFT:
             if (!nMods_)
                 addr--;
             else if (s_uWidth > 1)
                 s_uWidth--;
             break;
 
-        case GK_RIGHT:
+        case HK_RIGHT:
             if (!nMods_)
                 addr++;
             else if (s_uWidth < ((s_uMode < 3) ? 32U : 128U))   // Restrict width to mode limit
                 s_uWidth++;
             break;
 
-        case GK_PAGEUP:
+        case HK_PGUP:
             if (!nMods_)
                 addr -= m_uStripLines * s_uWidth;
             else
                 addr -= m_uStrips * m_uStripLines * s_uWidth;
             break;
 
-        case GK_PAGEDOWN:
+        case HK_PGDN:
             if (!nMods_)
                 addr += m_uStripLines * s_uWidth;
             else

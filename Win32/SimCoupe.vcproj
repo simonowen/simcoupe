@@ -502,6 +502,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\Joystick.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Keyboard.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\Main.cpp"
 				>
 			</File>
@@ -870,6 +878,14 @@
 			</File>
 			<File
 				RelativePath="..\Base\IO.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Joystick.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Keyboard.h"
 				>
 			</File>
 			<File

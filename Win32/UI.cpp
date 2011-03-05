@@ -34,7 +34,6 @@
 #include "HardDisk.h"
 #include "Input.h"
 #include "Main.h"
-#include "Mouse.h"
 #include "ODmenu.h"
 #include "Options.h"
 #include "OSD.h"
@@ -910,10 +909,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
             // When the main window becomes inactive to a child window, silence the sound and release the mouse
             if (!g_fActive && fChildOpen)
-            {
                 Sound::Silence();
-                Input::Acquire(false, false);
-            }
 
             // Set an appropriate caption if we pause when inactive
             if (GetOption(pauseinactive))
@@ -932,26 +928,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             Frame::Redraw();
             break;
         }
-
-        // Application being activated or deactivated
-        case WM_ACTIVATEAPP:
-        {
-            TRACE("WM_ACTIVATEAPP (w=%#08lx l=%#08lx)\n", wParam_, lParam_);
-
-            // Ensure the palette is correct if we're running fullscreen
-            if (g_fActive && GetOption(fullscreen))
-                Video::CreatePalettes();
-
-            // If the application is now inactive, 
-            if (!g_fActive)
-            {
-                Input::Acquire(false);
-                fHideCursor = false;
-                ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, NULL);
-            }
-            break;
-        }
-
 
         // File has been dropped on our window
         case WM_DROPFILES:
@@ -987,11 +963,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_SYSCOLORCHANGE:
             Display::Init();
             break;
-
-        // Input language has changed - reinitialise input to pick up the new mappings
-        case WM_INPUTLANGCHANGE:
-            Input::Init();
-            return 1;
 
         // System time has changed - update the SAM time if we're keeping it synchronised
         case WM_TIMECHANGE:
@@ -1121,15 +1092,8 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_ENTERMENULOOP:
             fInMenu = true;
             Sound::Silence();
-            Input::Acquire(false);
             break;
 
-        // Handle the exit for modal dialogues, when we get enabled
-        case WM_ENABLE:
-            if (!wParam_)
-                break;
-
-            // Fall through to WM_EXITMENULOOP...
 
         case WM_EXITMENULOOP:
             // No longer in menu, so start timer to hide the mouse if not used again
@@ -1229,18 +1193,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             return 0;
         }
 
-        case WM_LBUTTONDOWN:
-        {
-            // Acquire the mouse if it's enabled
-            if (GetOption(mouse) && !GUI::IsActive() && !Input::IsMouseAcquired())
-            {
-                Input::Acquire();
-                ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, NULL);
-            }
-
-            break;
-        }
-
         // Silence the sound during window drags, and other clicks in the non-client area
         case WM_NCLBUTTONDOWN:
             Sound::Silence();
@@ -1288,7 +1240,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             if (wParam_ >= VK_F1 && wParam_ <= VK_F12)
             {
                 // Ignore Windows-modified function keys unless the SAM keypad mapping is enabled
-                if (GetOption(samfkeys) != (GetAsyncKeyState(VK_LWIN) < 0 || GetAsyncKeyState(VK_RWIN) < 0) && wParam_ <= VK_F10)
+                if ((GetAsyncKeyState(VK_LWIN) < 0 || GetAsyncKeyState(VK_RWIN) < 0) && wParam_ <= VK_F10)
                     return 0;
 
                 // Read the current states of the control and shift keys
@@ -1303,13 +1255,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             // Most of the emulator keys are handled above, but we've a few extra fixed mappings of our own (well, mine!)
             switch (wParam_)
             {
-                case VK_ESCAPE: 
-                {
-                    if (GetOption(mouseesc) && Input::IsMouseAcquired())
-                        Input::Acquire(false);
-                    break;
-                }
-
                 // Keypad '-' = Z80 reset (can be held to view reset screens)
                 case VK_SUBTRACT:   if (GetOption(keypadreset)) Action::Do(actResetButton, uMsg_ == WM_KEYDOWN);    break;
                 case VK_DIVIDE:     if (fPress) Action::Do(actDebugger);    break;
@@ -2850,13 +2795,12 @@ INT_PTR CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
         case WM_INITDIALOG:
         {
-            static const char* aszMapping[] = { "None (raw)", "SAM Coupé", "Sinclair Spectrum", NULL };
+            static const char* aszMapping[] = { "None (raw)", "Auto-select", "SAM Coupé", "Sinclair Spectrum", NULL };
             SetComboStrings(hdlg_, IDC_KEYBOARD_MAPPING, aszMapping, GetOption(keymapping));
 
             SendDlgItemMessage(hdlg_, IDC_ALT_FOR_CNTRL, BM_SETCHECK, GetOption(altforcntrl) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_ALTGR_FOR_EDIT, BM_SETCHECK, GetOption(altgrforedit) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_KPMINUS_RESET, BM_SETCHECK, GetOption(keypadreset) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_SAM_FKEYS, BM_SETCHECK, GetOption(samfkeys) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
             SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_SETCHECK, GetOption(mouse) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_MOUSE_SWAP23, BM_SETCHECK, GetOption(swap23) ? BST_CHECKED : BST_UNCHECKED, 0L);
@@ -2874,7 +2818,6 @@ INT_PTR CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                 SetOption(altforcntrl, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALT_FOR_CNTRL, BM_GETCHECK, 0, 0L)) == BST_CHECKED);
                 SetOption(altgrforedit, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALTGR_FOR_EDIT, BM_GETCHECK, 0, 0L)) == BST_CHECKED);
                 SetOption(keypadreset, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_KPMINUS_RESET, BM_GETCHECK, 0, 0L)) == BST_CHECKED);
-                SetOption(samfkeys, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_SAM_FKEYS, BM_GETCHECK, 0, 0L)) == BST_CHECKED);
 
                 SetOption(mouse, SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(swap23, SendDlgItemMessage(hdlg_, IDC_MOUSE_SWAP23, BM_GETCHECK, 0, 0L) == BST_CHECKED);
@@ -2937,8 +2880,8 @@ INT_PTR CALLBACK JoystickPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                 SendMessage(hwndJoy1, CB_GETLBTEXT, SendMessage(hwndJoy1, CB_GETCURSEL, 0, 0L), (LPARAM)GetOption(joydev1));
                 SendMessage(hwndJoy2, CB_GETLBTEXT, SendMessage(hwndJoy2, CB_GETCURSEL, 0, 0L), (LPARAM)GetOption(joydev2));
 
-                if (Changed(deadzone1) || Changed(deadzone1) || ChangedString(joydev1) || ChangedString(joydev2))
-                    Input::Init();
+                // Always reinitialise to ensure we pick up connected devices
+                Input::Init();
             }
 
             break;
