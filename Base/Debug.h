@@ -2,7 +2,7 @@
 //
 // Debug.h: Integrated Z80 debugger
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -130,7 +130,7 @@ class CCodeView : public CView
 
     protected:
         void SetFlowTarget ();
-        void cmdNavigate (int nKey_, int nMods_);
+        bool cmdNavigate (int nKey_, int nMods_);
 
     protected:
         UINT m_uRows, m_uColumns, m_uTarget;

@@ -564,8 +564,6 @@ void CCodeView::Draw (CScreen* pScreen_)
 
 bool CCodeView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 {
-    bool fRet = false;
-
     switch (nMessage_)
     {
         case GM_BUTTONDBLCLK:
@@ -579,8 +577,6 @@ bool CCodeView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
         case GM_CHAR:
         {
-            fRet = true;
-
             switch (nParam1_)
             {
                 case HK_KP7:  cmdStep();        break;
@@ -596,28 +592,28 @@ bool CCodeView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 case HK_RIGHT:
                 case HK_PGUP:
                 case HK_PGDN:
-                    cmdNavigate(nParam1_, nParam2_);
-                    break;
+                    return cmdNavigate(nParam1_, nParam2_);
 
                 case 'd': case 'D':
-                    fRet = true;
                     break;
 
-                default:     fRet = false; break;
+                default:
+                    return false;
             }
             break;
         }
 
         case GM_MOUSEWHEEL:
-            cmdNavigate((nParam1_ < 0) ? HK_UP : HK_DOWN, 0);
-            break;
+            return cmdNavigate((nParam1_ < 0) ? HK_UP : HK_DOWN, 0);
+
+        default:
+            return false;
     }
 
-    return fRet;
-
+    return true;
 }
 
-void CCodeView::cmdNavigate (int nKey_, int nMods_)
+bool CCodeView::cmdNavigate (int nKey_, int nMods_)
 {
     CAddr addr = m_addr;
 
@@ -689,10 +685,12 @@ void CCodeView::cmdNavigate (int nKey_, int nMods_)
             break;
         }
 
-        default:  return;
+        default:
+            return false;
     }
 
     SetAddress(addr, !nMods_);
+    return true;
 }
 
 // Determine the target address
@@ -840,7 +838,16 @@ void CTextView::Draw (CScreen* pScreen_)
 
 bool CTextView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 {
-    return (nMessage_ == GM_CHAR) && cmdNavigate(nParam1_, nParam2_);
+    switch (nMessage_)
+    {
+        case GM_CHAR:
+            return cmdNavigate(nParam1_, nParam2_);
+            
+        case GM_MOUSEWHEEL:
+            return cmdNavigate((nParam1_ < 0) ? HK_UP : HK_DOWN, 0);
+    }
+    
+    return false;
 }
 
 bool CTextView::cmdNavigate (int nKey_, int nMods_)
@@ -853,11 +860,11 @@ bool CTextView::cmdNavigate (int nKey_, int nMods_)
         case 't': case 'T':
             return true;
 
-        case HK_UP:         addr -= 32; break;
-        case HK_DOWN:       addr += 32; break;
-        case HK_LEFT:       addr--;     break;
-        case HK_RIGHT:      addr++;     break;
-        case HK_PGUP:     addr -= m_uRows*32; break;
+        case HK_UP:     addr -= 32; break;
+        case HK_DOWN:   addr += 32; break;
+        case HK_LEFT:   addr--;     break;
+        case HK_RIGHT:  addr++;     break;
+        case HK_PGUP:   addr -= m_uRows*32; break;
         case HK_PGDN:   addr += m_uRows*32; break;
 
         default:
@@ -930,7 +937,16 @@ void CNumView::Draw (CScreen* pScreen_)
 
 bool CNumView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 {
-    return (nMessage_ == GM_CHAR) && cmdNavigate(nParam1_, nParam2_);
+    switch (nMessage_)
+    {
+        case GM_CHAR:
+            return cmdNavigate(nParam1_, nParam2_);
+            
+        case GM_MOUSEWHEEL:
+            return cmdNavigate((nParam1_ < 0) ? HK_UP : HK_DOWN, 0);
+    }
+    
+    return false;
 }
 
 bool CNumView::cmdNavigate (int nKey_, int nMods_)
@@ -943,12 +959,12 @@ bool CNumView::cmdNavigate (int nKey_, int nMods_)
         case 'n': case 'N':
             return true;
 
-        case HK_UP:         addr -= 11; break;
-        case HK_DOWN:       addr += 11; break;
-        case HK_LEFT:       addr--;     break;
-        case HK_RIGHT:      addr++;     break;
-        case HK_PGUP:       addr -= m_uRows*11; break;
-        case HK_PGDN:       addr += m_uRows*11; break;
+        case HK_UP:     addr -= 11; break;
+        case HK_DOWN:   addr += 11; break;
+        case HK_LEFT:   addr--;     break;
+        case HK_RIGHT:  addr++;     break;
+        case HK_PGUP:   addr -= m_uRows*11; break;
+        case HK_PGDN:   addr += m_uRows*11; break;
 
         default:
             return false;
@@ -1099,7 +1115,16 @@ void CGraphicsView::Draw (CScreen* pScreen_)
 
 bool CGraphicsView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 {
-    return (nMessage_ == GM_CHAR) && cmdNavigate(nParam1_, nParam2_);
+    switch (nMessage_)
+    {
+        case GM_CHAR:
+            return cmdNavigate(nParam1_, nParam2_);
+            
+        case GM_MOUSEWHEEL:
+            return cmdNavigate((nParam1_ < 0) ? HK_PGUP : HK_PGDN, 0);
+    }
+    
+    return false;
 }
 
 bool CGraphicsView::cmdNavigate (int nKey_, int nMods_)
@@ -1115,6 +1140,7 @@ bool CGraphicsView::cmdNavigate (int nKey_, int nMods_)
         // Keys 1 to 4 select the screen mode
         case '1': case '2': case '3': case '4':
             s_uMode = nKey_-'0';
+            if (s_uMode < 3 && s_uWidth > 32U) s_uWidth = 32U;  // Clip width in modes 1+2
             break;
 
         case HK_UP:
