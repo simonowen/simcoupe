@@ -56,6 +56,9 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
     SetErrorMode(SEM_FAILCRITICALERRORS);
 #endif
 
+    // Centre the main window
+    putenv(strdup("SDL_VIDEO_CENTERED=1"));
+
     // The only sub-system we _need_ is video
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
         TRACE("!!! SDL_Init(SDL_INIT_VIDEO) failed: %s\n", SDL_GetError());
