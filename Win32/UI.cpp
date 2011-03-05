@@ -119,8 +119,6 @@ static const char* aszBorders[] =
 
 
 bool InitWindow ();
-void LocaliseMenu (HMENU hmenu_);
-void LocaliseWindows (HWND hwnd_);
 
 
 int WINAPI WinMain(HINSTANCE hinst_, HINSTANCE hinstPrev_, LPSTR pszCmdLine_, int nCmdShow_)
@@ -1450,7 +1448,6 @@ bool InitWindow ()
     wc.lpszClassName = "SimCoupeClass";
 
     g_hmenu = LoadMenu(wc.hInstance, MAKEINTRESOURCE(IDR_MENU));
-    LocaliseMenu(g_hmenu);
 
     // Create a window for the display (initially invisible)
     bool f = (RegisterClass(&wc) && (g_hwnd = CreateWindowEx(WS_EX_APPWINDOW, wc.lpszClassName, WINDOW_CAPTION, WS_OVERLAPPEDWINDOW,
@@ -2202,12 +2199,9 @@ INT_PTR CALLBACK BasePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
             // If we've not yet centred the property sheet, do so now
             if (!fCentredOptions)
             {
-                LocaliseWindows(GetParent(hdlg_));
                 CentreWindow(GetParent(hdlg_));
                 fCentredOptions = true;
             }
-
-            LocaliseWindows(hdlg_);
 
             fRet = TRUE;
             break;
@@ -3578,99 +3572,4 @@ void DisplayOptions ()
     PropertySheet(&psh);
 
     Options::Save();
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-bool LocaliseString (char* psz_, int nLen_)
-{
-    // ToDo: determine the message to use, and update the string passed in
-    return true;
-}
-
-
-void LocaliseMenu (HMENU hmenu_)
-{
-    char sz[128];
-
-    // Loop through all items on the menu
-    for (int nItem = 0, nMax = GetMenuItemCount(hmenu_); nItem < nMax ; nItem++)
-    {
-        // Fetch the text for the current menu item
-        GetMenuString(hmenu_, nItem, sz, sizeof sz, MF_BYPOSITION);
-
-        // Fetch the current state of the item, and submenu if it has one
-        UINT uMenuFlags = GetMenuState(hmenu_, nItem, MF_BYPOSITION) & (MF_GRAYED | MF_DISABLED | MF_CHECKED);
-        HMENU hmenuSub = GetSubMenu(hmenu_, nItem);
-
-        // Only consider changing items using a string
-        if (sz[0])
-        {
-            LocaliseString(sz, sizeof sz);
-
-            // Modify the menu, preserving the type and flags
-            UINT_PTR uptr = hmenuSub ? reinterpret_cast<UINT_PTR>(hmenuSub) : GetMenuItemID(hmenu_, nItem);
-            ModifyMenu (hmenu_, nItem, MF_BYPOSITION | uMenuFlags, uptr, sz);
-        }
-
-        // If the menu item has a sub-menu, recurively process it
-        if (hmenuSub)
-            LocaliseMenu(hmenuSub);
-    }
-}
-
-void LocaliseWindow (HWND hwnd)
-{
-    char sz[512];
-
-    char szClass[128];
-    GetClassName(hwnd, szClass, sizeof szClass);
-
-    // Tab controls need special handling for the text on each tab
-    if (!lstrcmpi(szClass, "SysTabControl32"))
-    {
-        // Find out the number of tabs on the control
-        LRESULT lItems = SendMessage(hwnd, TCM_GETITEMCOUNT, 0, 0L);
-
-        // Loop through each tab
-        for (int i = 0 ; i < lItems ; i++)
-        {
-            // Fill in the structure specifying what we want
-            TCITEM sItem;
-            sItem.mask = TCIF_TEXT;
-            sItem.pszText = sz;
-            sItem.cchTextMax = sizeof sz;
-
-            if (SendMessage(hwnd, TCM_GETITEM, i, (LPARAM)&sItem))
-            {
-                if (LocaliseString(sz, sizeof sz))
-                {
-                    // Shrink the tab size down and set the tab text with the expanded message
-                    SendMessage(hwnd, TCM_SETMINTABWIDTH, 0, (LPARAM)1);
-                    SendMessage(hwnd, TCM_SETITEM, i, (LPARAM)&sItem);
-                }
-            }
-        }
-    }
-    else
-    {
-        // Get the current window text
-        GetWindowText (hwnd, sz, sizeof sz);
-        if (LocaliseString(sz, sizeof sz))
-            SetWindowText(hwnd, sz);
-    }
-}
-
-
-BOOL CALLBACK LocaliseEnumProc (HWND hwnd, LPARAM lParam)
-{
-    // Fill the window text for this window
-    LocaliseWindow(hwnd);
-    return TRUE;
-}
-
-void LocaliseWindows (HWND hwnd_)
-{
-    EnumChildWindows(hwnd_, LocaliseEnumProc, NULL);
 }
