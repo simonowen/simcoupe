@@ -499,7 +499,7 @@ SOURCE=..\..\Extern\unzip.h
 # PROP Default_Filter "ico"
 # Begin Source File
 
-SOURCE=..\..\Win32\Icons\main.ico
+SOURCE=.\main.ico
 # End Source File
 # Begin Source File
 
