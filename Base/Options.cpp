@@ -68,7 +68,7 @@ OPTION aOptions[] =
     OPT_F("Scanlines",    scanlines,      true),      // TV scanlines
     OPT_N("ScanLevel",    scanlevel,      75),        // Scanlines are 75% brightness
     OPT_N("Mode3",        mode3,          0),         // Show only odd mode3 pixels on low-res displays
-    OPT_N("Fullscreen",   fullscreen,     0),         // Not full screen
+    OPT_F("Fullscreen",   fullscreen,     false),     // Not full screen
     OPT_N("Borders",      borders,        2),         // Same amount of borders as previous version
     OPT_F("StretchToFit", stretchtofit,   true),      // Stretch image to fit the display area
     OPT_F("HWAccel",      hwaccel,        true),      // Use hardware accelerated video

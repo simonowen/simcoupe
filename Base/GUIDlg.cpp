@@ -590,7 +590,7 @@ class CDisplayOptions : public CDialog
             // Set the initial state from the options
             m_pScale->Select(GetOption(scale)-1);
 
-            m_pFullScreen->SetChecked(GetOption(fullscreen) != 0);
+            m_pFullScreen->SetChecked(GetOption(fullscreen));
             m_pSync->SetChecked(GetOption(sync) != 0);
             m_pRatio54->SetChecked(GetOption(ratio5_4));
             m_pStretch->SetChecked(GetOption(stretchtofit));
