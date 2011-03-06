@@ -937,9 +937,9 @@ void IO::UpdateInput()
     memcpy(keyports, keybuffer, sizeof(keyports));
 }
 
-const RGBA* IO::GetPalette ()
+const COLOUR* IO::GetPalette ()
 {
-    static RGBA asPalette[N_PALETTE_COLOURS];
+    static COLOUR asPalette[N_PALETTE_COLOURS];
 
     // Look-up table for an even intensity spread, used to map SAM colours to RGB
     static const BYTE abIntensities[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
@@ -963,7 +963,6 @@ const RGBA* IO::GetPalette ()
         asPalette[i].bRed = bRed;
         asPalette[i].bGreen = bGreen;
         asPalette[i].bBlue = bBlue;
-        asPalette[i].bAlpha = 0xff;
     }
 
     // Return the freshly prepared palette

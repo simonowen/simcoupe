@@ -372,18 +372,18 @@ bool Video::CreatePalettes ()
     int nScanAdjust = GetOption(scanlines) ? (GetOption(scanlevel) - 100) : 0;
     if (nScanAdjust < -100) nScanAdjust = -100;
 
-    const RGBA *pSAM = IO::GetPalette();
+    const COLOUR *pSAM = IO::GetPalette();
 
     // Build the full palette from SAM and GUI colours
     for (int i = 0; i < N_PALETTE_COLOURS ; i++)
     {
         // Look up the colour in the SAM palette
-        const RGBA* p = &pSAM[i];
+        const COLOUR *p = &pSAM[i];
         BYTE r = p->bRed, g = p->bGreen, b = p->bBlue;
 
 #ifdef USE_OPENGL
-        // We don't currently use alpha, but pick it up to allow for future translucent windows
-        BYTE a = p->bAlpha;
+        // Set alpha to fully opaque
+        BYTE a = 0xff;
 
         // 32-bit RGBA?
         if (g_glDataType == GL_UNSIGNED_BYTE)

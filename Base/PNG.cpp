@@ -2,7 +2,7 @@
 //
 // PNG.cpp: Screenshot saving in PNG format
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -148,7 +148,7 @@ bool SaveImage (FILE* hFile_, CScreen* pScreen_)
         return false;
 
     memset(png.pbImage, 0, png.uSize);
-    const RGBA* pPal = IO::GetPalette();
+    const COLOUR *pPal = IO::GetPalette();
 
 
     BYTE *pb = png.pbImage;

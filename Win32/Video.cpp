@@ -275,13 +275,13 @@ bool Video::CreatePalettes ()
     int nScanAdjust = GetOption(scanlevel) - 100;
     if (nScanAdjust < -100) nScanAdjust = -100;
 
-    const RGBA *pSAM = IO::GetPalette();
+    const COLOUR *pSAM = IO::GetPalette();
 
     // Build the palette from SAM colours
     for (int i = 0; i < N_PALETTE_COLOURS ; i++)
     {
         // Look up the colour in the SAM palette
-        const RGBA* p = &pSAM[i];
+        const COLOUR *p = &pSAM[i];
         BYTE r = p->bRed, g = p->bGreen, b = p->bBlue;
 
         // In 8 bit mode use offset palette positions to allow for system colours in the first 10

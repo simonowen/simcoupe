@@ -2,7 +2,7 @@
 //
 // IO.h: SAM I/O port handling
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //  Copyright (c) 2000-2001  Dave Laundon
 //
@@ -25,14 +25,9 @@
 
 #include "Sound.h"
 
-typedef struct
-{
-    BYTE    bRed;
-    BYTE    bGreen;
-    BYTE    bBlue;
-    BYTE    bAlpha;     // Likely to be only needed for 3D surfaces
-}
-RGBA;
+typedef struct {
+    BYTE bRed, bGreen, bBlue;
+} COLOUR;
 
 
 class IO
@@ -61,7 +56,7 @@ class IO
 
         static void FrameUpdate ();
         static void UpdateInput();
-        static const RGBA* GetPalette ();
+        static const COLOUR *GetPalette ();
         static bool IsAtStartupScreen ();
         static void CheckAutoboot ();
         static bool Rst8Hook ();
