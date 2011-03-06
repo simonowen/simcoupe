@@ -968,32 +968,10 @@ void Display::DisplayToSamSize (int* pnX_, int* pnY_)
     *pnY_ = *pnY_ * (rSource.h >> nHalfHeight) / rTarget.h;
 }
 
-// Scale a size/movement in the SAM view port to one relative to the client
-// Should round down and be consistent with positive and negative values
-void Display::SamToDisplaySize (int* pnX_, int* pnY_)
-{
-#ifdef USE_OPENGL
-    int nHalfWidth = !GUI::IsActive(), nHalfHeight = nHalfWidth;
-#else
-    int nHalfWidth = !GUI::IsActive(), nHalfHeight = 0;
-#endif
-
-    *pnX_ = *pnX_ * rTarget.w / (rSource.w >> nHalfWidth);
-    *pnY_ = *pnY_ * rTarget.h / (rSource.h >> nHalfHeight);
-}
-
 // Map a client point to one relative to the SAM view port
 void Display::DisplayToSamPoint (int* pnX_, int* pnY_)
 {
     *pnX_ -= rTarget.x;
     *pnY_ -= rTarget.y;
     DisplayToSamSize(pnX_, pnY_);
-}
-
-// Map a point in the SAM view port to a point relative to the client position
-void Display::SamToDisplayPoint (int* pnX_, int* pnY_)
-{
-    SamToDisplaySize(pnX_, pnY_);
-    *pnX_ += rTarget.x;
-    *pnY_ += rTarget.y;
 }

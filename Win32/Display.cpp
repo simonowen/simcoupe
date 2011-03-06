@@ -512,6 +512,10 @@ void Display::Update (CScreen* pScreen_)
         ClientToScreen(g_hwnd, &ptOffset);
     }
 
+    // Return if there's nothing to draw
+    if (IsRectEmpty(&rFront))
+        return;
+
     // rTo is the target area needed for our screen display
     RECT rTo = rFront;
 
@@ -594,28 +598,10 @@ void Display::DisplayToSamSize (int* pnX_, int* pnY_)
     *pnY_ = *pnY_ * rSource.bottom / ((rTarget.bottom-rTarget.top) << nHalfHeight);
 }
 
-// Scale a size/movement in the SAM view port to one relative to the Windows client
-// Should round down and be consistent with positive and negative values
-void Display::SamToDisplaySize (int* pnX_, int* pnY_)
-{
-    int nHalfWidth = !GUI::IsActive(), nHalfHeight = nHalfWidth && GetOption(scanlines);
-
-    *pnX_ = *pnX_ * ((rTarget.right-rTarget.left) << nHalfWidth) / rSource.right;
-    *pnY_ = *pnY_ * ((rTarget.bottom-rTarget.top) << nHalfHeight) / rSource.bottom;
-}
-
 // Map a Windows client point to one relative to the SAM view port
 void Display::DisplayToSamPoint (int* pnX_, int* pnY_)
 {
     *pnX_ -= rTarget.left;
     *pnY_ -= rTarget.top;
     DisplayToSamSize(pnX_, pnY_);
-}
-
-// Map a point in the SAM view port to a point relative to the Windows client position
-void Display::SamToDisplayPoint (int* pnX_, int* pnY_)
-{
-    SamToDisplaySize(pnX_, pnY_);
-    *pnX_ += rTarget.left;
-    *pnY_ += rTarget.top;
 }

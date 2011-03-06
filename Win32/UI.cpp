@@ -1085,14 +1085,12 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
         case WM_PAINT:
         {
-            PAINTSTRUCT ps;
-            BeginPaint(hwnd_, &ps);
-
             // Forcibly redraw the screen if in using the menu, sizing, moving, or inactive and paused
             if (fInMenu || fSizingOrMoving || g_fPaused)
                 Frame::Redraw();
 
-            EndPaint(hwnd_, &ps);
+            // Window no longer dirty
+            ValidateRect(hwnd_, NULL);
             return 0;
         }
 
@@ -1417,7 +1415,6 @@ bool InitWindow ()
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = __hinstance;
     wc.hIcon = LoadIcon(__hinstance, MAKEINTRESOURCE(IDI_MAIN));
-    wc.hbrBackground = reinterpret_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
     wc.hCursor = LoadCursor(__hinstance, MAKEINTRESOURCE(IDC_CURSOR));
     wc.lpszClassName = "SimCoupeClass";
 
