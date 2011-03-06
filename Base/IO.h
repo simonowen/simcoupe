@@ -61,7 +61,7 @@ class IO
 
         static void FrameUpdate ();
         static void UpdateInput();
-        static const RGBA* GetPalette (bool fDimmed_=false);
+        static const RGBA* GetPalette ();
         static bool IsAtStartupScreen ();
         static void CheckAutoboot ();
         static bool Rst8Hook ();

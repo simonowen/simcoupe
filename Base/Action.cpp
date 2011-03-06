@@ -57,11 +57,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
         {
             case actResetButton:
                 // Ensure we're not paused, to avoid confusion
-                if (g_fPaused)
-                {
-                    g_fPaused = false;
-                    Video::CreatePalettes();
-                }
+                g_fPaused = false;
 
                 CPU::Reset(true);
                 Sound::Stop();
@@ -227,9 +223,6 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 else
                     Sound::Play();
 
-                Video::CreatePalettes();
-                Display::SetDirty();
-                Frame::Redraw();
                 Input::Purge();
                 break;
             }

@@ -38,20 +38,6 @@
 #include "UI.h"
 #include "Video.h"
 
-
-// Array of SAM colours used by the GUI - allocated separately to support dimming the main palette
-static const BYTE abGuiPalette [N_GUI_COLOURS] =
-{
-     1, 9, 16, 24, 17, 25, 113, 121,        // Blues
-     2, 10, 32, 40, 34, 42, 114, 122,       // Reds
-     3, 11, 48, 56, 51, 59, 115, 123,       // Magentas
-     4, 12, 64, 72, 68, 76, 116, 124,       // Greens
-     5, 13, 80, 88, 85, 93, 117, 125,       // Cyans
-     6, 14, 96, 104, 102, 110, 118, 126,    // Yellows
-     0, 8, 7, 15, 112, 120, 119, 127,       // Greys, from black to white
-     0, 0                                   // Custom colours, defined in GetPalette() below
-};
-
 CWindow *GUI::s_pGUI, *GUI::s_pGarbage;
 int GUI::s_nX, GUI::s_nY;
 bool GUI::s_fModal;
@@ -140,9 +126,9 @@ bool GUI::Start (CWindow* pGUI_)
     // Position the cursor off-screen, to ensure the first drawn position matches the native OS position
     s_nX = s_nY = -ICON_SIZE;
 
-    // Dim the background SAM screen and stop the sound
-    Video::CreatePalettes();
+    // Stop the sound
     Sound::Stop();
+    Display::SetDirty();
 
     return true;
 }
@@ -153,9 +139,9 @@ void GUI::Stop ()
     delete s_pGUI;
     s_pGUI = NULL;
 
-    // Restore the normal SAM palette and sound
-    Video::CreatePalettes();
+    // Restore the sound
     Sound::Play();
+    Display::SetDirty();
 }
 
 void GUI::Delete (CWindow* pWindow_)
@@ -190,32 +176,6 @@ void GUI::Draw (CScreen* pScreen_)
 bool GUI::IsModal ()
 {
     return s_pGUI && s_pGUI->GetType() >= ctDialog && reinterpret_cast<CDialog*>(s_pGUI)->IsModal();
-}
-
-const RGBA* GUI::GetPalette ()
-{
-    static RGBA asCustom[] = { {77,97,133,255}, {202,217,253,255} };   // A couple of custom colours
-    static RGBA asPalette[N_GUI_COLOURS];
-    static bool fPrepared = false;
-
-    // If we've already got what's needed, return the current setup
-    if (fPrepared)
-        return asPalette;
-
-    // Most GUI palette colours are based on SAM colours, so get the original list
-    const RGBA* pSAM = IO::GetPalette();
-
-    for (int i = 0; i < N_GUI_COLOURS ; i++)
-    {
-        if (i >= (CUSTOM_1-N_PALETTE_COLOURS))
-            asPalette[i] = asCustom[i-(CUSTOM_1-N_PALETTE_COLOURS)];
-        else
-            asPalette[i] = pSAM[abGuiPalette[i]];
-    }
-
-    // Flag that we've prepared it, and return the freshly generated palette
-    fPrepared = true;
-    return asPalette;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -494,7 +454,7 @@ void CButton::Draw (CScreen* pScreen_)
     bool fPressed = m_fPressed && IsOver();
 
     // Fill the main button background
-    pScreen_->FillRect(m_nX+1, m_nY+1, m_nWidth-2, m_nHeight-2, IsActive() ? YELLOW_8 : CUSTOM_2);
+    pScreen_->FillRect(m_nX+1, m_nY+1, m_nWidth-2, m_nHeight-2, IsActive() ? YELLOW_8 : GREY_7);
 
     // Draw the edge highlight for the top and left
     pScreen_->DrawLine(m_nX, m_nY, m_nWidth, 0, fPressed ? GREY_5 : WHITE);
@@ -615,7 +575,7 @@ void CUpButton::Draw (CScreen* pScreen_)
     bool fPressed = m_fPressed && IsOver();
 
     int nX = m_nX + 2 + fPressed, nY = m_nY + 3 + fPressed;
-    BYTE bColour = GetParent()->IsEnabled() ? CUSTOM_1 : GREY_5;
+    BYTE bColour = GetParent()->IsEnabled() ? BLACK : GREY_5;
     pScreen_->DrawLine(nX+5, nY,   1, 0, bColour);
     pScreen_->DrawLine(nX+4, nY+1, 3, 0, bColour);
     pScreen_->DrawLine(nX+3, nY+2, 2, 0, bColour);  pScreen_->DrawLine(nX+6, nY+2, 2, 0, bColour);
@@ -637,7 +597,7 @@ void CDownButton::Draw (CScreen* pScreen_)
     bool fPressed = m_fPressed && IsOver();
 
     int nX = m_nX + 2 + fPressed, nY = m_nY + 5 + fPressed;
-    BYTE bColour = GetParent()->IsEnabled() ? CUSTOM_1 : GREY_5;
+    BYTE bColour = GetParent()->IsEnabled() ? BLACK : GREY_5;
     pScreen_->DrawLine(nX+5, nY+5,   1, 0, bColour);
     pScreen_->DrawLine(nX+4, nY+4, 3, 0, bColour);
     pScreen_->DrawLine(nX+3, nY+3, 2, 0, bColour);  pScreen_->DrawLine(nX+6, nY+3, 2, 0, bColour);
@@ -680,9 +640,9 @@ void CCheckBox::Draw (CScreen* pScreen_)
     pScreen_->DrawString(nX, nY, GetText(), IsEnabled() ? (IsActive() ? YELLOW_8 : m_bColour) : GREY_5);
 
     // Draw the empty check box
-    pScreen_->FrameRect(m_nX, m_nY, BOX_SIZE, BOX_SIZE, !IsEnabled() ? GREY_5 : IsActive() ? YELLOW_8 : CUSTOM_2);
+    pScreen_->FrameRect(m_nX, m_nY, BOX_SIZE, BOX_SIZE, !IsEnabled() ? GREY_5 : IsActive() ? YELLOW_8 : GREY_7);
 
-    BYTE abEnabled[] = { 0, CUSTOM_2 }, abDisabled[] = { 0, GREY_5 };
+    BYTE abEnabled[] = { 0, GREY_7 }, abDisabled[] = { 0, GREY_5 };
 
     static BYTE abCheck[11][11] =
     {
@@ -772,7 +732,7 @@ void CEditControl::Draw (CScreen* pScreen_)
 {
     // Fill overall control background, and draw a frame round it
     pScreen_->FillRect(m_nX+1, m_nY+1, m_nWidth-2, m_nHeight-2, IsEnabled() ? (IsActive() ? YELLOW_8 : WHITE) : GREY_7);
-    pScreen_->FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, CUSTOM_2);
+    pScreen_->FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, GREY_7);
 
     // Draw a light edge highlight for the bottom and right
     pScreen_->DrawLine(m_nX+1, m_nY+m_nHeight-1, m_nWidth-1, 0, GREY_7);
@@ -882,8 +842,8 @@ void CRadioButton::Draw (CScreen* pScreen_)
 {
     int nX = m_nX+1, nY = m_nY;
 
-    BYTE abActive[] = { 0, GREY_5, CUSTOM_2, YELLOW_8 };
-    BYTE abEnabled[] = { 0, GREY_5, CUSTOM_2, CUSTOM_2 };
+    BYTE abActive[] = { 0, GREY_5, GREY_7, YELLOW_8 };
+    BYTE abEnabled[] = { 0, GREY_5, GREY_7, GREY_7 };
     BYTE abDisabled[] = { 0, GREY_3, GREY_5, GREY_5 };
 
     static BYTE abSelected[10][10] = 
@@ -1050,7 +1010,7 @@ void CMenu::Draw (CScreen* pScreen_)
 {
     // Fill overall control background and frame it
     pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, YELLOW_8);
-    pScreen_->FrameRect(m_nX-1, m_nY-1, m_nWidth+2, m_nHeight+2, CUSTOM_2);
+    pScreen_->FrameRect(m_nX-1, m_nY-1, m_nWidth+2, m_nHeight+2, GREY_7);
 
     // Make a copy of the menu item list as strtok() munges as it iterates
     char sz[256], *psz = strtok(strcpy(sz, GetText()), MENU_DELIMITERS);
@@ -1247,13 +1207,13 @@ void CComboBox::Draw (CScreen* pScreen_)
     bool fPressed = m_fPressed;
 
     // Fill the main control background
-    pScreen_->FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, CUSTOM_2);
+    pScreen_->FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, GREY_7);
     pScreen_->FillRect(m_nX+1, m_nY+1, m_nWidth-COMBO_HEIGHT-1, m_nHeight-2,
                         !IsEnabled() ? GREY_7 : (IsActive() && !fPressed) ? YELLOW_8 : WHITE);
 
     // Fill the main button background
     int nX = m_nX + m_nWidth - COMBO_HEIGHT, nY = m_nY + 1;
-    pScreen_->FillRect(nX+1, nY+1, COMBO_HEIGHT-1, m_nHeight-3, CUSTOM_2);
+    pScreen_->FillRect(nX+1, nY+1, COMBO_HEIGHT-1, m_nHeight-3, GREY_7);
 
     // Draw the edge highlight for the top, left, right and bottom
     pScreen_->DrawLine(nX, nY, COMBO_HEIGHT, 0, fPressed ? GREY_5 : WHITE);
@@ -1263,7 +1223,7 @@ void CComboBox::Draw (CScreen* pScreen_)
 
     // Show the arrow button, down a pixel if it's pressed
     nY += fPressed;
-    BYTE bColour = IsEnabled() ? CUSTOM_1 : GREY_5;
+    BYTE bColour = IsEnabled() ? BLACK : GREY_5;
     pScreen_->DrawLine(nX+8, nY+9, 1, 0, bColour);
     pScreen_->DrawLine(nX+7, nY+8, 3, 0, bColour);
     pScreen_->DrawLine(nX+6, nY+7, 2, 0, bColour);  pScreen_->DrawLine(nX+9,  nY+7, 2, 0, bColour);
@@ -1411,12 +1371,12 @@ void CScrollBar::Draw (CScreen* pScreen_)
     int nX = m_nX, nY = m_nY + SB_BUTTON_HEIGHT + nPos;
 
     // Fill the main button background
-    pScreen_->FillRect(nX, nY, m_nWidth, m_nThumbSize, !IsEnabled() ? GREY_7 : CUSTOM_2);
+    pScreen_->FillRect(nX, nY, m_nWidth, m_nThumbSize, !IsEnabled() ? GREY_7 : GREY_7);
 
     pScreen_->DrawLine(nX, nY, m_nWidth, 0, WHITE);
     pScreen_->DrawLine(nX, nY, 0, m_nThumbSize, WHITE);
-    pScreen_->DrawLine(nX+1, nY+m_nThumbSize-1, m_nWidth-1, 0, GREY_5);
-    pScreen_->DrawLine(nX+m_nWidth-1, nY+1, 0, m_nThumbSize-1, GREY_5);
+    pScreen_->DrawLine(nX+1, nY+m_nThumbSize-1, m_nWidth-1, 0, GREY_4);
+    pScreen_->DrawLine(nX+m_nWidth-1, nY+1, 0, m_nThumbSize-1, GREY_4);
 
     CWindow::Draw(pScreen_);
 }

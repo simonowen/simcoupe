@@ -40,24 +40,6 @@ const DWORD DOUBLE_CLICK_TIME = 400;    // Under 400ms between consecutive click
 const int DOUBLE_CLICK_THRESHOLD = 5;   // Distance between clicks for double-clicks to be recognised
 
 
-enum
-{
-    BLUE_1 = N_PALETTE_COLOURS, BLUE_2, BLUE_3, BLUE_4, BLUE_5, BLUE_6, BLUE_7, BLUE_8,
-    RED_1, RED_2, RED_3, RED_4, RED_5, RED_6, RED_7, RED_8,
-    MAGENTA_1, MAGENTA_2, MAGENTA_3, MAGENTA_4, MAGENTA_5, MAGENTA_6, MAGENTA_7, MAGENTA_8,
-    GREEN_1, GREEN_2, GREEN_3, GREEN_4, GREEN_5, GREEN_6, GREEN_7, GREEN_8,
-    CYAN_1, CYAN_2, CYAN_3, CYAN_4, CYAN_5, CYAN_6, CYAN_7, CYAN_8,
-    YELLOW_1, YELLOW_2, YELLOW_3, YELLOW_4, YELLOW_5, YELLOW_6, YELLOW_7, YELLOW_8,
-    GREY_1, GREY_2, GREY_3, GREY_4, GREY_5, GREY_6, GREY_7, GREY_8,
-    CUSTOM_1, CUSTOM_2,
-    TOTAL_COLOURS,
-
-    BLACK = GREY_1, WHITE = GREY_8      // Useful aliases
-};
-
-const int N_GUI_COLOURS = TOTAL_COLOURS-N_PALETTE_COLOURS;
-
-
 class CWindow;
 class CDialog;
 
@@ -66,7 +48,6 @@ class GUI
     public:
         static bool IsActive () { return s_pGUI != NULL; }
         static bool IsModal ();
-        static const RGBA* GetPalette ();
 
     public:
         static bool Start (CWindow* pGUI_);

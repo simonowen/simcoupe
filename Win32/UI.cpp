@@ -902,12 +902,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             if (!fActive && fChildOpen)
                 Sound::Silence();
 
-            // Show the palette dimmed if the main window is inactive
-            if (fActive || fChildOpen)
-            {
-                Video::CreatePalettes(!fActive && fChildOpen);
-                Frame::Redraw();
-            }
             break;
         }
 

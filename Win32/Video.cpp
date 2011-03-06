@@ -31,10 +31,8 @@
 #include "Video.h"
 
 
-const int N_TOTAL_COLOURS = N_PALETTE_COLOURS+N_GUI_COLOURS;
-
 // SAM RGB values in native surface format
-DWORD aulPalette[N_TOTAL_COLOURS], aulScanline[N_TOTAL_COLOURS];    // normal and scanline palettes
+DWORD aulPalette[N_PALETTE_COLOURS], aulScanline[N_PALETTE_COLOURS];    // normal and scanline palettes
 
 // DirectDraw back and front surfaces
 LPDIRECTDRAWSURFACE pddsPrimary, pddsFront, pddsBack;
@@ -252,14 +250,11 @@ LPDIRECTDRAWSURFACE CreateSurface (DWORD dwCaps_, DWORD dwWidth_/*=0*/, DWORD dw
 }
 
 
-bool Video::CreatePalettes (bool fDimmed_/*=false*/)
+bool Video::CreatePalettes ()
 {
     // Don't attempt anything without a surface pointer
     if (!pddsFront && !pddsBack)
         return false;
-
-    // Whether the display is dimmed depends on a number of things
-    fDimmed_ |= g_fPaused || GUI::IsActive();
 
     // Ok, let's look at what the target requirements are, as it determines the format we draw in
     DDSURFACEDESC ddsd = { sizeof(ddsd) };
@@ -280,13 +275,13 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
     int nScanAdjust = GetOption(scanlevel) - 100;
     if (nScanAdjust < -100) nScanAdjust = -100;
 
-    const RGBA *pSAM = IO::GetPalette(fDimmed_), *pGUI = GUI::GetPalette();
+    const RGBA *pSAM = IO::GetPalette();
 
-    // Build the full palette from SAM and GUI colours
-    for (int i = 0; i < N_TOTAL_COLOURS ; i++)
+    // Build the palette from SAM colours
+    for (int i = 0; i < N_PALETTE_COLOURS ; i++)
     {
-        // Look up the colour in the appropriate palette
-        const RGBA* p = (i < N_PALETTE_COLOURS) ? &pSAM[i] : &pGUI[i-N_PALETTE_COLOURS];
+        // Look up the colour in the SAM palette
+        const RGBA* p = &pSAM[i];
         BYTE r = p->bRed, g = p->bGreen, b = p->bBlue;
 
         // In 8 bit mode use offset palette positions to allow for system colours in the first 10

@@ -31,10 +31,9 @@
 #include "Options.h"
 #include "UI.h"
 
-const int N_TOTAL_COLOURS = N_PALETTE_COLOURS + N_GUI_COLOURS;
 
 // SAM RGB values in appropriate format, and YUV values pre-shifted for overlay surface
-DWORD aulPalette[N_TOTAL_COLOURS], aulScanline[N_TOTAL_COLOURS];
+DWORD aulPalette[N_PALETTE_COLOURS], aulScanline[N_PALETTE_COLOURS];
 
 SDL_Surface *pBack, *pFront, *pIcon;
 
@@ -363,9 +362,9 @@ void Video::Exit (bool fReInit_/*=false*/)
 
 
 // Create whatever's needed for actually displaying the SAM image
-bool Video::CreatePalettes (bool fDimmed_)
+bool Video::CreatePalettes ()
 {
-    SDL_Color acPalette[N_TOTAL_COLOURS];
+    SDL_Color acPalette[N_PALETTE_COLOURS];
     bool fPalette = pBack && (pBack->format->BitsPerPixel == 8);
     TRACE("CreatePalette: fPalette = %s\n", fPalette ? "true" : "false");
 
@@ -373,14 +372,13 @@ bool Video::CreatePalettes (bool fDimmed_)
     int nScanAdjust = GetOption(scanlines) ? (GetOption(scanlevel) - 100) : 0;
     if (nScanAdjust < -100) nScanAdjust = -100;
 
-    fDimmed_ |= g_fPaused || GUI::IsActive();
-    const RGBA *pSAM = IO::GetPalette(fDimmed_), *pGUI = GUI::GetPalette();
+    const RGBA *pSAM = IO::GetPalette();
 
     // Build the full palette from SAM and GUI colours
-    for (int i = 0; i < N_TOTAL_COLOURS ; i++)
+    for (int i = 0; i < N_PALETTE_COLOURS ; i++)
     {
-        // Look up the colour in the appropriate palette
-        const RGBA* p = (i < N_PALETTE_COLOURS) ? &pSAM[i] : &pGUI[i-N_PALETTE_COLOURS];
+        // Look up the colour in the SAM palette
+        const RGBA* p = &pSAM[i];
         BYTE r = p->bRed, g = p->bGreen, b = p->bBlue;
 
 #ifdef USE_OPENGL
@@ -439,8 +437,8 @@ bool Video::CreatePalettes (bool fDimmed_)
     // If a palette is required, set it on both surfaces now
     if (fPalette)
     {
-        SDL_SetPalette(pBack,  SDL_LOGPAL, acPalette, 0, N_TOTAL_COLOURS);
-        SDL_SetPalette(pFront, SDL_LOGPAL|SDL_PHYSPAL, acPalette, 0, N_TOTAL_COLOURS);
+        SDL_SetPalette(pBack,  SDL_LOGPAL, acPalette, 0, N_PALETTE_COLOURS);
+        SDL_SetPalette(pFront, SDL_LOGPAL|SDL_PHYSPAL, acPalette, 0, N_PALETTE_COLOURS);
     }
 
     // Ensure the display is redrawn to reflect the changes

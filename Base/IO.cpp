@@ -937,7 +937,7 @@ void IO::UpdateInput()
     memcpy(keyports, keybuffer, sizeof(keyports));
 }
 
-const RGBA* IO::GetPalette (bool fDimmed_/*=false*/)
+const RGBA* IO::GetPalette ()
 {
     static RGBA asPalette[N_PALETTE_COLOURS];
 
@@ -951,14 +951,6 @@ const RGBA* IO::GetPalette (bool fDimmed_/*=false*/)
         BYTE bRed   = abIntensities[(i&0x02)     | ((i&0x20) >> 3) | ((i&0x08) >> 3)];
         BYTE bGreen = abIntensities[(i&0x04) >> 1| ((i&0x40) >> 4) | ((i&0x08) >> 3)];
         BYTE bBlue  = abIntensities[(i&0x01) << 1| ((i&0x10) >> 2) | ((i&0x08) >> 3)];
-
-        // Dim if required
-        if (fDimmed_)
-        {
-            bRed   = bRed   * 2/3;
-            bGreen = bGreen * 2/3;
-            bBlue  = bBlue  * 2/3;
-        }
 
         // If greyscale is enabled, convert the colour a suitable intensity grey
         if (GetOption(greyscale))

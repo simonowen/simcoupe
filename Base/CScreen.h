@@ -2,7 +2,7 @@
 //
 // CScreen.h: SAM screen handling, including on-screen display text
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,6 +26,20 @@
 const int CHAR_HEIGHT = sGUIFont.wHeight;   // Character cell dimensions
 const int CHAR_SPACING = 1;                 // 1 pixel between each character
 const char CHAR_UNKNOWN = '_';              // Character to display when not available in charset
+
+// Colours, shared with the SAM palette
+enum
+{
+    BLUE_1=1, BLUE_2=9, BLUE_3=16, BLUE_4=24, BLUE_5=17, BLUE_6=25, BLUE_7=113, BLUE_8=121,
+    RED_1=2, RED_2=10, RED_3=32, RED_4=40, RED_5=34, RED_6=42, RED_7=114, RED_8=122,
+    MAGENTA_1=3, MAGENTA_2=11, MAGENTA_3=48, MAGENTA_4=56, MAGENTA_5=51, MAGENTA_6=59, MAGENTA_7=115, MAGENTA_8=123,
+    GREEN_1=4, GREEN_2=12, GREEN_3=64, GREEN_4=72, GREEN_5=68, GREEN_6=76, GREEN_7=116, GREEN_8=124,
+    CYAN_1=5, CYAN_2=13, CYAN_3=80, CYAN_4=88, CYAN_5=85, CYAN_6=93, CYAN_7=117, CYAN_8=125,
+    YELLOW_1=6, YELLOW_2=14, YELLOW_3=96, YELLOW_4=104, YELLOW_5=102, YELLOW_6=110, YELLOW_7=118, YELLOW_8=126,
+    GREY_1=0, GREY_2=8, GREY_3=7, GREY_4=15, GREY_5=112, GREY_6=120, GREY_7=119, GREY_8=127,
+
+    BLACK = GREY_1, WHITE = GREY_8      // Useful aliases
+};
 
 
 class CScreen

@@ -2,7 +2,7 @@
 //
 // Video.h: SDL video handling for surfaces, screen modes, palettes etc.
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ class Video
         static void Exit (bool fReInit_=false);
 
         static void Update ();
-        static bool CreatePalettes (bool fDimmed_=false);
+        static bool CreatePalettes ();
 };
 
 

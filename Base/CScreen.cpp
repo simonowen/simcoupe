@@ -2,7 +2,7 @@
 //
 // CScreen.cpp: SAM screen handling, including on-screen display text
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -210,10 +210,10 @@ void CScreen::DrawImage (int nX_, int nY_, int nWidth_, int nHeight_, const BYTE
 
         for (int x = nX ; x < (nX+nWidth) ; x++)
         {
-            BYTE b1 = pcbPalette_[pcbImage[x-nX_]];
+            BYTE i = pcbImage[x-nX_];
 
-            if (b1)
-                pb[x] = b1;
+            if (i)
+                pb[x] = pcbPalette_[i];
         }
     }
 }
