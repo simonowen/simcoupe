@@ -1,7 +1,7 @@
 // This is a compatibility helper for Visual Studio 2005 targetting x86
 // Unfortunately this won't work with VS2008 due to linker restrictions
 //
-// The startup code for binaries built with VS2005 rely kernel32 functions
+// The startup code for binaries built with VS2005 rely on kernel32 functions
 // (including IsDebuggerPresent) that are not available on 95/NT4.
 // This prevents the program running on those platforms, for no good reason.
 //

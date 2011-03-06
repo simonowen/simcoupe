@@ -212,7 +212,7 @@ bool UI::DoAction (int nAction_, bool fPressed_)
 
             case actPause:
             {
-                // Reverse logic because we've the default processing hasn't occurred yet
+                // Reverse logic because the default processing hasn't occurred yet
                 if (g_fPaused)
                     SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);
                 else

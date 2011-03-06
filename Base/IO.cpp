@@ -20,21 +20,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-// Changes 1999-2003 by Simon Owen
-//  - hooked up newly supported hardware from other modules
-//  - most ports now correctly initialised to zero on reset (allow reset screens)
-//  - palette only pre-initialised on power-on
-//  - HPEN and LPEN now correct
-//  - ATTR port now allows on/off-screen detection (onscreen always zero tho)
-//  - clut values now cached, to allow runtime changes in pixel format
-
-// Changes 2000-2001 by Dave Laundon
-//  - mode change done in two steps, with mode changed one block after page
-//  - line interrupt now correctly activated/deactivated on port writes
-
-// ToDo:
-//  - tidy up a bit, and handle drive reinitialiseation in IO::Init() better
-
 #include "SimCoupe.h"
 #include "IO.h"
 

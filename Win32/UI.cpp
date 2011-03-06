@@ -260,7 +260,7 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
     {
         WINDOWPLACEMENT wp = { sizeof(wp) };
 
-            // Leave a maximised window as it is
+        // Leave a maximised window as it is
         if (!GetWindowPlacement(g_hwnd, &wp) || (wp.showCmd != SW_SHOWMAXIMIZED))
         {
             DWORD dwStyle = (GetWindowStyle(g_hwnd) & WS_VISIBLE) | WS_OVERLAPPEDWINDOW;
@@ -843,7 +843,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
     if (odmenu.WindowProc(hwnd_, uMsg_, wParam_, lParam_, &lResult))
         return lResult;
 
-//  TRACE("WindowProc(%#04x,%#08x,%#08lx,%#08lx)\n", hwnd_, uMsg_, wParam_, lParam_);
+//  TRACE("WindowProc(%#08lx,%#04x,%#08lx,%#08lx)\n", hwnd_, uMsg_, wParam_, lParam_);
 
     // If the keyboard is used, simulate early timer expiry to hide the cursor
     if (uMsg_ == WM_KEYDOWN && ulMouseTimer)
@@ -891,7 +891,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             return TRUE;
 
 
-        // Main window being activated or deactivated
+        // Main window activation change
         case WM_ACTIVATE:
         {
             TRACE("WM_ACTIVATE (%#08lx)\n", wParam_);
@@ -942,14 +942,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
         // System time has changed - update the SAM time if we're keeping it synchronised
         case WM_TIMECHANGE:
+            TRACE("WM_TIMECHANGE\n");
             IO::InitClocks();
             break;
 
-
-        // Menu is about to be activated
-        case WM_INITMENU:
-            UpdateMenuFromOptions();
-            break;
 
         case WM_SIZING:
         {
@@ -1064,12 +1060,17 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             fSizingOrMoving = (uMsg_ == WM_ENTERSIZEMOVE);
             break;
 
+
+        // Menu is about to be activated
+        case WM_INITMENU:
+            UpdateMenuFromOptions();
+            break;
+
         // Menu has been opened
         case WM_ENTERMENULOOP:
             fInMenu = true;
             Sound::Silence();
             break;
-
 
         case WM_EXITMENULOOP:
             // No longer in menu, so start timer to hide the mouse if not used again
@@ -1182,7 +1183,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 if (GetAsyncKeyState(VK_CONTROL < 0) || GetAsyncKeyState(VK_RMENU))
                     return 0;
 
-                // If Alt alone is pressed, ensure the menu is visible
+                // If Alt alone is pressed, ensure the menu is visible (for fullscreen)
                 if ((!GetOption(altforcntrl) || !lParam_) && !GetMenu(hwnd_))
                     SetMenu(hwnd_, g_hmenu);
 
@@ -1191,7 +1192,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 if ((GetOption(altforcntrl) && lParam_) || lParam_ == VK_RETURN)
                     return 0;
             }
-
             break;
 
         case WM_SYSKEYDOWN:
