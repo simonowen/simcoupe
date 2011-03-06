@@ -3,7 +3,7 @@
 // CPU.h: Z80 processor emulation and main emulation loop
 //
 //  Copyright (c) 2000-2003  Dave Laundon
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //  Copyright (c) 1996-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -180,12 +180,22 @@ Z80Regs;
 
 
 // CPU Event Queue data
-enum    { evtStdIntEnd, evtLineIntStart, evtEndOfFrame, evtMidiOutIntStart, evtMidiOutIntEnd, evtEndOfLine, evtInputUpdate, evtMouseReset, evtBlueAlphaClock };
+enum    { evtStdIntEnd, evtLineIntStart, evtEndOfFrame, evtMidiOutIntStart, evtMidiOutIntEnd, evtEndOfLine, evtInputUpdate, evtMouseReset, evtBlueAlphaClock, evtAsicStartup };
 
 const int MAX_EVENTS = 16;
 
 extern CPU_EVENT asCpuEvents[MAX_EVENTS], *psNextEvent, *psFreeEvent;
 
+
+// Initialise the CPU events queue
+inline void InitCpuEvents ()
+{
+    for (int n = 0 ; n < MAX_EVENTS ; n++)
+        asCpuEvents[n].psNext = &asCpuEvents[(n+1) % MAX_EVENTS];
+
+    psFreeEvent = asCpuEvents;
+    psNextEvent = NULL;
+}
 
 // Add a CPU event into the queue
 inline void AddCpuEvent (int nEvent_, DWORD dwTime_)

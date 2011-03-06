@@ -59,6 +59,8 @@ class IO
         static const COLOUR *GetPalette ();
         static bool IsAtStartupScreen ();
         static void CheckAutoboot ();
+        static void WakeAsic ();
+
         static bool Rst8Hook ();
 };
 
@@ -216,11 +218,11 @@ class CBeeperDevice : public CIoDevice
 
 // Bits in the status register to RESET to signal the various interrupts
 #define STATUS_INT_LINE     0x01
-#define STATUS_INT_MOUSE    0x02        // Part of original SAM design, but never used
+#define STATUS_INT_MOUSE    0x02	// Part of original SAM design, but never used
 #define STATUS_INT_MIDIIN   0x04
 #define STATUS_INT_FRAME    0x08
 #define STATUS_INT_MIDIOUT  0x10
-#define STATUS_INT_NONE     0xff
+#define STATUS_INT_NONE     0x1f
 
 // MIDI transfer rates are 31.25 Kbaud. Data has 1 start bit, 8 data bits, and 1 stop bit, for 320us serial byte.
 #define MIDI_TRANSMIT_TIME      USECONDS_TO_TSTATES(320)

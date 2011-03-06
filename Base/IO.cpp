@@ -108,15 +108,12 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     OutVmpr(0);     // Video in page 0, screen mode 1
 
     // No extended keys pressed, no active interrupts
-    status_reg = 0xff;
+    status_reg = STATUS_INT_NONE;
 
 
     // Also, if this is a power-on initialisation, set up the clut, etc.
     if (fFirstInit_)
     {
-        // Set up the unresponsive ASIC unresponsive option for initial startup
-//      fASICStartup = GetOption(asicdelay);
-
         // Line interrupts aren't cleared by a reset
         line_int = 0xff;
 
@@ -126,6 +123,13 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         // Initialise all the devices
         fRet &= (InitDrives() && InitParallel() && InitSerial() && InitClocks() &&
                  InitMidi() && InitBeeper() && InitHDD());
+    }
+
+    // The ASIC is unresponsive during the first ~49ms on production SAM units
+    if (GetOption(asicdelay))
+    {
+        fASICStartup = true;
+        AddCpuEvent(evtAsicStartup, ASIC_STARTUP_DELAY);
     }
 
     BlueAlphaSampler::Reset();
@@ -991,6 +995,12 @@ void IO::CheckAutoboot ()
 {
     // Trigger autoboot if we're at the startup screen right now
     g_fAutoBoot |= GetOption(autoboot) && IO::IsAtStartupScreen();
+}
+
+void IO::WakeAsic ()
+{
+    // No longer in ASIC startup phase
+    fASICStartup = false;
 }
 
 

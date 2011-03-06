@@ -110,7 +110,7 @@ BYTE *pbMemRead1, *pbMemRead2, *pbMemWrite1, *pbMemWrite2;
 Z80Regs regs;
 
 WORD* pHlIxIy, *pNewHlIxIy;
-CPU_EVENT   asCpuEvents[MAX_EVENTS], *psNextEvent, *psFreeEvent;
+CPU_EVENT asCpuEvents[MAX_EVENTS], *psNextEvent, *psFreeEvent;
 
 
 bool CPU::Init (bool fFirstInit_/*=false*/)
@@ -120,6 +120,8 @@ bool CPU::Init (bool fFirstInit_/*=false*/)
     // Power on initialisation requires some extra initialisation
     if (fFirstInit_)
     {
+        InitCpuEvents();
+
         // Build the parity lookup table (including other flags for logical operations)
         for (int n = 0x00 ; n <= 0xff ; n++)
         {
@@ -306,6 +308,11 @@ void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
             if (BlueAlphaSampler::Clock())
                 AddCpuEvent(evtBlueAlphaClock, sThisEvent.dwTime + BLUE_ALPHA_CLOCK_TIME);
             break;
+
+        case evtAsicStartup:
+            // ASIC is now responsive
+            IO::WakeAsic();
+            break;
     }
 }
 
@@ -460,11 +467,8 @@ void CPU::Reset (bool fPress_)
         // Very start of frame
         g_dwCycleCounter = 0;
 
-        // Initialise the CPU events queue
-        for (int n = 0 ; n < MAX_EVENTS ; n++)
-            asCpuEvents[n].psNext = &asCpuEvents[(n+1) % MAX_EVENTS];
-        psFreeEvent = asCpuEvents;
-        psNextEvent = NULL;
+        // Clear the CPU events queue
+        InitCpuEvents();
 
         // Schedule the first end of line event, and an update check 3/4 through the frame
         AddCpuEvent(evtEndOfFrame, TSTATES_PER_FRAME);
