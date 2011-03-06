@@ -114,7 +114,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     if (GetOption(asicdelay))
     {
         fASICStartup = true;
-        AddCpuEvent(evtAsicStartup, ASIC_STARTUP_DELAY);
+        AddCpuEvent(evtAsicStartup, g_dwCycleCounter + ASIC_STARTUP_DELAY);
     }
 
     BlueAlphaSampler::Reset();
@@ -453,7 +453,7 @@ BYTE IO::In (WORD wPort_)
     BYTE bPortLow = (wPortRead = wPort_) & 0xff;
 
     // The ASIC doesn't respond to I/O immediately after power-on
-    if (fASICStartup && (fASICStartup = g_dwCycleCounter < ASIC_STARTUP_DELAY) && bPortLow >= BASE_ASIC_PORT)
+    if (bPortLow >= BASE_ASIC_PORT && fASICStartup)
         return 0x00;
 
     // Ensure state is up-to-date
@@ -634,7 +634,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
     BYTE bPortLow = (wPortWrite = wPort_) & 0xff;
 
     // The ASIC doesn't respond to I/O immediately after power-on
-    if (fASICStartup && (fASICStartup = g_dwCycleCounter < ASIC_STARTUP_DELAY) && bPortLow >= BASE_ASIC_PORT)
+    if (bPortLow >= BASE_ASIC_PORT && fASICStartup)
         return;
 
     // Ensure state is up-to-date
