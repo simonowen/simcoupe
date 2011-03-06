@@ -39,8 +39,6 @@
 #define WINDOW_CAPTION      "SimCoupe/SDL"
 #endif
 
-bool g_fActive = true;
-
 
 bool UI::Init (bool fFirstInit_/*=false*/)
 {
@@ -112,10 +110,6 @@ bool UI::CheckEvents ()
                 case SDL_QUIT:
                     return false;
 
-                case SDL_ACTIVEEVENT:
-                    g_fActive = (event.active.gain != 0);
-                    break;
-
                 case SDL_VIDEOEXPOSE:
                     Display::SetDirty();
                     break;
@@ -176,8 +170,8 @@ bool UI::CheckEvents ()
             }
         }
 
-        // Continue running if we're active or allowed to run in the background
-        if (!g_fPaused && (g_fActive || !GetOption(pauseinactive)))
+        // If we're not paused, break out to run the next frame
+        if (!g_fPaused)
             break;
 
         SDL_WaitEvent(NULL);

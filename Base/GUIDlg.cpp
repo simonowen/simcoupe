@@ -1196,7 +1196,7 @@ class CMiscOptions : public CDialog
 {
     public:
         CMiscOptions (CWindow* pParent_)
-            : CDialog(pParent_, 300, 221, "Misc Settings")
+            : CDialog(pParent_, 300, 201, "Misc Settings")
         {
             new CIconControl(this, 10, 15, &sHardwareIcon);
             new CFrameControl(this, 50, 17, 238, 57);
@@ -1204,12 +1204,11 @@ class CMiscOptions : public CDialog
             m_pSambus = new CCheckBox(this, 63, 32, "SAMBUS Clock");
             m_pDallas = new CCheckBox(this, 63, 52, "DALLAS Clock");
 
-            new CFrameControl(this, 50, 89, 238, 102);
+            new CFrameControl(this, 50, 89, 238, 80);
             new CTextControl(this, 60, 85, "Miscellaneous", YELLOW_8, BLUE_2);
-            m_pPauseInactive = new CCheckBox(this, 63, 104, "Pause the emulation when inactive");
-            m_pDriveLights = new CCheckBox(this, 63, 124, "Show disk drive LEDs");
-            m_pStatus = new CCheckBox(this, 63, 144, "Display status messages");
-            m_pProfile = new CCheckBox(this, 63, 164, "Display emulation speed and framerate");
+            m_pDriveLights = new CCheckBox(this, 63, 104, "Show disk drive LEDs");
+            m_pStatus = new CCheckBox(this, 63, 124, "Display status messages");
+            m_pProfile = new CCheckBox(this, 63, 144, "Display emulation speed and framerate");
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -1218,7 +1217,6 @@ class CMiscOptions : public CDialog
             m_pSambus->SetChecked(GetOption(sambusclock));
             m_pDallas->SetChecked(GetOption(dallasclock));
 
-            m_pPauseInactive->SetChecked(GetOption(pauseinactive));
             m_pDriveLights->SetChecked(GetOption(drivelights) != 0);
             m_pStatus->SetChecked(GetOption(status));
             m_pProfile->SetChecked(GetOption(profile));
@@ -1234,7 +1232,6 @@ class CMiscOptions : public CDialog
                 SetOption(sambusclock, m_pSambus->IsChecked());
                 SetOption(dallasclock, m_pDallas->IsChecked());
 
-                SetOption(pauseinactive, m_pPauseInactive->IsChecked());
                 SetOption(drivelights, m_pDriveLights->IsChecked());
                 SetOption(status, m_pStatus->IsChecked());
                 SetOption(profile, m_pProfile->IsChecked());

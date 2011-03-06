@@ -259,7 +259,7 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
         return false;
 
     // Whether the display is dimmed depends on a number of things
-    fDimmed_ |= g_fPaused || GUI::IsActive() || (!g_fActive && GetOption(pauseinactive));
+    fDimmed_ |= g_fPaused || GUI::IsActive();
 
     // Ok, let's look at what the target requirements are, as it determines the format we draw in
     DDSURFACEDESC ddsd = { sizeof(ddsd) };

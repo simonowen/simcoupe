@@ -181,12 +181,8 @@ void GUI::Draw (CScreen* pScreen_)
         CScreen::SetFont(&sGUIFont);
         s_pGUI->Draw(pScreen_);
 
-        // When the program is inactive, hide the cursor off the top-left of the display
-        if (!g_fActive)
-            s_nX = s_nY = -ICON_SIZE;
-        else
-            pScreen_->DrawImage(s_nX, s_nY, ICON_SIZE, ICON_SIZE,
-                        reinterpret_cast<const BYTE*>(sMouseCursor.abData), sMouseCursor.abPalette);
+        pScreen_->DrawImage(s_nX, s_nY, ICON_SIZE, ICON_SIZE,
+                    reinterpret_cast<const BYTE*>(sMouseCursor.abData), sMouseCursor.abPalette);
     }
 }
 

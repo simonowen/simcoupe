@@ -70,8 +70,6 @@ void CentreWindow (HWND hwnd_, HWND hwndParent_=NULL);
 
 void DisplayOptions ();
 
-bool g_fActive = true;
-
 
 HINSTANCE __hinstance;
 HWND g_hwnd;
@@ -183,8 +181,8 @@ bool UI::CheckEvents ()
             DispatchMessage(&msg);
         }
 
-        // Continue running if we're active or allowed to run in the background
-        if (!g_fPaused && (g_fActive || !GetOption(pauseinactive)))
+        // If we're not paused, break out to run the next frame
+        if (!g_fPaused)
             break;
 
         // Block until something happens
@@ -897,29 +895,19 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_ACTIVATE:
         {
             TRACE("WM_ACTIVATE (%#08lx)\n", wParam_);
-            g_fActive = (LOWORD(wParam_) != WA_INACTIVE) && !IsIconic(hwnd_);
+            bool fActive = LOWORD(wParam_) != WA_INACTIVE;
             bool fChildOpen = GetParent(reinterpret_cast<HWND>(lParam_)) == hwnd_;
-            TRACE(" g_fActive=%d, fChildOpen=%d\n", g_fActive, fChildOpen);
 
-            // When the main window becomes inactive to a child window, silence the sound and release the mouse
-            if (!g_fActive && fChildOpen)
+            // When the main window becomes inactive to a child window, silence the sound
+            if (!fActive && fChildOpen)
                 Sound::Silence();
 
-            // Set an appropriate caption if we pause when inactive
-            if (GetOption(pauseinactive))
+            // Show the palette dimmed if the main window is inactive
+            if (fActive || fChildOpen)
             {
-                if (g_fActive && !g_fPaused)
-                    SetWindowText(hwnd_, WINDOW_CAPTION);
-                else
-                {
-                    SetWindowText(hwnd_, WINDOW_CAPTION " - Paused");
-                    Sound::Silence();
-                }
+                Video::CreatePalettes(!fActive && fChildOpen);
+                Frame::Redraw();
             }
-
-            // Show the palette dimmed if a child dialog is open
-            Video::CreatePalettes(!g_fActive && fChildOpen);
-            Frame::Redraw();
             break;
         }
 
@@ -1106,7 +1094,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             BeginPaint(hwnd_, &ps);
 
             // Forcibly redraw the screen if in using the menu, sizing, moving, or inactive and paused
-            if (fInMenu || fSizingOrMoving || g_fPaused || !g_fActive)
+            if (fInMenu || fSizingOrMoving || g_fPaused)
                 Frame::Redraw();
 
             EndPaint(hwnd_, &ps);
@@ -3034,7 +3022,6 @@ INT_PTR CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
             SendDlgItemMessage(hdlg_, IDC_SAMBUS_CLOCK, BM_SETCHECK, GetOption(sambusclock) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_DALLAS_CLOCK, BM_SETCHECK, GetOption(dallasclock) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
-            SendDlgItemMessage(hdlg_, IDC_PAUSE_INACTIVE, BM_SETCHECK, GetOption(pauseinactive) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_DRIVE_LIGHTS, BM_SETCHECK, GetOption(drivelights) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_STATUS, BM_SETCHECK, GetOption(status) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_PROFILE, BM_SETCHECK, GetOption(profile) ? BST_CHECKED : BST_UNCHECKED, 0L);
@@ -3049,7 +3036,6 @@ INT_PTR CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 SetOption(sambusclock, SendDlgItemMessage(hdlg_, IDC_SAMBUS_CLOCK, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(dallasclock, SendDlgItemMessage(hdlg_, IDC_DALLAS_CLOCK, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
-                SetOption(pauseinactive, SendDlgItemMessage(hdlg_, IDC_PAUSE_INACTIVE, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(drivelights, SendDlgItemMessage(hdlg_, IDC_DRIVE_LIGHTS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(status, SendDlgItemMessage(hdlg_, IDC_STATUS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(profile, SendDlgItemMessage(hdlg_, IDC_PROFILE, BM_GETCHECK, 0, 0L) == BST_CHECKED);

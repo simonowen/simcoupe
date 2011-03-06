@@ -26,27 +26,25 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 // Dialog
 //
 
-IDD_PAGE_MISC DIALOGEX 0, 0, 235, 156
+IDD_PAGE_MISC DIALOG DISCARDABLE  0, 0, 235, 156
 STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Misc"
-FONT 8, "MS Sans Serif", 0, 0, 0x1
+FONT 8, "MS Sans Serif"
 BEGIN
     CONTROL         "SAMBUS Clock",IDC_SAMBUS_CLOCK,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,54,22,66,10
     CONTROL         "DALLAS Clock",IDC_DALLAS_CLOCK,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,54,36,63,10
-    CONTROL         "Pause the emulation when inactive",IDC_PAUSE_INACTIVE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,71,154,10
     CONTROL         "Show disk drive activity lights",IDC_DRIVE_LIGHTS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,85,120,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,71,120,10
     CONTROL         "Show status messages",IDC_STATUS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,54,99,120,10
-    GROUPBOX        "Miscellaneous",IDC_STATIC,45,56,170,76
-    ICON            IDI_CLOCK,IDC_STATIC,7,7,20,20
-    ICON            IDI_MISC,IDC_STATIC,7,59,20,20
+                    BS_AUTOCHECKBOX | WS_TABSTOP,54,85,120,10
+    GROUPBOX        "Miscellaneous",IDC_STATIC,45,56,170,60
+    ICON            IDI_CLOCK,IDC_STATIC,7,7,21,20
+    ICON            IDI_MISC,IDC_STATIC,7,59,21,20
     GROUPBOX        "Clock hardware",IDC_STATIC,45,7,170,46
     CONTROL         "Show speed and framerate",IDC_PROFILE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,54,113,120,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,54,99,120,10
 END
 
 IDD_ABOUT DIALOGEX 0, 0, 193, 164

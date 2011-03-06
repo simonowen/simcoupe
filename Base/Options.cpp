@@ -147,8 +147,6 @@ OPTION aOptions[] =
     OPT_F("Profile",      profile,        true),      // Show only emulation speed and framerate
     OPT_F("Status",       status,         true),      // Show status line for changed options, etc.
 
-    OPT_F("PauseInactive",pauseinactive,  false),     // Continue to run when inactive
-
     OPT_S("FnKeys",       fnkeys,
      "F1=1,SF1=2,AF1=0,CF1=3,F2=5,SF2=6,AF2=4,CF2=7,F3=30,F4=11,SF4=12,AF4=8,F5=25,SF5=23,F6=26,F7=21,F8=22,F9=14,SF9=13,F10=9,SF10=10,F11=16,F12=15,CF12=8"),
     OPT_S("KeyMap",       keymap,         "76,68,65,66,48,16,17,56,56"),  // Pocket PC keymap: left,right,up,down,enter,q,w,space,space

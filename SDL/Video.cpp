@@ -373,7 +373,7 @@ bool Video::CreatePalettes (bool fDimmed_)
     int nScanAdjust = GetOption(scanlines) ? (GetOption(scanlevel) - 100) : 0;
     if (nScanAdjust < -100) nScanAdjust = -100;
 
-    fDimmed_ |= g_fPaused || GUI::IsActive() || (!g_fActive && GetOption(pauseinactive));
+    fDimmed_ |= g_fPaused || GUI::IsActive();
     const RGBA *pSAM = IO::GetPalette(fDimmed_), *pGUI = GUI::GetPalette();
 
     // Build the full palette from SAM and GUI colours

@@ -945,10 +945,6 @@ void DrawChangesGL (CScreen* pScreen_)
 // Update the display to show anything that's changed since last time
 void Display::Update (CScreen* pScreen_)
 {
-    // Don't draw if fullscreen but not active
-    if (GetOption(fullscreen) && !g_fActive)
-        return;
-
     // Draw any changed lines
 #ifdef USE_OPENGL
     DrawChangesGL(pScreen_);
