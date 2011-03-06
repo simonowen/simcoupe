@@ -166,10 +166,6 @@ void UI::Exit (bool fReInit_/*=false*/)
 // Check and process any incoming messages
 bool UI::CheckEvents ()
 {
-    // Re-pause after a single frame-step
-    if (g_fFrameStep)
-        Action::Do(actFrameStep);
-
     while (1)
     {
         // Loop to process any pending Windows messages
@@ -1266,10 +1262,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                         // Ctrl-Break is used for reset
                         if (GetAsyncKeyState(VK_CONTROL) < 0)
                             CPU::Init();
-
-                        // Shift-pause single steps
-                        else if (GetAsyncKeyState(VK_SHIFT) < 0)
-                            Action::Do(actFrameStep);
 
                         // Pause toggles pause mode
                         else

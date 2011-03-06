@@ -2,7 +2,7 @@
 //
 // Action.h: Actions bound to functions keys, etc.
 //
-//  Copyright (c) 2005-2006 Simon Owen
+//  Copyright (c) 2005-2011 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,8 +39,5 @@ class Action
 
         static const char* aszActions[MAX_ACTION];
 };
-
-
-extern bool g_fFrameStep;
 
 #endif  // ACTION_H

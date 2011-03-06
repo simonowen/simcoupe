@@ -43,7 +43,6 @@ const char* Action::aszActions[MAX_ACTION] =
     "Toggle printer online", "Flush printer", "About SimCoupe", "Minimise window"
 };
 
-bool g_fFrameStep;
 
 bool Action::Do (int nAction_, bool fPressed_/*=true*/)
 {
@@ -212,20 +211,8 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actFrameStep:
-            {
-                // Run for one frame then pause
-                static int nFrameSkip = 0;
-
-                // On first entry, save the current frameskip setting
-                if (!g_fFrameStep)
-                {
-                    nFrameSkip = GetOption(frameskip);
-                    g_fFrameStep = true;
-                }
-
-                SetOption(frameskip, g_fPaused ? 1 : nFrameSkip);
-            }
-            // Fall through to actPause...
+                // Dummy for now, to be restored with future CPU core changes
+                break;
 
             case actPause:
             {
@@ -238,10 +225,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 if (g_fPaused)
                     Sound::Stop();
                 else
-                {
                     Sound::Play();
-                    g_fFrameStep = (nAction_ == actFrameStep);
-                }
 
                 Video::CreatePalettes();
                 Display::SetDirty();

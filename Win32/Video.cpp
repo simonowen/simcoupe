@@ -2,7 +2,7 @@
 //
 // Video.cpp: Win32 core video functionality using DirectDraw
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -259,7 +259,7 @@ bool Video::CreatePalettes (bool fDimmed_/*=false*/)
         return false;
 
     // Whether the display is dimmed depends on a number of things
-    fDimmed_ |= (g_fPaused && !g_fFrameStep) || GUI::IsActive() || (!g_fActive && GetOption(pauseinactive));
+    fDimmed_ |= g_fPaused || GUI::IsActive() || (!g_fActive && GetOption(pauseinactive));
 
     // Ok, let's look at what the target requirements are, as it determines the format we draw in
     DDSURFACEDESC ddsd = { sizeof(ddsd) };

@@ -2,7 +2,7 @@
 //
 // UI.cpp: SDL user interface
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -98,10 +98,6 @@ bool UI::CheckEvents ()
     // If the GUI is active the input won't be polled by CPU.cpp, so do it here
     if (GUI::IsActive())
         Input::Update();
-
-    // Re-pause after a single frame-step
-    if (g_fFrameStep)
-        Action::Do(actFrameStep);
 
     while (1)
     {
