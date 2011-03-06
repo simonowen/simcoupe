@@ -90,6 +90,9 @@ void InitGL ()
     int nW = GetOption(ratio5_4) ? nWidth * 5/4 : nWidth;
     int i;
 
+    // Determine the OpenGL version
+    double glVersion = atof((const char*)glGetString(GL_VERSION));
+
     if (!GetOption(stretchtofit))
     {
         // Centralise what we have without any scaling
@@ -139,7 +142,7 @@ void InitGL ()
         glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
 
     // Try for edge-clamped textures, to avoid visible seams between filtered tiles (mainly OS X)
-    GLuint uClamp = glExtension("GL_SGIS_texture_edge_clamp") ? GL_CLAMP_TO_EDGE : GL_CLAMP;
+    GLuint uClamp = (glExtension("GL_SGIS_texture_edge_clamp") || glVersion >= 1.2f) ? GL_CLAMP_TO_EDGE : GL_CLAMP;
 
 
     glEnable(GL_TEXTURE_2D);
