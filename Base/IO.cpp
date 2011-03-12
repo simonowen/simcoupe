@@ -991,6 +991,14 @@ void IO::WakeAsic ()
 
 bool IO::Rst8Hook ()
 {
+    // Return for normal processing if we're not executing ROM code
+    if (!((PC <  0x4000 && GetSectionPage(SECTION_A) == ROM0) ||
+          (PC >= 0xc000 && GetSectionPage(SECTION_D) == ROM1)))
+        return false;
+
+    // Read the error code after the RST
+    BYTE bErrCode = read_byte(PC);
+
     // If a drive object exists, clean up after our boot attempt (which could fail if we're given a bad image)
     if (pBootDrive)
     {
@@ -1000,7 +1008,7 @@ bool IO::Rst8Hook ()
     }
 
     // Are we about to trigger "NO DOS" in ROM1, and with DOS booting enabled?
-    else if (PC == 0xd977 && GetSectionPage(SECTION_D) == ROM1 && GetOption(dosboot))
+    else if (bErrCode == 0x35 && GetOption(dosboot))
     {
         // If there's a custom boot disk, load it read-only
         CDisk* pDisk = CDisk::Open(GetOption(dosdisk), true);
@@ -1015,18 +1023,11 @@ bool IO::Rst8Hook ()
             pBootDrive = pDrive1;
             pDrive1 = new CDrive(pDisk);
 
-            // If successful, 
+            // If successful, jump back to BOOTEX to try again
             if (pDrive1)
             {
-                // Jump back to BOOTEX to try again, and return that we processed the RST
                 PC = 0xd8e5;
                 return true;
-            }
-            else
-            {
-                delete pDisk;
-                pDrive1 = pBootDrive;
-                pBootDrive = NULL;
             }
         }
     }
