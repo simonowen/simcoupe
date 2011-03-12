@@ -2,7 +2,7 @@
 //
 // Display.h: Win32 display rendering
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2011  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,9 +36,7 @@ class Display
         static void Update (CScreen* pScreen_);
 
         static void DisplayToSamSize (int* pnX_, int* pnY_);
-        static void SamToDisplaySize (int* pnX_, int* pnY_);
         static void DisplayToSamPoint (int* pnX_, int* pnY_);
-        static void SamToDisplayPoint (int* pnX_, int* pnY_);
 
     protected:
         static bool DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_);
