@@ -627,7 +627,7 @@ class CDisplayOptions : public CDialog
                 SetOption(borders, m_pViewArea->GetSelected());
 
                 if (Changed(borders) || Changed(fullscreen) || Changed(ratio5_4) || Changed(scanlines) ||
-                    Changed(scanlevel) || (GetOption(fullscreen)))
+                    Changed(scanlevel) || GetOption(fullscreen))
                 {
                     Frame::Init();
 
@@ -743,7 +743,7 @@ class CMidiOptions : public CDialog
 {
     public:
         CMidiOptions (CWindow* pParent_)
-            : CDialog(pParent_, 300, 241, "Midi Settings")
+            : CDialog(pParent_, 300, 171, "Midi Settings")
         {
             new CIconControl(this, 10, 15, &sMidiIcon);
             new CFrameControl(this, 50, 17, 238, 40);
@@ -869,7 +869,7 @@ class CDriveOptions : public CDialog
 {
     public:
         CDriveOptions (CWindow* pParent_)
-            : CDialog(pParent_, 300, 241, "Drive Settings")
+            : CDialog(pParent_, 300, 221, "Drive Settings")
         {
             new CIconControl(this, 10, 10, &sHardDiskIcon);
 
