@@ -2,7 +2,7 @@
 //
 // Video.h: SDL video handling for surfaces, screen modes, palettes etc.
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,13 +38,17 @@ extern SDL_Surface *pBack, *pFront;
 
 #ifdef USE_OPENGL
 
-const int N_TEXTURES = 9;   // a 3x3 block of 256x256 textures is needed (at most) for the full display area
-
 #define glExtension(x)  !!strstr(reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS)), (x))
+
+// Use a 1024x1024 texture for the display
+#define TEX_WIDTH	1024
+#define TEX_HEIGHT	1024
+
+enum { TEX_DISPLAY, TEX_SCANLINE, TEX_COUNT };
 
 extern GLuint dlist;
 extern GLuint auTextures[];
-extern DWORD dwTextureData[N_TEXTURES+1][256][256];
+extern DWORD dwTextureData[TEX_COUNT][TEX_WIDTH][TEX_HEIGHT];
 extern GLenum g_glPixelFormat, g_glDataType;
 
 #endif

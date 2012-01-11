@@ -2,7 +2,7 @@
 //
 // Video.cpp: SDL video handling for surfaces, screen modes, palettes etc.
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -63,8 +63,8 @@ static Uint8 abIconMask[128] =
 #ifdef USE_OPENGL
 
 GLuint dlist;
-GLuint auTextures[N_TEXTURES+1];
-DWORD dwTextureData[N_TEXTURES+1][256][256];
+GLuint auTextures[TEX_COUNT];
+DWORD dwTextureData[TEX_COUNT][TEX_HEIGHT][TEX_WIDTH];
 GLenum g_glPixelFormat, g_glDataType;
 
 
@@ -146,25 +146,20 @@ void InitGL ()
 
 
     glEnable(GL_TEXTURE_2D);
-    glGenTextures(N_TEXTURES+1,auTextures);
+    glGenTextures(TEX_COUNT, auTextures);
 
-    for (i = 0 ; i < N_TEXTURES ; i++)
-    {
-        // Use linear filtering if manually enabled, or we're in 5:4 mode
-        GLuint uFilter = (GetOption(filter) || GetOption(ratio5_4)) ? GL_LINEAR:GL_NEAREST;
+    // Use linear filtering if manually enabled, or we're in 5:4 mode
+    GLuint uFilter = (GetOption(filter) || GetOption(ratio5_4)) ? GL_LINEAR:GL_NEAREST;
 
-        glBindTexture(GL_TEXTURE_2D, auTextures[i]);
+    glBindTexture(GL_TEXTURE_2D, auTextures[TEX_DISPLAY]);
 
-        // Set the clamping and filtering texture parameters
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, uClamp);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, uClamp);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, uFilter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, uFilter);
+    // Set the clamping and filtering texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, uFilter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, uFilter);
 
-        // Create the 256x256 texture tile
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, g_glPixelFormat, g_glDataType, dwTextureData[i]);
-        glBork("glTexImage2D");
-    }
+    // Create the main display texture
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TEX_WIDTH, TEX_HEIGHT, 0, g_glPixelFormat, g_glDataType, dwTextureData[TEX_DISPLAY]);
+    glBork("glTexImage2D");
 
     
     // Build the scanline intensity pixel, and merge in the endian-specific alpha channel
@@ -176,21 +171,19 @@ void InitGL ()
 #endif
 
     // Fill the scanline texture
-    for (i = 0 ; i < 256 ; i += 2)
+    for (i = 0 ; i < TEX_HEIGHT ; i += 2)
     {
-        for (int j = 0 ; j < 256 ; j++)
+        for (int j = 0 ; j < TEX_WIDTH ; j++)
         {
-            dwTextureData[N_TEXTURES][i][j] = ulScanline;
-            dwTextureData[N_TEXTURES][i+1][j] = 0xffffffff;
+            dwTextureData[TEX_SCANLINE][i][j] = ulScanline;
+            dwTextureData[TEX_SCANLINE][i+1][j] = 0xffffffff;
         }
     }
 
-    glBindTexture(GL_TEXTURE_2D, auTextures[N_TEXTURES]);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, uClamp);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, uClamp);
+    glBindTexture(GL_TEXTURE_2D, auTextures[TEX_SCANLINE]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GetOption(filter)?GL_LINEAR:GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GetOption(filter)?GL_LINEAR:GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, dwTextureData[N_TEXTURES]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TEX_WIDTH, TEX_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, dwTextureData[TEX_SCANLINE]);
 
     dlist = glGenLists(1);
     glNewList(dlist,GL_COMPILE);
@@ -198,22 +191,14 @@ void InitGL ()
     glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
     glClear(GL_COLOR_BUFFER_BIT);
 
-    for (int yy = 0 ; yy < (N_TEXTURES/3) ; yy++)
-    {
-        for (int xx = 0 ; xx < 3 ; xx++)
-        {
-            int nSize = 1 << 8, nX = xx << 8, nY = yy << 8;
+    glBindTexture(GL_TEXTURE_2D, auTextures[TEX_DISPLAY]);
 
-            glBindTexture(GL_TEXTURE_2D, auTextures[3*yy + xx]);
-
-            glBegin(GL_QUADS);
-            glTexCoord2i(0,1); glVertex2i(nX,       nY+nSize);
-            glTexCoord2i(0,0); glVertex2i(nX,       nY);
-            glTexCoord2i(1,0); glVertex2i(nX+nSize, nY);
-            glTexCoord2i(1,1); glVertex2i(nX+nSize, nY+nSize);
-            glEnd();
-        }
-    }
+    glBegin(GL_QUADS);
+    glTexCoord2i(0,1); glVertex2i(0,         TEX_HEIGHT);
+    glTexCoord2i(0,0); glVertex2i(0,         0);
+    glTexCoord2i(1,0); glVertex2i(TEX_WIDTH, 0);
+    glTexCoord2i(1,1); glVertex2i(TEX_WIDTH, TEX_HEIGHT);
+    glEnd();
 
     glEndList();
 }
@@ -222,7 +207,8 @@ void ExitGL ()
 {
     // Clean up the display list and textures
     if (dlist) { glDeleteLists(dlist, 1); dlist = 0; }
-    if (auTextures[0]) glDeleteTextures(N_TEXTURES+1,auTextures);
+    if (auTextures[TEX_DISPLAY]) glDeleteTextures(TEX_COUNT, auTextures);
+    auTextures[TEX_DISPLAY] = auTextures[TEX_SCANLINE] = 0;
 }
 
 #endif
