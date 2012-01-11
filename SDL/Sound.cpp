@@ -2,7 +2,7 @@
 //
 // Sound.cpp: SDL sound implementation
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,26 +18,14 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-// Notes:
-//  This module relies on Dave Hooper's SAASound library for the Philips
-//  SAA 1099 sound chip emulation. See the SAASound.txt licence file
-//  for details.
-//
-//  DACs and BEEPer output are done using a single DAC buffer, which is
-//  mixed into the SAA output.
-
 // Changes 2000-2001 by Dave Laundon
 //  - interpolation of DAC output to improve high frequencies
 //  - buffering tweaks to help with sample block joins
 
-// ToDo:
-//  - Use a circular buffer to improve efficiency, and merge the frame
-//    sample buffer with the main buffer?
-
 #include "SimCoupe.h"
 
 #include "Sound.h"
-#include "../Extern/SAASound.h"
+#include "SAA1099.h"
 
 #include "CPU.h"
 #include "GUI.h"
@@ -53,7 +41,7 @@ CSoundStream* aStreams[SOUND_STREAMS];
 CSoundStream*& pSAA = aStreams[0];     // SAA 1099 
 CSoundStream*& pDAC = aStreams[1];     // DAC for parallel DACs and Spectrum-style beeper
 
-LPCSAASOUND pSAASound;      // SAASound.dll object - needs to exist as long as we do, to preseve subtle internal states
+CSAASound *pSAASound;      // SAASound object needs to exist as long as we do, to preseve subtle internal states
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -66,7 +54,7 @@ void CSoundStream::SoundCallback (void *pvParam_, Uint8 *pbStream_, int nLen_)
     if (pSAA)
     {
         // Determine how much sound data is available (in bytes)
-        int nData = pSAA->m_pbNow - pSAA->m_pbStart;
+        int nData = static_cast<int>(pSAA->m_pbNow - pSAA->m_pbStart);
 
         // Work out how much to use, how much will be left over, and how much we're short by (if any)
         // Mix in as much of the sample data as we can, up to the size of the request
@@ -94,7 +82,7 @@ void CSoundStream::SoundCallback (void *pvParam_, Uint8 *pbStream_, int nLen_)
     // Repeat the above for the DAC output
     if (pDAC)
     {
-        int nData = pDAC->m_pbNow - pDAC->m_pbStart;
+        int nData = static_cast<int>(pDAC->m_pbNow - pDAC->m_pbStart);
 
         int nCopy = min(nData, nLen_), nLeft = nData-nCopy, nShort = nLen_-nCopy;
         SDL_MixAudio(pbStream_, pDAC->m_pbStart, nCopy, SDL_MIX_MAXVOLUME);
@@ -153,14 +141,12 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
         TRACE("Sound initialisation failed\n");
     else
     {
-        // Create the SAA 1099 objects
-        if ((pSAA = new CSAA) && (pSAASound || (pSAASound = CreateCSAASound())))
-        {
-            // Set the DLL parameters from the options, so it matches the setup of the primary sound buffer
-            pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_44100 | SAAP_16BIT | SAAP_STEREO);
-        }
+        // Create the SAASound object if it doesn't already exist
+        if (!pSAASound)
+            pSAASound = new CSAASound(SOUND_FREQ);
 
-        // Create and initialise a DAC, for Spectrum beeper and parallel port DACs
+        // Create the SAA and DAC objects (for beeper and parallel DACs)
+        pSAA = new CSAA;
         pDAC = new CDAC;
 
         // If anything failed, disable the sound
@@ -189,10 +175,11 @@ void Sound::Exit (bool fReInit_/*=false*/)
     for (int i = 0 ; i < SOUND_STREAMS ; i++)
         delete aStreams[i], aStreams[i] = NULL;
 
-    if (pSAASound && !fReInit_)
+    if (!fReInit_)
     {
-        DestroyCSAASound(pSAASound);
-        pSAASound = NULL;
+        delete pSAA; pSAA = NULL;
+        delete pDAC; pDAC = NULL;
+        delete pSAASound; pSAASound = NULL;
     }
 
     TRACE("<- Sound::Exit()\n");
@@ -330,7 +317,7 @@ void CSoundStream::Silence (bool fFill_/*=false*/)
 
 int CSoundStream::GetSpaceAvailable ()
 {
-    return m_pbEnd-m_pbNow;
+    return static_cast<int>(m_pbEnd-m_pbNow);
 }
 
 void CSoundStream::AddData (Uint8* pbData_, int nLength_)
@@ -341,7 +328,7 @@ void CSoundStream::AddData (Uint8* pbData_, int nLength_)
         SDL_LockAudio();
 
         // Work out how much space we've got
-        int nSpace = m_pbEnd - m_pbNow;
+        int nSpace = static_cast<int>(m_pbEnd - m_pbNow);
 
         // Overflow?  If so, discard all we've got to force the callback to correct it
         if (nLength_ > nSpace)

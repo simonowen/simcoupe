@@ -2,7 +2,7 @@
 //
 // OSD.h: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -58,10 +58,6 @@
 #endif
 #endif
 
-#ifdef USE_SAASOUND
-#pragma comment(lib, "SAASound")
-#endif
-
 
 // For NT4 compatability we only use DX3 features, except for input which requires DX5
 #define DIRECTDRAW_VERSION      0x0300
@@ -96,15 +92,15 @@ extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 #define mkdir(p,m)  _mkdir(p)
 
 #if _MSC_VER > 1200
-#define off_t	__int64
-#define fseek	_fseeki64
-#define fstat	_fstat64
-#define stat	_stat64
+#define off_t   __int64
+#define fseek   _fseeki64
+#define fstat   _fstat64
+#define stat    _stat64
 #endif
 
 #define R_OK        4
 #define W_OK        2
-#define X_OK        1
+#define X_OK        0   // Should be 1, but the VC runtime asserts if we use it!
 #define F_OK        0
 
 #define access(p,m)      _access((p),(m)&(R_OK|W_OK))
@@ -138,7 +134,6 @@ typedef DWORD DWORD_PTR, *PDWORD_PTR;
 // From winioctl.h, since they're W2K+ only
 #ifndef IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS
 
-#define IOCTL_VOLUME_BASE   ((DWORD) 'V')
 #define IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS    CTL_CODE(IOCTL_VOLUME_BASE, 0, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 typedef struct _DISK_EXTENT {

@@ -26,7 +26,6 @@ EXTERN=../Extern
 
 USE_OPENGL=0
 USE_ZLIB=1
-USE_SAASOUND=1
 
 .SUFFIXES: .cpp .c
 
@@ -41,8 +40,8 @@ BASE_SRC=${BASE}/Action.cpp ${BASE}/ATA.cpp ${BASE}/Atom.cpp \
  ${BASE}/GUI.cpp ${BASE}/GUIDlg.cpp ${BASE}/GUIIcons.cpp ${BASE}/HardDisk.cpp \
  ${BASE}/IO.cpp ${BASE}/Joystick.cpp ${BASE}/Keyboard.cpp ${BASE}/Main.cpp \
  ${BASE}/Memory.cpp ${BASE}/Mouse.cpp ${BASE}/Options.cpp ${BASE}/Parallel.cpp \
- ${BASE}/PNG.cpp ${BASE}/SDIDE.cpp ${BASE}/Util.cpp ${BASE}/YATBus.cpp \
- ${EXTERN}/SAASound.cpp
+ ${BASE}/PNG.cpp ${BASE}/SAA1099.cpp ${BASE}/SDIDE.cpp ${BASE}/Util.cpp \
+ ${BASE}/YATBus.cpp
 
 SDL_SRC=${SDL}/Display.cpp ${SDL}/Floppy.cpp ${SDL}/IDEDisk.cpp \
  ${SDL}/Input.cpp ${SDL}/MIDI.cpp ${SDL}/OSD.cpp ${SDL}/Sound.cpp \
@@ -58,11 +57,6 @@ endif
 ifeq (${USE_ZLIB},1)
 CFLAGS += -DUSE_ZLIB
 LIBS += -lz
-endif
-
-ifeq (${USE_SAASOUND},1)
-CFLAGS += -DUSE_SAASOUND
-LIBS += -lSAASound
 endif
 
 ifneq (,$(findstring -framework Carbon,$(LIBS)))

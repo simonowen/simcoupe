@@ -2,7 +2,7 @@
 //
 // OSD.h: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -92,10 +92,6 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #endif
 #endif
 
-#ifdef USE_SAASOUND
-#pragma comment(lib, "SAASound")
-#endif
-
 #ifdef USE_OPENGL
 #pragma comment(lib, "OpenGL32.lib")
 #endif
@@ -113,7 +109,7 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #define access      _access
 #define R_OK        4
 #define W_OK        2
-#define X_OK        1
+#define X_OK        0			// Should be 1, but the VC runtime asserts if we use it!
 #define F_OK        0
 
 #define O_NONBLOCK  0           // Normally 04000, but not needed

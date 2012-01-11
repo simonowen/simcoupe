@@ -45,7 +45,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories=".;..;..\Base;..\SAASound;..\Extern"
-				PreprocessorDefinitions="_WIN32;_DEBUG;_WINDOWS,_CRT_SECURE_NO_DEPRECATE,_CRT_NONSTDC_NO_DEPRECATE,STRICT,WIN32_LEAN_AND_MEAN,WINVER=0x0400,_WIN32_WINNT=0x0400,USE_ZLIB,USE_SAASOUND"
+				PreprocessorDefinitions="_WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WIN32_LEAN_AND_MEAN;WINVER=0x0400;_WIN32_WINNT=0x0400;USE_ZLIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -132,7 +132,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories=".;..;..\Base;..\SAASound;..\Extern"
-				PreprocessorDefinitions="_WIN64;_WIN32;_DEBUG;_WINDOWS,_CRT_SECURE_NO_DEPRECATE,_CRT_NONSTDC_NO_DEPRECATE,STRICT,WINVER=0x0400,_WIN32_WINNT=0x0400,USE_ZLIB,USE_SAASOUND"
+				PreprocessorDefinitions="_WIN64;_WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WINVER=0x0400;_WIN32_WINNT=0x0400;USE_ZLIB"
 				MinimalRebuild="true"
 				ExceptionHandling="0"
 				BasicRuntimeChecks="3"
@@ -219,7 +219,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories=".;..;..\Base;..\SAASound;..\Extern"
-				PreprocessorDefinitions="_WIN32;NDEBUG;_WINDOWS,_CRT_SECURE_NO_DEPRECATE,_CRT_NONSTDC_NO_DEPRECATE,USE_ZLIB,USE_SAASOUND"
+				PreprocessorDefinitions="_WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;USE_ZLIB"
 				StringPooling="true"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
@@ -308,7 +308,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories=".;..;..\Base;..\SAASound;..\Extern"
-				PreprocessorDefinitions="_WIN64;_WIN32;NDEBUG;_WINDOWS,_CRT_SECURE_NO_DEPRECATE,_CRT_NONSTDC_NO_DEPRECATE,USE_ZLIB,USE_SAASOUND"
+				PreprocessorDefinitions="_WIN64;_WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;USE_ZLIB"
 				StringPooling="true"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
@@ -531,6 +531,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\PNG.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\SAA1099.cpp"
 				>
 			</File>
 			<File
@@ -917,6 +921,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\SAA1099.h"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\SAM.h"
 				>
 			</File>
@@ -993,10 +1001,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\Extern\SAASound.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\Extern\unzip.c"
 				>
 				<FileConfiguration
@@ -1038,10 +1042,6 @@
 			>
 			<File
 				RelativePath="..\Extern\ioapi.h"
-				>
-			</File>
-			<File
-				RelativePath="..\Extern\SAASound.h"
 				>
 			</File>
 			<File

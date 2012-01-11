@@ -677,10 +677,6 @@ class CSoundOptions : public CDialog
 
             m_pSound = new CCheckBox(this, 63, 33, "Sound enabled");
 
-#ifndef USE_SAASOUND
-            m_pSAA->Enable(false);
-#endif
-
             new CFrameControl(this, 50, 68, 238, 70, WHITE);
             new CTextControl(this, 60, 64, "Buffering", YELLOW_8, BLUE_2);
 

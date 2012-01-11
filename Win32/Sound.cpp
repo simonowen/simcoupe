@@ -2,7 +2,7 @@
 //
 // Sound.cpp: Win32 sound implementation using DirectSound
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,14 +18,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-// Notes:
-//  This module relies on Dave Hooper's SAASound library for the Philips
-//  SAA 1099 sound chip emulation. See the SAASound.txt licence file
-//  for details.
-//
-//  DACs and BEEPer output are done using a single DAC buffer, which is
-//  mixed into the SAA output.
-
 // Changes 2000-2001 by Dave Laundon
 //  - interpolation of DAC output to improve high frequencies
 //  - buffering tweaks to help with sample block joins
@@ -33,14 +25,14 @@
 #include "SimCoupe.h"
 
 #include "Sound.h"
-#include "../Extern/SAASound.h"
+#include "SAA1099.h"
 
 #include "CPU.h"
 #include "IO.h"
 #include "Options.h"
 #include "Util.h"
 
-#define SOUND_FREQ      44100   // If you change this, change SetSoundParameters() below
+#define SOUND_FREQ      44100
 #define SOUND_BITS      16
 
 extern HWND g_hwnd;
@@ -54,7 +46,7 @@ CSoundStream* aStreams[SOUND_STREAMS];
 CSoundStream*& pSAA = aStreams[0];     // SAA 1099
 CSoundStream*& pDAC = aStreams[1];     // DAC for parallel DACs and Spectrum-style beeper
 
-LPCSAASOUND pSAASound;  // SAASound.dll object - needs to exist as long as we do, to preseve subtle internal states
+CSAASound *pSAASound;  // SAASound object needs to exist as long as we do, to preseve subtle internal states
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -132,14 +124,12 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
         TRACE("DirectSound initialisation failed\n");
     else
     {
-        // Create the SAA 1099 objects
-        if ((pSAA = new CSAA) && (pSAASound || (pSAASound = CreateCSAASound())))
-        {
-            // Set the DLL parameters from the options, so it matches the setup of the primary sound buffer
-            pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_44100 | SAAP_16BIT | SAAP_STEREO);
-        }
+        // Create the SAASound object if it doesn't already exist
+        if (!pSAASound)
+            pSAASound = new CSAASound(SOUND_FREQ);
 
-        // Create and initialise a DAC, for Spectrum beeper and parallel port DACs
+        // Create the SAA and DAC objects (for beeper and parallel DACs)
+        pSAA = new CSAA;
         pDAC = new CDAC;
 
         // If anything failed, disable the sound
@@ -175,10 +165,11 @@ void Sound::Exit (bool fReInit_/*=false*/)
     TestHW::SoundExit(fReInit_);
 #endif
 
-    if (pSAASound && !fReInit_)
+    if (!fReInit_)
     {
-        DestroyCSAASound(pSAASound);
-        pSAASound = NULL;
+        delete pSAA; pSAA = NULL;
+        delete pDAC; pDAC = NULL;
+        delete pSAASound; pSAASound = NULL;
     }
 
     TRACE("<- Sound::Exit()\n");
@@ -342,7 +333,7 @@ CSoundStream::CSoundStream ()
     wf.wBitsPerSample = SOUND_BITS;
     wf.nSamplesPerSec = SOUND_FREQ;
 
-	wf.nBlockAlign = wf.nChannels * SOUND_BITS / 8;
+    wf.nBlockAlign = wf.nChannels * SOUND_BITS / 8;
     wf.nAvgBytesPerSec = SOUND_FREQ * wf.nBlockAlign;
 
 
@@ -523,7 +514,7 @@ void CDAC::Generate (BYTE* pb_, int nSamples_)
         BYTE bFirstRight = static_cast<BYTE>((m_uRightTotal + m_bRight * uPeriod) / m_uCyclesPerUnit);
         nSamples_--;
 
-		WORD wLeft = static_cast<WORD>(m_bLeft-0x80) << 8, wRight = static_cast<WORD>(m_bRight-0x80) << 8;
+        WORD wLeft = static_cast<WORD>(m_bLeft-0x80) << 8, wRight = static_cast<WORD>(m_bRight-0x80) << 8;
 
         DWORD *pdw = reinterpret_cast<DWORD*>(pb_), dwSample = (static_cast<DWORD>(wRight) << 16) | wLeft;
         *pdw++ = (static_cast<WORD>(bFirstRight-0x80) << 24) | (static_cast<WORD>(bFirstLeft-0x80) << 8);
