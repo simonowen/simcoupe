@@ -74,10 +74,6 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #pragma comment(lib, "zlib1")   // new 1.2.x version, required to avoid zlib binary mismatch problems
 #endif
 
-#ifdef USE_SAASOUND
-#pragma comment(lib, "SAASound")
-#endif
-
 #pragma warning(disable:4786)   // Disable the stupid warning about debug symbols being truncated
 
 #define strcasecmp  _strcmpi
@@ -86,7 +82,7 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #define access      _access
 #define R_OK        4
 #define W_OK        2
-#define X_OK        1
+#define X_OK        0			// Should be 1, but the VC runtime asserts if we use it!
 #define F_OK        0
 
 #define _S_ISTYPE(mode,mask)    (((mode) & _S_IFMT) == (mask))

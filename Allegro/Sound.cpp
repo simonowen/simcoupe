@@ -2,7 +2,7 @@
 //
 // Sound.cpp: Allegro sound implementation
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,14 +18,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-// Notes:
-//  This module relies on Dave Hooper's SAASound library for the Philips
-//  SAA 1099 sound chip emulation. See the SAASound.txt licence file
-//  for details.
-//
-//  DACs and BEEPer output are done using a single DAC buffer, which is
-//  mixed into the SAA output.
-
 // Changes 2000-2001 by Dave Laundon
 //  - interpolation of DAC output to improve high frequencies
 //  - buffering tweaks to help with sample block joins
@@ -33,13 +25,13 @@
 #include "SimCoupe.h"
 
 #include "Sound.h"
-#include "../Extern/SAASound.h"
+#include "SAA1099.h"
 
 #include "CPU.h"
 #include "IO.h"
 #include "Options.h"
 
-#define SOUND_FREQ      44100   // If you change this, change SetSoundParameters() below
+#define SOUND_FREQ      44100
 #define SOUND_BITS      16
 #define FRAGMENT_SIZE   4096
 
@@ -49,7 +41,7 @@ CSoundStream* aStreams[SOUND_STREAMS];
 CSoundStream*& pSAA = aStreams[0];     // SAA 1099 
 CSoundStream*& pDAC = aStreams[1];     // DAC for parallel DACs and Spectrum-style beeper
 
-LPCSAASOUND pSAASound;      // SAASound.dll object - needs to exist as long as we do, to preseve subtle internal states
+CSAASound *pSAASound;      // SAASound object needs to exist as long as we do, to preseve subtle internal states
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -87,14 +79,12 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
         TRACE("Sound initialisation failed\n");
     else
     {
-        // Create the SAA 1099 objects
-        if ((pSAA = new CSAA) && (pSAASound || (pSAASound = CreateCSAASound())))
-        {
-            // Set the DLL parameters from the options, so it matches the setup of the primary sound buffer
-            pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_44100 | SAAP_16BIT | SAAP_STEREO));
-        }
+		// Create the SAASound object if it doesn't already exist
+		if (!pSAASound)
+			pSAASound = new CSAASound(SOUND_FREQ)
 
-        // Create and initialise a DAC, for Spectrum beeper and parallel port DACs
+        // Create the SAA and DAC objects (for beeper and parallel DACs)
+        pSAA = new CSAA;
         pDAC = new CDAC;
 
         // If anything failed, disable the sound
@@ -121,10 +111,11 @@ void Sound::Exit (bool fReInit_/*=false*/)
     for (int i = 0 ; i < SOUND_STREAMS ; i++)
         delete aStreams[i], aStreams[i] = NULL;
 
-    if (pSAASound && !fReInit_)
+    if (!fReInit_)
     {
-        DestroyCSAASound(pSAASound);
-        pSAASound = NULL;
+        delete pSAA; pSAA = NULL;
+        delete pDAC; pDAC = NULL;
+        delete pSAASound; pSAASound = NULL;
     }
 
     TRACE("<- Sound::Exit()\n");

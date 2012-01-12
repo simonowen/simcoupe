@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MD /W3 /GX /Ot /Ow /Og /Oi /Oy /Ob2 /I "." /I "..\Base" /I "..\..\Base" /I "..\Allegro" /I "..\..\Allegro" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "USE_SAASOUND" /D "USE_ZLIB" /FR /YX"SimCoupe.h" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /Ot /Ow /Og /Oi /Oy /Ob2 /I "." /I "..\Base" /I "..\..\Base" /I "..\Allegro" /I "..\..\Allegro" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "USE_ZLIB" /FR /YX"SimCoupe.h" /FD /c
 # SUBTRACT CPP /X
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -71,7 +71,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /Zi /Od /Oy /Gy /I "." /I "..\Base" /I "..\..\Base" /I "..\Allegro" /I "..\..\Allegro" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "USE_SAASOUND" /D "USE_ZLIB" /FR /YX"SimCoupe.h" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /Zi /Od /Oy /Gy /I "." /I "..\Base" /I "..\..\Base" /I "..\Allegro" /I "..\..\Allegro" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "USE_ZLIB" /FR /YX"SimCoupe.h" /FD /GZ /c
 # SUBTRACT CPP /X
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -193,6 +193,10 @@ SOURCE=..\..\Base\Parallel.cpp
 # Begin Source File
 
 SOURCE=..\..\Base\PNG.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Base\SAA1099.cpp
 # End Source File
 # Begin Source File
 
@@ -321,6 +325,10 @@ SOURCE=..\..\Base\Parallel.h
 # Begin Source File
 
 SOURCE=..\..\Base\PNG.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Base\SAA1099.h
 # End Source File
 # Begin Source File
 
@@ -453,14 +461,6 @@ SOURCE=..\..\Extern\ioapi.c
 # Begin Source File
 
 SOURCE=..\..\Extern\ioapi.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\Extern\SAASound.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\Extern\SAASound.h
 # End Source File
 # Begin Source File
 
