@@ -33,7 +33,7 @@ static void MixAudio (BYTE *pDst_, const BYTE *pSrc_, int nLen_);
 bool Sound::Init (bool fFirstInit_/*=false*/)
 {
     int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND)+1;
-    pbSampleBuffer = new BYTE[nSamplesPerFrame];
+    pbSampleBuffer = new BYTE[nSamplesPerFrame*SAMPLE_BLOCK];
 
     return Audio::Init(fFirstInit_);
 }
