@@ -6,11 +6,6 @@
    Copyright (C) 1998-2003 Gilles Vollant
 */
 
-/* These lines make SimCoupe builds much easier to manage */
-#ifdef _WIN32
-#include "SimCoupe.h"
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
