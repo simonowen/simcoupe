@@ -1152,7 +1152,7 @@ void CSAASound::GenerateMany(BYTE * pBuffer, int nSamples)
 {
 	CSAAAmp::stereolevel stereoval;
 
-	while (nSamples--)
+	while (nSamples-- > 0)
 	{
 		Noise[0]->Tick();
 		Noise[1]->Tick();
