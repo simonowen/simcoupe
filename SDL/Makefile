@@ -1,3 +1,5 @@
+# *** LEGACY MAKEFILE - use CMake build system in parent folder instead ***
+#
 # SimCoupe - A SAM Coupe emulator
 #
 # SDL Makefile
