@@ -32,6 +32,7 @@
 #include "GUI.h"
 #include "Input.h"
 #include "Options.h"
+#include "Sound.h"
 
 #ifdef _DEBUG
 #define WINDOW_CAPTION      "SimCoupe/SDL [DEBUG]"

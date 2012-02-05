@@ -2,7 +2,7 @@
 //
 // GUIDlg.cpp: Dialog boxes using the GUI controls
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "Input.h"
 #include "Memory.h"
 #include "Options.h"
+#include "Sound.h"
 
 
 OPTIONS g_opts;
@@ -560,11 +561,11 @@ class CDisplayOptions : public CDialog
 {
     public:
         CDisplayOptions (CWindow* pParent_)
-            : CDialog(pParent_, 300, 206, "Display Settings")
+            : CDialog(pParent_, 300, 185, "Display Settings")
         {
             new CIconControl(this, 10, 10, &sDisplayIcon);
 
-            new CFrameControl(this, 50, 17, 238, 160, WHITE);
+            new CFrameControl(this, 50, 17, 238, 139, WHITE);
             new CTextControl(this, 60, 13, "Settings", YELLOW_8, BLUE_2);
 
             m_pFullScreen = new CCheckBox(this, 60, 35, "Full-screen");
@@ -576,13 +577,11 @@ class CDisplayOptions : public CDialog
 
             m_pStretch = new CCheckBox(this, 60, 90, "Stretch to fit");
             m_pSync = new CCheckBox(this, 60, 111, "Sync to 50Hz");
-            m_pAutoFrameSkip = new CCheckBox(this, 60, 132, "Auto frame-skip");
             m_pScanlines = new CCheckBox(this, 165, 90, "Display scanlines");
             m_pRatio54 = new CCheckBox(this, 165, 111, "5:4 pixel shape");
-            m_pFrameSkip = new CComboBox(this, 165, 129, "Show ALL frames|Show every 2nd|Show every 3rd|Show every 4th|Show every 5th|Show every 6th|Show every 7th|Show every 8th|Show every 9th|Show every 10th", 115);
 
-            new CTextControl(this, 60, 155, "Viewable area:");
-            m_pViewArea = new CComboBox(this, 140, 152, "No borders|Small borders|Short TV area (default)|TV visible area|Complete scan area", 140);
+            new CTextControl(this, 60, 134, "Viewable area:");
+            m_pViewArea = new CComboBox(this, 140, 131, "No borders|Small borders|Short TV area (default)|TV visible area|Complete scan area", 140);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -597,8 +596,6 @@ class CDisplayOptions : public CDialog
 
             m_pScanlines->SetChecked(GetOption(scanlines));
 
-            m_pAutoFrameSkip->SetChecked(!GetOption(frameskip));
-            m_pFrameSkip->Select(GetOption(frameskip) ? GetOption(frameskip)-1 : 0);
             m_pViewArea->Select(GetOption(borders));
 
             // Update the state of the controls to reflect the current settings
@@ -621,9 +618,6 @@ class CDisplayOptions : public CDialog
                 SetOption(stretchtofit, m_pStretch->IsChecked());
                 SetOption(scanlines, m_pScanlines->IsChecked());
 
-                int nFrameSkip = !m_pAutoFrameSkip->IsChecked();
-                SetOption(frameskip, nFrameSkip ? m_pFrameSkip->GetSelected()+1 : 0);
-
                 SetOption(borders, m_pViewArea->GetSelected());
 
                 if (Changed(borders) || Changed(fullscreen) || Changed(ratio5_4) || Changed(scanlines) ||
@@ -645,8 +639,6 @@ class CDisplayOptions : public CDialog
                 m_pScaleText->Enable(!fFullScreen);
                 m_pScale->Enable(!fFullScreen);
 
-                m_pFrameSkip->Enable(!m_pAutoFrameSkip->IsChecked());
-
 #if defined(ALLEGRO_DOS) || (defined(SDL) && !defined(USE_OPENGL))
                 m_pScaleText->Enable(false);
                 m_pScale->Enable(false);
@@ -657,8 +649,8 @@ class CDisplayOptions : public CDialog
         }
 
     protected:
-        CCheckBox *m_pFullScreen, *m_pStretch, *m_pSync, *m_pAutoFrameSkip, *m_pScanlines, *m_pRatio54;
-        CComboBox *m_pScale, *m_pFrameSkip, *m_pViewArea;
+        CCheckBox *m_pFullScreen, *m_pStretch, *m_pSync, *m_pScanlines, *m_pRatio54;
+        CComboBox *m_pScale, *m_pViewArea;
         CTextControl *m_pScaleText;
         CTextButton *m_pOK, *m_pCancel;
 };

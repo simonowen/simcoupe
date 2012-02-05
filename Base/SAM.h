@@ -2,7 +2,7 @@
 //
 // SAM.h: SAM-specific constants
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@
 #define TSTATES_PER_LINE            (WIDTH_BLOCKS << 3)
 #define TSTATES_PER_FRAME           (TSTATES_PER_LINE * HEIGHT_LINES)
 #define REAL_TSTATES_PER_SECOND     6000000UL                                       // SAM's Z80b CPU runs at 6MHz
-#define REAL_FRAMES_PER_SECOND      (REAL_TSTATES_PER_SECOND / TSTATES_PER_FRAME)   // Actually 50.08
+//#define REAL_FRAMES_PER_SECOND    (REAL_TSTATES_PER_SECOND / TSTATES_PER_FRAME)   // Actually 50.08
 #define EMULATED_FRAMES_PER_SECOND  50
 #define EMULATED_TSTATES_PER_SECOND (EMULATED_FRAMES_PER_SECOND * TSTATES_PER_FRAME)
 

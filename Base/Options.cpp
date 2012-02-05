@@ -2,7 +2,7 @@
 //
 // Options.cpp: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -62,7 +62,6 @@ OPTION aOptions[] =
     OPT_F("FirstRun",     firstrun,       1),         // Non-zero if this is the first run
 
     OPT_N("Sync",         sync,           1),         // Sync to 50Hz
-    OPT_N("FrameSkip",    frameskip,      0),         // Auto frame-skipping
     OPT_N("Scale",        scale,          2),         // Windowed display is 2x2
     OPT_F("Ratio5_4",     ratio5_4,       false),     // Don't use 5:4 screen ratio
     OPT_F("Scanlines",    scanlines,      true),      // TV scanlines

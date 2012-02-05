@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// BlueAlpha.cpp: Blue Alpha Sampler
+// Audio.h: Win32 sound implementation using DirectSound
 //
 //  Copyright (c) 1999-2012 Simon Owen
 //
@@ -18,28 +18,17 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#ifndef BLUEALPHA_H
-#define BLUEALPHA_H
+#ifndef AUDIO_H
+#define AUDIO_H
 
-#include "IO.h"
-
-#define BLUE_ALPHA_CLOCK_TIME   (REAL_TSTATES_PER_SECOND/pBlueAlpha->GetClockFreq()/2)    // half period
-
-class CBlueAlphaDevice : public CIoDevice
+class Audio
 {
     public:
-        CBlueAlphaDevice ();
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    public:
-        void Reset ();
-
-        BYTE In (WORD wPort_);
-        void Out (WORD wPort_, BYTE bVal_);
-
-        int GetClockFreq ();
-        bool Clock ();
+        static void Silence ();
+        static bool AddData (BYTE *pb_, int nLen_);
 };
 
-extern CBlueAlphaDevice *pBlueAlpha;
-
-#endif  // BLUEALPHA_H
+#endif  // AUDIO_H

@@ -2,7 +2,7 @@
 //
 // Frame.cpp: Display frame generation
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@ const BYTE LED_OFF_COLOUR         = GREY_2;   // Dark grey light off colour
 const BYTE UNDRAWN_COLOUR         = GREY_2;   // Dark grey for undrawn screen in debugger
 
 const unsigned int STATUS_ACTIVE_TIME = 2500;   // Time the status text is visible for (in ms)
-const unsigned int FPS_IN_TURBO_MODE = 5;       // Number of FPS to limit to in Turbo mode
+const unsigned int FPS_IN_TURBO_MODE = 10;      // Number of FPS to limit to in Turbo mode
 
 int s_nViewTop, s_nViewBottom;
 int s_nViewLeft, s_nViewRight;
@@ -65,7 +65,6 @@ bool fDrawFrame, g_fFlashPhase;
 int nFrame;
 
 int nLastLine, nLastBlock;      // Line and block we've drawn up to so far this frame
-int nDrawnFrames;               // Frame number in last second and number of those actually drawn
 
 DWORD dwStatusTime;             // Time the status line was made visible
 
@@ -247,7 +246,7 @@ void Frame::Update ()
                 (pFrame = fHiRes ? pFrameHigh : pFrameLow)->UpdateLine(i, 0, WIDTH_BLOCKS);
             }
 
-            // If the last line drawn was incomplete, restore the rendered used for it
+            // If the last line drawn was incomplete, restore the renderer used for it
             if (pLast)
                 pFrame = pLast;
         }
@@ -299,7 +298,7 @@ void RasterComplete ()
         fDrawFrame = true;
     }
 
-    // Work out the range that within the visible area
+    // Work out the range that is within the visible area
     int nLeft = max(s_nViewLeft, nLastBlock) - s_nViewLeft;
     int nTop = max(nLastLine, s_nViewTop) - s_nViewTop, nBottom = s_nViewBottom - s_nViewTop;
 
@@ -334,15 +333,15 @@ void Frame::Complete ()
     // Was the current frame drawn?
     if (fDrawFrame)
     {
-        nDrawnFrames++;
-
         if (!GUI::IsModal())
         {
+/*
             // ToDo: check debugger option for redraw type
             int i = 0;
             if (i)
                 UpdateAll();        // Update the entire display using the current video settings
             else
+*/
             {
                 Update();           // Draw up to the current raster point
                 RasterComplete();   // Grey the undefined area after the raster
@@ -420,10 +419,8 @@ void Frame::Start ()
 
 void Frame::Sync ()
 {
+    static DWORD dwLastProfile, dwLastDrawn;
     DWORD dwNow = OSD::GetTime();
-
-    // Fetch the frame number we should be up to, according to the running timer
-    int nTicks = OSD::FrameSync(false);
 
     // Determine whether we're running at increased speed during disk activity
     bool fTurboDisk = GetOption(turboload) &&
@@ -433,46 +430,42 @@ void Frame::Sync ()
     // Running in Turbo mode?
     if (!GUI::IsActive() && (g_fTurbo || fTurboDisk))
     {
-        static DWORD dwLastFrame;
-
         // Should we draw a frame yet?
-        fDrawFrame = (dwNow - dwLastFrame) >= 1000/FPS_IN_TURBO_MODE;
+        fDrawFrame = (dwNow - dwLastDrawn) >= 1000/FPS_IN_TURBO_MODE;
 
         // If so, remember the time we drew it
         if (fDrawFrame)
-            dwLastFrame = dwNow;
+            dwLastDrawn = dwNow;
     }
     else
     {
-        // Whether the next frame gets draw depends on frame-skip setting...
-        // In auto-skip mode we'll draw unless we're behind, but leave some slack at the end of the frame just in case
-        fDrawFrame = GetOption(frameskip) ? !(nFrame % GetOption(frameskip)) :
-            ((nTicks >= EMULATED_FRAMES_PER_SECOND-1) && (nFrame != nDrawnFrames)) ? (nFrame > nTicks) : (nFrame >= nTicks);
-
-        // Sync if the option is enabled and we're not behind
-        if (GetOption(sync) && (nFrame >= nTicks))
-            nTicks = OSD::FrameSync(true);
+        fDrawFrame = true;
     }
 
 
     // Show the profiler stats once a second
-    if (nTicks >= EMULATED_FRAMES_PER_SECOND)
+    if ((dwNow - dwLastProfile) >= 1000)
     {
+        // Calculate the relative speed from the framerate, even though we're sound synced
+        int nPercent = nFrame*2;
+
+        // 100% speed is actually 50.08fps, so the 51fps we see every ~12 seconds is still fine
+        if (nFrame == 51) nPercent = 100;
+
         // Format the profile string and reset it
-        sprintf(szProfile, "%3d%%:%2dfps", nFrame * 2, nDrawnFrames);
-        TRACE("%s   %d ticks  %d frames  %d drawn\n", szProfile, nTicks, nFrame, nDrawnFrames);
+        sprintf(szProfile, "%3d%%", nPercent);
+        TRACE("%s  %d frames\n", szProfile, nFrame);
 
-        // Reset frame counters to wait for the next second
-        nFrame = nDrawnFrames = 0;
+        // Adjust for next time, taking care to preserve any fractional part
+        dwLastProfile = dwNow - ((dwNow - dwLastProfile) % 1000);
 
-        // If we've fallen too far behind, don't even attempt to catch up.  This avoids a quick burst of
-        // speed after unpausing, which can be a real problem when playing games!
-
-        if ((nTicks - nFrame) > 5)
-            OSD::s_nTicks = 0;
-        else
-            OSD::s_nTicks %= EMULATED_FRAMES_PER_SECOND;
+        // Reset frame counter
+        nFrame = 0;
     }
+
+    // Slow us down when the GUI is active, as there's no sound generated to regulate the speed
+    if (GUI::IsActive())
+        OSD::FrameSync();
 }
 
 

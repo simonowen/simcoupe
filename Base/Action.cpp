@@ -2,7 +2,7 @@
 //
 // Action.cpp: Actions bound to functions keys, etc.
 //
-//  Copyright (c) 2005-2011  Simon Owen
+//  Copyright (c) 2005-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include "Input.h"
 #include "Options.h"
 #include "Parallel.h"
+#include "Sound.h"
 #include "UI.h"
 #include "Video.h"
 
@@ -60,7 +61,6 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 g_fPaused = false;
 
                 CPU::Reset(true);
-                Sound::Stop();
                 break;
 
             case actNmiButton:
@@ -94,20 +94,6 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 Video::CreatePalettes();
                 Frame::SetStatus("Scanlines %s", GetOption(scanlines) ? "enabled" : "disabled");
                 break;
-
-            case actChangeFrameSkip:
-            {
-                SetOption(frameskip, (GetOption(frameskip)+1) % 11);
-
-                int n = GetOption(frameskip);
-                switch (n)
-                {
-                    case 0:     Frame::SetStatus("Automatic frame-skip");   break;
-                    case 1:     Frame::SetStatus("No frames skipped");      break;
-                    default:    Frame::SetStatus("Displaying every %d%s frame", n, (n==2) ? "nd" : (n==3) ? "rd" : "th");   break;
-                }
-                break;
-            }
 
             case actChangeProfiler:
                 SetOption(profile, !GetOption(profile));
@@ -197,7 +183,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 if (!g_fTurbo)
                 {
                     g_fTurbo = true;
-                    Sound::Stop();
+                    Sound::Silence();
                 }
                 break;
 
@@ -219,9 +205,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 g_fPaused = !g_fPaused;
 
                 if (g_fPaused)
-                    Sound::Stop();
-                else
-                    Sound::Play();
+                    Sound::Silence();
 
                 Input::Purge();
                 break;
@@ -259,17 +243,11 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
         switch (nAction_)
         {
             case actResetButton:
-                // Reset the CPU and restart the sound
                 CPU::Reset(false);
-                Sound::Play();
                 break;
 
             case actTempTurbo:
-                if (g_fTurbo)
-                {
-                    Sound::Play();
-                    g_fTurbo = false;
-                }
+                g_fTurbo = false;
                 break;
 
             // Not processed

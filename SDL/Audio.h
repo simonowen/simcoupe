@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// BlueAlpha.cpp: Blue Alpha Sampler
+// Audio.h: SDL sound implementation
 //
 //  Copyright (c) 1999-2012 Simon Owen
 //
@@ -18,28 +18,34 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#ifndef BLUEALPHA_H
-#define BLUEALPHA_H
+#ifndef AUDIO_H
+#define AUDIO_H
 
-#include "IO.h"
-
-#define BLUE_ALPHA_CLOCK_TIME   (REAL_TSTATES_PER_SECOND/pBlueAlpha->GetClockFreq()/2)    // half period
-
-class CBlueAlphaDevice : public CIoDevice
+class Audio
 {
     public:
-        CBlueAlphaDevice ();
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
-    public:
-        void Reset ();
-
-        BYTE In (WORD wPort_);
-        void Out (WORD wPort_, BYTE bVal_);
-
-        int GetClockFreq ();
-        bool Clock ();
+        static bool IsAvailable () { return SDL_GetAudioStatus() == SDL_AUDIO_PLAYING; }
+        static bool AddData (Uint8* pbData_, int nLength_);
+        static void Silence ();
 };
 
-extern CBlueAlphaDevice *pBlueAlpha;
+////////////////////////////////////////////////////////////////////////////////
 
-#endif  // BLUEALPHA_H
+class CSoundStream
+{
+    public:
+        CSoundStream ();
+        virtual ~CSoundStream ();
+
+    public:
+        void Silence ();
+        void AddData (Uint8* pbSampleData_, int nLength_);
+
+        Uint8 *m_pbStart, *m_pbEnd, *m_pbNow;
+        int m_nSampleBufferSize;
+};
+
+#endif  // AUDIO_H

@@ -378,6 +378,10 @@
 			Name="Win32 Header Files"
 			>
 			<File
+				RelativePath=".\Audio.h"
+				>
+			</File>
+			<File
 				RelativePath="Display.h"
 				>
 			</File>
@@ -406,10 +410,6 @@
 				>
 			</File>
 			<File
-				RelativePath="Sound.h"
-				>
-			</File>
-			<File
 				RelativePath="UI.h"
 				>
 			</File>
@@ -432,6 +432,42 @@
 			<File
 				RelativePath="..\Base\Atom.cpp"
 				>
+			</File>
+			<File
+				RelativePath="..\Base\BlipBuffer.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\Base\BlueAlpha.cpp"
@@ -542,6 +578,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\Sound.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\Util.cpp"
 				>
 			</File>
@@ -555,6 +595,10 @@
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
+			<File
+				RelativePath=".\Audio.cpp"
+				>
+			</File>
 			<File
 				RelativePath="Display.cpp"
 				>
@@ -614,10 +658,6 @@
 						UsePrecompiledHeader="1"
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="Sound.cpp"
-				>
 			</File>
 			<File
 				RelativePath="UI.cpp"
@@ -805,6 +845,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\BlipBuffer.h"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\BlueAlpha.h"
 				>
 			</File>
@@ -942,6 +986,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\SimCoupe.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Sound.h"
 				>
 			</File>
 			<File

@@ -92,21 +92,16 @@ BEGIN
     LTEXT           "Increase the value below if you're suffering from sound stutters or other glitches:",IDC_STATIC,54,19,153,16
 END
 
-IDD_PAGE_DISPLAY DIALOG  0, 0, 235, 158
+IDD_PAGE_DISPLAY DIALOGEX 0, 0, 235, 158
 STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Display"
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
     CONTROL         "Enable hardware acceleration",IDC_HWACCEL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,22,110,10
     CONTROL         "Stretch fullscreen display to fill screen",IDC_STRETCH_TO_FIT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,36,133,10
-    CONTROL         "Auto-skip to maintain full emulation speed",IDC_FRAMESKIP_AUTOMATIC,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,72,145,10
-    COMBOBOX        IDC_FRAMESKIP,89,86,88,70,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     ICON            IDI_DISPLAY,IDC_STATIC,7,7,20,20
     GROUPBOX        "Settings",IDC_STATIC,45,7,170,46
-    GROUPBOX        "Frame skipping",IDC_STATIC,45,60,170,47
-    LTEXT           "Show:",IDC_STATIC,66,88,21,8
 END
 
 IDD_PAGE_JOYSTICK DIALOG  0, 0, 235, 156

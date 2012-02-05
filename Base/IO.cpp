@@ -2,9 +2,9 @@
 //
 // IO.cpp: SAM I/O port handling
 //
-//  Copyright (c) 1999-2011  Simon Owen
-//  Copyright (c) 1996-2001  Allan Skillman
-//  Copyright (c) 2000-2001  Dave Laundon
+//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1996-2001 Allan Skillman
+//  Copyright (c) 2000-2001 Dave Laundon
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -46,16 +46,15 @@
 #include "Video.h"
 #include "YATBus.h"
 
-#ifdef USE_TESTHW
-#include "TestHW.cpp"
-#endif
-
 CDiskDevice *pDrive1, *pDrive2, *pSDIDE, *pYATBus, *pBootDrive;
 CIoDevice *pParallel1, *pParallel2;
 CIoDevice *pSerial1, *pSerial2;
 CIoDevice *pSambus, *pDallas;
 CIoDevice *pMidi;
 CIoDevice *pBeeper;
+CBlueAlphaDevice *pBlueAlpha;
+CSAA *pSAA;
+CDAC *pDAC;
 
 // Port read/write addresses for I/O breakpoints
 WORD wPortRead, wPortWrite;
@@ -80,6 +79,11 @@ BYTE keybuffer[9];      // working buffer for key changed, activated mid-frame
 bool fASICStartup;      // If set, the ASIC will be unresponsive shortly after first power-on
 bool g_fAutoBoot;       // Auto-boot the disk in drive 1 when we're at the startup screen
 
+#ifdef _DEBUG
+static BYTE abUnhandled[32];    // track unhandled port access in debug mode
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
 
 bool IO::Init (bool fFirstInit_/*=false*/)
 {
@@ -105,9 +109,14 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         // Release all keys
         memset(keyports, 0xff, sizeof(keyports));
 
+        pDAC = new CDAC;
+        pSAA = new CSAA;
+        pBeeper = new CBeeperDevice;
+        pBlueAlpha = new CBlueAlphaDevice;
+
         // Initialise all the devices
         fRet &= (InitDrives() && InitParallel() && InitSerial() && InitClocks() &&
-                 InitMidi() && InitBeeper() && InitHDD());
+                 InitMidi() && InitHDD());
     }
 
     // The ASIC is unresponsive during the first ~49ms on production SAM units
@@ -117,7 +126,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         AddCpuEvent(evtAsicStartup, g_dwCycleCounter + ASIC_STARTUP_DELAY);
     }
 
-    BlueAlphaSampler::Reset();
+    pBlueAlpha->Reset();
 
     // Initialise the drives back to a consistent state
     pDrive1->Reset();
@@ -131,15 +140,17 @@ void IO::Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
-        BlueAlphaSampler::Exit();
-
         InitDrives(false, false);
         InitParallel(false, false);
         InitSerial(false, false);
         InitClocks(false, false);
         InitMidi(false, false);
-        InitBeeper(false, false);
         InitHDD(false, false);
+
+        delete pBlueAlpha, pBlueAlpha = NULL;
+        delete pBeeper, pBeeper = NULL;
+        delete pSAA, pSAA = NULL;
+        delete pDAC, pDAC = NULL;
     }
 }
 
@@ -294,16 +305,6 @@ bool IO::InitMidi (bool fInit_/*=true*/, bool fReInit_/*=true*/)
     }
 
     return !fInit_ || pMidi;
-}
-
-bool IO::InitBeeper (bool fInit_/*=true*/, bool fReInit_/*=true*/)
-{
-    delete pBeeper; pBeeper = NULL;
-
-    if (fInit_)
-        pBeeper = new CBeeperDevice;
-
-    return fInit_ || pBeeper;
 }
 
 bool IO::InitHDD (bool fInit_/*=true*/, bool fReInit_/*=true*/)
@@ -575,7 +576,7 @@ BYTE IO::In (WORD wPort_)
             int highbyte = wPort_ >> 8;
 
             if ((highbyte & 0xfc) == 0x7c)
-                return BlueAlphaSampler::In(highbyte & 0x03);
+                return pBlueAlpha->In(highbyte & 0x03);
 /*
             else if (highbyte == 0xff)
                 return BlueAlphaVoiceBox::In(0);
@@ -588,6 +589,14 @@ BYTE IO::In (WORD wPort_)
         case SDIDE_REG:
         case SDIDE_DATA:
             return pSDIDE->In(wPort_);
+
+        // SID interface (reads not implemented by hardware)
+        case SID_PORT:
+            break;
+
+        // Quazar Surround (unsupported)
+        case QUAZAR_PORT:
+            break;
 
         default:
         {
@@ -610,16 +619,19 @@ BYTE IO::In (WORD wPort_)
             // YAMOD.ATBUS hard disk interface
             else if ((bPortLow & YATBUS_MASK) == YATBUS_BASE)
                 return pYATBus->In(wPort_);
-
+#if _DEBUG
             // Only unsupported hardware should reach here
             else
             {
-#ifdef USE_TESTHW
-                return TestHW::In(wPort_);
-#else
-                TRACE("*** Unhandled read: %#04x (%d)\n", wPort_, wPort_&0xff);
-#endif
+                int nEntry = bPortLow >> 3, nBit = 1 << (bPortLow & 7);
+
+                if (!(abUnhandled[nEntry] & nBit))
+                {
+                    Message(msgWarning, "Unhandled read from port %#04x\n", wPort_);
+                    abUnhandled[nEntry] |= nBit;
+                }
             }
+#endif
         }
     }
 
@@ -787,7 +799,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             break;
 
         case SOUND_DATA:
-            Sound::Out(wPort_, bVal_);
+            pSAA->Out(wPort_, bVal_);
             break;
 
         // Parallel ports 1 and 2
@@ -837,7 +849,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             int highbyte = wPort_ >> 8;
 
             if ((highbyte & 0xfc) == 0x7c)
-                BlueAlphaSampler::Out(highbyte & 0x03, bVal_);
+                pBlueAlpha->Out(highbyte & 0x03, bVal_);
 /*
             else if (highbyte == 0xff)
                 BlueAlphaVoiceBox::Out(0, bVal_);
@@ -849,6 +861,14 @@ void IO::Out (WORD wPort_, BYTE bVal_)
         case SDIDE_REG:
         case SDIDE_DATA:
             pSDIDE->Out(wPort_, bVal_);
+            break;
+
+        // SID interface (not yet implemented)
+        case SID_PORT:
+            break;
+
+        // Quazar Surround (unsupported)
+        case QUAZAR_PORT:
             break;
 
         default:
@@ -873,15 +893,19 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             else if ((bPortLow & YATBUS_MASK) == YATBUS_BASE)
                 pYATBus->Out(wPort_, bVal_);
 
+#if _DEBUG
             // Only unsupported hardware should reach here
             else
             {
-#ifdef USE_TESTHW
-                TestHW::Out(wPort_, bVal_);
-#else
-                TRACE("*** Unhandled write: %#06x (LSB=%d), %#02x (%d)\n", wPort_, bPortLow, bVal_, bVal_);
-#endif
+                int nEntry = bPortLow >> 3, nBit = 1 << (bPortLow & 7);
+
+                if (!(abUnhandled[nEntry] & nBit))
+                {
+                    Message(msgWarning, "Unhandled write to port %#04x, value = %02x\n", wPort_, bVal_);
+                    abUnhandled[nEntry] |= nBit;
+                }
             }
+#endif
         }
     }
 }
@@ -893,8 +917,10 @@ void IO::FrameUpdate ()
     pParallel1->FrameEnd();
     pParallel2->FrameEnd();
 
-    Sound::FrameUpdate();
     Input::Update();
+
+    if (!g_fTurbo && !g_nFastBooting)
+        Sound::FrameUpdate();
 }
 
 void IO::UpdateInput()

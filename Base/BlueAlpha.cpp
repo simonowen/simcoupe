@@ -2,7 +2,7 @@
 //
 // BlueAlpha.cpp: Blue Alpha Sampler
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -46,26 +46,22 @@ static BYTE m_bPortA, m_bPortB, m_bPortC, m_bControl;
 #define PORTB_ADC_ENABLE        0x02
 
 
-void BlueAlphaSampler::Init (bool fFirstInit_)
+CBlueAlphaDevice::CBlueAlphaDevice ()
 {
     Reset();
 }
 
-void BlueAlphaSampler::Exit (bool fReInit_)
-{
-}
-
-void BlueAlphaSampler::Reset ()
+void CBlueAlphaDevice::Reset ()
 {
     m_bPortA   = 0x00;  // data
     m_bPortB   = 0xff;  // no active features
     m_bPortC   = 0x00;  // no clock
     m_bControl = 0x18;  // control (initialised to BlueAlpha signature?)
 
-    Sound::OutputDAC(0x80);
+    pDAC->Output(0x80);
 }
 
-bool BlueAlphaSampler::Clock ()
+bool CBlueAlphaDevice::Clock ()
 {
     // Toggle clock bit every half period
     m_bPortC ^= PORTA_CLOCK;
@@ -74,7 +70,7 @@ bool BlueAlphaSampler::Clock ()
     return !!(~m_bPortB & (PORTB_DAC_ENABLE|PORTB_ADC_ENABLE));
 }
 
-int BlueAlphaSampler::GetClockFreq ()
+int CBlueAlphaDevice::GetClockFreq ()
 {
     int freq = GetOption(samplerfreq);
 
@@ -87,7 +83,7 @@ int BlueAlphaSampler::GetClockFreq ()
     return freq;
 }
 
-BYTE BlueAlphaSampler::In (WORD wPort_)
+BYTE CBlueAlphaDevice::In (WORD wPort_)
 {
     switch (wPort_ & 3)
     {
@@ -106,7 +102,7 @@ BYTE BlueAlphaSampler::In (WORD wPort_)
     return 0x00;
 }
 
-void BlueAlphaSampler::Out (WORD wPort_, BYTE bVal_)
+void CBlueAlphaDevice::Out (WORD wPort_, BYTE bVal_)
 {
     switch (wPort_ & 3)
     {
@@ -115,7 +111,7 @@ void BlueAlphaSampler::Out (WORD wPort_, BYTE bVal_)
 
             // If the DAC is active, output the sample
 //          if (!(m_bPortB & PORTB_DAC_ENABLE)) // TODO: fix output condition for MOD Player
-                Sound::OutputDAC(bVal_);
+                pDAC->Output(bVal_);
 
             break;
 

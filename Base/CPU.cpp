@@ -2,9 +2,9 @@
 //
 // CPU.cpp: Z80 processor emulation and main emulation loop
 //
-//  Copyright (c) 2000-2003  Dave Laundon
-//  Copyright (c) 1999-2011  Simon Owen
-//  Copyright (c) 1996-2001  Allan Skillman
+//  Copyright (c) 2000-2003 Dave Laundon
+//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1996-2001 Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,10 +29,6 @@
 //  - perfect contended memory timings on each memory/port access
 //  - new cpu event model to reduce the per-instruction overhead
 //  - MIDI OUT interrupt timings corrected
-
-// ToDo:
-//  - tidy things up a bit, particularly the register macros
-//  - general state saving (CPU registers already in a structure for it)
 
 #include "SimCoupe.h"
 #include "CPU.h"
@@ -89,7 +85,7 @@ inline void CheckInterrupt ();
 
 
 BYTE bOpcode;
-bool fReset, g_fBreak, g_fPaused, g_fTurbo;
+bool g_fReset, g_fBreak, g_fPaused, g_fTurbo;
 int g_nFastBooting;
 
 DWORD g_dwCycleCounter;     // Global cycle counter used for various timings
@@ -305,7 +301,7 @@ void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
 
         case evtBlueAlphaClock:
             // Clock the sampler, scheduling the next event if it's still running
-            if (BlueAlphaSampler::Clock())
+            if (pBlueAlpha->Clock())
                 AddCpuEvent(evtBlueAlphaClock, sThisEvent.dwTime + BLUE_ALPHA_CLOCK_TIME);
             break;
 
@@ -321,7 +317,7 @@ void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
 void CPU::ExecuteChunk ()
 {
     // Is the reset button is held in?
-    if (fReset)
+    if (g_fReset)
     {
         // Advance to the end of the frame
         g_dwCycleCounter = TSTATES_PER_FRAME;
@@ -415,6 +411,8 @@ void CPU::Run ()
         if (g_fPaused)
             continue;
 
+        Frame::Start();
+
         // If fast booting is active, don't draw any video
         if (g_nFastBooting)
             fDrawFrame = GUI::IsActive() || !--g_nFastBooting;
@@ -431,16 +429,11 @@ void CPU::Run ()
         {
             CpuEventFrame(TSTATES_PER_FRAME);
 
-            // Only update I/O (sound etc.) if we're not fast booting
-            if (!g_nFastBooting)
-            {
-                IO::FrameUpdate();
-                Debug::FrameEnd();
-            }
+            IO::FrameUpdate();
+            Debug::FrameEnd();
 
             // Step back up to start the next frame
             g_dwCycleCounter %= TSTATES_PER_FRAME;
-            Frame::Start();
         }
     }
 
@@ -451,9 +444,9 @@ void CPU::Run ()
 void CPU::Reset (bool fPress_)
 {
     // Set CPU operating mode
-    fReset = fPress_;
+    g_fReset = fPress_;
 
-    if (fReset)
+    if (g_fReset)
     {
         // Certain registers are initialised on every reset
         I = R = R7 = IFF1 = IFF2 = 0;

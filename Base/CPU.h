@@ -2,9 +2,9 @@
 //
 // CPU.h: Z80 processor emulation and main emulation loop
 //
-//  Copyright (c) 2000-2003  Dave Laundon
-//  Copyright (c) 1999-2011  Simon Owen
-//  Copyright (c) 1996-2001  Allan Skillman
+//  Copyright (c) 2000-2003 Dave Laundon
+//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1996-2001 Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ class CPU
 
 extern struct _Z80Regs regs;
 extern DWORD g_dwCycleCounter;
-extern bool g_fBreak, g_fPaused, g_fTurbo;
+extern bool g_fReset, g_fBreak, g_fPaused, g_fTurbo;
 extern int g_nFastBooting;
 extern BYTE *pbMemRead1, *pbMemRead2, *pbMemWrite1, *pbMemWrite2;
 

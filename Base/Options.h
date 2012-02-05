@@ -2,7 +2,7 @@
 //
 // Options.h: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#ifndef OPTION_H
-#define OPTION_H
+#ifndef OPTIONS_H
+#define OPTIONS_H
 
 typedef struct
 {
@@ -27,7 +27,6 @@ typedef struct
     bool    firstrun;               // First run of the emulator?
 
     int     sync;                   // 0=unsynced, 1=50Hz sync, [Win32 only: 2=vsync, 3=double-vsync]
-    int     frameskip;              // 0 for auto, otherwise 'mod frameskip' used to decide which to draw
     int     scale;                  // Window scaling mode
     bool    ratio5_4;               // Use 5:4 screen ratio?
     bool    scanlines;              // Show scanlines?
@@ -145,6 +144,5 @@ inline const char* SetOption_(char* pszOption_, const char* pszValue_)  { return
 
 inline void SetDefault_(const char* pcszOption_, bool fValue_, bool&) { *((bool*)Options::GetDefault(pcszOption_)) = fValue_; }
 inline void SetDefault_(const char* pcszOption_, int nValue_, int&) { *((int*)Options::GetDefault(pcszOption_)) = nValue_; }
-//inline void SetDefault_(const char* pcszOption_, char* pszValue_, char*&) { strcpy((char*)Options::GetDefault(pcszOption_), pszValue_); }
 
-#endif  // OPTION_H
+#endif  // OPTIONS_H

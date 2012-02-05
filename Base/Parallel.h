@@ -2,7 +2,7 @@
 //
 // Parallel.cpp: Parallel interface
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 #ifndef PARALLEL_H
 #define PARALLEL_H
 
-#include "Sound.h"
 #include "IO.h"
 
 

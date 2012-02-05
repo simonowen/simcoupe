@@ -2,8 +2,7 @@
 //
 // Util.cpp: Debug tracing, and other utility tasks
 //
-//  Copyright (c) 1999-2010  Simon Owen
-//  Copyright (c) 1996-2002  Allan Skillman
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -71,24 +70,6 @@ int Util::GetUniqueFile (const char* pcszTemplate_, int nNext_, char* psz_, int 
 
     strncpy(psz_, sz, cb_);
     return nNext_;
-}
-
-
-UINT Util::HCF (UINT x_, UINT y_)
-{
-    UINT uHCF = 1, uMin = min(x_, y_) >> 1;
-
-    for (UINT uFactor = 2 ; uFactor <= uMin ; uFactor++)
-    {
-        while (!(x_ % uFactor) && !(y_ % uFactor))
-        {
-            uHCF *= uFactor;
-            x_ /= uFactor;
-            y_ /= uFactor;
-        }
-    }
-
-    return uHCF;
 }
 
 

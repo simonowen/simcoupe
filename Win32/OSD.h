@@ -181,9 +181,7 @@ class OSD
         static bool IsHidden (const char* pcszFile_);
 
         static void DebugTrace (const char* pcsz_);
-        static int FrameSync (bool fWait_=true);
-
-        static int s_nTicks;
+        static void FrameSync ();
 };
 
 #endif

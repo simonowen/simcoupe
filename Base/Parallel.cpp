@@ -2,7 +2,7 @@
 //
 // Parallel.cpp: Parallel interface
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 
 #include "Frame.h"
 #include "Options.h"
+#include "Sound.h"
 
 
 BYTE CPrintBuffer::In (WORD wPort_)
@@ -135,7 +136,7 @@ void CMonoDACDevice::Out (WORD wPort_, BYTE bVal_)
 {
     // If the write is to the data port, send it to the DAC
     if (!(wPort_ & 1))
-        Sound::OutputDAC(bVal_);
+        pDAC->Output(bVal_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -152,9 +153,9 @@ void CStereoDACDevice::Out (WORD wPort_, BYTE bVal_)
         {
             // Output to left or right channel
             if (bVal_ & 0x01)
-                Sound::OutputDACLeft(m_bData);
+                pDAC->OutputLeft(m_bData);
             else
-                Sound::OutputDACRight(m_bData);
+                pDAC->OutputRight(m_bData);
         }
 
         // Update strobe state

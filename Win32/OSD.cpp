@@ -2,7 +2,7 @@
 //
 // OSD.cpp: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "Options.h"
 #include "Parallel.h"
 #include "UI.h"
+#include "Video.h"
 
 HANDLE g_hEvent;
 MMRESULT g_hTimer;
@@ -37,14 +38,10 @@ PFNDIRECTDRAWCREATE pfnDirectDrawCreate;
 PFNDIRECTINPUTCREATE pfnDirectInputCreate;
 PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 
-int OSD::s_nTicks;
-
 
 // Timer handler, called every 20ms - seemed more reliable than having it set the event directly, for some weird reason
 void CALLBACK TimeCallback (UINT uTimerID_, UINT uMsg_, DWORD_PTR dwUser_, DWORD_PTR dw1_, DWORD_PTR dw2_)
 {
-    OSD::s_nTicks++;
-
     // Signal that the next frame is due
     SetEvent(g_hEvent);
 }
@@ -194,30 +191,23 @@ void OSD::DebugTrace (const char* pcsz_)
     OutputDebugString(pcsz_);
 }
 
-int OSD::FrameSync (bool fWait_/*=true*/)
+void OSD::FrameSync ()
 {
-    extern LPDIRECTDRAW pdd;
-
-    if (fWait_)
+    switch (GetOption(sync))
     {
-        switch (GetOption(sync))
-        {
-            case 1:
-                ResetEvent(g_hEvent);
-                WaitForSingleObject(g_hEvent, INFINITE);
-                break;
+        case 1:
+            ResetEvent(g_hEvent);
+            WaitForSingleObject(g_hEvent, INFINITE);
+            break;
 
-            case 3:
-                pdd->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, NULL);
-                // Fall through...
+        case 3:
+            pdd->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, NULL);
+            // Fall through...
 
-            case 2:
-                pdd->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, NULL);
-                break;
-        }
+        case 2:
+            pdd->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, NULL);
+            break;
     }
-
-    return s_nTicks;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -2,7 +2,7 @@
 //
 // UI.cpp: Win32 user interface
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,8 +19,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "SimCoupe.h"
-
 #include "UI.h"
+
 #include "Action.h"
 #include "CDrive.h"
 #include "Clock.h"
@@ -34,11 +34,11 @@
 #include "HardDisk.h"
 #include "Input.h"
 #include "Main.h"
+#include "Memory.h"
 #include "ODmenu.h"
 #include "Options.h"
 #include "OSD.h"
 #include "Parallel.h"
-#include "Memory.h"
 #include "Sound.h"
 #include "Video.h"
 
@@ -2283,23 +2283,6 @@ INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
         {
             SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_SETCHECK, GetOption(hwaccel) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_STRETCH_TO_FIT, BM_SETCHECK, GetOption(stretchtofit) ? BST_CHECKED : BST_UNCHECKED, 0L);
-
-            SendDlgItemMessage(hdlg_, IDC_FRAMESKIP_AUTOMATIC, BM_SETCHECK, !GetOption(frameskip) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendMessage(hdlg_, WM_COMMAND, IDC_FRAMESKIP_AUTOMATIC, 0L);
-
-            HWND hwndCombo = GetDlgItem(hdlg_, IDC_FRAMESKIP);
-            SendMessage(hwndCombo, CB_RESETCONTENT, 0, 0L);
-            SendMessage(hwndCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>("all frames"));
-
-            for (int i = 2 ; i <= 10 ; i++)
-            {
-                char sz[32];
-                wsprintf(sz, "every %d%s frame", i, (i==2) ? "nd" : (i==3) ? "rd" : "th");
-                SendMessage(hwndCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(sz));
-            }
-
-            SendMessage(hwndCombo, CB_SETCURSEL, (!GetOption(frameskip)) ? 0 : GetOption(frameskip) - 1, 0L);
-            SendMessage(hdlg_, WM_COMMAND, IDC_HWACCEL, 0L);
             break;
         }
 
@@ -2312,29 +2295,11 @@ INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
                 SetOption(hwaccel, SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(stretchtofit, SendDlgItemMessage(hdlg_, IDC_STRETCH_TO_FIT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
-                int nFrameSkip = SendDlgItemMessage(hdlg_, IDC_FRAMESKIP_AUTOMATIC, BM_GETCHECK, 0, 0L) != BST_CHECKED;
-                SetOption(frameskip, nFrameSkip ? static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FRAMESKIP, CB_GETCURSEL, 0, 0L)) + 1 : 0);
-
                 if (Changed(hwaccel))
                     Frame::Init();
 
                 if (Changed(stretchtofit))
                     UI::ResizeWindow(!GetOption(stretchtofit));
-            }
-
-            break;
-        }
-
-        case WM_COMMAND:
-        {
-            switch (LOWORD(wParam_))
-            {
-                case IDC_FRAMESKIP_AUTOMATIC:
-                {
-                    bool fAutomatic = (SendDlgItemMessage(hdlg_, IDC_FRAMESKIP_AUTOMATIC, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_FRAMESKIP), !fAutomatic);
-                    break;
-                }
             }
 
             break;

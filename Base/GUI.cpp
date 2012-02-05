@@ -2,7 +2,7 @@
 //
 // GUI.cpp: GUI and controls for on-screen interface
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@
 #include "Frame.h"
 #include "Input.h"
 #include "Keyboard.h"
+#include "Sound.h"
 #include "UI.h"
 #include "Video.h"
 
@@ -126,8 +127,8 @@ bool GUI::Start (CWindow* pGUI_)
     // Position the cursor off-screen, to ensure the first drawn position matches the native OS position
     s_nX = s_nY = -ICON_SIZE;
 
-    // Stop the sound
-    Sound::Stop();
+    // Silence sound playback
+    Sound::Silence();
     Display::SetDirty();
 
     return true;
@@ -139,8 +140,6 @@ void GUI::Stop ()
     delete s_pGUI;
     s_pGUI = NULL;
 
-    // Restore the sound
-    Sound::Play();
     Display::SetDirty();
 }
 

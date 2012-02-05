@@ -2,9 +2,9 @@
 //
 // IO.h: SAM I/O port handling
 //
-//  Copyright (c) 1999-2011  Simon Owen
-//  Copyright (c) 1996-2001  Allan Skillman
-//  Copyright (c) 2000-2001  Dave Laundon
+//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1996-2001 Allan Skillman
+//  Copyright (c) 2000-2001 Dave Laundon
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,8 +23,6 @@
 #ifndef IO_H
 #define IO_H
 
-#include "Sound.h"
-
 typedef struct {
     BYTE bRed, bGreen, bBlue;
 } COLOUR;
@@ -41,7 +39,6 @@ class IO
         static bool InitSerial (bool fInit_=true, bool fReInit_=true);
         static bool InitClocks (bool fInit_=true, bool fReInit_=true);
         static bool InitMidi (bool fInit_=true, bool fReInit_=true);
-        static bool InitBeeper (bool fInit_=true, bool fReInit_=true);
         static bool InitHDD (bool fInit_=true, bool fReInit_=true);
 
         static BYTE In (WORD wPort_);
@@ -71,6 +68,8 @@ class CIoDevice
         virtual ~CIoDevice () { }
 
     public:
+        virtual void Reset () { }
+
         virtual BYTE In (WORD wPort_) { return 0xff; }
         virtual void Out (WORD wPort_, BYTE bVal_) { }
 
@@ -106,14 +105,6 @@ class CDiskDevice :  public CIoDevice
 
     protected:
         int m_nType;
-};
-
-
-// Spectrum-style BEEPer
-class CBeeperDevice : public CIoDevice
-{
-    public:
-        void Out (WORD wPort_, BYTE bVal_) { Sound::OutputDAC((bVal_ & 0x10) ? 0x60 : 0x80); }
 };
 
 
@@ -218,7 +209,7 @@ class CBeeperDevice : public CIoDevice
 
 // Bits in the status register to RESET to signal the various interrupts
 #define STATUS_INT_LINE     0x01
-#define STATUS_INT_MOUSE    0x02	// Part of original SAM design, but never used
+#define STATUS_INT_MOUSE    0x02    // Part of original SAM design, but never used
 #define STATUS_INT_MIDIIN   0x04
 #define STATUS_INT_FRAME    0x08
 #define STATUS_INT_MIDIOUT  0x10
@@ -228,10 +219,6 @@ class CBeeperDevice : public CIoDevice
 #define MIDI_TRANSMIT_TIME      USECONDS_TO_TSTATES(320)
 #define MIDI_INT_ACTIVE_TIME    USECONDS_TO_TSTATES(16)
 
-
-#ifdef USE_TESTHW
-#include "TestHW.h"
-#endif
 
 // Keyboard matrix buffer
 extern BYTE keybuffer[9];
@@ -256,6 +243,8 @@ extern BYTE lpen;
 
 extern CDiskDevice *pDrive1, *pDrive2, *pSDIDE, *pYATBus;
 extern CIoDevice *pParallel1, *pParallel2;
+extern CIoDevice *pBeeper;
+
 extern bool g_fAutoBoot;
 
 #endif
