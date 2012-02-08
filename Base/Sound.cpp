@@ -35,7 +35,9 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
     int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND)+1;
     pbSampleBuffer = new BYTE[nSamplesPerFrame*SAMPLE_BLOCK];
 
-    return Audio::Init(fFirstInit_);
+    bool fRet = Audio::Init(fFirstInit_);
+    Audio::Silence();
+    return fRet;
 }
 
 void Sound::Exit (bool fReInit_/*=false*/)
@@ -124,7 +126,7 @@ void CDAC::FrameEnd ()
     buf_right.end_frame(TSTATES_PER_FRAME);
 
     blip_sample_t *ps = reinterpret_cast<blip_sample_t*>(m_pbFrameSample);
-    m_nSamplesThisFrame = buf_left.samples_avail();
+    m_nSamplesThisFrame = static_cast<int>(buf_left.samples_avail());
 
     buf_left.read_samples(ps, m_nSamplesThisFrame, 1);
     buf_right.read_samples(ps+1, m_nSamplesThisFrame, 1);
@@ -149,8 +151,7 @@ void CDAC::Output (BYTE bVal_)
 int CDAC::GetSamplesSoFar ()
 {
     UINT uCycles = min(g_dwCycleCounter, TSTATES_PER_FRAME);
-    int n = buf_left.count_samples(uCycles);
-    return n;
+    return static_cast<int>(buf_left.count_samples(uCycles));
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -36,7 +36,7 @@ SDL_TimerID pTimer;
 int OSD::s_nTicks;
 
 
-Uint32 TimerCallback (Uint32 uInterval_, void *pv_)
+static Uint32 TimerCallback (Uint32 uInterval_, void *pv_)
 {
     OSD::s_nTicks++;
 

@@ -90,9 +90,6 @@ void InitGL ()
     int nW = GetOption(ratio5_4) ? nWidth * 5/4 : nWidth;
     int i;
 
-    // Determine the OpenGL version
-    double glVersion = atof((const char*)glGetString(GL_VERSION));
-
     if (!GetOption(stretchtofit))
     {
         // Centralise what we have without any scaling
@@ -140,9 +137,6 @@ void InitGL ()
     // Note: do this for ATI cards only at present, as both nVidia and Intel seems to suffer a performance hit
     if (glExtension("GL_APPLE_client_storage") && !memcmp(glGetString(GL_RENDERER), "ATI", 3))
         glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
-
-    // Try for edge-clamped textures, to avoid visible seams between filtered tiles (mainly OS X)
-    GLuint uClamp = (glExtension("GL_SGIS_texture_edge_clamp") || glVersion >= 1.2f) ? GL_CLAMP_TO_EDGE : GL_CLAMP;
 
 
     glEnable(GL_TEXTURE_2D);

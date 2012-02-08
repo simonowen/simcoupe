@@ -88,7 +88,7 @@ Blip_Buffer::blargg_err_t Blip_Buffer::set_sample_rate( long new_rate, int msec 
 	
 	// update things based on the sample rate
 	sample_rate_ = new_rate;
-	length_ = new_size * 1000 / new_rate - 1;
+	length_ = int(new_size * 1000 / new_rate - 1);
 	if ( msec )
 		assert( length_ == msec ); // ensure length is same as that passed in
 	if ( clock_rate_ )
@@ -398,7 +398,7 @@ void Blip_Buffer::mix_samples( blip_sample_t const* in, long count )
 	{
 		long s = (long) *in++ << sample_shift;
 		*out += s - prev;
-		prev = s;
+		prev = int(s);
 		++out;
 	}
 	*out -= prev;

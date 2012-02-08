@@ -81,7 +81,6 @@ static BOOL isFullyLaunched = NO;
         if ([menuItem hasSubmenu])
             [self fixMenu:[menuItem submenu] withAppName:appName];
     }
-    [ aMenu sizeToFit ];
 }
 
 // Called when the internal event loop has just started running
@@ -91,11 +90,11 @@ static BOOL isFullyLaunched = NO;
 	int argc = 0;
 	char *argv[2];
 
-	argv[argc++] = strdup([ [[NSBundle mainBundle] bundlePath] cString ]);
+	argv[argc++] = strdup([ [[NSBundle mainBundle] bundlePath] UTF8String ]);
 
 	if (currentFile)
 	{
-		argv[argc++] = strdup([currentFile cString ]);
+		argv[argc++] = strdup([currentFile UTF8String ]);
 		[[NSDocumentController sharedDocumentController] noteNewRecentDocumentURL:[NSURL fileURLWithPath:currentFile]];
 	}
 
@@ -121,7 +120,7 @@ static BOOL isFullyLaunched = NO;
 		SDL_Event event = {0};
 		event.user.type = SDL_USEREVENT;
 		event.user.code = UE_OPENFILE;
-		event.user.data1 = strdup([ filename cString ]);
+		event.user.data1 = strdup([ filename UTF8String ]);
 		SDL_PushEvent(&event);
 	}
 	else // Can't launch until emulator is ready, keep hold of the filename though
@@ -153,7 +152,7 @@ static BOOL isFullyLaunched = NO;
 	SDL_Event event = {0};
 	event.user.type = SDL_USEREVENT;
 	event.user.code = UE_OPENFILE;
-	event.user.data1 = strdup([ path cString ]);
+	event.user.data1 = strdup([ path UTF8String ]);
 	SDL_PushEvent(&event);
 	
 	[[NSDocumentController sharedDocumentController] noteNewRecentDocumentURL:[NSURL fileURLWithPath:currentFile]];

@@ -619,7 +619,7 @@ BYTE IO::In (WORD wPort_)
             // YAMOD.ATBUS hard disk interface
             else if ((bPortLow & YATBUS_MASK) == YATBUS_BASE)
                 return pYATBus->In(wPort_);
-#if _DEBUG
+#ifdef _DEBUG
             // Only unsupported hardware should reach here
             else
             {
@@ -893,7 +893,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             else if ((bPortLow & YATBUS_MASK) == YATBUS_BASE)
                 pYATBus->Out(wPort_, bVal_);
 
-#if _DEBUG
+#ifdef _DEBUG
             // Only unsupported hardware should reach here
             else
             {

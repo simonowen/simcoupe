@@ -160,7 +160,7 @@ inline bool IsTrue (const char* pcsz_)
 }
 
 // Find a named option in the options list above
-OPTION* FindOption (const char* pcszName_)
+static OPTION* FindOption (const char* pcszName_)
 {
     for (OPTION* p = aOptions ; p->pcszName ; p++)
     {

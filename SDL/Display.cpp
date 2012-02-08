@@ -94,7 +94,7 @@ void Display::SetDirty ()
 
 
 // Draw the changed lines in the appropriate colour depth and hi/low resolution
-bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
+static bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
 {
     // Lock the surface for direct access below
     if (SDL_MUSTLOCK(pSurface_) && SDL_LockSurface(pSurface_) < 0)

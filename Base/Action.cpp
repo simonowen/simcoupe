@@ -279,13 +279,14 @@ void Action::Key (int nFnKey_, bool fPressed_, bool fCtrl_, bool fAlt_, bool fSh
         if (*psz++ == 'F')
         {
             // If we've not found a matching key, keep looking...
-            if (nFnKey_ != (int)strtoul(psz, &psz, 0))
+            if (nFnKey_ != static_cast<int>(strtoul(psz, &psz, 10)))
                 continue;
 
             // If the Ctrl/Shift states match, perform the action
             if (fCtrl_ == fCtrled && fAlt_ == fAlted && fShift_ == fShifted)
             {
-                Do(strtoul(++psz, NULL, 0), fPressed_);
+                int nAction = static_cast<int>(strtoul(++psz, NULL, 10));
+                Do(nAction, fPressed_);
                 break;
             }
         }

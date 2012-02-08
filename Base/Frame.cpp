@@ -102,17 +102,17 @@ bool Frame::Init (bool fFirstInit_/*=false*/)
     // Set the last line and block draw to the start of the display
     nLastLine = nLastBlock = 0;
 
-    UINT uView = GetOption(borders);
-    if (uView < 0 || uView >= (sizeof asViews / sizeof asViews[0]))
-        uView = 0;
+    int nView = GetOption(borders);
+    if (nView < 0 || nView >= (sizeof(asViews) / sizeof(asViews[0])))
+        nView = 0;
 
-    s_nViewLeft = (WIDTH_BLOCKS - asViews[uView].w) >> 1;
-    s_nViewRight = s_nViewLeft + asViews[uView].w;
+    s_nViewLeft = (WIDTH_BLOCKS - asViews[nView].w) >> 1;
+    s_nViewRight = s_nViewLeft + asViews[nView].w;
 
     // If we're not showing the full scan image, offset the view to centre over the main screen area
-    if ((s_nViewTop = (HEIGHT_LINES - asViews[uView].h) >> 1))
+    if ((s_nViewTop = (HEIGHT_LINES - asViews[nView].h) >> 1))
         s_nViewTop += (TOP_BORDER_LINES-BOTTOM_BORDER_LINES) >> 1;
-    s_nViewBottom = s_nViewTop + asViews[uView].h;
+    s_nViewBottom = s_nViewTop + asViews[nView].h;
 
     // Convert the view area dimensions to hi-res pixels
     s_nWidth = (s_nViewRight - s_nViewLeft) << 4;
@@ -175,13 +175,13 @@ int Frame::GetHeight ()
 
 void Frame::SetView (UINT uBlocks_, UINT uLines_)
 {
-    UINT uView = GetOption(borders);
-    if (uView < 0 || uView >= (sizeof asViews / sizeof asViews[0]))
-        uView = 0;
+    int nView = GetOption(borders);
+    if (nView < 0 || nView >= (sizeof(asViews) / sizeof(asViews[0])))
+        nView = 0;
 
     // Overwrite the current view with the supplied dimensions
-    asViews[uView].w = uBlocks_;
-    asViews[uView].h = uLines_;
+    asViews[nView].w = uBlocks_;
+    asViews[nView].h = uLines_;
 }
 
 
@@ -279,7 +279,7 @@ void Frame::UpdateAll ()
 
 
 // Fill the display after current raster position, currently with a dark grey
-void RasterComplete ()
+static void RasterComplete ()
 {
     static DWORD dwCycleCounter;
     static int nLastFrame;

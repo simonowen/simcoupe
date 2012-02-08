@@ -2,7 +2,7 @@
 //
 // Keyboard.cpp: Common keyboard handling
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -349,7 +349,7 @@ void ProcessUnshiftedKeys (MAPPED_KEY* asKeys_)
 
 
 // Update a combination key table with a symbol
-bool UpdateKeyTable (MAPPED_KEY* asKeys_, int nKey_, int nMods_, int nChar_)
+static bool UpdateKeyTable (MAPPED_KEY* asKeys_, int nKey_, int nMods_, int nChar_)
 {
     // Convert upper-case symbols to lower-case without shift
     if (nChar_ >= 'A' && nChar_ <= 'Z')
@@ -361,7 +361,7 @@ bool UpdateKeyTable (MAPPED_KEY* asKeys_, int nKey_, int nMods_, int nChar_)
     // Convert ctrl-letter and ctrl-digit to the base key
     if (nMods_ & HM_CTRL)
     {
-        if (nChar_ >= 'a' && nChar_ <= 'z' || nChar_ >= '0' && nChar_ <= '9')
+        if ((nChar_ >= 'a' && nChar_ <= 'z') || (nChar_ >= '0' && nChar_ <= '9'))
             nMods_ &= ~HM_CTRL;
     }
 

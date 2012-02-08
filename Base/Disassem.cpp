@@ -2,7 +2,7 @@
 //
 // Disassem.cpp: Z80 disassembler
 //
-//  Copyright (c) 1999-2007  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 //  Fairly compact but an utter nightmare to debug!
 
 #include "SimCoupe.h"
+#include "Disassem.h"
 
 #include "Util.h"
 #include "Memory.h"
@@ -77,7 +78,7 @@ bool fHex = true, fLowerCase = false;
 
 
 // Skip the rest of the [ ] block, including any nested blocks
-void SkipBlock (const char** ppcszTable)
+static void SkipBlock (const char** ppcszTable)
 {
     while (1)
     {
@@ -90,7 +91,7 @@ void SkipBlock (const char** ppcszTable)
 }
 
 // Lower-case 'a'-'n' are function numbers
-void Function (BYTE b_)
+static void Function (BYTE b_)
 {
     int i;
     bool fPositive = !(pbOpcode[1] & 0x80);
@@ -98,21 +99,21 @@ void Function (BYTE b_)
 
     switch (b_)
     {
-        case 'a':   pszOut += sprintf(pszOut, fHex ? "%04hX" : "%d", (pbOpcode[2] << 8) | pbOpcode[1]);   break;
+        case 'a':   pszOut += sprintf(pszOut, fHex ? "%04X" : "%d", (pbOpcode[2] << 8) | pbOpcode[1]);   break;
         case 'b':   *pszOut++ = '%'; for (i = 0 ; i < 8 ; i++) *pszOut++ = '0' + ((pbOpcode[1] >> (7-i)) & 1); break;
         case 'c':   *pszOut++ = '0' + ((pbOpcode[0] >> 3) & 7); break;
-        case 'd':   if (pbOpcode[1]) pszOut += sprintf(pszOut, fHex ? "%c%02hX" : "%c%d", fPositive ? '+' : '-', bDisp); break;
-        case 'e':   pszOut += sprintf(pszOut, fHex ? "%04hX" : "%d", wPC + 2 + static_cast<signed char>(pbOpcode[1])); break;
-        case 'f':   pszOut += sprintf(pszOut, fHex ? "%hX" : "%d", pbOpcode[0] & 0x38); break;
+        case 'd':   if (pbOpcode[1]) pszOut += sprintf(pszOut, fHex ? "%c%02X" : "%c%d", fPositive ? '+' : '-', bDisp); break;
+        case 'e':   pszOut += sprintf(pszOut, fHex ? "%04X" : "%d", wPC + 2 + static_cast<signed char>(pbOpcode[1])); break;
+        case 'f':   pszOut += sprintf(pszOut, fHex ? "%X" : "%d", pbOpcode[0] & 0x38); break;
         case 'h':   *pbStack = ((pbOpcode[0] >> 3) & 7) == 6; break;
         case 'i':   *pbStack = nType; break;
         case 'l':   *pbStack = (pbOpcode[0] & 7) == 6; break;
-        case 'm':   pszOut += sprintf(pszOut, fHex ? "%02hX" : "%d", pbOpcode[1 + (!nType ? 0 : 1)]); break;
-        case 'n':   pszOut += sprintf(pszOut, fHex ? "%02hX" : "%d", pbOpcode[1]); break;
+        case 'm':   pszOut += sprintf(pszOut, fHex ? "%02X" : "%d", pbOpcode[1 + (!nType ? 0 : 1)]); break;
+        case 'n':   pszOut += sprintf(pszOut, fHex ? "%02X" : "%d", pbOpcode[1]); break;
     }
 }
 
-UINT ParseStr (const char* pcsz_)
+static UINT ParseStr (const char* pcsz_)
 {
     while (1)
     {

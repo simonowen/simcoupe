@@ -49,8 +49,6 @@ bool Input::Init (bool fFirstInit_/*=false*/)
     // Initialise the joystick subsystem
     if (!SDL_InitSubSystem(SDL_INIT_JOYSTICK))
     {
-        int n = SDL_NumJoysticks();
-
         // Loop through the available devices for the ones to use (if any)
         for (int i = 0 ; i < SDL_NumJoysticks() ; i++)
         {
@@ -125,7 +123,7 @@ void Input::Purge ()
 
 
 // Read the specified joystick
-void ReadJoystick (int nJoystick_, SDL_Joystick *pJoystick_, int nTolerance_)
+static static void ReadJoystick (int nJoystick_, SDL_Joystick *pJoystick_, int nTolerance_)
 {
     int nPosition = HJ_CENTRE;
     DWORD dwButtons = 0;
@@ -196,7 +194,6 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             // Check for function keys (unless the Windows key is pressed)
             if (!fWin && pKey->sym >= SDLK_F1 && pKey->sym <= SDLK_F12)
             {
-                SDLMod m = SDL_GetModState();
                 Action::Key(pKey->sym-SDLK_F1+1, fPress, fCtrl, fAlt, fShift);
                 break;
             }

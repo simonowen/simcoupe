@@ -2,7 +2,7 @@
 //
 // Expr.cpp: Infix expression parsing and postfix evaluation
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ void Expr::Release (EXPR* pExpr_)
 }
 
 // Add an expression chain to the current expression
-EXPR* AddNode (EXPR* pExpr_)
+static EXPR* AddNode (EXPR* pExpr_)
 {
     if (!pHead)
         return pHead = pTail = pExpr_;
@@ -54,7 +54,7 @@ EXPR* AddNode (EXPR* pExpr_)
 }
 
 // Add a new node to the end of the current expression
-EXPR* AddNode (int nType_, int nValue_)
+static EXPR* AddNode (int nType_, int nValue_)
 {
     EXPR *pExpr = new EXPR;
     pExpr->nType = nType_;
@@ -402,7 +402,7 @@ bool Expr::Factor ()
 
         // Parse as hex initially
         const char* p2;
-        int nValue = strtoul(p, (char**)&p2, 16);
+        int nValue = static_cast<int>(strtoul(p, (char**)&p2, 16));
 
         // Accept values using a C-style "0x" prefix
         if (p[0] == '0' && tolower(p[1]) == 'x')
@@ -440,7 +440,7 @@ bool Expr::Factor ()
         if (!fMatched && isdigit(*p))
         {
             // Parse as decimal (leading zeroes should not give octal!)
-            AddNode(T_NUMBER, strtoul(p, (char**)&p, 10));
+            AddNode(T_NUMBER, static_cast<int>(strtoul(p, (char**)&p, 10)));
             fMatched = true;
         }
     }
@@ -454,7 +454,7 @@ bool Expr::Factor ()
     else if ((*p == '$' || *p == '&' || *p == '#') && isxdigit(p[1]))
     {
         p++;
-        AddNode(T_NUMBER, strtoul(p, (char**)&p, 16));
+        AddNode(T_NUMBER, static_cast<int>(strtoul(p, (char**)&p, 16)));
     }
 
     // Binary value?

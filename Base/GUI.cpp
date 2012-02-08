@@ -1478,7 +1478,7 @@ void CScrollBar::OnNotify (CWindow* pWindow_, int nParam_/*=0*/)
 const int ITEM_SIZE = 72;
 
 // Helper to locate matches when a filename is typed
-bool IsPrefix (const char* pcszPrefix_, const char* pcszName_)
+static bool IsPrefix (const char* pcszPrefix_, const char* pcszName_)
 {
     // Skip any common characters at the start of the name
     while (*pcszPrefix_ && *pcszName_ && tolower(*pcszPrefix_) == tolower(*pcszName_))
@@ -1851,7 +1851,7 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Compare two filenames, returning true if the 1st entry comes after the 2nd
-bool SortCompare (const char* pcsz1_, const char* pcsz2_)
+static bool SortCompare (const char* pcsz1_, const char* pcsz2_)
 {
     // Skip any common characters at the start of the name
     while (*pcsz1_ && *pcsz2_ && tolower(*pcsz1_) == tolower(*pcsz2_))
@@ -1862,7 +1862,7 @@ bool SortCompare (const char* pcsz1_, const char* pcsz2_)
 }
 
 // Compare two file entries, returning true if the 1st entry comes after the 2nd
-bool SortCompare (CListViewItem* p1_, CListViewItem* p2_)
+static bool SortCompare (CListViewItem* p1_, CListViewItem* p2_)
 {
     // Drives come before directories, which come before files
     if ((p1_->m_pIcon == &sFolderIcon) ^ (p2_->m_pIcon == &sFolderIcon))

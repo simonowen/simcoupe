@@ -2,7 +2,7 @@
 //
 // Debug.cpp: Integrated Z80 debugger
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -191,7 +191,7 @@ void CInputDialog::OnNotify (CWindow* pWindow_, int nParam_)
 
 
 // Notify handler for New Address input
-bool OnAddressNotify (EXPR *pExpr_)
+static bool OnAddressNotify (EXPR *pExpr_)
 {
     int nAddr = Expr::Eval(pExpr_);
     pDebugger->SetAddress(nAddr);
@@ -199,7 +199,7 @@ bool OnAddressNotify (EXPR *pExpr_)
 }
 
 // Notify handler for Execute Until expression
-bool OnUntilNotify (EXPR *pExpr_)
+static bool OnUntilNotify (EXPR *pExpr_)
 {
     Break.pExpr = pExpr_;
     Debug::Stop();
@@ -207,7 +207,7 @@ bool OnUntilNotify (EXPR *pExpr_)
 }
 
 // Notify handler for Change Lmpr input
-bool OnLmprNotify (EXPR *pExpr_)
+static bool OnLmprNotify (EXPR *pExpr_)
 {
     int nPage = Expr::Eval(pExpr_) & LMPR_PAGE_MASK;
     IO::OutLmpr((lmpr & ~LMPR_PAGE_MASK) | nPage);
@@ -216,7 +216,7 @@ bool OnLmprNotify (EXPR *pExpr_)
 }
 
 // Notify handler for Change Hmpr input
-bool OnHmprNotify (EXPR *pExpr_)
+static bool OnHmprNotify (EXPR *pExpr_)
 {
     int nPage = Expr::Eval(pExpr_) & HMPR_PAGE_MASK;
     IO::OutHmpr((hmpr & ~HMPR_PAGE_MASK) | nPage);
@@ -225,7 +225,7 @@ bool OnHmprNotify (EXPR *pExpr_)
 }
 
 // Notify handler for Change Vmpr input
-bool OnVmprNotify (EXPR *pExpr_)
+static bool OnVmprNotify (EXPR *pExpr_)
 {
     int nPage = Expr::Eval(pExpr_) & VMPR_PAGE_MASK;
     IO::OutVmpr((vmpr & ~VMPR_PAGE_MASK) | nPage);
@@ -234,7 +234,7 @@ bool OnVmprNotify (EXPR *pExpr_)
 }
 
 // Notify handler for Change Mode input
-bool OnModeNotify (EXPR *pExpr_)
+static bool OnModeNotify (EXPR *pExpr_)
 {
     int nMode = Expr::Eval(pExpr_);
     if (nMode < 1 || nMode > 4)

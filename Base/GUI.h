@@ -2,7 +2,7 @@
 //
 // GUI.h: GUI and controls for on-screen interface
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -105,7 +105,7 @@ class CWindow
         virtual bool IsTabStop () const { return false; }
 
         virtual const char* GetText () const { return m_pszText; }
-        virtual UINT GetValue () const { return strtoul(m_pszText, NULL, 0); }
+        virtual UINT GetValue () const { return static_cast<UINT>(strtoul(m_pszText, NULL, 0)); }
         virtual void SetText (const char* pcszText_);
         virtual void SetValue (UINT u_);
         int GetTextWidth () const { return CScreen::GetStringWidth(m_pszText); }
