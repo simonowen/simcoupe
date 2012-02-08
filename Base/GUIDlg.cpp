@@ -41,7 +41,7 @@ OPTIONS g_opts;
 CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     : CDialog(pParent_, 305, 220,  "About SimCoupe")
 {
-    char szVersion[128] = "SimCoupe v1.0";
+    char szVersion[128] = "SimCoupe v1.0a";
 
 #if 0
     // Append the date on beta versions, to save us updating the version number each time

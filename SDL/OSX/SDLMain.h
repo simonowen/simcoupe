@@ -14,6 +14,8 @@
 	Options * options;
 }
 
+@property(nonatomic, copy) NSString * currentFile;
+
 - (IBAction)appPreferences:(id)sender;
 - (IBAction)fileOpen:(id)sender;
 - (IBAction)fileImportData:(id)sender;

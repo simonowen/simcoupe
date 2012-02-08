@@ -59,6 +59,8 @@ static BOOL isFullyLaunched = NO;
 // The main class of the application, the application's delegate
 @implementation SDLMain
 
+@synthesize currentFile;
+
 // Fix menu to contain the real app name instead of "SDL App"
 - (void)fixMenu:(NSMenu *)aMenu withAppName:(NSString *)appName
 {
@@ -124,7 +126,7 @@ static BOOL isFullyLaunched = NO;
 	}
 	else // Can't launch until emulator is ready, keep hold of the filename though
 	{
-		currentFile = [NSString stringWithString:filename ];
+		self.currentFile = [NSString stringWithString:filename ];
 	}
 
     return YES;
