@@ -42,8 +42,8 @@ if (BZIP2_FOUND)
   link_libraries(${BZIP2_LIBRARIES})
 endif (BZIP2_FOUND)
 
-IF(CMAKE_BUILD_TYPE MATCHES Debug)
+if (CMAKE_BUILD_TYPE MATCHES Debug)
   add_definitions(-D_DEBUG)
-ENDIF
+endif (CMAKE_BUILD_TYPE MATCHES Debug)
 
 add_executable(simcoupe WIN32 MACOSX_BUNDLE ${BASE_SRC} ${SDL_SRC} ${EXTERN_SRC})
