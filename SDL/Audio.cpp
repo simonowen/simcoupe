@@ -81,25 +81,30 @@ void Audio::Exit (bool fReInit_/*=false*/)
 bool Audio::AddData (Uint8* pbData_, int nLength_)
 {
     bool fWaited = false;
+    int nSpace = 0;
 
     if (!IsAvailable())
         return false;
 
+    // Calculate the frame time (in ms) from the sample data length
+    UINT uFrameTime = ((nLength_*1000/SAMPLE_BLOCK) + (SAMPLE_FREQ/2)) / SAMPLE_FREQ;
+
+    // Loop until everything has been written
     while (nLength_ > 0)
     {
         SDL_LockAudio();
 
         // Determine the available space
-        int nSpace = static_cast<int>(m_pbEnd-m_pbNow);
-        nSpace = min(nSpace, nLength_);
+        nSpace = static_cast<int>(m_pbEnd-m_pbNow);
+        int nAdd = min(nSpace, nLength_);
 
         // Copy as much as we can
-        memcpy(m_pbNow, pbData_, nSpace);
+        memcpy(m_pbNow, pbData_, nAdd);
 
         // Adjust for what was added
-        m_pbNow += nSpace;
-        pbData_ += nSpace;
-        nLength_ -= nSpace;
+        m_pbNow += nAdd;
+        pbData_ += nAdd;
+        nLength_ -= nAdd;
 
         SDL_UnlockAudio();
 
@@ -108,32 +113,39 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
             break;
 
         // Wait for more space
-        SDL_Delay(2);
+        SDL_Delay(1);
         fWaited = true;
     }
 
-    // If we didn't have to wait we'll need to generate our own delay
-    if (!fWaited)
+    // How long since the frame?
+    Uint32 uNow = SDL_GetTicks();
+    Sint32 nElapsed = static_cast<Sint32>(uNow - uLastTime);
+
+    // If we're too far behind, re-sync
+    if (nElapsed > uFrameTime*2)
     {
-        // Experimental: attempt to steady frame rate
-        // Poor on Win32 due to crappy timer resolution
-        // Untested on Linux and Mac, which have respectable 1ms timer resolution
+        uLastTime = uNow;
+    }
+    else
+    {
+        // If we're falling behind, reduce the delay by 1ms
+        if (nSpace > (SAMPLE_BUFFER_SIZE*SAMPLE_BLOCK))
+            uFrameTime--;
+
         do
         {
-            SDL_LockAudio();
-            Uint32 uNow = SDL_GetTicks(), uElapsed = uNow - uLastTime;
+            // How long since the last frame?
+            Sint32 nElapsed = static_cast<Sint32>(SDL_GetTicks() - uLastTime);
 
-			UINT uDelay = 1000 / EMULATED_FRAMES_PER_SECOND;
-			if (uDelay > 1) uDelay--; // allow some slack
-
-            if (uElapsed >= uDelay)
+            // Have we waited long enough?
+            if (nElapsed >= uFrameTime)
             {
-                uLastTime = uNow + ((uNow - uLastTime) % uDelay);
-                SDL_UnlockAudio();
+                // Adjust for the next frame
+                uLastTime += uFrameTime;
                 break;
             }
 
-            SDL_UnlockAudio();
+            // Sleep a short time before checking again
             SDL_Delay(1);
 
         } while (GetOption(sync));
