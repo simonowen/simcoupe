@@ -123,7 +123,7 @@ void Input::Purge ()
 
 
 // Read the specified joystick
-static static void ReadJoystick (int nJoystick_, SDL_Joystick *pJoystick_, int nTolerance_)
+static void ReadJoystick (int nJoystick_, SDL_Joystick *pJoystick_, int nTolerance_)
 {
     int nPosition = HJ_CENTRE;
     DWORD dwButtons = 0;
