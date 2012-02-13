@@ -41,6 +41,7 @@
 #include "Parallel.h"
 #include "SAMDOS.h"
 #include "SDIDE.h"
+#include "SID.h"
 #include "Sound.h"
 #include "Util.h"
 #include "Video.h"
@@ -53,8 +54,9 @@ CIoDevice *pSambus, *pDallas;
 CIoDevice *pMidi;
 CIoDevice *pBeeper;
 CBlueAlphaDevice *pBlueAlpha;
-CSAA *pSAA;
 CDAC *pDAC;
+CSAA *pSAA;
+CSID *pSID;
 
 // Port read/write addresses for I/O breakpoints
 WORD wPortRead, wPortWrite;
@@ -111,6 +113,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
 
         pDAC = new CDAC;
         pSAA = new CSAA;
+        pSID = new CSID;
         pBeeper = new CBeeperDevice;
         pBlueAlpha = new CBlueAlphaDevice;
 
@@ -863,8 +866,9 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             pSDIDE->Out(wPort_, bVal_);
             break;
 
-        // SID interface (not yet implemented)
+        // SID interface
         case SID_PORT:
+            pSID->Out(wPort_, bVal_);
             break;
 
         // Quazar Surround (unsupported)

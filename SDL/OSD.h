@@ -41,16 +41,6 @@
 #include "SDL_opengl.h"
 #endif
 
-#ifndef SDL_DISABLE
-#define SDL_DISABLE  0
-#define SDL_ENABLE   1
-#endif
-
-#ifndef SDL_VIDEOEXPOSE
-#define SDL_VIDEOEXPOSE  17
-#endif
-
-
 #ifndef _WINDOWS
 
 #include <sys/ioctl.h>
@@ -64,6 +54,8 @@ typedef unsigned int        DWORD;  // must be 32-bit
 typedef unsigned short      WORD;   // must be 16-bit
 typedef unsigned char       BYTE;   // must be 8-bit
 #endif
+
+#define CheckLibFunction(lib,func)  true  // assume present for now
 
 #endif
 
@@ -95,6 +87,12 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #ifdef USE_OPENGL
 #pragma comment(lib, "OpenGL32.lib")
 #endif
+
+#ifdef USE_RESID
+#pragma comment(lib, "resid.lib")
+#endif
+
+#define CheckLibFunction(lib,func)   (LoadLibrary(#lib) != NULL)
 
 #pragma warning(disable:4786)   // Disable the stupid warning about debug symbols being truncated
 

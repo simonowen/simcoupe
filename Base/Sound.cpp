@@ -23,6 +23,7 @@
 
 #include "Audio.h"
 #include "CPU.h"
+#include "SID.h"
 
 static BYTE *pbSampleBuffer;
 
@@ -53,8 +54,14 @@ void Sound::Silence ()
 
 void Sound::FrameUpdate ()
 {
+    static bool fSidUsed = false;
+
+    // Track whether SID has been used, to avoid unnecessary sample generation+mixing
+    fSidUsed |= pSID->GetSampleCount() != 0;
+
     pDAC->FrameEnd();   // set the actual sample count
     pSAA->FrameEnd();   // catch-up to the DAC position
+    if (fSidUsed) pSID->FrameEnd();
 
     // Use the DAC as the master clock for sample count
     int nSamples = pDAC->GetSampleCount();
@@ -63,6 +70,7 @@ void Sound::FrameUpdate ()
     // Copy in the DAC samples and mix the SAA
     memcpy(pbSampleBuffer, pDAC->GetSampleBuffer(), nSize);
     MixAudio(pbSampleBuffer, pSAA->GetSampleBuffer(), nSize);
+    if (fSidUsed) MixAudio(pbSampleBuffer, pSID->GetSampleBuffer(), nSize);
 
     // Queue the data for playback
     if (!Audio::AddData(pbSampleBuffer, nSize))

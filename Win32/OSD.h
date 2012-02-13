@@ -58,6 +58,12 @@
 #endif
 #endif
 
+#ifdef USE_RESID
+#pragma comment(lib, "resid.lib")   // SID chip emulation
+#endif
+
+// Check delay-load DLLs for optional features
+#define CheckLibFunction(lib,func)  (LoadLibrary(#lib) != NULL)
 
 // For NT4 compatability we only use DX3 features, except for input which requires DX5
 #define DIRECTDRAW_VERSION      0x0300
