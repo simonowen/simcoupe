@@ -24,18 +24,19 @@
 #include "Sound.h"
 
 #ifdef USE_RESID
-#include "resid.h"
-#define SID_CLOCK_PAL	985248
+#undef F // TODO: limit scope of Z80 registers!
+#include <resid/sid.h>
+#define SID_CLOCK_PAL   985248
 #endif
 
 class CSID : public CSoundDevice
 {
-	public:
-		CSID ();
-		~CSID ();
+    public:
+        CSID ();
+        ~CSID ();
 
     public:
-		void Reset ();
+        void Reset ();
         void Update (bool fFrameEnd_);
         void FrameEnd ();
 
@@ -43,7 +44,7 @@ class CSID : public CSoundDevice
 
     protected:
 #ifdef USE_RESID
-		HRESID m_hReSID;
+        SID *m_pSID;
 #endif
 };
 

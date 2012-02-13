@@ -25,35 +25,33 @@
 
 
 CSID::CSID ()
-#ifdef USE_RESID
-	: m_hReSID(NULL)
-#endif
 {
 #ifdef USE_RESID
-	if (CheckLibFunction(resid, RESID_create))
-	{
-		m_hReSID = RESID_create();
-		Reset();
-	}
+    m_pSID = NULL;
+
+    if (CheckLibFunction(resid, RESID_create))
+    {
+        m_pSID = new SID;
+        Reset();
+    }
 #endif
 }
 
 CSID::~CSID ()
 {
 #ifdef USE_RESID
-	if (m_hReSID)
-		RESID_destroy(m_hReSID), m_hReSID = NULL;
+    delete m_pSID, m_pSID = NULL;
 #endif
 }
 
 void CSID::Reset ()
 {
 #ifdef USE_RESID
-	if (m_hReSID)
-	{
-		RESID_reset(m_hReSID);
-		RESID_adjust_sampling_frequency(m_hReSID, SAMPLE_FREQ);
-	}
+    if (m_pSID)
+    {
+        m_pSID->reset();
+        m_pSID->adjust_sampling_frequency(SAMPLE_FREQ);
+    }
 #endif
 }
 
@@ -63,7 +61,7 @@ void CSID::Update (bool fFrameEnd_=false)
     int nSamplesSoFar = fFrameEnd_ ? pDAC->GetSampleCount() : pDAC->GetSamplesSoFar();
 
     int nNeeded = nSamplesSoFar - m_nSamplesThisFrame;
-    if (!m_hReSID || nNeeded <= 0)
+    if (!m_pSID || nNeeded <= 0)
         return;
 
     short *ps = reinterpret_cast<short*>(m_pbFrameSample + m_nSamplesThisFrame*SAMPLE_BLOCK);
@@ -72,15 +70,15 @@ void CSID::Update (bool fFrameEnd_=false)
         memset(ps, 0x00, nNeeded*SAMPLE_BLOCK); // no clock means no output
     else
     {
-		int sid_clock = SID_CLOCK_PAL;
+        int sid_clock = SID_CLOCK_PAL;
 
-		// Generate the mono SID samples for the left channel
-		RESID_clock_ds(m_hReSID, sid_clock, ps, nNeeded, 2);
+        // Generate the mono SID samples for the left channel
+        m_pSID->clock(sid_clock, ps, nNeeded, 2);
 
-		// Duplicate the left samples for the right channel
-		for (int i = 0 ; i < nNeeded ; i++, ps += 2)
-			ps[1] = ps[0];
-	}
+        // Duplicate the left samples for the right channel
+        for (int i = 0 ; i < nNeeded ; i++, ps += 2)
+            ps[1] = ps[0];
+    }
 
     m_nSamplesThisFrame = nSamplesSoFar;
 #endif
@@ -95,11 +93,11 @@ void CSID::FrameEnd ()
 void CSID::Out (WORD wPort_, BYTE bVal_)
 {
 #ifdef USE_RESID
-	Update();
+    Update();
 
-	BYTE bReg = wPort_ >> 8;
+    BYTE bReg = wPort_ >> 8;
 
-	if (m_hReSID /*&&bReg < 0x80*/)
-		RESID_write(m_hReSID, bReg & 0x1f, bVal_);
+    if (m_pSID)
+        m_pSID->write(bReg & 0x1f, bVal_);
 #endif
 }
