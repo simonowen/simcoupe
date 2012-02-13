@@ -87,7 +87,7 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
         return false;
 
     // Calculate the frame time (in ms) from the sample data length
-    UINT uFrameTime = ((nLength_*1000/SAMPLE_BLOCK) + (SAMPLE_FREQ/2)) / SAMPLE_FREQ;
+    int nFrameTime = ((nLength_*1000/SAMPLE_BLOCK) + (SAMPLE_FREQ/2)) / SAMPLE_FREQ;
 
     // Loop until everything has been written
     while (nLength_ > 0)
@@ -122,7 +122,7 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
     Sint32 nElapsed = static_cast<Sint32>(uNow - uLastTime);
 
     // If we're too far behind, re-sync
-    if (nElapsed > uFrameTime*2)
+    if (nElapsed > nFrameTime*2)
     {
         uLastTime = uNow;
     }
@@ -130,7 +130,7 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
     {
         // If we're falling behind, reduce the delay by 1ms
         if (nSpace > (SAMPLE_BUFFER_SIZE*SAMPLE_BLOCK))
-            uFrameTime--;
+            nFrameTime--;
 
         do
         {
@@ -138,10 +138,10 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
             Sint32 nElapsed = static_cast<Sint32>(SDL_GetTicks() - uLastTime);
 
             // Have we waited long enough?
-            if (nElapsed >= uFrameTime)
+            if (nElapsed >= nFrameTime)
             {
                 // Adjust for the next frame
-                uLastTime += uFrameTime;
+                uLastTime += nFrameTime;
                 break;
             }
 
