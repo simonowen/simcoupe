@@ -36,7 +36,7 @@
 DWORD aulPalette[N_PALETTE_COLOURS], aulScanline[N_PALETTE_COLOURS];
 
 SDL_Surface *pBack, *pFront, *pIcon;
-
+int nDesktopWidth, nDesktopHeight;
 
 // Mask for the current SimCoupe.bmp image used as the SDL program icon
 static Uint8 abIconMask[128] =
@@ -143,7 +143,7 @@ void InitGL ()
     glGenTextures(TEX_COUNT, auTextures);
 
     // Use linear filtering if manually enabled, or we're in 5:4 mode
-    GLuint uFilter = (GetOption(filter) || GetOption(ratio5_4)) ? GL_LINEAR:GL_NEAREST;
+    GLuint uFilter = (GetOption(filter) || GetOption(ratio5_4)) ? GL_LINEAR : GL_NEAREST;
 
     glBindTexture(GL_TEXTURE_2D, auTextures[TEX_DISPLAY]);
 
@@ -221,79 +221,65 @@ bool Video::Init (bool fFirstInit_/*=false*/)
     {
         SDL_WM_SetIcon(pIcon = SDL_LoadBMP(OSD::GetFilePath("SimCoupe.bmp")), abIconMask);
 
-        DWORD dwWidth = Frame::GetWidth(), dwHeight = Frame::GetHeight();
+        int nWidth = Frame::GetWidth(), nHeight = Frame::GetHeight();
+
+        if (fFirstInit_)
+        {
+            const SDL_VideoInfo *pvi = SDL_GetVideoInfo();
+            nDesktopWidth = pvi->current_w;
+            nDesktopHeight = pvi->current_h;
+            TRACE("Desktop resolution: %dx%d\n", nDesktopWidth, nDesktopHeight);
+        }
 
 #ifdef USE_OPENGL
         // In 5:4 mode we'll stretch the viewing surfaces by 25%
         if (GetOption(ratio5_4))
-            dwWidth = (dwWidth * 5) >> 2;
+            nWidth = (nWidth * 5) >> 2;
 #endif
-        // Use 16-bit for fullscreen or the current desktop depth
+        // Use 16-bit for fullscreen or the current desktop depth for windowed
         int nDepth = GetOption(fullscreen) ? 16 : 0;
 
         // Use a hardware surface if possible, and a palette if we're running in 8-bit mode
-        DWORD dwOptions =  SDL_HWSURFACE | (nDepth == 8) ? SDL_HWPALETTE : 0;
+        DWORD dwOptions =  SDL_HWSURFACE | ((nDepth == 8) ? SDL_HWPALETTE : 0);
 
 #ifdef USE_OPENGL
-            SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-            if (GetOption(fullscreen))
-            {
-                dwOptions |= SDL_FULLSCREEN;
-                nDepth = 32;
-            }
+        if (GetOption(fullscreen))
+        {
+            dwOptions |= SDL_FULLSCREEN;
 
-            if (!(pFront = SDL_SetVideoMode(dwWidth, dwHeight, nDepth, (dwOptions | SDL_HWSURFACE | SDL_OPENGL))))
-            {
-                char sz[128];
-                sprintf(sz, "SDL_SetVideoMode() failed: %s", SDL_GetError());
-                UI::ShowMessage(msgFatal, sz);
-            }
+            // Use desktop resolution for fullscreen OpenGL
+            nWidth = nDesktopWidth;
+            nHeight = nDesktopHeight;
+        }
 
-            InitGL();
-            CreatePalettes();
-            fRet = UI::Init(fFirstInit_);
+        if (!(pFront = SDL_SetVideoMode(nWidth, nHeight, nDepth, (dwOptions | SDL_HWSURFACE | SDL_OPENGL))))
+        {
+            char sz[128];
+            sprintf(sz, "SDL_SetVideoMode() failed: %s", SDL_GetError());
+            UI::ShowMessage(msgFatal, sz);
+        }
+
+        InitGL();
+        CreatePalettes();
+        fRet = UI::Init(fFirstInit_);
 #else
         // Full screen mode requires a display mode change
         if (!GetOption(fullscreen))
-            pFront = SDL_SetVideoMode(dwWidth, dwHeight, nDepth, dwOptions);
+            pFront = SDL_SetVideoMode(nWidth, nHeight, nDepth, dwOptions);
         else
         {
-            int nWidth, nHeight;
-
             // Work out the best-fit mode for the visible frame area
-            if (dwWidth <= 640 && dwHeight <= 480)
+            if (nWidth <= 640 && nHeight <= 480)
                 nWidth = 640, nHeight = 480;
-            else if (dwWidth <= 800 && dwHeight <= 600)
+            else if (nWidth <= 800 && nHeight <= 600)
                 nWidth = 800, nHeight = 600;
             else
                 nWidth = 1024, nHeight = 768;
 
-            // Set the video mode, or keep reducing the requirements until we find one
-            while (!(pFront = SDL_SetVideoMode(nWidth, nHeight, nDepth, SDL_FULLSCREEN | dwOptions)))
-            {
-                TRACE("!!! Failed to set %dx%dx%d mode: %s\n", nWidth, nHeight, nDepth, SDL_GetError());
-
-                // If we're already on the lowest depth, try lower resolutions
-                if (nDepth == 8)
-                {
-                    if (nHeight == 768)
-                        nWidth = 800, nHeight = 600;
-                    else if (nHeight == 600)
-                        nWidth = 640, nHeight = 480;
-                    else if (nHeight == 480)
-                    {
-                        TRACE("SDL_SetVideoMode() failed with ALL modes!\n");
-                        return false;
-                    }
-                }
-
-                // Fall back to a lower depth
-                else if (nDepth == 24)
-                    nDepth = 16;
-                else
-                    nDepth >>= 1;
-            }
+            // Set the video mode
+            pFront = SDL_SetVideoMode(nWidth, nHeight, nDepth, SDL_FULLSCREEN | dwOptions);
         }
 
         // Did we fail to create the front buffer?
@@ -301,7 +287,7 @@ bool Video::Init (bool fFirstInit_/*=false*/)
             TRACE("Failed to create front buffer!\n");
 
         // Create a back buffer in the same format as the front
-        else if (!(pBack = SDL_CreateRGBSurface(dwOptions, dwWidth, dwHeight, pFront->format->BitsPerPixel,
+        else if (!(pBack = SDL_CreateRGBSurface(dwOptions, nWidth, nHeight, pFront->format->BitsPerPixel,
                 pFront->format->Rmask, pFront->format->Gmask, pFront->format->Bmask, pFront->format->Amask)))
             TRACE("Can't create back buffer: %s\n", SDL_GetError());
         else
