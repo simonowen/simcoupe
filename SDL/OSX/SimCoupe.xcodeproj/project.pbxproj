@@ -107,6 +107,7 @@
 		132CC59009B11512007955DE /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2F67ED704C74A3F00A80002 /* OpenGL.framework */; };
 		132CC59109B11512007955DE /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 13A0FFF4088EE31A00E5436C /* libz.dylib */; };
 		132CC59209B11512007955DE /* SDL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13E5AE69088FBB1F00EACEBE /* SDL.framework */; };
+		133C17DD14E9D59B001F12B2 /* reSID.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 133C17DC14E9D59B001F12B2 /* reSID.framework */; };
 		1358F5CA0A6C12AE00D20135 /* file_blank.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C30A6C12AE00D20135 /* file_blank.icns */; };
 		1358F5CB0A6C12AE00D20135 /* file_dsk.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C40A6C12AE00D20135 /* file_dsk.icns */; };
 		1358F5CC0A6C12AE00D20135 /* file_mgt.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C50A6C12AE00D20135 /* file_mgt.icns */; };
@@ -153,6 +154,7 @@
 		1314531C08A2C39F008C1AB7 /* ChangeLog.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = ChangeLog.txt; path = ../../ChangeLog.txt; sourceTree = "<group>"; };
 		132CC59809B11512007955DE /* Info-SimCoupe.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-SimCoupe.plist"; sourceTree = "<group>"; };
 		132CC59909B11512007955DE /* SimCoupe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SimCoupe.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		133C17DC14E9D59B001F12B2 /* reSID.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = reSID.framework; path = /Library/Frameworks/reSID.framework; sourceTree = "<absolute>"; };
 		13486F5C0891A08300DB38E0 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
 		1358F5C30A6C12AE00D20135 /* file_blank.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_blank.icns; sourceTree = "<group>"; };
 		1358F5C40A6C12AE00D20135 /* file_dsk.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_dsk.icns; sourceTree = "<group>"; };
@@ -274,8 +276,8 @@
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		B2F67ED704C74A3F00A80002 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = /System/Library/Frameworks/OpenGL.framework; sourceTree = "<absolute>"; };
-		F5A47A9D01A0482F01D3D55B /* SDLMain.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = SDLMain.h; sourceTree = SOURCE_ROOT; };
-		F5A47A9E01A0483001D3D55B /* SDLMain.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = SDLMain.m; sourceTree = SOURCE_ROOT; };
+		F5A47A9D01A0482F01D3D55B /* SDLMain.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = SDLMain.h; sourceTree = "<group>"; };
+		F5A47A9E01A0483001D3D55B /* SDLMain.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = SDLMain.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -283,10 +285,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				132CC58F09B11512007955DE /* Cocoa.framework in Frameworks */,
-				132CC59009B11512007955DE /* OpenGL.framework in Frameworks */,
-				132CC59109B11512007955DE /* libz.dylib in Frameworks */,
 				132CC59209B11512007955DE /* SDL.framework in Frameworks */,
+				132CC59009B11512007955DE /* OpenGL.framework in Frameworks */,
+				132CC58F09B11512007955DE /* Cocoa.framework in Frameworks */,
+				132CC59109B11512007955DE /* libz.dylib in Frameworks */,
+				133C17DD14E9D59B001F12B2 /* reSID.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -307,6 +310,7 @@
 		1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				133C17DC14E9D59B001F12B2 /* reSID.framework */,
 				13E5AE69088FBB1F00EACEBE /* SDL.framework */,
 				13A0FFF4088EE31A00E5436C /* libz.dylib */,
 				1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */,
@@ -754,25 +758,14 @@
 			};
 			name = Release;
 		};
-		1301D3CF096B058800027BFC /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
-				GCC_ENABLE_SSE3_EXTENSIONS = YES;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				MACOSX_DEPLOYMENT_TARGET = 10.4;
-				STRIP_INSTALLED_PRODUCT = NO;
-			};
-			name = Default;
-		};
-		131B716209C22C34000C5D11 /* Development */ = {
+		131B716209C22C34000C5D11 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					USE_OPENGL,
 					USE_ZLIB,
+					USE_RESID,
 					_DEBUG,
 				);
 				HEADER_SEARCH_PATHS = /Library/Frameworks/SDL.framework/Headers;
@@ -781,9 +774,9 @@
 				LIBRARY_SEARCH_PATHS = "";
 				PRODUCT_NAME = SimCoupe;
 			};
-			name = Development;
+			name = Debug;
 		};
-		131B716309C22C34000C5D11 /* Development */ = {
+		131B716309C22C34000C5D11 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
@@ -793,7 +786,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				STRIP_INSTALLED_PRODUCT = NO;
 			};
-			name = Development;
+			name = Debug;
 		};
 		132CC59609B11512007955DE /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -802,6 +795,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					USE_OPENGL,
 					USE_ZLIB,
+					USE_RESID,
 					NDEBUG,
 				);
 				HEADER_SEARCH_PATHS = /Library/Frameworks/SDL.framework/Headers;
@@ -812,22 +806,6 @@
 			};
 			name = Release;
 		};
-		132CC59709B11512007955DE /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					USE_OPENGL,
-					USE_ZLIB,
-				);
-				HEADER_SEARCH_PATHS = /Library/Frameworks/SDL.framework/Headers;
-				INFOPLIST_FILE = "Info-SimCoupe.plist";
-				INSTALL_PATH = "";
-				LIBRARY_SEARCH_PATHS = "";
-				PRODUCT_NAME = SimCoupe;
-			};
-			name = Default;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -835,8 +813,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1301D3CE096B058800027BFC /* Release */,
-				131B716309C22C34000C5D11 /* Development */,
-				1301D3CF096B058800027BFC /* Default */,
+				131B716309C22C34000C5D11 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -845,8 +822,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				132CC59609B11512007955DE /* Release */,
-				131B716209C22C34000C5D11 /* Development */,
-				132CC59709B11512007955DE /* Default */,
+				131B716209C22C34000C5D11 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
