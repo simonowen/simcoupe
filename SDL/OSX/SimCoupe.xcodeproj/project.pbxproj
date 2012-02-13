@@ -3,11 +3,10 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 42;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		132CC52209B11512007955DE /* SAASound.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 134923380890664C001D048F /* SAASound.framework */; };
 		132CC52309B11512007955DE /* SDL.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 13E5AE69088FBB1F00EACEBE /* SDL.framework */; };
 		132CC52509B11512007955DE /* SDLMain.h in Headers */ = {isa = PBXBuildFile; fileRef = F5A47A9D01A0482F01D3D55B /* SDLMain.h */; };
 		132CC52609B11512007955DE /* Display.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE79088EDF7B00E5436C /* Display.h */; };
@@ -16,7 +15,6 @@
 		132CC52909B11512007955DE /* Input.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE7F088EDF7B00E5436C /* Input.h */; };
 		132CC52A09B11512007955DE /* MIDI.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE82088EDF7B00E5436C /* MIDI.h */; };
 		132CC52B09B11512007955DE /* OSD.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE84088EDF7B00E5436C /* OSD.h */; };
-		132CC52C09B11512007955DE /* Sound.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FEFD088EDF7C00E5436C /* Sound.h */; };
 		132CC52D09B11512007955DE /* UI.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FEFF088EDF7C00E5436C /* UI.h */; };
 		132CC52E09B11512007955DE /* Video.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF01088EDF7C00E5436C /* Video.h */; };
 		132CC52F09B11512007955DE /* Action.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF22088EDFC000E5436C /* Action.h */; };
@@ -57,7 +55,6 @@
 		132CC55309B11512007955DE /* YATBus.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF67088EDFC100E5436C /* YATBus.h */; };
 		132CC55409B11512007955DE /* Z80ops.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF68088EDFC100E5436C /* Z80ops.h */; };
 		132CC55509B11512007955DE /* ioapi.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FFB3088EDFFF00E5436C /* ioapi.h */; };
-		132CC55609B11512007955DE /* SAASound.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FFB5088EDFFF00E5436C /* SAASound.h */; };
 		132CC55709B11512007955DE /* unzip.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FFB7088EDFFF00E5436C /* unzip.h */; };
 		132CC55809B11512007955DE /* Options.h in Headers */ = {isa = PBXBuildFile; fileRef = 1374D22C09747359001B908F /* Options.h */; };
 		132CC55A09B11512007955DE /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
@@ -73,7 +70,6 @@
 		132CC56709B11512007955DE /* Input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE7E088EDF7B00E5436C /* Input.cpp */; };
 		132CC56809B11512007955DE /* MIDI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE81088EDF7B00E5436C /* MIDI.cpp */; };
 		132CC56909B11512007955DE /* OSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE83088EDF7B00E5436C /* OSD.cpp */; };
-		132CC56A09B11512007955DE /* Sound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FEFC088EDF7C00E5436C /* Sound.cpp */; };
 		132CC56B09B11512007955DE /* UI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FEFE088EDF7C00E5436C /* UI.cpp */; };
 		132CC56C09B11512007955DE /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF00088EDF7C00E5436C /* Video.cpp */; };
 		132CC56D09B11512007955DE /* Action.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF21088EDFC000E5436C /* Action.cpp */; };
@@ -105,14 +101,12 @@
 		132CC58809B11512007955DE /* Util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF63088EDFC100E5436C /* Util.cpp */; };
 		132CC58909B11512007955DE /* YATBus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF66088EDFC100E5436C /* YATBus.cpp */; };
 		132CC58A09B11512007955DE /* ioapi.c in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FFB2088EDFFF00E5436C /* ioapi.c */; };
-		132CC58B09B11512007955DE /* SAASound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FFB4088EDFFF00E5436C /* SAASound.cpp */; };
 		132CC58C09B11512007955DE /* unzip.c in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FFB6088EDFFF00E5436C /* unzip.c */; };
 		132CC58D09B11512007955DE /* Options.m in Sources */ = {isa = PBXBuildFile; fileRef = 1374D22D09747359001B908F /* Options.m */; };
 		132CC58F09B11512007955DE /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
 		132CC59009B11512007955DE /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2F67ED704C74A3F00A80002 /* OpenGL.framework */; };
 		132CC59109B11512007955DE /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 13A0FFF4088EE31A00E5436C /* libz.dylib */; };
 		132CC59209B11512007955DE /* SDL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13E5AE69088FBB1F00EACEBE /* SDL.framework */; };
-		132CC59309B11512007955DE /* SAASound.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 134923380890664C001D048F /* SAASound.framework */; };
 		1358F5CA0A6C12AE00D20135 /* file_blank.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C30A6C12AE00D20135 /* file_blank.icns */; };
 		1358F5CB0A6C12AE00D20135 /* file_dsk.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C40A6C12AE00D20135 /* file_dsk.icns */; };
 		1358F5CC0A6C12AE00D20135 /* file_mgt.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C50A6C12AE00D20135 /* file_mgt.icns */; };
@@ -120,6 +114,22 @@
 		1358F5CE0A6C12AE00D20135 /* file_sbt.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C70A6C12AE00D20135 /* file_sbt.icns */; };
 		1358F5CF0A6C12AE00D20135 /* file_sdf.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C80A6C12AE00D20135 /* file_sdf.icns */; };
 		1358F5D00A6C12AE00D20135 /* file_td0.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C90A6C12AE00D20135 /* file_td0.icns */; };
+		13EC1B3014E95BD800FA9EDB /* Joystick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13EC1B2614E95BD800FA9EDB /* Joystick.cpp */; };
+		13EC1B3114E95BD800FA9EDB /* Joystick.h in Headers */ = {isa = PBXBuildFile; fileRef = 13EC1B2714E95BD800FA9EDB /* Joystick.h */; };
+		13EC1B3214E95BD800FA9EDB /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13EC1B2814E95BD800FA9EDB /* Keyboard.cpp */; };
+		13EC1B3314E95BD800FA9EDB /* Keyboard.h in Headers */ = {isa = PBXBuildFile; fileRef = 13EC1B2914E95BD800FA9EDB /* Keyboard.h */; };
+		13EC1B3414E95BD800FA9EDB /* SAA1099.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13EC1B2A14E95BD800FA9EDB /* SAA1099.cpp */; };
+		13EC1B3514E95BD800FA9EDB /* SAA1099.h in Headers */ = {isa = PBXBuildFile; fileRef = 13EC1B2B14E95BD800FA9EDB /* SAA1099.h */; };
+		13EC1B3614E95BD800FA9EDB /* SID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13EC1B2C14E95BD800FA9EDB /* SID.cpp */; };
+		13EC1B3714E95BD800FA9EDB /* SID.h in Headers */ = {isa = PBXBuildFile; fileRef = 13EC1B2D14E95BD800FA9EDB /* SID.h */; };
+		13EC1B3814E95BD800FA9EDB /* Sound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13EC1B2E14E95BD800FA9EDB /* Sound.cpp */; };
+		13EC1B3914E95BD800FA9EDB /* Sound.h in Headers */ = {isa = PBXBuildFile; fileRef = 13EC1B2F14E95BD800FA9EDB /* Sound.h */; };
+		13EC1B3C14E95BF600FA9EDB /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13EC1B3A14E95BF600FA9EDB /* Audio.cpp */; };
+		13EC1B3D14E95BF600FA9EDB /* Audio.h in Headers */ = {isa = PBXBuildFile; fileRef = 13EC1B3B14E95BF600FA9EDB /* Audio.h */; };
+		13EC1B4214E95C2400FA9EDB /* BlipBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13EC1B3E14E95C2400FA9EDB /* BlipBuffer.cpp */; };
+		13EC1B4314E95C2400FA9EDB /* BlipBuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = 13EC1B3F14E95C2400FA9EDB /* BlipBuffer.h */; };
+		13EC1B4414E95C2400FA9EDB /* BlueAlpha.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13EC1B4014E95C2400FA9EDB /* BlueAlpha.cpp */; };
+		13EC1B4514E95C2400FA9EDB /* BlueAlpha.h in Headers */ = {isa = PBXBuildFile; fileRef = 13EC1B4114E95C2400FA9EDB /* BlueAlpha.h */; };
 		13F693EE0A6D7FA000962105 /* Volume.icns in Resources */ = {isa = PBXBuildFile; fileRef = 13F693ED0A6D7FA000962105 /* Volume.icns */; };
 		13F694850A70303400962105 /* SimCoupe.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 13F694840A70303400962105 /* SimCoupe.rtf */; };
 /* End PBXBuildFile section */
@@ -131,7 +141,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				132CC52209B11512007955DE /* SAASound.framework in CopyFiles */,
 				132CC52309B11512007955DE /* SDL.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -142,10 +151,9 @@
 		089C165DFE840E0CC02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
 		1314531C08A2C39F008C1AB7 /* ChangeLog.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = ChangeLog.txt; path = ../../ChangeLog.txt; sourceTree = "<group>"; };
-		132CC59809B11512007955DE /* Info-SimCoupe.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Info-SimCoupe.plist"; sourceTree = "<group>"; };
+		132CC59809B11512007955DE /* Info-SimCoupe.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-SimCoupe.plist"; sourceTree = "<group>"; };
 		132CC59909B11512007955DE /* SimCoupe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SimCoupe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13486F5C0891A08300DB38E0 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
-		134923380890664C001D048F /* SAASound.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SAASound.framework; path = /Library/Frameworks/SAASound.framework; sourceTree = "<absolute>"; };
 		1358F5C30A6C12AE00D20135 /* file_blank.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_blank.icns; sourceTree = "<group>"; };
 		1358F5C40A6C12AE00D20135 /* file_dsk.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_dsk.icns; sourceTree = "<group>"; };
 		1358F5C50A6C12AE00D20135 /* file_mgt.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_mgt.icns; sourceTree = "<group>"; };
@@ -168,8 +176,6 @@
 		13A0FE82088EDF7B00E5436C /* MIDI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MIDI.h; path = ../MIDI.h; sourceTree = "<group>"; };
 		13A0FE83088EDF7B00E5436C /* OSD.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = OSD.cpp; path = ../OSD.cpp; sourceTree = "<group>"; };
 		13A0FE84088EDF7B00E5436C /* OSD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OSD.h; path = ../OSD.h; sourceTree = "<group>"; };
-		13A0FEFC088EDF7C00E5436C /* Sound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Sound.cpp; path = ../Sound.cpp; sourceTree = "<group>"; };
-		13A0FEFD088EDF7C00E5436C /* Sound.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Sound.h; path = ../Sound.h; sourceTree = "<group>"; };
 		13A0FEFE088EDF7C00E5436C /* UI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; name = UI.cpp; path = ../UI.cpp; sourceTree = "<group>"; tabWidth = 4; usesTabs = 0; };
 		13A0FEFF088EDF7C00E5436C /* UI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UI.h; path = ../UI.h; sourceTree = "<group>"; };
 		13A0FF00088EDF7C00E5436C /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Video.cpp; path = ../Video.cpp; sourceTree = "<group>"; };
@@ -241,14 +247,28 @@
 		13A0FF68088EDFC100E5436C /* Z80ops.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Z80ops.h; path = ../../Base/Z80ops.h; sourceTree = "<group>"; };
 		13A0FFB2088EDFFF00E5436C /* ioapi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ioapi.c; path = ../../Extern/ioapi.c; sourceTree = "<group>"; };
 		13A0FFB3088EDFFF00E5436C /* ioapi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ioapi.h; path = ../../Extern/ioapi.h; sourceTree = "<group>"; };
-		13A0FFB4088EDFFF00E5436C /* SAASound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SAASound.cpp; path = ../../Extern/SAASound.cpp; sourceTree = "<group>"; };
-		13A0FFB5088EDFFF00E5436C /* SAASound.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SAASound.h; path = ../../Extern/SAASound.h; sourceTree = "<group>"; };
 		13A0FFB6088EDFFF00E5436C /* unzip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = unzip.c; path = ../../Extern/unzip.c; sourceTree = "<group>"; };
 		13A0FFB7088EDFFF00E5436C /* unzip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = unzip.h; path = ../../Extern/unzip.h; sourceTree = "<group>"; };
 		13A0FFEA088EE18600E5436C /* SDLMain.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = SDLMain.nib; sourceTree = "<group>"; };
 		13A0FFEF088EE20300E5436C /* SimCoupe.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = SimCoupe.icns; sourceTree = "<group>"; };
 		13A0FFF4088EE31A00E5436C /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = /usr/lib/libz.dylib; sourceTree = "<absolute>"; };
 		13E5AE69088FBB1F00EACEBE /* SDL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL.framework; path = /Library/Frameworks/SDL.framework; sourceTree = "<absolute>"; };
+		13EC1B2614E95BD800FA9EDB /* Joystick.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Joystick.cpp; path = ../../Base/Joystick.cpp; sourceTree = "<group>"; };
+		13EC1B2714E95BD800FA9EDB /* Joystick.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Joystick.h; path = ../../Base/Joystick.h; sourceTree = "<group>"; };
+		13EC1B2814E95BD800FA9EDB /* Keyboard.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Keyboard.cpp; path = ../../Base/Keyboard.cpp; sourceTree = "<group>"; };
+		13EC1B2914E95BD800FA9EDB /* Keyboard.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Keyboard.h; path = ../../Base/Keyboard.h; sourceTree = "<group>"; };
+		13EC1B2A14E95BD800FA9EDB /* SAA1099.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SAA1099.cpp; path = ../../Base/SAA1099.cpp; sourceTree = "<group>"; };
+		13EC1B2B14E95BD800FA9EDB /* SAA1099.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SAA1099.h; path = ../../Base/SAA1099.h; sourceTree = "<group>"; };
+		13EC1B2C14E95BD800FA9EDB /* SID.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SID.cpp; path = ../../Base/SID.cpp; sourceTree = "<group>"; };
+		13EC1B2D14E95BD800FA9EDB /* SID.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SID.h; path = ../../Base/SID.h; sourceTree = "<group>"; };
+		13EC1B2E14E95BD800FA9EDB /* Sound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Sound.cpp; path = ../../Base/Sound.cpp; sourceTree = "<group>"; };
+		13EC1B2F14E95BD800FA9EDB /* Sound.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Sound.h; path = ../../Base/Sound.h; sourceTree = "<group>"; };
+		13EC1B3A14E95BF600FA9EDB /* Audio.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Audio.cpp; path = ../Audio.cpp; sourceTree = "<group>"; };
+		13EC1B3B14E95BF600FA9EDB /* Audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Audio.h; path = ../Audio.h; sourceTree = "<group>"; };
+		13EC1B3E14E95C2400FA9EDB /* BlipBuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BlipBuffer.cpp; path = ../../Base/BlipBuffer.cpp; sourceTree = "<group>"; };
+		13EC1B3F14E95C2400FA9EDB /* BlipBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BlipBuffer.h; path = ../../Base/BlipBuffer.h; sourceTree = "<group>"; };
+		13EC1B4014E95C2400FA9EDB /* BlueAlpha.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BlueAlpha.cpp; path = ../../Base/BlueAlpha.cpp; sourceTree = "<group>"; };
+		13EC1B4114E95C2400FA9EDB /* BlueAlpha.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BlueAlpha.h; path = ../../Base/BlueAlpha.h; sourceTree = "<group>"; };
 		13F693ED0A6D7FA000962105 /* Volume.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Volume.icns; sourceTree = "<group>"; };
 		13F694840A70303400962105 /* SimCoupe.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = SimCoupe.rtf; path = ../../SimCoupe.rtf; sourceTree = "<group>"; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
@@ -267,7 +287,6 @@
 				132CC59009B11512007955DE /* OpenGL.framework in Frameworks */,
 				132CC59109B11512007955DE /* libz.dylib in Frameworks */,
 				132CC59209B11512007955DE /* SDL.framework in Frameworks */,
-				132CC59309B11512007955DE /* SAASound.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -288,7 +307,6 @@
 		1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				134923380890664C001D048F /* SAASound.framework */,
 				13E5AE69088FBB1F00EACEBE /* SDL.framework */,
 				13A0FFF4088EE31A00E5436C /* libz.dylib */,
 				1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */,
@@ -318,24 +336,16 @@
 		13A0FE6F088EDF5700E5436C /* SDL */ = {
 			isa = PBXGroup;
 			children = (
+				13EC1B4B14E96F5D00FA9EDB /* Headers */,
+				13EC1B3A14E95BF600FA9EDB /* Audio.cpp */,
 				13A0FE78088EDF7B00E5436C /* Display.cpp */,
-				13A0FE79088EDF7B00E5436C /* Display.h */,
 				13A0FE7A088EDF7B00E5436C /* Floppy.cpp */,
-				13A0FE7B088EDF7B00E5436C /* Floppy.h */,
 				13A0FE7C088EDF7B00E5436C /* IDEDisk.cpp */,
-				13A0FE7D088EDF7B00E5436C /* IDEDisk.h */,
 				13A0FE7E088EDF7B00E5436C /* Input.cpp */,
-				13A0FE7F088EDF7B00E5436C /* Input.h */,
 				13A0FE81088EDF7B00E5436C /* MIDI.cpp */,
-				13A0FE82088EDF7B00E5436C /* MIDI.h */,
 				13A0FE83088EDF7B00E5436C /* OSD.cpp */,
-				13A0FE84088EDF7B00E5436C /* OSD.h */,
-				13A0FEFC088EDF7C00E5436C /* Sound.cpp */,
-				13A0FEFD088EDF7C00E5436C /* Sound.h */,
 				13A0FEFE088EDF7C00E5436C /* UI.cpp */,
-				13A0FEFF088EDF7C00E5436C /* UI.h */,
 				13A0FF00088EDF7C00E5436C /* Video.cpp */,
-				13A0FF01088EDF7C00E5436C /* Video.h */,
 			);
 			name = SDL;
 			sourceTree = "<group>";
@@ -343,71 +353,42 @@
 		13A0FF20088EDFA600E5436C /* Base */ = {
 			isa = PBXGroup;
 			children = (
+				13B8909614E9704B00164818 /* Headers */,
 				13A0FF21088EDFC000E5436C /* Action.cpp */,
-				13A0FF22088EDFC000E5436C /* Action.h */,
 				13A0FF23088EDFC000E5436C /* ATA.cpp */,
-				13A0FF24088EDFC000E5436C /* ATA.h */,
 				13A0FF25088EDFC000E5436C /* Atom.cpp */,
-				13A0FF26088EDFC000E5436C /* Atom.h */,
-				13A0FF27088EDFC000E5436C /* CBops.h */,
+				13EC1B3E14E95C2400FA9EDB /* BlipBuffer.cpp */,
+				13EC1B4014E95C2400FA9EDB /* BlueAlpha.cpp */,
 				13A0FF28088EDFC000E5436C /* CDisk.cpp */,
-				13A0FF29088EDFC000E5436C /* CDisk.h */,
 				13A0FF2A088EDFC000E5436C /* CDrive.cpp */,
-				13A0FF2B088EDFC000E5436C /* CDrive.h */,
 				13A0FF2C088EDFC100E5436C /* Clock.cpp */,
-				13A0FF2D088EDFC100E5436C /* Clock.h */,
 				13A0FF2E088EDFC100E5436C /* CPU.cpp */,
-				13A0FF2F088EDFC100E5436C /* CPU.h */,
 				13A0FF30088EDFC100E5436C /* CScreen.cpp */,
-				13A0FF31088EDFC100E5436C /* CScreen.h */,
 				13A0FF32088EDFC100E5436C /* CStream.cpp */,
-				13A0FF33088EDFC100E5436C /* CStream.h */,
 				13A0FF39088EDFC100E5436C /* Debug.cpp */,
-				13A0FF3A088EDFC100E5436C /* Debug.h */,
 				13A0FF3B088EDFC100E5436C /* Disassem.cpp */,
-				13A0FF3C088EDFC100E5436C /* Disassem.h */,
-				13A0FF3D088EDFC100E5436C /* EDops.h */,
 				13A0FF3E088EDFC100E5436C /* Expr.cpp */,
-				13A0FF3F088EDFC100E5436C /* Expr.h */,
 				13A0FF40088EDFC100E5436C /* Font.cpp */,
-				13A0FF41088EDFC100E5436C /* Font.h */,
 				13A0FF42088EDFC100E5436C /* Frame.cpp */,
-				13A0FF43088EDFC100E5436C /* Frame.h */,
 				13A0FF44088EDFC100E5436C /* GUI.cpp */,
-				13A0FF45088EDFC100E5436C /* GUI.h */,
 				13A0FF46088EDFC100E5436C /* GUIDlg.cpp */,
-				13A0FF47088EDFC100E5436C /* GUIDlg.h */,
 				13A0FF48088EDFC100E5436C /* GUIIcons.cpp */,
-				13A0FF49088EDFC100E5436C /* GUIIcons.h */,
 				13A0FF4A088EDFC100E5436C /* HardDisk.cpp */,
-				13A0FF4B088EDFC100E5436C /* HardDisk.h */,
-				13A0FF4C088EDFC100E5436C /* HDBOOT.h */,
 				13A0FF4D088EDFC100E5436C /* IO.cpp */,
-				13A0FF4E088EDFC100E5436C /* IO.h */,
+				13EC1B2614E95BD800FA9EDB /* Joystick.cpp */,
+				13EC1B2814E95BD800FA9EDB /* Keyboard.cpp */,
 				13A0FF4F088EDFC100E5436C /* Main.cpp */,
-				13A0FF50088EDFC100E5436C /* Main.h */,
 				13A0FF51088EDFC100E5436C /* Memory.cpp */,
-				13A0FF52088EDFC100E5436C /* Memory.h */,
 				13A0FF53088EDFC100E5436C /* Mouse.cpp */,
-				13A0FF54088EDFC100E5436C /* Mouse.h */,
 				13A0FF55088EDFC100E5436C /* Options.cpp */,
-				13A0FF56088EDFC100E5436C /* Options.h */,
 				13A0FF57088EDFC100E5436C /* Parallel.cpp */,
-				13A0FF58088EDFC100E5436C /* Parallel.h */,
 				13A0FF59088EDFC100E5436C /* PNG.cpp */,
-				13A0FF5A088EDFC100E5436C /* PNG.h */,
-				13A0FF5D088EDFC100E5436C /* SAM.h */,
-				13A0FF5E088EDFC100E5436C /* SAMDOS.h */,
-				13A0FF5F088EDFC100E5436C /* SAMROM.h */,
+				13EC1B2A14E95BD800FA9EDB /* SAA1099.cpp */,
 				13A0FF60088EDFC100E5436C /* SDIDE.cpp */,
-				13A0FF61088EDFC100E5436C /* SDIDE.h */,
-				13A0FF62088EDFC100E5436C /* SimCoupe.h */,
+				13EC1B2C14E95BD800FA9EDB /* SID.cpp */,
+				13EC1B2E14E95BD800FA9EDB /* Sound.cpp */,
 				13A0FF63088EDFC100E5436C /* Util.cpp */,
-				13A0FF64088EDFC100E5436C /* Util.h */,
-				13A0FF65088EDFC100E5436C /* VL1772.h */,
 				13A0FF66088EDFC100E5436C /* YATBus.cpp */,
-				13A0FF67088EDFC100E5436C /* YATBus.h */,
-				13A0FF68088EDFC100E5436C /* Z80ops.h */,
 			);
 			name = Base;
 			sourceTree = "<group>";
@@ -417,12 +398,77 @@
 			children = (
 				13A0FFB2088EDFFF00E5436C /* ioapi.c */,
 				13A0FFB3088EDFFF00E5436C /* ioapi.h */,
-				13A0FFB4088EDFFF00E5436C /* SAASound.cpp */,
-				13A0FFB5088EDFFF00E5436C /* SAASound.h */,
 				13A0FFB6088EDFFF00E5436C /* unzip.c */,
 				13A0FFB7088EDFFF00E5436C /* unzip.h */,
 			);
 			name = Extern;
+			sourceTree = "<group>";
+		};
+		13B8909614E9704B00164818 /* Headers */ = {
+			isa = PBXGroup;
+			children = (
+				13A0FF22088EDFC000E5436C /* Action.h */,
+				13A0FF24088EDFC000E5436C /* ATA.h */,
+				13A0FF26088EDFC000E5436C /* Atom.h */,
+				13EC1B3F14E95C2400FA9EDB /* BlipBuffer.h */,
+				13EC1B4114E95C2400FA9EDB /* BlueAlpha.h */,
+				13A0FF27088EDFC000E5436C /* CBops.h */,
+				13A0FF29088EDFC000E5436C /* CDisk.h */,
+				13A0FF2B088EDFC000E5436C /* CDrive.h */,
+				13A0FF2D088EDFC100E5436C /* Clock.h */,
+				13A0FF2F088EDFC100E5436C /* CPU.h */,
+				13A0FF31088EDFC100E5436C /* CScreen.h */,
+				13A0FF33088EDFC100E5436C /* CStream.h */,
+				13A0FF3A088EDFC100E5436C /* Debug.h */,
+				13A0FF3C088EDFC100E5436C /* Disassem.h */,
+				13A0FF3D088EDFC100E5436C /* EDops.h */,
+				13A0FF3F088EDFC100E5436C /* Expr.h */,
+				13A0FF41088EDFC100E5436C /* Font.h */,
+				13A0FF43088EDFC100E5436C /* Frame.h */,
+				13A0FF45088EDFC100E5436C /* GUI.h */,
+				13A0FF47088EDFC100E5436C /* GUIDlg.h */,
+				13A0FF49088EDFC100E5436C /* GUIIcons.h */,
+				13A0FF4B088EDFC100E5436C /* HardDisk.h */,
+				13A0FF4C088EDFC100E5436C /* HDBOOT.h */,
+				13A0FF4E088EDFC100E5436C /* IO.h */,
+				13EC1B2714E95BD800FA9EDB /* Joystick.h */,
+				13EC1B2914E95BD800FA9EDB /* Keyboard.h */,
+				13A0FF50088EDFC100E5436C /* Main.h */,
+				13A0FF52088EDFC100E5436C /* Memory.h */,
+				13A0FF54088EDFC100E5436C /* Mouse.h */,
+				13A0FF56088EDFC100E5436C /* Options.h */,
+				13A0FF58088EDFC100E5436C /* Parallel.h */,
+				13A0FF5A088EDFC100E5436C /* PNG.h */,
+				13EC1B2B14E95BD800FA9EDB /* SAA1099.h */,
+				13A0FF5D088EDFC100E5436C /* SAM.h */,
+				13A0FF5E088EDFC100E5436C /* SAMDOS.h */,
+				13A0FF5F088EDFC100E5436C /* SAMROM.h */,
+				13A0FF61088EDFC100E5436C /* SDIDE.h */,
+				13EC1B2D14E95BD800FA9EDB /* SID.h */,
+				13A0FF62088EDFC100E5436C /* SimCoupe.h */,
+				13EC1B2F14E95BD800FA9EDB /* Sound.h */,
+				13A0FF64088EDFC100E5436C /* Util.h */,
+				13A0FF65088EDFC100E5436C /* VL1772.h */,
+				13A0FF67088EDFC100E5436C /* YATBus.h */,
+				13A0FF68088EDFC100E5436C /* Z80ops.h */,
+			);
+			name = Headers;
+			sourceTree = "<group>";
+		};
+		13EC1B4B14E96F5D00FA9EDB /* Headers */ = {
+			isa = PBXGroup;
+			children = (
+				13EC1B3B14E95BF600FA9EDB /* Audio.h */,
+				13A0FE79088EDF7B00E5436C /* Display.h */,
+				13A0FE7B088EDF7B00E5436C /* Floppy.h */,
+				13A0FE7D088EDF7B00E5436C /* IDEDisk.h */,
+				13A0FE7F088EDF7B00E5436C /* Input.h */,
+				13A0FE82088EDF7B00E5436C /* MIDI.h */,
+				13A0FE84088EDF7B00E5436C /* OSD.h */,
+				13A0FEFF088EDF7C00E5436C /* UI.h */,
+				13A0FF01088EDF7C00E5436C /* Video.h */,
+			);
+			name = Headers;
 			sourceTree = "<group>";
 		};
 		13F693EF0A6D7FAD00962105 /* Icons */ = {
@@ -500,7 +546,6 @@
 				132CC52909B11512007955DE /* Input.h in Headers */,
 				132CC52A09B11512007955DE /* MIDI.h in Headers */,
 				132CC52B09B11512007955DE /* OSD.h in Headers */,
-				132CC52C09B11512007955DE /* Sound.h in Headers */,
 				132CC52D09B11512007955DE /* UI.h in Headers */,
 				132CC52E09B11512007955DE /* Video.h in Headers */,
 				132CC52F09B11512007955DE /* Action.h in Headers */,
@@ -541,9 +586,16 @@
 				132CC55309B11512007955DE /* YATBus.h in Headers */,
 				132CC55409B11512007955DE /* Z80ops.h in Headers */,
 				132CC55509B11512007955DE /* ioapi.h in Headers */,
-				132CC55609B11512007955DE /* SAASound.h in Headers */,
 				132CC55709B11512007955DE /* unzip.h in Headers */,
 				132CC55809B11512007955DE /* Options.h in Headers */,
+				13EC1B3114E95BD800FA9EDB /* Joystick.h in Headers */,
+				13EC1B3314E95BD800FA9EDB /* Keyboard.h in Headers */,
+				13EC1B3514E95BD800FA9EDB /* SAA1099.h in Headers */,
+				13EC1B3714E95BD800FA9EDB /* SID.h in Headers */,
+				13EC1B3914E95BD800FA9EDB /* Sound.h in Headers */,
+				13EC1B3D14E95BF600FA9EDB /* Audio.h in Headers */,
+				13EC1B4314E95C2400FA9EDB /* BlipBuffer.h in Headers */,
+				13EC1B4514E95C2400FA9EDB /* BlueAlpha.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -576,10 +628,19 @@
 /* Begin PBXProject section */
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0420;
+			};
 			buildConfigurationList = 1301D3CC096B058800027BFC /* Build configuration list for PBXProject "SimCoupe" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
 			hasScannedForEncodings = 1;
+			knownRegions = (
+				en,
+			);
 			mainGroup = 29B97314FDCFA39411CA2CEA /* SimCoupe */;
 			projectDirPath = "";
+			projectRoot = "";
 			targets = (
 				132CC52009B11512007955DE /* SimCoupe */,
 			);
@@ -623,7 +684,6 @@
 				132CC56709B11512007955DE /* Input.cpp in Sources */,
 				132CC56809B11512007955DE /* MIDI.cpp in Sources */,
 				132CC56909B11512007955DE /* OSD.cpp in Sources */,
-				132CC56A09B11512007955DE /* Sound.cpp in Sources */,
 				132CC56B09B11512007955DE /* UI.cpp in Sources */,
 				132CC56C09B11512007955DE /* Video.cpp in Sources */,
 				132CC56D09B11512007955DE /* Action.cpp in Sources */,
@@ -655,9 +715,16 @@
 				132CC58809B11512007955DE /* Util.cpp in Sources */,
 				132CC58909B11512007955DE /* YATBus.cpp in Sources */,
 				132CC58A09B11512007955DE /* ioapi.c in Sources */,
-				132CC58B09B11512007955DE /* SAASound.cpp in Sources */,
 				132CC58C09B11512007955DE /* unzip.c in Sources */,
 				132CC58D09B11512007955DE /* Options.m in Sources */,
+				13EC1B3014E95BD800FA9EDB /* Joystick.cpp in Sources */,
+				13EC1B3214E95BD800FA9EDB /* Keyboard.cpp in Sources */,
+				13EC1B3414E95BD800FA9EDB /* SAA1099.cpp in Sources */,
+				13EC1B3614E95BD800FA9EDB /* SID.cpp in Sources */,
+				13EC1B3814E95BD800FA9EDB /* Sound.cpp in Sources */,
+				13EC1B3C14E95BF600FA9EDB /* Audio.cpp in Sources */,
+				13EC1B4214E95C2400FA9EDB /* BlipBuffer.cpp in Sources */,
+				13EC1B4414E95C2400FA9EDB /* BlueAlpha.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -678,43 +745,24 @@
 		1301D3CE096B058800027BFC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					i386,
-					ppc,
-				);
-				GCC_ALTIVEC_EXTENSIONS = YES;
-				GCC_ENABLE_CPP_EXCEPTIONS = NO;
-				GCC_ENABLE_CPP_RTTI = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_ENABLE_SSE3_EXTENSIONS = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_VERSION_i386 = 4.0;
-				GCC_VERSION_ppc = 3.3;
-				MACOSX_DEPLOYMENT_TARGET = 10.2;
-				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
-				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
-				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
-				SDKROOT_ppc = /Developer/SDKs/MacOSX10.3.9.sdk;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
+				STRIP_INSTALLED_PRODUCT = NO;
 			};
 			name = Release;
 		};
 		1301D3CF096B058800027BFC /* Default */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					i386,
-					ppc,
-				);
-				GCC_ALTIVEC_EXTENSIONS = YES;
-				GCC_ENABLE_CPP_EXCEPTIONS = NO;
-				GCC_ENABLE_CPP_RTTI = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_ENABLE_SSE3_EXTENSIONS = YES;
-				GCC_VERSION_i386 = 4.0;
-				GCC_VERSION_ppc = 3.3;
-				MACOSX_DEPLOYMENT_TARGET = 10.2;
-				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
-				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
-				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
-				SDKROOT_ppc = /Developer/SDKs/MacOSX10.3.9.sdk;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
+				STRIP_INSTALLED_PRODUCT = NO;
 			};
 			name = Default;
 		};
@@ -722,85 +770,45 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
-				GCC_ENABLE_CPP_EXCEPTIONS = NO;
-				GCC_ENABLE_CPP_RTTI = NO;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					USE_OPENGL,
 					USE_ZLIB,
-					USE_SAASOUND,
 					_DEBUG,
 				);
-				HEADER_SEARCH_PATHS = "\"/Library/Frameworks/SDL.framework/Headers\"";
+				HEADER_SEARCH_PATHS = /Library/Frameworks/SDL.framework/Headers;
 				INFOPLIST_FILE = "Info-SimCoupe.plist";
-				INSTALL_PATH = "$(HOME)/Applications";
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = "";
-				OTHER_CFLAGS = "";
-				PREBINDING = NO;
 				PRODUCT_NAME = SimCoupe;
-				SECTORDER_FLAGS = "";
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-				);
-				WRAPPER_EXTENSION = app;
-				ZERO_LINK = YES;
 			};
 			name = Development;
 		};
 		131B716309C22C34000C5D11 /* Development */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					i386,
-					ppc,
-				);
-				GCC_DEBUGGING_SYMBOLS = default;
-				GCC_ENABLE_CPP_EXCEPTIONS = NO;
-				GCC_ENABLE_CPP_RTTI = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_VERSION_i386 = 4.0;
-				GCC_VERSION_ppc = 3.3;
-				MACOSX_DEPLOYMENT_TARGET = 10.2;
-				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
-				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
-				PREBINDING = NO;
-				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
-				SDKROOT_ppc = /Developer/SDKs/MacOSX10.3.9.sdk;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
+				ONLY_ACTIVE_ARCH = YES;
+				STRIP_INSTALLED_PRODUCT = NO;
 			};
 			name = Development;
 		};
 		132CC59609B11512007955DE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUILD_VARIANTS = normal;
-				COPY_PHASE_STRIP = YES;
 				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
-				GCC_ENABLE_CPP_EXCEPTIONS = NO;
-				GCC_ENABLE_CPP_RTTI = NO;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					USE_OPENGL,
 					USE_ZLIB,
-					USE_SAASOUND,
 					NDEBUG,
 				);
-				HEADER_SEARCH_PATHS = "\"/Library/Frameworks/SDL.framework/Headers\"";
+				HEADER_SEARCH_PATHS = /Library/Frameworks/SDL.framework/Headers;
 				INFOPLIST_FILE = "Info-SimCoupe.plist";
-				INSTALL_PATH = "$(HOME)/Applications";
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = "";
-				OTHER_CFLAGS = "";
-				PREBINDING = NO;
 				PRODUCT_NAME = SimCoupe;
-				SECTORDER_FLAGS = "";
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-				);
-				WRAPPER_EXTENSION = app;
-				ZERO_LINK = NO;
 			};
 			name = Release;
 		};
@@ -808,26 +816,15 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
-				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					USE_OPENGL,
 					USE_ZLIB,
-					USE_SAASOUND,
 				);
-				HEADER_SEARCH_PATHS = "\"/Library/Frameworks/SDL.framework/Headers\"";
+				HEADER_SEARCH_PATHS = /Library/Frameworks/SDL.framework/Headers;
 				INFOPLIST_FILE = "Info-SimCoupe.plist";
-				INSTALL_PATH = "$(HOME)/Applications";
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = "";
-				OTHER_CFLAGS = "";
-				PREBINDING = NO;
 				PRODUCT_NAME = SimCoupe;
-				SECTORDER_FLAGS = "";
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-				);
-				WRAPPER_EXTENSION = app;
 			};
 			name = Default;
 		};

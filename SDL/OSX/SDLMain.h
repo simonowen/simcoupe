@@ -5,19 +5,15 @@
     Feel free to customize this file to suit your needs
 */
 
+#ifndef _SDLMain_h_
+#define _SDLMain_h_
+
 #import <Cocoa/Cocoa.h>
 #import "Options.h"
 
 @interface SDLMain : NSObject
-{
-	NSString * currentFile;
-	Options * options;
-}
-
-@property(nonatomic, copy) NSString * currentFile;
 
 - (IBAction)appPreferences:(id)sender;
-- (IBAction)fileOpen:(id)sender;
 - (IBAction)fileImportData:(id)sender;
 - (IBAction)fileExportData:(id)sender;
 - (IBAction)viewFullscreen:(id)sender;
@@ -36,3 +32,5 @@
 - (void)openResourceFile:( NSString *) fileName;
 
 @end
+
+#endif /* _SDLMain_h_ */
