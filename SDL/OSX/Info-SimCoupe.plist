@@ -111,6 +111,8 @@
 	<string>1.0</string>
 	<key>CFBundleSignature</key>
 	<string>SIMC</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.games</string>
 	<key>NSMainNibFile</key>
 	<string>SDLMain.nib</string>
 	<key>NSPrincipalClass</key>
