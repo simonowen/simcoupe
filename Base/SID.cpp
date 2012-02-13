@@ -25,7 +25,9 @@
 
 
 CSID::CSID ()
+#ifdef USE_RESID
 	: m_hReSID(NULL)
+#endif
 {
 #ifdef USE_RESID
 	if (CheckLibFunction(resid, RESID_create))
