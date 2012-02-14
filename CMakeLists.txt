@@ -10,6 +10,13 @@ set(USE_OPENGL NO)
 
 include_directories(Base/ SDL/ Extern/)
 
+# Recommend native Win32/Mac building as they're not well supported yet
+if (APPLE)
+  message(WARNING "Please consider using Xcode for Mac OS X builds")
+elseif (WIN32)
+  message(WARNING "Please consider using Visual Studio for Windows builds")
+endif ()
+
 file(GLOB BASE_SRC Base/*.cpp)
 file(GLOB SDL_SRC SDL/*.cpp)
 file(GLOB EXTERN_SRC Extern/*.cpp Extern/*.c)
