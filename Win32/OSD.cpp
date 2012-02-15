@@ -56,6 +56,10 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
 
     if (fFirstInit_)
     {
+#ifdef _DEBUG
+        _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
         g_hinstDDraw  = LoadLibrary("DDRAW.DLL");
         g_hinstDInput = LoadLibrary("DINPUT.DLL");
         g_hinstDSound = LoadLibrary("DSOUND.DLL");
