@@ -110,8 +110,7 @@ void InitGL ()
     }
 
     // Set up a pixel units to avoid messing about when calculating positioning
-    // Hack: offset down by 1 pixel to stop the GUI half bleeding into the bottom line of the emulation view!
-    glViewport(rTarget.x, rTarget.y-1, rTarget.w, rTarget.h);
+    glViewport(rTarget.x, rTarget.y, rTarget.w, rTarget.h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(0,nWidth,0,nHeight,-1,1);
