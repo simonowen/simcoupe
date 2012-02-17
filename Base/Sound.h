@@ -84,13 +84,15 @@ class CDAC : public CSoundDevice
 
         void OutputLeft (BYTE bVal_);
         void OutputRight (BYTE bVal_);
+        void OutputLeft2 (BYTE bVal_);
+        void OutputRight2 (BYTE bVal_);
         void Output (BYTE bVal_);
 
         int GetSamplesSoFar ();
 
     protected:
         Blip_Buffer buf_left, buf_right;
-        Blip_Synth<blip_med_quality,256> synth_left, synth_right;
+        Blip_Synth<blip_med_quality,256> synth_left, synth_right, synth_left2, synth_right2;
 };
 
 // Spectrum-style BEEPer

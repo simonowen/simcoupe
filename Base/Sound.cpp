@@ -123,9 +123,14 @@ CDAC::CDAC ()
     buf_right.set_sample_rate(SAMPLE_FREQ);
 
     synth_left.output(&buf_left);
+    synth_left2.output(&buf_left);
     synth_right.output(&buf_right);
+    synth_right2.output(&buf_right);
+
     synth_left.volume(1.0);
+    synth_left2.volume(1.0);
     synth_right.volume(1.0);
+    synth_right2.volume(1.0);
 }
 
 void CDAC::FrameEnd ()
@@ -145,9 +150,19 @@ void CDAC::OutputLeft (BYTE bVal_)
     synth_left.update(g_dwCycleCounter, (bVal_ - 0x80));
 }
 
+void CDAC::OutputLeft2 (BYTE bVal_)
+{
+    synth_left2.update(g_dwCycleCounter, (bVal_ - 0x80));
+}
+
 void CDAC::OutputRight (BYTE bVal_)
 {
     synth_right.update(g_dwCycleCounter, (bVal_ - 0x80));
+}
+
+void CDAC::OutputRight2 (BYTE bVal_)
+{
+    synth_right2.update(g_dwCycleCounter, (bVal_ - 0x80));
 }
 
 void CDAC::Output (BYTE bVal_)
