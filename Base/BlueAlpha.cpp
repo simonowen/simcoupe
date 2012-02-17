@@ -57,8 +57,6 @@ void CBlueAlphaDevice::Reset ()
     m_bPortB   = 0xff;  // no active features
     m_bPortC   = 0x00;  // no clock
     m_bControl = 0x18;  // control (initialised to BlueAlpha signature?)
-
-    pDAC->Output(0x80);
 }
 
 bool CBlueAlphaDevice::Clock ()

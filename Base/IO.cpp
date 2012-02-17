@@ -40,6 +40,7 @@
 #include "Options.h"
 #include "Parallel.h"
 #include "SAMDOS.h"
+#include "SAMVox.h"
 #include "SDIDE.h"
 #include "SID.h"
 #include "Sound.h"
@@ -54,6 +55,7 @@ CIoDevice *pSambus, *pDallas;
 CIoDevice *pMidi;
 CIoDevice *pBeeper;
 CBlueAlphaDevice *pBlueAlpha;
+CSAMVoxDevice *pSAMVox;
 CDAC *pDAC;
 CSAA *pSAA;
 CSID *pSID;
@@ -116,6 +118,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         pSID = new CSID;
         pBeeper = new CBeeperDevice;
         pBlueAlpha = new CBlueAlphaDevice;
+        pSAMVox = new CSAMVoxDevice;
 
         // Initialise all the devices
         fRet &= (InitDrives() && InitParallel() && InitSerial() && InitClocks() &&
@@ -129,6 +132,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         AddCpuEvent(evtAsicStartup, g_dwCycleCounter + ASIC_STARTUP_DELAY);
     }
 
+    pDAC->Reset();
     pBlueAlpha->Reset();
 
     // Initialise the drives back to a consistent state
@@ -150,6 +154,7 @@ void IO::Exit (bool fReInit_/*=false*/)
         InitMidi(false, false);
         InitHDD(false, false);
 
+        delete pSAMVox, pSAMVox = NULL;
         delete pBlueAlpha, pBlueAlpha = NULL;
         delete pBeeper, pBeeper = NULL;
         delete pSAA, pSAA = NULL;
@@ -454,7 +459,7 @@ void IO::OutClut (WORD wPort_, BYTE bVal_)
 
 BYTE IO::In (WORD wPort_)
 {
-    BYTE bPortLow = (wPortRead = wPort_) & 0xff;
+    BYTE bPortLow = (wPortRead = wPort_) & 0xff, bPortHigh = (wPort_ >> 8);
 
     // The ASIC doesn't respond to I/O immediately after power-on
     if (bPortLow >= BASE_ASIC_PORT && fASICStartup)
@@ -468,9 +473,9 @@ BYTE IO::In (WORD wPort_)
         // keyboard 1 / mouse
         case KEYBOARD_PORT:
         {
-            int highbyte = wPort_ >> 8, res = 0x1f;
+            BYTE res = 0x1f;
 
-            if (highbyte == 0xff)
+            if (bPortHigh == 0xff)
             {
                 res = keyports[8] & 0x1f;
 
@@ -479,14 +484,14 @@ BYTE IO::In (WORD wPort_)
             }
             else
             {
-                if (!(highbyte & 0x80)) res &= keyports[7] & 0x1f;
-                if (!(highbyte & 0x40)) res &= keyports[6] & 0x1f;
-                if (!(highbyte & 0x20)) res &= keyports[5] & 0x1f;
-                if (!(highbyte & 0x10)) res &= keyports[4] & 0x1f;
-                if (!(highbyte & 0x08)) res &= keyports[3] & 0x1f;
-                if (!(highbyte & 0x04)) res &= keyports[2] & 0x1f;
-                if (!(highbyte & 0x02)) res &= keyports[1] & 0x1f;
-                if (!(highbyte & 0x01)) res &= keyports[0] & 0x1f;
+                if (!(bPortHigh & 0x80)) res &= keyports[7] & 0x1f;
+                if (!(bPortHigh & 0x40)) res &= keyports[6] & 0x1f;
+                if (!(bPortHigh & 0x20)) res &= keyports[5] & 0x1f;
+                if (!(bPortHigh & 0x10)) res &= keyports[4] & 0x1f;
+                if (!(bPortHigh & 0x08)) res &= keyports[3] & 0x1f;
+                if (!(bPortHigh & 0x04)) res &= keyports[2] & 0x1f;
+                if (!(bPortHigh & 0x02)) res &= keyports[1] & 0x1f;
+                if (!(bPortHigh & 0x01)) res &= keyports[0] & 0x1f;
             }
 
             return (keyboard & 0xe0) | res;
@@ -495,16 +500,16 @@ BYTE IO::In (WORD wPort_)
         // keyboard 2
         case STATUS_PORT:
         {
-            int highbyte = wPort_ >> 8, res = 0xe0;
+            BYTE res = 0xe0;
 
-            if (!(highbyte & 0x80)) res &= keyports[7] & 0xe0;
-            if (!(highbyte & 0x40)) res &= keyports[6] & 0xe0;
-            if (!(highbyte & 0x20)) res &= keyports[5] & 0xe0;
-            if (!(highbyte & 0x10)) res &= keyports[4] & 0xe0;
-            if (!(highbyte & 0x08)) res &= keyports[3] & 0xe0;
-            if (!(highbyte & 0x04)) res &= keyports[2] & 0xe0;
-            if (!(highbyte & 0x02)) res &= keyports[1] & 0xe0;
-            if (!(highbyte & 0x01)) res &= keyports[0] & 0xe0;
+            if (!(bPortHigh & 0x80)) res &= keyports[7] & 0xe0;
+            if (!(bPortHigh & 0x40)) res &= keyports[6] & 0xe0;
+            if (!(bPortHigh & 0x20)) res &= keyports[5] & 0xe0;
+            if (!(bPortHigh & 0x10)) res &= keyports[4] & 0xe0;
+            if (!(bPortHigh & 0x08)) res &= keyports[3] & 0xe0;
+            if (!(bPortHigh & 0x04)) res &= keyports[2] & 0xe0;
+            if (!(bPortHigh & 0x02)) res &= keyports[1] & 0xe0;
+            if (!(bPortHigh & 0x01)) res &= keyports[0] & 0xe0;
 
             return (res & 0xe0) | (status_reg & 0x1f);
         }
@@ -573,21 +578,6 @@ BYTE IO::In (WORD wPort_)
         case MIDI_PORT:
             return pMidi->In(wPort_);
 
-        // Blue Alpha Sampler
-        case BLUE_ALPHA_PORT:
-        {
-            int highbyte = wPort_ >> 8;
-
-            if ((highbyte & 0xfc) == 0x7c)
-                return pBlueAlpha->In(highbyte & 0x03);
-/*
-            else if (highbyte == 0xff)
-                return BlueAlphaVoiceBox::In(0);
-*/
-
-            break;
-        }
-
         // S D Software IDE interface
         case SDIDE_REG:
         case SDIDE_DATA:
@@ -622,6 +612,21 @@ BYTE IO::In (WORD wPort_)
             // YAMOD.ATBUS hard disk interface
             else if ((bPortLow & YATBUS_MASK) == YATBUS_BASE)
                 return pYATBus->In(wPort_);
+
+            // Blue Alpha and SAMVox ports overlap!
+            else if ((bPortLow & 0xfc) == 0x7c)
+            {
+                // Blue Alpha Sampler?
+                if (GetOption(bluealpha) && bPortLow == BLUE_ALPHA_PORT)
+                {
+                    if ((bPortHigh & 0xfc) == 0x7c)
+                        return pBlueAlpha->In(bPortHigh & 0x03);
+/*
+                    else if (highbyte == 0xff)
+                        return BlueAlphaVoiceBox::In(0);
+*/
+                }
+            }
 #ifdef _DEBUG
             // Only unsupported hardware should reach here
             else
@@ -646,7 +651,7 @@ BYTE IO::In (WORD wPort_)
 // The actual port input and output routines
 void IO::Out (WORD wPort_, BYTE bVal_)
 {
-    BYTE bPortLow = (wPortWrite = wPort_) & 0xff;
+    BYTE bPortLow = (wPortWrite = wPort_) & 0xff, bPortHigh = (wPort_ >> 8);
 
     // The ASIC doesn't respond to I/O immediately after power-on
     if (bPortLow >= BASE_ASIC_PORT && fASICStartup)
@@ -764,7 +769,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             break;
 
         case CLUT_BASE_PORT:
-            OutClut(wPort_ >> 8, bVal_);
+            OutClut(bPortHigh, bVal_);
             break;
 
         // External memory
@@ -846,20 +851,6 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             break;
         }
 
-        // Blue Alpha Sampler
-        case BLUE_ALPHA_PORT:
-        {
-            int highbyte = wPort_ >> 8;
-
-            if ((highbyte & 0xfc) == 0x7c)
-                pBlueAlpha->Out(highbyte & 0x03, bVal_);
-/*
-            else if (highbyte == 0xff)
-                BlueAlphaVoiceBox::Out(0, bVal_);
-*/
-        }
-        break;
-
         // S D Software IDE interface
         case SDIDE_REG:
         case SDIDE_DATA:
@@ -896,6 +887,25 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             // YAMOD.ATBUS hard disk interface
             else if ((bPortLow & YATBUS_MASK) == YATBUS_BASE)
                 pYATBus->Out(wPort_, bVal_);
+
+            // Blue Alpha and SAMVox ports overlap!
+            else if ((bPortLow & 0xfc) == 0x7c)
+            {
+                // SAMVox has priority, if enabled
+                if (GetOption(samvox))
+                    pSAMVox->Out(wPort_, bVal_);
+
+                // Blue Alpha only uses a single port
+                if (GetOption(bluealpha) && bPortLow == BLUE_ALPHA_PORT)
+                {
+                    if ((bPortHigh & 0xfc) == 0x7c)
+                        pBlueAlpha->Out(bPortHigh & 0x03, bVal_);
+/*
+                    else if (bPortHigh == 0xff)
+                        BlueAlphaVoiceBox::Out(0, bVal_);
+*/
+                }
+            }
 
 #ifdef _DEBUG
             // Only unsupported hardware should reach here

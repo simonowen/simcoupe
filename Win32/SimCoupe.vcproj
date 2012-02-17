@@ -277,7 +277,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="@if exist \Utils\ReplaceVistaIcon.exe \Utils\ReplaceVistaIcon.exe &quot;$(TargetPath)&quot; &quot;$(SolutionDir)\Icons\main-vista.ico&quot; 1&#x0D;&#x0A;@if exist \Utils\upx.exe \Utils\upx.exe -9 --compress-icons=0 &quot;$(TargetPath)&quot;&#x0D;&#x0A;@if exist &quot;$(ProjectDir)\Build&quot; copy &quot;$(TargetPath)&quot; &quot;$(ProjectDir)\Build\&quot;&#x0D;&#x0A;"
+				CommandLine="@if exist \Utils\upx.exe \Utils\upx.exe -9 --compress-icons=0 &quot;$(TargetPath)&quot;&#x0D;&#x0A;@if exist &quot;$(ProjectDir)\Build&quot; copy &quot;$(TargetPath)&quot; &quot;$(ProjectDir)\Build\&quot;&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -575,6 +575,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\SAA1099.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\SAMVox.cpp"
 				>
 			</File>
 			<File
@@ -990,6 +994,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\SAMROM.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\SAMVox.h"
 				>
 			</File>
 			<File

@@ -804,6 +804,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\Base\SAMVox.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\Base\SDIDE.cpp"
 				>
 				<FileConfiguration
@@ -1027,6 +1031,10 @@
 			</File>
 			<File
 				RelativePath="..\..\Base\SAMROM.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\Base\SAMVox.h"
 				>
 			</File>
 			<File

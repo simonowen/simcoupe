@@ -79,6 +79,8 @@ class CDAC : public CSoundDevice
         CDAC ();
 
     public:
+        void Reset ();
+
         void Update (bool fFrameEnd_);
         void FrameEnd ();
 
@@ -87,6 +89,7 @@ class CDAC : public CSoundDevice
         void OutputLeft2 (BYTE bVal_);
         void OutputRight2 (BYTE bVal_);
         void Output (BYTE bVal_);
+        void Output2 (BYTE bVal_);
 
         int GetSamplesSoFar ();
 

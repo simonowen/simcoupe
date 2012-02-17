@@ -139,8 +139,10 @@ OPTION aOptions[] =
     OPT_F("DallasClock",  dallasclock,    false),     // DALLAS clock not present
 
     OPT_F("Sound",        sound,          true),      // Sound enabled
-    OPT_N("SamplerFreq",  samplerfreq,    18000),     // Blue Alpha Sampler clock frequency (default=18KHz)
     OPT_N("Latency",      latency,        5),         // Sound latency of five frames
+    OPT_F("BlueAlpha",    bluealpha,      true),      // Blue Alpha Sampler present    
+    OPT_N("SamplerFreq",  samplerfreq,    18000),     // Blue Alpha clock frequency (default=18KHz)
+    OPT_F("SAMVox",       samvox,         false),     // SAMVox not present (conflicts with Blue Alpha port)
 
     OPT_N("DriveLights",  drivelights,    1),         // Show drive activity lights
     OPT_F("Profile",      profile,        true),      // Show only emulation speed and framerate

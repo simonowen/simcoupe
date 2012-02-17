@@ -131,6 +131,14 @@ CDAC::CDAC ()
     synth_left2.volume(1.0);
     synth_right.volume(1.0);
     synth_right2.volume(1.0);
+    
+    Reset();
+}
+
+void CDAC::Reset ()
+{
+    Output(0x80);
+    Output2(0x80);
 }
 
 void CDAC::FrameEnd ()
@@ -169,6 +177,12 @@ void CDAC::Output (BYTE bVal_)
 {
     synth_left.update(g_dwCycleCounter, (bVal_ - 0x80));
     synth_right.update(g_dwCycleCounter, (bVal_ - 0x80));
+}
+
+void CDAC::Output2 (BYTE bVal_)
+{
+    synth_left2.update(g_dwCycleCounter, (bVal_ - 0x80));
+    synth_right2.update(g_dwCycleCounter, (bVal_ - 0x80));
 }
 
 int CDAC::GetSamplesSoFar ()
