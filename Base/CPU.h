@@ -54,6 +54,10 @@ extern bool g_fReset, g_fBreak, g_fPaused, g_fTurbo;
 extern int g_nFastBooting;
 extern BYTE *pbMemRead1, *pbMemRead2, *pbMemWrite1, *pbMemWrite2;
 
+#ifdef _DEBUG
+extern bool g_fDebug;
+#endif
+
 const BYTE OP_NOP   = 0x00;     // Z80 opcode for NOP
 const BYTE OP_DJNZ  = 0x10;     // Z80 opcode for DJNZ
 const BYTE OP_JR    = 0x18;     // Z80 opcode for JR

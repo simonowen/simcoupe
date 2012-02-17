@@ -637,6 +637,7 @@ BYTE IO::In (WORD wPort_)
                 {
                     Message(msgWarning, "Unhandled read from port %#04x\n", wPort_);
                     abUnhandled[nEntry] |= nBit;
+                    g_fDebug = true;
                 }
             }
 #endif
@@ -917,6 +918,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
                 {
                     Message(msgWarning, "Unhandled write to port %#04x, value = %02x\n", wPort_, bVal_);
                     abUnhandled[nEntry] |= nBit;
+                    g_fDebug = true;
                 }
             }
 #endif
