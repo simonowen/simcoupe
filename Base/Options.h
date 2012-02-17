@@ -109,7 +109,8 @@ typedef struct
     int     latency;                // Amount of sound buffering
     bool    bluealpha;              // Blue Alpha Sampler?
     int     samplerfreq;            // Blue Alpha Sampler clock frequency
-    bool    samvox;                 // SAMVox 4-channel DAC
+    bool    samvox;                 // SAMVox 4-channel DAC?
+    bool    paula;                  // Paula 4-bit dual-DAC?
 
     int     drivelights;            // Show floppy drive LEDs
     bool    profile;                // Show profile stats?

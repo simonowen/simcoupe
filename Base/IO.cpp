@@ -39,6 +39,7 @@
 #include "Mouse.h"
 #include "Options.h"
 #include "Parallel.h"
+#include "Paula.h"
 #include "SAMDOS.h"
 #include "SAMVox.h"
 #include "SDIDE.h"
@@ -56,6 +57,7 @@ CIoDevice *pMidi;
 CIoDevice *pBeeper;
 CBlueAlphaDevice *pBlueAlpha;
 CSAMVoxDevice *pSAMVox;
+CPaulaDevice *pPaula;
 CDAC *pDAC;
 CSAA *pSAA;
 CSID *pSID;
@@ -119,6 +121,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         pBeeper = new CBeeperDevice;
         pBlueAlpha = new CBlueAlphaDevice;
         pSAMVox = new CSAMVoxDevice;
+        pPaula = new CPaulaDevice;
 
         // Initialise all the devices
         fRet &= (InitDrives() && InitParallel() && InitSerial() && InitClocks() &&
@@ -154,6 +157,7 @@ void IO::Exit (bool fReInit_/*=false*/)
         InitMidi(false, false);
         InitHDD(false, false);
 
+        delete pPaula, pPaula = NULL;
         delete pSAMVox, pSAMVox = NULL;
         delete pBlueAlpha, pBlueAlpha = NULL;
         delete pBeeper, pBeeper = NULL;
@@ -889,12 +893,16 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             else if ((bPortLow & YATBUS_MASK) == YATBUS_BASE)
                 pYATBus->Out(wPort_, bVal_);
 
-            // Blue Alpha and SAMVox ports overlap!
+            // Blue Alpha, SAMVox and Paula ports overlap!
             else if ((bPortLow & 0xfc) == 0x7c)
             {
-                // SAMVox has priority, if enabled
+                // SAMVox
                 if (GetOption(samvox))
-                    pSAMVox->Out(wPort_, bVal_);
+                    pSAMVox->Out(bPortLow & 0x03, bVal_);
+
+                // Paula DAC
+                if (GetOption(paula))
+                    pPaula->Out(bPortLow & 0x01, bVal_);
 
                 // Blue Alpha only uses a single port
                 if (GetOption(bluealpha) && bPortLow == BLUE_ALPHA_PORT)

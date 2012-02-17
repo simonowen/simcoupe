@@ -570,6 +570,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\Paula.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\PNG.cpp"
 				>
 			</File>
@@ -974,6 +978,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\Parallel.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Paula.h"
 				>
 			</File>
 			<File
