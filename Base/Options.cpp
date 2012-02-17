@@ -218,7 +218,7 @@ void* Options::GetDefault (const char* pcszName_)
 
 bool Options::Load (int argc_, char* argv_[])
 {
-    FILE* hfOptions = fopen(OSD::GetFilePath(OPTIONS_FILE), "rb");
+    FILE* hfOptions = fopen(OSD::GetFilePath(OPTIONS_FILE), "r");
     if (hfOptions)
     {
         char szLine[256];
@@ -314,7 +314,7 @@ bool Options::Load (int argc_, char* argv_[])
 bool Options::Save ()
 {
     // Open the options file for writing, fail if we can't
-    FILE* hfOptions = fopen(OSD::GetFilePath(OPTIONS_FILE), "wb");
+    FILE* hfOptions = fopen(OSD::GetFilePath(OPTIONS_FILE), "w");
     if (!hfOptions)
         return false;
 
@@ -323,9 +323,9 @@ bool Options::Save ()
     {
         switch (p->nType)
         {
-            case OT_BOOL:       fprintf(hfOptions, "%s=%s\n", p->pcszName, *p->pf ? "Yes" : "No");  break;
-            case OT_INT:        fprintf(hfOptions, "%s=%d\n", p->pcszName, *p->pn);                 break;
-            case OT_STRING:     fprintf(hfOptions, "%s=%s\n", p->pcszName, p->ppsz);                break;
+            case OT_BOOL:       fprintf(hfOptions, "%s=%s\r\n", p->pcszName, *p->pf ? "Yes" : "No");  break;
+            case OT_INT:        fprintf(hfOptions, "%s=%d\r\n", p->pcszName, *p->pn);                 break;
+            case OT_STRING:     fprintf(hfOptions, "%s=%s\r\n", p->pcszName, p->ppsz);                break;
         }
     }
 
