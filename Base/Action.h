@@ -2,7 +2,7 @@
 //
 // Action.h: Actions bound to functions keys, etc.
 //
-//  Copyright (c) 2005-2011 Simon Owen
+//  Copyright (c) 2005-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,8 +27,8 @@ enum eActions
     actExitApplication, actOptions, actDebugger, actImportData, actExportData, actSaveScreenshot, actChangeProfiler,
     actResetButton, actNmiButton, actPause, actFrameStep, actToggleTurbo, actTempTurbo,
     actToggleSync, actToggleFullscreen, actChangeWindowSize, actChangeBorders, actToggle5_4,
-    actChangeFrameSkip, actToggleScanlines, actToggleGreyscale, actToggleMute, actReleaseMouse,
-    actPrinterOnline, actFlushPrinter, actAbout, actMinimise, MAX_ACTION
+    actChangeFrameSkip_REMOVED, actToggleScanlines, actToggleGreyscale, actToggleMute, actReleaseMouse,
+    actPrinterOnline, actFlushPrinter, actAbout, actMinimise, actRecordGifMovie, actRecordGifLoop, MAX_ACTION
 };
 
 class Action

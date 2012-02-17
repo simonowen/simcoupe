@@ -30,6 +30,7 @@
 #include "Expr.h"
 #include "Floppy.h"
 #include "Frame.h"
+#include "GIF.h"
 #include "GUIDlg.h"
 #include "HardDisk.h"
 #include "Input.h"
@@ -522,6 +523,10 @@ void UpdateMenuFromOptions ()
     CheckOption(IDM_VIEW_GREYSCALE, GetOption(greyscale));
     for (i = 0 ; i < 4 ; i++) CheckOption(IDM_VIEW_ZOOM_50+i,  i == GetOption(scale)-1);
     for (i = 0 ; i < 5 ; i++) CheckOption(IDM_VIEW_BORDERS0+i, i == GetOption(borders));
+
+    EnableItem(IDM_RECORD_GIF_MOVIE, !GIF::IsRecording());
+    EnableItem(IDM_RECORD_GIF_LOOP, !GIF::IsRecording());
+    EnableItem(IDM_RECORD_GIF_STOP, GIF::IsRecording());
 
     CheckOption(IDM_SYSTEM_PAUSE, g_fPaused);
     CheckOption(IDM_SYSTEM_MUTESOUND, !GetOption(sound));
@@ -1295,6 +1300,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_FILE_IMPORT_DATA:      Action::Do(actImportData);        break;
                 case IDM_FILE_EXPORT_DATA:      Action::Do(actExportData);        break;
                 case IDM_FILE_EXIT:             Action::Do(actExitApplication);   break;
+
+                case IDM_RECORD_GIF_MOVIE:      Action::Do(actRecordGifMovie);    break;
+                case IDM_RECORD_GIF_LOOP:       Action::Do(actRecordGifLoop);     break;
+                case IDM_RECORD_GIF_STOP:       Action::Do(actRecordGifMovie);    break;
 
                 case IDM_TOOLS_OPTIONS:         Action::Do(actOptions);           break;
                 case IDM_TOOLS_PRINTER_ONLINE:  Action::Do(actPrinterOnline);     break;

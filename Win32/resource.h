@@ -203,6 +203,9 @@
 #define IDM_SYSTEM_RESET                40204
 #define IDM_TOOLS_FLUSH_PRINTER         40209
 #define IDM_TOOLS_PRINTER_ONLINE        40210
+#define IDM_RECORD_GIF_MOVIE            40215
+#define IDM_RECORD_GIF_LOOP             40216
+#define IDM_RECORD_GIF_STOP             40217
 
 // Next default values for new objects
 // 
@@ -210,7 +213,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        195
-#define _APS_NEXT_COMMAND_VALUE         40211
+#define _APS_NEXT_COMMAND_VALUE         40218
 #define _APS_NEXT_CONTROL_VALUE         1193
 #define _APS_NEXT_SYMED_VALUE           102
 #endif

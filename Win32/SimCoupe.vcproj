@@ -518,6 +518,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\GIF.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\GUI.cpp"
 				>
 			</File>
@@ -906,6 +910,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\Frame.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\GIF.h"
 				>
 			</File>
 			<File

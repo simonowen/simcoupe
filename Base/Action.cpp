@@ -25,6 +25,7 @@
 #include "Debug.h"
 #include "Display.h"
 #include "Frame.h"
+#include "GIF.h"
 #include "GUI.h"
 #include "GUIDlg.h"
 #include "Input.h"
@@ -40,8 +41,8 @@ const char* Action::aszActions[MAX_ACTION] =
     "Exit application", "Options", "Debugger", "Import data", "Export data", "Save screenshot", "Change profiler mode",
     "Reset button", "NMI button", "Pause", "Step single frame", "Toggle turbo speed", "Turbo speed (when held)",
     "Toggle frame sync", "Toggle fullscreen", "Change window size", "Change border size", "Toggle 5:4 display",
-    "Change frame-skip mode", "Toggle scanlines", "Toggle greyscale", "Mute sound", "Release mouse capture",
-    "Toggle printer online", "Flush printer", "About SimCoupe", "Minimise window"
+    "", "Toggle scanlines", "Toggle greyscale", "Mute sound", "Release mouse capture",
+    "Toggle printer online", "Flush printer", "About SimCoupe", "Minimise window", "Record GIF movie", "Record GIF loop"
 };
 
 
@@ -231,6 +232,14 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 if (GetOption(parallel2) == 1)
                     reinterpret_cast<CPrintBuffer*>(pParallel2)->Flush();
 
+                break;
+
+            case actRecordGifMovie:
+                GIF::Toggle(false);
+                break;
+
+            case actRecordGifLoop:
+                GIF::Toggle(true);
                 break;
 
             // Not processed

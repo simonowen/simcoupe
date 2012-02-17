@@ -2,7 +2,7 @@
 //
 // UI.h: SDL user interface
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -55,13 +55,14 @@ extern bool g_fActive;
 #define UE_CHANGEPROFILER       (UE_BASE+13)
 #define UE_PAUSE                (UE_BASE+14)
 #define UE_TOGGLETURBO          (UE_BASE+15)
-#define UE_CHANGEFRAMESKIP      (UE_BASE+16)
-#define UE_TOGGLEMUTE           (UE_BASE+17)
-#define UE_RELEASEMOUSE         (UE_BASE+18)
-#define UE_CHANGEWINDOWSIZE     (UE_BASE+19)
-#define UE_CHANGEBORDERS        (UE_BASE+20)
-#define UE_OPTIONS              (UE_BASE+21)
-#define UE_IMPORTDATA           (UE_BASE+22)
-#define UE_EXPORTDATA           (UE_BASE+23)
+#define UE_TOGGLEMUTE           (UE_BASE+16)
+#define UE_RELEASEMOUSE         (UE_BASE+17)
+#define UE_CHANGEWINDOWSIZE     (UE_BASE+18)
+#define UE_CHANGEBORDERS        (UE_BASE+19)
+#define UE_OPTIONS              (UE_BASE+20)
+#define UE_IMPORTDATA           (UE_BASE+21)
+#define UE_EXPORTDATA           (UE_BASE+22)
+#define UE_RECORDGIFMOVIE       (UE_BASE+23)
+#define UE_RECORDGIFLOOP        (UE_BASE+24)
 
 #endif  // UI_H

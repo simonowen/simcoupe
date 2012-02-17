@@ -544,6 +544,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\Base\GIF.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\Base\GUI.cpp"
 				>
 				<FileConfiguration
@@ -947,6 +951,10 @@
 			</File>
 			<File
 				RelativePath="..\..\Base\Frame.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\Base\GIF.h"
 				>
 			</File>
 			<File

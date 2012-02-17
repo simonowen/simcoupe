@@ -2,7 +2,7 @@
 //
 // UI.cpp: SDL user interface
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -154,7 +154,6 @@ bool UI::CheckEvents ()
                         case UE_CHANGEPROFILER:     Action::Do(actChangeProfiler);  break;
                         case UE_PAUSE:              Action::Do(actPause);           break;
                         case UE_TOGGLETURBO:        Action::Do(actToggleTurbo);     break;
-                        case UE_CHANGEFRAMESKIP:    Action::Do(actChangeFrameSkip); break;
                         case UE_TOGGLEMUTE:         Action::Do(actToggleMute);      break;
                         case UE_RELEASEMOUSE:       Action::Do(actReleaseMouse);    break;
                         case UE_CHANGEWINDOWSIZE:   Action::Do(actChangeWindowSize);break;
@@ -162,6 +161,8 @@ bool UI::CheckEvents ()
                         case UE_OPTIONS:            Action::Do(actOptions);         break;
                         case UE_IMPORTDATA:         Action::Do(actImportData);      break;
                         case UE_EXPORTDATA:         Action::Do(actExportData);      break;
+                        case UE_RECORDGIFMOVIE:     Action::Do(actRecordGifMovie);  break;
+                        case UE_RECORDGIFLOOP:      Action::Do(actRecordGifLoop);   break;
 
                         default:
                             TRACE("Unhandled user event (%d)\n", event.type);
@@ -229,7 +230,7 @@ bool UI::DoAction (int nAction_, bool fPressed_)
 
             case actToggle5_4:
 #ifndef USE_OPENGL
-                GUI::Start(new CMessageBox(NULL, "5:4 mode is not available under SDL", "Sorry!", mbInformation));
+                GUI::Start(new CMessageBox(NULL, "5:4 mode requires OpenGL", "Sorry!", mbInformation));
 #endif
                 break;
             // Not processed

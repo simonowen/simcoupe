@@ -36,6 +36,7 @@
 #include "Debug.h"
 #include "CDrive.h"
 #include "Display.h"
+#include "GIF.h"
 #include "GUI.h"
 #include "Options.h"
 #include "OSD.h"
@@ -143,6 +144,9 @@ void Frame::Exit (bool fReInit_/*=false*/)
 {
     TRACE("-> Frame::Exit(%s)\n", fReInit_ ? "reinit" : "");
     Display::Exit(fReInit_);
+
+    // Stop any recording
+    GIF::Stop();
 
     if (pFrameHigh != pFrameLow)
         delete pFrameHigh;
@@ -348,10 +352,6 @@ void Frame::Complete ()
             }
         }
 
-        // Save the screen if we have a path
-        if (szScreenPath[0])
-            SaveFrame(szScreenPath);
-
         static bool fLastActive = false;
         if (GUI::IsActive())
         {
@@ -380,6 +380,13 @@ void Frame::Complete ()
         }
         else
         {
+            // Save the screen if we have a path
+            if (szScreenPath[0])
+                SaveFrame(szScreenPath);
+
+            // Add the frame to any GIF recording
+            GIF::AddFrame(pScreen);
+
             DrawOSD(pScreen);
             Flip(pScreen);
         }
@@ -427,6 +434,9 @@ void Frame::Sync ()
         ((pDrive1 && pDrive1->IsActive() && (pDrive1->GetType() != dskImage || ((CDrive*)pDrive1)->GetDiskType() != dtFloppy)) ||
          (pDrive2 && pDrive2->IsActive() && (pDrive2->GetType() != dskImage || ((CDrive*)pDrive2)->GetDiskType() != dtFloppy)));
 
+    // Default to drawing all frames
+    fDrawFrame = true;
+
     // Running in Turbo mode?
     if (!GUI::IsActive() && (g_fTurbo || fTurboDisk))
     {
@@ -437,11 +447,6 @@ void Frame::Sync ()
         if (fDrawFrame)
             dwLastDrawn = dwNow;
     }
-    else
-    {
-        fDrawFrame = true;
-    }
-
 
     // Show the profiler stats once a second
     if ((dwNow - dwLastProfile) >= 1000)
