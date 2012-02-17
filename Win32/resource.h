@@ -43,6 +43,7 @@
 #define IDD_NEW_DISK                    192
 #define IDD_HARDDISK                    193
 #define IDI_FOLDER                      194
+#define IDB_MENU                        195
 #define IDE_PAGE                        1001
 #define IDE_STATION_ID                  1001
 #define IDE_ROM                         1001
@@ -62,7 +63,6 @@
 #define IDC_JOYSTICK2                   1057
 #define IDC_DEADZONE_1                  1058
 #define IDC_DEADZONE_2                  1059
-#define IDC_STEREO                      1060
 #define IDC_MAIN_MEMORY                 1064
 #define IDC_EXTERNAL_MEMORY             1065
 #define IDC_MIDI_OUT                    1066
@@ -72,19 +72,12 @@
 #define IDC_PARALLEL_2                  1074
 #define IDC_PARALLEL_1                  1075
 #define IDC_PRINTERS                    1076
-#define IDC_SAASOUND                    1082
 #define IDC_DALLAS_CLOCK                1083
-#define IDC_CLOCK_SYNC                  1084
-#define IDC_FRAMESKIP_AUTOMATIC         1086
-#define IDC_FRAMESKIP                   1087
 #define IDC_PROFILE                     1088
 #define IDC_STATUS                      1089
 #define IDC_DRIVE_LIGHTS                1090
-#define IDC_PAUSE_INACTIVE              1091
 #define IDC_FAST_RESET                  1092
-#define IDC_BEEPER                      1092
 #define IDC_CTRL                        1092
-#define IDC_STATUS2                     1092
 #define IDC_MIDI                        1093
 #define IDC_SHIFT                       1093
 #define IDC_ASIC_DELAY                  1093
@@ -126,10 +119,7 @@
 #define IDB_DATA_PATH                   1158
 #define IDB_TAPE_PATH                   1159
 #define IDC_AUTOBOOT                    1161
-#define IDC_SAM_FKEYS                   1161
-#define IDC_OVERLAY                     1162
 #define IDC_HWACCEL                     1163
-#define IDC_8BIT_FULLSCREEN             1164
 #define IDC_TYPE                        1165
 #define IDS_PAGE                        1169
 #define IDS_OFFSET                      1170
@@ -212,7 +202,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        195
+#define _APS_NEXT_RESOURCE_VALUE        196
 #define _APS_NEXT_COMMAND_VALUE         40218
 #define _APS_NEXT_CONTROL_VALUE         1193
 #define _APS_NEXT_SYMED_VALUE           102

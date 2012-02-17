@@ -49,7 +49,7 @@ CAPTION "About SimCoupe"
 FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     CTEXT           "SimCoupe v1.1",IDS_VERSION,7,43,179,8
-    LTEXT           "http://www.simcoupe.org",ID_HOMEPAGE,55,54,82,8,SS_NOTIFY
+    CTEXT           "http://simcoupe.org",ID_HOMEPAGE,7,54,179,8,SS_NOTIFY
     LTEXT           "Win32/SDL/Allegro/PocketPC versions:\n     Simon Owen <simon.owen@simcoupe.org>",IDC_STATIC,22,74,160,18
     LTEXT           "Based on original DOS/X versions by:\n     Allan Skillman <allan.skillman@arm.com>",IDC_STATIC,22,96,160,18
     LTEXT           "CPU contention and sound enhancements:\n     Dave Laundon <dave.laundon@simcoupe.org>",IDC_STATIC,22,118,160,18
