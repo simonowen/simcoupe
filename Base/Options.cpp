@@ -314,7 +314,7 @@ bool Options::Load (int argc_, char* argv_[])
 bool Options::Save ()
 {
     // Open the options file for writing, fail if we can't
-    FILE* hfOptions = fopen(OSD::GetFilePath(OPTIONS_FILE), "w");
+    FILE* hfOptions = fopen(OSD::GetFilePath(OPTIONS_FILE), "wb");
     if (!hfOptions)
         return false;
 
