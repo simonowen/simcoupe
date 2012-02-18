@@ -96,6 +96,7 @@ extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 
 #define strcasecmp  _strcmpi
 #define mkdir(p,m)  _mkdir(p)
+#define snprintf	_snprintf
 
 #if _MSC_VER > 1200
 #define off_t   __int64

@@ -2,8 +2,8 @@
 //
 // Frame.h: Display frame generation
 //
-//  Copyright (c) 1999-2011  Simon Owen
-//  Copyright (c) 1996-2001  Allan Skillman
+//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1996-2001 Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@ class Frame
         static void Sync ();
         static void Clear ();
         static void Redraw ();
-        static void SaveFrame (const char* pcszPath_=NULL);
+        static void SaveScreenshot ();
 
         static CScreen* GetScreen ();
         static int GetWidth ();

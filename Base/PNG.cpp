@@ -2,7 +2,7 @@
 //
 // PNG.cpp: Screenshot saving in PNG format
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,13 +29,12 @@
 #include "SimCoupe.h"
 #include "PNG.h"
 
-#ifdef USE_ZLIB
 #include "zlib.h"
 
-#include "GUI.h"
+#include "Frame.h"
 #include "Options.h"
-#include "Util.h"
 
+#ifdef USE_ZLIB
 
 // 32-bit values in PNG data are always network byte order (big endian), so define a helper macro if a conversion is needed
 #ifndef __BIG_ENDIAN__
@@ -126,12 +125,10 @@ static bool CompressImageData (PNG_INFO* pPNG_)
 }
 
 
-// Process and save the supplied SAM image data to a file in PNG format
-bool SaveImage (FILE* hFile_, CScreen* pScreen_)
+static bool SaveFile (FILE *f_, CScreen *pScreen_)
 {
-    int nDen = 5, nNum = 4;     // 5:4 mode
-
     // Are we to stretch the saved image?
+    int nDen = 5, nNum = 4;
     bool fStretch = GetOption(ratio5_4);
 
     // Calculate the intensity reduction for scanlines, in the range -100 to +100
@@ -197,9 +194,51 @@ bool SaveImage (FILE* hFile_, CScreen* pScreen_)
     }
 
     // Compress and write the image
-    bool fRet = CompressImageData(&png) && WriteFile(hFile_, &png);
-    delete[] png.pbImage;
+    bool fRet = CompressImageData(&png) && WriteFile(f_, &png);
+    delete[] png.pbImage, png.pbImage = NULL;
+ 
     return fRet;
 }
 
-#endif  // USE_ZLIB
+#endif // USE_ZLIB
+
+
+// Process and save the supplied SAM image data to a file in PNG format
+bool PNG::Save (CScreen* pScreen_)
+{
+    bool fRet = false;
+
+#ifdef USE_ZLIB
+    static int nNext = 0;
+    char szTemplate[MAX_PATH], szPath[MAX_PATH];
+
+    // Create a unique filename in the format snapNNNN.png
+    snprintf(szTemplate, MAX_PATH, "%ssnap%%04d.png", OSD::GetDirPath(GetOption(datapath)));
+    nNext = Util::GetUniqueFile(szTemplate, nNext, szPath, sizeof(szPath));
+
+    // Create the new file
+    FILE* f = fopen(szPath, "wb");
+    if (!f)
+    {
+        Frame::SetStatus("Failed to open %s for writing!", szPath);
+        return false;
+    }
+
+    // Perform the actual save
+    fRet = SaveFile(f, pScreen_);
+    fclose(f);
+
+    // Report what happened
+    if (fRet)
+        Frame::SetStatus("Saved snap%04d.png", nNext-1);
+    else
+    {
+        Frame::SetStatus("PNG save failed!?");
+        unlink(szPath);
+    }
+#else
+    Frame::SetStatus("Screen saving requires zLib");
+#endif
+
+    return fRet;
+}

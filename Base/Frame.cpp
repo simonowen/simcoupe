@@ -62,7 +62,7 @@ int s_nViewWidth, s_nViewHeight;
 CScreen *pScreen, *pGuiScreen, *pLastScreen;
 CFrame *pFrame, *pFrameLow, *pFrameHigh;
 
-bool fDrawFrame, g_fFlashPhase;
+bool fDrawFrame, g_fFlashPhase, fSaveScreen;
 int nFrame;
 
 int nLastLine, nLastBlock;      // Line and block we've drawn up to so far this frame
@@ -90,8 +90,9 @@ REGION asViews[] =
     { WIDTH_BLOCKS, HEIGHT_LINES },
 };
 
-void DrawOSD (CScreen* pScreen_);
-void Flip (CScreen*& rpScreen_);
+static void DrawOSD (CScreen* pScreen_);
+static void Flip (CScreen*& rpScreen_);
+
 
 bool Frame::Init (bool fFirstInit_/*=false*/)
 {
@@ -380,9 +381,12 @@ void Frame::Complete ()
         }
         else
         {
-            // Save the screen if we have a path
-            if (szScreenPath[0])
-                SaveFrame(szScreenPath);
+            // Screenshot required?
+            if (fSaveScreen)
+            {
+                PNG::Save(pScreen);
+                fSaveScreen = false;
+            }
 
             // Add the frame to any GIF recording
             GIF::AddFrame(pScreen);
@@ -569,48 +573,10 @@ void DrawOSD (CScreen* pScreen_)
     }
 }
 
-
 // Save the frame image to a file
-void Frame::SaveFrame (const char* pcszPath_/*=NULL*/)
+void Frame::SaveScreenshot ()
 {
-#ifdef USE_ZLIB
-    static int nNext = 0;
-
-    // If no path is supplied we need to generate a unique one
-    if (!pcszPath_)
-    {
-        char szTemplate[MAX_PATH];
-        sprintf(szTemplate, "%ssnap%%04d.png", OSD::GetDirPath(GetOption(datapath)));
-        nNext = Util::GetUniqueFile(szTemplate, nNext, szScreenPath, sizeof(szScreenPath));
-
-        // Leave the path in the buffer, so Frame::End() can spot it when the next frame is generated
-        return;
-    }
-
-    FILE* f = fopen(szScreenPath, "wb");
-    if (!f)
-        Frame::SetStatus("Failed to open %s for writing!", szScreenPath);
-    else
-    {
-        bool fSaved = SaveImage(f, pScreen);
-        fclose(f);
-
-        // If the save failed, delete the empty image
-        if (fSaved)
-            Frame::SetStatus("Saved snap%04d.png", nNext-1);
-        else
-        {
-            Frame::SetStatus("Failed to save screen to %s!", szScreenPath);
-            unlink(szScreenPath);
-        }
-    }
-
-#else
-    Frame::SetStatus("Save screen requires zLib", szScreenPath);
-#endif  // USE_ZLIB
-
-    // We've finished with the path now, so prevent it being saved again
-    szScreenPath[0] = '\0';
+    fSaveScreen = true;
 }
 
 

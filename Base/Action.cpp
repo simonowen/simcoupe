@@ -149,7 +149,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actSaveScreenshot:
-                Frame::SaveFrame();
+                Frame::SaveScreenshot();
                 break;
 
             case actDebugger:

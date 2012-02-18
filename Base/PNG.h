@@ -2,7 +2,7 @@
 //
 // PNG.h: Screenshot saving in PNG format
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,9 +21,15 @@
 #ifndef PNG_H
 #define PNG_H
 
-#ifdef USE_ZLIB
-
 #include "CScreen.h"
+
+class PNG
+{
+    public:
+        static bool Save (CScreen *pScreen_);
+};
+
+#ifdef USE_ZLIB
 
 // Define just the stuff we need - taken from libPNG's png.h
 
@@ -70,8 +76,6 @@ typedef struct tagPNG_INFO
 }
 PNG_INFO, *PPNG_INFO;
 
-
-bool SaveImage (FILE* hFile_, CScreen* pScreen_);
 
 #endif  // USE_ZLIB
 
