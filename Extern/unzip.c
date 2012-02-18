@@ -34,6 +34,8 @@ woven in by Terry Thorsen 1/2003.
   version without encryption capabilities).
  */
 
+#ifdef USE_ZLIB
+
 #define NOUNCRYPT
 
 #include <stdio.h>
@@ -1554,3 +1556,5 @@ extern int ZEXPORT unzGetGlobalComment (file, szComment, uSizeBuf)
         *(szComment+s->gi.size_comment)='\0';
     return (int)uReadThis;
 }
+
+#endif // USE_ZLIB
