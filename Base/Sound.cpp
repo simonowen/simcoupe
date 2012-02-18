@@ -24,6 +24,7 @@
 #include "Audio.h"
 #include "CPU.h"
 #include "SID.h"
+#include "WAV.h"
 
 static BYTE *pbSampleBuffer;
 
@@ -43,6 +44,9 @@ bool Sound::Init (bool fFirstInit_/*=false*/)
 
 void Sound::Exit (bool fReInit_/*=false*/)
 {
+    // Stop any recording
+    WAV::Stop();
+
     delete[] pbSampleBuffer, pbSampleBuffer = NULL;
     Audio::Exit(fReInit_);
 }
@@ -71,6 +75,9 @@ void Sound::FrameUpdate ()
     memcpy(pbSampleBuffer, pDAC->GetSampleBuffer(), nSize);
     MixAudio(pbSampleBuffer, pSAA->GetSampleBuffer(), nSize);
     if (fSidUsed) MixAudio(pbSampleBuffer, pSID->GetSampleBuffer(), nSize);
+
+    // Add the frame to any WAV recording
+    WAV::AddFrame(pbSampleBuffer, nSize);
 
     // Queue the data for playback
     if (!Audio::AddData(pbSampleBuffer, nSize))

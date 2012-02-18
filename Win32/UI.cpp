@@ -42,6 +42,7 @@
 #include "Parallel.h"
 #include "Sound.h"
 #include "Video.h"
+#include "WAV.h"
 
 // Source argc/argv from either MSVCRT.DLL or the static CRT
 #ifdef _DLL
@@ -527,6 +528,10 @@ void UpdateMenuFromOptions ()
     EnableItem(IDM_RECORD_GIF_MOVIE, !GIF::IsRecording());
     EnableItem(IDM_RECORD_GIF_LOOP, !GIF::IsRecording());
     EnableItem(IDM_RECORD_GIF_STOP, GIF::IsRecording());
+
+    EnableItem(IDM_RECORD_WAV, !WAV::IsRecording());
+    EnableItem(IDM_RECORD_WAV_SEGMENT, !WAV::IsRecording());
+    EnableItem(IDM_RECORD_WAV_STOP, WAV::IsRecording());
 
     CheckOption(IDM_SYSTEM_PAUSE, g_fPaused);
     CheckOption(IDM_SYSTEM_MUTESOUND, !GetOption(sound));
@@ -1304,6 +1309,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_RECORD_GIF_MOVIE:      Action::Do(actRecordGifMovie);    break;
                 case IDM_RECORD_GIF_LOOP:       Action::Do(actRecordGifLoop);     break;
                 case IDM_RECORD_GIF_STOP:       Action::Do(actRecordGifMovie);    break;
+
+                case IDM_RECORD_WAV:            Action::Do(actRecordWav);         break;
+                case IDM_RECORD_WAV_SEGMENT:    Action::Do(actRecordWavSegment);  break;
+                case IDM_RECORD_WAV_STOP:       Action::Do(actRecordWav);         break;
 
                 case IDM_TOOLS_OPTIONS:         Action::Do(actOptions);           break;
                 case IDM_TOOLS_PRINTER_ONLINE:  Action::Do(actPrinterOnline);     break;

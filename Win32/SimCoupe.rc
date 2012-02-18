@@ -578,6 +578,12 @@ BEGIN
             MENUITEM "Record &Loop",                IDM_RECORD_GIF_LOOP
             MENUITEM "&Stop Recording",             IDM_RECORD_GIF_STOP, GRAYED
         END
+        POPUP "Audio (&WAV)"
+        BEGIN
+            MENUITEM "&Record",                     IDM_RECORD_WAV
+            MENUITEM "Record Se&gment",             IDM_RECORD_WAV_SEGMENT
+            MENUITEM "&Stop Recording",             IDM_RECORD_WAV_STOP
+        END
     END
     POPUP "&System"
     BEGIN

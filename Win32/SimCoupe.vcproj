@@ -602,6 +602,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\WAV.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\YATBus.cpp"
 				>
 			</File>
@@ -1030,6 +1034,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\VL1772.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\WAV.h"
 				>
 			</File>
 			<File

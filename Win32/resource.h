@@ -43,7 +43,6 @@
 #define IDD_NEW_DISK                    192
 #define IDD_HARDDISK                    193
 #define IDI_FOLDER                      194
-#define IDB_MENU                        195
 #define IDE_PAGE                        1001
 #define IDE_STATION_ID                  1001
 #define IDE_ROM                         1001
@@ -196,6 +195,10 @@
 #define IDM_RECORD_GIF_MOVIE            40215
 #define IDM_RECORD_GIF_LOOP             40216
 #define IDM_RECORD_GIF_STOP             40217
+#define IDM_AUDIO_RECORDWAV             40222
+#define IDM_RECORD_WAV                  40223
+#define IDM_RECORD_WAV_SEGMENT          40224
+#define IDM_RECORD_WAV_STOP             40225
 
 // Next default values for new objects
 // 
@@ -203,7 +206,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        196
-#define _APS_NEXT_COMMAND_VALUE         40218
+#define _APS_NEXT_COMMAND_VALUE         40226
 #define _APS_NEXT_CONTROL_VALUE         1193
 #define _APS_NEXT_SYMED_VALUE           102
 #endif

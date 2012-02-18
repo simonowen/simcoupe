@@ -100,6 +100,7 @@ typedef unsigned char       BYTE;   // must be 8-bit
 
 #define strcasecmp  _strcmpi
 #define mkdir(p,m)  _mkdir(p)
+#define snprintf    _snprintf
 #define lstat       stat
 #define ioctl(f,c,x)	-1
 #define readlink(p,b,n) -1
