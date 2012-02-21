@@ -35,7 +35,7 @@ static bool fSegment;
 // RIFF header must be byte-packed
 #pragma pack(1)
 
-struct
+struct tagRIFF
 {
     BYTE abRiffHeader[4];	// 'R','I','F','F'
     BYTE abWaveLen[4];
