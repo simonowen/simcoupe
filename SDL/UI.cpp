@@ -161,8 +161,12 @@ bool UI::CheckEvents ()
                         case UE_OPTIONS:            Action::Do(actOptions);         break;
                         case UE_IMPORTDATA:         Action::Do(actImportData);      break;
                         case UE_EXPORTDATA:         Action::Do(actExportData);      break;
-                        case UE_RECORDGIFMOVIE:     Action::Do(actRecordGifMovie);  break;
+                        case UE_RECORDAVI:          Action::Do(actRecordAvi);       break;
+                        case UE_RECORDAVIHALF:      Action::Do(actRecordAviHalf);   break;
+                        case UE_RECORDGIF:          Action::Do(actRecordGif);       break;
                         case UE_RECORDGIFLOOP:      Action::Do(actRecordGifLoop);   break;
+                        case UE_RECORDWAV:          Action::Do(actRecordWav);       break;
+                        case UE_RECORDWAVSEGMENT:   Action::Do(actRecordWavSegment);break;
 
                         default:
                             TRACE("Unhandled user event (%d)\n", event.type);

@@ -22,7 +22,9 @@
 #include "Sound.h"
 
 #include "Audio.h"
+#include "AVI.h"
 #include "CPU.h"
+#include "Frame.h"
 #include "SID.h"
 #include "WAV.h"
 
@@ -46,6 +48,7 @@ void Sound::Exit (bool fReInit_/*=false*/)
 {
     // Stop any recording
     WAV::Stop();
+    AVI::Stop();
 
     delete[] pbSampleBuffer, pbSampleBuffer = NULL;
     Audio::Exit(fReInit_);
@@ -76,8 +79,9 @@ void Sound::FrameUpdate ()
     MixAudio(pbSampleBuffer, pSAA->GetSampleBuffer(), nSize);
     if (fSidUsed) MixAudio(pbSampleBuffer, pSID->GetSampleBuffer(), nSize);
 
-    // Add the frame to any WAV recording
+    // Add the frame to any recordings
     WAV::AddFrame(pbSampleBuffer, nSize);
+    AVI::AddFrame(pbSampleBuffer, nSize);
 
     // Queue the data for playback
     if (!Audio::AddData(pbSampleBuffer, nSize))

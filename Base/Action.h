@@ -28,8 +28,8 @@ enum eActions
     actResetButton, actNmiButton, actPause, actFrameStep, actToggleTurbo, actTempTurbo,
     actToggleSync, actToggleFullscreen, actChangeWindowSize, actChangeBorders, actToggle5_4,
     actChangeFrameSkip_REMOVED, actToggleScanlines, actToggleGreyscale, actToggleMute, actReleaseMouse,
-    actPrinterOnline, actFlushPrinter, actAbout, actMinimise, actRecordGifMovie, actRecordGifLoop, actRecordWav,
-    actRecordWavSegment, MAX_ACTION
+    actPrinterOnline, actFlushPrinter, actAbout, actMinimise, actRecordGif, actRecordGifLoop, actRecordGifStop,
+    actRecordWav,actRecordWavSegment, actRecordWavStop, actRecordAvi, actRecordAviHalf, actRecordAviStop, MAX_ACTION
 };
 
 class Action

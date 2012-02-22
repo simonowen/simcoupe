@@ -22,6 +22,7 @@
 #include "UI.h"
 
 #include "Action.h"
+#include "AVI.h"
 #include "CDrive.h"
 #include "Clock.h"
 #include "CPU.h"
@@ -524,6 +525,10 @@ void UpdateMenuFromOptions ()
     CheckOption(IDM_VIEW_GREYSCALE, GetOption(greyscale));
     for (i = 0 ; i < 4 ; i++) CheckOption(IDM_VIEW_ZOOM_50+i,  i == GetOption(scale)-1);
     for (i = 0 ; i < 5 ; i++) CheckOption(IDM_VIEW_BORDERS0+i, i == GetOption(borders));
+
+    EnableItem(IDM_RECORD_AVI_START, !AVI::IsRecording());
+    EnableItem(IDM_RECORD_AVI_HALF, !AVI::IsRecording());
+    EnableItem(IDM_RECORD_AVI_STOP, AVI::IsRecording());
 
     EnableItem(IDM_RECORD_GIF_MOVIE, !GIF::IsRecording());
     EnableItem(IDM_RECORD_GIF_LOOP, !GIF::IsRecording());
@@ -1306,13 +1311,17 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_FILE_EXPORT_DATA:      Action::Do(actExportData);        break;
                 case IDM_FILE_EXIT:             Action::Do(actExitApplication);   break;
 
-                case IDM_RECORD_GIF_MOVIE:      Action::Do(actRecordGifMovie);    break;
+                case IDM_RECORD_AVI_START:      Action::Do(actRecordAvi);         break;
+                case IDM_RECORD_AVI_HALF:       Action::Do(actRecordAviHalf);     break;
+                case IDM_RECORD_AVI_STOP:       Action::Do(actRecordAviStop);     break;
+
+                case IDM_RECORD_GIF_MOVIE:      Action::Do(actRecordGif);         break;
                 case IDM_RECORD_GIF_LOOP:       Action::Do(actRecordGifLoop);     break;
-                case IDM_RECORD_GIF_STOP:       Action::Do(actRecordGifMovie);    break;
+                case IDM_RECORD_GIF_STOP:       Action::Do(actRecordGifStop);     break;
 
                 case IDM_RECORD_WAV:            Action::Do(actRecordWav);         break;
                 case IDM_RECORD_WAV_SEGMENT:    Action::Do(actRecordWavSegment);  break;
-                case IDM_RECORD_WAV_STOP:       Action::Do(actRecordWav);         break;
+                case IDM_RECORD_WAV_STOP:       Action::Do(actRecordWavStop);     break;
 
                 case IDM_TOOLS_OPTIONS:         Action::Do(actOptions);           break;
                 case IDM_TOOLS_PRINTER_ONLINE:  Action::Do(actPrinterOnline);     break;

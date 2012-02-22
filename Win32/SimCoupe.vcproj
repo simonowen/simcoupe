@@ -434,6 +434,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\AVI.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\BlipBuffer.cpp"
 				>
 				<FileConfiguration
@@ -862,6 +866,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\Atom.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\AVI.h"
 				>
 			</File>
 			<File

@@ -572,16 +572,25 @@ BEGIN
     END
     POPUP "&Record"
     BEGIN
+        POPUP "Video (&AVI)"
+        BEGIN
+            MENUITEM "Record &Video",               IDM_RECORD_AVI_START
+            MENUITEM "Record &Half Size",           IDM_RECORD_AVI_HALF
+            MENUITEM SEPARATOR
+            MENUITEM "&Stop Recording",             IDM_RECORD_AVI_STOP
+        END
         POPUP "Video (&GIF)"
         BEGIN
-            MENUITEM "Record &Movie",               IDM_RECORD_GIF_MOVIE
+            MENUITEM "Record &Animation",           IDM_RECORD_GIF_START
             MENUITEM "Record &Loop",                IDM_RECORD_GIF_LOOP
+            MENUITEM SEPARATOR
             MENUITEM "&Stop Recording",             IDM_RECORD_GIF_STOP, GRAYED
         END
         POPUP "Audio (&WAV)"
         BEGIN
-            MENUITEM "&Record",                     IDM_RECORD_WAV
+            MENUITEM "Record &Audio",               IDM_RECORD_WAV_START
             MENUITEM "Record Se&gment",             IDM_RECORD_WAV_SEGMENT
+            MENUITEM SEPARATOR
             MENUITEM "&Stop Recording",             IDM_RECORD_WAV_STOP
         END
     END

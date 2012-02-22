@@ -33,6 +33,7 @@
 #include "SimCoupe.h"
 #include "Frame.h"
 
+#include "AVI.h"
 #include "Debug.h"
 #include "CDrive.h"
 #include "Display.h"
@@ -148,6 +149,7 @@ void Frame::Exit (bool fReInit_/*=false*/)
 
     // Stop any recording
     GIF::Stop();
+    AVI::Stop();
 
     if (pFrameHigh != pFrameLow)
         delete pFrameHigh;
@@ -388,8 +390,9 @@ void Frame::Complete ()
                 fSaveScreen = false;
             }
 
-            // Add the frame to any GIF recording
+            // Add the frame to any recordings
             GIF::AddFrame(pScreen);
+            AVI::AddFrame(pScreen);
 
             DrawOSD(pScreen);
             Flip(pScreen);

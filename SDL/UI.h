@@ -62,7 +62,14 @@ extern bool g_fActive;
 #define UE_OPTIONS              (UE_BASE+20)
 #define UE_IMPORTDATA           (UE_BASE+21)
 #define UE_EXPORTDATA           (UE_BASE+22)
-#define UE_RECORDGIFMOVIE       (UE_BASE+23)
+#define UE_RECORDGIF            (UE_BASE+23)
 #define UE_RECORDGIFLOOP        (UE_BASE+24)
+#define UE_RECORDGIFSTOP        (UE_BASE+25)
+#define UE_RECORDWAV            (UE_BASE+26)
+#define UE_RECORDWAVSEGMENT     (UE_BASE+27)
+#define UE_RECORDWAVSTOP        (UE_BASE+28)
+#define UE_RECORDAVI            (UE_BASE+29)
+#define UE_RECORDAVIHALF        (UE_BASE+30)
+#define UE_RECORDAVISTOP        (UE_BASE+31)
 
 #endif  // UI_H

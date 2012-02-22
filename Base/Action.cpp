@@ -21,6 +21,7 @@
 #include "SimCoupe.h"
 #include "Action.h"
 
+#include "AVI.h"
 #include "CPU.h"
 #include "Debug.h"
 #include "Display.h"
@@ -43,8 +44,8 @@ const char* Action::aszActions[MAX_ACTION] =
     "Reset button", "NMI button", "Pause", "", "Toggle turbo speed", "Turbo speed (when held)",
     "Toggle frame sync", "Toggle fullscreen", "Change window size", "Change border size", "Toggle 5:4 display",
     "", "Toggle scanlines", "Toggle greyscale", "Mute sound", "Release mouse capture",
-    "Toggle printer online", "Flush printer", "About SimCoupe", "Minimise window", "Record GIF movie", "Record GIF loop",
-    "Record WAV", "Record WAV Segment"
+    "Toggle printer online", "Flush printer", "About SimCoupe", "Minimise window", "Record GIF animation", "Record GIF loop",
+    "", "Record WAV audio", "Record WAV segment", "", "Record AVI video", "Record AVI half-size", ""
 };
 
 
@@ -236,12 +237,16 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
 
                 break;
 
-            case actRecordGifMovie:
+            case actRecordGif:
                 GIF::Toggle(false);
                 break;
 
             case actRecordGifLoop:
                 GIF::Toggle(true);
+                break;
+
+            case actRecordGifStop:
+                GIF::Stop();
                 break;
 
             case actRecordWav:
@@ -250,6 +255,22 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
 
             case actRecordWavSegment:
                 WAV::Toggle(true);
+                break;
+
+            case actRecordWavStop:
+                WAV::Stop();
+                break;
+
+            case actRecordAvi:
+                AVI::Toggle(false);
+                break;
+
+            case actRecordAviHalf:
+                AVI::Toggle(true);
+                break;
+
+            case actRecordAviStop:
+                AVI::Stop();
                 break;
 
             // Not processed
