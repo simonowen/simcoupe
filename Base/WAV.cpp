@@ -116,42 +116,6 @@ bool WAV::Start (bool fSegment_)
     return true;
 }
 
-void WAV::AddFrame (const BYTE* pb_, int nLen_)
-{
-    // Fail if we're not recording
-    if (!f)
-        return;
-
-    // Check for a full frame of repeated samples (silence)
-    if (!memcmp(pb_, pb_+SAMPLE_BLOCK, nLen_-SAMPLE_BLOCK))
-    {
-        // If we're recording a segment, stop if the silence threshold has been exceeded
-        if (fSegment && nFrames && ++nSilent > 2*EMULATED_FRAMES_PER_SECOND)
-            Stop();
-    }
-    else
-    {
-        // Do we have any frames of buffered silence?
-        if (nSilent)
-        {
-            // Add the accumulated silence, unless we're at the start of the recording
-            if (nFrames)
-            {
-                fseek(f, nLen_*nSilent, SEEK_CUR);
-                nFrames += nSilent;
-            }
-
-            nSilent = 0;
-        }
-
-        // Write the new frame data
-        if (fwrite(pb_, nLen_, 1, f))
-            nFrames++;
-        else
-            Stop();
-    }
-}
-
 void WAV::Stop ()
 {
     // Ignore if we're not recording
@@ -190,4 +154,41 @@ void WAV::Toggle (bool fSegment_)
 bool WAV::IsRecording ()
 {
     return f != NULL;
+}
+
+
+void WAV::AddFrame (const BYTE* pb_, int nLen_)
+{
+    // Fail if we're not recording
+    if (!f)
+        return;
+
+    // Check for a full frame of repeated samples (silence)
+    if (!memcmp(pb_, pb_+SAMPLE_BLOCK, nLen_-SAMPLE_BLOCK))
+    {
+        // If we're recording a segment, stop if the silence threshold has been exceeded
+        if (fSegment && nFrames && ++nSilent > 2*EMULATED_FRAMES_PER_SECOND)
+            Stop();
+    }
+    else
+    {
+        // Do we have any frames of buffered silence?
+        if (nSilent)
+        {
+            // Add the accumulated silence, unless we're at the start of the recording
+            if (nFrames)
+            {
+                fseek(f, nLen_*nSilent, SEEK_CUR);
+                nFrames += nSilent;
+            }
+
+            nSilent = 0;
+        }
+
+        // Write the new frame data
+        if (fwrite(pb_, nLen_, 1, f))
+            nFrames++;
+        else
+            Stop();
+    }
 }
