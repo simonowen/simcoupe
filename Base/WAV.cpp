@@ -125,7 +125,7 @@ void WAV::AddFrame (const BYTE* pb_, int nLen_)
     // Check for a full frame of repeated samples (silence)
     if (!memcmp(pb_, pb_+SAMPLE_BLOCK, nLen_-SAMPLE_BLOCK))
     {
-        // If we're recording a fragment, stop if the silence threshold has been exceeded
+        // If we're recording a segment, stop if the silence threshold has been exceeded
         if (fSegment && nFrames && ++nSilent > 2*EMULATED_FRAMES_PER_SECOND)
             Stop();
     }

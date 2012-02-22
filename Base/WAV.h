@@ -26,7 +26,7 @@ class WAV
     public:
         static bool Start (bool fSegment_=false);
         static void Stop ();
-        static void Toggle (bool fFragment_=false);
+        static void Toggle (bool fSegment_=false);
         static bool IsRecording ();
 
         static void AddFrame (const BYTE *pb_, int nLen_);
