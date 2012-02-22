@@ -25,6 +25,9 @@
 #include "Options.h"
 #include "Sound.h"
 
+// Scanlines don't scale well on videos uploaded to YouTube, so disable them for now
+//#define AVI_SCANLINES
+
 static BYTE *pbCurr;
 
 static char szPath[MAX_PATH];
@@ -550,6 +553,7 @@ void AVI::AddFrame (CScreen *pScreen_)
             pbLine = abLine;
         }
 
+#ifdef AVI_SCANLINES
         // If this is a scanline, adjust the pixel values to use the 2nd palette section
         if (!fHalfSize && (y&1))
         {
@@ -562,7 +566,7 @@ void AVI::AddFrame (CScreen *pScreen_)
 
             pbLine = abLine;
         }
-
+#endif
         BYTE *pb = pbLine, *pbP = pbCurr+(width*y);
 
         for (x = 0 ; x < width ; )
