@@ -35,7 +35,7 @@ static bool fHalfSize = false;
 
 static DWORD dwRiffPos, dwMoviPos;
 static DWORD dwVideoMax, dwAudioMax;
-static DWORD dwVideoFrames, dwAudioFrames;
+static DWORD dwVideoFrames, dwAudioFrames, dwAudioSamples;
 static bool fWantVideo;
 static int nNext;
 
@@ -112,7 +112,7 @@ static void WriteAVIHeader (FILE *f_)
 {
     DWORD dwPos = WriteChunkStart(f_, "avih");
 
-    WriteLittleEndianDWORD(1000000/EMULATED_FRAMES_PER_SECOND);	// microseconds per frame
+    WriteLittleEndianDWORD(19968);			// microseconds per frame: 1000000*TSTATES_PER_FRAME/REAL_TSTATES_PER_SECOND
     WriteLittleEndianDWORD((dwVideoMax*EMULATED_FRAMES_PER_SECOND)+(dwAudioMax*EMULATED_FRAMES_PER_SECOND));	// approximate max data rate
     WriteLittleEndianDWORD(0);				// reserved
     WriteLittleEndianDWORD((1<<8)|(1<<4));	// flags: bit 4 = has index(idx1), bit 5 = use index for AVI structure, bit 8 = interleaved file, bit 16 = optimized for live video capture, bit 17 = copyrighted data
@@ -138,8 +138,8 @@ static void WriteVideoHeader (FILE *f_)
     WriteLittleEndianDWORD(0);				// flags, unused
     WriteLittleEndianDWORD(0);				// priority and language, unused
     WriteLittleEndianDWORD(0);				// initial frames
-    WriteLittleEndianDWORD(1);				// scale
-    WriteLittleEndianDWORD(EMULATED_FRAMES_PER_SECOND);	// rate
+    WriteLittleEndianDWORD(TSTATES_PER_FRAME); // scale
+    WriteLittleEndianDWORD(REAL_TSTATES_PER_SECOND); // rate
     WriteLittleEndianDWORD(0);				// start time
     WriteLittleEndianDWORD(dwVideoFrames);	// total frames in stream
     WriteLittleEndianDWORD(dwVideoMax);		// suggested buffer size
@@ -206,14 +206,14 @@ static void WriteAudioHeader (FILE *f_)
     fwrite("\0\0\0\0", 4, 1, f);			// FOURCC not specified (PCM below)
     WriteLittleEndianDWORD(0);				// flags, unused
     WriteLittleEndianDWORD(0);				// priority and language, unused
-    WriteLittleEndianDWORD(0);				// initial frames
+    WriteLittleEndianDWORD(1);				// initial frames
     WriteLittleEndianDWORD(SAMPLE_BLOCK);	// scale
     WriteLittleEndianDWORD(SAMPLE_FREQ*SAMPLE_BLOCK); // rate
     WriteLittleEndianDWORD(0);				// start time
-    WriteLittleEndianDWORD(dwAudioFrames);	// total samples in stream
+    WriteLittleEndianDWORD(dwAudioSamples);	// total samples in stream
     WriteLittleEndianDWORD(dwAudioMax);		// suggested buffer size
     WriteLittleEndianDWORD(0xffffffff);		// quality
-    WriteLittleEndianDWORD(SAMPLE_BLOCK/SAMPLE_CHANNELS); // sample size
+    WriteLittleEndianDWORD(SAMPLE_BLOCK);	// sample size
     WriteLittleEndianDWORD(0);				// two unused rect coords
     WriteLittleEndianDWORD(0);				// two more unused rect coords
 
@@ -427,7 +427,7 @@ bool AVI::Start (bool fHalfSize_)
         return false;
 
     // Reset the frame counters
-    dwVideoFrames = dwAudioFrames = 0;
+    dwVideoFrames = dwAudioFrames = dwAudioSamples = 0;
     dwVideoMax = dwAudioMax = 0;
 
     // Set the size and flag we want a video frame first
@@ -646,12 +646,13 @@ void AVI::AddFrame (BYTE *pb_, UINT uLen_)
     if (!f || fWantVideo)
         return;
 
-    // Start of frame chunk and audio data
+    // Write the audio chunk
     DWORD dwPos = WriteChunkStart(f, "01wb");
     fwrite(pb_, uLen_, 1, f);
-
-    // Complete frame chunk
     DWORD dwSize = WriteChunkEnd(f, dwPos);
+
+    // Update counters
+    dwAudioSamples += uLen_ / SAMPLE_BLOCK;
     dwAudioFrames++;
 
     // Track the maximum audio data size
