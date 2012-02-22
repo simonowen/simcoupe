@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// GIF.cpp: GIF movie recording
+// GIF.h: GIF animation recording
 //
 //  Copyright (c) 1999-2012 Simon Owen
 //
@@ -27,7 +27,7 @@
 class GIF
 {
     public:
-        static bool Start (const char* pcszFile_, bool fAnimLoop_=false);
+        static bool Start (bool fAnimLoop_=false);
         static void Stop ();
         static void Toggle (bool fAnimLoop_=false);
         static bool IsRecording ();

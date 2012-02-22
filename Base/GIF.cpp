@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// GIF.cpp: GIF movie recording
+// GIF.cpp: GIF animation recording
 //
 //  Copyright (c) 1999-2012 Simon Owen
 //
@@ -31,12 +31,14 @@
 
 static BYTE *pbCurr, *pbFirst, *pbSub;
 
-static char szFile[MAX_PATH];
+static char szPath[MAX_PATH];
 static FILE *f;
+
 static int nDelay = 0;
 static long lDelayOffset;
 static int wl, wt, ww, wh;	// left/top/width/height for change rect
 static int nFrameSkip = 3;	// 50/2 = 25fps (FF/Chrome/Safari/Opera), 50/3 = 16.6fps (IE grrr!)
+static int nNext = 0;
 
 enum LoopState { kNone, kIgnoreFirstChange, kWaitLoopStart, kLoopStarted };
 static LoopState nLoopState;
@@ -234,7 +236,7 @@ found_bottom:
         }
     }
 
-    TRACE("RECT: l=%u t=%u r=%u b=%u\n", l, t, r, b);
+//  TRACE("RECT: l=%u t=%u r=%u b=%u\n", l, t, r, b);
     wl = l;
     wt = t;
     ww = r-l+1;
@@ -277,14 +279,14 @@ static BYTE UpdateImage (BYTE *pb_, CScreen *pScreen_)
             // End of a colour run?
             if (!fMatch && nRun > nTrans)
             {
-                TRACE("colour run of %d * %02X\n", nRun, bColour);
+//              TRACE("colour run of %d * %02X\n", nRun, bColour);
                 memset(pbSub_, bColour, nRun);
                 pbSub_ += nRun;
             }
             // End of a transparency run, or colour/transparent run of equal size?
             else if (!fTrans && (nTrans > nRun || (!fMatch && nRun)))
             {
-                TRACE("trans run of %d\n", nTrans);
+//              TRACE("trans run of %d\n", nTrans);
                 memset(pbSub_, 0xff, nTrans);
                 pbSub_ += nTrans;
             }
@@ -307,14 +309,14 @@ static BYTE UpdateImage (BYTE *pb_, CScreen *pScreen_)
     // Complete the final colour run, if larger
     if (nRun > nTrans)
     {
-        TRACE("final run of %d x %02X\n", nRun, bColour);
+//      TRACE("final run of %d x %02X\n", nRun, bColour);
         memset(pbSub_, bColour, nRun);
         pbSub_ += nRun;
     }
     // or the final transparent run
     else if (nTrans)
     {
-        TRACE("final trans of %d\n", nTrans);
+//      TRACE("final trans of %d\n", nTrans);
         memset(pbSub_, 0xff, nTrans);
         pbSub_ += nTrans;
     }
@@ -349,29 +351,63 @@ static BYTE UpdateImage (BYTE *pb_, CScreen *pScreen_)
 
 //////////////////////////////////////////////////////////////////////////////
 
-bool GIF::Start (const char* pcszFile_, bool fAnimLoop_)
+bool GIF::Start (bool fAnimLoop_)
 {
     // Fail if we're already recording
     if (f)
         return false;
 
-    // Create the file, keeping a copy of the path for later
-    strncpy(szFile, pcszFile_, MAX_PATH);
-    f = fopen(szFile, "wb");
+    // Find a unique filename to use, in the format aniNNNN.gif
+    char szTemplate[MAX_PATH];
+    snprintf(szTemplate, MAX_PATH, "%sani%%04d.gif", OSD::GetDirPath(GetOption(datapath)));
+    nNext = Util::GetUniqueFile(szTemplate, nNext, szPath, sizeof(szPath));
 
-    // Ensure the file was created
+    // Create the file
+    f = fopen(szPath, "wb+");
     if (!f)
         return false;
 
-    // Reset the delay from the last frame change
+    // Reset the frame counters
     nDelay = 0;
     lDelayOffset = 0;
 
     // Recording a looped animation?
     nLoopState = fAnimLoop_ ? kIgnoreFirstChange : kNone;
 
+    Frame::SetStatus("Recording GIF %s", fAnimLoop_ ? "loop" : "animation");
     return true;
 }
+
+void GIF::Stop ()
+{
+    // Ignore if we're not recording
+    if (!f)
+        return;
+
+    // Add any final delay to allow for identical frames at the end
+    if (lDelayOffset)
+        WriteGraphicControlExtensionDelay(lDelayOffset, nDelay*2);
+
+    WriteFileTerminator();
+    fclose(f);
+    f = NULL;
+
+    Frame::SetStatus("Saved ani%04d.gif", nNext-1);
+}
+
+void GIF::Toggle (bool fAnimLoop_)
+{
+    if (!f)
+        Start(fAnimLoop_);
+    else
+        Stop();
+}
+
+bool GIF::IsRecording ()
+{
+    return f != NULL;
+}
+
 
 void GIF::AddFrame (CScreen *pScreen_)
 {
@@ -447,7 +483,6 @@ void GIF::AddFrame (CScreen *pScreen_)
     {
         delete[] pbFirst, pbFirst = NULL;
         Stop();
-        Frame::SetStatus("Finished GIF loop");
         return;
     }
 
@@ -469,47 +504,6 @@ void GIF::AddFrame (CScreen *pScreen_)
     GifCompressor *pgc = new GifCompressor;
     if (pgc) pgc->WriteDataBlocks(f, ww*wh, COLOUR_DEPTH);
     delete pgc;
-}
-
-void GIF::Stop ()
-{
-    // Ignore if we're not recording
-    if (!f)
-        return;
-
-    // Add any final delay to allow for identical frames at the end
-    if (lDelayOffset)
-        WriteGraphicControlExtensionDelay(lDelayOffset, nDelay*2);
-
-    WriteFileTerminator();
-    fclose(f);
-    f = NULL;
-}
-
-void GIF::Toggle (bool fAnimLoop_)
-{
-    if (!f)
-    {
-        static int nNext = 0;
-        char szTemplate[MAX_PATH];
-
-        // Find a unique filename to use, in the format moviNNNN.gif
-        sprintf(szTemplate, "%smovi%%04d.gif", OSD::GetDirPath(GetOption(datapath)));
-        nNext = Util::GetUniqueFile(szTemplate, nNext, szFile, sizeof(szFile));
-
-        if (Start(szFile, fAnimLoop_))
-            Frame::SetStatus("Recording GIF %s", fAnimLoop_ ? "loop" : "movie");
-    }
-    else
-    {
-        Stop();
-        Frame::SetStatus("Finished GIF movie");
-    }
-}
-
-bool GIF::IsRecording ()
-{
-    return f != NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
