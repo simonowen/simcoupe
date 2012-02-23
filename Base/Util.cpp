@@ -165,7 +165,7 @@ void TraceOutputString (const char *pcszFormat_, ...)
 {
 }
 
-static void TraceOutputString (const BYTE *pcb, UINT uLen/*=0*/)
+void TraceOutputString (const BYTE *pcb, UINT uLen/*=0*/)
 {
 }
 
