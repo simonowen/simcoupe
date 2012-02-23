@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.6)
 
 project(simcoupe)
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
 set(USE_OPENGL YES)
 
@@ -63,3 +63,5 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
 endif (CMAKE_BUILD_TYPE MATCHES Debug)
 
 add_executable(simcoupe WIN32 MACOSX_BUNDLE ${BASE_SRC} ${SDL_SRC} ${EXTERN_SRC})
+
+install(TARGETS simcoupe DESTINATION bin)
