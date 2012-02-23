@@ -1,5 +1,4 @@
-# CMake file for SDL build of SimCoupegpm
-
+# CMake file for SDL build of SimCoupe
 
 cmake_minimum_required(VERSION 2.6)
 
@@ -7,7 +6,7 @@ project(simcoupe)
 
 set(CMAKE_BUILD_TYPE Debug)
 
-set(USE_OPENGL NO)
+set(USE_OPENGL YES)
 
 include_directories(Base/ SDL/ Extern/)
 
