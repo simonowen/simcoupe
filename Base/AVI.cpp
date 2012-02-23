@@ -65,11 +65,11 @@ static DWORD ReadLittleEndianDWORD ()
 {
 #ifdef __LITTLE_ENDIAN__
     DWORD dw;
-    fread(&dw, sizeof(dw), 1, f);
+    if (!fread(&dw, sizeof(dw), 1, f)) dw = 0;
     return dw;
 #else
-    BYTE ab[4];
-    fread(ab, sizeof(ab), 1, f);
+    BYTE ab[4] = { };
+    if (!fread(ab, sizeof(ab), 1, f)) ab[0] = 0;
 
     return (ab[3] << 24) | (ab[2] << 16) | (ab[1] << 8) | ab[0];
 #endif
@@ -256,7 +256,7 @@ static void WriteIndex (FILE *f_)
 
         // Read the type and size from the movi chunk
         fseek(f, dwMoviPos, SEEK_SET);
-        fread(abType, sizeof(abType), 1, f);
+        if (!fread(abType, sizeof(abType), 1, f)) abType[0] = 0;
         DWORD dwSize = ReadLittleEndianDWORD();
         fseek(f, 0, SEEK_END);
 
