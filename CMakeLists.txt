@@ -1,4 +1,5 @@
-# CMake file for SDL build of SimCoupe
+# CMake file for SDL build of SimCoupegpm
+
 
 cmake_minimum_required(VERSION 2.6)
 
@@ -44,7 +45,7 @@ endif (ZLIB_FOUND)
 find_package(BZip2)
 if (BZIP2_FOUND)
   message(STATUS "Using BZip2")
-  set_property(GLOBAL APPEND PROPERTY COMPILE_DEFINITIONS USE_BZIP2)
+  add_definitions(-DUSE_BZIP2)
   include_directories(${BZIP2_INCLUDE_DIR})
   link_libraries(${BZIP2_LIBRARIES})
 endif (BZIP2_FOUND)
