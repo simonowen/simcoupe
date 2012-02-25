@@ -911,10 +911,14 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         {
             TRACE("WM_ACTIVATE (%#08lx)\n", wParam_);
             bool fActive = LOWORD(wParam_) != WA_INACTIVE;
-            bool fChildOpen = GetParent(reinterpret_cast<HWND>(lParam_)) == hwnd_;
+            bool fChildOpen = !fActive && GetParent(reinterpret_cast<HWND>(lParam_)) == hwnd_;
 
-            // When the main window becomes inactive to a child window, silence the sound
-            if (!fActive && fChildOpen)
+            // Purge any buffered input from the inactive period
+            if (fActive)
+                Input::Purge();
+
+            // Silence the sound if a child window is open
+            else if (fChildOpen)
                 Sound::Silence();
 
             break;

@@ -261,10 +261,10 @@ void Input::Purge ()
     while (PeekMessage(&msg, NULL, WM_MOUSEMOVE, WM_MOUSEMOVE, PM_REMOVE));
 
     // Purge queued keyboard items
-    if (pdiKeyboard)
+    if (pdiKeyboard && SUCCEEDED(pdiKeyboard->Acquire()))
     {
         DWORD dwItems = ULONG_MAX;
-        if (SUCCEEDED(pdiKeyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), NULL, &dwItems, 0)))
+        if (SUCCEEDED(pdiKeyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), NULL, &dwItems, 0)) && dwItems)
             TRACE("%lu keyboard items purged\n", dwItems);
     }
 
@@ -274,14 +274,12 @@ void Input::Purge ()
 
 void ReadKeyboard ()
 {
-    HRESULT hr;
-
-    if (pdiKeyboard && SUCCEEDED(hr = pdiKeyboard->Acquire()))
+    if (pdiKeyboard && SUCCEEDED(pdiKeyboard->Acquire()))
     {
         DIDEVICEOBJECTDATA abEvents[EVENT_BUFFER_SIZE];
         DWORD dwItems = EVENT_BUFFER_SIZE;
 
-        if (SUCCEEDED(hr = pdiKeyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), abEvents, &dwItems, 0)))
+        if (SUCCEEDED(pdiKeyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), abEvents, &dwItems, 0)))
         {
             for (DWORD i = 0 ; i < dwItems ; i++)
             {
