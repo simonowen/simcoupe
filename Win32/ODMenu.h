@@ -2,7 +2,7 @@
 //
 // ODMenu.h: Owner-draw Win32 menus with images
 //
-//  Copyright (c) 1999-2011 Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -67,7 +67,7 @@ class COwnerDrawnMenu
         void OnMenuSelect (UINT nItemID_, UINT nFlags_, HMENU hmenuSys_);
         LRESULT OnMenuChar (UINT nChar_, UINT nFlags_, HMENU hmenu_);
 
-        void DrawMenuText (HDC hdc, LPRECT rc, LPCSTR text, COLORREF color);
+        void DrawMenuText (HDC hdc, LPRECT rc, LPCSTR text, bool fDisabled_);
         bool DrawCheck (HDC hdc, RECT rc, UINT uType, UINT uState_);
         void DrawGreyedImage (HDC hdc_, HIMAGELIST hil_, int i, int x, int y);
         void ConvertMenu (HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, bool fConvert_);

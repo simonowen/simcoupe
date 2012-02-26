@@ -2,7 +2,7 @@
 //
 // ODMenu.cpp: Owner-draw Win32 menus with images
 //
-//  Copyright (c) 1999-2011 Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,8 +24,9 @@
 #include "SimCoupe.h"
 #include "ODMenu.h"
 
-const int CXGAP = 1;            // Pixels between button and text
+const int CXGAP = 2;            // Pixels between button and text
 const int CXTEXTMARGIN = 2;     // Pixels after hilite to start text
+const int CYTEXTMARGIN = 2;     // Pixels below hilite to start text
 const int CXBUTTONMARGIN = 2;   // Pixels wider button is than bitmap
 const int CYBUTTONMARGIN = 2;   // Pixels higher button is than bitmap
 
@@ -193,7 +194,7 @@ bool COwnerDrawnMenu::OnDrawItem (LPDRAWITEMSTRUCT lpds)
 
         RECT rBorder = { r.left, r.top, r.left+m_zBorder.cx, r.top+m_zBorder.cy };
 
-        int nBgCol = fSelected ? COLOR_HIGHLIGHT : COLOR_MENU;
+        int nBgCol = (fSelected && !fDisabled) ? COLOR_HIGHLIGHT : COLOR_MENU;
         if ((fSelected || lpds->itemAction == ODA_SELECT))
             FillRect(hdc, &r, GetSysColorBrush(nBgCol));
 
@@ -226,53 +227,54 @@ bool COwnerDrawnMenu::OnDrawItem (LPDRAWITEMSTRUCT lpds)
         RECT rText = r;
         rText.left  += m_zBorder.cx + CXGAP + CXTEXTMARGIN;
         rText.right -= m_zBorder.cx;
+        rText.top += CYTEXTMARGIN;
 
-        COLORREF colText = GetSysColor(fDisabled ? COLOR_GRAYTEXT : fSelected ? COLOR_HIGHLIGHTTEXT : COLOR_MENUTEXT);
         SetBkMode(hdc, TRANSPARENT);
-
-        if (fDisabled && (!fSelected || colText == GetSysColor(nBgCol)))
-        {
-            RECT rShadow = { rText.left+1, rText.top+2, rText.right, rText.bottom };
-            DrawMenuText(hdc, &rShadow, pmi->szText, GetSysColor(COLOR_3DHILIGHT));
-        }
-
-        DrawMenuText(hdc, &rText, pmi->szText, colText);
+        DrawMenuText (hdc, &rText, pmi->szText, fDisabled);
     }
 
     return true;
 }
 
 
-void COwnerDrawnMenu::DrawMenuText (HDC hdc_, LPRECT lprc, LPCSTR pcsz_, COLORREF col_)
+void COwnerDrawnMenu::DrawMenuText (HDC hdc_, LPRECT lprc, LPCSTR pcsz_, bool fDisabled_)
 {
-    char sz[MAX_PATH];
-    SetTextColor(hdc_, col_);
+    char sz[256];
+    lstrcpyn(sz, pcsz_, sizeof(sz));
 
-    for (char* psz = lstrcpyn(sz, pcsz_, sizeof(sz)) ; *psz ; psz = CharNext(psz))
+    char *psz = strchr(sz, '\t');
+    if (psz)
     {
-        if (*psz == '\t')
-        {
-            *psz = '\0';
-            DrawText(hdc_, psz+1, -1, lprc, DT_SINGLELINE|DT_VCENTER|DT_RIGHT);
-            break;
-        }
+        *psz++ = '\0';
+
+        DrawState(hdc_, NULL, NULL, (LPARAM)psz, lstrlen(sz),
+            lprc->left, lprc->top, lprc->right, lprc->bottom,
+            DST_PREFIXTEXT | DSS_RIGHT | (fDisabled_ ? DSS_DISABLED : 0));
     }
 
-    DrawText(hdc_, sz, -1, lprc, DT_SINGLELINE|DT_VCENTER);
+    DrawState(hdc_, NULL, NULL, (LPARAM)sz, lstrlen(sz),
+        lprc->left, lprc->top, lprc->right, lprc->bottom,
+        DST_PREFIXTEXT | (fDisabled_ ? DSS_DISABLED : 0));
 }
 
 bool COwnerDrawnMenu::DrawCheck (HDC hdc, RECT r, UINT uType, UINT uState_)
 {
+    RECT rBox = r;
+    InflateRect(&rBox, 1, 1);
+    FillRect(hdc, &rBox, GetSysColorBrush(COLOR_MENU));
+    InflateRect(&rBox, -2, -2);
+    FrameRect(hdc, &rBox, GetSysColorBrush(COLOR_HIGHLIGHT));
+
     int cx = GetSystemMetrics(SM_CXMENUCHECK), cy = GetSystemMetrics(SM_CYMENUCHECK);
-    int x = r.left + ((r.right-r.left - cx+1) >> 1), y = r.top + ((r.bottom-r.top - cy+1) >> 1);
-    RECT rr = { 0, 0, cx, cy };
+    int x = r.left + ((r.right-r.left - cx+1) / 2), y = r.top + ((r.bottom-r.top - cy+1) / 2);
+    RECT rCheck = { 0, 0, cx, cy };
 
     HDC hdcM = CreateCompatibleDC(hdc), hdc2 = CreateCompatibleDC(hdc);
     HBITMAP hbmpM = CreateCompatibleBitmap(hdc, cx,cy), hbmp2 = CreateCompatibleBitmap(hdc, cx,cy);
     HGDIOBJ hbmpOldM = SelectObject(hdcM, hbmpM), hbmpOld2 = SelectObject(hdc2, hbmp2);
 
-    DrawFrameControl(hdcM, &rr, DFC_MENU, (uType & MFT_RADIOCHECK) ? DFCS_MENUBULLET : DFCS_MENUCHECK);
-    FillRect(hdc2, &rr, GetSysColorBrush((uState_ & ODS_SELECTED) ? COLOR_HIGHLIGHTTEXT : COLOR_MENUTEXT));
+    DrawFrameControl(hdcM, &rCheck, DFC_MENU, (uType & MFT_RADIOCHECK) ? DFCS_MENUBULLET : DFCS_MENUCHECK);
+    FillRect(hdc2, &rCheck, GetSysColorBrush(COLOR_MENUTEXT));
 
     BitBlt(hdc, x, y, cx, cy, hdc2, 0, 0, SRCINVERT);
     BitBlt(hdc, x, y, cx, cy, hdcM, 0, 0, SRCAND);
