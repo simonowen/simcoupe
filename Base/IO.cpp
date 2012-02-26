@@ -161,6 +161,7 @@ void IO::Exit (bool fReInit_/*=false*/)
         delete pSAMVox, pSAMVox = NULL;
         delete pBlueAlpha, pBlueAlpha = NULL;
         delete pBeeper, pBeeper = NULL;
+        delete pSID, pSID = NULL;
         delete pSAA, pSAA = NULL;
         delete pDAC, pDAC = NULL;
     }
