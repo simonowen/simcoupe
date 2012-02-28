@@ -80,7 +80,6 @@ void Audio::Exit (bool fReInit_/*=false*/)
 
 bool Audio::AddData (Uint8* pbData_, int nLength_)
 {
-    bool fWaited = false;
     int nSpace = 0;
 
     if (!IsAvailable())
@@ -114,7 +113,6 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
 
         // Wait for more space
         SDL_Delay(1);
-        fWaited = true;
     }
 
     // How long since the frame?
