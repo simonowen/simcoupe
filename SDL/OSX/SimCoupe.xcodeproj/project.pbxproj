@@ -115,6 +115,16 @@
 		1358F5CE0A6C12AE00D20135 /* file_sbt.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C70A6C12AE00D20135 /* file_sbt.icns */; };
 		1358F5CF0A6C12AE00D20135 /* file_sdf.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C80A6C12AE00D20135 /* file_sdf.icns */; };
 		1358F5D00A6C12AE00D20135 /* file_td0.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C90A6C12AE00D20135 /* file_td0.icns */; };
+		1386FD0514FD163600F4032B /* AVI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1386FCFB14FD163600F4032B /* AVI.cpp */; };
+		1386FD0614FD163600F4032B /* AVI.h in Headers */ = {isa = PBXBuildFile; fileRef = 1386FCFC14FD163600F4032B /* AVI.h */; };
+		1386FD0714FD163600F4032B /* GIF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1386FCFD14FD163600F4032B /* GIF.cpp */; };
+		1386FD0814FD163600F4032B /* GIF.h in Headers */ = {isa = PBXBuildFile; fileRef = 1386FCFE14FD163600F4032B /* GIF.h */; };
+		1386FD0914FD163600F4032B /* Paula.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1386FCFF14FD163600F4032B /* Paula.cpp */; };
+		1386FD0A14FD163600F4032B /* Paula.h in Headers */ = {isa = PBXBuildFile; fileRef = 1386FD0014FD163600F4032B /* Paula.h */; };
+		1386FD0B14FD163600F4032B /* SAMVox.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1386FD0114FD163600F4032B /* SAMVox.cpp */; };
+		1386FD0C14FD163600F4032B /* SAMVox.h in Headers */ = {isa = PBXBuildFile; fileRef = 1386FD0214FD163600F4032B /* SAMVox.h */; };
+		1386FD0D14FD163600F4032B /* WAV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1386FD0314FD163600F4032B /* WAV.cpp */; };
+		1386FD0E14FD163600F4032B /* WAV.h in Headers */ = {isa = PBXBuildFile; fileRef = 1386FD0414FD163600F4032B /* WAV.h */; };
 		13EC1B3014E95BD800FA9EDB /* Joystick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13EC1B2614E95BD800FA9EDB /* Joystick.cpp */; };
 		13EC1B3114E95BD800FA9EDB /* Joystick.h in Headers */ = {isa = PBXBuildFile; fileRef = 13EC1B2714E95BD800FA9EDB /* Joystick.h */; };
 		13EC1B3214E95BD800FA9EDB /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13EC1B2814E95BD800FA9EDB /* Keyboard.cpp */; };
@@ -166,6 +176,16 @@
 		1374D20109746C5E001B908F /* Options.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = Options.nib; sourceTree = "<group>"; };
 		1374D22C09747359001B908F /* Options.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Options.h; sourceTree = "<group>"; };
 		1374D22D09747359001B908F /* Options.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Options.m; sourceTree = "<group>"; };
+		1386FCFB14FD163600F4032B /* AVI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AVI.cpp; path = ../../Base/AVI.cpp; sourceTree = "<group>"; };
+		1386FCFC14FD163600F4032B /* AVI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AVI.h; path = ../../Base/AVI.h; sourceTree = "<group>"; };
+		1386FCFD14FD163600F4032B /* GIF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = GIF.cpp; path = ../../Base/GIF.cpp; sourceTree = "<group>"; };
+		1386FCFE14FD163600F4032B /* GIF.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GIF.h; path = ../../Base/GIF.h; sourceTree = "<group>"; };
+		1386FCFF14FD163600F4032B /* Paula.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Paula.cpp; path = ../../Base/Paula.cpp; sourceTree = "<group>"; };
+		1386FD0014FD163600F4032B /* Paula.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Paula.h; path = ../../Base/Paula.h; sourceTree = "<group>"; };
+		1386FD0114FD163600F4032B /* SAMVox.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SAMVox.cpp; path = ../../Base/SAMVox.cpp; sourceTree = "<group>"; };
+		1386FD0214FD163600F4032B /* SAMVox.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SAMVox.h; path = ../../Base/SAMVox.h; sourceTree = "<group>"; };
+		1386FD0314FD163600F4032B /* WAV.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WAV.cpp; path = ../../Base/WAV.cpp; sourceTree = "<group>"; };
+		1386FD0414FD163600F4032B /* WAV.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WAV.h; path = ../../Base/WAV.h; sourceTree = "<group>"; };
 		13A0FE78088EDF7B00E5436C /* Display.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Display.cpp; path = ../Display.cpp; sourceTree = "<group>"; };
 		13A0FE79088EDF7B00E5436C /* Display.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Display.h; path = ../Display.h; sourceTree = "<group>"; };
 		13A0FE7A088EDF7B00E5436C /* Floppy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Floppy.cpp; path = ../Floppy.cpp; sourceTree = "<group>"; };
@@ -361,6 +381,7 @@
 				13A0FF21088EDFC000E5436C /* Action.cpp */,
 				13A0FF23088EDFC000E5436C /* ATA.cpp */,
 				13A0FF25088EDFC000E5436C /* Atom.cpp */,
+				1386FCFB14FD163600F4032B /* AVI.cpp */,
 				13EC1B3E14E95C2400FA9EDB /* BlipBuffer.cpp */,
 				13EC1B4014E95C2400FA9EDB /* BlueAlpha.cpp */,
 				13A0FF28088EDFC000E5436C /* CDisk.cpp */,
@@ -374,6 +395,7 @@
 				13A0FF3E088EDFC100E5436C /* Expr.cpp */,
 				13A0FF40088EDFC100E5436C /* Font.cpp */,
 				13A0FF42088EDFC100E5436C /* Frame.cpp */,
+				1386FCFD14FD163600F4032B /* GIF.cpp */,
 				13A0FF44088EDFC100E5436C /* GUI.cpp */,
 				13A0FF46088EDFC100E5436C /* GUIDlg.cpp */,
 				13A0FF48088EDFC100E5436C /* GUIIcons.cpp */,
@@ -386,12 +408,15 @@
 				13A0FF53088EDFC100E5436C /* Mouse.cpp */,
 				13A0FF55088EDFC100E5436C /* Options.cpp */,
 				13A0FF57088EDFC100E5436C /* Parallel.cpp */,
+				1386FCFF14FD163600F4032B /* Paula.cpp */,
 				13A0FF59088EDFC100E5436C /* PNG.cpp */,
 				13EC1B2A14E95BD800FA9EDB /* SAA1099.cpp */,
+				1386FD0114FD163600F4032B /* SAMVox.cpp */,
 				13A0FF60088EDFC100E5436C /* SDIDE.cpp */,
 				13EC1B2C14E95BD800FA9EDB /* SID.cpp */,
 				13EC1B2E14E95BD800FA9EDB /* Sound.cpp */,
 				13A0FF63088EDFC100E5436C /* Util.cpp */,
+				1386FD0314FD163600F4032B /* WAV.cpp */,
 				13A0FF66088EDFC100E5436C /* YATBus.cpp */,
 			);
 			name = Base;
@@ -411,6 +436,11 @@
 		13B8909614E9704B00164818 /* Headers */ = {
 			isa = PBXGroup;
 			children = (
+				1386FCFC14FD163600F4032B /* AVI.h */,
+				1386FCFE14FD163600F4032B /* GIF.h */,
+				1386FD0014FD163600F4032B /* Paula.h */,
+				1386FD0214FD163600F4032B /* SAMVox.h */,
+				1386FD0414FD163600F4032B /* WAV.h */,
 				13A0FF22088EDFC000E5436C /* Action.h */,
 				13A0FF24088EDFC000E5436C /* ATA.h */,
 				13A0FF26088EDFC000E5436C /* Atom.h */,
@@ -600,6 +630,11 @@
 				13EC1B3D14E95BF600FA9EDB /* Audio.h in Headers */,
 				13EC1B4314E95C2400FA9EDB /* BlipBuffer.h in Headers */,
 				13EC1B4514E95C2400FA9EDB /* BlueAlpha.h in Headers */,
+				1386FD0614FD163600F4032B /* AVI.h in Headers */,
+				1386FD0814FD163600F4032B /* GIF.h in Headers */,
+				1386FD0A14FD163600F4032B /* Paula.h in Headers */,
+				1386FD0C14FD163600F4032B /* SAMVox.h in Headers */,
+				1386FD0E14FD163600F4032B /* WAV.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -729,6 +764,11 @@
 				13EC1B3C14E95BF600FA9EDB /* Audio.cpp in Sources */,
 				13EC1B4214E95C2400FA9EDB /* BlipBuffer.cpp in Sources */,
 				13EC1B4414E95C2400FA9EDB /* BlueAlpha.cpp in Sources */,
+				1386FD0514FD163600F4032B /* AVI.cpp in Sources */,
+				1386FD0714FD163600F4032B /* GIF.cpp in Sources */,
+				1386FD0914FD163600F4032B /* Paula.cpp in Sources */,
+				1386FD0B14FD163600F4032B /* SAMVox.cpp in Sources */,
+				1386FD0D14FD163600F4032B /* WAV.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
