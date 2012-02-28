@@ -208,12 +208,12 @@ void Keyboard::Update ()
         // Note: the SK_ range isn't contiguous
         static const int anS[] = { SK_F1, SK_F2, SK_F3, SK_F4, SK_F5, SK_F6, SK_F7, SK_F8, SK_F9, SK_F0 };
 
-        for (int i = 0 ; i < _countof(anS) ; i++)
+        for (UINT u = 0 ; u < _countof(anS) ; u++)
         {
-            if (IsPressed(static_cast<eHostKey>(HK_F1+i)))
+            if (IsPressed(static_cast<eHostKey>(HK_F1+u)))
             {
                 // Press the SAM function key
-                PressSamKey(anS[i]);
+                PressSamKey(anS[u]);
                 break;
             }
         }
