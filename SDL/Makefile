@@ -28,6 +28,7 @@ EXTERN=../Extern
 
 USE_OPENGL=0
 USE_ZLIB=1
+USE_RESID=0  # libresid will probably need manual building
 
 .SUFFIXES: .cpp .c
 
@@ -35,16 +36,17 @@ CFLAGS=-O2 -Wall -I${SDL} -I${BASE} -I${EXTERN} $(shell sdl-config --cflags)
 CXXFLAGS=${CFLAGS} -Wall
 LIBS=-L. -lm $(shell sdl-config --libs --cflags)
 
-BASE_SRC=${BASE}/Action.cpp ${BASE}/ATA.cpp ${BASE}/Atom.cpp \
+BASE_SRC=${BASE}/Action.cpp ${BASE}/ATA.cpp ${BASE}/Atom.cpp ${BASE}/AVI.cpp \
  $(BASE)/BlipBuffer.cpp $(BASE)/BlueAlpha.cpp ${BASE}/CDisk.cpp \
  ${BASE}/CDrive.cpp ${BASE}/Clock.cpp ${BASE}/CPU.cpp ${BASE}/CScreen.cpp \
  ${BASE}/CStream.cpp ${BASE}/Debug.cpp ${BASE}/Disassem.cpp ${BASE}/Expr.cpp \
- ${BASE}/Font.cpp ${BASE}/Frame.cpp ${BASE}/GUI.cpp ${BASE}/GUIDlg.cpp \
- ${BASE}/GUIIcons.cpp ${BASE}/HardDisk.cpp ${BASE}/IO.cpp \
+ ${BASE}/Font.cpp ${BASE}/Frame.cpp ${BASE}/GIF.cpp ${BASE}/GUI.cpp \
+ ${BASE}/GUIDlg.cpp ${BASE}/GUIIcons.cpp ${BASE}/HardDisk.cpp ${BASE}/IO.cpp \
  ${BASE}/Joystick.cpp ${BASE}/Keyboard.cpp ${BASE}/Main.cpp \
  ${BASE}/Memory.cpp ${BASE}/Mouse.cpp ${BASE}/Options.cpp \
- ${BASE}/Parallel.cpp ${BASE}/PNG.cpp ${BASE}/SAA1099.cpp ${BASE}/SDIDE.cpp \
- $(BASE)/Sound.cpp ${BASE}/Util.cpp ${BASE}/YATBus.cpp
+ ${BASE}/Parallel.cpp ${BASE}/Paula.cpp ${BASE}/PNG.cpp ${BASE}/SAA1099.cpp \
+ ${BASE}/SAMVox.cpp ${BASE}/SDIDE.cpp ${BASE}/SID.cpp $(BASE)/Sound.cpp \
+ ${BASE}/Util.cpp ${BASE}/WAV.cpp ${BASE}/YATBus.cpp
 
 SDL_SRC=${SDL}/Audio.cpp ${SDL}/Display.cpp ${SDL}/Floppy.cpp \
  ${SDL}/IDEDisk.cpp ${SDL}/Input.cpp ${SDL}/MIDI.cpp ${SDL}/OSD.cpp \
@@ -60,6 +62,11 @@ endif
 ifeq (${USE_ZLIB},1)
 CFLAGS += -DUSE_ZLIB
 LIBS += -lz
+endif
+
+ifeq (${USE_RESID},1)
+CFLAGS += -DUSE_RESID
+LIBS += -lresid
 endif
 
 ifneq (,$(findstring -framework Carbon,$(LIBS)))
