@@ -93,6 +93,8 @@ void Display::SetDirty ()
 }
 
 
+#ifndef USE_OPENGL
+
 // Draw the changed lines in the appropriate colour depth and hi/low resolution
 static bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
 {
@@ -559,7 +561,7 @@ static bool DrawChanges (CScreen* pScreen_, SDL_Surface* pSurface_)
 }
 
 
-#ifdef USE_OPENGL
+#else // USE_OPENGL
 
 // OpenGL version of DisplayChanges
 void DrawChangesGL (CScreen* pScreen_)
@@ -748,7 +750,7 @@ void DrawChangesGL (CScreen* pScreen_)
     SDL_GL_SwapBuffers();
 }
 
-#endif
+#endif // USE_OPENGL
 
 
 // Update the display to show anything that's changed since last time

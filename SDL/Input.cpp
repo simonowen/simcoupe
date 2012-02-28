@@ -122,6 +122,7 @@ void Input::Purge ()
 }
 
 
+#ifdef USE_JOYPOLLING
 // Read the specified joystick
 static void ReadJoystick (int nJoystick_, SDL_Joystick *pJoystick_, int nTolerance_)
 {
@@ -151,6 +152,7 @@ static void ReadJoystick (int nJoystick_, SDL_Joystick *pJoystick_, int nToleran
     Joystick::SetPosition(nJoystick_, nPosition);
     Joystick::SetButtons(nJoystick_, dwButtons);
 }
+#endif // USE_JOYPOLLING
 
 
 // Process SDL event messages
