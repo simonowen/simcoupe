@@ -36,21 +36,9 @@ CFLAGS=-O2 -Wall -I${SDL} -I${BASE} -I${EXTERN} $(shell sdl-config --cflags)
 CXXFLAGS=${CFLAGS} -Wall
 LIBS=-L. -lm $(shell sdl-config --libs --cflags)
 
-BASE_SRC=${BASE}/Action.cpp ${BASE}/ATA.cpp ${BASE}/Atom.cpp ${BASE}/AVI.cpp \
- $(BASE)/BlipBuffer.cpp $(BASE)/BlueAlpha.cpp ${BASE}/CDisk.cpp \
- ${BASE}/CDrive.cpp ${BASE}/Clock.cpp ${BASE}/CPU.cpp ${BASE}/CScreen.cpp \
- ${BASE}/CStream.cpp ${BASE}/Debug.cpp ${BASE}/Disassem.cpp ${BASE}/Expr.cpp \
- ${BASE}/Font.cpp ${BASE}/Frame.cpp ${BASE}/GIF.cpp ${BASE}/GUI.cpp \
- ${BASE}/GUIDlg.cpp ${BASE}/GUIIcons.cpp ${BASE}/HardDisk.cpp ${BASE}/IO.cpp \
- ${BASE}/Joystick.cpp ${BASE}/Keyboard.cpp ${BASE}/Main.cpp \
- ${BASE}/Memory.cpp ${BASE}/Mouse.cpp ${BASE}/Options.cpp \
- ${BASE}/Parallel.cpp ${BASE}/Paula.cpp ${BASE}/PNG.cpp ${BASE}/SAA1099.cpp \
- ${BASE}/SAMVox.cpp ${BASE}/SDIDE.cpp ${BASE}/SID.cpp $(BASE)/Sound.cpp \
- ${BASE}/Util.cpp ${BASE}/WAV.cpp ${BASE}/YATBus.cpp
-
-SDL_SRC=${SDL}/Audio.cpp ${SDL}/Display.cpp ${SDL}/Floppy.cpp \
- ${SDL}/IDEDisk.cpp ${SDL}/Input.cpp ${SDL}/MIDI.cpp ${SDL}/OSD.cpp \
- ${SDL}/UI.cpp ${SDL}/Video.cpp
+BASE_SRC=$(wildcard ${BASE}/*.cpp)
+SDL_SRC=$(wildcard ${SDL}/*.cpp)
+EXTERN_SRC=$(wildcard ${EXTERN}/*.c)
 
 ifeq (${USE_OPENGL},1)
 CFLAGS += -DUSE_OPENGL
@@ -74,13 +62,14 @@ CC=cc
 CXX=cc
 endif
 
-BASE_OBJS=$(BASE_SRC:%.cpp=%.o) ${EXTERN}/unzip.o ${EXTERN}/ioapi.o
+BASE_OBJS=$(BASE_SRC:%.cpp=%.o)
 SDL_OBJS=$(SDL_SRC:%.cpp=%.o)
+EXTERN_OBJS=$(EXTERN_SRC:%.c=%.o)
 
 all:	${TARGET}
 
-${TARGET}:	${BASE_OBJS} ${SDL_OBJS} Makefile
-	${CXX} -o ${TARGET} ${CXXFLAGS} ${BASE_OBJS} ${SDL_OBJS} ${LIBS}
+${TARGET}:	${BASE_OBJS} ${SDL_OBJS} ${EXTERN_OBJS} Makefile
+	${CXX} -o ${TARGET} ${CXXFLAGS} ${BASE_OBJS} ${SDL_OBJS} ${EXTERN_OBJS} ${LIBS}
 
 .cpp.o:
 	${CXX} -o $@ -c $< ${CXXFLAGS}
