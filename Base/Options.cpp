@@ -316,10 +316,7 @@ bool Options::Save ()
     // Open the options file for writing, fail if we can't
     FILE* hfOptions = fopen(pcszPath, "wb");
     if (!hfOptions)
-    {
-        Message(msgWarning, "Failed to save options: (%s)\n\n%s", strerror(errno), pcszPath);
         return false;
-    }
 
     // Loop through each option to write out
     for (OPTION* p = aOptions ; p->pcszName ; p++)
