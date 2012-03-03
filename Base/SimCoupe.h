@@ -50,6 +50,9 @@ typedef unsigned int        UINT;
 #include <stdlib.h>
 #include <ctype.h>
 #include <limits.h>
+#include <errno.h>
+#include <time.h>
+#include <sys/stat.h>
 
 #ifdef USE_LIBSPECTRUM
 #include "libspectrum.h"
