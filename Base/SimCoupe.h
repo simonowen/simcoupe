@@ -2,7 +2,7 @@
 //
 // SimCoupe.h: Common SimCoupe header, included by all modules
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -50,13 +50,6 @@ typedef unsigned int        UINT;
 #include <stdlib.h>
 #include <ctype.h>
 #include <limits.h>
-
-/* Windows CE lacks some headers */
-#ifndef _WIN32_WCE
-#include <errno.h>
-#include <time.h>
-#include <sys/stat.h>
-#endif
 
 #ifdef USE_LIBSPECTRUM
 #include "libspectrum.h"
