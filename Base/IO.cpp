@@ -24,6 +24,7 @@
 #include "IO.h"
 
 #include "Atom.h"
+#include "AtomLite.h"
 #include "BlueAlpha.h"
 #include "CDrive.h"
 #include "Clock.h"

@@ -62,6 +62,10 @@
 #pragma comment(lib, "resid.lib")   // SID chip emulation
 #endif
 
+#ifdef USE_CAPSIMAGE
+#pragma comment(lib,"capsimg.lib")	// IPF support
+#endif
+
 // Check delay-load DLLs for optional features
 #define CheckLibFunction(lib,func)  (LoadLibrary(#lib) != NULL)
 

@@ -434,6 +434,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\AtomLite.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\AVI.cpp"
 				>
 			</File>
@@ -866,6 +870,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\Atom.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\AtomLite.h"
 				>
 			</File>
 			<File

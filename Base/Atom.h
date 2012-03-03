@@ -2,7 +2,7 @@
 //
 // Atom.h: ATOM hard disk inteface
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@
 
 #include "IO.h"
 #include "ATA.h"
-#include "Clock.h"
 
 const BYTE ATOM_ADDR_MASK = 0x1f;   // Chip select mask
 const BYTE ATOM_REG_MASK  = 0x07;   // Device address mask
@@ -55,32 +54,4 @@ class CAtomDiskDevice : public CDiskDevice
         UINT m_uLightDelay;      // Delay before switching disk light off
 };
 
-
-const BYTE ATOM_LITE_ADDR_MASK = 0x1f;  // Chip select mask
-const BYTE ATOM_LITE_REG_MASK  = 0x07;  // Device address mask
-
-class CAtomLiteDevice : public CDiskDevice
-{
-    public:
-        CAtomLiteDevice (CATADevice* pDisk_);
-        ~CAtomLiteDevice ();
-
-    public:
-        BYTE In (WORD wPort_);
-        void Out (WORD wPort_, BYTE bVal_);
-        void Reset ();
-        void FrameEnd ();
-
-        bool IsLightOn () const { return m_uLightDelay != 0; }
-        const char* GetPath() const { return m_pDisk ? m_pDisk->GetPath() : ""; }
-
-    protected:
-        CATADevice* m_pDisk;
-        CDallasClock m_Dallas;
-
-        BYTE m_bAddressLatch, m_bDataLatch;
-
-        UINT m_uLightDelay;      // Delay before switching disk light off
-};
-
-#endif
+#endif // ATOM_H
