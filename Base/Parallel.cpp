@@ -96,17 +96,12 @@ void CPrintBuffer::FrameEnd ()
 
 bool CPrinterFile::Open ()
 {
-    static int nNext = 0;
-    char szTemplate[MAX_PATH], szOutput[MAX_PATH];
+    m_pszFile = Util::GetUniqueFile("prn", m_szPath, sizeof(m_szPath));
 
-    sprintf(szTemplate, "%sprnt%%04d.txt", OSD::GetDirPath(GetOption(datapath)));
-    nNext = Util::GetUniqueFile(szTemplate, m_nPrint=nNext, szOutput, sizeof(szOutput));
-
-    m_hFile = fopen(szOutput, "wb");
-
+    m_hFile = fopen(m_szPath, "wb");
     if (!m_hFile)
     {
-        Frame::SetStatus("Failed to open %s", szOutput);
+        Frame::SetStatus("Failed to open %s", m_szPath);
         return false;
     }
 
@@ -120,7 +115,7 @@ void CPrinterFile::Close ()
         fclose(m_hFile);
         m_hFile = NULL;
 
-        Frame::SetStatus("Print complete:  prnt%04d.txt", m_nPrint);
+        Frame::SetStatus("Saved %s", m_pszFile);
     }
 }
 

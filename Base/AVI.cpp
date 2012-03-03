@@ -30,7 +30,7 @@
 
 static BYTE *pbCurr;
 
-static char szPath[MAX_PATH];
+static char szPath[MAX_PATH], *pszFile;
 static FILE *f;
 
 static WORD width, height;
@@ -40,7 +40,6 @@ static DWORD dwRiffPos, dwMoviPos;
 static DWORD dwVideoMax, dwAudioMax;
 static DWORD dwVideoFrames, dwAudioFrames, dwAudioSamples;
 static bool fWantVideo;
-static int nNext;
 
 
 static void WriteLittleEndianWORD (WORD w_)
@@ -420,9 +419,7 @@ bool AVI::Start (bool fHalfSize_)
         return false;
 
     // Find a unique filename to use, in the format movNNNN.avi
-    char szTemplate[MAX_PATH];
-    snprintf(szTemplate, MAX_PATH, "%smov%%04d.avi", OSD::GetDirPath(GetOption(datapath)));
-    nNext = Util::GetUniqueFile(szTemplate, nNext, szPath, sizeof(szPath));
+    pszFile = Util::GetUniqueFile("avi", szPath, sizeof(szPath));
 
     // Create the file
     f = fopen(szPath, "wb+");
@@ -467,13 +464,7 @@ void AVI::Stop ()
     delete[] pbCurr;
     pbCurr = NULL;
 
-    if (dwVideoFrames > 50)
-        Frame::SetStatus("Saved mov%04d.avi", nNext-1);
-    else
-    {
-        Frame::SetStatus("Cancelled AVI");
-        unlink(szPath);
-    }
+    Frame::SetStatus("Saved %s", pszFile);
 }
 
 void AVI::Toggle (bool fHalfSize_)

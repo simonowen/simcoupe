@@ -65,8 +65,8 @@ class CPrinterFile : public CPrintBuffer
         void Write (BYTE *pb_, size_t uLen_);
 
     protected:
-        int m_nPrint;
         FILE *m_hFile;
+	    char m_szPath[MAX_PATH], *m_pszFile;
 };
 
 class CPrinterDevice : public CPrintBuffer

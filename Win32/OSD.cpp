@@ -19,6 +19,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "SimCoupe.h"
+#include <objbase.h>
 
 #include "OSD.h"
 #include "CPU.h"
@@ -38,9 +39,11 @@ PFNDIRECTDRAWCREATE pfnDirectDrawCreate;
 PFNDIRECTINPUTCREATE pfnDirectInputCreate;
 PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 
+bool fPortable = false;
+
 
 // Timer handler, called every 20ms - seemed more reliable than having it set the event directly, for some weird reason
-void CALLBACK TimeCallback (UINT uTimerID_, UINT uMsg_, DWORD_PTR dwUser_, DWORD_PTR dw1_, DWORD_PTR dw2_)
+static void CALLBACK TimeCallback (UINT uTimerID_, UINT uMsg_, DWORD_PTR dwUser_, DWORD_PTR dw1_, DWORD_PTR dw2_)
 {
     // Signal that the next frame is due
     SetEvent(g_hEvent);
@@ -59,6 +62,10 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
 #ifdef _DEBUG
         _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
 #endif
+        // Enable portable mode if the options file is local
+        fPortable = GetFileAttributes(MakeFilePath(MFP_EXE, OPTIONS_FILE)) != INVALID_FILE_ATTRIBUTES;
+        if (fPortable)
+            Options::Load(__argc, __argv);
 
         g_hinstDDraw  = LoadLibrary("DDRAW.DLL");
         g_hinstDInput = LoadLibrary("DINPUT.DLL");
@@ -127,41 +134,76 @@ DWORD OSD::GetTime ()
 }
 
 
-// Do whatever is necessary to locate an additional SimCoupe file - The Win32 version looks in the
-// same directory as the EXE, but other platforms could use an environment variable, etc.
-// If the path is already fully qualified (an OS-specific decision), use the original string
-const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
+static bool GetSpecialFolderPath (int csidl_, char *pszPath_, int cbPath_)
 {
-    static char szPath[MAX_PATH];
+    char szPath[MAX_PATH] = "";
+    LPITEMIDLIST pidl = NULL;
+    bool fRet = false;
 
-    // If the supplied path looks absolute, use it as-is
-    if (*pcszFile_ == '\\' || strchr(pcszFile_, ':'))
-        lstrcpyn(szPath, pcszFile_, sizeof(szPath));
-
-    // Form the full path relative to the current EXE file
-    else
+    if (cbPath_ > 0 && SUCCEEDED(SHGetSpecialFolderLocation(NULL, csidl_, &pidl)))
     {
-        // Get the full path of the running module
-        GetModuleFileName(__hinstance, szPath, sizeof szPath);
+        if (SHGetPathFromIDList(pidl, szPath))
+        {
+            // Copy to the supplied buffer, leave room for backslash
+            lstrcpyn(pszPath_, szPath, cbPath_-1);
 
-        // Strip the module file and append the supplied file/path
-        lstrcpy(strrchr(szPath, '\\')+1, pcszFile_);
+            // Ensure any non-empty path ends in a backslash
+            if (*pszPath_ && pszPath_[lstrlen(pszPath_)-1] != '\\')
+                lstrcat(pszPath_, "\\");
+
+            fRet = true;
+        }
+
+        CoTaskMemFree(pidl);
     }
+
+    return fRet;
+}
+
+const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
+{
+    static char szPath[MAX_PATH*2];
+    szPath[0] = '\0';
+
+    // In portable mode, force everything to be kept with the EXE, like we used to
+    if (fPortable)
+        nDir_ = MFP_EXE;
+
+    switch (nDir_)
+    {
+        case MFP_SETTINGS:
+            GetSpecialFolderPath(CSIDL_APPDATA, szPath, MAX_PATH);
+            CreateDirectory(lstrcat(szPath, "SimCoupe\\"), NULL);
+            break;
+
+        case MFP_INPUT:
+            if (GetOption(inpath)[0])
+                lstrcpyn(szPath, GetOption(inpath), MAX_PATH);
+            else
+                GetSpecialFolderPath(CSIDL_MYDOCUMENTS, szPath, MAX_PATH);
+            break;
+
+        case MFP_OUTPUT:
+            if (GetOption(outpath)[0])
+                lstrcpyn(szPath, GetOption(outpath), MAX_PATH);
+            else
+            {
+                GetSpecialFolderPath(CSIDL_MYDOCUMENTS, szPath, MAX_PATH);
+                CreateDirectory(lstrcat(szPath, "SimCoupe\\"), NULL);
+            }
+            break;
+
+        case MFP_EXE:
+            GetModuleFileName(GetModuleHandle(NULL), szPath, MAX_PATH);
+            strrchr(szPath, '\\')[1] = '\0';
+            break;
+    }
+
+    // Append any supplied filename (backslash separator already added)
+    lstrcat(szPath, pcszFile_);
 
     // Return a pointer to the new path
     return szPath;
-}
-
-// Same as GetFilePath but ensures a trailing backslash
-const char* OSD::GetDirPath (const char* pcszDir_/*=""*/)
-{
-    char* psz = const_cast<char*>(GetFilePath(pcszDir_));
-
-    // Append a backslash to non-empty strings that don't already have one
-    if (*psz && psz[lstrlen(psz)-1] != '\\')
-        strcat(psz, "\\");
-
-    return psz;
 }
 
 
@@ -177,7 +219,7 @@ bool OSD::IsHidden (const char* pcszFile_)
 {
     // Hide entries with the hidden or system attribute bits set
     DWORD dwAttrs = GetFileAttributes(pcszFile_);
-    return (dwAttrs != 0xffffffff) && (dwAttrs & (FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM));
+    return (dwAttrs != INVALID_FILE_ATTRIBUTES) && (dwAttrs & (FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM));
 }
 
 // Return the path to use for a given drive with direct floppy access

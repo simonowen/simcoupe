@@ -28,7 +28,7 @@ class Util
         static void Exit ();
 
     public:
-        static int GetUniqueFile (const char* pcszTemplate_, int nNext_, char* psz_, int cb_);
+        static char *GetUniqueFile (const char* pcszExt_, char* pszPath_, int cbPath_);
 };
 
 

@@ -19,6 +19,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "SimCoupe.h"
+#include <shlwapi.h>
 #include "UI.h"
 
 #include "Action.h"
@@ -44,15 +45,6 @@
 #include "Sound.h"
 #include "Video.h"
 #include "WAV.h"
-
-// Source argc/argv from either MSVCRT.DLL or the static CRT
-#ifdef _DLL
-__declspec(dllimport) int __argc;
-__declspec(dllimport) char** __argv;
-#else
-extern int __argc;
-extern char** __argv;
-#endif
 
 #include "resource.h"   // For menu and dialogue box symbols
 
@@ -114,6 +106,10 @@ static char szFloppyFilters[] =
 static char szHDDFilters[] = 
     "Hard Disk Images (*.hdf)\0*.hdf\0"
     "All Files (*.*)\0*.*\0";
+
+static char szRomFilters[] =
+    "ROM images (*.rom;*.zx82)\0*.rom;*.zx82\0"
+    "All files (*.*)\0*.*\0";
 
 static const char* aszBorders[] =
     { "No borders", "Small borders", "Short TV area (default)", "TV visible area", "Complete scan area", NULL };
@@ -335,9 +331,6 @@ bool GetSaveLoadFile (LPOPENFILENAME lpofn_, bool fLoad_, bool fCheck_=true)
     // Force an Explorer-style dialog, and ensure loaded files exist
     lpofn_->Flags |= OFN_EXPLORER|OFN_PATHMUSTEXIST | (fCheck_ ? (fLoad_ ? OFN_FILEMUSTEXIST : OFN_OVERWRITEPROMPT) : 0);
 
-    // Resolve relative paths in a sensible way
-    lpofn_->lpstrInitialDir = OSD::GetDirPath(lpofn_->lpstrInitialDir);
-
     // Loop until successful
     while (!(fLoad_ ? GetOpenFileName(lpofn_) : GetSaveFileName(lpofn_)))
     {
@@ -369,11 +362,10 @@ bool InsertDisk (CDiskDevice* pDrive_)
     else if (pDrive_->IsInserted())
         lstrcpyn(szFile, pDrive_->GetPath(), sizeof(szFile));
 
-    ofn.hwndOwner       = g_hwnd;
-    ofn.lpstrFilter     = szFloppyFilters;
-    ofn.lpstrFile       = szFile;
-    ofn.nMaxFile        = sizeof(szFile);
-    ofn.lpstrInitialDir = GetOption(floppypath);
+    ofn.hwndOwner = g_hwnd;
+    ofn.lpstrFilter = szFloppyFilters;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
 
     // Prompt for the a new disk to insert
     if (GetSaveLoadFile(&ofn, true))
@@ -523,6 +515,7 @@ void UpdateMenuFromOptions ()
     CheckOption(IDM_VIEW_RATIO54, GetOption(ratio5_4));
     CheckOption(IDM_VIEW_SCANLINES, GetOption(scanlines));
     CheckOption(IDM_VIEW_GREYSCALE, GetOption(greyscale));
+
     for (i = 0 ; i < 4 ; i++) CheckOption(IDM_VIEW_ZOOM_50+i,  i == GetOption(scale)-1);
     for (i = 0 ; i < 5 ; i++) CheckOption(IDM_VIEW_BORDERS0+i, i == GetOption(borders));
 
@@ -1388,7 +1381,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
                 // Items from help menu
                 case IDM_HELP_GENERAL:
-                    if (ShellExecute(hwnd_, NULL, OSD::GetFilePath("SimCoupe.txt"), NULL, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
+                    if (ShellExecute(hwnd_, NULL, OSD::MakeFilePath(MFP_EXE, "SimCoupe.txt"), NULL, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
                         MessageBox(hwnd_, "Can't find SimCoupe.txt", "SimCoupe", MB_ICONEXCLAMATION);
                     break;
                 case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), g_hwnd, AboutDlgProc, NULL);   break;
@@ -1505,36 +1498,16 @@ void ClipPath (char* pszPath_, size_t nLen_)
     }
 }
 
-void ShortenPath (char* pszPath_, int nSize_)
-{
-    char sz1[MAX_PATH], sz2[MAX_PATH];
-
-    lstrcpyn(sz1, OSD::GetDirPath(), sizeof(sz1));
-    int n1 = lstrlen(sz1);
-    sz1[n1-1] = '\0';
-
-    lstrcpyn(sz2, pszPath_, sizeof(sz2));
-    int n2 = lstrlen(sz2);
-    sz2[n1-1] = sz2[n2+1] = '\0';
-
-    if (!lstrcmpi(sz1, sz2))
-        lstrcpyn(pszPath_, sz2+n1, nSize_);
-}
-
 void GetDlgItemPath (HWND hdlg_, int nId_, char* psz_, int nSize_)
 {
     HWND hctrl = nId_ ? GetDlgItem(hdlg_, nId_) : hdlg_;
     GetWindowText(hctrl, psz_, nSize_);
-    if (*psz_) lstrcpyn(psz_, OSD::GetFilePath(psz_), nSize_);
 }
 
 void SetDlgItemPath (HWND hdlg_, int nId_, const char* pcsz_, bool fSelect_=false)
 {
-    char sz[MAX_PATH];
-    ShortenPath(lstrcpy(sz, pcsz_), sizeof(sz));
-
     HWND hctrl = nId_ ? GetDlgItem(hdlg_, nId_) : hdlg_;
-    SetWindowText(hctrl, sz);
+    SetWindowText(hctrl, pcsz_);
 
     if (fSelect_)
     {
@@ -1688,20 +1661,18 @@ void FillJoystickCombo (HWND hwndCombo_, const char* pcszSelected_)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Browse for an image, setting a specified filter with the path selected
-void BrowseImage (HWND hdlg_, int nControl_, const char* pcszFilters_, const char* pcszDefDir_)
+void BrowseImage (HWND hdlg_, int nControl_, const char* pcszFilters_)
 {
     char szFile[MAX_PATH] = "";
 
     GetDlgItemText(hdlg_, nControl_, szFile, sizeof(szFile));
-    if (szFile[0]) lstrcpyn(szFile, OSD::GetFilePath(szFile), sizeof(szFile));
 
-    static OPENFILENAME ofn = { sizeof(ofn) };
-    ofn.hwndOwner    = hdlg_;
-    ofn.lpstrFilter  = pcszFilters_;
-    ofn.lpstrFile    = szFile;
-    ofn.nMaxFile     = sizeof(szFile);
-    ofn.lpstrInitialDir = pcszDefDir_;
-    ofn.Flags        = 0;
+    OPENFILENAME ofn = { sizeof(ofn) };
+    ofn.hwndOwner = hdlg_;
+    ofn.lpstrFilter = pcszFilters_;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.Flags = 0;
 
     if (GetSaveLoadFile(&ofn, true))
         SetDlgItemPath(hdlg_, nControl_, szFile, true);
@@ -1817,12 +1788,11 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                         return BadField(hdlg_, IDE_LENGTH);
 
                     static OPENFILENAME ofn = { sizeof(ofn) };
-                    ofn.hwndOwner       = hdlg_;
-                    ofn.lpstrFilter     = "Data files (*.bin;*.dat;*.raw;*.txt)\0*.bin;*.dat;*.raw;*.txt\0All files (*.*)\0*.*\0";
-                    ofn.lpstrFile       = szFile;
-                    ofn.nMaxFile        = sizeof(szFile);
-                    ofn.lpstrInitialDir = GetOption(datapath);
-                    ofn.Flags           = OFN_HIDEREADONLY;
+                    ofn.hwndOwner = hdlg_;
+                    ofn.lpstrFilter = "Data files (*.bin;*.dat;*.raw;*.txt)\0*.bin;*.dat;*.raw;*.txt\0All files (*.*)\0*.*\0";
+                    ofn.lpstrFile = szFile;
+                    ofn.nMaxFile = sizeof(szFile);
+                    ofn.Flags = OFN_HIDEREADONLY;
 
                     FILE *f;
                     if (!GetSaveLoadFile(&ofn, fImport))
@@ -1960,12 +1930,11 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     wsprintf(szFile, "untitled.%s%s", aszTypes[nType], fCompress ? aszCompress[nType] : "");
 
                     static OPENFILENAME ofn = { sizeof(ofn) };
-                    ofn.hwndOwner       = hdlg_;
-                    ofn.lpstrFilter     = szFloppyFilters;
-                    ofn.lpstrFile       = szFile;
-                    ofn.nMaxFile        = sizeof(szFile);
-                    ofn.lpstrInitialDir = GetOption(floppypath);
-                    ofn.Flags           = OFN_HIDEREADONLY;
+                    ofn.hwndOwner = hdlg_;
+                    ofn.lpstrFilter = szFloppyFilters;
+                    ofn.lpstrFile = szFile;
+                    ofn.nMaxFile = sizeof(szFile);
+                    ofn.Flags = OFN_HIDEREADONLY;
 
                     if (!GetSaveLoadFile(&ofn, false))
                         break;
@@ -2124,13 +2093,12 @@ INT_PTR CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 case IDB_BROWSE:
                 {
                     static OPENFILENAME ofn = { sizeof(ofn) };
-                    ofn.hwndOwner       = hdlg_;
-                    ofn.lpstrFilter     = szHDDFilters;
-                    ofn.lpstrFile       = szFile;
-                    ofn.nMaxFile        = sizeof(szFile);
-                    ofn.lpstrInitialDir = GetOption(hddpath);
-                    ofn.lpstrDefExt     = ".hdf";
-                    ofn.Flags            = OFN_HIDEREADONLY;
+                    ofn.hwndOwner = hdlg_;
+                    ofn.lpstrFilter = szHDDFilters;
+                    ofn.lpstrFile = szFile;
+                    ofn.nMaxFile = sizeof(szFile);
+                    ofn.lpstrDefExt = ".hdf";
+                    ofn.Flags = OFN_HIDEREADONLY;
 
                     if (GetSaveLoadFile(&ofn, true, false))
                         SetDlgItemPath(hdlg_, IDE_FILE, szFile, true);
@@ -2277,22 +2245,7 @@ INT_PTR CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
 
                 case IDB_BROWSE:
                 {
-                    static OPENFILENAME ofn = { sizeof(ofn) };
-
-                    char szFile[MAX_PATH] = "";
-                    GetDlgItemText(hdlg_, IDE_ROM, szFile, sizeof(szFile));
-                    lstrcpyn(szFile, OSD::GetFilePath(szFile), sizeof(szFile));
-
-                    ofn.hwndOwner       = hdlg_;
-                    ofn.lpstrFilter     = "ROM images (*.rom;*.zx82)\0*.rom;*.zx82\0All files (*.*)\0*.*\0";
-                    ofn.lpstrFile       = szFile;
-                    ofn.nMaxFile        = sizeof(szFile);
-                    ofn.lpstrInitialDir = GetOption(rompath);
-                    ofn.Flags           = OFN_HIDEREADONLY;
-
-                    if (GetSaveLoadFile(&ofn, true))
-                        SetDlgItemPath(hdlg_, IDE_ROM, szFile, true);
-
+                    BrowseImage(hdlg_, IDE_ROM, szRomFilters);
                     break;
                 }
             }
@@ -2459,7 +2412,7 @@ INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
                 case IDB_BROWSE:
                 {
-                    BrowseImage(hdlg_, IDE_DOSDISK, szFloppyFilters, GetOption(floppypath));   break;
+                    BrowseImage(hdlg_, IDE_DOSDISK, szFloppyFilters);   break;
                     break;
                 }
             }
@@ -2629,8 +2582,8 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
         {
             switch (LOWORD(wParam_))
             {
-                case IDB_FLOPPY1:   BrowseImage(hdlg_, IDC_FLOPPY1, szFloppyFilters, GetOption(floppypath));   break;
-                case IDB_FLOPPY2:   BrowseImage(hdlg_, IDC_FLOPPY2, szFloppyFilters, GetOption(floppypath));   break;
+                case IDB_FLOPPY1:   BrowseImage(hdlg_, IDC_FLOPPY1, szFloppyFilters);   break;
+                case IDB_FLOPPY2:   BrowseImage(hdlg_, IDC_FLOPPY2, szFloppyFilters);   break;
 
                 case IDB_ATOM:
                 {
@@ -2680,8 +2633,8 @@ void BrowseFolder (HWND hdlg_, int nControl_, const char* pcszDefDir_)
     bi.hwndOwner = hdlg_;
     bi.lpszTitle = "Select default path:";
     bi.lpfn = BrowseFolderCallback;
-    bi.lParam = reinterpret_cast<LPARAM>(OSD::GetDirPath(sz));
-    bi.ulFlags = BIF_RETURNONLYFSDIRS|0x00000040;//|BIF_USENEWUI|BIF_NEWDIALOGSTYLE;
+    bi.lParam = reinterpret_cast<LPARAM>(sz);
+    bi.ulFlags = BIF_RETURNONLYFSDIRS|BIF_NEWDIALOGSTYLE;
 
     LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
 
@@ -2692,61 +2645,11 @@ void BrowseFolder (HWND hdlg_, int nControl_, const char* pcszDefDir_)
             SetDlgItemPath(hdlg_, nControl_, sz);
             SendMessage(hctrl, EM_SETSEL, 0, -1);
             SetFocus(hctrl);
-
         }
 
-        IMalloc *imalloc;
-        if (SUCCEEDED(SHGetMalloc(&imalloc)))
-        {
-            imalloc->Free(pidl);
-            imalloc->Release();
-        }
+        CoTaskMemFree(pidl);
     }
 }
-
-INT_PTR CALLBACK PathPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
-{
-    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
-
-    switch (uMsg_)
-    {
-        case WM_INITDIALOG:
-        {
-            SetDlgItemPath(hdlg_, IDE_FLOPPY_PATH, GetOption(floppypath));
-            SetDlgItemPath(hdlg_, IDE_HDD_PATH,    GetOption(hddpath));
-            SetDlgItemPath(hdlg_, IDE_ROM_PATH,    GetOption(rompath));
-            SetDlgItemPath(hdlg_, IDE_DATA_PATH,   GetOption(datapath));
-            break;
-        }
-
-        case WM_NOTIFY:
-        {
-            if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
-            {
-                GetDlgItemPath(hdlg_, IDE_FLOPPY_PATH, const_cast<char*>(GetOption(floppypath)), MAX_PATH);
-                GetDlgItemPath(hdlg_, IDE_HDD_PATH,    const_cast<char*>(GetOption(hddpath)), MAX_PATH);
-                GetDlgItemPath(hdlg_, IDE_ROM_PATH,    const_cast<char*>(GetOption(rompath)), MAX_PATH);
-                GetDlgItemPath(hdlg_, IDE_DATA_PATH,   const_cast<char*>(GetOption(datapath)), MAX_PATH);
-            }
-            break;
-        }
-
-        case WM_COMMAND:
-        {
-            switch (LOWORD(wParam_))
-            {
-                case IDB_FLOPPY_PATH:   BrowseFolder(hdlg_, IDE_FLOPPY_PATH, GetOption(floppypath)); break;
-                case IDB_HDD_PATH:      BrowseFolder(hdlg_, IDE_HDD_PATH,    GetOption(hddpath));    break;
-                case IDB_ROM_PATH:      BrowseFolder(hdlg_, IDE_ROM_PATH,    GetOption(rompath));    break;
-                case IDB_DATA_PATH:     BrowseFolder(hdlg_, IDE_DATA_PATH,   GetOption(datapath));   break;
-            }
-            break;
-        }
-    }
-
-    return fRet;
-}
-
 
 INT_PTR CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
@@ -3511,13 +3414,12 @@ void DisplayOptions ()
     InitPage(aPages, 2,  IDD_PAGE_SOUND,    SoundPageDlgProc);
     InitPage(aPages, 3,  IDD_PAGE_DRIVES,   DrivePageDlgProc);
     InitPage(aPages, 4,  IDD_PAGE_DISKS,    DiskPageDlgProc);
-    InitPage(aPages, 5,  IDD_PAGE_PATHS,    PathPageDlgProc);
-    InitPage(aPages, 6,  IDD_PAGE_INPUT,    InputPageDlgProc);
-    InitPage(aPages, 7,  IDD_PAGE_JOYSTICK, JoystickPageDlgProc);
-    InitPage(aPages, 8,  IDD_PAGE_PARALLEL, ParallelPageDlgProc);
-    InitPage(aPages, 9,  IDD_PAGE_MIDI,     MidiPageDlgProc);
-    InitPage(aPages, 10, IDD_PAGE_MISC,     MiscPageDlgProc);
-    InitPage(aPages, 11, IDD_PAGE_FNKEYS,   FnKeysPageDlgProc);
+    InitPage(aPages, 5,  IDD_PAGE_INPUT,    InputPageDlgProc);
+    InitPage(aPages, 6,  IDD_PAGE_JOYSTICK, JoystickPageDlgProc);
+    InitPage(aPages, 7,  IDD_PAGE_PARALLEL, ParallelPageDlgProc);
+    InitPage(aPages, 8,  IDD_PAGE_MIDI,     MidiPageDlgProc);
+    InitPage(aPages, 9,  IDD_PAGE_MISC,     MiscPageDlgProc);
+    InitPage(aPages, 10, IDD_PAGE_FNKEYS,   FnKeysPageDlgProc);
 
     PROPSHEETHEADER psh;
     ZeroMemory(&psh, sizeof psh);

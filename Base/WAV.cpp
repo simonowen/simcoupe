@@ -25,10 +25,9 @@
 #include "Options.h"
 #include "Sound.h"
 
-static char szPath[MAX_PATH];
+static char szPath[MAX_PATH], *pszFile;
 static FILE *f;
 static int nFrames, nSilent = 0;
-static int nNext;
 static bool fSegment;
 
 
@@ -91,9 +90,7 @@ bool WAV::Start (bool fSegment_)
         return false;
 
     // Find a unique filename to use, in the format sndNNNN.wav
-    char szTemplate[MAX_PATH];
-    snprintf(szTemplate, MAX_PATH, "%ssnd%%04d.wav", OSD::GetDirPath(GetOption(datapath)));
-    nNext = Util::GetUniqueFile(szTemplate, nNext, szPath, sizeof(szPath));
+    pszFile = Util::GetUniqueFile("wav", szPath, sizeof(szPath));
 
     // Create the file
     f = fopen(szPath, "wb");
@@ -135,7 +132,7 @@ void WAV::Stop ()
 
     // Report what happened
     if (nFrames)
-        Frame::SetStatus("Saved snd%04d.wav", nNext-1);
+        Frame::SetStatus("Saved %spszFile");
     else
     {
         Frame::SetStatus("WAV cancelled");

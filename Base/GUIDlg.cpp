@@ -41,7 +41,7 @@ OPTIONS g_opts;
 CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     : CDialog(pParent_, 305, 220,  "About SimCoupe")
 {
-    char szVersion[128] = "SimCoupe v1.0a";
+    char szVersion[128] = "SimCoupe v1.1 alpha";
 
 #if 0
     // Append the date on beta versions, to save us updating the version number each time
@@ -50,7 +50,7 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
 
     new CIconControl(this, 6, 6, &sSamIcon);
     new CTextControl(this, 86, 10,  szVersion, BLACK);
-    new CTextControl(this, 86, 24,  "http://www.simcoupe.org/", GREY_3);
+    new CTextControl(this, 86, 24,  "http://simcoupe.org/", GREY_3);
 
     int y = 46;
 
@@ -198,7 +198,7 @@ CInsertFloppy::CInsertFloppy (int nDrive_, CWindow* pParent_/*=NULL*/)
 
     // Browse from the location of the previous image, or the default directory if none
     const char* pcszImage = ((nDrive_ == 1) ? pDrive1 : pDrive2)->GetPath();
-    m_pFileView->SetPath(*pcszImage ? pcszImage : OSD::GetDirPath(GetOption(floppypath)));
+    m_pFileView->SetPath(*pcszImage ? pcszImage : OSD::MakeFilePath(MFP_INPUT));
 }
 
 // Handle OK being clicked when a file is selected
@@ -235,7 +235,7 @@ CFileBrowser::CFileBrowser (CEditControl* pEdit_, CWindow* pParent_, const char*
     : CFileDialog(pcszCaption_, NULL, pcsFilter_, pParent_), m_pEdit(pEdit_)
 {
     // Browse from the location of the previous image, or the default directory if none
-    m_pFileView->SetPath(*pEdit_->GetText() ? pEdit_->GetText() : OSD::GetDirPath());
+    m_pFileView->SetPath(*pEdit_->GetText() ? pEdit_->GetText() : OSD::MakeFilePath(MFP_INPUT));
 }
 
 // Handle OK being clicked when a file is selected

@@ -174,6 +174,8 @@ int closedir (DIR* hDir_);
 
 ////////////////////////////////////////////////////////////////////////////////
 
+enum { MFP_SETTINGS, MFP_INPUT, MFP_OUTPUT, MFP_EXE };
+
 class OSD
 {
     public:
@@ -181,8 +183,7 @@ class OSD
         static void Exit (bool fReInit_=false);
 
         static DWORD GetTime ();
-        static const char* GetFilePath (const char* pcszFile_="");
-        static const char* GetDirPath (const char* pcszDir_="");
+        static const char* MakeFilePath (int nDir_, const char* pcszFile_="");
         static const char* GetFloppyDevice (int nDrive_);
         static bool CheckPathAccess (const char* pcszPath_);
         static bool IsHidden (const char* pcszFile_);

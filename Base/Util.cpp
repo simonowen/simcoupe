@@ -59,17 +59,23 @@ void Util::Exit ()
 }
 
 
-int Util::GetUniqueFile (const char* pcszTemplate_, int nNext_, char* psz_, int cb_)
+char *Util::GetUniqueFile (const char* pcszExt_, char* psz_, int cb_)
 {
-    char sz[MAX_PATH];
+    char szPath[MAX_PATH];
     struct stat st;
 
-    do {
-        sprintf(sz, pcszTemplate_, nNext_++);
-    } while (!::stat(sz, &st));
+    const char *pcszPath = OSD::MakeFilePath(MFP_OUTPUT);
+    int nNext = GetOption(nextfile);
 
-    strncpy(psz_, sz, cb_);
-    return nNext_;
+    do {
+        snprintf(szPath, MAX_PATH, "%ssimc%04d.%s", pcszPath, nNext++, pcszExt_);
+    } while (!::stat(szPath, &st));
+
+    SetOption(nextfile, nNext);
+
+    // Copy the completed string, returning the filename pointer
+    strncpy(psz_, szPath, cb_);
+    return psz_ + strlen(pcszPath);
 }
 
 

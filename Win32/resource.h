@@ -36,7 +36,6 @@
 #define IDD_PAGE_FNKEYS                 173
 #define IDD_NEW_FNKEY                   177
 #define IDD_PAGE_DRIVES                 179
-#define IDD_PAGE_PATHS                  181
 #define IDB_SIMCOUPE                    185
 #define IDD_IMPORT                      190
 #define IDD_EXPORT                      191
@@ -107,16 +106,6 @@
 #define IDC_YATBUS                      1139
 #define IDB_FLOPPY1                     1140
 #define IDB_FLOPPY2                     1141
-#define IDE_TAPE_PATH                   1149
-#define IDE_FLOPPY_PATH                 1151
-#define IDE_HDD_PATH                    1152
-#define IDE_DATA_PATH                   1153
-#define IDE_ROM_PATH                    1154
-#define IDB_FLOPPY_PATH                 1155
-#define IDB_HDD_PATH                    1156
-#define IDB_ROM_PATH                    1157
-#define IDB_DATA_PATH                   1158
-#define IDB_TAPE_PATH                   1159
 #define IDC_AUTOBOOT                    1161
 #define IDC_HWACCEL                     1163
 #define IDC_TYPE                        1165

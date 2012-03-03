@@ -163,7 +163,7 @@ static void LoadRoms (BYTE* pb0_, BYTE* pb1_)
     const char* pcszROM = GetOption(rom);
 
     // Use a custom ROM if supplied
-    if (*pcszROM && ((pROM = CStream::Open(OSD::GetFilePath(pcszROM))) || (pROM = CStream::Open(pcszROM))))
+    if (*pcszROM && (pROM = CStream::Open(pcszROM)))
     {
         // Read the header+bootstrap code from what could be a ZX82 file (for Andy Wright's ROM images)
         BYTE abHeader[140];

@@ -21,6 +21,8 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
+#define OPTIONS_FILE  "SimCoupe.cfg"
+
 typedef struct
 {
     int     cfgversion;             // Config compatability number (set defaults if mismatched)
@@ -55,6 +57,7 @@ typedef struct
     bool    dosboot;                // Automagically boot DOS from non-bootable disks?
     char    dosdisk[MAX_PATH];      // Override DOS boot disk to use instead of the internal SAMDOS 2.2 image
     bool    stdfloppy;              // Assume real disks are standard format, initially?
+    int     nextfile;               // Next file number for auto-generated filenames
 
     char    disk1[MAX_PATH];        // Floppy disk image in drive 1
     char    disk2[MAX_PATH];        // Floppy disk image in drive 2
@@ -62,10 +65,8 @@ typedef struct
     char    sdidedisk[MAX_PATH];    // Hard disk image for SD IDE interface
     char    yatbusdisk[MAX_PATH];   // Hard disk image for YAMOD.ATBUS interface
 
-    char    floppypath[MAX_PATH];   // Default floppy disk path
-    char    hddpath[MAX_PATH];      // Default hard disk path
-    char    rompath[MAX_PATH];      // Default ROM path
-    char    datapath[MAX_PATH];     // Default data path
+    char    inpath[MAX_PATH];       // Override path for input files
+    char    outpath[MAX_PATH];      // Override path for output files
     char    mru0[MAX_PATH];         // Most recently used files
     char    mru1[MAX_PATH];         // Most recently used files
     char    mru2[MAX_PATH];         // Most recently used files

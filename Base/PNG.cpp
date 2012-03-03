@@ -209,12 +209,10 @@ bool PNG::Save (CScreen* pScreen_)
     bool fRet = false;
 
 #ifdef USE_ZLIB
-    static int nNext = 0;
-    char szTemplate[MAX_PATH], szPath[MAX_PATH];
+    char szPath[MAX_PATH], *pszFile;
 
     // Create a unique filename in the format snapNNNN.png
-    snprintf(szTemplate, MAX_PATH, "%ssnap%%04d.png", OSD::GetDirPath(GetOption(datapath)));
-    nNext = Util::GetUniqueFile(szTemplate, nNext, szPath, sizeof(szPath));
+    pszFile = Util::GetUniqueFile("png", szPath, sizeof(szPath));
 
     // Create the new file
     FILE* f = fopen(szPath, "wb");
@@ -230,7 +228,7 @@ bool PNG::Save (CScreen* pScreen_)
 
     // Report what happened
     if (fRet)
-        Frame::SetStatus("Saved snap%04d.png", nNext-1);
+        Frame::SetStatus("Saved %s", pszFile);
     else
     {
         Frame::SetStatus("PNG save failed!?");

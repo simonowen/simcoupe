@@ -197,7 +197,7 @@ bool Video::Init (bool fFirstInit_/*=false*/)
         TRACE("SDL_InitSubSystem(SDL_INIT_VIDEO) failed: %s: %s\n", SDL_GetError());
     else
     {
-        SDL_WM_SetIcon(pIcon = SDL_LoadBMP(OSD::GetFilePath("SimCoupe.bmp")), NULL);
+        SDL_WM_SetIcon(pIcon = SDL_LoadBMP(OSD::MakeFilePath(MFP_EXE, "SimCoupe.bmp")), NULL);
 
         int nWidth = Frame::GetWidth(), nHeight = Frame::GetHeight();
 

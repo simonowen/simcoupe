@@ -2,7 +2,7 @@
 //
 // OSD.cpp: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -94,86 +94,89 @@ DWORD OSD::GetTime ()
 }
 
 
-// Do whatever is necessary to locate an external file
-const char* OSD::GetFilePath (const char* pcszFile_/*=""*/)
+const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
 {
-    static char szPath[512];
+    struct stat st;
+    static char szPath[MAX_PATH*2];
+    szPath[0] = '\0';
 
-    // If the supplied file path looks absolute, use it as-is
-    if (*pcszFile_ == PATH_SEPARATOR
-#if defined(_WINDOWS) || defined(__AMIGAOS4__)
-        || strchr(pcszFile_, ':')
-#endif
-        )
-        return strncpy(szPath, pcszFile_, sizeof szPath);
-
-    // Relative paths need platform-specific treatment
-
+    // Set an appropriate base location
 #if defined(_WINDOWS)
-    // All Win32 files are relative to the EXE path
-    GetModuleFileName(NULL, szPath, sizeof szPath);
+    GetModuleFileName(NULL, szPath, MAX_PATH);
     strrchr(szPath, '\\')[1] = '\0';
 #elif defined(__AMIGAOS4__)
+    // Amiga uses the magic PROGDIR device for EXE location
     strcpy(szPath, "PROGDIR:");
 #else
-    // If no file is given, fall back on the home directory (or ~/Documents on the Mac)
-    if (!*pcszFile_)
+    // $HOME is a fairly safe default
+    strcpy(szPath, getenv("HOME"))
+    if (szPath[0]) strcat(szPath, "/");
+#endif
+
+    switch (nDir_)
     {
-#if !defined(__APPLE__)
-        strcat(strcpy(szPath, getenv("HOME")), "/");
-#else
-        strcat(strcpy(szPath, getenv("HOME")), "/Documents/");
+        case MFP_SETTINGS:
+#if defined(__APPLE__)
+            strcat(szPath, "Library/Preferences/SimCoupe/");
+#elif !defined(_WINDOWS) && !defined(__AMIGAOS4__)
+            strcat(szPath, ".simcoupe/");
 #endif
-    }
-    else
-    {
-#if defined(__BEOS__)
-        // Zeta breaks compatability by moving find_directory to libzeta.so :-/
-//      find_directory(B_USER_SETTINGS_DIRECTORY, 0, true, szPath, sizeof szPath);
-//      strcat(szPath, "/");
+            break;
 
-        // Use a hard-coded path for now - can be fixed if/when Zeta is truly multi-user
-        strcpy(szPath, "/boot/home/config/settings/");
-#elif defined(__APPLE__)
-        // Files are relative to the user preferences directory
-        strcat(strcpy(szPath, getenv("HOME")), "/Library/Preferences/");
+        case MFP_INPUT:
+            // Input override
+            if (GetOption(inpath)[0])
+            {
+                strncpy(szPath, GetOption(inpath), MAX_PATH);
+                break;
+            }
 
-        // Use a more appropriate settings file name
-        if (!strcasecmp(pcszFile_, "SimCoupe.cfg"))
-          pcszFile_ = "SimCoupe Preferences";
-#elif defined(__AMIGAOS4__)
-        // default is Progdir:
-        strcpy(szPath, "PROGDIR:");
-#else
-        // Files are relative to the home directory
-        strcat(strcpy(szPath, getenv("HOME")), "/");
+            // Default should be good enough
+            break;
 
-        // Use a more Unixy name for the configuration file
-        if (!strcasecmp(pcszFile_, "SimCoupe.cfg"))
-            pcszFile_ = ".simcoupecfg";
+        case MFP_OUTPUT:
+        {
+            // Output override
+            if (GetOption(outpath)[0])
+            {
+                strncpy(szPath, GetOption(outpath), MAX_PATH);
+                break;
+            }
+
+#if defined(__APPLE__)
+            strcat(szPath, "Documents/SimCoupe/");
+#elif !defined(_WINDOWS) && !defined(__AMIGAOS4__)
+            size_t u = strlen(szPath);
+
+            // If there's a Desktop folder, it'll be more visible there
+            strcat(szPath, "Desktop/");
+            if (stat(szPath, &st))
+                szPath[u] = '\0';
+
+            // Keep it tidy though
+            strcat(szPath, "SimCoupe/");
 #endif
-    }
+            break;
+        }
+
+        case MFP_EXE:
+#if !defined(_WINDOWS) && !defined(__AMIGAOS4__)
+            // Use empty path
+            szPath[0] = '\0';
 #endif
-
-    // Append the supplied file/path, and return a pointer to it
-    return strcat(szPath, pcszFile_);
-}
-
-// Same as GetFilePath but ensures a trailing [back]slash
-const char* OSD::GetDirPath (const char* pcszDir_/*=""*/)
-{
-    char *psz = const_cast<char*>(GetFilePath(pcszDir_)), *pszEnd = psz+strlen(psz);
-
-    // Append a [back]slash to non-empty strings that don't already have one
-    if (*psz && pszEnd[-1] != PATH_SEPARATOR)
-    {
-#if !defined (__AMIGAOS4__)
-        pszEnd[0] = PATH_SEPARATOR;
-#endif
-        pszEnd[1] = '\0';
+            break;
     }
 
-    return psz;
+    // Create the directory if it doesn't already exist
+    // This assumes only the last component could be missing
+    if (!stat(szPath, &st))
+        mkdir(szPath, 0755);
+
+    // Append any supplied filename (backslash separator already added)
+    lstrcat(szPath, pcszFile_);
+
+    // Return a pointer to the new path
+    return szPath;
 }
 
 

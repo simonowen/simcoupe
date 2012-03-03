@@ -31,14 +31,13 @@
 
 static BYTE *pbCurr, *pbFirst, *pbSub;
 
-static char szPath[MAX_PATH];
+static char szPath[MAX_PATH], *pszFile;
 static FILE *f;
 
 static int nDelay = 0;
 static long lDelayOffset;
 static int wl, wt, ww, wh;	// left/top/width/height for change rect
 static int nFrameSkip = 3;	// 50/2 = 25fps (FF/Chrome/Safari/Opera), 50/3 = 16.6fps (IE grrr!)
-static int nNext = 0;
 
 enum LoopState { kNone, kIgnoreFirstChange, kWaitLoopStart, kLoopStarted };
 static LoopState nLoopState;
@@ -358,9 +357,7 @@ bool GIF::Start (bool fAnimLoop_)
         return false;
 
     // Find a unique filename to use, in the format aniNNNN.gif
-    char szTemplate[MAX_PATH];
-    snprintf(szTemplate, MAX_PATH, "%sani%%04d.gif", OSD::GetDirPath(GetOption(datapath)));
-    nNext = Util::GetUniqueFile(szTemplate, nNext, szPath, sizeof(szPath));
+    pszFile = Util::GetUniqueFile("gif", szPath, sizeof(szPath));
 
     // Create the file
     f = fopen(szPath, "wb+");
@@ -392,7 +389,7 @@ void GIF::Stop ()
     fclose(f);
     f = NULL;
 
-    Frame::SetStatus("Saved ani%04d.gif", nNext-1);
+    Frame::SetStatus("Saved %s", pszFile);
 }
 
 void GIF::Toggle (bool fAnimLoop_)

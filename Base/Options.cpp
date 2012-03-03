@@ -29,7 +29,6 @@
 #include "OSD.h"
 #include "Util.h"
 
-const char* const OPTIONS_FILE = "SimCoupe.cfg";
 const int CFG_VERSION = 4;      // increment to force a config reset, if incompatible changes are made
 
 enum { OT_BOOL, OT_INT, OT_STRING };
@@ -90,6 +89,7 @@ OPTION aOptions[] =
     OPT_F("DosBoot",      dosboot,        true),      // Automagically boot DOS from non-bootable disks
     OPT_S("DosDisk",      dosdisk,        ""),        // No override DOS disk, use internal SAMDOS 2.2
     OPT_F("StdFloppy",    stdfloppy,      true),      // Assume real disks are standard format, initially
+    OPT_N("NextFile",     nextfile,       0),         // Start from 0000
 
     OPT_S("Disk1",        disk1,          ""),        // No disk in floppy drive 1
     OPT_S("Disk2",        disk2,          ""),        // No disk in floppy drive 2
@@ -97,10 +97,8 @@ OPTION aOptions[] =
     OPT_S("SDIDEDisk",    sdidedisk,      ""),        // No SD IDE hard disk
     OPT_S("YATBusDisk",   yatbusdisk,     ""),        // No YAMOD.ATBUS disk
 
-    OPT_S("FloppyPath",   floppypath,     ""),        // Default floppy path
-    OPT_S("HDDPath",      hddpath,        ""),        // Default hard disk path
-    OPT_S("ROMPath",      rompath,        ""),        // Default ROM path
-    OPT_S("DataPath",     datapath,       ""),        // Default data path
+    OPT_S("InPath",       inpath,         ""),        // Default input path
+    OPT_S("OutPath",      outpath,        ""),        // Default output path
     OPT_S("MRU0",         mru0,           ""),        // No recently used files
     OPT_S("MRU1",         mru1,           ""),
     OPT_S("MRU2",         mru2,           ""),
@@ -218,7 +216,7 @@ void* Options::GetDefault (const char* pcszName_)
 
 bool Options::Load (int argc_, char* argv_[])
 {
-    FILE* hfOptions = fopen(OSD::GetFilePath(OPTIONS_FILE), "r");
+    FILE* hfOptions = fopen(OSD::MakeFilePath(MFP_SETTINGS, OPTIONS_FILE), "r");
     if (hfOptions)
     {
         char szLine[256];
@@ -313,10 +311,15 @@ bool Options::Load (int argc_, char* argv_[])
 
 bool Options::Save ()
 {
+    const char *pcszPath = OSD::MakeFilePath(MFP_SETTINGS, OPTIONS_FILE);
+
     // Open the options file for writing, fail if we can't
-    FILE* hfOptions = fopen(OSD::GetFilePath(OPTIONS_FILE), "wb");
+    FILE* hfOptions = fopen(pcszPath, "wb");
     if (!hfOptions)
+    {
+        Message(msgWarning, "Failed to save options: (%s)\n\n%s", strerror(errno), pcszPath);
         return false;
+    }
 
     // Loop through each option to write out
     for (OPTION* p = aOptions ; p->pcszName ; p++)
