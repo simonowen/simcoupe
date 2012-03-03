@@ -479,7 +479,6 @@ void UpdateRecentFiles (HMENU hmenu_, int nId_, int nOffset_)
 
 void UpdateMenuFromOptions ()
 {
-    int i;
     char szEject[128];
 
     HMENU hmenu = g_hmenu, hmenuFile = GetSubMenu(hmenu, 0), hmenuFloppy2 = GetSubMenu(hmenuFile, 6);
@@ -516,8 +515,8 @@ void UpdateMenuFromOptions ()
     CheckOption(IDM_VIEW_SCANLINES, GetOption(scanlines));
     CheckOption(IDM_VIEW_GREYSCALE, GetOption(greyscale));
 
-    for (i = 0 ; i < 4 ; i++) CheckOption(IDM_VIEW_ZOOM_50+i,  i == GetOption(scale)-1);
-    for (i = 0 ; i < 5 ; i++) CheckOption(IDM_VIEW_BORDERS0+i, i == GetOption(borders));
+    CheckMenuRadioItem(hmenu, IDM_VIEW_ZOOM_50, IDM_VIEW_ZOOM_200+3, IDM_VIEW_ZOOM_50+GetOption(scale)-1, MF_BYCOMMAND);
+    CheckMenuRadioItem(hmenu, IDM_VIEW_BORDERS0, IDM_VIEW_BORDERS4, IDM_VIEW_BORDERS0+GetOption(borders), MF_BYCOMMAND);
 
     EnableItem(IDM_RECORD_AVI_START, !AVI::IsRecording());
     EnableItem(IDM_RECORD_AVI_HALF, !AVI::IsRecording());
