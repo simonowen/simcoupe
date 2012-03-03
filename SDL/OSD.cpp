@@ -109,7 +109,7 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
     strcpy(szPath, "PROGDIR:");
 #else
     // $HOME is a fairly safe default
-    strcpy(szPath, getenv("HOME"))
+    strcpy(szPath, getenv("HOME"));
     if (szPath[0]) strcat(szPath, "/");
 #endif
 
@@ -169,11 +169,11 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
 
     // Create the directory if it doesn't already exist
     // This assumes only the last component could be missing
-    if (!stat(szPath, &st))
+    if (stat(szPath, &st))
         mkdir(szPath, 0755);
 
     // Append any supplied filename (backslash separator already added)
-    lstrcat(szPath, pcszFile_);
+    strcat(szPath, pcszFile_);
 
     // Return a pointer to the new path
     return szPath;
