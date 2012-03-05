@@ -96,7 +96,7 @@ void CPrintBuffer::FrameEnd ()
 
 bool CPrinterFile::Open ()
 {
-    m_pszFile = Util::GetUniqueFile("prn", m_szPath, sizeof(m_szPath));
+    m_pszFile = Util::GetUniqueFile("txt", m_szPath, sizeof(m_szPath));
 
     m_hFile = fopen(m_szPath, "wb");
     if (!m_hFile)
