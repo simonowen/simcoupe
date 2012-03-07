@@ -51,11 +51,7 @@
 #include <io.h>
 
 #ifdef USE_ZLIB
-#ifdef _WIN64
-#pragma comment(lib, "zlibwapi")   // zlibwapi.lib is the official import library for the x64 version
-#else
-#pragma comment(lib, "zdll")   // zdll.lib is the official import library for 1.2.x versions
-#endif
+#pragma comment(lib, "zlibwapi")    // Note: ZLIB_WINAPI must be defined for the new WINAPI exports
 #endif
 
 #ifdef USE_RESID
