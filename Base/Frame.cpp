@@ -39,6 +39,7 @@
 #include "Display.h"
 #include "GIF.h"
 #include "GUI.h"
+#include "HardDisk.h"
 #include "Options.h"
 #include "OSD.h"
 #include "PNG.h"
@@ -47,11 +48,10 @@
 
 
 // SAM palette colours to use for the floppy drive LED states
-const BYTE FLOPPY_LED_ON_COLOUR   = GREEN_4;  // Light green floppy light on colour
-const BYTE ATOM_LED_ON_COLOUR     = RED_3;    // Red hard disk light colour
-const BYTE ATOMLITE_LED_ON_COLOUR = BLUE_5;   // Blue hard disk light colour
-const BYTE LED_OFF_COLOUR         = GREY_2;   // Dark grey light off colour
-const BYTE UNDRAWN_COLOUR         = GREY_2;   // Dark grey for undrawn screen in debugger
+const BYTE FLOPPY_LED_ON_COLOUR = GREEN_4;  // Light green floppy light on colour
+const BYTE ATOM_LED_ON_COLOUR   = BLUE_6;   // Blue hard disk light colour
+const BYTE LED_OFF_COLOUR       = GREY_2;   // Dark grey light off colour
+const BYTE UNDRAWN_COLOUR       = GREY_2;   // Dark grey for undrawn screen in debugger
 
 const unsigned int STATUS_ACTIVE_TIME = 2500;   // Time the status text is visible for (in ms)
 const unsigned int FPS_IN_TURBO_MODE = 10;      // Number of FPS to limit to in Turbo mode
@@ -437,9 +437,7 @@ void Frame::Sync ()
     DWORD dwNow = OSD::GetTime();
 
     // Determine whether we're running at increased speed during disk activity
-    bool fTurboDisk = GetOption(turboload) &&
-        ((pDrive1 && pDrive1->IsActive() && (pDrive1->GetType() != dskImage || ((CDrive*)pDrive1)->GetDiskType() != dtFloppy)) ||
-         (pDrive2 && pDrive2->IsActive() && (pDrive2->GetType() != dskImage || ((CDrive*)pDrive2)->GetDiskType() != dtFloppy)));
+    bool fTurboDisk = GetOption(turboload) && (pFloppy1->IsActive() || pFloppy2->IsActive() || pAtom->IsActive());
 
     // Default to drawing all frames
     fDrawFrame = true;
@@ -543,14 +541,17 @@ void DrawOSD (CScreen* pScreen_)
 
         // Floppy 1 light
         if (GetOption(drive1))
-            pScreen_->FillRect(nX, nY, 14, 2, pDrive1->IsLightOn() ? FLOPPY_LED_ON_COLOUR : LED_OFF_COLOUR);
+        {
+            BYTE bColour = pFloppy1->IsLightOn() ? FLOPPY_LED_ON_COLOUR : LED_OFF_COLOUR;
+            pScreen_->FillRect(nX, nY, 14, 2, bColour);
+        }
 
         // Floppy 2 or Atom drive light
         if (GetOption(drive2))
         {
-            BYTE bColour = (GetOption(drive2) == dskImage) ? FLOPPY_LED_ON_COLOUR :
-                           (GetOption(drive2) == dskAtomLite) ? ATOMLITE_LED_ON_COLOUR : ATOM_LED_ON_COLOUR;
-            pScreen_->FillRect(nX + 18, nY, 14, 2, pDrive2->IsLightOn() ? bColour : LED_OFF_COLOUR);
+            BYTE bColour = pFloppy2->IsLightOn() ? FLOPPY_LED_ON_COLOUR : 
+                             (pAtom->IsLightOn() ? ATOM_LED_ON_COLOUR : LED_OFF_COLOUR);
+            pScreen_->FillRect(nX + 18, nY, 14, 2, bColour);
         }
     }
 

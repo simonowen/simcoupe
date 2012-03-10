@@ -220,7 +220,7 @@ bool Options::Load (int argc_, char* argv_[])
     if (hfOptions)
     {
         char szLine[256];
-        while (fgets(szLine, sizeof szLine, hfOptions))
+        while (fgets(szLine, sizeof(szLine), hfOptions))
         {
             char *pszValue = strchr(szLine, '='), *pszName = strtok(szLine, " \t=");
 
@@ -298,8 +298,8 @@ bool Options::Load (int argc_, char* argv_[])
             // Bare filenames will be inserted into drive 1 then 2
             switch (nDrive++)
             {
-                case 1:  SetOption(disk1, pcszOption);  SetOption(drive1,dskImage); g_fAutoBoot = true;  break;
-                case 2:  SetOption(disk2, pcszOption);  SetOption(drive2,dskImage);     break;
+                case 1:  SetOption(disk1, pcszOption);  SetOption(drive1,drvFloppy); g_fAutoBoot = true;  break;
+                case 2:  SetOption(disk2, pcszOption);  SetOption(drive2,drvFloppy);     break;
                 default: TRACE("Unexpected command-line parameter: %s\n", pcszOption);  break;
             }
         }

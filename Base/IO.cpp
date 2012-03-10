@@ -50,18 +50,25 @@
 #include "Video.h"
 #include "YATBus.h"
 
-CDiskDevice *pDrive1, *pDrive2, *pSDIDE, *pYATBus, *pBootDrive;
-CIoDevice *pParallel1, *pParallel2;
-CIoDevice *pSerial1, *pSerial2;
-CIoDevice *pSambus, *pDallas;
-CIoDevice *pMidi;
-CIoDevice *pBeeper;
+CDiskDevice *pFloppy1, *pFloppy2, *pBootDrive;
+CHardDiskDevice *pAtom, *pSDIDE, *pYATBus;
+
+CPrintBuffer *pPrinterFile;
+CMonoDACDevice *pMonoDac;
+CStereoDACDevice *pStereoDac;
+
+CClockDevice *pSambus, *pDallas;
+CMouseDevice *pMouse;
+
+CMidiDevice *pMidi;
+CBeeperDevice *pBeeper;
 CBlueAlphaDevice *pBlueAlpha;
 CSAMVoxDevice *pSAMVox;
 CPaulaDevice *pPaula;
 CDAC *pDAC;
 CSAA *pSAA;
 CSID *pSID;
+
 
 // Port read/write addresses for I/O breakpoints
 WORD wPortRead, wPortWrite;
@@ -123,10 +130,27 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         pBlueAlpha = new CBlueAlphaDevice;
         pSAMVox = new CSAMVoxDevice;
         pPaula = new CPaulaDevice;
+        pMidi = new CMidiDevice;
 
-        // Initialise all the devices
-        fRet &= (InitDrives() && InitParallel() && InitSerial() && InitClocks() &&
-                 InitMidi() && InitHDD());
+        pSambus = new CSambusClock;
+        pDallas = new CDallasClock;
+        pMouse = new CMouseDevice;
+
+        pPrinterFile = new CPrinterFile;
+        pMonoDac = new CMonoDACDevice;
+        pStereoDac = new CStereoDACDevice;
+
+        pFloppy1 = new CDrive(1);
+        pFloppy2 = new CDrive(2);
+        pAtom = new CAtomLiteDevice;
+        pSDIDE = new CSDIDEDevice;
+        pYATBus = new CYATBusDevice;
+
+        pFloppy1->Insert(GetOption(disk1));
+        pFloppy2->Insert(GetOption(disk2));
+        pAtom->Insert(GetOption(atomdisk));
+        pSDIDE->Insert(GetOption(sdidedisk));
+        pYATBus->Insert(GetOption(yatbusdisk));
     }
 
     // The ASIC is unresponsive during the first ~49ms on production SAM units
@@ -140,8 +164,10 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     pBlueAlpha->Reset();
 
     // Initialise the drives back to a consistent state
-    pDrive1->Reset();
-    pDrive2->Reset();
+    pFloppy1->Reset();
+    pFloppy2->Reset();
+    pAtom->Reset();
+    pSDIDE->Reset();
 
     // Return true only if everything
     return fRet;
@@ -151,13 +177,7 @@ void IO::Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
-        InitDrives(false, false);
-        InitParallel(false, false);
-        InitSerial(false, false);
-        InitClocks(false, false);
-        InitMidi(false, false);
-        InitHDD(false, false);
-
+        delete pMidi, pMidi = NULL;
         delete pPaula, pPaula = NULL;
         delete pSAMVox, pSAMVox = NULL;
         delete pBlueAlpha, pBlueAlpha = NULL;
@@ -165,186 +185,22 @@ void IO::Exit (bool fReInit_/*=false*/)
         delete pSID, pSID = NULL;
         delete pSAA, pSAA = NULL;
         delete pDAC, pDAC = NULL;
+
+        delete pSambus, pSambus = NULL;
+        delete pDallas, pDallas = NULL;
+        delete pMouse, pMouse = NULL;
+
+        delete pPrinterFile, pPrinterFile = NULL;
+        delete pMonoDac, pMonoDac = NULL;
+        delete pStereoDac, pStereoDac = NULL;
+
+        delete pFloppy1, pFloppy1 = NULL;
+        delete pFloppy2, pFloppy2 = NULL;
+        delete pBootDrive, pBootDrive = NULL;
+        delete pAtom, pAtom = NULL;
+        delete pSDIDE, pSDIDE = NULL;
+        delete pYATBus, pYATBus = NULL;
     }
-}
-
-
-bool IO::InitDrives (bool fInit_/*=true*/, bool fReInit_/*=true*/)
-{
-    // The boot drive should never exist here, but we'll clean up if it does
-    if (pBootDrive)
-    {
-        delete pDrive1;
-        pDrive1 = pBootDrive;
-        pBootDrive = NULL;
-    }
-
-    if (pDrive1 && ((!fInit_ && !fReInit_) || (pDrive1->GetType() != GetOption(drive1))))
-    {
-        if (pDrive1->GetType() == dskImage)
-            SetOption(disk1, pDrive1->GetPath());
-        delete pDrive1; pDrive1 = NULL;
-    }
-
-    if (pDrive2 && ((!fInit_ && !fReInit_) || (pDrive2->GetType() != GetOption(drive2))))
-    {
-        if (pDrive2->GetType() == dskImage)
-            SetOption(disk2, pDrive2->GetPath());
-        else if (pDrive2->GetType() >= dskAtom)
-            SetOption(atomdisk, pDrive2->GetPath());
-        delete pDrive2; pDrive2 = NULL;
-    }
-
-    if (fInit_)
-    {
-        if (!pDrive1)
-        {
-            switch (GetOption(drive1))
-            {
-                case dskImage:
-                    (pDrive1 = new CDrive())->Insert(GetOption(disk1));
-                    break;
-
-                default:
-                    pDrive1 = new CDiskDevice;
-                    break;
-            }
-        }
-
-        if (!pDrive2)
-        {
-            switch (GetOption(drive2))
-            {
-                case dskImage:
-                    (pDrive2 = new CDrive())->Insert(GetOption(disk2));
-                    break;
-
-                case dskAtom:
-                    pDrive2 = new CAtomDiskDevice(CHardDisk::OpenObject(GetOption(atomdisk)));
-                    break;
-
-                case dskAtomLite:
-                    pDrive2 = new CAtomLiteDevice(CHardDisk::OpenObject(GetOption(atomdisk)));
-                    break;
-
-                default:
-                    pDrive2 = new CDiskDevice;
-                    break;
-            }
-        }
-    }
-
-    return !fInit_ || (pDrive1 && pDrive2);
-}
-
-bool IO::InitParallel (bool fInit_/*=true*/, bool fReInit_/*=true*/)
-{
-    delete pParallel1; pParallel1 = NULL;
-    delete pParallel2; pParallel2 = NULL;
-
-    if (fInit_)
-    {
-        switch (GetOption(parallel1))
-        {
-            case 1:
-                if ((*GetOption(printerdev)))
-                    pParallel1 =  new CPrinterDevice;
-                else
-                    pParallel1 = new CPrinterFile;
-                break;
-
-            case 2:     pParallel1 = new CMonoDACDevice;    break;
-            case 3:     pParallel1 = new CStereoDACDevice;  break;
-            default:    pParallel1 = new CIoDevice;         break;
-        }
-
-        switch (GetOption(parallel2))
-        {
-            case 1:
-                if ((*GetOption(printerdev)))
-                    pParallel2 =  new CPrinterDevice;
-                else
-                    pParallel2 = new CPrinterFile;
-                break;
-
-            case 2:     pParallel2 = new CMonoDACDevice;    break;
-            case 3:     pParallel2 = new CStereoDACDevice;  break;
-            default:    pParallel2 = new CIoDevice;         break;
-        }
-    }
-
-    return !fInit_ || (pParallel1 && pParallel2);
-}
-
-bool IO::InitSerial (bool fInit_/*=true*/, bool fReInit_/*=true*/)
-{
-    delete pSerial1; pSerial1 = NULL;
-    delete pSerial2; pSerial2 = NULL;
-
-    if (fInit_)
-    {
-        // Serial ports are dummy for now
-        pSerial1 = new CIoDevice;
-        pSerial2 = new CIoDevice;
-    }
-
-    return !fInit_ || (pSerial1 && pSerial2);
-}
-
-bool IO::InitClocks (bool fInit_/*=true*/, bool fReInit_/*=true*/)
-{
-    delete pSambus; pSambus = NULL;
-    delete pDallas; pDallas = NULL;
-
-    if (fInit_)
-    {
-        pSambus = GetOption(sambusclock) ? new CSambusClock : new CIoDevice;
-        pDallas = GetOption(dallasclock) ? new CDallasClock : new CIoDevice;
-    }
-
-    return !fInit_ || (pSambus && pDallas);
-}
-
-bool IO::InitMidi (bool fInit_/*=true*/, bool fReInit_/*=true*/)
-{
-    delete pMidi; pMidi = NULL;
-
-    if (fInit_)
-    {
-        switch (GetOption(midi))
-        {
-            case 1:     pMidi = new CMidiDevice;    break;
-            default:    pMidi = new CIoDevice;      break;
-        }
-    }
-
-    return !fInit_ || pMidi;
-}
-
-bool IO::InitHDD (bool fInit_/*=true*/, bool fReInit_/*=true*/)
-{
-    if (pSDIDE)
-    {
-        SetOption(sdidedisk, pSDIDE->GetPath());
-        delete pSDIDE; pSDIDE = NULL;
-    }
-
-    if (pYATBus)
-    {
-        SetOption(yatbusdisk, pYATBus->GetPath());
-        delete pYATBus; pYATBus = NULL;
-    }
-
-    if (fInit_)
-    {
-        CHardDisk* pDisk = CHardDisk::OpenObject(GetOption(sdidedisk));
-        pSDIDE = pDisk ? new CSDIDEDevice(pDisk) : new CDiskDevice;
-
-        pDisk = CHardDisk::OpenObject(GetOption(yatbusdisk));
-        pYATBus = pDisk ? new CYATBusDevice(pDisk) : new CDiskDevice;
-    }
-
-    return fInit_ || (pSDIDE && pYATBus);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -486,7 +342,7 @@ BYTE IO::In (WORD wPort_)
                 res = keyports[8] & 0x1f;
 
                 if (GetOption(mouse) && res == 0x1f)
-                    res = Mouse::Read() & 0x1f;
+                    res = pMouse->In(wPort_) & 0x1f;
             }
             else
             {
@@ -527,7 +383,12 @@ BYTE IO::In (WORD wPort_)
         case LMPR_PORT:     return lmpr;
 
         // SAMBUS and DALLAS clock ports
-        case CLOCK_PORT:    return (wPort_ < 0xfe00) ? pSambus->In(wPort_) : pDallas->In(wPort_);
+        case CLOCK_PORT:
+            if (wPort_ < 0xfe00 && GetOption(sambusclock))
+                return pSambus->In(wPort_);
+            else if (wPort_ >= 0xfe00 && GetOption(dallasclock))
+                return pDallas->In(wPort_);
+            break;
 
         // HPEN and LPEN ports
         case LPEN_PORT:
@@ -567,22 +428,34 @@ BYTE IO::In (WORD wPort_)
         // Parallel ports
         case PRINTL1_STAT:
         case PRINTL1_DATA:
-            return pParallel1->In(wPort_);
+            switch (GetOption(parallel1))
+            {
+                case 1: return pPrinterFile->In(wPort_);
+                case 2: return pMonoDac->In(wPort_);
+                case 3: return pStereoDac->In(wPort_);
+            }
+            break;
 
         case PRINTL2_STAT:
         case PRINTL2_DATA:
-            return pParallel2->In(wPort_);
+            switch (GetOption(parallel2))
+            {
+                case 1: return pPrinterFile->In(wPort_);
+                case 2: return pMonoDac->In(wPort_);
+                case 3: return pStereoDac->In(wPort_);
+            }
+            break;
 
-        // Serial ports
+        // Serial ports (currently unsupported)
         case SERIAL1:
-            return pSerial1->In(wPort_);
-
         case SERIAL2:
-            return pSerial2->In(wPort_);
+            break;
 
         // MIDI IN/Network
         case MIDI_PORT:
-            return pMidi->In(wPort_);
+            if (GetOption(midi) == 1) // MIDI device
+                return pMidi->In(wPort_);
+            break;
 
         // S D Software IDE interface
         case SDIDE_REG:
@@ -602,17 +475,21 @@ BYTE IO::In (WORD wPort_)
             // Floppy drive 1
             if ((wPort_ & FLOPPY_MASK) == FLOPPY1_BASE)
             {
-                // Read from floppy drive 1, if present
-                if (GetOption(drive1))
-                    return pDrive1->In(wPort_);
+                switch (GetOption(drive1))
+                {
+                    case drvFloppy: return (pBootDrive ? pBootDrive : pFloppy1)->In(wPort_);
+                    default: break;
+                }
             }
 
             // Floppy drive 2 *OR* the ATOM hard disk
             else if ((wPort_ & FLOPPY_MASK) == FLOPPY2_BASE)
             {
-                // Read from floppy drive 2 or Atom hard disk, if present
-                if (GetOption(drive2))
-                    return pDrive2->In(wPort_);
+                switch (GetOption(drive2))
+                {
+                    case drvFloppy: return pFloppy2->In(wPort_);
+                    case drvAtom:   return pAtom->In(wPort_);
+                }
             }
 
             // YAMOD.ATBUS hard disk interface
@@ -627,10 +504,8 @@ BYTE IO::In (WORD wPort_)
                 {
                     if ((bPortHigh & 0xfc) == 0x7c)
                         return pBlueAlpha->In(bPortHigh & 0x03);
-/*
-                    else if (highbyte == 0xff)
-                        return BlueAlphaVoiceBox::In(0);
-*/
+                  /*else if (highbyte == 0xff)
+                        return BlueAlphaVoiceBox::In(0);*/
                 }
             }
 #ifdef _DEBUG
@@ -769,9 +644,9 @@ void IO::Out (WORD wPort_, BYTE bVal_)
 
         // SAMBUS and DALLAS clock ports
         case CLOCK_PORT:
-            if (wPort_ < 0xfe00)
+            if (wPort_ < 0xfe00 && GetOption(sambusclock))
                 pSambus->Out(wPort_, bVal_);
-            else
+            else if (wPort_ >= 0xfe00 && GetOption(dallasclock))
                 pDallas->Out(wPort_, bVal_);
             break;
 
@@ -820,22 +695,27 @@ void IO::Out (WORD wPort_, BYTE bVal_)
         // Parallel ports 1 and 2
         case PRINTL1_STAT:
         case PRINTL1_DATA:
-            pParallel1->Out(wPort_, bVal_);
+            switch (GetOption(parallel1))
+            {
+                case 1: return pPrinterFile->Out(wPort_, bVal_);
+                case 2: return pMonoDac->Out(wPort_, bVal_);
+                case 3: return pStereoDac->Out(wPort_, bVal_);
+            }
             break;
 
         case PRINTL2_STAT:
         case PRINTL2_DATA:
-            pParallel2->Out(wPort_, bVal_);
+            switch (GetOption(parallel2))
+            {
+                case 1: return pPrinterFile->Out(wPort_, bVal_);
+                case 2: return pMonoDac->Out(wPort_, bVal_);
+                case 3: return pStereoDac->Out(wPort_, bVal_);
+            }
             break;
 
-
-        // Serial ports 1 and 2
+        // Serial ports 1 and 2 (currently unsupported)
         case SERIAL1:
-            pSerial1->Out(wPort_, bVal_);
-            break;
-
         case SERIAL2:
-            pSerial2->Out(wPort_, bVal_);
             break;
 
 
@@ -852,8 +732,9 @@ void IO::Out (WORD wPort_, BYTE bVal_)
                 AddCpuEvent(evtMidiOutIntStart, g_dwCycleCounter +
                             A_ROUND(MIDI_TRANSMIT_TIME + 16, 32) - 16 - 32 - MIDI_INT_ACTIVE_TIME + 1);
 
-                // Output the byte using the platform specific implementation
-                pMidi->Out(wPort_, bVal_);
+                // Output the byte to the appropriate device
+                if (GetOption(midi) == 1)
+                    pMidi->Out(wPort_, bVal_);
             }
             break;
         }
@@ -878,17 +759,22 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             // Floppy drive 1
             if ((wPort_ & FLOPPY_MASK) == FLOPPY1_BASE)
             {
-                // Write to floppy drive 1, if present
-                if (GetOption(drive1))
-                    pDrive1->Out(wPort_, bVal_);
+                switch (GetOption(drive1))
+                {
+                    case drvFloppy: (pBootDrive ? pBootDrive : pFloppy1)->Out(wPort_, bVal_); break;
+                    default: break;
+                }
             }
 
             // Floppy drive 2 *OR* the ATOM hard disk
             else if ((wPort_ & FLOPPY_MASK) == FLOPPY2_BASE)
             {
-                // Write to floppy drive 2 or Atom hard disk, if present...
-                if (GetOption(drive2))
-                    pDrive2->Out(wPort_, bVal_);
+                switch (GetOption(drive2))
+                {
+                    case drvFloppy: pFloppy2->Out(wPort_, bVal_); break;
+                    case drvAtom:   pAtom->Out(wPort_, bVal_); break;
+                    default: break;
+                }
             }
 
             // YAMOD.ATBUS hard disk interface
@@ -938,10 +824,10 @@ void IO::Out (WORD wPort_, BYTE bVal_)
 
 void IO::FrameUpdate ()
 {
-    pDrive1->FrameEnd();
-    pDrive2->FrameEnd();
-    pParallel1->FrameEnd();
-    pParallel2->FrameEnd();
+    pFloppy1->FrameEnd();
+    pFloppy2->FrameEnd();
+    pAtom->FrameEnd();
+    pPrinterFile->FrameEnd();
 
     Input::Update();
 
@@ -952,7 +838,7 @@ void IO::FrameUpdate ()
 void IO::UpdateInput()
 {
     // To avoid accidents, purge keyboard input during accelerated disk access
-    if (GetOption(turboload) && ((pDrive1 && pDrive1->IsActive()) || (pDrive2 && pDrive2->IsActive())))
+    if (GetOption(turboload) && (pFloppy1->IsActive() || pFloppy2->IsActive() || pAtom->IsActive()))
         Input::Purge();
 
     // Non-zero to tap the F9 key
@@ -962,7 +848,7 @@ void IO::UpdateInput()
     if (g_fAutoBoot && IsAtStartupScreen())
     {
         g_fAutoBoot = false;
-        nAutoBoot = 10 * pDrive1->IsInserted();
+        nAutoBoot = 10 * pFloppy1->HasDisk();
     }
 
     // If actively auto-booting, press and release F9 to trigger the boot
@@ -1053,17 +939,13 @@ bool IO::Rst8Hook ()
 
     // If a drive object exists, clean up after our boot attempt (which could fail if we're given a bad image)
     if (pBootDrive)
-    {
-        delete pDrive1;
-        pDrive1 = pBootDrive;
-        pBootDrive = NULL;
-    }
+        delete pBootDrive, pBootDrive = NULL;
 
     // Are we about to trigger "NO DOS" in ROM1, and with DOS booting enabled?
     else if (bErrCode == 0x35 && GetOption(dosboot))
     {
         // If there's a custom boot disk, load it read-only
-        CDisk* pDisk = CDisk::Open(GetOption(dosdisk), true);
+        CDisk *pDisk = CDisk::Open(GetOption(dosdisk), true);
 
         // Fall back on the built-in SAMDOS2 image
         if (!pDisk)
@@ -1071,16 +953,11 @@ bool IO::Rst8Hook ()
 
         if (pDisk)
         {
-            // Switch to the temporary boot image
-            pBootDrive = pDrive1;
-            pDrive1 = new CDrive(pDisk);
+            pBootDrive = new CDrive(1, pDisk);
 
-            // If successful, jump back to BOOTEX to try again
-            if (pDrive1)
-            {
-                PC = 0xd8e5;
-                return true;
-            }
+            // Jump back to BOOTEX to try again
+            PC = 0xd8e5;
+            return true;
         }
     }
 

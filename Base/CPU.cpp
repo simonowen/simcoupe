@@ -296,7 +296,7 @@ void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
             break;
 
         case evtMouseReset:
-            Mouse::Reset();
+            pMouse->Reset();
             break;
 
         case evtBlueAlphaClock:

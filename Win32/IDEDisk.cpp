@@ -2,7 +2,7 @@
 //
 // IDEDisk.cpp: Platform-specific IDE direct disk access
 //
-//  Copyright (c) 2003-2010 Simon Owen
+//  Copyright (c) 2003-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ bool CDeviceHardDisk::Open ()
         PARTITION_INFORMATION pi;
 
         // Read the drive geometry (possibly fake) and size, checking for a disk device
-        if (DeviceIoControl(m_hDevice, IOCTL_DISK_GET_PARTITION_INFO, NULL, 0, &pi, sizeof pi, &dwRet, NULL))
+        if (DeviceIoControl(m_hDevice, IOCTL_DISK_GET_PARTITION_INFO, NULL, 0, &pi, sizeof(pi), &dwRet, NULL))
         {
             // Extract the disk geometry and size in sectors, and calculate a suitable CHS to report
             // We round down to the nearest 1K to fix a single sector error with some CF card readers
@@ -84,9 +84,9 @@ bool CDeviceHardDisk::Open ()
             ATAPUT(pdi->wReadWriteMulti, 0);        // no multi-sector handling
             ATAPUT(pdi->wCapabilities, 0x0200);     // LBA supported
 
-            CHardDisk::SetIdentityString(pdi->szSerialNumber, sizeof(pdi->szSerialNumber), "100");
-            CHardDisk::SetIdentityString(pdi->szFirmwareRev,  sizeof(pdi->szFirmwareRev), "1.0");
-            CHardDisk::SetIdentityString(pdi->szModelNumber,  sizeof(pdi->szModelNumber), "SAM IDE Device");
+            SetIdentityString(pdi->szSerialNumber, sizeof(pdi->szSerialNumber), "100");
+            SetIdentityString(pdi->szFirmwareRev,  sizeof(pdi->szFirmwareRev), "1.0");
+            SetIdentityString(pdi->szModelNumber,  sizeof(pdi->szModelNumber), "SAM IDE Device");
 
             // For safety, only deal with existing BDOS or SDIDE hard disks
             if (IsBDOSDisk() || IsSDIDEDisk())

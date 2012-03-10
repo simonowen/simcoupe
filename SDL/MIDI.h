@@ -2,7 +2,7 @@
 //
 // MIDI.h: SDL MIDI interface
 //
-//  Copyright (c) 1999-2001  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,6 +33,9 @@ class CMidiDevice : public CIoDevice
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
 
+    public:
+        bool SetDevice (const char *pcszDevice_);
+
     protected:
         BYTE    m_abIn[256], m_abOut[256];  // Buffers for MIDI IN and MIDI OUT data
         int     m_nIn, m_nOut;              // Number of bytes in the buffers above
@@ -40,4 +43,6 @@ class CMidiDevice : public CIoDevice
         int     m_nDevice;                  // Device handle, or -1 if not open
 };
 
-#endif
+extern CMidiDevice *pMidi;
+
+#endif // MIDI_H

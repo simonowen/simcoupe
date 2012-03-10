@@ -2,8 +2,8 @@
 //
 // CDrive.cpp: VL1772-02 floppy disk controller emulation
 //
-//  Copyright (c) 1999-2010  Simon Owen
-//  Copyright (c) 1996-2001  Allan Skillman
+//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1996-2001 Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,15 +24,14 @@
 //  - data timeouts for type 2 commands
 
 #include "SimCoupe.h"
-
 #include "CDrive.h"
+
 #include "CPU.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CDrive::CDrive (CDisk* pDisk_/*=NULL*/)
-    : CDiskDevice(dskImage),
-    m_pDisk(pDisk_), m_pbBuffer(NULL)
+CDrive::CDrive (int nDrive_, CDisk* pDisk_/*=NULL*/)
+    : m_nDrive(nDrive_), m_pDisk(pDisk_), m_pbBuffer(NULL)
 {
     Reset ();
 }
@@ -53,29 +52,24 @@ void CDrive::Reset ()
 // Insert a new disk from the named source (usually a file)
 bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
 {
-    // Eject any existing disk
     Eject();
-
-    // If no image was supplied there's nothing more to do
-    if (!*pcszSource_)
-        return true;
 
     // Open the new disk image
     m_pDisk = CDisk::Open(pcszSource_, fReadOnly_);
+    if (!m_pDisk)
+        return false;
 
-    // If successful and we're working with drive 1, check for auto-booting
-    if (m_pDisk && this == pDrive1)
+    // Check for auto-booting with drive 1
+    if (m_nDrive == 1)
         IO::CheckAutoboot();
 
-    // Return whether we were successful
-    return m_pDisk != NULL;
+    return true;
 }
 
 // Eject any inserted disk
 void CDrive::Eject ()
 {
-    delete m_pDisk;
-    m_pDisk = NULL;
+    delete m_pDisk, m_pDisk = NULL;
 }
 
 void CDrive::FrameEnd ()
@@ -87,8 +81,8 @@ void CDrive::FrameEnd ()
         m_sRegs.bStatus &= ~MOTOR_ON;
 
         // Close any real floppy device to ensure any changes are flushed
-        if (m_pDisk && m_pDisk->GetType() == dtFloppy)
-            m_pDisk->Close();
+        if (m_pDisk)
+            m_pDisk->Flush();
     }
 }
 
@@ -623,36 +617,6 @@ BYTE CDrive::ReadAddress (UINT uSide_, UINT uTrack_, IDFIELD* pIdField_)
 
     // Return the find status
     return bRetStatus;
-}
-
-
-// CRC-CCITT for id/data checksums, with bit and byte order swapped
-WORD CDrive::CrcBlock (const void* pcv_, size_t uLen_, WORD wCRC_/*=0xffff*/)
-{
-    static WORD awCRC[256];
-
-    // Build the table if not already built
-    if (!awCRC[1])
-    {
-        for (int i = 0 ; i < 256 ; i++)
-        {
-            WORD w = i << 8;
-
-            // 8 shifts, for each bit in the update byte
-            for (int j = 0 ; j < 8 ; j++)
-                w = (w << 1) ^ ((w & 0x8000) ? 0x1021 : 0);
-
-            awCRC[i] = w;
-        }
-    }
-
-    // Update the CRC with each byte in the block
-    const BYTE* pb = reinterpret_cast<const BYTE*>(pcv_);
-    while (uLen_--)
-        wCRC_ = (wCRC_ << 8) ^ awCRC[((wCRC_ >> 8) ^ *pb++) & 0xff];
-
-    // Return the updated CRC
-    return wCRC_;
 }
 
 

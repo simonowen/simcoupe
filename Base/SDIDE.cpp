@@ -2,7 +2,7 @@
 //
 // SDIDE.cpp: S D Software IDE interface
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,28 +27,16 @@
 //  ensure the latches are in a known state.
 
 #include "SimCoupe.h"
-
 #include "SDIDE.h"
+
 #include "Options.h"
 
 
-CSDIDEDevice::CSDIDEDevice (CATADevice* pDisk_)
-    : CDiskDevice(dskSDIDE), m_bAddressLatch(0), m_bDataLatch(0), m_fDataLatched(false)
+CSDIDEDevice::CSDIDEDevice ()
+    : m_bAddressLatch(0), m_bDataLatch(0), m_fDataLatched(false)
 {
-    m_pDisk = pDisk_;
 }
 
-CSDIDEDevice::~CSDIDEDevice ()
-{
-    delete m_pDisk;
-}
-
-
-void CSDIDEDevice::Reset ()
-{
-    if (m_pDisk) 
-        m_pDisk->Reset();
-}
 
 BYTE CSDIDEDevice::In (WORD wPort_)
 {
@@ -62,7 +50,7 @@ BYTE CSDIDEDevice::In (WORD wPort_)
                 bRet = m_bDataLatch;
             else
             {
-                WORD wData = m_pDisk->In(0x0100 | m_bAddressLatch);
+                WORD wData = m_pDisk ? m_pDisk->In(0x0100 | m_bAddressLatch) : 0xffff;
                 m_bDataLatch = wData >> 8;
                 bRet = wData & 0xff;
             }
@@ -92,7 +80,7 @@ void CSDIDEDevice::Out (WORD wPort_, BYTE bVal_)
         case SDIDE_DATA:
             if (!m_fDataLatched)
                 m_bDataLatch = bVal_;
-            else
+            else if (m_pDisk)
                 m_pDisk->Out(0x0100 | m_bAddressLatch, (static_cast<WORD>(bVal_) << 8) | m_bDataLatch);
 
             m_fDataLatched = !m_fDataLatched;

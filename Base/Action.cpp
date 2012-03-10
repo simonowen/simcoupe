@@ -104,43 +104,43 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actInsertFloppy1:
-                if (GetOption(drive1) != dskImage)
+                if (GetOption(drive1) != drvFloppy)
                     Message(msgInfo, "Floppy drive %d is not present", 1);
                 else
                     GUI::Start(new CInsertFloppy(1));
                 break;
 
             case actEjectFloppy1:
-                if (GetOption(drive1) == dskImage && pDrive1->IsInserted())
+                if (GetOption(drive1) == drvFloppy && pFloppy1->HasDisk())
                 {
-                    Frame::SetStatus("%s  ejected from drive %d", pDrive1->GetFile(), 1);
-                    pDrive1->Eject();
+                    Frame::SetStatus("%s  ejected from drive %d", pFloppy1->DiskFile(), 1);
+                    pFloppy1->Eject();
                 }
                 break;
 
             case actSaveFloppy1:
-                if (GetOption(drive1) == dskImage && pDrive1->IsModified() && pDrive1->Save())
-                    Frame::SetStatus("%s  changes saved", pDrive1->GetFile());
+                if (GetOption(drive1) == drvFloppy && pFloppy1->DiskModified() && pFloppy1->Save())
+                    Frame::SetStatus("%s  changes saved", pFloppy1->DiskFile());
                 break;
 
             case actInsertFloppy2:
-                if (GetOption(drive2) != dskImage)
+                if (GetOption(drive2) != drvFloppy)
                     Message(msgInfo, "Floppy drive %d is not present", 2);
                 else
                     GUI::Start(new CInsertFloppy(2));
                 break;
 
             case actEjectFloppy2:
-                if (GetOption(drive2) == dskImage && pDrive2->IsInserted())
+                if (GetOption(drive2) == drvFloppy && pFloppy2->HasDisk())
                 {
-                    Frame::SetStatus("%s  ejected from drive %d", pDrive2->GetFile(), 2);
-                    pDrive2->Eject();
+                    Frame::SetStatus("%s  ejected from drive %d", pFloppy2->DiskFile(), 2);
+                    pFloppy2->Eject();
                 }
                 break;
 
             case actSaveFloppy2:
-                if (GetOption(drive2) == dskImage && pDrive2->IsModified() && pDrive2->Save())
-                    Frame::SetStatus("%s  changes saved", pDrive2->GetFile());
+                if (GetOption(drive2) == drvFloppy && pFloppy2->DiskModified() && pFloppy2->Save())
+                    Frame::SetStatus("%s  changes saved", pFloppy2->DiskFile());
                 break;
 
             case actNewDisk1:
@@ -227,14 +227,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actFlushPrinter:
-                // If port 1 is a printer, flush it
-                if (GetOption(parallel1) == 1)
-                    reinterpret_cast<CPrintBuffer*>(pParallel1)->Flush();
-
-                // If port 2 is a printer, flush it
-                if (GetOption(parallel2) == 1)
-                    reinterpret_cast<CPrintBuffer*>(pParallel2)->Flush();
-
+                pPrinterFile->Flush();
                 break;
 
             case actRecordGif:

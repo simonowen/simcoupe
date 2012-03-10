@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// AtomLite.cpp: Atom-Lite hard disk intefaces
+// AtomLite.cpp: Atom-Lite hard disk interface
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,24 +24,11 @@
 const unsigned int ATOM_LIGHT_DELAY = 2;    // Number of frames the hard disk LED remains on for after a command
 
 
-CAtomLiteDevice::CAtomLiteDevice (CATADevice* pDisk_)
-    : CDiskDevice(dskAtomLite), m_bAddressLatch(0), m_bDataLatch(0), m_uLightDelay(0)
+CAtomLiteDevice::CAtomLiteDevice ()
+    : m_bAddressLatch(0), m_bDataLatch(0)
 {
-    m_pDisk = pDisk_;
 }
 
-
-CAtomLiteDevice::~CAtomLiteDevice ()
-{
-    delete m_pDisk;
-}
-
-
-void CAtomLiteDevice::Reset ()
-{
-    if (m_pDisk)
-        m_pDisk->Reset();
-}
 
 BYTE CAtomLiteDevice::In (WORD wPort_)
 {
@@ -94,11 +81,4 @@ void CAtomLiteDevice::Out (WORD wPort_, BYTE bVal_)
             TRACE("AtomLite: Unhandled write to %#04x with %#02x\n", wPort_, bVal_);
             break;
     }
-}
-
-void CAtomLiteDevice::FrameEnd ()
-{
-    // If the drive light is currently on, reduce the counter
-    if (m_uLightDelay)
-        m_uLightDelay--;
 }

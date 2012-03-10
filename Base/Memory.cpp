@@ -2,8 +2,8 @@
 //
 // Memory.cpp: Memory configuration and management
 //
-//  Copyright (c) 1999-2010  Simon Owen
-//  Copyright (c) 1996-2001  Allan Skillman
+//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1996-2001 Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -198,15 +198,16 @@ static void LoadRoms (BYTE* pb0_, BYTE* pb1_)
         // What we patch depends on the HDD interface attached
         switch (GetOption(drive2))
         {
+/*
             // Original Atom
-            case dskAtom:
+            case drvAtom:
                 // Patch from ROM30 to Atom
                 PatchBlock(pb0_, abAtomPatch0);
                 PatchBlock(pb1_, abAtomPatch1);
                 break;
-
+*/
             // Atom Lite
-            case dskAtomLite:
+            case drvAtom:
                 PatchBlock(pb0_, abAtomLitePatch0);
                 PatchBlock(pb1_, abAtomLitePatch1);
                 break;

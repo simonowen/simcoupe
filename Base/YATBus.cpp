@@ -2,7 +2,7 @@
 //
 // Atom.cpp: YAMOD.ATBUS IDE interface
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,27 +19,14 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 // For more information on Jarek Adamski's YAMOD.ATBUS interface, see:
-//  http://nautilus.torch.net.pl/~yarek/zx/dYABUS-en.html#YAMODATBUS
+//  http://8bit.yarek.pl/interface/yamod.atbus/
 
 #include "SimCoupe.h"
 #include "YATBus.h"
 
-CYATBusDevice::CYATBusDevice (CATADevice* pDisk_)
-    : CDiskDevice(dskYATBus), m_bLatch(0), m_fDataLatched(false)
+CYATBusDevice::CYATBusDevice ()
+    : m_bLatch(0), m_fDataLatched(false)
 {
-    m_pDisk = pDisk_;
-}
-
-CYATBusDevice::~CYATBusDevice ()
-{
-    delete m_pDisk;
-}
-
-
-void CYATBusDevice::Reset ()
-{
-    if (m_pDisk) 
-        m_pDisk->Reset();
 }
 
 BYTE CYATBusDevice::In (WORD wPort_)
@@ -63,7 +50,7 @@ BYTE CYATBusDevice::In (WORD wPort_)
             {
                 // Read a WORD from the ATA interface
                 // Bit 3 = CS0/CS1, bits 0-2 used for the low address bits
-                WORD wData = m_pDisk->In(0x01f0 | ((wPort_ & 0x08) << 6) | (wPort_ & 0x07));
+                WORD wData = m_pDisk ? m_pDisk->In(0x01f0 | ((wPort_ & 0x08) << 6) | (wPort_ & 0x07)) : 0xffff;
 
                 // Store the high 8-bits in the latch
                 m_bLatch = wData >> 8;
@@ -80,7 +67,7 @@ BYTE CYATBusDevice::In (WORD wPort_)
             m_fDataLatched = false;
 
             // Read and return an 8-bit register
-            bRet = m_pDisk->In(0x01f0 | ((wPort_ & 0x08) << 6) | (wPort_ & 0x7)) & 0xff;
+            bRet = m_pDisk ? m_pDisk->In(0x01f0 | ((wPort_ & 0x08) << 6) | (wPort_ & 0x7)) & 0xff : 0xff;
             break;
     }
 
@@ -103,8 +90,11 @@ void CYATBusDevice::Out (WORD wPort_, BYTE bVal_)
             }
             else
             {
-                // Write the 16-bit value formed from the supplied data and the latch, clearing the latch
-                m_pDisk->Out(0x01f0, (static_cast<WORD>(bVal_) << 8) | m_bLatch);
+                // Write the 16-bit value formed from the supplied data and the latch
+                if (m_pDisk)
+                    m_pDisk->Out(0x01f0, (static_cast<WORD>(bVal_) << 8) | m_bLatch);
+
+                // Clear the latch
                 m_fDataLatched = false;
             }
             break;
@@ -112,7 +102,8 @@ void CYATBusDevice::Out (WORD wPort_, BYTE bVal_)
 
         default:
             // Write the supplied 8-bit register value
-            m_pDisk->Out(0x01f0 | ((wPort_ & 0x08) << 6) | (wPort_ & 0x7), bVal_);
+            if (m_pDisk)
+                m_pDisk->Out(0x01f0 | ((wPort_ & 0x08) << 6) | (wPort_ & 0x7), bVal_);
             break;
     }
 }

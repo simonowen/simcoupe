@@ -49,12 +49,12 @@ static bool WriteChunk (FILE* hFile_, DWORD dwType_, BYTE* pbData_, size_t uLeng
 {
     // Write chunk length
     DWORD dw = static_cast<DWORD>(ntohul(uLength_));
-    size_t uWritten = fwrite(&dw, 1, sizeof dw, hFile_);
+    size_t uWritten = fwrite(&dw, 1, sizeof(dw), hFile_);
 
     // Write type (big endian) and start CRC with it
     dw = ntohul(dwType_);
-    uWritten += fwrite(&dw, 1, sizeof dw, hFile_);
-    DWORD crc = crc32(0, reinterpret_cast<UINT8*>(&dw), sizeof dw);
+    uWritten += fwrite(&dw, 1, sizeof(dw), hFile_);
+    DWORD crc = crc32(0, reinterpret_cast<UINT8*>(&dw), sizeof(dw));
 
     if (uLength_)
     {
@@ -65,10 +65,10 @@ static bool WriteChunk (FILE* hFile_, DWORD dwType_, BYTE* pbData_, size_t uLeng
 
     // Write CRC (big endian)
     dw = ntohul(crc);
-    uWritten += fwrite(&dw, 1, sizeof dw, hFile_);
+    uWritten += fwrite(&dw, 1, sizeof(dw), hFile_);
 
     // Return true if we wrote everything
-    return uWritten == ((3 * sizeof dw) + uLength_);
+    return uWritten == ((3 * sizeof(dw)) + uLength_);
 }
 
 
@@ -88,8 +88,8 @@ static bool WriteFile (FILE* hFile_, PNG_INFO* pPNG_)
     ihdr.bInterlaceType = PNG_INTERLACE_NONE;
 
     // Write everything out, returning true only if everything succeeds
-    return ((fwrite(PNG_SIGNATURE, 1, sizeof PNG_SIGNATURE - 1, hFile_) == sizeof PNG_SIGNATURE - 1) &&
-            WriteChunk(hFile_, PNG_CN_IHDR, reinterpret_cast<BYTE*>(&ihdr), sizeof ihdr) &&
+    return ((fwrite(PNG_SIGNATURE, 1, sizeof(PNG_SIGNATURE)-1, hFile_) == sizeof(PNG_SIGNATURE)-1) &&
+            WriteChunk(hFile_, PNG_CN_IHDR, reinterpret_cast<BYTE*>(&ihdr), sizeof(ihdr)) &&
             WriteChunk(hFile_, PNG_CN_IDAT, pPNG_->pbImage, pPNG_->uCompressedSize) &&
             WriteChunk(hFile_, PNG_CN_tEXt, reinterpret_cast<BYTE*>(szProgram), strlen(szProgram)) &&
             WriteChunk(hFile_, PNG_CN_IEND, NULL, 0));

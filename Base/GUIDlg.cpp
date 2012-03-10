@@ -26,6 +26,7 @@
 #include "HardDisk.h"
 #include "Input.h"
 #include "Memory.h"
+#include "MIDI.h"
 #include "Options.h"
 #include "Sound.h"
 
@@ -197,7 +198,7 @@ CInsertFloppy::CInsertFloppy (int nDrive_, CWindow* pParent_/*=NULL*/)
     SetText(szCaption);
 
     // Browse from the location of the previous image, or the default directory if none
-    const char* pcszImage = ((nDrive_ == 1) ? pDrive1 : pDrive2)->GetPath();
+    const char* pcszImage = ((nDrive_ == 1) ? pFloppy1 : pFloppy2)->DiskPath();
     m_pFileView->SetPath(*pcszImage ? pcszImage : OSD::MakeFilePath(MFP_INPUT));
 }
 
@@ -211,7 +212,7 @@ void CInsertFloppy::OnOK ()
         bool fInserted = false;
 
         // Insert the disk into the appropriate drive
-        fInserted = ((m_nDrive == 1) ? pDrive1 : pDrive2)->Insert(pcszPath);
+        fInserted = ((m_nDrive == 1) ? pFloppy1 : pFloppy2)->Insert(pcszPath);
 
         // If we succeeded, show a status message and close the file selector
         if (fInserted)
@@ -393,7 +394,7 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
 CTestDialog::CTestDialog (CWindow* pParent_/*=NULL*/)
     : CDialog(pParent_, 205, 198, "GUI Test")
 {
-    memset(m_apControls, 0, sizeof m_apControls);
+    memset(m_apControls, 0, sizeof(m_apControls));
 
     m_apControls[0] = new CEditControl(this, 8, 8, 190, "Edit control");
 
@@ -770,7 +771,7 @@ class CMidiOptions : public CDialog
                 SetOption(midiindev, m_pMidiIn->GetSelectedText());
 
                 if (Changed(midi) || Changed(midiindev) || Changed(midioutdev))
-                    IO::InitMidi();
+                    pMidi->SetDevice(GetOption(midioutdev));
 
                 Destroy();
             }
@@ -868,7 +869,7 @@ class CDriveOptions : public CDialog
             m_pDrive1 = new CComboBox(this, 83, 29, "None|Floppy", 80);
 
             new CTextControl(this, 178, 32, "D2:");
-            m_pDrive2 = new CComboBox(this, 198, 29, "None|Floppy|Atom|Atom Lite", 80);
+            m_pDrive2 = new CComboBox(this, 198, 29, "None|Floppy|Atom [Lite]", 80);
 
             new CFrameControl(this, 50, 71, 238, 120);
             new CTextControl(this, 60, 67, "Options", YELLOW_8, BLUE_2);
@@ -909,7 +910,7 @@ class CDriveOptions : public CDialog
                 Destroy();
             else if (pWindow_ == m_pOK)
             {
-                int anDriveTypes[] = { dskNone, dskImage, dskImage, dskAtom, dskAtomLite };
+                int anDriveTypes[] = { drvNone, drvFloppy, drvAtom };
                 SetOption(drive1, anDriveTypes[m_pDrive1->GetSelected()]);
                 SetOption(drive2, anDriveTypes[m_pDrive2->GetSelected()]);
 
@@ -919,9 +920,6 @@ class CDriveOptions : public CDialog
 
                 SetOption(dosboot, m_pDosBoot->IsChecked());
                 SetOption(dosdisk, m_pDosDisk->GetText());
-
-                if (Changed(drive1) || Changed(drive2))
-                    IO::InitDrives();
 
                 Destroy();
             }
@@ -952,11 +950,11 @@ class CDiskOptions : public CDialog
         CDiskOptions (CWindow* pParent_)
             : CDialog(pParent_, 300, 241, "Disk Settings")
         {
-            if (GetOption(drive1) == dskImage) SetOption(disk1, pDrive1->GetPath());
-            if (GetOption(drive2) == dskImage) SetOption(disk2, pDrive2->GetPath());
-            if (GetOption(drive2) >= dskAtom)  SetOption(atomdisk, pDrive2->GetPath());
-            SetOption(sdidedisk, pSDIDE->GetPath());
-            SetOption(yatbusdisk, pYATBus->GetPath());
+            SetOption(disk1, pFloppy1->DiskPath());
+            SetOption(disk2, pFloppy2->DiskPath());
+            SetOption(atomdisk, pAtom->DiskPath());
+            SetOption(sdidedisk, pSDIDE->DiskPath());
+            SetOption(yatbusdisk, pYATBus->DiskPath());
 
             new CIconControl(this, 10, 10, &sFloppyDriveIcon);
 
@@ -998,7 +996,6 @@ class CDiskOptions : public CDialog
             else if (pWindow_ == m_pOK)
             {
                 char sz[MAX_PATH+128];
-                bool fFloppy1 = GetOption(drive1) == dskImage, fFloppy2 = GetOption(drive2) == dskImage;
 
                 // Set the options from the edit control values
                 SetOption(disk1, m_pFloppy1->GetText());
@@ -1007,80 +1004,44 @@ class CDiskOptions : public CDialog
                 SetOption(sdidedisk, m_pSDIDE->GetText());
                 SetOption(yatbusdisk, m_pYATBus->GetText());
 
-                if (ChangedString(disk1) && fFloppy1 && !pDrive1->Insert(GetOption(disk1)))
-                {
-                    sprintf(sz, "Invalid disk image:\n\n%s", GetOption(disk1));
-                    new CMessageBox(this, sz, "Floppy Drive 1", mbWarning);
-                    return;
-                }
-
-                if (ChangedString(disk2) && fFloppy2 && !pDrive2->Insert(GetOption(disk2)))
-                {
-                    sprintf(sz, "Invalid disk image:\n\n%s", GetOption(disk2));
-                    new CMessageBox(this, sz, "Floppy Drive 2", mbWarning);
-                    return;
-                }
-
                 // If the Atom path has changed, activate it
                 if (ChangedString(atomdisk))
                 {
-                    // If the Atom is active, force it to be remounted
-                    if (GetOption(drive2) >= dskAtom)
+                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk));
+                    if (!pDisk)
                     {
-                        delete pDrive2;
-                        pDrive2 = NULL;
-                    }
-
-                    // Set drive 2 to Atom if we've got no path, or Atom if Atom Lite wasn't already set
-                    if (!*GetOption(atomdisk))
-                        SetOption(drive2, dskImage);
-                    else if (GetOption(drive2) != dskAtomLite)
-                        SetOption(drive2, dskAtom);
-
-                    // Re-initialise the drives to activate any changes
-                    IO::InitDrives();
-
-                    // Ensure it was mounted ok
-                    if (*GetOption(atomdisk) && pDrive2->GetType() != dskAtom)
-                    {
-                        sprintf(sz, "Invalid hard disk image:\n\n%s", GetOption(atomdisk));
-                        new CMessageBox(this, sz, "Atom Disk", mbWarning);
+                        snprintf(sz, sizeof(sz), "Invalid Atom disk:\n\n%s", GetOption(atomdisk));
+                        new CMessageBox(this, sz, "Warning", mbWarning);
                         return;
                     }
+                    
+                    pAtom->Insert(pDisk);
                 }
 
-                // Re-init the other hard drive interfaces if anything has changed
-                if (ChangedString(sdidedisk) || ChangedString(yatbusdisk))
+                if (ChangedString(sdidedisk))
                 {
-                    if (ChangedString(sdidedisk))
+                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(sdidedisk));
+                    if (!pDisk)
                     {
-                        delete pSDIDE;
-                        pSDIDE = NULL;
+                        snprintf(sz, sizeof(sz), "Invalid SDIDE disk:\n\n%s", GetOption(sdidedisk));
+                        new CMessageBox(this, sz, "Warning", mbWarning);
+                        return;
                     }
+                    
+                    pSDIDE->Insert(pDisk);
+                }
 
-                    if (ChangedString(yatbusdisk))
+                if (ChangedString(yatbusdisk))
+                {
+                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(yatbusdisk));
+                    if (!pDisk)
                     {
-                        delete pYATBus;
-                        pYATBus = NULL;
+                        snprintf(sz, sizeof(sz), "Invalid YATBUS disk:\n\n%s", GetOption(yatbusdisk));
+                        new CMessageBox(this, sz, "Warning", mbWarning);
+                        return;
                     }
-
-                    IO::InitHDD();
-                }
-
-                // If the SDIDE path changed, check it was mounted ok
-                if (ChangedString(sdidedisk) && *GetOption(sdidedisk) && pSDIDE->GetType() != dskSDIDE)
-                {
-                    sprintf(sz, "Invalid hard disk image:\n\n%s", GetOption(sdidedisk));
-                    new CMessageBox(this, sz, "SDIDE Disk", mbWarning);
-                    return;
-                }
-
-                // If the SDIDE path changed, check it was mounted ok
-                if (ChangedString(yatbusdisk) && *GetOption(yatbusdisk) && pYATBus->GetType() != dskYATBus)
-                {
-                    sprintf(sz, "Invalid hard disk image:\n\n%s", GetOption(yatbusdisk));
-                    new CMessageBox(this, sz, "YAMOD.ATBUS Disk", mbWarning);
-                    return;
+                    
+                    pYATBus->Insert(pDisk);
                 }
 
                 // If everything checked out, close the dialog
@@ -1156,10 +1117,6 @@ class CParallelOptions : public CDialog
                 SetOption(parallel1, m_pPort1->GetSelected());
                 SetOption(parallel2, m_pPort2->GetSelected());
                 SetOption(flushdelay, m_pFlushDelay->GetSelected());
-                SetOption(printerdev, "");
-
-                if (Changed(parallel1) || Changed(parallel2) || ChangedString(printerdev))
-                    IO::InitParallel();
 
                 Destroy();
             }
@@ -1223,9 +1180,6 @@ class CMiscOptions : public CDialog
                 SetOption(drivelights, m_pDriveLights->IsChecked());
                 SetOption(status, m_pStatus->IsChecked());
                 SetOption(profile, m_pProfile->IsChecked());
-
-                if (Changed(sambusclock) || Changed(dallasclock))
-                    IO::InitClocks();
 
                 Destroy();
             }
@@ -1389,7 +1343,7 @@ void CImportDialog::OnNotify (CWindow* pWindow_, int nParam_)
     else if (pWindow_ == m_pOK || nParam_)
     {
         // Fetch/update the stored filename
-        strncpy(s_szFile, m_pFile->GetText(), sizeof s_szFile);
+        strncpy(s_szFile, m_pFile->GetText(), sizeof(s_szFile));
 
         FILE* hFile;
         if (!s_szFile[0] || !(hFile = fopen(s_szFile, "rb")))
@@ -1446,7 +1400,7 @@ void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
     if (pWindow_ == m_pOK || nParam_)
     {
         // Fetch/update the stored filename
-        strncpy(s_szFile, m_pFile->GetText(), sizeof s_szFile);
+        strncpy(s_szFile, m_pFile->GetText(), sizeof(s_szFile));
 
         FILE* hFile;
         if (!s_szFile[0] || !(hFile = fopen(s_szFile, "wb")))

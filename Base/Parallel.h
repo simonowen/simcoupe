@@ -106,4 +106,6 @@ class CStereoDACDevice : public CIoDevice
         BYTE m_bControl, m_bData;
 };
 
+extern CPrintBuffer *pPrinterFile;
+
 #endif  // PARALLEL_H

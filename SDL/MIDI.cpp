@@ -2,7 +2,7 @@
 //
 // MIDI.cpp: SDL MIDI interface
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,19 +33,13 @@
 
 
 CMidiDevice::CMidiDevice ()
-    : m_nIn(0), m_nOut(0)
+    : m_nIn(0), m_nOut(0), m_nDevice(-1)
 {
     // Clear the data buffers
     memset(m_abIn, 0, sizeof(m_abOut));
     memset(m_abOut, 0, sizeof(m_abOut));
 
-    // Open the MIDI device read/write, or write only if that fails
-    if ((m_nDevice = open(GetOption(midioutdev), O_RDWR) == -1))
-        m_nDevice = open(GetOption(midioutdev), O_WRONLY);
-
-    // Reset the device to flush any partial messages
-    if (m_nDevice != -1)
-        ioctl(m_nDevice,MIDIRESET,0);
+    SetDevice(GetOption(midioutdev));
 }
 
 
@@ -136,4 +130,26 @@ void CMidiDevice::Out (WORD wPort_, BYTE bVal_)
 
     // Prepare for the next message 
     m_nOut = m_abOut[1] = m_abOut[2] = m_abOut[3] = 0;
+}
+
+bool CMidiDevice::SetDevice (const char *pcszDevice_)
+{
+    if (m_nDevice != -1)
+    {
+        close(m_nDevice);
+        m_nDevice = -1;
+    }
+
+    // Open the MIDI device read/write, or write only if that fails
+    if (*pcszDevice_)
+    {
+        if ((m_nDevice = open(pcszDevice_, O_RDWR) == -1))
+            m_nDevice = open(pcszDevice_, O_WRONLY);
+    }
+
+    // Reset the device to flush any partial messages
+    if (m_nDevice != -1)
+        ioctl(m_nDevice,MIDIRESET,0);
+
+    return m_nDevice != -1;
 }

@@ -19,8 +19,9 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "SimCoupe.h"
-#include <shlwapi.h>
 #include "UI.h"
+
+#include <shlwapi.h>
 
 #include "Action.h"
 #include "AVI.h"
@@ -38,6 +39,7 @@
 #include "Input.h"
 #include "Main.h"
 #include "Memory.h"
+#include "Midi.h"
 #include "ODmenu.h"
 #include "Options.h"
 #include "OSD.h"
@@ -109,6 +111,10 @@ static char szHDDFilters[] =
 
 static char szRomFilters[] =
     "ROM images (*.rom;*.zx82)\0*.rom;*.zx82\0"
+    "All files (*.*)\0*.*\0";
+
+static char szDataFilters[] =
+    "Data files (*.bin;*.dat;*.raw;*.txt)\0*.bin;*.dat;*.raw;*.txt\0"
     "All files (*.*)\0*.*\0";
 
 static const char* aszBorders[] =
@@ -193,7 +199,7 @@ bool UI::CheckEvents ()
 
 void UI::ShowMessage (eMsgType eType_, const char* pcszMessage_)
 {
-    const char* const pcszCaption = "SimCoupe";
+    const char* const pcszCaption = WINDOW_CAPTION;
     HWND hwndParent = GetActiveWindow();
 
     switch (eType_)
@@ -299,37 +305,38 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
 }
 
 // Save changes to a given drive, optionally prompting for confirmation
-bool SaveDriveChanges (CDiskDevice* pDrive_)
+bool ChangesSaved (CDiskDevice* pFloppy_)
 {
-    if (!pDrive_->IsModified())
+    if (!pFloppy_->DiskModified())
         return true;
 
     if (GetOption(saveprompt))
     {
         char sz[MAX_PATH];
-        wsprintf(sz, "Save changes to %s?", pDrive_->GetFile());
+        snprintf(sz, MAX_PATH, "Save changes to %s?", pFloppy_->DiskFile());
 
-        switch (MessageBox(g_hwnd, sz, "SimCoupe", MB_YESNOCANCEL|MB_ICONQUESTION))
+        switch (MessageBox(g_hwnd, sz, WINDOW_CAPTION, MB_YESNOCANCEL|MB_ICONQUESTION))
         {
             case IDYES:     break;
-            case IDNO:      pDrive_->SetModified(false); return true;
+            case IDNO:      pFloppy_->SetModified(false); return true;
             default:        return false;
         }
     }
 
-    if (!pDrive_->Save())
+    if (!pFloppy_->Save())
     {
-        Message(msgWarning, "Failed to save changes to %s", pDrive_->GetPath());
+        Message(msgWarning, "Failed to save changes to %s", pFloppy_->DiskFile());
         return false;
     }
 
     return true;
 }
 
-bool GetSaveLoadFile (LPOPENFILENAME lpofn_, bool fLoad_, bool fCheck_=true)
+bool GetSaveLoadFile (LPOPENFILENAME lpofn_, bool fLoad_, bool fCheckExisting_=true)
 {
     // Force an Explorer-style dialog, and ensure loaded files exist
-    lpofn_->Flags |= OFN_EXPLORER|OFN_PATHMUSTEXIST | (fCheck_ ? (fLoad_ ? OFN_FILEMUSTEXIST : OFN_OVERWRITEPROMPT) : 0);
+    lpofn_->Flags |= OFN_EXPLORER|OFN_PATHMUSTEXIST;
+    if (fCheckExisting_) lpofn_->Flags |= (fLoad_ ? OFN_FILEMUSTEXIST : OFN_OVERWRITEPROMPT);
 
     // Loop until successful
     while (!(fLoad_ ? GetOpenFileName(lpofn_) : GetSaveFileName(lpofn_)))
@@ -347,25 +354,24 @@ bool GetSaveLoadFile (LPOPENFILENAME lpofn_, bool fLoad_, bool fCheck_=true)
     return true;
 }
 
-bool InsertDisk (CDiskDevice* pDrive_)
+bool InsertDisk (CDiskDevice* pFloppy_)
 {
     char szFile[MAX_PATH] = "";
-    static OPENFILENAME ofn = { sizeof(ofn) };
 
     // Save any changes to the current disk first
-    if (!SaveDriveChanges(pDrive_))
+    if (!ChangesSaved(pFloppy_))
         return false;
 
-    // Prompt using the current image directory, unless we're using a real drive
-    if (reinterpret_cast<CDrive*>(pDrive_)->GetDiskType() == dtFloppy)
-        szFile[0] = '\0';
-    else if (pDrive_->IsInserted())
-        lstrcpyn(szFile, pDrive_->GetPath(), sizeof(szFile));
-
+    static OPENFILENAME ofn = { sizeof(ofn) };
     ofn.hwndOwner = g_hwnd;
     ofn.lpstrFilter = szFloppyFilters;
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = sizeof(szFile);
+    lstrcpyn(szFile, pFloppy_->DiskFile(), MAX_PATH);
+
+    // Don't use floppy paths for the initial directory
+    if (szFile[0] == 'A' || szFile[0] == 'B')
+        szFile[0] = '\0';
 
     // Prompt for the a new disk to insert
     if (GetSaveLoadFile(&ofn, true))
@@ -373,16 +379,31 @@ bool InsertDisk (CDiskDevice* pDrive_)
         bool fReadOnly = !!(ofn.Flags & OFN_READONLY);
 
         // Insert the disk to check it's a recognised format
-        if (!pDrive_->Insert(szFile, fReadOnly))
+        if (!pFloppy_->Insert(szFile, fReadOnly))
             Message(msgWarning, "Invalid disk image: %s", szFile);
         else
         {
-            Frame::SetStatus("%s  inserted into drive %d%s", pDrive_->GetFile(), (pDrive_ == pDrive1) ? 1 : 2, fReadOnly ? " (read-only)" : "");
+            Frame::SetStatus("%s  inserted into drive %d%s", pFloppy_->DiskFile(), (pFloppy_ == pFloppy1) ? 1 : 2, fReadOnly ? " (read-only)" : "");
             AddRecentFile(szFile);
             return true;
         }
     }
 
+    return false;
+}
+
+bool EjectDisk (CDiskDevice *pFloppy_)
+{
+    if (!pFloppy_->HasDisk())
+        return true;
+
+    if (ChangesSaved(pFloppy_))
+    {
+        Frame::SetStatus("%s  ejected from drive %d", pFloppy1->DiskFile(), 1);
+        pFloppy_->Eject();
+        return true;
+    }
+    
     return false;
 }
 
@@ -487,27 +508,26 @@ void UpdateMenuFromOptions ()
     EnableItem(IDM_FILE_FLOPPY1_DEVICE, CFloppyStream::IsAvailable());
 //  EnableItem(IDM_FILE_FLOPPY2_DEVICE, CFloppyStream::IsAvailable());
 
-    bool fFloppy1 = GetOption(drive1) == dskImage, fInserted1 = pDrive1->IsInserted();
-    bool fFloppy2 = GetOption(drive2) == dskImage, fInserted2 = pDrive2->IsInserted();
+    bool fFloppy1 = GetOption(drive1) == drvFloppy, fInserted1 = pFloppy1->HasDisk();
+    bool fFloppy2 = GetOption(drive2) == drvFloppy, fInserted2 = pFloppy2->HasDisk();
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 1 options
     EnableItem(IDM_FILE_NEW_DISK1, fFloppy1 && !GUI::IsActive());
     EnableItem(IDM_FILE_FLOPPY1_INSERT, fFloppy1 && !GUI::IsActive());
     EnableItem(IDM_FILE_FLOPPY1_EJECT, fFloppy1);
-    EnableItem(IDM_FILE_FLOPPY1_SAVE_CHANGES, fFloppy1 && pDrive1->IsModified());
+    EnableItem(IDM_FILE_FLOPPY1_SAVE_CHANGES, fFloppy1 && pFloppy1->DiskModified());
 
-    wsprintf(szEject, "&Close %s", pDrive1->GetFile());
+    wsprintf(szEject, "&Close %s", pFloppy1->DiskFile());
     ModifyMenu(hmenu, IDM_FILE_FLOPPY1_EJECT, MF_STRING | (fInserted1 ? MF_ENABLED : MF_GRAYED), IDM_FILE_FLOPPY1_EJECT, szEject);
-    CheckOption(IDM_FILE_FLOPPY1_DEVICE, fInserted1 && CFloppyStream::IsRecognised(pDrive1->GetPath()));
+    CheckOption(IDM_FILE_FLOPPY1_DEVICE, fInserted1 && CFloppyStream::IsRecognised(pFloppy1->DiskFile()));
 
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 2 options
     EnableMenuItem(hmenuFile, 6, MF_BYPOSITION | (fFloppy2 ? MF_ENABLED : MF_GRAYED));
-    EnableItem(IDM_FILE_FLOPPY2_SAVE_CHANGES, pDrive2->IsModified());
+    EnableItem(IDM_FILE_FLOPPY2_SAVE_CHANGES, pFloppy2->DiskModified());
 
-    wsprintf(szEject, "&Close %s", pDrive2->GetFile());
+    wsprintf(szEject, "&Close %s", pFloppy2->DiskFile());
     ModifyMenu(hmenu, IDM_FILE_FLOPPY2_EJECT, MF_STRING | (fInserted2 ? MF_ENABLED : MF_GRAYED), IDM_FILE_FLOPPY2_EJECT, szEject);
-    CheckOption(IDM_FILE_FLOPPY2_DEVICE, fInserted2 && CFloppyStream::IsRecognised(pDrive2->GetPath()));
 
     CheckOption(IDM_VIEW_FULLSCREEN, GetOption(fullscreen));
     CheckOption(IDM_VIEW_SYNC, GetOption(sync));
@@ -539,9 +559,8 @@ void UpdateMenuFromOptions ()
 
     // Enable the Flush printer item if there's buffered data in either printer
     bool fPrinter1 = GetOption(parallel1) == 1, fPrinter2 = GetOption(parallel2) == 1;
-    bool fFlush1 = fPrinter1 && reinterpret_cast<CPrintBuffer*>(pParallel1)->IsFlushable();
-    bool fFlush2 = fPrinter2 && reinterpret_cast<CPrintBuffer*>(pParallel2)->IsFlushable();
-    EnableItem(IDM_TOOLS_FLUSH_PRINTER, fFlush1 || fFlush2);
+    bool fFlushable = pPrinterFile->IsFlushable();
+    EnableItem(IDM_TOOLS_FLUSH_PRINTER, fFlushable);
 
     // Enable the online option if a printer is active, and check it if it's online
     EnableItem(IDM_TOOLS_PRINTER_ONLINE, fPrinter1 || fPrinter2);
@@ -566,7 +585,7 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
                 if (GetOption(fullscreen))
                 {
                     // Remember the window position, then re-initialise the video system
-                    g_wp.length = sizeof g_wp;
+                    g_wp.length = sizeof(g_wp);
                     GetWindowPlacement(g_hwnd, &g_wp);
                     Frame::Init();
                 }
@@ -597,42 +616,34 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
             }
 
             case actInsertFloppy1:
-                if (GetOption(drive1) != dskImage)
+                if (GetOption(drive1) != drvFloppy)
                     Message(msgWarning, "Floppy drive %d is not present", 1);
-                else if (SaveDriveChanges(pDrive1))
-                    InsertDisk(pDrive1);
+                else
+                    InsertDisk(pFloppy1);
                 break;
 
             case actEjectFloppy1:
-                if (GetOption(drive1) == dskImage && pDrive1->IsInserted() && SaveDriveChanges(pDrive1))
-                {
-                    Frame::SetStatus("%s  ejected from drive %d", pDrive1->GetFile(), 1);
-                    pDrive1->Eject();
-                }
+                EjectDisk(pFloppy1);
                 break;
 
             case actInsertFloppy2:
-                if (GetOption(drive2) != dskImage)
+                if (GetOption(drive2) != drvFloppy)
                     Message(msgWarning, "Floppy drive %d is not present", 2);
-                else if (SaveDriveChanges(pDrive2))
-                    InsertDisk(pDrive2);
+                else if (ChangesSaved(pFloppy2))
+                    InsertDisk(pFloppy2);
                 break;
 
             case actEjectFloppy2:
-                if (GetOption(drive2) == dskImage && pDrive2->IsInserted() && SaveDriveChanges(pDrive2))
-                {
-                    Frame::SetStatus("%s  ejected from drive %d", pDrive2->GetFile(), 2);
-                    pDrive2->Eject();
-                }
+                EjectDisk(pFloppy2);
                 break;
 
             case actNewDisk1:
-                if (SaveDriveChanges(pDrive1))
+                if (ChangesSaved(pFloppy1))
                     DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 1);
                 break;
 
             case actNewDisk2:
-                if (SaveDriveChanges(pDrive2))
+                if (ChangesSaved(pFloppy2))
                     DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 2);
                 break;
 
@@ -745,7 +756,7 @@ INT_PTR CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
 
             // Grab the attributes of the current GUI font
             LOGFONT lf;
-            GetObject(GetStockObject(DEFAULT_GUI_FONT), sizeof lf, &lf);
+            GetObject(GetStockObject(DEFAULT_GUI_FONT), sizeof(lf), &lf);
 
             // Add underline, and create it as a font to use for URLs
             lf.lfUnderline = TRUE;
@@ -865,7 +876,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         // Main window being created
         case WM_CREATE:
             // Allow files to be dropped onto the main window if the first drive is present
-            DragAcceptFiles(hwnd_, GetOption(drive1) == dskImage);
+            DragAcceptFiles(hwnd_, GetOption(drive1) == drvFloppy);
 
             // Hook keyboard input to our thread
             hWinKeyHook = SetWindowsHookEx(WH_KEYBOARD, WinKeyHookProc, NULL, GetCurrentThreadId());
@@ -876,7 +887,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             Sound::Silence();
 
             // Ensure both drives are saved before we exit
-            if (!SaveDriveChanges(pDrive1) || !SaveDriveChanges(pDrive2))
+            if (!ChangesSaved(pFloppy1) || !ChangesSaved(pFloppy2))
                 return 0;
 
             DestroyWindow(hwnd_);
@@ -893,8 +904,8 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         // System shutting down or using logging out
         case WM_QUERYENDSESSION:
             // Save without prompting, to avoid data loss
-            if (pDrive1) pDrive1->Save();
-            if (pDrive2) pDrive2->Save();
+            if (pFloppy1) pFloppy1->Save();
+            if (pFloppy2) pFloppy2->Save();
             return TRUE;
 
 
@@ -928,15 +939,15 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 SetForegroundWindow(g_hwnd);
 
                 // Insert the image into drive 1, if available
-                if (GetOption(drive1) != dskImage)
+                if (GetOption(drive1) != drvFloppy)
                     Message(msgWarning, "Floppy drive %d is not present", 1);
-                else if (SaveDriveChanges(pDrive1))
+                else if (ChangesSaved(pFloppy1))
                 {
-                    if (!pDrive1->Insert(szFile))
+                    if (!pFloppy1->Insert(szFile))
                         Message(msgWarning, "Invalid disk image: %s", szFile);
                     else
                     {
-                        Frame::SetStatus("%s  inserted into drive 1", pDrive1->GetFile());
+                        Frame::SetStatus("%s  inserted into drive 1", pFloppy1->DiskFile());
                         AddRecentFile(szFile);
                     }
                 }
@@ -949,12 +960,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         // Reinitialise the video if something changes
         case WM_SYSCOLORCHANGE:
             Display::Init();
-            break;
-
-        // System time has changed - update the SAM time if we're keeping it synchronised
-        case WM_TIMECHANGE:
-            TRACE("WM_TIMECHANGE\n");
-            IO::InitClocks();
             break;
 
 
@@ -1325,7 +1330,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_TOOLS_DEBUGGER:        Action::Do(actDebugger);          break;
 
                 case IDM_FILE_FLOPPY1_DEVICE:
-                case IDM_FILE_FLOPPY2_DEVICE:
                     if (!CFloppyStream::IsAvailable())
                     {
                         if (MessageBox(g_hwnd, "Real disk support requires a 3rd party driver.\n\nDo you want to download it?",
@@ -1333,11 +1337,8 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                             ShellExecute(NULL, NULL, "http://simonowen.com/fdrawcmd/", NULL, "", SW_SHOWMAXIMIZED);
                     }
 
-                    if (wId == IDM_FILE_FLOPPY1_DEVICE && GetOption(drive1) == dskImage && SaveDriveChanges(pDrive1) && pDrive1->Insert("A:"))
-                        Frame::SetStatus("Using floppy drive %s", pDrive1->GetFile());
-                    else if (wId == IDM_FILE_FLOPPY2_DEVICE && GetOption(drive2) == dskImage && SaveDriveChanges(pDrive2) && pDrive2->Insert("B:"))
-                        Frame::SetStatus("Using floppy drive %s", pDrive2->GetFile());
-
+                    if (GetOption(drive1) == drvFloppy && ChangesSaved(pFloppy1) && pFloppy1->Insert("A:"))
+                        Frame::SetStatus("Using floppy drive %s", pFloppy1->DiskFile());
                     break;
 
                 case IDM_FILE_FLOPPY1_INSERT:       Action::Do(actInsertFloppy1); break;
@@ -1381,7 +1382,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 // Items from help menu
                 case IDM_HELP_GENERAL:
                     if (ShellExecute(hwnd_, NULL, OSD::MakeFilePath(MFP_EXE, "SimCoupe.txt"), NULL, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
-                        MessageBox(hwnd_, "Can't find SimCoupe.txt", "SimCoupe", MB_ICONEXCLAMATION);
+                        MessageBox(hwnd_, "Can't find SimCoupe.txt", WINDOW_CAPTION, MB_ICONEXCLAMATION);
                     break;
                 case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), g_hwnd, AboutDlgProc, NULL);   break;
 
@@ -1390,11 +1391,12 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                     {
                         const char* psz = szRecentFiles[wId - IDM_FILE_RECENT1];
 
-                        if (!SaveDriveChanges(pDrive1))
+                        if (!ChangesSaved(pFloppy1))
                             break;
-                        else if (pDrive1->Insert(psz))
+
+                        if (pFloppy1->Insert(psz))
                         {
-                            Frame::SetStatus("%s  inserted into drive %d", pDrive1->GetFile(), 1);
+                            Frame::SetStatus("%s  inserted into drive %d", pFloppy1->DiskFile(), 1);
                             AddRecentFile(psz);
                         }
                         else
@@ -1407,11 +1409,12 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                     {
                         const char* psz = szRecentFiles[wId - IDM_FLOPPY2_RECENT1];
 
-                        if (!SaveDriveChanges(pDrive2))
+                        if (!ChangesSaved(pFloppy2))
                             break;
-                        else if (pDrive2->Insert(psz))
+
+                        if (pFloppy2->Insert(psz))
                         {
-                            Frame::SetStatus("%s  inserted into drive %d", pDrive2->GetFile(), 2);
+                            Frame::SetStatus("%s  inserted into drive %d", pFloppy2->DiskFile(), 2);
                             AddRecentFile(psz);
                         }
                         else
@@ -1567,7 +1570,7 @@ void FillMidiInCombo (HWND hwndCombo_)
         for (int i = 0 ; i < nDevs ; i++)
         {
             MIDIINCAPS mc;
-            if (midiInGetDevCaps(i, &mc, sizeof mc) == MMSYSERR_NOERROR)
+            if (midiInGetDevCaps(i, &mc, sizeof(mc)) == MMSYSERR_NOERROR)
                 SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(mc.szPname));
         }
     }
@@ -1590,7 +1593,7 @@ void FillMidiOutCombo (HWND hwndCombo_)
         for (int i = 0 ; i < nDevs ; i++)
         {
             MIDIOUTCAPS mc;
-            if (midiOutGetDevCaps(i, &mc, sizeof mc) == MMSYSERR_NOERROR)
+            if (midiOutGetDevCaps(i, &mc, sizeof(mc)) == MMSYSERR_NOERROR)
                 SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(mc.szPname));
         }
     }
@@ -1606,36 +1609,8 @@ void FillPrintersCombo (HWND hwndCombo_, LPCSTR pcszSelected_)
     int lSelected = 0;
     SendMessage(hwndCombo_, CB_RESETCONTENT, 0, 0L);
 
-    // Dummy call to find out how much space is needed, then allocate it
-    DWORD cbNeeded = 0, dwPrinters = 0;
-    EnumPrinters(PRINTER_ENUM_LOCAL, NULL, 1, NULL, 0, &cbNeeded, &dwPrinters);
-    BYTE* pbPrinterInfo = new BYTE[cbNeeded];
-
-    // Fill in dummy printer names, in the hope this avoids a WINE bug
-    static char* cszUnknown = "<unknown printer>";
-    for (int i = 0 ; i < static_cast<int>(dwPrinters) ; i++)
-        reinterpret_cast<PRINTER_INFO_1*>(pbPrinterInfo)[i].pName = cszUnknown;
-
     // The first entry is to allow printing to auto-generated prntNNNN.bin files
-    SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>("File: prntNNNN.txt (auto-generated)"));
-
-    // Enumerate the printers into the buffer we've allocated
-    if (EnumPrinters(PRINTER_ENUM_LOCAL, NULL, 1, pbPrinterInfo, cbNeeded, &cbNeeded, &dwPrinters))
-    {
-        // Loop through all the printers found, adding each to the printers combo
-        for (int i = 0 ; i < static_cast<int>(dwPrinters) ; i++)
-        {
-            char szPrinter[256];
-            wsprintf(szPrinter, PRINTER_PREFIX "%s", reinterpret_cast<PRINTER_INFO_1*>(pbPrinterInfo)[i].pName);
-            SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(szPrinter));
-
-            // Remember the position of the currently selected printer (+1 since print-to-file is entry 0)
-            if (!lstrcmpi(szPrinter+lstrlen(PRINTER_PREFIX), pcszSelected_))
-                lSelected = i+1;
-        }
-    }
-
-    delete[] pbPrinterInfo;
+    SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>("File: simcNNNN.txt (auto-generated)"));
 
     // Select the active printer
     SendMessage(hwndCombo_, CB_SETCURSEL, lSelected, 0L);
@@ -1788,7 +1763,7 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
 
                     static OPENFILENAME ofn = { sizeof(ofn) };
                     ofn.hwndOwner = hdlg_;
-                    ofn.lpstrFilter = "Data files (*.bin;*.dat;*.raw;*.txt)\0*.bin;*.dat;*.raw;*.txt\0All files (*.*)\0*.*\0";
+                    ofn.lpstrFilter = szDataFilters;
                     ofn.lpstrFile = szFile;
                     ofn.nMaxFile = sizeof(szFile);
                     ofn.Flags = OFN_HIDEREADONLY;
@@ -1926,7 +1901,7 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     fFormat = SendDlgItemMessage(hdlg_, IDC_FORMAT, BM_GETCHECK, 0, 0L) == BST_CHECKED;
 
                     char szFile [MAX_PATH];
-                    wsprintf(szFile, "untitled.%s%s", aszTypes[nType], fCompress ? aszCompress[nType] : "");
+                    snprintf(szFile, MAX_PATH, "Untitled.%s%s", aszTypes[nType], fCompress ? aszCompress[nType] : "");
 
                     static OPENFILENAME ofn = { sizeof(ofn) };
                     ofn.hwndOwner = hdlg_;
@@ -1999,14 +1974,14 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     }
 
                     // If we're to insert the new disk into a drive, do so now
-                    if (nDrive == 1 && pDrive1->Insert(szFile))
+                    if (nDrive == 1 && pFloppy1->Insert(szFile))
                     {
-                        Frame::SetStatus("%s  inserted into drive %d", pDrive1->GetFile(), nDrive);
+                        Frame::SetStatus("%s  inserted into drive %d", pFloppy1->DiskFile(), nDrive);
                         AddRecentFile(szFile);
                     }
-                    else if (nDrive == 2 && pDrive2->Insert(szFile))
+                    else if (nDrive == 2 && pFloppy2->Insert(szFile))
                     {
-                        Frame::SetStatus("%s  inserted into drive %d", pDrive2->GetFile(), nDrive);
+                        Frame::SetStatus("%s  inserted into drive %d", pFloppy2->DiskFile(), nDrive);
                         AddRecentFile(szFile);
                     }
                     else
@@ -2342,7 +2317,7 @@ INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             SetComboStrings(hdlg_, IDC_DRIVE1, aszDrives1, GetOption(drive1));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE1, 0L);
 
-            static const char* aszDrives2[] = { "None", "Floppy", "Atom", "Atom Lite", NULL };
+            static const char* aszDrives2[] = { "None", "Floppy", "Atom [Lite]", NULL };
             SetComboStrings(hdlg_, IDC_DRIVE2, aszDrives2, GetOption(drive2));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE2, 0L);
 
@@ -2382,9 +2357,6 @@ INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
                 SetOption(drive1, (int)SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L));
                 SetOption(drive2, (int)SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L));
-
-                if (Changed(drive1) || Changed(drive2))
-                    IO::InitDrives();
             }
             break;
         }
@@ -2448,22 +2420,16 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
         case WM_INITDIALOG:
         {
             // Drop-down defaults for the drives
-            AddComboString(hdlg_, IDC_FLOPPY1, "A:");
-            AddComboString(hdlg_, IDC_FLOPPY2, "");
             AddComboString(hdlg_, IDC_ATOM, "");
             AddComboString(hdlg_, IDC_SDIDE, "");
             AddComboString(hdlg_, IDC_YATBUS, "");
 
             // Refresh the options from the active devices
-            if (GetOption(drive1) == dskImage) SetOption(disk1, pDrive1->GetPath());
-            if (GetOption(drive2) == dskImage) SetOption(disk2, pDrive2->GetPath());
-            if (GetOption(drive2) >= dskAtom)  SetOption(atomdisk, pDrive2->GetPath());
-            SetOption(sdidedisk, pSDIDE->GetPath());
-            SetOption(yatbusdisk, pYATBus->GetPath());
+            SetOption(atomdisk, pAtom->DiskPath());
+            SetOption(sdidedisk, pSDIDE->DiskPath());
+            SetOption(yatbusdisk, pYATBus->DiskPath());
 
             // Set the edit controls to the current settings
-            SetDlgItemPath(hdlg_, IDC_FLOPPY1, GetOption(disk1));
-            SetDlgItemPath(hdlg_, IDC_FLOPPY2, GetOption(disk2));
             SetDlgItemPath(hdlg_, IDC_ATOM, GetOption(atomdisk));
             SetDlgItemPath(hdlg_, IDC_SDIDE, GetOption(sdidedisk));
             SetDlgItemPath(hdlg_, IDC_YATBUS, GetOption(yatbusdisk));
@@ -2490,88 +2456,49 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
-                bool fFloppy1 = GetOption(drive1) == dskImage, fFloppy2 = GetOption(drive2) == dskImage;
-
-                GetDlgItemPath(hdlg_, IDC_FLOPPY1, const_cast<char*>(GetOption(disk1)), MAX_PATH);
-                GetDlgItemPath(hdlg_, IDC_FLOPPY2, const_cast<char*>(GetOption(disk2)), MAX_PATH);
-                GetDlgItemPath(hdlg_, IDC_ATOM,    const_cast<char*>(GetOption(atomdisk)), MAX_PATH);
-                GetDlgItemPath(hdlg_, IDC_SDIDE,   const_cast<char*>(GetOption(sdidedisk)), MAX_PATH);
-                GetDlgItemPath(hdlg_, IDC_YATBUS,  const_cast<char*>(GetOption(yatbusdisk)), MAX_PATH);
-
-                if (ChangedString(disk1) && fFloppy1 && SaveDriveChanges(pDrive1) && !pDrive1->Insert(GetOption(disk1)))
-                {
-                    Message(msgWarning, "Invalid disk: %s", GetOption(disk1));
-                    SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
-                    return TRUE;
-                }
-
-                if (ChangedString(disk2) && fFloppy2 && SaveDriveChanges(pDrive2) && !pDrive2->Insert(GetOption(disk2)))
-                {
-                    Message(msgWarning, "Invalid disk: %s", GetOption(disk2));
-                    SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
-                    return TRUE;
-                }
+                char szPath[MAX_PATH];
+                GetDlgItemPath(hdlg_, IDC_ATOM, szPath, MAX_PATH); SetOption(atomdisk, szPath);
+                GetDlgItemPath(hdlg_, IDC_SDIDE, szPath, MAX_PATH); SetOption(sdidedisk, szPath);
+                GetDlgItemPath(hdlg_, IDC_YATBUS, szPath, MAX_PATH); SetOption(yatbusdisk, szPath);
 
                 // If the Atom path has changed, activate it
                 if (ChangedString(atomdisk))
                 {
-                    // If the Atom is active, force it to be remounted
-                    if (GetOption(drive2) >= dskAtom)
-                    {
-                        delete pDrive2;
-                        pDrive2 = NULL;
-                    }
-
-                    // Set drive 2 to Atom if we've got a path, or floppy otherwise
-                    if (!*GetOption(atomdisk))
-                        SetOption(drive2, dskImage);
-                    else if (GetOption(drive2) != dskAtomLite)
-                        SetOption(drive2, dskAtom);
-
-                    // Re-initialise the drives to activate any changes
-                    IO::InitDrives();
-
-                    // Ensure it was mounted ok
-                    if (*GetOption(atomdisk) && pDrive2->GetType() < dskAtom)
+                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk));
+                    if (!pDisk && *GetOption(atomdisk))
                     {
                         Message(msgWarning, "Invalid Atom disk: %s", GetOption(atomdisk));
                         SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
                         return TRUE;
                     }
+                    
+                    pAtom->Insert(pDisk);
                 }
 
-                // Re-init the other hard drive interfaces if anything has changed
-                if (ChangedString(sdidedisk) || ChangedString(yatbusdisk))
+                if (ChangedString(sdidedisk))
                 {
-                    if (ChangedString(sdidedisk))
+                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(sdidedisk));
+                    if (!pDisk && *GetOption(sdidedisk))
                     {
-                        delete pSDIDE;
-                        pSDIDE = NULL;
+                        Message(msgWarning, "Invalid SDIDE disk: %s", GetOption(atomdisk));
+                        SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
+                        return TRUE;
                     }
+                    
+                    pSDIDE->Insert(pDisk);
+                }
 
-                    if (ChangedString(yatbusdisk))
+                if (ChangedString(yatbusdisk))
+                {
+                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(yatbusdisk));
+                    if (!pDisk && *GetOption(yatbusdisk))
                     {
-                        delete pYATBus;
-                        pYATBus = NULL;
+                        Message(msgWarning, "Invalid YATBUS disk: %s", GetOption(yatbusdisk));
+                        SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
+                        return TRUE;
                     }
-
-                    IO::InitHDD();
-                }
-
-                // If the SDIDE path changed, check it was mounted ok
-                if (ChangedString(sdidedisk) && *GetOption(sdidedisk) && pSDIDE->GetType() != dskSDIDE)
-                {
-                    Message(msgWarning, "Invalid SDIDE disk: %s", GetOption(sdidedisk));
-                    SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
-                    return TRUE;
-                }
-
-                // If the SDIDE path changed, check it was mounted ok
-                if (ChangedString(yatbusdisk) && *GetOption(yatbusdisk) && pYATBus->GetType() != dskYATBus)
-                {
-                    Message(msgWarning, "Invalid YATBUS disk: %s", GetOption(yatbusdisk));
-                    SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
-                    return TRUE;
+                    
+                    pYATBus->Insert(pDisk);
                 }
             }
             break;
@@ -2626,7 +2553,7 @@ void BrowseFolder (HWND hdlg_, int nControl_, const char* pcszDefDir_)
 {
     char sz[MAX_PATH];
     HWND hctrl = GetDlgItem(hdlg_, nControl_);
-    GetWindowText(hctrl, sz, sizeof sz);
+    GetWindowText(hctrl, sz, sizeof(sz));
 
     BROWSEINFO bi = {0};
     bi.hwndOwner = hdlg_;
@@ -2800,7 +2727,6 @@ INT_PTR CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                 SetOption(parallel1, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_PARALLEL_1, CB_GETCURSEL, 0, 0L)));
                 SetOption(parallel2, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_PARALLEL_2, CB_GETCURSEL, 0, 0L)));
 
-                SetOption(printerdev, "");
                 LRESULT lPrinter = SendDlgItemMessage(hdlg_, IDC_PRINTERS, CB_GETCURSEL, 0, 0L);
 
                 // Fetch the printer name unless print-to-file is selected
@@ -2812,9 +2738,6 @@ INT_PTR CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                 }
 
                 SetOption(flushdelay, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FLUSHDELAY, CB_GETCURSEL, 0, 0L)));
-
-                if (Changed(parallel1) || Changed(parallel2) || ChangedString(printerdev))
-                    IO::InitParallel();
             }
 
             break;
@@ -2876,7 +2799,7 @@ INT_PTR CALLBACK MidiPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 SetOption(midioutdev, itoa((int)SendDlgItemMessage(hdlg_, IDC_MIDI_OUT, CB_GETCURSEL, 0, 0L)-1, sz, 10));
 
                 if (Changed(midi) || ChangedString(midiindev) || ChangedString(midioutdev))
-                    IO::InitMidi();
+                    pMidi->SetDevice(GetOption(midioutdev));
             }
 
             break;
@@ -2928,9 +2851,6 @@ INT_PTR CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 SetOption(drivelights, SendDlgItemMessage(hdlg_, IDC_DRIVE_LIGHTS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(status, SendDlgItemMessage(hdlg_, IDC_STATUS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(profile, SendDlgItemMessage(hdlg_, IDC_PROFILE, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-
-                if (Changed(sambusclock) || Changed(dallasclock))
-                    IO::InitClocks();
             }
             break;
         }
@@ -2986,7 +2906,7 @@ INT_PTR CALLBACK NewFnKeyProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
             char szKey[32];
             for (int i = VK_F1 ; i <= VK_F12 ; i++)
             {
-                GetKeyNameText(MapVirtualKeyEx(i, 0, GetKeyboardLayout(0)) << 16, szKey, sizeof szKey);
+                GetKeyNameText(MapVirtualKeyEx(i, 0, GetKeyboardLayout(0)) << 16, szKey, sizeof(szKey));
                 SendDlgItemMessage(hdlg_, IDC_KEY, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(szKey));
             }
 
@@ -3004,7 +2924,7 @@ INT_PTR CALLBACK NewFnKeyProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 UINT uKey = static_cast<UINT>(lParam_);
 
                 // Get the name of the key being edited
-                GetKeyNameText(MapVirtualKeyEx(uKey >> 16, 0, GetKeyboardLayout(0)) << 16, szKey, sizeof szKey);
+                GetKeyNameText(MapVirtualKeyEx(uKey >> 16, 0, GetKeyboardLayout(0)) << 16, szKey, sizeof(szKey));
 
                 // Locate the key in the list and select it
                 HWND hwndCombo = GetDlgItem(hdlg_, IDC_KEY);
@@ -3227,7 +3147,7 @@ INT_PTR CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
 
                             // Convert from virtual key-code to scan-code so we can get the name
                             DWORD dwScanCode = MapVirtualKeyEx(static_cast<UINT>(pnmv->item.lParam) >> 16, 0, GetKeyboardLayout(0));
-                            GetKeyNameText(dwScanCode << 16, szKey+lstrlen(szKey), sizeof szKey - lstrlen(szKey));
+                            GetKeyNameText(dwScanCode << 16, szKey+lstrlen(szKey), sizeof(szKey) - lstrlen(szKey));
                             lstrcpyn(pnmv->item.pszText, szKey, pnmv->item.cchTextMax);
                         }
 
@@ -3267,7 +3187,7 @@ INT_PTR CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
 
                             // Add the key name, '=', and the action number
                             DWORD dwScanCode = MapVirtualKeyEx(static_cast<UINT>(lvi.lParam) >> 16, 0, GetKeyboardLayout(0));
-                            GetKeyNameText(dwScanCode << 16, szKeys+lstrlen(szKeys), sizeof szKeys - lstrlen(szKeys));
+                            GetKeyNameText(dwScanCode << 16, szKeys+lstrlen(szKeys), sizeof(szKeys) - lstrlen(szKeys));
                             strcat(szKeys, "=");
                             wsprintf(szKeys+lstrlen(szKeys), "%d", lvi.lParam & 0xff);
                         }
@@ -3342,7 +3262,7 @@ INT_PTR CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
                                 continue;
 
                             // If we're adding, confirm the entry replacement before deleting it
-                            if (MessageBox(hdlg_, "Key binding already exists\n\nReplace existing entry?", "SimCoupe",
+                            if (MessageBox(hdlg_, "Key binding already exists\n\nReplace existing entry?", WINDOW_CAPTION,
                                 MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2) == IDYES)
                             {
                                 SendMessage(hwndList, LVM_DELETEITEM, i, 0L);
@@ -3394,8 +3314,8 @@ static void InitPage (PROPSHEETPAGE* pPage_, int nPage_, int nDialogId_, DLGPROC
 {
     pPage_ = &pPage_[nPage_];
 
-    ZeroMemory(pPage_, sizeof *pPage_);
-    pPage_->dwSize = sizeof *pPage_;
+    ZeroMemory(pPage_, sizeof(*pPage_));
+    pPage_->dwSize = sizeof(*pPage_);
     pPage_->hInstance = __hinstance;
     pPage_->pszTemplate = MAKEINTRESOURCE(nDialogId_);
     pPage_->pfnDlgProc = pfnDlgProc_;
@@ -3421,14 +3341,14 @@ void DisplayOptions ()
     InitPage(aPages, 10, IDD_PAGE_FNKEYS,   FnKeysPageDlgProc);
 
     PROPSHEETHEADER psh;
-    ZeroMemory(&psh, sizeof psh);
+    ZeroMemory(&psh, sizeof(psh));
     psh.dwSize = PROPSHEETHEADER_V1_SIZE;
     psh.dwFlags = PSH_PROPSHEETPAGE | PSH_USEICONID | PSH_NOAPPLYNOW /*| PSH_HASHELP*/;
     psh.hwndParent = g_hwnd;
     psh.hInstance = __hinstance;
     psh.pszIcon = MAKEINTRESOURCE(IDI_MISC);
     psh.pszCaption = "Options";
-    psh.nPages = sizeof aPages / sizeof aPages[0];
+    psh.nPages = _countof(aPages);
     psh.nStartPage = nOptionPage;
     psh.ppsp = aPages;
 

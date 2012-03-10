@@ -34,13 +34,6 @@ class IO
         static bool Init (bool fFirstInit_=false);
         static void Exit (bool fReInit_=false);
 
-        static bool InitDrives (bool fInit_=true, bool fReInit_=true);
-        static bool InitParallel (bool fInit_=true, bool fReInit_=true);
-        static bool InitSerial (bool fInit_=true, bool fReInit_=true);
-        static bool InitClocks (bool fInit_=true, bool fReInit_=true);
-        static bool InitMidi (bool fInit_=true, bool fReInit_=true);
-        static bool InitHDD (bool fInit_=true, bool fReInit_=true);
-
         static BYTE In (WORD wPort_);
         static void Out (WORD wPort_, BYTE bVal_);
 
@@ -76,37 +69,33 @@ class CIoDevice
         virtual void FrameEnd () { }
 };
 
-enum { dskNone, dskImage, dskAtom, dskAtomLite, dskSDIDE, dskYATBus };
+enum { drvNone, drvFloppy, drvAtom, drvSDIDE, drvYATBus };
 
 class CDiskDevice :  public CIoDevice
 {
     public:
-        CDiskDevice (int nType_=dskNone) : m_nType(nType_) { }
-        virtual ~CDiskDevice () { }
+        CDiskDevice () { }
+        ~CDiskDevice () { }
+
+    public:
+        void Reset () { }
 
     public:
         virtual bool Insert (const char* pcszImage_, bool fReadOnly_=false) { return false; }
         virtual void Eject () { }
         virtual bool Save () { return true; }
-        virtual void Reset () { }
 
     public:
-        virtual int GetType () const { return m_nType; }
-        virtual int GetDiskType () const { return -1; }
-        virtual const char* GetPath () const { return ""; }
-        virtual const char* GetFile () const { return ""; }
+        virtual const char* DiskPath () const = 0;
+        virtual const char* DiskFile () const = 0;
 
-        virtual bool IsInserted () const { return false; }
-        virtual bool IsModified () const { return false; }
+        virtual bool HasDisk () const { return false; }
+        virtual bool DiskModified () const { return false; }
         virtual bool IsLightOn () const { return false; }
         virtual bool IsActive () const { return IsLightOn(); }
 
         virtual void SetModified (bool fModified_=true) { }
-
-    protected:
-        int m_nType;
 };
-
 
 #define in_byte     IO::In
 #define out_byte    IO::Out
@@ -241,9 +230,8 @@ extern UINT clut[N_CLUT_REGS], mode3clut[4];
 extern BYTE status_reg;
 extern BYTE lpen;
 
-extern CDiskDevice *pDrive1, *pDrive2, *pSDIDE, *pYATBus;
+extern CDiskDevice *pFloppy1, *pFloppy2, *pBootDrive;
 extern CIoDevice *pParallel1, *pParallel2;
-extern CIoDevice *pBeeper;
 
 extern bool g_fAutoBoot;
 

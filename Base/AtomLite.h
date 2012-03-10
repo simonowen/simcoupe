@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// AtomLite.h: Atom-Lite hard disk inteface
+// AtomLite.h: Atom-Lite hard disk interface
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,35 +21,24 @@
 #ifndef ATOMLITE_H
 #define ATOMLITE_H
 
-#include "IO.h"
-#include "ATA.h"
+#include "HardDisk.h"
 #include "Clock.h"
 
 const BYTE ATOM_LITE_ADDR_MASK = 0x1f;  // Chip select mask
 const BYTE ATOM_LITE_REG_MASK  = 0x07;  // Device address mask
 
-class CAtomLiteDevice : public CDiskDevice
+class CAtomLiteDevice : public CHardDiskDevice
 {
     public:
-        CAtomLiteDevice (CATADevice* pDisk_);
-        ~CAtomLiteDevice ();
+        CAtomLiteDevice ();
 
     public:
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
-        void Reset ();
-        void FrameEnd ();
-
-        bool IsLightOn () const { return m_uLightDelay != 0; }
-        const char* GetPath() const { return m_pDisk ? m_pDisk->GetPath() : ""; }
 
     protected:
-        CATADevice* m_pDisk;
         CDallasClock m_Dallas;
-
         BYTE m_bAddressLatch, m_bDataLatch;
-
-        UINT m_uLightDelay;      // Delay before switching disk light off
 };
 
 #endif // ATOMLITE_H

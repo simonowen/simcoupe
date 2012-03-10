@@ -2,7 +2,7 @@
 //
 // HardDisk.h: Hard disk abstraction layer
 //
-//  Copyright (c) 2004-2006 Simon Owen
+//  Copyright (c) 2004-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@
 #ifndef HARDDISK_H
 #define HARDDISK_H
 
+#include "IO.h"
 #include "ATA.h"
-
 
 class CHardDisk : public CATADevice
 {
@@ -69,5 +69,35 @@ class CHDFHardDisk : public CHardDisk
         FILE* m_hfDisk;
         UINT m_uDataOffset, m_uSectorSize;
 };
+
+
+class CHardDiskDevice :  public CDiskDevice
+{
+    public:
+        CHardDiskDevice () : m_pDisk(NULL), m_uLightDelay(0) { }
+        ~CHardDiskDevice () { delete m_pDisk; }
+
+    public:
+        void Reset () { if (m_pDisk) m_pDisk->Reset(); }
+        void FrameEnd () { if (m_uLightDelay) m_uLightDelay--; }
+
+    public:
+        bool Insert (const char *pcszDisk_, bool fReadOnly_=false) { return Insert(CHardDisk::OpenObject(pcszDisk_)); }
+        void Eject () { delete m_pDisk, m_pDisk = NULL; }
+
+    public:
+        const char* DiskFile() const { return ""; }
+        const char* DiskPath() const { return m_pDisk ? m_pDisk->GetPath() : ""; }
+        bool IsLightOn () const { return m_uLightDelay != 0; }
+
+    public:
+        virtual bool Insert (CATADevice *pDisk_) { delete m_pDisk; m_pDisk = pDisk_; return m_pDisk != NULL; }
+
+    protected:
+        CATADevice* m_pDisk;
+        UINT m_uLightDelay;      // Delay before switching disk light off
+};
+
+extern CHardDiskDevice *pAtom, *pSDIDE, *pYATBus;
 
 #endif

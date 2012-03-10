@@ -2,8 +2,8 @@
 //
 // Mouse.h: Mouse interface
 //
-//  Copyright (c) 1999-2010  Simon Owen
-//  Copyright (c) 1996-2001  Allan Skillman
+//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1996-2001 Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,16 +22,42 @@
 #ifndef MOUSE_H
 #define MOUSE_H
 
-class Mouse
+#include "IO.h"
+
+#define MOUSE_RESET_TIME       USECONDS_TO_TSTATES(50)      // Mouse is reset 50us after the last read
+
+// Mouse buffer format, as read
+typedef struct
+{
+    BYTE bStrobe, bDummy, bButtons;
+    BYTE bY256, bY16, bY1;
+    BYTE bX256, bX16, bX1;
+}
+MOUSEBUFFER;
+
+
+class CMouseDevice : public CIoDevice
 {
     public:
-        static void Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+        CMouseDevice ();
 
-        static void Reset ();
-        static BYTE Read ();
-        static void Move (int nDeltaX_, int nDeltaY_);
-        static void SetButton (int nButton_, bool fPressed_=true);
+    public:
+        void Reset ();
+        BYTE In (WORD wPort_);
+
+    public:
+        void Move (int nDeltaX_, int nDeltaY_);
+        void SetButton (int nButton_, bool fPressed_=true);
+
+    protected:
+        int m_nDeltaX, m_nDeltaY;   // System change in X and Y since last read
+        int m_nReadX, m_nReadY;     // Read change in X and Y
+        BYTE m_bButtons;            // Current button states
+
+        MOUSEBUFFER m_sMouse;
+        UINT m_uBuffer;             // Read position in mouse data
 };
 
-#endif
+extern CMouseDevice *pMouse;
+
+#endif // MOUSE_H

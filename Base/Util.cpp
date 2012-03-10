@@ -27,7 +27,6 @@
 //    too much on debug tracing in debug-only versions.
 
 #include "SimCoupe.h"
-
 #include "Util.h"
 
 #include "CPU.h"
@@ -94,8 +93,6 @@ void Message (eMsgType eType_, const char* pcszFormat_, ...)
     // Fatal error?
     if (eType_ == msgFatal)
     {
-        // Flush any changed disk data first, then close everything else down and exit
-        IO::InitDrives(false, false);
         Main::Exit();
         exit(1);
     }
@@ -107,6 +104,36 @@ BYTE GetSizeCode (UINT uSize_)
     BYTE bCode;
     for (bCode = 0 ; uSize_ > 128 ; bCode++, uSize_ >>= 1);
     return bCode;
+}
+
+
+// CRC-CCITT for id/data checksums, with bit and byte order swapped
+WORD CrcBlock (const void* pcv_, size_t uLen_, WORD wCRC_/*=0xffff*/)
+{
+    static WORD awCRC[256];
+
+    // Build the table if not already built
+    if (!awCRC[1])
+    {
+        for (int i = 0 ; i < 256 ; i++)
+        {
+            WORD w = i << 8;
+
+            // 8 shifts, for each bit in the update byte
+            for (int j = 0 ; j < 8 ; j++)
+                w = (w << 1) ^ ((w & 0x8000) ? 0x1021 : 0);
+
+            awCRC[i] = w;
+        }
+    }
+
+    // Update the CRC with each byte in the block
+    const BYTE* pb = reinterpret_cast<const BYTE*>(pcv_);
+    while (uLen_--)
+        wCRC_ = (wCRC_ << 8) ^ awCRC[((wCRC_ >> 8) ^ *pb++) & 0xff];
+
+    // Return the updated CRC
+    return wCRC_;
 }
 
 

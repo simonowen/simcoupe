@@ -124,10 +124,10 @@ bool UI::CheckEvents ()
                             char *psz = reinterpret_cast<char*>(event.user.data1);
                             TRACE("UE_OPENFILE: %s\n", psz);
 
-                            if (GetOption(drive1) != dskImage)
+                            if (GetOption(drive1) != drvFloppy)
                                 Message(msgWarning, "Floppy drive %d is not present", 1);
-                            else if (pDrive1->Insert(psz))
-                                Frame::SetStatus("%s  inserted into drive 1", pDrive1->GetFile());
+                            else if (pFloppy1->Insert(psz))
+                                Frame::SetStatus("%s  inserted into drive 1", pFloppy1->DiskFile());
 
                             free(psz);
                             break;

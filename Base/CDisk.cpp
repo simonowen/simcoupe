@@ -2,7 +2,7 @@
 //
 // CDisk.cpp: C++ classes used for accessing all SAM disk image types
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,9 +27,10 @@
 
 #include "SimCoupe.h"
 #include "CDisk.h"
-#include "CDrive.h"
 
+#include "CDrive.h"
 #include "Floppy.h"
+#include "Util.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -156,8 +157,8 @@ bool CDisk::FindNext (IDFIELD* pIdField_/*=NULL*/, BYTE* pbStatus_/*=NULL*/)
         pIdField_->bSize = 2;           // 128 << 2 = 512 bytes
 
         // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
-        WORD wCRC = CDrive::CrcBlock("\xa1\xa1\xa1\xfe", 4);
-        wCRC = CDrive::CrcBlock(pIdField_, 4, wCRC);
+        WORD wCRC = CrcBlock("\xa1\xa1\xa1\xfe", 4);
+        wCRC = CrcBlock(pIdField_, 4, wCRC);
         pIdField_->bCRC1 = wCRC >> 8;
         pIdField_->bCRC2 = wCRC & 0xff;
     }
@@ -352,8 +353,8 @@ BYTE CMGTDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* pap
     SAD_HEADER sh = {""};
 
     // Read the header, check for the signature, and make sure the disk geometry is sensible
-    bool fValid = (pStream_->Rewind() && pStream_->Read(&sh, sizeof sh) == sizeof(sh) &&
-            !memcmp(sh.abSignature, SAD_SIGNATURE, sizeof sh.abSignature) &&
+    bool fValid = (pStream_->Rewind() && pStream_->Read(&sh, sizeof(sh)) == sizeof(sh) &&
+            !memcmp(sh.abSignature, SAD_SIGNATURE, sizeof(sh.abSignature)) &&
             sh.bSides && sh.bSides <= MAX_DISK_SIDES && sh.bTracks && sh.bTracks <= 127 &&
             sh.bSectorSizeDiv64 && (sh.bSectorSizeDiv64 <= (MAX_SECTOR_SIZE >> 6)) &&
             (sh.bSectorSizeDiv64 & -sh.bSectorSizeDiv64) == sh.bSectorSizeDiv64);
@@ -361,7 +362,7 @@ BYTE CMGTDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* pap
     // If we know the stream size, validate the image size
     if (fValid && pStream_->GetSize())
     {
-        UINT uDiskSize = sizeof sh + sh.bSides * sh.bTracks * sh.bSectors * (sh.bSectorSizeDiv64 << 6);
+        UINT uDiskSize = sizeof(sh) + sh.bSides * sh.bTracks * sh.bSectors * (sh.bSectorSizeDiv64 << 6);
         fValid &= (pStream_->GetSize() == uDiskSize);
     }
 
@@ -375,11 +376,11 @@ CSADDisk::CSADDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
     SAD_HEADER sh = { "", uSides_, uTracks_, uSectors_, uSectorSize_ >> 6 };
 
     if (!pStream_->IsOpen())
-        memcpy(sh.abSignature, SAD_SIGNATURE, sizeof sh.abSignature);
+        memcpy(sh.abSignature, SAD_SIGNATURE, sizeof(sh.abSignature));
     else
     {
         pStream_->Rewind();
-        pStream_->Read(&sh, sizeof sh);
+        pStream_->Read(&sh, sizeof(sh));
     }
 
     m_uSides = sh.bSides;
@@ -388,7 +389,7 @@ CSADDisk::CSADDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
     m_uSectorSize = sh.bSectorSizeDiv64 << 6;
 
     UINT uDiskSize = sizeof(sh) + m_uSides * m_uTracks * m_uSectors * m_uSectorSize;
-    memcpy(m_pbData = new BYTE[uDiskSize], &sh, sizeof sh);
+    memcpy(m_pbData = new BYTE[uDiskSize], &sh, sizeof(sh));
     memset(m_pbData + sizeof(sh), 0, uDiskSize - sizeof(sh));
 
     if (pStream_->IsOpen())
@@ -631,7 +632,7 @@ BYTE CSDFDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* pap
     EDSK_HEADER eh;
 
     // Read the header, check the signature and basic geometry
-    bool fValid = (pStream_->Rewind() && pStream_->Read(&eh, sizeof eh) == sizeof(eh) &&
+    bool fValid = (pStream_->Rewind() && pStream_->Read(&eh, sizeof(eh)) == sizeof(eh) &&
             (!memcmp(eh.szSignature, EDSK_SIGNATURE, sizeof(EDSK_SIGNATURE)-1) ||
              !memcmp(eh.szSignature,  DSK_SIGNATURE, sizeof( DSK_SIGNATURE)-1)) &&
              eh.bSides >= 1 && eh.bSides <= 2 &&
@@ -698,7 +699,7 @@ CEDSKDisk::CEDSKDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UIN
 
 CEDSKDisk::~CEDSKDisk ()
 {
-    if (IsModified())
+    if (DiskModified())
         Save();
 
     // Free any allocated tracks
@@ -752,8 +753,8 @@ bool CEDSKDisk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
         pIdField_->bCRC1 = pIdField_->bCRC2 = 0;
 
         // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
-        WORD wCRC = CDrive::CrcBlock("\xa1\xa1\xa1\xfe", 4);
-        wCRC = CDrive::CrcBlock(pIdField_, 4, wCRC);
+        WORD wCRC = CrcBlock("\xa1\xa1\xa1\xfe", 4);
+        wCRC = CrcBlock(pIdField_, 4, wCRC);
         if (m_pFind->bStatus1 & ST1_765_CRC_ERROR) wCRC ^= 0x5555;  // Force an error if required
         pIdField_->bCRC1 = wCRC >> 8;
         pIdField_->bCRC2 = wCRC & 0xff;
@@ -998,8 +999,8 @@ bool CFloppyDisk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
         pIdField_->bSize = ps->size;
 
         // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
-        WORD wCRC = CDrive::CrcBlock("\xa1\xa1\xa1\xfe", 4);
-        wCRC = CDrive::CrcBlock(pIdField_, 4, wCRC);
+        WORD wCRC = CrcBlock("\xa1\xa1\xa1\xfe", 4);
+        wCRC = CrcBlock(pIdField_, 4, wCRC);
         if (ps->status & CRC_ERROR) wCRC ^= 0x5555; // Force an error if required
         pIdField_->bCRC1 = wCRC >> 8;
         pIdField_->bCRC2 = wCRC & 0xff;
@@ -1299,9 +1300,9 @@ BYTE CFileDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* pa
     TD0_HEADER th;
 
     // Read the header, check the signature, Teledisk version and basic geometry
-    bool fValid = (pStream_->Rewind() && pStream_->Read(&th, sizeof th) == sizeof(th) &&
-            (!memcmp(th.abSignature, TD0_SIG_NORMAL, sizeof th.abSignature) ||
-             !memcmp(th.abSignature, TD0_SIG_ADVANCED, sizeof th.abSignature)) &&
+    bool fValid = (pStream_->Rewind() && pStream_->Read(&th, sizeof(th)) == sizeof(th) &&
+            (!memcmp(th.abSignature, TD0_SIG_NORMAL, sizeof(th.abSignature)) ||
+             !memcmp(th.abSignature, TD0_SIG_ADVANCED, sizeof(th.abSignature))) &&
              th.bTDVersion >= 10 && th.bTDVersion <= 21 &&
              th.bSurfaces >= 1 && th.bSurfaces <= 2);
 
@@ -1346,7 +1347,7 @@ CTD0Disk::CTD0Disk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/)
     }
 
     // We can now index the tracks in the image...
-    memset(m_auIndex, 0, sizeof m_auIndex);
+    memset(m_auIndex, 0, sizeof(m_auIndex));
     BYTE* pb = m_pbData;
 
     // Skip the comment field, if any
@@ -1635,7 +1636,7 @@ void LZSS::Init ()
     }
 
     uBitBuff = uBits = 0;
-    memset(ring_buff, ' ', sizeof ring_buff);
+    memset(ring_buff, ' ', sizeof(ring_buff));
 
     freq[T] = 0xffff;
     parent[R] = 0;

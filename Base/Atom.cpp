@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// Atom.cpp: Atom and Atom Lite hard disk intefaces
+// Atom.cpp: ATOM hard disk interface
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,24 +27,11 @@
 const unsigned int ATOM_LIGHT_DELAY = 2;    // Number of frames the hard disk LED remains on for after a command
 
 
-CAtomDiskDevice::CAtomDiskDevice (CATADevice* pDisk_)
-    : CDiskDevice(dskAtom), m_bAddressLatch(0), m_bDataLatch(0), m_uLightDelay(0)
+CAtomDiskDevice::CAtomDiskDevice ()
+    : m_bAddressLatch(0), m_bDataLatch(0)
 {
-    m_pDisk = pDisk_;
 }
 
-
-CAtomDiskDevice::~CAtomDiskDevice ()
-{
-    delete m_pDisk;
-}
-
-
-void CAtomDiskDevice::Reset ()
-{
-    if (m_pDisk)
-        m_pDisk->Reset();
-}
 
 BYTE CAtomDiskDevice::In (WORD wPort_)
 {
@@ -58,8 +45,7 @@ BYTE CAtomDiskDevice::In (WORD wPort_)
             WORD wData = 0xffff;
 
             // Read a 16-bit data value, if a disk is present
-            if (m_pDisk)
-                wData = m_pDisk->In(m_bAddressLatch & ATOM_ADDR_MASK);
+            wData = m_pDisk ? m_pDisk->In(m_bAddressLatch & ATOM_ADDR_MASK) : 0xffff;
 
             // Store the low-byte in the latch and return the high-byte
             m_bDataLatch = wData & 0xff;
@@ -115,11 +101,4 @@ void CAtomDiskDevice::Out (WORD wPort_, BYTE bVal_)
             TRACE("Atom: Unhandled write to %#04x with %#02x\n", wPort_, bVal_);
             break;
     }
-}
-
-void CAtomDiskDevice::FrameEnd ()
-{
-    // If the drive light is currently on, reduce the counter
-    if (m_uLightDelay)
-        m_uLightDelay--;
 }

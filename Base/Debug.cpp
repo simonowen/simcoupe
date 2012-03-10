@@ -19,9 +19,9 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "SimCoupe.h"
+#include "Debug.h"
 
 #include "CPU.h"
-#include "Debug.h"
 #include "Disassem.h"
 #include "Frame.h"
 #include "Keyboard.h"
@@ -632,7 +632,7 @@ bool CCodeView::cmdNavigate (int nKey_, int nMods_)
             else
             {
                 BYTE ab[4];
-                for (UINT u = 0 ; u < sizeof ab ; u++)
+                for (UINT u = 0 ; u < sizeof(ab) ; u++)
                     ab[u] = read_byte(PC+u);
 
                 addr = (PC += Disassemble(ab));

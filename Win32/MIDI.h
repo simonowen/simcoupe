@@ -33,6 +33,9 @@ class CMidiDevice : public CIoDevice
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
 
+    public:
+        bool SetDevice (const char *pcszDevice_);
+
     protected:
         HMIDIOUT m_hMidiOut;    // Handle for Windows MIDI OUT device
 
@@ -40,5 +43,6 @@ class CMidiDevice : public CIoDevice
         int  m_nOut;            // Number of bytes currently in abOut
 };
 
+extern CMidiDevice *pMidi;
 
-#endif
+#endif // MIDI_H

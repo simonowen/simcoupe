@@ -75,7 +75,7 @@ void Display::SetDirty ()
 bool Display::DrawChanges (CScreen* pScreen_, LPDIRECTDRAWSURFACE pSurface_)
 {
     HRESULT hr;
-    DDSURFACEDESC ddsd = { sizeof ddsd };
+    DDSURFACEDESC ddsd = { sizeof(ddsd) };
 
     // If we've changing from displaying the GUI back to scanline mode, clear the unused lines on the surface
     bool fInterlace = GetOption(scanlines) && !GUI::IsActive();
@@ -480,7 +480,7 @@ void Display::Update (CScreen* pScreen_)
     // Now to get the image to the display...
 
     DDSURFACEDESC ddsdBack, ddsdPrimary;
-    ddsdBack.dwSize = ddsdPrimary.dwSize = sizeof ddsdBack;
+    ddsdBack.dwSize = ddsdPrimary.dwSize = sizeof(ddsdBack);
     pddsBack->GetSurfaceDesc(&ddsdBack);
 
     bool fHalfHeight = !GUI::IsActive() && !GetOption(scanlines);
@@ -569,7 +569,7 @@ void Display::Update (CScreen* pScreen_)
     RECT rRightBorder = { rTo.right, rTo.top, rFront.right, rTo.bottom };
     RECT rBottomBorder = { rFront.left, rTo.bottom, rFront.right, rFront.bottom };
 
-    DDBLTFX bltfx = { sizeof bltfx };
+    DDBLTFX bltfx = { sizeof(bltfx) };
     bltfx.dwFillColor = 0;
 
     if (!IsRectEmpty(&rLeftBorder)) pddsPrimary->Blt(&rLeftBorder, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);

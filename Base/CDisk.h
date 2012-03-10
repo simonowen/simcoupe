@@ -2,7 +2,7 @@
 //
 // CDisk.h: C++ classes used for accessing all SAM disk image types
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -57,7 +57,7 @@ const UINT MAX_SAM_FILE_SIZE = ((NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS) - NORMA
 // Format of a SAD image header
 typedef struct
 {
-    BYTE    abSignature[sizeof SAD_SIGNATURE - 1];
+    BYTE    abSignature[sizeof(SAD_SIGNATURE) - 1];
 
     BYTE    bSides;             // Number of sides on the disk
     BYTE    bTracks;            // Number of tracks per side
@@ -207,6 +207,8 @@ enum { dtNone, dtUnknown, dtFloppy, dtFile, dtEDSK, dtSDF, dtTD0, dtSAD, dtMGT, 
 
 class CDisk
 {
+    friend class CDrive;
+
     // Constructor and virtual destructor
     public:
         CDisk (CStream* pStream_, int nType_);
@@ -216,21 +218,25 @@ class CDisk
         static int GetType (CStream* pStream_);
         static CDisk* Open (const char* pcszDisk_, bool fReadOnly_=false);
         static CDisk* Open (void* pv_, size_t uSize_, const char* pcszDisk_);
+
         virtual void Close () { m_pStream->Close(); }
+        virtual void Flush () { }
+        virtual bool Save () = 0;
+        virtual BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) = 0;
+
 
     // Public query functions
     public:
         const char* GetPath () { return m_pStream->GetPath(); }
         const char* GetFile () { return m_pStream->GetFile(); }
-        int GetType () const { return m_nType; }
         UINT GetSpinPos (bool fAdvance_=false);
         bool IsReadOnly () const { return m_pStream->IsReadOnly(); }
-        bool IsModified () const { return m_fModified; }
+        bool DiskModified () const { return m_fModified; }
 
         void SetModified (bool fModified_=true) { m_fModified = fModified_; }
 
     // Protected overrides
-    public:
+    protected:
         virtual UINT FindInit (UINT uSide_, UINT uTrack_);
         virtual bool FindNext (IDFIELD* pIdField_=NULL, BYTE* pbStatus_=NULL);
         virtual bool FindSector (UINT uSide_, UINT uTrack_, UINT uIdTrack_, UINT uSector_, IDFIELD* pID_=NULL);
@@ -238,9 +244,6 @@ class CDisk
         virtual BYTE LoadTrack (UINT uSide_, UINT uTrack_) { m_nBusy = LOAD_DELAY; return 0; }
         virtual BYTE ReadData (BYTE* pbData_, UINT* puSize_) = 0;
         virtual BYTE WriteData (BYTE* pbData_, UINT* puSize_) = 0;
-        virtual bool Save () = 0;
-
-        virtual BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) = 0;
 
         virtual bool IsBusy (BYTE* pbStatus_, bool fWait_=false) { if (!m_nBusy) return false; m_nBusy--; return true; }
 
@@ -260,7 +263,7 @@ class CMGTDisk : public CDisk
 {
     public:
         CMGTDisk (CStream* pStream_, UINT uSectors_=NORMAL_DISK_SECTORS);
-        virtual ~CMGTDisk () { if (IsModified()) Save(); }
+        ~CMGTDisk () { if (DiskModified()) Save(); }
 
     public:
         static bool IsRecognised (CStream* pStream_);
@@ -278,7 +281,7 @@ class CSADDisk : public CDisk
     public:
         CSADDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=NORMAL_DISK_TRACKS,
                     UINT uSectors_=NORMAL_DISK_SECTORS, UINT uSectorSize_=NORMAL_SECTOR_SIZE);
-        virtual ~CSADDisk () { if (IsModified()) Save(); }
+        ~CSADDisk () { if (DiskModified()) Save(); }
 
     public:
         static bool IsRecognised (CStream* pStream_);
@@ -296,7 +299,7 @@ class CTD0Disk : public CDisk
 {
     public:
         CTD0Disk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES);
-        virtual ~CTD0Disk () { if (IsModified()) Save(); }
+        ~CTD0Disk () { if (DiskModified()) Save(); }
 
     public:
         static bool IsRecognised (CStream* pStream_);
@@ -326,7 +329,7 @@ class CSDFDisk : public CDisk
 {
     public:
         CSDFDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=MAX_DISK_TRACKS);
-        virtual ~CSDFDisk () { if (IsModified()) Save(); }
+        ~CSDFDisk () { if (DiskModified()) Save(); }
 
     public:
         static bool IsRecognised (CStream* pStream_);
@@ -349,7 +352,7 @@ class CEDSKDisk : public CDisk
 {
     public:
         CEDSKDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=NORMAL_DISK_TRACKS);
-        virtual ~CEDSKDisk ();
+        ~CEDSKDisk ();
 
     public:
         static bool IsRecognised (CStream* pStream_);
@@ -384,6 +387,7 @@ class CFloppyDisk : public CDisk
         UINT FindInit (UINT uSide_, UINT uTrack_);
         bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
         void Close () { m_pFloppy->Close(); m_uCacheTrack = 0U-1; }
+        void Flush () { Close(); }
 
         BYTE LoadTrack (UINT uSide_, UINT uTrack_);
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
@@ -411,7 +415,7 @@ class CFileDisk : public CDisk
 {
     public:
         CFileDisk (CStream* pStream_);
-        virtual ~CFileDisk () { if (IsModified()) Save(); }
+        ~CFileDisk () { if (DiskModified()) Save(); }
 
     public:
         static bool IsRecognised (CStream* pStream_);

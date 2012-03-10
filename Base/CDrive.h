@@ -2,8 +2,8 @@
 //
 // CDrive.h: VL1772-02 floppy disk controller emulation
 //
-//  Copyright (c) 1999-2006  Simon Owen
-//  Copyright (c) 1996-2001  Allan Skillman
+//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1996-2001 Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ const int FLOPPY_MOTOR_ACTIVE_TIME = (10 / (FLOPPY_RPM/60)) * EMULATED_FRAMES_PE
 class CDrive : public CDiskDevice
 {
     public:
-        CDrive (CDisk* pDisk_=NULL);
+        CDrive (int nDrive_, CDisk* pDisk_=NULL);
         ~CDrive () { Eject(); }
 
     public:
@@ -44,33 +44,37 @@ class CDrive : public CDiskDevice
         void FrameEnd ();
 
     public:
+        bool Insert (const char* pcszSource_, bool fReadOnly_=false);
+        void Eject ();
+        bool Save () { return m_pDisk && m_pDisk->Save(); }
+        void Reset ();
+
+    public:
+        const char* DiskPath () const { return m_pDisk ? m_pDisk->GetPath() : ""; }
+        const char* DiskFile () const { return m_pDisk ? m_pDisk->GetFile() : ""; }
+
+        bool HasDisk () const { return m_pDisk != NULL; }
+        bool DiskModified () const { return m_pDisk && m_pDisk->DiskModified(); }
+        bool IsLightOn () const { return IsMotorOn(); }
+        bool IsActive () const { return IsLightOn () && m_nMotorDelay > (FLOPPY_MOTOR_ACTIVE_TIME - GetOption(turboload)); }
+
+        void SetModified (bool fModified_=true) { if (m_pDisk) m_pDisk->SetModified(fModified_); }
+
+    protected:
         BYTE ReadAddress (UINT uSide_, UINT uTrack_, IDFIELD* pIdField_);
         UINT ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
         BYTE VerifyTrack (UINT uSide_, UINT uTrack_);
         BYTE WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
 
-    public:
-        bool Insert (const char* pcszSource_, bool fReadOnly_=false);
-        void Eject ();
-        bool Save () { return (m_pDisk && m_pDisk->IsModified()) ? m_pDisk->Save() : true; }
-        void Reset ();
+    protected:
+        void ModifyStatus (BYTE bEnable_, BYTE bReset_);
+        void ModifyReadStatus ();
+        void ExecuteNext ();
 
-    public:
-        int GetDiskType () const { return m_pDisk ? m_pDisk->GetType() : dtNone; }
-        const char* GetPath () const { return m_pDisk ? m_pDisk->GetPath() : ""; }
-        const char* GetFile () const { return m_pDisk ? m_pDisk->GetFile() : ""; }
-
-        bool IsInserted () const { return !!m_pDisk; }
-        bool IsModified () const { return m_pDisk && m_pDisk->IsModified(); }
-        bool IsLightOn () const { return IsMotorOn() && m_pDisk; }
-        bool IsActive () const { return IsLightOn () && m_nMotorDelay > (FLOPPY_MOTOR_ACTIVE_TIME - GetOption(turboload)); }
-
-        void SetModified (bool fModified_=true) { if (m_pDisk) m_pDisk->SetModified(fModified_); }
-
-    public:
-        static WORD CrcBlock (const void* pcv_, size_t uLen_, WORD wCRC_=0xffff);
+        bool IsMotorOn () const { return (m_sRegs.bStatus & MOTOR_ON) != 0; }
 
     protected:
+        int			m_nDrive;		// Floppy drive number, 1 or 2
         CDisk*      m_pDisk;        // The disk currently inserted in the drive, if any
         VL1772Regs  m_sRegs;        // VL1772 controller registers
         int         m_nHeadPos;     // Physical track the drive head is above
@@ -82,13 +86,6 @@ class CDrive : public CDiskDevice
 
         int         m_nState;       // Command state, for tracking multi-stage execution
         int         m_nMotorDelay;  // Delay before switching motor off
-
-    protected:
-        void ModifyStatus (BYTE bEnable_, BYTE bReset_);
-        void ModifyReadStatus ();
-        void ExecuteNext ();
-
-        bool IsMotorOn () const { return (m_sRegs.bStatus & MOTOR_ON) != 0; }
 };
 
 #endif

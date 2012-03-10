@@ -2,7 +2,7 @@
 //
 // MIDI.cpp: Win32 MIDI interface
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,21 +25,19 @@
 //  - MIDI IN and MIDI network implementations
 
 #include "SimCoupe.h"
-
 #include "MIDI.h"
+
 #include "Options.h"
 #include "Util.h"
 
 
 CMidiDevice::CMidiDevice ()
+    : m_nOut(0), m_hMidiOut(NULL)
 {
-    // No previous data, status byte or handle
-    m_nOut = 0;
+    // No status byte
     m_abOut[0] = '0';
-    m_hMidiOut = NULL;
 
-    // For now just open the default MIDI OUT device
-    midiOutOpen(&m_hMidiOut, atoi(GetOption(midioutdev)), 0, 0, CALLBACK_NULL);
+    SetDevice(GetOption(midioutdev));
 }
 
 
@@ -60,7 +58,7 @@ BYTE CMidiDevice::In (WORD wPort_)
 void CMidiDevice::Out (WORD wPort_, BYTE bVal_)
 {
     // Protect against very long System Exclusive blocks
-    if ((m_nOut == (sizeof m_abOut - 1)) && bVal_ != 0xf7)
+    if ((m_nOut == (sizeof(m_abOut)-1)) && bVal_ != 0xf7)
     {
         TRACE("!!! MIDI: System Exclusive buffer overflow, discarding %#02x\n", bVal_);
         return;
@@ -129,4 +127,19 @@ void CMidiDevice::Out (WORD wPort_, BYTE bVal_)
 
     // Prepare for the next message, clearing out 
     m_nOut = m_abOut[1] = m_abOut[2] = m_abOut[3] = 0;
+}
+
+bool CMidiDevice::SetDevice (const char *pcszDevice_)
+{
+    if (m_hMidiOut)
+    {
+        midiOutClose(m_hMidiOut);
+        m_hMidiOut = NULL;
+    }
+
+    // Open the supplied device number
+    if (*pcszDevice_)
+        midiOutOpen(&m_hMidiOut, atoi(pcszDevice_), 0, 0, CALLBACK_NULL);
+
+    return m_hMidiOut != NULL;
 }

@@ -27,8 +27,9 @@
 //   - edit box cursor positioning
 
 #include "SimCoupe.h"
-#include <ctype.h>
 #include "GUI.h"
+
+#include <ctype.h>
 
 #include "Display.h"
 #include "Font.h"
@@ -2196,7 +2197,7 @@ void CIconControl::Draw (CScreen* pScreen_)
     if (!IsEnabled())
     {
         // Make a copy of the palette
-        memcpy(abGreyed, m_pIcon->abPalette, sizeof m_pIcon->abPalette);
+        memcpy(abGreyed, m_pIcon->abPalette, sizeof(m_pIcon->abPalette));
 
         // Grey the icon by using shades of grey with approximate intensity
         for (int i = 0 ; i < ICON_PALETTE_SIZE ; i++)

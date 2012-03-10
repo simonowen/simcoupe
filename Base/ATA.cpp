@@ -2,7 +2,7 @@
 //
 // ATA.cpp: ATA hard disk (and future ATAPI CD-ROM) emulation
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ CATADevice::CATADevice ()
 // Device hard reset
 void CATADevice::Reset ()
 {
-    memset(&m_sRegs, 0, sizeof m_sRegs);
+    memset(&m_sRegs, 0, sizeof(m_sRegs));
 
     // Set up any non-zero initial register values
     m_sRegs.bSectorCount = m_sRegs.bSector = m_sRegs.bError = 0x01;
@@ -227,7 +227,7 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
 
                                         // Set the sector buffer pointer and how much we have available to read
                                         m_pbBuffer = m_abSectorData;
-                                        m_uBuffer = sizeof m_abSectorData;
+                                        m_uBuffer = sizeof(m_abSectorData);
                                     }
                                 }
                                 break;
@@ -360,7 +360,7 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                             {
                                 // Set the sector buffer pointer and how much we have available to read
                                 m_pbBuffer = m_abSectorData;
-                                m_uBuffer = sizeof m_abSectorData;
+                                m_uBuffer = sizeof(m_abSectorData);
                             }
                         }
                         break;
@@ -394,12 +394,12 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                             }
 
                             TRACE("ATA: Disk command: Write Sectors With Retry\n");
-                            memset(&m_abSectorData, 0, sizeof m_abSectorData);
+                            memset(&m_abSectorData, 0, sizeof(m_abSectorData));
                             m_sRegs.bStatus |= ATA_STATUS_DRQ;
 
                             // Set the sector buffer pointer and how much space we have available for writing
                             m_pbBuffer = m_abSectorData;
-                            m_uBuffer = sizeof m_abSectorData;
+                            m_uBuffer = sizeof(m_abSectorData);
                         }
                         break;
 
@@ -454,7 +454,7 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                         case 0xe4:
                             TRACE("ATA: Disk command: Read Buffer\n");
                             m_pbBuffer = m_abSectorData;
-                            m_uBuffer = sizeof m_abSectorData;
+                            m_uBuffer = sizeof(m_abSectorData);
                             break;
 
                         case 0x98:
@@ -473,7 +473,7 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                         case 0xe8:
                             TRACE("ATA: Disk command: Write Buffer\n");
                             m_pbBuffer = m_abSectorData;
-                            m_uBuffer = sizeof m_abSectorData;
+                            m_uBuffer = sizeof(m_abSectorData);
                             break;
 
                         case 0xec:

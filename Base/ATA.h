@@ -2,7 +2,7 @@
 //
 // ATA.h: ATA hard disk (and future ATAPI CD-ROM) emulation
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -174,10 +174,11 @@ class CATADevice
         virtual ~CATADevice () { }
 
     public:
+        void Reset ();
         WORD In (WORD wPort_);
         void Out (WORD wPort_, WORD wVal_);
 
-        void Reset ();
+    public:
         const ATA_GEOMETRY* GetGeometry() const { return &m_sGeometry; };
 
     public:

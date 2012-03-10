@@ -72,7 +72,6 @@ bool Input::Init (bool fFirstInit_/*=false*/)
         InitKeyboard();
 
         Keyboard::Init();
-        Mouse::Init(fFirstInit_);
         fMouseActive = false;
     }
 
@@ -91,7 +90,6 @@ void Input::Exit (bool fReInit_/*=false*/)
     if (pdi) { pdi->Release(); pdi = NULL; }
 
     Keyboard::Exit(fReInit_);
-    Mouse::Exit(fReInit_);
 
     TRACE("<- Input::Exit()\n");
 }
@@ -230,6 +228,10 @@ bool Input::IsMouseAcquired ()
 
 void Input::AcquireMouse (bool fAcquire_)
 {
+    // Ignore if no state change
+    if (fMouseActive == fAcquire_)
+        return;
+
     fMouseActive = fAcquire_;
 
     // Mouse active?
@@ -385,13 +387,10 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
             Init();
             break;
 
-        // Release the mouse if we become inactive
+        // Release the mouse and purge keyboard input on activation changes
         case WM_ACTIVATE:
-            if (LOWORD(wParam_) == WA_INACTIVE)
-            {
-                AcquireMouse(false);
-                Purge();	// needed to stop Alt-tab being seen
-            }
+            AcquireMouse(false);
+            Purge();
             break;
 
         // Release the mouse on entering the menu
@@ -428,7 +427,7 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
                 if (nX || nY)
                 {
                     // Update the SAM mouse and re-centre the cursor
-                    Mouse::Move(nX, -nY);
+                    pMouse->Move(nX, -nY);
                     SetCursorPos(ptCentre.x, ptCentre.y);
                 }
             }
@@ -445,7 +444,7 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
             // If the mouse is already active, pass on button presses
             else if (fMouseActive)
-                Mouse::SetButton(anMouseButtons[uMsg_ & 0x7], true);
+                pMouse->SetButton(anMouseButtons[uMsg_ & 0x7], true);
 
             // If the mouse interface is enabled, a left-click acquires it
             else if (GetOption(mouse) && uMsg_ == WM_LBUTTONDOWN)
@@ -464,7 +463,7 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
             // Pass the button release through to the mouse module
             else if (fMouseActive)
-                Mouse::SetButton(anMouseButtons[uMsg_ & 0x7], false);
+                pMouse->SetButton(anMouseButtons[uMsg_ & 0x7], false);
 
             break;
         }

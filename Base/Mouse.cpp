@@ -2,8 +2,8 @@
 //
 // Mouse.cpp: Mouse interface
 //
-//  Copyright (c) 1999-2010  Simon Owen
-//  Copyright (c) 1996-2001  Allan Skillman
+//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1996-2001 Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,103 +30,75 @@
 #include "Options.h"
 #include "Util.h"
 
-
-#define MOUSE_RESET_TIME       USECONDS_TO_TSTATES(50)      // Mouse is reset 50us after the last read
-
-// Buffer structure for the mouse data
-typedef struct
-{
-    BYTE    bStrobe, bDummy, bButtons;
-
-    BYTE    bY256, bY16, bY1;
-    BYTE    bX256, bX16, bX1;
-}
-MOUSEBUFFER;
-
-
-static MOUSEBUFFER sMouse;
-static UINT uBuffer;            // Read position in mouse data
-
-static int nDeltaX, nDeltaY;    // System change in X and Y since last read
-static int nReadX, nReadY;      // Read change in X and Y
-static BYTE bButtons;           // Current button states
-
 ////////////////////////////////////////////////////////////////////////////////
 
-void Mouse::Init (bool fFirstInit_/*=false*/)
+CMouseDevice::CMouseDevice ()
+    : m_nDeltaX(0), m_nDeltaY(0), m_bButtons(0), m_uBuffer(0)
 {
-    // Clear cached mouse data
-    nDeltaX = nDeltaY = 0;
-    bButtons = 0;
-
-    sMouse.bStrobe = sMouse.bDummy = 0xff;
-    uBuffer = 0;
-}
-
-void Mouse::Exit (bool fReInit_/*=false*/)
-{
+    m_sMouse.bStrobe = m_sMouse.bDummy = 0xff;
 }
 
 
-void Mouse::Reset ()
+void CMouseDevice::Reset ()
 {
     // No longer strobed
-    uBuffer = 0;
+    m_uBuffer = 0;
 }
 
-BYTE Mouse::Read ()
+BYTE CMouseDevice::In (WORD wPort_)
 {
     // If the first real data byte is about to be read, update the mouse buffer
-    if (uBuffer == 2)
+    if (m_uBuffer == 2)
     {
         // Button states
-        sMouse.bButtons = ~bButtons;
+        m_sMouse.bButtons = ~m_bButtons;
 
         // Horizontal movement
-        sMouse.bX256 = (nDeltaX & 0xf00) >> 8;
-        sMouse.bX16  = (nDeltaX & 0x0f0) >> 4;
-        sMouse.bX1   = (nDeltaX & 0x00f);
+        m_sMouse.bX256 = (m_nDeltaX & 0xf00) >> 8;
+        m_sMouse.bX16  = (m_nDeltaX & 0x0f0) >> 4;
+        m_sMouse.bX1   = (m_nDeltaX & 0x00f);
 
         // Vertical movement
-        sMouse.bY256 = (nDeltaY & 0xf00) >> 8;
-        sMouse.bY16  = (nDeltaY & 0x0f0) >> 4;
-        sMouse.bY1   = (nDeltaY & 0x00f);
+        m_sMouse.bY256 = (m_nDeltaY & 0xf00) >> 8;
+        m_sMouse.bY16  = (m_nDeltaY & 0x0f0) >> 4;
+        m_sMouse.bY1   = (m_nDeltaY & 0x00f);
 
-        nReadX = nDeltaX;
-        nReadY = nDeltaY;
+        m_nReadX = m_nDeltaX;
+        m_nReadY = m_nDeltaY;
     }
 
     // Read the next byte
-    BYTE bRet = reinterpret_cast<BYTE*>(&sMouse)[uBuffer++];
+    BYTE bRet = reinterpret_cast<BYTE*>(&m_sMouse)[m_uBuffer++];
 
     // Has the full buffer been read?
-    if (uBuffer == sizeof(sMouse))
+    if (m_uBuffer == sizeof(m_sMouse))
     {
         // Subtract the read values from the overall tracked changes
-        nDeltaX -= nReadX;
-        nDeltaY -= nReadY;
-        nReadX = nReadY = 0;
+        m_nDeltaX -= m_nReadX;
+        m_nDeltaY -= m_nReadY;
+        m_nReadX = m_nReadY = 0;
 
         // Move back to the start of the data, but stay strobed
-        uBuffer = 1;
+        m_uBuffer = 1;
     }
 
     // Cancel any pending reset event, and schedule a fresh one
-    if (uBuffer) CancelCpuEvent(evtMouseReset);
+    if (m_uBuffer) CancelCpuEvent(evtMouseReset);
     AddCpuEvent(evtMouseReset, g_dwCycleCounter + MOUSE_RESET_TIME);
 
     return bRet;
 }
 
+
 // Move the mouse
-void Mouse::Move (int nDeltaX_, int nDeltaY_)
+void CMouseDevice::Move (int nDeltaX_, int nDeltaY_)
 {
-    nDeltaX += nDeltaX_;
-    nDeltaY += nDeltaY_;
+    m_nDeltaX += nDeltaX_;
+    m_nDeltaY += nDeltaY_;
 }
 
 // Press or release a mouse button
-void Mouse::SetButton (int nButton_, bool fPressed_/*=true*/)
+void CMouseDevice::SetButton (int nButton_, bool fPressed_/*=true*/)
 {
     // If enabled, swap mouse buttons 2 and 3
     if (GetOption(swap23) && (nButton_ == 2 || nButton_ == 3))
@@ -137,7 +109,7 @@ void Mouse::SetButton (int nButton_, bool fPressed_/*=true*/)
 
     // Reset or set the bit depending on whether the button is being pressed or released
     if (fPressed_)
-        bButtons |= bBit;
+        m_bButtons |= bBit;
     else
-        bButtons &= ~bBit;
+        m_bButtons &= ~bBit;
 }

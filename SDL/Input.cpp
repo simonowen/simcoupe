@@ -2,7 +2,7 @@
 //
 // Input.cpp: SDL keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -69,7 +69,6 @@ bool Input::Init (bool fFirstInit_/*=false*/)
     SDL_EnableUNICODE(1);
 
     fMouseActive = false;
-    Mouse::Init(fFirstInit_);
 
     return true;
 }
@@ -86,8 +85,6 @@ void Input::Exit (bool fReInit_/*=false*/)
             SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
         }
     }
-
-    Mouse::Exit(fReInit_);
 }
 
 
@@ -378,7 +375,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
                     if (nX || nY)
                     {
                         // Update the SAM mouse and re-centre the cursor
-                        Mouse::Move(nX, -nY);
+                        pMouse->Move(nX, -nY);
                         SDL_WarpMouse(nCentreX, nCentreY);
                     }
                 }
@@ -409,7 +406,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             // Pass the button click through if the mouse is active
             else if (fMouseActive)
             {
-                Mouse::SetButton(pEvent_->button.button, true);
+                pMouse->SetButton(pEvent_->button.button, true);
                 TRACE("Mouse button %d pressed\n", pEvent_->button.button);
             }
 
@@ -431,7 +428,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             else if (fMouseActive)
             {
                 TRACE("Mouse button %d released\n", pEvent_->button.button);
-                Mouse::SetButton(pEvent_->button.button, false);
+                pMouse->SetButton(pEvent_->button.button, false);
             }
             break;
 

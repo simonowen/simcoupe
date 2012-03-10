@@ -170,7 +170,7 @@ UINT Disassemble (BYTE* pb_, WORD wPC_/*=0*/, char* psz_/*=NULL*/, size_t cbSize
     BYTE abOpcode[4];
 
     // Initialise our working variables
-    memset(pszOut = szOutput, ' ', sizeof szOutput);
+    memset(pszOut = szOutput, ' ', sizeof(szOutput));
     memcpy(pbOpcode = abOpcode, pb_, 4);
     *(pbStack = abStack) = 0;
     wPC = wPC_;
@@ -207,7 +207,7 @@ UINT Disassemble (BYTE* pb_, WORD wPC_/*=0*/, char* psz_/*=NULL*/, size_t cbSize
     // Copy the output to the supplied buffer (if any), taking care not to overflow it
     if (psz_)
     {
-		size_t uOutput = pszOut-szOutput+1U;
+        size_t uOutput = pszOut-szOutput+1U;
         size_t uLen = min(cbSize_-1, uOutput);
         strncpy(psz_, szOutput, uLen)[uLen] = '\0';
     }

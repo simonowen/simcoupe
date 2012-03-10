@@ -19,9 +19,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "SimCoupe.h"
-#include <objbase.h>
-
 #include "OSD.h"
+
 #include "CPU.h"
 #include "Frame.h"
 #include "Main.h"
@@ -332,7 +331,7 @@ DIR* opendir (const char* pcszDir_)
 {
     static char szPath[MAX_PATH];
 
-    memset(&s_dir, 0, sizeof s_dir);
+    memset(&s_dir, 0, sizeof(s_dir));
 
     // Append a wildcard to match all files
     lstrcpy(szPath, pcszDir_);
@@ -354,7 +353,7 @@ struct dirent* readdir (DIR* hDir_)
         return NULL;
 
     // Copy the filename and set the length
-    s_dir.d_reclen = lstrlen(lstrcpyn(s_dir.d_name, s_fd.cFileName, sizeof s_dir.d_name));
+    s_dir.d_reclen = lstrlen(lstrcpyn(s_dir.d_name, s_fd.cFileName, sizeof(s_dir.d_name)));
 
     // If we'd already reached the end
     if (!FindNextFile(reinterpret_cast<HANDLE>(hDir_), &s_fd))

@@ -2,7 +2,7 @@
 //
 // SDIDE.h: S D Software IDE interface
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,27 +21,20 @@
 #ifndef SDIDE_H
 #define SDIDE_H
 
-#include "IO.h"
-#include "ATA.h"
+#include "HardDisk.h"
 
-class CSDIDEDevice : public CDiskDevice
+class CSDIDEDevice : public CHardDiskDevice
 {
     public:
-        CSDIDEDevice (CATADevice* pDisk_);
-        ~CSDIDEDevice ();
+        CSDIDEDevice ();
 
     public:
-        void Reset ();
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
 
-        const char* GetPath() const { return m_pDisk->GetPath(); }
-
     protected:
-        CATADevice* m_pDisk;
-
         BYTE m_bAddressLatch, m_bDataLatch;
         bool m_fDataLatched;
 };
 
-#endif
+#endif // SDIDE_H

@@ -2,7 +2,7 @@
 //
 // Atom.h: YAMOD.ATBUS IDE interface
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,27 +21,20 @@
 #ifndef YATBUS_H
 #define YATBUS_H
 
-#include "IO.h"
-#include "ATA.h"
+#include "HardDisk.h"
 
-class CYATBusDevice : public CDiskDevice
+class CYATBusDevice : public CHardDiskDevice
 {
     public:
-        CYATBusDevice (CATADevice* pDisk_);
-        ~CYATBusDevice ();
+        CYATBusDevice ();
 
     public:
-        void Reset ();
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
 
-        const char* GetPath() const { return m_pDisk->GetPath(); }
-
     protected:
-        CATADevice* m_pDisk;
-
         BYTE m_bLatch;          // data latch for 16-bit reads/writes
         bool m_fDataLatched;    // true if the latch is full
 };
 
-#endif
+#endif // YATBUS_H
