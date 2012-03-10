@@ -45,8 +45,6 @@
             return dtEDSK;
         else if (CTD0Disk::IsRecognised(pStream_))
             return dtTD0;
-        else if (CSDFDisk::IsRecognised(pStream_))
-            return dtSDF;
         else if (CSADDisk::IsRecognised(pStream_))
             return dtSAD;
         else if (CFileDisk::IsRecognised(pStream_))
@@ -81,7 +79,6 @@
             case dtFloppy:  pDisk = new CFloppyDisk(pStream);   break;      // Direct floppy access
             case dtEDSK:    pDisk = new CEDSKDisk(pStream);     break;      // .DSK
             case dtTD0:     pDisk = new CTD0Disk(pStream);      break;      // .TD0
-            case dtSDF:     pDisk = new CSDFDisk(pStream);      break;      // .SDF
             case dtSAD:     pDisk = new CSADDisk(pStream);      break;      // .SAD
             case dtMGT:     pDisk = new CMGTDisk(pStream);      break;      // .MGT
             case dtSBT:     pDisk = new CFileDisk(pStream);     break;      // .SBT (bootable SAM file on a floppy)
@@ -503,126 +500,6 @@ BYTE CSADDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* pap
     SetModified();
 
     return 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-/*static*/ bool CSDFDisk::IsRecognised (CStream* pStream_)
-{
-    size_t uSize;
-
-    // Calculate the cylinder size, and the maximum size of an SDF image
-    UINT uCylSize = MAX_DISK_SIDES * SDF_TRACKSIZE;
-    UINT uNormSize = uCylSize * NORMAL_DISK_TRACKS, uMaxSize = uCylSize * MAX_DISK_TRACKS;
-
-    // If we don't have a size (gzipped) we have no choice but to read enough to find out
-    if (!(uSize = pStream_->GetSize()))
-    {
-        BYTE* pb = new BYTE[uMaxSize+1];
-
-        // Read 1 byte more than the maximum SDF size, to check for larger files
-        if (pb && pStream_->Rewind())
-            uSize = pStream_->Read(pb, uMaxSize+1);
-
-        delete[] pb;
-    }
-
-    // Return if the file size is sensible and an exact number of cylinders
-    return uSize && (uSize >= uNormSize && uSize <= uMaxSize) && !(uSize % uCylSize);
-}
-
-CSDFDisk::CSDFDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT uTracks_/*=MAX_DISK_TRACKS*/)
-    : CDisk(pStream_, dtSDF), m_pTrack(NULL), m_pFind(NULL)
-{
-    m_uSides = uSides_;
-    m_uTracks = uTracks_;
-
-    // Calculate the cylinder size, and the maximum size of an SDF image, and allocate memory for it
-    UINT uCylSize = MAX_DISK_SIDES * SDF_TRACKSIZE, uMaxSize = uCylSize * MAX_DISK_TRACKS;
-    m_pbData = new BYTE[uMaxSize];
-    memset(m_pbData, 0, uMaxSize);
-
-    // Read the data from any existing stream, or create and save a new disk
-    if (pStream_->IsOpen())
-    {
-        pStream_->Rewind();
-        m_uTracks = static_cast<UINT>(pStream_->Read(m_pbData, uMaxSize)) / uCylSize;
-        pStream_->Close();
-    }
-}
-
-
-// Initialise the enumeration of all sectors in the track
-UINT CSDFDisk::FindInit (UINT uSide_, UINT uTrack_)
-{
-    if (uSide_ >= m_uSides || uTrack_ >= m_uTracks)
-        return m_uSectors = 0;
-
-    // Locate the track in the buffer to determine the number of sectors available
-    UINT uPos = (uSide_*m_uTracks + uTrack_) * SDF_TRACKSIZE;
-    m_pTrack = reinterpret_cast<SDF_TRACK_HEADER*>(m_pbData+uPos);
-    m_uSectors = m_pTrack->bSectors;
-
-    m_pFind = NULL;
-
-    // Call the base and return the number of sectors in the track
-    return CDisk::FindInit(uSide_, uTrack_);
-}
-
-// Find the next sector in the current track
-bool CSDFDisk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
-{
-    bool fRet = CDisk::FindNext();
-
-    // Make sure there is a 'next' one
-    if (fRet)
-    {
-        if (!m_pFind)
-            m_pFind = reinterpret_cast<SDF_SECTOR_HEADER*>(&m_pTrack[1]);
-        else
-        {
-            // The data length is zero if there is a problem with the ID header
-            UINT uSize = m_pFind->bIdStatus ? 0 : (MIN_SECTOR_SIZE << m_pFind->sIdField.bSize);
-
-            // Advance the pointer over the header and data to next header
-            m_pFind = reinterpret_cast<SDF_SECTOR_HEADER*>(reinterpret_cast<BYTE*>(m_pFind) + uSize + sizeof(SDF_SECTOR_HEADER));
-        }
-
-        // Copy the ID field to the supplied buffer, and store the ID status
-        memcpy(pIdField_, &m_pFind->sIdField, sizeof(*pIdField_));
-        *pbStatus_ = m_pFind->bIdStatus;
-    }
-
-    // Return true if we're returning a new item
-    return fRet;
-}
-
-// Read the data for the last sector found
-BYTE CSDFDisk::ReadData (BYTE *pbData_, UINT* puSize_)
-{
-    // Copy the sector data
-    memcpy(pbData_, reinterpret_cast<BYTE*>(m_pFind+1), *puSize_ = MIN_SECTOR_SIZE << m_pFind->sIdField.bSize);
-
-    // Return the data status to include a possible CRC error
-    return m_pFind->bDataStatus;
-}
-
-// Read the data for the last sector found
-BYTE CSDFDisk::WriteData (BYTE *pbData_, UINT* puSize_)
-{
-    return WRITE_PROTECT;
-}
-
-// Save the disk out to the stream
-bool CSDFDisk::Save ()
-{
-    return false;
-}
-
-// Format a track using the specified format
-BYTE CSDFDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
-{
-    return WRITE_PROTECT;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

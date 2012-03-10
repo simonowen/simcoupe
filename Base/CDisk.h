@@ -36,8 +36,6 @@ const UINT NORMAL_DIRECTORY_TRACKS = 4;  // Normally 4 tracks in a SAMDOS direct
 
 const UINT DOS_DISK_SECTORS = 9;         // Double-density MS-DOS disks are 9 sectors per track
 
-const UINT SDF_TRACKSIZE = NORMAL_SECTOR_SIZE * 12;      // Large enough for any possible SAM disk format
-
 
 // The various disk format image sizes
 #define MGT_IMAGE_SIZE  (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE)
@@ -130,29 +128,6 @@ TD0_DATA;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Track header on each track in the SDF disk image
-typedef struct
-{
-    BYTE    bSectors;           // Number of sectors on this track
-
-    // Block of 'bSectors' SECTOR_HEADER structures follow...
-}
-SDF_TRACK_HEADER;
-
-// Sector header on each sector in the SDF disk image
-typedef struct
-{
-    BYTE    bIdStatus;          // Status error bits for after READ_ADDRESS command
-    BYTE    bDataStatus;        // Status error bits for after READ_XSECTOR commands
-
-    IDFIELD sIdField;           // ID field containing sector details
-
-    // Sector data follows here unless bIdStatus indicates an error (size is MIN_SECTOR_SIZE << sIdField.bSize)
-}
-SDF_SECTOR_HEADER;
-
-////////////////////////////////////////////////////////////////////////////////
-
 #define DSK_SIGNATURE           "MV - CPC"
 #define EDSK_SIGNATURE          "EXTENDED CPC DSK File\r\nDisk-Info\r\n"
 #define EDSK_TRACK_SIGNATURE    "Track-Info\r\n"
@@ -200,7 +175,7 @@ EDSK_SECTOR;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-enum { dtNone, dtUnknown, dtFloppy, dtFile, dtEDSK, dtSDF, dtTD0, dtSAD, dtMGT, dtSBT, dtCAPS };
+enum { dtNone, dtUnknown, dtFloppy, dtFile, dtEDSK, dtTD0, dtSAD, dtMGT, dtSBT, dtCAPS };
 
 #define LOAD_DELAY  3   // Number of status reads to artificially stay busy for image file track loads
                         // Pro-Dos relies on data not being available immediately a command is submitted
@@ -322,29 +297,6 @@ class CTD0Disk : public CDisk
         TD0_SECTOR* m_pFind;    // Last sector found with FindNext()
 
         TD0_TRACK* m_auIndex[MAX_DISK_SIDES][MAX_DISK_TRACKS];  // Track pointers in m_pData block
-};
-
-
-class CSDFDisk : public CDisk
-{
-    public:
-        CSDFDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=MAX_DISK_TRACKS);
-        ~CSDFDisk () { if (DiskModified()) Save(); }
-
-    public:
-        static bool IsRecognised (CStream* pStream_);
-
-    public:
-        UINT FindInit (UINT uSide_, UINT uTrack_);
-        bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
-        BYTE ReadData (BYTE* pbData_, UINT* puSize_);
-        BYTE WriteData (BYTE* pbData_, UINT* puSize_);
-        bool Save ();
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
-
-    protected:
-        SDF_TRACK_HEADER* m_pTrack;     // Last track
-        SDF_SECTOR_HEADER* m_pFind;     // Last sector found with FindNext()
 };
 
 

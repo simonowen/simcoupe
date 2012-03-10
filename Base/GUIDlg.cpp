@@ -179,9 +179,9 @@ static const FILEFILTER sFloppyFilter =
 
     {
 #ifdef USE_ZLIB
-        ".dsk;.sad;.mgt;.sdf;.td0;.sbt;.cpm;.gz;.zip",
+        ".dsk;.sad;.mgt;.td0;.sbt;.cpm;.gz;.zip",
 #endif
-        ".dsk;.sad;.mgt;.sdf;.td0;.sbt;.cpm",
+        ".dsk;.sad;.mgt;.td0;.sbt;.cpm",
 #ifdef USE_ZLIB
         ".gz;.zip",
 #endif

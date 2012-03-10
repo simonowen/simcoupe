@@ -97,9 +97,9 @@ OPTIONS opts;
 
 static char szFloppyFilters[] =
 #ifdef USE_ZLIB
-    "All Disks (dsk;sad;mgt;sdf;td0;sbt;cpm;gz;zip)\0*.dsk;*.sad;*.mgt;*.sdf;*.td0;*.sbt;*.cpm;*.gz;*.zip\0"
+    "All Disks (dsk;sad;mgt;td0;sbt;cpm;gz;zip)\0*.dsk;*.sad;*.mgt;*.td0;*.sbt;*.cpm;*.gz;*.zip\0"
 #endif
-    "Disk Images (dsk;sad;mgt;sdf;td0;sbt;cpm)\0*.dsk;*.sad;*.mgt;*.sdf;*.td0;*.sbt;*.cpm\0"
+    "Disk Images (dsk;sad;mgt;td0;sbt;cpm)\0*.dsk;*.sad;*.mgt;*.td0;*.sbt;*.cpm\0"
 #ifdef USE_ZLIB
     "Compressed Files (gz;zip)\0*.gz;*.zip\0"
 #endif

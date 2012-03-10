@@ -1980,7 +1980,7 @@ const GUI_ICON* CFileView::GetFileIcon (const char* pcszFile_)
         }
     }
 
-    static const char* aExts[] = { ".dsk", ".sad", ".td0", ".sbt", ".mgt", ".img", ".sdf", ".cpm" };
+    static const char* aExts[] = { ".dsk", ".sad", ".td0", ".sbt", ".mgt", ".img", ".cpm" };
     bool fDiskImage = false;
 
     for (UINT u = 0 ; !fDiskImage && pszExt && u < sizeof(aExts)/sizeof(aExts[0]) ; u++)
