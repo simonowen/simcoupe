@@ -34,10 +34,12 @@ class CHardDisk : public CATADevice
         static CHardDisk* OpenObject (const char* pcszDisk_);
         virtual bool Open () = 0;
 
+    public:
         const char* GetPath () const { return m_pszDisk; }
 
+    public:
         bool IsSDIDEDisk ();
-        bool IsBDOSDisk ();
+        bool IsBDOSDisk (bool *pfByteSwapped=NULL);
 
     protected:
         static void CalculateGeometry (ATA_GEOMETRY* pg_);
@@ -91,13 +93,13 @@ class CHardDiskDevice :  public CDiskDevice
         bool IsLightOn () const { return m_uLightDelay != 0; }
 
     public:
-        virtual bool Insert (CATADevice *pDisk_) { delete m_pDisk; m_pDisk = pDisk_; return m_pDisk != NULL; }
+        virtual bool Insert (CHardDisk *pDisk_) { delete m_pDisk; m_pDisk = pDisk_; return m_pDisk != NULL; }
 
     protected:
-        CATADevice* m_pDisk;
+        CHardDisk* m_pDisk;
         UINT m_uLightDelay;      // Delay before switching disk light off
 };
 
 extern CHardDiskDevice *pAtom, *pSDIDE, *pYATBus;
 
-#endif
+#endif // HARDDISK_H

@@ -29,6 +29,7 @@
 
 
 CATADevice::CATADevice ()
+    : m_fByteSwap(false)
 {
     memset(&m_sGeometry, 0, sizeof(m_sGeometry));
     memset(&m_abIdentity, 0, sizeof(m_abIdentity));
@@ -659,7 +660,12 @@ bool CATADevice::ReadWriteSector (bool fWrite_)
     }
 
     if (fWrite_)
+    {
+        if (m_fByteSwap) ByteSwap(m_abSectorData, sizeof(m_abSectorData));
         return WriteSector(uSector, m_abSectorData);
+    }
 
-    return ReadSector(uSector, m_abSectorData);
+    bool fRet = ReadSector(uSector, m_abSectorData);
+    if (m_fByteSwap) ByteSwap(m_abSectorData, sizeof(m_abSectorData));
+    return fRet;
 }

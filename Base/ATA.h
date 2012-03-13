@@ -180,6 +180,7 @@ class CATADevice
 
     public:
         const ATA_GEOMETRY* GetGeometry() const { return &m_sGeometry; };
+        void SetByteSwap (bool fByteSwap_) { m_fByteSwap = fByteSwap_; }
 
     public:
         virtual const char* GetPath () const = 0;
@@ -204,6 +205,8 @@ class CATADevice
 
         bool    m_fAsleep;              // true if we're asleep
         int     m_nMultiples;           // Number of sectors used for multiple sector operations (0 = unsupported)
+
+        bool    m_fByteSwap;            // true if we should byte-swap the underlying sector data
 };
 
 #endif  // ATA_H

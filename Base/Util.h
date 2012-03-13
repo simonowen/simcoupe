@@ -37,6 +37,7 @@ void Message (eMsgType eType_, const char* pcszFormat_, ...);
 
 BYTE GetSizeCode (UINT uSize_);
 void PatchBlock (BYTE *pb_, BYTE *pbPatch_);
+void ByteSwap (BYTE *pb_, int nLen_);
 WORD CrcBlock (const void* pcv_, size_t uLen_, WORD wCRC_=0xffff);
 
 void AdjustBrightness (BYTE &r_, BYTE &g_, BYTE &b_, int nAdjust_);

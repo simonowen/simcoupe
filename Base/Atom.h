@@ -29,14 +29,17 @@ const BYTE ATOM_NCS1      = 0x08;   // Chip select 1 (negative logic)
 const BYTE ATOM_NCS3      = 0x10;   // Chip select 3 (negative logic)
 const BYTE ATOM_NRESET    = 0x20;   // Reset pin (negative logic)
 
-class CAtomDiskDevice : public CHardDiskDevice
+class CAtomDevice : public CHardDiskDevice
 {
     public:
-        CAtomDiskDevice ();
+        CAtomDevice ();
 
     public:
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
+
+    public:
+        bool Insert (CHardDisk *pDisk_);
 
     protected:
         BYTE m_bAddressLatch, m_bDataLatch;

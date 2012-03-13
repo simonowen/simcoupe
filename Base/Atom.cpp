@@ -27,13 +27,13 @@
 const unsigned int ATOM_LIGHT_DELAY = 2;    // Number of frames the hard disk LED remains on for after a command
 
 
-CAtomDiskDevice::CAtomDiskDevice ()
+CAtomDevice::CAtomDevice ()
     : m_bAddressLatch(0), m_bDataLatch(0)
 {
 }
 
 
-BYTE CAtomDiskDevice::In (WORD wPort_)
+BYTE CAtomDevice::In (WORD wPort_)
 {
     BYTE bRet = 0xff;
 
@@ -68,7 +68,7 @@ BYTE CAtomDiskDevice::In (WORD wPort_)
     return bRet;
 }
 
-void CAtomDiskDevice::Out (WORD wPort_, BYTE bVal_)
+void CAtomDevice::Out (WORD wPort_, BYTE bVal_)
 {
     switch (wPort_ & ATOM_REG_MASK)
     {
@@ -101,4 +101,18 @@ void CAtomDiskDevice::Out (WORD wPort_, BYTE bVal_)
             TRACE("Atom: Unhandled write to %#04x with %#02x\n", wPort_, bVal_);
             break;
     }
+}
+
+
+bool CAtomDevice::Insert (CHardDisk *pDisk_)
+{
+    bool fByteSwapped = false;
+
+    bool fRet = CHardDiskDevice::Insert(pDisk_);
+
+    // Atom Lite disks need byte-swapping to work with the original Atom
+    if (fRet && m_pDisk->IsBDOSDisk(&fByteSwapped))
+        m_pDisk->SetByteSwap(!fByteSwapped);
+
+    return fRet;
 }

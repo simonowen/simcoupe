@@ -101,7 +101,7 @@ void Message (eMsgType eType_, const char* pcszFormat_, ...)
 
 BYTE GetSizeCode (UINT uSize_)
 {
-    BYTE bCode;
+    BYTE bCode = 0;
     for (bCode = 0 ; uSize_ > 128 ; bCode++, uSize_ >>= 1);
     return bCode;
 }
@@ -162,6 +162,14 @@ void PatchBlock (BYTE *pb_, BYTE *pbPatch_)
             pbPatch_ += wLen;
         }
     }
+}
+
+
+void ByteSwap (BYTE *pb_, int nLen_)
+{
+    // Reverse each pair of bytes
+    for ( ; nLen_ >= 2 ; pb_ += 2, nLen_ -= 2)
+        swap(pb_[0], pb_[1]);
 }
 
 

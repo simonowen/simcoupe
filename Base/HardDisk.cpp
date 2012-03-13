@@ -2,7 +2,7 @@
 //
 // HardDisk.cpp: Hard disk abstraction layer
 //
-//  Copyright (c) 2004-2010 Simon Owen
+//  Copyright (c) 2004-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -45,8 +45,9 @@ bool CHardDisk::IsSDIDEDisk ()
     return ReadSector(1, ab) && !memcmp(ab+14, "Free_space", 10);
 }
 
-bool CHardDisk::IsBDOSDisk ()
+bool CHardDisk::IsBDOSDisk (bool *pfByteSwapped_)
 {
+    bool fBDOS = false, fByteSwapped = false;
     BYTE ab[512];
 
     // Read the MBR for a possible BDOS boot sector
@@ -55,19 +56,35 @@ bool CHardDisk::IsBDOSDisk ()
         // Clear bits 7 and 5 (case) for the signature check
         for (int i = 0 ; i < 4 ; i++) { ab[i+0x000] &= ~0xa0; ab[i+0x100] &= ~0xa0; }
 
-        // Check for byte-swapped (Atom) and normal (Atom Lite) boot signatures
-        if (!memcmp(ab+0x000, "OBTO", 4) || !memcmp(ab+0x100, "BOOT", 4))
-            return true;
+        // Check for byte-swapped signature (Atom)
+        if (!memcmp(ab+0x000, "OBTO", 4))
+            fBDOS = fByteSwapped = true;
+
+        // Then normal signature (Atom Lite)
+        else if (!memcmp(ab+0x100, "BOOT", 4))
+            fBDOS = true;
     }
 
     // Calculate the number of base sectors (boot sector + record list)
     UINT uBase = 1 + ((m_sGeometry.uTotalSectors/1600 + 32) / 32);
 
-    // Read the first directory sector from record 1, and check for the BDOS signature
-    if (ReadSector(uBase, ab) && (!memcmp(ab+232, "DBSO", 4) || !memcmp(ab+232, "BDOS", 4)))
-        return true;
+    // If no match, look for 'BDOS' in the first directory sector
+    if (!fBDOS && ReadSector(uBase, ab))
+    {
+        // Atom?
+        if (!memcmp(ab+232, "DBSO", 4))
+            fBDOS = fByteSwapped = true;
 
-    return false;
+        // Atom Lite?
+        else if (!memcmp(ab+232, "BDOS", 4))
+            fBDOS = true;
+    }
+
+    // Optionally return the byte-swap status
+    if (pfByteSwapped_)
+        *pfByteSwapped_ = fByteSwapped;
+
+    return fBDOS;
 }
 
 
@@ -128,24 +145,21 @@ RS_IDE;
 
 /*static*/ CHardDisk* CHardDisk::OpenObject (const char* pcszDisk_)
 {
-    CHardDisk* pDisk;
+    CHardDisk* pDisk = NULL;
 
     // Make sure we have a disk to try
     if (!pcszDisk_ || !*pcszDisk_)
         return NULL;
 
     // Try for device path first
-    if ((pDisk = new CDeviceHardDisk(pcszDisk_)) && pDisk->Open())
-        return pDisk;
-    delete pDisk;
-
+    if (!pDisk && (pDisk = new CDeviceHardDisk(pcszDisk_)) && !pDisk->Open())
+        delete pDisk, pDisk = NULL;
+    
     // Try for HDF disk image
-    if ((pDisk = new CHDFHardDisk(pcszDisk_)) && pDisk->Open())
-        return pDisk;
-    delete pDisk;
+    if (!pDisk && (pDisk = new CHDFHardDisk(pcszDisk_)) && !pDisk->Open())
+        delete pDisk, pDisk = NULL;
 
-    // No match
-    return NULL;
+    return pDisk;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -209,7 +223,12 @@ bool CHDFHardDisk::Open ()
 {
     Close();
 
-    if (*m_pszDisk && (m_hfDisk = fopen(m_pszDisk, "r+b")))
+    // No disk?
+    if (!*m_pszDisk)
+        return false;
+
+    // Open read-write, falling back on read-only (not ideal!)
+    if ((m_hfDisk = fopen(m_pszDisk, "r+b")) || (m_hfDisk = fopen(m_pszDisk, "rb")))
     {
         RS_IDE sHeader;
 

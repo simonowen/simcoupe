@@ -36,9 +36,12 @@ class CAtomLiteDevice : public CHardDiskDevice
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
 
+    public:
+        bool Insert (CHardDisk *pDisk_);
+
     protected:
         CDallasClock m_Dallas;
-        BYTE m_bAddressLatch, m_bDataLatch;
+        BYTE m_bAddressLatch;
 };
 
 #endif // ATOMLITE_H
