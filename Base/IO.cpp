@@ -177,6 +177,12 @@ void IO::Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
+        SetOption(disk1, pFloppy1->DiskPath());
+        SetOption(disk2, pFloppy2->DiskPath());
+        SetOption(atomdisk, pAtom->DiskPath());
+        SetOption(sdidedisk, pSDIDE->DiskPath());
+        SetOption(yatbusdisk, pYATBus->DiskPath());
+
         delete pMidi, pMidi = NULL;
         delete pPaula, pPaula = NULL;
         delete pSAMVox, pSAMVox = NULL;
