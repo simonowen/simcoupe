@@ -354,59 +354,6 @@ bool GetSaveLoadFile (LPOPENFILENAME lpofn_, bool fLoad_, bool fCheckExisting_=t
     return true;
 }
 
-bool InsertDisk (CDiskDevice* pFloppy_)
-{
-    char szFile[MAX_PATH] = "";
-
-    // Save any changes to the current disk first
-    if (!ChangesSaved(pFloppy_))
-        return false;
-
-    static OPENFILENAME ofn = { sizeof(ofn) };
-    ofn.hwndOwner = g_hwnd;
-    ofn.lpstrFilter = szFloppyFilters;
-    ofn.lpstrFile = szFile;
-    ofn.nMaxFile = sizeof(szFile);
-    lstrcpyn(szFile, pFloppy_->DiskFile(), MAX_PATH);
-
-    // Don't use floppy paths for the initial directory
-    if (szFile[0] == 'A' || szFile[0] == 'B')
-        szFile[0] = '\0';
-
-    // Prompt for the a new disk to insert
-    if (GetSaveLoadFile(&ofn, true))
-    {
-        bool fReadOnly = !!(ofn.Flags & OFN_READONLY);
-
-        // Insert the disk to check it's a recognised format
-        if (!pFloppy_->Insert(szFile, fReadOnly))
-            Message(msgWarning, "Invalid disk image: %s", szFile);
-        else
-        {
-            Frame::SetStatus("%s  inserted into drive %d%s", pFloppy_->DiskFile(), (pFloppy_ == pFloppy1) ? 1 : 2, fReadOnly ? " (read-only)" : "");
-            AddRecentFile(szFile);
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool EjectDisk (CDiskDevice *pFloppy_)
-{
-    if (!pFloppy_->HasDisk())
-        return true;
-
-    if (ChangesSaved(pFloppy_))
-    {
-        Frame::SetStatus("%s  ejected from drive %d", pFloppy1->DiskFile(), 1);
-        pFloppy_->Eject();
-        return true;
-    }
-    
-    return false;
-}
-
 
 #define NUM_RECENT_FILES        6
 char szRecentFiles[NUM_RECENT_FILES][MAX_PATH];
@@ -495,39 +442,105 @@ void UpdateRecentFiles (HMENU hmenu_, int nId_, int nOffset_)
 }
 
 
+bool InsertDisk (CDiskDevice* pFloppy_, const char *pcszPath_=NULL)
+{
+    char szFile[MAX_PATH] = "";
+    int nDrive = (pFloppy_ == pFloppy1) ? 1 : 2;
+
+    // Check the floppy drive is present
+    if ((nDrive == 1 && GetOption(drive1) != drvFloppy) ||
+        (nDrive == 2 && GetOption(drive2) != drvFloppy))
+    {
+        Message(msgWarning, "Floppy drive %d is not present", nDrive);
+        return false;
+    }
+
+    // Save any changes to the current disk first
+    if (!ChangesSaved(pFloppy_))
+        return false;
+
+    OPENFILENAME ofn = { sizeof(ofn) };
+    ofn.hwndOwner = g_hwnd;
+    ofn.lpstrFilter = szFloppyFilters;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    lstrcpyn(szFile, pFloppy_->DiskFile(), MAX_PATH);
+
+    // Don't use floppy paths for the initial directory
+    if (szFile[0] == 'A' || szFile[0] == 'B')
+        szFile[0] = '\0';
+
+    // Prompt for the a new disk to insert if we don't have one
+    if (!pcszPath_)
+    {
+        if (!GetSaveLoadFile(&ofn, true))
+            return false;
+            
+        pcszPath_ = szFile;
+    }
+
+    bool fReadOnly = !!(ofn.Flags & OFN_READONLY);
+
+    // Insert the disk to check it's a recognised format
+    if (!pFloppy_->Insert(pcszPath_, fReadOnly))
+    {
+        Message(msgWarning, "Invalid disk: %s", pcszPath_);
+        RemoveRecentFile(pcszPath_);
+        return false;
+    }
+
+    Frame::SetStatus("%s  inserted into drive %d%s", pFloppy_->DiskFile(), (pFloppy_ == pFloppy1) ? 1 : 2, fReadOnly ? " (read-only)" : "");
+    AddRecentFile(pcszPath_);
+    return true;
+}
+
+bool EjectDisk (CDiskDevice *pFloppy_)
+{
+    if (!pFloppy_->HasDisk())
+        return true;
+
+    if (ChangesSaved(pFloppy_))
+    {
+        Frame::SetStatus("%s  ejected from drive %d", pFloppy1->DiskFile(), 1);
+        pFloppy_->Eject();
+        return true;
+    }
+    
+    return false;
+}
+
+
 #define CheckOption(id,check)   CheckMenuItem(hmenu, (id), (check) ? MF_CHECKED : MF_UNCHECKED)
 #define EnableItem(id,enable)   EnableMenuItem(hmenu, (id), (enable) ? MF_ENABLED : MF_GRAYED)
 
 void UpdateMenuFromOptions ()
 {
-    char szEject[128];
+    char szEject[MAX_PATH];
 
     HMENU hmenu = g_hmenu, hmenuFile = GetSubMenu(hmenu, 0), hmenuFloppy2 = GetSubMenu(hmenuFile, 6);
-
-    // Only enable the floppy device menu item if it's available
-    EnableItem(IDM_FILE_FLOPPY1_DEVICE, CFloppyStream::IsAvailable());
-//  EnableItem(IDM_FILE_FLOPPY2_DEVICE, CFloppyStream::IsAvailable());
 
     bool fFloppy1 = GetOption(drive1) == drvFloppy, fInserted1 = pFloppy1->HasDisk();
     bool fFloppy2 = GetOption(drive2) == drvFloppy, fInserted2 = pFloppy2->HasDisk();
 
+    snprintf(szEject, MAX_PATH, "&Close %s", fFloppy1 ? pFloppy1->DiskFile() : "");
+    ModifyMenu(hmenu, IDM_FILE_FLOPPY1_EJECT, MF_STRING, IDM_FILE_FLOPPY1_EJECT, szEject);
+    snprintf(szEject, MAX_PATH, "&Close %s", fFloppy2 ? pFloppy2->DiskFile() : "");
+    ModifyMenu(hmenu, IDM_FILE_FLOPPY2_EJECT, MF_STRING, IDM_FILE_FLOPPY2_EJECT, szEject);
+
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 1 options
     EnableItem(IDM_FILE_NEW_DISK1, fFloppy1 && !GUI::IsActive());
     EnableItem(IDM_FILE_FLOPPY1_INSERT, fFloppy1 && !GUI::IsActive());
-    EnableItem(IDM_FILE_FLOPPY1_EJECT, fFloppy1);
+    EnableItem(IDM_FILE_FLOPPY1_EJECT, fInserted1);
     EnableItem(IDM_FILE_FLOPPY1_SAVE_CHANGES, fFloppy1 && pFloppy1->DiskModified());
 
-    wsprintf(szEject, "&Close %s", pFloppy1->DiskFile());
-    ModifyMenu(hmenu, IDM_FILE_FLOPPY1_EJECT, MF_STRING | (fInserted1 ? MF_ENABLED : MF_GRAYED), IDM_FILE_FLOPPY1_EJECT, szEject);
+    // Only enable the floppy device menu item if it's available
+    EnableItem(IDM_FILE_FLOPPY1_DEVICE, CFloppyStream::IsAvailable());
     CheckOption(IDM_FILE_FLOPPY1_DEVICE, fInserted1 && CFloppyStream::IsRecognised(pFloppy1->DiskFile()));
-
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 2 options
     EnableMenuItem(hmenuFile, 6, MF_BYPOSITION | (fFloppy2 ? MF_ENABLED : MF_GRAYED));
+    EnableItem(IDM_FILE_FLOPPY2_EJECT, fInserted2);
     EnableItem(IDM_FILE_FLOPPY2_SAVE_CHANGES, pFloppy2->DiskModified());
-
-    wsprintf(szEject, "&Close %s", pFloppy2->DiskFile());
-    ModifyMenu(hmenu, IDM_FILE_FLOPPY2_EJECT, MF_STRING | (fInserted2 ? MF_ENABLED : MF_GRAYED), IDM_FILE_FLOPPY2_EJECT, szEject);
 
     CheckOption(IDM_VIEW_FULLSCREEN, GetOption(fullscreen));
     CheckOption(IDM_VIEW_SYNC, GetOption(sync));
@@ -616,10 +629,7 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
             }
 
             case actInsertFloppy1:
-                if (GetOption(drive1) != drvFloppy)
-                    Message(msgWarning, "Floppy drive %d is not present", 1);
-                else
-                    InsertDisk(pFloppy1);
+                InsertDisk(pFloppy1);
                 break;
 
             case actEjectFloppy1:
@@ -627,10 +637,7 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actInsertFloppy2:
-                if (GetOption(drive2) != drvFloppy)
-                    Message(msgWarning, "Floppy drive %d is not present", 2);
-                else if (ChangesSaved(pFloppy2))
-                    InsertDisk(pFloppy2);
+                InsertDisk(pFloppy2);
                 break;
 
             case actEjectFloppy2:
@@ -939,18 +946,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 SetForegroundWindow(g_hwnd);
 
                 // Insert the image into drive 1, if available
-                if (GetOption(drive1) != drvFloppy)
-                    Message(msgWarning, "Floppy drive %d is not present", 1);
-                else if (ChangesSaved(pFloppy1))
-                {
-                    if (!pFloppy1->Insert(szFile))
-                        Message(msgWarning, "Invalid disk image: %s", szFile);
-                    else
-                    {
-                        Frame::SetStatus("%s  inserted into drive 1", pFloppy1->DiskFile());
-                        AddRecentFile(szFile);
-                    }
-                }
+                InsertDisk(pFloppy1, szFile);
             }
 
             return 0;
@@ -1388,41 +1384,9 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
                 default:
                     if (wId >= IDM_FILE_RECENT1 && wId <= IDM_FILE_RECENT9)
-                    {
-                        const char* psz = szRecentFiles[wId - IDM_FILE_RECENT1];
-
-                        if (!ChangesSaved(pFloppy1))
-                            break;
-
-                        if (pFloppy1->Insert(psz))
-                        {
-                            Frame::SetStatus("%s  inserted into drive %d", pFloppy1->DiskFile(), 1);
-                            AddRecentFile(psz);
-                        }
-                        else
-                        {
-                            Message(msgWarning, "Failed to open disk image:\n\n%s", psz);
-                            RemoveRecentFile(psz);
-                        }
-                    }
+                        InsertDisk(pFloppy1, szRecentFiles[wId - IDM_FILE_RECENT1]);
                     else if (wId >= IDM_FLOPPY2_RECENT1 && wId <= IDM_FLOPPY2_RECENT9)
-                    {
-                        const char* psz = szRecentFiles[wId - IDM_FLOPPY2_RECENT1];
-
-                        if (!ChangesSaved(pFloppy2))
-                            break;
-
-                        if (pFloppy2->Insert(psz))
-                        {
-                            Frame::SetStatus("%s  inserted into drive %d", pFloppy2->DiskFile(), 2);
-                            AddRecentFile(psz);
-                        }
-                        else
-                        {
-                            Message(msgWarning, "Failed to open disk image:\n\n%s", psz);
-                            RemoveRecentFile(psz);
-                        }
-                    }
+                        InsertDisk(pFloppy2, szRecentFiles[wId - IDM_FLOPPY2_RECENT1]);
                     break;
             }
             break;
@@ -1973,19 +1937,9 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                         break;
                     }
 
-                    // If we're to insert the new disk into a drive, do so now
-                    if (nDrive == 1 && pFloppy1->Insert(szFile))
-                    {
-                        Frame::SetStatus("%s  inserted into drive %d", pFloppy1->DiskFile(), nDrive);
-                        AddRecentFile(szFile);
-                    }
-                    else if (nDrive == 2 && pFloppy2->Insert(szFile))
-                    {
-                        Frame::SetStatus("%s  inserted into drive %d", pFloppy2->DiskFile(), nDrive);
-                        AddRecentFile(szFile);
-                    }
-                    else
-                        Frame::SetStatus("Failed to insert new disk!?");
+                    // Insert into the appropriate drive
+                    CDiskDevice *pDrive = (nDrive == 1) ? pFloppy1 : pFloppy2;
+                    InsertDisk(pDrive, szFile);
 
                     EndDialog(hdlg_, 1);
                     break;
@@ -2317,7 +2271,7 @@ INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             SetComboStrings(hdlg_, IDC_DRIVE1, aszDrives1, GetOption(drive1));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE1, 0L);
 
-            static const char* aszDrives2[] = { "None", "Floppy", "Atom [Lite]", NULL };
+            static const char* aszDrives2[] = { "None", "Floppy", "Atom Lite", NULL };
             SetComboStrings(hdlg_, IDC_DRIVE2, aszDrives2, GetOption(drive2));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE2, 0L);
 
@@ -2357,6 +2311,9 @@ INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
                 SetOption(drive1, (int)SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L));
                 SetOption(drive2, (int)SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L));
+
+                if (GetOption(drive1) != drvFloppy) EjectDisk(pFloppy1);
+                if (GetOption(drive2) != drvFloppy) EjectDisk(pFloppy2);
             }
             break;
         }
