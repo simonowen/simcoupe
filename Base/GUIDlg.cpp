@@ -498,14 +498,13 @@ class CSystemOptions : public CDialog
             m_pROM = new CEditControl(this, 63, 78, 196);
             m_pBrowse = new CTextButton(this, 262, 78, "...", 17);
 
-            new CFrameControl(this, 50, 117, 238, 77);
+            new CFrameControl(this, 50, 117, 238, 56);
             new CTextControl(this, 60, 114, "Settings", YELLOW_8, BLUE_2);
 
             m_pFastReset = new CCheckBox(this, 63, 132, "Fast boot after hardware reset");
             m_pHdBootRom = new CCheckBox(this, 63, 153, "Patch ROM for hard disk booting");
-            m_pAsicDelay = new CCheckBox(this, 63, 174, "ASIC startup delay on first power-on");
 
-            new CTextControl(this, 58, 201, "Note: Changes require a reset to take effect", RED_8);
+            new CTextControl(this, 58, 180, "Note: Changes require a reset to take effect", RED_8);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -544,14 +543,13 @@ class CSystemOptions : public CDialog
                 SetOption(rom, m_pROM->GetText());
                 SetOption(hdbootrom, m_pHdBootRom->IsChecked());
                 SetOption(fastreset, m_pFastReset->IsChecked());
-                SetOption(asicdelay, m_pAsicDelay->IsChecked());
 
                 Destroy();
             }
         }
 
     protected:
-        CCheckBox *m_pFastReset, *m_pAsicDelay, *m_pHdBootRom;
+        CCheckBox *m_pFastReset, *m_pHdBootRom;
         CComboBox *m_pMain, *m_pExternal;
         CEditControl *m_pROM;
         CTextButton *m_pOK, *m_pCancel, *m_pBrowse;

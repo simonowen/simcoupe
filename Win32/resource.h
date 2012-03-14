@@ -78,7 +78,6 @@
 #define IDC_CTRL                        1092
 #define IDC_MIDI                        1093
 #define IDC_SHIFT                       1093
-#define IDC_ASIC_DELAY                  1093
 #define IDC_HDBOOT_ROM                  1094
 #define IDC_LATENCY                     1097
 #define IDC_DRIVE1                      1098
