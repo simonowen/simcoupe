@@ -35,28 +35,15 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
-				<string>sdf</string>
-				<string>SDF</string>
-			</array>
-			<key>CFBundleTypeIconFile</key>
-			<string>file_sdf.icns</string>
-			<key>CFBundleTypeName</key>
-			<string>SimCoupe Disk Image</string>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
 				<string>sbt</string>
 				<string>SBT</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>file_dsk.icns</string>
+			<string>file_sbt</string>
 			<key>CFBundleTypeName</key>
 			<string>SimCoupe Disk Image</string>
 			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
+			<string>Viewer</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSPersistentStoreTypeKey</key>
@@ -86,7 +73,7 @@
 			<key>CFBundleTypeName</key>
 			<string>SimCoupe Disk Image</string>
 			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
+			<string>Viewer</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSPersistentStoreTypeKey</key>

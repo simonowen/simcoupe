@@ -320,7 +320,7 @@ static void CustomApplicationMain (int argc, char **argv)
 {
     NSString *path = nil;
     NSString * dirPath = @"/home";
-    NSArray *fileTypes = [NSArray arrayWithObjects:@"dsk", @"mgt", nil];
+    NSArray *fileTypes = [NSArray arrayWithObjects:@"dsk", @"mgt", @"sad", @"sbt", @"td0", nil];
 
     NSOpenPanel *openPanel = [ NSOpenPanel openPanel ];
     if ([openPanel runModalForDirectory:dirPath
@@ -462,7 +462,7 @@ static void CustomApplicationMain (int argc, char **argv)
 // Help -> Homepage
 - (IBAction)helpHomepage:(id)sender
 {
-	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.simcoupe.org/"]];
+	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://simcoupe.org/"]];
 }
 
 
