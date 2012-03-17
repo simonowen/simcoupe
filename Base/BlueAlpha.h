@@ -36,8 +36,13 @@ class CBlueAlphaDevice : public CIoDevice
         BYTE In (WORD wPort_);
         void Out (WORD wPort_, BYTE bVal_);
 
+    public:
         int GetClockFreq ();
         bool Clock ();
+
+    protected:
+        BYTE m_bControl;
+        BYTE m_bPortA, m_bPortB, m_bPortC;
 };
 
 extern CBlueAlphaDevice *pBlueAlpha;

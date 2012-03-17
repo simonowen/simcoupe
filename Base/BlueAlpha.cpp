@@ -39,8 +39,6 @@
 #include "Options.h"
 #include "Sound.h"
 
-static BYTE m_bPortA, m_bPortB, m_bPortC, m_bControl;
-
 #define PORTA_CLOCK             0x01
 #define PORTB_DAC_ENABLE        0x01
 #define PORTB_ADC_ENABLE        0x02
