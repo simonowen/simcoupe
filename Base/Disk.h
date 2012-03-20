@@ -66,68 +66,6 @@ SAD_HEADER;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define TD0_SIG_NORMAL          "TD"    // Normal compression (RLE)
-#define TD0_SIG_ADVANCED        "td"    // Huffman compression also used for everything after TD0_HEADER
-
-// Overall file header, always uncompressed
-typedef struct
-{
-    BYTE    abSignature[2];
-    BYTE    bVolSequence;       // Volume sequence (zero for the first)
-    BYTE    bCheckSig;          // Check signature for multi-volume sets (all must match)
-    BYTE    bTDVersion;         // Teledisk version used to create the file (11 = v1.1)
-    BYTE    bSourceDensity;     // Source disk density (0 = 250K bps,  1 = 300K bps,  2 = 500K bps ; +128 = single-density FM)
-    BYTE    bDriveType;         // Source drive type (1 = 360K, 2 = 1.2M, 3 = 720K, 4 = 1.44M)
-    BYTE    bTrackDensity;      // 0 = source matches media density, 1 = double density, 2 = quad density)
-    BYTE    bDOSMode;           // Non-zero if disk was analysed according to DOS allocation
-    BYTE    bSurfaces;          // Disk sides stored in the image
-    BYTE    bCRCLow, bCRCHigh;  // 16-bit CRC for this header
-}
-TD0_HEADER;
-
-// Optional comment block, present if bit 7 is set in bTrackDensity above
-typedef struct
-{
-    BYTE    bCRCLow, bCRCHigh;  // 16-bit CRC covering the comment block
-    BYTE    bLenLow, bLenHigh;  // Comment block length
-    BYTE    bYear, bMon, bDay;  // Date of disk creation
-    BYTE    bHour, bMin, bSec;  // Time of disk creation
-//  BYTE    abData[];           // Comment data, in null-terminated blocks
-}
-TD0_COMMENT;
-
-// Track header
-typedef struct
-{
-    BYTE    bSectors;           // Number of sectors in track
-    BYTE    bPhysTrack;         // Physical track we read from
-    BYTE    bPhysSide;          // Physical side we read from
-    BYTE    bCRC;               // Low 8-bits of track header CRC
-}
-TD0_TRACK;
-
-// Sector header
-typedef struct
-{
-    BYTE    bTrack;             // Track number in ID field
-    BYTE    bSide;              // Side number in ID field
-    BYTE    bSector;            // Sector number in ID field
-    BYTE    bSize;              // Sector size indicator:  (128 << bSize) gives the real size
-    BYTE    bFlags;             // Flags detailing special sector conditions
-    BYTE    bCRC;               // Low 8-bits of sector header CRC
-}
-TD0_SECTOR;
-
-// Data header, only present if a data block is available
-typedef struct
-{
-    BYTE    bOffLow, bOffHigh;  // Offset to next sector, from after this offset value
-    BYTE    bMethod;            // Storage method used for sector data (0 = raw, 1 = repeated 2-byte pattern, 2 = RLE block)
-}
-TD0_DATA;
-
-////////////////////////////////////////////////////////////////////////////////
-
 #define DSK_SIGNATURE           "MV - CPC"
 #define EDSK_SIGNATURE          "EXTENDED CPC DSK File\r\nDisk-Info\r\n"
 #define EDSK_TRACK_SIGNATURE    "Track-Info\r\n"
@@ -175,7 +113,7 @@ EDSK_SECTOR;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-enum { dtNone, dtUnknown, dtFloppy, dtFile, dtEDSK, dtTD0, dtSAD, dtMGT, dtSBT, dtCAPS };
+enum { dtNone, dtUnknown, dtFloppy, dtFile, dtEDSK, dtSAD, dtMGT, dtSBT, dtCAPS };
 
 #define LOAD_DELAY  3   // Number of status reads to artificially stay busy for image file track loads
                         // Pro-Dos relies on data not being available immediately a command is submitted
@@ -265,35 +203,6 @@ class CSADDisk : public CDisk
         BYTE WriteData (BYTE* pbData_, UINT* puSize_);
         bool Save ();
         BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
-};
-
-
-class CTD0Disk : public CDisk
-{
-    public:
-        CTD0Disk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES);
-
-    public:
-        static bool IsRecognised (CStream* pStream_);
-        static WORD CrcBlock (const void* pv_, UINT uLen_, WORD wCRC_=0);
-
-    public:
-        UINT FindInit (UINT uSide_, UINT uTrack_);
-        bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
-        BYTE ReadData (BYTE* pbData_, UINT* puSize_);
-        BYTE WriteData (BYTE* pbData_, UINT* puSize_);
-        bool Save ();
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
-
-    protected:
-        void UnpackData (TD0_SECTOR* ps_, BYTE* pbSector_);
-
-    protected:
-        TD0_HEADER m_sHeader;   // File header
-        TD0_TRACK* m_pTrack;    // Last track
-        TD0_SECTOR* m_pFind;    // Last sector found with FindNext()
-
-        TD0_TRACK* m_auIndex[MAX_DISK_SIDES][MAX_DISK_TRACKS];  // Track pointers in m_pData block
 };
 
 

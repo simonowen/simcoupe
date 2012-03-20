@@ -172,18 +172,6 @@ Section "SAm Disks (.sad)" SecSAD
     Call InstallFileAssoc
 SectionEnd
 
-Section "SAM Disk Format (.sdf)" SecSDF
-    SectionIn 1
-    Push ".sdf"
-    Call InstallFileAssoc
-SectionEnd
-
-Section "TeleDisk images (.td0)" SecTD0
-    SectionIn 1
-    Push ".td0"
-    Call InstallFileAssoc
-SectionEnd
-
 SubSectionEnd
 
 
@@ -205,8 +193,6 @@ SectionEnd
     !insertmacro MUI_DESCRIPTION_TEXT ${SecMGT} "File association for .mgt images"
     !insertmacro MUI_DESCRIPTION_TEXT ${SecDSK} "File association for .dsk images"
     !insertmacro MUI_DESCRIPTION_TEXT ${SecSAD} "File association for .sad images"
-    !insertmacro MUI_DESCRIPTION_TEXT ${SecSDF} "File association for .sdf images"
-    !insertmacro MUI_DESCRIPTION_TEXT ${SecTD0} "File association for .td0 images"
     !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} "Adds a shortcut to start SimCoupe to the desktop"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
@@ -244,10 +230,6 @@ Section "Uninstall"
     push ".dsk"
     Call un.InstallFileAssoc
     push ".sad"
-    Call un.InstallFileAssoc
-    push ".sdf"
-    Call un.InstallFileAssoc
-    push ".td0"
     Call un.InstallFileAssoc
 
 SectionEnd

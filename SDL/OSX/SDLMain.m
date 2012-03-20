@@ -320,7 +320,7 @@ static void CustomApplicationMain (int argc, char **argv)
 {
     NSString *path = nil;
     NSString * dirPath = @"/home";
-    NSArray *fileTypes = [NSArray arrayWithObjects:@"dsk", @"mgt", @"sad", @"sbt", @"td0", nil];
+    NSArray *fileTypes = [NSArray arrayWithObjects:@"dsk", @"mgt", @"sad", @"sbt", nil];
 
     NSOpenPanel *openPanel = [ NSOpenPanel openPanel ];
     if ([openPanel runModalForDirectory:dirPath

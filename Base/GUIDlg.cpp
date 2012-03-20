@@ -169,9 +169,9 @@ void CFileDialog::OnNotify (CWindow* pWindow_, int nParam_)
 static const FILEFILTER sFloppyFilter =
 {
 #ifdef USE_ZLIB
-    "All Disks (dsk;sad;mgt;td0;sbt;gz;zip)|"
+    "All Disks (dsk;sad;mgt;sbt;gz;zip)|"
 #endif
-    "Disk Images (dsk;sad;mgt;td0;sbt)|"
+    "Disk Images (dsk;sad;mgt;sbt)|"
 #ifdef USE_ZLIB
     "Compressed Files (gz;zip)|"
 #endif
@@ -179,9 +179,9 @@ static const FILEFILTER sFloppyFilter =
 
     {
 #ifdef USE_ZLIB
-        ".dsk;.sad;.mgt;.td0;.sbt;.cpm;.gz;.zip",
+        ".dsk;.sad;.mgt;.sbt;.cpm;.gz;.zip",
 #endif
-        ".dsk;.sad;.mgt;.td0;.sbt;.cpm",
+        ".dsk;.sad;.mgt;.sbt;.cpm",
 #ifdef USE_ZLIB
         ".gz;.zip",
 #endif

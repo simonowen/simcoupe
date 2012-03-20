@@ -62,23 +62,6 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>td0</string>
-				<string>TD0</string>
-			</array>
-			<key>CFBundleTypeIconFile</key>
-			<string>file_td0.icns</string>
-			<key>CFBundleTypeName</key>
-			<string>SimCoupe Disk Image</string>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-			<key>LSTypeIsPackage</key>
-			<false/>
-			<key>NSPersistentStoreTypeKey</key>
-			<string>XML</string>
-		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>SimCoupe</string>

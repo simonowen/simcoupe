@@ -113,16 +113,8 @@ SimCoupe can use software in the following disk image types:\
 \f1\b0  - SAm Disk format, created by Aley Keprt.  Also a simple sector dump, but with a 22-byte file header allowing disk-wide geometry adjustments to sides/disk, tracks/side, sectors/track and bytes/sector.  Normal SAM disks stored in SAD format are 819222 bytes, but a difference in track order prevents removing the 22-byte header to give an equivalent MGT image.  Version 2 SAD images are the same basic format, but compressed using gzip.\
 \
  
-\f0\b SDF
-\f1\b0  - Sam Disk format, created by Simon Owen.  A stop-gap image format able to represent custom formats needed by copy-protected disks.  Images sizes are 983040 bytes for 80 tracks or 1019904 bytes for 83 tracks.  Soon to be phased out in favour of EDSK images.  This format is read-only in SimCoupe.\
-\
- 
 \f0\b EDSK
 \f1\b0  - Extended DSK images, originally designed for Amstrad CPC and Spectum +3 disks.  A flexible format able to represent all existing SAM disks, and also the preferred format used by the worldofsam.org archive.  Images size is directly linked to the disk geometry, with a normal SAM disk using 860416 bytes.  Image files use a .dsk extension.\
-\
- 
-\f0\b TD0
-\f1\b0  - Images created by the TeleDisk utility for DOS, as used in the early 1990s.  A very flexible format, but no longer used because the software doesn't work on PCs faster than a slow 486.  Most TD0 images on the NVG FTP archive have now been converted to either MGT or EDSK formats.  This format is read-only in SimCoupe.\
 \
  
 \f0\b SBT

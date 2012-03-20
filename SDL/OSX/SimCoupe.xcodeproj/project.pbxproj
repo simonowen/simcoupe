@@ -113,7 +113,6 @@
 		1358F5CC0A6C12AE00D20135 /* file_mgt.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C50A6C12AE00D20135 /* file_mgt.icns */; };
 		1358F5CD0A6C12AE00D20135 /* file_sad.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C60A6C12AE00D20135 /* file_sad.icns */; };
 		1358F5CE0A6C12AE00D20135 /* file_sbt.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C70A6C12AE00D20135 /* file_sbt.icns */; };
-		1358F5D00A6C12AE00D20135 /* file_td0.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C90A6C12AE00D20135 /* file_td0.icns */; };
 		137B74B815116725004D0661 /* AtomLite.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 137B74B615116725004D0661 /* AtomLite.cpp */; };
 		137B74B915116725004D0661 /* AtomLite.h in Headers */ = {isa = PBXBuildFile; fileRef = 137B74B715116725004D0661 /* AtomLite.h */; };
 		1386FD0514FD163600F4032B /* AVI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1386FCFB14FD163600F4032B /* AVI.cpp */; };
@@ -172,7 +171,6 @@
 		1358F5C50A6C12AE00D20135 /* file_mgt.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_mgt.icns; sourceTree = "<group>"; };
 		1358F5C60A6C12AE00D20135 /* file_sad.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_sad.icns; sourceTree = "<group>"; };
 		1358F5C70A6C12AE00D20135 /* file_sbt.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_sbt.icns; sourceTree = "<group>"; };
-		1358F5C90A6C12AE00D20135 /* file_td0.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_td0.icns; sourceTree = "<group>"; };
 		1374D20109746C5E001B908F /* Options.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = Options.nib; sourceTree = "<group>"; };
 		1374D22C09747359001B908F /* Options.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Options.h; sourceTree = "<group>"; };
 		1374D22D09747359001B908F /* Options.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Options.m; sourceTree = "<group>"; };
@@ -519,7 +517,6 @@
 				1358F5C50A6C12AE00D20135 /* file_mgt.icns */,
 				1358F5C60A6C12AE00D20135 /* file_sad.icns */,
 				1358F5C70A6C12AE00D20135 /* file_sbt.icns */,
-				1358F5C90A6C12AE00D20135 /* file_td0.icns */,
 			);
 			name = Icons;
 			sourceTree = "<group>";
@@ -706,7 +703,6 @@
 				1358F5CC0A6C12AE00D20135 /* file_mgt.icns in Resources */,
 				1358F5CD0A6C12AE00D20135 /* file_sad.icns in Resources */,
 				1358F5CE0A6C12AE00D20135 /* file_sbt.icns in Resources */,
-				1358F5D00A6C12AE00D20135 /* file_td0.icns in Resources */,
 				13F693EE0A6D7FA000962105 /* Volume.icns in Resources */,
 				13F694850A70303400962105 /* SimCoupe.rtf in Resources */,
 			);
