@@ -21,12 +21,12 @@
 		132CC53009B11512007955DE /* ATA.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF24088EDFC000E5436C /* ATA.h */; };
 		132CC53109B11512007955DE /* Atom.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF26088EDFC000E5436C /* Atom.h */; };
 		132CC53209B11512007955DE /* CBops.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF27088EDFC000E5436C /* CBops.h */; };
-		132CC53309B11512007955DE /* CDisk.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF29088EDFC000E5436C /* CDisk.h */; };
-		132CC53409B11512007955DE /* CDrive.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF2B088EDFC000E5436C /* CDrive.h */; };
+		132CC53309B11512007955DE /* Disk.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF29088EDFC000E5436C /* Disk.h */; };
+		132CC53409B11512007955DE /* Drive.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF2B088EDFC000E5436C /* Drive.h */; };
 		132CC53509B11512007955DE /* Clock.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF2D088EDFC100E5436C /* Clock.h */; };
 		132CC53609B11512007955DE /* CPU.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF2F088EDFC100E5436C /* CPU.h */; };
-		132CC53709B11512007955DE /* CScreen.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF31088EDFC100E5436C /* CScreen.h */; };
-		132CC53809B11512007955DE /* CStream.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF33088EDFC100E5436C /* CStream.h */; };
+		132CC53709B11512007955DE /* Screen.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF31088EDFC100E5436C /* Screen.h */; };
+		132CC53809B11512007955DE /* Stream.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF33088EDFC100E5436C /* Stream.h */; };
 		132CC53909B11512007955DE /* Debug.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF3A088EDFC100E5436C /* Debug.h */; };
 		132CC53A09B11512007955DE /* Disassem.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF3C088EDFC100E5436C /* Disassem.h */; };
 		132CC53B09B11512007955DE /* EDops.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF3D088EDFC100E5436C /* EDops.h */; };
@@ -75,12 +75,12 @@
 		132CC56D09B11512007955DE /* Action.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF21088EDFC000E5436C /* Action.cpp */; };
 		132CC56E09B11512007955DE /* ATA.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF23088EDFC000E5436C /* ATA.cpp */; };
 		132CC56F09B11512007955DE /* Atom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF25088EDFC000E5436C /* Atom.cpp */; };
-		132CC57009B11512007955DE /* CDisk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF28088EDFC000E5436C /* CDisk.cpp */; };
-		132CC57109B11512007955DE /* CDrive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF2A088EDFC000E5436C /* CDrive.cpp */; };
+		132CC57009B11512007955DE /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF28088EDFC000E5436C /* Disk.cpp */; };
+		132CC57109B11512007955DE /* Drive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF2A088EDFC000E5436C /* Drive.cpp */; };
 		132CC57209B11512007955DE /* Clock.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF2C088EDFC100E5436C /* Clock.cpp */; };
 		132CC57309B11512007955DE /* CPU.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF2E088EDFC100E5436C /* CPU.cpp */; };
-		132CC57409B11512007955DE /* CScreen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF30088EDFC100E5436C /* CScreen.cpp */; };
-		132CC57509B11512007955DE /* CStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF32088EDFC100E5436C /* CStream.cpp */; };
+		132CC57409B11512007955DE /* Screen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF30088EDFC100E5436C /* Screen.cpp */; };
+		132CC57509B11512007955DE /* Stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF32088EDFC100E5436C /* Stream.cpp */; };
 		132CC57609B11512007955DE /* Debug.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF39088EDFC100E5436C /* Debug.cpp */; };
 		132CC57709B11512007955DE /* Disassem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF3B088EDFC100E5436C /* Disassem.cpp */; };
 		132CC57809B11512007955DE /* Expr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF3E088EDFC100E5436C /* Expr.cpp */; };
@@ -211,18 +211,18 @@
 		13A0FF25088EDFC000E5436C /* Atom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Atom.cpp; path = ../../Base/Atom.cpp; sourceTree = "<group>"; };
 		13A0FF26088EDFC000E5436C /* Atom.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Atom.h; path = ../../Base/Atom.h; sourceTree = "<group>"; };
 		13A0FF27088EDFC000E5436C /* CBops.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CBops.h; path = ../../Base/CBops.h; sourceTree = "<group>"; };
-		13A0FF28088EDFC000E5436C /* CDisk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CDisk.cpp; path = ../../Base/CDisk.cpp; sourceTree = "<group>"; };
-		13A0FF29088EDFC000E5436C /* CDisk.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CDisk.h; path = ../../Base/CDisk.h; sourceTree = "<group>"; };
-		13A0FF2A088EDFC000E5436C /* CDrive.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CDrive.cpp; path = ../../Base/CDrive.cpp; sourceTree = "<group>"; };
-		13A0FF2B088EDFC000E5436C /* CDrive.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CDrive.h; path = ../../Base/CDrive.h; sourceTree = "<group>"; };
+		13A0FF28088EDFC000E5436C /* Disk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disk.cpp; path = ../../Base/Disk.cpp; sourceTree = "<group>"; };
+		13A0FF29088EDFC000E5436C /* Disk.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Disk.h; path = ../../Base/Disk.h; sourceTree = "<group>"; };
+		13A0FF2A088EDFC000E5436C /* Drive.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Drive.cpp; path = ../../Base/Drive.cpp; sourceTree = "<group>"; };
+		13A0FF2B088EDFC000E5436C /* Drive.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Drive.h; path = ../../Base/Drive.h; sourceTree = "<group>"; };
 		13A0FF2C088EDFC100E5436C /* Clock.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Clock.cpp; path = ../../Base/Clock.cpp; sourceTree = "<group>"; };
 		13A0FF2D088EDFC100E5436C /* Clock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Clock.h; path = ../../Base/Clock.h; sourceTree = "<group>"; };
 		13A0FF2E088EDFC100E5436C /* CPU.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPU.cpp; path = ../../Base/CPU.cpp; sourceTree = "<group>"; };
 		13A0FF2F088EDFC100E5436C /* CPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CPU.h; path = ../../Base/CPU.h; sourceTree = "<group>"; };
-		13A0FF30088EDFC100E5436C /* CScreen.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CScreen.cpp; path = ../../Base/CScreen.cpp; sourceTree = "<group>"; };
-		13A0FF31088EDFC100E5436C /* CScreen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CScreen.h; path = ../../Base/CScreen.h; sourceTree = "<group>"; };
-		13A0FF32088EDFC100E5436C /* CStream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CStream.cpp; path = ../../Base/CStream.cpp; sourceTree = "<group>"; };
-		13A0FF33088EDFC100E5436C /* CStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CStream.h; path = ../../Base/CStream.h; sourceTree = "<group>"; };
+		13A0FF30088EDFC100E5436C /* Screen.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Screen.cpp; path = ../../Base/Screen.cpp; sourceTree = "<group>"; };
+		13A0FF31088EDFC100E5436C /* Screen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Screen.h; path = ../../Base/Screen.h; sourceTree = "<group>"; };
+		13A0FF32088EDFC100E5436C /* Stream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Stream.cpp; path = ../../Base/Stream.cpp; sourceTree = "<group>"; };
+		13A0FF33088EDFC100E5436C /* Stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Stream.h; path = ../../Base/Stream.h; sourceTree = "<group>"; };
 		13A0FF39088EDFC100E5436C /* Debug.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Debug.cpp; path = ../../Base/Debug.cpp; sourceTree = "<group>"; };
 		13A0FF3A088EDFC100E5436C /* Debug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Debug.h; path = ../../Base/Debug.h; sourceTree = "<group>"; };
 		13A0FF3B088EDFC100E5436C /* Disassem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Disassem.cpp; path = ../../Base/Disassem.cpp; sourceTree = "<group>"; };
@@ -387,12 +387,12 @@
 				1386FCFB14FD163600F4032B /* AVI.cpp */,
 				13EC1B3E14E95C2400FA9EDB /* BlipBuffer.cpp */,
 				13EC1B4014E95C2400FA9EDB /* BlueAlpha.cpp */,
-				13A0FF28088EDFC000E5436C /* CDisk.cpp */,
-				13A0FF2A088EDFC000E5436C /* CDrive.cpp */,
+				13A0FF28088EDFC000E5436C /* Disk.cpp */,
+				13A0FF2A088EDFC000E5436C /* Drive.cpp */,
 				13A0FF2C088EDFC100E5436C /* Clock.cpp */,
 				13A0FF2E088EDFC100E5436C /* CPU.cpp */,
-				13A0FF30088EDFC100E5436C /* CScreen.cpp */,
-				13A0FF32088EDFC100E5436C /* CStream.cpp */,
+				13A0FF30088EDFC100E5436C /* Screen.cpp */,
+				13A0FF32088EDFC100E5436C /* Stream.cpp */,
 				13A0FF39088EDFC100E5436C /* Debug.cpp */,
 				13A0FF3B088EDFC100E5436C /* Disassem.cpp */,
 				13A0FF3E088EDFC100E5436C /* Expr.cpp */,
@@ -447,12 +447,12 @@
 				13EC1B3F14E95C2400FA9EDB /* BlipBuffer.h */,
 				13EC1B4114E95C2400FA9EDB /* BlueAlpha.h */,
 				13A0FF27088EDFC000E5436C /* CBops.h */,
-				13A0FF29088EDFC000E5436C /* CDisk.h */,
-				13A0FF2B088EDFC000E5436C /* CDrive.h */,
+				13A0FF29088EDFC000E5436C /* Disk.h */,
+				13A0FF2B088EDFC000E5436C /* Drive.h */,
 				13A0FF2D088EDFC100E5436C /* Clock.h */,
 				13A0FF2F088EDFC100E5436C /* CPU.h */,
-				13A0FF31088EDFC100E5436C /* CScreen.h */,
-				13A0FF33088EDFC100E5436C /* CStream.h */,
+				13A0FF31088EDFC100E5436C /* Screen.h */,
+				13A0FF33088EDFC100E5436C /* Stream.h */,
 				13A0FF3A088EDFC100E5436C /* Debug.h */,
 				13A0FF3C088EDFC100E5436C /* Disassem.h */,
 				13A0FF3D088EDFC100E5436C /* EDops.h */,
@@ -589,12 +589,12 @@
 				132CC53009B11512007955DE /* ATA.h in Headers */,
 				132CC53109B11512007955DE /* Atom.h in Headers */,
 				132CC53209B11512007955DE /* CBops.h in Headers */,
-				132CC53309B11512007955DE /* CDisk.h in Headers */,
-				132CC53409B11512007955DE /* CDrive.h in Headers */,
+				132CC53309B11512007955DE /* Disk.h in Headers */,
+				132CC53409B11512007955DE /* Drive.h in Headers */,
 				132CC53509B11512007955DE /* Clock.h in Headers */,
 				132CC53609B11512007955DE /* CPU.h in Headers */,
-				132CC53709B11512007955DE /* CScreen.h in Headers */,
-				132CC53809B11512007955DE /* CStream.h in Headers */,
+				132CC53709B11512007955DE /* Screen.h in Headers */,
+				132CC53809B11512007955DE /* Stream.h in Headers */,
 				132CC53909B11512007955DE /* Debug.h in Headers */,
 				132CC53A09B11512007955DE /* Disassem.h in Headers */,
 				132CC53B09B11512007955DE /* EDops.h in Headers */,
@@ -731,12 +731,12 @@
 				132CC56D09B11512007955DE /* Action.cpp in Sources */,
 				132CC56E09B11512007955DE /* ATA.cpp in Sources */,
 				132CC56F09B11512007955DE /* Atom.cpp in Sources */,
-				132CC57009B11512007955DE /* CDisk.cpp in Sources */,
-				132CC57109B11512007955DE /* CDrive.cpp in Sources */,
+				132CC57009B11512007955DE /* Disk.cpp in Sources */,
+				132CC57109B11512007955DE /* Drive.cpp in Sources */,
 				132CC57209B11512007955DE /* Clock.cpp in Sources */,
 				132CC57309B11512007955DE /* CPU.cpp in Sources */,
-				132CC57409B11512007955DE /* CScreen.cpp in Sources */,
-				132CC57509B11512007955DE /* CStream.cpp in Sources */,
+				132CC57409B11512007955DE /* Screen.cpp in Sources */,
+				132CC57509B11512007955DE /* Stream.cpp in Sources */,
 				132CC57609B11512007955DE /* Debug.cpp in Sources */,
 				132CC57709B11512007955DE /* Disassem.cpp in Sources */,
 				132CC57809B11512007955DE /* Expr.cpp in Sources */,

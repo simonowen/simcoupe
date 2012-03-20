@@ -2,7 +2,7 @@
 //
 // Display.h: SDL display rendering
 //
-//  Copyright (c) 1999-2003  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include "CScreen.h"
+#include "Screen.h"
 #include "Video.h"
 
 

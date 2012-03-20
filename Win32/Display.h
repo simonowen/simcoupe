@@ -1,8 +1,8 @@
-// Part of SimCoupe - A SAM Coupé emulator
+// Part of SimCoupe - A SAM Coupe emulator
 //
 // Display.h: Win32 display rendering
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-201  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include "CScreen.h"
+#include "Screen.h"
 
 class Display
 {

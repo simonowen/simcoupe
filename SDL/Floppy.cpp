@@ -2,7 +2,7 @@
 //
 // Floppy.cpp: SDL direct floppy access
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,9 +22,9 @@
 //  - implement custom track scanning, for copy-protected disks
 
 #include "SimCoupe.h"
-
 #include "Floppy.h"
-#include "CDisk.h"
+
+#include "Disk.h"
 #include "Options.h"
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -25,11 +25,11 @@
 
 #include "Action.h"
 #include "AVI.h"
-#include "CDrive.h"
 #include "Clock.h"
 #include "CPU.h"
 #include "Debug.h"
 #include "Display.h"
+#include "Drive.h"
 #include "Expr.h"
 #include "Floppy.h"
 #include "Frame.h"

@@ -2,7 +2,7 @@
 //
 // Floppy.h: W2K/XP/W2K3 direct floppy access using fdrawcmd.sys
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,7 +21,8 @@
 #ifndef FLOPPY_H
 #define FLOPPY_H
 
-#include "CStream.h"
+#include <fdrawcmd.h>   // http://simonowen.com/fdrawcmd/fdrawcmd.h
+#include "Stream.h"
 
 typedef struct
 {

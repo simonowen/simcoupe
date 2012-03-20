@@ -111,11 +111,11 @@ SOURCE=..\..\Base\BlueAlpha.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\Base\CDisk.cpp
+SOURCE=..\..\Base\Disk.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\Base\CDrive.cpp
+SOURCE=..\..\Base\Drive.cpp
 # End Source File
 # Begin Source File
 
@@ -127,11 +127,11 @@ SOURCE=..\..\Base\CPU.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\Base\CScreen.cpp
+SOURCE=..\..\Base\Screen.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\Base\CStream.cpp
+SOURCE=..\..\Base\Stream.cpp
 # End Source File
 # Begin Source File
 
@@ -243,11 +243,11 @@ SOURCE=..\..\Base\CBops.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\Base\CDisk.h
+SOURCE=..\..\Base\Disk.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\Base\CDrive.h
+SOURCE=..\..\Base\Drive.h
 # End Source File
 # Begin Source File
 
@@ -259,11 +259,11 @@ SOURCE=..\..\Base\CPU.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\Base\CScreen.h
+SOURCE=..\..\Base\Screen.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\Base\CStream.h
+SOURCE=..\..\Base\Stream.h
 # End Source File
 # Begin Source File
 

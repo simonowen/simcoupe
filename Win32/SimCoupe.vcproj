@@ -482,11 +482,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\Base\CDisk.cpp"
+				RelativePath="..\Base\Disk.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\Base\CDrive.cpp"
+				RelativePath="..\Base\Drive.cpp"
 				>
 			</File>
 			<File
@@ -498,11 +498,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\Base\CScreen.cpp"
+				RelativePath="..\Base\Screen.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\Base\CStream.cpp"
+				RelativePath="..\Base\Stream.cpp"
 				>
 			</File>
 			<File
@@ -893,11 +893,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\Base\CDisk.h"
+				RelativePath="..\Base\Disk.h"
 				>
 			</File>
 			<File
-				RelativePath="..\Base\CDrive.h"
+				RelativePath="..\Base\Drive.h"
 				>
 			</File>
 			<File
@@ -909,11 +909,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\Base\CScreen.h"
+				RelativePath="..\Base\Screen.h"
 				>
 			</File>
 			<File
-				RelativePath="..\Base\CStream.h"
+				RelativePath="..\Base\Stream.h"
 				>
 			</File>
 			<File

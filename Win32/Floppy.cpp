@@ -2,7 +2,7 @@
 //
 // Floppy.cpp: W2K/XP/W2K3 direct floppy access using fdrawcmd.sys
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,10 +19,9 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "SimCoupe.h"
-#include <fdrawcmd.h>   // fdrawcmd.sys definitions
-
 #include "Floppy.h"
-#include "CDisk.h"
+
+#include "Disk.h"
 #include "Options.h"
 #include "Util.h"
 
