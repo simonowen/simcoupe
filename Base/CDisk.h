@@ -206,7 +206,7 @@ class CDisk
         const char* GetFile () { return m_pStream->GetFile(); }
         UINT GetSpinPos (bool fAdvance_=false);
         bool IsReadOnly () const { return m_pStream->IsReadOnly(); }
-        bool DiskModified () const { return m_fModified; }
+        bool IsModified () const { return m_fModified; }
 
         void SetModified (bool fModified_=true) { m_fModified = fModified_; }
 
@@ -238,7 +238,6 @@ class CMGTDisk : public CDisk
 {
     public:
         CMGTDisk (CStream* pStream_, UINT uSectors_=NORMAL_DISK_SECTORS);
-        ~CMGTDisk () { if (DiskModified()) Save(); }
 
     public:
         static bool IsRecognised (CStream* pStream_);
@@ -256,7 +255,6 @@ class CSADDisk : public CDisk
     public:
         CSADDisk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES, UINT uTracks_=NORMAL_DISK_TRACKS,
                     UINT uSectors_=NORMAL_DISK_SECTORS, UINT uSectorSize_=NORMAL_SECTOR_SIZE);
-        ~CSADDisk () { if (DiskModified()) Save(); }
 
     public:
         static bool IsRecognised (CStream* pStream_);
@@ -274,7 +272,6 @@ class CTD0Disk : public CDisk
 {
     public:
         CTD0Disk (CStream* pStream_, UINT uSides_=NORMAL_DISK_SIDES);
-        ~CTD0Disk () { if (DiskModified()) Save(); }
 
     public:
         static bool IsRecognised (CStream* pStream_);
@@ -367,7 +364,6 @@ class CFileDisk : public CDisk
 {
     public:
         CFileDisk (CStream* pStream_);
-        ~CFileDisk () { if (DiskModified()) Save(); }
 
     public:
         static bool IsRecognised (CStream* pStream_);

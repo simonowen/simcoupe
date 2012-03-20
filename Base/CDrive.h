@@ -54,11 +54,11 @@ class CDrive : public CDiskDevice
         const char* DiskFile () const { return m_pDisk ? m_pDisk->GetFile() : ""; }
 
         bool HasDisk () const { return m_pDisk != NULL; }
-        bool DiskModified () const { return m_pDisk && m_pDisk->DiskModified(); }
+        bool DiskModified () const { return m_pDisk && m_pDisk->IsModified(); }
         bool IsLightOn () const { return IsMotorOn(); }
         bool IsActive () const { return IsLightOn () && m_nMotorDelay > (FLOPPY_MOTOR_ACTIVE_TIME - GetOption(turboload)); }
 
-        void SetModified (bool fModified_=true) { if (m_pDisk) m_pDisk->SetModified(fModified_); }
+        void SetDiskModified (bool fModified_=true) { if (m_pDisk) m_pDisk->SetModified(fModified_); }
 
     protected:
         BYTE ReadAddress (UINT uSide_, UINT uTrack_, IDFIELD* pIdField_);

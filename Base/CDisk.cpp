@@ -576,9 +576,6 @@ CEDSKDisk::CEDSKDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UIN
 
 CEDSKDisk::~CEDSKDisk ()
 {
-    if (DiskModified())
-        Save();
-
     // Free any allocated tracks
     for (BYTE cyl = 0 ; cyl < m_uTracks ; cyl++)
         for (BYTE head = 0 ; head < m_uSides ; head++)
@@ -701,7 +698,7 @@ bool CEDSKDisk::Save ()
 
     // Complete the disk header
     memcpy(peh->szSignature, EDSK_SIGNATURE, sizeof(peh->szSignature));
-    memcpy(peh->szCreator, "SimCoupe 1.0 ", sizeof(peh->szCreator));
+    memcpy(peh->szCreator, "SimCoupe 1.1 ", sizeof(peh->szCreator));
     peh->bTracks = m_uTracks;
     peh->bSides = m_uSides;
 
@@ -1408,7 +1405,7 @@ BYTE CTD0Disk::WriteData (BYTE *pbData_, UINT* puSize_)
 // Save the disk out to the stream
 bool CTD0Disk::Save ()
 {
-    // Not supported yet
+    // Not supported
     return false;
 }
 

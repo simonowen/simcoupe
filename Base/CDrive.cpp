@@ -69,6 +69,9 @@ bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
 // Eject any inserted disk
 void CDrive::Eject ()
 {
+    if (m_pDisk && m_pDisk->IsModified())
+        m_pDisk->Save();
+
     delete m_pDisk, m_pDisk = NULL;
 }
 

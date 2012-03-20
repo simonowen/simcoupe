@@ -94,7 +94,7 @@ class CDiskDevice :  public CIoDevice
         virtual bool IsLightOn () const { return false; }
         virtual bool IsActive () const { return IsLightOn(); }
 
-        virtual void SetModified (bool fModified_=true) { }
+        virtual void SetDiskModified (bool fModified_=true) { }
 };
 
 #define in_byte     IO::In

@@ -318,7 +318,7 @@ bool ChangesSaved (CDiskDevice* pFloppy_)
         switch (MessageBox(g_hwnd, sz, WINDOW_CAPTION, MB_YESNOCANCEL|MB_ICONQUESTION))
         {
             case IDYES:     break;
-            case IDNO:      pFloppy_->SetModified(false); return true;
+            case IDNO:      pFloppy_->SetDiskModified(false); return true;
             default:        return false;
         }
     }
