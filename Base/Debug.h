@@ -2,7 +2,7 @@
 //
 // Debug.h: Integrated Z80 debugger
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,10 +21,10 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-#include "CScreen.h"
 #include "Expr.h"
 #include "GUI.h"
 #include "Memory.h"
+#include "Screen.h"
 
 
 typedef struct tagBREAKPORT

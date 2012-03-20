@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// CScreen.cpp: SAM screen handling, including on-screen display text
+// Screen.cpp: SAM screen handling, including on-screen display text
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,8 +27,8 @@
 //  converted first.
 
 #include "SimCoupe.h"
+#include "Screen.h"
 
-#include "CScreen.h"
 #include "Font.h"
 
 

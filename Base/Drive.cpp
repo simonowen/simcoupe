@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// CDrive.cpp: VL1772-02 floppy disk controller emulation
+// Drive.cpp: VL1772-02 floppy disk controller emulation
 //
 //  Copyright (c) 1999-2012 Simon Owen
 //  Copyright (c) 1996-2001 Allan Skillman
@@ -24,7 +24,7 @@
 //  - data timeouts for type 2 commands
 
 #include "SimCoupe.h"
-#include "CDrive.h"
+#include "Drive.h"
 
 #include "CPU.h"
 

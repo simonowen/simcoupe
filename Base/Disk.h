@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// CDisk.h: C++ classes used for accessing all SAM disk image types
+// Disk.h: C++ classes used for accessing all SAM disk image types
 //
 //  Copyright (c) 1999-2012 Simon Owen
 //
@@ -18,11 +18,11 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#ifndef CDISK_H
-#define CDISK_H
+#ifndef DISK_H
+#define DISK_H
 
-#include "CStream.h"    // for the data stream abstraction
 #include "Floppy.h"     // native floppy support
+#include "Stream.h"     // for the data stream abstraction
 #include "VL1772.h"     // for the VL-1772 controller definitions
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -405,4 +405,4 @@ class LZSS
         static UINT uBits, uBitBuff, r;
 };
 
-#endif  // CDISK_H
+#endif  // DISK_H

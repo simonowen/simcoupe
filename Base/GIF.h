@@ -21,7 +21,7 @@
 #ifndef GIF_H
 #define GIF_H
 
-#include "CScreen.h"
+#include "Screen.h"
 
 
 class GIF

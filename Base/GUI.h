@@ -21,9 +21,9 @@
 #ifndef GUI_H
 #define GUI_H
 
-#include "CScreen.h"
 #include "GUIIcons.h"
 #include "IO.h"
+#include "Screen.h"
 
 const int GM_MOUSE_MESSAGE    = 0x40000000;
 const int GM_KEYBOARD_MESSAGE = 0x20000000;

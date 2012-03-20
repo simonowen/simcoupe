@@ -28,7 +28,7 @@
 
 #include "CPU.h"
 #include "IO.h"
-#include "CScreen.h"
+#include "Screen.h"
 #include "Util.h"
 
 

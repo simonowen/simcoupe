@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// CScreen.h: SAM screen handling, including on-screen display text
+// Screen.h: SAM screen handling, including on-screen display text
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#ifndef CSCREEN_H
-#define CSCREEN_H
+#ifndef SCREEN_H
+#define SCREEN_H
 
 #include "Font.h"
 
@@ -86,4 +86,4 @@ class CScreen
         BYTE **m_ppbLines;          // Look-up table from line number to pointer to start of the line
 };
 
-#endif  // CSCREEN_H
+#endif  // SCREEN_H

@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// CDisk.cpp: C++ classes used for accessing all SAM disk image types
+// Disk.cpp: C++ classes used for accessing all SAM disk image types
 //
 //  Copyright (c) 1999-2012 Simon Owen
 //
@@ -26,9 +26,9 @@
 //    http://www.fpns.net/willy/wteledsk.htm
 
 #include "SimCoupe.h"
-#include "CDisk.h"
+#include "Disk.h"
 
-#include "CDrive.h"
+#include "Drive.h"
 #include "Floppy.h"
 #include "Util.h"
 

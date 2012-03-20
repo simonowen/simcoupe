@@ -23,11 +23,11 @@
 #include "Memory.h"
 
 #include "CPU.h"
-#include "CStream.h"
 #include "HDBOOT.h"
 #include "Options.h"
 #include "OSD.h"
 #include "SAMROM.h"
+#include "Stream.h"
 #include "Util.h"
 
 ////////////////////////////////////////////////////////////////////////////////

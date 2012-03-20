@@ -21,7 +21,7 @@
 #ifndef AVI_H
 #define AVI_H
 
-#include "CScreen.h"
+#include "Screen.h"
 
 class AVI
 {

@@ -35,8 +35,8 @@
 
 #include "AVI.h"
 #include "Debug.h"
-#include "CDrive.h"
 #include "Display.h"
+#include "Drive.h"
 #include "GIF.h"
 #include "GUI.h"
 #include "HardDisk.h"

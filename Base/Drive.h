@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// CDrive.h: VL1772-02 floppy disk controller emulation
+// Drive.h: VL1772-02 floppy disk controller emulation
 //
 //  Copyright (c) 1999-2012 Simon Owen
 //  Copyright (c) 1996-2001 Allan Skillman
@@ -19,14 +19,14 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#ifndef CDRIVE_H
-#define CDRIVE_H
+#ifndef DRIVE_H
+#define DRIVE_H
 
 #include "IO.h"
 #include "Options.h"
 
 #include "VL1772.h"
-#include "CDisk.h"
+#include "Disk.h"
 
 
 // Time motor stays on after no further activity:  10 revolutions at 300rpm (2 seconds)
@@ -88,4 +88,4 @@ class CDrive : public CDiskDevice
         int         m_nMotorDelay;  // Delay before switching motor off
 };
 
-#endif
+#endif // DRIVE_H

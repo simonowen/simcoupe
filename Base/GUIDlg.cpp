@@ -21,7 +21,7 @@
 #include "SimCoupe.h"
 #include "GUIDlg.h"
 
-#include "CDisk.h"
+#include "Disk.h"
 #include "Frame.h"
 #include "HardDisk.h"
 #include "Input.h"

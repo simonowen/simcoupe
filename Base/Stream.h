@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// CStream.h: Data stream abstraction classes
+// Stream.h: Data stream abstraction classes
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#ifndef CSTREAM_H
-#define CSTREAM_H
+#ifndef STREAM_H
+#define STREAM_H
 
 class CStream
 {
@@ -135,4 +135,4 @@ class CZipStream : public CStream
 
 #endif  // USE_ZLIB
 
-#endif  // CSTREAM_H
+#endif  // STREAM_H

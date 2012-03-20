@@ -21,7 +21,7 @@
 #ifndef PNG_H
 #define PNG_H
 
-#include "CScreen.h"
+#include "Screen.h"
 
 class PNG
 {

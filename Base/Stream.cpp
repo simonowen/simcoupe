@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// CStream.cpp: Data stream abstraction classes
+// Stream.cpp: Data stream abstraction classes
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,9 +30,9 @@
 //  - maybe add support for updating zip archives
 
 #include "SimCoupe.h"
-#include "CStream.h"
-#include "CDisk.h"
+#include "Stream.h"
 
+#include "Disk.h"
 #include "Floppy.h"
 #include "Util.h"
 
