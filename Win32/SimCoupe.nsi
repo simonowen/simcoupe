@@ -1,8 +1,8 @@
 ; NSIS installer script for SimCoupe
 
 !define VER_MAJOR 1
-!define VER_MINOR 0
-;!define VER_BETA 20060720
+!define VER_MINOR 1
+;!define VER_BUILD 1377
 !define VER_DISPLAY ${VER_MAJOR}.${VER_MINOR}
 
 Name "SimCoupe"
@@ -15,10 +15,10 @@ InstType "Minimal"
 
 SetCompressor lzma
 
-!ifndef VER_BETA
+!ifndef VER_BUILD
 OutFile "SimCoupe-${VER_MAJOR}.${VER_MINOR}.exe"
 !else
-OutFile "SimCoupe-${VER_MAJOR}.${VER_MINOR}-beta-${VER_BETA}.exe"
+OutFile "SimCoupe-r${VER_BUILD}.exe"
 !endif
 
 
@@ -74,11 +74,10 @@ Section "SimCoupe Core Files (required)" SecCore
     RMDir /r $SMPROGRAMS\$STARTMENU_FOLDER
 
     File "Build\SimCoupe.exe"
-    File "Build\SAASound.dll"
-    File "Build\zlib1.dll"
+    File "Build\resid.dll"
+    File "Build\zlibwapi.dll"
     File "..\SimCoupe.txt"
     File "..\ChangeLog.txt"
-    File "..\SAASound.txt"
 
     ; Store the installation directory
     WriteRegStr HKLM "Software\SimCoupe" "" $INSTDIR
@@ -95,7 +94,7 @@ Section "SimCoupe Core Files (required)" SecCore
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall SimCoupe.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupe ReadMe.lnk" "$INSTDIR\SimCoupe.txt" "" "$INSTDIR\SimCoupe.txt" 0
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupe.lnk" "$INSTDIR\SimCoupe.exe" "" "$INSTDIR\SimCoupe.exe" 0
-    WriteINIStr "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupe Homepage.url" "InternetShortcut" "URL" "http://www.simcoupe.org"
+    WriteINIStr "$SMPROGRAMS\$STARTMENU_FOLDER\SimCoupe Website.url" "InternetShortcut" "URL" "http://simcoupe.org"
 !insertmacro MUI_STARTMENU_WRITE_END
 
 SectionEnd
@@ -202,8 +201,8 @@ Section "Uninstall"
     ; Delete the main program files and the directory
     Delete $INSTDIR\SimCoupe.exe
     Delete $INSTDIR\SimCoupe.cfg
-    Delete $INSTDIR\SAASound.dll
-    Delete $INSTDIR\zlib1.dll
+    Delete $INSTDIR\resid.dll
+    Delete $INSTDIR\zlibwapi.dll
     Delete $INSTDIR\uninstall.exe
     Delete $INSTDIR\manicm.mgt
     Delete $INSTDIR\defender.mgt
@@ -211,7 +210,6 @@ Section "Uninstall"
     Delete $INSTDIR\mnedemo1.mgt
     Delete $INSTDIR\SimCoupe.txt
     Delete $INSTDIR\ChangeLog.txt
-    Delete $INSTDIR\SAASound.txt
     RMDir $INSTDIR
 
     ; Delete start menu items and group
