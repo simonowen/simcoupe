@@ -267,10 +267,10 @@
 		13A0FF66088EDFC100E5436C /* YATBus.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = YATBus.cpp; path = ../../Base/YATBus.cpp; sourceTree = "<group>"; };
 		13A0FF67088EDFC100E5436C /* YATBus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = YATBus.h; path = ../../Base/YATBus.h; sourceTree = "<group>"; };
 		13A0FF68088EDFC100E5436C /* Z80ops.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Z80ops.h; path = ../../Base/Z80ops.h; sourceTree = "<group>"; };
-		13A0FFB2088EDFFF00E5436C /* ioapi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ioapi.c; path = ../../Extern/ioapi.c; sourceTree = "<group>"; };
-		13A0FFB3088EDFFF00E5436C /* ioapi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ioapi.h; path = ../../Extern/ioapi.h; sourceTree = "<group>"; };
-		13A0FFB6088EDFFF00E5436C /* unzip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = unzip.c; path = ../../Extern/unzip.c; sourceTree = "<group>"; };
-		13A0FFB7088EDFFF00E5436C /* unzip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = unzip.h; path = ../../Extern/unzip.h; sourceTree = "<group>"; };
+		13A0FFB2088EDFFF00E5436C /* ioapi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ioapi.c; path = ../../Base/ioapi.c; sourceTree = "<group>"; };
+		13A0FFB3088EDFFF00E5436C /* ioapi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ioapi.h; path = ../../Base/ioapi.h; sourceTree = "<group>"; };
+		13A0FFB6088EDFFF00E5436C /* unzip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = unzip.c; path = ../../Base/unzip.c; sourceTree = "<group>"; };
+		13A0FFB7088EDFFF00E5436C /* unzip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = unzip.h; path = ../../Base/unzip.h; sourceTree = "<group>"; };
 		13A0FFEA088EE18600E5436C /* SDLMain.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = SDLMain.nib; sourceTree = "<group>"; };
 		13A0FFEF088EE20300E5436C /* SimCoupe.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = SimCoupe.icns; sourceTree = "<group>"; };
 		13A0FFF4088EE31A00E5436C /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = /usr/lib/libz.dylib; sourceTree = "<absolute>"; };
@@ -419,19 +419,10 @@
 				13A0FF63088EDFC100E5436C /* Util.cpp */,
 				1386FD0314FD163600F4032B /* WAV.cpp */,
 				13A0FF66088EDFC100E5436C /* YATBus.cpp */,
+				13A0FFB2088EDFFF00E5436C /* ioapi.c */,
+				13A0FFB6088EDFFF00E5436C /* unzip.c */,
 			);
 			name = Base;
-			sourceTree = "<group>";
-		};
-		13A0FFB1088EDFE600E5436C /* Extern */ = {
-			isa = PBXGroup;
-			children = (
-				13A0FFB2088EDFFF00E5436C /* ioapi.c */,
-				13A0FFB3088EDFFF00E5436C /* ioapi.h */,
-				13A0FFB6088EDFFF00E5436C /* unzip.c */,
-				13A0FFB7088EDFFF00E5436C /* unzip.h */,
-			);
-			name = Extern;
 			sourceTree = "<group>";
 		};
 		13B8909614E9704B00164818 /* Headers */ = {
@@ -487,6 +478,8 @@
 				1386FD0414FD163600F4032B /* WAV.h */,
 				13A0FF67088EDFC100E5436C /* YATBus.h */,
 				13A0FF68088EDFC100E5436C /* Z80ops.h */,
+				13A0FFB3088EDFFF00E5436C /* ioapi.h */,
+				13A0FFB7088EDFFF00E5436C /* unzip.h */,
 			);
 			name = Headers;
 			sourceTree = "<group>";
@@ -534,7 +527,6 @@
 			children = (
 				13A0FF20088EDFA600E5436C /* Base */,
 				13A0FE6F088EDF5700E5436C /* SDL */,
-				13A0FFB1088EDFE600E5436C /* Extern */,
 				080E96DDFE201D6D7F000001 /* Classes */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
 				1314532108A2C3DC008C1AB7 /* ReadMe Files */,

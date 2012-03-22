@@ -24,7 +24,6 @@ CXX=g++
 
 SDL=.
 BASE=../Base
-EXTERN=../Extern
 
 USE_OPENGL=0
 USE_ZLIB=1
@@ -32,13 +31,13 @@ USE_RESID=0  # libresid will probably need manual building
 
 .SUFFIXES: .cpp .c
 
-CFLAGS=-O2 -Wall -I${SDL} -I${BASE} -I${EXTERN} $(shell sdl-config --cflags)
+CFLAGS=-O2 -Wall -I${SDL} -I${BASE} $(shell sdl-config --cflags)
 CXXFLAGS=${CFLAGS} -Wall
 LIBS=-L. -lm $(shell sdl-config --libs --cflags)
 
-BASE_SRC=$(wildcard ${BASE}/*.cpp)
-SDL_SRC=$(wildcard ${SDL}/*.cpp)
-EXTERN_SRC=$(wildcard ${EXTERN}/*.c)
+OBJS = $(patsubst %.cpp,%.o,$(wildcard ${BASE}/*.cpp))
+OBJS += $(patsubst %.c,%.o,$(wildcard ${BASE}/*.c))
+OBJS += $(patsubst %.cpp,%.o,$(wildcard ${SDL}/*.cpp))
 
 ifeq (${USE_OPENGL},1)
 CFLAGS += -DUSE_OPENGL
@@ -62,20 +61,16 @@ CC=cc
 CXX=cc
 endif
 
-BASE_OBJS=$(BASE_SRC:%.cpp=%.o)
-SDL_OBJS=$(SDL_SRC:%.cpp=%.o)
-EXTERN_OBJS=$(EXTERN_SRC:%.c=%.o)
-
 all:	${TARGET}
 
-${TARGET}:	${BASE_OBJS} ${SDL_OBJS} ${EXTERN_OBJS} Makefile
-	${CXX} -o ${TARGET} ${CXXFLAGS} ${BASE_OBJS} ${SDL_OBJS} ${EXTERN_OBJS} ${LIBS}
+${TARGET}:	${OBJS} Makefile
+	${CXX} -o ${TARGET} ${CXXFLAGS} ${OBJS} ${LIBS}
 
-.cpp.o:
+%.o: %.cpp
 	${CXX} -o $@ -c $< ${CXXFLAGS}
 
-.c.o:
+%.o: %.c
 	${CC} -o $@ -c $< ${CFLAGS}
 
 clean:
-	rm -f ${TARGET} ${BASE}/*.o ${SDL}/*.o ${EXTERN}/*.o
+	rm -f ${TARGET} ${BASE}/*.o ${SDL}/*.o

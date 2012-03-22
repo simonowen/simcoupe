@@ -8,7 +8,7 @@ set(CMAKE_BUILD_TYPE Release)
 
 set(USE_OPENGL YES)
 
-include_directories(Base/ SDL/ Extern/)
+include_directories(Base/ SDL/)
 
 # Recommend native Win32/Mac building as they're not well supported yet
 if (APPLE)
@@ -17,9 +17,8 @@ elseif (WIN32)
   message(WARNING "Please consider using Visual Studio for Windows builds")
 endif ()
 
-file(GLOB BASE_SRC Base/*.cpp)
+file(GLOB BASE_SRC Base/*.cpp Base/*.c)
 file(GLOB SDL_SRC SDL/*.cpp)
-file(GLOB EXTERN_SRC Extern/*.cpp Extern/*.c)
 
 find_package(SDL REQUIRED)
 include_directories(${SDL_INCLUDE_DIR})
@@ -62,6 +61,6 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
   add_definitions(-D_DEBUG)
 endif (CMAKE_BUILD_TYPE MATCHES Debug)
 
-add_executable(simcoupe WIN32 MACOSX_BUNDLE ${BASE_SRC} ${SDL_SRC} ${EXTERN_SRC})
+add_executable(simcoupe WIN32 MACOSX_BUNDLE ${BASE_SRC} ${SDL_SRC})
 
 install(TARGETS simcoupe DESTINATION bin)

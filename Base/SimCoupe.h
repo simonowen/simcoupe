@@ -59,8 +59,8 @@ typedef unsigned int        UINT;
 #endif
 
 #ifdef USE_ZLIB
-#include "../Extern/unzip.h"    /* for unzOpen, unzClose, etc.  Part of the contrib/minizip in the ZLib source package */
-#include "zlib.h"               /* for gzopen, gzclose, etc. */
+#include "unzip.h"       /* for unzOpen, unzClose, etc.  Part of the contrib/minizip in the ZLib source package */
+#include "zlib.h"        /* for gzopen, gzclose, etc. */
 #endif
 
 #include "OSD.h"		/* OS-dependent stuff */
