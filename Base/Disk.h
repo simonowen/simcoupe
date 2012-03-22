@@ -134,8 +134,8 @@ class CDisk
 
         virtual void Close () { m_pStream->Close(); }
         virtual void Flush () { }
-        virtual bool Save () = 0;
-        virtual BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) = 0;
+        virtual bool Save () { return false; };
+        virtual BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) { return WRITE_PROTECT; }
 
 
     // Public query functions
@@ -156,7 +156,7 @@ class CDisk
 
         virtual BYTE LoadTrack (UINT uSide_, UINT uTrack_) { m_nBusy = LOAD_DELAY; return 0; }
         virtual BYTE ReadData (BYTE* pbData_, UINT* puSize_) = 0;
-        virtual BYTE WriteData (BYTE* pbData_, UINT* puSize_) = 0;
+        virtual BYTE WriteData (BYTE* pbData_, UINT* puSize_) { return WRITE_PROTECT; }
 
         virtual bool IsBusy (BYTE* pbStatus_, bool fWait_=false) { if (!m_nBusy) return false; m_nBusy--; return true; }
 
@@ -200,9 +200,6 @@ class CSADDisk : public CDisk
     public:
         bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
-        BYTE WriteData (BYTE* pbData_, UINT* puSize_);
-        bool Save ();
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
 };
 
 
@@ -279,9 +276,6 @@ class CFileDisk : public CDisk
 
     public:
         BYTE ReadData (BYTE* pbData_, UINT* puSize_);
-        BYTE WriteData (BYTE* pbData_, UINT* puSize_);
-        bool Save ();
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
 
     protected:
         UINT  m_uSize;
