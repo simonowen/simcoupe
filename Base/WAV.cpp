@@ -132,7 +132,7 @@ void WAV::Stop ()
 
     // Report what happened
     if (nFrames)
-        Frame::SetStatus("Saved %spszFile");
+        Frame::SetStatus("Saved %s", pszFile);
     else
     {
         Frame::SetStatus("WAV cancelled");

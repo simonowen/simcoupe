@@ -183,7 +183,6 @@
 #define IDM_RECORD_GIF_MOVIE            40215
 #define IDM_RECORD_GIF_LOOP             40216
 #define IDM_RECORD_GIF_STOP             40217
-#define IDM_RECORD_WAV                  40223
 #define IDM_RECORD_WAV_SEGMENT          40224
 #define IDM_RECORD_WAV_STOP             40225
 #define IDM_RECORD_AVI_START            40229

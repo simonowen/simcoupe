@@ -559,7 +559,7 @@ void UpdateMenuFromOptions ()
     EnableItem(IDM_RECORD_GIF_LOOP, !GIF::IsRecording());
     EnableItem(IDM_RECORD_GIF_STOP, GIF::IsRecording());
 
-    EnableItem(IDM_RECORD_WAV, !WAV::IsRecording());
+    EnableItem(IDM_RECORD_WAV_START, !WAV::IsRecording());
     EnableItem(IDM_RECORD_WAV_SEGMENT, !WAV::IsRecording());
     EnableItem(IDM_RECORD_WAV_STOP, WAV::IsRecording());
 
@@ -1316,7 +1316,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_RECORD_GIF_LOOP:       Action::Do(actRecordGifLoop);     break;
                 case IDM_RECORD_GIF_STOP:       Action::Do(actRecordGifStop);     break;
 
-                case IDM_RECORD_WAV:            Action::Do(actRecordWav);         break;
+                case IDM_RECORD_WAV_START:      Action::Do(actRecordWav);         break;
                 case IDM_RECORD_WAV_SEGMENT:    Action::Do(actRecordWavSegment);  break;
                 case IDM_RECORD_WAV_STOP:       Action::Do(actRecordWavStop);     break;
 
