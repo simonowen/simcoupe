@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// Floppy.cpp: W2K/XP/W2K3 direct floppy access using fdrawcmd.sys
+// Floppy.cpp: Real floppy access (requires fdrawcmd.sys)
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -97,7 +97,7 @@ void CFloppyStream::Close ()
 }
 
 // Start a command executing asynchronously
-BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSector_, BYTE *pbData_)
+BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSectorIndex_)
 {
     UINT uThreadId;
 
@@ -108,8 +108,7 @@ BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSector_,
     // Set up the command to perform
     m_bCommand = bCommand_;
     m_pTrack = pTrack_;
-    m_uSector = uSector_;
-    m_pbData = pbData_;
+    m_uSectorIndex = uSectorIndex_;
     m_bStatus = 0;
 
     // Create a new thread to perform it
@@ -159,10 +158,12 @@ static BYTE ReadSector (HANDLE hDevice_, BYTE phead_, PSECTOR ps_)
 }
 
 // Write a single sector
-static BYTE WriteSector (HANDLE hDevice_, BYTE phead_, PSECTOR ps_, BYTE *pbData_)
+static BYTE WriteSector (HANDLE hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
 {
-    FD_READ_WRITE_PARAMS rwp = { FD_OPTION_MFM, phead_, ps_->cyl,ps_->head,ps_->sector,ps_->size, ps_->sector+1,0x0a,0xff };
-    if (!Ioctl(hDevice_, IOCTL_FDCMD_WRITE_DATA , &rwp, sizeof(rwp), pbData_, 128 << (ps_->size & 7)))
+    PSECTOR ps = reinterpret_cast<PSECTOR>(pTrack_+1) + uSectorIndex_;
+
+    FD_READ_WRITE_PARAMS rwp = { FD_OPTION_MFM, pTrack_->head, ps->cyl,ps->head,ps->sector,ps->size, ps->sector+1,0x0a,0xff };
+    if (!Ioctl(hDevice_, IOCTL_FDCMD_WRITE_DATA , &rwp, sizeof(rwp), ps->pbData, 128 << (ps->size & 7)))
     {
         if (GetLastError() == ERROR_WRITE_PROTECT)
             return WRITE_PROTECT;
@@ -241,7 +242,7 @@ static BYTE FormatTrack (HANDLE hDevice_, PTRACK pTrack_)
                 continue;
 
             // Write the sector
-            bStatus = WriteSector(hDevice_, pt->head, &ps[j], ps[j].pbData);
+            bStatus = WriteSector(hDevice_, pt, j);
         }
     }
 
@@ -342,36 +343,27 @@ unsigned long CFloppyStream::ThreadProc ()
 
     switch (m_bCommand)
     {
-        // Load the full track
+        // Load track contents
         case READ_MSECTOR:
-        {
             // If we're in regular mode, try a simple read for all sectors
             if (m_uSectors)
                 ReadSimpleTrack(m_hDevice, m_pTrack, m_uSectors);
 
-            // If we're not in regular mode, scan and read individual sectors
+            // If we're not in regular mode, scan and read individual sectors (slower)
             if (!m_uSectors)
                 ReadCustomTrack(m_hDevice, m_pTrack);
 
             break;
-        }
 
         // Write a sector
         case WRITE_1SECTOR:
-        {
-            PSECTOR ps = reinterpret_cast<PSECTOR>(m_pTrack+1);
-            ps += m_uSector;
-
-            m_bStatus = WriteSector(m_hDevice, m_pTrack->head, ps, m_pbData);
+            m_bStatus = WriteSector(m_hDevice, m_pTrack, m_uSectorIndex);
             break;
-        }
 
-        // Format a track
+        // Format track
         case WRITE_TRACK:
-        {
             m_bStatus = FormatTrack(m_hDevice, m_pTrack);
             break;
-        }
 
         default:
             TRACE("!!! ThreadProc: unknown command (%u)\n", m_bCommand);

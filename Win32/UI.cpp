@@ -1819,7 +1819,7 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
             wsprintf(sz, "New Disk %d", nDrive = static_cast<int>(lParam_));
             SetWindowText(hdlg_, sz);
 
-            static const char* aszTypes[] = { "Flexible format EDSK image", "Normal format MGT image (800K)", "Normal format SAD image (800K)", "CP/M DOS image (720K)", NULL };
+            static const char* aszTypes[] = { "EDSK disk image (flexible format)", "MGT disk image (800K)", "DOS CP/M image (720K)", NULL };
             SetComboStrings(hdlg_, IDC_TYPES, aszTypes, nType);
             SendMessage(hdlg_, WM_COMMAND, IDC_TYPES, 0L);
 
@@ -1857,15 +1857,14 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                 case IDOK:
                 {
                     // File extensions for each type, plus an additional extension if compressed
-                    static const char* aszTypes[] = { "dsk", "mgt", "sad", "cpm" };
-                    static const char* aszCompress[] = { ".gz", ".gz", "", ".gz" };
+                    static const char* aszTypes[] = { "dsk", "mgt", "cpm" };
 
                     nType = (int)SendDlgItemMessage(hdlg_, IDC_TYPES, CB_GETCURSEL, 0, 0L);
                     fCompress = SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_GETCHECK, 0, 0L) == BST_CHECKED;
                     fFormat = SendDlgItemMessage(hdlg_, IDC_FORMAT, BM_GETCHECK, 0, 0L) == BST_CHECKED;
 
                     char szFile [MAX_PATH];
-                    snprintf(szFile, MAX_PATH, "Untitled.%s%s", aszTypes[nType], fCompress ? aszCompress[nType] : "");
+                    snprintf(szFile, MAX_PATH, "Untitled.%s%s", aszTypes[nType], fCompress ? ".gz" : "");
 
                     static OPENFILENAME ofn = { sizeof(ofn) };
                     ofn.hwndOwner = hdlg_;
@@ -1891,8 +1890,7 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                         case 0: pDisk = new CEDSKDisk(pStream); break;
                         default:
                         case 1: pDisk = new CMGTDisk(pStream);  break;
-                        case 2: pDisk = new CSADDisk(pStream, NORMAL_DISK_SIDES, NORMAL_DISK_TRACKS, NORMAL_DISK_SECTORS, NORMAL_SECTOR_SIZE); break;
-                        case 3: pDisk = new CMGTDisk(pStream, DOS_DISK_SECTORS); break;
+                        case 2: pDisk = new CMGTDisk(pStream, DOS_DISK_SECTORS); break;
                     }
 
                     // Format the EDSK image ready for use?
@@ -1921,7 +1919,7 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                                     apbData[sector] = abSector;
                                 }
 
-                                pDisk->FormatTrack(head, cyl, abIDs, apbData, NORMAL_DISK_SECTORS);
+                                pDisk->FormatTrack(cyl, head, abIDs, apbData, NORMAL_DISK_SECTORS);
                             }
                         }
                     }

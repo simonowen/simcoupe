@@ -61,10 +61,14 @@ class CDrive : public CDiskDevice
         void SetDiskModified (bool fModified_=true) { if (m_pDisk) m_pDisk->SetModified(fModified_); }
 
     protected:
-        BYTE ReadAddress (UINT uSide_, UINT uTrack_, IDFIELD* pIdField_);
-        UINT ReadTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
-        BYTE VerifyTrack (UINT uSide_, UINT uTrack_);
-        BYTE WriteTrack (UINT uSide_, UINT uTrack_, BYTE* pbTrack_, UINT uSize_);
+        bool GetSector (BYTE index_, IDFIELD *pID_, BYTE *pbStatus_);
+        bool FindSector (IDFIELD* pID_);
+        BYTE ReadSector (BYTE* pbData_, UINT* puSize_);
+        BYTE WriteSector (BYTE* pbData_, UINT* puSize_);
+        BYTE ReadAddress (IDFIELD* pID_);
+        void ReadTrack (BYTE* pbTrack_, UINT uSize_);
+        BYTE VerifyTrack ();
+        BYTE WriteTrack (BYTE* pbTrack_, UINT uSize_);
 
     protected:
         void ModifyStatus (BYTE bEnable_, BYTE bReset_);
@@ -76,8 +80,11 @@ class CDrive : public CDiskDevice
     protected:
         int			m_nDrive;		// Floppy drive number, 1 or 2
         CDisk*      m_pDisk;        // The disk currently inserted in the drive, if any
+        BYTE        m_bSide;        // Side from port address
+
         VL1772Regs  m_sRegs;        // VL1772 controller registers
-        int         m_nHeadPos;     // Physical track the drive head is above
+        BYTE        m_bHeadCyl;     // Physical track the drive head is above
+        BYTE        m_bSectorIndex; // Sector iteration index
 
         BYTE        m_abBuffer[MAX_TRACK_SIZE]; // Buffer big enough for anything we'll read or write
         BYTE*       m_pbBuffer;

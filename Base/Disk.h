@@ -49,10 +49,10 @@ const UINT MAX_SAM_FILE_SIZE = ((NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS) - NORMA
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// The ID string for Aley Keprt's SAD disk image format (heh!)
+// The ID string for Aley Keprt's SAD disk images
 #define SAD_SIGNATURE           "Aley's disk backup"
 
-// Format of a SAD image header
+// SAD file header
 typedef struct
 {
     BYTE    abSignature[sizeof(SAD_SIGNATURE) - 1];
@@ -135,14 +135,13 @@ class CDisk
         virtual void Close () { m_pStream->Close(); }
         virtual void Flush () { }
         virtual bool Save () { return false; };
-        virtual BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) { return WRITE_PROTECT; }
+        virtual BYTE FormatTrack (BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) { return WRITE_PROTECT; }
 
 
     // Public query functions
     public:
         const char* GetPath () { return m_pStream->GetPath(); }
         const char* GetFile () { return m_pStream->GetFile(); }
-        UINT GetSpinPos (bool fAdvance_=false);
         bool IsReadOnly () const { return m_pStream->IsReadOnly(); }
         bool IsModified () const { return m_fModified; }
 
@@ -150,23 +149,17 @@ class CDisk
 
     // Protected overrides
     protected:
-        virtual UINT FindInit (UINT uSide_, UINT uTrack_);
-        virtual bool FindNext (IDFIELD* pIdField_=NULL, BYTE* pbStatus_=NULL);
-        virtual bool FindSector (UINT uSide_, UINT uTrack_, UINT uIdTrack_, UINT uSector_, IDFIELD* pID_=NULL);
-
-        virtual BYTE LoadTrack (UINT uSide_, UINT uTrack_) { m_nBusy = LOAD_DELAY; return 0; }
-        virtual BYTE ReadData (BYTE* pbData_, UINT* puSize_) = 0;
-        virtual BYTE WriteData (BYTE* pbData_, UINT* puSize_) { return WRITE_PROTECT; }
+        virtual BYTE LoadTrack (BYTE cyl_, BYTE head_) { m_nBusy = LOAD_DELAY; return 0; }
+        virtual bool GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_=NULL) = 0;
+        virtual BYTE ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) = 0;
+        virtual BYTE WriteData (BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) { return WRITE_PROTECT; }
 
         virtual bool IsBusy (BYTE* pbStatus_, bool fWait_=false) { if (!m_nBusy) return false; m_nBusy--; return true; }
 
     protected:
         int     m_nType, m_nBusy;
-        UINT    m_uSides, m_uTracks, m_uSectors, m_uSectorSize;
-        UINT    m_uSide, m_uTrack, m_uSector, m_uSize;
         bool    m_fModified;
 
-        UINT    m_uSpinPos;
         CStream*m_pStream;
         BYTE*   m_pbData;
 };
@@ -181,10 +174,14 @@ class CMGTDisk : public CDisk
         static bool IsRecognised (CStream* pStream_);
 
     public:
-        BYTE ReadData (BYTE* pbData_, UINT* puSize_);
-        BYTE WriteData (BYTE* pbData_, UINT* puSize_);
+        bool GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_);
+        BYTE ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_);
+        BYTE WriteData (BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
+        BYTE FormatTrack (BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
+
+    protected:
+        UINT m_uSectors;
 };
 
 
@@ -198,8 +195,11 @@ class CSADDisk : public CDisk
         static bool IsRecognised (CStream* pStream_);
 
     public:
-        bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
-        BYTE ReadData (BYTE* pbData_, UINT* puSize_);
+        bool GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_);
+        BYTE ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_);
+
+    protected:
+        UINT m_uSides, m_uTracks, m_uSectors, m_uSectorSize;
 };
 
 
@@ -213,20 +213,22 @@ class CEDSKDisk : public CDisk
         static bool IsRecognised (CStream* pStream_);
 
     public:
-        UINT FindInit (UINT uSide_, UINT uTrack_);
-        bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
-        BYTE ReadData (BYTE* pbData_, UINT* puSize_);
-        BYTE WriteData (BYTE* pbData_, UINT* puSize_);
+        bool GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_);
+        BYTE ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_);
+        BYTE WriteData (BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_);
         bool Save ();
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
+        BYTE FormatTrack (BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
 
     protected:
+        UINT m_uSides, m_uTracks;
+
         EDSK_TRACK* m_apTracks[MAX_DISK_SIDES][MAX_DISK_TRACKS];
         BYTE m_abSizes[MAX_DISK_SIDES][MAX_DISK_TRACKS];
 
-        EDSK_TRACK* m_pTrack;     // Last track
-        EDSK_SECTOR* m_pFind;     // Last sector found with FindNext()
-        BYTE* m_pbFind;           // Last sector data
+    private:
+        // These are for private class use and only valid immediately after calling GetSector()
+        EDSK_SECTOR *m_pSector;
+        BYTE *m_pbData;
 };
 
 
@@ -239,17 +241,16 @@ class CFloppyDisk : public CDisk
         static bool IsRecognised (CStream* pStream_);
 
     public:
-        UINT FindInit (UINT uSide_, UINT uTrack_);
-        bool FindNext (IDFIELD* pIdField_, BYTE* pbStatus_);
-        void Close () { m_pFloppy->Close(); m_uCacheTrack = 0U-1; }
+        void Close () { m_pFloppy->Close(); m_pTrack->head = 0xff; }
         void Flush () { Close(); }
 
-        BYTE LoadTrack (UINT uSide_, UINT uTrack_);
-        BYTE ReadData (BYTE* pbData_, UINT* puSize_);
-        BYTE WriteData (BYTE* pbData_, UINT* puSize_);
+        BYTE LoadTrack (BYTE cyl_, BYTE head_);
+        bool GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_);
+        BYTE ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_);
+        BYTE WriteData (BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_);
         bool Save ();
 
-        BYTE FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
+        BYTE FormatTrack (BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_);
 
         bool IsBusy (BYTE* pbStatus_, bool fWait_);
 
@@ -261,8 +262,6 @@ class CFloppyDisk : public CDisk
         PTRACK  m_pTrack;               // Current track
         PSECTOR m_pSector;              // Pointer to first sector on track
         BYTE   *m_pbWrite;              // Data for in-progress write, to copy if successful
-
-        UINT m_uCacheSide, m_uCacheTrack;
 };
 
 
@@ -275,37 +274,11 @@ class CFileDisk : public CDisk
         static bool IsRecognised (CStream* pStream_);
 
     public:
-        BYTE ReadData (BYTE* pbData_, UINT* puSize_);
+        bool GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_);
+        BYTE ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_);
 
     protected:
-        UINT  m_uSize;
-};
-
-
-// Namespace wrapper for the Huffman decompression code, to keep the global namespace clean
-class LZSS
-{
-    public:
-        static size_t Unpack (BYTE* pIn_, size_t uSize_, BYTE* pOut_);
-
-    protected:
-        static void Init ();
-        static void RebuildTree ();
-        static void UpdateTree (int c);
-
-        static UINT GetChar () { return (pIn < pEnd) ? *pIn++ : 0; }
-        static UINT GetBit ();
-        static UINT GetByte ();
-        static UINT DecodeChar ();
-        static UINT DecodePosition ();
-
-    protected:
-        static BYTE ring_buff[], d_code[], d_len[];
-        static WORD freq[];
-        static short parent[], son[];
-
-        static BYTE *pIn, *pEnd;
-        static UINT uBits, uBitBuff, r;
+        UINT m_uSize;
 };
 
 #endif  // DISK_H

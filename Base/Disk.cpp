@@ -94,8 +94,8 @@
 
 
 CDisk::CDisk (CStream* pStream_, int nType_)
-    : m_nType(nType_), m_uSides(0), m_uTracks(0), m_uSectors(0), m_uSectorSize(0),
-      m_uSide(0), m_uTrack(0), m_uSector(0), m_fModified(!pStream_->IsOpen()), m_uSpinPos(0),
+    : m_nType(nType_),
+      m_fModified(!pStream_->IsOpen()),
       m_pStream(pStream_), m_pbData(NULL)
 {
 }
@@ -108,93 +108,27 @@ CDisk::~CDisk ()
 }
 
 
-// Sector spin position on the spinning disk, as used by the READ_ADDRESS command
-UINT CDisk::GetSpinPos (bool fAdvance_/*=false*/)
+// Get the header for the specified sector index
+bool CDisk::GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_/*=NULL*/, BYTE* pbStatus_/*=NULL*/)
 {
-    // If required, move to the next spin position for next time
-    if (fAdvance_)
-        m_uSpinPos = (m_uSpinPos % (m_uSectors + !m_uSectors)) + 1;
-
-    // Return the current/new position
-    return m_uSpinPos;
-}
-
-// Initialise a sector enumeration, return the number of sectors on the track
-UINT CDisk::FindInit (UINT uSide_, UINT uTrack_)
-{
-    // Remember the current side and track number
-    m_uSide = uSide_;
-    m_uTrack = uTrack_;
-
-    // Set current sector to zero so the next sector is sector 1
-    m_uSector = 0;
-
-    // Return the number of sectors on the current track
-    return (m_uSide < m_uSides && m_uTrack < m_uTracks) ? m_uSectors : 0;
-}
-
-bool CDisk::FindNext (IDFIELD* pIdField_/*=NULL*/, BYTE* pbStatus_/*=NULL*/)
-{
-    // Advance to the next sector
-    m_uSector++;
-
     // Construct a normal ID field for the sector
-    if (pIdField_)
-    {
-        pIdField_->bSide = m_uSide;
-        pIdField_->bTrack = m_uTrack;
-        pIdField_->bSector = m_uSector;
-        pIdField_->bSize = 2;           // 128 << 2 = 512 bytes
+    pID_->bTrack = cyl_;
+    pID_->bSide = head_;
+    pID_->bSector = index_+1;
+    pID_->bSize = 2;           // 128 << 2 = 512 bytes
 
-        // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
-        WORD wCRC = CrcBlock("\xa1\xa1\xa1\xfe", 4);
-        wCRC = CrcBlock(pIdField_, 4, wCRC);
-        pIdField_->bCRC1 = wCRC >> 8;
-        pIdField_->bCRC2 = wCRC & 0xff;
-    }
+    // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
+    WORD wCRC = CrcBlock("\xa1\xa1\xa1\xfe", 4);
+    wCRC = CrcBlock(pID_, 4, wCRC);
+    pID_->bCRC1 = wCRC >> 8;
+    pID_->bCRC2 = wCRC & 0xff;
 
     // Sector OK so reset all errors
     if (pbStatus_)
         *pbStatus_ = 0;
 
-    // Return true if the sector exists
-    return (m_uSide < m_uSides && m_uTrack < m_uTracks) && m_uSector <= m_uSectors;
-}
-
-
-// Locate the specific sector on the disk
-bool CDisk::FindSector (UINT uSide_, UINT uTrack_, UINT uIdTrack_, UINT uSector_, IDFIELD* pID_/*=NULL*/)
-{
-    // Assume 'record not found' with zero bytes read, until we discover otherwise
-    bool fFound = false;
-
-    // Only check for sectors if there are some to check
-    if (FindInit(uSide_, uTrack_))
-    {
-        IDFIELD id;
-        BYTE bStatus;
-
-        // Loop through all the sectors in the track
-        while (FindNext(&id, &bStatus))
-        {
-            // Check to see if the track and sector numbers match and the CRC is correct
-            // Note that the WD1772 doesn't perform any head comparison!
-            if (id.bTrack == uIdTrack_ && id.bSector == uSector_ && !bStatus)
-            {
-                // Valid sector found
-                fFound = true;
-
-                // Copy the ID field details if required
-                if (pID_)
-                    *pID_ = id;
-
-                break;
-            }
-        }
-    }
-
-    // Return whether or not we found it
-    return fFound;
+    // Always successful
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -220,14 +154,8 @@ bool CDisk::FindSector (UINT uSide_, UINT uTrack_, UINT uIdTrack_, UINT uSector_
 }
 
 CMGTDisk::CMGTDisk (CStream* pStream_, UINT uSectors_/*=NORMAL_DISK_SECTORS*/)
-    : CDisk(pStream_, dtMGT)
+    : CDisk(pStream_, dtMGT), m_uSectors(uSectors_)
 {
-    // The MGT geometry is fixed
-    m_uSides = NORMAL_DISK_SIDES;
-    m_uTracks = NORMAL_DISK_TRACKS;
-    m_uSectors = uSectors_;
-    m_uSectorSize = NORMAL_SECTOR_SIZE;
-
     // Allocate some memory and clear it, just in case it's not a complete MGT image
     m_pbData = new BYTE[MGT_IMAGE_SIZE];
     memset(m_pbData, (uSectors_ == NORMAL_DISK_SECTORS) ? 0x00 : 0xe5, MGT_IMAGE_SIZE);
@@ -236,42 +164,62 @@ CMGTDisk::CMGTDisk (CStream* pStream_, UINT uSectors_/*=NORMAL_DISK_SECTORS*/)
     if (pStream_->IsOpen())
     {
         pStream_->Rewind();
+        size_t uRead = pStream_->Read(m_pbData, MGT_IMAGE_SIZE);
+        Close();
 
         // If it's an MS-DOS image, treat as 9 sectors-per-track, otherwise 10 as normal for SAM
-        m_uSectors = (pStream_->Read(m_pbData, MGT_IMAGE_SIZE) == DOS_IMAGE_SIZE) ? DOS_DISK_SECTORS : NORMAL_DISK_SECTORS;
-
-        Close();
+        m_uSectors = (uRead == DOS_IMAGE_SIZE) ? DOS_DISK_SECTORS : NORMAL_DISK_SECTORS;
     }
 }
 
 
-// Read the data for the last sector found
-BYTE CMGTDisk::ReadData (BYTE *pbData_, UINT* puSize_)
+// Get sector details
+bool CMGTDisk::GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_)
 {
-    // Work out the offset for the required data (MGT and IMG use different track interleaves)
-    long lPos = m_uSide + NORMAL_DISK_SIDES * m_uTrack;
-    lPos = lPos * (m_uSectors * m_uSectorSize) + ((m_uSector-1) * m_uSectorSize);
+    // Check sector is in range
+    if (cyl_ >= NORMAL_DISK_TRACKS || head_ >= NORMAL_DISK_SIDES || index_ >= m_uSectors)
+        return false;
+
+    // Fill default values
+    CDisk::GetSector(cyl_, head_, index_, pID_, pbStatus_);
+
+    return true;
+}
+
+// Read the data for the last sector found
+BYTE CMGTDisk::ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UINT* puSize_)
+{
+    // Sector must be in range
+    if (index_ >= m_uSectors)
+        return RECORD_NOT_FOUND;
+
+    // Work out the offset for the required data
+    long lPos = (head_ + NORMAL_DISK_SIDES*cyl_) * (m_uSectors * NORMAL_SECTOR_SIZE) + (index_ * NORMAL_SECTOR_SIZE);
 
     // Copy the sector data from the image buffer
-    memcpy(pbData_, m_pbData + lPos, *puSize_ = m_uSectorSize);
+    memcpy(pbData_, m_pbData + lPos, *puSize_ = NORMAL_SECTOR_SIZE);
 
     // Data is always perfect on MGT images, so return OK
     return 0;
 }
 
 // Read the data for the last sector found
-BYTE CMGTDisk::WriteData (BYTE *pbData_, UINT* puSize_)
+BYTE CMGTDisk::WriteData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UINT* puSize_)
 {
+    // Sector must be in range
+    if (index_ >= m_uSectors)
+        return RECORD_NOT_FOUND;
+
     // Fail if read-only
     if (IsReadOnly())
         return WRITE_PROTECT;
 
     // Work out the offset for the required data (MGT and IMG use different track interleaves)
-    long lPos = m_uSide + NORMAL_DISK_SIDES * m_uTrack;
-    lPos = lPos * (m_uSectors * m_uSectorSize) + ((m_uSector-1) * m_uSectorSize);
+    long lPos = head_ + NORMAL_DISK_SIDES * cyl_;
+    lPos = lPos * (m_uSectors * NORMAL_SECTOR_SIZE) + (index_ * NORMAL_SECTOR_SIZE);
 
     // Copy the sector data to the image buffer, and set the modified flag
-    memcpy(m_pbData + lPos, pbData_, *puSize_ = m_uSectorSize);
+    memcpy(m_pbData + lPos, pbData_, *puSize_ = NORMAL_SECTOR_SIZE);
     SetModified();
 
     // Data is always perfect on MGT images, so return OK
@@ -281,36 +229,37 @@ BYTE CMGTDisk::WriteData (BYTE *pbData_, UINT* puSize_)
 // Save the disk out to the stream
 bool CMGTDisk::Save ()
 {
-    size_t uSize = m_uSides*m_uTracks*m_uSectors*m_uSectorSize;
+    size_t uSize = NORMAL_DISK_SIDES*NORMAL_DISK_TRACKS*m_uSectors*NORMAL_SECTOR_SIZE;
 
     // Write the image out as a single block
     if (!m_pStream->Rewind() || m_pStream->Write(m_pbData, uSize) != uSize)
         return false;
 
-    SetModified(false);
     m_pStream->Close();
+    SetModified(false);
+
     return true;
 }
 
 // Format a track using the specified format
-BYTE CMGTDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
+BYTE CMGTDisk::FormatTrack (BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
 {
     DWORD dwSectors = 0;
     bool fNormal = true;
     UINT u;
 
     // Disk must be writable, same number of sectors, and within track limit
-    if (IsReadOnly() || uSectors_ != m_uSectors || uTrack_ >= m_uTracks)
+    if (IsReadOnly() || uSectors_ != m_uSectors || cyl_ >= NORMAL_DISK_TRACKS)
         return WRITE_PROTECT;
 
     // Make sure the remaining sectors are completely normal
     for (u = 0 ; u < uSectors_ ; u++)
     {
         // Side and track must match the ones it's being laid on
-        fNormal &= (paID_[u].bSide == uSide_ && paID_[u].bTrack == uTrack_);
+        fNormal &= (paID_[u].bSide == head_ && paID_[u].bTrack == cyl_);
 
         // Sector size must be the same
-        fNormal &= ((128U << paID_[u].bSize) == m_uSectorSize);
+        fNormal &= ((128U << paID_[u].bSize) == NORMAL_SECTOR_SIZE);
 
         // Remember we've seen this sector number
         dwSectors |= (1 << (paID_[u].bSector-1));
@@ -324,15 +273,13 @@ BYTE CMGTDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* pap
         return WRITE_PROTECT;
 
     // Work out the offset for the required track
-    long lPos = (uSide_ + 2 * uTrack_) * (m_uSectors * m_uSectorSize);
+    long lPos = (head_ + NORMAL_DISK_SIDES*cyl_) * (m_uSectors * NORMAL_SECTOR_SIZE);
 
     // Process each sector to write the supplied data
     for (u = 0 ; u < uSectors_ ; u++)
-        memcpy(m_pbData + lPos + ((paID_[u].bSector-1) * m_uSectorSize), papbData_[u], m_uSectorSize);
+        memcpy(m_pbData + lPos + ((paID_[u].bSector-1) * NORMAL_SECTOR_SIZE), papbData_[u], NORMAL_SECTOR_SIZE);
 
-    // Mark the disk stream as modified
     SetModified();
-
     return 0;
 }
 
@@ -390,28 +337,25 @@ CSADDisk::CSADDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
 }
 
 
-// Find the next sector in the current track
-bool CSADDisk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
+// Get sector details
+bool CSADDisk::GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_)
 {
-    bool fRet = CDisk::FindNext(pIdField_, pbStatus_);
+    // Check sector is in range
+    if (cyl_ >= m_uTracks || head_ >= m_uSides || index_ >= m_uSectors)
+        return false;
 
-    // Make sure there is a 'next' one
-    if (fRet)
-    {
-        // Work out the sector size as needed for the IDFIELD
-        pIdField_->bSize = 0;
-        for (UINT uSize = m_uSectorSize/128 ; !(uSize & 1) ; (pIdField_->bSize)++, uSize >>= 1);
-    }
+    // Fill default values, then update the sector size
+    CDisk::GetSector(cyl_, head_, index_, pID_, pbStatus_);
+    pID_->bSize = GetSizeCode(m_uSectorSize);
 
-    // Return true if we're returning a new item
-    return fRet;
+    return true;
 }
 
 // Read the data for the last sector found
-BYTE CSADDisk::ReadData (BYTE *pbData_, UINT* puSize_)
+BYTE CSADDisk::ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UINT* puSize_)
 {
     // Work out the offset for the required data
-    long lPos = sizeof(SAD_HEADER) + (m_uSide * m_uTracks + m_uTrack) * (m_uSectors * m_uSectorSize) + ((m_uSector-1) * m_uSectorSize) ;
+    long lPos = sizeof(SAD_HEADER) + (head_ * m_uTracks + cyl_) * (m_uSectors * m_uSectorSize) + (index_ * m_uSectorSize) ;
 
     // Copy the sector data from the image buffer
     memcpy(pbData_, m_pbData + lPos, *puSize_ = m_uSectorSize);
@@ -430,14 +374,13 @@ BYTE CSADDisk::ReadData (BYTE *pbData_, UINT* puSize_)
     bool fValid = (pStream_->Rewind() && pStream_->Read(&eh, sizeof(eh)) == sizeof(eh) &&
             (!memcmp(eh.szSignature, EDSK_SIGNATURE, sizeof(EDSK_SIGNATURE)-1) ||
              !memcmp(eh.szSignature,  DSK_SIGNATURE, sizeof( DSK_SIGNATURE)-1)) &&
-             eh.bSides >= 1 && eh.bSides <= 2 &&
-             eh.bTracks && eh.bTracks <= MAX_DISK_TRACKS);
+             eh.bSides >= 1 && eh.bSides <= MAX_DISK_SIDES);
 
    return fValid;
 }
 
 CEDSKDisk::CEDSKDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT uTracks_/*=MAX_DISK_TRACKS*/)
-    : CDisk(pStream_, dtEDSK), m_pTrack(NULL), m_pFind(NULL)
+    : CDisk(pStream_, dtEDSK)
 {
     m_uSides = uSides_;
     m_uTracks = uTracks_;
@@ -458,17 +401,17 @@ CEDSKDisk::CEDSKDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UIN
     pStream_->Read(ab, sizeof(ab));
 
     m_uSides = peh->bSides;
-    m_uTracks = peh->bTracks;
+    m_uTracks = min(peh->bTracks, MAX_DISK_TRACKS);
 
     bool fEDSK = peh->szSignature[0] == EDSK_SIGNATURE[0];
     WORD wDSKTrackSize = peh->abTrackSize[0] | (peh->abTrackSize[1] << 8);  // DSK only
 
-    for (BYTE cyl = 0 ; cyl < peh->bTracks ; cyl++)
+    for (BYTE cyl = 0 ; cyl < m_uTracks ; cyl++)
     {
-        for (BYTE head = 0 ; head < peh->bSides ; head++)
+        for (BYTE head = 0 ; head < m_uSides ; head++)
         {
             // Nothing to do for empty tracks
-            UINT size = fEDSK ? (pbSizes[cyl*peh->bSides + head] << 8) : wDSKTrackSize;
+            UINT size = fEDSK ? (pbSizes[cyl*m_uSides + head] << 8) : wDSKTrackSize;
             if (!size)
                 continue;
 
@@ -500,108 +443,88 @@ CEDSKDisk::~CEDSKDisk ()
             delete[] m_apTracks[head][cyl];
 }
 
-
-// Initialise the enumeration of all sectors in the track
-UINT CEDSKDisk::FindInit (UINT uSide_, UINT uTrack_)
-{
-    if (uSide_ >= m_uSides || uTrack_ >= m_uTracks)
-        return m_uSectors = 0;
-
-    // Locate the track and determine the number of sectors available
-    m_pTrack = m_apTracks[uSide_][uTrack_];
-    m_uSectors = m_pTrack ? m_pTrack->bSectors : 0;
-    m_pFind = NULL;
-
-    // Call the base and return the number of sectors in the track
-    return CDisk::FindInit(uSide_, uTrack_);
-}
-
 // Find the next sector in the current track
-bool CEDSKDisk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
+bool CEDSKDisk::GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_)
 {
-    bool fRet = CDisk::FindNext();
+    if (cyl_ >= m_uTracks || head_ >= m_uSides)
+        return false;
 
-    // Make sure there is a 'next' one
-    if (fRet)
+    EDSK_TRACK *pTrack = m_apTracks[head_][cyl_];
+    m_pSector = reinterpret_cast<EDSK_SECTOR*>(pTrack+1);
+    m_pbData = reinterpret_cast<BYTE*>(m_pSector+EDSK_MAX_SECTORS);
+
+    // Check sector is in range
+    if (index_ >= pTrack->bSectors)
+        return false;
+
+    // Advance to the required sector and its data field
+    for (int i = 0 ; i < index_ ; i++)
     {
-        // First sector required?
-        if (!m_pFind)
-        {
-            m_pFind = reinterpret_cast<EDSK_SECTOR*>(m_pTrack+1);
-            m_pbFind = reinterpret_cast<BYTE*>(m_pFind+EDSK_MAX_SECTORS);
-        }
-        else
-        {
-            // Advance to next sector
-            m_pbFind += ((m_pFind->bDatahigh << 8) | m_pFind->bDatalow);
-            m_pFind++;
-        }
-
-        // Complete the ID field
-        pIdField_->bSide = m_pFind->bSide;
-        pIdField_->bTrack = m_pFind->bTrack;
-        pIdField_->bSector = m_pFind->bSector;
-        pIdField_->bSize = m_pFind->bSize;
-        pIdField_->bCRC1 = pIdField_->bCRC2 = 0;
-
-        // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
-        WORD wCRC = CrcBlock("\xa1\xa1\xa1\xfe", 4);
-        wCRC = CrcBlock(pIdField_, 4, wCRC);
-        if (m_pFind->bStatus1 & ST1_765_CRC_ERROR) wCRC ^= 0x5555;  // Force an error if required
-        pIdField_->bCRC1 = wCRC >> 8;
-        pIdField_->bCRC2 = wCRC & 0xff;
-
-        // Set the ID status
-        *pbStatus_ = (m_pFind->bStatus1 & ST1_765_CRC_ERROR) ? CRC_ERROR : 0;
+        m_pbData += (m_pSector->bDatahigh << 8) | m_pSector->bDatalow;
+        m_pSector++;
     }
 
-    // Return true if we're returning a new item
-    return fRet;
+    // Complete the ID field
+    pID_->bSide = m_pSector->bSide;
+    pID_->bTrack = m_pSector->bTrack;
+    pID_->bSector = m_pSector->bSector;
+    pID_->bSize = m_pSector->bSize;
+    pID_->bCRC1 = pID_->bCRC2 = 0;
+
+    // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
+    WORD wCRC = CrcBlock("\xa1\xa1\xa1\xfe", 4);
+    wCRC = CrcBlock(pID_, 4, wCRC);
+    if (m_pSector->bStatus1 & ST1_765_CRC_ERROR) wCRC ^= 0x5555;  // Force an error if required
+    pID_->bCRC1 = wCRC >> 8;
+    pID_->bCRC2 = wCRC & 0xff;
+
+    // Set the ID status
+    *pbStatus_ = (m_pSector->bStatus1 & ST1_765_CRC_ERROR) ? CRC_ERROR : 0;
+
+    return true;
 }
 
 // Read the data for the last sector found
-BYTE CEDSKDisk::ReadData (BYTE *pbData_, UINT* puSize_)
+BYTE CEDSKDisk::ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UINT* puSize_)
 {
-    UINT uRealSize = 128U << (m_pFind->bSize & 7);  // clip to a 3 bit size
-    UINT uDataSize = (m_pFind->bDatahigh << 8) | m_pFind->bDatalow;
+    IDFIELD id;
+    BYTE bStatus;
 
-    // Single copy?
-    if (uDataSize <= uRealSize)
-    {
-        memset(pbData_+uDataSize, 0, uRealSize-uDataSize);
-        memcpy(pbData_, m_pbFind, uDataSize);
-    }
-    else
-    {
-        // Determine the number of copies stored
-        UINT uCopies = uDataSize/uRealSize;
+    if (!GetSector(cyl_, head_, index_, &id, &bStatus))
+        return RECORD_NOT_FOUND;
 
-        // Rotate between the copies returned
-        static UINT uCopy = 0U-1;
-        uCopy = (uCopy+1) % uCopies;
-
-        memcpy(pbData_, m_pbFind + (uCopy*uRealSize), uRealSize);
-    }
+    // Read the data field
+    UINT uDataSize = 128U << (m_pSector->bSize & 3);  // clip to a 3 bit size
+    memcpy(pbData_, m_pbData, *puSize_ = uDataSize);
 
     // Form the data status
-    BYTE bStatus = 0;
-    if (m_pFind->bStatus2 & ST2_765_DATA_NOT_FOUND) bStatus |= RECORD_NOT_FOUND;
-    if (m_pFind->bStatus2 & ST2_765_CRC_ERROR)    { bStatus |= CRC_ERROR; }
-    if (m_pFind->bStatus2 & ST2_765_CONTROL_MARK)   bStatus |= DELETED_DATA;
+    bStatus = 0;
+    if (m_pSector->bStatus2 & ST2_765_DATA_NOT_FOUND) bStatus |= RECORD_NOT_FOUND;
+    if (m_pSector->bStatus2 & ST2_765_CRC_ERROR)    { bStatus |= CRC_ERROR; }
+    if (m_pSector->bStatus2 & ST2_765_CONTROL_MARK)   bStatus |= DELETED_DATA;
 
-    // Set the data size and return the data status
-    *puSize_ = uRealSize;
     return bStatus;
 }
 
 // Read the data for the last sector found
-BYTE CEDSKDisk::WriteData (BYTE *pbData_, UINT* puSize_)
+BYTE CEDSKDisk::WriteData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UINT* puSize_)
 {
+    IDFIELD id;
+    BYTE bStatus;
+
+    if (!GetSector(cyl_, head_, index_, &id, &bStatus))
+        return RECORD_NOT_FOUND;
+
     if (IsReadOnly())
         return WRITE_PROTECT;
 
-    *puSize_ = (128U << (m_pFind->bSize & 7));
-    memcpy(m_pbFind, pbData_, *puSize_);
+    // Write the data field
+    UINT uDataSize = 128U << (m_pSector->bSize & 3);
+    memcpy(m_pbData, pbData_, *puSize_ = uDataSize);
+
+    // Clean any CRC error on the old sector
+    m_pSector->bStatus1 &= ~ST1_765_CRC_ERROR;
+    m_pSector->bStatus2 &= ~ST2_765_CRC_ERROR;
 
     SetModified();
     return 0;
@@ -616,7 +539,7 @@ bool CEDSKDisk::Save ()
 
     // Complete the disk header
     memcpy(peh->szSignature, EDSK_SIGNATURE, sizeof(peh->szSignature));
-    memcpy(peh->szCreator, "SimCoupe 1.1 ", sizeof(peh->szCreator));
+    memcpy(peh->szCreator, "SimCoupe 1.1 ", sizeof(peh->szCreator)); // note: trailing space+null fills field
     peh->bTracks = m_uTracks;
     peh->bSides = m_uSides;
 
@@ -646,19 +569,19 @@ bool CEDSKDisk::Save ()
     if (!fSuccess)
         return false;
 
-    SetModified(false);
     m_pStream->Close();
+    SetModified(false);
 
     return true;
 }
 
 // Format a track using the specified format
-BYTE CEDSKDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
+BYTE CEDSKDisk::FormatTrack (BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
 {
     UINT u, uDataTotal = 0;
 
     // Disk must be writeable and within track limit
-    if (IsReadOnly() || uTrack_ >= MAX_DISK_TRACKS)
+    if (IsReadOnly() || cyl_ >= MAX_DISK_TRACKS || head_ >= MAX_DISK_SIDES)
         return WRITE_PROTECT;
 
     // The 256-byte track header limits the number of sectors it can hold
@@ -694,8 +617,8 @@ BYTE CEDSKDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* pa
     memcpy(pt->szSignature, EDSK_TRACK_SIGNATURE, sizeof(pt->szSignature));
     pt->bRate = 0;              // default, which is 250Kbps
     pt->bEncoding = 0;          // default, which is MFM
-    pt->bTrack = uTrack_;       // physical cylinder
-    pt->bSide = uSide_;         // physical head
+    pt->bTrack = cyl_;          // physical cylinder
+    pt->bSide = head_;          // physical head
     pt->bSize = 2;              // dummy, we'll use 512-bytes
     pt->bSectors = uSectors_;   // sectors per track
     pt->bGap3 = 78;             // dummy, we'll use the normal EDSK value
@@ -721,13 +644,13 @@ BYTE CEDSKDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* pa
     }
 
     // Delete any old track, and assign the new one
-    delete m_apTracks[uSide_][uTrack_];
-    m_apTracks[uSide_][uTrack_] = pt;
-    m_abSizes[uSide_][uTrack_] = uDataTotal >> 8;
+    delete m_apTracks[head_][cyl_];
+    m_apTracks[head_][cyl_] = pt;
+    m_abSizes[head_][cyl_] = uDataTotal >> 8;
 
     // Update the disk extents if required
-    if (uTrack_ >= m_uTracks) m_uTracks = uTrack_+1;
-    if (uSide_ >= m_uSides) m_uSides = uSide_+1;
+    if (cyl_ >= m_uTracks) m_uTracks = cyl_+1;
+    if (head_ >= m_uSides) m_uSides = head_+1;
 
     // Mark the disk stream as modified
     SetModified();
@@ -748,81 +671,69 @@ CFloppyDisk::CFloppyDisk (CStream* pStream_)
     // We can assume this as only CFloppyStream will recognise the real device, and we are always the disk used
     m_pFloppy = reinterpret_cast<CFloppyStream*>(pStream_);
 
-    // Maximum supported geometry
-    m_uSides = MAX_DISK_SIDES;
-    m_uTracks = MAX_DISK_TRACKS;
-    m_uSectors = m_uSectorSize = 0;
-
     m_pbData = new BYTE[MAX_TRACK_SIZE];
-    m_uCacheTrack = 0U-1;
-
     m_pTrack = reinterpret_cast<PTRACK>(m_pbData);
     m_pSector = reinterpret_cast<PSECTOR>(m_pTrack+1);
-}
 
-
-UINT CFloppyDisk::FindInit (UINT uSide_, UINT uTrack_)
-{
-    if (uSide_ >= m_uSides || uTrack_ >= m_uTracks)
-        return m_uSectors = 0;
-
-    // LoadTrack will have been called, so the sector count will be correct
-    m_uSectors = m_pTrack->sectors;
-
-    // Call the base and return the number of sectors in the track
-    return CDisk::FindInit(uSide_, uTrack_);
+    // Invalidate track cache
+    m_pTrack->cyl = m_pTrack->head = 0xff;
 }
 
 
 // Find the next sector in the current track
-bool CFloppyDisk::FindNext (IDFIELD* pIdField_, BYTE* pbStatus_)
+bool CFloppyDisk::GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_)
 {
-    bool fRet = CDisk::FindNext();
+    // Check sector is in range
+    if (cyl_ != m_pTrack->cyl || head_ != m_pTrack->head || index_ >= m_pTrack->sectors)
+        return false;
 
-    // Make sure there is a 'next' one
-    if (fRet)
-    {
-        PSECTOR ps = &m_pSector[m_uSector-1];
+    PSECTOR ps = &m_pSector[index_];
 
-        // Construct a normal ID field for the sector
-        pIdField_->bSide = ps->head;
-        pIdField_->bTrack = ps->cyl;
-        pIdField_->bSector = ps->sector;
-        pIdField_->bSize = ps->size;
+    // Construct a normal ID field for the sector
+    pID_->bSide = ps->head;
+    pID_->bTrack = ps->cyl;
+    pID_->bSector = ps->sector;
+    pID_->bSize = ps->size;
 
-        // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
-        WORD wCRC = CrcBlock("\xa1\xa1\xa1\xfe", 4);
-        wCRC = CrcBlock(pIdField_, 4, wCRC);
-        if (ps->status & CRC_ERROR) wCRC ^= 0x5555; // Force an error if required
-        pIdField_->bCRC1 = wCRC >> 8;
-        pIdField_->bCRC2 = wCRC & 0xff;
+    // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
+    WORD wCRC = CrcBlock("\xa1\xa1\xa1\xfe", 4);
+    wCRC = CrcBlock(pID_, 4, wCRC);
+    if (ps->status & CRC_ERROR) wCRC ^= 0x5555; // Force an error if required
+    pID_->bCRC1 = wCRC >> 8;
+    pID_->bCRC2 = wCRC & 0xff;
 
-        *pbStatus_ = ps->status;
-    }
+    *pbStatus_ = ps->status;
 
-    // Return true if we're returning a new item
-    return fRet;
+    return true;
 }
 
 // Read the data for the last sector found
-BYTE CFloppyDisk::ReadData (BYTE *pbData_, UINT* puSize_)
+BYTE CFloppyDisk::ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UINT* puSize_)
 {
-    PSECTOR ps = &m_pSector[m_uSector-1];
-    memcpy(pbData_, ps->pbData, *puSize_ = (128 << (ps->size & 7)));
+    if (cyl_ != m_pTrack->cyl || head_ != m_pTrack->head || index_ >= m_pTrack->sectors)
+        return RECORD_NOT_FOUND;
+
+    // Read from the cached track
+    PSECTOR ps = &m_pSector[index_];
+    memcpy(pbData_, ps->pbData, *puSize_ = (128 << (ps->size & 3)));
+
     return ps->status;
 }
 
 // Write the data for the last sector found
-BYTE CFloppyDisk::WriteData (BYTE *pbData_, UINT* puSize_)
+BYTE CFloppyDisk::WriteData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UINT* puSize_)
 {
-    // Save the write details, but don't update the cache yet
-    PSECTOR ps = &m_pSector[m_uSector-1];
-    m_pbWrite = pbData_;
-    *puSize_ = 128U << (ps->size & 7);
+    if (cyl_ != m_pTrack->cyl || head_ != m_pTrack->head || index_ >= m_pTrack->sectors)
+        return RECORD_NOT_FOUND;
+
+    // Write to the track cache, assuming it will work for now
+    PSECTOR ps = &m_pSector[index_];
+    memcpy(ps->pbData, pbData_, *puSize_ = (128U << (ps->size & 3)));
+    ps->status &= ~CRC_ERROR;
 
     // Start the write command
     m_bCommand = WRITE_1SECTOR;
-    return m_bStatus = m_pFloppy->StartCommand(WRITE_1SECTOR, m_pTrack, m_uSector-1, pbData_);
+    return m_bStatus = m_pFloppy->StartCommand(m_bCommand, m_pTrack, index_);
 }
 
 // Save the disk out to the stream
@@ -833,12 +744,12 @@ bool CFloppyDisk::Save ()
 }
 
 // Format a track using the specified format
-BYTE CFloppyDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
+BYTE CFloppyDisk::FormatTrack (BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
 {
     UINT uSize = uSectors_ ? (128U << (paID_->bSize & 7)) : 0, u;
 
     // Disk must be writeable and within track limit
-    if (IsReadOnly() || uTrack_ >= MAX_DISK_TRACKS)
+    if (IsReadOnly() || cyl_ >= MAX_DISK_TRACKS)
         return WRITE_PROTECT;
 
     // For now, ensure all the sectors are the same size
@@ -857,8 +768,8 @@ BYTE CFloppyDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* 
 
     // Complete a suitable track header
     pt->sectors = uSectors_;
-    pt->cyl = uTrack_;
-    pt->head = uSide_;
+    pt->cyl = cyl_;
+    pt->head = head_;
 
     // Prepare each of the supplied sectors
     for (u = 0 ; u < uSectors_ ; u++)
@@ -878,23 +789,23 @@ BYTE CFloppyDisk::FormatTrack (UINT uSide_, UINT uTrack_, IDFIELD* paID_, BYTE* 
 
     // Start the format command
     m_bCommand = WRITE_TRACK;
-    return m_bStatus = m_pFloppy->StartCommand(WRITE_TRACK, m_pTrack);
+    return m_bStatus = m_pFloppy->StartCommand(m_bCommand, m_pTrack);
 }
 
-BYTE CFloppyDisk::LoadTrack (UINT uSide_, UINT uTrack_)
+BYTE CFloppyDisk::LoadTrack (BYTE cyl_, BYTE head_)
 {
-    // Return if the track is already cached
-    if (uTrack_ == m_uCacheTrack && uSide_ == m_uCacheSide)
+    // Return if the track is already loaded
+    if (cyl_ == m_pTrack->cyl && head_ == m_pTrack->head)
         return 0;
 
     // Prepare a fresh track
     m_pTrack->sectors = 0;
-    m_pTrack->cyl = uTrack_;
-    m_pTrack->head = uSide_;
+    m_pTrack->cyl = cyl_;
+    m_pTrack->head = head_;
 
     // Read the track, setting busy if we've not finished yet
     m_bCommand = READ_MSECTOR;
-    return m_bStatus = m_pFloppy->StartCommand(READ_MSECTOR, m_pTrack);
+    return m_bStatus = m_pFloppy->StartCommand(m_bCommand, m_pTrack);
 }
 
 // Get the status of the current asynchronous operation, if any
@@ -905,41 +816,11 @@ bool CFloppyDisk::IsBusy (BYTE* pbStatus_, bool fWait_)
     // If we've just finished a request, update the track cache
     if (!fBusy && m_bStatus == BUSY)
     {
-        // Which command has just finished?
-        switch (m_bCommand)
-        {
-            // Load track
-            case READ_MSECTOR:
-                m_uCacheSide = m_pTrack->head;
-                m_uCacheTrack = m_pTrack->cyl;
-                break;
+        // Invaliate the track cache if the command failed
+        if (*pbStatus_)
+            m_pTrack->head = 0xff;
 
-            // Write sector
-            case WRITE_1SECTOR:
-                // Only write the data to the track cache if successful
-                if (!*pbStatus_)
-                {
-                    PSECTOR ps = &m_pSector[m_uSector-1];
-                    memcpy(ps->pbData, m_pbWrite, 128U << (ps->size & 7));
-                    ps->status &= ~CRC_ERROR;
-                }
-                break;
-
-            // Format track
-            case WRITE_TRACK:
-            {
-                // Cache the track if successful
-                m_uCacheTrack = *pbStatus_ ? 0U-1 : m_pTrack->cyl;
-                m_uCacheSide = m_pTrack->head;
-                break;
-            }
-
-            default:
-                TRACE("!!! Finished unknown command (%u)\n", m_bCommand);
-                break;
-        }
-
-        // Clear the status now we're done
+        // Clear the FDC status
         m_bStatus = 0;
     }
 
@@ -957,11 +838,6 @@ bool CFloppyDisk::IsBusy (BYTE* pbStatus_, bool fWait_)
 CFileDisk::CFileDisk (CStream* pStream_)
     : CDisk(pStream_, dtFile)
 {
-    m_uSides = NORMAL_DISK_SIDES;
-    m_uTracks = NORMAL_DISK_TRACKS;
-    m_uSectors = NORMAL_DISK_SECTORS;
-    m_uSectorSize = NORMAL_SECTOR_SIZE;
-
     // Work out the maximum file size, allocate some memory for it
     UINT uSize = MAX_SAM_FILE_SIZE + DISK_FILE_HEADER_SIZE;
     m_pbData = new BYTE[uSize];
@@ -991,14 +867,27 @@ CFileDisk::CFileDisk (CStream* pStream_)
 }
 
 
+// Get sector details
+bool CFileDisk::GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_)
+{
+    // Check sector is in range
+    if (cyl_ >= NORMAL_DISK_TRACKS || head_ >= NORMAL_DISK_SIDES || index_ >= NORMAL_DISK_SECTORS)
+        return false;
+
+    // Fill default values
+    CDisk::GetSector(cyl_, head_, index_, pID_, pbStatus_);
+
+    return true;
+}
+
 // Read the data for the last sector found
-BYTE CFileDisk::ReadData (BYTE *pbData_, UINT* puSize_)
+BYTE CFileDisk::ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UINT* puSize_)
 {
     // Clear the sector out
-    memset(pbData_, 0, *puSize_ = m_uSectorSize);
+    memset(pbData_, 0, *puSize_ = NORMAL_SECTOR_SIZE);
 
     // The first directory sector?
-    if (m_uTrack == 0 && m_uSide == 0 && m_uSector == 1)
+    if (cyl_ == 0 && head_ == 0 && index_ == 0)
     {
         // CODE file type
         pbData_[0] = 19;
@@ -1011,7 +900,7 @@ BYTE CFileDisk::ReadData (BYTE *pbData_, UINT* puSize_)
         memcpy(pbData_+1, pcsz, min(uLen, 10));
 
         // Number of sectors required
-        WORD wSectors = (m_uSize + m_uSectorSize-3) / (m_uSectorSize-2);
+        WORD wSectors = (m_uSize + NORMAL_SECTOR_SIZE-3) / (NORMAL_SECTOR_SIZE-2);
         pbData_[11] = wSectors >> 8;
         pbData_[12] = wSectors & 0xff;
 
@@ -1039,24 +928,25 @@ BYTE CFileDisk::ReadData (BYTE *pbData_, UINT* puSize_)
     }
 
     // Does the position fall within the file?
-    else if (m_uTrack >= NORMAL_DIRECTORY_TRACKS)
+    else if (cyl_ >= NORMAL_DIRECTORY_TRACKS)
     {
         // Work out the offset for the required data
-        long lPos = (m_uSide * m_uTracks + m_uTrack - NORMAL_DIRECTORY_TRACKS) * (m_uSectors * (m_uSectorSize-2)) + ((m_uSector-1) * (m_uSectorSize-2));
+        long lPos = (head_*NORMAL_DISK_TRACKS + cyl_ - NORMAL_DIRECTORY_TRACKS) *
+                    (NORMAL_DISK_SECTORS * (NORMAL_SECTOR_SIZE-2)) + (index_ * (NORMAL_SECTOR_SIZE-2));
 
         // Copy the file segment required
-        memcpy(pbData_, m_pbData+lPos, min(m_uSectorSize-2, m_uSize - lPos));
+        memcpy(pbData_, m_pbData+lPos, min(NORMAL_SECTOR_SIZE-2, m_uSize - lPos));
 
         // If there are more sectors in the file, set the chain to the next sector
-        if (lPos + m_uSectorSize < m_uSize)
+        if (lPos + NORMAL_SECTOR_SIZE < m_uSize)
         {
             // Work out the next sector
-            UINT uSector = 1 + (m_uSector % m_uSectors);
-            UINT uTrack = ((uSector == 1) ? m_uTrack+1 : m_uTrack) % m_uTracks;
-            UINT uSide = (!uTrack ? m_uSide+1 : m_uSide) % m_uSides;
+            UINT uSector = 1 + ((index_+1) % NORMAL_DISK_SECTORS);
+            UINT uTrack = ((uSector == 1) ? cyl_+1 : cyl_) % NORMAL_DISK_TRACKS;
+            UINT uSide = (uTrack == 0 ? head_+1 : head_) % NORMAL_DISK_SIDES;
 
-            pbData_[m_uSectorSize-2] = uTrack + (uSide ? 0x80 : 0x00);
-            pbData_[m_uSectorSize-1] = uSector;
+            pbData_[NORMAL_SECTOR_SIZE-2] = uTrack + (uSide ? 0x80 : 0x00);
+            pbData_[NORMAL_SECTOR_SIZE-1] = uSector;
         }
     }
 

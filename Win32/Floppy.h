@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// Floppy.h: W2K/XP/W2K3 direct floppy access using fdrawcmd.sys
+// Floppy.h: Real floppy access (requires fdrawcmd.sys)
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -63,7 +63,7 @@ class CFloppyStream : public CStream
         size_t Read (void*, size_t) { return 0; }
         size_t Write (void*, size_t) { return 0; }
 
-        BYTE StartCommand (BYTE bCommand_, PTRACK pTrack_=NULL, UINT uSector_=0, BYTE *pbData_=NULL);
+        BYTE StartCommand (BYTE bCommand_, PTRACK pTrack_=NULL, UINT uSectorIndex_=0);
 
     protected:
         HANDLE  m_hDevice, m_hThread;   // Floppy device and worker thread handles
@@ -72,8 +72,7 @@ class CFloppyStream : public CStream
         BYTE    m_bCommand, m_bStatus;  // Current command and final status
 
         PTRACK  m_pTrack;               // Track for command
-        UINT    m_uSector;              // Zero-based sector for write command
-        BYTE   *m_pbData;               // Data to write (since track data is only updated when successful)
+        UINT    m_uSectorIndex;         // Zero-based sector for write command
 };
 
 #endif  // FLOPPY_H

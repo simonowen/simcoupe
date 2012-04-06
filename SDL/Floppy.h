@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// Floppy.h: SDL direct floppy access
+// Floppy.h: Real floppy access (Linux-only)
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,22 +22,6 @@
 #define FLOPPY_H
 
 #include "Stream.h"
-
-typedef struct
-{
-    int sectors;
-    BYTE cyl, head;     // physical track location
-}
-TRACK, *PTRACK;
-
-typedef struct
-{
-    BYTE cyl, head, sector, size;
-    BYTE status;
-    BYTE *pbData;
-}
-SECTOR, *PSECTOR;
-
 
 class CFloppyStream : public CStream
 {
@@ -62,27 +46,26 @@ class CFloppyStream : public CStream
         size_t Read (void*, size_t) { return 0; }
         size_t Write (void*, size_t) { return 0; }
 
-        BYTE StartCommand (BYTE bCommand_, PTRACK pTrack_=NULL, UINT uSector_=0, BYTE *pbData_=NULL);
+        BYTE StartCommand (BYTE bCommand_, PTRACK pTrack_=NULL, UINT uSectorIndex_=0);
 
     protected:
         bool Open ();
 
     protected:
-        int  m_nFloppy;                 // Floppy device handle
-        UINT m_uSectors;                // Regular sector count, or zero for auto-detect (slower)
+        int     m_nFloppy;              // Floppy device handle
+        UINT    m_uSectors;             // Regular sector count, or zero for auto-detect (slower)
 
 #ifdef __linux__
         pthread_t m_hThread;            // Thread handle
-        bool m_fThreadDone;             // True when thread has completed
+        bool    m_fThreadDone;          // True when thread has completed
 #else
-        int m_hThread;                  // Dummy handle for non-Linux
+        int     m_hThread;              // Dummy handle for non-Linux
 #endif
 
-        BYTE m_bCommand, m_bStatus;     // Current command and final status
+        BYTE    m_bCommand, m_bStatus;  // Current command and final status
 
         PTRACK  m_pTrack;               // Track for command
-        UINT    m_uSector;              // Zero-based sector for write command
-        BYTE   *m_pbData;               // Data to write (since track data is only updated when successful)
+        UINT    m_uSectorIndex;         // Zero-based sector for write command
 };
 
 #endif  // FLOPPY_H

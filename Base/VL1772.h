@@ -2,7 +2,7 @@
 //
 // VL1772.h: VL 1772 floppy disk controller definitions
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //  Copyright (c) 1999-2001  Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 
 #define MAX_DISK_SIDES          2       // Maximum number of sides for a disk image
 
-#define MAX_DISK_TRACKS         83      // Maxmimum number of tracks per side (docs say 0 to 244?)
+#define MAX_DISK_TRACKS         82      // Maxmimum number of tracks per side (docs say 0 to 244?)
 #define MAX_TRACK_SIZE          6250    // Maximum raw track data size (bytes)
 #define MAX_TRACK_SECTORS       (MAX_TRACK_SIZE - MIN_TRACK_OVERHEAD) / (MIN_SECTOR_OVERHEAD + MIN_SECTOR_SIZE)
 
@@ -44,12 +44,9 @@ enum { regCommand = 0, regStatus = regCommand, regTrack, regSector, regData };
 // VL1772 registers
 typedef struct tagVL1772Regs
 {
-    BYTE    bCommand;   // Command register (write-only), top 4 bits containing command
-    BYTE    bCmdFlags;  // lower 4 bits containing flags
-
+    BYTE    bCommand;   // Command register (write-only)
     BYTE    bStatus;    // Status register (read-only)
 
-    BYTE    bSide;      // Side from port address
     BYTE    bTrack;     // Track number register value
     BYTE    bSector;    // Sector number register
     BYTE    bData;      // Data read from and to write to the controller
@@ -82,6 +79,7 @@ VL1772Regs;
 // The lower 4 bits of the command byte have a different meaning depending on the
 // command class, and need to be ORed with the command codes given below.
 
+#define FDC_COMMAND_MASK    0xf0
 
 // Type 1 commands
 #define RESTORE             0x00    // Restore disk head to track 0
@@ -94,11 +92,12 @@ VL1772Regs;
 #define STEP_OUT_UPD        0x70    // Step out and decrement track register
 
 // Type 1 command flag bits
-#define FLAG_STEP_RATE      0x03    // Stepping rate bits: 00=6ms, 01=12ms, 10=2ms, 11=3ms
-#define FLAG_VERIFY         0x04    // Verify destination track
-#define FLAG_DIR            0x20    // Step direction (non-zero for stepping out towards track 0)
-#define FLAG_SPINUP         0x08    // Enable spin-up sequence
-#define FLAG_UPDATE         0x10    // Update track register
+#define CMD_FLAG_STEP_RATE  0x03    // Stepping rate bits: 00=6ms, 01=12ms, 10=2ms, 11=3ms
+#define CMD_FLAG_VERIFY     0x04    // Verify destination track
+#define CMD_FLAG_DIR        0x20    // Step direction (non-zero for stepping out towards track 0)
+#define CMD_FLAG_SPINUP     0x08    // Enable spin-up sequence
+#define CMD_FLAG_UPDATE     0x10    // Update track register
+#define CMD_FLAG_STEPDIR    0x40    // Step in a specific direction
 
 
 // Type 2 commands

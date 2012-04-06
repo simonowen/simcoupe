@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// Floppy.cpp: SDL direct floppy access
+// Floppy.cpp: Real floppy access (Linux-only)
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,9 +17,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
-// ToDo:
-//  - implement custom track scanning, for copy-protected disks
 
 #include "SimCoupe.h"
 #include "Floppy.h"
@@ -110,7 +107,7 @@ void CFloppyStream::Close ()
 
 
 // Start executing a floppy command
-BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSector_, BYTE *pbData_)
+BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSectorIndex_)
 {
     // Wait for any in-progress operation to complete
     BYTE bStatus;
@@ -119,8 +116,7 @@ BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSector_,
     // Set up the command to perform
     m_bCommand = bCommand_;
     m_pTrack = pTrack_;
-    m_uSector = uSector_;
-    m_pbData = pbData_;
+    m_uSectorIndex = uSectorIndex_;
     m_bStatus = 0;
 
     // Create a new thread to perform it
@@ -184,18 +180,16 @@ static BYTE ReadSector (int hDevice_, PTRACK pTrack_, UINT uSector_)
 }
 
 // Write a single sector
-static BYTE WriteSector (int hDevice_, PTRACK pTrack_, UINT uSector_, BYTE *pbData_)
+static BYTE WriteSector (int hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
 {
     PTRACK pt = pTrack_;
-    PSECTOR ps = reinterpret_cast<PSECTOR>(pt+1);
-    ps += uSector_;
-    if (!pbData_) pbData_ = ps->pbData;
+    PSECTOR ps = reinterpret_cast<PSECTOR>(pt+1) + uSectorIndex_;
 
     struct floppy_raw_cmd rc;
     memset(&rc, 0, sizeof(rc));
 
     rc.flags = FD_RAW_WRITE | FD_RAW_INTR | FD_RAW_NEED_SEEK;
-    rc.data  = pbData_;
+    rc.data  = ps->pbData;
     rc.length = 128U << (ps->size & 7);
     rc.rate = 2;
     rc.track = pt->cyl;
@@ -293,7 +287,7 @@ static BYTE FormatTrack (int hDevice_, PTRACK pTrack_)
                 continue;
 
             // Write the sector
-            bStatus = WriteSector(hDevice_, pt, j, NULL);
+            bStatus = WriteSector(hDevice_, pt, j);
         }
     }
 
@@ -454,36 +448,30 @@ void *CFloppyStream::ThreadProc ()
 
     switch (m_bCommand)
     {
-        // Load track contents?
+        // Load track contents
         case READ_MSECTOR:
             // If we've got a sector count, read the track assuming that value
             if (m_uSectors)
                 ReadSimpleTrack(m_nFloppy, m_pTrack, m_uSectors);
 
-            // If we've not sector count, scan and read the track (slower)
+            // If we're not in regular mode, scan and read individual sectors (slower)
             if (!m_uSectors)
                 ReadCustomTrack(m_nFloppy, m_pTrack);
 
             break;
 
-        // Write a sector?
+        // Write a sector
         case WRITE_1SECTOR:
-        {
-            // Locate the sector to write
-            PSECTOR ps = reinterpret_cast<PSECTOR>(m_pTrack+1);
-            ps += m_uSector;
-
-            m_bStatus = WriteSector(m_nFloppy, m_pTrack, m_uSector, m_pbData);
+            m_bStatus = WriteSector(m_nFloppy, m_pTrack, m_uSectorIndex);
             break;
-        }
 
-        // Format track?
+        // Format track
         case WRITE_TRACK:
             m_bStatus = FormatTrack(m_nFloppy, m_pTrack);
             break;
 
         default:
-            TRACE("!!! Unknown fdc stream command: %u\n", m_bCommand);
+            TRACE("!!! ThreadProc: unknown command: %u\n", m_bCommand);
             m_bStatus = LOST_DATA;
             break;
     }
@@ -504,7 +492,7 @@ void CFloppyStream::Close ()
 {
 }
 
-BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSector_, BYTE *pbData_)
+BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSector_)
 {
     return BUSY;
 }
