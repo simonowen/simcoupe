@@ -23,6 +23,22 @@
 
 #include "Stream.h"
 
+typedef struct
+{
+    int sectors;
+    BYTE cyl, head;     // physical track location
+}
+TRACK, *PTRACK;
+
+typedef struct
+{
+    BYTE cyl, head, sector, size;
+    BYTE status;
+    BYTE *pbData;
+}
+SECTOR, *PSECTOR;
+
+
 class CFloppyStream : public CStream
 {
     public:
