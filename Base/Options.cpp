@@ -73,6 +73,9 @@ OPTION aOptions[] =
     OPT_F("Greyscale",    greyscale,      false),     // Colour display
     OPT_F("Filter",       filter,         false),     // Filter the OpenGL image when stretching
 
+    OPT_N("AviReduce",    avireduce,      1),         // Record 44kHz 8-bit stereo audio (50% saving)
+    OPT_F("AviScanlines", aviscanlines,   false),     // Don't include scanlines in AVI recordings
+
     OPT_S("ROM",          rom,            ""),        // No custom ROM (use built-in)
     OPT_F("HDBootRom",    hdbootrom,      false),     // Don't use HDBOOT ROM patches
     OPT_F("FastReset",    fastreset,      true),      // Allow fast Z80 resets

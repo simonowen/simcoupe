@@ -41,6 +41,9 @@ typedef struct
     bool    greyscale;              // Use greyscale instead of colour?
     bool    filter;                 // Filter the OpenGL image when stretching?
 
+    int     avireduce;              // Reduce AVI audio size (0=lossless to 4=muted)
+    bool    aviscanlines;           // Include scanlines in AVI recording?
+
     char    rom[MAX_PATH];          // SAM ROM image path
     bool    hdbootrom;              // Use HDBOOT ROM patches?
     bool    fastreset;              // Fast SAM system reset?

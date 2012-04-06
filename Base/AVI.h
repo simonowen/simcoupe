@@ -32,7 +32,7 @@ class AVI
         static bool IsRecording ();
 
         static void AddFrame (CScreen *pScreen_);
-        static void AddFrame (BYTE *pbAudio_, UINT uLen_);
+        static void AddFrame (const BYTE *pbAudio_, UINT uLen_);
 };
 
 #endif // AVI_H

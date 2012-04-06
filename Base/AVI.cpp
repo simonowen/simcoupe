@@ -25,10 +25,7 @@
 #include "Options.h"
 #include "Sound.h"
 
-// Scanlines don't scale well on videos uploaded to YouTube, so disable them for now
-//#define AVI_SCANLINES
-
-static BYTE *pbCurr;
+static BYTE *pbCurr, *pbResample;
 
 static char szPath[MAX_PATH], *pszFile;
 static FILE *f;
@@ -41,6 +38,9 @@ static DWORD dwVideoMax, dwAudioMax;
 static DWORD dwVideoFrames, dwAudioFrames, dwAudioSamples;
 static bool fWantVideo;
 
+// These hold the option settings during recording, so they can't change
+static int nAudioReduce = 0;
+static bool fScanlines = false;
 
 static void WriteLittleEndianWORD (WORD w_)
 {
@@ -50,28 +50,18 @@ static void WriteLittleEndianWORD (WORD w_)
 
 static void WriteLittleEndianDWORD (DWORD dw_)
 {
-#ifdef __LITTLE_ENDIAN__
-    fwrite(&dw_, sizeof(dw_), 1, f);
-#else
     fputc(dw_ & 0xff, f);
     fputc((dw_ >> 8) & 0xff, f);
     fputc((dw_ >> 16) & 0xff, f);
     fputc((dw_ >> 24) & 0xff, f);
-#endif
 }
 
 static DWORD ReadLittleEndianDWORD ()
 {
-#ifdef __LITTLE_ENDIAN__
-    DWORD dw;
-    if (!fread(&dw, sizeof(dw), 1, f)) dw = 0;
-    return dw;
-#else
-    BYTE ab[4] = { };
+    BYTE ab[4] = {};
     if (!fread(ab, sizeof(ab), 1, f)) ab[0] = 0;
 
     return (ab[3] << 24) | (ab[2] << 16) | (ab[1] << 8) | ab[0];
-#endif
 }
 
 static DWORD WriteChunkStart (FILE *f_, const char *pszChunk_, const char *pszType_=NULL)
@@ -96,7 +86,7 @@ static DWORD WriteChunkEnd (FILE *f_, DWORD dwPos_)
 {
     // Remember the current position, and calculate the chunk size (not including the length field)
     DWORD dwPos = ftell(f_), dwSize = dwPos-dwPos_-sizeof(DWORD);
-    
+
     // Seek back to the length field
     fseek(f_, dwPos_, SEEK_SET);
 
@@ -106,7 +96,14 @@ static DWORD WriteChunkEnd (FILE *f_, DWORD dwPos_)
     // Restore original position (should always be end of file, but we'll use the value from earlier)
     fseek(f_, dwPos, SEEK_SET);
 
-    // Return the data size
+    // If the length was odd, pad file position to even boundary
+    if (dwPos & 1)
+    {
+        fputc(0x00, f);
+        dwSize++;
+    }
+
+    // Return the on-disk size
     return dwSize;
 }
 
@@ -114,14 +111,17 @@ static void WriteAVIHeader (FILE *f_)
 {
     DWORD dwPos = WriteChunkStart(f_, "avih");
 
+    // Should we include an audio stream?
+    DWORD dwStreams = (nAudioReduce < 4) ? 2 : 1;
+
     WriteLittleEndianDWORD(19968);			// microseconds per frame: 1000000*TSTATES_PER_FRAME/REAL_TSTATES_PER_SECOND
     WriteLittleEndianDWORD((dwVideoMax*EMULATED_FRAMES_PER_SECOND)+(dwAudioMax*EMULATED_FRAMES_PER_SECOND));	// approximate max data rate
     WriteLittleEndianDWORD(0);				// reserved
     WriteLittleEndianDWORD((1<<8)|(1<<4));	// flags: bit 4 = has index(idx1), bit 5 = use index for AVI structure, bit 8 = interleaved file, bit 16 = optimized for live video capture, bit 17 = copyrighted data
     WriteLittleEndianDWORD(dwVideoFrames);	// total number of video frames
     WriteLittleEndianDWORD(0);				// initial frame number for interleaved files
-    WriteLittleEndianDWORD(2);				// number of streams in the file (video+audio)
-    WriteLittleEndianDWORD(0/*dwVideoMax*/);// suggested buffer size for reading the file
+    WriteLittleEndianDWORD(dwStreams);		// number of streams in the file (video+audio)
+    WriteLittleEndianDWORD(0);				// suggested buffer size for reading the file
     WriteLittleEndianDWORD(width);			// pixel width
     WriteLittleEndianDWORD(height);			// pixel height
     WriteLittleEndianDWORD(0);				// 4 reserved DWORDs (must be zero)
@@ -205,17 +205,36 @@ static void WriteAudioHeader (FILE *f_)
 {
     DWORD dwPos = WriteChunkStart(f_, "strh", "auds");
 
+    // Default to normal sound parameters
+    WORD wFreq = SAMPLE_FREQ;
+    WORD wBits = SAMPLE_BITS;
+    WORD wBlock = SAMPLE_BLOCK;
+    WORD wChannels = SAMPLE_CHANNELS;
+
+    // 8-bit?
+    if (nAudioReduce >= 1)
+        wBits /= 2, wBlock /= 2;
+
+    // 22kHz?
+    if (nAudioReduce >= 2)
+        wFreq /= 2;
+
+    // Mono?
+    if (nAudioReduce >= 3)
+        wChannels /= 2, wBlock /= 2;
+
+
     fwrite("\0\0\0\0", 4, 1, f);			// FOURCC not specified (PCM below)
     WriteLittleEndianDWORD(0);				// flags, unused
     WriteLittleEndianDWORD(0);				// priority and language, unused
     WriteLittleEndianDWORD(1);				// initial frames
-    WriteLittleEndianDWORD(SAMPLE_BLOCK);	// scale
-    WriteLittleEndianDWORD(SAMPLE_FREQ*SAMPLE_BLOCK); // rate
+    WriteLittleEndianDWORD(wBlock);			// scale
+    WriteLittleEndianDWORD(wFreq*wBlock);	// rate
     WriteLittleEndianDWORD(0);				// start time
     WriteLittleEndianDWORD(dwAudioSamples);	// total samples in stream
     WriteLittleEndianDWORD(dwAudioMax);		// suggested buffer size
     WriteLittleEndianDWORD(0xffffffff);		// quality
-    WriteLittleEndianDWORD(SAMPLE_BLOCK);	// sample size
+    WriteLittleEndianDWORD(wBlock);			// sample size
     WriteLittleEndianDWORD(0);				// two unused rect coords
     WriteLittleEndianDWORD(0);				// two more unused rect coords
 
@@ -224,11 +243,11 @@ static void WriteAudioHeader (FILE *f_)
     dwPos = WriteChunkStart(f_, "strf");
 
     WriteLittleEndianWORD(1);				// format tag (1 = WAVE_FORMAT_PCM)
-    WriteLittleEndianWORD(SAMPLE_CHANNELS);	// channels
-    WriteLittleEndianDWORD(SAMPLE_FREQ);	// samples per second
-    WriteLittleEndianDWORD(SAMPLE_FREQ*SAMPLE_BLOCK); // average bytes per second
-    WriteLittleEndianWORD(SAMPLE_BLOCK);	// block align
-    WriteLittleEndianWORD(SAMPLE_BITS);		// bits per sample
+    WriteLittleEndianWORD(wChannels);		// channels
+    WriteLittleEndianDWORD(wFreq);			// samples per second
+    WriteLittleEndianDWORD(wFreq*wBlock);	// average bytes per second
+    WriteLittleEndianWORD(wBlock);			// block align
+    WriteLittleEndianWORD(wBits);			// bits per sample
     WriteLittleEndianWORD(0);				// extra structure size
 
     WriteChunkEnd(f_, dwPos);
@@ -268,7 +287,8 @@ static void WriteIndex (FILE *f_)
         WriteLittleEndianDWORD(dwMoviPos);
         WriteLittleEndianDWORD(dwSize);
 
-        dwMoviPos += 2*sizeof(DWORD) + dwSize;
+        // Calculate next position, aligned to even boundary
+        dwMoviPos += 2*sizeof(DWORD) + ((dwSize+1) & ~1);
     }
 
     // Complete the index and riff chunks
@@ -288,14 +308,13 @@ static void WriteFileHeaders (FILE *f_)
     WriteVideoHeader(f_);
     WriteChunkEnd(f_, dwPos);
 
-    dwPos = WriteChunkStart(f_, "LIST", "strl");
-    WriteAudioHeader(f_);
-    WriteChunkEnd(f_, dwPos);
-/*
-    dwPos = WriteChunkStart("vedt");
-    fseek(f, 8, SEEK_CUR);
-    WriteChunkEnd(dwPos);
-*/
+    if (nAudioReduce < 4)
+    {
+        dwPos = WriteChunkStart(f_, "LIST", "strl");
+        WriteAudioHeader(f_);
+        WriteChunkEnd(f_, dwPos);
+    }
+
     // Align movi data to 2048-byte boundary
     dwPos = WriteChunkStart(f_, "JUNK");
     fseek(f_, (-ftell(f)-3*sizeof(DWORD))&0x3ff, SEEK_CUR);
@@ -434,6 +453,14 @@ bool AVI::Start (bool fHalfSize_)
     fHalfSize = fHalfSize_;
     fWantVideo = true;
 
+    // Set scanline mode for the recording
+    fScanlines = GetOption(aviscanlines);
+
+#if SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2
+    // Set the audio reduction level
+    nAudioReduce = GetOption(avireduce);
+#endif
+
     Frame::SetStatus("Recording AVI");
     return true;
 }
@@ -461,8 +488,10 @@ void AVI::Stop ()
     f = NULL;
 
     // Free current frame data
-    delete[] pbCurr;
-    pbCurr = NULL;
+    delete[] pbCurr, pbCurr = NULL;
+
+    // Free resample buffer
+    delete[] pbResample, pbResample = NULL;
 
     Frame::SetStatus("Saved %s", pszFile);
 }
@@ -488,6 +517,17 @@ void AVI::AddFrame (CScreen *pScreen_)
     if (!f || !fWantVideo)
         return;
 
+    // Old-style AVI has a 2GB size limit, so restart if we're within 1MB of that
+    if (ftell(f) >= 0x7ff00000)
+    {
+        Stop();
+
+        // Restart for a continuation volume
+        if (!Start(fHalfSize))
+            return;
+    }
+
+    // Start of file?
     if (ftell(f) == 0)
     {
         // Store the dimensions, and allocate+invalidate the frame copy
@@ -498,13 +538,6 @@ void AVI::AddFrame (CScreen *pScreen_)
 
         // Write the placeholder file headers
         WriteFileHeaders(f);
-    }
-
-    // Old-style AVI has a 2GB size limit, so stop if we're within 1MB of that
-    if (ftell(f) >= 0x7ff00000)
-    {
-        Stop();
-        return;
     }
 
     // Set a key frame once per second, which encodes the full frame
@@ -544,9 +577,8 @@ void AVI::AddFrame (CScreen *pScreen_)
             pbLine = abLine;
         }
 
-#ifdef AVI_SCANLINES
         // If this is a scanline, adjust the pixel values to use the 2nd palette section
-        if (!fHalfSize && (y&1))
+        if (fScanlines && !fHalfSize && (y&1))
         {
             // It's no problem if pbLine is already pointing to abLine
             DWORD *pdwS = (DWORD*)pbLine, *pdwD = (DWORD*)abLine;
@@ -557,7 +589,7 @@ void AVI::AddFrame (CScreen *pScreen_)
 
             pbLine = abLine;
         }
-#endif
+
         BYTE *pb = pbLine, *pbP = pbCurr+(width*y);
 
         for (x = 0 ; x < width ; )
@@ -630,16 +662,80 @@ void AVI::AddFrame (CScreen *pScreen_)
     if (dwSize > dwVideoMax)
         dwVideoMax = dwSize;
 
-    // Want audio next
-    fWantVideo = false;
+    // Want audio next, if enabled
+    fWantVideo = (nAudioReduce >= 4);
 }
 
 // Add an audio frame to the file
-void AVI::AddFrame (BYTE *pb_, UINT uLen_)
+void AVI::AddFrame (const BYTE *pb_, UINT uLen_)
 {
     // Ignore if we're not recording or we're expecting video
     if (!f || fWantVideo)
         return;
+
+    // Calculate the number of input samples
+    UINT uBlock = SAMPLE_BLOCK;
+    UINT uSamples = uLen_ / uBlock;
+
+    // Do we need to reduce the audio size?
+    if (nAudioReduce)
+    {
+        static bool fOddLast = false;
+
+        // Allocate resample buffer if it doesn't already exist
+        if (!pbResample && !(pbResample = new BYTE[uLen_]))
+            return;
+
+        BYTE *pbNew = pbResample;
+        
+        // 22kHz?
+        if (nAudioReduce >= 2)
+        {
+            // If the last sample count was odd, skip the first sample
+            if (fOddLast)
+                pb_ += uBlock, uSamples--;
+
+            // If the current sample count is odd, include the final sample
+            if (uSamples & 1)
+                fOddLast = true, uSamples++;
+
+            // 22kHz drops half the samples
+            uSamples /= 2;
+            uBlock *= 2;
+        }
+
+        // Mono?
+        if (nAudioReduce >= 3)
+        {
+            // Process every other sample
+            for (UINT u = 0 ; u < uSamples ; u++, pb_ += uBlock)
+            {
+                // 16-bit stereo to 8-bit mono
+                int left = static_cast<short>((pb_[1] << 8) | pb_[0]);
+                int right = static_cast<short>((pb_[3] << 8) | pb_[2]);
+                short combined = static_cast<short>((left+right)/2);
+
+                *pbNew++ = static_cast<BYTE>((combined >> 8) ^ 0x80);
+            }
+        }
+        // Stereo
+        else
+        {
+            // Process the required number of samples
+            for (UINT u = 0 ; u < uSamples ; u++, pb_ += uBlock)
+            {
+                // 16-bit to 8-bit
+                short left = static_cast<short>((pb_[1] << 8) | pb_[0]);
+                short right = static_cast<short>((pb_[3] << 8) | pb_[2]);
+
+                *pbNew++ = static_cast<BYTE>((left >> 8) ^ 0x80);
+                *pbNew++ = static_cast<BYTE>((right >> 8) ^ 0x80);
+            }
+        }
+
+        pb_ = pbResample;
+        uLen_ = static_cast<UINT>(pbNew - pbResample);
+    }
 
     // Write the audio chunk
     DWORD dwPos = WriteChunkStart(f, "01wb");
@@ -647,7 +743,7 @@ void AVI::AddFrame (BYTE *pb_, UINT uLen_)
     DWORD dwSize = WriteChunkEnd(f, dwPos);
 
     // Update counters
-    dwAudioSamples += uLen_ / SAMPLE_BLOCK;
+    dwAudioSamples += uSamples;
     dwAudioFrames++;
 
     // Track the maximum audio data size
