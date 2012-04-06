@@ -1088,6 +1088,9 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             // No longer in menu, so start timer to hide the mouse if not used again
             fInMenu = fHideCursor = false;
             ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, NULL);
+
+            // Purge any menu navigation key presses
+            Input::Purge();
             break;
 
 
