@@ -1100,11 +1100,8 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
         case WM_PAINT:
         {
-            // Forcibly redraw the screen if in using the menu, sizing, moving, or inactive and paused
-            if (fInMenu || fSizingOrMoving || g_fPaused)
-                Frame::Redraw();
-
-            // Window no longer dirty
+            // Redraw the last frame, and mark the window as clean
+            Frame::Redraw();
             ValidateRect(hwnd_, NULL);
             return 0;
         }
