@@ -181,8 +181,8 @@ static void WriteVideoHeader (FILE *f_)
         fputc(0, f);	// RGBQUAD has this as reserved (zero) rather than alpha
     }
 
-    // If scanlines are enabled, determine the appropriate brightness adjustment
-    int nScanAdjust = GetOption(scanlines) ? (GetOption(scanlevel) - 100) : 0;
+    // Determine the appropriate brightness adjustment for scanlines
+    int nScanAdjust = GetOption(scanlevel) - 100;
     if (nScanAdjust < -100) nScanAdjust = -100;
 
     // The second half of the palette contains colours in scanline intensity
@@ -454,7 +454,7 @@ bool AVI::Start (bool fHalfSize_)
     fWantVideo = true;
 
     // Set scanline mode for the recording
-    fScanlines = GetOption(aviscanlines);
+    fScanlines = GetOption(scanlines) && GetOption(aviscanlines);
 
 #if SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2
     // Set the audio reduction level
