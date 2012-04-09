@@ -1241,8 +1241,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             // Most of the emulator keys are handled above, but we've a few extra fixed mappings of our own (well, mine!)
             switch (wParam_)
             {
-                // Keypad '-' = Z80 reset (can be held to view reset screens)
-                case VK_SUBTRACT:   if (GetOption(keypadreset)) Action::Do(actResetButton, uMsg_ == WM_KEYDOWN);    break;
+                case VK_SUBTRACT:   break;
                 case VK_DIVIDE:     if (fPress) Action::Do(actDebugger);    break;
                 case VK_MULTIPLY:   if (fPress) Action::Do(actNmiButton);   break;
                 case VK_ADD:        Action::Do(actTempTurbo, fPress);       break;
@@ -2543,7 +2542,6 @@ INT_PTR CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
             SendDlgItemMessage(hdlg_, IDC_ALT_FOR_CNTRL, BM_SETCHECK, GetOption(altforcntrl) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_ALTGR_FOR_EDIT, BM_SETCHECK, GetOption(altgrforedit) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_KPMINUS_RESET, BM_SETCHECK, GetOption(keypadreset) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
             SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_SETCHECK, GetOption(mouse) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_MOUSE_SWAP23, BM_SETCHECK, GetOption(swap23) ? BST_CHECKED : BST_UNCHECKED, 0L);
@@ -2560,7 +2558,6 @@ INT_PTR CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
                 SetOption(altforcntrl, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALT_FOR_CNTRL, BM_GETCHECK, 0, 0L)) == BST_CHECKED);
                 SetOption(altgrforedit, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALTGR_FOR_EDIT, BM_GETCHECK, 0, 0L)) == BST_CHECKED);
-                SetOption(keypadreset, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_KPMINUS_RESET, BM_GETCHECK, 0, 0L)) == BST_CHECKED);
 
                 SetOption(mouse, SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(swap23, SendDlgItemMessage(hdlg_, IDC_MOUSE_SWAP23, BM_GETCHECK, 0, 0L) == BST_CHECKED);

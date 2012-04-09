@@ -80,7 +80,6 @@ typedef struct
     int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
     bool    altforcntrl;            // Use Left-Alt for SAM Cntrl?
     bool    altgrforedit;           // Use Right-Alt for SAM Edit?
-    bool    keypadreset;            // Use Keypad-minus for SAM Reset?
     bool    mouse;                  // Emulate the SAM mouse?
     bool    mouseesc;               // Allow Esc to release the mouse capture?
     bool    swap23;                 // Swap SAM mouse buttons 2 and 3?

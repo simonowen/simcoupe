@@ -791,10 +791,10 @@ class CInputOptions : public CDialog
 {
     public:
         CInputOptions (CWindow* pParent_)
-            : CDialog(pParent_, 300, 219, "Input Settings")
+            : CDialog(pParent_, 300, 190, "Input Settings")
         {
             new CIconControl(this, 10, 10, &sKeyboardIcon);
-            new CFrameControl(this, 50, 17, 238, 111);
+            new CFrameControl(this, 50, 17, 238, 89);
             new CTextControl(this, 60, 13, "Keyboard", YELLOW_8, BLUE_2);
 
             new CTextControl(this, 63, 35, "Mapping mode:");
@@ -806,13 +806,11 @@ class CInputOptions : public CDialog
 #else
             m_pAltGrForEdit = new CCheckBox(this, 63, 85, "Use Alt-Gr key for SAM Edit");
 #endif
-            m_pKeypadMinusReset = new CCheckBox(this, 63, 107, "Use keypad-minus key for reset");
+            new CIconControl(this, 10, 121, &sMouseIcon);
+            new CFrameControl(this, 50, 123, 238, 37);
+            new CTextControl(this, 60, 119, "Mouse", YELLOW_8, BLUE_2);
 
-            new CIconControl(this, 10, 143, &sMouseIcon);
-            new CFrameControl(this, 50, 145, 238, 37);
-            new CTextControl(this, 60, 141, "Mouse", YELLOW_8, BLUE_2);
-
-            m_pMouse = new CCheckBox(this, 63, 158, "Enable SAM mouse interface");
+            m_pMouse = new CCheckBox(this, 63, 136, "Enable SAM mouse interface");
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -821,7 +819,6 @@ class CInputOptions : public CDialog
             m_pKeyMapping->Select(GetOption(keymapping));
             m_pAltForCntrl->SetChecked(GetOption(altforcntrl));
             m_pAltGrForEdit->SetChecked(GetOption(altgrforedit));
-            m_pKeypadMinusReset->SetChecked(GetOption(keypadreset));
             m_pMouse->SetChecked(GetOption(mouse));
 
             // Update the state of the controls to reflect the current settings
@@ -838,7 +835,6 @@ class CInputOptions : public CDialog
                 SetOption(keymapping, m_pKeyMapping->GetSelected());
                 SetOption(altforcntrl, m_pAltForCntrl->IsChecked());
                 SetOption(altgrforedit, m_pAltGrForEdit->IsChecked());
-                SetOption(keypadreset, m_pKeypadMinusReset->IsChecked());
                 SetOption(mouse, m_pMouse->IsChecked());
 
                 Destroy();

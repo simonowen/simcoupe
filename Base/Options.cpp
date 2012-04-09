@@ -112,7 +112,6 @@ OPTION aOptions[] =
     OPT_N("KeyMapping",   keymapping,     1),         // SAM keyboard mapping
     OPT_F("AltForCntrl",  altforcntrl,    false),     // Left-Alt not used for SAM Cntrl
     OPT_F("AltGrForEdit", altgrforedit,   true),      // Right-Alt used for SAM Edit
-    OPT_F("KeypadReset",  keypadreset,    true),      // Keypad-minus for Reset
     OPT_F("Mouse",        mouse,          false),     // Mouse not connected
     OPT_F("MouseEsc",     mouseesc,       true),      // Allow Esc to release the mouse capture
     OPT_F("Swap23",       swap23,         false),     // Don't swap mouse buttons 2 and 3

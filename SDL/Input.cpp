@@ -202,7 +202,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             switch (pKey->sym)
             {
                 case SDLK_RETURN:       fAction = fAlt; if (fAction) Action::Do(actToggleFullscreen, fPress);   break;
-                case SDLK_KP_MINUS:     if (GetOption(keypadreset)) Action::Do(actResetButton, fPress);         break;
+                case SDLK_KP_MINUS:     break;
                 case SDLK_KP_DIVIDE:    Action::Do(actDebugger, fPress);          break;
                 case SDLK_KP_MULTIPLY:  Action::Do(actNmiButton, fPress);         break;
                 case SDLK_KP_PLUS:      Action::Do(actTempTurbo, fPress);         break;
