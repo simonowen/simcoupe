@@ -177,11 +177,11 @@ static void LoadRoms (BYTE* pb0_, BYTE* pb1_)
         pROM->Read(pb0_, MEM_PAGE_SIZE);
         pROM->Read(pb1_, MEM_PAGE_SIZE);
 
-        delete pROM;
+        delete[] pROM;
         return;
     }
 
-    // Report the failure if there
+    // Complain if we couldn't open the custom ROM image
     if (*pcszROM)
     {
         Message(msgWarning, "Error loading custom ROM:\n%s\n\nReverting to built-in ROM image.", pcszROM);
