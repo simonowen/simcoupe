@@ -25,19 +25,22 @@
 #include "AVI.h"
 #include "CPU.h"
 #include "Frame.h"
+#include "Options.h"
 #include "SID.h"
 #include "WAV.h"
 
 static BYTE *pbSampleBuffer;
 
 static void MixAudio (BYTE *pDst_, const BYTE *pSrc_, int nLen_);
+static int AdjustSpeed (BYTE *pb_, int nSize_, int nSpeed_);
 
 //////////////////////////////////////////////////////////////////////////////
 
 bool Sound::Init (bool fFirstInit_/*=false*/)
 {
+    int nMaxFrameSamples = 2; // Needed for 50% running speed
     int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND)+1;
-    pbSampleBuffer = new BYTE[nSamplesPerFrame*SAMPLE_BLOCK];
+    pbSampleBuffer = new BYTE[nSamplesPerFrame*SAMPLE_BLOCK*nMaxFrameSamples];
 
     bool fRet = Audio::Init(fFirstInit_);
     Audio::Silence();
@@ -82,6 +85,11 @@ void Sound::FrameUpdate ()
     // Add the frame to any recordings
     WAV::AddFrame(pbSampleBuffer, nSize);
     AVI::AddFrame(pbSampleBuffer, nSize);
+
+#if SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2
+    // Scale the audio to fit the require running speed
+    nSize = AdjustSpeed(pbSampleBuffer, nSize, GetOption(speed));
+#endif
 
     // Queue the data for playback
     if (!Audio::AddData(pbSampleBuffer, nSize))
@@ -225,7 +233,7 @@ CSoundDevice::CSoundDevice ()
 ////////////////////////////////////////////////////////////////////////////////
 
 // Basic audio mixing
-void MixAudio (BYTE *pDst_, const BYTE *pSrc_, int nLen_)
+static void MixAudio (BYTE *pDst_, const BYTE *pSrc_, int nLen_)
 {
     for (nLen_ /= 2 ; nLen_-- > 0 ; pSrc_ += 2, pDst_ += 2)
     {
@@ -242,4 +250,45 @@ void MixAudio (BYTE *pDst_, const BYTE *pSrc_, int nLen_)
         pDst_[0] = samp & 0xff;
         pDst_[1] = samp >> 8;
     }
+}
+
+
+// Scale audio data to fit the current emulator speed setting
+static int AdjustSpeed (BYTE *pb_, int nSize_, int nSpeed_)
+{
+    // Limit speed range
+    nSpeed_ = max(nSpeed_,50);
+    nSpeed_ = min(nSpeed_,1000);
+
+    // Slow?
+    if (nSpeed_ < 100)
+    {
+        DWORD *pdwS = reinterpret_cast<DWORD*>(pb_ + nSize_) - 1;
+        DWORD *pdwD = reinterpret_cast<DWORD*>(pb_ + nSize_*2) - 1;
+
+        // Double samples in reverse order
+        for (int i = 0 ; i < nSize_ ; i += SAMPLE_BLOCK, pdwS--)
+            *pdwD-- = *pdwS, *pdwD-- = *pdwS;
+
+        nSize_ *= 2;
+    }
+    else if (nSpeed_ == 100)
+    {
+        // Nothing to do
+    }
+    // Fast?
+    else if (nSpeed_ > 100)
+    {
+        int nScale = nSpeed_/100;
+        nSize_ = (nSize_/nScale) & ~(SAMPLE_BLOCK-1);
+
+        DWORD *pdwS = reinterpret_cast<DWORD*>(pb_);
+        DWORD *pdwD = pdwS;
+
+        // Skip the required number of samples
+        for (int i = 0 ; i < nSize_ ; i += SAMPLE_BLOCK, pdwS += nScale)
+            *pdwD++ = *pdwS;
+    }
+
+    return nSize_;
 }

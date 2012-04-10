@@ -45,7 +45,8 @@ const char* Action::aszActions[MAX_ACTION] =
     "Toggle frame sync", "Toggle fullscreen", "Change window size", "Change border size", "Toggle 5:4 display",
     "", "Toggle scanlines", "Toggle greyscale", "Mute sound", "Release mouse capture",
     "Toggle printer online", "Flush printer", "About SimCoupe", "Minimise window", "Record GIF animation", "Record GIF loop",
-    "", "Record WAV audio", "Record WAV segment", "", "Record AVI video", "Record AVI half-size", ""
+    "", "Record WAV audio", "Record WAV segment", "", "Record AVI video", "Record AVI half-size", "",
+    "Speed Faster", "Speed Slower", "Speed Normal"
 };
 
 
@@ -266,6 +267,40 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 AVI::Stop();
                 break;
 
+            case actSpeedFaster:
+                switch (GetOption(speed))
+                {
+                    case 50:   SetOption(speed, 100); break;
+                    case 100:  SetOption(speed, 200); break;
+                    case 200:  SetOption(speed, 300); break;
+                    case 300:  SetOption(speed, 500); break;
+                    default:   SetOption(speed, 1000); break;
+                }
+                
+                Frame::SetStatus("%u%% Speed", GetOption(speed));
+                break;
+
+            case actSpeedSlower:
+                switch (GetOption(speed))
+                {
+                    case 200:  SetOption(speed, 100); break;
+                    case 300:  SetOption(speed, 200); break;
+                    case 500:  SetOption(speed, 300); break;
+                    case 1000: SetOption(speed, 500); break;
+                    default:   SetOption(speed, 50); break;
+                }
+
+                Frame::SetStatus("%u%% Speed", GetOption(speed));
+                break;
+
+            case actSpeedNormal:
+                if (GetOption(speed) != 100)
+                    Frame::SetStatus("100%% Speed");
+
+                SetOption(speed, 100);
+                g_fTurbo = false;
+                break;
+
             // Not processed
             default:
                 return false;
@@ -280,6 +315,8 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actTempTurbo:
+            case actSpeedFaster:
+                CPU::Reset(false);
                 g_fTurbo = false;
                 break;
 

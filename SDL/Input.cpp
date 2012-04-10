@@ -201,11 +201,12 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             bool fAction = true;
             switch (pKey->sym)
             {
-                case SDLK_RETURN:       fAction = fAlt; if (fAction) Action::Do(actToggleFullscreen, fPress);   break;
-                case SDLK_KP_MINUS:     break;
-                case SDLK_KP_DIVIDE:    Action::Do(actDebugger, fPress);          break;
-                case SDLK_KP_MULTIPLY:  Action::Do(actNmiButton, fPress);         break;
-                case SDLK_KP_PLUS:      Action::Do(actTempTurbo, fPress);         break;
+                case SDLK_RETURN:       fAction = fAlt; if (fAction) Action::Do(actToggleFullscreen, fPress); break;
+                case SDLK_KP_DIVIDE:    Action::Do(actDebugger, fPress); break;
+                case SDLK_KP_MULTIPLY:  Action::Do(fCtrl ? actResetButton : actTempTurbo, fPress); break;
+                case SDLK_KP_PLUS:      Action::Do(fCtrl ? actTempTurbo : actSpeedFaster, fPress); break;
+                case SDLK_KP_MINUS:     Action::Do(fCtrl ? actSpeedNormal : actSpeedSlower, fPress); break;
+
                 case SDLK_SYSREQ:
                 case SDLK_PRINT:        Action::Do(actSaveScreenshot, fPress);    break;
                 case SDLK_SCROLLOCK:

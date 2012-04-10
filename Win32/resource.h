@@ -180,7 +180,6 @@
 #define IDM_SYSTEM_RESET                40204
 #define IDM_TOOLS_FLUSH_PRINTER         40209
 #define IDM_TOOLS_PRINTER_ONLINE        40210
-#define IDM_RECORD_GIF_MOVIE            40215
 #define IDM_RECORD_GIF_LOOP             40216
 #define IDM_RECORD_GIF_STOP             40217
 #define IDM_RECORD_WAV_SEGMENT          40224
@@ -190,6 +189,12 @@
 #define IDM_RECORD_GIF_START            40231
 #define IDM_RECORD_WAV_START            40232
 #define IDM_RECORD_AVI_HALF             40235
+#define IDM_SYSTEM_SPEED_50             40250
+#define IDM_SYSTEM_SPEED_100            40251
+#define IDM_SYSTEM_SPEED_200            40252
+#define IDM_SYSTEM_SPEED_300            40253
+#define IDM_SYSTEM_SPEED_500            40254
+#define IDM_SYSTEM_SPEED_1000           40255
 
 // Next default values for new objects
 // 
@@ -197,7 +202,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        196
-#define _APS_NEXT_COMMAND_VALUE         40236
+#define _APS_NEXT_COMMAND_VALUE         40256
 #define _APS_NEXT_CONTROL_VALUE         1193
 #define _APS_NEXT_SYMED_VALUE           102
 #endif

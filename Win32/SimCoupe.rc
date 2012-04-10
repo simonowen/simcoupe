@@ -554,6 +554,15 @@ BEGIN
     POPUP "&System"
     BEGIN
         MENUITEM "&Pause",                      IDM_SYSTEM_PAUSE
+        POPUP "&Speed"
+        BEGIN
+            MENUITEM "50%",                         IDM_SYSTEM_SPEED_50
+            MENUITEM "&100%",                       IDM_SYSTEM_SPEED_100
+            MENUITEM "&200%",                       IDM_SYSTEM_SPEED_200
+            MENUITEM "&300%",                       IDM_SYSTEM_SPEED_300
+            MENUITEM "&500%",                       IDM_SYSTEM_SPEED_500
+            MENUITEM "1&000%",                      IDM_SYSTEM_SPEED_1000
+        END
         MENUITEM SEPARATOR
         MENUITEM "Generate &NMI",               IDM_SYSTEM_NMI
         MENUITEM "&Reset",                      IDM_SYSTEM_RESET

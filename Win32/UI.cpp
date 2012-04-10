@@ -548,14 +548,14 @@ void UpdateMenuFromOptions ()
     CheckOption(IDM_VIEW_SCANLINES, GetOption(scanlines));
     CheckOption(IDM_VIEW_GREYSCALE, GetOption(greyscale));
 
-    CheckMenuRadioItem(hmenu, IDM_VIEW_ZOOM_50, IDM_VIEW_ZOOM_200+3, IDM_VIEW_ZOOM_50+GetOption(scale)-1, MF_BYCOMMAND);
+    CheckMenuRadioItem(hmenu, IDM_VIEW_ZOOM_50, IDM_VIEW_ZOOM_200, IDM_VIEW_ZOOM_50+GetOption(scale)-1, MF_BYCOMMAND);
     CheckMenuRadioItem(hmenu, IDM_VIEW_BORDERS0, IDM_VIEW_BORDERS4, IDM_VIEW_BORDERS0+GetOption(borders), MF_BYCOMMAND);
 
     EnableItem(IDM_RECORD_AVI_START, !AVI::IsRecording());
     EnableItem(IDM_RECORD_AVI_HALF, !AVI::IsRecording());
     EnableItem(IDM_RECORD_AVI_STOP, AVI::IsRecording());
 
-    EnableItem(IDM_RECORD_GIF_MOVIE, !GIF::IsRecording());
+    EnableItem(IDM_RECORD_GIF_START, !GIF::IsRecording());
     EnableItem(IDM_RECORD_GIF_LOOP, !GIF::IsRecording());
     EnableItem(IDM_RECORD_GIF_STOP, GIF::IsRecording());
 
@@ -565,6 +565,18 @@ void UpdateMenuFromOptions ()
 
     CheckOption(IDM_SYSTEM_PAUSE, g_fPaused);
     CheckOption(IDM_SYSTEM_MUTESOUND, !GetOption(sound));
+
+    int speedid = IDM_SYSTEM_SPEED_100;
+    switch (GetOption(speed))
+    {
+        case 50:   speedid = IDM_SYSTEM_SPEED_50;   break;
+        case 100:  speedid = IDM_SYSTEM_SPEED_100;  break;
+        case 200:  speedid = IDM_SYSTEM_SPEED_200;  break;
+        case 300:  speedid = IDM_SYSTEM_SPEED_300;  break;
+        case 500:  speedid = IDM_SYSTEM_SPEED_500;  break;
+        case 1000: speedid = IDM_SYSTEM_SPEED_1000; break;
+    }
+    CheckMenuRadioItem(hmenu, IDM_SYSTEM_SPEED_50, IDM_SYSTEM_SPEED_1000, speedid, MF_BYCOMMAND);
 
     // The built-in GUI prevents some items from being used, so disable them if necessary
     EnableItem(IDM_TOOLS_OPTIONS, !GUI::IsActive());
@@ -1222,17 +1234,17 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         {
             bool fPress = (uMsg_ == WM_KEYDOWN);
 
+            // Read the current states of the shift keys
+            bool fCtrl  = GetAsyncKeyState(VK_CONTROL) < 0;
+            bool fAlt   = GetAsyncKeyState(VK_MENU)    < 0;
+            bool fShift = GetAsyncKeyState(VK_SHIFT)   < 0;
+
             // Function key?
             if (wParam_ >= VK_F1 && wParam_ <= VK_F12)
             {
                 // Ignore Windows-modified function keys unless the SAM keypad mapping is enabled
                 if ((GetAsyncKeyState(VK_LWIN) < 0 || GetAsyncKeyState(VK_RWIN) < 0) && wParam_ <= VK_F10)
                     return 0;
-
-                // Read the current states of the control and shift keys
-                bool fCtrl  = GetAsyncKeyState(VK_CONTROL) < 0;
-                bool fAlt   = GetAsyncKeyState(VK_MENU)    < 0;
-                bool fShift = GetAsyncKeyState(VK_SHIFT)   < 0;
 
                 Action::Key((int)wParam_-VK_F1+1, fPress, fCtrl, fAlt, fShift);
                 return 0;
@@ -1241,10 +1253,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             // Most of the emulator keys are handled above, but we've a few extra fixed mappings of our own (well, mine!)
             switch (wParam_)
             {
-                case VK_SUBTRACT:   break;
-                case VK_DIVIDE:     if (fPress) Action::Do(actDebugger);    break;
-                case VK_MULTIPLY:   if (fPress) Action::Do(actNmiButton);   break;
-                case VK_ADD:        Action::Do(actTempTurbo, fPress);       break;
+                case VK_DIVIDE:     Action::Do(actDebugger, fPress); break;
+                case VK_MULTIPLY:   Action::Do(fCtrl ? actResetButton : actTempTurbo, fPress); break;
+                case VK_ADD:		Action::Do(fCtrl ? actTempTurbo : actSpeedFaster, fPress); break;
+                case VK_SUBTRACT:   Action::Do(fCtrl ? actSpeedNormal : actSpeedSlower, fPress); break;
 
                 case VK_CANCEL:
                 case VK_PAUSE:
@@ -1311,7 +1323,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_RECORD_AVI_HALF:       Action::Do(actRecordAviHalf);     break;
                 case IDM_RECORD_AVI_STOP:       Action::Do(actRecordAviStop);     break;
 
-                case IDM_RECORD_GIF_MOVIE:      Action::Do(actRecordGif);         break;
+                case IDM_RECORD_GIF_START:      Action::Do(actRecordGif);         break;
                 case IDM_RECORD_GIF_LOOP:       Action::Do(actRecordGifLoop);     break;
                 case IDM_RECORD_GIF_STOP:       Action::Do(actRecordGifStop);     break;
 
@@ -1386,6 +1398,12 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                         InsertDisk(pFloppy1, szRecentFiles[wId - IDM_FILE_RECENT1]);
                     else if (wId >= IDM_FLOPPY2_RECENT1 && wId <= IDM_FLOPPY2_RECENT9)
                         InsertDisk(pFloppy2, szRecentFiles[wId - IDM_FLOPPY2_RECENT1]);
+                    else if (wId >= IDM_SYSTEM_SPEED_50 && wId <= IDM_SYSTEM_SPEED_1000)
+                    {
+                        int anSpeeds[] = { 50, 100, 200, 300, 500, 1000 };
+                        SetOption(speed, anSpeeds[wId-IDM_SYSTEM_SPEED_50]);
+                        Frame::SetStatus("%u%% Speed", GetOption(speed));
+                    }
                     break;
             }
             break;
