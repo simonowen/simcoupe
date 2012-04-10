@@ -784,16 +784,13 @@
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_ENABLE_SSE3_EXTENSIONS = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
-				STRIP_INSTALLED_PRODUCT = NO;
 			};
 			name = Release;
 		};
 		131B716209C22C34000C5D11 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					USE_OPENGL,
 					USE_ZLIB,
@@ -802,8 +799,6 @@
 				);
 				HEADER_SEARCH_PATHS = /Library/Frameworks/SDL.framework/Headers;
 				INFOPLIST_FILE = "Info-SimCoupe.plist";
-				INSTALL_PATH = "";
-				LIBRARY_SEARCH_PATHS = "";
 				PRODUCT_NAME = SimCoupe;
 			};
 			name = Debug;
@@ -813,17 +808,14 @@
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
 				ONLY_ACTIVE_ARCH = YES;
-				STRIP_INSTALLED_PRODUCT = NO;
 			};
 			name = Debug;
 		};
 		132CC59609B11512007955DE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					USE_OPENGL,
 					USE_ZLIB,
@@ -832,8 +824,6 @@
 				);
 				HEADER_SEARCH_PATHS = /Library/Frameworks/SDL.framework/Headers;
 				INFOPLIST_FILE = "Info-SimCoupe.plist";
-				INSTALL_PATH = "";
-				LIBRARY_SEARCH_PATHS = "";
 				PRODUCT_NAME = SimCoupe;
 			};
 			name = Release;
