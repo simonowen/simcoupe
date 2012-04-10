@@ -98,13 +98,9 @@
 #define IDC_SENSITIVITY                 1131
 #define IDC_ALT                         1133
 #define ID_HOMEPAGE                     1134
-#define IDC_FLOPPY1                     1135
-#define IDC_FLOPPY2                     1136
 #define IDC_ATOM                        1137
 #define IDC_SDIDE                       1138
 #define IDC_YATBUS                      1139
-#define IDB_FLOPPY1                     1140
-#define IDB_FLOPPY2                     1141
 #define IDC_AUTOBOOT                    1161
 #define IDC_HWACCEL                     1163
 #define IDC_TYPE                        1165

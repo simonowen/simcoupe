@@ -2478,9 +2478,6 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
         {
             switch (LOWORD(wParam_))
             {
-                case IDB_FLOPPY1:   BrowseImage(hdlg_, IDC_FLOPPY1, szFloppyFilters);   break;
-                case IDB_FLOPPY2:   BrowseImage(hdlg_, IDC_FLOPPY2, szFloppyFilters);   break;
-
                 case IDB_ATOM:
                 {
                     LPARAM lCtrl = reinterpret_cast<LPARAM>(GetDlgItem(hdlg_, IDC_ATOM));
