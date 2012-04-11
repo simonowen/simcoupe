@@ -71,8 +71,8 @@ bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
         int nMovedSquared = (nLastX - nParam1_)*(nLastX - nParam1_) + (nLastY - nParam2_)*(nLastY - nParam2_);
 
         // If the click is close enough to the last click (in space and time), convert it to a double-click
-        if (!fDouble && dwNow-dwLastClick < DOUBLE_CLICK_TIME &&
-            nMovedSquared < (DOUBLE_CLICK_THRESHOLD*DOUBLE_CLICK_THRESHOLD))
+        if (!fDouble && nMovedSquared < (DOUBLE_CLICK_THRESHOLD*DOUBLE_CLICK_THRESHOLD) &&
+          dwNow != dwLastClick && dwNow-dwLastClick < DOUBLE_CLICK_TIME)
             nMessage_ = GM_BUTTONDBLCLK;
 
         // Remember the last time and position of the click
