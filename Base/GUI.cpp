@@ -142,6 +142,7 @@ void GUI::Stop ()
     s_pGUI = NULL;
 
     Display::SetDirty();
+    Input::Purge();
 }
 
 void GUI::Delete (CWindow* pWindow_)
