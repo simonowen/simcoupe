@@ -125,6 +125,7 @@
 		1386FD0C14FD163600F4032B /* SAMVox.h in Headers */ = {isa = PBXBuildFile; fileRef = 1386FD0214FD163600F4032B /* SAMVox.h */; };
 		1386FD0D14FD163600F4032B /* WAV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1386FD0314FD163600F4032B /* WAV.cpp */; };
 		1386FD0E14FD163600F4032B /* WAV.h in Headers */ = {isa = PBXBuildFile; fileRef = 1386FD0414FD163600F4032B /* WAV.h */; };
+		1393973515473E26007DD788 /* reSID.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 133C17DC14E9D59B001F12B2 /* reSID.framework */; };
 		13EC1B3014E95BD800FA9EDB /* Joystick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13EC1B2614E95BD800FA9EDB /* Joystick.cpp */; };
 		13EC1B3114E95BD800FA9EDB /* Joystick.h in Headers */ = {isa = PBXBuildFile; fileRef = 13EC1B2714E95BD800FA9EDB /* Joystick.h */; };
 		13EC1B3214E95BD800FA9EDB /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13EC1B2814E95BD800FA9EDB /* Keyboard.cpp */; };
@@ -153,6 +154,7 @@
 			dstSubfolderSpec = 10;
 			files = (
 				132CC52309B11512007955DE /* SDL.framework in CopyFiles */,
+				1393973515473E26007DD788 /* reSID.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -661,7 +663,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0420;
+				LastUpgradeCheck = 0430;
 			};
 			buildConfigurationList = 1301D3CC096B058800027BFC /* Build configuration list for PBXProject "SimCoupe" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -798,6 +800,7 @@
 				);
 				HEADER_SEARCH_PATHS = /Library/Frameworks/SDL.framework/Headers;
 				INFOPLIST_FILE = "Info-SimCoupe.plist";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				PRODUCT_NAME = SimCoupe;
 			};
 			name = Debug;
@@ -824,6 +827,7 @@
 				);
 				HEADER_SEARCH_PATHS = /Library/Frameworks/SDL.framework/Headers;
 				INFOPLIST_FILE = "Info-SimCoupe.plist";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				PRODUCT_NAME = SimCoupe;
 			};
 			name = Release;
