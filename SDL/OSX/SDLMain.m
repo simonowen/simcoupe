@@ -318,16 +318,16 @@ static void CustomApplicationMain (int argc, char **argv)
 
 - (IBAction)fileOpen:(id)sender
 {
-    NSString *path = nil;
-    NSString * dirPath = @"/home";
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDirectory = [paths objectAtIndex:0];
     NSArray *fileTypes = [NSArray arrayWithObjects:@"dsk", @"mgt", @"sad", @"sbt", nil];
+    NSString *path = nil;
 
-    NSOpenPanel *openPanel = [ NSOpenPanel openPanel ];
-    if ([openPanel runModalForDirectory:dirPath
-                                   file:@"SavedGame" types:fileTypes]) 
-	{
-        path = [[openPanel filenames ] objectAtIndex:0];
-    }
+    NSOpenPanel *openPanel = [NSOpenPanel openPanel];
+    [openPanel setDirectory:documentsDirectory];
+    [openPanel setAllowedFileTypes:fileTypes];
+    if ([openPanel runModal])
+        path = [[openPanel filenames] objectAtIndex:0];
 
     if (path == nil)
 		return;
