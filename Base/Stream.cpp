@@ -258,7 +258,7 @@ CZLibStream::CZLibStream (gzFile hFile_, const char* pcszPath_, bool fReadOnly_/
     strcat(szFile, " (gzip)");
     m_pszFile = strdup(szFile);
 
-    // We can't determine the size without an expensive seek, reading the whole file
+    // We'll determine the size on demand as it's an expensive operation
     m_uSize = 0;
 }
 
@@ -270,6 +270,28 @@ void CZLibStream::Close ()
         m_hFile = NULL;
         m_nMode = modeClosed;
     }
+}
+
+
+size_t CZLibStream::GetSize ()
+{
+    // Do we need to determine the size?
+    if (!m_uSize && IsOpen())
+    {
+        long lPos = gztell(m_hFile);
+        gzrewind(m_hFile);
+
+        BYTE ab[512];
+        int nRead;
+
+        do {
+            m_uSize += (nRead = gzread(m_hFile, ab, sizeof(ab)));
+        } while (nRead > 0);
+
+        gzseek(m_hFile, lPos, SEEK_SET);
+    }
+
+    return m_uSize;
 }
 
 bool CZLibStream::Rewind ()

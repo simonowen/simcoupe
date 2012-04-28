@@ -135,19 +135,7 @@ bool CDisk::GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_/*=NULL*
 
 /*static*/ bool CMGTDisk::IsRecognised (CStream* pStream_)
 {
-    size_t uSize;
-
-    // If we don't have a size (gzipped) we have no choice but to read enough to find out
-    if (!(uSize = pStream_->GetSize()))
-    {
-        BYTE* pb = new BYTE[MGT_IMAGE_SIZE+1];
-
-        // Read 1 byte more than a full MGT image size, to check for larger files
-        if (pb && pStream_->Rewind())
-            uSize = pStream_->Read(pb, MGT_IMAGE_SIZE+1);
-
-        delete[] pb;
-    }
+    size_t uSize = pStream_->GetSize();
 
     // Accept 800K (10-sector) SAM disks and 720K (9-sector DOS) disks
     return uSize == MGT_IMAGE_SIZE || uSize == DOS_IMAGE_SIZE;

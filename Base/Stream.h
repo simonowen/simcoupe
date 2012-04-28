@@ -34,7 +34,7 @@ class CStream
         bool IsReadOnly () const { return this && m_fReadOnly; }
         const char* GetPath () const { return m_pszPath; }
         const char* GetFile () const { return m_pszFile ? m_pszFile : m_pszPath; }
-        size_t GetSize () const { return m_uSize; }
+        virtual size_t GetSize () { return m_uSize; }
         virtual bool IsOpen () const = 0;
 
         virtual void Close () = 0;
@@ -103,6 +103,7 @@ class CZLibStream : public CStream
 
     public:
         bool IsOpen () const { return m_hFile != NULL; }
+        size_t GetSize ();
 
     public:
         void Close ();
