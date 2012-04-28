@@ -31,21 +31,6 @@
 #include "Options.h"
 #include "Parallel.h"
 
-SDL_sem* pSemaphore;
-SDL_TimerID pTimer;
-int OSD::s_nTicks;
-
-
-static Uint32 TimerCallback (Uint32 uInterval_, void *pv_)
-{
-    OSD::s_nTicks++;
-
-    if (SDL_SemValue(pSemaphore) <= 0)
-        SDL_SemPost(pSemaphore);
-
-    return uInterval_;
-}
-
 
 bool OSD::Init (bool fFirstInit_/*=false*/)
 {
@@ -62,12 +47,6 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
     // The only sub-system we _need_ is video
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
         TRACE("!!! SDL_Init(SDL_INIT_VIDEO) failed: %s\n", SDL_GetError());
-    else if (SDL_Init(SDL_INIT_TIMER) < 0)
-        TRACE("!!! SDL_Init(SDL_INIT_TIMER) failed: %s\n", SDL_GetError());
-    else if (!(pSemaphore = SDL_CreateSemaphore(0)))
-        TRACE("!!! SDL_CreateSemaphore failed: %s\n", SDL_GetError());
-    else if (!(pTimer = SDL_AddTimer(1000/EMULATED_FRAMES_PER_SECOND, TimerCallback, NULL)))
-            TRACE("!!! SDL_AddTimer failed: %s\n", SDL_GetError());
     else
         fRet = true;
 
@@ -79,9 +58,6 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
 
 void OSD::Exit (bool fReInit_/*=false*/)
 {
-    if (pTimer) { SDL_RemoveTimer(pTimer); pTimer = NULL; }
-    if (pSemaphore) { SDL_DestroySemaphore(pSemaphore); pSemaphore = NULL; }
-
     SDL_Quit();
 }
 
@@ -227,14 +203,6 @@ void OSD::DebugTrace (const char* pcsz_)
 #endif
 }
 
-
-int OSD::FrameSync (bool fWait_/*=true*/)
-{
-    if (fWait_ && pSemaphore)
-        SDL_SemWait(pSemaphore);
-
-    return s_nTicks;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 

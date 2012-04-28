@@ -82,14 +82,11 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
 {
     int nSpace = 0;
 
-    if (!IsAvailable())
-        return false;
-
     // Calculate the frame time (in ms) from the sample data length
     int nFrameTime = ((nLength_*1000/SAMPLE_BLOCK) + (SAMPLE_FREQ/2)) / SAMPLE_FREQ;
 
     // Loop until everything has been written
-    while (nLength_ > 0)
+    while (m_pbNow && nLength_ > 0)
     {
         SDL_LockAudio();
 
@@ -188,6 +185,8 @@ bool InitSDLSound ()
 void ExitSDLSound ()
 {
     SDL_CloseAudio();
+
+    m_pbNow = m_pbStart = m_pbEnd = NULL;
 }
 
 // Callback used by SDL to request more sound data to play

@@ -33,6 +33,7 @@
 #include "SimCoupe.h"
 #include "Frame.h"
 
+#include "Audio.h"
 #include "AVI.h"
 #include "Debug.h"
 #include "Display.h"
@@ -43,6 +44,7 @@
 #include "Options.h"
 #include "OSD.h"
 #include "PNG.h"
+#include "Sound.h"
 #include "Util.h"
 #include "UI.h"
 
@@ -473,9 +475,13 @@ void Frame::Sync ()
         nFrame = 0;
     }
 
-    // Slow us down when the GUI is active, as there's no sound generated to regulate the speed
+    // Slow us down when the GUI is active
     if (GUI::IsActive())
-        OSD::FrameSync();
+    {
+        // Add a frame's worth of silence
+        static BYTE abSilence[SAMPLE_FREQ*SAMPLE_BLOCK/EMULATED_FRAMES_PER_SECOND];
+        Audio::AddData(abSilence, sizeof(abSilence));
+    }
 }
 
 

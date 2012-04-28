@@ -35,8 +35,13 @@ static IDirectSoundBuffer *pdsb;
 static int nSampleBufferSize;
 static DWORD dwWriteOffset;
 
+static HANDLE hEvent;
+static MMRESULT hTimer;
+static DWORD dwTimer;
+
 static bool InitDirectSound ();
 static void ExitDirectSound ();
+static void CALLBACK TimeCallback (UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -52,6 +57,13 @@ bool Audio::Init (bool fFirstInit_/*=false*/)
     else if (!InitDirectSound())
         TRACE("DirectSound initialisation failed\n");
 
+    // If we've no sound, fall back on a timer for running speed
+    if (!pdsb)
+    {
+        // Create an event to trigger when the next frame is due
+        hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+    }
+
     // Sound initialisation failure isn't fatal, so always return success
     TRACE("<- Audio::Init()\n");
     return true;
@@ -62,6 +74,9 @@ void Audio::Exit (bool fReInit_/*=false*/)
     TRACE("-> Audio::Exit(%s)\n", fReInit_ ? "reinit" : "");
 
     ExitDirectSound();
+
+    if (hTimer) timeKillEvent(hTimer), hTimer = NULL;
+    if (hEvent) CloseHandle(hEvent), hEvent = NULL;
 
     TRACE("<- Audio::Exit()\n");
 }
@@ -94,7 +109,25 @@ bool Audio::AddData (BYTE *pbData_, int nLength_)
     HRESULT hr;
 
     if (!pdsb)
+    {
+        // Determine the time between frames in ms
+        DWORD dwTime = 1000 / (EMULATED_FRAMES_PER_SECOND*GetOption(speed)/100);
+        if (!dwTime) dwTime = 1;
+
+        // Has the frame time changed?
+        if (dwTime != dwTimer)
+        {
+            // Kill any existing timer
+            if (hTimer) timeKillEvent(hTimer);
+
+            // Start a new one running
+            if (!(hTimer = timeSetEvent(dwTimer = dwTime, 0, TimeCallback, 0, TIME_PERIODIC|TIME_CALLBACK_FUNCTION)))
+                Message(msgWarning, "Failed to start frame timer (%#08lx)", GetLastError());
+        }
+
+        WaitForSingleObject(hEvent, INFINITE);
         return false;
+    }
 
     // Loop while there's still data to write
     while (nLength_ > 0)
@@ -205,9 +238,13 @@ static bool InitDirectSound ()
 
 static void ExitDirectSound ()
 {
-    if (pdsb)
-        pdsb->Release(), pdsb = NULL;
+    if (pdsb) pdsb->Release(), pdsb = NULL;
+    if (pds) pds->Release(), pds = NULL;
+}
 
-    if (pds)
-        pds->Release(), pds = NULL;
+
+static void CALLBACK TimeCallback (UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR)
+{
+    // Signal next frame due
+    SetEvent(hEvent);
 }

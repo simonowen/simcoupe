@@ -482,14 +482,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\Base\Disk.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\Base\Drive.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\Base\Clock.cpp"
 				>
 			</File>
@@ -498,19 +490,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\Base\Screen.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\Base\Stream.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\Base\Debug.cpp"
 				>
 			</File>
 			<File
 				RelativePath="..\Base\Disassem.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Disk.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Drive.cpp"
 				>
 			</File>
 			<File
@@ -548,6 +540,42 @@
 			<File
 				RelativePath="..\Base\IO.cpp"
 				>
+			</File>
+			<File
+				RelativePath="..\Base\ioapi.c"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\Base\Joystick.cpp"
@@ -594,6 +622,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\Screen.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\SDIDE.cpp"
 				>
 			</File>
@@ -606,52 +638,8 @@
 				>
 			</File>
 			<File
-				RelativePath="..\Base\Util.cpp"
+				RelativePath="..\Base\Stream.cpp"
 				>
-			</File>
-			<File
-				RelativePath="..\Base\WAV.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\Base\YATBus.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\Base\ioapi.c"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\Base\unzip.c"
@@ -688,6 +676,18 @@
 						UsePrecompiledHeader="0"
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\Base\Util.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\WAV.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\YATBus.cpp"
+				>
 			</File>
 		</Filter>
 		<Filter
@@ -965,14 +965,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\Base\Disk.h"
-				>
-			</File>
-			<File
-				RelativePath="..\Base\Drive.h"
-				>
-			</File>
-			<File
 				RelativePath="..\Base\Clock.h"
 				>
 			</File>
@@ -981,19 +973,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\Base\Screen.h"
-				>
-			</File>
-			<File
-				RelativePath="..\Base\Stream.h"
-				>
-			</File>
-			<File
 				RelativePath="..\Base\Debug.h"
 				>
 			</File>
 			<File
 				RelativePath="..\Base\Disassem.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Disk.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Drive.h"
 				>
 			</File>
 			<File
@@ -1038,6 +1030,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\IO.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\ioapi.h"
 				>
 			</File>
 			<File
@@ -1101,6 +1097,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\Screen.h"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\SDIDE.h"
 				>
 			</File>
@@ -1114,6 +1114,14 @@
 			</File>
 			<File
 				RelativePath="..\Base\Sound.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Stream.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\unzip.h"
 				>
 			</File>
 			<File
@@ -1134,14 +1142,6 @@
 			</File>
 			<File
 				RelativePath="..\Base\Z80ops.h"
-				>
-			</File>
-			<File
-				RelativePath="..\Base\ioapi.h"
-				>
-			</File>
-			<File
-				RelativePath="..\Base\unzip.h"
 				>
 			</File>
 		</Filter>

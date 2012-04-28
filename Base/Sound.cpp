@@ -92,8 +92,7 @@ void Sound::FrameUpdate ()
 #endif
 
     // Queue the data for playback
-    if (!Audio::AddData(pbSampleBuffer, nSize))
-        OSD::FrameSync();
+    Audio::AddData(pbSampleBuffer, nSize);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -154,9 +154,6 @@ public:
     static bool IsHidden (const char* pcszPath_);
 
     static void DebugTrace (const char* pcsz_);
-    static int FrameSync (bool fWait_=true);
-
-    static int s_nTicks;
 };
 
 #endif  // OSD_H

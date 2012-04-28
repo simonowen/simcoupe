@@ -29,8 +29,6 @@
 #include "UI.h"
 #include "Video.h"
 
-HANDLE g_hEvent;
-MMRESULT g_hTimer;
 
 HINSTANCE g_hinstDDraw, g_hinstDInput, g_hinstDSound;
 
@@ -39,14 +37,6 @@ PFNDIRECTINPUTCREATE pfnDirectInputCreate;
 PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 
 bool fPortable = false;
-
-
-// Timer handler, called every 20ms - seemed more reliable than having it set the event directly, for some weird reason
-static void CALLBACK TimeCallback (UINT uTimerID_, UINT uMsg_, DWORD_PTR dwUser_, DWORD_PTR dw1_, DWORD_PTR dw2_)
-{
-    // Signal that the next frame is due
-    SetEvent(g_hEvent);
-}
 
 
 bool OSD::Init (bool fFirstInit_/*=false*/)
@@ -85,14 +75,6 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
 
         // We'll do our own error handling, so suppress any windows error dialogs
         SetErrorMode(SEM_FAILCRITICALERRORS);
-
-        // Create an event that will be set every 20ms for the 50Hz sync
-        if (!(g_hEvent = CreateEvent(NULL, FALSE, FALSE, NULL)))
-            Message(msgWarning, "Failed to create sync event object (%#08lx)", GetLastError());
-
-        // Set a timer to fire every every 20ms for our 50Hz frame synchronisation
-        else if (!(g_hTimer = timeSetEvent(1000/EMULATED_FRAMES_PER_SECOND, 0, TimeCallback, 0, TIME_PERIODIC|TIME_CALLBACK_FUNCTION)))
-            Message(msgWarning, "Failed to start sync timer (%#08lx)", GetLastError());
     }
 
     fRet = UI::Init(fFirstInit_);
@@ -105,9 +87,6 @@ void OSD::Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
-        if (g_hEvent)   { CloseHandle(g_hEvent); g_hEvent = NULL; }
-        if (g_hTimer)   { timeKillEvent(g_hTimer); g_hTimer = NULL; }
-
         if (g_hinstDDraw)  { FreeLibrary(g_hinstDDraw);  g_hinstDDraw  = NULL; pfnDirectDrawCreate=NULL;  }
         if (g_hinstDInput) { FreeLibrary(g_hinstDInput); g_hinstDInput = NULL; pfnDirectInputCreate=NULL; }
         if (g_hinstDSound) { FreeLibrary(g_hinstDSound); g_hinstDSound = NULL; pfnDirectSoundCreate=NULL; }
@@ -234,25 +213,6 @@ const char* OSD::GetFloppyDevice (int nDrive_)
 void OSD::DebugTrace (const char* pcsz_)
 {
     OutputDebugString(pcsz_);
-}
-
-void OSD::FrameSync ()
-{
-    switch (GetOption(sync))
-    {
-        case 1:
-            ResetEvent(g_hEvent);
-            WaitForSingleObject(g_hEvent, INFINITE);
-            break;
-
-        case 3:
-            pdd->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, NULL);
-            // Fall through...
-
-        case 2:
-            pdd->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, NULL);
-            break;
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
