@@ -81,7 +81,7 @@ inline void CheckInterrupt ();
 // Longer I/O M-Cycles should have the extra T-States added after PORT_ACCESS
 // Logic -  if ASIC-controlled port:
 //              CPU can only access I/O port 1 out of every 8 T-States
-#define PORT_ACCESS(a)  { g_dwCycleCounter += 4; g_dwCycleCounter += ((a) >= BASE_ASIC_PORT) ? abPortContention[g_dwCycleCounter&7] : 0; }
+#define PORT_ACCESS(a)  do { g_dwCycleCounter += 4; if ((a) >= BASE_ASIC_PORT) g_dwCycleCounter += abPortContention[g_dwCycleCounter&7]; } while (0)
 
 
 BYTE bOpcode;
