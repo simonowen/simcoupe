@@ -1453,7 +1453,7 @@ CNewDiskDialog::CNewDiskDialog (int nDrive_, CWindow* pParent_/*=NULL*/)
 
     new CTextControl(this, 60, 10,  "Select the type of disk to create:");
     m_pType = new CComboBox(this, 60, 29, "MGT disk image (800K)|"
-                                          "EDSK disk image (flexible format)"
+                                          "EDSK disk image (flexible format)|"
                                           "DOS CP/M image (720K)", 215);
 
     m_pCompress = new CCheckBox(this, 60, 55, "Compress image to save space");
@@ -1480,4 +1480,16 @@ void CNewDiskDialog::OnNotify (CWindow* pWindow_, int nParam_)
         Destroy();
     else if (pWindow_ == m_pOK)
         new CMessageBox(this, "New Disk isn't finished yet!", "Sorry", mbWarning);
+    else if (pWindow_ == m_pType)
+    {
+        int nType = m_pType->GetSelected();
+
+        m_pCompress->Enable(nType == 0);
+        if (nType != 0)
+            m_pCompress->SetChecked(false);
+
+        m_pFormat->Enable(nType == 1);
+        if (nType != 1)
+            m_pFormat->SetChecked();
+    }
 }
