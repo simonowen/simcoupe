@@ -279,8 +279,8 @@ bool Options::Load (int argc_, char* argv_[])
                         *p->pf = (argv_[1] && *argv_[1] == '-') || (argc_-- && IsTrue(*++argv_));
 
                         // For backwards compatability we must force the autoboot option if it's enabled
-                        if (!strcasecmp(p->pcszName, "AutoBoot"))
-                            g_fAutoBoot = *p->pf;
+                        if (!strcasecmp(p->pcszName, "AutoBoot") && *p->pf)
+                            IO::AutoLoad(AUTOLOAD_DISK|AUTOLOAD_FORCE);
 
                         continue;
                     }
@@ -301,9 +301,20 @@ bool Options::Load (int argc_, char* argv_[])
             // Bare filenames will be inserted into drive 1 then 2
             switch (nDrive++)
             {
-                case 1:  SetOption(disk1, pcszOption);  SetOption(drive1,drvFloppy); g_fAutoBoot = true;  break;
-                case 2:  SetOption(disk2, pcszOption);  SetOption(drive2,drvFloppy);     break;
-                default: TRACE("Unexpected command-line parameter: %s\n", pcszOption);  break;
+                case 1:
+                    SetOption(disk1, pcszOption);
+                    SetOption(drive1,drvFloppy);
+                    IO::AutoLoad(AUTOLOAD_DISK|AUTOLOAD_FORCE);
+                    break;
+
+                case 2:
+                    SetOption(disk2, pcszOption);
+                    SetOption(drive2,drvFloppy);
+                    break;
+
+                default:
+                    TRACE("Unexpected command-line parameter: %s\n", pcszOption);
+                    break;
             }
         }
     }

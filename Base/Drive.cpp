@@ -62,7 +62,7 @@ bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
 
     // Check for auto-booting with drive 1
     if (m_nDrive == 1)
-        IO::CheckAutoboot();
+        IO::AutoLoad(AUTOLOAD_DISK);
 
     return true;
 }

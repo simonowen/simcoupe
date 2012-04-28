@@ -27,6 +27,8 @@ typedef struct {
     BYTE bRed, bGreen, bBlue;
 } COLOUR;
 
+enum { AUTOLOAD_NONE, AUTOLOAD_DISK, AUTOLOAD_TAPE, AUTOLOAD_FORCE=0x80, AUTOLOAD_MASK=0x0f };
+
 
 class IO
 {
@@ -47,11 +49,12 @@ class IO
         static void FrameUpdate ();
         static void UpdateInput();
         static const COLOUR *GetPalette ();
-        static bool IsAtStartupScreen ();
-        static void CheckAutoboot ();
+        static bool IsAtStartupScreen (bool fExit_=false);
+        static void AutoLoad (int nType_);
         static void WakeAsic ();
 
         static bool Rst8Hook ();
+        static bool Rst48Hook ();
 };
 
 

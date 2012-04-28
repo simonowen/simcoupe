@@ -4,7 +4,7 @@
 //
 //  Copyright (c) 1994 Ian Collier
 //  Copyright (c) 1999-2003 by Dave Laundon
-//  Copyright (c) 1999-2010 by Simon Owen
+//  Copyright (c) 1999-2012 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -626,7 +626,7 @@ instr(5,0327)   push(PC); PC = 020;                                 endinstr;   
 instr(5,0337)   push(PC); PC = 030;                                 endinstr;   // rst 24
 instr(5,0347)   push(PC); PC = 040;                                 endinstr;   // rst 32
 instr(5,0357)   push(PC); PC = 050;                                 endinstr;   // rst 40
-instr(5,0367)   push(PC); PC = 060;                                 endinstr;   // rst 48
+instr(5,0367)   if (IO::Rst48Hook()) break; push(PC); PC = 060;     endinstr;   // rst 48
 instr(5,0377)   push(PC); PC = 070;                                 endinstr;   // rst 56
 
 #ifdef NODEFAULT

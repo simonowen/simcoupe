@@ -91,7 +91,7 @@ BYTE keyports[9];       // 8 rows of keys (+ 1 row for unscanned keys)
 BYTE keybuffer[9];      // working buffer for key changed, activated mid-frame
 
 bool fASICStartup;      // If set, the ASIC will be unresponsive shortly after first power-on
-bool g_fAutoBoot;       // Auto-boot the disk in drive 1 when we're at the startup screen
+static int nAutoLoad;	// set to the media type to auto-load at the startup screen
 
 #ifdef _DEBUG
 static BYTE abUnhandled[32];    // track unhandled port access in debug mode
@@ -847,25 +847,6 @@ void IO::UpdateInput()
     if (GetOption(turboload) && (pFloppy1->IsActive() || pFloppy2->IsActive() || pAtom->IsActive()))
         Input::Purge();
 
-    // Non-zero to tap the F9 key
-    static int nAutoBoot = 0;
-
-    // If an auto-boot is required, make sure we're at the stripey startup screen
-    if (g_fAutoBoot && IsAtStartupScreen())
-    {
-        g_fAutoBoot = false;
-        nAutoBoot = 10 * pFloppy1->HasDisk();
-    }
-
-    // If actively auto-booting, press and release F9 to trigger the boot
-    if (nAutoBoot)
-    {
-        if (--nAutoBoot < 5)
-            PressSamKey(SK_F9);
-        else
-            ReleaseSamKey(SK_F9);
-    }
-
     // Copy the working buffer to the live port buffer
     memcpy(keyports, keybuffer, sizeof(keyports));
 }
@@ -902,28 +883,32 @@ const COLOUR* IO::GetPalette ()
     return asPalette;
 }
 
-// Check if we're at the stripey SAM startup screen
-bool IO::IsAtStartupScreen ()
+// Check if we're at the striped SAM startup screen
+bool IO::IsAtStartupScreen (bool fExit_)
 {
-    // Use physical locations so we're not sensitive to the current paging state
-    BYTE* pbPalette = &apbPageReadPtrs[0][0x55d9 - 0x4000];
-    BYTE* pb = &apbPageReadPtrs[0][0x5600 - 0x4000];
-
-    // There are 16 stripes to check
-    for (int i = 0 ; i < 16 ; i++)
+    // Search the top 10 stack entries
+    for (int i = 0 ; i < 20 ; i += 2)
     {
-        // Check the line interrupt position, CLUT value, and both colours
-        if (*pb++ != (i*11) || *pb++ != 0x00 || *pb++ != *pbPalette || *pb++ != *pbPalette++)
-            return false;
+        // Check for values: 0fa5 0f78
+        if (read_word(SP+i) == 0x0fa5 && read_word(SP+i+2) == 0x0f78)
+        {
+            // Optionally exit WTFK loop at copyright message
+            if (fExit_)
+                write_byte(SP+i, 0xa7);
+
+            return true;
+        }
     }
 
-    return true;
+    // Not found
+    return false;
 }
 
-void IO::CheckAutoboot ()
+void IO::AutoLoad (int nType_)
 {
-    // Trigger autoboot if we're at the startup screen right now
-    g_fAutoBoot |= GetOption(autoboot) && IO::IsAtStartupScreen();
+    // Set the auto-load type if we're at the startup screen or forced
+    if (GetOption(autoboot) && ((nType_ & AUTOLOAD_FORCE) || IsAtStartupScreen()))
+        nAutoLoad = nType_ & AUTOLOAD_MASK;
 }
 
 void IO::WakeAsic ()
@@ -936,9 +921,9 @@ void IO::WakeAsic ()
 bool IO::Rst8Hook ()
 {
     // Return for normal processing if we're not executing ROM code
-    if (!((PC <  0x4000 && GetSectionPage(SECTION_A) == ROM0) ||
-          (PC >= 0xc000 && GetSectionPage(SECTION_D) == ROM1)))
-        return false;
+    if ((PC <  0x4000 && GetSectionPage(SECTION_A) != ROM0) ||
+        (PC >= 0xc000 && GetSectionPage(SECTION_D) != ROM1))
+      return false;
 
     // Read the error code after the RST
     BYTE bErrCode = read_byte(PC);
@@ -967,6 +952,29 @@ bool IO::Rst8Hook ()
         }
     }
 
-    // RST not processed
+    // Continue with RST
+    return false;
+}
+
+bool IO::Rst48Hook ()
+{
+    // Are we at READKEY in ROM0?
+    if (PC == 0x1cb2 && GetSectionPage(SECTION_A) == ROM0)
+    {
+        // Check if auto-load is required and whether we're at the startup screen
+        if (nAutoLoad != AUTOLOAD_NONE && IO::IsAtStartupScreen(true))
+        {
+            // F9 to boot floppy 1, F7 to load tape
+            BYTE bKey = (nAutoLoad == AUTOLOAD_DISK) ? 0xc9 : 0xc7;
+
+            // Simulate key press
+            apbPageWritePtrs[0][0x5c08-0x4000] = bKey;  // set key in LASTK
+            apbPageWritePtrs[0][0x5c3b-0x4000] = 0x20;  // signal key available in FLAGS
+
+            nAutoLoad = AUTOLOAD_NONE;
+        }
+    }
+
+    // Continue with RST
     return false;
 }
