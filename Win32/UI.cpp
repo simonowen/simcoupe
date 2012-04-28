@@ -105,6 +105,11 @@ static char szFloppyFilters[] =
 #endif
     "All Files (*.*)\0*.*\0";
 
+static char szNewDiskFilters[] =
+    "MGT disk image (*.mgt)\0*.mgt\0"
+    "EDSK disk image (*.dsk)\0*.dsk\0"
+    "CP/M disk image (*.cpm)\0*.cpm\0";
+
 static char szHDDFilters[] =
     "Hard Disk Images (*.hdf)\0*.hdf\0"
     "All Files (*.*)\0*.*\0";
@@ -1836,7 +1841,7 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
             wsprintf(sz, "New Disk %d", nDrive = static_cast<int>(lParam_));
             SetWindowText(hdlg_, sz);
 
-            static const char* aszTypes[] = { "EDSK disk image (flexible format)", "MGT disk image (800K)", "DOS CP/M image (720K)", NULL };
+            static const char* aszTypes[] = { "MGT disk image (800K)", "EDSK disk image (flexible format)", "DOS CP/M image (720K)", NULL };
             SetComboStrings(hdlg_, IDC_TYPES, aszTypes, nType);
             SendMessage(hdlg_, WM_COMMAND, IDC_TYPES, 0L);
 
@@ -1861,31 +1866,40 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     return TRUE;
 
                 case IDC_TYPES:
-                    // Enable the format checkbox for EDSK only
                     nType = (int)SendDlgItemMessage(hdlg_, IDC_TYPES, CB_GETCURSEL, 0, 0L);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_FORMAT), !nType);
 
-                    // Non-EDSK formats are fixed-format
-                    if (nType)
+                    // Enable the format checkbox for EDSK only
+                    EnableWindow(GetDlgItem(hdlg_, IDC_FORMAT), nType == 1);
+
+                    // Enable formatting for non-EDSK
+                    if (nType != 1)
                         SendDlgItemMessage(hdlg_, IDC_FORMAT, BM_SETCHECK, BST_CHECKED, 0L);
+
+                    // Enable the compress checkbox for MGT only
+                    EnableWindow(GetDlgItem(hdlg_, IDC_COMPRESS), nType == 0);
+
+                    // Disable compression for non-MGT
+                    if (nType != 0)
+                        SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_SETCHECK, BST_UNCHECKED, 0L);
 
                     break;
 
                 case IDOK:
                 {
                     // File extensions for each type, plus an additional extension if compressed
-                    static const char* aszTypes[] = { "dsk", "mgt", "cpm" };
+                    static const char* aszTypes[] = { "mgt", "dsk", "cpm" };
 
                     nType = (int)SendDlgItemMessage(hdlg_, IDC_TYPES, CB_GETCURSEL, 0, 0L);
                     fCompress = SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_GETCHECK, 0, 0L) == BST_CHECKED;
                     fFormat = SendDlgItemMessage(hdlg_, IDC_FORMAT, BM_GETCHECK, 0, 0L) == BST_CHECKED;
 
                     char szFile [MAX_PATH];
-                    snprintf(szFile, MAX_PATH, "Untitled.%s%s", aszTypes[nType], fCompress ? ".gz" : "");
+                    snprintf(szFile, MAX_PATH, "untitled.%s", aszTypes[nType]);
 
-                    static OPENFILENAME ofn = { sizeof(ofn) };
+                    OPENFILENAME ofn = { sizeof(ofn) };
                     ofn.hwndOwner = hdlg_;
-                    ofn.lpstrFilter = szFloppyFilters;
+                    ofn.lpstrFilter = szNewDiskFilters;
+                    ofn.nFilterIndex = nType+1;
                     ofn.lpstrFile = szFile;
                     ofn.nMaxFile = sizeof(szFile);
                     ofn.Flags = OFN_HIDEREADONLY;
@@ -1893,10 +1907,12 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     if (!GetSaveLoadFile(&ofn, false))
                         break;
 
+                    nType = ofn.nFilterIndex-1;
+
                     CStream* pStream = NULL;
                     CDisk* pDisk = NULL;
 #ifdef USE_ZLIB
-                    if (fCompress)
+                    if (nType == 0 && fCompress)
                         pStream = new CZLibStream(NULL, szFile);
                     else
 #endif
@@ -1911,7 +1927,7 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     }
 
                     // Format the EDSK image ready for use?
-                    if (nType == 0 && fFormat)
+                    if (nType == 1 && fFormat)
                     {
                         IDFIELD abIDs[NORMAL_DISK_SECTORS];
 

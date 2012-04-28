@@ -276,7 +276,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                     case 300:  SetOption(speed, 500); break;
                     default:   SetOption(speed, 1000); break;
                 }
-                
+
                 Frame::SetStatus("%u%% Speed", GetOption(speed));
                 break;
 

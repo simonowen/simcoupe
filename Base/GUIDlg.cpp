@@ -51,7 +51,7 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
 
     new CIconControl(this, 6, 6, &sSamIcon);
     new CTextControl(this, 86, 10,  szVersion, BLACK);
-    new CTextControl(this, 86, 24,  "http://simcoupe.org/", GREY_3);
+    new CTextControl(this, 86, 24,  "http://simcoupe.org", GREY_3);
 
     int y = 46;
 
@@ -1452,8 +1452,9 @@ CNewDiskDialog::CNewDiskDialog (int nDrive_, CWindow* pParent_/*=NULL*/)
     new CIconControl(this, 10, 10, &sDiskIcon);
 
     new CTextControl(this, 60, 10,  "Select the type of disk to create:");
-    m_pType = new CComboBox(this, 60, 29, "EDSK disk image (flexible format)|MGT disk image (800K)|"
-                                            "DOS CP/M image (720K)", 215);
+    m_pType = new CComboBox(this, 60, 29, "MGT disk image (800K)|"
+                                          "EDSK disk image (flexible format)"
+                                          "DOS CP/M image (720K)", 215);
 
     m_pCompress = new CCheckBox(this, 60, 55, "Compress image to save space");
     (m_pFormat = new CCheckBox(this, 60, 76, "Format image ready for use"))->Enable(false);
