@@ -161,6 +161,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     }
 
     pDAC->Reset();
+    pSID->Reset();
     pBlueAlpha->Reset();
 
     // Initialise the drives back to a consistent state
