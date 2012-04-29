@@ -78,6 +78,9 @@ void CDrive::Eject ()
 
 void CDrive::FrameEnd ()
 {
+    // Base implementation includes default activity handling
+    CDiskDevice::FrameEnd();
+
     // If the motor hasn't been used for 2 seconds, switch it off
     if (m_nMotorDelay && !--m_nMotorDelay)
     {
@@ -386,6 +389,9 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
             // If we're busy, accept only the FORCE_INTERRUPT command
             if ((m_sRegs.bStatus & BUSY) && (m_sRegs.bCommand & FDC_COMMAND_MASK) != FORCE_INTERRUPT)
                 return;
+
+            // Reset drive activity counter
+            m_uActive = GetOption(turboload);
 
             // Reset the status (except motor state) as we're starting a new command
             ModifyStatus(m_sRegs.bStatus = MOTOR_ON, 0);

@@ -56,7 +56,6 @@ class CDrive : public CDiskDevice
         bool HasDisk () const { return m_pDisk != NULL; }
         bool DiskModified () const { return m_pDisk && m_pDisk->IsModified(); }
         bool IsLightOn () const { return IsMotorOn(); }
-        bool IsActive () const { return IsLightOn () && m_nMotorDelay > (FLOPPY_MOTOR_ACTIVE_TIME - GetOption(turboload)); }
 
         void SetDiskModified (bool fModified_=true) { if (m_pDisk) m_pDisk->SetModified(fModified_); }
 

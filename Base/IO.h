@@ -77,11 +77,12 @@ enum { drvNone, drvFloppy, drvAtom, drvSDIDE, drvYATBus };
 class CDiskDevice :  public CIoDevice
 {
     public:
-        CDiskDevice () { }
+        CDiskDevice () : m_uActive(0) { }
         ~CDiskDevice () { }
 
     public:
         void Reset () { }
+        void FrameEnd () { if (m_uActive) m_uActive--; }
 
     public:
         virtual bool Insert (const char* pcszImage_, bool fReadOnly_=false) { return false; }
@@ -95,9 +96,12 @@ class CDiskDevice :  public CIoDevice
         virtual bool HasDisk () const { return false; }
         virtual bool DiskModified () const { return false; }
         virtual bool IsLightOn () const { return false; }
-        virtual bool IsActive () const { return IsLightOn(); }
+        virtual bool IsActive () const { return m_uActive != 0; }
 
         virtual void SetDiskModified (bool fModified_=true) { }
+
+    protected:
+        UINT m_uActive; // active when non-zero, decremented by FrameEnd()
 };
 
 #define in_byte     IO::In

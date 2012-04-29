@@ -21,8 +21,6 @@
 #include "SimCoupe.h"
 #include "AtomLite.h"
 
-const unsigned int ATOM_LIGHT_DELAY = 2;    // Number of frames the hard disk LED remains on for after a command
-
 
 CAtomLiteDevice::CAtomLiteDevice ()
     : m_bAddressLatch(0)
@@ -72,7 +70,7 @@ void CAtomLiteDevice::Out (WORD wPort_, BYTE bVal_)
                 m_Dallas.Out(wPort_ << 8, bVal_);
             else if (m_pDisk)
             {
-                m_uLightDelay = ATOM_LIGHT_DELAY;
+                m_uActive = HDD_ACTIVE_FRAMES;
                 m_pDisk->Out(m_bAddressLatch & ATOM_LITE_ADDR_MASK, bVal_);
             }
             break;

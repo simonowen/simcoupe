@@ -24,6 +24,9 @@
 #include "IO.h"
 #include "ATA.h"
 
+const unsigned int HDD_ACTIVE_FRAMES = 2;    // Frames the HDD is considered active after a command
+
+
 class CHardDisk : public CATADevice
 {
     public:
@@ -76,12 +79,11 @@ class CHDFHardDisk : public CHardDisk
 class CHardDiskDevice :  public CDiskDevice
 {
     public:
-        CHardDiskDevice () : m_pDisk(NULL), m_uLightDelay(0) { }
+        CHardDiskDevice () : m_pDisk(NULL) { }
         ~CHardDiskDevice () { delete m_pDisk; }
 
     public:
         void Reset () { if (m_pDisk) m_pDisk->Reset(); }
-        void FrameEnd () { if (m_uLightDelay) m_uLightDelay--; }
 
     public:
         bool Insert (const char *pcszDisk_, bool fReadOnly_=false) { return Insert(CHardDisk::OpenObject(pcszDisk_)); }
@@ -90,14 +92,13 @@ class CHardDiskDevice :  public CDiskDevice
     public:
         const char* DiskFile() const { return ""; }
         const char* DiskPath() const { return m_pDisk ? m_pDisk->GetPath() : ""; }
-        bool IsLightOn () const { return m_uLightDelay != 0; }
+        bool IsLightOn () const { return IsActive(); }
 
     public:
         virtual bool Insert (CHardDisk *pDisk_) { delete m_pDisk; m_pDisk = pDisk_; return m_pDisk != NULL; }
 
     protected:
         CHardDisk* m_pDisk;
-        UINT m_uLightDelay;      // Delay before switching disk light off
 };
 
 extern CHardDiskDevice *pAtom, *pSDIDE, *pYATBus;
