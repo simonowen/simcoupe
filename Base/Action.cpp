@@ -178,16 +178,16 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
 
             case actToggleTurbo:
             {
-                g_fTurbo = !g_fTurbo;
+                g_nTurbo ^= TURBO_KEY;
                 Sound::Silence();
-                Frame::SetStatus("Turbo mode %s", g_fTurbo ? "enabled" : "disabled");
+                Frame::SetStatus("Turbo mode %s", (g_nTurbo&TURBO_KEY) ? "enabled" : "disabled");
                 break;
             }
 
             case actTempTurbo:
-                if (!g_fTurbo)
+                if (!(g_nTurbo&TURBO_KEY))
                 {
-                    g_fTurbo = true;
+                    g_nTurbo |= TURBO_KEY;
                     Sound::Silence();
                 }
                 break;
@@ -294,11 +294,8 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actSpeedNormal:
-                if (GetOption(speed) != 100)
-                    Frame::SetStatus("100%% Speed");
-
                 SetOption(speed, 100);
-                g_fTurbo = false;
+                Frame::SetStatus("100%% Speed");
                 break;
 
             // Not processed
@@ -317,7 +314,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
             case actTempTurbo:
             case actSpeedFaster:
                 CPU::Reset(false);
-                g_fTurbo = false;
+                g_nTurbo = 0;
                 break;
 
             // Not processed

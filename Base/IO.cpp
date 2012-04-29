@@ -837,7 +837,7 @@ void IO::FrameUpdate ()
 
     Input::Update();
 
-    if (!g_fTurbo && !g_nFastBooting)
+    if (!g_nTurbo)
         Sound::FrameUpdate();
 }
 

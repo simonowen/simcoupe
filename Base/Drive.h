@@ -30,7 +30,10 @@
 
 
 // Time motor stays on after no further activity:  10 revolutions at 300rpm (2 seconds)
-const int FLOPPY_MOTOR_ACTIVE_TIME = (10 / (FLOPPY_RPM/60)) * EMULATED_FRAMES_PER_SECOND;
+const int FLOPPY_MOTOR_TIMEOUT = (10 / (FLOPPY_RPM/60)) * EMULATED_FRAMES_PER_SECOND;
+
+const unsigned int FLOPPY_ACTIVE_FRAMES = 5;   // Frames the floppy is considered active after a command
+
 
 class CDrive : public CDiskDevice
 {

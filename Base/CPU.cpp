@@ -85,8 +85,8 @@ inline void CheckInterrupt ();
 
 
 BYTE bOpcode;
-bool g_fReset, g_fBreak, g_fPaused, g_fTurbo;
-int g_nFastBooting;
+bool g_fReset, g_fBreak, g_fPaused;
+int g_nTurbo;
 
 DWORD g_dwCycleCounter;     // Global cycle counter used for various timings
 
@@ -414,8 +414,8 @@ void CPU::Run ()
         Frame::Start();
 
         // If fast booting is active, don't draw any video
-        if (g_nFastBooting)
-            fDrawFrame = GUI::IsActive() || !--g_nFastBooting;
+        if (g_nTurbo & TURBO_BOOT)
+            fDrawFrame = GUI::IsActive();
 
         // CPU execution continues unless the debugger is active or there's a modal GUI dialog active
         if (!Debug::IsActive() && !GUI::IsModal())
@@ -471,9 +471,9 @@ void CPU::Reset (bool fPress_)
         IO::Init();
         Memory::Init();
     }
-    // Set up the fast reset for first power-on, allowing UP TO 5 seconds before returning to normal mode
-    else if  (GetOption(fastreset))
-        g_nFastBooting = EMULATED_FRAMES_PER_SECOND * 5;
+    // Set up the fast reset for first power-on
+    else if (GetOption(fastreset))
+        g_nTurbo |= TURBO_BOOT;
 
     Debug::Refresh();
 }

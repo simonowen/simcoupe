@@ -406,9 +406,8 @@ void Frame::Complete ()
         fLastActive = GUI::IsActive();
     }
 
-    // Unless we're fast booting, sync to 50Hz and decide whether we should draw the next frame
-    if (!g_nFastBooting)
-        Sync();
+    // Decide whether we should draw the next frame
+    Sync();
 }
 
 // Start of frame
@@ -439,13 +438,16 @@ void Frame::Sync ()
     DWORD dwNow = OSD::GetTime();
 
     // Determine whether we're running at increased speed during disk activity
-    bool fTurboDisk = GetOption(turboload) && (pFloppy1->IsActive() || pFloppy2->IsActive() || pAtom->IsActive());
+    if (GetOption(turboload) && (pFloppy1->IsActive() || pFloppy2->IsActive() || pAtom->IsActive()))
+        g_nTurbo |= TURBO_DISK;
+    else
+        g_nTurbo &= ~TURBO_DISK;
 
     // Default to drawing all frames
     fDrawFrame = true;
 
     // Running in Turbo mode?
-    if (!GUI::IsActive() && (g_fTurbo || fTurboDisk))
+    if (!GUI::IsActive() && g_nTurbo)
     {
         // Should we draw a frame yet?
         fDrawFrame = (dwNow - dwLastDrawn) >= 1000/FPS_IN_TURBO_MODE;

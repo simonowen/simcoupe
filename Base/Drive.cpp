@@ -104,7 +104,7 @@ inline void CDrive::ModifyStatus (BYTE bSet_, BYTE bReset_)
 
     // If the motor enable bit is set, update the last used time
     if (bSet_ & MOTOR_ON)
-        m_nMotorDelay = FLOPPY_MOTOR_ACTIVE_TIME;
+        m_nMotorDelay = FLOPPY_MOTOR_TIMEOUT;
 }
 
 // Set the status of a read operation before the data has been read by the CPU
@@ -391,7 +391,7 @@ void CDrive::Out (WORD wPort_, BYTE bVal_)
                 return;
 
             // Reset drive activity counter
-            m_uActive = GetOption(turboload);
+            m_uActive = FLOPPY_ACTIVE_FRAMES;
 
             // Reset the status (except motor state) as we're starting a new command
             ModifyStatus(m_sRegs.bStatus = MOTOR_ON, 0);
