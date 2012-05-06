@@ -441,8 +441,8 @@ bool CEDSKDisk::GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BY
     m_pSector = reinterpret_cast<EDSK_SECTOR*>(pTrack+1);
     m_pbData = reinterpret_cast<BYTE*>(m_pSector+EDSK_MAX_SECTORS);
 
-    // Check sector is in range
-    if (index_ >= pTrack->bSectors)
+    // Check the track exists and the sector is in range
+    if (!pTrack || index_ >= pTrack->bSectors)
         return false;
 
     // Advance to the required sector and its data field
