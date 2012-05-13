@@ -411,8 +411,6 @@ void CPU::Run ()
         if (g_fPaused)
             continue;
 
-        Frame::Start();
-
         // If fast booting is active, don't draw any video
         if (g_nTurbo & TURBO_BOOT)
             fDrawFrame = GUI::IsActive();
@@ -431,6 +429,7 @@ void CPU::Run ()
 
             IO::FrameUpdate();
             Debug::FrameEnd();
+            Frame::Start();
 
             // Step back up to start the next frame
             g_dwCycleCounter %= TSTATES_PER_FRAME;
