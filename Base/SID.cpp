@@ -27,16 +27,8 @@
 CSID::CSID ()
 {
 #ifdef USE_RESID
-    m_pSID = NULL;
-
-// resid.dll is an optional runtime component under Windows, for now
-#ifdef _MSC_VER
-    if (LoadLibrary("resid.dll") && GetProcAddress(GetModuleHandle("resid"), "??0SID@@QAE@XZ"))
-#endif
-    {
-        m_pSID = new SID;
-        Reset();
-    }
+    m_pSID = new RESID_NAMESPACE::SID;
+    Reset();
 #endif
 }
 

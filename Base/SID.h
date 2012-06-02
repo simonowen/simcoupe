@@ -25,6 +25,11 @@
 
 #ifdef USE_RESID
 #undef F // TODO: limit scope of Z80 registers!
+
+#ifndef RESID_NAMESPACE
+#define RESID_NAMESPACE     // default to root namespace
+#endif
+
 #include <resid/sid.h>
 #define SID_CLOCK_PAL   985248
 #endif
@@ -44,7 +49,7 @@ class CSID : public CSoundDevice
 
     protected:
 #ifdef USE_RESID
-        SID *m_pSID;
+        RESID_NAMESPACE::SID *m_pSID;
 #endif
 };
 

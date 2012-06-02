@@ -56,6 +56,7 @@
 
 #ifdef USE_RESID
 #pragma comment(lib, "resid.lib")   // SID chip emulation
+#define RESID_NAMESPACE reSID       // use reSID namespace, due to SID symbol clash with winnt.h
 #endif
 
 #ifdef USE_CAPSIMAGE
