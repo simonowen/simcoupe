@@ -2068,11 +2068,11 @@ INT_PTR CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 case IDOK:
                 {
                     uSize = GetDlgItemValue(hdlg_, IDE_SIZE, 0);
-                    UINT uCylinders = (uSize << 2) & 0x3fff;
+                    UINT uTotalSectors = uSize << 11;
 
-                    // Check the geometry is within range, since the edit fields can be modified directly
-                    if (!uCylinders || (uCylinders > 16383))
-                        MessageBox(hdlg_, "Invalid disk geometry.", "Create", MB_OK|MB_ICONEXCLAMATION);
+                    // Check the geometry is within CHS range
+                    if (!uTotalSectors || (uTotalSectors > (16383*16*63)))
+                        MessageBox(hdlg_, "Invalid disk size", "Create", MB_OK|MB_ICONEXCLAMATION);
                     else
                     {
                         // If new values have been give, create a new disk using the supplied settings
@@ -2086,7 +2086,7 @@ INT_PTR CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                                 break;
 
                             // Create the new HDF image
-                            else if (!CHDFHardDisk::Create(szFile, uCylinders, 16, 32))
+                            else if (!CHDFHardDisk::Create(szFile, uTotalSectors))
                             {
                                 MessageBox(hdlg_, "Failed to create new disk (disk full?)", "Create", MB_OK|MB_ICONEXCLAMATION);
                                 break;

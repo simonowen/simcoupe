@@ -258,29 +258,20 @@ void CFileBrowser::OnOK ()
 ////////////////////////////////////////////////////////////////////////////////
 
 CHDDProperties::CHDDProperties (CEditControl* pEdit_, CWindow* pParent_, const char* pcszCaption_)
-    : CDialog(pParent_, 268, 170, pcszCaption_), m_pEdit(pEdit_)
+    : CDialog(pParent_, 268, 56, pcszCaption_), m_pEdit(pEdit_)
 {
     new CTextControl(this, 12, 13,  "File:");
     m_pFile = new CEditControl(this, 35, 10, 199, pEdit_->GetText());
     m_pBrowse = new CTextButton(this, 239, 10, "...", 17);
 
-    new CFrameControl(this, 12, 37, 244, 100);
-    new CTextControl(this, 17, 33, "Geometry", YELLOW_8, BLUE_2);
-
-    new CTextControl(this, 57, 53,  "Cylinders (1-16383):");
-    new CTextControl(this, 89, 73,  "Heads (2-16):");
-    new CTextControl(this, 82, 93,  "Sectors (1-63):");
-    new CTextControl(this, 81, 113, "Total size (MB):");
-
-    m_pCyls = new CEditControl(this, 167, 50,  40);
-    m_pHeads = new CEditControl(this, 167, 70,  20);
-    m_pSectors = new CEditControl(this, 167, 90,  20);
-    m_pSize = new CEditControl(this, 167, 110, 30);
+    new CTextControl(this, 12, 37, "Size (MB):");
+    m_pSize = new CEditControl(this, 68, 34, 30);
 
     m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
     m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
 
-    // Force a refresh of the geometry from the current image (if any)
+    // Set a default size of 32MB, but refresh from the current image (if any)
+    m_pSize->SetValue(32);
     OnNotify(m_pFile,0);
 }
 
@@ -308,54 +299,30 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
         if (fExists)
         {
             // Fetch the existing disk geometry
-            const ATA_GEOMETRY* pGeom = pDisk->GetGeometry ();
+            const ATA_GEOMETRY* pGeom = pDisk->GetGeometry();
 
-            // Initialise the edit controls with the current values
-            m_pCyls->SetValue(pGeom->uCylinders);
-            m_pHeads->SetValue(pGeom->uHeads);
-            m_pSectors->SetValue(pGeom->uSectors);
+            // Show the current size
             m_pSize->SetValue((pGeom->uTotalSectors + (1<<11)-1) >> 11);
 
             delete pDisk;
         }
 
         // The geometry is read-only for existing images
-        m_pCyls->Enable(!fExists);
-        m_pHeads->Enable(!fExists);
-        m_pSectors->Enable(!fExists);
         m_pSize->Enable(!fExists);
 
         // Set the text and state of the OK button, depending on the target file
         m_pOK->SetText(fExists ? "OK" : "Create");
         m_pOK->Enable(!!*m_pFile->GetText());
     }
-    else if (pWindow_ == m_pCyls || pWindow_ == m_pHeads || pWindow_ == m_pSectors)
-    {
-        // Set the new size from the modified geometry
-        UINT uSize = ((m_pCyls->GetValue()*m_pHeads->GetValue()*m_pSectors->GetValue()) + (1<<11)-1) >> 11;
-        m_pSize->SetValue(uSize);
-    }
-    else if (pWindow_ == m_pSize)
-    {
-        // Fetch the updates size value
-        UINT uSize = m_pSize->GetValue();
-
-        // Set a disk geometry matching the new size
-        m_pCyls->SetValue((uSize << 2) & 0x3fff);
-        m_pHeads->SetValue(16);
-        m_pSectors->SetValue(32);
-    }
     else if (pWindow_ == m_pOK)
     {
-        // Fetch the geometry values
-        UINT uCyls = m_pCyls->GetValue();
-        UINT uHeads = m_pHeads->GetValue();
-        UINT uSectors = m_pSectors->GetValue();
+        // Determine the total sector count from the size
+        UINT uTotalSectors = m_pSize->GetValue() << 11;
 
         // Check the geometry is within range
-        if (!uCyls || (uCyls > 16383) || !uHeads || (uHeads > 16) || !uSectors || (uSectors > 63))
+        if (!uTotalSectors || (uTotalSectors > (16383*16*63)))
         {
-            new CMessageBox(this, "Invalid disk geometry", "Warning", mbWarning);
+            new CMessageBox(this, "Invalid disk size", "Warning", mbWarning);
             return;
         }
 
@@ -372,8 +339,8 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
                 m_pFile->SetText(sz);
             }
 
-            // If new values have been give, create a new disk using the supplied settings
-            if (!CHDFHardDisk::Create(m_pFile->GetText(), uCyls, uHeads, uSectors))
+            // Create a new disk of the required size
+            if (!CHDFHardDisk::Create(m_pFile->GetText(), uTotalSectors))
             {
                 new CMessageBox(this, "Failed to create new disk (disk full?)", "Warning", mbWarning);
                 return;

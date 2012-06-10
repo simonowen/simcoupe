@@ -45,10 +45,6 @@ class CHardDisk : public CATADevice
         bool IsBDOSDisk (bool *pfByteSwapped=NULL);
 
     protected:
-        static void CalculateGeometry (ATA_GEOMETRY* pg_);
-        static void SetIdentityString (char* psz_, size_t uLen_, const char* pcszValue_);
-
-    protected:
         char* m_pszDisk;
 };
 
@@ -60,11 +56,12 @@ class CHDFHardDisk : public CHardDisk
         ~CHDFHardDisk () { Close(); }
 
     public:
-        static bool Create (const char* pcszDisk_, UINT uCylinders_, UINT uHeads_, UINT uSectors_);
+        static bool Create (const char* pcszDisk_, UINT uTotalSectors_);
 
     public:
         bool IsOpen () const { return m_hfDisk != NULL; }
         bool Open ();
+        bool Create (UINT uTotalSectors_);
         void Close ();
 
         bool ReadSector (UINT uSector_, BYTE* pb_);

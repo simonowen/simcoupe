@@ -32,7 +32,7 @@ CATADevice::CATADevice ()
     : m_fByteSwap(false)
 {
     memset(&m_sGeometry, 0, sizeof(m_sGeometry));
-    memset(&m_abIdentity, 0, sizeof(m_abIdentity));
+    memset(&m_sIdentify, 0, sizeof(m_sIdentify));
 
     Reset();
 }
@@ -480,7 +480,7 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                         case 0xec:
                         {
                             TRACE("ATA: Disk command: IDENTIFY\n");
-                            memcpy(&m_abSectorData, &m_abIdentity, sizeof(m_abSectorData));
+                            memcpy(&m_abSectorData, &m_sIdentify, sizeof(m_sIdentify));
                             m_pbBuffer = m_abSectorData;
                             m_uBuffer = sizeof(m_abSectorData);
                         }
@@ -489,7 +489,7 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                         case 0xee:
                         {
                             TRACE("ATA: Disk command: IDENTIFY_DMA\n");
-                            memcpy(&m_abSectorData, &m_abIdentity, sizeof(m_abSectorData));
+                            memcpy(&m_abSectorData, &m_sIdentify, sizeof(m_sIdentify));
                             m_pbBuffer = m_abSectorData;
                             m_uBuffer = sizeof(m_abSectorData);
                         }
@@ -668,4 +668,130 @@ bool CATADevice::ReadWriteSector (bool fWrite_)
     bool fRet = ReadSector(uSector, m_abSectorData);
     if (m_fByteSwap) ByteSwap(m_abSectorData, sizeof(m_abSectorData));
     return fRet;
+}
+
+
+void CATADevice::SetIdentifyData (IDENTIFYDEVICE *pid_)
+{
+    // Do we have data to set?
+    if (pid_)
+    {
+        // Copy the supplied data
+        memcpy(&m_sIdentify, pid_, sizeof(m_sIdentify));
+
+        // Update CHS
+        m_sGeometry.uCylinders = m_sIdentify.word[1];
+        m_sGeometry.uHeads = m_sIdentify.word[3];
+        m_sGeometry.uSectors = m_sIdentify.word[6];
+
+        return;
+    }
+
+    // Calculate suitable CHS values for the sector count
+    CalculateGeometry(&m_sGeometry);
+
+    // Wipe any existing data
+    memset(&m_sIdentify, 0, sizeof(m_sIdentify));
+
+    // Advertise CFA features
+    m_sIdentify.word[0] = 0x848a;
+
+    // CHS values
+    m_sIdentify.word[1] = m_sGeometry.uCylinders;
+    m_sIdentify.word[3] = m_sGeometry.uHeads;
+    m_sIdentify.word[6] = m_sGeometry.uSectors;
+
+    // Form an 8-character string from the current date, to use as firmware revision
+    time_t tNow = time(NULL);
+    tm *ptm = localtime(&tNow);
+    char szDate[9] = {};
+    snprintf(szDate, sizeof(szDate)-1, "%04u%02u%02u", ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);
+
+    // Serial number, firmware revision and model number
+    SetIdentifyString("", &m_sIdentify.word[10], 20);
+    SetIdentifyString(szDate, &m_sIdentify.word[23], 8);
+    SetIdentifyString("SimCoupe Device", &m_sIdentify.word[27], 40);
+
+    // Read/write multiple supports 1 sector blocks
+    m_sIdentify.word[47] = 1;
+
+    // LBA supported
+    m_sIdentify.word[49] = (1<<9);
+
+    // Current override CHS values
+    m_sIdentify.word[53] = (1<<0);
+    m_sIdentify.word[54] = m_sIdentify.word[1];
+    m_sIdentify.word[55] = m_sIdentify.word[3];
+    m_sIdentify.word[56] = m_sIdentify.word[6];
+
+    // Max CHS sector count is just C*H*S with maximum values for each
+    UINT uMaxSectorsCHS = 16383*16*63;
+    UINT uTotalSectorsCHS = (m_sGeometry.uTotalSectors > uMaxSectorsCHS) ? uMaxSectorsCHS : m_sGeometry.uTotalSectors;
+    m_sIdentify.word[57] = static_cast<WORD>(uTotalSectorsCHS & 0xffff);
+    m_sIdentify.word[58] = static_cast<WORD>((uTotalSectorsCHS >> 16) & 0xffff);
+
+    // Max LBA28 sector count is 0x0fffffff
+    UINT uMaxSectorsLBA28 = (1U << 28) - 1;
+    UINT uTotalSectorsLBA28 = (m_sGeometry.uTotalSectors > uMaxSectorsLBA28) ? uMaxSectorsLBA28 : m_sGeometry.uTotalSectors;
+    m_sIdentify.word[60] = uTotalSectorsLBA28 & 0xffff;
+    m_sIdentify.word[61] = (uTotalSectorsLBA28 >> 16) & 0xffff;
+
+    // Advertise CFA features, for 8-bit mode
+    m_sIdentify.word[83] |= (1<<2) | (1<<14);
+    m_sIdentify.word[84] |= (1<<14);
+    m_sIdentify.word[86] |= (1<<2);
+    m_sIdentify.word[87] |= (1<<14);
+}
+
+
+// Calculate a suitable CHS geometry covering the supplied number of sectors
+/*static*/ void CATADevice::CalculateGeometry (ATA_GEOMETRY* pg_)
+{
+    UINT uCylinders, uHeads, uSectors;
+
+    // If the sector count is exactly divisible by 16*63, use them for heads and sectors
+    if ((pg_->uTotalSectors % (16*63)) == 0)
+    {
+        uHeads = 16;
+        uSectors = 63;
+    }
+    else
+    {
+        // Start the head count to give balanced figures for smaller drives
+        uHeads = (pg_->uTotalSectors >= 65536) ? 8 : (pg_->uTotalSectors >= 32768) ? 4 : 2;
+        uSectors = 32;
+    }
+
+    // Loop until we're (ideally) below 1024 cylinders
+    while ((pg_->uTotalSectors / uHeads / uSectors) > 1023)
+    {
+        if (uHeads < 16)
+            uHeads *= 2;
+        else if (uSectors != 63)
+            uSectors = 63;
+        else
+            break;
+    }
+
+    // Calculate the cylinder limit at or below the total size
+    uCylinders = pg_->uTotalSectors / uHeads / uSectors;
+
+    // Update the supplied structure, capping the cylinder value if necessary
+    pg_->uCylinders = (uCylinders > 16383) ? 16383 : uCylinders;
+    pg_->uHeads = uHeads;
+    pg_->uSectors = uSectors;
+}
+
+
+/*static*/ void CATADevice::SetIdentifyString (const char* pcszValue_, void *pv_, size_t cb_)
+{
+    BYTE *pb = reinterpret_cast<BYTE*>(pv_);
+
+    // Fill with spaces, then copy the string over it (excluding the null terminator)
+    memset(pb, ' ', cb_);
+    memcpy(pb, pcszValue_, cb_ = strlen(pcszValue_));
+
+    // Byte-swap the string for the expected endian
+    for (size_t i = 0 ; i < cb_ ; i += 2)
+        swap(pb[i], pb[i+1]);
 }

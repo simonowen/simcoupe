@@ -84,7 +84,7 @@ class CHDDProperties : public CDialog
 
     protected:
         CEditControl *m_pEdit, *m_pFile;
-        CEditControl *m_pCyls, *m_pHeads, *m_pSectors, *m_pSize;
+        CEditControl *m_pSize;
         CTextButton *m_pBrowse, *m_pCreate, *m_pOK, *m_pCancel;
 };
 

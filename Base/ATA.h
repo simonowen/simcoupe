@@ -49,79 +49,16 @@ typedef struct tagATAregs
 ATAregs;
 
 
-// The identity structure must be packed to match the stored binary representation
-#pragma pack(1)
-
+// Structure of IDENTIFY DEVICE command response
 typedef struct
 {
-    BYTE l, h;
+    union
+    {
+        BYTE byte[512];
+        WORD word[256];
+    };
 }
-ATAWORD;
-
-// Structure to data response to IDENTIFY command
-typedef struct
-{
-    ATAWORD wCaps;              // Bit 06: Fixed device
-
-    ATAWORD wLogicalCylinders;  // Number of logical cylinders in the default translation mode
-
-    ATAWORD wReserved;          // Reserved
-
-    ATAWORD wLogicalHeads;      // Number of logical heads in the default translation mode
-    ATAWORD wBytesPerTrack;     // Obsolete
-    ATAWORD wBytesPerSector;    // Obsolete
-    ATAWORD wSectorsPerTrack;   // Number of logical sectors per track
-
-    ATAWORD wInterSectorGaps;   // Obsolete
-    ATAWORD wPhaseLockOscil;    // Obsolete
-    ATAWORD wVendorStatusWords; // Obsolete
-
-    char    szSerialNumber[20]; // Serial number, 20 ASCII chars, right aligned & padded with 20h
-
-    ATAWORD wControllerType;    // Obsolete
-    ATAWORD wBufferSize512;     // Obsolete
-
-    ATAWORD wLongECCBytes;      // Number of ECC bytes passed to host on R/W long operations
-
-    char    szFirmwareRev[8];   // Firmware revision, 8 ASCII chars, left aligned & space padded
-
-    char    szModelNumber[40];  // Model Number, 40 ASCII chars, left aligned & space padded
-
-    ATAWORD wReadWriteMulti;    // READ/WRITE multiples implemented
-
-    ATAWORD wReserved2;         // Reserved (48)
-    ATAWORD wCapabilities;      // Capabilities
-    ATAWORD wReserved3;         // Reserved (50)
-
-    ATAWORD wPIODataTransfer;   // PIO data transfer cycle timing mode
-    ATAWORD wDMADataTransfer;   // Single Word DMA data transfer cycle timing mode
-
-    ATAWORD wReserved4;         // Reserved (53)
-
-    ATAWORD wCurrentCylinders;  // Cylinders in current translation mode (54)
-    ATAWORD wCurrentHeads;      // Heads in current translation mode (55)
-    ATAWORD wCurrentSectors;    // Sectors/track in current translation mode (56)
-
-    ATAWORD wCurrentSectorsHigh;// Current cyls*heads*sectors (57)
-    ATAWORD wCurrentSectorsLow; // (58)
-
-    ATAWORD wMultipleSectors;   // Multiple sector setting (59)
-
-    ATAWORD wTotalSectorsHigh;  // Total LBA sectors (60)
-    ATAWORD wTotalSectorsLow;   // (61)
-
-    ATAWORD wSingleDmaTransfer; // Modes supporting single-word DMA transfers (62)
-    ATAWORD wMultiDmaTransfer;  // Modes supporting multi-word DMA transfers (63)
-
-    // etc. for later ATA versions
-}
-DEVICEIDENTITY;
-
-#pragma pack()
-
-// Helper macros for accessing the structure above - needed to be endian-safe
-#define ATAGET(x)       (((x.h) << 8) | (x.l))
-#define ATAPUT(x,n)     ( x.l = ((n) & 0xff), x.h = ((n) >> 8) )
+IDENTIFYDEVICE;
 
 
 // Address lines
@@ -189,10 +126,15 @@ class CATADevice
 
     protected:
         bool ReadWriteSector (bool fWrite_);
+        void SetIdentifyData (IDENTIFYDEVICE *pid_);
+
+    protected:
+        static void CalculateGeometry (ATA_GEOMETRY* pg_);
+        static void SetIdentifyString (const char* pcszValue_, void* pv_, size_t cb_);
 
     protected:
         ATAregs m_sRegs;                // AT device registers
-        BYTE    m_abIdentity[512];      // Identity sector to return
+        IDENTIFYDEVICE m_sIdentify;       // Identify device data
         ATA_GEOMETRY m_sGeometry;       // Device geometry
 
         bool    m_f8bit;                // true if 8-bit data transfers are enabled
