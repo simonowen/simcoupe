@@ -52,29 +52,12 @@ bool CDeviceHardDisk::Open ()
         if (ioctl(m_hDevice, DKIOCGETBLOCKCOUNT, &llSize) >= 0 && (nSize = static_cast<int>(llSize)))
 #endif
         {
-            // Extract the disk geometry and size in sectors, and calculate a suitable CHS to report
+            // Extract the disk geometry and size in sectors
             // We round down to the nearest 1K to fix a single sector error with some CF card readers
             m_sGeometry.uTotalSectors = nSize & ~1;
-            CalculateGeometry(&m_sGeometry);
 
-            // Clear any existing identity data
-            DEVICEIDENTITY *pdi = reinterpret_cast<DEVICEIDENTITY*>(m_abIdentity);
-            memset(&m_abIdentity, 0, sizeof(m_abIdentity));
-
-            // Fill the identity structure as appropriate
-            ATAPUT(pdi->wCaps, 0x2241);                              // Fixed device, motor control, hard sectored, <= 5Mbps
-            ATAPUT(pdi->wLogicalCylinders, m_sGeometry.uCylinders);
-            ATAPUT(pdi->wLogicalHeads, m_sGeometry.uHeads);
-            ATAPUT(pdi->wBytesPerTrack, m_sGeometry.uSectors << 9);
-            ATAPUT(pdi->wBytesPerSector, 1 << 9);
-            ATAPUT(pdi->wSectorsPerTrack, m_sGeometry.uSectors);
-            ATAPUT(pdi->wControllerType, 1);                         // Single port, single sector
-            ATAPUT(pdi->wBufferSize512, 1);
-            ATAPUT(pdi->wLongECCBytes, 4);
-
-            CHardDisk::SetIdentityString(pdi->szSerialNumber, sizeof(pdi->szSerialNumber), "100");
-            CHardDisk::SetIdentityString(pdi->szFirmwareRev,  sizeof(pdi->szFirmwareRev), "1.0");
-            CHardDisk::SetIdentityString(pdi->szModelNumber,  sizeof(pdi->szModelNumber), "SAM IDE Device");
+            // Generate suitable identify data to report
+            SetIdentifyData(NULL);
 
             // For safety, only deal with existing BDOS or SDIDE hard disks
             if (IsBDOSDisk() || IsSDIDEDisk())

@@ -62,10 +62,9 @@ bool CDeviceHardDisk::Open ()
         // Read the drive geometry (possibly fake) and size, checking for a disk device
         if (DeviceIoControl(m_hDevice, IOCTL_DISK_GET_PARTITION_INFO, NULL, 0, &pi, sizeof(pi), &dwRet, NULL))
         {
-            // Extract the disk geometry and size in sectors, and calculate a suitable CHS to report
+            // Extract the disk geometry and size in sectors
             // We round down to the nearest 1K to fix a single sector error with some CF card readers
             m_sGeometry.uTotalSectors = static_cast<UINT>(pi.PartitionLength.QuadPart >> 9) & ~1U;
-            CalculateGeometry(&m_sGeometry);
 
             // Generate suitable identify data to report
             SetIdentifyData(NULL);
