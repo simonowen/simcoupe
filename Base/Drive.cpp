@@ -34,20 +34,25 @@ CDrive::CDrive (int nDrive_, CDisk* pDisk_/*=NULL*/)
     : m_nDrive(nDrive_), m_pDisk(pDisk_), m_pbBuffer(NULL)
 {
     Reset ();
+
+	// Head starts over track 0, motor off
+    m_bHeadCyl = 0;
+    m_nMotorDelay = 0;
 }
 
 // Reset the controller back to default settings
 void CDrive::Reset ()
 {
-    // Track 0, sector 1 and head over track 0
-    memset(&m_sRegs, 0, sizeof(m_sRegs));
+    // Initialise registers
+    m_sRegs.bCommand = 0;
+    m_sRegs.bStatus = 0;
+    m_sRegs.bTrack = 0xff;
     m_sRegs.bSector = 1;
-    m_sRegs.bData = 0xff;
+    m_sRegs.bData = 0;
+    m_sRegs.fDir = false;
 
     m_uBuffer = 0;
     m_bDataStatus = 0;
-    m_bHeadCyl = 0;
-    m_nMotorDelay = 0;
 }
 
 // Insert a new disk from the named source (usually a file)
