@@ -51,8 +51,15 @@
 #include <io.h>
 
 #ifdef USE_ZLIB
-#pragma comment(lib, "zlibwapi")    // Note: ZLIB_WINAPI must be defined for the new WINAPI exports
+#ifndef ZLIB_WINAPI
+#error ZLIB_WINAPI must be defined for the new WINAPI exports!
 #endif
+#ifdef USE_ZLIBSTAT
+#pragma comment(lib, "zlibstat")	// Use static library
+#else
+#pragma comment(lib, "zlibwapi")    // Use DLL
+#endif // USE_ZLIBSTAT
+#endif // USE_ZLIB
 
 #ifdef USE_RESID
 #pragma comment(lib, "resid.lib")   // SID chip emulation
