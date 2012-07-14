@@ -283,20 +283,8 @@ void ProcessShiftedKeys (MAPPED_KEY* asKeys_)
     if (IsPressed(HK_LALT))   nMods |= HM_ALT;
     if (IsPressed(HK_RALT))   nMods |= (HM_CTRL|HM_ALT);
 
-
-    // Have the shift states changed while a combo is in progress?
-    if (nComboMods && nComboMods != nMods)
-    {
-        // If the combo key is still pressed, start the timer running to re-press it as we're about to release it
-        if (IsPressed(nComboKey))
-            dwComboTime = OSD::GetTime();
-
-        // We're done with the shift state now, so clear it to prevent the time getting reset
-        nComboMods = 0;
-    }
-
-    // Combo unpress timer active?
-    if (dwComboTime)
+    // Have the mods changed while the combo was active?
+    if (dwComboTime && nComboMods != nMods)
     {
         // If we're within the threshold, ensure the key remains released
         if ((OSD::GetTime() - dwComboTime) < 250)
@@ -307,13 +295,12 @@ void ProcessShiftedKeys (MAPPED_KEY* asKeys_)
             dwComboTime = 0;
     }
 
-
     for (int i = 0 ; asKeys_[i].nChar ; i++)
     {
         // Key and necessary modifiers pressed?
         if (asKeys_[i].nMods && IsPressed(asKeys_[i].nKey) && (asKeys_[i].nMods & nMods) == asKeys_[i].nMods)
         {
-            TRACE("%d (%d) pressed with mods %02x (of %02x)\n", asKeys_[i].nKey, asKeys_[i].nChar, asKeys_[i].nMods, nMods);
+//          TRACE("%d (%d) pressed with mods %02x (of %02x)\n", asKeys_[i].nKey, asKeys_[i].nChar, asKeys_[i].nMods, nMods);
 
             // Press the keys required to generate the symbol
             PressSamKey(asKeys_[i].nSamMods);
@@ -327,9 +314,10 @@ void ProcessShiftedKeys (MAPPED_KEY* asKeys_)
             if (asKeys_[i].nMods & HM_CTRL)  { ReleaseKey(HK_LCTRL); nMods &= ~HM_CTRL; }
             if (asKeys_[i].nMods & HM_ALT)   { ReleaseKey(HK_LALT); ReleaseKey(HK_LCTRL); nMods &= ~(HM_CTRL|HM_ALT); }
 
-            // Remember the combo key details for later release
+            // Remember the combo key details and current time
             nComboKey = asKeys_[i].nKey;
             nComboMods = asKeys_[i].nMods;
+            dwComboTime = OSD::GetTime();
         }
     }
 }
