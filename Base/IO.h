@@ -70,6 +70,9 @@ class CIoDevice
         virtual void Out (WORD wPort_, BYTE bVal_) { }
 
         virtual void FrameEnd () { }
+
+        virtual void LoadState (const char *pcszFile_) { }  // preserve basic state (such as NVRAM)
+        virtual void SaveState (const char *pcszFile_) { }
 };
 
 enum { drvNone, drvFloppy, drvAtom, drvSDIDE, drvYATBus };

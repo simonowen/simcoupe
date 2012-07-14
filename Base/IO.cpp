@@ -39,6 +39,7 @@
 #include "MIDI.h"
 #include "Mouse.h"
 #include "Options.h"
+#include "OSD.h"
 #include "Parallel.h"
 #include "Paula.h"
 #include "SAMDOS.h"
@@ -146,6 +147,10 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         pSDIDE = new CSDIDEDevice;
         pYATBus = new CYATBusDevice;
 
+        pFloppy1->LoadState(OSD::MakeFilePath(MFP_SETTINGS, "drive1"));
+        pFloppy2->LoadState(OSD::MakeFilePath(MFP_SETTINGS, "drive2"));
+        pDallas->LoadState(OSD::MakeFilePath(MFP_SETTINGS, "dallas"));
+
         pFloppy1->Insert(GetOption(disk1));
         pFloppy2->Insert(GetOption(disk2));
         pAtom->Insert(GetOption(atomdisk));
@@ -183,6 +188,10 @@ void IO::Exit (bool fReInit_/*=false*/)
         SetOption(atomdisk, pAtom->DiskPath());
         SetOption(sdidedisk, pSDIDE->DiskPath());
         SetOption(yatbusdisk, pYATBus->DiskPath());
+
+        pFloppy1->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive1"));
+        pFloppy2->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive2"));
+        pDallas->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "dallas"));
 
         delete pMidi, pMidi = NULL;
         delete pPaula, pPaula = NULL;

@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// Clock.cpp: SAMBUS and DALLAS clock emulation
+// Clock.cpp: SAMBUS and Dallas clock emulation
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -296,10 +296,10 @@ CDallasClock::CDallasClock ()
     m_abRegs[0x0c] = 0x00;
     m_abRegs[0x0d] = 0x80;      // Valid RAM and Time (b7 set)
 
-    // Set the model, serial number and (dummy) CRC
-    m_abRegs[0x40+BANK1] = 0x00;
+    // Set the model, dummy serial number, and CRC
+    m_abRegs[0x40+BANK1] = 0x78;    // DS17887
     memcpy(m_abRegs+0x41+BANK1, "\x11\x22\x33\x44\x55\x66", 6);
-    m_abRegs[0x47+BANK1] = 0xff;
+    m_abRegs[0x47+BANK1] = 0x1e;    // p(x) = x^8 + x^5 + x^4 + x^0
 }
 
 BYTE CDallasClock::In (WORD wPort_)
@@ -318,10 +318,10 @@ BYTE CDallasClock::In (WORD wPort_)
         case 0x53+BANK1:
         {
             // Determine the extended RAM offset
-            WORD wOffset = ((m_abRegs[0x51+BANK1] & 0x0f) << 8) | m_abRegs[0x50+BANK1];
+            WORD wOffset = (m_abRegs[0x51+BANK1] << 8) | m_abRegs[0x50+BANK1];
 
-            // Update the extended RAM data port
-            m_abRegs[bReg] = m_abRAM[wOffset];
+            // Update the extended RAM data port, using 0xff if out of RAM range
+            m_abRegs[bReg] = (wOffset < sizeof(m_abRAM)) ? m_abRAM[wOffset] : 0xff;
 
             // Perform burst mode increment, if enabled
             if ((m_abRegs[0x4a+BANK1] & 0x20) && !++m_abRegs[0x50+BANK1])
@@ -411,10 +411,11 @@ void CDallasClock::Out (WORD wPort_, BYTE bVal_)
         case 0x53+BANK1:
         {
             // Determine the extended RAM offset
-            WORD wOffset = ((m_abRegs[0x51+BANK1] & 0x0f) << 8) | m_abRegs[0x50+BANK1];
+            WORD wOffset = (m_abRegs[0x51+BANK1]<< 8) | m_abRegs[0x50+BANK1];
 
-            // Write the byte
-            m_abRAM[wOffset] = m_abRegs[bReg];
+            // Write the byte, if it's within RAM range
+            if (wOffset < sizeof(m_abRAM))
+                m_abRAM[wOffset] = m_abRegs[bReg];
 
             // Perform burst mode increment, if enabled
             if ((m_abRegs[0x4a+BANK1] & 0x20) && !++m_abRegs[0x50+BANK1])
@@ -446,4 +447,29 @@ bool CDallasClock::Update ()
     m_abRegs[0x48+BANK1] = m_st.nCentury;   // Century
 
     return true;
+}
+
+
+// Load NVRAM contents from file
+void CDallasClock::LoadState (const char *pcszFile_)
+{
+    FILE *f = fopen(pcszFile_, "rb");
+    if (f)
+    {
+        fread(m_abRegs+0x0e, 1, 0x80-0x0e, f);	// User RAM
+        fread(m_abRAM, 1, sizeof(m_abRAM), f);	// Extended RAM
+        fclose(f);
+    }
+}
+
+// Save NVRAM contents to file
+void CDallasClock::SaveState (const char *pcszFile_)
+{
+    FILE *f = fopen(pcszFile_, "wb");
+    if (f)
+    {
+        fwrite(m_abRegs+0x0e, 1, 0x80-0x0e, f);	// User RAM
+        fwrite(m_abRAM, 1, sizeof(m_abRAM), f); // Extended RAM
+        fclose(f);
+    }
 }

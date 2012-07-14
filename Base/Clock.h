@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// Clock.h: SAMBUS and DALLAS clock emulation
+// Clock.h: SAMBUS and Dallas clock emulation
 //
-//  Copyright (c) 1999-2010  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -70,7 +70,7 @@ class CSambusClock : public CClockDevice
         bool Update ();
 
     protected:
-        BYTE m_abRegs[16];    // The 16 SamBus registers
+        BYTE m_abRegs[16];    // 16 registers
 };
 
 
@@ -84,10 +84,13 @@ class CDallasClock : public CClockDevice
         void Out (WORD wPort_, BYTE bVal_);
         bool Update ();
 
+        void LoadState (const char *pcszFile_);
+        void SaveState (const char *pcszFile_);
+
     protected:
-        BYTE m_bReg;            // Currently selected DALLAS register
-        BYTE m_abRegs[128+64];  // DALLAS RAM, including additional bank 1 locations
-        BYTE m_abRAM[0x1000];   // 4K of extended RAM
+        BYTE m_bReg;                // Currently selected register
+        BYTE m_abRegs[14+114+64];   // 14 bank 0 registers, 50+64=114 bytes user RAM, 64 bank 1 registers
+        BYTE m_abRAM[0x2000];       // 8K of extended RAM
 };
 
 #endif
