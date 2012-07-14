@@ -1887,14 +1887,14 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                 case IDOK:
                 {
                     // File extensions for each type, plus an additional extension if compressed
-                    static const char* aszTypes[] = { "mgt", "dsk", "cpm" };
+                    static const char* aszTypes[] = { ".mgt", ".dsk", ".cpm" };
 
                     nType = (int)SendDlgItemMessage(hdlg_, IDC_TYPES, CB_GETCURSEL, 0, 0L);
                     fCompress = SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_GETCHECK, 0, 0L) == BST_CHECKED;
                     fFormat = SendDlgItemMessage(hdlg_, IDC_FORMAT, BM_GETCHECK, 0, 0L) == BST_CHECKED;
 
                     char szFile [MAX_PATH];
-                    snprintf(szFile, MAX_PATH, "untitled.%s", aszTypes[nType]);
+                    snprintf(szFile, MAX_PATH, "untitled%s", aszTypes[nType]);
 
                     OPENFILENAME ofn = { sizeof(ofn) };
                     ofn.hwndOwner = hdlg_;
@@ -1907,7 +1907,13 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     if (!GetSaveLoadFile(&ofn, false))
                         break;
 
+                    // Fetch the file type, in case it's changed
                     nType = ofn.nFilterIndex-1;
+
+                    // Append the appropriate file extension if it's not already present
+                    const char *pcszExt = strrchr(szFile, '.');
+                    if (!pcszExt || (pcszExt && lstrcmpi(pcszExt, aszTypes[nType])))
+                        lstrcat(szFile, aszTypes[nType]);
 
                     CStream* pStream = NULL;
                     CDisk* pDisk = NULL;
@@ -1920,9 +1926,9 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
 
                     switch (nType)
                     {
-                        case 0: pDisk = new CEDSKDisk(pStream); break;
+                        case 0: pDisk = new CMGTDisk(pStream); break;
                         default:
-                        case 1: pDisk = new CMGTDisk(pStream);  break;
+                        case 1: pDisk = new CEDSKDisk(pStream);  break;
                         case 2: pDisk = new CMGTDisk(pStream, DOS_DISK_SECTORS); break;
                     }
 
