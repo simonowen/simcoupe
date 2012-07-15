@@ -185,9 +185,6 @@
     <ClInclude Include="..\Base\Z80ops.h">
       <Filter>Base Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Base\Action.h">
-      <Filter>Win32 Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="IDEDisk.h">
       <Filter>Win32 Header Files</Filter>
     </ClInclude>
@@ -223,6 +220,12 @@
     </ClInclude>
     <ClInclude Include="Floppy.h">
       <Filter>Win32 Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Base\Keyin.h">
+      <Filter>Base Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Base\Action.h">
+      <Filter>Base Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -384,6 +387,9 @@
     </ClCompile>
     <ClCompile Include="Video.cpp">
       <Filter>Win32 Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Base\Keyin.cpp">
+      <Filter>Base Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

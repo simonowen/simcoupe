@@ -53,6 +53,7 @@ class IO
         static void AutoLoad (int nType_);
         static void WakeAsic ();
 
+        static bool EiHook ();
         static bool Rst8Hook ();
         static bool Rst48Hook ();
 };

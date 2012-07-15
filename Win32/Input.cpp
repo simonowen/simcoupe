@@ -2,7 +2,7 @@
 //
 // Input.cpp: Win32 mouse and DirectInput keyboard input
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include "IO.h"
 #include "Joystick.h"
 #include "Keyboard.h"
+#include "Keyin.h"
 #include "Mouse.h"
 #include "Options.h"
 #include "UI.h"
@@ -479,9 +480,12 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
         {
             if (!GUI::IsActive())
             {
-                // Optionally release mouse capture if Esc is pressed
+                // If escape is pressed, release mouse capture and stop any auto-typing
                 if (wParam_ == VK_ESCAPE && GetOption(mouseesc))
+                {
                     AcquireMouse(false);
+                    Keyin::Stop();
+                }
 
                 // Ignore key repeats for non-GUI keys
                 return !!(lParam_ & 0x40000000);

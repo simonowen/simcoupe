@@ -614,7 +614,7 @@ instr(4,0343)
 endinstr;
 
 instr(4,0363)   IFF1 = IFF2 = 0;                                    endinstr;   // di
-instr(4,0373)   IFF1 = IFF2 = 1; g_nTurbo &= ~TURBO_BOOT;           endinstr;   // ei
+instr(4,0373)   if (IO::EiHook()) break; IFF1 = IFF2 = 1; g_nTurbo &= ~TURBO_BOOT; endinstr;   // ei
 
 instr(4,0353)   swap(DE,HL);                                        endinstr;   // ex de,hl
 

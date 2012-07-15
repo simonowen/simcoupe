@@ -37,6 +37,7 @@
 #include "GUIDlg.h"
 #include "HardDisk.h"
 #include "Input.h"
+#include "Keyin.h"
 #include "Main.h"
 #include "Memory.h"
 #include "Midi.h"
@@ -120,6 +121,10 @@ static char szRomFilters[] =
 
 static char szDataFilters[] =
     "Data files (*.bin;*.dat;*.raw;*.txt)\0*.bin;*.dat;*.raw;*.txt\0"
+    "All files (*.*)\0*.*\0";
+
+static char szTextFilters[] =
+    "Data files (*.txt)\0*.txt\0"
     "All files (*.*)\0*.*\0";
 
 static const char* aszBorders[] =
@@ -596,6 +601,11 @@ void UpdateMenuFromOptions ()
     EnableItem(IDM_TOOLS_PRINTER_ONLINE, fPrinter1 || fPrinter2);
     CheckOption(IDM_TOOLS_PRINTER_ONLINE, (fPrinter1 || fPrinter2) && GetOption(printeronline));
 
+    // Enable clipboard pasting if plain text data is available
+    bool fCanType = Keyin::CanType();
+    EnableItem(IDM_TOOLS_PASTE, fCanType && IsClipboardFormatAvailable(CF_TEXT));
+    EnableItem(IDM_TOOLS_PASTE_FILE, fCanType);
+
     UpdateRecentFiles(hmenuFile, IDM_FILE_RECENT1, 2);
     UpdateRecentFiles(hmenuFloppy2, IDM_FLOPPY2_RECENT1, 0);
 }
@@ -709,6 +719,51 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
                 UI::ResizeWindow(true);
                 Frame::SetStatus(aszBorders[GetOption(borders)]);
                 break;
+
+            case actPaste:
+            {
+                // Open the clipboard, preventing anyone from modifying its contents
+                if (OpenClipboard(g_hwnd))
+                {
+                    // We want data as plain text
+                    HANDLE hClip = GetClipboardData(CF_TEXT);
+                    if (hClip != NULL)
+                    {
+                        // Fetch the actual text content
+                        const char *pcsz = reinterpret_cast<const char *>(GlobalLock(hClip));
+                        if (pcsz)
+                        {
+                            // Type the string
+                            Keyin::String(pcsz);
+                            GlobalUnlock(hClip);
+                        }
+                    }
+
+                    CloseClipboard();
+                }
+                break;
+            }
+
+            case actPasteFile:
+            {
+                static char szFile[MAX_PATH] = "";
+
+                OPENFILENAME ofn = { sizeof(ofn) };
+                ofn.hwndOwner = g_hwnd;
+                ofn.lpstrFilter = szTextFilters;
+                ofn.lpstrFile = szFile;
+                ofn.nMaxFile = sizeof(szFile);
+                ofn.Flags = 0;
+
+                // Prompt to select a text file
+                if (!GetSaveLoadFile(&ofn, true))
+                    return false;
+
+                // Type the contents of the file
+                Keyin::File(szFile);
+
+                break;
+            }
 
             // Not processed
             default:
@@ -1337,6 +1392,8 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_RECORD_WAV_STOP:       Action::Do(actRecordWavStop);     break;
 
                 case IDM_TOOLS_OPTIONS:         Action::Do(actOptions);           break;
+                case IDM_TOOLS_PASTE:           Action::Do(actPaste);             break;
+                case IDM_TOOLS_PASTE_FILE:      Action::Do(actPasteFile);         break;
                 case IDM_TOOLS_PRINTER_ONLINE:  Action::Do(actPrinterOnline);     break;
                 case IDM_TOOLS_FLUSH_PRINTER:   Action::Do(actFlushPrinter);      break;
                 case IDM_TOOLS_DEBUGGER:        Action::Do(actDebugger);          break;

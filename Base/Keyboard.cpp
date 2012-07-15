@@ -23,6 +23,7 @@
 
 #include "Input.h"
 #include "Joystick.h"
+#include "Keyin.h"
 #include "Memory.h"
 #include "Options.h"
 
@@ -174,6 +175,9 @@ void Keyboard::Update ()
     // No SAM keys are pressed initially
     memset(keybuffer, 0xff, sizeof(keybuffer));
 
+    // Suppress normal key input if we're auto-typing
+    if (Keyin::IsTyping())
+        return;
 
     // Left and right shift keys are equivalent, and also complementary!
     bool fShiftToggle = IsPressed(HK_LSHIFT) && IsPressed(HK_RSHIFT);

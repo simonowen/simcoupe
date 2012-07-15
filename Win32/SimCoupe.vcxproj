@@ -378,6 +378,7 @@
     <ClInclude Include="..\Base\ioapi.h" />
     <ClInclude Include="..\Base\Joystick.h" />
     <ClInclude Include="..\Base\Keyboard.h" />
+    <ClInclude Include="..\Base\Keyin.h" />
     <ClInclude Include="..\Base\Main.h" />
     <ClInclude Include="..\Base\Memory.h" />
     <ClInclude Include="..\Base\Mouse.h" />
@@ -467,6 +468,7 @@
     </ClCompile>
     <ClCompile Include="..\Base\Joystick.cpp" />
     <ClCompile Include="..\Base\Keyboard.cpp" />
+    <ClCompile Include="..\Base\Keyin.cpp" />
     <ClCompile Include="..\Base\Main.cpp" />
     <ClCompile Include="..\Base\Memory.cpp" />
     <ClCompile Include="..\Base\Mouse.cpp" />

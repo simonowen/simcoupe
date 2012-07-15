@@ -35,6 +35,7 @@
 #include "HardDisk.h"
 #include "Input.h"
 #include "Keyboard.h"
+#include "Keyin.h"
 #include "Memory.h"
 #include "MIDI.h"
 #include "Mouse.h"
@@ -92,7 +93,6 @@ BYTE keyports[9];       // 8 rows of keys (+ 1 row for unscanned keys)
 BYTE keybuffer[9];      // working buffer for key changed, activated mid-frame
 
 bool fASICStartup;      // If set, the ASIC will be unresponsive shortly after first power-on
-static int nAutoLoad;	// set to the media type to auto-load at the startup screen
 
 #ifdef _DEBUG
 static BYTE abUnhandled[32];    // track unhandled port access in debug mode
@@ -174,6 +174,8 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     pFloppy2->Reset();
     pAtom->Reset();
     pSDIDE->Reset();
+
+    Keyin::Stop();
 
     // Return true only if everything
     return fRet;
@@ -896,6 +898,7 @@ const COLOUR* IO::GetPalette ()
 // Check if we're at the striped SAM startup screen
 bool IO::IsAtStartupScreen (bool fExit_)
 {
+
     // Search the top 10 stack entries
     for (int i = 0 ; i < 20 ; i += 2)
     {
@@ -916,9 +919,18 @@ bool IO::IsAtStartupScreen (bool fExit_)
 
 void IO::AutoLoad (int nType_)
 {
-    // Set the auto-load type if we're at the startup screen or forced
+    // Set the auto-load type if we're forced or at the startup screen
     if (GetOption(autoboot) && ((nType_ & AUTOLOAD_FORCE) || IsAtStartupScreen()))
-        nAutoLoad = nType_ & AUTOLOAD_MASK;
+    {
+        // Keep only the type bits
+        nType_ &= AUTOLOAD_MASK;
+
+        // F9 to boot floppy 1, F7 to load tape
+        const char *pcszKey = (nType_ == AUTOLOAD_DISK) ? "\xc9" : "\xc7";
+
+        // Simulate the key press
+        Keyin::String(pcszKey, false);
+    }
 }
 
 void IO::WakeAsic ()
@@ -927,6 +939,16 @@ void IO::WakeAsic ()
     fASICStartup = false;
 }
 
+
+bool IO::EiHook ()
+{
+    // If we're leaving the ROM interrupt handler, inject any auto-typing input
+    if (PC == 0x005a && GetSectionPage(SECTION_A) == ROM0)
+        Keyin::Next();
+
+    // Continue EI processing
+    return false;
+}
 
 bool IO::Rst8Hook ()
 {
@@ -938,12 +960,16 @@ bool IO::Rst8Hook ()
     // Read the error code after the RST
     BYTE bErrCode = read_byte(PC);
 
-    // If a drive object exists, clean up after our boot attempt (which could fail if we're given a bad image)
+    // If a drive object exists, clean up after our boot attempt, whether or not it worked
     if (pBootDrive)
         delete pBootDrive, pBootDrive = NULL;
 
+    // Stop auto-typing on any error
+    if (bErrCode != 0)
+        Keyin::Stop();
+
     // Are we about to trigger "NO DOS" in ROM1, and with DOS booting enabled?
-    else if (bErrCode == 0x35 && GetOption(dosboot))
+    if (bErrCode == 0x35 && GetOption(dosboot))
     {
         // If there's a custom boot disk, load it read-only
         CDisk *pDisk = CDisk::Open(GetOption(dosdisk), true);
@@ -971,18 +997,9 @@ bool IO::Rst48Hook ()
     // Are we at READKEY in ROM0?
     if (PC == 0x1cb2 && GetSectionPage(SECTION_A) == ROM0)
     {
-        // Check if auto-load is required and whether we're at the startup screen
-        if (nAutoLoad != AUTOLOAD_NONE && IO::IsAtStartupScreen(true))
-        {
-            // F9 to boot floppy 1, F7 to load tape
-            BYTE bKey = (nAutoLoad == AUTOLOAD_DISK) ? 0xc9 : 0xc7;
-
-            // Simulate key press
-            apbPageWritePtrs[0][0x5c08-0x4000] = bKey;  // set key in LASTK
-            apbPageWritePtrs[0][0x5c3b-0x4000] = 0x20;  // signal key available in FLAGS
-
-            nAutoLoad = AUTOLOAD_NONE;
-        }
+        // If we have auto-type input, skip the startup screen
+        if (Keyin::IsTyping())
+            IsAtStartupScreen(true);
     }
 
     // Continue with RST
