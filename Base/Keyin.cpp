@@ -85,10 +85,10 @@ bool Keyin::Next ()
         return false;
 
     // Read the next key from file or string
-    if (f)
-        fread(&bKey, 1, 1, f);
-    else
+    if (!f)
         bKey = pbInput[nPos++];
+    else if (!fread(&bKey, 1, 1, f))
+        bKey = 0;
 
     // Stop at the first null character
     if (!bKey)

@@ -456,8 +456,10 @@ void CDallasClock::LoadState (const char *pcszFile_)
     FILE *f = fopen(pcszFile_, "rb");
     if (f)
     {
-        fread(m_abRegs+0x0e, 1, 0x80-0x0e, f);	// User RAM
-        fread(m_abRAM, 1, sizeof(m_abRAM), f);	// Extended RAM
+        bool fRet =
+            fread(m_abRegs+0x0e, 1, 0x80-0x0e, f) &&    // User RAM
+            fread(m_abRAM, 1, sizeof(m_abRAM), f);      // Extended RAM
+
         fclose(f);
     }
 }
