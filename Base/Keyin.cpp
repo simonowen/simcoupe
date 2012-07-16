@@ -35,7 +35,7 @@ void Keyin::String (const char *pcsz_, bool fMapChars_)
     Stop();
 
     // Determine the source length and allocate a buffer for it
-    int nLen = strlen(pcsz_);
+    size_t nLen = strlen(pcsz_);
     pbInput = new BYTE[nLen+1];
 
     // Copy the string, appending a null terminator just in case
@@ -123,20 +123,47 @@ bool Keyin::Next ()
 // Map special case input characters to the SAM key code equivalent
 BYTE Keyin::MapChar (BYTE b_)
 {
-    switch (b_)
+    static BYTE abMap[256];
+
+    // Reasonable alternatives to ANSI chars 128-255 (Windows-1252)
+    static char szExtended[129] =
+        "__'f\".__^%S<__Z_"     // 128
+        "_''\"\"---~_s>__zY"    // 144
+        " _c__Y|__\x7f_<____"   // 160
+        "__23_u_-_1_>____"      // 176
+        "AAAAAA_CEEEEIIII"      // 192
+        "DNOOOOOxOUUUUY_S"      // 208
+        "aaaaaa_ceeeeiiii"      // 224
+        "_nooooo/ouuuuy_y";     // 240
+
+    // Does the map need initialising?
+    if (!abMap['A'])
     {
-        case '\t':	return b_;		// horizontal tab
-        case '\r':	return 0;		// ignore CR
-        case '\n':	return '\r';	// convert LF to CR
-        case '`':	return 0x7f;	// (c)
-        case 156:	return 0x60;	// GBP [DOS / CP 437]
-        case 163:	return 0x60;	// GBP [ANSI]
+        int i;
+
+        // Normal 7-bit ASCII range, excluding control characters
+        for (i = ' ' ; i < 0x7f ; i++)
+            abMap[i] = i;
+
+        // Extended ANSI characters
+        for (i = 0 ; i < 128 ; i++)
+        {
+            // Update map, skipping underscore entries
+            if (szExtended[i] != '_')
+                abMap[128+i] = szExtended[i];
+        }
+
+        // Control characters
+        abMap['\t'] = '\t';     // horizontal tab
+        abMap['\n'] = '\r';     // convert LF to CR
+
+        // SAM-specific characters
+        abMap['`']  = 0x7f;     // (c)
+        abMap[0x9c] = 0x60;     // GBP [DOS / CP 437]
+        abMap[0xa3] = 0x60;     // GBP [ANSI]
+        abMap[0xa9] = 0x7f;     // (c)
     }
 
-    // Ignore other extended characters
-    if (b_ < 0x20 || b_ >= 0x80)
-        return 0;
-
-    // Return the original character
-    return b_;
+    // Return the mapped character, or 0 if none
+    return abMap[b_];
 }
