@@ -134,20 +134,15 @@ class CATADevice
 
     protected:
         ATAregs m_sRegs;                // AT device registers
-        IDENTIFYDEVICE m_sIdentify;       // Identify device data
+        IDENTIFYDEVICE m_sIdentify;     // Identify device data
         ATA_GEOMETRY m_sGeometry;       // Device geometry
 
-        bool    m_f8bit;                // true if 8-bit data transfers are enabled
-
         BYTE    m_abSectorData[512];    // Sector buffer used for all reads and writes
-        BYTE    m_abVendorBytes[4];     // 4 for the ECC bytes for R/W Long operations
 
         UINT    m_uBuffer;              // Number of bytes available for reading, or expected for writing
         BYTE*   m_pbBuffer;             // Current position in sector buffer for read/write operations
 
-        bool    m_fAsleep;              // true if we're asleep
-        int     m_nMultiples;           // Number of sectors used for multiple sector operations (0 = unsupported)
-
+        bool    m_f8bit;                // true if 8-bit data transfers are enabled
         bool    m_fByteSwap;            // true if we should byte-swap the underlying sector data
 };
 
