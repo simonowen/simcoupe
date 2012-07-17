@@ -316,9 +316,26 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
 
                         case 0x90:
                             TRACE("ATA: Disk command: Execute Device Diagnostic\n");
+                            m_sRegs.bError = 1;  // device 0 present, device 1 passed/absent
+                            break;
 
-                            // Device 0 present, device 1 passed/absent
-                            m_sRegs.bError = 1;
+                        case 0xe0:  // Standby Immediate
+                        case 0xe2:  // Standby
+                            TRACE("ATA: Disk command: Standby [Immediate]\n");
+                            break;
+
+                        case 0xe1:  // Idle Immediate
+                        case 0xe3:  // Idle
+                            TRACE("ATA: Disk command: Idle [Immediate]\n");
+                            break;
+
+                        case 0xe5:  // Check Power Mode
+                            TRACE("ATA: Disk command: Check Power Mode\n");
+                            m_sRegs.bSectorCount = 0xff;  // device is active
+                            break;
+
+                        case 0xe6:  // Sleep
+                            TRACE("ATA: Disk command: Sleep\n");
                             break;
 
                         case 0xec:
