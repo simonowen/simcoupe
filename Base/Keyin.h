@@ -27,10 +27,9 @@ class Keyin
 {
     public:
         static void String (const char *pcsz_, bool fMapChars_=true);
-        static void File (const char *pcszFile_);
         static void Stop ();
 
-		static bool CanType ();
+        static bool CanType ();
         static bool IsTyping ();
 
         static bool Next ();

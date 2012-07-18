@@ -601,10 +601,8 @@ void UpdateMenuFromOptions ()
     EnableItem(IDM_TOOLS_PRINTER_ONLINE, fPrinter1 || fPrinter2);
     CheckOption(IDM_TOOLS_PRINTER_ONLINE, (fPrinter1 || fPrinter2) && GetOption(printeronline));
 
-    // Enable clipboard pasting if plain text data is available
-    bool fCanType = Keyin::CanType();
-    EnableItem(IDM_TOOLS_PASTE, fCanType && IsClipboardFormatAvailable(CF_TEXT));
-    EnableItem(IDM_TOOLS_PASTE_FILE, fCanType);
+    // Enable clipboard pasting if Unicode text data is available
+    EnableItem(IDM_TOOLS_PASTE_CLIPBOARD, Keyin::CanType() && IsClipboardFormatAvailable(CF_UNICODETEXT));
 
     UpdateRecentFiles(hmenuFile, IDM_FILE_RECENT1, 2);
     UpdateRecentFiles(hmenuFloppy2, IDM_FLOPPY2_RECENT1, 0);
@@ -725,43 +723,81 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
                 // Open the clipboard, preventing anyone from modifying its contents
                 if (OpenClipboard(g_hwnd))
                 {
-                    // We want data as plain text
-                    HANDLE hClip = GetClipboardData(CF_TEXT);
+                    // Request the content as Unicode text
+                    HANDLE hClip = GetClipboardData(CF_UNICODETEXT);
                     if (hClip != NULL)
                     {
-                        // Fetch the actual text content
-                        const char *pcsz = reinterpret_cast<const char *>(GlobalLock(hClip));
-                        if (pcsz)
+                        LPCWSTR pwsz = reinterpret_cast<LPCWSTR>(GlobalLock(hClip));
+                        if (pwsz)
                         {
+                            int nSizeWide = lstrlenW(pwsz);
+                            LPWSTR pwsz2 = new WCHAR[nSizeWide*3]; // <= 3 chars transliterated
+                            LPWSTR pw = pwsz2;
+
+                            // Process character by character
+                            for (WCHAR wch ; wch = *pwsz ; pwsz++)
+                            {
+                                // Map GBP and (c) directly to SAM codes
+                                if (wch == 0x00a3)	// GBP
+                                    *pw++ = 0x60;
+                                else if (wch == 0x00a9) // (c)
+                                    *pw++ = 0x7f;
+
+                                // Cyrillic range?
+                                else if (wch >= 0x0410 && wch <= 0x044f)
+                                {
+                                    // Determine case and XOR value to convert from ASCII lowercase
+                                    char chCase = ~(wch - 0x0410) & 0x20;
+
+                                    static const char *aszConv[] = {
+                                        "a", "b", "v", "g", "d", "e", "zh", "z",
+                                        "i", "j", "k", "l", "m", "n", "o", "p",
+                                        "r", "s", "t", "u", "f", "h", "c", "ch",
+                                        "sh", "shh", "\"", "y", "'", "je", "ju", "ja"
+                                    };
+
+                                    const char *psz = aszConv[(wch - 0x0410) & 0x1f];
+                                    for (char ch ; (ch = *psz) ; psz++)
+                                    {
+                                        // Toggle case of alphabetic characters only
+                                        if (ch >= 'a' && ch <= 'z')
+                                            *pw++ = ch ^ chCase;
+                                        else
+                                            *pw++ = ch;
+                                    }
+                                }
+                                // Extra Russian Cyrillic character not in the range above
+                                else if (wch == 0x0401)
+                                    *pw++ = 'J', *pw++ = 'O';
+                                else if (wch == 0x0451)
+                                    *pw++ = 'j', *pw++ = 'o';
+                                else
+                                {
+                                    // Copy anything else as-is
+                                    *pw++ = wch;
+                                }
+                            }
+
+                            // Terminate the new string
+                            *pw++ = 0;
+
+                            // Convert to US-ASCII, stripping diacritic marks as we go
+                            int nSize = WideCharToMultiByte(CP_ACP, 0, pwsz2, -1, NULL, 0, NULL, NULL);
+                            char *pcsz = new char[nSize+1];
+                            nSize = WideCharToMultiByte(20127, 0, pwsz2, -1, pcsz, nSize, NULL, NULL);
+
                             // Type the string
                             Keyin::String(pcsz);
+
+                            // Clean up
+                            delete[] pcsz;
+                            delete[] pwsz2;
                             GlobalUnlock(hClip);
                         }
                     }
 
                     CloseClipboard();
                 }
-                break;
-            }
-
-            case actPasteFile:
-            {
-                static char szFile[MAX_PATH] = "";
-
-                OPENFILENAME ofn = { sizeof(ofn) };
-                ofn.hwndOwner = g_hwnd;
-                ofn.lpstrFilter = szTextFilters;
-                ofn.lpstrFile = szFile;
-                ofn.nMaxFile = sizeof(szFile);
-                ofn.Flags = 0;
-
-                // Prompt to select a text file
-                if (!GetSaveLoadFile(&ofn, true))
-                    return false;
-
-                // Type the contents of the file
-                Keyin::File(szFile);
-
                 break;
             }
 
@@ -1392,8 +1428,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_RECORD_WAV_STOP:       Action::Do(actRecordWavStop);     break;
 
                 case IDM_TOOLS_OPTIONS:         Action::Do(actOptions);           break;
-                case IDM_TOOLS_PASTE:           Action::Do(actPaste);             break;
-                case IDM_TOOLS_PASTE_FILE:      Action::Do(actPasteFile);         break;
+                case IDM_TOOLS_PASTE_CLIPBOARD: Action::Do(actPaste);             break;
                 case IDM_TOOLS_PRINTER_ONLINE:  Action::Do(actPrinterOnline);     break;
                 case IDM_TOOLS_FLUSH_PRINTER:   Action::Do(actFlushPrinter);      break;
                 case IDM_TOOLS_DEBUGGER:        Action::Do(actDebugger);          break;

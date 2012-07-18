@@ -191,8 +191,7 @@
 #define IDM_SYSTEM_SPEED_300            40253
 #define IDM_SYSTEM_SPEED_500            40254
 #define IDM_SYSTEM_SPEED_1000           40255
-#define IDM_TOOLS_PASTE                 40257
-#define IDM_TOOLS_PASTE_FILE            40259
+#define IDM_TOOLS_PASTE_CLIPBOARD       40260
 
 // Next default values for new objects
 // 
@@ -200,7 +199,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        196
-#define _APS_NEXT_COMMAND_VALUE         40260
+#define _APS_NEXT_COMMAND_VALUE         40261
 #define _APS_NEXT_CONTROL_VALUE         1193
 #define _APS_NEXT_SYMED_VALUE           102
 #endif

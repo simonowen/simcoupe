@@ -25,7 +25,6 @@
 
 static BYTE *pbInput;
 static int nPos = -1;
-static FILE *f;
 static bool fMapChars = true;
 
 
@@ -47,17 +46,9 @@ void Keyin::String (const char *pcsz_, bool fMapChars_)
     nPos = 0;
 }
 
-void Keyin::File (const char *pcszFile_)
-{
-    Stop();
-    f = fopen(pcszFile_, "rb");
-    fMapChars = true;
-}
-
 void Keyin::Stop ()
 {
-    // Clean up file and string
-    if (f) fclose(f), f = NULL;
+    // Clean up
     delete[] pbInput, pbInput = NULL;
 
     // Normal speed
@@ -72,8 +63,8 @@ bool Keyin::CanType ()
 
 bool Keyin::IsTyping ()
 {
-    // Do we have a string or open file?
-    return pbInput || f;
+    // Do we have a string?
+    return pbInput != NULL;
 }
 
 bool Keyin::Next ()
@@ -84,11 +75,8 @@ bool Keyin::Next ()
     if (!IsTyping() || (apbPageWritePtrs[0][0x5c3b-0x4000] & 0x20))
         return false;
 
-    // Read the next key from file or string
-    if (!f)
-        bKey = pbInput[nPos++];
-    else if (!fread(&bKey, 1, 1, f))
-        bKey = 0;
+    // Read the next key
+    bKey = pbInput[nPos++];
 
     // Stop at the first null character
     if (!bKey)
@@ -125,43 +113,19 @@ BYTE Keyin::MapChar (BYTE b_)
 {
     static BYTE abMap[256];
 
-    // Reasonable alternatives to ANSI chars 128-255 (Windows-1252)
-    static char szExtended[129] =
-        "__'f\".__^%S<__Z_"     // 128
-        "_''\"\"---~_s>__zY"    // 144
-        " _c__Y|__\x7f_<____"   // 160
-        "__23_u_-_1_>____"      // 176
-        "AAAAAA_CEEEEIIII"      // 192
-        "DNOOOOOxOUUUUY_S"      // 208
-        "aaaaaa_ceeeeiiii"      // 224
-        "_nooooo/ouuuuy_y";     // 240
-
     // Does the map need initialising?
     if (!abMap['A'])
     {
         int i;
 
         // Normal 7-bit ASCII range, excluding control characters
-        for (i = ' ' ; i < 0x7f ; i++)
+        // Note: SAM uses 0x60 for GBP and 0x7f for (c)
+        for (i = ' ' ; i <= 0x7f ; i++)
             abMap[i] = i;
 
-        // Extended ANSI characters
-        for (i = 0 ; i < 128 ; i++)
-        {
-            // Update map, skipping underscore entries
-            if (szExtended[i] != '_')
-                abMap[128+i] = szExtended[i];
-        }
-
-        // Control characters
+        // Preserve certain control characters
         abMap['\t'] = '\t';     // horizontal tab
         abMap['\n'] = '\r';     // convert LF to CR
-
-        // SAM-specific characters
-        abMap['`']  = 0x7f;     // (c)
-        abMap[0x9c] = 0x60;     // GBP [DOS / CP 437]
-        abMap[0xa3] = 0x60;     // GBP [ANSI]
-        abMap[0xa9] = 0x7f;     // (c)
     }
 
     // Return the mapped character, or 0 if none

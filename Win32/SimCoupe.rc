@@ -13,18 +13,20 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (United Kingdom) resources
+// English (U.K.) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 #pragma code_page(1252)
+#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Dialog
 //
 
-IDD_PAGE_MISC DIALOG 0, 0, 235, 156
+IDD_PAGE_MISC DIALOG  0, 0, 235, 156
 STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Misc"
 FONT 8, "MS Sans Serif"
@@ -58,7 +60,7 @@ BEGIN
     CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,7,67,179,1
 END
 
-IDD_PAGE_PARALLEL DIALOG 0, 0, 235, 156
+IDD_PAGE_PARALLEL DIALOG  0, 0, 235, 156
 STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Parallel"
 FONT 8, "MS Sans Serif"
@@ -102,7 +104,7 @@ BEGIN
     GROUPBOX        "Settings",IDC_STATIC,45,7,170,46
 END
 
-IDD_PAGE_JOYSTICK DIALOG 0, 0, 235, 156
+IDD_PAGE_JOYSTICK DIALOG  0, 0, 235, 156
 STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Joystick"
 FONT 8, "MS Sans Serif"
@@ -155,7 +157,7 @@ BEGIN
     CONTROL         "Swap mouse buttons 2 and 3",IDC_MOUSE_SWAP23,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,101,152,10
 END
 
-IDD_PAGE_MIDI DIALOG 0, 0, 235, 156
+IDD_PAGE_MIDI DIALOG  0, 0, 235, 156
 STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "MIDI"
 FONT 8, "MS Sans Serif"
@@ -193,7 +195,7 @@ BEGIN
     ICON            IDI_FLOPPY,IDC_STATIC,7,7,20,20
 END
 
-IDD_PAGE_FNKEYS DIALOG 0, 0, 235, 156
+IDD_PAGE_FNKEYS DIALOG  0, 0, 235, 156
 STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "FnKeys"
 FONT 8, "MS Sans Serif"
@@ -206,7 +208,7 @@ BEGIN
     GROUPBOX        "Emulator function keys",-1,45,7,172,142
 END
 
-IDD_NEW_FNKEY DIALOG 0, 0, 140, 132
+IDD_NEW_FNKEY DIALOG  0, 0, 140, 132
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Key Binding"
 FONT 8, "MS Sans Serif"
@@ -224,7 +226,7 @@ BEGIN
     LTEXT           "Select the key and modifiers or simply press the required key(s)",IDC_STATIC,18,17,106,16
 END
 
-IDD_PAGE_DRIVES DIALOG 0, 0, 235, 156
+IDD_PAGE_DRIVES DIALOG  0, 0, 235, 156
 STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Drives"
 FONT 8, "MS Sans Serif"
@@ -249,7 +251,7 @@ BEGIN
     LTEXT           "DOS image (leave blank for SAMDOS2):",IDS_DOSDISK,64,117,128,8
 END
 
-IDD_IMPORT DIALOG 0, 0, 254, 82
+IDD_IMPORT DIALOG  0, 0, 254, 82
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Import Data"
 FONT 8, "MS Sans Serif"
@@ -268,7 +270,7 @@ BEGIN
     RTEXT           "Address:",IDS_ADDRESS,44,46,30,8
 END
 
-IDD_EXPORT DIALOG 0, 0, 254, 98
+IDD_EXPORT DIALOG  0, 0, 254, 98
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Export Data"
 FONT 8, "MS Sans Serif"
@@ -291,7 +293,7 @@ BEGIN
     RTEXT           "Length:",IDS_LENGTH2,44,63,30,8,NOT WS_VISIBLE
 END
 
-IDD_NEW_DISK DIALOG 0, 0, 266, 73
+IDD_NEW_DISK DIALOG  0, 0, 266, 73
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "New Disk"
 FONT 8, "MS Sans Serif"
@@ -305,7 +307,7 @@ BEGIN
     LTEXT           "Select the type of disk image to create:",IDC_STATIC,45,7,124,8
 END
 
-IDD_HARDDISK DIALOG 0, 0, 290, 67
+IDD_HARDDISK DIALOG  0, 0, 290, 67
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Hard Disk Properties"
 FONT 8, "MS Sans Serif"
@@ -328,7 +330,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
+GUIDELINES DESIGNINFO 
 BEGIN
     IDD_PAGE_MISC, DIALOG
     BEGIN
@@ -474,7 +476,7 @@ END
 // Menu
 //
 
-IDR_MENU MENU
+IDR_MENU MENU 
 BEGIN
     POPUP "&File"
     BEGIN
@@ -571,8 +573,7 @@ BEGIN
     BEGIN
         MENUITEM "&Options...",                 IDM_TOOLS_OPTIONS
         MENUITEM SEPARATOR
-        MENUITEM "&Paste",                      IDM_TOOLS_PASTE
-        MENUITEM "Paste &File...",              IDM_TOOLS_PASTE_FILE
+        MENUITEM "&Paste Clipboard",            IDM_TOOLS_PASTE_CLIPBOARD
         MENUITEM SEPARATOR
         MENUITEM "Printer &Online",             IDM_TOOLS_PRINTER_ONLINE
         MENUITEM "&Flush Printer",              IDM_TOOLS_FLUSH_PRINTER
@@ -699,7 +700,7 @@ IDC_CURSOR              CURSOR                  "Cursors\\arrow.cur"
 // Toolbar
 //
 
-IDT_MENU TOOLBAR 19, 18
+IDT_MENU TOOLBAR  19, 18
 BEGIN
     BUTTON      IDM_FILE_NEW_DISK1
     BUTTON      IDM_FILE_FLOPPY1_INSERT
@@ -719,7 +720,7 @@ END
 
 IDB_SIMCOUPE            BITMAP                  "Bitmaps\\simcoupe.bmp"
 IDT_MENU                BITMAP                  "bitmaps\\menuicon.bmp"
-#endif    // English (United Kingdom) resources
+#endif    // English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

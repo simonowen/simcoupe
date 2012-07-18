@@ -30,7 +30,7 @@ enum eActions
     actChangeFrameSkip_REMOVED, actToggleScanlines, actToggleGreyscale, actToggleMute, actReleaseMouse,
     actPrinterOnline, actFlushPrinter, actAbout, actMinimise, actRecordGif, actRecordGifLoop, actRecordGifStop,
     actRecordWav,actRecordWavSegment, actRecordWavStop, actRecordAvi, actRecordAviHalf, actRecordAviStop,
-    actSpeedFaster, actSpeedSlower, actSpeedNormal, actPaste, actPasteFile, MAX_ACTION
+    actSpeedFaster, actSpeedSlower, actSpeedNormal, actPaste, MAX_ACTION
 };
 
 class Action
