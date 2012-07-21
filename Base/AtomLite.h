@@ -21,13 +21,13 @@
 #ifndef ATOMLITE_H
 #define ATOMLITE_H
 
-#include "HardDisk.h"
+#include "AtaAdapter.h"
 #include "Clock.h"
 
 const BYTE ATOM_LITE_ADDR_MASK = 0x1f;  // Chip select mask
 const BYTE ATOM_LITE_REG_MASK  = 0x07;  // Device address mask
 
-class CAtomLiteDevice : public CHardDiskDevice
+class CAtomLiteDevice : public CAtaAdapter
 {
     public:
         CAtomLiteDevice ();
@@ -37,7 +37,7 @@ class CAtomLiteDevice : public CHardDiskDevice
         void Out (WORD wPort_, BYTE bVal_);
 
     public:
-        bool Insert (CHardDisk *pDisk_);
+        bool Insert (CHardDisk *pDisk_, int nDevice_);
 
     protected:
         CDallasClock m_Dallas;

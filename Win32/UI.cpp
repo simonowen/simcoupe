@@ -24,6 +24,7 @@
 #include <shlwapi.h>
 
 #include "Action.h"
+#include "AtaAdapter.h"
 #include "AVI.h"
 #include "Clock.h"
 #include "CPU.h"
@@ -35,7 +36,6 @@
 #include "Frame.h"
 #include "GIF.h"
 #include "GUIDlg.h"
-#include "HardDisk.h"
 #include "Input.h"
 #include "Keyin.h"
 #include "Main.h"
@@ -2504,17 +2504,20 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
         case WM_INITDIALOG:
         {
             // Drop-down defaults for the drives
-            AddComboString(hdlg_, IDC_ATOM, "");
+            AddComboString(hdlg_, IDC_ATOM0, "");
+            AddComboString(hdlg_, IDC_ATOM1, "");
             AddComboString(hdlg_, IDC_SDIDE, "");
             AddComboString(hdlg_, IDC_YATBUS, "");
 
             // Refresh the options from the active devices
-            SetOption(atomdisk, pAtom->DiskPath());
-            SetOption(sdidedisk, pSDIDE->DiskPath());
-            SetOption(yatbusdisk, pYATBus->DiskPath());
+            SetOption(atomdisk0, pAtom->DiskPath(0));
+            SetOption(atomdisk1, pAtom->DiskPath(1));
+            SetOption(sdidedisk, pSDIDE->DiskPath(0));
+            SetOption(yatbusdisk, pYATBus->DiskPath(0));
 
             // Set the edit controls to the current settings
-            SetDlgItemPath(hdlg_, IDC_ATOM, GetOption(atomdisk));
+            SetDlgItemPath(hdlg_, IDC_ATOM0, GetOption(atomdisk0));
+            SetDlgItemPath(hdlg_, IDC_ATOM1, GetOption(atomdisk1));
             SetDlgItemPath(hdlg_, IDC_SDIDE, GetOption(sdidedisk));
             SetDlgItemPath(hdlg_, IDC_YATBUS, GetOption(yatbusdisk));
 
@@ -2527,7 +2530,8 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 CHardDisk* pDisk = CHardDisk::OpenObject(szDrive);
                 if (pDisk)
                 {
-                    AddComboString(hdlg_, IDC_ATOM, szDrive);
+                    AddComboString(hdlg_, IDC_ATOM0, szDrive);
+                    AddComboString(hdlg_, IDC_ATOM1, szDrive);
                     AddComboString(hdlg_, IDC_SDIDE, szDrive);
                     AddComboString(hdlg_, IDC_YATBUS, szDrive);
                     delete pDisk;
@@ -2541,22 +2545,37 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
                 char szPath[MAX_PATH];
-                GetDlgItemPath(hdlg_, IDC_ATOM, szPath, MAX_PATH); SetOption(atomdisk, szPath);
+                GetDlgItemPath(hdlg_, IDC_ATOM0, szPath, MAX_PATH); SetOption(atomdisk0, szPath);
+                GetDlgItemPath(hdlg_, IDC_ATOM1, szPath, MAX_PATH); SetOption(atomdisk1, szPath);
                 GetDlgItemPath(hdlg_, IDC_SDIDE, szPath, MAX_PATH); SetOption(sdidedisk, szPath);
                 GetDlgItemPath(hdlg_, IDC_YATBUS, szPath, MAX_PATH); SetOption(yatbusdisk, szPath);
 
                 // If the Atom path has changed, activate it
-                if (ChangedString(atomdisk))
+                if (ChangedString(atomdisk0))
                 {
-                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk));
-                    if (!pDisk && *GetOption(atomdisk))
+                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk0));
+                    if (!pDisk && *GetOption(atomdisk0))
                     {
-                        Message(msgWarning, "Invalid Atom disk: %s", GetOption(atomdisk));
+                        Message(msgWarning, "Invalid Atom disk: %s", GetOption(atomdisk0));
                         SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
                         return TRUE;
                     }
                     
-                    pAtom->Insert(pDisk);
+                    pAtom->Insert(pDisk, 0);
+                }
+
+                // If the Atom path has changed, activate it
+                if (ChangedString(atomdisk1))
+                {
+                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk1));
+                    if (!pDisk && *GetOption(atomdisk1))
+                    {
+                        Message(msgWarning, "Invalid Atom disk: %s", GetOption(atomdisk1));
+                        SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
+                        return TRUE;
+                    }
+                    
+                    pAtom->Insert(pDisk, 1);
                 }
 
                 if (ChangedString(sdidedisk))
@@ -2564,12 +2583,12 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                     CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(sdidedisk));
                     if (!pDisk && *GetOption(sdidedisk))
                     {
-                        Message(msgWarning, "Invalid SDIDE disk: %s", GetOption(atomdisk));
+                        Message(msgWarning, "Invalid SDIDE disk: %s", GetOption(sdidedisk));
                         SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
                         return TRUE;
                     }
                     
-                    pSDIDE->Insert(pDisk);
+                    pSDIDE->Insert(pDisk, 0);
                 }
 
                 if (ChangedString(yatbusdisk))
@@ -2582,7 +2601,7 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                         return TRUE;
                     }
                     
-                    pYATBus->Insert(pDisk);
+                    pYATBus->Insert(pDisk, 0);
                 }
             }
             break;
@@ -2592,9 +2611,16 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
         {
             switch (LOWORD(wParam_))
             {
-                case IDB_ATOM:
+                case IDB_ATOM0:
                 {
-                    LPARAM lCtrl = reinterpret_cast<LPARAM>(GetDlgItem(hdlg_, IDC_ATOM));
+                    LPARAM lCtrl = reinterpret_cast<LPARAM>(GetDlgItem(hdlg_, IDC_ATOM0));
+                    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_HARDDISK), hdlg_, HardDiskDlgProc, lCtrl);
+                    break;
+                }
+
+                case IDB_ATOM1:
+                {
+                    LPARAM lCtrl = reinterpret_cast<LPARAM>(GetDlgItem(hdlg_, IDC_ATOM1));
                     DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_HARDDISK), hdlg_, HardDiskDlgProc, lCtrl);
                     break;
                 }

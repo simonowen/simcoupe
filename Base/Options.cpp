@@ -97,7 +97,8 @@ OPTION aOptions[] =
 
     OPT_S("Disk1",        disk1,          ""),        // No disk in floppy drive 1
     OPT_S("Disk2",        disk2,          ""),        // No disk in floppy drive 2
-    OPT_S("AtomDisk",     atomdisk,       ""),        // No Atom hard disk
+    OPT_S("AtomDisk0",    atomdisk0,       ""),       // No Atom disk 0
+    OPT_S("AtomDisk1",    atomdisk1,       ""),       // No Atom disk 1
     OPT_S("SDIDEDisk",    sdidedisk,      ""),        // No SD IDE hard disk
     OPT_S("YATBusDisk",   yatbusdisk,     ""),        // No YAMOD.ATBUS disk
 

@@ -43,7 +43,7 @@ BYTE CAtomDevice::In (WORD wPort_)
             WORD wData = 0xffff;
 
             // Read a 16-bit data value, if a disk is present
-            wData = m_pDisk ? m_pDisk->In(m_bAddressLatch & ATOM_ADDR_MASK) : 0xffff;
+            wData = CAtaAdapter::InWord(m_bAddressLatch & ATOM_ADDR_MASK);
 
             // Store the low-byte in the latch and return the high-byte
             m_bDataLatch = wData & 0xff;
@@ -76,8 +76,8 @@ void CAtomDevice::Out (WORD wPort_, BYTE bVal_)
             m_bAddressLatch = (bVal_ & ATOM_ADDR_MASK);
 
             // If the reset pin is low, reset the disk
-            if (~bVal_ & ATOM_NRESET && m_pDisk)
-                m_pDisk->Reset();
+            if (~bVal_ & ATOM_NRESET)
+                CAtaAdapter::Reset();
 
             break;
 
@@ -88,11 +88,8 @@ void CAtomDevice::Out (WORD wPort_, BYTE bVal_)
 
         // Data low
         case 7:
-            if (m_pDisk)
-            {
-                m_uActive = HDD_ACTIVE_FRAMES;
-                m_pDisk->Out(m_bAddressLatch & ATOM_ADDR_MASK, (m_bDataLatch << 8) | bVal_);
-            }
+            m_uActive = HDD_ACTIVE_FRAMES;
+            CAtaAdapter::Out(m_bAddressLatch & ATOM_ADDR_MASK, (m_bDataLatch << 8) | bVal_);
             break;
 
         default:
@@ -102,15 +99,15 @@ void CAtomDevice::Out (WORD wPort_, BYTE bVal_)
 }
 
 
-bool CAtomDevice::Insert (CHardDisk *pDisk_)
+bool CAtomDevice::Insert (CHardDisk *pDisk_, int nDevice_)
 {
     bool fByteSwapped = false;
 
-    bool fRet = CHardDiskDevice::Insert(pDisk_);
-
     // Atom Lite disks need byte-swapping to work with the original Atom
-    if (fRet && m_pDisk->IsBDOSDisk(&fByteSwapped))
-        m_pDisk->SetByteSwap(!fByteSwapped);
+    if (pDisk_ && pDisk_->IsBDOSDisk(&fByteSwapped))
+        pDisk_->SetByteSwap(!fByteSwapped);
 
-    return fRet;
+	CAtaAdapter::Insert(pDisk_, nDevice_);
+
+    return pDisk_ != NULL;
 }

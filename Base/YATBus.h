@@ -21,9 +21,9 @@
 #ifndef YATBUS_H
 #define YATBUS_H
 
-#include "HardDisk.h"
+#include "AtaAdapter.h"
 
-class CYATBusDevice : public CHardDiskDevice
+class CYATBusDevice : public CAtaAdapter
 {
     public:
         CYATBusDevice ();

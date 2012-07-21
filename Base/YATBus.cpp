@@ -50,7 +50,7 @@ BYTE CYATBusDevice::In (WORD wPort_)
             {
                 // Read a WORD from the ATA interface
                 // Bit 3 = CS0/CS1, bits 0-2 used for the low address bits
-                WORD wData = m_pDisk ? m_pDisk->In(0x01f0 | ((wPort_ & 0x08) << 6) | (wPort_ & 0x07)) : 0xffff;
+                WORD wData = CAtaAdapter::InWord(0x01f0 | ((wPort_ & 0x08) << 6) | (wPort_ & 0x07));
 
                 // Store the high 8-bits in the latch
                 m_bLatch = wData >> 8;
@@ -67,7 +67,7 @@ BYTE CYATBusDevice::In (WORD wPort_)
             m_fDataLatched = false;
 
             // Read and return an 8-bit register
-            bRet = m_pDisk ? m_pDisk->In(0x01f0 | ((wPort_ & 0x08) << 6) | (wPort_ & 0x7)) & 0xff : 0xff;
+            bRet = CAtaAdapter::In(0x01f0 | ((wPort_ & 0x08) << 6) | (wPort_ & 0x7));
             break;
     }
 
@@ -91,8 +91,7 @@ void CYATBusDevice::Out (WORD wPort_, BYTE bVal_)
             else
             {
                 // Write the 16-bit value formed from the supplied data and the latch
-                if (m_pDisk)
-                    m_pDisk->Out(0x01f0, (static_cast<WORD>(bVal_) << 8) | m_bLatch);
+                CAtaAdapter::Out(0x01f0, (static_cast<WORD>(bVal_) << 8) | m_bLatch);
 
                 // Clear the latch
                 m_fDataLatched = false;
@@ -102,8 +101,7 @@ void CYATBusDevice::Out (WORD wPort_, BYTE bVal_)
 
         default:
             // Write the supplied 8-bit register value
-            if (m_pDisk)
-                m_pDisk->Out(0x01f0 | ((wPort_ & 0x08) << 6) | (wPort_ & 0x7), bVal_);
+            CAtaAdapter::Out(0x01f0 | ((wPort_ & 0x08) << 6) | (wPort_ & 0x7), bVal_);
             break;
     }
 }

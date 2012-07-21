@@ -50,7 +50,7 @@ BYTE CSDIDEDevice::In (WORD wPort_)
                 bRet = m_bDataLatch;
             else
             {
-                WORD wData = m_pDisk ? m_pDisk->In(0x0100 | m_bAddressLatch) : 0xffff;
+                WORD wData = CAtaAdapter::InWord(0x0100 | m_bAddressLatch);
                 m_bDataLatch = wData >> 8;
                 bRet = wData & 0xff;
             }
@@ -80,8 +80,8 @@ void CSDIDEDevice::Out (WORD wPort_, BYTE bVal_)
         case SDIDE_DATA:
             if (!m_fDataLatched)
                 m_bDataLatch = bVal_;
-            else if (m_pDisk)
-                m_pDisk->Out(0x0100 | m_bAddressLatch, (static_cast<WORD>(bVal_) << 8) | m_bDataLatch);
+            else
+                 CAtaAdapter::Out(0x0100 | m_bAddressLatch, (static_cast<WORD>(bVal_) << 8) | m_bDataLatch);
 
             m_fDataLatched = !m_fDataLatched;
             break;

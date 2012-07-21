@@ -40,8 +40,8 @@ BYTE CAtomLiteDevice::In (WORD wPort_)
             // Dallas clock or disk addressed?
             if (m_bAddressLatch == 0x1d)
                 bRet = m_Dallas.In(wPort_ << 8);
-            else if (m_pDisk)
-                bRet = m_pDisk->In(m_bAddressLatch & ATOM_LITE_ADDR_MASK) & 0xff;
+            else
+                bRet = CAtaAdapter::InWord(m_bAddressLatch & ATOM_LITE_ADDR_MASK) & 0xff;
             break;
 
         default:
@@ -68,10 +68,10 @@ void CAtomLiteDevice::Out (WORD wPort_, BYTE bVal_)
             // Dallas clock or disk addressed?
             if (m_bAddressLatch == 0x1d)
                 m_Dallas.Out(wPort_ << 8, bVal_);
-            else if (m_pDisk)
+            else
             {
                 m_uActive = HDD_ACTIVE_FRAMES;
-                m_pDisk->Out(m_bAddressLatch & ATOM_LITE_ADDR_MASK, bVal_);
+                CAtaAdapter::Out(m_bAddressLatch & ATOM_LITE_ADDR_MASK, bVal_);
             }
             break;
 
@@ -82,15 +82,15 @@ void CAtomLiteDevice::Out (WORD wPort_, BYTE bVal_)
 }
 
 
-bool CAtomLiteDevice::Insert (CHardDisk *pDisk_)
+bool CAtomLiteDevice::Insert (CHardDisk *pDisk_, int nDevice_)
 {
     bool fByteSwapped = false;
 
-    bool fRet = CHardDiskDevice::Insert(pDisk_);
-
     // Original Atom disks need byte-swapping to work with the Atom Lite
-    if (fRet && m_pDisk->IsBDOSDisk(&fByteSwapped))
-        m_pDisk->SetByteSwap(fByteSwapped);
+    if (pDisk_ && pDisk_->IsBDOSDisk(&fByteSwapped))
+        pDisk_->SetByteSwap(fByteSwapped);
 
-    return fRet;
+	CAtaAdapter::Insert(pDisk_, nDevice_);
+
+    return pDisk_ != NULL;
 }

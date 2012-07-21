@@ -53,7 +53,7 @@
 #include "YATBus.h"
 
 CDiskDevice *pFloppy1, *pFloppy2, *pBootDrive;
-CHardDiskDevice *pAtom, *pSDIDE, *pYATBus;
+CAtaAdapter *pAtom, *pSDIDE, *pYATBus;
 
 CPrintBuffer *pPrinterFile;
 CMonoDACDevice *pMonoDac;
@@ -144,6 +144,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         pFloppy1 = new CDrive(1);
         pFloppy2 = new CDrive(2);
         pAtom = new CAtomLiteDevice;
+
         pSDIDE = new CSDIDEDevice;
         pYATBus = new CYATBusDevice;
 
@@ -153,9 +154,11 @@ bool IO::Init (bool fFirstInit_/*=false*/)
 
         pFloppy1->Insert(GetOption(disk1));
         pFloppy2->Insert(GetOption(disk2));
-        pAtom->Insert(GetOption(atomdisk));
-        pSDIDE->Insert(GetOption(sdidedisk));
-        pYATBus->Insert(GetOption(yatbusdisk));
+
+        pAtom->Insert(GetOption(atomdisk0), 0);
+        pAtom->Insert(GetOption(atomdisk1), 1);
+        pSDIDE->Insert(GetOption(sdidedisk), 0);
+        pYATBus->Insert(GetOption(yatbusdisk), 0);
     }
 
     // The ASIC is unresponsive during the first ~49ms on production SAM units
@@ -187,9 +190,11 @@ void IO::Exit (bool fReInit_/*=false*/)
     {
         SetOption(disk1, pFloppy1->DiskPath());
         SetOption(disk2, pFloppy2->DiskPath());
-        SetOption(atomdisk, pAtom->DiskPath());
-        SetOption(sdidedisk, pSDIDE->DiskPath());
-        SetOption(yatbusdisk, pYATBus->DiskPath());
+
+        SetOption(atomdisk0, pAtom->DiskPath(0));
+        SetOption(atomdisk1, pAtom->DiskPath(1));
+        SetOption(sdidedisk, pSDIDE->DiskPath(0));
+        SetOption(yatbusdisk, pYATBus->DiskPath(0));
 
         pFloppy1->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive1"));
         pFloppy2->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive2"));
@@ -215,6 +220,7 @@ void IO::Exit (bool fReInit_/*=false*/)
         delete pFloppy1, pFloppy1 = NULL;
         delete pFloppy2, pFloppy2 = NULL;
         delete pBootDrive, pBootDrive = NULL;
+
         delete pAtom, pAtom = NULL;
         delete pSDIDE, pSDIDE = NULL;
         delete pYATBus, pYATBus = NULL;

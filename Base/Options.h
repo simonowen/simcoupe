@@ -65,7 +65,8 @@ typedef struct
 
     char    disk1[MAX_PATH];        // Floppy disk image in drive 1
     char    disk2[MAX_PATH];        // Floppy disk image in drive 2
-    char    atomdisk[MAX_PATH];     // Hard disk image for Atom
+    char    atomdisk0[MAX_PATH];    // Atom disk 0
+    char    atomdisk1[MAX_PATH];    // Atom disk 1
     char    sdidedisk[MAX_PATH];    // Hard disk image for SD IDE interface
     char    yatbusdisk[MAX_PATH];   // Hard disk image for YAMOD.ATBUS interface
 

@@ -34,13 +34,13 @@
 #include "Frame.h"
 
 #include "Audio.h"
+#include "AtaAdapter.h"
 #include "AVI.h"
 #include "Debug.h"
 #include "Display.h"
 #include "Drive.h"
 #include "GIF.h"
 #include "GUI.h"
-#include "HardDisk.h"
 #include "Options.h"
 #include "OSD.h"
 #include "PNG.h"
@@ -558,7 +558,7 @@ void DrawOSD (CScreen* pScreen_)
         if (GetOption(drive2))
         {
             BYTE bColour = pFloppy2->IsLightOn() ? FLOPPY_LED_ON_COLOUR : 
-                             (pAtom->IsLightOn() ? ATOM_LED_ON_COLOUR : LED_OFF_COLOUR);
+                             (pAtom->IsActive() ? ATOM_LED_ON_COLOUR : LED_OFF_COLOUR);
             pScreen_->FillRect(nX + 18, nY, 14, 2, bColour);
         }
     }

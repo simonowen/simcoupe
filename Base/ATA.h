@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// ATA.h: ATA hard disk (and future ATAPI CD-ROM) emulation
+// ATA.h: ATA hard disk emulation
 //
 //  Copyright (c) 1999-2012 Simon Owen
 //
@@ -20,7 +20,6 @@
 
 #ifndef ATA_H
 #define ATA_H
-
 
 // ATA controller registers
 typedef struct tagATAregs
@@ -60,7 +59,6 @@ typedef struct
 }
 IDENTIFYDEVICE;
 
-
 // Address lines
 const BYTE ATA_CS0          = 0x08;     // Chip select 0 (negative logic)
 const BYTE ATA_CS1          = 0x10;     // Chip select 1 (negative logic)
@@ -91,8 +89,9 @@ const BYTE ATA_ERROR_ABRT   = 0x04;     // Command aborted due to device status 
 const BYTE ATA_ERROR_TK0NF  = 0x02;     // Track 0 not found during execution of Recalibrate command
 const BYTE ATA_ERROR_AMNF   = 0x01;     // Data address mark not found after correct ID field found
 
-
-const BYTE ERROR_DEVICE1    = 0x80;     // Value to OR with errors for 2nd device
+// Device/Head Register
+const BYTE ATA_DEVICE_MASK  = 0x10;     // Selected device 0/1 mask
+const BYTE ATA_HEAD_MASK    = 0x0f;     // Head bit mask
 
 
 typedef struct

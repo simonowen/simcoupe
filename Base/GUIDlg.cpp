@@ -21,6 +21,7 @@
 #include "SimCoupe.h"
 #include "GUIDlg.h"
 
+#include "AtaAdapter.h"
 #include "Disk.h"
 #include "Frame.h"
 #include "HardDisk.h"
@@ -909,40 +910,37 @@ class CDiskOptions : public CDialog
 {
     public:
         CDiskOptions (CWindow* pParent_)
-            : CDialog(pParent_, 300, 241, "Disk Settings")
+            : CDialog(pParent_, 300, 198, "Disk Settings")
         {
             SetOption(disk1, pFloppy1->DiskPath());
             SetOption(disk2, pFloppy2->DiskPath());
-            SetOption(atomdisk, pAtom->DiskPath());
-            SetOption(sdidedisk, pSDIDE->DiskPath());
-            SetOption(yatbusdisk, pYATBus->DiskPath());
+
+            SetOption(atomdisk0, pAtom->DiskPath(0));
+            SetOption(atomdisk1, pAtom->DiskPath(1));
+            SetOption(sdidedisk, pSDIDE->DiskPath(0));
+            SetOption(yatbusdisk, pYATBus->DiskPath(0));
 
             new CIconControl(this, 10, 10, &sFloppyDriveIcon);
 
             new CFrameControl(this, 50, 10, 238, 34);
-            new CTextControl(this, 60, 6, "Floppy Drive 1", YELLOW_8, BLUE_2);
-            m_pFloppy1 = new CEditControl(this, 60, 20, 200, GetOption(disk1));
-            m_pBrowseFloppy1 = new CTextButton(this, 264, 20, "...", 17);
+            new CTextControl(this, 60, 6, "Atom Disk Device 0", YELLOW_8, BLUE_2);
+            m_pAtom0 = new CEditControl(this, 60, 20, 200, GetOption(atomdisk0));
+            m_pBrowseAtom0 = new CTextButton(this, 264, 20, "...", 17);
 
             new CFrameControl(this, 50, 53, 238, 34);
-            new CTextControl(this, 60, 49, "Floppy Drive 2", YELLOW_8, BLUE_2);
-            m_pFloppy2 = new CEditControl(this, 60, 63, 200, GetOption(disk2));
-            m_pBrowseFloppy2 = new CTextButton(this, 264, 63, "...", 17);
+            new CTextControl(this, 60, 49, "Atom Disk Device 1", YELLOW_8, BLUE_2);
+            m_pAtom1 = new CEditControl(this, 60, 63, 200, GetOption(atomdisk1));
+            m_pBrowseAtom1 = new CTextButton(this, 264, 63, "...", 17);
 
             new CFrameControl(this, 50, 96, 238, 34);
-            new CTextControl(this, 60, 92, "Atom Hard Disk", YELLOW_8, BLUE_2);
-            m_pAtom = new CEditControl(this, 60, 106, 200, GetOption(atomdisk));
-            m_pBrowseAtom = new CTextButton(this, 264, 106, "...", 17);
+            new CTextControl(this, 60, 92, "SD-IDE Hard Disk", YELLOW_8, BLUE_2);
+            m_pSDIDE = new CEditControl(this, 60, 106, 200, GetOption(sdidedisk));
+            m_pBrowseSDIDE = new CTextButton(this, 264, 106, "...", 17);
 
             new CFrameControl(this, 50, 139, 238, 34);
-            new CTextControl(this, 60, 135, "SD-IDE Hard Disk", YELLOW_8, BLUE_2);
-            m_pSDIDE = new CEditControl(this, 60, 149, 200, GetOption(sdidedisk));
-            m_pBrowseSDIDE = new CTextButton(this, 264, 149, "...", 17);
-
-            new CFrameControl(this, 50, 182, 238, 34);
-            new CTextControl(this, 60, 178, "YAMOD.ATBUS Hard Disk", YELLOW_8, BLUE_2);
-            m_pYATBus = new CEditControl(this, 60, 192, 200, GetOption(yatbusdisk));
-            m_pBrowseYATBus = new CTextButton(this, 264, 192, "...", 17);
+            new CTextControl(this, 60, 135, "YAMOD.ATBUS Hard Disk", YELLOW_8, BLUE_2);
+            m_pYATBus = new CEditControl(this, 60, 149, 200, GetOption(yatbusdisk));
+            m_pBrowseYATBus = new CTextButton(this, 264, 149, "...", 17);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -959,24 +957,36 @@ class CDiskOptions : public CDialog
                 char sz[MAX_PATH+128];
 
                 // Set the options from the edit control values
-                SetOption(disk1, m_pFloppy1->GetText());
-                SetOption(disk2, m_pFloppy2->GetText());
-                SetOption(atomdisk, m_pAtom->GetText());
+                SetOption(atomdisk0, m_pAtom0->GetText());
+                SetOption(atomdisk1, m_pAtom1->GetText());
                 SetOption(sdidedisk, m_pSDIDE->GetText());
                 SetOption(yatbusdisk, m_pYATBus->GetText());
 
                 // If the Atom path has changed, activate it
-                if (ChangedString(atomdisk))
+                if (ChangedString(atomdisk0))
                 {
-                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk));
+                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk0));
                     if (!pDisk)
                     {
-                        snprintf(sz, sizeof(sz), "Invalid Atom disk:\n\n%s", GetOption(atomdisk));
+                        snprintf(sz, sizeof(sz), "Invalid Atom disk:\n\n%s", GetOption(atomdisk0));
                         new CMessageBox(this, sz, "Warning", mbWarning);
                         return;
                     }
                     
-                    pAtom->Insert(pDisk);
+                    pAtom->Insert(pDisk, 0);
+                }
+
+                if (ChangedString(atomdisk1))
+                {
+                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk1));
+                    if (!pDisk)
+                    {
+                        snprintf(sz, sizeof(sz), "Invalid Atom disk:\n\n%s", GetOption(atomdisk1));
+                        new CMessageBox(this, sz, "Warning", mbWarning);
+                        return;
+                    }
+                    
+                    pAtom->Insert(pDisk, 1);
                 }
 
                 if (ChangedString(sdidedisk))
@@ -989,7 +999,7 @@ class CDiskOptions : public CDialog
                         return;
                     }
                     
-                    pSDIDE->Insert(pDisk);
+                    pSDIDE->Insert(pDisk, 0);
                 }
 
                 if (ChangedString(yatbusdisk))
@@ -1002,18 +1012,16 @@ class CDiskOptions : public CDialog
                         return;
                     }
                     
-                    pYATBus->Insert(pDisk);
+                    pYATBus->Insert(pDisk, 0);
                 }
 
                 // If everything checked out, close the dialog
                 Destroy();
             }
-            else if (pWindow_ == m_pBrowseFloppy1)
-                new CFileBrowser(m_pFloppy1, this, "Floppy 1 image", &sFloppyFilter);
-            else if (pWindow_ == m_pBrowseFloppy2)
-                new CFileBrowser(m_pFloppy2, this, "Floppy 2 image", &sFloppyFilter);
-            else if (pWindow_ == m_pBrowseAtom)
-                new CHDDProperties(m_pAtom, this, "Atom Hard Disk");
+            else if (pWindow_ == m_pBrowseAtom0)
+                new CHDDProperties(m_pAtom0, this, "Atom Disk Device 0");
+            else if (pWindow_ == m_pBrowseAtom1)
+                new CHDDProperties(m_pAtom1, this, "Atom Disk Device 1");
             else if (pWindow_ == m_pBrowseSDIDE)
                 new CHDDProperties(m_pSDIDE, this, "SD-IDE Hard Disk");
             else if (pWindow_ == m_pBrowseYATBus)
@@ -1021,8 +1029,8 @@ class CDiskOptions : public CDialog
         }
 
     protected:
-        CEditControl *m_pFloppy1, *m_pFloppy2, *m_pAtom, *m_pSDIDE, *m_pYATBus;
-        CTextButton *m_pBrowseFloppy1, *m_pBrowseFloppy2, *m_pBrowseAtom, *m_pBrowseSDIDE, *m_pBrowseYATBus;
+        CEditControl *m_pAtom0, *m_pAtom1, *m_pSDIDE, *m_pYATBus;
+        CTextButton *m_pBrowseAtom0, *m_pBrowseAtom1, *m_pBrowseSDIDE, *m_pBrowseYATBus;
         CCheckBox* m_pTurboLoad;
         CTextButton *m_pOK, *m_pCancel;
 };
@@ -1114,7 +1122,7 @@ class CMiscOptions : public CDialog
             new CTextControl(this, 60, 85, "Miscellaneous", YELLOW_8, BLUE_2);
             m_pDriveLights = new CCheckBox(this, 63, 104, "Show disk drive LEDs");
             m_pStatus = new CCheckBox(this, 63, 124, "Display status messages");
-            m_pProfile = new CCheckBox(this, 63, 144, "Display emulation speed and framerate");
+            m_pProfile = new CCheckBox(this, 63, 144, "Display emulation speed");
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);

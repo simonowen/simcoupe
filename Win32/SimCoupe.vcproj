@@ -430,6 +430,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\AtaAdapter.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\Atom.cpp"
 				>
 			</File>
@@ -906,6 +910,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\ATA.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\AtaAdapter.h"
 				>
 			</File>
 			<File

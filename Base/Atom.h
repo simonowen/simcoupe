@@ -21,7 +21,7 @@
 #ifndef ATOM_H
 #define ATOM_H
 
-#include "HardDisk.h"
+#include "AtaAdapter.h"
 
 const BYTE ATOM_ADDR_MASK = 0x1f;   // Chip select mask
 const BYTE ATOM_REG_MASK  = 0x07;   // Device address mask
@@ -29,7 +29,7 @@ const BYTE ATOM_NCS1      = 0x08;   // Chip select 1 (negative logic)
 const BYTE ATOM_NCS3      = 0x10;   // Chip select 3 (negative logic)
 const BYTE ATOM_NRESET    = 0x20;   // Reset pin (negative logic)
 
-class CAtomDevice : public CHardDiskDevice
+class CAtomDevice : public CAtaAdapter
 {
     public:
         CAtomDevice ();
@@ -39,7 +39,7 @@ class CAtomDevice : public CHardDiskDevice
         void Out (WORD wPort_, BYTE bVal_);
 
     public:
-        bool Insert (CHardDisk *pDisk_);
+        bool Insert (CHardDisk *pDisk_, int nDevice_);
 
     protected:
         BYTE m_bAddressLatch, m_bDataLatch;

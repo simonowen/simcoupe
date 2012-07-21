@@ -67,9 +67,7 @@ WORD CATADevice::In (WORD wPort_)
                 case 0:
                 {
                     // Return zero if no more data is available
-                    if (!m_uBuffer)
-                        TRACE("ATA: Data read when no data available!\n");
-                    else
+                    if (m_uBuffer)
                     {
                         // Read a byte
                         m_sRegs.wData = *m_pbBuffer++;
@@ -97,7 +95,7 @@ WORD CATADevice::In (WORD wPort_)
                 case 3:  wRet = m_sRegs.bSector;            break;
                 case 4:  wRet = m_sRegs.bCylinderLow;       break;
                 case 5:  wRet = m_sRegs.bCylinderHigh;      break;
-                case 6:  wRet = m_sRegs.bDeviceHead & 0x0f; break;
+                case 6:  wRet = m_sRegs.bDeviceHead;        break;
 
                 // Status register
                 case 7:
@@ -111,9 +109,6 @@ WORD CATADevice::In (WORD wPort_)
                     // Return the current status
                     wRet = m_sRegs.bStatus;
 
-                    // If the request is for the slave device, return nothing
-                    if (m_sRegs.bDeviceHead & 0x10)
-                        wRet = 0;
                     break;
                 }
 
@@ -149,10 +144,6 @@ WORD CATADevice::In (WORD wPort_)
 
 void CATADevice::Out (WORD wPort_, WORD wVal_)
 {
-    // Do nothing if the device is currently busy  (can't happen currently)
-    if (m_sRegs.bStatus & ATA_STATUS_BUSY)
-        return;
-
     BYTE bVal = wVal_ & 0xff;
 
     switch (~wPort_ & ATA_CS_MASK)
@@ -202,16 +193,25 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                                     {
                                         TRACE(" %d sectors left in multi-sector write...\n", m_sRegs.bSectorCount);
 
+                                        // Next sector
                                         if (++m_sRegs.bSector > m_sGeometry.uSectors)
                                         {
                                             m_sRegs.bSector = 1;
 
-                                            if (++m_sRegs.bDeviceHead == m_sGeometry.uHeads)
+                                            // Are the head bits just below max value?
+                                            if ((m_sRegs.bDeviceHead & ATA_HEAD_MASK) == m_sGeometry.uHeads-1)
                                             {
-                                                m_sRegs.bDeviceHead = 0;
+                                                // Head bits back to zero
+                                                m_sRegs.bDeviceHead &= ~ATA_HEAD_MASK;
 
+                                                // Next cylinder
                                                 if (!++m_sRegs.bCylinderLow)
                                                     m_sRegs.bCylinderHigh++;
+                                            }
+                                            else
+                                            {
+                                                // Next head
+                                                m_sRegs.bDeviceHead++;
                                             }
                                         }
 
@@ -259,10 +259,10 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                     m_sRegs.bDeviceHead = bVal;
 
                     // Set the relevant device active bit in bit 0 or 1
-                    m_sRegs.bDriveAddress = (!(wVal_ & 0x10)) ? 0x0001 : 0x0002;
+                    m_sRegs.bDriveAddress = (!(wVal_ & ATA_DEVICE_MASK)) ? 0x0001 : 0x0002;
 
                     // Store the head selected in bits 2 to 5 (bit 7 is always set)
-                    m_sRegs.bDriveAddress |= 0x80 | (wVal_ & 0xf) << 2;
+                    m_sRegs.bDriveAddress |= 0x80 | (wVal_ & ATA_HEAD_MASK) << 2;
 
                     // Device ready and selected head settled
                     m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_DSC;
@@ -276,11 +276,10 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
 
                     switch (m_sRegs.bCommand = bVal)
                     {
-                        case 0x00:  // NOP
-                            break;
-
                         case 0x20:  // Read Sectors (with retries)
                         case 0x21:  // Read Sectors
+                        case 0x40:  // Read Verify Sectors (with retries)
+                        case 0x41:  // Read Verify Sectors
                         case 0xc4:  // Read Multiple
                         {
                             TRACE("ATA: Disk command: Read Sectors\n");
@@ -292,9 +291,13 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                                 break;
                             }
 
-                            // Set the sector buffer pointer and how much we have available to read
-                            m_pbBuffer = m_abSectorData;
-                            m_uBuffer = sizeof(m_abSectorData);
+                            // The data is only presented to the host if this is not a verify
+                            if ((bVal & ~1) != 0x40)
+                            {
+                                // Set the sector buffer pointer and how much we have available to read
+                                m_pbBuffer = m_abSectorData;
+                                m_uBuffer = sizeof(m_abSectorData);
+                            }
                         }
                         break;
 

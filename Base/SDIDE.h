@@ -21,9 +21,9 @@
 #ifndef SDIDE_H
 #define SDIDE_H
 
-#include "HardDisk.h"
+#include "AtaAdapter.h"
 
-class CSDIDEDevice : public CHardDiskDevice
+class CSDIDEDevice : public CAtaAdapter
 {
     public:
         CSDIDEDevice ();

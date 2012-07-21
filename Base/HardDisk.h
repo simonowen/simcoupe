@@ -72,32 +72,4 @@ class CHDFHardDisk : public CHardDisk
         UINT m_uDataOffset, m_uSectorSize;
 };
 
-
-class CHardDiskDevice :  public CDiskDevice
-{
-    public:
-        CHardDiskDevice () : m_pDisk(NULL) { }
-        ~CHardDiskDevice () { delete m_pDisk; }
-
-    public:
-        void Reset () { if (m_pDisk) m_pDisk->Reset(); }
-
-    public:
-        bool Insert (const char *pcszDisk_, bool fReadOnly_=false) { return Insert(CHardDisk::OpenObject(pcszDisk_)); }
-        void Eject () { delete m_pDisk, m_pDisk = NULL; }
-
-    public:
-        const char* DiskFile() const { return ""; }
-        const char* DiskPath() const { return m_pDisk ? m_pDisk->GetPath() : ""; }
-        bool IsLightOn () const { return IsActive(); }
-
-    public:
-        virtual bool Insert (CHardDisk *pDisk_) { delete m_pDisk; m_pDisk = pDisk_; return m_pDisk != NULL; }
-
-    protected:
-        CHardDisk* m_pDisk;
-};
-
-extern CHardDiskDevice *pAtom, *pSDIDE, *pYATBus;
-
 #endif // HARDDISK_H
