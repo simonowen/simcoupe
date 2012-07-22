@@ -862,7 +862,7 @@ void IO::FrameUpdate ()
 void IO::UpdateInput()
 {
     // To avoid accidents, purge keyboard input during accelerated disk access
-    if (GetOption(turboload) && (pFloppy1->IsActive() || pFloppy2->IsActive() || pAtom->IsActive()))
+    if (GetOption(turboload) && (pFloppy1->IsActive() || pFloppy2->IsActive()))
         Input::Purge();
 
     // Copy the working buffer to the live port buffer
