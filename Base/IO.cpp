@@ -359,6 +359,9 @@ BYTE IO::In (WORD wPort_)
         // keyboard 1 / mouse
         case KEYBOARD_PORT:
         {
+            // Disable fast boot on the first keyboard read
+            g_nTurbo &= ~TURBO_BOOT;
+
             BYTE res = 0x1f;
 
             if (bPortHigh == 0xff)
