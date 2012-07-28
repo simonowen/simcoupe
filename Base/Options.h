@@ -69,6 +69,7 @@ typedef struct
     char    atomdisk1[MAX_PATH];    // Atom disk 1
     char    sdidedisk[MAX_PATH];    // Hard disk image for SD IDE interface
     char    yatbusdisk[MAX_PATH];   // Hard disk image for YAMOD.ATBUS interface
+    bool    autobyteswap;           // Detect byte order of Atom [Lite] media?
 
     char    inpath[MAX_PATH];       // Override path for input files
     char    outpath[MAX_PATH];      // Override path for output files

@@ -117,6 +117,7 @@ class CATADevice
     public:
         const ATA_GEOMETRY* GetGeometry() const { return &m_sGeometry; };
         void SetByteSwap (bool fByteSwap_) { m_fByteSwap = fByteSwap_; }
+        void SetLegacy (bool fLegacy_) { m_fLegacy = fLegacy_; }
 
     public:
         virtual const char* GetPath () const = 0;
@@ -143,6 +144,7 @@ class CATADevice
 
         bool    m_f8bit;                // true if 8-bit data transfers are enabled
         bool    m_fByteSwap;            // true if we should byte-swap the underlying sector data
+        bool    m_fLegacy;              // true if we're to support legacy requests
 };
 
 #endif  // ATA_H

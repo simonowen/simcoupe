@@ -22,7 +22,9 @@
 //  http://www.designing.myweb.nl/samcoupe/hardware/atomhdinterface/atom.htm
 
 #include "SimCoupe.h"
+
 #include "Atom.h"
+#include "Options.h"
 
 
 CAtomDevice::CAtomDevice ()
@@ -88,6 +90,10 @@ void CAtomDevice::Out (WORD wPort_, BYTE bVal_)
 
         // Data low
         case 7:
+            // If reset is held, ignore the disk write
+            if (~bVal_ & ATOM_NRESET)
+                break;
+
             m_uActive = HDD_ACTIVE_FRAMES;
             CAtaAdapter::Out(m_bAddressLatch & ATOM_ADDR_MASK, (m_bDataLatch << 8) | bVal_);
             break;
@@ -103,11 +109,17 @@ bool CAtomDevice::Insert (CHardDisk *pDisk_, int nDevice_)
 {
     bool fByteSwapped = false;
 
-    // Atom Lite disks need byte-swapping to work with the original Atom
-    if (pDisk_ && pDisk_->IsBDOSDisk(&fByteSwapped))
-        pDisk_->SetByteSwap(!fByteSwapped);
+    if (pDisk_)
+    {
+        // Optionally byte-swap Atom Lite media to work with the original Atom
+        if (GetOption(autobyteswap) && pDisk_->IsBDOSDisk(&fByteSwapped))
+            pDisk_->SetByteSwap(!fByteSwapped);
 
-	CAtaAdapter::Insert(pDisk_, nDevice_);
+        // Have the disk support older requests
+        pDisk_->SetLegacy(true);
+    }
+
+    CAtaAdapter::Insert(pDisk_, nDevice_);
 
     return pDisk_ != NULL;
 }

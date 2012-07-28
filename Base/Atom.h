@@ -25,8 +25,6 @@
 
 const BYTE ATOM_ADDR_MASK = 0x1f;   // Chip select mask
 const BYTE ATOM_REG_MASK  = 0x07;   // Device address mask
-const BYTE ATOM_NCS1      = 0x08;   // Chip select 1 (negative logic)
-const BYTE ATOM_NCS3      = 0x10;   // Chip select 3 (negative logic)
 const BYTE ATOM_NRESET    = 0x20;   // Reset pin (negative logic)
 
 class CAtomDevice : public CAtaAdapter

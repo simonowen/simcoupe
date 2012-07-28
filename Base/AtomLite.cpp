@@ -19,7 +19,9 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "SimCoupe.h"
+
 #include "AtomLite.h"
+#include "Options.h"
 
 
 CAtomLiteDevice::CAtomLiteDevice ()
@@ -60,16 +62,25 @@ void CAtomLiteDevice::Out (WORD wPort_, BYTE bVal_)
         case 5:
             // Bits 5-7 are unused, so strip them
             m_bAddressLatch = (bVal_ & ATOM_LITE_ADDR_MASK);
+
+            // If the reset pin is low, reset the disk
+            if (~bVal_ & ATOM_LITE_NRESET)
+                CAtaAdapter::Reset();
+
             break;
 
         // Both data ports behave the same
         case 6:
         case 7:
             // Dallas clock or disk addressed?
-            if (m_bAddressLatch == 0x1d)
+            if ((m_bAddressLatch & ATOM_LITE_ADDR_MASK) == 0x1d)
                 m_Dallas.Out(wPort_ << 8, bVal_);
             else
             {
+                // If reset is held, ignore the disk write
+                if (~bVal_ & ATOM_LITE_NRESET)
+                    break;
+
                 m_uActive = HDD_ACTIVE_FRAMES;
                 CAtaAdapter::Out(m_bAddressLatch & ATOM_LITE_ADDR_MASK, bVal_);
             }
@@ -86,11 +97,17 @@ bool CAtomLiteDevice::Insert (CHardDisk *pDisk_, int nDevice_)
 {
     bool fByteSwapped = false;
 
-    // Original Atom disks need byte-swapping to work with the Atom Lite
-    if (pDisk_ && pDisk_->IsBDOSDisk(&fByteSwapped))
-        pDisk_->SetByteSwap(fByteSwapped);
+    if (pDisk_)
+    {
+        // Optionally byte-swap original Atom media to work with the Atom Lite
+        if (GetOption(autobyteswap) && pDisk_->IsBDOSDisk(&fByteSwapped))
+            pDisk_->SetByteSwap(fByteSwapped);
 
-	CAtaAdapter::Insert(pDisk_, nDevice_);
+        // CF media doesn't support old requests
+        pDisk_->SetLegacy(false);
+    }
+
+    CAtaAdapter::Insert(pDisk_, nDevice_);
 
     return pDisk_ != NULL;
 }

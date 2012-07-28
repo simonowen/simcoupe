@@ -40,7 +40,8 @@ void CATADevice::Reset ()
     memset(&m_sRegs, 0, sizeof(m_sRegs));
 
     // Set up any non-zero initial register values
-    m_sRegs.bSectorCount = m_sRegs.bSector = m_sRegs.bError = 0x01;
+    m_sRegs.bSectorCount = m_sRegs.bSector = 0x01;
+    m_sRegs.bDriveAddress = 0xff;
 
     // Device is settled and ready
     m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_DSC;
@@ -128,7 +129,11 @@ WORD CATADevice::In (WORD wPort_)
 
                 case 7:
                     TRACE("ATA: READ Drive Address (%#02x)\n", m_sRegs.bDriveAddress);
-                    wRet = m_sRegs.bDriveAddress;
+
+                    // Only older HDD devices respond to this, newer ones such as CF cards don't
+                    if (m_fLegacy)
+                        wRet = m_sRegs.bDriveAddress;
+
                     break;
 
                 default:
@@ -259,10 +264,10 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                     m_sRegs.bDeviceHead = bVal;
 
                     // Set the relevant device active bit in bit 0 or 1
-                    m_sRegs.bDriveAddress = (!(wVal_ & ATA_DEVICE_MASK)) ? 0x0001 : 0x0002;
+                    m_sRegs.bDriveAddress = (!(bVal & ATA_DEVICE_MASK)) ? 0x0001 : 0x0002;
 
                     // Store the head selected in bits 2 to 5 (bit 7 is always set)
-                    m_sRegs.bDriveAddress |= 0x80 | (wVal_ & ATA_HEAD_MASK) << 2;
+                    m_sRegs.bDriveAddress |= 0x80 | (~bVal & ATA_HEAD_MASK) << 2;
 
                     // Device ready and selected head settled
                     m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_DSC;
@@ -273,6 +278,9 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                 {
                     // Assume the command will succeed for now
                     m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_DSC;
+
+                    // Clear the error register
+                    m_sRegs.bError = 0;
 
                     switch (m_sRegs.bCommand = bVal)
                     {
