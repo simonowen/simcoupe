@@ -39,11 +39,18 @@ BYTE CAtomLiteDevice::In (WORD wPort_)
         // Both data ports behave the same
         case 6:
         case 7:
-            // Dallas clock or disk addressed?
-            if (m_bAddressLatch == 0x1d)
-                bRet = m_Dallas.In(wPort_ << 8);
-            else
-                bRet = CAtaAdapter::InWord(m_bAddressLatch & ATOM_LITE_ADDR_MASK) & 0xff;
+            switch (m_bAddressLatch & ATOM_LITE_ADDR_MASK)
+            {
+                // Dallas clock
+                case 0x1d:
+                    bRet = m_Dallas.In(wPort_ << 8);
+                    break;
+
+                // ATA device
+                default:
+                    bRet = CAtaAdapter::InWord(m_bAddressLatch & ATOM_LITE_ADDR_MASK) & 0xff;
+                    break;
+            }
             break;
 
         default:
@@ -62,27 +69,23 @@ void CAtomLiteDevice::Out (WORD wPort_, BYTE bVal_)
         case 5:
             // Bits 5-7 are unused, so strip them
             m_bAddressLatch = (bVal_ & ATOM_LITE_ADDR_MASK);
-
-            // If the reset pin is low, reset the disk
-            if (~bVal_ & ATOM_LITE_NRESET)
-                CAtaAdapter::Reset();
-
             break;
 
         // Both data ports behave the same
         case 6:
         case 7:
-            // Dallas clock or disk addressed?
-            if ((m_bAddressLatch & ATOM_LITE_ADDR_MASK) == 0x1d)
-                m_Dallas.Out(wPort_ << 8, bVal_);
-            else
+            switch (m_bAddressLatch & ATOM_LITE_ADDR_MASK)
             {
-                // If reset is held, ignore the disk write
-                if (~bVal_ & ATOM_LITE_NRESET)
+                // Dallas clock
+                case 0x1d:
+                    m_Dallas.Out(wPort_ << 8, bVal_);
                     break;
 
-                m_uActive = HDD_ACTIVE_FRAMES;
-                CAtaAdapter::Out(m_bAddressLatch & ATOM_LITE_ADDR_MASK, bVal_);
+                // ATA device
+                default:
+                    m_uActive = HDD_ACTIVE_FRAMES;
+                    CAtaAdapter::Out(m_bAddressLatch & ATOM_LITE_ADDR_MASK, bVal_);
+                    break;
             }
             break;
 

@@ -155,6 +155,10 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
     {
         case ATA_CS0:
         {
+            // Ignore base register writes in reset condition
+            if (m_sRegs.bDeviceControl & ATA_DCR_SRST)
+                break;
+
             switch (wPort_ & ATA_DA_MASK)
             {
                 case 0:
@@ -410,8 +414,11 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                     m_sRegs.bDeviceControl = bVal;
 
                     // If SRST is set, perform a soft reset
-                    if (m_sRegs.bDeviceControl & 0x04)
+                    if (m_sRegs.bDeviceControl & ATA_DCR_SRST)
+                    {
+                        TRACE(" Performing software reset\n");
                         Reset();
+                    }
 
                     break;
                 }
@@ -449,7 +456,7 @@ bool CATADevice::ReadWriteSector (bool fWrite_)
     {
         // Collect the CHS values
         WORD wCylinder = (static_cast<WORD>(m_sRegs.bCylinderHigh) << 8) | m_sRegs.bCylinderLow;
-        BYTE bHead = (m_sRegs.bDriveAddress >> 2) & 0x0f;
+        BYTE bHead = m_sRegs.bDeviceHead & ATA_HEAD_MASK;
         BYTE bSector = m_sRegs.bSector;
 
         // Fail if the location is outside the disk geometry
