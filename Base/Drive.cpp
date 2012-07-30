@@ -30,12 +30,12 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CDrive::CDrive (int nDrive_, CDisk* pDisk_/*=NULL*/)
-    : m_nDrive(nDrive_), m_pDisk(pDisk_), m_pbBuffer(NULL)
+CDrive::CDrive (CDisk* pDisk_/*=NULL*/)
+    : m_pDisk(pDisk_), m_pbBuffer(NULL)
 {
     Reset ();
 
-	// Head starts over track 0, motor off
+    // Head starts over track 0, motor off
     m_bHeadCyl = 0;
     m_nMotorDelay = 0;
 }
@@ -56,17 +56,17 @@ void CDrive::Reset ()
 }
 
 // Insert a new disk from the named source (usually a file)
-bool CDrive::Insert (const char* pcszSource_, bool fReadOnly_/*=false*/)
+bool CDrive::Insert (const char* pcszSource_, bool fAutoBoot_)
 {
     Eject();
 
     // Open the new disk image
-    m_pDisk = CDisk::Open(pcszSource_, fReadOnly_);
+    m_pDisk = CDisk::Open(pcszSource_);
     if (!m_pDisk)
         return false;
 
     // Check for auto-booting with drive 1
-    if (m_nDrive == 1)
+    if (this == pFloppy1 && fAutoBoot_)
         IO::AutoLoad(AUTOLOAD_DISK);
 
     return true;

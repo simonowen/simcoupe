@@ -94,6 +94,8 @@ BYTE keybuffer[9];      // working buffer for key changed, activated mid-frame
 
 bool fASICStartup;      // If set, the ASIC will be unresponsive shortly after first power-on
 
+int g_nAutoBoot = AUTOLOAD_NONE;    // don't auto-boot on startup
+
 #ifdef _DEBUG
 static BYTE abUnhandled[32];    // track unhandled port access in debug mode
 #endif
@@ -105,6 +107,9 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     bool fRet = true;
     Exit(true);
 
+    // Forget any automatic input after reset
+    Keyin::Stop();
+
     lepr = hepr = lpen = border = 0;
 
     OutLmpr(0);     // Page 0 in section C, page 1 in section D
@@ -113,7 +118,6 @@ bool IO::Init (bool fFirstInit_/*=false*/)
 
     // No extended keys pressed, no active interrupts
     status_reg = STATUS_INT_NONE;
-
 
     // Also, if this is a power-on initialisation, set up the clut, etc.
     if (fFirstInit_)
@@ -141,8 +145,8 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         pMonoDac = new CMonoDACDevice;
         pStereoDac = new CStereoDACDevice;
 
-        pFloppy1 = new CDrive(1);
-        pFloppy2 = new CDrive(2);
+        pFloppy1 = new CDrive;
+        pFloppy2 = new CDrive;
         pAtom = new CAtomLiteDevice;
 
         pSDIDE = new CSDIDEDevice;
@@ -168,17 +172,16 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         AddCpuEvent(evtAsicStartup, g_dwCycleCounter + ASIC_STARTUP_DELAY);
     }
 
+    // Reset the sound hardware
     pDAC->Reset();
     pSID->Reset();
     pBlueAlpha->Reset();
 
-    // Initialise the drives back to a consistent state
+    // Reset the disk hardware
     pFloppy1->Reset();
     pFloppy2->Reset();
     pAtom->Reset();
     pSDIDE->Reset();
-
-    Keyin::Stop();
 
     // Return true only if everything
     return fRet;
@@ -907,16 +910,15 @@ const COLOUR* IO::GetPalette ()
 // Check if we're at the striped SAM startup screen
 bool IO::IsAtStartupScreen (bool fExit_)
 {
-
     // Search the top 10 stack entries
     for (int i = 0 ; i < 20 ; i += 2)
     {
-        // Check for values: 0fa5 0f78
-        if (read_word(SP+i) == 0x0fa5 && read_word(SP+i+2) == 0x0f78)
+        // Check for 0f78 on stack, with previous location pointing at JR Z,-5
+        if (read_word(SP+i+2) == 0x0f78 && read_word(read_word(SP+i)) == 0xfb28)
         {
-            // Optionally exit WTFK loop at copyright message
+            // Optionally skip JR to exit WTFK loop at copyright message
             if (fExit_)
-                write_byte(SP+i, 0xa7);
+                write_word(SP+i, read_word(SP+i)+2);
 
             return true;
         }
@@ -928,12 +930,8 @@ bool IO::IsAtStartupScreen (bool fExit_)
 
 void IO::AutoLoad (int nType_)
 {
-    // Set the auto-load type if we're forced or at the startup screen
-    if (GetOption(autoboot) && ((nType_ & AUTOLOAD_FORCE) || IsAtStartupScreen()))
+    if (GetOption(autoboot))
     {
-        // Keep only the type bits
-        nType_ &= AUTOLOAD_MASK;
-
         // F9 to boot floppy 1, F7 to load tape
         const char *pcszKey = (nType_ == AUTOLOAD_DISK) ? "\xc9" : "\xc7";
 
@@ -966,35 +964,56 @@ bool IO::Rst8Hook ()
         (PC >= 0xc000 && GetSectionPage(SECTION_D) != ROM1))
       return false;
 
-    // Read the error code after the RST
-    BYTE bErrCode = read_byte(PC);
-
     // If a drive object exists, clean up after our boot attempt, whether or not it worked
     if (pBootDrive)
         delete pBootDrive, pBootDrive = NULL;
 
-    // Stop auto-typing on any error
-    if (bErrCode != 0)
-        Keyin::Stop();
+    // Read the error code after the RST 8 opcode
+    BYTE bErrCode = read_byte(PC);
 
-    // Are we about to trigger "NO DOS" in ROM1, and with DOS booting enabled?
-    if (bErrCode == 0x35 && GetOption(dosboot))
+    switch (bErrCode)
     {
-        // If there's a custom boot disk, load it read-only
-        CDisk *pDisk = CDisk::Open(GetOption(dosdisk), true);
+        // No error
+        case 0x00:
+            break;
 
-        // Fall back on the built-in SAMDOS2 image
-        if (!pDisk)
-            pDisk = CDisk::Open(abSAMDOS, sizeof(abSAMDOS), "mem:SAMDOS.sbt");
+        // Copyright message
+        case 0x50:
+            if (g_nAutoBoot != AUTOLOAD_NONE)
+            {
+                AutoLoad(g_nAutoBoot);
+                g_nAutoBoot = AUTOLOAD_NONE;
+            }
+            break;
 
-        if (pDisk)
-        {
-            pBootDrive = new CDrive(1, pDisk);
+        // "NO DOS"
+        case 0x35:
+            // Is automagical DOS booting enabled?
+            if (GetOption(dosboot))
+            {
+                // If there's a custom boot disk, load it read-only
+                CDisk *pDisk = CDisk::Open(GetOption(dosdisk), true);
 
-            // Jump back to BOOTEX to try again
-            PC = 0xd8e5;
-            return true;
-        }
+                // Fall back on the built-in SAMDOS2 image
+                if (!pDisk)
+                    pDisk = CDisk::Open(abSAMDOS, sizeof(abSAMDOS), "mem:SAMDOS.sbt");
+
+                if (pDisk)
+                {
+                    // Create a private drive for the DOS disk
+                    pBootDrive = new CDrive(pDisk);
+
+                    // Jump back to BOOTEX to try again
+                    PC = 0xd8e5;
+                    return true;
+                }
+            }
+            break;
+
+        default:
+            // Stop auto-typing on any other error code
+            Keyin::Stop();
+            break;
     }
 
     // Continue with RST

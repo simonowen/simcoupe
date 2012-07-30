@@ -276,17 +276,7 @@ bool Options::Load (int argc_, char* argv_[])
             {
                 switch (p->nType)
                 {
-                    case OT_BOOL:
-                    {
-                        *p->pf = (argv_[1] && *argv_[1] == '-') || (argc_-- && IsTrue(*++argv_));
-
-                        // For backwards compatability we must force the autoboot option if it's enabled
-                        if (!strcasecmp(p->pcszName, "AutoBoot") && *p->pf)
-                            IO::AutoLoad(AUTOLOAD_DISK|AUTOLOAD_FORCE);
-
-                        continue;
-                    }
-
+                    case OT_BOOL:   *p->pf = (argv_[1] && *argv_[1] == '-') || (argc_-- && IsTrue(*++argv_)); continue;
                     case OT_INT:    *p->pn = atoi(*++argv_);    break;
                     case OT_STRING: strcpy(p->ppsz, *++argv_);  break;
                 }
@@ -306,7 +296,7 @@ bool Options::Load (int argc_, char* argv_[])
                 case 1:
                     SetOption(disk1, pcszOption);
                     SetOption(drive1,drvFloppy);
-                    IO::AutoLoad(AUTOLOAD_DISK|AUTOLOAD_FORCE);
+                    g_nAutoBoot = AUTOLOAD_DISK;
                     break;
 
                 case 2:

@@ -213,7 +213,7 @@ void CInsertFloppy::OnOK ()
         bool fInserted = false;
 
         // Insert the disk into the appropriate drive
-        fInserted = ((m_nDrive == 1) ? pFloppy1 : pFloppy2)->Insert(pcszPath);
+        fInserted = ((m_nDrive == 1) ? pFloppy1 : pFloppy2)->Insert(pcszPath, true);
 
         // If we succeeded, show a status message and close the file selector
         if (fInserted)

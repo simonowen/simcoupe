@@ -38,7 +38,7 @@ const unsigned int FLOPPY_ACTIVE_FRAMES = 5;   // Frames the floppy is considere
 class CDrive : public CDiskDevice
 {
     public:
-        CDrive (int nDrive_, CDisk* pDisk_=NULL);
+        CDrive (CDisk* pDisk_=NULL);
         ~CDrive () { Eject(); }
 
     public:
@@ -47,7 +47,7 @@ class CDrive : public CDiskDevice
         void FrameEnd ();
 
     public:
-        bool Insert (const char* pcszSource_, bool fReadOnly_=false);
+        bool Insert (const char* pcszSource_, bool fAutoBoot_=false);
         void Eject ();
         bool Save () { return m_pDisk && m_pDisk->Save(); }
         void Reset ();
@@ -80,7 +80,6 @@ class CDrive : public CDiskDevice
         bool IsMotorOn () const { return (m_sRegs.bStatus & MOTOR_ON) != 0; }
 
     protected:
-        int			m_nDrive;		// Floppy drive number, 1 or 2
         CDisk*      m_pDisk;        // The disk currently inserted in the drive, if any
         BYTE        m_bSide;        // Side from port address
 

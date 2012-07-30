@@ -27,7 +27,7 @@ typedef struct {
     BYTE bRed, bGreen, bBlue;
 } COLOUR;
 
-enum { AUTOLOAD_NONE, AUTOLOAD_DISK, AUTOLOAD_TAPE, AUTOLOAD_FORCE=0x80, AUTOLOAD_MASK=0x0f };
+enum { AUTOLOAD_NONE, AUTOLOAD_DISK, AUTOLOAD_TAPE };
 
 
 class IO
@@ -89,7 +89,7 @@ class CDiskDevice :  public CIoDevice
         void FrameEnd () { if (m_uActive) m_uActive--; }
 
     public:
-        virtual bool Insert (const char* pcszImage_, bool fReadOnly_=false) { return false; }
+        virtual bool Insert (const char* pcszImage_, bool fAutoBoot_=false) { return false; }
         virtual void Eject () { }
         virtual bool Save () { return true; }
 
@@ -244,6 +244,6 @@ extern BYTE lpen;
 extern CDiskDevice *pFloppy1, *pFloppy2, *pBootDrive;
 extern CIoDevice *pParallel1, *pParallel2;
 
-extern bool g_fAutoBoot;
+extern int g_nAutoBoot;
 
 #endif

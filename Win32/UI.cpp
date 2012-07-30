@@ -492,7 +492,7 @@ bool InsertDisk (CDiskDevice* pFloppy_, const char *pcszPath_=NULL)
     bool fReadOnly = !!(ofn.Flags & OFN_READONLY);
 
     // Insert the disk to check it's a recognised format
-    if (!pFloppy_->Insert(pcszPath_, fReadOnly))
+    if (!pFloppy_->Insert(pcszPath_, true))
     {
         Message(msgWarning, "Invalid disk: %s", pcszPath_);
         RemoveRecentFile(pcszPath_);
@@ -2556,7 +2556,7 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                     CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk0));
                     if (!pDisk && *GetOption(atomdisk0))
                     {
-                        Message(msgWarning, "Invalid Atom disk: %s", GetOption(atomdisk0));
+                        Message(msgWarning, "Failed to open: %s", GetOption(atomdisk0));
                         SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
                         return TRUE;
                     }
@@ -2570,7 +2570,7 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                     CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk1));
                     if (!pDisk && *GetOption(atomdisk1))
                     {
-                        Message(msgWarning, "Invalid Atom disk: %s", GetOption(atomdisk1));
+                        Message(msgWarning, "Failed to open: %s", GetOption(atomdisk1));
                         SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
                         return TRUE;
                     }
@@ -2583,7 +2583,7 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                     CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(sdidedisk));
                     if (!pDisk && *GetOption(sdidedisk))
                     {
-                        Message(msgWarning, "Invalid SDIDE disk: %s", GetOption(sdidedisk));
+                        Message(msgWarning, "Failed to open: %s", GetOption(sdidedisk));
                         SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
                         return TRUE;
                     }
