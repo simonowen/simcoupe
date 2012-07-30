@@ -50,10 +50,9 @@
 #include "Sound.h"
 #include "Util.h"
 #include "Video.h"
-#include "YATBus.h"
 
 CDiskDevice *pFloppy1, *pFloppy2, *pBootDrive;
-CAtaAdapter *pAtom, *pSDIDE, *pYATBus;
+CAtaAdapter *pAtom, *pSDIDE;
 
 CPrintBuffer *pPrinterFile;
 CMonoDACDevice *pMonoDac;
@@ -150,7 +149,6 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         pAtom = new CAtomLiteDevice;
 
         pSDIDE = new CSDIDEDevice;
-        pYATBus = new CYATBusDevice;
 
         pFloppy1->LoadState(OSD::MakeFilePath(MFP_SETTINGS, "drive1"));
         pFloppy2->LoadState(OSD::MakeFilePath(MFP_SETTINGS, "drive2"));
@@ -162,7 +160,6 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         pAtom->Insert(GetOption(atomdisk0), 0);
         pAtom->Insert(GetOption(atomdisk1), 1);
         pSDIDE->Insert(GetOption(sdidedisk), 0);
-        pYATBus->Insert(GetOption(yatbusdisk), 0);
     }
 
     // The ASIC is unresponsive during the first ~49ms on production SAM units
@@ -197,7 +194,6 @@ void IO::Exit (bool fReInit_/*=false*/)
         SetOption(atomdisk0, pAtom->DiskPath(0));
         SetOption(atomdisk1, pAtom->DiskPath(1));
         SetOption(sdidedisk, pSDIDE->DiskPath(0));
-        SetOption(yatbusdisk, pYATBus->DiskPath(0));
 
         pFloppy1->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive1"));
         pFloppy2->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive2"));
@@ -226,7 +222,6 @@ void IO::Exit (bool fReInit_/*=false*/)
 
         delete pAtom, pAtom = NULL;
         delete pSDIDE, pSDIDE = NULL;
-        delete pYATBus, pYATBus = NULL;
     }
 }
 
@@ -522,10 +517,6 @@ BYTE IO::In (WORD wPort_)
                 }
             }
 
-            // YAMOD.ATBUS hard disk interface
-            else if ((bPortLow & YATBUS_MASK) == YATBUS_BASE)
-                return pYATBus->In(wPort_);
-
             // Blue Alpha and SAMVox ports overlap!
             else if ((bPortLow & 0xfc) == 0x7c)
             {
@@ -806,10 +797,6 @@ void IO::Out (WORD wPort_, BYTE bVal_)
                     default: break;
                 }
             }
-
-            // YAMOD.ATBUS hard disk interface
-            else if ((bPortLow & YATBUS_MASK) == YATBUS_BASE)
-                pYATBus->Out(wPort_, bVal_);
 
             // Blue Alpha, SAMVox and Paula ports overlap!
             else if ((bPortLow & 0xfc) == 0x7c)

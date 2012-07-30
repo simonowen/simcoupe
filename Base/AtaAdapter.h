@@ -56,6 +56,6 @@ class CAtaAdapter : public CIoDevice
         CHardDisk *m_pDisk1;
 };
 
-extern CAtaAdapter *pAtom, *pSDIDE, *pYATBus;
+extern CAtaAdapter *pAtom, *pSDIDE;
 
 #endif // ATAADAPTER_H

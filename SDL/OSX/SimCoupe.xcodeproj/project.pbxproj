@@ -52,7 +52,6 @@
 		132CC55009B11512007955DE /* SimCoupe.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF62088EDFC100E5436C /* SimCoupe.h */; };
 		132CC55109B11512007955DE /* Util.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF64088EDFC100E5436C /* Util.h */; };
 		132CC55209B11512007955DE /* VL1772.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF65088EDFC100E5436C /* VL1772.h */; };
-		132CC55309B11512007955DE /* YATBus.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF67088EDFC100E5436C /* YATBus.h */; };
 		132CC55409B11512007955DE /* Z80ops.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF68088EDFC100E5436C /* Z80ops.h */; };
 		132CC55509B11512007955DE /* ioapi.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FFB3088EDFFF00E5436C /* ioapi.h */; };
 		132CC55709B11512007955DE /* unzip.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FFB7088EDFFF00E5436C /* unzip.h */; };
@@ -99,7 +98,6 @@
 		132CC58509B11512007955DE /* PNG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF59088EDFC100E5436C /* PNG.cpp */; };
 		132CC58709B11512007955DE /* SDIDE.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF60088EDFC100E5436C /* SDIDE.cpp */; };
 		132CC58809B11512007955DE /* Util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF63088EDFC100E5436C /* Util.cpp */; };
-		132CC58909B11512007955DE /* YATBus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF66088EDFC100E5436C /* YATBus.cpp */; };
 		132CC58A09B11512007955DE /* ioapi.c in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FFB2088EDFFF00E5436C /* ioapi.c */; };
 		132CC58C09B11512007955DE /* unzip.c in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FFB6088EDFFF00E5436C /* unzip.c */; };
 		132CC58D09B11512007955DE /* Options.m in Sources */ = {isa = PBXBuildFile; fileRef = 1374D22D09747359001B908F /* Options.m */; };
@@ -274,8 +272,6 @@
 		13A0FF63088EDFC100E5436C /* Util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Util.cpp; path = ../../Base/Util.cpp; sourceTree = "<group>"; };
 		13A0FF64088EDFC100E5436C /* Util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Util.h; path = ../../Base/Util.h; sourceTree = "<group>"; };
 		13A0FF65088EDFC100E5436C /* VL1772.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = VL1772.h; path = ../../Base/VL1772.h; sourceTree = "<group>"; };
-		13A0FF66088EDFC100E5436C /* YATBus.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = YATBus.cpp; path = ../../Base/YATBus.cpp; sourceTree = "<group>"; };
-		13A0FF67088EDFC100E5436C /* YATBus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = YATBus.h; path = ../../Base/YATBus.h; sourceTree = "<group>"; };
 		13A0FF68088EDFC100E5436C /* Z80ops.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Z80ops.h; path = ../../Base/Z80ops.h; sourceTree = "<group>"; };
 		13A0FFB2088EDFFF00E5436C /* ioapi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ioapi.c; path = ../../Base/ioapi.c; sourceTree = "<group>"; };
 		13A0FFB3088EDFFF00E5436C /* ioapi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ioapi.h; path = ../../Base/ioapi.h; sourceTree = "<group>"; };
@@ -432,7 +428,6 @@
 				13A0FFB6088EDFFF00E5436C /* unzip.c */,
 				13A0FF63088EDFC100E5436C /* Util.cpp */,
 				1386FD0314FD163600F4032B /* WAV.cpp */,
-				13A0FF66088EDFC100E5436C /* YATBus.cpp */,
 			);
 			name = Base;
 			sourceTree = "<group>";
@@ -492,7 +487,6 @@
 				13A0FF64088EDFC100E5436C /* Util.h */,
 				13A0FF65088EDFC100E5436C /* VL1772.h */,
 				1386FD0414FD163600F4032B /* WAV.h */,
-				13A0FF67088EDFC100E5436C /* YATBus.h */,
 				13A0FF68088EDFC100E5436C /* Z80ops.h */,
 			);
 			name = Headers;
@@ -623,7 +617,6 @@
 				132CC55009B11512007955DE /* SimCoupe.h in Headers */,
 				132CC55109B11512007955DE /* Util.h in Headers */,
 				132CC55209B11512007955DE /* VL1772.h in Headers */,
-				132CC55309B11512007955DE /* YATBus.h in Headers */,
 				132CC55409B11512007955DE /* Z80ops.h in Headers */,
 				132CC55509B11512007955DE /* ioapi.h in Headers */,
 				132CC55709B11512007955DE /* unzip.h in Headers */,
@@ -759,7 +752,6 @@
 				132CC58509B11512007955DE /* PNG.cpp in Sources */,
 				132CC58709B11512007955DE /* SDIDE.cpp in Sources */,
 				132CC58809B11512007955DE /* Util.cpp in Sources */,
-				132CC58909B11512007955DE /* YATBus.cpp in Sources */,
 				132CC58A09B11512007955DE /* ioapi.c in Sources */,
 				132CC58C09B11512007955DE /* unzip.c in Sources */,
 				132CC58D09B11512007955DE /* Options.m in Sources */,

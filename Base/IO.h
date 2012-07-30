@@ -76,7 +76,7 @@ class CIoDevice
         virtual void SaveState (const char *pcszFile_) { }
 };
 
-enum { drvNone, drvFloppy, drvAtom, drvSDIDE, drvYATBus };
+enum { drvNone, drvFloppy, drvAtom, drvSDIDE };
 
 class CDiskDevice :  public CIoDevice
 {
@@ -142,9 +142,6 @@ class CDiskDevice :  public CIoDevice
 
 #define QUAZAR_PORT         208         // Quazar Surround
 #define SID_PORT            212         // Quazar SID interface at 0xD4xx
-
-#define YATBUS_MASK         0xf0
-#define YATBUS_BASE         0xb0        // YAMOD.ATBUS hard disk interface
 
 // Floppy drives or ATOM hard disk - 111d0srr : d = drive, s = side, r = register
 #define FLOPPY_MASK         0xf8        // 11111000

@@ -910,7 +910,7 @@ class CDiskOptions : public CDialog
 {
     public:
         CDiskOptions (CWindow* pParent_)
-            : CDialog(pParent_, 300, 198, "Disk Settings")
+            : CDialog(pParent_, 300, 160, "Disk Settings")
         {
             SetOption(disk1, pFloppy1->DiskPath());
             SetOption(disk2, pFloppy2->DiskPath());
@@ -918,7 +918,6 @@ class CDiskOptions : public CDialog
             SetOption(atomdisk0, pAtom->DiskPath(0));
             SetOption(atomdisk1, pAtom->DiskPath(1));
             SetOption(sdidedisk, pSDIDE->DiskPath(0));
-            SetOption(yatbusdisk, pYATBus->DiskPath(0));
 
             new CIconControl(this, 10, 10, &sFloppyDriveIcon);
 
@@ -936,11 +935,6 @@ class CDiskOptions : public CDialog
             new CTextControl(this, 60, 92, "SD-IDE Hard Disk", YELLOW_8, BLUE_2);
             m_pSDIDE = new CEditControl(this, 60, 106, 200, GetOption(sdidedisk));
             m_pBrowseSDIDE = new CTextButton(this, 264, 106, "...", 17);
-
-            new CFrameControl(this, 50, 139, 238, 34);
-            new CTextControl(this, 60, 135, "YAMOD.ATBUS Hard Disk", YELLOW_8, BLUE_2);
-            m_pYATBus = new CEditControl(this, 60, 149, 200, GetOption(yatbusdisk));
-            m_pBrowseYATBus = new CTextButton(this, 264, 149, "...", 17);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -960,7 +954,6 @@ class CDiskOptions : public CDialog
                 SetOption(atomdisk0, m_pAtom0->GetText());
                 SetOption(atomdisk1, m_pAtom1->GetText());
                 SetOption(sdidedisk, m_pSDIDE->GetText());
-                SetOption(yatbusdisk, m_pYATBus->GetText());
 
                 // If the Atom path has changed, activate it
                 if (ChangedString(atomdisk0))
@@ -1002,19 +995,6 @@ class CDiskOptions : public CDialog
                     pSDIDE->Insert(pDisk, 0);
                 }
 
-                if (ChangedString(yatbusdisk))
-                {
-                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(yatbusdisk));
-                    if (!pDisk)
-                    {
-                        snprintf(sz, sizeof(sz), "Invalid YATBUS disk:\n\n%s", GetOption(yatbusdisk));
-                        new CMessageBox(this, sz, "Warning", mbWarning);
-                        return;
-                    }
-                    
-                    pYATBus->Insert(pDisk, 0);
-                }
-
                 // If everything checked out, close the dialog
                 Destroy();
             }
@@ -1024,12 +1004,10 @@ class CDiskOptions : public CDialog
                 new CHDDProperties(m_pAtom1, this, "Atom Disk Device 1");
             else if (pWindow_ == m_pBrowseSDIDE)
                 new CHDDProperties(m_pSDIDE, this, "SD-IDE Hard Disk");
-            else if (pWindow_ == m_pBrowseYATBus)
-                new CHDDProperties(m_pYATBus, this, "YATBus Hard Disk");
         }
 
     protected:
-        CEditControl *m_pAtom0, *m_pAtom1, *m_pSDIDE, *m_pYATBus;
+        CEditControl *m_pAtom0, *m_pAtom1, *m_pSDIDE;
         CTextButton *m_pBrowseAtom0, *m_pBrowseAtom1, *m_pBrowseSDIDE, *m_pBrowseYATBus;
         CCheckBox* m_pTurboLoad;
         CTextButton *m_pOK, *m_pCancel;

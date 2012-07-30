@@ -2507,19 +2507,16 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
             AddComboString(hdlg_, IDC_ATOM0, "");
             AddComboString(hdlg_, IDC_ATOM1, "");
             AddComboString(hdlg_, IDC_SDIDE, "");
-            AddComboString(hdlg_, IDC_YATBUS, "");
 
             // Refresh the options from the active devices
             SetOption(atomdisk0, pAtom->DiskPath(0));
             SetOption(atomdisk1, pAtom->DiskPath(1));
             SetOption(sdidedisk, pSDIDE->DiskPath(0));
-            SetOption(yatbusdisk, pYATBus->DiskPath(0));
 
             // Set the edit controls to the current settings
             SetDlgItemPath(hdlg_, IDC_ATOM0, GetOption(atomdisk0));
             SetDlgItemPath(hdlg_, IDC_ATOM1, GetOption(atomdisk1));
             SetDlgItemPath(hdlg_, IDC_SDIDE, GetOption(sdidedisk));
-            SetDlgItemPath(hdlg_, IDC_YATBUS, GetOption(yatbusdisk));
 
             // Look for SAM-compatible physical drives
             for (UINT u = 0 ; u < 10 ; u++)
@@ -2533,7 +2530,6 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                     AddComboString(hdlg_, IDC_ATOM0, szDrive);
                     AddComboString(hdlg_, IDC_ATOM1, szDrive);
                     AddComboString(hdlg_, IDC_SDIDE, szDrive);
-                    AddComboString(hdlg_, IDC_YATBUS, szDrive);
                     delete pDisk;
                 }
             }
@@ -2548,7 +2544,6 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 GetDlgItemPath(hdlg_, IDC_ATOM0, szPath, MAX_PATH); SetOption(atomdisk0, szPath);
                 GetDlgItemPath(hdlg_, IDC_ATOM1, szPath, MAX_PATH); SetOption(atomdisk1, szPath);
                 GetDlgItemPath(hdlg_, IDC_SDIDE, szPath, MAX_PATH); SetOption(sdidedisk, szPath);
-                GetDlgItemPath(hdlg_, IDC_YATBUS, szPath, MAX_PATH); SetOption(yatbusdisk, szPath);
 
                 // If the Atom path has changed, activate it
                 if (ChangedString(atomdisk0))
@@ -2590,19 +2585,6 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                     
                     pSDIDE->Insert(pDisk, 0);
                 }
-
-                if (ChangedString(yatbusdisk))
-                {
-                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(yatbusdisk));
-                    if (!pDisk && *GetOption(yatbusdisk))
-                    {
-                        Message(msgWarning, "Invalid YATBUS disk: %s", GetOption(yatbusdisk));
-                        SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
-                        return TRUE;
-                    }
-                    
-                    pYATBus->Insert(pDisk, 0);
-                }
             }
             break;
         }
@@ -2628,13 +2610,6 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 case IDB_SDIDE:
                 {
                     LPARAM lCtrl = reinterpret_cast<LPARAM>(GetDlgItem(hdlg_, IDC_SDIDE));
-                    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_HARDDISK), hdlg_, HardDiskDlgProc, lCtrl);
-                    break;
-                }
-
-                case IDB_YATBUS:
-                {
-                    LPARAM lCtrl = reinterpret_cast<LPARAM>(GetDlgItem(hdlg_, IDC_YATBUS));
                     DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_HARDDISK), hdlg_, HardDiskDlgProc, lCtrl);
                     break;
                 }

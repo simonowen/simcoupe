@@ -100,7 +100,6 @@ OPTION aOptions[] =
     OPT_S("AtomDisk0",    atomdisk0,       ""),       // No Atom disk 0
     OPT_S("AtomDisk1",    atomdisk1,       ""),       // No Atom disk 1
     OPT_S("SDIDEDisk",    sdidedisk,      ""),        // No SD IDE hard disk
-    OPT_S("YATBusDisk",   yatbusdisk,     ""),        // No YAMOD.ATBUS disk
     OPT_F("AutoByteSwap", autobyteswap,   true),      // Byte-swap Atom [Lite] media as necessary
 
     OPT_S("InPath",       inpath,         ""),        // Default input path

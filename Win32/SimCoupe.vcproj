@@ -693,10 +693,6 @@
 				RelativePath="..\Base\WAV.cpp"
 				>
 			</File>
-			<File
-				RelativePath="..\Base\YATBus.cpp"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Win32 Source Files"
@@ -1114,10 +1110,6 @@
 			</File>
 			<File
 				RelativePath="..\Base\WAV.h"
-				>
-			</File>
-			<File
-				RelativePath="..\Base\YATBus.h"
 				>
 			</File>
 			<File

@@ -88,7 +88,6 @@
 #define IDB_DELETE                      1108
 #define IDB_SDIDE                       1108
 #define IDB_EDIT                        1109
-#define IDB_YATBUS                      1109
 #define IDB_ADD                         1110
 #define IDB_ATOM1                       1110
 #define IDL_FNKEYS                      1111
@@ -103,7 +102,6 @@
 #define IDC_ATOM                        1137
 #define IDC_ATOM0                       1137
 #define IDC_SDIDE                       1138
-#define IDC_YATBUS                      1139
 #define IDC_ATOM1                       1140
 #define IDC_AUTOBOOT                    1161
 #define IDC_HWACCEL                     1163
