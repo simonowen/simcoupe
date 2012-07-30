@@ -23,7 +23,7 @@
 
 
 CAtaAdapter::CAtaAdapter ()
-    : m_bActiveDevice(0), m_pDisk0(NULL), m_pDisk1(NULL), m_uActive(0)
+    : m_uActive(0), m_bActiveDevice(0), m_pDisk0(NULL), m_pDisk1(NULL)
 {
 }
 
