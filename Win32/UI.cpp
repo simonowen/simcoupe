@@ -564,7 +564,6 @@ void UpdateMenuFromOptions ()
     EnableItem(IDM_FILE_FLOPPY2_SAVE_CHANGES, pFloppy2->DiskModified());
 
     CheckOption(IDM_VIEW_FULLSCREEN, GetOption(fullscreen));
-    CheckOption(IDM_VIEW_SYNC, GetOption(sync));
     CheckOption(IDM_VIEW_RATIO54, GetOption(ratio5_4));
     CheckOption(IDM_VIEW_SCANLINES, GetOption(scanlines));
     CheckOption(IDM_VIEW_GREYSCALE, GetOption(greyscale));
@@ -1466,7 +1465,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
 
                 case IDM_VIEW_FULLSCREEN:           Action::Do(actToggleFullscreen); break;
-                case IDM_VIEW_SYNC:                 Action::Do(actToggleSync);       break;
                 case IDM_VIEW_RATIO54:              Action::Do(actToggle5_4);        break;
                 case IDM_VIEW_SCANLINES:            Action::Do(actToggleScanlines);  break;
                 case IDM_VIEW_GREYSCALE:            Action::Do(actToggleGreyscale);  break;
@@ -3168,8 +3166,6 @@ INT_PTR CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
                     // List control wants display information for an item?
                     case LVN_GETDISPINFO:
                     {
-                        static char* szActions[] = { "Reset", "Generate NMI", "Frame sync", "Frame-skip" };
-
                         // The second column shows the action name
                         if (pnmv->item.iSubItem)
                         {

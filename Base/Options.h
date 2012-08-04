@@ -28,7 +28,6 @@ typedef struct
     int     cfgversion;             // Config compatability number (set defaults if mismatched)
     bool    firstrun;               // First run of the emulator?
 
-    int     sync;                   // 0=unsynced, 1=50Hz sync, [Win32 only: 2=vsync, 3=double-vsync]
     int     scale;                  // Window scaling mode
     bool    ratio5_4;               // Use 5:4 screen ratio?
     bool    scanlines;              // Show scanlines?

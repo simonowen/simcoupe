@@ -543,9 +543,8 @@ class CDisplayOptions : public CDialog
             new CFrameControl(this, 63, 77, 212, 1, GREY_6);
 
             m_pStretch = new CCheckBox(this, 60, 90, "Stretch to fit");
-            m_pSync = new CCheckBox(this, 60, 111, "Sync to 50Hz");
             m_pScanlines = new CCheckBox(this, 165, 90, "Display scanlines");
-            m_pRatio54 = new CCheckBox(this, 165, 111, "5:4 pixel shape");
+            m_pRatio54 = new CCheckBox(this, 60, 111, "5:4 pixel shape");
 
             new CTextControl(this, 60, 134, "Viewable area:");
             m_pViewArea = new CComboBox(this, 140, 131, "No borders|Small borders|Short TV area (default)|TV visible area|Complete scan area", 140);
@@ -557,7 +556,6 @@ class CDisplayOptions : public CDialog
             m_pScale->Select(GetOption(scale)-1);
 
             m_pFullScreen->SetChecked(GetOption(fullscreen));
-            m_pSync->SetChecked(GetOption(sync) != 0);
             m_pRatio54->SetChecked(GetOption(ratio5_4));
             m_pStretch->SetChecked(GetOption(stretchtofit));
 
@@ -580,7 +578,6 @@ class CDisplayOptions : public CDialog
 
                 SetOption(scale, m_pScale->GetSelected()+1);
 
-                SetOption(sync, m_pSync->IsChecked());
                 SetOption(ratio5_4, m_pRatio54->IsChecked());
                 SetOption(stretchtofit, m_pStretch->IsChecked());
                 SetOption(scanlines, m_pScanlines->IsChecked());
@@ -616,7 +613,7 @@ class CDisplayOptions : public CDialog
         }
 
     protected:
-        CCheckBox *m_pFullScreen, *m_pStretch, *m_pSync, *m_pScanlines, *m_pRatio54;
+        CCheckBox *m_pFullScreen, *m_pStretch, *m_pScanlines, *m_pRatio54;
         CComboBox *m_pScale, *m_pViewArea;
         CTextControl *m_pScaleText;
         CTextButton *m_pOK, *m_pCancel;

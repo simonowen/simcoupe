@@ -180,8 +180,8 @@ bool Audio::AddData (BYTE *pbData_, int nLength_)
             }
         }
 
-        // If we've written it all or frame sync is disabled, we're done
-        if (!nLength_ || !GetOption(sync))
+        // All written?
+        if (!nLength_)
             break;
 
         // Wait for more space

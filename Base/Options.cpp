@@ -60,7 +60,6 @@ OPTION aOptions[] =
     OPT_N("CfgVersion",   cfgversion,     0),         // Config compatability number
     OPT_F("FirstRun",     firstrun,       1),         // Non-zero if this is the first run
 
-    OPT_N("Sync",         sync,           1),         // Sync to 50Hz
     OPT_N("Scale",        scale,          2),         // Windowed display is 2x2
     OPT_F("Ratio5_4",     ratio5_4,       false),     // Don't use 5:4 screen ratio
     OPT_F("Scanlines",    scanlines,      true),      // TV scanlines

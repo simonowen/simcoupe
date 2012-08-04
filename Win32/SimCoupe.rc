@@ -505,12 +505,11 @@ BEGIN
     END
     POPUP "&View"
     BEGIN
-        MENUITEM "Full Screen",                 IDM_VIEW_FULLSCREEN
-        MENUITEM "Frame Sync",                  IDM_VIEW_SYNC
-        MENUITEM "&Black and White",            IDM_VIEW_GREYSCALE
+        MENUITEM "&Full Screen",                IDM_VIEW_FULLSCREEN
         MENUITEM SEPARATOR
-        MENUITEM "TV Aspect Ratio",             IDM_VIEW_RATIO54
-        MENUITEM "Show TV scanlines",           IDM_VIEW_SCANLINES
+        MENUITEM "&TV Aspect Ratio",            IDM_VIEW_RATIO54
+        MENUITEM "Show TV &Scanlines",          IDM_VIEW_SCANLINES
+        MENUITEM "&Greyscale",                  IDM_VIEW_GREYSCALE
         POPUP "&Window Size"
         BEGIN
             MENUITEM "50%",                         IDM_VIEW_ZOOM_50

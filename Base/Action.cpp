@@ -42,7 +42,7 @@ const char* Action::aszActions[MAX_ACTION] =
     "New disk 1", "Open disk 1", "Close disk 1", "Save disk 1", "New disk 2", "Open disk 2", "Close disk 2", "Save disk 2",
     "Exit application", "Options", "Debugger", "Import data", "Export data", "Save screenshot", "Change profiler mode",
     "Reset button", "NMI button", "Pause", "", "Toggle turbo speed", "Turbo speed (when held)",
-    "Toggle frame sync", "Toggle fullscreen", "Change window size", "Change border size", "Toggle 5:4 display",
+    "", "Toggle fullscreen", "Change window size", "Change border size", "Toggle 5:4 display",
     "", "Toggle scanlines", "Toggle greyscale", "Mute sound", "Release mouse capture",
     "Toggle printer online", "Flush printer", "About SimCoupe", "Minimise window", "Record GIF animation", "Record GIF loop",
     "", "Record WAV audio", "Record WAV segment", "", "Record AVI video", "Record AVI half-size", "",
@@ -81,11 +81,6 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
             case actToggleGreyscale:
                 SetOption(greyscale, !GetOption(greyscale));
                 Video::CreatePalettes();
-                break;
-
-            case actToggleSync:
-                SetOption(sync, !GetOption(sync));
-                Frame::SetStatus("Frame sync %s", GetOption(sync) ? "enabled" : "disabled");
                 break;
 
             case actToggle5_4:
