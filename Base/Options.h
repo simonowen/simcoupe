@@ -54,7 +54,7 @@ typedef struct
 
     int     drive1;                 // Drive 1 type
     int     drive2;                 // Drive 2 type
-    int     turboload;              // 0 for disabled, or sensitivity in number of frames
+    bool    turbodisk;              // Accelerated disk access?
     bool    saveprompt;             // Prompt before saving disk changes?
     bool    autoboot;               // Autoboot drive 1 on first startup?
     bool    dosboot;                // Automagically boot DOS from non-bootable disks?

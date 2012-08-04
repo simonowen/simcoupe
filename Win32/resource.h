@@ -95,7 +95,7 @@
 #define IDC_ACTION                      1115
 #define IDS_LATENCY                     1118
 #define IDB_BROWSE                      1123
-#define IDC_TURBO_LOAD                  1130
+#define IDC_TURBO_DISK                  1130
 #define IDC_SENSITIVITY                 1131
 #define IDC_ALT                         1133
 #define ID_HOMEPAGE                     1134

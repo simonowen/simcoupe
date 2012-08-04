@@ -439,7 +439,7 @@ void Frame::Sync ()
     DWORD dwNow = OSD::GetTime();
 
     // Determine whether we're running at increased speed during disk activity
-    if (GetOption(turboload) && (pFloppy1->IsActive() || pFloppy2->IsActive()))
+    if (GetOption(turbodisk) && (pFloppy1->IsActive() || pFloppy2->IsActive()))
         g_nTurbo |= TURBO_DISK;
     else
         g_nTurbo &= ~TURBO_DISK;

@@ -226,21 +226,20 @@ BEGIN
     LTEXT           "Select the key and modifiers or simply press the required key(s)",IDC_STATIC,18,17,106,16
 END
 
-IDD_PAGE_DRIVES DIALOG  0, 0, 235, 156
+IDD_PAGE_DRIVES DIALOGEX 0, 0, 235, 156
 STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Drives"
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
     COMBOBOX        IDC_DRIVE1,66,18,60,80,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_DRIVE2,148,18,60,80,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "&Fast disk access:",IDC_TURBO_LOAD,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,56,67,10
-    COMBOBOX        IDC_SENSITIVITY,125,54,83,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "&Fast floppy disk access",IDC_TURBO_DISK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,56,150,10
     CONTROL         "Ask before saving disk image changes",IDC_SAVE_PROMPT,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,72,137,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,72,150,10
     CONTROL         "Auto-boot disks inserted at startup screen",IDC_AUTOBOOT,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,88,146,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,88,150,10
     CONTROL         "Automagically boot non-bootable disks",IDC_DOSBOOT,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,104,137,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,104,150,10
     EDITTEXT        IDE_DOSDISK,64,128,129,14,ES_AUTOHSCROLL
     PUSHBUTTON      "...",IDB_BROWSE,195,128,14,14
     ICON            IDI_DRIVE,IDC_STATIC,7,7,20,20

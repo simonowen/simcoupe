@@ -86,7 +86,7 @@ OPTION aOptions[] =
 
     OPT_N("Drive1",       drive1,         1),         // Floppy drive 1 present
     OPT_N("Drive2",       drive2,         1),         // Floppy drive 2 present
-    OPT_N("TurboLoad",    turboload,      15),        // Accelerate disk access (medium sensitivity)
+    OPT_N("TurboDisk",    turbodisk,      true),      // Accelerated disk access?
     OPT_F("SavePrompt",   saveprompt,     true),      // Prompt before saving changes
     OPT_F("AutoBoot",     autoboot,       true),      // Autoboot disks inserted at the startup screen
     OPT_F("DosBoot",      dosboot,        true),      // Automagically boot DOS from non-bootable disks

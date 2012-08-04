@@ -833,9 +833,7 @@ class CDriveOptions : public CDialog
             new CFrameControl(this, 50, 71, 238, 120);
             new CTextControl(this, 60, 67, "Options", YELLOW_8, BLUE_2);
 
-            m_pTurboLoad = new CCheckBox(this, 60, 87, "Fast disk access");
-            new CTextControl(this, 165, 88, "Sensitivity:");
-            m_pSensitivity = new CComboBox(this, 220, 84, "Low|Medium|High", 58);
+            m_pTurboDisk = new CCheckBox(this, 60, 87, "Fast floppy disk access");
 
             m_pAutoBoot = new CCheckBox(this, 60, 108, "Auto-boot disks at startup screen");
 
@@ -850,15 +848,13 @@ class CDriveOptions : public CDialog
             // Set the initial state from the options
             m_pDrive1->Select(GetOption(drive1));
             m_pDrive2->Select(GetOption(drive2));
-            m_pTurboLoad->SetChecked(GetOption(turboload) != 0);
+            m_pTurboDisk->SetChecked(GetOption(turbodisk) != 0);
             m_pAutoBoot->SetChecked(GetOption(autoboot) != 0);
             m_pDosBoot->SetChecked(GetOption(dosboot) != 0);
             m_pDosDisk->SetText(GetOption(dosdisk));
-            m_pSensitivity->Select(!GetOption(turboload) ? 1 : GetOption(turboload) <= 5 ? 2 :
-                                                               GetOption(turboload) <= 50 ? 1 : 0);
 
             // Update the state of the controls to reflect the current settings
-            OnNotify(m_pTurboLoad,0);
+            OnNotify(m_pTurboDisk,0);
             OnNotify(m_pDosBoot,0);
         }
 
@@ -873,8 +869,7 @@ class CDriveOptions : public CDialog
                 SetOption(drive1, anDriveTypes[m_pDrive1->GetSelected()]);
                 SetOption(drive2, anDriveTypes[m_pDrive2->GetSelected()]);
 
-                int anSpeeds[] = { 100, 50, 5 };
-                SetOption(turboload, m_pTurboLoad->IsChecked() ? anSpeeds[m_pSensitivity->GetSelected()] : 0);
+                SetOption(turbodisk, m_pTurboDisk->IsChecked());
                 SetOption(autoboot, m_pAutoBoot->IsChecked());
 
                 SetOption(dosboot, m_pDosBoot->IsChecked());
@@ -903,8 +898,6 @@ class CDriveOptions : public CDialog
                 m_pDosDisk->Enable(m_pDosBoot->IsChecked());
                 m_pBrowse->Enable(m_pDosBoot->IsChecked());
             }
-            else if (pWindow_ == m_pTurboLoad)
-                m_pSensitivity->Enable(m_pTurboLoad->IsChecked());
         }
 
     protected:
@@ -919,8 +912,8 @@ class CDriveOptions : public CDialog
         }
 
     protected:
-        CComboBox *m_pDrive1, *m_pDrive2, *m_pSensitivity;
-        CCheckBox *m_pTurboLoad, *m_pAutoBoot, *m_pDosBoot;
+        CComboBox *m_pDrive1, *m_pDrive2;
+        CCheckBox *m_pTurboDisk, *m_pAutoBoot, *m_pDosBoot;
         CEditControl *m_pDosDisk;
         CTextControl *m_pDosBootText;
         CTextButton *m_pOK, *m_pCancel, *m_pBrowse;
@@ -1009,7 +1002,6 @@ class CDiskOptions : public CDialog
     protected:
         CEditControl *m_pAtom0, *m_pAtom1, *m_pSDIDE;
         CTextButton *m_pBrowseAtom0, *m_pBrowseAtom1, *m_pBrowseSDIDE, *m_pBrowseYATBus;
-        CCheckBox* m_pTurboLoad;
         CTextButton *m_pOK, *m_pCancel;
 };
 
