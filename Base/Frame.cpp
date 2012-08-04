@@ -57,7 +57,7 @@ const BYTE LED_OFF_COLOUR       = GREY_2;   // Grey for off
 const BYTE UNDRAWN_COLOUR       = GREY_2;   // Grey for undrawn screen in debugger
 
 const unsigned int STATUS_ACTIVE_TIME = 2500;   // Time the status text is visible for (in ms)
-const unsigned int FPS_IN_TURBO_MODE = 10;      // Number of FPS to limit to in Turbo mode
+const unsigned int FPS_IN_TURBO_MODE = 5;       // Number of FPS to limit to in (non-key) Turbo mode
 
 int s_nViewTop, s_nViewBottom;
 int s_nViewLeft, s_nViewRight;
@@ -447,8 +447,8 @@ void Frame::Sync ()
     // Default to drawing all frames
     fDrawFrame = true;
 
-    // Running in Turbo mode?
-    if (!GUI::IsActive() && g_nTurbo)
+    // Running in Turbo mode? (but not with turbo key)
+    if (!GUI::IsActive() && g_nTurbo && !(g_nTurbo & TURBO_KEY))
     {
         // Should we draw a frame yet?
         fDrawFrame = (dwNow - dwLastDrawn) >= 1000/FPS_IN_TURBO_MODE;
