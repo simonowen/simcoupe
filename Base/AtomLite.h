@@ -37,7 +37,7 @@ class CAtomLiteDevice : public CAtaAdapter
         void Out (WORD wPort_, BYTE bVal_);
 
     public:
-        bool Insert (CHardDisk *pDisk_, int nDevice_);
+        bool Attach (CHardDisk *pDisk_, int nDevice_);
 
     protected:
         CDallasClock m_Dallas;

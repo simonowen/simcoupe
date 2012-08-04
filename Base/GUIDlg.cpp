@@ -831,7 +831,7 @@ class CDriveOptions : public CDialog
             m_pDrive1 = new CComboBox(this, 83, 29, "None|Floppy", 80);
 
             new CTextControl(this, 178, 32, "D2:");
-            m_pDrive2 = new CComboBox(this, 198, 29, "None|Floppy|Atom [Lite]", 80);
+            m_pDrive2 = new CComboBox(this, 198, 29, "None|Floppy|Atom|Atom Lite", 80);
 
             new CFrameControl(this, 50, 71, 238, 120);
             new CTextControl(this, 60, 67, "Options", YELLOW_8, BLUE_2);
@@ -872,7 +872,7 @@ class CDriveOptions : public CDialog
                 Destroy();
             else if (pWindow_ == m_pOK)
             {
-                int anDriveTypes[] = { drvNone, drvFloppy, drvAtom };
+                int anDriveTypes[] = { drvNone, drvFloppy, drvAtom, drvAtomLite };
                 SetOption(drive1, anDriveTypes[m_pDrive1->GetSelected()]);
                 SetOption(drive2, anDriveTypes[m_pDrive2->GetSelected()]);
 
@@ -882,6 +882,19 @@ class CDriveOptions : public CDialog
 
                 SetOption(dosboot, m_pDosBoot->IsChecked());
                 SetOption(dosdisk, m_pDosDisk->GetText());
+
+                // Drive 2 type changed?
+                if (Changed(drive2))
+                {
+                    // Detach current disks
+                    pAtom->Detach();
+                    pAtomLite->Detach();
+
+                    // Attach new disks
+                    CAtaAdapter *pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
+                    AttachDisk(pActiveAtom, GetOption(atomdisk0), 0);
+                    AttachDisk(pActiveAtom, GetOption(atomdisk1), 1);
+                }
 
                 Destroy();
             }
@@ -895,6 +908,17 @@ class CDriveOptions : public CDialog
             }
             else if (pWindow_ == m_pTurboLoad)
                 m_pSensitivity->Enable(m_pTurboLoad->IsChecked());
+        }
+
+    protected:
+        void AttachDisk (CAtaAdapter *pAdapter_, const char *pcszDisk_, int nDevice_)
+        {
+            if (!pAdapter_->Attach(pcszDisk_, nDevice_))
+            {
+                char sz[MAX_PATH+128];
+                snprintf(sz, sizeof(sz), "Open failed: %s", pcszDisk_);
+                new CMessageBox(this, sz, "Warning", mbWarning);
+            }
         }
 
     protected:
@@ -914,10 +938,6 @@ class CDiskOptions : public CDialog
         {
             SetOption(disk1, pFloppy1->DiskPath());
             SetOption(disk2, pFloppy2->DiskPath());
-
-            SetOption(atomdisk0, pAtom->DiskPath(0));
-            SetOption(atomdisk1, pAtom->DiskPath(1));
-            SetOption(sdidedisk, pSDIDE->DiskPath(0));
 
             new CIconControl(this, 10, 10, &sFloppyDriveIcon);
 
@@ -948,54 +968,26 @@ class CDiskOptions : public CDialog
                 Destroy();
             else if (pWindow_ == m_pOK)
             {
-                char sz[MAX_PATH+128];
-
                 // Set the options from the edit control values
                 SetOption(atomdisk0, m_pAtom0->GetText());
                 SetOption(atomdisk1, m_pAtom1->GetText());
                 SetOption(sdidedisk, m_pSDIDE->GetText());
 
-                // If the Atom path has changed, activate it
-                if (ChangedString(atomdisk0))
+                // Any path changes?
+                if (Changed(atomdisk0) || Changed(atomdisk1) || Changed(sdidedisk))
                 {
-                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk0));
-                    if (!pDisk)
-                    {
-                        snprintf(sz, sizeof(sz), "Invalid Atom disk:\n\n%s", GetOption(atomdisk0));
-                        new CMessageBox(this, sz, "Warning", mbWarning);
-                        return;
-                    }
-                    
-                    pAtom->Insert(pDisk, 0);
+                    // Detach current disks
+                    pAtom->Detach();
+                    pAtomLite->Detach();
+                    pSDIDE->Detach();
+
+                    // Attach new disks
+                    CAtaAdapter *pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
+                    AttachDisk(pActiveAtom, GetOption(atomdisk0), 0);
+                    AttachDisk(pActiveAtom, GetOption(atomdisk1), 1);
+                    AttachDisk(pSDIDE, GetOption(sdidedisk), 0);
                 }
 
-                if (ChangedString(atomdisk1))
-                {
-                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk1));
-                    if (!pDisk)
-                    {
-                        snprintf(sz, sizeof(sz), "Invalid Atom disk:\n\n%s", GetOption(atomdisk1));
-                        new CMessageBox(this, sz, "Warning", mbWarning);
-                        return;
-                    }
-                    
-                    pAtom->Insert(pDisk, 1);
-                }
-
-                if (ChangedString(sdidedisk))
-                {
-                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(sdidedisk));
-                    if (!pDisk)
-                    {
-                        snprintf(sz, sizeof(sz), "Invalid SDIDE disk:\n\n%s", GetOption(sdidedisk));
-                        new CMessageBox(this, sz, "Warning", mbWarning);
-                        return;
-                    }
-                    
-                    pSDIDE->Insert(pDisk, 0);
-                }
-
-                // If everything checked out, close the dialog
                 Destroy();
             }
             else if (pWindow_ == m_pBrowseAtom0)
@@ -1004,6 +996,17 @@ class CDiskOptions : public CDialog
                 new CHDDProperties(m_pAtom1, this, "Atom Disk Device 1");
             else if (pWindow_ == m_pBrowseSDIDE)
                 new CHDDProperties(m_pSDIDE, this, "SD-IDE Hard Disk");
+        }
+
+    protected:
+        void AttachDisk (CAtaAdapter *pAdapter_, const char *pcszDisk_, int nDevice_)
+        {
+            if (!pAdapter_->Attach(pcszDisk_, nDevice_))
+            {
+                char sz[MAX_PATH+128];
+                snprintf(sz, sizeof(sz), "Open failed: %s", pcszDisk_);
+                new CMessageBox(this, sz, "Warning", mbWarning);
+            }
         }
 
     protected:

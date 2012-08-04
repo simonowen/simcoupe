@@ -74,8 +74,7 @@ void CAtomDevice::Out (WORD wPort_, BYTE bVal_)
     {
         // Address select
         case 5:
-            // Bits 6+7 are unused, so strip them
-            m_bAddressLatch = (bVal_ & ATOM_ADDR_MASK);
+            m_bAddressLatch = bVal_;
 
             // If the reset pin is low, reset the disk
             if (~bVal_ & ATOM_NRESET)
@@ -90,8 +89,8 @@ void CAtomDevice::Out (WORD wPort_, BYTE bVal_)
 
         // Data low
         case 7:
-            // If reset is held, ignore the disk write
-            if (~bVal_ & ATOM_NRESET)
+            // If reset is asserted, ignore the write
+            if (~m_bAddressLatch & ATOM_NRESET)
                 break;
 
             m_uActive = HDD_ACTIVE_FRAMES;
@@ -105,7 +104,7 @@ void CAtomDevice::Out (WORD wPort_, BYTE bVal_)
 }
 
 
-bool CAtomDevice::Insert (CHardDisk *pDisk_, int nDevice_)
+bool CAtomDevice::Attach (CHardDisk *pDisk_, int nDevice_)
 {
     bool fByteSwapped = false;
 
@@ -119,7 +118,7 @@ bool CAtomDevice::Insert (CHardDisk *pDisk_, int nDevice_)
         pDisk_->SetLegacy(true);
     }
 
-    CAtaAdapter::Insert(pDisk_, nDevice_);
+    CAtaAdapter::Attach(pDisk_, nDevice_);
 
     return pDisk_ != NULL;
 }

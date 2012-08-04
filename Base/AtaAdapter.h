@@ -37,12 +37,12 @@ class CAtaAdapter : public CIoDevice
         void FrameEnd () { if (m_uActive) m_uActive--; }
 
     public:
-        const char* DiskPath (int nDevice_) const;
         bool IsActive () const { return m_uActive != 0; }
 
     public:
-        bool Insert (const char *pcszDisk_, int nDevice_);
-        virtual bool Insert (CHardDisk *pDisk_, int nDevice_);
+        bool Attach (const char *pcszDisk_, int nDevice_);
+        virtual bool Attach (CHardDisk *pDisk_, int nDevice_);
+        virtual void Detach ();
 
     protected:
         WORD InWord (WORD wPort_);
@@ -51,11 +51,10 @@ class CAtaAdapter : public CIoDevice
         UINT m_uActive; // active when non-zero, decremented by FrameEnd()
 
     private:
-        BYTE m_bActiveDevice;
         CHardDisk *m_pDisk0;
         CHardDisk *m_pDisk1;
 };
 
-extern CAtaAdapter *pAtom, *pSDIDE;
+extern CAtaAdapter *pAtom, *pAtomLite, *pSDIDE;
 
 #endif // ATAADAPTER_H

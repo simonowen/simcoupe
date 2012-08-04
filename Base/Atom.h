@@ -37,7 +37,7 @@ class CAtomDevice : public CAtaAdapter
         void Out (WORD wPort_, BYTE bVal_);
 
     public:
-        bool Insert (CHardDisk *pDisk_, int nDevice_);
+        bool Attach (CHardDisk *pDisk_, int nDevice_);
 
     protected:
         BYTE m_bAddressLatch, m_bDataLatch;

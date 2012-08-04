@@ -43,7 +43,7 @@ typedef struct tagATAregs
 //  BYTE bAltStatus;        // 0x3f6 (read) - same as 0x1f7 above
     BYTE bDeviceControl;    // 0x3f6
 
-    BYTE bDriveAddress;     // 0x3f7
+//  BYTE bDriveAddress;     // 0x3f7 (read) - value built on demand
 }
 ATAregs;
 
@@ -90,7 +90,9 @@ const BYTE ATA_ERROR_TK0NF  = 0x02;     // Track 0 not found during execution of
 const BYTE ATA_ERROR_AMNF   = 0x01;     // Data address mark not found after correct ID field found
 
 // Device/Head Register
-const BYTE ATA_DEVICE_MASK  = 0x10;     // Selected device 0/1 mask
+const BYTE ATA_DEVICE_0     = 0x00;     // Device 0
+const BYTE ATA_DEVICE_1     = 0x10;     // Device 1
+const BYTE ATA_DEVICE_MASK  = 0x10;     // Selected device mask
 const BYTE ATA_HEAD_MASK    = 0x0f;     // Head bit mask
 
 
@@ -116,11 +118,11 @@ class CATADevice
 
     public:
         const ATA_GEOMETRY* GetGeometry() const { return &m_sGeometry; };
+        void SetDeviceAddress (BYTE bDevice_) { m_bDevice = bDevice_; }
         void SetByteSwap (bool fByteSwap_) { m_fByteSwap = fByteSwap_; }
         void SetLegacy (bool fLegacy_) { m_fLegacy = fLegacy_; }
 
     public:
-        virtual const char* GetPath () const = 0;
         virtual bool ReadSector (UINT uSector_, BYTE* pb_) = 0;
         virtual bool WriteSector (UINT uSector_, BYTE* pb_) = 0;
 
@@ -133,6 +135,7 @@ class CATADevice
         static void SetIdentifyString (const char* pcszValue_, void* pv_, size_t cb_);
 
     protected:
+        BYTE m_bDevice;                 // Device address (as ATA_DEVICE_x)
         ATAregs m_sRegs;                // AT device registers
         IDENTIFYDEVICE m_sIdentify;     // Identify device data
         ATA_GEOMETRY m_sGeometry;       // Device geometry

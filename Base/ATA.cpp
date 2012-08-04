@@ -30,6 +30,7 @@ CATADevice::CATADevice ()
 {
     memset(&m_sGeometry, 0, sizeof(m_sGeometry));
     memset(&m_sIdentify, 0, sizeof(m_sIdentify));
+    memset(&m_sRegs, 0, sizeof(m_sRegs));
 
     Reset();
 }
@@ -37,11 +38,11 @@ CATADevice::CATADevice ()
 // Device hard reset
 void CATADevice::Reset ()
 {
-    memset(&m_sRegs, 0, sizeof(m_sRegs));
+    // Set specific registers to zero
+    m_sRegs.bCylinderLow = m_sRegs.bCylinderHigh = m_sRegs.bDeviceHead = 0;
 
-    // Set up any non-zero initial register values
-    m_sRegs.bSectorCount = m_sRegs.bSector = 0x01;
-    m_sRegs.bDriveAddress = 0xff;
+    // Set some registers to one
+    m_sRegs.bError = m_sRegs.bSectorCount = m_sRegs.bSector = 0x01;
 
     // Device is settled and ready
     m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_DSC;
@@ -58,6 +59,10 @@ void CATADevice::Reset ()
 WORD CATADevice::In (WORD wPort_)
 {
     WORD wRet = 0xffff;
+
+    // If the request isn't for our device, ignore it
+    if ((m_sRegs.bDeviceHead ^ m_bDevice) & ATA_DEVICE_MASK)
+        return 0x0000;
 
     switch (~wPort_ & ATA_CS_MASK)
     {
@@ -96,7 +101,7 @@ WORD CATADevice::In (WORD wPort_)
                 case 3:  wRet = m_sRegs.bSector;            break;
                 case 4:  wRet = m_sRegs.bCylinderLow;       break;
                 case 5:  wRet = m_sRegs.bCylinderHigh;      break;
-                case 6:  wRet = m_sRegs.bDeviceHead;        break;
+                case 6:  wRet = m_sRegs.bDeviceHead | 0xa0; break;	// bits 7+5 always set
 
                 // Status register
                 case 7:
@@ -128,11 +133,20 @@ WORD CATADevice::In (WORD wPort_)
                     break;
 
                 case 7:
-                    TRACE("ATA: READ Drive Address (%#02x)\n", m_sRegs.bDriveAddress);
+                    TRACE("ATA: READ Drive Address\n");
 
                     // Only older HDD devices respond to this, newer ones such as CF cards don't
                     if (m_fLegacy)
-                        wRet = m_sRegs.bDriveAddress;
+                    {
+                        // Bit 7 set, bit 6 clear (write gate), inverted head bits in b5-2
+                        wRet = 0x80 | ((~m_sRegs.bDeviceHead & ATA_HEAD_MASK) << 2);
+
+                        // Set bits 0+1, leaving the active device bit clear
+                        if (~m_sRegs.bDeviceHead & ATA_DEVICE_MASK) // master?
+                            wRet |= 0x02;
+                        else
+                            wRet |= 0x01;
+                    }
 
                     break;
 
@@ -267,12 +281,6 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                     TRACE("ATA: WRITE device/head = %#02x\n", bVal);
                     m_sRegs.bDeviceHead = bVal;
 
-                    // Set the relevant device active bit in bit 0 or 1
-                    m_sRegs.bDriveAddress = (!(bVal & ATA_DEVICE_MASK)) ? 0x0001 : 0x0002;
-
-                    // Store the head selected in bits 2 to 5 (bit 7 is always set)
-                    m_sRegs.bDriveAddress |= 0x80 | (~bVal & ATA_HEAD_MASK) << 2;
-
                     // Device ready and selected head settled
                     m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_DSC;
                 }
@@ -285,6 +293,10 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
 
                     // Clear the error register
                     m_sRegs.bError = 0;
+
+                    // Ignore the command if it's not for our device, unless it's Execute Device Diagnostic
+                    if (((m_sRegs.bDeviceHead ^ m_bDevice) & ATA_DEVICE_MASK) && m_sRegs.bCommand != 0x90)
+                        break;
 
                     switch (m_sRegs.bCommand = bVal)
                     {
@@ -435,6 +447,7 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
             break;
     }
 }
+
 
 bool CATADevice::ReadWriteSector (bool fWrite_)
 {

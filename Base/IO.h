@@ -76,7 +76,7 @@ class CIoDevice
         virtual void SaveState (const char *pcszFile_) { }
 };
 
-enum { drvNone, drvFloppy, drvAtom, drvSDIDE };
+enum { drvNone, drvFloppy, drvAtom, drvAtomLite, drvSDIDE };
 
 class CDiskDevice :  public CIoDevice
 {

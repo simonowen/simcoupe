@@ -96,7 +96,7 @@ void CAtomLiteDevice::Out (WORD wPort_, BYTE bVal_)
 }
 
 
-bool CAtomLiteDevice::Insert (CHardDisk *pDisk_, int nDevice_)
+bool CAtomLiteDevice::Attach (CHardDisk *pDisk_, int nDevice_)
 {
     bool fByteSwapped = false;
 
@@ -110,7 +110,7 @@ bool CAtomLiteDevice::Insert (CHardDisk *pDisk_, int nDevice_)
         pDisk_->SetLegacy(false);
     }
 
-    CAtaAdapter::Insert(pDisk_, nDevice_);
+    CAtaAdapter::Attach(pDisk_, nDevice_);
 
     return pDisk_ != NULL;
 }

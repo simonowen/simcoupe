@@ -50,10 +50,11 @@
 
 
 // SAM palette colours to use for the floppy drive LED states
-const BYTE FLOPPY_LED_ON_COLOUR = GREEN_4;  // Light green floppy light on colour
-const BYTE ATOM_LED_ON_COLOUR   = BLUE_6;   // Blue hard disk light colour
-const BYTE LED_OFF_COLOUR       = GREY_2;   // Dark grey light off colour
-const BYTE UNDRAWN_COLOUR       = GREY_2;   // Dark grey for undrawn screen in debugger
+const BYTE FLOPPY_LED_COLOUR    = GREEN_5;  // Green for floppy
+const BYTE ATOM_LED_COLOUR      = RED_6;    // Red for Atom
+const BYTE ATOMLITE_LED_COLOUR  = 89;       // Blue for Atom Lite
+const BYTE LED_OFF_COLOUR       = GREY_2;   // Grey for off
+const BYTE UNDRAWN_COLOUR       = GREY_2;   // Grey for undrawn screen in debugger
 
 const unsigned int STATUS_ACTIVE_TIME = 2500;   // Time the status text is visible for (in ms)
 const unsigned int FPS_IN_TURBO_MODE = 10;      // Number of FPS to limit to in Turbo mode
@@ -550,15 +551,17 @@ void DrawOSD (CScreen* pScreen_)
         // Floppy 1 light
         if (GetOption(drive1))
         {
-            BYTE bColour = pFloppy1->IsLightOn() ? FLOPPY_LED_ON_COLOUR : LED_OFF_COLOUR;
+            BYTE bColour = pFloppy1->IsLightOn() ? FLOPPY_LED_COLOUR : LED_OFF_COLOUR;
             pScreen_->FillRect(nX, nY, 14, 2, bColour);
         }
 
         // Floppy 2 or Atom drive light
         if (GetOption(drive2))
         {
-            BYTE bColour = pFloppy2->IsLightOn() ? FLOPPY_LED_ON_COLOUR : 
-                             (pAtom->IsActive() ? ATOM_LED_ON_COLOUR : LED_OFF_COLOUR);
+            bool fAtomActive = pAtom->IsActive() || pAtomLite->IsActive();
+            BYTE bAtomColour = pAtom->IsActive() ? ATOM_LED_COLOUR : ATOMLITE_LED_COLOUR;
+
+            BYTE bColour = pFloppy2->IsLightOn() ? FLOPPY_LED_COLOUR : (fAtomActive ? bAtomColour : LED_OFF_COLOUR);
             pScreen_->FillRect(nX + 18, nY, 14, 2, bColour);
         }
     }

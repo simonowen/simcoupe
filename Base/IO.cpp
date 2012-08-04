@@ -52,7 +52,7 @@
 #include "Video.h"
 
 CDiskDevice *pFloppy1, *pFloppy2, *pBootDrive;
-CAtaAdapter *pAtom, *pSDIDE;
+CAtaAdapter *pAtom, *pAtomLite, *pSDIDE;
 
 CPrintBuffer *pPrinterFile;
 CMonoDACDevice *pMonoDac;
@@ -146,7 +146,8 @@ bool IO::Init (bool fFirstInit_/*=false*/)
 
         pFloppy1 = new CDrive;
         pFloppy2 = new CDrive;
-        pAtom = new CAtomLiteDevice;
+        pAtom = new CAtomDevice;
+        pAtomLite = new CAtomLiteDevice;
 
         pSDIDE = new CSDIDEDevice;
 
@@ -157,9 +158,11 @@ bool IO::Init (bool fFirstInit_/*=false*/)
         pFloppy1->Insert(GetOption(disk1));
         pFloppy2->Insert(GetOption(disk2));
 
-        pAtom->Insert(GetOption(atomdisk0), 0);
-        pAtom->Insert(GetOption(atomdisk1), 1);
-        pSDIDE->Insert(GetOption(sdidedisk), 0);
+        CAtaAdapter *pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
+        pActiveAtom->Attach(GetOption(atomdisk0), 0);
+        pActiveAtom->Attach(GetOption(atomdisk1), 1);
+
+        pSDIDE->Attach(GetOption(sdidedisk), 0);
     }
 
     // The ASIC is unresponsive during the first ~49ms on production SAM units
@@ -178,6 +181,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     pFloppy1->Reset();
     pFloppy2->Reset();
     pAtom->Reset();
+    pAtomLite->Reset();
     pSDIDE->Reset();
 
     // Return true only if everything
@@ -190,10 +194,6 @@ void IO::Exit (bool fReInit_/*=false*/)
     {
         SetOption(disk1, pFloppy1->DiskPath());
         SetOption(disk2, pFloppy2->DiskPath());
-
-        SetOption(atomdisk0, pAtom->DiskPath(0));
-        SetOption(atomdisk1, pAtom->DiskPath(1));
-        SetOption(sdidedisk, pSDIDE->DiskPath(0));
 
         pFloppy1->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive1"));
         pFloppy2->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive2"));
@@ -221,6 +221,7 @@ void IO::Exit (bool fReInit_/*=false*/)
         delete pBootDrive, pBootDrive = NULL;
 
         delete pAtom, pAtom = NULL;
+        delete pAtomLite, pAtomLite = NULL;
         delete pSDIDE, pSDIDE = NULL;
     }
 }
@@ -512,8 +513,9 @@ BYTE IO::In (WORD wPort_)
             {
                 switch (GetOption(drive2))
                 {
-                    case drvFloppy: return pFloppy2->In(wPort_);
-                    case drvAtom:   return pAtom->In(wPort_);
+                    case drvFloppy:     return pFloppy2->In(wPort_);
+                    case drvAtom:       return pAtom->In(wPort_);
+                    case drvAtomLite:   return pAtomLite->In(wPort_);
                 }
             }
 
@@ -792,9 +794,9 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             {
                 switch (GetOption(drive2))
                 {
-                    case drvFloppy: pFloppy2->Out(wPort_, bVal_); break;
-                    case drvAtom:   pAtom->Out(wPort_, bVal_); break;
-                    default: break;
+                    case drvFloppy:     pFloppy2->Out(wPort_, bVal_);  break;
+                    case drvAtom:       pAtom->Out(wPort_, bVal_);     break;
+                    case drvAtomLite:   pAtomLite->Out(wPort_, bVal_); break;
                 }
             }
 
@@ -844,6 +846,7 @@ void IO::FrameUpdate ()
     pFloppy1->FrameEnd();
     pFloppy2->FrameEnd();
     pAtom->FrameEnd();
+    pAtomLite->FrameEnd();
     pPrinterFile->FrameEnd();
 
     Input::Update();

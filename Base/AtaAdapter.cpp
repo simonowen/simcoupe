@@ -23,7 +23,7 @@
 
 
 CAtaAdapter::CAtaAdapter ()
-    : m_uActive(0), m_bActiveDevice(0), m_pDisk0(NULL), m_pDisk1(NULL)
+    : m_uActive(0), m_pDisk0(NULL), m_pDisk1(NULL)
 {
 }
 
@@ -42,30 +42,20 @@ BYTE CAtaAdapter::In (WORD wPort_)
 // 16-bit read
 WORD CAtaAdapter::InWord (WORD wPort_)
 {
-    // Send the request to the appropriate device
-    if (m_bActiveDevice == 0 && m_pDisk0)
-        return m_pDisk0->In(wPort_);
-    else if (m_bActiveDevice != 0 && m_pDisk1)
-        return m_pDisk1->In(wPort_);
+    WORD wRet = 0x0000;
 
-    return 0xffff;
+    if (m_pDisk0) wRet |= m_pDisk0->In(wPort_);
+    if (m_pDisk1) wRet |= m_pDisk1->In(wPort_);
+
+    // Return the combined result
+    return wRet;
 }
 
 // 8-bit write (16-bit handled by derived class)
 void CAtaAdapter::Out (WORD wPort_, BYTE bVal_)
 {
-    // Drive/head and device control register writes must go to both devices
-    bool fReg6 = (wPort_ & ATA_DA_MASK) == 6;
-
-    // Track changes to active device
-    if ((~wPort_ & ATA_CS_MASK) == ATA_CS0 && fReg6)
-        m_bActiveDevice = (bVal_ & ATA_DEVICE_MASK);
-
-    // Send the request to the appropriate device
-    if ((m_bActiveDevice == 0 || fReg6) && m_pDisk0)
-        m_pDisk0->Out(wPort_, bVal_);
-    else if ((m_bActiveDevice != 0 || fReg6) && m_pDisk1)
-        m_pDisk1->Out(wPort_, bVal_);
+    if (m_pDisk0) m_pDisk0->Out(wPort_, bVal_);
+    if (m_pDisk1) m_pDisk1->Out(wPort_, bVal_);
 }
 
 
@@ -76,32 +66,36 @@ void CAtaAdapter::Reset ()
 }
 
 
-const char* CAtaAdapter::DiskPath (int nDevice_) const
+bool CAtaAdapter::Attach (const char *pcszDisk_, int nDevice_)
 {
-    if (nDevice_ == 0)
-        return m_pDisk0 ? m_pDisk0->GetPath() : "";
-    else
-        return m_pDisk1 ? m_pDisk1->GetPath() : "";
+    // Return if successfully or path is empty
+    return Attach(CHardDisk::OpenObject(pcszDisk_), nDevice_) || !*pcszDisk_;
 }
 
-
-bool CAtaAdapter::Insert (const char *pcszDisk_, int nDevice_)
-{
-    return Insert(CHardDisk::OpenObject(pcszDisk_), nDevice_);
-}
-
-bool CAtaAdapter::Insert (CHardDisk *pDisk_, int nDevice_)
+bool CAtaAdapter::Attach (CHardDisk *pDisk_, int nDevice_)
 {
     if (nDevice_ == 0)
     {
         delete m_pDisk0;
         m_pDisk0 = pDisk_;
+
+        // Jumper the disk as device 0
+        if (m_pDisk0) m_pDisk0->SetDeviceAddress(ATA_DEVICE_0);
     }
     else
     {
         delete m_pDisk1;
         m_pDisk1 = pDisk_;
+
+        // Jumper the disk as device 1
+        if (m_pDisk1) m_pDisk1->SetDeviceAddress(ATA_DEVICE_1);
     }
 
     return pDisk_ != NULL;
+}
+
+void CAtaAdapter::Detach ()
+{
+    delete m_pDisk0, m_pDisk0 = NULL;
+    delete m_pDisk1, m_pDisk1 = NULL;
 }

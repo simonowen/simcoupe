@@ -452,6 +452,17 @@ void UpdateRecentFiles (HMENU hmenu_, int nId_, int nOffset_)
 }
 
 
+bool AttachDisk (CAtaAdapter *pAdapter_, const char *pcszDisk_, int nDevice_)
+{
+    if (!pAdapter_->Attach(pcszDisk_, nDevice_))
+    {
+        Message(msgWarning, "Failed to open: %s", pcszDisk_);
+        return false;
+    }
+    
+    return true;
+}
+
 bool InsertDisk (CDiskDevice* pFloppy_, const char *pcszPath_=NULL)
 {
     char szFile[MAX_PATH] = "";
@@ -2398,7 +2409,7 @@ INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             SetComboStrings(hdlg_, IDC_DRIVE1, aszDrives1, GetOption(drive1));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE1, 0L);
 
-            static const char* aszDrives2[] = { "None", "Floppy", "Atom Lite", NULL };
+            static const char* aszDrives2[] = { "None", "Floppy", "Atom", "Atom Lite", NULL };
             SetComboStrings(hdlg_, IDC_DRIVE2, aszDrives2, GetOption(drive2));
             SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE2, 0L);
 
@@ -2508,11 +2519,6 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
             AddComboString(hdlg_, IDC_ATOM1, "");
             AddComboString(hdlg_, IDC_SDIDE, "");
 
-            // Refresh the options from the active devices
-            SetOption(atomdisk0, pAtom->DiskPath(0));
-            SetOption(atomdisk1, pAtom->DiskPath(1));
-            SetOption(sdidedisk, pSDIDE->DiskPath(0));
-
             // Set the edit controls to the current settings
             SetDlgItemPath(hdlg_, IDC_ATOM0, GetOption(atomdisk0));
             SetDlgItemPath(hdlg_, IDC_ATOM1, GetOption(atomdisk1));
@@ -2544,47 +2550,6 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 GetDlgItemPath(hdlg_, IDC_ATOM0, szPath, MAX_PATH); SetOption(atomdisk0, szPath);
                 GetDlgItemPath(hdlg_, IDC_ATOM1, szPath, MAX_PATH); SetOption(atomdisk1, szPath);
                 GetDlgItemPath(hdlg_, IDC_SDIDE, szPath, MAX_PATH); SetOption(sdidedisk, szPath);
-
-                // If the Atom path has changed, activate it
-                if (ChangedString(atomdisk0))
-                {
-                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk0));
-                    if (!pDisk && *GetOption(atomdisk0))
-                    {
-                        Message(msgWarning, "Failed to open: %s", GetOption(atomdisk0));
-                        SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
-                        return TRUE;
-                    }
-                    
-                    pAtom->Insert(pDisk, 0);
-                }
-
-                // If the Atom path has changed, activate it
-                if (ChangedString(atomdisk1))
-                {
-                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(atomdisk1));
-                    if (!pDisk && *GetOption(atomdisk1))
-                    {
-                        Message(msgWarning, "Failed to open: %s", GetOption(atomdisk1));
-                        SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
-                        return TRUE;
-                    }
-                    
-                    pAtom->Insert(pDisk, 1);
-                }
-
-                if (ChangedString(sdidedisk))
-                {
-                    CHardDisk *pDisk = CHardDisk::OpenObject(GetOption(sdidedisk));
-                    if (!pDisk && *GetOption(sdidedisk))
-                    {
-                        Message(msgWarning, "Failed to open: %s", GetOption(sdidedisk));
-                        SetWindowLongPtr(hdlg_, DWLP_MSGRESULT, PSNRET_INVALID);
-                        return TRUE;
-                    }
-                    
-                    pSDIDE->Insert(pDisk, 0);
-                }
             }
             break;
         }
@@ -3435,7 +3400,22 @@ void DisplayOptions ()
     // Save the current option state, flag that we've not centred the dialogue box, then display them for editing
     opts = Options::s_Options;
     fCentredOptions = false;
-    PropertySheet(&psh);
 
-    Options::Save();
+    // Display option property sheet
+    if (PropertySheet(&psh) >= 1)
+    {
+        // Detach current disks
+        pAtom->Detach();
+        pAtomLite->Detach();
+        pSDIDE->Detach();
+
+        // Attach new disks
+        CAtaAdapter *pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
+        AttachDisk(pActiveAtom, GetOption(atomdisk0), 0);
+        AttachDisk(pActiveAtom, GetOption(atomdisk1), 1);
+        AttachDisk(pSDIDE, GetOption(sdidedisk), 0);
+
+        // Save changed options to config file
+        Options::Save();
+    }
 }
