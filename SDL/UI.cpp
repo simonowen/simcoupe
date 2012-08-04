@@ -144,7 +144,6 @@ bool UI::CheckEvents ()
                             break;
 
                         case UE_TOGGLEFULLSCREEN:   Action::Do(actToggleFullscreen,false);break;
-                        case UE_TOGGLESYNC:         Action::Do(actToggleSync);      break;
                         case UE_TOGGLEGREYSCALE:    Action::Do(actToggleGreyscale); break;
                         case UE_NMIBUTTON:          Action::Do(actNmiButton);       break;
                         case UE_TOGGLESCANLINES:    Action::Do(actToggleScanlines); break;

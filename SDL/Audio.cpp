@@ -104,8 +104,8 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
 
         SDL_UnlockAudio();
 
-        // If we've written it all or frame sync is disabled, we're done
-        if (!nLength_ || !GetOption(sync))
+        // All written?
+        if (!nLength_)
             break;
 
         // Wait for more space
@@ -127,7 +127,7 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
         if (nSpace > (SAMPLE_BUFFER_SIZE*SAMPLE_BLOCK))
             nFrameTime--;
 
-        do
+        for (;;)
         {
             // How long since the last frame?
             Sint32 nElapsed = static_cast<Sint32>(SDL_GetTicks() - uLastTime);
@@ -143,7 +143,7 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
             // Sleep a short time before checking again
             SDL_Delay(1);
 
-        } while (GetOption(sync));
+        }
     }
 
     return true;
