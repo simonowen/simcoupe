@@ -770,7 +770,8 @@ void IO::Out (WORD wPort_, BYTE bVal_)
 
         // SID interface
         case SID_PORT:
-            pSID->Out(wPort_, bVal_);
+            if (GetOption(sid))
+                pSID->Out(wPort_, bVal_);
             break;
 
         // Quazar Surround (unsupported)

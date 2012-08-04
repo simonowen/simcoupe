@@ -77,10 +77,10 @@ void Sound::FrameUpdate ()
     int nSamples = pDAC->GetSampleCount();
     int nSize = nSamples*SAMPLE_BLOCK;
 
-    // Copy in the DAC samples and mix the SAA
+    // Copy in the DAC samples, then mix SAA and possibly SID too
     memcpy(pbSampleBuffer, pDAC->GetSampleBuffer(), nSize);
     MixAudio(pbSampleBuffer, pSAA->GetSampleBuffer(), nSize);
-    if (fSidUsed) MixAudio(pbSampleBuffer, pSID->GetSampleBuffer(), nSize);
+    if (fSidUsed && GetOption(sid)) MixAudio(pbSampleBuffer, pSID->GetSampleBuffer(), nSize);
 
     // Add the frame to any recordings
     WAV::AddFrame(pbSampleBuffer, nSize);

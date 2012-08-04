@@ -146,6 +146,7 @@ OPTION aOptions[] =
     OPT_N("SamplerFreq",  samplerfreq,    18000),     // Blue Alpha clock frequency (default=18KHz)
     OPT_F("SAMVox",       samvox,         false),     // SAMVox not present (conflicts with Blue Alpha port)
     OPT_F("Paula",        paula,          false),     // Paula DAC not present (conflicts with Blue Alpha port)
+    OPT_F("SID",          sid,            true),      // SID interface present
 
     OPT_N("DriveLights",  drivelights,    1),         // Show drive activity lights
     OPT_F("Profile",      profile,        true),      // Show only emulation speed and framerate

@@ -116,6 +116,7 @@ typedef struct
     int     samplerfreq;            // Blue Alpha Sampler clock frequency
     bool    samvox;                 // SAMVox 4-channel DAC?
     bool    paula;                  // Paula 4-bit dual-DAC?
+    bool    sid;                    // SID interface?
 
     int     drivelights;            // Show floppy drive LEDs
     bool    profile;                // Show profile stats?
