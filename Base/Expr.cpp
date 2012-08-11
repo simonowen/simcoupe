@@ -112,7 +112,7 @@ static const TOKEN asVariables[] =
 {
     {"ei",VAR_EI}, {"di",VAR_DI},
     {"dline",VAR_DLINE}, {"sline",VAR_SLINE}, {"lcycles",VAR_LCYCLES},
-    {"rom0",VAR_ROM0}, {"rom1",VAR_ROM1}, {"wprot",VAR_WPROT},
+    {"rom0",VAR_ROM0}, {"rom1",VAR_ROM1}, {"wprot",VAR_WPROT}, {"inrom",VAR_INROM},
     {"lmpr",VAR_LMPR}, {"hmpr",VAR_HMPR}, {"vmpr",VAR_VMPR}, {"mode",VAR_MODE}, {"lepr",VAR_LEPR}, {"hepr",VAR_HEPR},
     {NULL}
 };
@@ -284,6 +284,10 @@ int Expr::Eval (const EXPR* pExpr_)
                     case VAR_MODE:      r = 1+(VMPR_MODE >> 5);       break;
                     case VAR_LEPR:      r = lepr;                     break;
                     case VAR_HEPR:      r = hepr;                     break;
+
+                    case VAR_INROM:     r = (!(lmpr & LMPR_ROM0_OFF) && PC <  0x4000) ||
+                                              (lmpr & LMPR_ROM1      && PC >= 0xc000);
+                                        break;
 
                     case VAR_COUNT:     r = nCount ? !--nCount : 1; break;
                 }
