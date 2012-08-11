@@ -40,7 +40,7 @@ class CAtomDevice : public CAtaAdapter
         bool Attach (CHardDisk *pDisk_, int nDevice_);
 
     protected:
-        BYTE m_bAddressLatch, m_bDataLatch;
+        BYTE m_bAddressLatch, m_bReadLatch, m_bWriteLatch;
 };
 
 #endif // ATOM_H

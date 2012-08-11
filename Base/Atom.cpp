@@ -28,7 +28,7 @@
 
 
 CAtomDevice::CAtomDevice ()
-    : m_bAddressLatch(0), m_bDataLatch(0)
+    : m_bAddressLatch(0), m_bReadLatch(0), m_bWriteLatch(0)
 {
 }
 
@@ -42,13 +42,11 @@ BYTE CAtomDevice::In (WORD wPort_)
         // Data high
         case 6:
         {
-            WORD wData = 0xffff;
+            // Read a 16-bit data value
+            WORD wData = CAtaAdapter::InWord(m_bAddressLatch & ATOM_ADDR_MASK);
 
-            // Read a 16-bit data value, if a disk is present
-            wData = CAtaAdapter::InWord(m_bAddressLatch & ATOM_ADDR_MASK);
-
-            // Store the low-byte in the latch and return the high-byte
-            m_bDataLatch = wData & 0xff;
+            // Store the low-byte in the read latch and return the high-byte
+            m_bReadLatch = wData & 0xff;
             bRet = wData >> 8;
 
             break;
@@ -56,8 +54,8 @@ BYTE CAtomDevice::In (WORD wPort_)
 
         // Data low
         case 7:
-            // Return the previously stored low-byte
-            bRet = m_bDataLatch;
+            // Return the low-byte from the read latch
+            bRet = m_bReadLatch;
             break;
 
         default:
@@ -82,9 +80,9 @@ void CAtomDevice::Out (WORD wPort_, BYTE bVal_)
 
             break;
 
-        // Data high - store in the latch for later
+        // Data high - store in the write latch for later
         case 6:
-            m_bDataLatch = bVal_;
+            m_bWriteLatch = bVal_;
             break;
 
         // Data low
@@ -94,7 +92,7 @@ void CAtomDevice::Out (WORD wPort_, BYTE bVal_)
                 break;
 
             m_uActive = HDD_ACTIVE_FRAMES;
-            CAtaAdapter::Out(m_bAddressLatch & ATOM_ADDR_MASK, (m_bDataLatch << 8) | bVal_);
+            CAtaAdapter::Out(m_bAddressLatch & ATOM_ADDR_MASK, (m_bWriteLatch << 8) | bVal_);
             break;
 
         default:
