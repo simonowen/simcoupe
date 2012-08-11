@@ -120,6 +120,9 @@ class CView : public CWindow
 class CCodeView : public CView
 {
     public:
+        static const UINT INVALID_TARGET = 0U-1;
+
+    public:
         CCodeView (CWindow* pParent_);
         ~CCodeView () { delete[] m_pszData; m_pszData = NULL; }
 

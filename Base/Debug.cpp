@@ -465,7 +465,7 @@ static const UINT ROW_GAP = 2;
 CAddr CCodeView::s_aAddrs[64];
 
 CCodeView::CCodeView (CWindow* pParent_)
-    : CView(pParent_), m_uTarget(0), m_pcszTarget(NULL)
+    : CView(pParent_), m_uTarget(INVALID_TARGET), m_pcszTarget(NULL)
 {
     // Calculate the number of rows and columns in the view
     m_uRows = m_nHeight / (ROW_GAP+sOldFont.wHeight+ROW_GAP);
@@ -549,7 +549,7 @@ void CCodeView::Draw (CScreen* pScreen_)
         if (IsExecBreakpoint(s_aAddrs[u]))
             bColour = RED_4;
 
-        if (!m_uTarget || s_aAddrs[u] != m_uTarget)
+        if (m_uTarget == INVALID_TARGET || s_aAddrs[u] != m_uTarget)
             pScreen_->DrawString(nX, nY+ROW_GAP, psz, bColour);
         else
         {
@@ -708,7 +708,7 @@ void CCodeView::SetFlowTarget ()
     WORD wRstTarget = bOpcode & 0x38;
 
     // No instruction target or conditional jump helper string yet
-    m_uTarget = 0;
+    m_uTarget = INVALID_TARGET;
     m_pcszTarget = NULL;
 
     // Examine the current opcode to check for flow changing instructions
@@ -749,7 +749,7 @@ void CCodeView::SetFlowTarget ()
             }
 
             // For all but RST, extract the 3-bit condition code
-            if (m_uTarget && (bOpcode & 0xc7) != 0xc7)
+            if (m_uTarget != INVALID_TARGET && (bOpcode & 0xc7) != 0xc7)
                 bCond = (bOpcode >> 3) & 0x07;
 
             break;
@@ -758,7 +758,7 @@ void CCodeView::SetFlowTarget ()
     // Have we got a condition to test?
     if (bCond <= 0x07)
     {
-        static const BYTE abFlags[] = { FLAG_Z, FLAG_C, FLAG_P, FLAG_N };
+        static const BYTE abFlags[] = { FLAG_Z, FLAG_C, FLAG_P, FLAG_S };
 
         // Invert the 'not' conditions to give a set bit for a mask
         bFlags ^= (bCond & 1) ? 0x00 : 0xff;
@@ -776,7 +776,7 @@ void CCodeView::SetFlowTarget ()
             }
         }
         else
-            m_uTarget = 0;
+            m_uTarget = INVALID_TARGET;
     }
 }
 
@@ -1294,7 +1294,7 @@ void CRegisterPanel::Draw (CScreen* pScreen_)
 
 ////////////////////////////////////////////////////////////////////////////////
 /*
-void CCommandLine::Execute (const char* pcszCommand_)
+void CCommande::Execute (const char* pcszCommand_)
 {
     char szCommand[128], *pszCommand = strtok(strcpy(szCommand, pcszCommand_), " "), *psz;
     EXPR* pReg = NULL;
