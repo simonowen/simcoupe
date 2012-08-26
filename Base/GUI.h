@@ -240,8 +240,15 @@ class CEditControl : public CWindow
 
     public:
         bool IsTabStop () const { return true; }
+
+        void SetText (const char* pcszText_);
         void Draw (CScreen* pScreen_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
+
+    protected:
+        size_t m_nViewOffset;
+        size_t m_nCaretStart, m_nCaretEnd;
+        DWORD m_dwCaretTime;
 };
 
 

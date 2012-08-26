@@ -518,6 +518,10 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
                 GUI::SendMessage(GM_CHAR, an[wParam_-VK_PRIOR], nMods);
             }
 
+            // Delete
+            else if (wParam_ == VK_DELETE)
+                GUI::SendMessage(GM_CHAR, HK_DELETE, nMods);
+
             // Not processed here, but may come back through decoded as WM_CHAR
             else
                 return 1;

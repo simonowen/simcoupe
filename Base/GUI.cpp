@@ -476,9 +476,9 @@ bool CButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
             switch (nParam1_)
             {
-                case ' ':
-                case '\r':
-                    NotifyParent(nParam1_ == '\r');
+                case HK_SPACE:
+                case HK_RETURN:
+                    NotifyParent(nParam1_ == HK_RETURN);
                     return true;
             }
             break;
@@ -678,8 +678,8 @@ bool CCheckBox::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
             switch (nParam1_)
             {
-                case ' ':
-                case '\r':
+                case HK_SPACE:
+                case HK_RETURN:
                     SetChecked(!IsChecked());
                     NotifyParent();
                     return true;
@@ -715,22 +715,36 @@ bool CCheckBox::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+const int EDIT_BORDER = 3;
+const int EDIT_HEIGHT = EDIT_BORDER + CHAR_HEIGHT + EDIT_BORDER;
+
 const size_t MAX_EDIT_LENGTH = 250;
 
 CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_/*=""*/)
-    : CWindow(pParent_, nX_, nY_, nWidth_, BUTTON_HEIGHT, ctEdit)
+    : CWindow(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit),
+    m_nViewOffset(0), m_nCaretStart(0), m_nCaretEnd(0)
 {
     SetText(pcszText_);
 }
 
 CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, UINT u_)
-    : CWindow(pParent_, nX_, nY_, nWidth_, BUTTON_HEIGHT, ctEdit)
+    : CWindow(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit)
 {
     SetValue(u_);
 }
 
+void CEditControl::SetText (const char* pcszText_)
+{
+    CWindow::SetText(pcszText_);
+
+    // Position the caret at the end of the new text
+    m_nCaretStart = m_nCaretEnd = strlen(pcszText_);
+}
+
 void CEditControl::Draw (CScreen* pScreen_)
 {
+    int nWidth = m_nWidth - 2*EDIT_BORDER;
+
     // Fill overall control background, and draw a frame round it
     pScreen_->FillRect(m_nX+1, m_nY+1, m_nWidth-2, m_nHeight-2, IsEnabled() ? (IsActive() ? YELLOW_8 : WHITE) : GREY_7);
     pScreen_->FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, GREY_7);
@@ -739,24 +753,84 @@ void CEditControl::Draw (CScreen* pScreen_)
     pScreen_->DrawLine(m_nX+1, m_nY+m_nHeight-1, m_nWidth-1, 0, GREY_7);
     pScreen_->DrawLine(m_nX+m_nWidth-1, m_nY+1, 0, m_nHeight-1, GREY_7);
 
-    // The text could be too long for the control, so find the longest tail-segment that fits
-    const char* pcsz = GetText();
-    while (CScreen::GetStringWidth(pcsz) >= (m_nWidth - 4))
-        pcsz++;
+    // If the caret is before the current view start we need to shift the view back
+    if (m_nCaretEnd < m_nViewOffset)
+    {
+        for (m_nViewOffset = m_nCaretEnd ; m_nViewOffset > 0 ; m_nViewOffset--)
+        {
+            // Stop if we've exposed 1/4 of the edit control length
+            if (CScreen::GetStringWidth(GetText()+m_nViewOffset, m_nCaretEnd-m_nViewOffset) >= (nWidth/4))
+            {
+                m_nViewOffset--;
+                break;
+            }
+        }
+    }
+    // If the caret is beyond the end of the control we need to shift the view forwards
+    else if (CScreen::GetStringWidth(GetText()+m_nViewOffset, m_nCaretEnd-m_nViewOffset) > nWidth)
+    {
+        // Loop while the view string is still too long for the control
+        for ( ; CScreen::GetStringWidth(GetText()+m_nViewOffset) > nWidth ; m_nViewOffset++)
+        {
+            // Stop if caret is within 3/4 of the edit control length
+            if (CScreen::GetStringWidth(GetText()+m_nViewOffset, m_nCaretEnd-m_nViewOffset) < (nWidth*3/4))
+                break;
+        }
+    }
 
-    int nY = m_nY + (m_nHeight - CHAR_HEIGHT)/2;
+    // Top-left of text region within edit control
+    int nX = m_nX + EDIT_BORDER;
+    int nY = m_nY + EDIT_BORDER;
+
+    // Determine the visible length of the string within the control
+    size_t nViewLength = 0;
+    for ( ; GetText()[m_nViewOffset+nViewLength] ; nViewLength++)
+    {
+        // Too long for control?
+        if (CScreen::GetStringWidth(GetText()+m_nViewOffset, nViewLength) > nWidth)
+        {
+            // Remove a character to bring within width, and finish
+            nViewLength--;
+            break;
+        }
+    }
+
+    // Draw the visible text
+    pScreen_->DrawString(m_nX+EDIT_BORDER, nY+1, GetText()+m_nViewOffset, IsEnabled() ? BLACK : GREY_5, false, nViewLength);
+
+    // Is there an active selection?
+    if (m_nCaretStart != m_nCaretEnd)
+    {
+        size_t nStart = m_nCaretStart, nEnd = m_nCaretEnd;
+        if (nStart > nEnd)
+            swap(nStart, nEnd);
+
+        // Clip start to visible selection
+        if (nStart < m_nViewOffset)
+            nStart = m_nViewOffset;
+
+        // Clip end to visible selection
+        if (nEnd-nStart > nViewLength)
+            nEnd = nStart + nViewLength;
+
+        // Determine offset and pixel width of highlighted selection
+        int dx = CScreen::GetStringWidth(GetText()+m_nViewOffset, nStart-m_nViewOffset);
+        int wx = CScreen::GetStringWidth(GetText()+nStart, nEnd-nStart);
+
+        // Draw the black selection highlight and white text over it
+        pScreen_->FillRect(nX-1+dx, nY-1, 1+wx, 1+CHAR_HEIGHT+1, IsEnabled() ? (IsActive() ? BLACK : GREY_4) : GREY_6);
+        pScreen_->DrawString(nX+dx, nY, GetText()+nStart, WHITE, false, nEnd-nStart);
+    }
 
     // If the control is enabled and focussed we'll show a flashing caret after the text
     if (IsEnabled() && IsActive())
     {
-        bool fCaretOn = (OSD::GetTime() % 800) < 400;
+        bool fCaretOn = ((OSD::GetTime() - m_dwCaretTime) % 800) < 400;
+        int dx = CScreen::GetStringWidth(GetText()+m_nViewOffset, m_nCaretEnd-m_nViewOffset);
 
         // Draw a character-height vertical bar after the text
-        int nX = m_nX + CScreen::GetStringWidth(pcsz)+ 4;
-        pScreen_->DrawLine(nX, nY, 0, CHAR_HEIGHT+1, fCaretOn ? BLUE_4 : WHITE);
+        pScreen_->DrawLine(nX+dx-1, nY-1, 0, 1+CHAR_HEIGHT+1, fCaretOn ? BLUE_4 : YELLOW_8);
     }
-
-    pScreen_->DrawString(m_nX+3, nY+1, pcsz, IsEnabled() ? BLACK : GREY_5);
 }
 
 bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
@@ -775,43 +849,136 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             if (!IsActive())
                 break;
 
+            // Reset caret blink time so it's visible
+            m_dwCaretTime = OSD::GetTime();
+
+            bool fCtrl = !!(nParam2_ & HM_CTRL);
+            bool fShift = !!(nParam2_ & HM_SHIFT);
+
             switch (nParam1_)
             {
-                case HK_UP:
-                case HK_DOWN:
+                case HK_HOME:
+                    // Start of line, with optional select
+                    m_nCaretEnd = fShift ? 0 : m_nCaretStart = 0;
+                    return true;
+
+                case HK_END:
+                    // End of line, with optional select
+                    m_nCaretEnd = fShift ? strlen(GetText()) : m_nCaretStart = strlen(GetText());
+                    return true;
+
                 case HK_LEFT:
+                    // Previous word
+                    if (fCtrl)
+                    {
+                        // Step back over whitespace
+                        while (m_nCaretEnd > 0 && GetText()[m_nCaretEnd-1] == ' ')
+                            m_nCaretEnd--;
+
+                        // Step back until whitespace
+                        while (m_nCaretEnd > 0 && GetText()[m_nCaretEnd-1] != ' ')
+                            m_nCaretEnd--;
+                    }
+                    // Previous character
+                    else if (m_nCaretEnd > 0)
+                        m_nCaretEnd--;
+
+                    // Not extending selection?
+                    if (!fShift)
+                        m_nCaretStart = m_nCaretEnd;
+
+                    return true;
+
                 case HK_RIGHT:
-                    // Eat these for future cursor handling
+                    // Next word
+                    if (fCtrl)
+                    {
+                        // Step back until whitespace
+                        while (GetText()[m_nCaretEnd] && GetText()[m_nCaretEnd] != ' ')
+                            m_nCaretEnd++;
+
+                        // Step back over whitespace
+                        while (GetText()[m_nCaretEnd] && GetText()[m_nCaretEnd] == ' ')
+                            m_nCaretEnd++;
+                    }
+                    // Next character
+                    else if (GetText()[m_nCaretEnd])
+                        m_nCaretEnd++;
+
+                    // Not extending selection?
+                    if (!fShift)
+                        m_nCaretStart = m_nCaretEnd;
+
                     return true;
 
                 // Return possibly submits the dialog contents
-                case '\r':
+                case HK_RETURN:
                     NotifyParent(1);
                     break;
 
-                // Backspace deletes the last character
-                case '\b':
-                    if (*m_pszText)
-                    {
-                        m_pszText[strlen(m_pszText)-1] = '\0';
-                        NotifyParent();
-                    }
-                    return true;
-
                 default:
+                    // Ctrl combination?
+                    if (nParam2_ & HM_CTRL)
+                    {
+                        // Ctrl-A is select all
+                        if (nParam1_ == 'A')
+                        {
+                            m_nCaretStart = 0;
+                            m_nCaretEnd = strlen(GetText());
+                        }
+                        
+                        break;
+                    }
+
+                    // No selection?
+                    if (m_nCaretStart == m_nCaretEnd)
+                    {
+                        // For backspace and delete, create a single character selection, if not at the ends
+                        if (nParam1_ == HK_BACKSPACE && m_nCaretStart > 0)
+                            m_nCaretStart--;
+                        else if (nParam1_ == HK_DELETE && m_nCaretEnd < strlen(GetText()))
+                            m_nCaretEnd++;
+                    }
+
+                    // Active selection?
+                    if (m_nCaretStart != m_nCaretEnd)
+                    {
+                        char sz[MAX_EDIT_LENGTH+1];
+
+                        // Ensure start < end
+                        if (m_nCaretStart > m_nCaretEnd)
+                            swap(m_nCaretStart, m_nCaretEnd);
+
+                        // Remove the selection, and set the text back
+                        strcpy(sz, GetText());
+                        memmove(sz+m_nCaretStart, sz+m_nCaretEnd, strlen(sz+m_nCaretEnd)+1);
+                        CWindow::SetText(sz);
+
+                        // Move the end selection to the previous selection start position
+                        m_nCaretEnd = m_nCaretStart;
+                    }
+
                     // Only accept printable characters
                     if (nParam1_ >= ' ' && nParam1_ <= 0x7f)
                     {
                         // Only add a character if we're not at the maximum length yet
                         if (strlen(GetText()) < MAX_EDIT_LENGTH)
                         {
-                            char sz[MAX_EDIT_LENGTH+1], szNew[2] = { nParam1_, '\0' };
-                            SetText(strcat(strcpy(sz, GetText()), szNew));
-                            NotifyParent();
+                            char sz[MAX_EDIT_LENGTH+1];
+
+                            // Insert the new character at the caret position
+                            strcpy(sz, GetText());
+                            sz[m_nCaretEnd] = nParam1_;
+                            memmove(sz+m_nCaretEnd+1, GetText()+m_nCaretEnd, strlen(GetText()+m_nCaretEnd)+1);
+                            m_nCaretStart = ++m_nCaretEnd;
+
+                            CWindow::SetText(sz);
                         }
 
                         return true;
                     }
+
+                    NotifyParent();
                     break;
             }
             break;
@@ -922,7 +1089,7 @@ bool CRadioButton::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     return true;
                 }
 
-                case '\r':
+                case HK_SPACE:
                     NotifyParent(1);
                     return true;
             }
@@ -1042,13 +1209,13 @@ bool CMenu::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             switch (nParam1_)
             {
                 // Return uses the current selection
-                case '\r':
+                case HK_SPACE:
                     NotifyParent();
                     Destroy();
                     return true;
 
                 // Esc cancels
-                case '\x1b':
+                case HK_ESC:
                     m_nSelected = -1;
                     NotifyParent();
                     Destroy();
@@ -1259,8 +1426,8 @@ bool CComboBox::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
             switch (nParam1_)
             {
-                case ' ':
-                case '\r':
+                case HK_SPACE:
+                case HK_RETURN:
                     m_fPressed = !m_fPressed;
                     if (m_fPressed)
                         (m_pDropList = new CDropList(this, 1, COMBO_HEIGHT, GetText(), m_nWidth-2))->Select(m_nSelected);
@@ -1753,7 +1920,7 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     break;
 
                 // Return selects the current item - like a double-click
-                case '\r':
+                case HK_SPACE:
                     szPrefix[0] = '\0';
                     NotifyParent(1);
                     break;
@@ -2321,9 +2488,8 @@ void CDialog::Draw (CScreen* pScreen_)
     pScreen_->FillRect(m_nX, m_nY-TITLE_HEIGHT, m_nWidth, TITLE_HEIGHT-1, IsActiveDialog() ? m_nTitleColour : (m_nTitleColour & ~0x7));
     pScreen_->DrawLine(m_nX, m_nY-1, m_nWidth, 0, DIALOG_FRAME_COLOUR);
 
-    // Draw caption text in the centre
-    pScreen_->DrawString(m_nX + (m_nWidth - CScreen::GetStringWidth(GetText(),true))/2,
-                         m_nY-TITLE_HEIGHT+5, GetText(), TITLE_TEXT_COLOUR, true);
+    // Draw caption text on the left side
+    pScreen_->DrawString(m_nX + 5, m_nY-TITLE_HEIGHT+5, GetText(), TITLE_TEXT_COLOUR, true);
 
     // Call the base to draw any child controls
     CWindow::Draw(pScreen_);

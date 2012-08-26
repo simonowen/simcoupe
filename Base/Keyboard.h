@@ -60,7 +60,7 @@ enum eSamKey
 
 enum eHostKey
 {
-    HK_BACKSPACE='\b', HK_TAB='\t', HK_RETURN='\r', HK_ESC='\x1b',
+    HK_BACKSPACE='\b', HK_TAB='\t', HK_RETURN='\r', HK_ESC='\x1b', HK_SPACE=' ',
     HK_MIN=256,
     HK_LSHIFT=HK_MIN, HK_RSHIFT, HK_LCTRL, HK_RCTRL, HK_LALT, HK_RALT, HK_LWIN, HK_RWIN,
     HK_LEFT, HK_RIGHT, HK_UP, HK_DOWN,

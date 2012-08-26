@@ -229,7 +229,7 @@ void CScreen::Poke (int nX_, int nY_, const BYTE* pcbData_, UINT uLen_)
 
 
 // Draw a proportionally spaced string of characters at a specified pixel position
-void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_/*=false*/)
+void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_/*=false*/, size_t nMaxChars_/*=-1*/)
 {
     int nFrom = max(nClipY,nY_);
     int nTo = nY_ + pFont->wHeight;
@@ -243,8 +243,8 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
     for (int i = nFrom ; i < nTo ; i++)
         GetHiResLine(i);
 
-    // Iterate thru the characters in the string
-    for (BYTE bChar ; (bChar = *pcsz_++) ; )
+    // Iterate through characters in the string, stopping if we hit the character limit
+    for (BYTE bChar ; (bChar = *pcsz_++) && nMaxChars_-- ; )
     {
         // Out-of-range characters will be shown as an underscore
         if (bChar < pFont->bFirst || bChar > pFont->bLast)
@@ -321,22 +321,19 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
 }
 
 // Get the on-screen width required for a specified string if drawn proportionally
-/*static*/ int CScreen::GetStringWidth (const char* pcsz_, bool fBold_/*=false*/)
+/*static*/ int CScreen::GetStringWidth (const char* pcsz_, size_t nMaxChars_/*=-1*/)
 {
     int nWidth = 0;
 
-    for (BYTE bChar ; (bChar = *pcsz_++) ; )
+    for (BYTE bChar ; (bChar = *pcsz_++) && nMaxChars_-- ; )
     {
         // Out-of-range characters will be drawn as an underscore
         if (bChar < pFont->bFirst || bChar > pFont->bLast)
             bChar = CHAR_UNKNOWN;
 
         const BYTE* pChar = pFont->pcbData + (bChar - pFont->bFirst) * pFont->wCharSize;
-        nWidth += (*pChar & 0xf) + CHAR_SPACING + fBold_;
+        nWidth += (*pChar & 0xf) + CHAR_SPACING;
     }
-
-    // Don't include the trailing space
-    nWidth -= CHAR_SPACING;
 
 #ifdef USE_LOWRES
     return nWidth << 1; // Double-spaced pixels need twice the room

@@ -168,7 +168,7 @@ CInputDialog::CInputDialog (CWindow* pParent_/*=NULL*/, const char* pcszCaption_
 
     // Create the prompt text control and input edit control
     new CTextControl(this, 5, 10,  pcszPrompt_, WHITE);
-    m_pInput = new CEditControl(this, 5+n+5, 7, 120);
+    m_pInput = new CEditControl(this, 5+n+5, 6, 120);
 
     // Size the dialog to fit the prompt and edit control
     SetSize(8+n+120+8, 30);

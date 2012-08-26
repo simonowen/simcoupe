@@ -285,12 +285,17 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
                             int anCursors[] = { HK_UP, HK_DOWN, HK_RIGHT, HK_LEFT };
                             pKey->unicode = anCursors[pKey->sym - SDLK_UP];
                         }
+
                         // Navigation block
                         else if (pKey->sym >= SDLK_HOME && pKey->sym <= SDLK_PAGEDOWN)
                         {
                             int anMovement[] = { HK_HOME, HK_END, HK_PGUP, HK_PGDN };
                             pKey->unicode = anMovement[pKey->sym - SDLK_HOME];
                         }
+
+                        // Delete
+                        else if (pKey->sym == SDLK_DELETE)
+                            pKey->unicode = HK_DELETE;
 
                         // Convert ctrl-letter/digit to the base key (locale mapping not possible)
                         if (pKey->mod & KMOD_CTRL)

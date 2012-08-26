@@ -953,7 +953,6 @@ class CDiskOptions : public CDialog
     public:
         void OnNotify (CWindow* pWindow_, int nParam_)
         {
-
             if (pWindow_ == m_pCancel)
                 Destroy();
             else if (pWindow_ == m_pOK)
