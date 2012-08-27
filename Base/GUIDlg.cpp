@@ -1300,13 +1300,17 @@ void CImportDialog::OnNotify (CWindow* pWindow_, int nParam_)
             // Read directly into system memory
             uRead += fread(&apbPageWritePtrs[uPage][uOffset], 1, uChunk, hFile);
 
+            // Wrap to page 0 after ROM0
+            if (uPage == ROM0+1)
+                uPage = 0;
+
             // Stop reading if we've hit the end or reached the end of a logical block
-            if (feof(hFile) || uPage == EXTMEM || uPage == ROM0 || uPage == N_PAGES_MAIN)
+            if (feof(hFile) || uPage == EXTMEM || uPage >= ROM0)
                 break;
         }
 
         fclose(hFile);
-        Frame::SetStatus("%u bytes imported to %u", uRead, s_uAddr);
+        Frame::SetStatus("Imported %u bytes", uRead);
         Destroy();
     }
 }
@@ -1364,13 +1368,17 @@ void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
                 return;
             }
 
+            // Wrap to page 0 after ROM0
+            if (uPage == ROM0+1)
+                uPage = 0;
+
             // If the first block was in ROM0 or we've passed memory end, wrap to page 0
-            if (uPage == EXTMEM || uPage == ROM0 || uPage == N_PAGES_MAIN)
+            if (uPage == EXTMEM || uPage == ROM0)
                 break;
         }
 
         fclose(hFile);
-        Frame::SetStatus("%u bytes exported from %u", uWritten, s_uAddr);
+        Frame::SetStatus("Exported %u bytes", uWritten);
         Destroy();
     }
 

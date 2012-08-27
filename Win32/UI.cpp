@@ -1879,7 +1879,6 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                         nPage += EXTMEM;
 
                     if (fImport) nLength = 0x400000;    // 4MB max import
-                    nPage = (nAddress < 0x4000) ? ROM0 : nPage;
                     size_t nDone = 0;
 
                     if (fImport)
@@ -1888,8 +1887,12 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                         {
                             nDone += fread(&apbPageWritePtrs[nPage++][nOffset], 1, nChunk, f);
 
+                            // Wrap to page 0 after ROM0
+                            if (nPage == ROM0+1)
+                                nPage = 0;
+
                             // Stop at the end of the file or if we've hit the end of a logical block
-                            if (feof(f) || nPage == EXTMEM || nPage == ROM0 || nPage >= N_PAGES_MAIN)
+                            if (feof(f) || nPage == EXTMEM || nPage >= ROM0)
                                 break;
                         }
 
@@ -1899,7 +1902,7 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                     {
                         for (int nChunk ; (nChunk = min(nLength, (0x4000 - nOffset))) ; nLength -= nChunk, nOffset = 0)
                         {
-                            nDone += fwrite(&apbPageWritePtrs[nPage++][nOffset], 1, nChunk, f);
+                            nDone += fwrite(&apbPageReadPtrs[nPage++][nOffset], 1, nChunk, f);
 
                             if (ferror(f))
                             {
@@ -1908,8 +1911,12 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                                 return FALSE;
                             }
 
+                            // Wrap to page 0 after ROM0
+                            if (nPage == ROM0+1)
+                                nPage = 0;
+
                             // Stop if we've hit the end of a logical block
-                            if (nPage == EXTMEM || nPage == ROM0 || nPage == N_PAGES_MAIN)
+                            if (nPage == EXTMEM || nPage == ROM0)
                                 break;
                         }
 
