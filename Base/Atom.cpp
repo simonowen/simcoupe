@@ -104,10 +104,10 @@ void CAtomDevice::Out (WORD wPort_, BYTE bVal_)
 
 bool CAtomDevice::Attach (CHardDisk *pDisk_, int nDevice_)
 {
-    bool fByteSwapped = false;
-
     if (pDisk_)
     {
+        bool fByteSwapped = false;
+
         // Optionally byte-swap Atom Lite media to work with the original Atom
         if (GetOption(autobyteswap) && pDisk_->IsBDOSDisk(&fByteSwapped))
             pDisk_->SetByteSwap(!fByteSwapped);

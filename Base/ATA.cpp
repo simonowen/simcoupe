@@ -26,7 +26,7 @@
 // ToDo: support slave device on the same interface
 
 CATADevice::CATADevice ()
-    : m_fByteSwap(false)
+    : m_f8bitOnReset(false), m_fByteSwap(false)
 {
     memset(&m_sGeometry, 0, sizeof(m_sGeometry));
     memset(&m_sIdentify, 0, sizeof(m_sIdentify));
@@ -36,7 +36,7 @@ CATADevice::CATADevice ()
 }
 
 // Device hard reset
-void CATADevice::Reset ()
+void CATADevice::Reset (bool fSoft_/*=false*/)
 {
     // Set specific registers to zero
     m_sRegs.bCylinderLow = m_sRegs.bCylinderHigh = m_sRegs.bDeviceHead = 0;
@@ -51,8 +51,8 @@ void CATADevice::Reset ()
     m_pbBuffer = NULL;
     m_uBuffer = 0;
 
-    // Not using 8-bit mode
-    m_f8bit = false;
+    // Set appropriate 8-bit data transfer state
+    m_f8bit = m_f8bitOnReset = fSoft_ ? m_f8bitOnReset : false;
 }
 
 
@@ -384,10 +384,20 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                                     m_f8bit = true;
                                     break;
 
+                                case 0x66:
+                                    TRACE(" Use current features as defaults\n");
+                                    m_f8bitOnReset = m_f8bit;
+                                    break;
+
                                 case 0x81:
-                                    TRACE(" Disable 8-bit transfers\n");
+                                    TRACE(" Disable 8-bit data transfers\n");
                                     m_f8bit = false;
                                     m_uBuffer = 0;  // just in case
+                                    break;
+
+                                case 0xcc:
+                                    TRACE(" Restoring power-on default features\n");
+                                    m_f8bitOnReset = false;
                                     break;
 
                                 default:
@@ -429,7 +439,7 @@ void CATADevice::Out (WORD wPort_, WORD wVal_)
                     if (m_sRegs.bDeviceControl & ATA_DCR_SRST)
                     {
                         TRACE(" Performing software reset\n");
-                        Reset();
+                        Reset(true);
                     }
 
                     break;

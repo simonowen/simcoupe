@@ -112,7 +112,7 @@ class CATADevice
         virtual ~CATADevice () { }
 
     public:
-        void Reset ();
+        void Reset (bool fSoft_=false);
         WORD In (WORD wPort_);
         void Out (WORD wPort_, WORD wVal_);
 
@@ -145,6 +145,7 @@ class CATADevice
         UINT    m_uBuffer;              // Number of bytes available for reading, or expected for writing
         BYTE*   m_pbBuffer;             // Current position in sector buffer for read/write operations
 
+        bool    m_f8bitOnReset;         // 8-bit data transfer state to set on soft reset
         bool    m_f8bit;                // true if 8-bit data transfers are enabled
         bool    m_fByteSwap;            // true if we should byte-swap the underlying sector data
         bool    m_fLegacy;              // true if we're to support legacy requests
