@@ -22,6 +22,7 @@
 
 #include "Expr.h"
 #include "Memory.h"
+#include "Options.h"
 
 
 static const char* p;
@@ -408,8 +409,22 @@ bool Expr::Factor ()
         const char* p2;
         int nValue = static_cast<int>(strtoul(p, (char**)&p2, 16));
 
+        // Accept decimal values with a '.' suffix
+        if (*p2 == '.')
+        {
+            AddNode(T_NUMBER, static_cast<int>(strtoul(p, (char**)&p2, 10)));
+            p = p2+1;
+        }
+
+        // In hex mode, use the value already parsed
+        else if (GetOption(hexmode))
+        {
+            AddNode(T_NUMBER, nValue);
+            p = p2;
+        }
+
         // Accept values using a C-style "0x" prefix
-        if (p[0] == '0' && tolower(p[1]) == 'x')
+        else if (p[0] == '0' && tolower(p[1]) == 'x')
         {
             AddNode(T_NUMBER, nValue);
             p = p2;
@@ -486,7 +501,7 @@ bool Expr::Factor ()
     // Unary operator symbol?
     else if (*p == '-' || *p == '+' || *p == '~' || *p == '!' || *p == '*' || *p == '=')
     {
-        static const char* pcszUnary = "-+~!*";
+        static const char* pcszUnary = "-+~!*=";
         static int anUnary[] = { OP_UMINUS, OP_UPLUS, OP_BNOT, OP_NOT, OP_DEREF, OP_EVAL };
 
         // Remember the operator, and the node connected to the operand
@@ -534,9 +549,13 @@ bool Expr::Factor ()
     }
 
     // Variable, operator or function?
-    else if (isalpha(*p))
+    else if (isalpha(*p) || *p == '.')
     {
         const TOKEN* pToken;
+
+        // Skip any leading dot, used to avoid register clashes in hex mode (e.g. 'bc')
+        if (*p == '.')
+            p++;
 
         // Scan the alphabetic part of the name
         const char* pcsz = p;

@@ -117,6 +117,8 @@ typedef struct
     bool    paula;                  // Paula 4-bit dual-DAC?
     bool    sid;                    // SID interface?
 
+    bool    hexmode;                // Default to hex mode in debugger?
+
     int     drivelights;            // Show floppy drive LEDs
     bool    profile;                // Show profile stats?
     bool    status;                 // Show status line?
