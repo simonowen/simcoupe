@@ -744,43 +744,75 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
                             LPWSTR pwsz2 = new WCHAR[nSizeWide*3]; // <= 3 chars transliterated
                             LPWSTR pw = pwsz2;
 
+                            // Count the number or Cyrillic characters in a block, and the number of those capitalised
+                            int nCyrillic = 0, nCaps = 0;
+
                             // Process character by character
                             for (WCHAR wch ; wch = *pwsz ; pwsz++)
                             {
+                                // Cyrillic character?
+                                bool fCyrillic = wch == 0x0401 || wch >= 0x0410 && wch <= 0x044f || wch == 0x0451;
+                                nCyrillic = fCyrillic ? nCyrillic+1 : 0;
+
                                 // Map GBP and (c) directly to SAM codes
                                 if (wch == 0x00a3)	// GBP
                                     *pw++ = 0x60;
                                 else if (wch == 0x00a9) // (c)
                                     *pw++ = 0x7f;
 
-                                // Cyrillic range?
-                                else if (wch >= 0x0410 && wch <= 0x044f)
+                                // Cyrillic?
+                                else if (fCyrillic)
                                 {
-                                    // Determine case and XOR value to convert from ASCII lowercase
-                                    char chCase = ~(wch - 0x0410) & 0x20;
+                                    // Determine XOR value to preserve case of the source character
+                                    char chCase = ~(wch - 0x03d0) & 0x20;
+                                    nCaps = chCase ? nCaps+1 : 0;
 
-                                    static const char *aszConv[] = {
-                                        "a", "b", "v", "g", "d", "e", "zh", "z",
-                                        "i", "j", "k", "l", "m", "n", "o", "p",
-                                        "r", "s", "t", "u", "f", "h", "c", "ch",
-                                        "sh", "shh", "\"", "y", "'", "je", "ju", "ja"
-                                    };
+                                    // Is the next character Cyrillic too?
+                                    bool fCyrillic1 = (pwsz[1] == 0x0401 || pwsz[1] >= 0x0410 && pwsz[1] <= 0x044f || pwsz[1] == 0x0451);
 
-                                    const char *psz = aszConv[(wch - 0x0410) & 0x1f];
-                                    for (char ch ; (ch = *psz) ; psz++)
+                                    // If the next character is Cyrillic, match the case for any extra translit letters
+                                    // Otherwise if >1 character and all capitals so far, continue as capitals
+                                    char chCase1 = fCyrillic1 ? (~(pwsz[1] - 0x03d0) & 0x20) :
+                                                    (nCyrillic > 1 && nCyrillic == nCaps) ? chCase : 0;
+
+                                    // Special-case Cyrillic characters not in the main range
+                                    if (wch == 0x0401)
                                     {
-                                        // Toggle case of alphabetic characters only
-                                        if (ch >= 'a' && ch <= 'z')
-                                            *pw++ = ch ^ chCase;
-                                        else
-                                            *pw++ = ch;
+                                        *pw++ = 'Y';
+                                        *pw++ = 'o' ^ chCase1;
+                                    }
+                                    else if (wch == 0x0451)
+                                    {
+                                        *pw++ = 'y';
+                                        *pw++ = 'o' ^ chCase1;
+                                    }
+                                    else
+                                    {
+                                        // Unicode to transliterated Latin, starting from 0x410
+                                        static const char *aszConv[] =
+                                        {
+                                            "a", "b", "v", "g", "d", "e", "zh", "z",
+                                            "i", "j", "k", "l", "m", "n", "o", "p",
+                                            "r", "s", "t", "u", "f", "h", "c", "ch",
+                                            "sh", "shh", "\"", "y", "'", "e", "yu", "ya"
+                                        };
+
+                                        // Look up the transliterated string
+                                        const char *psz = aszConv[(wch - 0x0410) & 0x1f];
+
+                                        for (char ch ; (ch = *psz) ; psz++)
+                                        {
+                                            // Toggle case of alphabetic characters only
+                                            if (ch >= 'a' && ch <= 'z')
+                                                *pw++ = ch ^ chCase;
+                                            else
+                                                *pw++ = ch;
+
+                                            // For the remaining characters, use the case of the next character
+                                            chCase = chCase1;
+                                        }
                                     }
                                 }
-                                // Extra Russian Cyrillic character not in the range above
-                                else if (wch == 0x0401)
-                                    *pw++ = 'J', *pw++ = 'O';
-                                else if (wch == 0x0451)
-                                    *pw++ = 'j', *pw++ = 'o';
                                 else
                                 {
                                     // Copy anything else as-is
