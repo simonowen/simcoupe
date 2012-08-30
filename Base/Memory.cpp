@@ -153,8 +153,8 @@ static bool LoadRoms ()
     bool fRet = true;
     CStream* pROM;
 
-    PBYTE pb0 = apbPageReadPtrs[ROM0];
-    PBYTE pb1 = apbPageReadPtrs[ROM1];
+    BYTE *pb0 = apbPageReadPtrs[ROM0];
+    BYTE *pb1 = apbPageReadPtrs[ROM1];
 
     // Use a custom ROM if supplied
     if (*GetOption(rom) && (pROM = CStream::Open(GetOption(rom))))
