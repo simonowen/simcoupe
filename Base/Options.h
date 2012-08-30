@@ -44,6 +44,7 @@ typedef struct
     bool    aviscanlines;           // Include scanlines in AVI recording?
 
     char    rom[MAX_PATH];          // SAM ROM image path
+    bool    romwrite;               // Allow writes to ROM?
     bool    hdbootrom;              // Use HDBOOT ROM patches?
     bool    fastreset;              // Fast SAM system reset?
     bool    asicdelay;              // Enforce ASIC startup delay (~49ms)?

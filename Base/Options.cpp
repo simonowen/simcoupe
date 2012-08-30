@@ -76,6 +76,7 @@ OPTION aOptions[] =
     OPT_F("AviScanlines", aviscanlines,   false),     // Don't include scanlines in AVI recordings
 
     OPT_S("ROM",          rom,            ""),        // No custom ROM (use built-in)
+    OPT_F("RomWrite",     romwrite,       false),     // ROM is read-only
     OPT_F("HDBootRom",    hdbootrom,      false),     // Don't use HDBOOT ROM patches
     OPT_F("FastReset",    fastreset,      true),      // Allow fast Z80 resets
     OPT_F("AsicDelay",    asicdelay,      true),      // ASIC startup delay of ~50ms

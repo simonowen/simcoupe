@@ -29,6 +29,10 @@ class Memory
     public:
         static bool Init (bool fFirstInit_=false);
         static void Exit (bool fReInit_=false);
+
+    public:
+        static void UpdateConfig ();
+        static void UpdateRom ();
 };
 
 

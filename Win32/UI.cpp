@@ -2328,10 +2328,18 @@ INT_PTR CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
                 SetOption(mainmem, static_cast<int>((SendDlgItemMessage(hdlg_, IDC_MAIN_MEMORY, CB_GETCURSEL, 0, 0L) + 1) << 8));
                 SetOption(externalmem, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_EXTERNAL_MEMORY, CB_GETCURSEL, 0, 0L)));
 
+                // If the memory configuration has changed, apply the changes
+                if (Changed(mainmem) || Changed(externalmem))
+                    Memory::UpdateConfig();
+
                 GetDlgItemPath(hdlg_, IDE_ROM, const_cast<char*>(GetOption(rom)), MAX_PATH);
 
                 SetOption(fastreset, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_GETCHECK, 0, 0L) == BST_CHECKED));
                 SetOption(hdbootrom, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_HDBOOT_ROM, BM_GETCHECK, 0, 0L) == BST_CHECKED));
+
+                // If the ROM config has changed, schedule the changes for the next reset
+                if (ChangedString(rom) || Changed(hdbootrom))
+                    Memory::UpdateRom();
             }
             break;
         }

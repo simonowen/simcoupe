@@ -34,7 +34,6 @@
 
 // Single block holding all memory needed
 BYTE* pMemory;
-int nAllocatedPages;
 
 // Master read and write lists that are static for a given memory configuration
 BYTE* apbPageReadPtrs[TOTAL_PAGES];
@@ -52,9 +51,12 @@ BYTE* apbSectionWritePtrs[4];
 WORD g_awMode1LineToByte[SCREEN_LINES];
 BYTE g_abMode1ByteToLine[SCREEN_LINES];
 
+static bool fUpdateRom;
+
 ////////////////////////////////////////////////////////////////////////////////
 
-static void LoadRoms (BYTE* pb0_, BYTE* pb1_);
+static void SetConfig ();
+static bool LoadRoms ();
 
 
 // Allocate and initialise memory
@@ -68,101 +70,97 @@ bool Memory::Init (bool fFirstInit_/*=false*/)
             g_abMode1ByteToLine[uOffset] = (uOffset & 0xc0) + ((uOffset << 3) & 0x38) + ((uOffset >> 3) & 0x07);
             g_awMode1LineToByte[g_abMode1ByteToLine[uOffset]] = uOffset << 5;
         }
+
+        // Allocate a single block for our memory requirements
+        if (!(pMemory = new BYTE[TOTAL_PAGES*MEM_PAGE_SIZE]))
+            Message(msgFatal, "Out of memory!");
+
+        // Initialise memory to 0xff
+        memset(pMemory, 0xff, TOTAL_PAGES*MEM_PAGE_SIZE);
+
+        // Stripe RAM in blocks of 0x00 every 128 bytes
+        for (int i = 0 ; i < ROM0*MEM_PAGE_SIZE ; i += 0x100)
+            memset(pMemory+i, 0x00, 0x80);
     }
 
-    int nIntPages = N_PAGES_MAIN / (1+(GetOption(mainmem) == 256));
-    int nExtBanks = min(GetOption(externalmem), MAX_EXTERNAL_MB), nExtPages =  nExtBanks*N_PAGES_1MB;
-    int nRamPages = nIntPages+nExtPages, nTotalPages = nRamPages + 2 + 2;
-    BYTE *pb, *apbRead[TOTAL_PAGES], *apbWrite[TOTAL_PAGES];
+    // Set the active memory configuration
+    SetConfig();
 
-    // Only consider changes if the memory requirements have changes
-    if (nTotalPages != nAllocatedPages)
+    // Load the ROM on first boot, or if asked to refresh it
+    if (fFirstInit_ || fUpdateRom)
     {
-        // Error/fail depending on whether we've got an existing allocation to fall back on
-        if (!(pb = new BYTE[nTotalPages*MEM_PAGE_SIZE]))
-        {
-            Message(pMemory ? msgError : msgFatal, "Out of memory!");
-            return false;
-        }
-        else
-        {
-            // Initialise memory to 0xff, and stripe the RAM banks between 0xff and 0x00 every 128 bytes
-            memset(pb, 0xff, nTotalPages*MEM_PAGE_SIZE);
-            for (int i = 0 ; i < nRamPages*MEM_PAGE_SIZE ; i += 0x100)
-                memset(pb+i, 0x00, 0x080);
-        }
-
-
-        // Set up the scratch banks after the ROMs, used for reads from invalid memory and writes to read-only memory
-        apbRead[SCRATCH_READ]  = apbWrite[SCRATCH_READ]  = pb + (nIntPages+nExtPages+2)*MEM_PAGE_SIZE;
-        apbRead[SCRATCH_WRITE] = apbWrite[SCRATCH_WRITE] = pb + (nIntPages+nExtPages+3)*MEM_PAGE_SIZE;
-
-        // Invalidate all of memory
-        for (int nPage = 0 ; nPage < TOTAL_PAGES ; nPage++)
-        {
-            apbRead[nPage]  = apbRead[SCRATCH_READ];
-            apbWrite[nPage] = apbWrite[SCRATCH_WRITE];
-        }
-
-        // Add internal RAM as read/write
-        for (int nInt = 0 ; nInt < nIntPages ; nInt++)
-            apbRead[INTMEM+nInt] = apbWrite[nInt] = pb + nInt*MEM_PAGE_SIZE;
-
-        // Add external RAM as read/write
-        for (int nExt = 0 ; nExt < nExtPages ; nExt++)
-            apbRead[EXTMEM+nExt] = apbWrite[EXTMEM+nExt] = pb + (nIntPages+nExt)*MEM_PAGE_SIZE;
-
-        // Add the ROMs as read-only
-        for (int nRom = 0 ; nRom < 2 ; nRom++)
-            apbRead[ROM0+nRom] = pb + (nIntPages+nExtPages+nRom)*MEM_PAGE_SIZE;
-
-
-        // If there's an existing memory image, copy it to the new configuration
-        if (pMemory)
-        {
-            for (int nPage = 0 ; nPage < ROM0 ; nPage++)
-            {
-                // Copy only present pages
-                if (apbRead[nPage] != apbRead[SCRATCH_READ])
-                    memcpy(apbRead[nPage], apbPageReadPtrs[nPage], MEM_PAGE_SIZE);
-            }
-
-            delete pMemory;
-            pMemory = NULL;
-        }
-
-        // Set the new configuration to be live
-        memcpy(apbPageReadPtrs, apbRead, sizeof(apbPageReadPtrs));
-        memcpy(apbPageWritePtrs, apbWrite, sizeof(apbPageWritePtrs));
-        pMemory = pb;
-        nAllocatedPages = nTotalPages;
-
-        // Finally, refresh the paging to update any physical memory references
-        IO::OutLmpr(lmpr);
-        IO::OutHmpr(hmpr);
-        IO::OutVmpr(vmpr);
+        LoadRoms();
+        fUpdateRom = false;
     }
-
-    // Load/update the ROM images
-    LoadRoms(apbPageReadPtrs[ROM0], apbPageReadPtrs[ROM1]);
 
     return true;
 }
 
 void Memory::Exit (bool fReInit_/*=false*/)
 {
-    if (!fReInit_) { delete[] pMemory; pMemory = NULL; }
+    if (!fReInit_) delete[] pMemory, pMemory = NULL;
 }
 
 
-// Read the ROM image into the ROM area of our paged memory block
-static void LoadRoms (BYTE* pb0_, BYTE* pb1_)
+// Update the active memory configuration
+void Memory::UpdateConfig ()
 {
+    SetConfig();
+}
+
+// Request the ROM image be reloaded on the next reset
+void Memory::UpdateRom ()
+{
+    fUpdateRom = true;
+}
+
+
+// Set the current memory configuration
+static void SetConfig ()
+{
+    // Start with no memory accessible
+    for (int nPage = 0 ; nPage < TOTAL_PAGES ; nPage++)
+    {
+        apbPageReadPtrs[nPage]  = pMemory + SCRATCH_READ*MEM_PAGE_SIZE;
+        apbPageWritePtrs[nPage] = pMemory + SCRATCH_WRITE*MEM_PAGE_SIZE;
+    }
+
+    // Add internal RAM as read/write
+    int nIntPages = (GetOption(mainmem) == 256) ? N_PAGES_MAIN/2 : N_PAGES_MAIN;
+    for (int nInt = 0 ; nInt < nIntPages ; nInt++)
+        apbPageReadPtrs[INTMEM+nInt] = apbPageWritePtrs[nInt] = pMemory + (INTMEM+nInt)*MEM_PAGE_SIZE;
+
+    // Add external RAM as read/write
+    int nExtPages = min(GetOption(externalmem), MAX_EXTERNAL_MB) * N_PAGES_1MB;
+    for (int nExt = 0 ; nExt < nExtPages ; nExt++)
+        apbPageReadPtrs[EXTMEM+nExt] = apbPageWritePtrs[EXTMEM+nExt] = pMemory + (EXTMEM+nExt)*MEM_PAGE_SIZE;
+
+    // Add the ROMs as read-only
+    apbPageReadPtrs[ROM0] = pMemory + ROM0*MEM_PAGE_SIZE;
+    apbPageReadPtrs[ROM1] = pMemory + ROM1*MEM_PAGE_SIZE;
+
+    // If enabled, allow ROM writes
+    if (GetOption(romwrite))
+    {
+        apbPageWritePtrs[ROM0] = apbPageReadPtrs[ROM0];
+        apbPageWritePtrs[ROM1] = apbPageReadPtrs[ROM1];
+    }
+}
+
+// Set the ROM from our internal 3.0 image or external custom file
+static bool LoadRoms ()
+{
+    bool fRet = true;
     CStream* pROM;
+
+    PBYTE pb0 = apbPageReadPtrs[ROM0];
+    PBYTE pb1 = apbPageReadPtrs[ROM1];
 
     // Use a custom ROM if supplied
     if (*GetOption(rom) && (pROM = CStream::Open(GetOption(rom))))
     {
+        size_t uRead = 0;
+
         // Read the header+bootstrap code from what could be a ZX82 file (for Andy Wright's ROM images)
         BYTE abHeader[140];
         pROM->Read(abHeader, sizeof(abHeader));
@@ -172,20 +170,27 @@ static void LoadRoms (BYTE* pb0_, BYTE* pb1_)
             pROM->Rewind();
 
         // Read both 16K ROM images
-        pROM->Read(pb0_, MEM_PAGE_SIZE);
-        pROM->Read(pb1_, MEM_PAGE_SIZE);
+        uRead += pROM->Read(pb0, MEM_PAGE_SIZE);
+        uRead += pROM->Read(pb1, MEM_PAGE_SIZE);
 
+        // Clean up the ROM file stream
         delete pROM;
-        return;
+
+        // Return if the full 32K was read
+        if (uRead == MEM_PAGE_SIZE*2)
+            return true;
     }
 
-    // Complain if we couldn't open the custom ROM image
+    // Complain if the custom ROM was invalid
     if (*GetOption(rom))
+    {
         Message(msgWarning, "Error loading custom ROM:\n%s\n\nReverting to built-in ROM image.", GetOption(rom));
+        fRet = false;
+    }
 
     // Start with the built-in 3.0 ROM image
-    memcpy(pb0_, abSAMROM, MEM_PAGE_SIZE);
-    memcpy(pb1_, &abSAMROM[MEM_PAGE_SIZE], MEM_PAGE_SIZE);
+    memcpy(pb0, abSAMROM, MEM_PAGE_SIZE);
+    memcpy(pb1, &abSAMROM[MEM_PAGE_SIZE], MEM_PAGE_SIZE);
 
     // Atom boot ROM enabled?
     if (GetOption(hdbootrom))
@@ -194,15 +199,18 @@ static void LoadRoms (BYTE* pb0_, BYTE* pb1_)
         if (GetOption(drive2) == drvAtom)
         {
             // Apply Atom boot ROM
-            PatchBlock(pb0_, abAtomPatch0);
-            PatchBlock(pb1_, abAtomPatch1);
+            PatchBlock(pb0, abAtomPatch0);
+            PatchBlock(pb1, abAtomPatch1);
         }
         // Atom Lite connected?
         else if (GetOption(drive1) == drvAtomLite || GetOption(drive2) == drvAtomLite)
         {
             // Patch from ROM30 to AL-BOOT ROM
-            PatchBlock(pb0_, abAtomLitePatch0);
-            PatchBlock(pb1_, abAtomLitePatch1);
+            PatchBlock(pb0, abAtomLitePatch0);
+            PatchBlock(pb1, abAtomLitePatch1);
         }
     }
+
+    // Return true if using the expected ROM was loaded
+    return fRet;
 }
