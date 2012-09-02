@@ -240,11 +240,15 @@ void CWindow::NotifyParent (int nParam_/*=0*/)
 bool CWindow::OnMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 {
     bool fProcessed = false;
+    bool fMouseMessage = (nMessage_ & GM_TYPE_MASK) == GM_MOUSE_MESSAGE;
 
     // The active child gets first go at the message
     if (m_pActive)
     {
-        m_pActive->m_fHover = m_pActive->HitTest(nParam1_, nParam2_);
+        // If it's a mouse message, update the hit status for the active child
+        if (fMouseMessage)
+            m_pActive->m_fHover = m_pActive->HitTest(nParam1_, nParam2_);
+
         fProcessed =  m_pActive->OnMessage(nMessage_, nParam1_, nParam2_);
     }
 
@@ -254,18 +258,24 @@ bool CWindow::OnMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
         CWindow* pChild = p;
         p = p->m_pNext;
 
-        // Skip disabled windows, and the active window, as we're already done it
-        if (pChild->IsEnabled() && pChild != m_pActive)
+        // If it's a mouse message, update the child control hit status
+        if (fMouseMessage)
+            pChild->m_fHover = pChild->HitTest(nParam1_, nParam2_);
+
+        // Skip the active window and disabled windows
+        if (pChild != m_pActive && pChild->IsEnabled())
         {
-            // If we're clicking on a control, auto-activate it
-            if ((nMessage_ == GM_BUTTONDOWN) && (pChild->m_fHover = pChild->HitTest(nParam1_, nParam2_)))
+            // If we're clicking on a control, activate it
+            if ((nMessage_ == GM_BUTTONDOWN) && pChild->IsTabStop() && pChild->m_fHover)
                 pChild->Activate();
 
             fProcessed = pChild->OnMessage(nMessage_, nParam1_, nParam2_);
         }
     }
 
-    m_fHover = HitTest(nParam1_, nParam2_);
+    // If it's a mouse message, update the hit status for this window
+    if (fMouseMessage)
+        m_fHover = HitTest(nParam1_, nParam2_);
 
     // Return whether the message was processed
     return fProcessed;
@@ -733,12 +743,13 @@ CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, UI
     SetValue(u_);
 }
 
-void CEditControl::SetText (const char* pcszText_)
+void CEditControl::SetText (const char* pcszText_, bool fSelected_/*=true*/)
 {
     CWindow::SetText(pcszText_);
 
-    // Position the caret at the end of the new text
-    m_nCaretStart = m_nCaretEnd = strlen(pcszText_);
+    // Select the text or position the caret at the end, as requested
+    m_nCaretEnd = strlen(pcszText_);
+    m_nCaretStart = fSelected_ ? 0 : m_nCaretEnd;
 }
 
 void CEditControl::Draw (CScreen* pScreen_)
@@ -914,7 +925,7 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 // Return possibly submits the dialog contents
                 case HK_RETURN:
                     NotifyParent(1);
-                    break;
+                    return true;
 
                 default:
                     // Ctrl combination?
@@ -1209,7 +1220,7 @@ bool CMenu::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             switch (nParam1_)
             {
                 // Return uses the current selection
-                case HK_SPACE:
+                case HK_RETURN:
                     NotifyParent();
                     Destroy();
                     return true;
@@ -1920,7 +1931,7 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     break;
 
                 // Return selects the current item - like a double-click
-                case HK_SPACE:
+                case HK_RETURN:
                     szPrefix[0] = '\0';
                     NotifyParent(1);
                     break;
@@ -2059,7 +2070,7 @@ bool CFileView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     bool fRet = CListView::OnMessage(nMessage_, nParam1_, nParam2_);
 
     // Backspace moves up a directory
-    if (!fRet && nMessage_ == GM_CHAR && nParam1_ == '\b')
+    if (!fRet && nMessage_ == GM_CHAR && nParam1_ == HK_BACKSPACE)
     {
         // We can only move up if there's a .. entry
         int nItem = FindItem("..");
@@ -2427,7 +2438,7 @@ CDialog::CDialog (CWindow* pParent_, int nWidth_, int nHeight_, const char* pcsz
 CDialog::~CDialog ()
 {
     // Pass the dialog activation back to the parent window
-    if (s_pActive == this)
+    if (s_pActive == this || !GetParent())
         s_pActive = GetParent();
 }
 
@@ -2509,7 +2520,7 @@ bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             switch (nParam1_)
             {
                 // Tab or Shift-Tab moves between any controls that are tab-stops
-                case '\t':
+                case HK_TAB:
                 {
                     // Loop until we find an enabled control to stop on
                     while (m_pActive)
@@ -2555,7 +2566,7 @@ bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 }
 
                 // Esc cancels the dialog
-                case '\x1b':
+                case HK_ESC:
                     Destroy();
                     break;
             }

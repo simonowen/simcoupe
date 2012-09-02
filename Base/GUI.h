@@ -27,6 +27,7 @@
 
 const int GM_MOUSE_MESSAGE    = 0x40000000;
 const int GM_KEYBOARD_MESSAGE = 0x20000000;
+const int GM_TYPE_MASK        = 0x60000000;
 
 const int GM_BUTTONUP     = GM_MOUSE_MESSAGE | 1;
 const int GM_BUTTONDOWN   = GM_MOUSE_MESSAGE | 2;
@@ -241,7 +242,7 @@ class CEditControl : public CWindow
     public:
         bool IsTabStop () const { return true; }
 
-        void SetText (const char* pcszText_);
+        void SetText (const char* pcszText_, bool fSelected_=true);
         void Draw (CScreen* pScreen_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
 
