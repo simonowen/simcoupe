@@ -214,7 +214,8 @@ inline void timed_write_byte (WORD addr, BYTE contents)
 {
     MEM_ACCESS(addr);
     check_video_write(addr);
-    *(pbMemWrite1 = phys_write_addr(addr)) = contents;
+    pbMemWrite1 = phys_read_addr(addr); // breakpoints act on read location!
+    *phys_write_addr(addr) = contents;
 }
 
 // Write a word and update timing
@@ -222,10 +223,13 @@ inline void timed_write_word (WORD addr, WORD contents)
 {
     MEM_ACCESS(addr);
     check_video_write(addr);
-    *(pbMemWrite1 = phys_write_addr(addr)) = contents & 0xff;
+    pbMemWrite1 = phys_read_addr(addr);
+    *phys_write_addr(addr) = contents & 0xff;
+
     MEM_ACCESS(addr + 1);
     check_video_write(addr + 1);
-    *(pbMemWrite2 = phys_write_addr(addr + 1)) = contents >> 8;
+    pbMemWrite2 = phys_read_addr(addr + 1);
+    *phys_write_addr(addr + 1) = contents >> 8;
 }
 
 // Write a word and update timing (high-byte first - used by stack functions)
@@ -233,10 +237,13 @@ inline void timed_write_word_reversed (WORD addr, WORD contents)
 {
     MEM_ACCESS(addr + 1);
     check_video_write(addr + 1);
-    *(pbMemWrite2 = phys_write_addr(addr + 1)) = contents >> 8;
+    pbMemWrite2 = phys_read_addr(addr + 1);
+    *phys_write_addr(addr + 1) = contents >> 8;
+
     MEM_ACCESS(addr);
     check_video_write(addr);
-    *(pbMemWrite1 = phys_write_addr(addr)) = contents & 0xff;
+    pbMemWrite1 = phys_read_addr(addr);
+    *phys_write_addr(addr) = contents & 0xff;
 }
 
 
