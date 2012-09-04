@@ -38,7 +38,7 @@ class Expr
         static EXPR* Compile (const char* pcsz_, char** ppcszEnd_=NULL, int nFlags_=none);
         static void Release (EXPR* pExpr_);
         static int Eval (const EXPR* pExpr_);
-        static bool Eval (const char* pcsz_, int& nValue_, int nFlags_=none);
+        static bool Eval (const char* pcsz_, int *pnValue_, int nFlags_=none);
 
     public:
         static EXPR True, False, Counter;

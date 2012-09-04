@@ -326,16 +326,14 @@ int Expr::Eval (const EXPR* pExpr_)
 }
 
 // Evaluate an expression, returning the value and whether it was valid
-bool Expr::Eval (const char* pcsz_, int& nValue_, int nFlags_/*=0*/)
+bool Expr::Eval (const char* pcsz_, int *pnValue_, int nFlags_/*=0*/)
 {
-    char* pszEnd = NULL;
-
     // Fail obviously invalid inputs
-    if (!pcsz_ || !*pcsz_)
+    if (!pcsz_ || !*pcsz_ || !pnValue_)
         return false;
 
     // Compile the expression, failing if there's an error
-    EXPR* pExpr = Compile(pcsz_, &pszEnd, nFlags_);
+    EXPR* pExpr = Compile(pcsz_, NULL, nFlags_);
     if (!pExpr)
         return false;
 
@@ -343,12 +341,8 @@ bool Expr::Eval (const char* pcsz_, int& nValue_, int nFlags_/*=0*/)
     int n = Eval(pExpr);
     Release(pExpr);
 
-    // Fail if there's anything left in the input
-    if (*pszEnd)
-        return false;
-
     // Expression valid
-    nValue_ = n;
+    *pnValue_ = n;
     return true;
 }
 
