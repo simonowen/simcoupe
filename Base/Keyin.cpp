@@ -72,7 +72,7 @@ bool Keyin::Next ()
     char bKey = 0;
 
     // Return if we're not typing or the previous key hasn't been consumed
-    if (!IsTyping() || (apbPageWritePtrs[0][0x5c3b-0x4000] & 0x20))
+    if (!IsTyping() || (PageReadPtr(0)[0x5c3b-0x4000] & 0x20))
         return false;
 
     // Read the next key
@@ -97,8 +97,8 @@ bool Keyin::Next ()
     }
 
     // Simulate the key press
-    apbPageWritePtrs[0][0x5c08-0x4000] = bKey;  // set key in LASTK
-    apbPageWritePtrs[0][0x5c3b-0x4000] = 0x20;	// signal key available in FLAGS
+    PageWritePtr(0)[0x5c08-0x4000] = bKey;  // set key in LASTK
+    PageWritePtr(0)[0x5c3b-0x4000] = 0x20;	// signal key available in FLAGS
 
     // Run at turbo speed during input
     g_nTurbo |= TURBO_KEYIN;

@@ -33,19 +33,19 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Single block holding all memory needed
-BYTE* pMemory;
+BYTE *pMemory;
 
 // Master read and write lists that are static for a given memory configuration
-BYTE* apbPageReadPtrs[TOTAL_PAGES];
-BYTE* apbPageWritePtrs[TOTAL_PAGES];
+int anReadPages[TOTAL_PAGES];
+int anWritePages[TOTAL_PAGES];
 
 // Page numbers present in each of the 4 sections in the 64K address range
 int anSectionPages[4];
-bool afContendedPages[4];
+bool afSectionContended[4];
 
 // Array of pointers for memory to use when reading from or writing to each each section
-BYTE* apbSectionReadPtrs[4];
-BYTE* apbSectionWritePtrs[4];
+BYTE *apbSectionReadPtrs[4];
+BYTE *apbSectionWritePtrs[4];
 
 // Look-up tables for fast mapping between mode 1 display addresses and line numbers
 WORD g_awMode1LineToByte[SCREEN_LINES];
@@ -121,29 +121,29 @@ static void SetConfig ()
     // Start with no memory accessible
     for (int nPage = 0 ; nPage < TOTAL_PAGES ; nPage++)
     {
-        apbPageReadPtrs[nPage]  = pMemory + SCRATCH_READ*MEM_PAGE_SIZE;
-        apbPageWritePtrs[nPage] = pMemory + SCRATCH_WRITE*MEM_PAGE_SIZE;
+        anReadPages[nPage]  = SCRATCH_READ;
+        anWritePages[nPage] = SCRATCH_WRITE;
     }
 
     // Add internal RAM as read/write
     int nIntPages = (GetOption(mainmem) == 256) ? N_PAGES_MAIN/2 : N_PAGES_MAIN;
     for (int nInt = 0 ; nInt < nIntPages ; nInt++)
-        apbPageReadPtrs[INTMEM+nInt] = apbPageWritePtrs[nInt] = pMemory + (INTMEM+nInt)*MEM_PAGE_SIZE;
+        anReadPages[INTMEM+nInt] = anWritePages[INTMEM+nInt] = INTMEM+nInt;
 
     // Add external RAM as read/write
     int nExtPages = min(GetOption(externalmem), MAX_EXTERNAL_MB) * N_PAGES_1MB;
     for (int nExt = 0 ; nExt < nExtPages ; nExt++)
-        apbPageReadPtrs[EXTMEM+nExt] = apbPageWritePtrs[EXTMEM+nExt] = pMemory + (EXTMEM+nExt)*MEM_PAGE_SIZE;
+        anReadPages[EXTMEM+nExt] = anWritePages[EXTMEM+nExt] = EXTMEM+nExt;
 
     // Add the ROMs as read-only
-    apbPageReadPtrs[ROM0] = pMemory + ROM0*MEM_PAGE_SIZE;
-    apbPageReadPtrs[ROM1] = pMemory + ROM1*MEM_PAGE_SIZE;
+    anReadPages[ROM0] = ROM0;
+    anReadPages[ROM1] = ROM1;
 
     // If enabled, allow ROM writes
     if (GetOption(romwrite))
     {
-        apbPageWritePtrs[ROM0] = apbPageReadPtrs[ROM0];
-        apbPageWritePtrs[ROM1] = apbPageReadPtrs[ROM1];
+        anWritePages[ROM0] = anReadPages[ROM0];
+        anWritePages[ROM1] = anReadPages[ROM1];
     }
 }
 
@@ -153,8 +153,8 @@ static bool LoadRoms ()
     bool fRet = true;
     CStream* pROM;
 
-    BYTE *pb0 = apbPageReadPtrs[ROM0];
-    BYTE *pb1 = apbPageReadPtrs[ROM1];
+    BYTE *pb0 = PageReadPtr(ROM0);
+    BYTE *pb1 = PageReadPtr(ROM1);
 
     // Use a custom ROM if supplied
     if (*GetOption(rom) && (pROM = CStream::Open(GetOption(rom))))

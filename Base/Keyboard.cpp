@@ -226,7 +226,7 @@ void Keyboard::Update ()
     int nMapping = GetOption(keymapping);
 
     // In Auto mode, use Spectrum mappings if a 48K ROM appears to be present (beeper routine check)
-    if (nMapping == 1 && !memcmp(phys_read_addr(0x03b5), "\xF3\x7D\xCB\x3D\xCB\x3D\x2F", 7))
+    if (nMapping == 1 && !memcmp(AddrReadPtr(0x03b5), "\xF3\x7D\xCB\x3D\xCB\x3D\x2F", 7))
         nMapping = 3;
 
     // Process the key combinations required for the mode we're in

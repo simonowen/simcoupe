@@ -74,7 +74,7 @@ inline void CheckInterrupt ();
 //                  CPU can only access memory 1 out of every 8 T-States
 //              else
 //                  CPU can only access memory 1 out of every 4 T-States
-#define MEM_ACCESS(a)   do { g_dwCycleCounter += 3; if (afContendedPages[VPAGE(a)]) g_dwCycleCounter += pContention[g_dwCycleCounter]; } while (0)
+#define MEM_ACCESS(a)   do { g_dwCycleCounter += 3; if (afSectionContended[AddrSection(a)]) g_dwCycleCounter += pContention[g_dwCycleCounter]; } while (0)
 
 // Update g_nLineCycle for one port access
 // This is the basic four T-State CPU I/O access
@@ -190,7 +190,7 @@ inline BYTE timed_read_code_byte (WORD addr)
 inline BYTE timed_read_byte (WORD addr)
 {
     MEM_ACCESS(addr);
-    return *(pbMemRead1 = phys_read_addr(addr));
+    return *(pbMemRead1 = AddrReadPtr(addr));
 }
 
 // Read an instruction word and update timing
@@ -206,7 +206,7 @@ inline WORD timed_read_word (WORD addr)
 {
     MEM_ACCESS(addr);
     MEM_ACCESS(addr + 1);
-    return *(pbMemRead1 = phys_read_addr(addr)) | (*(pbMemRead2 = phys_read_addr(addr + 1)) << 8);
+    return *(pbMemRead1 = AddrReadPtr(addr)) | (*(pbMemRead2 = AddrReadPtr(addr + 1)) << 8);
 }
 
 // Write a byte and update timing
@@ -214,8 +214,8 @@ inline void timed_write_byte (WORD addr, BYTE contents)
 {
     MEM_ACCESS(addr);
     check_video_write(addr);
-    pbMemWrite1 = phys_read_addr(addr); // breakpoints act on read location!
-    *phys_write_addr(addr) = contents;
+    pbMemWrite1 = AddrReadPtr(addr); // breakpoints act on read location!
+    *AddrWritePtr(addr) = contents;
 }
 
 // Write a word and update timing
@@ -223,13 +223,13 @@ inline void timed_write_word (WORD addr, WORD contents)
 {
     MEM_ACCESS(addr);
     check_video_write(addr);
-    pbMemWrite1 = phys_read_addr(addr);
-    *phys_write_addr(addr) = contents & 0xff;
+    pbMemWrite1 = AddrReadPtr(addr);
+    *AddrWritePtr(addr) = contents & 0xff;
 
     MEM_ACCESS(addr + 1);
     check_video_write(addr + 1);
-    pbMemWrite2 = phys_read_addr(addr + 1);
-    *phys_write_addr(addr + 1) = contents >> 8;
+    pbMemWrite2 = AddrReadPtr(addr + 1);
+    *AddrWritePtr(addr + 1) = contents >> 8;
 }
 
 // Write a word and update timing (high-byte first - used by stack functions)
@@ -237,13 +237,13 @@ inline void timed_write_word_reversed (WORD addr, WORD contents)
 {
     MEM_ACCESS(addr + 1);
     check_video_write(addr + 1);
-    pbMemWrite2 = phys_read_addr(addr + 1);
-    *phys_write_addr(addr + 1) = contents >> 8;
+    pbMemWrite2 = AddrReadPtr(addr + 1);
+    *AddrWritePtr(addr + 1) = contents >> 8;
 
     MEM_ACCESS(addr);
     check_video_write(addr);
-    pbMemWrite1 = phys_read_addr(addr);
-    *phys_write_addr(addr) = contents & 0xff;
+    pbMemWrite1 = AddrReadPtr(addr);
+    *AddrWritePtr(addr) = contents & 0xff;
 }
 
 

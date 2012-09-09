@@ -76,8 +76,8 @@ extern int s_nWidth, s_nHeight;         // hi-res pixels
 extern int s_nViewTop, s_nViewBottom;   // in lines
 extern int s_nViewLeft, s_nViewRight;   // in screen blocks
 
-extern BYTE *apbPageReadPtrs[],  *apbPageWritePtrs[];
 extern WORD g_awMode1LineToByte[SCREEN_LINES];
+BYTE *PageReadPtr (int nPage_);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -100,7 +100,7 @@ class CFrame
 
             // Bit 0 of the VMPR page is always taken as zero for modes 3 and 4
             int nPage = (bVal_ & VMPR_MDE1_MASK) ? (bVal_ & VMPR_PAGE_MASK & ~1) : bVal_ & VMPR_PAGE_MASK;
-            m_pbScreenData = apbPageReadPtrs[nPage];
+            m_pbScreenData = PageReadPtr(nPage);
         }
 
         void UpdateLine (int nLine_, int nFrom_, int nTo_)

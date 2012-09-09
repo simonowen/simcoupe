@@ -1298,7 +1298,7 @@ void CImportDialog::OnNotify (CWindow* pWindow_, int nParam_)
         for (UINT uChunk ; (uChunk = min(uLen, (0x4000 - uOffset))) ; uLen -= uChunk, uOffset = 0)
         {
             // Read directly into system memory
-            uRead += fread(&apbPageWritePtrs[uPage][uOffset], 1, uChunk, hFile);
+            uRead += fread(PageWritePtr(uPage)+uOffset, 1, uChunk, hFile);
 
             // Wrap to page 0 after ROM0
             if (uPage == ROM0+1)
@@ -1359,7 +1359,7 @@ void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
         for (UINT uChunk ; (uChunk = min(uLen, (0x4000 - uOffset))) ; uLen -= uChunk, uOffset = 0)
         {
             // Write directly from system memory
-            uWritten += fwrite(&apbPageReadPtrs[uPage++][uOffset], 1, uChunk, hFile);
+            uWritten += fwrite(PageReadPtr(uPage++)+uOffset, 1, uChunk, hFile);
 
             if (ferror(hFile))
             {

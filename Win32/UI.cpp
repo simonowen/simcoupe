@@ -1917,7 +1917,7 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                     {
                         for (int nChunk ; (nChunk = min(nLength, (0x4000 - nOffset))) ; nLength -= nChunk, nOffset = 0)
                         {
-                            nDone += fread(&apbPageWritePtrs[nPage++][nOffset], 1, nChunk, f);
+                            nDone += fread(PageWritePtr(nPage++)+nOffset, 1, nChunk, f);
 
                             // Wrap to page 0 after ROM0
                             if (nPage == ROM0+1)
@@ -1934,7 +1934,7 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                     {
                         for (int nChunk ; (nChunk = min(nLength, (0x4000 - nOffset))) ; nLength -= nChunk, nOffset = 0)
                         {
-                            nDone += fwrite(&apbPageReadPtrs[nPage++][nOffset], 1, nChunk, f);
+                            nDone += fwrite(PageReadPtr(nPage++)+nOffset, 1, nChunk, f);
 
                             if (ferror(f))
                             {
