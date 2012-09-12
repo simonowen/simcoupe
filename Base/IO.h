@@ -184,6 +184,7 @@ class CDiskDevice :  public CIoDevice
 
 #define VMPR_PAGE_MASK      0x1f
 #define VMPR_MODE_MASK      0x60
+#define VMPR_MODE_SHIFT     5
 #define VMPR_MDE0_MASK      0x20
 #define VMPR_MDE1_MASK      0x40
 #define VMPR_PAGE           (vmpr & VMPR_PAGE_MASK)
