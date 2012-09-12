@@ -2,7 +2,7 @@
 //
 // Expr.h: Infix expression parsing and postfix evaluation
 //
-//  Copyright (c) 1999-2006  Simon Owen
+//  Copyright (c) 1999-2012  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ class Expr
 enum { T_NUMBER, T_UNARY_OP, T_BINARY_OP, T_REGISTER, T_VARIABLE, T_FUNCTION };
 
 // Unary operators
-enum { OP_UMINUS, OP_UPLUS, OP_BNOT, OP_NOT, OP_DEREF, OP_PEEK, OP_DPEEK, OP_IN, OP_OUT, OP_READ, OP_WRITE, OP_EVAL };
+enum { OP_UMINUS, OP_UPLUS, OP_BNOT, OP_NOT, OP_DEREF, OP_PEEK, OP_DPEEK, OP_EVAL };
 
 // Binary operators
 enum { OP_AND, OP_OR, OP_BOR, OP_BXOR, OP_BAND, OP_EQ, OP_NE, OP_LT, OP_LE, OP_GE,
@@ -69,7 +69,9 @@ enum { REG_A, REG_F, REG_B, REG_C, REG_D, REG_E, REG_H, REG_L,
        REG_IX, REG_IY, REG_IXH, REG_IXL, REG_IYH, REG_IYL,
        REG_SP, REG_PC, REG_I, REG_R, REG_IFF1, REG_IFF2, REG_IM,
        VAR_EI, VAR_DI, VAR_DLINE, VAR_SLINE, VAR_LCYCLES, VAR_COUNT,
-       VAR_ROM0, VAR_ROM1, VAR_WPROT, VAR_INROM, VAR_LMPR, VAR_HMPR, VAR_VMPR, VAR_MODE, VAR_LEPR, VAR_HEPR
+       VAR_ROM0, VAR_ROM1, VAR_WPROT, VAR_INROM, VAR_CALL,
+       VAR_LEPAGE, VAR_HEPAGE, VAR_LPAGE, VAR_HPAGE, VAR_VPAGE, VAR_MODE,
+       VAR_LEPR, VAR_HEPR, VAR_LPEN, VAR_HPEN, VAR_STATUS, VAR_LMPR, VAR_HMPR, VAR_VMPR, VAR_MIDI, VAR_BORDER, VAR_ATTR
  };
 
 #endif

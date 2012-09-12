@@ -94,7 +94,6 @@ static const TOKEN asUnaryOps[] =
 {
     {"peek",OP_PEEK},
     {"dpeek",OP_DPEEK},
-    {"in",OP_IN}, {"out",OP_OUT},
     {NULL}
 };
 
@@ -113,8 +112,10 @@ static const TOKEN asVariables[] =
 {
     {"ei",VAR_EI}, {"di",VAR_DI},
     {"dline",VAR_DLINE}, {"sline",VAR_SLINE}, {"lcycles",VAR_LCYCLES},
-    {"rom0",VAR_ROM0}, {"rom1",VAR_ROM1}, {"wprot",VAR_WPROT}, {"inrom",VAR_INROM},
-    {"lmpr",VAR_LMPR}, {"hmpr",VAR_HMPR}, {"vmpr",VAR_VMPR}, {"mode",VAR_MODE}, {"lepr",VAR_LEPR}, {"hepr",VAR_HEPR},
+    {"rom0",VAR_ROM0}, {"rom1",VAR_ROM1}, {"wprot",VAR_WPROT}, {"inrom",VAR_INROM}, {"call",VAR_CALL},
+    {"lepage",VAR_LEPAGE}, {"hepage",VAR_HEPAGE}, {"lpage",VAR_LPAGE}, {"hpage",VAR_HPAGE}, {"vpage",VAR_VPAGE}, {"mode",VAR_MODE}, 
+    {"lepr",VAR_LEPR}, {"hepr",VAR_HEPR}, {"lpen",VAR_LPEN}, {"hpen",VAR_HPEN}, {"status",VAR_STATUS},
+    {"lmpr",VAR_LMPR}, {"hmpr",VAR_HMPR}, {"vmpr",VAR_VMPR}, {"midi",VAR_MIDI}, {"border",VAR_BORDER}, {"attr",VAR_ATTR},
     {NULL}
 };
 
@@ -182,8 +183,6 @@ int Expr::Eval (const EXPR* pExpr_)
                     case OP_DEREF:  x = read_byte(x); break;
                     case OP_PEEK:   x = read_byte(x); break;
                     case OP_DPEEK:  x = read_word(x); break;
-                    case OP_IN:     x = (wPortRead  == x) || (x <= 0xff && ((wPortRead&0xff)  == x)); break;
-                    case OP_OUT:    x = (wPortWrite == x) || (x <= 0xff && ((wPortWrite&0xff) == x)); break;
                 }
 
                 // Push the result
@@ -279,16 +278,28 @@ int Expr::Eval (const EXPR* pExpr_)
                     case VAR_ROM0:      r = !(lmpr & LMPR_ROM0_OFF);  break;
                     case VAR_ROM1:      r = !!(lmpr & LMPR_ROM1);     break;
                     case VAR_WPROT:     r = !!(lmpr & LMPR_WPROT);    break;
-                    case VAR_LMPR:      r = LMPR_PAGE;                break;
-                    case VAR_HMPR:      r = HMPR_PAGE;                break;
-                    case VAR_VMPR:      r = VMPR_PAGE;                break;
-                    case VAR_MODE:      r = 1+(VMPR_MODE >> 5);       break;
-                    case VAR_LEPR:      r = lepr;                     break;
-                    case VAR_HEPR:      r = hepr;                     break;
 
-                    case VAR_INROM:     r = (!(lmpr & LMPR_ROM0_OFF) && PC <  0x4000) ||
-                                              (lmpr & LMPR_ROM1      && PC >= 0xc000);
-                                        break;
+                    case VAR_LEPAGE:    r = lepr; break;
+                    case VAR_HEPAGE:    r = hepr; break;
+                    case VAR_LPAGE:     r = lmpr & LMPR_PAGE_MASK;    break;
+                    case VAR_HPAGE:     r = hmpr & HMPR_PAGE_MASK;    break;
+                    case VAR_VPAGE:     r = vmpr & VMPR_PAGE_MASK;    break;
+                    case VAR_MODE:      r = ((vmpr & VMPR_MODE_MASK) >> VMPR_MODE_SHIFT)+1; break;
+
+                    case VAR_LEPR:      r = LEPR_PORT;                break;	// 128
+                    case VAR_HEPR:      r = HEPR_PORT;                break;	// 129
+                    case VAR_LPEN:      r = LPEN_PORT;                break;	// 248
+                    case VAR_HPEN:      r = HPEN_PORT;                break;	// 248+256
+                    case VAR_STATUS:    r = STATUS_PORT;              break;	// 249
+                    case VAR_LMPR:      r = LMPR_PORT;                break;	// 250
+                    case VAR_HMPR:      r = HMPR_PORT;                break;	// 251
+                    case VAR_VMPR:      r = VMPR_PORT;                break;	// 252
+                    case VAR_MIDI:      r = MIDI_PORT;                break;	// 253
+                    case VAR_BORDER:    r = BORDER_PORT;              break;	// 254
+                    case VAR_ATTR:      r = ATTR_PORT;                break;	// 255
+
+                    case VAR_INROM:     r = (!(lmpr & LMPR_ROM0_OFF) && PC < 0x4000) || (lmpr & LMPR_ROM1 && PC >= 0xc000); break;
+                    case VAR_CALL:      r = PC != 0x0005 && !(lmpr & LMPR_ROM0_OFF) && (read_word(SP) == 0x180d); break;
 
                     case VAR_COUNT:     r = nCount ? !--nCount : 1; break;
                 }
