@@ -25,6 +25,7 @@
 
 const int CHAR_HEIGHT = sGUIFont.wHeight;   // Character cell dimensions
 const int CHAR_SPACING = 1;                 // 1 pixel between each character
+const int LINE_SPACING = 4;                 // 4 pixels between each row
 const char CHAR_UNKNOWN = '_';              // Character to display when not available in charset
 
 // Colours, shared with the SAM palette
@@ -76,7 +77,7 @@ class CScreen
         void DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_=false, size_t nMaxChars_=-1);
 
         static int GetStringWidth (const char* pcsz_, size_t nMaxChars_=-1);
-        static void SetFont (const GUIFONT* pFont_, bool fFixedWidth_=false);
+        static void SetFont (const GUIFONT* pFont_);
 
     protected:
         int m_nPitch, m_nHeight;    // Pitch (width of low-res lines is half the pitch) and height of the screen

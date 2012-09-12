@@ -34,8 +34,7 @@
 
 int nClipX, nClipY, nClipWidth, nClipHeight;    // Clip box for any screen drawing
 
-const GUIFONT* pFont = &sOldFont;
-bool fFixedWidth = false;
+const GUIFONT* pFont = &sGUIFont;
 
 
 CScreen::CScreen (int nWidth_, int nHeight_)
@@ -231,21 +230,19 @@ void CScreen::Poke (int nX_, int nY_, const BYTE* pcbData_, UINT uLen_)
 // Draw a proportionally spaced string of characters at a specified pixel position
 void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_/*=false*/, size_t nMaxChars_/*=-1*/)
 {
-    int nFrom = max(nClipY,nY_);
-    int nTo = nY_ + pFont->wHeight;
-    nTo = min(nClipY+nClipHeight-1, nTo);
-
-    // Return if the entrire character is clipped
-    if (nFrom > nTo)
-        return;
-
-    // Ensure the lines containing the character are hi-res
-    for (int i = nFrom ; i < nTo ; i++)
-        GetHiResLine(i);
+    int nLeft = nX_;
 
     // Iterate through characters in the string, stopping if we hit the character limit
     for (BYTE bChar ; (bChar = *pcsz_++) && nMaxChars_-- ; )
     {
+        // Newline?
+        if (bChar == '\n')
+        {
+            nX_ = nLeft;
+            nY_ += pFont->wHeight + LINE_SPACING;
+            continue;
+        }
+
         // Out-of-range characters will be shown as an underscore
         if (bChar < pFont->bFirst || bChar > pFont->bLast)
             bChar = CHAR_UNKNOWN;
@@ -256,12 +253,25 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
         // Retrieve the character width
         int nWidth = *pbData++ & 0x0f;
 
-        if (fFixedWidth)
+        // Draw as fixed-width?
+        if (pFont->fFixedWidth)
         {
+            // Fetch required shift to centralise character
             int nShift = pbData[-1] >> 4;
+
+            // Offset to start, and subtract that from the total width
             nX_ += nShift;
             nWidth = pFont->wWidth - nShift;
         }
+
+        // Determine the vertical extent we're drawing
+        int nFrom = max(nClipY,nY_);
+        int nTo = nY_ + pFont->wHeight;
+        nTo = min(nClipY+nClipHeight-1, nTo);
+
+        // Ensure the lines containing the character are hi-res
+        for (int i = nFrom ; i < nTo ; i++)
+            GetHiResLine(i);
 
 #ifdef USE_LOWRES
         // Double the width, to account for skipped pixels, and force an odd pixel position
@@ -269,7 +279,7 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
         nX_ |= 1;
 #endif
         // Only draw the character if it's not a space, and the entire width fits inside the clipping area
-        if (bChar != ' ' && (nX_ >= nClipX) && (nX_ < (nClipX+nClipWidth-nWidth)))
+        if (bChar != ' ' && (nX_ >= nClipX) && (nX_+nWidth <= nClipX+nClipWidth))
         {
             BYTE* pLine = GetLine(nFrom) + nX_;
             pbData += (nFrom - nY_);
@@ -316,34 +326,46 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
         }
 
         // Move to the next character position
-        nX_ += nWidth + CHAR_SPACING - fFixedWidth + fBold_;
+        nX_ += nWidth + (pFont->fFixedWidth ? 0 : CHAR_SPACING) + fBold_;
     }
 }
 
 // Get the on-screen width required for a specified string if drawn proportionally
 /*static*/ int CScreen::GetStringWidth (const char* pcsz_, size_t nMaxChars_/*=-1*/)
 {
+    int nMaxWidth = 0;
     int nWidth = 0;
 
-    for (BYTE bChar ; (bChar = *pcsz_++) && nMaxChars_-- ; )
+    for (BYTE bChar ; (bChar = *pcsz_) && nMaxChars_-- ; pcsz_++)
     {
+        // Newlines reset the segment width
+        if (bChar == '\n')
+        {
+            nWidth = 0;
+            continue;
+        }
+
         // Out-of-range characters will be drawn as an underscore
         if (bChar < pFont->bFirst || bChar > pFont->bLast)
             bChar = CHAR_UNKNOWN;
 
         const BYTE* pChar = pFont->pcbData + (bChar - pFont->bFirst) * pFont->wCharSize;
-        nWidth += (*pChar & 0xf) + CHAR_SPACING;
+
+        // Add the new width, width a separator space if needed
+        nWidth += (nWidth ? CHAR_SPACING : 0) + (*pChar & 0xf);
+
+        // Update the maximum segment width
+        nMaxWidth = max(nWidth,nMaxWidth);
     }
 
 #ifdef USE_LOWRES
-    return nWidth << 1; // Double-spaced pixels need twice the room
+    return nMaxWidth << 1; // Double-spaced pixels need twice the room
 #else
-    return nWidth;
+    return nMaxWidth;
 #endif
 }
 
-/*static*/ void CScreen::SetFont (const GUIFONT* pFont_, bool fFixedWidth_/*=false*/)
+/*static*/ void CScreen::SetFont (const GUIFONT* pFont_)
 {
     pFont = pFont_;
-    fFixedWidth = fFixedWidth_;
 }
