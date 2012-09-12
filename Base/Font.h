@@ -2,7 +2,7 @@
 //
 // Font.h: Font data used for on-screen text
 //
-//  Copyright (c) 1999-2002  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,13 +25,15 @@ typedef struct
 {
     WORD    wWidth, wHeight, wCharSize;
     BYTE    bFirst, bLast;
+    bool    fFixedWidth;
 
     const BYTE* pcbData;
 }
 GUIFONT;
 
-extern const BYTE abOldFont[], abGUIFont[];
-extern const GUIFONT sOldFont, sGUIFont;
+extern const GUIFONT sFixedFont, sPropFont, sGUIFont;
+
+#define sOldFont    sFixedFont
 
 #endif
 
