@@ -468,7 +468,7 @@ void Frame::Sync ()
         if (nFrame == 51) nPercent = 100;
 
         // Format the profile string and reset it
-        sprintf(szProfile, "%3d%%", nPercent);
+        sprintf(szProfile, "%d%%", nPercent);
         TRACE("%s  %d frames\n", szProfile, nFrame);
 
         // Adjust for next time, taking care to preserve any fractional part
@@ -566,16 +566,16 @@ void DrawOSD (CScreen* pScreen_)
         }
     }
 
-    // We'll use the old font for the simple on-screen text
-    CScreen::SetFont(&sOldFont);
+    // We'll use the fixed font for the simple on-screen text
+    pScreen_->SetFont(&sPropFont);
 
     // Show the profiling statistics?
     if (GetOption(profile))
     {
         int nX = nWidth - pScreen_->GetStringWidth(szProfile);
 
-        pScreen_->DrawString(nX-2, 2, szProfile, 0);
-        pScreen_->DrawString(nX-4, 1, szProfile, 127);
+        pScreen_->DrawString(nX,   2, szProfile, BLACK);
+        pScreen_->DrawString(nX-2, 1, szProfile, WHITE);
     }
 
     // Any active status line?
@@ -583,8 +583,8 @@ void DrawOSD (CScreen* pScreen_)
     {
         int nX = nWidth - pScreen_->GetStringWidth(szStatus);
 
-        pScreen_->DrawString(nX-2, nHeight-CHAR_HEIGHT-1, szStatus, 0);
-        pScreen_->DrawString(nX-4, nHeight-CHAR_HEIGHT-2, szStatus, 127);
+        pScreen_->DrawString(nX,   nHeight-CHAR_HEIGHT-1, szStatus, BLACK);
+        pScreen_->DrawString(nX-2, nHeight-CHAR_HEIGHT-2, szStatus, WHITE);
     }
 }
 
