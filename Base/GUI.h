@@ -85,6 +85,8 @@ class CWindow
         bool IsOver () const { return m_fHover; }
         bool IsActive () const { return m_pParent && m_pParent->m_pActive == this; }
         int GetType () const { return m_nType; }
+        int GetWidth () const { return m_nWidth; }
+        int GetHeight () const { return m_nHeight; }
 
         CWindow* GetParent () { return m_pParent; }
         CWindow* GetChildren () { return m_pChildren; }
@@ -106,8 +108,10 @@ class CWindow
         virtual bool IsTabStop () const { return false; }
 
         virtual const char* GetText () const { return m_pszText; }
+        virtual const GUIFONT *GetFont () const { return m_pFont; }
         virtual UINT GetValue () const { return static_cast<UINT>(strtoul(m_pszText, NULL, 0)); }
         virtual void SetText (const char* pcszText_);
+        virtual void SetFont (const GUIFONT *pFont_) { m_pFont = pFont_; }
         virtual void SetValue (UINT u_);
         int GetTextWidth () const { return CScreen::GetStringWidth(m_pszText); }
 
@@ -123,6 +127,7 @@ class CWindow
     protected:
         void RemoveChild ();
         void MoveRecurse (CWindow* pWindow_, int ndX_, int ndY_);
+        bool RouteMessage (int nMessage_, int nParam1_, int nParam2_);
 
     protected:
         int m_nX, m_nY;
@@ -130,11 +135,13 @@ class CWindow
         int m_nType;
 
         char* m_pszText;
+        const GUIFONT *m_pFont;
 
         bool m_fEnabled, m_fHover;
 
         CWindow *m_pParent, *m_pChildren, *m_pNext, *m_pActive;
 
+        friend class GUI;
         friend class CDialog;
 };
 
@@ -146,6 +153,7 @@ class CTextControl : public CWindow
 
     public:
         void Draw (CScreen* pScreen_);
+        void SetText (const char *pcszText_, BYTE bColour_=WHITE);
 
     protected:
         BYTE m_bColour, m_bBackColour;

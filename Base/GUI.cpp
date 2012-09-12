@@ -85,11 +85,11 @@ bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
     }
 
     // Pass the message to the active GUI component
-    s_pGUI->OnMessage(nMessage_, nParam1_, nParam2_);
+    s_pGUI->RouteMessage(nMessage_, nParam1_, nParam2_);
 
     // Send a move after a button up, to give a hit test after an effective mouse capture
     if (s_pGUI && nMessage_ == GM_BUTTONUP)
-        s_pGUI->OnMessage(GM_MOUSEMOVE, s_nX, s_nY);
+        s_pGUI->RouteMessage(GM_MOUSEMOVE, s_nX, s_nY);
 
     // Stop the GUI if it was deleted during the last message
     if (s_pGarbage)
@@ -100,7 +100,7 @@ bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 
         // If the GUI still exists, update the activation state
         if (s_pGUI)
-            s_pGUI->OnMessage(GM_MOUSEMOVE, s_nX, s_nY);
+            s_pGUI->RouteMessage(GM_MOUSEMOVE, s_nX, s_nY);
 
         // Otherwise we're done
         else
@@ -165,7 +165,7 @@ void GUI::Draw (CScreen* pScreen_)
 {
     if (s_pGUI)
     {
-        CScreen::SetFont(&sGUIFont);
+        CScreen::SetFont(s_pGUI->GetFont());
         s_pGUI->Draw(pScreen_);
 
         pScreen_->DrawImage(s_nX, s_nY, ICON_SIZE, ICON_SIZE,
@@ -182,8 +182,8 @@ bool GUI::IsModal ()
 ////////////////////////////////////////////////////////////////////////////////
 
 CWindow::CWindow (CWindow* pParent_/*=NULL*/, int nX_/*=0*/, int nY_/*=0*/, int nWidth_/*=0*/, int nHeight_/*=0*/, int nType_/*=ctUnknown*/)
-    : m_nX(nX_), m_nY(nY_), m_nWidth(nWidth_), m_nHeight(nHeight_), m_nType(nType_), m_pszText(NULL), m_fEnabled(true), m_fHover(false),
-        m_pParent(NULL), m_pChildren(NULL), m_pNext(NULL), m_pActive(NULL)
+    : m_nX(nX_), m_nY(nY_), m_nWidth(nWidth_), m_nHeight(nHeight_), m_nType(nType_), m_pszText(NULL), m_pFont(&sGUIFont),
+        m_fEnabled(true), m_fHover(false), m_pParent(NULL), m_pChildren(NULL), m_pNext(NULL), m_pActive(NULL)
 {
     if (pParent_)
     {
@@ -222,12 +222,18 @@ void CWindow::Draw (CScreen* pScreen_)
     for (CWindow* p = m_pChildren ; p ; p = p->m_pNext)
     {
         if (p != m_pActive)
+        {
+            pScreen_->SetFont(p->m_pFont);
             p->Draw(pScreen_);
+        }
     }
 
     // Draw the active control last to ensure it's shown above any other controls
     if (m_pActive)
+    {
+        pScreen_->SetFont(m_pActive->m_pFont);
         m_pActive->Draw(pScreen_);
+    }
 }
 
 // Notify the parent something has changed
@@ -237,7 +243,7 @@ void CWindow::NotifyParent (int nParam_/*=0*/)
         m_pParent->OnNotify(this, nParam_);
 }
 
-bool CWindow::OnMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
+bool CWindow::RouteMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 {
     bool fProcessed = false;
     bool fMouseMessage = (nMessage_ & GM_TYPE_MASK) == GM_MOUSE_MESSAGE;
@@ -249,7 +255,7 @@ bool CWindow::OnMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
         if (fMouseMessage)
             m_pActive->m_fHover = m_pActive->HitTest(nParam1_, nParam2_);
 
-        fProcessed =  m_pActive->OnMessage(nMessage_, nParam1_, nParam2_);
+        fProcessed =  m_pActive->RouteMessage(nMessage_, nParam1_, nParam2_);
     }
 
     // Give the remaining child controls a chance to process the message
@@ -269,9 +275,13 @@ bool CWindow::OnMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
             if ((nMessage_ == GM_BUTTONDOWN) && pChild->IsTabStop() && pChild->m_fHover)
                 pChild->Activate();
 
-            fProcessed = pChild->OnMessage(nMessage_, nParam1_, nParam2_);
+            fProcessed = pChild->RouteMessage(nMessage_, nParam1_, nParam2_);
         }
     }
+
+    // After the children have had a look, allow the current window a chance to process
+    if (!fProcessed)
+        fProcessed = OnMessage(nMessage_, nParam1_, nParam2_);
 
     // If it's a mouse message, update the hit status for this window
     if (fMouseMessage)
@@ -279,6 +289,11 @@ bool CWindow::OnMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 
     // Return whether the message was processed
     return fProcessed;
+}
+
+bool CWindow::OnMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
+{
+    return false;
 }
 
 
@@ -448,6 +463,12 @@ void CTextControl::Draw (CScreen* pScreen_)
         pScreen_->FillRect(m_nX-1, m_nY-1, GetTextWidth()+2, 14, m_bBackColour);
 
     pScreen_->DrawString(m_nX, m_nY, GetText(), IsEnabled() ? m_bColour : GREY_5);
+}
+
+void CTextControl::SetText (const char *pcszText_, BYTE bColour_/*=WHITE*/)
+{
+    m_bColour = bColour_;
+    CWindow::SetText(pcszText_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -807,7 +828,7 @@ void CEditControl::Draw (CScreen* pScreen_)
     }
 
     // Draw the visible text
-    pScreen_->DrawString(m_nX+EDIT_BORDER, nY+1, GetText()+m_nViewOffset, IsEnabled() ? BLACK : GREY_5, false, nViewLength);
+    pScreen_->DrawString(nX, nY+1, GetText()+m_nViewOffset, IsEnabled() ? BLACK : GREY_5, false, nViewLength);
 
     // Is there an active selection?
     if (m_nCaretStart != m_nCaretEnd)
@@ -829,8 +850,8 @@ void CEditControl::Draw (CScreen* pScreen_)
         int wx = CScreen::GetStringWidth(GetText()+nStart, nEnd-nStart);
 
         // Draw the black selection highlight and white text over it
-        pScreen_->FillRect(nX-1+dx, nY-1, 1+wx, 1+CHAR_HEIGHT+1, IsEnabled() ? (IsActive() ? BLACK : GREY_4) : GREY_6);
-        pScreen_->DrawString(nX+dx, nY, GetText()+nStart, WHITE, false, nEnd-nStart);
+        pScreen_->FillRect(nX+dx+!!dx-1, nY-1, 1+wx+1, 1+CHAR_HEIGHT+1, IsEnabled() ? (IsActive() ? BLACK : GREY_4) : GREY_6);
+        pScreen_->DrawString(nX+dx+!!dx, nY+1, GetText()+nStart, WHITE, false, nEnd-nStart);
     }
 
     // If the control is enabled and focussed we'll show a flashing caret after the text
@@ -840,7 +861,7 @@ void CEditControl::Draw (CScreen* pScreen_)
         int dx = CScreen::GetStringWidth(GetText()+m_nViewOffset, m_nCaretEnd-m_nViewOffset);
 
         // Draw a character-height vertical bar after the text
-        pScreen_->DrawLine(nX+dx-1, nY-1, 0, 1+CHAR_HEIGHT+1, fCaretOn ? BLUE_4 : YELLOW_8);
+        pScreen_->DrawLine(nX+dx-!dx, nY-1, 0, 1+CHAR_HEIGHT+1, fCaretOn ? BLACK : YELLOW_8);
     }
 }
 
@@ -936,6 +957,7 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                         {
                             m_nCaretStart = 0;
                             m_nCaretEnd = strlen(GetText());
+                            return true;
                         }
                         
                         break;
@@ -1569,7 +1591,7 @@ bool CScrollBar::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     if (m_nMaxPos <= 0)
         return false;
 
-    bool fRet = CWindow::OnMessage(nMessage_, nParam1_, nParam2_);
+    bool fRet = false;//CWindow::OnMessage(nMessage_, nParam1_, nParam2_);
 
     // Stop the buttons remaining active
     m_pActive = NULL;
@@ -1774,6 +1796,8 @@ void CListView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const
     const char* pcsz = pItem_->m_pszLabel;
     if (pcsz)
     {
+        pScreen_->SetFont(&sPropFont);
+
         int nLine = 0;
         const char *pszStart = pcsz, *pszBreak = NULL;
         char szLines[2][64], sz[64];
@@ -1824,9 +1848,10 @@ void CListView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const
 
         // Output the two text lines using the small font, each centralised below the icon
         nY_ += m_nItemOffset+42;
-        pScreen_->SetFont(&sOldFont);
+
         pScreen_->DrawString(nX_+(ITEM_SIZE-pScreen_->GetStringWidth(szLines[0]))/2, nY_, szLines[0], WHITE);
         pScreen_->DrawString(nX_+(ITEM_SIZE-pScreen_->GetStringWidth(szLines[1]))/2, nY_+12, szLines[1], WHITE);
+
         pScreen_->SetFont(&sGUIFont);
     }
 }

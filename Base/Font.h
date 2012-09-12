@@ -33,7 +33,5 @@ GUIFONT;
 
 extern const GUIFONT sFixedFont, sPropFont, sGUIFont;
 
-#define sOldFont    sFixedFont
-
 #endif
 
