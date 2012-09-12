@@ -468,8 +468,8 @@ CCodeView::CCodeView (CWindow* pParent_)
     : CView(pParent_), m_uTarget(INVALID_TARGET), m_pcszTarget(NULL)
 {
     // Calculate the number of rows and columns in the view
-    m_uRows = m_nHeight / (ROW_GAP+sOldFont.wHeight+ROW_GAP);
-    m_uColumns = m_nWidth / sOldFont.wWidth;
+    m_uRows = m_nHeight / (ROW_GAP+sFixedFont.wHeight+ROW_GAP);
+    m_uColumns = m_nWidth / sFixedFont.wWidth;
 
     // Allocate enough for a full screen of characters
     m_pszData = new char[m_uRows * m_uColumns + 1];
@@ -528,12 +528,12 @@ void CCodeView::SetAddress (CAddr addr_, bool fForceTop_)
 
 void CCodeView::Draw (CScreen* pScreen_)
 {
-    pScreen_->SetFont(&sOldFont, true);
+    pScreen_->SetFont(&sFixedFont);
 
     UINT u = 0;
     for (char* psz = (char*)m_pszData ; *psz ; psz += strlen(psz)+1, u++)
     {
-        int nHeight = ROW_GAP+sOldFont.wHeight+ROW_GAP, nX = m_nX, nY = m_nY+(nHeight*u);
+        int nHeight = ROW_GAP+sFixedFont.wHeight+ROW_GAP, nX = m_nX, nY = m_nY+(nHeight*u);
 
         BYTE bColour = WHITE;
 
@@ -568,7 +568,7 @@ bool CCodeView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     {
         case GM_BUTTONDBLCLK:
         {
-            UINT uRow = (nParam2_ - m_nY) / (ROW_GAP+sOldFont.wHeight+ROW_GAP);
+            UINT uRow = (nParam2_ - m_nY) / (ROW_GAP+sFixedFont.wHeight+ROW_GAP);
 
             if (uRow < m_uRows)
                 ToggleBreakpoint(s_aAddrs[uRow]);
@@ -787,8 +787,8 @@ CAddr CTextView::s_aAddrs[64];
 CTextView::CTextView (CWindow* pParent_)
     : CView(pParent_)
 {
-    m_uRows = m_nHeight / (ROW_GAP+sOldFont.wHeight+ROW_GAP);
-    m_uColumns = m_nWidth / sOldFont.wWidth;
+    m_uRows = m_nHeight / (ROW_GAP+sFixedFont.wHeight+ROW_GAP);
+    m_uColumns = m_nWidth / sFixedFont.wWidth;
 
     // Allocate enough for a full screen of characters
     m_pszData = new char[m_uRows * m_uColumns + 1];
@@ -824,12 +824,12 @@ void CTextView::SetAddress (CAddr addr_, bool fForceTop_)
 
 void CTextView::Draw (CScreen* pScreen_)
 {
-    pScreen_->SetFont(&sOldFont, true);
+    pScreen_->SetFont(&sFixedFont);
 
     UINT u = 0;
     for (char* psz = m_pszData ; *psz ; psz += strlen(psz)+1, u++)
     {
-        int nHeight = 2+sOldFont.wHeight+2, nX = m_nX, nY = m_nY+(nHeight*u);
+        int nHeight = 2+sFixedFont.wHeight+2, nX = m_nX, nY = m_nY+(nHeight*u);
         pScreen_->DrawString(nX, nY+2, psz, WHITE);
     }
 
@@ -882,8 +882,8 @@ CAddr CNumView::s_aAddrs[64];
 CNumView::CNumView (CWindow* pParent_)
     : CView(pParent_)
 {
-    m_uRows = m_nHeight / (2+sOldFont.wHeight+2);
-    m_uColumns = m_nWidth / sOldFont.wWidth;
+    m_uRows = m_nHeight / (2+sFixedFont.wHeight+2);
+    m_uColumns = m_nWidth / sFixedFont.wWidth;
 
     // Allocate enough for a full screen of characters, plus null terminators
     m_pszData = new char[m_uRows * (m_uColumns+1) + 2];
@@ -923,12 +923,12 @@ void CNumView::SetAddress (CAddr addr_, bool fForceTop_)
 
 void CNumView::Draw (CScreen* pScreen_)
 {
-    pScreen_->SetFont(&sOldFont, true);
+    pScreen_->SetFont(&sFixedFont);
 
     UINT u = 0;
     for (char* psz = m_pszData ; *psz ; psz += strlen(psz)+1, u++)
     {
-        int nHeight = sOldFont.wHeight+4, nX = m_nX, nY = m_nY+(nHeight*u);
+        int nHeight = sFixedFont.wHeight+4, nX = m_nX, nY = m_nY+(nHeight*u);
         pScreen_->DrawString(nX, nY+2, psz, WHITE);
     }
 
@@ -997,7 +997,7 @@ void CMemView::SetAddress (WORD wAddr_, bool fForceTop_)
 
 void CMemView::Draw (CScreen* pScreen_)
 {
-    pScreen_->SetFont(&sOldFont, true);
+    pScreen_->SetFont(&sFixedFont, true);
 
     UINT uGap = 12;
 
@@ -1092,7 +1092,7 @@ void CGraphicsView::Draw (CScreen* pScreen_)
 {
     // Clip to the client area to prevent partial strips escaping
     pScreen_->SetClip(m_nX, m_nY, m_nWidth, m_nHeight);
-    pScreen_->SetFont(&sOldFont, true);
+    pScreen_->SetFont(&sFixedFont);
 
     BYTE* pb = m_pbData;
 
@@ -1204,7 +1204,7 @@ void CRegisterPanel::Draw (CScreen* pScreen_)
 {
     char sz[32];
 
-    pScreen_->SetFont(&sOldFont, true);
+    pScreen_->SetFont(&sFixedFont);
 
     pScreen_->DrawString(m_nX, m_nY+00,  "AF       AF'", GREEN_8);
     pScreen_->DrawString(m_nX, m_nY+12,  "BC       BC'", GREEN_8);
