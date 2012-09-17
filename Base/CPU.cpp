@@ -502,8 +502,6 @@ void CPU::NMI()
     // Call NMI handler at address 0x0066
     PC = NMI_INTERRUPT_HANDLER;
     g_dwCycleCounter += 2;
-
-    Debug::Refresh();
 }
 
 

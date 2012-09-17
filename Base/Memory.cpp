@@ -190,7 +190,7 @@ static bool LoadRoms ()
 
     // Start with the built-in 3.0 ROM image
     memcpy(pb0, abSAMROM, MEM_PAGE_SIZE);
-    memcpy(pb1, &abSAMROM[MEM_PAGE_SIZE], MEM_PAGE_SIZE);
+    memcpy(pb1, abSAMROM+MEM_PAGE_SIZE, MEM_PAGE_SIZE);
 
     // Atom boot ROM enabled?
     if (GetOption(hdbootrom))

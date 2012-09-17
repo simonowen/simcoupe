@@ -35,10 +35,14 @@ class Expr
         enum { none=0x00, noRegs=0x01, noVars=0x02, noFuncs=0x04, simple=0x0f };    // Flags to limit expression scope
 
     public:
-        static EXPR* Compile (const char* pcsz_, char** ppcszEnd_=NULL, int nFlags_=none);
+        static EXPR* Compile (const char* pcsz_, char** ppszEnd_=NULL, int nFlags_=none);
         static void Release (EXPR* pExpr_);
         static int Eval (const EXPR* pExpr_);
-        static bool Eval (const char* pcsz_, int *pnValue_, int nFlags_=none);
+        static bool Eval (const char* pcsz_, int *pnValue_, char** ppszEnd_=NULL, int nFlags_=none);
+
+    public:
+        static int GetReg (int nReg_);
+        static void SetReg (int nReg_, int nValue_);
 
     public:
         static EXPR True, False, Counter;
@@ -67,10 +71,12 @@ enum { REG_A, REG_F, REG_B, REG_C, REG_D, REG_E, REG_H, REG_L,
        REG_ALT_A, REG_ALT_F, REG_ALT_B, REG_ALT_C, REG_ALT_D, REG_ALT_E, REG_ALT_H, REG_ALT_L,
        REG_AF, REG_BC, REG_DE, REG_HL, REG_ALT_AF, REG_ALT_BC, REG_ALT_DE, REG_ALT_HL,
        REG_IX, REG_IY, REG_IXH, REG_IXL, REG_IYH, REG_IYL,
-       REG_SP, REG_PC, REG_I, REG_R, REG_IFF1, REG_IFF2, REG_IM,
+       REG_SP, REG_PC, REG_SPH, REG_SPL, REG_PCH, REG_PCL,
+       REG_I, REG_R, REG_IFF1, REG_IFF2, REG_IM,
        VAR_EI, VAR_DI, VAR_DLINE, VAR_SLINE, VAR_LCYCLES, VAR_COUNT,
        VAR_ROM0, VAR_ROM1, VAR_WPROT, VAR_INROM, VAR_CALL,
        VAR_LEPAGE, VAR_HEPAGE, VAR_LPAGE, VAR_HPAGE, VAR_VPAGE, VAR_MODE,
+       VAR_INVAL, VAR_OUTVAL,
        VAR_LEPR, VAR_HEPR, VAR_LPEN, VAR_HPEN, VAR_STATUS, VAR_LMPR, VAR_HMPR, VAR_VMPR, VAR_MIDI, VAR_BORDER, VAR_ATTR
  };
 

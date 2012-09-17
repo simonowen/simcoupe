@@ -173,8 +173,11 @@ Z80Regs;
 #define IXL     regs.ix.b.l
 #define IYH     regs.iy.b.h
 #define IYL     regs.iy.b.l
+
 #define SPH     regs.sp.b.h
 #define SPL     regs.sp.b.l
+#define PCH     regs.pc.b.h
+#define PCL     regs.pc.b.l
 
 #define R       regs.r
 #define R7      regs.r7

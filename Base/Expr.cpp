@@ -99,13 +99,14 @@ static const TOKEN asUnaryOps[] =
 
 static const TOKEN asRegisters[] =
 {
-    {"a",REG_A}, {"f",REG_F}, {"b",REG_B}, {"c",REG_C}, {"d",REG_D}, {"e",REG_E}, {"h",REG_H}, {"l",REG_L},
-    {"af",REG_AF}, {"bc",REG_BC}, {"de",REG_DE}, {"hl",REG_HL},
     {"a'",REG_ALT_A}, {"f'",REG_ALT_F}, {"b'",REG_ALT_B}, {"c'",REG_ALT_C},
     {"d'",REG_ALT_D}, {"e'",REG_ALT_E}, {"h'",REG_ALT_H}, {"l'",REG_ALT_L},
-    {"bc'",REG_ALT_BC}, {"de'",REG_ALT_DE}, {"hl'",REG_ALT_HL},
+    {"af'",REG_ALT_AF}, {"bc'",REG_ALT_BC}, {"de'",REG_ALT_DE}, {"hl'",REG_ALT_HL},
+    {"a",REG_A}, {"f",REG_F}, {"b",REG_B}, {"c",REG_C}, {"d",REG_D}, {"e",REG_E}, {"h",REG_H}, {"l",REG_L},
+    {"af",REG_AF}, {"bc",REG_BC}, {"de",REG_DE}, {"hl",REG_HL},
     {"ix",REG_IX}, {"iy",REG_IY}, {"ixh",REG_IXH}, {"ixl",REG_IXL}, {"iyh",REG_IYH}, {"iyl",REG_IYL},
-    {"sp",REG_SP}, {"pc",REG_PC}, {"i",REG_I}, {"r",REG_R}, {"iff1",REG_IFF1}, {"iff2",REG_IFF2}, {"im",REG_IM}
+    {"sp",REG_SP}, {"pc",REG_PC}, {"sph",REG_SPH}, {"spl",REG_SPL}, {"pch",REG_PCH}, {"pcl",REG_PCL},
+    {"i",REG_I}, {"r",REG_R}, {"iff1",REG_IFF1}, {"iff2",REG_IFF2}, {"im",REG_IM}
 };
 
 static const TOKEN asVariables[] =
@@ -114,6 +115,7 @@ static const TOKEN asVariables[] =
     {"dline",VAR_DLINE}, {"sline",VAR_SLINE}, {"lcycles",VAR_LCYCLES},
     {"rom0",VAR_ROM0}, {"rom1",VAR_ROM1}, {"wprot",VAR_WPROT}, {"inrom",VAR_INROM}, {"call",VAR_CALL},
     {"lepage",VAR_LEPAGE}, {"hepage",VAR_HEPAGE}, {"lpage",VAR_LPAGE}, {"hpage",VAR_HPAGE}, {"vpage",VAR_VPAGE}, {"mode",VAR_MODE}, 
+    {"inval",VAR_INVAL}, {"outval",VAR_OUTVAL},
     {"lepr",VAR_LEPR}, {"hepr",VAR_HEPR}, {"lpen",VAR_LPEN}, {"hpen",VAR_HPEN}, {"status",VAR_STATUS},
     {"lmpr",VAR_LMPR}, {"hmpr",VAR_HMPR}, {"vmpr",VAR_VMPR}, {"midi",VAR_MIDI}, {"border",VAR_BORDER}, {"attr",VAR_ATTR},
     {NULL}
@@ -122,7 +124,7 @@ static const TOKEN asVariables[] =
 static const TOKEN* LookupToken (const char* pcsz_, size_t uLen_, const TOKEN* pTokens_)
 {
     for ( ; pTokens_->pcsz ; pTokens_++)
-        if (strlen(pTokens_->pcsz) == uLen_ && !memcmp(pcsz_, pTokens_->pcsz, uLen_))
+        if (strlen(pTokens_->pcsz) == uLen_ && !strncasecmp(pcsz_, pTokens_->pcsz, uLen_))
             return pTokens_;
 
     return NULL;
@@ -145,7 +147,7 @@ EXPR* Expr::Compile (const char* pcsz_, char** ppszEnd_/*=NULL*/, int nFlags_/*=
         return NULL;
     }
 
-    // Supply the end pointer if required
+    // Supply the end pointer if required, or NULL if nothing was left
     if (ppszEnd_)
         *ppszEnd_ = const_cast<char*>(p);
 
@@ -153,9 +155,132 @@ EXPR* Expr::Compile (const char* pcsz_, char** ppszEnd_/*=NULL*/, int nFlags_/*=
     return pHead;
 }
 
+
+int Expr::GetReg (int nReg_)
+{
+    int nRet = 0;
+
+    switch (nReg_)
+    {
+        case REG_A:         nRet = A;      break;
+        case REG_F:         nRet = F;      break;
+        case REG_B:         nRet = B;      break;
+        case REG_C:         nRet = C;      break;
+        case REG_D:         nRet = D;      break;
+        case REG_E:         nRet = E;      break;
+        case REG_H:         nRet = H;      break;
+        case REG_L:         nRet = L;      break;
+
+        case REG_ALT_A:     nRet = A_;     break;
+        case REG_ALT_F:     nRet = F_;     break;
+        case REG_ALT_B:     nRet = B_;     break;
+        case REG_ALT_C:     nRet = C_;     break;
+        case REG_ALT_D:     nRet = D_;     break;
+        case REG_ALT_E:     nRet = E_;     break;
+        case REG_ALT_H:     nRet = H_;     break;
+        case REG_ALT_L:     nRet = L_;     break;
+
+        case REG_AF:        nRet = AF;     break;
+        case REG_BC:        nRet = BC;     break;
+        case REG_DE:        nRet = DE;     break;
+        case REG_HL:        nRet = HL;     break;
+
+        case REG_ALT_AF:    nRet = AF_;    break;
+        case REG_ALT_BC:    nRet = BC_;    break;
+        case REG_ALT_DE:    nRet = DE_;    break;
+        case REG_ALT_HL:    nRet = HL_;    break;
+
+        case REG_IX:        nRet = IX;     break;
+        case REG_IY:        nRet = IY;     break;
+        case REG_SP:        nRet = SP;     break;
+        case REG_PC:        nRet = PC;     break;
+
+        case REG_IXH:       nRet = IXH;    break;
+        case REG_IXL:       nRet = IXL;    break;
+        case REG_IYH:       nRet = IYH;    break;
+        case REG_IYL:       nRet = IYL;    break;
+
+        case REG_SPH:       nRet = SPH;    break;
+        case REG_SPL:       nRet = SPL;    break;
+        case REG_PCH:       nRet = PCH;    break;
+        case REG_PCL:       nRet = PCL;    break;
+
+        case REG_I:         nRet = I;      break;
+        case REG_R:         nRet = (R7 & 0x80) | (R & 0x7f); break;
+        case REG_IFF1:      nRet = IFF1;   break;
+        case REG_IFF2:      nRet = IFF2;   break;
+        case REG_IM:        nRet = IM;     break;
+    }
+
+    return nRet;
+}
+
+void Expr::SetReg (int nReg_, int nValue_)
+{
+    WORD w = static_cast<WORD>(nValue_);
+    BYTE b = w & 0xff;
+
+    switch (nReg_)
+    {
+        case REG_A:      A = b; break;
+        case REG_F:      F = b; break;
+        case REG_B:      B = b; break;
+        case REG_C:      C = b; break;
+        case REG_D:      D = b; break;
+        case REG_E:      E = b; break;
+        case REG_H:      H = b; break;
+        case REG_L:      L = b; break;
+
+        case REG_ALT_A:  A_ = b; break;
+        case REG_ALT_F:  F_ = b; break;
+        case REG_ALT_B:  B_ = b; break;
+        case REG_ALT_C:  C_ = b; break;
+        case REG_ALT_D:  D_ = b; break;
+        case REG_ALT_E:  E_ = b; break;
+        case REG_ALT_H:  H_ = b; break;
+        case REG_ALT_L:  L_ = b; break;
+
+        case REG_AF:     AF  = w; break;
+        case REG_BC:     BC  = w; break;
+        case REG_DE:     DE  = w; break;
+        case REG_HL:     HL  = w; break;
+
+        case REG_ALT_AF: AF_ = w; break;
+        case REG_ALT_BC: BC_ = w; break;
+        case REG_ALT_DE: DE_ = w; break;
+        case REG_ALT_HL: HL_ = w; break;
+
+        case REG_IX:     IX = w; break;
+        case REG_IY:     IY = w; break;
+        case REG_SP:     SP = w; break;
+        case REG_PC:     PC = w; break;
+
+        case REG_IXH:    IXH = b; break;
+        case REG_IXL:    IXL = b; break;
+        case REG_IYH:    IYH = b; break;
+        case REG_IYL:    IYL = b; break;
+
+        case REG_SPH:    SPH = b; break;
+        case REG_SPL:    SPL = b; break;
+        case REG_PCH:    PCH = b; break;
+        case REG_PCL:    PCL = b; break;
+
+        case REG_I:      I = b; break;
+        case REG_R:      R7 = R = b; break;
+        case REG_IFF1:   IFF1 = !!b; break;
+        case REG_IFF2:   IFF2 = !!b; break;
+        case REG_IM:     if (b <= 2) IM = b; break;
+    }
+}
+
+
 // Evaluate a compiled expression
 int Expr::Eval (const EXPR* pExpr_)
 {
+    // No expression?
+    if (!pExpr_)
+        return -1;
+
     // Value stack
     int an[128], n = 0;
 
@@ -223,50 +348,19 @@ int Expr::Eval (const EXPR* pExpr_)
             }
 
             case T_REGISTER:
+            {
+                // Push register value
+                int r = GetReg(pExpr_->nValue);
+                an[n++] = r;
+                break;
+            }
+
             case T_VARIABLE:
             {
                 int r = 0;
 
                 switch (pExpr_->nValue)
                 {
-                    case REG_A:         r = A;      break;
-                    case REG_F:         r = F;      break;
-                    case REG_B:         r = B;      break;
-                    case REG_C:         r = C;      break;
-                    case REG_D:         r = D;      break;
-                    case REG_E:         r = E;      break;
-                    case REG_H:         r = H;      break;
-                    case REG_L:         r = L;      break;
-                    case REG_AF:        r = AF;     break;
-                    case REG_BC:        r = BC;     break;
-                    case REG_DE:        r = DE;     break;
-                    case REG_HL:        r = HL;     break;
-                    case REG_ALT_A:     r = A_;     break;
-                    case REG_ALT_F:     r = F_;     break;
-                    case REG_ALT_B:     r = B_;     break;
-                    case REG_ALT_C:     r = C_;     break;
-                    case REG_ALT_D:     r = D_;     break;
-                    case REG_ALT_E:     r = E_;     break;
-                    case REG_ALT_H:     r = H_;     break;
-                    case REG_ALT_L:     r = L_;     break;
-                    case REG_ALT_AF:    r = AF_;    break;
-                    case REG_ALT_BC:    r = BC_;    break;
-                    case REG_ALT_DE:    r = DE_;    break;
-                    case REG_ALT_HL:    r = HL_;    break;
-                    case REG_IX:        r = IX;     break;
-                    case REG_IY:        r = IY;     break;
-                    case REG_IXH:       r = IXH;    break;
-                    case REG_IXL:       r = IXL;    break;
-                    case REG_IYH:       r = IYH;    break;
-                    case REG_IYL:       r = IYL;    break;
-                    case REG_SP:        r = SP;     break;
-                    case REG_PC:        r = PC;     break;
-                    case REG_I:         r = I;      break;
-                    case REG_R:         r = (R7 & 0x80) | (R & 0x7f); break;
-                    case REG_IFF1:      r = IFF1;   break;
-                    case REG_IFF2:      r = IFF2;   break;
-                    case REG_IM:        r = IM;     break;
-
                     case VAR_EI:        r = !!IFF1; break;
                     case VAR_DI:        r = !IFF1;  break;
 /*
@@ -286,6 +380,9 @@ int Expr::Eval (const EXPR* pExpr_)
                     case VAR_VPAGE:     r = vmpr & VMPR_PAGE_MASK;    break;
                     case VAR_MODE:      r = ((vmpr & VMPR_MODE_MASK) >> VMPR_MODE_SHIFT)+1; break;
 
+                    case VAR_INVAL:     r = bPortInVal;               break;
+                    case VAR_OUTVAL:    r = bPortOutVal;              break;
+
                     case VAR_LEPR:      r = LEPR_PORT;                break;	// 128
                     case VAR_HEPR:      r = HEPR_PORT;                break;	// 129
                     case VAR_LPEN:      r = LPEN_PORT;                break;	// 248
@@ -304,7 +401,7 @@ int Expr::Eval (const EXPR* pExpr_)
                     case VAR_COUNT:     r = nCount ? !--nCount : 1; break;
                 }
 
-                // Push register value
+                // Push variable value
                 an[n++] = r;
                 break;
             }
@@ -337,14 +434,18 @@ int Expr::Eval (const EXPR* pExpr_)
 }
 
 // Evaluate an expression, returning the value and whether it was valid
-bool Expr::Eval (const char* pcsz_, int *pnValue_, int nFlags_/*=0*/)
+bool Expr::Eval (const char* pcsz_, int *pnValue_, char** ppszEnd_/*=NULL*/, int nFlags_/*=0*/)
 {
+    // Invalidate output values
+    if (pnValue_) *pnValue_ = -1;
+    if (ppszEnd_) *ppszEnd_ = "";
+
     // Fail obviously invalid inputs
     if (!pcsz_ || !*pcsz_ || !pnValue_)
         return false;
 
     // Compile the expression, failing if there's an error
-    EXPR* pExpr = Compile(pcsz_, NULL, nFlags_);
+    EXPR* pExpr = Compile(pcsz_, ppszEnd_, nFlags_);
     if (!pExpr)
         return false;
 
@@ -376,7 +477,7 @@ bool Expr::Term (int n_/*=0*/)
         {
             // Check for a matching operator
             uLen = strlen(asBinaryOps[n_][i].pcsz);
-            if (!memcmp(asBinaryOps[n_][i].pcsz, p, uLen))
+            if (!strncasecmp(asBinaryOps[n_][i].pcsz, p, uLen))
                 break;
         };
 
@@ -410,50 +511,47 @@ bool Expr::Factor ()
         // Assume we'll match the input
         fMatched = true;
 
-        // Parse as hex initially
-        const char* p2;
-        int nValue = static_cast<int>(strtoul(p, (char**)&p2, 16));
+        // Parse as decimal and hex
+        const char *pDecEnd, *pHexEnd;
+        int nDecValue = static_cast<int>(strtoul(p, (char**)&pDecEnd, 10));
+        int nHexValue = static_cast<int>(strtoul(p, (char**)&pHexEnd, 16));
+
 
         // Accept decimal values with a '.' suffix
-        if (*p2 == '.')
+        if (*pDecEnd == '.')
         {
-            AddNode(T_NUMBER, static_cast<int>(strtoul(p, (char**)&p2, 10)));
-            p = p2+1;
+            AddNode(T_NUMBER, nDecValue);
+            p = pDecEnd+1;
         }
 
-        // In hex mode, use the value already parsed
-        else if (GetOption(hexmode))
+        // Accept hex values with an 'h' suffix
+        else if (tolower(*pHexEnd) == 'h')
         {
-            AddNode(T_NUMBER, nValue);
-            p = p2;
+            AddNode(T_NUMBER, nHexValue);
+            p = pHexEnd+1;
         }
 
         // Accept values using a C-style "0x" prefix
         else if (p[0] == '0' && tolower(p[1]) == 'x')
         {
-            AddNode(T_NUMBER, nValue);
-            p = p2;
+            AddNode(T_NUMBER, nHexValue);
+            p = pHexEnd;
         }
 
-        // Also accept hex values with an 'h' suffix
-        else if (tolower(*p2) == 'h')
+        // Check for binary values with a 'b' suffix (unless in hex mode)
+        else if (!GetOption(hexmode) && *p == '0' || *p == '1')
         {
-            AddNode(T_NUMBER, nValue);
-            p = p2+1;
-        }
+            int nBinValue = 0;
+            const char *pBinEnd;
 
-        // Check for binary values with a 'b' suffix
-        else if (*p == '0' || *p == '1')
-        {
-            nValue = 0;
-            for (p2 = p ; *p2 == '0' || *p2 == '1' ; p2++)
-                (nValue <<= 1) |= (*p2-'0');
+            for (pBinEnd = p ; *pBinEnd == '0' || *pBinEnd == '1' ; pBinEnd++)
+                (nBinValue <<= 1) |= (*pBinEnd-'0');
 
             // If there's a 'b' suffix it's binary
-            if (tolower(*p2) == 'b')
+            if (tolower(*pBinEnd) == 'b')
             {
-                AddNode(T_NUMBER, nValue);
-                p = p2+1;
+                AddNode(T_NUMBER, nBinValue);
+                p = pBinEnd+1;
             }
             else
                 fMatched = false;
@@ -461,11 +559,22 @@ bool Expr::Factor ()
         else
             fMatched = false;
 
-        if (!fMatched && isdigit(*p))
+        // If not yet matched, use the current base
+        if (!fMatched)
         {
-            // Parse as decimal (leading zeroes should not give octal!)
-            AddNode(T_NUMBER, static_cast<int>(strtoul(p, (char**)&p, 10)));
-            fMatched = true;
+            if (GetOption(hexmode))
+            {
+                AddNode(T_NUMBER, nHexValue);
+                p = pHexEnd;
+                fMatched = true;
+            }
+            else if (isdigit(*p))
+            {
+                // Parse as decimal (leading zeroes should not give octal!)
+                AddNode(T_NUMBER, nDecValue);
+                p = pDecEnd;
+                fMatched = true;
+            }
         }
     }
 
@@ -562,7 +671,7 @@ bool Expr::Factor ()
         if (*p == '.')
             p++;
 
-        // Scan the alphabetic part of the name
+        // Scan the alphabetic part of the name (allow ' for alternate register support)
         const char* pcsz = p;
         for ( ; isalpha(*p) || *p == '\'' ; p++);
 
@@ -605,10 +714,10 @@ bool Expr::Factor ()
             }
             else
 */
-            if (!(nFlags & noRegs) && (pToken = LookupToken(pcsz, p-pcsz, asRegisters)))
-                AddNode(T_REGISTER, pToken->nToken);
-            else if (!(nFlags & noVars) && (pToken = LookupToken(pcsz, p-pcsz, asVariables)))
+            if (!(nFlags & noVars) && (pToken = LookupToken(pcsz, p-pcsz, asVariables)))
                 AddNode(T_VARIABLE, pToken->nToken);
+            else if (!(nFlags & noRegs) && (pToken = LookupToken(pcsz, p-pcsz, asRegisters)))
+                AddNode(T_REGISTER, pToken->nToken);
             else
                 return false;
         }
