@@ -1643,7 +1643,7 @@ int GetDlgItemValue (HWND hdlg_, int nId_, int nDefault_=-1)
     GetDlgItemText(hdlg_, nId_, sz, sizeof(sz));
 
     int nValue;
-    return Expr::Eval(sz, &nValue, Expr::simple) ? nValue : nDefault_;
+    return Expr::Eval(sz, &nValue, NULL, Expr::simple) ? nValue : nDefault_;
 }
 
 void SetDlgItemValue (HWND hdlg_, int nId_, int nValue_)
