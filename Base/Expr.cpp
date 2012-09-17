@@ -32,7 +32,8 @@ static int nFlags;
 const int MAX_FUNC_PARAMS = 5;
 
 
-EXPR Expr::True = { T_NUMBER, 1, NULL }, Expr::False = { T_NUMBER, 0, NULL };
+EXPR Expr::True = { T_NUMBER, 1, NULL };
+EXPR Expr::False = { T_NUMBER, 0, NULL };
 
 EXPR Expr::Counter = { T_VARIABLE, VAR_COUNT, NULL };
 int Expr::nCount;
@@ -436,9 +437,11 @@ int Expr::Eval (const EXPR* pExpr_)
 // Evaluate an expression, returning the value and whether it was valid
 bool Expr::Eval (const char* pcsz_, int *pnValue_, char** ppszEnd_/*=NULL*/, int nFlags_/*=0*/)
 {
+    static char sz[] = "";
+
     // Invalidate output values
     if (pnValue_) *pnValue_ = -1;
-    if (ppszEnd_) *ppszEnd_ = "";
+    if (ppszEnd_) *ppszEnd_ = sz;
 
     // Fail obviously invalid inputs
     if (!pcsz_ || !*pcsz_ || !pnValue_)
