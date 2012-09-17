@@ -87,6 +87,8 @@ class CWindow
         int GetType () const { return m_nType; }
         int GetWidth () const { return m_nWidth; }
         int GetHeight () const { return m_nHeight; }
+        int GetTextWidth (size_t nOffset_=0, size_t nMaxLength_=-1) const;
+        int GetTextWidth (const char *pcsz_) const;
 
         CWindow* GetParent () { return m_pParent; }
         CWindow* GetChildren () { return m_pChildren; }
@@ -113,7 +115,6 @@ class CWindow
         virtual void SetText (const char* pcszText_);
         virtual void SetFont (const GUIFONT *pFont_) { m_pFont = pFont_; }
         virtual void SetValue (UINT u_);
-        int GetTextWidth () const { return CScreen::GetStringWidth(m_pszText); }
 
         virtual void Activate ();
         virtual bool HitTest (int nX_, int nY_);

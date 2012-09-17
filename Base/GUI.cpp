@@ -372,6 +372,17 @@ void CWindow::SetValue (UINT u_)
     SetText(sz);
 }
 
+int CWindow::GetTextWidth (size_t nOffset_/*=0*/, size_t nMaxLength_/*=-1*/) const
+{
+    return CScreen::GetStringWidth(GetText()+nOffset_, nMaxLength_, m_pFont);
+}
+
+int CWindow::GetTextWidth (const char *pcsz_) const
+{
+    return CScreen::GetStringWidth(pcsz_, -1, m_pFont);
+}
+
+
 CWindow* CWindow::GetNext (bool fWrap_/*=false*/)
 {
     return m_pNext ? m_pNext : (fWrap_ ? GetSiblings() : NULL);
@@ -568,7 +579,7 @@ void CTextButton::Draw (CScreen* pScreen_)
     bool fPressed = m_fPressed && IsOver();
 
     // Centralise the text in the button, and offset down and right if it's pressed
-    int nX = m_nX + fPressed + (m_nWidth - CScreen::GetStringWidth(GetText()))/2;
+    int nX = m_nX + fPressed + (m_nWidth - GetTextWidth())/2;
     int nY = m_nY + fPressed + (m_nHeight-CHAR_HEIGHT)/2 + 1;
     pScreen_->DrawString(nX, nY, GetText(), IsEnabled() ? (IsActive() ? BLACK : BLACK) : GREY_5);
 }
@@ -791,7 +802,7 @@ void CEditControl::Draw (CScreen* pScreen_)
         for (m_nViewOffset = m_nCaretEnd ; m_nViewOffset > 0 ; m_nViewOffset--)
         {
             // Stop if we've exposed 1/4 of the edit control length
-            if (CScreen::GetStringWidth(GetText()+m_nViewOffset, m_nCaretEnd-m_nViewOffset) >= (nWidth/4))
+            if (GetTextWidth(m_nViewOffset, m_nCaretEnd-m_nViewOffset) >= (nWidth/4))
             {
                 m_nViewOffset--;
                 break;
@@ -799,13 +810,13 @@ void CEditControl::Draw (CScreen* pScreen_)
         }
     }
     // If the caret is beyond the end of the control we need to shift the view forwards
-    else if (CScreen::GetStringWidth(GetText()+m_nViewOffset, m_nCaretEnd-m_nViewOffset) > nWidth)
+    else if (GetTextWidth(m_nViewOffset, m_nCaretEnd-m_nViewOffset) > nWidth)
     {
         // Loop while the view string is still too long for the control
-        for ( ; CScreen::GetStringWidth(GetText()+m_nViewOffset) > nWidth ; m_nViewOffset++)
+        for ( ; GetTextWidth(m_nViewOffset) > nWidth ; m_nViewOffset++)
         {
             // Stop if caret is within 3/4 of the edit control length
-            if (CScreen::GetStringWidth(GetText()+m_nViewOffset, m_nCaretEnd-m_nViewOffset) < (nWidth*3/4))
+            if (GetTextWidth(m_nViewOffset, m_nCaretEnd-m_nViewOffset) < (nWidth*3/4))
                 break;
         }
     }
@@ -819,7 +830,7 @@ void CEditControl::Draw (CScreen* pScreen_)
     for ( ; GetText()[m_nViewOffset+nViewLength] ; nViewLength++)
     {
         // Too long for control?
-        if (CScreen::GetStringWidth(GetText()+m_nViewOffset, nViewLength) > nWidth)
+        if (GetTextWidth(m_nViewOffset, nViewLength) > nWidth)
         {
             // Remove a character to bring within width, and finish
             nViewLength--;
@@ -846,8 +857,8 @@ void CEditControl::Draw (CScreen* pScreen_)
             nEnd = nStart + nViewLength;
 
         // Determine offset and pixel width of highlighted selection
-        int dx = CScreen::GetStringWidth(GetText()+m_nViewOffset, nStart-m_nViewOffset);
-        int wx = CScreen::GetStringWidth(GetText()+nStart, nEnd-nStart);
+        int dx = GetTextWidth(m_nViewOffset, nStart-m_nViewOffset);
+        int wx = GetTextWidth(nStart, nEnd-nStart);
 
         // Draw the black selection highlight and white text over it
         pScreen_->FillRect(nX+dx+!!dx-1, nY-1, 1+wx+1, 1+CHAR_HEIGHT+1, IsEnabled() ? (IsActive() ? BLACK : GREY_4) : GREY_6);
@@ -858,7 +869,7 @@ void CEditControl::Draw (CScreen* pScreen_)
     if (IsEnabled() && IsActive())
     {
         bool fCaretOn = ((OSD::GetTime() - m_dwCaretTime) % 800) < 400;
-        int dx = CScreen::GetStringWidth(GetText()+m_nViewOffset, m_nCaretEnd-m_nViewOffset);
+        int dx = GetTextWidth(m_nViewOffset, m_nCaretEnd-m_nViewOffset);
 
         // Draw a character-height vertical bar after the text
         pScreen_->DrawLine(nX+dx-!dx, nY-1, 0, 1+CHAR_HEIGHT+1, fCaretOn ? BLACK : YELLOW_8);
@@ -1197,7 +1208,7 @@ void CMenu::SetText (const char* pcszText_)
 
     for (m_nItems = 0 ; psz ; psz = strtok(NULL, MENU_DELIMITERS), m_nItems++)
     {
-        int nLen = CScreen::GetStringWidth(psz);
+        int nLen = GetTextWidth(psz);
         if (nLen > nMaxLen)
             nMaxLen = nLen;
     }
@@ -1809,7 +1820,7 @@ void CListView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const
             size_t uLen = pcsz-pszStart;
             strncpy(sz, pszStart, uLen)[uLen] = '\0';
 
-            if (CScreen::GetStringWidth(sz) >= (ITEM_SIZE-9))
+            if (GetTextWidth(sz) >= (ITEM_SIZE-9))
             {
                 sz[uLen-1] = '\0';
                 pcsz--;
@@ -2656,7 +2667,7 @@ CMessageBox::CMessageBox (CWindow* pParent_, const char* pcszBody_, const char* 
             *pszEOL = '\0';
 
         // Keep track of the maximum line width
-        int nLen = CScreen::GetStringWidth(psz);
+        int nLen = GetTextWidth(psz);
         if (nLen > m_nWidth)
             m_nWidth = nLen;
     }

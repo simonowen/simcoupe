@@ -331,10 +331,14 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
 }
 
 // Get the on-screen width required for a specified string if drawn proportionally
-/*static*/ int CScreen::GetStringWidth (const char* pcsz_, size_t nMaxChars_/*=-1*/)
+/*static*/ int CScreen::GetStringWidth (const char* pcsz_, size_t nMaxChars_/*=-1*/, const GUIFONT *pFont_/*=NULL*/)
 {
     int nMaxWidth = 0;
     int nWidth = 0;
+
+    // Use the current font if one isn't supplied
+    if (!pFont_)
+        pFont_ = pFont;
 
     for (BYTE bChar ; (bChar = *pcsz_) && nMaxChars_-- ; pcsz_++)
     {
@@ -346,13 +350,19 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
         }
 
         // Out-of-range characters will be drawn as an underscore
-        if (bChar < pFont->bFirst || bChar > pFont->bLast)
+        if (bChar < pFont_->bFirst || bChar > pFont_->bLast)
             bChar = CHAR_UNKNOWN;
 
-        const BYTE* pChar = pFont->pcbData + (bChar - pFont->bFirst) * pFont->wCharSize;
-
         // Add the new width, width a separator space if needed
-        nWidth += (nWidth ? CHAR_SPACING : 0) + (*pChar & 0xf);
+        if (pFont_->fFixedWidth)
+        {
+            nWidth += pFont_->wWidth * (nWidth ? 2 : 1);
+        }
+        else
+        {
+            const BYTE* pChar = pFont_->pcbData + (bChar - pFont_->bFirst) * pFont_->wCharSize;
+            nWidth += (nWidth ? CHAR_SPACING : 0) + (*pChar & 0xf);
+        }
 
         // Update the maximum segment width
         nMaxWidth = max(nWidth,nMaxWidth);

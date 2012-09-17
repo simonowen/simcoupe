@@ -76,7 +76,7 @@ class CScreen
         void DrawImage (int nX_, int nY_, int nWidth_, int nHeight_, const BYTE* pbData_, const BYTE* pbPalette_);
         void DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_=false, size_t nMaxChars_=-1);
 
-        static int GetStringWidth (const char* pcsz_, size_t nMaxChars_=-1);
+        static int GetStringWidth (const char* pcsz_, size_t nMaxChars_=-1, const GUIFONT *pFont_=NULL);
         static void SetFont (const GUIFONT* pFont_);
 
     protected:
