@@ -223,6 +223,7 @@ extern BYTE keybuffer[9];
 
 // Last port read/written
 extern WORD wPortRead, wPortWrite;
+extern BYTE bPortInVal, bPortOutVal;
 
 // Paging ports for internal and external memory
 extern BYTE vmpr, hmpr, lmpr, lepr, hepr;

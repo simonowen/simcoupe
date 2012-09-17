@@ -73,6 +73,7 @@ CSID *pSID;
 
 // Port read/write addresses for I/O breakpoints
 WORD wPortRead, wPortWrite;
+BYTE bPortInVal, bPortOutVal;
 
 // Paging ports for internal and external memory
 BYTE vmpr, hmpr, lmpr, lepr, hepr;
@@ -346,9 +347,12 @@ BYTE IO::In (WORD wPort_)
 {
     BYTE bPortLow = (wPortRead = wPort_) & 0xff, bPortHigh = (wPort_ >> 8);
 
+    // Default port result if not handled
+    BYTE bRet = 0xff;
+
     // The ASIC doesn't respond to I/O immediately after power-on
     if (bPortLow >= BASE_ASIC_PORT && fASICStartup)
-        return 0x00;
+        return bPortInVal = 0x00;
 
     // Ensure state is up-to-date
     CheckCpuEvents();
@@ -361,59 +365,69 @@ BYTE IO::In (WORD wPort_)
             // Disable fast boot on the first keyboard read
             g_nTurbo &= ~TURBO_BOOT;
 
-            BYTE res = 0x1f;
-
             if (bPortHigh == 0xff)
             {
-                res = keyports[8] & 0x1f;
-
-                if (GetOption(mouse) && res == 0x1f)
-                    res = pMouse->In(wPort_) & 0x1f;
+                if (GetOption(mouse) && bRet == 0x1f)
+                    bRet = pMouse->In(wPort_);
+                else
+                    bRet = keyports[8];
             }
             else
             {
-                if (!(bPortHigh & 0x80)) res &= keyports[7] & 0x1f;
-                if (!(bPortHigh & 0x40)) res &= keyports[6] & 0x1f;
-                if (!(bPortHigh & 0x20)) res &= keyports[5] & 0x1f;
-                if (!(bPortHigh & 0x10)) res &= keyports[4] & 0x1f;
-                if (!(bPortHigh & 0x08)) res &= keyports[3] & 0x1f;
-                if (!(bPortHigh & 0x04)) res &= keyports[2] & 0x1f;
-                if (!(bPortHigh & 0x02)) res &= keyports[1] & 0x1f;
-                if (!(bPortHigh & 0x01)) res &= keyports[0] & 0x1f;
+                if (!(bPortHigh & 0x80)) bRet &= keyports[7];
+                if (!(bPortHigh & 0x40)) bRet &= keyports[6];
+                if (!(bPortHigh & 0x20)) bRet &= keyports[5];
+                if (!(bPortHigh & 0x10)) bRet &= keyports[4];
+                if (!(bPortHigh & 0x08)) bRet &= keyports[3];
+                if (!(bPortHigh & 0x04)) bRet &= keyports[2];
+                if (!(bPortHigh & 0x02)) bRet &= keyports[1];
+                if (!(bPortHigh & 0x01)) bRet &= keyports[0];
             }
 
-            return (keyboard & 0xe0) | res;
+            bRet = (keyboard & 0xe0) | (bRet & 0x1f);
+            break;
         }
 
         // keyboard 2
         case STATUS_PORT:
         {
-            BYTE res = 0xe0;
+            if (!(bPortHigh & 0x80)) bRet &= keyports[7];
+            if (!(bPortHigh & 0x40)) bRet &= keyports[6];
+            if (!(bPortHigh & 0x20)) bRet &= keyports[5];
+            if (!(bPortHigh & 0x10)) bRet &= keyports[4];
+            if (!(bPortHigh & 0x08)) bRet &= keyports[3];
+            if (!(bPortHigh & 0x04)) bRet &= keyports[2];
+            if (!(bPortHigh & 0x02)) bRet &= keyports[1];
+            if (!(bPortHigh & 0x01)) bRet &= keyports[0];
 
-            if (!(bPortHigh & 0x80)) res &= keyports[7] & 0xe0;
-            if (!(bPortHigh & 0x40)) res &= keyports[6] & 0xe0;
-            if (!(bPortHigh & 0x20)) res &= keyports[5] & 0xe0;
-            if (!(bPortHigh & 0x10)) res &= keyports[4] & 0xe0;
-            if (!(bPortHigh & 0x08)) res &= keyports[3] & 0xe0;
-            if (!(bPortHigh & 0x04)) res &= keyports[2] & 0xe0;
-            if (!(bPortHigh & 0x02)) res &= keyports[1] & 0xe0;
-            if (!(bPortHigh & 0x01)) res &= keyports[0] & 0xe0;
-
-            return (res & 0xe0) | (status_reg & 0x1f);
+            bRet = (bRet & 0xe0) | (status_reg & 0x1f);
+            break;
         }
 
 
-        // Banked memory management
-        case VMPR_PORT:     return vmpr | 0x80;     // RXMIDI bit always one for now
-        case HMPR_PORT:     return hmpr;
-        case LMPR_PORT:     return lmpr;
+        // Low memory page register
+        case LMPR_PORT:
+            bRet = lmpr;
+            break;
+
+        // High memory page register
+        case HMPR_PORT:
+            bRet = hmpr;
+            break;
+
+
+        // Video memory page register
+        case VMPR_PORT:
+            bRet = vmpr;
+            bRet |= 0x80;   // RXMIDI bit always one for now
+            break;
 
         // SAMBUS and DALLAS clock ports
         case CLOCK_PORT:
             if (wPort_ < 0xfe00 && GetOption(sambusclock))
-                return pSambus->In(wPort_);
+                bRet = pSambus->In(wPort_);
             else if (wPort_ >= 0xfe00 && GetOption(dallasclock))
-                return pDallas->In(wPort_);
+                bRet = pDallas->In(wPort_);
             break;
 
         // HPEN and LPEN ports
@@ -429,48 +443,60 @@ BYTE IO::In (WORD wPort_)
                             static_cast<BYTE>(nLineCycle - (BORDER_PIXELS+BORDER_PIXELS)) / 1;  // tstate->pixel division here?
 
                 // Take the top 6 bits from the position, and the rest from the existing value
-                return (bX & 0xfc) | (lpen & 0x03);
+                bRet = (bX & 0xfc) | (lpen & 0x03);
             }
-
-            // HPEN reflects the vertical scan position in the main screen area only
-            // Return 192 for the top/bottom border areas, or the main screen line number
-            return (nLine < TOP_BORDER_LINES || nLine >= (TOP_BORDER_LINES+SCREEN_LINES)) ?
-                static_cast<BYTE>(SCREEN_LINES) : (nLine - TOP_BORDER_LINES);
+            else
+            {
+                // HPEN reflects the vertical scan position in the main screen area only
+                // Return 192 for the top/bottom border areas, or the main screen line number
+                bRet = (nLine < TOP_BORDER_LINES || nLine >= (TOP_BORDER_LINES+SCREEN_LINES)) ?
+                        static_cast<BYTE>(SCREEN_LINES) : (nLine - TOP_BORDER_LINES);
+            }
+            break;
         }
 
         // Spectrum ATTR port
         case ATTR_PORT:
         {
-            // If the display is off, return the cached attr value
-            if (VMPR_MODE_3_OR_4 && BORD_SOFF)
-                return attr;
+            // If the display is enabled, update the attribute port value
+            if (!(VMPR_MODE_3_OR_4 && BORD_SOFF))
+            {
+                // Determine the 4 ASIC display bytes and return the 3rd, as documented
+                BYTE b1, b2, b3, b4;
+                Frame::GetAsicData(&b1, &b2, &b3, &b4);
+                attr = b3;
+            }
 
-            // Determine the 4 ASIC display bytes and return the 3rd, as documented
-            BYTE b1, b2, b3, b4;
-            Frame::GetAsicData(&b1, &b2, &b3, &b4);
-            return b3;
+            // Return the current attribute port value
+            bRet = attr;
+
+            break;
         }
 
         // Parallel ports
         case PRINTL1_STAT:
         case PRINTL1_DATA:
+        {
             switch (GetOption(parallel1))
             {
-                case 1: return pPrinterFile->In(wPort_);
-                case 2: return pMonoDac->In(wPort_);
-                case 3: return pStereoDac->In(wPort_);
+                case 1: bRet = pPrinterFile->In(wPort_);
+                case 2: bRet = pMonoDac->In(wPort_);
+                case 3: bRet = pStereoDac->In(wPort_);
             }
             break;
+        }
 
         case PRINTL2_STAT:
         case PRINTL2_DATA:
+        {
             switch (GetOption(parallel2))
             {
-                case 1: return pPrinterFile->In(wPort_);
-                case 2: return pMonoDac->In(wPort_);
-                case 3: return pStereoDac->In(wPort_);
+                case 1: bRet = pPrinterFile->In(wPort_);
+                case 2: bRet = pMonoDac->In(wPort_);
+                case 3: bRet = pStereoDac->In(wPort_);
             }
             break;
+        }
 
         // Serial ports (currently unsupported)
         case SERIAL1:
@@ -480,15 +506,15 @@ BYTE IO::In (WORD wPort_)
         // MIDI IN/Network
         case MIDI_PORT:
             if (GetOption(midi) == 1) // MIDI device
-                return pMidi->In(wPort_);
+                bRet = pMidi->In(wPort_);
             break;
 
         // S D Software IDE interface
         case SDIDE_REG:
         case SDIDE_DATA:
-            return pSDIDE->In(wPort_);
+            bRet = pSDIDE->In(wPort_);
 
-        // SID interface (reads not implemented by hardware)
+        // SID interface (reads not implemented by current hardware)
         case SID_PORT:
             break;
 
@@ -503,7 +529,7 @@ BYTE IO::In (WORD wPort_)
             {
                 switch (GetOption(drive1))
                 {
-                    case drvFloppy: return (pBootDrive ? pBootDrive : pFloppy1)->In(wPort_);
+                    case drvFloppy: bRet = (pBootDrive ? pBootDrive : pFloppy1)->In(wPort_);
                     default: break;
                 }
             }
@@ -513,9 +539,9 @@ BYTE IO::In (WORD wPort_)
             {
                 switch (GetOption(drive2))
                 {
-                    case drvFloppy:     return pFloppy2->In(wPort_);
-                    case drvAtom:       return pAtom->In(wPort_);
-                    case drvAtomLite:   return pAtomLite->In(wPort_);
+                    case drvFloppy:     bRet = pFloppy2->In(wPort_);
+                    case drvAtom:       bRet = pAtom->In(wPort_);
+                    case drvAtomLite:   bRet = pAtomLite->In(wPort_);
                 }
             }
 
@@ -526,9 +552,9 @@ BYTE IO::In (WORD wPort_)
                 if (GetOption(bluealpha) && bPortLow == BLUE_ALPHA_PORT)
                 {
                     if ((bPortHigh & 0xfc) == 0x7c)
-                        return pBlueAlpha->In(bPortHigh & 0x03);
+                        bRet = pBlueAlpha->In(bPortHigh & 0x03);
                   /*else if (highbyte == 0xff)
-                        return BlueAlphaVoiceBox::In(0);*/
+                        bRet = BlueAlphaVoiceBox::In(0);*/
                 }
             }
 #ifdef _DEBUG
@@ -548,8 +574,8 @@ BYTE IO::In (WORD wPort_)
         }
     }
 
-    // Default to returning 0xff
-    return 0xff;
+    // Store the value for breakpoint use, then return it
+    return bPortInVal = bRet;
 }
 
 
@@ -557,6 +583,7 @@ BYTE IO::In (WORD wPort_)
 void IO::Out (WORD wPort_, BYTE bVal_)
 {
     BYTE bPortLow = (wPortWrite = wPort_) & 0xff, bPortHigh = (wPort_ >> 8);
+    bPortOutVal = bVal_;
 
     // The ASIC doesn't respond to I/O immediately after power-on
     if (bPortLow >= BASE_ASIC_PORT && fASICStartup)
