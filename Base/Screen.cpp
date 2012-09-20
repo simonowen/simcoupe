@@ -326,7 +326,7 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
         }
 
         // Move to the next character position
-        nX_ += nWidth + (pFont->fFixedWidth ? 0 : CHAR_SPACING) + fBold_;
+        nX_ += nWidth + CHAR_SPACING + fBold_;
     }
 }
 
@@ -356,7 +356,7 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
         // Add the new width, width a separator space if needed
         if (pFont_->fFixedWidth)
         {
-            nWidth += pFont_->wWidth * (nWidth ? 2 : 1);
+            nWidth += (nWidth ? CHAR_SPACING : 0) + pFont_->wWidth;
         }
         else
         {
