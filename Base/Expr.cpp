@@ -31,19 +31,18 @@ static int nFlags;
 
 const int MAX_FUNC_PARAMS = 5;
 
-
-EXPR Expr::True = { T_NUMBER, 1, NULL };
-EXPR Expr::False = { T_NUMBER, 0, NULL };
-
-EXPR Expr::Counter = { T_VARIABLE, VAR_COUNT, NULL };
+EXPR Expr::Counter = { T_VARIABLE, VAR_COUNT, NULL, "(counter)" };
 int Expr::nCount;
 
 // Free all elements in an expression list
 void Expr::Release (EXPR* pExpr_)
 {
     // Take care not to free the built-in special expressions
-    if (pExpr_ && pExpr_ != &Expr::True && pExpr_ != &False && pExpr_ != &Counter)
+    if (pExpr_ && pExpr_ != &Counter)
+    {
+        delete[] pExpr_->pcszExpr;
         for (EXPR* pDel ; (pDel = pExpr_) ; pExpr_ = pExpr_->pNext, delete pDel);
+    }
 }
 
 // Add an expression chain to the current expression
@@ -62,6 +61,7 @@ static EXPR* AddNode (int nType_, int nValue_)
     pExpr->nType = nType_;
     pExpr->nValue = nValue_;
     pExpr->pNext = NULL;
+    pExpr->pcszExpr = NULL;
 
     return AddNode(pExpr);
 }
@@ -151,6 +151,9 @@ EXPR* Expr::Compile (const char* pcsz_, char** ppszEnd_/*=NULL*/, int nFlags_/*=
     // Supply the end pointer if required, or NULL if nothing was left
     if (ppszEnd_)
         *ppszEnd_ = const_cast<char*>(p);
+
+    // Keep a copy of the original expression text in the head item
+    pHead->pcszExpr = strcpy(new char[strlen(pcsz_)+1], pcsz_);
 
     // Return the expression list
     return pHead;
@@ -508,8 +511,8 @@ bool Expr::Factor ()
     // Strip leading whitespace
     for ( ; isspace(*p) ; p++);
 
-    // Starts with a valid hex digit?
-    if (isxdigit(*p))
+    // Values allowed, and starts with a valid hex digit?
+    if (!(nFlags & noVals) && isxdigit(*p))
     {
         // Assume we'll match the input
         fMatched = true;

@@ -25,6 +25,7 @@ typedef struct tagEXPR
 {
     int nType, nValue;      // Item type and type-specific value
     struct tagEXPR* pNext;  // Link to next item in expression
+    const char *pcszExpr;   // Original expression text (head item only)
 }
 EXPR;
 
@@ -32,7 +33,9 @@ EXPR;
 class Expr
 {
     public:
-        enum { none=0x00, noRegs=0x01, noVars=0x02, noFuncs=0x04, simple=0x0f };    // Flags to limit expression scope
+        // Flags to limit expression scope
+        enum { none=0x00, noRegs=0x01, noVars=0x02, noFuncs=0x04, noVals=0x08,
+               valOnly=noRegs|noVars|noFuncs, regOnly=noVars|noFuncs|noVals, simple=valOnly };
 
     public:
         static EXPR* Compile (const char* pcsz_, char** ppszEnd_=NULL, int nFlags_=none);
@@ -45,7 +48,7 @@ class Expr
         static void SetReg (int nReg_, int nValue_);
 
     public:
-        static EXPR True, False, Counter;
+        static EXPR Counter;
         static int nCount;
 
     protected:
