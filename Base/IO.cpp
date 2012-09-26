@@ -193,6 +193,8 @@ void IO::Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
+        pPrinterFile->Flush();
+
         SetOption(disk1, pFloppy1->DiskPath());
         SetOption(disk2, pFloppy2->DiskPath());
 
@@ -479,9 +481,9 @@ BYTE IO::In (WORD wPort_)
         {
             switch (GetOption(parallel1))
             {
-                case 1: bRet = pPrinterFile->In(wPort_);
-                case 2: bRet = pMonoDac->In(wPort_);
-                case 3: bRet = pStereoDac->In(wPort_);
+                case 1: bRet = pPrinterFile->In(wPort_); break;
+                case 2: bRet = pMonoDac->In(wPort_); break;
+                case 3: bRet = pStereoDac->In(wPort_); break;
             }
             break;
         }
@@ -491,9 +493,9 @@ BYTE IO::In (WORD wPort_)
         {
             switch (GetOption(parallel2))
             {
-                case 1: bRet = pPrinterFile->In(wPort_);
-                case 2: bRet = pMonoDac->In(wPort_);
-                case 3: bRet = pStereoDac->In(wPort_);
+                case 1: bRet = pPrinterFile->In(wPort_); break;
+                case 2: bRet = pMonoDac->In(wPort_); break;
+                case 3: bRet = pStereoDac->In(wPort_); break;
             }
             break;
         }
@@ -513,6 +515,7 @@ BYTE IO::In (WORD wPort_)
         case SDIDE_REG:
         case SDIDE_DATA:
             bRet = pSDIDE->In(wPort_);
+            break;
 
         // SID interface (reads not implemented by current hardware)
         case SID_PORT:
@@ -529,7 +532,7 @@ BYTE IO::In (WORD wPort_)
             {
                 switch (GetOption(drive1))
                 {
-                    case drvFloppy: bRet = (pBootDrive ? pBootDrive : pFloppy1)->In(wPort_);
+                    case drvFloppy: bRet = (pBootDrive ? pBootDrive : pFloppy1)->In(wPort_); break;
                     default: break;
                 }
             }
@@ -539,9 +542,9 @@ BYTE IO::In (WORD wPort_)
             {
                 switch (GetOption(drive2))
                 {
-                    case drvFloppy:     bRet = pFloppy2->In(wPort_);
-                    case drvAtom:       bRet = pAtom->In(wPort_);
-                    case drvAtomLite:   bRet = pAtomLite->In(wPort_);
+                    case drvFloppy:     bRet = pFloppy2->In(wPort_); break;
+                    case drvAtom:       bRet = pAtom->In(wPort_); break;
+                    case drvAtomLite:   bRet = pAtomLite->In(wPort_); break;
                 }
             }
 
