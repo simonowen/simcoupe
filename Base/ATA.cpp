@@ -605,11 +605,15 @@ void CATADevice::SetIdentifyData (IDENTIFYDEVICE *pid_)
             break;
     }
 
+    // If the cylinder count is beyond the max, extend the head count to 255
+    if ((pg_->uTotalSectors / uHeads / uSectors) > 65535)
+        uHeads = 255;
+
     // Calculate the cylinder limit at or below the total size
     uCylinders = pg_->uTotalSectors / uHeads / uSectors;
 
-    // Update the supplied structure, capping the cylinder value if necessary
-    pg_->uCylinders = (uCylinders > 16383) ? 16383 : uCylinders;
+    // Update the supplied structure
+    pg_->uCylinders = uCylinders;
     pg_->uHeads = uHeads;
     pg_->uSectors = uSectors;
 }

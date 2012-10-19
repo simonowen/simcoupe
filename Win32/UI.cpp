@@ -2213,37 +2213,38 @@ INT_PTR CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
 
                 case IDOK:
                 {
-                    uSize = GetDlgItemValue(hdlg_, IDE_SIZE, 0);
-                    UINT uTotalSectors = uSize << 11;
-
-                    // Check the geometry is within CHS range
-                    if (!uTotalSectors || (uTotalSectors > (16383*16*63)))
-                        MessageBox(hdlg_, "Invalid disk size", "Create", MB_OK|MB_ICONEXCLAMATION);
-                    else
+                    // If new values have been give, create a new disk using the supplied settings
+                    if (IsWindowEnabled(GetDlgItem(hdlg_, IDE_SIZE)))
                     {
-                        // If new values have been give, create a new disk using the supplied settings
-                        if (IsWindowEnabled(GetDlgItem(hdlg_, IDE_SIZE)))
+                        struct stat st;
+
+                        // Fetch the new size in MB, and convert to sectors
+                        uSize = GetDlgItemValue(hdlg_, IDE_SIZE, 0);
+                        UINT uTotalSectors = uSize << 11;
+
+                        // Check the new geometry is within CHS range
+                        if (!uTotalSectors || (uTotalSectors > (16383*16*63)))
                         {
-                            struct stat st;
-
-                            // Warn before overwriting existing files
-                            if (!::stat(szFile, &st) && 
-                                    MessageBox(hdlg_, "Overwrite existing file?", "Create", MB_YESNO|MB_ICONEXCLAMATION) != IDYES)
-                                break;
-
-                            // Create the new HDF image
-                            else if (!CHDFHardDisk::Create(szFile, uTotalSectors))
-                            {
-                                MessageBox(hdlg_, "Failed to create new disk (disk full?)", "Create", MB_OK|MB_ICONEXCLAMATION);
-                                break;
-                            }
+                            MessageBox(hdlg_, "Invalid disk size", "Create", MB_OK|MB_ICONEXCLAMATION);
+                            break;
                         }
 
-                        // Set the new path back in the parent dialog, and close our dialog
-                        SetDlgItemPath(hwndEdit, 0, szFile, true);
-                        EndDialog(hdlg_, 1);
+                        // Warn before overwriting existing files
+                        if (!::stat(szFile, &st) && 
+                                MessageBox(hdlg_, "Overwrite existing file?", "Create", MB_YESNO|MB_ICONEXCLAMATION) != IDYES)
+                            break;
+
+                        // Create the new HDF image
+                        else if (!CHDFHardDisk::Create(szFile, uTotalSectors))
+                        {
+                            MessageBox(hdlg_, "Failed to create new disk (disk full?)", "Create", MB_OK|MB_ICONEXCLAMATION);
+                            break;
+                        }
                     }
 
+                    // Set the new path back in the parent dialog, and close our dialog
+                    SetDlgItemPath(hwndEdit, 0, szFile, true);
+                    EndDialog(hdlg_, 1);
                     return TRUE;
                 }
             }

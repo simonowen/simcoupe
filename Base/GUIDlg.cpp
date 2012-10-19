@@ -317,16 +317,6 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
     }
     else if (pWindow_ == m_pOK)
     {
-        // Determine the total sector count from the size
-        UINT uTotalSectors = m_pSize->GetValue() << 11;
-
-        // Check the geometry is within range
-        if (!uTotalSectors || (uTotalSectors > (16383*16*63)))
-        {
-            new CMessageBox(this, "Invalid disk size", "Warning", mbWarning);
-            return;
-        }
-
         // If the size control is enabled, we know the image doesn't already exist
         if (m_pSize->IsEnabled())
         {
@@ -338,6 +328,16 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
             {
                 strcat(sz, ".hdf");
                 m_pFile->SetText(sz);
+            }
+
+            // Determine the total sector count from the size
+            UINT uTotalSectors = m_pSize->GetValue() << 11;
+
+            // Check the geometry is within range
+            if (!uTotalSectors || (uTotalSectors > (16383*16*63)))
+            {
+                new CMessageBox(this, "Invalid disk size", "Warning", mbWarning);
+                return;
             }
 
             // Create a new disk of the required size
