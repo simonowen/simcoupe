@@ -240,12 +240,12 @@ void CHDFHardDisk::Close ()
 
 bool CHDFHardDisk::ReadSector (UINT uSector_, BYTE* pb_)
 {
-    off_t lOffset = m_uDataOffset + (uSector_ * m_uSectorSize);
+    off_t lOffset = m_uDataOffset + static_cast<off_t>(uSector_) * m_uSectorSize;
     return m_hfDisk && !fseek(m_hfDisk, lOffset, SEEK_SET) && fread(pb_, m_uSectorSize, 1, m_hfDisk);
 }
 
 bool CHDFHardDisk::WriteSector (UINT uSector_, BYTE* pb_)
 {
-    off_t lOffset = m_uDataOffset + (uSector_ * m_uSectorSize);
+    off_t lOffset = m_uDataOffset + static_cast<off_t>(uSector_) * m_uSectorSize;
     return m_hfDisk && !fseek(m_hfDisk, lOffset, SEEK_SET) && fwrite(pb_, m_uSectorSize, 1, m_hfDisk);
 }
