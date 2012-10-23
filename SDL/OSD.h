@@ -99,6 +99,7 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #define PATH_SEPARATOR      '\\'
 
 #define strcasecmp  _strcmpi
+#define strncasecmp _strnicmp
 #define mkdir(p,m)  _mkdir(p)
 #define snprintf    _snprintf
 #define lstat       stat
