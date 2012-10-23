@@ -464,7 +464,7 @@ CTextControl::CTextControl (CWindow* pParent_/*=NULL*/, int nX_/*=0*/, int nY_/*
     BYTE bColour_/*=WHITE*/, BYTE bBackColour_/*=0*/)
     : CWindow(pParent_, nX_, nY_, 0, 0, ctText), m_bColour(bColour_), m_bBackColour(bBackColour_)
 {
-    SetText(pcszText_);
+    SetText(pcszText_, bColour_);
     m_nWidth = GetTextWidth();
 }
 
