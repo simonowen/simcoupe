@@ -90,6 +90,7 @@ typedef unsigned char       BYTE;   // must be 8-bit
 
 #ifdef USE_RESID
 #pragma comment(lib, "resid.lib")
+#define RESID_NAMESPACE reSID       // use reSID namespace, due to SID symbol clash with winnt.h
 #endif
 
 #define CheckLibFunction(lib,func)   (LoadLibrary(#lib) != NULL)
