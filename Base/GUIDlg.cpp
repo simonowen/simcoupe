@@ -482,9 +482,10 @@ class CSystemOptions : public CDialog
             m_pExternal->Select(GetOption(externalmem));
             m_pROM->SetText(GetOption(rom));
             m_pFastReset->SetChecked(GetOption(fastreset));
+            m_pHdBootRom->SetChecked(GetOption(hdbootrom));
 
             // Update the state of the controls to reflect the current settings
-            OnNotify(m_pMain,0);
+            OnNotify(m_pROM,0);
         }
 
     public:
@@ -511,6 +512,10 @@ class CSystemOptions : public CDialog
                 SetOption(rom, m_pROM->GetText());
                 SetOption(hdbootrom, m_pHdBootRom->IsChecked());
                 SetOption(fastreset, m_pFastReset->IsChecked());
+
+                // If the ROM config has changed, schedule the changes for the next reset
+                if (ChangedString(rom) || Changed(hdbootrom))
+                    Memory::UpdateRom();
 
                 Destroy();
             }
