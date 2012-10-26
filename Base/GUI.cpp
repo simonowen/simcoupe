@@ -770,7 +770,8 @@ CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, co
 }
 
 CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, UINT u_)
-    : CWindow(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit)
+    : CWindow(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit),
+    m_nViewOffset(0), m_nCaretStart(0), m_nCaretEnd(0)
 {
     SetValue(u_);
 }
