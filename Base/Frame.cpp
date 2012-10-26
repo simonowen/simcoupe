@@ -610,7 +610,7 @@ void Frame::SetStatus (const char *pcszFormat_, ...)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Fetch the current horizontal raster position (in cycles) and the current line
-inline int GetRasterPos (int *pnLine_)
+int GetRasterPos (int *pnLine_)
 {
     if (g_dwCycleCounter >= BORDER_PIXELS)
     {

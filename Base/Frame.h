@@ -63,7 +63,7 @@ class Frame
 };
 
 
-inline int GetRasterPos (int *pnLine_);
+int GetRasterPos (int *pnLine_);
 inline bool IsScreenLine (int nLine_) { return nLine_ >= (TOP_BORDER_LINES) && nLine_ < (TOP_BORDER_LINES+SCREEN_LINES); }
 inline BYTE AttrBg (BYTE bAttr_) { return (((bAttr_) >> 3) & 0xf); }
 inline BYTE AttrFg (BYTE bAttr_) { return ((((bAttr_) >> 3) & 8) | ((bAttr_) & 7)); }
