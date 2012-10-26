@@ -113,9 +113,9 @@ static const TOKEN asRegisters[] =
 static const TOKEN asVariables[] =
 {
     {"ei",VAR_EI}, {"di",VAR_DI},
-    {"dline",VAR_DLINE}, {"sline",VAR_SLINE}, {"lcycles",VAR_LCYCLES},
+    {"dline",VAR_DLINE}, {"sline",VAR_SLINE},
     {"rom0",VAR_ROM0}, {"rom1",VAR_ROM1}, {"wprot",VAR_WPROT}, {"inrom",VAR_INROM}, {"call",VAR_CALL},
-    {"lepage",VAR_LEPAGE}, {"hepage",VAR_HEPAGE}, {"lpage",VAR_LPAGE}, {"hpage",VAR_HPAGE}, {"vpage",VAR_VPAGE}, {"mode",VAR_MODE}, 
+    {"lepage",VAR_LEPAGE}, {"hepage",VAR_HEPAGE}, {"lpage",VAR_LPAGE}, {"hpage",VAR_HPAGE}, {"vpage",VAR_VPAGE}, {"vmode",VAR_VMODE}, 
     {"inval",VAR_INVAL}, {"outval",VAR_OUTVAL},
     {"lepr",VAR_LEPR}, {"hepr",VAR_HEPR}, {"lpen",VAR_LPEN}, {"hpen",VAR_HPEN}, {"status",VAR_STATUS},
     {"lmpr",VAR_LMPR}, {"hmpr",VAR_HMPR}, {"vmpr",VAR_VMPR}, {"midi",VAR_MIDI}, {"border",VAR_BORDER}, {"attr",VAR_ATTR},
@@ -367,12 +367,26 @@ int Expr::Eval (const EXPR* pExpr_)
                 {
                     case VAR_EI:        r = !!IFF1; break;
                     case VAR_DI:        r = !IFF1;  break;
-/*
-                    // FIXME
-                    case VAR_DLINE:     r = g_nLine;        break;
-                    case VAR_SLINE:     r = g_nLine - TOP_BORDER_LINES; break;
-                    case VAR_LCYCLES:   r = g_nLineCycle;   break;
-*/
+
+                    case VAR_DLINE:
+                    {
+                        int nLine;
+                        GetRasterPos(&nLine);
+                        r = nLine;
+                        break;
+                    }
+
+                    case VAR_SLINE:
+                    {
+                        int nLine;
+                        GetRasterPos(&nLine);
+                        if (nLine >= TOP_BORDER_LINES && nLine < (TOP_BORDER_LINES+SCREEN_LINES))
+                            r = nLine - TOP_BORDER_LINES;
+                        else
+                            r = -1;
+                        break;
+                    }
+
                     case VAR_ROM0:      r = !(lmpr & LMPR_ROM0_OFF);  break;
                     case VAR_ROM1:      r = !!(lmpr & LMPR_ROM1);     break;
                     case VAR_WPROT:     r = !!(lmpr & LMPR_WPROT);    break;
@@ -382,7 +396,7 @@ int Expr::Eval (const EXPR* pExpr_)
                     case VAR_LPAGE:     r = lmpr & LMPR_PAGE_MASK;    break;
                     case VAR_HPAGE:     r = hmpr & HMPR_PAGE_MASK;    break;
                     case VAR_VPAGE:     r = vmpr & VMPR_PAGE_MASK;    break;
-                    case VAR_MODE:      r = ((vmpr & VMPR_MODE_MASK) >> VMPR_MODE_SHIFT)+1; break;
+                    case VAR_VMODE:     r = ((vmpr & VMPR_MODE_MASK) >> VMPR_MODE_SHIFT)+1; break;
 
                     case VAR_INVAL:     r = bPortInVal;               break;
                     case VAR_OUTVAL:    r = bPortOutVal;              break;
@@ -476,13 +490,31 @@ bool Expr::Term (int n_/*=0*/)
     while (1)
     {
         int i;
-        size_t uLen = 0;
+        size_t uLen = 0, uMaxLen = 0;
+
+        // Check for an operator at any precedence level
+        for (i = 0 ; asBinaryOps[i][0].pcsz ; i++)
+        {
+            for (int j = 0 ; asBinaryOps[i][j].pcsz ; j++)
+            {
+                uLen = strlen(asBinaryOps[i][j].pcsz);
+
+                // Store the length of the largest matching token at this point
+                if (!strncasecmp(asBinaryOps[i][j].pcsz, p, uLen) && uLen > uMaxLen)
+                    uMaxLen = uLen;
+            }
+        };
 
         // Check for an operator at the current precedence level
         for (i = 0 ; asBinaryOps[n_][i].pcsz ; i++)
         {
-            // Check for a matching operator
             uLen = strlen(asBinaryOps[n_][i].pcsz);
+
+            // Skip if it's shorter than the longest matching token
+            if (uLen < uMaxLen)
+                continue;
+
+            // Found a match at current precedence?
             if (!strncasecmp(asBinaryOps[n_][i].pcsz, p, uLen))
                 break;
         };
@@ -511,20 +543,33 @@ bool Expr::Factor ()
     // Strip leading whitespace
     for ( ; isspace(*p) ; p++);
 
-    // Values allowed, and starts with a valid hex digit?
-    if (!(nFlags & noVals) && isxdigit(*p))
+    // Check for a decimal or symbol prefix
+    bool fDotPrefix = (*p == '.');
+
+    // Values allowed, and starts with a valid hex digit, or decimal value with leading digit?
+    if (!(nFlags & noVals) && (isxdigit(*p) || (fDotPrefix && isdigit(p[1]))))
     {
         // Assume we'll match the input
         fMatched = true;
+
+        // Skip leading dot on decimal values
+        if (fDotPrefix)
+            p++;
 
         // Parse as decimal and hex
         const char *pDecEnd, *pHexEnd;
         int nDecValue = static_cast<int>(strtoul(p, (char**)&pDecEnd, 10));
         int nHexValue = static_cast<int>(strtoul(p, (char**)&pHexEnd, 16));
 
+        // Accept decimal values with a '.' prefix
+        if (fDotPrefix)
+        {
+            AddNode(T_NUMBER, nDecValue);
+            p = pDecEnd;
+        }
 
         // Accept decimal values with a '.' suffix
-        if (*pDecEnd == '.')
+        else if (*pDecEnd == '.')
         {
             AddNode(T_NUMBER, nDecValue);
             p = pDecEnd+1;
@@ -544,44 +589,14 @@ bool Expr::Factor ()
             p = pHexEnd;
         }
 
-        // Check for binary values with a 'b' suffix (unless in hex mode)
-        else if (!GetOption(hexmode) && *p == '0' || *p == '1')
+        // Anything not followed by an alphabetic is taken as hex
+        else if (!isalpha(*pHexEnd))
         {
-            int nBinValue = 0;
-            const char *pBinEnd;
-
-            for (pBinEnd = p ; *pBinEnd == '0' || *pBinEnd == '1' ; pBinEnd++)
-                (nBinValue <<= 1) |= (*pBinEnd-'0');
-
-            // If there's a 'b' suffix it's binary
-            if (tolower(*pBinEnd) == 'b')
-            {
-                AddNode(T_NUMBER, nBinValue);
-                p = pBinEnd+1;
-            }
-            else
-                fMatched = false;
+            AddNode(T_NUMBER, nHexValue);
+            p = pHexEnd;
         }
         else
             fMatched = false;
-
-        // If not yet matched, use the current base
-        if (!fMatched)
-        {
-            if (GetOption(hexmode))
-            {
-                AddNode(T_NUMBER, nHexValue);
-                p = pHexEnd;
-                fMatched = true;
-            }
-            else if (isdigit(*p))
-            {
-                // Parse as decimal (leading zeroes should not give octal!)
-                AddNode(T_NUMBER, nDecValue);
-                p = pDecEnd;
-                fMatched = true;
-            }
-        }
     }
 
     if (fMatched)

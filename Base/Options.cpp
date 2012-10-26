@@ -148,8 +148,6 @@ OPTION aOptions[] =
     OPT_F("Paula",        paula,          false),     // Paula DAC not present (conflicts with Blue Alpha port)
     OPT_F("SID",          sid,            true),      // SID interface present
 
-    OPT_F("HexMode",      hexmode,        false),     // Hex mode in debugger?
-
     OPT_N("DriveLights",  drivelights,    1),         // Show drive activity lights
     OPT_F("Profile",      profile,        true),      // Show only emulation speed and framerate
     OPT_F("Status",       status,         true),      // Show status line for changed options, etc.
