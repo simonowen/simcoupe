@@ -32,6 +32,7 @@
 #include <ctype.h>
 
 #include "Display.h"
+#include "Expr.h"
 #include "Font.h"
 #include "Frame.h"
 #include "Input.h"
@@ -365,10 +366,16 @@ void CWindow::SetText (const char* pcszText_)
     delete[] pcszOld;
 }
 
-void CWindow::SetValue (UINT u_)
+UINT CWindow::GetValue () const
+{
+    int nVal;
+    return Expr::Eval(m_pszText, &nVal, NULL, Expr::valOnly) ? nVal : 0;
+}
+
+void CWindow::SetValue (UINT u_, int nBytes_)
 {
     char sz[16];
-    sprintf(sz, "%u", u_);
+    sprintf(sz, (nBytes_ == 1) ? "%02X" : (nBytes_ == 2) ? "%04X" : "%06X", u_);
     SetText(sz);
 }
 
@@ -769,11 +776,19 @@ CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, co
     SetText(pcszText_);
 }
 
-CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, UINT u_)
+CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, UINT u_, int nBytes_/*=2*/)
     : CWindow(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit),
     m_nViewOffset(0), m_nCaretStart(0), m_nCaretEnd(0)
 {
-    SetValue(u_);
+    SetValue(u_, nBytes_);
+}
+
+void CEditControl::Activate ()
+{
+    CWindow::Activate();
+
+    m_nCaretStart = 0;
+    m_nCaretEnd = strlen(GetText());
 }
 
 void CEditControl::SetText (const char* pcszText_, bool fSelected_/*=true*/)
@@ -842,8 +857,8 @@ void CEditControl::Draw (CScreen* pScreen_)
     // Draw the visible text
     pScreen_->DrawString(nX, nY+1, GetText()+m_nViewOffset, IsEnabled() ? BLACK : GREY_5, false, nViewLength);
 
-    // Is there an active selection?
-    if (m_nCaretStart != m_nCaretEnd)
+    // Is the control focussed with an active selection?
+    if (IsActive() && m_nCaretStart != m_nCaretEnd)
     {
         size_t nStart = m_nCaretStart, nEnd = m_nCaretEnd;
         if (nStart > nEnd)
@@ -985,6 +1000,10 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                             m_nCaretEnd++;
                     }
 
+                    // Ignore anything that isn't a printable character, backspace or delete
+                    if (nParam1_ != HK_BACKSPACE && nParam1_ != HK_DELETE && (nParam1_ < ' ' || nParam1_ > 0x7f))
+                        break;
+
                     // Active selection?
                     if (m_nCaretStart != m_nCaretEnd)
                     {
@@ -1019,14 +1038,13 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
                             CWindow::SetText(sz);
                         }
-
-                        return true;
                     }
 
+                    // Content changed
                     NotifyParent();
-                    break;
-            }
-            break;
+                    return true;
+           }
+           break;
     }
 
     return false;
@@ -2566,7 +2584,10 @@ bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
                         // Stop once we find a suitable control
                         if (m_pActive->IsTabStop() && m_pActive->IsEnabled())
+                        {
+                            m_pActive->Activate();
                             break;
+                        }
                     }
 
                     return true;

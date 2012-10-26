@@ -1646,10 +1646,10 @@ int GetDlgItemValue (HWND hdlg_, int nId_, int nDefault_=-1)
     return Expr::Eval(sz, &nValue, NULL, Expr::simple) ? nValue : nDefault_;
 }
 
-void SetDlgItemValue (HWND hdlg_, int nId_, int nValue_)
+void SetDlgItemValue (HWND hdlg_, int nId_, int nValue_, int nBytes_)
 {
     char sz[256];
-    wsprintf(sz, "%d", nValue_);
+    wsprintf(sz, (nBytes_ == 1) ? "%02X" : (nBytes_ == 2) ? "%04X" : "%06X", nValue_);
     SetDlgItemText(hdlg_, nId_, sz);
 }
 
@@ -1783,7 +1783,7 @@ BOOL BadField (HWND hdlg_, int nId_)
 
 INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    static char szFile[MAX_PATH], szAddress[128]="32768", szPage[128]="1", szOffset[128]="0", szLength[128]="0";
+    static char szFile[MAX_PATH], szAddress[128]="8000", szPage[128]="01", szOffset[128]="0000", szLength[128]="4000";
     static int nType = 0;
     static bool fImport;
     static POINT apt[2];
@@ -1795,7 +1795,7 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
             CentreWindow(hdlg_);
             fImport = !!lParam_;
 
-            static const char* asz[] = { "BASIC Address (0-540671)", "Main Memory (pages 0-31)", "External RAM (pages 0-255)", NULL };
+            static const char* asz[] = { "BASIC Address (0-83FFF)", "Main Memory (pages 0-1F)", "External RAM (pages 0-FF)", NULL };
             SetComboStrings(hdlg_, IDC_TYPE, asz, nType);
 
             SendMessage(hdlg_, WM_COMMAND, IDC_TYPE, 0);
