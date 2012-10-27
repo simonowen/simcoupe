@@ -264,7 +264,7 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
     static char sz[512];
     char *psz = sz;
     const void *pPhysAddr = NULL;
-    size_t nExtent = 0;
+    UINT uExtent = 0;
 
     switch (pBreak_->nType)
     {
@@ -290,8 +290,8 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
 
 			if (pBreak_->Mem.pPhysAddrTo != pPhysAddr)
 			{
-				nExtent = (BYTE*)pBreak_->Mem.pPhysAddrTo-(BYTE*)pPhysAddr;
-				psz += sprintf(psz, " %lX", nExtent+1);
+				uExtent = (UINT)((BYTE*)pBreak_->Mem.pPhysAddrTo-(BYTE*)pPhysAddr);
+				psz += sprintf(psz, " %X", uExtent+1);
 			}
 
             switch (pBreak_->nAccess)
@@ -353,15 +353,15 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
 
         if (nAddr2 != -1)
         {
-			if (nExtent)
-				psz += sprintf(psz, " (%04X-%04lX,%04X-%04lX)", nAddr2, nAddr2+nExtent, nAddr1, nAddr1+nExtent);
+			if (uExtent)
+				psz += sprintf(psz, " (%04X-%04X,%04X-%04X)", nAddr2, nAddr2+uExtent, nAddr1, nAddr1+uExtent);
 			else
 				psz += sprintf(psz, " (%04X,%04X)", nAddr2, nAddr1);
         }
         else if (nAddr1 != -1)
         {
-			if (nExtent)
-				psz += sprintf(psz, " (%04X-%04lX)", nAddr1, nAddr1+nExtent);
+			if (uExtent)
+				psz += sprintf(psz, " (%04X-%04X)", nAddr1, nAddr1+uExtent);
 			else
 				psz += sprintf(psz, " (%04X)", nAddr1);
         }
