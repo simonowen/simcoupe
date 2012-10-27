@@ -1613,7 +1613,7 @@ void CDisView::Draw (CScreen* pScreen_)
 
         sprintf(sz, "%s       T", pcszEvent);
         pScreen_->DrawString(nX, nY+240+(i*12), sz, WHITE);
-        sprintf(sz, "%6lu", pEvent->dwTime-g_dwCycleCounter);
+        sprintf(sz, "%6u", pEvent->dwTime-g_dwCycleCounter);
         pScreen_->DrawString(nX+5*6, nY+240+(i*12), sz, RegCol(0,1));
     }
 }

@@ -41,6 +41,7 @@
 #include "Drive.h"
 #include "GIF.h"
 #include "GUI.h"
+#include "Memory.h"
 #include "Options.h"
 #include "OSD.h"
 #include "PNG.h"
@@ -690,4 +691,65 @@ void Frame::TouchLines (int nFrom_, int nTo_)
     // Is the line being modified in the area since we last updated
     if (nTo_ >= nLastLine && nFrom_ <= (int)((g_dwCycleCounter - BORDER_PIXELS) / TSTATES_PER_LINE))
         Update();
+}
+
+
+// Set a new screen mode (VMPR value)
+void CFrame::SetMode (BYTE bVal_)
+{
+    static FNLINEUPDATE apfnLineUpdates[] =
+        { &CFrame::Mode1Line, &CFrame::Mode2Line, &CFrame::Mode3Line, &CFrame::Mode4Line };
+
+    m_pLineUpdate = apfnLineUpdates[(bVal_ & VMPR_MODE_MASK) >> 5];
+
+    // Bit 0 of the VMPR page is always taken as zero for modes 3 and 4
+    int nPage = (bVal_ & VMPR_MDE1_MASK) ? (bVal_ & VMPR_PAGE_MASK & ~1) : bVal_ & VMPR_PAGE_MASK;
+    m_pbScreenData = PageReadPtr(nPage);
+}
+
+// Update a line segment of display or border
+void CFrame::UpdateLine (int nLine_, int nFrom_, int nTo_)
+{
+    // Is the line within the view port?
+    if (nLine_ >= s_nViewTop && nLine_ < s_nViewBottom)
+    {
+        // Screen off in mode 3 or 4?
+        if (BORD_SOFF && VMPR_MODE_3_OR_4)
+            BlackLine(nLine_, nFrom_, nTo_);
+
+        // Line on the main screen?
+        else if (nLine_ >= TOP_BORDER_LINES && nLine_ < (TOP_BORDER_LINES+SCREEN_LINES))
+            (this->*m_pLineUpdate)(nLine_, nFrom_, nTo_);
+
+        // Top or bottom border
+        else// if (nLine_ < TOP_BORDER_LINES || nLine_ >= (TOP_BORDER_LINES+SCREEN_LINES))
+            BorderLine(nLine_, nFrom_, nTo_);
+    }
+}
+
+// Fetch the internal ASIC working values used when drawing the display
+void CFrame::GetAsicData (BYTE *pb0_, BYTE *pb1_, BYTE *pb2_, BYTE *pb3_)
+{
+    int nLine = g_dwCycleCounter / TSTATES_PER_LINE, nBlock = (g_dwCycleCounter % TSTATES_PER_LINE) >> 3;
+
+    nLine -= TOP_BORDER_LINES;
+    nBlock -= BORDER_BLOCKS+BORDER_BLOCKS;
+    if (nBlock < 0) { nLine--; nBlock = SCREEN_BLOCKS-1; }
+    if (nLine < 0 || nLine >= SCREEN_LINES) { nLine = SCREEN_LINES-1; nBlock = SCREEN_BLOCKS-1; }
+
+    if (VMPR_MODE_3_OR_4)
+    {
+        BYTE* pb = m_pbScreenData + (nLine << 7) + (nBlock << 2);
+        *pb0_ = pb[0];
+        *pb1_ = pb[1];
+        *pb2_ = pb[2];
+        *pb3_ = pb[3];
+    }
+    else
+    {
+        BYTE* pData = m_pbScreenData + ((VMPR_MODE == MODE_1) ? g_awMode1LineToByte[nLine] + nBlock : (nLine << 5) + nBlock);
+        BYTE* pAttr = (VMPR_MODE == MODE_1) ? m_pbScreenData + 6144 + ((nLine & 0xf8) << 2) + nBlock : pData + 0x2000;
+        *pb0_ = *pb1_ = *pData;
+        *pb2_ = *pb3_ = *pAttr;
+    }
 }
