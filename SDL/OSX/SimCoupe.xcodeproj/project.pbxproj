@@ -111,6 +111,8 @@
 		1358F5CC0A6C12AE00D20135 /* file_mgt.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C50A6C12AE00D20135 /* file_mgt.icns */; };
 		1358F5CD0A6C12AE00D20135 /* file_sad.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C60A6C12AE00D20135 /* file_sad.icns */; };
 		1358F5CE0A6C12AE00D20135 /* file_sbt.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1358F5C70A6C12AE00D20135 /* file_sbt.icns */; };
+		1359E71A163B718F009E26C9 /* Breakpoint.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1359E718163B718F009E26C9 /* Breakpoint.cpp */; };
+		1359E71B163B718F009E26C9 /* Breakpoint.h in Headers */ = {isa = PBXBuildFile; fileRef = 1359E719163B718F009E26C9 /* Breakpoint.h */; };
 		13605A6C15BD70CC00E57BA0 /* AtaAdapter.h in Headers */ = {isa = PBXBuildFile; fileRef = 13605A6815BD70CC00E57BA0 /* AtaAdapter.h */; };
 		13605A6D15BD70CC00E57BA0 /* AtaAdapter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13605A6915BD70CC00E57BA0 /* AtaAdapter.cpp */; };
 		13605A6E15BD70CC00E57BA0 /* Keyin.h in Headers */ = {isa = PBXBuildFile; fileRef = 13605A6A15BD70CC00E57BA0 /* Keyin.h */; };
@@ -175,6 +177,8 @@
 		1358F5C50A6C12AE00D20135 /* file_mgt.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_mgt.icns; sourceTree = "<group>"; };
 		1358F5C60A6C12AE00D20135 /* file_sad.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_sad.icns; sourceTree = "<group>"; };
 		1358F5C70A6C12AE00D20135 /* file_sbt.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = file_sbt.icns; sourceTree = "<group>"; };
+		1359E718163B718F009E26C9 /* Breakpoint.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Breakpoint.cpp; path = ../../Base/Breakpoint.cpp; sourceTree = "<group>"; };
+		1359E719163B718F009E26C9 /* Breakpoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Breakpoint.h; path = ../../Base/Breakpoint.h; sourceTree = "<group>"; };
 		13605A6815BD70CC00E57BA0 /* AtaAdapter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AtaAdapter.h; path = ../../Base/AtaAdapter.h; sourceTree = "<group>"; };
 		13605A6915BD70CC00E57BA0 /* AtaAdapter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AtaAdapter.cpp; path = ../../Base/AtaAdapter.cpp; sourceTree = "<group>"; };
 		13605A6A15BD70CC00E57BA0 /* Keyin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Keyin.h; path = ../../Base/Keyin.h; sourceTree = "<group>"; };
@@ -392,6 +396,7 @@
 				1386FCFB14FD163600F4032B /* AVI.cpp */,
 				13EC1B3E14E95C2400FA9EDB /* BlipBuffer.cpp */,
 				13EC1B4014E95C2400FA9EDB /* BlueAlpha.cpp */,
+				1359E718163B718F009E26C9 /* Breakpoint.cpp */,
 				13A0FF2C088EDFC100E5436C /* Clock.cpp */,
 				13A0FF2E088EDFC100E5436C /* CPU.cpp */,
 				13A0FF39088EDFC100E5436C /* Debug.cpp */,
@@ -443,6 +448,7 @@
 				1386FCFC14FD163600F4032B /* AVI.h */,
 				13EC1B3F14E95C2400FA9EDB /* BlipBuffer.h */,
 				13EC1B4114E95C2400FA9EDB /* BlueAlpha.h */,
+				1359E719163B718F009E26C9 /* Breakpoint.h */,
 				13A0FF27088EDFC000E5436C /* CBops.h */,
 				13A0FF2D088EDFC100E5436C /* Clock.h */,
 				13A0FF2F088EDFC100E5436C /* CPU.h */,
@@ -637,6 +643,7 @@
 				137B74B915116725004D0661 /* AtomLite.h in Headers */,
 				13605A6C15BD70CC00E57BA0 /* AtaAdapter.h in Headers */,
 				13605A6E15BD70CC00E57BA0 /* Keyin.h in Headers */,
+				1359E71B163B718F009E26C9 /* Breakpoint.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -670,7 +677,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0430;
+				LastUpgradeCheck = 0450;
 			};
 			buildConfigurationList = 1301D3CC096B058800027BFC /* Build configuration list for PBXProject "SimCoupe" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -771,6 +778,7 @@
 				137B74B815116725004D0661 /* AtomLite.cpp in Sources */,
 				13605A6D15BD70CC00E57BA0 /* AtaAdapter.cpp in Sources */,
 				13605A6F15BD70CC00E57BA0 /* Keyin.cpp in Sources */,
+				1359E71A163B718F009E26C9 /* Breakpoint.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -800,12 +808,14 @@
 		131B716209C22C34000C5D11 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					USE_OPENGL,
 					USE_ZLIB,
 					USE_RESID,
 					_DEBUG,
 				);
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = /Library/Frameworks/SDL.framework/Headers;
 				INFOPLIST_FILE = "Info-SimCoupe.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
@@ -827,12 +837,14 @@
 		132CC59609B11512007955DE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					USE_OPENGL,
 					USE_ZLIB,
 					USE_RESID,
 					NDEBUG,
 				);
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = /Library/Frameworks/SDL.framework/Headers;
 				INFOPLIST_FILE = "Info-SimCoupe.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";

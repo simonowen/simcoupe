@@ -48,6 +48,10 @@ bool Breakpoint::IsHit ()
 
         switch (p->nType)
         {
+            // Dummy
+            case btNone:
+                break;
+
             // Execution
             case btExecute:
                 if (p->Exec.pPhysAddr == pPC)
@@ -59,14 +63,14 @@ bool Breakpoint::IsHit ()
             case btMemory:
                 // Read
                 if ((p->nAccess & atRead) &&
-                    (pbMemRead1 >= p->Mem.pPhysAddrFrom && pbMemRead1 <= p->Mem.pPhysAddrTo) ||
-                    (pbMemRead2 >= p->Mem.pPhysAddrFrom && pbMemRead2 <= p->Mem.pPhysAddrTo))
+                    ((pbMemRead1 >= p->Mem.pPhysAddrFrom && pbMemRead1 <= p->Mem.pPhysAddrTo) ||
+                     (pbMemRead2 >= p->Mem.pPhysAddrFrom && pbMemRead2 <= p->Mem.pPhysAddrTo)))
                    break;
 
                 // Write
                 if ((p->nAccess & atWrite) &&
-                    (pbMemWrite1 >= p->Mem.pPhysAddrFrom && pbMemWrite1 <= p->Mem.pPhysAddrTo) ||
-                    (pbMemWrite1 >= p->Mem.pPhysAddrFrom && pbMemWrite2 <= p->Mem.pPhysAddrTo))
+                    ((pbMemWrite1 >= p->Mem.pPhysAddrFrom && pbMemWrite1 <= p->Mem.pPhysAddrTo) ||
+                     (pbMemWrite1 >= p->Mem.pPhysAddrFrom && pbMemWrite2 <= p->Mem.pPhysAddrTo)))
                    break;
 
                 continue;
@@ -275,11 +279,12 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
 			if (pBreak_->Mem.pPhysAddrTo != pPhysAddr)
 			{
 				nExtent = (BYTE*)pBreak_->Mem.pPhysAddrTo-(BYTE*)pPhysAddr;
-				psz += sprintf(psz, " %X", nExtent+1);
+				psz += sprintf(psz, " %lX", nExtent+1);
 			}
 
             switch (pBreak_->nAccess)
             {
+                case atNone: break;
                 case atRead: psz += sprintf(psz, " R"); break;
                 case atWrite: psz += sprintf(psz, " W"); break;
                 case atReadWrite: psz += sprintf(psz, " RW"); break;
@@ -296,6 +301,7 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
 
             switch (pBreak_->nAccess)
             {
+                case atNone: break;
                 case atRead: psz += sprintf(psz, " R"); break;
                 case atWrite: psz += sprintf(psz, " W"); break;
                 case atReadWrite: psz += sprintf(psz, " RW"); break;
@@ -336,14 +342,14 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
         if (nAddr2 != -1)
         {
 			if (nExtent)
-				psz += sprintf(psz, " (%04X-%04X,%04X%04X)", nAddr2, nAddr2+nExtent, nAddr1, nAddr1+nExtent);
+				psz += sprintf(psz, " (%04X-%04lX,%04X-%04lX)", nAddr2, nAddr2+nExtent, nAddr1, nAddr1+nExtent);
 			else
 				psz += sprintf(psz, " (%04X,%04X)", nAddr2, nAddr1);
         }
         else if (nAddr1 != -1)
         {
 			if (nExtent)
-				psz += sprintf(psz, " (%04X-%04X)", nAddr1, nAddr1+nExtent);
+				psz += sprintf(psz, " (%04X-%04lX)", nAddr1, nAddr1+nExtent);
 			else
 				psz += sprintf(psz, " (%04X)", nAddr1);
         }

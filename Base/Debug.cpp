@@ -1167,7 +1167,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
     }
 
     // flag [+|-][sz5h3vnc]
-    else if (!fCommandOnly && !strcasecmp(pszCommand, "f") || !strcasecmp(pszCommand, "flag"))
+    else if (!fCommandOnly && (!strcasecmp(pszCommand, "f") || !strcasecmp(pszCommand, "flag")))
     {
         bool fSet = true;
         BYTE bNewF = F;
@@ -1595,7 +1595,7 @@ void CDisView::Draw (CScreen* pScreen_)
 
     pScreen_->DrawString(nX+60, nY+176, " L\n H\n V\n M", GREEN_8);
     sprintf(sz, "   %02X\n   %02X\n   %02X\n   %X",
-        lmpr, hmpr, vmpr, ((vmpr&VMPR_MODE_MASK)>>5)+1, lepr, hepr);
+        lmpr, hmpr, vmpr, ((vmpr&VMPR_MODE_MASK)>>5)+1);
     pScreen_->DrawString(nX+60, nY+176, sz, WHITE);
 
 
