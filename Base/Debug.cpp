@@ -339,11 +339,19 @@ CDebugger::CDebugger (BREAKPT* pBreak_/*=NULL*/)
         {
             if (pBreak_->pExpr && pBreak_->pExpr != &Expr::Counter)
                 snprintf(sz, sizeof(sz)-1, "UNTIL condition met:  %s", pBreak_->pExpr->pcszExpr);
-
-            Breakpoint::RemoveAt(Breakpoint::GetIndex(pBreak_));
         }
 
         SetStatus(sz, YELLOW_6, &sPropFont);
+    }
+
+    // Remove all temporary breakpoints
+    for (int i = 0 ; (pBreak_ = Breakpoint::GetAt(i)) ; i++)
+    {
+        if (pBreak_->nType == btTemp)
+        {
+            Breakpoint::RemoveAt(i);
+            i--;
+        }
     }
 
     // Clear step-out stack watch
