@@ -476,12 +476,13 @@ void CPU::Reset (bool fPress_)
         // Re-initialise memory (for configuration changes) and reset I/O
         IO::Init();
         Memory::Init();
+
+        // Test breakpoints with reset condition
+        Debug::BreakpointHit();
     }
     // Set up the fast reset for first power-on
     else if (GetOption(fastreset))
         g_nTurbo |= TURBO_BOOT;
-
-    Debug::Refresh();
 }
 
 

@@ -486,6 +486,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\Breakpoint.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\Clock.cpp"
 				>
 			</File>
@@ -930,6 +934,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\BlueAlpha.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Breakpoint.h"
 				>
 			</File>
 			<File

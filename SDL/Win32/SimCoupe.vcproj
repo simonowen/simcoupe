@@ -79,7 +79,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="comctl32.lib winmm.lib dxguid.lib dinput.lib"
 				IgnoreDefaultLibraryNames=""
-				DelayLoadDLLs="resid.dll"
+				DelayLoadDLLs=""
 				GenerateMapFile="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -256,6 +256,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\Base\AtaAdapter.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\Base\Atom.cpp"
 				>
 				<FileConfiguration
@@ -310,48 +314,8 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Base\Disk.cpp"
+				RelativePath="..\..\Base\Breakpoint.cpp"
 				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\Base\Drive.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\Base\Clock.cpp"
@@ -398,50 +362,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\..\Base\Screen.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\Base\Stream.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="..\..\Base\Debug.cpp"
 				>
 				<FileConfiguration
@@ -465,6 +385,50 @@
 			</File>
 			<File
 				RelativePath="..\..\Base\Disassem.cpp"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\Base\Disk.cpp"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\Base\Drive.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -666,11 +630,39 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\Base\ioapi.c"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\..\Base\Joystick.cpp"
 				>
 			</File>
 			<File
 				RelativePath="..\..\Base\Keyboard.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\Base\Keyin.cpp"
 				>
 			</File>
 			<File
@@ -820,6 +812,28 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\Base\Screen.cpp"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\..\Base\SDIDE.cpp"
 				>
 				<FileConfiguration
@@ -850,7 +864,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Base\Util.cpp"
+				RelativePath="..\..\Base\Stream.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -870,60 +884,6 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\Base\WAV.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\Base\YATBus.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\Base\ioapi.c"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\Base\ioapi.h"
-				>
 			</File>
 			<File
 				RelativePath="..\..\Base\unzip.c"
@@ -950,7 +910,29 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\..\Base\unzip.h"
+				RelativePath="..\..\Base\Util.cpp"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\Base\WAV.cpp"
 				>
 			</File>
 		</Filter>
@@ -963,6 +945,10 @@
 			</File>
 			<File
 				RelativePath="..\..\Base\ATA.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\Base\AtaAdapter.h"
 				>
 			</File>
 			<File
@@ -986,15 +972,11 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\Base\Breakpoint.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\Base\CBops.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\Base\Disk.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\Base\Drive.h"
 				>
 			</File>
 			<File
@@ -1006,19 +988,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Base\Screen.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\Base\Stream.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\Base\Debug.h"
 				>
 			</File>
 			<File
 				RelativePath="..\..\Base\Disassem.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\Base\Disk.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\Base\Drive.h"
 				>
 			</File>
 			<File
@@ -1066,11 +1048,19 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\Base\ioapi.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\Base\Joystick.h"
 				>
 			</File>
 			<File
 				RelativePath="..\..\Base\Keyboard.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\Base\Keyin.h"
 				>
 			</File>
 			<File
@@ -1122,6 +1112,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\Base\Screen.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\Base\SDIDE.h"
 				>
 			</File>
@@ -1138,6 +1132,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\Base\Stream.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\Base\unzip.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\Base\Util.h"
 				>
 			</File>
@@ -1147,10 +1149,6 @@
 			</File>
 			<File
 				RelativePath="..\..\Base\WAV.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\Base\YATBus.h"
 				>
 			</File>
 			<File

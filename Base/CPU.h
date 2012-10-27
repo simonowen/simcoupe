@@ -189,7 +189,7 @@ Z80Regs;
 
 
 // CPU Event Queue data
-enum    { evtStdIntEnd, evtLineIntStart, evtEndOfFrame, evtMidiOutIntStart, evtMidiOutIntEnd, evtEndOfLine, evtInputUpdate, evtMouseReset, evtBlueAlphaClock, evtAsicStartup };
+enum    { evtStdIntEnd, evtLineIntStart, evtEndOfFrame, evtMidiOutIntStart, evtMidiOutIntEnd, evtInputUpdate, evtMouseReset, evtBlueAlphaClock, evtAsicStartup };
 
 const int MAX_EVENTS = 16;
 

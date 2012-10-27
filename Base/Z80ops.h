@@ -187,7 +187,7 @@
                         } while (0)
 
 // Return
-#define ret(cc)         do { if (cc) { pop(PC); Debug::OnRet(); } } while (0)
+#define ret(cc)         do { if (cc) { Debug::OnRet(); pop(PC); } } while (0)
 #define retn            do { IFF1 = IFF2; ret(true); } while (0)
 
 

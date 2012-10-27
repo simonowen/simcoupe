@@ -57,6 +57,7 @@ extern WORD g_awMode1LineToByte[SCREEN_LINES];
 // Map a 16-bit address through the memory indirection - allows fast paging
 inline int AddrSection (WORD wAddr_) { return wAddr_ >> 14; }
 inline int AddrPage (WORD wAddr_) { return anSectionPages[AddrSection(wAddr_)]; }
+inline int AddrOffset (WORD wAddr_) { return wAddr_ & (MEM_PAGE_SIZE-1); }
 
 inline int GetSectionPage (eSection nSection_) { return anSectionPages[nSection_]; }
 
@@ -67,10 +68,10 @@ inline BYTE *PageReadPtr (int nPage_) { return pMemory + PageReadOffset(nPage_);
 inline BYTE *PageWritePtr (int nPage_) { return pMemory + PageWriteOffset(nPage_); }
 inline BYTE *AddrReadPtr (WORD wAddr_) { return apbSectionReadPtrs[AddrSection(wAddr_)] + (wAddr_ & (MEM_PAGE_SIZE-1)); }
 inline BYTE *AddrWritePtr (WORD wAddr_) { return apbSectionWritePtrs[AddrSection(wAddr_)] + (wAddr_ & (MEM_PAGE_SIZE-1)); }
+inline int PtrPage (const void *pv_) { return int((reinterpret_cast<const BYTE*>(pv_)-pMemory)/MEM_PAGE_SIZE); }
+inline int PtrOffset (const void *pv_) { return int((reinterpret_cast<const BYTE*>(pv_)-pMemory) & (MEM_PAGE_SIZE-1)); }
 
-#define phys_read_addr AddrReadPtr
-#define phys_write_addr AddrWritePtr
-
+const char *PageDesc (int nPage_, bool fCompact_=false);
 
 void write_to_screen_vmpr0 (WORD wAddr_);
 void write_to_screen_vmpr1 (WORD wAddr_);

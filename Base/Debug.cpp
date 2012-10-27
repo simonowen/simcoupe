@@ -25,47 +25,44 @@
 #include "Disassem.h"
 #include "Frame.h"
 #include "Keyboard.h"
+#include "Memory.h"
 #include "Options.h"
+#include "SAMROM.h"
 #include "Util.h"
 
 
-// Helper macro to decide on item colour - bright cyan for changed or white for unchanged
+// Helper macro to decide on item colour - light red for changed or white for unchanged
 #define RegCol(a,b) ((a) != (b) ? RED_8 : WHITE)
-
-// Breakpoint item, which may form part of a list if more than one is set
-
-static bool fDebugRefresh;
-const BYTE* pStepOutStack;
 
 static CDebugger* pDebugger;
 
-// Special breakpoint for step-in/step-over and one-off conditional execution
-static BREAKPT Break;
-
-// Linked lists of active breakpoints
-static BREAKPT *pExecBreaks, *pReadBreaks, *pWriteBreaks, *pInBreaks, *pOutBreaks;
+// Stack position used to track stepping out
+int nStepOutSP = -1;
 
 // Last position of debugger window and last register values
 int nDebugX, nDebugY;
-Z80Regs sLastRegs;
+Z80Regs sLastRegs, sCurrRegs;
 BYTE bLastStatus;
 DWORD dwLastCycle;
 int nLastFrames;
 
-CAddr GetPrevInstruction (CAddr addr_);
-bool IsExecBreakpoint (CAddr addr_);
-void ToggleBreakpoint (CAddr addr_);
-
-void cmdStep (int nCount_=1);
-void cmdStepOver ();
-void cmdStepOut ();
-
-
 // Activate the debug GUI, if not already active
 bool Debug::Start (BREAKPT* pBreak_)
 {
-    if (!pDebugger)
-        GUI::Start(pDebugger = new CDebugger(pBreak_));
+    // Reset the last entry counters, unless it's a temporary breakpoint or we stepped out
+    if ((!pBreak_ || pBreak_->nType != btTemp || (pBreak_->pExpr && pBreak_->pExpr != &Expr::Counter)) && nStepOutSP == -1)
+    {
+        nLastFrames = 0;
+        dwLastCycle = g_dwCycleCounter;
+
+        R = (R7 & 0x80) | (R & 0x7f);
+        sLastRegs = sCurrRegs = regs;
+        bLastStatus = status_reg;
+    }
+
+    // Create the main debugger window
+    if (!GUI::Start(pDebugger = new CDebugger(pBreak_)))
+        pDebugger = NULL;
 
     return true;
 }
@@ -73,7 +70,10 @@ bool Debug::Start (BREAKPT* pBreak_)
 void Debug::Stop ()
 {
     if (pDebugger)
+    {
         pDebugger->Destroy();
+        pDebugger = NULL;
+    }
 }
 
 void Debug::FrameEnd ()
@@ -86,23 +86,13 @@ void Debug::FrameEnd ()
 void Debug::OnRet ()
 {
     // Step-out in progress?
-    if (pStepOutStack)
+    if (nStepOutSP != -1)
     {
-        // Get the physical location of the return address
-        const BYTE* pSP = phys_read_addr(SP-2);
-
         // If the stack is at or just above the starting position, it should mean we've returned
         // Allow some generous slack for data that may have been on the stack above the address
-        if (pSP >= pStepOutStack && pSP < (pStepOutStack+127))
+        if ((SP-nStepOutSP) >= 0 && (SP-nStepOutSP) < 64)
             Debug::Start();
     }
-}
-
-// Force a display refresh and test any breakpoints in case of external changes
-void Debug::Refresh ()
-{
-    fDebugRefresh = true;
-    BreakpointHit();
 }
 
 // Return whether the debug GUI is active
@@ -114,48 +104,112 @@ bool Debug::IsActive ()
 // Return whether any breakpoints are active
 bool Debug::IsBreakpointSet ()
 {
-    return pReadBreaks || pWriteBreaks || pInBreaks || pOutBreaks ||
-           pExecBreaks || Break.pAddr  || Break.pExpr;
+    return Breakpoint::IsSet();
 }
 
 // Return whether any of the active breakpoints have been hit
 bool Debug::BreakpointHit ()
 {
-    BREAKPT* p;
+    return Breakpoint::IsHit();
+}
 
-    // Fetch the 'physical' address of PC
-    BYTE* pPC = phys_read_addr(PC);
+////////////////////////////////////////////////////////////////////////////////
 
-    // Special breakpoint used for stepping, where either condition is enough to trigger the breakpoint
-    if (Break.pAddr == pPC || (Break.pExpr && Expr::Eval(Break.pExpr)))
-        return Debug::Start(&Break);
+// Find the longest instruction that ends before a given address
+WORD GetPrevInstruction (WORD wAddr_)
+{
+    // Start 4 bytes back as that's the longest instruction length
+    for (UINT u = 4 ; u ; u--)
+    {
+        WORD w = wAddr_ - u;
+        BYTE ab[] = { read_byte(w), read_byte(w+1), read_byte(w+2), read_byte(w+3) };
 
-    // Check execution breakpoints
-    for (p = pExecBreaks ; p ; p = p->pNext)
-        if (p->pAddr == pPC && (!p->pExpr || Expr::Eval(p->pExpr)))
-            return Debug::Start(p);
+        // Check that the instruction length leads to the required address
+        if (w+Disassemble(ab) == wAddr_)
+            return w;
+    }
 
-    // Check memory read breakpoints
-    for (p = pReadBreaks ; p ; p = p->pNext)
-        if ((p->pAddr == pbMemRead1 || p->pAddr == pbMemRead2) && (!p->pExpr || Expr::Eval(p->pExpr)))
-            return Debug::Start(p);
+    // No match found, so return 1 byte back instead
+    return wAddr_-1;
+}
 
-    // Check memory write breakpoints
-    for (p = pWriteBreaks ; p ; p = p->pNext)
-        if ((p->pAddr == pbMemWrite1 || p->pAddr == pbMemWrite2) && (!p->pExpr || Expr::Eval(p->pExpr)))
-            return Debug::Start(p);
+////////////////////////////////////////////////////////////////////////////////
 
-    // Check port read breakpoints
-    for (p = pInBreaks ; p ; p = p->pNext)
-        if (((wPortRead & p->Port.wMask) == p->Port.wCompare) && (!p->pExpr || Expr::Eval(p->pExpr)))
-            return Debug::Start(p);
+void cmdStep (int nCount_=1)
+{
+    void *pPhysAddr = NULL;
+    BYTE bOpcode;
+    WORD wPC;
 
-    // Check port write breakpoints
-    for (p = pOutBreaks ; p ; p = p->pNext)
-        if (((wPortWrite & p->Port.wMask) == p->Port.wCompare) && (!p->pExpr || Expr::Eval(p->pExpr)))
-            return Debug::Start(p);
+    // Skip any index prefixes on the instruction to reach the real opcode or a CD/ED prefix
+    for (wPC = PC ; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX) ; wPC++);
 
-    return false;
+    // Stepping into a HALT (with interrupt enabled) will enter the appropriate interrupt handler
+    // This is much friendlier than single-stepping NOPs up to the next interrupt!
+    if (nCount_ == 1 && bOpcode == OP_HALT && IFF1)
+    {
+        // For IM 2, form the address of the handler and break there
+        if (IM == 2)
+            pPhysAddr = AddrReadPtr(read_word((I << 8) | 0xff));
+
+        // IM 0 and IM1 both use the handler at 0x0038
+        else
+            pPhysAddr = AddrReadPtr(IM1_INTERRUPT_HANDLER);
+    }
+
+    // If an address has been set, execute up to it
+    if (pPhysAddr)
+        Breakpoint::AddTemp(pPhysAddr, NULL);
+
+    // Otherwise execute the requested number of instructions
+    else
+    {
+        Expr::nCount = nCount_;
+        Breakpoint::AddTemp(NULL, &Expr::Counter);
+    }
+
+    Debug::Stop();
+}
+
+void cmdStepOver ()
+{
+    void *pPhysAddr = NULL;
+    BYTE bOpcode, bOperand;
+    WORD wPC;
+
+    // Skip any index prefixes on the instruction to reach a CB/ED prefix or the real opcode
+    for (wPC = PC ; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX) ; wPC++);
+    bOperand = read_byte(wPC+1);
+
+    // 1-byte HALT or RST ?
+    if (bOpcode == OP_HALT || (bOpcode & 0xc7) == 0xc7)
+        pPhysAddr = AddrReadPtr(wPC+1);
+
+    // 2-byte backwards DJNZ/JR cc, or (LD|CP|IN|OT)[I|D]R ?
+    else if (((bOpcode == OP_DJNZ || (bOpcode & 0xe7) == 0x20) && (bOperand & 0x80))
+           || (bOpcode == 0xed && (bOperand & 0xf4) == 0xb0))
+        pPhysAddr = AddrReadPtr(wPC+2);
+
+    // 3-byte CALL, CALL cc or backwards JP cc?
+    else if (bOpcode == OP_CALL || (bOpcode & 0xc7) == 0xc4 ||
+           ((bOpcode & 0xc7) == 0xc2 && read_word(wPC+1) <= wPC))
+        pPhysAddr = AddrReadPtr(wPC+3);
+
+    // Single step if no instruction-specific breakpoint is set
+    if (!pPhysAddr)
+        cmdStep();
+    else
+    {
+        Breakpoint::AddTemp(pPhysAddr, NULL);
+        Debug::Stop();
+    }
+}
+
+void cmdStepOut ()
+{
+    // Store the current stack pointer, for checking on RETurn calls
+    nStepOutSP = SP;
+    Debug::Stop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -164,7 +218,7 @@ CInputDialog::CInputDialog (CWindow* pParent_/*=NULL*/, const char* pcszCaption_
     : CDialog(pParent_, 0,0, pcszCaption_), m_pfnNotify(pfnNotify_)
 {
     // Get the length of the prompt string, so we can position the edit box correctly
-    int n = CScreen::GetStringWidth(pcszPrompt_);
+    int n = GetTextWidth(pcszPrompt_);
 
     // Create the prompt text control and input edit control
     new CTextControl(this, 5, 10,  pcszPrompt_, WHITE);
@@ -185,7 +239,11 @@ void CInputDialog::OnNotify (CWindow* pWindow_, int nParam_)
 
         // Close the dialog if the input was blank, or the notify handler tells us
         if (!*pcszExpr || (pExpr && m_pfnNotify(pExpr)))
+        {
             Destroy();
+            Expr::Release(pExpr);
+            pDebugger->Refresh();
+        }
     }
 }
 
@@ -201,7 +259,7 @@ static bool OnAddressNotify (EXPR *pExpr_)
 // Notify handler for Execute Until expression
 static bool OnUntilNotify (EXPR *pExpr_)
 {
-    Break.pExpr = pExpr_;
+    Breakpoint::AddTemp(NULL, pExpr_);
     Debug::Stop();
     return false;
 }
@@ -211,7 +269,6 @@ static bool OnLmprNotify (EXPR *pExpr_)
 {
     int nPage = Expr::Eval(pExpr_) & LMPR_PAGE_MASK;
     IO::OutLmpr((lmpr & ~LMPR_PAGE_MASK) | nPage);
-    Debug::Refresh();
     return true;
 }
 
@@ -220,7 +277,20 @@ static bool OnHmprNotify (EXPR *pExpr_)
 {
     int nPage = Expr::Eval(pExpr_) & HMPR_PAGE_MASK;
     IO::OutHmpr((hmpr & ~HMPR_PAGE_MASK) | nPage);
-    Debug::Refresh();
+    return true;
+}
+
+// Notify handler for Change Lmpr input
+static bool OnLeprNotify (EXPR *pExpr_)
+{
+    IO::OutLepr(Expr::Eval(pExpr_));
+    return true;
+}
+
+// Notify handler for Change Hepr input
+static bool OnHeprNotify (EXPR *pExpr_)
+{
+    IO::OutHepr(Expr::Eval(pExpr_));
     return true;
 }
 
@@ -228,8 +298,7 @@ static bool OnHmprNotify (EXPR *pExpr_)
 static bool OnVmprNotify (EXPR *pExpr_)
 {
     int nPage = Expr::Eval(pExpr_) & VMPR_PAGE_MASK;
-    IO::OutVmpr((vmpr & ~VMPR_PAGE_MASK) | nPage);
-    Debug::Refresh();
+    IO::OutVmpr(VMPR_MODE | nPage);
     return true;
 }
 
@@ -240,8 +309,7 @@ static bool OnModeNotify (EXPR *pExpr_)
     if (nMode < 1 || nMode > 4)
         return false;
 
-    IO::OutVmpr((vmpr & ~VMPR_PAGE_MASK) | ((nMode-1) << 5));
-    Debug::Refresh();
+    IO::OutVmpr(((nMode-1) << 5) | VMPR_PAGE);
     return true;
 }
 
@@ -250,26 +318,39 @@ static bool OnModeNotify (EXPR *pExpr_)
 bool CDebugger::s_fTransparent = false;
 
 CDebugger::CDebugger (BREAKPT* pBreak_/*=NULL*/)
-    : CDialog(NULL, 376, 268, "SimICE", false)
+    : CDialog(NULL, 433, 260+36+2, "", false),
+    m_pView(NULL), m_pCommandEdit(NULL)
 {
     // Move to the last display position, if any
     if (nDebugX | nDebugY)
         Move(nDebugX, nDebugY);
 
-    m_pRegPanel = new CRegisterPanel(this, 267, 8, 0, 0);
-    m_pView = new CCodeView(this);
-    m_pView->SetAddress(PC);
+    // Create the status text control
+    m_pStatus = new CTextControl(this, 4, m_nHeight-sFixedFont.wHeight-4, "");
+
+    // If a breakpoint was supplied, report that it was triggered
+    if (pBreak_)
+    {
+        char sz[128]={};
+
+        if (pBreak_->nType != btTemp)
+            snprintf(sz, sizeof(sz)-1, "Breakpoint %d hit:  %s", Breakpoint::GetIndex(pBreak_), Breakpoint::GetDesc(pBreak_));
+        else
+        {
+            if (pBreak_->pExpr && pBreak_->pExpr != &Expr::Counter)
+                snprintf(sz, sizeof(sz)-1, "UNTIL condition met:  %s", pBreak_->pExpr->pcszExpr);
+
+            Breakpoint::RemoveAt(Breakpoint::GetIndex(pBreak_));
+        }
+
+        SetStatus(sz, YELLOW_6, &sPropFont);
+    }
+
+    // Clear step-out stack watch
+    nStepOutSP = -1;
 
     // Force a break from the main CPU loop, and refresh the debugger display
-    g_fBreak = fDebugRefresh = true;
-
-    // Clear the temporary breakpoint and the step-out stack watch
-    Break.pAddr = pStepOutStack = NULL;
-    Break.pExpr = NULL;
-    pStepOutStack = NULL;
-
-    // Form the R register value from the working parts we maintain
-    R = (R7 & 0x80) | (R & 0x7f);
+    g_fBreak = true;
 }
 
 CDebugger::~CDebugger ()
@@ -294,14 +375,133 @@ CDebugger::~CDebugger ()
     pDebugger = NULL;
 }
 
-void CDebugger::SetAddress (CAddr addr_)
+void CDebugger::SetSubTitle (const char *pcszSubTitle_)
 {
-    m_pView->SetAddress(addr_, true);
+    char szTitle[128] = "SimICE";
+    if (pcszSubTitle_ && *pcszSubTitle_)
+    {
+        strcat(szTitle, " -- ");
+        strcat(szTitle, pcszSubTitle_);
+    }
+    
+    SetText(szTitle);
 }
 
+void CDebugger::SetAddress (WORD wAddr_)
+{
+    m_pView->SetAddress(wAddr_, true);
+}
+
+void CDebugger::SetView (ViewType nView_)
+{
+    CView *pNewView = NULL;
+
+    // Create the new view
+    switch (nView_)
+    {
+        case vtDis:
+            pNewView = new CDisView(this);
+            break;
+
+        case vtTxt:
+            pNewView = new CTxtView(this);
+            break;
+
+        case vtHex:
+            pNewView = new CHexView(this);
+            break;
+
+        case vtGfx:
+            pNewView = new CGfxView(this);
+            break;
+
+        case vtBpt:
+            pNewView = new CBptView(this);
+            break;
+    }
+
+    // New view created?
+    if (pNewView)
+    {
+        SetSubTitle(pNewView->GetText());
+
+        if (!m_pView)
+            pNewView->SetAddress(PC);
+        else
+        {
+            // Transfer the current address select, then replace the old one
+            pNewView->SetAddress(m_pView->GetAddress());
+            m_pView->Destroy();
+        }
+
+        m_pView = pNewView;
+        m_nView = nView_;
+    }
+}
+
+void CDebugger::SetStatus (const char *pcsz_, BYTE bColour_/*=WHITE*/, const GUIFONT *pFont_)
+{
+    if (m_pStatus)
+    {
+        if (pFont_)
+            m_pStatus->SetFont(pFont_);
+
+        m_pStatus->SetText(pcsz_, bColour_);
+    }
+}
+
+void CDebugger::SetStatusByte (WORD wAddr_)
+{
+    int i;
+    char szKeyword[32] = {};
+    char szBinary[9]={};
+
+    // Read byte at status location
+    BYTE b = read_byte(wAddr_);
+
+    // Change unprintable characters to a space
+    char ch = (b >= ' ' && b <= 0x7f) ? b : ' ';
+
+    // Keyword range?
+    if (b >= 60)
+    {
+        // Keyword table in (unmodified) ROM1
+        const BYTE *pcbKeywords = abSAMROM + MEM_PAGE_SIZE + 0xf8c9-0xc000;
+
+        // Step over the required number of tokens
+        for (i = b-60 ; i > 0 ; i--)
+        {
+            // Skip until end of token marker (bit 7 set)
+            while (*pcbKeywords++ < 0x80) { }
+        }
+
+        // Copy keyword to local buffer
+        for (i = 0 ; i < sizeof(szKeyword) ; i++)
+        {
+            // Keep only lower 7 bits
+            szKeyword[i] = pcbKeywords[i] & 0x7f;
+
+            // Stop if we've found the end of token
+            if (pcbKeywords[i] >= 0x80)
+                break;
+        }
+    }
+
+    // Generate binary representation
+    for (i = 128 ; i > 0 ; i >>= 1)
+        strcat(szBinary, (b&i)?"1":"0");
+
+    // Form full status line, and set it
+    char sz[128]={};
+    snprintf(sz, sizeof(sz)-1, "%04X  %02X  %03d  %s  %c  %s", wAddr_, b, b, szBinary, ch, szKeyword);
+    SetStatus(sz, WHITE, &sFixedFont);
+}
+
+// Refresh the current debugger view
 void CDebugger::Refresh ()
 {
-    m_pView->SetAddress(PC);
+    // Re-set the view to the same address, to force a refresh
+    m_pView->SetAddress(m_pView->GetAddress());
 }
 
 
@@ -316,136 +516,141 @@ void CDebugger::EraseBackground (CScreen* pScreen_)
 // Dialog override for dialog drawing
 void CDebugger::Draw (CScreen* pScreen_)
 {
-    CDialog::Draw(pScreen_);
-
-    if (fDebugRefresh)
+    // First draw?
+    if (!m_pView)
     {
-        Refresh();
-        fDebugRefresh = false;
+        // Form the R register from its working components, and save the current register state
+        R = (R7 & 0x80) | (R & 0x7f);
+        sCurrRegs = regs;
+
+        // Set the disassembly view
+        SetView(vtDis);
     }
+
+    CDialog::Draw(pScreen_);
 }
 
 bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 {
-    bool fRet = CDialog::OnMessage(nMessage_, nParam1_, nParam2_);
+    char sz[64];
+    bool fRet = false;
 
     if (!fRet && nMessage_ == GM_CHAR)
     {
         fRet = true;
 
         // Force lower-case
-        if (nParam1_ >= 'A' && nParam1_ <= 'Z')
-            nParam1_ ^= ('a' ^ 'A');
+        nParam1_ = tolower(nParam1_);
 
         bool fCtrl = !!(nParam2_ & HM_CTRL);
+        bool fShift = !!(nParam2_ & HM_SHIFT);
 
         switch (nParam1_)
         {
-            case 'a':
-                if (fCtrl)
-                    swap(AF, AF_);
+            case HK_ESC:
+                if (m_pCommandEdit)
+                {
+                    m_pCommandEdit->Destroy();
+                    m_pCommandEdit = NULL;
+                }
+                else if (m_nView != vtDis)
+                {
+                    SetView(vtDis);
+                    SetAddress(PC);
+                }
                 else
-                    new CInputDialog(this, "New location", "Address:", OnAddressNotify);
+                    fRet = false;
+                break;
+
+            case HK_RETURN:
+                if (!m_pCommandEdit)
+                {
+                    m_pCommandEdit = new CEditControl(this, -1, m_nHeight-16, m_nWidth+2);
+                    m_pCommandEdit->SetFont(&sPropFont);
+                }
+                break;
+
+            case 'a':
+                new CInputDialog(this, "New location", "Address:", OnAddressNotify);
+                break;
+
+            case 'b':
+                SetView(vtBpt);
                 break;
 
             case 'd':
-            {
-                if (fCtrl)
-                    swap(DE, HL);
-                else
-                {
-                    CAddr Addr = m_pView->GetAddress();
-                    m_pView->Destroy();
-                    (m_pView = new CCodeView(this))->SetAddress(Addr, true);
-                }
-                break;
-            }
-
-            case 'i':
-                if (fCtrl)
-                    IFF1 = !IFF1;
+                SetView(vtDis);
                 break;
 
             case 't':
-            {
-                if (nParam2_ & HM_CTRL)
+                if (fCtrl)
                     s_fTransparent = !s_fTransparent;
-                else if (!nParam2_)
-                {
-                    CAddr Addr = m_pView->GetAddress();
-                    m_pView->Destroy();
-                    (m_pView = new CTextView(this))->SetAddress(Addr, true);
-                }
+                else
+                    SetView(vtTxt);
                 break;
-            }
 
             case 'n':
-            {
-                CAddr Addr = m_pView->GetAddress();
-                m_pView->Destroy();
-                (m_pView = new CNumView(this))->SetAddress(Addr, true);
+                SetView(vtHex);
                 break;
-            }
-/*
-            case 'm':
-            {
-                CAddr Addr = m_pView->GetAddress();
-                m_pView->Destroy();
-                (m_pView = new CMemView(this))->SetAddress(Addr, true);
-                break;
-            }
-*/
+
             case 'g':
-            {
-                CAddr Addr = m_pView->GetAddress();
-                m_pView->Destroy();
-                (m_pView = new CGraphicsView(this))->SetAddress(Addr, true);
+                SetView(vtGfx);
                 break;
-            }
 
             case 'l':
-                new CInputDialog(this, "Change LMPR", "Page (0-31):", OnLmprNotify);
+                if (fShift)
+                {
+                    sprintf(sz, "Change LEPR [%02X]:", lepr);
+                    new CInputDialog(this, sz, "New Page:", OnLeprNotify);
+                }
+                else
+                {
+                    sprintf(sz, "Change LMPR [%02X]:", lmpr&LMPR_PAGE_MASK);
+                    new CInputDialog(this, sz, "New Page:", OnLmprNotify);
+                }
                 break;
 
             case 'h':
-                new CInputDialog(this, "Change HMPR", "Page (0-31):", OnHmprNotify);
+                if (fShift)
+                {
+                    sprintf(sz, "Change HEPR [%02X]:", hepr);
+                    new CInputDialog(this, sz, "New Page:", OnHeprNotify);
+                }
+                else
+                {
+                    sprintf(sz, "Change HMPR [%02X]:", hmpr&HMPR_PAGE_MASK);
+                    new CInputDialog(this, sz, "New Page:", OnHmprNotify);
+                }
                 break;
 
             case 'v':
-                new CInputDialog(this, "Change VMPR", "Page (0-31):", OnVmprNotify);
+                sprintf(sz, "Change VMPR [%02X]:", vmpr&VMPR_PAGE_MASK);
+                new CInputDialog(this, sz, "New Page:", OnVmprNotify);
                 break;
 
             case 'm':
-                new CInputDialog(this, "Change Mode", "Mode (1-4):", OnModeNotify);
-                break;
-
-            case 'x':
-                if (fCtrl)
-                {
-                    swap(BC, BC_);
-                    swap(DE, DE_);
-                    swap(HL, HL_);
-                }
+                sprintf(sz, "Change Mode [%X]:", ((vmpr&VMPR_MODE_MASK)>>5)+1);
+                new CInputDialog(this, sz, "New Mode:", OnModeNotify);
                 break;
 
             case 'u':
                 new CInputDialog(this, "Execute until", "Expression:", OnUntilNotify);
                 break;
 
-
             case HK_KP0:
                 IO::OutLmpr(lmpr ^ LMPR_ROM0_OFF);
-                Debug::Refresh();
                 break;
 
             case HK_KP1:
                 IO::OutLmpr(lmpr ^ LMPR_ROM1);
-                Debug::Refresh();
                 break;
 
             case HK_KP2:
                 IO::OutLmpr(lmpr ^ LMPR_WPROT);
-                Debug::Refresh();
+                break;
+
+            case HK_KP3:
+                IO::OutHmpr(hmpr ^ HMPR_MCNTRL_MASK);
                 break;
 
             default:
@@ -454,30 +659,709 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
         }
     }
 
-    return fRet;
+    if (fRet)
+    {
+        m_pStatus->SetText("");
+        Refresh();
+    }
 
+    // If not already processed, pass onPass on to dialog base for processing, if not 
+    if (!fRet)
+        fRet = CDialog::OnMessage(nMessage_, nParam1_, nParam2_);
+
+    return fRet;
 }
+
+
+void CDebugger::OnNotify (CWindow* pWindow_, int nParam_)
+{
+    // Command submitted?
+    if (pWindow_ == m_pCommandEdit && nParam_ == 1)
+    {
+        const char *pcsz = m_pCommandEdit->GetText();
+
+        // If no command is given, close the command bar
+        if (!*pcsz)
+        {
+            m_pCommandEdit->Destroy();
+            m_pCommandEdit = NULL;
+        }
+        // Otherwise execute the command, and if successful, clear the command text
+        else if (Execute(pcsz) && m_pCommandEdit)
+        {
+            m_pCommandEdit->SetText("");
+            Refresh();
+        }
+    }
+}
+
+
+AccessType GetAccessParam (const char *pcsz_)
+{
+    if (!strcasecmp(pcsz_, "r"))
+        return atRead;
+    else if (!strcasecmp(pcsz_, "w"))
+        return atWrite;
+    else if (!strcasecmp(pcsz_, "rw"))
+        return atReadWrite;
+
+    return atNone;
+}
+
+bool CDebugger::Execute (const char* pcszCommand_)
+{
+    bool fRet = true;
+
+    char *psz = NULL;
+
+    char szCommand[256]={};
+    strncpy(szCommand, pcszCommand_, sizeof(szCommand)-1);
+    char *pszCommand = strtok(szCommand, " ");
+    if (!pszCommand)
+        return false;
+
+    // Locate any parameter, stripping leading spaces
+    char *pszParam = pszCommand+strlen(pszCommand)+1;
+    for ( ; *pszParam == ' ' ; pszParam++);
+    bool fCommandOnly = !*pszParam;
+
+    // Evaluate the parameter as an expression
+    char *pszExprEnd = NULL;
+    EXPR *pExpr = Expr::Compile(pszParam, &pszExprEnd);
+    int nParam = Expr::Eval(pExpr);
+
+    // nop
+    if (fCommandOnly && (!strcasecmp(pszCommand, "nop")))
+    {
+        // Does exactly what it says on the tin
+    }
+
+    // quit  or  q
+    else if (fCommandOnly && (!strcasecmp(pszCommand, "q") || !strcasecmp(pszCommand, "quit")))
+    {
+        Debug::Stop();
+    }
+
+    // di
+    else if (fCommandOnly && !strcasecmp(pszCommand, "di"))
+    {
+        IFF1 = IFF2 = 0;
+    }
+
+    // ei
+    else if (fCommandOnly && !strcasecmp(pszCommand, "ei"))
+    {
+        IFF1 = IFF2 = 1;
+    }
+
+    // im 0|1|2
+    else if (!strcasecmp(pszCommand, "im"))
+    {
+        if (nParam >= 0 && nParam <= 2 && !*pszExprEnd)
+            IM = nParam;
+        else
+            fRet = false;
+    }
+
+    // reset
+    else if (fCommandOnly && !strcasecmp(pszCommand, "reset"))
+    {
+        CPU::Reset(true);
+        CPU::Reset(false);
+
+        nLastFrames = 0;
+        dwLastCycle = g_dwCycleCounter;
+
+        SetAddress(PC);
+    }
+
+    // nmi
+    else if (fCommandOnly && !strcasecmp(pszCommand, "nmi"))
+    {
+        CPU::NMI();
+        SetAddress(PC);
+    }
+
+    // zap
+    else if (fCommandOnly && !strcasecmp(pszCommand, "zap"))
+    {
+        // Disassemble the current instruction
+        BYTE ab[4] = { read_byte(PC), read_byte(PC+1), read_byte(PC+2), read_byte(PC+3) };
+        UINT uLen = Disassemble(ab, PC);
+
+        // Replace instruction with the appropriate number of NOPs
+        for (UINT u = 0 ; u < uLen ; u++)
+            write_byte(PC+u, OP_NOP);
+    }
+
+    // call addr
+    else if (!strcasecmp(pszCommand, "call") && nParam != -1 && !*pszExprEnd)
+    {
+        SP -= 2;
+        write_word(SP, PC);
+        SetAddress(PC = nParam);
+    }
+
+    // ret
+    else if (fCommandOnly && !strcasecmp(pszCommand, "ret"))
+    {
+        SetAddress(PC = read_word(SP));
+        SP += 2;
+    }
+
+    // push value
+    else if (!strcasecmp(pszCommand, "push") && nParam != -1 && !*pszExprEnd)
+    {
+        SP -= 2;
+        write_word(SP, nParam);
+    }
+
+    // pop [register]
+    else if (!strcasecmp(pszCommand, "pop"))
+    {
+        // Re-parse the first argument as a register
+        Expr::Release(pExpr);
+        pExpr = Expr::Compile(pszParam, &pszExprEnd, Expr::regOnly);
+
+        if (fCommandOnly)
+            SP += 2;
+        else if (pExpr && pExpr->nType == T_REGISTER && !pExpr->pNext && !*pszExprEnd)
+        {
+            Expr::SetReg(pExpr->nValue, read_word(SP));
+            SP += 2;
+        }
+        else
+            fRet = false;
+    }
+
+    // break
+    else if (fCommandOnly && !strcasecmp(pszCommand, "break"))
+    {
+        // EI, IM 1, force NMI (super-break)
+        IFF1 = 1;
+        IM = 1;
+        PC = NMI_INTERRUPT_HANDLER;
+
+        // Set up SAM BASIC paging
+        IO::Out(LMPR_PORT, 0x1f);
+        IO::Out(HMPR_PORT, 0x01);
+
+        Debug::Stop();
+    }
+/*
+    // step [count]
+    else if (!strcasecmp(pszCommand, "s") || !strcasecmp(pszCommand, "step"))
+    {
+        if (fCommandOnly)
+            nParam = 1;
+        else if (nParam == -1 || *pszExprEnd)
+            fRet = false;
+
+        if (fRet)
+        {
+            Expr::nCount = nParam;
+            Break.pExpr = &Expr::Counter;
+            Debug::Stop();
+        }
+    }
+*/
+    // x [count|until cond]
+    else if (!strcasecmp(pszCommand, "x"))
+    {
+        psz = strtok(pszExprEnd, " ");
+
+        // x 123  (instruction count)
+        if (nParam != -1 && !*pszExprEnd)
+        {
+            Expr::nCount = nParam;
+            Breakpoint::AddTemp(NULL, &Expr::Counter);
+            Debug::Stop();
+        }
+        // x until cond
+        else if (psz && !strcasecmp(psz, "until"))
+        {
+            psz += strlen(psz)+1;
+            EXPR *pExpr2 = Expr::Compile(psz);
+
+            // If we have an expression set a temporary breakpoint using it
+            if (pExpr2)
+                Breakpoint::AddTemp(NULL, pExpr2);
+            else
+                fRet = false;
+        }
+        // Otherwise fail if not unconditional execution
+        else if (!fCommandOnly)
+            fRet = false;
+
+        if (fRet)
+            Debug::Stop();
+    }
+
+    // until expr
+    else if (!strcasecmp(pszCommand, "u") || !strcasecmp(pszCommand, "until"))
+    {
+        if (nParam != -1 && !*pszExprEnd)
+        {
+            Breakpoint::AddTemp(NULL, Expr::Compile(pszParam));
+            Debug::Stop();
+        }
+        else
+            fRet = false;
+    }
+
+    // bpx addr [if cond]
+    else if (!strcasecmp(pszCommand, "bpx") && nParam != -1)
+    {
+        EXPR *pExpr = NULL;
+        void *pPhysAddr = NULL;
+
+        // Physical address?
+        if (*pszExprEnd == ':')
+        {
+            int nPage = nParam;
+            int nOffset;
+
+            if (nPage < N_PAGES_MAIN && Expr::Eval(pszExprEnd+1, &nOffset, &pszExprEnd) && nOffset < MEM_PAGE_SIZE)
+                pPhysAddr = PageReadPtr(nPage)+nOffset;
+            else
+                fRet = false;
+        }
+        else
+        {
+            pPhysAddr = AddrReadPtr(nParam);
+        }
+
+        // Extract a token from after the location expression
+        psz = strtok(pszExprEnd, " ");
+
+        if (psz)
+        {
+            // If condition?
+            if (!strcasecmp(psz, "if"))
+            {
+                // Compile the expression following it
+                psz += strlen(psz)+1;
+                pExpr = Expr::Compile(psz);
+                fRet &= pExpr != NULL;
+            }
+            else
+                fRet = false;
+        }
+
+        if (fRet)
+            Breakpoint::AddExec(pPhysAddr, pExpr);
+    }
+
+    // bpm addr [rw|r|w] [if cond]
+    else if (!strcasecmp(pszCommand, "bpm") && nParam != -1)
+    {
+        EXPR *pExpr = NULL;
+        void *pPhysAddr = NULL;
+
+        // Default is read/write
+        AccessType nAccess = atReadWrite;
+
+        // Physical address?
+        if (*pszExprEnd == ':')
+        {
+            int nPage = nParam;
+            int nOffset;
+
+            if (nPage < N_PAGES_MAIN && Expr::Eval(pszExprEnd+1, &nOffset, &pszExprEnd) && nOffset < MEM_PAGE_SIZE)
+                pPhysAddr = PageReadPtr(nPage)+nOffset;
+            else
+                fRet = false;
+        }
+        else
+        {
+            pPhysAddr = AddrReadPtr(nParam);
+        }
+
+        // Extract a token from after the location expression
+        psz = strtok(pszExprEnd, " ");
+
+        if (psz)
+        {
+            // Check for access parameter
+            AccessType t = GetAccessParam(psz);
+
+            // If supplied, use it and skip to the next token
+            if (t != atNone)
+            {
+                nAccess = t;
+                psz = strtok(NULL, " ");
+            }
+        }
+
+        if (psz)
+        {
+            // If condition?
+            if (!strcasecmp(psz, "if"))
+            {
+                // Compile the expression following it
+                psz += strlen(psz)+1;
+                pExpr = Expr::Compile(psz);
+                fRet = pExpr != NULL;
+            }
+            else
+                fRet = false;
+        }
+
+        if (fRet)
+            Breakpoint::AddMemory(nParam, nAccess, pExpr);
+    }
+
+    // bpmr addrfrom addrto [rw|r|w] [if cond]
+    else if (!strcasecmp(pszCommand, "bpmr") && nParam != -1)
+    {
+        EXPR *pExpr = NULL;
+        void *pPhysAddr = NULL;
+
+        // Default is read/write
+        AccessType nAccess = atReadWrite;
+
+        // Physical address?
+        if (*pszExprEnd == ':')
+        {
+            int nPage = nParam;
+            int nOffset;
+
+            if (nPage < N_PAGES_MAIN && Expr::Eval(pszExprEnd+1, &nOffset, &pszExprEnd) && nOffset < MEM_PAGE_SIZE)
+                pPhysAddr = PageReadPtr(nPage)+nOffset;
+            else
+                fRet = false;
+        }
+        else
+        {
+            pPhysAddr = AddrReadPtr(nParam);
+        }
+
+        // Parse a length expression
+        EXPR *pExpr2 = Expr::Compile(pszExprEnd, &pszExprEnd);
+        int nLength = Expr::Eval(pExpr2);
+        Expr::Release(pExpr2);
+
+        // Length must be valid and non-zero
+        if (nLength <= 0)
+            fRet = false;
+
+        // Extract a token from after the length expression
+        psz = strtok(pszExprEnd, " ");
+
+        if (psz)
+        {
+            // Check for access parameter
+            AccessType t = GetAccessParam(psz);
+
+            // If supplied, use it and skip to the next token
+            if (t != atNone)
+            {
+                nAccess = t;
+                psz = strtok(NULL, " ");
+            }
+        }
+
+        if (psz)
+        {
+            // If condition?
+            if (!strcasecmp(psz, "if"))
+            {
+                // Compile the expression following it
+                psz += strlen(psz)+1;
+                pExpr = Expr::Compile(psz);
+                fRet = pExpr != NULL;
+            }
+            else
+                fRet = false;
+        }
+
+        if (fRet)
+            Breakpoint::AddMemory(nParam, nAccess, pExpr, nLength);
+    }
+
+    // bpio port [rw|r|w] [if cond]
+    else if (!strcasecmp(pszCommand, "bpio") && nParam != -1)
+    {
+        // Default is read/write and no expression
+        AccessType nAccess = atReadWrite;
+        EXPR *pExpr = NULL;
+
+        // Extract a token from after the port expression
+        psz = strtok(pszExprEnd, " ");
+
+        if (psz)
+        {
+            // Check for access parameter
+            AccessType t = GetAccessParam(psz);
+
+            // If supplied, use it and skip to the next token
+            if (t != atNone)
+            {
+                nAccess = t;
+                psz = strtok(NULL, " ");
+            }
+        }
+
+        if (psz)
+        {
+            // If condition?
+            if (!strcasecmp(psz, "if"))
+            {
+                // Compile the expression following it
+                psz += strlen(psz)+1;
+                pExpr = Expr::Compile(psz);
+                fRet = pExpr != NULL;
+            }
+            else
+                fRet = false;
+        }
+
+        Breakpoint::AddPort(nParam, nAccess, pExpr);
+    }
+
+    // bpint frame|line|midi
+    else if (!strcasecmp(pszCommand, "bpint"))
+    {
+        BYTE bMask = 0x00;
+        EXPR *pExpr = NULL;
+
+        if (fCommandOnly)
+            bMask = 0x1f;
+        else
+        {
+            for (psz = strtok(pszParam, " ,") ; fRet && psz ; psz = strtok(NULL, " ,"))
+            {
+                if (!strcasecmp(psz, "frame") || !strcasecmp(psz, "f"))
+                    bMask |= STATUS_INT_FRAME;
+                else if (!strcasecmp(psz, "line") || !strcasecmp(psz, "l"))
+                    bMask |= STATUS_INT_LINE;
+                else if (!strcasecmp(psz, "midi") || !strcasecmp(psz, "m"))
+                    bMask |= STATUS_INT_MIDIIN | STATUS_INT_MIDIOUT;
+                else if (!strcasecmp(psz, "midiin") || !strcasecmp(psz, "mi"))
+                    bMask |= STATUS_INT_MIDIIN;
+                else if (!strcasecmp(psz, "midiout") || !strcasecmp(psz, "mo"))
+                    bMask |= STATUS_INT_MIDIOUT;
+                else if (!strcasecmp(psz, "if") && !pExpr)
+                {
+                    // Compile the expression following it
+                    psz += strlen(psz)+1;
+                    pExpr = Expr::Compile(psz);
+                    fRet = pExpr != NULL;
+                    break;
+                }
+                else
+                    fRet = false;
+            }
+        }
+
+        if (fRet)
+            Breakpoint::AddInterrupt(bMask, pExpr);
+    }
+
+    // flag [+|-][sz5h3vnc]
+    else if (!fCommandOnly && !strcasecmp(pszCommand, "f") || !strcasecmp(pszCommand, "flag"))
+    {
+        bool fSet = true;
+        BYTE bNewF = F;
+
+        while (fRet && *pszParam)
+        {
+            BYTE bFlag = 0;
+
+            switch (*pszParam++)
+            {
+                case '+': fSet = true;  continue;
+                case '-': fSet = false; continue;
+
+                case 's': case 'S': bFlag = FLAG_S; break;
+                case 'z': case 'Z': bFlag = FLAG_Z; break;
+                case '5':           bFlag = FLAG_5; break;
+                case 'h': case 'H': bFlag = FLAG_H; break;
+                case '3':           bFlag = FLAG_3; break;
+                case 'v': case 'V': bFlag = FLAG_V; break;
+                case 'n': case 'N': bFlag = FLAG_N; break;
+                case 'c': case 'C':	bFlag = FLAG_C; break;
+
+                default: fRet = false; break;
+            }
+
+            // Set or reset the flag, as appropriate
+            if (fSet)
+                bNewF |= bFlag;
+            else
+                bNewF &= ~bFlag;
+        }
+
+        // If successful, set the modified flags
+        if (fRet)
+            F = bNewF;
+    }
+
+    // bc n  or  bc *
+    else if (!strcasecmp(pszCommand, "bc"))
+    {
+        if (nParam != -1 && !*pszExprEnd)
+            fRet = Breakpoint::RemoveAt(nParam);
+        else if (!strcmp(pszParam, "*"))
+            Breakpoint::RemoveAll();
+        else
+            fRet = false;
+    }
+
+    // bd n  or  bd *  or  be n  or  be *
+    else if (!strcasecmp(pszCommand, "bd") || !strcasecmp(pszCommand, "be"))
+    {
+        bool fNewState = !strcasecmp(pszCommand, "be");
+
+        if (nParam != -1 && !*pszExprEnd)
+        {
+            BREAKPT *pBreak = Breakpoint::GetAt(nParam);
+            if (pBreak)
+                pBreak->fEnabled = fNewState;
+            else
+                fRet = false;
+        }
+        else if (!strcmp(pszParam, "*"))
+        {
+            BREAKPT *pBreak = NULL;
+            for (int i = 0 ; (pBreak = Breakpoint::GetAt(i)) ; i++)
+                pBreak->fEnabled = fNewState;
+        }
+        else
+            fRet = false;
+    }
+
+    // exx
+    else if (fCommandOnly && !strcasecmp(pszCommand, "exx"))
+    {
+        // EXX
+        swap(BC, BC_);
+        swap(DE, DE_);
+        swap(HL, HL_);
+    }
+
+    // ex reg,reg2
+    else if (!strcasecmp(pszCommand, "ex"))
+    {
+        EXPR *pExpr2 = NULL;
+
+        // Re-parse the first argument as a register
+        Expr::Release(pExpr);
+        pExpr = Expr::Compile(pszParam, &pszExprEnd, Expr::regOnly);
+
+        // Locate and extract the second register parameter
+        if ((psz = strtok(pszExprEnd, ",")))
+            pExpr2 = Expr::Compile(psz, NULL, Expr::regOnly);
+
+        // Accept if both parameters are registers
+        if (pExpr  && pExpr->nType  == T_REGISTER && !pExpr->pNext &&
+            pExpr2 && pExpr2->nType == T_REGISTER && !pExpr2->pNext)
+        {
+            int nReg = Expr::GetReg(pExpr->nValue);
+            int nReg2 = Expr::GetReg(pExpr2->nValue);
+            Expr::SetReg(pExpr->nValue, nReg2);
+            Expr::SetReg(pExpr2->nValue, nReg);
+        }
+        else
+            fRet = false;
+
+        Expr::Release(pExpr2);
+    }
+
+    // ld reg,value  or  r reg=value  or  r reg value
+    else if (!strcasecmp(pszCommand, "r") || !strcasecmp(pszCommand, "ld"))
+    {
+        int nValue;
+
+        // Re-parse the first argument as a register
+        Expr::Release(pExpr);
+        pExpr = Expr::Compile(pszParam, &pszExprEnd, Expr::regOnly);
+
+        // Locate second parameter (either  ld hl,123  or r hl=123  syntax)
+        psz = strtok(pszExprEnd, ",=");
+
+        // The first parameter must be a register, the second can be any value
+        if (pExpr && pExpr->nType == T_REGISTER && !pExpr->pNext && psz && Expr::Eval(psz, &nValue))
+            Expr::SetReg(pExpr->nValue, nValue);
+        else
+            fRet = false;
+    }
+
+    // out port,value
+    else if (!strcasecmp(pszCommand, "out") && nParam != -1)
+    {
+        int nValue;
+
+        // Locate value to output
+        psz = strtok(pszExprEnd, ",");
+
+        // Evaluate and output it
+        if (psz && Expr::Eval(psz, &nValue))
+            IO::Out(nParam, nValue);
+        else
+            fRet = false;
+    }
+
+    // poke addr,val[,val,...]
+    else if (!strcasecmp(pszCommand, "poke") && nParam != -1)
+    {
+        BYTE ab[128];
+        int nBytes = 0;
+
+        for (psz = strtok(pszExprEnd, ",") ; fRet && psz ; psz = strtok(NULL, ","))
+        {
+            int nVal;
+
+            if (Expr::Eval(psz, &nVal, &pszExprEnd) && !*pszExprEnd)
+            {
+                ab[nBytes++] = nVal;
+
+                if (nVal > 256)
+                    ab[nBytes++] = nVal >> 8;
+            }
+            else
+                fRet = false;
+        }
+        
+        if (fRet && nBytes)
+        {
+            for (int i = 0 ; i < nBytes ; i++)
+                write_byte(nParam+i, ab[i]);
+        }
+        else
+            fRet = false;
+    }
+    else
+        fRet = false;
+
+    Expr::Release(pExpr);
+    return fRet;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Disassembler
 
 static const UINT ROW_GAP = 2;
-CAddr CCodeView::s_aAddrs[64];
+WORD CDisView::s_wAddrs[64];
 
-CCodeView::CCodeView (CWindow* pParent_)
+CDisView::CDisView (CWindow* pParent_)
     : CView(pParent_), m_uTarget(INVALID_TARGET), m_pcszTarget(NULL)
 {
+    SetText("Disassemble");
+    SetFont(&sFixedFont);
+
     // Calculate the number of rows and columns in the view
     m_uRows = m_nHeight / (ROW_GAP+sFixedFont.wHeight+ROW_GAP);
-    m_uColumns = m_nWidth / sFixedFont.wWidth;
+    m_uColumns = m_nWidth / (sFixedFont.wWidth+CHAR_SPACING);
 
     // Allocate enough for a full screen of characters
     m_pszData = new char[m_uRows * m_uColumns + 1];
 }
 
-void CCodeView::SetAddress (CAddr addr_, bool fForceTop_)
+void CDisView::SetAddress (WORD wAddr_, bool fForceTop_)
 {
-    m_addr = addr_;
+    CView::SetAddress(wAddr_);
 
     // Update the control flow hints from the current PC value
     SetFlowTarget();
@@ -487,38 +1371,38 @@ void CCodeView::SetAddress (CAddr addr_, bool fForceTop_)
         // If the address is on-screen, but not first or last row, don't refresh
         for (UINT u = 1 ; u < m_uRows-1 ; u++)
         {
-            if (s_aAddrs[u] == addr_)
+            if (s_wAddrs[u] == wAddr_)
             {
-                addr_ = s_aAddrs[0];
+                wAddr_ = s_wAddrs[0];
                 break;
             }
         }
     }
 
-    char* psz = (char*)m_pszData;
+    char* psz = m_pszData;
     for (UINT u = 0 ; u < m_uRows ; u++)
     {
-        s_aAddrs[u] = addr_;
+        s_wAddrs[u] = wAddr_;
 
         memset(psz, ' ', m_uColumns);
 
         // Display the address in the appropriate format
-        psz += addr_.sprint(psz);
+        psz += sprintf(psz, "%04X", wAddr_);
         *psz++ = ' ';
         psz++;
 
         // Disassemble the instruction, using an appropriate PC value
-        BYTE ab[4] = { addr_[0], addr_[1], addr_[2], addr_[3] };
-        UINT uLen = Disassemble(ab, addr_.GetPC(), psz+13, 32);
+        BYTE ab[4] = { read_byte(wAddr_), read_byte(wAddr_+1), read_byte(wAddr_+2), read_byte(wAddr_+3) };
+        UINT uLen = Disassemble(ab, wAddr_, psz+13, 32);
 
         // Show the instruction bytes between the address and the disassembly
         for (UINT v = 0 ; v < uLen ; v++)
-            psz += sprintf(psz, "%02X ", addr_[v]);
+            psz += sprintf(psz, "%02X ", read_byte(wAddr_+v));
         *psz = ' ';
 
         // Advance to the next line/instruction
         psz += 1+strlen(psz);
-        addr_ += uLen;
+        wAddr_ += uLen;
     }
 
     // Terminate the line list
@@ -526,43 +1410,215 @@ void CCodeView::SetAddress (CAddr addr_, bool fForceTop_)
 }
 
 
-void CCodeView::Draw (CScreen* pScreen_)
+void CDisView::Draw (CScreen* pScreen_)
 {
-    pScreen_->SetFont(&sFixedFont);
-
     UINT u = 0;
     for (char* psz = (char*)m_pszData ; *psz ; psz += strlen(psz)+1, u++)
     {
-        int nHeight = ROW_GAP+sFixedFont.wHeight+ROW_GAP, nX = m_nX, nY = m_nY+(nHeight*u);
+        int nHeight = ROW_GAP+sFixedFont.wHeight+ROW_GAP;
+        int nX = m_nX;
+        int nY = m_nY+(nHeight*u);
 
         BYTE bColour = WHITE;
 
-        if (s_aAddrs[u] == PC)
+        if (s_wAddrs[u] == PC)
         {
-            pScreen_->FillRect(nX, nY+1, m_nWidth, nHeight-3, YELLOW_7);
+            pScreen_->FillRect(nX-1, nY-1, m_nWidth-115, nHeight-3, YELLOW_7);
             bColour = BLACK;
 
             if (m_pcszTarget)
-                pScreen_->DrawString(nX+204, nY+ROW_GAP, m_pcszTarget, bColour);
+                pScreen_->DrawString(nX+204, nY, m_pcszTarget, bColour);
         }
 
-        if (IsExecBreakpoint(s_aAddrs[u]))
-            bColour = RED_4;
+        BYTE *pPhysAddr = AddrReadPtr(s_wAddrs[u]);
+        int nIndex = Breakpoint::GetExecIndex(pPhysAddr);
+        if (nIndex != -1)
+            bColour = Breakpoint::GetAt(nIndex)->pExpr ? MAGENTA_3 : RED_4;
 
-        if (m_uTarget == INVALID_TARGET || s_aAddrs[u] != m_uTarget)
-            pScreen_->DrawString(nX, nY+ROW_GAP, psz, bColour);
+        if (m_uTarget == INVALID_TARGET || s_wAddrs[u] != m_uTarget)
+            pScreen_->DrawString(nX, nY, psz, bColour);
         else
         {
-            pScreen_->DrawString(nX+30, nY+2, psz+5, bColour);
-            pScreen_->DrawString(nX, nY+2, "===>", RED_6);
+            pScreen_->DrawString(nX+30, nY, psz+5, bColour);
+            pScreen_->DrawString(nX, nY, "===>", RED_6);
         }
 
     }
 
-    pScreen_->SetFont(&sGUIFont);
+    DrawRegisterPanel(pScreen_, m_nX+m_nWidth-6*16, m_nY);
 }
 
-bool CCodeView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
+/*static*/ void CDisView::DrawRegisterPanel (CScreen* pScreen_, int nX_, int nY_)
+{
+    int i;
+    int nX = nX_;
+    int nY = nY_;
+    char sz[128];
+
+#define ShowLabel(str,dx,dy)  \
+{   \
+    pScreen_->DrawString(nX+dx, nY+dy, str, GREEN_8);  \
+}
+
+    ShowLabel("AF       AF'\n"
+              "BC       BC'\n"
+              "DE       DE'\n"
+              "HL       HL'",   0, 0);
+
+    ShowLabel("IX       IY\n"
+              "PC       SP", 0, 52);
+
+    ShowLabel("I     R", 0, 80);
+
+
+#define ShowReg(buf,fmt,dx,dy,reg)  \
+{   \
+    sprintf(buf, fmt, regs.reg); \
+    pScreen_->DrawString(nX+dx, nY+dy, buf, (regs.reg != sLastRegs.reg) ? RED_8 : WHITE);  \
+}
+
+    ShowReg(sz, "%04X", 18,  0, af.w);
+    ShowReg(sz, "%04X", 18, 12, bc.w);
+    ShowReg(sz, "%04X", 18, 24, de.w);
+    ShowReg(sz, "%04X", 18, 36, hl.w);
+
+    ShowReg(sz, "%04X", 18, 52, ix.w);
+    ShowReg(sz, "%04X", 18, 64, pc.w);
+
+    ShowReg(sz, "%02X", 12, 80, i);
+
+    ShowReg(sz, "%04X", 72,  0, af_.w);
+    ShowReg(sz, "%04X", 72, 12, bc_.w);
+    ShowReg(sz, "%04X", 72, 24, de_.w);
+    ShowReg(sz, "%04X", 72, 36, hl_.w);
+
+    ShowReg(sz, "%04X", 72, 52, iy.w);
+    ShowReg(sz, "%04X", 72, 64, sp.w);
+
+    ShowReg(sz, "%02X", 48, 80, r);
+
+
+    pScreen_->DrawString(nX+72, nY+74, " \x81\x81 ", GREY_4);
+
+    for (i = 0 ; i < 4 ; i++)
+    {
+        sprintf(sz, "%04X", read_word(SP+i*2));
+        pScreen_->DrawString(nX+72, nY+84 + i*12, sz, WHITE);
+    }
+
+
+    pScreen_->DrawString(nX, nY+96, "IM", GREEN_8);
+    sprintf(sz, "%u", IM);
+    pScreen_->DrawString(nX+18, nY+96, sz, RegCol(IM, sLastRegs.im));
+    sprintf(sz, "  %cI", IFF1?'E':'D');
+    pScreen_->DrawString(nX+18, nY+96, sz, RegCol(IFF1, sLastRegs.iff1));
+/*
+    sprintf(sz, "     %cI2", IFF2?'E':'D');
+    pScreen_->DrawString(nX+18, nY+96, sz, RegCol(IFF2, sLastRegs.iff2));
+*/
+    static char szInts[] = "OFIML";
+    char szIntInactive[] = "     ";
+    char szIntActive[]   = "     ";
+    char szIntChange[]   = "     ";
+    char bIntDiff = status_reg ^ bLastStatus;
+
+    for (i = 0 ; i < 5 ; i++)
+    {
+        BYTE bBit = 1 << (4-i);
+        char chState = (~status_reg & bBit) ? szInts[i] : '-';
+
+        if (bIntDiff & bBit)
+            szIntChange[i] = chState;
+        else if (~status_reg & bBit)
+            szIntActive[i] = chState;
+        else
+            szIntInactive[i] = chState;
+    }
+
+    pScreen_->DrawString(nX, nY+108, "Stat", GREEN_8);
+    pScreen_->DrawString(nX+30, nY+108, szIntInactive, GREY_4);
+    pScreen_->DrawString(nX+30, nY+108, szIntActive, WHITE);
+    pScreen_->DrawString(nX+30, nY+108, szIntChange, RegCol(1,0));
+
+
+    static char szFlags[] = "SZ5H3VNC";
+    char szFlagInactive[] = "        ";
+    char szFlagActive[]   = "        ";
+    char szFlagChange[]   = "        ";
+    char bFlagDiff = F ^ sLastRegs.af.b.l;
+    for (i = 0 ; i < 8 ; i++)
+    {
+        BYTE bBit = 1 << (7-i);
+        char chState = (F & bBit) ? szFlags[i] : '-';
+
+        if (bFlagDiff & bBit)
+            szFlagChange[i] = chState;
+        else if (F & bBit)
+            szFlagActive[i] = chState;
+        else
+            szFlagInactive[i] = chState;
+    }
+
+    pScreen_->DrawString(nX, nY+132, "Flag", GREEN_8);
+    pScreen_->DrawString(nX+30, nY+132, szFlagInactive, GREY_4);
+    pScreen_->DrawString(nX+30, nY+132, szFlagActive, WHITE);
+    pScreen_->DrawString(nX+30, nY+132, szFlagChange, RegCol(1,0));
+
+    int nLine = (g_dwCycleCounter < BORDER_PIXELS) ? HEIGHT_LINES-1 : (g_dwCycleCounter-BORDER_PIXELS) / TSTATES_PER_LINE;
+    int nLineCycle = (g_dwCycleCounter + TSTATES_PER_LINE - BORDER_PIXELS) % TSTATES_PER_LINE;
+
+    sprintf(sz, "%03d:%03d", nLine, nLineCycle);
+    pScreen_->DrawString(nX, nY+148, "Scan", GREEN_8);
+    pScreen_->DrawString(nX+30, nY+148, sz, WHITE);
+
+    DWORD dwCycleDiff = ((nLastFrames*TSTATES_PER_FRAME)+g_dwCycleCounter)-dwLastCycle;
+    if (dwCycleDiff)
+        sprintf(sz, "%u (+%u)", g_dwCycleCounter, dwCycleDiff);
+    else
+        sprintf(sz, "%u", g_dwCycleCounter);
+    pScreen_->DrawString(nX, nY+160, "T", GREEN_8);
+    pScreen_->DrawString(nX+12, nY+160, sz, WHITE);
+
+    pScreen_->DrawString(nX, nY+176, "A\nB\nC\nD", GREEN_8);
+    pScreen_->DrawString(nX+12, nY+176, PageDesc(GetSectionPage(SECTION_A)), (AddrWritePtr(0x0000)==PageWritePtr(SCRATCH_WRITE))?CYAN_8:WHITE);
+    pScreen_->DrawString(nX+12, nY+188, PageDesc(GetSectionPage(SECTION_B)), WHITE);
+    pScreen_->DrawString(nX+12, nY+200, PageDesc(GetSectionPage(SECTION_C)), WHITE);
+    pScreen_->DrawString(nX+12, nY+212, PageDesc(GetSectionPage(SECTION_D)), (AddrWritePtr(0xc000)==PageWritePtr(SCRATCH_WRITE))?CYAN_8:WHITE);
+
+    pScreen_->DrawString(nX+60, nY+176, " L\n H\n V\n M", GREEN_8);
+    sprintf(sz, "   %02X\n   %02X\n   %02X\n   %X",
+        lmpr, hmpr, vmpr, ((vmpr&VMPR_MODE_MASK)>>5)+1, lepr, hepr);
+    pScreen_->DrawString(nX+60, nY+176, sz, WHITE);
+
+
+    pScreen_->DrawString(nX, nY+228, "Events", GREEN_8);
+
+    CPU_EVENT *pEvent = psNextEvent;
+    for (i = 0 ; i < 3 && pEvent ; i++, pEvent = pEvent->psNext)
+    {
+        const char *pcszEvent = "???";
+        switch (pEvent->nEvent)
+        {
+            case evtStdIntEnd:       pcszEvent = "IEND"; break;
+            case evtLineIntStart:    pcszEvent = "LINE"; break;
+            case evtEndOfFrame:      pcszEvent = "FRAM"; break;
+            case evtMidiOutIntStart: pcszEvent = "MIDI"; break;
+            case evtMidiOutIntEnd:   pcszEvent = "MEND"; break;
+            case evtMouseReset:      pcszEvent = "MOUS"; break;
+            case evtBlueAlphaClock:  pcszEvent = "BLUE"; break;
+            case evtAsicStartup:     pcszEvent = "ASIC"; break;
+
+            case evtInputUpdate:     i--; continue;
+        }
+
+        sprintf(sz, "%s       T", pcszEvent);
+        pScreen_->DrawString(nX, nY+240+(i*12), sz, WHITE);
+        sprintf(sz, "%6lu", pEvent->dwTime-g_dwCycleCounter);
+        pScreen_->DrawString(nX+5*6, nY+240+(i*12), sz, RegCol(0,1));
+    }
+}
+
+bool CDisView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 {
     switch (nMessage_)
     {
@@ -570,8 +1626,18 @@ bool CCodeView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
         {
             UINT uRow = (nParam2_ - m_nY) / (ROW_GAP+sFixedFont.wHeight+ROW_GAP);
 
-            if (uRow < m_uRows)
-                ToggleBreakpoint(s_aAddrs[uRow]);
+            if (IsOver() && uRow < m_uRows)
+            {
+                // Find any existing execution breakpoint
+                BYTE *pPhysAddr = AddrReadPtr(s_wAddrs[uRow]);
+                int nIndex = Breakpoint::GetExecIndex(pPhysAddr);
+
+                // If there's no breakpoint, add a new one
+                if (nIndex == -1)
+                    Breakpoint::AddExec(pPhysAddr, NULL);
+                else
+                    Breakpoint::RemoveAt(nIndex);
+            }
             break;
         }
 
@@ -579,6 +1645,15 @@ bool CCodeView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
         {
             switch (nParam1_)
             {
+                case HK_SPACE:
+                    if (nParam2_ == HM_NONE)
+                        cmdStep();
+                    else if (nParam2_ == HM_SHIFT)
+                        cmdStepOut();
+                    else if (nParam2_ == HM_CTRL)
+                        cmdStepOver();
+                    break;
+
                 case HK_KP7:  cmdStep();        break;
                 case HK_KP8:  cmdStepOver();    break;
                 case HK_KP9:  cmdStepOut();     break;
@@ -592,6 +1667,8 @@ bool CCodeView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 case HK_RIGHT:
                 case HK_PGUP:
                 case HK_PGDN:
+                case HK_HOME:
+                case HK_END:
                     return cmdNavigate(nParam1_, nParam2_);
 
                 case 'd': case 'D':
@@ -613,74 +1690,93 @@ bool CCodeView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     return true;
 }
 
-bool CCodeView::cmdNavigate (int nKey_, int nMods_)
+bool CDisView::cmdNavigate (int nKey_, int nMods_)
 {
-    CAddr addr = m_addr;
+    WORD wAddr = GetAddress();
+    bool fCtrl = (nMods_ & HM_CTRL) != 0;
 
     switch (nKey_)
     {
-        case HK_UP:
-            if (!nMods_)
-                addr = GetPrevInstruction(s_aAddrs[0]);
+        case HK_HOME:
+            if (!fCtrl)
+                wAddr = PC;
             else
-                addr = (PC = GetPrevInstruction(CAddr(PC)).GetPC());
+                SetAddress(wAddr = 0, true);
+            break;
+
+        case HK_END:
+            if (fCtrl)
+            {
+                // Set top address to 0000, then page up to leave FFFF at the bottom
+                SetAddress(0, true);
+                return cmdNavigate(HK_PGUP, 0);
+            }
+            break;
+
+        case HK_UP:
+            if (!fCtrl)
+                wAddr = GetPrevInstruction(s_wAddrs[0]);
+            else
+                PC = wAddr = GetPrevInstruction(PC);
             break;
 
         case HK_DOWN:
-            if (!nMods_)
-                addr = s_aAddrs[1];
+            if (!fCtrl)
+                wAddr = s_wAddrs[1];
             else
             {
                 BYTE ab[4];
                 for (UINT u = 0 ; u < sizeof(ab) ; u++)
                     ab[u] = read_byte(PC+u);
 
-                addr = (PC += Disassemble(ab));
+                wAddr = (PC += Disassemble(ab));
             }
             break;
 
         case HK_LEFT:
-            if (!nMods_)
-                addr = s_aAddrs[0]-1;
+            if (!fCtrl)
+                wAddr = s_wAddrs[0]-1;
             else
-                addr = --PC;
+                wAddr = --PC;
             break;
 
         case HK_RIGHT:
-            if (!nMods_)
-                addr = s_aAddrs[0]+1;
+            if (!fCtrl)
+                wAddr = s_wAddrs[0]+1;
             else
-                addr = ++PC;
+                wAddr = ++PC;
             break;
 
         case HK_PGDN:
         {
-            addr = s_aAddrs[m_uRows-1];
-            BYTE ab[] = { addr[0], addr[1], addr[2], addr[3] };
-            addr += Disassemble(ab);
+            wAddr = s_wAddrs[m_uRows-1];
+            BYTE ab[] = { read_byte(wAddr), read_byte(wAddr+1), read_byte(wAddr+2), read_byte(wAddr+3) };
+            wAddr += Disassemble(ab);
             break;
         }
 
         case HK_PGUP:
         {
             // Aim to have the current top instruction at the bottom
-            CAddr a = s_aAddrs[0];
+            WORD w = s_wAddrs[0];
 
             // Start looking a screenful of single-byte instructions back
-            for (addr = a - m_uRows ; ; addr--)
+            for (wAddr = w - m_uRows ; ; wAddr--)
             {
-                CAddr b = addr;
+                WORD w2 = wAddr;
 
                 // Disassemble a screenful of instructions
                 for (UINT u = 0 ; u < m_uRows-1 ; u++)
                 {
-                    BYTE ab[] = { b[0], b[1], b[2], b[3] };
-                    b += Disassemble(ab);
+                    BYTE ab[] = { read_byte(w2), read_byte(w2+1), read_byte(w2+2), read_byte(w2+3) };
+                    w2 += Disassemble(ab);
                 }
 
                 // Check for a suitable ending position
-                if (b == (a-1) || b == (a-2) || b == (a-3) || b == (a-4))
-                    break;
+                if (++w2 == w) break;
+                if (++w2 == w) break;
+                if (++w2 == w) break;
+                if (++w2 == w) break;
             }
             break;
         }
@@ -689,12 +1785,12 @@ bool CCodeView::cmdNavigate (int nKey_, int nMods_)
             return false;
     }
 
-    SetAddress(addr, !nMods_);
+    SetAddress(wAddr, !fCtrl);
     return true;
 }
 
 // Determine the target address
-void CCodeView::SetFlowTarget ()
+void CDisView::SetFlowTarget ()
 {
     // Extract the two bytes at PC, which we'll assume are single byte opcode and operand
     WORD wPC = PC;
@@ -782,36 +1878,38 @@ void CCodeView::SetFlowTarget ()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CAddr CTextView::s_aAddrs[64];
+static const UINT TXT_COLUMNS = 64;
 
-CTextView::CTextView (CWindow* pParent_)
+CTxtView::CTxtView (CWindow* pParent_)
     : CView(pParent_)
 {
-    m_uRows = m_nHeight / (ROW_GAP+sFixedFont.wHeight+ROW_GAP);
-    m_uColumns = m_nWidth / sFixedFont.wWidth;
+    SetText("Text");
+    SetFont(&sFixedFont);
+
+    m_nRows = m_nHeight / (ROW_GAP+sFixedFont.wHeight+ROW_GAP);
+    m_nColumns = 80;
+
+    m_fEditing = false;
 
     // Allocate enough for a full screen of characters
-    m_pszData = new char[m_uRows * m_uColumns + 1];
+    m_pszData = new char[m_nRows * m_nColumns + 1];
 }
 
-void CTextView::SetAddress (CAddr addr_, bool fForceTop_)
+void CTxtView::SetAddress (WORD wAddr_, bool fForceTop_)
 {
-    m_addr = addr_;
+    CView::SetAddress(wAddr_);
 
     char* psz = m_pszData;
-    for (UINT u = 0 ; u < m_uRows ; u++)
+    for (int i = 0 ; i < m_nRows ; i++)
     {
-        s_aAddrs[u] = addr_;
-
-        memset(psz, ' ', m_uColumns);
-        psz += addr_.sprint(psz);
-        *psz++ = ' ';
+        memset(psz, ' ', m_nColumns);
+        psz += sprintf(psz, "%04X", wAddr_);
         *psz++ = ' ';
         *psz++ = ' ';
 
-        for (UINT v = 0 ; v < 32 ; v++)
+        for (int j = 0 ; j < 64 ; j++)
         {
-            BYTE b = *addr_++;
+            BYTE b = read_byte(wAddr_++);
             *psz++ = (b >= ' ' && b <= 0x7f) ? b : '.';
         }
 
@@ -822,21 +1920,42 @@ void CTextView::SetAddress (CAddr addr_, bool fForceTop_)
 }
 
 
-void CTextView::Draw (CScreen* pScreen_)
+void CTxtView::Draw (CScreen* pScreen_)
 {
-    pScreen_->SetFont(&sFixedFont);
+    int nHeight = ROW_GAP+sFixedFont.wHeight+ROW_GAP;
 
     UINT u = 0;
     for (char* psz = m_pszData ; *psz ; psz += strlen(psz)+1, u++)
     {
-        int nHeight = 2+sFixedFont.wHeight+2, nX = m_nX, nY = m_nY+(nHeight*u);
-        pScreen_->DrawString(nX, nY+2, psz, WHITE);
+        int nX = m_nX;
+        int nY = m_nY+(nHeight*u);
+        pScreen_->DrawString(nX, nY+ROW_GAP, psz, WHITE);
     }
 
-    pScreen_->SetFont(&sGUIFont);
+    if (m_fEditing)
+    {
+        WORD wOffset = m_wEditAddr - GetAddress();
+
+        BYTE b = read_byte(m_wEditAddr);
+        char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
+
+        int nRow = wOffset / TXT_COLUMNS;
+        int nCol = wOffset % TXT_COLUMNS;
+
+        if (nRow < m_nRows)
+        {
+            int nX = m_nX + (4 + 2 + nCol) * (sFixedFont.wWidth+CHAR_SPACING);
+            int nY = m_nY + nRow*nHeight + ROW_GAP;
+
+            pScreen_->FillRect(nX-1, nY-1, (sFixedFont.wWidth+CHAR_SPACING)+1, sFixedFont.wHeight+1, YELLOW_8);
+            pScreen_->DrawString(nX, nY, &ch, BLACK, false, 1);
+        }
+
+        pDebugger->SetStatusByte(m_wEditAddr);
+    }
 }
 
-bool CTextView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
+bool CTxtView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 {
     switch (nMessage_)
     {
@@ -850,9 +1969,13 @@ bool CTextView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-bool CTextView::cmdNavigate (int nKey_, int nMods_)
+bool CTxtView::cmdNavigate (int nKey_, int nMods_)
 {
-    CAddr addr = m_addr;
+    WORD wAddr = GetAddress();
+    WORD wEditAddr = m_wEditAddr;
+
+    bool fCtrl = (nMods_ & HM_CTRL) != 0;
+    bool fShift = (nMods_ & HM_SHIFT) != 0;
 
     switch (nKey_)
     {
@@ -860,88 +1983,191 @@ bool CTextView::cmdNavigate (int nKey_, int nMods_)
         case 't': case 'T':
             return true;
 
-        case HK_UP:     addr -= 32; break;
-        case HK_DOWN:   addr += 32; break;
-        case HK_LEFT:   addr--;     break;
-        case HK_RIGHT:  addr++;     break;
-        case HK_PGUP:   addr -= m_uRows*32; break;
-        case HK_PGDN:   addr += m_uRows*32; break;
+        case HK_ESC:
+        case HK_RETURN:
+            if (nKey_ == HK_ESC && !m_fEditing)
+                return false;
+
+            m_fEditing = !m_fEditing;
+            wEditAddr = wAddr;
+            pDebugger->SetStatus("");
+            break;
+
+        case HK_HOME:
+            wEditAddr = wAddr = fCtrl ? 0 : (fShift && m_fEditing) ? wEditAddr : PC;
+            break;
+
+        case HK_END:
+            wAddr = fCtrl ? (0 - m_nRows*TXT_COLUMNS) : PC;
+            wEditAddr = (fCtrl ? 0 : PC + m_nRows*TXT_COLUMNS) - 1;
+            break;
+
+        case HK_UP:
+            if (m_fEditing && !fCtrl)
+                wEditAddr -= TXT_COLUMNS;
+            else
+                wAddr -= TXT_COLUMNS;
+            break;
+
+        case HK_DOWN:
+            if (m_fEditing && !fCtrl)
+                wEditAddr += TXT_COLUMNS;
+            else
+                wAddr += TXT_COLUMNS;
+            break;
+
+        case HK_BACKSPACE:
+        case HK_LEFT:
+            if (m_fEditing && !fCtrl)
+                wEditAddr--;
+            else
+                wAddr--;
+            break;
+
+        case HK_RIGHT:
+            if (m_fEditing && !fCtrl)
+                wEditAddr++;
+            else
+                wAddr++;
+            break;
+
+        case HK_PGUP:
+            wAddr -= m_nRows*TXT_COLUMNS;
+            wEditAddr -= m_nRows*TXT_COLUMNS;
+            break;
+
+        case HK_PGDN:
+            wAddr += m_nRows*TXT_COLUMNS;
+            wEditAddr += m_nRows*TXT_COLUMNS;
+            break;
 
         default:
+        {
+            // In editing mode allow new hex values to be typed
+            if (m_fEditing && nKey_ >= ' ' && nKey_ <= 0x7f)
+            {
+                write_byte(wEditAddr, nKey_);
+                wEditAddr++;
+                break;
+            }
+
             return false;
+        }
     }
 
-    SetAddress(addr);
+    if (m_fEditing)
+    {
+        if (wEditAddr != wAddr && static_cast<WORD>(wAddr-wEditAddr) <= TXT_COLUMNS)
+            wAddr -= TXT_COLUMNS;
+        else if (static_cast<WORD>(wEditAddr-wAddr) >= m_nRows*TXT_COLUMNS)
+            wAddr += TXT_COLUMNS;
+
+        if (m_wEditAddr != wEditAddr)
+            m_wEditAddr = wEditAddr;
+    }
+
+    SetAddress(wAddr);
     return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CAddr CNumView::s_aAddrs[64];
+static const UINT HEX_COLUMNS = 16;
 
-CNumView::CNumView (CWindow* pParent_)
+CHexView::CHexView (CWindow* pParent_)
     : CView(pParent_)
 {
-    m_uRows = m_nHeight / (2+sFixedFont.wHeight+2);
-    m_uColumns = m_nWidth / sFixedFont.wWidth;
+    SetText("Numeric");
+    SetFont(&sFixedFont);
+
+    m_nRows = m_nHeight / (ROW_GAP+sFixedFont.wHeight+ROW_GAP);
+    m_nColumns = 80;
+
+    m_fEditing = false;
 
     // Allocate enough for a full screen of characters, plus null terminators
-    m_pszData = new char[m_uRows * (m_uColumns+1) + 2];
-
+    m_pszData = new char[m_nRows * (m_nColumns+1) + 2];
 }
 
-void CNumView::SetAddress (CAddr addr_, bool fForceTop_)
+void CHexView::SetAddress (WORD wAddr_, bool fForceTop_)
 {
-    m_addr = addr_;
+    CView::SetAddress(wAddr_);
 
     char* psz = m_pszData;
-    for (UINT u = 0 ; u < m_uRows ; u++)
+    for (int i = 0 ; i < m_nRows ; i++)
     {
-        s_aAddrs[u] = addr_;
+        memset(psz, ' ', m_nColumns);
+        psz[m_nColumns-1] = '\0';
 
-        memset(psz, ' ', m_uColumns);
-        psz += addr_.sprint(psz);
-        *psz++ = ' ';
+        psz += sprintf(psz, "%04X", wAddr_);
+
         *psz++ = ' ';
         *psz++ = ' ';
 
-        for (UINT v = 0 ; v < 11 ; v++)
+        for (int j = 0 ; j < HEX_COLUMNS ; j++)
         {
-            BYTE b = *addr_++;
-            sprintf(psz, "%02X ", b);
-            psz[3] = ' ';
-            psz += 3;
+            BYTE b = read_byte(wAddr_++);
+            psz[(HEX_COLUMNS-j)*3 + 1 + j] = (b >= ' ' && b <= 0x7f) ? b : '.';
+            psz += sprintf(psz, "%02X ", b);
+            *psz = ' ';
         }
 
-        // Replace the final space with a NULL
-        psz[-1] = '\0';
+        psz += strlen(psz) + 1;
     }
 
     *psz = '\0';
+
+    if (m_fEditing)
+        pDebugger->SetStatusByte(m_wEditAddr);
 }
 
 
-void CNumView::Draw (CScreen* pScreen_)
+void CHexView::Draw (CScreen* pScreen_)
 {
-    pScreen_->SetFont(&sFixedFont);
-
     UINT u = 0;
     for (char* psz = m_pszData ; *psz ; psz += strlen(psz)+1, u++)
     {
-        int nHeight = sFixedFont.wHeight+4, nX = m_nX, nY = m_nY+(nHeight*u);
-        pScreen_->DrawString(nX, nY+2, psz, WHITE);
+        int nHeight = sFixedFont.wHeight + 4;
+        int nX = m_nX;
+        int nY = m_nY + 2 + (nHeight*u);
+
+        pScreen_->DrawString(nX, nY, psz, WHITE);
     }
 
-    pScreen_->SetFont(&sGUIFont);
+    if (m_fEditing)
+    {
+        WORD wOffset = m_wEditAddr - GetAddress();
+
+        char sz[3];
+        BYTE b = read_byte(m_wEditAddr);
+        snprintf(sz, 3, "%02X", b);
+
+        int nRow = wOffset / HEX_COLUMNS;
+        int nCol = wOffset % HEX_COLUMNS;
+
+        if (nRow < m_nRows)
+        {
+            int nX = m_nX + (4 + 2 + nCol*3 + m_fRightNibble) * (sFixedFont.wWidth+CHAR_SPACING);
+            int nY = m_nY + nRow*(sFixedFont.wHeight+4) + 2;
+
+            pScreen_->FillRect(nX-1, nY-1, (sFixedFont.wWidth+CHAR_SPACING)+1, sFixedFont.wHeight+1, YELLOW_8);
+            pScreen_->DrawString(nX, nY, sz+m_fRightNibble, BLACK, false, 1);
+
+            nX = m_nX + (4 + 2 + HEX_COLUMNS*3 + 1 + nCol) * (sFixedFont.wWidth+CHAR_SPACING);
+            char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
+            pScreen_->FillRect(nX-1, nY-1, (sFixedFont.wWidth+CHAR_SPACING)+1, sFixedFont.wHeight+1, GREY_6);
+            pScreen_->DrawString(nX, nY, &ch, BLACK, false, 1);
+        }
+    }
 }
 
-bool CNumView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
+bool CHexView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 {
     switch (nMessage_)
     {
         case GM_CHAR:
             return cmdNavigate(nParam1_, nParam2_);
-            
+
         case GM_MOUSEWHEEL:
             return cmdNavigate((nParam1_ < 0) ? HK_UP : HK_DOWN, 0);
     }
@@ -949,9 +2175,13 @@ bool CNumView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-bool CNumView::cmdNavigate (int nKey_, int nMods_)
+bool CHexView::cmdNavigate (int nKey_, int nMods_)
 {
-    CAddr addr = m_addr;
+    WORD wAddr = GetAddress();
+    WORD wEditAddr = m_wEditAddr;
+
+    bool fCtrl = (nMods_ & HM_CTRL) != 0;
+    bool fShift = (nMods_ & HM_SHIFT) != 0;
 
     switch (nKey_)
     {
@@ -959,18 +2189,109 @@ bool CNumView::cmdNavigate (int nKey_, int nMods_)
         case 'n': case 'N':
             return true;
 
-        case HK_UP:     addr -= 11; break;
-        case HK_DOWN:   addr += 11; break;
-        case HK_LEFT:   addr--;     break;
-        case HK_RIGHT:  addr++;     break;
-        case HK_PGUP:   addr -= m_uRows*11; break;
-        case HK_PGDN:   addr += m_uRows*11; break;
+        case HK_ESC:
+        case HK_RETURN:
+            if (nKey_ == HK_ESC && !m_fEditing)
+                return false;
+
+            m_fEditing = !m_fEditing;
+            wEditAddr = wAddr;
+            m_fRightNibble = false;
+            pDebugger->SetStatus("");
+            break;
+
+        case HK_HOME:
+            wEditAddr = wAddr = fCtrl ? 0 : (fShift && m_fEditing) ? wEditAddr : PC;
+            break;
+
+        case HK_END:
+            wAddr = fCtrl ? (0 - m_nRows*HEX_COLUMNS) : PC;
+            wEditAddr = (fCtrl ? 0 : PC + m_nRows*HEX_COLUMNS) - 1;
+            break;
+
+        case HK_UP:
+            if (m_fEditing && !fCtrl)
+                wEditAddr -= HEX_COLUMNS;
+            else
+                wAddr -= HEX_COLUMNS;
+            break;
+
+        case HK_DOWN:
+            if (m_fEditing && !fCtrl)
+                wEditAddr += HEX_COLUMNS;
+            else
+                wAddr += HEX_COLUMNS;
+            break;
+
+        case HK_BACKSPACE:
+        case HK_LEFT:
+            if (m_fRightNibble)
+                m_fRightNibble = false;
+            else if (m_fEditing && !fCtrl)
+                wEditAddr--;
+            else
+                wAddr--;
+            break;
+
+        case HK_RIGHT:
+            if (m_fEditing && !fCtrl)
+                wEditAddr++;
+            else
+                wAddr++;
+            break;
+
+        case HK_PGUP:
+            wAddr -= m_nRows*HEX_COLUMNS;
+            wEditAddr -= m_nRows*HEX_COLUMNS;
+            break;
+
+        case HK_PGDN:
+            wAddr += m_nRows*HEX_COLUMNS;
+            wEditAddr += m_nRows*HEX_COLUMNS;
+            break;
 
         default:
+        {
+            // In editing mode allow new hex values to be typed
+            if (m_fEditing && isxdigit(nKey_))
+            {
+                BYTE bNibble = isdigit(nKey_) ? nKey_-'0' : 10+tolower(nKey_)-'a';
+
+                // Modify using the new nibble
+                if (m_fRightNibble)
+                    write_byte(wEditAddr, (read_byte(wEditAddr)&0xf0) | bNibble);
+                else
+                    write_byte(wEditAddr, (read_byte(wEditAddr)&0x0f) | (bNibble << 4));
+
+                // Change nibble
+                m_fRightNibble = !m_fRightNibble;
+
+                // Advance to next byte if we've just completed one
+                if (!m_fRightNibble)
+                    wEditAddr++;
+
+                break;
+            }
+
             return false;
+        }
     }
 
-    SetAddress(addr, true);
+    if (m_fEditing)
+    {
+        if (wEditAddr != wAddr && static_cast<WORD>(wAddr-wEditAddr) <= HEX_COLUMNS)
+            wAddr -= HEX_COLUMNS;
+        else if (static_cast<WORD>(wEditAddr-wAddr) >= m_nRows*HEX_COLUMNS)
+            wAddr += HEX_COLUMNS;
+
+        if (m_wEditAddr != wEditAddr)
+        {
+            m_wEditAddr = wEditAddr;
+            m_fRightNibble = false;
+        }
+    }
+
+    SetAddress(wAddr);
     return true;
 }
 
@@ -1017,27 +2338,33 @@ void CMemView::Draw (CScreen* pScreen_)
 // Graphics View
 
 static const UINT STRIP_GAP = 8;
-UINT CGraphicsView::s_uMode = 4, CGraphicsView::s_uWidth = 8, CGraphicsView::s_uZoom = 1;
+UINT CGfxView::s_uMode = 4, CGfxView::s_uWidth = 8, CGfxView::s_uZoom = 1;
 
-CGraphicsView::CGraphicsView (CWindow* pParent_)
-    : CView(pParent_)
+CGfxView::CGfxView (CWindow* pParent_)
+    : CView(pParent_), m_fGrid(true)
 {
+    SetText("Graphics");
+    SetFont(&sFixedFont);
+
     // Allocate enough space for a double-width window, at 1 byte per pixel
     m_pbData = new BYTE[m_nWidth*m_nHeight*2];
+
+    // Start with the current video mode
+    s_uMode = ((vmpr & VMPR_MODE_MASK) >> 5) + 1;
 }
 
-void CGraphicsView::SetAddress (CAddr addr_, bool fForceTop_)
+void CGfxView::SetAddress (WORD wAddr_, bool fForceTop_)
 {
-    static UINT auPPB[] = { 8, 8, 2, 2 };   // Pixels Per Byte in each mode
+    static const UINT auPPB[] = { 8, 8, 2, 2 };   // Pixels Per Byte in each mode
 
-    m_addr = addr_;
+    CView::SetAddress(wAddr_);
 
     m_uStripWidth = s_uWidth * s_uZoom * auPPB[s_uMode-1];
     m_uStripLines = m_nHeight / s_uZoom;
-    m_uStrips = (m_nWidth+STRIP_GAP + m_uStripWidth+STRIP_GAP-1) / (m_uStripWidth + STRIP_GAP);
+    m_uStrips = (m_nWidth+STRIP_GAP + m_uStripWidth+STRIP_GAP-1) / (m_uStripWidth+STRIP_GAP);
 
     BYTE* pb = m_pbData;
-    for (UINT u = 0 ; u < (m_uStrips*m_uStripLines) ; u++)
+    for (UINT u = 0 ; u < ((m_uStrips+1)*m_uStripLines) ; u++)
     {
         switch (s_uMode)
         {
@@ -1046,16 +2373,20 @@ void CGraphicsView::SetAddress (CAddr addr_, bool fForceTop_)
             {
                 for (UINT v = 0 ; v < s_uWidth ; v++)
                 {
-                    BYTE b = *addr_++;
+                    BYTE b = read_byte(wAddr_++);
 
-                    memset(pb, (b & 0x80) ? WHITE : BLACK, s_uZoom); pb += s_uZoom;
-                    memset(pb, (b & 0x40) ? WHITE : BLACK, s_uZoom); pb += s_uZoom;
-                    memset(pb, (b & 0x20) ? WHITE : BLACK, s_uZoom); pb += s_uZoom;
-                    memset(pb, (b & 0x10) ? WHITE : BLACK, s_uZoom); pb += s_uZoom;
-                    memset(pb, (b & 0x08) ? WHITE : BLACK, s_uZoom); pb += s_uZoom;
-                    memset(pb, (b & 0x04) ? WHITE : BLACK, s_uZoom); pb += s_uZoom;
-                    memset(pb, (b & 0x02) ? WHITE : BLACK, s_uZoom); pb += s_uZoom;
-                    memset(pb, (b & 0x01) ? WHITE : BLACK, s_uZoom); pb += s_uZoom;
+                    BYTE bGridBg = m_fGrid ? BLUE_1 : BLACK;
+                    BYTE bBg0 = (u&1)? BLACK :bGridBg;
+                    BYTE bBg1 = (u&1)? bGridBg :BLACK;
+
+                    memset(pb, (b & 0x80) ? WHITE : bBg0, s_uZoom); pb += s_uZoom;
+                    memset(pb, (b & 0x40) ? WHITE : bBg1, s_uZoom); pb += s_uZoom;
+                    memset(pb, (b & 0x20) ? WHITE : bBg0, s_uZoom); pb += s_uZoom;
+                    memset(pb, (b & 0x10) ? WHITE : bBg1, s_uZoom); pb += s_uZoom;
+                    memset(pb, (b & 0x08) ? WHITE : bBg0, s_uZoom); pb += s_uZoom;
+                    memset(pb, (b & 0x04) ? WHITE : bBg1, s_uZoom); pb += s_uZoom;
+                    memset(pb, (b & 0x02) ? WHITE : bBg0, s_uZoom); pb += s_uZoom;
+                    memset(pb, (b & 0x01) ? WHITE : bBg1, s_uZoom); pb += s_uZoom;
                 }
                 break;
             }
@@ -1064,7 +2395,7 @@ void CGraphicsView::SetAddress (CAddr addr_, bool fForceTop_)
             {
                 for (UINT v = 0 ; v < s_uWidth ; v++)
                 {
-                    BYTE b = *addr_++;
+                    BYTE b = read_byte(wAddr_++);
 
                     // To keep things simple, draw only the odd pixels
                     memset(pb, mode3clut[(b & 0x30) >> 4], s_uZoom); pb += s_uZoom;
@@ -1077,7 +2408,7 @@ void CGraphicsView::SetAddress (CAddr addr_, bool fForceTop_)
             {
                 for (UINT v = 0 ; v < s_uWidth ; v++)
                 {
-                    BYTE b = *addr_++;
+                    BYTE b = read_byte(wAddr_++);
 
                     memset(pb, clut[b >> 4],  s_uZoom); pb += s_uZoom;
                     memset(pb, clut[b & 0xf], s_uZoom); pb += s_uZoom;
@@ -1086,19 +2417,24 @@ void CGraphicsView::SetAddress (CAddr addr_, bool fForceTop_)
             }
         }
     }
+
+    char sz[128]={};
+    snprintf(sz, sizeof(sz)-1, "%04X  Mode %u  Width %u  Zoom %ux", GetAddress(), s_uMode, s_uWidth, s_uZoom);
+    pDebugger->SetStatus(sz, WHITE, &sFixedFont);
+
 }
 
-void CGraphicsView::Draw (CScreen* pScreen_)
+void CGfxView::Draw (CScreen* pScreen_)
 {
     // Clip to the client area to prevent partial strips escaping
     pScreen_->SetClip(m_nX, m_nY, m_nWidth, m_nHeight);
-    pScreen_->SetFont(&sFixedFont);
 
     BYTE* pb = m_pbData;
 
-    for (UINT u = 0 ; u < m_uStrips ; u++)
+    for (UINT u = 0 ; u < m_uStrips+1 ; u++)
     {
-        int nX = m_nX + u*(m_uStripWidth+STRIP_GAP), nY = m_nY;
+        int nX = m_nX + u*(m_uStripWidth+STRIP_GAP);
+        int nY = m_nY;
 
         for (UINT v = 0 ; v < m_uStripLines ; v++, pb += m_uStripWidth)
         {
@@ -1109,11 +2445,10 @@ void CGraphicsView::Draw (CScreen* pScreen_)
         }
     }
 
-    pScreen_->SetFont(&sGUIFont);
     pScreen_->SetClip();
 }
 
-bool CGraphicsView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
+bool CGfxView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 {
     switch (nMessage_)
     {
@@ -1127,455 +2462,207 @@ bool CGraphicsView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-bool CGraphicsView::cmdNavigate (int nKey_, int nMods_)
+bool CGfxView::cmdNavigate (int nKey_, int nMods_)
 {
-    CAddr addr = m_addr;
+    WORD wAddr = GetAddress();
+    bool fCtrl = (nMods_ & HM_CTRL) != 0;
 
     switch (nKey_)
     {
-        // Eat requests to select the same view
-        case 'g': case 'G':
-            return true;
-
         // Keys 1 to 4 select the screen mode
         case '1': case '2': case '3': case '4':
             s_uMode = nKey_-'0';
             if (s_uMode < 3 && s_uWidth > 32U) s_uWidth = 32U;  // Clip width in modes 1+2
             break;
 
+        // Toggle grid view in modes 1+2
+        case 'g': case 'G':
+            m_fGrid = !m_fGrid;
+            break;
+
+        case HK_HOME:
+            wAddr = fCtrl ? 0 : PC;
+            break;
+
+        case HK_END:
+            wAddr = fCtrl ? (static_cast<WORD>(0) - m_uStrips * m_uStripLines * s_uWidth) : PC;
+            break;
+
         case HK_UP:
-            if (!nMods_)
-                addr -= s_uWidth;
+            if (!fCtrl)
+                wAddr -= s_uWidth;
             else if (s_uZoom < 16)
                 s_uZoom++;
             break;
 
         case HK_DOWN:
-            if (!nMods_)
-                addr += s_uWidth;
+            if (!fCtrl)
+                wAddr += s_uWidth;
             else if (s_uZoom > 1)
                 s_uZoom--;
             break;
 
         case HK_LEFT:
-            if (!nMods_)
-                addr--;
+            if (!fCtrl)
+                wAddr--;
             else if (s_uWidth > 1)
                 s_uWidth--;
             break;
 
         case HK_RIGHT:
-            if (!nMods_)
-                addr++;
-            else if (s_uWidth < ((s_uMode < 3) ? 32U : 128U))   // Restrict width to mode limit
+            if (!fCtrl)
+                wAddr++;
+            else if (s_uWidth < ((s_uMode < 3) ? 32U : 128U))   // Restrict byte width to mode limit
                 s_uWidth++;
             break;
 
         case HK_PGUP:
-            if (!nMods_)
-                addr -= m_uStripLines * s_uWidth;
+            if (!fCtrl)
+                wAddr -= m_uStrips * m_uStripLines * s_uWidth;
             else
-                addr -= m_uStrips * m_uStripLines * s_uWidth;
+                wAddr -= m_uStripLines * s_uWidth;
             break;
 
         case HK_PGDN:
-            if (!nMods_)
-                addr += m_uStripLines * s_uWidth;
+            if (!fCtrl)
+                wAddr += m_uStrips * m_uStripLines * s_uWidth;
             else
-                addr += m_uStrips * m_uStripLines * s_uWidth;
+                wAddr += m_uStripLines * s_uWidth;
             break;
 
         default:
             return false;
     }
 
-    SetAddress(addr, true);
+    SetAddress(wAddr, true);
     return true;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-CRegisterPanel::CRegisterPanel (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
-    : CWindow(pParent_, nX_, nY_, nWidth_, nHeight_)
-{
-}
-
-void CRegisterPanel::Draw (CScreen* pScreen_)
-{
-    char sz[32];
-
-    pScreen_->SetFont(&sFixedFont);
-
-    pScreen_->DrawString(m_nX, m_nY+00,  "AF       AF'", GREEN_8);
-    pScreen_->DrawString(m_nX, m_nY+12,  "BC       BC'", GREEN_8);
-    pScreen_->DrawString(m_nX, m_nY+24,  "DE       DE'", GREEN_8);
-    pScreen_->DrawString(m_nX, m_nY+36,  "HL       HL'", GREEN_8);
-    pScreen_->DrawString(m_nX, m_nY+52,  "IX       IY",  GREEN_8);
-    pScreen_->DrawString(m_nX, m_nY+64,  "PC       SP",  GREEN_8);
-    pScreen_->DrawString(m_nX, m_nY+80,  "I        R",   GREEN_8);
-    pScreen_->DrawString(m_nX, m_nY+92,  "IM",   GREEN_8);
-
-#define ShowReg(buf,fmt,dx,dy,reg)  \
-{   \
-    sprintf(buf, fmt, regs.reg); \
-    pScreen_->DrawString(m_nX+dx, m_nY+dy, buf, (regs.reg != sLastRegs.reg) ? RED_8 : WHITE);  \
-}
-
-    ShowReg(sz, "%02X", 18,  0, af.b.h); ShowReg(sz, "%02X", 30,  0, af.b.l);
-    ShowReg(sz, "%02X", 18, 12, bc.b.h); ShowReg(sz, "%02X", 30, 12, bc.b.l);
-    ShowReg(sz, "%02X", 18, 24, de.b.h); ShowReg(sz, "%02X", 30, 24, de.b.l);
-    ShowReg(sz, "%02X", 18, 36, hl.b.h); ShowReg(sz, "%02X", 30, 36, hl.b.l);
-    ShowReg(sz, "%02X", 18, 52, ix.b.h); ShowReg(sz, "%02X", 30, 52, ix.b.l);
-    ShowReg(sz, "%02X", 18, 64, pc.b.h); ShowReg(sz, "%02X", 30, 64, pc.b.l);
-    ShowReg(sz, "%02X", 18, 80, i);      ShowReg(sz, "%02X", 72, 80, r);
-
-    ShowReg(sz, "%02X", 72,  0, af_.b.h); ShowReg(sz, "%02X", 84,  0, af_.b.l);
-    ShowReg(sz, "%02X", 72, 12, bc_.b.h); ShowReg(sz, "%02X", 84, 12, bc_.b.l);
-    ShowReg(sz, "%02X", 72, 24, de_.b.h); ShowReg(sz, "%02X", 84, 24, de_.b.l);
-    ShowReg(sz, "%02X", 72, 36, hl_.b.h); ShowReg(sz, "%02X", 84, 36, hl_.b.l);
-    ShowReg(sz, "%02X", 72, 52, iy.b.h);  ShowReg(sz, "%02X", 84, 52, iy.b.l);
-    ShowReg(sz, "%02X", 72, 64, sp.b.h);  ShowReg(sz, "%02X", 84, 64, sp.b.l);
-
-    sprintf(sz, "%d", IM);                 pScreen_->DrawString(m_nX+18, m_nY+92, sz, RegCol(IM, sLastRegs.im));
-    sprintf(sz, "%s", IFF1 ? "EI" : "DI"); pScreen_->DrawString(m_nX+36, m_nY+92, sz, RegCol(IFF1, sLastRegs.iff1));
-
-    static char szSet2[] = "-----", szReset2[] = "OFIML";
-    char szFlags2[] = "        \0        ", bDiff2 = status_reg ^ bLastStatus;
-    for (int j = 0 ; j < 5 ; j++)
-    {
-        BYTE bBit = 1 << (4-j);
-        szFlags2[j + ((bDiff2 & bBit) ? 9 : 0)] = szReset2[j] ^ ((status_reg & bBit) ? (szReset2[j] ^ szSet2[j]) : 0);
-    }
-    pScreen_->DrawString(m_nX+60, m_nY+92, szFlags2, WHITE);
-    pScreen_->DrawString(m_nX+60, m_nY+92, szFlags2+9, RegCol(1,0));
-
-
-    pScreen_->DrawString(m_nX, m_nY+108, "Flags:", GREEN_8);
-    static char szSet[] = "SZ5H3VNC", szReset[] = "--------";
-    char szFlags[] = "        \0        ", bDiff = F ^ sLastRegs.af.b.l;
-    for (int i = 0 ; i < 8 ; i++)
-    {
-        BYTE bBit = 1 << (7-i);
-        szFlags[i + ((bDiff & bBit) ? 9 : 0)] = szReset[i] ^ ((F & bBit) ? (szReset[i] ^ szSet[i]) : 0);
-    }
-    pScreen_->DrawString(m_nX+45, m_nY+108, szFlags, WHITE);
-    pScreen_->DrawString(m_nX+45, m_nY+108, szFlags+9, RegCol(1,0));
-
-    pScreen_->DrawString(m_nX, m_nY+136, "ROM0", (lmpr&LMPR_ROM0_OFF)?GREY_3:WHITE);
-    pScreen_->DrawString(m_nX, m_nY+136, "      ROM1", (lmpr&LMPR_ROM1)?WHITE:GREY_3);
-    pScreen_->DrawString(m_nX, m_nY+136, "            WPROT", (lmpr&LMPR_WPROT)?WHITE:GREY_3);
-
-    pScreen_->DrawString(m_nX, m_nY+148, "L:    H:    V:", GREEN_8);
-    sprintf(sz, "  %02d    %02d    %02d", lmpr&0x1f, hmpr&0x1f, vmpr&0x1f);
-    pScreen_->DrawString(m_nX, m_nY+148, sz, WHITE);
-
-    pScreen_->DrawString(m_nX, m_nY+160, "LE:   HE:   M:", GREEN_8);
-    sprintf(sz, "   %02d    %02d   %01d", lepr&0x1f, hepr&0x1f, ((vmpr&VMPR_MODE_MASK)>>5)+1);
-    pScreen_->DrawString(m_nX, m_nY+160, sz, WHITE);
-
-    int nLine = (g_dwCycleCounter < BORDER_PIXELS) ? HEIGHT_LINES-1 : (g_dwCycleCounter-BORDER_PIXELS) / TSTATES_PER_LINE;
-    int nLineCycle = (g_dwCycleCounter + TSTATES_PER_LINE - BORDER_PIXELS) % TSTATES_PER_LINE;
-
-    pScreen_->DrawString(m_nX, m_nY+176, "Scan:", GREEN_8);
-    sprintf(sz, "%03d:%03d", nLine, nLineCycle);
-    pScreen_->DrawString(m_nX+36, m_nY+176, sz, RegCol(1,0));
-
-    DWORD dwCycleDiff = ((nLastFrames*TSTATES_PER_FRAME)+g_dwCycleCounter)-dwLastCycle;
-    pScreen_->DrawString(m_nX, m_nY+188, "T-diff:", GREEN_8);
-    sprintf(sz, "%u", dwCycleDiff);
-    pScreen_->DrawString(m_nX+44, m_nY+188, sz, WHITE);
-
-    pScreen_->DrawString(m_nX, m_nY+200, "T-states:", GREEN_8);     // Change back to T-diff!
-    sprintf(sz, "%u", g_dwCycleCounter);
-    pScreen_->DrawString(m_nX+58, m_nY+200, sz, WHITE);
-
-    pScreen_->SetFont(&sGUIFont);
-}
 
 ////////////////////////////////////////////////////////////////////////////////
-/*
-void CCommande::Execute (const char* pcszCommand_)
+// Breakpoint View
+
+CBptView::CBptView (CWindow* pParent_)
+    : CView(pParent_)
 {
-    char szCommand[128], *pszCommand = strtok(strcpy(szCommand, pcszCommand_), " "), *psz;
-    EXPR* pReg = NULL;
+    SetText("Breakpoints");
+    SetFont(&sFixedFont);
 
-    if (!pszCommand)
-        return;
+    m_nRows = (m_nHeight / (ROW_GAP+sFixedFont.wHeight+ROW_GAP)) - 1;
 
-    if (!strcasecmp(pszCommand, "x"))
-    {
-        pszCommand += 1+strlen(pszCommand);
+    // Allocate enough for a full screen of characters, plus null terminators
+    m_pszData = new char[m_nRows*81 + 2];
+    m_pszData[0] = '\0';
 
-        if (*pszCommand && (pReg = Expr::Compile(pszCommand)))
-        {
-            Expr::nCount = Expr::Eval(pReg);
-            Break.pExpr = &Expr::Counter;
-            Debug::Stop();
-        }
-        else if (!(psz = strtok(NULL, " ")))
-            Debug::Stop();
-        else if (!strcasecmp(psz, "until"))
-        {
-            if ((Break.pExpr = Expr::Compile(psz+1+strlen(psz))))
-                Debug::Stop();
-        }
-    }
-    else if (!strcasecmp(pszCommand, "g"))
-    {
-        if ((pReg = Expr::Compile(pszCommand+1+strlen(pszCommand))))
-        {
-            Break.pAddr = phys_read_addr(Expr::Eval(pReg));
-            Debug::Stop();
-        }
-    }
-    else if (!strcasecmp(pszCommand, "im"))
-    {
-        if ((pReg = Expr::Compile(pszCommand+1+strlen(pszCommand))))
-        {
-            WORD wMode = Expr::Eval(pReg);
-
-            if (wMode <= 2)
-                IM = wMode & 0xff;
-        }
-    }
-    else if (!strcasecmp(pszCommand, "di") && !(psz = strtok(NULL, " ")))
-        IFF1 = 0;
-    else if (!strcasecmp(pszCommand, "ei") && !(psz = strtok(NULL, " ")))
-        IFF1 = 1;
-    else if (!strcasecmp(pszCommand, "exit"))
-    {
-        // EI, IM 1, force NMI (super-break)
-        IFF1 = 1;
-        IM = 1;
-        PC = NMI_INTERRUPT_HANDLER;
-
-        // Set up SAM BASIC paging
-        IO::Out(LMPR_PORT, 0x1f);
-        IO::Out(HMPR_PORT, 0x01);
-
-        Debug::Stop();
-    }
-    else if (!strcasecmp(pszCommand, "exx"))
-    {
-        // EXX
-        swap(BC, BC_);
-        swap(DE, DE_);
-        swap(HL, HL_);
-    }
-    else if (!strcasecmp(pszCommand, "ex"))
-    {
-        // EX AF,AF' ?
-        if ((psz = strtok(NULL, " ,")) && !strcasecmp(psz, "af") &&
-            (psz = strtok(NULL, " '"))  && !strcasecmp(psz, "af") &&
-            !(psz = strtok(NULL, " ")))
-        {
-            swap(AF, AF_);
-        }
-    }
-    else if (!strcasecmp(pszCommand, "u"))
-    {
-        if ((psz = strtok(NULL, " ,=")))
-        {
-            if ((pReg = Expr::Compile(psz, &psz)))
-            {
-                WORD wAddr = Expr::Eval(pReg);
-                m_pView->SetAddress(wAddr, true);
-            }
-        }
-    }
-    else if (!strcasecmp(pszCommand, "r") || !strcasecmp(pszCommand, "ld"))
-    {
-        if ((psz = strtok(NULL, " ,=")))
-        {
-            EXPR* pReg = Expr::Compile(psz);
-
-            if (pReg && pReg->nType == T_REGISTER && !pReg->pNext)
-            {
-                int nReg = pReg->nValue;
-                Expr::Release(pReg);
-
-                if ((pReg = Expr::Compile(psz+1+strlen(psz))))
-                {
-                    WORD w = Expr::Eval(pReg);
-                    BYTE b = w & 0xff;
-
-                    switch (nReg)
-                    {
-                        case REG_A:      A = b; break;
-                        case REG_F:      F = b; break;
-                        case REG_B:      B = b; break;
-                        case REG_C:      C = b; break;
-                        case REG_D:      D = b; break;
-                        case REG_E:      E = b; break;
-                        case REG_H:      H = b; break;
-                        case REG_L:      L = b; break;
-                        case REG_ALT_A:  A_ = b; break;
-                        case REG_ALT_F:  F_ = b; break;
-                        case REG_ALT_B:  B_ = b; break;
-                        case REG_ALT_C:  C_ = b; break;
-                        case REG_ALT_D:  D_ = b; break;
-                        case REG_ALT_E:  E_ = b; break;
-                        case REG_ALT_H:  H_ = b; break;
-                        case REG_ALT_L:  L_ = b; break;
-
-                        case REG_AF:     AF  = w; break;
-                        case REG_BC:     BC  = w; break;
-                        case REG_DE:     DE  = w; break;
-                        case REG_HL:     HL  = w; break;
-                        case REG_ALT_AF: AF_ = w; break;
-                        case REG_ALT_BC: BC_ = w; break;
-                        case REG_ALT_DE: DE_ = w; break;
-                        case REG_ALT_HL: HL_ = w; break;
-
-                        case REG_IX:     IX = w; break;
-                        case REG_IY:     IY = w; break;
-                        case REG_SP:     SP = w; break;
-                        case REG_PC:     PC = w; break;
-
-                        case REG_IXH:    IXH = b; break;
-                        case REG_IXL:    IXL = b; break;
-                        case REG_IYH:    IYH = b; break;
-                        case REG_IYL:    IYL = b; break;
-
-                        case REG_I:      I = b; break;
-                        case REG_R:      R7 = R = b; break;
-                        case REG_IFF1:   IFF1 = !!b; break;
-                        case REG_IFF2:   IFF2 = !!b; break;
-                        case REG_IM:     if (b <= 2) IM = b; break;
-                    }
-                }
-            }
-        }
-    }
-
-    Expr::Release(pReg);
-}
-*/
-
-// Find the longest instruction that ends before a given address
-CAddr GetPrevInstruction (CAddr addr_)
-{
-    // Start 4 bytes back as that's the longest instruction length
-    for (UINT u = 4 ; u ; u--)
-    {
-        CAddr a = addr_ - u;
-        BYTE ab[] = { a[0], a[1], a[2], a[3] };
-
-        // Check that the instruction length leads to the required address
-        if (a+Disassemble(ab) == addr_)
-            return a;
-    }
-
-    // No match found, so return 1 byte back instead
-    return addr_-1;
+    m_nLines = m_nTopLine = 0;
 }
 
-bool IsExecBreakpoint (CAddr addr_)
+void CBptView::SetAddress (WORD wAddr_, bool fForceTop_)
 {
-    BYTE* pPhys = addr_.GetPhys();
+    CView::SetAddress(wAddr_);
 
-    for (BREAKPT* p = pExecBreaks ; p ; p = p->pNext)
-        if (p->pAddr == pPhys)
-            return true;
+    char *psz = m_pszData;
 
+    if (!Breakpoint::IsSet())
+        psz += sprintf(psz, "No breakpoints") + 1;
+    else
+    {
+        int i = 0;
+
+        m_nLines = 0;
+        m_nActive = -1;
+
+        for (BREAKPT *p = NULL ; (p = Breakpoint::GetAt(i)) ; i++, m_nLines++)
+        {
+            psz += sprintf(psz, "%2d: %s", i, Breakpoint::GetDesc(p)) + 1;
+
+            // Check if we're on an execution breakpoint (ignoring condition)
+            BYTE* pPhys = AddrReadPtr(PC);
+            if (p->nType == btExecute && p->Exec.pPhysAddr == pPhys)
+                m_nActive = i;
+        }
+    }
+
+    // Double null to terminate text
+    *psz++ = '\0';
+}
+
+
+void CBptView::Draw (CScreen* pScreen_)
+{
+    int i;
+    char *psz = m_pszData;
+
+    for (i = 0 ; i < m_nTopLine && *psz ; i++)
+        psz += strlen(psz)+1;
+
+    for (i = 0 ; i < m_nRows && *psz ; i++)
+    {
+        int nHeight = ROW_GAP+sFixedFont.wHeight+ROW_GAP;
+        int nX = m_nX + 2;
+        int nY = m_nY + 4 + i*nHeight;
+
+        BREAKPT *pBreak = Breakpoint::GetAt(m_nTopLine+i);
+        BYTE bColour = (i==m_nActive) ? CYAN_8 : (pBreak && !pBreak->fEnabled) ? GREY_4 : WHITE;
+        pScreen_->DrawString(nX, nY, psz, bColour);
+        psz += strlen(psz)+1;
+    }
+
+    CDisView::DrawRegisterPanel(pScreen_, m_nX+m_nWidth-6*16, m_nY);
+}
+
+bool CBptView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
+{
+    switch (nMessage_)
+    {
+        case GM_BUTTONDBLCLK:
+        {
+            int nHeight = ROW_GAP+sFixedFont.wHeight+ROW_GAP;
+            int nIndex = (nParam2_ - m_nY) / nHeight;
+
+            if (IsOver() && nIndex >= 0 && nIndex < m_nLines)
+            {
+                BREAKPT *pBreak = Breakpoint::GetAt(nIndex);
+                pBreak->fEnabled = !pBreak->fEnabled;
+            }
+            break;
+        }
+
+        case GM_CHAR:
+            return cmdNavigate(nParam1_, nParam2_);
+            
+        case GM_MOUSEWHEEL:
+            return cmdNavigate((nParam1_ < 0) ? HK_UP : HK_DOWN, 0);
+    }
+    
     return false;
 }
 
-void ToggleBreakpoint (CAddr addr_)
+bool CBptView::cmdNavigate (int nKey_, int nMods_)
 {
-    BYTE* pPhys = addr_.GetPhys();
-
-    for (BREAKPT *p = pExecBreaks, *pPrev=NULL ; p ; pPrev=p, p=p->pNext)
+    switch (nKey_)
     {
-        // Check for an existing breakpoint with the same address
-        if (p->pAddr == pPhys)
-        {
-            // Unlink it from the chain
-            if (pPrev)
-                pPrev->pNext = p->pNext;
-            else
-                pExecBreaks = p->pNext;
+        // Eat requests to select the same view
+        case 'b': case 'B':
+            return true;
 
-            // Delete the structure
-            delete p;
-            return;
-        }
+        case HK_HOME:   m_nTopLine = 0; break;
+        case HK_END:    m_nTopLine = m_nLines; break;
+
+        case HK_UP:     m_nTopLine--; break;
+        case HK_DOWN:   m_nTopLine++; break;
+
+        case HK_PGUP:   m_nTopLine -= m_nRows; break;
+        case HK_PGDN:   m_nTopLine += m_nRows; break;
+
+        default:
+            return false;
     }
 
-    // Add a new execution breakpoint for the supplied address
-    BREAKPT* pNew = new BREAKPT;
-    pNew->pAddr = pPhys;
-    pNew->pExpr = NULL;
-    pNew->pNext = pExecBreaks;
-    pExecBreaks = pNew;
-}
+    if (m_nTopLine < 0)
+        m_nTopLine = 0;
+    else if (m_nTopLine > m_nLines-m_nRows)
+        m_nTopLine = m_nLines-m_nRows;
 
-////////////////////////////////////////////////////////////////////////////////
-
-void cmdStep (int nCount_/*=1*/)
-{
-    BYTE bOpcode;
-    WORD wPC;
-
-    // Skip any index prefixes on the instruction to reach the real opcode or a CD/ED prefix
-    for (wPC = PC ; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX) ; wPC++);
-
-    // Stepping into a HALT (with interrupt enabled) will enter the appropriate interrupt handler
-    // This is much friendlier than single-stepping NOPs up to the next interrupt!
-    if (bOpcode == OP_HALT && IFF1)
-    {
-        // For IM 2, form the address of the handler and break there
-        if (IM == 2)
-            Break.pAddr = phys_read_addr(read_word((I << 8) | 0xff));
-
-        // IM 0 and IM1 both use the handler at 0x0038
-        else
-            Break.pAddr = phys_read_addr(IM1_INTERRUPT_HANDLER);
-    }
-
-    // If an address hasn't been set, execute the requested number of instructions
-    if (!Break.pAddr)
-    {
-        Expr::nCount = nCount_;
-        Break.pExpr = &Expr::Counter;
-    }
-
-    Debug::Stop();
-}
-
-void cmdStepOver ()
-{
-    BYTE bOpcode, bOperand;
-    WORD wPC;
-
-    // Skip any index prefixes on the instruction to reach a CB/ED prefix or the real opcode
-    for (wPC = PC ; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX) ; wPC++);
-    bOperand = read_byte(wPC+1);
-
-    // 1-byte HALT or RST ?
-    if (bOpcode == OP_HALT || (bOpcode & 0xc7) == 0xc7)
-        Break.pAddr = phys_read_addr(wPC+1);
-
-    // 2-byte backwards DJNZ/JR cc, or (LD|CP|IN|OT)[I|D]R ?
-    else if (((bOpcode == OP_DJNZ || (bOpcode & 0xe7) == 0x20) && (bOperand & 0x80))
-           || (bOpcode == 0xed && (bOperand & 0xf4) == 0xb0))
-        Break.pAddr = phys_read_addr(wPC+2);
-
-    // 3-byte CALL, CALL cc or backwards JP cc?
-    else if (bOpcode == OP_CALL || (bOpcode & 0xc7) == 0xc4 ||
-           ((bOpcode & 0xc7) == 0xc2 && read_word(wPC+1) <= wPC))
-        Break.pAddr = phys_read_addr(wPC+3);
-
-    // Single step if no instruction-specific breakpoint is set
-    if (!Break.pAddr)
-        cmdStep();
-    else
-        Debug::Stop();
-}
-
-void cmdStepOut ()
-{
-    // Store the physical address of the current stack pointer, for checking on RETurn calls
-    pStepOutStack = phys_read_addr(SP);
-    Debug::Stop();
+    return true;
 }

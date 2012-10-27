@@ -21,39 +21,15 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-#include "Expr.h"
+#include "Breakpoint.h"
 #include "GUI.h"
-#include "Memory.h"
 #include "Screen.h"
-
-
-typedef struct tagBREAKPORT
-{
-    WORD wMask;
-    WORD wCompare;
-}
-BREAKPORT;
-
-typedef struct tagBREAKPT
-{
-    union
-    {
-        const BYTE* pAddr;
-        BREAKPORT Port;
-    };
-
-    EXPR* pExpr;
-    struct tagBREAKPT* pNext;
-}
-BREAKPT;
-
 
 class Debug
 {
     public:
         static bool Start (BREAKPT* pBreak_=NULL);
         static void Stop ();
-        static void Refresh ();
         static void FrameEnd ();
 
         static void OnRet ();
@@ -64,126 +40,97 @@ class Debug
 };
 
 
-// Address wrapper - currently for regular WORD addresses, but with plans to extend to handle virtual addresses too
-class CAddr
-{
-    public:
-        CAddr (WORD wAddr_=0) : m_wAddr(wAddr_) { }
-
-    public:
-        UINT GetPC () const { return m_wAddr; }
-        BYTE* GetPhys () const { return phys_read_addr(m_wAddr); }
-
-        int sprint (char* psz_) { return sprintf(psz_, "%04X", m_wAddr); }
-
-    public:
-        UINT operator= (WORD wAddr_) { m_wAddr = wAddr_; return m_wAddr; }
-        bool operator== (const CAddr& addr_) { return m_wAddr == addr_.m_wAddr; }
-        bool operator!= (const CAddr& addr_) { return m_wAddr != addr_.m_wAddr; }
-        CAddr operator++ (int) { CAddr a(m_wAddr); m_wAddr++; Normalise(); return a; }
-        CAddr operator-- (int) { CAddr a(m_wAddr); m_wAddr--; Normalise(); return a; }
-        CAddr operator++ () { m_wAddr++; return Normalise(); }
-        CAddr operator-- () { m_wAddr--; return Normalise(); }
-        CAddr operator-= (UINT u_) { m_wAddr -= u_; return Normalise(); }
-        CAddr operator+= (UINT u_) { m_wAddr += u_; return Normalise(); }
-        CAddr operator+ (UINT u_) { CAddr a(m_wAddr + u_); return a.Normalise(); }
-        CAddr operator- (UINT u_) { CAddr a(m_wAddr - u_); return a.Normalise(); }
-        BYTE operator* () const { return read_byte(m_wAddr); }
-        BYTE operator[] (UINT u_) const { return read_byte(m_wAddr+u_); }
-
-        CAddr Normalise () { return *this; }
-
-    protected:
-        WORD m_wAddr;
-};
-
+enum ViewType { vtDis, vtTxt, vtHex, vtGfx, vtBpt };
 
 class CView : public CWindow
 {
     public:
-        CView (CWindow* pParent_) : CWindow(pParent_, 5, 5, 256, 240) { }
+        CView (CWindow* pParent_)
+        : CWindow(pParent_, 4, 5, pParent_->GetWidth()-8, pParent_->GetHeight()-10-12), m_wAddr(0) { }
 
     public:
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_) { return false; }
 
-        CAddr GetAddress () const { return m_addr; }
-        virtual void SetAddress (CAddr Addr_, bool fForceTop_=false) = 0;
+        WORD GetAddress () const { return m_wAddr; }
+        virtual void SetAddress (WORD wAddr_, bool fForceTop_=false) { m_wAddr = wAddr_; }
 
-    public:
-        bool IsTabStop() const { return true; }
-
-    protected:
-        CAddr m_addr;
+    private:
+        WORD m_wAddr;
 };
 
 
-class CCodeView : public CView
+class CDisView : public CView
 {
     public:
         static const UINT INVALID_TARGET = 0U-1;
 
     public:
-        CCodeView (CWindow* pParent_);
-        ~CCodeView () { delete[] m_pszData; m_pszData = NULL; }
+        CDisView (CWindow* pParent_);
+        ~CDisView () { delete[] m_pszData; m_pszData = NULL; }
 
     public:
-        void SetAddress (CAddr Addr_, bool fForceTop_=false);
+        void SetAddress (WORD wAddr_, bool fForceTop_=false);
         void Draw (CScreen* pScreen_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
+
+    public:
+        static void DrawRegisterPanel (CScreen* pScreen_, int nX_, int nY_);
 
     protected:
         void SetFlowTarget ();
         bool cmdNavigate (int nKey_, int nMods_);
 
-    protected:
+    private:
         UINT m_uRows, m_uColumns, m_uTarget;
         const char* m_pcszTarget;
         char* m_pszData;
 
-        static CAddr s_aAddrs[];
+        static WORD s_wAddrs[];
 };
 
 
-class CTextView : public CView
+class CTxtView : public CView
 {
     public:
-        CTextView (CWindow* pParent_);
-        ~CTextView () { delete[] m_pszData; m_pszData = NULL; }
+        CTxtView (CWindow* pParent_);
+        ~CTxtView () { delete[] m_pszData; m_pszData = NULL; }
 
     public:
-        void SetAddress (CAddr addr_, bool fForceTop_=false);
+        void SetAddress (WORD wAddr_, bool fForceTop_=false);
         void Draw (CScreen* pScreen_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
 
     protected:
         bool cmdNavigate (int nKey_, int nMods_);
 
-    protected:
-        UINT m_uRows, m_uColumns;
-        char* m_pszData;
+    private:
+        int m_nRows, m_nColumns;
+        char *m_pszData;
 
-        static CAddr s_aAddrs[];
+        bool m_fEditing;
+        WORD m_wEditAddr;
 };
 
-class CNumView : public CView
+class CHexView : public CView
 {
     public:
-        CNumView (CWindow* pParent_);
-        ~CNumView () { delete[] m_pszData; m_pszData = NULL; }
+        CHexView (CWindow* pParent_);
+        ~CHexView () { delete[] m_pszData; m_pszData = NULL; }
 
     public:
-        void SetAddress (CAddr addr_, bool fForceTop_=false);
+        void SetAddress (WORD wAddr_, bool fForceTop_=false);
         void Draw (CScreen* pScreen_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
 
     protected:
         bool cmdNavigate (int nKey_, int nMods_);
 
-    protected:
-        UINT m_uRows, m_uColumns;
-        char* m_pszData;
+    private:
+        int m_nRows, m_nColumns;
+        char *m_pszData;
 
-        static CAddr s_aAddrs[];
+        bool m_fEditing, m_fRightNibble;
+        WORD m_wEditAddr;
 };
 
 /*
@@ -198,14 +145,14 @@ class CMemView : public CView
 };
 */
 
-class CGraphicsView : public CView
+class CGfxView : public CView
 {
     public:
-        CGraphicsView (CWindow* pParent_);
-        ~CGraphicsView () { delete[] m_pbData; }
+        CGfxView (CWindow* pParent_);
+        ~CGfxView () { delete[] m_pbData; }
 
     public:
-        void SetAddress (CAddr addr_, bool fForceTop_=false);
+        void SetAddress (WORD wAddr_, bool fForceTop_=false);
         void Draw (CScreen* pScreen_);
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
 
@@ -213,20 +160,30 @@ class CGraphicsView : public CView
         bool cmdNavigate (int nKey_, int nMods_);
 
     protected:
+        bool m_fGrid;
         UINT m_uStrips, m_uStripWidth, m_uStripLines;
         BYTE* m_pbData;
 
         static UINT s_uMode, s_uWidth, s_uZoom;
 };
 
-
-class CRegisterPanel : public CWindow
+class CBptView : public CView
 {
     public:
-        CRegisterPanel (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
+        CBptView (CWindow* pParent_);
+        ~CBptView () { delete[] m_pszData; m_pszData = NULL; }
 
     public:
+        void SetAddress (WORD wAddr_, bool fForceTop_=false);
         void Draw (CScreen* pScreen_);
+        bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
+
+    protected:
+        bool cmdNavigate (int nKey_, int nMods_);
+
+    private:
+        int m_nRows, m_nLines, m_nTopLine, m_nActive;
+        char *m_pszData;
 };
 
 
@@ -237,17 +194,23 @@ class CDebugger : public CDialog
         ~CDebugger ();
 
         bool OnMessage (int nMessage_, int nParam1_=0, int nParam2_=0);
+        void OnNotify (CWindow* pWindow_, int nParam_);
         void EraseBackground (CScreen* pScreen_);
         void Draw (CScreen* pScreen_);
 
-        void SetAddress (CAddr Addr_);
-
-    protected:
         void Refresh ();
+        void SetSubTitle (const char *pcszSubTitle_);
+        void SetAddress (WORD wAddr_);
+        void SetView (ViewType nView);
+        void SetStatus (const char *pcsz_, BYTE bColour_=WHITE, const GUIFONT *pFont_=NULL);
+        void SetStatusByte (WORD wAddr_);
+        bool Execute (const char* pcszCommand_);
 
     protected:
+        ViewType m_nView;
         CView* m_pView;
-        CRegisterPanel* m_pRegPanel;
+        CEditControl *m_pCommandEdit;
+        CTextControl *m_pStatus;
 
         static bool s_fTransparent;
 };
