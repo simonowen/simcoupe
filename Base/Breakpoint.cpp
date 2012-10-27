@@ -65,13 +65,19 @@ bool Breakpoint::IsHit ()
                 if ((p->nAccess & atRead) &&
                     ((pbMemRead1 >= p->Mem.pPhysAddrFrom && pbMemRead1 <= p->Mem.pPhysAddrTo) ||
                      (pbMemRead2 >= p->Mem.pPhysAddrFrom && pbMemRead2 <= p->Mem.pPhysAddrTo)))
-                   break;
+                {
+                    pbMemRead1 = pbMemRead2 = NULL;
+                    break;
+                }
 
                 // Write
                 if ((p->nAccess & atWrite) &&
                     ((pbMemWrite1 >= p->Mem.pPhysAddrFrom && pbMemWrite1 <= p->Mem.pPhysAddrTo) ||
                      (pbMemWrite1 >= p->Mem.pPhysAddrFrom && pbMemWrite2 <= p->Mem.pPhysAddrTo)))
-                   break;
+                {
+                    pbMemWrite1 = pbMemWrite2 = NULL;
+                    break;
+                }
 
                 continue;
 
@@ -79,11 +85,17 @@ bool Breakpoint::IsHit ()
             case btPort:
                 // Read
                 if ((p->nAccess & atRead) && ((wPortRead & p->Port.wMask) == p->Port.wCompare))
+                {
+                    wPortRead = 0;
                     break;
+                }
 
                 // Write
                 if ((p->nAccess & atWrite) && ((wPortWrite & p->Port.wMask) == p->Port.wCompare))
+                {
+                    wPortWrite = 0;
                     break;
+                }
 
                 continue;
 
