@@ -70,7 +70,7 @@ void DisplayOptions ();
 
 
 HINSTANCE __hinstance;
-HWND g_hwnd;
+HWND g_hwnd, hwndMenu;
 HMENU g_hmenu;
 extern HINSTANCE __hinstance;
 
@@ -156,6 +156,7 @@ bool UI::Init (bool fFirstInit_/*=false*/)
         LoadRecentFiles();
 
     bool fRet = InitWindow();
+    ResizeWindow(fFirstInit_);
     TRACE("<- UI::Init() returning %s\n", fRet ? "true" : "false");
     return fRet;
 }
@@ -278,9 +279,14 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
         // Leave a maximised window as it is
         if (!GetWindowPlacement(g_hwnd, &wp) || (wp.showCmd != SW_SHOWMAXIMIZED))
         {
+            nWindowDx = nWindowDy = 0;
+
             DWORD dwStyle = (GetWindowStyle(g_hwnd) & WS_VISIBLE) | WS_OVERLAPPEDWINDOW;
             SetWindowLongPtr(g_hwnd, GWL_STYLE, dwStyle);
+
+            // Restore the window menu and hide the popup menu
             SetMenu(g_hwnd, g_hmenu);
+            ShowWindow(hwndMenu, SW_HIDE);
 
             // Adjust the window rectangle to give the client area size required for the main window
             RECT rect = { 0, 0, nWidth, nHeight };
@@ -302,7 +308,6 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
 
             if (!fCentred)
             {
-                nWindowDx = nWindowDy = 0;
                 fCentred = true;
                 ResizeWindow();
                 CentreWindow(g_hwnd);
@@ -1070,8 +1075,9 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_ACTIVATE:
         {
             TRACE("WM_ACTIVATE (%#08lx)\n", wParam_);
+            HWND hwndActive = reinterpret_cast<HWND>(lParam_);
             bool fActive = LOWORD(wParam_) != WA_INACTIVE;
-            bool fChildOpen = !fActive && GetParent(reinterpret_cast<HWND>(lParam_)) == hwnd_;
+            bool fChildOpen = !fActive && hwndActive != hwndMenu && GetParent(hwndActive) == hwnd_;
 
             // Purge any buffered input from the inactive period
             if (fActive)
@@ -1127,8 +1133,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 nWidth = MulDiv(nWidth, 5, 4);
 
             // Determine how big the window would be for an nWidth*nHeight client area
+            DWORD dwStyle = GetWindowStyle(g_hwnd);
+            DWORD dwExStyle = GetWindowExStyle(g_hwnd);
             RECT rNonClient = { 0, 0, nWidth, nHeight };
-            AdjustWindowRectEx(&rNonClient, GetWindowStyle(g_hwnd), TRUE, GetWindowExStyle(g_hwnd));
+            AdjustWindowRectEx(&rNonClient, dwStyle, TRUE, dwExStyle);
             rNonClient.right += nWindowDx;
             rNonClient.bottom += nWindowDy;
             OffsetRect(&rNonClient, -rNonClient.left, -rNonClient.top);
@@ -1237,7 +1245,8 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_EXITMENULOOP:
             // No longer in menu, so start timer to hide the mouse if not used again
             fInMenu = fHideCursor = false;
-            ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, NULL);
+            ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, NULL);
+            ShowWindow(hwndMenu, SW_HIDE);
 
             // Purge any menu navigation key presses
             Input::Purge();
@@ -1281,7 +1290,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             fHideCursor = true;
 
             if (!fInMenu && GetOption(fullscreen))
-                SetMenu(g_hwnd, NULL);
+                ShowWindow(hwndMenu, SW_HIDE);
 
             // Generate a WM_SETCURSOR to update the cursor state
             POINT pt;
@@ -1320,8 +1329,9 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 fHideCursor = false;
                 ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, NULL);
 
-                if (!GetMenu(g_hwnd))
-                    SetMenu(g_hwnd, g_hmenu);
+                // In fullscreen mode, show the popup menu
+                if (GetOption(fullscreen))
+                    ShowWindow(hwndMenu, SW_SHOW);
 
                 // Remember the new position
                 ptLast = pt;
@@ -1345,7 +1355,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
                 // If Alt alone is pressed, ensure the menu is visible (for fullscreen)
                 if ((!GetOption(altforcntrl) || !lParam_) && !GetMenu(hwnd_))
-                    SetMenu(hwnd_, g_hmenu);
+                    ShowWindow(hwndMenu, SW_SHOW);
 
                 // Stop Windows processing SAM Cntrl-key combinations (if enabled) and Alt-Enter
                 // As well as blocking access to the menu it avoids a beep for the unhandled ones (mainly Alt-Enter)
@@ -1554,7 +1564,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
 bool InitWindow ()
 {
-    // set up and register window class
+    // Set up and register window class
     WNDCLASS wc = { 0 };
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = WindowProc;
@@ -1567,7 +1577,18 @@ bool InitWindow ()
 
     // Create a window for the display (initially invisible)
     bool f = (RegisterClass(&wc) && (g_hwnd = CreateWindowEx(WS_EX_APPWINDOW, wc.lpszClassName, WINDOW_CAPTION, WS_OVERLAPPEDWINDOW,
-                                                            CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, NULL, g_hmenu, wc.hInstance, NULL)));
+                                                            CW_USEDEFAULT, CW_USEDEFAULT, 1024, 1, NULL, g_hmenu, wc.hInstance, NULL)));
+
+    // Calculate the approximate width of the menu bar
+    RECT rFirst, rLast;
+    AppendMenu(g_hmenu, MF_POPUP, 0x1234, "");
+    GetMenuItemRect(g_hwnd, g_hmenu, 0, &rFirst);
+    GetMenuItemRect(g_hwnd, g_hmenu, GetMenuItemCount(g_hmenu)-1, &rLast);
+    DeleteMenu(g_hmenu, GetMenuItemCount(g_hmenu)-1, MF_BYPOSITION);
+
+    // Create a pop-up menu bar for use in fullscreen mode
+    int nMenuWidth = rLast.right-rFirst.left;
+    hwndMenu = CreateWindowEx(0, wc.lpszClassName, "", WS_POPUP, 0, 0, nMenuWidth, GetSystemMetrics(SM_CYMENU), g_hwnd, g_hmenu, wc.hInstance, NULL);
 
     return f;
 }
