@@ -324,7 +324,7 @@ BYTE CDrive::In (WORD wPort_)
                     ModifyStatus(0, BUSY|DRQ);
 
                     // Some commands require additional handling
-                    switch (m_sRegs.bCommand)
+                    switch (m_sRegs.bCommand & FDC_COMMAND_MASK)
                     {
                         case READ_ADDRESS:
                             break;
