@@ -369,10 +369,10 @@ BYTE IO::In (WORD wPort_)
 
             if (bPortHigh == 0xff)
             {
-                if (GetOption(mouse) && bRet == 0x1f)
-                    bRet = pMouse->In(wPort_);
-                else
-                    bRet = keyports[8];
+                bRet = keyports[8];
+
+                if (GetOption(mouse))
+                    bRet &= pMouse->In(wPort_);
             }
             else
             {
