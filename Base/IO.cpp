@@ -193,14 +193,23 @@ void IO::Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
-        pPrinterFile->Flush();
+        if (pPrinterFile)
+            pPrinterFile->Flush();
 
-        SetOption(disk1, pFloppy1->DiskPath());
-        SetOption(disk2, pFloppy2->DiskPath());
+        if (pFloppy1)
+        {
+            SetOption(disk1, pFloppy1->DiskPath());
+            pFloppy1->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive1"));
+        }
 
-        pFloppy1->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive1"));
-        pFloppy2->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive2"));
-        pDallas->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "dallas"));
+        if (pFloppy2)
+        {
+            SetOption(disk2, pFloppy2->DiskPath());
+            pFloppy2->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive2"));
+        }
+
+        if (pDallas)
+            pDallas->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "dallas"));
 
         delete pMidi, pMidi = NULL;
         delete pPaula, pPaula = NULL;
