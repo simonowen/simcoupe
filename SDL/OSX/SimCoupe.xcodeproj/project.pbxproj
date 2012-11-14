@@ -7,16 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		132253EB16539921007DD659 /* SDL_GL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 132253E916539921007DD659 /* SDL_GL.cpp */; };
+		132253EC16539921007DD659 /* SDL12.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 132253EA16539921007DD659 /* SDL12.cpp */; };
+		132253EF16539935007DD659 /* SDL_GL.h in Headers */ = {isa = PBXBuildFile; fileRef = 132253ED16539935007DD659 /* SDL_GL.h */; };
+		132253F016539935007DD659 /* SDL12.h in Headers */ = {isa = PBXBuildFile; fileRef = 132253EE16539935007DD659 /* SDL12.h */; };
+		132253F316539948007DD659 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 132253F116539948007DD659 /* Video.cpp */; };
+		132253F416539948007DD659 /* Video.h in Headers */ = {isa = PBXBuildFile; fileRef = 132253F216539948007DD659 /* Video.h */; };
 		132CC52309B11512007955DE /* SDL.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 13E5AE69088FBB1F00EACEBE /* SDL.framework */; };
 		132CC52509B11512007955DE /* SDLMain.h in Headers */ = {isa = PBXBuildFile; fileRef = F5A47A9D01A0482F01D3D55B /* SDLMain.h */; };
-		132CC52609B11512007955DE /* Display.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE79088EDF7B00E5436C /* Display.h */; };
 		132CC52709B11512007955DE /* Floppy.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE7B088EDF7B00E5436C /* Floppy.h */; };
 		132CC52809B11512007955DE /* IDEDisk.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE7D088EDF7B00E5436C /* IDEDisk.h */; };
 		132CC52909B11512007955DE /* Input.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE7F088EDF7B00E5436C /* Input.h */; };
 		132CC52A09B11512007955DE /* MIDI.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE82088EDF7B00E5436C /* MIDI.h */; };
 		132CC52B09B11512007955DE /* OSD.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FE84088EDF7B00E5436C /* OSD.h */; };
 		132CC52D09B11512007955DE /* UI.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FEFF088EDF7C00E5436C /* UI.h */; };
-		132CC52E09B11512007955DE /* Video.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF01088EDF7C00E5436C /* Video.h */; };
 		132CC52F09B11512007955DE /* Action.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF22088EDFC000E5436C /* Action.h */; };
 		132CC53009B11512007955DE /* ATA.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF24088EDFC000E5436C /* ATA.h */; };
 		132CC53109B11512007955DE /* Atom.h in Headers */ = {isa = PBXBuildFile; fileRef = 13A0FF26088EDFC000E5436C /* Atom.h */; };
@@ -63,14 +67,12 @@
 		132CC56009B11512007955DE /* ChangeLog.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1314531C08A2C39F008C1AB7 /* ChangeLog.txt */; };
 		132CC56109B11512007955DE /* Options.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1374D20109746C5E001B908F /* Options.nib */; };
 		132CC56309B11512007955DE /* SDLMain.m in Sources */ = {isa = PBXBuildFile; fileRef = F5A47A9E01A0483001D3D55B /* SDLMain.m */; };
-		132CC56409B11512007955DE /* Display.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE78088EDF7B00E5436C /* Display.cpp */; };
 		132CC56509B11512007955DE /* Floppy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE7A088EDF7B00E5436C /* Floppy.cpp */; };
 		132CC56609B11512007955DE /* IDEDisk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE7C088EDF7B00E5436C /* IDEDisk.cpp */; };
 		132CC56709B11512007955DE /* Input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE7E088EDF7B00E5436C /* Input.cpp */; };
 		132CC56809B11512007955DE /* MIDI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE81088EDF7B00E5436C /* MIDI.cpp */; };
 		132CC56909B11512007955DE /* OSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FE83088EDF7B00E5436C /* OSD.cpp */; };
 		132CC56B09B11512007955DE /* UI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FEFE088EDF7C00E5436C /* UI.cpp */; };
-		132CC56C09B11512007955DE /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF00088EDF7C00E5436C /* Video.cpp */; };
 		132CC56D09B11512007955DE /* Action.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF21088EDFC000E5436C /* Action.cpp */; };
 		132CC56E09B11512007955DE /* ATA.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF23088EDFC000E5436C /* ATA.cpp */; };
 		132CC56F09B11512007955DE /* Atom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13A0FF25088EDFC000E5436C /* Atom.cpp */; };
@@ -168,6 +170,12 @@
 		089C165DFE840E0CC02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
 		1314531C08A2C39F008C1AB7 /* ChangeLog.txt */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text; name = ChangeLog.txt; path = ../../ChangeLog.txt; sourceTree = "<group>"; };
+		132253E916539921007DD659 /* SDL_GL.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDL_GL.cpp; path = ../SDL_GL.cpp; sourceTree = "<group>"; };
+		132253EA16539921007DD659 /* SDL12.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDL12.cpp; path = ../SDL12.cpp; sourceTree = "<group>"; };
+		132253ED16539935007DD659 /* SDL_GL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SDL_GL.h; path = ../SDL_GL.h; sourceTree = "<group>"; };
+		132253EE16539935007DD659 /* SDL12.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SDL12.h; path = ../SDL12.h; sourceTree = "<group>"; };
+		132253F116539948007DD659 /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Video.cpp; path = ../../Base/Video.cpp; sourceTree = "<group>"; };
+		132253F216539948007DD659 /* Video.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Video.h; path = ../../Base/Video.h; sourceTree = "<group>"; };
 		132CC59809B11512007955DE /* Info-SimCoupe.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-SimCoupe.plist"; sourceTree = "<group>"; };
 		132CC59909B11512007955DE /* SimCoupe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SimCoupe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		133C17DC14E9D59B001F12B2 /* reSID.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = reSID.framework; path = /Library/Frameworks/reSID.framework; sourceTree = "<absolute>"; };
@@ -198,8 +206,6 @@
 		1386FD0214FD163600F4032B /* SAMVox.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SAMVox.h; path = ../../Base/SAMVox.h; sourceTree = "<group>"; };
 		1386FD0314FD163600F4032B /* WAV.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WAV.cpp; path = ../../Base/WAV.cpp; sourceTree = "<group>"; };
 		1386FD0414FD163600F4032B /* WAV.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WAV.h; path = ../../Base/WAV.h; sourceTree = "<group>"; };
-		13A0FE78088EDF7B00E5436C /* Display.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Display.cpp; path = ../Display.cpp; sourceTree = "<group>"; };
-		13A0FE79088EDF7B00E5436C /* Display.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Display.h; path = ../Display.h; sourceTree = "<group>"; };
 		13A0FE7A088EDF7B00E5436C /* Floppy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Floppy.cpp; path = ../Floppy.cpp; sourceTree = "<group>"; };
 		13A0FE7B088EDF7B00E5436C /* Floppy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Floppy.h; path = ../Floppy.h; sourceTree = "<group>"; };
 		13A0FE7C088EDF7B00E5436C /* IDEDisk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IDEDisk.cpp; path = ../IDEDisk.cpp; sourceTree = "<group>"; };
@@ -212,8 +218,6 @@
 		13A0FE84088EDF7B00E5436C /* OSD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OSD.h; path = ../OSD.h; sourceTree = "<group>"; };
 		13A0FEFE088EDF7C00E5436C /* UI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; name = UI.cpp; path = ../UI.cpp; sourceTree = "<group>"; tabWidth = 4; usesTabs = 0; };
 		13A0FEFF088EDF7C00E5436C /* UI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UI.h; path = ../UI.h; sourceTree = "<group>"; };
-		13A0FF00088EDF7C00E5436C /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Video.cpp; path = ../Video.cpp; sourceTree = "<group>"; };
-		13A0FF01088EDF7C00E5436C /* Video.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Video.h; path = ../Video.h; sourceTree = "<group>"; };
 		13A0FF21088EDFC000E5436C /* Action.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Action.cpp; path = ../../Base/Action.cpp; sourceTree = "<group>"; };
 		13A0FF22088EDFC000E5436C /* Action.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Action.h; path = ../../Base/Action.h; sourceTree = "<group>"; };
 		13A0FF23088EDFC000E5436C /* ATA.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ATA.cpp; path = ../../Base/ATA.cpp; sourceTree = "<group>"; };
@@ -372,14 +376,14 @@
 			children = (
 				13EC1B4B14E96F5D00FA9EDB /* Headers */,
 				13EC1B3A14E95BF600FA9EDB /* Audio.cpp */,
-				13A0FE78088EDF7B00E5436C /* Display.cpp */,
 				13A0FE7A088EDF7B00E5436C /* Floppy.cpp */,
 				13A0FE7C088EDF7B00E5436C /* IDEDisk.cpp */,
 				13A0FE7E088EDF7B00E5436C /* Input.cpp */,
 				13A0FE81088EDF7B00E5436C /* MIDI.cpp */,
 				13A0FE83088EDF7B00E5436C /* OSD.cpp */,
+				132253EA16539921007DD659 /* SDL12.cpp */,
+				132253E916539921007DD659 /* SDL_GL.cpp */,
 				13A0FEFE088EDF7C00E5436C /* UI.cpp */,
-				13A0FF00088EDF7C00E5436C /* Video.cpp */,
 			);
 			name = SDL;
 			sourceTree = "<group>";
@@ -432,6 +436,7 @@
 				13A0FF32088EDFC100E5436C /* Stream.cpp */,
 				13A0FFB6088EDFFF00E5436C /* unzip.c */,
 				13A0FF63088EDFC100E5436C /* Util.cpp */,
+				132253F116539948007DD659 /* Video.cpp */,
 				1386FD0314FD163600F4032B /* WAV.cpp */,
 			);
 			name = Base;
@@ -491,6 +496,7 @@
 				13A0FF33088EDFC100E5436C /* Stream.h */,
 				13A0FFB7088EDFFF00E5436C /* unzip.h */,
 				13A0FF64088EDFC100E5436C /* Util.h */,
+				132253F216539948007DD659 /* Video.h */,
 				13A0FF65088EDFC100E5436C /* VL1772.h */,
 				1386FD0414FD163600F4032B /* WAV.h */,
 				13A0FF68088EDFC100E5436C /* Z80ops.h */,
@@ -502,14 +508,14 @@
 			isa = PBXGroup;
 			children = (
 				13EC1B3B14E95BF600FA9EDB /* Audio.h */,
-				13A0FE79088EDF7B00E5436C /* Display.h */,
 				13A0FE7B088EDF7B00E5436C /* Floppy.h */,
 				13A0FE7D088EDF7B00E5436C /* IDEDisk.h */,
 				13A0FE7F088EDF7B00E5436C /* Input.h */,
 				13A0FE82088EDF7B00E5436C /* MIDI.h */,
 				13A0FE84088EDF7B00E5436C /* OSD.h */,
+				132253EE16539935007DD659 /* SDL12.h */,
+				132253ED16539935007DD659 /* SDL_GL.h */,
 				13A0FEFF088EDF7C00E5436C /* UI.h */,
-				13A0FF01088EDF7C00E5436C /* Video.h */,
 			);
 			name = Headers;
 			sourceTree = "<group>";
@@ -580,14 +586,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				132CC52509B11512007955DE /* SDLMain.h in Headers */,
-				132CC52609B11512007955DE /* Display.h in Headers */,
 				132CC52709B11512007955DE /* Floppy.h in Headers */,
 				132CC52809B11512007955DE /* IDEDisk.h in Headers */,
 				132CC52909B11512007955DE /* Input.h in Headers */,
 				132CC52A09B11512007955DE /* MIDI.h in Headers */,
 				132CC52B09B11512007955DE /* OSD.h in Headers */,
 				132CC52D09B11512007955DE /* UI.h in Headers */,
-				132CC52E09B11512007955DE /* Video.h in Headers */,
 				132CC52F09B11512007955DE /* Action.h in Headers */,
 				132CC53009B11512007955DE /* ATA.h in Headers */,
 				132CC53109B11512007955DE /* Atom.h in Headers */,
@@ -644,6 +648,9 @@
 				13605A6C15BD70CC00E57BA0 /* AtaAdapter.h in Headers */,
 				13605A6E15BD70CC00E57BA0 /* Keyin.h in Headers */,
 				1359E71B163B718F009E26C9 /* Breakpoint.h in Headers */,
+				132253EF16539935007DD659 /* SDL_GL.h in Headers */,
+				132253F016539935007DD659 /* SDL12.h in Headers */,
+				132253F416539948007DD659 /* Video.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -724,14 +731,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				132CC56309B11512007955DE /* SDLMain.m in Sources */,
-				132CC56409B11512007955DE /* Display.cpp in Sources */,
 				132CC56509B11512007955DE /* Floppy.cpp in Sources */,
 				132CC56609B11512007955DE /* IDEDisk.cpp in Sources */,
 				132CC56709B11512007955DE /* Input.cpp in Sources */,
 				132CC56809B11512007955DE /* MIDI.cpp in Sources */,
 				132CC56909B11512007955DE /* OSD.cpp in Sources */,
 				132CC56B09B11512007955DE /* UI.cpp in Sources */,
-				132CC56C09B11512007955DE /* Video.cpp in Sources */,
 				132CC56D09B11512007955DE /* Action.cpp in Sources */,
 				132CC56E09B11512007955DE /* ATA.cpp in Sources */,
 				132CC56F09B11512007955DE /* Atom.cpp in Sources */,
@@ -779,6 +784,9 @@
 				13605A6D15BD70CC00E57BA0 /* AtaAdapter.cpp in Sources */,
 				13605A6F15BD70CC00E57BA0 /* Keyin.cpp in Sources */,
 				1359E71A163B718F009E26C9 /* Breakpoint.cpp in Sources */,
+				132253EB16539921007DD659 /* SDL_GL.cpp in Sources */,
+				132253EC16539921007DD659 /* SDL12.cpp in Sources */,
+				132253F316539948007DD659 /* Video.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
