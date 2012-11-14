@@ -181,7 +181,7 @@ VideoBase *UI::GetVideo (bool fFirstInit_)
     VideoBase *pVideo = NULL;
 
     // Is D3D enabled (1), or are we in auto-mode (-1) and running Vista or later?
-    if (GetOption(direct3d) > 0 || GetOption(direct3d) < 0 && LOBYTE(LOWORD(GetVersion())) < 6)
+    if (GetOption(direct3d) > 0 || (GetOption(direct3d) < 0 && LOBYTE(LOWORD(GetVersion())) >= 6))
     {
         // Try for Direct3D9
         pVideo = new Direct3D9Video;
