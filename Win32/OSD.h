@@ -74,22 +74,17 @@
 #define CheckLibFunction(lib,func)  (LoadLibrary(#lib) != NULL)
 
 // For NT4 compatability we only use DX3 features, except for input which requires DX5
-#define DIRECTDRAW_VERSION      0x0300
-#define DIRECT3D_VERSION        0x0300
 #define DIRECTSOUND_VERSION     0x0300
 #define DIRECTINPUT_VERSION     0x0500  // we'll do a run-time check for DX5 before using it
 
 #include <dsound.h>
-#include <ddraw.h>
 #include <dinput.h>
 
-extern HINSTANCE g_hinstDDraw, g_hinstDInput, g_hinstDSound;
+extern HINSTANCE g_hinstDInput, g_hinstDSound;
 
-typedef HRESULT (WINAPI *PFNDIRECTDRAWCREATE)(GUID*,LPDIRECTDRAW*,IUnknown*);
 typedef HRESULT (WINAPI *PFNDIRECTINPUTCREATE) (HINSTANCE, DWORD, LPDIRECTINPUTA*, LPUNKNOWN);
 typedef HRESULT (WINAPI *PFNDIRECTSOUNDCREATE) (LPGUID, LPDIRECTSOUND*, LPUNKNOWN);
 
-extern PFNDIRECTDRAWCREATE pfnDirectDrawCreate;
 extern PFNDIRECTINPUTCREATE pfnDirectInputCreate;
 extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 

@@ -27,18 +27,21 @@ typedef struct
 {
     int     cfgversion;             // Config compatability number (set defaults if mismatched)
     bool    firstrun;               // First run of the emulator?
+    char    windowpos[128];         // Main window position
 
     int     scale;                  // Window scaling mode
     bool    ratio5_4;               // Use 5:4 screen ratio?
     bool    scanlines;              // Show scanlines?
     int     scanlevel;              // Scanline brightness level
+    bool    scanhires;              // Hi-res scanlines at native display resolution?
     int     mode3;                  // Which mode3 pixels to show on low-res displays?
     bool    fullscreen;             // Start in full-screen mode?
     int     borders;                // How much of the borders to show
-    bool    stretchtofit;           // Stretch screen image to fit target area?
     bool    hwaccel;                // Use hardware accelerated video?
     bool    greyscale;              // Use greyscale instead of colour?
-    bool    filter;                 // Filter the OpenGL image when stretching?
+    bool    filter;                 // Filter image when stretching? (if available)
+    bool    filtergui;              // Filter image when the GUI is active? (if available)
+    int     direct3d;               // Use Direct3D? <0=auto, 0=disable, >0=enable
 
     int     avireduce;              // Reduce AVI audio size (0=lossless to 4=muted)
     bool    aviscanlines;           // Include scanlines in AVI recording?

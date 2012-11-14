@@ -173,7 +173,7 @@
 				AdditionalDependencies="comctl32.lib winmm.lib dxguid.lib dinput.lib"
 				LinkIncremental="2"
 				IgnoreDefaultLibraryNames="msvcrt.lib"
-				DelayLoadDLLs="resid.dll"
+				DelayLoadDLLs=""
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -932,6 +932,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\Base\Video.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\Base\WAV.cpp"
 				>
 			</File>
@@ -1144,6 +1148,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\Base\Video.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\Base\VL1772.h"
 				>
 			</File>
@@ -1162,28 +1170,6 @@
 			>
 			<File
 				RelativePath="..\Audio.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\Display.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1315,29 +1301,15 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\UI.cpp"
+				RelativePath="..\SDL12.cpp"
 				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\Video.cpp"
+				RelativePath="..\SDL_GL.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\UI.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1368,10 +1340,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\Display.h"
-				>
-			</File>
-			<File
 				RelativePath="..\Floppy.h"
 				>
 			</File>
@@ -1396,11 +1364,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\UI.h"
+				RelativePath="..\SDL12.h"
 				>
 			</File>
 			<File
-				RelativePath="..\Video.h"
+				RelativePath="..\SDL_GL.h"
+				>
+			</File>
+			<File
+				RelativePath="..\UI.h"
 				>
 			</File>
 		</Filter>

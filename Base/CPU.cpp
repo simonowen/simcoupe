@@ -35,7 +35,6 @@
 
 #include "BlueAlpha.h"
 #include "Debug.h"
-#include "Display.h"
 #include "Frame.h"
 #include "GUI.h"
 #include "Input.h"

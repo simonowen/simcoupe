@@ -37,7 +37,6 @@
 #include "AtaAdapter.h"
 #include "AVI.h"
 #include "Debug.h"
-#include "Display.h"
 #include "Drive.h"
 #include "GIF.h"
 #include "GUI.h"
@@ -104,7 +103,7 @@ bool Frame::Init (bool fFirstInit_/*=false*/)
     bool fRet = true;
 
     Exit(true);
-    TRACE("-> Frame::Init(%s)\n", fFirstInit_ ? "first" : "");
+    TRACE("Frame::Init(%d)\n", fFirstInit_);
 
     // Set the last line and block draw to the start of the display
     nLastLine = nLastBlock = 0;
@@ -133,23 +132,19 @@ bool Frame::Init (bool fFirstInit_/*=false*/)
     {
         Start();
         ChangeMode(vmpr);
-        fRet = Display::Init(fFirstInit_);
     }
     else
     {
-        // Bah!
         Message(msgFatal, "Out of memory!");
         fRet = false;
     }
 
-    TRACE("<- Frame::Init() returning %s\n", fRet ? "true" : "false");
     return fRet;
 }
 
 void Frame::Exit (bool fReInit_/*=false*/)
 {
-    TRACE("-> Frame::Exit(%s)\n", fReInit_ ? "reinit" : "");
-    Display::Exit(fReInit_);
+    TRACE("Frame::Exit(%d)\n", fReInit_);
 
     // Stop any recording
     GIF::Stop();
@@ -164,8 +159,6 @@ void Frame::Exit (bool fReInit_/*=false*/)
     delete pGuiScreen;
     delete pLastScreen;
     pScreen = pGuiScreen = pLastScreen = NULL;
-
-    TRACE("<- Frame::Exit()\n");
 }
 
 
@@ -497,14 +490,14 @@ void Frame::Clear ()
     pLastScreen->Clear();
 
     // Mark the full display as dirty so it gets redrawn
-    Display::SetDirty();
+    Video::SetDirty();
 }
 
 
 void Frame::Redraw ()
 {
     // Draw the last complete frame
-    Display::Update(pLastScreen);
+    Video::Update(pLastScreen);
 }
 
 
@@ -523,12 +516,12 @@ void Flip (CScreen*& rpScreen_)
     for (int i = 0 ; i < nHeight ; i++)
     {
         // Skip lines currently marked as dirty
-        if (Display::IsLineDirty(i))
+        if (Video::IsLineDirty(i))
             continue;
 
         // If they're different resolutions, or have different contents, they're dirty
         if (pfHiRes[i] != pfHiResLast[i] || memcmp(pdwA, pdwB, rpScreen_->GetWidth(i)))
-            Display::SetLineDirty(i);
+            Video::SetLineDirty(i);
 
         pdwA += nPitchDW;
         pdwB += nPitchDW;
@@ -546,7 +539,7 @@ void DrawOSD (CScreen* pScreen_)
     // Drive LEDs enabled?
     if (GetOption(drivelights))
     {
-        int nX = (GetOption(fullscreen) && GetOption(ratio5_4)) ? 20 : 2;
+        int nX = 2;
         int nY = ((GetOption(drivelights)-1) & 1) ? nHeight-4 : 2;
 
         // Floppy 1 light

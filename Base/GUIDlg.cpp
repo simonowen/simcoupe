@@ -30,6 +30,7 @@
 #include "MIDI.h"
 #include "Options.h"
 #include "Sound.h"
+#include "Video.h"
 
 
 OPTIONS g_opts;
@@ -543,13 +544,12 @@ class CDisplayOptions : public CDialog
 
             m_pFullScreen = new CCheckBox(this, 60, 35, "Full-screen");
 
-                m_pScaleText = new CTextControl(this, 85, 57, "Windowed mode scale:");
-                m_pScale = new CComboBox(this, 215, 54, "0.5x|1x|1.5x", 50);
+                m_pScaleText = new CTextControl(this, 85, 57, "Windowed mode zoom:");
+                m_pScale = new CComboBox(this, 215, 54, "50%|100%|150%|200%|250%|300%", 55);
 
             new CFrameControl(this, 63, 77, 212, 1, GREY_6);
 
-            m_pStretch = new CCheckBox(this, 60, 90, "Stretch to fit");
-            m_pScanlines = new CCheckBox(this, 165, 90, "Display scanlines");
+            m_pScanlines = new CCheckBox(this, 60, 90, "Display scanlines");
             m_pRatio54 = new CCheckBox(this, 60, 111, "5:4 pixel shape");
 
             new CTextControl(this, 60, 134, "Viewable area:");
@@ -563,8 +563,6 @@ class CDisplayOptions : public CDialog
 
             m_pFullScreen->SetChecked(GetOption(fullscreen));
             m_pRatio54->SetChecked(GetOption(ratio5_4));
-            m_pStretch->SetChecked(GetOption(stretchtofit));
-
             m_pScanlines->SetChecked(GetOption(scanlines));
 
             m_pViewArea->Select(GetOption(borders));
@@ -585,15 +583,14 @@ class CDisplayOptions : public CDialog
                 SetOption(scale, m_pScale->GetSelected()+1);
 
                 SetOption(ratio5_4, m_pRatio54->IsChecked());
-                SetOption(stretchtofit, m_pStretch->IsChecked());
                 SetOption(scanlines, m_pScanlines->IsChecked());
 
                 SetOption(borders, m_pViewArea->GetSelected());
 
                 if (Changed(borders) || Changed(fullscreen) || Changed(ratio5_4) || Changed(scanlines) ||
-                    Changed(scanlevel) || GetOption(fullscreen))
+                    Changed(scanlevel) || Changed(scale))
                 {
-                    Frame::Init();
+                    Video::UpdateSize();
 
                     // Re-centre the window, including the parent if that's a dialog
                     if (GetParent()->GetType() == ctDialog)

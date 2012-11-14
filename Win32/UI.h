@@ -2,7 +2,7 @@
 //
 // UI.h: Win32 user interface
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,22 +21,24 @@
 #ifndef UI_H
 #define UI_H
 
+#include "Video.h"
+
 class UI
 {
     public:
         static bool Init (bool fFirstInit_=false);
         static void Exit (bool fReInit=false);
 
+        static VideoBase *GetVideo (bool fFirstInit_=false);
         static bool CheckEvents ();
+
         static bool DoAction (int nAction_, bool fPressed_=true);
         static void ShowMessage (eMsgType eType_, const char* pszMessage_);
-        static void ResizeWindow (bool fUseOption_=false);
 };
 
 
 // Some bits needed by other modules
-extern HWND g_hwnd;
-extern HANDLE g_hEvent;
+extern HWND g_hwnd, hwndCanvas;
 extern HINSTANCE __hinstance;
 
 #endif  // UI_H

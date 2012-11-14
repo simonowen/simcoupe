@@ -24,7 +24,6 @@
 #include "AVI.h"
 #include "CPU.h"
 #include "Debug.h"
-#include "Display.h"
 #include "Frame.h"
 #include "GIF.h"
 #include "GUI.h"
@@ -80,23 +79,38 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
 
             case actToggleGreyscale:
                 SetOption(greyscale, !GetOption(greyscale));
-                Video::CreatePalettes();
+                Video::UpdatePalette();
                 break;
 
             case actToggle5_4:
-                SetOption(ratio5_4, !GetOption(ratio5_4));
-                Frame::Init();
-                Frame::SetStatus("%s aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
+                if (Video::CheckCaps(VCAP_STRETCH))
+                {
+                    SetOption(ratio5_4, !GetOption(ratio5_4));
+                    Video::UpdateSize();
+                    Frame::SetStatus("%s aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
+                }
                 break;
 
             case actToggleScanlines:
                 SetOption(scanlines, !GetOption(scanlines));
-                Video::CreatePalettes();
+                Video::UpdatePalette();
                 Frame::SetStatus("Scanlines %s", GetOption(scanlines) ? "enabled" : "disabled");
                 break;
 
-            case actChangeProfiler:
-                SetOption(profile, !GetOption(profile));
+            case actToggleFilter:
+                if (Video::CheckCaps(VCAP_FILTER))
+                {
+                    SetOption(filter, !GetOption(filter));
+                    Frame::SetStatus("Smoothing %s", GetOption(filter) ? "enabled" : "disabled");
+                }
+                break;
+
+            case actToggleScanHiRes:
+                if (Video::CheckCaps(VCAP_SCANHIRES))
+                {
+                    SetOption(scanhires, !GetOption(scanhires));
+                    Frame::SetStatus("Hi-res scanlines %s", GetOption(scanhires) ? "enabled" : "disabled");
+                }
                 break;
 
             case actInsertFloppy1:
@@ -214,7 +228,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
             case actToggleFullscreen:
                 SetOption(fullscreen, !GetOption(fullscreen));
                 Sound::Silence();
-                Frame::Init();
+                Video::UpdateSize();
                 break;
 
             case actPrinterOnline:

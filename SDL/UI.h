@@ -23,13 +23,17 @@
 
 #ifdef __cplusplus
 
+#include "Video.h"
+
 class UI
 {
     public:
         static bool Init (bool fFirstInit_=false);
         static void Exit (bool fReInit_=false);
 
+        static VideoBase *GetVideo (bool fFirstInit_=false);
         static bool CheckEvents ();
+
         static bool DoAction (int nAction_, bool fPressed_=true);
         static void ShowMessage (eMsgType eType_, const char* pszMessage_);
 };
@@ -52,13 +56,13 @@ extern bool g_fActive;
 #define UE_TEMPTURBOOFF         (UE_BASE+10)
 #define UE_DEBUGGER             (UE_BASE+11)
 #define UE_SAVESCREENSHOT       (UE_BASE+12)
-#define UE_CHANGEPROFILER       (UE_BASE+13)
+//#define UE_CHANGEPROFILER       (UE_BASE+13)
 #define UE_PAUSE                (UE_BASE+14)
 #define UE_TOGGLETURBO          (UE_BASE+15)
 #define UE_TOGGLEMUTE           (UE_BASE+16)
 #define UE_RELEASEMOUSE         (UE_BASE+17)
-#define UE_CHANGEWINDOWSIZE     (UE_BASE+18)
-#define UE_CHANGEBORDERS        (UE_BASE+19)
+//#define UE_CHANGEWINDOWSIZE     (UE_BASE+18)
+//#define UE_CHANGEBORDERS        (UE_BASE+19)
 #define UE_OPTIONS              (UE_BASE+20)
 #define UE_IMPORTDATA           (UE_BASE+21)
 #define UE_EXPORTDATA           (UE_BASE+22)

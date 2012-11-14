@@ -34,26 +34,12 @@
 
 bool OSD::Init (bool fFirstInit_/*=false*/)
 {
-    bool fRet = false;
-
 #ifdef _WINDOWS
     // We'll do our own error handling, so suppress any windows error dialogs
     SetErrorMode(SEM_FAILCRITICALERRORS);
 #endif
 
-    // Centre the main window
-    putenv(strdup("SDL_VIDEO_CENTERED=1"));
-
-    // The only sub-system we _need_ is video
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
-        TRACE("!!! SDL_Init(SDL_INIT_VIDEO) failed: %s\n", SDL_GetError());
-    else
-        fRet = true;
-
-    if (!fRet)
-        TRACE("SDL_Init failed: %s\n", SDL_GetError());
-
-    return fRet;
+    return true;
 }
 
 void OSD::Exit (bool fReInit_/*=false*/)

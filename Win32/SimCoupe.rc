@@ -98,10 +98,8 @@ CAPTION "Display"
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
     CONTROL         "Enable hardware acceleration",IDC_HWACCEL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,22,110,10
-    CONTROL         "Stretch fullscreen display to fill screen",IDC_STRETCH_TO_FIT,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,36,133,10
     ICON            IDI_DISPLAY,IDC_STATIC,7,7,20,20
-    GROUPBOX        "Settings",IDC_STATIC,45,7,170,46
+    GROUPBOX        "Settings",IDC_STATIC,45,7,170,32
 END
 
 IDD_PAGE_JOYSTICK DIALOG  0, 0, 235, 156
@@ -484,7 +482,7 @@ BEGIN
         MENUITEM "&Close",                      IDM_FILE_FLOPPY1_EJECT
         MENUITEM "&Save",                       IDM_FILE_FLOPPY1_SAVE_CHANGES
         MENUITEM SEPARATOR
-        MENUITEM "Open &A:",                    IDM_FILE_FLOPPY1_DEVICE, GRAYED
+        MENUITEM "Open &A:",                    IDM_FILE_FLOPPY1_DEVICE
         POPUP "&Floppy 2"
         BEGIN
             MENUITEM "&New...",                     IDM_FILE_NEW_DISK2
@@ -492,13 +490,13 @@ BEGIN
             MENUITEM "&Close",                      IDM_FILE_FLOPPY2_EJECT
             MENUITEM "&Save",                       IDM_FILE_FLOPPY2_SAVE_CHANGES
             MENUITEM SEPARATOR
-            MENUITEM "Recent Files",                IDM_FLOPPY2_RECENT1, GRAYED
+            MENUITEM "Recent Files",                IDM_FLOPPY2_RECENT1
         END
         MENUITEM SEPARATOR
         MENUITEM "&Import Data...",             IDM_FILE_IMPORT_DATA
         MENUITEM "&Export Data...",             IDM_FILE_EXPORT_DATA
         MENUITEM SEPARATOR
-        MENUITEM "Recent Files",                IDM_FILE_RECENT1, GRAYED
+        MENUITEM "Recent Files",                IDM_FILE_RECENT1
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       IDM_FILE_EXIT
     END
@@ -507,14 +505,28 @@ BEGIN
         MENUITEM "&Full Screen",                IDM_VIEW_FULLSCREEN
         MENUITEM SEPARATOR
         MENUITEM "&TV Aspect Ratio",            IDM_VIEW_RATIO54
-        MENUITEM "Show TV &Scanlines",          IDM_VIEW_SCANLINES
+        MENUITEM "S&mooth Image",               IDM_VIEW_FILTER
         MENUITEM "&Greyscale",                  IDM_VIEW_GREYSCALE
+        MENUITEM SEPARATOR
+        MENUITEM "Show TV &Scanlines",          IDM_VIEW_SCANLINES
+        MENUITEM "&Hi-res Scanlines",           IDM_VIEW_SCANHIRES
+        POPUP "Scanline &Level"
+        BEGIN
+            MENUITEM "&50%",                        IDM_VIEW_SCANLEVEL_50
+            MENUITEM "&60%",                        IDM_VIEW_SCANLEVEL_60
+            MENUITEM "&70%",                        IDM_VIEW_SCANLEVEL_70
+            MENUITEM "&80%",                        IDM_VIEW_SCANLEVEL_80
+            MENUITEM "&90%",                        IDM_VIEW_SCANLEVEL_90
+        END
+        MENUITEM SEPARATOR
         POPUP "&Window Size"
         BEGIN
             MENUITEM "50%",                         IDM_VIEW_ZOOM_50
             MENUITEM "100%",                        IDM_VIEW_ZOOM_100
             MENUITEM "150%",                        IDM_VIEW_ZOOM_150
             MENUITEM "200%",                        IDM_VIEW_ZOOM_200
+            MENUITEM "250%",                        IDM_VIEW_ZOOM_250
+            MENUITEM "300%",                        IDM_VIEW_ZOOM_300
         END
         POPUP "&Border Area"
         BEGIN
@@ -539,7 +551,7 @@ BEGIN
             MENUITEM "Record &Animation",           IDM_RECORD_GIF_START
             MENUITEM "Record &Loop",                IDM_RECORD_GIF_LOOP
             MENUITEM SEPARATOR
-            MENUITEM "&Stop Recording",             IDM_RECORD_GIF_STOP, GRAYED
+            MENUITEM "&Stop Recording",             IDM_RECORD_GIF_STOP
         END
         POPUP "Audio (&WAV)"
         BEGIN

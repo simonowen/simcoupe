@@ -30,9 +30,8 @@
 #include "Video.h"
 
 
-HINSTANCE g_hinstDDraw, g_hinstDInput, g_hinstDSound;
+HINSTANCE g_hinstDInput, g_hinstDSound;
 
-PFNDIRECTDRAWCREATE pfnDirectDrawCreate;
 PFNDIRECTINPUTCREATE pfnDirectInputCreate;
 PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 
@@ -42,9 +41,7 @@ bool fPortable = false;
 bool OSD::Init (bool fFirstInit_/*=false*/)
 {
     UI::Exit(true);
-    TRACE("-> OSD::Init(%s)\n", fFirstInit_ ? "first" : "");
-
-    bool fRet = false;
+    TRACE("OSD::Init(%d)\n", fFirstInit_);
 
     if (fFirstInit_)
     {
@@ -56,15 +53,13 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
         if (fPortable)
             Options::Load(__argc, __argv);
 
-        g_hinstDDraw  = LoadLibrary("DDRAW.DLL");
         g_hinstDInput = LoadLibrary("DINPUT.DLL");
         g_hinstDSound = LoadLibrary("DSOUND.DLL");
 
-        if (g_hinstDDraw) pfnDirectDrawCreate = reinterpret_cast<PFNDIRECTDRAWCREATE>(GetProcAddress(g_hinstDDraw, "DirectDrawCreate"));
         if (g_hinstDInput) pfnDirectInputCreate = reinterpret_cast<PFNDIRECTINPUTCREATE>(GetProcAddress(g_hinstDInput, "DirectInputCreateA"));
         if (g_hinstDSound) pfnDirectSoundCreate = reinterpret_cast<PFNDIRECTSOUNDCREATE>(GetProcAddress(g_hinstDSound, "DirectSoundCreate"));
 
-        if (!pfnDirectDrawCreate || !pfnDirectInputCreate || !pfnDirectSoundCreate)
+        if (!pfnDirectInputCreate || !pfnDirectSoundCreate)
         {
             Message(msgError, "This program requires DirectX 3 or later to be installed.");
             return false;
@@ -77,17 +72,13 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
         SetErrorMode(SEM_FAILCRITICALERRORS);
     }
 
-    fRet = UI::Init(fFirstInit_);
-
-    TRACE("<- OSD::Init() returning %s\n", fRet ? "true" : "false");
-    return fRet;
+    return UI::Init(fFirstInit_);
 }
 
 void OSD::Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
-        if (g_hinstDDraw)  { FreeLibrary(g_hinstDDraw);  g_hinstDDraw  = NULL; pfnDirectDrawCreate=NULL;  }
         if (g_hinstDInput) { FreeLibrary(g_hinstDInput); g_hinstDInput = NULL; pfnDirectInputCreate=NULL; }
         if (g_hinstDSound) { FreeLibrary(g_hinstDSound); g_hinstDSound = NULL; pfnDirectSoundCreate=NULL; }
     }

@@ -59,18 +59,21 @@ OPTION aOptions[] =
 {
     OPT_N("CfgVersion",   cfgversion,     0),         // Config compatability number
     OPT_F("FirstRun",     firstrun,       1),         // Non-zero if this is the first run
+    OPT_S("WindowPos",    windowpos,      ""),        // Main window position, if supported
 
     OPT_N("Scale",        scale,          2),         // Windowed display is 2x2
     OPT_F("Ratio5_4",     ratio5_4,       false),     // Don't use 5:4 screen ratio
     OPT_F("Scanlines",    scanlines,      true),      // TV scanlines
-    OPT_N("ScanLevel",    scanlevel,      75),        // Scanlines are 75% brightness
+    OPT_N("ScanLevel",    scanlevel,      80),        // Scanlines are 80% brightness
+    OPT_F("ScanHiRes",    scanhires,      true),      // Scanlines at PC resolution (if supported)
     OPT_N("Mode3",        mode3,          0),         // Show only odd mode3 pixels on low-res displays
     OPT_F("Fullscreen",   fullscreen,     false),     // Not full screen
     OPT_N("Borders",      borders,        2),         // Same amount of borders as previous version
-    OPT_F("StretchToFit", stretchtofit,   true),      // Stretch image to fit the display area
     OPT_F("HWAccel",      hwaccel,        true),      // Use hardware accelerated video
     OPT_F("Greyscale",    greyscale,      false),     // Colour display
-    OPT_F("Filter",       filter,         false),     // Filter the OpenGL image when stretching
+    OPT_F("Filter",       filter,         true),      // Filter the image when stretching
+    OPT_F("FilterGUI",    filtergui,      false),     // Don't filter the image when the GUI is active
+    OPT_N("Direct3D",     direct3d,       -1),        // Automatic use of D3D (currently, Vista or later)
 
     OPT_N("AviReduce",    avireduce,      1),         // Record 44kHz 8-bit stereo audio (50% saving)
     OPT_F("AviScanlines", aviscanlines,   false),     // Don't include scanlines in AVI recordings

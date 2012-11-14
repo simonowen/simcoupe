@@ -143,6 +143,8 @@
 #define IDM_VIEW_ZOOM_100               40163
 #define IDM_VIEW_ZOOM_150               40164
 #define IDM_VIEW_ZOOM_200               40165
+#define IDM_VIEW_ZOOM_250               40166
+#define IDM_VIEW_ZOOM_300               40167
 #define IDM_FILE_RECENT1                40171
 #define IDM_FILE_RECENT2                40172
 #define IDM_FILE_RECENT3                40173
@@ -194,6 +196,13 @@
 #define IDM_SYSTEM_SPEED_500            40254
 #define IDM_SYSTEM_SPEED_1000           40255
 #define IDM_TOOLS_PASTE_CLIPBOARD       40260
+#define IDM_VIEW_FILTER                 40263
+#define IDM_VIEW_SCANHIRES              40264
+#define IDM_VIEW_SCANLEVEL_50           40270
+#define IDM_VIEW_SCANLEVEL_60           40271
+#define IDM_VIEW_SCANLEVEL_70           40272
+#define IDM_VIEW_SCANLEVEL_80           40273
+#define IDM_VIEW_SCANLEVEL_90           40274
 
 // Next default values for new objects
 // 
@@ -201,7 +210,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        196
-#define _APS_NEXT_COMMAND_VALUE         40261
+#define _APS_NEXT_COMMAND_VALUE         40278
 #define _APS_NEXT_CONTROL_VALUE         1193
 #define _APS_NEXT_SYMED_VALUE           102
 #endif

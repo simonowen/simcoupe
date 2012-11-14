@@ -29,7 +29,8 @@
 #include "Clock.h"
 #include "CPU.h"
 #include "Debug.h"
-#include "Display.h"
+#include "Direct3D9.h"
+#include "DirectDraw.h"
 #include "Drive.h"
 #include "Expr.h"
 #include "Floppy.h"
@@ -70,7 +71,7 @@ void DisplayOptions ();
 
 
 HINSTANCE __hinstance;
-HWND g_hwnd, hwndMenu;
+HWND g_hwnd, hwndCanvas;
 HMENU g_hmenu;
 extern HINSTANCE __hinstance;
 
@@ -79,7 +80,7 @@ HWND hdlgNewFnKey;
 
 WNDPROC pfnStaticWndProc;           // Old static window procedure (internal value)
 
-WINDOWPLACEMENT g_wp;
+WINDOWPLACEMENT g_wp = { sizeof(WINDOWPLACEMENT) };
 int nWindowDx, nWindowDy;
 
 int nOptionPage = 0;                // Last active option property page
@@ -90,11 +91,14 @@ void AddRecentFile (const char* pcsz_);
 void LoadRecentFiles ();
 void SaveRecentFiles ();
 
+void SaveWindowPosition(HWND hwnd_);
+bool RestoreWindowPosition(HWND hwnd_);
+void ResizeWindow (int nHeight_=0);
+
 OPTIONS opts;
 // Helper macro for detecting options changes
 #define Changed(o)        (opts.o != GetOption(o))
 #define ChangedString(o)  (strcasecmp(opts.o, GetOption(o)))
-
 
 static char szFloppyFilters[] =
 #ifdef USE_ZLIB
@@ -148,34 +152,53 @@ void ClipPath (char* pszPath_, size_t nLength_);
 bool UI::Init (bool fFirstInit_/*=false*/)
 {
     UI::Exit(true);
-    TRACE("-> UI::Init(%s)\n", fFirstInit_ ? "first" : "");
+    TRACE("UI::Init(%d)\n", fFirstInit_);
 
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
 
     if (fFirstInit_)
         LoadRecentFiles();
 
-    bool fRet = InitWindow();
-    ResizeWindow(fFirstInit_);
-    TRACE("<- UI::Init() returning %s\n", fRet ? "true" : "false");
-    return fRet;
+    return InitWindow();
 }
 
 void UI::Exit (bool fReInit_/*=false*/)
 {
-    TRACE("-> UI::Exit(%s)\n", fReInit_ ? "reinit" : "");
+    TRACE("UI::Exit(%d)\n", fReInit_);
+    if (g_hwnd)
+    {
+        SaveWindowPosition(g_hwnd);
+        DestroyWindow(g_hwnd), g_hwnd = NULL;
+    }
 
-    // When we reach here during a normal shutdown the window will already have gone, so check first
-    if (g_hwnd && IsWindow(g_hwnd))
-        DestroyWindow(g_hwnd);
-    g_hwnd = NULL;
-
-    if (!fReInit_)
-        SaveRecentFiles();
-
-    TRACE("<- UI::Exit()\n");
+    SaveRecentFiles();
 }
 
+
+// Create a video object to render the display
+VideoBase *UI::GetVideo (bool fFirstInit_)
+{
+    VideoBase *pVideo = NULL;
+
+    // Is D3D enabled (1), or are we in auto-mode (-1) and running Vista or later?
+    if (GetOption(direct3d) > 0 || GetOption(direct3d) < 0 && LOBYTE(LOWORD(GetVersion())) < 6)
+    {
+        // Try for Direct3D9
+        pVideo = new Direct3D9Video;
+        if (pVideo && !pVideo->Init(fFirstInit_))
+            delete pVideo, pVideo = NULL;
+    }
+
+    // Fall back on DirectDraw
+    if (!pVideo)
+    {
+        pVideo = new DirectDrawVideo;
+        if (!pVideo->Init(fFirstInit_))
+            delete pVideo, pVideo = NULL;
+    }
+
+    return pVideo;
+}
 
 // Check and process any incoming messages
 bool UI::CheckEvents ()
@@ -231,37 +254,52 @@ void UI::ShowMessage (eMsgType eType_, const char* pcszMessage_)
 }
 
 
-void UI::ResizeWindow (bool fUseOption_/*=false*/)
+// Resize canvas window to a given container view size
+void ResizeCanvas (int nWidthView_, int nHeightView_)
 {
-    static bool fCentred = false;
+    int nX = 0;
+    int nY = 0;
 
-    // The default size is called 2x, when it's actually 1x!
-    int nWidth = Frame::GetWidth() >> 1;
-    int nHeight = Frame::GetHeight() >> 1;
+    // In fullscreen mode with a menu, adjust to exclude it
+    if (GetOption(fullscreen) && GetMenu(g_hwnd))
+    {
+        int nMenu = GetSystemMetrics(SM_CYMENU);
+        nY -= nMenu;
+        nHeightView_ += nMenu;
+    }
 
-    // Apply 5:4 ratio if enabled
-    if (GetOption(ratio5_4))
-        nWidth = MulDiv(nWidth, 5, 4);
+    int nWidth = Frame::GetWidth();
+    int nHeight = Frame::GetHeight();
+    if (GetOption(ratio5_4)) nWidth = nWidth * 5/4;
 
+    int nWidthFit = MulDiv(nWidth, nHeightView_, nHeight);
+    int nHeightFit = MulDiv(nHeight, nWidthView_, nWidth);
+
+    // Fit width to full height?
+    if (nWidthFit <= nWidthView_)
+    {
+        nWidth = nWidthFit;
+        nHeight = nHeightView_;
+        nX += (nWidthView_ - nWidth) / 2;
+    }
+    // Fit height to full width
+    else
+    {
+        nWidth = nWidthView_;
+        nHeight = nHeightFit;
+        nY += (nHeightView_ - nHeight) / 2;
+    }
+
+    // Set the new canvas position and size
+    MoveWindow(hwndCanvas, nX, nY, nWidth, nHeight, TRUE);
+    TRACE("Canvas: %d,%d %dx%d\n", nX, nY, nWidth, nHeight);
+}
+
+// Resize the main window to a given height, or update width if height is zero
+void ResizeWindow (int nHeight_)
+{
     RECT rClient;
     GetClientRect(g_hwnd, &rClient);
-
-    if (fUseOption_ || !rClient.bottom)
-    {
-        if (!GetOption(scale))
-            SetOption(scale, 2);
-
-        nWidth *= GetOption(scale);
-        nHeight *= GetOption(scale);
-    }
-    else if (!fUseOption_)
-    {
-        RECT rClient;
-        GetClientRect(g_hwnd, &rClient);
-
-        nWidth = MulDiv(rClient.bottom, nWidth, nHeight);
-        nHeight = rClient.bottom;
-    }
 
     if (GetOption(fullscreen))
     {
@@ -270,54 +308,55 @@ void UI::ResizeWindow (bool fUseOption_/*=false*/)
         SetMenu(g_hwnd, NULL);
 
         // Force the window to be top-most, and sized to fill the full screen
-        SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), 0);
+        SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), SWP_FRAMECHANGED);
+        ResizeCanvas(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+        return;
+    }
+
+    if (IsMaximized(g_hwnd))
+    {
+        // Fetch window position details, including the window position when restored
+        WINDOWPLACEMENT wp = { sizeof(wp) };
+        GetWindowPlacement(g_hwnd, &wp);
+
+        // Calculate the size of a window with 0x0 client area, to determine the frame/title sizes
+        RECT rect = { 0,0, 0,0 };
+        AdjustWindowRectEx(&rect, GetWindowStyle(g_hwnd), TRUE, GetWindowExStyle(g_hwnd));
+
+        // Calculate the height of the client area in the normalised window
+        int nHeight = (wp.rcNormalPosition.bottom - wp.rcNormalPosition.top) - (rect.bottom - rect.top);
+
+        // Calculate the appropriate width matching the height, taking aspect ratio into consideration
+        int nWidth = MulDiv(nHeight, Frame::GetWidth(), Frame::GetHeight());
+        if (GetOption(ratio5_4)) nWidth = nWidth * 5/4;
+        nWidth += (rect.right - rect.left);
+
+        // Update the restored window to be the correct shape once restored
+        wp.rcNormalPosition.right = wp.rcNormalPosition.left + nWidth;
+        SetWindowPlacement(g_hwnd, &wp);
+
+        // Adjust the canvas to match the new client area
+        ResizeCanvas(rClient.right, rClient.bottom);
     }
     else
     {
-        WINDOWPLACEMENT wp = { sizeof(wp) };
+        // If a specific height wasn't supplied, use the existing height
+        if (!nHeight_)
+            nHeight_ = rClient.bottom;
 
-        // Leave a maximised window as it is
-        if (!GetWindowPlacement(g_hwnd, &wp) || (wp.showCmd != SW_SHOWMAXIMIZED))
-        {
-            nWindowDx = nWindowDy = 0;
+        // Calculate the appropriate width matching the height
+        int nWidth_ = MulDiv(nHeight_, Frame::GetWidth(), Frame::GetHeight());
+        if (GetOption(ratio5_4)) nWidth_ = nWidth_ * 5/4;
 
-            DWORD dwStyle = (GetWindowStyle(g_hwnd) & WS_VISIBLE) | WS_OVERLAPPEDWINDOW;
-            SetWindowLongPtr(g_hwnd, GWL_STYLE, dwStyle);
+        // Calculate the full window size for our given client area
+        RECT rect = { 0, 0, nWidth_, nHeight_ };
+        AdjustWindowRectEx(&rect, GetWindowStyle(g_hwnd), TRUE, GetWindowExStyle(g_hwnd));
 
-            // Restore the window menu and hide the popup menu
-            SetMenu(g_hwnd, g_hmenu);
-            ShowWindow(hwndMenu, SW_HIDE);
-
-            // Adjust the window rectangle to give the client area size required for the main window
-            RECT rect = { 0, 0, nWidth, nHeight };
-            AdjustWindowRectEx(&rect, GetWindowStyle(g_hwnd), TRUE, GetWindowExStyle(g_hwnd));
-            SetWindowPos(g_hwnd, HWND_NOTOPMOST, 0, 0, rect.right-rect.left, rect.bottom-rect.top, SWP_NOMOVE);
-
-            // Get the actual client rectangle, now that the menu is in place
-            RECT rClient;
-            GetClientRect(g_hwnd, &rClient);
-
-            // Ensure the client area is exactly what we wanted, and adjust it if not
-            // This can happen if a menu wraps because the window is small, or on buggy Vista versions
-            if (rClient.right != nWidth || rClient.bottom != nHeight)
-            {
-                nWindowDx = nWidth-rClient.right;
-                nWindowDy = nHeight-rClient.bottom;
-                SetWindowPos(g_hwnd, HWND_NOTOPMOST, 0, 0, rect.right-rect.left+nWindowDx, rect.bottom-rect.top+nWindowDy, SWP_NOMOVE);
-            }
-
-            if (!fCentred)
-            {
-                fCentred = true;
-                ResizeWindow();
-                CentreWindow(g_hwnd);
-            }
-        }
+        // Set the new window size
+        SetWindowPos(g_hwnd, HWND_NOTOPMOST, 0, 0, rect.right-rect.left, rect.bottom-rect.top, SWP_SHOWWINDOW|SWP_NOMOVE);
     }
-
-    // Ensure the window is repainted
-    Display::SetDirty();
 }
+
 
 // Save changes to a given drive, optionally prompting for confirmation
 bool ChangesSaved (CDiskDevice* pFloppy_)
@@ -543,7 +582,7 @@ void UpdateMenuFromOptions ()
 {
     char szEject[MAX_PATH];
 
-    HMENU hmenu = g_hmenu, hmenuFile = GetSubMenu(hmenu, 0), hmenuFloppy2 = GetSubMenu(hmenuFile, 6);
+    HMENU hmenu = g_hmenu, hmenuFile = GetSubMenu(hmenu, 0), hmenuView = GetSubMenu(hmenu, 1), hmenuFloppy2 = GetSubMenu(hmenuFile, 6);
 
     bool fFloppy1 = GetOption(drive1) == drvFloppy, fInserted1 = pFloppy1->HasDisk();
     bool fFloppy2 = GetOption(drive2) == drvFloppy, fInserted2 = pFloppy2->HasDisk();
@@ -570,10 +609,21 @@ void UpdateMenuFromOptions ()
 
     CheckOption(IDM_VIEW_FULLSCREEN, GetOption(fullscreen));
     CheckOption(IDM_VIEW_RATIO54, GetOption(ratio5_4));
-    CheckOption(IDM_VIEW_SCANLINES, GetOption(scanlines));
     CheckOption(IDM_VIEW_GREYSCALE, GetOption(greyscale));
+    CheckOption(IDM_VIEW_SCANLINES, GetOption(scanlines));
 
-    CheckMenuRadioItem(hmenu, IDM_VIEW_ZOOM_50, IDM_VIEW_ZOOM_200, IDM_VIEW_ZOOM_50+GetOption(scale)-1, MF_BYCOMMAND);
+    CheckOption(IDM_VIEW_FILTER, GetOption(filter) && Video::CheckCaps(VCAP_FILTER));
+    EnableItem(IDM_VIEW_FILTER, Video::CheckCaps(VCAP_FILTER));
+
+    EnableMenuItem(hmenuView, 8, MF_BYPOSITION | (GetOption(scanlines) ? MF_ENABLED : MF_GRAYED));
+    EnableItem(IDM_VIEW_SCANHIRES, GetOption(scanlines));
+
+    CheckOption(IDM_VIEW_SCANHIRES, GetOption(scanhires) && Video::CheckCaps(VCAP_SCANHIRES));
+    EnableItem(IDM_VIEW_SCANHIRES, GetOption(scanlines) && Video::CheckCaps(VCAP_SCANHIRES));
+
+    int nScanOpt = (GetOption(scanlevel) < 50) ? 0 : (GetOption(scanlevel)-50)/10;
+    CheckMenuRadioItem(hmenu, IDM_VIEW_SCANLEVEL_50, IDM_VIEW_SCANLEVEL_90, IDM_VIEW_SCANLEVEL_50+nScanOpt, MF_BYCOMMAND);
+    CheckMenuRadioItem(hmenu, IDM_VIEW_ZOOM_50, IDM_VIEW_ZOOM_300, IDM_VIEW_ZOOM_50+GetOption(scale)-1, MF_BYCOMMAND);
     CheckMenuRadioItem(hmenu, IDM_VIEW_BORDERS0, IDM_VIEW_BORDERS4, IDM_VIEW_BORDERS0+GetOption(borders), MF_BYCOMMAND);
 
     EnableItem(IDM_RECORD_AVI_START, !AVI::IsRecording());
@@ -638,35 +688,26 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
                 if (GetOption(fullscreen))
                 {
                     // Remember the window position, then re-initialise the video system
-                    g_wp.length = sizeof(g_wp);
                     GetWindowPlacement(g_hwnd, &g_wp);
-                    Frame::Init();
+                    ResizeWindow();
                 }
                 else
                 {
-                    // Re-initialise the video system then set the window back how it was before
-                    Frame::Init();
                     SetWindowPlacement(g_hwnd, &g_wp);
-                    UI::ResizeWindow(true);
+
+                    DWORD dwStyle = (GetWindowStyle(g_hwnd) & WS_VISIBLE) | WS_OVERLAPPEDWINDOW;
+                    SetWindowLongPtr(g_hwnd, GWL_STYLE, dwStyle);
+                    SetMenu(g_hwnd, g_hmenu);
+
+                    ResizeWindow();
                 }
                 break;
 
             case actToggle5_4:
                 SetOption(ratio5_4, !GetOption(ratio5_4));
-
-                if (!GetOption(fullscreen))
-                    UI::ResizeWindow(!GetOption(stretchtofit));
-
+                ResizeWindow();
                 Frame::SetStatus("%s aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
                 break;
-
-            case actChangeWindowSize:
-            {
-                SetOption(scale, (GetOption(scale) % 3) + 1);
-                UI::ResizeWindow(true);
-                Frame::SetStatus("%u%% size", GetOption(scale)*50);
-                break;
-            }
 
             case actInsertFloppy1:
                 InsertDisk(pFloppy1);
@@ -722,15 +763,8 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
 
             case actToggleScanlines:
                 SetOption(scanlines, !GetOption(scanlines));
-                Display::SetDirty();
+                Video::SetDirty();
                 Frame::SetStatus("Scanlines %s", GetOption(scanlines) ? "enabled" : "disabled");
-                break;
-
-            case actChangeBorders:
-                SetOption(borders, (GetOption(borders)+1) % 5);
-                Frame::Init();
-                UI::ResizeWindow(true);
-                Frame::SetStatus(aszBorders[GetOption(borders)]);
                 break;
 
             case actPaste:
@@ -1012,24 +1046,21 @@ LRESULT CALLBACK WinKeyHookProc (int nCode_, WPARAM wParam_, LPARAM lParam_)
 }
 
 
+// Handle messages for the main window
 LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    static bool fInMenu = false, fHideCursor = false, fSizingOrMoving = false;
+    static bool fInMenu = false, fHideCursor = false;
     static UINT_PTR ulMouseTimer = 0;
 
     static COwnerDrawnMenu odmenu(NULL, IDT_MENU, aMenuIcons);
+
+//    TRACE("WindowProc(%#08lx,%#04x,%#08lx,%#08lx)\n", hwnd_, uMsg_, wParam_, lParam_);
 
     LRESULT lResult;
     if (odmenu.WindowProc(hwnd_, uMsg_, wParam_, lParam_, &lResult))
         return lResult;
 
-//  TRACE("WindowProc(%#08lx,%#04x,%#08lx,%#08lx)\n", hwnd_, uMsg_, wParam_, lParam_);
-
-    // If the keyboard is used, simulate early timer expiry to hide the cursor
-    if (uMsg_ == WM_KEYDOWN && ulMouseTimer)
-        ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, NULL);
-
-    // Input has first go at processing any messages
+    // Input module has first go at processing any messages
     if (Input::FilterMessage(hwnd_, uMsg_, wParam_, lParam_))
         return 0;
 
@@ -1046,21 +1077,18 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
         // Application close request
         case WM_CLOSE:
-            Sound::Silence();
-
             // Ensure both drives are saved before we exit
             if (!ChangesSaved(pFloppy1) || !ChangesSaved(pFloppy2))
                 return 0;
 
-            DestroyWindow(hwnd_);
-            UnhookWindowsHookEx(hWinKeyHook);
-            hWinKeyHook = NULL;
+            UnhookWindowsHookEx(hWinKeyHook), hWinKeyHook = NULL;
 
+            PostQuitMessage(0);
             return 0;
 
         // Main window is being destroyed
         case WM_DESTROY:
-            PostQuitMessage(0);
+            DestroyWindow(hwndCanvas), hwndCanvas = NULL;
             return 0;
 
         // System shutting down or using logging out
@@ -1077,16 +1105,18 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             TRACE("WM_ACTIVATE (%#08lx)\n", wParam_);
             HWND hwndActive = reinterpret_cast<HWND>(lParam_);
             bool fActive = LOWORD(wParam_) != WA_INACTIVE;
-            bool fChildOpen = !fActive && hwndActive != hwndMenu && GetParent(hwndActive) == hwnd_;
+            bool fChildOpen = !fActive && hwndActive && GetParent(hwndActive) == hwnd_;
 
-            // Purge any buffered input from the inactive period
-            if (fActive)
-                Input::Purge();
-
-            // Silence the sound if a child window is open
-            else if (fChildOpen)
-                Sound::Silence();
-
+            // Inactive?
+            if (!fActive)
+            {
+                // If a child window is open, silence the sound
+                if (fChildOpen)
+                    Sound::Silence();
+                // If we're in fullscreen mode, minimise the app
+                else if (GetOption(fullscreen))
+                    ShowWindow(hwnd_, SW_SHOWMINNOACTIVE);
+            }
             break;
         }
 
@@ -1099,7 +1129,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             if (DragQueryFile(reinterpret_cast<HDROP>(wParam_), 0, szFile, sizeof(szFile)))
             {
                 // Bring our window to the front
-                SetForegroundWindow(g_hwnd);
+                SetForegroundWindow(hwnd_);
 
                 // Insert the image into drive 1, if available
                 InsertDisk(pFloppy1, szFile);
@@ -1109,32 +1139,87 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         }
 
 
-        // Reinitialise the video if something changes
-        case WM_SYSCOLORCHANGE:
-            Display::Init();
+        // Mouse-hide timer has expired
+        case WM_TIMER:
+            // Make sure the timer is ours
+            if (wParam_ != MOUSE_TIMER_ID)
+                break;
+
+            // Kill the timer, and flag the mouse as hidden
+            KillTimer(hwnd_, MOUSE_TIMER_ID);
+            ulMouseTimer = 0;
+            fHideCursor = true;
+
+            if (!fInMenu && GetOption(fullscreen))
+                SetMenu(hwnd_, NULL);
+
+            // Generate a WM_SETCURSOR to update the cursor state
+            POINT pt;
+            GetCursorPos(&pt);
+            SetCursorPos(pt.x, pt.y);
+            return 0;
+
+        case WM_SETCURSOR:
+            // Hide the cursor unless it's being used for the Win32 GUI or the emulation using using it in windowed mode
+            if (fHideCursor || Input::IsMouseAcquired() || GUI::IsActive())
+            {
+                // Only hide the cursor over the client area
+                if (LOWORD(lParam_) == HTCLIENT)
+                {
+                    SetCursor(NULL);
+                    return TRUE;
+                }
+            }
             break;
 
+        // Mouse has been moved
+        case WM_MOUSEMOVE:
+        {
+            static POINT ptLast;
+            POINT pt = { GET_X_LPARAM(lParam_), GET_Y_LPARAM(lParam_) };
+            ClientToScreen(hwnd_, &pt);
+
+            // Has the mouse moved since last time?
+            if ((pt.x != ptLast.x || pt.y != ptLast.y) && !Input::IsMouseAcquired())
+            {
+                // Show the cursor, but set a timer to hide it if not moved for a few seconds
+                fHideCursor = false;
+                ulMouseTimer = SetTimer(g_hwnd, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, NULL);
+
+                // In fullscreen mode, show the popup menu
+                if (GetOption(fullscreen) && !GetMenu(g_hwnd))
+                    SetMenu(g_hwnd, g_hmenu);
+
+                // Remember the new position
+                ptLast = pt;
+            }
+
+            return 0;
+        }
+
+
+        case WM_SIZE:
+            // Resize the canvas to fit the new main window size
+            ResizeCanvas(LOWORD(lParam_), HIWORD(lParam_));
+            break;
 
         case WM_SIZING:
         {
             RECT* pRect = reinterpret_cast<RECT*>(lParam_);
-
-            // We need a screen to resize!
-            if (!Frame::GetScreen())
-                break;
 
             // Determine the size of the current sizing area
             RECT rWindow = *pRect;
             OffsetRect(&rWindow, -rWindow.left, -rWindow.top);
 
             // Get the screen size, adjusting for 5:4 mode if necessary
-            int nWidth = Frame::GetWidth() >> 1, nHeight = Frame::GetHeight() >> 1;
+            int nWidth = Frame::GetWidth() >> 1;
+            int nHeight = Frame::GetHeight() >> 1;
             if (GetOption(ratio5_4))
                 nWidth = MulDiv(nWidth, 5, 4);
 
             // Determine how big the window would be for an nWidth*nHeight client area
-            DWORD dwStyle = GetWindowStyle(g_hwnd);
-            DWORD dwExStyle = GetWindowExStyle(g_hwnd);
+            DWORD dwStyle = GetWindowStyle(hwnd_);
+            DWORD dwExStyle = GetWindowExStyle(hwnd_);
             RECT rNonClient = { 0, 0, nWidth, nHeight };
             AdjustWindowRectEx(&rNonClient, dwStyle, TRUE, dwExStyle);
             rNonClient.right += nWindowDx;
@@ -1176,11 +1261,15 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             // Holding shift permits free scaling
             if (GetAsyncKeyState(VK_SHIFT) < 0)
             {
-                if (rWindow.bottom != nHeight*GetOption(scale))
-                    SetOption(scale, 0);
+                // Use the new size if at least 1x
+                if (rWindow.right >= nWidth)
+                {
+                    if (rWindow.bottom != nHeight*GetOption(scale))
+                        SetOption(scale, 0);
 
-                nWidth = rWindow.right;
-                nHeight = rWindow.bottom;
+                    nWidth = rWindow.right;
+                    nHeight = rWindow.bottom;
+                }
             }
             // Otherwise stick to exact multiples only
             else
@@ -1224,12 +1313,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             return TRUE;
         }
 
-        // Keep track of whether the window is being resized or moved
-        case WM_ENTERSIZEMOVE:
-        case WM_EXITSIZEMOVE:
-            fSizingOrMoving = (uMsg_ == WM_ENTERSIZEMOVE);
-            break;
-
 
         // Menu is about to be activated
         case WM_INITMENU:
@@ -1246,7 +1329,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             // No longer in menu, so start timer to hide the mouse if not used again
             fInMenu = fHideCursor = false;
             ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, NULL);
-            ShowWindow(hwndMenu, SW_HIDE);
 
             // Purge any menu navigation key presses
             Input::Purge();
@@ -1255,93 +1337,34 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
         // To avoid flicker, don't erase the background
         case WM_ERASEBKGND:
+        {
+            RECT rMain, rCanvas;
+            HDC hdc = reinterpret_cast<HDC>(wParam_);
+            HBRUSH hbrush = GetStockBrush(BLACK_BRUSH);
+
+            // Fetch main window client area, and convert canvas client to same coords
+            GetClientRect(hwnd_, &rMain);
+            GetClientRect(hwndCanvas, &rCanvas);
+            MapWindowRect(hwndCanvas, hwnd_, &rCanvas);
+
+            // Determine borders around the canvas window
+            RECT rLeft = { 0, 0, rCanvas.left, rMain.bottom };
+            RECT rTop = { 0, 0, rMain.right, rCanvas.top };
+            RECT rRight = { rCanvas.right, 0, rMain.right, rMain.bottom };
+            RECT rBottom = { 0, rCanvas.bottom, rMain.right, rMain.bottom };
+
+            // Clear any that exist with black
+            if (!IsRectEmpty(&rLeft)) FillRect(hdc, &rLeft, hbrush);
+            if (!IsRectEmpty(&rTop)) FillRect(hdc, &rTop, hbrush);
+            if (!IsRectEmpty(&rRight)) FillRect(hdc, &rRight, hbrush);
+            if (!IsRectEmpty(&rBottom)) FillRect(hdc, &rBottom, hbrush);
+
             return 1;
-
-        case WM_PAINT:
-        {
-            // Redraw the last frame, and mark the window as clean
-            Frame::Redraw();
-            ValidateRect(hwnd_, NULL);
-            return 0;
-        }
-
-        // System palette has changed
-        case WM_PALETTECHANGED:
-            // Don't react to our own palette changes!
-            if (reinterpret_cast<HWND>(wParam_) == hwnd_)
-                break;
-            // fall through to WM_QUERYNEWPALETTE ...
-
-        // We're about to get the input focus so make sure any palette is updated
-        case WM_QUERYNEWPALETTE:
-            Video::UpdatePalette();
-            return TRUE;
-
-
-        // Mouse-hide timer has expired
-        case WM_TIMER:
-            // Make sure the timer is ours
-            if (wParam_ != MOUSE_TIMER_ID)
-                break;
-
-            // Kill the timer, and flag the mouse as hidden
-            KillTimer(hwnd_, MOUSE_TIMER_ID);
-            ulMouseTimer = 0;
-            fHideCursor = true;
-
-            if (!fInMenu && GetOption(fullscreen))
-                ShowWindow(hwndMenu, SW_HIDE);
-
-            // Generate a WM_SETCURSOR to update the cursor state
-            POINT pt;
-            GetCursorPos(&pt);
-            SetCursorPos(pt.x, pt.y);
-            return 0;
-
-        case WM_SETCURSOR:
-            // Hide the cursor unless it's being used for the Win32 GUI or the emulation using using it in windowed mode
-            if (fHideCursor || Input::IsMouseAcquired() || GUI::IsActive())
-            {
-                // Only hide the cursor over the client area of the main window
-                if (LOWORD(lParam_) == HTCLIENT && reinterpret_cast<HWND>(wParam_) == hwnd_)
-                {
-                    SetCursor(NULL);
-                    return TRUE;
-                }
-            }
-            break;
-
-
-        // Mouse has been moved
-        case WM_MOUSEMOVE:
-        {
-            static POINT ptLast;
-
-            POINT pt = { GET_X_LPARAM(lParam_), GET_Y_LPARAM(lParam_) };
-            ClientToScreen(hwnd_, &pt);
-
-//          TRACE("WM_MOUSEMOVE to %ld,%ld\n", pt.x, pt.y);
-
-            // Has the mouse moved since last time?
-            if ((pt.x != ptLast.x || pt.y != ptLast.y) && !Input::IsMouseAcquired())
-            {
-                // Show the cursor, but set a timer to hide it if not moved for a few seconds
-                fHideCursor = false;
-                ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, NULL);
-
-                // In fullscreen mode, show the popup menu
-                if (GetOption(fullscreen))
-                    ShowWindow(hwndMenu, SW_SHOW);
-
-                // Remember the new position
-                ptLast = pt;
-            }
-
-            return 0;
         }
 
         // Silence the sound during window drags, and other clicks in the non-client area
         case WM_NCLBUTTONDOWN:
+        case WM_NCRBUTTONDOWN:
             Sound::Silence();
             break;
 
@@ -1355,7 +1378,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
                 // If Alt alone is pressed, ensure the menu is visible (for fullscreen)
                 if ((!GetOption(altforcntrl) || !lParam_) && !GetMenu(hwnd_))
-                    ShowWindow(hwndMenu, SW_SHOW);
+                    SetMenu(hwnd_, g_hmenu);
 
                 // Stop Windows processing SAM Cntrl-key combinations (if enabled) and Alt-Enter
                 // As well as blocking access to the menu it avoids a beep for the unhandled ones (mainly Alt-Enter)
@@ -1381,6 +1404,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_KEYDOWN:
         {
             bool fPress = (uMsg_ == WM_KEYDOWN);
+
+            // If the keyboard is used, simulate early timer expiry to hide the cursor
+            if (fPress && ulMouseTimer)
+                ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, NULL);
 
             // Read the current states of the shift keys
             bool fCtrl  = GetAsyncKeyState(VK_CONTROL) < 0;
@@ -1488,7 +1515,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_FILE_FLOPPY1_DEVICE:
                     if (!CFloppyStream::IsAvailable())
                     {
-                        if (MessageBox(g_hwnd, "Real disk support requires a 3rd party driver.\n\nDo you want to download it?",
+                        if (MessageBox(hwnd_, "Real disk support requires a 3rd party driver.\n\nDo you want to download it?",
                             "fdrawcmd.sys not found", MB_ICONQUESTION|MB_YESNO) == IDYES)
                             ShellExecute(NULL, NULL, "http://simonowen.com/fdrawcmd/", NULL, "", SW_SHOWMAXIMIZED);
                     }
@@ -1509,14 +1536,27 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_VIEW_FULLSCREEN:           Action::Do(actToggleFullscreen); break;
                 case IDM_VIEW_RATIO54:              Action::Do(actToggle5_4);        break;
                 case IDM_VIEW_SCANLINES:            Action::Do(actToggleScanlines);  break;
+                case IDM_VIEW_SCANHIRES:            Action::Do(actToggleScanHiRes); break;
+                case IDM_VIEW_FILTER:               Action::Do(actToggleFilter);     break;
                 case IDM_VIEW_GREYSCALE:            Action::Do(actToggleGreyscale);  break;
+
+                case IDM_VIEW_SCANLEVEL_50:
+                case IDM_VIEW_SCANLEVEL_60:
+                case IDM_VIEW_SCANLEVEL_70:
+                case IDM_VIEW_SCANLEVEL_80:
+                case IDM_VIEW_SCANLEVEL_90:
+                    SetOption(scanlevel, 50+10*(wId-IDM_VIEW_SCANLEVEL_50));
+                    Video::UpdatePalette();
+                    break;
 
                 case IDM_VIEW_ZOOM_50:
                 case IDM_VIEW_ZOOM_100:
                 case IDM_VIEW_ZOOM_150:
                 case IDM_VIEW_ZOOM_200:
+                case IDM_VIEW_ZOOM_250:
+                case IDM_VIEW_ZOOM_300:
                     SetOption(scale, wId-IDM_VIEW_ZOOM_50+1);
-                    UI::ResizeWindow(true);
+                    ResizeWindow(Frame::GetHeight()*GetOption(scale)/2);
                     break;
 
                 case IDM_VIEW_BORDERS0:
@@ -1526,7 +1566,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_VIEW_BORDERS4:
                     SetOption(borders, wId-IDM_VIEW_BORDERS0);
                     Frame::Init();
-                    UI::ResizeWindow(true);
+                    ResizeWindow(Frame::GetHeight()*GetOption(scale)/2);
                     break;
 
                 case IDM_SYSTEM_PAUSE:      Action::Do(actPause);           break;
@@ -1539,7 +1579,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                     if (ShellExecute(hwnd_, NULL, OSD::MakeFilePath(MFP_EXE, "SimCoupe.txt"), NULL, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
                         MessageBox(hwnd_, "Can't find SimCoupe.txt", WINDOW_CAPTION, MB_ICONEXCLAMATION);
                     break;
-                case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), g_hwnd, AboutDlgProc, NULL);   break;
+                case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), hwnd_, AboutDlgProc, NULL);   break;
 
                 default:
                     if (wId >= IDM_FILE_RECENT1 && wId <= IDM_FILE_RECENT9)
@@ -1562,35 +1602,100 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 }
 
 
+// Handle messages for the canvas window
+LRESULT CALLBACK CanvasWindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+{
+    // Pass mouse messages to the main window
+    if (uMsg_ >= WM_MOUSEFIRST && uMsg_ <= WM_MOUSELAST)
+        return WindowProc(hwnd_, uMsg_, wParam_, lParam_);
+
+    switch (uMsg_)
+    {
+        case WM_CREATE:
+            return 0;
+
+        // To avoid flicker, don't erase the background
+        case WM_ERASEBKGND:
+            return 1;
+
+        case WM_PAINT:
+            Frame::Redraw();
+            ValidateRect(hwnd_, NULL);
+            break;
+
+        case WM_SIZE:
+            Video::UpdateSize();
+            break;
+
+    }
+
+    return DefWindowProc(hwnd_, uMsg_, wParam_, lParam_);
+}
+
+
+
+void SaveWindowPosition (HWND hwnd_)
+{
+    char sz[128];
+    WINDOWPLACEMENT wp = { sizeof(wp) };
+    RECT *pr = &wp.rcNormalPosition;
+    GetWindowPlacement(hwnd_, &wp);
+
+    wsprintf(sz, "%d,%d,%d,%d,%d", pr->left, pr->top, pr->right-pr->left, pr->bottom-pr->top, wp.showCmd == SW_SHOWMAXIMIZED);
+    SetOption(windowpos, sz);
+}
+
+bool RestoreWindowPosition (HWND hwnd_)
+{
+    int nX, nY, nW, nH, nMax;
+    if (sscanf(GetOption(windowpos), "%d,%d,%d,%d,%d", &nX, &nY, &nW, &nH, &nMax) != 5)
+        return false;
+
+    WINDOWPLACEMENT wp = { sizeof(wp) };
+    SetRect(&wp.rcNormalPosition, nX, nY, nX+nW, nY+nH);
+    wp.showCmd = nMax ? SW_MAXIMIZE : SW_SHOW;
+    SetWindowPlacement(hwnd_, &wp);
+
+    return true;
+}
+
+
 bool InitWindow ()
 {
     // Set up and register window class
-    WNDCLASS wc = { 0 };
+    WNDCLASS wc = { };
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = __hinstance;
     wc.hIcon = LoadIcon(__hinstance, MAKEINTRESOURCE(IDI_MAIN));
     wc.hCursor = LoadCursor(__hinstance, MAKEINTRESOURCE(IDC_CURSOR));
     wc.lpszClassName = "SimCoupeClass";
+    RegisterClass(&wc);
 
     g_hmenu = LoadMenu(wc.hInstance, MAKEINTRESOURCE(IDR_MENU));
 
+    int nWidth = Frame::GetWidth() * GetOption(scale) / 2;
+    int nHeight = Frame::GetHeight() * GetOption(scale) / 2;
+    int nInitX = (GetSystemMetrics(SM_CXSCREEN) - nWidth) / 2;
+    int nInitY = (GetSystemMetrics(SM_CYSCREEN) - nHeight) * 5/12;
+
     // Create a window for the display (initially invisible)
-    bool f = (RegisterClass(&wc) && (g_hwnd = CreateWindowEx(WS_EX_APPWINDOW, wc.lpszClassName, WINDOW_CAPTION, WS_OVERLAPPEDWINDOW,
-                                                            CW_USEDEFAULT, CW_USEDEFAULT, 1024, 1, NULL, g_hmenu, wc.hInstance, NULL)));
+    g_hwnd = CreateWindowEx(WS_EX_APPWINDOW, wc.lpszClassName, WINDOW_CAPTION, WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN,
+                            nInitX, nInitY, 1, 1, NULL, g_hmenu, wc.hInstance, NULL);
 
-    // Calculate the approximate width of the menu bar
-    RECT rFirst, rLast;
-    AppendMenu(g_hmenu, MF_POPUP, 0x1234, "");
-    GetMenuItemRect(g_hwnd, g_hmenu, 0, &rFirst);
-    GetMenuItemRect(g_hwnd, g_hmenu, GetMenuItemCount(g_hmenu)-1, &rLast);
-    DeleteMenu(g_hmenu, GetMenuItemCount(g_hmenu)-1, MF_BYPOSITION);
+    wc.lpfnWndProc = CanvasWindowProc;
+    wc.hIcon = NULL;
+    wc.lpszClassName = "SimCoupeCanvas";
+    RegisterClass(&wc);
 
-    // Create a pop-up menu bar for use in fullscreen mode
-    int nMenuWidth = rLast.right-rFirst.left;
-    hwndMenu = CreateWindowEx(0, wc.lpszClassName, "", WS_POPUP, 0, 0, nMenuWidth, GetSystemMetrics(SM_CYMENU), g_hwnd, g_hmenu, wc.hInstance, NULL);
+    // Create the canvas child window to hold the emulation view
+    hwndCanvas = CreateWindow(wc.lpszClassName, "", WS_CHILD|WS_VISIBLE, 0,0, 0,0, g_hwnd, NULL, wc.hInstance, NULL);
 
-    return f;
+    // Restore the window position, falling back on the current options to determine its size
+    if (!RestoreWindowPosition(g_hwnd))
+        ResizeWindow(nHeight);
+
+    return g_hwnd && hwndCanvas;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2399,7 +2504,6 @@ INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
         case WM_INITDIALOG:
         {
             SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_SETCHECK, GetOption(hwaccel) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_STRETCH_TO_FIT, BM_SETCHECK, GetOption(stretchtofit) ? BST_CHECKED : BST_UNCHECKED, 0L);
             break;
         }
 
@@ -2410,13 +2514,9 @@ INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
             if (ppsn->hdr.code == PSN_APPLY)
             {
                 SetOption(hwaccel, SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(stretchtofit, SendDlgItemMessage(hdlg_, IDC_STRETCH_TO_FIT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
                 if (Changed(hwaccel))
-                    Frame::Init();
-
-                if (Changed(stretchtofit))
-                    UI::ResizeWindow(!GetOption(stretchtofit));
+                    Video::UpdateSize();
             }
 
             break;
@@ -3429,6 +3529,7 @@ void DisplayOptions ()
     InitPage(aPages, 8,  IDD_PAGE_MIDI,     MidiPageDlgProc);
     InitPage(aPages, 9,  IDD_PAGE_MISC,     MiscPageDlgProc);
     InitPage(aPages, 10, IDD_PAGE_FNKEYS,   FnKeysPageDlgProc);
+    
 
     PROPSHEETHEADER psh;
     ZeroMemory(&psh, sizeof(psh));

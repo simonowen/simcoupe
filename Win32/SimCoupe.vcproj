@@ -70,7 +70,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="comctl32.lib winmm.lib dxguid.lib dinput.lib shlwapi.lib"
 				GenerateManifest="false"
-				DelayLoadDLLs=""
+				DelayLoadDLLs="d3d9.dll;ddraw.dll"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/SimCoupe.pdb"
 				SubSystem="2"
@@ -221,7 +221,6 @@
 				AdditionalIncludeDirectories=".;..;..\Base"
 				PreprocessorDefinitions="_WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WIN32_LEAN_AND_MEAN;WINVER=0x0500;_WIN32_WINNT=0x0500;ZLIB_WINAPI;USE_ZLIB;USE_ZLIBSTAT;USE_RESID"
 				StringPooling="true"
-				ExceptionHandling="0"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
@@ -245,7 +244,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="comctl32.lib winmm.lib dxguid.lib dinput.lib shlwapi.lib"
 				GenerateManifest="false"
-				DelayLoadDLLs=""
+				DelayLoadDLLs="d3d9.dll;ddraw.dll"
 				GenerateDebugInformation="false"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -382,7 +381,11 @@
 				>
 			</File>
 			<File
-				RelativePath="Display.h"
+				RelativePath=".\Direct3D9.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DirectDraw.h"
 				>
 			</File>
 			<File
@@ -414,7 +417,7 @@
 				>
 			</File>
 			<File
-				RelativePath="Video.h"
+				RelativePath=".\XVideo.h"
 				>
 			</File>
 		</Filter>
@@ -694,6 +697,46 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\Video.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\Base\WAV.cpp"
 				>
 			</File>
@@ -708,7 +751,11 @@
 				>
 			</File>
 			<File
-				RelativePath="Display.cpp"
+				RelativePath=".\Direct3D9.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\DirectDraw.cpp"
 				>
 			</File>
 			<File
@@ -769,10 +816,6 @@
 			</File>
 			<File
 				RelativePath="UI.cpp"
-				>
-			</File>
-			<File
-				RelativePath="Video.cpp"
 				>
 			</File>
 		</Filter>
@@ -1110,6 +1153,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\Util.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Video.h"
 				>
 			</File>
 			<File

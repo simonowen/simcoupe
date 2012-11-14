@@ -21,7 +21,6 @@
 #include "SimCoupe.h"
 
 #include "Action.h"
-#include "Display.h"
 #include "Frame.h"
 #include "GUI.h"
 #include "Input.h"
@@ -361,7 +360,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             // Mouse in use by the GUI?
             if (GUI::IsActive())
             {
-                Display::DisplayToSamPoint(&nX, &nY);
+                Video::DisplayToSamPoint(&nX, &nY);
                 GUI::SendMessage(GM_MOUSEMOVE, nX, nY);
             }
 
@@ -375,7 +374,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
                 // Any native movement?
                 if (nX || nY)
                 {
-                    Display::DisplayToSamSize(&nX, &nY);
+                    Video::DisplayToSamSize(&nX, &nY);
 
                     // Any SAM movement?
                     if (nX || nY)
@@ -396,7 +395,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             // Button presses go to the GUI if it's active
             if (GUI::IsActive())
             {
-                Display::DisplayToSamPoint(&nX, &nY);
+                Video::DisplayToSamPoint(&nX, &nY);
 
                 switch (pEvent_->button.button)
                 {
@@ -428,7 +427,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             if (GUI::IsActive())
             {
                 int nX = pEvent_->button.x, nY = pEvent_->button.y;
-                Display::DisplayToSamPoint(&nX, &nY);
+                Video::DisplayToSamPoint(&nX, &nY);
                 GUI::SendMessage(GM_BUTTONUP, nX, nY);
             }
             else if (fMouseActive)

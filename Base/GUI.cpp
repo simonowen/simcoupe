@@ -31,7 +31,6 @@
 
 #include <ctype.h>
 
-#include "Display.h"
 #include "Expr.h"
 #include "Font.h"
 #include "Frame.h"
@@ -131,7 +130,7 @@ bool GUI::Start (CWindow* pGUI_)
 
     // Silence sound playback
     Sound::Silence();
-    Display::SetDirty();
+    Video::SetDirty();
 
     return true;
 }
@@ -142,7 +141,7 @@ void GUI::Stop ()
     delete s_pGUI;
     s_pGUI = NULL;
 
-    Display::SetDirty();
+    Video::SetDirty();
     Input::Purge();
 }
 

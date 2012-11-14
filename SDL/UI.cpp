@@ -27,12 +27,13 @@
 
 #include "Action.h"
 #include "CPU.h"
-#include "Display.h"
 #include "Frame.h"
 #include "GUI.h"
 #include "Input.h"
 #include "Options.h"
 #include "Sound.h"
+#include "SDL12.h"
+#include "SDL_GL.h"
 
 #ifdef _DEBUG
 #define WINDOW_CAPTION      "SimCoupe/SDL [DEBUG]"
@@ -46,7 +47,7 @@ bool UI::Init (bool fFirstInit_/*=false*/)
     bool fRet = true;
 
     Exit(true);
-    TRACE("-> UI::Init()\n");
+    TRACE("UI::Init(%d)\n", fFirstInit_);
 
     // Set the window caption and disable the cursor until needed
     SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);
@@ -73,19 +74,39 @@ bool UI::Init (bool fFirstInit_/*=false*/)
     }
 #endif
 
-    TRACE("<- UI::Init() returning %s\n", fRet ? "true" : "false");
-
     return fRet;
 }
 
 void UI::Exit (bool fReInit_/*=false*/)
 {
-    TRACE("-> UI::Exit(%s)\n", fReInit_ ? "reinit" : "");
+    TRACE("UI::Exit(%d)\n", fReInit_);
+}
 
-    if (!fReInit_)
-        SDL_QuitSubSystem(SDL_INIT_TIMER);
 
-    TRACE("<- UI::Exit()\n");
+// Create a video object to render the display
+VideoBase *UI::GetVideo (bool fFirstInit_)
+{
+    VideoBase *pVideo = NULL;
+
+#ifdef USE_OPENGL
+    // Try for OpenGL first
+    pVideo = new OpenGLVideo;
+    if (pVideo && !pVideo->Init(fFirstInit_))
+        delete pVideo, pVideo = NULL;
+#endif
+
+    if (!pVideo)
+    {
+        // Fall back on a regular SDL surface
+        pVideo = new SDLVideo;
+        if (!pVideo->Init(fFirstInit_))
+        {
+            delete pVideo, pVideo = NULL;
+            Message(msgError, "Video initialisation failed!");
+        }
+    }
+
+    return pVideo ;
 }
 
 
@@ -112,7 +133,7 @@ bool UI::CheckEvents ()
                     return false;
 
                 case SDL_VIDEOEXPOSE:
-                    Display::SetDirty();
+                    Video::SetDirty();
                     break;
 
                 case SDL_USEREVENT:
@@ -150,13 +171,10 @@ bool UI::CheckEvents ()
                         case UE_TOGGLE54:           Action::Do(actToggle5_4);       break;
                         case UE_DEBUGGER:           Action::Do(actDebugger);        break;
                         case UE_SAVESCREENSHOT:     Action::Do(actSaveScreenshot);  break;
-                        case UE_CHANGEPROFILER:     Action::Do(actChangeProfiler);  break;
                         case UE_PAUSE:              Action::Do(actPause);           break;
                         case UE_TOGGLETURBO:        Action::Do(actToggleTurbo);     break;
                         case UE_TOGGLEMUTE:         Action::Do(actToggleMute);      break;
                         case UE_RELEASEMOUSE:       Action::Do(actReleaseMouse);    break;
-                        case UE_CHANGEWINDOWSIZE:   Action::Do(actChangeWindowSize);break;
-                        case UE_CHANGEBORDERS:      Action::Do(actChangeBorders);   break;
                         case UE_OPTIONS:            Action::Do(actOptions);         break;
                         case UE_IMPORTDATA:         Action::Do(actImportData);      break;
                         case UE_EXPORTDATA:         Action::Do(actExportData);      break;
@@ -204,10 +222,6 @@ bool UI::DoAction (int nAction_, bool fPressed_)
     {
         switch (nAction_)
         {
-            case actChangeWindowSize:
-                GUI::Start(new CMessageBox(NULL, "Window sizing is not supported under SDL", "Sorry!", mbInformation));
-                break;
-
             case actExitApplication:
             {
                 SDL_Event event = { SDL_QUIT };
@@ -227,15 +241,6 @@ bool UI::DoAction (int nAction_, bool fPressed_)
                 return false;
             }
 
-            // Perform the switch on key-up, to avoid an SDL 1.2.x bug
-            case actToggleFullscreen:
-                break;
-
-            case actToggle5_4:
-#ifndef USE_OPENGL
-                GUI::Start(new CMessageBox(NULL, "5:4 mode requires OpenGL", "Sorry!", mbInformation));
-#endif
-                break;
             // Not processed
             default:
                 return false;
@@ -243,26 +248,8 @@ bool UI::DoAction (int nAction_, bool fPressed_)
     }
     else    // Key released
     {
-        switch (nAction_)
-        {
-            // To avoid an SDL bug (in 1.2.0 anyway), we'll do the following on key up instead of down
-            case actToggleFullscreen:
-                SetOption(fullscreen, !GetOption(fullscreen));
-                Sound::Silence();
-                Frame::Init();
-                break;
-
-#ifdef USE_OPENGL
-            case actToggle5_4:
-                SetOption(ratio5_4, !GetOption(ratio5_4));
-                Frame::Init();
-                Frame::SetStatus("%s aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
-                break;
-#endif
-            // Not processed
-            default:
-                return false;
-        }
+        // Not processed
+        return false;
     }
 
     // Action processed

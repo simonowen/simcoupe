@@ -24,10 +24,10 @@
 enum eActions
 {
     actNewDisk1, actInsertFloppy1, actEjectFloppy1, actSaveFloppy1, actNewDisk2, actInsertFloppy2, actEjectFloppy2, actSaveFloppy2,
-    actExitApplication, actOptions, actDebugger, actImportData, actExportData, actSaveScreenshot, actChangeProfiler,
+    actExitApplication, actOptions, actDebugger, actImportData, actExportData, actSaveScreenshot, actChangeProfiler_REMOVED,
     actResetButton, actNmiButton, actPause, actFrameStep, actToggleTurbo, actTempTurbo,
-    actToggleSync_REMOVED, actToggleFullscreen, actChangeWindowSize, actChangeBorders, actToggle5_4,
-    actChangeFrameSkip_REMOVED, actToggleScanlines, actToggleGreyscale, actToggleMute, actReleaseMouse,
+    actToggleScanHiRes, actToggleFullscreen, actChangeWindowSize_REMOVED, actChangeBorders_REMOVED, actToggle5_4,
+    actToggleFilter, actToggleScanlines, actToggleGreyscale, actToggleMute, actReleaseMouse,
     actPrinterOnline, actFlushPrinter, actAbout, actMinimise, actRecordGif, actRecordGifLoop, actRecordGifStop,
     actRecordWav,actRecordWavSegment, actRecordWavStop, actRecordAvi, actRecordAviHalf, actRecordAviStop,
     actSpeedFaster, actSpeedSlower, actSpeedNormal, actPaste, MAX_ACTION
