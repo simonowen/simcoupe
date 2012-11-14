@@ -60,7 +60,10 @@ bool Debug::Start (BREAKPT* pBreak_)
         bLastStatus = status_reg;
     }
 
-    // Create the main debugger window
+    // Stop any existing debugger instance
+    GUI::Stop();
+
+    // Create the main debugger window, passing any breakpoint
     if (!GUI::Start(pDebugger = new CDebugger(pBreak_)))
         pDebugger = NULL;
 

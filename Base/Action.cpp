@@ -166,7 +166,8 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actDebugger:
-                Debug::Start();
+                if (!GUI::IsActive())
+                    Debug::Start();
                 break;
 
             case actImportData:
