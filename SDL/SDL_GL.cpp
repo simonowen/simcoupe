@@ -168,7 +168,7 @@ void OpenGLVideo::Render ()
         glTranslatef(0.0f, -flHeight/2, 0.0f);  // Centre image
     }
 
-    glClearColor( 0.5f, 0.0f, 0.0f, 1.0f );
+    glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
     glClear(GL_COLOR_BUFFER_BIT);
 
     glBindTexture(GL_TEXTURE_2D, auTextures[TEX_DISPLAY]);
