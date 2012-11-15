@@ -2,7 +2,7 @@
 //
 // Screen.cpp: SAM screen handling, including on-screen display text
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -69,6 +69,7 @@ BYTE* CScreen::GetHiResLine (int nLine_, int nWidth_/*=WIDTH_BLOCKS*/)
 {
     bool fHiRes;
     BYTE* pbLine = GetLine(nLine_, fHiRes);
+    WORD *pwLine = reinterpret_cast<WORD*>(pbLine);
 
     // If the line is already hi-res, return the pointer to it
     if (fHiRes)
@@ -80,14 +81,14 @@ BYTE* CScreen::GetHiResLine (int nLine_, int nWidth_/*=WIDTH_BLOCKS*/)
     // Double up each pixel on the line
     for (int i = nWidth_-1 ; i >= 0 ; i -= 8)
     {
-        reinterpret_cast<WORD*>(pbLine)[i-0] = static_cast<WORD>(pbLine[i-0]) * 0x0101;
-        reinterpret_cast<WORD*>(pbLine)[i-1] = static_cast<WORD>(pbLine[i-1]) * 0x0101;
-        reinterpret_cast<WORD*>(pbLine)[i-2] = static_cast<WORD>(pbLine[i-2]) * 0x0101;
-        reinterpret_cast<WORD*>(pbLine)[i-3] = static_cast<WORD>(pbLine[i-3]) * 0x0101;
-        reinterpret_cast<WORD*>(pbLine)[i-4] = static_cast<WORD>(pbLine[i-4]) * 0x0101;
-        reinterpret_cast<WORD*>(pbLine)[i-5] = static_cast<WORD>(pbLine[i-5]) * 0x0101;
-        reinterpret_cast<WORD*>(pbLine)[i-6] = static_cast<WORD>(pbLine[i-6]) * 0x0101;
-        reinterpret_cast<WORD*>(pbLine)[i-7] = static_cast<WORD>(pbLine[i-7]) * 0x0101;
+        pwLine[i-0] = pbLine[i-0] * 0x0101;
+        pwLine[i-1] = pbLine[i-1] * 0x0101;
+        pwLine[i-2] = pbLine[i-2] * 0x0101;
+        pwLine[i-3] = pbLine[i-3] * 0x0101;
+        pwLine[i-4] = pbLine[i-4] * 0x0101;
+        pwLine[i-5] = pbLine[i-5] * 0x0101;
+        pwLine[i-6] = pbLine[i-6] * 0x0101;
+        pwLine[i-7] = pbLine[i-7] * 0x0101;
     }
 
     // Mark the line as hi-res
