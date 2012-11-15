@@ -138,7 +138,7 @@ WORD GetPrevInstruction (WORD wAddr_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void cmdStep (int nCount_=1)
+void cmdStep (int nCount_=1, bool fCtrl_=false)
 {
     void *pPhysAddr = NULL;
     BYTE bOpcode;
@@ -149,7 +149,7 @@ void cmdStep (int nCount_=1)
 
     // Stepping into a HALT (with interrupt enabled) will enter the appropriate interrupt handler
     // This is much friendlier than single-stepping NOPs up to the next interrupt!
-    if (nCount_ == 1 && bOpcode == OP_HALT && IFF1)
+    if (nCount_ == 1 && bOpcode == OP_HALT && IFF1 && !fCtrl_)
     {
         // For IM 2, form the address of the handler and break there
         if (IM == 2)
@@ -1582,27 +1582,31 @@ void CDisView::Draw (CScreen* pScreen_)
     pScreen_->DrawString(nX, nY+148, "Scan", GREEN_8);
     pScreen_->DrawString(nX+30, nY+148, sz, WHITE);
 
-    DWORD dwCycleDiff = ((nLastFrames*TSTATES_PER_FRAME)+g_dwCycleCounter)-dwLastCycle;
-    if (dwCycleDiff)
-        sprintf(sz, "%u (+%u)", g_dwCycleCounter, dwCycleDiff);
-    else
-        sprintf(sz, "%u", g_dwCycleCounter);
+    sprintf(sz, "%u", g_dwCycleCounter);
     pScreen_->DrawString(nX, nY+160, "T", GREEN_8);
     pScreen_->DrawString(nX+12, nY+160, sz, WHITE);
 
-    pScreen_->DrawString(nX, nY+176, "A\nB\nC\nD", GREEN_8);
-    pScreen_->DrawString(nX+12, nY+176, PageDesc(GetSectionPage(SECTION_A)), (AddrWritePtr(0x0000)==PageWritePtr(SCRATCH_WRITE))?CYAN_8:WHITE);
-    pScreen_->DrawString(nX+12, nY+188, PageDesc(GetSectionPage(SECTION_B)), WHITE);
-    pScreen_->DrawString(nX+12, nY+200, PageDesc(GetSectionPage(SECTION_C)), WHITE);
-    pScreen_->DrawString(nX+12, nY+212, PageDesc(GetSectionPage(SECTION_D)), (AddrWritePtr(0xc000)==PageWritePtr(SCRATCH_WRITE))?CYAN_8:WHITE);
+    DWORD dwCycleDiff = ((nLastFrames*TSTATES_PER_FRAME)+g_dwCycleCounter)-dwLastCycle;
+    pScreen_->DrawString(nX, nY+172, "", GREEN_8);
+    if (dwCycleDiff)
+    {
+        sprintf(sz, "(+%u)", dwCycleDiff);	
+        pScreen_->DrawString(nX+6, nY+172, sz, WHITE);
+    }
 
-    pScreen_->DrawString(nX+60, nY+176, " L\n H\n V\n M", GREEN_8);
+    pScreen_->DrawString(nX, nY+188, "A\nB\nC\nD", GREEN_8);
+    pScreen_->DrawString(nX+12, nY+188, PageDesc(GetSectionPage(SECTION_A)), (AddrWritePtr(0x0000)==PageWritePtr(SCRATCH_WRITE))?CYAN_8:WHITE);
+    pScreen_->DrawString(nX+12, nY+200, PageDesc(GetSectionPage(SECTION_B)), WHITE);
+    pScreen_->DrawString(nX+12, nY+212, PageDesc(GetSectionPage(SECTION_C)), WHITE);
+    pScreen_->DrawString(nX+12, nY+224, PageDesc(GetSectionPage(SECTION_D)), (AddrWritePtr(0xc000)==PageWritePtr(SCRATCH_WRITE))?CYAN_8:WHITE);
+
+    pScreen_->DrawString(nX+60, nY+188, " L\n H\n V\n M", GREEN_8);
     sprintf(sz, "   %02X\n   %02X\n   %02X\n   %X",
         lmpr, hmpr, vmpr, ((vmpr&VMPR_MODE_MASK)>>5)+1);
-    pScreen_->DrawString(nX+60, nY+176, sz, WHITE);
+    pScreen_->DrawString(nX+60, nY+188, sz, WHITE);
 
 
-    pScreen_->DrawString(nX, nY+228, "Events", GREEN_8);
+    pScreen_->DrawString(nX, nY+240, "Events", GREEN_8);
 
     CPU_EVENT *pEvent = psNextEvent;
     for (i = 0 ; i < 3 && pEvent ; i++, pEvent = pEvent->psNext)
@@ -1623,9 +1627,9 @@ void CDisView::Draw (CScreen* pScreen_)
         }
 
         sprintf(sz, "%s       T", pcszEvent);
-        pScreen_->DrawString(nX, nY+240+(i*12), sz, WHITE);
+        pScreen_->DrawString(nX, nY+252+(i*12), sz, WHITE);
         sprintf(sz, "%6u", pEvent->dwTime-g_dwCycleCounter);
-        pScreen_->DrawString(nX+5*6, nY+240+(i*12), sz, RegCol(0,1));
+        pScreen_->DrawString(nX+5*6, nY+252+(i*12), sz, RegCol(0,1));
     }
 }
 
@@ -1665,7 +1669,7 @@ bool CDisView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                         cmdStepOver();
                     break;
 
-                case HK_KP7:  cmdStep();        break;
+                case HK_KP7:  cmdStep(1, nParam2_ != HM_NONE); break;
                 case HK_KP8:  cmdStepOver();    break;
                 case HK_KP9:  cmdStepOut();     break;
                 case HK_KP4:  cmdStep(10);      break;
