@@ -421,12 +421,15 @@ void CPU::Run ()
         if (g_nTurbo & TURBO_BOOT)
             fDrawFrame = GUI::IsActive();
 
+        // Prepare start of frame image, in case we've already started it
+        Frame::Begin();
+
         // CPU execution continues unless the debugger is active or there's a modal GUI dialog active
         if (!Debug::IsActive() && !GUI::IsModal())
             ExecuteChunk();
 
-        // Complete and display the frame contents
-        Frame::Complete();
+        // Finish end of frame image, in case we haven't finished it
+        Frame::End();
 
         // The real end of the SAM frame requires some additional handling
         if (g_dwCycleCounter >= TSTATES_PER_FRAME)
@@ -435,7 +438,7 @@ void CPU::Run ()
 
             IO::FrameUpdate();
             Debug::FrameEnd();
-            Frame::Start();
+            Frame::Flyback();
 
             // Step back up to start the next frame
             g_dwCycleCounter %= TSTATES_PER_FRAME;
