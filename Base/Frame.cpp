@@ -332,6 +332,34 @@ static void CopyAfterRaster ()
     }
 }
 
+// Highlight the current raster position if it's on the visible display
+static void DrawRaster (CScreen *pScreen_)
+{
+    // Greyscale cycle, fading in and out
+    static int anFlash[] = {
+        GREY_1, GREY_2, GREY_3, GREY_4, GREY_5, GREY_6, GREY_7, GREY_8,
+        GREY_8, GREY_7, GREY_6, GREY_5, GREY_4, GREY_3, GREY_2, GREY_1
+    };
+
+    // Nothing to do if the raster isn't on the visible display
+    if (nLastBlock < s_nViewLeft || nLastBlock >= s_nViewRight ||
+        nLastLine  < s_nViewTop  || nLastLine  >= s_nViewBottom)
+      return;
+
+    // Determine the screen position
+    int nOffset = (nLastBlock - s_nViewLeft) << 4;
+    int nLine = (nLastLine - s_nViewTop) << 1;  // line number doubled due to GUI screen
+
+    // Look up the next cycle colour
+    static int nPhase = 0;
+    BYTE bColour = anFlash[++nPhase & 0xf];
+
+    // Write the 2x2 pixel block
+    BYTE* pLine0 = pScreen_->GetHiResLine(nLine);
+    BYTE* pLine1 = pScreen_->GetHiResLine(nLine+1);
+    pLine0[nOffset] = pLine0[nOffset+1] = pLine1[nOffset] = pLine1[nOffset+1] = bColour;
+}
+
 
 // Begin the frame by copying from the previous frame, up to the last cange
 void Frame::Begin ()
@@ -371,6 +399,10 @@ void Frame::End ()
                 memcpy(pGuiScreen->GetLine(i), pbLine, nWidth);
                 pGuiScreen->SetHiRes(i, fHiRes);
             }
+
+            // If the debugger is active, highlight the current raster position
+            if (Debug::IsActive())
+                DrawRaster(pGuiScreen);
 
             // Overlay the GUI widgets
             GUI::Draw(pGuiScreen);
