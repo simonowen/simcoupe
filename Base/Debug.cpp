@@ -1590,8 +1590,8 @@ void CDisView::Draw (CScreen* pScreen_)
     pScreen_->DrawString(nX, nY+172, "", GREEN_8);
     if (dwCycleDiff)
     {
-        sprintf(sz, "(+%u)", dwCycleDiff);	
-        pScreen_->DrawString(nX+6, nY+172, sz, WHITE);
+        sprintf(sz, "+%u", dwCycleDiff);	
+        pScreen_->DrawString(nX+12, nY+172, sz, WHITE);
     }
 
     pScreen_->DrawString(nX, nY+188, "A\nB\nC\nD", GREEN_8);
