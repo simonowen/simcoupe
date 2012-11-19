@@ -49,8 +49,8 @@ int nLastFrames;
 // Activate the debug GUI, if not already active
 bool Debug::Start (BREAKPT* pBreak_)
 {
-    // Reset the last entry counters, unless it's a temporary breakpoint or we stepped out
-    if ((!pBreak_ || pBreak_->nType != btTemp || (pBreak_->pExpr && pBreak_->pExpr != &Expr::Counter)) && nStepOutSP == -1)
+    // Reset the last entry counters, unless we're started from a triggered breakpoint
+    if (!pBreak_ && nStepOutSP == -1)
     {
         nLastFrames = 0;
         dwLastCycle = g_dwCycleCounter;
