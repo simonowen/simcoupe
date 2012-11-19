@@ -1488,22 +1488,22 @@ void CDisView::Draw (CScreen* pScreen_)
     pScreen_->DrawString(nX+dx, nY+dy, buf, (regs.reg != sLastRegs.reg) ? RED_8 : WHITE);  \
 }
 
-    ShowReg(sz, "%04X", 18,  0, af.w);
-    ShowReg(sz, "%04X", 18, 12, bc.w);
-    ShowReg(sz, "%04X", 18, 24, de.w);
-    ShowReg(sz, "%04X", 18, 36, hl.w);
+    ShowReg(sz, "%02X", 18,  0, af.b.h); ShowReg(sz, "%02X", 30,  0, af.b.l);
+    ShowReg(sz, "%02X", 18, 12, bc.b.h); ShowReg(sz, "%02X", 30, 12, bc.b.l);
+    ShowReg(sz, "%02X", 18, 24, de.b.h); ShowReg(sz, "%02X", 30, 24, de.b.l);
+    ShowReg(sz, "%02X", 18, 36, hl.b.h); ShowReg(sz, "%02X", 30, 36, hl.b.l);
 
-    ShowReg(sz, "%04X", 18, 52, ix.w);
+    ShowReg(sz, "%02X", 18, 52, ix.b.h); ShowReg(sz, "%02X", 30, 52, ix.b.l);
     ShowReg(sz, "%04X", 18, 64, pc.w);
 
     ShowReg(sz, "%02X", 12, 80, i);
 
-    ShowReg(sz, "%04X", 72,  0, af_.w);
-    ShowReg(sz, "%04X", 72, 12, bc_.w);
-    ShowReg(sz, "%04X", 72, 24, de_.w);
-    ShowReg(sz, "%04X", 72, 36, hl_.w);
+    ShowReg(sz, "%02X", 72,  0, af_.b.h); ShowReg(sz, "%02X", 84,  0, af_.b.l);
+    ShowReg(sz, "%02X", 72, 12, bc_.b.h); ShowReg(sz, "%02X", 84, 12, bc_.b.l);
+    ShowReg(sz, "%02X", 72, 24, de_.b.h); ShowReg(sz, "%02X", 84, 24, de_.b.l);
+    ShowReg(sz, "%02X", 72, 36, hl_.b.h); ShowReg(sz, "%02X", 84, 36, hl_.b.l);
 
-    ShowReg(sz, "%04X", 72, 52, iy.w);
+    ShowReg(sz, "%02X", 72, 52, iy.b.h); ShowReg(sz, "%02X", 84, 52, iy.b.l);
     ShowReg(sz, "%04X", 72, 64, sp.w);
 
     ShowReg(sz, "%02X", 48, 80, r);
