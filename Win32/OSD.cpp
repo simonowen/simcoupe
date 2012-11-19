@@ -40,7 +40,6 @@ bool fPortable = false;
 
 bool OSD::Init (bool fFirstInit_/*=false*/)
 {
-    UI::Exit(true);
     TRACE("OSD::Init(%d)\n", fFirstInit_);
 
     if (fFirstInit_)
@@ -72,7 +71,7 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
         SetErrorMode(SEM_FAILCRITICALERRORS);
     }
 
-    return UI::Init(fFirstInit_);
+    return UI::Init();
 }
 
 void OSD::Exit (bool fReInit_/*=false*/)
@@ -83,7 +82,7 @@ void OSD::Exit (bool fReInit_/*=false*/)
         if (g_hinstDSound) { FreeLibrary(g_hinstDSound); g_hinstDSound = NULL; pfnDirectSoundCreate=NULL; }
     }
 
-    UI::Exit(fReInit_);
+    UI::Exit();
 }
 
 

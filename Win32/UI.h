@@ -26,8 +26,8 @@
 class UI
 {
     public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit=false);
+        static bool Init ();
+        static void Exit ();
 
         static VideoBase *GetVideo (bool fFirstInit_=false);
         static bool CheckEvents ();

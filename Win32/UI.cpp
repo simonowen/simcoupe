@@ -149,22 +149,19 @@ int WINAPI WinMain(HINSTANCE hinst_, HINSTANCE hinstPrev_, LPSTR pszCmdLine_, in
 
 void ClipPath (char* pszPath_, size_t nLength_);
 
-bool UI::Init (bool fFirstInit_/*=false*/)
+bool UI::Init ()
 {
-    UI::Exit(true);
-    TRACE("UI::Init(%d)\n", fFirstInit_);
+    TRACE("UI::Init()\n");
 
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
-
-    if (fFirstInit_)
-        LoadRecentFiles();
+    LoadRecentFiles();
 
     return InitWindow();
 }
 
-void UI::Exit (bool fReInit_/*=false*/)
+void UI::Exit ()
 {
-    TRACE("UI::Exit(%d)\n", fReInit_);
+    TRACE("UI::Exit()\n");
+
     if (g_hwnd)
     {
         SaveWindowPosition(g_hwnd);
