@@ -66,7 +66,7 @@ bool CDrive::Insert (const char* pcszSource_, bool fAutoBoot_)
         return false;
 
     // Check for auto-booting with drive 1
-    if (this == pFloppy1 && fAutoBoot_ && IO::IsAtStartupScreen())
+    if (this == pFloppy1 && fAutoBoot_)
         IO::AutoLoad(AUTOLOAD_DISK);
 
     return true;

@@ -50,7 +50,7 @@ class IO
         static void UpdateInput();
         static const COLOUR *GetPalette ();
         static bool IsAtStartupScreen (bool fExit_=false);
-        static void AutoLoad (int nType_);
+        static void AutoLoad (int nType_, bool fOnlyAtStartup_=true);
         static void WakeAsic ();
 
         static bool EiHook ();

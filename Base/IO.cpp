@@ -958,16 +958,19 @@ bool IO::IsAtStartupScreen (bool fExit_)
     return false;
 }
 
-void IO::AutoLoad (int nType_)
+void IO::AutoLoad (int nType_, bool fOnlyAtStartup_/*=true*/)
 {
-    if (GetOption(autoboot))
-    {
-        // F9 to boot floppy 1, F7 to load tape
-        const char *pcszKey = (nType_ == AUTOLOAD_DISK) ? "\xc9" : "\xc7";
+    // Ignore if we need to be at the startup screen but we're not
+    if (fOnlyAtStartup_ && !IsAtStartupScreen())
+        return;
 
-        // Simulate the key press
-        Keyin::String(pcszKey, false);
-    }
+    // If enabled, press F9 to boot the disk
+    if (nType_ == AUTOLOAD_DISK && GetOption(autoboot))
+        Keyin::String("\xc9", false);
+
+    // If enabled, press F7 to load a tape
+    else if (nType_ == AUTOLOAD_TAPE && GetOption(autoboot))
+        Keyin::String("\xc7", false);
 }
 
 void IO::WakeAsic ()
