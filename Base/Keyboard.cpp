@@ -89,6 +89,10 @@ MAPPED_KEY asSamKeys[] =
     { ':',  SK_NONE,   SK_COLON },  { '?',  SK_SYMBOL, SK_X },      { '.',  SK_NONE,   SK_PERIOD },
     { ',',  SK_NONE,   SK_COMMA },  { '\\', SK_SHIFT,  SK_INV },    { '|',  SK_SYMBOL, SK_9 },
 
+    // Mac keyboard symbols to access both pound symbols, to help UK and US users
+    { 167,  SK_SHIFT,  SK_3 },  // section symbol to #
+    { 177,  SK_SYMBOL, SK_L },  // +/- to GBP symbol
+
     // Useful mappings
     { HK_DELETE,    SK_SHIFT,   SK_DELETE },
     { HK_HOME,      SK_CONTROL, SK_LEFT },
