@@ -39,13 +39,13 @@
 const char* Action::aszActions[MAX_ACTION] =
 {
     "New disk 1", "Open disk 1", "Close disk 1", "Save disk 1", "New disk 2", "Open disk 2", "Close disk 2", "Save disk 2",
-    "Exit application", "Options", "Debugger", "Import data", "Export data", "Save screenshot", "Change profiler mode",
+    "Exit application", "Options", "Debugger", "Import data", "Export data", "Save screenshot", "",
     "Reset button", "NMI button", "Pause", "", "Toggle turbo speed", "Turbo speed (when held)",
-    "", "Toggle fullscreen", "Change window size", "Change border size", "Toggle 5:4 display",
-    "", "Toggle scanlines", "Toggle greyscale", "Mute sound", "Release mouse capture",
+    "Toggle Hi-res Scanlines", "Toggle fullscreen", "", "", "Toggle 5:4 display",
+    "Toggle Smoothing", "Toggle scanlines", "Toggle greyscale", "Mute sound", "Release mouse capture",
     "Toggle printer online", "Flush printer", "About SimCoupe", "Minimise window", "Record GIF animation", "Record GIF loop",
-    "", "Record WAV audio", "Record WAV segment", "", "Record AVI video", "Record AVI half-size", "",
-    "Speed Faster", "Speed Slower", "Speed Normal"
+    "Stop GIF Recording", "Record WAV audio", "Record WAV segment", "Stop WAV Recording", "Record AVI video", "Record AVI half-size", "Stop AVI Recording",
+    "Speed Faster", "Speed Slower", "Speed Normal", "Paste Clipboard"
 };
 
 
