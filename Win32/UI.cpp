@@ -1402,6 +1402,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         {
             bool fPress = (uMsg_ == WM_KEYDOWN);
 
+            // Unpause if paused, so the user doesn't think we've hung
+            if (g_fPaused)
+                Action::Do(actPause);
+
             // If the keyboard is used, simulate early timer expiry to hide the cursor
             if (fPress && ulMouseTimer)
                 ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, NULL);

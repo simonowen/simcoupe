@@ -172,17 +172,21 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
         {
             SDL_keysym* pKey = &pEvent_->key.keysym;
 
+            bool fPress = pEvent_->type == SDL_KEYDOWN;
+            bool fCtrl  = !!(pKey->mod & KMOD_CTRL);
+            bool fAlt   = !!(pKey->mod & KMOD_ALT);
+            bool fShift = !!(pKey->mod & KMOD_SHIFT);
+
+            // Unpause on key press if paused, so the user doesn't think we've hung
+            if (fPress && g_fPaused)
+                Action::Do(actPause);
+
             // Use key repeats for GUI mode only
             if (fKeyboardActive == GUI::IsActive())
             {
                 fKeyboardActive = !fKeyboardActive;
                 SDL_EnableKeyRepeat(fKeyboardActive ? 0 : 250, fKeyboardActive ? 0 : 30);
             }
-
-            bool fPress = pEvent_->type == SDL_KEYDOWN;
-            bool fCtrl  = !!(pKey->mod & KMOD_CTRL);
-            bool fAlt   = !!(pKey->mod & KMOD_ALT);
-            bool fShift = !!(pKey->mod & KMOD_SHIFT);
 
             // Check for the Windows key, for use as a modifier
             int numkeys = 0;
