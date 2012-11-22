@@ -60,17 +60,21 @@ typedef struct
     int     drive2;                 // Drive 2 type
     bool    turbodisk;              // Accelerated disk access?
     bool    saveprompt;             // Prompt before saving disk changes?
-    bool    autoboot;               // Autoboot drive 1 on first startup?
     bool    dosboot;                // Automagically boot DOS from non-bootable disks?
     char    dosdisk[MAX_PATH];      // Override DOS boot disk to use instead of the internal SAMDOS 2.2 image
     bool    stdfloppy;              // Assume real disks are standard format, initially?
     int     nextfile;               // Next file number for auto-generated filenames
+
+    bool    turbotape;              // True to accelerate emulation during tape loading
+    bool    tapetraps;              // True to short-circuit ROM loading, for a speed boost
 
     char    disk1[MAX_PATH];        // Floppy disk image in drive 1
     char    disk2[MAX_PATH];        // Floppy disk image in drive 2
     char    atomdisk0[MAX_PATH];    // Atom disk 0
     char    atomdisk1[MAX_PATH];    // Atom disk 1
     char    sdidedisk[MAX_PATH];    // Hard disk image for SD IDE interface
+    char    tape[MAX_PATH];         // Tape image file
+    bool    autoload;               // Auto-load media inserted at the startup screen?
     bool    autobyteswap;           // Detect byte order of Atom [Lite] media?
 
     char    inpath[MAX_PATH];       // Override path for input files

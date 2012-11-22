@@ -42,6 +42,7 @@
 #include "Memory.h"
 #include "Mouse.h"
 #include "Options.h"
+#include "Tape.h"
 #include "UI.h"
 #include "Util.h"
 
@@ -314,6 +315,10 @@ void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
         case evtAsicStartup:
             // ASIC is now responsive
             IO::WakeAsic();
+            break;
+
+        case evtTapeEdge:
+            Tape::NextEdge(sThisEvent.dwTime);
             break;
     }
 }

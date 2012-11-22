@@ -56,7 +56,7 @@ void CDrive::Reset ()
 }
 
 // Insert a new disk from the named source (usually a file)
-bool CDrive::Insert (const char* pcszSource_, bool fAutoBoot_)
+bool CDrive::Insert (const char* pcszSource_, bool fAutoLoad_)
 {
     Eject();
 
@@ -66,7 +66,7 @@ bool CDrive::Insert (const char* pcszSource_, bool fAutoBoot_)
         return false;
 
     // Check for auto-booting with drive 1
-    if (this == pFloppy1 && fAutoBoot_)
+    if (this == pFloppy1 && fAutoLoad_)
         IO::AutoLoad(AUTOLOAD_DISK);
 
     return true;

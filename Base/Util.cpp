@@ -173,6 +173,16 @@ void ByteSwap (BYTE *pb_, int nLen_)
 }
 
 
+// SAM ROM triple-peek used for stored addresses
+UINT TPeek (const BYTE *pb_)
+{
+    UINT u = ((pb_[0] & 0x1f) << 14) | ((pb_[2] & 0x3f) << 8) | pb_[1];
+
+    // Clip to 512K
+    return (u & ((1U << 19)-1));
+}
+
+
 void AdjustBrightness (BYTE &r_, BYTE &g_, BYTE &b_, int nAdjust_)
 {
     int nOffset = (nAdjust_ <= 0) ? 0 : nAdjust_;

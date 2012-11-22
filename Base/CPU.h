@@ -189,7 +189,10 @@ Z80Regs;
 
 
 // CPU Event Queue data
-enum    { evtStdIntEnd, evtLineIntStart, evtEndOfFrame, evtMidiOutIntStart, evtMidiOutIntEnd, evtInputUpdate, evtMouseReset, evtBlueAlphaClock, evtAsicStartup };
+enum {
+    evtStdIntEnd, evtLineIntStart, evtEndOfFrame, evtMidiOutIntStart, evtMidiOutIntEnd,
+    evtInputUpdate, evtMouseReset, evtBlueAlphaClock, evtAsicStartup, evtTapeEdge
+};
 
 const int MAX_EVENTS = 16;
 
@@ -244,6 +247,20 @@ inline void CancelCpuEvent (int nEvent_)
             *ppsEvent = psNext;
         }
     }
+}
+
+// Return time until the next event of a specific  type
+inline DWORD GetEventTime (int nEvent_)
+{
+    CPU_EVENT *psEvent;
+
+    for (psEvent = psNextEvent ; psEvent ; psEvent = psEvent->psNext)
+    {
+        if (psEvent->nEvent == nEvent_)
+            return psEvent->dwTime - g_dwCycleCounter;
+    }
+
+    return 0;
 }
 
 // Update the line/global counters and check for pending events

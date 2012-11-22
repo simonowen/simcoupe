@@ -53,7 +53,7 @@
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
 				AdditionalIncludeDirectories=".,..\Base,..\..\Base,.."
-				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WINVER=0x0400;_WIN32_WINNT=0x0400;USE_ZLIB;USE_OPENGL;USE_DEBUGGER;USE_RESID"
+				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WINVER=0x0400;_WIN32_WINNT=0x0400;USE_ZLIB;USE_OPENGL;USE_DEBUGGER;USE_RESID;USE_LIBSPECTRUM"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="false"
@@ -147,7 +147,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories=".,..\Base,..\..\Base,.."
-				PreprocessorDefinitions="_DEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WINVER=0x0400;_WIN32_WINNT=0x0400;USE_ZLIB;USE_OPENGL;USE_DEBUGGER;USE_RESID"
+				PreprocessorDefinitions="_DEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WINVER=0x0400;_WIN32_WINNT=0x0400;USE_ZLIB;USE_OPENGL;USE_DEBUGGER;USE_RESID;USE_LIBSPECTRUM"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="2"
@@ -886,6 +886,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\Base\Tape.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\Base\unzip.c"
 				>
 				<FileConfiguration
@@ -1137,6 +1141,10 @@
 			</File>
 			<File
 				RelativePath="..\..\Base\Stream.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\Base\Tape.h"
 				>
 			</File>
 			<File

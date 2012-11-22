@@ -47,6 +47,7 @@
 #include "OSD.h"
 #include "Parallel.h"
 #include "Sound.h"
+#include "Tape.h"
 #include "Video.h"
 #include "WAV.h"
 
@@ -130,6 +131,13 @@ static char szDataFilters[] =
 static char szTextFilters[] =
     "Data files (*.txt)\0*.txt\0"
     "All files (*.*)\0*.*\0";
+
+static char szTapeFilters[] =
+    "Tape Images (*.tzx;*.tap;*.csw)\0*.tzx;*.tap;*.csw\0"
+#ifdef USE_ZLIB
+    "Compressed Files (gz;zip)\0*.gz;*.zip\0"
+#endif
+    "All Files (*.*)\0*.*\0";
 
 static const char* aszBorders[] =
     { "No borders", "Small borders", "Short TV area (default)", "TV visible area", "Complete scan area", NULL };
@@ -572,6 +580,293 @@ bool EjectDisk (CDiskDevice *pFloppy_)
 }
 
 
+bool InsertTape (HWND hwndParent_)
+{
+    char szFile[MAX_PATH] = "";
+    lstrcpyn(szFile, Tape::GetPath(), sizeof(szFile));
+
+    OPENFILENAME ofn = { sizeof(ofn) };
+    ofn.hwndOwner = hwndParent_;
+    ofn.lpstrFilter = szTapeFilters;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = MAX_PATH;
+
+    // Prompt for the a new disk to insert
+    if (GetSaveLoadFile(&ofn, true))
+    {
+        // Insert the disk to check it's a recognised format
+        if (!Tape::Insert(szFile))
+            Message(msgWarning, "Invalid tape image: %s", szFile);
+        else
+        {
+            Frame::SetStatus("Tape inserted");
+            AddRecentFile(szFile);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+#ifdef USE_LIBSPECTRUM
+
+void UpdateTapeToolbar (HWND hdlg_)
+{
+    libspectrum_tape *tape = Tape::GetTape();
+    bool fInserted = tape != NULL;
+
+    HWND hwndToolbar = GetDlgItem(hdlg_, ID_TAPE_TOOLBAR);
+
+    SendMessage(hwndToolbar, TB_ENABLEBUTTON, ID_TAPE_OPEN, 1);
+    SendMessage(hwndToolbar, TB_ENABLEBUTTON, ID_TAPE_EJECT, fInserted);
+    SendMessage(hwndToolbar, TB_CHECKBUTTON, ID_TAPE_TURBOLOAD, GetOption(turbotape));
+    SendMessage(hwndToolbar, TB_CHECKBUTTON, ID_TAPE_TRAPS, GetOption(tapetraps));
+}
+
+void UpdateTapeBlockList (HWND hdlg_)
+{
+    libspectrum_tape *tape = Tape::GetTape();
+    bool fInserted = tape != NULL;
+
+    // Show the overlay status text for an empty list
+    HWND hwndStatus = GetDlgItem(hdlg_, IDS_TAPE_STATUS);
+    ShowWindow(hwndStatus, SW_SHOW);
+
+    // Clear the existing list content
+    HWND hwndList = GetDlgItem(hdlg_, IDL_TAPE_BLOCKS);
+    ListView_DeleteAllItems(hwndList);
+
+    if (fInserted)
+    {
+        // Hide the status text as a tape is present
+        ShowWindow(hwndStatus, SW_HIDE);
+
+        libspectrum_tape_iterator it = NULL;
+        libspectrum_tape_block *block = libspectrum_tape_iterator_init(&it, tape);
+
+        // Loop over all blocks in the tape
+        for (int nBlock = 0 ; block ; block = libspectrum_tape_iterator_next(&it), nBlock++)
+        {
+            char sz[128] = "";
+            libspectrum_tape_block_description(sz, sizeof(sz), block);
+
+            LVITEM lvi = {};
+            lvi.mask = LVIF_TEXT;
+            lvi.iItem = nBlock;
+            lvi.iSubItem = 0;
+            lvi.pszText = sz;
+
+            // Insert the new block item, setting the first column to the type text
+            int nIndex = ListView_InsertItem(hwndList, &lvi);
+
+            // Set the second column to the block details
+            ListView_SetItemText(hwndList, nIndex, 1, const_cast<char*>(Tape::GetBlockDetails(block)));
+        }
+
+        // Fetch the current block index
+        int nCurBlock = 0;
+        if (libspectrum_tape_position(&nCurBlock, tape) == LIBSPECTRUM_ERROR_NONE)
+        {
+            // Select the current block in the list, and ensure it's visible
+            ListView_SetItemState(hwndList, nCurBlock, LVIS_SELECTED|LVIS_FOCUSED, LVIS_SELECTED|LVIS_FOCUSED);
+            ListView_EnsureVisible(hwndList, nCurBlock, FALSE);
+        }
+    }
+}
+
+INT_PTR CALLBACK TapeBrowseDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+{
+    static HWND hwndToolbar, hwndList, hwndStatus;
+    static HIMAGELIST hImageList;
+    static bool fAutoLoad;
+
+    switch (uMsg_)
+    {
+        case WM_INITDIALOG:
+        {
+            // Create a flat toolbar with tooltips
+            hwndToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, "", WS_CHILD|TBSTYLE_FLAT|WS_VISIBLE|TBSTYLE_TOOLTIPS, 0,0, 0,0, hdlg_, (HMENU)ID_TAPE_TOOLBAR, __hinstance, NULL);
+            SendMessage(hwndToolbar, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0L);
+
+            // Load the image list for our custom icons
+            hImageList = ImageList_LoadBitmap(__hinstance, MAKEINTRESOURCE(IDB_TAPE_TOOLBAR), 16, 0, CLR_DEFAULT);
+            SendMessage(hwndToolbar, TB_SETIMAGELIST, 0, (LPARAM)hImageList);
+            int nImageListIcons = ImageList_GetImageCount(hImageList);
+
+            // Append the small icon set from the system common controls DLL
+            TBADDBITMAP tbab = { HINST_COMMCTRL, IDB_STD_SMALL_COLOR };
+            SendMessage(hwndToolbar, TB_ADDBITMAP, 0, reinterpret_cast<LPARAM>(&tbab));
+
+            static TBBUTTON tbb[] =
+            {
+                { nImageListIcons+STD_FILEOPEN, ID_TAPE_OPEN, TBSTATE_ENABLED, TBSTYLE_BUTTON },
+                { 5, ID_TAPE_EJECT, TBSTATE_ENABLED, TBSTYLE_BUTTON },
+                { 0, 0, 0, TBSTYLE_SEP },
+                { 7, ID_TAPE_TURBOLOAD, TBSTATE_ENABLED, TBSTYLE_CHECK },
+                { 8, ID_TAPE_TRAPS, TBSTATE_ENABLED, TBSTYLE_CHECK }
+            };
+
+            // Add the toolbar buttons and configure settings
+            SendMessage(hwndToolbar, TB_ADDBUTTONS, _countof(tbb), (LPARAM)&tbb);
+            SendMessage(hwndToolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(28, 28));
+            SendMessage(hwndToolbar, TB_SETINDENT, 6, 0L);
+            SendMessage(hwndToolbar, TB_AUTOSIZE, 0, 0);
+
+
+            // Locate the list control on the dialog
+            hwndList = GetDlgItem(hdlg_, IDL_TAPE_BLOCKS);
+
+            // Set full row selection and overflow tooltips
+            DWORD dwStyle = ListView_GetExtendedListViewStyle(hwndList);
+            ListView_SetExtendedListViewStyle(hwndList, dwStyle | LVS_EX_FULLROWSELECT | LVS_EX_LABELTIP);
+
+            LVCOLUMN lvc = { };
+            lvc.mask = LVCF_WIDTH | LVCF_TEXT;
+
+            // Add first type column
+            lvc.cx = 130;
+            lvc.pszText = "Type";
+            ListView_InsertColumn(hwndList, 0, &lvc);
+
+            // Add second details column
+            lvc.cx = 215;
+            lvc.pszText = "Details";
+            ListView_InsertColumn(hwndList, 1, &lvc);
+
+
+            // Locate the status text window for later
+            hwndStatus = GetDlgItem(hdlg_, IDS_TAPE_STATUS);
+ 
+            // Update the toolbar and list view with current settings
+            UpdateTapeToolbar(hdlg_);
+            UpdateTapeBlockList(hdlg_);
+
+            // Don't auto-load on dialog exit
+            fAutoLoad = false;
+
+            CentreWindow(hdlg_);
+            return 1;
+        }
+
+        case WM_DESTROY:
+            DestroyWindow(hwndToolbar), hwndToolbar = NULL;
+            ImageList_Destroy(hImageList), hImageList = NULL;
+            break;
+
+        case WM_CTLCOLORSTATIC:
+            // Return a null background brush to make the status text background transparent
+            if (reinterpret_cast<HWND>(lParam_) == hwndStatus)
+                return reinterpret_cast<INT_PTR>(GetStockBrush(NULL_BRUSH));
+            break;
+
+        case WM_NOTIFY:
+        {
+            LPNMHDR pnmh = reinterpret_cast<LPNMHDR>(lParam_);
+
+            // Click on list control?
+            if (wParam_ == IDL_TAPE_BLOCKS && pnmh->code == NM_CLICK)
+            {
+                LPNMITEMACTIVATE pnmia = reinterpret_cast<LPNMITEMACTIVATE>(lParam_);
+                libspectrum_tape *tape = Tape::GetTape();
+
+                // Select the tape block corresponding to the row clicked
+                if (tape && pnmia->iItem >= 0)
+                    libspectrum_tape_nth_block(tape, pnmia->iItem);
+            }
+            // Tooltip display request?
+            else if (pnmh->code == TTN_GETDISPINFO)
+            {
+                LPTOOLTIPTEXT pttt = reinterpret_cast<LPTOOLTIPTEXT>(lParam_);
+
+                // Return the appropriate tooltip text
+                switch (pttt->hdr.idFrom)
+                {
+                    case ID_TAPE_OPEN: pttt->lpszText = "Open"; break;
+                    case ID_TAPE_EJECT: pttt->lpszText = "Eject"; break;
+                    case ID_TAPE_TURBOLOAD: pttt->lpszText = "Fast Loading"; break;
+                    case ID_TAPE_TRAPS: pttt->lpszText = "Tape Traps"; break;
+                }
+
+                return TRUE;
+            }
+
+            break;
+        }
+
+        case WM_COMMAND:
+        {
+            switch (wParam_)
+            {
+                case IDCANCEL:
+                    EndDialog(hdlg_, 0);
+                    break;
+
+                case IDCLOSE:
+                    // Trigger auto-load if required
+                    if (fAutoLoad && Tape::IsInserted())
+                        IO::AutoLoad(AUTOLOAD_TAPE);
+
+                    EndDialog(hdlg_, 0);
+                    break;
+
+                case ID_TAPE_OPEN:
+                    fAutoLoad |= InsertTape(hdlg_);
+                    Keyin::Stop();
+                    UpdateTapeBlockList(hdlg_);
+                    break;
+
+                case ID_TAPE_EJECT:
+                    fAutoLoad = false;
+                    Tape::Eject();
+                    UpdateTapeBlockList(hdlg_);
+                    break;
+
+                case ID_TAPE_TURBOLOAD:
+                    SetOption(turbotape, !GetOption(turbotape));
+
+                    // If the tape is playing, toggle the turbo flag state too
+                    if (Tape::IsPlaying())
+                        g_nTurbo ^= TURBO_TAPE;
+
+                    break;
+
+                case ID_TAPE_TRAPS:
+                    SetOption(tapetraps, !GetOption(tapetraps));
+                    break;
+
+                default:
+                    return 0;
+            }
+
+            // Update the toolbar after all commands
+            UpdateTapeToolbar(hdlg_);
+            break;
+        }
+
+        // Handle a file being dropped on the dialog
+        case WM_DROPFILES:
+        {
+            char szFile[MAX_PATH]="";
+
+            // Query details of the file dropped
+            if (DragQueryFile(reinterpret_cast<HDROP>(wParam_), 0, szFile, sizeof(szFile)))
+            {
+                Tape::Insert(szFile);
+                UpdateTapeToolbar(hdlg_);
+                UpdateTapeBlockList(hdlg_);
+            }
+
+            return 0;
+        }
+    }
+    
+    return 0;
+}
+
+#endif // USE_LIBSPECTRUM
+
+
 #define CheckOption(id,check)   CheckMenuItem(hmenu, (id), (check) ? MF_CHECKED : MF_UNCHECKED)
 #define EnableItem(id,enable)   EnableMenuItem(hmenu, (id), (enable) ? MF_ENABLED : MF_GRAYED)
 
@@ -666,6 +961,10 @@ void UpdateMenuFromOptions ()
     // Enable clipboard pasting if Unicode text data is available
     EnableItem(IDM_TOOLS_PASTE_CLIPBOARD, Keyin::CanType() && IsClipboardFormatAvailable(CF_UNICODETEXT));
 
+#ifdef USE_LIBSPECTRUM
+    EnableItem(IDM_TOOLS_TAPE_BROWSER, true);
+#endif
+
     UpdateRecentFiles(hmenuFile, IDM_FILE_RECENT1, 2);
     UpdateRecentFiles(hmenuFloppy2, IDM_FLOPPY2_RECENT1, 0);
 }
@@ -732,6 +1031,15 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
                     DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 2);
                 break;
 
+#ifdef USE_LIBSPECTRUM
+            case actTapeInsert:
+                InsertTape(g_hwnd);
+                break;
+
+            case actTapeBrowser:
+                DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_TAPE_BROWSER), g_hwnd, TapeBrowseDlgProc, 2);
+                break;
+#endif
             case actImportData:
                 DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_IMPORT), g_hwnd, ImportExportDlgProc, 1);
                 break;
@@ -1410,6 +1718,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             if (fPress && ulMouseTimer)
                 ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, NULL);
 
+            // Unpause if paused, so the user doesn't think we've hung
+            if (g_fPaused)
+                Action::Do(actPause);
+
             // Read the current states of the shift keys
             bool fCtrl  = GetAsyncKeyState(VK_CONTROL) < 0;
             bool fAlt   = GetAsyncKeyState(VK_MENU)    < 0;
@@ -1511,6 +1823,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_TOOLS_PASTE_CLIPBOARD: Action::Do(actPaste);             break;
                 case IDM_TOOLS_PRINTER_ONLINE:  Action::Do(actPrinterOnline);     break;
                 case IDM_TOOLS_FLUSH_PRINTER:   Action::Do(actFlushPrinter);      break;
+                case IDM_TOOLS_TAPE_BROWSER:    Action::Do(actTapeBrowser);       break;
                 case IDM_TOOLS_DEBUGGER:        Action::Do(actDebugger);          break;
 
                 case IDM_FILE_FLOPPY1_DEVICE:
@@ -1532,7 +1845,6 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_FILE_FLOPPY2_INSERT:       Action::Do(actInsertFloppy2); break;
                 case IDM_FILE_FLOPPY2_EJECT:        Action::Do(actEjectFloppy2);  break;
                 case IDM_FILE_FLOPPY2_SAVE_CHANGES: Action::Do(actSaveFloppy2);   break;
-
 
                 case IDM_VIEW_FULLSCREEN:           Action::Do(actToggleFullscreen); break;
                 case IDM_VIEW_RATIO54:              Action::Do(actToggle5_4);        break;
@@ -2583,7 +2895,7 @@ INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
             SendDlgItemMessage(hdlg_, IDC_TURBO_DISK, BM_SETCHECK, GetOption(turbodisk) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_SAVE_PROMPT, BM_SETCHECK, GetOption(saveprompt) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_AUTOBOOT, BM_SETCHECK, GetOption(autoboot) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_AUTOLOAD, BM_SETCHECK, GetOption(autoload) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_SETCHECK, GetOption(dosboot) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SetDlgItemPath(hdlg_, IDE_DOSDISK, GetOption(dosdisk));
 
@@ -2598,7 +2910,7 @@ INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             {
                 SetOption(turbodisk, SendDlgItemMessage(hdlg_, IDC_TURBO_DISK, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(saveprompt, SendDlgItemMessage(hdlg_, IDC_SAVE_PROMPT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(autoboot, SendDlgItemMessage(hdlg_, IDC_AUTOBOOT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+                SetOption(autoload, SendDlgItemMessage(hdlg_, IDC_AUTOLOAD, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(dosboot,  SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 GetDlgItemPath(hdlg_, IDE_DOSDISK, const_cast<char*>(GetOption(dosdisk)), MAX_PATH);
 

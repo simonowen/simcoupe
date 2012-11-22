@@ -32,6 +32,7 @@
 #include "Options.h"
 #include "Parallel.h"
 #include "Sound.h"
+#include "Tape.h"
 #include "UI.h"
 #include "Video.h"
 #include "WAV.h"
@@ -45,7 +46,7 @@ const char* Action::aszActions[MAX_ACTION] =
     "Toggle Smoothing", "Toggle scanlines", "Toggle greyscale", "Mute sound", "Release mouse capture",
     "Toggle printer online", "Flush printer", "About SimCoupe", "Minimise window", "Record GIF animation", "Record GIF loop",
     "Stop GIF Recording", "Record WAV audio", "Record WAV segment", "Stop WAV Recording", "Record AVI video", "Record AVI half-size", "Stop AVI Recording",
-    "Speed Faster", "Speed Slower", "Speed Normal", "Paste Clipboard"
+    "Speed Faster", "Speed Slower", "Speed Normal", "Paste Clipboard", "Insert Tape", "Eject Tape", "Tape Browser"
 };
 
 
@@ -159,6 +160,15 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
 
             case actNewDisk2:
                 GUI::Start(new CNewDiskDialog(2));
+                break;
+
+            case actTapeInsert:
+            case actTapeBrowser:
+                Message(msgInfo, "Not yet implemented");
+                break;
+
+            case actTapeEject:
+                Tape::Eject();
                 break;
 
             case actSaveScreenshot:

@@ -36,9 +36,10 @@ enum eMsgType { msgInfo, msgWarning, msgError, msgFatal };
 void Message (eMsgType eType_, const char* pcszFormat_, ...);
 
 BYTE GetSizeCode (UINT uSize_);
+WORD CrcBlock (const void* pcv_, size_t uLen_, WORD wCRC_=0xffff);
 void PatchBlock (BYTE *pb_, BYTE *pbPatch_);
 void ByteSwap (BYTE *pb_, int nLen_);
-WORD CrcBlock (const void* pcv_, size_t uLen_, WORD wCRC_=0xffff);
+UINT TPeek (const BYTE *pb_);
 
 void AdjustBrightness (BYTE &r_, BYTE &g_, BYTE &b_, int nAdjust_);
 DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_);

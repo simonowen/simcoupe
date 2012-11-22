@@ -1611,7 +1611,7 @@ void CDisView::Draw (CScreen* pScreen_)
     CPU_EVENT *pEvent = psNextEvent;
     for (i = 0 ; i < 3 && pEvent ; i++, pEvent = pEvent->psNext)
     {
-        const char *pcszEvent = "???";
+        const char *pcszEvent = "????";
         switch (pEvent->nEvent)
         {
             case evtStdIntEnd:       pcszEvent = "IEND"; break;
@@ -1622,6 +1622,7 @@ void CDisView::Draw (CScreen* pScreen_)
             case evtMouseReset:      pcszEvent = "MOUS"; break;
             case evtBlueAlphaClock:  pcszEvent = "BLUE"; break;
             case evtAsicStartup:     pcszEvent = "ASIC"; break;
+            case evtTapeEdge:        pcszEvent = "TAPE"; break;
 
             case evtInputUpdate:     i--; continue;
         }

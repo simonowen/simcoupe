@@ -55,8 +55,6 @@ typedef unsigned short      WORD;   // must be 16-bit
 typedef unsigned char       BYTE;   // must be 8-bit
 #endif
 
-#define CheckLibFunction(lib,func)  true  // assume present for now
-
 #endif
 
 
@@ -93,7 +91,9 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #define RESID_NAMESPACE reSID       // use reSID namespace, due to SID symbol clash with winnt.h
 #endif
 
-#define CheckLibFunction(lib,func)   (LoadLibrary(#lib) != NULL)
+#ifdef USE_LIBSPECTRUM
+#pragma comment(lib, "spectrum")    // Tape and snapshot functions
+#endif
 
 #pragma warning(disable:4786)   // Disable the stupid warning about debug symbols being truncated
 

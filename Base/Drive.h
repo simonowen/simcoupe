@@ -47,7 +47,7 @@ class CDrive : public CDiskDevice
         void FrameEnd ();
 
     public:
-        bool Insert (const char* pcszSource_, bool fAutoBoot_=false);
+        bool Insert (const char* pcszSource_, bool fAutoLoad_=false);
         void Eject ();
         bool Save () { return m_pDisk && m_pDisk->Save(); }
         void Reset ();

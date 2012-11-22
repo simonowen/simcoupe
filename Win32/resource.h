@@ -22,7 +22,14 @@
 #define IDI_MIDI                        18
 #define IDI_FLOPPY                      19
 #define IDR_MENU                        101
+#define ID_TAPE_PLAY                    102
+#define ID_TAPE_STOP                    104
+#define ID_TAPE_EJECT                   107
 #define IDD_ABOUT                       108
+#define ID_TAPE_OPEN                    108
+#define ID_TAPE_TOOLBAR                 109
+#define ID_TAPE_TURBOLOAD               111
+#define ID_TAPE_TRAPS                   112
 #define IDC_CURSOR                      123
 #define IDD_PAGE_PARALLEL               164
 #define IDD_PAGE_SOUND                  165
@@ -42,6 +49,8 @@
 #define IDD_NEW_DISK                    192
 #define IDD_HARDDISK                    193
 #define IDI_FOLDER                      194
+#define IDD_TAPE_BROWSER                196
+#define IDB_TAPE_TOOLBAR                199
 #define IDE_PAGE                        1001
 #define IDE_STATION_ID                  1001
 #define IDE_ROM                         1001
@@ -103,7 +112,7 @@
 #define IDC_ATOM0                       1137
 #define IDC_SDIDE                       1138
 #define IDC_ATOM1                       1140
-#define IDC_AUTOBOOT                    1161
+#define IDC_AUTOLOAD                    1161
 #define IDC_HWACCEL                     1163
 #define IDC_TYPE                        1165
 #define IDS_PAGE                        1169
@@ -122,6 +131,8 @@
 #define IDC_FLUSHDELAY                  1190
 #define IDS_FLUSHDELAY                  1191
 #define IDS_PRINTERS                    1192
+#define IDL_TAPE_BLOCKS                 1193
+#define IDS_TAPE_STATUS                 1195
 #define IDT_MENU                        7389
 #define IDM_FILE_EXIT                   40001
 #define IDM_HELP_ABOUT                  40050
@@ -203,15 +214,16 @@
 #define IDM_VIEW_SCANLEVEL_70           40272
 #define IDM_VIEW_SCANLEVEL_80           40273
 #define IDM_VIEW_SCANLEVEL_90           40274
+#define IDM_TOOLS_TAPE_BROWSER          40278
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        196
-#define _APS_NEXT_COMMAND_VALUE         40278
-#define _APS_NEXT_CONTROL_VALUE         1193
-#define _APS_NEXT_SYMED_VALUE           102
+#define _APS_NEXT_RESOURCE_VALUE        202
+#define _APS_NEXT_COMMAND_VALUE         40279
+#define _APS_NEXT_CONTROL_VALUE         1196
+#define _APS_NEXT_SYMED_VALUE           114
 #endif
 #endif

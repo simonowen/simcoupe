@@ -48,6 +48,7 @@
 #include "SDIDE.h"
 #include "SID.h"
 #include "Sound.h"
+#include "Tape.h"
 #include "Util.h"
 #include "Video.h"
 
@@ -94,7 +95,7 @@ BYTE keybuffer[9];      // working buffer for key changed, activated mid-frame
 
 bool fASICStartup;      // If set, the ASIC will be unresponsive shortly after first power-on
 
-int g_nAutoBoot = AUTOLOAD_NONE;    // don't auto-boot on startup
+int g_nAutoLoad = AUTOLOAD_NONE;    // don't auto-load on startup
 
 #ifdef _DEBUG
 static BYTE abUnhandled[32];    // track unhandled port access in debug mode
@@ -184,6 +185,9 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     pAtom->Reset();
     pAtomLite->Reset();
     pSDIDE->Reset();
+
+    // Stop the tape on reset
+    Tape::Stop();
 
     // Return true only if everything
     return fRet;
@@ -370,9 +374,12 @@ BYTE IO::In (WORD wPort_)
 
     switch (bPortLow)
     {
-        // keyboard 1 / mouse
+        // keyboard 1 / mouse / tape
         case KEYBOARD_PORT:
         {
+            // Consider a tape read first
+            Tape::InFEHook();
+
             // Disable fast boot on the first keyboard read
             g_nTurbo &= ~TURBO_BOOT;
 
@@ -395,7 +402,7 @@ BYTE IO::In (WORD wPort_)
                 if (!(bPortHigh & 0x01)) bRet &= keyports[0];
             }
 
-            bRet = (keyboard & 0xe0) | (bRet & 0x1f);
+            bRet = (keyboard & ~BORD_KEY_MASK) | (bRet & BORD_KEY_MASK);
             break;
         }
 
@@ -638,8 +645,8 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             border = bVal_;
             border_col = BORD_VAL(bVal_);
 
-            // Update the port read value, including the screen off status and reflecting MIC back to EAR
-            keyboard = (keyboard & BORD_KEY_MASK) | (border & BORD_SOFF) | ((border & BORD_MIC_MASK) << 3);
+            // Update the port read value, including the screen-off status
+            keyboard = (border & BORD_SOFF_MASK) | (keyboard & (BORD_EAR_MASK|BORD_KEY_MASK));
 
             // If the screen state has changed, we need to reconsider memory contention changes
             if (fScreenOffChange)
@@ -960,16 +967,16 @@ bool IO::IsAtStartupScreen (bool fExit_)
 
 void IO::AutoLoad (int nType_, bool fOnlyAtStartup_/*=true*/)
 {
-    // Ignore if we need to be at the startup screen but we're not
-    if (fOnlyAtStartup_ && !IsAtStartupScreen())
+    // Ignore if auto-load is disabled, or we need to be at the startup screen but we're not
+    if (!GetOption(autoload) || (fOnlyAtStartup_ && !IsAtStartupScreen()))
         return;
 
-    // If enabled, press F9 to boot the disk
-    if (nType_ == AUTOLOAD_DISK && GetOption(autoboot))
+    // For disk booting press F9
+    if (nType_ == AUTOLOAD_DISK)
         Keyin::String("\xc9", false);
 
-    // If enabled, press F7 to load a tape
-    else if (nType_ == AUTOLOAD_TAPE && GetOption(autoboot))
+    // For tape loading press F7
+    else if (nType_ == AUTOLOAD_TAPE)
         Keyin::String("\xc7", false);
 }
 
@@ -985,6 +992,8 @@ bool IO::EiHook ()
     // If we're leaving the ROM interrupt handler, inject any auto-typing input
     if (PC == 0x005a && GetSectionPage(SECTION_A) == ROM0)
         Keyin::Next();
+
+    Tape::EiHook();
 
     // Continue EI processing
     return false;
@@ -1012,10 +1021,11 @@ bool IO::Rst8Hook ()
 
         // Copyright message
         case 0x50:
-            if (g_nAutoBoot != AUTOLOAD_NONE)
+            // Forced boot on startup?
+            if (g_nAutoLoad != AUTOLOAD_NONE)
             {
-                AutoLoad(g_nAutoBoot);
-                g_nAutoBoot = AUTOLOAD_NONE;
+                AutoLoad(g_nAutoLoad, false);
+                g_nAutoLoad = AUTOLOAD_NONE;
             }
             break;
 

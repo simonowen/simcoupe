@@ -515,7 +515,7 @@ instr(4,0277)   cp_a(A);                                            endinstr;   
 
 
 instr(5,0300)   ret(!(F & FLAG_Z));                                 endinstr;   // ret nz
-instr(5,0310)   ret(F & FLAG_Z);                                    endinstr;   // ret z
+instr(5,0310)   if (Tape::RetZHook()) break; ret(F & FLAG_Z);       endinstr;   // ret z
 instr(5,0320)   ret(!cy);                                           endinstr;   // ret nc
 instr(5,0330)   ret(cy);                                            endinstr;   // ret c
 instr(5,0340)   ret(!(F & FLAG_P));                                 endinstr;   // ret po

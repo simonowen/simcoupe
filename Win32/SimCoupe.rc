@@ -234,7 +234,7 @@ BEGIN
     CONTROL         "&Fast floppy disk access",IDC_TURBO_DISK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,56,150,10
     CONTROL         "Ask before saving disk image changes",IDC_SAVE_PROMPT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,72,150,10
-    CONTROL         "Auto-boot disks inserted at startup screen",IDC_AUTOBOOT,
+    CONTROL         "Auto-load media inserted at startup screen",IDC_AUTOLOAD,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,88,150,10
     CONTROL         "Automagically boot non-bootable disks",IDC_DOSBOOT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,104,150,10
@@ -318,6 +318,17 @@ BEGIN
     LTEXT           "Size (MB):",IDC_STATIC,40,49,35,8
     LTEXT           "Select an existing hard disk image, or select a file and enter the size to create a new one:",IDC_STATIC,37,7,176,16
     ICON            IDI_DRIVE,IDC_STATIC,7,7,21,20
+END
+
+IDD_TAPE_BROWSER DIALOGEX 0, 0, 260, 192
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_ACCEPTFILES
+CAPTION "Tape Browser"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDL_TAPE_BLOCKS,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | LVS_NOSORTHEADER | WS_BORDER | WS_TABSTOP,7,23,246,143
+    DEFPUSHBUTTON   "Close&",IDCLOSE,203,171,50,14
+    CTEXT           "No Tape Inserted",IDS_TAPE_STATUS,101,91,57,8,0,WS_EX_TRANSPARENT
 END
 
 
@@ -464,6 +475,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 60
     END
+
+    IDD_TAPE_BROWSER, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 253
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 185
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -588,6 +607,7 @@ BEGIN
         MENUITEM "Printer &Online",             IDM_TOOLS_PRINTER_ONLINE
         MENUITEM "&Flush Printer",              IDM_TOOLS_FLUSH_PRINTER
         MENUITEM SEPARATOR
+        MENUITEM "&Tape Browser",               IDM_TOOLS_TAPE_BROWSER, GRAYED
         MENUITEM "&Debugger",                   IDM_TOOLS_DEBUGGER
     END
     POPUP "&Help"
@@ -730,6 +750,7 @@ END
 
 IDB_SIMCOUPE            BITMAP                  "Bitmaps\\simcoupe.bmp"
 IDT_MENU                BITMAP                  "bitmaps\\menuicon.bmp"
+IDB_TAPE_TOOLBAR        BITMAP                  "bitmaps\\tapeicons.bmp"
 #endif    // English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
 

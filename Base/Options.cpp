@@ -90,9 +90,8 @@ OPTION aOptions[] =
 
     OPT_N("Drive1",       drive1,         1),         // Floppy drive 1 present
     OPT_N("Drive2",       drive2,         1),         // Floppy drive 2 present
-    OPT_N("TurboDisk",    turbodisk,      true),      // Accelerated disk access?
+    OPT_N("TurboDisk",    turbodisk,      true),      // Accelerated disk access
     OPT_F("SavePrompt",   saveprompt,     true),      // Prompt before saving changes
-    OPT_F("AutoBoot",     autoboot,       true),      // Autoboot disks inserted at the startup screen
     OPT_F("DosBoot",      dosboot,        true),      // Automagically boot DOS from non-bootable disks
     OPT_S("DosDisk",      dosdisk,        ""),        // No override DOS disk, use internal SAMDOS 2.2
     OPT_F("StdFloppy",    stdfloppy,      true),      // Assume real disks are standard format, initially
@@ -100,10 +99,15 @@ OPTION aOptions[] =
 
     OPT_S("Disk1",        disk1,          ""),        // No disk in floppy drive 1
     OPT_S("Disk2",        disk2,          ""),        // No disk in floppy drive 2
-    OPT_S("AtomDisk0",    atomdisk0,       ""),       // No Atom disk 0
-    OPT_S("AtomDisk1",    atomdisk1,       ""),       // No Atom disk 1
+    OPT_S("AtomDisk0",    atomdisk0,      ""),        // No Atom disk 0
+    OPT_S("AtomDisk1",    atomdisk1,      ""),        // No Atom disk 1
     OPT_S("SDIDEDisk",    sdidedisk,      ""),        // No SD IDE hard disk
+    OPT_S("Tape",         tape,           ""),        // No tape image
+    OPT_F("AutoLoad",     autoload,       true),      // Auto-load media inserted at the startup screen
     OPT_F("AutoByteSwap", autobyteswap,   true),      // Byte-swap Atom [Lite] media as necessary
+
+    OPT_F("TurboTape",    turbotape,      true),      // Accelerated tape loading
+    OPT_F("TapeTraps",    tapetraps,      true),      // Short-circuit ROM loading for a speed boost
 
     OPT_S("InPath",       inpath,         ""),        // Default input path
     OPT_S("OutPath",      outpath,        ""),        // Default output path
@@ -171,6 +175,10 @@ inline bool IsTrue (const char* pcsz_)
 // Find a named option in the options list above
 static OPTION* FindOption (const char* pcszName_)
 {
+    // Convert AutoBoot to AutoLoad, for backwards compatibility
+    if (!strcasecmp(pcszName_, "AutoBoot"))
+        pcszName_ = "AutoLoad";
+
     for (OPTION* p = aOptions ; p->pcszName ; p++)
     {
         if (!strcasecmp(pcszName_, p->pcszName))
@@ -230,7 +238,8 @@ bool Options::Load (int argc_, char* argv_[])
         char szLine[256];
         while (fgets(szLine, sizeof(szLine), hfOptions))
         {
-            char *pszValue = strchr(szLine, '='), *pszName = strtok(szLine, " \t=");
+            char *pszValue = strchr(szLine, '=');
+            char *pszName = strtok(szLine, " \t=");
 
             if (!pszValue)
                 continue;
@@ -299,7 +308,7 @@ bool Options::Load (int argc_, char* argv_[])
                 case 1:
                     SetOption(disk1, pcszOption);
                     SetOption(drive1,drvFloppy);
-                    g_nAutoBoot = AUTOLOAD_DISK;
+                    g_nAutoLoad = AUTOLOAD_DISK;
                     break;
 
                 case 2:

@@ -838,7 +838,7 @@ class CDriveOptions : public CDialog
 
             m_pTurboDisk = new CCheckBox(this, 60, 87, "Fast floppy disk access");
 
-            m_pAutoBoot = new CCheckBox(this, 60, 108, "Auto-boot disks at startup screen");
+            m_pAutoLoad = new CCheckBox(this, 60, 108, "Auto-load media inserted at startup screen");
 
             m_pDosBoot = new CCheckBox(this, 60, 129, "Automagically boot non-bootable disks");
             m_pDosBootText = new CTextControl(this, 77, 148, "DOS image (blank for SAMDOS 2.2):");
@@ -852,7 +852,7 @@ class CDriveOptions : public CDialog
             m_pDrive1->Select(GetOption(drive1));
             m_pDrive2->Select(GetOption(drive2));
             m_pTurboDisk->SetChecked(GetOption(turbodisk) != 0);
-            m_pAutoBoot->SetChecked(GetOption(autoboot) != 0);
+            m_pAutoLoad->SetChecked(GetOption(autoload) != 0);
             m_pDosBoot->SetChecked(GetOption(dosboot) != 0);
             m_pDosDisk->SetText(GetOption(dosdisk));
 
@@ -873,7 +873,7 @@ class CDriveOptions : public CDialog
                 SetOption(drive2, anDriveTypes[m_pDrive2->GetSelected()]);
 
                 SetOption(turbodisk, m_pTurboDisk->IsChecked());
-                SetOption(autoboot, m_pAutoBoot->IsChecked());
+                SetOption(autoload, m_pAutoLoad->IsChecked());
 
                 SetOption(dosboot, m_pDosBoot->IsChecked());
                 SetOption(dosdisk, m_pDosDisk->GetText());
@@ -916,7 +916,7 @@ class CDriveOptions : public CDialog
 
     protected:
         CComboBox *m_pDrive1, *m_pDrive2;
-        CCheckBox *m_pTurboDisk, *m_pAutoBoot, *m_pDosBoot;
+        CCheckBox *m_pTurboDisk, *m_pAutoLoad, *m_pDosBoot;
         CEditControl *m_pDosDisk;
         CTextControl *m_pDosBootText;
         CTextButton *m_pOK, *m_pCancel, *m_pBrowse;

@@ -89,7 +89,7 @@ class CDiskDevice :  public CIoDevice
         void FrameEnd () { if (m_uActive) m_uActive--; }
 
     public:
-        virtual bool Insert (const char* pcszImage_, bool fAutoBoot_=false) { return false; }
+        virtual bool Insert (const char* pcszImage_, bool fAutoLoad_=false) { return false; }
         virtual void Eject () { }
         virtual bool Save () { return true; }
 
@@ -229,7 +229,7 @@ extern BYTE bPortInVal, bPortOutVal;
 extern BYTE vmpr, hmpr, lmpr, lepr, hepr;
 extern BYTE vmpr_mode, vmpr_page1, vmpr_page2;
 
-extern BYTE border;
+extern BYTE keyboard, border;
 extern BYTE border_col;
 
 // Write only ports
@@ -243,6 +243,6 @@ extern BYTE lpen;
 extern CDiskDevice *pFloppy1, *pFloppy2, *pBootDrive;
 extern CIoDevice *pParallel1, *pParallel2;
 
-extern int g_nAutoBoot;
+extern int g_nAutoLoad;
 
 #endif

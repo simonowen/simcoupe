@@ -45,7 +45,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories=".;..;..\Base"
-				PreprocessorDefinitions="_WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WIN32_LEAN_AND_MEAN;WINVER=0x0500;_WIN32_WINNT=0x0500;ZLIB_WINAPI;USE_ZLIB;USE_RESID"
+				PreprocessorDefinitions="_WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WIN32_LEAN_AND_MEAN;WINVER=0x0500;_WIN32_WINNT=0x0500;ZLIB_WINAPI;USE_ZLIB;USE_RESID;USE_LIBSPECTRUM"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -219,7 +219,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories=".;..;..\Base"
-				PreprocessorDefinitions="_WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WIN32_LEAN_AND_MEAN;WINVER=0x0500;_WIN32_WINNT=0x0500;ZLIB_WINAPI;USE_ZLIB;USE_ZLIBSTAT;USE_RESID"
+				PreprocessorDefinitions="_WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WIN32_LEAN_AND_MEAN;WINVER=0x0500;_WIN32_WINNT=0x0500;ZLIB_WINAPI;USE_ZLIB;USE_ZLIBSTAT;USE_RESID;USE_LIBSPECTRUM"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
@@ -657,6 +657,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Base\Tape.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\Base\unzip.c"
 				>
 				<FileConfiguration
@@ -942,6 +946,10 @@
 					RelativePath="Bitmaps\simcoupe.bmp"
 					>
 				</File>
+				<File
+					RelativePath=".\Bitmaps\tapeicons.bmp"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
@@ -1145,6 +1153,10 @@
 			</File>
 			<File
 				RelativePath="..\Base\Stream.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Tape.h"
 				>
 			</File>
 			<File

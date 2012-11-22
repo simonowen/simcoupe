@@ -70,8 +70,9 @@
 #pragma comment(lib,"capsimg.lib")	// IPF support
 #endif
 
-// Check delay-load DLLs for optional features
-#define CheckLibFunction(lib,func)  (LoadLibrary(#lib) != NULL)
+#ifdef USE_LIBSPECTRUM
+#pragma comment(lib, "spectrum")    // Tape and snapshot functions
+#endif
 
 // For NT4 compatability we only use DX3 features, except for input which requires DX5
 #define DIRECTSOUND_VERSION     0x0300
