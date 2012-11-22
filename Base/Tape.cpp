@@ -301,7 +301,7 @@ const char *Tape::GetBlockDetails (libspectrum_tape_block *block)
 
     char szExtra[64] = "";
     char szName[11] = "";
-    char *psz = NULL;
+    const char *psz = NULL;
 
     libspectrum_byte *data = libspectrum_tape_block_data(block);
     long length = static_cast<long>(libspectrum_tape_block_data_length(block));
@@ -430,7 +430,7 @@ const char *Tape::GetBlockDetails (libspectrum_tape_block *block)
                 if (length >= 3)
                     length -= 3;
 
-                snprintf(sz, sizeof(sz), "%lu bytes", length);
+                snprintf(sz, sizeof(sz), "%u bytes", length);
                 break;
             }
 
@@ -439,20 +439,20 @@ const char *Tape::GetBlockDetails (libspectrum_tape_block *block)
                 break;
 
             case LIBSPECTRUM_TAPE_BLOCK_PULSES:
-                snprintf(sz, sizeof(sz), "%lu pulses", libspectrum_tape_block_count(block));
+                snprintf(sz, sizeof(sz), "%u pulses", libspectrum_tape_block_count(block));
                 break;
 
             case LIBSPECTRUM_TAPE_BLOCK_PAUSE:
                 snprintf(sz, sizeof(sz), "%ums", libspectrum_tape_block_pause(block));
                 break;
- 
+
             case LIBSPECTRUM_TAPE_BLOCK_GROUP_START:
             case LIBSPECTRUM_TAPE_BLOCK_COMMENT:
             case LIBSPECTRUM_TAPE_BLOCK_MESSAGE:
             case LIBSPECTRUM_TAPE_BLOCK_CUSTOM:
                 snprintf(sz, sizeof(sz), "%s", libspectrum_tape_block_text(block));
                 break;
- 
+
             case LIBSPECTRUM_TAPE_BLOCK_JUMP:
             {
                 int offset = libspectrum_tape_block_offset(block);
@@ -464,11 +464,11 @@ const char *Tape::GetBlockDetails (libspectrum_tape_block *block)
             }
 
             case LIBSPECTRUM_TAPE_BLOCK_LOOP_START:
-                snprintf(sz, sizeof(sz), "%lu iterations", libspectrum_tape_block_count(block));
+                snprintf(sz, sizeof(sz), "%u iterations", libspectrum_tape_block_count(block));
                 break;
- 
+
             case LIBSPECTRUM_TAPE_BLOCK_SELECT:
-                snprintf(sz, sizeof(sz), "%lu options", libspectrum_tape_block_count(block));
+                snprintf(sz, sizeof(sz), "%u options", libspectrum_tape_block_count(block));
                 break;
 
             case LIBSPECTRUM_TAPE_BLOCK_GENERALISED_DATA:
