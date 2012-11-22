@@ -22,9 +22,11 @@
 #include "SID.h"
 
 #include "CPU.h"
+#include "Options.h"
 
 
 CSID::CSID ()
+    : m_nChipType(0)
 {
 #ifdef USE_RESID
     m_pSID = new RESID_NAMESPACE::SID;
@@ -44,6 +46,9 @@ void CSID::Reset ()
 #ifdef USE_RESID
     if (m_pSID)
     {
+        m_nChipType = GetOption(sid);
+        m_pSID->set_chip_model((m_nChipType == 2) ? RESID_NAMESPACE::MOS8580 : RESID_NAMESPACE::MOS6581);
+
         m_pSID->reset();
         m_pSID->adjust_sampling_frequency(SAMPLE_FREQ);
     }
@@ -81,6 +86,10 @@ void CSID::Update (bool fFrameEnd_=false)
 
 void CSID::FrameEnd ()
 {
+    // Check for change of chip type
+    if (GetOption(sid) != m_nChipType)
+        Reset();
+
     Update(true);
     m_nSamplesThisFrame = 0;
 }

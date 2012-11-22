@@ -51,6 +51,7 @@ class CSID : public CSoundDevice
 #ifdef USE_RESID
         RESID_NAMESPACE::SID *m_pSID;
 #endif
+        int m_nChipType;
 };
 
 extern CSID *pSID;
