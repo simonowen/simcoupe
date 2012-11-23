@@ -420,8 +420,6 @@ const char *Tape::GetBlockDetails (libspectrum_tape_block *block)
         {
             case LIBSPECTRUM_TAPE_BLOCK_ROM:
             case LIBSPECTRUM_TAPE_BLOCK_TURBO:
-            case LIBSPECTRUM_TAPE_BLOCK_PURE_DATA:
-            case LIBSPECTRUM_TAPE_BLOCK_RAW_DATA:
             {
                 // Raw tape block data length
                 size_t length = libspectrum_tape_block_data_length(block);
@@ -433,6 +431,11 @@ const char *Tape::GetBlockDetails (libspectrum_tape_block *block)
                 snprintf(sz, sizeof(sz), "%u bytes", length);
                 break;
             }
+
+            case LIBSPECTRUM_TAPE_BLOCK_PURE_DATA:
+            case LIBSPECTRUM_TAPE_BLOCK_RAW_DATA:
+                snprintf(sz, sizeof(sz), "%u bytes", libspectrum_tape_block_data_length(block));
+                break;
 
             case LIBSPECTRUM_TAPE_BLOCK_PURE_TONE:
                 snprintf(sz, sizeof(sz), "%u tstates", libspectrum_tape_block_pulse_length(block));
@@ -520,6 +523,9 @@ const char *Tape::GetBlockDetails (libspectrum_tape_block *block)
 
                 break;
             }
+
+            default:
+                break;
         }
     }
 
