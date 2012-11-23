@@ -108,6 +108,7 @@ bool Audio::AddData (BYTE *pbData_, int nLength_)
     DWORD dwLength1, dwLength2;
     HRESULT hr;
 
+    // No DirectSound buffer?
     if (!pdsb)
     {
         // Determine the time between frames in ms
@@ -125,6 +126,7 @@ bool Audio::AddData (BYTE *pbData_, int nLength_)
                 Message(msgWarning, "Failed to start frame timer (%#08lx)", GetLastError());
         }
 
+        // Wait for the timer event
         WaitForSingleObject(hEvent, INFINITE);
         return false;
     }

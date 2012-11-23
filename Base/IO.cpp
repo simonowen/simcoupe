@@ -568,7 +568,7 @@ BYTE IO::In (WORD wPort_)
             else if ((bPortLow & 0xfc) == 0x7c)
             {
                 // Blue Alpha Sampler?
-                if (GetOption(bluealpha) && bPortLow == BLUE_ALPHA_PORT)
+                if (GetOption(dac7c) == 1 && bPortLow == BLUE_ALPHA_PORT)
                 {
                     if ((bPortHigh & 0xfc) == 0x7c)
                         bRet = pBlueAlpha->In(bPortHigh & 0x03);
@@ -850,23 +850,32 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             // Blue Alpha, SAMVox and Paula ports overlap!
             else if ((bPortLow & 0xfc) == 0x7c)
             {
-                // SAMVox
-                if (GetOption(samvox))
-                    pSAMVox->Out(bPortLow & 0x03, bVal_);
-
-                // Paula DAC
-                if (GetOption(paula))
-                    pPaula->Out(bPortLow & 0x01, bVal_);
-
-                // Blue Alpha only uses a single port
-                if (GetOption(bluealpha) && bPortLow == BLUE_ALPHA_PORT)
+                // Determine which one device is connected
+                switch (GetOption(dac7c))
                 {
-                    if ((bPortHigh & 0xfc) == 0x7c)
-                        pBlueAlpha->Out(bPortHigh & 0x03, bVal_);
+                    // Blue Alpha Sampler
+                    case 1:
+                        // Blue Alpha only uses a single port
+                        if (bPortLow == BLUE_ALPHA_PORT)
+                        {
+                            if ((bPortHigh & 0xfc) == 0x7c)
+                                pBlueAlpha->Out(bPortHigh & 0x03, bVal_);
 /*
-                    else if (bPortHigh == 0xff)
-                        BlueAlphaVoiceBox::Out(0, bVal_);
+                            else if (bPortHigh == 0xff)
+                                BlueAlphaVoiceBox::Out(0, bVal_);
 */
+                        }
+                        break;
+
+                    // SAMVox
+                    case 2:
+                        pSAMVox->Out(bPortLow & 0x03, bVal_);
+                        break;
+
+                    // Paula
+                    case 3: 
+                        pPaula->Out(bPortLow & 0x01, bVal_);
+                        break;
                 }
             }
 

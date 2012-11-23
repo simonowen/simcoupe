@@ -149,10 +149,8 @@ OPTION aOptions[] =
 
     OPT_F("Sound",        sound,          true),      // Sound enabled
     OPT_N("Latency",      latency,        1),         // Sound latency of 1 frame
-    OPT_F("BlueAlpha",    bluealpha,      true),      // Blue Alpha Sampler present    
+    OPT_N("DAC7C",        dac7c,          1),         // Blue Alpha Sampler on port &7c
     OPT_N("SamplerFreq",  samplerfreq,    18000),     // Blue Alpha clock frequency (default=18KHz)
-    OPT_F("SAMVox",       samvox,         false),     // SAMVox not present (conflicts with Blue Alpha port)
-    OPT_F("Paula",        paula,          false),     // Paula DAC not present (conflicts with Blue Alpha port)
     OPT_N("SID",          sid,            1),         // SID interface with MOS6581
 
     OPT_N("DriveLights",  drivelights,    1),         // Show drive activity lights
