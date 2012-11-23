@@ -734,7 +734,7 @@ bool CCheckBox::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             }
             break;
         }
-            
+
         case GM_BUTTONDOWN:
         case GM_BUTTONDBLCLK:
             // Was the click over us?
@@ -985,7 +985,7 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                             m_nCaretEnd = strlen(GetText());
                             return true;
                         }
-                        
+
                         break;
                     }
 
@@ -1076,7 +1076,7 @@ void CRadioButton::Draw (CScreen* pScreen_)
     BYTE abEnabled[] = { 0, GREY_5, GREY_7, GREY_7 };
     BYTE abDisabled[] = { 0, GREY_3, GREY_5, GREY_5 };
 
-    static BYTE abSelected[10][10] = 
+    static BYTE abSelected[10][10] =
     {
         { 0,0,0,3,3,3,3 },
         { 0,0,3,0,0,0,0,3 },
@@ -1090,7 +1090,7 @@ void CRadioButton::Draw (CScreen* pScreen_)
         { 0,0,0,3,3,3,3 }
     };
 
-    static BYTE abUnselected[10][10] = 
+    static BYTE abUnselected[10][10] =
     {
         { 0,0,0,3,3,3,3 },
         { 0,0,3,0,0,0,0,3 },
@@ -1641,7 +1641,7 @@ bool CScrollBar::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
                 default:        return false;
             }
-            
+
             return true;
 
         case GM_BUTTONDOWN:
@@ -2598,15 +2598,15 @@ bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 case HK_UP:
                 case HK_DOWN:
                 {
-                    // Determine the next control 
+                    // Determine the next control
                     bool fPrev = (nParam1_ == HK_LEFT) || (nParam1_ == HK_UP);
 
                     // Look for the next enabled/tabstop control of the same type
-                    
+
                     for (CWindow* p = m_pActive ; p ; )
                     {
                         p = fPrev ? p->GetPrev(true) : p->GetNext(true);
-                        
+
                         // Stop if we're found a different control type
                         if (p->GetType() != m_pActive->GetType())
                             break;

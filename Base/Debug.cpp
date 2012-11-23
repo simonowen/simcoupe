@@ -394,7 +394,7 @@ void CDebugger::SetSubTitle (const char *pcszSubTitle_)
         strcat(szTitle, " -- ");
         strcat(szTitle, pcszSubTitle_);
     }
-    
+
     SetText(szTitle);
 }
 
@@ -676,7 +676,7 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
         Refresh();
     }
 
-    // If not already processed, pass onPass on to dialog base for processing, if not 
+    // If not already processed, pass onPass on to dialog base for processing, if not
     if (!fRet)
         fRet = CDialog::OnMessage(nMessage_, nParam1_, nParam2_);
 
@@ -1333,7 +1333,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
             else
                 fRet = false;
         }
-        
+
         if (fRet && nBytes)
         {
             for (int i = 0 ; i < nBytes ; i++)
@@ -1590,7 +1590,7 @@ void CDisView::Draw (CScreen* pScreen_)
     pScreen_->DrawString(nX, nY+172, "", GREEN_8);
     if (dwCycleDiff)
     {
-        sprintf(sz, "+%u", dwCycleDiff);	
+        sprintf(sz, "+%u", dwCycleDiff);
         pScreen_->DrawString(nX+12, nY+172, sz, WHITE);
     }
 
@@ -2187,7 +2187,7 @@ bool CHexView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
         case GM_MOUSEWHEEL:
             return cmdNavigate((nParam1_ < 0) ? HK_UP : HK_DOWN, 0);
     }
-    
+
     return false;
 }
 
@@ -2470,11 +2470,11 @@ bool CGfxView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     {
         case GM_CHAR:
             return cmdNavigate(nParam1_, nParam2_);
-            
+
         case GM_MOUSEWHEEL:
             return cmdNavigate((nParam1_ < 0) ? HK_PGUP : HK_PGDN, 0);
     }
-    
+
     return false;
 }
 
@@ -2646,11 +2646,11 @@ bool CBptView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
         case GM_CHAR:
             return cmdNavigate(nParam1_, nParam2_);
-            
+
         case GM_MOUSEWHEEL:
             return cmdNavigate((nParam1_ < 0) ? HK_UP : HK_DOWN, 0);
     }
-    
+
     return false;
 }
 

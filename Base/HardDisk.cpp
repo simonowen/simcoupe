@@ -112,7 +112,7 @@ RS_IDE;
     // Try for device path first
     if (!pDisk && (pDisk = new CDeviceHardDisk(pcszDisk_)) && !pDisk->Open())
         delete pDisk, pDisk = NULL;
-    
+
     // Try for HDF disk image
     if (!pDisk && (pDisk = new CHDFHardDisk(pcszDisk_)) && !pDisk->Open())
         delete pDisk, pDisk = NULL;

@@ -55,7 +55,7 @@ OPTION;
 
 OPTIONS Options::s_Options;
 
-OPTION aOptions[] = 
+OPTION aOptions[] =
 {
     OPT_N("CfgVersion",   cfgversion,     0),         // Config compatability number
     OPT_F("FirstRun",     firstrun,       1),         // Non-zero if this is the first run
@@ -166,7 +166,7 @@ OPTION aOptions[] =
 
 inline bool IsTrue (const char* pcsz_)
 {
-    return pcsz_ && (!strcasecmp(pcsz_, "true") || !strcasecmp(pcsz_, "on") || !strcasecmp(pcsz_, "enabled") || 
+    return pcsz_ && (!strcasecmp(pcsz_, "true") || !strcasecmp(pcsz_, "on") || !strcasecmp(pcsz_, "enabled") ||
                     !strcasecmp(pcsz_, "yes") || !strcasecmp(pcsz_, "1"));
 }
 
@@ -192,7 +192,7 @@ void Options::SetDefaults (bool fForce_/*=true*/)
     // Process the full options list
     for (OPTION* p = aOptions ; p->pcszName ; p++)
     {
-        // Set the default if forcing defaults, or if we've not already 
+        // Set the default if forcing defaults, or if we've not already
         if (fForce_ || !p->fSpecified)
         {
             switch (p->nType)

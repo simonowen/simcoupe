@@ -128,7 +128,7 @@ void CMidiDevice::Out (WORD wPort_, BYTE bVal_)
     if (m_nDevice != -1 && write(m_nDevice, m_abOut, m_nOut) == -1)
         TRACE("!!! MIDI write failed (%d)\n", errno);
 
-    // Prepare for the next message 
+    // Prepare for the next message
     m_nOut = m_abOut[1] = m_abOut[2] = m_abOut[3] = 0;
 }
 

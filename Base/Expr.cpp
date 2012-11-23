@@ -115,7 +115,7 @@ static const TOKEN asVariables[] =
     {"ei",VAR_EI}, {"di",VAR_DI},
     {"dline",VAR_DLINE}, {"sline",VAR_SLINE},
     {"rom0",VAR_ROM0}, {"rom1",VAR_ROM1}, {"wprot",VAR_WPROT}, {"inrom",VAR_INROM}, {"call",VAR_CALL},
-    {"lepage",VAR_LEPAGE}, {"hepage",VAR_HEPAGE}, {"lpage",VAR_LPAGE}, {"hpage",VAR_HPAGE}, {"vpage",VAR_VPAGE}, {"vmode",VAR_VMODE}, 
+    {"lepage",VAR_LEPAGE}, {"hepage",VAR_HEPAGE}, {"lpage",VAR_LPAGE}, {"hpage",VAR_HPAGE}, {"vpage",VAR_VPAGE}, {"vmode",VAR_VMODE},
     {"inval",VAR_INVAL}, {"outval",VAR_OUTVAL},
     {"lepr",VAR_LEPR}, {"hepr",VAR_HEPR}, {"lpen",VAR_LPEN}, {"hpen",VAR_HPEN}, {"status",VAR_STATUS},
     {"lmpr",VAR_LMPR}, {"hmpr",VAR_HMPR}, {"vmpr",VAR_VMPR}, {"midi",VAR_MIDI}, {"border",VAR_BORDER}, {"attr",VAR_ATTR},

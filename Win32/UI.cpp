@@ -508,7 +508,7 @@ bool AttachDisk (CAtaAdapter *pAdapter_, const char *pcszDisk_, int nDevice_)
         Message(msgWarning, "Failed to open: %s", pcszDisk_);
         return false;
     }
-    
+
     return true;
 }
 
@@ -545,7 +545,7 @@ bool InsertDisk (CDiskDevice* pFloppy_, const char *pcszPath_=NULL)
     {
         if (!GetSaveLoadFile(&ofn, true))
             return false;
-            
+
         pcszPath_ = szFile;
     }
 
@@ -575,7 +575,7 @@ bool EjectDisk (CDiskDevice *pFloppy_)
         pFloppy_->Eject();
         return true;
     }
-    
+
     return false;
 }
 
@@ -737,7 +737,7 @@ INT_PTR CALLBACK TapeBrowseDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
 
             // Locate the status text window for later
             hwndStatus = GetDlgItem(hdlg_, IDS_TAPE_STATUS);
- 
+
             // Update the toolbar and list view with current settings
             UpdateTapeToolbar(hdlg_);
             UpdateTapeBlockList(hdlg_);
@@ -860,7 +860,7 @@ INT_PTR CALLBACK TapeBrowseDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
             return 0;
         }
     }
-    
+
     return 0;
 }
 
@@ -2669,7 +2669,7 @@ INT_PTR CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                         }
 
                         // Warn before overwriting existing files
-                        if (!::stat(szFile, &st) && 
+                        if (!::stat(szFile, &st) &&
                                 MessageBox(hdlg_, "Overwrite existing file?", "Create", MB_YESNO|MB_ICONEXCLAMATION) != IDYES)
                             break;
 
@@ -3298,7 +3298,7 @@ INT_PTR CALLBACK MidiPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 char sz[16];
 
                 SetOption(midi, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_MIDI, CB_GETCURSEL, 0, 0L)));
-                
+
                 // Update the MIDI IN and MIDI OUT device numbers
                 SetOption(midiindev,  itoa((int)SendDlgItemMessage(hdlg_, IDC_MIDI_IN,  CB_GETCURSEL, 0, 0L)-1, sz, 10));
                 SetOption(midioutdev, itoa((int)SendDlgItemMessage(hdlg_, IDC_MIDI_OUT, CB_GETCURSEL, 0, 0L)-1, sz, 10));
@@ -3842,7 +3842,7 @@ void DisplayOptions ()
     InitPage(aPages, 8,  IDD_PAGE_MIDI,     MidiPageDlgProc);
     InitPage(aPages, 9,  IDD_PAGE_MISC,     MiscPageDlgProc);
     InitPage(aPages, 10, IDD_PAGE_FNKEYS,   FnKeysPageDlgProc);
-    
+
 
     PROPSHEETHEADER psh;
     ZeroMemory(&psh, sizeof(psh));

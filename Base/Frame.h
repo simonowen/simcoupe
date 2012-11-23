@@ -543,7 +543,7 @@ void CFrameXx1<fHiRes_>::ScreenChange (BYTE *pbLine_, int nLine_, int nBlock_, B
     // The rest of the cell is the new border colour, even on the main screen since the ASIC has no data!
                  pFrame[1]  = pFrame[2]  = pFrame[3]  =
     pFrame[4]  = pFrame[5]  = pFrame[6]  = pFrame[7]  =
-    pFrame[8]  = pFrame[9]  = pFrame[10] = pFrame[11] = 
+    pFrame[8]  = pFrame[9]  = pFrame[10] = pFrame[11] =
     pFrame[12] = pFrame[13] = pFrame[14] = pFrame[15] = clut[BORD_COL(bNewBorder_)];
 }
 

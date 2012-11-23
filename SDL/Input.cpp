@@ -257,7 +257,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
 // Are these still needed?
                     // Keys not recognised by SDL
                     case SDLK_UNKNOWN:
-                        
+
                         switch (pKey->scancode)
                         {
                             case 0x56:  pKey->sym = SDLK_WORLD_95;  break;

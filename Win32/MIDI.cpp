@@ -19,7 +19,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 // Changes 2000-2001 by Dave Laundon:
-//  - Fixed re-synchronisation after incomplete 
+//  - Fixed re-synchronisation after incomplete
 
 // ToDo:
 //  - MIDI IN and MIDI network implementations
@@ -125,7 +125,7 @@ void CMidiDevice::Out (WORD wPort_, BYTE bVal_)
     if (m_hMidiOut)
         midiOutShortMsg(m_hMidiOut, *reinterpret_cast<DWORD*>(&m_abOut));
 
-    // Prepare for the next message, clearing out 
+    // Prepare for the next message, clearing out
     m_nOut = m_abOut[1] = m_abOut[2] = m_abOut[3] = 0;
 }
 

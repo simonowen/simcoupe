@@ -873,7 +873,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
                         break;
 
                     // Paula
-                    case 3: 
+                    case 3:
                         pPaula->Out(bPortLow & 0x01, bVal_);
                         break;
                 }

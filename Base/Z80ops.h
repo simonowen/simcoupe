@@ -320,7 +320,7 @@ instr(4,0047)
             acc -= 0x160;
     }
     else
-    {           
+    {
         if (incr)
         {
             F = (F & ~FLAG_H) | (((A & 0x0f) > 9) ? FLAG_H : 0);

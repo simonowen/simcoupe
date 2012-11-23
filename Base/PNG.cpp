@@ -196,7 +196,7 @@ static bool SaveFile (FILE *f_, CScreen *pScreen_)
     // Compress and write the image
     bool fRet = CompressImageData(&png) && WriteFile(f_, &png);
     delete[] png.pbImage, png.pbImage = NULL;
- 
+
     return fRet;
 }
 
