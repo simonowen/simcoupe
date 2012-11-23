@@ -199,10 +199,8 @@ void Breakpoint::AddExec (void *pPhysAddr_, EXPR *pExpr_)
     Add(pNew);
 }
 
-void Breakpoint::AddMemory (WORD wAddr_, AccessType nAccess_, EXPR *pExpr_, int nLength_/*=1*/)
+void Breakpoint::AddMemory (void *pPhysAddr_, AccessType nAccess_, EXPR *pExpr_, int nLength_/*=1*/)
 {
-    BYTE* pPhys = AddrReadPtr(wAddr_);
-
     // Add a new execution breakpoint for the supplied address
     BREAKPT *pNew = new BREAKPT;
     pNew->nType = btMemory;
@@ -211,8 +209,8 @@ void Breakpoint::AddMemory (WORD wAddr_, AccessType nAccess_, EXPR *pExpr_, int 
     pNew->pExpr = pExpr_;
     pNew->pNext = NULL;
 
-    pNew->Mem.pPhysAddrFrom = pPhys;
-    pNew->Mem.pPhysAddrTo = pPhys+nLength_-1;
+    pNew->Mem.pPhysAddrFrom = pPhysAddr_;
+    pNew->Mem.pPhysAddrTo = reinterpret_cast<BYTE*>(pPhysAddr_)+nLength_-1;
 
     Add(pNew);
 }

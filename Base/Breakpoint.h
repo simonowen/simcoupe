@@ -89,7 +89,7 @@ class Breakpoint
         static void Add (BREAKPT *pBreak_);
         static void AddTemp (void *pPhysAddr_, EXPR *pExpr_);
         static void AddExec (void *pPhysAddr_, EXPR *pExpr_);
-        static void AddMemory (WORD wAddr_, AccessType nAccess_, EXPR *pExpr_, int nLength_=1);
+        static void AddMemory (void *pPhysAddr_, AccessType nAccess_, EXPR *pExpr_, int nLength_=1);
         static void AddPort (WORD wPort_, AccessType nAccess_, EXPR *pExpr_);
         static void AddInterrupt (BYTE bIntMask_, EXPR *pExpr_);
         static const char *GetDesc (BREAKPT *pBreak_);

@@ -463,7 +463,7 @@ void CDebugger::SetStatus (const char *pcsz_, BYTE bColour_/*=WHITE*/, const GUI
 
 void CDebugger::SetStatusByte (WORD wAddr_)
 {
-    int i;
+    size_t i;
     char szKeyword[32] = {};
     char szBinary[9]={};
 
@@ -1019,7 +1019,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
         }
 
         if (fRet)
-            Breakpoint::AddMemory(nParam, nAccess, pExpr);
+            Breakpoint::AddMemory(pPhysAddr, nAccess, pExpr);
     }
 
     // bpmr addrfrom addrto [rw|r|w] [if cond]
@@ -1087,7 +1087,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
         }
 
         if (fRet)
-            Breakpoint::AddMemory(nParam, nAccess, pExpr, nLength);
+            Breakpoint::AddMemory(pPhysAddr, nAccess, pExpr, nLength);
     }
 
     // bpio port [rw|r|w] [if cond]
@@ -1353,7 +1353,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
 ////////////////////////////////////////////////////////////////////////////////
 // Disassembler
 
-static const UINT ROW_GAP = 2;
+static const int ROW_GAP = 2;
 WORD CDisView::s_wAddrs[64];
 
 CDisView::CDisView (CWindow* pParent_)
@@ -1894,7 +1894,7 @@ void CDisView::SetFlowTarget ()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static const UINT TXT_COLUMNS = 64;
+static const int TXT_COLUMNS = 64;
 
 CTxtView::CTxtView (CWindow* pParent_)
     : CView(pParent_)
@@ -1977,11 +1977,11 @@ bool CTxtView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     {
         case GM_CHAR:
             return cmdNavigate(nParam1_, nParam2_);
-            
+
         case GM_MOUSEWHEEL:
             return cmdNavigate((nParam1_ < 0) ? HK_UP : HK_DOWN, 0);
     }
-    
+
     return false;
 }
 
@@ -2088,7 +2088,7 @@ bool CTxtView::cmdNavigate (int nKey_, int nMods_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static const UINT HEX_COLUMNS = 16;
+static const int HEX_COLUMNS = 16;
 
 CHexView::CHexView (CWindow* pParent_)
     : CView(pParent_)
@@ -2353,7 +2353,7 @@ void CMemView::Draw (CScreen* pScreen_)
 ////////////////////////////////////////////////////////////////////////////////
 // Graphics View
 
-static const UINT STRIP_GAP = 8;
+static const int STRIP_GAP = 8;
 UINT CGfxView::s_uMode = 4, CGfxView::s_uWidth = 8, CGfxView::s_uZoom = 1;
 
 CGfxView::CGfxView (CWindow* pParent_)
