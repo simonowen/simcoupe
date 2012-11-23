@@ -24,7 +24,7 @@
 
 #include "IO.h"
 
-#define MOUSE_RESET_TIME       USECONDS_TO_TSTATES(50)      // Mouse is reset 50us after the last read
+#define MOUSE_RESET_TIME       USECONDS_TO_TSTATES(30)      // Mouse is reset 30us after the last read
 
 // Mouse buffer format, as read
 typedef struct
