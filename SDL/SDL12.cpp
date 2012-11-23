@@ -36,8 +36,6 @@ int SDLVideo::GetCaps () const
 
 bool SDLVideo::Init (bool fFirstInit_)
 {
-    bool fRet = false;
-
     TRACE("-> Video::Init(%s)\n", fFirstInit_ ? "first" : "");
 
     if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0)
