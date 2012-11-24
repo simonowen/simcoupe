@@ -394,7 +394,12 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
 
         case SDL_MOUSEBUTTONDOWN:
         {
-            int nX = pEvent_->button.x, nY = pEvent_->button.y;
+            static DWORD dwLastClick;
+            static int nLastButton = -1;
+
+            int nX = pEvent_->button.x;
+            int nY = pEvent_->button.y;
+            bool fDoubleClick = (pEvent_->button.button == nLastButton) && ((OSD::GetTime() - dwLastClick) < DOUBLE_CLICK_TIME);
 
             // Button presses go to the GUI if it's active
             if (GUI::IsActive())
@@ -419,9 +424,14 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
                 TRACE("Mouse button %d pressed\n", pEvent_->button.button);
             }
 
-            // If the mouse interface is enabled, a left-click acquires it
-            else if (GetOption(mouse) && pEvent_->button.button == 1)
+            // If the mouse interface is enabled and being read by something other than the ROM, a left-click acquires it
+            // Otherwise a double-click is required to forcibly acquire it
+            else if (GetOption(mouse) && pEvent_->button.button == 1 && (pMouse->IsActive() || fDoubleClick))
                 AcquireMouse();
+
+            // Remember the last click click time and button, for double-click tracking
+            nLastButton = pEvent_->button.button;
+            dwLastClick = OSD::GetTime();
 
             break;
         }

@@ -89,7 +89,7 @@ typedef struct
     int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
     bool    altforcntrl;            // Use Left-Alt for SAM Cntrl?
     bool    altgrforedit;           // Use Right-Alt for SAM Edit?
-    bool    mouse;                  // Emulate the SAM mouse?
+    bool    mouse;                  // Mouse interface connected?
     bool    mouseesc;               // Allow Esc to release the mouse capture?
 
     char    joydev1[128];           // Joystick 1 device

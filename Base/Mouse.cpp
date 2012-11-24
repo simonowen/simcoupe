@@ -30,7 +30,6 @@
 #include "Options.h"
 #include "Util.h"
 
-////////////////////////////////////////////////////////////////////////////////
 
 CMouseDevice::CMouseDevice ()
     : m_nDeltaX(0), m_nDeltaY(0), m_bButtons(0), m_uBuffer(0)
@@ -63,6 +62,7 @@ BYTE CMouseDevice::In (WORD wPort_)
         m_sMouse.bY16  = (m_nDeltaY & 0x0f0) >> 4;
         m_sMouse.bY1   = (m_nDeltaY & 0x00f);
 
+        // Keep track of the movement we're reporting
         m_nReadX = m_nDeltaX;
         m_nReadY = m_nDeltaY;
     }
@@ -80,6 +80,10 @@ BYTE CMouseDevice::In (WORD wPort_)
 
         // Move back to the start of the data, but stay strobed
         m_uBuffer = 1;
+
+        // If it's not the ROM reading the mouse, remember the last read time
+        if (PC != 0xd4d6)
+            m_dwLastRead = OSD::GetTime();
     }
 
     // Cancel any pending reset event, and schedule a fresh one
@@ -108,4 +112,10 @@ void CMouseDevice::SetButton (int nButton_, bool fPressed_/*=true*/)
         m_bButtons |= bBit;
     else
         m_bButtons &= ~bBit;
+}
+
+// Report whetheer the mouse is actively in use
+bool CMouseDevice::IsActive () const
+{
+    return (OSD::GetTime() - m_dwLastRead) <= MOUSE_ACTIVE_TIME;
 }

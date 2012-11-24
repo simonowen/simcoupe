@@ -1977,7 +1977,7 @@ bool InitWindow ()
 {
     // Set up and register window class
     WNDCLASS wc = { };
-    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = __hinstance;
     wc.hIcon = LoadIcon(__hinstance, MAKEINTRESOURCE(IDI_MAIN));

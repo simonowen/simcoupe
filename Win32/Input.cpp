@@ -432,6 +432,7 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
         case WM_MBUTTONDOWN:
+        case WM_LBUTTONDBLCLK:
         {
             // The GUI gets first chance to process the message
             if (GUI::IsActive())
@@ -441,8 +442,9 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
             else if (fMouseActive)
                 pMouse->SetButton(anMouseButtons[uMsg_ & 0x7], true);
 
-            // If the mouse interface is enabled, a left-click acquires it
-            else if (GetOption(mouse) && uMsg_ == WM_LBUTTONDOWN)
+            // If the mouse interface is enabled and being read by something other than the ROM, a left-click acquires it
+            // Otherwise a double-click is required to forcibly acquire it
+            else if (GetOption(mouse) && ((uMsg_ == WM_LBUTTONDOWN &&  pMouse->IsActive()) || uMsg_ == WM_LBUTTONDBLCLK))
                 AcquireMouse(true);
 
             break;
