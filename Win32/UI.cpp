@@ -3808,8 +3808,13 @@ static void InitPage (PROPSHEETPAGE* pPage_, int nPage_, int nDialogId_, DLGPROC
 
 void DisplayOptions ()
 {
+#ifdef _DEBUG
+    PROPSHEETPAGE aPages[11];
+#else
+    PROPSHEETPAGE aPages[10];
+#endif
+
     // Initialise the pages to go on the sheet
-    PROPSHEETPAGE aPages[12];
     InitPage(aPages, 0,  IDD_PAGE_SYSTEM,   SystemPageDlgProc);
     InitPage(aPages, 1,  IDD_PAGE_DISPLAY,  DisplayPageDlgProc);
     InitPage(aPages, 2,  IDD_PAGE_SOUND,    SoundPageDlgProc);
@@ -3820,7 +3825,10 @@ void DisplayOptions ()
     InitPage(aPages, 7,  IDD_PAGE_PARALLEL, ParallelPageDlgProc);
     InitPage(aPages, 8,  IDD_PAGE_MIDI,     MidiPageDlgProc);
     InitPage(aPages, 9,  IDD_PAGE_MISC,     MiscPageDlgProc);
+#ifdef _DEBUG
+    // Function key editing is now Debug only, and may be removed altogether
     InitPage(aPages, 10, IDD_PAGE_FNKEYS,   FnKeysPageDlgProc);
+#endif
 
 
     PROPSHEETHEADER psh;
