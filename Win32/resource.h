@@ -133,6 +133,8 @@
 #define IDS_PRINTERS                    1192
 #define IDL_TAPE_BLOCKS                 1193
 #define IDS_TAPE_STATUS                 1195
+#define IDC_SID_TYPE                    1201
+#define IDC_DAC_7C                      1202
 #define IDT_MENU                        7389
 #define IDM_FILE_EXIT                   40001
 #define IDM_HELP_ABOUT                  40050
@@ -217,13 +219,13 @@
 #define IDM_TOOLS_TAPE_BROWSER          40278
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        202
 #define _APS_NEXT_COMMAND_VALUE         40279
-#define _APS_NEXT_CONTROL_VALUE         1196
+#define _APS_NEXT_CONTROL_VALUE         1208
 #define _APS_NEXT_SYMED_VALUE           114
 #endif
 #endif

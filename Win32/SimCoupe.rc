@@ -85,11 +85,14 @@ STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Sound"
 FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
-    COMBOBOX        IDC_LATENCY,86,41,85,96,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    ICON            IDI_SOUND,IDC_STATIC,7,7,20,20
-    LTEXT           "Latency:",IDS_LATENCY,54,43,28,8
-    GROUPBOX        "Buffering",IDC_STATIC,45,7,170,55
-    LTEXT           "Increase the value below if you're suffering from sound stutters or other glitches:",IDC_STATIC,54,19,153,16
+    GROUPBOX        "SID Interface",IDC_STATIC,7,7,221,48
+    ICON            IDI_MEMORY,IDC_STATIC,16,19,20,20
+    LTEXT           "Select the SID chip type installed:",IDC_STATIC,50,19,178,8
+    COMBOBOX        IDC_SID_TYPE,50,34,95,71,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "DAC on port 7C",IDC_STATIC,7,60,221,58
+    ICON            IDI_SOUND,IDC_STATIC,16,76,21,20
+    LTEXT           "These devices use the same I/O port, so only one may be connected at a time.",IDC_STATIC,50,74,178,18
+    COMBOBOX        IDC_DAC_7C,50,97,130,69,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
 IDD_PAGE_DISPLAY DIALOGEX 0, 0, 235, 158

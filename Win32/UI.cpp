@@ -2848,11 +2848,11 @@ INT_PTR CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
         case WM_INITDIALOG:
         {
-            static const char* aszLatency[] = { "1 frame (best)", "2 frames", "3 frames", "4 frames", "5 frames (default)",
-                                                "10 frames", "15 frames", "20 frames", "25 frames", NULL };
-            int nLatency = GetOption(latency);
-            nLatency = (nLatency <= 5 ) ? nLatency - 1 : nLatency/5 + 3;
-            SetComboStrings(hdlg_, IDC_LATENCY, aszLatency, nLatency);
+            static const char *aszSIDs[] = { "None", "MOS6581 (Default)", "MOS8580", NULL };
+            SetComboStrings(hdlg_, IDC_SID_TYPE, aszSIDs, GetOption(sid));
+
+            static const char *aszDAC7C[] = { "None", "Blue Alpha Sampler (8-bit mono)", "SAMVox (4 channel 8-bit mono)", "Paula (2 channel 4-bit stereo)", NULL };
+            SetComboStrings(hdlg_, IDC_DAC_7C, aszDAC7C, GetOption(dac7c));
 
             break;
         }
@@ -2861,12 +2861,8 @@ INT_PTR CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
-                int nLatency = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_LATENCY, CB_GETCURSEL, 0, 0L));
-                nLatency = (nLatency < 5) ? nLatency + 1 : (nLatency - 3) * 5;
-                SetOption(latency, nLatency);
-
-                if (Changed(latency))
-                    Sound::Init();
+                SetOption(sid, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_SID_TYPE, CB_GETCURSEL, 0, 0L)));
+                SetOption(dac7c, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_DAC_7C, CB_GETCURSEL, 0, 0L)));
             }
 
             break;

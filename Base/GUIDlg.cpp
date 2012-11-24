@@ -627,34 +627,28 @@ class CSoundOptions : public CDialog
 {
     public:
         CSoundOptions (CWindow* pParent_)
-            : CDialog(pParent_, 300, 168, "Sound Settings")
+            : CDialog(pParent_, 300, 193, "Sound Settings")
         {
             new CIconControl(this, 10, 10, &sSoundIcon);
 
-            new CFrameControl(this, 50, 17, 238, 37, WHITE);
-            new CTextControl(this, 60, 13, "Settings", YELLOW_8, BLUE_2);
+            new CFrameControl(this, 50, 17, 238, 60, WHITE);
+            new CTextControl(this, 60, 13, "SID Interface", YELLOW_8, BLUE_2);
 
-            m_pSound = new CCheckBox(this, 63, 33, "Sound enabled");
+            new CTextControl(this, 63, 33, "Select the SID chip type installed:");
+            m_pSID = new CComboBox(this, 63, 51, "None|MOS6581 (Default)|MOS8580", 125);
 
-            new CFrameControl(this, 50, 68, 238, 70, WHITE);
-            new CTextControl(this, 60, 64, "Buffering", YELLOW_8, BLUE_2);
 
-            new CTextControl(this, 63, 80, "Increase the value below if you're suffering");
-            new CTextControl(this, 63, 94, "from stuttering or other sound glitches:");
+            new CFrameControl(this, 50, 89, 238, 75, WHITE);
+            new CTextControl(this, 60, 85, "DAC on Port 7C", YELLOW_8, BLUE_2);
 
-            m_pLatencyText = new CTextControl(this, 63, 115, "Latency:");
-            m_pLatency = new CComboBox(this, 113, 112, "1 frame (best)|2 frames|3 frames|4 frames|5 frames (default)|10 frames|15 frames|20 frames|25 frames", 120);
+            new CTextControl(this, 63, 104, "These devices use the same I/O port, so only\none may be connected at a time.");
+            m_pDAC7C = new CComboBox(this, 63, 136, "None|Blue Alpha Sampler (8-bit mono)|SAMVox (4 channel 8-bit mono)|Paula (2 channel 4-bit stereo)", 190);
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
 
-            // Set the initial state from the options
-            m_pSound->SetChecked(GetOption(sound));
-
-            int nLatency = GetOption(latency);
-            m_pLatency->Select((nLatency <= 5 ) ? nLatency - 1 : nLatency/5 + 3);
-
-            OnNotify(m_pSound,0);
+            m_pSID->Select(GetOption(sid));
+            m_pDAC7C->Select(GetOption(dac7c));
         }
 
     public:
@@ -664,32 +658,15 @@ class CSoundOptions : public CDialog
                 Destroy();
             else if (pWindow_ == m_pOK)
             {
-                SetOption(sound, m_pSound->IsChecked());
-
-                int nLatency = m_pLatency->GetSelected();
-                SetOption(latency, (nLatency < 5) ? nLatency + 1 : (nLatency - 3) * 5);
-
-                if (Changed(sound) || Changed(latency))
-                {
-                    if (!Sound::Init())
-                        new CMessageBox(GetParent(), "Sound init failed - device in use?", "Sound", mbWarning);
-                }
+                SetOption(sid, m_pSID->GetSelected());
+                SetOption(dac7c, m_pDAC7C->GetSelected());
 
                 Destroy();
-            }
-            else if (pWindow_ == m_pSound)
-            {
-                bool fSound = m_pSound->IsChecked();
-
-                m_pLatencyText->Enable(fSound);
-                m_pLatency->Enable(fSound);
             }
         }
 
     protected:
-        CCheckBox *m_pSound;
-        CComboBox *m_pLatency;
-        CTextControl *m_pLatencyText;
+        CComboBox *m_pSID, *m_pDAC7C;
         CTextButton *m_pOK, *m_pCancel;
 };
 
@@ -1157,7 +1134,7 @@ void COptionsDialog::OnNotify (CWindow* pWindow_, int nParam_)
             }
             else if (!strcasecmp(pItem->m_pszLabel, "sound"))
             {
-                m_pStatus->SetText("Sound quality settings for SAA chip and beeper");
+                m_pStatus->SetText("Sound device settings");
                 if (nParam_) new CSoundOptions(this);
             }
             else if (!strcasecmp(pItem->m_pszLabel, "midi"))
@@ -1343,7 +1320,7 @@ CExportDialog::CExportDialog (CWindow* pParent_)
 void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
 {
     if (pWindow_ == m_pLength)
-		s_uLength = m_pLength->GetValue();
+        s_uLength = m_pLength->GetValue();
 
     else if (pWindow_ == m_pOK || nParam_)
     {
