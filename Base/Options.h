@@ -91,7 +91,6 @@ typedef struct
     bool    altgrforedit;           // Use Right-Alt for SAM Edit?
     bool    mouse;                  // Emulate the SAM mouse?
     bool    mouseesc;               // Allow Esc to release the mouse capture?
-    bool    swap23;                 // Swap SAM mouse buttons 2 and 3?
 
     char    joydev1[128];           // Joystick 1 device
     char    joydev2[128];           // Joystick 2 device number

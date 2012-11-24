@@ -123,7 +123,6 @@ OPTION aOptions[] =
     OPT_F("AltGrForEdit", altgrforedit,   true),      // Right-Alt used for SAM Edit
     OPT_F("Mouse",        mouse,          false),     // Mouse not connected
     OPT_F("MouseEsc",     mouseesc,       true),      // Allow Esc to release the mouse capture
-    OPT_F("Swap23",       swap23,         false),     // Don't swap mouse buttons 2 and 3
 
     OPT_S("JoyDev1",      joydev1,        ""),        // Joystick 1 device
     OPT_S("JoyDev2",      joydev2,        ""),        // Joystick 2 device

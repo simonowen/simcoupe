@@ -3095,7 +3095,6 @@ INT_PTR CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             SendDlgItemMessage(hdlg_, IDC_ALTGR_FOR_EDIT, BM_SETCHECK, GetOption(altgrforedit) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
             SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_SETCHECK, GetOption(mouse) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_MOUSE_SWAP23, BM_SETCHECK, GetOption(swap23) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
             SendMessage(hdlg_, WM_COMMAND, IDC_MOUSE_ENABLED, 0L);
             break;
@@ -3111,26 +3110,10 @@ INT_PTR CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                 SetOption(altgrforedit, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALTGR_FOR_EDIT, BM_GETCHECK, 0, 0L)) == BST_CHECKED);
 
                 SetOption(mouse, SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(swap23, SendDlgItemMessage(hdlg_, IDC_MOUSE_SWAP23, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
                 if (Changed(keymapping) || Changed(mouse))
                     Input::Init();
             }
-            break;
-        }
-
-        case WM_COMMAND:
-        {
-            switch (LOWORD(wParam_))
-            {
-                case IDC_MOUSE_ENABLED:
-                {
-                    bool fMouse = SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED;
-                    EnableWindow(GetDlgItem(hdlg_, IDC_MOUSE_SWAP23), fMouse);
-                    break;
-                }
-            }
-
             break;
         }
     }
