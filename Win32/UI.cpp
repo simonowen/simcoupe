@@ -2829,7 +2829,7 @@ INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
                 SetOption(hwaccel, SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) == BST_CHECKED);
 
                 if (Changed(hwaccel))
-                    Video::UpdateSize();
+                    Video::Init();
             }
 
             break;

@@ -78,6 +78,10 @@ bool Direct3D9Video::Init (bool fFirstInit_)
 {
     TRACE("Direct3D9Video::Init()\n");
 
+    // If hardware acceleration is disabled we should fall back on DirectDraw software
+    if (!GetOption(hwaccel))
+        return false;
+
     // D3D.DLL is delay-loaded, so be prepared for this to fail if it's not available
     __try
     {
