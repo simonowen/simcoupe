@@ -98,7 +98,7 @@ const BYTE GZ_SIGNATURE[] = { 0x1f, 0x8b };
 class CZLibStream : public CStream
 {
     public:
-        CZLibStream (gzFile hFile_, const char* pcszPath_, bool fReadOnly_=false);
+        CZLibStream (gzFile hFile_, const char* pcszPath_, size_t uSize_=0, bool fReadOnly_=false);
         ~CZLibStream () { Close(); }
 
     public:
@@ -112,7 +112,8 @@ class CZLibStream : public CStream
         size_t Write (void* pvBuffer_, size_t uLen_);
 
     protected:
-        gzFile  m_hFile;
+        gzFile m_hFile;
+        size_t m_uSize;
 };
 
 class CZipStream : public CStream

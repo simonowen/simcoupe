@@ -114,12 +114,20 @@ CStream::~CStream ()
 #ifdef USE_ZLIB
                 else
                 {
+                    BYTE ab[4] = {};
+
+                    // Read the uncompressed size from the end of the file (if under 4GiB)
+                    fseek(hf, -4, SEEK_END);
+                    fread(ab, sizeof(ab[0]), _countof(ab), hf);
+                    size_t uSize = (ab[3] << 24) | (ab[2] << 16) | (ab[1] << 8) | ab[0];
+
                     // Close the file so we can open it thru ZLib
                     fclose(hf);
+
                     // Try to open it as a gzipped file
                     gzFile hfGZip;
                     if ((hfGZip = gzopen(pcszPath_, "rb")))
-                        return new CZLibStream(hfGZip, pcszPath_, fReadOnly_);
+                        return new CZLibStream(hfGZip, pcszPath_, uSize, fReadOnly_);
                 }
 #endif  // USE_ZLIB
             }
@@ -244,8 +252,8 @@ size_t CMemStream::Write (void* pvBuffer_, size_t uLen_)
 
 #ifdef USE_ZLIB
 
-CZLibStream::CZLibStream (gzFile hFile_, const char* pcszPath_, bool fReadOnly_/*=false*/)
-    : CStream(pcszPath_, fReadOnly_), m_hFile(hFile_)
+CZLibStream::CZLibStream (gzFile hFile_, const char* pcszPath_, size_t uSize_, bool fReadOnly_/*=false*/)
+    : CStream(pcszPath_, fReadOnly_), m_hFile(hFile_), m_uSize(uSize_)
 {
     for (const char* p = pcszPath_ ; *p ; p++)
     {
@@ -257,9 +265,6 @@ CZLibStream::CZLibStream (gzFile hFile_, const char* pcszPath_, bool fReadOnly_/
     strncpy(szFile, pcszPath_, MAX_PATH);
     strcat(szFile, " (gzip)");
     m_pszFile = strdup(szFile);
-
-    // We'll determine the size on demand as it's an expensive operation
-    m_uSize = 0;
 }
 
 void CZLibStream::Close ()
