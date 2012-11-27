@@ -1996,11 +1996,11 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     DWORD dwNow = OSD::GetTime();
 
                     // Clear the buffer on any non-printing characters or if too long since the last one
-                    if (!isprint(nParam1_) || (dwNow - dwLastChar > 1000))
+                    if (nParam1_ < ' ' || nParam1_ > 0x7f  || (dwNow - dwLastChar > 1000))
                         szPrefix[0] = '\0';
 
                     // Ignore non-printable characters, or if the buffer is full
-                    if (!isprint(nParam1_) || strlen(szPrefix) >= 15)
+                    if (nParam1_ < ' ' || nParam1_ > 0x7f || strlen(szPrefix) >= 15)
                         return false;
 
                     // Ignore duplicates of the same first character, to skip to the next match
