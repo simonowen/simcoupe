@@ -253,10 +253,6 @@ void Input::AcquireMouse (bool fAcquire_)
 
 void Input::Purge ()
 {
-    // Remove any queued mouse movement
-    MSG msg;
-    while (PeekMessage(&msg, NULL, WM_MOUSEMOVE, WM_MOUSEMOVE, PM_REMOVE));
-
     // Purge queued keyboard items
     if (pdiKeyboard && SUCCEEDED(pdiKeyboard->Acquire()))
     {
@@ -520,9 +516,9 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
             // Not processed here, but may come back through decoded as WM_CHAR
             else
-                return 1;
+                return true;
 
-            return 0;
+            return false;
         }
     }
 
