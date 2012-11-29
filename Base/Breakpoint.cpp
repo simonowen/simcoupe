@@ -73,7 +73,7 @@ bool Breakpoint::IsHit ()
                 // Write
                 if ((p->nAccess & atWrite) &&
                     ((pbMemWrite1 >= p->Mem.pPhysAddrFrom && pbMemWrite1 <= p->Mem.pPhysAddrTo) ||
-                     (pbMemWrite1 >= p->Mem.pPhysAddrFrom && pbMemWrite2 <= p->Mem.pPhysAddrTo)))
+                     (pbMemWrite2 >= p->Mem.pPhysAddrFrom && pbMemWrite2 <= p->Mem.pPhysAddrTo)))
                 {
                     pbMemWrite1 = pbMemWrite2 = NULL;
                     break;
