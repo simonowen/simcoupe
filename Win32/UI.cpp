@@ -53,8 +53,8 @@
 
 #include "resource.h"   // For menu and dialogue box symbols
 
-const int MOUSE_HIDE_TIME = 2000;   // 2 seconds
-const UINT MOUSE_TIMER_ID = 42;
+static const int MOUSE_HIDE_TIME = 2000;   // 2 seconds
+static const UINT MOUSE_TIMER_ID = 42;
 
 #ifdef _DEBUG
 #define WINDOW_CAPTION      "SimCoupe [DEBUG]"
@@ -68,35 +68,35 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
 INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
 void CentreWindow (HWND hwnd_, HWND hwndParent_=NULL);
 
-void DisplayOptions ();
+static void DisplayOptions ();
+static bool InitWindow ();
+
+static void AddRecentFile (const char* pcsz_);
+static void LoadRecentFiles ();
+static void SaveRecentFiles ();
+
+static void SaveWindowPosition(HWND hwnd_);
+static bool RestoreWindowPosition(HWND hwnd_);
+static void ResizeWindow (int nHeight_=0);
 
 
 HINSTANCE __hinstance;
 HWND g_hwnd, hwndCanvas;
-HMENU g_hmenu;
+static HMENU g_hmenu;
 extern HINSTANCE __hinstance;
 
-HHOOK g_hFnKeyHook, hWinKeyHook;
-HWND hdlgNewFnKey;
+static HHOOK hWinKeyHook;
 
-WNDPROC pfnStaticWndProc;           // Old static window procedure (internal value)
+static WNDPROC pfnStaticWndProc;           // Old static window procedure (internal value)
 
-WINDOWPLACEMENT g_wp = { sizeof(WINDOWPLACEMENT) };
-int nWindowDx, nWindowDy;
+static WINDOWPLACEMENT g_wp = { sizeof(WINDOWPLACEMENT) };
+static int nWindowDx, nWindowDy;
 
-int nOptionPage = 0;                // Last active option property page
-const int MAX_OPTION_PAGES = 16;    // Maximum number of option propery pages
-bool fCentredOptions;
+static int nOptionPage = 0;                // Last active option property page
+static const int MAX_OPTION_PAGES = 16;    // Maximum number of option propery pages
+static bool fCentredOptions;
 
-void AddRecentFile (const char* pcsz_);
-void LoadRecentFiles ();
-void SaveRecentFiles ();
-
-void SaveWindowPosition(HWND hwnd_);
-bool RestoreWindowPosition(HWND hwnd_);
-void ResizeWindow (int nHeight_=0);
-
-OPTIONS opts;
+static OPTIONS opts;
 // Helper macro for detecting options changes
 #define Changed(o)        (opts.o != GetOption(o))
 #define ChangedString(o)  (strcasecmp(opts.o, GetOption(o)))
@@ -141,9 +141,6 @@ static char szTapeFilters[] =
 
 static const char* aszBorders[] =
     { "No borders", "Small borders", "Short TV area (default)", "TV visible area", "Complete scan area", NULL };
-
-
-bool InitWindow ();
 
 
 int WINAPI WinMain(HINSTANCE hinst_, HINSTANCE hinstPrev_, LPSTR pszCmdLine_, int nCmdShow_)
@@ -3344,454 +3341,6 @@ INT_PTR CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
 }
 
 
-// Function to compare two function key list items, for sorting
-int CALLBACK FnKeysCompareFunc (LPARAM lParam1_, LPARAM lParam2_, LPARAM lParamSort_)
-{
-    return static_cast<int>(lParam1_ - lParam2_);
-}
-
-
-// Window message hook handler for catching function keypresses before anything else sees them
-// This is about the only way to see the function keys in a modal dialogue box, as we don't control the message pump!
-LRESULT CALLBACK GetMsgHookProc (int nCode_, WPARAM wParam_, LPARAM lParam_)
-{
-    if (nCode_ >= 0)
-    {
-        MSG* pMsg = reinterpret_cast<MSG*>(lParam_);
-
-        // We need to eat key messages that relate to the function keys (F10 is a system key)
-        if ((pMsg->message == WM_KEYDOWN || pMsg->message == WM_SYSKEYDOWN || pMsg->message == WM_SYSKEYUP) &&
-            (pMsg->wParam >= VK_F1 && pMsg->wParam <= VK_F12))
-        {
-            // Send it directly to the key setup dialogue box if it's a key down
-            if (pMsg->message != WM_SYSKEYUP)
-                SendMessage(hdlgNewFnKey, WM_KEYDOWN, pMsg->wParam, pMsg->lParam);
-
-            // Stop anything else seeing the keypress
-            pMsg->message = WM_NULL;
-            pMsg->wParam = pMsg->lParam = 0;
-        }
-    }
-
-    // Pass on to the next hook
-    return CallNextHookEx(g_hFnKeyHook, nCode_, wParam_, lParam_);
-}
-
-
-INT_PTR CALLBACK NewFnKeyProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
-{
-    switch (uMsg_)
-    {
-        case WM_INITDIALOG:
-        {
-            CentreWindow(hdlg_);
-
-            // For now we only support F1-F12
-            char szKey[32];
-            for (int i = VK_F1 ; i <= VK_F12 ; i++)
-            {
-                GetKeyNameText(MapVirtualKeyEx(i, 0, GetKeyboardLayout(0)) << 16, szKey, sizeof(szKey));
-                SendDlgItemMessage(hdlg_, IDC_KEY, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(szKey));
-            }
-
-            // Fill the actions combo with the list of actions
-            for (int n = 0 ; n < MAX_ACTION ; n++)
-            {
-                // Only add defined strings
-                if (Action::aszActions[n] && *Action::aszActions[n])
-                    SendDlgItemMessage(hdlg_, IDC_ACTION, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(Action::aszActions[n]));
-            }
-
-            // If we're editing an entry we need to show the current settings
-            if (lParam_)
-            {
-                UINT uKey = static_cast<UINT>(lParam_);
-
-                // Get the name of the key being edited
-                GetKeyNameText(MapVirtualKeyEx(uKey >> 16, 0, GetKeyboardLayout(0)) << 16, szKey, sizeof(szKey));
-
-                // Locate the key in the list and select it
-                HWND hwndCombo = GetDlgItem(hdlg_, IDC_KEY);
-                LRESULT lPos = SendMessage(hwndCombo, CB_FINDSTRINGEXACT, 0U-1, reinterpret_cast<LPARAM>(szKey));
-                SendMessage(hwndCombo, CB_SETCURSEL, (lPos == CB_ERR) ? 0 : lPos, 0L);
-
-                // Check the appropriate modifier check-boxes
-                SendDlgItemMessage(hdlg_, IDC_CTRL,  BM_SETCHECK, (uKey & 0x8000) ? BST_CHECKED : BST_UNCHECKED, 0L);
-                SendDlgItemMessage(hdlg_, IDC_ALT,   BM_SETCHECK, (uKey & 0x4000) ? BST_CHECKED : BST_UNCHECKED, 0L);
-                SendDlgItemMessage(hdlg_, IDC_SHIFT, BM_SETCHECK, (uKey & 0x2000) ? BST_CHECKED : BST_UNCHECKED, 0L);
-
-                // Locate the action in the list and select it
-                hwndCombo = GetDlgItem(hdlg_, IDC_ACTION);
-                UINT uAction = min(uKey & 0xff, MAX_ACTION-1);
-                lPos = SendMessage(hwndCombo, CB_FINDSTRINGEXACT, 0U-1, reinterpret_cast<LPARAM>(Action::aszActions[uAction]));
-                SendMessage(hwndCombo, CB_SETCURSEL, (lPos == CB_ERR) ? 0 : lPos, 0L);
-            }
-
-            // Select the first item in each combo to get them started
-            else
-            {
-                SendDlgItemMessage(hdlg_, IDC_KEY, CB_SETCURSEL, 0, 0L);
-                SendDlgItemMessage(hdlg_, IDC_ACTION, CB_SETCURSEL, 0, 0L);
-            }
-
-            // Set up a window hook so we can capture any function key presses - this may seem drastic, but it's not
-            // possible any other way because the modal dialogue box has its own internal message pump
-            hdlgNewFnKey = hdlg_;
-            g_hFnKeyHook = SetWindowsHookEx(WH_GETMESSAGE, GetMsgHookProc, NULL, GetCurrentThreadId());
-
-            return TRUE;
-        }
-
-        case WM_DESTROY:
-            UnhookWindowsHookEx(g_hFnKeyHook);
-            g_hFnKeyHook = NULL;
-            break;
-
-        case WM_COMMAND:
-        {
-            switch (LOWORD(wParam_))
-            {
-                case IDOK:
-                {
-                    LRESULT lKey = SendDlgItemMessage(hdlg_, IDC_KEY, CB_GETCURSEL, 0, 0L);
-                    UINT uAction = static_cast<UINT>(SendDlgItemMessage(hdlg_, IDC_ACTION, CB_GETCURSEL, 0, 0L));
-
-                    char szAction[64];
-                    SendDlgItemMessage(hdlg_, IDC_ACTION, CB_GETLBTEXT, uAction, (LPARAM)&szAction);
-
-                    // Look for the action in the list to find out the number (as there may be gaps if some are removed)
-                    for (uAction = 0 ; uAction < MAX_ACTION ; uAction++)
-                    {
-                        // Only add defined strings
-                        if (Action::aszActions[uAction] && *Action::aszActions[uAction] && !lstrcmpi(szAction, Action::aszActions[uAction]))
-                            break;
-                    }
-
-
-                    char szKey[32];
-                    SendDlgItemMessage(hdlg_, IDC_KEY, CB_GETLBTEXT, lKey, (LPARAM)&szKey);
-
-                    // Only F1-F12 are supported at the moment
-                    if (szKey[0] == 'F')
-                    {
-                        // Pack the key-code, shift/ctrl states and action into a DWORD for the new item data
-                        DWORD dwParam = ((VK_F1 + strtoul(szKey+1, NULL, 0) - 1) << 16) | uAction;
-                        dwParam |= (SendDlgItemMessage(hdlg_, IDC_CTRL,   BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 0x8000 : 0;
-                        dwParam |= (SendDlgItemMessage(hdlg_, IDC_ALT,    BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 0x4000 : 0;
-                        dwParam |= (SendDlgItemMessage(hdlg_, IDC_SHIFT,  BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 0x2000 : 0;
-
-                        // Pass it back to the caller
-                        EndDialog(hdlg_, dwParam);
-                        break;
-                    }
-                }
-
-                // Fall through...
-
-                case IDCANCEL:
-                    EndDialog(hdlg_, 0);
-                    break;
-            }
-
-            break;
-        }
-
-        case WM_SYSKEYDOWN:
-        case WM_KEYDOWN:
-        {
-            if (wParam_ >= VK_F1 && wParam_ <= VK_F12)
-            {
-                bool fCtrl  = GetAsyncKeyState(VK_CONTROL) < 0;
-                bool fAlt   = GetAsyncKeyState(VK_MENU)    < 0;
-                bool fShift = GetAsyncKeyState(VK_SHIFT)   < 0;
-
-                SendDlgItemMessage(hdlg_, IDC_KEY, CB_SETCURSEL, wParam_ - VK_F1, 0L);
-                SendDlgItemMessage(hdlg_, IDC_CTRL,  BM_SETCHECK, fCtrl  ? BST_CHECKED : BST_UNCHECKED, 0L);
-                SendDlgItemMessage(hdlg_, IDC_ALT,   BM_SETCHECK, fAlt   ? BST_CHECKED : BST_UNCHECKED, 0L);
-                SendDlgItemMessage(hdlg_, IDC_SHIFT, BM_SETCHECK, fShift ? BST_CHECKED : BST_UNCHECKED, 0L);
-
-                return 0;
-            }
-            break;
-        }
-    }
-
-    return FALSE;
-}
-
-
-INT_PTR CALLBACK FnKeysPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
-{
-    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
-
-    switch (uMsg_)
-    {
-        case WM_INITDIALOG:
-        {
-            HWND hwndList = GetDlgItem(hdlg_, IDL_FNKEYS);
-            LVCOLUMN lvc = { 0 };
-            lvc.mask = LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
-
-            // Add the first column for key sequence
-            lvc.cx = 70;
-            lvc.pszText = "Keypress";
-            lvc.cchTextMax = static_cast<int>(strlen(lvc.pszText))+1;
-            SendMessage(hwndList, LVM_INSERTCOLUMN, lvc.iSubItem = 0, reinterpret_cast<LPARAM>(&lvc));
-
-            // Add the second column for action
-            lvc.cx = 140;
-            lvc.pszText = "Action";
-            lvc.cchTextMax = static_cast<int>(strlen(lvc.pszText))+1;
-            SendMessage(hwndList, LVM_INSERTCOLUMN, lvc.iSubItem = 1, reinterpret_cast<LPARAM>(&lvc));
-
-
-            LVITEM lvi = { 0 };
-            lvi.mask = LVIF_TEXT | LVIF_PARAM;
-            lvi.pszText = LPSTR_TEXTCALLBACK;
-
-            // Grab an upper-case copy of the function key definition string
-            char szKeys[256];
-            CharUpper(lstrcpyn(szKeys, GetOption(fnkeys), sizeof(szKeys)));
-
-            // Process each of the 'key=action' pairs in the string
-            for (char* psz = strtok(szKeys, ", \t") ; psz ; psz = strtok(NULL, ", \t"))
-            {
-                // Leading C/A/S characters indicate that Ctrl/Alt/Shift modifiers are required with the key
-                bool fCtrl  = (*psz == 'C');    if (fCtrl)  psz++;
-                bool fAlt   = (*psz == 'A');    if (fAlt)   psz++;
-                bool fShift = (*psz == 'S');    if (fShift) psz++;
-
-                // Currently we only support function keys F1-F12
-                if (*psz++ == 'F')
-                {
-                    // Pack the key-code, ctrl/alt/shift states and action into a DWORD for the item data, and insert the item
-                    lvi.lParam = ((VK_F1 + strtoul(psz, &psz, 0) - 1) << 16) |
-                                 (fCtrl ? 0x8000 : 0) | (fAlt ? 0x4000 : 0) | (fShift ? 0x2000 : 0);
-                    lvi.lParam |= strtoul(++psz, NULL, 0);
-                    SendMessage(hwndList, LVM_INSERTITEM, 0, reinterpret_cast<LPARAM>(&lvi));
-                }
-            }
-
-            SendMessage(hwndList, LVM_SORTITEMS, 0, reinterpret_cast<LPARAM>(FnKeysCompareFunc));
-            break;
-        }
-
-        case WM_NOTIFY:
-        {
-            NMLVDISPINFO* pnmv = reinterpret_cast<NMLVDISPINFO*>(lParam_);
-            PSHNOTIFY* ppsn = reinterpret_cast<PSHNOTIFY*>(lParam_);
-
-            // Is this a list control notification?
-            if (wParam_ == IDL_FNKEYS)
-            {
-                switch (pnmv->hdr.code)
-                {
-                    // Double-click with the mouse?
-                    case NM_DBLCLK:
-                    {
-                        // Edit whatever had the focus
-                        SendMessage(hdlg_, WM_COMMAND, IDB_EDIT, 0L);
-                        break;
-                    }
-
-                    // List item changed?
-                    case LVN_ITEMCHANGED:
-                    {
-                        LRESULT lSelected = SendDlgItemMessage(hdlg_, IDL_FNKEYS, LVM_GETSELECTEDCOUNT, 0, 0L);
-                        EnableWindow(GetDlgItem(hdlg_, IDB_EDIT), lSelected == 1);
-                        EnableWindow(GetDlgItem(hdlg_, IDB_DELETE), lSelected != 0);
-
-                        break;
-                    }
-
-                    // List control wants display information for an item?
-                    case LVN_GETDISPINFO:
-                    {
-                        // The second column shows the action name
-                        if (pnmv->item.iSubItem)
-                        {
-                            LPARAM lAction = pnmv->item.lParam & 0xff;
-                            pnmv->item.pszText = const_cast<char*>((lAction < MAX_ACTION) ? Action::aszActions[lAction] : Action::aszActions[0]);
-                        }
-
-                        // The first column details the key combination
-                        else
-                        {
-                            char szKey[64] = "";
-                            if (pnmv->item.lParam & 0x8000)
-                                lstrcat(szKey, "Ctrl-");
-
-                            if (pnmv->item.lParam & 0x4000)
-                                lstrcat(szKey, "Alt-");
-
-                            if (pnmv->item.lParam & 0x2000)
-                                lstrcat(szKey, "Shift-");
-
-                            // Convert from virtual key-code to scan-code so we can get the name
-                            DWORD dwScanCode = MapVirtualKeyEx(static_cast<UINT>(pnmv->item.lParam) >> 16, 0, GetKeyboardLayout(0));
-                            GetKeyNameText(dwScanCode << 16, szKey+lstrlen(szKey), sizeof(szKey) - lstrlen(szKey));
-                            lstrcpyn(pnmv->item.pszText, szKey, pnmv->item.cchTextMax);
-                        }
-
-                        break;
-                    }
-                }
-            }
-
-            // This a property sheet notification?
-            else if (ppsn->hdr.hwndFrom == GetParent(hdlg_))
-            {
-                // Apply settings changes?
-                if (ppsn->hdr.code == PSN_APPLY)
-                {
-                    char szKeys[256] = "";
-                    LVITEM lvi = {0};
-                    lvi.mask = LVIF_PARAM;
-
-                    HWND hwndList = GetDlgItem(hdlg_, IDL_FNKEYS);
-                    LRESULT lItems = SendMessage(hwndList, LVM_GETITEMCOUNT, 0, 0L);
-
-                    // Look through all keys in the list
-                    for (int i = 0 ; i < lItems ; i++)
-                    {
-                        lvi.iItem = i;
-
-                        // Get the item details so we can see what the key is and does
-                        if (SendMessage(hwndList, LVM_GETITEM, i, reinterpret_cast<LPARAM>(&lvi)))
-                        {
-                            // If there is a previous item, use a comma separator
-                            if (szKeys[0]) strcat(szKeys, ",");
-
-                            // Add a C/A/S prefixes for Ctrl/Alt/Shift
-                            if (lvi.lParam & 0x8000) strcat(szKeys, "C");
-                            if (lvi.lParam & 0x4000) strcat(szKeys, "A");
-                            if (lvi.lParam & 0x2000) strcat(szKeys, "S");
-
-                            // Add the key name, '=', and the action number
-                            DWORD dwScanCode = MapVirtualKeyEx(static_cast<UINT>(lvi.lParam) >> 16, 0, GetKeyboardLayout(0));
-                            GetKeyNameText(dwScanCode << 16, szKeys+lstrlen(szKeys), sizeof(szKeys) - lstrlen(szKeys));
-                            strcat(szKeys, "=");
-                            wsprintf(szKeys+lstrlen(szKeys), "%d", lvi.lParam & 0xff);
-                        }
-                    }
-
-                    // Store the new combined string
-                    SetOption(fnkeys, szKeys);
-                    break;
-                }
-            }
-
-            break;
-        }
-
-        case WM_COMMAND:
-            switch (LOWORD(wParam_))
-            {
-                case IDB_ADD:
-                case IDB_EDIT:
-                {
-                    LVITEM lvi = {0};
-                    int nEdit = -1;
-                    LPARAM lEdit = 0;
-
-                    bool fAdd = LOWORD(wParam_) == IDB_ADD, fEdit = !fAdd;
-                    HWND hwndList = GetDlgItem(hdlg_, IDL_FNKEYS);
-                    int nItems = static_cast<int>(SendMessage(hwndList, LVM_GETITEMCOUNT, 0, 0L));
-
-                    // If this is an edit we need to find the item being edited
-                    if (fEdit)
-                    {
-                        for (nEdit = 0 ; nEdit < nItems ; nEdit++)
-                        {
-                            lvi.mask = LVIF_PARAM;
-                            lvi.iItem = nEdit;
-
-                            // Look for a selected item, and fetch the details on it
-                            if ((SendMessage(hwndList, LVM_GETITEMSTATE, nEdit, LVIS_SELECTED) & LVIS_SELECTED) &&
-                                 SendMessage(hwndList, LVM_GETITEM, 0, reinterpret_cast<LPARAM>(&lvi)))
-                                 break;
-                        }
-
-                        // If we didn't find a selected item, give up now
-                        if (nEdit == nItems)
-                            break;
-                    }
-
-                    // Prompt for the key details, give up if they cancelled
-                    LPARAM lParam = DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_FNKEY), hdlg_, NewFnKeyProc, lEdit = lvi.lParam);
-                    if (!lParam)
-                        return 0;
-
-                    // Delete any item being edited to make way for its replacement
-                    if (fEdit)
-                        SendMessage(hwndList, LVM_DELETEITEM, nEdit, 0L);
-
-                    // Iterate thru all the list items in reverse order looking for a conflict
-                    for (int i = nItems-1 ; i >= 0 ; i--)
-                    {
-                        lvi.mask = LVIF_PARAM;
-                        lvi.iItem = i;
-
-                        // Get the current item details
-                        if (SendMessage(hwndList, LVM_GETITEM, 0, reinterpret_cast<LPARAM>(&lvi)))
-                        {
-                            // Stop looking for conflicts if we've found an identical mapping
-                            if (lvi.lParam == lParam)
-                                break;
-
-                            // Keep looking if the mapping doesn't match what we're adding
-                            if ((lvi.lParam & ~0xff) != (lParam & ~0xff))
-                                continue;
-
-                            // If we're adding, confirm the entry replacement before deleting it
-                            if (MessageBox(hdlg_, "Key binding already exists\n\nReplace existing entry?", WINDOW_CAPTION,
-                                MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2) == IDYES)
-                            {
-                                SendMessage(hwndList, LVM_DELETEITEM, i, 0L);
-                                break;
-                            }
-
-                            // If we were adding, simply cancel now
-                            if (fAdd)
-                                return 0;
-
-                            // Add the edited entry back
-                            lParam = lEdit;
-                            break;
-                        }
-                    }
-
-                    // Insert the new item
-                    lvi.mask = LVIF_TEXT | LVIF_PARAM;
-                    lvi.pszText = LPSTR_TEXTCALLBACK;
-                    lvi.lParam = lParam;
-                    SendMessage(hwndList, LVM_INSERTITEM, 0, reinterpret_cast<LPARAM>(&lvi));
-
-                    // Sort the list to it appears in the appropriate place
-                    SendMessage(hwndList, LVM_SORTITEMS, 0, reinterpret_cast<LPARAM>(FnKeysCompareFunc));
-
-                    break;
-                }
-
-                case IDB_DELETE:
-                {
-                    HWND hwndList = GetDlgItem(hdlg_, IDL_FNKEYS);
-                    for (int i = static_cast<int>(SendMessage(hwndList, LVM_GETITEMCOUNT, 0, 0L))-1 ; i >= 0 ; i--)
-                    {
-                        if (SendMessage(hwndList, LVM_GETITEMSTATE, i, LVIS_SELECTED) & LVIS_SELECTED)
-                            SendMessage(hwndList, LVM_DELETEITEM, i, 0L);
-                    }
-
-                    SetFocus(hwndList);
-                    break;
-                }
-            }
-    }
-
-    return fRet;
-}
-
-
 static void InitPage (PROPSHEETPAGE* pPage_, int nPage_, int nDialogId_, DLGPROC pfnDlgProc_)
 {
     pPage_ = &pPage_[nPage_];
@@ -3808,11 +3357,7 @@ static void InitPage (PROPSHEETPAGE* pPage_, int nPage_, int nDialogId_, DLGPROC
 
 void DisplayOptions ()
 {
-#ifdef _DEBUG
-    PROPSHEETPAGE aPages[11];
-#else
-    PROPSHEETPAGE aPages[10];
-#endif
+    PROPSHEETPAGE aPages[10] = {};
 
     // Initialise the pages to go on the sheet
     InitPage(aPages, 0,  IDD_PAGE_SYSTEM,   SystemPageDlgProc);
@@ -3825,11 +3370,6 @@ void DisplayOptions ()
     InitPage(aPages, 7,  IDD_PAGE_PARALLEL, ParallelPageDlgProc);
     InitPage(aPages, 8,  IDD_PAGE_MIDI,     MidiPageDlgProc);
     InitPage(aPages, 9,  IDD_PAGE_MISC,     MiscPageDlgProc);
-#ifdef _DEBUG
-    // Function key editing is now Debug only, and may be removed altogether
-    InitPage(aPages, 10, IDD_PAGE_FNKEYS,   FnKeysPageDlgProc);
-#endif
-
 
     PROPSHEETHEADER psh;
     ZeroMemory(&psh, sizeof(psh));
