@@ -15,7 +15,6 @@
 #define IDI_CLOCK                       11
 #define IDI_PRINTER                     12
 #define IDI_NETWORK                     13
-#define IDI_FNKEYS                      14
 #define IDI_DISPLAY                     15
 #define IDI_SAM                         16
 #define IDI_SOUND                       17
@@ -40,8 +39,6 @@
 #define IDD_PAGE_MIDI                   170
 #define IDD_PAGE_MISC                   171
 #define IDD_PAGE_DISKS                  172
-#define IDD_PAGE_FNKEYS                 173
-#define IDD_NEW_FNKEY                   177
 #define IDD_PAGE_DRIVES                 179
 #define IDB_SIMCOUPE                    185
 #define IDD_IMPORT                      190
@@ -54,8 +51,8 @@
 #define IDE_PAGE                        1001
 #define IDE_STATION_ID                  1001
 #define IDE_ROM                         1001
-#define IDC_COMPRESS                    1002
 #define IDC_ALT_FOR_CNTRL               1002
+#define IDC_COMPRESS                    1002
 #define IDE_FILE                        1004
 #define IDC_ALTGR_FOR_EDIT              1005
 #define IDC_KPMINUS_RESET               1006
@@ -84,9 +81,7 @@
 #define IDC_STATUS                      1089
 #define IDC_DRIVE_LIGHTS                1090
 #define IDC_FAST_RESET                  1092
-#define IDC_CTRL                        1092
 #define IDC_MIDI                        1093
-#define IDC_SHIFT                       1093
 #define IDC_HDBOOT_ROM                  1094
 #define IDC_LATENCY                     1097
 #define IDC_DRIVE1                      1098
@@ -94,19 +89,12 @@
 #define IDC_STRETCH_TO_FIT              1106
 #define IDB_ATOM                        1107
 #define IDB_ATOM0                       1107
-#define IDB_DELETE                      1108
 #define IDB_SDIDE                       1108
-#define IDB_EDIT                        1109
-#define IDB_ADD                         1110
 #define IDB_ATOM1                       1110
-#define IDL_FNKEYS                      1111
-#define IDC_KEY                         1113
-#define IDC_ACTION                      1115
 #define IDS_LATENCY                     1118
 #define IDB_BROWSE                      1123
 #define IDC_TURBO_DISK                  1130
 #define IDC_SENSITIVITY                 1131
-#define IDC_ALT                         1133
 #define ID_HOMEPAGE                     1134
 #define IDC_ATOM                        1137
 #define IDC_ATOM0                       1137

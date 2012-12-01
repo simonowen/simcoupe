@@ -195,37 +195,6 @@ BEGIN
     GROUPBOX        "Atom Disk Device 1",IDC_STATIC,45,36,183,29
 END
 
-IDD_PAGE_FNKEYS DIALOG  0, 0, 235, 156
-STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
-CAPTION "FnKeys"
-FONT 8, "MS Sans Serif"
-BEGIN
-    CONTROL         "List2",IDL_FNKEYS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_NOSORTHEADER | WS_BORDER | WS_TABSTOP,54,20,155,104
-    PUSHBUTTON      "&Add...",IDB_ADD,54,130,48,14
-    PUSHBUTTON      "&Edit...",IDB_EDIT,106,130,48,14,WS_DISABLED
-    PUSHBUTTON      "&Delete",IDB_DELETE,158,130,48,14,WS_DISABLED
-    ICON            IDI_FNKEYS,-1,7,7,21,20
-    GROUPBOX        "Emulator function keys",-1,45,7,172,142
-END
-
-IDD_NEW_FNKEY DIALOG  0, 0, 140, 132
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Key Binding"
-FONT 8, "MS Sans Serif"
-BEGIN
-    COMBOBOX        IDC_KEY,57,40,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "&Ctrl",IDC_CTRL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,27,58,26,10
-    CONTROL         "&Alt",IDC_ALT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,58,58,24,10
-    CONTROL         "&Shift",IDC_SHIFT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,87,58,30,10
-    COMBOBOX        IDC_ACTION,15,90,111,100,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    DEFPUSHBUTTON   "OK",IDOK,24,113,40,14
-    PUSHBUTTON      "Cancel",IDCANCEL,74,113,40,14
-    LTEXT           "Key:",IDC_STATIC,35,42,15,8
-    GROUPBOX        "Key",IDC_STATIC,5,5,130,70
-    GROUPBOX        "Action",IDC_STATIC,5,79,130,29
-    LTEXT           "Select the key and modifiers or simply press the required key(s)",IDC_STATIC,18,17,106,16
-END
-
 IDD_PAGE_DRIVES DIALOGEX 0, 0, 235, 156
 STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Drives"
@@ -420,22 +389,6 @@ BEGIN
         RIGHTMARGIN, 228
         TOPMARGIN, 7
         BOTTOMMARGIN, 153
-    END
-
-    IDD_PAGE_FNKEYS, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 228
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 149
-    END
-
-    IDD_NEW_FNKEY, DIALOG
-    BEGIN
-        LEFTMARGIN, 5
-        RIGHTMARGIN, 135
-        TOPMARGIN, 5
-        BOTTOMMARGIN, 127
     END
 
     IDD_PAGE_DRIVES, DIALOG
@@ -709,7 +662,6 @@ IDI_PRINTER             ICON                    "Icons\\printer.ico"
 IDI_SOUND               ICON                    "Icons\\sound.ico"
 IDI_MISC                ICON                    "Icons\\misc.ico"
 IDI_NETWORK             ICON                    "icons\\network.ico"
-IDI_FNKEYS              ICON                    "Icons\\fnkeys.ico"
 IDI_FLOPPY              ICON                    "icons\\floppy.ico"
 IDI_FOLDER              ICON                    "Icons\\folder.ico"
 
