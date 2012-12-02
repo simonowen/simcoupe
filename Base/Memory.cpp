@@ -203,26 +203,20 @@ static bool LoadRoms ()
     // Complain if the custom ROM was invalid
     if (*GetOption(rom))
     {
-        Message(msgWarning, "Error loading custom ROM:\n%s\n\nReverting to built-in ROM image.", GetOption(rom));
+        Message(msgWarning, "Error loading ROM:\n\n%s\n\nReverting to built-in ROM image.", GetOption(rom));
+        CPU::Reset(false);
         fRet = false;
     }
 
-    // Start with the built-in 3.0 ROM image
+    // Start with the built-in v3.0 ROM image
     memcpy(pb0, abSAMROM, MEM_PAGE_SIZE);
     memcpy(pb1, abSAMROM+MEM_PAGE_SIZE, MEM_PAGE_SIZE);
 
-    // Atom boot ROM enabled?
+    // AL-BOOT ROM enabled?
     if (GetOption(hdbootrom))
     {
-        // Atom connected?
-        if (GetOption(drive2) == drvAtom)
-        {
-            // Apply Atom boot ROM
-            PatchBlock(pb0, abAtomPatch0);
-            PatchBlock(pb1, abAtomPatch1);
-        }
         // Atom Lite connected?
-        else if (GetOption(drive1) == drvAtomLite || GetOption(drive2) == drvAtomLite)
+        if (GetOption(drive1) == drvAtomLite || GetOption(drive2) == drvAtomLite)
         {
             // Patch from ROM30 to AL-BOOT ROM
             PatchBlock(pb0, abAtomLitePatch0);
