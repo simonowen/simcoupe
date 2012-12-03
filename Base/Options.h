@@ -94,6 +94,8 @@ typedef struct
 
     char    joydev1[128];           // Joystick 1 device
     char    joydev2[128];           // Joystick 2 device number
+    int     joytype1;               // Joystick 1 mapping (0=None, 1=Joystick1, 2=Joystick2, 3=Kempston)
+    int     joytype2;               // Joystick 2 mapping
     int     deadzone1;              // Joystick 1 deadzone
     int     deadzone2;              // Joystick 2 deadzone
 

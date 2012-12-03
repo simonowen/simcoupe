@@ -124,6 +124,8 @@ OPTION aOptions[] =
     OPT_F("Mouse",        mouse,          true),      // Mouse interface connected
     OPT_F("MouseEsc",     mouseesc,       true),      // Allow Esc to release the mouse capture
 
+    OPT_N("JoyType1",     joytype1,       1),         // Joystick 1 controls SAM joystick 1
+    OPT_N("JoyType2",     joytype2,       2),         // Joystick 2 controls SAM joystick 2
     OPT_S("JoyDev1",      joydev1,        ""),        // Joystick 1 device
     OPT_S("JoyDev2",      joydev2,        ""),        // Joystick 2 device
     OPT_N("DeadZone1",    deadzone1,      20),        // Joystick 1 deadzone is 20% around central position

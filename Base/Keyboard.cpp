@@ -262,9 +262,13 @@ void Keyboard::Update ()
     // Process the base key mappings
     ProcessUnshiftedKeys(asKeyMatrix);
 
-    // Apply Sinclair joystick movements
-    keybuffer[4] &= ~Joystick::ReadSinclair2(0);
-    keybuffer[3] &= ~Joystick::ReadSinclair1(1);
+    // Apply joystick 1 input if either device is mapped to it
+    if (GetOption(joytype1) == jtJoystick1) keybuffer[4] &= ~Joystick::ReadSinclair2(0);
+    if (GetOption(joytype2) == jtJoystick1) keybuffer[4] &= ~Joystick::ReadSinclair2(1);
+
+    // Apply joystick 2 input if either device is mapped to it
+    if (GetOption(joytype1) == jtJoystick2) keybuffer[3] &= ~Joystick::ReadSinclair1(0);
+    if (GetOption(joytype2) == jtJoystick2) keybuffer[3] &= ~Joystick::ReadSinclair1(1);
 
     // Restore the key states
     memcpy(abKeys, abKeysCopy, sizeof(abKeys));

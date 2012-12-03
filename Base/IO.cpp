@@ -34,6 +34,7 @@
 #include "GUI.h"
 #include "HardDisk.h"
 #include "Input.h"
+#include "Joystick.h"
 #include "Keyboard.h"
 #include "Keyin.h"
 #include "Memory.h"
@@ -539,6 +540,12 @@ BYTE IO::In (WORD wPort_)
 
         // Quazar Surround (unsupported)
         case QUAZAR_PORT:
+            break;
+
+        // Kempston joystick interface
+        case KEMPSTON_PORT:
+            if (GetOption(joytype1) == jtKempston) bRet &= ~Joystick::ReadKempston(0);
+            if (GetOption(joytype2) == jtKempston) bRet &= ~Joystick::ReadKempston(1);
             break;
 
         default:

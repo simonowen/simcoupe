@@ -40,6 +40,7 @@ class Joystick
         static BYTE ReadKempston (int nJoystick_);
 };
 
+enum { jtNone, jtJoystick1, jtJoystick2, jtKempston };
 enum eHostJoy { HJ_CENTRE=0, HJ_LEFT=1, HJ_RIGHT=2, HJ_UP=4, HJ_DOWN=8, HJ_FIRE=16 };
 
 #endif
