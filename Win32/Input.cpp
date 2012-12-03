@@ -38,6 +38,7 @@
 
 
 const unsigned int EVENT_BUFFER_SIZE = 16;
+const unsigned int JOYSTICK_DEADZONE = 50; // 50% of analogue range
 
 static LPDIRECTINPUT pdi;
 static LPDIRECTINPUTDEVICE pdiKeyboard;
@@ -162,7 +163,7 @@ BOOL CALLBACK EnumJoystickProc (LPCDIDEVICEINSTANCE pdiDevice_, LPVOID lpv_)
 }
 
 
-bool InitJoystick (LPDIRECTINPUTDEVICE2 &pJoystick_, int nTolerance_)
+bool InitJoystick (LPDIRECTINPUTDEVICE2 &pJoystick_)
 {
     HRESULT hr;
 
@@ -174,7 +175,7 @@ bool InitJoystick (LPDIRECTINPUTDEVICE2 &pJoystick_, int nTolerance_)
     else
     {
         // Deadzone tolerance percentage and range of each axis (-100 to +100)
-        DIPROPDWORD diPdw = { { sizeof(diPdw), sizeof(diPdw.diph), 0, DIPH_BYOFFSET }, 10000UL * nTolerance_ / 100UL };
+        DIPROPDWORD diPdw = { { sizeof(diPdw), sizeof(diPdw.diph), 0, DIPH_BYOFFSET }, 10000UL * JOYSTICK_DEADZONE / 100UL };
         DIPROPRANGE diPrg = { { sizeof(diPrg), sizeof(diPrg.diph), 0, DIPH_BYOFFSET }, -100, +100 };
 
         int anAxes[] = { DIJOFS_X, DIJOFS_Y, DIJOFS_RX, DIJOFS_RY };
@@ -209,8 +210,8 @@ bool InitJoysticks ()
         TRACE("!!! Failed to enumerate joystick devices (%#08lx)\n", hr);
 
     // Initialise matched joysticks
-    if (pdidJoystick1) InitJoystick(pdidJoystick1, GetOption(deadzone1));
-    if (pdidJoystick2) InitJoystick(pdidJoystick2, GetOption(deadzone2));
+    if (pdidJoystick1) InitJoystick(pdidJoystick1);
+    if (pdidJoystick2) InitJoystick(pdidJoystick2);
 
     return true;
 }
