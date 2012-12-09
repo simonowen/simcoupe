@@ -107,7 +107,8 @@ static const TOKEN asRegisters[] =
     {"af",REG_AF}, {"bc",REG_BC}, {"de",REG_DE}, {"hl",REG_HL},
     {"ix",REG_IX}, {"iy",REG_IY}, {"ixh",REG_IXH}, {"ixl",REG_IXL}, {"iyh",REG_IYH}, {"iyl",REG_IYL},
     {"sp",REG_SP}, {"pc",REG_PC}, {"sph",REG_SPH}, {"spl",REG_SPL}, {"pch",REG_PCH}, {"pcl",REG_PCL},
-    {"i",REG_I}, {"r",REG_R}, {"iff1",REG_IFF1}, {"iff2",REG_IFF2}, {"im",REG_IM}
+    {"i",REG_I}, {"r",REG_R}, {"iff1",REG_IFF1}, {"iff2",REG_IFF2}, {"im",REG_IM},
+    {NULL}
 };
 
 static const TOKEN asVariables[] =
@@ -543,33 +544,61 @@ bool Expr::Factor ()
     // Strip leading whitespace
     for ( ; isspace(*p) ; p++);
 
-    // Check for a decimal or symbol prefix
-    bool fDotPrefix = (*p == '.');
-
-    // Values allowed, and starts with a valid hex digit, or decimal value with leading digit?
-    if (!(nFlags & noVals) && (isxdigit(*p) || (fDotPrefix && isdigit(p[1]))))
+    // Look for registers, variables and unary operators
+    if (!fMatched && isalpha(*p))
     {
+        const char *p2 = p;
+        const TOKEN *pToken;
+
         // Assume we'll match the input
         fMatched = true;
 
-        // Skip leading dot on decimal values
-        if (fDotPrefix)
-            p++;
+        // Scan for a word, allowing an optional trailing single-quote
+        for ( ; isalnum(*p2) ; p2++);
+        if (*p2 == '\'') p2++;
+
+        // Register?
+        if (!(nFlags & noRegs) && (pToken = LookupToken(p, p2-p, asRegisters)))
+            AddNode(T_REGISTER, pToken->nToken);
+
+        // Variable?
+        else if (!(nFlags & noVars) && (pToken = LookupToken(p, p2-p, asVariables)))
+            AddNode(T_VARIABLE, pToken->nToken);
+
+        // Unary operator (word)?
+        else if ((pToken = LookupToken(p, p2-p, asUnaryOps)))
+        {
+            // Advance the input pointer ahead of the recursive call
+            p = p2;
+
+            // Look for a factor for the unary operator
+            if (!Factor())
+                return false;
+
+            AddNode(T_UNARY_OP, pToken->nToken);
+            return true;
+        }
+        else
+            fMatched = false;
+
+        // Advanced the input if we matched
+        if (fMatched)
+            p = p2;
+    }
+
+    // Check for literal values next
+    if (!fMatched && !(nFlags & noVals) && isxdigit(*p))
+    {
+        // Assume we'll match the input
+        fMatched = true;
 
         // Parse as decimal and hex
         const char *pDecEnd, *pHexEnd;
         int nDecValue = static_cast<int>(strtoul(p, (char**)&pDecEnd, 10));
         int nHexValue = static_cast<int>(strtoul(p, (char**)&pHexEnd, 16));
 
-        // Accept decimal values with a '.' prefix
-        if (fDotPrefix)
-        {
-            AddNode(T_NUMBER, nDecValue);
-            p = pDecEnd;
-        }
-
         // Accept decimal values with a '.' suffix
-        else if (*pDecEnd == '.')
+        if (*pDecEnd == '.')
         {
             AddNode(T_NUMBER, nDecValue);
             p = pDecEnd+1;
@@ -681,67 +710,6 @@ bool Expr::Factor ()
     {
         AddNode(T_REGISTER, REG_PC);
         p++;
-    }
-
-    // Variable, operator or function?
-    else if (isalpha(*p) || *p == '.')
-    {
-        const TOKEN* pToken;
-
-        // Skip any leading dot, used to avoid register clashes in hex mode (e.g. 'bc')
-        if (*p == '.')
-            p++;
-
-        // Scan the alphabetic part of the name (allow ' for alternate register support)
-        const char* pcsz = p;
-        for ( ; isalpha(*p) || *p == '\'' ; p++);
-
-        // Unary operator?
-        if ((pToken = LookupToken(pcsz, p-pcsz, asUnaryOps)))
-        {
-            // Look for a factor for the unary operator
-            if (!Factor())
-                return false;
-
-            AddNode(T_UNARY_OP, pToken->nToken);
-        }
-        else
-        {
-            // Now include any alphanumeric tail, and ' for HL' etc.
-            for ( ; isalnum(*p) || *p == '\'' ; p++);
-/*
-            // Function?
-            if (!(nFlags & noFuncs) && (*p == '('))
-            {
-                int nParams = 0;
-
-                for (p++ ; *p != ')' && Term() ; nParams++)
-                {
-                    // Too many parameters?
-                    if (nParams > MAX_FUNC_PARAMS)
-                        return false;
-
-                    // Eat any separator
-                    else if (*p == ',')
-                        p++;
-                }
-
-                // Check for a closing bracket
-                if (*p++ != ')')
-                    return false;
-
-                AddNode(T_NUMBER, nParams);
-                AddNode(T_FUNCTION, 0);
-            }
-            else
-*/
-            if (!(nFlags & noVars) && (pToken = LookupToken(pcsz, p-pcsz, asVariables)))
-                AddNode(T_VARIABLE, pToken->nToken);
-            else if (!(nFlags & noRegs) && (pToken = LookupToken(pcsz, p-pcsz, asRegisters)))
-                AddNode(T_REGISTER, pToken->nToken);
-            else
-                return false;
-        }
     }
 
     // Expression in parentheses?
