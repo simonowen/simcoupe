@@ -93,6 +93,9 @@ void CAboutDialog::EraseBackground (CScreen* pScreen_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Persist show-hidden option between uses, shared by all file selectors
+bool CFileDialog::s_fShowHidden = false;
+
 CFileDialog::CFileDialog (const char* pcszCaption_, const char* pcszPath_, const FILEFILTER* pcFileFilter_, int *pnFilter_,
     CWindow* pParent_/*=NULL*/) : CDialog(pParent_, 527, 339+22, pcszCaption_), m_pcFileFilter(pcFileFilter_), m_pnFilter(pnFilter_)
 {
@@ -115,6 +118,7 @@ CFileDialog::CFileDialog (const char* pcszCaption_, const char* pcszPath_, const
     if (m_pnFilter) m_pFilter->Select(*m_pnFilter);
 
     m_pShowHidden = new CCheckBox(this, 252, m_nHeight-19, "Show hidden files");
+    m_pShowHidden->SetChecked(s_fShowHidden);
 
     m_pRefresh = new CTextButton(this, m_nWidth - 160, m_nHeight-21, "Refresh", 56);
     m_pOK = new CTextButton(this, m_nWidth - 99, m_nHeight-21, "OK", 46);
@@ -135,7 +139,10 @@ void CFileDialog::OnNotify (CWindow* pWindow_, int nParam_)
     else if (pWindow_ == m_pRefresh)
         m_pFileView->Refresh();
     else if (pWindow_ == m_pShowHidden)
-        m_pFileView->ShowHidden(m_pShowHidden->IsChecked());
+    {
+        s_fShowHidden = m_pShowHidden->IsChecked();
+        m_pFileView->ShowHidden(s_fShowHidden);
+    }
     else if (pWindow_ == m_pFilter)
     {
         int nSelected = m_pFilter->GetSelected();

@@ -43,6 +43,9 @@ class CFileDialog : public CDialog
         virtual void OnOK () = 0;
 
     protected:
+        static bool s_fShowHidden;
+
+    protected:
         CFileView* m_pFileView;
         CWindow* m_pFile;
         CTextControl* m_pPath;
