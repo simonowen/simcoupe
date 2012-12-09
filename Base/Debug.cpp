@@ -1293,7 +1293,14 @@ bool CDebugger::Execute (const char* pcszCommand_)
 
         // The first parameter must be a register, the second can be any value
         if (pExpr && pExpr->nType == T_REGISTER && !pExpr->pNext && psz && Expr::Eval(psz, &nValue))
+        {
+            // If the view address matches PC, and PC is being set, update the view
+            if (m_pView->GetAddress() == PC && pExpr->nValue == REG_PC)
+                m_pView->SetAddress(nValue, true);
+
+            // Set the register value
             Expr::SetReg(pExpr->nValue, nValue);
+        }
         else
             fRet = false;
     }
