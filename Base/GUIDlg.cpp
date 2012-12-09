@@ -93,8 +93,8 @@ void CAboutDialog::EraseBackground (CScreen* pScreen_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CFileDialog::CFileDialog (const char* pcszCaption_, const char* pcszPath_, const FILEFILTER* pcFileFilter_,
-    CWindow* pParent_/*=NULL*/) : CDialog(pParent_, 527, 339+22, pcszCaption_), m_pcFileFilter(pcFileFilter_)
+CFileDialog::CFileDialog (const char* pcszCaption_, const char* pcszPath_, const FILEFILTER* pcFileFilter_, int *pnFilter_,
+    CWindow* pParent_/*=NULL*/) : CDialog(pParent_, 527, 339+22, pcszCaption_), m_pcFileFilter(pcFileFilter_), m_pnFilter(pnFilter_)
 {
     // Create all the controls for the dialog (the objects are deleted by the GUI when closed)
     m_pFileView = new CFileView(this, 2, 2, (7*72)+19, (4*72));
@@ -112,6 +112,7 @@ CFileDialog::CFileDialog (const char* pcszCaption_, const char* pcszPath_, const
 
     new CTextControl(this, 3, m_nHeight-19,  "Filter:", YELLOW_8);
     m_pFilter = new CComboBox(this, 36,m_nHeight-22, m_pcFileFilter->pcszDesc, 204);
+    if (m_pnFilter) m_pFilter->Select(*m_pnFilter);
 
     m_pShowHidden = new CCheckBox(this, 252, m_nHeight-19, "Show hidden files");
 
@@ -136,7 +137,11 @@ void CFileDialog::OnNotify (CWindow* pWindow_, int nParam_)
     else if (pWindow_ == m_pShowHidden)
         m_pFileView->ShowHidden(m_pShowHidden->IsChecked());
     else if (pWindow_ == m_pFilter)
-        m_pFileView->SetFilter(m_pcFileFilter->pcszExts[m_pFilter->GetSelected()]);
+    {
+        int nSelected = m_pFilter->GetSelected();
+        m_pFileView->SetFilter(m_pcFileFilter->pcszExts[nSelected]);
+        if (m_pnFilter) *m_pnFilter = nSelected;
+    }
     else if (pWindow_ == m_pFile)
     {
         int nItem = m_pFileView->FindItem(m_pFile->GetText());
@@ -167,7 +172,7 @@ void CFileDialog::OnNotify (CWindow* pWindow_, int nParam_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// File filter for disk images
+static int nFloppyFilter = 0;
 static const FILEFILTER sFloppyFilter =
 {
 #ifdef USE_ZLIB
@@ -192,7 +197,7 @@ static const FILEFILTER sFloppyFilter =
 };
 
 CInsertFloppy::CInsertFloppy (int nDrive_, CWindow* pParent_/*=NULL*/)
-    : CFileDialog("", NULL, &sFloppyFilter, pParent_), m_nDrive(nDrive_)
+    : CFileDialog("", NULL, &sFloppyFilter, &nFloppyFilter, pParent_), m_nDrive(nDrive_)
 {
     // Set the dialog caption to show which drive we're dealing with
     char szCaption[] = "Insert Floppy x";
@@ -234,8 +239,8 @@ void CInsertFloppy::OnOK ()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CFileBrowser::CFileBrowser (CEditControl* pEdit_, CWindow* pParent_, const char* pcszCaption_, const FILEFILTER* pcsFilter_)
-    : CFileDialog(pcszCaption_, NULL, pcsFilter_, pParent_), m_pEdit(pEdit_)
+CFileBrowser::CFileBrowser (CEditControl* pEdit_, CWindow* pParent_, const char* pcszCaption_, const FILEFILTER* pcsFilter_, int *pnFilter_)
+    : CFileDialog(pcszCaption_, NULL, pcsFilter_, pnFilter_, pParent_), m_pEdit(pEdit_)
 {
     // Browse from the location of the previous image, or the default directory if none
     m_pFileView->SetPath(*pEdit_->GetText() ? pEdit_->GetText() : OSD::MakeFilePath(MFP_INPUT));
@@ -279,6 +284,7 @@ CHDDProperties::CHDDProperties (CEditControl* pEdit_, CWindow* pParent_, const c
 
 void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
 {
+    static int nHardDiskFilter = 0;
     static const FILEFILTER sHardDiskFilter =
     {
         "Hard disk images (*.hdf)|"
@@ -290,7 +296,7 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
     if (pWindow_ == m_pCancel)
         Destroy();
     else if (pWindow_ == m_pBrowse)
-        new CFileBrowser(m_pFile, this, "Browse for HDF", &sHardDiskFilter);
+        new CFileBrowser(m_pFile, this, "Browse for HDF", &sHardDiskFilter, &nHardDiskFilter);
     else if (pWindow_ == m_pFile)
     {
         // If we can, open the existing hard disk image to retrieve the geometry
@@ -493,6 +499,7 @@ class CSystemOptions : public CDialog
     public:
         void OnNotify (CWindow* pWindow_, int nParam_)
         {
+            static int nROMFilter = 0;
             static const FILEFILTER sROMFilter =
             {
                 "ROM Images (.rom;.bin)|"
@@ -504,7 +511,7 @@ class CSystemOptions : public CDialog
             if (pWindow_ == m_pCancel)
                 Destroy();
             else if (pWindow_ == m_pBrowse)
-                new CFileBrowser(m_pROM, this, "Browse for ROM", &sROMFilter);
+                new CFileBrowser(m_pROM, this, "Browse for ROM", &sROMFilter, &nROMFilter);
             else if (pWindow_ == m_pROM)
                 m_pHdBootRom->Enable(!*m_pROM->GetText());
             else if (pWindow_ == m_pOK)
@@ -871,7 +878,7 @@ class CDriveOptions : public CDialog
                 Destroy();
             }
             else if (pWindow_ == m_pBrowse)
-                new CFileBrowser(m_pDosDisk, this, "Browse for DOS Image", &sFloppyFilter);
+                new CFileBrowser(m_pDosDisk, this, "Browse for DOS Image", &sFloppyFilter, &nFloppyFilter);
             else if (pWindow_ == m_pDosBoot)
             {
                 m_pDosBootText->Enable(m_pDosBoot->IsChecked());
@@ -1211,6 +1218,7 @@ CImportDialog::CImportDialog (CWindow* pParent_)
 
 void CImportDialog::OnNotify (CWindow* pWindow_, int nParam_)
 {
+    static int nImportFilter = 0;
     static const FILEFILTER sImportFilter =
     {
         "Binary files (*.bin)|"
@@ -1222,7 +1230,7 @@ void CImportDialog::OnNotify (CWindow* pWindow_, int nParam_)
     if (pWindow_ == m_pCancel)
         Destroy();
     else if (pWindow_ == m_pBrowse)
-        new CFileBrowser(m_pFile, this, "Select File", &sImportFilter);
+        new CFileBrowser(m_pFile, this, "Select File", &sImportFilter, &nImportFilter);
     else if (pWindow_ == m_pAddr)
     {
         // Fetch the modified address

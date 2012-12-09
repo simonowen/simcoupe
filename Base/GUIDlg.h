@@ -2,7 +2,7 @@
 //
 // GUIDlg.h: Dialog boxes using the GUI controls
 //
-//  Copyright (c) 1999-2005  Simon Owen
+//  Copyright (c) 1999-2012 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ class CFileDialog : public CDialog
 {
     public:
         CFileDialog (const char* pcszCaption_, const char* pcszPath_,
-                     const FILEFILTER* pcFileFilter_, CWindow* pParent_=NULL);
+                     const FILEFILTER* pcFileFilter_, int *pnFilter_, CWindow* pParent_=NULL);
 
     public:
         void OnNotify (CWindow* pWindow_, int nParam_);
@@ -51,6 +51,7 @@ class CFileDialog : public CDialog
         CTextButton *m_pRefresh, *m_pOK, *m_pCancel;
 
         const FILEFILTER* m_pcFileFilter;
+        int *m_pnFilter;
 };
 
 
@@ -68,7 +69,7 @@ class CInsertFloppy : public CFileDialog
 class CFileBrowser : public CFileDialog
 {
     public:
-        CFileBrowser (CEditControl* pEdit_, CWindow* pParent_, const char* pcszCaption_, const FILEFILTER* pcsFilter_);
+        CFileBrowser (CEditControl* pEdit_, CWindow* pParent_, const char* pcszCaption_, const FILEFILTER* pcsFilter_, int *pnFilter_);
         void OnOK ();
 
     protected:
