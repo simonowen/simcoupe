@@ -95,7 +95,7 @@
 
 CDisk::CDisk (CStream* pStream_, int nType_)
     : m_nType(nType_),
-      m_fModified(!pStream_->IsOpen()),
+      m_fModified(false),
       m_pStream(pStream_), m_pbData(NULL)
 {
 }
