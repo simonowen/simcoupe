@@ -1329,6 +1329,10 @@ CExportDialog::CExportDialog (CWindow* pParent_)
     // Add the new controls for Export
     new CTextControl(this, 50, 135, "Length:", WHITE);
     m_pLength = new CEditControl(this, 143, 133, 45, s_uLength, 2);
+
+    // Move the OK and Cancel buttons to the end of the tab order
+    m_pOK->SetParent(m_pOK->GetParent());
+    m_pCancel->SetParent(m_pCancel->GetParent());
 }
 
 
