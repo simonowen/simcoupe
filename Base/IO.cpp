@@ -112,11 +112,12 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     // Forget any automatic input after reset
     Keyin::Stop();
 
-    lepr = hepr = lpen = border = 0;
+    // Reset ASIC registers
+    lmpr = hmpr = vmpr = lepr = hepr = lpen = border = 0;
 
-    OutLmpr(0);     // Page 0 in section C, page 1 in section D
-    OutHmpr(0);     // Page 0 in section A, page 1 in section B, ROM0 on, ROM off
-    OutVmpr(0);     // Video in page 0, screen mode 1
+    OutLmpr(lmpr);  // Page 0 in section A, page 1 in section B, ROM0 on, ROM1 off
+    OutHmpr(hmpr);  // Page 0 in section C, page 1 in section D
+    OutVmpr(vmpr);  // Video in page 0, screen mode 1
 
     // No extended keys pressed, no active interrupts
     status_reg = STATUS_INT_NONE;
@@ -256,24 +257,38 @@ static inline void PaletteChange (BYTE bHMPR_)
 }
 
 
-void IO::OutLmpr(BYTE val)
+static inline void UpdatePaging ()
 {
-    lmpr = val;
-
-    // Put either RAM or ROM 0 into section A
-    if (lmpr & LMPR_ROM0_OFF)
-        PageIn(SECTION_A, LMPR_PAGE);
-    else
+    // ROM0 or internal RAM in section A
+    if (!(lmpr & LMPR_ROM0_OFF))
         PageIn(SECTION_A, ROM0);
+    else
+        PageIn(SECTION_A, LMPR_PAGE);
 
-    // Put the relevant bank into section B
+    // Internal RAM in section B
     PageIn(SECTION_B, (LMPR_PAGE + 1) & LMPR_PAGE_MASK);
 
-    // Put either RAM or ROM 1 into section D
-    if (lmpr & LMPR_ROM1)
+    // External RAM or internal RAM in section C
+    if (hmpr & HMPR_MCNTRL_MASK)
+        PageIn(SECTION_C, EXTMEM+lepr);
+    else
+        PageIn(SECTION_C, HMPR_PAGE);
+
+    // External RAM, ROM1, or internal RAM in section D
+    if (hmpr & HMPR_MCNTRL_MASK)
+        PageIn(SECTION_D, EXTMEM+hepr);
+    else if (lmpr & LMPR_ROM1)
         PageIn(SECTION_D, ROM1);
     else
         PageIn(SECTION_D, (HMPR_PAGE + 1) & HMPR_PAGE_MASK);
+}
+
+
+void IO::OutLmpr(BYTE val)
+{
+    // Update LMPR and paging
+    lmpr = val;
+    UpdatePaging();
 }
 
 void IO::OutHmpr (BYTE bVal_)
@@ -289,24 +304,9 @@ void IO::OutHmpr (BYTE bVal_)
         PaletteChange(bVal_);
     }
 
-    // Update the HMPR
+    // Update HMPR and paging
     hmpr = bVal_;
-
-    // Put the relevant RAM bank into section C
-    PageIn(SECTION_C, HMPR_PAGE);
-
-    // Put either RAM or ROM1 into section D
-    if (lmpr & LMPR_ROM1)
-        PageIn(SECTION_D, ROM1);
-    else
-        PageIn(SECTION_D,(HMPR_PAGE + 1) & HMPR_PAGE_MASK);
-
-    // External RAM has priority, even over ROM1
-    if (HMPR_MCNTRL)
-    {
-        OutLepr(lepr);
-        OutHepr(hepr);
-    }
+    UpdatePaging();
 }
 
 void IO::OutVmpr (BYTE bVal_)
@@ -327,17 +327,13 @@ void IO::OutVmpr (BYTE bVal_)
 void IO::OutLepr (BYTE bVal_)
 {
     lepr = bVal_;
-
-    if (HMPR_MCNTRL)
-        PageIn(SECTION_C, EXTMEM+bVal_);
+    UpdatePaging();
 }
 
 void IO::OutHepr (BYTE bVal_)
 {
     hepr = bVal_;
-
-    if (HMPR_MCNTRL)
-        PageIn(SECTION_D, EXTMEM+bVal_);
+    UpdatePaging();
 }
 
 
