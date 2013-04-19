@@ -83,7 +83,8 @@ bool OpenGLVideo::Reset ()
     SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 0);
 
 #ifndef WIN32
-    // This gives a red screen with Catalyst ATI drivers on Win32
+    // Request hardware acceleration support
+    // Note: this gives a red screen with Catalyst ATI drivers on Win32
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
 #endif
 
@@ -97,6 +98,16 @@ bool OpenGLVideo::Reset ()
         TRACE("SDL_SetVideoMode() failed: %s", SDL_GetError());
         return false;
     }
+
+#ifndef WIN32
+    // Check the accleration variable is still set
+    int accel = 0;
+    if (SDL_GL_GetAttribute(SDL_GL_ACCELERATED_VISUAL, &accel) == 0 && !accel)
+    {
+        TRACE("Not using OpenGL due to lack of hardware acceleration\n");
+        return false;
+    }
+#endif
 
     // Use 16-bit packed pixel if available, otherwise 32-bit
     if (glExtension("GL_EXT_packed_pixels"))
