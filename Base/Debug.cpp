@@ -1906,10 +1906,12 @@ bool CDisView::SetFlowTarget ()
 // Determine the target address
 bool CDisView::SetDataTarget ()
 {
+    bool f16Bit = false;
+    bool fAddress = true;
+
     // No target or helper string yet
     m_uTarget = INVALID_TARGET;
     m_pcszTarget = NULL;
-    bool f16Bit = false;
 
     // Extract potential instruction bytes
     WORD wPC = PC;
@@ -1935,7 +1937,10 @@ bool CDisView::SetDataTarget ()
     // 00110010 = LD (nn),A
     // 00111010 = LD A,(nn)
     else if ((bOpcode & 0xf7) == 0x32)
+    {
         m_uTarget = wAddr;
+        fAddress = false;
+    }
 
     // [DD/FD] 0011010x = [INC|DEC] (HL/IX+d/IY+d)
     // [DD/FD] 01110rrr = LD (HL/IX+d/IY+d),r
@@ -1967,6 +1972,7 @@ bool CDisView::SetDataTarget ()
     {
         m_uTarget = wAddr;
         f16Bit = true;
+        fAddress = false;
     }
 
     // ED 01dd1011 = LD [BC|DE|HL|SP],(nn)
@@ -1975,6 +1981,7 @@ bool CDisView::SetDataTarget ()
     {
         m_uTarget = wAddr23;
         f16Bit = true;
+        fAddress = false;
     }
 
     // CB prefix?
@@ -1999,9 +2006,16 @@ bool CDisView::SetDataTarget ()
         m_pcszTarget = sz;
 
         if (f16Bit)
-            snprintf(sz, _countof(sz), "[%04X=%04X]", m_uTarget, read_word(m_uTarget));
-        else
+        {
+			if (fAddress)
+				snprintf(sz, _countof(sz), "[%04X=%04X]", m_uTarget, read_word(m_uTarget));
+			else
+				snprintf(sz, _countof(sz), "[%04X]", read_word(m_uTarget));
+        }
+        else if (fAddress)
             snprintf(sz, _countof(sz), "[%04X=%02X]", m_uTarget, read_byte(m_uTarget));
+        else
+			snprintf(sz, _countof(sz), "[%02X]", read_byte(m_uTarget));
     }
 
     // Return whether a target has been set
