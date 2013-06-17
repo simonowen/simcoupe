@@ -77,7 +77,8 @@ class CDisView : public CView
         static void DrawRegisterPanel (CScreen* pScreen_, int nX_, int nY_);
 
     protected:
-        void SetFlowTarget ();
+        bool SetFlowTarget ();
+        bool SetDataTarget ();
         bool cmdNavigate (int nKey_, int nMods_);
 
     private:

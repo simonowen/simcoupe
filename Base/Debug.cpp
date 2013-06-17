@@ -1381,8 +1381,9 @@ void CDisView::SetAddress (WORD wAddr_, bool fForceTop_)
 {
     CView::SetAddress(wAddr_);
 
-    // Update the control flow hints from the current PC value
-    SetFlowTarget();
+    // Update the control flow / data target address hints
+    if (!SetFlowTarget())
+        SetDataTarget();
 
     if (!fForceTop_)
     {
@@ -1445,7 +1446,7 @@ void CDisView::Draw (CScreen* pScreen_)
             bColour = BLACK;
 
             if (m_pcszTarget)
-                pScreen_->DrawString(nX+204, nY, m_pcszTarget, bColour);
+                pScreen_->DrawString(nX+210, nY, m_pcszTarget, bColour);
         }
 
         BYTE *pPhysAddr = AddrReadPtr(s_wAddrs[u]);
@@ -1813,7 +1814,7 @@ bool CDisView::cmdNavigate (int nKey_, int nMods_)
 }
 
 // Determine the target address
-void CDisView::SetFlowTarget ()
+bool CDisView::SetFlowTarget ()
 {
     // Extract the two bytes at PC, which we'll assume are single byte opcode and operand
     WORD wPC = PC;
@@ -1897,6 +1898,114 @@ void CDisView::SetFlowTarget ()
         else
             m_uTarget = INVALID_TARGET;
     }
+
+    // Return whether a target has been set
+    return m_uTarget != INVALID_TARGET;
+}
+
+// Determine the target address
+bool CDisView::SetDataTarget ()
+{
+    // No target or helper string yet
+    m_uTarget = INVALID_TARGET;
+    m_pcszTarget = NULL;
+    bool f16Bit = false;
+
+    // Extract potential instruction bytes
+    WORD wPC = PC;
+    BYTE bOpcode = read_byte(wPC);
+    BYTE bOp1 = read_byte(wPC+1), bOp2 = read_byte(wPC+2), bOp3 = read_byte(wPC+3);
+
+    // Adjust for any index prefix
+    bool fIndex = bOpcode == 0xdd || bOpcode == 0xfd;
+    if (fIndex) bOpcode = bOp1;
+
+    // Calculate potential operand addresses
+    WORD wAddr12 = (bOp2 << 8) | bOp1;
+    WORD wAddr23 = (bOp3 << 8) | bOp2;
+    WORD wAddr = fIndex ? wAddr23 : wAddr12;
+    WORD wHLIXIYd = !fIndex ? HL : (((bOpcode == 0xdd) ? IX : IY) + bOp2);
+
+
+    // 000r0010 = LD (BC/DE),A
+    // 000r1010 = LD A,(BC/DE)
+    if ((bOpcode & 0xe7) == 0x02)
+        m_uTarget = (bOpcode & 0x10) ? DE : BC;
+
+    // 00110010 = LD (nn),A
+    // 00111010 = LD A,(nn)
+    else if ((bOpcode & 0xf7) == 0x32)
+        m_uTarget = wAddr;
+
+    // [DD/FD] 0011010x = [INC|DEC] (HL/IX+d/IY+d)
+    // [DD/FD] 01110rrr = LD (HL/IX+d/IY+d),r
+    else if ((bOpcode & 0xfe) == 0x34 || bOpcode == 0x36)
+        m_uTarget = wHLIXIYd;
+
+    // [DD/FD] 00110rrr = LD (HL/IX+d/IY+d),n
+    else if (bOpcode != OP_HALT && (bOpcode & 0xf8) == 0x70)
+        m_uTarget = wHLIXIYd;
+
+    // [DD/FD] 01rrr110 = LD r,(HL/IX+d/IY+d)
+    else if ((bOpcode & 0xc7) == 0x46)
+        m_uTarget = wHLIXIYd;
+
+    // [DD/FD] 10xxx110 = ADD|ADC|SUB|SBC|AND|XOR|OR|CP (HL/IX+d/IY+d)
+    else if ((bOpcode & 0xc7) == 0x86)
+        m_uTarget = wHLIXIYd;
+
+    // (DD) E3 = EX (SP),HL/IX/IY
+    else if (bOpcode == 0xe3)
+    {
+        m_uTarget = SP;
+        f16Bit = true;
+    }
+
+    // [DD/FD] 00100010 = LD (nn),HL/IX/IY
+    // [DD/FD] 00101010 = LD HL/IX/IY,(nn)
+    else if ((bOpcode & 0xf7) == 0x22)
+    {
+        m_uTarget = wAddr;
+        f16Bit = true;
+    }
+
+    // ED 01dd1011 = LD [BC|DE|HL|SP],(nn)
+    // ED 01dd0011 = LD (nn),[BC|DE|HL|SP]
+    else if (bOpcode == 0xed && (bOp1 & 0xc7) == 0x43)
+    {
+        m_uTarget = wAddr23;
+        f16Bit = true;
+    }
+
+    // CB prefix?
+    else if (bOpcode == 0xcb)
+    {
+        // DD/FD CB d 00xxxrrr = LD r, RLC|RRC|RL|RR|SLA|SRA|SLL|SRL (IX+d/IY+d)
+        // DD/FD CB d xxbbbrrr = [_|BIT|RES|SET] b,(IX+d/IY+d)           
+        // DD/FD CB d 1xbbbrrr = LD r,[RES|SET] b,(IX+d/IY+d)
+        if (fIndex)
+            m_uTarget = wHLIXIYd;
+
+        // CB 00ooo110 = RLC|RRC|RL|RR|SLA|SRA|SLL|SRL (HL)
+        // CB oobbbrrr = [_|BIT|RES|SET] b,(HL)
+        else if ((bOp1 & 0x07) == 0x06)
+            m_uTarget = HL;
+    }
+
+    // Do we have something to display?
+    if (m_uTarget != INVALID_TARGET)
+    {
+        static char sz[32];
+        m_pcszTarget = sz;
+
+        if (f16Bit)
+            snprintf(sz, _countof(sz), "[%04X=%04X]", m_uTarget, read_word(m_uTarget));
+        else
+            snprintf(sz, _countof(sz), "[%04X=%02X]", m_uTarget, read_byte(m_uTarget));
+    }
+
+    // Return whether a target has been set
+    return m_uTarget != INVALID_TARGET;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
