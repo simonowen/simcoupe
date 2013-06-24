@@ -1915,18 +1915,18 @@ bool CDisView::SetDataTarget ()
 
     // Extract potential instruction bytes
     WORD wPC = PC;
-    BYTE bOpcode = read_byte(wPC);
-    BYTE bOp1 = read_byte(wPC+1), bOp2 = read_byte(wPC+2), bOp3 = read_byte(wPC+3);
+    BYTE bOp0 = read_byte(wPC), bOp1 = read_byte(wPC+1), bOp2 = read_byte(wPC+2), bOp3 = read_byte(wPC+3);
+    BYTE bOpcode = bOp0;
 
     // Adjust for any index prefix
-    bool fIndex = bOpcode == 0xdd || bOpcode == 0xfd;
+    bool fIndex = bOp0 == 0xdd || bOp0 == 0xfd;
     if (fIndex) bOpcode = bOp1;
 
     // Calculate potential operand addresses
     WORD wAddr12 = (bOp2 << 8) | bOp1;
     WORD wAddr23 = (bOp3 << 8) | bOp2;
     WORD wAddr = fIndex ? wAddr23 : wAddr12;
-    WORD wHLIXIYd = !fIndex ? HL : (((bOpcode == 0xdd) ? IX : IY) + bOp2);
+    WORD wHLIXIYd = !fIndex ? HL : (((bOp0 == 0xdd) ? IX : IY) + bOp2);
 
 
     // 000r0010 = LD (BC/DE),A
