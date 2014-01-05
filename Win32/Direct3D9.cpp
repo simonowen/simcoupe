@@ -411,7 +411,10 @@ bool Direct3D9Video::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     HRESULT hr = 0;
 
     int nWidth = pScreen_->GetPitch();
-    int nHeight = pScreen_->GetHeight() >> (GUI::IsActive() ? 0 : 1);
+    int nHeight = pScreen_->GetHeight();
+
+    bool fHalfHeight = !GUI::IsActive();
+    if (fHalfHeight) nHeight /= 2;
 
     RECT rect = { 0, 0, nWidth/4, nHeight/4 };
     D3DLOCKED_RECT d3dlr;
@@ -474,6 +477,16 @@ bool Direct3D9Video::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
 
         pafDirty_[y] = false;
     }
+
+    // With bilinear filtering enabled, the GUI display in the lower half bleeds
+    // into the bottom line of the display, so clear it when changing modes.
+    static bool fLastHalfHeight = true;
+    if (fHalfHeight && !fLastHalfHeight)
+    {
+        BYTE *pb = reinterpret_cast<BYTE*>(d3dlr.pBits) + nHeight*d3dlr.Pitch;
+        memset(pb, 0, d3dlr.Pitch);
+    }
+    fLastHalfHeight = fHalfHeight;
 
     m_pTexture->UnlockRect(0);
 
