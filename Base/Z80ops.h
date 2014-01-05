@@ -94,8 +94,8 @@
                             DWORD y = *pHlIxIy + z; \
                             F = (F & 0xc4) |                                        /* S, Z, V    */ \
                                 (((y & 0x3800) ^ ((*pHlIxIy ^ z) & 0x1000)) >> 8) | /* 5, H, 3    */ \
-                                (y >> 16);                                          /* C          */ \
-                            *pHlIxIy = y; \
+                                ((y >> 16) & 0x01);                                 /* C          */ \
+                            *pHlIxIy = (y & 0xffff); \
                         } while (0)
 
 // 8-bit add
@@ -107,7 +107,7 @@
                             F = ((y & 0xb8) ^ ((A ^ z) & 0x10)) |                   /* S, 5, H, 3 */ \
                                 (y >> 8) |                                          /* C          */ \
                                 (((A ^ ~z) & (A ^ y) & 0x80) >> 5);                 /* V          */ \
-                            A = y;                                                                   \
+                            A = (y & 0xff);                                                          \
                             F |= (!A) << 6;                                         /* Z          */ \
                         } while (0)
 
@@ -121,7 +121,7 @@
                                 ((y >> 8) & 1) |                                    /* C          */ \
                                 (((A ^ z) & (A ^ y) & 0x80) >> 5) |                 /* V          */ \
                                 2;                                                  /* N          */ \
-                            A = y;                                                                   \
+                            A = (y & 0xff);                                                          \
                             F |= (!A) << 6;                                         /* Z          */ \
                         } while (0)
 
@@ -331,7 +331,7 @@ instr(4,0047)
             acc += 0x60;
     }
 
-    A = acc;
+    A = (BYTE)acc;
     F = (A & 0xa8) | (!A << 6) | (F & 0x12) | (parity(A) & FLAG_P) | carry | !!(acc & 0x100);
 endinstr;
 
