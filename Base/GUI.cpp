@@ -2492,7 +2492,7 @@ CDialog::CDialog (CWindow* pParent_, int nWidth_, int nHeight_, const char* pcsz
 CDialog::~CDialog ()
 {
     // Pass the dialog activation back to the parent window
-    if (s_pActive == this || !GetParent())
+    if (s_pActive == this)
         s_pActive = GetParent();
 }
 
