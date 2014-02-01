@@ -2,7 +2,7 @@
 //
 // Keyboard.h: Common keyboard handling
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2014  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -61,15 +61,15 @@ enum eSamKey
 enum eHostKey
 {
     HK_BACKSPACE='\b', HK_TAB='\t', HK_RETURN='\r', HK_ESC='\x1b', HK_SPACE=' ',
-    HK_MIN=256,
-    HK_LSHIFT=HK_MIN, HK_RSHIFT, HK_LCTRL, HK_RCTRL, HK_LALT, HK_RALT, HK_LWIN, HK_RWIN,
+
+    HK_LSHIFT=256, HK_RSHIFT, HK_LCTRL, HK_RCTRL, HK_LALT, HK_RALT, HK_LWIN, HK_RWIN,
     HK_LEFT, HK_RIGHT, HK_UP, HK_DOWN,
     HK_KP0, HK_KP1, HK_KP2, HK_KP3, HK_KP4, HK_KP5, HK_KP6, HK_KP7, HK_KP8, HK_KP9,
     HK_F1, HK_F2, HK_F3, HK_F4, HK_F5, HK_F6, HK_F7, HK_F8, HK_F9, HK_F10, HK_F11, HK_F12,
     HK_CAPSLOCK, HK_NUMLOCK, HK_KPPLUS, HK_KPMINUS, HK_KPMULT, HK_KPDIVIDE, HK_KPENTER, HK_KPDECIMAL,
-    HK_INSERT, HK_DELETE, HK_HOME, HK_END, HK_PGUP, HK_PGDN,
-    HK_APPS, HK_NONE,
-    HK_MAX = HK_NONE
+    HK_PRINT, HK_SCROLL, HK_PAUSE, HK_INSERT, HK_DELETE, HK_HOME, HK_END, HK_PGUP, HK_PGDN,
+    HK_APPS, HK_SECTION,
+    HK_NONE, HK_MAX=HK_NONE, HK_MIN=HK_LSHIFT
 };
 
 enum eHostMods

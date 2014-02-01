@@ -2,7 +2,7 @@
 //
 // GUIDlg.cpp: Dialog boxes using the GUI controls
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -604,6 +604,7 @@ class CDisplayOptions : public CDialog
                 if (Changed(borders) || Changed(fullscreen) || Changed(ratio5_4) || Changed(scanlines) ||
                     Changed(scanlevel) || Changed(scale))
                 {
+                    Frame::Init();
                     Video::UpdateSize();
 
                     // Re-centre the window, including the parent if that's a dialog
@@ -620,17 +621,20 @@ class CDisplayOptions : public CDialog
                 m_pScaleText->Enable(!fFullScreen);
                 m_pScale->Enable(!fFullScreen);
 
-#if defined(ALLEGRO_DOS) || (defined(SDL) && !defined(USE_OPENGL))
-                m_pScaleText->Enable(false);
-                m_pScale->Enable(false);
-                m_pStretch->Enable(false);
-                m_pRatio54->Enable(false);
-#endif
+                if (!Video::CheckCaps(VCAP_STRETCH))
+                {
+                    m_pScaleText->Enable(false);
+                    m_pScale->Enable(false);
+                    m_pRatio54->Enable(false);
+                }
+
+                if (!Video::CheckCaps(VCAP_FILTER))
+                    m_pScanlines->Enable(false);
             }
         }
 
     protected:
-        CCheckBox *m_pFullScreen, *m_pStretch, *m_pScanlines, *m_pRatio54;
+        CCheckBox *m_pFullScreen, *m_pScanlines, *m_pRatio54;
         CComboBox *m_pScale, *m_pViewArea;
         CTextControl *m_pScaleText;
         CTextButton *m_pOK, *m_pCancel;

@@ -2,7 +2,7 @@
 //
 // Input.h: SDL keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2011  Simon Owen
+//  Copyright (c) 1999-2014  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@ class Input
         static void Purge ();
 
         static int MapChar (int nChar_, int *pnMods_=NULL);
+        static int MapKey (int nKey_);
 };
 
 #endif

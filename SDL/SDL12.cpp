@@ -1,3 +1,23 @@
+// Part of SimCoupe - A SAM Coupe emulator
+//
+// SDL12.cpp: Software surfaces for SDL 1.2
+//
+//  Copyright (c) 1999-2014 Simon Owen
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
 #include "SimCoupe.h"
 #include "SDL12.h"
 
@@ -6,21 +26,23 @@
 #include "Options.h"
 #include "UI.h"
 
+#ifndef USE_SDL2
+
 #define FULLSCREEN_DEPTH    16
 
 static DWORD aulPalette[N_PALETTE_COLOURS];
 static DWORD aulScanline[N_PALETTE_COLOURS];
 
 
-SDLVideo::SDLVideo ()
-	: pFront(NULL), pBack(NULL), pIcon(NULL), nDesktopWidth(0), nDesktopHeight(0)
+SDLSurface::SDLSurface ()
+    : pFront(NULL), pBack(NULL), pIcon(NULL), nDesktopWidth(0), nDesktopHeight(0)
 {
-	m_rTarget.x = m_rTarget.y = 0;
-	m_rTarget.w = Frame::GetWidth();
-	m_rTarget.h = Frame::GetHeight();
+    m_rTarget.x = m_rTarget.y = 0;
+    m_rTarget.w = Frame::GetWidth();
+    m_rTarget.h = Frame::GetHeight();
 }
 
-SDLVideo::~SDLVideo ()
+SDLSurface::~SDLSurface ()
 {
     if (pBack) SDL_FreeSurface(pBack), pBack = NULL;
     if (pIcon) SDL_FreeSurface(pIcon), pIcon = NULL;
@@ -29,24 +51,24 @@ SDLVideo::~SDLVideo ()
 }
 
 
-int SDLVideo::GetCaps () const
+int SDLSurface::GetCaps () const
 {
-	return 0;
+    return 0;
 }
 
-bool SDLVideo::Init (bool fFirstInit_)
+bool SDLSurface::Init (bool fFirstInit_)
 {
     TRACE("-> Video::Init(%s)\n", fFirstInit_ ? "first" : "");
 
     if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0)
     {
-        TRACE("SDL_InitSubSystem(SDL_INIT_VIDEO) failed: %s: %s\n", SDL_GetError());
+        TRACE("SDL_InitSubSystem(SDL_INIT_VIDEO) failed: %s\n", SDL_GetError());
         return false;
     }
 
-	pIcon = SDL_LoadBMP(OSD::MakeFilePath(MFP_EXE, "SimCoupe.bmp"));
-	if (pIcon)
-		SDL_WM_SetIcon(pIcon, NULL);
+    pIcon = SDL_LoadBMP(OSD::MakeFilePath(MFP_EXE, "SimCoupe.bmp"));
+    if (pIcon)
+        SDL_WM_SetIcon(pIcon, NULL);
 
     if (fFirstInit_)
     {
@@ -56,20 +78,20 @@ bool SDLVideo::Init (bool fFirstInit_)
         TRACE("Desktop resolution: %dx%d\n", nDesktopWidth, nDesktopHeight);
     }
 
-	UpdateSize();
+    UpdateSize();
     return UI::Init(fFirstInit_);
 }
 
 
-void SDLVideo::Update (CScreen* pScreen_, bool *pafDirty_)
+void SDLSurface::Update (CScreen* pScreen_, bool *pafDirty_)
 {
-	// Draw any changed lines to the back buffer
-	if (!DrawChanges(pScreen_, pafDirty_))
-		return;
+    // Draw any changed lines to the back buffer
+    if (!DrawChanges(pScreen_, pafDirty_))
+        return;
 }
 
 // Create whatever's needed for actually displaying the SAM image
-void SDLVideo::UpdatePalette ()
+void SDLSurface::UpdatePalette ()
 {
     // Determine the scanline brightness level adjustment, in the range -100 to +100
     int nScanAdjust = GetOption(scanlines) ? (GetOption(scanlevel) - 100) : 0;
@@ -93,12 +115,10 @@ void SDLVideo::UpdatePalette ()
     Video::SetDirty();
 }
 
-
-// OpenGL version of DisplayChanges
-bool SDLVideo::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
+bool SDLSurface::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
 {
-	if (!pBack)
-		return false;
+    if (!pBack)
+        return false;
 
     // Lock the surface for direct access below
     if (SDL_MUSTLOCK(pBack) && SDL_LockSurface(pBack) < 0)
@@ -163,10 +183,10 @@ bool SDLVideo::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
                         {
                             for (int x = 0 ; x < nRightHi ; x++)
                             {
-								pdw[0] = SDL_SwapLE32((aulScanline[pb[1]] << 16) | aulScanline[pb[0]]);
-								pdw[1] = SDL_SwapLE32((aulScanline[pb[3]] << 16) | aulScanline[pb[2]]);
-								pdw[2] = SDL_SwapLE32((aulScanline[pb[5]] << 16) | aulScanline[pb[4]]);
-								pdw[3] = SDL_SwapLE32((aulScanline[pb[7]] << 16) | aulScanline[pb[6]]);
+                                pdw[0] = SDL_SwapLE32((aulScanline[pb[1]] << 16) | aulScanline[pb[0]]);
+                                pdw[1] = SDL_SwapLE32((aulScanline[pb[3]] << 16) | aulScanline[pb[2]]);
+                                pdw[2] = SDL_SwapLE32((aulScanline[pb[5]] << 16) | aulScanline[pb[4]]);
+                                pdw[3] = SDL_SwapLE32((aulScanline[pb[7]] << 16) | aulScanline[pb[6]]);
 
                                 pdw += 4;
                                 pb += 8;
@@ -351,7 +371,7 @@ bool SDLVideo::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     return true;
 }
 
-void SDLVideo::UpdateSize ()
+void SDLSurface::UpdateSize ()
 {
     int nWidth = Frame::GetWidth();
     int nHeight = Frame::GetHeight();
@@ -390,12 +410,12 @@ void SDLVideo::UpdateSize ()
         SDL_FillRect(pBack, NULL, 0);
     }
 
-	UpdatePalette();
+    UpdatePalette();
 }
 
 
 // Map a native size/offset to SAM view port
-void SDLVideo::DisplayToSamSize (int* pnX_, int* pnY_)
+void SDLSurface::DisplayToSamSize (int* pnX_, int* pnY_)
 {
     int nHalfWidth = !GUI::IsActive();
     int nHalfHeight = nHalfWidth;
@@ -405,9 +425,11 @@ void SDLVideo::DisplayToSamSize (int* pnX_, int* pnY_)
 }
 
 // Map a native client point to SAM view port
-void SDLVideo::DisplayToSamPoint (int* pnX_, int* pnY_)
+void SDLSurface::DisplayToSamPoint (int* pnX_, int* pnY_)
 {
     *pnX_ -= m_rTarget.x;
     *pnY_ -= m_rTarget.y;
     DisplayToSamSize(pnX_, pnY_);
 }
+
+#endif // !USE_SDL2

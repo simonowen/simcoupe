@@ -2,7 +2,7 @@
 //
 // UI.cpp: SDL user interface
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,14 +33,7 @@
 #include "Options.h"
 #include "Sound.h"
 #include "SDL12.h"
-#include "SDL_GL.h"
-
-#ifdef _DEBUG
-#define WINDOW_CAPTION      "SimCoupe/SDL [DEBUG]"
-#else
-#define WINDOW_CAPTION      "SimCoupe/SDL"
-#endif
-
+#include "SDL20.h"
 
 bool UI::Init (bool fFirstInit_/*=false*/)
 {
@@ -50,7 +43,11 @@ bool UI::Init (bool fFirstInit_/*=false*/)
     TRACE("UI::Init(%d)\n", fFirstInit_);
 
     // Set the window caption and disable the cursor until needed
+#ifdef USE_SDL2
+    SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
+#else
     SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);
+#endif
     SDL_ShowCursor(SDL_DISABLE);
 
     // To help on platforms without a native GUI, we'll display a one-time welcome message
@@ -88,17 +85,13 @@ VideoBase *UI::GetVideo (bool fFirstInit_)
 {
     VideoBase *pVideo = NULL;
 
-#ifdef USE_OPENGL
-    // Try for OpenGL first
-    pVideo = new OpenGLVideo;
-    if (pVideo && !pVideo->Init(fFirstInit_))
-        delete pVideo, pVideo = NULL;
-#endif
-
     if (!pVideo)
     {
-        // Fall back on a regular SDL surface
-        pVideo = new SDLVideo;
+#ifdef USE_SDL2
+        pVideo = new SDLTexture;
+#else
+        pVideo = new SDLSurface;
+#endif
         if (!pVideo->Init(fFirstInit_))
         {
             delete pVideo, pVideo = NULL;
@@ -131,11 +124,22 @@ bool UI::CheckEvents ()
             {
                 case SDL_QUIT:
                     return false;
+#ifdef USE_SDL2
+                case SDL_DROPFILE:
+                {
+                    char *pszFile = event.drop.file;
 
+                    if (pFloppy1->Insert(pszFile, true))
+                        Frame::SetStatus("%s  inserted into drive 1", pFloppy1->DiskFile());
+
+                    SDL_free(pszFile);
+                    break;
+                }
+#else
                 case SDL_VIDEOEXPOSE:
                     Video::SetDirty();
                     break;
-
+#endif
                 case SDL_USEREVENT:
                 {
                     switch (event.user.code)
@@ -147,7 +151,7 @@ bool UI::CheckEvents ()
 
                             if (GetOption(drive1) != drvFloppy)
                                 Message(msgWarning, "Floppy drive %d is not present", 1);
-                            else if (pFloppy1->Insert(psz))
+                            else if (pFloppy1->Insert(psz, true))
                                 Frame::SetStatus("%s  inserted into drive 1", pFloppy1->DiskFile());
 
                             free(psz);
@@ -197,6 +201,7 @@ bool UI::CheckEvents ()
         if (!g_fPaused)
             break;
 
+        Sound::Silence();
         SDL_WaitEvent(NULL);
     }
 
@@ -231,12 +236,13 @@ bool UI::DoAction (int nAction_, bool fPressed_)
 
             case actPause:
             {
+#ifndef USE_SDL2
                 // Reverse logic because the default processing hasn't occurred yet
                 if (g_fPaused)
                     SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);
                 else
                     SDL_WM_SetCaption(WINDOW_CAPTION " - Paused", WINDOW_CAPTION " - Paused");
-
+#endif
                 // Perform default processing
                 return false;
             }

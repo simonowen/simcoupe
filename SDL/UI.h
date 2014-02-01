@@ -2,7 +2,7 @@
 //
 // UI.h: SDL user interface
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,6 +20,12 @@
 
 #ifndef UI_H
 #define UI_H
+
+#ifdef _DEBUG
+#define WINDOW_CAPTION      "SimCoupe/SDL [DEBUG]"
+#else
+#define WINDOW_CAPTION      "SimCoupe/SDL"
+#endif
 
 #ifdef __cplusplus
 

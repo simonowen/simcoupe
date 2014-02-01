@@ -2,7 +2,7 @@
 //
 // Keyboard.cpp: Common keyboard handling
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -365,7 +365,6 @@ static bool UpdateKeyTable (MAPPED_KEY* asKeys_, int nKey_, int nMods_, int nCha
             nMods_ &= ~HM_CTRL;
     }
 
-
     for (int i = 0 ; asKeys_[i].nChar ; i++)
     {
         // Is there a mapping entry for the symbol?
@@ -393,10 +392,9 @@ void Keyboard::SetKey (int nCode_, bool fPressed_, int nMods_/*=0*/, int nChar_/
     // Key released?
     if (!fPressed_)
         ReleaseKey(nCode_);
-
-    // Only perform press processing if the key isn't already down (a repeat)
-    else if (!IsPressed(nCode_))
+    else
     {
+        // Press the key code
         PressKey(nCode_);
 
         // If a character was supplied (non-Win32), update the mapping entries

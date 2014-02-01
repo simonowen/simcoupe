@@ -53,7 +53,7 @@
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
 				AdditionalIncludeDirectories=".,..\Base,..\..\Base,.."
-				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WINVER=0x0400;_WIN32_WINNT=0x0400;USE_ZLIB;USE_OPENGL;USE_DEBUGGER;USE_RESID;USE_LIBSPECTRUM"
+				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WINVER=0x0400;_WIN32_WINNT=0x0400;USE_ZLIB;USE_DEBUGGER;USE_RESID;USE_LIBSPECTRUM;USE_SDL2"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="false"
@@ -147,7 +147,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories=".,..\Base,..\..\Base,.."
-				PreprocessorDefinitions="_DEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WINVER=0x0400;_WIN32_WINNT=0x0400;USE_ZLIB;USE_OPENGL;USE_DEBUGGER;USE_RESID;USE_LIBSPECTRUM"
+				PreprocessorDefinitions="_DEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;STRICT;WINVER=0x0400;_WIN32_WINNT=0x0400;USE_ZLIB;USE_OPENGL;USE_DEBUGGER;USE_RESID;USE_LIBSPECTRUM;USE_SDL2"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="2"
@@ -1313,7 +1313,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\SDL_GL.cpp"
+				RelativePath="..\SDL20.cpp"
 				>
 			</File>
 			<File
@@ -1376,7 +1376,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\SDL_GL.h"
+				RelativePath="..\SDL20.h"
 				>
 			</File>
 			<File

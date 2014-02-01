@@ -2,7 +2,7 @@
 //
 // Audio.cpp: SDL sound implementation
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -142,7 +142,6 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
 
             // Sleep a short time before checking again
             SDL_Delay(1);
-
         }
     }
 
@@ -196,8 +195,9 @@ void SoundCallback (void *pvParam_, Uint8 *pbStream_, int nLen_)
     int nData = static_cast<int>(m_pbNow - m_pbStart);
     int nCopy = min(nData, nLen_), nLeft = nData-nCopy;
 
-    // Update the sound stream with what we have
+    // Update the sound stream with what we have, padded with silence if we're short
     memcpy(pbStream_, m_pbStart, nCopy);
+    memset(pbStream_+nCopy, 0x00, nLen_-nCopy);
 
     // Move any remaining data to the start of our buffer
     m_pbNow = m_pbStart + nLeft;

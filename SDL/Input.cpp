@@ -2,7 +2,7 @@
 //
 // Input.cpp: SDL keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,10 +34,41 @@
 
 //#define USE_JOYPOLLING
 
+int nJoystick1 = -1, nJoystick2 = -1;
 SDL_Joystick *pJoystick1, *pJoystick2;
 
 bool fMouseActive, fKeyboardActive;
 int nCentreX, nCentreY;
+int nLastKey, nLastMods;
+const Uint8 *pKeyStates;
+
+// SDL 1.2 compatibility definitions
+#ifndef USE_SDL2
+#define SDL_Keysym SDL_keysym
+#define SDL_Keymod SDLMod
+#define SDL_GetKeyboardState SDL_GetKeyState
+#define SDL_JoystickNameForIndex SDL_JoystickName
+#define SDL_WarpMouseInWindow(w,x,y) SDL_WarpMouse((x),(y))
+#define SDL_StartTextInput() SDL_EnableUNICODE(1)
+#define SDL_SetTextInputRect(r)
+#define SDLK_KP_0 SDLK_KP0
+#define SDLK_KP_1 SDLK_KP1
+#define SDLK_KP_2 SDLK_KP2
+#define SDLK_KP_3 SDLK_KP3
+#define SDLK_KP_4 SDLK_KP4
+#define SDLK_KP_5 SDLK_KP5
+#define SDLK_KP_6 SDLK_KP6
+#define SDLK_KP_7 SDLK_KP7
+#define SDLK_KP_8 SDLK_KP8
+#define SDLK_KP_9 SDLK_KP9
+#define SDLK_LGUI SDLK_LSUPER
+#define SDLK_RGUI SDLK_RSUPER
+#define SDLK_PRINTSCREEN SDLK_PRINT
+#define SDLK_SCROLLLOCK SDLK_SCROLLOCK
+#define SDLK_NUMLOCKCLEAR SDLK_NUMLOCK
+#define SDL_SCANCODE_LGUI SDLK_LSUPER
+#define SDL_SCANCODE_RGUI SDLK_RSUPER
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -52,10 +83,10 @@ bool Input::Init (bool fFirstInit_/*=false*/)
         for (int i = 0 ; i < SDL_NumJoysticks() ; i++)
         {
             // Match against the required joystick names, or auto-select the first available
-            if (!pJoystick1 && (!strcasecmp(SDL_JoystickName(i), GetOption(joydev1)) || !*GetOption(joydev1)))
-                pJoystick1 = SDL_JoystickOpen(i);
-            else if (!pJoystick2 && (!strcasecmp(SDL_JoystickName(i), GetOption(joydev2)) || !*GetOption(joydev2)))
-                pJoystick2 = SDL_JoystickOpen(i);
+            if (!pJoystick1 && (!strcasecmp(SDL_JoystickNameForIndex(i), GetOption(joydev1)) || !*GetOption(joydev1)))
+                pJoystick1 = SDL_JoystickOpen(nJoystick1 = i);
+            else if (!pJoystick2 && (!strcasecmp(SDL_JoystickNameForIndex(i), GetOption(joydev2)) || !*GetOption(joydev2)))
+                pJoystick2 = SDL_JoystickOpen(nJoystick2 = i);
         }
 
 #ifdef USE_JOYPOLLING
@@ -65,7 +96,11 @@ bool Input::Init (bool fFirstInit_/*=false*/)
     }
 
     Keyboard::Init();
-    SDL_EnableUNICODE(1);
+
+    SDL_StartTextInput();
+    SDL_SetTextInputRect(NULL);
+
+    pKeyStates = SDL_GetKeyboardState(NULL);
 
     fMouseActive = false;
 
@@ -78,8 +113,8 @@ void Input::Exit (bool fReInit_/*=false*/)
     {
         if (SDL_WasInit(SDL_INIT_JOYSTICK))
         {
-            if (pJoystick1) {SDL_JoystickClose(pJoystick1); pJoystick1 = NULL; }
-            if (pJoystick2) {SDL_JoystickClose(pJoystick2); pJoystick2 = NULL; }
+            if (pJoystick1) {SDL_JoystickClose(pJoystick1); pJoystick1 = NULL; nJoystick1 = -1; }
+            if (pJoystick2) {SDL_JoystickClose(pJoystick2); pJoystick2 = NULL; nJoystick2 = -1; }
 
             SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
         }
@@ -97,7 +132,7 @@ void Input::AcquireMouse (bool fAcquire_)
         // Move the mouse to the centre of the window
         nCentreX = Frame::GetWidth() >> 1;
         nCentreY = Frame::GetHeight() >> 1;
-        SDL_WarpMouse(nCentreX, nCentreY);
+        SDL_WarpMouseInWindow(NULL, nCentreX, nCentreY);
     }
 }
 
@@ -107,7 +142,11 @@ void Input::Purge ()
 {
     // Remove queued input messages
     SDL_Event event;
+#ifndef USE_SDL2
     while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_MOUSEEVENTMASK|SDL_KEYEVENTMASK) > 0) ;
+#else
+    while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_KEYDOWN, SDL_JOYBUTTONUP));
+#endif
 
     // Discard relative motion and clear the key modifiers
     int n;
@@ -156,6 +195,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
 {
     switch (pEvent_->type)
     {
+#ifndef USE_SDL2
         case SDL_ACTIVEEVENT:
             // Release the mouse when we lose input focus
             if (!pEvent_->active.gain && pEvent_->active.state & SDL_APPINPUTFOCUS)
@@ -166,13 +206,114 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
                 Keyboard::Init();
 
             break;
+#endif
+
+#ifdef USE_SDL2
+        case SDL_TEXTINPUT:
+        {
+            SDL_TextInputEvent *pEvent = &pEvent_->text;
+            int nChr = pEvent->text[0];
+            BYTE *pbText = reinterpret_cast<BYTE*>(pEvent->text);
+
+            // Ignore symbols from the keypad
+            if ((nLastKey >= HK_KP0 && nLastKey <= HK_KP9) || (nLastKey >= HK_KPPLUS && nLastKey <= HK_KPDECIMAL))
+                break;
+            else if (nLastKey == HK_SECTION)
+                break;
+            else if (pbText[1])
+            {
+                if (pbText[0] == 0xc2 && pbText[1] == 0xa3)
+                    nChr = 163; // GBP
+                else if (pbText[0] == 0xc2 && pbText[1] == 0xa7)
+                    nChr = 167; // section symbol
+                else if (pbText[0] == 0xc2 && pbText[1] == 0xb1)
+                    nChr = 177; // +/-
+                else
+                    break;
+            }
+
+            TRACE("SDL_TEXTINPUT: %s (nLastKey=%d, nLastMods=%d)\n", pEvent->text, nLastKey, nLastMods);
+            Keyboard::SetKey(nLastKey, true, nLastMods, nChr);
+            break;
+        }
+#endif
 
         case SDL_KEYDOWN:
         case SDL_KEYUP:
         {
-            SDL_keysym* pKey = &pEvent_->key.keysym;
+            SDL_KeyboardEvent *pEvent = &pEvent_->key;
+            SDL_Keysym* pKey = &pEvent->keysym;
 
-            bool fPress = pEvent_->type == SDL_KEYDOWN;
+            bool fPress = pEvent->type == SDL_KEYDOWN;
+            if (fPress)
+                SDL_ShowCursor(SDL_DISABLE);
+
+            // Ignore key repeats unless the GUI is active
+#ifdef USE_SDL2
+            if (pEvent->repeat && !GUI::IsActive())
+                break;
+#endif
+            int nKey = MapKey(pKey->sym);
+            int nMods = ((pKey->mod & KMOD_SHIFT) ? HM_SHIFT : 0) |
+                        ((pKey->mod & KMOD_LCTRL) ? HM_CTRL : 0) |
+                        ((pKey->mod & KMOD_LALT)  ? HM_ALT : 0);
+#ifdef USE_SDL2
+            int nChr = (nKey < HK_SPACE || (nKey < HK_MIN && (pKey->mod & KMOD_CTRL))) ? nKey : 0;
+#else
+            int nChr = fPress ? pKey->unicode : 0;
+
+            if (fPress)
+            {
+                // Force some simple keys that might be wrong
+                if (pKey->sym == SDLK_BACKSPACE || pKey->sym == SDLK_TAB ||
+                    pKey->sym == SDLK_RETURN || pKey->sym == SDLK_ESCAPE)
+                   pKey->unicode = pKey->sym;
+
+                // Keypad numbers
+                else if (pKey->sym >= SDLK_KP_0 && pKey->sym <= SDLK_KP_9)
+                    nChr = HK_KP0 + pKey->sym - SDLK_KP0;
+
+                // Keypad symbols (discard symbol)
+                else if (pKey->sym >= SDLK_KP_PERIOD && pKey->sym <= SDLK_KP_EQUALS)
+                    nChr = 0;
+
+                // Cursor keys
+                else if (pKey->sym >= SDLK_UP && pKey->sym <= SDLK_LEFT)
+                {
+                    static int anCursors[] = { HK_UP, HK_DOWN, HK_RIGHT, HK_LEFT };
+                    nChr = anCursors[pKey->sym - SDLK_UP];
+                }
+
+                // Navigation block
+                else if (pKey->sym >= SDLK_HOME && pKey->sym <= SDLK_PAGEDOWN)
+                {
+                    static int anMovement[] = { HK_HOME, HK_END, HK_PGUP, HK_PGDN };
+                    nChr = anMovement[pKey->sym - SDLK_HOME];
+                }
+
+                // Delete
+                else if (pKey->sym == SDLK_DELETE)
+                    nChr = HK_DELETE;
+
+                // Convert ctrl-letter/digit to the base key (locale mapping not possible)
+                if (pKey->mod & KMOD_CTRL)
+                {
+                    if (pKey->sym >= SDLK_a && pKey->sym <= SDLK_z)
+                        nChr = 'a' + pKey->sym - SDLK_a;
+                    else if (pKey->sym >= SDLK_0 && pKey->sym <= SDLK_9)
+                        nChr = '0' + pKey->sym - SDLK_0;
+                }
+            }
+#endif
+
+            TRACE("SDL_KEY%s (%d -> %d)\n", fPress ? "DOWN" : "UP", pKey->sym, nKey);
+
+            if (fPress)
+            {
+                nLastKey = nKey;
+                nLastMods = nMods;
+            }
+
             bool fCtrl  = !!(pKey->mod & KMOD_CTRL);
             bool fAlt   = !!(pKey->mod & KMOD_ALT);
             bool fShift = !!(pKey->mod & KMOD_SHIFT);
@@ -185,169 +326,65 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             if (fKeyboardActive == GUI::IsActive())
             {
                 fKeyboardActive = !fKeyboardActive;
+#ifndef USE_SDL2
                 SDL_EnableKeyRepeat(fKeyboardActive ? 0 : 250, fKeyboardActive ? 0 : 30);
+#endif
             }
 
             // Check for the Windows key, for use as a modifier
-            int numkeys = 0;
-            Uint8 *pKeyStates = SDL_GetKeyState(&numkeys);
-            bool fWin = pKeyStates[SDLK_LSUPER] || pKeyStates[SDLK_RSUPER];
+            bool fWin = pKeyStates[SDL_SCANCODE_LGUI] || pKeyStates[SDL_SCANCODE_RGUI];
 
             // Check for function keys (unless the Windows key is pressed)
-            if (!fWin && pKey->sym >= SDLK_F1 && pKey->sym <= SDLK_F12)
+            if (!fWin && nKey >= HK_F1 && nKey <= HK_F12)
             {
-                Action::Key(pKey->sym-SDLK_F1+1, fPress, fCtrl, fAlt, fShift);
+                Action::Key(nKey-HK_F1+1, fPress, fCtrl, fAlt, fShift);
                 break;
             }
 
             // Some additional function keys
             bool fAction = true;
-            switch (pKey->sym)
+            switch (nKey)
             {
-                case SDLK_RETURN:       fAction = fAlt; if (fAction) Action::Do(actToggleFullscreen, fPress); break;
-                case SDLK_KP_DIVIDE:    Action::Do(actDebugger, fPress); break;
-                case SDLK_KP_MULTIPLY:  Action::Do(fCtrl ? actResetButton : actTempTurbo, fPress); break;
-                case SDLK_KP_PLUS:      Action::Do(fCtrl ? actTempTurbo : actSpeedFaster, fPress); break;
-                case SDLK_KP_MINUS:     Action::Do(fCtrl ? actSpeedNormal : actSpeedSlower, fPress); break;
+                case HK_RETURN:     fAction = fAlt; if (fAction) Action::Do(actToggleFullscreen, fPress); break;
+                case HK_KPDIVIDE:   Action::Do(actDebugger, fPress); break;
+                case HK_KPMULT:     Action::Do(fCtrl ? actResetButton : actTempTurbo, fPress); break;
+                case HK_KPPLUS:     Action::Do(fCtrl ? actTempTurbo : actSpeedFaster, fPress); break;
+                case HK_KPMINUS:    Action::Do(fCtrl ? actSpeedNormal : actSpeedSlower, fPress); break;
 
-                case SDLK_SYSREQ:
-                case SDLK_PRINT:        Action::Do(actSaveScreenshot, fPress);    break;
-                case SDLK_SCROLLOCK:
-                case SDLK_PAUSE:        Action::Do(fCtrl ? actResetButton : fShift ? actFrameStep : actPause, fPress);   break;
-                default:                fAction = false; break;
+                case HK_PRINT:      Action::Do(actSaveScreenshot, fPress); break;
+                case HK_SCROLL:
+                case HK_PAUSE:      Action::Do(fCtrl ? actResetButton : fShift ? actFrameStep : actPause, fPress); break;
+
+                default:            fAction = false; break;
             }
 
             // Have we processed the key?
             if (fAction)
                 break;
 
-
-            // Keep only the normal ctrl/shift/alt modifiers
-            pKey->mod = static_cast<SDLMod>(pKey->mod & (KMOD_CTRL|KMOD_SHIFT|KMOD_ALT));
-
-            int nMods = HM_NONE;
-            if (pKey->mod & KMOD_SHIFT) nMods |= HM_SHIFT;
-            if (pKey->mod & KMOD_LCTRL) nMods |= HM_CTRL;
-            if (pKey->mod & KMOD_LALT)  nMods |= HM_ALT;
-
-
-            // A number of adjustments must be made to keydown characters
-            if (fPress)
-            {
-                // Force some simple keys that might be wrong
-                switch (pKey->sym)
-                {
-                    // Force the character some some basic keys
-                    case SDLK_BACKSPACE:
-                    case SDLK_TAB:
-                    case SDLK_RETURN:
-                    case SDLK_ESCAPE:
-                        pKey->unicode = pKey->sym;
-                        break;
-/*
-// Are these still needed?
-                    // Alt-Gr comes through as SDLK_MODE on some platforms and SDLK_RALT on others, so accept both
-                    // Right-Alt on the Mac somehow appears as SDLK_KP_ENTER, so we'll map that for now too!
-                    case SDLK_MODE:
-                    case SDLK_KP_ENTER:
-                        pKey->sym = SDLK_RALT;
-                        break;
-*/
-/*
-// Are these still needed?
-                    // Keys not recognised by SDL
-                    case SDLK_UNKNOWN:
-
-                        switch (pKey->scancode)
-                        {
-                            case 0x56:  pKey->sym = SDLK_WORLD_95;  break;
-                            case 0xc5:  pKey->sym = SDLK_PAUSE;     break;
-
-                            // Fill some missing keypad symbols on Solaris
-                            case 0x77:  pKey->sym = SDLK_KP1;       break;
-                            case 0x79:  pKey->sym = SDLK_KP3;       break;
-                            case 0x63:  pKey->sym = SDLK_KP5;       break;
-                            case 0x4b:  pKey->sym = SDLK_KP7;       break;
-                            case 0x4d:  pKey->sym = SDLK_KP9;       break;
-                            default:                                break;
-                        }
-                        break;
-*/
-                    default:
-                        // Keypad numbers
-                        if (pKey->sym >= SDLK_KP0 && pKey->sym <= SDLK_KP9)
-                            pKey->unicode = HK_KP0 + pKey->sym - SDLK_KP0;
-
-                        // Keypad symbols (mask symbol)
-                        else if (pKey->sym >= SDLK_KP_PERIOD && pKey->sym <= SDLK_KP_EQUALS)
-                            pKey->unicode = 0;
-
-                        // Cursor keys
-                        else if (pKey->sym >= SDLK_UP && pKey->sym <= SDLK_LEFT)
-                        {
-                            int anCursors[] = { HK_UP, HK_DOWN, HK_RIGHT, HK_LEFT };
-                            pKey->unicode = anCursors[pKey->sym - SDLK_UP];
-                        }
-
-                        // Navigation block
-                        else if (pKey->sym >= SDLK_HOME && pKey->sym <= SDLK_PAGEDOWN)
-                        {
-                            int anMovement[] = { HK_HOME, HK_END, HK_PGUP, HK_PGDN };
-                            pKey->unicode = anMovement[pKey->sym - SDLK_HOME];
-                        }
-
-                        // Delete
-                        else if (pKey->sym == SDLK_DELETE)
-                            pKey->unicode = HK_DELETE;
-
-                        // Convert ctrl-letter/digit to the base key (locale mapping not possible)
-                        if (pKey->mod & KMOD_CTRL)
-                        {
-                            if (pKey->sym >= SDLK_a && pKey->sym <= SDLK_z)
-                                pKey->unicode = 'a' + pKey->sym - SDLK_a;
-
-                            else if (pKey->sym >= SDLK_0 && pKey->sym <= SDLK_9)
-                                pKey->unicode = '0' + pKey->sym - SDLK_0;
-                        }
-
-                        break;
-                }
-            }
-/*
-// Are these still needed?
-#if defined(sun) || defined(SOLARIS)
-            // Fix some keypad mappings known to be wrong on Solaris
-            if (pKey->sym == 0x111 && pKey->scancode == 0x4c)
-                pKey->sym = SDLK_KP8;
-            else if (pKey->sym == 0x112 && pKey->scancode == 0x78)
-                pKey->sym = SDLK_KP2;
-            else if (pKey->sym == 0x113 && pKey->scancode == 0x64)
-                pKey->sym = SDLK_KP6;
-            else if (pKey->sym == 0x114 && pKey->scancode == 0x62)
-                pKey->sym = SDLK_KP4;
-#endif
-*/
-            TRACE("Key %s: %d (mods=%03x u=%d)\n", (pEvent_->key.state == SDL_PRESSED) ? "down" : "up", pKey->sym, pKey->mod, pKey->unicode);
+//            TRACE("Key %s: %d (mods=%03x u=%d)\n", fPress ? "down" : "up", nKey, pKey->mod, pKey->unicode);
 
             if (GUI::IsActive())
             {
                 // Pass any printable characters to the GUI
-                if (fPress && pKey->unicode)
-                    GUI::SendMessage(GM_CHAR, pKey->unicode, nMods);
+                if (fPress && nKey)
+                    GUI::SendMessage(GM_CHAR, nKey, nMods);
             }
             else
             {
                 // Optionally release the mouse capture if Esc is pressed
-                if (fPress && pKey->sym == SDLK_ESCAPE && GetOption(mouseesc))
+                if (fPress && nKey == HK_ESC && GetOption(mouseesc))
                     AcquireMouse(false);
 
-                // Key press (CapsLock/NumLock are toggle keys in SDL, so we much treat any event as a press)
-                if (fPress || pKey->sym == SDLK_CAPSLOCK || pKey->sym == SDLK_NUMLOCK)
-                    Keyboard::SetKey(pKey->sym, true, nMods, pKey->unicode);
+                // Key press (CapsLock/NumLock are toggle keys in SDL, so we must treat any event as a press)
+                if (fPress || pKey->sym == HK_CAPSLOCK || pKey->sym == HK_NUMLOCK)
+                {
+                    Keyboard::SetKey(nKey, true, nMods, nChr);
+                }
 
                 // Key release
                 else if (!fPress)
-                    Keyboard::SetKey(pKey->sym, false);
+                    Keyboard::SetKey(nKey, false);
             }
 
             break;
@@ -385,7 +422,11 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
                     {
                         // Update the SAM mouse and re-centre the cursor
                         pMouse->Move(nX, -nY);
+#ifndef USE_SDL2
                         SDL_WarpMouse(nCentreX, nCentreY);
+#else
+                        SDL_WarpMouseInWindow(NULL, nCentreX, nCentreY);
+#endif
                     }
                 }
             }
@@ -451,13 +492,24 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             }
             break;
 
+#ifdef USE_SDL2
+        case SDL_MOUSEWHEEL:
+            if (GUI::IsActive())
+            {
+                if (pEvent_->wheel.y > 0)
+                    GUI::SendMessage(GM_MOUSEWHEEL, -1);
+                else if (pEvent_->wheel.y < 0)
+                    GUI::SendMessage(GM_MOUSEWHEEL, 1);
+            }
+            break;
+#endif
 
 #ifndef USE_JOYPOLLING
 
         case SDL_JOYAXISMOTION:
         {
             SDL_JoyAxisEvent* p = &pEvent_->jaxis;
-            int nJoystick = (SDL_JoystickIndex(pJoystick1) == p->which) ? 0 : 1;
+            int nJoystick = (p->which == nJoystick1) ? 0 : 1;
             int nDeadZone = 32768 * (!nJoystick ? GetOption(deadzone1) : GetOption(deadzone2)) / 100;
 
             // We'll use even axes as X and odd as Y
@@ -472,7 +524,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
         case SDL_JOYHATMOTION:
         {
             SDL_JoyHatEvent *p = &pEvent_->jhat;
-            int nJoystick = (SDL_JoystickIndex(pJoystick1) == p->which) ? 0 : 1;
+            int nJoystick = (p->which == nJoystick1) ? 0 : 1;
             Uint8 bHat = p->value;
 
             int nPosition = HJ_CENTRE;
@@ -489,7 +541,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
         case SDL_JOYBUTTONUP:
         {
             SDL_JoyButtonEvent *p = &pEvent_->jbutton;
-            int nJoystick = (SDL_JoystickIndex(pJoystick1) == p->which) ? 0 : 1;
+            int nJoystick = (p->which == nJoystick1) ? 0 : 1;
 
             Joystick::SetButton(nJoystick, p->button, (p->state == SDL_PRESSED));
             break;
@@ -518,8 +570,8 @@ void Input::Update ()
     Keyboard::Update();
 
     // CapsLock/NumLock are toggle keys in SDL and must be released manually
-    Keyboard::SetKey(SDLK_CAPSLOCK, false);
-    Keyboard::SetKey(SDLK_NUMLOCK, false);
+    Keyboard::SetKey(HK_CAPSLOCK, false);
+    Keyboard::SetKey(HK_NUMLOCK, false);
 }
 
 
@@ -529,71 +581,82 @@ int Input::MapChar (int nChar_, int *pnMods_)
     if (nChar_ < HK_MIN)
         return 0;
 
-    // Host keycode
-    switch (nChar_)
-    {
-        case HK_LSHIFT:     return SDLK_LSHIFT;
-        case HK_RSHIFT:     return SDLK_RSHIFT;
-        case HK_LCTRL:      return SDLK_LCTRL;
-        case HK_RCTRL:      return SDLK_RCTRL;
-        case HK_LALT:       return SDLK_LALT;
-        case HK_RALT:       return SDLK_RALT;
-        case HK_LWIN:       return SDLK_LSUPER;
-        case HK_RWIN:       return SDLK_RSUPER;
-
-        case HK_LEFT:       return SDLK_LEFT;
-        case HK_RIGHT:      return SDLK_RIGHT;
-        case HK_UP:         return SDLK_UP;
-        case HK_DOWN:       return SDLK_DOWN;
-
-        case HK_KP0:        return SDLK_KP0;
-        case HK_KP1:        return SDLK_KP1;
-        case HK_KP2:        return SDLK_KP2;
-        case HK_KP3:        return SDLK_KP3;
-        case HK_KP4:        return SDLK_KP4;
-        case HK_KP5:        return SDLK_KP5;
-        case HK_KP6:        return SDLK_KP6;
-        case HK_KP7:        return SDLK_KP7;
-        case HK_KP8:        return SDLK_KP8;
-        case HK_KP9:        return SDLK_KP9;
-
-        case HK_F1:         return SDLK_F1;
-        case HK_F2:         return SDLK_F2;
-        case HK_F3:         return SDLK_F3;
-        case HK_F4:         return SDLK_F4;
-        case HK_F5:         return SDLK_F5;
-        case HK_F6:         return SDLK_F6;
-        case HK_F7:         return SDLK_F7;
-        case HK_F8:         return SDLK_F8;
-        case HK_F9:         return SDLK_F9;
-        case HK_F10:        return SDLK_F10;
-        case HK_F11:        return SDLK_F11;
-        case HK_F12:        return SDLK_F12;
-
-        case HK_CAPSLOCK:   return SDLK_CAPSLOCK;
-        case HK_NUMLOCK:    return SDLK_NUMLOCK;
-        case HK_KPPLUS:     return SDLK_KP_PLUS;
-        case HK_KPMINUS:    return SDLK_KP_MINUS;
-        case HK_KPMULT:     return SDLK_KP_MULTIPLY;
-        case HK_KPDIVIDE:   return SDLK_KP_DIVIDE;
-        case HK_KPENTER:    return SDLK_KP_ENTER;
-        case HK_KPDECIMAL:  return SDLK_KP_PERIOD;
-
-        case HK_INSERT:     return SDLK_INSERT;
-        case HK_DELETE:     return SDLK_DELETE;
-        case HK_HOME:       return SDLK_HOME;
-        case HK_END:        return SDLK_END;
-        case HK_PGUP:       return SDLK_PAGEUP;
-        case HK_PGDN:       return SDLK_PAGEDOWN;
-
-        case HK_ESC:        return SDLK_ESCAPE;
-        case HK_TAB:        return SDLK_TAB;
-        case HK_BACKSPACE:  return SDLK_BACKSPACE;
-        case HK_RETURN:     return SDLK_RETURN;
-
-        case HK_APPS:       return SDLK_MENU;
-        case HK_NONE:       return 0;
-    }
+    if (nChar_ >= HK_MIN && nChar_ < HK_MAX)
+        return nChar_;
 
     return 0;
+}
+
+int Input::MapKey (int nKey_)
+{
+    // Host keycode
+    switch (nKey_)
+    {
+        case SDLK_LSHIFT:   return HK_LSHIFT;
+        case SDLK_RSHIFT:   return HK_RSHIFT;
+        case SDLK_LCTRL:    return HK_LCTRL;
+        case SDLK_RCTRL:    return HK_RCTRL;
+        case SDLK_LALT:     return HK_LALT;
+        case SDLK_RALT:     return HK_RALT;
+        case SDLK_LGUI:     return HK_LWIN;
+        case SDLK_RGUI:     return HK_RWIN;
+
+        case SDLK_LEFT:     return HK_LEFT;
+        case SDLK_RIGHT:    return HK_RIGHT;
+        case SDLK_UP:       return HK_UP;
+        case SDLK_DOWN:     return HK_DOWN;
+
+        case SDLK_KP_0:     return HK_KP0;
+        case SDLK_KP_1:     return HK_KP1;
+        case SDLK_KP_2:     return HK_KP2;
+        case SDLK_KP_3:     return HK_KP3;
+        case SDLK_KP_4:     return HK_KP4;
+        case SDLK_KP_5:     return HK_KP5;
+        case SDLK_KP_6:     return HK_KP6;
+        case SDLK_KP_7:     return HK_KP7;
+        case SDLK_KP_8:     return HK_KP8;
+        case SDLK_KP_9:     return HK_KP9;
+
+        case SDLK_F1:       return HK_F1;
+        case SDLK_F2:       return HK_F2;
+        case SDLK_F3:       return HK_F3;
+        case SDLK_F4:       return HK_F4;
+        case SDLK_F5:       return HK_F5;
+        case SDLK_F6:       return HK_F6;
+        case SDLK_F7:       return HK_F7;
+        case SDLK_F8:       return HK_F8;
+        case SDLK_F9:       return HK_F9;
+        case SDLK_F10:      return HK_F10;
+        case SDLK_F11:      return HK_F11;
+        case SDLK_F12:      return HK_F12;
+
+        case SDLK_CAPSLOCK: return HK_CAPSLOCK;
+        case SDLK_NUMLOCKCLEAR: return HK_NUMLOCK;
+        case SDLK_KP_PLUS:  return HK_KPPLUS;
+        case SDLK_KP_MINUS: return HK_KPMINUS;
+        case SDLK_KP_MULTIPLY: return HK_KPMULT;
+        case SDLK_KP_DIVIDE:return HK_KPDIVIDE;
+        case SDLK_KP_ENTER: return HK_KPENTER;
+        case SDLK_KP_PERIOD:return HK_KPDECIMAL;
+
+        case SDLK_INSERT:   return HK_INSERT;
+        case SDLK_DELETE:   return HK_DELETE;
+        case SDLK_HOME:     return HK_HOME;
+        case SDLK_END:      return HK_END;
+        case SDLK_PAGEUP:   return HK_PGUP;
+        case SDLK_PAGEDOWN: return HK_PGDN;
+
+        case SDLK_ESCAPE:   return HK_ESC;
+        case SDLK_TAB:      return HK_TAB;
+        case SDLK_BACKSPACE:return HK_BACKSPACE;
+        case SDLK_RETURN:   return HK_RETURN;
+
+        case SDLK_PRINTSCREEN: return HK_PRINT;
+        case SDLK_SCROLLLOCK:return HK_SCROLL;
+        case SDLK_PAUSE:    return HK_PAUSE;
+
+        case SDLK_MENU:     return HK_APPS;
+    }
+
+    return (nKey_ && nKey_ < HK_MIN) ? nKey_ : HK_NONE;
 }

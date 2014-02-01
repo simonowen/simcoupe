@@ -2,7 +2,7 @@
 //
 // Action.cpp: Actions bound to functions keys, etc.
 //
-//  Copyright (c) 2005-2012 Simon Owen
+//  Copyright (c) 2005-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -81,6 +81,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
             case actToggleGreyscale:
                 SetOption(greyscale, !GetOption(greyscale));
                 Video::UpdatePalette();
+                Frame::SetStatus("%s", GetOption(greyscale) ? "Greyscale" : "Colour");
                 break;
 
             case actToggle5_4:
@@ -102,6 +103,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 if (Video::CheckCaps(VCAP_FILTER))
                 {
                     SetOption(filter, !GetOption(filter));
+                    Video::UpdateSize();
                     Frame::SetStatus("Smoothing %s", GetOption(filter) ? "enabled" : "disabled");
                 }
                 break;

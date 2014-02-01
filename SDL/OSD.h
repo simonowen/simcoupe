@@ -2,7 +2,7 @@
 //
 // OSD.h: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,19 +26,19 @@
 #include <sys/types.h>      // for _off_t definition
 #include <fcntl.h>
 
+#ifdef USE_SDL2
+#include "SDL2/SDL.h"
+#else
 #ifdef __AMIGAOS4__
 #include <SDL/SDL.h>
 #else
 #include "SDL.h"
 #endif
+#endif
 #define SDL
 
 #ifdef __APPLE__
 #include <sys/disk.h>       // for DKIOCGETBLOCKCOUNT
-#endif
-
-#ifdef USE_OPENGL
-#include "SDL_opengl.h"
 #endif
 
 #ifndef _WINDOWS
@@ -71,8 +71,13 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #pragma include_alias(<io.h>, <..\Include\IO.h>)
 #include <io.h>
 
+#ifdef USE_SDL2
+#pragma comment(lib, "sdl2")
+#pragma comment(lib, "sdl2main")
+#else
 #pragma comment(lib, "sdl")
 #pragma comment(lib, "sdlmain")
+#endif
 
 #ifdef USE_ZLIB
 #ifdef _WIN64
@@ -80,10 +85,6 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #else
 #pragma comment(lib, "zdll")   // zdll.lib is the official import library for 1.2.x versions
 #endif
-#endif
-
-#ifdef USE_OPENGL
-#pragma comment(lib, "OpenGL32.lib")
 #endif
 
 #ifdef USE_RESID
