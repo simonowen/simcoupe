@@ -2,7 +2,7 @@
 //
 // Sound.cpp: Common sound generation
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -155,8 +155,8 @@ CDAC::CDAC ()
 
 void CDAC::Reset ()
 {
-    Output(0x80);
-    Output2(0x80);
+    Output(0);
+    Output2(0);
 }
 
 void CDAC::FrameEnd ()
@@ -173,34 +173,34 @@ void CDAC::FrameEnd ()
 
 void CDAC::OutputLeft (BYTE bVal_)
 {
-    synth_left.update(g_dwCycleCounter, (bVal_ - 0x80));
+    synth_left.update(g_dwCycleCounter, bVal_);
 }
 
 void CDAC::OutputLeft2 (BYTE bVal_)
 {
-    synth_left2.update(g_dwCycleCounter, (bVal_ - 0x80));
+    synth_left2.update(g_dwCycleCounter, bVal_);
 }
 
 void CDAC::OutputRight (BYTE bVal_)
 {
-    synth_right.update(g_dwCycleCounter, (bVal_ - 0x80));
+    synth_right.update(g_dwCycleCounter, bVal_);
 }
 
 void CDAC::OutputRight2 (BYTE bVal_)
 {
-    synth_right2.update(g_dwCycleCounter, (bVal_ - 0x80));
+    synth_right2.update(g_dwCycleCounter, bVal_);
 }
 
 void CDAC::Output (BYTE bVal_)
 {
-    synth_left.update(g_dwCycleCounter, (bVal_ - 0x80));
-    synth_right.update(g_dwCycleCounter, (bVal_ - 0x80));
+    synth_left.update(g_dwCycleCounter, bVal_);
+    synth_right.update(g_dwCycleCounter, bVal_);
 }
 
 void CDAC::Output2 (BYTE bVal_)
 {
-    synth_left2.update(g_dwCycleCounter, (bVal_ - 0x80));
-    synth_right2.update(g_dwCycleCounter, (bVal_ - 0x80));
+    synth_left2.update(g_dwCycleCounter, bVal_);
+    synth_right2.update(g_dwCycleCounter, bVal_);
 }
 
 int CDAC::GetSamplesSoFar ()
