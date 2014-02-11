@@ -377,7 +377,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
                     AcquireMouse(false);
 
                 // Key press (CapsLock/NumLock are toggle keys in SDL, so we must treat any event as a press)
-                if (fPress || pKey->sym == HK_CAPSLOCK || pKey->sym == HK_NUMLOCK)
+                if (fPress || pKey->sym == SDLK_CAPSLOCK || pKey->sym == SDLK_NUMLOCKCLEAR)
                 {
                     Keyboard::SetKey(nKey, true, nMods, nChr);
                 }
