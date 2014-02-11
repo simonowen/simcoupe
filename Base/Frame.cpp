@@ -203,51 +203,66 @@ void Frame::Update ()
     // Restrict the drawing to the visible area
     int nFrom = max(nLastLine, s_nViewTop), nTo = min(nLine, s_nViewBottom-1);
 
-    // Is any part of the block visible?
-    if (nFrom <= nTo)
+    // Determine the renderer for the last updated line
+    bool fHiRes = pScreen->IsHiRes(nFrom-s_nViewTop);
+    CFrame *pFrame = fHiRes ? pFrameHigh : pFrameLow;
+
+    // If we're still on the same line as last time we've only got a part line to draw
+    if (nLine == nLastLine)
     {
-        // Finish the rest of the last line updated
-        if (nFrom == nLastLine)
+        if (nBlock > nLastBlock)
         {
-            bool fHiRes = pScreen->IsHiRes(nLastLine-s_nViewTop);
-            CFrame *pFrame = fHiRes ? pFrameHigh : pFrameLow;
-
-            // Finish the line using the current renderer, and exclude it from the draw range
-            pFrame->UpdateLine(pScreen, nLastLine, nLastBlock, WIDTH_BLOCKS);
-            nFrom++;
-        }
-
-        // Update the last line up to the current scan position
-        if (nTo == nLine)
-        {
-            // Default to low-res unless a mode 3 screen line
-            bool fHiRes = (vmpr_mode == MODE_3) && IsScreenLine(nLine);
-            pScreen->SetHiRes(nLine-s_nViewTop, fHiRes);
-
-            // Determine the appropriate renderer and draw the partial line
-            CFrame *pFrame = fHiRes ? pFrameHigh : pFrameLow;
-            pFrame->UpdateLine(pScreen, nLine, 0, nBlock);
-
-            // Exclude the line from the block as we've drawn it now
-            nTo--;
-        }
-
-        // Draw any full lines in between
-        for (int i = nFrom ; i <= nTo ; i++)
-        {
-            // Default to low-res unless a mode 3 screen line
-            bool fHiRes = (vmpr_mode == MODE_3) && IsScreenLine(i);
-            pScreen->SetHiRes(i-s_nViewTop, fHiRes);
-
-            // Determine the appropriate renderer and draw the complete line
-            CFrame *pFrame = fHiRes ? pFrameHigh : pFrameLow;
-            pFrame->UpdateLine(pScreen, i, 0, WIDTH_BLOCKS);
+            pFrame->UpdateLine(pScreen, nLine, nLastBlock, nBlock);
+            nLastBlock = nBlock;
         }
     }
 
-    // Remember the current scan position so we can continue from it next time
-    nLastLine = nLine;
-    nLastBlock = nBlock;
+    // We've got multiple lines to update
+    else
+    {
+        // Is any part of the block visible?
+        if (nFrom <= nTo)
+        {
+            // Finish the rest of the last line updated
+            if (nFrom == nLastLine)
+            {
+                // Finish the line using the current renderer, and exclude it from the draw range
+                pFrame->UpdateLine(pScreen, nLastLine, nLastBlock, WIDTH_BLOCKS);
+                nFrom++;
+            }
+
+            // Update the last line up to the current scan position
+            if (nTo == nLine)
+            {
+                // Default to low-res unless a mode 3 screen line
+                bool fHiRes = (vmpr_mode == MODE_3) && IsScreenLine(nLine);
+                pScreen->SetHiRes(nLine-s_nViewTop, fHiRes);
+
+                // Determine the appropriate renderer and draw the partial line
+                CFrame *pFrame = fHiRes ? pFrameHigh : pFrameLow;
+                pFrame->UpdateLine(pScreen, nLine, 0, nBlock);
+
+                // Exclude the line from the block as we've drawn it now
+                nTo--;
+            }
+
+            // Draw any full lines in between
+            for (int i = nFrom ; i <= nTo ; i++)
+            {
+                // Default to low-res unless a mode 3 screen line
+                bool fHiRes = (vmpr_mode == MODE_3) && IsScreenLine(i);
+                pScreen->SetHiRes(i-s_nViewTop, fHiRes);
+
+                // Determine the appropriate renderer and draw the complete line
+                CFrame *pFrame = fHiRes ? pFrameHigh : pFrameLow;
+                pFrame->UpdateLine(pScreen, i, 0, WIDTH_BLOCKS);
+            }
+        }
+
+        // Remember the current scan position so we can continue from it next time
+        nLastLine = nLine;
+        nLastBlock = nBlock;
+    }
 }
 
 
