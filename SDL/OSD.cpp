@@ -2,7 +2,7 @@
 //
 // OSD.cpp: SDL common "OS-dependant" functions
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -248,20 +248,3 @@ int closedir (DIR* hDir_)
 }
 
 #endif
-
-////////////////////////////////////////////////////////////////////////////////
-
-int main (int argc_, char* argv_[])
-{
-#ifdef __APPLE__
-    // OS X lacks a unique Right-Ctrl key, so enable the "Left-Alt for Cntrl" option by default
-    SetDefault(altforcntrl,true);
-#endif
-
-    if (Main::Init(argc_, argv_))
-        CPU::Run();
-
-    Main::Exit();
-
-    return 0;
-}

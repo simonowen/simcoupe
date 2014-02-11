@@ -21,8 +21,6 @@
 #ifndef OSD_H
 #define OSD_H
 
-#define CUSTOM_MAIN
-
 #include <sys/types.h>      // for _off_t definition
 #include <fcntl.h>
 
@@ -39,6 +37,7 @@
 
 #ifdef __APPLE__
 #include <sys/disk.h>       // for DKIOCGETBLOCKCOUNT
+#define main SimCoupe_main  // rename main() so Cocoa can use it
 #endif
 
 #ifndef _WINDOWS

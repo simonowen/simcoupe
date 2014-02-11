@@ -2,35 +2,30 @@
        Initial Version: Darrell Walisser <dwaliss1@purdue.edu>
        Non-NIB-Code & other changes: Max Horn <max@quendi.de>
 
-    Feel free to customize this file to suit your needs
+ Customised for SimCoupe by Simon Owen <simon.owen@simcoupe.org>
 */
 
-#ifndef _SDLMain_h_
-#define _SDLMain_h_
-
 #import <Cocoa/Cocoa.h>
-#import "Options.h"
+
+/* Portions of CPS.h */
+typedef struct CPSProcessSerNum
+{
+    UInt32 lo;
+    UInt32 hi;
+} CPSProcessSerNum;
+
+extern OSErr CPSGetCurrentProcess( CPSProcessSerNum *psn);
+extern OSErr CPSEnableForegroundOperation( CPSProcessSerNum *psn, UInt32 _arg2, UInt32 _arg3, UInt32 _arg4, UInt32 _arg5);
+extern OSErr CPSSetFrontProcess( CPSProcessSerNum *psn);
+
+static int gArgc;
+static char **gArgv;
+static BOOL gFinderLaunch;
 
 @interface SDLMain : NSObject
-
-- (IBAction)appPreferences:(id)sender;
-- (IBAction)fileImportData:(id)sender;
-- (IBAction)fileExportData:(id)sender;
-- (IBAction)viewFullscreen:(id)sender;
-- (IBAction)viewFrameSync:(id)sender;
-- (IBAction)viewGreyscale:(id)sender;
-- (IBAction)viewScanlines:(id)sender;
-- (IBAction)viewRatio54:(id)sender;
-- (IBAction)systemNMI:(id)sender;
-- (IBAction)systemReset:(id)sender;
-- (IBAction)systemDebugger:(id)sender;
-- (IBAction)systemMute:(id)sender;
-- (IBAction)helpHelp:(id)sender;
-- (IBAction)helpChangeLog:(id)sender;
-- (IBAction)helpHomepage:(id)sender;
-
-- (void)openResourceFile:( NSString *) fileName;
-
 @end
 
-#endif /* _SDLMain_h_ */
+/* This is needed in Tiger */
+@interface NSApplication(PrBoom)
+- (void)setAppleMenu:(NSMenu *)menu;
+@end

@@ -40,6 +40,10 @@ SDLTexture::SDLTexture ()
     m_rTarget.h = Frame::GetHeight();
 
     SDL_SetHint(SDL_HINT_RENDER_VSYNC, "0");
+
+#ifdef SDL_VIDEO_FULLSCREEN_SPACES
+    SDL_SetHint(SDL_VIDEO_FULLSCREEN_SPACES, "1");
+#endif
 }
 
 SDLTexture::~SDLTexture ()

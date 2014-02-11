@@ -2,7 +2,7 @@
 //
 // Main.h: Main entry point
 //
-//  Copyright (c) 1999-2004  Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,7 +27,5 @@ class Main
         static bool Init (int argc_, char* argv_[]);
         static void Exit ();
 };
-
-int main (int argc, char *argv[]);
 
 #endif  // MAIN_H

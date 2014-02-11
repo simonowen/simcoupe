@@ -2,7 +2,7 @@
 //
 // Main.cpp: Main entry point
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,16 +25,14 @@
 #include "Frame.h"
 #include "Input.h"
 #include "Options.h"
+#include "OSD.h"
 #include "Sound.h"
 #include "UI.h"
 #include "Util.h"
 #include "Video.h"
 
 
-// Use default main unless the platform requires something special
-#ifndef CUSTOM_MAIN
-
-int main (int argc_, char* argv_[])
+extern "C" int main (int argc_, char* argv_[])
 {
     if (Main::Init(argc_, argv_))
         CPU::Run();
@@ -43,8 +41,6 @@ int main (int argc_, char* argv_[])
 
     return 0;
 }
-
-#endif
 
 
 bool Main::Init (int argc_, char* argv_[])

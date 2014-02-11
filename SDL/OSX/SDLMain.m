@@ -1,322 +1,267 @@
 /*   SDLMain.m - main entry point for our Cocoa-ized SDL app
-       Initial Version: Darrell Walisser <dwaliss1@purdue.edu>
-       Non-NIB-Code & other changes: Max Horn <max@quendi.de>
+ Initial Version: Darrell Walisser <dwaliss1@purdue.edu>
+ Non-NIB-Code & other changes: Max Horn <max@quendi.de>
 
-    Feel free to customize this file to suit your needs
-*/
+ Customised for SimCoupe by Simon Owen <simon.owen@simcoupe.org>
+ */
 
-#include "SDL.h"
-#include "SDLMain.h"
-#include <sys/param.h> /* for MAXPATHLEN */
-#include <unistd.h>
-#include "../UI.h" // for UE_* user event definitions
+#import <SDL2/SDL.h>
+#import "SDLMain.h"
+#include "../UI.h"      // For UE_* user event definitions
 
-/* For some reaon, Apple removed setAppleMenu from the headers in 10.4,
- but the method still is there and works. To avoid warnings, we declare
- it ourselves here. */
-@interface NSApplication(SDL_Missing_Methods)
-- (void)setAppleMenu:(NSMenu *)menu;
-@end
+extern int SimCoupe_main (int argc_, char* argv_[]);
 
-/* Use this flag to determine whether we use SDLMain.nib or not */
-#define		SDL_USE_NIB_FILE	1
-
-/* Use this flag to determine whether we use CPS (docking) or not */
-#define		SDL_USE_CPS		1
-#ifdef SDL_USE_CPS
-/* Portions of CPS.h */
-typedef struct CPSProcessSerNum
-{
-	UInt32		lo;
-	UInt32		hi;
-} CPSProcessSerNum;
-
-extern OSErr	CPSGetCurrentProcess( CPSProcessSerNum *psn);
-extern OSErr 	CPSEnableForegroundOperation( CPSProcessSerNum *psn, UInt32 _arg2, UInt32 _arg3, UInt32 _arg4, UInt32 _arg5);
-extern OSErr	CPSSetFrontProcess( CPSProcessSerNum *psn);
-
-#endif /* SDL_USE_CPS */
-
-static int    gArgc;
-static char  **gArgv;
-static BOOL   gFinderLaunch;
-static BOOL   gCalledAppMainline = FALSE;
 
 static NSString *getApplicationName(void)
 {
-    const NSDictionary *dict;
+    NSDictionary *dict;
     NSString *appName = 0;
 
     /* Determine the application name */
-    dict = (const NSDictionary *)CFBundleGetInfoDictionary(CFBundleGetMainBundle());
+    dict = (NSDictionary *)CFBundleGetInfoDictionary(CFBundleGetMainBundle());
     if (dict)
         appName = [dict objectForKey: @"CFBundleName"];
-    
+
     if (![appName length])
         appName = [[NSProcessInfo processInfo] processName];
 
     return appName;
 }
 
-#if SDL_USE_NIB_FILE
-/* A helper category for NSString */
-@interface NSString (ReplaceSubString)
-- (NSString *)stringByReplacingRange:(NSRange)aRange with:(NSString *)aString;
-@end
-#endif
-
-@interface NSApplication (SDLApplication)
-@end
-
-@implementation NSApplication (SDLApplication)
-/* Invoked from the Quit menu item */
-- (void)terminate:(id)sender
-{
-    /* Post a SDL_QUIT event */
-    SDL_Event event;
-    event.type = SDL_QUIT;
-    SDL_PushEvent(&event);
-}
-@end
-
-/* The main class of the application, the application's delegate */
+/* Our NSApplication delegate. */
 @implementation SDLMain
 
-/* Set the working directory to the .app's parent directory */
-- (void) setupWorkingDirectory:(BOOL)shouldChdir
+static void setupApplicationMenus ()
 {
-    if (shouldChdir)
-    {
-        char parentdir[MAXPATHLEN];
-        CFURLRef url = CFBundleCopyBundleURL(CFBundleGetMainBundle());
-        CFURLRef url2 = CFURLCreateCopyDeletingLastPathComponent(0, url);
-        if (CFURLGetFileSystemRepresentation(url2, 1, (UInt8 *)parentdir, MAXPATHLEN)) {
-            chdir(parentdir);   /* chdir to the binary app's parent */
-        }
-        CFRelease(url);
-        CFRelease(url2);
-    }
-}
-
-#if SDL_USE_NIB_FILE
-
-/* Fix menu to contain the real app name instead of "SDL App" */
-- (void)fixMenu:(NSMenu *)aMenu withAppName:(NSString *)appName
-{
-    NSRange aRange;
-    NSEnumerator *enumerator;
-    NSMenuItem *menuItem;
-
-    aRange = [[aMenu title] rangeOfString:@"SDL App"];
-    if (aRange.length != 0)
-        [aMenu setTitle: [[aMenu title] stringByReplacingRange:aRange with:appName]];
-
-    enumerator = [[aMenu itemArray] objectEnumerator];
-    while ((menuItem = [enumerator nextObject]))
-    {
-        aRange = [[menuItem title] rangeOfString:@"SDL App"];
-        if (aRange.length != 0)
-            [menuItem setTitle: [[menuItem title] stringByReplacingRange:aRange with:appName]];
-        if ([menuItem hasSubmenu])
-            [self fixMenu:[menuItem submenu] withAppName:appName];
-    }
-}
-
-#else
-
-static void setApplicationMenu(void)
-{
-    /* warning: this code is very odd */
-    NSMenu *appleMenu;
-    NSMenuItem *menuItem;
-    NSString *title;
     NSString *appName;
-    
-    appName = getApplicationName();
-    appleMenu = [[NSMenu alloc] initWithTitle:@""];
-    
-    /* Add menu items */
-    title = [@"About " stringByAppendingString:appName];
-    [appleMenu addItemWithTitle:title action:@selector(orderFrontStandardAboutPanel:) keyEquivalent:@""];
+    NSString *title;
+    NSMenu *menu;
+    NSMenu *subMenu;
+    NSMenuItem *item;
 
-    [appleMenu addItem:[NSMenuItem separatorItem]];
+    if (NSApp == nil) {
+        return;
+    }
+
+    /* Create the main menu bar */
+    [NSApp setMainMenu:[[NSMenu alloc] init]];
+
+    /* Create the application menu */
+    appName = getApplicationName();
+    menu = [[NSMenu alloc] initWithTitle:@""];
+
+    title = [@"About " stringByAppendingString:appName];
+    [menu addItemWithTitle:title action:@selector(orderFrontStandardAboutPanel:) keyEquivalent:@""];
+    [menu addItem:[NSMenuItem separatorItem]];
+    [menu addItemWithTitle:@"Preferences…" action:@selector(appPreferences:) keyEquivalent:@","];
+    [menu addItem:[NSMenuItem separatorItem]];
+
+    subMenu = [[NSMenu alloc] initWithTitle:@""];
+    item = [menu addItemWithTitle:@"Services" action:nil keyEquivalent:@""];
+    [item setSubmenu:subMenu];
+    [NSApp setServicesMenu:subMenu];
+    [subMenu release];
+
+    [menu addItem:[NSMenuItem separatorItem]];
 
     title = [@"Hide " stringByAppendingString:appName];
-    [appleMenu addItemWithTitle:title action:@selector(hide:) keyEquivalent:@"h"];
+    [menu addItemWithTitle:title action:@selector(hide:) keyEquivalent:@"h"];
 
-    menuItem = (NSMenuItem *)[appleMenu addItemWithTitle:@"Hide Others" action:@selector(hideOtherApplications:) keyEquivalent:@"h"];
-    [menuItem setKeyEquivalentModifierMask:(NSAlternateKeyMask|NSCommandKeyMask)];
+    item = [menu addItemWithTitle:@"Hide Others" action:@selector(hideOtherApplications:) keyEquivalent:@"h"];
+    [item setKeyEquivalentModifierMask:(NSAlternateKeyMask|NSCommandKeyMask)];
 
-    [appleMenu addItemWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""];
-
-    [appleMenu addItem:[NSMenuItem separatorItem]];
+    [menu addItemWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""];
+    [menu addItem:[NSMenuItem separatorItem]];
 
     title = [@"Quit " stringByAppendingString:appName];
-    [appleMenu addItemWithTitle:title action:@selector(terminate:) keyEquivalent:@"q"];
+    [menu addItemWithTitle:title action:@selector(terminate:) keyEquivalent:@"q"];
 
+    item = [[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""];
+    [item setSubmenu:menu];
+    [[NSApp mainMenu] addItem:item];
+    [item release];
+
+    [NSApp setAppleMenu:menu];
+    [menu release];
+
+
+    /* Create the File menu */
+    menu = [[NSMenu alloc] initWithTitle:@"File"];
+
+    [menu addItemWithTitle:@"New" action:@selector(appNew:) keyEquivalent:@"n"];
+    [menu addItemWithTitle:@"Open" action:@selector(openDocument:) keyEquivalent:@"o"];
+
+    item = [menu addItemWithTitle:@"Open Recent" action:nil keyEquivalent:@""];
+    subMenu = [[NSMenu alloc] initWithTitle:@"Open Recent"];
+    [subMenu performSelector:@selector(_setMenuName:) withObject:@"NSRecentDocumentsMenu"];
+    [menu setSubmenu:subMenu forItem:item];
+    [subMenu release];
+
+    [menu addItem:[NSMenuItem separatorItem]];
+
+    [menu addItemWithTitle:@"Save" action:nil keyEquivalent:@"s"];
+    [menu addItemWithTitle:@"Save As" action:nil keyEquivalent:@""];
+
+    [menu addItem:[NSMenuItem separatorItem]];
     
-    /* Put menu into the menubar */
-    menuItem = [[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""];
-    [menuItem setSubmenu:appleMenu];
-    [[NSApp mainMenu] addItem:menuItem];
+    item = [menu addItemWithTitle:@"Import Data" action:@selector(fileImportData:) keyEquivalent:@"i"];
+    [item setKeyEquivalentModifierMask:(NSShiftKeyMask|NSCommandKeyMask)];
+    item = [menu addItemWithTitle:@"Export Data" action:@selector(fileExportData:) keyEquivalent:@"e"];
+    [item setKeyEquivalentModifierMask:(NSShiftKeyMask|NSCommandKeyMask)];
+    
+    item = [[NSMenuItem alloc] initWithTitle:@"File" action:nil keyEquivalent:@""];
+    [item setSubmenu:menu];
+    [[NSApp mainMenu] addItem:item];
+    [item release];
+    [menu release];
 
-    /* Tell the application object that this is now the application menu */
-    [NSApp setAppleMenu:appleMenu];
 
-    /* Finally give up our references to the objects */
-    [appleMenu release];
-    [menuItem release];
+    /* Create the View menu */
+    menu = [[NSMenu alloc] initWithTitle:@"View"];
+    
+    item = [menu addItemWithTitle:@"Fullscreen" action:@selector(viewFullscreen:) keyEquivalent:@"f"];
+    [menu addItem:[NSMenuItem separatorItem]];
+    item = [menu addItemWithTitle:@"Toggle Greyscale" action:@selector(viewGreyscale:) keyEquivalent:@"g"];
+    item = [menu addItemWithTitle:@"5:4 Aspect Ratio" action:@selector(viewRatio54:) keyEquivalent:@"5"];
+    item = [menu addItemWithTitle:@"TV Scanlines" action:@selector(viewScanlines:) keyEquivalent:@"l"];
+
+    item = [[NSMenuItem alloc] initWithTitle:@"View" action:nil keyEquivalent:@""];
+    [item setSubmenu:menu];
+    [[NSApp mainMenu] addItem:item];
+    [item release];
+    [menu release];
+
+
+    /* Create the System menu */
+    menu = [[NSMenu alloc] initWithTitle:@"System"];
+    
+    item = [menu addItemWithTitle:@"Pause" action:@selector(systemPause:) keyEquivalent:@"p"];
+    [menu addItem:[NSMenuItem separatorItem]];
+    item = [menu addItemWithTitle:@"Generate NMI" action:@selector(systemNMI:) keyEquivalent:@"n"];
+    [item setKeyEquivalentModifierMask:(NSShiftKeyMask|NSCommandKeyMask)];
+    item = [menu addItemWithTitle:@"Reset" action:@selector(systemReset:) keyEquivalent:@"r"];
+    item = [menu addItemWithTitle:@"Debugger" action:@selector(systemDebugger:) keyEquivalent:@"d"];
+    [menu addItem:[NSMenuItem separatorItem]];
+    item = [menu addItemWithTitle:@"Mute sound" action:@selector(systemMute:) keyEquivalent:@"m"];
+    [item setKeyEquivalentModifierMask:(NSShiftKeyMask|NSCommandKeyMask)];
+
+    item = [[NSMenuItem alloc] initWithTitle:@"System" action:nil keyEquivalent:@""];
+    [item setSubmenu:menu];
+    [[NSApp mainMenu] addItem:item];
+    [item release];
+    [menu release];
+
+
+    /* Create the Window menu */
+    menu = [[NSMenu alloc] initWithTitle:@"Window"];
+
+    [menu addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];
+    [menu addItemWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""];
+
+    item = [[NSMenuItem alloc] initWithTitle:@"Window" action:nil keyEquivalent:@""];
+    [item setSubmenu:menu];
+    [[NSApp mainMenu] addItem:item];
+    [item release];
+
+    [NSApp setWindowsMenu:menu];
+    [menu release];
+
+
+    /* Create the Help menu */
+    menu = [[NSMenu alloc] initWithTitle:@"Help"];
+
+    item = [menu addItemWithTitle:@"SimCoupe Help" action:@selector(helpHelp:) keyEquivalent:@""];
+    item = [menu addItemWithTitle:@"View Changelog" action:@selector(helpChangeLog:) keyEquivalent:@""];
+    [menu addItem:[NSMenuItem separatorItem]];
+    item = [menu addItemWithTitle:@"SimCoupe Homepage" action:@selector(helpHomepage:) keyEquivalent:@""];
+
+    item = [[NSMenuItem alloc] initWithTitle:@"Help" action:nil keyEquivalent:@""];
+    [item setSubmenu:menu];
+    [[NSApp mainMenu] addItem:item];
+    [item release];
+    [menu release];
 }
 
-/* Create a window menu */
-static void setupWindowMenu(void)
+
+/* Generate an SDL quite event for graceful app termination */
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
 {
-    NSMenu      *windowMenu;
-    NSMenuItem  *windowMenuItem;
-    NSMenuItem  *menuItem;
-
-    windowMenu = [[NSMenu alloc] initWithTitle:@"Window"];
-    
-    /* "Minimize" item */
-    menuItem = [[NSMenuItem alloc] initWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];
-    [windowMenu addItem:menuItem];
-    [menuItem release];
-    
-    /* Put menu into the menubar */
-    windowMenuItem = [[NSMenuItem alloc] initWithTitle:@"Window" action:nil keyEquivalent:@""];
-    [windowMenuItem setSubmenu:windowMenu];
-    [[NSApp mainMenu] addItem:windowMenuItem];
-    
-    /* Tell the application object that this is now the window menu */
-    [NSApp setWindowsMenu:windowMenu];
-
-    /* Finally give up our references to the objects */
-    [windowMenu release];
-    [windowMenuItem release];
-}
-
-/* Replacement for NSApplicationMain */
-static void CustomApplicationMain (int argc, char **argv)
-{
-    NSAutoreleasePool	*pool = [[NSAutoreleasePool alloc] init];
-    SDLMain				*sdlMain;
-
-    /* Ensure the application object is initialised */
-    [SDLApplication sharedApplication];
-    
-#ifdef SDL_USE_CPS
-    {
-        CPSProcessSerNum PSN;
-        /* Tell the dock about us */
-        if (!CPSGetCurrentProcess(&PSN))
-            if (!CPSEnableForegroundOperation(&PSN,0x03,0x3C,0x2C,0x1103))
-                if (!CPSSetFrontProcess(&PSN))
-                    [SDLApplication sharedApplication];
+    if (SDL_GetEventState(SDL_QUIT) == SDL_ENABLE) {
+        SDL_Event event;
+        event.type = SDL_QUIT;
+        SDL_PushEvent(&event);
     }
-#endif /* SDL_USE_CPS */
 
-    /* Set up the menubar */
-    [NSApp setMainMenu:[[NSMenu alloc] init]];
-    setApplicationMenu();
-    setupWindowMenu();
-
-    /* Create SDLMain and make it the app delegate */
-    sdlMain = [[SDLMain alloc] init];
-    [NSApp setDelegate:sdlMain];
-    
-    /* Start the main event loop */
-    [NSApp run];
-    
-    [sdlMain release];
-    [pool release];
+    return NSTerminateCancel;
 }
 
-#endif
-
-
-/*
- * Catch document open requests...this lets us notice files when the app
- *  was launched by double-clicking a document, or when a document was
- *  dragged/dropped on the app's icon. You need to have a
- *  CFBundleDocumentsType section in your Info.plist to get this message,
- *  apparently.
- *
- * Files are added to gArgv, so to the app, they'll look like command line
- *  arguments. Previously, apps launched from the finder had nothing but
- *  an argv[0].
- *
- * This message may be received multiple times to open several docs on launch.
- *
- * This message is ignored once the app's mainline has been called.
- */
+/* Pass dropped files through to SDL for processing, and ultimately on to SimCoupe */
 - (BOOL)application:(NSApplication *)theApplication openFile:(NSString *)filename
 {
-    const char *temparg;
-    size_t arglen;
-    char *arg;
-    char **newargv;
-
-    if (!gFinderLaunch)  /* MacOS is passing command line args. */
-        return FALSE;
-
-    if (gCalledAppMainline)  /* app has started */
-    {
-		// Send an event containing the filename, to open it
-		SDL_Event event = {0};
-		event.user.type = SDL_USEREVENT;
-		event.user.code = UE_OPENFILE;
-		event.user.data1 = strdup([ filename UTF8String ]);
-		SDL_PushEvent(&event);
-        return TRUE;
+    if (SDL_GetEventState(SDL_DROPFILE) == SDL_ENABLE) {
+        SDL_Event event;
+        event.type = SDL_DROPFILE;
+        event.drop.file = SDL_strdup([filename UTF8String]);
+        return (SDL_PushEvent(&event) > 0);
     }
 
-    temparg = [filename UTF8String];
-    arglen = SDL_strlen(temparg) + 1;
-    arg = (char *) SDL_malloc(arglen);
-    if (arg == NULL)
-        return FALSE;
-
-    newargv = (char **) realloc(gArgv, sizeof (char *) * (gArgc + 2));
-    if (newargv == NULL)
-    {
-        SDL_free(arg);
-        return FALSE;
-    }
-    gArgv = newargv;
-
-    SDL_strlcpy(arg, temparg, arglen);
-    gArgv[gArgc++] = arg;
-    gArgv[gArgc] = NULL;
-    return TRUE;
+    return NO;
 }
 
 
 /* Called when the internal event loop has just started running */
 - (void) applicationDidFinishLaunching: (NSNotification *) note
 {
-    int status;
-
-    /* Set the working directory to the .app's parent directory */
-    [self setupWorkingDirectory:gFinderLaunch];
-
-#if SDL_USE_NIB_FILE
-    /* Set the main menu to contain the real app name instead of "SDL App" */
-    [self fixMenu:[NSApp mainMenu] withAppName:getApplicationName()];
-#endif
-
     /* Hand off to main application code */
-    gCalledAppMainline = TRUE;
-    status = SDL_main (gArgc, gArgv);
+    int status = SimCoupe_main(gArgc, gArgv);
 
     /* We're done, thank you for playing */
     exit(status);
 }
 
-
 //////////////////////////////////////////////////////////////////////////////
-// SIMCOUPE START
 
-- (IBAction)fileOpen:(id)sender
+
+// Internal function used to launch a file from the app bundle's resources folder.
+-(void) openResourceFile:( NSString *) fileName
+{
+    NSString *myBundle = [[NSBundle mainBundle] bundlePath];
+    NSString *fullpath = [NSString stringWithFormat:@"%@/Contents/Resources/%@",myBundle, fileName];
+    [[NSWorkspace sharedWorkspace] openFile:fullpath ];
+}
+
+
+static void sendUserEventData (int event, void *data)
+{
+    SDL_Event e = {0};
+    e.user.type = SDL_USEREVENT;
+    e.user.code = event;
+    e.user.data1 = data;
+    SDL_PushEvent(&e);
+}
+
+static void sendUserEvent (int event)
+{
+    sendUserEventData(event, NULL);
+}
+
+
+- (IBAction)appPreferences:(id)sender { sendUserEvent(UE_OPTIONS); }
+- (IBAction)systemPause:(id)sender { sendUserEvent(UE_PAUSE); }
+- (IBAction)systemNMI:(id)sender { sendUserEvent(UE_NMIBUTTON); }
+- (IBAction)systemReset:(id)sender { sendUserEvent(UE_RESETBUTTON); }
+- (IBAction)systemDebugger:(id)sender { sendUserEvent(UE_DEBUGGER); }
+- (IBAction)systemMute:(id)sender { sendUserEvent(UE_TOGGLEMUTE); }
+- (IBAction)viewFullscreen:(id)sender { sendUserEvent(UE_TOGGLEFULLSCREEN); }
+- (IBAction)viewFrameSync:(id)sender { sendUserEvent(UE_TOGGLESYNC); }
+- (IBAction)viewGreyscale:(id)sender { sendUserEvent(UE_TOGGLEGREYSCALE); }
+- (IBAction)viewScanlines:(id)sender { sendUserEvent(UE_TOGGLESCANLINES); }
+- (IBAction)viewRatio54:(id)sender { sendUserEvent(UE_TOGGLE54); }
+- (IBAction)fileImportData:(id)sender { sendUserEvent(UE_IMPORTDATA); }
+- (IBAction)fileExportData:(id)sender { sendUserEvent(UE_EXPORTDATA); }
+
+
+- (IBAction)openDocument:(id)sender
 {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString *documentsDirectory = [paths objectAtIndex:0];
@@ -324,207 +269,73 @@ static void CustomApplicationMain (int argc, char **argv)
     NSString *path = nil;
 
     NSOpenPanel *openPanel = [NSOpenPanel openPanel];
-    [openPanel setDirectory:documentsDirectory];
+    [openPanel setDirectoryURL:[NSURL fileURLWithPath:documentsDirectory]];
     [openPanel setAllowedFileTypes:fileTypes];
     if ([openPanel runModal])
-        path = [[openPanel filenames] objectAtIndex:0];
+        path = [[[openPanel URLs] objectAtIndex:0] path];
 
     if (path == nil)
-		return;
+        return;
 
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_OPENFILE;
-	event.user.data1 = strdup([path UTF8String]);
-	SDL_PushEvent(&event);
+    sendUserEventData(UE_OPENFILE, strdup([path UTF8String]));
 
-	[[NSDocumentController sharedDocumentController] noteNewRecentDocumentURL:[NSURL fileURLWithPath:path]];
+    [[NSDocumentController sharedDocumentController] noteNewRecentDocumentURL:[NSURL fileURLWithPath:path]];
 }
-
-- (IBAction)appPreferences:(id)sender
-{
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_OPTIONS;
-	SDL_PushEvent(&event);
-}
-
-- (IBAction)systemPause:(id)sender
-{
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_PAUSE;
-	SDL_PushEvent(&event);
-}
-
-- (IBAction)systemNMI:(id)sender
-{
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_NMIBUTTON;
-	SDL_PushEvent(&event);
-}
-
-- (IBAction)systemReset:(id)sender
-{
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_RESETBUTTON;
-	SDL_PushEvent(&event);
-}
-
-- (IBAction)systemDebugger:(id)sender
-{
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_DEBUGGER;
-	SDL_PushEvent(&event);
-}
-
-- (IBAction)systemMute:(id)sender
-{
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_TOGGLEMUTE;
-	SDL_PushEvent(&event);
-}
-
-
-- (IBAction)viewFullscreen:(id)sender
-{
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_TOGGLEFULLSCREEN;
-	SDL_PushEvent(&event);
-}
-
-- (IBAction)viewFrameSync:(id)sender
-{
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_TOGGLESYNC;
-	SDL_PushEvent(&event);
-}
-
-- (IBAction)viewGreyscale:(id)sender
-{
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_TOGGLEGREYSCALE;
-	SDL_PushEvent(&event);
-}
-
-- (IBAction)viewScanlines:(id)sender
-{
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_TOGGLESCANLINES;
-	SDL_PushEvent(&event);
-}
-
-- (IBAction)viewRatio54:(id)sender
-{
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_TOGGLE54;
-	SDL_PushEvent(&event);
-}
-
-- (IBAction)fileImportData:(id)sender
-{
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_IMPORTDATA;
-	SDL_PushEvent(&event);
-}
-
-- (IBAction)fileExportData:(id)sender
-{
-	SDL_Event event = {0};
-	event.user.type = SDL_USEREVENT;
-	event.user.code = UE_EXPORTDATA;
-	SDL_PushEvent(&event);
-}
-
 
 // Help -> SimCoupe Help
 - (IBAction)helpHelp:(id)sender
 {
-	[self openResourceFile:@"SimCoupe.rtf"];
+    [self openResourceFile:@"SimCoupe.rtf"];
 }
 
 // Help -> View ChangeLog
 - (IBAction)helpChangeLog:(id)sender
 {
-	[self openResourceFile:@"ChangeLog.txt"];
+    [self openResourceFile:@"ChangeLog.txt"];
 }
 
 // Help -> Homepage
 - (IBAction)helpHomepage:(id)sender
 {
-	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://simcoupe.org/"]];
-}
-
-
-// Internal function used to launch a file from the app bundle's resources folder.
--(void) openResourceFile:( NSString *) fileName
-{
-	NSString *myBundle = [[NSBundle mainBundle] bundlePath];
-	NSString *fullpath = [NSString stringWithFormat:@"%@/Contents/Resources/%@",myBundle, fileName];
-	[[NSWorkspace sharedWorkspace] openFile:fullpath ];
-}
-
-// SIMCOUPE END
-//////////////////////////////////////////////////////////////////////////////
-
-@end
-
-
-@implementation NSString (ReplaceSubString)
-
-- (NSString *)stringByReplacingRange:(NSRange)aRange with:(NSString *)aString
-{
-    unsigned int bufferSize;
-    unsigned int selfLen = [self length];
-    unsigned int aStringLen = [aString length];
-    unichar *buffer;
-    NSRange localRange;
-    NSString *result;
-
-    bufferSize = selfLen + aStringLen - aRange.length;
-    buffer = (unichar *)NSAllocateMemoryPages(bufferSize*sizeof(unichar));
-    
-    /* Get first part into buffer */
-    localRange.location = 0;
-    localRange.length = aRange.location;
-    [self getCharacters:buffer range:localRange];
-    
-    /* Get middle part into buffer */
-    localRange.location = 0;
-    localRange.length = aStringLen;
-    [aString getCharacters:(buffer+aRange.location) range:localRange];
-     
-    /* Get last part into buffer */
-    localRange.location = aRange.location + aRange.length;
-    localRange.length = selfLen - localRange.location;
-    [self getCharacters:(buffer+aRange.location+aStringLen) range:localRange];
-    
-    /* Build output string */
-    result = [NSString stringWithCharacters:buffer length:bufferSize];
-    
-    NSDeallocateMemoryPages(buffer, bufferSize);
-    
-    return result;
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://simcoupe.org/"]];
 }
 
 @end
 
 
+/* Replacement for NSApplicationMain */
+static int CustomApplicationMain (int argc, char **argv)
+{
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
-#ifdef main
-#  undef main
-#endif
+    /* Ensure the application object is initialised */
+    [NSApplication sharedApplication];
 
+    CPSProcessSerNum PSN;
+    /* Tell the dock about us */
+    if (!CPSGetCurrentProcess(&PSN))
+        if (!CPSEnableForegroundOperation(&PSN,0x03,0x3C,0x2C,0x1103))
+            if (!CPSSetFrontProcess(&PSN))
+                [NSApplication sharedApplication];
+
+    /* Set up the menubar */
+    setupApplicationMenus();
+
+    /* Create SDLMain and make it the app delegate */
+    SDLMain *sdlMain = [[SDLMain alloc] init];
+    [NSApp setDelegate:sdlMain];
+
+    /* Start the main event loop */
+    [NSApp run];
+
+    [sdlMain release];
+    [pool release];
+
+    return 0;
+}
+
+
+#undef main
 
 /* Main entry point to executable - should *not* be SDL_main! */
 int main (int argc, char **argv)
@@ -532,7 +343,7 @@ int main (int argc, char **argv)
     /* Copy the arguments into a global variable */
     /* This is passed if we are launched by double-clicking */
     if ( argc >= 2 && strncmp (argv[1], "-psn", 4) == 0 ) {
-        gArgv = (char **) SDL_malloc(sizeof (char *) * 2);
+        gArgv = (char **) malloc(sizeof (char *) * 2);
         gArgv[0] = argv[0];
         gArgv[1] = NULL;
         gArgc = 1;
@@ -540,17 +351,11 @@ int main (int argc, char **argv)
     } else {
         int i;
         gArgc = argc;
-        gArgv = (char **) SDL_malloc(sizeof (char *) * (argc+1));
+        gArgv = (char **) malloc(sizeof (char *) * (argc+1));
         for (i = 0; i <= argc; i++)
             gArgv[i] = argv[i];
         gFinderLaunch = NO;
     }
 
-#if SDL_USE_NIB_FILE
-    NSApplicationMain (argc, (const char**)argv);
-#else
-    CustomApplicationMain (argc, argv);
-#endif
-    return 0;
+    return CustomApplicationMain(argc, argv);
 }
-
