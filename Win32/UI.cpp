@@ -2,7 +2,7 @@
 //
 // UI.cpp: Win32 user interface
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -1709,16 +1709,12 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         {
             bool fPress = (uMsg_ == WM_KEYDOWN);
 
-            // Unpause if paused, so the user doesn't think we've hung
-            if (g_fPaused)
-                Action::Do(actPause);
-
             // If the keyboard is used, simulate early timer expiry to hide the cursor
             if (fPress && ulMouseTimer)
                 ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, NULL);
 
-            // Unpause if paused, so the user doesn't think we've hung
-            if (g_fPaused)
+            // Unpause on key-down so the user doesn't think we've hung
+            if (fPress && g_fPaused)
                 Action::Do(actPause);
 
             // Read the current states of the shift keys
