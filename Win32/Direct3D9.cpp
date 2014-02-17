@@ -2,7 +2,7 @@
 //
 // Direct3D.cpp: Direct3D9 display
 //
-//  Copyright (c) 2012 Simon Owen
+//  Copyright (c) 2012-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -191,9 +191,12 @@ void Direct3D9Video::Update (CScreen* pScreen_, bool *pafDirty_)
     }
 
     int nVertexOffset = GUI::IsActive() ? 0 : 4;
+
     hr = m_pd3dDevice->SetTexture(0, m_pTexture);
     hr = m_pd3dDevice->SetFVF(D3DFVF_CUSTOMVERTEX);
     hr = m_pd3dDevice->SetStreamSource(0, m_pVertexBuffer, 0, sizeof(CUSTOMVERTEX));
+    hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+    hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
     hr = m_pd3dDevice->DrawPrimitive(D3DPT_TRIANGLESTRIP, nVertexOffset, 2);
 
     if (GetOption(scanlines) && !GUI::IsActive() && (int(m_d3dpp.BackBufferWidth) >= Frame::GetWidth()))
@@ -202,6 +205,8 @@ void Direct3D9Video::Update (CScreen* pScreen_, bool *pafDirty_)
         hr = m_pd3dDevice->SetTexture(0, m_pScanlineTexture);
         hr = m_pd3dDevice->SetFVF(D3DFVF_CUSTOMVERTEX);
         hr = m_pd3dDevice->SetStreamSource(0, m_pVertexBuffer, 0, sizeof(CUSTOMVERTEX));
+        hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP);
+        hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_WRAP);
         hr = m_pd3dDevice->DrawPrimitive(D3DPT_TRIANGLESTRIP, nVertexOffset, 2);
     }
 
