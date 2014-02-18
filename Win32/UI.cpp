@@ -143,6 +143,8 @@ static const char* aszBorders[] =
     { "No borders", "Small borders", "Short TV area (default)", "TV visible area", "Complete scan area", NULL };
 
 
+extern "C" int main(int argc_, char* argv_[]);
+
 int WINAPI WinMain(HINSTANCE hinst_, HINSTANCE hinstPrev_, LPSTR pszCmdLine_, int nCmdShow_)
 {
     __hinstance = hinst_;
