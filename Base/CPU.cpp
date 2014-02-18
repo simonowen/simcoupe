@@ -2,8 +2,8 @@
 //
 // CPU.cpp: Z80 processor emulation and main emulation loop
 //
+//  Copyright (c) 1999-2014 Simon Owen
 //  Copyright (c) 2000-2003 Dave Laundon
-//  Copyright (c) 1999-2012 Simon Owen
 //  Copyright (c) 1996-2001 Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -74,7 +74,7 @@ inline void CheckInterrupt ();
 //                  CPU can only access memory 1 out of every 8 T-States
 //              else
 //                  CPU can only access memory 1 out of every 4 T-States
-#define MEM_ACCESS(a)   do { g_dwCycleCounter += 3; if (afSectionContended[AddrSection(a)]) g_dwCycleCounter += pContention[g_dwCycleCounter]; } while (0)
+#define MEM_ACCESS(a)   do { g_dwCycleCounter += 3; if (afSectionContended[AddrSection(a)]) g_dwCycleCounter += pMemContention[g_dwCycleCounter]; } while (0)
 
 // Update g_nLineCycle for one port access
 // This is the basic four T-State CPU I/O access
@@ -95,10 +95,11 @@ bool g_fDebug;              // Debug only helper variable, to trigger the debugg
 #endif
 
 // Memory access contention table
-BYTE abContention1[TSTATES_PER_FRAME+64], abContention234[TSTATES_PER_FRAME+64], abContentionOff[TSTATES_PER_FRAME+64];
-BYTE *pContention = abContention1;
-//                         T1 T2 T3 T4 T1 T2 T3 T4
-BYTE abPortContention[] = { 6, 5, 4, 3, 2, 1, 0, 7 };
+static BYTE abContention1[TSTATES_PER_FRAME+64], abContention234[TSTATES_PER_FRAME+64], abContention4T[TSTATES_PER_FRAME+64];
+static const BYTE *pMemContention = abContention1;
+static bool fContention = true;
+static const BYTE abPortContention[] = { 6, 5, 4, 3, 2, 1, 0, 7 };
+//                                      T1 T2 T3 T4 T1 T2 T3 T4
 
 // Memory access tracking for the debugger
 BYTE *pbMemRead1, *pbMemRead2, *pbMemWrite1, *pbMemWrite2;
@@ -150,7 +151,7 @@ bool CPU::Init (bool fFirstInit_/*=false*/)
 
             abContention1[t2] = ((t2+1)|((fScreen|fMode1)?7:3)) - 1 - t2;
             abContention234[t2] = ((t2+1)|(fScreen?7:3)) - 1 - t2;
-            abContentionOff[t2] = ((t2+1)|3) - 1 - t2;
+            abContention4T[t2] = ((t2+1)|3) - 1 - t2;
         }
 
         // Set up RAM and initial I/O settings
@@ -174,11 +175,20 @@ void CPU::Exit (bool fReInit_/*=false*/)
 }
 
 
-// Update contention table based on mode/screen-off changes
-void CPU::UpdateContention ()
+bool CPU::IsContentionActive ()
 {
-    pContention = (vmpr_mode == MODE_1) ? abContention1 :
-                  (BORD_SOFF && VMPR_MODE_3_OR_4) ? abContentionOff : abContention234;
+    return fContention;
+}
+
+// Update the active memory contention table based
+void CPU::UpdateContention (bool fActive_/*=true*/)
+{
+    fContention = fActive_;
+
+    pMemContention = !fActive_ ? abContention4T :
+                     (vmpr_mode == MODE_1) ? abContention1 :
+                     (BORD_SOFF && VMPR_MODE_3_OR_4) ? abContention4T :
+                     abContention234;
 }
 
 
@@ -521,6 +531,10 @@ inline void CheckInterrupt ()
     // Only process if not delayed after a DI/EI and not in the middle of an indexed instruction
     if (bOpcode != OP_EI && bOpcode != OP_DI && (pNewHlIxIy == &HL))
     {
+        // If we're running in debugger timing mode, skip the interrupt handler
+        if (!CPU::IsContentionActive())
+            return;
+
         // Disable maskable interrupts to prevent the handler being triggered again immediately
         IFF1 = IFF2 = 0;
 

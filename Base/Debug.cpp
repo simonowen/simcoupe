@@ -2,7 +2,7 @@
 //
 // Debug.cpp: Integrated Z80 debugger
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -49,6 +49,9 @@ int nLastFrames;
 // Activate the debug GUI, if not already active
 bool Debug::Start (BREAKPT* pBreak_)
 {
+    // Restore memory contention in case of a timing measurement
+    CPU::UpdateContention();
+
     // Reset the last entry counters, unless we're started from a triggered breakpoint
     if (!pBreak_ && nStepOutSP == -1)
     {
@@ -174,11 +177,22 @@ void cmdStep (int nCount_=1, bool fCtrl_=false)
     Debug::Stop();
 }
 
-void cmdStepOver ()
+void cmdStepOver (bool fCtrl_=false)
 {
     void *pPhysAddr = NULL;
     BYTE bOpcode, bOperand;
     WORD wPC;
+
+    // Ctrl+StepOver performs a code timing measurement with minimal contention and interrupts disabled.
+    // This provides a pure SAM execution environment, eliminating avoidable runtime variations.
+    if (fCtrl_)
+    {
+        // Set minimal contention
+        CPU::UpdateContention(false);
+
+        // Round to the next 4T contention boundary to eliminate any slack on the next opcode fetch
+        g_dwCycleCounter |= 3;
+    }
 
     // Skip any index prefixes on the instruction to reach a CB/ED prefix or the real opcode
     for (wPC = PC ; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX) ; wPC++);
@@ -1679,7 +1693,7 @@ bool CDisView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     break;
 
                 case HK_KP7:  cmdStep(1, nParam2_ != HM_NONE); break;
-                case HK_KP8:  cmdStepOver();    break;
+                case HK_KP8:  cmdStepOver(nParam2_ == HM_CTRL); break;
                 case HK_KP9:  cmdStepOut();     break;
                 case HK_KP4:  cmdStep(10);      break;
                 case HK_KP5:  cmdStep(100);     break;

@@ -3,7 +3,7 @@
 // CPU.h: Z80 processor emulation and main emulation loop
 //
 //  Copyright (c) 2000-2003 Dave Laundon
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //  Copyright (c) 1996-2001 Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -37,7 +37,8 @@ class CPU
         static void Exit (bool fReInit_=false);
 
         static void Run ();
-        static void UpdateContention ();
+        static bool IsContentionActive ();
+        static void UpdateContention (bool fActive_ = true);
         static void ExecuteEvent (struct _CPU_EVENT sThisEvent);
         static void ExecuteChunk ();
 

@@ -651,9 +651,10 @@ void IO::Out (WORD wPort_, BYTE bVal_)
             // Update the port read value, including the screen-off status
             keyboard = (border & BORD_SOFF_MASK) | (keyboard & (BORD_EAR_MASK|BORD_KEY_MASK));
 
-            // If the screen state has changed, we need to reconsider memory contention changes
+            // If the screen state has changed, update the active memory contention.
+            // (unless we're running in debugger timing mode with minimal contention).
             if (fScreenOffChange)
-                CPU::UpdateContention();
+                CPU::UpdateContention(CPU::IsContentionActive());
         }
         break;
 
@@ -686,8 +687,9 @@ void IO::Out (WORD wPort_, BYTE bVal_)
                     OutVmpr(bVal_);
                 }
 
-                // Video mode change may have affected memory contention
-                CPU::UpdateContention();
+                // The video mode has changed so update the active memory contention.
+                // (unless we're running in debugger timing mode with minimal contention).
+                CPU::UpdateContention(CPU::IsContentionActive());
             }
 
             // Has the screen page changed?
