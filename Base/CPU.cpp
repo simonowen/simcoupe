@@ -168,6 +168,9 @@ void CPU::Exit (bool fReInit_/*=false*/)
 {
     IO::Exit(fReInit_);
     Memory::Exit(fReInit_);
+
+    if (!fReInit_)
+        Breakpoint::RemoveAll();
 }
 
 

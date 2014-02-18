@@ -2,7 +2,7 @@
 //
 // Breakpoint.h: Debugger breakpoints
 //
-//  Copyright (c) 2012 Simon Owen
+//  Copyright (c) 2012-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -62,6 +62,8 @@ BREAKINT;
 
 typedef struct tagBREAKPT
 {
+    ~tagBREAKPT() { Expr::Release(pExpr); }
+
     BreakpointType nType;
     AccessType nAccess;
     bool fEnabled;

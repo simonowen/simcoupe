@@ -2,7 +2,7 @@
 //
 // Expr.h: Infix expression parsing and postfix evaluation
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,14 +21,7 @@
 #ifndef EXPR_H
 #define EXPR_H
 
-typedef struct tagEXPR
-{
-    int nType, nValue;      // Item type and type-specific value
-    struct tagEXPR* pNext;  // Link to next item in expression
-    const char *pcszExpr;   // Original expression text (head item only)
-}
-EXPR;
-
+typedef struct tagEXPR EXPR;
 
 class Expr
 {
@@ -55,6 +48,19 @@ class Expr
         static bool Term (int n_=0);
         static bool Factor ();
 };
+
+
+typedef struct tagEXPR
+{
+    int nType, nValue;      // Item type and type-specific value
+    struct tagEXPR* pNext;  // Link to next item in expression
+    const char *pcszExpr;   // Original expression text (head item only)
+
+private:
+    ~tagEXPR () { }         // Use Expr::Release() to delete Expr chains
+    friend class Expr;
+}
+EXPR;
 
 
 // Leave the enums public to allow some poking around the tokenised expressions by calling code

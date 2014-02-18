@@ -23,6 +23,7 @@
 
 #include "CPU.h"
 #include "Frame.h"
+#include "GUI.h"
 #include "Input.h"
 #include "Options.h"
 #include "OSD.h"
@@ -55,6 +56,8 @@ bool Main::Init (int argc_, char* argv_[])
 
 void Main::Exit ()
 {
+    GUI::Stop();
+
     CPU::Exit();
     Input::Exit();
     Video::Exit();
