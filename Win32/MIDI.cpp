@@ -113,8 +113,8 @@ void CMidiDevice::Out (WORD wPort_, BYTE bVal_)
 #ifdef _DEBUG
     switch (m_nOut)
     {
-        case 1:     TRACE("MIDI: Sending 1 byte message from: %02x\n", m_abOut[0]);                                                         break;
-        case 2:     TRACE("MIDI: Sending 2 byte message from: %02x %02x\n", m_abOut[0], m_abOut[1]);                                            break;
+        case 1:     TRACE("MIDI: Sending 1 byte message from: %02x\n", m_abOut[0]);                                                                 break;
+        case 2:     TRACE("MIDI: Sending 2 byte message from: %02x %02x\n", m_abOut[0], m_abOut[1]);                                                break;
         case 3:     TRACE("MIDI: Sending 3 byte message from: %02x %02x %02x\n", m_abOut[0], m_abOut[1], m_abOut[2]);                               break;
         case 4:     TRACE("MIDI: Sending 4 byte message from: %02x %02x %02x %02x\n", m_abOut[0], m_abOut[1], m_abOut[2], m_abOut[3]);              break;
         default:    TRACE("MIDI: Sending %d byte message from: %02x %02x %02x %02x ...\n", m_nOut, m_abOut[0], m_abOut[1], m_abOut[2], m_abOut[3]); break;
@@ -132,14 +132,22 @@ void CMidiDevice::Out (WORD wPort_, BYTE bVal_)
 bool CMidiDevice::SetDevice (const char *pcszDevice_)
 {
     if (m_hMidiOut)
+        midiOutClose(m_hMidiOut), m_hMidiOut = NULL;
+
+    // Do we have a device name?
+    if (*pcszDevice_)
     {
-        midiOutClose(m_hMidiOut);
-        m_hMidiOut = NULL;
+        for (UINT u = 0, uDevs = midiOutGetNumDevs() ; u < uDevs ; u++)
+        {
+            MIDIOUTCAPS mc;
+            if (midiOutGetDevCaps(u, &mc, sizeof(mc)) == MMSYSERR_NOERROR && !lstrcmpi(mc.szPname, pcszDevice_))
+            {
+                midiOutOpen(&m_hMidiOut, u, 0, 0, CALLBACK_NULL);
+                break;
+            }
+        }
     }
 
-    // Open the supplied device number
-    if (*pcszDevice_)
-        midiOutOpen(&m_hMidiOut, atoi(pcszDevice_), 0, 0, CALLBACK_NULL);
-
-    return m_hMidiOut != NULL;
+    // Successful if the device name is empty or we have opened a device
+    return !*pcszDevice_ || m_hMidiOut != NULL;
 }
