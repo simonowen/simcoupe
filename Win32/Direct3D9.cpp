@@ -181,7 +181,7 @@ void Direct3D9Video::Update (CScreen* pScreen_, bool *pafDirty_)
     hr = m_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0,0,0), 1.0f, 0L);
     hr = m_pd3dDevice->BeginScene();
 
-    bool fFilter = GUI::IsActive() ? GetOption(filtergui) : GetOption(filter);
+    bool fFilter = GUI::IsActive() ? GetOption(filtergui) || (GetOption(scale) & 1) : GetOption(filter);
     DWORD dwFilter = fFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT;
     DWORD dwCurrentFilter = 0;
     if (SUCCEEDED(m_pd3dDevice->GetSamplerState(0, D3DSAMP_MAGFILTER, &dwCurrentFilter)) && dwFilter != dwCurrentFilter)

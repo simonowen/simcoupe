@@ -163,10 +163,15 @@ void SDLTexture::UpdatePalette ()
 // OpenGL version of DisplayChanges
 bool SDLTexture::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
 {
-    // Change the filter state with any change of the GUI state
-    bool fFilter = GetOption(filter) && !GUI::IsActive();
-    if (fFilter != m_fFilter)
+    // Force GUI filtering with odd scaling factors, otherwise respect the options
+    bool fFilter = GUI::IsActive() ? GetOption(filtergui) || (GetOption(scale) & 1) : GetOption(filter);
+
+    // If the required filter state has changed, apply it
+    if (m_fFilter != fFilter)
+    {
+        m_fFilter = fFilter;
         UpdateSize();
+    }
 
     if (!m_pTexture)
         return false;
@@ -364,7 +369,6 @@ void SDLTexture::UpdateSize ()
     int nWidth = Frame::GetWidth();
     int nHeight = Frame::GetHeight();
 
-    m_fFilter = GetOption(filter) && !GUI::IsActive();
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, m_fFilter ? "linear" : "nearest");
     m_pTexture = SDL_CreateTexture(m_pRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, nWidth, nHeight);
 
