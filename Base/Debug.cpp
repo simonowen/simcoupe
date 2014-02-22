@@ -934,6 +934,12 @@ bool CDebugger::Execute (const char* pcszCommand_)
             fRet = false;
     }
 
+    // bpu cond
+    else if (!strcasecmp(pszCommand, "bpu") && nParam != -1 && !*pszExprEnd)
+    {
+        Breakpoint::AddUntil(Expr::Compile(pszParam));
+    }
+
     // bpx addr [if cond]
     else if (!strcasecmp(pszCommand, "bpx") && nParam != -1)
     {
@@ -2021,15 +2027,15 @@ bool CDisView::SetDataTarget ()
 
         if (f16Bit)
         {
-			if (fAddress)
-				snprintf(sz, _countof(sz), "[%04X=%04X]", m_uTarget, read_word(m_uTarget));
-			else
-				snprintf(sz, _countof(sz), "[%04X]", read_word(m_uTarget));
+            if (fAddress)
+                snprintf(sz, _countof(sz), "[%04X=%04X]", m_uTarget, read_word(m_uTarget));
+            else
+                snprintf(sz, _countof(sz), "[%04X]", read_word(m_uTarget));
         }
         else if (fAddress)
             snprintf(sz, _countof(sz), "[%04X=%02X]", m_uTarget, read_byte(m_uTarget));
         else
-			snprintf(sz, _countof(sz), "[%02X]", read_byte(m_uTarget));
+            snprintf(sz, _countof(sz), "[%02X]", read_byte(m_uTarget));
     }
 
     // Return whether a target has been set

@@ -2,7 +2,7 @@
 //
 // Breakpoint.cpp: Debugger breakpoints
 //
-//  Copyright (c) 2012 Simon Owen
+//  Copyright (c) 2012-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ static BREAKPT *pBreakpoints;
 
 bool Breakpoint::IsSet ()
 {
-	return pBreakpoints != NULL;
+    return pBreakpoints != NULL;
 }
 
 // Return whether any of the active breakpoints have been hit
@@ -52,6 +52,10 @@ bool Breakpoint::IsHit ()
             case btNone:
                 break;
 
+            // Until expression (handled below)
+            case btUntil:
+                break;
+
             // Execution
             case btExecute:
                 if (p->Exec.pPhysAddr == pPC)
@@ -62,7 +66,7 @@ bool Breakpoint::IsHit ()
             // Memory access
             case btMemory:
                 // Read
-                if ((p->nAccess & atRead) &&
+                if ((p->Mem.nAccess & atRead) &&
                     ((pbMemRead1 >= p->Mem.pPhysAddrFrom && pbMemRead1 <= p->Mem.pPhysAddrTo) ||
                      (pbMemRead2 >= p->Mem.pPhysAddrFrom && pbMemRead2 <= p->Mem.pPhysAddrTo)))
                 {
@@ -71,7 +75,7 @@ bool Breakpoint::IsHit ()
                 }
 
                 // Write
-                if ((p->nAccess & atWrite) &&
+                if ((p->Mem.nAccess & atWrite) &&
                     ((pbMemWrite1 >= p->Mem.pPhysAddrFrom && pbMemWrite1 <= p->Mem.pPhysAddrTo) ||
                      (pbMemWrite2 >= p->Mem.pPhysAddrFrom && pbMemWrite2 <= p->Mem.pPhysAddrTo)))
                 {
@@ -84,14 +88,14 @@ bool Breakpoint::IsHit ()
             // Port access
             case btPort:
                 // Read
-                if ((p->nAccess & atRead) && ((wPortRead & p->Port.wMask) == p->Port.wCompare))
+                if ((p->Port.nAccess & atRead) && ((wPortRead & p->Port.wMask) == p->Port.wCompare))
                 {
                     wPortRead = 0;
                     break;
                 }
 
                 // Write
-                if ((p->nAccess & atWrite) && ((wPortWrite & p->Port.wMask) == p->Port.wCompare))
+                if ((p->Port.nAccess & atWrite) && ((wPortWrite & p->Port.wMask) == p->Port.wCompare))
                 {
                     wPortWrite = 0;
                     break;
@@ -138,8 +142,15 @@ void Breakpoint::Add (BREAKPT *pBreak_)
 {
     if (!pBreakpoints)
         pBreakpoints = pBreak_;
+    else if (pBreak_->nType == btTemp)
+    {
+        // Temporary breakpoints at head of list, for easy removal
+        pBreak_->pNext = pBreakpoints;
+        pBreakpoints = pBreak_;
+    }
     else
     {
+        // Normal breakpoints at end of list
         BREAKPT *p = pBreakpoints;
         while (p->pNext) p = p->pNext;
         p->pNext = pBreak_;
@@ -170,63 +181,46 @@ int Breakpoint::GetExecIndex (void *pPhysAddr_)
 
 void Breakpoint::AddTemp (void *pPhysAddr_, EXPR *pExpr_)
 {
-    // Add a new execution breakpoint for the supplied address
-    BREAKPT *pNew = new BREAKPT;
-    pNew->nType = btTemp;
-    pNew->nAccess = atNone;
-    pNew->fEnabled = true;
-    pNew->pExpr = pExpr_;
-    pNew->pNext = pBreakpoints;
-
+    // Add a new temporary breakpoint for the supplied address and/or expression
+    BREAKPT *pNew = new BREAKPT(btTemp, pExpr_);
     pNew->Temp.pPhysAddr = pPhysAddr_;
+    Add(pNew);
+}
 
-    // Add to head of list for easy removal
-    pBreakpoints = pNew;
+void Breakpoint::AddUntil (EXPR *pExpr_)
+{
+    // Add Until breakpoint for the supplied expression
+    Add(new BREAKPT(btUntil, pExpr_));
 }
 
 void Breakpoint::AddExec (void *pPhysAddr_, EXPR *pExpr_)
 {
     // Add a new execution breakpoint for the supplied address
-    BREAKPT *pNew = new BREAKPT;
-    pNew->nType = btExecute;
-    pNew->nAccess = atNone;
-    pNew->fEnabled = true;
-    pNew->pExpr = pExpr_;
-    pNew->pNext = NULL;
-
+    BREAKPT *pNew = new BREAKPT(btExecute, pExpr_);
     pNew->Exec.pPhysAddr = pPhysAddr_;
-
     Add(pNew);
 }
 
 void Breakpoint::AddMemory (void *pPhysAddr_, AccessType nAccess_, EXPR *pExpr_, int nLength_/*=1*/)
 {
-    // Add a new execution breakpoint for the supplied address
-    BREAKPT *pNew = new BREAKPT;
-    pNew->nType = btMemory;
-    pNew->nAccess = nAccess_;
-    pNew->fEnabled = true;
-    pNew->pExpr = pExpr_;
-    pNew->pNext = NULL;
+    // Add a new memory breakpoint for the supplied address and access type
+    BREAKPT *pNew = new BREAKPT(btMemory, pExpr_);
 
     pNew->Mem.pPhysAddrFrom = pPhysAddr_;
     pNew->Mem.pPhysAddrTo = reinterpret_cast<BYTE*>(pPhysAddr_)+nLength_-1;
+    pNew->Mem.nAccess = nAccess_;
 
     Add(pNew);
 }
 
 void Breakpoint::AddPort (WORD wPort_, AccessType nAccess_, EXPR *pExpr_)
 {
-    // Add a new execution breakpoint for the supplied address
-    BREAKPT *pNew = new BREAKPT;
-    pNew->nType = btPort;
-    pNew->nAccess = nAccess_;
-    pNew->fEnabled = true;
-    pNew->pExpr = pExpr_;
-    pNew->pNext = NULL;
+    // Add a new I/O breakpoint for the supplied port and access type
+    BREAKPT *pNew = new BREAKPT(btPort, pExpr_);
 
     pNew->Port.wCompare = wPort_;
     pNew->Port.wMask = (wPort_ <= 0xff) ? 0xff : 0xffff;
+    pNew->Port.nAccess = nAccess_;
 
     Add(pNew);
 }
@@ -245,15 +239,9 @@ void Breakpoint::AddInterrupt (BYTE bIntMask_, EXPR *pExpr_)
         return;
     }
 
-    // Add a new execution breakpoint for the supplied address
-    BREAKPT *pNew = new BREAKPT;
-    pNew->nType = btInt;
-    pNew->nAccess = atNone;
-    pNew->fEnabled = true;
+    // Add a new interrupt breakpoint for the supplied lines
+    BREAKPT *pNew = new BREAKPT(btInt, pExpr_);
     pNew->Int.bMask = bIntMask_;
-    pNew->pExpr = pExpr_;
-    pNew->pNext = NULL;
-
     Add(pNew);
 }
 
@@ -270,9 +258,15 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
             psz += sprintf(psz, "TEMP");
             break;
 
+        case btUntil:
+        {
+            psz += sprintf(psz, "UNTIL %s", pBreak_->pExpr->pcszExpr);
+            break;
+        }
+
         case btExecute:
         {
-			pPhysAddr = pBreak_->Exec.pPhysAddr;
+            pPhysAddr = pBreak_->Exec.pPhysAddr;
             const char *pcszPageDesc = PageDesc(PtrPage(pPhysAddr), true);
             int nPageOffset = PtrOffset(pPhysAddr);
             psz += sprintf(psz, "EXEC %s:%04X", pcszPageDesc, nPageOffset);
@@ -281,18 +275,18 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
 
         case btMemory:
         {
-			pPhysAddr = pBreak_->Mem.pPhysAddrFrom;
+            pPhysAddr = pBreak_->Mem.pPhysAddrFrom;
             const char *pcszPageDesc = PageDesc(PtrPage(pPhysAddr), true);
             int nPageOffset = PtrOffset(pPhysAddr);
             psz += sprintf(psz, "MEM %s:%04X", pcszPageDesc, nPageOffset);
 
-			if (pBreak_->Mem.pPhysAddrTo != pPhysAddr)
-			{
-				uExtent = (UINT)((BYTE*)pBreak_->Mem.pPhysAddrTo-(BYTE*)pPhysAddr);
-				psz += sprintf(psz, " %X", uExtent+1);
-			}
+            if (pBreak_->Mem.pPhysAddrTo != pPhysAddr)
+            {
+                uExtent = (UINT)((BYTE*)pBreak_->Mem.pPhysAddrTo-(BYTE*)pPhysAddr);
+                psz += sprintf(psz, " %X", uExtent+1);
+            }
 
-            switch (pBreak_->nAccess)
+            switch (pBreak_->Mem.nAccess)
             {
                 case atNone: break;
                 case atRead: psz += sprintf(psz, " R"); break;
@@ -309,7 +303,7 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
             else
                 psz += sprintf(psz, "PORT %04X", pBreak_->Port.wCompare);
 
-            switch (pBreak_->nAccess)
+            switch (pBreak_->Port.nAccess)
             {
                 case atNone: break;
                 case atRead: psz += sprintf(psz, " R"); break;
@@ -351,21 +345,21 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
 
         if (nAddr2 != -1)
         {
-			if (uExtent)
-				psz += sprintf(psz, " (%04X-%04X,%04X-%04X)", nAddr2, nAddr2+uExtent, nAddr1, nAddr1+uExtent);
-			else
-				psz += sprintf(psz, " (%04X,%04X)", nAddr2, nAddr1);
+            if (uExtent)
+                psz += sprintf(psz, " (%04X-%04X,%04X-%04X)", nAddr2, nAddr2+uExtent, nAddr1, nAddr1+uExtent);
+            else
+                psz += sprintf(psz, " (%04X,%04X)", nAddr2, nAddr1);
         }
         else if (nAddr1 != -1)
         {
-			if (uExtent)
-				psz += sprintf(psz, " (%04X-%04X)", nAddr1, nAddr1+uExtent);
-			else
-				psz += sprintf(psz, " (%04X)", nAddr1);
+            if (uExtent)
+                psz += sprintf(psz, " (%04X-%04X)", nAddr1, nAddr1+uExtent);
+            else
+                psz += sprintf(psz, " (%04X)", nAddr1);
         }
     }
 
-    if (pBreak_->pExpr)
+    if (pBreak_->pExpr && pBreak_->nType != btUntil)
         psz += sprintf(psz, " if %s", pBreak_->pExpr->pcszExpr);
 
     return sz;

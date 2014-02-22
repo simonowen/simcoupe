@@ -23,7 +23,7 @@
 
 #include "Expr.h"
 
-enum BreakpointType { btNone, btTemp, btExecute, btMemory, btPort, btInt };
+enum BreakpointType { btNone, btTemp, btUntil, btExecute, btMemory, btPort, btInt };
 enum AccessType { atNone, atRead, atWrite, atReadWrite };
 
 
@@ -43,6 +43,7 @@ typedef struct tagBREAKMEM
 {
     const void *pPhysAddrFrom;
     const void *pPhysAddrTo;
+    AccessType nAccess;
 }
 BREAKMEM;
 
@@ -50,6 +51,7 @@ typedef struct tagBREAKPORT
 {
     WORD wMask;
     WORD wCompare;
+    AccessType nAccess;
 }
 BREAKPORT;
 
@@ -62,10 +64,12 @@ BREAKINT;
 
 typedef struct tagBREAKPT
 {
+    tagBREAKPT (BreakpointType nType_, EXPR *pExpr_)
+        : nType(nType_), pExpr(pExpr_), fEnabled(true), pNext(NULL) { }
     ~tagBREAKPT() { Expr::Release(pExpr); }
 
     BreakpointType nType;
-    AccessType nAccess;
+    EXPR* pExpr;
     bool fEnabled;
 
     union
@@ -77,7 +81,6 @@ typedef struct tagBREAKPT
         BREAKINT Int;
     };
 
-    EXPR* pExpr;
     struct tagBREAKPT* pNext;
 }
 BREAKPT;
@@ -90,6 +93,7 @@ class Breakpoint
         static bool IsHit ();
         static void Add (BREAKPT *pBreak_);
         static void AddTemp (void *pPhysAddr_, EXPR *pExpr_);
+        static void AddUntil (EXPR *pExpr_);
         static void AddExec (void *pPhysAddr_, EXPR *pExpr_);
         static void AddMemory (void *pPhysAddr_, AccessType nAccess_, EXPR *pExpr_, int nLength_=1);
         static void AddPort (WORD wPort_, AccessType nAccess_, EXPR *pExpr_);
