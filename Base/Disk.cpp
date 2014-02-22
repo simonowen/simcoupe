@@ -880,12 +880,8 @@ BYTE CFileDisk::ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UIN
         // CODE file type
         pbData_[0] = 19;
 
-        // Strip any file extension and use up to the first 10 chars for the filename on the disk
-        const char *pcszName = m_pStream->GetFile(), *pcszExt = strrchr(pcszName, '.'), *pcsz;
-        for (pcsz = pcszName+strlen(pcszName)-1 ; pcsz[-1] != PATH_SEPARATOR && pcsz > pcszName ; pcsz--);
-        size_t uLen = strlen(pcsz) - (pcszExt ? strlen(pcszExt) : 0);
-        memset(pbData_+1, ' ', 10);
-        memcpy(pbData_+1, pcsz, min(uLen, 10));
+        // Use a fixed filename, starting with "auto" so SimCoupe's embedded DOS boots it
+        memcpy(pbData_+1, "autoExec  ", 10);
 
         // Number of sectors required
         WORD wSectors = (m_uSize + NORMAL_SECTOR_SIZE-3) / (NORMAL_SECTOR_SIZE-2);
@@ -911,8 +907,10 @@ BYTE CFileDisk::ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UIN
         pbData_[240] = m_pbData[1];
         pbData_[241] = m_pbData[2];
 
-        // No auto-execute
-        pbData_[242] = pbData_[243] = pbData_[244] = 0xff;
+        // Auto-execute code
+        pbData_[242] = 2;  // Normal paging (see PDPSUBR in ROM0 for details)
+        pbData_[243] = m_pbData[3];
+        pbData_[244] = m_pbData[4];
     }
 
     // Does the position fall within the file?
