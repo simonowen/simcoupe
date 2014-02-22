@@ -2,7 +2,7 @@
 //
 // Expr.cpp: Infix expression parsing and postfix evaluation
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -115,7 +115,7 @@ static const TOKEN asVariables[] =
 {
     {"ei",VAR_EI}, {"di",VAR_DI},
     {"dline",VAR_DLINE}, {"sline",VAR_SLINE},
-    {"rom0",VAR_ROM0}, {"rom1",VAR_ROM1}, {"wprot",VAR_WPROT}, {"inrom",VAR_INROM}, {"call",VAR_CALL},
+    {"rom0",VAR_ROM0}, {"rom1",VAR_ROM1}, {"wprot",VAR_WPROT}, {"inrom",VAR_INROM}, {"call",VAR_CALL}, {"autoexec",VAR_AUTOEXEC},
     {"lepage",VAR_LEPAGE}, {"hepage",VAR_HEPAGE}, {"lpage",VAR_LPAGE}, {"hpage",VAR_HPAGE}, {"vpage",VAR_VPAGE}, {"vmode",VAR_VMODE},
     {"inval",VAR_INVAL}, {"outval",VAR_OUTVAL},
     {"lepr",VAR_LEPR}, {"hepr",VAR_HEPR}, {"lpen",VAR_LPEN}, {"hpen",VAR_HPEN}, {"status",VAR_STATUS},
@@ -415,7 +415,8 @@ int Expr::Eval (const EXPR* pExpr_)
                     case VAR_ATTR:      r = ATTR_PORT;                break;	// 255
 
                     case VAR_INROM:     r = (!(lmpr & LMPR_ROM0_OFF) && PC < 0x4000) || (lmpr & LMPR_ROM1 && PC >= 0xc000); break;
-                    case VAR_CALL:      r = PC != 0x0005 && !(lmpr & LMPR_ROM0_OFF) && (read_word(SP) == 0x180d); break;
+                    case VAR_CALL:      r = PC == HL && !(lmpr & LMPR_ROM0_OFF) && (read_word(SP) == 0x180d); break;
+                    case VAR_AUTOEXEC:  r = PC == HL && !(lmpr & LMPR_ROM0_OFF) && (read_word(SP) == 0x0213) && (read_word(SP+2) == 0x5f00); break;
 
                     case VAR_COUNT:     r = nCount ? !--nCount : 1; break;
                 }
