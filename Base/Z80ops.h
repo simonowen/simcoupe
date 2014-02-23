@@ -4,7 +4,7 @@
 //
 //  Copyright (c) 1994 Ian Collier
 //  Copyright (c) 1999-2003 by Dave Laundon
-//  Copyright (c) 1999-2012 by Simon Owen
+//  Copyright (c) 1999-2014 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -515,7 +515,15 @@ instr(4,0277)   cp_a(A);                                            endinstr;   
 
 
 instr(5,0300)   ret(!(F & FLAG_Z));                                 endinstr;   // ret nz
-instr(5,0310)   if (Tape::RetZHook()) break; ret(F & FLAG_Z);       endinstr;   // ret z
+
+// ret z
+instr(5,0310)
+    if (Tape::RetZHook() || Debug::RetZHook())
+        break;
+
+    ret(F & FLAG_Z);
+endinstr;
+
 instr(5,0320)   ret(!cy);                                           endinstr;   // ret nc
 instr(5,0330)   ret(cy);                                            endinstr;   // ret c
 instr(5,0340)   ret(!(F & FLAG_P));                                 endinstr;   // ret po

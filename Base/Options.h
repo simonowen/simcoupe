@@ -128,6 +128,8 @@ typedef struct
     bool    profile;                // Show profile stats?
     bool    status;                 // Show status line?
 
+    bool    breakonexec;            // Break on code auto-execute?
+
     char    fnkeys[256];            // Function key bindings
     char    keymap[256];            // Custom keymap
 }

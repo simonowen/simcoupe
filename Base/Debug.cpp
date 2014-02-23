@@ -101,6 +101,21 @@ void Debug::OnRet ()
     }
 }
 
+bool Debug::RetZHook ()
+{
+    // Are we in in HDNSTP in ROM1, about to start an auto-executing code file?
+    if (PC == 0xe294 && GetSectionPage(SECTION_D) == ROM1 && !(F & FLAG_Z))
+    {
+        // If the option is enabled, set a temporary breakpoint for the start
+        if (GetOption(breakonexec))
+            Breakpoint::AddTemp(NULL, Expr::Compile("autoexec"));
+    }
+
+    // Continue normal processing
+    return false;
+}
+
+
 // Return whether the debug GUI is active
 bool Debug::IsActive ()
 {

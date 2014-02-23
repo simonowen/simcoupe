@@ -2,7 +2,7 @@
 //
 // Debug.h: Integrated Z80 debugger
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@ class Debug
         static void FrameEnd ();
 
         static void OnRet ();
+        static bool RetZHook ();
 
         static bool IsActive ();
         static bool IsBreakpointSet ();

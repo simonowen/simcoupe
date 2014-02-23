@@ -155,6 +155,9 @@ void Breakpoint::Add (BREAKPT *pBreak_)
         while (p->pNext) p = p->pNext;
         p->pNext = pBreak_;
     }
+
+    // Break from the main execution loop to activate breakpoint testing
+    g_fBreak = true;
 }
 
 bool Breakpoint::IsExecAddr (WORD wAddr_)
