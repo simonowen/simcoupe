@@ -94,8 +94,6 @@ extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 #error DX5 (or higher) SDK is required to build SimCoupe
 #endif
 
-//#define NODEFAULT     __assume(0)     // ToDo: find out why this doesn't work
-
 #define PATH_SEPARATOR          '\\'
 
 #define strcasecmp  _strcmpi

@@ -148,10 +148,6 @@
             case 0x3d: srl(L); break;
             case 0x3e: HLbitop; srl(val); timed_write_byte(addr,val); break;
             case 0x3f: srl(A); break;
-
-#ifdef NODEFAULT
-            default: NODEFAULT;
-#endif
         }
     }
     else
@@ -185,10 +181,6 @@
             case 0xc5: set(n,L); break;
             case 0xc6: HLbitop; set(n,val); timed_write_byte(addr,val); break;
             case 0xc7: set(n,A); break;
-
-#ifdef NODEFAULT
-            default: NODEFAULT;
-#endif
         }
     }
 
@@ -203,12 +195,8 @@
             case 3: E = val; break;
             case 4: H = val; break;
             case 5: L = val; break;
-        //  case 6: break;              // This is the ordinary documented case
+            case 6:          break;     // This is the ordinary documented case
             case 7: A = val; break;
-
-#ifdef NODEFAULT
-            default: NODEFAULT;
-#endif
         }
     }
 

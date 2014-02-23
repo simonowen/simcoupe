@@ -637,10 +637,6 @@ instr(5,0357)   push(PC); PC = 050;                                 endinstr;   
 instr(5,0367)   if (IO::Rst48Hook()) break; push(PC); PC = 060;     endinstr;   // rst 48
 instr(5,0377)   push(PC); PC = 070;                                 endinstr;   // rst 56
 
-#ifdef NODEFAULT
-    default: NODEFAULT;
-#endif
-
 #undef instr
 #undef endinstr
 #undef HLinstr
