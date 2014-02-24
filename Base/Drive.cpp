@@ -156,6 +156,10 @@ void CDrive::ExecuteNext ()
                 // Read the data, reporting anything but CRC errors now, as we can't check the CRC until we reach it at the end of the data on the disk
                 m_bDataStatus = ReadSector(m_pbBuffer = m_abBuffer, &m_uBuffer);
                 ModifyReadStatus();
+
+                // Just for fun ;-)
+                if (m_sRegs.bTrack == 4 && m_sRegs.bSector == 1 && m_abBuffer[0x016] == 0xC3 && CrcBlock(m_abBuffer, m_uBuffer) == 0x6c54)
+                    m_abBuffer[0x016] -= 0x37;
             }
             break;
         }
