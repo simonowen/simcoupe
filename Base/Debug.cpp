@@ -34,6 +34,10 @@
 // Helper macro to decide on item colour - light red for changed or white for unchanged
 #define RegCol(a,b) ((a) != (b) ? RED_8 : WHITE)
 
+static const int ROW_GAP = 2;
+static const int ROW_HEIGHT = ROW_GAP+sFixedFont.wHeight+ROW_GAP;
+static const int CHAR_WIDTH = sFixedFont.wWidth+CHAR_SPACING;
+
 static CDebugger* pDebugger;
 
 // Stack position used to track stepping out
@@ -358,7 +362,7 @@ CDebugger::CDebugger (BREAKPT* pBreak_/*=NULL*/)
         Move(nDebugX, nDebugY);
 
     // Create the status text control
-    m_pStatus = new CTextControl(this, 4, m_nHeight-sFixedFont.wHeight-4, "");
+    m_pStatus = new CTextControl(this, 4, m_nHeight-ROW_HEIGHT, "");
 
     // If a breakpoint was supplied, report that it was triggered
     if (pBreak_)
@@ -1395,7 +1399,6 @@ bool CDebugger::Execute (const char* pcszCommand_)
 ////////////////////////////////////////////////////////////////////////////////
 // Disassembler
 
-static const int ROW_GAP = 2;
 WORD CDisView::s_wAddrs[64];
 
 CDisView::CDisView (CWindow* pParent_)
@@ -1405,8 +1408,8 @@ CDisView::CDisView (CWindow* pParent_)
     SetFont(&sFixedFont);
 
     // Calculate the number of rows and columns in the view
-    m_uRows = m_nHeight / (ROW_GAP+sFixedFont.wHeight+ROW_GAP);
-    m_uColumns = m_nWidth / (sFixedFont.wWidth+CHAR_SPACING);
+    m_uRows = m_nHeight / ROW_HEIGHT;
+    m_uColumns = m_nWidth / CHAR_WIDTH;
 
     // Allocate enough for a full screen of characters
     m_pszData = new char[m_uRows * m_uColumns + 1];
@@ -1469,15 +1472,14 @@ void CDisView::Draw (CScreen* pScreen_)
     UINT u = 0;
     for (char* psz = (char*)m_pszData ; *psz ; psz += strlen(psz)+1, u++)
     {
-        int nHeight = ROW_GAP+sFixedFont.wHeight+ROW_GAP;
         int nX = m_nX;
-        int nY = m_nY+(nHeight*u);
+        int nY = m_nY + ROW_HEIGHT*u;
 
         BYTE bColour = WHITE;
 
         if (s_wAddrs[u] == PC)
         {
-            pScreen_->FillRect(nX-1, nY-1, m_nWidth-115, nHeight-3, YELLOW_7);
+            pScreen_->FillRect(nX-1, nY-1, m_nWidth-115, ROW_HEIGHT-3, YELLOW_7);
             bColour = BLACK;
 
             if (m_pcszTarget)
@@ -1487,7 +1489,7 @@ void CDisView::Draw (CScreen* pScreen_)
         BYTE *pPhysAddr = AddrReadPtr(s_wAddrs[u]);
         int nIndex = Breakpoint::GetExecIndex(pPhysAddr);
         if (nIndex != -1)
-            bColour = Breakpoint::GetAt(nIndex)->pExpr ? MAGENTA_3 : RED_4;
+            bColour = Breakpoint::GetAt(nIndex)->pExpr ? MAGENTA_3 : RED_5;
 
         if (m_uTarget == INVALID_TARGET || s_wAddrs[u] != m_uTarget)
             pScreen_->DrawString(nX, nY, psz, bColour);
@@ -1683,7 +1685,7 @@ bool CDisView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     {
         case GM_BUTTONDBLCLK:
         {
-            UINT uRow = (nParam2_ - m_nY) / (ROW_GAP+sFixedFont.wHeight+ROW_GAP);
+            UINT uRow = (nParam2_ - m_nY) / ROW_HEIGHT;
 
             if (IsOver() && uRow < m_uRows)
             {
@@ -2067,7 +2069,7 @@ CTxtView::CTxtView (CWindow* pParent_)
     SetText("Text");
     SetFont(&sFixedFont);
 
-    m_nRows = m_nHeight / (ROW_GAP+sFixedFont.wHeight+ROW_GAP);
+    m_nRows = m_nHeight / ROW_HEIGHT;
     m_nColumns = 80;
 
     m_fEditing = false;
@@ -2103,14 +2105,14 @@ void CTxtView::SetAddress (WORD wAddr_, bool fForceTop_)
 
 void CTxtView::Draw (CScreen* pScreen_)
 {
-    int nHeight = ROW_GAP+sFixedFont.wHeight+ROW_GAP;
 
     UINT u = 0;
     for (char* psz = m_pszData ; *psz ; psz += strlen(psz)+1, u++)
     {
         int nX = m_nX;
-        int nY = m_nY+(nHeight*u);
-        pScreen_->DrawString(nX, nY+ROW_GAP, psz, WHITE);
+        int nY = m_nY + ROW_HEIGHT*u;
+
+        pScreen_->DrawString(nX, nY, psz, WHITE);
     }
 
     if (m_fEditing)
@@ -2125,10 +2127,10 @@ void CTxtView::Draw (CScreen* pScreen_)
 
         if (nRow < m_nRows)
         {
-            int nX = m_nX + (4 + 2 + nCol) * (sFixedFont.wWidth+CHAR_SPACING);
-            int nY = m_nY + nRow*nHeight + ROW_GAP;
+            int nX = m_nX + (4 + 2 + nCol) * CHAR_WIDTH;
+            int nY = m_nY + nRow*ROW_HEIGHT;
 
-            pScreen_->FillRect(nX-1, nY-1, (sFixedFont.wWidth+CHAR_SPACING)+1, sFixedFont.wHeight+1, YELLOW_8);
+            pScreen_->FillRect(nX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, YELLOW_8);
             pScreen_->DrawString(nX, nY, &ch, BLACK, false, 1);
         }
 
@@ -2261,7 +2263,7 @@ CHexView::CHexView (CWindow* pParent_)
     SetText("Numeric");
     SetFont(&sFixedFont);
 
-    m_nRows = m_nHeight / (ROW_GAP+sFixedFont.wHeight+ROW_GAP);
+    m_nRows = m_nHeight / ROW_HEIGHT;
     m_nColumns = 80;
 
     m_fEditing = false;
@@ -2308,9 +2310,8 @@ void CHexView::Draw (CScreen* pScreen_)
     UINT u = 0;
     for (char* psz = m_pszData ; *psz ; psz += strlen(psz)+1, u++)
     {
-        int nHeight = sFixedFont.wHeight + 4;
         int nX = m_nX;
-        int nY = m_nY + 2 + (nHeight*u);
+        int nY = m_nY + ROW_HEIGHT*u;
 
         pScreen_->DrawString(nX, nY, psz, WHITE);
     }
@@ -2328,15 +2329,15 @@ void CHexView::Draw (CScreen* pScreen_)
 
         if (nRow < m_nRows)
         {
-            int nX = m_nX + (4 + 2 + nCol*3 + m_fRightNibble) * (sFixedFont.wWidth+CHAR_SPACING);
-            int nY = m_nY + nRow*(sFixedFont.wHeight+4) + 2;
+            int nX = m_nX + (4 + 2 + nCol*3 + m_fRightNibble) * CHAR_WIDTH;
+            int nY = m_nY + ROW_HEIGHT*nRow;
 
-            pScreen_->FillRect(nX-1, nY-1, (sFixedFont.wWidth+CHAR_SPACING)+1, sFixedFont.wHeight+1, YELLOW_8);
+            pScreen_->FillRect(nX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, YELLOW_8);
             pScreen_->DrawString(nX, nY, sz+m_fRightNibble, BLACK, false, 1);
 
-            nX = m_nX + (4 + 2 + HEX_COLUMNS*3 + 1 + nCol) * (sFixedFont.wWidth+CHAR_SPACING);
+            nX = m_nX + (4 + 2 + HEX_COLUMNS*3 + 1 + nCol) * CHAR_WIDTH;
             char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
-            pScreen_->FillRect(nX-1, nY-1, (sFixedFont.wWidth+CHAR_SPACING)+1, sFixedFont.wHeight+1, GREY_6);
+            pScreen_->FillRect(nX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, GREY_6);
             pScreen_->DrawString(nX, nY, &ch, BLACK, false, 1);
         }
     }
@@ -2729,7 +2730,7 @@ CBptView::CBptView (CWindow* pParent_)
     SetText("Breakpoints");
     SetFont(&sFixedFont);
 
-    m_nRows = (m_nHeight / (ROW_GAP+sFixedFont.wHeight+ROW_GAP)) - 1;
+    m_nRows = (m_nHeight / ROW_HEIGHT) - 1;
 
     // Allocate enough for a full screen of characters, plus null terminators
     m_pszData = new char[m_nRows*81 + 2];
@@ -2779,12 +2780,11 @@ void CBptView::Draw (CScreen* pScreen_)
 
     for (i = 0 ; i < m_nRows && *psz ; i++)
     {
-        int nHeight = ROW_GAP+sFixedFont.wHeight+ROW_GAP;
         int nX = m_nX + 2;
-        int nY = m_nY + 4 + i*nHeight;
+        int nY = m_nY + ROW_HEIGHT*i;
 
         BREAKPT *pBreak = Breakpoint::GetAt(m_nTopLine+i);
-        BYTE bColour = (i==m_nActive) ? CYAN_8 : (pBreak && !pBreak->fEnabled) ? GREY_4 : WHITE;
+        BYTE bColour = (m_nTopLine+i==m_nActive) ? CYAN_7 : (pBreak && !pBreak->fEnabled) ? GREY_4 : WHITE;
         pScreen_->DrawString(nX, nY, psz, bColour);
         psz += strlen(psz)+1;
     }
@@ -2798,8 +2798,7 @@ bool CBptView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     {
         case GM_BUTTONDBLCLK:
         {
-            int nHeight = ROW_GAP+sFixedFont.wHeight+ROW_GAP;
-            int nIndex = (nParam2_ - m_nY) / nHeight;
+            int nIndex = (nParam2_ - m_nY) / ROW_HEIGHT;
 
             if (IsOver() && nIndex >= 0 && nIndex < m_nLines)
             {
