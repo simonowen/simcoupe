@@ -118,7 +118,7 @@ bool SDLTexture::Init (bool fFirstInit_)
     UpdatePalette();
     SDL_ShowWindow(m_pWindow);
 
-    return UI::Init(fFirstInit_);
+    return true;
 }
 
 

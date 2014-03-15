@@ -2,7 +2,7 @@
 //
 // OSD.cpp: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -71,7 +71,7 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
         SetErrorMode(SEM_FAILCRITICALERRORS);
     }
 
-    return UI::Init();
+    return true;
 }
 
 void OSD::Exit (bool fReInit_/*=false*/)
@@ -81,8 +81,6 @@ void OSD::Exit (bool fReInit_/*=false*/)
         if (g_hinstDInput) { FreeLibrary(g_hinstDInput); g_hinstDInput = NULL; pfnDirectInputCreate=NULL; }
         if (g_hinstDSound) { FreeLibrary(g_hinstDSound); g_hinstDSound = NULL; pfnDirectSoundCreate=NULL; }
     }
-
-    UI::Exit();
 }
 
 

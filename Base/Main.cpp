@@ -51,19 +51,20 @@ bool Main::Init (int argc_, char* argv_[])
         return 0;
 
     // Initialise all modules
-    return Frame::Init(true) && OSD::Init(true) && Sound::Init(true) && Video::Init(true) && Input::Init(true) && CPU::Init(true);
+    return OSD::Init(true) && Frame::Init(true) && CPU::Init(true) && UI::Init(true) && Sound::Init(true) && Input::Init(true) && Video::Init(true);
 }
 
 void Main::Exit ()
 {
     GUI::Stop();
 
-    CPU::Exit();
-    Input::Exit();
     Video::Exit();
+    Input::Exit();
     Sound::Exit();
-    OSD::Exit();
+    UI::Exit();
+    CPU::Exit();
     Frame::Exit();
+    OSD::Exit();
 
     Options::Save();
 

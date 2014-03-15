@@ -2,7 +2,7 @@
 //
 // UI.h: Win32 user interface
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,8 +26,8 @@
 class UI
 {
     public:
-        static bool Init ();
-        static void Exit ();
+        static bool Init (bool fFirstInit_=false);
+        static void Exit (bool fReInit_=false);
 
         static VideoBase *GetVideo (bool fFirstInit_=false);
         static bool CheckEvents ();

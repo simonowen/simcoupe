@@ -79,7 +79,7 @@ bool SDLSurface::Init (bool fFirstInit_)
     }
 
     UpdateSize();
-    return UI::Init(fFirstInit_);
+    return true;
 }
 
 

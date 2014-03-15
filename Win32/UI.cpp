@@ -156,7 +156,7 @@ int WINAPI WinMain(HINSTANCE hinst_, HINSTANCE hinstPrev_, LPSTR pszCmdLine_, in
 
 void ClipPath (char* pszPath_, size_t nLength_);
 
-bool UI::Init ()
+bool UI::Init (bool fFirstInit_/*=false*/)
 {
     TRACE("UI::Init()\n");
 
@@ -165,7 +165,7 @@ bool UI::Init ()
     return InitWindow();
 }
 
-void UI::Exit ()
+void UI::Exit (bool fReInit_/*=false*/)
 {
     TRACE("UI::Exit()\n");
 
