@@ -1043,8 +1043,9 @@ bool IO::Rst8Hook ()
             }
             break;
 
-        // "NO DOS"
+        // "NO DOS" or "Loading error"
         case 0x35:
+        case 0x13:
             // Is automagical DOS booting enabled?
             if (GetOption(dosboot))
             {
