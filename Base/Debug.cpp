@@ -2131,7 +2131,7 @@ void CTxtView::Draw (CScreen* pScreen_)
             int nY = m_nY + nRow*ROW_HEIGHT;
 
             pScreen_->FillRect(nX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, YELLOW_8);
-            pScreen_->DrawString(nX, nY, &ch, BLACK, false, 1);
+            pScreen_->Printf(nX, nY, "\ak%c", ch);
         }
 
         pDebugger->SetStatusByte(m_wEditAddr);
@@ -2333,12 +2333,12 @@ void CHexView::Draw (CScreen* pScreen_)
             int nY = m_nY + ROW_HEIGHT*nRow;
 
             pScreen_->FillRect(nX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, YELLOW_8);
-            pScreen_->DrawString(nX, nY, sz+m_fRightNibble, BLACK, false, 1);
+            pScreen_->Printf(nX, nY, "\ak%c", sz[m_fRightNibble]);
 
             nX = m_nX + (4 + 2 + HEX_COLUMNS*3 + 1 + nCol) * CHAR_WIDTH;
             char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
             pScreen_->FillRect(nX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, GREY_6);
-            pScreen_->DrawString(nX, nY, &ch, BLACK, false, 1);
+            pScreen_->Printf(nX, nY, "\ak%c", ch);
         }
     }
 }

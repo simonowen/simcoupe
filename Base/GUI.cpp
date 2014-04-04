@@ -2,7 +2,7 @@
 //
 // GUI.cpp: GUI and controls for on-screen interface
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -854,7 +854,7 @@ void CEditControl::Draw (CScreen* pScreen_)
     }
 
     // Draw the visible text
-    pScreen_->DrawString(nX, nY+1, GetText()+m_nViewOffset, IsEnabled() ? BLACK : GREY_5, false, nViewLength);
+    pScreen_->Printf(nX, nY+1, "\a%c%.*s", IsEnabled()?'k':'K', nViewLength, GetText()+m_nViewOffset);
 
     // Is the control focussed with an active selection?
     if (IsActive() && m_nCaretStart != m_nCaretEnd)
@@ -877,7 +877,7 @@ void CEditControl::Draw (CScreen* pScreen_)
 
         // Draw the black selection highlight and white text over it
         pScreen_->FillRect(nX+dx+!!dx-1, nY-1, 1+wx+1, 1+CHAR_HEIGHT+1, IsEnabled() ? (IsActive() ? BLACK : GREY_4) : GREY_6);
-        pScreen_->DrawString(nX+dx+!!dx, nY+1, GetText()+nStart, WHITE, false, nEnd-nStart);
+        pScreen_->Printf(nX+dx+!!dx, nY+1, "%.*s", nEnd-nStart, GetText()+nStart);
     }
 
     // If the control is enabled and focussed we'll show a flashing caret after the text
@@ -2554,7 +2554,10 @@ void CDialog::Draw (CScreen* pScreen_)
     pScreen_->DrawLine(m_nX, m_nY-1, m_nWidth, 0, DIALOG_FRAME_COLOUR);
 
     // Draw caption text on the left side
-    pScreen_->DrawString(m_nX + 5, m_nY-TITLE_HEIGHT+5, GetText(), TITLE_TEXT_COLOUR, true);
+    CScreen::SetFont(&sSpacedGUIFont);
+    pScreen_->DrawString(m_nX + 5,   m_nY-TITLE_HEIGHT+5, GetText(), TITLE_TEXT_COLOUR);
+    pScreen_->DrawString(m_nX + 5+1, m_nY-TITLE_HEIGHT+5, GetText(), TITLE_TEXT_COLOUR);
+    CScreen::SetFont(&sGUIFont);
 
     // Call the base to draw any child controls
     CWindow::Draw(pScreen_);

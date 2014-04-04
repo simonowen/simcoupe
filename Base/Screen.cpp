@@ -2,7 +2,7 @@
 //
 // Screen.cpp: SAM screen handling, including on-screen display text
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,9 +32,9 @@
 #include "Font.h"
 
 
-int nClipX, nClipY, nClipWidth, nClipHeight;    // Clip box for any screen drawing
+static int nClipX, nClipY, nClipWidth, nClipHeight;    // Clip box for any screen drawing
 
-const GUIFONT* pFont = &sGUIFont;
+static const GUIFONT* pFont = &sGUIFont;
 
 
 CScreen::CScreen (int nWidth_, int nHeight_)
@@ -229,18 +229,62 @@ void CScreen::Poke (int nX_, int nY_, const BYTE* pcbData_, UINT uLen_)
 
 
 // Draw a proportionally spaced string of characters at a specified pixel position
-void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool fBold_/*=false*/, size_t nMaxChars_/*=-1*/)
+int CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_)
 {
+    bool fColour = true;
+    BYTE bDefaultInk = bInk_;
     int nLeft = nX_;
 
     // Iterate through characters in the string, stopping if we hit the character limit
-    for (BYTE bChar ; (bChar = *pcsz_++) && nMaxChars_-- ; )
+    for (BYTE bChar ; (bChar = *pcsz_++) ; )
     {
         // Newline?
         if (bChar == '\n')
         {
             nX_ = nLeft;
             nY_ += pFont->wHeight + LINE_SPACING;
+            continue;
+        }
+        // Embedded colour code?
+        else if (bChar == '\a')
+        {
+            BYTE bColour = *pcsz_;
+            if (bColour) pcsz_++;
+
+            // Ignore colours if disabled
+            if (!fColour)
+                continue;
+
+            switch (bColour)
+            {
+                // Subtle colours
+                case 'k': bInk_ = BLACK;        break;
+                case 'b': bInk_ = BLUE_8;       break;
+                case 'r': bInk_ = RED_8;        break;
+                case 'm': bInk_ = MAGENTA_8;    break;
+                case 'g': bInk_ = GREEN_8;      break;
+                case 'c': bInk_ = CYAN_8;       break;
+                case 'y': bInk_ = YELLOW_8;     break;
+                case 'w': bInk_ = GREY_6;       break;
+
+                // Bright colours
+                case 'K': bInk_ = GREY_5;       break;
+                case 'B': bInk_ = BLUE_5;       break;
+                case 'R': bInk_ = RED_5;        break;
+                case 'M': bInk_ = MAGENTA_5;    break;
+                case 'G': bInk_ = GREEN_5;      break;
+                case 'C': bInk_ = CYAN_5;       break;
+                case 'Y': bInk_ = YELLOW_5;     break;
+                case 'W': bInk_ = WHITE;        break;
+
+                // Disable or enable colour code processing
+                case '0': fColour = false; bDefaultInk = bInk_; break;
+                case '1': fColour = true;       break;
+
+                // End colour block, return to default
+                case 'X': bInk_ = bDefaultInk; break;
+            }
+
             continue;
         }
 
@@ -252,7 +296,7 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
         const BYTE* pbData = pFont->pcbData + (bChar - pFont->bFirst) * pFont->wCharSize;
 
         // Retrieve the character width
-        int nWidth = *pbData++ & 0x0f;
+        int nWidth = (*pbData++ & 0x0f) + pFont->wWidth;
 
         // Draw as fixed-width?
         if (pFont->fFixedWidth)
@@ -289,46 +333,46 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
             {
                 BYTE bData = *pbData++;
 
-                if (!fBold_)
-                {
 #ifdef USE_LOWRES
-                    // Draw ever other pixel, since they're the only visible ones in low-res mode
-                    if (bData & 0x80) pLine[0]  = bInk_;
-                    if (bData & 0x40) pLine[2]  = bInk_;
-                    if (bData & 0x20) pLine[4]  = bInk_;
-                    if (bData & 0x10) pLine[6]  = bInk_;
-                    if (bData & 0x08) pLine[8]  = bInk_;
-                    if (bData & 0x04) pLine[10] = bInk_;
-                    if (bData & 0x02) pLine[12] = bInk_;
-                    if (bData & 0x01) pLine[14] = bInk_;
+                // Draw ever other pixel, since they're the only visible ones in low-res mode
+                if (bData & 0x80) pLine[0]  = bInk_;
+                if (bData & 0x40) pLine[2]  = bInk_;
+                if (bData & 0x20) pLine[4]  = bInk_;
+                if (bData & 0x10) pLine[6]  = bInk_;
+                if (bData & 0x08) pLine[8]  = bInk_;
+                if (bData & 0x04) pLine[10] = bInk_;
+                if (bData & 0x02) pLine[12] = bInk_;
+                if (bData & 0x01) pLine[14] = bInk_;
 #else
-                    if (bData & 0x80) pLine[0] = bInk_;
-                    if (bData & 0x40) pLine[1] = bInk_;
-                    if (bData & 0x20) pLine[2] = bInk_;
-                    if (bData & 0x10) pLine[3] = bInk_;
-                    if (bData & 0x08) pLine[4] = bInk_;
-                    if (bData & 0x04) pLine[5] = bInk_;
-                    if (bData & 0x02) pLine[6] = bInk_;
-                    if (bData & 0x01) pLine[7] = bInk_;
+                if (bData & 0x80) pLine[0] = bInk_;
+                if (bData & 0x40) pLine[1] = bInk_;
+                if (bData & 0x20) pLine[2] = bInk_;
+                if (bData & 0x10) pLine[3] = bInk_;
+                if (bData & 0x08) pLine[4] = bInk_;
+                if (bData & 0x04) pLine[5] = bInk_;
+                if (bData & 0x02) pLine[6] = bInk_;
+                if (bData & 0x01) pLine[7] = bInk_;
 #endif
-                }
-                else
-                {
-                    if (bData & 0x80) pLine[0] = pLine[1] = bInk_;
-                    if (bData & 0x40) pLine[1] = pLine[2] = bInk_;
-                    if (bData & 0x20) pLine[2] = pLine[3] = bInk_;
-                    if (bData & 0x10) pLine[3] = pLine[4] = bInk_;
-                    if (bData & 0x08) pLine[4] = pLine[5] = bInk_;
-                    if (bData & 0x04) pLine[5] = pLine[6] = bInk_;
-                    if (bData & 0x02) pLine[6] = pLine[7] = bInk_;
-                    if (bData & 0x01) pLine[7] = pLine[8] = bInk_;
-                }
             }
         }
 
         // Move to the next character position
-        nX_ += nWidth + CHAR_SPACING + fBold_;
+        nX_ += nWidth + CHAR_SPACING;
     }
+
+	return 0;
+}
+
+// Formatted string drawing, in white by default
+int CScreen::Printf (int nX_, int nY_, const char* pcszFormat_, ...)
+{
+    va_list args;
+    va_start(args, pcszFormat_);
+
+    char sz[512];
+    vsprintf(sz, pcszFormat_, args);
+
+    return DrawString(nX_, nY_, sz, WHITE);
 }
 
 // Get the on-screen width required for a specified string if drawn proportionally
@@ -349,6 +393,17 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
             nWidth = 0;
             continue;
         }
+        // Colour codes are ignored
+        else if (bChar == '\a')
+        {
+            // Skip the colour unless at the end of string
+            if (*pcsz_)
+            {
+                pcsz_++;
+                nMaxChars_++;
+            }
+            continue;
+        }
 
         // Out-of-range characters will be drawn as an underscore
         if (bChar < pFont_->bFirst || bChar > pFont_->bLast)
@@ -362,7 +417,7 @@ void CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_, bool 
         else
         {
             const BYTE* pChar = pFont_->pcbData + (bChar - pFont_->bFirst) * pFont_->wCharSize;
-            nWidth += (nWidth ? CHAR_SPACING : 0) + (*pChar & 0xf);
+            nWidth += (nWidth ? CHAR_SPACING : 0) + (*pChar & 0xf) + pFont->wWidth;
         }
 
         // Update the maximum segment width
