@@ -74,7 +74,7 @@ class CScreen
         void FrameRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_, bool fRound_=false);
         void Poke (int nX_, int nY_, const BYTE* pcbData_, UINT uLen_);
         void DrawImage (int nX_, int nY_, int nWidth_, int nHeight_, const BYTE* pbData_, const BYTE* pbPalette_);
-        int DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_);
+        int DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_=WHITE);
         int Printf (int nX_, int nY_, const char* pcszFormat_, ...);
 
         static int GetStringWidth (const char* pcsz_, size_t nMaxChars_=-1, const GUIFONT *pFont_=NULL);

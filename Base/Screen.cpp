@@ -229,7 +229,7 @@ void CScreen::Poke (int nX_, int nY_, const BYTE* pcbData_, UINT uLen_)
 
 
 // Draw a proportionally spaced string of characters at a specified pixel position
-int CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_)
+int CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_/*=WHITE*/)
 {
     bool fColour = true;
     BYTE bDefaultInk = bInk_;

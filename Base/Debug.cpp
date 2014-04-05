@@ -28,11 +28,12 @@
 #include "Memory.h"
 #include "Options.h"
 #include "SAMROM.h"
+#include "Symbol.h"
 #include "Util.h"
 
 
-// Helper macro to decide on item colour - light red for changed or white for unchanged
-#define RegCol(a,b) ((a) != (b) ? RED_8 : WHITE)
+// Changed value colour (light red)
+#define CHG_COL  'r'
 
 static const int ROW_GAP = 2;
 static const int ROW_HEIGHT = ROW_GAP+sFixedFont.wHeight+ROW_GAP;
@@ -1509,149 +1510,79 @@ void CDisView::Draw (CScreen* pScreen_)
     int i;
     int nX = nX_;
     int nY = nY_;
-    char sz[128];
 
-#define ShowLabel(str,dx,dy)  \
-{   \
-    pScreen_->DrawString(nX+dx, nY+dy, str, GREEN_8);  \
-}
+    #define DoubleReg(dx,dy,name,reg) \
+    { \
+        pScreen_->Printf(nX+dx, nY+dy, "\ag%-3s\a%c%02X\a%c%02X", name, \
+                    (regs.reg.b.h != sLastRegs.reg.b.h)?CHG_COL:'X', regs.reg.b.h,  \
+                    (regs.reg.b.l != sLastRegs.reg.b.l)?CHG_COL:'X', regs.reg.b.l); \
+    }
 
-    ShowLabel("AF       AF'\n"
-              "BC       BC'\n"
-              "DE       DE'\n"
-              "HL       HL'",   0, 0);
+    #define SingleReg(dx,dy,name,reg) \
+    { \
+        pScreen_->Printf(nX+dx, nY+dy, "\ag%-2s\a%c%02X", name, \
+                    (regs.reg != sLastRegs.reg)?CHG_COL:'X', regs.reg); \
+    }
 
-    ShowLabel("IX       IY\n"
-              "PC       SP", 0, 52);
+    DoubleReg(0,  0,  "AF", af);    DoubleReg(54, 0,  "AF'", af_);
+    DoubleReg(0,  12, "BC", bc);    DoubleReg(54, 12, "BC'", bc_);
+    DoubleReg(0,  24, "DE", de);    DoubleReg(54, 24, "DE'", de_);
+    DoubleReg(0,  36, "HL", hl);    DoubleReg(54, 36, "HL'", hl_);
 
-    ShowLabel("I     R", 0, 80);
+    DoubleReg(0,  52, "IX", ix);    DoubleReg(54, 52, "IY", iy);
+    DoubleReg(0,  64, "PC", pc);    DoubleReg(54, 64, "SP", sp);
 
+    SingleReg(0,  80, "I", i);      SingleReg(36, 80, "R", r);
 
-#define ShowReg(buf,fmt,dx,dy,reg)  \
-{   \
-    sprintf(buf, fmt, regs.reg); \
-    pScreen_->DrawString(nX+dx, nY+dy, buf, (regs.reg != sLastRegs.reg) ? RED_8 : WHITE);  \
-}
-
-    ShowReg(sz, "%02X", 18,  0, af.b.h); ShowReg(sz, "%02X", 30,  0, af.b.l);
-    ShowReg(sz, "%02X", 18, 12, bc.b.h); ShowReg(sz, "%02X", 30, 12, bc.b.l);
-    ShowReg(sz, "%02X", 18, 24, de.b.h); ShowReg(sz, "%02X", 30, 24, de.b.l);
-    ShowReg(sz, "%02X", 18, 36, hl.b.h); ShowReg(sz, "%02X", 30, 36, hl.b.l);
-
-    ShowReg(sz, "%02X", 18, 52, ix.b.h); ShowReg(sz, "%02X", 30, 52, ix.b.l);
-    ShowReg(sz, "%04X", 18, 64, pc.w);
-
-    ShowReg(sz, "%02X", 12, 80, i);
-
-    ShowReg(sz, "%02X", 72,  0, af_.b.h); ShowReg(sz, "%02X", 84,  0, af_.b.l);
-    ShowReg(sz, "%02X", 72, 12, bc_.b.h); ShowReg(sz, "%02X", 84, 12, bc_.b.l);
-    ShowReg(sz, "%02X", 72, 24, de_.b.h); ShowReg(sz, "%02X", 84, 24, de_.b.l);
-    ShowReg(sz, "%02X", 72, 36, hl_.b.h); ShowReg(sz, "%02X", 84, 36, hl_.b.l);
-
-    ShowReg(sz, "%02X", 72, 52, iy.b.h); ShowReg(sz, "%02X", 84, 52, iy.b.l);
-    ShowReg(sz, "%04X", 72, 64, sp.w);
-
-    ShowReg(sz, "%02X", 48, 80, r);
-
-
-    pScreen_->DrawString(nX+72, nY+74, " \x81\x81 ", GREY_4);
+    pScreen_->DrawString(nX+80, nY+74, "\x81\x81", GREY_4);
 
     for (i = 0 ; i < 4 ; i++)
-    {
-        sprintf(sz, "%04X", read_word(SP+i*2));
-        pScreen_->DrawString(nX+72, nY+84 + i*12, sz, WHITE);
-    }
+        pScreen_->Printf(nX+72, nY+84 + i*12, "%04X", read_word(SP+i*2));
 
+    pScreen_->Printf(nX, nY+96, "\agIM \a%c%u", (IM!=sLastRegs.im)?CHG_COL:'X', IM);
+    pScreen_->Printf(nX+18, nY+96, "  \a%c%cI", (IFF1!=sLastRegs.iff1)?CHG_COL:'X', IFF1?'E':'D');
 
-    pScreen_->DrawString(nX, nY+96, "IM", GREEN_8);
-    sprintf(sz, "%u", IM);
-    pScreen_->DrawString(nX+18, nY+96, sz, RegCol(IM, sLastRegs.im));
-    sprintf(sz, "  %cI", IFF1?'E':'D');
-    pScreen_->DrawString(nX+18, nY+96, sz, RegCol(IFF1, sLastRegs.iff1));
-/*
-    sprintf(sz, "     %cI2", IFF2?'E':'D');
-    pScreen_->DrawString(nX+18, nY+96, sz, RegCol(IFF2, sLastRegs.iff2));
-*/
-    static char szInts[] = "OFIML";
-    char szIntInactive[] = "     ";
-    char szIntActive[]   = "     ";
-    char szIntChange[]   = "     ";
     char bIntDiff = status_reg ^ bLastStatus;
+    pScreen_->Printf(nX, nY+108, "\agStat \a%c%c\a%c%c\a%c%c\a%c%c\a%c%c",
+        (bIntDiff & 0x10)?CHG_COL:(status_reg & 0x10)?'K':'X', (status_reg & 0x10)?'-':'O',
+        (bIntDiff & 0x08)?CHG_COL:(status_reg & 0x08)?'K':'X', (status_reg & 0x08)?'-':'F',
+        (bIntDiff & 0x04)?CHG_COL:(status_reg & 0x04)?'K':'X', (status_reg & 0x04)?'-':'I',
+        (bIntDiff & 0x02)?CHG_COL:(status_reg & 0x02)?'K':'X', (status_reg & 0x02)?'-':'M',
+        (bIntDiff & 0x01)?CHG_COL:(status_reg & 0x01)?'K':'X', (status_reg & 0x01)?'-':'L');
 
-    for (i = 0 ; i < 5 ; i++)
-    {
-        BYTE bBit = 1 << (4-i);
-        char chState = (~status_reg & bBit) ? szInts[i] : '-';
-
-        if (bIntDiff & bBit)
-            szIntChange[i] = chState;
-        else if (~status_reg & bBit)
-            szIntActive[i] = chState;
-        else
-            szIntInactive[i] = chState;
-    }
-
-    pScreen_->DrawString(nX, nY+108, "Stat", GREEN_8);
-    pScreen_->DrawString(nX+30, nY+108, szIntInactive, GREY_4);
-    pScreen_->DrawString(nX+30, nY+108, szIntActive, WHITE);
-    pScreen_->DrawString(nX+30, nY+108, szIntChange, RegCol(1,0));
-
-
-    static char szFlags[] = "SZ5H3VNC";
-    char szFlagInactive[] = "        ";
-    char szFlagActive[]   = "        ";
-    char szFlagChange[]   = "        ";
     char bFlagDiff = F ^ sLastRegs.af.b.l;
-    for (i = 0 ; i < 8 ; i++)
-    {
-        BYTE bBit = 1 << (7-i);
-        char chState = (F & bBit) ? szFlags[i] : '-';
+    pScreen_->Printf(nX, nY+132, "\agFlag \a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c",
+        (bFlagDiff & FLAG_S)?CHG_COL:(F & FLAG_S)?'X':'K', (F & FLAG_S)?'S':'-',
+        (bFlagDiff & FLAG_Z)?CHG_COL:(F & FLAG_Z)?'X':'K', (F & FLAG_Z)?'Z':'-',
+        (bFlagDiff & FLAG_5)?CHG_COL:(F & FLAG_5)?'X':'K', (F & FLAG_5)?'5':'-',
+        (bFlagDiff & FLAG_H)?CHG_COL:(F & FLAG_H)?'X':'K', (F & FLAG_H)?'H':'-',
+        (bFlagDiff & FLAG_3)?CHG_COL:(F & FLAG_3)?'X':'K', (F & FLAG_3)?'3':'-',
+        (bFlagDiff & FLAG_V)?CHG_COL:(F & FLAG_V)?'X':'K', (F & FLAG_V)?'V':'-',
+        (bFlagDiff & FLAG_N)?CHG_COL:(F & FLAG_N)?'X':'K', (F & FLAG_N)?'N':'-',
+        (bFlagDiff & FLAG_C)?CHG_COL:(F & FLAG_C)?'X':'K', (F & FLAG_C)?'C':'-');
 
-        if (bFlagDiff & bBit)
-            szFlagChange[i] = chState;
-        else if (F & bBit)
-            szFlagActive[i] = chState;
-        else
-            szFlagInactive[i] = chState;
-    }
-
-    pScreen_->DrawString(nX, nY+132, "Flag", GREEN_8);
-    pScreen_->DrawString(nX+30, nY+132, szFlagInactive, GREY_4);
-    pScreen_->DrawString(nX+30, nY+132, szFlagActive, WHITE);
-    pScreen_->DrawString(nX+30, nY+132, szFlagChange, RegCol(1,0));
 
     int nLine = (g_dwCycleCounter < BORDER_PIXELS) ? HEIGHT_LINES-1 : (g_dwCycleCounter-BORDER_PIXELS) / TSTATES_PER_LINE;
     int nLineCycle = (g_dwCycleCounter + TSTATES_PER_LINE - BORDER_PIXELS) % TSTATES_PER_LINE;
 
-    sprintf(sz, "%03d:%03d", nLine, nLineCycle);
-    pScreen_->DrawString(nX, nY+148, "Scan", GREEN_8);
-    pScreen_->DrawString(nX+30, nY+148, sz, WHITE);
-
-    sprintf(sz, "%u", g_dwCycleCounter);
-    pScreen_->DrawString(nX, nY+160, "T", GREEN_8);
-    pScreen_->DrawString(nX+12, nY+160, sz, WHITE);
+    pScreen_->Printf(nX, nY+148, "\agScan\aX %03d:%03d", nLine, nLineCycle);
+    pScreen_->Printf(nX, nY+160, "\agT\aX %u", g_dwCycleCounter);
 
     DWORD dwCycleDiff = ((nLastFrames*TSTATES_PER_FRAME)+g_dwCycleCounter)-dwLastCycle;
-    pScreen_->DrawString(nX, nY+172, "", GREEN_8);
     if (dwCycleDiff)
-    {
-        sprintf(sz, "+%u", dwCycleDiff);
-        pScreen_->DrawString(nX+12, nY+172, sz, WHITE);
-    }
+        pScreen_->Printf(nX+12, nY+172, "+%u", dwCycleDiff);
 
-    pScreen_->DrawString(nX, nY+188, "A\nB\nC\nD", GREEN_8);
-    pScreen_->DrawString(nX+12, nY+188, PageDesc(GetSectionPage(SECTION_A)), (AddrWritePtr(0x0000)==PageWritePtr(SCRATCH_WRITE))?CYAN_8:WHITE);
-    pScreen_->DrawString(nX+12, nY+200, PageDesc(GetSectionPage(SECTION_B)), WHITE);
-    pScreen_->DrawString(nX+12, nY+212, PageDesc(GetSectionPage(SECTION_C)), WHITE);
-    pScreen_->DrawString(nX+12, nY+224, PageDesc(GetSectionPage(SECTION_D)), (AddrWritePtr(0xc000)==PageWritePtr(SCRATCH_WRITE))?CYAN_8:WHITE);
+    pScreen_->Printf(nX, nY+188, "\agA \a%c%s", ReadOnlyAddr(0x0000)?'c':'X', PageDesc(GetSectionPage(SECTION_A)));
+    pScreen_->Printf(nX, nY+200, "\agB \a%c%s", ReadOnlyAddr(0x4000)?'c':'X', PageDesc(GetSectionPage(SECTION_B)));
+    pScreen_->Printf(nX, nY+212, "\agC \a%c%s", ReadOnlyAddr(0x8000)?'c':'X', PageDesc(GetSectionPage(SECTION_C)));
+    pScreen_->Printf(nX, nY+224, "\agD \a%c%s", ReadOnlyAddr(0xc000)?'c':'X', PageDesc(GetSectionPage(SECTION_D)));
 
-    pScreen_->DrawString(nX+60, nY+188, " L\n H\n V\n M", GREEN_8);
-    sprintf(sz, "   %02X\n   %02X\n   %02X\n   %X",
-        lmpr, hmpr, vmpr, ((vmpr&VMPR_MODE_MASK)>>5)+1);
-    pScreen_->DrawString(nX+60, nY+188, sz, WHITE);
+    pScreen_->Printf(nX+66, nY+188, "\agL\aX %02X", lmpr);
+    pScreen_->Printf(nX+66, nY+200, "\agH\aX %02X", hmpr);
+    pScreen_->Printf(nX+66, nY+212, "\agV\aX %02X", vmpr);
+    pScreen_->Printf(nX+66, nY+224, "\agM\aX %X", ((vmpr&VMPR_MODE_MASK)>>5)+1);
 
-
-    pScreen_->DrawString(nX, nY+240, "Events", GREEN_8);
+    pScreen_->DrawString(nX, nY+240, "\agEvents");
 
     CPU_EVENT *pEvent = psNextEvent;
     for (i = 0 ; i < 3 && pEvent ; i++, pEvent = pEvent->psNext)
@@ -1672,10 +1603,7 @@ void CDisView::Draw (CScreen* pScreen_)
             case evtInputUpdate:     i--; continue;
         }
 
-        sprintf(sz, "%s       T", pcszEvent);
-        pScreen_->DrawString(nX, nY+252+(i*12), sz, WHITE);
-        sprintf(sz, "%6u", pEvent->dwTime-g_dwCycleCounter);
-        pScreen_->DrawString(nX+5*6, nY+252+(i*12), sz, RegCol(0,1));
+        pScreen_->Printf(nX, nY+252 + i*12, "%-4s \a%c%6u\aXT", pcszEvent, CHG_COL, pEvent->dwTime-g_dwCycleCounter);
     }
 }
 

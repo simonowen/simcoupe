@@ -68,6 +68,8 @@ inline BYTE *PageReadPtr (int nPage_) { return pMemory + PageReadOffset(nPage_);
 inline BYTE *PageWritePtr (int nPage_) { return pMemory + PageWriteOffset(nPage_); }
 inline BYTE *AddrReadPtr (WORD wAddr_) { return apbSectionReadPtrs[AddrSection(wAddr_)] + (wAddr_ & (MEM_PAGE_SIZE-1)); }
 inline BYTE *AddrWritePtr (WORD wAddr_) { return apbSectionWritePtrs[AddrSection(wAddr_)] + (wAddr_ & (MEM_PAGE_SIZE-1)); }
+inline bool ReadOnlyAddr (WORD wAddr_) { return apbSectionWritePtrs[AddrSection(wAddr_)] == PageWritePtr(SCRATCH_WRITE); }
+
 inline int PtrPage (const void *pv_) { return int((reinterpret_cast<const BYTE*>(pv_)-pMemory)/MEM_PAGE_SIZE); }
 inline int PtrOffset (const void *pv_) { return int((reinterpret_cast<const BYTE*>(pv_)-pMemory) & (MEM_PAGE_SIZE-1)); }
 
