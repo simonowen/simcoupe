@@ -41,7 +41,7 @@ class Debug
 };
 
 
-enum ViewType { vtDis, vtTxt, vtHex, vtGfx, vtBpt };
+enum ViewType { vtDis, vtTxt, vtHex, vtGfx, vtBpt, vtTrc };
 
 class CView : public CWindow
 {
@@ -59,6 +59,30 @@ class CView : public CWindow
         WORD m_wAddr;
 };
 
+class CTextView : public CView
+{
+    public:
+        CTextView (CWindow *pParent_);
+
+    public:
+        int GetLines () const { return m_nLines; }
+        void SetLines (int nLines_) { m_nLines = nLines_; }
+        int GetTopLine () const { return m_nTopLine; }
+
+        virtual void DrawLine (CScreen *pScreen_, int nX_, int nY_, int nLine_) = 0;
+        virtual bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
+        virtual bool cmdNavigate (int nKey_, int nMods_);
+        virtual void OnDblClick (int nLine_) { }
+        virtual void OnDelete () { }
+
+    protected:
+        void Draw (CScreen* pScreen_);
+
+    private:
+        int m_nLines;       // Lines of content to display
+        int m_nTopLine;     // Line number of first visible line
+        int m_nRows;        // Maximum visible rows
+};
 
 class CDisView : public CView
 {
@@ -186,6 +210,21 @@ class CBptView : public CView
     private:
         int m_nRows, m_nLines, m_nTopLine, m_nActive;
         char *m_pszData;
+};
+
+class CTrcView : public CTextView
+{
+    public:
+        CTrcView (CWindow* pParent_);
+
+    public:
+        void DrawLine (CScreen* pScreen_, int nX_, int nY_, int nLine_);
+        bool cmdNavigate (int nKey_, int nMods_);
+        void OnDblClick (int nLine_);
+        void OnDelete ();
+
+    private:
+        bool m_fFullMode;
 };
 
 

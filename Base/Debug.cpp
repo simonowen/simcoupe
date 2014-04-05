@@ -39,6 +39,14 @@ static const int ROW_GAP = 2;
 static const int ROW_HEIGHT = ROW_GAP+sFixedFont.wHeight+ROW_GAP;
 static const int CHAR_WIDTH = sFixedFont.wWidth+CHAR_SPACING;
 
+typedef struct
+{
+    WORD wPC;           // PC value
+    BYTE abInstr[4];    // Instruction at PC
+    Z80Regs regs;       // Register values
+} TRACEDATA;
+
+
 static CDebugger* pDebugger;
 
 // Stack position used to track stepping out
@@ -50,6 +58,12 @@ Z80Regs sLastRegs, sCurrRegs;
 BYTE bLastStatus;
 DWORD dwLastCycle;
 int nLastFrames;
+
+// Instruction tracing
+#define TRACE_SLOTS 1000
+TRACEDATA aTrace[TRACE_SLOTS];
+int nNumTraces;
+
 
 // Activate the debug GUI, if not already active
 bool Debug::Start (BREAKPT* pBreak_)
@@ -66,6 +80,16 @@ bool Debug::Start (BREAKPT* pBreak_)
         R = (R7 & 0x80) | (R & 0x7f);
         sLastRegs = sCurrRegs = regs;
         bLastStatus = status_reg;
+
+        // If there's no breakpoint set any existing trace is meaningless
+        if (!Breakpoint::IsSet())
+        {
+            // Set the previous entry to have the current register values
+            aTrace[nNumTraces = 0].regs = regs;
+
+            // Add the current location as the only entry
+            BreakpointHit();
+        }
     }
 
     // Stop any existing debugger instance
@@ -136,6 +160,18 @@ bool Debug::IsBreakpointSet ()
 // Return whether any of the active breakpoints have been hit
 bool Debug::BreakpointHit ()
 {
+    // Add a new trace entry if PC has changed
+    if (aTrace[nNumTraces % TRACE_SLOTS].wPC != PC)
+    {
+        TRACEDATA *p = &aTrace[(++nNumTraces) % TRACE_SLOTS];
+        p->wPC = PC;
+        p->abInstr[0] = read_byte(PC);
+        p->abInstr[1] = read_byte(PC+1);
+        p->abInstr[2] = read_byte(PC+2);
+        p->abInstr[3] = read_byte(PC+3);
+        p->regs = regs;
+    }
+
     return Breakpoint::IsHit();
 }
 
@@ -352,6 +388,80 @@ static bool OnModeNotify (EXPR *pExpr_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+CTextView::CTextView (CWindow *pParent_)
+: CView(pParent_), m_nLines(0), m_nTopLine(0), m_nRows(m_nHeight / ROW_HEIGHT)
+{
+    SetFont(&sFixedFont);
+}
+
+void CTextView::Draw (CScreen *pScreen_)
+{
+    // Draw each line, always drawing line 0 to allow an empty message
+    for (int i = m_nTopLine ; i < m_nTopLine+m_nRows && (!i || i < m_nLines) ; i++)
+    {
+        int nX = m_nX;
+        int nY = m_nY + ROW_HEIGHT*(i-m_nTopLine);
+
+        DrawLine(pScreen_, nX, nY, i);
+    }
+
+    CDisView::DrawRegisterPanel(pScreen_, m_nX+m_nWidth-6*16, m_nY);
+}
+
+bool CTextView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
+{
+    switch (nMessage_)
+    {
+        case GM_BUTTONDBLCLK:
+        {
+            int nIndex = (nParam2_ - m_nY) / ROW_HEIGHT;
+
+            if (IsOver() && nIndex >= 0 && nIndex < m_nLines)
+                OnDblClick(nIndex);
+
+            break;
+        }
+
+        case GM_CHAR:
+            return cmdNavigate(nParam1_, nParam2_);
+
+        case GM_MOUSEWHEEL:
+            return cmdNavigate((nParam1_ < 0) ? HK_UP : HK_DOWN, 0);
+    }
+
+    return false;
+}
+
+bool CTextView::cmdNavigate (int nKey_, int nMods_)
+{
+    switch (nKey_)
+    {
+        case HK_HOME:   m_nTopLine = 0; break;
+        case HK_END:    m_nTopLine = m_nLines; break;
+
+        case HK_UP:     m_nTopLine--; break;
+        case HK_DOWN:   m_nTopLine++; break;
+
+        case HK_PGUP:   m_nTopLine -= m_nRows; break;
+        case HK_PGDN:   m_nTopLine += m_nRows; break;
+
+        case HK_DELETE: OnDelete(); break;
+
+        default:
+            return false;
+    }
+
+    if (m_nTopLine > m_nLines-m_nRows)
+        m_nTopLine = m_nLines-m_nRows;
+
+    if (m_nTopLine < 0)
+        m_nTopLine = 0;
+
+    return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 bool CDebugger::s_fTransparent = false;
 
 CDebugger::CDebugger (BREAKPT* pBreak_/*=NULL*/)
@@ -462,6 +572,10 @@ void CDebugger::SetView (ViewType nView_)
 
         case vtBpt:
             pNewView = new CBptView(this);
+            break;
+
+        case vtTrc:
+            pNewView = new CTrcView(this);
             break;
     }
 
@@ -621,6 +735,10 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
             case 'b':
                 SetView(vtBpt);
+                break;
+
+            case 'c':
+                SetView(vtTrc);
                 break;
 
             case 'd':
@@ -1480,11 +1598,11 @@ void CDisView::Draw (CScreen* pScreen_)
 
         if (s_wAddrs[u] == PC)
         {
-            pScreen_->FillRect(nX-1, nY-1, m_nWidth-115, ROW_HEIGHT-3, YELLOW_7);
+            pScreen_->FillRect(nX-1, nY-1, m_nWidth-112, ROW_HEIGHT-3, YELLOW_7);
             bColour = BLACK;
 
             if (m_pcszTarget)
-                pScreen_->DrawString(nX+210, nY, m_pcszTarget, bColour);
+                pScreen_->DrawString(nX+CHAR_WIDTH*(52-strlen(m_pcszTarget)), nY, m_pcszTarget, bColour);
         }
 
         BYTE *pPhysAddr = AddrReadPtr(s_wAddrs[u]);
@@ -1534,7 +1652,7 @@ void CDisView::Draw (CScreen* pScreen_)
 
     SingleReg(0,  80, "I", i);      SingleReg(36, 80, "R", r);
 
-    pScreen_->DrawString(nX+80, nY+74, "\x81\x81", GREY_4);
+    pScreen_->DrawString(nX+80, nY+74, "\aK\x81\x81");
 
     for (i = 0 ; i < 4 ; i++)
         pScreen_->Printf(nX+72, nY+84 + i*12, "%04X", read_word(SP+i*2));
@@ -1992,15 +2110,10 @@ bool CDisView::SetDataTarget ()
 static const int TXT_COLUMNS = 64;
 
 CTxtView::CTxtView (CWindow* pParent_)
-    : CView(pParent_)
+    : CView(pParent_), m_nRows(m_nHeight / ROW_HEIGHT), m_nColumns(80), m_fEditing(false)
 {
     SetText("Text");
     SetFont(&sFixedFont);
-
-    m_nRows = m_nHeight / ROW_HEIGHT;
-    m_nColumns = 80;
-
-    m_fEditing = false;
 
     // Allocate enough for a full screen of characters
     m_pszData = new char[m_nRows * m_nColumns + 1];
@@ -2708,7 +2821,7 @@ void CBptView::Draw (CScreen* pScreen_)
 
     for (i = 0 ; i < m_nRows && *psz ; i++)
     {
-        int nX = m_nX + 2;
+        int nX = m_nX;
         int nY = m_nY + ROW_HEIGHT*i;
 
         BREAKPT *pBreak = Breakpoint::GetAt(m_nTopLine+i);
@@ -2773,4 +2886,132 @@ bool CBptView::cmdNavigate (int nKey_, int nMods_)
         m_nTopLine = m_nLines-m_nRows;
 
     return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Trace View
+
+CTrcView::CTrcView (CWindow* pParent_)
+    : CTextView(pParent_), m_fFullMode(false)
+{
+    SetText("Trace");
+    SetLines(min(nNumTraces,TRACE_SLOTS));
+    cmdNavigate(HK_END, 0);
+}
+
+void CTrcView::DrawLine (CScreen *pScreen_, int nX_, int nY_, int nLine_)
+{
+    if (GetLines() <= 1)
+        pScreen_->DrawString(nX_, nY_, "No instruction trace", WHITE);
+    else
+    {
+        char szDis[32], sz[128], *psz = sz;
+
+        int nPos = (nNumTraces - GetLines() + 1 + nLine_ + TRACE_SLOTS) % TRACE_SLOTS;
+        TRACEDATA *pTD = &aTrace[nPos];
+
+        Disassemble(pTD->abInstr, pTD->wPC, szDis, sizeof(szDis));
+        psz += sprintf(psz, "%04X  %-18s", pTD->wPC, szDis);
+
+        if (nLine_ != GetLines()-1)
+        {
+            int nPos0 = (nPos + 0 + TRACE_SLOTS) % TRACE_SLOTS;
+            int nPos1 = (nPos + 1 + TRACE_SLOTS) % TRACE_SLOTS;
+            TRACEDATA *p0 = &aTrace[nPos0];
+            TRACEDATA *p1 = &aTrace[nPos1];
+
+// Macro-tastic!
+#define CHG_S(r)	(p1->regs.r != p0->regs.r)
+#define CHG_H(r,h)	(p1->regs.r.b.h != p0->regs.r.b.h)
+#define CHG_D(r)	(p1->regs.r.w != p0->regs.r.w)
+
+#define CHK_S(r,RL)		if (CHG_S(r)) PRINT_S(RL,r);
+#define CHK(rr,RH,RL)	if (CHG_H(rr,h) && !CHG_H(rr,l)) PRINT_H(RH,rr,h);			\
+                        else if (!CHG_H(rr,h) && CHG_H(rr,l)) PRINT_H(RL,rr,l);	\
+                        else if (CHG_D(rr)) PRINT_D(RH RL,rr)
+
+#define PRINT_H(N,r,h)	psz += sprintf(psz, "\ag" N "\aX %02X->%02X  ", p0->regs.r.b.h, p1->regs.r.b.h)
+#define PRINT_S(N,r)	psz += sprintf(psz, "\ag" N "\aX %02X->%02X  ", p0->regs.r, p1->regs.r)
+#define PRINT_D(N,r)	psz += sprintf(psz, "\ag" N "\aX %04X->%04X  ", p0->regs.r.w, p1->regs.r.w)
+
+            // Special check for EXX, as we don't have room for all changes
+            if ((CHG_D(bc) && CHG_D(bc_)) ||
+                (CHG_D(de) && CHG_D(de_)) ||
+                (CHG_D(hl) && CHG_D(hl_)))
+            {
+                psz += sprintf(psz, "BC/DE/HL <=> BC'/DE'/HL'");
+            }
+            // Same for BC+DE+HL changing in block instructions
+            else if (CHG_D(bc) && CHG_D(de) && CHG_D(hl))
+            {
+                psz += sprintf(psz, "\agBC\aX->%04X \agDE\aX->%04X \agHL\aX->%04X", BC, DE, HL);
+            }
+            else
+            {
+                if (CHG_D(sp))
+                {
+                    if (CHG_D(af)) PRINT_D("AF",af);
+                    if (CHG_D(bc)) PRINT_D("BC",bc);
+                    if (CHG_D(de)) PRINT_D("DE",de);
+                    if (CHG_D(hl)) PRINT_D("HL",hl);
+                }
+                else
+                {
+                    if (m_fFullMode)
+                    {
+                        if (CHG_D(af)) PRINT_D("AF",af);
+                        if (CHG_D(bc)) PRINT_D("BC",bc);
+                        if (CHG_D(de)) PRINT_D("DE",de);
+                        if (CHG_D(hl)) PRINT_D("HL",hl);
+                    }
+                    else
+                    {
+                        if (CHG_H(af,h)) PRINT_H("A",af,h);
+                        CHK(bc,"B","C");
+                        CHK(de,"D","E");
+                        CHK(hl,"H","L");
+                    }
+                }
+
+                if (CHG_D(ix)) PRINT_D("IX",ix);
+                if (CHG_D(iy)) PRINT_D("IY",iy);
+                if (CHG_D(sp)) PRINT_D("SP",sp);
+
+                CHK_S(i,"I");
+                CHK_S(im,"IM");
+            }
+        }
+
+        BYTE bColour = WHITE;
+
+        if (nLine_ == GetLines()-1)
+        {
+            pScreen_->FillRect(nX_-1, nY_-1, m_nWidth-112, ROW_HEIGHT-3, YELLOW_7);
+            bColour = BLACK;
+        }
+
+        pScreen_->DrawString(nX_, nY_, sz, bColour);
+    }
+}
+
+bool CTrcView::cmdNavigate (int nKey_, int nMods_)
+{
+    if (nKey_ == HK_SPACE)
+        m_fFullMode = !m_fFullMode;
+
+    return CTextView::cmdNavigate(nKey_, nMods_);
+}
+
+void CTrcView::OnDblClick (int nLine_)
+{
+    int nPos = (nNumTraces - GetLines() + 1 + GetTopLine() + nLine_ + TRACE_SLOTS) % TRACE_SLOTS;
+    TRACEDATA *pTD = &aTrace[nPos];
+
+    CView::SetAddress(pTD->wPC, true);
+    pDebugger->SetView(vtDis);
+}
+
+void CTrcView::OnDelete ()
+{
+    SetLines(nNumTraces = 0);
 }
