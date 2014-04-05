@@ -233,7 +233,7 @@ edinstr(4,0121) out_c(D);                                           endinstr;   
 edinstr(4,0131) out_c(E);                                           endinstr;   // out (c),e
 edinstr(4,0141) out_c(H);                                           endinstr;   // out (c),h
 edinstr(4,0151) out_c(L);                                           endinstr;   // out (c),l
-edinstr(4,0161) out_c(GetOption(nmosz80)?0:255);                    endinstr;   // out (c),0
+edinstr(4,0161) out_c(GetOption(cmosz80)?255:0);                    endinstr;   // out (c),0/255
 edinstr(4,0171) out_c(A);                                           endinstr;   // out (c),a
 
 

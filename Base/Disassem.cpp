@@ -111,7 +111,7 @@ static void Function (BYTE b_)
         case 'l':   *pbStack = (pbOpcode[0] & 7) == 6; break;
         case 'm':   pszOut += sprintf(pszOut, fHex ? "%02X" : "%d", pbOpcode[1 + (!nType ? 0 : 1)]); break;
         case 'n':   pszOut += sprintf(pszOut, fHex ? "%02X" : "%d", pbOpcode[1]); break;
-        case 'o':   pszOut += sprintf(pszOut, fHex ? "%02X" : "%d", GetOption(nmosz80) ? 0 : 255); break;
+        case 'o':   pszOut += sprintf(pszOut, fHex ? "%02X" : "%d", GetOption(cmosz80) ? 255 : 0); break;
     }
 }
 
