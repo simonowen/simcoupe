@@ -148,11 +148,11 @@ void Symbol::Update (const char *pcszFile_)
 {
     // Load ROM symbols if not already loaded
     if (rom_symbols.empty())
-        Load(OSD::MakeFilePath(MFP_EXE, "samrom.map"), rom_symbols, NULL);
+        Load(OSD::MakeFilePath(MFP_RESOURCE, "samrom.map"), rom_symbols, NULL);
 
     // Load I/O port symbols if not already loaded
     if (port_symbols.empty())
-        Load(OSD::MakeFilePath(MFP_EXE, "samports.map"), port_symbols, NULL);
+        Load(OSD::MakeFilePath(MFP_RESOURCE, "samports.map"), port_symbols, NULL);
 
     // If a file was supplied, load RAM symbols from it
     if (pcszFile_)

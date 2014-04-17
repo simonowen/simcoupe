@@ -6,6 +6,9 @@ project(simcoupe)
 
 set(CMAKE_BUILD_TYPE Release)
 
+set(RESOURCE_DIR ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME})
+add_definitions(-DRESOURCE_DIR="${RESOURCE_DIR}/")
+
 include_directories(Base/ SDL/)
 
 # Recommend native Win32/Mac building as they're not well supported yet
@@ -78,6 +81,14 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
   add_definitions(-D_DEBUG)
 endif ()
 
-add_executable(simcoupe WIN32 MACOSX_BUNDLE ${BASE_SRC} ${SDL_SRC})
+add_definitions(-DINSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}")
 
-install(TARGETS simcoupe DESTINATION bin)
+add_executable(${PROJECT_NAME} WIN32 MACOSX_BUNDLE ${BASE_SRC} ${SDL_SRC})
+
+install(TARGETS ${PROJECT_NAME}
+  DESTINATION bin
+)
+
+install(DIRECTORY Resources/
+  DESTINATION ${RESOURCE_DIR}
+)

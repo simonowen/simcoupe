@@ -177,7 +177,7 @@ int closedir (DIR* hDir_);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-enum { MFP_SETTINGS, MFP_INPUT, MFP_OUTPUT, MFP_EXE };
+enum { MFP_SETTINGS, MFP_INPUT, MFP_OUTPUT, MFP_RESOURCE };
 
 class OSD
 {

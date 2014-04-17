@@ -1884,7 +1884,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
                 // Items from help menu
                 case IDM_HELP_GENERAL:
-                    if (ShellExecute(hwnd_, NULL, OSD::MakeFilePath(MFP_EXE, "SimCoupe.txt"), NULL, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
+                    if (ShellExecute(hwnd_, NULL, OSD::MakeFilePath(MFP_RESOURCE, "SimCoupe.txt"), NULL, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
                         MessageBox(hwnd_, "Can't find SimCoupe.txt", WINDOW_CAPTION, MB_ICONEXCLAMATION);
                     break;
                 case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), hwnd_, AboutDlgProc, NULL);   break;

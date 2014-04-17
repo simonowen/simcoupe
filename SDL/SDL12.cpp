@@ -66,7 +66,7 @@ bool SDLSurface::Init (bool fFirstInit_)
         return false;
     }
 
-    pIcon = SDL_LoadBMP(OSD::MakeFilePath(MFP_EXE, "SimCoupe.bmp"));
+    pIcon = SDL_LoadBMP(OSD::MakeFilePath(MFP_RESOURCE, "SimCoupe.bmp"));
     if (pIcon)
         SDL_WM_SetIcon(pIcon, NULL);
 

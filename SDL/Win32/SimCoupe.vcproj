@@ -886,6 +886,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\Base\Symbol.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\Base\Tape.cpp"
 				>
 			</File>
@@ -1141,6 +1145,10 @@
 			</File>
 			<File
 				RelativePath="..\..\Base\Stream.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\Base\Symbol.h"
 				>
 			</File>
 			<File

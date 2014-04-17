@@ -48,7 +48,7 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
         _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
 #endif
         // Enable portable mode if the options file is local
-        fPortable = GetFileAttributes(MakeFilePath(MFP_EXE, OPTIONS_FILE)) != INVALID_FILE_ATTRIBUTES;
+        fPortable = GetFileAttributes(MakeFilePath(MFP_RESOURCE, OPTIONS_FILE)) != INVALID_FILE_ATTRIBUTES;
         if (fPortable)
             Options::Load(__argc, __argv);
 
@@ -133,15 +133,18 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
 
     // In portable mode, force everything to be kept with the EXE, like we used to
     if (fPortable)
-        nDir_ = MFP_EXE;
+        nDir_ = MFP_RESOURCE;
 
     switch (nDir_)
     {
+
+        // Settings are stored in the user's AppData\Roaming (under SimCoupe\)
         case MFP_SETTINGS:
             GetSpecialFolderPath(CSIDL_APPDATA, szPath, MAX_PATH);
             CreateDirectory(lstrcat(szPath, "SimCoupe\\"), NULL);
             break;
 
+        // Input file prompts default to the user's Documents directory
         case MFP_INPUT:
             if (GetOption(inpath)[0])
                 lstrcpyn(szPath, GetOption(inpath), MAX_PATH);
@@ -149,6 +152,7 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
                 GetSpecialFolderPath(CSIDL_MYDOCUMENTS, szPath, MAX_PATH);
             break;
 
+        // Output files go in the user's Documents (under SimCoupe\)
         case MFP_OUTPUT:
             if (GetOption(outpath)[0])
                 lstrcpyn(szPath, GetOption(outpath), MAX_PATH);
@@ -159,7 +163,8 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
             }
             break;
 
-        case MFP_EXE:
+        // Resources are bundled with the EXE, which may be a read-only location
+        case MFP_RESOURCE:
             GetModuleFileName(GetModuleHandle(NULL), szPath, MAX_PATH);
             strrchr(szPath, '\\')[1] = '\0';
             break;
