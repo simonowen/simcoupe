@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// Disassem.h: Z80 disassembler
+// Symbol.h: Symbol management
 //
-//  Copyright (c) 1999-2014  Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,12 +18,21 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#ifndef DISASSEM_H
-#define DISASSEM_H
+#ifndef SYMBOL_H
+#define SYMBOL_H
 
-// Maximum Z80 instruction length
-#define MAX_Z80_INSTR_LEN  4
+class Symbol
+{
+    public:
+        static const int MAX_SYMBOL_LEN = 12;
 
-UINT Disassemble (BYTE* pb_, WORD wPC_=0, char* psz_=NULL, size_t cbSize_=0, int nSymbolMax_=0);
+    public:
+        static void Symbol::Update (const char *pcszFile_);
+        static void Symbol::Clear ();
+
+        static int LookupSymbol (std::string sSymbol_);
+        static std::string LookupAddr (WORD wAddr_, int nMaxLen_=0, bool fAllowPlusOne_=false);
+        static std::string LookupPort (BYTE bPort_, bool fInput_);
+};
 
 #endif

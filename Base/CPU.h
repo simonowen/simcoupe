@@ -74,6 +74,8 @@ const BYTE OP_JPHL  = 0xe9;     // Z80 opcode for JP (HL)
 
 const BYTE IX_PREFIX = 0xdd;    // Opcode prefix used for IX instructions
 const BYTE IY_PREFIX = 0xfd;    // Opcode prefix used for IY instructions
+const BYTE CB_PREFIX = 0xcb;    // Prefix for CB instruction set
+const BYTE ED_PREFIX = 0xed;    // Prefix for ED instruction set
 
 
 const WORD IM1_INTERRUPT_HANDLER = 0x0038;      // Interrupt mode 1 handler address

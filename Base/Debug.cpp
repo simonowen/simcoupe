@@ -41,9 +41,9 @@ static const int CHAR_WIDTH = sFixedFont.wWidth+CHAR_SPACING;
 
 typedef struct
 {
-    WORD wPC;           // PC value
-    BYTE abInstr[4];    // Instruction at PC
-    Z80Regs regs;       // Register values
+    WORD wPC;                         // PC value
+    BYTE abInstr[MAX_Z80_INSTR_LEN];  // Instruction at PC
+    Z80Regs regs;                     // Register values
 } TRACEDATA;
 
 
@@ -89,6 +89,25 @@ bool Debug::Start (BREAKPT* pBreak_)
 
             // Add the current location as the only entry
             BreakpointHit();
+        }
+
+        // Is drive 1 a floppy drive with a disk in it?
+        if (GetOption(drive1) == drvFloppy && pFloppy1->HasDisk())
+        {
+            std::string strPath = pFloppy1->DiskPath();
+
+            // Strip any file extension from the end
+            size_t nExt = strPath.rfind(".");
+            if (nExt != std::string::npos)
+                strPath = strPath.substr(0, nExt);
+
+            // Attempt to load user symbols from a corresponding .map file
+            Symbol::Update(strPath.append(".map").c_str());
+        }
+        else
+        {
+            // Unload user symbols if there's no drive or disk
+            Symbol::Update(NULL);
         }
     }
 
@@ -260,7 +279,7 @@ void cmdStepOver (bool fCtrl_=false)
 
     // 2-byte backwards DJNZ/JR cc, or (LD|CP|IN|OT)[I|D]R ?
     else if (((bOpcode == OP_DJNZ || (bOpcode & 0xe7) == 0x20) && (bOperand & 0x80))
-           || (bOpcode == 0xed && (bOperand & 0xf4) == 0xb0))
+           || (bOpcode == ED_PREFIX && (bOperand & 0xf4) == 0xb0))
         pPhysAddr = AddrReadPtr(wPC+2);
 
     // 3-byte CALL, CALL cc or backwards JP cc?
@@ -481,14 +500,14 @@ CDebugger::CDebugger (BREAKPT* pBreak_/*=NULL*/)
         char sz[128]={};
 
         if (pBreak_->nType != btTemp)
-            snprintf(sz, sizeof(sz)-1, "Breakpoint %d hit:  %s", Breakpoint::GetIndex(pBreak_), Breakpoint::GetDesc(pBreak_));
+            snprintf(sz, sizeof(sz)-1, "\aYBreakpoint %d hit:  %s", Breakpoint::GetIndex(pBreak_), Breakpoint::GetDesc(pBreak_));
         else
         {
             if (pBreak_->pExpr && pBreak_->pExpr != &Expr::Counter)
-                snprintf(sz, sizeof(sz)-1, "UNTIL condition met:  %s", pBreak_->pExpr->pcszExpr);
+                snprintf(sz, sizeof(sz)-1, "\aYUNTIL condition met:  %s", pBreak_->pExpr->pcszExpr);
         }
 
-        SetStatus(sz, YELLOW_6, &sPropFont);
+        SetStatus(sz, true, &sPropFont);
     }
 
     // Remove all temporary breakpoints
@@ -598,14 +617,20 @@ void CDebugger::SetView (ViewType nView_)
     }
 }
 
-void CDebugger::SetStatus (const char *pcsz_, BYTE bColour_/*=WHITE*/, const GUIFONT *pFont_)
+void CDebugger::SetStatus (const char *pcsz_, bool fOneShot_/*=false*/, const GUIFONT *pFont_)
 {
     if (m_pStatus)
     {
+        // One-shot status messages get priority
+        if (fOneShot_)
+            m_sStatus = pcsz_;
+        else if (!m_sStatus.empty())
+            return;
+
         if (pFont_)
             m_pStatus->SetFont(pFont_);
 
-        m_pStatus->SetText(pcsz_, bColour_);
+        m_pStatus->SetText(pcsz_);
     }
 }
 
@@ -653,7 +678,7 @@ void CDebugger::SetStatusByte (WORD wAddr_)
     // Form full status line, and set it
     char sz[128]={};
     snprintf(sz, sizeof(sz)-1, "%04X  %02X  %03d  %s  %c  %s", wAddr_, b, b, szBinary, ch, szKeyword);
-    SetStatus(sz, WHITE, &sFixedFont);
+    SetStatus(sz, false, &sFixedFont);
 }
 
 // Refresh the current debugger view
@@ -822,14 +847,10 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
         }
     }
 
+    // Refresh to reflect any changes if processed, otherwise pass to dialog base
     if (fRet)
-    {
-        m_pStatus->SetText("");
         Refresh();
-    }
-
-    // If not already processed, pass onPass on to dialog base for processing, if not
-    if (!fRet)
+    else
         fRet = CDialog::OnMessage(nMessage_, nParam1_, nParam2_);
 
     return fRet;
@@ -949,7 +970,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
     else if (fCommandOnly && !strcasecmp(pszCommand, "zap"))
     {
         // Disassemble the current instruction
-        BYTE ab[4] = { read_byte(PC), read_byte(PC+1), read_byte(PC+2), read_byte(PC+3) };
+        BYTE ab[MAX_Z80_INSTR_LEN] = { read_byte(PC), read_byte(PC+1), read_byte(PC+2), read_byte(PC+3) };
         UINT uLen = Disassemble(ab, PC);
 
         // Replace instruction with the appropriate number of NOPs
@@ -1518,10 +1539,14 @@ bool CDebugger::Execute (const char* pcszCommand_)
 ////////////////////////////////////////////////////////////////////////////////
 // Disassembler
 
+#define MAX_LABEL_LEN  19
+#define BAR_CHAR_LEN   54
+
 WORD CDisView::s_wAddrs[64];
+bool CDisView::m_fUseSymbols = true;
 
 CDisView::CDisView (CWindow* pParent_)
-    : CView(pParent_), m_uTarget(INVALID_TARGET), m_pcszTarget(NULL)
+    : CView(pParent_), m_uCodeTarget(INVALID_TARGET), m_uDataTarget(INVALID_TARGET), m_pcszDataTarget(NULL)
 {
     SetText("Disassemble");
     SetFont(&sFixedFont);
@@ -1530,17 +1555,20 @@ CDisView::CDisView (CWindow* pParent_)
     m_uRows = m_nHeight / ROW_HEIGHT;
     m_uColumns = m_nWidth / CHAR_WIDTH;
 
-    // Allocate enough for a full screen of characters
-    m_pszData = new char[m_uRows * m_uColumns + 1];
+    // Allocate enough for a full screen of characters, plus room for colour codes
+    m_pszData = new char[m_uRows * m_uColumns * 2];
 }
 
 void CDisView::SetAddress (WORD wAddr_, bool fForceTop_)
 {
     CView::SetAddress(wAddr_);
 
-    // Update the control flow / data target address hints
-    if (!SetFlowTarget())
-        SetDataTarget();
+    // Update the control flow + data target address hints
+    SetCodeTarget();
+    SetDataTarget();
+
+    // Show any data target in the status line
+    pDebugger->SetStatus(m_pcszDataTarget ? m_pcszDataTarget : "", false, &sFixedFont);
 
     if (!fForceTop_)
     {
@@ -1560,24 +1588,47 @@ void CDisView::SetAddress (WORD wAddr_, bool fForceTop_)
     {
         s_wAddrs[u] = wAddr_;
 
-        memset(psz, ' ', m_uColumns);
+        // Display the instruction address
+        psz += sprintf(psz, "%04X ", wAddr_);
 
-        // Display the address in the appropriate format
-        psz += sprintf(psz, "%04X", wAddr_);
-        *psz++ = ' ';
-        psz++;
+        // Disassemble the current instruction
+        char szDisassem[64];
+        BYTE ab[MAX_Z80_INSTR_LEN] = { read_byte(wAddr_), read_byte(wAddr_+1), read_byte(wAddr_+2), read_byte(wAddr_+3) };
+        UINT uLen = Disassemble(ab, wAddr_, szDisassem, sizeof(szDisassem), m_fUseSymbols?MAX_LABEL_LEN:0);
 
-        // Disassemble the instruction, using an appropriate PC value
-        BYTE ab[4] = { read_byte(wAddr_), read_byte(wAddr_+1), read_byte(wAddr_+2), read_byte(wAddr_+3) };
-        UINT uLen = Disassemble(ab, wAddr_, psz+13, 32);
+        // Are we to use symbols?
+        if (m_fUseSymbols)
+        {
+            // Look-up the symbol name to use as a label
+            std::string sName = Symbol::LookupAddr(wAddr_, MAX_LABEL_LEN);
 
-        // Show the instruction bytes between the address and the disassembly
-        for (UINT v = 0 ; v < uLen ; v++)
-            psz += sprintf(psz, "%02X ", read_byte(wAddr_+v));
-        *psz = ' ';
+            // Right-justify the label against the disassembly
+            psz += sprintf(psz, "\ab%*s\aX", MAX_LABEL_LEN, sName.c_str());
+        }
+        else
+        {
+            *psz++ = ' ';
 
-        // Advance to the next line/instruction
-        psz += 1+strlen(psz);
+            // Show the instruction bytes between the address and the disassembly
+            for (UINT v = 0 ; v < MAX_Z80_INSTR_LEN ; v++)
+            {
+                if (v < uLen)
+                    psz += sprintf(psz, " %02X", read_byte(wAddr_+v));
+                else
+                    psz += sprintf(psz, "   ");
+            }
+
+            // Pad with spaces to keep disassembly in space position as symbol version
+            psz += sprintf(psz, "%*s", MAX_LABEL_LEN-(1+2+1+2+1+2+1+2+1), "");
+        }
+
+        // Add the disassembly
+        psz += sprintf(psz, " %s", szDisassem);
+
+        // Terminate the line
+        *psz++ = '\0';
+
+        // Advance to the next instruction address
         wAddr_ += uLen;
     }
 
@@ -1594,30 +1645,33 @@ void CDisView::Draw (CScreen* pScreen_)
         int nX = m_nX;
         int nY = m_nY + ROW_HEIGHT*u;
 
-        BYTE bColour = WHITE;
+        BYTE bColour = 'W';
 
         if (s_wAddrs[u] == PC)
         {
-            pScreen_->FillRect(nX-1, nY-1, m_nWidth-112, ROW_HEIGHT-3, YELLOW_7);
-            bColour = BLACK;
+            // The location bar is green for a change in code flow or yellow otherwise, with black text
+            BYTE bBarColour = (m_uCodeTarget != INVALID_TARGET) ? GREEN_7 : YELLOW_7;
+            pScreen_->FillRect(nX-1, nY-1, BAR_CHAR_LEN*CHAR_WIDTH+1, ROW_HEIGHT-3, bBarColour);
+            bColour = 'k';
 
-            if (m_pcszTarget)
-                pScreen_->DrawString(nX+CHAR_WIDTH*(52-strlen(m_pcszTarget)), nY, m_pcszTarget, bColour);
+            // Add a direction arrow if we have a code target
+            if (m_uCodeTarget != INVALID_TARGET)
+                pScreen_->DrawString(nX+CHAR_WIDTH*(BAR_CHAR_LEN-1), nY, (m_uCodeTarget<PC)?"\x80":"\x81", BLACK);
         }
 
+        // Check for a breakpoint at the current address.
+        // Show conditional breakpoints in magenta, unconditional in red.
         BYTE *pPhysAddr = AddrReadPtr(s_wAddrs[u]);
         int nIndex = Breakpoint::GetExecIndex(pPhysAddr);
         if (nIndex != -1)
-            bColour = Breakpoint::GetAt(nIndex)->pExpr ? MAGENTA_3 : RED_5;
+            bColour = Breakpoint::GetAt(nIndex)->pExpr ? 'M' : 'R';
 
-        if (m_uTarget == INVALID_TARGET || s_wAddrs[u] != m_uTarget)
-            pScreen_->DrawString(nX, nY, psz, bColour);
+        // Show the current entry normally if it's not the current code target, otherwise show all
+        // in black text with an arrow instead of the address, indicating it's the code target.
+        if (m_uCodeTarget == INVALID_TARGET || s_wAddrs[u] != m_uCodeTarget)
+            pScreen_->Printf(nX, nY, "\a%c\a%c%s", bColour, (bColour!='W')?'0':bColour, psz);
         else
-        {
-            pScreen_->DrawString(nX+30, nY, psz+5, bColour);
-            pScreen_->DrawString(nX, nY, "===>", RED_6);
-        }
-
+            pScreen_->Printf(nX, nY, "\a%c\aG===>\a%c%s", bColour, (bColour=='k')?'0':bColour, psz+4);
     }
 
     DrawRegisterPanel(pScreen_, m_nX+m_nWidth-6*16, m_nY);
@@ -1750,6 +1804,9 @@ bool CDisView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
         case GM_CHAR:
         {
+            // Clear any one-shot status
+            pDebugger->SetStatus("", true);
+
             switch (nParam1_)
             {
                 case HK_SPACE:
@@ -1777,6 +1834,11 @@ bool CDisView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 case HK_HOME:
                 case HK_END:
                     return cmdNavigate(nParam1_, nParam2_);
+
+                case 's':
+                    m_fUseSymbols = !m_fUseSymbols;
+                    pDebugger->Refresh();
+                    break;
 
                 case 'd': case 'D':
                     break;
@@ -1832,7 +1894,7 @@ bool CDisView::cmdNavigate (int nKey_, int nMods_)
                 wAddr = s_wAddrs[1];
             else
             {
-                BYTE ab[4];
+                BYTE ab[MAX_Z80_INSTR_LEN];
                 for (UINT u = 0 ; u < sizeof(ab) ; u++)
                     ab[u] = read_byte(PC+u);
 
@@ -1896,8 +1958,8 @@ bool CDisView::cmdNavigate (int nKey_, int nMods_)
     return true;
 }
 
-// Determine the target address
-bool CDisView::SetFlowTarget ()
+// Determine the code target address, if any
+bool CDisView::SetCodeTarget ()
 {
     // Extract the two bytes at PC, which we'll assume are single byte opcode and operand
     WORD wPC = PC;
@@ -1911,8 +1973,7 @@ bool CDisView::SetFlowTarget ()
     WORD wRstTarget = bOpcode & 0x38;
 
     // No instruction target or conditional jump helper string yet
-    m_uTarget = INVALID_TARGET;
-    m_pcszTarget = NULL;
+    m_uCodeTarget = INVALID_TARGET;
 
     // Examine the current opcode to check for flow changing instructions
     switch (bOpcode)
@@ -1923,14 +1984,23 @@ bool CDisView::SetFlowTarget ()
             bCond = 0;
             // Fall thru...
 
-        case OP_JR:     m_uTarget = wJrTarget;  break;
-        case OP_RET:    m_uTarget = wRetTarget; break;
+        case OP_JR:     m_uCodeTarget = wJrTarget;  break;
+        case OP_RET:    m_uCodeTarget = wRetTarget; break;
         case OP_JP:
-        case OP_CALL:   m_uTarget = wJpTarget;  break;
-        case OP_JPHL:   m_uTarget = HL;  break;
+        case OP_CALL:   m_uCodeTarget = wJpTarget;  break;
+        case OP_JPHL:   m_uCodeTarget = HL;  break;
 
-        case IX_PREFIX: if (bOperand == OP_JPHL) m_uTarget = IX;  break;     // JP (IX)
-        case IY_PREFIX: if (bOperand == OP_JPHL) m_uTarget = IY;  break;     // JP (IY)
+        case ED_PREFIX:
+        {
+            // RETN or RETI?
+            if ((bOperand & 0xc7) == 0x45)
+                m_uCodeTarget = wRetTarget;
+
+            break;
+        }
+
+        case IX_PREFIX: if (bOperand == OP_JPHL) m_uCodeTarget = IX;  break;  // JP (IX)
+        case IY_PREFIX: if (bOperand == OP_JPHL) m_uCodeTarget = IY;  break;  // JP (IY)
 
         default:
             // JR cc ?
@@ -1938,21 +2008,21 @@ bool CDisView::SetFlowTarget ()
             {
                 // Extract the 2-bit condition code and set the possible target
                 bCond = (bOpcode >> 3) & 0x03;
-                m_uTarget = wJrTarget;
+                m_uCodeTarget = wJrTarget;
                 break;
             }
 
             // Mask to check for certain groups we're interested in
             switch (bOpcode & 0xc7)
             {
-                case 0xc0:  m_uTarget = wRetTarget; break;    // RET cc
-                case 0xc2:                                    // JP cc
-                case 0xc4:  m_uTarget = wJpTarget;  break;    // CALL cc
-                case 0xc7:  m_uTarget = wRstTarget; break;    // RST
+                case 0xc0:  m_uCodeTarget = wRetTarget; break;  // RET cc
+                case 0xc2:                                      // JP cc
+                case 0xc4:  m_uCodeTarget = wJpTarget;  break;  // CALL cc
+                case 0xc7:  m_uCodeTarget = wRstTarget; break;  // RST
             }
 
             // For all but RST, extract the 3-bit condition code
-            if (m_uTarget != INVALID_TARGET && (bOpcode & 0xc7) != 0xc7)
+            if (m_uCodeTarget != INVALID_TARGET && (bOpcode & 0xc7) != 0xc7)
                 bCond = (bOpcode >> 3) & 0x07;
 
             break;
@@ -1966,24 +2036,13 @@ bool CDisView::SetFlowTarget ()
         // Invert the 'not' conditions to give a set bit for a mask
         bFlags ^= (bCond & 1) ? 0x00 : 0xff;
 
-        // Condition met by flags?
-        if (abFlags[bCond >> 1] & bFlags)
-        {
-            switch (bOpcode & 0xc7)
-            {
-                // The action hint depends on the instruction
-                case 0xc0:  m_pcszTarget = "(RET)";   break;
-                case 0xc4:  m_pcszTarget = "(CALL)";  break;
-                case 0xc2:  m_pcszTarget = (wJpTarget <= wPC) ? "(JUMP \x80)" : "(JUMP \x81)";  break;
-                default:    m_pcszTarget = (bOperand & 0x80) ? "(JUMP \x80)" : "(JUMP \x81)";  break;
-            }
-        }
-        else
-            m_uTarget = INVALID_TARGET;
+        // Condition not met by flags?
+        if (!(abFlags[bCond >> 1] & bFlags))
+            m_uCodeTarget = INVALID_TARGET;
     }
 
     // Return whether a target has been set
-    return m_uTarget != INVALID_TARGET;
+    return m_uCodeTarget != INVALID_TARGET;
 }
 
 // Determine the target address
@@ -1993,8 +2052,8 @@ bool CDisView::SetDataTarget ()
     bool fAddress = true;
 
     // No target or helper string yet
-    m_uTarget = INVALID_TARGET;
-    m_pcszTarget = NULL;
+    m_uDataTarget = INVALID_TARGET;
+    m_pcszDataTarget = NULL;
 
     // Extract potential instruction bytes
     WORD wPC = PC;
@@ -2015,37 +2074,51 @@ bool CDisView::SetDataTarget ()
     // 000r0010 = LD (BC/DE),A
     // 000r1010 = LD A,(BC/DE)
     if ((bOpcode & 0xe7) == 0x02)
-        m_uTarget = (bOpcode & 0x10) ? DE : BC;
+        m_uDataTarget = (bOpcode & 0x10) ? DE : BC;
 
     // 00110010 = LD (nn),A
     // 00111010 = LD A,(nn)
     else if ((bOpcode & 0xf7) == 0x32)
     {
-        m_uTarget = wAddr;
+        m_uDataTarget = wAddr;
         fAddress = false;
     }
 
     // [DD/FD] 0011010x = [INC|DEC] (HL/IX+d/IY+d)
     // [DD/FD] 01110rrr = LD (HL/IX+d/IY+d),r
     else if ((bOpcode & 0xfe) == 0x34 || bOpcode == 0x36)
-        m_uTarget = wHLIXIYd;
+        m_uDataTarget = wHLIXIYd;
 
     // [DD/FD] 00110rrr = LD (HL/IX+d/IY+d),n
     else if (bOpcode != OP_HALT && (bOpcode & 0xf8) == 0x70)
-        m_uTarget = wHLIXIYd;
+        m_uDataTarget = wHLIXIYd;
 
     // [DD/FD] 01rrr110 = LD r,(HL/IX+d/IY+d)
-    else if ((bOpcode & 0xc7) == 0x46)
-        m_uTarget = wHLIXIYd;
+    else if (bOpcode != OP_HALT && (bOpcode & 0xc7) == 0x46)
+        m_uDataTarget = wHLIXIYd;
 
     // [DD/FD] 10xxx110 = ADD|ADC|SUB|SBC|AND|XOR|OR|CP (HL/IX+d/IY+d)
     else if ((bOpcode & 0xc7) == 0x86)
-        m_uTarget = wHLIXIYd;
+        m_uDataTarget = wHLIXIYd;
 
     // (DD) E3 = EX (SP),HL/IX/IY
     else if (bOpcode == 0xe3)
     {
-        m_uTarget = SP;
+        m_uDataTarget = SP;
+        f16Bit = true;
+    }
+/*
+    // 11rr0101 = PUSH rr
+    else if ((bOpcode & 0xcf) == 0xc5)
+    {
+        m_uDataTarget = SP-2;
+        f16Bit = true;
+    }
+*/
+    // 11rr0001 = POP rr
+    else if ((bOpcode & 0xcf) == 0xc1)
+    {
+        m_uDataTarget = SP;
         f16Bit = true;
     }
 
@@ -2053,56 +2126,78 @@ bool CDisView::SetDataTarget ()
     // [DD/FD] 00101010 = LD HL/IX/IY,(nn)
     else if ((bOpcode & 0xf7) == 0x22)
     {
-        m_uTarget = wAddr;
+        m_uDataTarget = wAddr;
         f16Bit = true;
         fAddress = false;
     }
 
     // ED 01dd1011 = LD [BC|DE|HL|SP],(nn)
     // ED 01dd0011 = LD (nn),[BC|DE|HL|SP]
-    else if (bOpcode == 0xed && (bOp1 & 0xc7) == 0x43)
+    else if (bOpcode == ED_PREFIX && (bOp1 & 0xc7) == 0x43)
     {
-        m_uTarget = wAddr23;
+        m_uDataTarget = wAddr23;
         f16Bit = true;
         fAddress = false;
     }
 
+    // ED 0110x111 = RRD/RLD
+    else if (bOpcode == ED_PREFIX && (bOp1 & 0xf7) == 0x67)
+    {
+        m_uDataTarget = HL;
+    }
+
+    // ED 101000xx = LDI/CPI/INI/OUTI
+    // ED 101010xx = LDD/CPD/IND/OUTD
+    // ED 101100xx = LDIR/CPIR/INIR/OTIR
+    // ED 101110xx = LDDR/CPDR/INDR/OTDR
+    else if (bOpcode == ED_PREFIX && (bOp1 & 0xe4) == 0xa0)
+    {
+        m_uDataTarget = HL;
+    }
+
     // CB prefix?
-    else if (bOpcode == 0xcb)
+    else if (bOpcode == CB_PREFIX)
     {
         // DD/FD CB d 00xxxrrr = LD r, RLC|RRC|RL|RR|SLA|SRA|SLL|SRL (IX+d/IY+d)
         // DD/FD CB d xxbbbrrr = [_|BIT|RES|SET] b,(IX+d/IY+d)           
         // DD/FD CB d 1xbbbrrr = LD r,[RES|SET] b,(IX+d/IY+d)
         if (fIndex)
-            m_uTarget = wHLIXIYd;
+            m_uDataTarget = wHLIXIYd;
 
         // CB 00ooo110 = RLC|RRC|RL|RR|SLA|SRA|SLL|SRL (HL)
         // CB oobbbrrr = [_|BIT|RES|SET] b,(HL)
         else if ((bOp1 & 0x07) == 0x06)
-            m_uTarget = HL;
+            m_uDataTarget = HL;
     }
 
     // Do we have something to display?
-    if (m_uTarget != INVALID_TARGET)
+    if (m_uDataTarget != INVALID_TARGET)
     {
-        static char sz[32];
-        m_pcszTarget = sz;
+        static char sz[128];
+        m_pcszDataTarget = sz;
 
         if (f16Bit)
         {
-            if (fAddress)
-                snprintf(sz, _countof(sz), "[%04X=%04X]", m_uTarget, read_word(m_uTarget));
-            else
-                snprintf(sz, _countof(sz), "[%04X]", read_word(m_uTarget));
+            snprintf(sz, _countof(sz), "%04X  \aK%04X %04X %04X\aX %04X \aK%04X %04X %04X",
+                m_uDataTarget,
+                read_word(m_uDataTarget-6), read_word(m_uDataTarget-4), read_word(m_uDataTarget-2),
+                read_word(m_uDataTarget),
+                read_word(m_uDataTarget+2), read_word(m_uDataTarget+4), read_word(m_uDataTarget+6));
         }
-        else if (fAddress)
-            snprintf(sz, _countof(sz), "[%04X=%02X]", m_uTarget, read_byte(m_uTarget));
         else
-            snprintf(sz, _countof(sz), "[%02X]", read_byte(m_uTarget));
+        {
+            snprintf(sz, _countof(sz), "%04X  \aK%02X %02X %02X %02X %02X\aX %02X \aK%02X %02X %02X %02X %02X",
+                m_uDataTarget,
+                read_byte(m_uDataTarget-5), read_byte(m_uDataTarget-4), read_byte(m_uDataTarget-3),
+                read_byte(m_uDataTarget-2), read_byte(m_uDataTarget-1),
+                read_byte(m_uDataTarget),
+                read_byte(m_uDataTarget+1), read_byte(m_uDataTarget+2), read_byte(m_uDataTarget+3),
+                read_byte(m_uDataTarget+4), read_byte(m_uDataTarget+5));
+        }
     }
 
     // Return whether a target has been set
-    return m_uTarget != INVALID_TARGET;
+    return m_uDataTarget != INVALID_TARGET;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2214,7 +2309,6 @@ bool CTxtView::cmdNavigate (int nKey_, int nMods_)
 
             m_fEditing = !m_fEditing;
             wEditAddr = wAddr;
-            pDebugger->SetStatus("");
             break;
 
         case HK_HOME:
@@ -2420,7 +2514,6 @@ bool CHexView::cmdNavigate (int nKey_, int nMods_)
             m_fEditing = !m_fEditing;
             wEditAddr = wAddr;
             m_fRightNibble = false;
-            pDebugger->SetStatus("");
             break;
 
         case HK_HOME:
@@ -2643,7 +2736,7 @@ void CGfxView::SetAddress (WORD wAddr_, bool fForceTop_)
 
     char sz[128]={};
     snprintf(sz, sizeof(sz)-1, "%04X  Mode %u  Width %u  Zoom %ux", GetAddress(), s_uMode, s_uWidth, s_uZoom);
-    pDebugger->SetStatus(sz, WHITE, &sFixedFont);
+    pDebugger->SetStatus(sz, false, &sFixedFont);
 
 }
 

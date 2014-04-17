@@ -54,6 +54,10 @@ typedef unsigned int        UINT;
 #include <time.h>
 #include <sys/stat.h>
 
+#include <string>
+#include <map>
+#include <algorithm>
+
 #ifdef USE_LIBSPECTRUM
 #include "libspectrum.h"
 #endif

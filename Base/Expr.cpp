@@ -23,6 +23,7 @@
 #include "Expr.h"
 #include "Memory.h"
 #include "Options.h"
+#include "Symbol.h"
 
 
 static const char* p;
@@ -550,12 +551,13 @@ bool Expr::Factor ()
     {
         const char *p2 = p;
         const TOKEN *pToken;
+        int nSymValue;
 
         // Assume we'll match the input
         fMatched = true;
 
-        // Scan for a word, allowing an optional trailing single-quote
-        for ( ; isalnum(*p2) ; p2++);
+        // Scan for an identifier, allowing an optional trailing single-quote
+        for ( ; isalnum(*p2) || *p2 == '_' ; p2++);
         if (*p2 == '\'') p2++;
 
         // Register?
@@ -565,6 +567,10 @@ bool Expr::Factor ()
         // Variable?
         else if (!(nFlags & noVars) && (pToken = LookupToken(p, p2-p, asVariables)))
             AddNode(T_VARIABLE, pToken->nToken);
+
+        // Symbol?
+        else if (!(nFlags & noSyms) && (nSymValue = Symbol::LookupSymbol(std::string(p, p2))) >= 0)
+            AddNode(T_NUMBER, nSymValue);
 
         // Unary operator (word)?
         else if ((pToken = LookupToken(p, p2-p, asUnaryOps)))

@@ -27,8 +27,8 @@ class Expr
 {
     public:
         // Flags to limit expression scope
-        enum { none=0x00, noRegs=0x01, noVars=0x02, noFuncs=0x04, noVals=0x08,
-               valOnly=noRegs|noVars|noFuncs, regOnly=noVars|noFuncs|noVals, simple=valOnly };
+        enum { none=0x00, noRegs=0x01, noVars=0x02, noFuncs=0x04, noVals=0x08, noSyms=0x10,
+               valOnly=noRegs|noVars|noFuncs|noSyms, regOnly=noVars|noFuncs|noVals|noSyms, simple=valOnly };
 
     public:
         static EXPR* Compile (const char* pcsz_, char** ppszEnd_=NULL, int nFlags_=none);

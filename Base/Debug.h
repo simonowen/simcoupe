@@ -102,16 +102,18 @@ class CDisView : public CView
         static void DrawRegisterPanel (CScreen* pScreen_, int nX_, int nY_);
 
     protected:
-        bool SetFlowTarget ();
+        bool SetCodeTarget ();
         bool SetDataTarget ();
         bool cmdNavigate (int nKey_, int nMods_);
 
     private:
-        UINT m_uRows, m_uColumns, m_uTarget;
-        const char* m_pcszTarget;
+        UINT m_uRows, m_uColumns;
+        UINT m_uCodeTarget, m_uDataTarget;
+        const char* m_pcszDataTarget;
         char* m_pszData;
 
         static WORD s_wAddrs[];
+        static bool m_fUseSymbols;
 };
 
 
@@ -243,7 +245,7 @@ class CDebugger : public CDialog
         void SetSubTitle (const char *pcszSubTitle_);
         void SetAddress (WORD wAddr_);
         void SetView (ViewType nView);
-        void SetStatus (const char *pcsz_, BYTE bColour_=WHITE, const GUIFONT *pFont_=NULL);
+        void SetStatus (const char *pcsz_, bool fOneShot_=false, const GUIFONT *pFont_=NULL);
         void SetStatusByte (WORD wAddr_);
         bool Execute (const char* pcszCommand_);
 
@@ -252,6 +254,8 @@ class CDebugger : public CDialog
         CView* m_pView;
         CEditControl *m_pCommandEdit;
         CTextControl *m_pStatus;
+
+        std::string m_sStatus;
 
         static bool s_fTransparent;
 };

@@ -276,7 +276,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="@if exist C:\Utils\upx.exe C:\Utils\upx.exe -9 --compress-icons=0 &quot;$(TargetPath)&quot;"
+				CommandLine="@if exist C:\Utils\upx.exe C:\Utils\upx.exe -9 --compress-icons=0 &quot;$(TargetPath)&quot;&#x0D;&#x0A;@if exist C:\Batch\sign.bat C:\Batch\sign.bat &quot;$(TargetPath)&quot;&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -654,6 +654,14 @@
 			</File>
 			<File
 				RelativePath="..\Base\Stream.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Symbol.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Base\Symbol.h"
 				>
 			</File>
 			<File
