@@ -11,6 +11,7 @@ Build/
 *.ncb
 *.plg
 *.suo
+*.sdf
 *.vcproj.*.user
 [Dd]ebug/
 [Rr]elease/
