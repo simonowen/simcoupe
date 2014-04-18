@@ -89,6 +89,6 @@ install(TARGETS ${PROJECT_NAME}
   DESTINATION bin
 )
 
-install(DIRECTORY Resources/
+install(DIRECTORY Resource/
   DESTINATION ${RESOURCE_DIR}
 )

@@ -27,8 +27,8 @@ class Symbol
         static const int MAX_SYMBOL_LEN = 12;
 
     public:
-        static void Symbol::Update (const char *pcszFile_);
-        static void Symbol::Clear ();
+        static void Update (const char *pcszFile_);
+        static void Clear ();
 
         static int LookupSymbol (std::string sSymbol_);
         static std::string LookupAddr (WORD wAddr_, int nMaxLen_=0, bool fAllowPlusOne_=false);
