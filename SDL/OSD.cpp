@@ -127,13 +127,12 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
             // Resources path in the app bundle (requires SDL 2.0.1)
             char *pszBasePath = SDL_GetBasePath();
             strcpy(szPath, pszBasePath);
-            SDL_Free(pszBasePath);
-#elif !defined(_WINDOWS) && !defined(__AMIGAOS4__)
- #ifdef RESOURCE_DIR
+            SDL_free(pszBasePath);
+            break;
+#elif !defined(_WINDOWS) && !defined(__AMIGAOS4__) && defined(RESOURCE_DIR)
             // If available, use the resource directory from the build process
             strcpy(szPath, RESOURCE_DIR);
             break;
- #endif
 #endif
             // Fall back on an empty path as a safe default
             szPath[0] = '\0';

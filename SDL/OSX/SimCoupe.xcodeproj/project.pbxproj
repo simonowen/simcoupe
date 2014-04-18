@@ -68,6 +68,11 @@
 		1386FD0B14FD163600F4032B /* SAMVox.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1386FD0114FD163600F4032B /* SAMVox.cpp */; };
 		1386FD0D14FD163600F4032B /* WAV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1386FD0314FD163600F4032B /* WAV.cpp */; };
 		1393973515473E26007DD788 /* reSID.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 133C17DC14E9D59B001F12B2 /* reSID.framework */; };
+		13C28D811900B556006BB67F /* Symbol.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13C28D7F1900B556006BB67F /* Symbol.cpp */; };
+		13C28D821900B556006BB67F /* Symbol.h in Headers */ = {isa = PBXBuildFile; fileRef = 13C28D801900B556006BB67F /* Symbol.h */; };
+		13C28D871900B6A3006BB67F /* samports.map in Resources */ = {isa = PBXBuildFile; fileRef = 13C28D841900B6A3006BB67F /* samports.map */; };
+		13C28D881900B6A3006BB67F /* samrom.map in Resources */ = {isa = PBXBuildFile; fileRef = 13C28D851900B6A3006BB67F /* samrom.map */; };
+		13C28D891900B6A3006BB67F /* SimCoupe.bmp in Resources */ = {isa = PBXBuildFile; fileRef = 13C28D861900B6A3006BB67F /* SimCoupe.bmp */; };
 		13DADEB3189C986E003EA70D /* SDL20.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13DADEB1189C986E003EA70D /* SDL20.cpp */; };
 		13DADEB6189C98D2003EA70D /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13DADEB5189C98D2003EA70D /* SDL2.framework */; };
 		13DADF88189C99EE003EA70D /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13DADF86189C99EE003EA70D /* Tape.cpp */; };
@@ -213,6 +218,11 @@
 		13A0FFB7088EDFFF00E5436C /* unzip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = unzip.h; path = ../../Base/unzip.h; sourceTree = "<group>"; };
 		13A0FFEF088EE20300E5436C /* SimCoupe.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = SimCoupe.icns; sourceTree = "<group>"; };
 		13A0FFF4088EE31A00E5436C /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = /usr/lib/libz.dylib; sourceTree = "<absolute>"; };
+		13C28D7F1900B556006BB67F /* Symbol.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Symbol.cpp; path = ../../Base/Symbol.cpp; sourceTree = "<group>"; };
+		13C28D801900B556006BB67F /* Symbol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Symbol.h; path = ../../Base/Symbol.h; sourceTree = "<group>"; };
+		13C28D841900B6A3006BB67F /* samports.map */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = samports.map; path = ../../Resource/samports.map; sourceTree = "<group>"; };
+		13C28D851900B6A3006BB67F /* samrom.map */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = samrom.map; path = ../../Resource/samrom.map; sourceTree = "<group>"; };
+		13C28D861900B6A3006BB67F /* SimCoupe.bmp */ = {isa = PBXFileReference; lastKnownFileType = image.bmp; name = SimCoupe.bmp; path = ../../Resource/SimCoupe.bmp; sourceTree = "<group>"; };
 		13DADEB1189C986E003EA70D /* SDL20.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDL20.cpp; path = ../SDL20.cpp; sourceTree = "<group>"; };
 		13DADEB2189C986E003EA70D /* SDL20.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SDL20.h; path = ../SDL20.h; sourceTree = "<group>"; };
 		13DADEB5189C98D2003EA70D /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = /Library/Frameworks/SDL2.framework; sourceTree = "<absolute>"; };
@@ -357,6 +367,7 @@
 				13EC1B2C14E95BD800FA9EDB /* SID.cpp */,
 				13EC1B2E14E95BD800FA9EDB /* Sound.cpp */,
 				13A0FF32088EDFC100E5436C /* Stream.cpp */,
+				13C28D7F1900B556006BB67F /* Symbol.cpp */,
 				13DADF86189C99EE003EA70D /* Tape.cpp */,
 				13DADF87189C99EE003EA70D /* Tape.h */,
 				13A0FFB6088EDFFF00E5436C /* unzip.c */,
@@ -419,6 +430,7 @@
 				13A0FF62088EDFC100E5436C /* SimCoupe.h */,
 				13EC1B2F14E95BD800FA9EDB /* Sound.h */,
 				13A0FF33088EDFC100E5436C /* Stream.h */,
+				13C28D801900B556006BB67F /* Symbol.h */,
 				13A0FFB7088EDFFF00E5436C /* unzip.h */,
 				13A0FF64088EDFC100E5436C /* Util.h */,
 				132253F216539948007DD659 /* Video.h */,
@@ -427,6 +439,16 @@
 				13A0FF68088EDFC100E5436C /* Z80ops.h */,
 			);
 			name = Headers;
+			sourceTree = "<group>";
+		};
+		13C28D831900B65A006BB67F /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				13C28D841900B6A3006BB67F /* samports.map */,
+				13C28D851900B6A3006BB67F /* samrom.map */,
+				13C28D861900B6A3006BB67F /* SimCoupe.bmp */,
+			);
+			name = Resources;
 			sourceTree = "<group>";
 		};
 		13EC1B4B14E96F5D00FA9EDB /* Headers */ = {
@@ -472,8 +494,9 @@
 			children = (
 				13A0FF20088EDFA600E5436C /* Base */,
 				13A0FE6F088EDF5700E5436C /* SDL */,
+				13C28D831900B65A006BB67F /* Resources */,
 				080E96DDFE201D6D7F000001 /* Classes */,
-				29B97317FDCFA39411CA2CEA /* Resources */,
+				29B97317FDCFA39411CA2CEA /* OS X Resources */,
 				1314532108A2C3DC008C1AB7 /* ReadMe Files */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
@@ -481,7 +504,7 @@
 			name = SimCoupe;
 			sourceTree = "<group>";
 		};
-		29B97317FDCFA39411CA2CEA /* Resources */ = {
+		29B97317FDCFA39411CA2CEA /* OS X Resources */ = {
 			isa = PBXGroup;
 			children = (
 				13F693EF0A6D7FAD00962105 /* Icons */,
@@ -489,7 +512,7 @@
 				13486F5C0891A08300DB38E0 /* Credits.html */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
 			);
-			name = Resources;
+			name = "OS X Resources";
 			sourceTree = "<group>";
 		};
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
@@ -508,6 +531,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				13C28D821900B556006BB67F /* Symbol.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -541,7 +565,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0500;
+				LastUpgradeCheck = 0510;
 			};
 			buildConfigurationList = 1301D3CC096B058800027BFC /* Build configuration list for PBXProject "SimCoupe" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -566,12 +590,15 @@
 			files = (
 				132CC55A09B11512007955DE /* InfoPlist.strings in Resources */,
 				132CC55C09B11512007955DE /* SimCoupe.icns in Resources */,
+				13C28D891900B6A3006BB67F /* SimCoupe.bmp in Resources */,
 				132CC55E09B11512007955DE /* Credits.html in Resources */,
 				132CC56009B11512007955DE /* ChangeLog.txt in Resources */,
 				1358F5CA0A6C12AE00D20135 /* file_blank.icns in Resources */,
+				13C28D881900B6A3006BB67F /* samrom.map in Resources */,
 				1358F5CB0A6C12AE00D20135 /* file_dsk.icns in Resources */,
 				1358F5CC0A6C12AE00D20135 /* file_mgt.icns in Resources */,
 				1358F5CD0A6C12AE00D20135 /* file_sad.icns in Resources */,
+				13C28D871900B6A3006BB67F /* samports.map in Resources */,
 				1358F5CE0A6C12AE00D20135 /* file_sbt.icns in Resources */,
 				13F694850A70303400962105 /* SimCoupe.rtf in Resources */,
 			);
@@ -629,6 +656,7 @@
 				13EC1B3C14E95BF600FA9EDB /* Audio.cpp in Sources */,
 				13EC1B4214E95C2400FA9EDB /* BlipBuffer.cpp in Sources */,
 				13EC1B4414E95C2400FA9EDB /* BlueAlpha.cpp in Sources */,
+				13C28D811900B556006BB67F /* Symbol.cpp in Sources */,
 				1386FD0514FD163600F4032B /* AVI.cpp in Sources */,
 				1386FD0714FD163600F4032B /* GIF.cpp in Sources */,
 				1386FD0914FD163600F4032B /* Paula.cpp in Sources */,
@@ -670,6 +698,7 @@
 		131B716209C22C34000C5D11 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(LOCAL_LIBRARY_DIR)/Frameworks",
@@ -703,6 +732,7 @@
 		132CC59609B11512007955DE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(LOCAL_LIBRARY_DIR)/Frameworks",
