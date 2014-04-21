@@ -2,7 +2,7 @@
 //
 // ODMenu.cpp: Owner-draw Win32 menus with images
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -154,7 +154,7 @@ bool COwnerDrawnMenu::OnMeasureItem (LPMEASUREITEMSTRUCT lpms)
         RECT r = { 0,0,0,0 };
         HDC hdc = GetDC(NULL);
         HGDIOBJ hfontOld = SelectObject(hdc, pmi->fDefault ? m_hfontBold : m_hfont);
-        DrawText(hdc, pmi->szText, -1, &r, DT_SINGLELINE|DT_VCENTER|DT_CALCRECT);
+        DrawText(hdc, pmi->szText, -1, &r, DT_SINGLELINE|DT_EXPANDTABS|DT_VCENTER|DT_CALCRECT);
         SelectObject(hdc, hfontOld);
         ReleaseDC(NULL, hdc);
 
@@ -247,9 +247,13 @@ void COwnerDrawnMenu::DrawMenuText (HDC hdc_, LPRECT lprc, LPCSTR pcsz_, bool fD
     {
         *psz++ = '\0';
 
-        DrawState(hdc_, NULL, NULL, (LPARAM)psz, lstrlen(sz),
-            lprc->left, lprc->top, lprc->right, lprc->bottom,
-            DST_PREFIXTEXT | DSS_RIGHT | (fDisabled_ ? DSS_DISABLED : 0));
+        // DSS_RIGHT doesn't seem to work, so calculate the shortcut position
+        RECT r = { };
+        DrawText(hdc_, psz, -1, &r, DT_SINGLELINE|DT_CALCRECT);
+
+        DrawState(hdc_, NULL, NULL, (LPARAM)psz, lstrlen(psz),
+            lprc->right - r.right, lprc->top, lprc->right, lprc->bottom,
+            DST_TEXT | (fDisabled_ ? DSS_DISABLED : 0));
     }
 
     DrawState(hdc_, NULL, NULL, (LPARAM)sz, lstrlen(sz),
