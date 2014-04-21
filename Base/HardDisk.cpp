@@ -2,7 +2,7 @@
 //
 // HardDisk.cpp: Hard disk abstraction layer
 //
-//  Copyright (c) 2004-2012 Simon Owen
+//  Copyright (c) 2004-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -101,7 +101,7 @@ typedef struct
 RS_IDE;
 
 
-/*static*/ CHardDisk* CHardDisk::OpenObject (const char* pcszDisk_)
+/*static*/ CHardDisk* CHardDisk::OpenObject (const char* pcszDisk_, bool fReadOnly_/*=false*/)
 {
     CHardDisk* pDisk = NULL;
 
@@ -110,11 +110,11 @@ RS_IDE;
         return NULL;
 
     // Try for device path first
-    if (!pDisk && (pDisk = new CDeviceHardDisk(pcszDisk_)) && !pDisk->Open())
+    if (!pDisk && (pDisk = new CDeviceHardDisk(pcszDisk_)) && !pDisk->Open(fReadOnly_))
         delete pDisk, pDisk = NULL;
 
     // Try for HDF disk image
-    if (!pDisk && (pDisk = new CHDFHardDisk(pcszDisk_)) && !pDisk->Open())
+    if (!pDisk && (pDisk = new CHDFHardDisk(pcszDisk_)) && !pDisk->Open(fReadOnly_))
         delete pDisk, pDisk = NULL;
 
     return pDisk;
@@ -177,7 +177,7 @@ bool CHDFHardDisk::Create (UINT uTotalSectors_)
 }
 
 
-bool CHDFHardDisk::Open ()
+bool CHDFHardDisk::Open (bool fReadOnly_/*=false*/)
 {
     Close();
 
@@ -186,7 +186,7 @@ bool CHDFHardDisk::Open ()
         return false;
 
     // Open read-write, falling back on read-only (not ideal!)
-    if ((m_hfDisk = fopen(m_pszDisk, "r+b")) || (m_hfDisk = fopen(m_pszDisk, "rb")))
+    if ((!fReadOnly_ && (m_hfDisk = fopen(m_pszDisk, "r+b"))) || (m_hfDisk = fopen(m_pszDisk, "rb")))
     {
         RS_IDE sHeader;
 

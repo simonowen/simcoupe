@@ -2,7 +2,7 @@
 //
 // IDEDisk.cpp: Platform-specific IDE direct disk access
 //
-//  Copyright (c) 2003-2012 Simon Owen
+//  Copyright (c) 2003-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -37,16 +37,17 @@ CDeviceHardDisk::~CDeviceHardDisk ()
 }
 
 
-bool CDeviceHardDisk::Open ()
+bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/)
 {
-    m_hDevice = CreateFile(m_pszDisk, GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING, NULL, NULL);
+    DWORD dwWrite = fReadOnly_ ? 0 : GENERIC_WRITE;
+    m_hDevice = CreateFile(m_pszDisk, GENERIC_READ|dwWrite, 0, NULL, OPEN_EXISTING, 0, NULL);
 
     if (!IsOpen())
     {
         if (GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
             TRACE("Failed to open %s (%#08lx)\n", m_pszDisk, GetLastError());
     }
-    else if (!Lock())
+    else if (!Lock(fReadOnly_))
     {
         TRACE("Failed to get exclusive access to %s\n", m_pszDisk);
     }
@@ -89,7 +90,7 @@ void CDeviceHardDisk::Close ()
     }
 }
 
-bool CDeviceHardDisk::Lock ()
+bool CDeviceHardDisk::Lock (bool fReadOnly_/*=false*/)
 {
     DWORD dwRet;
 
@@ -134,7 +135,7 @@ bool CDeviceHardDisk::Lock ()
                         TRACE("!!! Failed to re-open device\n");
                     else if (!DeviceIoControl(h, FSCTL_LOCK_VOLUME, NULL,0, NULL,0, &dwRet, NULL))
                         TRACE("!!! Failed to lock volume\n");
-                    else if (!DeviceIoControl(h, FSCTL_DISMOUNT_VOLUME, NULL,0, NULL,0, &dwRet, NULL))
+                    else if (!fReadOnly_ && !DeviceIoControl(h, FSCTL_DISMOUNT_VOLUME, NULL,0, NULL,0, &dwRet, NULL))
                         TRACE("!!! Failed to dismount volume\n");
                     else
                     {

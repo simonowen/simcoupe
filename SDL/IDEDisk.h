@@ -2,7 +2,7 @@
 //
 // IDEDisk.h: Platform-specific IDE direct disk access
 //
-//  Copyright (c) 2003-2005 Simon Owen
+//  Copyright (c) 2003-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ class CDeviceHardDisk : public CHardDisk
 
     public:
         bool IsOpen () const { return m_hDevice != -1; }
-        bool Open ();
+        bool Open (bool fReadOnly_=false);
         void Close ();
 
         bool ReadSector (UINT uSector_, BYTE* pb_);

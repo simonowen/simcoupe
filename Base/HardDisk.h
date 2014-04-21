@@ -2,7 +2,7 @@
 //
 // HardDisk.h: Hard disk abstraction layer
 //
-//  Copyright (c) 2004-2012 Simon Owen
+//  Copyright (c) 2004-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,11 +34,8 @@ class CHardDisk : public CATADevice
         virtual ~CHardDisk ();
 
     public:
-        static CHardDisk* OpenObject (const char* pcszDisk_);
-        virtual bool Open () = 0;
-
-    public:
-        const char* GetPath () const { return m_pszDisk; }
+        static CHardDisk* OpenObject (const char* pcszDisk_, bool fReadOnly_=false);
+        virtual bool Open (bool fReadOnly_=false) = 0;
 
     public:
         bool IsSDIDEDisk ();
@@ -60,7 +57,7 @@ class CHDFHardDisk : public CHardDisk
 
     public:
         bool IsOpen () const { return m_hfDisk != NULL; }
-        bool Open ();
+        bool Open (bool fReadOnly_=false);
         bool Create (UINT uTotalSectors_);
         void Close ();
 

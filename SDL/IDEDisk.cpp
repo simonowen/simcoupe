@@ -2,7 +2,7 @@
 //
 // IDEDisk.cpp: Platform-specific IDE direct disk access
 //
-//  Copyright (c) 2003-2006 Simon Owen
+//  Copyright (c) 2003-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,9 +36,11 @@ struct hd_geometry {
 };
 
 
-bool CDeviceHardDisk::Open ()
+bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/)
 {
-    m_hDevice = open(m_pszDisk, O_EXCL|O_RDWR);
+    m_hDevice = open(m_pszDisk, O_EXCL | (fReadOnly_ ? O_RDONLY : O_RDWR));
+    if (m_hDevice == -1)
+        m_hDevice = open(m_pszDisk, O_EXCL | O_RDONLY);
 
     if (IsOpen())
     {
@@ -95,7 +97,7 @@ bool CDeviceHardDisk::WriteSector (UINT uSector_, BYTE* pb_)
 #else
 
 // Dummy implementation for non-Linux SDL versions
-bool CDeviceHardDisk::Open () { return false; }
+bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/) { return false; }
 void CDeviceHardDisk::Close () { }
 bool CDeviceHardDisk::ReadSector (UINT, BYTE*) { return false; }
 bool CDeviceHardDisk::WriteSector (UINT, BYTE*) { return false; }
