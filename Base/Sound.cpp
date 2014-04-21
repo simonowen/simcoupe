@@ -38,6 +38,8 @@ static int AdjustSpeed (BYTE *pb_, int nSize_, int nSpeed_);
 
 bool Sound::Init (bool fFirstInit_/*=false*/)
 {
+    Exit();
+
     int nMaxFrameSamples = 2; // Needed for 50% running speed
     int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND)+1;
     pbSampleBuffer = new BYTE[nSamplesPerFrame*SAMPLE_BLOCK*nMaxFrameSamples];
