@@ -21,6 +21,26 @@
 #include "SimCoupe.h"
 #include "IDEDisk.h"
 
+// SAMdiskHelper definitions, for non-admin device access
+#define PIPENAME	"\\\\.\\pipe\\SAMdiskHelper"
+#define FN_OPEN		2
+
+#pragma pack(1)
+typedef struct {
+    union {
+        struct {
+            DWORD dwMessage;
+            char szPath[MAX_PATH];
+        } Input;
+
+        struct {
+            DWORD dwError;
+            DWORD64 hDevice;
+        } Output;
+    };
+} PIPEMESSAGE;
+#pragma pack()
+
 
 CDeviceHardDisk::CDeviceHardDisk (const char* pcszDisk_)
     : CHardDisk(pcszDisk_), m_hDevice(INVALID_HANDLE_VALUE), m_hLock(INVALID_HANDLE_VALUE)
@@ -41,6 +61,23 @@ bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/)
 {
     DWORD dwWrite = fReadOnly_ ? 0 : GENERIC_WRITE;
     m_hDevice = CreateFile(m_pszDisk, GENERIC_READ|dwWrite, 0, NULL, OPEN_EXISTING, 0, NULL);
+
+    // If a direct open failed, try via SAMdiskHelper
+    if (!IsOpen())
+    {
+        DWORD dwRead;
+        PIPEMESSAGE msg = {};
+        msg.Input.dwMessage = FN_OPEN;
+        lstrcpyn(msg.Input.szPath, m_pszDisk, sizeof(msg.Input.szPath)-1);
+
+        if (CallNamedPipe(PIPENAME, &msg, sizeof(msg.Input), &msg, sizeof(msg.Output), &dwRead, NMPWAIT_NOWAIT))
+        {
+            if (dwRead == sizeof(msg.Output) && msg.Output.dwError == 0)
+                m_hDevice = reinterpret_cast<HANDLE>(msg.Output.hDevice);
+            else if (msg.Output.dwError)
+                SetLastError(msg.Output.dwError);
+        }
+    }
 
     if (!IsOpen())
     {
