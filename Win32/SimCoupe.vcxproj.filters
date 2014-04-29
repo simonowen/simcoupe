@@ -201,6 +201,12 @@
     <ClCompile Include="UI.cpp">
       <Filter>Win32 Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Base\unzip.c">
+      <Filter>Base Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Base\ioapi.c">
+      <Filter>Base Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="afxres.h">
