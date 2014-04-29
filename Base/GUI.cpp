@@ -1588,7 +1588,7 @@ void CScrollBar::Draw (CScreen* pScreen_)
         return;
 
     // Fill the main button background
-    pScreen_->FillRect(m_nX+1, m_nY+1, m_nWidth-2, m_nHeight-2, IsActive() ? YELLOW_8 : GREY_7);
+    pScreen_->FillRect(m_nX+1, m_nY+1, m_nWidth-2, m_nHeight-2, GREY_7);
 
     // Draw the edge highlight for the top, left, bottom and right
     pScreen_->DrawLine(m_nX, m_nY, m_nWidth, 0, WHITE);
@@ -1620,7 +1620,7 @@ bool CScrollBar::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     if (m_nMaxPos <= 0)
         return false;
 
-    bool fRet = false;//CWindow::OnMessage(nMessage_, nParam1_, nParam2_);
+    bool fRet = CWindow::OnMessage(nMessage_, nParam1_, nParam2_);
 
     // Stop the buttons remaining active
     m_pActive = NULL;
