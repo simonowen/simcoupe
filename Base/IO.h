@@ -2,7 +2,7 @@
 //
 // IO.h: SAM I/O port handling
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //  Copyright (c) 1996-2001 Allan Skillman
 //  Copyright (c) 2000-2001 Dave Laundon
 //
@@ -72,8 +72,8 @@ class CIoDevice
 
         virtual void FrameEnd () { }
 
-        virtual void LoadState (const char *pcszFile_) { }  // preserve basic state (such as NVRAM)
-        virtual void SaveState (const char *pcszFile_) { }
+        virtual bool LoadState (const char *pcszFile_) { return true; }  // preserve basic state (such as NVRAM)
+        virtual bool SaveState (const char *pcszFile_) { return true; }
 };
 
 enum { drvNone, drvFloppy, drvAtom, drvAtomLite, drvSDIDE };

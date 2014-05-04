@@ -372,7 +372,6 @@ class CIconControl : public CWindow
 
     protected:
         const GUI_ICON* m_pIcon;
-        bool m_fSmall;
 };
 
 

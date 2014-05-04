@@ -2,7 +2,7 @@
 //
 // Mouse.cpp: Mouse interface
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //  Copyright (c) 1996-2001 Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -32,8 +32,10 @@
 
 
 CMouseDevice::CMouseDevice ()
-    : m_nDeltaX(0), m_nDeltaY(0), m_bButtons(0), m_uBuffer(0)
+    : m_nDeltaX(0), m_nDeltaY(0), m_nReadX(0), m_nReadY(0), m_bButtons(0),
+      m_dwLastRead(0), m_uBuffer(0)
 {
+    memset(&m_sMouse, 0, sizeof(m_sMouse));
     m_sMouse.bStrobe = m_sMouse.bDummy = 0xff;
 }
 

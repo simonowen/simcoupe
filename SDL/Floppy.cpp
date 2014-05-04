@@ -2,7 +2,7 @@
 //
 // Floppy.cpp: Real floppy access (Linux-only)
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -37,6 +37,14 @@ void *thread_proc (void *pv_)
     return reinterpret_cast<CFloppyStream*>(pv_)->ThreadProc();
 }
 
+
+CFloppyStream (const char* pcszStream_, bool fReadOnly_=false)
+    : CStream(pcszStream_, fReadOnly_),
+    m_hFloppy(-1), m_uSectors(0), m_hThread(0), m_fThreadDone(false),
+    m_bCommand(0), m_bStatus(0), m_pTrack(NULL), m_uSectorIndex(0)
+{
+}
+
 /*static*/ bool CFloppyStream::IsRecognised (const char* pcszStream_)
 {
     struct stat st;
@@ -44,7 +52,8 @@ void *thread_proc (void *pv_)
     int nMaxFollow = 10;
 
     // Work with a copy of the path as it may be updated to follow links
-    strncpy(sz, pcszStream_, sizeof(sz));
+    strncpy(sz, pcszStream_, sizeof(sz)-1);
+    sz[sizeof(sz)-1] = '\0';
 
     // Loop examining, in case there are links to follow
     while (!lstat(sz, &st))
@@ -59,7 +68,7 @@ void *thread_proc (void *pv_)
 
         // Read the link target, failing if there's an error (no access or dangling link)
         char szLink[MAX_PATH];
-        int nLen = readlink(sz, szLink, sizeof(szLink));
+        int nLen = readlink(sz, szLink, sizeof(szLink)-1);
         if (nLen < 0)
             break;
 
@@ -86,9 +95,9 @@ bool CFloppyStream::Open ()
     if (!IsOpen())
     {
         // Open the floppy in the appropriate mode, falling back to read-only if necessary
-        if (m_fReadOnly || (m_nFloppy = open(m_pszPath, O_EXCL|O_RDWR)) == -1)
+        if (m_fReadOnly || (m_hFloppy = open(m_pszPath, O_EXCL|O_RDWR)) == -1)
         {
-            m_nFloppy = open(m_pszPath, O_EXCL|O_RDONLY);
+            m_hFloppy = open(m_pszPath, O_EXCL|O_RDONLY);
             m_fReadOnly = true;
         }
 
@@ -381,7 +390,7 @@ static bool ReadCustomTrack (int hDevice_, PTRACK pTrack_)
     memcpy(rc[0].cmd, cmd0, sizeof(cmd0));
     rc[0].cmd_count = sizeof(cmd0);
 
-    for (i = 1 ; i < (int)(sizeof(rc)/sizeof(rc[0])) ; i++)
+    for (i = 1 ; i < _countof(rc) ; i++)
     {
         rc[i].flags = FD_RAW_INTR;
         rc[i].rate = rc[0].rate;
@@ -402,9 +411,10 @@ static bool ReadCustomTrack (int hDevice_, PTRACK pTrack_)
         return true;
     }
 
-    for (i = 1 ; i < (int)(sizeof(rc)/sizeof(rc[0])) ; i++)
+    for (i = 1 ; i < _countof(rc) ; i++)
     {
-        ioctl(hDevice_, FDRAWCMD, &rc[i]);
+        if (ioctl(hDevice_, FDRAWCMD, &rc[i]))
+            return false;
 
         // Track loop?
         if (i > 1 && rc[i].reply[5] == rc[1].reply[5])
@@ -452,22 +462,22 @@ void *CFloppyStream::ThreadProc ()
         case READ_MSECTOR:
             // If we've got a sector count, read the track assuming that value
             if (m_uSectors)
-                ReadSimpleTrack(m_nFloppy, m_pTrack, m_uSectors);
+                ReadSimpleTrack(m_hFloppy, m_pTrack, m_uSectors);
 
             // If we're not in regular mode, scan and read individual sectors (slower)
             if (!m_uSectors)
-                ReadCustomTrack(m_nFloppy, m_pTrack);
+                ReadCustomTrack(m_hFloppy, m_pTrack);
 
             break;
 
         // Write a sector
         case WRITE_1SECTOR:
-            m_bStatus = WriteSector(m_nFloppy, m_pTrack, m_uSectorIndex);
+            m_bStatus = WriteSector(m_hFloppy, m_pTrack, m_uSectorIndex);
             break;
 
         // Format track
         case WRITE_TRACK:
-            m_bStatus = FormatTrack(m_nFloppy, m_pTrack);
+            m_bStatus = FormatTrack(m_hFloppy, m_pTrack);
             break;
 
         default:
@@ -482,6 +492,13 @@ void *CFloppyStream::ThreadProc ()
 
 #else
 // Dummy implementation for non-Linux SDL versions
+
+CFloppyStream (const char* pcszStream_, bool fReadOnly_=false)
+    : CStream(pcszStream_, fReadOnly_),
+    m_hFloppy(-1), m_uSectors(0), m_hThread(0),
+    m_bCommand(0), m_bStatus(0), m_pTrack(NULL), m_uSectorIndex(0)
+{
+}
 
 /*static*/ bool CFloppyStream::IsRecognised (const char* pcszStream_)
 {

@@ -2,7 +2,7 @@
 //
 // Disk.cpp: C++ classes used for accessing all SAM disk image types
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -94,9 +94,7 @@
 
 
 CDisk::CDisk (CStream* pStream_, int nType_)
-    : m_nType(nType_),
-      m_fModified(false),
-      m_pStream(pStream_), m_pbData(NULL)
+    : m_nType(nType_), m_nBusy(0), m_fModified(false), m_pStream(pStream_), m_pbData(NULL)
 {
 }
 
@@ -368,7 +366,7 @@ BYTE CSADDisk::ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UINT
 }
 
 CEDSKDisk::CEDSKDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT uTracks_/*=MAX_DISK_TRACKS*/)
-    : CDisk(pStream_, dtEDSK)
+    : CDisk(pStream_, dtEDSK), m_pSector(NULL), m_pbData(NULL)
 {
     m_uSides = uSides_;
     m_uTracks = uTracks_;
@@ -478,7 +476,7 @@ BYTE CEDSKDisk::ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UIN
     IDFIELD id;
     BYTE bStatus;
 
-    if (!GetSector(cyl_, head_, index_, &id, &bStatus))
+    if (!GetSector(cyl_, head_, index_, &id, &bStatus) || !m_pSector || !m_pbData)
         return RECORD_NOT_FOUND;
 
     // Read the data field
@@ -500,7 +498,7 @@ BYTE CEDSKDisk::WriteData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UI
     IDFIELD id;
     BYTE bStatus;
 
-    if (!GetSector(cyl_, head_, index_, &id, &bStatus))
+    if (!GetSector(cyl_, head_, index_, &id, &bStatus) || !m_pSector || !m_pbData)
         return RECORD_NOT_FOUND;
 
     if (IsReadOnly())
@@ -654,7 +652,7 @@ BYTE CEDSKDisk::FormatTrack (BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbDa
 }
 
 CFloppyDisk::CFloppyDisk (CStream* pStream_)
-    : CDisk(pStream_, dtFloppy), m_bStatus(0)
+    : CDisk(pStream_, dtFloppy), m_bCommand(0), m_bStatus(0)
 {
     // We can assume this as only CFloppyStream will recognise the real device, and we are always the disk used
     m_pFloppy = reinterpret_cast<CFloppyStream*>(pStream_);
@@ -824,7 +822,7 @@ bool CFloppyDisk::IsBusy (BYTE* pbStatus_, bool fWait_)
 }
 
 CFileDisk::CFileDisk (CStream* pStream_)
-    : CDisk(pStream_, dtFile)
+    : CDisk(pStream_, dtFile), m_uSize(0)
 {
     // Work out the maximum file size, allocate some memory for it
     UINT uSize = MAX_SAM_FILE_SIZE + DISK_FILE_HEADER_SIZE;

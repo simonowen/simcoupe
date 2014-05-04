@@ -336,7 +336,10 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
         if (m_pSize->IsEnabled())
         {
             char sz[MAX_PATH];
-            size_t nLen = strlen(strcpy(sz, m_pFile->GetText()));
+            strncpy(sz, m_pFile->GetText(), MAX_PATH-1);
+            sz[MAX_PATH-1] = '\0';
+
+            size_t nLen = strlen(sz);
 
             // Append a .hdf extension if it doesn't already have one
             if (nLen > 4 && strcasecmp(sz + nLen - 4, ".hdf"))
@@ -806,7 +809,7 @@ class CInputOptions : public CDialog
 
     protected:
         CComboBox *m_pKeyMapping;
-        CCheckBox *m_pAltForCntrl, *m_pAltGrForEdit, *m_pKeypadMinusReset, *m_pMouse;
+        CCheckBox *m_pAltForCntrl, *m_pAltGrForEdit, *m_pMouse;
         CTextButton *m_pOK, *m_pCancel;
 };
 
@@ -998,7 +1001,7 @@ class CDiskOptions : public CDialog
 
     protected:
         CEditControl *m_pAtom0, *m_pAtom1, *m_pSDIDE;
-        CTextButton *m_pBrowseAtom0, *m_pBrowseAtom1, *m_pBrowseSDIDE, *m_pBrowseYATBus;
+        CTextButton *m_pBrowseAtom0, *m_pBrowseAtom1, *m_pBrowseSDIDE;
         CTextButton *m_pOK, *m_pCancel;
 };
 
@@ -1122,8 +1125,8 @@ class CMiscOptions : public CDialog
         }
 
     protected:
-        CCheckBox *m_pSambus, *m_pDallas, *m_pClockSync;
-        CCheckBox *m_pPauseInactive, *m_pDriveLights, *m_pStatus, *m_pProfile;
+        CCheckBox *m_pSambus, *m_pDallas;
+        CCheckBox *m_pDriveLights, *m_pStatus, *m_pProfile;
         CTextButton *m_pOK, *m_pCancel;
 };
 
@@ -1280,7 +1283,8 @@ void CImportDialog::OnNotify (CWindow* pWindow_, int nParam_)
     else if (pWindow_ == m_pOK || nParam_)
     {
         // Fetch/update the stored filename
-        strncpy(s_szFile, m_pFile->GetText(), sizeof(s_szFile));
+        strncpy(s_szFile, m_pFile->GetText(), sizeof(s_szFile)-1);
+        s_szFile[sizeof(s_szFile)-1] = '\0';
 
         FILE* hFile;
         if (!s_szFile[0] || !(hFile = fopen(s_szFile, "rb")))
@@ -1348,7 +1352,8 @@ void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
     else if (pWindow_ == m_pOK || nParam_)
     {
         // Fetch/update the stored filename
-        strncpy(s_szFile, m_pFile->GetText(), sizeof(s_szFile));
+        strncpy(s_szFile, m_pFile->GetText(), sizeof(s_szFile)-1);
+        s_szFile[sizeof(s_szFile)-1] = '\0';
 
         FILE* hFile;
         if (!s_szFile[0] || !(hFile = fopen(s_szFile, "wb")))

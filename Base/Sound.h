@@ -52,7 +52,7 @@ class CSoundDevice : public CIoDevice
         BYTE *GetSampleBuffer () { return m_pbFrameSample; }
 
     protected:
-        int m_nSamplesThisFrame, m_nSamplesPerFrame;
+        int m_nSamplesThisFrame;
         BYTE *m_pbFrameSample;
 };
 

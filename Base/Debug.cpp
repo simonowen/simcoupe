@@ -485,7 +485,7 @@ bool CDebugger::s_fTransparent = false;
 
 CDebugger::CDebugger (BREAKPT* pBreak_/*=NULL*/)
     : CDialog(NULL, 433, 260+36+2, "", false),
-    m_pView(NULL), m_pCommandEdit(NULL)
+    m_nView(vtDis), m_pView(NULL), m_pCommandEdit(NULL)
 {
     // Move to the last display position, if any
     if (nDebugX | nDebugY)
@@ -552,10 +552,12 @@ CDebugger::~CDebugger ()
 void CDebugger::SetSubTitle (const char *pcszSubTitle_)
 {
     char szTitle[128] = "SimICE";
+
     if (pcszSubTitle_ && *pcszSubTitle_)
     {
         strcat(szTitle, " -- ");
-        strcat(szTitle, pcszSubTitle_);
+        strncat(szTitle, pcszSubTitle_, sizeof(szTitle)-strlen(szTitle)-1);
+        szTitle[sizeof(szTitle)-1] = '\0';
     }
 
     SetText(szTitle);
@@ -871,7 +873,7 @@ void CDebugger::OnNotify (CWindow* pWindow_, int nParam_)
             m_pCommandEdit = NULL;
         }
         // Otherwise execute the command, and if successful, clear the command text
-        else if (Execute(pcsz) && m_pCommandEdit)
+        else if (Execute(pcsz))
         {
             m_pCommandEdit->SetText("");
             Refresh();
@@ -1982,7 +1984,7 @@ bool CDisView::SetCodeTarget ()
             // Set a pretend zero flag if B is 1 and would be decremented to zero
             bFlags = (B == 1) ? FLAG_Z : 0;
             bCond = 0;
-            // Fall thru...
+            // Fall through...
 
         case OP_JR:     m_uCodeTarget = wJrTarget;  break;
         case OP_RET:    m_uCodeTarget = wRetTarget; break;
@@ -2205,7 +2207,7 @@ bool CDisView::SetDataTarget ()
 static const int TXT_COLUMNS = 64;
 
 CTxtView::CTxtView (CWindow* pParent_)
-    : CView(pParent_), m_nRows(m_nHeight / ROW_HEIGHT), m_nColumns(80), m_fEditing(false)
+    : CView(pParent_), m_nRows(m_nHeight / ROW_HEIGHT), m_nColumns(80), m_fEditing(false), m_wEditAddr(0)
 {
     SetText("Text");
     SetFont(&sFixedFont);
@@ -2393,15 +2395,13 @@ bool CTxtView::cmdNavigate (int nKey_, int nMods_)
 static const int HEX_COLUMNS = 16;
 
 CHexView::CHexView (CWindow* pParent_)
-    : CView(pParent_)
+    : CView(pParent_), m_fEditing(false), m_fRightNibble(false)
 {
     SetText("Numeric");
     SetFont(&sFixedFont);
 
     m_nRows = m_nHeight / ROW_HEIGHT;
     m_nColumns = 80;
-
-    m_fEditing = false;
 
     // Allocate enough for a full screen of characters, plus null terminators
     m_pszData = new char[m_nRows * (m_nColumns+1) + 2];
@@ -2657,7 +2657,7 @@ static const int STRIP_GAP = 8;
 UINT CGfxView::s_uMode = 4, CGfxView::s_uWidth = 8, CGfxView::s_uZoom = 1;
 
 CGfxView::CGfxView (CWindow* pParent_)
-    : CView(pParent_), m_fGrid(true)
+    : CView(pParent_), m_fGrid(true), m_uStrips(0), m_uStripWidth(0), m_uStripLines(0)
 {
     SetText("Graphics");
     SetFont(&sFixedFont);
@@ -2859,7 +2859,7 @@ bool CGfxView::cmdNavigate (int nKey_, int nMods_)
 // Breakpoint View
 
 CBptView::CBptView (CWindow* pParent_)
-    : CView(pParent_)
+    : CView(pParent_), m_nLines(0), m_nTopLine(0), m_nActive(-1)
 {
     SetText("Breakpoints");
     SetFont(&sFixedFont);
@@ -2869,8 +2869,6 @@ CBptView::CBptView (CWindow* pParent_)
     // Allocate enough for a full screen of characters, plus null terminators
     m_pszData = new char[m_nRows*81 + 2];
     m_pszData[0] = '\0';
-
-    m_nLines = m_nTopLine = 0;
 }
 
 void CBptView::SetAddress (WORD wAddr_, bool fForceTop_)

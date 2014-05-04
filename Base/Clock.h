@@ -2,7 +2,7 @@
 //
 // Clock.h: SAMBUS and Dallas clock emulation
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -84,8 +84,8 @@ class CDallasClock : public CClockDevice
         void Out (WORD wPort_, BYTE bVal_);
         bool Update ();
 
-        void LoadState (const char *pcszFile_);
-        void SaveState (const char *pcszFile_);
+        bool LoadState (const char *pcszFile_);
+        bool SaveState (const char *pcszFile_);
 
     protected:
         BYTE m_bReg;                // Currently selected register

@@ -199,7 +199,7 @@ static UINT ParseStr (const char* pcsz_, int nSymbolMax_)
             default:
                 if (b >= 0x80)
                     *pbStack = (pbOpcode[0] >> ((b >> 3) & 7)) & (b & 7);
-                else if (b >= 'a')
+                else if (b >= 'a' && b < _countof(aszStrings))
                     ParseStr(aszStrings[b-'a'], nSymbolMax_);
                 else if (b < 5)
                     return nType ? b + 1 : b;

@@ -2,7 +2,7 @@
 //
 // Util.cpp: Debug tracing, and other utility tasks
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -84,11 +84,14 @@ void Message (eMsgType eType_, const char* pcszFormat_, ...)
     va_list args;
     va_start(args, pcszFormat_);
 
-    char szMessage[512];
-    vsprintf(szMessage, pcszFormat_, args);
+    char sz[512];
+    vsnprintf(sz, sizeof(sz)-1, pcszFormat_, args);
+    sz[sizeof(sz)-1] = '\0';
 
-    TRACE("%s\n", szMessage);
-    UI::ShowMessage(eType_, szMessage);
+    va_end(args);
+
+    TRACE("%s\n", sz);
+    UI::ShowMessage(eType_, sz);
 
     // Fatal error?
     if (eType_ == msgFatal)

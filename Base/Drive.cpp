@@ -2,7 +2,7 @@
 //
 // Drive.cpp: VL1772-02 floppy disk controller emulation
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //  Copyright (c) 1996-2001 Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -31,7 +31,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 CDrive::CDrive (CDisk* pDisk_/*=NULL*/)
-    : m_pDisk(pDisk_), m_pbBuffer(NULL)
+    : m_pDisk(pDisk_), m_nState(0)
 {
     Reset ();
 
@@ -52,7 +52,10 @@ void CDrive::Reset ()
     m_sRegs.fDir = false;
 
     m_uBuffer = 0;
+    m_pbBuffer = NULL;
     m_bDataStatus = 0;
+    m_bSectorIndex = 0;
+    m_bSide = 0;
 }
 
 // Insert a new disk from the named source (usually a file)

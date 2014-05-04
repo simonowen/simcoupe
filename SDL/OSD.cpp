@@ -71,8 +71,11 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
     strcpy(szPath, "PROGDIR:");
 #else
     // $HOME is a fairly safe default
-    strcpy(szPath, getenv("HOME"));
-    if (szPath[0]) strcat(szPath, "/");
+    strncpy(szPath, getenv("HOME"), MAX_PATH-2);
+    szPath[MAX_PATH-2] = '\0';
+
+    if (szPath[0])
+        strcat(szPath, "/");
 #endif
 
     switch (nDir_)
@@ -126,27 +129,29 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
 #if defined(__APPLE__) && defined(USE_SDL2)
             // Resources path in the app bundle (requires SDL 2.0.1)
             char *pszBasePath = SDL_GetBasePath();
-            strcpy(szPath, pszBasePath);
-            SDL_free(pszBasePath);
-            break;
+            strncpy(szPath, pszBasePath, MAX_PATH-1);
+            szPath[MAX_PATH-1] = '\0';
+            SDL_Free(pszBasePath);
 #elif !defined(_WINDOWS) && !defined(__AMIGAOS4__) && defined(RESOURCE_DIR)
             // If available, use the resource directory from the build process
-            strcpy(szPath, RESOURCE_DIR);
-            break;
-#endif
+            strncpy(szPath, RESOURCE_DIR, MAX_PATH-1);
+            szPath[MAX_PATH-1] = '\0';
+#else
             // Fall back on an empty path as a safe default
             szPath[0] = '\0';
+#endif
             break;
         }
     }
 
     // Create the directory if it doesn't already exist
     // This assumes only the last component could be missing
-    if (stat(szPath, &st))
-        mkdir(szPath, 0755);
+    if (stat(szPath, &st) != 0 && mkdir(szPath, 0755) != 0)
+        TRACE("!!! Failed to create directory: %s\n", szPath);
 
     // Append any supplied filename (backslash separator already added)
-    strcat(szPath, pcszFile_);
+    strncat(szPath, pcszFile_, sizeof(szPath)-strlen(szPath)-1);
+    szPath[sizeof(szPath)-1] = '\0';
 
     // Return a pointer to the new path
     return szPath;

@@ -2,7 +2,7 @@
 //
 // Options.cpp: Option saving, loading and command-line processing
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -242,7 +242,7 @@ bool Options::Load (int argc_, char* argv_[])
             char *pszValue = strchr(szLine, '=');
             char *pszName = strtok(szLine, " \t=");
 
-            if (!pszValue)
+            if (!pszName || !pszValue)
                 continue;
 
             // Skip delimiters up to the value, and take the value up to a <CR> or <LF>

@@ -51,7 +51,6 @@ class SDLTexture : public VideoBase
         SDL_Texture *m_pTexture, *m_pScanlineTexture;
 
         int m_nDepth;
-        int nDesktopWidth, nDesktopHeight;
         bool m_fFilter;
 
         SDL_Rect m_rTarget;

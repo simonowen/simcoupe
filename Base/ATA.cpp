@@ -2,7 +2,7 @@
 //
 // ATA.cpp: ATA hard disk emulation
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 // ToDo: support slave device on the same interface
 
 CATADevice::CATADevice ()
-    : m_f8bitOnReset(false), m_fByteSwap(false)
+    : m_bDevice(ATA_DEVICE_0), m_f8bitOnReset(false), m_fByteSwap(false)
 {
     memset(&m_sGeometry, 0, sizeof(m_sGeometry));
     memset(&m_sIdentify, 0, sizeof(m_sIdentify));

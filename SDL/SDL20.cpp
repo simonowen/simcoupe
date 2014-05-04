@@ -33,7 +33,8 @@ static DWORD aulScanline[N_PALETTE_COLOURS];
 
 
 SDLTexture::SDLTexture ()
-    : m_pWindow(NULL), m_pRenderer(NULL), m_pTexture(NULL), m_pScanlineTexture(NULL), m_fFilter(GetOption(filter))
+    : m_pWindow(NULL), m_pRenderer(NULL), m_pTexture(NULL), m_pScanlineTexture(NULL),
+      m_fFilter(GetOption(filter)), m_nDepth(0)
 {
     m_rTarget.x = m_rTarget.y = 0;
     m_rTarget.w = Frame::GetWidth();

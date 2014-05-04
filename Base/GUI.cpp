@@ -770,7 +770,7 @@ const size_t MAX_EDIT_LENGTH = 250;
 
 CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_/*=""*/)
     : CWindow(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit),
-    m_nViewOffset(0), m_nCaretStart(0), m_nCaretEnd(0)
+    m_nViewOffset(0), m_nCaretStart(0), m_nCaretEnd(0), m_dwCaretTime(0)
 {
     SetText(pcszText_);
 }
@@ -1222,7 +1222,11 @@ void CMenu::SetText (const char* pcszText_)
     CWindow::SetText(pcszText_);
 
     int nMaxLen = 0;
-    char sz[256], *psz = strtok(strcpy(sz, GetText()), MENU_DELIMITERS);
+    char sz[256];
+    strncpy(sz, GetText(), sizeof(sz)-1);
+    sz[sizeof(sz)-1] = '\0';
+
+    char *psz = strtok(sz, MENU_DELIMITERS);
 
     for (m_nItems = 0 ; psz ; psz = strtok(NULL, MENU_DELIMITERS), m_nItems++)
     {
@@ -1243,7 +1247,11 @@ void CMenu::Draw (CScreen* pScreen_)
     pScreen_->FrameRect(m_nX-1, m_nY-1, m_nWidth+2, m_nHeight+2, GREY_7);
 
     // Make a copy of the menu item list as strtok() munges as it iterates
-    char sz[256], *psz = strtok(strcpy(sz, GetText()), MENU_DELIMITERS);
+    char sz[256];
+    strncpy(sz, GetText(), sizeof(sz)-1);
+    sz[sizeof(sz)-1] = '\0';
+
+    char *psz = strtok(sz, MENU_DELIMITERS);
 
     // Loop through the items on the menu
     for (int i = 0 ; psz ; psz = strtok(NULL, MENU_DELIMITERS), i++)
@@ -1396,9 +1404,11 @@ void CComboBox::Select (int nSelected_)
 void CComboBox::Select (const char* pcszItem_)
 {
     char sz[256];
+    strncpy(sz, GetText(), sizeof(sz)-1);
+    sz[sizeof(sz)-1] = '\0';
 
     // Find the text for the current selection
-    char* psz = strtok(strcpy(sz, GetText()), "|");
+    char* psz = strtok(sz, "|");
     for (int i = 0 ; psz && i < m_nSelected ; psz = strtok(NULL, "|"), i++)
     {
         // If we've found the item, select it
@@ -1414,9 +1424,11 @@ void CComboBox::Select (const char* pcszItem_)
 const char* CComboBox::GetSelectedText ()
 {
     static char sz[256];
+    strncpy(sz, GetText(), sizeof(sz)-1);
+    sz[sizeof(sz)-1] = '\0';
 
     // Find the text for the current selection
-    char* psz = strtok(strcpy(sz, GetText()), "|");
+    char* psz = strtok(sz, "|");
     for (int i = 0 ; psz && i < m_nSelected ; psz = strtok(NULL, "|"), i++);
 
     // Return the item string if found
@@ -1461,8 +1473,12 @@ void CComboBox::Draw (CScreen* pScreen_)
     pScreen_->DrawLine(nX+4, nY+5, 2, 0, bColour);  pScreen_->DrawLine(nX+11, nY+5, 2, 0, bColour);
 
 
+    char sz[256];
+    strncpy(sz, GetText(), sizeof(sz)-1);
+    sz[sizeof(sz)-1] = '\0';
+
     // Find the text for the current selection
-    char sz[256], *psz = strtok(strcpy(sz, GetText()), "|");
+    char *psz = strtok(sz, "|");
     for (int i = 0 ; psz && i < m_nSelected ; psz = strtok(NULL, "|"), i++);
 
     // Draw the current selection
@@ -2150,7 +2166,8 @@ void CFileView::NotifyParent (int nParam_)
         {
             // Make a copy of the current path to modify
             char szPath[MAX_PATH];
-            strcpy(szPath, m_pszPath);
+            strncpy(szPath, m_pszPath, MAX_PATH-1);
+            szPath[MAX_PATH-1] = '\0';
 
             // Stepping up a level?
             if (!strcmp(pItem->m_pszLabel, ".."))
@@ -2197,7 +2214,10 @@ const GUI_ICON* CFileView::GetFileIcon (const char* pcszFile_)
 {
     // Determine the main file extension
     char sz[MAX_PATH];
-    char* pszExt = strrchr(strcpy(sz, pcszFile_), '.');
+    strncpy(sz, pcszFile_, MAX_PATH-1);
+    sz[MAX_PATH-1] = '\0';
+
+    char* pszExt = strrchr(sz, '.');
 
     int nCompressType = 0;
     if (pszExt)
@@ -2216,7 +2236,7 @@ const GUI_ICON* CFileView::GetFileIcon (const char* pcszFile_)
     static const char* aExts[] = { ".dsk", ".sad", ".sbt", ".mgt", ".img", ".cpm" };
     bool fDiskImage = false;
 
-    for (UINT u = 0 ; !fDiskImage && pszExt && u < sizeof(aExts)/sizeof(aExts[0]) ; u++)
+    for (UINT u = 0 ; !fDiskImage && pszExt && u < _countof(aExts) ; u++)
         fDiskImage = !strcasecmp(pszExt, aExts[u]);
 
     return nCompressType ? &sCompressedIcon : fDiskImage ? &sDiskIcon : &sDocumentIcon;
@@ -2232,7 +2252,13 @@ const char* CFileView::GetFullPath () const
     if (!m_pszPath || !(pItem = GetItem()))
         return NULL;
 
-    return strcat(strcpy(szPath, m_pszPath), pItem->m_pszLabel);
+    strncpy(szPath, m_pszPath, MAX_PATH-1);
+    szPath[MAX_PATH-1] = '\0';
+
+    strncat(szPath, pItem->m_pszLabel, MAX_PATH-strlen(szPath)-1);
+    szPath[MAX_PATH-1] = '\0';
+
+    return szPath;
 }
 
 // Set a new path to browse
@@ -2318,7 +2344,10 @@ void CFileView::Refresh ()
             // Count the number of filter items to apply
             int nFilters = *m_pszFilter ? 1 : 0;
             char szFilters[256];
-            for (char* psz = strtok(strcpy(szFilters, m_pszFilter), ";") ; psz && (psz = strtok(NULL, ";")) ; nFilters++);
+            strncpy(szFilters, m_pszFilter, sizeof(szFilters)-1);
+            szFilters[sizeof(szFilters)-1] = '\0';
+
+            for (char* psz = strtok(szFilters, ";") ; psz && (psz = strtok(NULL, ";")) ; nFilters++);
 
             for (struct dirent* entry ; (entry = readdir(dir)) ; )
             {
@@ -2334,7 +2363,10 @@ void CFileView::Refresh ()
                 {
                     // Form the full path of the current file
                     char szPath[MAX_PATH];
-                    strcat(strcpy(szPath , m_pszPath), entry->d_name);
+                    strncpy(szPath , m_pszPath, MAX_PATH-1);
+                    szPath[MAX_PATH-1] = '\0';
+                    strncat(szPath, entry->d_name, MAX_PATH-strlen(szPath)-1);
+                    szPath[MAX_PATH-1] = '\0';
 
                     // Skip the file if it's considered hidden
                     if (OSD::IsHidden(szPath))
@@ -2342,7 +2374,15 @@ void CFileView::Refresh ()
                 }
 
                 // Examine the entry to see what it is
-                stat(strcat(strcpy(sz, m_pszPath), entry->d_name), &st);
+                strncpy(sz, m_pszPath, MAX_PATH-1);
+                sz[MAX_PATH-1] = '\0';
+                strncat(sz, entry->d_name, MAX_PATH-strlen(sz)-1);
+
+                sz[MAX_PATH-1] = '\0';
+
+                // Skip if there's no entry to examine
+                if (stat(sz, &st) != 0)
+                    continue;
 
                 // Only regular files are affected by the file filter
                 if (S_ISREG(st.st_mode))

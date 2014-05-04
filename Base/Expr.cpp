@@ -144,7 +144,7 @@ EXPR* Expr::Compile (const char* pcsz_, char** ppszEnd_/*=NULL*/, int nFlags_/*=
     nFlags = nFlags_;
 
     // Fail if the expression was bad, or there's unexpected garbage on the end
-    if (!Term() || (!ppszEnd_ && *p))
+    if (!Term() || (!ppszEnd_ && *p) || !pHead)
     {
         Release(pHead);
         return NULL;
@@ -302,6 +302,10 @@ int Expr::Eval (const EXPR* pExpr_)
 
             case T_UNARY_OP:
             {
+                // Ensure we have an argument
+                if (n < 1)
+                    break;
+
                 // Pop one argument
                 int x = an[--n];
 
@@ -323,8 +327,14 @@ int Expr::Eval (const EXPR* pExpr_)
 
             case T_BINARY_OP:
             {
-                // Pop two arguments (in reverse order)
-                int b = an[--n], a = an[--n], c = 0;
+                // Ensure we have 2 arguments
+                if (n < 2)
+                    break;
+
+                // Pop the arguments (in reverse order)
+                int b = an[--n];
+                int a = an[--n];
+                int c = 0;
 
                 switch (pExpr_->nValue)
                 {
@@ -449,6 +459,10 @@ int Expr::Eval (const EXPR* pExpr_)
                 break;
         }
     }
+
+    // Ensure we have a stacked value to return
+    if (n < 1)
+        return 0;
 
     // Return the overall result
     return an[--n];

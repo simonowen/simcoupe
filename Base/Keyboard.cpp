@@ -135,18 +135,16 @@ MAPPED_KEY asSpectrumKeys[] =
 
 bool Keyboard::Init (bool fFirstInit_/*=false*/)
 {
-    int i;
-
     // Fill the SAM keys for the main keyboard matrix
-    for (i = SK_MIN ; i < SK_MAX ; i++)
+    for (int i = SK_MIN ; i < SK_MAX ; i++)
     {
         asKeyMatrix[i].nSamMods = SK_NONE;
-        asKeyMatrix[i].nSamKey = eSamKey(i);
+        asKeyMatrix[i].nSamKey = static_cast<eSamKey>(i);
     }
 
     // HK_ to scancode mapping
-    for (i = HK_MIN ; i < HK_MAX ; i++)
-        anNativeKey[i-HK_MIN] = Input::MapChar(i);
+    for (int j = HK_MIN ; j < HK_MAX ; j++)
+        anNativeKey[j-HK_MIN] = Input::MapChar(j);
 
     // Prepare key tables in advance if possible (Win32)
     PrepareKeyTable(asKeyMatrix);

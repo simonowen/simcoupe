@@ -2,7 +2,7 @@
 //
 // GIF.cpp: GIF animation recording
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -109,15 +109,16 @@ static void WriteGraphicControlExtension (WORD wDelay_, BYTE bTransIdx_)
     fputc(0x00, f);		// Data sub-block terminator
 }
 
-static void WriteGraphicControlExtensionDelay (long lOffset_, WORD wDelay_)
+static bool WriteGraphicControlExtensionDelay (long lOffset_, WORD wDelay_)
 {
     long lOldPos = ftell(f);
-    fseek(f, lDelayOffset, SEEK_SET);
+    if (fseek(f, lDelayOffset, SEEK_SET) != 0)
+        return false;
 
     fputc(wDelay_ & 0xff, f);	// delay time (in 1/100 second)
     fputc(wDelay_ >> 8, f);
 
-    fseek(f, lOldPos, SEEK_SET);
+    return fseek(f, lOldPos, SEEK_SET) == 0;
 }
 
 static void WriteNetscapeLoopExtension ()
@@ -616,6 +617,13 @@ BitPacker::BitPacker (FILE *bf)
     *pos = 0x00;
 }
 
+
+
+GifCompressor::GifCompressor ()
+    : bp(NULL), nofdata(0), width(0), height(0), curordinal(0), pixel(0), nbits(0),
+      axon(NULL), next(NULL), pix(NULL), cc(0), eoi(0), freecode(0)
+{
+}
 
 // Initialize a root node for each root code
 void GifCompressor::InitRoots ()

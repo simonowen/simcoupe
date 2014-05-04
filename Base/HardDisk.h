@@ -49,7 +49,7 @@ class CHardDisk : public CATADevice
 class CHDFHardDisk : public CHardDisk
 {
     public:
-        CHDFHardDisk (const char* pcszDisk_) : CHardDisk(pcszDisk_), m_hfDisk(NULL) { }
+        CHDFHardDisk (const char* pcszDisk_);
         ~CHDFHardDisk () { Close(); }
 
     public:

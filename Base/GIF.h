@@ -2,7 +2,7 @@
 //
 // GIF.h: GIF animation recording
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -99,7 +99,7 @@ private:
     WORD FindPixelOutlet(WORD headnode,BYTE pixel);
 
 public:
-    GifCompressor () { }
+    GifCompressor ();
     DWORD WriteDataBlocks (FILE *bf,DWORD nof,WORD ds);
 };
 

@@ -370,7 +370,10 @@ int CScreen::Printf (int nX_, int nY_, const char* pcszFormat_, ...)
     va_start(args, pcszFormat_);
 
     char sz[512];
-    vsprintf(sz, pcszFormat_, args);
+    vsnprintf(sz, sizeof(sz)-1, pcszFormat_, args);
+    sz[sizeof(sz)-1] = '\0';
+
+    va_end(args);
 
     return DrawString(nX_, nY_, sz, WHITE);
 }

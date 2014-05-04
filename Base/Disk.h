@@ -2,7 +2,7 @@
 //
 // Disk.h: C++ classes used for accessing all SAM disk image types
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -157,11 +157,12 @@ class CDisk
         virtual bool IsBusy (BYTE* pbStatus_, bool fWait_=false) { if (!m_nBusy) return false; m_nBusy--; return true; }
 
     protected:
-        int     m_nType, m_nBusy;
-        bool    m_fModified;
+        int m_nType;
+        int m_nBusy;
+        bool m_fModified;
 
-        CStream*m_pStream;
-        BYTE*   m_pbData;
+        CStream *m_pStream;
+        BYTE *m_pbData;
 };
 
 
@@ -261,7 +262,6 @@ class CFloppyDisk : public CDisk
 
         PTRACK  m_pTrack;               // Current track
         PSECTOR m_pSector;              // Pointer to first sector on track
-        BYTE   *m_pbWrite;              // Data for in-progress write, to copy if successful
 };
 
 

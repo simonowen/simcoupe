@@ -2,7 +2,7 @@
 //
 // Stream.cpp: Data stream abstraction classes
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2014  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -58,18 +58,18 @@ CStream::~CStream ()
     struct stat st;
 
     // Reject empty strings immediately
-    if (!*pcszPath_)
+    if (!pcszPath_ || !*pcszPath_)
         return NULL;
 
     // Give the OS-specific floppy driver first go at the path
     if (CFloppyStream::IsRecognised(pcszPath_))
         return new CFloppyStream(pcszPath_, fReadOnly_);
 
-    // Check for a regular file that we have read access to
-    if (!::stat(pcszPath_, &st) && S_ISREG(st.st_mode) && !access(pcszPath_, R_OK))
+    // Check for a regular file
+    if (!::stat(pcszPath_, &st) && S_ISREG(st.st_mode))
     {
         // If the file is read-only, the stream will be read-only
-        FILE* file = (pcszPath_ && *pcszPath_) ? fopen(pcszPath_, "r+b") : NULL;
+        FILE* file = fopen(pcszPath_, "r+b");
         fReadOnly_ |= !file;
         if (file)
             fclose(file);
@@ -118,10 +118,10 @@ CStream::~CStream ()
                     size_t uSize = 0;
 
                     // Read the uncompressed size from the end of the file (if under 4GiB)
-                    if (fseek(hf, -4, SEEK_END) == 0 && fread(ab, 1, sizeof(ab), hf))
+                    if (fseek(hf, -4, SEEK_END) == 0 && fread(ab, 1, sizeof(ab), hf) == sizeof(ab))
                         uSize = (ab[3] << 24) | (ab[2] << 16) | (ab[1] << 8) | ab[0];
 
-                    // Close the file so we can open it thru ZLib
+                    // Close the file so we can open it through ZLib
                     fclose(hf);
 
                     // Try to open it as a gzipped file

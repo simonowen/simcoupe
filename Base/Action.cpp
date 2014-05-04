@@ -354,7 +354,8 @@ void Action::Key (int nFnKey_, bool fPressed_, bool fCtrl_, bool fAlt_, bool fSh
 {
     // Grab a copy of the function key definition string (could do with being converted to upper-case)
     char szKeys[256];
-    strncpy(szKeys, GetOption(fnkeys), sizeof(szKeys));
+    strncpy(szKeys, GetOption(fnkeys), sizeof(szKeys)-1);
+    szKeys[sizeof(szKeys)-1] = '\0';
 
     // Process each of the 'key=action' pairs in the string
     for (char* psz = strtok(szKeys, ", \t") ; psz ; psz = strtok(NULL, ", \t"))

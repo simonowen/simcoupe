@@ -2,7 +2,7 @@
 //
 // AVI.cpp: AVI movie recording
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,8 +33,8 @@ static FILE *f;
 static WORD width, height;
 static bool fHalfSize = false;
 
-static DWORD dwRiffPos, dwMoviPos;
-static DWORD dwVideoMax, dwAudioMax;
+static long lRiffPos, lMoviPos;
+static long lVideoMax, lAudioMax;
 static DWORD dwVideoFrames, dwAudioFrames, dwAudioSamples;
 static bool fWantVideo;
 
@@ -42,80 +42,85 @@ static bool fWantVideo;
 static int nAudioReduce = 0;
 static bool fScanlines = false;
 
-static void WriteLittleEndianWORD (WORD w_)
+static bool WriteLittleEndianWORD (WORD w_)
 {
     fputc(w_ & 0xff, f);
-    fputc(w_ >> 8, f);
+    return fputc(w_ >> 8, f) != EOF;
 }
 
-static void WriteLittleEndianDWORD (DWORD dw_)
+static bool WriteLittleEndianDWORD (DWORD dw_)
 {
     fputc(dw_ & 0xff, f);
     fputc((dw_ >> 8) & 0xff, f);
     fputc((dw_ >> 16) & 0xff, f);
-    fputc((dw_ >> 24) & 0xff, f);
+    return fputc((dw_ >> 24) & 0xff, f) != EOF;
 }
 
 static DWORD ReadLittleEndianDWORD ()
 {
     BYTE ab[4] = {};
-    if (!fread(ab, sizeof(ab), 1, f)) ab[0] = 0;
+    if (fread(ab, 1, sizeof(ab), f) != sizeof(ab))
+        return 0;
 
     return (ab[3] << 24) | (ab[2] << 16) | (ab[1] << 8) | ab[0];
 }
 
-static DWORD WriteChunkStart (FILE *f_, const char *pszChunk_, const char *pszType_=NULL)
+static long WriteChunkStart (FILE *f_, const char *pszChunk_, const char *pszType_=NULL)
 {
     // Write the chunk type
-    if (pszChunk_ && !fwrite(pszChunk_, 4, 1, f_))
+    if (pszChunk_ && fwrite(pszChunk_, 1, 4, f_) != 4)
         return 0;
 
     // Remember the length offset, and skip the length field (to be completed by WriteChunkEnd)
-    DWORD dwPos = ftell(f_);
-    fseek(f_, sizeof(DWORD), SEEK_CUR);
+    long lPos = ftell(f_);
+    if (fseek(f_, sizeof(DWORD), SEEK_CUR) != 0)
+        return 0;
 
     // If we have a type, write that too
-    if (pszType_)
-        fwrite(pszType_, 4, 1, f_);
+    if (pszType_ && fwrite(pszType_, 1, 4, f_) != 4)
+        return 0;
 
     // Return the offset to the length, so it can be completed later using WriteChunkEnd
-    return dwPos;
+    return lPos;
 }
 
-static DWORD WriteChunkEnd (FILE *f_, DWORD dwPos_)
+static long WriteChunkEnd (FILE *f_, long lPos_)
 {
     // Remember the current position, and calculate the chunk size (not including the length field)
-    DWORD dwPos = ftell(f_), dwSize = dwPos-dwPos_-sizeof(DWORD);
+    long lPos = ftell(f_);
+    long lSize = lPos-lPos_-sizeof(DWORD);
 
     // Seek back to the length field
-    fseek(f_, dwPos_, SEEK_SET);
+    if (fseek(f_, lPos_, SEEK_SET) != 0)
+        return 0;
 
     // Write the chunk size
-    WriteLittleEndianDWORD(dwSize);
+    WriteLittleEndianDWORD(lSize);
 
     // Restore original position (should always be end of file, but we'll use the value from earlier)
-    fseek(f_, dwPos, SEEK_SET);
+    if (fseek(f_, lPos, SEEK_SET) != 0)
+        return 0;
 
     // If the length was odd, pad file position to even boundary
-    if (dwPos & 1)
+    if (lPos & 1)
     {
         fputc(0x00, f);
-        dwSize++;
+        lSize++;
     }
 
     // Return the on-disk size
-    return dwSize;
+    return lSize;
 }
 
-static void WriteAVIHeader (FILE *f_)
+static bool WriteAVIHeader (FILE *f_)
 {
-    DWORD dwPos = WriteChunkStart(f_, "avih");
+    long lPos = WriteChunkStart(f_, "avih");
 
     // Should we include an audio stream?
     DWORD dwStreams = (nAudioReduce < 4) ? 2 : 1;
 
     WriteLittleEndianDWORD(19968);			// microseconds per frame: 1000000*TSTATES_PER_FRAME/REAL_TSTATES_PER_SECOND
-    WriteLittleEndianDWORD((dwVideoMax*EMULATED_FRAMES_PER_SECOND)+(dwAudioMax*EMULATED_FRAMES_PER_SECOND));	// approximate max data rate
+    WriteLittleEndianDWORD((lVideoMax*EMULATED_FRAMES_PER_SECOND)+(lAudioMax*EMULATED_FRAMES_PER_SECOND));	// approximate max data rate
     WriteLittleEndianDWORD(0);				// reserved
     WriteLittleEndianDWORD((1<<8)|(1<<4));	// flags: bit 4 = has index(idx1), bit 5 = use index for AVI structure, bit 8 = interleaved file, bit 16 = optimized for live video capture, bit 17 = copyrighted data
     WriteLittleEndianDWORD(dwVideoFrames);	// total number of video frames
@@ -129,12 +134,12 @@ static void WriteAVIHeader (FILE *f_)
     WriteLittleEndianDWORD(0);
     WriteLittleEndianDWORD(0);
 
-    WriteChunkEnd(f_, dwPos);
+    return WriteChunkEnd(f_, lPos) != 0;
 }
 
-static void WriteVideoHeader (FILE *f_)
+static bool WriteVideoHeader (FILE *f_)
 {
-    DWORD dwPos = WriteChunkStart(f_, "strh", "vids");
+    long lPos = WriteChunkStart(f_, "strh", "vids");
 
     fwrite("mrle", 4, 1, f);				// 'mrle' = Microsoft Run Length Encoding Video Codec
     WriteLittleEndianDWORD(0);				// flags, unused
@@ -144,7 +149,7 @@ static void WriteVideoHeader (FILE *f_)
     WriteLittleEndianDWORD(REAL_TSTATES_PER_SECOND); // rate
     WriteLittleEndianDWORD(0);				// start time
     WriteLittleEndianDWORD(dwVideoFrames);	// total frames in stream
-    WriteLittleEndianDWORD(dwVideoMax);		// suggested buffer size
+    WriteLittleEndianDWORD(lVideoMax);		// suggested buffer size
     WriteLittleEndianDWORD(10000);			// quality
     WriteLittleEndianDWORD(0);				// sample size
     WriteLittleEndianWORD(0);				// left
@@ -152,9 +157,9 @@ static void WriteVideoHeader (FILE *f_)
     WriteLittleEndianWORD(width);			// right
     WriteLittleEndianWORD(height);			// bottom
 
-    WriteChunkEnd(f_, dwPos);
+    WriteChunkEnd(f_, lPos);
 
-    dwPos = WriteChunkStart(f_, "strf");
+    lPos = WriteChunkStart(f_, "strf");
 
     WriteLittleEndianDWORD(40);				// sizeof(BITMAPINFOHEADER)
     WriteLittleEndianDWORD(width);			// biWidth;
@@ -198,10 +203,10 @@ static void WriteVideoHeader (FILE *f_)
         fputc(0, f);	// RGBQUAD has this as reserved (zero) rather than alpha
     }
 
-    WriteChunkEnd(f_, dwPos);
+    return WriteChunkEnd(f_, lPos) != 0;
 }
 
-static void WriteAudioHeader (FILE *f_)
+static bool WriteAudioHeader (FILE *f_)
 {
     DWORD dwPos = WriteChunkStart(f_, "strh", "auds");
 
@@ -232,7 +237,7 @@ static void WriteAudioHeader (FILE *f_)
     WriteLittleEndianDWORD(wFreq*wBlock);	// rate
     WriteLittleEndianDWORD(0);				// start time
     WriteLittleEndianDWORD(dwAudioSamples);	// total samples in stream
-    WriteLittleEndianDWORD(dwAudioMax);		// suggested buffer size
+    WriteLittleEndianDWORD(lAudioMax);		// suggested buffer size
     WriteLittleEndianDWORD(0xffffffff);		// quality
     WriteLittleEndianDWORD(wBlock);			// sample size
     WriteLittleEndianDWORD(0);				// two unused rect coords
@@ -250,18 +255,19 @@ static void WriteAudioHeader (FILE *f_)
     WriteLittleEndianWORD(wBits);			// bits per sample
     WriteLittleEndianWORD(0);				// extra structure size
 
-    WriteChunkEnd(f_, dwPos);
+    return WriteChunkEnd(f_, dwPos) != 0;
 }
 
-static void WriteIndex (FILE *f_)
+static bool WriteIndex (FILE *f_)
 {
     // The chunk index is the final addition
-    DWORD dwIdx1Pos = WriteChunkStart(f_, "idx1");
-    fseek(f, -4, SEEK_CUR);
+    long lIdx1Pos = WriteChunkStart(f_, "idx1");
+    if (fseek(f, -4, SEEK_CUR) != 0)
+        return false;
     WriteLittleEndianDWORD(0);
 
     // Locate the start of the movi data (after the chunk header)
-    dwMoviPos += 2*sizeof(DWORD);
+    lMoviPos += 2*sizeof(DWORD);
 
     // Calculate the number of entries in the index
     DWORD dwIndexEntries = dwVideoFrames + dwAudioFrames;
@@ -273,57 +279,69 @@ static void WriteIndex (FILE *f_)
         BYTE abType[4];
 
         // Read the type and size from the movi chunk
-        fseek(f, dwMoviPos, SEEK_SET);
-        if (!fread(abType, sizeof(abType), 1, f)) abType[0] = 0;
+        fseek(f, lMoviPos, SEEK_SET);
+        if (fread(abType, 1, sizeof(abType), f) != sizeof(abType))
+            return false;
+
         DWORD dwSize = ReadLittleEndianDWORD();
-        fseek(f, 0, SEEK_END);
+        if (fseek(f, 0, SEEK_END) != 0)
+            return false;
 
         // Every 50th frame is a key frame
         bool fKeyFrame = (abType[1] == '0') && !(dwVideoFrame++ % EMULATED_FRAMES_PER_SECOND);
 
-        // Write the type, flags, offset and size to the index
-        fwrite(abType, sizeof(abType), 1, f);
+        // Write the type
+        if (fwrite(abType, 1, sizeof(abType), f) != sizeof(abType))
+            return false;
+
+        // Write flags, offset and size to the index
         WriteLittleEndianDWORD(fKeyFrame ? 0x10 : 0x00);
-        WriteLittleEndianDWORD(dwMoviPos);
+        WriteLittleEndianDWORD(lMoviPos);
         WriteLittleEndianDWORD(dwSize);
 
         // Calculate next position, aligned to even boundary
-        dwMoviPos += 2*sizeof(DWORD) + ((dwSize+1) & ~1);
+        lMoviPos += 2*sizeof(DWORD) + ((dwSize+1) & ~1);
     }
 
     // Complete the index and riff chunks
-    WriteChunkEnd(f_, dwIdx1Pos);
+    return WriteChunkEnd(f_, lIdx1Pos) != 0;
 }
 
-static void WriteFileHeaders (FILE *f_)
+static bool WriteFileHeaders (FILE *f_)
 {
-    fseek(f_, 0, SEEK_SET);
+    if (fseek(f_, 0, SEEK_SET) != 0)
+        return false;
 
-    dwRiffPos = WriteChunkStart(f_, "RIFF", "AVI ");
-    DWORD dwHdrlPos = WriteChunkStart(f_, "LIST", "hdrl");
+    lRiffPos = WriteChunkStart(f_, "RIFF", "AVI ");
+    long lHdrlPos = WriteChunkStart(f_, "LIST", "hdrl");
 
     WriteAVIHeader(f_);
 
-    DWORD dwPos = WriteChunkStart(f_, "LIST", "strl");
+    long lPos = WriteChunkStart(f_, "LIST", "strl");
     WriteVideoHeader(f_);
-    WriteChunkEnd(f_, dwPos);
+    WriteChunkEnd(f_, lPos);
 
     if (nAudioReduce < 4)
     {
-        dwPos = WriteChunkStart(f_, "LIST", "strl");
+        lPos = WriteChunkStart(f_, "LIST", "strl");
         WriteAudioHeader(f_);
-        WriteChunkEnd(f_, dwPos);
+        WriteChunkEnd(f_, lPos);
     }
 
-    // Align movi data to 2048-byte boundary
-    dwPos = WriteChunkStart(f_, "JUNK");
-    fseek(f_, (-ftell(f)-3*sizeof(DWORD))&0x3ff, SEEK_CUR);
-    WriteChunkEnd(f_, dwPos);
+    lPos = WriteChunkStart(f_, "JUNK");
 
-    WriteChunkEnd(f_, dwHdrlPos);
+    // Align movi data to 2048-byte boundary
+    if (fseek(f_, (-ftell(f)-3*sizeof(DWORD)) & 0x3ff, SEEK_CUR) != 0)
+        return false;
+
+    WriteChunkEnd(f_, lPos);
+    WriteChunkEnd(f_, lHdrlPos);
 
     // Start of movie data
-    dwMoviPos = WriteChunkStart(f_, "LIST", "movi");
+    lMoviPos = WriteChunkStart(f_, "LIST", "movi");
+
+    // Check last write succeeded
+    return lMoviPos != 0;
 }
 
 
@@ -447,7 +465,7 @@ bool AVI::Start (bool fHalfSize_)
 
     // Reset the frame counters
     dwVideoFrames = dwAudioFrames = dwAudioSamples = 0;
-    dwVideoMax = dwAudioMax = 0;
+    lVideoMax = lAudioMax = 0;
 
     // Set the size and flag we want a video frame first
     fHalfSize = fHalfSize_;
@@ -475,9 +493,9 @@ void AVI::Stop ()
     Sound::Silence();
 
     // Complete the movi chunk, add the index, and complete the RIFF
-    WriteChunkEnd(f, dwMoviPos);
+    WriteChunkEnd(f, lMoviPos);
     WriteIndex(f);
-    WriteChunkEnd(f, dwRiffPos);
+    WriteChunkEnd(f, lRiffPos);
 
     // Write the completed file headers
     WriteFileHeaders(f);
@@ -655,12 +673,12 @@ void AVI::AddFrame (CScreen *pScreen_)
     fputc(0x01, f);	// eoi
 
     // Complete frame chunk
-    DWORD dwSize = WriteChunkEnd(f, dwPos);
+    long lSize = WriteChunkEnd(f, dwPos);
     dwVideoFrames++;
 
     // Track the maximum video data size
-    if (dwSize > dwVideoMax)
-        dwVideoMax = dwSize;
+    if (lSize > lVideoMax)
+        lVideoMax = lSize;
 
     // Want audio next, if enabled
     fWantVideo = (nAudioReduce >= 4);
@@ -687,7 +705,7 @@ void AVI::AddFrame (const BYTE *pb_, UINT uLen_)
             return;
 
         BYTE *pbNew = pbResample;
-        
+
         // 22kHz?
         if (nAudioReduce >= 2)
         {
@@ -738,17 +756,17 @@ void AVI::AddFrame (const BYTE *pb_, UINT uLen_)
     }
 
     // Write the audio chunk
-    DWORD dwPos = WriteChunkStart(f, "01wb");
+    long lPos = WriteChunkStart(f, "01wb");
     fwrite(pb_, uLen_, 1, f);
-    DWORD dwSize = WriteChunkEnd(f, dwPos);
+    long lSize = WriteChunkEnd(f, lPos);
 
     // Update counters
     dwAudioSamples += uSamples;
     dwAudioFrames++;
 
     // Track the maximum audio data size
-    if (dwSize > dwAudioMax)
-        dwAudioMax = dwSize;
+    if (lSize > lAudioMax)
+        lAudioMax = lSize;
 
     // Want video next
     fWantVideo = true;

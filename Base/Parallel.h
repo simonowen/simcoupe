@@ -2,7 +2,7 @@
 //
 // Parallel.cpp: Parallel interface
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ class CPrintBuffer : public CIoDevice
 class CPrinterFile : public CPrintBuffer
 {
     public:
-        CPrinterFile () : m_hFile(NULL) { }
+        CPrinterFile () : m_hFile(NULL), m_pszFile(NULL) { }
         ~CPrinterFile () { Close(); }
 
     public:
@@ -66,7 +66,8 @@ class CPrinterFile : public CPrintBuffer
 
     protected:
         FILE *m_hFile;
-	    char m_szPath[MAX_PATH], *m_pszFile;
+        char *m_pszFile;
+        char m_szPath[MAX_PATH];
 };
 
 class CPrinterDevice : public CPrintBuffer

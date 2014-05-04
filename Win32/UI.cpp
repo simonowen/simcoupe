@@ -2261,10 +2261,10 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                     int an1[] = { IDS_ADDRESS, IDE_ADDRESS, IDS_LENGTH2, IDE_LENGTH2 };
                     int an2[] = { IDS_PAGE, IDE_PAGE, IDS_OFFSET, IDE_OFFSET, IDS_LENGTH, IDE_LENGTH };
 
-                    for (i = 0 ; i < sizeof(an1)/sizeof(an1[0]) ; i++)
+                    for (i = 0 ; i < _countof(an1) ; i++)
                         ShowWindow(GetDlgItem(hdlg_, an1[i]), nShow1);
 
-                    for (i = 0 ; i < sizeof(an2)/sizeof(an2[0]) ; i++)
+                    for (i = 0 ; i < _countof(an2) ; i++)
                         ShowWindow(GetDlgItem(hdlg_, an2[i]), nShow2);
 
                     break;

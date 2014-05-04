@@ -142,7 +142,7 @@ bool CPU::Init (bool fFirstInit_/*=false*/)
         IX = IY = 0xffff;
 
         // Build the memory access contention tables
-        for (UINT t2 = 0 ; t2 < sizeof(abContention1)/sizeof(abContention1[0]) ; t2++)
+        for (UINT t2 = 0 ; t2 < _countof(abContention1) ; t2++)
         {
             int nLine = t2 / TSTATES_PER_LINE, nLineCycle = t2 % TSTATES_PER_LINE;
             bool fScreen = nLine >= TOP_BORDER_LINES && nLine < TOP_BORDER_LINES+SCREEN_LINES &&

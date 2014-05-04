@@ -2,7 +2,7 @@
 //
 // Clock.cpp: SAMBUS and Dallas clock emulation
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2014 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -451,26 +451,35 @@ bool CDallasClock::Update ()
 
 
 // Load NVRAM contents from file
-void CDallasClock::LoadState (const char *pcszFile_)
+bool CDallasClock::LoadState (const char *pcszFile_)
 {
+    bool fRet = false;
+
     FILE *f = fopen(pcszFile_, "rb");
     if (f)
     {
-        fread(m_abRegs+0x0e, 1, 0x80-0x0e, f) &&    // User RAM
-        fread(m_abRAM, 1, sizeof(m_abRAM), f);      // Extended RAM
+        fRet =  (fread(m_abRegs+0x0e, 1, 0x80-0x0e, f) == (0x80-0x0e));      // User RAM
+        fRet &= (fread(m_abRAM, 1, sizeof(m_abRAM), f) == sizeof(m_abRAM));  // Extended RAM
 
         fclose(f);
     }
+
+    return fRet;
 }
 
 // Save NVRAM contents to file
-void CDallasClock::SaveState (const char *pcszFile_)
+bool CDallasClock::SaveState (const char *pcszFile_)
 {
+    bool fRet = false;
+
     FILE *f = fopen(pcszFile_, "wb");
     if (f)
     {
-        fwrite(m_abRegs+0x0e, 1, 0x80-0x0e, f);	// User RAM
-        fwrite(m_abRAM, 1, sizeof(m_abRAM), f); // Extended RAM
+        fRet =  (fwrite(m_abRegs+0x0e, 1, 0x80-0x0e, f) == (0x80-0x0e));      // User RAM
+        fRet &= (fwrite(m_abRAM, 1, sizeof(m_abRAM), f) == sizeof(m_abRAM));  // Extended RAM
+
         fclose(f);
     }
+
+    return fRet;
 }

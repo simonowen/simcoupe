@@ -173,11 +173,8 @@ void WAV::AddFrame (const BYTE* pb_, int nLen_)
         if (nSilent)
         {
             // Add the accumulated silence, unless we're at the start of the recording
-            if (nFrames)
-            {
-                fseek(f, nLen_*nSilent, SEEK_CUR);
+            if (nFrames && fseek(f, nLen_*nSilent, SEEK_CUR) == 0)
                 nFrames += nSilent;
-            }
 
             nSilent = 0;
         }
