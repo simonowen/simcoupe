@@ -26,7 +26,7 @@
 // ToDo: support slave device on the same interface
 
 CATADevice::CATADevice ()
-    : m_bDevice(ATA_DEVICE_0), m_f8bitOnReset(false), m_fByteSwap(false)
+    : m_bDevice(ATA_DEVICE_0), m_f8bitOnReset(false), m_fByteSwap(false), m_fLegacy(false)
 {
     memset(&m_sGeometry, 0, sizeof(m_sGeometry));
     memset(&m_sIdentify, 0, sizeof(m_sIdentify));

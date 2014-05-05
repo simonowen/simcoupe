@@ -55,8 +55,6 @@ CStream::~CStream ()
 // Identify the stream and create an object to supply data from it
 /*static*/ CStream* CStream::Open (const char* pcszPath_, bool fReadOnly_/*=false*/)
 {
-    struct stat st;
-
     // Reject empty strings immediately
     if (!pcszPath_ || !*pcszPath_)
         return NULL;
@@ -65,72 +63,68 @@ CStream::~CStream ()
     if (CFloppyStream::IsRecognised(pcszPath_))
         return new CFloppyStream(pcszPath_, fReadOnly_);
 
-    // Check for a regular file
-    if (!::stat(pcszPath_, &st) && S_ISREG(st.st_mode))
+    // If the file is read-only, the stream will be read-only
+    FILE* file = fopen(pcszPath_, "r+b");
+    fReadOnly_ |= !file;
+    if (file)
+        fclose(file);
+
+#ifdef USE_ZLIB
+    // Try and open it as a zip file
+    unzFile hfZip;
+    if ((hfZip = unzOpen(pcszPath_)))
     {
-        // If the file is read-only, the stream will be read-only
-        FILE* file = fopen(pcszPath_, "r+b");
-        fReadOnly_ |= !file;
-        if (file)
-            fclose(file);
-
-#ifdef USE_ZLIB
-        // Try and open it as a zip file
-        unzFile hfZip;
-        if ((hfZip = unzOpen(pcszPath_)))
+        // Iterate through the contents of the zip looking for a file with a suitable size
+        for (int nRet = unzGoToFirstFile(hfZip) ; nRet == UNZ_OK ; nRet = unzGoToNextFile(hfZip))
         {
-            // Iterate through the contents of the zip looking for a file with a suitable size
-            for (int nRet = unzGoToFirstFile(hfZip) ; nRet == UNZ_OK ; nRet = unzGoToNextFile(hfZip))
-            {
-                unz_file_info sInfo;
+            unz_file_info sInfo;
 
-                // Get details of the current file
-                unzGetCurrentFileInfo(hfZip, &sInfo, NULL, 0, NULL, 0, NULL, 0);
+            // Get details of the current file
+            unzGetCurrentFileInfo(hfZip, &sInfo, NULL, 0, NULL, 0, NULL, 0);
 
-                // Continue looking if it's too small to be considered [strictly this shouldn't really be done here!]
-                if (sInfo.uncompressed_size < 32768)
-                    continue;
+            // Continue looking if it's too small to be considered [strictly this shouldn't really be done here!]
+            if (sInfo.uncompressed_size < 32768)
+                continue;
 
-                // Ok, so open and use the first file in the zip and use that
-                if (unzOpenCurrentFile(hfZip) == UNZ_OK)
-                    return new CZipStream(hfZip, pcszPath_, true/*fReadOnly_*/);  // ZIPs are currently read-only
-            }
-
-            // Failed to open the first file, so close the zip
-            unzClose(hfZip);
+            // Ok, so open and use the first file in the zip and use that
+            if (unzOpenCurrentFile(hfZip) == UNZ_OK)
+                return new CZipStream(hfZip, pcszPath_, true/*fReadOnly_*/);  // ZIPs are currently read-only
         }
-        else
+
+        // Failed to open the first file, so close the zip
+        unzClose(hfZip);
+    }
+    else
 #endif
+    {
+        // Open the file using the regular CRT file functions
+        FILE* hf;
+        if ((hf = fopen(pcszPath_, "rb")))
         {
-            // Open the file using the regular CRT file functions
-            FILE* hf;
-            if ((hf = fopen(pcszPath_, "rb")))
-            {
 #ifdef USE_ZLIB
-                BYTE abSig[sizeof(GZ_SIGNATURE)];
-                if ((fread(abSig, 1, sizeof(abSig), hf) != sizeof(abSig)) || memcmp(abSig, GZ_SIGNATURE, sizeof(abSig)))
+            BYTE abSig[sizeof(GZ_SIGNATURE)];
+            if ((fread(abSig, 1, sizeof(abSig), hf) != sizeof(abSig)) || memcmp(abSig, GZ_SIGNATURE, sizeof(abSig)))
 #endif
-                    return new CFileStream(hf, pcszPath_, fReadOnly_);
+                return new CFileStream(hf, pcszPath_, fReadOnly_);
 #ifdef USE_ZLIB
-                else
-                {
-                    BYTE ab[4] = {};
-                    size_t uSize = 0;
+            else
+            {
+                BYTE ab[4] = {};
+                size_t uSize = 0;
 
-                    // Read the uncompressed size from the end of the file (if under 4GiB)
-                    if (fseek(hf, -4, SEEK_END) == 0 && fread(ab, 1, sizeof(ab), hf) == sizeof(ab))
-                        uSize = (ab[3] << 24) | (ab[2] << 16) | (ab[1] << 8) | ab[0];
+                // Read the uncompressed size from the end of the file (if under 4GiB)
+                if (fseek(hf, -4, SEEK_END) == 0 && fread(ab, 1, sizeof(ab), hf) == sizeof(ab))
+                    uSize = (ab[3] << 24) | (ab[2] << 16) | (ab[1] << 8) | ab[0];
 
-                    // Close the file so we can open it through ZLib
-                    fclose(hf);
+                // Close the file so we can open it through ZLib
+                fclose(hf);
 
-                    // Try to open it as a gzipped file
-                    gzFile hfGZip;
-                    if ((hfGZip = gzopen(pcszPath_, "rb")))
-                        return new CZLibStream(hfGZip, pcszPath_, uSize, fReadOnly_);
-                }
-#endif  // USE_ZLIB
+                // Try to open it as a gzipped file
+                gzFile hfGZip;
+                if ((hfGZip = gzopen(pcszPath_, "rb")))
+                    return new CZLibStream(hfGZip, pcszPath_, uSize, fReadOnly_);
             }
+#endif  // USE_ZLIB
         }
     }
 

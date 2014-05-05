@@ -777,7 +777,7 @@ CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, co
 
 CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, UINT u_, int nBytes_/*=2*/)
     : CWindow(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit),
-    m_nViewOffset(0), m_nCaretStart(0), m_nCaretEnd(0)
+    m_nViewOffset(0), m_nCaretStart(0), m_nCaretEnd(0), m_dwCaretTime(0)
 {
     SetValue(u_, nBytes_);
 }
@@ -2190,7 +2190,10 @@ void CFileView::NotifyParent (int nParam_)
             {
                 // Add the sub-directory name and a trailing backslash
                 char szSep[2] = { PATH_SEPARATOR, '\0' };
-                strcat(strcat(szPath, pItem->m_pszLabel), szSep);
+                strncat(szPath, pItem->m_pszLabel, MAX_PATH-strlen(szPath)-1);
+                szPath[MAX_PATH-1] = '\0';
+                strncat(szPath, szSep, MAX_PATH-strlen(szPath)-1);
+                szPath[MAX_PATH-1] = '\0';
             }
 
             // Make sure we have access to the path before setting it

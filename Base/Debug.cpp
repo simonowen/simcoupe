@@ -2395,7 +2395,7 @@ bool CTxtView::cmdNavigate (int nKey_, int nMods_)
 static const int HEX_COLUMNS = 16;
 
 CHexView::CHexView (CWindow* pParent_)
-    : CView(pParent_), m_fEditing(false), m_fRightNibble(false)
+    : CView(pParent_), m_fEditing(false), m_fRightNibble(false), m_wEditAddr(0)
 {
     SetText("Numeric");
     SetFont(&sFixedFont);

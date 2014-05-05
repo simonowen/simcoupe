@@ -103,7 +103,7 @@ static void Function (BYTE b_, int nSymbolMax_)
     {
         case 'a':
         {
-            WORD wAddr = (pbOpcode[2] << 8) | pbOpcode[1];
+            WORD wAddr = (static_cast<WORD>(pbOpcode[2]) << 8) | pbOpcode[1];
 
             std::string sName = nSymbolMax_ ? Symbol::LookupAddr(wAddr, nSymbolMax_, true) : "";
 

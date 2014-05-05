@@ -91,14 +91,14 @@ static long WriteChunkEnd (FILE *f_, long lPos_)
     long lSize = lPos-lPos_-sizeof(DWORD);
 
     // Seek back to the length field
-    if (fseek(f_, lPos_, SEEK_SET) != 0)
+    if (lPos_ < 0 || fseek(f_, lPos_, SEEK_SET) != 0)
         return 0;
 
     // Write the chunk size
     WriteLittleEndianDWORD(lSize);
 
     // Restore original position (should always be end of file, but we'll use the value from earlier)
-    if (fseek(f_, lPos, SEEK_SET) != 0)
+    if (lPos < 0 || fseek(f_, lPos, SEEK_SET) != 0)
         return 0;
 
     // If the length was odd, pad file position to even boundary
@@ -208,7 +208,7 @@ static bool WriteVideoHeader (FILE *f_)
 
 static bool WriteAudioHeader (FILE *f_)
 {
-    DWORD dwPos = WriteChunkStart(f_, "strh", "auds");
+    long lPos = WriteChunkStart(f_, "strh", "auds");
 
     // Default to normal sound parameters
     WORD wFreq = SAMPLE_FREQ;
@@ -243,9 +243,9 @@ static bool WriteAudioHeader (FILE *f_)
     WriteLittleEndianDWORD(0);				// two unused rect coords
     WriteLittleEndianDWORD(0);				// two more unused rect coords
 
-    WriteChunkEnd(f_, dwPos);
+    WriteChunkEnd(f_, lPos);
 
-    dwPos = WriteChunkStart(f_, "strf");
+    lPos = WriteChunkStart(f_, "strf");
 
     WriteLittleEndianWORD(1);				// format tag (1 = WAVE_FORMAT_PCM)
     WriteLittleEndianWORD(wChannels);		// channels
@@ -255,7 +255,7 @@ static bool WriteAudioHeader (FILE *f_)
     WriteLittleEndianWORD(wBits);			// bits per sample
     WriteLittleEndianWORD(0);				// extra structure size
 
-    return WriteChunkEnd(f_, dwPos) != 0;
+    return WriteChunkEnd(f_, lPos) != 0;
 }
 
 static bool WriteIndex (FILE *f_)
@@ -278,8 +278,10 @@ static bool WriteIndex (FILE *f_)
     {
         BYTE abType[4];
 
+        if (fseek(f, lMoviPos, SEEK_SET) != 0)
+            return false;
+
         // Read the type and size from the movi chunk
-        fseek(f, lMoviPos, SEEK_SET);
         if (fread(abType, 1, sizeof(abType), f) != sizeof(abType))
             return false;
 
@@ -562,7 +564,7 @@ void AVI::AddFrame (CScreen *pScreen_)
     bool fKeyFrame = !(dwVideoFrames % EMULATED_FRAMES_PER_SECOND);
 
     // Start of frame chunk
-    DWORD dwPos = WriteChunkStart(f, "00dc");
+    long lPos = WriteChunkStart(f, "00dc");
 
     int x, nFrag, nJump = 0, nJumpX = 0, nJumpY = 0;
 
@@ -673,7 +675,7 @@ void AVI::AddFrame (CScreen *pScreen_)
     fputc(0x01, f);	// eoi
 
     // Complete frame chunk
-    long lSize = WriteChunkEnd(f, dwPos);
+    long lSize = WriteChunkEnd(f, lPos);
     dwVideoFrames++;
 
     // Track the maximum video data size

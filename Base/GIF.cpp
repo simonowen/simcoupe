@@ -111,14 +111,22 @@ static void WriteGraphicControlExtension (WORD wDelay_, BYTE bTransIdx_)
 
 static bool WriteGraphicControlExtensionDelay (long lOffset_, WORD wDelay_)
 {
+    // Save current position
     long lOldPos = ftell(f);
-    if (fseek(f, lDelayOffset, SEEK_SET) != 0)
+
+    // Seek to delay offset
+    if (lDelayOffset < 0 || fseek(f, lDelayOffset, SEEK_SET) != 0)
         return false;
 
-    fputc(wDelay_ & 0xff, f);	// delay time (in 1/100 second)
+    // Write delay time (in 1/100ths second)
+    fputc(wDelay_ & 0xff, f);
     fputc(wDelay_ >> 8, f);
 
-    return fseek(f, lOldPos, SEEK_SET) == 0;
+    // Return to original position
+    if (lOldPos < 0 || fseek(f, lOldPos, SEEK_SET) != 0)
+        return false;
+
+    return true;
 }
 
 static void WriteNetscapeLoopExtension ()

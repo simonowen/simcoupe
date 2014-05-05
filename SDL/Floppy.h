@@ -42,8 +42,7 @@ SECTOR, *PSECTOR;
 class CFloppyStream : public CStream
 {
     public:
-        CFloppyStream (const char* pcszStream_, bool fReadOnly_=false)
-         : CStream(pcszStream_, fReadOnly_), m_nFloppy(-1), m_hThread(0) { }
+        CFloppyStream (const char* pcszStream_, bool fReadOnly_=false);
         ~CFloppyStream () { Close(); }
 
     public:
@@ -54,7 +53,7 @@ class CFloppyStream : public CStream
         void *ThreadProc ();
 
     public:
-        bool IsOpen () const { return m_nFloppy != -1; }
+        bool IsOpen () const { return m_hFloppy != -1; }
         bool IsBusy (BYTE* pbStatus_, bool fWait_);
 
         // The normal stream functions are not used
@@ -68,7 +67,7 @@ class CFloppyStream : public CStream
         bool Open ();
 
     protected:
-        int     m_nFloppy;              // Floppy device handle
+        int     m_hFloppy;              // Floppy device handle
         UINT    m_uSectors;             // Regular sector count, or zero for auto-detect (slower)
 
 #ifdef __linux__
