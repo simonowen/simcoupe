@@ -230,10 +230,7 @@ bool PNG::Save (CScreen* pScreen_)
     if (fRet)
         Frame::SetStatus("Saved %s", pszFile);
     else
-    {
         Frame::SetStatus("PNG save failed!?");
-        unlink(szPath);
-    }
 #else
     Frame::SetStatus("Screen saving requires zLib");
 #endif

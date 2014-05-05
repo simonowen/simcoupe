@@ -493,7 +493,7 @@ void *CFloppyStream::ThreadProc ()
 #else
 // Dummy implementation for non-Linux SDL versions
 
-CFloppyStream (const char* pcszStream_, bool fReadOnly_=false)
+CFloppyStream::CFloppyStream (const char* pcszStream_, bool fReadOnly_/*=false*/)
     : CStream(pcszStream_, fReadOnly_),
     m_hFloppy(-1), m_uSectors(0), m_hThread(0),
     m_bCommand(0), m_bStatus(0), m_pTrack(NULL), m_uSectorIndex(0)

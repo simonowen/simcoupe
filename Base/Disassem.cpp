@@ -96,14 +96,15 @@ static void SkipBlock (const char** ppcszTable)
 static void Function (BYTE b_, int nSymbolMax_)
 {
     int i;
-    bool fPositive = !(pbOpcode[1] & 0x80);
-    BYTE bDisp = fPositive ? pbOpcode[1] : (0 - pbOpcode[1]);
+    BYTE bOp0 = pbOpcode[0], bOp1 = pbOpcode[1], bOp2 = pbOpcode[2];
+    bool fPositive = !(bOp1 & 0x80);
+    BYTE bDisp = fPositive ? bOp1 : (0 - bOp1);
 
     switch (b_)
     {
         case 'a':
         {
-            WORD wAddr = (static_cast<WORD>(pbOpcode[2]) << 8) | pbOpcode[1];
+            WORD wAddr = (bOp2 << 8) | bOp1;
 
             std::string sName = nSymbolMax_ ? Symbol::LookupAddr(wAddr, nSymbolMax_, true) : "";
 
@@ -114,12 +115,12 @@ static void Function (BYTE b_, int nSymbolMax_)
 
             break;
         }
-        case 'b':   *pszOut++ = '%'; for (i = 0 ; i < 8 ; i++) *pszOut++ = '0' + ((pbOpcode[1] >> (7-i)) & 1); break;
-        case 'c':   *pszOut++ = '0' + ((pbOpcode[0] >> 3) & 7); break;
-        case 'd':   if (pbOpcode[1]) pszOut += sprintf(pszOut, fHex ? "%c%02X" : "%c%d", fPositive ? '+' : '-', bDisp); break;
+        case 'b':   *pszOut++ = '%'; for (i = 0 ; i < 8 ; i++) *pszOut++ = '0' + ((bOp1 >> (7-i)) & 1); break;
+        case 'c':   *pszOut++ = '0' + ((bOp0 >> 3) & 7); break;
+        case 'd':   if (bOp1) pszOut += sprintf(pszOut, fHex ? "%c%02X" : "%c%d", fPositive ? '+' : '-', bDisp); break;
         case 'e':
         {
-            WORD wAddr = wPC + 2 + static_cast<signed char>(pbOpcode[1]);
+            WORD wAddr = wPC + 2 + static_cast<signed char>(bOp1);
 
             std::string sName = nSymbolMax_ ? Symbol::LookupAddr(wAddr, nSymbolMax_, true) : "";
 
@@ -130,17 +131,17 @@ static void Function (BYTE b_, int nSymbolMax_)
 
             break;
         }
-        case 'f':   pszOut += sprintf(pszOut, fHex ? "%X" : "%d", pbOpcode[0] & 0x38); break;
-        case 'h':   *pbStack = ((pbOpcode[0] >> 3) & 7) == 6; break;
+        case 'f':   pszOut += sprintf(pszOut, fHex ? "%X" : "%d", (bOp0 & 0x38)); break;
+        case 'h':   *pbStack = ((bOp0 >> 3) & 7) == 6; break;
         case 'i':   *pbStack = nType; break;
-        case 'l':   *pbStack = (pbOpcode[0] & 7) == 6; break;
+        case 'l':   *pbStack = (bOp0 & 7) == 6; break;
         case 'm':   pszOut += sprintf(pszOut, fHex ? "%02X" : "%d", pbOpcode[1 + (!nType ? 0 : 1)]); break;
-        case 'n':   pszOut += sprintf(pszOut, fHex ? "%02X" : "%d", pbOpcode[1]); break;
+        case 'n':   pszOut += sprintf(pszOut, fHex ? "%02X" : "%d", bOp1); break;
         case 'o':   pszOut += sprintf(pszOut, fHex ? "%02X" : "%d", GetOption(cmosz80) ? 255 : 0); break;
         case 'p':
         {
-            BYTE bPort = pbOpcode[1];
-            bool fRead = pbOpcode[0] == 0xdb; // IN A,(n)
+            BYTE bPort = bOp1;
+            bool fRead = (bOp0 == 0xdb); // IN A,(n)
 
             std::string sName = nSymbolMax_ ? Symbol::LookupPort(bPort, fRead).substr(0,nSymbolMax_) : "";
 
@@ -199,7 +200,7 @@ static UINT ParseStr (const char* pcsz_, int nSymbolMax_)
             default:
                 if (b >= 0x80)
                     *pbStack = (pbOpcode[0] >> ((b >> 3) & 7)) & (b & 7);
-                else if (b >= 'a' && b < _countof(aszStrings))
+                else if (b >= 'a' && b < 'a'+_countof(aszStrings))
                     ParseStr(aszStrings[b-'a'], nSymbolMax_);
                 else if (b < 5)
                     return nType ? b + 1 : b;

@@ -58,7 +58,6 @@ DWORD OSD::GetTime ()
 
 const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
 {
-    struct stat st;
     static char szPath[MAX_PATH*2];
     szPath[0] = '\0';
 
@@ -146,7 +145,7 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
 
     // Create the directory if it doesn't already exist
     // This assumes only the last component could be missing
-    if (stat(szPath, &st) != 0 && mkdir(szPath, 0755) != 0)
+    if (mkdir(szPath, 0755) != 0 && errno != EEXIST)
         TRACE("!!! Failed to create directory: %s\n", szPath);
 
     // Append any supplied filename (backslash separator already added)

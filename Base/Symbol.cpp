@@ -133,9 +133,13 @@ static bool Load (const char *pcszFile_, AddrToSym &symtab_, SymToAddr *pValues_
         ReadcPickler(file, symtab_, pValues_);
     }
     // Fall back a simple ADDR=NAME text file
+    else if (fseek(file, 0, SEEK_SET) != 0)
+    {
+        fclose(file);
+        return false;
+    }
     else
     {
-        fseek(file, 0, SEEK_SET);
         ReadSimple(file, symtab_, pValues_);
     }
 

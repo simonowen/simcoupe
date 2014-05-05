@@ -124,9 +124,14 @@ void WAV::Stop ()
     WriteWaveValue(lDataSize, riff.wave.pcmdata.datalen, sizeof(long));
     WriteWaveValue(lDataSize+sizeof(riff.wave), riff.abWaveLen, sizeof(long));
 
-    // Rewrite the header and close the file
-    fseek(f, 0, SEEK_SET);
-    fwrite(&riff, sizeof(riff), 1, f);
+    // Rewrite the completed file header
+    if (fseek(f, 0, SEEK_SET) == 0)
+    {
+        if (fwrite(&riff, 1, sizeof(riff), f) != sizeof(riff))
+            TRACE("!!! WAV::Stop(): Failed to write RIFF header\n");
+    }
+
+    // Close the recording
     fclose(f);
     f = NULL;
 

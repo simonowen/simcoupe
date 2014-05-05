@@ -501,7 +501,10 @@ void AVI::Stop ()
 
     // Write the completed file headers
     WriteFileHeaders(f);
-    fseek(f, 0, SEEK_END);
+
+    // Seek to end before closing
+    if (fseek(f, 0, SEEK_END) != 0)
+        TRACE("!!! AVI::Stop(): Failed to seek to end of recording\n");
 
     // Close the recording
     fclose(f);
