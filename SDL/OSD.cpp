@@ -103,22 +103,29 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
             // Output override
             if (GetOption(outpath)[0])
             {
-                strncpy(szPath, GetOption(outpath), MAX_PATH);
+                strncpy(szPath, GetOption(outpath), MAX_PATH-1);
+                szPath[MAX_PATH-1] = '\0';
                 break;
             }
 
 #if defined(__APPLE__)
-            strcat(szPath, "Documents/SimCoupe/");
+            strncat(szPath, "Documents/SimCoupe/", MAX_PATH-strlen(szPath)-1);
+            szPath[MAX_PATH-1] = '\0';
 #elif !defined(_WINDOWS) && !defined(__AMIGAOS4__)
+            struct stat st;
             size_t u = strlen(szPath);
 
             // If there's a Desktop folder, it'll be more visible there
-            strcat(szPath, "Desktop/");
+            strncat(szPath, "Desktop/", MAX_PATH-strlen(szPath)-1);
+            szPath[MAX_PATH-1] = '\0';
+
+            // Ignore Desktop folder if it doesn't exist
             if (stat(szPath, &st))
                 szPath[u] = '\0';
 
             // Keep it tidy though
-            strcat(szPath, "SimCoupe/");
+            strncat(szPath, "SimCoupe/", MAX_PATH-strlen(szPath)-1);
+            szPath[MAX_PATH-1] = '\0';
 #endif
             break;
         }
