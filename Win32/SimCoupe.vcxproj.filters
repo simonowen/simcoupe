@@ -31,6 +31,9 @@
     <Filter Include="Resource Files">
       <UniqueIdentifier>{4b5d352f-9fb2-4d2d-8d93-a41acd7ac471}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Win32 Resource Files\Shaders">
+      <UniqueIdentifier>{c8371e58-a126-47ff-8e06-71c47001f4b1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Base\Action.cpp">
@@ -503,5 +506,13 @@
     <None Include="..\Resource\samrom.map">
       <Filter>Resource Files</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\PixelShader.hlsl">
+      <Filter>Win32 Resource Files\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\VertexShader.hlsl">
+      <Filter>Win32 Resource Files\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

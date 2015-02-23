@@ -4,6 +4,7 @@
 *- Copy*
 * copy.*
 Build/
+Win32/Shaders/*.h
 
 # Visual Studio
 *.aps
@@ -12,9 +13,12 @@ Build/
 *.plg
 *.suo
 *.sdf
+*.opensdf
 *.vcproj.*.user
+*.vcxproj.user
 [Dd]ebug/
 [Rr]elease/
+ipch/
 
 # Xcode
 *.pbxuser

@@ -1,8 +1,8 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// Direct3D.cpp: Direct3D9 display
+// Direct3D.cpp: Direct3D 9 display
 //
-//  Copyright (c) 2012-2014 Simon Owen
+//  Copyright (c) 2012-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,6 +20,8 @@
 
 #include "SimCoupe.h"
 #include "Direct3D9.h"
+#include "VertexShader.h"
+#include "PixelShader.h"
 
 #include "Frame.h"
 #include "GUI.h"
@@ -31,20 +33,18 @@
 
 
 #define TEXTURE_SIZE    1024
-#define NUM_VERTICES    12
-#define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZRHW|D3DFVF_TEX1)
+#define NUM_VERTICES    4
+
+const D3DVERTEXELEMENT9 vertexDecl[] =
+{
+    {0,  0, D3DDECLTYPE_SHORT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0},
+    D3DDECL_END()
+};
 
 struct CUSTOMVERTEX
 {
-    CUSTOMVERTEX(FLOAT x_, FLOAT y_, FLOAT z_, FLOAT w_, FLOAT tu_, FLOAT tv_)
-    {
-        position = D3DXVECTOR4(x_,y_,z_,w_);
-        tu = tu_;
-        tv = tv_;
-    }
-
-    D3DXVECTOR4 position;
-    FLOAT       tu, tv;
+    CUSTOMVERTEX(long x_, long y_) : x(static_cast<short>(x_)), y(static_cast<short>(y_)) { }
+    short x, y;
 };
 
 
@@ -53,7 +53,7 @@ static DWORD adwPalette[N_PALETTE_COLOURS];
 
 
 Direct3D9Video::Direct3D9Video ()
-    : m_pd3d(NULL), m_pd3dDevice(NULL), m_pTexture(NULL), m_pScanlineTexture(NULL), m_pVertexBuffer(NULL)
+    : m_pd3d(NULL), m_pd3dDevice(NULL), m_pTexture(NULL), m_pVertexBuffer(NULL), m_pVertexDecl(NULL), m_pVertexShader(NULL), m_pPixelShader(NULL)
 {
     memset(&m_d3dpp, 0, sizeof(m_d3dpp));
     SetRectEmpty(&m_rTarget);
@@ -62,8 +62,10 @@ Direct3D9Video::Direct3D9Video ()
 Direct3D9Video::~Direct3D9Video ()
 {
     if (m_pTexture) m_pTexture->Release(), m_pTexture = NULL;
-    if (m_pScanlineTexture) m_pScanlineTexture->Release(), m_pScanlineTexture = NULL;
+    if (m_pPixelShader) m_pPixelShader->Release(), m_pPixelShader = NULL;
+    if (m_pVertexShader) m_pVertexShader->Release(), m_pVertexShader = NULL;
     if (m_pVertexBuffer) m_pVertexBuffer->Release(), m_pVertexBuffer = NULL;
+    if (m_pVertexDecl) m_pVertexDecl->Release(), m_pVertexDecl = NULL;
     if (m_pd3dDevice) m_pd3dDevice->Release(), m_pd3dDevice = NULL;
     if (m_pd3d) m_pd3d->Release(), m_pd3d = NULL;
 }
@@ -71,7 +73,7 @@ Direct3D9Video::~Direct3D9Video ()
 
 int Direct3D9Video::GetCaps () const
 {
-    return VCAP_STRETCH | VCAP_FILTER |VCAP_SCANHIRES;
+    return VCAP_STRETCH | VCAP_FILTER | VCAP_SCANHIRES;
 }
 
 bool Direct3D9Video::Init (bool fFirstInit_)
@@ -116,31 +118,6 @@ void Direct3D9Video::UpdatePalette ()
         adwPalette[i] = RGB2Native(r,g,b,a, dwRmask, dwGmask, dwBmask, dwAmask);
     }
 
-
-    D3DSURFACE_DESC d3dsd;
-    D3DLOCKED_RECT d3dlr;
-
-    if (m_pScanlineTexture &&
-        SUCCEEDED(m_pScanlineTexture->GetLevelDesc(0, &d3dsd)) &&
-        SUCCEEDED(m_pScanlineTexture->LockRect(0, &d3dlr, 0, 0)))
-    {
-        DWORD *pdw = (DWORD*)d3dlr.pBits;
-        int nPitchW = d3dlr.Pitch/4;
-
-        BYTE bScanlineAlpha = ((100-GetOption(scanlevel)) * 0xff) / 100;
-        DWORD dwScanlineAlpha = (bScanlineAlpha << 24);
-
-        for (UINT y = 0; y < d3dsd.Height ; y++)
-        {
-            DWORD dwCol = (y & 1) ? dwScanlineAlpha : 0x00000000;
-
-            for (UINT x = 0; x < d3dsd.Width ; x++)
-                pdw[y*nPitchW + x] = dwCol;
-        }
-
-        m_pScanlineTexture->UnlockRect(0);
-    }
-
     // Redraw to reflect any changes
     Video::SetDirty();
 }
@@ -183,38 +160,51 @@ void Direct3D9Video::Update (CScreen* pScreen_, bool *pafDirty_)
 
     bool fFilter = GUI::IsActive() ? GetOption(filtergui) || (GetOption(scale) & 1) : GetOption(filter);
     DWORD dwFilter = fFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT;
-    DWORD dwCurrentFilter = 0;
-    if (SUCCEEDED(m_pd3dDevice->GetSamplerState(0, D3DSAMP_MAGFILTER, &dwCurrentFilter)) && dwFilter != dwCurrentFilter)
-    {
-        hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, dwFilter);
-        hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, dwFilter);
-    }
+    hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, dwFilter);
+    hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, dwFilter);
 
-    int nVertexOffset = GUI::IsActive() ? 0 : 4;
-
-    hr = m_pd3dDevice->SetTexture(0, m_pTexture);
-    hr = m_pd3dDevice->SetFVF(D3DFVF_CUSTOMVERTEX);
-    hr = m_pd3dDevice->SetStreamSource(0, m_pVertexBuffer, 0, sizeof(CUSTOMVERTEX));
     hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
     hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
-    hr = m_pd3dDevice->DrawPrimitive(D3DPT_TRIANGLESTRIP, nVertexOffset, 2);
 
-    if (GetOption(scanlines) && !GUI::IsActive() && (int(m_d3dpp.BackBufferWidth) >= Frame::GetWidth()))
+    float vertexConsts[][4] =
     {
-        nVertexOffset = GetOption(scanhires) ? 8 : 0;
-        hr = m_pd3dDevice->SetTexture(0, m_pScanlineTexture);
-        hr = m_pd3dDevice->SetFVF(D3DFVF_CUSTOMVERTEX);
-        hr = m_pd3dDevice->SetStreamSource(0, m_pVertexBuffer, 0, sizeof(CUSTOMVERTEX));
-        hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP);
-        hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_WRAP);
-        hr = m_pd3dDevice->DrawPrimitive(D3DPT_TRIANGLESTRIP, nVertexOffset, 2);
-    }
+        {
+            2.0f / pScreen_->GetPitch(),
+            -2.0f / pScreen_->GetHeight() * (GUI::IsActive() ? 1.0f : 2.0f),
+            GetOption(scanhires) ? (float(m_rTarget.right) / pScreen_->GetPitch()) : 1.0f,
+            GetOption(scanhires) ? (float(m_rTarget.bottom) / pScreen_->GetHeight() / (GUI::IsActive() ? 2.0f : 1.0f)) : 1.0f,
+        },
+        {
+            0.5f / TEXTURE_SIZE,
+            1.0f / TEXTURE_SIZE,
+            1.0f,
+            1.0f,
+        }
+    };
 
+    float pixelConsts[][4] =
+    {
+        {
+            GetOption(scanlines) && !GUI::IsActive() ? GetOption(scanlevel) / 100.0f : 1.0f,
+            1.0f,
+            1.0f,
+            1.0f,
+        }
+    };
+
+    hr = m_pd3dDevice->SetVertexShaderConstantF(0, vertexConsts[0], ARRAYSIZE(vertexConsts));
+    hr = m_pd3dDevice->SetPixelShaderConstantF(0, pixelConsts[0], ARRAYSIZE(pixelConsts));
+
+    hr = m_pd3dDevice->SetVertexDeclaration(m_pVertexDecl);
+    hr = m_pd3dDevice->SetStreamSource(0, m_pVertexBuffer, 0, sizeof(CUSTOMVERTEX));
+    hr = m_pd3dDevice->SetTexture(0, m_pTexture);
+
+    hr = m_pd3dDevice->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
     hr = m_pd3dDevice->EndScene();
     hr = m_pd3dDevice->Present(NULL, NULL, hwndCanvas, NULL);
 }
 
-HRESULT Direct3D9Video::CreateSurfaces ()
+HRESULT Direct3D9Video::CreateTextures ()
 {
     HRESULT hr = 0;
 
@@ -222,30 +212,9 @@ HRESULT Direct3D9Video::CreateSurfaces ()
         return D3DERR_INVALIDDEVICE;
 
     if (m_pTexture) m_pTexture->Release(), m_pTexture = NULL;
-    if (m_pScanlineTexture) m_pScanlineTexture->Release(), m_pScanlineTexture = NULL;
 
     if (FAILED(hr = m_pd3dDevice->CreateTexture(TEXTURE_SIZE, TEXTURE_SIZE, 0, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &m_pTexture, NULL)))
         return hr;
-
-    if (FAILED(hr = m_pd3dDevice->CreateTexture(TEXTURE_SIZE, TEXTURE_SIZE, 0, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &m_pScanlineTexture, NULL)))
-    {
-        m_pTexture->Release(), m_pTexture = NULL;
-        return hr;
-    }
-
-    D3DSURFACE_DESC d3dsd;
-    D3DLOCKED_RECT d3dlr;
-    if (SUCCEEDED(hr = m_pTexture->GetLevelDesc(0, &d3dsd)) &&
-        SUCCEEDED(hr = m_pTexture->LockRect(0, &d3dlr, 0, 0)))
-    {
-        for (UINT  y = 0; y < TEXTURE_SIZE ; y++)
-        {
-            BYTE *pb = reinterpret_cast<BYTE*>(d3dlr.pBits);
-            memset(pb + y*d3dlr.Pitch, 0, TEXTURE_SIZE*4);
-        }
-
-        m_pTexture->UnlockRect(0);
-    }
 
     UpdatePalette();
     Video::SetDirty();
@@ -260,20 +229,34 @@ HRESULT Direct3D9Video::CreateVertices ()
     if (!m_pd3dDevice)
         return D3DERR_INVALIDDEVICE;
 
+    if (m_pVertexDecl) m_pVertexDecl->Release(), m_pVertexDecl = NULL;
+    hr = m_pd3dDevice->CreateVertexDeclaration(vertexDecl, &m_pVertexDecl);
+
     if (m_pVertexBuffer) m_pVertexBuffer->Release(), m_pVertexBuffer = NULL;
 
-    if (FAILED(hr = m_pd3dDevice->CreateVertexBuffer(NUM_VERTICES*sizeof(CUSTOMVERTEX), D3DUSAGE_WRITEONLY, D3DFVF_CUSTOMVERTEX, D3DPOOL_DEFAULT, &m_pVertexBuffer, NULL)))
+    if (FAILED(hr = m_pd3dDevice->CreateVertexBuffer(NUM_VERTICES*sizeof(CUSTOMVERTEX), D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &m_pVertexBuffer, NULL)))
         return hr;
 
     DWORD dwWidth = Frame::GetWidth();
     DWORD dwHeight = Frame::GetHeight();
+
+    CUSTOMVERTEX *pVertices = NULL;
+    hr = m_pVertexBuffer->Lock(0, NUM_VERTICES*sizeof(CUSTOMVERTEX), (void**)&pVertices, 0);
+
+    // Main display, also used for scanlines
+    pVertices[0] = CUSTOMVERTEX(0, dwHeight);
+    pVertices[1] = CUSTOMVERTEX(0, 0);
+    pVertices[2] = CUSTOMVERTEX(dwWidth, dwHeight);
+    pVertices[3] = CUSTOMVERTEX(dwWidth, 0);
+
+    hr = m_pVertexBuffer->Unlock();
+
 
     UINT uWidthView = m_d3dpp.BackBufferWidth;
     UINT uHeightView = m_d3dpp.BackBufferHeight;
 
     UINT uWidth = dwWidth, uHeight = dwHeight;
     if (GetOption(ratio5_4)) uWidth = uWidth * 5/4;
-
 
     UINT uWidthFit = MulDiv(uWidth, uHeightView, uHeight);
     UINT uHeightFit = MulDiv(uHeight, uWidthView, uWidth);
@@ -289,41 +272,24 @@ HRESULT Direct3D9Video::CreateVertices ()
         uHeight = uHeightFit;
     }
 
-    RECT r = { 0, 0, uWidth, uHeight };
-    OffsetRect(&r, (uWidthView - r.right)/2, (uHeightView - r.bottom)/2);
-    m_rTarget = r;
-
-    CUSTOMVERTEX *pVertices;
-    hr = m_pVertexBuffer->Lock(0, NUM_VERTICES*sizeof(CUSTOMVERTEX), (void**)&pVertices, 0);
-
-
-    float tW = float(dwWidth) / float(TEXTURE_SIZE);
-    float tH = float(dwHeight) / float(TEXTURE_SIZE);
-
-    // Main display, also used for scanlines
-    pVertices[0] = CUSTOMVERTEX((float)r.left  - 0.5f, (float)r.bottom - 0.5f, 0.0f, 1.0f,  0.0f,   tH);
-    pVertices[1] = CUSTOMVERTEX((float)r.left  - 0.5f, (float)r.top    - 0.5f, 0.0f, 1.0f,  0.0f,   0.0f);
-    pVertices[2] = CUSTOMVERTEX((float)r.right - 0.5f, (float)r.bottom - 0.5f, 0.0f, 1.0f,    tW,   tH);
-    pVertices[3] = CUSTOMVERTEX((float)r.right - 0.5f, (float)r.top    - 0.5f, 0.0f, 1.0f,    tW,   0.0f);
-
-    // Main display with height doubled
-    pVertices[4] = pVertices[0]; pVertices[4].tv /= 2.0f;
-    pVertices[5] = pVertices[1];
-    pVertices[6] = pVertices[2]; pVertices[6].tv /= 2.0f;
-    pVertices[7] = pVertices[3];
-
-    tW = float(uWidthView) / float(TEXTURE_SIZE);
-    tH = float(uHeightView) / float(TEXTURE_SIZE);
-
-    // Matching display mode for native scanlines
-    pVertices[8]  = CUSTOMVERTEX(0.0f              - 0.5f, float(uHeightView) - 0.5f, 0.0f, 1.0f,  0.0f,   tH);
-    pVertices[9]  = CUSTOMVERTEX(0.0f              - 0.5f, 0.0f               - 0.5f, 0.0f, 1.0f,  0.0f, 0.0f);
-    pVertices[10] = CUSTOMVERTEX(float(uWidthView) - 0.5f, float(uHeightView) - 0.5f, 0.0f, 1.0f,    tW,   tH);
-    pVertices[11] = CUSTOMVERTEX(float(uWidthView) - 0.5f, 0.0f               - 0.5f, 0.0f, 1.0f,    tW, 0.0f);
-
-    m_pVertexBuffer->Unlock();
+    SetRect(&m_rTarget, 0, 0, uWidth, uHeight);
 
     return D3D_OK;
+}
+
+HRESULT Direct3D9Video::CreateShaders ()
+{
+    HRESULT hr = D3D_OK;
+
+    if (m_pVertexShader) m_pVertexShader->Release(), m_pVertexShader = NULL;
+    hr = m_pd3dDevice->CreateVertexShader((DWORD*)g_VertexShader, &m_pVertexShader);
+    hr = m_pd3dDevice->SetVertexShader(m_pVertexShader);
+
+    if (m_pPixelShader) m_pPixelShader->Release(), m_pPixelShader = NULL;
+    hr = m_pd3dDevice->CreatePixelShader((DWORD*)g_PixelShader, &m_pPixelShader);
+    hr = m_pd3dDevice->SetPixelShader(m_pPixelShader);
+
+    return hr;
 }
 
 HRESULT Direct3D9Video::CreateDevice ()
@@ -346,9 +312,9 @@ HRESULT Direct3D9Video::CreateDevice ()
     ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
     m_d3dpp.hDeviceWindow = g_hwnd;
     m_d3dpp.Windowed = true;
-    m_d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD; // required for SetDialogBoxMode()
+    m_d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
     m_d3dpp.BackBufferCount = 1;
-    m_d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // required for SetDialogBoxMode()
+    m_d3dpp.Flags = 0;
     m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
     m_d3dpp.BackBufferFormat = D3DFMT_X8R8G8B8;
 
@@ -374,11 +340,10 @@ bool Direct3D9Video::Reset (bool fNewDevice_)
         return false;
 
     if (m_pTexture) m_pTexture->Release(), m_pTexture = NULL;
-    if (m_pScanlineTexture) m_pScanlineTexture->Release(), m_pScanlineTexture = NULL;
     if (m_pVertexBuffer) m_pVertexBuffer->Release(), m_pVertexBuffer = NULL;
 
-    m_d3dpp.BackBufferWidth = m_rTarget.right - m_rTarget.left;
-    m_d3dpp.BackBufferHeight = m_rTarget.bottom - m_rTarget.top;
+    m_d3dpp.BackBufferWidth = m_rTarget.right;
+    m_d3dpp.BackBufferHeight = m_rTarget.bottom;
 
     if (m_pd3dDevice && !fNewDevice_)
     {
@@ -395,14 +360,15 @@ bool Direct3D9Video::Reset (bool fNewDevice_)
 
     if (m_pd3dDevice)
     {
-        m_pd3dDevice->SetDialogBoxMode(TRUE);
-        m_pd3dDevice->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
-        m_pd3dDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-        m_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-        m_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+        // Disable culling, z-buffer, and lighting
+        hr = m_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+        hr = m_pd3dDevice->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+        hr = m_pd3dDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+        hr = m_pd3dDevice->SetRenderState(D3DRS_LIGHTING, FALSE);
 
-        CreateSurfaces();
+        CreateTextures();
         CreateVertices();
+        CreateShaders();
     }
 
     Video::SetDirty();
@@ -504,16 +470,11 @@ void Direct3D9Video::UpdateSize ()
     if (IsMinimized(g_hwnd))
         return;
 
-    // Determine screen location of canvas top-left
-    POINT ptOffset = { 0,0 };
-    ClientToScreen(hwndCanvas, &ptOffset);
-
-    // Convert canvas rect to screen coordinates
+    // Fetch current client size
     RECT rNew;
     GetClientRect(hwndCanvas, &rNew);
-    OffsetRect(&rNew, ptOffset.x, ptOffset.y);
 
-    // If it's changed since last time, reinitialise the video
+    // If it's changed since last time, reinitialise the device
     if (!EqualRect(&rNew, &m_rTarget))
     {
         m_rTarget = rNew;
@@ -528,14 +489,12 @@ void Direct3D9Video::DisplayToSamSize (int* pnX_, int* pnY_)
     int nHalfWidth = !GUI::IsActive();
     int nHalfHeight = nHalfWidth;
 
-    *pnX_ = *pnX_ * Frame::GetWidth()  / ((m_rTarget.right-m_rTarget.left) << nHalfWidth);
-    *pnY_ = *pnY_ * Frame::GetHeight() / ((m_rTarget.bottom-m_rTarget.top) << nHalfHeight);
+    *pnX_ = *pnX_ * Frame::GetWidth()  / (m_rTarget.right << nHalfWidth);
+    *pnY_ = *pnY_ * Frame::GetHeight() / (m_rTarget.bottom << nHalfHeight);
 }
 
 // Map a native client point to SAM view port
 void Direct3D9Video::DisplayToSamPoint (int* pnX_, int* pnY_)
 {
-    *pnX_ -= m_rTarget.left;
-    *pnY_ -= m_rTarget.top;
     DisplayToSamSize(pnX_, pnY_);
 }
