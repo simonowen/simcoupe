@@ -2,7 +2,7 @@
 //
 // CPU.cpp: Z80 processor emulation and main emulation loop
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //  Copyright (c) 2000-2003 Dave Laundon
 //  Copyright (c) 1996-2001 Allan Skillman
 //
@@ -347,8 +347,8 @@ void CPU::ExecuteChunk ()
         g_dwCycleCounter = TSTATES_PER_FRAME;
     }
 
-// Execute the first CPU core block in low-res mode, or if only 1 CPU core is compiled in
-#if defined(USE_LOWRES) || defined(USE_ONECPUCORE)
+// Execute the first CPU core if only 1 CPU core is compiled in
+#if defined(USE_ONECPUCORE)
     if (1)
 #else
     if (Debug::IsBreakpointSet())
@@ -378,19 +378,16 @@ void CPU::ExecuteChunk ()
             if (status_reg != STATUS_INT_NONE && IFF1)
                 CheckInterrupt();
 
-// Don't bother checking for breakpoints if the debugger isn't available
-#if !defined(USE_LOWRES)
             // If we're not in an IX/IY instruction, check for breakpoints
             if (pNewHlIxIy == &HL && Debug::BreakpointHit())
                 break;
-#endif
 
 #ifdef _DEBUG
             if (g_fDebug) g_fDebug = !Debug::Start();
 #endif
         }
     }
-#if !defined(USE_LOWRES) && !defined(USE_ONECPUCORE)
+#if !defined(USE_ONECPUCORE)
     else
     {
         // Loop until we've reached the end of the frame
@@ -422,7 +419,7 @@ void CPU::ExecuteChunk ()
 #endif
         }
     }
-#endif  // !defined(USE_LOWRES) && !defined(USE_ONECPUCORE)
+#endif  // !defined(USE_ONECPUCORE)
 }
 
 

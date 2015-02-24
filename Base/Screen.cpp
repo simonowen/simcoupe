@@ -2,7 +2,7 @@
 //
 // Screen.cpp: SAM screen handling, including on-screen display text
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,11 +39,10 @@ static const GUIFONT* pFont = &sGUIFont;
 
 CScreen::CScreen (int nWidth_, int nHeight_)
 {
-    m_nPitch = nWidth_ & ~15;   // Round down to the nearest hi-res screen block chunk
+    m_nPitch = nWidth_ & ~15;   // Round down to the nearest mode 3 screen block chunk
     m_nHeight = nHeight_;
 
     m_pbFrame = new BYTE [m_nPitch * m_nHeight];
-    m_pfHiRes = new bool [m_nHeight];
 
     // Create the look-up table from line number to start of screen line
     m_ppbLines = new BYTE* [m_nHeight];
@@ -58,49 +57,14 @@ CScreen::CScreen (int nWidth_, int nHeight_)
 CScreen::~CScreen ()
 {
     delete[] m_pbFrame;
-    delete[] m_pfHiRes;
     delete[] m_ppbLines;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Return the address of a high-res version of a line, converting from lo-res if necessary
-BYTE* CScreen::GetHiResLine (int nLine_, int nWidth_/*=WIDTH_BLOCKS*/)
-{
-    bool fHiRes;
-    BYTE* pbLine = GetLine(nLine_, fHiRes);
-    WORD *pwLine = reinterpret_cast<WORD*>(pbLine);
-
-    // If the line is already hi-res, return the pointer to it
-    if (fHiRes)
-        return pbLine;
-
-    // Limit the amount converted to the maximum visible width
-    nWidth_ = min(nWidth_, (m_nPitch >> 4)) << 3;
-
-    // Double up each pixel on the line
-    for (int i = nWidth_-1 ; i >= 0 ; i -= 8)
-    {
-        pwLine[i-0] = pbLine[i-0] * 0x0101;
-        pwLine[i-1] = pbLine[i-1] * 0x0101;
-        pwLine[i-2] = pbLine[i-2] * 0x0101;
-        pwLine[i-3] = pbLine[i-3] * 0x0101;
-        pwLine[i-4] = pbLine[i-4] * 0x0101;
-        pwLine[i-5] = pbLine[i-5] * 0x0101;
-        pwLine[i-6] = pbLine[i-6] * 0x0101;
-        pwLine[i-7] = pbLine[i-7] * 0x0101;
-    }
-
-    // Mark the line as hi-res
-    SetHiRes(nLine_, true);
-
-    return pbLine;
-}
-
 void CScreen::Clear ()
 {
     memset(m_pbFrame, 0, m_nPitch * m_nHeight);
-    memset(m_pfHiRes, 0, m_nHeight * sizeof(bool));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -138,7 +102,7 @@ void CScreen::Plot (int nX_, int nY_, BYTE bColour_)
     int nWidth = 1, nHeight = 1;
 
     if (Clip(nX_, nY_, nWidth, nHeight))
-        GetHiResLine(nY_++)[nX_] = bColour_;
+        GetLine(nY_++)[nX_] = bColour_;
 }
 
 // Draw a line from horizontal or vertical a given point (no diagonal lines yet)
@@ -149,7 +113,7 @@ void CScreen::DrawLine (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColou
     {
         nHeight_ = 1;
         if (Clip(nX_, nY_, nWidth_, nHeight_))
-            memset(GetHiResLine(nY_++) + nX_, bColour_, nWidth_);
+            memset(GetLine(nY_++) + nX_, bColour_, nWidth_);
     }
 
     // Vertical line
@@ -158,7 +122,7 @@ void CScreen::DrawLine (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColou
         nWidth_ = 1;
         if (Clip(nX_, nY_, nWidth_, nHeight_))
             while (nHeight_--)
-                GetHiResLine(nY_++)[nX_] = bColour_;
+                GetLine(nY_++)[nX_] = bColour_;
     }
 }
 
@@ -169,7 +133,7 @@ void CScreen::FillRect (int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColou
     {
         // Iterate through each line in the block
         while (nHeight_--)
-            memset(GetHiResLine(nY_++) + nX_, bColour_, nWidth_);
+            memset(GetLine(nY_++) + nX_, bColour_, nWidth_);
     }
 }
 
@@ -206,7 +170,7 @@ void CScreen::DrawImage (int nX_, int nY_, int nWidth_, int nHeight_, const BYTE
     for (int y = nY ; y < (nY+nHeight) ; y++)
     {
         const BYTE* pcbImage = pcbData_ + (y-nY_)*nWidth_;
-        BYTE *pb = GetHiResLine(y);
+        BYTE *pb = GetLine(y);
 
         for (int x = nX ; x < (nX+nWidth) ; x++)
         {
@@ -224,7 +188,7 @@ void CScreen::Poke (int nX_, int nY_, const BYTE* pcbData_, UINT uLen_)
     int nWidth = static_cast<int>(uLen_), nHeight_ = 1, nX = nX_;
 
     if (Clip(nX_, nY_, nWidth, nHeight_))
-        memcpy(GetHiResLine(nY_++) + nX_, pcbData_+nX_-nX, nWidth);
+        memcpy(GetLine(nY_++) + nX_, pcbData_+nX_-nX, nWidth);
 }
 
 
@@ -314,15 +278,6 @@ int CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_/*=WHITE
         int nTo = nY_ + pFont->wHeight;
         nTo = min(nClipY+nClipHeight-1, nTo);
 
-        // Ensure the lines containing the character are hi-res
-        for (int i = nFrom ; i < nTo ; i++)
-            GetHiResLine(i);
-
-#ifdef USE_LOWRES
-        // Double the width, to account for skipped pixels, and force an odd pixel position
-        nWidth <<= 1;
-        nX_ |= 1;
-#endif
         // Only draw the character if it's not a space, and the entire width fits inside the clipping area
         if (bChar != ' ' && (nX_ >= nClipX) && (nX_+nWidth <= nClipX+nClipWidth))
         {
@@ -333,17 +288,6 @@ int CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_/*=WHITE
             {
                 BYTE bData = *pbData++;
 
-#ifdef USE_LOWRES
-                // Draw ever other pixel, since they're the only visible ones in low-res mode
-                if (bData & 0x80) pLine[0]  = bInk_;
-                if (bData & 0x40) pLine[2]  = bInk_;
-                if (bData & 0x20) pLine[4]  = bInk_;
-                if (bData & 0x10) pLine[6]  = bInk_;
-                if (bData & 0x08) pLine[8]  = bInk_;
-                if (bData & 0x04) pLine[10] = bInk_;
-                if (bData & 0x02) pLine[12] = bInk_;
-                if (bData & 0x01) pLine[14] = bInk_;
-#else
                 if (bData & 0x80) pLine[0] = bInk_;
                 if (bData & 0x40) pLine[1] = bInk_;
                 if (bData & 0x20) pLine[2] = bInk_;
@@ -352,7 +296,6 @@ int CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_/*=WHITE
                 if (bData & 0x04) pLine[5] = bInk_;
                 if (bData & 0x02) pLine[6] = bInk_;
                 if (bData & 0x01) pLine[7] = bInk_;
-#endif
             }
         }
 
@@ -427,11 +370,7 @@ int CScreen::Printf (int nX_, int nY_, const char* pcszFormat_, ...)
         nMaxWidth = max(nWidth,nMaxWidth);
     }
 
-#ifdef USE_LOWRES
-    return nMaxWidth << 1; // Double-spaced pixels need twice the room
-#else
     return nMaxWidth;
-#endif
 }
 
 /*static*/ void CScreen::SetFont (const GUIFONT* pFont_)

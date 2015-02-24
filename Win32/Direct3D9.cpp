@@ -397,12 +397,11 @@ bool Direct3D9Video::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
 
     DWORD *pdwBack = reinterpret_cast<DWORD*>(d3dlr.pBits), *pdw = pdwBack;
     LONG lPitchDW = d3dlr.Pitch >> 2;
-    bool *pfHiRes = pScreen_->GetHiRes();
 
     BYTE *pbSAM = pScreen_->GetLine(0), *pb = pbSAM;
     LONG lPitch = pScreen_->GetPitch();
 
-    int nRightHi = nWidth >> 3, nRightLo = nRightHi >> 1;
+    int nRightHi = nWidth >> 3;
 
     nWidth <<= 2;
 
@@ -411,39 +410,19 @@ bool Direct3D9Video::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
         if (!pafDirty_[y])
             continue;
 
-        if (pfHiRes[y])
+        for (int x = 0 ; x < nRightHi ; x++)
         {
-            for (int x = 0 ; x < nRightHi ; x++)
-            {
-                pdw[0] = adwPalette[pb[0]];
-                pdw[1] = adwPalette[pb[1]];
-                pdw[2] = adwPalette[pb[2]];
-                pdw[3] = adwPalette[pb[3]];
-                pdw[4] = adwPalette[pb[4]];
-                pdw[5] = adwPalette[pb[5]];
-                pdw[6] = adwPalette[pb[6]];
-                pdw[7] = adwPalette[pb[7]];
+            pdw[0] = adwPalette[pb[0]];
+            pdw[1] = adwPalette[pb[1]];
+            pdw[2] = adwPalette[pb[2]];
+            pdw[3] = adwPalette[pb[3]];
+            pdw[4] = adwPalette[pb[4]];
+            pdw[5] = adwPalette[pb[5]];
+            pdw[6] = adwPalette[pb[6]];
+            pdw[7] = adwPalette[pb[7]];
 
-                pdw += 8;
-                pb += 8;
-            }
-        }
-        else
-        {
-            for (int x = 0 ; x < nRightLo ; x++)
-            {
-                pdw[0]  = pdw[1]  = adwPalette[pb[0]];
-                pdw[2]  = pdw[3]  = adwPalette[pb[1]];
-                pdw[4]  = pdw[5]  = adwPalette[pb[2]];
-                pdw[6]  = pdw[7]  = adwPalette[pb[3]];
-                pdw[8]  = pdw[9]  = adwPalette[pb[4]];
-                pdw[10] = pdw[11] = adwPalette[pb[5]];
-                pdw[12] = pdw[13] = adwPalette[pb[6]];
-                pdw[14] = pdw[15] = adwPalette[pb[7]];
-
-                pdw += 16;
-                pb += 8;
-            }
+            pdw += 8;
+            pb += 8;
         }
 
         pafDirty_[y] = false;

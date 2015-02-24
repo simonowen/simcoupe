@@ -2,7 +2,7 @@
 //
 // Screen.h: SAM screen handling, including on-screen display text
 //
-//  Copyright (c) 1999-2014  Simon Owen
+//  Copyright (c) 1999-2015  Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -51,16 +51,10 @@ class CScreen
 
     public:
         BYTE* GetLine (int nLine_) { return m_ppbLines[nLine_]; }
-        BYTE* GetLine (int nLine_, bool &rfHiRes_) { rfHiRes_ = IsHiRes(nLine_); return m_ppbLines[nLine_]; }
-        BYTE* GetHiResLine (int nLine_, int nWidth_=WIDTH_BLOCKS);
 
         int GetPitch () const { return m_nPitch; }
-        int GetWidth (int nLine_) const { return IsHiRes(nLine_) ? m_nPitch : (m_nPitch >> 1); }
+        int GetWidth (int nLine_) const { return m_nPitch; }
         int GetHeight () const { return m_nHeight; }
-
-        bool IsHiRes (int nLine_) const { return m_pfHiRes[nLine_]; }
-        void SetHiRes (int nLine_, bool fHiRes_) { m_pfHiRes[nLine_] = fHiRes_; }
-        bool* GetHiRes () { return m_pfHiRes; }
 
     public:
         void Clear ();
@@ -81,10 +75,9 @@ class CScreen
         static void SetFont (const GUIFONT* pFont_);
 
     protected:
-        int m_nPitch, m_nHeight;    // Pitch (width of low-res lines is half the pitch) and height of the screen
+        int m_nPitch, m_nHeight;    // Pitch and height of the screen
 
         BYTE *m_pbFrame;            // Screen data block
-        bool* m_pfHiRes;            // Array of bools for whether each line is hi-res or not
         BYTE **m_ppbLines;          // Look-up table from line number to pointer to start of the line
 };
 

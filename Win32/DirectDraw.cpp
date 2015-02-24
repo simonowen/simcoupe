@@ -2,7 +2,7 @@
 //
 // DirectDraw.cpp: DirectDraw display
 //
-//  Copyright (c) 2012 Simon Owen
+//  Copyright (c) 2012-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -315,14 +315,13 @@ bool DirectDrawVideo::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
 
     DWORD *pdwBack = reinterpret_cast<DWORD*>(ddsd.lpSurface), *pdw = pdwBack;
     LONG lPitchDW = ddsd.lPitch >> 2;
-    bool *pfHiRes = pScreen_->GetHiRes();
 
     BYTE *pbSAM = pScreen_->GetLine(0), *pb = pbSAM;
     LONG lPitch = pScreen_->GetPitch();
 
     int nDepth = ddsd.ddpfPixelFormat.dwRGBBitCount;
     int nBottom = pScreen_->GetHeight() >> (GUI::IsActive() ? 0 : 1);
-    int nWidth = pScreen_->GetPitch(), nRightHi = nWidth >> 3, nRightLo = nRightHi >> 1;
+    int nWidth = pScreen_->GetPitch(), nRightHi = nWidth >> 3;
 
     switch (nDepth)
     {
@@ -335,76 +334,33 @@ bool DirectDrawVideo::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
                 if (!pafDirty_[y])
                     continue;
 
-                if (pfHiRes[y])
+                for (int x = 0 ; x < nRightHi ; x++)
                 {
+                    // Draw 8 pixels at a time
+                    pdw[0] = (aulPalette[pb[1]] << 16) | aulPalette[pb[0]];
+                    pdw[1] = (aulPalette[pb[3]] << 16) | aulPalette[pb[2]];
+                    pdw[2] = (aulPalette[pb[5]] << 16) | aulPalette[pb[4]];
+                    pdw[3] = (aulPalette[pb[7]] << 16) | aulPalette[pb[6]];
+
+                    pdw += 4;
+                    pb += 8;
+                }
+
+                if (fInterlace)
+                {
+                    pb = pbSAM;
+                    pdw = pdwBack + lPitchDW/2;
+
                     for (int x = 0 ; x < nRightHi ; x++)
                     {
                         // Draw 8 pixels at a time
-                        pdw[0] = (aulPalette[pb[1]] << 16) | aulPalette[pb[0]];
-                        pdw[1] = (aulPalette[pb[3]] << 16) | aulPalette[pb[2]];
-                        pdw[2] = (aulPalette[pb[5]] << 16) | aulPalette[pb[4]];
-                        pdw[3] = (aulPalette[pb[7]] << 16) | aulPalette[pb[6]];
+                        pdw[0] = (aulScanline[pb[1]] << 16) | aulScanline[pb[0]];
+                        pdw[1] = (aulScanline[pb[3]] << 16) | aulScanline[pb[2]];
+                        pdw[2] = (aulScanline[pb[5]] << 16) | aulScanline[pb[4]];
+                        pdw[3] = (aulScanline[pb[7]] << 16) | aulScanline[pb[6]];
 
                         pdw += 4;
                         pb += 8;
-                    }
-
-                    if (fInterlace)
-                    {
-                        pb = pbSAM;
-                        pdw = pdwBack + lPitchDW/2;
-
-                        for (int x = 0 ; x < nRightHi ; x++)
-                        {
-                            // Draw 8 pixels at a time
-                            pdw[0] = (aulScanline[pb[1]] << 16) | aulScanline[pb[0]];
-                            pdw[1] = (aulScanline[pb[3]] << 16) | aulScanline[pb[2]];
-                            pdw[2] = (aulScanline[pb[5]] << 16) | aulScanline[pb[4]];
-                            pdw[3] = (aulScanline[pb[7]] << 16) | aulScanline[pb[6]];
-
-                            pdw += 4;
-                            pb += 8;
-                        }
-                    }
-                }
-                else 
-                {
-                    for (int x = 0 ; x < nRightLo ; x++)
-                    {
-                        // Draw 8 pixels at a time
-                        pdw[0] = aulPalette[pb[0]] * 0x10001UL;
-                        pdw[1] = aulPalette[pb[1]] * 0x10001UL;
-                        pdw[2] = aulPalette[pb[2]] * 0x10001UL;
-                        pdw[3] = aulPalette[pb[3]] * 0x10001UL;
-                        pdw[4] = aulPalette[pb[4]] * 0x10001UL;
-                        pdw[5] = aulPalette[pb[5]] * 0x10001UL;
-                        pdw[6] = aulPalette[pb[6]] * 0x10001UL;
-                        pdw[7] = aulPalette[pb[7]] * 0x10001UL;
-
-                        pdw += 8;
-                        pb += 8;
-                        }
-
-                        if (fInterlace)
-                        {
-                        pb = pbSAM;
-                        pdw = pdwBack + lPitchDW/2;
-
-                        for (int x = 0 ; x < nRightLo ; x++)
-                        {
-                        // Draw 8 pixels at a time
-                        pdw[0] = aulScanline[pb[0]] * 0x10001UL;
-                        pdw[1] = aulScanline[pb[1]] * 0x10001UL;
-                        pdw[2] = aulScanline[pb[2]] * 0x10001UL;
-                        pdw[3] = aulScanline[pb[3]] * 0x10001UL;
-                        pdw[4] = aulScanline[pb[4]] * 0x10001UL;
-                        pdw[5] = aulScanline[pb[5]] * 0x10001UL;
-                        pdw[6] = aulScanline[pb[6]] * 0x10001UL;
-                        pdw[7] = aulScanline[pb[7]] * 0x10001UL;
-
-                        pdw += 8;
-                        pb += 8;
-                        }
                     }
                 }
 
@@ -422,80 +378,39 @@ bool DirectDrawVideo::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
                 if (!pafDirty_[y])
                     continue;
 
-                if (pfHiRes[y])
+                for (int x = 0 ; x < nRightHi ; x++)
                 {
+                    pdw[0] = aulPalette[pb[0]];
+                    pdw[1] = aulPalette[pb[1]];
+                    pdw[2] = aulPalette[pb[2]];
+                    pdw[3] = aulPalette[pb[3]];
+                    pdw[4] = aulPalette[pb[4]];
+                    pdw[5] = aulPalette[pb[5]];
+                    pdw[6] = aulPalette[pb[6]];
+                    pdw[7] = aulPalette[pb[7]];
+
+                    pdw += 8;
+                    pb += 8;
+                }
+
+                if (fInterlace)
+                {
+                    pb = pbSAM;
+                    pdw = pdwBack + lPitchDW/2;
+
                     for (int x = 0 ; x < nRightHi ; x++)
                     {
-                        pdw[0] = aulPalette[pb[0]];
-                        pdw[1] = aulPalette[pb[1]];
-                        pdw[2] = aulPalette[pb[2]];
-                        pdw[3] = aulPalette[pb[3]];
-                        pdw[4] = aulPalette[pb[4]];
-                        pdw[5] = aulPalette[pb[5]];
-                        pdw[6] = aulPalette[pb[6]];
-                        pdw[7] = aulPalette[pb[7]];
+                        pdw[0] = aulScanline[pb[0]];
+                        pdw[1] = aulScanline[pb[1]];
+                        pdw[2] = aulScanline[pb[2]];
+                        pdw[3] = aulScanline[pb[3]];
+                        pdw[4] = aulScanline[pb[4]];
+                        pdw[5] = aulScanline[pb[5]];
+                        pdw[6] = aulScanline[pb[6]];
+                        pdw[7] = aulScanline[pb[7]];
 
                         pdw += 8;
                         pb += 8;
-                    }
-
-                    if (fInterlace)
-                    {
-                        pb = pbSAM;
-                        pdw = pdwBack + lPitchDW/2;
-
-                        for (int x = 0 ; x < nRightHi ; x++)
-                        {
-                            pdw[0] = aulScanline[pb[0]];
-                            pdw[1] = aulScanline[pb[1]];
-                            pdw[2] = aulScanline[pb[2]];
-                            pdw[3] = aulScanline[pb[3]];
-                            pdw[4] = aulScanline[pb[4]];
-                            pdw[5] = aulScanline[pb[5]];
-                            pdw[6] = aulScanline[pb[6]];
-                            pdw[7] = aulScanline[pb[7]];
-
-                            pdw += 8;
-                            pb += 8;
-                        }
-                    }
-                }
-                else
-                {
-                    for (int x = 0 ; x < nRightLo ; x++)
-                    {
-                        pdw[0]  = pdw[1]  = aulPalette[pb[0]];
-                        pdw[2]  = pdw[3]  = aulPalette[pb[1]];
-                        pdw[4]  = pdw[5]  = aulPalette[pb[2]];
-                        pdw[6]  = pdw[7]  = aulPalette[pb[3]];
-                        pdw[8]  = pdw[9]  = aulPalette[pb[4]];
-                        pdw[10] = pdw[11] = aulPalette[pb[5]];
-                        pdw[12] = pdw[13] = aulPalette[pb[6]];
-                        pdw[14] = pdw[15] = aulPalette[pb[7]];
-
-                        pdw += 16;
-                        pb += 8;
-                    }
-
-                    if (fInterlace)
-                    {
-                        pb = pbSAM;
-                        pdw = pdwBack + lPitchDW/2;
-
-                        for (int x = 0 ; x < nRightLo ; x++)
-                        {
-                            pdw[0]  = pdw[1]  = aulScanline[pb[0]];
-                            pdw[2]  = pdw[3]  = aulScanline[pb[1]];
-                            pdw[4]  = pdw[5]  = aulScanline[pb[2]];
-                            pdw[6]  = pdw[7]  = aulScanline[pb[3]];
-                            pdw[8]  = pdw[9]  = aulScanline[pb[4]];
-                            pdw[10] = pdw[11] = aulScanline[pb[5]];
-                            pdw[12] = pdw[13] = aulScanline[pb[6]];
-                            pdw[14] = pdw[15] = aulScanline[pb[7]];
-
-                            pdw += 16;
-                            pb += 8;
-                        }
                     }
                 }
 
@@ -518,14 +433,12 @@ void DirectDrawVideo::DisplayToSamSize (int* pnX_, int* pnY_)
     int nHalfWidth = !GUI::IsActive();
     int nHalfHeight = nHalfWidth && GetOption(scanlines);
 
-    *pnX_ = *pnX_ * m_nWidth  / ((m_rTarget.right-m_rTarget.left) << nHalfWidth);
-    *pnY_ = *pnY_ * m_nHeight / ((m_rTarget.bottom-m_rTarget.top) << nHalfHeight);
+    *pnX_ = *pnX_ * m_nWidth  / (m_rTarget.right << nHalfWidth);
+    *pnY_ = *pnY_ * m_nHeight / (m_rTarget.bottom << nHalfHeight);
 }
 
 // Map a native client point to SAM view port
 void DirectDrawVideo::DisplayToSamPoint (int* pnX_, int* pnY_)
 {
-    *pnX_ -= m_rTarget.left;
-    *pnY_ -= m_rTarget.top;
     DisplayToSamSize(pnX_, pnY_);
 }

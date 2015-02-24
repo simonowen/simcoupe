@@ -2,7 +2,7 @@
 //
 // GIF.cpp: GIF animation recording
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 // BitPacker and GifCompressor classes:
-// Based on code by: Christoph Hohmann (http://members.aol.com/rf21exe/gif.htm)
+// Based on code by: Christoph Hohmann (http://web.archive.org/web/http://members.aol.com/rf21exe/gif.htm)
 // Who based his code on code by: Michael A. Mayer
 // Who apparently based his code on code by: Bob Montgomery circa 1988
 
@@ -155,18 +155,18 @@ static void WriteFileTerminator ()
 // Compare our copy of the screen with the new display contents
 static bool GetChangeRect (BYTE *pb_, CScreen *pScreen_)
 {
-    bool fHiRes;
     int l,t,r,b, w,h;
     l = t = r = b = 0;
 
     WORD width = pScreen_->GetPitch()/2, height = pScreen_->GetHeight()/2;
-    BYTE *pbC = pb_;
+    int step = 2; // sample alternate pixels
+
+	BYTE *pbC = pb_;
 
     // Search down for the top-most change
     for (h = 0 ; h < height ; h++)
     {
-        BYTE *pb = pScreen_->GetLine(h, fHiRes);
-        int step = fHiRes ? 2 : 1;
+        BYTE *pb = pScreen_->GetLine(h);
 
         // Scan the full width of the current line
         for (w = 0 ; w < width ; w++, pbC++, pb += step)
@@ -192,8 +192,7 @@ found_top:
     // Search up for the bottom-most change
     for (h = height-1 ; h >= t ; h--)
     {
-        BYTE *pb = pScreen_->GetLine(h, fHiRes);
-        int step = fHiRes ? 2 : 1;
+        BYTE *pb = pScreen_->GetLine(h);
         pb += (width-1)*step;
 
         // Scan the full width of the line, right to left
@@ -218,8 +217,7 @@ found_bottom:
     // Scan within the inclusive vertical extents of the change rect
     for (h = t ; h <= b ; h++, pbC += width)
     {
-        BYTE *pb = pScreen_->GetLine(h, fHiRes);
-        int step = fHiRes ? 2 : 1;
+        BYTE *pb = pScreen_->GetLine(h);
 
         // Scan the unknown left strip
         for (w = 0 ; w < l ; w++)
@@ -257,6 +255,7 @@ found_bottom:
 static BYTE UpdateImage (BYTE *pb_, CScreen *pScreen_)
 {
     WORD width = pScreen_->GetPitch()/2;
+    int step = 2;
     BYTE abUsed[1<<COLOUR_DEPTH] = {0};
     BYTE *pbSub_ = pbSub;
 
@@ -268,9 +267,7 @@ static BYTE UpdateImage (BYTE *pb_, CScreen *pScreen_)
 
     for (int y = wt ; y < wt+wh ; y++, pb += width)
     {
-        bool fHiRes;
-        BYTE *pbScr = pScreen_->GetLine(y, fHiRes);
-        int step = fHiRes ? 2 : 1;
+        BYTE *pbScr = pScreen_->GetLine(y);
         pbScr += (wl*step);
 
         for (int x = 0 ; x < ww ; x++, pbScr += step)

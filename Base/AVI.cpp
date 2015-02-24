@@ -2,7 +2,7 @@
 //
 // AVI.cpp: AVI movie recording
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -473,8 +473,8 @@ bool AVI::Start (bool fHalfSize_)
     fHalfSize = fHalfSize_;
     fWantVideo = true;
 
-    // Set scanline mode for the recording
-    fScanlines = GetOption(scanlines) && GetOption(aviscanlines);
+    // Set scanline mode for the recording (low-res only)
+    fScanlines = GetOption(scanlines) && !GetOption(scanhires) && GetOption(aviscanlines);
 
 #if SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2
     // Set the audio reduction level
@@ -573,21 +573,11 @@ void AVI::AddFrame (CScreen *pScreen_)
 
     for (int y = height-1 ; y > 0 ; y--)
     {
-        bool fHiRes;
-        BYTE *pbLine = pScreen_->GetLine(y>>(fHalfSize?0:1), fHiRes);
+        BYTE *pbLine = pScreen_->GetLine(y>>(fHalfSize?0:1));
         static BYTE abLine[WIDTH_PIXELS*2];
 
-        // Is the recording hi-res but the line low-res?
-        if (!fHalfSize && !fHiRes)
-        {
-            // Double each pixel for a hi-res line
-            for (int i = 0 ; i < width ; i += 2)
-                abLine[i] = abLine[i+1] = pbLine[i/2];
-
-            pbLine = abLine;
-        }
-        // Is the recording low-res but the line hi-res?
-        else if (fHalfSize && fHiRes)
+        // Is the recording low-res?
+        if (fHalfSize)
         {
             // Decide if we should sample the odd pixel for mode 3 lines
             if (GetOption(mode3))

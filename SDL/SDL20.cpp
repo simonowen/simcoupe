@@ -2,7 +2,7 @@
 //
 // SDL20.cpp: Hardware accelerated textures for SDL 2.0
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -210,11 +210,9 @@ bool SDLTexture::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     }
 
     int nRightHi = nWidth >> 3;
-    int nRightLo = nRightHi >> 1;
 
     DWORD *pdwBack = reinterpret_cast<DWORD*>(pvPixels), *pdw = pdwBack;
     long lPitchDW = nPitch >> 2;
-    bool *pfHiRes = pScreen_->GetHiRes();
 
     BYTE *pbSAM = pScreen_->GetLine(nChangeFrom), *pb = pbSAM;
     long lPitch = pScreen_->GetPitch();
@@ -230,35 +228,15 @@ bool SDLTexture::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
                 if (!pafDirty_[y])
                     continue;
 
-                if (pfHiRes[y])
+                for (int x = 0 ; x < nRightHi ; x++)
                 {
-                    for (int x = 0 ; x < nRightHi ; x++)
-                    {
-                        pdw[0] = SDL_SwapLE32((aulPalette[pb[1]] << 16) | aulPalette[pb[0]]);
-                        pdw[1] = SDL_SwapLE32((aulPalette[pb[3]] << 16) | aulPalette[pb[2]]);
-                        pdw[2] = SDL_SwapLE32((aulPalette[pb[5]] << 16) | aulPalette[pb[4]]);
-                        pdw[3] = SDL_SwapLE32((aulPalette[pb[7]] << 16) | aulPalette[pb[6]]);
+                    pdw[0] = SDL_SwapLE32((aulPalette[pb[1]] << 16) | aulPalette[pb[0]]);
+                    pdw[1] = SDL_SwapLE32((aulPalette[pb[3]] << 16) | aulPalette[pb[2]]);
+                    pdw[2] = SDL_SwapLE32((aulPalette[pb[5]] << 16) | aulPalette[pb[4]]);
+                    pdw[3] = SDL_SwapLE32((aulPalette[pb[7]] << 16) | aulPalette[pb[6]]);
 
-                        pdw += 4;
-                        pb += 8;
-                    }
-                }
-                else
-                {
-                    for (int x = 0 ; x < nRightLo ; x++)
-                    {
-                        pdw[0] = aulPalette[pb[0]] * 0x10001UL;
-                        pdw[1] = aulPalette[pb[1]] * 0x10001UL;
-                        pdw[2] = aulPalette[pb[2]] * 0x10001UL;
-                        pdw[3] = aulPalette[pb[3]] * 0x10001UL;
-                        pdw[4] = aulPalette[pb[4]] * 0x10001UL;
-                        pdw[5] = aulPalette[pb[5]] * 0x10001UL;
-                        pdw[6] = aulPalette[pb[6]] * 0x10001UL;
-                        pdw[7] = aulPalette[pb[7]] * 0x10001UL;
-
-                        pdw += 8;
-                        pb += 8;
-                    }
+                    pdw += 4;
+                    pb += 8;
                 }
             }
         }
@@ -271,39 +249,19 @@ bool SDLTexture::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
                 if (!pafDirty_[y])
                     continue;
 
-                if (pfHiRes[y])
+                for (int x = 0 ; x < nRightHi ; x++)
                 {
-                    for (int x = 0 ; x < nRightHi ; x++)
-                    {
-                        pdw[0] = aulPalette[pb[0]];
-                        pdw[1] = aulPalette[pb[1]];
-                        pdw[2] = aulPalette[pb[2]];
-                        pdw[3] = aulPalette[pb[3]];
-                        pdw[4] = aulPalette[pb[4]];
-                        pdw[5] = aulPalette[pb[5]];
-                        pdw[6] = aulPalette[pb[6]];
-                        pdw[7] = aulPalette[pb[7]];
+                    pdw[0] = aulPalette[pb[0]];
+                    pdw[1] = aulPalette[pb[1]];
+                    pdw[2] = aulPalette[pb[2]];
+                    pdw[3] = aulPalette[pb[3]];
+                    pdw[4] = aulPalette[pb[4]];
+                    pdw[5] = aulPalette[pb[5]];
+                    pdw[6] = aulPalette[pb[6]];
+                    pdw[7] = aulPalette[pb[7]];
 
-                        pdw += 8;
-                        pb += 8;
-                    }
-                }
-                else
-                {
-                    for (int x = 0 ; x < nRightLo ; x++)
-                    {
-                        pdw[0]  = pdw[1]  = aulPalette[pb[0]];
-                        pdw[2]  = pdw[3]  = aulPalette[pb[1]];
-                        pdw[4]  = pdw[5]  = aulPalette[pb[2]];
-                        pdw[6]  = pdw[7]  = aulPalette[pb[3]];
-                        pdw[8]  = pdw[9]  = aulPalette[pb[4]];
-                        pdw[10] = pdw[11] = aulPalette[pb[5]];
-                        pdw[12] = pdw[13] = aulPalette[pb[6]];
-                        pdw[14] = pdw[15] = aulPalette[pb[7]];
-
-                        pdw += 16;
-                        pb += 8;
-                    }
+                    pdw += 8;
+                    pb += 8;
                 }
             }
         }

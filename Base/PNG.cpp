@@ -2,7 +2,7 @@
 //
 // PNG.cpp: Screenshot saving in PNG format
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -132,7 +132,7 @@ static bool SaveFile (FILE *f_, CScreen *pScreen_)
     bool fStretch = GetOption(ratio5_4);
 
     // Calculate the intensity reduction for scanlines, in the range -100 to +100
-    int nScanAdjust = GetOption(scanlines) ? (GetOption(scanlevel) - 100) : 0;
+    int nScanAdjust = (GetOption(scanlines) && !GetOption(scanhires)) ? (GetOption(scanlevel) - 100) : 0;
     if (nScanAdjust < -100) nScanAdjust = -100;
 
     PNG_INFO png = {0};
@@ -152,7 +152,7 @@ static bool SaveFile (FILE *f_, CScreen *pScreen_)
 
     for (UINT y = 0; y < png.dwHeight ; y++)
     {
-        BYTE *pbS = pScreen_->GetHiResLine(y >> 1);
+        BYTE *pbS = pScreen_->GetLine(y >> 1);
 
         // Each image line begins with the filter type
         *pb++ = PNG_FILTER_TYPE_DEFAULT;

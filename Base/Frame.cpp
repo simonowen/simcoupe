@@ -2,7 +2,7 @@
 //
 // Frame.cpp: Display frame generation
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -63,7 +63,7 @@ int s_nViewTop, s_nViewBottom;
 int s_nViewLeft, s_nViewRight;
 
 CScreen *pScreen, *pLastScreen, *pGuiScreen, *pLastGuiScreen, *pDisplayScreen;
-CFrame *pFrameLow, *pFrameHigh;
+CFrame *pFrame;
 
 bool fDrawFrame, g_fFlashPhase, fSaveScreen;
 int nFrame;
@@ -114,7 +114,7 @@ bool Frame::Init (bool fFirstInit_/*=false*/)
         s_nViewTop += (TOP_BORDER_LINES-BOTTOM_BORDER_LINES) >> 1;
     s_nViewBottom = s_nViewTop + asViews[uView].h;
 
-    // Convert the view area dimensions to hi-res pixels
+    // Convert the view area dimensions from blocks to mode 3 pixels
     s_nWidth = (s_nViewRight - s_nViewLeft) << 4;
     s_nHeight = (s_nViewBottom - s_nViewTop) << 1;
 
@@ -124,12 +124,11 @@ bool Frame::Init (bool fFirstInit_/*=false*/)
     pGuiScreen = new CScreen(s_nWidth, s_nHeight);
     pLastGuiScreen = new CScreen(s_nWidth, s_nHeight);
 
-    // Create the low-res and hi-res rendering objects
-    pFrameLow = new CFrameXx1<false>;
-    pFrameHigh = new CFrameXx1<true>;
+    // Create the frame rendering object
+    pFrame = new CFrame();
 
     // Check we created everything successfully
-    if (!pScreen || !pLastScreen || !pGuiScreen || !pLastGuiScreen || !pFrameLow || !pFrameHigh)
+    if (!pScreen || !pLastScreen || !pGuiScreen || !pLastGuiScreen || !pFrame)
     {
         Message(msgFatal, "Out of memory!");
         return false;
@@ -138,9 +137,8 @@ bool Frame::Init (bool fFirstInit_/*=false*/)
     // Drawn screen is the last (initially blank) screen
     pDisplayScreen = pLastScreen;
 
-    // Set the renderer display modes
-    pFrameLow->SetMode(vmpr);
-    pFrameHigh->SetMode(vmpr);
+    // Set the renderer display mode
+    pFrame->SetMode(vmpr);
 
     // Prepare for new frame
     Flyback();
@@ -156,9 +154,7 @@ void Frame::Exit (bool fReInit_/*=false*/)
     GIF::Stop();
     AVI::Stop();
 
-    delete pFrameLow, pFrameLow = NULL;
-    delete pFrameHigh, pFrameHigh = NULL;
-
+    delete pFrame, pFrame = NULL;
     delete pScreen, pScreen = NULL;
     delete pLastScreen, pLastScreen = NULL;
     delete pGuiScreen, pGuiScreen = NULL;
@@ -203,10 +199,6 @@ void Frame::Update ()
     // Restrict the drawing to the visible area
     int nFrom = max(nLastLine, s_nViewTop), nTo = min(nLine, s_nViewBottom-1);
 
-    // Determine the renderer for the last updated line
-    bool fHiRes = pScreen->IsHiRes(nFrom-s_nViewTop);
-    CFrame *pFrame = fHiRes ? pFrameHigh : pFrameLow;
-
     // If we're still on the same line as last time we've only got a part line to draw
     if (nLine == nLastLine)
     {
@@ -226,7 +218,7 @@ void Frame::Update ()
             // Finish the rest of the last line updated
             if (nFrom == nLastLine)
             {
-                // Finish the line using the current renderer, and exclude it from the draw range
+                // Finish the line, and exclude it from the draw range
                 pFrame->UpdateLine(pScreen, nLastLine, nLastBlock, WIDTH_BLOCKS);
                 nFrom++;
             }
@@ -234,12 +226,7 @@ void Frame::Update ()
             // Update the last line up to the current scan position
             if (nTo == nLine)
             {
-                // Default to low-res unless a mode 3 screen line
-                bool fHiRes = (vmpr_mode == MODE_3) && IsScreenLine(nLine);
-                pScreen->SetHiRes(nLine-s_nViewTop, fHiRes);
-
-                // Determine the appropriate renderer and draw the partial line
-                CFrame *pFrame = fHiRes ? pFrameHigh : pFrameLow;
+                // Draw a partial line
                 pFrame->UpdateLine(pScreen, nLine, 0, nBlock);
 
                 // Exclude the line from the block as we've drawn it now
@@ -249,12 +236,7 @@ void Frame::Update ()
             // Draw any full lines in between
             for (int i = nFrom ; i <= nTo ; i++)
             {
-                // Default to low-res unless a mode 3 screen line
-                bool fHiRes = (vmpr_mode == MODE_3) && IsScreenLine(i);
-                pScreen->SetHiRes(i-s_nViewTop, fHiRes);
-
-                // Determine the appropriate renderer and draw the complete line
-                CFrame *pFrame = fHiRes ? pFrameHigh : pFrameLow;
+                // Draw a complete line
                 pFrame->UpdateLine(pScreen, i, 0, WIDTH_BLOCKS);
             }
         }
@@ -278,8 +260,8 @@ static void CopyBeforeLastUpdate ()
         // Copy the last partial line first
         if (nBottom == (nLastLine-s_nViewTop))
         {
-            BYTE* pLine = pScreen->GetHiResLine(nBottom);
-            BYTE* pLastLine = pLastScreen->GetHiResLine(nBottom);
+            BYTE* pLine = pScreen->GetLine(nBottom);
+            BYTE* pLastLine = pLastScreen->GetLine(nBottom);
 
             int nRight = max(nLastBlock, s_nViewRight) - s_nViewLeft;
             if (nRight > 0)
@@ -291,8 +273,8 @@ static void CopyBeforeLastUpdate ()
         // Copy the remaining full lines
         for (int i = 0 ; i <= nBottom ; i++)
         {
-            BYTE* pLine = pScreen->GetHiResLine(i);
-            BYTE* pLastLine = pLastScreen->GetHiResLine(i);
+            BYTE* pLine = pScreen->GetLine(i);
+            BYTE* pLastLine = pLastScreen->GetLine(i);
             memcpy(pLine, pLastLine, pScreen->GetPitch());
         }
     }
@@ -311,8 +293,8 @@ static void CopyAfterRaster ()
         // Complete the undrawn section of the current line, if any
         if (nTop == (nLastLine-s_nViewTop))
         {
-            BYTE* pLine = pScreen->GetHiResLine(nTop);
-            BYTE* pLastLine = pLastScreen->GetHiResLine(nTop);
+            BYTE* pLine = pScreen->GetLine(nTop);
+            BYTE* pLastLine = pLastScreen->GetLine(nTop);
 
             int nOffset = (max(s_nViewLeft, nLastBlock) - s_nViewLeft) << 4;
             int nWidth = pScreen->GetPitch() - nOffset;
@@ -325,8 +307,8 @@ static void CopyAfterRaster ()
         // Copy the remaining lines
         for (int i = nTop ; i < nBottom ; i++)
         {
-            BYTE* pLine = pScreen->GetHiResLine(i);
-            BYTE* pLastLine = pLastScreen->GetHiResLine(i);
+            BYTE* pLine = pScreen->GetLine(i);
+            BYTE* pLastLine = pLastScreen->GetLine(i);
             memcpy(pLine, pLastLine, pScreen->GetPitch());
         }
     }
@@ -355,8 +337,8 @@ static void DrawRaster (CScreen *pScreen_)
     BYTE bColour = anFlash[++nPhase & 0xf];
 
     // Write the 2x2 pixel block
-    BYTE* pLine0 = pScreen_->GetHiResLine(nLine);
-    BYTE* pLine1 = pScreen_->GetHiResLine(nLine+1);
+    BYTE* pLine0 = pScreen_->GetLine(nLine);
+    BYTE* pLine1 = pScreen_->GetLine(nLine+1);
     pLine0[nOffset] = pLine0[nOffset+1] = pLine1[nOffset] = pLine1[nOffset+1] = bColour;
 }
 
@@ -389,15 +371,12 @@ void Frame::End ()
             // Make a double-height copy of the current frame for the GUI to overlay
             for (int i = 0 ; i < GetHeight() ; i++)
             {
-                bool fHiRes;
+                // Fetch the source line data
+                BYTE *pbLine = pScreen->GetLine(i>>1);
+                int nWidth = pScreen->GetPitch();
 
-                // Fetch the source line data and its hi-res status
-                BYTE *pbLine = pScreen->GetLine(i>>1, fHiRes);
-                int nWidth = pScreen->GetPitch() >> (fHiRes?0:1);
-
-                // Copy the frame data and hi-res status
+                // Copy the frame data
                 memcpy(pGuiScreen->GetLine(i), pbLine, nWidth);
-                pGuiScreen->SetHiRes(i, fHiRes);
             }
 
             // If the debugger is active, highlight the current raster position
@@ -529,9 +508,6 @@ void Flip (CScreen *pScreen_)
     DWORD* pdwB = reinterpret_cast<DWORD*>(pDisplayScreen->GetLine(0));
     int nPitchDW = pScreen_->GetPitch() >> 2;
 
-    bool *pfHiRes = pScreen_->GetHiRes();
-    bool *pfHiResDisplay = pDisplayScreen->GetHiRes();
-
     // Work out what has changed since the last frame
     for (int i = 0 ; i < nHeight ; i++)
     {
@@ -540,7 +516,7 @@ void Flip (CScreen *pScreen_)
             continue;
 
         // If they're different resolutions, or have different contents, they're dirty
-        if (pfHiRes[i] != pfHiResDisplay[i] || memcmp(pdwA, pdwB, pScreen_->GetWidth(i)))
+        if (memcmp(pdwA, pdwB, pScreen_->GetPitch()))
             Video::SetLineDirty(i);
 
         pdwA += nPitchDW;
@@ -646,16 +622,10 @@ int GetRasterPos (int *pnLine_)
 // Fetch the 4 bytes the ASIC uses to generate the next 8-pixel cell
 void Frame::GetAsicData (BYTE *pb0_, BYTE *pb1_, BYTE *pb2_, BYTE *pb3_)
 {
-    int nLine;
-    GetRasterPos(&nLine);
-
-    bool fHiRes = pScreen->IsHiRes(nLine-s_nViewTop);
-    CFrame *pFrame = fHiRes ? pFrameHigh : pFrameLow;
-
     pFrame->GetAsicData(pb0_, pb1_, pb2_, pb3_);
 }
 
-// Handle screen mode changes, which may require converting low-res data to hi-res
+// Handle screen mode changes
 // Changes on the main screen may generate an artefact by using old data in the new mode (described by Dave Laundon)
 void Frame::ChangeMode (BYTE bNewVmpr_)
 {
@@ -667,21 +637,12 @@ void Frame::ChangeMode (BYTE bNewVmpr_)
         // Changes into the right border can't affect appearance, so ignore them
         if (nBlock < (BORDER_BLOCKS+SCREEN_BLOCKS))
         {
-            // Are we switching to mode 3 on a lo-res line?
-            if (((bNewVmpr_ & VMPR_MODE_MASK) == MODE_3) && !pScreen->IsHiRes(nLine-s_nViewTop))
-            {
-                // Convert the used part of the line to high resolution
-                pScreen->GetHiResLine(nLine-s_nViewTop, nBlock);
-            }
-
             // Is the mode changing between 1/2 <-> 3/4 on the main screen?
             if (((vmpr_mode ^ bNewVmpr_) & VMPR_MDE1_MASK) && nBlock >= BORDER_BLOCKS)
             {
-                bool fHiRes;
-                BYTE *pbLine = pScreen->GetLine(nLine-s_nViewTop, fHiRes);
+                BYTE *pbLine = pScreen->GetLine(nLine-s_nViewTop);
 
                 // Draw the artefact and advance the draw position
-                CFrame *pFrame = fHiRes ? pFrameHigh : pFrameLow;
                 pFrame->ModeChange(pbLine, nLine, nBlock, bNewVmpr_);
 
                 nLastBlock += (VIDEO_DELAY >> 3);
@@ -689,9 +650,8 @@ void Frame::ChangeMode (BYTE bNewVmpr_)
         }
     }
 
-    // Update the mode in the rendering objects
-    pFrameLow->SetMode(bNewVmpr_);
-    pFrameHigh->SetMode(bNewVmpr_);
+    // Update the mode in the rendering object
+    pFrame->SetMode(bNewVmpr_);
 }
 
 
@@ -703,11 +663,10 @@ void Frame::ChangeScreen (BYTE bNewBorder_)
     // Only draw if the artefact cell is visible
     if (nLine >= s_nViewTop && nLine < s_nViewBottom && nBlock >= s_nViewLeft && nBlock < s_nViewRight)
     {
-        // Convert the used part of the line to high resolution
-        BYTE *pbLine = pScreen->GetHiResLine(nLine-s_nViewTop, nBlock);
+        BYTE *pbLine = pScreen->GetLine(nLine-s_nViewTop);
 
         // Draw the artefact and advance the draw position
-        pFrameHigh->ScreenChange(pbLine, nLine, nBlock, bNewBorder_);
+        pFrame->ScreenChange(pbLine, nLine, nBlock, bNewBorder_);
         nLastBlock += (VIDEO_DELAY >> 3);
     }
 }

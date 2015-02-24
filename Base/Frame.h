@@ -2,7 +2,7 @@
 //
 // Frame.h: Display frame generation
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -72,7 +72,7 @@ inline BYTE AttrFg (BYTE bAttr_) { return ((((bAttr_) >> 3) & 8) | ((bAttr_) & 7
 extern bool fDrawFrame, g_fFlashPhase;
 extern int nFrame;
 
-extern int s_nWidth, s_nHeight;         // hi-res pixels
+extern int s_nWidth, s_nHeight;         // in mode 3 pixels
 extern int s_nViewTop, s_nViewBottom;   // in lines
 extern int s_nViewLeft, s_nViewRight;   // in screen blocks
 
@@ -94,91 +94,67 @@ class CFrame
         void UpdateLine (CScreen *pScreen_, int nLine_, int nFrom_, int nTo_);
         void GetAsicData (BYTE *pb0_, BYTE *pb1_, BYTE *pb2_, BYTE *pb3_);
 
-        virtual void ModeChange (BYTE *pbLine_, int nLine_, int nBlock_, BYTE bNewVmpr_) = 0;
-        virtual void ScreenChange (BYTE *pbLine_, int nLine_, int nBlock_, BYTE bNewBorder_) = 0;
+        void ModeChange (BYTE *pbLine_, int nLine_, int nBlock_, BYTE bNewVmpr_);
+        void ScreenChange (BYTE *pbLine_, int nLine_, int nBlock_, BYTE bNewBorder_);
 
     protected:
-        virtual void BorderLine (BYTE *pbLine_, int nFrom_, int nTo_) = 0;
-        virtual void BlackLine (BYTE *pbLine_, int nFrom_, int nTo_) = 0;
+        void BorderLine (BYTE *pbLine_, int nFrom_, int nTo_);
+        void BlackLine (BYTE *pbLine_, int nFrom_, int nTo_);
+        void LeftBorder (BYTE *pbLine_, int nFrom_, int nTo_);
+        void RightBorder (BYTE *pbLine_, int nFrom_, int nTo_);
 
-        virtual void Mode1Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_) = 0;
-        virtual void Mode2Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_) = 0;
-        virtual void Mode3Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_) = 0;
-        virtual void Mode4Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_) = 0;
+        void Mode1Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_);
+        void Mode2Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_);
+        void Mode3Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_);
+        void Mode4Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_);
 
     protected:
         FNLINEUPDATE m_pLineUpdate;     // Function used to draw current mode
         BYTE *m_pbScreenData;           // Cached pointer to start of RAM page containing video memory
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////
 
-// Template class for lo-res and hi-res drawing
-template <bool fHiRes_>
-class CFrameXx1 : public CFrame
-{
-    protected:
-        void Mode1Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_);
-        void Mode2Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_);
-        void Mode3Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_);
-        void Mode4Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_);
-        void ModeChange (BYTE *pbLine_, int nLine_, int nBlock_, BYTE bNewVmpr_);
-        void ScreenChange (BYTE *pbLine_, int nLine_, int nBlock_, BYTE bNewBorder_);
-
-    protected:
-        void LeftBorder (BYTE *pbLine_, int nFrom_, int nTo_);
-        void RightBorder (BYTE *pbLine_, int nFrom_, int nTo_);
-        void BorderLine (BYTE *pbLine_, int nFrom_, int nTo_);
-        void BlackLine (BYTE *pbLine_, int nFrom_, int nTo_);
-};
-
-
-template <bool fHiRes_>
-inline void CFrameXx1<fHiRes_>::LeftBorder (BYTE *pbLine_, int nFrom_, int nTo_)
+inline void CFrame::LeftBorder (BYTE *pbLine_, int nFrom_, int nTo_)
 {
     int nFrom = max(s_nViewLeft, nFrom_), nTo = min(nTo_, BORDER_BLOCKS);
 
     // Draw the required section of the left border, if any
     if (nFrom < nTo)
-        memset(pbLine_ + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), clut[border_col], (nTo - nFrom) << (fHiRes_ ? 4 : 3));
+        memset(pbLine_ + ((nFrom-s_nViewLeft) << 4), clut[border_col], (nTo - nFrom) << 4);
 }
 
-template <bool fHiRes_>
-inline void CFrameXx1<fHiRes_>::RightBorder (BYTE *pbLine_, int nFrom_, int nTo_)
+inline void CFrame::RightBorder (BYTE *pbLine_, int nFrom_, int nTo_)
 {
     int nFrom = max((WIDTH_BLOCKS-BORDER_BLOCKS), nFrom_), nTo = min(nTo_, s_nViewRight);
 
     // Draw the required section of the right border, if any
     if (nFrom < nTo)
-        memset(pbLine_ + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), clut[border_col], (nTo - nFrom) << (fHiRes_ ? 4 : 3));
+        memset(pbLine_ + ((nFrom-s_nViewLeft) << 4), clut[border_col], (nTo - nFrom) << 4);
 }
 
-template <bool fHiRes_>
-inline void CFrameXx1<fHiRes_>::BorderLine (BYTE *pbLine_, int nFrom_, int nTo_)
+inline void CFrame::BorderLine (BYTE *pbLine_, int nFrom_, int nTo_)
 {
     // Work out the range that within the visible area
     int nFrom = max(s_nViewLeft, nFrom_), nTo = min(nTo_, s_nViewRight);
 
     // Draw the required section of the border, if any
     if (nFrom < nTo)
-        memset(pbLine_ + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), clut[border_col], (nTo - nFrom) << (fHiRes_ ? 4 : 3));
+        memset(pbLine_ + ((nFrom-s_nViewLeft) << 4), clut[border_col], (nTo - nFrom) << 4);
 }
 
-template <bool fHiRes_>
-inline void CFrameXx1<fHiRes_>::BlackLine (BYTE *pbLine_, int nFrom_, int nTo_)
+inline void CFrame::BlackLine (BYTE *pbLine_, int nFrom_, int nTo_)
 {
     // Work out the range that within the visible area
     int nFrom = max(s_nViewLeft, nFrom_), nTo = min(nTo_, s_nViewRight);
 
     // Draw the required section of the left border, if any
     if (nFrom < nTo)
-        memset(pbLine_ + ((nFrom-s_nViewLeft) << (fHiRes_ ? 4 : 3)), 0, (nTo - nFrom) << (fHiRes_ ? 4 : 3));
+        memset(pbLine_ + ((nFrom-s_nViewLeft) << 4), 0, (nTo - nFrom) << 4);
 }
 
 
-template <bool fHiRes_>
-void CFrameXx1<fHiRes_>::Mode1Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void CFrame::Mode1Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
 {
     nLine_ -= TOP_BORDER_LINES;
 
@@ -191,7 +167,7 @@ void CFrameXx1<fHiRes_>::Mode1Line (BYTE *pbLine_, int nLine_, int nFrom_, int n
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
     {
-        BYTE *pFrame = pbLine_ + ((nFrom - s_nViewLeft) << (fHiRes_ ? 4 : 3));
+        BYTE *pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
         BYTE *pbDataMem = m_pbScreenData + g_awMode1LineToByte[nLine_] + (nFrom - BORDER_BLOCKS);
         BYTE *pbAttrMem = m_pbScreenData + 6144 + ((nLine_ & 0xf8) << 2) + (nFrom - BORDER_BLOCKS);
 
@@ -206,30 +182,16 @@ void CFrameXx1<fHiRes_>::Mode1Line (BYTE *pbLine_, int nLine_, int nFrom_, int n
 
             BYTE ink = clut[bInk], paper = clut[bPaper];
 
-            if (!fHiRes_)
-            {
-                pFrame[0] = (bData & 0x80) ? ink : paper;
-                pFrame[1] = (bData & 0x40) ? ink : paper;
-                pFrame[2] = (bData & 0x20) ? ink : paper;
-                pFrame[3] = (bData & 0x10) ? ink : paper;
-                pFrame[4] = (bData & 0x08) ? ink : paper;
-                pFrame[5] = (bData & 0x04) ? ink : paper;
-                pFrame[6] = (bData & 0x02) ? ink : paper;
-                pFrame[7] = (bData & 0x01) ? ink : paper;
-            }
-            else
-            {
-                pFrame[0]  = pFrame[1]  = (bData & 0x80) ? ink : paper;
-                pFrame[2]  = pFrame[3]  = (bData & 0x40) ? ink : paper;
-                pFrame[4]  = pFrame[5]  = (bData & 0x20) ? ink : paper;
-                pFrame[6]  = pFrame[7]  = (bData & 0x10) ? ink : paper;
-                pFrame[8]  = pFrame[9]  = (bData & 0x08) ? ink : paper;
-                pFrame[10] = pFrame[11] = (bData & 0x04) ? ink : paper;
-                pFrame[12] = pFrame[13] = (bData & 0x02) ? ink : paper;
-                pFrame[14] = pFrame[15] = (bData & 0x01) ? ink : paper;
-            }
+            pFrame[0]  = pFrame[1]  = (bData & 0x80) ? ink : paper;
+            pFrame[2]  = pFrame[3]  = (bData & 0x40) ? ink : paper;
+            pFrame[4]  = pFrame[5]  = (bData & 0x20) ? ink : paper;
+            pFrame[6]  = pFrame[7]  = (bData & 0x10) ? ink : paper;
+            pFrame[8]  = pFrame[9]  = (bData & 0x08) ? ink : paper;
+            pFrame[10] = pFrame[11] = (bData & 0x04) ? ink : paper;
+            pFrame[12] = pFrame[13] = (bData & 0x02) ? ink : paper;
+            pFrame[14] = pFrame[15] = (bData & 0x01) ? ink : paper;
 
-            pFrame += fHiRes_ ? 16 : 8;
+            pFrame += 16;
         }
     }
 
@@ -237,8 +199,7 @@ void CFrameXx1<fHiRes_>::Mode1Line (BYTE *pbLine_, int nLine_, int nFrom_, int n
     RightBorder(pbLine_, nFrom_, nTo_);
 }
 
-template <bool fHiRes_>
-void CFrameXx1<fHiRes_>::Mode2Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void CFrame::Mode2Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
 {
     nLine_ -= TOP_BORDER_LINES;
 
@@ -251,7 +212,7 @@ void CFrameXx1<fHiRes_>::Mode2Line (BYTE *pbLine_, int nLine_, int nFrom_, int n
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
     {
-        BYTE *pFrame = pbLine_ + ((nFrom - s_nViewLeft) << (fHiRes_ ? 4 : 3));
+        BYTE *pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
         BYTE *pbDataMem = m_pbScreenData + (nLine_ << 5) + (nFrom - BORDER_BLOCKS);
         BYTE *pbAttrMem = pbDataMem + 0x2000;
 
@@ -266,30 +227,16 @@ void CFrameXx1<fHiRes_>::Mode2Line (BYTE *pbLine_, int nLine_, int nFrom_, int n
 
             BYTE ink = clut[bInk], paper = clut[bPaper];
 
-            if (!fHiRes_)
-            {
-                pFrame[0] = (bData & 0x80) ? ink : paper;
-                pFrame[1] = (bData & 0x40) ? ink : paper;
-                pFrame[2] = (bData & 0x20) ? ink : paper;
-                pFrame[3] = (bData & 0x10) ? ink : paper;
-                pFrame[4] = (bData & 0x08) ? ink : paper;
-                pFrame[5] = (bData & 0x04) ? ink : paper;
-                pFrame[6] = (bData & 0x02) ? ink : paper;
-                pFrame[7] = (bData & 0x01) ? ink : paper;
-            }
-            else
-            {
-                pFrame[0]  = pFrame[1]  = (bData & 0x80) ? ink : paper;
-                pFrame[2]  = pFrame[3]  = (bData & 0x40) ? ink : paper;
-                pFrame[4]  = pFrame[5]  = (bData & 0x20) ? ink : paper;
-                pFrame[6]  = pFrame[7]  = (bData & 0x10) ? ink : paper;
-                pFrame[8]  = pFrame[9]  = (bData & 0x08) ? ink : paper;
-                pFrame[10] = pFrame[11] = (bData & 0x04) ? ink : paper;
-                pFrame[12] = pFrame[13] = (bData & 0x02) ? ink : paper;
-                pFrame[14] = pFrame[15] = (bData & 0x01) ? ink : paper;
-            }
+            pFrame[0]  = pFrame[1]  = (bData & 0x80) ? ink : paper;
+            pFrame[2]  = pFrame[3]  = (bData & 0x40) ? ink : paper;
+            pFrame[4]  = pFrame[5]  = (bData & 0x20) ? ink : paper;
+            pFrame[6]  = pFrame[7]  = (bData & 0x10) ? ink : paper;
+            pFrame[8]  = pFrame[9]  = (bData & 0x08) ? ink : paper;
+            pFrame[10] = pFrame[11] = (bData & 0x04) ? ink : paper;
+            pFrame[12] = pFrame[13] = (bData & 0x02) ? ink : paper;
+            pFrame[14] = pFrame[15] = (bData & 0x01) ? ink : paper;
 
-            pFrame += fHiRes_ ? 16 : 8;
+            pFrame += 16;
         }
     }
 
@@ -297,88 +244,7 @@ void CFrameXx1<fHiRes_>::Mode2Line (BYTE *pbLine_, int nLine_, int nFrom_, int n
     RightBorder(pbLine_, nFrom_, nTo_);
 }
 
-template <bool fHiRes_>
-void CFrameXx1<fHiRes_>::Mode3Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
-{
-    nLine_ -= TOP_BORDER_LINES;
-
-    // Draw the required section of the left border, if any
-    LeftBorder(pbLine_, nFrom_, nTo_);
-
-    // Work out the range that within the visible area
-    int nFrom = max(BORDER_BLOCKS, nFrom_), nTo = min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
-
-    // Draw the required hi-res section of the main screen, if any
-    if (nFrom < nTo)
-    {
-        BYTE *pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
-        BYTE *pbDataMem = m_pbScreenData + (nLine_ << 7) + ((nFrom - BORDER_BLOCKS) << 2);
-
-        // The actual screen line
-        for (int i = nFrom; i < nTo; i++)
-        {
-            BYTE bData;
-
-            if (!fHiRes_)
-            {
-                // Use only the odd mode-3 pixels for the low-res version
-                bData = pbDataMem[0];
-                pFrame[0] = mode3clut[(bData & 0x30) >> 4];
-                pFrame[1] = mode3clut[(bData & 0x03)     ];
-
-                bData = pbDataMem[1];
-                pFrame[2] = mode3clut[(bData & 0x30) >> 4];
-                pFrame[3] = mode3clut[(bData & 0x03)     ];
-
-                bData = pbDataMem[2];
-                pFrame[4] = mode3clut[(bData & 0x30) >> 4];
-                pFrame[5] = mode3clut[(bData & 0x03)     ];
-
-                bData = pbDataMem[3];
-                pFrame[6] = mode3clut[(bData & 0x30) >> 4];
-                pFrame[7] = mode3clut[(bData & 0x03)     ];
-
-                pFrame += 8;
-            }
-            else
-            {
-                bData = pbDataMem[0];
-                pFrame[0] = mode3clut[ bData         >> 6];
-                pFrame[1] = mode3clut[(bData & 0x30) >> 4];
-                pFrame[2] = mode3clut[(bData & 0x0c) >> 2];
-                pFrame[3] = mode3clut[(bData & 0x03)     ];
-
-                bData = pbDataMem[1];
-                pFrame[4] = mode3clut[ bData         >> 6];
-                pFrame[5] = mode3clut[(bData & 0x30) >> 4];
-                pFrame[6] = mode3clut[(bData & 0x0c) >> 2];
-                pFrame[7] = mode3clut[(bData & 0x03)     ];
-
-                bData = pbDataMem[2];
-                pFrame[8]  = mode3clut[ bData         >> 6];
-                pFrame[9]  = mode3clut[(bData & 0x30) >> 4];
-                pFrame[10] = mode3clut[(bData & 0x0c) >> 2];
-                pFrame[11] = mode3clut[(bData & 0x03)     ];
-
-                bData = pbDataMem[3];
-                pFrame[12] = mode3clut[ bData         >> 6];
-                pFrame[13] = mode3clut[(bData & 0x30) >> 4];
-                pFrame[14] = mode3clut[(bData & 0x0c) >> 2];
-                pFrame[15] = mode3clut[(bData & 0x03)     ];
-
-                pFrame += 16;
-            }
-
-            pbDataMem += 4;
-        }
-    }
-
-    // Draw the required section of the right border, if any
-    RightBorder(pbLine_, nFrom_, nTo_);
-}
-
-template <bool fHiRes_>
-void CFrameXx1<fHiRes_>::Mode4Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void CFrame::Mode3Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
 {
     nLine_ -= TOP_BORDER_LINES;
 
@@ -391,52 +257,40 @@ void CFrameXx1<fHiRes_>::Mode4Line (BYTE *pbLine_, int nLine_, int nFrom_, int n
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
     {
-        BYTE *pFrame = pbLine_ + ((nFrom - s_nViewLeft) << (fHiRes_ ? 4 : 3));
-        BYTE *pbDataMem = ((nFrom - BORDER_BLOCKS) << 2) + m_pbScreenData + (nLine_ << 7);
+        BYTE *pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
+        BYTE *pbDataMem = m_pbScreenData + (nLine_ << 7) + ((nFrom - BORDER_BLOCKS) << 2);
 
         // The actual screen line
         for (int i = nFrom; i < nTo; i++)
         {
             BYTE bData;
 
-            if (!fHiRes_)
-            {
-                bData = pbDataMem[0];
-                pFrame[0] = clut[bData >> 4];
-                pFrame[1] = clut[bData & 0x0f];
+            bData = pbDataMem[0];
+            pFrame[0] = mode3clut[ bData         >> 6];
+            pFrame[1] = mode3clut[(bData & 0x30) >> 4];
+            pFrame[2] = mode3clut[(bData & 0x0c) >> 2];
+            pFrame[3] = mode3clut[(bData & 0x03)     ];
 
-                bData = pbDataMem[1];
-                pFrame[2] = clut[bData >> 4];
-                pFrame[3] = clut[bData & 0x0f];
+            bData = pbDataMem[1];
+            pFrame[4] = mode3clut[ bData         >> 6];
+            pFrame[5] = mode3clut[(bData & 0x30) >> 4];
+            pFrame[6] = mode3clut[(bData & 0x0c) >> 2];
+            pFrame[7] = mode3clut[(bData & 0x03)     ];
 
-                bData = pbDataMem[2];
-                pFrame[4] = clut[bData >> 4];
-                pFrame[5] = clut[bData & 0x0f];
+            bData = pbDataMem[2];
+            pFrame[8]  = mode3clut[ bData         >> 6];
+            pFrame[9]  = mode3clut[(bData & 0x30) >> 4];
+            pFrame[10] = mode3clut[(bData & 0x0c) >> 2];
+            pFrame[11] = mode3clut[(bData & 0x03)     ];
 
-                bData = pbDataMem[3];
-                pFrame[6] = clut[bData >> 4];
-                pFrame[7] = clut[bData & 0x0f];
-            }
-            else
-            {
-                bData = pbDataMem[0];
-                pFrame[0]  = pFrame[1]  = clut[bData >> 4];
-                pFrame[2]  = pFrame[3]  = clut[bData & 0x0f];
+            bData = pbDataMem[3];
+            pFrame[12] = mode3clut[ bData         >> 6];
+            pFrame[13] = mode3clut[(bData & 0x30) >> 4];
+            pFrame[14] = mode3clut[(bData & 0x0c) >> 2];
+            pFrame[15] = mode3clut[(bData & 0x03)     ];
 
-                bData = pbDataMem[1];
-                pFrame[4]  = pFrame[5]  = clut[bData >> 4];
-                pFrame[6]  = pFrame[7]  = clut[bData & 0x0f];
+            pFrame += 16;
 
-                bData = pbDataMem[2];
-                pFrame[8]  = pFrame[9]  = clut[bData >> 4];
-                pFrame[10] = pFrame[11] = clut[bData & 0x0f];
-
-                bData = pbDataMem[3];
-                pFrame[12] = pFrame[13] = clut[bData >> 4];
-                pFrame[14] = pFrame[15] = clut[bData & 0x0f];
-            }
-
-            pFrame += fHiRes_ ? 16 : 8;
             pbDataMem += 4;
         }
     }
@@ -445,8 +299,53 @@ void CFrameXx1<fHiRes_>::Mode4Line (BYTE *pbLine_, int nLine_, int nFrom_, int n
     RightBorder(pbLine_, nFrom_, nTo_);
 }
 
-template <bool fHiRes_>
-void CFrameXx1<fHiRes_>::ModeChange (BYTE *pbLine_, int nLine_, int nBlock_, BYTE bNewVmpr_)
+inline void CFrame::Mode4Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
+{
+    nLine_ -= TOP_BORDER_LINES;
+
+    // Draw the required section of the left border, if any
+    LeftBorder(pbLine_, nFrom_, nTo_);
+
+    // Work out the range that within the visible area
+    int nFrom = max(BORDER_BLOCKS, nFrom_), nTo = min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
+
+    // Draw the required section of the main screen, if any
+    if (nFrom < nTo)
+    {
+        BYTE *pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
+        BYTE *pbDataMem = ((nFrom - BORDER_BLOCKS) << 2) + m_pbScreenData + (nLine_ << 7);
+
+        // The actual screen line
+        for (int i = nFrom; i < nTo; i++)
+        {
+            BYTE bData;
+
+            bData = pbDataMem[0];
+            pFrame[0]  = pFrame[1]  = clut[bData >> 4];
+            pFrame[2]  = pFrame[3]  = clut[bData & 0x0f];
+
+            bData = pbDataMem[1];
+            pFrame[4]  = pFrame[5]  = clut[bData >> 4];
+            pFrame[6]  = pFrame[7]  = clut[bData & 0x0f];
+
+            bData = pbDataMem[2];
+            pFrame[8]  = pFrame[9]  = clut[bData >> 4];
+            pFrame[10] = pFrame[11] = clut[bData & 0x0f];
+
+            bData = pbDataMem[3];
+            pFrame[12] = pFrame[13] = clut[bData >> 4];
+            pFrame[14] = pFrame[15] = clut[bData & 0x0f];
+
+            pFrame += 16;
+            pbDataMem += 4;
+        }
+    }
+
+    // Draw the required section of the right border, if any
+    RightBorder(pbLine_, nFrom_, nTo_);
+}
+
+inline void CFrame::ModeChange (BYTE *pbLine_, int nLine_, int nBlock_, BYTE bNewVmpr_)
 {
     int nScreenLine = nLine_ - TOP_BORDER_LINES;
     BYTE ab[4];
@@ -529,9 +428,7 @@ void CFrameXx1<fHiRes_>::ModeChange (BYTE *pbLine_, int nLine_, int nBlock_, BYT
     }
 }
 
-
-template <bool fHiRes_>
-void CFrameXx1<fHiRes_>::ScreenChange (BYTE *pbLine_, int nLine_, int nBlock_, BYTE bNewBorder_)
+inline void CFrame::ScreenChange (BYTE *pbLine_, int nLine_, int nBlock_, BYTE bNewBorder_)
 {
     BYTE *pFrame = pbLine_ + ((nBlock_ - s_nViewLeft) << 4);
 
