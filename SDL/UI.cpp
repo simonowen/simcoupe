@@ -215,7 +215,10 @@ void UI::ShowMessage (eMsgType eType_, const char* pcszMessage_)
     else if (eType_ == msgWarning)
         GUI::Start(new CMessageBox(NULL, pcszMessage_, WINDOW_CAPTION, mbWarning));
     else
+    {
+        fprintf(stderr, "error: %s\n", pcszMessage_);
         GUI::Start(new CMessageBox(NULL, pcszMessage_, WINDOW_CAPTION, mbError));
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
