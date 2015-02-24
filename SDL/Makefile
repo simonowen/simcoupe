@@ -33,7 +33,7 @@ USE_RESID=0  # libresid will probably need manual building
 
 CFLAGS=-O2 -Wall -I${SDL} -I${BASE} $(shell sdl-config --cflags)
 CXXFLAGS=${CFLAGS} -Wall
-LIBS=-L. -lm $(shell sdl-config --libs --cflags)
+LIBS=-L. -lm $(shell sdl-config --libs --cflags) -lpthread
 
 OBJS = $(patsubst %.cpp,%.o,$(wildcard ${BASE}/*.cpp))
 OBJS += $(patsubst %.c,%.o,$(wildcard ${BASE}/*.c))

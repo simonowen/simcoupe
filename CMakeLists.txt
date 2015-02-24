@@ -50,6 +50,10 @@ if (SPECTRUM_LIBRARY AND SPECTRUM_INCLUDE_DIR)
   link_libraries(${SPECTRUM_LIBRARY})
 endif ()
 
+set(CMAKE_THREAD_PREFER_PTHREAD pthread)
+find_package(Threads REQUIRED)
+link_libraries(${CMAKE_THREAD_LIBS_INIT})
+
 find_package(ZLIB)
 if (ZLIB_FOUND)
   message(STATUS "Using Zlib")
