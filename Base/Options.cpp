@@ -58,10 +58,10 @@ OPTIONS Options::s_Options;
 OPTION aOptions[] =
 {
     OPT_N("CfgVersion",   cfgversion,     0),         // Config compatability number
-    OPT_F("FirstRun",     firstrun,       1),         // Non-zero if this is the first run
+    OPT_F("FirstRun",     firstrun,       true),      // Non-zero if this is the first run
     OPT_S("WindowPos",    windowpos,      ""),        // Main window position, if supported
 
-    OPT_N("Scale",        scale,          2),         // Windowed display is 2x2
+    OPT_N("Scale",        scale,          2),         // Windowed display is 150%
     OPT_F("Ratio5_4",     ratio5_4,       false),     // Don't use 5:4 screen ratio
     OPT_F("Scanlines",    scanlines,      true),      // TV scanlines
     OPT_N("ScanLevel",    scanlevel,      80),        // Scanlines are 80% brightness
@@ -80,7 +80,7 @@ OPTION aOptions[] =
 
     OPT_S("ROM",          rom,            ""),        // No custom ROM (use built-in)
     OPT_F("RomWrite",     romwrite,       false),     // ROM is read-only
-    OPT_F("HDBootRom",    hdbootrom,      false),     // Don't use HDBOOT ROM patches
+    OPT_F("HDBootRom",    hdbootrom,      false),     // Don't use Atom Lite ROM patches
     OPT_F("FastReset",    fastreset,      true),      // Allow fast Z80 resets
     OPT_F("AsicDelay",    asicdelay,      true),      // ASIC startup delay of ~50ms
     OPT_N("MainMemory",   mainmem,        512),       // 512K main memory
@@ -134,7 +134,7 @@ OPTION aOptions[] =
     OPT_N("Parallel1",    parallel1,      0),         // Nothing on parallel port 1
     OPT_N("Parallel2",    parallel2,      0),         // Nothing on parallel port 2
     OPT_S("PrinterDev",   printerdev,     ""),        // No printer device (save to file)
-    OPT_F("PrinterOnline",printeronline,  1),         // Printer is online
+    OPT_F("PrinterOnline",printeronline,  true),      // Printer is online
     OPT_N("FlushDelay",   flushdelay,     2),         // Auto-flush printer data after 2 seconds
 
     OPT_S("SerialDev1",   serialdev1,     ""),        // Serial port 1 device
