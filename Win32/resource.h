@@ -29,7 +29,6 @@
 #define ID_TAPE_TOOLBAR                 109
 #define ID_TAPE_TURBOLOAD               111
 #define ID_TAPE_TRAPS                   112
-#define IDC_CURSOR                      123
 #define IDD_PAGE_PARALLEL               164
 #define IDD_PAGE_SOUND                  165
 #define IDD_PAGE_DISPLAY                166

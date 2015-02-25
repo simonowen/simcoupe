@@ -168,8 +168,11 @@ void GUI::Draw (CScreen* pScreen_)
         CScreen::SetFont(s_pGUI->GetFont());
         s_pGUI->Draw(pScreen_);
 
+        // Use hardware cursor on Win32, software cursor on everything else (for now).
+#ifndef WIN32
         pScreen_->DrawImage(s_nX, s_nY, ICON_SIZE, ICON_SIZE,
-                    reinterpret_cast<const BYTE*>(sMouseCursor.abData), sMouseCursor.abPalette);
+                            reinterpret_cast<const BYTE*>(sMouseCursor.abData), sMouseCursor.abPalette);
+#endif
     }
 }
 

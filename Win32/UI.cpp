@@ -1466,7 +1466,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
         case WM_SETCURSOR:
             // Hide the cursor unless it's being used for the Win32 GUI or the emulation using using it in windowed mode
-            if (fHideCursor || Input::IsMouseAcquired() || GUI::IsActive())
+            if (fHideCursor || Input::IsMouseAcquired())
             {
                 // Only hide the cursor over the client area
                 if (LOWORD(lParam_) == HTCLIENT)
@@ -1977,7 +1977,7 @@ bool InitWindow ()
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = __hinstance;
     wc.hIcon = LoadIcon(__hinstance, MAKEINTRESOURCE(IDI_MAIN));
-    wc.hCursor = LoadCursor(__hinstance, MAKEINTRESOURCE(IDC_CURSOR));
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.lpszClassName = "SimCoupeClass";
     RegisterClass(&wc);
 
