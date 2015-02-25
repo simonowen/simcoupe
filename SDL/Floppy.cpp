@@ -173,7 +173,7 @@ static BYTE ReadSector (int hDevice_, PTRACK pTrack_, UINT uSector_)
     rc.rate = 2;
     rc.track = pt->cyl;
 
-    BYTE cmd[] = { FD_READ, pt->head << 2, ps->cyl,ps->head,ps->sector,ps->size, ps->sector+1, 0x0a,0xff };
+    BYTE cmd[] = { FD_READ, static_cast<BYTE>(pt->head << 2), ps->cyl,ps->head,ps->sector,ps->size, static_cast<BYTE>(ps->sector+1), 0x0a,0xff };
     memcpy(rc.cmd, cmd, sizeof(cmd));
     rc.cmd_count = sizeof(cmd);
 
@@ -203,7 +203,7 @@ static BYTE WriteSector (int hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
     rc.rate = 2;
     rc.track = pt->cyl;
 
-    BYTE abCommand[] = { FD_WRITE, pt->head << 2, ps->cyl,ps->head,ps->sector,ps->size, ps->sector+1, 0x0a,0xff };
+    BYTE abCommand[] = { FD_WRITE, static_cast<BYTE>(pt->head << 2), ps->cyl,ps->head,ps->sector,ps->size, static_cast<BYTE>(ps->sector+1), 0x0a,0xff };
     memcpy(rc.cmd, abCommand, sizeof(abCommand));
     rc.cmd_count = sizeof(abCommand) / sizeof(abCommand[0]);
 
@@ -238,7 +238,7 @@ static BYTE FormatTrack (int hDevice_, PTRACK pTrack_)
     struct floppy_raw_cmd rc;
     memset(&rc, 0, sizeof(rc));
 
-    BYTE abCommand[] = { FD_FORMAT, pt->head << 2, 6, pt->sectors, 1, 0x00 };
+    BYTE abCommand[] = { FD_FORMAT, static_cast<BYTE>(pt->head << 2), 6, pt->sectors, 1, 0x00 };
     memcpy(rc.cmd, abCommand, sizeof(abCommand));
     rc.cmd_count = sizeof(abCommand) / sizeof(abCommand[0]);
 
@@ -335,7 +335,7 @@ static bool ReadSimpleTrack (int hDevice_, PTRACK pTrack_, UINT &ruSectors_)
     rc.track = pt->cyl;
 
     // Set up the command and its parameters
-    BYTE abCommand[] = { FD_READ, pt->head << 2, pt->cyl, pt->head, ps->sector, ps->size, ps->sector+pt->sectors, 0x0a,0xff };
+    BYTE abCommand[] = { FD_READ, static_cast<BYTE>(pt->head << 2), pt->cyl, pt->head, ps->sector, ps->size, static_cast<BYTE>(ps->sector+pt->sectors), 0x0a,0xff };
     memcpy(rc.cmd, abCommand, sizeof(abCommand));
     rc.cmd_count = sizeof(abCommand) / sizeof(abCommand[0]);
 
@@ -369,7 +369,7 @@ static bool ReadSimpleTrack (int hDevice_, PTRACK pTrack_, UINT &ruSectors_)
 
 static bool ReadCustomTrack (int hDevice_, PTRACK pTrack_)
 {
-    int i;
+    unsigned int i;
 
     PTRACK pt = pTrack_;
     PSECTOR ps = (PSECTOR)(pt+1);
@@ -386,7 +386,7 @@ static bool ReadCustomTrack (int hDevice_, PTRACK pTrack_)
     rc[0].rate = 2;
     rc[0].track = pt->cyl;
 
-    BYTE cmd0[] = { FD_READ, pt->head << 2, 0xef,0xef,sector,size, sector+1, 0x0a,0xff };
+    BYTE cmd0[] = { FD_READ, static_cast<BYTE>(pt->head << 2), 0xef,0xef,sector,size, static_cast<BYTE>(sector+1), 0x0a,0xff };
     memcpy(rc[0].cmd, cmd0, sizeof(cmd0));
     rc[0].cmd_count = sizeof(cmd0);
 

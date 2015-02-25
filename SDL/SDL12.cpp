@@ -359,8 +359,17 @@ bool SDLSurface::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
         for (int i = nChangeFrom ; i <= nChangeTo ; pafDirty_[i++] = false);
 
         // Calculate the dirty source and target areas - non-GUI displays require the height doubling
-        SDL_Rect rect = { 0, nChangeFrom << nShift, pScreen_->GetPitch(), ((nChangeTo - nChangeFrom + 1) << nShift) };
-        SDL_Rect rectFront = { (pFront->w - rect.w) >> 1, rect.y + ((pFront->h - (nHeight << nShift)) >> 1), rect.w, rect.h };
+        SDL_Rect rect;
+        rect.x = 0;
+        rect.y = nChangeFrom << nShift;
+        rect.w = pScreen_->GetPitch();
+        rect.h = ((nChangeTo - nChangeFrom + 1) << nShift);
+
+        SDL_Rect rectFront;
+        rectFront.x = (pFront->w - rect.w) >> 1;
+        rectFront.y = rect.y + ((pFront->h - (nHeight << nShift)) >> 1);
+        rectFront.w = rect.w;
+        rectFront.h = rect.h;
 
         // Blit the updated area and inform SDL it's changed
         SDL_BlitSurface(pBack, &rect, pFront, &rectFront);

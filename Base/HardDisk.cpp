@@ -150,7 +150,8 @@ bool CHDFHardDisk::Create (UINT uTotalSectors_)
 
     // HDF v1.1 header, including full identify sector
     UINT uDataOffset = sizeof(RS_IDE) + sizeof(m_sIdentify);
-    RS_IDE sHeader = { {'R','S','-','I','D','E'}, 0x1a, 0x11, 0x00,  uDataOffset%256, uDataOffset/256 };
+    RS_IDE sHeader = { {'R','S','-','I','D','E'}, 0x1a, 0x11, 0x00,
+                       static_cast<BYTE>(uDataOffset & 0xff), static_cast<BYTE>(uDataOffset >> 8) };
 
     // Create the file in binary mode
     FILE* pFile = fopen(m_pszDisk, "wb");

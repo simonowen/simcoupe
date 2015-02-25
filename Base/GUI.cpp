@@ -2326,7 +2326,7 @@ void CFileView::Refresh ()
     if (!m_pszPath[0])
     {
         // Work through the letters backwards as we add to the head of the file chain
-        for (int chDrive = 'Z' ; chDrive >= 'A' ; chDrive--)
+        for (char chDrive = 'Z' ; chDrive >= 'A' ; chDrive--)
         {
             char szRoot[] = { chDrive, ':', '\\', '\0' };
 

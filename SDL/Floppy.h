@@ -25,7 +25,7 @@
 
 typedef struct
 {
-    int sectors;
+    BYTE sectors;
     BYTE cyl, head;     // physical track location
 }
 TRACK, *PTRACK;

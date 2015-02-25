@@ -296,7 +296,8 @@ CSADDisk::CSADDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
     UINT uSectors_/*=NORMAL_DISK_SECTORS*/, UINT uSectorSize_/*=NORMAL_SECTOR_SIZE*/)
     : CDisk(pStream_, dtSAD)
 {
-    SAD_HEADER sh = { "", uSides_, uTracks_, uSectors_, uSectorSize_ >> 6 };
+    SAD_HEADER sh = { "", static_cast<BYTE>(uSides_), static_cast<BYTE>(uTracks_), static_cast<BYTE>(uSectors_),
+                      static_cast<BYTE>(uSectorSize_ >> 6) };
 
     if (!pStream_->IsOpen())
         memcpy(sh.abSignature, SAD_SIGNATURE, sizeof(sh.abSignature));

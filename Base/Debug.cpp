@@ -2051,7 +2051,6 @@ bool CDisView::SetCodeTarget ()
 bool CDisView::SetDataTarget ()
 {
     bool f16Bit = false;
-    bool fAddress = true;
 
     // No target or helper string yet
     m_uDataTarget = INVALID_TARGET;
@@ -2081,10 +2080,7 @@ bool CDisView::SetDataTarget ()
     // 00110010 = LD (nn),A
     // 00111010 = LD A,(nn)
     else if ((bOpcode & 0xf7) == 0x32)
-    {
         m_uDataTarget = wAddr;
-        fAddress = false;
-    }
 
     // [DD/FD] 0011010x = [INC|DEC] (HL/IX+d/IY+d)
     // [DD/FD] 01110rrr = LD (HL/IX+d/IY+d),r
@@ -2130,7 +2126,6 @@ bool CDisView::SetDataTarget ()
     {
         m_uDataTarget = wAddr;
         f16Bit = true;
-        fAddress = false;
     }
 
     // ED 01dd1011 = LD [BC|DE|HL|SP],(nn)
@@ -2139,7 +2134,6 @@ bool CDisView::SetDataTarget ()
     {
         m_uDataTarget = wAddr23;
         f16Bit = true;
-        fAddress = false;
     }
 
     // ED 0110x111 = RRD/RLD
@@ -2161,7 +2155,7 @@ bool CDisView::SetDataTarget ()
     else if (bOpcode == CB_PREFIX)
     {
         // DD/FD CB d 00xxxrrr = LD r, RLC|RRC|RL|RR|SLA|SRA|SLL|SRL (IX+d/IY+d)
-        // DD/FD CB d xxbbbrrr = [_|BIT|RES|SET] b,(IX+d/IY+d)           
+        // DD/FD CB d xxbbbrrr = [_|BIT|RES|SET] b,(IX+d/IY+d)
         // DD/FD CB d 1xbbbrrr = LD r,[RES|SET] b,(IX+d/IY+d)
         if (fIndex)
             m_uDataTarget = wHLIXIYd;
