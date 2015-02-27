@@ -379,7 +379,7 @@ void COwnerDrawnMenu::ConvertMenu (HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, b
             continue;
 
         // Ignore system menu items
-        if (fSysMenu_ && info.wID >= 0xf000)
+        if (fSysMenu_ && (!info.wID || info.wID >= 0xf000))
             continue;
 
         // Nothing to change, yet
