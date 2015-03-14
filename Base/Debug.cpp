@@ -1658,7 +1658,7 @@ void CDisView::Draw (CScreen* pScreen_)
 
             // Add a direction arrow if we have a code target
             if (m_uCodeTarget != INVALID_TARGET)
-                pScreen_->DrawString(nX+CHAR_WIDTH*(BAR_CHAR_LEN-1), nY, (m_uCodeTarget<PC)?"\x80":"\x81", BLACK);
+                pScreen_->DrawString(nX+CHAR_WIDTH*(BAR_CHAR_LEN-1), nY, (m_uCodeTarget<=PC)?"\x80":"\x81", BLACK);
         }
 
         // Check for a breakpoint at the current address.
@@ -1673,7 +1673,7 @@ void CDisView::Draw (CScreen* pScreen_)
         if (m_uCodeTarget == INVALID_TARGET || s_wAddrs[u] != m_uCodeTarget)
             pScreen_->Printf(nX, nY, "\a%c\a%c%s", bColour, (bColour!='W')?'0':bColour, psz);
         else
-            pScreen_->Printf(nX, nY, "\a%c\aG===>\a%c%s", bColour, (bColour=='k')?'0':bColour, psz+4);
+            pScreen_->Printf(nX, nY, "\a%c===>\a%c%s", (bColour=='k')?'k':'G', (bColour=='k')?'0':bColour, psz+4);
     }
 
     DrawRegisterPanel(pScreen_, m_nX+m_nWidth-6*16, m_nY);
