@@ -13,6 +13,7 @@ InstallDirRegKey HKLM "Software\SimCoupe" ""
 InstType "Full"
 InstType "Minimal"
 
+RequestExecutionLevel admin
 SetCompressor lzma
 
 !ifndef VER_BUILD
@@ -50,7 +51,7 @@ Var STARTMENU_FOLDER
 
 ; Installer Pages
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "../LICENCE"
+!insertmacro MUI_PAGE_LICENSE "../License.txt"
 !insertmacro MUI_PAGE_COMPONENTS
 
 !insertmacro MUI_PAGE_DIRECTORY
@@ -73,9 +74,9 @@ Section "SimCoupe Core Files (required)" SecCore
     SetOutPath $INSTDIR
     RMDir /r $SMPROGRAMS\$STARTMENU_FOLDER
 
-    File "Build\SimCoupe.exe"
-    File "Build\resid.dll"
-    File "Build\zlibwapi.dll"
+    File "Release\SimCoupe.exe"
+    File "Release\zlibwapi.dll"
+    File "Release\spectrum.dll"
     File "..\SimCoupe.txt"
     File "..\ChangeLog.txt"
 
@@ -153,7 +154,7 @@ SubSectionEnd
 
 SubSection "File associations" SecAssocs
 
-Section "MGT +D/SAM images (.mgt)" SecMGT
+Section "SAM/MGT +D images (.mgt)" SecMGT
     SectionIn 1
     Push ".mgt"
     Call InstallFileAssoc
@@ -168,6 +169,12 @@ SectionEnd
 Section "SAm Disks (.sad)" SecSAD
     SectionIn 1
     Push ".sad"
+    Call InstallFileAssoc
+SectionEnd
+
+Section "Sam BooT disks (.sbt)" SecSBT
+    SectionIn 1
+    Push ".sbt"
     Call InstallFileAssoc
 SectionEnd
 
@@ -192,6 +199,7 @@ SectionEnd
     !insertmacro MUI_DESCRIPTION_TEXT ${SecMGT} "File association for .mgt images"
     !insertmacro MUI_DESCRIPTION_TEXT ${SecDSK} "File association for .dsk images"
     !insertmacro MUI_DESCRIPTION_TEXT ${SecSAD} "File association for .sad images"
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecSBT} "File association for .sbt images"
     !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} "Adds a shortcut to start SimCoupe to the desktop"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
