@@ -632,11 +632,19 @@ bool Expr::Factor ()
             p = pHexEnd+1;
         }
 
-        // Accept values using a C-style "0x" prefix
+        // Accept hex values using a C-style "0x" prefix
         else if (p[0] == '0' && tolower(p[1]) == 'x')
         {
             AddNode(T_NUMBER, nHexValue);
             p = pHexEnd;
+        }
+
+        // Accept decimal values using a WinDbg-style "0n" prefix
+        else if (p[0] == '0' && tolower(p[1]) == 'n')
+        {
+            nDecValue = static_cast<int>(strtoul(p+2, (char**)&pDecEnd, 10));
+            AddNode(T_NUMBER, nDecValue);
+            p = pDecEnd;
         }
 
         // Anything not followed by an alphabetic is taken as hex
