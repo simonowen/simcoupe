@@ -2,7 +2,7 @@
 //
 // OSD.cpp: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 
 HINSTANCE g_hinstDInput, g_hinstDSound;
 
+VOID CALLBACK CloseTimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime);
 PFNDIRECTINPUTCREATE pfnDirectInputCreate;
 PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 
@@ -41,6 +42,15 @@ bool fPortable = false;
 bool OSD::Init (bool fFirstInit_/*=false*/)
 {
     TRACE("OSD::Init(%d)\n", fFirstInit_);
+    char szModule[MAX_PATH];
+
+    // Check if our executable has a read-only attribute set
+    if (GetModuleFileName(NULL, szModule, sizeof(szModule)) &&
+        (GetFileAttributes(szModule) & FILE_ATTRIBUTE_READONLY) == FILE_ATTRIBUTE_READONLY)
+    {
+        // Quit after 42 seconds, to discourage eBay sellers bundling us on CD/DVD, likely with unauthorised SAM software
+        SetTimer(NULL, 0, 42*1000, CloseTimerProc);
+    }
 
     if (fFirstInit_)
     {
@@ -206,6 +216,11 @@ const char* OSD::GetFloppyDevice (int nDrive_)
 void OSD::DebugTrace (const char* pcsz_)
 {
     OutputDebugString(pcsz_);
+}
+
+VOID CALLBACK CloseTimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
+{
+    PostMessage(g_hwnd, WM_CLOSE, 0, 0L);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

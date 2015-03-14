@@ -259,6 +259,16 @@ Function InstallFileAssoc
 FunctionEnd
 
 
+Function .onInit
+    StrCpy $0 $EXEPATH
+    System::Call "kernel32::GetFileAttributes(t r0)i .r1"
+    IntOp $0 $1 & 1
+    IntCmp $0 0 NoAbort
+        Abort
+    NoAbort:
+FunctionEnd
+
+
 Function un.InstallFileAssoc
     Pop $0
     ReadRegStr $1 HKCR $0 "simcoupe_backup"
