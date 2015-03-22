@@ -2,7 +2,7 @@
 //
 // GUIDlg.cpp: Dialog boxes using the GUI controls
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -1298,7 +1298,7 @@ void CImportDialog::OnNotify (CWindow* pWindow_, int nParam_)
         size_t uRead = 0;
 
         // Loop reading chunk blocks into the relevant pages
-        for (UINT uChunk ; (uChunk = min(uLen, (0x4000 - uOffset))) ; uLen -= uChunk, uOffset = 0)
+        for (UINT uChunk ; (uChunk = std::min(uLen, (0x4000 - uOffset))) ; uLen -= uChunk, uOffset = 0)
         {
             // Read directly into system memory
             uRead += fread(PageWritePtr(uPage)+uOffset, 1, uChunk, hFile);
@@ -1367,7 +1367,7 @@ void CExportDialog::OnNotify (CWindow* pWindow_, int nParam_)
         size_t uWritten = 0;
 
         // Loop reading chunk blocks into the relevant pages
-        for (UINT uChunk ; (uChunk = min(uLen, (0x4000 - uOffset))) ; uLen -= uChunk, uOffset = 0)
+        for (UINT uChunk ; (uChunk = std::min(uLen, (0x4000 - uOffset))) ; uLen -= uChunk, uOffset = 0)
         {
             // Write directly from system memory
             uWritten += fwrite(PageReadPtr(uPage++)+uOffset, 1, uChunk, hFile);

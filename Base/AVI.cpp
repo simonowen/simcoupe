@@ -406,7 +406,7 @@ static void EncodeBlock (BYTE *pb_, int nLength_)
     while (nLength_)
     {
         // Maximum run length is 255 or the width of the fragment
-        int nMaxRun = min(255,nLength_);
+        int nMaxRun = std::min(255,nLength_);
 
         // Start with a run of 1 pixel
         int nRun = 1;
@@ -636,7 +636,7 @@ void AVI::AddFrame (CScreen *pScreen_)
             // Completely process the jump, positioning us ready for the data
             while (nJumpX | nJumpY)
             {
-                int ndX = min(nJumpX,255), ndY = min(nJumpY,255);
+                int ndX = std::min(nJumpX,255), ndY = std::min(nJumpY,255);
 
                 fputc(0x00, f);	// escape
                 fputc(0x02, f);	// jump

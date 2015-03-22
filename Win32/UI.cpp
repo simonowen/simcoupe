@@ -2350,7 +2350,7 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
 
                     if (fImport)
                     {
-                        for (int nChunk ; (nChunk = min(nLength, (0x4000 - nOffset))) ; nLength -= nChunk, nOffset = 0)
+                        for (int nChunk ; (nChunk = std::min(nLength, (0x4000 - nOffset))) ; nLength -= nChunk, nOffset = 0)
                         {
                             nDone += fread(PageWritePtr(nPage++)+nOffset, 1, nChunk, f);
 
@@ -2367,7 +2367,7 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                     }
                     else
                     {
-                        for (int nChunk ; (nChunk = min(nLength, (0x4000 - nOffset))) ; nLength -= nChunk, nOffset = 0)
+                        for (int nChunk ; (nChunk = std::min(nLength, (0x4000 - nOffset))) ; nLength -= nChunk, nOffset = 0)
                         {
                             nDone += fwrite(PageReadPtr(nPage++)+nOffset, 1, nChunk, f);
 

@@ -172,7 +172,7 @@ void ByteSwap (BYTE *pb_, int nLen_)
 {
     // Reverse each pair of bytes
     for ( ; nLen_ >= 2 ; pb_ += 2, nLen_ -= 2)
-        swap(pb_[0], pb_[1]);
+        std::swap(pb_[0], pb_[1]);
 }
 
 

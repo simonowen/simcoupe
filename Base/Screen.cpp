@@ -274,9 +274,9 @@ int CScreen::DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_/*=WHITE
         }
 
         // Determine the vertical extent we're drawing
-        int nFrom = max(nClipY,nY_);
+        int nFrom = std::max(nClipY,nY_);
         int nTo = nY_ + pFont->wHeight;
-        nTo = min(nClipY+nClipHeight-1, nTo);
+        nTo = std::min(nClipY+nClipHeight-1, nTo);
 
         // Only draw the character if it's not a space, and the entire width fits inside the clipping area
         if (bChar != ' ' && (nX_ >= nClipX) && (nX_+nWidth <= nClipX+nClipWidth))
@@ -367,7 +367,7 @@ int CScreen::Printf (int nX_, int nY_, const char* pcszFormat_, ...)
         }
 
         // Update the maximum segment width
-        nMaxWidth = max(nWidth,nMaxWidth);
+        nMaxWidth = std::max(nWidth,nMaxWidth);
     }
 
     return nMaxWidth;

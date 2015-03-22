@@ -2,7 +2,7 @@
 //
 // Audio.cpp: Win32 sound implementation using DirectSound
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -145,7 +145,7 @@ bool Audio::AddData (BYTE *pbData_, int nLength_)
 
         // Determine the available space at the write cursor
         int nSpace = (nSampleBufferSize + dwPlayCursor - dwWriteOffset) % nSampleBufferSize;
-        nSpace = min(nSpace, nLength_);
+        nSpace = std::min(nSpace, nLength_);
 
         if (nSpace)
         {
@@ -154,7 +154,7 @@ bool Audio::AddData (BYTE *pbData_, int nLength_)
                 TRACE("!!! Failed to lock sound buffer! (%#08lx)\n", hr);
             else
             {
-                dwLength1 = min(dwLength1,static_cast<DWORD>(nLength_));
+                dwLength1 = std::min(dwLength1,static_cast<DWORD>(nLength_));
 
                 // Write the first part (maybe all)
                 if (dwLength1)
@@ -164,7 +164,7 @@ bool Audio::AddData (BYTE *pbData_, int nLength_)
                     nLength_ -= dwLength1;
                 }
 
-                dwLength2 = min(dwLength2,static_cast<DWORD>(nLength_));
+                dwLength2 = std::min(dwLength2,static_cast<DWORD>(nLength_));
 
                 // Write any second part
                 if (dwLength2)

@@ -2,7 +2,7 @@
 //
 // Clock.cpp: SAMBUS and Dallas clock emulation
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -124,7 +124,7 @@ bool CClockDevice::Update ()
     {
         // Limit the month so we know how many days are in the current month
         int nMonth  = Decode(m_st.nMonth);
-        nMonth = min(nMonth ? nMonth : 1, 12);
+        nMonth = std::min(nMonth ? nMonth : 1, 12);
 
         // Table for the number of days in each month
         static int anDays[] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
@@ -135,7 +135,7 @@ bool CClockDevice::Update ()
 
         // Limit the day to between 1 and the maximum for the current month
         int nDay = Decode(m_st.nDay);
-        nDay = min((nDay ? nDay : 1), anDays[nMonth]);
+        nDay = std::min((nDay ? nDay : 1), anDays[nMonth]);
 
         // If there's not enough to complete the current month, add it on and finish
         if (nDay + nDiff <= anDays[nMonth])

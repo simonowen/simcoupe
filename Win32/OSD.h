@@ -32,6 +32,7 @@
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)   // track allocation locations
 #endif
 
+#define NOMINMAX        // no min/max macros from windef.h
 #include <windows.h>
 #include <windowsx.h>   // for GET_X_LPARAM and GET_Y_LPARAM
 #include <mmsystem.h>   // for timeSetEvent

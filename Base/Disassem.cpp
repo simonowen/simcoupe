@@ -2,7 +2,7 @@
 //
 // Disassem.cpp: Z80 disassembler
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -262,7 +262,7 @@ UINT Disassemble (BYTE* pb_, WORD wPC_/*=0*/, char* psz_/*=NULL*/, size_t cbSize
     if (psz_)
     {
         size_t uOutput = pszOut-szOutput+1U;
-        size_t uLen = min(cbSize_-1, uOutput);
+        size_t uLen = std::min(cbSize_-1, uOutput);
         strncpy(psz_, szOutput, uLen)[uLen] = '\0';
     }
 

@@ -864,7 +864,7 @@ void CEditControl::Draw (CScreen* pScreen_)
     {
         size_t nStart = m_nCaretStart, nEnd = m_nCaretEnd;
         if (nStart > nEnd)
-            swap(nStart, nEnd);
+            std::swap(nStart, nEnd);
 
         // Clip start to visible selection
         if (nStart < m_nViewOffset)
@@ -1013,7 +1013,7 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
                         // Ensure start < end
                         if (m_nCaretStart > m_nCaretEnd)
-                            swap(m_nCaretStart, m_nCaretEnd);
+                            std::swap(m_nCaretStart, m_nCaretEnd);
 
                         // Remove the selection, and set the text back
                         strcpy(sz, GetText());
@@ -1597,7 +1597,7 @@ void CScrollBar::SetMaxPos (int nMaxPos_)
 
     // If we have a scrollable portion, set the thumb size to indicate how much
     if (nMaxPos_ && m_nMaxPos > 0)
-        m_nThumbSize = max(m_nHeight * m_nScrollHeight / nMaxPos_, 10);
+        m_nThumbSize = std::max(m_nHeight * m_nScrollHeight / nMaxPos_, 10);
 }
 
 void CScrollBar::Draw (CScreen* pScreen_)
@@ -1921,7 +1921,7 @@ void CListView::Draw (CScreen* pScreen_)
     // Calculate the range of icons that are visible and need drawing
     int nStart = nScrollPos/ITEM_SIZE * m_nAcross, nOffset = nScrollPos % ITEM_SIZE;
     int nDepth = (m_nHeight + nOffset + ITEM_SIZE-1) / ITEM_SIZE;
-    int nEnd = min(m_nItems, nStart + m_nAcross*nDepth);
+    int nEnd = std::min(m_nItems, nStart + m_nAcross*nDepth);
 
     // Clip to the main control, to keep partly drawn icons within our client area
     pScreen_->SetClip(m_nX, m_nY, m_nWidth, m_nHeight);
@@ -1969,7 +1969,7 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 case HK_DOWN:
                 {
                     // Calculate the row the new item would be on
-                    int nNewRow = min(m_nSelected+m_nAcross,m_nItems-1) / m_nAcross;
+                    int nNewRow = std::min(m_nSelected+m_nAcross,m_nItems-1) / m_nAcross;
 
                     // Only move down if we're not already on the bottom row
                     if (nNewRow != m_nSelected/m_nAcross)
@@ -1980,7 +1980,7 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 // Move up one screen full, staying on the same column
                 case HK_PGUP:
                 {
-                    int nUp = min(m_nHeight/ITEM_SIZE,m_nSelected/m_nAcross) * m_nAcross;
+                    int nUp = std::min(m_nHeight/ITEM_SIZE,m_nSelected/m_nAcross) * m_nAcross;
                     Select(m_nSelected-nUp);
                     break;
                 }
@@ -1988,7 +1988,7 @@ bool CListView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 // Move down one screen full, staying on the same column
                 case HK_PGDN:
                 {
-                    int nDown = min(m_nHeight/ITEM_SIZE,(m_nItems-m_nSelected-1)/m_nAcross) * m_nAcross;
+                    int nDown = std::min(m_nHeight/ITEM_SIZE,(m_nItems-m_nSelected-1)/m_nAcross) * m_nAcross;
                     Select(m_nSelected+nDown);
                     break;
                 }

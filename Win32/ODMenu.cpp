@@ -2,7 +2,7 @@
 //
 // ODMenu.cpp: Owner-draw Win32 menus with images
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -145,7 +145,7 @@ bool COwnerDrawnMenu::OnMeasureItem (LPMEASUREITEMSTRUCT lpms)
         ReleaseDC(NULL, hdc);
 
         // Standard menu height, or text height if larger
-        m_zBorder.cx = m_zBorder.cy = lpms->itemHeight = max(GetSystemMetrics(SM_CYMENU), m_zButton.cy);
+        m_zBorder.cx = m_zBorder.cy = lpms->itemHeight = std::max(static_cast<LONG>(GetSystemMetrics(SM_CYMENU)), m_zButton.cy);
 
 #ifdef NO_IMAGES
         m_zBorder.cx = GetSystemMetrics(SM_CXMENUCHECK)+1;

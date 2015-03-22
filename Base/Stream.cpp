@@ -2,7 +2,7 @@
 //
 // Stream.cpp: Data stream abstraction classes
 //
-//  Copyright (c) 1999-2014  Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -230,7 +230,7 @@ size_t CMemStream::Read (void* pvBuffer_, size_t uLen_)
         m_uPos = 0;
     }
 
-    size_t uRead = min(m_uSize-m_uPos, uLen_);
+    size_t uRead = std::min(m_uSize-m_uPos, uLen_);
     memcpy(pvBuffer_, m_pbData+m_uPos, uRead);
     m_uPos += uRead;
     return uRead;

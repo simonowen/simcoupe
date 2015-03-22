@@ -2,7 +2,7 @@
 //
 // ATA.cpp: ATA hard disk emulation
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -625,5 +625,5 @@ void CATADevice::SetIdentifyData (IDENTIFYDEVICE *pid_)
 
     // Byte-swap the string for the expected endian
     for (size_t i = 0 ; i < cb_ ; i += 2)
-        swap(pb[i], pb[i+1]);
+        std::swap(pb[i], pb[i+1]);
 }

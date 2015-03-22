@@ -2,7 +2,7 @@
 //
 // Debug.cpp: Integrated Z80 debugger
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -1427,9 +1427,9 @@ bool CDebugger::Execute (const char* pcszCommand_)
     else if (fCommandOnly && !strcasecmp(pszCommand, "exx"))
     {
         // EXX
-        swap(BC, BC_);
-        swap(DE, DE_);
-        swap(HL, HL_);
+        std::swap(BC, BC_);
+        std::swap(DE, DE_);
+        std::swap(HL, HL_);
     }
 
     // ex reg,reg2
@@ -2980,7 +2980,7 @@ CTrcView::CTrcView (CWindow* pParent_)
     : CTextView(pParent_), m_fFullMode(false)
 {
     SetText("Trace");
-    SetLines(min(nNumTraces,TRACE_SLOTS));
+    SetLines(std::min(nNumTraces,TRACE_SLOTS));
     cmdNavigate(HK_END, 0);
 }
 

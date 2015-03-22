@@ -4,7 +4,7 @@
 //
 //  Copyright (c) 1994 Ian Collier
 //  Copyright (c) 1999-2003 by Dave Laundon
-//  Copyright (c) 1999-2014 by Simon Owen
+//  Copyright (c) 1999-2015 by Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -196,7 +196,7 @@
 
 
 instr(4,0000)                                                       endinstr;   // nop
-instr(4,0010)   swap(AF,AF_);                                       endinstr;   // ex af,af'
+instr(4,0010)   std::swap(AF,AF_);                                  endinstr;   // ex af,af'
 instr(5,0020)   --B; jr(B);                                         endinstr;   // djnz e
 instr(4,0030)   jr(true);                                           endinstr;   // jr e
 instr(4,0040)   jr(!(F & FLAG_Z));                                  endinstr;   // jr nz,e
@@ -576,7 +576,7 @@ instr(4,0361)   pop(AF);                                            endinstr;   
 instr(4,0351)   PC = *pHlIxIy;                                      endinstr;   // jp (hl/ix/iy)
 instr(6,0371)   SP = *pHlIxIy;                                      endinstr;   // ld sp,hl/ix/iy
 
-instr(4,0331)   swap(BC,BC_); swap(DE,DE_); swap(HL,HL_);           endinstr;   // exx
+instr(4,0331)   std::swap(BC,BC_); std::swap(DE,DE_); std::swap(HL,HL_); endinstr;   // exx
 
 
 instr(5,0305)   push(BC);                                           endinstr;   // push bc
@@ -624,7 +624,7 @@ endinstr;
 instr(4,0363)   IFF1 = IFF2 = 0;                                    endinstr;   // di
 instr(4,0373)   if (IO::EiHook()) break; IFF1 = IFF2 = 1; g_nTurbo &= ~TURBO_BOOT; endinstr;   // ei
 
-instr(4,0353)   swap(DE,HL);                                        endinstr;   // ex de,hl
+instr(4,0353)   std::swap(DE,HL);                                   endinstr;   // ex de,hl
 
 
 instr(5,0307)   push(PC); PC = 000;                                 endinstr;   // rst 0

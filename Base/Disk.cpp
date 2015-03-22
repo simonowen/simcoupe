@@ -2,7 +2,7 @@
 //
 // Disk.cpp: C++ classes used for accessing all SAM disk image types
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -388,7 +388,7 @@ CEDSKDisk::CEDSKDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UIN
     pStream_->Read(ab, sizeof(ab));
 
     m_uSides = peh->bSides;
-    m_uTracks = min(peh->bTracks, MAX_DISK_TRACKS);
+    m_uTracks = std::min(peh->bTracks, static_cast<BYTE>(MAX_DISK_TRACKS));
 
     bool fEDSK = peh->szSignature[0] == EDSK_SIGNATURE[0];
     WORD wDSKTrackSize = peh->abTrackSize[0] | (peh->abTrackSize[1] << 8);  // DSK only
@@ -916,14 +916,14 @@ BYTE CFileDisk::ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UIN
     else if (cyl_ >= NORMAL_DIRECTORY_TRACKS)
     {
         // Work out the offset for the required data
-        long lPos = (head_*NORMAL_DISK_TRACKS + cyl_ - NORMAL_DIRECTORY_TRACKS) *
+        UINT uPos = (head_*NORMAL_DISK_TRACKS + cyl_ - NORMAL_DIRECTORY_TRACKS) *
                     (NORMAL_DISK_SECTORS * (NORMAL_SECTOR_SIZE-2)) + (index_ * (NORMAL_SECTOR_SIZE-2));
 
         // Copy the file segment required
-        memcpy(pbData_, m_pbData+lPos, min(NORMAL_SECTOR_SIZE-2, m_uSize - lPos));
+        memcpy(pbData_, m_pbData+uPos, std::min(NORMAL_SECTOR_SIZE-2, m_uSize - uPos));
 
         // If there are more sectors in the file, set the chain to the next sector
-        if (lPos + NORMAL_SECTOR_SIZE < m_uSize)
+        if (uPos + NORMAL_SECTOR_SIZE < m_uSize)
         {
             // Work out the next sector
             UINT uSector = 1 + ((index_+1) % NORMAL_DISK_SECTORS);

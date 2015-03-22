@@ -197,7 +197,7 @@ void Frame::Update ()
     int nLine, nBlock = GetRasterPos(&nLine) >> 3;
 
     // Restrict the drawing to the visible area
-    int nFrom = max(nLastLine, s_nViewTop), nTo = min(nLine, s_nViewBottom-1);
+    int nFrom = std::max(nLastLine, s_nViewTop), nTo = std::min(nLine, s_nViewBottom-1);
 
     // If we're still on the same line as last time we've only got a part line to draw
     if (nLine == nLastLine)
@@ -252,7 +252,7 @@ void Frame::Update ()
 static void CopyBeforeLastUpdate ()
 {
     // Determine the range in the visible area
-    int nBottom = min(nLastLine, s_nViewBottom-1) - s_nViewTop;
+    int nBottom = std::min(nLastLine, s_nViewBottom-1) - s_nViewTop;
 
     // If there anything to copy?
     if (nBottom > 0)
@@ -263,7 +263,7 @@ static void CopyBeforeLastUpdate ()
             BYTE* pLine = pScreen->GetLine(nBottom);
             BYTE* pLastLine = pLastScreen->GetLine(nBottom);
 
-            int nRight = max(nLastBlock, s_nViewRight) - s_nViewLeft;
+            int nRight = std::max(nLastBlock, s_nViewRight) - s_nViewLeft;
             if (nRight > 0)
                 memcpy(pLine, pLastLine, nRight<<4);
 
@@ -284,7 +284,7 @@ static void CopyBeforeLastUpdate ()
 static void CopyAfterRaster ()
 {
     // Work out the range that is within the visible area
-    int nTop = max(nLastLine, s_nViewTop) - s_nViewTop;
+    int nTop = std::max(nLastLine, s_nViewTop) - s_nViewTop;
     int nBottom = s_nViewBottom - s_nViewTop;
 
     // If there anything to copy?
@@ -296,7 +296,7 @@ static void CopyAfterRaster ()
             BYTE* pLine = pScreen->GetLine(nTop);
             BYTE* pLastLine = pLastScreen->GetLine(nTop);
 
-            int nOffset = (max(s_nViewLeft, nLastBlock) - s_nViewLeft) << 4;
+            int nOffset = (std::max(s_nViewLeft, nLastBlock) - s_nViewLeft) << 4;
             int nWidth = pScreen->GetPitch() - nOffset;
             if (nWidth > 0)
                 memcpy(pLine+nOffset, pLastLine+nOffset, nWidth);
@@ -527,8 +527,8 @@ void Flip (CScreen *pScreen_)
     pDisplayScreen = pScreen_;
 
     // Flip screen buffers
-    swap(pScreen, pLastScreen);
-    swap(pGuiScreen, pLastGuiScreen);
+    std::swap(pScreen, pLastScreen);
+    std::swap(pGuiScreen, pLastGuiScreen);
 }
 
 

@@ -2,7 +2,7 @@
 //
 // Sound.cpp: Common sound generation
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -207,7 +207,7 @@ void CDAC::Output2 (BYTE bVal_)
 
 int CDAC::GetSamplesSoFar ()
 {
-    UINT uCycles = min(g_dwCycleCounter, TSTATES_PER_FRAME);
+    UINT uCycles = std::min(g_dwCycleCounter, static_cast<DWORD>(TSTATES_PER_FRAME));
     return static_cast<int>(buf_left.count_samples(uCycles));
 }
 
@@ -244,8 +244,8 @@ static void MixAudio (BYTE *pDst_, const BYTE *pSrc_, int nLen_)
         int samp = s1 + s2;
 
         // Clip to signed range
-        samp = min(samp, 32767);
-        samp = max(-32768, samp);
+        samp = std::min(samp, 32767);
+        samp = std::max(-32768, samp);
 
         // Write new sample
         pDst_[0] = samp & 0xff;
@@ -258,8 +258,8 @@ static void MixAudio (BYTE *pDst_, const BYTE *pSrc_, int nLen_)
 static int AdjustSpeed (BYTE *pb_, int nSize_, int nSpeed_)
 {
     // Limit speed range
-    nSpeed_ = max(nSpeed_,50);
-    nSpeed_ = min(nSpeed_,1000);
+    nSpeed_ = std::max(nSpeed_,50);
+    nSpeed_ = std::min(nSpeed_,1000);
 
     // Slow?
     if (nSpeed_ < 100)

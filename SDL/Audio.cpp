@@ -2,7 +2,7 @@
 //
 // Audio.cpp: SDL sound implementation
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -92,7 +92,7 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
 
         // Determine the available space
         nSpace = static_cast<int>(m_pbEnd-m_pbNow);
-        int nAdd = min(nSpace, nLength_);
+        int nAdd = std::min(nSpace, nLength_);
 
         // Copy as much as we can
         memcpy(m_pbNow, pbData_, nAdd);
@@ -193,7 +193,7 @@ void SoundCallback (void *pvParam_, Uint8 *pbStream_, int nLen_)
 {
     // Determine how much data we have available, how much to copy, and what is left over
     int nData = static_cast<int>(m_pbNow - m_pbStart);
-    int nCopy = min(nData, nLen_), nLeft = nData-nCopy;
+    int nCopy = std::min(nData, nLen_), nLeft = nData-nCopy;
 
     // Update the sound stream with what we have, padded with silence if we're short
     memcpy(pbStream_, m_pbStart, nCopy);

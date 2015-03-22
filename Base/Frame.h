@@ -117,7 +117,7 @@ class CFrame
 
 inline void CFrame::LeftBorder (BYTE *pbLine_, int nFrom_, int nTo_)
 {
-    int nFrom = max(s_nViewLeft, nFrom_), nTo = min(nTo_, BORDER_BLOCKS);
+    int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, BORDER_BLOCKS);
 
     // Draw the required section of the left border, if any
     if (nFrom < nTo)
@@ -126,7 +126,7 @@ inline void CFrame::LeftBorder (BYTE *pbLine_, int nFrom_, int nTo_)
 
 inline void CFrame::RightBorder (BYTE *pbLine_, int nFrom_, int nTo_)
 {
-    int nFrom = max((WIDTH_BLOCKS-BORDER_BLOCKS), nFrom_), nTo = min(nTo_, s_nViewRight);
+    int nFrom = std::max((WIDTH_BLOCKS-BORDER_BLOCKS), nFrom_), nTo = std::min(nTo_, s_nViewRight);
 
     // Draw the required section of the right border, if any
     if (nFrom < nTo)
@@ -136,7 +136,7 @@ inline void CFrame::RightBorder (BYTE *pbLine_, int nFrom_, int nTo_)
 inline void CFrame::BorderLine (BYTE *pbLine_, int nFrom_, int nTo_)
 {
     // Work out the range that within the visible area
-    int nFrom = max(s_nViewLeft, nFrom_), nTo = min(nTo_, s_nViewRight);
+    int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, s_nViewRight);
 
     // Draw the required section of the border, if any
     if (nFrom < nTo)
@@ -146,7 +146,7 @@ inline void CFrame::BorderLine (BYTE *pbLine_, int nFrom_, int nTo_)
 inline void CFrame::BlackLine (BYTE *pbLine_, int nFrom_, int nTo_)
 {
     // Work out the range that within the visible area
-    int nFrom = max(s_nViewLeft, nFrom_), nTo = min(nTo_, s_nViewRight);
+    int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, s_nViewRight);
 
     // Draw the required section of the left border, if any
     if (nFrom < nTo)
@@ -162,7 +162,7 @@ inline void CFrame::Mode1Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
     LeftBorder(pbLine_, nFrom_, nTo_);
 
     // Work out the range that within the visible area
-    int nFrom = max(BORDER_BLOCKS, nFrom_), nTo = min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
+    int nFrom = std::max(BORDER_BLOCKS, nFrom_), nTo = std::min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
 
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
@@ -178,7 +178,7 @@ inline void CFrame::Mode1Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
 
             // toggle the colours if we're in the inverse part of the FLASH cycle
             if (g_fFlashPhase && (bAttr & 0x80))
-                swap(bInk, bPaper);
+                std::swap(bInk, bPaper);
 
             BYTE ink = clut[bInk], paper = clut[bPaper];
 
@@ -207,7 +207,7 @@ inline void CFrame::Mode2Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
     LeftBorder(pbLine_, nFrom_, nTo_);
 
     // Work out the range that within the visible area
-    int nFrom = max(BORDER_BLOCKS, nFrom_), nTo = min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
+    int nFrom = std::max(BORDER_BLOCKS, nFrom_), nTo = std::min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
 
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
@@ -223,7 +223,7 @@ inline void CFrame::Mode2Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
 
             // toggle the colours if we're in the inverse part of the FLASH cycle
             if (g_fFlashPhase && (bAttr & 0x80))
-                swap(bInk, bPaper);
+                std::swap(bInk, bPaper);
 
             BYTE ink = clut[bInk], paper = clut[bPaper];
 
@@ -252,7 +252,7 @@ inline void CFrame::Mode3Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
     LeftBorder(pbLine_, nFrom_, nTo_);
 
     // Work out the range that within the visible area
-    int nFrom = max(BORDER_BLOCKS, nFrom_), nTo = min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
+    int nFrom = std::max(BORDER_BLOCKS, nFrom_), nTo = std::min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
 
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
@@ -307,7 +307,7 @@ inline void CFrame::Mode4Line (BYTE *pbLine_, int nLine_, int nFrom_, int nTo_)
     LeftBorder(pbLine_, nFrom_, nTo_);
 
     // Work out the range that within the visible area
-    int nFrom = max(BORDER_BLOCKS, nFrom_), nTo = min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
+    int nFrom = std::max(BORDER_BLOCKS, nFrom_), nTo = std::min(nTo_, BORDER_BLOCKS+SCREEN_BLOCKS);
 
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)

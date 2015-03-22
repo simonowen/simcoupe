@@ -2,7 +2,7 @@
 //
 // SimCoupe.h: Common SimCoupe header, included by all modules
 //
-//  Copyright (c) 1999-2012  Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -58,6 +58,10 @@ typedef unsigned int        UINT;
 #include <map>
 #include <algorithm>
 
+#include "OSD.h"		/* OS-dependent stuff */
+#include "SAM.h"        /* Various SAM constants */
+#include "Util.h"       /* TRACE macro and other utility functions */
+
 #ifdef USE_LIBSPECTRUM
 #include "libspectrum.h"
 #endif
@@ -66,10 +70,6 @@ typedef unsigned int        UINT;
 #include "unzip.h"       /* for unzOpen, unzClose, etc.  Part of the contrib/minizip in the ZLib source package */
 #include "zlib.h"        /* for gzopen, gzclose, etc. */
 #endif
-
-#include "OSD.h"		/* OS-dependent stuff */
-#include "SAM.h"        /* Various SAM constants */
-#include "Util.h"       /* TRACE macro and other utility functions */
 
 #endif	/* __cplusplus */
 

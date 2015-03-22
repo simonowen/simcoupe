@@ -2,7 +2,7 @@
 //
 // Memory.cpp: Memory configuration and management
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //  Copyright (c) 1996-2001 Allan Skillman
 //
 // This program is free software; you can redistribute it and/or modify
@@ -150,7 +150,7 @@ static void SetConfig ()
         anReadPages[INTMEM+nInt] = anWritePages[INTMEM+nInt] = INTMEM+nInt;
 
     // Add external RAM as read/write
-    int nExtPages = min(GetOption(externalmem), MAX_EXTERNAL_MB) * N_PAGES_1MB;
+    int nExtPages = std::min(GetOption(externalmem), MAX_EXTERNAL_MB) * N_PAGES_1MB;
     for (int nExt = 0 ; nExt < nExtPages ; nExt++)
         anReadPages[EXTMEM+nExt] = anWritePages[EXTMEM+nExt] = EXTMEM+nExt;
 
