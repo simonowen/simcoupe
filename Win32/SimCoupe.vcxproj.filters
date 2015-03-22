@@ -515,4 +515,9 @@
       <Filter>Win32 Resource Files\Shaders</Filter>
     </FxCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="Custom.manifest">
+      <Filter>Win32 Resource Files</Filter>
+    </Manifest>
+  </ItemGroup>
 </Project>

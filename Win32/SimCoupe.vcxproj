@@ -94,6 +94,9 @@
     <PostBuildEvent>
       <Command>@if not exist "$(TargetDir)samrom.map" copy "$(SolutionDir)..\Resource\*" "$(TargetDir)"</Command>
     </PostBuildEvent>
+    <FxCompile>
+      <ShaderModel>3.0</ShaderModel>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -118,6 +121,9 @@
     <PostBuildEvent>
       <Command>@if not exist "$(TargetDir)samrom.map" copy "$(SolutionDir)..\Resource\*" "$(TargetDir)"</Command>
     </PostBuildEvent>
+    <FxCompile>
+      <ShaderModel>3.0</ShaderModel>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -150,6 +156,9 @@
     <PostBuildEvent>
       <Message>Compressing and Signing</Message>
     </PostBuildEvent>
+    <FxCompile>
+      <ShaderModel>3.0</ShaderModel>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -174,6 +183,9 @@
     <PostBuildEvent>
       <Command>@if not exist "$(TargetDir)samrom.map" copy "$(SolutionDir)..\Resource\*" "$(TargetDir)"</Command>
     </PostBuildEvent>
+    <FxCompile>
+      <ShaderModel>3.0</ShaderModel>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Base\Action.cpp" />
@@ -438,6 +450,9 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ObjectFileOutput>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="Custom.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
