@@ -161,7 +161,7 @@ static bool GetChangeRect (BYTE *pb_, CScreen *pScreen_)
     WORD width = pScreen_->GetPitch()/2, height = pScreen_->GetHeight()/2;
     int step = 2; // sample alternate pixels
 
-	BYTE *pbC = pb_;
+    BYTE *pbC = pb_;
 
     // Search down for the top-most change
     for (h = 0 ; h < height ; h++)
@@ -395,6 +395,10 @@ void GIF::Stop ()
     fclose(f);
     f = NULL;
 
+    delete[] pbCurr, pbCurr = NULL;
+    delete[] pbFirst, pbFirst = NULL;
+    delete[] pbSub, pbSub = NULL;
+
     Frame::SetStatus("Saved %s", pszFile);
 }
 
@@ -425,13 +429,12 @@ void GIF::AddFrame (CScreen *pScreen_)
     if (!pScreen_)
         return;
 
-    WORD width = pScreen_->GetPitch()/2, height = pScreen_->GetHeight()/2;
+    WORD width = pScreen_->GetPitch() / 2;
+    WORD height = pScreen_->GetHeight() / 2;
 
     // If this is the first frame, write the file headers
     if (ftell(f) == 0)
     {
-//		width = pScreen_->GetPitch()/2;
-//		height = pScreen_->GetHeight()/2;
         pbCurr = new BYTE[width*height];
         pbSub = new BYTE[width*height];
         memset(pbCurr, 0xff, width*height);
