@@ -2,7 +2,7 @@
 //
 // GUI.cpp: GUI and controls for on-screen interface
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,12 +40,13 @@
 #include "UI.h"
 #include "Video.h"
 
-CWindow *GUI::s_pGUI, *GUI::s_pGarbage;
+CWindow *GUI::s_pGUI;
 int GUI::s_nX, GUI::s_nY;
 bool GUI::s_fModal;
 
 static DWORD dwLastClick = 0;   // Time of last double-click
 
+std::queue<CWindow *> GUI::s_vGarbage;
 
 bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 {
@@ -91,21 +92,19 @@ bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
     if (s_pGUI && nMessage_ == GM_BUTTONUP)
         s_pGUI->RouteMessage(GM_MOUSEMOVE, s_nX, s_nY);
 
-    // Stop the GUI if it was deleted during the last message
-    if (s_pGarbage)
+    // Clear out the garbage
+    while (!s_vGarbage.empty())
     {
-        // Delete the destroyed window tree
-        delete s_pGarbage;
-        s_pGarbage = NULL;
-
-        // If the GUI still exists, update the activation state
-        if (s_pGUI)
-            s_pGUI->RouteMessage(GM_MOUSEMOVE, s_nX, s_nY);
-
-        // Otherwise we're done
-        else
-            Stop();
+        delete s_vGarbage.front();
+        s_vGarbage.pop();
     }
+
+    // If the GUI still exists, update the activation state
+    if (s_pGUI)
+        s_pGUI->RouteMessage(GM_MOUSEMOVE, s_nX, s_nY);
+    // Otherwise we're done
+    else
+        Stop();
 
     return true;
 }
@@ -138,23 +137,18 @@ bool GUI::Start (CWindow* pGUI_)
 void GUI::Stop ()
 {
     // Delete any existing GUI object
-    delete s_pGUI;
-    s_pGUI = NULL;
+    if (s_pGUI)
+    {
+        delete s_pGUI, s_pGUI = NULL;
 
-    Video::SetDirty();
-    Input::Purge();
+        Video::SetDirty();
+        Input::Purge();
+    }
 }
 
 void GUI::Delete (CWindow* pWindow_)
 {
-    // Link up the existing window to the garbage chain
-    if (!s_pGarbage)
-        s_pGarbage = pWindow_;
-    else
-    {
-        s_pGarbage->SetParent(pWindow_);
-        s_pGarbage = pWindow_;
-    }
+    s_vGarbage.push(pWindow_);
 
     // If the top-most window is being removed, invalidate the main GUI pointer
     if (pWindow_ == s_pGUI)
@@ -337,12 +331,15 @@ void CWindow::SetParent (CWindow* pParent_/*=NULL*/)
 
 void CWindow::Destroy ()
 {
+    // Destroy any child windows first
+    while (m_pChildren)
+        m_pChildren->Destroy();
+
     if (m_pParent)
     {
-        // Unlink us from the parent, keeping the local pointer for use in the destructor
+        // Unlink us from the parent, but remember what it was
         CWindow* pParent = m_pParent;
         SetParent(NULL);
-        m_pParent = pParent;
 
         // Re-activate the parent now we're gone
         pParent->Activate();

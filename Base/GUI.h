@@ -2,7 +2,7 @@
 //
 // GUI.h: GUI and controls for on-screen interface
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,6 +20,8 @@
 
 #ifndef GUI_H
 #define GUI_H
+
+#include <queue>
 
 #include "GUIIcons.h"
 #include "IO.h"
@@ -59,7 +61,8 @@ class GUI
         static void Delete (CWindow* pWindow_);
 
     protected:
-        static CWindow *s_pGUI, *s_pGarbage;
+        static CWindow *s_pGUI;
+        static std::queue<CWindow *> s_vGarbage;
         static int s_nX, s_nY;
         static bool s_fModal;
 
