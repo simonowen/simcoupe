@@ -505,6 +505,9 @@ void CPU::Reset (bool fPress_)
 
 void CPU::NMI()
 {
+    // R is incremented when the interrupt is acknowledged
+    R++;
+
     // Disable interrupts
     IFF1 = 0;
 
@@ -531,6 +534,9 @@ inline void CheckInterrupt ()
         // If we're running in debugger timing mode, skip the interrupt handler
         if (!CPU::IsContentionActive())
             return;
+
+        // R is incremented when the interrupt is acknowledged
+        R++;
 
         // Disable maskable interrupts to prevent the handler being triggered again immediately
         IFF1 = IFF2 = 0;
