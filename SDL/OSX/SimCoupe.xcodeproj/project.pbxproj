@@ -565,7 +565,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0510;
+				LastUpgradeCheck = 0610;
 			};
 			buildConfigurationList = 1301D3CC096B058800027BFC /* Build configuration list for PBXProject "SimCoupe" */;
 			compatibilityVersion = "Xcode 3.2";

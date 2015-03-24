@@ -137,7 +137,7 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
             char *pszBasePath = SDL_GetBasePath();
             strncpy(szPath, pszBasePath, MAX_PATH-1);
             szPath[MAX_PATH-1] = '\0';
-            SDL_Free(pszBasePath);
+            SDL_free(pszBasePath);
 #elif !defined(_WINDOWS) && !defined(__AMIGAOS4__) && defined(RESOURCE_DIR)
             // If available, use the resource directory from the build process
             strncpy(szPath, RESOURCE_DIR, MAX_PATH-1);
