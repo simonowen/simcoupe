@@ -484,7 +484,7 @@ bool CTextView::cmdNavigate (int nKey_, int nMods_)
 bool CDebugger::s_fTransparent = false;
 
 CDebugger::CDebugger (BREAKPT* pBreak_/*=NULL*/)
-    : CDialog(NULL, 433, 260+36+2, "", false),
+    : CDialog(NULL, 433, 260+36+2, ""),
     m_nView(vtDis), m_pView(NULL), m_pCommandEdit(NULL)
 {
     // Move to the last display position, if any

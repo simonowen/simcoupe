@@ -21,8 +21,6 @@
 #ifndef GUI_H
 #define GUI_H
 
-#include <queue>
-
 #include "GUIIcons.h"
 #include "IO.h"
 #include "Screen.h"
@@ -62,9 +60,9 @@ class GUI
 
     protected:
         static CWindow *s_pGUI;
-        static std::queue<CWindow *> s_vGarbage;
+        static std::queue<CWindow *> s_garbageQueue;
+        static std::stack<CWindow*> s_dialogStack;
         static int s_nX, s_nY;
-        static bool s_fModal;
 
         friend class CWindow;
         friend class CDialog;     // only needed for test cross-hair to access cursor position
@@ -441,12 +439,11 @@ class CListView : public CWindow
 class CDialog : public CWindow
 {
     public:
-        CDialog (CWindow* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_, bool fModal_=true);
+        CDialog (CWindow* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_);
         ~CDialog ();
 
     public:
-        bool IsModal () const { return m_fModal; }
-        bool IsActiveDialog () { return s_pActive == this; }
+        bool IsActiveDialog () const;
         void SetColours (int nTitle_, int nBody_) { m_nTitleColour = nTitle_; m_nBodyColour = nBody_; }
 
         void Centre ();
@@ -457,11 +454,9 @@ class CDialog : public CWindow
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_);
 
     protected:
-        bool m_fModal, m_fDragging;
+        bool m_fDragging;
         int m_nDragX, m_nDragY;
         int m_nTitleColour, m_nBodyColour;
-
-        static CWindow* s_pActive;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

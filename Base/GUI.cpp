@@ -42,11 +42,11 @@
 
 CWindow *GUI::s_pGUI;
 int GUI::s_nX, GUI::s_nY;
-bool GUI::s_fModal;
 
 static DWORD dwLastClick = 0;   // Time of last double-click
 
-std::queue<CWindow *> GUI::s_vGarbage;
+std::queue<CWindow *> GUI::s_garbageQueue;
+std::stack<CWindow*> GUI::s_dialogStack;
 
 bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 {
@@ -93,10 +93,10 @@ bool GUI::SendMessage (int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
         s_pGUI->RouteMessage(GM_MOUSEMOVE, s_nX, s_nY);
 
     // Clear out the garbage
-    while (!s_vGarbage.empty())
+    while (!s_garbageQueue.empty())
     {
-        delete s_vGarbage.front();
-        s_vGarbage.pop();
+        delete s_garbageQueue.front();
+        s_garbageQueue.pop();
     }
 
     // If the GUI still exists, update the activation state
@@ -148,7 +148,7 @@ void GUI::Stop ()
 
 void GUI::Delete (CWindow* pWindow_)
 {
-    s_vGarbage.push(pWindow_);
+    s_garbageQueue.push(pWindow_);
 
     // If the top-most window is being removed, invalidate the main GUI pointer
     if (pWindow_ == s_pGUI)
@@ -173,7 +173,7 @@ void GUI::Draw (CScreen* pScreen_)
 
 bool GUI::IsModal ()
 {
-    return s_pGUI && s_pGUI->GetType() >= ctDialog && reinterpret_cast<CDialog*>(s_pGUI)->IsModal();
+    return !s_dialogStack.empty();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1812,15 +1812,18 @@ void CListView::SetItems (CListViewItem* pItems_)
         delete m_pItems;
     }
 
-    // Count the number of items in the new list
-    for (m_nItems = 0, m_pItems = pItems_ ; pItems_ ; pItems_ = pItems_->m_pNext, m_nItems++);
+    if (pItems_)
+    {
+        // Count the number of items in the new list
+        for (m_nItems = 0, m_pItems = pItems_ ; pItems_ ; pItems_ = pItems_->m_pNext, m_nItems++);
 
-    // Calculate how many items on a row, and how many rows, and set the required scrollbar size
-    m_nAcross = m_nWidth/ITEM_SIZE;
-    m_nDown = (m_nItems+m_nAcross-1) / m_nAcross;
-    m_pScrollBar->SetMaxPos(m_nDown*ITEM_SIZE);
+        // Calculate how many items on a row, and how many rows, and set the required scrollbar size
+        m_nAcross = m_nWidth/ITEM_SIZE;
+        m_nDown = (m_nItems+m_nAcross-1) / m_nAcross;
+        m_pScrollBar->SetMaxPos(m_nDown*ITEM_SIZE);
 
-    Select(0);
+        Select(0);
+    }
 }
 
 void CListView::DrawItem (CScreen* pScreen_, int nItem_, int nX_, int nY_, const CListViewItem* pItem_)
@@ -2515,11 +2518,9 @@ const int DIALOG_FRAME_COLOUR = GREY_7;
 
 const int TITLE_HEIGHT = 4 + CHAR_HEIGHT + 5;
 
-CWindow* CDialog::s_pActive;
 
-
-CDialog::CDialog (CWindow* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_, bool fModal_/*=true*/)
-    : CWindow(pParent_, 0, 0, nWidth_, nHeight_, ctDialog), m_fModal(fModal_), m_fDragging(false), m_nDragX(0),
+CDialog::CDialog (CWindow* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_)
+    : CWindow(pParent_, 0, 0, nWidth_, nHeight_, ctDialog), m_fDragging(false), m_nDragX(0),
         m_nDragY(0), m_nTitleColour(TITLE_BACK_COLOUR), m_nBodyColour(DIALOG_BACK_COLOUR)
 {
     SetText(pcszCaption_);
@@ -2527,16 +2528,17 @@ CDialog::CDialog (CWindow* pParent_, int nWidth_, int nHeight_, const char* pcsz
     Centre();
     CWindow::Activate();
 
-    // Inherit dialog activation from the parent
-    if (s_pActive == GetParent())
-        s_pActive = this;
+    GUI::s_dialogStack.push(this);
 }
 
 CDialog::~CDialog ()
 {
-    // Pass the dialog activation back to the parent window
-    if (s_pActive == this)
-        s_pActive = GetParent();
+    GUI::s_dialogStack.pop();
+}
+
+bool CDialog::IsActiveDialog () const
+{
+    return !GUI::s_dialogStack.empty() && GUI::s_dialogStack.top() == this;
 }
 
 void CDialog::Centre ()
@@ -2709,8 +2711,8 @@ bool CDialog::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             break;
     }
 
-    // If we're modal, absorb all messages to prevent any parent processing
-    return m_fModal;
+    // Absorb all other messages to prevent any parent processing
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2722,7 +2724,7 @@ const int MSGBOX_LINE_HEIGHT = 15;
 const int MSGBOX_GAP = 13;
 
 CMessageBox::CMessageBox (CWindow* pParent_, const char* pcszBody_, const char* pcszCaption_, int nFlags_)
-    : CDialog(pParent_, 0, 0, pcszCaption_, true), m_nLines(0), m_pIcon(NULL)
+    : CDialog(pParent_, 0, 0, pcszCaption_), m_nLines(0), m_pIcon(NULL)
 {
     // We need to be recognisably different from a regular dialog, despite being based on one
     m_nType = ctMessageBox;

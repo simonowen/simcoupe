@@ -260,12 +260,11 @@ void CFileBrowser::OnOK ()
 
     if (pcszPath)
     {
-        Destroy();
-
         // Set the edit control text, activate it, and notify the parent of the change
         m_pEdit->SetText(pcszPath);
         m_pEdit->Activate();
         m_pParent->OnNotify(m_pEdit,0);
+        Destroy();
     }
 }
 
@@ -366,10 +365,10 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
             }
         }
 
-        Destroy();
         m_pEdit->SetText(m_pFile->GetText());
         m_pEdit->Activate();
         m_pParent->OnNotify(m_pEdit,0);
+        Destroy();
     }
 }
 

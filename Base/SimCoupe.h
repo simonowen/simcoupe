@@ -57,6 +57,8 @@ typedef unsigned int        UINT;
 #include <string>
 #include <map>
 #include <algorithm>
+#include <queue>
+#include <stack>
 
 #include "OSD.h"		/* OS-dependent stuff */
 #include "SAM.h"        /* Various SAM constants */
