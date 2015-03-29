@@ -367,14 +367,15 @@ void CWindow::SetText (const char* pcszText_)
 
 UINT CWindow::GetValue () const
 {
-    int nVal;
-    return Expr::Eval(m_pszText, &nVal, NULL, Expr::valOnly) ? nVal : 0;
+    char *pEnd = NULL;
+    unsigned long ulValue = strtoul(m_pszText, &pEnd, 0);
+    return *pEnd ? 0 : static_cast<UINT>(ulValue);
 }
 
-void CWindow::SetValue (UINT u_, int nBytes_)
+void CWindow::SetValue (UINT u_)
 {
     char sz[16];
-    sprintf(sz, (nBytes_ == 1) ? "%02X" : (nBytes_ == 2) ? "%04X" : "%06X", u_);
+    snprintf(sz, sizeof(sz)-1, "%u", u_);
     SetText(sz);
 }
 
@@ -775,11 +776,11 @@ CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, co
     SetText(pcszText_);
 }
 
-CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, UINT u_, int nBytes_/*=2*/)
+CEditControl::CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, UINT u_)
     : CWindow(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit),
     m_nViewOffset(0), m_nCaretStart(0), m_nCaretEnd(0), m_dwCaretTime(0)
 {
-    SetValue(u_, nBytes_);
+    SetValue(u_);
 }
 
 void CEditControl::Activate ()

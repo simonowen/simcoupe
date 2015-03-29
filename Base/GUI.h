@@ -115,7 +115,7 @@ class CWindow
         virtual UINT GetValue () const;
         virtual void SetText (const char* pcszText_);
         virtual void SetFont (const GUIFONT *pFont_) { m_pFont = pFont_; }
-        virtual void SetValue (UINT u_, int nBytes_);
+        virtual void SetValue (UINT u_);
 
         virtual void Activate ();
         virtual bool HitTest (int nX_, int nY_);
@@ -247,7 +247,7 @@ class CEditControl : public CWindow
 {
     public:
         CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_="");
-        CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, UINT u_, int nBytes_);
+        CEditControl (CWindow* pParent_, int nX_, int nY_, int nWidth_, UINT u_);
 
     public:
         bool IsTabStop () const { return true; }
