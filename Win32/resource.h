@@ -81,7 +81,7 @@
 #define IDC_DRIVE_LIGHTS                1090
 #define IDC_FAST_RESET                  1092
 #define IDC_MIDI                        1093
-#define IDC_HDBOOT_ROM                  1094
+#define IDC_ALBOOT_ROM                  1094
 #define IDC_LATENCY                     1097
 #define IDC_DRIVE1                      1098
 #define IDC_DRIVE2                      1099

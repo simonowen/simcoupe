@@ -2752,7 +2752,7 @@ INT_PTR CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
             SetDlgItemPath(hdlg_, IDE_ROM, GetOption(rom));
 
             SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_SETCHECK, GetOption(fastreset) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_HDBOOT_ROM, BM_SETCHECK, GetOption(hdbootrom) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_ALBOOT_ROM, BM_SETCHECK, GetOption(albootrom) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
             break;
         }
@@ -2771,10 +2771,10 @@ INT_PTR CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
                 GetDlgItemPath(hdlg_, IDE_ROM, const_cast<char*>(GetOption(rom)), MAX_PATH);
 
                 SetOption(fastreset, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_GETCHECK, 0, 0L) == BST_CHECKED));
-                SetOption(hdbootrom, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_HDBOOT_ROM, BM_GETCHECK, 0, 0L) == BST_CHECKED));
+                SetOption(albootrom, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALBOOT_ROM, BM_GETCHECK, 0, 0L) == BST_CHECKED));
 
                 // If the ROM config has changed, schedule the changes for the next reset
-                if (ChangedString(rom) || Changed(hdbootrom))
+                if (ChangedString(rom) || Changed(albootrom))
                     Memory::UpdateRom();
             }
             break;
@@ -2786,7 +2786,7 @@ INT_PTR CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
             {
                 case IDE_ROM:
                 {
-                    EnableWindow(GetDlgItem(hdlg_, IDC_HDBOOT_ROM), !GetWindowTextLength(GetDlgItem(hdlg_, IDE_ROM)));
+                    EnableWindow(GetDlgItem(hdlg_, IDC_ALBOOT_ROM), !GetWindowTextLength(GetDlgItem(hdlg_, IDE_ROM)));
                     break;
                 }
 

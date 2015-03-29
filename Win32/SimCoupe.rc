@@ -137,7 +137,7 @@ BEGIN
     EDITTEXT        IDE_ROM,54,52,137,14,ES_AUTOHSCROLL
     PUSHBUTTON      "...",IDB_BROWSE,194,52,14,14
     CONTROL         "Fast boot after hardware reset",IDC_FAST_RESET,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,90,110,10
-    CONTROL         "Patch ROM for hard disk booting",IDC_HDBOOT_ROM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,104,119,10
+    CONTROL         "Patch ROM for Atom Lite booting",IDC_ALBOOT_ROM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,54,104,119,10
     LTEXT           "Note: Changes require a SAM reset to take effect",IDC_STATIC,45,139,167,9
 END
 

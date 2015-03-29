@@ -487,7 +487,7 @@ class CSystemOptions : public CDialog
             new CTextControl(this, 60, 114, "Settings", YELLOW_8, BLUE_2);
 
             m_pFastReset = new CCheckBox(this, 63, 132, "Fast boot after hardware reset");
-            m_pHdBootRom = new CCheckBox(this, 63, 153, "Patch ROM for hard disk booting");
+            m_pAlBootRom = new CCheckBox(this, 63, 153, "Patch ROM for Atom Lite booting");
 
             new CTextControl(this, 58, 180, "Note: Changes require a reset to take effect", RED_8);
 
@@ -499,7 +499,7 @@ class CSystemOptions : public CDialog
             m_pExternal->Select(GetOption(externalmem));
             m_pROM->SetText(GetOption(rom));
             m_pFastReset->SetChecked(GetOption(fastreset));
-            m_pHdBootRom->SetChecked(GetOption(hdbootrom));
+            m_pAlBootRom->SetChecked(GetOption(albootrom));
 
             // Update the state of the controls to reflect the current settings
             OnNotify(m_pROM,0);
@@ -522,17 +522,17 @@ class CSystemOptions : public CDialog
             else if (pWindow_ == m_pBrowse)
                 new CFileBrowser(m_pROM, this, "Browse for ROM", &sROMFilter, &nROMFilter);
             else if (pWindow_ == m_pROM)
-                m_pHdBootRom->Enable(!*m_pROM->GetText());
+                m_pAlBootRom->Enable(!*m_pROM->GetText());
             else if (pWindow_ == m_pOK)
             {
                 SetOption(mainmem, (m_pMain->GetSelected()+1) << 8);
                 SetOption(externalmem, m_pExternal->GetSelected());
                 SetOption(rom, m_pROM->GetText());
-                SetOption(hdbootrom, m_pHdBootRom->IsChecked());
+                SetOption(albootrom, m_pAlBootRom->IsChecked());
                 SetOption(fastreset, m_pFastReset->IsChecked());
 
                 // If the ROM config has changed, schedule the changes for the next reset
-                if (ChangedString(rom) || Changed(hdbootrom))
+                if (ChangedString(rom) || Changed(albootrom))
                     Memory::UpdateRom();
 
                 Destroy();
@@ -540,7 +540,7 @@ class CSystemOptions : public CDialog
         }
 
     protected:
-        CCheckBox *m_pFastReset, *m_pHdBootRom;
+        CCheckBox *m_pFastReset, *m_pAlBootRom;
         CComboBox *m_pMain, *m_pExternal;
         CEditControl *m_pROM;
         CTextButton *m_pOK, *m_pCancel, *m_pBrowse;

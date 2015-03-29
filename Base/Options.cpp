@@ -80,7 +80,7 @@ OPTION aOptions[] =
 
     OPT_S("ROM",          rom,            ""),        // No custom ROM (use built-in)
     OPT_F("RomWrite",     romwrite,       false),     // ROM is read-only
-    OPT_F("HDBootRom",    hdbootrom,      false),     // Don't use Atom Lite ROM patches
+    OPT_F("ALBootRom",    albootrom,      false),     // Don't use Atom Lite ROM patches
     OPT_F("FastReset",    fastreset,      true),      // Allow fast Z80 resets
     OPT_F("AsicDelay",    asicdelay,      true),      // ASIC startup delay of ~50ms
     OPT_N("MainMemory",   mainmem,        512),       // 512K main memory

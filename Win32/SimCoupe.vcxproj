@@ -303,7 +303,7 @@
     <ClInclude Include="..\Base\GUIDlg.h" />
     <ClInclude Include="..\Base\GUIIcons.h" />
     <ClInclude Include="..\Base\HardDisk.h" />
-    <ClInclude Include="..\Base\HDBOOT.h" />
+    <ClInclude Include="..\Base\ALBoot.h" />
     <ClInclude Include="..\Base\IO.h" />
     <ClInclude Include="..\Base\ioapi.h" />
     <ClInclude Include="..\Base\Joystick.h" />

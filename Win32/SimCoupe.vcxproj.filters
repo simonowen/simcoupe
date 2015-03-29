@@ -320,7 +320,7 @@
     <ClInclude Include="..\Base\HardDisk.h">
       <Filter>Base Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Base\HDBOOT.h">
+    <ClInclude Include="..\Base\ALBoot.h">
       <Filter>Base Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Base\IO.h">

@@ -187,7 +187,7 @@
 		13A0FF49088EDFC100E5436C /* GUIIcons.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GUIIcons.h; path = ../../Base/GUIIcons.h; sourceTree = "<group>"; };
 		13A0FF4A088EDFC100E5436C /* HardDisk.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = HardDisk.cpp; path = ../../Base/HardDisk.cpp; sourceTree = "<group>"; };
 		13A0FF4B088EDFC100E5436C /* HardDisk.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HardDisk.h; path = ../../Base/HardDisk.h; sourceTree = "<group>"; };
-		13A0FF4C088EDFC100E5436C /* HDBOOT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HDBOOT.h; path = ../../Base/HDBOOT.h; sourceTree = "<group>"; };
+		13A0FF4C088EDFC100E5436C /* ALBoot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ALBoot.h; path = ../../Base/ALBoot.h; sourceTree = "<group>"; };
 		13A0FF4D088EDFC100E5436C /* IO.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IO.cpp; path = ../../Base/IO.cpp; sourceTree = "<group>"; };
 		13A0FF4E088EDFC100E5436C /* IO.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IO.h; path = ../../Base/IO.h; sourceTree = "<group>"; };
 		13A0FF4F088EDFC100E5436C /* Main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Main.cpp; path = ../../Base/Main.cpp; sourceTree = "<group>"; };
@@ -406,7 +406,7 @@
 				13A0FF47088EDFC100E5436C /* GUIDlg.h */,
 				13A0FF49088EDFC100E5436C /* GUIIcons.h */,
 				13A0FF4B088EDFC100E5436C /* HardDisk.h */,
-				13A0FF4C088EDFC100E5436C /* HDBOOT.h */,
+				13A0FF4C088EDFC100E5436C /* ALBoot.h */,
 				13A0FF4E088EDFC100E5436C /* IO.h */,
 				13A0FFB3088EDFFF00E5436C /* ioapi.h */,
 				13EC1B2714E95BD800FA9EDB /* Joystick.h */,

@@ -666,7 +666,7 @@ SimCoupe supports the following command-line options, which override setting  in
     -filter <bool>          Bilinear filter in OpenGL mode (default=no)
 
     -rom <path>             32K custom ROM (blank for default v3.0)
-    -hdbootrom <bool>       Enable Atom HDD ROM patches (default=no)
+    -albootrom <bool>       Enable Atom Lite ROM patches (default=no)
     -fastreset <bool>       Skip SAM power-on memory test (default=yes)
     -asicdelay <bool>       ASIC delay on first start (default=yes)
     -mainmemory <int>       Main memory size in kB: 256 or 512 (default)

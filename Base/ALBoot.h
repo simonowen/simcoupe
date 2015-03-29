@@ -1,18 +1,17 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// HDBOOT.h: HD BOOT ROM patches
+// ALBOOT.h: Atom Lite BOOT ROM patches
 //
-//  Copyright (c) 2004-2010 Edwin Blink
+//  Copyright (c) 2004-2015 Edwin Blink
 //
-// Below is a set of code patches to apply to the built-in 3.0 ROM for HDD
-// booting on startup.
+// Below is a set of code patches to apply to the built-in 3.0 ROM for
+// Atom Lite booting on startup.
 //
 // Patch encoding:
-// The first two bytes (big endian) hold a 15-bit length, with the top bit
-// clear to advance by the length, or set to copy a block of bytes.  A final
-// zero skip block indicates the end of the patch.
-//
-// See: http://www.samcoupe-pro-dos.co.uk/edwin/software/bdos/hdboot.htm
+//  The first two bytes (big endian) hold a 15-bit length, with the top bit
+//  clear to advance by the length, or set to copy a block of bytes.  A final
+//  zero skip block indicates the end of the patch.
+
 
 
 // AL-BOOT v2.2 patches for ROMs 0+1

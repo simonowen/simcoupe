@@ -23,7 +23,7 @@
 #include "Memory.h"
 
 #include "CPU.h"
-#include "HDBOOT.h"
+#include "ALBoot.h"
 #include "Options.h"
 #include "OSD.h"
 #include "SAMROM.h"
@@ -213,7 +213,7 @@ static bool LoadRoms ()
     memcpy(pb1, abSAMROM+MEM_PAGE_SIZE, MEM_PAGE_SIZE);
 
     // AL-BOOT ROM enabled?
-    if (GetOption(hdbootrom))
+    if (GetOption(albootrom))
     {
         // Atom Lite connected?
         if (GetOption(drive1) == drvAtomLite || GetOption(drive2) == drvAtomLite)

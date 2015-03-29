@@ -60,7 +60,7 @@ typedef unsigned int        UINT;
 #include <queue>
 #include <stack>
 
-#include "OSD.h"		/* OS-dependent stuff */
+#include "OSD.h"        /* OS-dependent stuff */
 #include "SAM.h"        /* Various SAM constants */
 #include "Util.h"       /* TRACE macro and other utility functions */
 

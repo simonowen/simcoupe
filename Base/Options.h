@@ -48,7 +48,7 @@ typedef struct
 
     char    rom[MAX_PATH];          // SAM ROM image path
     bool    romwrite;               // Allow writes to ROM?
-    bool    hdbootrom;              // Use HDBOOT ROM patches?
+    bool    albootrom;              // Use Atom Lite boot ROM patches?
     bool    fastreset;              // Fast SAM system reset?
     bool    asicdelay;              // Enforce ASIC startup delay (~49ms)?
     int     mainmem;                // 256 or 512 for amount of main memory
