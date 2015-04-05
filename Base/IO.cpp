@@ -2,7 +2,7 @@
 //
 // IO.cpp: SAM I/O port handling
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //  Copyright (c) 1996-2001 Allan Skillman
 //  Copyright (c) 2000-2001 Dave Laundon
 //
@@ -114,6 +114,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
 
     // Reset ASIC registers
     lmpr = hmpr = vmpr = lepr = hepr = lpen = border = 0;
+    keyboard = BORD_EAR_MASK;
 
     OutLmpr(lmpr);  // Page 0 in section A, page 1 in section B, ROM0 on, ROM1 off
     OutHmpr(hmpr);  // Page 0 in section C, page 1 in section D
@@ -161,6 +162,8 @@ bool IO::Init (bool fFirstInit_/*=false*/)
 
         pFloppy1->Insert(GetOption(disk1));
         pFloppy2->Insert(GetOption(disk2));
+
+        Tape::Insert(GetOption(tape));
 
         CAtaAdapter *pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
         pActiveAtom->Attach(GetOption(atomdisk0), 0);
@@ -216,6 +219,9 @@ void IO::Exit (bool fReInit_/*=false*/)
 
         if (pDallas)
             pDallas->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "dallas"));
+
+        SetOption(tape, Tape::GetPath());
+        Tape::Eject();
 
         delete pMidi, pMidi = NULL;
         delete pPaula, pPaula = NULL;

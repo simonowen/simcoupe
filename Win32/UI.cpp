@@ -2,7 +2,7 @@
 //
 // UI.cpp: Win32 user interface
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -75,6 +75,8 @@ static bool InitWindow ();
 static void AddRecentFile (const char* pcsz_);
 static void LoadRecentFiles ();
 static void SaveRecentFiles ();
+
+static bool EjectTape ();
 
 static void SaveWindowPosition(HWND hwnd_);
 static bool RestoreWindowPosition(HWND hwnd_);
@@ -580,10 +582,17 @@ bool EjectDisk (CDiskDevice *pFloppy_)
 }
 
 
-bool InsertTape (HWND hwndParent_)
+bool InsertTape (HWND hwndParent_, const char *pcszPath_=NULL)
 {
     char szFile[MAX_PATH] = "";
     lstrcpyn(szFile, Tape::GetPath(), sizeof(szFile));
+
+    // Eject any existing disk if the new path is blank
+    if (pcszPath_ && !*pcszPath_)
+    {
+        EjectTape();
+        return true;
+    }
 
     OPENFILENAME ofn = { sizeof(ofn) };
     ofn.hwndOwner = hwndParent_;
@@ -591,23 +600,36 @@ bool InsertTape (HWND hwndParent_)
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = MAX_PATH;
 
-    // Prompt for the a new disk to insert
-    if (GetSaveLoadFile(&ofn, true))
+    if (!pcszPath_)
     {
-        // Insert the disk to check it's a recognised format
-        if (!Tape::Insert(szFile))
-            Message(msgWarning, "Invalid tape image: %s", szFile);
-        else
-        {
-            Frame::SetStatus("Tape inserted");
-            AddRecentFile(szFile);
-            return true;
-        }
+        // Prompt for the a new disk to insert
+        if (!GetSaveLoadFile(&ofn, true))
+            return false;
+
+        pcszPath_ = szFile;
     }
 
-    return false;
+    if (!Tape::Insert(pcszPath_))
+    {
+        Message(msgWarning, "Invalid tape: %s", pcszPath_);
+        RemoveRecentFile(pcszPath_);
+        return false;
+    }
+
+    Frame::SetStatus("%s  inserted", Tape::GetFile());
+    AddRecentFile(pcszPath_);
+    return true;
 }
 
+bool EjectTape ()
+{
+    if (!Tape::IsInserted())
+        return true;
+
+    Frame::SetStatus("%s  ejected", Tape::GetFile());
+    Tape::Eject();
+    return true;
+}
 
 #ifdef USE_LIBSPECTRUM
 
@@ -1436,8 +1458,11 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 // Bring our window to the front
                 SetForegroundWindow(hwnd_);
 
-                // Insert the image into drive 1, if available
-                InsertDisk(pFloppy1, szFile);
+                // Insert file as tape or disk, depending on file extension
+                if (Tape::IsRecognised(szFile))
+                    InsertTape(hwnd_, szFile);
+                else
+                    InsertDisk(pFloppy1, szFile);
             }
 
             return 0;
@@ -1792,6 +1817,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
                     case IDM_FILE_NEW_DISK1:        GUI::Start(new CNewDiskDialog(1));  return 0;
                     case IDM_FILE_NEW_DISK2:        GUI::Start(new CNewDiskDialog(2));  return 0;
+                    case IDM_TOOLS_TAPE_BROWSER:    GUI::Start(new CInsertTape());      return 0; // no tape browser yet
                 }
             }
 
@@ -1892,9 +1918,21 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
                 default:
                     if (wId >= IDM_FILE_RECENT1 && wId <= IDM_FILE_RECENT9)
-                        InsertDisk(pFloppy1, szRecentFiles[wId - IDM_FILE_RECENT1]);
+                    {
+                        const char *pcszFile = szRecentFiles[wId - IDM_FILE_RECENT1];
+                        if (Tape::IsRecognised(pcszFile))
+                            InsertTape(hwnd_, pcszFile);
+                        else
+                            InsertDisk(pFloppy1, pcszFile);
+                    }
                     else if (wId >= IDM_FLOPPY2_RECENT1 && wId <= IDM_FLOPPY2_RECENT9)
-                        InsertDisk(pFloppy2, szRecentFiles[wId - IDM_FLOPPY2_RECENT1]);
+                    {
+                        const char *pcszFile = szRecentFiles[wId - IDM_FLOPPY2_RECENT1];
+                        if (Tape::IsRecognised(pcszFile))
+                            InsertTape(hwnd_, pcszFile);
+                        else
+                            InsertDisk(pFloppy2, pcszFile);
+                    }
                     else if (wId >= IDM_SYSTEM_SPEED_50 && wId <= IDM_SYSTEM_SPEED_1000)
                     {
                         int anSpeeds[] = { 50, 100, 200, 300, 500, 1000 };

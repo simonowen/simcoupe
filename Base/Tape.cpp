@@ -2,7 +2,7 @@
 //
 // Tape.cpp: Tape handling
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,7 +31,8 @@
 #ifdef USE_LIBSPECTRUM
 
 static bool g_fPlaying;
-static char szTape[MAX_PATH];
+static std::string strFilePath;
+static std::string strFileName;
 
 const DWORD SPECTRUM_TSTATES_PER_SECOND = 3500000;
 
@@ -40,6 +41,26 @@ static libspectrum_byte* pbTape;
 static bool fEar;
 static libspectrum_dword tremain = 0;
 
+
+// Return whether the supplied filename appears to be a tape image
+bool Tape::IsRecognised (const char *pcsz_)
+{
+    libspectrum_id_t type = LIBSPECTRUM_ID_UNKNOWN;
+
+    if (libspectrum_identify_file(&type, pcsz_, NULL, 0) == LIBSPECTRUM_ERROR_NONE)
+    {
+        switch (type)
+        {
+            case LIBSPECTRUM_ID_TAPE_TAP:
+            case LIBSPECTRUM_ID_TAPE_TZX:
+            case LIBSPECTRUM_ID_TAPE_WAV:
+            case LIBSPECTRUM_ID_TAPE_CSW:
+                return true;
+        }
+    }
+
+    return false;
+}
 
 bool Tape::IsPlaying ()
 {
@@ -51,9 +72,16 @@ bool Tape::IsInserted ()
     return pTape != NULL;
 }
 
+// Return the full path of the inserted tape image
 const char* Tape::GetPath ()
 {
-    return szTape;
+    return strFilePath.c_str();;
+}
+
+// Return just the filename of the inserted tape image
+const char* Tape::GetFile ()
+{
+    return strFileName.c_str();
 }
 
 libspectrum_tape *Tape::GetTape ()
@@ -76,6 +104,7 @@ bool Tape::Insert (const char* pcsz_)
         return false;
     }
 
+    strFileName = pStream->GetFile();
     size_t uSize = pStream->GetSize();
     pbTape = new libspectrum_byte[uSize];
     if (pbTape) pStream->Read(pbTape, uSize);
@@ -87,6 +116,9 @@ bool Tape::Insert (const char* pcsz_)
         return false;
     }
 
+    // Store tape path on successful insert
+    strFilePath = pcsz_;
+
     IO::AutoLoad(AUTOLOAD_TAPE);
     return true;
 }
@@ -97,6 +129,8 @@ void Tape::Eject ()
 
     if (pTape) libspectrum_tape_free(pTape), pTape = NULL;
     delete[] pbTape, pbTape = NULL;
+
+    strFileName = strFilePath = "";
 }
 
 void Tape::NextEdge (DWORD dwTime_)
@@ -136,12 +170,11 @@ void Tape::NextEdge (DWORD dwTime_)
         Stop();
     }
     else
-
     {
         // Timings are in 3.5MHz t-states, so convert to SAM t-states
-        tstates = tstates*(REAL_TSTATES_PER_SECOND/1000) + tremain;
-        libspectrum_dword tadd = tstates/(SPECTRUM_TSTATES_PER_SECOND/1000);
-        tremain = tstates % (SPECTRUM_TSTATES_PER_SECOND/1000);
+        tstates = tstates * (REAL_TSTATES_PER_SECOND / 1000) + tremain;
+        libspectrum_dword tadd = tstates / (SPECTRUM_TSTATES_PER_SECOND / 1000);
+        tremain = tstates % (SPECTRUM_TSTATES_PER_SECOND / 1000);
 
         // Schedule an event to activate the edge
         AddCpuEvent(evtTapeEdge, dwTime_+tadd);
@@ -588,6 +621,7 @@ bool Tape::InFEHook ()
 
 // Dummy implementations, rather than peppering the above with conditional code
 
+bool Tape::IsRecognised (const char *pcsz_) { return false; }
 bool Tape::IsPlaying () { return false; }
 bool Tape::IsInserted () { return false; }
 const char* Tape::GetPath () { return ""; }

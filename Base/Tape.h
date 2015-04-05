@@ -2,7 +2,7 @@
 //
 // Tape.h: Tape handling
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,10 +26,12 @@ class CTape;
 class Tape
 {
     public:
+        static bool IsRecognised (const char *pcsz_);
         static bool IsPlaying ();
         static bool IsInserted ();
 
         static const char* GetPath ();
+        static const char* GetFile ();
 #ifdef USE_LIBSPECTRUM
         static libspectrum_tape *GetTape ();
         static const char *GetBlockDetails (libspectrum_tape_block *block);

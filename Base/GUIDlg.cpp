@@ -30,6 +30,7 @@
 #include "MIDI.h"
 #include "Options.h"
 #include "Sound.h"
+#include "Tape.h"
 #include "Video.h"
 
 
@@ -126,7 +127,16 @@ CFileDialog::CFileDialog (const char* pcszCaption_, const char* pcszPath_, const
 
     // Set the filter and path
     OnNotify(m_pFilter,0);
+    SetPath(pcszPath_);
+}
+
+// Set browse path
+void CFileDialog::SetPath (const char *pcszPath_)
+{
     m_pFileView->SetPath(pcszPath_);
+
+    if (pcszPath_)
+        m_pPath->SetText(m_pFileView->GetPath());
 }
 
 // Handle control notifications
@@ -213,7 +223,7 @@ CInsertFloppy::CInsertFloppy (int nDrive_, CWindow* pParent_/*=NULL*/)
 
     // Browse from the location of the previous image, or the default directory if none
     const char* pcszImage = ((nDrive_ == 1) ? pFloppy1 : pFloppy2)->DiskPath();
-    m_pFileView->SetPath(*pcszImage ? pcszImage : OSD::MakeFilePath(MFP_INPUT));
+    SetPath(*pcszImage ? pcszImage : OSD::MakeFilePath(MFP_INPUT));
 }
 
 // Handle OK being clicked when a file is selected
@@ -246,11 +256,70 @@ void CInsertFloppy::OnOK ()
 
 ////////////////////////////////////////////////////////////////////////////////
 
+static int nTapeFilter = 0;
+static const FILEFILTER sTapeFilter =
+{
+#ifdef USE_ZLIB
+    "All Tapes (tap;tzx;csw;gz;zip)|"
+#endif
+    "Tape Images (tap;tzx;csw)|"
+#ifdef USE_ZLIB
+    "Compressed Files (gz;zip)|"
+#endif
+    "All Files",
+
+    {
+#ifdef USE_ZLIB
+        ".tap;.tzx;.csw;.gz;.zip",
+#endif
+        ".tap;.tzx;.csw",
+#ifdef USE_ZLIB
+        ".gz;.zip",
+#endif
+        ""
+    }
+};
+
+CInsertTape::CInsertTape (CWindow* pParent_/*=NULL*/)
+    : CFileDialog("Insert Tape", NULL, &sTapeFilter, &nTapeFilter, pParent_)
+{
+    // Browse from the location of the previous image, or the default directory if none
+    const char* pcszImage = Tape::GetPath();
+    SetPath(*pcszImage ? pcszImage : OSD::MakeFilePath(MFP_INPUT));
+}
+
+// Handle OK being clicked when a file is selected
+void CInsertTape::OnOK ()
+{
+    const char* pcszPath = m_pFileView->GetFullPath();
+
+    if (pcszPath)
+    {
+        bool fInserted = Tape::Insert(pcszPath);
+
+        // If we succeeded, show a status message and close the file selector
+        if (fInserted)
+        {
+            // Update the status text and close the dialog
+            Frame::SetStatus("%s  inserted", m_pFileView->GetItem()->m_pszLabel);
+            Destroy();
+            return;
+        }
+    }
+
+    // Report any error
+    char szBody[MAX_PATH+32];
+    sprintf(szBody, "Invalid tape image:\n\n%s", m_pFileView->GetItem()->m_pszLabel);
+    new CMessageBox(this, szBody, "Open Failed", mbWarning);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 CFileBrowser::CFileBrowser (CEditControl* pEdit_, CWindow* pParent_, const char* pcszCaption_, const FILEFILTER* pcsFilter_, int *pnFilter_)
     : CFileDialog(pcszCaption_, NULL, pcsFilter_, pnFilter_, pParent_), m_pEdit(pEdit_)
 {
     // Browse from the location of the previous image, or the default directory if none
-    m_pFileView->SetPath(*pEdit_->GetText() ? pEdit_->GetText() : OSD::MakeFilePath(MFP_INPUT));
+    SetPath(*pEdit_->GetText() ? pEdit_->GetText() : OSD::MakeFilePath(MFP_INPUT));
 }
 
 // Handle OK being clicked when a file is selected
