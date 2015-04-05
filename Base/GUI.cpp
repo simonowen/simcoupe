@@ -138,12 +138,10 @@ void GUI::Stop ()
 {
     // Delete any existing GUI object
     if (s_pGUI)
-    {
         delete s_pGUI, s_pGUI = NULL;
 
-        Video::SetDirty();
-        Input::Purge();
-    }
+    Video::SetDirty();
+    Input::Purge();
 }
 
 void GUI::Delete (CWindow* pWindow_)
