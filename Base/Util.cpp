@@ -2,7 +2,7 @@
 //
 // Util.cpp: Debug tracing, and other utility tasks
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -110,6 +110,35 @@ BYTE GetSizeCode (UINT uSize_)
 }
 
 
+const char *AbbreviateSize (uint64_t ullSize_)
+{
+    static const char *pcszUnits = "KMGTPE";
+
+    // Work up from Kilobytes
+    char nUnits = 0;
+    ullSize_ /= 1000;
+
+    // Loop while there are more than 1000 and we have another unit to move up to
+    while (ullSize_ >= 1000 && pcszUnits[nUnits+1])
+    {
+        // Determine the percentage error/loss in the next scaling
+        UINT uClipPercent = static_cast<UINT>((ullSize_%1000) * 100 / (ullSize_ - (ullSize_%1000)));
+
+        // Stop if it's at least 20%
+        if (uClipPercent >= 20)
+            break;
+
+        // Next unit, rounding to nearest
+        nUnits++;
+        ullSize_ = (ullSize_+500) / 1000;
+    }
+
+    static char sz[32] = {};
+    snprintf(sz, sizeof(sz)-1, "%llu%cB", ullSize_, pcszUnits[nUnits]);
+    return sz;
+}
+
+
 // CRC-CCITT for id/data checksums, with bit and byte order swapped
 WORD CrcBlock (const void* pcv_, size_t uLen_, WORD wCRC_/*=0xffff*/)
 {
@@ -203,10 +232,10 @@ DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, DWORD dwRMask_, DWORD dwGMask_, DWO
 
 DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, BYTE a_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_, DWORD dwAMask_)
 {
-    DWORD dwRed   = static_cast<DWORD>(((static_cast<ULONGLONG>(dwRMask_) * (r_+1)) >> 8) & dwRMask_);
-    DWORD dwGreen = static_cast<DWORD>(((static_cast<ULONGLONG>(dwGMask_) * (g_+1)) >> 8) & dwGMask_);
-    DWORD dwBlue  = static_cast<DWORD>(((static_cast<ULONGLONG>(dwBMask_) * (b_+1)) >> 8) & dwBMask_);
-    DWORD dwAlpha = static_cast<DWORD>(((static_cast<ULONGLONG>(dwAMask_) * (a_+1)) >> 8) & dwAMask_);
+    DWORD dwRed   = static_cast<DWORD>(((static_cast<uint64_t>(dwRMask_) * (r_+1)) >> 8) & dwRMask_);
+    DWORD dwGreen = static_cast<DWORD>(((static_cast<uint64_t>(dwGMask_) * (g_+1)) >> 8) & dwGMask_);
+    DWORD dwBlue  = static_cast<DWORD>(((static_cast<uint64_t>(dwBMask_) * (b_+1)) >> 8) & dwBMask_);
+    DWORD dwAlpha = static_cast<DWORD>(((static_cast<uint64_t>(dwAMask_) * (a_+1)) >> 8) & dwAMask_);
 
     return dwRed | dwGreen | dwBlue | dwAlpha;
 }

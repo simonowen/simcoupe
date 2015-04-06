@@ -2,7 +2,7 @@
 //
 // Util.h: Debug tracing, and other utility tasks
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ enum eMsgType { msgInfo, msgWarning, msgError, msgFatal };
 void Message (eMsgType eType_, const char* pcszFormat_, ...);
 
 BYTE GetSizeCode (UINT uSize_);
+const char *AbbreviateSize (uint64_t ullSize_);
 WORD CrcBlock (const void* pcv_, size_t uLen_, WORD wCRC_=0xffff);
 void PatchBlock (BYTE *pb_, BYTE *pbPatch_);
 void ByteSwap (BYTE *pb_, int nLen_);
@@ -53,10 +54,6 @@ void TraceOutputString (const BYTE *pcb_, size_t uLen_=0);
 #else
 void TraceOutputString (const char *, ...);
 #define TRACE 1 ? (void)0 : ::TraceOutputString
-#endif
-
-#ifndef ULONGLONG
-#define ULONGLONG   unsigned long long
 #endif
 
 #ifndef _countof

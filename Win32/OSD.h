@@ -2,7 +2,7 @@
 //
 // OSD.h: Win32 common OS-dependant functions
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -35,11 +35,11 @@
 #define NOMINMAX        // no min/max macros from windef.h
 #include <windows.h>
 #include <windowsx.h>   // for GET_X_LPARAM and GET_Y_LPARAM
+#include <winioctl.h>   // for DISK_GEOMETRY and IOCTL_DISK_GET_DRIVE_GEOMETRY
 #include <mmsystem.h>   // for timeSetEvent
 #include <sys/types.h>  // for _off_t etc.
 #include <direct.h>     // for _mkdir
 #include <stdio.h>      // for FILE structure
-#include <winioctl.h>   // for DISK_GEOMETRY and IOCTL_DISK_GET_DRIVE_GEOMETRY
 #include <winspool.h>   // for print spooling
 #include <commctrl.h>   // for Windows common controls
 #include <commdlg.h>    // for Windows common dialogs
@@ -90,11 +90,6 @@ typedef HRESULT (WINAPI *PFNDIRECTSOUNDCREATE) (LPGUID, LPDIRECTSOUND*, LPUNKNOW
 extern PFNDIRECTINPUTCREATE pfnDirectInputCreate;
 extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 
-// Make sure the DX5 (or higher) SDK was found
-#ifndef DSBLOCK_ENTIREBUFFER
-#error DX5 (or higher) SDK is required to build SimCoupe
-#endif
-
 #define PATH_SEPARATOR          '\\'
 
 #define strcasecmp  _strcmpi
@@ -121,45 +116,6 @@ extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 #define S_ISREG(mode)           _S_ISTYPE((mode), _S_IFREG)
 #define S_ISBLK(mode)           0
 #define S_ISLNK(mode)           0
-
-// VC6 or an old SDK will mean some symbols are missing or different, so define them
-#if _MSC_VER <= 1200
-typedef long LONG_PTR, *PLONG_PTR;
-typedef unsigned long ULONG_PTR, *PULONG_PTR;
-typedef DWORD DWORD_PTR, *PDWORD_PTR;
-#define INT_PTR int
-#define SetWindowLongPtr SetWindowLong
-#define DWLP_MSGRESULT DWL_MSGRESULT
-#define GWLP_WNDPROC GWL_WNDPROC
-#endif
-
-#ifndef MAPVK_VK_TO_VSC
-#define MAPVK_VK_TO_VSC         0
-#endif
-
-#ifndef WM_MOUSEWHEEL
-#define WM_MOUSEWHEEL               0x020a
-#define GET_WHEEL_DELTA_WPARAM(w)   ((short)HIWORD(w))
-#endif
-
-// From winioctl.h, since they're W2K+ only
-#ifndef IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS
-
-#define IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS    CTL_CODE(IOCTL_VOLUME_BASE, 0, METHOD_BUFFERED, FILE_ANY_ACCESS)
-
-typedef struct _DISK_EXTENT {
-    DWORD           DiskNumber;
-    LARGE_INTEGER   StartingOffset;
-    LARGE_INTEGER   ExtentLength;
-} DISK_EXTENT, *PDISK_EXTENT;
-
-typedef struct _VOLUME_DISK_EXTENTS {
-    DWORD       NumberOfDiskExtents;
-    DISK_EXTENT Extents[1];
-} VOLUME_DISK_EXTENTS, *PVOLUME_DISK_EXTENTS;
-
-#endif
-
 
 // Windows lacks direct.h, so we'll supply our own
 struct dirent

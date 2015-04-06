@@ -239,7 +239,7 @@ void COwnerDrawnMenu::DrawMenuText (HDC hdc_, LPRECT lprc, LPCSTR pcsz_, bool fD
 
         DrawState(hdc_, NULL, NULL, (LPARAM)psz, lstrlen(psz),
             lprc->right - r.right, lprc->top, lprc->right, lprc->bottom,
-            DST_TEXT | (fDisabled_ ? DSS_DISABLED : 0));
+            DST_PREFIXTEXT | (fDisabled_ ? DSS_DISABLED : 0));
     }
 
     DrawState(hdc_, NULL, NULL, (LPARAM)sz, lstrlen(sz),

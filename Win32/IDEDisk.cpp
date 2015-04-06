@@ -2,7 +2,7 @@
 //
 // IDEDisk.cpp: Platform-specific IDE direct disk access
 //
-//  Copyright (c) 2003-2014 Simon Owen
+//  Copyright (c) 2003-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -57,10 +57,31 @@ CDeviceHardDisk::~CDeviceHardDisk ()
 }
 
 
+bool CDeviceHardDisk::IsRecognised (const char* pcszDisk_)
+{
+    char *pszEnd = NULL;
+
+    // Accept a device number followed by a colon, and anything beyond that
+    return isdigit(pcszDisk_[0]) && strtoul(pcszDisk_, &pszEnd, 10) != ULONG_MAX && *pszEnd == ':';
+}
+
+
 bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/)
 {
+    if (!IsRecognised(m_pszDisk))
+        return false;
+
+    char *pszEnd = NULL;
+    ULONG ulDevice = strtoul(m_pszDisk, &pszEnd, 10);
+    if (ulDevice == ULONG_MAX)
+        return false;
+
+    char sz[MAX_PATH] = {};
+    snprintf(sz, sizeof(sz)-1, "\\\\.\\PhysicalDrive%lu", ulDevice);
+
     DWORD dwWrite = fReadOnly_ ? 0 : GENERIC_WRITE;
-    m_hDevice = CreateFile(m_pszDisk, GENERIC_READ|dwWrite, 0, NULL, OPEN_EXISTING, 0, NULL);
+    m_hDevice = CreateFile(sz, GENERIC_READ|dwWrite, 0, NULL, OPEN_EXISTING, 0, NULL);
+    DWORD dwError = GetLastError();
 
     // If a direct open failed, try via SAMdiskHelper
     if (!IsOpen())
@@ -68,25 +89,25 @@ bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/)
         DWORD dwRead;
         PIPEMESSAGE msg = {};
         msg.Input.dwMessage = FN_OPEN;
-        lstrcpyn(msg.Input.szPath, m_pszDisk, sizeof(msg.Input.szPath)-1);
+        lstrcpyn(msg.Input.szPath, sz, sizeof(msg.Input.szPath)-1);
 
         if (CallNamedPipe(PIPENAME, &msg, sizeof(msg.Input), &msg, sizeof(msg.Output), &dwRead, NMPWAIT_NOWAIT))
         {
             if (dwRead == sizeof(msg.Output) && msg.Output.dwError == 0)
                 m_hDevice = reinterpret_cast<HANDLE>(msg.Output.hDevice);
             else if (msg.Output.dwError)
-                SetLastError(msg.Output.dwError);
+                dwError = msg.Output.dwError;
         }
     }
 
     if (!IsOpen())
     {
-        if (GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
-            TRACE("Failed to open %s (%#08lx)\n", m_pszDisk, GetLastError());
+        if (dwError != ERROR_FILE_NOT_FOUND && dwError != ERROR_PATH_NOT_FOUND)
+            TRACE("Failed to open %s (%#08lx)\n", sz, dwError);
     }
     else if (!Lock(fReadOnly_))
     {
-        TRACE("Failed to get exclusive access to %s\n", m_pszDisk);
+        TRACE("Failed to get exclusive access to %s\n", sz);
     }
     else if (!m_pbSector)
     {
@@ -114,6 +135,7 @@ bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/)
     }
 
     Close();
+    SetLastError(dwError);
     return false;
 }
 
@@ -235,4 +257,79 @@ bool CDeviceHardDisk::WriteSector (UINT uSector_, BYTE* pb_)
 
     return SetFilePointer(m_hDevice, dwLow, &lHigh, FILE_BEGIN) != 0xffffffff &&
             WriteFile(m_hDevice, m_pbSector, dwSize, &dwWritten, NULL) && dwWritten == dwSize;
+}
+
+const char *CDeviceHardDisk::GetDeviceList ()
+{
+    static char szList[1024];
+    char *pszList = szList;
+    szList[0] = '\0';
+
+    BYTE ab[2048];
+
+    for (DWORD dw = 0 ; dw < 10 ; dw++)
+    {
+        DWORD dwRet;
+
+        char sz[32] = {};
+        snprintf(sz, sizeof(sz)-1, "\\\\.\\PhysicalDrive%lu", dw);
+
+        // Open with limited rights, so we can fetch some details without Administrator access
+        HANDLE h = CreateFile(sz, 0, 0, NULL, OPEN_EXISTING, 0, NULL);
+        if (h == INVALID_HANDLE_VALUE)
+            continue;
+
+        // Read the partition table
+        if (!DeviceIoControl(h, IOCTL_DISK_GET_DRIVE_LAYOUT_EX, NULL,0, &ab, sizeof(ab), &dwRet, NULL))
+        {
+            CloseHandle(h);
+            continue;
+        }
+
+        DRIVE_LAYOUT_INFORMATION_EX *pdli = reinterpret_cast<DRIVE_LAYOUT_INFORMATION_EX*>(ab);
+
+        // Require disks with at least one non-empty partition that begins at the start of the device.
+        if (pdli->PartitionCount && pdli->PartitionEntry[0].PartitionLength.QuadPart && !pdli->PartitionEntry[0].StartingOffset.QuadPart)
+        {
+            // Generate a user friendly abbreviation of the disk size
+            UINT uTotalSectors = static_cast<UINT>(pdli->PartitionEntry[0].PartitionLength.QuadPart >> 9) & ~1U;
+            const char *pcszSize = AbbreviateSize(static_cast<uint64_t>(uTotalSectors) * 512);
+
+            STORAGE_PROPERTY_QUERY spq = {};
+            spq.QueryType = PropertyStandardQuery;
+            spq.PropertyId = StorageDeviceProperty;
+
+            PSTORAGE_DEVICE_DESCRIPTOR pDevDesc = reinterpret_cast<PSTORAGE_DEVICE_DESCRIPTOR>(ab);
+            pDevDesc->Size = sizeof(ab);
+
+            if (DeviceIoControl(h, IOCTL_STORAGE_QUERY_PROPERTY, &spq, sizeof(spq), pDevDesc, pDevDesc->Size, &dwRet, NULL) && pDevDesc->ProductIdOffset)
+            {
+                // Extract make/model if defined
+                const char *pcszMake = pDevDesc->VendorIdOffset ? reinterpret_cast<const char*>(pDevDesc) + pDevDesc->VendorIdOffset : "";
+                const char *pcszModel = pDevDesc->ProductIdOffset ? reinterpret_cast<const char*>(pDevDesc) + pDevDesc->ProductIdOffset : "";
+
+                char sz[256];
+                snprintf(sz, sizeof(sz), "%lu: %s%s", dw, pcszMake, pcszModel);
+
+                // Strip trailing spaces
+                for (char *p = sz+strlen(sz)-1 ; p >= sz && *p == ' ' ; *p-- = '\0');
+
+                // Append the size string
+                snprintf(sz+strlen(sz), sizeof(sz)-strlen(sz), " (%s)", pcszSize);
+
+                if (strlen(pszList)+strlen(sz)+2 < sizeof(szList))
+                {
+                    strcpy(pszList, sz);
+                    pszList += strlen(pszList)+1;
+                }
+            }
+        }
+
+        CloseHandle(h);
+    }
+
+    // Double-terminate the list
+    *pszList = '\0';
+
+    return szList;
 }

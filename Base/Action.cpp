@@ -109,7 +109,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actToggleScanHiRes:
-                if (Video::CheckCaps(VCAP_SCANHIRES))
+                if (GetOption(scanlines) && Video::CheckCaps(VCAP_SCANHIRES))
                 {
                     SetOption(scanhires, !GetOption(scanhires));
                     Frame::SetStatus("Hi-res scanlines %s", GetOption(scanhires) ? "enabled" : "disabled");
@@ -124,7 +124,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actEjectFloppy1:
-                if (GetOption(drive1) == drvFloppy && pFloppy1->HasDisk())
+                if (pFloppy1->HasDisk())
                 {
                     Frame::SetStatus("%s  ejected from drive %d", pFloppy1->DiskFile(), 1);
                     pFloppy1->Eject();
@@ -132,7 +132,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actSaveFloppy1:
-                if (GetOption(drive1) == drvFloppy && pFloppy1->DiskModified() && pFloppy1->Save())
+                if (pFloppy1->HasDisk() && pFloppy1->DiskModified() && pFloppy1->Save())
                     Frame::SetStatus("%s  changes saved", pFloppy1->DiskFile());
                 break;
 
@@ -144,7 +144,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actEjectFloppy2:
-                if (GetOption(drive2) == drvFloppy && pFloppy2->HasDisk())
+                if (pFloppy2->HasDisk())
                 {
                     Frame::SetStatus("%s  ejected from drive %d", pFloppy2->DiskFile(), 2);
                     pFloppy2->Eject();
@@ -152,7 +152,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actSaveFloppy2:
-                if (GetOption(drive2) == drvFloppy && pFloppy2->DiskModified() && pFloppy2->Save())
+                if (pFloppy2->HasDisk() && pFloppy2->DiskModified() && pFloppy2->Save())
                     Frame::SetStatus("%s  changes saved", pFloppy2->DiskFile());
                 break;
 
@@ -219,8 +219,11 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                 break;
 
             case actReleaseMouse:
-                Input::AcquireMouse(false);
-                Frame::SetStatus("Mouse capture released");
+                if (Input::IsMouseAcquired())
+                {
+                    Input::AcquireMouse(false);
+                    Frame::SetStatus("Mouse capture released");
+                }
                 break;
 
             case actFrameStep:
@@ -234,9 +237,6 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
                     break;
 
                 g_fPaused = !g_fPaused;
-
-                if (g_fPaused)
-                    Sound::Silence();
 
                 Input::Purge();
                 break;

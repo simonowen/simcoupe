@@ -48,6 +48,7 @@ typedef unsigned int        UINT;
 #include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <ctype.h>
 #include <limits.h>
 #include <errno.h>

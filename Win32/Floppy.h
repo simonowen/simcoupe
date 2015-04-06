@@ -2,7 +2,7 @@
 //
 // Floppy.h: Real floppy access (requires fdrawcmd.sys)
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -47,6 +47,7 @@ class CFloppyStream : public CStream
         virtual ~CFloppyStream ();
 
     public:
+        static bool IsSupported ();
         static bool IsAvailable ();
         static bool IsRecognised (const char* pcszStream_);
 

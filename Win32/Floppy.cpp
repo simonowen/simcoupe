@@ -2,7 +2,7 @@
 //
 // Floppy.cpp: Real floppy access (requires fdrawcmd.sys)
 //
-//  Copyright (c) 1999-2012 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -44,6 +44,34 @@ bool Ioctl (HANDLE h_, DWORD dwCode_, LPVOID pIn_=NULL, DWORD cbIn_=0, LPVOID pO
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+/*static*/ bool CFloppyStream::IsSupported ()
+{
+    bool fSupported = false;
+
+    // Open the Service Control manager
+    SC_HANDLE hSCM = OpenSCManager(NULL, NULL, GENERIC_READ);
+    if (hSCM)
+    {
+        // Open the FDC service, for fdc.sys (floppy disk controller driver)
+        SC_HANDLE hService = OpenService(hSCM, "fdc", GENERIC_READ);
+        if (hService)
+        {
+            SERVICE_STATUS ss;
+            if (QueryServiceStatus(hService, &ss))
+            {
+                // If fdc.sys is running then fdrawcmd.sys is supported
+                fSupported = ss.dwCurrentState == SERVICE_RUNNING;
+            }
+
+            CloseServiceHandle(hService);
+        }
+
+        CloseServiceHandle(hSCM);
+    }
+
+    return fSupported;
+}
 
 /*static*/ bool CFloppyStream::IsAvailable ()
 {

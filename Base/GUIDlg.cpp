@@ -832,7 +832,7 @@ class CInputOptions : public CDialog
             new CTextControl(this, 60, 13, "Keyboard", YELLOW_8, BLUE_2);
 
             new CTextControl(this, 63, 35, "Mapping mode:");
-            m_pKeyMapping = new CComboBox(this, 145, 32, "None (raw)|Auto-select|SAM Coupe|Sinclair Spectrum", 115);
+            m_pKeyMapping = new CComboBox(this, 145, 32, "None (raw)|Auto-select|SAM Coupe|ZX Spectrum", 115);
 
             m_pAltForCntrl = new CCheckBox(this, 63, 63, "Use Left-Alt for SAM Cntrl key");
 #ifdef __APPLE__
@@ -894,10 +894,10 @@ class CDriveOptions : public CDialog
             new CTextControl(this, 60, 12, "Drives", YELLOW_8, BLUE_2);
 
             new CTextControl(this, 63, 32, "D1:");
-            m_pDrive1 = new CComboBox(this, 83, 29, "None|Floppy", 80);
+            m_pDrive1 = new CComboBox(this, 83, 29, "None|Floppy", 60);
 
-            new CTextControl(this, 178, 32, "D2:");
-            m_pDrive2 = new CComboBox(this, 198, 29, "None|Floppy|Atom|Atom Lite", 80);
+            new CTextControl(this, 158, 32, "D2:");
+            m_pDrive2 = new CComboBox(this, 178, 29, "None|Floppy|Atom (Legacy)|Atom Lite", 100);
 
             new CFrameControl(this, 50, 71, 238, 120);
             new CTextControl(this, 60, 67, "Options", YELLOW_8, BLUE_2);
@@ -1086,10 +1086,10 @@ class CParallelOptions : public CDialog
             new CTextControl(this, 63, 33, "Devices connected to the parallel ports:");
 
             new CTextControl(this, 80, 57, "Port 1:");
-            m_pPort1 = new CComboBox(this, 125, 54, "None|Printer|Mono DAC|Stereo DAC", 120);
+            m_pPort1 = new CComboBox(this, 125, 54, "None|Printer|Mono DAC|Stereo DAC", 100);
 
             new CTextControl(this, 80, 82, "Port 2:");
-            m_pPort2 = new CComboBox(this, 125, 79, "None|Printer|Mono DAC|Stereo DAC", 120);
+            m_pPort2 = new CComboBox(this, 125, 79, "None|Printer|Mono DAC|Stereo DAC", 100);
 
             new CIconControl(this, 10, 113, &sPortIcon);
             new CFrameControl(this, 50, 120, 238, 84);

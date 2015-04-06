@@ -185,9 +185,14 @@ void Keyboard::Update ()
     bool fShiftToggle = IsPressed(HK_LSHIFT) && IsPressed(HK_RSHIFT);
     if (IsPressed(HK_RSHIFT)) PressKey(HK_LSHIFT);
 
-    // Left-Alt can optionally be used as the SAM Cntrl key
-    if (GetOption(altforcntrl) && IsPressed(HK_LALT))
+    // Left-Alt?
+    if (IsPressed(HK_LALT))
     {
+        // Ignore Alt key combinations if not used for Cntrl
+        if (!GetOption(altforcntrl))
+            return;
+
+        // Release Left-Alt, press SAM Cntrl
         ReleaseKey(HK_LALT);
         PressSamKey(SK_CONTROL);
     }

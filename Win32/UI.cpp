@@ -22,6 +22,7 @@
 #include "UI.h"
 
 #include <shlwapi.h>
+#include <shlobj.h>
 #include <VersionHelpers.h>
 
 #include "Action.h"
@@ -38,6 +39,7 @@
 #include "Frame.h"
 #include "GIF.h"
 #include "GUIDlg.h"
+#include "IDEDisk.h"
 #include "Input.h"
 #include "Keyin.h"
 #include "Main.h"
@@ -76,6 +78,7 @@ static void AddRecentFile (const char* pcsz_);
 static void LoadRecentFiles ();
 static void SaveRecentFiles ();
 
+static bool EjectDisk (CDiskDevice *pFloppy_);
 static bool EjectTape ();
 
 static void SaveWindowPosition(HWND hwnd_);
@@ -231,7 +234,8 @@ bool UI::CheckEvents ()
         if (!g_fPaused)
             break;
 
-        // Block until something happens
+        // Silence the audio and block until something happens
+        Sound::Silence();
         WaitMessage();
     }
 
@@ -373,8 +377,8 @@ bool ChangesSaved (CDiskDevice* pFloppy_)
 
     if (GetOption(saveprompt))
     {
-        char sz[MAX_PATH];
-        snprintf(sz, MAX_PATH, "Save changes to %s?", pFloppy_->DiskFile());
+        char sz[MAX_PATH] = {};
+        snprintf(sz, MAX_PATH-1, "Save changes to %s?", pFloppy_->DiskFile());
 
         switch (MessageBox(g_hwnd, sz, WINDOW_CAPTION, MB_YESNOCANCEL|MB_ICONQUESTION))
         {
@@ -507,7 +511,17 @@ bool AttachDisk (CAtaAdapter *pAdapter_, const char *pcszDisk_, int nDevice_)
 {
     if (!pAdapter_->Attach(pcszDisk_, nDevice_))
     {
-        Message(msgWarning, "Failed to open: %s", pcszDisk_);
+        // Attempt to determine why we couldn't open the device
+        CHardDisk *pDisk = new CDeviceHardDisk(pcszDisk_);
+        if (!pDisk->Open(false))
+        {
+            // Access will be denied if we're running as a regular user, and without SAMdiskHelper
+            if (GetLastError() == ERROR_ACCESS_DENIED)
+                Message(msgWarning, "Failed to open: %s\n\nAdminstrator access or SAMdiskHelper is required.", pcszDisk_);
+            else
+                Message(msgWarning, "Failed to open: %s", pcszDisk_);
+        }
+        delete pDisk;
         return false;
     }
 
@@ -519,6 +533,10 @@ bool InsertDisk (CDiskDevice* pFloppy_, const char *pcszPath_=NULL)
     char szFile[MAX_PATH] = "";
     int nDrive = (pFloppy_ == pFloppy1) ? 1 : 2;
 
+    // Save any changes to the current disk first
+    if (!ChangesSaved(pFloppy_))
+        return false;
+
     // Check the floppy drive is present
     if ((nDrive == 1 && GetOption(drive1) != drvFloppy) ||
         (nDrive == 2 && GetOption(drive2) != drvFloppy))
@@ -527,9 +545,12 @@ bool InsertDisk (CDiskDevice* pFloppy_, const char *pcszPath_=NULL)
         return false;
     }
 
-    // Save any changes to the current disk first
-    if (!ChangesSaved(pFloppy_))
-        return false;
+    // Eject any existing disk if the new path is blank
+    if (pcszPath_ && !*pcszPath_)
+    {
+        EjectDisk(pFloppy_);
+        return true;
+    }
 
     OPENFILENAME ofn = { sizeof(ofn) };
     ofn.hwndOwner = g_hwnd;
@@ -573,7 +594,7 @@ bool EjectDisk (CDiskDevice *pFloppy_)
 
     if (ChangesSaved(pFloppy_))
     {
-        Frame::SetStatus("%s  ejected from drive %d", pFloppy1->DiskFile(), 1);
+        Frame::SetStatus("%s  ejected from drive %d", pFloppy_->DiskFile(), (pFloppy_ == pFloppy1) ? 1 : 2);
         pFloppy_->Eject();
         return true;
     }
@@ -894,16 +915,20 @@ INT_PTR CALLBACK TapeBrowseDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
 
 void UpdateMenuFromOptions ()
 {
-    char szEject[MAX_PATH];
+    char szEject[MAX_PATH] = {};
 
-    HMENU hmenu = g_hmenu, hmenuFile = GetSubMenu(hmenu, 0), hmenuView = GetSubMenu(hmenu, 1), hmenuFloppy2 = GetSubMenu(hmenuFile, 6);
+    HMENU hmenu = g_hmenu;
+    HMENU hmenuFile = GetSubMenu(hmenu, 0);
+    HMENU hmenuFloppy2 = GetSubMenu(hmenuFile, 6);
+    HMENU hmenuView = GetSubMenu(hmenu, 1);
+    HMENU hmenuRecord = GetSubMenu(hmenu, 2);
 
     bool fFloppy1 = GetOption(drive1) == drvFloppy, fInserted1 = pFloppy1->HasDisk();
     bool fFloppy2 = GetOption(drive2) == drvFloppy, fInserted2 = pFloppy2->HasDisk();
 
-    snprintf(szEject, MAX_PATH, "&Close %s", fFloppy1 ? pFloppy1->DiskFile() : "");
+    snprintf(szEject, MAX_PATH-1, "&Close %s", fInserted1 ? pFloppy1->DiskFile() : "");
     ModifyMenu(hmenu, IDM_FILE_FLOPPY1_EJECT, MF_STRING, IDM_FILE_FLOPPY1_EJECT, szEject);
-    snprintf(szEject, MAX_PATH, "&Close %s", fFloppy2 ? pFloppy2->DiskFile() : "");
+    snprintf(szEject, MAX_PATH-1, "&Close %s", fInserted2 ? pFloppy2->DiskFile() : "");
     ModifyMenu(hmenu, IDM_FILE_FLOPPY2_EJECT, MF_STRING, IDM_FILE_FLOPPY2_EJECT, szEject);
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 1 options
@@ -912,8 +937,8 @@ void UpdateMenuFromOptions ()
     EnableItem(IDM_FILE_FLOPPY1_EJECT, fInserted1);
     EnableItem(IDM_FILE_FLOPPY1_SAVE_CHANGES, fFloppy1 && pFloppy1->DiskModified());
 
-    // Only enable the floppy device menu item if it's available
-    EnableItem(IDM_FILE_FLOPPY1_DEVICE, CFloppyStream::IsAvailable());
+    // Only enable the floppy device menu item if it's supported
+    EnableItem(IDM_FILE_FLOPPY1_DEVICE, CFloppyStream::IsSupported());
     CheckOption(IDM_FILE_FLOPPY1_DEVICE, fInserted1 && CFloppyStream::IsRecognised(pFloppy1->DiskFile()));
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 2 options
@@ -935,10 +960,10 @@ void UpdateMenuFromOptions ()
     CheckOption(IDM_VIEW_SCANHIRES, GetOption(scanhires) && Video::CheckCaps(VCAP_SCANHIRES));
     EnableItem(IDM_VIEW_SCANHIRES, GetOption(scanlines) && Video::CheckCaps(VCAP_SCANHIRES));
 
-    int nScanOpt = (GetOption(scanlevel) < 50) ? 0 : (GetOption(scanlevel)-50)/10;
-    CheckMenuRadioItem(hmenu, IDM_VIEW_SCANLEVEL_50, IDM_VIEW_SCANLEVEL_90, IDM_VIEW_SCANLEVEL_50+nScanOpt, MF_BYCOMMAND);
     CheckMenuRadioItem(hmenu, IDM_VIEW_ZOOM_50, IDM_VIEW_ZOOM_300, IDM_VIEW_ZOOM_50+GetOption(scale)-1, MF_BYCOMMAND);
     CheckMenuRadioItem(hmenu, IDM_VIEW_BORDERS0, IDM_VIEW_BORDERS4, IDM_VIEW_BORDERS0+GetOption(borders), MF_BYCOMMAND);
+
+    EnableMenuItem(hmenuRecord, 3, MF_BYPOSITION | (GetOption(sound) ? MF_ENABLED : MF_GRAYED));
 
     EnableItem(IDM_RECORD_AVI_START, !AVI::IsRecording());
     EnableItem(IDM_RECORD_AVI_HALF, !AVI::IsRecording());
@@ -1444,7 +1469,8 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 else if (GetOption(fullscreen))
                     ShowWindow(hwnd_, SW_SHOWMINNOACTIVE);
             }
-            break;
+
+            return 0;
         }
 
         // File has been dropped on our window
@@ -1703,7 +1729,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             if ((wParam_ & 0xfff0) == SC_KEYMENU)
             {
                 // Ignore the key if Ctrl is pressed, to avoid Win9x problems with AltGr activating the menu
-                if (GetAsyncKeyState(VK_CONTROL < 0) || GetAsyncKeyState(VK_RMENU))
+                if ((GetAsyncKeyState(VK_CONTROL) < 0) || GetAsyncKeyState(VK_RMENU) < 0)
                     return 0;
 
                 // If Alt alone is pressed, ensure the menu is visible (for fullscreen)
@@ -1714,6 +1740,21 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 // As well as blocking access to the menu it avoids a beep for the unhandled ones (mainly Alt-Enter)
                 if ((GetOption(altforcntrl) && lParam_) || lParam_ == VK_RETURN)
                     return 0;
+
+                // Alt-0 to Alt-5 set the zoom level
+                if (lParam_ >= '0' && lParam_ <= '5')
+                    return SendMessage(hwnd_, WM_COMMAND, IDM_VIEW_ZOOM_50 + lParam_ - '0', 0L);
+            }
+            // Maximize?
+            else if (wParam_ == SC_MAXIMIZE)
+            {
+                // Shift pressed?
+                if (GetAsyncKeyState(VK_SHIFT) < 0)
+                {
+                    // Toggle fullscreen instead
+                    Action::Do(actToggleFullscreen);
+                    return 0;
+                }
             }
             break;
 
@@ -1851,12 +1892,14 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_FILE_FLOPPY1_DEVICE:
                     if (!CFloppyStream::IsAvailable())
                     {
-                        if (MessageBox(hwnd_, "Real disk support requires a 3rd party driver.\n\nDo you want to download it?",
-                            "fdrawcmd.sys not found", MB_ICONQUESTION|MB_YESNO) == IDYES)
+                        if (MessageBox(hwnd_, "Real floppy disk support requires a 3rd party driver.\n"
+                                              "\n"
+                                              "Visit the website to to download it?",
+                                              "fdrawcmd.sys not found",
+                                              MB_ICONQUESTION|MB_YESNO) == IDYES)
                             ShellExecute(NULL, NULL, "http://simonowen.com/fdrawcmd/", NULL, "", SW_SHOWMAXIMIZED);
                     }
-
-                    if (GetOption(drive1) == drvFloppy && ChangesSaved(pFloppy1) && pFloppy1->Insert("A:"))
+                    else if (GetOption(drive1) == drvFloppy && ChangesSaved(pFloppy1) && pFloppy1->Insert("A:"))
                         Frame::SetStatus("Using floppy drive %s", pFloppy1->DiskFile());
                     break;
 
@@ -1871,18 +1914,9 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 case IDM_VIEW_FULLSCREEN:           Action::Do(actToggleFullscreen); break;
                 case IDM_VIEW_RATIO54:              Action::Do(actToggle5_4);        break;
                 case IDM_VIEW_SCANLINES:            Action::Do(actToggleScanlines);  break;
-                case IDM_VIEW_SCANHIRES:            Action::Do(actToggleScanHiRes); break;
+                case IDM_VIEW_SCANHIRES:            Action::Do(actToggleScanHiRes);  break;
                 case IDM_VIEW_FILTER:               Action::Do(actToggleFilter);     break;
                 case IDM_VIEW_GREYSCALE:            Action::Do(actToggleGreyscale);  break;
-
-                case IDM_VIEW_SCANLEVEL_50:
-                case IDM_VIEW_SCANLEVEL_60:
-                case IDM_VIEW_SCANLEVEL_70:
-                case IDM_VIEW_SCANLEVEL_80:
-                case IDM_VIEW_SCANLEVEL_90:
-                    SetOption(scanlevel, 50+10*(wId-IDM_VIEW_SCANLEVEL_50));
-                    Video::UpdatePalette();
-                    break;
 
                 case IDM_VIEW_ZOOM_50:
                 case IDM_VIEW_ZOOM_100:
@@ -2143,33 +2177,42 @@ void SetComboStrings (HWND hdlg_, UINT uID_, const char** ppcsz_, int nDefault_/
     SendMessage(hwndCombo, CB_SETCURSEL, (nDefault_ == -1) ? 0 : nDefault_, 0L);
 }
 
-void AddComboString(HWND hdlg_, UINT uID_, const char* pcsz_)
+const char *GetComboText (HWND hdlg_, UINT uID_, int nMaxLen_)
+{
+    static char sz[MAX_PATH];
+    sz[0] = '\0';
+
+    if (nMaxLen_ > MAX_PATH)
+        nMaxLen_ = MAX_PATH;
+
+    // Fetch the current selection
+    HWND hwndCombo = GetDlgItem(hdlg_, uID_);
+    int nSel = static_cast<int>(SendMessage(hwndCombo, CB_GETCURSEL, 0, 0L));
+
+    // Fetch the item text if it's not too long
+    if (SendMessage(hwndCombo, CB_GETLBTEXTLEN, nSel, 0L) < nMaxLen_)
+        GetWindowText(hwndCombo, sz, nMaxLen_);
+
+    // Clear the entry if it's a placeholder
+    if (!lstrcmpi(sz, "<None>"))
+        sz[0] = '\0';
+
+    return sz;
+}
+
+void AddComboString (HWND hdlg_, UINT uID_, const char* pcsz_)
 {
     SendDlgItemMessage(hdlg_, uID_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(pcsz_));
 }
 
-
-void FillMidiInCombo (HWND hwndCombo_)
+void AddComboExString (HWND hdlg_, UINT uID_, const char* pcsz_)
 {
-    SendMessage(hwndCombo_, CB_RESETCONTENT, 0, 0L);
+    COMBOBOXEXITEM cbei = {};
+    cbei.iItem = -1;
+    cbei.mask = CBEIF_TEXT;
+    cbei.pszText = const_cast<char*>(pcsz_);
 
-    int nDevs = 0;//midiInGetNumDevs();
-    SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>("<not currently supported>"));
-//  SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(nDevs ? "<default device>" : "<None>"));
-
-    if (nDevs)
-    {
-        for (int i = 0 ; i < nDevs ; i++)
-        {
-            MIDIINCAPS mc;
-            if (midiInGetDevCaps(i, &mc, sizeof(mc)) == MMSYSERR_NOERROR)
-                SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(mc.szPname));
-        }
-    }
-
-    // Select the current device in the list, or the first one if that fails
-    if (!*GetOption(midiindev) || SendMessage(hwndCombo_, CB_SETCURSEL, atoi(GetOption(midiindev))+1, 0L) == CB_ERR)
-        SendMessage(hwndCombo_, CB_SETCURSEL, 0, 0L);
+    SendDlgItemMessage(hdlg_, uID_, CBEM_INSERTITEM, 0, reinterpret_cast<LPARAM>(&cbei));
 }
 
 
@@ -2178,21 +2221,21 @@ void FillMidiOutCombo (HWND hwndCombo_)
     SendMessage(hwndCombo_, CB_RESETCONTENT, 0, 0L);
 
     int nDevs = midiOutGetNumDevs();
-    SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(nDevs ? "<default device>" : "<None>"));
+    SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(nDevs ? "None" : "<None>"));
 
-    if (nDevs)
+    for (int i = 0 ; i < nDevs ; i++)
     {
-        for (int i = 0 ; i < nDevs ; i++)
-        {
-            MIDIOUTCAPS mc;
-            if (midiOutGetDevCaps(i, &mc, sizeof(mc)) == MMSYSERR_NOERROR)
-                SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(mc.szPname));
-        }
+        MIDIOUTCAPS mc;
+        if (midiOutGetDevCaps(i, &mc, sizeof(mc)) == MMSYSERR_NOERROR)
+            SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(mc.szPname));
     }
 
     // Select the current device in the list, or the first one if that fails
-    if (!*GetOption(midioutdev) || SendMessage(hwndCombo_, CB_SETCURSEL, atoi(GetOption(midioutdev))+1, 0L) == CB_ERR)
+    if (SendMessage(hwndCombo_, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(midioutdev))) == CB_ERR)
         SendMessage(hwndCombo_, CB_SETCURSEL, 0, 0L);
+
+    // Enable combo if there are devices, disable otherwise
+    EnableWindow(hwndCombo_, nDevs != 0);
 }
 
 
@@ -2212,15 +2255,15 @@ void FillPrintersCombo (HWND hwndCombo_, LPCSTR pcszSelected_)
 void FillJoystickCombo (HWND hwndCombo_, const char* pcszSelected_)
 {
     SendMessage(hwndCombo_, CB_RESETCONTENT, 0, 0L);
-    SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>("None"));
-
     Input::FillJoystickCombo(hwndCombo_);
 
-    // Find the position of the item to select, or select the first one (None) if we can't find it
-    LRESULT lPos = SendMessage(hwndCombo_, CB_FINDSTRINGEXACT, 0U-1, reinterpret_cast<LPARAM>(pcszSelected_));
-    if (lPos == CB_ERR)
-        lPos = 0;
-    SendMessage(hwndCombo_, CB_SETCURSEL, lPos, 0L);
+    int nItems = static_cast<int>(SendMessage(hwndCombo_, CB_GETCOUNT, 0, 0L));
+    EnableWindow(hwndCombo_, nItems != 0);
+    SendMessage(hwndCombo_, CB_INSERTSTRING, 0, reinterpret_cast<LPARAM>(nItems ? "None" : "<None>"));
+
+    // Select the current item, falling back on the first entry (None) if it's missing
+    if (SendMessage(hwndCombo_, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(pcszSelected_)) == CB_ERR)
+        SendMessage(hwndCombo_, CB_SETCURSEL, 0, 0L);
 }
 
 
@@ -2241,7 +2284,7 @@ void BrowseImage (HWND hdlg_, int nControl_, const char* pcszFilters_)
     ofn.Flags = 0;
 
     if (GetSaveLoadFile(&ofn, true))
-        SetDlgItemPath(hdlg_, nControl_, szFile, true);
+        SetDlgItemPath(hdlg_, nControl_, szFile);
 }
 
 BOOL BadField (HWND hdlg_, int nId_)
@@ -2506,8 +2549,8 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     fCompress = SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_GETCHECK, 0, 0L) == BST_CHECKED;
                     fFormat = SendDlgItemMessage(hdlg_, IDC_FORMAT, BM_GETCHECK, 0, 0L) == BST_CHECKED;
 
-                    char szFile [MAX_PATH];
-                    snprintf(szFile, MAX_PATH, "untitled%s", aszTypes[nType]);
+                    char szFile [MAX_PATH] = {};
+                    snprintf(szFile, MAX_PATH-1, "untitled%s", aszTypes[nType]);
 
                     OPENFILENAME ofn = { sizeof(ofn) };
                     ofn.hwndOwner = hdlg_;
@@ -2763,7 +2806,7 @@ INT_PTR CALLBACK BasePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 // New page being selected?
                 case PSN_SETACTIVE:
                     // Find and remember the page number of the new active page
-                    for (nOptionPage = MAX_OPTION_PAGES ; nOptionPage && ahwndPages[nOptionPage] != hdlg_ ; nOptionPage--);
+                    for (nOptionPage = MAX_OPTION_PAGES-1 ; nOptionPage && ahwndPages[nOptionPage] != hdlg_ ; nOptionPage--);
                     break;
             }
         }
@@ -2781,15 +2824,15 @@ INT_PTR CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
     {
         case WM_INITDIALOG:
         {
-            static const char* aszMain[] = { "256K", "512K", NULL };
-            SetComboStrings(hdlg_, IDC_MAIN_MEMORY, aszMain, (GetOption(mainmem) >> 8) - 1);
+            CheckRadioButton(hdlg_, IDR_256K,IDR_512K, (GetOption(mainmem) == 256) ? IDR_256K : IDR_512K);
+            SendDlgItemMessage(hdlg_, IDC_EXTERNAL, TBM_SETRANGE, 0, MAKELONG(0, 4));
+            SendDlgItemMessage(hdlg_, IDC_EXTERNAL, TBM_SETPOS, TRUE, GetOption(externalmem));
 
-            static const char* aszExternal[] = { "None", "1MB", "2MB", "3MB", "4MB", NULL };
-            SetComboStrings(hdlg_, IDC_EXTERNAL_MEMORY, aszExternal, GetOption(externalmem));
-
+            // Set the current custom ROM path, and enable filesystem auto-complete
             SetDlgItemPath(hdlg_, IDE_ROM, GetOption(rom));
+            SHAutoComplete(GetDlgItem(hdlg_, IDE_ROM), SHACF_FILESYS_ONLY|SHACF_USETAB);
+            SendDlgItemMessage(hdlg_, IDE_ROM, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
 
-            SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_SETCHECK, GetOption(fastreset) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_ALBOOT_ROM, BM_SETCHECK, GetOption(albootrom) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
             break;
@@ -2797,10 +2840,19 @@ INT_PTR CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
 
         case WM_NOTIFY:
         {
-            if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
+            LPNMHDR pnmh = reinterpret_cast<LPNMHDR>(lParam_);
+            if (pnmh->idFrom == IDC_EXTERNAL)
             {
-                SetOption(mainmem, static_cast<int>((SendDlgItemMessage(hdlg_, IDC_MAIN_MEMORY, CB_GETCURSEL, 0, 0L) + 1) << 8));
-                SetOption(externalmem, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_EXTERNAL_MEMORY, CB_GETCURSEL, 0, 0L)));
+                char sz[16];
+
+                int nExternalMB = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_EXTERNAL, TBM_GETPOS, 0, 0L));
+                snprintf(sz, sizeof(sz), "%dMB", nExternalMB);
+                SetDlgItemText(hdlg_, IDS_EXTERNAL, sz);
+            }
+            else if (pnmh->code == PSN_APPLY)
+            {
+                SetOption(mainmem, (SendDlgItemMessage(hdlg_, IDR_256K, BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 256 : 512);
+                SetOption(externalmem, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_EXTERNAL, TBM_GETPOS, 0, 0L)));
 
                 // If the memory configuration has changed, apply the changes
                 if (Changed(mainmem) || Changed(externalmem))
@@ -2808,7 +2860,6 @@ INT_PTR CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
 
                 GetDlgItemPath(hdlg_, IDE_ROM, const_cast<char*>(GetOption(rom)), MAX_PATH);
 
-                SetOption(fastreset, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_GETCHECK, 0, 0L) == BST_CHECKED));
                 SetOption(albootrom, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALBOOT_ROM, BM_GETCHECK, 0, 0L) == BST_CHECKED));
 
                 // If the ROM config has changed, schedule the changes for the next reset
@@ -2845,29 +2896,119 @@ INT_PTR CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
 INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+    bool fPreview = false;
 
     switch (uMsg_)
     {
         case WM_INITDIALOG:
         {
+            static const char *aszRenderer[] = { "Auto-select (Default)", "DirectDraw", "Direct3D (if available)", NULL };
+
             SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_SETCHECK, GetOption(hwaccel) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_FILTER, BM_SETCHECK, GetOption(filter) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_SETCHECK, GetOption(scanlines) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_HIRES, BM_SETCHECK, GetOption(scanhires) ? BST_CHECKED : BST_UNCHECKED, 0L);
+
+            int nRenderer = GetOption(direct3d);
+            if (nRenderer < -1 || nRenderer > 1) nRenderer = -1;
+
+            int nIntensity = std::max(0, std::min(95, GetOption(scanlevel)));
+            SendDlgItemMessage(hdlg_, IDC_INTENSITY, TBM_SETRANGE, 0, MAKELONG(0, 19));
+            SendDlgItemMessage(hdlg_, IDC_INTENSITY, TBM_SETPOS, TRUE, nIntensity / 5);
+
+            SetComboStrings(hdlg_, IDC_RENDERER, aszRenderer, nRenderer+1);
+
+            SendMessage(hdlg_, WM_COMMAND, IDC_HWACCEL, 0L);
+
             break;
         }
 
         case WM_NOTIFY:
         {
-            LPPSHNOTIFY ppsn = reinterpret_cast<LPPSHNOTIFY>(lParam_);
+            LPNMHDR pnmh = reinterpret_cast<LPNMHDR>(lParam_);
 
-            if (ppsn->hdr.code == PSN_APPLY)
+            int nIntensity = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_INTENSITY, TBM_GETPOS, 0, 0L)) * 5;
+
+            if (pnmh->idFrom == IDC_INTENSITY)
             {
-                SetOption(hwaccel, SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-
-                if (Changed(hwaccel))
-                    Video::Init();
+                char sz[16];
+                snprintf(sz, sizeof(sz), "%d%%", nIntensity);
+                SetDlgItemText(hdlg_, IDS_INTENSITY_PERCENT, sz);
+                fPreview = true;
             }
 
+            if (pnmh->code == PSN_APPLY)
+            {
+                SetOption(hwaccel, SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+                SetOption(direct3d, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_RENDERER, CB_GETCURSEL, 0, 0L)) - 1);
+
+                SetOption(filter, SendDlgItemMessage(hdlg_, IDC_FILTER, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+                SetOption(scanlines, SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+                SetOption(scanhires, SendDlgItemMessage(hdlg_, IDC_HIRES, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+                SetOption(scanlevel, nIntensity);
+
+                if (Changed(hwaccel) || Changed(direct3d))
+                    Video::Init();
+
+                if (Changed(scanlines) || Changed(scanhires) || Changed(scanlevel))
+                    Video::UpdatePalette();
+            }
             break;
         }
+
+        case WM_COMMAND:
+        {
+            switch (LOWORD(wParam_))
+            {
+                case IDC_HWACCEL:
+                {
+                    bool fAccel = SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) != 0;
+                    EnableWindow(GetDlgItem(hdlg_, IDC_FILTER), fAccel);
+                    EnableWindow(GetDlgItem(hdlg_, IDS_RENDERER), fAccel);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_RENDERER), fAccel);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_HIRES), fAccel);
+                    fPreview = true;
+                    break;
+                }
+
+                case IDC_SCANLINES:
+                {
+                    bool fScanlines = SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_GETCHECK, 0, 0L) == BST_CHECKED;
+                    EnableWindow(GetDlgItem(hdlg_, IDC_HIRES), fScanlines);
+                    EnableWindow(GetDlgItem(hdlg_, IDS_INTENSITY), fScanlines);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_INTENSITY), fScanlines);
+                    EnableWindow(GetDlgItem(hdlg_, IDS_INTENSITY_PERCENT), fScanlines);
+                    fPreview = true;
+                    break;
+                }
+
+                case IDC_FILTER:
+                case IDC_HIRES:
+                    fPreview = true;
+                    break;
+            }
+            break;
+        }
+    }
+
+    // Are we to preview the display option changes?
+    if (fPreview)
+    {
+        // Apply the current dialog settings
+        SetOption(filter, SendDlgItemMessage(hdlg_, IDC_FILTER, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+        SetOption(scanlines, SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+        SetOption(scanhires, SendDlgItemMessage(hdlg_, IDC_HIRES, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+        SetOption(scanlevel, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_INTENSITY, TBM_GETPOS, 0, 0L)) * 5);
+
+        // Redraw the display to reflect the changes
+        Video::UpdatePalette();
+        Frame::Redraw();
+
+        // Restore the previous settings
+        SetOption(filter, opts.filter);
+        SetOption(scanlines, opts.scanlines);
+        SetOption(scanlevel, opts.scanlevel);
+        SetOption(scanhires, opts.scanhires);
     }
 
     return fRet;
@@ -2888,6 +3029,7 @@ INT_PTR CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             static const char *aszDAC7C[] = { "None", "Blue Alpha Sampler (8-bit mono)", "SAMVox (4 channel 8-bit mono)", "Paula (2 channel 4-bit stereo)", NULL };
             SetComboStrings(hdlg_, IDC_DAC_7C, aszDAC7C, GetOption(dac7c));
 
+            FillMidiOutCombo(GetDlgItem(hdlg_, IDC_MIDI_OUT));
             break;
         }
 
@@ -2897,6 +3039,17 @@ INT_PTR CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             {
                 SetOption(sid, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_SID_TYPE, CB_GETCURSEL, 0, 0L)));
                 SetOption(dac7c, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_DAC_7C, CB_GETCURSEL, 0, 0L)));
+
+                int nMidi = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_MIDI_OUT, CB_GETCURSEL, 0, 0L));
+                SetOption(midi, nMidi ? 1 : 0);
+
+                if (nMidi == 0)
+                    SetOption(midioutdev, "");
+                else if (SendDlgItemMessage(hdlg_, IDC_MIDI_OUT, CB_GETLBTEXTLEN, nMidi, 0L) < sizeof(opts.midioutdev))
+                    SendDlgItemMessage(hdlg_, IDC_MIDI_OUT, CB_GETLBTEXT, nMidi, reinterpret_cast<LPARAM>(GetOption(midioutdev)));
+
+                if (ChangedString(midioutdev) && !pMidi->SetDevice(GetOption(midioutdev)))
+                    Message(msgWarning, "Failed to open MIDI device\n");
             }
 
             break;
@@ -2907,7 +3060,76 @@ INT_PTR CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 }
 
 
-INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+int FillHDDCombos (HWND hdlg_, int nCombo1_, int nCombo2_)
+{
+    int nDevices = 0;
+
+    HWND hwndCombo1 = GetDlgItem(hdlg_, nCombo1_);
+    HWND hwndCombo2 = nCombo2_ ? GetDlgItem(hdlg_, nCombo2_) : NULL;
+
+    SendMessage(hwndCombo1, CB_RESETCONTENT, 0, 0L);
+    if (hwndCombo2) SendMessage(hwndCombo2, CB_RESETCONTENT, 0, 0L);
+
+    for (const char *pcszList = CDeviceHardDisk::GetDeviceList() ; *pcszList ; pcszList += strlen(pcszList)+1, nDevices++)
+    {
+        SendMessage(hwndCombo1, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(pcszList));
+        if (hwndCombo2) SendMessage(hwndCombo2, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(pcszList));
+    }
+
+    if (!nDevices)
+    {
+        LPARAM lNone = reinterpret_cast<LPARAM>("<None>");
+        SendMessage(hwndCombo1, CB_ADDSTRING, 0, lNone);
+        if (hwndCombo2) SendMessage(hwndCombo2, CB_ADDSTRING, 0, lNone);
+    }
+
+    if (SendMessage(hwndCombo1, CB_GETCURSEL, 0, 0L) < 0)
+    {
+        SendMessage(hwndCombo1, CB_SETCURSEL, 0, 0L);
+        if (hwndCombo2) SendMessage(hwndCombo2, CB_SETCURSEL, 0, 0L);
+    }
+
+    bool fEnable = nDevices != 0;
+    EnableWindow(hwndCombo1, fEnable);
+    if (hwndCombo2) EnableWindow(hwndCombo2, fEnable);
+
+    return nDevices;
+}
+
+
+int FillFloppyCombo (HWND hwndCombo_)
+{
+    int nDevices = 0;
+
+    SendMessage(hwndCombo_, CB_RESETCONTENT, 0, 0L);
+
+    for (UINT u = 0 ; u < 2 ; u++)
+    {
+        char sz[32];
+        wsprintf(sz, "\\\\.\\fdraw%u", u);
+        GetFileAttributes(sz);
+
+        if (GetLastError() != ERROR_FILE_NOT_FOUND)
+        {
+            wsprintf(sz, "%c:", 'A'+u);
+            SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(sz));
+            nDevices++;
+        }
+    }
+
+    if (!nDevices)
+        SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>("<None>"));
+
+    if (SendMessage(hwndCombo_, CB_GETCURSEL, 0, 0L) < 0)
+        SendMessage(hwndCombo_, CB_SETCURSEL, 0, 0L);
+
+    EnableWindow(hwndCombo_, nDevices != 0);
+
+    return nDevices;
+}
+
+
+INT_PTR CALLBACK Drive1PageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
@@ -2915,22 +3137,21 @@ INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
         case WM_INITDIALOG:
         {
-            static const char* aszDrives1[] = { "None", "Floppy", NULL };
-            SetComboStrings(hdlg_, IDC_DRIVE1, aszDrives1, GetOption(drive1));
-            SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE1, 0L);
+            const char* aszDevices[] = { "None", "Floppy Drive", NULL };
+            SetComboStrings(hdlg_, IDC_DEVICE_TYPE, aszDevices, GetOption(drive1));
 
-            static const char* aszDrives2[] = { "None", "Floppy", "Atom", "Atom Lite", NULL };
-            SetComboStrings(hdlg_, IDC_DRIVE2, aszDrives2, GetOption(drive2));
-            SendMessage(hdlg_, WM_COMMAND, IDC_DRIVE2, 0L);
+            int nDevices = FillFloppyCombo(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE));
+            EnableWindow(GetDlgItem(hdlg_, IDR_DEVICE), nDevices != 0);
+            SendDlgItemMessage(hdlg_, IDE_FLOPPY_IMAGE, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
 
-            SendDlgItemMessage(hdlg_, IDC_TURBO_DISK, BM_SETCHECK, GetOption(turbodisk) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_SAVE_PROMPT, BM_SETCHECK, GetOption(saveprompt) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_AUTOLOAD, BM_SETCHECK, GetOption(autoload) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_SETCHECK, GetOption(dosboot) ? BST_CHECKED : BST_UNCHECKED, 0L);
-            SetDlgItemPath(hdlg_, IDE_DOSDISK, GetOption(dosdisk));
+            if (CFloppyStream::IsRecognised(GetOption(disk1)))
+                SendDlgItemMessage(hdlg_, IDC_FLOPPY_DEVICE, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(disk1)));
+            else
+                SetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE, GetOption(disk1));
 
-            SendMessage(hdlg_, WM_COMMAND, IDC_DOSBOOT, 0L);
+            SHAutoComplete(GetDlgItem(hdlg_, IDE_FLOPPY_IMAGE), SHACF_FILESYS_ONLY|SHACF_USETAB);
 
+            SendMessage(hdlg_, WM_COMMAND, MAKELONG(IDC_DEVICE_TYPE, CBN_SELCHANGE), 0L);
             break;
         }
 
@@ -2938,17 +3159,21 @@ INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
-                SetOption(turbodisk, SendDlgItemMessage(hdlg_, IDC_TURBO_DISK, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(saveprompt, SendDlgItemMessage(hdlg_, IDC_SAVE_PROMPT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(autoload, SendDlgItemMessage(hdlg_, IDC_AUTOLOAD, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                SetOption(dosboot,  SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-                GetDlgItemPath(hdlg_, IDE_DOSDISK, const_cast<char*>(GetOption(dosdisk)), MAX_PATH);
+                SetOption(drive1, static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_DEVICE_TYPE), CB_GETCURSEL, 0, 0L)));
 
-                SetOption(drive1, (int)SendMessage(GetDlgItem(hdlg_, IDC_DRIVE1), CB_GETCURSEL, 0, 0L));
-                SetOption(drive2, (int)SendMessage(GetDlgItem(hdlg_, IDC_DRIVE2), CB_GETCURSEL, 0, 0L));
+                if (GetOption(drive1) == drvFloppy)
+                {
+                    bool fImage = SendDlgItemMessage(hdlg_, IDR_DEVICE, BM_GETCHECK, 0, 0L) != BST_CHECKED;
 
-                if (GetOption(drive1) != drvFloppy) EjectDisk(pFloppy1);
-                if (GetOption(drive2) != drvFloppy) EjectDisk(pFloppy2);
+                    if (fImage)
+                        GetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE, const_cast<char*>(GetOption(disk1)), MAX_PATH);
+                    else
+                        SetOption(disk1, GetComboText(hdlg_, IDC_FLOPPY_DEVICE, MAX_PATH));
+                }
+
+                // If the floppy is active and the disk has changed, insert the new one
+                if (GetOption(drive1) == drvFloppy && ChangedString(disk1))
+                    InsertDisk(pFloppy1, GetOption(disk1));
             }
             break;
         }
@@ -2957,18 +3182,43 @@ INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         {
             switch (LOWORD(wParam_))
             {
-                case IDC_DOSBOOT:
+                case IDE_FLOPPY_IMAGE:
                 {
-                    bool fDosBoot = SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_GETCHECK, 0, 0L) == BST_CHECKED;
-                    EnableWindow(GetDlgItem(hdlg_, IDS_DOSDISK), fDosBoot);
-                    EnableWindow(GetDlgItem(hdlg_, IDE_DOSDISK), fDosBoot);
-                    EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE), fDosBoot);
+                    if (HIWORD(wParam_) == EN_CHANGE)
+                        CheckRadioButton(hdlg_, IDR_IMAGE,IDR_DEVICE, IDR_IMAGE);
+                    break;
+                }
+
+                case IDC_FLOPPY_DEVICE:
+                {
+                    if (HIWORD(wParam_) == CBN_SELCHANGE)
+                        CheckRadioButton(hdlg_, IDR_IMAGE,IDR_DEVICE, IDR_DEVICE);
+
+                    break;
+                }
+
+                case IDC_DEVICE_TYPE:
+                {
+                    if (HIWORD(wParam_) == CBN_SELCHANGE)
+                    {
+                        int nType = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_DEVICE_TYPE, CB_GETCURSEL, 0, 0L));
+
+                        ShowWindow(GetDlgItem(hdlg_, IDE_FLOPPY_IMAGE), (nType == 1) ? SW_SHOW : SW_HIDE);
+                        ShowWindow(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE), (nType == 1) ? SW_SHOW : SW_HIDE);
+
+                        int anControls[] = { IDS_DEVICE, IDF_MEDIA, IDS_TEXT1, IDR_IMAGE, IDB_BROWSE, IDR_DEVICE, IDC_HDD_DEVICE };
+                        for (int i = 0 ; i < _countof(anControls) ; i++)
+                            ShowWindow(GetDlgItem(hdlg_, anControls[i]), (nType >= 1) ? SW_SHOW : SW_HIDE);
+                    }
                     break;
                 }
 
                 case IDB_BROWSE:
                 {
-                    BrowseImage(hdlg_, IDE_DOSDISK, szFloppyFilters);   break;
+                    int nType = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_DEVICE_TYPE, CB_GETCURSEL, 0, 0L));
+
+                    if (nType == 1)
+                        BrowseImage(hdlg_, IDE_FLOPPY_IMAGE, szFloppyFilters);
                     break;
                 }
             }
@@ -2979,56 +3229,104 @@ INT_PTR CALLBACK DrivePageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     return fRet;
 }
 
-INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+INT_PTR CALLBACK Drive2PageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     static UINT_PTR uTimer;
+    static ULONG ulSHChangeNotifyRegister;
+
     INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {
-        case WM_CLOSE:
-            if (uTimer)
-                KillTimer(hdlg_, 1);
+        case WM_DESTROY:
+            if (uTimer) KillTimer(hdlg_, 1), uTimer = 0;
+            if (ulSHChangeNotifyRegister) SHChangeNotifyDeregister(ulSHChangeNotifyRegister);
             break;
 
-        case WM_DEVICECHANGE:
-            // Schdule a refresh of the device list at a safer time
-            uTimer = SetTimer(hdlg_, 1, 1000, NULL);
+        case WM_USER+1:
+            uTimer = SetTimer(hdlg_, 1, 250, NULL);
             break;
 
         case WM_TIMER:
-            KillTimer(hdlg_, 1);
-            uTimer = 0;
+        {
+            KillTimer(hdlg_, 1), uTimer = 0;
 
-            // Fall through...
+            FillFloppyCombo(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE));
+            FillHDDCombos(hdlg_, IDC_HDD_DEVICE, IDC_HDD_DEVICE2);
+
+            int nType = static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_DEVICE_TYPE), CB_GETCURSEL, 0, 0L));
+
+            // Set floppy image path or device selection
+            if (CFloppyStream::IsRecognised(GetOption(disk2)))
+            {
+                if (nType == drvFloppy) CheckRadioButton(hdlg_, IDR_IMAGE,IDR_DEVICE, IDR_DEVICE);
+                SendDlgItemMessage(hdlg_, IDC_FLOPPY_DEVICE, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(disk2)));
+            }
+            else
+            {
+                CheckRadioButton(hdlg_, IDR_IMAGE,IDR_DEVICE, IDR_IMAGE);
+            }
+
+            // Set Atom master device selection
+            if (CDeviceHardDisk::IsRecognised(GetOption(atomdisk0)))
+            {
+                if (nType >= drvAtom) CheckRadioButton(hdlg_, IDR_IMAGE,IDR_DEVICE, IDR_DEVICE);
+                SendDlgItemMessage(hdlg_, IDC_HDD_DEVICE, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(atomdisk0)));
+            }
+
+            // Set Atom slave device selection
+            if (CDeviceHardDisk::IsRecognised(GetOption(atomdisk1)))
+            {
+                if (nType >= drvAtom) CheckRadioButton(hdlg_, IDR_IMAGE2,IDR_DEVICE2, IDR_DEVICE);
+                SendDlgItemMessage(hdlg_, IDC_HDD_DEVICE2, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(atomdisk1)));
+            }
+
+            break;
+        }
 
         case WM_INITDIALOG:
         {
-            // Drop-down defaults for the drives
-            AddComboString(hdlg_, IDC_ATOM0, "");
-            AddComboString(hdlg_, IDC_ATOM1, "");
-            AddComboString(hdlg_, IDC_SDIDE, "");
+            // Schedule an immediate update to the device combo boxes
+            if (!uTimer && uMsg_ == WM_INITDIALOG)
+                uTimer = SetTimer(hdlg_, 1, 1, NULL);
 
-            // Set the edit controls to the current settings
-            SetDlgItemPath(hdlg_, IDC_ATOM0, GetOption(atomdisk0));
-            SetDlgItemPath(hdlg_, IDC_ATOM1, GetOption(atomdisk1));
-            SetDlgItemPath(hdlg_, IDC_SDIDE, GetOption(sdidedisk));
-
-            // Look for SAM-compatible physical drives
-            for (UINT u = 0 ; u < 10 ; u++)
+            // Register for shell notifications when drive/media changes occur
+            if (!ulSHChangeNotifyRegister)
             {
-                char szDrive[32];
-                wsprintf(szDrive, "\\\\.\\PhysicalDrive%u", u);
-
-                CHardDisk* pDisk = CHardDisk::OpenObject(szDrive);
-                if (pDisk)
+                LPITEMIDLIST ppidl;
+                if (SUCCEEDED(SHGetSpecialFolderLocation(hdlg_, CSIDL_DESKTOP, &ppidl)))
                 {
-                    AddComboString(hdlg_, IDC_ATOM0, szDrive);
-                    AddComboString(hdlg_, IDC_ATOM1, szDrive);
-                    AddComboString(hdlg_, IDC_SDIDE, szDrive);
-                    delete pDisk;
+                    SHChangeNotifyEntry entry = { ppidl, TRUE };
+                    int nSources = SHCNE_DRIVEADD|SHCNE_DRIVEREMOVED|SHCNE_MEDIAINSERTED|SHCNE_MEDIAREMOVED;
+                    ulSHChangeNotifyRegister = SHChangeNotifyRegister(hdlg_, SHCNRF_ShellLevel|SHCNRF_NewDelivery, nSources, WM_USER+1, 1, &entry);
+                    CoTaskMemFree(ppidl);
                 }
             }
+
+            const char* aszDevices[] = { "None", "Floppy Drive", "Atom (Legacy)", "Atom Lite", NULL };
+            SetComboStrings(hdlg_, IDC_DEVICE_TYPE, aszDevices, GetOption(drive2));
+
+            SendDlgItemMessage(hdlg_, IDE_FLOPPY_IMAGE, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
+            SendDlgItemMessage(hdlg_, IDE_HDD_IMAGE, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
+            SendDlgItemMessage(hdlg_, IDE_HDD_IMAGE2, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
+
+            // Set floppy image path or device selection
+            if (!CFloppyStream::IsRecognised(GetOption(disk2)))
+                SetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE, GetOption(disk2));
+
+            // Set Atom master image path
+            if (!CDeviceHardDisk::IsRecognised(GetOption(atomdisk0)))
+                SetDlgItemText(hdlg_, IDE_HDD_IMAGE, GetOption(atomdisk0));
+
+            // Set Atom slave image path
+            if (!CDeviceHardDisk::IsRecognised(GetOption(atomdisk1)))
+                SetDlgItemText(hdlg_, IDE_HDD_IMAGE2, GetOption(atomdisk1));
+
+            SHAutoComplete(GetDlgItem(hdlg_, IDE_FLOPPY_IMAGE), SHACF_FILESYS_ONLY|SHACF_USETAB);
+            SHAutoComplete(GetDlgItem(hdlg_, IDE_HDD_IMAGE), SHACF_FILESYS_ONLY|SHACF_USETAB);
+            SHAutoComplete(GetDlgItem(hdlg_, IDE_HDD_IMAGE2), SHACF_FILESYS_ONLY|SHACF_USETAB);
+
+            SendMessage(hdlg_, WM_COMMAND, MAKELONG(IDC_DEVICE_TYPE, CBN_SELCHANGE), 0L);
             break;
         }
 
@@ -3036,10 +3334,42 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
         {
             if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
             {
-                char szPath[MAX_PATH];
-                GetDlgItemPath(hdlg_, IDC_ATOM0, szPath, MAX_PATH); SetOption(atomdisk0, szPath);
-                GetDlgItemPath(hdlg_, IDC_ATOM1, szPath, MAX_PATH); SetOption(atomdisk1, szPath);
-                GetDlgItemPath(hdlg_, IDC_SDIDE, szPath, MAX_PATH); SetOption(sdidedisk, szPath);
+                SetOption(drive2, static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_DEVICE_TYPE), CB_GETCURSEL, 0, 0L)));
+
+                bool fImage = SendDlgItemMessage(hdlg_, IDR_DEVICE, BM_GETCHECK, 0, 0L) != BST_CHECKED;
+                bool fImage2 = SendDlgItemMessage(hdlg_, IDR_DEVICE2, BM_GETCHECK, 0, 0L) != BST_CHECKED;
+
+                switch (GetOption(drive2))
+                {
+                    case drvFloppy:
+                        if (fImage)
+                            GetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE, const_cast<char*>(GetOption(disk2)), MAX_PATH);
+                        else
+                            SetOption(disk2, GetComboText(hdlg_, IDC_FLOPPY_DEVICE, MAX_PATH));
+                        break;
+
+                    case drvAtom:
+                    case drvAtomLite:
+                        if (fImage)
+                            GetDlgItemText(hdlg_, IDE_HDD_IMAGE, const_cast<char*>(GetOption(atomdisk0)), MAX_PATH);
+                        else
+                            SetOption(atomdisk0, GetComboText(hdlg_, IDC_HDD_DEVICE, MAX_PATH));
+
+                        if (fImage2)
+                            GetDlgItemText(hdlg_, IDE_HDD_IMAGE2, const_cast<char*>(GetOption(atomdisk1)), MAX_PATH);
+                        else
+                            SetOption(atomdisk1, GetComboText(hdlg_, IDC_HDD_DEVICE2, MAX_PATH));
+
+                        break;
+                }
+
+                // If the floppy is active and the disk has changed, insert the new one
+                if (GetOption(drive2) == drvFloppy && ChangedString(disk2))
+                    InsertDisk(pFloppy2, GetOption(disk2));
+
+                // If the Atom Lite selection state has changed, trigger a ROM refresh
+                if ((GetOption(drive2) == drvAtomLite) ^ (opts.drive2 >= drvAtomLite))
+                    Memory::UpdateRom();
             }
             break;
         }
@@ -3048,24 +3378,85 @@ INT_PTR CALLBACK DiskPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
         {
             switch (LOWORD(wParam_))
             {
-                case IDB_ATOM0:
+                case IDE_FLOPPY_IMAGE:
+                case IDE_HDD_IMAGE:
                 {
-                    LPARAM lCtrl = reinterpret_cast<LPARAM>(GetDlgItem(hdlg_, IDC_ATOM0));
-                    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_HARDDISK), hdlg_, HardDiskDlgProc, lCtrl);
+                    if (HIWORD(wParam_) == EN_CHANGE)
+                        CheckRadioButton(hdlg_, IDR_IMAGE,IDR_DEVICE, IDR_IMAGE);
                     break;
                 }
 
-                case IDB_ATOM1:
+                case IDE_HDD_IMAGE2:
                 {
-                    LPARAM lCtrl = reinterpret_cast<LPARAM>(GetDlgItem(hdlg_, IDC_ATOM1));
-                    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_HARDDISK), hdlg_, HardDiskDlgProc, lCtrl);
+                    if (HIWORD(wParam_) == EN_CHANGE)
+                        CheckRadioButton(hdlg_, IDR_IMAGE2,IDR_DEVICE2, IDR_IMAGE2);
                     break;
                 }
 
-                case IDB_SDIDE:
+                case IDC_FLOPPY_DEVICE:
                 {
-                    LPARAM lCtrl = reinterpret_cast<LPARAM>(GetDlgItem(hdlg_, IDC_SDIDE));
-                    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_HARDDISK), hdlg_, HardDiskDlgProc, lCtrl);
+                    if (HIWORD(wParam_) == CBN_SELCHANGE)
+                        CheckRadioButton(hdlg_, IDR_IMAGE,IDR_DEVICE, IDR_DEVICE);
+
+                    break;
+                }
+
+                case IDC_HDD_DEVICE:
+                {
+                    if (HIWORD(wParam_) == CBN_SELCHANGE)
+                        CheckRadioButton(hdlg_, IDR_IMAGE,IDR_DEVICE, IDR_DEVICE);
+
+                    break;
+                }
+
+                case IDC_HDD_DEVICE2:
+                {
+                    if (HIWORD(wParam_) == CBN_SELCHANGE)
+                        CheckRadioButton(hdlg_, IDR_IMAGE2,IDR_DEVICE2, IDR_DEVICE2);
+
+                    break;
+                }
+
+                case IDC_DEVICE_TYPE:
+                {
+                    if (HIWORD(wParam_) == CBN_SELCHANGE)
+                    {
+                        int nType = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_DEVICE_TYPE, CB_GETCURSEL, 0, 0L));
+
+                        HICON hicon = LoadIcon(__hinstance, MAKEINTRESOURCE((nType >= 2) ? IDI_DRIVE : IDI_FLOPPY));
+                        SendDlgItemMessage(hdlg_, IDS_DEVICE, STM_SETICON, reinterpret_cast<WPARAM>(hicon), 0L);
+
+                        SetDlgItemText(hdlg_, IDF_MEDIA, (nType >= 2) ? "Master" : "Media");
+
+                        ShowWindow(GetDlgItem(hdlg_, IDE_FLOPPY_IMAGE), (nType == drvFloppy) ? SW_SHOW : SW_HIDE);
+                        ShowWindow(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE), (nType == drvFloppy) ? SW_SHOW : SW_HIDE);
+
+                        int anControls[] = { IDS_DEVICE, IDF_MEDIA, IDS_TEXT1, IDR_IMAGE, IDB_BROWSE, IDR_DEVICE, IDC_HDD_DEVICE };
+                        for (int i = 0 ; i < _countof(anControls) ; i++)
+                            ShowWindow(GetDlgItem(hdlg_, anControls[i]), (nType >= drvFloppy) ? SW_SHOW : SW_HIDE);
+
+                        int anControls2[] = { IDF_MEDIA2, IDS_TEXT2, IDR_IMAGE2, IDE_HDD_IMAGE, IDE_HDD_IMAGE2, IDB_BROWSE2, IDC_HDD_DEVICE, IDR_DEVICE2, IDC_HDD_DEVICE2 };
+                        for (int i = 0 ; i < _countof(anControls2) ; i++)
+                            ShowWindow(GetDlgItem(hdlg_, anControls2[i]), (nType >= drvAtom) ? SW_SHOW : SW_HIDE);
+
+                        uTimer = SetTimer(hdlg_, 1, 1, NULL);
+                    }
+                    break;
+                }
+
+                case IDB_BROWSE:
+                {
+                    int nType = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_DEVICE_TYPE, CB_GETCURSEL, 0, 0L));
+                    if (nType == drvFloppy)
+                        BrowseImage(hdlg_, IDE_FLOPPY_IMAGE, szFloppyFilters);
+                    else
+                        BrowseImage(hdlg_, IDE_HDD_IMAGE, szHDDFilters);
+                    break;
+                }
+
+                case IDB_BROWSE2:
+                {
+                    BrowseImage(hdlg_, IDE_HDD_IMAGE2, szHDDFilters);
                     break;
                 }
             }
@@ -3122,7 +3513,7 @@ INT_PTR CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
         case WM_INITDIALOG:
         {
-            static const char* aszMapping[] = { "None (raw)", "Auto-select", "SAM Coupé", "Sinclair Spectrum", NULL };
+            static const char* aszMapping[] = { "Disabled", "Automatic (default)", "SAM Coupé", "ZX Spectrum", NULL };
             SetComboStrings(hdlg_, IDC_KEYBOARD_MAPPING, aszMapping, GetOption(keymapping));
 
             SendDlgItemMessage(hdlg_, IDC_ALT_FOR_CNTRL, BM_SETCHECK, GetOption(altforcntrl) ? BST_CHECKED : BST_UNCHECKED, 0L);
@@ -3158,35 +3549,54 @@ INT_PTR CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
 INT_PTR CALLBACK JoystickPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
+    static UINT_PTR uTimer;
+
     INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
 
     switch (uMsg_)
     {
+        case WM_DESTROY:
+            if (uTimer)
+                KillTimer(hdlg_, 1), uTimer = 0;
+            break;
+
+        case WM_TIMER:
+            KillTimer(hdlg_, 1), uTimer = 0;
+
+            FillJoystickCombo(GetDlgItem(hdlg_, IDC_JOYSTICK1), GetOption(joydev1));
+            FillJoystickCombo(GetDlgItem(hdlg_, IDC_JOYSTICK2), GetOption(joydev2));
+            SendMessage(hdlg_, WM_COMMAND, IDC_JOYSTICK1, 0L);
+            break;
+
+        case WM_DEVICECHANGE:
+            uTimer = SetTimer(hdlg_, 1, 1000, NULL);
+            break;
+
         case WM_INITDIALOG:
         {
             FillJoystickCombo(GetDlgItem(hdlg_, IDC_JOYSTICK1), GetOption(joydev1));
             FillJoystickCombo(GetDlgItem(hdlg_, IDC_JOYSTICK2), GetOption(joydev2));
 
-            static const char* aszDeadZone[] = { "None", "10%", "20%", "30%", "40%", "50%", NULL };
-            SetComboStrings(hdlg_, IDC_DEADZONE_1, aszDeadZone, GetOption(deadzone1)/10);
-            SetComboStrings(hdlg_, IDC_DEADZONE_2, aszDeadZone, GetOption(deadzone2)/10);
+            static const char* aszJoysticks[] = { "None", "Joystick 1", "Joystick 2", "Kempston", NULL };
+            SetComboStrings(hdlg_, IDC_SAM_JOYSTICK1, aszJoysticks, GetOption(joytype1));
+            SetComboStrings(hdlg_, IDC_SAM_JOYSTICK2, aszJoysticks, GetOption(joytype2));
 
             SendMessage(hdlg_, WM_COMMAND, IDC_JOYSTICK1, 0L);
-            SendMessage(hdlg_, WM_COMMAND, IDC_JOYSTICK2, 0L);
             break;
         }
 
         case WM_NOTIFY:
         {
-            if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
-            {
-                HWND hwndCombo1 = GetDlgItem(hdlg_, IDC_DEADZONE_1), hwndCombo2 = GetDlgItem(hdlg_, IDC_DEADZONE_2);
-                SetOption(deadzone1, 10 * static_cast<int>(SendMessage(hwndCombo1, CB_GETCURSEL, 0, 0L)));
-                SetOption(deadzone2, 10 * static_cast<int>(SendMessage(hwndCombo2, CB_GETCURSEL, 0, 0L)));
+            LPNMHDR pnmh = reinterpret_cast<LPNMHDR>(lParam_);
 
+            if (pnmh->code == PSN_APPLY)
+            {
                 HWND hwndJoy1 = GetDlgItem(hdlg_, IDC_JOYSTICK1), hwndJoy2 = GetDlgItem(hdlg_, IDC_JOYSTICK2);
                 SendMessage(hwndJoy1, CB_GETLBTEXT, SendMessage(hwndJoy1, CB_GETCURSEL, 0, 0L), (LPARAM)GetOption(joydev1));
                 SendMessage(hwndJoy2, CB_GETLBTEXT, SendMessage(hwndJoy2, CB_GETCURSEL, 0, 0L), (LPARAM)GetOption(joydev2));
+
+                SetOption(joytype1, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_SAM_JOYSTICK1, CB_GETCURSEL, 0, 0L)));
+                SetOption(joytype2, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_SAM_JOYSTICK2, CB_GETCURSEL, 0, 0L)));
 
                 // Always reinitialise to ensure we pick up connected devices
                 Input::Init();
@@ -3200,11 +3610,9 @@ INT_PTR CALLBACK JoystickPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
             switch (LOWORD(wParam_))
             {
                 case IDC_JOYSTICK1:
-                    EnableWindow(GetDlgItem(hdlg_, IDC_DEADZONE_1), SendDlgItemMessage(hdlg_, IDC_JOYSTICK1, CB_GETCURSEL, 0, 0L) != 0);
-                    break;
-
                 case IDC_JOYSTICK2:
-                    EnableWindow(GetDlgItem(hdlg_, IDC_DEADZONE_2), SendDlgItemMessage(hdlg_, IDC_JOYSTICK2, CB_GETCURSEL, 0, 0L) != 0);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_SAM_JOYSTICK1), SendDlgItemMessage(hdlg_, IDC_JOYSTICK1, CB_GETCURSEL, 0, 0L) != 0);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_SAM_JOYSTICK2), SendDlgItemMessage(hdlg_, IDC_JOYSTICK2, CB_GETCURSEL, 0, 0L) != 0);
                     break;
             }
             break;
@@ -3223,15 +3631,12 @@ INT_PTR CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
     {
         case WM_INITDIALOG:
         {
-            static const char* aszParallel[] = { "None", "Printer", "Mono DAC", "Stereo EDdac/SAMdac", NULL };
+            static const char* aszParallel[] = { "None", "Printer", "DAC (8-bit mono)", "SAMDAC (8-bit stereo)", NULL };
             SetComboStrings(hdlg_, IDC_PARALLEL_1, aszParallel, GetOption(parallel1));
             SetComboStrings(hdlg_, IDC_PARALLEL_2, aszParallel, GetOption(parallel2));
 
+            SendDlgItemMessage(hdlg_, IDC_AUTO_FLUSH, BM_SETCHECK, GetOption(flushdelay) ? BST_CHECKED : BST_UNCHECKED, 0L);
             FillPrintersCombo(GetDlgItem(hdlg_, IDC_PRINTERS), GetOption(printerdev));
-
-            static const char* aszFlushDelay[] = { "Disabled", "After 1 second idle", "After 2 seconds idle", "After 3 seconds idle",
-                                                    "After 4 seconds idle", "After 5 seconds idle", NULL };
-            SetComboStrings(hdlg_, IDC_FLUSHDELAY, aszFlushDelay, GetOption(flushdelay));
 
             SendMessage(hdlg_, WM_COMMAND, IDC_PARALLEL_1, 0L);
             SendMessage(hdlg_, WM_COMMAND, IDC_PARALLEL_2, 0L);
@@ -3255,7 +3660,7 @@ INT_PTR CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
                     SetOption(printerdev, szPrinter+lstrlen(PRINTER_PREFIX));
                 }
 
-                SetOption(flushdelay, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FLUSHDELAY, CB_GETCURSEL, 0, 0L)));
+                SetOption(flushdelay, (SendDlgItemMessage(hdlg_, IDC_AUTO_FLUSH, BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 2 : 0);
             }
 
             break;
@@ -3273,68 +3678,13 @@ INT_PTR CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
 
                     EnableWindow(GetDlgItem(hdlg_, IDC_PRINTERS), fPrinter1 || fPrinter2);
                     EnableWindow(GetDlgItem(hdlg_, IDS_PRINTERS), fPrinter1 || fPrinter2);
-                    EnableWindow(GetDlgItem(hdlg_, IDS_FLUSHDELAY), fPrinter1 || fPrinter2);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_FLUSHDELAY), fPrinter1 || fPrinter2);
+                    EnableWindow(GetDlgItem(hdlg_, IDC_AUTO_FLUSH), fPrinter1 || fPrinter2);
                     break;
                 }
            }
 
             break;
         }
-    }
-
-    return fRet;
-}
-
-INT_PTR CALLBACK MidiPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
-{
-    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
-
-    switch (uMsg_)
-    {
-        case WM_INITDIALOG:
-        {
-            static const char* aszMIDI[] = { "None", "Windows MIDI", NULL };
-            SetComboStrings(hdlg_, IDC_MIDI, aszMIDI, GetOption(midi));
-            SendMessage(hdlg_, WM_COMMAND, IDC_MIDI, 0L);
-
-            FillMidiInCombo(GetDlgItem(hdlg_, IDC_MIDI_IN));
-            FillMidiOutCombo(GetDlgItem(hdlg_, IDC_MIDI_OUT));
-
-            break;
-        }
-
-        case WM_NOTIFY:
-        {
-            if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
-            {
-                char sz[16];
-
-                SetOption(midi, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_MIDI, CB_GETCURSEL, 0, 0L)));
-
-                // Update the MIDI IN and MIDI OUT device numbers
-                SetOption(midiindev,  itoa((int)SendDlgItemMessage(hdlg_, IDC_MIDI_IN,  CB_GETCURSEL, 0, 0L)-1, sz, 10));
-                SetOption(midioutdev, itoa((int)SendDlgItemMessage(hdlg_, IDC_MIDI_OUT, CB_GETCURSEL, 0, 0L)-1, sz, 10));
-
-                if (Changed(midi) || ChangedString(midiindev) || ChangedString(midioutdev))
-                    pMidi->SetDevice(GetOption(midioutdev));
-            }
-
-            break;
-        }
-
-        case WM_COMMAND:
-            switch (LOWORD(wParam_))
-            {
-                case IDC_MIDI:
-                {
-                    LRESULT lMidi = SendDlgItemMessage(hdlg_, IDC_MIDI, CB_GETCURSEL, 0, 0L);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_MIDI_OUT), lMidi == 1);
-                    EnableWindow(GetDlgItem(hdlg_, IDC_MIDI_IN), /*lMidi == 1*/ FALSE);     // No MIDI-In support yet
-                    EnableWindow(GetDlgItem(hdlg_, IDE_STATION_ID), /*lMidi == 2*/ FALSE);  // No network support yet
-                    break;
-                }
-            }
     }
 
     return fRet;
@@ -3355,6 +3705,7 @@ INT_PTR CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
             SendDlgItemMessage(hdlg_, IDC_DRIVE_LIGHTS, BM_SETCHECK, GetOption(drivelights) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_STATUS, BM_SETCHECK, GetOption(status) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_PROFILE, BM_SETCHECK, GetOption(profile) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_SAVE_PROMPT, BM_SETCHECK, GetOption(saveprompt) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
             break;
         }
@@ -3369,6 +3720,67 @@ INT_PTR CALLBACK MiscPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 SetOption(drivelights, SendDlgItemMessage(hdlg_, IDC_DRIVE_LIGHTS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(status, SendDlgItemMessage(hdlg_, IDC_STATUS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
                 SetOption(profile, SendDlgItemMessage(hdlg_, IDC_PROFILE, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+                SetOption(saveprompt, SendDlgItemMessage(hdlg_, IDC_SAVE_PROMPT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+            }
+            break;
+        }
+    }
+
+    return fRet;
+}
+
+
+INT_PTR CALLBACK HelperPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+{
+    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
+
+    switch (uMsg_)
+    {
+        case WM_INITDIALOG:
+        {
+            SendDlgItemMessage(hdlg_, IDC_TURBO_DISK, BM_SETCHECK, GetOption(turbodisk) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_SETCHECK, GetOption(fastreset) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_AUTOLOAD, BM_SETCHECK, GetOption(autoload) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_SETCHECK, GetOption(dosboot) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SetDlgItemPath(hdlg_, IDE_DOSDISK, GetOption(dosdisk));
+            SendDlgItemMessage(hdlg_, IDE_DOSDISK, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
+
+            SendMessage(hdlg_, WM_COMMAND, IDC_DOSBOOT, 0L);
+            break;
+        }
+
+        case WM_NOTIFY:
+        {
+            if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
+            {
+                SetOption(turbodisk, SendDlgItemMessage(hdlg_, IDC_TURBO_DISK, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+                SetOption(fastreset, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_GETCHECK, 0, 0L) == BST_CHECKED));
+                SetOption(autoload, SendDlgItemMessage(hdlg_, IDC_AUTOLOAD, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+                SetOption(dosboot,  SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+
+                GetDlgItemPath(hdlg_, IDE_DOSDISK, const_cast<char*>(GetOption(dosdisk)), MAX_PATH);
+            }
+            break;
+        }
+
+        case WM_COMMAND:
+        {
+            switch (LOWORD(wParam_))
+            {
+                case IDC_DOSBOOT:
+                {
+                    bool fDosBoot = SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_GETCHECK, 0, 0L) == BST_CHECKED;
+                    EnableWindow(GetDlgItem(hdlg_, IDS_DOSDISK), fDosBoot);
+                    EnableWindow(GetDlgItem(hdlg_, IDE_DOSDISK), fDosBoot);
+                    EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE), fDosBoot);
+                    break;
+                }
+
+                case IDB_BROWSE:
+                {
+                    BrowseImage(hdlg_, IDE_DOSDISK, szFloppyFilters);   break;
+                    break;
+                }
             }
             break;
         }
@@ -3394,24 +3806,27 @@ static void InitPage (PROPSHEETPAGE* pPage_, int nPage_, int nDialogId_, DLGPROC
 
 void DisplayOptions ()
 {
-    PROPSHEETPAGE aPages[10] = {};
+    // Update floppy path options
+    SetOption(disk1, pFloppy1->DiskPath());
+    SetOption(disk2, pFloppy2->DiskPath());
 
     // Initialise the pages to go on the sheet
+    PROPSHEETPAGE aPages[10] = {};
     InitPage(aPages, 0,  IDD_PAGE_SYSTEM,   SystemPageDlgProc);
     InitPage(aPages, 1,  IDD_PAGE_DISPLAY,  DisplayPageDlgProc);
     InitPage(aPages, 2,  IDD_PAGE_SOUND,    SoundPageDlgProc);
-    InitPage(aPages, 3,  IDD_PAGE_DRIVES,   DrivePageDlgProc);
-    InitPage(aPages, 4,  IDD_PAGE_DISKS,    DiskPageDlgProc);
-    InitPage(aPages, 5,  IDD_PAGE_INPUT,    InputPageDlgProc);
-    InitPage(aPages, 6,  IDD_PAGE_JOYSTICK, JoystickPageDlgProc);
-    InitPage(aPages, 7,  IDD_PAGE_PARALLEL, ParallelPageDlgProc);
-    InitPage(aPages, 8,  IDD_PAGE_MIDI,     MidiPageDlgProc);
-    InitPage(aPages, 9,  IDD_PAGE_MISC,     MiscPageDlgProc);
+    InitPage(aPages, 3,  IDD_PAGE_PARALLEL, ParallelPageDlgProc);
+    InitPage(aPages, 4,  IDD_PAGE_INPUT,    InputPageDlgProc);
+    InitPage(aPages, 5,  IDD_PAGE_JOYSTICK, JoystickPageDlgProc);
+    InitPage(aPages, 6,  IDD_PAGE_DRIVE1,   Drive1PageDlgProc);
+    InitPage(aPages, 7,  IDD_PAGE_DRIVE2,   Drive2PageDlgProc);
+    InitPage(aPages, 8,  IDD_PAGE_MISC,     MiscPageDlgProc);
+    InitPage(aPages, 9,  IDD_PAGE_HELPER,   HelperPageDlgProc);
 
     PROPSHEETHEADER psh;
     ZeroMemory(&psh, sizeof(psh));
     psh.dwSize = PROPSHEETHEADER_V1_SIZE;
-    psh.dwFlags = PSH_PROPSHEETPAGE | PSH_USEICONID | PSH_NOAPPLYNOW /*| PSH_HASHELP*/;
+    psh.dwFlags = PSH_PROPSHEETPAGE | PSH_USEICONID | PSH_NOAPPLYNOW | PSH_NOCONTEXTHELP;
     psh.hwndParent = g_hwnd;
     psh.hInstance = __hinstance;
     psh.pszIcon = MAKEINTRESOURCE(IDI_MISC);

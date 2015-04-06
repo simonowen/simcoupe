@@ -2,7 +2,7 @@
 //
 // Input.cpp: SDL keyboard, mouse and joystick input
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -121,6 +121,11 @@ void Input::Exit (bool fReInit_/*=false*/)
     }
 }
 
+// Return whether the emulation is using the mouse
+bool Input::IsMouseAcquired ()
+{
+    return fMouseActive;
+}
 
 void Input::AcquireMouse (bool fAcquire_)
 {

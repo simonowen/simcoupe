@@ -2,7 +2,7 @@
 //
 // IO.h: SAM I/O port handling
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //  Copyright (c) 1996-2001 Allan Skillman
 //  Copyright (c) 2000-2001 Dave Laundon
 //
@@ -161,7 +161,8 @@ class CDiskDevice :  public CIoDevice
 #define SERIAL_BASE         236         // 11101100
 #define SERIAL1             236
 #define SERIAL2             237
-// Did I hear 238 and 239 SERIAL3 and SERIAL4?  what about the clock port?
+#define SERIAL3             238
+//#define SERIAL4           239         // disabled due to clock port clash
 
 #define SDIDE_DATA          189
 #define SDIDE_REG           191

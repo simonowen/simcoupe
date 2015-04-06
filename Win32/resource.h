@@ -35,7 +35,6 @@
 #define IDD_PAGE_JOYSTICK               167
 #define IDD_PAGE_SYSTEM                 168
 #define IDD_PAGE_INPUT                  169
-#define IDD_PAGE_MIDI                   170
 #define IDD_PAGE_MISC                   171
 #define IDD_PAGE_DISKS                  172
 #define IDD_PAGE_DRIVES                 179
@@ -46,7 +45,10 @@
 #define IDD_HARDDISK                    193
 #define IDI_FOLDER                      194
 #define IDD_TAPE_BROWSER                196
+#define IDD_PAGE_HELPER                 197
+#define IDD_PAGE_DRIVE1                 198
 #define IDB_TAPE_TOOLBAR                199
+#define IDD_PAGE_DRIVE2                 199
 #define IDE_PAGE                        1001
 #define IDE_STATION_ID                  1001
 #define IDE_ROM                         1001
@@ -70,7 +72,6 @@
 #define IDC_EXTERNAL_MEMORY             1065
 #define IDC_MIDI_OUT                    1066
 #define IDC_SAMBUS_CLOCK                1067
-#define IDC_MIDI_IN                     1070
 #define IDC_KEYBOARD_MAPPING            1073
 #define IDC_PARALLEL_2                  1074
 #define IDC_PARALLEL_1                  1075
@@ -80,10 +81,10 @@
 #define IDC_STATUS                      1089
 #define IDC_DRIVE_LIGHTS                1090
 #define IDC_FAST_RESET                  1092
-#define IDC_MIDI                        1093
 #define IDC_ALBOOT_ROM                  1094
 #define IDC_LATENCY                     1097
 #define IDC_DRIVE1                      1098
+#define IDC_DEVICE_TYPE                 1098
 #define IDC_DRIVE2                      1099
 #define IDC_STRETCH_TO_FIT              1106
 #define IDB_ATOM                        1107
@@ -92,6 +93,7 @@
 #define IDB_ATOM1                       1110
 #define IDS_LATENCY                     1118
 #define IDB_BROWSE                      1123
+#define IDB_BROWSE2                     1124
 #define IDC_TURBO_DISK                  1130
 #define IDC_SENSITIVITY                 1131
 #define ID_HOMEPAGE                     1134
@@ -101,6 +103,7 @@
 #define IDC_ATOM1                       1140
 #define IDC_AUTOLOAD                    1161
 #define IDC_HWACCEL                     1163
+#define IDC_SCANLINES                   1164
 #define IDC_TYPE                        1165
 #define IDS_PAGE                        1169
 #define IDS_OFFSET                      1170
@@ -122,6 +125,43 @@
 #define IDS_TAPE_STATUS                 1195
 #define IDC_SID_TYPE                    1201
 #define IDC_DAC_7C                      1202
+#define IDR_DISK_IMAGE                  1208
+#define IDR_IMAGE                       1208
+#define IDR_DEVICE                      1209
+#define IDE_DISK_IMAGE                  1210
+#define IDE_FLOPPY_IMAGE                1210
+#define IDR_DISK_IMAGE2                 1211
+#define IDR_IMAGE2                      1211
+#define IDC_DEVICE                      1212
+#define IDC_HDD_DEVICE                  1212
+#define IDE_DISK_IMAGE2                 1213
+#define IDR_DEVICE2                     1214
+#define IDC_DEVICE2                     1215
+#define IDC_HDD_DEVICE2                 1215
+#define IDF_MEDIA2                      1216
+#define IDF_MEDIA                       1217
+#define IDS_DEVICE                      1218
+#define IDR_256K                        1219
+#define IDC_FLOPPY_DEVICE               1219
+#define IDR_512K                        1220
+#define IDE_HDD_IMAGE                   1220
+#define IDC_EXTERNAL                    1221
+#define IDE_HDD_IMAGE2                  1221
+#define IDS_EXTERNAL                    1222
+#define IDS_TEXT1                       1223
+#define IDS_TEXT2                       1224
+#define IDC_CHECK1                      1228
+#define IDC_AUTO_FLUSH                  1228
+#define IDC_HIRES                       1228
+#define IDC_SAM_JOYSTICK1               1230
+#define IDC_SAM_JOYSTICK2               1231
+#define IDC_RENDERER                    1232
+#define IDS_RENDERER                    1233
+#define IDC_INTENSITY                   1234
+#define IDC_FILTER                      1235
+#define IDS_INTENSITY                   1236
+#define IDS_INTENSITY2                  1238
+#define IDS_INTENSITY_PERCENT           1238
 #define IDT_MENU                        7389
 #define IDM_FILE_EXIT                   40001
 #define IDM_HELP_ABOUT                  40050
@@ -198,11 +238,6 @@
 #define IDM_TOOLS_PASTE_CLIPBOARD       40260
 #define IDM_VIEW_FILTER                 40263
 #define IDM_VIEW_SCANHIRES              40264
-#define IDM_VIEW_SCANLEVEL_50           40270
-#define IDM_VIEW_SCANLEVEL_60           40271
-#define IDM_VIEW_SCANLEVEL_70           40272
-#define IDM_VIEW_SCANLEVEL_80           40273
-#define IDM_VIEW_SCANLEVEL_90           40274
 #define IDM_TOOLS_TAPE_BROWSER          40278
 
 // Next default values for new objects
@@ -210,9 +245,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        202
+#define _APS_NEXT_RESOURCE_VALUE        205
 #define _APS_NEXT_COMMAND_VALUE         40279
-#define _APS_NEXT_CONTROL_VALUE         1208
+#define _APS_NEXT_CONTROL_VALUE         1239
 #define _APS_NEXT_SYMED_VALUE           114
 #endif
 #endif

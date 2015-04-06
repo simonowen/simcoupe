@@ -74,7 +74,8 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
             return false;
         }
 
-        // Initialise Windows common controls
+        // Initialise COM and Windows common controls
+        CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
         InitCommonControls();
 
         // We'll do our own error handling, so suppress any windows error dialogs
