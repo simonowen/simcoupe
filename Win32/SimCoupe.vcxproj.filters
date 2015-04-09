@@ -520,4 +520,7 @@
       <Filter>Win32 Resource Files</Filter>
     </Manifest>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\ReadMe.txt" />
+  </ItemGroup>
 </Project>
