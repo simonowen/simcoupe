@@ -137,6 +137,17 @@ void FrameEnd ()
     nLastFrames++;
 }
 
+void Refresh ()
+{
+    if (pDebugger)
+    {
+        // Set the address without forcing it to the top of the window
+        pDebugger->SetAddress(PC, false);
+
+        // Re-test breakpoints for the likely changed location
+        BreakpointHit();
+    }
+}
 
 // Called on every RETurn, for step-out implementation
 void OnRet ()
@@ -348,7 +359,7 @@ void CInputDialog::OnNotify (CWindow* pWindow_, int nParam_)
 static bool OnAddressNotify (EXPR *pExpr_)
 {
     int nAddr = Expr::Eval(pExpr_);
-    pDebugger->SetAddress(nAddr);
+    pDebugger->SetAddress(nAddr, true);
     return true;
 }
 
@@ -566,9 +577,9 @@ void CDebugger::SetSubTitle (const char *pcszSubTitle_)
     SetText(szTitle);
 }
 
-void CDebugger::SetAddress (WORD wAddr_)
+void CDebugger::SetAddress (WORD wAddr_, bool fForceTop_/*=false*/)
 {
-    m_pView->SetAddress(wAddr_, true);
+    m_pView->SetAddress(wAddr_, fForceTop_);
 }
 
 void CDebugger::SetView (ViewType nView_)

@@ -2,7 +2,7 @@
 //
 // Debug.h: Integrated Z80 debugger
 //
-//  Copyright (c) 1999-2014 Simon Owen
+//  Copyright (c) 1999-2015 Simon Owen
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ namespace Debug
 	bool Start (BREAKPT* pBreak_=nullptr);
 	void Stop ();
 	void FrameEnd ();
+	void Refresh ();
 
 	void OnRet ();
 	bool RetZHook ();
@@ -258,7 +259,7 @@ class CDebugger final : public CDialog
 
         void Refresh ();
         void SetSubTitle (const char *pcszSubTitle_);
-        void SetAddress (WORD wAddr_);
+        void SetAddress (WORD wAddr_, bool fForceTop_=false);
         void SetView (ViewType nView);
         void SetStatus (const char *pcsz_, bool fOneShot_=false, const GUIFONT *pFont_=nullptr);
         void SetStatusByte (WORD wAddr_);

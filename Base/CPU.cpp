@@ -483,9 +483,6 @@ void Reset (bool fPress_)
         // Index prefix not active
         pHlIxIy = pNewHlIxIy = &HL;
 
-        // Very start of frame
-        g_dwCycleCounter = 0;
-
         // Clear the CPU events queue
         InitCpuEvents();
 
@@ -497,8 +494,8 @@ void Reset (bool fPress_)
         IO::Init();
         Memory::Init();
 
-        // Test breakpoints with reset condition
-        Debug::BreakpointHit();
+        // Refresh the debugger and re-test breakpoints
+        Debug::Refresh();
     }
     // Set up the fast reset for first power-on
     else if (GetOption(fastreset))
@@ -526,6 +523,9 @@ void NMI()
     // Call NMI handler at address 0x0066
     PC = NMI_INTERRUPT_HANDLER;
     g_dwCycleCounter += 2;
+
+    // Refresh the debugger for the NMI
+    Debug::Refresh();
 }
 
 
