@@ -199,6 +199,9 @@ class CSADDisk : public CDisk
     public:
         bool GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_) override;
         BYTE ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) override;
+        BYTE WriteData (BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) override;
+        bool Save () override;
+        BYTE FormatTrack (BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) override;
 
     protected:
         UINT m_uSides = 0, m_uTracks = 0, m_uSectors = 0, m_uSectorSize = 0;

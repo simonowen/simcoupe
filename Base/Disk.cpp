@@ -354,6 +354,80 @@ BYTE CSADDisk::ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UINT
     return 0;
 }
 
+// Read the data for the last sector found
+BYTE CSADDisk::WriteData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UINT* puSize_)
+{
+    // Fail if read-only
+    if (IsReadOnly())
+        return WRITE_PROTECT;
+
+    // Work out the offset for the required data
+    long lPos = sizeof(SAD_HEADER) + (head_ * m_uTracks + cyl_) * (m_uSectors * m_uSectorSize) + (index_ * m_uSectorSize);
+
+    // Copy the sector data to the image buffer, and set the modified flag
+    memcpy(m_pbData + lPos, pbData_, *puSize_ = m_uSectorSize);
+    SetModified();
+
+    // Data is always perfect on SAD images, so return OK
+    return 0;
+}
+
+// Save the disk out to the stream
+bool CSADDisk::Save ()
+{
+    UINT uDiskSize = sizeof(SAD_HEADER) + m_uSides * m_uTracks * m_uSectors * m_uSectorSize;
+
+    if (!m_pStream->Rewind() || m_pStream->Write(m_pbData, uDiskSize) != uDiskSize)
+        return false;
+
+    SetModified(false);
+    m_pStream->Close();
+    return true;
+}
+
+// Format a track using the specified format
+BYTE CSADDisk::FormatTrack (BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_)
+{
+    DWORD dwSectors = 0;
+    bool fNormal = true;
+    UINT u;
+
+    // Disk must be writable, same number of sectors, and within track limit
+    if (IsReadOnly() || uSectors_ != m_uSectors || cyl_ >= m_uTracks)
+        return WRITE_PROTECT;
+
+    // Make sure the remaining sectors are completely normal
+    for (u = 0 ; u < uSectors_ ; u++)
+    {
+        // Side and track must match the ones it's being laid on
+        fNormal &= (paID_[u].bSide == head_ && paID_[u].bTrack == cyl_);
+
+        // Sector size must be the same
+        fNormal &= ((128U << paID_[u].bSize) == m_uSectorSize);
+
+        // Remember we've seen this sector number
+        dwSectors |= (1 << (paID_[u].bSector-1));
+    }
+
+    // There must be only 1 of each sector number from 1 to N (in any order though)
+    fNormal &= (dwSectors == ((1UL << m_uSectors) - 1));
+
+    // Reject tracks that are not completely normal
+    if (!fNormal)
+        return WRITE_PROTECT;
+
+    // Work out the offset for the required track
+    long lPos = sizeof(SAD_HEADER) + (head_ * m_uTracks + cyl_) * (m_uSectors * NORMAL_SECTOR_SIZE);
+
+    // Process each sector to write the supplied data
+    for (u = 0 ; u < uSectors_ ; u++)
+        memcpy(m_pbData + lPos + ((paID_[u].bSector-1) * m_uSectorSize), papbData_[u], m_uSectorSize);
+
+    // Mark the disk stream as modified
+    SetModified();
+
+    return 0;
+}
 ////////////////////////////////////////////////////////////////////////////////
 
 /*static*/ bool CEDSKDisk::IsRecognised (CStream* pStream_)
