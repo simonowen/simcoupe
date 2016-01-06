@@ -121,8 +121,8 @@ void WAV::Stop ()
 
     // Update the data length in the header
     long lDataSize = ftell(f) - sizeof(riff);
-    WriteWaveValue(lDataSize, riff.wave.pcmdata.datalen, sizeof(long));
-    WriteWaveValue(lDataSize+sizeof(riff.wave), riff.abWaveLen, sizeof(long));
+    WriteWaveValue(lDataSize, riff.wave.pcmdata.datalen, sizeof(int32_t));
+    WriteWaveValue(lDataSize+sizeof(riff.wave), riff.abWaveLen, sizeof(int32_t));
 
     // Rewrite the completed file header
     if (fseek(f, 0, SEEK_SET) == 0)
