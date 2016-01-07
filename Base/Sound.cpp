@@ -55,7 +55,7 @@ void Sound::Exit (bool fReInit_/*=false*/)
     WAV::Stop();
     AVI::Stop();
 
-    delete[] pbSampleBuffer, pbSampleBuffer = NULL;
+    delete[] pbSampleBuffer, pbSampleBuffer = nullptr;
     Audio::Exit(fReInit_);
 }
 
@@ -213,7 +213,7 @@ int CDAC::GetSamplesSoFar ()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void CBeeperDevice::Out(WORD wPort_, BYTE bVal_)
+void CBeeperDevice::Out(WORD /*wPort_*/, BYTE bVal_)
 {
     if (pDAC)
         pDAC->Output((bVal_ & 0x10) ? 0xa0 : 0x80);
@@ -222,7 +222,6 @@ void CBeeperDevice::Out(WORD wPort_, BYTE bVal_)
 ////////////////////////////////////////////////////////////////////////////////
 
 CSoundDevice::CSoundDevice ()
-    : m_nSamplesThisFrame(0)
 {
     int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND)+1;
     int nSize = nSamplesPerFrame*SAMPLE_BLOCK;

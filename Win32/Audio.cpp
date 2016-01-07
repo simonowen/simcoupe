@@ -61,7 +61,7 @@ bool Audio::Init (bool fFirstInit_/*=false*/)
     if (!pdsb)
     {
         // Create an event to trigger when the next frame is due
-        hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+        hEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     }
 
     // Sound initialisation failure isn't fatal, so always return success
@@ -75,8 +75,8 @@ void Audio::Exit (bool fReInit_/*=false*/)
 
     ExitDirectSound();
 
-    if (hTimer) timeKillEvent(hTimer), hTimer = NULL;
-    if (hEvent) CloseHandle(hEvent), hEvent = NULL;
+    if (hTimer) timeKillEvent(hTimer), hTimer = 0;
+    if (hEvent) CloseHandle(hEvent), hEvent = nullptr;
 
     TRACE("<- Audio::Exit()\n");
 }
@@ -90,15 +90,15 @@ void Audio::Silence ()
         return;
 
     // Lock the entire audio buffer
-    if (SUCCEEDED(pdsb->Lock(0, 0, &pvWrite, &dwLength, NULL, NULL, DSBLOCK_ENTIREBUFFER)))
+    if (SUCCEEDED(pdsb->Lock(0, 0, &pvWrite, &dwLength, nullptr, nullptr, DSBLOCK_ENTIREBUFFER)))
     {
         // Silence it to prevent unwanted sound looping
         memset(pvWrite, 0x00, dwLength);
-        pdsb->Unlock(pvWrite, dwLength, NULL, 0);
+        pdsb->Unlock(pvWrite, dwLength, nullptr, 0);
     }
 
     // For a seamless join, set the write offset to the current _play_ cursor position
-    pdsb->GetCurrentPosition(&dwPlayCursor, NULL);
+    pdsb->GetCurrentPosition(&dwPlayCursor, nullptr);
     dwWriteOffset = dwPlayCursor;
 }
 
@@ -189,7 +189,7 @@ bool Audio::AddData (BYTE *pbData_, int nLength_)
         // Wait for more space
         Sleep(2);
     }
-    
+
     return true;
 }
 
@@ -201,7 +201,7 @@ static bool InitDirectSound ()
     bool fRet = false;
 
     // Initialise DirectSound
-    if (FAILED(hr = pfnDirectSoundCreate(NULL, &pds, NULL)))
+    if (FAILED(hr = pfnDirectSoundCreate(nullptr, &pds, nullptr)))
         TRACE("!!! DirectSoundCreate failed (%#08lx)\n", hr);
 
     // We want priority control over the sound format while we're active
@@ -226,7 +226,7 @@ static bool InitDirectSound ()
         dsbd.dwBufferBytes = nSampleBufferSize;
         dsbd.lpwfxFormat = &wf;
 
-        HRESULT hr = pds->CreateSoundBuffer(&dsbd, &pdsb, NULL);
+        HRESULT hr = pds->CreateSoundBuffer(&dsbd, &pdsb, nullptr);
         if (FAILED(hr))
             TRACE("!!! CreateSoundBuffer failed (%#08lx)\n", hr);
         else if (FAILED(hr = pdsb->Play(0, 0, DSBPLAY_LOOPING)))
@@ -240,8 +240,8 @@ static bool InitDirectSound ()
 
 static void ExitDirectSound ()
 {
-    if (pdsb) pdsb->Release(), pdsb = NULL;
-    if (pds) pds->Release(), pds = NULL;
+    if (pdsb) pdsb->Release(), pdsb = nullptr;
+    if (pds) pds->Release(), pds = nullptr;
 }
 
 

@@ -58,7 +58,7 @@ bool UI::Init (bool fFirstInit_/*=false*/)
         SetOption(firstrun, 0);
 
         // Simple message box showing some keys
-        GUI::Start(new CMessageBox(NULL,
+        GUI::Start(new CMessageBox(nullptr,
                     "Some useful keys to get you started:\n\n"
                     "  F1 - Insert disk image\n"
                     "  F10 - Options\n"
@@ -83,7 +83,7 @@ void UI::Exit (bool fReInit_/*=false*/)
 // Create a video object to render the display
 VideoBase *UI::GetVideo (bool fFirstInit_)
 {
-    VideoBase *pVideo = NULL;
+    VideoBase *pVideo = nullptr;
 
     if (!pVideo)
     {
@@ -94,7 +94,7 @@ VideoBase *UI::GetVideo (bool fFirstInit_)
 #endif
         if (!pVideo->Init(fFirstInit_))
         {
-            delete pVideo, pVideo = NULL;
+            delete pVideo, pVideo = nullptr;
             Message(msgError, "Video initialisation failed!");
         }
     }
@@ -202,7 +202,7 @@ bool UI::CheckEvents ()
             break;
 
         Sound::Silence();
-        SDL_WaitEvent(NULL);
+        SDL_WaitEvent(nullptr);
     }
 
     return true;
@@ -211,13 +211,13 @@ bool UI::CheckEvents ()
 void UI::ShowMessage (eMsgType eType_, const char* pcszMessage_)
 {
     if (eType_ == msgInfo)
-        GUI::Start(new CMessageBox(NULL, pcszMessage_, WINDOW_CAPTION, mbInformation));
+        GUI::Start(new CMessageBox(nullptr, pcszMessage_, WINDOW_CAPTION, mbInformation));
     else if (eType_ == msgWarning)
-        GUI::Start(new CMessageBox(NULL, pcszMessage_, WINDOW_CAPTION, mbWarning));
+        GUI::Start(new CMessageBox(nullptr, pcszMessage_, WINDOW_CAPTION, mbWarning));
     else
     {
         fprintf(stderr, "error: %s\n", pcszMessage_);
-        GUI::Start(new CMessageBox(NULL, pcszMessage_, WINDOW_CAPTION, mbError));
+        GUI::Start(new CMessageBox(nullptr, pcszMessage_, WINDOW_CAPTION, mbError));
     }
 }
 

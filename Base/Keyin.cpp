@@ -22,13 +22,17 @@
 #include "Keyin.h"
 #include "Memory.h"
 
+namespace Keyin
+{
 
 static BYTE *pbInput;
 static int nPos = -1;
 static bool fMapChars = true;
 
+BYTE MapChar (BYTE b_);
 
-void Keyin::String (const char *pcsz_, bool fMapChars_)
+
+void String (const char *pcsz_, bool fMapChars_)
 {
     // Clean up any existing input
     Stop();
@@ -46,28 +50,28 @@ void Keyin::String (const char *pcsz_, bool fMapChars_)
     nPos = 0;
 }
 
-void Keyin::Stop ()
+void Stop ()
 {
     // Clean up
-    delete[] pbInput, pbInput = NULL;
+    delete[] pbInput, pbInput = nullptr;
 
     // Normal speed
     g_nTurbo &= ~TURBO_KEYIN;
 }
 
-bool Keyin::CanType ()
+bool CanType ()
 {
     // For safety, ensure ROM0 and the system variable page are present
     return GetSectionPage(SECTION_A) == ROM0 && GetSectionPage(SECTION_B) == 0;
 }
 
-bool Keyin::IsTyping ()
+bool IsTyping ()
 {
     // Do we have a string?
-    return pbInput != NULL;
+    return pbInput != nullptr;
 }
 
-bool Keyin::Next ()
+bool Next ()
 {
     char bKey = 0;
 
@@ -109,7 +113,7 @@ bool Keyin::Next ()
 
 
 // Map special case input characters to the SAM key code equivalent
-BYTE Keyin::MapChar (BYTE b_)
+BYTE MapChar (BYTE b_)
 {
     static BYTE abMap[256];
 
@@ -131,3 +135,5 @@ BYTE Keyin::MapChar (BYTE b_)
     // Return the mapped character, or 0 if none
     return abMap[b_];
 }
+
+} // namespace Keyin

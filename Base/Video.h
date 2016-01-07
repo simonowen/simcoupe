@@ -25,31 +25,30 @@
 
 enum { VCAP_STRETCH=1, VCAP_FILTER=2, VCAP_SCANHIRES=4 };
 
-class Video
+namespace Video
 {
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+    bool Init (bool fFirstInit_=false);
+    void Exit (bool fReInit_=false);
 
-        static bool IsLineDirty (int nLine_);
-        static void SetLineDirty (int nLine_);
-        static void SetDirty ();
+    bool IsLineDirty (int nLine_);
+    void SetLineDirty (int nLine_);
+    void SetDirty ();
 
-        static bool CheckCaps (int nCaps_);
+    bool CheckCaps (int nCaps_);
 
-        static void Update (CScreen* pScreen_);
-        static void UpdateSize ();
-        static void UpdatePalette ();
+    void Update (CScreen* pScreen_);
+    void UpdateSize ();
+    void UpdatePalette ();
 
-        static void DisplayToSamSize (int* pnX_, int* pnY_);
-        static void DisplayToSamPoint (int* pnX_, int* pnY_);
-};
+    void DisplayToSamSize (int* pnX_, int* pnY_);
+    void DisplayToSamPoint (int* pnX_, int* pnY_);
+}
 
 
 class VideoBase
 {
     public:
-        virtual ~VideoBase () { }
+        virtual ~VideoBase () = default;
 
     public:
         virtual int GetCaps () const = 0;

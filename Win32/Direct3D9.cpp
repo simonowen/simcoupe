@@ -52,22 +52,15 @@ struct CUSTOMVERTEX
 static DWORD adwPalette[N_PALETTE_COLOURS];
 
 
-Direct3D9Video::Direct3D9Video ()
-    : m_pd3d(NULL), m_pd3dDevice(NULL), m_pTexture(NULL), m_pVertexBuffer(NULL), m_pVertexDecl(NULL), m_pVertexShader(NULL), m_pPixelShader(NULL)
-{
-    memset(&m_d3dpp, 0, sizeof(m_d3dpp));
-    SetRectEmpty(&m_rTarget);
-}
-
 Direct3D9Video::~Direct3D9Video ()
 {
-    if (m_pTexture) m_pTexture->Release(), m_pTexture = NULL;
-    if (m_pPixelShader) m_pPixelShader->Release(), m_pPixelShader = NULL;
-    if (m_pVertexShader) m_pVertexShader->Release(), m_pVertexShader = NULL;
-    if (m_pVertexBuffer) m_pVertexBuffer->Release(), m_pVertexBuffer = NULL;
-    if (m_pVertexDecl) m_pVertexDecl->Release(), m_pVertexDecl = NULL;
-    if (m_pd3dDevice) m_pd3dDevice->Release(), m_pd3dDevice = NULL;
-    if (m_pd3d) m_pd3d->Release(), m_pd3d = NULL;
+    if (m_pTexture) m_pTexture->Release();
+    if (m_pPixelShader) m_pPixelShader->Release();
+    if (m_pVertexShader) m_pVertexShader->Release();
+    if (m_pVertexBuffer) m_pVertexBuffer->Release();
+    if (m_pVertexDecl) m_pVertexDecl->Release();
+    if (m_pd3dDevice) m_pd3dDevice->Release();
+    if (m_pd3d) m_pd3d->Release();
 }
 
 
@@ -98,7 +91,7 @@ bool Direct3D9Video::Init (bool fFirstInit_)
     CreateDevice();
     UpdateSize();
 
-    return m_pd3d != NULL;
+    return m_pd3d != nullptr;
 }
 
 
@@ -155,7 +148,7 @@ void Direct3D9Video::Update (CScreen* pScreen_, bool *pafDirty_)
     if (!DrawChanges(pScreen_, pafDirty_))
         return;
 
-    hr = m_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0,0,0), 1.0f, 0L);
+    hr = m_pd3dDevice->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0,0,0), 1.0f, 0L);
     hr = m_pd3dDevice->BeginScene();
 
     bool fFilter = GUI::IsActive() ? GetOption(filtergui) || (GetOption(scale) & 1) : GetOption(filter);
@@ -201,7 +194,7 @@ void Direct3D9Video::Update (CScreen* pScreen_, bool *pafDirty_)
 
     hr = m_pd3dDevice->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
     hr = m_pd3dDevice->EndScene();
-    hr = m_pd3dDevice->Present(NULL, NULL, hwndCanvas, NULL);
+    hr = m_pd3dDevice->Present(nullptr, nullptr, hwndCanvas, nullptr);
 }
 
 HRESULT Direct3D9Video::CreateTextures ()
@@ -211,9 +204,9 @@ HRESULT Direct3D9Video::CreateTextures ()
     if (!m_pd3dDevice)
         return D3DERR_INVALIDDEVICE;
 
-    if (m_pTexture) m_pTexture->Release(), m_pTexture = NULL;
+    if (m_pTexture) m_pTexture->Release(), m_pTexture = nullptr;
 
-    if (FAILED(hr = m_pd3dDevice->CreateTexture(TEXTURE_SIZE, TEXTURE_SIZE, 0, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &m_pTexture, NULL)))
+    if (FAILED(hr = m_pd3dDevice->CreateTexture(TEXTURE_SIZE, TEXTURE_SIZE, 0, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &m_pTexture, nullptr)))
         return hr;
 
     UpdatePalette();
@@ -229,18 +222,18 @@ HRESULT Direct3D9Video::CreateVertices ()
     if (!m_pd3dDevice)
         return D3DERR_INVALIDDEVICE;
 
-    if (m_pVertexDecl) m_pVertexDecl->Release(), m_pVertexDecl = NULL;
+    if (m_pVertexDecl) m_pVertexDecl->Release(), m_pVertexDecl = nullptr;
     hr = m_pd3dDevice->CreateVertexDeclaration(vertexDecl, &m_pVertexDecl);
 
-    if (m_pVertexBuffer) m_pVertexBuffer->Release(), m_pVertexBuffer = NULL;
+    if (m_pVertexBuffer) m_pVertexBuffer->Release(), m_pVertexBuffer = nullptr;
 
-    if (FAILED(hr = m_pd3dDevice->CreateVertexBuffer(NUM_VERTICES*sizeof(CUSTOMVERTEX), D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &m_pVertexBuffer, NULL)))
+    if (FAILED(hr = m_pd3dDevice->CreateVertexBuffer(NUM_VERTICES*sizeof(CUSTOMVERTEX), D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &m_pVertexBuffer, nullptr)))
         return hr;
 
     DWORD dwWidth = Frame::GetWidth();
     DWORD dwHeight = Frame::GetHeight();
 
-    CUSTOMVERTEX *pVertices = NULL;
+    CUSTOMVERTEX *pVertices = nullptr;
     hr = m_pVertexBuffer->Lock(0, NUM_VERTICES*sizeof(CUSTOMVERTEX), (void**)&pVertices, 0);
 
     // Main display, also used for scanlines
@@ -281,11 +274,11 @@ HRESULT Direct3D9Video::CreateShaders ()
 {
     HRESULT hr = D3D_OK;
 
-    if (m_pVertexShader) m_pVertexShader->Release(), m_pVertexShader = NULL;
+    if (m_pVertexShader) m_pVertexShader->Release(), m_pVertexShader = nullptr;
     hr = m_pd3dDevice->CreateVertexShader((DWORD*)g_VertexShader, &m_pVertexShader);
     hr = m_pd3dDevice->SetVertexShader(m_pVertexShader);
 
-    if (m_pPixelShader) m_pPixelShader->Release(), m_pPixelShader = NULL;
+    if (m_pPixelShader) m_pPixelShader->Release(), m_pPixelShader = nullptr;
     hr = m_pd3dDevice->CreatePixelShader((DWORD*)g_PixelShader, &m_pPixelShader);
     hr = m_pd3dDevice->SetPixelShader(m_pPixelShader);
 
@@ -299,7 +292,7 @@ HRESULT Direct3D9Video::CreateDevice ()
     if (!m_pd3d)
         return D3DERR_INVALIDDEVICE;
 
-    if (m_pd3dDevice) m_pd3dDevice->Release(), m_pd3dDevice = NULL;
+    if (m_pd3dDevice) m_pd3dDevice->Release(), m_pd3dDevice = nullptr;
 
     D3DDISPLAYMODE d3ddm;
     hr = m_pd3d->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &d3ddm);
@@ -339,8 +332,8 @@ bool Direct3D9Video::Reset (bool fNewDevice_)
     if (!m_pd3d || fResetting)
         return false;
 
-    if (m_pTexture) m_pTexture->Release(), m_pTexture = NULL;
-    if (m_pVertexBuffer) m_pVertexBuffer->Release(), m_pVertexBuffer = NULL;
+    if (m_pTexture) m_pTexture->Release(), m_pTexture = nullptr;
+    if (m_pVertexBuffer) m_pVertexBuffer->Release(), m_pVertexBuffer = nullptr;
 
     m_d3dpp.BackBufferWidth = m_rTarget.right;
     m_d3dpp.BackBufferHeight = m_rTarget.bottom;
@@ -354,7 +347,7 @@ bool Direct3D9Video::Reset (bool fNewDevice_)
     }
     else
     {
-        if (m_pd3dDevice) m_pd3dDevice->Release(), m_pd3dDevice = NULL;
+        if (m_pd3dDevice) m_pd3dDevice->Release(), m_pd3dDevice = nullptr;
         hr = CreateDevice();
     }
 

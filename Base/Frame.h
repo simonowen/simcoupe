@@ -31,38 +31,36 @@
 #include "Util.h"
 
 
-class Frame
+namespace Frame
 {
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+    bool Init (bool fFirstInit_=false);
+    void Exit (bool fReInit_=false);
 
-        static void Flyback ();
-        static void Begin ();
-        static void End ();
+    void Flyback ();
+    void Begin ();
+    void End ();
 
-        static void Update ();
+    void Update ();
 
-        static void TouchLines (int nFrom_, int nTo_);
-        static inline void TouchLine (int nLine_) { TouchLines(nLine_, nLine_); }
+    void TouchLines (int nFrom_, int nTo_);
+    inline void TouchLine (int nLine_) { TouchLines(nLine_, nLine_); }
 
-        static void GetAsicData (BYTE *pb0_, BYTE *pb1_, BYTE *pb2_, BYTE *pb3_);
-        static void ChangeMode (BYTE bNewVmpr_);
-        static void ChangeScreen (BYTE bNewBorder_);
+    void GetAsicData (BYTE *pb0_, BYTE *pb1_, BYTE *pb2_, BYTE *pb3_);
+    void ChangeMode (BYTE bNewVmpr_);
+    void ChangeScreen (BYTE bNewBorder_);
 
-        static void Sync ();
-        static void Redraw ();
-        static void SaveScreenshot ();
+    void Sync ();
+    void Redraw ();
+    void SaveScreenshot ();
 
-        static int GetWidth ();
-        static int GetHeight ();
-        static void SetView (UINT uBlocks_, UINT uLines_);
+    int GetWidth ();
+    int GetHeight ();
+    int GetRasterPos (int *pnLine_);
+    void SetView (UINT uBlocks_, UINT uLines_);
 
-        static void SetStatus (const char *pcszFormat_, ...);
-};
+    void SetStatus (const char *pcszFormat_, ...);
+}
 
-
-int GetRasterPos (int *pnLine_);
 
 inline bool IsScreenLine (int nLine_) { return nLine_ >= (TOP_BORDER_LINES) && nLine_ < (TOP_BORDER_LINES+SCREEN_LINES); }
 inline BYTE AttrBg (BYTE bAttr_) { return (((bAttr_) >> 3) & 0xf); }
@@ -86,8 +84,10 @@ class CFrame
     typedef void (CFrame::* FNLINEUPDATE)(BYTE *pbLine_, int nLine_, int nFrom_, int nTo_);
 
     public:
-        CFrame () : m_pLineUpdate(&CFrame::Mode1Line), m_pbScreenData(NULL) { }
-        virtual ~CFrame () { }
+        CFrame () : m_pLineUpdate(&CFrame::Mode1Line), m_pbScreenData(nullptr) { }
+        CFrame (const CFrame &) = delete;
+        void operator= (const CFrame &) = delete;
+        virtual ~CFrame () = default;
 
     public:
         void SetMode (BYTE bVal_);
@@ -428,7 +428,7 @@ inline void CFrame::ModeChange (BYTE *pbLine_, int nLine_, int nBlock_, BYTE bNe
     }
 }
 
-inline void CFrame::ScreenChange (BYTE *pbLine_, int nLine_, int nBlock_, BYTE bNewBorder_)
+inline void CFrame::ScreenChange (BYTE *pbLine_, int /*nLine_*/, int nBlock_, BYTE bNewBorder_)
 {
     BYTE *pFrame = pbLine_ + ((nBlock_ - s_nViewLeft) << 4);
 

@@ -24,16 +24,15 @@
 #include "Screen.h"
 
 
-class GIF
+namespace GIF
 {
-    public:
-        static bool Start (bool fAnimLoop_=false);
-        static void Stop ();
-        static void Toggle (bool fAnimLoop_=false);
-        static bool IsRecording ();
+    bool Start (bool fAnimLoop_=false);
+    void Stop ();
+    void Toggle (bool fAnimLoop_=false);
+    bool IsRecording ();
 
-        static void AddFrame (CScreen *pScreen_);
-};
+    void AddFrame (CScreen *pScreen_);
+}
 
 
 /*
@@ -42,16 +41,16 @@ class GIF
   data block of 256 bytes (where the first byte is the 'bytecount' of the
   rest and therefore equals 255). Any remaining bits are moved to the 
   buffer start to become part of the following block. After submitting 
-  the last code via submit(), the user must call writeflush() to write 
+  the last code via Submit(), the user must call WriteFlush() to write 
   a terminal, possibly shorter, data block. 
 */
-class BitPacker
+class BitPacker final
 {
 private:
-    FILE *binfile;
-    BYTE buffer[260];	// holds the total buffer
-    BYTE *pos;			// points into buffer
-    WORD need;			// used by addcodetobuffer(), see there
+    FILE *binfile = nullptr;
+    BYTE buffer[260];      // holds the total buffer
+    BYTE *pos = nullptr;   // points into buffer
+    WORD need = 8;         // used by AddCodeToBuffer(), see there
 
     BYTE *AddCodeToBuffer (DWORD code, short n);
 
@@ -59,13 +58,13 @@ public:
     BitPacker (FILE *bf);
 
 public:
-    DWORD byteswritten;	// number of bytes written during the object's lifetime 
+    DWORD byteswritten = 0;	  // number of bytes written during the object's lifetime 
     BYTE *Submit (DWORD code, WORD n);
     void WriteFlush ();
 };
 
 
-class GifCompressor
+class GifCompressor final
 /*
   Contains the stringtable, generates compression codes and writes them to a 
   binary file, formatted in data blocks of maximum length 255 with 
@@ -76,21 +75,22 @@ class GifCompressor
 */
 {
 private:
-    BitPacker *bp;		// object that does the packing and writing of the compression codes
+    BitPacker *bp = nullptr;  // object that does the packing and writing of the compression codes
 
-    DWORD nofdata;		// number of pixels in the data stream
-    DWORD width;		// width of bitmap in pixels
-    DWORD height;		// height of bitmap in pixels
+    DWORD nofdata = 0;        // number of pixels in the data stream
+    DWORD width = 0;          // width of bitmap in pixels
+    DWORD height = 0;         // height of bitmap in pixels
 
-    DWORD curordinal;	// ordinal number of next pixel to be encoded
-    BYTE pixel;			// next pixel to be encoded
+    DWORD curordinal = 0;     // ordinal number of next pixel to be encoded
+    BYTE pixel = 0;           // next pixel to be encoded
 
-    WORD nbits;			// current length of compression codes in bits (changes during encoding process)
-    WORD *axon, *next;	// arrays making up the stringtable
-    BYTE *pix;			// ditto
-    DWORD cc;			// "clear code" which signals the clearing of the string table
-    DWORD eoi;			// "end-of-information code" which must be the last item of the code stream
-    WORD freecode;		// next code to be added to the string table
+    WORD nbits = 0;           // current length of compression codes in bits (changes during encoding process)
+    WORD *axon = nullptr;     // arrays making up the stringtable
+    WORD *next = nullptr;
+    BYTE *pix = nullptr;
+    DWORD cc = 0;             // "clear code" which signals the clearing of the string table
+    DWORD eoi = 0;            // "end-of-information code" which must be the last item of the code stream
+    WORD freecode = 0;        // next code to be added to the string table
 
     void FlushStringTable ();
     void InitRoots ();
@@ -99,7 +99,7 @@ private:
     WORD FindPixelOutlet(WORD headnode,BYTE pixel);
 
 public:
-    GifCompressor ();
+    GifCompressor () = default;
     DWORD WriteDataBlocks (FILE *bf,DWORD nof,WORD ds);
 };
 

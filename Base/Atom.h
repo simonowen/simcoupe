@@ -30,17 +30,16 @@ const BYTE ATOM_NRESET    = 0x20;   // Reset pin (negative logic)
 class CAtomDevice : public CAtaAdapter
 {
     public:
-        CAtomDevice ();
+        BYTE In (WORD wPort_) override;
+        void Out (WORD wPort_, BYTE bVal_) override;
 
     public:
-        BYTE In (WORD wPort_);
-        void Out (WORD wPort_, BYTE bVal_);
-
-    public:
-        bool Attach (CHardDisk *pDisk_, int nDevice_);
+        bool Attach (CHardDisk *pDisk_, int nDevice_) override;
 
     protected:
-        BYTE m_bAddressLatch, m_bReadLatch, m_bWriteLatch;
+        BYTE m_bAddressLatch = 0;
+        BYTE m_bReadLatch = 0;
+        BYTE m_bWriteLatch = 0;
 };
 
 #endif // ATOM_H

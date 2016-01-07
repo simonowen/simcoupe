@@ -26,15 +26,17 @@
 class CAtaAdapter : public CIoDevice
 {
     public:
-        CAtaAdapter ();
+        CAtaAdapter () = default;
+        CAtaAdapter (const CAtaAdapter &) = delete;
+        void operator= (const CAtaAdapter &) = delete;
         ~CAtaAdapter ();
 
     public:
-        BYTE In (WORD wPort_);
-        void Out (WORD wPort_, BYTE bVal_);
+        BYTE In (WORD wPort_) override;
+        void Out (WORD wPort_, BYTE bVal_) override;
 
-        void Reset ();
-        void FrameEnd () { if (m_uActive) m_uActive--; }
+        void Reset () override;
+        void FrameEnd () override { if (m_uActive) m_uActive--; }
 
     public:
         bool IsActive () const { return m_uActive != 0; }
@@ -48,11 +50,11 @@ class CAtaAdapter : public CIoDevice
         WORD InWord (WORD wPort_);
 
     protected:
-        UINT m_uActive; // active when non-zero, decremented by FrameEnd()
+        UINT m_uActive = 0; // active when non-zero, decremented by FrameEnd()
 
     private:
-        CHardDisk *m_pDisk0;
-        CHardDisk *m_pDisk1;
+        CHardDisk *m_pDisk0 = nullptr;
+        CHardDisk *m_pDisk1 = nullptr;
 };
 
 extern CAtaAdapter *pAtom, *pAtomLite, *pSDIDE;

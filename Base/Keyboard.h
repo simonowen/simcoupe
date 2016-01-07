@@ -23,17 +23,16 @@
 
 #include "IO.h"
 
-class Keyboard
+namespace Keyboard
 {
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+    bool Init (bool fFirstInit_=false);
+    void Exit (bool fReInit_=false);
 
-        static void Update ();
-        static void Purge ();
+    void Update ();
+    void Purge ();
 
-        static void SetKey (int nCode_, bool fPressed_, int nMods_=0, int nChar_=0);
-};
+    void SetKey (int nCode_, bool fPressed_, int nMods_=0, int nChar_=0);
+}
 
 
 // Helper macros for SAM keyboard matrix manipulation

@@ -29,6 +29,8 @@ class SDLSurface : public VideoBase
 {
     public:
         SDLSurface ();
+        SDLSurface (const SDLSurface &) = delete;
+        void operator= (const SDLSurface &) = delete;
         ~SDLSurface ();
 
     public:
@@ -46,10 +48,12 @@ class SDLSurface : public VideoBase
         bool DrawChanges (CScreen* pScreen_, bool *pafDirty_);
 
     private:
-        SDL_Surface *pFront, *pBack, *pIcon;
-        int nDesktopWidth, nDesktopHeight;
+        SDL_Surface *pFront = nullptr;
+        SDL_Surface *pBack = nullptr;
+        SDL_Surface *pIcon = nullptr;
+        int nDesktopWidth = 0, nDesktopHeight = 0;
 
-        SDL_Rect m_rTarget;
+        SDL_Rect m_rTarget {};
 };
 
 #endif // !USE_SDL2

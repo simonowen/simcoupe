@@ -21,11 +21,10 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-class Main
+namespace Main
 {
-    public:
-        static bool Init (int argc_, char* argv_[]);
-        static void Exit ();
-};
+    bool Init (int argc_, char* argv_[]);
+    void Exit ();
+}
 
 #endif  // MAIN_H

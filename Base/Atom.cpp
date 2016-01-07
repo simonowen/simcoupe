@@ -27,12 +27,6 @@
 #include "Options.h"
 
 
-CAtomDevice::CAtomDevice ()
-    : m_bAddressLatch(0), m_bReadLatch(0), m_bWriteLatch(0)
-{
-}
-
-
 BYTE CAtomDevice::In (WORD wPort_)
 {
     BYTE bRet = 0xff;
@@ -118,5 +112,5 @@ bool CAtomDevice::Attach (CHardDisk *pDisk_, int nDevice_)
 
     CAtaAdapter::Attach(pDisk_, nDevice_);
 
-    return pDisk_ != NULL;
+    return pDisk_ != nullptr;
 }

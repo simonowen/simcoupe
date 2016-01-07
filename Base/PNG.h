@@ -23,11 +23,10 @@
 
 #include "Screen.h"
 
-class PNG
+namespace PNG
 {
-    public:
-        static bool Save (CScreen *pScreen_);
-};
+    bool Save (CScreen *pScreen_);
+}
 
 #ifdef USE_ZLIB
 
@@ -49,32 +48,25 @@ typedef unsigned char       UINT8;
 #define PNG_INTERLACE_NONE          0   // Non-interlaced image
 
 
-// PNG header structure must be byte-packed
-#pragma pack(1)
-
-typedef struct tagPNG_IHDR
+// PNG header
+typedef struct
 {
-    DWORD   dwWidth;
-    DWORD   dwHeight;
-    BYTE    bBitDepth;
-    BYTE    bColourType;
-    BYTE    bCompressionType;
-    BYTE    bFilterType;
-    BYTE    bInterlaceType;
-}
-PNG_IHDR, *PPNG_IHDR;
-
-#pragma pack()
-
+    DWORD dwWidth ;
+    DWORD dwHeight;
+    BYTE bBitDepth;
+    BYTE bColourType;
+    BYTE bCompressionType;
+    BYTE bFilterType;
+    BYTE bInterlaceType;
+} PNG_IHDR;
 
 // PNG support
-typedef struct tagPNG_INFO
+typedef struct
 {
     DWORD dwWidth, dwHeight;
-    BYTE* pbImage;
+    BYTE *pbImage;
     UINT uSize, uCompressedSize;
-}
-PNG_INFO, *PPNG_INFO;
+} PNG_INFO;
 
 
 #endif  // USE_ZLIB

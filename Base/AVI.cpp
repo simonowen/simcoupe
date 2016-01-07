@@ -25,6 +25,9 @@
 #include "Options.h"
 #include "Sound.h"
 
+namespace AVI
+{
+
 static BYTE *pbCurr, *pbResample;
 
 static char szPath[MAX_PATH], *pszFile;
@@ -65,7 +68,7 @@ static DWORD ReadLittleEndianDWORD ()
     return (ab[3] << 24) | (ab[2] << 16) | (ab[1] << 8) | ab[0];
 }
 
-static long WriteChunkStart (FILE *f_, const char *pszChunk_, const char *pszType_=NULL)
+static long WriteChunkStart (FILE *f_, const char *pszChunk_, const char *pszType_=nullptr)
 {
     // Write the chunk type
     if (pszChunk_ && fwrite(pszChunk_, 1, 4, f_) != 4)
@@ -452,7 +455,7 @@ static void EncodeBlock (BYTE *pb_, int nLength_)
 }
 
 
-bool AVI::Start (bool fHalfSize_)
+bool Start (bool fHalfSize_)
 {
     if (f)
         return false;
@@ -485,7 +488,7 @@ bool AVI::Start (bool fHalfSize_)
     return true;
 }
 
-void AVI::Stop ()
+void Stop ()
 {
     // Ignore if we're not recording
     if (!f)
@@ -508,18 +511,18 @@ void AVI::Stop ()
 
     // Close the recording
     fclose(f);
-    f = NULL;
+    f = nullptr;
 
     // Free current frame data
-    delete[] pbCurr, pbCurr = NULL;
+    delete[] pbCurr, pbCurr = nullptr;
 
     // Free resample buffer
-    delete[] pbResample, pbResample = NULL;
+    delete[] pbResample, pbResample = nullptr;
 
     Frame::SetStatus("Saved %s", pszFile);
 }
 
-void AVI::Toggle (bool fHalfSize_)
+void Toggle (bool fHalfSize_)
 {
     if (!f)
         Start(fHalfSize_);
@@ -527,14 +530,14 @@ void AVI::Toggle (bool fHalfSize_)
         Stop();
 }
 
-bool AVI::IsRecording ()
+bool IsRecording ()
 {
-    return f != NULL;
+    return f != nullptr;
 }
 
 
 // Add a video frame to the file
-void AVI::AddFrame (CScreen *pScreen_)
+void AddFrame (CScreen *pScreen_)
 {
     // Ignore if we're not recording or we're expecting audio
     if (!f || !fWantVideo)
@@ -680,7 +683,7 @@ void AVI::AddFrame (CScreen *pScreen_)
 }
 
 // Add an audio frame to the file
-void AVI::AddFrame (const BYTE *pb_, UINT uLen_)
+void AddFrame (const BYTE *pb_, UINT uLen_)
 {
     // Ignore if we're not recording or we're expecting video
     if (!f || fWantVideo)
@@ -766,3 +769,5 @@ void AVI::AddFrame (const BYTE *pb_, UINT uLen_)
     // Want video next
     fWantVideo = true;
 }
+
+} // namespace AVI

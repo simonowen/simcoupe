@@ -44,16 +44,15 @@ enum { regCommand = 0, regStatus = regCommand, regTrack, regSector, regData };
 // VL1772 registers
 typedef struct tagVL1772Regs
 {
-    BYTE    bCommand;   // Command register (write-only)
-    BYTE    bStatus;    // Status register (read-only)
+    BYTE bCommand = 0;      // Command register (write-only)
+    BYTE bStatus = 0;       // Status register (read-only)
 
-    BYTE    bTrack;     // Track number register value
-    BYTE    bSector;    // Sector number register
-    BYTE    bData;      // Data read from and to write to the controller
+    BYTE bTrack = 0xff;     // Track number register value
+    BYTE bSector = 1;       // Sector number register
+    BYTE bData = 0;         // Data read from and to write to the controller
 
-    bool    fDir;       // Direction flag: 1 to step out, 0 to step in (for non-specific STEP_ commands)
-}
-VL1772Regs;
+    bool fDir = false;      // Direction flag: true to step out, false to step in (for non-specific STEP_ commands)
+} VL1772Regs;
 
 // Status register status bits
 #define BUSY                0x01    // Wait BUSY=0 for a new command

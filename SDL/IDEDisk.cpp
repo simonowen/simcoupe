@@ -38,9 +38,9 @@ struct hd_geometry {
 
 bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/)
 {
-    m_hDevice = open(m_pszDisk, O_EXCL | (fReadOnly_ ? O_RDONLY : O_RDWR));
+    m_hDevice = open(m_strPath.c_str(), O_EXCL | (fReadOnly_ ? O_RDONLY : O_RDWR));
     if (m_hDevice == -1)
-        m_hDevice = open(m_pszDisk, O_EXCL | O_RDONLY);
+        m_hDevice = open(m_strPath.c_str(), O_EXCL | O_RDONLY);
 
     if (IsOpen())
     {
@@ -59,7 +59,7 @@ bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/)
             m_sGeometry.uTotalSectors = nSize & ~1;
 
             // Generate suitable identify data to report
-            SetIdentifyData(NULL);
+            SetIdentifyData(nullptr);
 
             // For safety, only deal with existing BDOS or SDIDE hard disks
             if (IsBDOSDisk() || IsSDIDEDisk())

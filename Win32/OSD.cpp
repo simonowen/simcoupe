@@ -45,11 +45,11 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
     char szModule[MAX_PATH];
 
     // Check if our executable has a read-only attribute set
-    if (GetModuleFileName(NULL, szModule, sizeof(szModule)) &&
+    if (GetModuleFileName(nullptr, szModule, sizeof(szModule)) &&
         (GetFileAttributes(szModule) & FILE_ATTRIBUTE_READONLY) == FILE_ATTRIBUTE_READONLY)
     {
         // Quit after 42 seconds, to discourage eBay sellers bundling us on CD/DVD, likely with unauthorised SAM software
-        SetTimer(NULL, 0, 42*1000, CloseTimerProc);
+        SetTimer(nullptr, 0, 42*1000, CloseTimerProc);
     }
 
     if (fFirstInit_)
@@ -75,7 +75,7 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
         }
 
         // Initialise COM and Windows common controls
-        CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+        CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         InitCommonControls();
 
         // We'll do our own error handling, so suppress any windows error dialogs
@@ -89,8 +89,8 @@ void OSD::Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
-        if (g_hinstDInput) { FreeLibrary(g_hinstDInput); g_hinstDInput = NULL; pfnDirectInputCreate=NULL; }
-        if (g_hinstDSound) { FreeLibrary(g_hinstDSound); g_hinstDSound = NULL; pfnDirectSoundCreate=NULL; }
+        if (g_hinstDInput) { FreeLibrary(g_hinstDInput); g_hinstDInput = nullptr; pfnDirectInputCreate=nullptr; }
+        if (g_hinstDSound) { FreeLibrary(g_hinstDSound); g_hinstDSound = nullptr; pfnDirectSoundCreate=nullptr; }
     }
 }
 
@@ -114,10 +114,10 @@ DWORD OSD::GetTime ()
 static bool GetSpecialFolderPath (int csidl_, char *pszPath_, int cbPath_)
 {
     char szPath[MAX_PATH] = "";
-    LPITEMIDLIST pidl = NULL;
+    LPITEMIDLIST pidl = nullptr;
     bool fRet = false;
 
-    if (cbPath_ > 0 && SUCCEEDED(SHGetSpecialFolderLocation(NULL, csidl_, &pidl)))
+    if (cbPath_ > 0 && SUCCEEDED(SHGetSpecialFolderLocation(nullptr, csidl_, &pidl)))
     {
         if (SHGetPathFromIDList(pidl, szPath))
         {
@@ -152,7 +152,7 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
         // Settings are stored in the user's AppData\Roaming (under SimCoupe\)
         case MFP_SETTINGS:
             GetSpecialFolderPath(CSIDL_APPDATA, szPath, MAX_PATH);
-            CreateDirectory(lstrcat(szPath, "SimCoupe\\"), NULL);
+            CreateDirectory(lstrcat(szPath, "SimCoupe\\"), nullptr);
             break;
 
         // Input file prompts default to the user's Documents directory
@@ -170,13 +170,13 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
             else
             {
                 GetSpecialFolderPath(CSIDL_MYDOCUMENTS, szPath, MAX_PATH);
-                CreateDirectory(lstrcat(szPath, "SimCoupe\\"), NULL);
+                CreateDirectory(lstrcat(szPath, "SimCoupe\\"), nullptr);
             }
             break;
 
         // Resources are bundled with the EXE, which may be a read-only location
         case MFP_RESOURCE:
-            GetModuleFileName(GetModuleHandle(NULL), szPath, MAX_PATH);
+            GetModuleFileName(GetModuleHandle(nullptr), szPath, MAX_PATH);
             strrchr(szPath, '\\')[1] = '\0';
             break;
     }
@@ -239,7 +239,7 @@ CPrinterDevice::~CPrinterDevice ()
 
 bool CPrinterDevice::Open ()
 {
-    PRINTER_DEFAULTS pd = { "RAW", NULL, PRINTER_ACCESS_USE };
+    PRINTER_DEFAULTS pd = { "RAW", nullptr, PRINTER_ACCESS_USE };
 
     if (m_hPrinter != INVALID_HANDLE_VALUE)
         return true;
@@ -248,7 +248,7 @@ bool CPrinterDevice::Open ()
     {
         DOC_INFO_1 docinfo;
         docinfo.pDocName = "SimCoupe print";
-        docinfo.pOutputFile = NULL;
+        docinfo.pOutputFile = nullptr;
         docinfo.pDatatype = "RAW";
 
         // Start the job
@@ -311,15 +311,15 @@ DIR* opendir (const char* pcszDir_)
     // Find the first file, saving the details for later
     HANDLE h = FindFirstFile(szPath, &s_fd);
 
-    // Return the handle if successful, otherwise NULL
-    return (h == INVALID_HANDLE_VALUE) ? NULL : reinterpret_cast<DIR*>(h);
+    // Return the handle if successful, otherwise nullptr
+    return (h == INVALID_HANDLE_VALUE) ? nullptr : reinterpret_cast<DIR*>(h);
 }
 
 struct dirent* readdir (DIR* hDir_)
 {
     // All done?
     if (!s_fd.cFileName[0])
-        return NULL;
+        return nullptr;
 
     // Copy the filename and set the length
     s_dir.d_reclen = lstrlen(lstrcpyn(s_dir.d_name, s_fd.cFileName, sizeof(s_dir.d_name)));

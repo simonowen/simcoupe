@@ -18,22 +18,22 @@ class CSAAEnv
 	} ENVDATA;
 
 protected:
-	unsigned short m_nLeftLevel, m_nRightLevel;
-	ENVDATA const * m_pEnvData;
+	unsigned short m_nLeftLevel = 0, m_nRightLevel = 0;
+	ENVDATA const * m_pEnvData = nullptr;
 
-	bool m_bEnabled;
-	bool m_bInvertRightChannel;
-	BYTE m_nPhase;
-	BYTE m_nPhasePosition;
-	bool m_bEnvelopeEnded;
+	bool m_bEnabled = false;
+	bool m_bInvertRightChannel = false;
+	BYTE m_nPhase = 0;
+	BYTE m_nPhasePosition = 0;
+	bool m_bEnvelopeEnded = true;
 	char m_nPhaseAdd[2];
-	bool m_bLooping;
-	char m_nNumberOfPhases;
-	char m_nResolution;
-	bool m_bNewData;
-	BYTE m_nNextData;
-	bool m_bOkForNewData;
-	bool m_bClockExternally;
+	bool m_bLooping = false;
+	char m_nNumberOfPhases = 0;
+	char m_nResolution = 0;
+	bool m_bNewData = false;
+	BYTE m_nNextData = 0;
+	bool m_bOkForNewData = false;
+	bool m_bClockExternally = false;
 	static const ENVDATA cs_EnvData[8];
 
 	void Tick();
@@ -42,6 +42,8 @@ protected:
 
 public:
 	CSAAEnv();
+	CSAAEnv (const CSAAEnv &) = delete;
+	void operator= (const CSAAEnv &) = delete;
 	~CSAAEnv();
 
 	void InternalClock();
@@ -70,9 +72,7 @@ protected:
 	void ChangeLevel();
 
 public:
-//	CSAANoise();
 	CSAANoise(unsigned long seed);
-	~CSAANoise() { }
 
 	void SetSource(int nSource);
 	void Trigger();
@@ -92,29 +92,29 @@ class CSAAFreq
 protected:
 	static unsigned long m_FreqTable[8][256];
 
-	unsigned long m_nCounter;
-	unsigned long m_nAdd;
-	unsigned short m_nLevel;
+	unsigned long m_nCounter = 0;
+	unsigned long m_nAdd = 0;
+	unsigned short m_nLevel = 2;
 
-	int m_nCurrentOffset;
-	int m_nCurrentOctave;
-	int m_nNextOffset;
-	int m_nNextOctave;
-	bool m_bIgnoreOffsetData;
-	bool m_bNewData;
-	bool m_bSync;
+	int m_nCurrentOffset = 0;
+	int m_nCurrentOctave = 0;
+	int m_nNextOffset = 0;
+	int m_nNextOctave = 0;
+	bool m_bIgnoreOffsetData = false;
+	bool m_bNewData = false;
+	bool m_bSync = false;
 
-	unsigned long m_nSampleRateTimes4K;
-	CSAANoise * const m_pcConnectedNoiseGenerator;
-	CSAAEnv * const m_pcConnectedEnvGenerator;
-	const int m_nConnectedMode; // 0 = nothing; 1 = envgenerator; 2 = noisegenerator
+	unsigned long m_nSampleRateTimes4K = (44100 << 12);
+	CSAANoise * const m_pcConnectedNoiseGenerator = nullptr;
+	CSAAEnv * const m_pcConnectedEnvGenerator = nullptr;
+	const int m_nConnectedMode = 0; // 0 = nothing; 1 = envgenerator; 2 = noisegenerator
 
 	void UpdateOctaveOffsetData();
 	void SetAdd();
 
 public:
 	CSAAFreq(CSAANoise * const pcNoiseGenerator, CSAAEnv * const pcEnvGenerator);
-	~CSAAFreq() { }
+
 	void SetFreqOffset(BYTE nOffset);
 	void SetFreqOctave(BYTE nOctave);
 	void SetSampleRate(int nSampleRate);
@@ -138,24 +138,23 @@ public:
 	} stereolevel;
 
 protected:
-	unsigned short leftleveltimes16, leftleveltimes32, leftlevela0x0e, leftlevela0x0etimes2;
-	unsigned short rightleveltimes16, rightleveltimes32, rightlevela0x0e, rightlevela0x0etimes2;
-	unsigned short m_nOutputIntermediate;
-	unsigned int m_nMixMode;
-	CSAAFreq * const m_pcConnectedToneGenerator; // not const because amp calls ->Tick()
-	const CSAANoise * const m_pcConnectedNoiseGenerator;
-	const CSAAEnv * const m_pcConnectedEnvGenerator;
-	const bool m_bUseEnvelope;
-	mutable bool m_bMute;
-	mutable BYTE last_level_byte;
-	mutable bool level_unchanged;
-	mutable unsigned short last_leftlevel, last_rightlevel;
-	mutable bool leftlevel_unchanged, rightlevel_unchanged;
-	mutable unsigned short cached_last_leftoutput, cached_last_rightoutput;
+	unsigned short leftleveltimes16 = 0, leftleveltimes32 = 0, leftlevela0x0e = 0, leftlevela0x0etimes2 = 0;
+	unsigned short rightleveltimes16 = 0, rightleveltimes32 = 0, rightlevela0x0e = 0, rightlevela0x0etimes2 = 0;
+	unsigned short m_nOutputIntermediate = 0;
+	unsigned int m_nMixMode = 0;
+	CSAAFreq * const m_pcConnectedToneGenerator = nullptr; // not const because amp calls ->Tick()
+	const CSAANoise * const m_pcConnectedNoiseGenerator = nullptr;
+	const CSAAEnv * const m_pcConnectedEnvGenerator = nullptr;
+	const bool m_bUseEnvelope = false;
+	mutable bool m_bMute = true;
+	mutable BYTE last_level_byte = 0;
+	mutable bool level_unchanged = false;
+	mutable unsigned short last_leftlevel = 0, last_rightlevel = 0;
+	mutable bool leftlevel_unchanged = false, rightlevel_unchanged = false;
+	mutable unsigned short cached_last_leftoutput = 0, cached_last_rightoutput = 0;
 
 public:
 	CSAAAmp(CSAAFreq * const ToneGenerator, const CSAANoise * const NoiseGenerator, const CSAAEnv * const EnvGenerator);
-	~CSAAAmp() { }
 
 	void SetAmpLevel(BYTE level_byte); // really just a BYTE
 	void SetToneMixer(BYTE bEnabled);
@@ -174,9 +173,9 @@ public:
 class CSAASound
 {
 protected:
-	int m_nCurrentSaaReg;
-	bool m_bOutputEnabled;
-	bool m_bSync;
+	int m_nCurrentSaaReg = 0;
+	bool m_bOutputEnabled = false;
+	bool m_bSync = false;
 
 	CSAAFreq * Osc[6];
 	CSAANoise * Noise[2];
@@ -185,6 +184,8 @@ protected:
 
 public:
 	CSAASound(int nSampleRate);
+	CSAASound (const CSAASound &) = delete;
+	void operator= (const CSAASound &) = delete;
 	~CSAASound();
 
 	void WriteAddress(BYTE nReg);

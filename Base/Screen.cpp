@@ -322,7 +322,7 @@ int CScreen::Printf (int nX_, int nY_, const char* pcszFormat_, ...)
 }
 
 // Get the on-screen width required for a specified string if drawn proportionally
-/*static*/ int CScreen::GetStringWidth (const char* pcsz_, size_t nMaxChars_/*=-1*/, const GUIFONT *pFont_/*=NULL*/)
+/*static*/ int CScreen::GetStringWidth (const char* pcsz_, size_t nMaxChars_/*=-1*/, const GUIFONT *pFont_/*=nullptr*/)
 {
     int nMaxWidth = 0;
     int nWidth = 0;

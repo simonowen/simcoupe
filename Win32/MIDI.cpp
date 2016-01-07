@@ -32,11 +32,7 @@
 
 
 CMidiDevice::CMidiDevice ()
-    : m_nOut(0), m_hMidiOut(NULL)
 {
-    // No status byte
-    m_abOut[0] = '0';
-
     SetDevice(GetOption(midioutdev));
 }
 
@@ -132,7 +128,7 @@ void CMidiDevice::Out (WORD wPort_, BYTE bVal_)
 bool CMidiDevice::SetDevice (const char *pcszDevice_)
 {
     if (m_hMidiOut)
-        midiOutClose(m_hMidiOut), m_hMidiOut = NULL;
+        midiOutClose(m_hMidiOut), m_hMidiOut = nullptr;
 
     // Do we have a device name?
     if (*pcszDevice_)
@@ -149,5 +145,5 @@ bool CMidiDevice::SetDevice (const char *pcszDevice_)
     }
 
     // Successful if the device name is empty or we have opened a device
-    return !*pcszDevice_ || m_hMidiOut != NULL;
+    return !*pcszDevice_ || m_hMidiOut != nullptr;
 }

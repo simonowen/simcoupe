@@ -22,11 +22,6 @@
 #include "AtaAdapter.h"
 
 
-CAtaAdapter::CAtaAdapter ()
-    : m_uActive(0), m_pDisk0(NULL), m_pDisk1(NULL)
-{
-}
-
 CAtaAdapter::~CAtaAdapter ()
 {
     delete m_pDisk0;
@@ -91,11 +86,11 @@ bool CAtaAdapter::Attach (CHardDisk *pDisk_, int nDevice_)
         if (m_pDisk1) m_pDisk1->SetDeviceAddress(ATA_DEVICE_1);
     }
 
-    return pDisk_ != NULL;
+    return pDisk_ != nullptr;
 }
 
 void CAtaAdapter::Detach ()
 {
-    delete m_pDisk0, m_pDisk0 = NULL;
-    delete m_pDisk1, m_pDisk1 = NULL;
+    delete m_pDisk0, m_pDisk0 = nullptr;
+    delete m_pDisk1, m_pDisk1 = nullptr;
 }

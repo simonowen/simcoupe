@@ -23,22 +23,21 @@
 
 const int MAX_JOYSTICKS = 2;
 
-class Joystick
+namespace Joystick
 {
-    public:
-        static void Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+    void Init (bool fFirstInit_=false);
+    void Exit (bool fReInit_=false);
 
-        static void SetX (int nJoystick_, int nPosition_);
-        static void SetY (int nJoystick_, int nPosition_);
-        static void SetPosition (int nJoystick_, int nPosition_);
-        static void SetButton (int nJoystick_, int nButton_, bool fPressed_);
-        static void SetButtons (int nJoystick_, DWORD dwButtons_);
+    void SetX (int nJoystick_, int nPosition_);
+    void SetY (int nJoystick_, int nPosition_);
+    void SetPosition (int nJoystick_, int nPosition_);
+    void SetButton (int nJoystick_, int nButton_, bool fPressed_);
+    void SetButtons (int nJoystick_, DWORD dwButtons_);
 
-        static BYTE ReadSinclair1 (int nJoystick_);
-        static BYTE ReadSinclair2 (int nJoystick_);
-        static BYTE ReadKempston (int nJoystick_);
-};
+    BYTE ReadSinclair1 (int nJoystick_);
+    BYTE ReadSinclair2 (int nJoystick_);
+    BYTE ReadKempston (int nJoystick_);
+}
 
 enum { jtNone, jtJoystick1, jtJoystick2, jtKempston };
 enum eHostJoy { HJ_CENTRE=0, HJ_LEFT=1, HJ_RIGHT=2, HJ_UP=4, HJ_DOWN=8, HJ_FIRE=16 };

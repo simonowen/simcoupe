@@ -30,50 +30,50 @@ typedef struct {
 enum { AUTOLOAD_NONE, AUTOLOAD_DISK, AUTOLOAD_TAPE };
 
 
-class IO
+namespace IO
 {
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+    bool Init (bool fFirstInit_=false);
+    void Exit (bool fReInit_=false);
 
-        static BYTE In (WORD wPort_);
-        static void Out (WORD wPort_, BYTE bVal_);
+    BYTE In (WORD /*port*/);
+    void Out (WORD port, BYTE val);
 
-        static void OutLmpr (BYTE bVal_);
-        static void OutHmpr (BYTE bVal_);
-        static void OutVmpr (BYTE bVal_);
-        static void OutLepr (BYTE bVal_);
-        static void OutHepr (BYTE bVal_);
-        static void OutClut (WORD wPort_, BYTE bVal_);
+    void OutLmpr (BYTE bVal_);
+    void OutHmpr (BYTE bVal_);
+    void OutVmpr (BYTE bVal_);
+    void OutLepr (BYTE bVal_);
+    void OutHepr (BYTE bVal_);
 
-        static void FrameUpdate ();
-        static void UpdateInput();
-        static const COLOUR *GetPalette ();
-        static bool IsAtStartupScreen (bool fExit_=false);
-        static void AutoLoad (int nType_, bool fOnlyAtStartup_=true);
-        static void WakeAsic ();
+    void OutClut (WORD wPort_, BYTE bVal_);
 
-        static bool EiHook ();
-        static bool Rst8Hook ();
-        static bool Rst48Hook ();
-};
+    void FrameUpdate ();
+    void UpdateInput();
+    const COLOUR *GetPalette ();
+    bool IsAtStartupScreen (bool fExit_=false);
+    void AutoLoad (int nType_, bool fOnlyAtStartup_=true);
+    void WakeAsic ();
+
+    bool EiHook ();
+    bool Rst8Hook ();
+    bool Rst48Hook ();
+}
 
 
 class CIoDevice
 {
     public:
-        virtual ~CIoDevice () { }
+        virtual ~CIoDevice () = default;
 
     public:
         virtual void Reset () { }
 
-        virtual BYTE In (WORD wPort_) { return 0xff; }
-        virtual void Out (WORD wPort_, BYTE bVal_) { }
+        virtual BYTE In (WORD /*port*/) { return 0xff; }
+        virtual void Out (WORD /*port*/, BYTE /*val*/) { }
 
         virtual void FrameEnd () { }
 
-        virtual bool LoadState (const char *pcszFile_) { return true; }  // preserve basic state (such as NVRAM)
-        virtual bool SaveState (const char *pcszFile_) { return true; }
+        virtual bool LoadState (const char * /*file*/) { return true; }  // preserve basic state (such as NVRAM)
+        virtual bool SaveState (const char * /*file*/) { return true; }
 };
 
 enum { drvNone, drvFloppy, drvAtom, drvAtomLite, drvSDIDE };
@@ -81,15 +81,13 @@ enum { drvNone, drvFloppy, drvAtom, drvAtomLite, drvSDIDE };
 class CDiskDevice :  public CIoDevice
 {
     public:
-        CDiskDevice () : m_uActive(0) { }
-        ~CDiskDevice () { }
+        CDiskDevice () = default;
 
     public:
-        void Reset () { }
-        void FrameEnd () { if (m_uActive) m_uActive--; }
+        void FrameEnd () override { if (m_uActive) m_uActive--; }
 
     public:
-        virtual bool Insert (const char* pcszImage_, bool fAutoLoad_=false) { return false; }
+        virtual bool Insert (const char* /*image*/, bool /*autoload*/=false) { return false; }
         virtual void Eject () { }
         virtual bool Save () { return true; }
 
@@ -102,10 +100,10 @@ class CDiskDevice :  public CIoDevice
         virtual bool IsLightOn () const { return false; }
         virtual bool IsActive () const { return m_uActive != 0; }
 
-        virtual void SetDiskModified (bool fModified_=true) { }
+        virtual void SetDiskModified (bool /*modified*/=true) { }
 
     protected:
-        UINT m_uActive; // active when non-zero, decremented by FrameEnd()
+        UINT m_uActive = 0; // active when non-zero, decremented by FrameEnd()
 };
 
 #define in_byte     IO::In

@@ -28,66 +28,75 @@ typedef struct
 {
     const char* pcszDesc;       // Strings describing the filters, separated by '|' symbols
     const char* pcszExts[10];   // Array of extensions for each string above, separated by ';' symbols
-}
-FILEFILTER;
+} FILEFILTER;
 
 
 class CFileDialog : public CDialog
 {
     public:
         CFileDialog (const char* pcszCaption_, const char* pcszPath_,
-                     const FILEFILTER* pcFileFilter_, int *pnFilter_, CWindow* pParent_=NULL);
+                     const FILEFILTER* pcFileFilter_, int *pnFilter_, CWindow* pParent_=nullptr);
+        CFileDialog (const CFileDialog &) = delete;
+        void operator= (const CFileDialog &) = delete;
 
     public:
         void SetPath (const char *pcszPath_);
 
     public:
-        void OnNotify (CWindow* pWindow_, int nParam_);
+        void OnNotify (CWindow* pWindow_, int nParam_) override;
         virtual void OnOK () = 0;
 
     protected:
         static bool s_fShowHidden;
 
     protected:
-        CFileView* m_pFileView;
-        CWindow* m_pFile;
-        CTextControl* m_pPath;
-        CComboBox* m_pFilter;
-        CCheckBox* m_pShowHidden;
-        CTextButton *m_pRefresh, *m_pOK, *m_pCancel;
+        CFileView* m_pFileView = nullptr;
+        CWindow* m_pFile = nullptr;
+        CTextControl* m_pPath = nullptr;
+        CComboBox* m_pFilter = nullptr;
+        CCheckBox* m_pShowHidden = nullptr;
+        CTextButton *m_pRefresh = nullptr;
+        CTextButton *m_pOK = nullptr;
+        CTextButton *m_pCancel = nullptr;
 
-        const FILEFILTER* m_pcFileFilter;
-        int *m_pnFilter;
+        const FILEFILTER* m_pcFileFilter = nullptr;
+        int *m_pnFilter = nullptr;
 };
 
 
-class CInsertFloppy : public CFileDialog
+class CInsertFloppy final : public CFileDialog
 {
     public:
-        CInsertFloppy (int nDrive_, CWindow* pParent_=NULL);
-        void OnOK ();
+        CInsertFloppy (int nDrive_, CWindow* pParent_=nullptr);
+        CInsertFloppy (const CInsertFloppy &) = delete;
+        void operator= (const CInsertFloppy &) = delete;
+
+        void OnOK () override;
 
     protected:
-        int m_nDrive;
+        int m_nDrive = 0;
 };
 
 
-class CInsertTape : public CFileDialog
+class CInsertTape final : public CFileDialog
 {
     public:
-        CInsertTape (CWindow* pParent_=NULL);
-        void OnOK ();
+        CInsertTape (CWindow* pParent_=nullptr);
+        void OnOK () override;
 };
 
 
-class CFileBrowser : public CFileDialog
+class CFileBrowser final : public CFileDialog
 {
     public:
         CFileBrowser (CEditControl* pEdit_, CWindow* pParent_, const char* pcszCaption_, const FILEFILTER* pcsFilter_, int *pnFilter_);
-        void OnOK ();
+        CFileBrowser (const CFileBrowser &) = delete;
+        void operator= (const CFileBrowser &) = delete;
+
+        void OnOK () override;
 
     protected:
-        CEditControl* m_pEdit;
+        CEditControl* m_pEdit = nullptr;
 };
 
 
@@ -95,57 +104,79 @@ class CHDDProperties : public CDialog
 {
     public:
         CHDDProperties (CEditControl* pEdit_, CWindow* pParent_, const char* pcszCaption_);
-        void OnNotify (CWindow* pWindow_, int nParam_);
+        CHDDProperties (const CHDDProperties &) = delete;
+        void operator= (const CHDDProperties &) = delete;
+
+        void OnNotify (CWindow* pWindow_, int nParam_) override;
 
     protected:
-        CEditControl *m_pEdit, *m_pFile;
-        CEditControl *m_pSize;
-        CTextButton *m_pBrowse, *m_pCreate, *m_pOK, *m_pCancel;
+        CEditControl *m_pEdit = nullptr;
+        CEditControl *m_pFile = nullptr;
+        CEditControl *m_pSize = nullptr;
+        CTextButton *m_pBrowse = nullptr;
+        CTextButton *m_pCreate = nullptr;
+        CTextButton *m_pOK = nullptr;
+        CTextButton *m_pCancel = nullptr;
 };
 
 
-class CAboutDialog : public CDialog
+class CAboutDialog final : public CDialog
 {
     public:
-        CAboutDialog (CWindow* pParent_=NULL);
-        void OnNotify (CWindow* pWindow_, int nParam_);
-        void EraseBackground (CScreen* pScreen_);
+        CAboutDialog (CWindow* pParent_=nullptr);
+        CAboutDialog (const CAboutDialog &) = delete;
+        void operator= (const CAboutDialog &) = delete;
+
+        void OnNotify (CWindow* pWindow_, int nParam_) override;
+        void EraseBackground (CScreen* pScreen_) override;
 
     protected:
-        CWindow* m_pCloseButton;
+        CWindow* m_pCloseButton = nullptr;
 };
 
 
-class COptionView : public CListView
+class COptionView final : public CListView
 {
     public:
         COptionView (CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
             : CListView (pParent_, nX_, nY_, nWidth_, nHeight_, 6) { }
 };
 
-class COptionsDialog : public CDialog
+class COptionsDialog final : public CDialog
 {
     public:
-        COptionsDialog (CWindow* pParent_=NULL);
-        void OnNotify (CWindow* pWindow_, int nParam_);
+        COptionsDialog (CWindow* pParent_=nullptr);
+        COptionsDialog (const COptionsDialog &) = delete;
+        void operator= (const COptionsDialog &) = delete;
+
+        void OnNotify (CWindow* pWindow_, int nParam_) override;
 
     protected:
-        CListView* m_pOptions;
-        CTextButton* m_pClose;
-        CTextControl* m_pStatus;
+        CListView* m_pOptions = nullptr;
+        CTextButton* m_pClose = nullptr;
+        CTextControl* m_pStatus = nullptr;
 };
 
 class CImportDialog : public CDialog
 {
     public:
-        CImportDialog (CWindow* pParent_=NULL);
-        void OnNotify (CWindow* pWindow_, int nParam_);
+        CImportDialog (CWindow* pParent_=nullptr);
+        CImportDialog (const CImportDialog &) = delete;
+        void operator= (const CImportDialog &) = delete;
+
+        void OnNotify (CWindow* pWindow_, int nParam_) override;
 
     protected:
-        CEditControl *m_pFile, *m_pAddr, *m_pPage, *m_pOffset;
-        CTextButton *m_pBrowse, *m_pOK, *m_pCancel;
-        CRadioButton *m_pBasic, *m_pPageOffset;
-        CFrameControl *m_pFrame;
+        CEditControl *m_pFile = nullptr;
+        CEditControl *m_pAddr = nullptr;
+        CEditControl *m_pPage = nullptr;
+        CEditControl *m_pOffset = nullptr;
+        CTextButton *m_pBrowse = nullptr;
+        CTextButton *m_pOK = nullptr;
+        CTextButton *m_pCancel = nullptr;
+        CRadioButton *m_pBasic = nullptr;
+        CRadioButton *m_pPageOffset = nullptr;
+        CFrameControl *m_pFrame = nullptr;
 
     protected:
         static char s_szFile[];
@@ -153,46 +184,61 @@ class CImportDialog : public CDialog
         static bool s_fUseBasic;
 };
 
-class CExportDialog : public CImportDialog
+class CExportDialog final : public CImportDialog
 {
     public:
-        CExportDialog (CWindow* pParent_=NULL);
-        void OnNotify (CWindow* pWindow_, int nParam_);
+        CExportDialog (CWindow* pParent_=nullptr);
+        CExportDialog (const CExportDialog &) = delete;
+        void operator= (const CExportDialog &) = delete;
+
+        void OnNotify (CWindow* pWindow_, int nParam_) override;
 
     protected:
-        CEditControl *m_pLength;
+        CEditControl *m_pLength = nullptr;
         static UINT s_uLength;
 };
 
 
-class CNewDiskDialog : public CDialog
+class CNewDiskDialog final : public CDialog
 {
     public:
-        CNewDiskDialog (int nDrive_, CWindow* pParent_=NULL);
-        void OnNotify (CWindow* pWindow_, int nParam_);
+        CNewDiskDialog (int nDrive_, CWindow* pParent_=nullptr);
+        CNewDiskDialog (const CNewDiskDialog &) = delete;
+        void operator= (const CNewDiskDialog &) = delete;
+
+        void OnNotify (CWindow* pWindow_, int nParam_) override;
 
     protected:
-        CComboBox *m_pType;
-        CCheckBox *m_pCompress, *m_pFormat;
-        CTextButton *m_pOK, *m_pCancel;
+        CComboBox *m_pType = nullptr;
+        CCheckBox *m_pCompress = nullptr;
+        CCheckBox *m_pFormat = nullptr;
+        CTextButton *m_pOK = nullptr;
+        CTextButton *m_pCancel = nullptr;
 
     protected:
         static char s_szFile[MAX_PATH];
         static UINT s_uType;
-        static bool s_fCompress, s_fFormat;
+        static bool s_fCompress;
+        static bool s_fFormat;
 };
 
 
 #ifdef _DEBUG
 
-class CTestDialog : public CDialog
+class CTestDialog final : public CDialog
 {
     public:
-        CTestDialog (CWindow* pParent_=NULL);
-        void OnNotify (CWindow* pWindow_, int nParam_);
+        CTestDialog (CWindow* pParent_=nullptr);
+        CTestDialog (const CTestDialog &) = delete;
+        void operator= (const CTestDialog &) = delete;
+
+    public:
+        void OnNotify (CWindow* pWindow_, int nParam_) override;
 
     protected:
-        CWindow *m_pEnable, *m_pClose, *m_apControls[32];
+        CWindow *m_pEnable = nullptr;
+        CWindow *m_pClose = nullptr;
+        CWindow *m_apControls[32];
 };
 
 #endif  // _DEBUG

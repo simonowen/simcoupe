@@ -50,7 +50,7 @@ CSAAAmp::CSAAAmp(CSAAFreq * const ToneGenerator, const CSAANoise * const NoiseGe
 m_pcConnectedToneGenerator(ToneGenerator),
 m_pcConnectedNoiseGenerator(NoiseGenerator),
 m_pcConnectedEnvGenerator(EnvGenerator),
-m_bUseEnvelope(EnvGenerator != NULL)
+m_bUseEnvelope(EnvGenerator != nullptr)
 {
 	leftleveltimes32=leftleveltimes16=leftlevela0x0e=leftlevela0x0etimes2=0;
 	rightleveltimes32=rightleveltimes16=rightlevela0x0e=rightlevela0x0etimes2=0;
@@ -286,11 +286,6 @@ const CSAAEnv::ENVDATA CSAAEnv::cs_EnvData[8] =
 
 
 CSAAEnv::CSAAEnv()
-:
-m_bEnabled(false),
-m_bNewData(false),
-m_nNextData(0),
-m_bOkForNewData(false)
 {
 	// initialise itself with the value 'zero'
 	SetNewEnvData(0);
@@ -569,14 +564,9 @@ unsigned long CSAAFreq::m_FreqTable[8][256];
 
 CSAAFreq::CSAAFreq(CSAANoise * const NoiseGenerator, CSAAEnv * const EnvGenerator)
 :
-m_nCounter(0), m_nAdd(0), m_nLevel(2),
-m_nCurrentOffset(0), m_nCurrentOctave(0), m_nNextOffset(0), m_nNextOctave(0),
-m_bIgnoreOffsetData(false), m_bNewData(false),
-m_bSync(false),
-m_nSampleRateTimes4K(44100<<12),
 m_pcConnectedNoiseGenerator(NoiseGenerator),
 m_pcConnectedEnvGenerator(EnvGenerator),
-m_nConnectedMode((NoiseGenerator == NULL) ? ((EnvGenerator == NULL) ? 0 : 1) : 2)
+m_nConnectedMode((NoiseGenerator == nullptr) ? ((EnvGenerator == nullptr) ? 0 : 1) : 2)
 {
 	// Build the frequency lookup table for all possible notes, if not already set
 	if (!m_FreqTable[0][0])
@@ -898,20 +888,20 @@ m_bSync(false)
 
 	// Create oscillators (tone generators) and link to noise generators and
 	// envelope controllers
-	Osc[0] = new CSAAFreq(Noise[0], NULL);
-	Osc[1] = new CSAAFreq(NULL, Env[0]);
-	Osc[2] = new CSAAFreq(NULL, NULL);
-	Osc[3] = new CSAAFreq(Noise[1], NULL);
-	Osc[4] = new CSAAFreq(NULL, Env[1]);
-	Osc[5] = new CSAAFreq(NULL, NULL);
+	Osc[0] = new CSAAFreq(Noise[0], nullptr);
+	Osc[1] = new CSAAFreq(nullptr, Env[0]);
+	Osc[2] = new CSAAFreq(nullptr, nullptr);
+	Osc[3] = new CSAAFreq(Noise[1], nullptr);
+	Osc[4] = new CSAAFreq(nullptr, Env[1]);
+	Osc[5] = new CSAAFreq(nullptr, nullptr);
 
 	// Create amplification/mixing stages and link to appropriate oscillators,
 	// noise generators and envelope controlloers
-	Amp[0] = new CSAAAmp(Osc[0], Noise[0], NULL),
-	Amp[1] = new CSAAAmp(Osc[1], Noise[0], NULL),
+	Amp[0] = new CSAAAmp(Osc[0], Noise[0], nullptr),
+	Amp[1] = new CSAAAmp(Osc[1], Noise[0], nullptr),
 	Amp[2] = new CSAAAmp(Osc[2], Noise[0], Env[0]),
-	Amp[3] = new CSAAAmp(Osc[3], Noise[1], NULL),
-	Amp[4] = new CSAAAmp(Osc[4], Noise[1], NULL),
+	Amp[3] = new CSAAAmp(Osc[3], Noise[1], nullptr),
+	Amp[4] = new CSAAAmp(Osc[4], Noise[1], nullptr),
 	Amp[5] = new CSAAAmp(Osc[5], Noise[1], Env[1]);
 
 	// Set the output frequency

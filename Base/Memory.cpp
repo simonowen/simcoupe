@@ -51,16 +51,17 @@ BYTE *apbSectionWritePtrs[4];
 WORD g_awMode1LineToByte[SCREEN_LINES];
 BYTE g_abMode1ByteToLine[SCREEN_LINES];
 
-static bool fUpdateRom;
-
 ////////////////////////////////////////////////////////////////////////////////
+
+namespace Memory
+{
+static bool fUpdateRom;
 
 static void SetConfig ();
 static bool LoadRoms ();
 
-
 // Allocate and initialise memory
-bool Memory::Init (bool fFirstInit_/*=false*/)
+bool Init (bool fFirstInit_/*=false*/)
 {
     if (fFirstInit_)
     {
@@ -96,20 +97,20 @@ bool Memory::Init (bool fFirstInit_/*=false*/)
     return true;
 }
 
-void Memory::Exit (bool fReInit_/*=false*/)
+void Exit (bool fReInit_/*=false*/)
 {
-    if (!fReInit_) delete[] pMemory, pMemory = NULL;
+    if (!fReInit_) delete[] pMemory, pMemory = nullptr;
 }
 
 
 // Update the active memory configuration
-void Memory::UpdateConfig ()
+void UpdateConfig ()
 {
     SetConfig();
 }
 
 // Request the ROM image be reloaded on the next reset
-void Memory::UpdateRom ()
+void UpdateRom ()
 {
     fUpdateRom = true;
 }
@@ -227,3 +228,5 @@ static bool LoadRoms ()
     // Return true if using the expected ROM was loaded
     return fRet;
 }
+
+} // namespace Memory

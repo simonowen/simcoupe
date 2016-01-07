@@ -21,18 +21,14 @@
 #ifndef SYMBOL_H
 #define SYMBOL_H
 
-class Symbol
+namespace Symbol
 {
-    public:
-        static const int MAX_SYMBOL_LEN = 12;
+    void Update (const char *pcszFile_);
+    void Clear ();
 
-    public:
-        static void Update (const char *pcszFile_);
-        static void Clear ();
-
-        static int LookupSymbol (std::string sSymbol_);
-        static std::string LookupAddr (WORD wAddr_, int nMaxLen_=0, bool fAllowPlusOne_=false);
-        static std::string LookupPort (BYTE bPort_, bool fInput_);
-};
+    int LookupSymbol (std::string sSymbol_);
+    std::string LookupAddr (WORD wAddr_, int nMaxLen_=0, bool fAllowPlusOne_=false);
+    std::string LookupPort (BYTE bPort_, bool fInput_);
+}
 
 #endif

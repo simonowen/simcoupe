@@ -21,15 +21,14 @@
 #ifndef WAV_H
 #define WAV_H
 
-class WAV
+namespace WAV
 {
-    public:
-        static bool Start (bool fSegment_=false);
-        static void Stop ();
-        static void Toggle (bool fSegment_=false);
-        static bool IsRecording ();
+    bool Start (bool fSegment_=false);
+    void Stop ();
+    void Toggle (bool fSegment_=false);
+    bool IsRecording ();
 
-        static void AddFrame (const BYTE *pb_, int nLen_);
-};
+    void AddFrame (const BYTE *pb_, int nLen_);
+}
 
 #endif // WAV_H

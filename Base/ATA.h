@@ -44,8 +44,7 @@ typedef struct tagATAregs
     BYTE bDeviceControl;    // 0x3f6
 
 //  BYTE bDriveAddress;     // 0x3f7 (read) - value built on demand
-}
-ATAregs;
+} ATAregs;
 
 
 // Structure of IDENTIFY DEVICE command response
@@ -109,7 +108,9 @@ class CATADevice
 {
     public:
         CATADevice ();
-        virtual ~CATADevice () { }
+        CATADevice (const CATADevice &) = delete;
+        void operator= (const CATADevice &) = delete;
+        virtual ~CATADevice () = default;
 
     public:
         void Reset (bool fSoft_=false);
@@ -135,20 +136,20 @@ class CATADevice
         static void SetIdentifyString (const char* pcszValue_, void* pv_, size_t cb_);
 
     protected:
-        BYTE m_bDevice;                 // Device address (as ATA_DEVICE_x)
-        ATAregs m_sRegs;                // AT device registers
-        IDENTIFYDEVICE m_sIdentify;     // Identify device data
-        ATA_GEOMETRY m_sGeometry;       // Device geometry
+        BYTE m_bDevice = ATA_DEVICE_0;  // Device address (as ATA_DEVICE_x)
+        ATAregs m_sRegs {};             // AT device registers
+        IDENTIFYDEVICE m_sIdentify {};  // Identify device data
+        ATA_GEOMETRY m_sGeometry {};    // Device geometry
 
-        BYTE    m_abSectorData[512];    // Sector buffer used for all reads and writes
+        BYTE m_abSectorData[512];       // Sector buffer used for all reads and writes
 
-        UINT    m_uBuffer;              // Number of bytes available for reading, or expected for writing
-        BYTE*   m_pbBuffer;             // Current position in sector buffer for read/write operations
+        UINT m_uBuffer = 0;             // Number of bytes available for reading, or expected for writing
+        BYTE *m_pbBuffer = nullptr;     // Current position in sector buffer for read/write operations
 
-        bool    m_f8bitOnReset;         // 8-bit data transfer state to set on soft reset
-        bool    m_f8bit;                // true if 8-bit data transfers are enabled
-        bool    m_fByteSwap;            // true if we should byte-swap the underlying sector data
-        bool    m_fLegacy;              // true if we're to support legacy requests
+        bool m_f8bitOnReset = false;    // 8-bit data transfer state to set on soft reset
+        bool m_f8bit = false;           // true if 8-bit data transfers are enabled
+        bool m_fByteSwap = false;       // true if we should byte-swap the underlying sector data
+        bool m_fLegacy = false;         // true if we're to support legacy requests
 };
 
 #endif  // ATA_H

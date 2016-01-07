@@ -33,12 +33,7 @@
 
 
 CMidiDevice::CMidiDevice ()
-    : m_nIn(0), m_nOut(0), m_nDevice(-1)
 {
-    // Clear the data buffers
-    memset(m_abIn, 0, sizeof(m_abOut));
-    memset(m_abOut, 0, sizeof(m_abOut));
-
     SetDevice(GetOption(midioutdev));
 }
 
@@ -51,14 +46,14 @@ CMidiDevice::~CMidiDevice ()
 }
 
 
-BYTE CMidiDevice::In (WORD wPort_)
+BYTE CMidiDevice::In (WORD /*wPort_*/)
 {
     // Not supported
     return 0x00;
 }
 
 
-void CMidiDevice::Out (WORD wPort_, BYTE bVal_)
+void CMidiDevice::Out (WORD /*wPort_*/, BYTE bVal_)
 {
     // Protect against very long System Exclusive blocks
     if ((m_nOut == (sizeof m_abOut - 1)) && bVal_ != 0xf7)

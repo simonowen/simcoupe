@@ -28,7 +28,6 @@
 // - PortB = out (b1=ADC enable, b0=DAC enable)
 // - PortC = in (b7-3=status/handshaking, b2-1 unused, b0=clock)
 //
-// 
 // Note: This module supports only a subset of the 8255 PPI chip, as used
 // for normal sampler operation.  Use outside that mode is currently undefined.
 

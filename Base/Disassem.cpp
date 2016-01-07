@@ -216,7 +216,7 @@ static UINT ParseStr (const char* pcsz_, int nSymbolMax_)
     return 0;
 }
 
-UINT Disassemble (BYTE* pb_, WORD wPC_/*=0*/, char* psz_/*=NULL*/, size_t cbSize_/*=0*/, int nSymbolMax_/*=0*/)
+UINT Disassemble (BYTE* pb_, WORD wPC_/*=0*/, char* psz_/*=nullptr*/, size_t cbSize_/*=0*/, int nSymbolMax_/*=0*/)
 {
     BYTE abOpcode[MAX_Z80_INSTR_LEN];
 

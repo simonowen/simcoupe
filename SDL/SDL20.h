@@ -25,35 +25,38 @@
 
 #include "Video.h"
 
-class SDLTexture : public VideoBase
+class SDLTexture final : public VideoBase
 {
     public:
         SDLTexture ();
+        SDLTexture (const SDLTexture &) = delete;
+        void operator= (const SDLTexture &) = delete;
         ~SDLTexture ();
 
     public:
-        int GetCaps () const;
-        bool Init (bool fFirstInit_);
+        int GetCaps () const override;
+        bool Init (bool fFirstInit_) override;
 
-        void Update (CScreen* pScreen_, bool *pafDirty_);
-        void UpdateSize ();
-        void UpdatePalette ();
+        void Update (CScreen* pScreen_, bool *pafDirty_) override;
+        void UpdateSize () override;
+        void UpdatePalette () override;
 
-        void DisplayToSamSize (int* pnX_, int* pnY_);
-        void DisplayToSamPoint (int* pnX_, int* pnY_);
+        void DisplayToSamSize (int* pnX_, int* pnY_) override;
+        void DisplayToSamPoint (int* pnX_, int* pnY_) override;
 
     protected:
         bool DrawChanges (CScreen* pScreen_, bool *pafDirty_);
 
     private:
-        SDL_Window *m_pWindow;
-        SDL_Renderer *m_pRenderer;
-        SDL_Texture *m_pTexture, *m_pScanlineTexture;
+        SDL_Window *m_pWindow = nullptr;
+        SDL_Renderer *m_pRenderer = nullptr;
+        SDL_Texture *m_pTexture = nullptr;
+        SDL_Texture *m_pScanlineTexture = nullptr;
 
-        int m_nDepth;
-        bool m_fFilter;
+        int m_nDepth = 0;
+        bool m_fFilter = false;
 
-        SDL_Rect m_rTarget;
+        SDL_Rect m_rTarget {};
 };
 
 #endif // USE_SDL2

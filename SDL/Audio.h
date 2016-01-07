@@ -38,14 +38,18 @@ class CSoundStream
 {
     public:
         CSoundStream ();
+        CSoundStream (const CSoundStream &) = delete;
+        void operator= (const CSoundStream &) = delete;
         virtual ~CSoundStream ();
 
     public:
         void Silence ();
         void AddData (Uint8* pbSampleData_, int nLength_);
 
-        Uint8 *m_pbStart, *m_pbEnd, *m_pbNow;
-        int m_nSampleBufferSize;
+        Uint8 *m_pbStart = nullptr;
+        Uint8 *m_pbEnd = nullptr;
+        Uint8 *m_pbNow = nullptr;
+        int m_nSampleBufferSize = 0;
 };
 
 #endif  // AUDIO_H

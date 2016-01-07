@@ -130,7 +130,7 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
         for (;;)
         {
             // How long since the last frame?
-            Sint32 nElapsed = static_cast<Sint32>(SDL_GetTicks() - uLastTime);
+            nElapsed = static_cast<Sint32>(SDL_GetTicks() - uLastTime);
 
             // Have we waited long enough?
             if (nElapsed >= nFrameTime)
@@ -170,7 +170,7 @@ bool InitSDLSound ()
     sDesired.samples = SAMPLE_BUFFER_SIZE;
     sDesired.callback = SoundCallback;
 
-    if (SDL_OpenAudio(&sDesired, NULL) < 0)
+    if (SDL_OpenAudio(&sDesired, nullptr) < 0)
     {
         TRACE("SDL_OpenAudio failed: %s\n", SDL_GetError());
         return false;
@@ -185,11 +185,11 @@ void ExitSDLSound ()
 {
     SDL_CloseAudio();
 
-    m_pbNow = m_pbStart = m_pbEnd = NULL;
+    m_pbNow = m_pbStart = m_pbEnd = nullptr;
 }
 
 // Callback used by SDL to request more sound data to play
-void SoundCallback (void *pvParam_, Uint8 *pbStream_, int nLen_)
+void SoundCallback (void * /*pvParam_*/, Uint8 *pbStream_, int nLen_)
 {
     // Determine how much data we have available, how much to copy, and what is left over
     int nData = static_cast<int>(m_pbNow - m_pbStart);

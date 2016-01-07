@@ -37,7 +37,10 @@
 #include "Video.h"
 #include "WAV.h"
 
-const char* Action::aszActions[MAX_ACTION] =
+namespace Action
+{
+
+const char* aszActions[MAX_ACTION] =
 {
     "New disk 1", "Open disk 1", "Close disk 1", "Save disk 1", "New disk 2", "Open disk 2", "Close disk 2", "Save disk 2",
     "Exit application", "Options", "Debugger", "Import data", "Export data", "Save screenshot", "",
@@ -50,7 +53,7 @@ const char* Action::aszActions[MAX_ACTION] =
 };
 
 
-bool Action::Do (int nAction_, bool fPressed_/*=true*/)
+bool Do (int nAction_, bool fPressed_/*=true*/)
 {
     // OS-specific functionality takes precedence
     if (UI::DoAction(nAction_, fPressed_))
@@ -354,7 +357,7 @@ bool Action::Do (int nAction_, bool fPressed_/*=true*/)
 }
 
 
-void Action::Key (int nFnKey_, bool fPressed_, bool fCtrl_, bool fAlt_, bool fShift_)
+void Key (int nFnKey_, bool fPressed_, bool fCtrl_, bool fAlt_, bool fShift_)
 {
     // Grab a copy of the function key definition string (could do with being converted to upper-case)
     char szKeys[256];
@@ -362,7 +365,7 @@ void Action::Key (int nFnKey_, bool fPressed_, bool fCtrl_, bool fAlt_, bool fSh
     szKeys[sizeof(szKeys)-1] = '\0';
 
     // Process each of the 'key=action' pairs in the string
-    for (char* psz = strtok(szKeys, ", \t") ; psz ; psz = strtok(NULL, ", \t"))
+    for (char* psz = strtok(szKeys, ", \t") ; psz ; psz = strtok(nullptr, ", \t"))
     {
         // Leading C/A/S characters indicate that Ctrl/Alt/Shift modifiers are required with the key
         bool fCtrled  = (*psz == 'C');  if (fCtrled)  psz++;
@@ -379,10 +382,12 @@ void Action::Key (int nFnKey_, bool fPressed_, bool fCtrl_, bool fAlt_, bool fSh
             // If the Ctrl/Shift states match, perform the action
             if (fCtrl_ == fCtrled && fAlt_ == fAlted && fShift_ == fShifted)
             {
-                int nAction = static_cast<int>(strtoul(++psz, NULL, 10));
+                int nAction = static_cast<int>(strtoul(++psz, nullptr, 10));
                 Do(nAction, fPressed_);
                 break;
             }
         }
     }
 }
+
+} // namespace Action

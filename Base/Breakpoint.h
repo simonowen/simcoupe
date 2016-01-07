@@ -65,12 +65,14 @@ BREAKINT;
 typedef struct tagBREAKPT
 {
     tagBREAKPT (BreakpointType nType_, EXPR *pExpr_)
-        : nType(nType_), pExpr(pExpr_), fEnabled(true), pNext(NULL) { }
+        : nType(nType_), pExpr(pExpr_) { }
+    tagBREAKPT (const tagBREAKPT &) = delete;
+    void operator= (const tagBREAKPT &) = delete;
     ~tagBREAKPT() { Expr::Release(pExpr); }
 
     BreakpointType nType;
-    EXPR* pExpr;
-    bool fEnabled;
+    EXPR* pExpr = nullptr;
+    bool fEnabled = true;
 
     union
     {
@@ -81,9 +83,8 @@ typedef struct tagBREAKPT
         BREAKINT Int;
     };
 
-    struct tagBREAKPT* pNext;
-}
-BREAKPT;
+    struct tagBREAKPT* pNext = nullptr;
+} BREAKPT;
 
 
 class Breakpoint

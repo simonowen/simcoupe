@@ -42,7 +42,7 @@ OPTIONS g_opts;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
+CAboutDialog::CAboutDialog (CWindow* pParent_/*=nullptr*/)
     : CDialog(pParent_, 305, 220,  "About SimCoupe")
 {
     char szVersion[128] = "SimCoupe v1.1 alpha";
@@ -81,7 +81,7 @@ CAboutDialog::CAboutDialog (CWindow* pParent_/*=NULL*/)
     m_pCloseButton = new CTextButton(this, (m_nWidth-55)/2, m_nHeight-21, "Close", 55);
 }
 
-void CAboutDialog::OnNotify (CWindow* pWindow_, int nParam_)
+void CAboutDialog::OnNotify (CWindow* pWindow_, int /*nParam_*/)
 {
     if (pWindow_ == m_pCloseButton)
         Destroy();
@@ -98,7 +98,7 @@ void CAboutDialog::EraseBackground (CScreen* pScreen_)
 bool CFileDialog::s_fShowHidden = false;
 
 CFileDialog::CFileDialog (const char* pcszCaption_, const char* pcszPath_, const FILEFILTER* pcFileFilter_, int *pnFilter_,
-    CWindow* pParent_/*=NULL*/) : CDialog(pParent_, 527, 339+22, pcszCaption_), m_pcFileFilter(pcFileFilter_), m_pnFilter(pnFilter_)
+    CWindow* pParent_/*=nullptr*/) : CDialog(pParent_, 527, 339+22, pcszCaption_), m_pcFileFilter(pcFileFilter_), m_pnFilter(pnFilter_)
 {
     // Create all the controls for the dialog (the objects are deleted by the GUI when closed)
     m_pFileView = new CFileView(this, 2, 2, (7*72)+19, (4*72));
@@ -213,8 +213,8 @@ static const FILEFILTER sFloppyFilter =
     }
 };
 
-CInsertFloppy::CInsertFloppy (int nDrive_, CWindow* pParent_/*=NULL*/)
-    : CFileDialog("", NULL, &sFloppyFilter, &nFloppyFilter, pParent_), m_nDrive(nDrive_)
+CInsertFloppy::CInsertFloppy (int nDrive_, CWindow* pParent_/*=nullptr*/)
+    : CFileDialog("", nullptr, &sFloppyFilter, &nFloppyFilter, pParent_), m_nDrive(nDrive_)
 {
     // Set the dialog caption to show which drive we're dealing with
     char szCaption[] = "Insert Floppy x";
@@ -280,8 +280,8 @@ static const FILEFILTER sTapeFilter =
     }
 };
 
-CInsertTape::CInsertTape (CWindow* pParent_/*=NULL*/)
-    : CFileDialog("Insert Tape", NULL, &sTapeFilter, &nTapeFilter, pParent_)
+CInsertTape::CInsertTape (CWindow* pParent_/*=nullptr*/)
+    : CFileDialog("Insert Tape", nullptr, &sTapeFilter, &nTapeFilter, pParent_)
 {
     // Browse from the location of the previous image, or the default directory if none
     const char* pcszImage = Tape::GetPath();
@@ -316,7 +316,7 @@ void CInsertTape::OnOK ()
 ////////////////////////////////////////////////////////////////////////////////
 
 CFileBrowser::CFileBrowser (CEditControl* pEdit_, CWindow* pParent_, const char* pcszCaption_, const FILEFILTER* pcsFilter_, int *pnFilter_)
-    : CFileDialog(pcszCaption_, NULL, pcsFilter_, pnFilter_, pParent_), m_pEdit(pEdit_)
+    : CFileDialog(pcszCaption_, nullptr, pcsFilter_, pnFilter_, pParent_), m_pEdit(pEdit_)
 {
     // Browse from the location of the previous image, or the default directory if none
     SetPath(*pEdit_->GetText() ? pEdit_->GetText() : OSD::MakeFilePath(MFP_INPUT));
@@ -357,7 +357,7 @@ CHDDProperties::CHDDProperties (CEditControl* pEdit_, CWindow* pParent_, const c
     OnNotify(m_pFile,0);
 }
 
-void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
+void CHDDProperties::OnNotify (CWindow* pWindow_, int /*nParam_*/)
 {
     static int nHardDiskFilter = 0;
     static const FILEFILTER sHardDiskFilter =
@@ -376,7 +376,7 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
     {
         // If we can, open the existing hard disk image to retrieve the geometry
         CHardDisk* pDisk = CHardDisk::OpenObject(m_pFile->GetText());
-        bool fExists = pDisk != NULL;
+        bool fExists = pDisk != nullptr;
 
         if (fExists)
         {
@@ -417,7 +417,7 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
             }
 
             // Determine the total sector count from the size
-            UINT uTotalSectors = strtoul(m_pSize->GetText(), NULL, 10) << 11;
+            UINT uTotalSectors = strtoul(m_pSize->GetText(), nullptr, 10) << 11;
 
             // Check the geometry is within range
             if (!uTotalSectors || (uTotalSectors > (16383*16*63)))
@@ -445,7 +445,7 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int nParam_)
 
 #ifdef _DEBUG
 
-CTestDialog::CTestDialog (CWindow* pParent_/*=NULL*/)
+CTestDialog::CTestDialog (CWindow* pParent_/*=nullptr*/)
     : CDialog(pParent_, 205, 198, "GUI Test")
 {
     memset(m_apControls, 0, sizeof(m_apControls));
@@ -502,7 +502,7 @@ void CTestDialog::OnNotify (CWindow* pWindow_, int nParam_)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-COptionsDialog::COptionsDialog (CWindow* pParent_/*=NULL*/)
+COptionsDialog::COptionsDialog (CWindow* pParent_/*=nullptr*/)
     : CDialog(pParent_, 364, 171, "Options")
 {
     Move(m_nX, m_nY-40);
@@ -512,7 +512,7 @@ COptionsDialog::COptionsDialog (CWindow* pParent_/*=NULL*/)
     m_pStatus = new CTextControl(this, 4, m_nHeight-15, "", GREY_7);
     m_pClose = new CTextButton(this, m_nWidth-57, m_nHeight-19, "Close", 55);
 
-    CListViewItem* pItem = NULL;
+    CListViewItem* pItem = nullptr;
 
     // Add icons in reverse order
     pItem = new CListViewItem(&sSamIcon, "About", pItem);
@@ -532,7 +532,7 @@ COptionsDialog::COptionsDialog (CWindow* pParent_/*=NULL*/)
 }
 
 
-class CSystemOptions : public CDialog
+class CSystemOptions final : public CDialog
 {
     public:
         CSystemOptions (CWindow* pParent_)
@@ -573,9 +573,11 @@ class CSystemOptions : public CDialog
             // Update the state of the controls to reflect the current settings
             OnNotify(m_pROM,0);
         }
+        CSystemOptions (const CSystemOptions &) = delete;
+        void operator= (const CSystemOptions &) = delete;
 
     public:
-        void OnNotify (CWindow* pWindow_, int nParam_)
+        void OnNotify (CWindow* pWindow_, int /*nParam_*/) override
         {
             static int nROMFilter = 0;
             static const FILEFILTER sROMFilter =
@@ -609,14 +611,18 @@ class CSystemOptions : public CDialog
         }
 
     protected:
-        CCheckBox *m_pFastReset, *m_pAlBootRom;
-        CComboBox *m_pMain, *m_pExternal;
-        CEditControl *m_pROM;
-        CTextButton *m_pOK, *m_pCancel, *m_pBrowse;
+        CCheckBox *m_pFastReset = nullptr;
+        CCheckBox *m_pAlBootRom = nullptr;
+        CComboBox *m_pMain = nullptr;
+        CComboBox *m_pExternal = nullptr;
+        CEditControl *m_pROM = nullptr;
+        CTextButton *m_pOK = nullptr;
+        CTextButton *m_pCancel = nullptr;
+        CTextButton *m_pBrowse = nullptr;
 };
 
 
-class CDisplayOptions : public CDialog
+class CDisplayOptions final : public CDialog
 {
     public:
         CDisplayOptions (CWindow* pParent_)
@@ -655,9 +661,11 @@ class CDisplayOptions : public CDialog
             // Update the state of the controls to reflect the current settings
             OnNotify(m_pScale,0);
         }
+        CDisplayOptions (const CDisplayOptions &) = delete;
+        void operator= (const CDisplayOptions &) = delete;
 
     public:
-        void OnNotify (CWindow* pWindow_, int nParam_)
+        void OnNotify (CWindow* pWindow_, int /*nParam_*/) override
         {
             if (pWindow_ == m_pCancel)
                 Destroy();
@@ -705,14 +713,18 @@ class CDisplayOptions : public CDialog
         }
 
     protected:
-        CCheckBox *m_pFullScreen, *m_pScanlines, *m_pRatio54;
-        CComboBox *m_pScale, *m_pViewArea;
-        CTextControl *m_pScaleText;
-        CTextButton *m_pOK, *m_pCancel;
+        CCheckBox *m_pFullScreen = nullptr;
+        CCheckBox *m_pScanlines = nullptr;
+        CCheckBox *m_pRatio54 = nullptr;
+        CComboBox *m_pScale = nullptr;
+        CComboBox *m_pViewArea = nullptr;
+        CTextControl *m_pScaleText = nullptr;
+        CTextButton *m_pOK = nullptr;
+        CTextButton *m_pCancel = nullptr;
 };
 
 
-class CSoundOptions : public CDialog
+class CSoundOptions final : public CDialog
 {
     public:
         CSoundOptions (CWindow* pParent_)
@@ -739,9 +751,11 @@ class CSoundOptions : public CDialog
             m_pSID->Select(GetOption(sid));
             m_pDAC7C->Select(GetOption(dac7c));
         }
+        CSoundOptions (const CSoundOptions &) = delete;
+        void operator= (const CSoundOptions &) = delete;
 
     public:
-        void OnNotify (CWindow* pWindow_, int nParam_)
+        void OnNotify (CWindow* pWindow_, int /*nParam_*/) override
         {
             if (pWindow_ == m_pCancel)
                 Destroy();
@@ -755,12 +769,14 @@ class CSoundOptions : public CDialog
         }
 
     protected:
-        CComboBox *m_pSID, *m_pDAC7C;
-        CTextButton *m_pOK, *m_pCancel;
+        CComboBox *m_pSID = nullptr;
+        CComboBox *m_pDAC7C = nullptr;
+        CTextButton *m_pOK = nullptr;
+        CTextButton *m_pCancel = nullptr;
 };
 
 
-class CMidiOptions : public CDialog
+class CMidiOptions final : public CDialog
 {
     public:
         CMidiOptions (CWindow* pParent_)
@@ -790,9 +806,11 @@ class CMidiOptions : public CDialog
             // Update the state of the controls to reflect the current settings
             OnNotify(m_pMidi,0);
         }
+        CMidiOptions (const CMidiOptions &) = delete;
+        void operator= (const CMidiOptions &) = delete;
 
     public:
-        void OnNotify (CWindow* pWindow_, int nParam_)
+        void OnNotify (CWindow* pWindow_, int /*nParam_*/) override
         {
             if (pWindow_ == m_pCancel)
                 Destroy();
@@ -816,12 +834,15 @@ class CMidiOptions : public CDialog
         }
 
     protected:
-        CComboBox *m_pMidi, *m_pMidiOut, *m_pMidiIn;
-        CTextButton *m_pOK, *m_pCancel;
+        CComboBox *m_pMidi = nullptr;
+        CComboBox *m_pMidiOut = nullptr;
+        CComboBox *m_pMidiIn = nullptr;
+        CTextButton *m_pOK = nullptr;
+        CTextButton *m_pCancel = nullptr;
 };
 
 
-class CInputOptions : public CDialog
+class CInputOptions final : public CDialog
 {
     public:
         CInputOptions (CWindow* pParent_)
@@ -858,9 +879,11 @@ class CInputOptions : public CDialog
             // Update the state of the controls to reflect the current settings
             OnNotify(m_pMouse,0);
         }
+        CInputOptions (const CInputOptions &) = delete;
+        void operator= (const CInputOptions &) = delete;
 
     public:
-        void OnNotify (CWindow* pWindow_, int nParam_)
+        void OnNotify (CWindow* pWindow_, int /*nParam_*/) override
         {
             if (pWindow_ == m_pCancel)
                 Destroy();
@@ -876,13 +899,16 @@ class CInputOptions : public CDialog
         }
 
     protected:
-        CComboBox *m_pKeyMapping;
-        CCheckBox *m_pAltForCntrl, *m_pAltGrForEdit, *m_pMouse;
-        CTextButton *m_pOK, *m_pCancel;
+        CComboBox *m_pKeyMapping = nullptr;
+        CCheckBox *m_pAltForCntrl = nullptr;
+        CCheckBox *m_pAltGrForEdit = nullptr;
+        CCheckBox *m_pMouse = nullptr;
+        CTextButton *m_pOK = nullptr;
+        CTextButton *m_pCancel = nullptr;
 };
 
 
-class CDriveOptions : public CDialog
+class CDriveOptions final : public CDialog
 {
     public:
         CDriveOptions (CWindow* pParent_)
@@ -926,9 +952,11 @@ class CDriveOptions : public CDialog
             OnNotify(m_pTurboDisk,0);
             OnNotify(m_pDosBoot,0);
         }
+        CDriveOptions (const CDriveOptions &) = delete;
+        void operator= (const CDriveOptions &) = delete;
 
     public:
-        void OnNotify (CWindow* pWindow_, int nParam_)
+        void OnNotify (CWindow* pWindow_, int /*nParam_*/) override
         {
             if (pWindow_ == m_pCancel)
                 Destroy();
@@ -981,15 +1009,20 @@ class CDriveOptions : public CDialog
         }
 
     protected:
-        CComboBox *m_pDrive1, *m_pDrive2;
-        CCheckBox *m_pTurboDisk, *m_pAutoLoad, *m_pDosBoot;
-        CEditControl *m_pDosDisk;
-        CTextControl *m_pDosBootText;
-        CTextButton *m_pOK, *m_pCancel, *m_pBrowse;
+        CComboBox *m_pDrive1 = nullptr;
+        CComboBox *m_pDrive2 = nullptr;
+        CCheckBox *m_pTurboDisk = nullptr;
+        CCheckBox *m_pAutoLoad = nullptr;
+        CCheckBox *m_pDosBoot = nullptr;
+        CEditControl *m_pDosDisk = nullptr;
+        CTextControl *m_pDosBootText = nullptr;
+        CTextButton *m_pOK = nullptr;
+        CTextButton *m_pCancel = nullptr;
+        CTextButton *m_pBrowse = nullptr;
 };
 
 
-class CDiskOptions : public CDialog
+class CDiskOptions final : public CDialog
 {
     public:
         CDiskOptions (CWindow* pParent_)
@@ -1018,9 +1051,11 @@ class CDiskOptions : public CDialog
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
         }
+        CDiskOptions (const CDiskOptions &) = delete;
+        void operator= (const CDiskOptions &) = delete;
 
     public:
-        void OnNotify (CWindow* pWindow_, int nParam_)
+        void OnNotify (CWindow* pWindow_, int /*nParam_*/) override
         {
             if (pWindow_ == m_pCancel)
                 Destroy();
@@ -1068,13 +1103,18 @@ class CDiskOptions : public CDialog
         }
 
     protected:
-        CEditControl *m_pAtom0, *m_pAtom1, *m_pSDIDE;
-        CTextButton *m_pBrowseAtom0, *m_pBrowseAtom1, *m_pBrowseSDIDE;
-        CTextButton *m_pOK, *m_pCancel;
+        CEditControl *m_pAtom0 = nullptr;
+        CEditControl *m_pAtom1 = nullptr;
+        CEditControl *m_pSDIDE = nullptr;
+        CTextButton *m_pBrowseAtom0 = nullptr;
+        CTextButton *m_pBrowseAtom1 = nullptr;
+        CTextButton *m_pBrowseSDIDE = nullptr;
+        CTextButton *m_pOK = nullptr;
+        CTextButton *m_pCancel = nullptr;
 };
 
 
-class CParallelOptions : public CDialog
+class CParallelOptions final : public CDialog
 {
     public:
         CParallelOptions (CWindow* pParent_)
@@ -1113,9 +1153,11 @@ class CParallelOptions : public CDialog
             // Update the state of the controls to reflect the current settings
             OnNotify(m_pPort1,0);
         }
+        CParallelOptions (const CParallelOptions &) = delete;
+        void operator= (const CParallelOptions) = delete;
 
     public:
-        void OnNotify (CWindow* pWindow_, int nParam_)
+        void OnNotify (CWindow* pWindow_, int /*nParam_*/) override
         {
             if (pWindow_ == m_pCancel)
                 Destroy();
@@ -1138,13 +1180,18 @@ class CParallelOptions : public CDialog
         }
 
     protected:
-        CComboBox *m_pPort1, *m_pPort2, *m_pPrinter, *m_pFlushDelay;
-        CTextButton *m_pOK, *m_pCancel;
-        CTextControl *m_pPrinterText, *m_pFlushDelayText;
+        CComboBox *m_pPort1 = nullptr;
+        CComboBox *m_pPort2 = nullptr;
+        CComboBox  *m_pPrinter = nullptr;
+        CComboBox *m_pFlushDelay = nullptr;
+        CTextButton *m_pOK = nullptr;
+        CTextButton *m_pCancel = nullptr;
+        CTextControl *m_pPrinterText = nullptr;
+        CTextControl *m_pFlushDelayText = nullptr;
 };
 
 
-class CMiscOptions : public CDialog
+class CMiscOptions final : public CDialog
 {
     public:
         CMiscOptions (CWindow* pParent_)
@@ -1173,9 +1220,11 @@ class CMiscOptions : public CDialog
             m_pStatus->SetChecked(GetOption(status));
             m_pProfile->SetChecked(GetOption(profile));
         }
+        CMiscOptions (const CMiscOptions &) = delete;
+        void operator= (const CMiscOptions &) = delete;
 
     public:
-        void OnNotify (CWindow* pWindow_, int nParam_)
+        void OnNotify (CWindow* pWindow_, int /*nParam_*/) override
         {
             if (pWindow_ == m_pCancel)
                 Destroy();
@@ -1193,9 +1242,13 @@ class CMiscOptions : public CDialog
         }
 
     protected:
-        CCheckBox *m_pSambus, *m_pDallas;
-        CCheckBox *m_pDriveLights, *m_pStatus, *m_pProfile;
-        CTextButton *m_pOK, *m_pCancel;
+        CCheckBox *m_pSambus = nullptr;
+        CCheckBox *m_pDallas = nullptr;
+        CCheckBox *m_pDriveLights = nullptr;
+        CCheckBox *m_pStatus = nullptr;
+        CCheckBox *m_pProfile = nullptr;
+        CTextButton *m_pOK = nullptr;
+        CTextButton *m_pCancel = nullptr;
 };
 
 
@@ -1472,7 +1525,7 @@ char CNewDiskDialog::s_szFile[MAX_PATH];
 UINT CNewDiskDialog::s_uType = 0;
 bool CNewDiskDialog::s_fCompress, CNewDiskDialog::s_fFormat = true;
 
-CNewDiskDialog::CNewDiskDialog (int nDrive_, CWindow* pParent_/*=NULL*/)
+CNewDiskDialog::CNewDiskDialog (int nDrive_, CWindow* pParent_/*=nullptr*/)
     : CDialog(pParent_, 355, 100, "New Disk")
 {
     // Set the dialog caption to show which drive we're dealing with
@@ -1505,7 +1558,7 @@ CNewDiskDialog::CNewDiskDialog (int nDrive_, CWindow* pParent_/*=NULL*/)
     m_pCancel = new CTextButton(this, m_nWidth-65, 33, "Cancel", 55);
 }
 
-void CNewDiskDialog::OnNotify (CWindow* pWindow_, int nParam_)
+void CNewDiskDialog::OnNotify (CWindow* pWindow_, int /*nParam_*/)
 {
     if (pWindow_ == m_pCancel)
         Destroy();

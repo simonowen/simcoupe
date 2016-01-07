@@ -27,16 +27,10 @@
 #include "IDEDisk.h"
 
 
-CHardDisk::CHardDisk (const char* pcszDisk_)
+CHardDisk::CHardDisk (const char* path)
+: m_strPath(path)
 {
-    m_pszDisk = strdup(pcszDisk_);
 }
-
-CHardDisk::~CHardDisk ()
-{
-    free(m_pszDisk);
-}
-
 
 bool CHardDisk::IsSDIDEDisk ()
 {
@@ -102,25 +96,25 @@ RS_IDE;
 
 
 CHDFHardDisk::CHDFHardDisk (const char* pcszDisk_)
-    : CHardDisk(pcszDisk_), m_hfDisk(NULL), m_uDataOffset(0), m_uSectorSize(0)
+    : CHardDisk(pcszDisk_)
 {
 }
 
 /*static*/ CHardDisk* CHardDisk::OpenObject (const char* pcszDisk_, bool fReadOnly_/*=false*/)
 {
-    CHardDisk* pDisk = NULL;
+    CHardDisk* pDisk = nullptr;
 
     // Make sure we have a disk to try
     if (!pcszDisk_ || !*pcszDisk_)
-        return NULL;
+        return nullptr;
 
     // Try for device path first
     if (!pDisk && (pDisk = new CDeviceHardDisk(pcszDisk_)) && !pDisk->Open(fReadOnly_))
-        delete pDisk, pDisk = NULL;
+        delete pDisk, pDisk = nullptr;
 
     // Try for HDF disk image
     if (!pDisk && (pDisk = new CHDFHardDisk(pcszDisk_)) && !pDisk->Open(fReadOnly_))
-        delete pDisk, pDisk = NULL;
+        delete pDisk, pDisk = nullptr;
 
     return pDisk;
 }
@@ -145,7 +139,7 @@ bool CHDFHardDisk::Create (UINT uTotalSectors_)
     Close();
 
     // No filename?
-    if (!*m_pszDisk)
+    if (m_strPath.empty())
         return false;
 
     // HDF v1.1 header, including full identify sector
@@ -154,12 +148,12 @@ bool CHDFHardDisk::Create (UINT uTotalSectors_)
                        static_cast<BYTE>(uDataOffset & 0xff), static_cast<BYTE>(uDataOffset >> 8) };
 
     // Create the file in binary mode
-    FILE* pFile = fopen(m_pszDisk, "wb");
+    FILE* pFile = fopen(m_strPath.c_str(), "wb");
     if (pFile)
     {
         // Set the sector count, and generate suitable identify data
         m_sGeometry.uTotalSectors = uTotalSectors_;
-        SetIdentifyData(NULL);
+        SetIdentifyData(nullptr);
 
         // Calculate the total disk data size
         off_t lDataSize = uTotalSectors_ * 512;
@@ -176,7 +170,7 @@ bool CHDFHardDisk::Create (UINT uTotalSectors_)
 
         // Remove the file if unsuccessful
         if (!fRet)
-            unlink(m_pszDisk);
+            unlink(m_strPath.c_str());
     }
 
     return fRet;
@@ -188,11 +182,11 @@ bool CHDFHardDisk::Open (bool fReadOnly_/*=false*/)
     Close();
 
     // No disk?
-    if (!*m_pszDisk)
+    if (m_strPath.empty())
         return false;
 
     // Open read-write, falling back on read-only (not ideal!)
-    if ((!fReadOnly_ && (m_hfDisk = fopen(m_pszDisk, "r+b"))) || (m_hfDisk = fopen(m_pszDisk, "rb")))
+    if ((!fReadOnly_ && (m_hfDisk = fopen(m_strPath.c_str(), "r+b"))) || (m_hfDisk = fopen(m_strPath.c_str(), "rb")))
     {
         RS_IDE sHeader;
 
@@ -240,7 +234,7 @@ void CHDFHardDisk::Close ()
     if (IsOpen())
     {
         fclose(m_hfDisk);
-        m_hfDisk = NULL;
+        m_hfDisk = nullptr;
     }
 }
 

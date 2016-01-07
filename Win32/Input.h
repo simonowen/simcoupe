@@ -34,7 +34,7 @@ class Input
         static void AcquireMouse (bool fAcquire_);
         static void Purge ();
 
-        static int MapChar (int nChar_, int *pnMods_=NULL);
+        static int MapChar (int nChar_, int *pnMods_=nullptr);
 
         static void FillJoystickCombo (HWND hwndCombo_);    // Used by the Win32 GUI in UI.cpp
 };

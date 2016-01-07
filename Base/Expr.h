@@ -31,10 +31,10 @@ class Expr
                valOnly=noRegs|noVars|noFuncs|noSyms, regOnly=noVars|noFuncs|noVals|noSyms, simple=valOnly };
 
     public:
-        static EXPR* Compile (const char* pcsz_, char** ppszEnd_=NULL, int nFlags_=none);
+        static EXPR* Compile (const char* pcsz_, char** ppszEnd_=nullptr, int nFlags_=none);
         static void Release (EXPR* pExpr_);
         static int Eval (const EXPR* pExpr_);
-        static bool Eval (const char* pcsz_, int *pnValue_, char** ppszEnd_=NULL, int nFlags_=none);
+        static bool Eval (const char* pcsz_, int *pnValue_, char** ppszEnd_=nullptr, int nFlags_=none);
 
     public:
         static int GetReg (int nReg_);
@@ -57,10 +57,9 @@ typedef struct tagEXPR
     const char *pcszExpr;   // Original expression text (head item only)
 
 private:
-    ~tagEXPR () { }         // Use Expr::Release() to delete Expr chains
+    ~tagEXPR () = default;  // Use Expr::Release() to delete Expr chains
     friend class Expr;
-}
-EXPR;
+} EXPR;
 
 
 // Leave the enums public to allow some poking around the tokenised expressions by calling code

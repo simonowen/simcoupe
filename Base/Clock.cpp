@@ -36,7 +36,6 @@
 
 
 CClockDevice::CClockDevice ()
-    : m_fBCD(true)
 {
     // Initialise the clock to the current date/time
     Reset();
@@ -46,7 +45,7 @@ CClockDevice::CClockDevice ()
 void CClockDevice::Reset ()
 {
     // Get current local time
-    m_tLast = time(NULL);
+    m_tLast = time(nullptr);
 
     // Break the current time into it's parts
     tm *ptm = localtime(&m_tLast);
@@ -96,7 +95,7 @@ int CClockDevice::DateAdd (int &nValue_, int nAdd_, int nMax_)
 bool CClockDevice::Update ()
 {
     // The clocks stays synchronised to real time
-    time_t tNow = time(NULL);
+    time_t tNow = time(nullptr);
 
     // Same time as before?
     if (tNow == m_tLast)
@@ -302,7 +301,7 @@ CDallasClock::CDallasClock ()
     m_abRegs[0x47+BANK1] = 0x1e;    // p(x) = x^8 + x^5 + x^4 + x^0
 }
 
-BYTE CDallasClock::In (WORD wPort_)
+BYTE CDallasClock::In (WORD /*wPort_*/)
 {
     // Update the clock
     Update();

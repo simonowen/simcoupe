@@ -43,8 +43,10 @@ extern "C" int main (int argc_, char* argv_[])
     return 0;
 }
 
+namespace Main
+{
 
-bool Main::Init (int argc_, char* argv_[])
+bool Init (int argc_, char* argv_[])
 {
     // Load settings and check command-line options
     if (!Util::Init() || !Options::Load(argc_, argv_))
@@ -54,7 +56,7 @@ bool Main::Init (int argc_, char* argv_[])
     return OSD::Init(true) && Frame::Init(true) && CPU::Init(true) && UI::Init(true) && Sound::Init(true) && Input::Init(true) && Video::Init(true);
 }
 
-void Main::Exit ()
+void Exit ()
 {
     GUI::Stop();
 
@@ -70,3 +72,5 @@ void Main::Exit ()
 
     Util::Exit();
 }
+
+} // namespace Main

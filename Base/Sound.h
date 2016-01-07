@@ -45,6 +45,8 @@ class CSoundDevice : public CIoDevice
 {
     public:
         CSoundDevice ();
+        CSoundDevice (const CSoundDevice &) = delete;
+        void operator= (const CSoundDevice &) = delete;
         virtual ~CSoundDevice () { delete[] m_pbFrameSample; }
 
     public:
@@ -52,37 +54,39 @@ class CSoundDevice : public CIoDevice
         BYTE *GetSampleBuffer () { return m_pbFrameSample; }
 
     protected:
-        int m_nSamplesThisFrame;
-        BYTE *m_pbFrameSample;
+        int m_nSamplesThisFrame = 0;
+        BYTE *m_pbFrameSample = nullptr;
 };
 
-class CSAA : public CSoundDevice
+class CSAA final : public CSoundDevice
 {
     public:
         CSAA () { m_pSAASound = new CSAASound(SAMPLE_FREQ); }
+        CSAA (const CSAA &) = delete;
+        void operator= (const CSAA &) = delete;
         ~CSAA () { delete m_pSAASound; }
 
     public:
         void Update (bool fFrameEnd_);
-        void FrameEnd ();
+        void FrameEnd () override;
 
-        void Out (WORD wPort_, BYTE bVal_);
+        void Out (WORD wPort_, BYTE bVal_) override;
 
     protected:
-        CSAASound *m_pSAASound;
+        CSAASound *m_pSAASound = nullptr;
 };
 
 
-class CDAC : public CSoundDevice
+class CDAC final : public CSoundDevice
 {
     public:
         CDAC ();
 
     public:
-        void Reset ();
+        void Reset () override;
 
         void Update (bool fFrameEnd_);
-        void FrameEnd ();
+        void FrameEnd () override;
 
         void OutputLeft (BYTE bVal_);
         void OutputRight (BYTE bVal_);
@@ -94,15 +98,15 @@ class CDAC : public CSoundDevice
         int GetSamplesSoFar ();
 
     protected:
-        Blip_Buffer buf_left, buf_right;
-        Blip_Synth<blip_med_quality,256> synth_left, synth_right, synth_left2, synth_right2;
+        Blip_Buffer buf_left {}, buf_right {};
+        Blip_Synth<blip_med_quality,256> synth_left {}, synth_right {}, synth_left2 {}, synth_right2 {};
 };
 
 // Spectrum-style BEEPer
-class CBeeperDevice : public CIoDevice
+class CBeeperDevice final : public CIoDevice
 {
     public:
-        void Out (WORD wPort_, BYTE bVal_);
+        void Out (WORD wPort_, BYTE bVal_) override;
 };
 
 

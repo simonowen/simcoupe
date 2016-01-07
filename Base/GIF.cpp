@@ -29,6 +29,9 @@
 #include "Frame.h"
 #include "Options.h"
 
+namespace GIF
+{
+
 static BYTE *pbCurr, *pbFirst, *pbSub;
 
 static char szPath[MAX_PATH], *pszFile;
@@ -115,7 +118,7 @@ static bool WriteGraphicControlExtensionDelay (long lOffset_, WORD wDelay_)
     long lOldPos = ftell(f);
 
     // Seek to delay offset
-    if (lDelayOffset < 0 || fseek(f, lDelayOffset, SEEK_SET) != 0)
+    if (lOffset_ < 0 || fseek(f, lOffset_, SEEK_SET) != 0)
         return false;
 
     // Write delay time (in 1/100ths second)
@@ -356,7 +359,7 @@ static BYTE UpdateImage (BYTE *pb_, CScreen *pScreen_)
 
 //////////////////////////////////////////////////////////////////////////////
 
-bool GIF::Start (bool fAnimLoop_)
+bool Start (bool fAnimLoop_)
 {
     // Fail if we're already recording
     if (f)
@@ -381,7 +384,7 @@ bool GIF::Start (bool fAnimLoop_)
     return true;
 }
 
-void GIF::Stop ()
+void Stop ()
 {
     // Ignore if we're not recording
     if (!f)
@@ -393,16 +396,16 @@ void GIF::Stop ()
 
     WriteFileTerminator();
     fclose(f);
-    f = NULL;
+    f = nullptr;
 
-    delete[] pbCurr, pbCurr = NULL;
-    delete[] pbFirst, pbFirst = NULL;
-    delete[] pbSub, pbSub = NULL;
+    delete[] pbCurr, pbCurr = nullptr;
+    delete[] pbFirst, pbFirst = nullptr;
+    delete[] pbSub, pbSub = nullptr;
 
     Frame::SetStatus("Saved %s", pszFile);
 }
 
-void GIF::Toggle (bool fAnimLoop_)
+void Toggle (bool fAnimLoop_)
 {
     if (!f)
         Start(fAnimLoop_);
@@ -410,13 +413,13 @@ void GIF::Toggle (bool fAnimLoop_)
         Stop();
 }
 
-bool GIF::IsRecording ()
+bool IsRecording ()
 {
-    return f != NULL;
+    return f != nullptr;
 }
 
 
-void GIF::AddFrame (CScreen *pScreen_)
+void AddFrame (CScreen *pScreen_)
 {
     // Fail if we're not recording
     if (!f)
@@ -487,7 +490,7 @@ void GIF::AddFrame (CScreen *pScreen_)
     // If we're looking for the end of a loop, compare with the first frame
     else if (pbFirst && !memcmp(pbFirst, pbCurr, width*height))
     {
-        delete[] pbFirst, pbFirst = NULL;
+        delete[] pbFirst, pbFirst = nullptr;
         Stop();
         return;
     }
@@ -512,7 +515,15 @@ void GIF::AddFrame (CScreen *pScreen_)
     delete pgc;
 }
 
+} // namespace GIF
+
 ////////////////////////////////////////////////////////////////////////////////
+
+BitPacker::BitPacker (FILE *bf)
+: binfile(bf), pos(buffer)
+{
+    *pos = 0x00;
+}
 
 BYTE *BitPacker::AddCodeToBuffer (DWORD code,short n)
 /*
@@ -614,24 +625,7 @@ void BitPacker::WriteFlush ()
     need = 8;
 }
 
-
-BitPacker::BitPacker (FILE *bf)
-{
-    binfile = bf;
-    need = 8;
-    byteswritten = 0;
-
-    pos = buffer;
-    *pos = 0x00;
-}
-
-
-
-GifCompressor::GifCompressor ()
-    : bp(NULL), nofdata(0), width(0), height(0), curordinal(0), pixel(0), nbits(0),
-      axon(NULL), next(NULL), pix(NULL), cc(0), eoi(0), freecode(0)
-{
-}
+////////////////////////////////////////////////////////////////////////////////
 
 // Initialize a root node for each root code
 void GifCompressor::InitRoots ()
@@ -660,10 +654,10 @@ void GifCompressor::FlushStringTable ()
 // Checks if the chain emanating from headnode's axon contains a node for 'pixel'.
 // Returns that node's address (=code), or 0 if there is no such node.
 // (0 cannot be the root node 0, since root nodes occur in no chain).
-WORD GifCompressor::FindPixelOutlet (WORD headnode,BYTE pixel)
+WORD GifCompressor::FindPixelOutlet (WORD headnode, BYTE pixel_)
 {
     WORD outlet;
-    for (outlet = axon[headnode] ; outlet && pix[outlet] != pixel ; outlet = next[outlet]);
+    for (outlet = axon[headnode] ; outlet && pix[outlet] != pixel_ ; outlet = next[outlet]);
     return outlet;
 }
 
@@ -682,7 +676,7 @@ DWORD GifCompressor::DoNext ()
     }
 
     //	Follow the string table and the data stream to the end of the longest string that has a code
-    pixel = pbSub[curordinal];
+    pixel = GIF::pbSub[curordinal];
 
     while ((down=FindPixelOutlet(up,pixel))!=0) 
     {
@@ -694,7 +688,7 @@ DWORD GifCompressor::DoNext ()
             return curordinal;
         }
 
-        pixel = pbSub[curordinal];
+        pixel = GIF::pbSub[curordinal];
     }
 
     // Submit 'up' which is the code of the longest string ...
@@ -729,7 +723,7 @@ DWORD GifCompressor::WriteDataBlocks (FILE *bf, DWORD nof, WORD dd)
     nofdata = nof;				// number of pixels in data stream
 
     curordinal = 0;				// pixel #0 is next to be processed
-    pixel = pbSub[curordinal];	// get pixel #0
+    pixel = GIF::pbSub[curordinal];	// get pixel #0
 
     nbits = COLOUR_DEPTH+1;		// initial size of compression codes
     cc = (1<<(nbits-1));		// 'cc' is the lowest code requiring 'nbits' bits
@@ -782,7 +776,7 @@ DWORD GifCompressor::WriteDataBlocks (FILE *bf, DWORD nof, WORD dd)
         {
             FlushStringTable();		// avoid stringtable overflow
             bp->Submit(cc,nbits);	// tell the decoding software to flush its stringtable
-            nbits = COLOUR_DEPTH+1;
+            nbits = dd + 1;
             freecode = (WORD)cc+2;
         } 
     }

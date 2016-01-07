@@ -23,19 +23,15 @@
 
 #include "Screen.h"
 
-class Keyin
+namespace Keyin
 {
-    public:
-        static void String (const char *pcsz_, bool fMapChars_=true);
-        static void Stop ();
+    void String (const char *pcsz_, bool fMapChars_=true);
+    void Stop ();
 
-        static bool CanType ();
-        static bool IsTyping ();
+    bool CanType ();
+    bool IsTyping ();
 
-        static bool Next ();
-
-    protected:
-        static BYTE MapChar (BYTE b_);
-};
+    bool Next ();
+}
 
 #endif // KEYIN_H

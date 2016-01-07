@@ -69,7 +69,7 @@ static const UINT MOUSE_TIMER_ID = 42;
 
 INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
 INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
-void CentreWindow (HWND hwnd_, HWND hwndParent_=NULL);
+void CentreWindow (HWND hwnd_, HWND hwndParent_=nullptr);
 
 static void DisplayOptions ();
 static bool InitWindow ();
@@ -146,7 +146,7 @@ static char szTapeFilters[] =
     "All Files (*.*)\0*.*\0";
 
 static const char* aszBorders[] =
-    { "No borders", "Small borders", "Short TV area (default)", "TV visible area", "Complete scan area", NULL };
+    { "No borders", "Small borders", "Short TV area (default)", "TV visible area", "Complete scan area", nullptr };
 
 
 extern "C" int main(int argc_, char* argv_[]);
@@ -178,7 +178,7 @@ void UI::Exit (bool fReInit_/*=false*/)
     if (g_hwnd)
     {
         SaveWindowPosition(g_hwnd);
-        DestroyWindow(g_hwnd), g_hwnd = NULL;
+        DestroyWindow(g_hwnd), g_hwnd = nullptr;
     }
 
     SaveRecentFiles();
@@ -188,7 +188,7 @@ void UI::Exit (bool fReInit_/*=false*/)
 // Create a video object to render the display
 VideoBase *UI::GetVideo (bool fFirstInit_)
 {
-    VideoBase *pVideo = NULL;
+    VideoBase *pVideo = nullptr;
 
     // Is D3D enabled (1), or are we in auto-mode (-1) and running Vista or later?
     if (GetOption(direct3d) > 0 || (GetOption(direct3d) < 0 && IsWindowsVistaOrGreater()))
@@ -196,7 +196,7 @@ VideoBase *UI::GetVideo (bool fFirstInit_)
         // Try for Direct3D9
         pVideo = new Direct3D9Video;
         if (pVideo && !pVideo->Init(fFirstInit_))
-            delete pVideo, pVideo = NULL;
+            delete pVideo, pVideo = nullptr;
     }
 
     // Fall back on DirectDraw
@@ -204,7 +204,7 @@ VideoBase *UI::GetVideo (bool fFirstInit_)
     {
         pVideo = new DirectDrawVideo;
         if (!pVideo->Init(fFirstInit_))
-            delete pVideo, pVideo = NULL;
+            delete pVideo, pVideo = nullptr;
     }
 
     return pVideo;
@@ -217,7 +217,7 @@ bool UI::CheckEvents ()
     {
         // Loop to process any pending Windows messages
         MSG msg;
-        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
             // App closing down?
             if (msg.message == WM_QUIT)
@@ -316,7 +316,7 @@ void ResizeWindow (int nHeight_)
     {
         // Change the window style to a visible pop-up, with no caption, border or menu
         SetWindowLongPtr(g_hwnd, GWL_STYLE, WS_POPUP|WS_VISIBLE);
-        SetMenu(g_hwnd, NULL);
+        SetMenu(g_hwnd, nullptr);
 
         // Force the window to be top-most, and sized to fill the full screen
         SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), SWP_FRAMECHANGED);
@@ -528,7 +528,7 @@ bool AttachDisk (CAtaAdapter *pAdapter_, const char *pcszDisk_, int nDevice_)
     return true;
 }
 
-bool InsertDisk (CDiskDevice* pFloppy_, const char *pcszPath_=NULL)
+bool InsertDisk (CDiskDevice* pFloppy_, const char *pcszPath_=nullptr)
 {
     char szFile[MAX_PATH] = "";
     int nDrive = (pFloppy_ == pFloppy1) ? 1 : 2;
@@ -603,7 +603,7 @@ bool EjectDisk (CDiskDevice *pFloppy_)
 }
 
 
-bool InsertTape (HWND hwndParent_, const char *pcszPath_=NULL)
+bool InsertTape (HWND hwndParent_, const char *pcszPath_=nullptr)
 {
     char szFile[MAX_PATH] = "";
     lstrcpyn(szFile, Tape::GetPath(), sizeof(szFile));
@@ -657,7 +657,7 @@ bool EjectTape ()
 void UpdateTapeToolbar (HWND hdlg_)
 {
     libspectrum_tape *tape = Tape::GetTape();
-    bool fInserted = tape != NULL;
+    bool fInserted = tape != nullptr;
 
     HWND hwndToolbar = GetDlgItem(hdlg_, ID_TAPE_TOOLBAR);
 
@@ -670,7 +670,7 @@ void UpdateTapeToolbar (HWND hdlg_)
 void UpdateTapeBlockList (HWND hdlg_)
 {
     libspectrum_tape *tape = Tape::GetTape();
-    bool fInserted = tape != NULL;
+    bool fInserted = tape != nullptr;
 
     // Show the overlay status text for an empty list
     HWND hwndStatus = GetDlgItem(hdlg_, IDS_TAPE_STATUS);
@@ -685,7 +685,7 @@ void UpdateTapeBlockList (HWND hdlg_)
         // Hide the status text as a tape is present
         ShowWindow(hwndStatus, SW_HIDE);
 
-        libspectrum_tape_iterator it = NULL;
+        libspectrum_tape_iterator it = nullptr;
         libspectrum_tape_block *block = libspectrum_tape_iterator_init(&it, tape);
 
         // Loop over all blocks in the tape
@@ -729,7 +729,7 @@ INT_PTR CALLBACK TapeBrowseDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
         case WM_INITDIALOG:
         {
             // Create a flat toolbar with tooltips
-            hwndToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, "", WS_CHILD|TBSTYLE_FLAT|WS_VISIBLE|TBSTYLE_TOOLTIPS, 0,0, 0,0, hdlg_, (HMENU)ID_TAPE_TOOLBAR, __hinstance, NULL);
+            hwndToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, "", WS_CHILD|TBSTYLE_FLAT|WS_VISIBLE|TBSTYLE_TOOLTIPS, 0,0, 0,0, hdlg_, (HMENU)ID_TAPE_TOOLBAR, __hinstance, nullptr);
             SendMessage(hwndToolbar, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0L);
 
             // Load the image list for our custom icons
@@ -793,8 +793,8 @@ INT_PTR CALLBACK TapeBrowseDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
         }
 
         case WM_DESTROY:
-            DestroyWindow(hwndToolbar), hwndToolbar = NULL;
-            ImageList_Destroy(hImageList), hImageList = NULL;
+            DestroyWindow(hwndToolbar), hwndToolbar = nullptr;
+            ImageList_Destroy(hImageList), hImageList = nullptr;
             break;
 
         case WM_CTLCOLORSTATIC:
@@ -1126,7 +1126,7 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
                 {
                     // Request the content as Unicode text
                     HANDLE hClip = GetClipboardData(CF_UNICODETEXT);
-                    if (hClip != NULL)
+                    if (hClip != nullptr)
                     {
                         LPCWSTR pwsz = reinterpret_cast<LPCWSTR>(GlobalLock(hClip));
                         if (pwsz)
@@ -1215,9 +1215,9 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
                             *pw++ = 0;
 
                             // Convert to US-ASCII, stripping diacritic marks as we go
-                            int nSize = WideCharToMultiByte(CP_ACP, 0, pwsz2, -1, NULL, 0, NULL, NULL);
+                            int nSize = WideCharToMultiByte(CP_ACP, 0, pwsz2, -1, nullptr, 0, nullptr, nullptr);
                             char *pcsz = new char[nSize+1];
-                            nSize = WideCharToMultiByte(20127, 0, pwsz2, -1, pcsz, nSize, NULL, NULL);
+                            nSize = WideCharToMultiByte(20127, 0, pwsz2, -1, pcsz, nSize, nullptr, nullptr);
 
                             // Type the string
                             Keyin::String(pcsz);
@@ -1249,7 +1249,7 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
 }
 
 
-void CentreWindow (HWND hwnd_, HWND hwndParent_/*=NULL*/)
+void CentreWindow (HWND hwnd_, HWND hwndParent_/*=nullptr*/)
 {
     // If a window isn't specified get the parent window
     if ((hwndParent_ && IsIconic(hwndParent_)) || (!hwndParent_ && !(hwndParent_ = GetParent(hwnd_))))
@@ -1265,13 +1265,13 @@ void CentreWindow (HWND hwnd_, HWND hwndParent_/*=NULL*/)
     int nY = rParent.top + ((rParent.bottom - rParent.top) - (rWindow.bottom - rWindow.top)) * 5/12;
 
     // Move the window to its new position
-    SetWindowPos(hwnd_, NULL, nX, nY, 0, 0, SWP_SHOWWINDOW|SWP_NOSIZE|SWP_NOZORDER);
+    SetWindowPos(hwnd_, nullptr, nX, nY, 0, 0, SWP_SHOWWINDOW|SWP_NOSIZE|SWP_NOZORDER);
 }
 
 
 LRESULT CALLBACK URLWndProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    static HCURSOR hHand = LoadCursor(NULL, MAKEINTRESOURCE(32649));    // IDC_HAND, which may not be available
+    static HCURSOR hHand = LoadCursor(nullptr, MAKEINTRESOURCE(32649));    // IDC_HAND, which may not be available
 
     // Cursor query with a valid hand cursor?
     if (uMsg_ == WM_SETCURSOR && hHand)
@@ -1329,7 +1329,7 @@ INT_PTR CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
             if (hfont)
             {
                 DeleteObject(hfont);
-                hfont = NULL;
+                hfont = nullptr;
             }
             break;
 
@@ -1355,8 +1355,8 @@ INT_PTR CALLBACK AboutDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lP
                 char szURL[128];
                 GetDlgItemText(hdlg_, ID_HOMEPAGE, szURL, sizeof(szURL));
 
-                if (ShellExecute(NULL, NULL, szURL, NULL, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
-                    Message(msgWarning, "Failed to launch SimCoupé homepage");
+                if (ShellExecute(nullptr, nullptr, szURL, nullptr, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
+                    Message(msgWarning, "Failed to launch SimCoupe homepage");
                 break;
             }
             break;
@@ -1404,7 +1404,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
     static bool fInMenu = false, fHideCursor = false;
     static UINT_PTR ulMouseTimer = 0;
 
-    static COwnerDrawnMenu odmenu(NULL, IDT_MENU, aMenuIcons);
+    static COwnerDrawnMenu odmenu(nullptr, IDT_MENU, aMenuIcons);
 
 //    TRACE("WindowProc(%#08lx,%#04x,%#08lx,%#08lx)\n", hwnd_, uMsg_, wParam_, lParam_);
 
@@ -1424,7 +1424,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             DragAcceptFiles(hwnd_, GetOption(drive1) == drvFloppy);
 
             // Hook keyboard input to our thread
-            hWinKeyHook = SetWindowsHookEx(WH_KEYBOARD, WinKeyHookProc, NULL, GetCurrentThreadId());
+            hWinKeyHook = SetWindowsHookEx(WH_KEYBOARD, WinKeyHookProc, nullptr, GetCurrentThreadId());
             return 0;
 
         // Application close request
@@ -1433,14 +1433,14 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             if (!ChangesSaved(pFloppy1) || !ChangesSaved(pFloppy2))
                 return 0;
 
-            UnhookWindowsHookEx(hWinKeyHook), hWinKeyHook = NULL;
+            UnhookWindowsHookEx(hWinKeyHook), hWinKeyHook = nullptr;
 
             PostQuitMessage(0);
             return 0;
 
         // Main window is being destroyed
         case WM_DESTROY:
-            DestroyWindow(hwndCanvas), hwndCanvas = NULL;
+            DestroyWindow(hwndCanvas), hwndCanvas = nullptr;
             return 0;
 
         // System shutting down or using logging out
@@ -1507,7 +1507,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             fHideCursor = true;
 
             if (!fInMenu && GetOption(fullscreen))
-                SetMenu(hwnd_, NULL);
+                SetMenu(hwnd_, nullptr);
 
             // Generate a WM_SETCURSOR to update the cursor state
             POINT pt;
@@ -1522,7 +1522,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 // Only hide the cursor over the client area
                 if (LOWORD(lParam_) == HTCLIENT)
                 {
-                    SetCursor(NULL);
+                    SetCursor(nullptr);
                     return TRUE;
                 }
             }
@@ -1540,7 +1540,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
             {
                 // Show the cursor, but set a timer to hide it if not moved for a few seconds
                 fHideCursor = false;
-                ulMouseTimer = SetTimer(g_hwnd, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, NULL);
+                ulMouseTimer = SetTimer(g_hwnd, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, nullptr);
 
                 // In fullscreen mode, show the popup menu
                 if (GetOption(fullscreen) && !GetMenu(g_hwnd))
@@ -1684,7 +1684,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
         case WM_EXITMENULOOP:
             // No longer in menu, so start timer to hide the mouse if not used again
             fInMenu = fHideCursor = false;
-            ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, NULL);
+            ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, nullptr);
 
             // Purge any menu navigation key presses
             Input::Purge();
@@ -1778,7 +1778,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
             // If the keyboard is used, simulate early timer expiry to hide the cursor
             if (fPress && ulMouseTimer)
-                ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, NULL);
+                ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, nullptr);
 
             // Unpause on key-down so the user doesn't think we've hung
             if (fPress && g_fPaused)
@@ -1853,7 +1853,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                     case IDM_FILE_FLOPPY1_INSERT:   GUI::Start(new CInsertFloppy(1));   return 0;
                     case IDM_FILE_FLOPPY2_INSERT:   GUI::Start(new CInsertFloppy(2));   return 0;
                     case IDM_TOOLS_OPTIONS:         GUI::Start(new COptionsDialog);     return 0;
-                    case IDM_TOOLS_DEBUGGER:        GUI::Start(new CDebugger);          return 0;
+					case IDM_TOOLS_DEBUGGER:        GUI::Start(new CDebugger);          return 0;
                     case IDM_HELP_ABOUT:            GUI::Start(new CAboutDialog);       return 0;
 
                     case IDM_FILE_NEW_DISK1:        GUI::Start(new CNewDiskDialog(1));  return 0;
@@ -1897,7 +1897,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                                               "Visit the website to to download it?",
                                               "fdrawcmd.sys not found",
                                               MB_ICONQUESTION|MB_YESNO) == IDYES)
-                            ShellExecute(NULL, NULL, "http://simonowen.com/fdrawcmd/", NULL, "", SW_SHOWMAXIMIZED);
+                            ShellExecute(nullptr, nullptr, "http://simonowen.com/fdrawcmd/", nullptr, "", SW_SHOWMAXIMIZED);
                     }
                     else if (GetOption(drive1) == drvFloppy && ChangesSaved(pFloppy1) && pFloppy1->Insert("A:"))
                         Frame::SetStatus("Using floppy drive %s", pFloppy1->DiskFile());
@@ -1945,10 +1945,10 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
 
                 // Items from help menu
                 case IDM_HELP_GENERAL:
-                    if (ShellExecute(hwnd_, NULL, OSD::MakeFilePath(MFP_RESOURCE, "SimCoupe.txt"), NULL, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
+                    if (ShellExecute(hwnd_, nullptr, OSD::MakeFilePath(MFP_RESOURCE, "SimCoupe.txt"), nullptr, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
                         MessageBox(hwnd_, "Can't find SimCoupe.txt", WINDOW_CAPTION, MB_ICONEXCLAMATION);
                     break;
-                case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), hwnd_, AboutDlgProc, NULL);   break;
+                case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), hwnd_, AboutDlgProc, 0);   break;
 
                 default:
                     if (wId >= IDM_FILE_RECENT1 && wId <= IDM_FILE_RECENT9)
@@ -2001,7 +2001,7 @@ LRESULT CALLBACK CanvasWindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARA
 
         case WM_PAINT:
             Frame::Redraw();
-            ValidateRect(hwnd_, NULL);
+            ValidateRect(hwnd_, nullptr);
             break;
 
         case WM_SIZE:
@@ -2049,7 +2049,7 @@ bool InitWindow ()
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = __hinstance;
     wc.hIcon = LoadIcon(__hinstance, MAKEINTRESOURCE(IDI_MAIN));
-    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.lpszClassName = "SimCoupeClass";
     RegisterClass(&wc);
 
@@ -2062,15 +2062,15 @@ bool InitWindow ()
 
     // Create a window for the display (initially invisible)
     g_hwnd = CreateWindowEx(WS_EX_APPWINDOW, wc.lpszClassName, WINDOW_CAPTION, WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN,
-                            nInitX, nInitY, 1, 1, NULL, g_hmenu, wc.hInstance, NULL);
+                            nInitX, nInitY, 1, 1, nullptr, g_hmenu, wc.hInstance, nullptr);
 
     wc.lpfnWndProc = CanvasWindowProc;
-    wc.hIcon = NULL;
+    wc.hIcon = nullptr;
     wc.lpszClassName = "SimCoupeCanvas";
     RegisterClass(&wc);
 
     // Create the canvas child window to hold the emulation view
-    hwndCanvas = CreateWindow(wc.lpszClassName, "", WS_CHILD|WS_VISIBLE, 0,0, 0,0, g_hwnd, NULL, wc.hInstance, NULL);
+    hwndCanvas = CreateWindow(wc.lpszClassName, "", WS_CHILD|WS_VISIBLE, 0,0, 0,0, g_hwnd, nullptr, wc.hInstance, nullptr);
 
     // Restore the window position, falling back on the current options to determine its size
     if (!RestoreWindowPosition(g_hwnd))
@@ -2083,7 +2083,7 @@ bool InitWindow ()
 
 void ClipPath (char* pszPath_, size_t nLen_)
 {
-    char *psz1 = NULL, *psz2 = NULL;
+    char *psz1 = nullptr, *psz2 = nullptr;
 
     // Accept regular and UNC paths only
     if (lstrlen(pszPath_) < 3)
@@ -2146,7 +2146,7 @@ void SetDlgItemPath (HWND hdlg_, int nId_, const char* pcsz_, bool fSelect_=fals
 
 int GetDlgItemValue (HWND hdlg_, int nId_, int nDefault_=-1)
 {
-    char sz[256], *pEnd = NULL;
+    char sz[256], *pEnd = nullptr;
     GetDlgItemText(hdlg_, nId_, sz, sizeof(sz));
 
     long lValue = strtol(sz, &pEnd, 0);
@@ -2311,7 +2311,7 @@ INT_PTR CALLBACK ImportExportDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
             CentreWindow(hdlg_);
             fImport = !!lParam_;
 
-            static const char* asz[] = { "BASIC Address (0-540671)", "Main Memory (pages 0-31)", "External RAM (pages 0-255)", NULL };
+            static const char* asz[] = { "BASIC Address (0-540671)", "Main Memory (pages 0-31)", "External RAM (pages 0-255)", nullptr };
             SetComboStrings(hdlg_, IDC_TYPE, asz, nType);
 
             SendMessage(hdlg_, WM_COMMAND, IDC_TYPE, 0);
@@ -2497,7 +2497,7 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
             wsprintf(sz, "New Disk %d", nDrive = static_cast<int>(lParam_));
             SetWindowText(hdlg_, sz);
 
-            static const char* aszTypes[] = { "MGT disk image (800K)", "EDSK disk image (flexible format)", "DOS CP/M image (720K)", NULL };
+            static const char* aszTypes[] = { "MGT disk image (800K)", "EDSK disk image (flexible format)", "DOS CP/M image (720K)", nullptr };
             SetComboStrings(hdlg_, IDC_TYPES, aszTypes, nType);
             SendMessage(hdlg_, WM_COMMAND, IDC_TYPES, 0L);
 
@@ -2571,14 +2571,14 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     if (!pcszExt || (pcszExt && lstrcmpi(pcszExt, aszTypes[nType])))
                         lstrcat(szFile, aszTypes[nType]);
 
-                    CStream* pStream = NULL;
-                    CDisk* pDisk = NULL;
+                    CStream* pStream = nullptr;
+                    CDisk* pDisk = nullptr;
 #ifdef USE_ZLIB
                     if (nType == 0 && fCompress)
-                        pStream = new CZLibStream(NULL, szFile);
+                        pStream = new CZLibStream(nullptr, szFile);
                     else
 #endif
-                        pStream = new CFileStream(NULL, szFile);
+                        pStream = new CFileStream(nullptr, szFile);
 
                     switch (nType)
                     {
@@ -2689,7 +2689,7 @@ INT_PTR CALLBACK HardDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
 
                     // If we can, open the existing hard disk image to retrieve the geometry
                     CHardDisk* pDisk = CHardDisk::OpenObject(szFile);
-                    bool fExists = pDisk != NULL;
+                    bool fExists = pDisk != nullptr;
 
                     if (pDisk)
                     {
@@ -2902,7 +2902,7 @@ INT_PTR CALLBACK DisplayPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
     {
         case WM_INITDIALOG:
         {
-            static const char *aszRenderer[] = { "Auto-select (Default)", "DirectDraw", "Direct3D (if available)", NULL };
+            static const char *aszRenderer[] = { "Auto-select (Default)", "DirectDraw", "Direct3D (if available)", nullptr };
 
             SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_SETCHECK, GetOption(hwaccel) ? BST_CHECKED : BST_UNCHECKED, 0L);
             SendDlgItemMessage(hdlg_, IDC_FILTER, BM_SETCHECK, GetOption(filter) ? BST_CHECKED : BST_UNCHECKED, 0L);
@@ -3023,10 +3023,10 @@ INT_PTR CALLBACK SoundPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
         case WM_INITDIALOG:
         {
-            static const char *aszSIDs[] = { "None", "MOS6581 (Default)", "MOS8580", NULL };
+            static const char *aszSIDs[] = { "None", "MOS6581 (Default)", "MOS8580", nullptr };
             SetComboStrings(hdlg_, IDC_SID_TYPE, aszSIDs, GetOption(sid));
 
-            static const char *aszDAC7C[] = { "None", "Blue Alpha Sampler (8-bit mono)", "SAMVox (4 channel 8-bit mono)", "Paula (2 channel 4-bit stereo)", NULL };
+            static const char *aszDAC7C[] = { "None", "Blue Alpha Sampler (8-bit mono)", "SAMVox (4 channel 8-bit mono)", "Paula (2 channel 4-bit stereo)", nullptr };
             SetComboStrings(hdlg_, IDC_DAC_7C, aszDAC7C, GetOption(dac7c));
 
             FillMidiOutCombo(GetDlgItem(hdlg_, IDC_MIDI_OUT));
@@ -3065,7 +3065,7 @@ int FillHDDCombos (HWND hdlg_, int nCombo1_, int nCombo2_)
     int nDevices = 0;
 
     HWND hwndCombo1 = GetDlgItem(hdlg_, nCombo1_);
-    HWND hwndCombo2 = nCombo2_ ? GetDlgItem(hdlg_, nCombo2_) : NULL;
+    HWND hwndCombo2 = nCombo2_ ? GetDlgItem(hdlg_, nCombo2_) : nullptr;
 
     SendMessage(hwndCombo1, CB_RESETCONTENT, 0, 0L);
     if (hwndCombo2) SendMessage(hwndCombo2, CB_RESETCONTENT, 0, 0L);
@@ -3137,7 +3137,7 @@ INT_PTR CALLBACK Drive1PageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
     {
         case WM_INITDIALOG:
         {
-            const char* aszDevices[] = { "None", "Floppy Drive", NULL };
+            const char* aszDevices[] = { "None", "Floppy Drive", nullptr };
             SetComboStrings(hdlg_, IDC_DEVICE_TYPE, aszDevices, GetOption(drive1));
 
             int nDevices = FillFloppyCombo(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE));
@@ -3244,7 +3244,7 @@ INT_PTR CALLBACK Drive2PageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
             break;
 
         case WM_USER+1:
-            uTimer = SetTimer(hdlg_, 1, 250, NULL);
+            uTimer = SetTimer(hdlg_, 1, 250, nullptr);
             break;
 
         case WM_TIMER:
@@ -3288,7 +3288,7 @@ INT_PTR CALLBACK Drive2PageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
         {
             // Schedule an immediate update to the device combo boxes
             if (!uTimer && uMsg_ == WM_INITDIALOG)
-                uTimer = SetTimer(hdlg_, 1, 1, NULL);
+                uTimer = SetTimer(hdlg_, 1, 1, nullptr);
 
             // Register for shell notifications when drive/media changes occur
             if (!ulSHChangeNotifyRegister)
@@ -3303,7 +3303,7 @@ INT_PTR CALLBACK Drive2PageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
                 }
             }
 
-            const char* aszDevices[] = { "None", "Floppy Drive", "Atom (Legacy)", "Atom Lite", NULL };
+            const char* aszDevices[] = { "None", "Floppy Drive", "Atom (Legacy)", "Atom Lite", nullptr };
             SetComboStrings(hdlg_, IDC_DEVICE_TYPE, aszDevices, GetOption(drive2));
 
             SendDlgItemMessage(hdlg_, IDE_FLOPPY_IMAGE, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
@@ -3439,7 +3439,7 @@ INT_PTR CALLBACK Drive2PageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
                         for (int i = 0 ; i < _countof(anControls2) ; i++)
                             ShowWindow(GetDlgItem(hdlg_, anControls2[i]), (nType >= drvAtom) ? SW_SHOW : SW_HIDE);
 
-                        uTimer = SetTimer(hdlg_, 1, 1, NULL);
+                        uTimer = SetTimer(hdlg_, 1, 1, nullptr);
                     }
                     break;
                 }
@@ -3513,7 +3513,7 @@ INT_PTR CALLBACK InputPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
         case WM_INITDIALOG:
         {
-            static const char* aszMapping[] = { "Disabled", "Automatic (default)", "SAM Coupé", "ZX Spectrum", NULL };
+            static const char* aszMapping[] = { "Disabled", "Automatic (default)", "SAM Coupé", "ZX Spectrum", nullptr };
             SetComboStrings(hdlg_, IDC_KEYBOARD_MAPPING, aszMapping, GetOption(keymapping));
 
             SendDlgItemMessage(hdlg_, IDC_ALT_FOR_CNTRL, BM_SETCHECK, GetOption(altforcntrl) ? BST_CHECKED : BST_UNCHECKED, 0L);
@@ -3569,7 +3569,7 @@ INT_PTR CALLBACK JoystickPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
             break;
 
         case WM_DEVICECHANGE:
-            uTimer = SetTimer(hdlg_, 1, 1000, NULL);
+            uTimer = SetTimer(hdlg_, 1, 1000, nullptr);
             break;
 
         case WM_INITDIALOG:
@@ -3577,7 +3577,7 @@ INT_PTR CALLBACK JoystickPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
             FillJoystickCombo(GetDlgItem(hdlg_, IDC_JOYSTICK1), GetOption(joydev1));
             FillJoystickCombo(GetDlgItem(hdlg_, IDC_JOYSTICK2), GetOption(joydev2));
 
-            static const char* aszJoysticks[] = { "None", "Joystick 1", "Joystick 2", "Kempston", NULL };
+            static const char* aszJoysticks[] = { "None", "Joystick 1", "Joystick 2", "Kempston", nullptr };
             SetComboStrings(hdlg_, IDC_SAM_JOYSTICK1, aszJoysticks, GetOption(joytype1));
             SetComboStrings(hdlg_, IDC_SAM_JOYSTICK2, aszJoysticks, GetOption(joytype2));
 
@@ -3631,7 +3631,7 @@ INT_PTR CALLBACK ParallelPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LP
     {
         case WM_INITDIALOG:
         {
-            static const char* aszParallel[] = { "None", "Printer", "DAC (8-bit mono)", "SAMDAC (8-bit stereo)", NULL };
+            static const char* aszParallel[] = { "None", "Printer", "DAC (8-bit mono)", "SAMDAC (8-bit stereo)", nullptr };
             SetComboStrings(hdlg_, IDC_PARALLEL_1, aszParallel, GetOption(parallel1));
             SetComboStrings(hdlg_, IDC_PARALLEL_2, aszParallel, GetOption(parallel2));
 
@@ -3800,7 +3800,7 @@ static void InitPage (PROPSHEETPAGE* pPage_, int nPage_, int nDialogId_, DLGPROC
     pPage_->pszTemplate = MAKEINTRESOURCE(nDialogId_);
     pPage_->pfnDlgProc = pfnDlgProc_;
     pPage_->lParam = nPage_;
-    pPage_->pfnCallback = NULL;
+    pPage_->pfnCallback = nullptr;
 }
 
 

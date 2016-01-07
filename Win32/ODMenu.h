@@ -41,7 +41,7 @@ struct CMenuItem
     CMenuItem () { dwSig = SIGNATURE; szText[0] = '\0'; nImage = -1; }
 
     bool IsOurs () const { return this && dwSig == SIGNATURE; }
-    static CMenuItem* GetItem (ULONG_PTR ulp_) { CMenuItem* p = reinterpret_cast<CMenuItem*>(ulp_); return p->IsOurs() ? p : NULL; }
+    static CMenuItem* GetItem (ULONG_PTR ulp_) { CMenuItem* p = reinterpret_cast<CMenuItem*>(ulp_); return p->IsOurs() ? p : nullptr; }
 
     DWORD   dwSig;
     char    szText[64];
@@ -53,7 +53,7 @@ struct CMenuItem
 class COwnerDrawnMenu
 {
     public:
-        COwnerDrawnMenu (HINSTANCE hinst_=NULL, int nId_=0, MENUICON* pIconMap_=NULL);
+        COwnerDrawnMenu (HINSTANCE hinst_=nullptr, int nId_=0, MENUICON* pIconMap_=nullptr);
         virtual ~COwnerDrawnMenu ();
 
         LRESULT WindowProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT* plResult_);
@@ -73,15 +73,16 @@ class COwnerDrawnMenu
         void ConvertMenu (HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, bool fConvert_);
 
     protected:
-        HIMAGELIST m_hil;
-        PMENUICON m_pIconMap;
-        SIZE    m_zButton;
+        HIMAGELIST m_hil = nullptr;
+        PMENUICON m_pIconMap = nullptr;
+        SIZE m_zButton {};
 
-        SIZE    m_zBorder;
-        HFONT   m_hfont, m_hfontBold;
+        SIZE m_zBorder {};
+        HFONT m_hfont = nullptr;
+        HFONT m_hfontBold = nullptr;
 
-        int     m_nConverted;
-        HMENU   m_aConverted[64];
+        int m_nConverted = 0;
+        HMENU m_aConverted[64];
 };
 
 #endif

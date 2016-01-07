@@ -21,15 +21,13 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-class Util
+namespace Util
 {
-    public:
-        static bool Init ();
-        static void Exit ();
+    bool Init ();
+    void Exit ();
 
-    public:
-        static char *GetUniqueFile (const char* pcszExt_, char* pszPath_, int cbPath_);
-};
+    char *GetUniqueFile (const char* pcszExt_, char* pszPath_, int cbPath_);
+}
 
 
 enum eMsgType { msgInfo, msgWarning, msgError, msgFatal };

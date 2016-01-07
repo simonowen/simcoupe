@@ -23,6 +23,9 @@
 
 #include "Memory.h"
 
+namespace Symbol
+{
+
 static const int MAX_SYMBOL_OFFSET = 3;
 
 typedef std::map <WORD, std::string> AddrToSym;
@@ -40,7 +43,7 @@ static void ReadcPickler (FILE *file_, AddrToSym &symtab_, SymToAddr *pValues_)
     std::string sName;
 
     // Process each line of the file
-    while (fgets(szLine, sizeof(szLine), file_) != NULL)
+    while (fgets(szLine, sizeof(szLine), file_) != nullptr)
     {
         // Check for a single quote around the symbol name
         if ((psz = strchr(szLine, '\'')))
@@ -57,7 +60,7 @@ static void ReadcPickler (FILE *file_, AddrToSym &symtab_, SymToAddr *pValues_)
         // The symbol values are integers, with an I type marker
         else if ((psz = strchr(szLine, 'I')))
         {
-            WORD wAddr = static_cast<WORD>(strtoul(psz+1, NULL, 0));
+            WORD wAddr = static_cast<WORD>(strtoul(psz+1, nullptr, 0));
 
             // If we have a name, set the mapping entries
             if (sName.length())
@@ -80,9 +83,8 @@ static void ReadcPickler (FILE *file_, AddrToSym &symtab_, SymToAddr *pValues_)
 static void ReadSimple (FILE *file_, AddrToSym &symtab_, SymToAddr *pValues_)
 {
     char szLine[128], *psz;
-    std::string sName;
 
-    while (fgets(szLine, sizeof(szLine), file_) != NULL)
+    while (fgets(szLine, sizeof(szLine), file_) != nullptr)
     {
         // Find the address token
         psz = strtok(szLine, " =");
@@ -93,10 +95,10 @@ static void ReadSimple (FILE *file_, AddrToSym &symtab_, SymToAddr *pValues_)
                 continue;
 
             // Extract address value from the hex string
-            WORD wAddr = static_cast<WORD>(strtoul(psz, NULL, 16));
+            WORD wAddr = static_cast<WORD>(strtoul(psz, nullptr, 16));
 
             // Find the label name, stripping EOL to preserve empty values
-            if ((psz = strtok(NULL, " =")) != NULL)
+            if ((psz = strtok(nullptr, " =")) != nullptr)
                 psz[strcspn(psz, "\r\n")] = '\0';
 
             // If found, set the mapping entries
@@ -148,15 +150,15 @@ static bool Load (const char *pcszFile_, AddrToSym &symtab_, SymToAddr *pValues_
 }
 
 // Update user symbols, loading the ROM and port symbols if not already loaded
-void Symbol::Update (const char *pcszFile_)
+void Update (const char *pcszFile_)
 {
     // Load ROM symbols if not already loaded
     if (rom_symbols.empty())
-        Load(OSD::MakeFilePath(MFP_RESOURCE, "samrom.map"), rom_symbols, NULL);
+        Load(OSD::MakeFilePath(MFP_RESOURCE, "samrom.map"), rom_symbols, nullptr);
 
     // Load I/O port symbols if not already loaded
     if (port_symbols.empty())
-        Load(OSD::MakeFilePath(MFP_RESOURCE, "samports.map"), port_symbols, NULL);
+        Load(OSD::MakeFilePath(MFP_RESOURCE, "samports.map"), port_symbols, nullptr);
 
     // If a file was supplied, load RAM symbols from it
     if (pcszFile_)
@@ -164,7 +166,7 @@ void Symbol::Update (const char *pcszFile_)
 }
 
 // Look up the value of a given symbol (user symbols only)
-int Symbol::LookupSymbol (std::string sSymbol_)
+int LookupSymbol (std::string sSymbol_)
 {
     // Convert to lower-case for case-insensitive look-up
     std::transform(sSymbol_.begin(), sSymbol_.end(), sSymbol_.begin(), ::tolower);
@@ -181,7 +183,7 @@ int Symbol::LookupSymbol (std::string sSymbol_)
 }
 
 // Look up an address, with optional maximum length and offset to nearby symbols is no exact match
-std::string Symbol::LookupAddr (WORD wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*=false*/)
+std::string LookupAddr (WORD wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*=false*/)
 {
     std::string symbol;
 
@@ -236,7 +238,7 @@ std::string Symbol::LookupAddr (WORD wAddr_, int nMaxLen_/*=0*/, bool fAllowOffs
 }
 
 // Look up a port symbol for an input or output port (which may have different functions)
-std::string Symbol::LookupPort (BYTE bPort_, bool fInput_)
+std::string LookupPort (BYTE bPort_, bool fInput_)
 {
     std::string symbol;
 
@@ -256,3 +258,5 @@ std::string Symbol::LookupPort (BYTE bPort_, bool fInput_)
 
     return symbol;
 }
+
+} // namespace Symbol

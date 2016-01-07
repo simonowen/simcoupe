@@ -28,6 +28,9 @@
 #include "Stream.h"
 #include "Options.h"
 
+namespace Tape
+{
+
 #ifdef USE_LIBSPECTRUM
 
 static bool g_fPlaying;
@@ -41,13 +44,12 @@ static libspectrum_byte* pbTape;
 static bool fEar;
 static libspectrum_dword tremain = 0;
 
-
 // Return whether the supplied filename appears to be a tape image
-bool Tape::IsRecognised (const char *pcsz_)
+bool IsRecognised (const char *pcsz_)
 {
     libspectrum_id_t type = LIBSPECTRUM_ID_UNKNOWN;
 
-    if (libspectrum_identify_file(&type, pcsz_, NULL, 0) == LIBSPECTRUM_ERROR_NONE)
+    if (libspectrum_identify_file(&type, pcsz_, nullptr, 0) == LIBSPECTRUM_ERROR_NONE)
     {
         switch (type)
         {
@@ -56,40 +58,42 @@ bool Tape::IsRecognised (const char *pcsz_)
             case LIBSPECTRUM_ID_TAPE_WAV:
             case LIBSPECTRUM_ID_TAPE_CSW:
                 return true;
+			default:
+				return false;
         }
     }
 
     return false;
 }
 
-bool Tape::IsPlaying ()
+bool IsPlaying ()
 {
     return g_fPlaying;
 }
 
-bool Tape::IsInserted ()
+bool IsInserted ()
 {
-    return pTape != NULL;
+    return pTape != nullptr;
 }
 
 // Return the full path of the inserted tape image
-const char* Tape::GetPath ()
+const char* GetPath ()
 {
     return strFilePath.c_str();;
 }
 
 // Return just the filename of the inserted tape image
-const char* Tape::GetFile ()
+const char* GetFile ()
 {
     return strFileName.c_str();
 }
 
-libspectrum_tape *Tape::GetTape ()
+libspectrum_tape *GetTape ()
 {
     return pTape;
 }
 
-bool Tape::Insert (const char* pcsz_)
+bool Insert (const char* pcsz_)
 {
     Eject();
 
@@ -123,17 +127,17 @@ bool Tape::Insert (const char* pcsz_)
     return true;
 }
 
-void Tape::Eject ()
+void Eject ()
 {
     Stop();
 
-    if (pTape) libspectrum_tape_free(pTape), pTape = NULL;
-    delete[] pbTape, pbTape = NULL;
+    if (pTape) libspectrum_tape_free(pTape), pTape = nullptr;
+    delete[] pbTape, pbTape = nullptr;
 
     strFileName = strFilePath = "";
 }
 
-void Tape::NextEdge (DWORD dwTime_)
+void NextEdge (DWORD dwTime_)
 {
     libspectrum_error error;
 
@@ -181,14 +185,14 @@ void Tape::NextEdge (DWORD dwTime_)
     }
 }
 
-void Tape::Play ()
+void Play ()
 {
     if (IsInserted() && !IsPlaying())
     {
         g_fPlaying = true;
 
         // Schedule next edge
-        Tape::NextEdge(g_dwCycleCounter);
+        NextEdge(g_dwCycleCounter);
 
         // Trigger turbo mode if fast loading is enabled
         if (IsPlaying() && GetOption(turbotape))
@@ -196,7 +200,7 @@ void Tape::Play ()
     }
 }
 
-void Tape::Stop ()
+void Stop ()
 {
     if (IsPlaying())
     {
@@ -212,7 +216,7 @@ void Tape::Stop ()
 }
 
 
-bool Tape::LoadTrap ()
+bool LoadTrap ()
 {
     if (!IsInserted())
         return false;
@@ -327,14 +331,14 @@ bool Tape::LoadTrap ()
 
 
 // Return a string describing a give tape block
-const char *Tape::GetBlockDetails (libspectrum_tape_block *block)
+const char *GetBlockDetails (libspectrum_tape_block *block)
 {
     static char sz[128];
     sz[0] = '\0';
 
     char szExtra[64] = "";
     char szName[11] = "";
-    const char *psz = NULL;
+    const char *psz = nullptr;
 
     libspectrum_byte *data = libspectrum_tape_block_data(block);
     long length = static_cast<long>(libspectrum_tape_block_data_length(block));
@@ -566,17 +570,17 @@ const char *Tape::GetBlockDetails (libspectrum_tape_block *block)
 }
 
 
-bool Tape::EiHook ()
+bool EiHook ()
 {
     // If we're leaving the ROM tape loader, consider stopping the tape
     if (PC == 0xe612 /*&& GetOption(tapeauto)*/)
-        Tape::Stop();
+        Stop();
 
     // Continue normal processing
     return false;
 }
 
-bool Tape::RetZHook ()
+bool RetZHook ()
 {
     // If we're at LDSTRT in ROM1, consider using the loading trap
     if (PC == 0xe679 && GetSectionPage(SECTION_D) == ROM1 && GetOption(tapetraps))
@@ -586,7 +590,7 @@ bool Tape::RetZHook ()
     return false;
 }
 
-bool Tape::InFEHook ()
+bool InFEHook ()
 {
     // Are we at the port read in the ROM tape edge routine?
     if (PC == 0x2053)
@@ -621,21 +625,24 @@ bool Tape::InFEHook ()
 
 // Dummy implementations, rather than peppering the above with conditional code
 
-bool Tape::IsRecognised (const char *pcsz_) { return false; }
-bool Tape::IsPlaying () { return false; }
-bool Tape::IsInserted () { return false; }
-const char* Tape::GetPath () { return ""; }
+bool IsRecognised (const char * /*pcsz_*/) { return false; }
+bool IsPlaying () { return false; }
+bool IsInserted () { return false; }
+const char* GetPath () { return ""; }
+const char* GetFile () { return ""; }
 
-bool Tape::Insert (const char* pcsz_) { return false; }
-void Tape::Eject () { }
-void Tape::Play () { }
-void Tape::Stop () { }
+bool Insert (const char * /*pcsz_*/) { return false; }
+void Eject () { }
+void Play () { }
+void Stop () { }
 
-void Tape::NextEdge (DWORD dwTime_) { }
-bool Tape::LoadTrap () { return false; }
+void NextEdge (DWORD /*dwTime_*/) { }
+bool LoadTrap () { return false; }
 
-bool Tape::EiHook () { return false; }
-bool Tape::RetZHook () { return false; }
-bool Tape::InFEHook () { return false; }
+bool EiHook () { return false; }
+bool RetZHook () { return false; }
+bool InFEHook () { return false; }
 
 #endif // USE_LIBSPECTRUM
+
+} // namespace Tape

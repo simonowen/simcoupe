@@ -136,17 +136,16 @@ typedef struct
 OPTIONS;
 
 
-class Options
+namespace Options
 {
-    public:
-        static void SetDefaults (bool fForce_=true);
-        static void* GetDefault (const char* pcszName_);
+    void SetDefaults (bool fForce_=true);
+    void* GetDefault (const char* pcszName_);
 
-        static bool Load (int argc_, char* argv[]);
-        static bool Save ();
+    bool Load (int argc_, char* argv[]);
+    bool Save ();
 
-        static OPTIONS s_Options;
-};
+    extern OPTIONS s_Options;
+}
 
 
 // Helper macros for getting/setting options

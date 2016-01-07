@@ -32,12 +32,6 @@
 #include "Options.h"
 
 
-CSDIDEDevice::CSDIDEDevice ()
-    : m_bAddressLatch(0), m_bDataLatch(0), m_fDataLatched(false)
-{
-}
-
-
 BYTE CSDIDEDevice::In (WORD wPort_)
 {
     BYTE bRet = 0xff;

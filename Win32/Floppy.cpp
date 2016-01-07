@@ -34,9 +34,9 @@ unsigned int __stdcall FloppyThreadProc (void *pv_)
     return nRet;
 }
 
-bool Ioctl (HANDLE h_, DWORD dwCode_, LPVOID pIn_=NULL, DWORD cbIn_=0, LPVOID pOut_=NULL, DWORD cbOut_=0)
+bool Ioctl (HANDLE h_, DWORD dwCode_, LPVOID pIn_=nullptr, DWORD cbIn_=0, LPVOID pOut_=nullptr, DWORD cbOut_=0)
 {
-    if (DeviceIoControl(h_, dwCode_, pIn_,cbIn_, pOut_,cbOut_, &cbOut_, NULL))
+    if (DeviceIoControl(h_, dwCode_, pIn_,cbIn_, pOut_,cbOut_, &cbOut_, nullptr))
         return true;
 
     TRACE("!!! Ioctl %lu failed with %#08lx\n", dwCode_, GetLastError());
@@ -50,7 +50,7 @@ bool Ioctl (HANDLE h_, DWORD dwCode_, LPVOID pIn_=NULL, DWORD cbIn_=0, LPVOID pO
     bool fSupported = false;
 
     // Open the Service Control manager
-    SC_HANDLE hSCM = OpenSCManager(NULL, NULL, GENERIC_READ);
+    SC_HANDLE hSCM = OpenSCManager(nullptr, nullptr, GENERIC_READ);
     if (hSCM)
     {
         // Open the FDC service, for fdc.sys (floppy disk controller driver)
@@ -78,12 +78,12 @@ bool Ioctl (HANDLE h_, DWORD dwCode_, LPVOID pIn_=NULL, DWORD cbIn_=0, LPVOID pO
     static DWORD dwVersion = 0x00000000, dwRet;
 
     // Open the global driver object
-    HANDLE h = CreateFile("\\\\.\\fdrawcmd", GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    HANDLE h = CreateFile("\\\\.\\fdrawcmd", GENERIC_READ|GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
 
     if (h != INVALID_HANDLE_VALUE)
     {
         // Request the driver version number
-        DeviceIoControl(h, IOCTL_FDRAWCMD_GET_VERSION, NULL, 0, &dwVersion, sizeof(dwVersion), &dwRet, NULL);
+        DeviceIoControl(h, IOCTL_FDRAWCMD_GET_VERSION, nullptr, 0, &dwVersion, sizeof(dwVersion), &dwRet, nullptr);
         CloseHandle(h);
     }
 
@@ -97,12 +97,12 @@ bool Ioctl (HANDLE h_, DWORD dwCode_, LPVOID pIn_=NULL, DWORD cbIn_=0, LPVOID pO
 }
 
 CFloppyStream::CFloppyStream (const char* pcszDevice_, bool fReadOnly_)
-    : CStream(pcszDevice_, fReadOnly_), m_hDevice(INVALID_HANDLE_VALUE), m_hThread(NULL), m_uSectors(0)
+: CStream(pcszDevice_, fReadOnly_)
 {
     if (IsAvailable())
     {
         const char* pcszDevice = !lstrcmpi(GetFile(), "A:") ? "\\\\.\\fdraw0" : "\\\\.\\fdraw1";
-        m_hDevice = CreateFile(pcszDevice, GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+        m_hDevice = CreateFile(pcszDevice, GENERIC_READ|GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
     }
 
     // Prepare defaults used when device is closed after use
@@ -140,7 +140,7 @@ BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSectorIn
     m_bStatus = 0;
 
     // Create a new thread to perform it
-    m_hThread = reinterpret_cast<HANDLE>(_beginthreadex(NULL, 0, FloppyThreadProc, this, 0, &uThreadId));
+    m_hThread = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, FloppyThreadProc, this, 0, &uThreadId));
     return m_hThread ? BUSY : LOST_DATA;
 }
 
@@ -156,7 +156,7 @@ bool CFloppyStream::IsBusy (BYTE* pbStatus_, bool fWait_)
 
         // Close the thread handle to delete it
         CloseHandle(m_hThread);
-        m_hThread = NULL;
+        m_hThread = nullptr;
 
         // Return the command status
         *pbStatus_ = m_bStatus;
@@ -179,7 +179,7 @@ static BYTE ReadSector (HANDLE hDevice_, BYTE phead_, PSECTOR ps_)
         bStatus = (GetLastError() == ERROR_CRC) ? CRC_ERROR : RECORD_NOT_FOUND;
 
     FD_CMD_RESULT res;
-    Ioctl(hDevice_, IOCTL_FD_GET_RESULT, NULL, 0, &res, sizeof(res));
+    Ioctl(hDevice_, IOCTL_FD_GET_RESULT, nullptr, 0, &res, sizeof(res));
     if (res.st2 & 0x40) bStatus |= DELETED_DATA;
 
     return bStatus;
@@ -315,7 +315,7 @@ static bool ReadSimpleTrack (HANDLE hDevice_, PTRACK pTrack_, UINT &ruSectors_)
         FD_CMD_RESULT res;
 
         // If it was the final sector that failed, it's probably a DOS disk
-        if (Ioctl(hDevice_, IOCTL_FD_GET_RESULT, NULL, 0, &res, sizeof(res)) && res.sector == NORMAL_DISK_SECTORS)
+        if (Ioctl(hDevice_, IOCTL_FD_GET_RESULT, nullptr, 0, &res, sizeof(res)) && res.sector == NORMAL_DISK_SECTORS)
         {
             // Assume 9 sectors for the rest of this session
             pt->sectors = ruSectors_ = DOS_DISK_SECTORS;

@@ -26,7 +26,6 @@
 
 
 CSID::CSID ()
-    : m_nChipType(0)
 {
 #ifdef USE_RESID
     m_pSID = new RESID_NAMESPACE::SID;
@@ -37,7 +36,7 @@ CSID::CSID ()
 CSID::~CSID ()
 {
 #ifdef USE_RESID
-    delete m_pSID, m_pSID = NULL;
+    delete m_pSID, m_pSID = nullptr;
 #endif
 }
 
@@ -81,6 +80,8 @@ void CSID::Update (bool fFrameEnd_=false)
     }
 
     m_nSamplesThisFrame = nSamplesSoFar;
+#else
+	(void)fFrameEnd_;
 #endif
 }
 
@@ -103,5 +104,7 @@ void CSID::Out (WORD wPort_, BYTE bVal_)
 
     if (m_pSID)
         m_pSID->write(bReg & 0x1f, bVal_);
+#else
+    (void)wPort_; (void)bVal_;
 #endif
 }

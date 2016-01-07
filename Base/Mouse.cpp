@@ -32,8 +32,6 @@
 
 
 CMouseDevice::CMouseDevice ()
-    : m_nDeltaX(0), m_nDeltaY(0), m_nReadX(0), m_nReadY(0), m_bButtons(0),
-      m_dwLastRead(0), m_uBuffer(0)
 {
     memset(&m_sMouse, 0, sizeof(m_sMouse));
     m_sMouse.bStrobe = m_sMouse.bDummy = 0xff;
@@ -46,7 +44,7 @@ void CMouseDevice::Reset ()
     m_uBuffer = 0;
 }
 
-BYTE CMouseDevice::In (WORD wPort_)
+BYTE CMouseDevice::In (WORD /*wPort_*/)
 {
     // If the first real data byte is about to be read, update the mouse buffer
     if (m_uBuffer == 2)

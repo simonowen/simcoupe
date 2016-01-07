@@ -72,7 +72,7 @@ const Uint8 *pKeyStates;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool Input::Init (bool fFirstInit_/*=false*/)
+bool Input::Init (bool /*fFirstInit_=false*/)
 {
     Exit(true);
 
@@ -98,9 +98,9 @@ bool Input::Init (bool fFirstInit_/*=false*/)
     Keyboard::Init();
 
     SDL_StartTextInput();
-    SDL_SetTextInputRect(NULL);
+    SDL_SetTextInputRect(nullptr);
 
-    pKeyStates = SDL_GetKeyboardState(NULL);
+    pKeyStates = SDL_GetKeyboardState(nullptr);
 
     fMouseActive = false;
 
@@ -113,8 +113,8 @@ void Input::Exit (bool fReInit_/*=false*/)
     {
         if (SDL_WasInit(SDL_INIT_JOYSTICK))
         {
-            if (pJoystick1) {SDL_JoystickClose(pJoystick1); pJoystick1 = NULL; nJoystick1 = -1; }
-            if (pJoystick2) {SDL_JoystickClose(pJoystick2); pJoystick2 = NULL; nJoystick2 = -1; }
+            if (pJoystick1) {SDL_JoystickClose(pJoystick1); pJoystick1 = nullptr; nJoystick1 = -1; }
+            if (pJoystick2) {SDL_JoystickClose(pJoystick2); pJoystick2 = nullptr; nJoystick2 = -1; }
 
             SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
         }
@@ -137,7 +137,7 @@ void Input::AcquireMouse (bool fAcquire_)
         // Move the mouse to the centre of the window
         nCentreX = Frame::GetWidth() >> 1;
         nCentreY = Frame::GetHeight() >> 1;
-        SDL_WarpMouseInWindow(NULL, nCentreX, nCentreY);
+        SDL_WarpMouseInWindow(nullptr, nCentreX, nCentreY);
     }
 }
 
@@ -430,7 +430,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
 #ifndef USE_SDL2
                         SDL_WarpMouse(nCentreX, nCentreY);
 #else
-                        SDL_WarpMouseInWindow(NULL, nCentreX, nCentreY);
+                        SDL_WarpMouseInWindow(nullptr, nCentreX, nCentreY);
 #endif
                     }
                 }
@@ -580,7 +580,7 @@ void Input::Update ()
 }
 
 
-int Input::MapChar (int nChar_, int *pnMods_)
+int Input::MapChar (int nChar_, int * /*pnMods_*/)
 {
     // Regular characters details aren't known until the key press
     if (nChar_ < HK_MIN)

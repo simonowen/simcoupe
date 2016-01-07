@@ -113,10 +113,10 @@ void CPrinterFile::Close ()
     if (m_hFile)
     {
         fclose(m_hFile);
-        m_hFile = NULL;
+        m_hFile = nullptr;
 
         Frame::SetStatus("Saved %s", m_pszFile);
-        m_pszFile = NULL;
+        m_pszFile = nullptr;
     }
 }
 

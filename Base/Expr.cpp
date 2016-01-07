@@ -32,7 +32,7 @@ static int nFlags;
 
 const int MAX_FUNC_PARAMS = 5;
 
-EXPR Expr::Counter = { T_VARIABLE, VAR_COUNT, NULL, "(counter)" };
+EXPR Expr::Counter = { T_VARIABLE, VAR_COUNT, nullptr, "(counter)" };
 int Expr::nCount;
 
 // Free all elements in an expression list
@@ -61,8 +61,8 @@ static EXPR* AddNode (int nType_, int nValue_)
     EXPR *pExpr = new EXPR;
     pExpr->nType = nType_;
     pExpr->nValue = nValue_;
-    pExpr->pNext = NULL;
-    pExpr->pcszExpr = NULL;
+    pExpr->pNext = nullptr;
+    pExpr->pcszExpr = nullptr;
 
     return AddNode(pExpr);
 }
@@ -89,14 +89,14 @@ static const TOKEN asBinaryOps[][5] =
     { {"<<",OP_SHIFTL}, {">>",OP_SHIFTR} },
     { {"+",OP_ADD},     {"-",OP_SUB} },
     { {"*",OP_MUL},     {"/",OP_DIV},       {"%",OP_MOD},   {"\\",OP_MOD} },
-    { {NULL} }
+    { {} }
 };
 
 static const TOKEN asUnaryOps[] =
 {
     {"peek",OP_PEEK},
     {"dpeek",OP_DPEEK},
-    {NULL}
+    {}
 };
 
 static const TOKEN asRegisters[] =
@@ -109,7 +109,7 @@ static const TOKEN asRegisters[] =
     {"ix",REG_IX}, {"iy",REG_IY}, {"ixh",REG_IXH}, {"ixl",REG_IXL}, {"iyh",REG_IYH}, {"iyl",REG_IYL},
     {"sp",REG_SP}, {"pc",REG_PC}, {"sph",REG_SPH}, {"spl",REG_SPL}, {"pch",REG_PCH}, {"pcl",REG_PCL},
     {"i",REG_I}, {"r",REG_R}, {"iff1",REG_IFF1}, {"iff2",REG_IFF2}, {"im",REG_IM},
-    {NULL}
+    {}
 };
 
 static const TOKEN asVariables[] =
@@ -121,7 +121,7 @@ static const TOKEN asVariables[] =
     {"inval",VAR_INVAL}, {"outval",VAR_OUTVAL},
     {"lepr",VAR_LEPR}, {"hepr",VAR_HEPR}, {"lpen",VAR_LPEN}, {"hpen",VAR_HPEN}, {"status",VAR_STATUS},
     {"lmpr",VAR_LMPR}, {"hmpr",VAR_HMPR}, {"vmpr",VAR_VMPR}, {"midi",VAR_MIDI}, {"border",VAR_BORDER}, {"attr",VAR_ATTR},
-    {NULL}
+    {}
 };
 
 static const TOKEN* LookupToken (const char* pcsz_, size_t uLen_, const TOKEN* pTokens_)
@@ -130,16 +130,16 @@ static const TOKEN* LookupToken (const char* pcsz_, size_t uLen_, const TOKEN* p
         if (strlen(pTokens_->pcsz) == uLen_ && !strncasecmp(pcsz_, pTokens_->pcsz, uLen_))
             return pTokens_;
 
-    return NULL;
+    return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // Compile an infix expression to an easy-to-process postfix expression list
-EXPR* Expr::Compile (const char* pcsz_, char** ppszEnd_/*=NULL*/, int nFlags_/*=0*/)
+EXPR* Expr::Compile (const char* pcsz_, char** ppszEnd_/*=nullptr*/, int nFlags_/*=0*/)
 {
     // Clear the expression list and set the expression string and flags
-    pHead = pTail = NULL;
+    pHead = pTail = nullptr;
     p = pcsz_;
     nFlags = nFlags_;
 
@@ -147,10 +147,10 @@ EXPR* Expr::Compile (const char* pcsz_, char** ppszEnd_/*=NULL*/, int nFlags_/*=
     if (!Term() || (!ppszEnd_ && *p) || !pHead)
     {
         Release(pHead);
-        return NULL;
+        return nullptr;
     }
 
-    // Supply the end pointer if required, or NULL if nothing was left
+    // Supply the end pointer if required, or nullptr if nothing was left
     if (ppszEnd_)
         *ppszEnd_ = const_cast<char*>(p);
 
@@ -383,7 +383,7 @@ int Expr::Eval (const EXPR* pExpr_)
                     case VAR_DLINE:
                     {
                         int nLine;
-                        GetRasterPos(&nLine);
+                        Frame::GetRasterPos(&nLine);
                         r = nLine;
                         break;
                     }
@@ -391,7 +391,7 @@ int Expr::Eval (const EXPR* pExpr_)
                     case VAR_SLINE:
                     {
                         int nLine;
-                        GetRasterPos(&nLine);
+                        Frame::GetRasterPos(&nLine);
                         if (nLine >= TOP_BORDER_LINES && nLine < (TOP_BORDER_LINES+SCREEN_LINES))
                             r = nLine - TOP_BORDER_LINES;
                         else
@@ -469,7 +469,7 @@ int Expr::Eval (const EXPR* pExpr_)
 }
 
 // Evaluate an expression, returning the value and whether it was valid
-bool Expr::Eval (const char* pcsz_, int *pnValue_, char** ppszEnd_/*=NULL*/, int nFlags_/*=0*/)
+bool Expr::Eval (const char* pcsz_, int *pnValue_, char** ppszEnd_/*=nullptr*/, int nFlags_/*=0*/)
 {
     static char sz[] = "";
 
@@ -720,14 +720,14 @@ bool Expr::Factor ()
                 pTail = pOldTail;
                 n = Expr::Eval(pTail->pNext);
                 Release(pTail->pNext);
-                pTail->pNext = NULL;
+                pTail->pNext = nullptr;
             }
             else
             {
                 // Use the full stored expression
                 n = Expr::Eval(pTail);
                 Release(pTail);
-                pHead = pTail = NULL;
+                pHead = pTail = nullptr;
             }
 
             AddNode(T_NUMBER, n);

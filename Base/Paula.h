@@ -26,10 +26,7 @@
 class CPaulaDevice : public CIoDevice
 {
     public:
-        CPaulaDevice () { }
-
-    public:
-        void Out (WORD wPort_, BYTE bVal_);
+        void Out (WORD wPort_, BYTE bVal_) override;
 };
 
 extern CPaulaDevice *pPaula;

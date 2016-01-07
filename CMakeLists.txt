@@ -4,12 +4,18 @@ cmake_minimum_required(VERSION 2.6)
 
 project(simcoupe)
 
+include(FindPkgConfig)
+include(CheckCXXCompilerFlag)
+
 set(CMAKE_BUILD_TYPE Release)
 
 set(RESOURCE_DIR ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME})
 add_definitions(-DRESOURCE_DIR="${RESOURCE_DIR}/")
 
 include_directories(Base/ SDL/)
+
+file(GLOB BASE_SRC Base/*.cpp Base/*.c)
+file(GLOB SDL_SRC SDL/*.cpp)
 
 # Recommend native Win32/Mac building as they're not well supported yet
 if (APPLE)
@@ -18,10 +24,35 @@ elseif (WIN32)
   message(FATAL_ERROR "Please use Visual Studio for Windows builds")
 endif ()
 
-file(GLOB BASE_SRC Base/*.cpp Base/*.c)
-file(GLOB SDL_SRC SDL/*.cpp)
+CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+if (COMPILER_SUPPORTS_CXX11)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+else ()
+  message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support.")
+endif ()
 
-include(FindPkgConfig)
+CHECK_CXX_COMPILER_FLAG("-stdlib=libc++" COMPILER_SUPPORTS_STDLIBCXX)
+if (COMPILER_SUPPORTS_STDLIBCXX)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+endif ()
+
+CHECK_CXX_COMPILER_FLAG("-Weffc++" COMPILER_SUPPORTS_EFFCXX)
+if (COMPILER_SUPPORTS_EFFCXX)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Weffc++")
+endif ()
+
+CHECK_CXX_COMPILER_FLAG("-Wsuggest-override" COMPILER_SUPPORTS_WSUGGEST)
+if (COMPILER_SUPPORTS_WSUGGEST)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
+endif ()
+
+if (CMAKE_BUILD_TOOL MATCHES "make")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
+elseif (CMAKE_BUILD_TOOL MATCHES "(msdev|devenv|nmake)")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+endif ()
+
+
 pkg_search_module(SDL2 sdl2)
 if (SDL2_FOUND)
   message(STATUS "Using SDL2")

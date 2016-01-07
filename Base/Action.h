@@ -33,13 +33,12 @@ enum eActions
     actSpeedFaster, actSpeedSlower, actSpeedNormal, actPaste, actTapeInsert, actTapeEject, actTapeBrowser, MAX_ACTION
 };
 
-class Action
+namespace Action
 {
-    public:
-        static bool Do (int nAction_, bool fPressed_=true);
-        static void Key (int nFnKey_, bool fPressed_, bool fCtrl_, bool fAlt_, bool fShift_);
+    bool Do (int nAction_, bool fPressed_=true);
+    void Key (int nFnKey_, bool fPressed_, bool fCtrl_, bool fAlt_, bool fShift_);
 
-        static const char* aszActions[MAX_ACTION];
-};
+    extern const char* aszActions[MAX_ACTION];
+}
 
 #endif  // ACTION_H

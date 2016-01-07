@@ -48,12 +48,13 @@ class DirectDrawVideo : public VideoBase
 		bool DrawChanges (CScreen* pScreen_, bool *pafDirty_);
 
 	private:
-		LPDIRECTDRAW m_pdd;
-		LPDIRECTDRAWSURFACE m_pddsPrimary, m_pddsBack;
-		LPDIRECTDRAWCLIPPER m_pddClipper;
+		LPDIRECTDRAW m_pdd = nullptr;
+		LPDIRECTDRAWSURFACE m_pddsPrimary = nullptr;
+        LPDIRECTDRAWSURFACE m_pddsBack = nullptr;
+		LPDIRECTDRAWCLIPPER m_pddClipper = nullptr;
 
-		int m_nWidth, m_nHeight;
-		RECT m_rTarget;
+		int m_nWidth = 0, m_nHeight = 0;
+		RECT m_rTarget {};
 };
 
 #endif // DIRECTDRAW_H

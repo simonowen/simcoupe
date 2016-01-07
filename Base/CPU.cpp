@@ -57,8 +57,6 @@ BYTE g_abParity[256];
 BYTE g_abInc[256], g_abDec[256];
 #endif
 
-inline void CheckInterrupt ();
-
 #define rflags(b_,c_)   (F = (c_) | parity(b_))
 
 
@@ -94,13 +92,6 @@ DWORD g_dwCycleCounter;     // Global cycle counter used for various timings
 bool g_fDebug;              // Debug only helper variable, to trigger the debugger when set
 #endif
 
-// Memory access contention table
-static BYTE abContention1[TSTATES_PER_FRAME+64], abContention234[TSTATES_PER_FRAME+64], abContention4T[TSTATES_PER_FRAME+64];
-static const BYTE *pMemContention = abContention1;
-static bool fContention = true;
-static const BYTE abPortContention[] = { 6, 5, 4, 3, 2, 1, 0, 7 };
-//                                      T1 T2 T3 T4 T1 T2 T3 T4
-
 // Memory access tracking for the debugger
 BYTE *pbMemRead1, *pbMemRead2, *pbMemWrite1, *pbMemWrite2;
 
@@ -110,7 +101,19 @@ WORD* pHlIxIy, *pNewHlIxIy;
 CPU_EVENT asCpuEvents[MAX_EVENTS], *psNextEvent, *psFreeEvent;
 
 
-bool CPU::Init (bool fFirstInit_/*=false*/)
+namespace CPU
+{
+// Memory access contention table
+static BYTE abContention1[TSTATES_PER_FRAME+64], abContention234[TSTATES_PER_FRAME+64], abContention4T[TSTATES_PER_FRAME+64];
+static const BYTE *pMemContention = abContention1;
+static bool fContention = true;
+static const BYTE abPortContention[] = { 6, 5, 4, 3, 2, 1, 0, 7 };
+//                                      T1 T2 T3 T4 T1 T2 T3 T4
+
+inline void CheckInterrupt ();
+
+
+bool Init (bool fFirstInit_/*=false*/)
 {
     bool fRet = true;
 
@@ -165,7 +168,7 @@ bool CPU::Init (bool fFirstInit_/*=false*/)
     return fRet;
 }
 
-void CPU::Exit (bool fReInit_/*=false*/)
+void Exit (bool fReInit_/*=false*/)
 {
     IO::Exit(fReInit_);
     Memory::Exit(fReInit_);
@@ -175,13 +178,13 @@ void CPU::Exit (bool fReInit_/*=false*/)
 }
 
 
-bool CPU::IsContentionActive ()
+bool IsContentionActive ()
 {
     return fContention;
 }
 
 // Update the active memory contention table based
-void CPU::UpdateContention (bool fActive_/*=true*/)
+void UpdateContention (bool fActive_/*=true*/)
 {
     fContention = fActive_;
 
@@ -261,7 +264,7 @@ inline void timed_write_word_reversed (WORD addr, WORD contents)
 
 
 // Execute the CPU event specified
-void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
+void ExecuteEvent (CPU_EVENT sThisEvent)
 {
     switch (sThisEvent.nEvent)
     {
@@ -338,7 +341,7 @@ void CPU::ExecuteEvent (CPU_EVENT sThisEvent)
 
 
 // Execute until the end of a frame, or a breakpoint, whichever comes first
-void CPU::ExecuteChunk ()
+void ExecuteChunk ()
 {
     // Is the reset button is held in?
     if (g_fReset)
@@ -424,7 +427,7 @@ void CPU::ExecuteChunk ()
 
 
 // The main Z80 emulation loop
-void CPU::Run ()
+void Run ()
 {
     // Loop until told to quit
     while (UI::CheckEvents())
@@ -464,7 +467,7 @@ void CPU::Run ()
 }
 
 
-void CPU::Reset (bool fPress_)
+void Reset (bool fPress_)
 {
     // Set CPU operating mode
     g_fReset = fPress_;
@@ -503,7 +506,7 @@ void CPU::Reset (bool fPress_)
 }
 
 
-void CPU::NMI()
+void NMI()
 {
     // R is incremented when the interrupt is acknowledged
     R++;
@@ -532,7 +535,7 @@ inline void CheckInterrupt ()
     if (bOpcode != OP_EI && bOpcode != OP_DI && (pNewHlIxIy == &HL))
     {
         // If we're running in debugger timing mode, skip the interrupt handler
-        if (!CPU::IsContentionActive())
+        if (!IsContentionActive())
             return;
 
         // R is incremented when the interrupt is acknowledged
@@ -581,7 +584,7 @@ inline void CheckInterrupt ()
 
 
 // Perform some initial tests to confirm the emulator is functioning correctly!
-void CPU::InitTests ()
+void InitTests ()
 {
     // Sanity check the endian of the registers structure.  If this fails you'll need to add a new
     // symbol test to the top of SimCoupe.h, to help identify the new little-endian platform
@@ -589,3 +592,5 @@ void CPU::InitTests ()
     if (H)
         Message(msgFatal, "Startup test: the Z80Regs structure is the wrong endian for this platform!");
 }
+
+} // namespace CPU

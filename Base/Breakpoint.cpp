@@ -30,7 +30,7 @@ static BREAKPT *pBreakpoints;
 
 bool Breakpoint::IsSet ()
 {
-    return pBreakpoints != NULL;
+    return pBreakpoints != nullptr;
 }
 
 // Return whether any of the active breakpoints have been hit
@@ -70,7 +70,7 @@ bool Breakpoint::IsHit ()
                     ((pbMemRead1 >= p->Mem.pPhysAddrFrom && pbMemRead1 <= p->Mem.pPhysAddrTo) ||
                      (pbMemRead2 >= p->Mem.pPhysAddrFrom && pbMemRead2 <= p->Mem.pPhysAddrTo)))
                 {
-                    pbMemRead1 = pbMemRead2 = NULL;
+                    pbMemRead1 = pbMemRead2 = nullptr;
                     break;
                 }
 
@@ -79,7 +79,7 @@ bool Breakpoint::IsHit ()
                     ((pbMemWrite1 >= p->Mem.pPhysAddrFrom && pbMemWrite1 <= p->Mem.pPhysAddrTo) ||
                      (pbMemWrite2 >= p->Mem.pPhysAddrFrom && pbMemWrite2 <= p->Mem.pPhysAddrTo)))
                 {
-                    pbMemWrite1 = pbMemWrite2 = NULL;
+                    pbMemWrite1 = pbMemWrite2 = nullptr;
                     break;
                 }
 
@@ -252,7 +252,7 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
 {
     static char sz[512];
     char *psz = sz;
-    const void *pPhysAddr = NULL;
+    const void *pPhysAddr = nullptr;
     UINT uExtent = 0;
 
     switch (pBreak_->nType)
@@ -270,7 +270,7 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
         case btExecute:
         {
             pPhysAddr = pBreak_->Exec.pPhysAddr;
-            const char *pcszPageDesc = PageDesc(PtrPage(pPhysAddr), true);
+            const char *pcszPageDesc = Memory::PageDesc(PtrPage(pPhysAddr), true);
             int nPageOffset = PtrOffset(pPhysAddr);
             psz += sprintf(psz, "EXEC %s:%04X", pcszPageDesc, nPageOffset);
             break;
@@ -279,7 +279,7 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
         case btMemory:
         {
             pPhysAddr = pBreak_->Mem.pPhysAddrFrom;
-            const char *pcszPageDesc = PageDesc(PtrPage(pPhysAddr), true);
+            const char *pcszPageDesc = Memory::PageDesc(PtrPage(pPhysAddr), true);
             int nPageOffset = PtrOffset(pPhysAddr);
             psz += sprintf(psz, "MEM %s:%04X", pcszPageDesc, nPageOffset);
 
@@ -388,7 +388,7 @@ BREAKPT *Breakpoint::GetAt (int nIndex_)
 bool Breakpoint::RemoveAt (int nIndex_)
 {
     BREAKPT *p = pBreakpoints;
-    BREAKPT *pPrev = NULL;
+    BREAKPT *pPrev = nullptr;
 
     for ( ; p && nIndex_-- > 0 ; pPrev = p, p = p->pNext);
 

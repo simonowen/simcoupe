@@ -27,21 +27,18 @@
 const BYTE ATOM_LITE_ADDR_MASK = 0x1f;  // Chip select mask
 const BYTE ATOM_LITE_REG_MASK  = 0x07;  // Device address mask
 
-class CAtomLiteDevice : public CAtaAdapter
+class CAtomLiteDevice final : public CAtaAdapter
 {
     public:
-        CAtomLiteDevice ();
+        BYTE In (WORD wPort_) override;
+        void Out (WORD wPort_, BYTE bVal_) override;
 
     public:
-        BYTE In (WORD wPort_);
-        void Out (WORD wPort_, BYTE bVal_);
-
-    public:
-        bool Attach (CHardDisk *pDisk_, int nDevice_);
+        bool Attach (CHardDisk *pDisk_, int nDevice_) override;
 
     protected:
-        CDallasClock m_Dallas;
-        BYTE m_bAddressLatch;
+        CDallasClock m_Dallas {};
+        BYTE m_bAddressLatch = 0;
 };
 
 #endif // ATOMLITE_H

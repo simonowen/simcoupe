@@ -30,23 +30,22 @@
 struct _CPU_EVENT;
 struct _Z80Regs;
 
-class CPU
+namespace CPU
 {
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+    bool Init (bool fFirstInit_=false);
+    void Exit (bool fReInit_=false);
 
-        static void Run ();
-        static bool IsContentionActive ();
-        static void UpdateContention (bool fActive_ = true);
-        static void ExecuteEvent (struct _CPU_EVENT sThisEvent);
-        static void ExecuteChunk ();
+    void Run ();
+    bool IsContentionActive ();
+    void UpdateContention (bool fActive_ = true);
+    void ExecuteEvent (struct _CPU_EVENT sThisEvent);
+    void ExecuteChunk ();
 
-        static void Reset (bool fPress_);
-        static void NMI ();
+    void Reset (bool fPress_);
+    void NMI ();
 
-        static void InitTests ();
-};
+    void InitTests ();
+}
 
 
 extern struct _Z80Regs regs;
@@ -104,11 +103,10 @@ const int INT_ACTIVE_TIME = 128;            // tstates interrupt is active and w
 // CPU Event structure
 typedef struct _CPU_EVENT
 {
-    int     nEvent;
-    DWORD   dwTime;
-    struct  _CPU_EVENT  *psNext;
-}
-CPU_EVENT;
+    int nEvent = -1;
+    DWORD dwTime = 0;
+    struct _CPU_EVENT *psNext = nullptr;
+} CPU_EVENT;
 
 
 // NOTE: ENDIAN-SENSITIVE!
@@ -123,8 +121,7 @@ typedef struct
     struct { BYTE l, h; } b;  // Little endian
 #endif
     };
-}
-REGPAIR;
+} REGPAIR;
 
 typedef struct _Z80Regs
 {
@@ -136,8 +133,7 @@ typedef struct _Z80Regs
     BYTE    i, r, r7;
     BYTE    iff1, iff2, im;
     BYTE    halted;
-}
-Z80Regs;
+} Z80Regs;
 
 #define A       regs.af.b.h
 #define F       regs.af.b.l
@@ -209,7 +205,7 @@ inline void InitCpuEvents ()
         asCpuEvents[n].psNext = &asCpuEvents[(n+1) % MAX_EVENTS];
 
     psFreeEvent = asCpuEvents;
-    psNextEvent = NULL;
+    psNextEvent = nullptr;
 }
 
 // Add a CPU event into the queue
@@ -223,7 +219,7 @@ inline void AddCpuEvent (int nEvent_, DWORD dwTime_)
     while (*ppsEvent && (*ppsEvent)->dwTime <= dwTime_)
         ppsEvent = &((*ppsEvent)->psNext);
 
-    // Set this event (note - psFreeEvent will never be NULL)
+    // Set this event (note - psFreeEvent will never be nullptr)
     psFreeEvent->nEvent = nEvent_;
     psFreeEvent->dwTime = dwTime_;
 
@@ -269,7 +265,7 @@ inline DWORD GetEventTime (int nEvent_)
 // Update the line/global counters and check for pending events
 inline void CheckCpuEvents ()
 {
-    // Check for pending CPU events (note - psNextEvent will never be NULL *at this stage*)
+    // Check for pending CPU events (note - psNextEvent will never be nullptr *at this stage*)
     while (g_dwCycleCounter >= psNextEvent->dwTime)
     {
         // Get the event from the queue and remove it before new events are added

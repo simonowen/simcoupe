@@ -93,11 +93,12 @@ REGION asViews[] =
     { WIDTH_BLOCKS, HEIGHT_LINES },
 };
 
+namespace Frame
+{
 static void DrawOSD (CScreen *pScreen_);
 static void Flip (CScreen *pScreen_);
 
-
-bool Frame::Init (bool fFirstInit_/*=false*/)
+bool Init (bool fFirstInit_/*=false*/)
 {
     Exit(true);
     TRACE("Frame::Init(%d)\n", fFirstInit_);
@@ -146,7 +147,7 @@ bool Frame::Init (bool fFirstInit_/*=false*/)
     return true;
 }
 
-void Frame::Exit (bool fReInit_/*=false*/)
+void Exit (bool fReInit_/*=false*/)
 {
     TRACE("Frame::Exit(%d)\n", fReInit_);
 
@@ -154,27 +155,27 @@ void Frame::Exit (bool fReInit_/*=false*/)
     GIF::Stop();
     AVI::Stop();
 
-    delete pFrame, pFrame = NULL;
-    delete pScreen, pScreen = NULL;
-    delete pLastScreen, pLastScreen = NULL;
-    delete pGuiScreen, pGuiScreen = NULL;
-    delete pLastGuiScreen, pLastGuiScreen = NULL;
+    delete pFrame, pFrame = nullptr;
+    delete pScreen, pScreen = nullptr;
+    delete pLastScreen, pLastScreen = nullptr;
+    delete pGuiScreen, pGuiScreen = nullptr;
+    delete pLastGuiScreen, pLastGuiScreen = nullptr;
 
-    pDisplayScreen = NULL;
+    pDisplayScreen = nullptr;
 }
 
 
-int Frame::GetWidth ()
+int GetWidth ()
 {
     return pScreen->GetPitch();
 }
 
-int Frame::GetHeight ()
+int GetHeight ()
 {
     return pScreen->GetHeight();
 }
 
-void Frame::SetView (UINT uBlocks_, UINT uLines_)
+void SetView (UINT uBlocks_, UINT uLines_)
 {
     UINT uView = GetOption(borders);
     if (uView >= (sizeof(asViews) / sizeof(asViews[0])))
@@ -187,7 +188,7 @@ void Frame::SetView (UINT uBlocks_, UINT uLines_)
 
 
 // Update the frame image to the current raster position
-void Frame::Update ()
+void Update ()
 {
     // Don't do anything if the current frame is being skipped
     if (!fDrawFrame)
@@ -344,7 +345,7 @@ static void DrawRaster (CScreen *pScreen_)
 
 
 // Begin the frame by copying from the previous frame, up to the last cange
-void Frame::Begin ()
+void Begin ()
 {
     // Return if we're skipping this frame
     if (!fDrawFrame)
@@ -355,7 +356,7 @@ void Frame::Begin ()
 }
 
 // Complete the displayed frame at the end of an emulated frame
-void Frame::End ()
+void End ()
 {
     // Was the current frame drawn?
     if (fDrawFrame)
@@ -418,7 +419,7 @@ void Frame::End ()
 }
 
 // Flyback to start drawing new frame
-void Frame::Flyback ()
+void Flyback ()
 {
     // Last drawn position is the start of the frame
     nLastLine = nLastBlock = 0;
@@ -437,7 +438,7 @@ void Frame::Flyback ()
 }
 
 
-void Frame::Sync ()
+void Sync ()
 {
     static DWORD dwLastProfile, dwLastDrawn;
     DWORD dwNow = OSD::GetTime();
@@ -492,7 +493,7 @@ void Frame::Sync ()
 }
 
 
-void Frame::Redraw ()
+void Redraw ()
 {
     // Draw the last complete frame
     Video::Update(pDisplayScreen);
@@ -584,14 +585,14 @@ void DrawOSD (CScreen* pScreen_)
 }
 
 // Screenshot save request
-void Frame::SaveScreenshot ()
+void SaveScreenshot ()
 {
     fSaveScreen = true;
 }
 
 
 // Set a status message, which will remain on screen for a few seconds
-void Frame::SetStatus (const char *pcszFormat_, ...)
+void SetStatus (const char *pcszFormat_, ...)
 {
     va_list pcvArgs;
     va_start (pcvArgs, pcszFormat_);
@@ -620,14 +621,14 @@ int GetRasterPos (int *pnLine_)
 }
 
 // Fetch the 4 bytes the ASIC uses to generate the next 8-pixel cell
-void Frame::GetAsicData (BYTE *pb0_, BYTE *pb1_, BYTE *pb2_, BYTE *pb3_)
+void GetAsicData (BYTE *pb0_, BYTE *pb1_, BYTE *pb2_, BYTE *pb3_)
 {
     pFrame->GetAsicData(pb0_, pb1_, pb2_, pb3_);
 }
 
 // Handle screen mode changes
 // Changes on the main screen may generate an artefact by using old data in the new mode (described by Dave Laundon)
-void Frame::ChangeMode (BYTE bNewVmpr_)
+void ChangeMode (BYTE bNewVmpr_)
 {
     int nLine, nBlock = GetRasterPos(&nLine) >> 3;
 
@@ -656,7 +657,7 @@ void Frame::ChangeMode (BYTE bNewVmpr_)
 
 
 // Handle the screen being enabled, which causes a border pixel artefact (reported by Andrew Collier)
-void Frame::ChangeScreen (BYTE bNewBorder_)
+void ChangeScreen (BYTE bNewBorder_)
 {
     int nLine, nBlock = GetRasterPos(&nLine) >> 3;
 
@@ -672,12 +673,14 @@ void Frame::ChangeScreen (BYTE bNewBorder_)
 }
 
 // A screen line in a specified range is being written to, so we need to ensure it's up-to-date
-void Frame::TouchLines (int nFrom_, int nTo_)
+void TouchLines (int nFrom_, int nTo_)
 {
     // Is the line being modified in the area since we last updated
     if (nTo_ >= nLastLine && nFrom_ <= (int)((g_dwCycleCounter - BORDER_PIXELS) / TSTATES_PER_LINE))
         Update();
 }
+
+} // nsmespace Frame
 
 
 // Set a new screen mode (VMPR value)

@@ -25,13 +25,15 @@ class CStream
 {
     public:
         CStream (const char* pcszPath_, bool fReadOnly_=false);
+        CStream (const CStream &) = delete;
+        void operator= (const CStream &) = delete;
         virtual ~CStream ();
 
     public:
         static CStream* Open (const char* pcszPath_, bool fReadOnly_=false);
 
     public:
-        bool IsReadOnly () const { return this && m_fReadOnly; }
+        bool IsReadOnly () const { return m_fReadOnly; }
         const char* GetPath () const { return m_pszPath; }
         const char* GetFile () const { return m_pszFile ? m_pszFile : m_pszPath; }
         virtual size_t GetSize () { return m_uSize; }
@@ -44,50 +46,55 @@ class CStream
 
     protected:
         enum { modeClosed, modeReading, modeWriting };
-        int     m_nMode;
+        int m_nMode = modeClosed;
 
-        char    *m_pszPath, *m_pszFile;
-        bool    m_fReadOnly;
-        size_t  m_uSize;
+        char *m_pszPath = nullptr;
+        char *m_pszFile = nullptr;
+        bool m_fReadOnly = false;
+        size_t m_uSize = 0;
 };
 
-class CFileStream : public CStream
+class CFileStream final : public CStream
 {
     public:
         CFileStream (FILE* hFile_, const char* pcszPath_, bool fReadOnly_=false);
+        CFileStream (const CFileStream &) = delete;
+        void operator= (const CFileStream &) = delete;
         ~CFileStream () { Close(); }
 
     public:
-        bool IsOpen () const { return m_hFile != NULL; }
+        bool IsOpen () const override { return m_hFile != nullptr; }
 
     public:
-        void Close ();
-        bool Rewind ();
-        size_t Read (void* pvBuffer_, size_t uLen_);
-        size_t Write (void* pvBuffer_, size_t uLen_);
+        void Close () override;
+        bool Rewind () override;
+        size_t Read (void* pvBuffer_, size_t uLen_) override;
+        size_t Write (void* pvBuffer_, size_t uLen_) override;
 
     protected:
-        FILE* m_hFile;
+        FILE *m_hFile = nullptr;
 };
 
-class CMemStream : public CStream
+class CMemStream final : public CStream
 {
     public:
         CMemStream (void* pv_, size_t uSize_, const char* pcszPath_);
+        CMemStream (const CMemStream &) = delete;
+        void operator= (const CMemStream &) = delete;
         ~CMemStream () { Close(); }
 
     public:
-        bool IsOpen () const { return m_nMode != modeClosed; }
+        bool IsOpen () const override { return m_nMode != modeClosed; }
 
     public:
-        void Close ();
-        bool Rewind ();
-        size_t Read (void* pvBuffer_, size_t uLen_);
-        size_t Write (void* pvBuffer_, size_t uLen_);
+        void Close () override;
+        bool Rewind () override;
+        size_t Read (void* pvBuffer_, size_t uLen_) override;
+        size_t Write (void* pvBuffer_, size_t uLen_) override;
 
     protected:
-        BYTE* m_pbData;
-        size_t m_uPos;
+        BYTE *m_pbData = nullptr;
+        size_t m_uPos = 0;
 };
 
 
@@ -95,44 +102,48 @@ class CMemStream : public CStream
 
 const BYTE GZ_SIGNATURE[] = { 0x1f, 0x8b };
 
-class CZLibStream : public CStream
+class CZLibStream final : public CStream
 {
     public:
         CZLibStream (gzFile hFile_, const char* pcszPath_, size_t uSize_=0, bool fReadOnly_=false);
+        CZLibStream (const CZLibStream &) = delete;
+        void operator= (const CZLibStream &) = delete;
         ~CZLibStream () { Close(); }
 
     public:
-        bool IsOpen () const { return m_hFile != NULL; }
-        size_t GetSize ();
+        bool IsOpen () const override { return m_hFile != nullptr; }
+        size_t GetSize () override;
 
     public:
-        void Close ();
-        bool Rewind ();
-        size_t Read (void* pvBuffer_, size_t uLen_);
-        size_t Write (void* pvBuffer_, size_t uLen_);
+        void Close () override;
+        bool Rewind () override;
+        size_t Read (void* pvBuffer_, size_t uLen_) override;
+        size_t Write (void* pvBuffer_, size_t uLen_) override;
 
     protected:
-        gzFile m_hFile;
-        size_t m_uSize;
+        gzFile m_hFile = nullptr;
+        size_t m_uSize = 0;
 };
 
-class CZipStream : public CStream
+class CZipStream final : public CStream
 {
     public:
         CZipStream (unzFile hFile_, const char* pcszPath_, bool fReadOnly_=false);
+        CZipStream (const CZipStream &) = delete;
+        void operator= (const CZipStream &) = delete;
         ~CZipStream () { Close(); }
 
     public:
-        bool IsOpen () const { return m_hFile != NULL; }
+        bool IsOpen () const  override { return m_hFile != nullptr; }
 
     public:
-        void Close ();
-        bool Rewind ();
-        size_t Read (void* pvBuffer_, size_t uLen_);
-        size_t Write (void* pvBuffer_, size_t uLen_);
+        void Close () override;
+        bool Rewind () override;
+        size_t Read (void* pvBuffer_, size_t uLen_) override;
+        size_t Write (void* pvBuffer_, size_t uLen_) override;
 
     protected:
-        unzFile m_hFile;
+        unzFile m_hFile = nullptr;
 };
 
 #endif  // USE_ZLIB

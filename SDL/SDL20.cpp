@@ -33,8 +33,7 @@ static DWORD aulScanline[N_PALETTE_COLOURS];
 
 
 SDLTexture::SDLTexture ()
-    : m_pWindow(NULL), m_pRenderer(NULL), m_pTexture(NULL), m_pScanlineTexture(NULL),
-      m_fFilter(GetOption(filter)), m_nDepth(0)
+    : m_fFilter(GetOption(filter))
 {
     m_rTarget.x = m_rTarget.y = 0;
     m_rTarget.w = Frame::GetWidth();
@@ -49,10 +48,10 @@ SDLTexture::SDLTexture ()
 
 SDLTexture::~SDLTexture ()
 {
-    if (m_pScanlineTexture) SDL_DestroyTexture(m_pScanlineTexture), m_pScanlineTexture = NULL;
-    if (m_pTexture) SDL_DestroyTexture(m_pTexture), m_pTexture = NULL;
-    if (m_pRenderer) SDL_DestroyRenderer(m_pRenderer), m_pRenderer = NULL;
-    if (m_pWindow) SDL_DestroyWindow(m_pWindow), m_pWindow = NULL;
+    if (m_pScanlineTexture) SDL_DestroyTexture(m_pScanlineTexture), m_pScanlineTexture = nullptr;
+    if (m_pTexture) SDL_DestroyTexture(m_pTexture), m_pTexture = nullptr;
+    if (m_pRenderer) SDL_DestroyRenderer(m_pRenderer), m_pRenderer = nullptr;
+    if (m_pWindow) SDL_DestroyWindow(m_pWindow), m_pWindow = nullptr;
 
     SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
@@ -99,7 +98,7 @@ bool SDLTexture::Init (bool fFirstInit_)
     if (!m_pRenderer)
     {
         TRACE("Failed to create SDL2 renderer!\n");
-        SDL_DestroyWindow(m_pWindow), m_pWindow = NULL;
+        SDL_DestroyWindow(m_pWindow), m_pWindow = nullptr;
         return false;
     }
 
@@ -110,8 +109,8 @@ bool SDLTexture::Init (bool fFirstInit_)
     if (!(ri.flags & SDL_RENDERER_ACCELERATED))
     {
         TRACE("SDLTexture: skipping non-accelerated renderer\n");
-        SDL_DestroyRenderer(m_pRenderer), m_pRenderer = NULL;
-        SDL_DestroyWindow(m_pWindow), m_pWindow = NULL;
+        SDL_DestroyRenderer(m_pRenderer), m_pRenderer = nullptr;
+        SDL_DestroyWindow(m_pWindow), m_pWindow = nullptr;
         return false;
     }
 
@@ -141,7 +140,7 @@ void SDLTexture::UpdatePalette ()
 
     int w, h;
     Uint32 uFormat, uRmask, uGmask, uBmask, uAmask;
-    SDL_QueryTexture(m_pTexture, &uFormat, NULL, &w, &h);
+    SDL_QueryTexture(m_pTexture, &uFormat, nullptr, &w, &h);
     SDL_PixelFormatEnumToMasks(uFormat, &m_nDepth, &uRmask, &uGmask, &uBmask, &uAmask);
 
     // Build the full palette from SAM and GUI colours
@@ -199,7 +198,7 @@ bool SDLTexture::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
 
     // Lock only the portion we're changing
     SDL_Rect rLock = { 0, nChangeFrom, nWidth, nChangeTo-nChangeFrom+1 };
-    void *pvPixels = NULL;
+    void *pvPixels = nullptr;
     int nPitch = 0;
 
     // Lock the surface for direct access below
@@ -322,8 +321,8 @@ void SDLTexture::UpdateSize ()
     if (GetOption(fullscreen) != fFullscreen)
         SDL_SetWindowFullscreen(m_pWindow, GetOption(fullscreen) ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 
-    if (m_pScanlineTexture) SDL_DestroyTexture(m_pScanlineTexture), m_pScanlineTexture = NULL;
-    if (m_pTexture) SDL_DestroyTexture(m_pTexture), m_pTexture = NULL;
+    if (m_pScanlineTexture) SDL_DestroyTexture(m_pScanlineTexture), m_pScanlineTexture = nullptr;
+    if (m_pTexture) SDL_DestroyTexture(m_pTexture), m_pTexture = nullptr;
 
     int nWidth = Frame::GetWidth();
     int nHeight = Frame::GetHeight();
@@ -340,7 +339,7 @@ void SDLTexture::UpdateSize ()
     {
         int w, h, nDepth;
         Uint32 uFormat, uRmask, uGmask, uBmask, uAmask;
-        SDL_QueryTexture(m_pScanlineTexture, &uFormat, NULL, &w, &h);
+        SDL_QueryTexture(m_pScanlineTexture, &uFormat, nullptr, &w, &h);
         SDL_PixelFormatEnumToMasks(uFormat, &nDepth, &uRmask, &uGmask, &uBmask, &uAmask);
 
         Uint32 ulScanline0 = RGB2Native(0,0,0, (100-GetOption(scanlevel))*0xff/100, uRmask, uGmask, uBmask, uAmask);
@@ -350,7 +349,7 @@ void SDLTexture::UpdateSize ()
         for (int j = 0 ; j < h ; j++)
             pbScanlines[j] = (j&1) ? ulScanline1 : ulScanline0;
 
-        SDL_UpdateTexture(m_pScanlineTexture, NULL, pbScanlines, sizeof(Uint32));
+        SDL_UpdateTexture(m_pScanlineTexture, nullptr, pbScanlines, sizeof(Uint32));
         delete[] pbScanlines;
     }
 }

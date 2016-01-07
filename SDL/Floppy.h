@@ -25,62 +25,63 @@
 
 typedef struct
 {
-    BYTE sectors;
-    BYTE cyl, head;     // physical track location
-}
-TRACK, *PTRACK;
+    BYTE sectors = 0;
+    BYTE cyl = 0, head = 0;     // physical track location
+} TRACK, *PTRACK;
 
 typedef struct
 {
-    BYTE cyl, head, sector, size;
-    BYTE status;
-    BYTE *pbData;
-}
-SECTOR, *PSECTOR;
+    BYTE cyl = 0, head = 0, sector = 0, size = 0;
+    BYTE status = 0;
+    BYTE *pbData = nullptr;
+} SECTOR, *PSECTOR;
 
 
-class CFloppyStream : public CStream
+class CFloppyStream final : public CStream
 {
     public:
         CFloppyStream (const char* pcszStream_, bool fReadOnly_=false);
+        CFloppyStream (const CFloppyStream &) = delete;
+        void operator= (const CFloppyStream &) = delete;
         ~CFloppyStream () { Close(); }
 
     public:
         static bool IsRecognised (const char* pcszStream_);
 
     public:
-        void Close ();
+        void Close () override;
         void *ThreadProc ();
 
     public:
-        bool IsOpen () const { return m_hFloppy != -1; }
+        bool IsOpen () const override { return m_hFloppy != -1; }
         bool IsBusy (BYTE* pbStatus_, bool fWait_);
 
         // The normal stream functions are not used
-        bool Rewind () { return false; }
-        size_t Read (void*, size_t) { return 0; }
-        size_t Write (void*, size_t) { return 0; }
+        bool Rewind () override { return false; }
+        size_t Read (void*, size_t) override { return 0; }
+        size_t Write (void*, size_t) override { return 0; }
 
-        BYTE StartCommand (BYTE bCommand_, PTRACK pTrack_=NULL, UINT uSectorIndex_=0);
+        BYTE StartCommand (BYTE bCommand_, PTRACK pTrack_=nullptr, UINT uSectorIndex_=0);
 
     protected:
         bool Open ();
 
     protected:
-        int     m_hFloppy;              // Floppy device handle
-        UINT    m_uSectors;             // Regular sector count, or zero for auto-detect (slower)
+        int m_hFloppy = -1;             // Floppy device handle
+        UINT m_uSectors = 0;            // Regular sector count, or zero for auto-detect (slower)
 
 #ifdef __linux__
-        pthread_t m_hThread;            // Thread handle
-        bool    m_fThreadDone;          // True when thread has completed
+        pthread_t m_hThread = 0;        // Thread handle
+        bool m_fThreadDone = false;     // True when thread has completed
 #else
-        int     m_hThread;              // Dummy handle for non-Linux
+        int m_hThread = -1;             // Dummy handle for non-Linux
 #endif
 
-        BYTE    m_bCommand, m_bStatus;  // Current command and final status
+        BYTE m_bCommand = 0;            // Current command
+        BYTE m_bStatus = 0;             // Final status
 
-        PTRACK  m_pTrack;               // Track for command
-        UINT    m_uSectorIndex;         // Zero-based sector for write command
+        PTRACK m_pTrack = nullptr;      // Track for command
+        UINT m_uSectorIndex = 0;        // Zero-based sector for write command
 };
 
 #endif  // FLOPPY_H

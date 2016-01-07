@@ -30,11 +30,12 @@
 // Mouse buffer format, as read
 typedef struct
 {
-    BYTE bStrobe, bDummy, bButtons;
+    BYTE bStrobe;
+    BYTE bDummy;
+    BYTE bButtons;
     BYTE bY256, bY16, bY1;
     BYTE bX256, bX16, bX1;
-}
-MOUSEBUFFER;
+} MOUSEBUFFER;
 
 
 class CMouseDevice : public CIoDevice
@@ -43,8 +44,8 @@ class CMouseDevice : public CIoDevice
         CMouseDevice ();
 
     public:
-        void Reset ();
-        BYTE In (WORD wPort_);
+        void Reset () override;
+        BYTE In (WORD wPort_) override;
 
     public:
         void Move (int nDeltaX_, int nDeltaY_);
@@ -52,13 +53,13 @@ class CMouseDevice : public CIoDevice
         bool IsActive () const;
 
     protected:
-        int m_nDeltaX, m_nDeltaY;   // System change in X and Y since last read
-        int m_nReadX, m_nReadY;     // Read change in X and Y
-        BYTE m_bButtons;            // Current button states
-        DWORD m_dwLastRead;         // When the mouse was last read
+        int m_nDeltaX = 0, m_nDeltaY = 0;   // System change in X and Y since last read
+        int m_nReadX = 0, m_nReadY = 0;     // Read change in X and Y
+        BYTE m_bButtons = 0;                // Current button states
+        DWORD m_dwLastRead = 0;             // When the mouse was last read
 
-        MOUSEBUFFER m_sMouse;
-        UINT m_uBuffer;             // Read position in mouse data
+        MOUSEBUFFER m_sMouse {};
+        UINT m_uBuffer = 0;                 // Read position in mouse data
 };
 
 extern CMouseDevice *pMouse;

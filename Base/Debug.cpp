@@ -31,7 +31,6 @@
 #include "Symbol.h"
 #include "Util.h"
 
-
 // Changed value colour (light red)
 #define CHG_COL  'r'
 
@@ -47,7 +46,7 @@ typedef struct
 } TRACEDATA;
 
 
-static CDebugger* pDebugger;
+CDebugger* pDebugger;
 
 // Stack position used to track stepping out
 int nStepOutSP = -1;
@@ -65,8 +64,11 @@ TRACEDATA aTrace[TRACE_SLOTS];
 int nNumTraces;
 
 
+namespace Debug
+{
+
 // Activate the debug GUI, if not already active
-bool Debug::Start (BREAKPT* pBreak_)
+bool Start (BREAKPT* pBreak_)
 {
     // Restore memory contention in case of a timing measurement
     CPU::UpdateContention();
@@ -107,7 +109,7 @@ bool Debug::Start (BREAKPT* pBreak_)
         else
         {
             // Unload user symbols if there's no drive or disk
-            Symbol::Update(NULL);
+            Symbol::Update(nullptr);
         }
     }
 
@@ -116,28 +118,28 @@ bool Debug::Start (BREAKPT* pBreak_)
 
     // Create the main debugger window, passing any breakpoint
     if (!GUI::Start(pDebugger = new CDebugger(pBreak_)))
-        pDebugger = NULL;
+        pDebugger = nullptr;
 
     return true;
 }
 
-void Debug::Stop ()
+void Stop ()
 {
     if (pDebugger)
     {
         pDebugger->Destroy();
-        pDebugger = NULL;
+        pDebugger = nullptr;
     }
 }
 
-void Debug::FrameEnd ()
+void FrameEnd ()
 {
     nLastFrames++;
 }
 
 
 // Called on every RETurn, for step-out implementation
-void Debug::OnRet ()
+void OnRet ()
 {
     // Step-out in progress?
     if (nStepOutSP != -1)
@@ -145,18 +147,18 @@ void Debug::OnRet ()
         // If the stack is at or just above the starting position, it should mean we've returned
         // Allow some generous slack for data that may have been on the stack above the address
         if ((SP-nStepOutSP) >= 0 && (SP-nStepOutSP) < 64)
-            Debug::Start();
+            Start();
     }
 }
 
-bool Debug::RetZHook ()
+bool RetZHook ()
 {
     // Are we in in HDNSTP in ROM1, about to start an auto-executing code file?
     if (PC == 0xe294 && GetSectionPage(SECTION_D) == ROM1 && !(F & FLAG_Z))
     {
         // If the option is enabled, set a temporary breakpoint for the start
         if (GetOption(breakonexec))
-            Breakpoint::AddTemp(NULL, Expr::Compile("autoexec"));
+            Breakpoint::AddTemp(nullptr, Expr::Compile("autoexec"));
     }
 
     // Continue normal processing
@@ -165,19 +167,19 @@ bool Debug::RetZHook ()
 
 
 // Return whether the debug GUI is active
-bool Debug::IsActive ()
+bool IsActive ()
 {
-    return pDebugger != NULL;
+    return pDebugger != nullptr;
 }
 
 // Return whether any breakpoints are active
-bool Debug::IsBreakpointSet ()
+bool IsBreakpointSet ()
 {
     return Breakpoint::IsSet();
 }
 
 // Return whether any of the active breakpoints have been hit
-bool Debug::BreakpointHit ()
+bool BreakpointHit ()
 {
     // Add a new trace entry if PC has changed
     if (aTrace[nNumTraces % TRACE_SLOTS].wPC != PC)
@@ -193,6 +195,8 @@ bool Debug::BreakpointHit ()
 
     return Breakpoint::IsHit();
 }
+
+} // namespace Debug
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -218,7 +222,7 @@ WORD GetPrevInstruction (WORD wAddr_)
 
 void cmdStep (int nCount_=1, bool fCtrl_=false)
 {
-    void *pPhysAddr = NULL;
+    void *pPhysAddr = nullptr;
     BYTE bOpcode;
     WORD wPC;
 
@@ -240,13 +244,13 @@ void cmdStep (int nCount_=1, bool fCtrl_=false)
 
     // If an address has been set, execute up to it
     if (pPhysAddr)
-        Breakpoint::AddTemp(pPhysAddr, NULL);
+        Breakpoint::AddTemp(pPhysAddr, nullptr);
 
     // Otherwise execute the requested number of instructions
     else
     {
         Expr::nCount = nCount_;
-        Breakpoint::AddTemp(NULL, &Expr::Counter);
+        Breakpoint::AddTemp(nullptr, &Expr::Counter);
     }
 
     Debug::Stop();
@@ -254,7 +258,7 @@ void cmdStep (int nCount_=1, bool fCtrl_=false)
 
 void cmdStepOver (bool fCtrl_=false)
 {
-    void *pPhysAddr = NULL;
+    void *pPhysAddr = nullptr;
     BYTE bOpcode, bOperand;
     WORD wPC;
 
@@ -292,7 +296,7 @@ void cmdStepOver (bool fCtrl_=false)
         cmdStep();
     else
     {
-        Breakpoint::AddTemp(pPhysAddr, NULL);
+        Breakpoint::AddTemp(pPhysAddr, nullptr);
         Debug::Stop();
     }
 }
@@ -306,8 +310,8 @@ void cmdStepOut ()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CInputDialog::CInputDialog (CWindow* pParent_/*=NULL*/, const char* pcszCaption_, const char* pcszPrompt_, PFNINPUTPROC pfnNotify_)
-    : CDialog(pParent_, 0,0, pcszCaption_), m_pfnNotify(pfnNotify_)
+CInputDialog::CInputDialog (CWindow* pParent_/*=nullptr*/, const char* pcszCaption_, const char* pcszPrompt_, PFNINPUTPROC pfnNotify_)
+: CDialog(pParent_, 0,0, pcszCaption_), m_pfnNotify(pfnNotify_)
 {
     // Get the length of the prompt string, so we can position the edit box correctly
     int n = GetTextWidth(pcszPrompt_);
@@ -351,7 +355,7 @@ static bool OnAddressNotify (EXPR *pExpr_)
 // Notify handler for Execute Until expression
 static bool OnUntilNotify (EXPR *pExpr_)
 {
-    Breakpoint::AddTemp(NULL, pExpr_);
+    Breakpoint::AddTemp(nullptr, pExpr_);
     Debug::Stop();
     return false;
 }
@@ -408,7 +412,7 @@ static bool OnModeNotify (EXPR *pExpr_)
 ////////////////////////////////////////////////////////////////////////////////
 
 CTextView::CTextView (CWindow *pParent_)
-: CView(pParent_), m_nLines(0), m_nTopLine(0), m_nRows(m_nHeight / ROW_HEIGHT)
+: CView(pParent_), m_nRows(m_nHeight / ROW_HEIGHT)
 {
     SetFont(&sFixedFont);
 }
@@ -451,7 +455,7 @@ bool CTextView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-bool CTextView::cmdNavigate (int nKey_, int nMods_)
+bool CTextView::cmdNavigate (int nKey_, int /*nMods_*/)
 {
     switch (nKey_)
     {
@@ -483,9 +487,8 @@ bool CTextView::cmdNavigate (int nKey_, int nMods_)
 
 bool CDebugger::s_fTransparent = false;
 
-CDebugger::CDebugger (BREAKPT* pBreak_/*=NULL*/)
-    : CDialog(NULL, 433, 260+36+2, ""),
-    m_nView(vtDis), m_pView(NULL), m_pCommandEdit(NULL)
+CDebugger::CDebugger (BREAKPT* pBreak_/*=nullptr*/)
+    : CDialog(nullptr, 433, 260+36+2, "")
 {
     // Move to the last display position, if any
     if (nDebugX | nDebugY)
@@ -543,10 +546,10 @@ CDebugger::~CDebugger ()
 
     // Clear any cached data that could cause an immediate retrigger
     wPortRead = wPortWrite = 0;
-    pbMemRead1 = pbMemRead2 = pbMemWrite1 = pbMemWrite2 = NULL;
+    pbMemRead1 = pbMemRead2 = pbMemWrite1 = pbMemWrite2 = nullptr;
 
     // Debugger is gone
-    pDebugger = NULL;
+    pDebugger = nullptr;
 }
 
 void CDebugger::SetSubTitle (const char *pcszSubTitle_)
@@ -570,7 +573,7 @@ void CDebugger::SetAddress (WORD wAddr_)
 
 void CDebugger::SetView (ViewType nView_)
 {
-    CView *pNewView = NULL;
+    CView *pNewView = nullptr;
 
     // Create the new view
     switch (nView_)
@@ -737,7 +740,7 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                 if (m_pCommandEdit)
                 {
                     m_pCommandEdit->Destroy();
-                    m_pCommandEdit = NULL;
+                    m_pCommandEdit = nullptr;
                 }
                 else if (m_nView != vtDis)
                 {
@@ -870,7 +873,7 @@ void CDebugger::OnNotify (CWindow* pWindow_, int nParam_)
         if (!*pcsz)
         {
             m_pCommandEdit->Destroy();
-            m_pCommandEdit = NULL;
+            m_pCommandEdit = nullptr;
         }
         // Otherwise execute the command, and if successful, clear the command text
         else if (Execute(pcsz))
@@ -898,7 +901,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
 {
     bool fRet = true;
 
-    char *psz = NULL;
+    char *psz = nullptr;
 
     char szCommand[256]={};
     strncpy(szCommand, pcszCommand_, sizeof(szCommand)-1);
@@ -912,7 +915,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
     bool fCommandOnly = !*pszParam;
 
     // Evaluate the parameter as an expression
-    char *pszExprEnd = NULL;
+    char *pszExprEnd = nullptr;
     EXPR *pExpr = Expr::Compile(pszParam, &pszExprEnd);
     int nParam = Expr::Eval(pExpr);
 
@@ -1047,7 +1050,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
         {
             Expr::nCount = nParam;
             Break.pExpr = &Expr::Counter;
-            Debug::Stop();
+            Stop();
         }
     }
 */
@@ -1060,7 +1063,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
         if (nParam != -1 && !*pszExprEnd)
         {
             Expr::nCount = nParam;
-            Breakpoint::AddTemp(NULL, &Expr::Counter);
+            Breakpoint::AddTemp(nullptr, &Expr::Counter);
             Debug::Stop();
         }
         // x until cond
@@ -1071,7 +1074,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
 
             // If we have an expression set a temporary breakpoint using it
             if (pExpr2)
-                Breakpoint::AddTemp(NULL, pExpr2);
+                Breakpoint::AddTemp(nullptr, pExpr2);
             else
                 fRet = false;
         }
@@ -1088,7 +1091,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
     {
         if (nParam != -1 && !*pszExprEnd)
         {
-            Breakpoint::AddTemp(NULL, Expr::Compile(pszParam));
+            Breakpoint::AddTemp(nullptr, Expr::Compile(pszParam));
             Debug::Stop();
         }
         else
@@ -1104,8 +1107,8 @@ bool CDebugger::Execute (const char* pcszCommand_)
     // bpx addr [if cond]
     else if (!strcasecmp(pszCommand, "bpx") && nParam != -1)
     {
-        EXPR *pExpr = NULL;
-        void *pPhysAddr = NULL;
+        EXPR *pExpr = nullptr;
+        void *pPhysAddr = nullptr;
 
         // Physical address?
         if (*pszExprEnd == ':')
@@ -1134,7 +1137,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
                 // Compile the expression following it
                 psz += strlen(psz)+1;
                 pExpr = Expr::Compile(psz);
-                fRet &= pExpr != NULL;
+                fRet &= pExpr != nullptr;
             }
             else
                 fRet = false;
@@ -1147,8 +1150,8 @@ bool CDebugger::Execute (const char* pcszCommand_)
     // bpm addr [rw|r|w] [if cond]
     else if (!strcasecmp(pszCommand, "bpm") && nParam != -1)
     {
-        EXPR *pExpr = NULL;
-        void *pPhysAddr = NULL;
+        EXPR *pExpr = nullptr;
+        void *pPhysAddr = nullptr;
 
         // Default is read/write
         AccessType nAccess = atReadWrite;
@@ -1181,7 +1184,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
             if (t != atNone)
             {
                 nAccess = t;
-                psz = strtok(NULL, " ");
+                psz = strtok(nullptr, " ");
             }
         }
 
@@ -1193,7 +1196,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
                 // Compile the expression following it
                 psz += strlen(psz)+1;
                 pExpr = Expr::Compile(psz);
-                fRet = pExpr != NULL;
+                fRet = pExpr != nullptr;
             }
             else
                 fRet = false;
@@ -1206,8 +1209,8 @@ bool CDebugger::Execute (const char* pcszCommand_)
     // bpmr addrfrom addrto [rw|r|w] [if cond]
     else if (!strcasecmp(pszCommand, "bpmr") && nParam != -1)
     {
-        EXPR *pExpr = NULL;
-        void *pPhysAddr = NULL;
+        EXPR *pExpr = nullptr;
+        void *pPhysAddr = nullptr;
 
         // Default is read/write
         AccessType nAccess = atReadWrite;
@@ -1249,7 +1252,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
             if (t != atNone)
             {
                 nAccess = t;
-                psz = strtok(NULL, " ");
+                psz = strtok(nullptr, " ");
             }
         }
 
@@ -1261,7 +1264,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
                 // Compile the expression following it
                 psz += strlen(psz)+1;
                 pExpr = Expr::Compile(psz);
-                fRet = pExpr != NULL;
+                fRet = pExpr != nullptr;
             }
             else
                 fRet = false;
@@ -1276,7 +1279,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
     {
         // Default is read/write and no expression
         AccessType nAccess = atReadWrite;
-        EXPR *pExpr = NULL;
+        EXPR *pExpr = nullptr;
 
         // Extract a token from after the port expression
         psz = strtok(pszExprEnd, " ");
@@ -1290,7 +1293,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
             if (t != atNone)
             {
                 nAccess = t;
-                psz = strtok(NULL, " ");
+                psz = strtok(nullptr, " ");
             }
         }
 
@@ -1302,7 +1305,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
                 // Compile the expression following it
                 psz += strlen(psz)+1;
                 pExpr = Expr::Compile(psz);
-                fRet = pExpr != NULL;
+                fRet = pExpr != nullptr;
             }
             else
                 fRet = false;
@@ -1315,13 +1318,13 @@ bool CDebugger::Execute (const char* pcszCommand_)
     else if (!strcasecmp(pszCommand, "bpint"))
     {
         BYTE bMask = 0x00;
-        EXPR *pExpr = NULL;
+        EXPR *pExpr = nullptr;
 
         if (fCommandOnly)
             bMask = 0x1f;
         else
         {
-            for (psz = strtok(pszParam, " ,") ; fRet && psz ; psz = strtok(NULL, " ,"))
+            for (psz = strtok(pszParam, " ,") ; fRet && psz ; psz = strtok(nullptr, " ,"))
             {
                 if (!strcasecmp(psz, "frame") || !strcasecmp(psz, "f"))
                     bMask |= STATUS_INT_FRAME;
@@ -1338,7 +1341,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
                     // Compile the expression following it
                     psz += strlen(psz)+1;
                     pExpr = Expr::Compile(psz);
-                    fRet = pExpr != NULL;
+                    fRet = pExpr != nullptr;
                     break;
                 }
                 else
@@ -1415,7 +1418,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
         }
         else if (!strcmp(pszParam, "*"))
         {
-            BREAKPT *pBreak = NULL;
+            BREAKPT *pBreak = nullptr;
             for (int i = 0 ; (pBreak = Breakpoint::GetAt(i)) ; i++)
                 pBreak->fEnabled = fNewState;
         }
@@ -1435,7 +1438,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
     // ex reg,reg2
     else if (!strcasecmp(pszCommand, "ex"))
     {
-        EXPR *pExpr2 = NULL;
+        EXPR *pExpr2 = nullptr;
 
         // Re-parse the first argument as a register
         Expr::Release(pExpr);
@@ -1443,7 +1446,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
 
         // Locate and extract the second register parameter
         if ((psz = strtok(pszExprEnd, ",")))
-            pExpr2 = Expr::Compile(psz, NULL, Expr::regOnly);
+            pExpr2 = Expr::Compile(psz, nullptr, Expr::regOnly);
 
         // Accept if both parameters are registers
         if (pExpr  && pExpr->nType  == T_REGISTER && !pExpr->pNext &&
@@ -1507,7 +1510,7 @@ bool CDebugger::Execute (const char* pcszCommand_)
         BYTE ab[128];
         int nBytes = 0;
 
-        for (psz = strtok(pszExprEnd, ",") ; fRet && psz ; psz = strtok(NULL, ","))
+        for (psz = strtok(pszExprEnd, ",") ; fRet && psz ; psz = strtok(nullptr, ","))
         {
             int nVal;
 
@@ -1548,7 +1551,7 @@ WORD CDisView::s_wAddrs[64];
 bool CDisView::m_fUseSymbols = true;
 
 CDisView::CDisView (CWindow* pParent_)
-    : CView(pParent_), m_uCodeTarget(INVALID_TARGET), m_uDataTarget(INVALID_TARGET), m_pcszDataTarget(NULL)
+    : CView(pParent_)
 {
     SetText("Disassemble");
     SetFont(&sFixedFont);
@@ -1746,10 +1749,10 @@ void CDisView::Draw (CScreen* pScreen_)
     if (dwCycleDiff)
         pScreen_->Printf(nX+12, nY+172, "+%u", dwCycleDiff);
 
-    pScreen_->Printf(nX, nY+188, "\agA \a%c%s", ReadOnlyAddr(0x0000)?'c':'X', PageDesc(GetSectionPage(SECTION_A)));
-    pScreen_->Printf(nX, nY+200, "\agB \a%c%s", ReadOnlyAddr(0x4000)?'c':'X', PageDesc(GetSectionPage(SECTION_B)));
-    pScreen_->Printf(nX, nY+212, "\agC \a%c%s", ReadOnlyAddr(0x8000)?'c':'X', PageDesc(GetSectionPage(SECTION_C)));
-    pScreen_->Printf(nX, nY+224, "\agD \a%c%s", ReadOnlyAddr(0xc000)?'c':'X', PageDesc(GetSectionPage(SECTION_D)));
+    pScreen_->Printf(nX, nY+188, "\agA \a%c%s", ReadOnlyAddr(0x0000)?'c':'X', Memory::PageDesc(GetSectionPage(SECTION_A)));
+    pScreen_->Printf(nX, nY+200, "\agB \a%c%s", ReadOnlyAddr(0x4000)?'c':'X', Memory::PageDesc(GetSectionPage(SECTION_B)));
+    pScreen_->Printf(nX, nY+212, "\agC \a%c%s", ReadOnlyAddr(0x8000)?'c':'X', Memory::PageDesc(GetSectionPage(SECTION_C)));
+    pScreen_->Printf(nX, nY+224, "\agD \a%c%s", ReadOnlyAddr(0xc000)?'c':'X', Memory::PageDesc(GetSectionPage(SECTION_D)));
 
     pScreen_->Printf(nX+66, nY+188, "\agL\aX %02X", lmpr);
     pScreen_->Printf(nX+66, nY+200, "\agH\aX %02X", hmpr);
@@ -1797,7 +1800,7 @@ bool CDisView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
                 // If there's no breakpoint, add a new one
                 if (nIndex == -1)
-                    Breakpoint::AddExec(pPhysAddr, NULL);
+                    Breakpoint::AddExec(pPhysAddr, nullptr);
                 else
                     Breakpoint::RemoveAt(nIndex);
             }
@@ -2054,7 +2057,7 @@ bool CDisView::SetDataTarget ()
 
     // No target or helper string yet
     m_uDataTarget = INVALID_TARGET;
-    m_pcszDataTarget = NULL;
+    m_pcszDataTarget = nullptr;
 
     // Extract potential instruction bytes
     WORD wPC = PC;
@@ -2201,7 +2204,7 @@ bool CDisView::SetDataTarget ()
 static const int TXT_COLUMNS = 64;
 
 CTxtView::CTxtView (CWindow* pParent_)
-    : CView(pParent_), m_nRows(m_nHeight / ROW_HEIGHT), m_nColumns(80), m_fEditing(false), m_wEditAddr(0)
+    : CView(pParent_), m_nRows(m_nHeight / ROW_HEIGHT), m_nColumns(80)
 {
     SetText("Text");
     SetFont(&sFixedFont);
@@ -2210,7 +2213,7 @@ CTxtView::CTxtView (CWindow* pParent_)
     m_pszData = new char[m_nRows * m_nColumns + 1];
 }
 
-void CTxtView::SetAddress (WORD wAddr_, bool fForceTop_)
+void CTxtView::SetAddress (WORD wAddr_, bool /*fForceTop_*/)
 {
     CView::SetAddress(wAddr_);
 
@@ -2389,7 +2392,7 @@ bool CTxtView::cmdNavigate (int nKey_, int nMods_)
 static const int HEX_COLUMNS = 16;
 
 CHexView::CHexView (CWindow* pParent_)
-    : CView(pParent_), m_fEditing(false), m_fRightNibble(false), m_wEditAddr(0)
+    : CView(pParent_)
 {
     SetText("Numeric");
     SetFont(&sFixedFont);
@@ -2401,7 +2404,7 @@ CHexView::CHexView (CWindow* pParent_)
     m_pszData = new char[m_nRows * (m_nColumns+1) + 2];
 }
 
-void CHexView::SetAddress (WORD wAddr_, bool fForceTop_)
+void CHexView::SetAddress (WORD wAddr_, bool /*fForceTop_*/)
 {
     CView::SetAddress(wAddr_);
 
@@ -2651,7 +2654,7 @@ static const int STRIP_GAP = 8;
 UINT CGfxView::s_uMode = 4, CGfxView::s_uWidth = 8, CGfxView::s_uZoom = 1;
 
 CGfxView::CGfxView (CWindow* pParent_)
-    : CView(pParent_), m_fGrid(true), m_uStrips(0), m_uStripWidth(0), m_uStripLines(0)
+    : CView(pParent_)
 {
     SetText("Graphics");
     SetFont(&sFixedFont);
@@ -2663,7 +2666,7 @@ CGfxView::CGfxView (CWindow* pParent_)
     s_uMode = ((vmpr & VMPR_MODE_MASK) >> 5) + 1;
 }
 
-void CGfxView::SetAddress (WORD wAddr_, bool fForceTop_)
+void CGfxView::SetAddress (WORD wAddr_, bool /*fForceTop_*/)
 {
     static const UINT auPPB[] = { 8, 8, 2, 2 };   // Pixels Per Byte in each mode
 
@@ -2853,7 +2856,7 @@ bool CGfxView::cmdNavigate (int nKey_, int nMods_)
 // Breakpoint View
 
 CBptView::CBptView (CWindow* pParent_)
-    : CView(pParent_), m_nLines(0), m_nTopLine(0), m_nActive(-1)
+    : CView(pParent_)
 {
     SetText("Breakpoints");
     SetFont(&sFixedFont);
@@ -2865,7 +2868,7 @@ CBptView::CBptView (CWindow* pParent_)
     m_pszData[0] = '\0';
 }
 
-void CBptView::SetAddress (WORD wAddr_, bool fForceTop_)
+void CBptView::SetAddress (WORD wAddr_, bool /*fForceTop_*/)
 {
     CView::SetAddress(wAddr_);
 
@@ -2880,7 +2883,7 @@ void CBptView::SetAddress (WORD wAddr_, bool fForceTop_)
         m_nLines = 0;
         m_nActive = -1;
 
-        for (BREAKPT *p = NULL ; (p = Breakpoint::GetAt(i)) ; i++, m_nLines++)
+        for (BREAKPT *p = nullptr ; (p = Breakpoint::GetAt(i)) ; i++, m_nLines++)
         {
             psz += sprintf(psz, "%2d: %s", i, Breakpoint::GetDesc(p)) + 1;
 
@@ -2944,7 +2947,7 @@ bool CBptView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-bool CBptView::cmdNavigate (int nKey_, int nMods_)
+bool CBptView::cmdNavigate (int nKey_, int /*nMods_*/)
 {
     switch (nKey_)
     {
@@ -2977,7 +2980,7 @@ bool CBptView::cmdNavigate (int nKey_, int nMods_)
 // Trace View
 
 CTrcView::CTrcView (CWindow* pParent_)
-    : CTextView(pParent_), m_fFullMode(false)
+    : CTextView(pParent_)
 {
     SetText("Trace");
     SetLines(std::min(nNumTraces,TRACE_SLOTS));
@@ -3098,5 +3101,6 @@ void CTrcView::OnDblClick (int nLine_)
 
 void CTrcView::OnDelete ()
 {
-    SetLines(nNumTraces = 0);
+    nNumTraces = 0;
+    SetLines(0);
 }

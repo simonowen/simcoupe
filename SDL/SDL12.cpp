@@ -35,7 +35,6 @@ static DWORD aulScanline[N_PALETTE_COLOURS];
 
 
 SDLSurface::SDLSurface ()
-    : pFront(NULL), pBack(NULL), pIcon(NULL), nDesktopWidth(0), nDesktopHeight(0)
 {
     m_rTarget.x = m_rTarget.y = 0;
     m_rTarget.w = Frame::GetWidth();
@@ -44,8 +43,8 @@ SDLSurface::SDLSurface ()
 
 SDLSurface::~SDLSurface ()
 {
-    if (pBack) SDL_FreeSurface(pBack), pBack = NULL;
-    if (pIcon) SDL_FreeSurface(pIcon), pIcon = NULL;
+    if (pBack) SDL_FreeSurface(pBack), pBack = nullptr;
+    if (pIcon) SDL_FreeSurface(pIcon), pIcon = nullptr;
 
     SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
@@ -68,7 +67,7 @@ bool SDLSurface::Init (bool fFirstInit_)
 
     pIcon = SDL_LoadBMP(OSD::MakeFilePath(MFP_RESOURCE, "SimCoupe.bmp"));
     if (pIcon)
-        SDL_WM_SetIcon(pIcon, NULL);
+        SDL_WM_SetIcon(pIcon, nullptr);
 
     if (fFirstInit_)
     {
@@ -322,7 +321,7 @@ void SDLSurface::UpdateSize ()
     else
     {
         // Clear out any garbage from the back surface
-        SDL_FillRect(pBack, NULL, 0);
+        SDL_FillRect(pBack, nullptr, 0);
     }
 
     UpdatePalette();

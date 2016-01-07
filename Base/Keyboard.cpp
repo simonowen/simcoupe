@@ -27,6 +27,8 @@
 #include "Memory.h"
 #include "Options.h"
 
+namespace Keyboard
+{
 
 typedef struct
 {
@@ -133,7 +135,7 @@ MAPPED_KEY asSpectrumKeys[] =
 };
 
 
-bool Keyboard::Init (bool fFirstInit_/*=false*/)
+bool Init (bool /*fFirstInit_=false*/)
 {
     // Fill the SAM keys for the main keyboard matrix
     for (int i = SK_MIN ; i < SK_MAX ; i++)
@@ -155,12 +157,12 @@ bool Keyboard::Init (bool fFirstInit_/*=false*/)
     return true;
 }
 
-void Keyboard::Exit (bool fReInit_/*=false*/)
+void Exit (bool /*fReInit_=false*/)
 {
 }
 
 
-void Keyboard::Purge ()
+void Purge ()
 {
     memset(abKeys, 0, sizeof(abKeys));
     memset(keybuffer, 0xff, sizeof(keybuffer));
@@ -168,7 +170,7 @@ void Keyboard::Purge ()
 
 
 // Build the SAM keyboard matrix from the current PC state
-void Keyboard::Update ()
+void Update ()
 {
     // Save a copy of the current key state, so we can modify it during matching below
     BYTE abKeysCopy[_countof(abKeys)];
@@ -390,7 +392,7 @@ static bool UpdateKeyTable (MAPPED_KEY* asKeys_, int nKey_, int nMods_, int nCha
 
 
 // Set the state of a native key, remember any character generated from it
-void Keyboard::SetKey (int nCode_, bool fPressed_, int nMods_/*=0*/, int nChar_/*=0*/)
+void SetKey (int nCode_, bool fPressed_, int nMods_/*=0*/, int nChar_/*=0*/)
 {
     // Key released?
     if (!fPressed_)
@@ -409,3 +411,5 @@ void Keyboard::SetKey (int nCode_, bool fPressed_, int nMods_/*=0*/, int nChar_/
         }
     }
 }
+
+} // namespace Keyboard

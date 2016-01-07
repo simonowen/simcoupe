@@ -26,19 +26,18 @@
 class CDeviceHardDisk : public CHardDisk
 {
     public:
-        CDeviceHardDisk (const char* pcszDisk_) : CHardDisk(pcszDisk_), m_hDevice(-1) { }
-        ~CDeviceHardDisk () { }
+        CDeviceHardDisk (const char* pcszDisk_) : CHardDisk(pcszDisk_) { }
 
     public:
         bool IsOpen () const { return m_hDevice != -1; }
-        bool Open (bool fReadOnly_=false);
+        bool Open (bool fReadOnly_=false) override;
         void Close ();
 
-        bool ReadSector (UINT uSector_, BYTE* pb_);
-        bool WriteSector (UINT uSector_, BYTE* pb_);
+        bool ReadSector (UINT uSector_, BYTE* pb_) override;
+        bool WriteSector (UINT uSector_, BYTE* pb_) override;
 
     protected:
-        int m_hDevice;
+        int m_hDevice = -1;
 };
 
 #endif

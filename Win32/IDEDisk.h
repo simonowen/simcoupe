@@ -35,20 +35,21 @@ class CDeviceHardDisk : public CHardDisk
 
     public:
         bool IsOpen () const { return m_hDevice != INVALID_HANDLE_VALUE; }
-        bool Open (bool fReadOnly_=false);
+        bool Open (bool fReadOnly_=false) override;
         void Close ();
 
-        bool ReadSector (UINT uSector_, BYTE* pb_);
-        bool WriteSector (UINT uSector_, BYTE* pb_);
+        bool ReadSector (UINT uSector_, BYTE* pb_) override;
+        bool WriteSector (UINT uSector_, BYTE* pb_) override;
 
     protected:
         bool Lock (bool fReadOnly_=false);
         void Unlock ();
 
     protected:
-        HANDLE m_hDevice, m_hLock;
-        BYTE *m_pbSector;
-        DWORD m_dwDriveLetters; // drive letters on our physical drive
+        HANDLE m_hDevice = INVALID_HANDLE_VALUE;
+        HANDLE m_hLock = INVALID_HANDLE_VALUE;
+        BYTE *m_pbSector = nullptr;
+        DWORD m_dwDriveLetters = 0; // drive letters on our physical drive
 };
 
 #endif

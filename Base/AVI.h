@@ -23,16 +23,15 @@
 
 #include "Screen.h"
 
-class AVI
+namespace AVI
 {
-    public:
-        static bool Start (bool fHalfSize_=false);
-        static void Stop ();
-        static void Toggle (bool fHalfSize_=false);
-        static bool IsRecording ();
+    bool Start (bool fHalfSize_=false);
+    void Stop ();
+    void Toggle (bool fHalfSize_=false);
+    bool IsRecording ();
 
-        static void AddFrame (CScreen *pScreen_);
-        static void AddFrame (const BYTE *pbAudio_, UINT uLen_);
-};
+    void AddFrame (CScreen *pScreen_);
+    void AddFrame (const BYTE *pbAudio_, UINT uLen_);
+}
 
 #endif // AVI_H

@@ -35,26 +35,23 @@ static DWORD aulScanline[N_PALETTE_COLOURS];
 
 
 DirectDrawVideo::DirectDrawVideo ()
-    : m_pdd(NULL), m_pddsPrimary(NULL), m_pddsBack(NULL), m_pddClipper(NULL)
 {
     m_nWidth = Frame::GetWidth();
     m_nHeight = Frame::GetHeight();
-
-    SetRectEmpty(&m_rTarget);
 }
 
 DirectDrawVideo::~DirectDrawVideo ()
 {
-    if (m_pddClipper) m_pddClipper->Release(), m_pddClipper = NULL;
-    if (m_pddsBack) m_pddsBack->Release(), m_pddsBack = NULL;
-    if (m_pddsPrimary) m_pddsPrimary->Release(), m_pddsPrimary = NULL;
+    if (m_pddClipper) m_pddClipper->Release();
+    if (m_pddsBack) m_pddsBack->Release();
+    if (m_pddsPrimary) m_pddsPrimary->Release();
 
     if (m_pdd)
     {
         // Should be done automatically, but let's do it just in case
         m_pdd->RestoreDisplayMode();
         m_pdd->SetCooperativeLevel(g_hwnd, DDSCL_NORMAL);
-        m_pdd->Release(), m_pdd = NULL;
+        m_pdd->Release();
     }
 }
 
@@ -70,9 +67,9 @@ bool DirectDrawVideo::Init (bool fFirstInit_)
     HRESULT hr;
 
     // Determine the current display depth
-    HDC hdc = GetDC(NULL);
+    HDC hdc = GetDC(nullptr);
     int nBPP = GetDeviceCaps(hdc, BITSPIXEL);
-    ReleaseDC(NULL, hdc);
+    ReleaseDC(nullptr, hdc);
 
     // Check the display depth is supported
     if (nBPP != 16 && nBPP != 32)
@@ -84,9 +81,9 @@ bool DirectDrawVideo::Init (bool fFirstInit_)
     __try
     {
         // Create the main DirectDraw object, reversing the acceleration option if the first attempt failed
-        hr = DirectDrawCreate(GetOption(hwaccel) ? NULL : (LPGUID)DDCREATE_EMULATIONONLY, &m_pdd, NULL);
+        hr = DirectDrawCreate(GetOption(hwaccel) ? nullptr : (LPGUID)DDCREATE_EMULATIONONLY, &m_pdd, nullptr);
         if (FAILED(hr))
-            hr = DirectDrawCreate(GetOption(hwaccel) ? (LPGUID)DDCREATE_EMULATIONONLY : NULL, &m_pdd, NULL);
+            hr = DirectDrawCreate(GetOption(hwaccel) ? (LPGUID)DDCREATE_EMULATIONONLY : nullptr, &m_pdd, nullptr);
 
         if (FAILED(hr))
         {
@@ -102,7 +99,7 @@ bool DirectDrawVideo::Init (bool fFirstInit_)
 
     // Get the driver capabilites so we know what we need to set up
     DDCAPS ddcaps = { sizeof(ddcaps) };
-    m_pdd->GetCaps(&ddcaps, NULL);
+    m_pdd->GetCaps(&ddcaps, nullptr);
 
     // Use exclusive mode for full-screen, or normal mode for windowed
     hr = m_pdd->SetCooperativeLevel(g_hwnd, GetOption(fullscreen) ? DDSCL_EXCLUSIVE|DDSCL_FULLSCREEN|DDSCL_ALLOWREBOOT : DDSCL_NORMAL);
@@ -120,7 +117,7 @@ bool DirectDrawVideo::Init (bool fFirstInit_)
             Message(msgError, "Failed to create primary DirectDraw surface (%#08lx).", hr);
 
         // Use a clipper to keep the emulator image within the window area
-        else if (FAILED(hr = m_pdd->CreateClipper(0, &m_pddClipper, NULL)))
+        else if (FAILED(hr = m_pdd->CreateClipper(0, &m_pddClipper, nullptr)))
             Message(msgError, "CreateClipper() failed (%#08lx).", hr);
         else if (FAILED(hr = m_pddClipper->SetHWnd(0, hwndCanvas)))
             Message(msgError, "Clipper SetHWnd() failed (%#08lx).", hr);
@@ -141,7 +138,7 @@ bool DirectDrawVideo::Init (bool fFirstInit_)
                 // Clear the back buffer
                 DDBLTFX bltfx = { sizeof(bltfx) };
                 bltfx.dwFillColor = 0;
-                m_pddsBack->Blt(NULL, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
+                m_pddsBack->Blt(nullptr, nullptr, nullptr, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
 
                 UpdatePalette();
                 fRet = true;
@@ -241,7 +238,7 @@ void DirectDrawVideo::Update (CScreen* pScreen_, bool *pafDirty_)
 
 LPDIRECTDRAWSURFACE DirectDrawVideo::CreateSurface (DWORD dwCaps_, DWORD dwWidth_, DWORD dwHeight_, DWORD dwRequiredCaps_)
 {
-    LPDIRECTDRAWSURFACE pdds = NULL;
+    LPDIRECTDRAWSURFACE pdds = nullptr;
 
     DDSURFACEDESC ddsd = { sizeof(ddsd) };
     ddsd.dwFlags = DDSD_CAPS;
@@ -256,7 +253,7 @@ LPDIRECTDRAWSURFACE DirectDrawVideo::CreateSurface (DWORD dwCaps_, DWORD dwWidth
         ddsd.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
 
         DDCAPS ddcaps = { sizeof(ddcaps) };
-        m_pdd->GetCaps(&ddcaps, NULL);
+        m_pdd->GetCaps(&ddcaps, nullptr);
 
         // Force a system surface if the hardware doesn't support stretching, as the emulated Blt VRAM reads are VERY slow
         if ((~ddcaps.dwFXCaps & dwRequiredCaps_) != 0)
@@ -264,14 +261,14 @@ LPDIRECTDRAWSURFACE DirectDrawVideo::CreateSurface (DWORD dwCaps_, DWORD dwWidth
     }
 
     HRESULT hr;
-    if (FAILED(hr = m_pdd->CreateSurface(&ddsd, &pdds, NULL)))
+    if (FAILED(hr = m_pdd->CreateSurface(&ddsd, &pdds, nullptr)))
         TRACE("!!! Failed to create surface (%#08lx)\n", hr);
 
     // Only back buffers need to be checked for lockability
     if (!(dwCaps_ & DDSCAPS_PRIMARYSURFACE))
     {
         // Make sure the surface is lockable, as some VRAM surfaces may not be
-        if (SUCCEEDED(hr = pdds->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL)))
+        if (SUCCEEDED(hr = pdds->Lock(nullptr, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, nullptr)))
             pdds->Unlock(ddsd.lpSurface);
 
         // If we've not just tried a system surface, try one now
@@ -284,7 +281,7 @@ LPDIRECTDRAWSURFACE DirectDrawVideo::CreateSurface (DWORD dwCaps_, DWORD dwWidth
             ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
             ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 
-            if (FAILED(hr = m_pdd->CreateSurface(&ddsd, &pdds, NULL)))
+            if (FAILED(hr = m_pdd->CreateSurface(&ddsd, &pdds, nullptr)))
                 TRACE("!!! Failed to create forced system surface (%#08lx)\n", hr);
         }
     }
@@ -299,8 +296,8 @@ bool DirectDrawVideo::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     DDSURFACEDESC ddsd = { sizeof(ddsd) };
 
     // Lock the surface,  without taking the Win16Mutex if possible
-    if (FAILED(hr = m_pddsBack->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT|DDLOCK_NOSYSLOCK, NULL))
-     && FAILED(hr = m_pddsBack->Lock(NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, NULL)))
+    if (FAILED(hr = m_pddsBack->Lock(nullptr, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT|DDLOCK_NOSYSLOCK, nullptr))
+     && FAILED(hr = m_pddsBack->Lock(nullptr, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, nullptr)))
     {
         TRACE("!!! DrawChanges()  Failed to lock back surface (%#08lx)\n", hr);
         return false;

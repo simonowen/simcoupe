@@ -26,75 +26,79 @@
 #include "Options.h"
 #include "UI.h"
 
+namespace Video
+{
 
 static VideoBase *pVideo;
 static bool afDirty[HEIGHT_LINES*2];
 
 
-bool Video::Init (bool fFirstInit_)
+bool Init (bool fFirstInit_)
 {
     TRACE("Video::Init(%d)\n", fFirstInit_);
     Exit(true);
 
     pVideo = UI::GetVideo(fFirstInit_);
-    return pVideo != NULL;
+    return pVideo != nullptr;
 }
 
-void Video::Exit (bool fReInit_/*=false*/)
+void Exit (bool fReInit_/*=false*/)
 {
     TRACE("Video::Exit(%d)\n", fReInit_);
-    delete pVideo, pVideo = NULL;
+    delete pVideo, pVideo = nullptr;
 }
 
 
-bool Video::IsLineDirty (int nLine_)
+bool IsLineDirty (int nLine_)
 {
     return afDirty[nLine_];
 }
 
-void Video::SetLineDirty (int nLine_)
+void SetLineDirty (int nLine_)
 {
     afDirty[nLine_] = true;
 }
 
-void Video::SetDirty ()
+void SetDirty ()
 {
     for (int i = 0, nHeight = Frame::GetHeight() ; i < nHeight ; i++)
         afDirty[i] = true;
 }
 
 
-bool Video::CheckCaps (int nCaps_)
+bool CheckCaps (int nCaps_)
 {
     return pVideo && ((~pVideo->GetCaps() & nCaps_) == 0);
 }
 
-void Video::UpdatePalette ()
+void UpdatePalette ()
 {
     if (pVideo)
         pVideo->UpdatePalette();
 }
 
-void Video::Update (CScreen* pScreen_)
+void Update (CScreen* pScreen_)
 {
     if (pVideo)
         pVideo->Update(pScreen_, afDirty);
 }
 
-void Video::UpdateSize ()
+void UpdateSize ()
 {
     if (pVideo)
         pVideo->UpdateSize();
 }
 
-void Video::DisplayToSamSize (int* pnX_, int* pnY_)
+void DisplayToSamSize (int* pnX_, int* pnY_)
 {
     if (pVideo)
         pVideo->DisplayToSamSize(pnX_, pnY_);
 }
 
-void Video::DisplayToSamPoint (int* pnX_, int* pnY_)
+void DisplayToSamPoint (int* pnX_, int* pnY_)
 {
     if (pVideo)
         pVideo->DisplayToSamPoint(pnX_, pnY_);
 }
+
+} // namespace Video

@@ -60,7 +60,7 @@
 
 /*static*/ CDisk* CDisk::Open (const char* pcszDisk_, bool fReadOnly_/*=false*/)
 {
-    CDisk* pDisk = NULL;
+    CDisk* pDisk = nullptr;
 
     // Fetch stream for the disk source
     CStream* pStream = CStream::Open(pcszDisk_, fReadOnly_);
@@ -82,19 +82,19 @@
     if (!pDisk)
         delete pStream;
 
-    // Return the disk pointer (or NULL)
+    // Return the disk pointer (or nullptr)
     return pDisk;
 }
 
 /*static*/ CDisk* CDisk::Open (void* pv_, size_t uSize_, const char* pcszDisk_)
 {
     CStream* pStream = new CMemStream(pv_, uSize_, pcszDisk_);
-    return pStream ? new CFileDisk(pStream) : NULL;
+    return pStream ? new CFileDisk(pStream) : nullptr;
 }
 
 
 CDisk::CDisk (CStream* pStream_, int nType_)
-    : m_nType(nType_), m_nBusy(0), m_fModified(false), m_pStream(pStream_), m_pbData(NULL)
+    : m_nType(nType_), m_nBusy(0), m_fModified(false), m_pStream(pStream_), m_pbData(nullptr)
 {
 }
 
@@ -107,7 +107,7 @@ CDisk::~CDisk ()
 
 
 // Get the header for the specified sector index
-bool CDisk::GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_/*=NULL*/, BYTE* pbStatus_/*=NULL*/)
+bool CDisk::GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_/*=nullptr*/, BYTE* pbStatus_/*=nullptr*/)
 {
     // Construct a normal ID field for the sector
     pID_->bTrack = cyl_;
@@ -140,7 +140,7 @@ bool CDisk::GetSector (BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_/*=NULL*
 }
 
 CMGTDisk::CMGTDisk (CStream* pStream_, UINT uSectors_/*=NORMAL_DISK_SECTORS*/)
-    : CDisk(pStream_, dtMGT), m_uSectors(uSectors_)
+    : CDisk(pStream_, dtMGT)
 {
     // Allocate some memory and clear it, just in case it's not a complete MGT image
     m_pbData = new BYTE[MGT_IMAGE_SIZE];
@@ -273,7 +273,7 @@ BYTE CMGTDisk::FormatTrack (BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbDat
 
 /*static*/ bool CSADDisk::IsRecognised (CStream* pStream_)
 {
-    SAD_HEADER sh = {""};
+	SAD_HEADER sh {};
 
     // Read the header, check for the signature, and make sure the disk geometry is sensible
     bool fValid = (pStream_->Rewind() && pStream_->Read(&sh, sizeof(sh)) == sizeof(sh) &&
@@ -296,8 +296,11 @@ CSADDisk::CSADDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT 
     UINT uSectors_/*=NORMAL_DISK_SECTORS*/, UINT uSectorSize_/*=NORMAL_SECTOR_SIZE*/)
     : CDisk(pStream_, dtSAD)
 {
-    SAD_HEADER sh = { "", static_cast<BYTE>(uSides_), static_cast<BYTE>(uTracks_), static_cast<BYTE>(uSectors_),
-                      static_cast<BYTE>(uSectorSize_ >> 6) };
+    SAD_HEADER sh;
+    sh.bSides = static_cast<BYTE>(uSides_);
+    sh.bTracks = static_cast<BYTE>(uTracks_);
+    sh.bSectors = static_cast<BYTE>(uSectors_);
+    sh.bSectorSizeDiv64 = static_cast<BYTE>(uSectorSize_ >> 6);
 
     if (!pStream_->IsOpen())
         memcpy(sh.abSignature, SAD_SIGNATURE, sizeof(sh.abSignature));
@@ -367,7 +370,7 @@ BYTE CSADDisk::ReadData (BYTE cyl_, BYTE head_, BYTE index_, BYTE *pbData_, UINT
 }
 
 CEDSKDisk::CEDSKDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UINT uTracks_/*=MAX_DISK_TRACKS*/)
-    : CDisk(pStream_, dtEDSK), m_pSector(NULL), m_pbData(NULL)
+    : CDisk(pStream_, dtEDSK), m_pSector(nullptr), m_pbData(nullptr)
 {
     m_uSides = uSides_;
     m_uTracks = uTracks_;
@@ -409,11 +412,11 @@ CEDSKDisk::CEDSKDisk (CStream* pStream_, UINT uSides_/*=NORMAL_DISK_SIDES*/, UIN
             if (pt && (pStream_->Read(pt, size) != size || (pt->bRate && pt->bRate != 1) || (pt->bEncoding && pt->bEncoding != 1)))
             {
                 delete[] pb;
-                pt = NULL;
+                pt = nullptr;
                 size = 0;
             }
 
-            // Save the track (or NULL) and size MSB
+            // Save the track (or nullptr) and size MSB
             m_apTracks[head][cyl] = pt;
             m_abSizes[head][cyl] = size >> 8;
         }

@@ -26,7 +26,6 @@
 // ToDo: support slave device on the same interface
 
 CATADevice::CATADevice ()
-    : m_bDevice(ATA_DEVICE_0), m_f8bitOnReset(false), m_fByteSwap(false), m_fLegacy(false)
 {
     memset(&m_sGeometry, 0, sizeof(m_sGeometry));
     memset(&m_sIdentify, 0, sizeof(m_sIdentify));
@@ -48,7 +47,7 @@ void CATADevice::Reset (bool fSoft_/*=false*/)
     m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_DSC;
 
     // No data available for reading or required for writing
-    m_pbBuffer = NULL;
+    m_pbBuffer = nullptr;
     m_uBuffer = 0;
 
     // Set appropriate 8-bit data transfer state
@@ -534,7 +533,7 @@ void CATADevice::SetIdentifyData (IDENTIFYDEVICE *pid_)
     m_sIdentify.word[6] = m_sGeometry.uSectors;
 
     // Form an 8-character string from the current date, to use as firmware revision
-    time_t tNow = time(NULL);
+    time_t tNow = time(nullptr);
     tm *ptm = localtime(&tNow);
     char szDate[9] = {};
     snprintf(szDate, sizeof(szDate)-1, "%04u%02u%02u", ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);

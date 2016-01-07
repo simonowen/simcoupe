@@ -104,7 +104,10 @@ static BYTE abUnhandled[32];    // track unhandled port access in debug mode
 
 //////////////////////////////////////////////////////////////////////////////
 
-bool IO::Init (bool fFirstInit_/*=false*/)
+namespace IO
+{
+
+bool Init (bool fFirstInit_/*=false*/)
 {
     bool fRet = true;
     Exit(true);
@@ -198,7 +201,7 @@ bool IO::Init (bool fFirstInit_/*=false*/)
     return fRet;
 }
 
-void IO::Exit (bool fReInit_/*=false*/)
+void Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
@@ -223,30 +226,30 @@ void IO::Exit (bool fReInit_/*=false*/)
         SetOption(tape, Tape::GetPath());
         Tape::Eject();
 
-        delete pMidi, pMidi = NULL;
-        delete pPaula, pPaula = NULL;
-        delete pSAMVox, pSAMVox = NULL;
-        delete pBlueAlpha, pBlueAlpha = NULL;
-        delete pBeeper, pBeeper = NULL;
-        delete pSID, pSID = NULL;
-        delete pSAA, pSAA = NULL;
-        delete pDAC, pDAC = NULL;
+        delete pMidi, pMidi = nullptr;
+        delete pPaula, pPaula = nullptr;
+        delete pSAMVox, pSAMVox = nullptr;
+        delete pBlueAlpha, pBlueAlpha = nullptr;
+        delete pBeeper, pBeeper = nullptr;
+        delete pSID, pSID = nullptr;
+        delete pSAA, pSAA = nullptr;
+        delete pDAC, pDAC = nullptr;
 
-        delete pSambus, pSambus = NULL;
-        delete pDallas, pDallas = NULL;
-        delete pMouse, pMouse = NULL;
+        delete pSambus, pSambus = nullptr;
+        delete pDallas, pDallas = nullptr;
+        delete pMouse, pMouse = nullptr;
 
-        delete pPrinterFile, pPrinterFile = NULL;
-        delete pMonoDac, pMonoDac = NULL;
-        delete pStereoDac, pStereoDac = NULL;
+        delete pPrinterFile, pPrinterFile = nullptr;
+        delete pMonoDac, pMonoDac = nullptr;
+        delete pStereoDac, pStereoDac = nullptr;
 
-        delete pFloppy1, pFloppy1 = NULL;
-        delete pFloppy2, pFloppy2 = NULL;
-        delete pBootDrive, pBootDrive = NULL;
+        delete pFloppy1, pFloppy1 = nullptr;
+        delete pFloppy2, pFloppy2 = nullptr;
+        delete pBootDrive, pBootDrive = nullptr;
 
-        delete pAtom, pAtom = NULL;
-        delete pAtomLite, pAtomLite = NULL;
-        delete pSDIDE, pSDIDE = NULL;
+        delete pAtom, pAtom = nullptr;
+        delete pAtomLite, pAtomLite = nullptr;
+        delete pSDIDE, pSDIDE = nullptr;
     }
 }
 
@@ -290,14 +293,14 @@ static inline void UpdatePaging ()
 }
 
 
-void IO::OutLmpr(BYTE val)
+void OutLmpr(BYTE val)
 {
     // Update LMPR and paging
     lmpr = val;
     UpdatePaging();
 }
 
-void IO::OutHmpr (BYTE bVal_)
+void OutHmpr (BYTE bVal_)
 {
     // Have the mode3 BCD4/8 bits changed?
     if ((hmpr ^ bVal_) & HMPR_MD3COL_MASK)
@@ -315,7 +318,7 @@ void IO::OutHmpr (BYTE bVal_)
     UpdatePaging();
 }
 
-void IO::OutVmpr (BYTE bVal_)
+void OutVmpr (BYTE bVal_)
 {
     // The ASIC changes mode before page, so consider an on-screen artifact from the mode change
     Frame::ChangeMode(bVal_);
@@ -330,20 +333,20 @@ void IO::OutVmpr (BYTE bVal_)
     vmpr_page2 = VMPR_MODE_3_OR_4 ? ((vmpr_page1+1) & VMPR_PAGE_MASK) : 0xff;
 }
 
-void IO::OutLepr (BYTE bVal_)
+void OutLepr (BYTE bVal_)
 {
     lepr = bVal_;
     UpdatePaging();
 }
 
-void IO::OutHepr (BYTE bVal_)
+void OutHepr (BYTE bVal_)
 {
     hepr = bVal_;
     UpdatePaging();
 }
 
 
-void IO::OutClut (WORD wPort_, BYTE bVal_)
+void OutClut (WORD wPort_, BYTE bVal_)
 {
     wPort_ &= (N_CLUT_REGS-1);          // 16 clut registers, so only the bottom 4 bits are significant
     bVal_ &= (N_PALETTE_COLOURS-1);     // 128 colours, so only the bottom 7 bits are significant
@@ -361,7 +364,7 @@ void IO::OutClut (WORD wPort_, BYTE bVal_)
 }
 
 
-BYTE IO::In (WORD wPort_)
+BYTE In (WORD wPort_)
 {
     BYTE bPortLow = (wPortRead = wPort_) & 0xff, bPortHigh = (wPort_ >> 8);
 
@@ -608,7 +611,7 @@ BYTE IO::In (WORD wPort_)
 
 
 // The actual port input and output routines
-void IO::Out (WORD wPort_, BYTE bVal_)
+void Out (WORD wPort_, BYTE bVal_)
 {
     BYTE bPortLow = (wPortWrite = wPort_) & 0xff, bPortHigh = (wPort_ >> 8);
     bPortOutVal = bVal_;
@@ -908,7 +911,7 @@ void IO::Out (WORD wPort_, BYTE bVal_)
     }
 }
 
-void IO::FrameUpdate ()
+void FrameUpdate ()
 {
     pFloppy1->FrameEnd();
     pFloppy2->FrameEnd();
@@ -922,7 +925,7 @@ void IO::FrameUpdate ()
         Sound::FrameUpdate();
 }
 
-void IO::UpdateInput()
+void UpdateInput()
 {
     // To avoid accidents, purge keyboard input during accelerated disk access
     if (GetOption(turbodisk) && (pFloppy1->IsActive() || pFloppy2->IsActive()))
@@ -932,7 +935,7 @@ void IO::UpdateInput()
     memcpy(keyports, keybuffer, sizeof(keyports));
 }
 
-const COLOUR* IO::GetPalette ()
+const COLOUR* GetPalette ()
 {
     static COLOUR asPalette[N_PALETTE_COLOURS];
 
@@ -965,7 +968,7 @@ const COLOUR* IO::GetPalette ()
 }
 
 // Check if we're at the striped SAM startup screen
-bool IO::IsAtStartupScreen (bool fExit_)
+bool IsAtStartupScreen (bool fExit_)
 {
     // Search the top 10 stack entries
     for (int i = 0 ; i < 20 ; i += 2)
@@ -985,7 +988,7 @@ bool IO::IsAtStartupScreen (bool fExit_)
     return false;
 }
 
-void IO::AutoLoad (int nType_, bool fOnlyAtStartup_/*=true*/)
+void AutoLoad (int nType_, bool fOnlyAtStartup_/*=true*/)
 {
     // Ignore if auto-load is disabled, or we need to be at the startup screen but we're not
     if (!GetOption(autoload) || (fOnlyAtStartup_ && !IsAtStartupScreen()))
@@ -1000,14 +1003,14 @@ void IO::AutoLoad (int nType_, bool fOnlyAtStartup_/*=true*/)
         Keyin::String("\xc7", false);
 }
 
-void IO::WakeAsic ()
+void WakeAsic ()
 {
     // No longer in ASIC startup phase
     fASICStartup = false;
 }
 
 
-bool IO::EiHook ()
+bool EiHook ()
 {
     // If we're leaving the ROM interrupt handler, inject any auto-typing input
     if (PC == 0x005a && GetSectionPage(SECTION_A) == ROM0)
@@ -1019,7 +1022,7 @@ bool IO::EiHook ()
     return false;
 }
 
-bool IO::Rst8Hook ()
+bool Rst8Hook ()
 {
     // Return for normal processing if we're not executing ROM code
     if ((PC <  0x4000 && GetSectionPage(SECTION_A) != ROM0) ||
@@ -1028,7 +1031,7 @@ bool IO::Rst8Hook ()
 
     // If a drive object exists, clean up after our boot attempt, whether or not it worked
     if (pBootDrive)
-        delete pBootDrive, pBootDrive = NULL;
+        delete pBootDrive, pBootDrive = nullptr;
 
     // Read the error code after the RST 8 opcode
     BYTE bErrCode = read_byte(PC);
@@ -1084,7 +1087,7 @@ bool IO::Rst8Hook ()
     return false;
 }
 
-bool IO::Rst48Hook ()
+bool Rst48Hook ()
 {
     // Are we at READKEY in ROM0?
     if (PC == 0x1cb2 && GetSectionPage(SECTION_A) == ROM0)
@@ -1097,3 +1100,5 @@ bool IO::Rst48Hook ()
     // Continue with RST
     return false;
 }
+
+} // namespace IO

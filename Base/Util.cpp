@@ -36,12 +36,13 @@
 #include "OSD.h"
 #include "UI.h"
 
-
 static const int TRACE_BUFFER_SIZE = 2048;
 static char* s_pszTrace;
 
+namespace Util
+{
 
-bool Util::Init ()
+bool Init ()
 {
     if (!(s_pszTrace = new char[TRACE_BUFFER_SIZE]))
     {
@@ -52,13 +53,13 @@ bool Util::Init ()
     return true;
 }
 
-void Util::Exit ()
+void Exit ()
 {
-    if (s_pszTrace) { delete[] s_pszTrace; s_pszTrace = NULL; }
+    if (s_pszTrace) { delete[] s_pszTrace; s_pszTrace = nullptr; }
 }
 
 
-char *Util::GetUniqueFile (const char* pcszExt_, char* psz_, int cb_)
+char *GetUniqueFile (const char* pcszExt_, char* psz_, int cb_)
 {
     char szPath[MAX_PATH];
     struct stat st;
@@ -77,6 +78,9 @@ char *Util::GetUniqueFile (const char* pcszExt_, char* psz_, int cb_)
     return psz_ + strlen(pcszPath);
 }
 
+} // namespace Util
+
+//////////////////////////////////////////////////////////////////////////////
 
 // Report an info, warning, error or fatal message.  Exit if a fatal message has been reported
 void Message (eMsgType eType_, const char* pcszFormat_, ...)
@@ -115,7 +119,7 @@ const char *AbbreviateSize (uint64_t ullSize_)
     static const char *pcszUnits = "KMGTPE";
 
     // Work up from Kilobytes
-    char nUnits = 0;
+    auto nUnits = 0;
     ullSize_ /= 1000;
 
     // Loop while there are more than 1000 and we have another unit to move up to
@@ -134,7 +138,7 @@ const char *AbbreviateSize (uint64_t ullSize_)
     }
 
     static char sz[32] = {};
-    snprintf(sz, sizeof(sz)-1, "%llu%cB", ullSize_, pcszUnits[nUnits]);
+    snprintf(sz, sizeof(sz)-1, "%u%cB", static_cast<UINT>(ullSize_), pcszUnits[nUnits]);
     return sz;
 }
 
@@ -244,11 +248,11 @@ DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, BYTE a_, DWORD dwRMask_, DWORD dwGM
 
 #ifndef _DEBUG
 
-void TraceOutputString (const char *pcszFormat_, ...)
+void TraceOutputString (const char * /*pcszFormat_*/, ...)
 {
 }
 
-void TraceOutputString (const BYTE *pcb, UINT uLen/*=0*/)
+void TraceOutputString (const BYTE * /*pcb*/, UINT /*uLen=0*/)
 {
 }
 

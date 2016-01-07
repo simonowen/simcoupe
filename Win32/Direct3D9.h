@@ -36,7 +36,6 @@
 class Direct3D9Video : public VideoBase
 {
     public:
-        Direct3D9Video ();
         ~Direct3D9Video ();
 
     public:
@@ -59,16 +58,16 @@ class Direct3D9Video : public VideoBase
         bool DrawChanges (CScreen* pScreen_, bool *pafDirty_);
 
     private:
-        LPDIRECT3D9 m_pd3d;
-        LPDIRECT3DDEVICE9 m_pd3dDevice;
-        LPDIRECT3DTEXTURE9 m_pTexture;
-        LPDIRECT3DVERTEXBUFFER9 m_pVertexBuffer;
-		LPDIRECT3DVERTEXDECLARATION9 m_pVertexDecl;
-		LPDIRECT3DVERTEXSHADER9 m_pVertexShader;
-		LPDIRECT3DPIXELSHADER9 m_pPixelShader;
-        D3DPRESENT_PARAMETERS m_d3dpp;
+        LPDIRECT3D9 m_pd3d = nullptr;
+        LPDIRECT3DDEVICE9 m_pd3dDevice = nullptr;
+        LPDIRECT3DTEXTURE9 m_pTexture = nullptr;
+        LPDIRECT3DVERTEXBUFFER9 m_pVertexBuffer = nullptr;
+		LPDIRECT3DVERTEXDECLARATION9 m_pVertexDecl = nullptr;
+		LPDIRECT3DVERTEXSHADER9 m_pVertexShader = nullptr;
+		LPDIRECT3DPIXELSHADER9 m_pPixelShader = nullptr;
+        D3DPRESENT_PARAMETERS m_d3dpp {};
 
-        RECT m_rTarget;
+        RECT m_rTarget {};
 };
 
 #endif // DIRECT3D9_H

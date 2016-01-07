@@ -25,24 +25,26 @@
 
 #define BLUE_ALPHA_CLOCK_TIME   (REAL_TSTATES_PER_SECOND/pBlueAlpha->GetClockFreq()/2)    // half period
 
-class CBlueAlphaDevice : public CIoDevice
+class CBlueAlphaDevice final : public CIoDevice
 {
     public:
         CBlueAlphaDevice ();
 
     public:
-        void Reset ();
+        void Reset () override;
 
-        BYTE In (WORD wPort_);
-        void Out (WORD wPort_, BYTE bVal_);
+        BYTE In (WORD wPort_) override;
+        void Out (WORD wPort_, BYTE bVal_) override;
 
     public:
         int GetClockFreq ();
         bool Clock ();
 
     protected:
-        BYTE m_bControl;
-        BYTE m_bPortA, m_bPortB, m_bPortC;
+        BYTE m_bControl = 0;
+        BYTE m_bPortA = 0;
+        BYTE m_bPortB = 0;
+        BYTE m_bPortC = 0;
 };
 
 extern CBlueAlphaDevice *pBlueAlpha;

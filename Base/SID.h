@@ -34,24 +34,24 @@
 #define SID_CLOCK_PAL   985248
 #endif
 
-class CSID : public CSoundDevice
+class CSID final : public CSoundDevice
 {
     public:
         CSID ();
         ~CSID ();
 
     public:
-        void Reset ();
+        void Reset () override;
         void Update (bool fFrameEnd_);
-        void FrameEnd ();
+        void FrameEnd () override;
 
-        void Out (WORD wPort_, BYTE bVal_);
+        void Out (WORD wPort_, BYTE bVal_) override;
 
     protected:
 #ifdef USE_RESID
         RESID_NAMESPACE::SID *m_pSID;
 #endif
-        int m_nChipType;
+        int m_nChipType = 0;
 };
 
 extern CSID *pSID;

@@ -39,9 +39,7 @@ void *thread_proc (void *pv_)
 
 
 CFloppyStream::CFloppyStream (const char* pcszStream_, bool fReadOnly_/*=false*/)
-    : CStream(pcszStream_, fReadOnly_),
-    m_hFloppy(-1), m_uSectors(0), m_hThread(0), m_fThreadDone(false),
-    m_bCommand(0), m_bStatus(0), m_pTrack(NULL), m_uSectorIndex(0)
+    : CStream(pcszStream_, fReadOnly_)
 {
 }
 
@@ -130,7 +128,7 @@ BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSectorIn
 
     // Create a new thread to perform it
     m_fThreadDone = false;
-    return pthread_create(&m_hThread, NULL, thread_proc, (void*)this) ? LOST_DATA : BUSY;
+    return pthread_create(&m_hThread, nullptr, thread_proc, (void*)this) ? LOST_DATA : BUSY;
 }
 
 bool CFloppyStream::IsBusy (BYTE* pbStatus_, bool fWait_)
@@ -429,9 +427,9 @@ static bool ReadCustomTrack (int hDevice_, PTRACK pTrack_)
 
     // Copy from the scanned headers to the track sector headers
     // Use two passes in case we're not quick enough to do it in one
-    for (int i = 0, step = 2 ; i < step ; i++)
+    for (int ii = 0, step = 2 ; ii < step ; ii++)
     {
-        for (int j = i ; j < pt->sectors ; j += step)
+        for (int j = ii ; j < pt->sectors ; j += step)
         {
             ps[j].cyl = rc[j+1].reply[3];
             ps[j].head = rc[j+1].reply[4];
@@ -495,8 +493,6 @@ void *CFloppyStream::ThreadProc ()
 
 CFloppyStream::CFloppyStream (const char* pcszStream_, bool fReadOnly_/*=false*/)
     : CStream(pcszStream_, fReadOnly_),
-    m_hFloppy(-1), m_uSectors(0), m_hThread(0),
-    m_bCommand(0), m_bStatus(0), m_pTrack(NULL), m_uSectorIndex(0)
 {
 }
 

@@ -32,7 +32,7 @@
 #include "Parallel.h"
 
 
-bool OSD::Init (bool fFirstInit_/*=false*/)
+bool OSD::Init (bool /*fFirstInit_=false*/)
 {
 #ifdef _WINDOWS
     // We'll do our own error handling, so suppress any windows error dialogs
@@ -42,7 +42,7 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
     return true;
 }
 
-void OSD::Exit (bool fReInit_/*=false*/)
+void OSD::Exit (bool /*fReInit_=false*/)
 {
     SDL_Quit();
 }
@@ -63,7 +63,7 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
 
     // Set an appropriate base location
 #if defined(_WINDOWS)
-    GetModuleFileName(NULL, szPath, MAX_PATH);
+    GetModuleFileName(nullptr, szPath, MAX_PATH);
     strrchr(szPath, '\\')[1] = '\0';
 #elif defined(__AMIGAOS4__)
     // Amiga uses the magic PROGDIR device for EXE location
@@ -219,7 +219,7 @@ CPrinterDevice::CPrinterDevice () { }
 CPrinterDevice::~CPrinterDevice () { }
 bool CPrinterDevice::Open () { return false; }
 void CPrinterDevice::Close () { }
-void CPrinterDevice::Write (BYTE *pb_, size_t uLen_) { }
+void CPrinterDevice::Write (BYTE * /*pb_*/, size_t /*uLen_*/) { }
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -243,15 +243,15 @@ DIR* opendir (const char* pcszDir_)
     // Find the first file, saving the details for later
     HANDLE h = FindFirstFile(szPath, &s_fd);
 
-    // Return the handle if successful, otherwise NULL
-    return (h == INVALID_HANDLE_VALUE) ? NULL : reinterpret_cast<DIR*>(h);
+    // Return the handle if successful, otherwise nullptr
+    return (h == INVALID_HANDLE_VALUE) ? nullptr : reinterpret_cast<DIR*>(h);
 }
 
 struct dirent* readdir (DIR* hDir_)
 {
     // All done?
     if (!s_fd.cFileName[0])
-        return NULL;
+        return nullptr;
 
     // Copy the filename and set the length
     s_dir.d_reclen = lstrlen(lstrcpyn(s_dir.d_name, s_fd.cFileName, sizeof s_dir.d_name));

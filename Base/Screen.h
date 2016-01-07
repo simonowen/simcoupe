@@ -23,13 +23,13 @@
 
 #include "Font.h"
 
-const int CHAR_HEIGHT = sGUIFont.wHeight;   // Character cell dimensions
-const int CHAR_SPACING = 1;                 // 1 pixel between each character
-const int LINE_SPACING = 4;                 // 4 pixels between each row
-const char CHAR_UNKNOWN = '_';              // Character to display when not available in charset
+const int CHAR_HEIGHT = 11;     // Character cell dimensions
+const int CHAR_SPACING = 1;     // 1 pixel between each character
+const int LINE_SPACING = 4;     // 4 pixels between each row
+const char CHAR_UNKNOWN = '_';  // Character to display when not available in charset
 
 // Colours, shared with the SAM palette
-enum
+enum : uint8_t
 {
     BLUE_1=1, BLUE_2=9, BLUE_3=16, BLUE_4=24, BLUE_5=17, BLUE_6=25, BLUE_7=113, BLUE_8=121,
     RED_1=2, RED_2=10, RED_3=32, RED_4=40, RED_5=34, RED_6=42, RED_7=114, RED_8=122,
@@ -43,17 +43,19 @@ enum
 };
 
 
-class CScreen
+class CScreen final
 {
     public:
         CScreen (int nWidth_, int nHeight_);
+        CScreen (const CScreen &) = delete;
+        void operator= (const CScreen &) = delete;
         ~CScreen ();
 
     public:
         BYTE* GetLine (int nLine_) { return m_ppbLines[nLine_]; }
 
         int GetPitch () const { return m_nPitch; }
-        int GetWidth (int nLine_) const { return m_nPitch; }
+        int GetWidth () const { return m_nPitch; }
         int GetHeight () const { return m_nHeight; }
 
     public:
@@ -71,14 +73,14 @@ class CScreen
         int DrawString (int nX_, int nY_, const char* pcsz_, BYTE bInk_=WHITE);
         int Printf (int nX_, int nY_, const char* pcszFormat_, ...);
 
-        static int GetStringWidth (const char* pcsz_, size_t nMaxChars_=-1, const GUIFONT *pFont_=NULL);
+        static int GetStringWidth (const char* pcsz_, size_t nMaxChars_=-1, const GUIFONT *pFont_=nullptr);
         static void SetFont (const GUIFONT* pFont_);
 
     protected:
-        int m_nPitch, m_nHeight;    // Pitch and height of the screen
+        int m_nPitch = 0, m_nHeight = 0;    // Pitch and height of the screen
 
-        BYTE *m_pbFrame;            // Screen data block
-        BYTE **m_ppbLines;          // Look-up table from line number to pointer to start of the line
+        BYTE *m_pbFrame = nullptr;          // Screen data block
+        BYTE **m_ppbLines = nullptr;        // Look-up table from line number to pointer to start of the line
 };
 
 #endif  // SCREEN_H

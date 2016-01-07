@@ -27,21 +27,18 @@
 class CPrintBuffer : public CIoDevice
 {
     public:
-        CPrintBuffer () : m_fOpen(false), m_bControl(0), m_bData(0), m_bStatus(0), m_uBuffer(0), m_uFlushDelay(0) { }
-
-    public:
-        BYTE In (WORD wPort_);
-        void Out (WORD wPort_, BYTE bVal_);
-        void FrameEnd ();
+        BYTE In (WORD wPort_) override;
+        void Out (WORD wPort_, BYTE bVal_) override;
+        void FrameEnd () override;
 
         bool IsFlushable() const { return !!m_uBuffer; }
         void Flush ();
 
     protected:
-        bool m_fOpen;
-        BYTE m_bControl, m_bData, m_bStatus;
+        bool m_fOpen = false;
+        BYTE m_bControl = 0, m_bData = 0, m_bStatus = 0;
 
-        UINT m_uBuffer, m_uFlushDelay;
+        UINT m_uBuffer = 0, m_uFlushDelay = 0;
         BYTE m_abBuffer[1024];
 
     protected:
@@ -53,20 +50,22 @@ class CPrintBuffer : public CIoDevice
 };
 
 
-class CPrinterFile : public CPrintBuffer
+class CPrinterFile final : public CPrintBuffer
 {
     public:
-        CPrinterFile () : m_hFile(NULL), m_pszFile(NULL) { }
+        CPrinterFile () = default;
+        CPrinterFile (const CPrinterFile &) = delete;
+        void operator= (const CPrinterFile &) = delete;
         ~CPrinterFile () { Close(); }
 
     public:
-        bool Open ();
-        void Close ();
-        void Write (BYTE *pb_, size_t uLen_);
+        bool Open () override;
+        void Close () override;
+        void Write (BYTE *pb_, size_t uLen_) override;
 
     protected:
-        FILE *m_hFile;
-        char *m_pszFile;
+        FILE *m_hFile = nullptr;
+        char *m_pszFile = nullptr;
         char m_szPath[MAX_PATH];
 };
 
@@ -77,9 +76,9 @@ class CPrinterDevice : public CPrintBuffer
         ~CPrinterDevice ();
 
     public:
-        bool Open ();
-        void Close ();
-        void Write (BYTE *pb_, size_t uLen_);
+        bool Open () override;
+        void Close () override;
+        void Write (BYTE *pb_, size_t uLen_) override;
 
     protected:
 #ifdef WIN32
@@ -91,7 +90,7 @@ class CPrinterDevice : public CPrintBuffer
 class CMonoDACDevice : public CIoDevice
 {
     public:
-        void Out (WORD wPort_, BYTE bVal_);
+        void Out (WORD wPort_, BYTE bVal_) override;
 };
 
 
@@ -101,7 +100,7 @@ class CStereoDACDevice : public CIoDevice
         CStereoDACDevice () : m_bControl(0x00), m_bData(0x80) { }
 
     public:
-        void Out (WORD wPort_, BYTE bVal_);
+        void Out (WORD wPort_, BYTE bVal_) override;
 
     protected:
         BYTE m_bControl, m_bData;

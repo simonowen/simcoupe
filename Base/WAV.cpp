@@ -25,6 +25,9 @@
 #include "Options.h"
 #include "Sound.h"
 
+namespace WAV
+{
+
 static char szPath[MAX_PATH], *pszFile;
 static FILE *f;
 static int nFrames, nSilent = 0;
@@ -83,7 +86,7 @@ static void WriteWaveValue (long lVal_, BYTE *pb_, int nSize_)
 
 //////////////////////////////////////////////////////////////////////////////
 
-bool WAV::Start (bool fSegment_)
+bool Start (bool fSegment_)
 {
     // Fail if we're already recording
     if (f)
@@ -113,7 +116,7 @@ bool WAV::Start (bool fSegment_)
     return true;
 }
 
-void WAV::Stop ()
+void Stop ()
 {
     // Ignore if we're not recording
     if (!f)
@@ -133,7 +136,7 @@ void WAV::Stop ()
 
     // Close the recording
     fclose(f);
-    f = NULL;
+    f = nullptr;
 
     // Report what happened
     if (nFrames)
@@ -145,7 +148,7 @@ void WAV::Stop ()
     }
 }
 
-void WAV::Toggle (bool fSegment_)
+void Toggle (bool fSegment_)
 {
     if (!f)
         Start(fSegment_);
@@ -153,13 +156,13 @@ void WAV::Toggle (bool fSegment_)
         Stop();
 }
 
-bool WAV::IsRecording ()
+bool IsRecording ()
 {
-    return f != NULL;
+    return f != nullptr;
 }
 
 
-void WAV::AddFrame (const BYTE* pb_, int nLen_)
+void AddFrame (const BYTE* pb_, int nLen_)
 {
     // Fail if we're not recording
     if (!f)
@@ -191,3 +194,5 @@ void WAV::AddFrame (const BYTE* pb_, int nLen_)
             Stop();
     }
 }
+
+} // namespace WAV

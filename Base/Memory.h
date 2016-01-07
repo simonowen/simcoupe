@@ -24,17 +24,16 @@
 
 #include "Frame.h"
 
-class Memory
+namespace Memory
 {
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+    bool Init (bool fFirstInit_=false);
+    void Exit (bool fReInit_=false);
 
-    public:
-        static void UpdateConfig ();
-        static void UpdateRom ();
-};
+    void UpdateConfig ();
+    void UpdateRom ();
 
+    const char *PageDesc (int nPage_, bool fCompact_=false);
+}
 
 enum { INTMEM, EXTMEM=N_PAGES_MAIN, ROM0=EXTMEM+(N_PAGES_1MB*MAX_EXTERNAL_MB), ROM1, SCRATCH_READ, SCRATCH_WRITE, TOTAL_PAGES };
 enum eSection { SECTION_A, SECTION_B, SECTION_C, SECTION_D };
@@ -72,8 +71,6 @@ inline bool ReadOnlyAddr (WORD wAddr_) { return apbSectionWritePtrs[AddrSection(
 
 inline int PtrPage (const void *pv_) { return int((reinterpret_cast<const BYTE*>(pv_)-pMemory)/MEM_PAGE_SIZE); }
 inline int PtrOffset (const void *pv_) { return int((reinterpret_cast<const BYTE*>(pv_)-pMemory) & (MEM_PAGE_SIZE-1)); }
-
-const char *PageDesc (int nPage_, bool fCompact_=false);
 
 void write_to_screen_vmpr0 (WORD wAddr_);
 void write_to_screen_vmpr1 (WORD wAddr_);

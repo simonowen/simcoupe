@@ -30,8 +30,8 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CDrive::CDrive (CDisk* pDisk_/*=NULL*/)
-    : m_pDisk(pDisk_), m_nState(0)
+CDrive::CDrive (CDisk* pDisk_/*=nullptr*/)
+    : m_pDisk(pDisk_)
 {
     Reset ();
 
@@ -52,7 +52,7 @@ void CDrive::Reset ()
     m_sRegs.fDir = false;
 
     m_uBuffer = 0;
-    m_pbBuffer = NULL;
+    m_pbBuffer = nullptr;
     m_bDataStatus = 0;
     m_bSectorIndex = 0;
     m_bSide = 0;
@@ -81,7 +81,7 @@ void CDrive::Eject ()
     if (m_pDisk && m_pDisk->IsModified())
         m_pDisk->Save();
 
-    delete m_pDisk, m_pDisk = NULL;
+    delete m_pDisk, m_pDisk = nullptr;
 }
 
 void CDrive::FrameEnd ()
@@ -203,10 +203,10 @@ void CDrive::ExecuteNext ()
         {
             // Read an ID field into our general buffer
             IDFIELD* pId = reinterpret_cast<IDFIELD*>(m_pbBuffer = m_abBuffer);
-            BYTE bStatus = ReadAddress(pId);
+            BYTE bReadStatus = ReadAddress(pId);
 
             // If successful set up the number of bytes available to read
-            if (!(bStatus & TYPE23_ERROR_MASK))
+            if (!(bReadStatus & TYPE23_ERROR_MASK))
             {
                 m_sRegs.bSector = pId->bTrack;
 
@@ -226,7 +226,7 @@ void CDrive::ExecuteNext ()
 
         case READ_TRACK:
         {
-            // Prepare a semi-convincig raw track
+            // Prepare a semi-convincing raw track
             ReadTrack(m_pbBuffer = m_abBuffer, m_uBuffer = sizeof(m_abBuffer));
             ModifyStatus(DRQ, 0);
             break;

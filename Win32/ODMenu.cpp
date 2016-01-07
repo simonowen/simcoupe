@@ -44,16 +44,14 @@ TOOLBARDATA, *PTOOLBARDATA;
 
 
 COwnerDrawnMenu::COwnerDrawnMenu (HINSTANCE hinst_, int nId_, MENUICON* pIconMap_)
-    : m_hil(NULL), m_pIconMap(pIconMap_), m_hfont(NULL), m_hfontBold(NULL), m_nConverted(0)
+    : m_pIconMap(pIconMap_)
 {
-    m_zButton.cx = m_zButton.cy = m_zBorder.cx = m_zBorder.cy = 0;
-
 #ifndef NO_IMAGES
     HRSRC hrsrc;
     HGLOBAL hgres;
     PTOOLBARDATA ptbd;
 
-    if (!hinst_) hinst_ = GetModuleHandle(NULL);
+    if (!hinst_) hinst_ = GetModuleHandle(nullptr);
 
     if ((hrsrc = FindResource(hinst_, MAKEINTRESOURCE(nId_), RT_TOOLBAR)) && (hgres = LoadResource(hinst_, hrsrc)) &&
         (ptbd = reinterpret_cast<PTOOLBARDATA>(LockResource(hgres))) && ptbd->wVersion == 1)
@@ -61,7 +59,7 @@ COwnerDrawnMenu::COwnerDrawnMenu (HINSTANCE hinst_, int nId_, MENUICON* pIconMap
         m_zButton.cx = ptbd->wWidth;
         m_zButton.cy = ptbd->wHeight;
 
-        m_hil = nId_ ? ImageList_LoadBitmap(hinst_, MAKEINTRESOURCE(nId_), m_zButton.cx, 10, RGB(255,0,255)) : NULL;
+        m_hil = nId_ ? ImageList_LoadBitmap(hinst_, MAKEINTRESOURCE(nId_), m_zButton.cx, 10, RGB(255,0,255)) : nullptr;
         UnlockResource(hgres);
     }
 #endif
@@ -76,7 +74,7 @@ void COwnerDrawnMenu::Cleanup ()
 {
     if (m_hfont) DeleteObject(m_hfont);
     if (m_hfontBold) DeleteObject(m_hfontBold);
-    m_hfont = m_hfontBold = NULL;
+    m_hfont = m_hfontBold = nullptr;
 }
 
 
@@ -138,11 +136,11 @@ bool COwnerDrawnMenu::OnMeasureItem (LPMEASUREITEMSTRUCT lpms)
         }
 
         RECT r = { 0,0,0,0 };
-        HDC hdc = GetDC(NULL);
+        HDC hdc = GetDC(nullptr);
         HGDIOBJ hfontOld = SelectObject(hdc, pmi->fDefault ? m_hfontBold : m_hfont);
         DrawText(hdc, pmi->szText, -1, &r, DT_SINGLELINE|DT_EXPANDTABS|DT_VCENTER|DT_CALCRECT);
         SelectObject(hdc, hfontOld);
-        ReleaseDC(NULL, hdc);
+        ReleaseDC(nullptr, hdc);
 
         // Standard menu height, or text height if larger
         m_zBorder.cx = m_zBorder.cy = lpms->itemHeight = std::max(static_cast<LONG>(GetSystemMetrics(SM_CYMENU)), m_zButton.cy);
@@ -237,12 +235,12 @@ void COwnerDrawnMenu::DrawMenuText (HDC hdc_, LPRECT lprc, LPCSTR pcsz_, bool fD
         RECT r = { };
         DrawText(hdc_, psz, -1, &r, DT_SINGLELINE|DT_CALCRECT);
 
-        DrawState(hdc_, NULL, NULL, (LPARAM)psz, lstrlen(psz),
+        DrawState(hdc_, nullptr, nullptr, (LPARAM)psz, lstrlen(psz),
             lprc->right - r.right, lprc->top, lprc->right, lprc->bottom,
             DST_PREFIXTEXT | (fDisabled_ ? DSS_DISABLED : 0));
     }
 
-    DrawState(hdc_, NULL, NULL, (LPARAM)sz, lstrlen(sz),
+    DrawState(hdc_, nullptr, nullptr, (LPARAM)sz, lstrlen(sz),
         lprc->left, lprc->top, lprc->right, lprc->bottom,
         DST_PREFIXTEXT | (fDisabled_ ? DSS_DISABLED : 0));
 }
@@ -322,7 +320,7 @@ LRESULT COwnerDrawnMenu::OnMenuChar (UINT nChar_, UINT nFlags_, HMENU hmenu_)
         CMenuItem* pmi = CMenuItem::GetItem(info.dwItemData);
         if ((info.fType & MFT_OWNERDRAW) && pmi->IsOurs())
         {
-            char* pszAmp = NULL;
+            char* pszAmp = nullptr;
             for (char* psz = pmi->szText ; *psz ; psz = CharNext(psz))
                 if (*psz == '&')
                     pszAmp = psz;

@@ -39,7 +39,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 CStream::CStream (const char* pcszPath_, bool fReadOnly_/*=false*/)
-    : m_nMode(modeClosed), m_pszFile(NULL), m_fReadOnly(fReadOnly_), m_uSize(0)
+    : m_fReadOnly(fReadOnly_)
 {
     // Keep a copy of the stream source as we'll need it for saving
     m_pszPath = strdup(pcszPath_);
@@ -57,7 +57,7 @@ CStream::~CStream ()
 {
     // Reject empty strings immediately
     if (!pcszPath_ || !*pcszPath_)
-        return NULL;
+        return nullptr;
 
     // Give the OS-specific floppy driver first go at the path
     if (CFloppyStream::IsRecognised(pcszPath_))
@@ -80,7 +80,7 @@ CStream::~CStream ()
             unz_file_info sInfo;
 
             // Get details of the current file
-            unzGetCurrentFileInfo(hfZip, &sInfo, NULL, 0, NULL, 0, NULL, 0);
+            unzGetCurrentFileInfo(hfZip, &sInfo, nullptr, 0, nullptr, 0, nullptr, 0);
 
             // Continue looking if it's too small to be considered [strictly this shouldn't really be done here!]
             if (sInfo.uncompressed_size < 32768)
@@ -129,7 +129,7 @@ CStream::~CStream ()
     }
 
     // Couldn't handle what we were given :-/
-    return NULL;
+    return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -156,7 +156,7 @@ void CFileStream::Close ()
     if (m_hFile)
     {
         fclose(m_hFile);
-        m_hFile = NULL;
+        m_hFile = nullptr;
         m_nMode = modeClosed;
     }
 }
@@ -203,7 +203,7 @@ size_t CFileStream::Write (void* pvBuffer_, size_t uLen_)
 ////////////////////////////////////////////////////////////////////////////////
 
 CMemStream::CMemStream (void* pv_, size_t uLen_, const char* pcszPath_)
-    : CStream(pcszPath_, true), m_uPos(0)
+    : CStream(pcszPath_, true)
 {
     m_nMode = modeReading;
     m_uSize = uLen_;
@@ -236,7 +236,7 @@ size_t CMemStream::Read (void* pvBuffer_, size_t uLen_)
     return uRead;
 }
 
-size_t CMemStream::Write (void* pvBuffer_, size_t uLen_)
+size_t CMemStream::Write (void* /*pvBuffer_*/, size_t /*uLen_*/)
 {
     m_nMode = modeWriting;
     return 0;
@@ -266,7 +266,7 @@ void CZLibStream::Close ()
     if (m_hFile)
     {
         gzclose(m_hFile);
-        m_hFile = NULL;
+        m_hFile = nullptr;
         m_nMode = modeClosed;
     }
 }
@@ -338,7 +338,7 @@ CZipStream::CZipStream (unzFile hFile_, const char* pcszPath_, bool fReadOnly_/*
     char szFile[MAX_PATH+6];
 
     // Get details of the current file
-    if (unzGetCurrentFileInfo(hFile_, &sInfo, szFile, MAX_PATH, NULL, 0, NULL, 0) == UNZ_OK)
+    if (unzGetCurrentFileInfo(hFile_, &sInfo, szFile, MAX_PATH, nullptr, 0, nullptr, 0) == UNZ_OK)
     {
         m_uSize = sInfo.uncompressed_size;
         strcat(szFile, " (zip)");
@@ -352,7 +352,7 @@ void CZipStream::Close ()
     {
         unzCloseCurrentFile(m_hFile);
         unzClose(m_hFile);
-        m_hFile = NULL;
+        m_hFile = nullptr;
         m_nMode = modeClosed;
     }
 }
@@ -371,7 +371,7 @@ size_t CZipStream::Read (void* pvBuffer_, size_t uLen_)
     return unzReadCurrentFile(m_hFile, pvBuffer_, static_cast<unsigned>(uLen_));
 }
 
-size_t CZipStream::Write (void* pvBuffer_, size_t uLen_)
+size_t CZipStream::Write (void* /*pvBuffer_*/, size_t /*uLen_*/)
 {
     // Currently there's no support for zip writing (yet)
     return 0;

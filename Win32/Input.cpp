@@ -62,10 +62,10 @@ bool Input::Init (bool fFirstInit_/*=false*/)
     TRACE("Input::Init(%d)\n", fFirstInit_);
 
     // If we can find DirectInput 5.0 we can have joystick support, otherwise fall back on 3.0 support for NT4
-    if (fRet = SUCCEEDED(pfnDirectInputCreate(__hinstance, DIRECTINPUT_VERSION, &pdi, NULL)))
+    if (fRet = SUCCEEDED(pfnDirectInputCreate(__hinstance, DIRECTINPUT_VERSION, &pdi, nullptr)))
         InitJoysticks();
     else
-        fRet = SUCCEEDED(pfnDirectInputCreate(__hinstance, 0x0300, &pdi, NULL));
+        fRet = SUCCEEDED(pfnDirectInputCreate(__hinstance, 0x0300, &pdi, nullptr));
 
     if (fRet)
     {
@@ -84,10 +84,10 @@ void Input::Exit (bool fReInit_/*=false*/)
 {
     TRACE("Input::Exit(%d)\n", fReInit_);
 
-    if (pdiKeyboard) { pdiKeyboard->Unacquire(); pdiKeyboard->Release(); pdiKeyboard = NULL; }
-    if (pdidJoystick1) { pdidJoystick1->Unacquire(); pdidJoystick1->Release(); pdidJoystick1 = NULL; }
-    if (pdidJoystick2) { pdidJoystick2->Unacquire(); pdidJoystick2->Release(); pdidJoystick2 = NULL; }
-    if (pdi) { pdi->Release(); pdi = NULL; }
+    if (pdiKeyboard) { pdiKeyboard->Unacquire(); pdiKeyboard->Release(); pdiKeyboard = nullptr; }
+    if (pdidJoystick1) { pdidJoystick1->Unacquire(); pdidJoystick1->Release(); pdidJoystick1 = nullptr; }
+    if (pdidJoystick2) { pdidJoystick2->Unacquire(); pdidJoystick2->Release(); pdidJoystick2 = nullptr; }
+    if (pdi) { pdi->Release(); pdi = nullptr; }
 
     Keyboard::Exit(fReInit_);
 }
@@ -96,7 +96,7 @@ void Input::Exit (bool fReInit_/*=false*/)
 bool InitKeyboard ()
 {
     HRESULT hr;
-    if (FAILED(hr = pdi->CreateDevice(GUID_SysKeyboard, &pdiKeyboard, NULL)))
+    if (FAILED(hr = pdi->CreateDevice(GUID_SysKeyboard, &pdiKeyboard, nullptr)))
         TRACE("!!! Failed to create keyboard device (%#08lx)\n", hr);
     else if (FAILED(hr = pdiKeyboard->SetCooperativeLevel(g_hwnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND)))
         TRACE("!!! Failed to set cooperative level of keyboard device (%#08lx)\n", hr);
@@ -121,7 +121,7 @@ BOOL CALLBACK EnumJoystickProc (LPCDIDEVICEINSTANCE pdiDevice_, LPVOID lpv_)
     HRESULT hr;
 
     LPDIRECTINPUTDEVICE pdiJoystick;
-    if (FAILED(hr = pdi->CreateDevice(pdiDevice_->guidInstance, &pdiJoystick, NULL)))
+    if (FAILED(hr = pdi->CreateDevice(pdiDevice_->guidInstance, &pdiJoystick, nullptr)))
         TRACE("!!! Failed to create joystick device (%#08lx)\n", hr);
     else
     {
@@ -195,7 +195,7 @@ bool InitJoystick (LPDIRECTINPUTDEVICE2 &pJoystick_)
 
     // Clean up
     pJoystick_->Release();
-    pJoystick_ = NULL;
+    pJoystick_ = nullptr;
 
     return false;
 }
@@ -206,7 +206,7 @@ bool InitJoysticks ()
     HRESULT hr;
 
     // Enumerate the joystick devices
-    if (FAILED(hr = pdi->EnumDevices(DIDEVTYPE_JOYSTICK, EnumJoystickProc, NULL, DIEDFL_ATTACHEDONLY)))
+    if (FAILED(hr = pdi->EnumDevices(DIDEVTYPE_JOYSTICK, EnumJoystickProc, nullptr, DIEDFL_ATTACHEDONLY)))
         TRACE("!!! Failed to enumerate joystick devices (%#08lx)\n", hr);
 
     // Initialise matched joysticks
@@ -248,7 +248,7 @@ void Input::AcquireMouse (bool fAcquire_)
         ClipCursor(&r);
     }
     else
-        ClipCursor(NULL);
+        ClipCursor(nullptr);
 }
 
 
@@ -258,7 +258,7 @@ void Input::Purge ()
     if (pdiKeyboard && SUCCEEDED(pdiKeyboard->Acquire()))
     {
         DWORD dwItems = ULONG_MAX;
-        if (SUCCEEDED(pdiKeyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), NULL, &dwItems, 0)) && dwItems)
+        if (SUCCEEDED(pdiKeyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), nullptr, &dwItems, 0)) && dwItems)
             TRACE("%lu keyboard items purged\n", dwItems);
     }
 

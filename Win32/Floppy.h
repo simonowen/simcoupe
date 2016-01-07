@@ -28,22 +28,22 @@ typedef struct
 {
     int sectors;
     BYTE cyl, head;     // physical track location
-}
-TRACK, *PTRACK;
+} TRACK, *PTRACK;
 
 typedef struct
 {
     BYTE cyl, head, sector, size;
     BYTE status;
     BYTE *pbData;
-}
-SECTOR, *PSECTOR;
+} SECTOR, *PSECTOR;
 
 
-class CFloppyStream : public CStream
+class CFloppyStream final : public CStream
 {
     public:
         CFloppyStream (const char* pcszDevice_, bool fReadOnly_);
+        CFloppyStream (const CFloppyStream &) = delete;
+        void operator= (const CFloppyStream &) = delete;
         virtual ~CFloppyStream ();
 
     public:
@@ -52,28 +52,30 @@ class CFloppyStream : public CStream
         static bool IsRecognised (const char* pcszStream_);
 
     public:
-        void Close ();
+        void Close () override;
         unsigned long ThreadProc ();
 
     public:
-        bool IsOpen () const { return m_hDevice != INVALID_HANDLE_VALUE; }
+        bool IsOpen () const override { return m_hDevice != INVALID_HANDLE_VALUE; }
         bool IsBusy (BYTE* pbStatus_, bool fWait_);
 
         // The normal stream functions are not used
-        bool Rewind () { return false; }
-        size_t Read (void*, size_t) { return 0; }
-        size_t Write (void*, size_t) { return 0; }
+        bool Rewind () override { return false; }
+        size_t Read (void*, size_t) override { return 0; }
+        size_t Write (void*, size_t) override { return 0; }
 
-        BYTE StartCommand (BYTE bCommand_, PTRACK pTrack_=NULL, UINT uSectorIndex_=0);
+        BYTE StartCommand (BYTE bCommand_, PTRACK pTrack_=nullptr, UINT uSectorIndex_=0);
 
     protected:
-        HANDLE  m_hDevice, m_hThread;   // Floppy device and worker thread handles
-        UINT    m_uSectors;             // Regular sector count, or zero for auto-detect (slower)
+        HANDLE m_hDevice = INVALID_HANDLE_VALUE; // Floppy device handle
+        HANDLE m_hThread = nullptr; // Worker thread handles
+        UINT m_uSectors = 0;        // Sector count, or zero for auto-detect (slower)
 
-        BYTE    m_bCommand, m_bStatus;  // Current command and final status
+        BYTE m_bCommand = 0;        // Current command
+        BYTE m_bStatus;             // Final status
 
-        PTRACK  m_pTrack;               // Track for command
-        UINT    m_uSectorIndex;         // Zero-based sector for write command
+        PTRACK m_pTrack = nullptr;  // Track for command
+        UINT m_uSectorIndex = 0;    // Zero-based sector for write command
 };
 
 #endif  // FLOPPY_H

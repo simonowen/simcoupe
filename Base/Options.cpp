@@ -29,6 +29,9 @@
 #include "OSD.h"
 #include "Util.h"
 
+namespace Options
+{
+
 const int CFG_VERSION = 4;      // increment to force a config reset, if incompatible changes are made
 
 enum { OT_BOOL, OT_INT, OT_STRING };
@@ -45,15 +48,14 @@ typedef struct
     bool fDefault;
 
     bool fSpecified;
-}
-OPTION;
+} OPTION;
+
+OPTIONS s_Options;
 
 // Helper macros for structure definition below
-#define OPT_S(o,v,s)        { o, OT_STRING, {&Options::s_Options.v}, (s), 0,  false }
-#define OPT_N(o,v,n)        { o, OT_INT,    {&Options::s_Options.v}, "", (n), false }
-#define OPT_F(o,v,f)        { o, OT_BOOL,   {&Options::s_Options.v}, "",  0,  (f) }
-
-OPTIONS Options::s_Options;
+#define OPT_S(o,v,s)        { o, OT_STRING, {&s_Options.v}, (s), 0,  false }
+#define OPT_N(o,v,n)        { o, OT_INT,    {&s_Options.v}, "", (n), false }
+#define OPT_F(o,v,f)        { o, OT_BOOL,   {&s_Options.v}, "",  0,  (f) }
 
 OPTION aOptions[] =
 {
@@ -163,7 +165,7 @@ OPTION aOptions[] =
     OPT_S("FnKeys",       fnkeys,
      "F1=1,SF1=2,AF1=0,CF1=3,F2=5,SF2=6,AF2=4,CF2=7,F3=50,SF3=49,F4=11,SF4=12,AF4=8,F5=25,SF5=23,F6=26,F7=27,SF7=21,F8=22,F9=10,SF9=13,F10=9,SF10=10,F11=16,F12=15,CF12=8"),
 
-    { NULL, 0 }
+    { nullptr, 0 }
 };
 
 inline bool IsTrue (const char* pcsz_)
@@ -185,11 +187,11 @@ static OPTION* FindOption (const char* pcszName_)
             return p;
     }
 
-    return NULL;
+    return nullptr;
 }
 
 // Set (optionally unspecified) options to their default values
-void Options::SetDefaults (bool fForce_/*=true*/)
+void SetDefaults (bool fForce_/*=true*/)
 {
     // Process the full options list
     for (OPTION* p = aOptions ; p->pcszName ; p++)
@@ -211,7 +213,7 @@ void Options::SetDefaults (bool fForce_/*=true*/)
 }
 
 // Find the address of the variable holding the specified option default
-void* Options::GetDefault (const char* pcszName_)
+void* GetDefault (const char* pcszName_)
 {
     OPTION* p = FindOption(pcszName_);
 
@@ -226,11 +228,11 @@ void* Options::GetDefault (const char* pcszName_)
     }
 
     // This should never happen, thanks to a compile-time check in the header
-    static void* pv = NULL;
+    static void* pv = nullptr;
     return &pv;
 }
 
-bool Options::Load (int argc_, char* argv_[])
+bool Load (int argc_, char* argv_[])
 {
     FILE* hfOptions = fopen(OSD::MakeFilePath(MFP_SETTINGS, OPTIONS_FILE), "r");
     if (hfOptions)
@@ -327,7 +329,7 @@ bool Options::Load (int argc_, char* argv_[])
 }
 
 
-bool Options::Save ()
+bool Save ()
 {
     const char *pcszPath = OSD::MakeFilePath(MFP_SETTINGS, OPTIONS_FILE);
 
@@ -353,3 +355,5 @@ bool Options::Save ()
     fclose(hfOptions);
     return true;
 }
+
+} // namespace Options

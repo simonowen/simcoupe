@@ -96,17 +96,17 @@ private:
 	Blip_Buffer& operator = ( const Blip_Buffer& );
 public:
 	typedef long buf_t_;
-	unsigned long factor_;
-	blip_resampled_time_t offset_;
-	buf_t_* buffer_;
-	long buffer_size_;
+	unsigned long factor_ = 0;
+	blip_resampled_time_t offset_ = 0;
+	buf_t_* buffer_ = nullptr;
+	long buffer_size_ = 0;
 private:
-	long reader_accum;
-	int bass_shift;
-	long sample_rate_;
-	long clock_rate_;
-	int bass_freq_;
-	int length_;
+	long reader_accum = 0;
+	int bass_shift = 0;
+	long sample_rate_ = 0;
+	long clock_rate_ = 0;
+	int bass_freq_ = 0;
+	int length_ = 0;
 	friend class Blip_Reader;
 };
 
@@ -134,16 +134,16 @@ private:
 	class blip_eq_t;
 	
 	class Blip_Synth_ {
-		double volume_unit_;
-		short* const impulses;
-		int const width;
-		long kernel_unit;
+		double volume_unit_ = 0.0;
+		short* const impulses = nullptr;
+		int const width = 0;
+		long kernel_unit = 0;
 		int impulses_size() const { return blip_res / 2 * width + 1; }
 		void adjust_impulse();
 	public:
-		Blip_Buffer* buf;
-		int last_amp;
-		int delta_factor;
+		Blip_Buffer* buf = nullptr;
+		int last_amp = 0;
+		int delta_factor = 0;
 		
 		Blip_Synth_( short* impulses, int width );
 		void treble_eq( blip_eq_t const& );
@@ -244,8 +244,8 @@ public:
 	void end( Blip_Buffer& b )              { b.reader_accum = accum; }
 	
 private:
-	const Blip_Buffer::buf_t_* buf;
-	long accum;
+	const Blip_Buffer::buf_t_* buf = nullptr;
+	long accum = 0;
 };
 
 

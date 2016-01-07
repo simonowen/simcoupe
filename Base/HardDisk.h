@@ -31,7 +31,6 @@ class CHardDisk : public CATADevice
 {
     public:
         CHardDisk (const char* pcszDisk_);
-        virtual ~CHardDisk ();
 
     public:
         static CHardDisk* OpenObject (const char* pcszDisk_, bool fReadOnly_=false);
@@ -39,34 +38,37 @@ class CHardDisk : public CATADevice
 
     public:
         bool IsSDIDEDisk ();
-        bool IsBDOSDisk (bool *pfByteSwapped=NULL);
+        bool IsBDOSDisk (bool *pfByteSwapped=nullptr);
 
     protected:
-        char* m_pszDisk;
+        std::string m_strPath;
 };
 
 
-class CHDFHardDisk : public CHardDisk
+class CHDFHardDisk final : public CHardDisk
 {
     public:
         CHDFHardDisk (const char* pcszDisk_);
+        CHDFHardDisk (const CHDFHardDisk &) = delete;
+        void operator= (const CHDFHardDisk &) = delete;
         ~CHDFHardDisk () { Close(); }
 
     public:
         static bool Create (const char* pcszDisk_, UINT uTotalSectors_);
 
     public:
-        bool IsOpen () const { return m_hfDisk != NULL; }
-        bool Open (bool fReadOnly_=false);
+        bool IsOpen () const { return m_hfDisk != nullptr; }
+        bool Open (bool fReadOnly_=false) override;
         bool Create (UINT uTotalSectors_);
         void Close ();
 
-        bool ReadSector (UINT uSector_, BYTE* pb_);
-        bool WriteSector (UINT uSector_, BYTE* pb_);
+        bool ReadSector (UINT uSector_, BYTE* pb_) override;
+        bool WriteSector (UINT uSector_, BYTE* pb_) override;
 
     protected:
-        FILE* m_hfDisk;
-        UINT m_uDataOffset, m_uSectorSize;
+        FILE *m_hfDisk = nullptr;
+        UINT m_uDataOffset = 0;
+        UINT m_uSectorSize = 0;
 };
 
 #endif // HARDDISK_H

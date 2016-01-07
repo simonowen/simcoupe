@@ -21,33 +21,30 @@
 #ifndef TAPE_H
 #define TAPE_H
 
-class CTape;
-
-class Tape
+namespace Tape
 {
-    public:
-        static bool IsRecognised (const char *pcsz_);
-        static bool IsPlaying ();
-        static bool IsInserted ();
+    bool IsRecognised (const char *pcsz_);
+    bool IsPlaying ();
+    bool IsInserted ();
 
-        static const char* GetPath ();
-        static const char* GetFile ();
+    const char* GetPath ();
+    const char* GetFile ();
 #ifdef USE_LIBSPECTRUM
-        static libspectrum_tape *GetTape ();
-        static const char *GetBlockDetails (libspectrum_tape_block *block);
+    libspectrum_tape *GetTape ();
+    const char *GetBlockDetails (libspectrum_tape_block *block);
 #endif
 
-        static bool Insert (const char* pcsz_);
-        static void Eject ();
-        static void Play ();
-        static void Stop ();
+    bool Insert (const char* pcsz_);
+    void Eject ();
+    void Play ();
+    void Stop ();
 
-        static void NextEdge (DWORD dwTime_);
-        static bool LoadTrap ();
+    void NextEdge (DWORD dwTime_);
+    bool LoadTrap ();
 
-        static bool EiHook ();
-        static bool RetZHook ();
-        static bool InFEHook ();
-};
+    bool EiHook ();
+    bool RetZHook ();
+    bool InFEHook ();
+}
 
 #endif

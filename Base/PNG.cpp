@@ -34,6 +34,9 @@
 #include "Frame.h"
 #include "Options.h"
 
+namespace PNG
+{
+
 #ifdef USE_ZLIB
 
 // 32-bit values in PNG data are always network byte order (big endian), so define a helper macro if a conversion is needed
@@ -78,7 +81,7 @@ static bool WriteFile (FILE* hFile_, PNG_INFO* pPNG_)
     char szProgram[] = "SimCoupe";
 
     // Prepare the image header describing what we've got
-    PNG_IHDR ihdr = { 0 };
+    PNG_IHDR ihdr {};
     ihdr.dwWidth = ntohul(pPNG_->dwWidth);
     ihdr.dwHeight = ntohul(pPNG_->dwHeight);
     ihdr.bBitDepth = 8;
@@ -92,7 +95,7 @@ static bool WriteFile (FILE* hFile_, PNG_INFO* pPNG_)
             WriteChunk(hFile_, PNG_CN_IHDR, reinterpret_cast<BYTE*>(&ihdr), sizeof(ihdr)) &&
             WriteChunk(hFile_, PNG_CN_IDAT, pPNG_->pbImage, pPNG_->uCompressedSize) &&
             WriteChunk(hFile_, PNG_CN_tEXt, reinterpret_cast<BYTE*>(szProgram), strlen(szProgram)) &&
-            WriteChunk(hFile_, PNG_CN_IEND, NULL, 0));
+            WriteChunk(hFile_, PNG_CN_IEND, nullptr, 0));
 }
 
 
@@ -114,7 +117,7 @@ static bool CompressImageData (PNG_INFO* pPNG_)
         // Save the compressed image and size
         pPNG_->uCompressedSize = ulSize;
         pPNG_->pbImage = pbCompressed;
-        pbCompressed = NULL;
+        pbCompressed = nullptr;
 
         // Success :-)
         fRet = true;
@@ -135,7 +138,7 @@ static bool SaveFile (FILE *f_, CScreen *pScreen_)
     int nScanAdjust = (GetOption(scanlines) && !GetOption(scanhires)) ? (GetOption(scanlevel) - 100) : 0;
     if (nScanAdjust < -100) nScanAdjust = -100;
 
-    PNG_INFO png = {0};
+    PNG_INFO png {};
     png.dwWidth = pScreen_->GetPitch();
     png.dwHeight = pScreen_->GetHeight();
     if (fStretch) png.dwWidth = png.dwWidth *nDen/nNum;
@@ -195,7 +198,7 @@ static bool SaveFile (FILE *f_, CScreen *pScreen_)
 
     // Compress and write the image
     bool fRet = CompressImageData(&png) && WriteFile(f_, &png);
-    delete[] png.pbImage, png.pbImage = NULL;
+    delete[] png.pbImage, png.pbImage = nullptr;
 
     return fRet;
 }
@@ -204,7 +207,7 @@ static bool SaveFile (FILE *f_, CScreen *pScreen_)
 
 
 // Process and save the supplied SAM image data to a file in PNG format
-bool PNG::Save (CScreen* pScreen_)
+bool Save (CScreen* pScreen_)
 {
     bool fRet = false;
 
@@ -237,3 +240,5 @@ bool PNG::Save (CScreen* pScreen_)
 
     return fRet;
 }
+
+} // namespace PNG

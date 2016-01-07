@@ -34,7 +34,7 @@ class Input
         static void AcquireMouse (bool fAcquire_=true);
         static void Purge ();
 
-        static int MapChar (int nChar_, int *pnMods_=NULL);
+        static int MapChar (int nChar_, int *pnMods_=nullptr);
         static int MapKey (int nKey_);
 };
 
