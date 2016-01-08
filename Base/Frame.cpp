@@ -167,12 +167,12 @@ void Exit (bool fReInit_/*=false*/)
 
 int GetWidth ()
 {
-    return pScreen->GetPitch();
+    return pScreen ? pScreen->GetPitch() : 0;
 }
 
 int GetHeight ()
 {
-    return pScreen->GetHeight();
+    return pScreen ? pScreen->GetHeight() : 0;
 }
 
 void SetView (UINT uBlocks_, UINT uLines_)

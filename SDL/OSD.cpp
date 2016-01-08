@@ -39,6 +39,12 @@ bool OSD::Init (bool /*fFirstInit_=false*/)
     SetErrorMode(SEM_FAILCRITICALERRORS);
 #endif
 
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
+    {
+        Message(msgError, "SDL init failed: %s", SDL_GetError());
+        return false;
+    }
+
     return true;
 }
 

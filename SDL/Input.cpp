@@ -76,24 +76,25 @@ bool Input::Init (bool /*fFirstInit_=false*/)
 {
     Exit(true);
 
-    // Initialise the joystick subsystem
-    if (!SDL_InitSubSystem(SDL_INIT_JOYSTICK))
+    // Loop through the available devices for the ones to use (if any)
+    for (int i = 0 ; i < SDL_NumJoysticks() ; i++)
     {
-        // Loop through the available devices for the ones to use (if any)
-        for (int i = 0 ; i < SDL_NumJoysticks() ; i++)
-        {
-            // Match against the required joystick names, or auto-select the first available
-            if (!pJoystick1 && (!strcasecmp(SDL_JoystickNameForIndex(i), GetOption(joydev1)) || !*GetOption(joydev1)))
-                pJoystick1 = SDL_JoystickOpen(nJoystick1 = i);
-            else if (!pJoystick2 && (!strcasecmp(SDL_JoystickNameForIndex(i), GetOption(joydev2)) || !*GetOption(joydev2)))
-                pJoystick2 = SDL_JoystickOpen(nJoystick2 = i);
-        }
+        // Ignore VirtualBox devices, as the default USB Tablet option
+        // is seen as a joystick, which generates unwanted inputs
+        if (!strncmp(SDL_JoystickNameForIndex(i), "VirtualBox", 10))
+            continue;
+
+        // Match against the required joystick names, or auto-select the first available
+        if (!pJoystick1 && (!strcasecmp(SDL_JoystickNameForIndex(i), GetOption(joydev1)) || !*GetOption(joydev1)))
+            pJoystick1 = SDL_JoystickOpen(nJoystick1 = i);
+        else if (!pJoystick2 && (!strcasecmp(SDL_JoystickNameForIndex(i), GetOption(joydev2)) || !*GetOption(joydev2)))
+            pJoystick2 = SDL_JoystickOpen(nJoystick2 = i);
+    }
 
 #ifdef USE_JOYPOLLING
-        // Disable joystick events as we'll poll ourselves when necessary
-        SDL_JoystickEventState(SDL_DISABLE);
+    // Disable joystick events as we'll poll ourselves when necessary
+    SDL_JoystickEventState(SDL_DISABLE);
 #endif
-    }
 
     Keyboard::Init();
 
@@ -111,13 +112,8 @@ void Input::Exit (bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
-        if (SDL_WasInit(SDL_INIT_JOYSTICK))
-        {
-            if (pJoystick1) {SDL_JoystickClose(pJoystick1); pJoystick1 = nullptr; nJoystick1 = -1; }
-            if (pJoystick2) {SDL_JoystickClose(pJoystick2); pJoystick2 = nullptr; nJoystick2 = -1; }
-
-            SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
-        }
+        if (pJoystick1) {SDL_JoystickClose(pJoystick1); pJoystick1 = nullptr; nJoystick1 = -1; }
+        if (pJoystick2) {SDL_JoystickClose(pJoystick2); pJoystick2 = nullptr; nJoystick2 = -1; }
     }
 }
 

@@ -45,8 +45,6 @@ SDLSurface::~SDLSurface ()
 {
     if (pBack) SDL_FreeSurface(pBack), pBack = nullptr;
     if (pIcon) SDL_FreeSurface(pIcon), pIcon = nullptr;
-
-    SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
 
@@ -58,12 +56,6 @@ int SDLSurface::GetCaps () const
 bool SDLSurface::Init (bool fFirstInit_)
 {
     TRACE("-> Video::Init(%s)\n", fFirstInit_ ? "first" : "");
-
-    if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0)
-    {
-        TRACE("SDL_InitSubSystem(SDL_INIT_VIDEO) failed: %s\n", SDL_GetError());
-        return false;
-    }
 
     pIcon = SDL_LoadBMP(OSD::MakeFilePath(MFP_RESOURCE, "SimCoupe.bmp"));
     if (pIcon)

@@ -52,8 +52,6 @@ SDLTexture::~SDLTexture ()
     if (m_pTexture) SDL_DestroyTexture(m_pTexture), m_pTexture = nullptr;
     if (m_pRenderer) SDL_DestroyRenderer(m_pRenderer), m_pRenderer = nullptr;
     if (m_pWindow) SDL_DestroyWindow(m_pWindow), m_pWindow = nullptr;
-
-    SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
 
@@ -65,12 +63,6 @@ int SDLTexture::GetCaps () const
 bool SDLTexture::Init (bool fFirstInit_)
 {
     TRACE("-> Video::Init(%s)\n", fFirstInit_ ? "first" : "");
-
-    if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0)
-    {
-        TRACE("SDL_InitSubSystem(SDL_INIT_VIDEO) failed: %s\n", SDL_GetError());
-        return false;
-    }
 
     // Original frame
     int nWidth = Frame::GetWidth();
