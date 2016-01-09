@@ -465,13 +465,13 @@ const char *GetBlockDetails (libspectrum_tape_block *block)
                 if (length >= 3)
                     length -= 3;
 
-                snprintf(sz, sizeof(sz), "%u bytes", length);
+                snprintf(sz, sizeof(sz), "%lu bytes", length);
                 break;
             }
 
             case LIBSPECTRUM_TAPE_BLOCK_PURE_DATA:
             case LIBSPECTRUM_TAPE_BLOCK_RAW_DATA:
-                snprintf(sz, sizeof(sz), "%u bytes", libspectrum_tape_block_data_length(block));
+                snprintf(sz, sizeof(sz), "%lu bytes", libspectrum_tape_block_data_length(block));
                 break;
 
             case LIBSPECTRUM_TAPE_BLOCK_PURE_TONE:
@@ -479,7 +479,7 @@ const char *GetBlockDetails (libspectrum_tape_block *block)
                 break;
 
             case LIBSPECTRUM_TAPE_BLOCK_PULSES:
-                snprintf(sz, sizeof(sz), "%u pulses", libspectrum_tape_block_count(block));
+                snprintf(sz, sizeof(sz), "%lu pulses", libspectrum_tape_block_count(block));
                 break;
 
             case LIBSPECTRUM_TAPE_BLOCK_PAUSE:
@@ -504,11 +504,11 @@ const char *GetBlockDetails (libspectrum_tape_block *block)
             }
 
             case LIBSPECTRUM_TAPE_BLOCK_LOOP_START:
-                snprintf(sz, sizeof(sz), "%u iterations", libspectrum_tape_block_count(block));
+                snprintf(sz, sizeof(sz), "%lu iterations", libspectrum_tape_block_count(block));
                 break;
 
             case LIBSPECTRUM_TAPE_BLOCK_SELECT:
-                snprintf(sz, sizeof(sz), "%u options", libspectrum_tape_block_count(block));
+                snprintf(sz, sizeof(sz), "%lu options", libspectrum_tape_block_count(block));
                 break;
 
             case LIBSPECTRUM_TAPE_BLOCK_GENERALISED_DATA:

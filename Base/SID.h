@@ -38,6 +38,8 @@ class CSID final : public CSoundDevice
 {
     public:
         CSID ();
+        CSID (const CSID &) = delete;
+        void operator= (const CSID &) = delete;
         ~CSID ();
 
     public:
@@ -49,7 +51,7 @@ class CSID final : public CSoundDevice
 
     protected:
 #ifdef USE_RESID
-        RESID_NAMESPACE::SID *m_pSID;
+        RESID_NAMESPACE::SID *m_pSID = nullptr;
 #endif
         int m_nChipType = 0;
 };
