@@ -320,7 +320,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             bool fShift = !!(pKey->mod & KMOD_SHIFT);
 
             // Unpause on key press if paused, so the user doesn't think we've hung
-            if (fPress && g_fPaused)
+            if (fPress && g_fPaused && nKey != HK_PAUSE)
                 Action::Do(actPause);
 
             // Use key repeats for GUI mode only

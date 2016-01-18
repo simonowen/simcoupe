@@ -1781,7 +1781,7 @@ LRESULT CALLBACK WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPar
                 ulMouseTimer = SetTimer(hwnd_, MOUSE_TIMER_ID, 1, nullptr);
 
             // Unpause on key-down so the user doesn't think we've hung
-            if (fPress && g_fPaused)
+            if (fPress && g_fPaused && wParam_ != VK_PAUSE)
                 Action::Do(actPause);
 
             // Read the current states of the shift keys
