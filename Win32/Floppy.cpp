@@ -174,7 +174,17 @@ static BYTE ReadSector (HANDLE hDevice_, BYTE phead_, PSECTOR ps_)
 {
     BYTE bStatus = 0;
 
-    FD_READ_WRITE_PARAMS rwp = { FD_OPTION_MFM, phead_, ps_->cyl,ps_->head,ps_->sector,ps_->size, ps_->sector+1,0x0a,0xff };
+    FD_READ_WRITE_PARAMS rwp;
+    rwp.flags = FD_OPTION_MFM;
+    rwp.phead = phead_;
+    rwp.cyl = ps_->cyl;
+    rwp.head = ps_->head;
+    rwp.sector = ps_->sector;
+    rwp.size = ps_->size;
+    rwp.eot = ps_->sector + 1;
+    rwp.gap = 0x0a;
+    rwp.datalen = 0xff;
+
     if (!Ioctl(hDevice_, IOCTL_FDCMD_READ_DATA , &rwp, sizeof(rwp), ps_->pbData, 128 << (ps_->size & 7)))
         bStatus = (GetLastError() == ERROR_CRC) ? CRC_ERROR : RECORD_NOT_FOUND;
 
@@ -190,7 +200,17 @@ static BYTE WriteSector (HANDLE hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
 {
     PSECTOR ps = reinterpret_cast<PSECTOR>(pTrack_+1) + uSectorIndex_;
 
-    FD_READ_WRITE_PARAMS rwp = { FD_OPTION_MFM, pTrack_->head, ps->cyl,ps->head,ps->sector,ps->size, ps->sector+1,0x0a,0xff };
+    FD_READ_WRITE_PARAMS rwp;
+    rwp.flags = FD_OPTION_MFM;
+    rwp.phead = pTrack_->head;
+    rwp.cyl = ps->cyl;
+    rwp.head = ps->head;
+    rwp.sector = ps->sector;
+    rwp.size = ps->size;
+    rwp.eot = ps->sector + 1;
+    rwp.gap = 0x0a;
+    rwp.datalen = 0xff;
+
     if (!Ioctl(hDevice_, IOCTL_FDCMD_WRITE_DATA , &rwp, sizeof(rwp), ps->pbData, 128 << (ps->size & 7)))
     {
         if (GetLastError() == ERROR_WRITE_PROTECT)
@@ -298,7 +318,17 @@ static bool ReadSimpleTrack (HANDLE hDevice_, PTRACK pTrack_, UINT &ruSectors_)
     }
 
     // Attempt the full track in a single read
-    FD_READ_WRITE_PARAMS rwp = { FD_OPTION_MFM, pt->head, pt->cyl,pt->head, 1, ps->size, pt->sectors+1, 0x0a, 0xff };
+    FD_READ_WRITE_PARAMS rwp;
+    rwp.flags = FD_OPTION_MFM;
+    rwp.phead = pt->head;
+    rwp.cyl = pt->cyl;
+    rwp.head = pt->head;
+    rwp.sector = 1;
+    rwp.size = ps->size;
+    rwp.eot = pt->sectors + 1;
+    rwp.gap = 0x0a;
+    rwp.datalen = 0xff;
+
     if (Ioctl(hDevice_, IOCTL_FDCMD_READ_DATA , &rwp, sizeof(rwp), ps->pbData, pt->sectors*NORMAL_SECTOR_SIZE))
         return true;
 

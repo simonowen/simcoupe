@@ -55,11 +55,4 @@
 #define N_PAGES_1MB                 (0x100000/MEM_PAGE_SIZE)    // Number of pages in 1MB of memory (64)
 #define MAX_EXTERNAL_MB             4                           // SAM supports 0 to 4 MB of external memory
 
-
-#define N_PALETTE_COLOURS           128     // 128 colours in the SAM palette
-#define N_CLUT_REGS                 16      // 16 CLUT entries
-#define N_SAA_REGS                  32      // 32 registers in the Philips SAA1099 sound chip
-
-#define BASE_ASIC_PORT              0xf8    // Ports from this value require ASIC attention, and can cause contention delays
-
 #endif  // SAM_H

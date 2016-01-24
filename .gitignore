@@ -23,6 +23,7 @@ Win32/Shaders/*.h
 *.opensdf
 *.vcproj.*.user
 *.vcxproj.user
+*.opendb
 [Dd]ebug/
 [Rr]elease/
 ipch/

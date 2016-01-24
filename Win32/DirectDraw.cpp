@@ -224,7 +224,10 @@ void DirectDrawVideo::Update (CScreen* pScreen_, bool *pafDirty_)
     DDSURFACEDESC ddsd = { sizeof(ddsd) };
     m_pddsBack->GetSurfaceDesc(&ddsd);
 
-    RECT rBack = { 0, 0, ddsd.dwWidth, ddsd.dwHeight };
+    RECT rBack;
+    rBack.left = rBack.top = 0;
+    rBack.right = static_cast<LONG>(ddsd.dwWidth);
+    rBack.bottom = static_cast<LONG>(ddsd.dwHeight);
 
     // In non-scanline mode we need to double the image height
     if (!GetOption(scanlines) && !GUI::IsActive())

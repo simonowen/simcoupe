@@ -218,6 +218,12 @@ class CDiskDevice :  public CIoDevice
 #define MIDI_TRANSMIT_TIME      USECONDS_TO_TSTATES(320)
 #define MIDI_INT_ACTIVE_TIME    USECONDS_TO_TSTATES(16)
 
+#define N_PALETTE_COLOURS	128     // 128 colours in the SAM palette
+#define N_CLUT_REGS         16      // 16 CLUT entries
+#define N_SAA_REGS          32      // 32 registers in the Philips SAA1099 sound chip
+
+#define BASE_ASIC_PORT      0xf8    // Ports from this value require ASIC attention, and can cause contention delays
+
 
 // Keyboard matrix buffer
 extern BYTE keybuffer[9];

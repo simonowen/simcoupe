@@ -47,9 +47,7 @@
 #include <shellapi.h>   // for shell functions (ShellExecute, etc.)
 #include <Shlobj.h>     // for shell COM definitions
 #include <process.h>    // for _beginthreadex/_endthreadex
-
-#pragma include_alias(<io.h>, <..\Include\IO.h>)
-#include <io.h>
+#include <..\ucrt\io.h>	// for _access
 
 #ifdef USE_ZLIB
 #ifndef ZLIB_WINAPI
