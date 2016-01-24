@@ -1,5 +1,5 @@
 ; Read-only and read/write ports, blank symbol for write-only
-0D=KEMPSTON
+1F=KEMPSTON
 7F=BLUEALPHA
 80=LEPR
 81=HEPR
@@ -32,7 +32,7 @@ FE=KEYBOARD
 FF=ATTR
 
 ; Write-only ports, blank symbol for read-only (both have bit 15 set)
-800D=
+801F=
 80D4=SID
 80F8=CLUT
 80F9=LINE
