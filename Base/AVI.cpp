@@ -466,7 +466,10 @@ bool Start (bool fHalfSize_)
     // Create the file
     f = fopen(szPath, "wb+");
     if (!f)
+    {
+        Frame::SetStatus("Failed to open %s for writing!", szPath);
         return false;
+    }
 
     // Reset the frame counters
     dwVideoFrames = dwAudioFrames = dwAudioSamples = 0;
