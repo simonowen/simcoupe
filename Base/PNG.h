@@ -51,8 +51,8 @@ typedef unsigned char       UINT8;
 // PNG header
 typedef struct
 {
-    DWORD dwWidth ;
-    DWORD dwHeight;
+    BYTE abWidth[4];
+    BYTE abHeight[4];
     BYTE bBitDepth;
     BYTE bColourType;
     BYTE bCompressionType;

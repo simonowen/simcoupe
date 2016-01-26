@@ -41,9 +41,9 @@ namespace PNG
 
 // 32-bit values in PNG data are always network byte order (big endian), so define a helper macro if a conversion is needed
 #ifndef __BIG_ENDIAN__
-#define ntohul(ul)  (((ul << 24) & 0xff000000) | ((ul << 8) & 0x00ff0000) | ((ul >> 8) & 0x0000ff00) | ((ul >> 24) & 0x000000ff))
+#define htonul(ul)  (((ul << 24) & 0xff000000) | ((ul << 8) & 0x00ff0000) | ((ul >> 8) & 0x0000ff00) | ((ul >> 24) & 0x000000ff))
 #else
-#define ntohul(ul)  (ul)
+#define htonul(ul)  (ul)
 #endif
 
 
@@ -51,11 +51,11 @@ namespace PNG
 static bool WriteChunk (FILE* hFile_, DWORD dwType_, BYTE* pbData_, size_t uLength_)
 {
     // Write chunk length
-    DWORD dw = static_cast<DWORD>(ntohul(uLength_));
+    DWORD dw = static_cast<DWORD>(htonul(uLength_));
     size_t uWritten = fwrite(&dw, 1, sizeof(dw), hFile_);
 
     // Write type (big endian) and start CRC with it
-    dw = ntohul(dwType_);
+    dw = htonul(dwType_);
     uWritten += fwrite(&dw, 1, sizeof(dw), hFile_);
     DWORD crc = crc32(0, reinterpret_cast<UINT8*>(&dw), sizeof(dw));
 
@@ -67,7 +67,7 @@ static bool WriteChunk (FILE* hFile_, DWORD dwType_, BYTE* pbData_, size_t uLeng
     }
 
     // Write CRC (big endian)
-    dw = ntohul(crc);
+    dw = htonul(crc);
     uWritten += fwrite(&dw, 1, sizeof(dw), hFile_);
 
     // Return true if we wrote everything
@@ -82,8 +82,14 @@ static bool WriteFile (FILE* hFile_, PNG_INFO* pPNG_)
 
     // Prepare the image header describing what we've got
     PNG_IHDR ihdr {};
-    ihdr.dwWidth = ntohul(pPNG_->dwWidth);
-    ihdr.dwHeight = ntohul(pPNG_->dwHeight);
+    ihdr.abWidth[0] = (pPNG_->dwWidth >> 24) & 0xff;
+    ihdr.abWidth[1] = (pPNG_->dwWidth >> 16) & 0xff;
+    ihdr.abWidth[2] = (pPNG_->dwWidth >> 8) & 0xff;
+    ihdr.abWidth[3] = pPNG_->dwWidth & 0xff;
+    ihdr.abHeight[0] = (pPNG_->dwHeight >> 24) & 0xff;
+    ihdr.abHeight[1] = (pPNG_->dwHeight >> 16) & 0xff;
+    ihdr.abHeight[2] = (pPNG_->dwHeight >> 8) & 0xff;
+    ihdr.abHeight[3] = pPNG_->dwHeight & 0xff;
     ihdr.bBitDepth = 8;
     ihdr.bColourType = PNG_COLOR_MASK_COLOR;
     ihdr.bCompressionType = PNG_COMPRESSION_TYPE_BASE;

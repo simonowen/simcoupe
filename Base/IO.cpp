@@ -461,20 +461,25 @@ BYTE In (WORD wPort_)
 
             if ((wPort_ & PEN_MASK) == LPEN_PORT)
             {
-                // LPEN reflects the horizontal scan position in the main screen area only
-                BYTE bX = (nLine < TOP_BORDER_LINES || nLine >= (TOP_BORDER_LINES+SCREEN_LINES) ||
-                           nLineCycle < (BORDER_PIXELS+BORDER_PIXELS)) ? 0 :
-                            static_cast<BYTE>(nLineCycle - (BORDER_PIXELS+BORDER_PIXELS)) / 1;  // tstate->pixel division here?
+                // LPEN reflects the horizontal scan position on the main screen (if enabled).
+                // Return the horizontal position or zero if outside or disabled.
+                BYTE bX = ((VMPR_MODE_3_OR_4 && BORD_SOFF) ||
+                           nLine < TOP_BORDER_LINES ||
+                           nLine >= (TOP_BORDER_LINES + SCREEN_LINES) ||
+                           nLineCycle < (BORDER_PIXELS + BORDER_PIXELS))
+                    ? 0 : static_cast<BYTE>(nLineCycle - (BORDER_PIXELS + BORDER_PIXELS)) / 1;
 
                 // Take the top 6 bits from the position, and the rest from the existing value
                 bRet = (bX & 0xfc) | (lpen & 0x03);
             }
             else
             {
-                // HPEN reflects the vertical scan position in the main screen area only
-                // Return 192 for the top/bottom border areas, or the main screen line number
-                bRet = (nLine < TOP_BORDER_LINES || nLine >= (TOP_BORDER_LINES+SCREEN_LINES)) ?
-                        static_cast<BYTE>(SCREEN_LINES) : (nLine - TOP_BORDER_LINES);
+                // HPEN reflects the vertical scan position on the main screen (if enabled).
+                // Return the main screen line number or 192 if outside or disabled.
+                bRet = (nLine < TOP_BORDER_LINES ||
+                        (nLine == TOP_BORDER_LINES && nLineCycle < (BORDER_PIXELS + BORDER_PIXELS)) ||
+                        nLine >= (TOP_BORDER_LINES + SCREEN_LINES)) ?
+                    static_cast<BYTE>(SCREEN_LINES) : (nLine - TOP_BORDER_LINES);
             }
             break;
         }
@@ -853,6 +858,8 @@ void Out (WORD wPort_, BYTE bVal_)
             // Floppy drive 2 *OR* the ATOM hard disk
             else if ((wPort_ & FLOPPY_MASK) == FLOPPY2_BASE)
             {
+				TRACE("PORT OUT(%04X) wrote %02X\n", wPort_, bVal_);
+
                 switch (GetOption(drive2))
                 {
                     case drvFloppy:     pFloppy2->Out(wPort_, bVal_);  break;
