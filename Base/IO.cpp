@@ -459,9 +459,10 @@ BYTE In (WORD wPort_)
         {
             int nLine = g_dwCycleCounter / TSTATES_PER_LINE, nLineCycle = g_dwCycleCounter % TSTATES_PER_LINE;
 
+            // Simulated a disconnected light pen, with LPEN/HPEN tracking the raster position.
             if ((wPort_ & PEN_MASK) == LPEN_PORT)
             {
-                // LPEN reflects the horizontal scan position on the main screen (if enabled).
+                // Determine the horizontal scan position on the main screen (if enabled).
                 // Return the horizontal position or zero if outside or disabled.
                 BYTE bX = ((VMPR_MODE_3_OR_4 && BORD_SOFF) ||
                            nLine < TOP_BORDER_LINES ||
@@ -469,14 +470,15 @@ BYTE In (WORD wPort_)
                            nLineCycle < (BORDER_PIXELS + BORDER_PIXELS))
                     ? 0 : static_cast<BYTE>(nLineCycle - (BORDER_PIXELS + BORDER_PIXELS)) / 1;
 
-                // Take the top 6 bits from the position, and the rest from the existing value
-                bRet = (bX & 0xfc) | (lpen & 0x03);
+                // Top 6 bits is x position, bit 1 is MIDI TX, and bit 0 is from border.
+                bRet = (bX & 0xfc) | (lpen & LPEN_TXFMST) | (border & 1);
             }
-            else
+            else // HPEN
             {
-                // HPEN reflects the vertical scan position on the main screen (if enabled).
+                // Determine the vertical scan position on the main screen (if enabled).
                 // Return the main screen line number or 192 if outside or disabled.
-                bRet = (nLine < TOP_BORDER_LINES ||
+                bRet = ((VMPR_MODE_3_OR_4 && BORD_SOFF) ||
+                        nLine < TOP_BORDER_LINES ||
                         (nLine == TOP_BORDER_LINES && nLineCycle < (BORDER_PIXELS + BORDER_PIXELS)) ||
                         nLine >= (TOP_BORDER_LINES + SCREEN_LINES)) ?
                     static_cast<BYTE>(SCREEN_LINES) : (nLine - TOP_BORDER_LINES);
