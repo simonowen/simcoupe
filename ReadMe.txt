@@ -76,24 +76,23 @@ DISK IMAGES
 
 SimCoupe can use software in the following disk image types:
 
- MGT - Simple sector dump of +D/SAM disks: 2 sides, 80 tracks/side,
- 10 sectors/track, 512 bytes/sector = 819200 bytes. Compatible with the
- /dev/fd0u800 device under Linux. Traditionally named with a .dsk extension,
- but renamed to match the existing .mgt Spectrum image format.
+ .MGT - Simple sector dump of +D/SAM disks: 2 sides, 80 tracks/side,
+ 10 sectors/track, 512 bytes/sector = 819200 bytes. Older images in this
+ format may have a .dsk file extension. This is the preferred format for
+ normal format SAM disks, and is compatible with the /dev/fd0u800 device in
+ Linux.
 
- SAD - SAm Disk format, created by Aley Keprt. Also a simple sector dump, but
+ .SAD - SAm Disk format, created by Aley Keprt. Also a sector-based dump, but
  with a 22-byte file header allowing disk-wide geometry adjustments to
  sides/disk, tracks/side, sectors/track and bytes/sector. Normal SAM disks
  stored in SAD format are 819222 bytes, but a difference in track order
  prevents removing the 22-byte header to give an equivalent MGT image.
  Version 2 SAD images are the same basic format, but compressed using gzip.
- SAD is considered a limited legacy format and is read-only within SimCoupe.
 
- EDSK - Extended DSK images, originally used for Amstrad CPC and Spectum +3
- disks. A flexible format able to represent all existing SAM disks, and also
- the preferred format used by the worldofsam.org archive. Images size is
- proportional to the disk geometry, with a normal SAM disk around 840K. Disk
- image files use a .dsk extension.
+ .DSK - Extended DSK (EDSK) images, originally used for Amstrad CPC and
+ Spectum +3 disks. A flexible format able to represent all existing SAM disks,
+ and also the preferred format used by the worldofsam.org archive. Images size
+ is proportional to the disk geometry, with a normal SAM disk around 840K.
 
  SBT - Sam BooTable files, created by Andrew Collier. These are self-booting
  files designed to be copied to an empty SAM disk, then booted. While not
@@ -482,6 +481,7 @@ Disassembly View:
         Keypad-4 = step 10 instructions
         Keypad-5 = step 100 instructions
         Keypad-6 = step 1000 instructions
+   Ctrl-Keypad-8 = step over with code timing (no ints, border contention)
       Left/Right = scroll 1 byte
          Up/Down = scroll 1 instruction
        PgUp/PgDn = scroll 1 page
@@ -691,17 +691,15 @@ SAM MOD Player.
 
 Printer device - if Printer is selected above, this is the file or device to
 use for output. The "File:" option auto-generates a unique file to hold the
-output, and saves it to your Data Files path. "Printer:" entries are real
-printer devices [Win32 only] to use for output, which must be compatible with
-a real SAM - your ink jet or laser printer is unlikely to work!
+output, and saves it to your Data Files path.
 
-Automatically flish print jobs - if no data is sent to the port within 2
+Automatically flush print jobs - if no data is sent to the port within 2
 seconds, any remaining print data with be flushed to the output device.
 
 
 Input
 
-Keybaord - in SAM Coupé mode letters and symbols are converted to the key
+Keyboard - in SAM Coupe mode letters and symbols are converted to the key
 sequence required to generate the same symbol on SAM. For example, pressing
 Shift-0 on a typical PC keyboard generates ')'. SimCoupe converts it to
 Shift-9 to generate the same symbol on SAM. If you require a literal Shift-0,

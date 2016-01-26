@@ -12,6 +12,7 @@
 Build/
 Win32/Shaders/*.h
 /simcoupe
+Thumbs.db
 
 # Visual Studio
 *.aps
