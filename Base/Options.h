@@ -75,7 +75,6 @@ typedef struct
     char    sdidedisk[MAX_PATH];    // Hard disk image for SD IDE interface
     char    tape[MAX_PATH];         // Tape image file
     bool    autoload;               // Auto-load media inserted at the startup screen?
-    bool    autobyteswap;           // Detect byte order of Atom [Lite] media?
 
     char    inpath[MAX_PATH];       // Override path for input files
     char    outpath[MAX_PATH];      // Override path for output files

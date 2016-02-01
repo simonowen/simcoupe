@@ -519,7 +519,7 @@ bool AttachDisk (CAtaAdapter *pAdapter_, const char *pcszDisk_, int nDevice_)
             if (GetLastError() == ERROR_ACCESS_DENIED)
                 Message(msgWarning, "Failed to open: %s\n\nAdminstrator access or SAMdiskHelper is required.", pcszDisk_);
             else
-                Message(msgWarning, "Failed to open: %s", pcszDisk_);
+                Message(msgWarning, "Invalid or incompatible disk: %s", pcszDisk_);
         }
         delete pDisk;
         return false;

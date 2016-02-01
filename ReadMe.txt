@@ -843,7 +843,6 @@ in the configuration file:
     -atomdisk0 <path>       Atom hard disk image or device path (Master)
     -atomdisk1 <path>       Atom hard disk image or device path (Slave)
     -autoload <bool>        Auto-load media at startup screen (default=yes)
-    -autobyteswap <bool>    Auto-byte-swap Atom [Lite] media (default=yes)
 
     -turbotape <bool>       Fast tape access (default=yes)
     -tapetraps <bool>       Use tape traps for instant loading (default=yes)

@@ -120,7 +120,6 @@ class CATADevice
     public:
         const ATA_GEOMETRY* GetGeometry() const { return &m_sGeometry; };
         void SetDeviceAddress (BYTE bDevice_) { m_bDevice = bDevice_; }
-        void SetByteSwap (bool fByteSwap_) { m_fByteSwap = fByteSwap_; }
         void SetLegacy (bool fLegacy_) { m_fLegacy = fLegacy_; }
 
     public:
@@ -148,7 +147,6 @@ class CATADevice
 
         bool m_f8bitOnReset = false;    // 8-bit data transfer state to set on soft reset
         bool m_f8bit = false;           // true if 8-bit data transfers are enabled
-        bool m_fByteSwap = false;       // true if we should byte-swap the underlying sector data
         bool m_fLegacy = false;         // true if we're to support legacy requests
 };
 

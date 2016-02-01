@@ -96,11 +96,11 @@ bool CAtomLiteDevice::Attach (CHardDisk *pDisk_, int nDevice_)
     {
         bool fByteSwapped = false;
 
-        // Optionally byte-swap original Atom media to work with the Atom Lite
-        if (GetOption(autobyteswap) && pDisk_->IsBDOSDisk(&fByteSwapped))
-            pDisk_->SetByteSwap(fByteSwapped);
+        // Require an Atom Lite format disk, rejecting Atom disks
+        if (pDisk_->IsBDOSDisk(&fByteSwapped) && fByteSwapped)
+            return false;
 
-        // CF media doesn't support old requests
+        // Disable legacy ATA requests that CF cards don't support
         pDisk_->SetLegacy(false);
     }
 

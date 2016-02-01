@@ -59,18 +59,20 @@ bool CHardDisk::IsBDOSDisk (bool *pfByteSwapped_)
             fBDOS = true;
     }
 
-    // Calculate the number of base sectors (boot sector + record list)
-    UINT uBase = 1 + ((m_sGeometry.uTotalSectors/1600 + 32) / 32);
+    // Calculate the base sector position using the disk CHS geometry, which
+    // is estimated from the LBA sector count when using CF cards and IDE HDDs.
+    UINT uTotalSectors = m_sGeometry.uCylinders * m_sGeometry.uHeads * m_sGeometry.uSectors;
+    UINT uBase = 1 + (uTotalSectors / 1600 / 32) + 1;
 
-    // If no match, look for 'BDOS' in the first directory sector
+    // Check for BDOS signature in the first record
     if (!fBDOS && ReadSector(uBase, ab))
     {
         // Atom?
-        if (!memcmp(ab+232, "DBSO", 4))
+        if (!memcmp(ab + 232, "DBSO", 4))
             fBDOS = fByteSwapped = true;
 
-        // Atom Lite?
-        else if (!memcmp(ab+232, "BDOS", 4))
+        // Atom Lite? (or Trinity media under 8GB)
+        else if (!memcmp(ab + 232, "BDOS", 4))
             fBDOS = true;
     }
 

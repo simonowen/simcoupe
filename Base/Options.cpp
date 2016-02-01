@@ -106,7 +106,6 @@ OPTION aOptions[] =
     OPT_S("SDIDEDisk",    sdidedisk,      ""),        // No SD IDE hard disk
     OPT_S("Tape",         tape,           ""),        // No tape image
     OPT_F("AutoLoad",     autoload,       true),      // Auto-load media inserted at the startup screen
-    OPT_F("AutoByteSwap", autobyteswap,   true),      // Byte-swap Atom [Lite] media as necessary
 
     OPT_F("TurboTape",    turbotape,      true),      // Accelerated tape loading
     OPT_F("TapeTraps",    tapetraps,      true),      // Short-circuit ROM loading for a speed boost

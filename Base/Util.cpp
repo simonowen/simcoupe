@@ -201,14 +201,6 @@ void PatchBlock (BYTE *pb_, BYTE *pbPatch_)
 }
 
 
-void ByteSwap (BYTE *pb_, int nLen_)
-{
-    // Reverse each pair of bytes
-    for ( ; nLen_ >= 2 ; pb_ += 2, nLen_ -= 2)
-        std::swap(pb_[0], pb_[1]);
-}
-
-
 // SAM ROM triple-peek used for stored addresses
 UINT TPeek (const BYTE *pb_)
 {
