@@ -536,29 +536,26 @@ class CSystemOptions final : public CDialog
 {
     public:
         CSystemOptions (CWindow* pParent_)
-            : CDialog(pParent_, 300, 241, "System Settings")
+            : CDialog(pParent_, 300, 220, "System Settings")
         {
             new CIconControl(this, 10, 10, &sChipIcon);
 
-            new CFrameControl(this, 50, 17, 238, 88);
-            new CTextControl(this, 60, 13, "Memory", YELLOW_8, BLUE_2);
+            new CFrameControl(this, 50, 17, 238, 42);
+            new CTextControl(this, 60, 13, "RAM", YELLOW_8, BLUE_2);
 
-            new CTextControl(this, 63, 35, "Main:");
-            m_pMain = new CComboBox(this, 93, 32, "256K|512K", 60);
+            new CTextControl(this, 63, 35, "Internal:");
+            m_pMain = new CComboBox(this, 103, 32, "256K|512K", 50);
             new CTextControl(this, 167, 35, "External:");
             m_pExternal = new CComboBox(this, 217, 32, "None|1MB|2MB|3MB|4MB", 60);
 
-            new CTextControl(this, 63, 65, "ROM image (blank for built-in v3.0):");
-            m_pROM = new CEditControl(this, 63, 78, 196);
-            m_pBrowse = new CTextButton(this, 262, 78, "...", 17);
+            new CFrameControl(this, 50, 77, 238, 80);
+            new CTextControl(this, 60, 74, "ROM", YELLOW_8, BLUE_2);
 
-            new CFrameControl(this, 50, 117, 238, 56);
-            new CTextControl(this, 60, 114, "Settings", YELLOW_8, BLUE_2);
+            new CTextControl(this, 63, 95, "Custom ROM image (32K):");
+            m_pROM = new CEditControl(this, 63, 108, 196);
+            m_pBrowse = new CTextButton(this, 262, 108, "...", 17);
 
-            m_pFastReset = new CCheckBox(this, 63, 132, "Fast boot after hardware reset");
-            m_pAlBootRom = new CCheckBox(this, 63, 153, "Patch ROM for Atom Lite booting");
-
-            new CTextControl(this, 58, 180, "Note: Changes require a reset to take effect", RED_8);
+            m_pAtomBootRom = new CCheckBox(this, 63, 137, "Use Atom boot ROM when Atom is active.");
 
             m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
             m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -567,8 +564,7 @@ class CSystemOptions final : public CDialog
             m_pMain->Select((GetOption(mainmem) >> 8) - 1);
             m_pExternal->Select(GetOption(externalmem));
             m_pROM->SetText(GetOption(rom));
-            m_pFastReset->SetChecked(GetOption(fastreset));
-            m_pAlBootRom->SetChecked(GetOption(albootrom));
+            m_pAtomBootRom->SetChecked(GetOption(atombootrom));
 
             // Update the state of the controls to reflect the current settings
             OnNotify(m_pROM,0);
@@ -593,17 +589,16 @@ class CSystemOptions final : public CDialog
             else if (pWindow_ == m_pBrowse)
                 new CFileBrowser(m_pROM, this, "Browse for ROM", &sROMFilter, &nROMFilter);
             else if (pWindow_ == m_pROM)
-                m_pAlBootRom->Enable(!*m_pROM->GetText());
+                m_pAtomBootRom->Enable(!*m_pROM->GetText());
             else if (pWindow_ == m_pOK)
             {
                 SetOption(mainmem, (m_pMain->GetSelected()+1) << 8);
                 SetOption(externalmem, m_pExternal->GetSelected());
                 SetOption(rom, m_pROM->GetText());
-                SetOption(albootrom, m_pAlBootRom->IsChecked());
-                SetOption(fastreset, m_pFastReset->IsChecked());
+                SetOption(atombootrom, m_pAtomBootRom->IsChecked());
 
-                // If the ROM config has changed, schedule the changes for the next reset
-                if (ChangedString(rom) || Changed(albootrom))
+                // If Atom boot ROM is enabled and a drive type has changed, trigger a ROM refresh
+                if (GetOption(atombootrom) && (Changed(drive1) || Changed(drive2)))
                     Memory::UpdateRom();
 
                 Destroy();
@@ -611,8 +606,7 @@ class CSystemOptions final : public CDialog
         }
 
     protected:
-        CCheckBox *m_pFastReset = nullptr;
-        CCheckBox *m_pAlBootRom = nullptr;
+        CCheckBox *m_pAtomBootRom = nullptr;
         CComboBox *m_pMain = nullptr;
         CComboBox *m_pExternal = nullptr;
         CEditControl *m_pROM = nullptr;

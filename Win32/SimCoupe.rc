@@ -154,8 +154,8 @@ BEGIN
     LTEXT           "Custom 32K SAM ROM image:",IDC_STATIC,50,80,98,8
     EDITTEXT        IDE_ROM,50,93,165,14,ES_AUTOHSCROLL
     PUSHBUTTON      "...",IDB_BROWSE,218,93,16,14
-    CONTROL         "Use AL-BOOT ROM if Atom Lite is connected",IDC_ALBOOT_ROM,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,115,159,10
+    CONTROL         "Use Atom / Atom Lite boot ROM if connected.",IDC_ALBOOT_ROM,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,115,161,10
 END
 
 IDD_PAGE_INPUT DIALOGEX 0, 0, 250, 200

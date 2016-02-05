@@ -2833,7 +2833,7 @@ INT_PTR CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
             SHAutoComplete(GetDlgItem(hdlg_, IDE_ROM), SHACF_FILESYS_ONLY|SHACF_USETAB);
             SendDlgItemMessage(hdlg_, IDE_ROM, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
 
-            SendDlgItemMessage(hdlg_, IDC_ALBOOT_ROM, BM_SETCHECK, GetOption(albootrom) ? BST_CHECKED : BST_UNCHECKED, 0L);
+            SendDlgItemMessage(hdlg_, IDC_ALBOOT_ROM, BM_SETCHECK, GetOption(atombootrom) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
             break;
         }
@@ -2860,10 +2860,10 @@ INT_PTR CALLBACK SystemPageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
 
                 GetDlgItemPath(hdlg_, IDE_ROM, const_cast<char*>(GetOption(rom)), MAX_PATH);
 
-                SetOption(albootrom, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALBOOT_ROM, BM_GETCHECK, 0, 0L) == BST_CHECKED));
+                SetOption(atombootrom, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALBOOT_ROM, BM_GETCHECK, 0, 0L) == BST_CHECKED));
 
                 // If the ROM config has changed, schedule the changes for the next reset
-                if (ChangedString(rom) || Changed(albootrom))
+                if (ChangedString(rom) || Changed(atombootrom))
                     Memory::UpdateRom();
             }
             break;
@@ -3367,8 +3367,8 @@ INT_PTR CALLBACK Drive2PageDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
                 if (GetOption(drive2) == drvFloppy && ChangedString(disk2))
                     InsertDisk(pFloppy2, GetOption(disk2));
 
-                // If the Atom Lite selection state has changed, trigger a ROM refresh
-                if ((GetOption(drive2) == drvAtomLite) ^ (opts.drive2 >= drvAtomLite))
+                // If Atom boot ROM is enabled and a drive type has changed, trigger a ROM refresh
+                if (GetOption(atombootrom) && (Changed(drive1) || Changed(drive2)))
                     Memory::UpdateRom();
             }
             break;

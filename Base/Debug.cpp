@@ -27,9 +27,35 @@
 #include "Keyboard.h"
 #include "Memory.h"
 #include "Options.h"
-#include "SAMROM.h"
 #include "Symbol.h"
 #include "Util.h"
+
+
+// SAM BASIC keywords tokens
+static const char * aszBasicKeywords[] = {
+	"PI", "RND", "POINT", "FREE", "LENGTH", "ITEM", "ATTR", "FN", "BIN",
+	"XMOUSE", "YMOUSE", "XPEN", "YPEN", "RAMTOP", "-", "INSTR", "INKEY$",
+	"SCREEN$", "MEM$", "-", "PATH$", "STRING$", "-", "-", "SIN", "COS", "TAN",
+	"ASN", "ACS", "ATN", "LN", "EXP", "ABS", "SGN", "SQR", "INT", "USR", "IN",
+	"PEEK", "DPEEK", "DVAR", "SVAR", "BUTTON", "EOF", "PTR", "-", "UDG", "-",
+	"LEN", "CODE", "VAL$", "VAL", "TRUNC$", "CHR$", "STR$", "BIN$", "HEX$",
+	"USR$", "-", "NOT", "-", "-", "-", "MOD", "DIV", "BOR", "-", "BAND", "OR",
+	"AND", "<>", "<=", ">=", "USING", "WRITE", "AT", "TAB", "OFF", "WHILE",
+	"UNTIL", "LINE", "THEN", "TO", "STEP", "DIR", "FORMAT", "ERASE", "MOVE",
+	"SAVE", "LOAD", "MERGE", "VERIFY", "OPEN", "CLOSE", "CIRCLE", "PLOT",
+	"LET", "BLITZ", "BORDER", "CLS", "PALETTE", "PEN", "PAPER", "FLASH",
+	"BRIGHT", "INVERSE", "OVER", "FATPIX", "CSIZE", "BLOCKS", "MODE", "GRAB",
+	"PUT", "BEEP", "SOUND", "NEW", "RUN", "STOP", "CONTINUE", "CLEAR",
+	"GO TO", "GO SUB", "RETURN", "REM", "READ", "DATA", "RESTORE", "PRINT",
+	"LPRINT", "LIST", "LLIST", "DUMP", "FOR", "NEXT", "PAUSE", "DRAW",
+	"DEFAULT", "DIM", "INPUT", "RANDOMIZE", "DEF FN", "DEF KEYCODE",
+	"DEF PROC", "END PROC", "RENUM", "DELETE", "REF", "COPY", "-", "KEYIN",
+	"LOCAL", "LOOP IF", "DO", "LOOP", "EXIT IF", "IF", "IF", "ELSE", "ELSE",
+	"END IF", "KEY", "ON ERROR", "ON", "GET", "OUT", "POKE", "DPOKE",
+	"RENAME", "CALL", "ROLL", "SCROLL", "SCREEN", "DISPLAY", "BOOT", "LABEL",
+	"FILL", "WINDOW", "AUTO", "POP", "RECORD", "DEVICE", "PROTECT", "HIDE",
+	"ZAP", "POW", "BOOM", "ZOOM", "-", "-", "-", "-", "-", "-", "-", "-", "INK"
+};
 
 // Changed value colour (light red)
 #define CHG_COL  'r'
@@ -653,8 +679,8 @@ void CDebugger::SetStatus (const char *pcsz_, bool fOneShot_/*=false*/, const GU
 void CDebugger::SetStatusByte (WORD wAddr_)
 {
     size_t i;
-    char szKeyword[32] = {};
     char szBinary[9]={};
+	const char *pcszKeyword = "";
 
     // Read byte at status location
     BYTE b = read_byte(wAddr_);
@@ -664,28 +690,7 @@ void CDebugger::SetStatusByte (WORD wAddr_)
 
     // Keyword range?
     if (b >= 60)
-    {
-        // Keyword table in (unmodified) ROM1
-        const BYTE *pcbKeywords = abSAMROM + MEM_PAGE_SIZE + 0xf8c9-0xc000;
-
-        // Step over the required number of tokens
-        for (i = b-60 ; i > 0 ; i--)
-        {
-            // Skip until end of token marker (bit 7 set)
-            while (*pcbKeywords++ < 0x80) { }
-        }
-
-        // Copy keyword to local buffer
-        for (i = 0 ; i < sizeof(szKeyword) ; i++)
-        {
-            // Keep only lower 7 bits
-            szKeyword[i] = pcbKeywords[i] & 0x7f;
-
-            // Stop if we've found the end of token
-            if (pcbKeywords[i] >= 0x80)
-                break;
-        }
-    }
+		pcszKeyword = aszBasicKeywords[b - 60];
 
     // Generate binary representation
     for (i = 128 ; i > 0 ; i >>= 1)
@@ -693,7 +698,7 @@ void CDebugger::SetStatusByte (WORD wAddr_)
 
     // Form full status line, and set it
     char sz[128]={};
-    snprintf(sz, sizeof(sz)-1, "%04X  %02X  %03d  %s  %c  %s", wAddr_, b, b, szBinary, ch, szKeyword);
+    snprintf(sz, sizeof(sz)-1, "%04X  %02X  %03d  %s  %c  %s", wAddr_, b, b, szBinary, ch, pcszKeyword);
     SetStatus(sz, false, &sFixedFont);
 }
 

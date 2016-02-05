@@ -320,9 +320,6 @@
     <ClInclude Include="..\Base\HardDisk.h">
       <Filter>Base Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Base\ALBoot.h">
-      <Filter>Base Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Base\IO.h">
       <Filter>Base Header Files</Filter>
     </ClInclude>
@@ -366,9 +363,6 @@
       <Filter>Base Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Base\SAMDOS.h">
-      <Filter>Base Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Base\SAMROM.h">
       <Filter>Base Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Base\SAMVox.h">

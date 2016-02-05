@@ -23,10 +23,8 @@
 #include "Memory.h"
 
 #include "CPU.h"
-#include "ALBoot.h"
 #include "Options.h"
 #include "OSD.h"
-#include "SAMROM.h"
 #include "Stream.h"
 #include "Util.h"
 
@@ -124,109 +122,112 @@ const char *PageDesc (int nPage_, bool fCompact_/*=false*/)
 
     if (nPage_ >= INTMEM && nPage_ < EXTMEM)
         snprintf(sz, sizeof(sz)-1, "RAM%s%02X", pcszSep, nPage_-INTMEM);
-    else if (nPage_ >= EXTMEM && nPage_ < ROM0)
-        snprintf(sz, sizeof(sz)-1, "EXT%s%02X", pcszSep, nPage_-EXTMEM);
-    else if (nPage_ == ROM0 || nPage_ == ROM1)
-        snprintf(sz, sizeof(sz)-1, "ROM%s%X", pcszSep, nPage_-ROM0);
-    else
-        snprintf(sz, sizeof(sz)-1, "UNK%s%02X", pcszSep, nPage_);
+	else if (nPage_ >= EXTMEM && nPage_ < ROM0)
+		snprintf(sz, sizeof(sz) - 1, "EXT%s%02X", pcszSep, nPage_ - EXTMEM);
+	else if (nPage_ == ROM0 || nPage_ == ROM1)
+		snprintf(sz, sizeof(sz) - 1, "ROM%s%X", pcszSep, nPage_ - ROM0);
+	else
+		snprintf(sz, sizeof(sz) - 1, "UNK%s%02X", pcszSep, nPage_);
 
-    return sz;
+	return sz;
 }
 
 
 // Set the current memory configuration
 static void SetConfig ()
 {
-    // Start with no memory accessible
-    for (int nPage = 0 ; nPage < TOTAL_PAGES ; nPage++)
-    {
-        anReadPages[nPage]  = SCRATCH_READ;
-        anWritePages[nPage] = SCRATCH_WRITE;
-    }
+	// Start with no memory accessible
+	for (int nPage = 0; nPage < TOTAL_PAGES; nPage++)
+	{
+		anReadPages[nPage] = SCRATCH_READ;
+		anWritePages[nPage] = SCRATCH_WRITE;
+	}
 
-    // Add internal RAM as read/write
-    int nIntPages = (GetOption(mainmem) == 256) ? N_PAGES_MAIN/2 : N_PAGES_MAIN;
-    for (int nInt = 0 ; nInt < nIntPages ; nInt++)
-        anReadPages[INTMEM+nInt] = anWritePages[INTMEM+nInt] = INTMEM+nInt;
+	// Add internal RAM as read/write
+	int nIntPages = (GetOption(mainmem) == 256) ? N_PAGES_MAIN / 2 : N_PAGES_MAIN;
+	for (int nInt = 0; nInt < nIntPages; nInt++)
+		anReadPages[INTMEM + nInt] = anWritePages[INTMEM + nInt] = INTMEM + nInt;
 
-    // Add external RAM as read/write
-    int nExtPages = std::min(GetOption(externalmem), MAX_EXTERNAL_MB) * N_PAGES_1MB;
-    for (int nExt = 0 ; nExt < nExtPages ; nExt++)
-        anReadPages[EXTMEM+nExt] = anWritePages[EXTMEM+nExt] = EXTMEM+nExt;
+	// Add external RAM as read/write
+	int nExtPages = std::min(GetOption(externalmem), MAX_EXTERNAL_MB) * N_PAGES_1MB;
+	for (int nExt = 0; nExt < nExtPages; nExt++)
+		anReadPages[EXTMEM + nExt] = anWritePages[EXTMEM + nExt] = EXTMEM + nExt;
 
-    // Add the ROMs as read-only
-    anReadPages[ROM0] = ROM0;
-    anReadPages[ROM1] = ROM1;
+	// Add the ROMs as read-only
+	anReadPages[ROM0] = ROM0;
+	anReadPages[ROM1] = ROM1;
 
-    // If enabled, allow ROM writes
-    if (GetOption(romwrite))
-    {
-        anWritePages[ROM0] = anReadPages[ROM0];
-        anWritePages[ROM1] = anReadPages[ROM1];
-    }
+	// If enabled, allow ROM writes
+	if (GetOption(romwrite))
+	{
+		anWritePages[ROM0] = anReadPages[ROM0];
+		anWritePages[ROM1] = anReadPages[ROM1];
+	}
 }
 
 // Set the ROM from our internal 3.0 image or external custom file
 static bool LoadRoms ()
 {
-    bool fRet = true;
-    CStream* pROM;
+	BYTE *pb0 = PageReadPtr(ROM0);
+	BYTE *pb1 = PageReadPtr(ROM1);
 
-    BYTE *pb0 = PageReadPtr(ROM0);
-    BYTE *pb1 = PageReadPtr(ROM1);
+	// Default to the standard ROM image
+	std::string rom_file = OSD::MakeFilePath(MFP_RESOURCE, "samcoupe.rom");
 
-    // Use a custom ROM if supplied
-    if (*GetOption(rom) && (pROM = CStream::Open(GetOption(rom))))
-    {
-        size_t uRead = 0;
+	// Allow a custom ROM override
+	if (*GetOption(rom))
+		rom_file = GetOption(rom);
 
-        // Read the header+bootstrap code from what could be a ZX82 file (for Andy Wright's ROM images)
-        BYTE abHeader[140];
-        pROM->Read(abHeader, sizeof(abHeader));
+	// Allow an Atom / Atom Lite ROM override
+	else if (GetOption(atombootrom))
+	{
+		// Atom Lite ROM used if active on either drive
+		if (GetOption(drive2) == drvAtomLite || GetOption(drive2) == drvAtomLite)
+			rom_file = OSD::MakeFilePath(MFP_RESOURCE, "atomlite.rom");
 
-        // If we don't find the ZX82 signature, rewind to read as a plain ROM file
-        if (memcmp(abHeader, "ZX82", 4))
-            pROM->Rewind();
+		// Atom ROM used if active as drive 2 only
+		else if (GetOption(drive2) == drvAtom)
+			rom_file = OSD::MakeFilePath(MFP_RESOURCE, "atom.rom");
+	}
 
-        // Read both 16K ROM images
-        uRead += pROM->Read(pb0, MEM_PAGE_SIZE);
-        uRead += pROM->Read(pb1, MEM_PAGE_SIZE);
+	auto rom = CStream::Open(rom_file.c_str());
+	if (!rom)
+	{
+		// Fall back on the default if a specific ROM image failed to load
+		rom_file = OSD::MakeFilePath(MFP_RESOURCE, "samcoupe.rom");
+		rom = CStream::Open(rom_file.c_str());
+	}
 
-        // Clean up the ROM file stream
-        delete pROM;
+	if (rom)
+	{
+		size_t uRead = 0;
 
-        // Return if the full 32K was read
-        if (uRead == MEM_PAGE_SIZE*2)
-            return true;
-    }
+		// Read the header+bootstrap code from what could be a ZX82 file (for Andy Wright's ROM images)
+		BYTE abHeader[140];
+		rom->Read(abHeader, sizeof(abHeader));
 
-    // Complain if the custom ROM was invalid
-    if (*GetOption(rom))
-    {
-        Message(msgWarning, "Error loading ROM:\n\n%s\n\nReverting to built-in ROM image.", GetOption(rom));
-        CPU::Reset(false);
-        fRet = false;
-    }
+		// If we don't find the ZX82 signature, rewind to read as a plain ROM file
+		if (memcmp(abHeader, "ZX82", 4))
+			rom->Rewind();
 
-    // Start with the built-in v3.0 ROM image
-    memcpy(pb0, abSAMROM, MEM_PAGE_SIZE);
-    memcpy(pb1, abSAMROM+MEM_PAGE_SIZE, MEM_PAGE_SIZE);
+		// Read both 16K ROM images
+		uRead += rom->Read(pb0, MEM_PAGE_SIZE);
+		uRead += rom->Read(pb1, MEM_PAGE_SIZE);
 
-    // AL-BOOT ROM enabled?
-    if (GetOption(albootrom))
-    {
-        // Atom Lite connected?
-        if (GetOption(drive1) == drvAtomLite || GetOption(drive2) == drvAtomLite)
-        {
-            // Patch from ROM30 to AL-BOOT ROM
-            PatchBlock(pb0, abAtomLitePatch0);
-            PatchBlock(pb1, abAtomLitePatch1);
-        }
-    }
+		// Clean up the ROM file stream
+		delete rom;
 
-    // Return true if using the expected ROM was loaded
-    return fRet;
+		// Return if the full 32K was read
+		if (uRead == MEM_PAGE_SIZE * 2)
+			return true;
+	}
+
+	// Invalidate the ROM image
+	memset(pb0, 0xff, MEM_PAGE_SIZE);
+	memset(pb1, 0xff, MEM_PAGE_SIZE);
+
+	Message(msgWarning, "Error loading ROM:\n\n%s", rom_file.c_str());
+	return false;
 }
 
 } // namespace Memory
