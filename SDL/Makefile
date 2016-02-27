@@ -32,7 +32,7 @@ USE_RESID=0  # libresid will probably need manual building
 .SUFFIXES: .cpp .c
 
 CFLAGS=-O2 -Wall -I${SDL} -I${BASE} $(shell sdl-config --cflags)
-CXXFLAGS=${CFLAGS} -Wall
+CXXFLAGS=${CFLAGS} -Wall -std=c++11
 LIBS=-L. -lm $(shell sdl-config --libs --cflags) -lpthread
 
 OBJS = $(patsubst %.cpp,%.o,$(wildcard ${BASE}/*.cpp))
