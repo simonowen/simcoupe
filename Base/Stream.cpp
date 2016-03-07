@@ -114,7 +114,7 @@ CStream::~CStream ()
 
                 // Read the uncompressed size from the end of the file (if under 4GiB)
                 if (fseek(hf, -4, SEEK_END) == 0 && fread(ab, 1, sizeof(ab), hf) == sizeof(ab))
-                    uSize = (ab[3] << 24) | (ab[2] << 16) | (ab[1] << 8) | ab[0];
+                    uSize = ((size_t)ab[3] << 24) | ((size_t)ab[2] << 16) | ((size_t)ab[1] << 8) | (size_t)ab[0];
 
                 // Close the file so we can open it through ZLib
                 fclose(hf);
