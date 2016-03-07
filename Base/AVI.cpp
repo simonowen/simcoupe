@@ -565,7 +565,7 @@ void AddFrame (CScreen *pScreen_)
         width = pScreen_->GetPitch() >> (fHalfSize?1:0);
         height = pScreen_->GetHeight() >> (fHalfSize?1:0);
         size = (DWORD)width * (DWORD)height;
-	pbCurr = new BYTE[size];
+        pbCurr = new BYTE[size];
         memset(pbCurr, 0xff, size);
 
         // Write the placeholder file headers
