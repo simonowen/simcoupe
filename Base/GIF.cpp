@@ -434,13 +434,14 @@ void AddFrame (CScreen *pScreen_)
 
     WORD width = pScreen_->GetPitch() / 2;
     WORD height = pScreen_->GetHeight() / 2;
-
+    DWORD size = (DWORD)width * (DWORD)height;
+    
     // If this is the first frame, write the file headers
     if (ftell(f) == 0)
     {
-        pbCurr = new BYTE[width*height];
-        pbSub = new BYTE[width*height];
-        memset(pbCurr, 0xff, width*height);
+        pbCurr = new BYTE[size];
+        pbSub = new BYTE[size];
+        memset(pbCurr, 0xff, size);
 
         // File header
         fwrite("GIF89a", 6, 1, f);
@@ -466,7 +467,7 @@ void AddFrame (CScreen *pScreen_)
     if (nLoopState == kWaitLoopStart)
     {
         // Invalidate the stored image and mark the whole region
-        memset(pbCurr, 0xff, width*height);
+        memset(pbCurr, 0xff, size);
         wl = wt = 0, ww = width, wh = height;
         nDelay = 0;
     }
@@ -484,11 +485,11 @@ void AddFrame (CScreen *pScreen_)
     else if (nLoopState == kWaitLoopStart)
     {
         nLoopState = kLoopStarted;
-        pbFirst = new BYTE[width*height];
-        memcpy(pbFirst, pbCurr, width*height);
+        pbFirst = new BYTE[size];
+        memcpy(pbFirst, pbCurr, size);
     }
     // If we're looking for the end of a loop, compare with the first frame
-    else if (pbFirst && !memcmp(pbFirst, pbCurr, width*height))
+    else if (pbFirst && !memcmp(pbFirst, pbCurr, size))
     {
         delete[] pbFirst, pbFirst = nullptr;
         Stop();

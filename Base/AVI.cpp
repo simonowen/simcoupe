@@ -542,6 +542,8 @@ bool IsRecording ()
 // Add a video frame to the file
 void AddFrame (CScreen *pScreen_)
 {
+    DWORD size;
+
     // Ignore if we're not recording or we're expecting audio
     if (!f || !fWantVideo)
         return;
@@ -562,8 +564,9 @@ void AddFrame (CScreen *pScreen_)
         // Store the dimensions, and allocate+invalidate the frame copy
         width = pScreen_->GetPitch() >> (fHalfSize?1:0);
         height = pScreen_->GetHeight() >> (fHalfSize?1:0);
-        pbCurr = new BYTE[width*height];
-        memset(pbCurr, 0xff, width*height);
+        size = (DWORD)width * (DWORD)height;
+        pbCurr = new BYTE[size];
+        memset(pbCurr, 0xff, size);
 
         // Write the placeholder file headers
         WriteFileHeaders(f);
