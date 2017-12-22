@@ -106,10 +106,11 @@ CFileDialog::CFileDialog (const char* pcszCaption_, const char* pcszPath_, const
     new CFrameControl(this, 0, (4*72)+3, m_nWidth, 1, GREY_6);
 
     new CTextControl(this, 3, m_nHeight-61,  "File:", YELLOW_8);
-    if (0)
-        m_pFile = new CEditControl(this, 36, m_nHeight-64, 204, "");
-    else
-        m_pFile = new CTextControl(this, 36, m_nHeight-61, "");
+#if 0
+    m_pFile = new CEditControl(this, 36, m_nHeight-64, 204, "");
+#else
+    m_pFile = new CTextControl(this, 36, m_nHeight-61, "");
+#endif
 
     new CTextControl(this, 3, m_nHeight-40,  "Path:", YELLOW_8);
     m_pPath = new CTextControl(this, 36, m_nHeight-40, "");
@@ -417,7 +418,7 @@ void CHDDProperties::OnNotify (CWindow* pWindow_, int /*nParam_*/)
             }
 
             // Determine the total sector count from the size
-            UINT uTotalSectors = strtoul(m_pSize->GetText(), nullptr, 10) << 11;
+            UINT uTotalSectors = static_cast<UINT>(strtoul(m_pSize->GetText(), nullptr, 10) << 11);
 
             // Check the geometry is within range
             if (!uTotalSectors || (uTotalSectors > (16383*16*63)))

@@ -94,7 +94,7 @@ VideoBase *UI::GetVideo (bool fFirstInit_)
 #endif
         if (!pVideo->Init(fFirstInit_))
         {
-            delete pVideo, pVideo = nullptr;
+            delete pVideo; pVideo = nullptr;
             Message(msgError, "Video initialisation failed!");
         }
     }

@@ -112,11 +112,17 @@ CHDFHardDisk::CHDFHardDisk (const char* pcszDisk_)
 
     // Try for device path first
     if (!pDisk && (pDisk = new CDeviceHardDisk(pcszDisk_)) && !pDisk->Open(fReadOnly_))
-        delete pDisk, pDisk = nullptr;
+    {
+        delete pDisk;
+        pDisk = nullptr;
+    }
 
     // Try for HDF disk image
     if (!pDisk && (pDisk = new CHDFHardDisk(pcszDisk_)) && !pDisk->Open(fReadOnly_))
-        delete pDisk, pDisk = nullptr;
+    {
+        delete pDisk;
+        pDisk = nullptr;
+    }
 
     return pDisk;
 }

@@ -897,11 +897,11 @@ m_bSync(false)
 
 	// Create amplification/mixing stages and link to appropriate oscillators,
 	// noise generators and envelope controlloers
-	Amp[0] = new CSAAAmp(Osc[0], Noise[0], nullptr),
-	Amp[1] = new CSAAAmp(Osc[1], Noise[0], nullptr),
-	Amp[2] = new CSAAAmp(Osc[2], Noise[0], Env[0]),
-	Amp[3] = new CSAAAmp(Osc[3], Noise[1], nullptr),
-	Amp[4] = new CSAAAmp(Osc[4], Noise[1], nullptr),
+    Amp[0] = new CSAAAmp(Osc[0], Noise[0], nullptr);
+    Amp[1] = new CSAAAmp(Osc[1], Noise[0], nullptr);
+    Amp[2] = new CSAAAmp(Osc[2], Noise[0], Env[0]);
+    Amp[3] = new CSAAAmp(Osc[3], Noise[1], nullptr);
+    Amp[4] = new CSAAAmp(Osc[4], Noise[1], nullptr);
 	Amp[5] = new CSAAAmp(Osc[5], Noise[1], Env[1]);
 
 	// Set the output frequency

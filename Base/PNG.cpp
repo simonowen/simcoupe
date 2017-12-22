@@ -57,7 +57,7 @@ static bool WriteChunk (FILE* hFile_, DWORD dwType_, BYTE* pbData_, size_t uLeng
     // Write type (big endian) and start CRC with it
     dw = htonul(dwType_);
     uWritten += fwrite(&dw, 1, sizeof(dw), hFile_);
-    DWORD crc = crc32(0, reinterpret_cast<UINT8*>(&dw), sizeof(dw));
+    auto crc = crc32(0, reinterpret_cast<UINT8*>(&dw), sizeof(dw));
 
     if (uLength_)
     {
@@ -67,7 +67,7 @@ static bool WriteChunk (FILE* hFile_, DWORD dwType_, BYTE* pbData_, size_t uLeng
     }
 
     // Write CRC (big endian)
-    dw = htonul(crc);
+    dw = static_cast<DWORD>(htonul(crc));
     uWritten += fwrite(&dw, 1, sizeof(dw), hFile_);
 
     // Return true if we wrote everything
@@ -121,7 +121,7 @@ static bool CompressImageData (PNG_INFO* pPNG_)
         delete[] pPNG_->pbImage;
 
         // Save the compressed image and size
-        pPNG_->uCompressedSize = ulSize;
+        pPNG_->uCompressedSize = static_cast<DWORD>(ulSize);
         pPNG_->pbImage = pbCompressed;
         pbCompressed = nullptr;
 
@@ -198,13 +198,15 @@ static bool SaveFile (FILE *f_, CScreen *pScreen_)
                 AdjustBrightness(red, green, blue, nScanAdjust);
 
             // Add the pixel to the image data
-            *pb++ = red, *pb++ = green, *pb++ = blue;
+            *pb++ = red;
+            *pb++ = green;
+            *pb++ = blue;
         }
     }
 
     // Compress and write the image
     bool fRet = CompressImageData(&png) && WriteFile(f_, &png);
-    delete[] png.pbImage, png.pbImage = nullptr;
+    delete[] png.pbImage; png.pbImage = nullptr;
 
     return fRet;
 }

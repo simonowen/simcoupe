@@ -84,16 +84,18 @@ static void setupApplicationMenus ()
     [NSApp setAppleMenu:menu];
     [menu release];
 
-
     /* Create the File menu */
     menu = [[NSMenu alloc] initWithTitle:@"File"];
 
-    [menu addItemWithTitle:@"New" action:@selector(appNew:) keyEquivalent:@"n"];
+    [menu addItemWithTitle:@"New" action:nil keyEquivalent:@"n"];
     [menu addItemWithTitle:@"Open" action:@selector(openDocument:) keyEquivalent:@"o"];
 
     item = [menu addItemWithTitle:@"Open Recent" action:nil keyEquivalent:@""];
     subMenu = [[NSMenu alloc] initWithTitle:@"Open Recent"];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundeclared-selector"
     [subMenu performSelector:@selector(_setMenuName:) withObject:@"NSRecentDocumentsMenu"];
+#pragma clang diagnostic pop
     [menu setSubmenu:subMenu forItem:item];
     [subMenu release];
 
@@ -115,15 +117,14 @@ static void setupApplicationMenus ()
     [item release];
     [menu release];
 
-
     /* Create the View menu */
     menu = [[NSMenu alloc] initWithTitle:@"View"];
     
-    item = [menu addItemWithTitle:@"Fullscreen" action:@selector(viewFullscreen:) keyEquivalent:@"f"];
+    [menu addItemWithTitle:@"Fullscreen" action:@selector(viewFullscreen:) keyEquivalent:@"f"];
     [menu addItem:[NSMenuItem separatorItem]];
-    item = [menu addItemWithTitle:@"Toggle Greyscale" action:@selector(viewGreyscale:) keyEquivalent:@"g"];
-    item = [menu addItemWithTitle:@"5:4 Aspect Ratio" action:@selector(viewRatio54:) keyEquivalent:@"5"];
-    item = [menu addItemWithTitle:@"TV Scanlines" action:@selector(viewScanlines:) keyEquivalent:@"l"];
+    [menu addItemWithTitle:@"Toggle Greyscale" action:@selector(viewGreyscale:) keyEquivalent:@"g"];
+    [menu addItemWithTitle:@"5:4 Aspect Ratio" action:@selector(viewRatio54:) keyEquivalent:@"5"];
+    [menu addItemWithTitle:@"TV Scanlines" action:@selector(viewScanlines:) keyEquivalent:@"l"];
 
     item = [[NSMenuItem alloc] initWithTitle:@"View" action:nil keyEquivalent:@""];
     [item setSubmenu:menu];
@@ -135,12 +136,12 @@ static void setupApplicationMenus ()
     /* Create the System menu */
     menu = [[NSMenu alloc] initWithTitle:@"System"];
     
-    item = [menu addItemWithTitle:@"Pause" action:@selector(systemPause:) keyEquivalent:@"p"];
+    [menu addItemWithTitle:@"Pause" action:@selector(systemPause:) keyEquivalent:@"p"];
     [menu addItem:[NSMenuItem separatorItem]];
-    item = [menu addItemWithTitle:@"Generate NMI" action:@selector(systemNMI:) keyEquivalent:@"n"];
+    [menu addItemWithTitle:@"Generate NMI" action:@selector(systemNMI:) keyEquivalent:@"n"];
     [item setKeyEquivalentModifierMask:(NSShiftKeyMask|NSCommandKeyMask)];
-    item = [menu addItemWithTitle:@"Reset" action:@selector(systemReset:) keyEquivalent:@"r"];
-    item = [menu addItemWithTitle:@"Debugger" action:@selector(systemDebugger:) keyEquivalent:@"d"];
+    [menu addItemWithTitle:@"Reset" action:@selector(systemReset:) keyEquivalent:@"r"];
+    [menu addItemWithTitle:@"Debugger" action:@selector(systemDebugger:) keyEquivalent:@"d"];
     [menu addItem:[NSMenuItem separatorItem]];
     item = [menu addItemWithTitle:@"Mute sound" action:@selector(systemMute:) keyEquivalent:@"m"];
     [item setKeyEquivalentModifierMask:(NSShiftKeyMask|NSCommandKeyMask)];
@@ -170,10 +171,10 @@ static void setupApplicationMenus ()
     /* Create the Help menu */
     menu = [[NSMenu alloc] initWithTitle:@"Help"];
 
-    item = [menu addItemWithTitle:@"SimCoupe Help" action:@selector(helpHelp:) keyEquivalent:@""];
-    item = [menu addItemWithTitle:@"View Changelog" action:@selector(helpChangeLog:) keyEquivalent:@""];
+    [menu addItemWithTitle:@"SimCoupe Help" action:@selector(helpHelp:) keyEquivalent:@""];
+    [menu addItemWithTitle:@"View Changelog" action:@selector(helpChangeLog:) keyEquivalent:@""];
     [menu addItem:[NSMenuItem separatorItem]];
-    item = [menu addItemWithTitle:@"SimCoupe Homepage" action:@selector(helpHomepage:) keyEquivalent:@""];
+    [menu addItemWithTitle:@"SimCoupe Homepage" action:@selector(helpHomepage:) keyEquivalent:@""];
 
     item = [[NSMenuItem alloc] initWithTitle:@"Help" action:nil keyEquivalent:@""];
     [item setSubmenu:menu];

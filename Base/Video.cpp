@@ -45,7 +45,7 @@ bool Init (bool fFirstInit_)
 void Exit (bool fReInit_/*=false*/)
 {
     TRACE("Video::Exit(%d)\n", fReInit_);
-    delete pVideo, pVideo = nullptr;
+    delete pVideo; pVideo = nullptr;
 }
 
 

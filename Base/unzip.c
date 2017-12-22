@@ -1164,7 +1164,7 @@ extern int ZEXPORT unzGetCurrentFileInfo (unzFile file,
         pfile_info->internal_fa = file_info64.internal_fa;
         pfile_info->external_fa = file_info64.external_fa;
 
-        pfile_info->tmu_date = file_info64.tmu_date,
+        pfile_info->tmu_date = file_info64.tmu_date;
 
 
         pfile_info->compressed_size = (uLong)file_info64.compressed_size;
@@ -1536,8 +1536,10 @@ extern int ZEXPORT unzOpenCurrentFile3 (unzFile file, int* method,
         (s->cur_file_info.compression_method!=Z_BZIP2ED) &&
 /* #endif */
         (s->cur_file_info.compression_method!=Z_DEFLATED))
-
-        err=UNZ_BADZIPFILE;
+    {
+        TRYFREE(pfile_in_zip_read_info);
+        return UNZ_BADZIPFILE;
+    }
 
     pfile_in_zip_read_info->crc32_wait=s->cur_file_info.crc;
     pfile_in_zip_read_info->crc32=0;

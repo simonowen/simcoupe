@@ -226,30 +226,30 @@ void Exit (bool fReInit_/*=false*/)
         SetOption(tape, Tape::GetPath());
         Tape::Eject();
 
-        delete pMidi, pMidi = nullptr;
-        delete pPaula, pPaula = nullptr;
-        delete pSAMVox, pSAMVox = nullptr;
-        delete pBlueAlpha, pBlueAlpha = nullptr;
-        delete pBeeper, pBeeper = nullptr;
-        delete pSID, pSID = nullptr;
-        delete pSAA, pSAA = nullptr;
-        delete pDAC, pDAC = nullptr;
+        delete pMidi; pMidi = nullptr;
+        delete pPaula; pPaula = nullptr;
+        delete pSAMVox; pSAMVox = nullptr;
+        delete pBlueAlpha; pBlueAlpha = nullptr;
+        delete pBeeper; pBeeper = nullptr;
+        delete pSID; pSID = nullptr;
+        delete pSAA; pSAA = nullptr;
+        delete pDAC; pDAC = nullptr;
 
-        delete pSambus, pSambus = nullptr;
-        delete pDallas, pDallas = nullptr;
-        delete pMouse, pMouse = nullptr;
+        delete pSambus; pSambus = nullptr;
+        delete pDallas; pDallas = nullptr;
+        delete pMouse; pMouse = nullptr;
 
-        delete pPrinterFile, pPrinterFile = nullptr;
-        delete pMonoDac, pMonoDac = nullptr;
-        delete pStereoDac, pStereoDac = nullptr;
+        delete pPrinterFile; pPrinterFile = nullptr;
+        delete pMonoDac; pMonoDac = nullptr;
+        delete pStereoDac; pStereoDac = nullptr;
 
-        delete pFloppy1, pFloppy1 = nullptr;
-        delete pFloppy2, pFloppy2 = nullptr;
-        delete pBootDrive, pBootDrive = nullptr;
+        delete pFloppy1; pFloppy1 = nullptr;
+        delete pFloppy2; pFloppy2 = nullptr;
+        delete pBootDrive; pBootDrive = nullptr;
 
-        delete pAtom, pAtom = nullptr;
-        delete pAtomLite, pAtomLite = nullptr;
-        delete pSDIDE, pSDIDE = nullptr;
+        delete pAtom; pAtom = nullptr;
+        delete pAtomLite; pAtomLite = nullptr;
+        delete pSDIDE; pSDIDE = nullptr;
     }
 }
 
@@ -1040,7 +1040,10 @@ bool Rst8Hook ()
 
     // If a drive object exists, clean up after our boot attempt, whether or not it worked
     if (pBootDrive)
-        delete pBootDrive, pBootDrive = nullptr;
+    {
+        delete pBootDrive;
+        pBootDrive = nullptr;
+    }
 
     // Read the error code after the RST 8 opcode
     BYTE bErrCode = read_byte(PC);

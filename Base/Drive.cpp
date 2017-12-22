@@ -81,7 +81,7 @@ void CDrive::Eject ()
     if (m_pDisk && m_pDisk->IsModified())
         m_pDisk->Save();
 
-    delete m_pDisk, m_pDisk = nullptr;
+    delete m_pDisk; m_pDisk = nullptr;
 }
 
 void CDrive::FrameEnd ()

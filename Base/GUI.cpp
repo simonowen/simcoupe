@@ -138,7 +138,10 @@ void GUI::Stop ()
 {
     // Delete any existing GUI object
     if (s_pGUI)
-        delete s_pGUI, s_pGUI = nullptr;
+    {
+        delete s_pGUI;
+        s_pGUI = nullptr;
+    }
 
     Video::SetDirty();
     Input::Purge();
@@ -1046,7 +1049,6 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const char* const RADIO_DELIMITER = "|";
 const int RADIO_PRETEXT_GAP = 16;
 
 CRadioButton::CRadioButton (CWindow* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nWidth_/*=0*/)
@@ -1374,7 +1376,6 @@ bool CDropList::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const int COMBO_TEXT_GAP = 5;
 const int COMBO_BORDER = 3;
 const int COMBO_HEIGHT = COMBO_BORDER + CHAR_HEIGHT + COMBO_BORDER;
 
@@ -1724,7 +1725,10 @@ static bool IsPrefix (const char* pcszPrefix_, const char* pcszName_)
 {
     // Skip any common characters at the start of the name
     while (*pcszPrefix_ && *pcszName_ && tolower(*pcszPrefix_) == tolower(*pcszName_))
-        pcszPrefix_++, pcszName_++;
+    {
+        pcszPrefix_++;
+        pcszName_++;
+    }
 
     // Return true if the full prefix was matched
     return !*pcszPrefix_;
@@ -2102,7 +2106,10 @@ static bool SortCompare (const char* pcsz1_, const char* pcsz2_)
 {
     // Skip any common characters at the start of the name
     while (*pcsz1_ && *pcsz2_ && tolower(*pcsz1_) == tolower(*pcsz2_))
-        pcsz1_++, pcsz2_++;
+    {
+        pcsz1_++;
+        pcsz2_++;
+    }
 
     // Compare the first character that differs
     return tolower(*pcsz1_) > tolower(*pcsz2_);

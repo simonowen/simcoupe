@@ -30,8 +30,6 @@ static const char* p;
 static EXPR *pHead, *pTail;
 static int nFlags;
 
-const int MAX_FUNC_PARAMS = 5;
-
 EXPR Expr::Counter = { T_VARIABLE, VAR_COUNT, nullptr, "(counter)" };
 int Expr::nCount;
 

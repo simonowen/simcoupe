@@ -65,7 +65,7 @@ typedef struct
 {
     DWORD dwWidth, dwHeight;
     BYTE *pbImage;
-    UINT uSize, uCompressedSize;
+    ULONG uSize, uCompressedSize;
 } PNG_INFO;
 
 

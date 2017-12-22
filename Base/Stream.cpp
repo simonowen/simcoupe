@@ -207,7 +207,7 @@ CMemStream::CMemStream (void* pv_, size_t uLen_, const char* pcszPath_)
 {
     m_nMode = modeReading;
     m_uSize = uLen_;
-    m_pbData = reinterpret_cast<BYTE*>(pv_),
+    m_pbData = reinterpret_cast<BYTE*>(pv_);
     m_pszFile = strdup(pcszPath_);
 }
 

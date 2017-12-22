@@ -59,6 +59,11 @@ static bool WriteLittleEndianDWORD (DWORD dw_)
     return fputc((dw_ >> 24) & 0xff, f) != EOF;
 }
 
+static bool WriteLittleEndianLong (long l_)
+{
+    return WriteLittleEndianDWORD(static_cast<DWORD>(l_));
+}
+
 static DWORD ReadLittleEndianDWORD ()
 {
     BYTE ab[4] = {};
@@ -98,7 +103,7 @@ static long WriteChunkEnd (FILE *f_, long lPos_)
         return 0;
 
     // Write the chunk size
-    WriteLittleEndianDWORD(lSize);
+    WriteLittleEndianLong(lSize);
 
     // Restore original position (should always be end of file, but we'll use the value from earlier)
     if (lPos < 0 || fseek(f_, lPos, SEEK_SET) != 0)
@@ -123,7 +128,7 @@ static bool WriteAVIHeader (FILE *f_)
     DWORD dwStreams = (nAudioReduce < 4) ? 2 : 1;
 
     WriteLittleEndianDWORD(19968);			// microseconds per frame: 1000000*TSTATES_PER_FRAME/REAL_TSTATES_PER_SECOND
-    WriteLittleEndianDWORD((lVideoMax*EMULATED_FRAMES_PER_SECOND)+(lAudioMax*EMULATED_FRAMES_PER_SECOND));	// approximate max data rate
+    WriteLittleEndianLong((lVideoMax*EMULATED_FRAMES_PER_SECOND)+(lAudioMax*EMULATED_FRAMES_PER_SECOND));	// approximate max data rate
     WriteLittleEndianDWORD(0);				// reserved
     WriteLittleEndianDWORD((1<<8)|(1<<4));	// flags: bit 4 = has index(idx1), bit 5 = use index for AVI structure, bit 8 = interleaved file, bit 16 = optimized for live video capture, bit 17 = copyrighted data
     WriteLittleEndianDWORD(dwVideoFrames);	// total number of video frames
@@ -152,7 +157,7 @@ static bool WriteVideoHeader (FILE *f_)
     WriteLittleEndianDWORD(REAL_TSTATES_PER_SECOND); // rate
     WriteLittleEndianDWORD(0);				// start time
     WriteLittleEndianDWORD(dwVideoFrames);	// total frames in stream
-    WriteLittleEndianDWORD(lVideoMax);		// suggested buffer size
+    WriteLittleEndianLong(lVideoMax);		// suggested buffer size
     WriteLittleEndianDWORD(10000);			// quality
     WriteLittleEndianDWORD(0);				// sample size
     WriteLittleEndianWORD(0);				// left
@@ -221,7 +226,10 @@ static bool WriteAudioHeader (FILE *f_)
 
     // 8-bit?
     if (nAudioReduce >= 1)
-        wBits /= 2, wBlock /= 2;
+    {
+        wBits /= 2;
+        wBlock /= 2;
+    }
 
     // 22kHz?
     if (nAudioReduce >= 2)
@@ -229,7 +237,10 @@ static bool WriteAudioHeader (FILE *f_)
 
     // Mono?
     if (nAudioReduce >= 3)
-        wChannels /= 2, wBlock /= 2;
+    {
+        wChannels /= 2;
+        wBlock /= 2;
+    }
 
 
     fwrite("\0\0\0\0", 4, 1, f);			// FOURCC not specified (PCM below)
@@ -240,7 +251,7 @@ static bool WriteAudioHeader (FILE *f_)
     WriteLittleEndianDWORD(wFreq*wBlock);	// rate
     WriteLittleEndianDWORD(0);				// start time
     WriteLittleEndianDWORD(dwAudioSamples);	// total samples in stream
-    WriteLittleEndianDWORD(lAudioMax);		// suggested buffer size
+    WriteLittleEndianLong(lAudioMax);		// suggested buffer size
     WriteLittleEndianDWORD(0xffffffff);		// quality
     WriteLittleEndianDWORD(wBlock);			// sample size
     WriteLittleEndianDWORD(0);				// two unused rect coords
@@ -301,7 +312,7 @@ static bool WriteIndex (FILE *f_)
 
         // Write flags, offset and size to the index
         WriteLittleEndianDWORD(fKeyFrame ? 0x10 : 0x00);
-        WriteLittleEndianDWORD(lMoviPos);
+        WriteLittleEndianLong(lMoviPos);
         WriteLittleEndianDWORD(dwSize);
 
         // Calculate next position, aligned to even boundary
@@ -517,10 +528,10 @@ void Stop ()
     f = nullptr;
 
     // Free current frame data
-    delete[] pbCurr, pbCurr = nullptr;
+    delete[] pbCurr; pbCurr = nullptr;
 
     // Free resample buffer
-    delete[] pbResample, pbResample = nullptr;
+    delete[] pbResample; pbResample = nullptr;
 
     Frame::SetStatus("Saved %s", pszFile);
 }
@@ -715,11 +726,17 @@ void AddFrame (const BYTE *pb_, UINT uLen_)
         {
             // If the last sample count was odd, skip the first sample
             if (fOddLast)
-                pb_ += uBlock, uSamples--;
+            {
+                pb_ += uBlock;
+                uSamples--;
+            }
 
             // If the current sample count is odd, include the final sample
             if (uSamples & 1)
-                fOddLast = true, uSamples++;
+            {
+                fOddLast = true;
+                uSamples++;
+            }
 
             // 22kHz drops half the samples
             uSamples /= 2;

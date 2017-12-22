@@ -97,7 +97,11 @@ bool Init (bool fFirstInit_/*=false*/)
 
 void Exit (bool fReInit_/*=false*/)
 {
-    if (!fReInit_) delete[] pMemory, pMemory = nullptr;
+    if (!fReInit_)
+    {
+        delete[] pMemory;
+        pMemory = nullptr;
+    }
 }
 
 

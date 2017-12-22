@@ -48,10 +48,10 @@ SDLTexture::SDLTexture ()
 
 SDLTexture::~SDLTexture ()
 {
-    if (m_pScanlineTexture) SDL_DestroyTexture(m_pScanlineTexture), m_pScanlineTexture = nullptr;
-    if (m_pTexture) SDL_DestroyTexture(m_pTexture), m_pTexture = nullptr;
-    if (m_pRenderer) SDL_DestroyRenderer(m_pRenderer), m_pRenderer = nullptr;
-    if (m_pWindow) SDL_DestroyWindow(m_pWindow), m_pWindow = nullptr;
+    if (m_pScanlineTexture) { SDL_DestroyTexture(m_pScanlineTexture); m_pScanlineTexture = nullptr; }
+    if (m_pTexture) { SDL_DestroyTexture(m_pTexture); m_pTexture = nullptr; }
+    if (m_pRenderer) { SDL_DestroyRenderer(m_pRenderer); m_pRenderer = nullptr; }
+    if (m_pWindow) { SDL_DestroyWindow(m_pWindow); m_pWindow = nullptr; }
 }
 
 
@@ -90,7 +90,8 @@ bool SDLTexture::Init (bool fFirstInit_)
     if (!m_pRenderer)
     {
         TRACE("Failed to create SDL2 renderer!\n");
-        SDL_DestroyWindow(m_pWindow), m_pWindow = nullptr;
+        SDL_DestroyWindow(m_pWindow);
+        m_pWindow = nullptr;
         return false;
     }
 
@@ -101,8 +102,10 @@ bool SDLTexture::Init (bool fFirstInit_)
     if (!(ri.flags & SDL_RENDERER_ACCELERATED))
     {
         TRACE("SDLTexture: skipping non-accelerated renderer\n");
-        SDL_DestroyRenderer(m_pRenderer), m_pRenderer = nullptr;
-        SDL_DestroyWindow(m_pWindow), m_pWindow = nullptr;
+        SDL_DestroyRenderer(m_pRenderer);
+        m_pRenderer = nullptr;
+        SDL_DestroyWindow(m_pWindow);
+        m_pWindow = nullptr;
         return false;
     }
 
@@ -313,8 +316,8 @@ void SDLTexture::UpdateSize ()
     if (GetOption(fullscreen) != fFullscreen)
         SDL_SetWindowFullscreen(m_pWindow, GetOption(fullscreen) ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 
-    if (m_pScanlineTexture) SDL_DestroyTexture(m_pScanlineTexture), m_pScanlineTexture = nullptr;
-    if (m_pTexture) SDL_DestroyTexture(m_pTexture), m_pTexture = nullptr;
+    if (m_pScanlineTexture) { SDL_DestroyTexture(m_pScanlineTexture); m_pScanlineTexture = nullptr; }
+    if (m_pTexture) { SDL_DestroyTexture(m_pTexture); m_pTexture = nullptr; }
 
     int nWidth = Frame::GetWidth();
     int nHeight = Frame::GetHeight();

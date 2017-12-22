@@ -54,7 +54,6 @@ const BYTE FLOPPY_LED_COLOUR    = GREEN_5;  // Green for floppy
 const BYTE ATOM_LED_COLOUR      = RED_6;    // Red for Atom
 const BYTE ATOMLITE_LED_COLOUR  = 89;       // Blue for Atom Lite
 const BYTE LED_OFF_COLOUR       = GREY_2;   // Grey for off
-const BYTE UNDRAWN_COLOUR       = GREY_2;   // Grey for undrawn screen in debugger
 
 const unsigned int STATUS_ACTIVE_TIME = 2500;   // Time the status text is visible for (in ms)
 const unsigned int FPS_IN_TURBO_MODE = 5;       // Number of FPS to limit to in (non-key) Turbo mode
@@ -155,11 +154,11 @@ void Exit (bool fReInit_/*=false*/)
     GIF::Stop();
     AVI::Stop();
 
-    delete pFrame, pFrame = nullptr;
-    delete pScreen, pScreen = nullptr;
-    delete pLastScreen, pLastScreen = nullptr;
-    delete pGuiScreen, pGuiScreen = nullptr;
-    delete pLastGuiScreen, pLastGuiScreen = nullptr;
+    delete pFrame; pFrame = nullptr;
+    delete pScreen; pScreen = nullptr;
+    delete pLastScreen; pLastScreen = nullptr;
+    delete pGuiScreen; pGuiScreen = nullptr;
+    delete pLastGuiScreen; pLastGuiScreen = nullptr;
 
     pDisplayScreen = nullptr;
 }

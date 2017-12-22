@@ -341,10 +341,10 @@ const char *Breakpoint::GetDesc (BREAKPT *pBreak_)
         int nPage = PtrPage(pPhysAddr);
         int nOffset = PtrOffset(pPhysAddr);
 
-        if (nPage == AddrPage(0x0000)) nAddr2 = nAddr1, nAddr1 = 0x0000+nOffset;
-        if (nPage == AddrPage(0x4000)) nAddr2 = nAddr1, nAddr1 = 0x4000+nOffset;
-        if (nPage == AddrPage(0x8000)) nAddr2 = nAddr1, nAddr1 = 0x8000+nOffset;
-        if (nPage == AddrPage(0xc000)) nAddr2 = nAddr1, nAddr1 = 0xc000+nOffset;
+        if (nPage == AddrPage(0x0000)) { nAddr2 = nAddr1; nAddr1 = 0x0000+nOffset; }
+        if (nPage == AddrPage(0x4000)) { nAddr2 = nAddr1; nAddr1 = 0x4000+nOffset; }
+        if (nPage == AddrPage(0x8000)) { nAddr2 = nAddr1; nAddr1 = 0x8000+nOffset; }
+        if (nPage == AddrPage(0xc000)) { nAddr2 = nAddr1; nAddr1 = 0xc000+nOffset; }
 
         if (nAddr2 != -1)
         {

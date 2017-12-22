@@ -91,6 +91,6 @@ bool CAtaAdapter::Attach (CHardDisk *pDisk_, int nDevice_)
 
 void CAtaAdapter::Detach ()
 {
-    delete m_pDisk0, m_pDisk0 = nullptr;
-    delete m_pDisk1, m_pDisk1 = nullptr;
+    delete m_pDisk0; m_pDisk0 = nullptr;
+    delete m_pDisk1; m_pDisk1 = nullptr;
 }

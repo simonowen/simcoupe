@@ -53,7 +53,7 @@ void String (const char *pcsz_, bool fMapChars_)
 void Stop ()
 {
     // Clean up
-    delete[] pbInput, pbInput = nullptr;
+    delete[] pbInput; pbInput = nullptr;
 
     // Normal speed
     g_nTurbo &= ~TURBO_KEYIN;

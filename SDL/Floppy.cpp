@@ -492,7 +492,7 @@ void *CFloppyStream::ThreadProc ()
 // Dummy implementation for non-Linux SDL versions
 
 CFloppyStream::CFloppyStream (const char* pcszStream_, bool fReadOnly_/*=false*/)
-    : CStream(pcszStream_, fReadOnly_),
+    : CStream(pcszStream_, fReadOnly_)
 {
 }
 

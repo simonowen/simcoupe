@@ -36,7 +36,7 @@ CSID::CSID ()
 CSID::~CSID ()
 {
 #ifdef USE_RESID
-    delete m_pSID, m_pSID = nullptr;
+    delete m_pSID; m_pSID = nullptr;
 #endif
 }
 

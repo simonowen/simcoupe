@@ -398,9 +398,9 @@ void Stop ()
     fclose(f);
     f = nullptr;
 
-    delete[] pbCurr, pbCurr = nullptr;
-    delete[] pbFirst, pbFirst = nullptr;
-    delete[] pbSub, pbSub = nullptr;
+    delete[] pbCurr; pbCurr = nullptr;
+    delete[] pbFirst; pbFirst = nullptr;
+    delete[] pbSub; pbSub = nullptr;
 
     Frame::SetStatus("Saved %s", pszFile);
 }
@@ -468,7 +468,9 @@ void AddFrame (CScreen *pScreen_)
     {
         // Invalidate the stored image and mark the whole region
         memset(pbCurr, 0xff, size);
-        wl = wt = 0, ww = width, wh = height;
+        wl = wt = 0;
+        ww = width;
+        wh = height;
         nDelay = 0;
     }
 
@@ -491,7 +493,7 @@ void AddFrame (CScreen *pScreen_)
     // If we're looking for the end of a loop, compare with the first frame
     else if (pbFirst && !memcmp(pbFirst, pbCurr, size))
     {
-        delete[] pbFirst, pbFirst = nullptr;
+        delete[] pbFirst; pbFirst = nullptr;
         Stop();
         return;
     }

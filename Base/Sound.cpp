@@ -55,7 +55,7 @@ void Sound::Exit (bool fReInit_/*=false*/)
     WAV::Stop();
     AVI::Stop();
 
-    delete[] pbSampleBuffer, pbSampleBuffer = nullptr;
+    delete[] pbSampleBuffer; pbSampleBuffer = nullptr;
     Audio::Exit(fReInit_);
 }
 
@@ -268,7 +268,10 @@ static int AdjustSpeed (BYTE *pb_, int nSize_, int nSpeed_)
 
         // Double samples in reverse order
         for (int i = 0 ; i < nSize_ ; i += SAMPLE_BLOCK, pdwS--)
-            *pdwD-- = *pdwS, *pdwD-- = *pdwS;
+        {
+            *pdwD-- = *pdwS;
+            *pdwD-- = *pdwS;
+        }
 
         nSize_ *= 2;
     }

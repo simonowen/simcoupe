@@ -43,6 +43,7 @@
 #endif
 
 typedef unsigned int        UINT;
+typedef unsigned long       ULONG;
 
 #include <stdio.h>
 #include <stdarg.h>
