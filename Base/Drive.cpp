@@ -107,8 +107,8 @@ void CDrive::FrameEnd ()
 inline void CDrive::ModifyStatus (BYTE bSet_, BYTE bReset_)
 {
     // Reset then set the specified bits
-    m_sRegs.bStatus &= ~bReset_;
     m_sRegs.bStatus |= bSet_;
+	m_sRegs.bStatus &= ~bReset_;
 
     // If the motor enable bit is set, update the last used time
     if (bSet_ & MOTOR_ON)
@@ -211,13 +211,13 @@ void CDrive::ExecuteNext ()
                 m_sRegs.bSector = pId->bTrack;
 
                 m_uBuffer = sizeof(IDFIELD);
-                ModifyStatus(bStatus|DRQ, 0);   // Don't clear BUSY yet!
+                ModifyStatus(DRQ, 0);
             }
 
             // Set the error status, resetting BUSY so the client sees the error
             else
             {
-                ModifyStatus(bStatus, BUSY);
+                ModifyStatus(bReadStatus, BUSY);
                 m_uBuffer = 0;
             }
 
@@ -285,19 +285,23 @@ BYTE CDrive::In (WORD wPort_)
                 }
             }
 
-            // SAM DICE relies on a strange error condition, which requires special handling
-            else if ((m_sRegs.bCommand & FDC_COMMAND_MASK) == READ_ADDRESS)
+			// Monitor progress reading or writing data for basic support of the lost data condition.
+            // SAM DICE uses a deliberate READ_ADDRESS data timeout as a synchronisation mechanism.
+            else if (m_uBuffer)
             {
-                static int nBusyTimeout = 0;
+				static int nDataTimeout = 0;
+				static UINT uLastBuffer = 0;
 
                 // Clear busy after 16 polls of the status port
-                if (!(bRet & BUSY))
-                    nBusyTimeout = 0;
-                else if (!(++nBusyTimeout & 0x0f))
+                if (uLastBuffer != m_uBuffer)
+					nDataTimeout = 0;
+                else if (!(++nDataTimeout & 0x0f))
                 {
-                    ModifyStatus(0, BUSY);
+                    ModifyStatus(LOST_DATA, BUSY);
                     m_bSectorIndex = 0;
                 }
+
+				uLastBuffer = m_uBuffer;
             }
 
             break;
