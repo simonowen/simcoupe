@@ -192,10 +192,10 @@ std::string LookupAddr (WORD wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*=fa
     bool fInROM = AddrPage(PC) == ROM0 || AddrPage(PC) == ROM1;
 
     // Select the ROM or user-defined RAM symbol table
-    AddrToSym &symtab = (fROM || fInROM) ? rom_symbols : ram_symbols;
+    auto &symtab = (fROM || fInROM) ? rom_symbols : ram_symbols;
 
     // Look up the address
-    AddrToSym::iterator it = symtab.find(wAddr_);
+    auto it = symtab.find(wAddr_);
 
     // If that failed (and we're allowed) look for an offset to a nearby symbol
     if (it == symtab.end() && fAllowOffset_)
