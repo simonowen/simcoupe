@@ -51,9 +51,9 @@ class CView : public CWindow
     public:
         bool OnMessage (int /*nMessage_*/, int /*nParam1_*/, int /*nParam2_*/) override { return false; }
 
-        WORD GetAddress () const { return m_wAddr; }
-        virtual void SetAddress (WORD wAddr_, bool /*fForceTop_*/=false) { m_wAddr = wAddr_; }
-        virtual bool cmdNavigate (int nKey_, int nMods_) = 0;
+        WORD GetAddress () const;
+        virtual void SetAddress (WORD wAddr_, bool /*fForceTop_*/=false);
+		virtual bool cmdNavigate (int nKey_, int nMods_);
 
     private:
         WORD m_wAddr = 0;
@@ -129,6 +129,7 @@ class CTxtView : public CView
         ~CTxtView () { delete[] m_pszData; }
 
     public:
+		bool GetAddrPosition (WORD wAddr_, int &x_, int &y_);
         void SetAddress (WORD wAddr_, bool fForceTop_=false) override;
         void Draw (CScreen* pScreen_) override;
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_) override;
@@ -139,6 +140,7 @@ class CTxtView : public CView
     private:
         int m_nRows = 0, m_nColumns = 0;
         char *m_pszData = nullptr;
+		std::vector<WORD> m_aAccesses{};
 
         bool m_fEditing = false;
         WORD m_wEditAddr = 0;
@@ -153,6 +155,7 @@ class CHexView : public CView
         ~CHexView () { delete[] m_pszData; }
 
     public:
+		bool GetAddrPosition (WORD wAddr_, int &x_, int &y_, int &textx_);
         void SetAddress (WORD wAddr_, bool fForceTop_=false) override;
         void Draw (CScreen* pScreen_) override;
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_) override;
@@ -163,6 +166,7 @@ class CHexView : public CView
     private:
         int m_nRows = 0, m_nColumns = 0;
         char *m_pszData = nullptr;
+		std::vector<WORD> m_aAccesses{};
 
         bool m_fEditing = false, m_fRightNibble = false;
         WORD m_wEditAddr = 0;
@@ -258,7 +262,7 @@ class CDebugger final : public CDialog
         void Draw (CScreen* pScreen_) override;
 
         void Refresh ();
-        void SetSubTitle (const char *pcszSubTitle_);
+		void SetSubTitle (const char *pcszSubTitle_);
         void SetAddress (WORD wAddr_, bool fForceTop_=false);
         void SetView (ViewType nView);
         void SetStatus (const char *pcsz_, bool fOneShot_=false, const GUIFONT *pFont_=nullptr);
@@ -266,7 +270,6 @@ class CDebugger final : public CDialog
         bool Execute (const char* pcszCommand_);
 
     protected:
-        ViewType m_nView = vtDis;
         CView *m_pView = nullptr;
         CEditControl *m_pCommandEdit = nullptr;
         CTextControl *m_pStatus = nullptr;

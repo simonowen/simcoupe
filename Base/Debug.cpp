@@ -83,6 +83,8 @@ Z80Regs sLastRegs, sCurrRegs;
 BYTE bLastStatus;
 DWORD dwLastCycle;
 int nLastFrames;
+ViewType nLastView = vtDis;
+WORD wLastAddr;
 
 // Instruction tracing
 #define TRACE_SLOTS 1000
@@ -168,7 +170,7 @@ void Refresh ()
     if (pDebugger)
     {
         // Set the address without forcing it to the top of the window
-        pDebugger->SetAddress(PC, false);
+		pDebugger->SetAddress((nLastView == vtDis) ? PC : wLastAddr, false);
 
         // Re-test breakpoints for the likely changed location
         BreakpointHit();
@@ -448,6 +450,36 @@ static bool OnModeNotify (EXPR *pExpr_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+WORD CView::GetAddress() const
+{
+	return m_wAddr;
+}
+
+void CView::SetAddress (WORD wAddr_, bool /*fForceTop_*/)
+{
+	m_wAddr = wAddr_;
+	wLastAddr = wAddr_;
+}
+
+bool CView::cmdNavigate(int nKey_, int nMods_)
+{
+	switch (nKey_)
+	{
+        case HK_KP7:  cmdStep(1, nMods_ != HM_NONE); break;
+		case HK_KP8:  cmdStepOver(nMods_ == HM_CTRL); break;
+		case HK_KP9:  cmdStepOut();     break;
+		case HK_KP4:  cmdStep(10);      break;
+		case HK_KP5:  cmdStep(100);     break;
+		case HK_KP6:  cmdStep(1000);    break;
+
+		default:	  return false;
+	}
+
+	return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 CTextView::CTextView (CWindow *pParent_)
 : CView(pParent_), m_nRows(m_nHeight / ROW_HEIGHT)
 {
@@ -646,16 +678,19 @@ void CDebugger::SetView (ViewType nView_)
         SetSubTitle(pNewView->GetText());
 
         if (!m_pView)
-            pNewView->SetAddress(PC);
+		{
+			pNewView->SetAddress((nView_ == vtDis) ? PC : wLastAddr);
+		}
         else
         {
             // Transfer the current address select, then replace the old one
             pNewView->SetAddress(m_pView->GetAddress());
             m_pView->Destroy();
+			m_pView = nullptr;
         }
 
         m_pView = pNewView;
-        m_nView = nView_;
+        nLastView = nView_;
     }
 }
 
@@ -728,8 +763,8 @@ void CDebugger::Draw (CScreen* pScreen_)
         R = (R7 & 0x80) | (R & 0x7f);
         sCurrRegs = regs;
 
-        // Set the disassembly view
-        SetView(vtDis);
+        // Set the last view
+        SetView(nLastView);
     }
 
     CDialog::Draw(pScreen_);
@@ -758,7 +793,7 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     m_pCommandEdit->Destroy();
                     m_pCommandEdit = nullptr;
                 }
-                else if (m_nView != vtDis)
+                else if (nLastView != vtDis)
                 {
                     SetView(vtDis);
                     SetAddress(PC);
@@ -1839,23 +1874,6 @@ bool CDisView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                         cmdStepOver();
                     break;
 
-                case HK_KP7:  cmdStep(1, nParam2_ != HM_NONE); break;
-                case HK_KP8:  cmdStepOver(nParam2_ == HM_CTRL); break;
-                case HK_KP9:  cmdStepOut();     break;
-                case HK_KP4:  cmdStep(10);      break;
-                case HK_KP5:  cmdStep(100);     break;
-                case HK_KP6:  cmdStep(1000);    break;
-
-                case HK_UP:
-                case HK_DOWN:
-                case HK_LEFT:
-                case HK_RIGHT:
-                case HK_PGUP:
-                case HK_PGDN:
-                case HK_HOME:
-                case HK_END:
-                    return cmdNavigate(nParam1_, nParam2_);
-
                 case 's':
                     m_fUseSymbols = !m_fUseSymbols;
                     pDebugger->Refresh();
@@ -1865,7 +1883,7 @@ bool CDisView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
                     break;
 
                 default:
-                    return false;
+                    return cmdNavigate(nParam1_, nParam2_);
             }
             break;
         }
@@ -1972,7 +1990,7 @@ bool CDisView::cmdNavigate (int nKey_, int nMods_)
         }
 
         default:
-            return false;
+            return CView::cmdNavigate(nKey_, nMods_);
     }
 
     SetAddress(wAddr, !fCtrl);
@@ -2232,6 +2250,7 @@ CTxtView::CTxtView (CWindow* pParent_)
 void CTxtView::SetAddress (WORD wAddr_, bool /*fForceTop_*/)
 {
     CView::SetAddress(wAddr_);
+	m_aAccesses.clear();
 
     char* psz = m_pszData;
     for (int i = 0 ; i < m_nRows ; i++)
@@ -2243,6 +2262,13 @@ void CTxtView::SetAddress (WORD wAddr_, bool /*fForceTop_*/)
 
         for (int j = 0 ; j < 64 ; j++)
         {
+			// Remember addresses matching the last read/write access.
+			if ((AddrReadPtr(wAddr_) == pbMemRead1 || AddrReadPtr(wAddr_) == pbMemRead2) ||
+				(AddrWritePtr(wAddr_) == pbMemWrite1 || AddrReadPtr(wAddr_) == pbMemWrite2))
+			{
+				m_aAccesses.push_back(wAddr_);
+			}
+
             BYTE b = read_byte(wAddr_++);
             *psz++ = (b >= ' ' && b <= 0x7f) ? b : '.';
         }
@@ -2253,9 +2279,36 @@ void CTxtView::SetAddress (WORD wAddr_, bool /*fForceTop_*/)
     *psz = '\0';
 }
 
+bool CTxtView::GetAddrPosition (WORD wAddr_, int &x_, int &y_)
+{
+	WORD wOffset = wAddr_ - GetAddress();
+	int nRow = wOffset / TXT_COLUMNS;
+	int nCol = wOffset % TXT_COLUMNS;
+
+	if (nRow >= m_nRows)
+		return false;
+
+	x_ = m_nX + (4 + 2 + nCol) * CHAR_WIDTH;
+	y_ = m_nY + nRow * ROW_HEIGHT;
+
+	return true;
+}
 
 void CTxtView::Draw (CScreen* pScreen_)
 {
+	int nX, nY;
+
+	// Change the background colour of locations matching the last read/write access.
+	for (auto wAddr : m_aAccesses)
+	{
+		bool fRead = AddrReadPtr(wAddr) == pbMemRead1 || AddrReadPtr(wAddr) == pbMemRead2;
+		bool fWrite = AddrWritePtr(wAddr) == pbMemWrite1 || AddrWritePtr(wAddr) == pbMemWrite2;
+		BYTE bColour = (fRead && fWrite) ? YELLOW_3 : fWrite ? RED_3 : GREEN_3;
+		if (GetAddrPosition(wAddr, nX, nY))
+		{
+			pScreen_->FillRect(nX - 1, nY - 1, CHAR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
+		}
+	}
 
     UINT u = 0;
     for (char* psz = m_pszData ; *psz ; psz += strlen(psz)+1, u++)
@@ -2266,24 +2319,13 @@ void CTxtView::Draw (CScreen* pScreen_)
         pScreen_->DrawString(nX, nY, psz, WHITE);
     }
 
-    if (m_fEditing)
+    if (m_fEditing && GetAddrPosition(m_wEditAddr, nX, nY))
     {
-        WORD wOffset = m_wEditAddr - GetAddress();
-
         BYTE b = read_byte(m_wEditAddr);
         char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
 
-        int nRow = wOffset / TXT_COLUMNS;
-        int nCol = wOffset % TXT_COLUMNS;
-
-        if (nRow < m_nRows)
-        {
-            int nX = m_nX + (4 + 2 + nCol) * CHAR_WIDTH;
-            int nY = m_nY + nRow*ROW_HEIGHT;
-
-            pScreen_->FillRect(nX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, YELLOW_8);
-            pScreen_->Printf(nX, nY, "\ak%c", ch);
-        }
+        pScreen_->FillRect(nX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, YELLOW_8);
+        pScreen_->Printf(nX, nY, "\ak%c", ch);
 
         pDebugger->SetStatusByte(m_wEditAddr);
     }
@@ -2384,7 +2426,7 @@ bool CTxtView::cmdNavigate (int nKey_, int nMods_)
                 break;
             }
 
-            return false;
+            return CView::cmdNavigate(nKey_, nMods_);
         }
     }
 
@@ -2423,6 +2465,7 @@ CHexView::CHexView (CWindow* pParent_)
 void CHexView::SetAddress (WORD wAddr_, bool /*fForceTop_*/)
 {
     CView::SetAddress(wAddr_);
+	m_aAccesses.clear();
 
     char* psz = m_pszData;
     for (int i = 0 ; i < m_nRows ; i++)
@@ -2437,6 +2480,13 @@ void CHexView::SetAddress (WORD wAddr_, bool /*fForceTop_*/)
 
         for (int j = 0 ; j < HEX_COLUMNS ; j++)
         {
+			// Remember addresses matching the last read/write access.
+			if ((AddrReadPtr(wAddr_) == pbMemRead1 || AddrReadPtr(wAddr_) == pbMemRead2) ||
+				(AddrWritePtr(wAddr_) == pbMemWrite1 || AddrReadPtr(wAddr_) == pbMemWrite2))
+			{
+				m_aAccesses.push_back(wAddr_);
+			}
+
             BYTE b = read_byte(wAddr_++);
             psz[(HEX_COLUMNS-j)*3 + 1 + j] = (b >= ' ' && b <= 0x7f) ? b : '.';
             psz += sprintf(psz, "%02X ", b);
@@ -2452,10 +2502,40 @@ void CHexView::SetAddress (WORD wAddr_, bool /*fForceTop_*/)
         pDebugger->SetStatusByte(m_wEditAddr);
 }
 
+bool CHexView::GetAddrPosition (WORD wAddr_, int &x_, int &y_, int &textx_)
+{
+	WORD wOffset = wAddr_ - GetAddress();
+	int nRow = wOffset / HEX_COLUMNS;
+	int nCol = wOffset % HEX_COLUMNS;
+
+	if (nRow >= m_nRows)
+		return false;
+
+	x_ = m_nX + (4 + 2 + nCol * 3) * CHAR_WIDTH;
+	y_ = m_nY + ROW_HEIGHT * nRow;
+	textx_ = m_nX + (4 + 2 + HEX_COLUMNS * 3 + 1 + nCol) * CHAR_WIDTH;
+
+	return true;
+}
 
 void CHexView::Draw (CScreen* pScreen_)
 {
-    UINT u = 0;
+	int nX, nY, nTextX;
+
+	// Change the background colour of locations matching the last read/write access.
+	for (auto wAddr : m_aAccesses)
+	{
+		bool fRead = AddrReadPtr(wAddr) == pbMemRead1 || AddrReadPtr(wAddr) == pbMemRead2;
+		bool fWrite = AddrWritePtr(wAddr) == pbMemWrite1 || AddrWritePtr(wAddr) == pbMemWrite2;
+		BYTE bColour = (fRead && fWrite) ? YELLOW_3 : fWrite ? RED_3 : GREEN_3;
+		if (GetAddrPosition(wAddr, nX, nY, nTextX))
+		{
+			pScreen_->FillRect(nX - 1, nY - 1, CHAR_WIDTH * 2 + 1, ROW_HEIGHT - 3, bColour);
+			pScreen_->FillRect(nTextX - 1, nY - 1, CHAR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
+		}
+	}
+	
+	UINT u = 0;
     for (char* psz = m_pszData ; *psz ; psz += strlen(psz)+1, u++)
     {
         int nX = m_nX;
@@ -2464,30 +2544,21 @@ void CHexView::Draw (CScreen* pScreen_)
         pScreen_->DrawString(nX, nY, psz, WHITE);
     }
 
-    if (m_fEditing)
+    if (m_fEditing && GetAddrPosition(m_wEditAddr, nX, nY, nTextX))
     {
-        WORD wOffset = m_wEditAddr - GetAddress();
-
         char sz[3];
         BYTE b = read_byte(m_wEditAddr);
         snprintf(sz, 3, "%02X", b);
 
-        int nRow = wOffset / HEX_COLUMNS;
-        int nCol = wOffset % HEX_COLUMNS;
+		if (m_fRightNibble)
+			nY += CHAR_WIDTH;
 
-        if (nRow < m_nRows)
-        {
-            int nX = m_nX + (4 + 2 + nCol*3 + m_fRightNibble) * CHAR_WIDTH;
-            int nY = m_nY + ROW_HEIGHT*nRow;
+        pScreen_->FillRect(nX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, YELLOW_8);
+        pScreen_->Printf(nX, nY, "\ak%c", sz[m_fRightNibble]);
 
-            pScreen_->FillRect(nX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, YELLOW_8);
-            pScreen_->Printf(nX, nY, "\ak%c", sz[m_fRightNibble]);
-
-            nX = m_nX + (4 + 2 + HEX_COLUMNS*3 + 1 + nCol) * CHAR_WIDTH;
-            char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
-            pScreen_->FillRect(nX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, GREY_6);
-            pScreen_->Printf(nX, nY, "\ak%c", ch);
-        }
+        char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
+        pScreen_->FillRect(nTextX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, GREY_6);
+        pScreen_->Printf(nTextX, nY, "\ak%c", ch);
     }
 }
 
@@ -2582,7 +2653,7 @@ bool CHexView::cmdNavigate (int nKey_, int nMods_)
         default:
         {
             // In editing mode allow new hex values to be typed
-            if (m_fEditing && isxdigit(nKey_))
+            if (m_fEditing && nKey_ >= '0' && nKey_ <= 'f' && isxdigit(nKey_))
             {
                 BYTE bNibble = isdigit(nKey_) ? nKey_-'0' : 10+tolower(nKey_)-'a';
 
@@ -2602,7 +2673,7 @@ bool CHexView::cmdNavigate (int nKey_, int nMods_)
                 break;
             }
 
-            return false;
+            return CView::cmdNavigate(nKey_, nMods_);
         }
     }
 
@@ -2860,7 +2931,7 @@ bool CGfxView::cmdNavigate (int nKey_, int nMods_)
             break;
 
         default:
-            return false;
+            return CView::cmdNavigate(nKey_, nMods_);
     }
 
     SetAddress(wAddr, true);
@@ -2963,7 +3034,7 @@ bool CBptView::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-bool CBptView::cmdNavigate (int nKey_, int /*nMods_*/)
+bool CBptView::cmdNavigate (int nKey_, int nMods_)
 {
     switch (nKey_)
     {
@@ -2981,7 +3052,7 @@ bool CBptView::cmdNavigate (int nKey_, int /*nMods_*/)
         case HK_PGDN:   m_nTopLine += m_nRows; break;
 
         default:
-            return false;
+            return CView::cmdNavigate(nKey_, nMods_);
     }
 
     if (m_nTopLine < 0)
