@@ -530,7 +530,7 @@ void CATADevice::SetIdentifyData (IDENTIFYDEVICE *pid_)
     // Form an 8-character string from the current date, to use as firmware revision
     time_t tNow = time(nullptr);
     tm *ptm = localtime(&tNow);
-    char szDate[9] = {};
+    char szDate[64] = {};
     snprintf(szDate, sizeof(szDate)-1, "%04u%02u%02u", ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);
 
     // Serial number, firmware revision and model number

@@ -62,7 +62,7 @@ static const char * aszBasicKeywords[] = {
 
 static const int ROW_GAP = 2;
 static const int ROW_HEIGHT = ROW_GAP+sFixedFont.wHeight+ROW_GAP;
-static const int CHAR_WIDTH = sFixedFont.wWidth+CHAR_SPACING;
+static const int CHR_WIDTH = sFixedFont.wWidth+CHAR_SPACING;
 
 typedef struct
 {
@@ -1609,7 +1609,7 @@ CDisView::CDisView (CWindow* pParent_)
 
     // Calculate the number of rows and columns in the view
     m_uRows = m_nHeight / ROW_HEIGHT;
-    m_uColumns = m_nWidth / CHAR_WIDTH;
+    m_uColumns = m_nWidth / CHR_WIDTH;
 
     // Allocate enough for a full screen of characters, plus room for colour codes
     m_pszData = new char[m_uRows * m_uColumns * 2];
@@ -1707,12 +1707,12 @@ void CDisView::Draw (CScreen* pScreen_)
         {
             // The location bar is green for a change in code flow or yellow otherwise, with black text
             BYTE bBarColour = (m_uCodeTarget != INVALID_TARGET) ? GREEN_7 : YELLOW_7;
-            pScreen_->FillRect(nX-1, nY-1, BAR_CHAR_LEN*CHAR_WIDTH+1, ROW_HEIGHT-3, bBarColour);
+            pScreen_->FillRect(nX-1, nY-1, BAR_CHAR_LEN*CHR_WIDTH+1, ROW_HEIGHT-3, bBarColour);
             bColour = 'k';
 
             // Add a direction arrow if we have a code target
             if (m_uCodeTarget != INVALID_TARGET)
-                pScreen_->DrawString(nX+CHAR_WIDTH*(BAR_CHAR_LEN-1), nY, (m_uCodeTarget<=PC)?"\x80":"\x81", BLACK);
+                pScreen_->DrawString(nX+CHR_WIDTH*(BAR_CHAR_LEN-1), nY, (m_uCodeTarget<=PC)?"\x80":"\x81", BLACK);
         }
 
         // Check for a breakpoint at the current address.
@@ -2288,7 +2288,7 @@ bool CTxtView::GetAddrPosition (WORD wAddr_, int &x_, int &y_)
 	if (nRow >= m_nRows)
 		return false;
 
-	x_ = m_nX + (4 + 2 + nCol) * CHAR_WIDTH;
+	x_ = m_nX + (4 + 2 + nCol) * CHR_WIDTH;
 	y_ = m_nY + nRow * ROW_HEIGHT;
 
 	return true;
@@ -2306,7 +2306,7 @@ void CTxtView::Draw (CScreen* pScreen_)
 		BYTE bColour = (fRead && fWrite) ? YELLOW_3 : fWrite ? RED_3 : GREEN_3;
 		if (GetAddrPosition(wAddr, nX, nY))
 		{
-			pScreen_->FillRect(nX - 1, nY - 1, CHAR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
+			pScreen_->FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
 		}
 	}
 
@@ -2324,7 +2324,7 @@ void CTxtView::Draw (CScreen* pScreen_)
         BYTE b = read_byte(m_wEditAddr);
         char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
 
-        pScreen_->FillRect(nX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, YELLOW_8);
+        pScreen_->FillRect(nX-1, nY-1, CHR_WIDTH+1, ROW_HEIGHT-3, YELLOW_8);
         pScreen_->Printf(nX, nY, "\ak%c", ch);
 
         pDebugger->SetStatusByte(m_wEditAddr);
@@ -2511,9 +2511,9 @@ bool CHexView::GetAddrPosition (WORD wAddr_, int &x_, int &y_, int &textx_)
 	if (nRow >= m_nRows)
 		return false;
 
-	x_ = m_nX + (4 + 2 + nCol * 3) * CHAR_WIDTH;
+	x_ = m_nX + (4 + 2 + nCol * 3) * CHR_WIDTH;
 	y_ = m_nY + ROW_HEIGHT * nRow;
-	textx_ = m_nX + (4 + 2 + HEX_COLUMNS * 3 + 1 + nCol) * CHAR_WIDTH;
+	textx_ = m_nX + (4 + 2 + HEX_COLUMNS * 3 + 1 + nCol) * CHR_WIDTH;
 
 	return true;
 }
@@ -2530,11 +2530,11 @@ void CHexView::Draw (CScreen* pScreen_)
 		BYTE bColour = (fRead && fWrite) ? YELLOW_3 : fWrite ? RED_3 : GREEN_3;
 		if (GetAddrPosition(wAddr, nX, nY, nTextX))
 		{
-			pScreen_->FillRect(nX - 1, nY - 1, CHAR_WIDTH * 2 + 1, ROW_HEIGHT - 3, bColour);
-			pScreen_->FillRect(nTextX - 1, nY - 1, CHAR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
+			pScreen_->FillRect(nX - 1, nY - 1, CHR_WIDTH * 2 + 1, ROW_HEIGHT - 3, bColour);
+			pScreen_->FillRect(nTextX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
 		}
 	}
-	
+
 	UINT u = 0;
     for (char* psz = m_pszData ; *psz ; psz += strlen(psz)+1, u++)
     {
@@ -2551,13 +2551,13 @@ void CHexView::Draw (CScreen* pScreen_)
         snprintf(sz, 3, "%02X", b);
 
 		if (m_fRightNibble)
-			nY += CHAR_WIDTH;
+			nY += CHR_WIDTH;
 
-        pScreen_->FillRect(nX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, YELLOW_8);
+        pScreen_->FillRect(nX-1, nY-1, CHR_WIDTH+1, ROW_HEIGHT-3, YELLOW_8);
         pScreen_->Printf(nX, nY, "\ak%c", sz[m_fRightNibble]);
 
         char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
-        pScreen_->FillRect(nTextX-1, nY-1, CHAR_WIDTH+1, ROW_HEIGHT-3, GREY_6);
+        pScreen_->FillRect(nTextX-1, nY-1, CHR_WIDTH+1, ROW_HEIGHT-3, GREY_6);
         pScreen_->Printf(nTextX, nY, "\ak%c", ch);
     }
 }
