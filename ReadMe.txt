@@ -522,7 +522,7 @@ Debugger Command Mode:
           bpu COND = breakpoint on condition (permanent)
           bpx ADDR = execute breakpoint at ADDR with optional condition
  bpm ADDR [r|w|rw] = memory breakpoint with optional access specifier
- bmpr A B [r|w|rw] = memory range breakpoint between locations A and B
+ bpmr A B [r|w|rw] = memory range breakpoint between locations A and B
    bpio P [rw|r|w] = I/O breakpoint on port P
            bpint I = breakpoint on interrupt (frame/line/midi/midiin/midiout)
  flag +|- sz5h3vnc = set and/or reset flag bits
