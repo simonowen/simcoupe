@@ -29,7 +29,9 @@
 #include "SimCoupe.h"
 #include "PNG.h"
 
+#ifdef USE_ZLIB
 #include "zlib.h"
+#endif
 
 #include "Frame.h"
 #include "Options.h"
