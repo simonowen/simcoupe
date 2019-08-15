@@ -1,21 +1,4 @@
-# CMake file for SDL build of SimCoupe
-
-cmake_minimum_required(VERSION 2.6)
-
-project(simcoupe)
-
-include(FindPkgConfig)
-include(CheckCXXCompilerFlag)
-
-set(CMAKE_BUILD_TYPE Release)
-
-set(RESOURCE_DIR ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME})
-add_definitions(-DRESOURCE_DIR="${RESOURCE_DIR}/")
-
-include_directories(Base/ SDL/)
-
-file(GLOB BASE_SRC Base/*.cpp Base/*.c)
-file(GLOB SDL_SRC SDL/*.cpp)
+cmake_minimum_required(VERSION 3.3)
 
 # Recommend native Win32/Mac building as they're not well supported yet
 if (APPLE)
@@ -24,49 +7,35 @@ elseif (WIN32)
   message(FATAL_ERROR "Please use Visual Studio for Windows builds")
 endif ()
 
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-if (COMPILER_SUPPORTS_CXX11)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-else ()
-  message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support.")
-endif ()
+file(GLOB BASE_SRC Base/*.cpp Base/*.c)
+file(GLOB SDL_SRC SDL/*.cpp)
+#file(GLOB WIN_SRC Win32/*.cpp Win32/*.rc Win32/Shaders/*Shader.hlsl)
+endif()
+
+add_executable(simcoupe WIN32 MACOSX_BUNDLE ${BASE_SRC} ${SDL_SRC} ${WIN_SRC})
+target_include_directories(simcoupe PRIVATE Base SDL)
+
+include(FindPkgConfig)
+include(CheckCXXCompilerFlag)
 
 CHECK_CXX_COMPILER_FLAG("-stdlib=libc++" COMPILER_SUPPORTS_STDLIBCXX)
-if (COMPILER_SUPPORTS_STDLIBCXX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+if (COMPILER_SUPPORTS_STDLIBCXX AND NOT APPLE)
+  target_compile_options(simcoupe PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-stdlib=libstdc++>)
 endif ()
-
-CHECK_CXX_COMPILER_FLAG("-Weffc++" COMPILER_SUPPORTS_EFFCXX)
-if (COMPILER_SUPPORTS_EFFCXX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Weffc++")
-endif ()
-
-CHECK_CXX_COMPILER_FLAG("-Wsuggest-override" COMPILER_SUPPORTS_WSUGGEST)
-if (COMPILER_SUPPORTS_WSUGGEST)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
-endif ()
-
-if (CMAKE_BUILD_TOOL MATCHES "make")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
-elseif (CMAKE_BUILD_TOOL MATCHES "(msdev|devenv|nmake)")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
-endif ()
-
 
 pkg_search_module(SDL2 sdl2)
 if (SDL2_FOUND)
   message(STATUS "Using SDL2")
-  add_definitions(-DUSE_SDL2)
-  include_directories(${SDL2_INCLUDE_DIRS})
+  target_compile_definitions(simcoupe PRIVATE USE_SDL2=1)
+  target_include_directories(simcoupe PRIVATE ${SDL2_INCLUDE_DIRS})
   link_directories(${SDL2_LIBRARY_DIRS})
-  link_libraries(${SDL2_LIBRARIES})
+  target_link_libraries(simcoupe ${SDL2_LIBRARIES})
 else ()
-  include(FindPkgConfig)
   pkg_search_module(SDL sdl)
   if (SDL_FOUND)
-    include_directories(${SDL_INCLUDE_DIRS})
+    target_include_directories(simcoupe PRIVATE ${SDL_INCLUDE_DIRS})
     link_directories(${SDL_LIBRARY_DIRS})
-    link_libraries(${SDL_LIBRARIES})
+    target_link_libraries(simcoupe ${SDL_LIBRARIES})
   else ()
     message(SEND_ERROR "This program requires SDL 1.2 or SDL 2.0 [recommended]")
   endif ()
@@ -76,54 +45,60 @@ find_library(SPECTRUM_LIBRARY NAMES spectrum ENV LD_LIBRARY_PATH)
 find_path(SPECTRUM_INCLUDE_DIR libspectrum.h)
 if (SPECTRUM_LIBRARY AND SPECTRUM_INCLUDE_DIR)
   message(STATUS "Using libspectrum")
-  add_definitions(-DUSE_LIBSPECTRUM)
-  include_directories(${SPECTRUM_INCLUDE_DIR})
-  link_libraries(${SPECTRUM_LIBRARY})
+  target_compile_definitions(simcoupe PRIVATE USE_LIBSPECTRUM=1)
+  target_include_directories(simcoupe PRIVATE ${SPECTRUM_INCLUDE_DIR})
+  target_link_libraries(simcoupe ${SPECTRUM_LIBRARY})
 endif ()
 
 set(CMAKE_THREAD_PREFER_PTHREAD pthread)
 find_package(Threads REQUIRED)
-link_libraries(${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(simcoupe ${CMAKE_THREAD_LIBS_INIT})
 
 find_package(ZLIB)
 if (ZLIB_FOUND)
-  message(STATUS "Using Zlib")
-  add_definitions(-DUSE_ZLIB)
-  include_directories(${ZLIB_INCLUDE_DIR})
-  link_libraries(${ZLIB_LIBRARY})
+  message(STATUS "Using zlib")
+  target_compile_definitions(simcoupe PRIVATE USE_ZLIB=1)
+  target_include_directories(simcoupe PRIVATE ${ZLIB_INCLUDE_DIR})
+  target_link_libraries(simcoupe ${ZLIB_LIBRARY})
 endif ()
 
 find_package(BZip2)
 if (BZIP2_FOUND)
-  message(STATUS "Using BZip2")
-  add_definitions(-DUSE_BZIP2)
-  include_directories(${BZIP2_INCLUDE_DIR})
-  link_libraries(${BZIP2_LIBRARIES})
+  message(STATUS "Using bzip2")
+  target_compile_definitions(simcoupe PRIVATE USE_BZIP2=1)
+  target_include_directories(simcoupe PRIVATE ${BZIP2_INCLUDE_DIR})
+  target_link_libraries(simcoupe ${BZIP2_LIBRARIES})
 endif ()
 
 find_library(RESID_LIBRARY NAMES resid ENV LD_LIBRARY_PATH)
 find_path(RESID_INCLUDE_DIR resid/sid.h)
 if (RESID_LIBRARY AND RESID_INCLUDE_DIR)
-  message(STATUS "Using reSID")
-  add_definitions(-DUSE_RESID)
-  include_directories(${RESID_INCLUDE_DIR})
-  link_libraries(${RESID_LIBRARY})
+  message(STATUS "Using resid")
+  target_compile_definitions(simcoupe PRIVATE USE_RESID=1)
+  target_include_directories(simcoupe PRIVATE ${RESID_INCLUDE_DIR})
+  target_link_libraries(simcoupe ${RESID_LIBRARY})
 else ()
   message(STATUS "Could NOT find reSID library for SID support")
 endif ()
 
+
+set_property(TARGET simcoupe PROPERTY CMAKE_BUILD_TYPE Release)
+
 if (CMAKE_BUILD_TYPE MATCHES Debug)
-  add_definitions(-D_DEBUG)
+  target_compile_definitions(simcoupe PRIVATE _DEBUG=1)
 endif ()
 
-add_definitions(-DINSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}")
+if (CMAKE_BUILD_TOOL MATCHES "make")
+  target_compile_options(simcoupe PRIVATE -Wall -pedantic)
+elseif (CMAKE_BUILD_TOOL MATCHES "(msdev|devenv|nmake)")
+  target_compile_options(simcoupe PRIVATE /W4)
+endif ()
 
-add_executable(${PROJECT_NAME} WIN32 MACOSX_BUNDLE ${BASE_SRC} ${SDL_SRC})
+set_property(TARGET simcoupe PROPERTY CXX_STANDARD 11)
+set_property(TARGET simcoupe PROPERTY INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}")
 
-install(TARGETS ${PROJECT_NAME}
-  DESTINATION bin
-)
+set(RESOURCE_DIR ${CMAKE_INSTALL_PREFIX}/share/simcoupe)
+target_compile_definitions(simcoupe PRIVATE RESOURCE_DIR="${RESOURCE_DIR}/")
 
-install(DIRECTORY Resource/
-  DESTINATION ${RESOURCE_DIR}
-)
+install(TARGETS simcoupe DESTINATION bin)
+install(DIRECTORY Resource/ DESTINATION ${RESOURCE_DIR})
