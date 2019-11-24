@@ -161,10 +161,10 @@ class CTextControl : public CWindow
 
     public:
         void Draw (CScreen* pScreen_) override;
-        void SetText (const char *pcszText_, BYTE bColour_=WHITE);
+        void SetTextAndColour (const char *pcszText_, BYTE bColour_);
 
     protected:
-        BYTE m_bColour = 0, m_bBackColour = 0;
+        BYTE m_bColour = WHITE, m_bBackColour = 0;
 };
 
 
@@ -261,7 +261,7 @@ class CEditControl : public CWindow
         bool IsTabStop () const override { return true; }
         void Activate () override;
 
-        void SetText (const char* pcszText_, bool fSelected_=true);
+        void SetSelectedText (const char* pcszText_, bool fSelected_);
         void Draw (CScreen* pScreen_) override;
         bool OnMessage (int nMessage_, int nParam1_, int nParam2_) override;
 

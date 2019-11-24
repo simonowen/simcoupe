@@ -31,10 +31,11 @@ if (CMAKE_VERBOSE_MAKEFILE STREQUAL "")
 endif()
 
 if (APPLE)
-  if (CMAKE_GENERATOR STREQUAL "Xcode")
-    message(FATAL_ERROR "Xcode generator is not currently supported")
+  if (NOT CMAKE_GENERATOR STREQUAL "Xcode")
+    message(FATAL_ERROR "Please use the Xcode generator for macOS")
   endif()
-  message(FATAL_ERROR "Please use Xcode project for Mac OS X builds")
+
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "Minimum OS X deployment version" FORCE)
 endif()
 
 ########
@@ -45,7 +46,7 @@ include(PreCompiledHeaders)
 file(GLOB BASE_CPP_FILES Base/*.cpp)
 file(GLOB BASE_C_FILES Base/*.c)
 file(GLOB BASE_H_FILES Base/*.h)
-file(GLOB BASE_RUNTIME_FILES Resouce/*)
+file(GLOB BASE_RUNTIME_FILES Resource/*)
 
 set(SOURCE_FILES ${BASE_CPP_FILES} ${BASE_C_FILES})
 set(HEADER_FILES ${BASE_H_FILES})
@@ -79,6 +80,19 @@ elseif (BUILD_SDL)
 
   set(SOURCE_FILES ${SOURCE_FILES} ${SDL_CPP_FILES})
   set(HEADER_FILES ${HEADER_FILES} ${SDL_H_FILES})
+
+  if (APPLE)
+    set(SOURCE_FILES ${SOURCE_FILES} SDL/OSX/SDLMain.m)
+    set(HEADER_FILES ${HEADER_FILES} SDL/OSX/SDLMain.h)
+
+    file(GLOB MAC_ICON_FILES SDL/OSX/*.icns)
+    set(RESOURCE_FILES ${RESOURCE_FILES} ${MAC_ICON_FILES}
+      ReadMe.txt
+      ChangeLog.txt
+      SDL/OSX/Credits.html
+      SDL/OSX/Info-SimCoupe.plist)
+    set_source_files_properties(${RESOURCE_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+  endif()
 elseif (BUILD_ALLEGRO)
   file(GLOB ALLEGRO_CPP_FILES Allegro/*.cpp)
   file(GLOB ALLEGRO_H_FILES Allegro/*.h)
@@ -212,6 +226,8 @@ endif()
 
 ########
 
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
+
 target_include_directories(${PROJECT_NAME} PRIVATE Base)
 
 if (BUILD_WIN32)
@@ -227,7 +243,7 @@ endif()
 
 if (WIN32)
   if (MSVC)
-    #set_property(TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set_property(TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
       VS_GLOBAL_EnableCppCoreCheck true
@@ -240,10 +256,13 @@ elseif (APPLE)
   set_target_properties(${PROJECT_NAME} PROPERTIES
     MACOSX_BUNDLE TRUE
     MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME}
+    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/SDL/OSX/Info-${PROJECT_TITLE}.plist"
     MACOSX_BUNDLE_INFO_STRING "${PROJECT_TITLE} v${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}"
     MACOSX_BUNDLE_LONG_VERSION_STRING "${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}"
     MACOSX_BUNDLE_SHORT_VERSION_STRING "${MAJOR_VERSION}.${MINOR_VERSION}"
     MACOSX_BUNDLE_BUNDLE_VERSION "${MAJOR_VERSION}.${MINOR_VERSION}")
+
+  set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_TITLE})
 endif()
 
 if (WIN32)

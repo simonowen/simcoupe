@@ -471,7 +471,7 @@ CTextControl::CTextControl (CWindow* pParent_/*=nullptr*/, int nX_/*=0*/, int nY
     BYTE bColour_/*=WHITE*/, BYTE bBackColour_/*=0*/)
     : CWindow(pParent_, nX_, nY_, 0, 0, ctText), m_bColour(bColour_), m_bBackColour(bBackColour_)
 {
-    SetText(pcszText_, bColour_);
+    SetTextAndColour(pcszText_, bColour_);
     m_nWidth = GetTextWidth();
 }
 
@@ -483,7 +483,7 @@ void CTextControl::Draw (CScreen* pScreen_)
     pScreen_->DrawString(m_nX, m_nY, GetText(), IsEnabled() ? m_bColour : GREY_5);
 }
 
-void CTextControl::SetText (const char *pcszText_, BYTE bColour_/*=WHITE*/)
+void CTextControl::SetTextAndColour (const char *pcszText_, BYTE bColour_)
 {
     m_bColour = bColour_;
     CWindow::SetText(pcszText_);
@@ -788,7 +788,7 @@ void CEditControl::Activate ()
     m_nCaretEnd = strlen(GetText());
 }
 
-void CEditControl::SetText (const char* pcszText_, bool fSelected_/*=true*/)
+void CEditControl::SetSelectedText (const char* pcszText_, bool fSelected_)
 {
     CWindow::SetText(pcszText_);
 

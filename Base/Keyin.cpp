@@ -118,7 +118,7 @@ BYTE MapChar (BYTE b_)
     static BYTE abMap[256];
 
     // Does the map need initialising?
-    if (!abMap['A'])
+    if (!abMap[static_cast<BYTE>('A')])
     {
         int i;
 
@@ -128,8 +128,8 @@ BYTE MapChar (BYTE b_)
             abMap[i] = i;
 
         // Preserve certain control characters
-        abMap['\t'] = '\t';     // horizontal tab
-        abMap['\n'] = '\r';     // convert LF to CR
+        abMap[static_cast<BYTE>('\t')] = '\t';     // horizontal tab
+        abMap[static_cast<BYTE>('\n')] = '\r';     // convert LF to CR
     }
 
     // Return the mapped character, or 0 if none
