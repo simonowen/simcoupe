@@ -21,7 +21,7 @@
 #ifndef SDL20_H
 #define SDL20_H
 
-#ifdef USE_SDL2
+#ifdef HAVE_LIBSDL2
 
 #include "Video.h"
 
@@ -59,6 +59,6 @@ class SDLTexture final : public VideoBase
         SDL_Rect m_rTarget {};
 };
 
-#endif // USE_SDL2
+#endif // HAVE_LIBSDL2
 
 #endif // SDL20_H

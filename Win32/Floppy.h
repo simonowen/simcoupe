@@ -21,7 +21,10 @@
 #ifndef FLOPPY_H
 #define FLOPPY_H
 
-#include <fdrawcmd.h>   // http://simonowen.com/fdrawcmd/fdrawcmd.h
+#ifdef HAVE_FDRAWCMD_H
+#include <fdrawcmd.h>   // https://simonowen.com/fdrawcmd/fdrawcmd.h
+#endif
+
 #include "Stream.h"
 
 typedef struct

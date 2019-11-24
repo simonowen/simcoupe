@@ -98,7 +98,7 @@ class CMemStream final : public CStream
 };
 
 
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
 
 const BYTE GZ_SIGNATURE[] = { 0x1f, 0x8b };
 
@@ -146,6 +146,6 @@ class CZipStream final : public CStream
         unzFile m_hFile = nullptr;
 };
 
-#endif  // USE_ZLIB
+#endif  // HAVE_LIBZ
 
 #endif  // STREAM_H

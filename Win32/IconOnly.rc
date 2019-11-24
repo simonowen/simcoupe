@@ -1,0 +1,4 @@
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+IDR_MAINFRAME	ICON	DISCARDABLE	"Icons/main.ico"

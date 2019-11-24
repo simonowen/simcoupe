@@ -108,11 +108,11 @@ static OPTIONS opts;
 #define ChangedString(o)  (strcasecmp(opts.o, GetOption(o)))
 
 static char szFloppyFilters[] =
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
     "All Disks (dsk;sad;mgt;sbt;cpm;gz;zip)\0*.dsk;*.sad;*.mgt;*.sbt;*.cpm;*.gz;*.zip\0"
 #endif
     "Disk Images (dsk;sad;mgt;sbt;cpm)\0*.dsk;*.sad;*.mgt;*.sbt;*.cpm\0"
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
     "Compressed Files (gz;zip)\0*.gz;*.zip\0"
 #endif
     "All Files (*.*)\0*.*\0";
@@ -140,7 +140,7 @@ static char szTextFilters[] =
 
 static char szTapeFilters[] =
     "Tape Images (*.tzx;*.tap;*.csw)\0*.tzx;*.tap;*.csw\0"
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
     "Compressed Files (gz;zip)\0*.gz;*.zip\0"
 #endif
     "All Files (*.*)\0*.*\0";
@@ -652,7 +652,7 @@ bool EjectTape ()
     return true;
 }
 
-#ifdef USE_LIBSPECTRUM
+#ifdef HAVE_LIBSPECTRUM
 
 void UpdateTapeToolbar (HWND hdlg_)
 {
@@ -907,7 +907,7 @@ INT_PTR CALLBACK TapeBrowseDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
     return 0;
 }
 
-#endif // USE_LIBSPECTRUM
+#endif // HAVE_LIBSPECTRUM
 
 
 #define CheckOption(id,check)   CheckMenuItem(hmenu, (id), (check) ? MF_CHECKED : MF_UNCHECKED)
@@ -1008,7 +1008,7 @@ void UpdateMenuFromOptions ()
     // Enable clipboard pasting if Unicode text data is available
     EnableItem(IDM_TOOLS_PASTE_CLIPBOARD, Keyin::CanType() && IsClipboardFormatAvailable(CF_UNICODETEXT));
 
-#ifdef USE_LIBSPECTRUM
+#ifdef HAVE_LIBSPECTRUM
     EnableItem(IDM_TOOLS_TAPE_BROWSER, true);
 #endif
 
@@ -1078,7 +1078,7 @@ bool UI::DoAction (int nAction_, bool fPressed_/*=true*/)
                     DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 2);
                 break;
 
-#ifdef USE_LIBSPECTRUM
+#ifdef HAVE_LIBSPECTRUM
             case actTapeInsert:
                 InsertTape(g_hwnd);
                 break;
@@ -2503,7 +2503,7 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
 
             SendDlgItemMessage(hdlg_, IDC_FORMAT, BM_SETCHECK, fFormat ? BST_CHECKED : BST_UNCHECKED, 0L);
 
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
             SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_SETCHECK, fCompress ? BST_CHECKED : BST_UNCHECKED, 0L);
 #else
             // Disable the compression check-box if zlib isn't available
@@ -2573,7 +2573,7 @@ INT_PTR CALLBACK NewDiskDlgProc (HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
 
                     CStream* pStream = nullptr;
                     CDisk* pDisk = nullptr;
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
                     if (nType == 0 && fCompress)
                         pStream = new CZLibStream(nullptr, szFile);
                     else

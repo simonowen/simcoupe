@@ -22,6 +22,8 @@
 #ifndef SIMCOUPE_H
 #define SIMCOUPE_H
 
+#include "config.h"
+
 #ifdef __cplusplus
 
 /* If it's not one of these we'll assume big endian (we have a run-time check to fall back on anyway) */
@@ -40,6 +42,11 @@
 
 #if defined(DEBUG) && !defined(_DEBUG)
 #define _DEBUG
+#endif
+
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_NONSTDC_NO_DEPRECATE
 #endif
 
 typedef unsigned int        UINT;
@@ -66,11 +73,11 @@ typedef unsigned long       ULONG;
 #include "SAM.h"        /* Various SAM constants */
 #include "Util.h"       /* TRACE macro and other utility functions */
 
-#ifdef USE_LIBSPECTRUM
+#ifdef HAVE_LIBSPECTRUM
 #include "libspectrum.h"
 #endif
 
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
 #include "unzip.h"       /* for unzOpen, unzClose, etc.  Part of the contrib/minizip in the ZLib source package */
 #include "zlib.h"        /* for gzopen, gzclose, etc. */
 #endif

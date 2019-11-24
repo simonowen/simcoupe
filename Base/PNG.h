@@ -28,7 +28,7 @@ namespace PNG
     bool Save (CScreen *pScreen_);
 }
 
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
 
 // Define just the stuff we need - taken from libPNG's png.h
 
@@ -69,6 +69,6 @@ typedef struct
 } PNG_INFO;
 
 
-#endif  // USE_ZLIB
+#endif  // HAVE_LIBZ
 
 #endif  // PNG_H

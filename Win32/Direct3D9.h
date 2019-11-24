@@ -29,7 +29,6 @@
 #define DIRECT3D_VERSION	0x0900
 #include <d3d9.h>
 #include <d3d9types.h>
-#include <d3dx9math.h>
 
 #include "Video.h"
 
@@ -51,7 +50,7 @@ class Direct3D9Video : public VideoBase
 
     protected:
         HRESULT CreateTextures ();
-		HRESULT CreateShaders ();
+        HRESULT CreateShaders ();
         HRESULT CreateVertices ();
         HRESULT CreateDevice ();
         bool Reset (bool fNewDevice_=false);
@@ -62,9 +61,9 @@ class Direct3D9Video : public VideoBase
         LPDIRECT3DDEVICE9 m_pd3dDevice = nullptr;
         LPDIRECT3DTEXTURE9 m_pTexture = nullptr;
         LPDIRECT3DVERTEXBUFFER9 m_pVertexBuffer = nullptr;
-		LPDIRECT3DVERTEXDECLARATION9 m_pVertexDecl = nullptr;
-		LPDIRECT3DVERTEXSHADER9 m_pVertexShader = nullptr;
-		LPDIRECT3DPIXELSHADER9 m_pPixelShader = nullptr;
+        LPDIRECT3DVERTEXDECLARATION9 m_pVertexDecl = nullptr;
+        LPDIRECT3DVERTEXSHADER9 m_pVertexShader = nullptr;
+        LPDIRECT3DPIXELSHADER9 m_pPixelShader = nullptr;
         D3DPRESENT_PARAMETERS m_d3dpp {};
 
         RECT m_rTarget {};

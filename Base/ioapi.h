@@ -42,6 +42,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef HAVE_LIBZ
+
 #include "zlib.h"
 
 #if defined(USE_FILE32API)
@@ -201,4 +204,6 @@ void    fill_zlib_filefunc64_32_def_from_filefunc32(zlib_filefunc64_32_def* p_fi
 }
 #endif
 
-#endif
+#endif // HAVE_LIBZ
+
+#endif // _ZLIBIOAPI64_H

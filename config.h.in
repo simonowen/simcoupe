@@ -1,0 +1,36 @@
+#pragma once
+
+// Version from CMakeList.txt
+#define SIMCOUPE_MAJOR_VERSION  ${MAJOR_VERSION}
+#define SIMCOUPE_MINOR_VERSION  ${MINOR_VERSION}
+#define SIMCOUPE_PATCH_VERSION  ${PATCH_VERSION}
+
+// zlib library for compressed files.
+#cmakedefine HAVE_LIBZ
+
+// bzip2 library for compressed files.
+#cmakedefine HAVE_LIBBZ2
+
+// PNG library for screenshot saving.
+#cmakedefine HAVE_LIBPNG
+
+// Simple DirectMedia Layer v2.0
+#cmakedefine HAVE_LIBSDL2
+
+// Simple DirectMedia Layer v1.2 (legacy)
+#cmakedefine HAVE_LIBSDL
+
+// Allegro 5 library.
+#cmakedefine HAVE_LIBALLEGRO5
+
+// SAA-1099 emulation library.
+#cmakedefine HAVE_LIBSAASOUND
+
+// ReSID library for SID tune playback.
+#cmakedefine HAVE_LIBRESID
+
+// Spectrum support library for tapes and snapshots.
+#cmakedefine HAVE_LIBSPECTRUM
+
+// Define the resource directory for ROM images etc.
+#cmakedefine RESOURCE_DIR "${RESOURCE_DIR}"

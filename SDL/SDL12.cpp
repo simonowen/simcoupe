@@ -26,7 +26,7 @@
 #include "Options.h"
 #include "UI.h"
 
-#ifndef USE_SDL2
+#ifndef HAVE_LIBSDL2
 
 #define FULLSCREEN_DEPTH    16
 
@@ -338,4 +338,4 @@ void SDLSurface::DisplayToSamPoint (int* pnX_, int* pnY_)
     DisplayToSamSize(pnX_, pnY_);
 }
 
-#endif // !USE_SDL2
+#endif // !HAVE_LIBSDL2

@@ -43,7 +43,7 @@ bool UI::Init (bool fFirstInit_/*=false*/)
     TRACE("UI::Init(%d)\n", fFirstInit_);
 
     // Set the window caption and disable the cursor until needed
-#ifdef USE_SDL2
+#ifdef HAVE_LIBSDL2
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
 #else
     SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);
@@ -87,7 +87,7 @@ VideoBase *UI::GetVideo (bool fFirstInit_)
 
     if (!pVideo)
     {
-#ifdef USE_SDL2
+#ifdef HAVE_LIBSDL2
         pVideo = new SDLTexture;
 #else
         pVideo = new SDLSurface;
@@ -124,7 +124,7 @@ bool UI::CheckEvents ()
             {
                 case SDL_QUIT:
                     return false;
-#ifdef USE_SDL2
+#ifdef HAVE_LIBSDL2
                 case SDL_DROPFILE:
                 {
                     char *pszFile = event.drop.file;
@@ -239,7 +239,7 @@ bool UI::DoAction (int nAction_, bool fPressed_)
 
             case actPause:
             {
-#ifndef USE_SDL2
+#ifndef HAVE_LIBSDL2
                 // Reverse logic because the default processing hasn't occurred yet
                 if (g_fPaused)
                     SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);

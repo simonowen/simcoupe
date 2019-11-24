@@ -68,6 +68,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
+
+#ifdef HAVE_LIBZ
+
 #ifndef NOUNCRYPT
         #define NOUNCRYPT
 #endif
@@ -136,7 +140,7 @@ typedef struct
     char  *read_buffer;         /* internal buffer for compressed data */
     z_stream stream;            /* zLib stream structure for inflate */
 
-#ifdef HAVE_BZIP2
+#ifdef HAVE_LIBBZ2
     bz_stream bstream;          /* bzLib stream structure for bziped */
 #endif
 
@@ -1425,7 +1429,7 @@ local int unz64local_CheckCurrentFileCoherencyHeader (unz64_s* s, uInt* piSizeVa
         err=UNZ_BADZIPFILE;
 
     if ((err==UNZ_OK) && (s->cur_file_info.compression_method!=0) &&
-/* #ifdef HAVE_BZIP2 */
+/* #ifdef HAVE_LIBBZ2 */
                          (s->cur_file_info.compression_method!=Z_BZIP2ED) &&
 /* #endif */
                          (s->cur_file_info.compression_method!=Z_DEFLATED))
@@ -1532,7 +1536,7 @@ extern int ZEXPORT unzOpenCurrentFile3 (unzFile file, int* method,
     }
 
     if ((s->cur_file_info.compression_method!=0) &&
-/* #ifdef HAVE_BZIP2 */
+/* #ifdef HAVE_LIBBZ2 */
         (s->cur_file_info.compression_method!=Z_BZIP2ED) &&
 /* #endif */
         (s->cur_file_info.compression_method!=Z_DEFLATED))
@@ -1553,7 +1557,7 @@ extern int ZEXPORT unzOpenCurrentFile3 (unzFile file, int* method,
 
     if ((s->cur_file_info.compression_method==Z_BZIP2ED) && (!raw))
     {
-#ifdef HAVE_BZIP2
+#ifdef HAVE_LIBBZ2
       pfile_in_zip_read_info->bstream.bzalloc = (void *(*) (void *, int, int))0;
       pfile_in_zip_read_info->bstream.bzfree = (free_func)0;
       pfile_in_zip_read_info->bstream.opaque = (voidpf)0;
@@ -1798,7 +1802,7 @@ extern int ZEXPORT unzReadCurrentFile  (unzFile file, voidp buf, unsigned len)
         }
         else if (pfile_in_zip_read_info->compression_method==Z_BZIP2ED)
         {
-#ifdef HAVE_BZIP2
+#ifdef HAVE_LIBBZ2
             uLong uTotalOutBefore,uTotalOutAfter;
             const Bytef *bufBefore;
             uLong uOutThis;
@@ -2032,7 +2036,7 @@ extern int ZEXPORT unzCloseCurrentFile (unzFile file)
     pfile_in_zip_read_info->read_buffer = NULL;
     if (pfile_in_zip_read_info->stream_initialised == Z_DEFLATED)
         inflateEnd(&pfile_in_zip_read_info->stream);
-#ifdef HAVE_BZIP2
+#ifdef HAVE_LIBBZ2
     else if (pfile_in_zip_read_info->stream_initialised == Z_BZIP2ED)
         BZ2_bzDecompressEnd(&pfile_in_zip_read_info->bstream);
 #endif
@@ -2127,3 +2131,5 @@ extern int ZEXPORT unzSetOffset (unzFile file, uLong pos)
 {
     return unzSetOffset64(file,pos);
 }
+
+#endif // HAVE_LIBZ

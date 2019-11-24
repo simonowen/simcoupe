@@ -75,6 +75,7 @@ bool Ioctl (HANDLE h_, DWORD dwCode_, LPVOID pIn_=nullptr, DWORD cbIn_=0, LPVOID
 
 /*static*/ bool CFloppyStream::IsAvailable ()
 {
+#ifdef HAVE_FDRAWCMD_H
     static DWORD dwVersion = 0x00000000, dwRet;
 
     // Open the global driver object
@@ -89,6 +90,9 @@ bool Ioctl (HANDLE h_, DWORD dwCode_, LPVOID pIn_=nullptr, DWORD cbIn_=0, LPVOID
 
     // Ensure we're using fdrawcmd.sys >= 1.0.x.x
     return (dwVersion & 0xffff0000) >= (FDRAWCMD_VERSION & 0xffff0000);
+#else
+    return false;
+#endif
 }
 
 /*static*/ bool CFloppyStream::IsRecognised (const char* pcszStream_)
@@ -172,6 +176,7 @@ bool CFloppyStream::IsBusy (BYTE* pbStatus_, bool fWait_)
 // Read a single sector
 static BYTE ReadSector (HANDLE hDevice_, BYTE phead_, PSECTOR ps_)
 {
+#ifdef HAVE_FDRAWCMD_H
     BYTE bStatus = 0;
 
     FD_READ_WRITE_PARAMS rwp;
@@ -193,11 +198,15 @@ static BYTE ReadSector (HANDLE hDevice_, BYTE phead_, PSECTOR ps_)
     if (res.st2 & 0x40) bStatus |= DELETED_DATA;
 
     return bStatus;
+#else
+    return RECORD_NOT_FOUND;
+#endif
 }
 
 // Write a single sector
 static BYTE WriteSector (HANDLE hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
 {
+#ifdef HAVE_FDRAWCMD_H
     PSECTOR ps = reinterpret_cast<PSECTOR>(pTrack_+1) + uSectorIndex_;
 
     FD_READ_WRITE_PARAMS rwp;
@@ -222,11 +231,15 @@ static BYTE WriteSector (HANDLE hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
     }
 
     return 0;
+#else
+    return WRITE_FAULT;
+#endif
 }
 
 // Format a track
 static BYTE FormatTrack (HANDLE hDevice_, PTRACK pTrack_)
 {
+#ifdef HAVE_FDRAWCMD_H
     int i, step;
     BYTE bStatus = 0;
 
@@ -295,11 +308,15 @@ static BYTE FormatTrack (HANDLE hDevice_, PTRACK pTrack_)
     }
 
     return bStatus;
+#else
+    return WRITE_FAULT;
+#endif
 }
 
 // Read a simple track of consecutive sectors, which is fast if it matches what's on the disk
 static bool ReadSimpleTrack (HANDLE hDevice_, PTRACK pTrack_, UINT &ruSectors_)
 {
+#ifdef HAVE_FDRAWCMD_H
     int i;
 
     PTRACK pt = pTrack_;
@@ -356,11 +373,15 @@ static bool ReadSimpleTrack (HANDLE hDevice_, PTRACK pTrack_, UINT &ruSectors_)
     // For any other failures, fall back on non-regular mode for a more thorough scan
     ruSectors_ = 0;
     return false;
+#else
+    return false;
+#endif
 }
 
 // Read a custom track format, which is slower but more thorough
 static bool ReadCustomTrack (HANDLE hDevice_, PTRACK pTrack_)
 {
+#ifdef HAVE_FDRAWCMD_H
     BYTE abScan[1+64*sizeof(FD_SCAN_RESULT)];
     PFD_SCAN_RESULT psr = (PFD_SCAN_RESULT)abScan;
 
@@ -392,10 +413,14 @@ static bool ReadCustomTrack (HANDLE hDevice_, PTRACK pTrack_)
     }
 
     return true;
+#else
+    return false;
+#endif
 }
 
 unsigned long CFloppyStream::ThreadProc ()
 {
+#ifdef HAVE_FDRAWCMD_H
     FD_SEEK_PARAMS sp = { m_pTrack->cyl, m_pTrack->head };
     Ioctl(m_hDevice, IOCTL_FDCMD_SEEK, &sp, sizeof(sp));
 
@@ -428,6 +453,7 @@ unsigned long CFloppyStream::ThreadProc ()
             m_bStatus = LOST_DATA;
             break;
     }
+#endif
 
     return 0;
 }

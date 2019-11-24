@@ -55,7 +55,7 @@ extern "C" {
 #include "ioapi.h"
 #endif
 
-#ifdef HAVE_BZIP2
+#ifdef HAVE_LIBBZ2
 #include "bzlib.h"
 #endif
 

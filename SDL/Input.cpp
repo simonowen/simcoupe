@@ -43,7 +43,7 @@ int nLastKey, nLastMods;
 const Uint8 *pKeyStates;
 
 // SDL 1.2 compatibility definitions
-#ifndef USE_SDL2
+#ifndef HAVE_LIBSDL2
 #define SDL_Keysym SDL_keysym
 #define SDL_Keymod SDLMod
 #define SDL_GetKeyboardState SDL_GetKeyState
@@ -143,7 +143,7 @@ void Input::Purge ()
 {
     // Remove queued input messages
     SDL_Event event;
-#ifndef USE_SDL2
+#ifndef HAVE_LIBSDL2
     while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_MOUSEEVENTMASK|SDL_KEYEVENTMASK) > 0) ;
 #else
     while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_KEYDOWN, SDL_JOYBUTTONUP));
@@ -196,7 +196,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
 {
     switch (pEvent_->type)
     {
-#ifndef USE_SDL2
+#ifndef HAVE_LIBSDL2
         case SDL_ACTIVEEVENT:
             // Release the mouse when we lose input focus
             if (!pEvent_->active.gain && pEvent_->active.state & SDL_APPINPUTFOCUS)
@@ -209,7 +209,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             break;
 #endif
 
-#ifdef USE_SDL2
+#ifdef HAVE_LIBSDL2
         case SDL_TEXTINPUT:
         {
             SDL_TextInputEvent *pEvent = &pEvent_->text;
@@ -250,7 +250,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
                 SDL_ShowCursor(SDL_DISABLE);
 
             // Ignore key repeats unless the GUI is active
-#ifdef USE_SDL2
+#ifdef HAVE_LIBSDL2
             if (pEvent->repeat && !GUI::IsActive())
                 break;
 #endif
@@ -258,7 +258,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             int nMods = ((pKey->mod & KMOD_SHIFT) ? HM_SHIFT : 0) |
                         ((pKey->mod & KMOD_LCTRL) ? HM_CTRL : 0) |
                         ((pKey->mod & KMOD_LALT)  ? HM_ALT : 0);
-#ifdef USE_SDL2
+#ifdef HAVE_LIBSDL2
             int nChr = (nKey < HK_SPACE || (nKey < HK_MIN && (pKey->mod & KMOD_CTRL))) ? nKey : 0;
 #else
             int nChr = fPress ? pKey->unicode : 0;
@@ -327,7 +327,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             if (fKeyboardActive == GUI::IsActive())
             {
                 fKeyboardActive = !fKeyboardActive;
-#ifndef USE_SDL2
+#ifndef HAVE_LIBSDL2
                 SDL_EnableKeyRepeat(fKeyboardActive ? 0 : 250, fKeyboardActive ? 0 : 30);
 #endif
             }
@@ -423,7 +423,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
                     {
                         // Update the SAM mouse and re-centre the cursor
                         pMouse->Move(nX, -nY);
-#ifndef USE_SDL2
+#ifndef HAVE_LIBSDL2
                         SDL_WarpMouse(nCentreX, nCentreY);
 #else
                         SDL_WarpMouseInWindow(nullptr, nCentreX, nCentreY);
@@ -493,7 +493,7 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
             }
             break;
 
-#ifdef USE_SDL2
+#ifdef HAVE_LIBSDL2
         case SDL_MOUSEWHEEL:
             if (GUI::IsActive())
             {

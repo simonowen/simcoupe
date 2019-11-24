@@ -148,7 +148,6 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
 
     switch (nDir_)
     {
-
         // Settings are stored in the user's AppData\Roaming (under SimCoupe\)
         case MFP_SETTINGS:
             GetSpecialFolderPath(CSIDL_APPDATA, szPath, MAX_PATH);
@@ -176,8 +175,14 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
 
         // Resources are bundled with the EXE, which may be a read-only location
         case MFP_RESOURCE:
+#ifdef RESOURCE_DIR
+            strncpy(szPath, RESOURCE_DIR, MAX_PATH - 1);
+            strncat(szPath, "/", MAX_PATH - strlen(szPath) - 1);
+            szPath[MAX_PATH - 1] = '\0';
+#else
             GetModuleFileName(GetModuleHandle(nullptr), szPath, MAX_PATH);
             strrchr(szPath, '\\')[1] = '\0';
+#endif
             break;
     }
 

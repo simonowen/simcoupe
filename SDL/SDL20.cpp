@@ -26,7 +26,7 @@
 #include "Options.h"
 #include "UI.h"
 
-#ifdef USE_SDL2
+#ifdef HAVE_LIBSDL2
 
 static DWORD aulPalette[N_PALETTE_COLOURS];
 static DWORD aulScanline[N_PALETTE_COLOURS];
@@ -368,4 +368,4 @@ void SDLTexture::DisplayToSamPoint (int* pnX_, int* pnY_)
     DisplayToSamSize(pnX_, pnY_);
 }
 
-#endif // USE_SDL2
+#endif // HAVE_LIBSDL2

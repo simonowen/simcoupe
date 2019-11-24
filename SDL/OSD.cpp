@@ -138,15 +138,16 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
 
         case MFP_RESOURCE:
         {
-#if defined(__APPLE__) && defined(USE_SDL2)
+#if defined(__APPLE__) && defined(HAVE_LIBSDL2)
             // Resources path in the app bundle (requires SDL 2.0.1)
             char *pszBasePath = SDL_GetBasePath();
             strncpy(szPath, pszBasePath, MAX_PATH-1);
             szPath[MAX_PATH-1] = '\0';
             SDL_free(pszBasePath);
-#elif !defined(_WINDOWS) && !defined(__AMIGAOS4__) && defined(RESOURCE_DIR)
+#elif !defined(__AMIGAOS4__) && defined(RESOURCE_DIR)
             // If available, use the resource directory from the build process
             strncpy(szPath, RESOURCE_DIR, MAX_PATH-1);
+            strncat(szPath, "/", MAX_PATH - strlen(szPath) - 1);
             szPath[MAX_PATH-1] = '\0';
 #else
             // Fall back on an empty path as a safe default

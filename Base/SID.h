@@ -23,16 +23,13 @@
 
 #include "Sound.h"
 
-#ifdef USE_RESID
+#ifdef HAVE_LIBRESID
 #undef F // TODO: limit scope of Z80 registers!
 
-#ifndef RESID_NAMESPACE
-#define RESID_NAMESPACE     // default to root namespace
-#endif
-
 #include <resid/sid.h>
+
 #define SID_CLOCK_PAL   985248
-#endif
+#endif // HAVE_LIBRESID
 
 class CSID final : public CSoundDevice
 {
@@ -50,8 +47,8 @@ class CSID final : public CSoundDevice
         void Out (WORD wPort_, BYTE bVal_) override;
 
     protected:
-#ifdef USE_RESID
-        RESID_NAMESPACE::SID *m_pSID = nullptr;
+#ifdef HAVE_LIBRESID
+        SID *m_pSID = nullptr;
 #endif
         int m_nChipType = 0;
 };

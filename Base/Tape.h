@@ -29,7 +29,7 @@ namespace Tape
 
     const char* GetPath ();
     const char* GetFile ();
-#ifdef USE_LIBSPECTRUM
+#ifdef HAVE_LIBSPECTRUM
     libspectrum_tape *GetTape ();
     const char *GetBlockDetails (libspectrum_tape_block *block);
 #endif

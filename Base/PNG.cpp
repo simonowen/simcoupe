@@ -22,14 +22,14 @@
 //  This module uses definitions and information taken from the libpng
 //  header files. See:  http://www.libpng.org/pub/png/libpng.html
 //
-//  This modules relies on Zlib for compression, and if USE_ZLIB is not
+//  This modules relies on Zlib for compression, and if HAVE_LIBZ is not
 //  defined at compile time the whole implementation will be missing.
 //  SaveImage() becomes a no-op, and the screenshot function will not work.
 
 #include "SimCoupe.h"
 #include "PNG.h"
 
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
 #include "zlib.h"
 #endif
 
@@ -39,7 +39,7 @@
 namespace PNG
 {
 
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
 
 // 32-bit values in PNG data are always network byte order (big endian), so define a helper macro if a conversion is needed
 #ifndef __BIG_ENDIAN__
@@ -213,7 +213,7 @@ static bool SaveFile (FILE *f_, CScreen *pScreen_)
     return fRet;
 }
 
-#endif // USE_ZLIB
+#endif // HAVE_LIBZ
 
 
 // Process and save the supplied SAM image data to a file in PNG format
@@ -221,7 +221,7 @@ bool Save (CScreen* pScreen_)
 {
     bool fRet = false;
 
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
     char szPath[MAX_PATH], *pszFile;
 
     // Create a unique filename in the format snapNNNN.png

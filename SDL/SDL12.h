@@ -21,7 +21,7 @@
 #ifndef SDL12_H
 #define SDL12_H
 
-#ifndef USE_SDL2
+#ifndef HAVE_LIBSDL2
 
 #include "Video.h"
 
@@ -56,6 +56,6 @@ class SDLSurface : public VideoBase
         SDL_Rect m_rTarget {};
 };
 
-#endif // !USE_SDL2
+#endif // !HAVE_LIBSDL2
 
 #endif // SDL12_H

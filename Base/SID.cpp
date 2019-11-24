@@ -27,26 +27,26 @@
 
 CSID::CSID ()
 {
-#ifdef USE_RESID
-    m_pSID = new RESID_NAMESPACE::SID;
+#ifdef HAVE_LIBRESID
+    m_pSID = new SID;
     Reset();
 #endif
 }
 
 CSID::~CSID ()
 {
-#ifdef USE_RESID
+#ifdef HAVE_LIBRESID
     delete m_pSID; m_pSID = nullptr;
 #endif
 }
 
 void CSID::Reset ()
 {
-#ifdef USE_RESID
+#ifdef HAVE_LIBRESID
     if (m_pSID)
     {
         m_nChipType = GetOption(sid);
-        m_pSID->set_chip_model((m_nChipType == 2) ? RESID_NAMESPACE::MOS8580 : RESID_NAMESPACE::MOS6581);
+        m_pSID->set_chip_model((m_nChipType == 2) ? MOS8580 : MOS6581);
 
         m_pSID->reset();
         m_pSID->adjust_sampling_frequency(SAMPLE_FREQ);
@@ -56,7 +56,7 @@ void CSID::Reset ()
 
 void CSID::Update (bool fFrameEnd_=false)
 {
-#ifdef USE_RESID
+#ifdef HAVE_LIBRESID
     int nSamplesSoFar = fFrameEnd_ ? pDAC->GetSampleCount() : pDAC->GetSamplesSoFar();
 
     int nNeeded = nSamplesSoFar - m_nSamplesThisFrame;
@@ -97,7 +97,7 @@ void CSID::FrameEnd ()
 
 void CSID::Out (WORD wPort_, BYTE bVal_)
 {
-#ifdef USE_RESID
+#ifdef HAVE_LIBRESID
     Update();
 
     BYTE bReg = wPort_ >> 8;

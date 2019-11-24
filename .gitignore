@@ -1,42 +1,8 @@
-# CMake
-/CMakeCache.txt
-/CMakeFiles/
-/Makefile
-/cmake_install.cmake
-
-# General
 .*
 !.gitignore
 *- Copy*
 * copy.*
-Build/
-Win32/Shaders/*.h
-/simcoupe
 Thumbs.db
-
-# Visual Studio
-*.aps
-*.opt
-*.ncb
-*.plg
-*.suo
-*.sdf
-*.opensdf
-*.vcproj.*.user
-*.vcxproj.user
-*.opendb
-[Dd]ebug/
-[Rr]elease/
-ipch/
-
-# Xcode
-*.pbxuser
-*.mode1v3
-*.mode2v3
-*.perspectivev3
-*.xcuserstate
-project.xcworkspace/
-xcuserdata/
-
-# Linux
-*.o
+/[Bb]uild
+/out
+/CMakeSettings.json

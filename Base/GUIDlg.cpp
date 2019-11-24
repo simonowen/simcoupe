@@ -193,21 +193,21 @@ void CFileDialog::OnNotify (CWindow* pWindow_, int nParam_)
 static int nFloppyFilter = 0;
 static const FILEFILTER sFloppyFilter =
 {
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
     "All Disks (dsk;sad;mgt;sbt;gz;zip)|"
 #endif
     "Disk Images (dsk;sad;mgt;sbt)|"
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
     "Compressed Files (gz;zip)|"
 #endif
     "All Files",
 
     {
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
         ".dsk;.sad;.mgt;.sbt;.cpm;.gz;.zip",
 #endif
         ".dsk;.sad;.mgt;.sbt;.cpm",
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
         ".gz;.zip",
 #endif
         ""
@@ -260,21 +260,21 @@ void CInsertFloppy::OnOK ()
 static int nTapeFilter = 0;
 static const FILEFILTER sTapeFilter =
 {
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
     "All Tapes (tap;tzx;csw;gz;zip)|"
 #endif
     "Tape Images (tap;tzx;csw)|"
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
     "Compressed Files (gz;zip)|"
 #endif
     "All Files",
 
     {
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
         ".tap;.tzx;.csw;.gz;.zip",
 #endif
         ".tap;.tzx;.csw",
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
         ".gz;.zip",
 #endif
         ""
@@ -1541,7 +1541,7 @@ CNewDiskDialog::CNewDiskDialog (int nDrive_, CWindow* pParent_/*=nullptr*/)
     m_pType->Select(s_uType);
     m_pFormat->SetChecked(s_fFormat);
 
-#ifdef USE_ZLIB
+#ifdef HAVE_LIBZ
     m_pCompress->SetChecked(s_fCompress);
 #else
     m_pCompress->Enable(false);

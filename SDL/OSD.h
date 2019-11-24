@@ -24,16 +24,13 @@
 #include <sys/types.h>      // for _off_t definition
 #include <fcntl.h>
 
-#ifdef USE_SDL2
+#ifdef HAVE_LIBSDL2
 #include "SDL2/SDL.h"
-#else
-#ifdef __AMIGAOS4__
-#include <SDL/SDL.h>
-#else
-#include "SDL.h"
 #endif
+
+#ifdef HAVE_LIBSDL
+#include "SDL/SDL.h"
 #endif
-#define SDL
 
 #ifdef __APPLE__
 #include <sys/disk.h>       // for DKIOCGETBLOCKCOUNT
@@ -64,36 +61,15 @@ typedef unsigned char       BYTE;   // must be 8-bit
 
 #ifdef _WINDOWS
 
+#define NOMINMAX        // no min/max macros from windef.h
+#define SID WIN32_SID	// TODO: limit scope of windows.h avoid SID symbol clash
 #include <windows.h>
+#undef SID
+
 #include <direct.h>
 
-#pragma include_alias(<io.h>, <..\Include\IO.h>)
+#pragma include_alias(<io.h>, <..\ucrt\IO.h>)	// TODO: rename our io.h to fix this hack!
 #include <io.h>
-
-#ifdef USE_SDL2
-#pragma comment(lib, "sdl2")
-#pragma comment(lib, "sdl2main")
-#else
-#pragma comment(lib, "sdl")
-#pragma comment(lib, "sdlmain")
-#endif
-
-#ifdef USE_ZLIB
-#ifdef _WIN64
-#pragma comment(lib, "zlibwapi")   // zlibwapi.lib is the official import library for the x64 version
-#else
-#pragma comment(lib, "zdll")   // zdll.lib is the official import library for 1.2.x versions
-#endif
-#endif
-
-#ifdef USE_RESID
-#pragma comment(lib, "resid.lib")
-#define RESID_NAMESPACE reSID       // use reSID namespace, due to SID symbol clash with winnt.h
-#endif
-
-#ifdef USE_LIBSPECTRUM
-#pragma comment(lib, "spectrum")    // Tape and snapshot functions
-#endif
 
 #pragma warning(disable:4786)   // Disable the stupid warning about debug symbols being truncated
 

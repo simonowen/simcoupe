@@ -31,7 +31,7 @@
 namespace Tape
 {
 
-#ifdef USE_LIBSPECTRUM
+#ifdef HAVE_LIBSPECTRUM
 
 static bool g_fPlaying;
 static std::string strFilePath;
@@ -621,7 +621,7 @@ bool InFEHook ()
 }
 
 
-#else // USE_LIBSPECTRUM
+#else // HAVE_LIBSPECTRUM
 
 // Dummy implementations, rather than peppering the above with conditional code
 
@@ -643,6 +643,6 @@ bool EiHook () { return false; }
 bool RetZHook () { return false; }
 bool InFEHook () { return false; }
 
-#endif // USE_LIBSPECTRUM
+#endif // HAVE_LIBSPECTRUM
 
 } // namespace Tape

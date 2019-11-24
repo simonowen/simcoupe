@@ -33,7 +33,10 @@
 #endif
 
 #define NOMINMAX        // no min/max macros from windef.h
+#define SID WIN32_SID	// TODO: limit scope of windows.h avoid SID symbol clash
 #include <windows.h>
+#undef SID
+
 #include <windowsx.h>   // for GET_X_LPARAM and GET_Y_LPARAM
 #include <winioctl.h>   // for DISK_GEOMETRY and IOCTL_DISK_GET_DRIVE_GEOMETRY
 #include <mmsystem.h>   // for timeSetEvent
@@ -48,30 +51,6 @@
 #include <Shlobj.h>     // for shell COM definitions
 #include <process.h>    // for _beginthreadex/_endthreadex
 #include <..\ucrt\io.h>	// for _access
-
-#ifdef USE_ZLIB
-#ifndef ZLIB_WINAPI
-#error ZLIB_WINAPI must be defined for the new WINAPI exports!
-#endif
-#ifdef USE_ZLIBSTAT
-#pragma comment(lib, "zlibstat")	// Use static library
-#else
-#pragma comment(lib, "zlibwapi")    // Use DLL
-#endif // USE_ZLIBSTAT
-#endif // USE_ZLIB
-
-#ifdef USE_RESID
-#pragma comment(lib, "resid.lib")   // SID chip emulation
-#define RESID_NAMESPACE reSID       // use reSID namespace, due to SID symbol clash with winnt.h
-#endif
-
-#ifdef USE_CAPSIMAGE
-#pragma comment(lib,"capsimg.lib")	// IPF support
-#endif
-
-#ifdef USE_LIBSPECTRUM
-#pragma comment(lib, "spectrum")    // Tape and snapshot functions
-#endif
 
 // For NT4 compatability we only use DX3 features, except for input which requires DX5
 #define DIRECTSOUND_VERSION     0x0300
