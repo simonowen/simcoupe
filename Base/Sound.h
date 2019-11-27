@@ -22,8 +22,13 @@
 #define SOUND_H
 
 #include "IO.h"
-#include "SAA1099.h"
 #include "BlipBuffer.h"
+
+#ifdef HAVE_LIBSAASOUND
+#include "SAASound.h"
+#else
+#include "SAA1099.h"
+#endif
 
 #define SAMPLE_FREQ			44100
 #define SAMPLE_BITS			16
@@ -61,10 +66,27 @@ class CSoundDevice : public CIoDevice
 class CSAA final : public CSoundDevice
 {
     public:
-        CSAA () { m_pSAASound = new CSAASound(SAMPLE_FREQ); }
+        CSAA ()
+        {
+#ifdef HAVE_LIBSAASOUND
+            m_pSAASound = CreateCSAASound();
+            m_pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_44100 | SAAP_16BIT | SAAP_STEREO);
+            static_assert(SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2, "SAA parameter mismatch");
+#else
+            m_pSAASound = new CSAASound(SAMPLE_FREQ);
+#endif
+        }
         CSAA (const CSAA &) = delete;
         void operator= (const CSAA &) = delete;
-        ~CSAA () { delete m_pSAASound; }
+        ~CSAA ()
+        {
+#ifdef HAVE_LIBSAASOUND
+            if (m_pSAASound)
+                DestroyCSAASound(m_pSAASound);
+#else
+            delete m_pSAASound;
+#endif
+        }
 
     public:
         void Update (bool fFrameEnd_);
