@@ -357,7 +357,7 @@ CInputDialog::CInputDialog (CWindow* pParent_/*=nullptr*/, const char* pcszCapti
 
     // Create the prompt text control and input edit control
     new CTextControl(this, 5, 10,  pcszPrompt_, WHITE);
-    m_pInput = new CEditControl(this, 5+n+5, 6, 120);
+    m_pInput = new CNumberEditControl(this, 5+n+5, 6, 120);
 
     // Size the dialog to fit the prompt and edit control
     SetSize(8+n+120+8, 30);
@@ -805,7 +805,7 @@ bool CDebugger::OnMessage (int nMessage_, int nParam1_, int nParam2_)
             case HK_RETURN:
                 if (!m_pCommandEdit)
                 {
-                    m_pCommandEdit = new CEditControl(this, -1, m_nHeight-16, m_nWidth+2);
+                    m_pCommandEdit = new CNumberEditControl(this, -1, m_nHeight-16, m_nWidth+2);
                     m_pCommandEdit->SetFont(&sPropFont);
                 }
                 break;

@@ -271,6 +271,14 @@ class CEditControl : public CWindow
         DWORD m_dwCaretTime = 0;
 };
 
+class CNumberEditControl : public CEditControl
+{
+public:
+    using CEditControl::CEditControl;
+
+    bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
+};
+
 
 class CRadioButton : public CWindow
 {

@@ -348,7 +348,7 @@ CHDDProperties::CHDDProperties (CEditControl* pEdit_, CWindow* pParent_, const c
     m_pBrowse = new CTextButton(this, 239, 10, "...", 17);
 
     new CTextControl(this, 12, 37, "Size (MB):");
-    m_pSize = new CEditControl(this, 68, 34, 30);
+    m_pSize = new CNumberEditControl(this, 68, 34, 30);
 
     m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight-21, "OK", 50);
     m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight-21, "Cancel", 50);
@@ -1333,9 +1333,9 @@ CImportDialog::CImportDialog (CWindow* pParent_)
     m_pPageOffset = new CRadioButton(this, 33, 90, "Page number:", 45);
     new CTextControl(this, 50, 110, "Page offset:", WHITE);
 
-    m_pAddr = new CEditControl(this, 143, 63, 45, s_uAddr);
-    m_pPage = new CEditControl(this, 143, 88, 20, s_uPage);
-    m_pOffset = new CEditControl(this, 143, 108, 35, s_uOffset);
+    m_pAddr = new CNumberEditControl(this, 143, 63, 45, s_uAddr);
+    m_pPage = new CNumberEditControl(this, 143, 88, 20, s_uPage);
+    m_pOffset = new CNumberEditControl(this, 143, 108, 35, s_uOffset);
 
     int nX = (m_nWidth - (50+8+50)) / 2;
     m_pOK = new CTextButton(this, nX, m_nHeight-21, "OK", 50);
@@ -1452,7 +1452,7 @@ CExportDialog::CExportDialog (CWindow* pParent_)
 
     // Add the new controls for Export
     new CTextControl(this, 50, 135, "Length:", WHITE);
-    m_pLength = new CEditControl(this, 143, 133, 45, s_uLength);
+    m_pLength = new CNumberEditControl(this, 143, 133, 45, s_uLength);
 
     // Move the OK and Cancel buttons to the end of the tab order
     m_pOK->SetParent(m_pOK->GetParent());

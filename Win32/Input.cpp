@@ -504,6 +504,13 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
             else if (wParam_ >= VK_NUMPAD0 && wParam_ <= VK_NUMPAD9)
                 GUI::SendMessage(GM_CHAR, HK_KP0 + static_cast<int>(wParam_)-VK_NUMPAD0, nMods);
 
+            // Keypad symbols
+            else if (wParam_ >= VK_MULTIPLY && wParam_ <= VK_DIVIDE)
+            {
+                static int an[] = { HK_KPMULT, HK_KPPLUS, HK_RETURN, HK_KPMINUS, HK_KPDECIMAL, HK_KPDIVIDE };
+                GUI::SendMessage(GM_CHAR, an[wParam_ - VK_MULTIPLY], nMods);
+            }
+
             // Cursor keys + navigation cluster
             else if (wParam_ >= VK_PRIOR && wParam_ <= VK_DOWN)
             {

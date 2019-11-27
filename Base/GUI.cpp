@@ -969,6 +969,7 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
 
                 // Return possibly submits the dialog contents
                 case HK_RETURN:
+                case HK_KPENTER:
                     NotifyParent(1);
                     return true;
 
@@ -1045,6 +1046,29 @@ bool CEditControl::OnMessage (int nMessage_, int nParam1_, int nParam2_)
     }
 
     return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+bool CNumberEditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+{
+    if (nMessage_ == GM_CHAR)
+    {
+        switch (nParam1_)
+        {
+        case HK_KPDECIMAL:  nParam1_ = '.'; break;
+        case HK_KPPLUS:     nParam1_ = '+'; break;
+        case HK_KPMINUS:    nParam1_ = '-'; break;
+        case HK_KPMULT:     nParam1_ = '*'; break;
+        case HK_KPDIVIDE:   nParam1_ = '/'; break;
+        default:
+            if (nParam1_ >= HK_KP0 && nParam1_ <= HK_KP9)
+                nParam1_ = (nParam1_ - HK_KP0) + '0';
+            break;
+        }
+    }
+
+    return CEditControl::OnMessage(nMessage_, nParam1_, nParam2_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

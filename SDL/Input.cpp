@@ -342,27 +342,6 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
                 break;
             }
 
-            // Some additional function keys
-            bool fAction = true;
-            switch (nKey)
-            {
-                case HK_RETURN:     fAction = fAlt; if (fAction) Action::Do(actToggleFullscreen, fPress); break;
-                case HK_KPDIVIDE:   Action::Do(actDebugger, fPress); break;
-                case HK_KPMULT:     Action::Do(fCtrl ? actResetButton : actTempTurbo, fPress); break;
-                case HK_KPPLUS:     Action::Do(fCtrl ? actTempTurbo : actSpeedFaster, fPress); break;
-                case HK_KPMINUS:    Action::Do(fCtrl ? actSpeedNormal : actSpeedSlower, fPress); break;
-
-                case HK_PRINT:      Action::Do(actSaveScreenshot, fPress); break;
-                case HK_SCROLL:
-                case HK_PAUSE:      Action::Do(fCtrl ? actResetButton : fShift ? actFrameStep : actPause, fPress); break;
-
-                default:            fAction = false; break;
-            }
-
-            // Have we processed the key?
-            if (fAction)
-                break;
-
 //            TRACE("Key %s: %d (mods=%03x u=%d)\n", fPress ? "down" : "up", nKey, pKey->mod, pKey->unicode);
 
             if (GUI::IsActive())
@@ -370,23 +349,44 @@ bool Input::FilterEvent (SDL_Event* pEvent_)
                 // Pass any printable characters to the GUI
                 if (fPress && nKey)
                     GUI::SendMessage(GM_CHAR, nKey, nMods);
+
+                break;
             }
-            else
+
+            // Some additional function keys
+            bool fAction = true;
+            switch (nKey)
             {
-                // Optionally release the mouse capture if Esc is pressed
-                if (fPress && nKey == HK_ESC && GetOption(mouseesc))
-                    AcquireMouse(false);
+            case HK_RETURN:     fAction = fAlt; if (fAction) Action::Do(actToggleFullscreen, fPress); break;
+            case HK_KPDIVIDE:   Action::Do(actDebugger, fPress); break;
+            case HK_KPMULT:     Action::Do(fCtrl ? actResetButton : actTempTurbo, fPress); break;
+            case HK_KPPLUS:     Action::Do(fCtrl ? actTempTurbo : actSpeedFaster, fPress); break;
+            case HK_KPMINUS:    Action::Do(fCtrl ? actSpeedNormal : actSpeedSlower, fPress); break;
 
-                // Key press (CapsLock/NumLock are toggle keys in SDL, so we must treat any event as a press)
-                if (fPress || pKey->sym == SDLK_CAPSLOCK || pKey->sym == SDLK_NUMLOCKCLEAR)
-                {
-                    Keyboard::SetKey(nKey, true, nMods, nChr);
-                }
+            case HK_PRINT:      Action::Do(actSaveScreenshot, fPress); break;
+            case HK_SCROLL:
+            case HK_PAUSE:      Action::Do(fCtrl ? actResetButton : fShift ? actFrameStep : actPause, fPress); break;
 
-                // Key release
-                else if (!fPress)
-                    Keyboard::SetKey(nKey, false);
+            default:            fAction = false; break;
             }
+
+            // Have we processed the key?
+            if (fAction)
+                break;
+
+            // Optionally release the mouse capture if Esc is pressed
+            if (fPress && nKey == HK_ESC && GetOption(mouseesc))
+                AcquireMouse(false);
+
+            // Key press (CapsLock/NumLock are toggle keys in SDL, so we must treat any event as a press)
+            if (fPress || pKey->sym == SDLK_CAPSLOCK || pKey->sym == SDLK_NUMLOCKCLEAR)
+            {
+                Keyboard::SetKey(nKey, true, nMods, nChr);
+            }
+
+            // Key release
+            else if (!fPress)
+                Keyboard::SetKey(nKey, false);
 
             break;
         }
