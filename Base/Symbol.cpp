@@ -123,7 +123,6 @@ static bool Load (const char *pcszFile_, AddrToSym &symtab_, SymToAddr *pValues_
 {
     // Clear any existing symbols and values
     symtab_.clear();
-    if (pValues_) pValues_->clear();
 
     FILE *file = fopen(pcszFile_, "r");
     if (!file)
@@ -152,9 +151,11 @@ static bool Load (const char *pcszFile_, AddrToSym &symtab_, SymToAddr *pValues_
 // Update user symbols, loading the ROM and port symbols if not already loaded
 void Update (const char *pcszFile_)
 {
+    symbol_values.clear();
+
     // Load ROM symbols if not already loaded
     if (rom_symbols.empty())
-        Load(OSD::MakeFilePath(MFP_RESOURCE, "samrom.map"), rom_symbols, nullptr);
+        Load(OSD::MakeFilePath(MFP_RESOURCE, "samrom.map"), rom_symbols, &symbol_values);
 
     // Load I/O port symbols if not already loaded
     if (port_symbols.empty())
