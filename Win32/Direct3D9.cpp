@@ -20,17 +20,14 @@
 
 #include "SimCoupe.h"
 #include "Direct3D9.h"
-#include "VertexShader.h"
-#include "PixelShader.h"
+#include "D3D9_VS.h"
+#include "D3D9_PS.h"
 
 #include "Frame.h"
 #include "GUI.h"
 #include "Options.h"
 #include "UI.h"
 #include "Video.h"
-
-#pragma comment(lib, "d3d9.lib")
-
 
 #define TEXTURE_SIZE    1024
 #define NUM_VERTICES    4
@@ -77,17 +74,7 @@ bool Direct3D9Video::Init (bool fFirstInit_)
     if (!GetOption(hwaccel))
         return false;
 
-    // D3D.DLL is delay-loaded, so be prepared for this to fail if it's not available
-    __try
-    {
-        m_pd3d = Direct3DCreate9(D3D_SDK_VERSION);
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        TRACE("D3D9.dll not found!\n");
-        return false;
-    }
-
+    m_pd3d = Direct3DCreate9(D3D_SDK_VERSION);
     CreateDevice();
     UpdateSize();
 
@@ -275,11 +262,11 @@ HRESULT Direct3D9Video::CreateShaders ()
     HRESULT hr = D3D_OK;
 
     if (m_pVertexShader) m_pVertexShader->Release(), m_pVertexShader = nullptr;
-    hr = m_pd3dDevice->CreateVertexShader((DWORD*)g_VertexShader, &m_pVertexShader);
+    hr = m_pd3dDevice->CreateVertexShader((DWORD*)g_D3D9_VS, &m_pVertexShader);
     hr = m_pd3dDevice->SetVertexShader(m_pVertexShader);
 
     if (m_pPixelShader) m_pPixelShader->Release(), m_pPixelShader = nullptr;
-    hr = m_pd3dDevice->CreatePixelShader((DWORD*)g_PixelShader, &m_pPixelShader);
+    hr = m_pd3dDevice->CreatePixelShader((DWORD*)g_D3D9_PS, &m_pPixelShader);
     hr = m_pd3dDevice->SetPixelShader(m_pPixelShader);
 
     return hr;

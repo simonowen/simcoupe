@@ -97,6 +97,7 @@ macro(find_component name header library)
     mark_as_advanced(${name}_INCLUDE_DIR ${name}_LIBRARY)
 endmacro()
 
+find_component(DDRAW ddraw.h ddraw)
 find_component(DINPUT dinput.h dinput8)
 find_component(D3D9 d3d9.h d3d9)
 find_component(DSOUND dsound.h dsound)

@@ -27,8 +27,6 @@
 #include "UI.h"
 #include "Video.h"
 
-#pragma comment(lib, "ddraw.lib")
-
 // Normal and scanline palettes in native surface values (faster kept at file scope)
 static DWORD aulPalette[N_PALETTE_COLOURS];
 static DWORD aulScanline[N_PALETTE_COLOURS];
@@ -78,22 +76,14 @@ bool DirectDrawVideo::Init (bool fFirstInit_)
         return false;
     }
 
-    __try
-    {
-        // Create the main DirectDraw object, reversing the acceleration option if the first attempt failed
-        hr = DirectDrawCreate(GetOption(hwaccel) ? nullptr : (LPGUID)DDCREATE_EMULATIONONLY, &m_pdd, nullptr);
-        if (FAILED(hr))
-            hr = DirectDrawCreate(GetOption(hwaccel) ? (LPGUID)DDCREATE_EMULATIONONLY : nullptr, &m_pdd, nullptr);
+    // Create the main DirectDraw object, reversing the acceleration option if the first attempt failed
+    hr = DirectDrawCreate(GetOption(hwaccel) ? nullptr : (LPGUID)DDCREATE_EMULATIONONLY, &m_pdd, nullptr);
+    if (FAILED(hr))
+        hr = DirectDrawCreate(GetOption(hwaccel) ? (LPGUID)DDCREATE_EMULATIONONLY : nullptr, &m_pdd, nullptr);
 
-        if (FAILED(hr))
-        {
-            Message(msgError, "DirectDrawCreate() failed (%#08lx).", hr);
-            return false;
-        }
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
+    if (FAILED(hr))
     {
-        Message(msgError, "DDRAW::DirectDrawCreate not found.\n");
+        Message(msgError, "DirectDrawCreate() failed (%#08lx).", hr);
         return false;
     }
 

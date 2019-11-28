@@ -14,6 +14,18 @@
 // PNG library for screenshot saving.
 #cmakedefine HAVE_LIBPNG
 
+// Direct3D 9 video (Win32).
+#cmakedefine HAVE_D3D9
+
+// DirectDraw video (Win32).
+#cmakedefine HAVE_DDRAW
+
+// DirectInput 8 (Win32).
+#cmakedefine HAVE_DINPUT
+
+// fdrawcmd.sys floppy driver header (Win32).
+#cmakedefine HAVE_FDRAWCMD_H
+
 // Simple DirectMedia Layer v2.0
 #cmakedefine HAVE_LIBSDL2
 
