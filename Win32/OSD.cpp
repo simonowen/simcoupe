@@ -176,12 +176,12 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
         // Resources are bundled with the EXE, which may be a read-only location
         case MFP_RESOURCE:
 #ifdef RESOURCE_DIR
-            strncpy(szPath, RESOURCE_DIR, MAX_PATH - 1);
-            strncat(szPath, "/", MAX_PATH - strlen(szPath) - 1);
-            szPath[MAX_PATH - 1] = '\0';
+            strncpy(szPath, RESOURCE_DIR, _countof(szPath));
+            szPath[_countof(szPath) - 1] = '\0';
+            strncat(szPath, "/", _countof(szPath));
+            szPath[_countof(szPath) - 1] = '\0';
 #else
-            GetModuleFileName(GetModuleHandle(nullptr), szPath, MAX_PATH);
-            strrchr(szPath, '\\')[1] = '\0';
+            szPath[0] = '\0';
 #endif
             break;
     }
@@ -189,7 +189,16 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
     // Append any supplied filename (backslash separator already added)
     lstrcat(szPath, pcszFile_);
 
+    // If the resource isn't where we expected, use the EXE directory.
+    if (nDir_ == MFP_RESOURCE && !fs::exists(szPath))
+    {
+        GetModuleFileName(GetModuleHandle(NULL), szPath, MAX_PATH);
+        auto path = fs::path(szPath).remove_filename() / pcszFile_;
+        strncpy(szPath, path.u8string(). c_str(), MAX_PATH - 1);
+    }
+
     // Return a pointer to the new path
+    szPath[_countof(szPath) - 1] = '\0';
     return szPath;
 }
 

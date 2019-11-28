@@ -68,6 +68,8 @@ typedef unsigned long       ULONG;
 #include <algorithm>
 #include <queue>
 #include <stack>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include "OSD.h"        /* OS-dependent stuff */
 #include "SAM.h"        /* Various SAM constants */
