@@ -126,6 +126,9 @@ add_executable(${PROJECT_NAME} WIN32 MACOSX_BUNDLE ${SOURCE_FILES} ${HEADER_FILE
 include(CheckCXXCompilerFlag)
 include(CheckIncludeFiles)
 
+# Only newer Xcode versions and OS targets support std::filesystem
+check_include_files("<filesystem>" HAVE_STD_FILESYSTEM)
+
 set(CMAKE_THREAD_PREFER_PTHREAD pthread)
 find_package(Threads REQUIRED)
 target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})

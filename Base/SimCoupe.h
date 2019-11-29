@@ -67,8 +67,14 @@ typedef unsigned long       ULONG;
 #include <algorithm>
 #include <queue>
 #include <stack>
+
+#ifdef HAVE_STD_FILESYSTEM
 #include <filesystem>
 namespace fs = std::filesystem;
+#else
+#include "filesystem.hpp"
+namespace fs = ghc::filesystem;
+#endif
 
 #include "OSD.h"        /* OS-dependent stuff */
 #include "SAM.h"        /* Various SAM constants */
