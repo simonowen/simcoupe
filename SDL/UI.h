@@ -33,15 +33,15 @@
 
 class UI
 {
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+public:
+    static bool Init(bool fFirstInit_ = false);
+    static void Exit(bool fReInit_ = false);
 
-        static VideoBase *GetVideo (bool fFirstInit_=false);
-        static bool CheckEvents ();
+    static VideoBase* GetVideo(bool fFirstInit_ = false);
+    static bool CheckEvents();
 
-        static bool DoAction (int nAction_, bool fPressed_=true);
-        static void ShowMessage (eMsgType eType_, const char* pszMessage_);
+    static bool DoAction(int nAction_, bool fPressed_ = true);
+    static void ShowMessage(eMsgType eType_, const char* pszMessage_);
 };
 
 extern bool g_fActive;

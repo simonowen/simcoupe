@@ -29,16 +29,16 @@ enum eActions
     actToggleScanHiRes, actToggleFullscreen, actChangeWindowSize_REMOVED, actChangeBorders_REMOVED, actToggle5_4,
     actToggleFilter, actToggleScanlines, actToggleGreyscale, actToggleMute, actReleaseMouse,
     actPrinterOnline, actFlushPrinter, actAbout, actMinimise, actRecordGif, actRecordGifLoop, actRecordGifStop,
-    actRecordWav,actRecordWavSegment, actRecordWavStop, actRecordAvi, actRecordAviHalf, actRecordAviStop,
+    actRecordWav, actRecordWavSegment, actRecordWavStop, actRecordAvi, actRecordAviHalf, actRecordAviStop,
     actSpeedFaster, actSpeedSlower, actSpeedNormal, actPaste, actTapeInsert, actTapeEject, actTapeBrowser, MAX_ACTION
 };
 
 namespace Action
 {
-    bool Do (int nAction_, bool fPressed_=true);
-    void Key (int nFnKey_, bool fPressed_, bool fCtrl_, bool fAlt_, bool fShift_);
+bool Do(int nAction_, bool fPressed_ = true);
+void Key(int nFnKey_, bool fPressed_, bool fCtrl_, bool fAlt_, bool fShift_);
 
-    extern const char* aszActions[MAX_ACTION];
+extern const char* aszActions[MAX_ACTION];
 }
 
 #endif  // ACTION_H

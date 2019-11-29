@@ -25,13 +25,13 @@
 
 namespace Keyin
 {
-    void String (const char *pcsz_, bool fMapChars_=true);
-    void Stop ();
+void String(const char* pcsz_, bool fMapChars_ = true);
+void Stop();
 
-    bool CanType ();
-    bool IsTyping ();
+bool CanType();
+bool IsTyping();
 
-    bool Next ();
+bool Next();
 }
 
 #endif // KEYIN_H

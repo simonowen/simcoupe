@@ -93,27 +93,27 @@ bool g_fDebug;              // Debug only helper variable, to trigger the debugg
 #endif
 
 // Memory access tracking for the debugger
-BYTE *pbMemRead1, *pbMemRead2, *pbMemWrite1, *pbMemWrite2;
+BYTE* pbMemRead1, * pbMemRead2, * pbMemWrite1, * pbMemWrite2;
 
 Z80Regs regs;
 
-WORD* pHlIxIy, *pNewHlIxIy;
-CPU_EVENT asCpuEvents[MAX_EVENTS], *psNextEvent, *psFreeEvent;
+WORD* pHlIxIy, * pNewHlIxIy;
+CPU_EVENT asCpuEvents[MAX_EVENTS], * psNextEvent, * psFreeEvent;
 
 
 namespace CPU
 {
 // Memory access contention table
-static BYTE abContention1[TSTATES_PER_FRAME+64], abContention234[TSTATES_PER_FRAME+64], abContention4T[TSTATES_PER_FRAME+64];
-static const BYTE *pMemContention = abContention1;
+static BYTE abContention1[TSTATES_PER_FRAME + 64], abContention234[TSTATES_PER_FRAME + 64], abContention4T[TSTATES_PER_FRAME + 64];
+static const BYTE* pMemContention = abContention1;
 static bool fContention = true;
 static const BYTE abPortContention[] = { 6, 5, 4, 3, 2, 1, 0, 7 };
 //                                      T1 T2 T3 T4 T1 T2 T3 T4
 
-inline void CheckInterrupt ();
+inline void CheckInterrupt();
 
 
-bool Init (bool fFirstInit_/*=false*/)
+bool Init(bool fFirstInit_/*=false*/)
 {
     bool fRet = true;
 
@@ -123,16 +123,16 @@ bool Init (bool fFirstInit_/*=false*/)
         InitCpuEvents();
 
         // Build the parity lookup table (including other flags for logical operations)
-        for (int n = 0x00 ; n <= 0xff ; n++)
+        for (int n = 0x00; n <= 0xff; n++)
         {
             BYTE b2 = n ^ (n >> 4);
             b2 ^= (b2 << 2);
-            b2 = ~(b2 ^ (b2 >> 1)) & FLAG_P;
+            b2 = ~(b2 ^ (b2 >> 1))& FLAG_P;
             g_abParity[n] = (n & 0xa8) |    // S, 5, 3
-                            ((!n) << 6) |   // Z
-                            b2;             // P
+                ((!n) << 6) |   // Z
+                b2;             // P
 #ifdef USE_FLAG_TABLES
-            g_abInc[n] = (n & 0xa8) | ((!n) << 6) | ((!( n & 0xf)) << 4) | ((n == 0x80) << 2);
+            g_abInc[n] = (n & 0xa8) | ((!n) << 6) | ((!(n & 0xf)) << 4) | ((n == 0x80) << 2);
             g_abDec[n] = (n & 0xa8) | ((!n) << 6) | ((!(~n & 0xf)) << 4) | ((n == 0x7f) << 2) | FLAG_N;
 #endif
         }
@@ -145,16 +145,16 @@ bool Init (bool fFirstInit_/*=false*/)
         IX = IY = 0xffff;
 
         // Build the memory access contention tables
-        for (UINT t2 = 0 ; t2 < _countof(abContention1) ; t2++)
+        for (UINT t2 = 0; t2 < _countof(abContention1); t2++)
         {
             int nLine = t2 / TSTATES_PER_LINE, nLineCycle = t2 % TSTATES_PER_LINE;
-            bool fScreen = nLine >= TOP_BORDER_LINES && nLine < TOP_BORDER_LINES+SCREEN_LINES &&
-                           nLineCycle >= BORDER_PIXELS+BORDER_PIXELS;
+            bool fScreen = nLine >= TOP_BORDER_LINES && nLine < TOP_BORDER_LINES + SCREEN_LINES &&
+                nLineCycle >= BORDER_PIXELS + BORDER_PIXELS;
             bool fMode1 = !(nLineCycle & 0x40);
 
-            abContention1[t2] = ((t2+1)|((fScreen|fMode1)?7:3)) - 1 - t2;
-            abContention234[t2] = ((t2+1)|(fScreen?7:3)) - 1 - t2;
-            abContention4T[t2] = ((t2+1)|3) - 1 - t2;
+            abContention1[t2] = ((t2 + 1) | ((fScreen | fMode1) ? 7 : 3)) - 1 - t2;
+            abContention234[t2] = ((t2 + 1) | (fScreen ? 7 : 3)) - 1 - t2;
+            abContention4T[t2] = ((t2 + 1) | 3) - 1 - t2;
         }
 
         // Set up RAM and initial I/O settings
@@ -168,7 +168,7 @@ bool Init (bool fFirstInit_/*=false*/)
     return fRet;
 }
 
-void Exit (bool fReInit_/*=false*/)
+void Exit(bool fReInit_/*=false*/)
 {
     IO::Exit(fReInit_);
     Memory::Exit(fReInit_);
@@ -178,39 +178,39 @@ void Exit (bool fReInit_/*=false*/)
 }
 
 
-bool IsContentionActive ()
+bool IsContentionActive()
 {
     return fContention;
 }
 
 // Update the active memory contention table based
-void UpdateContention (bool fActive_/*=true*/)
+void UpdateContention(bool fActive_/*=true*/)
 {
     fContention = fActive_;
 
     pMemContention = !fActive_ ? abContention4T :
-                     (vmpr_mode == MODE_1) ? abContention1 :
-                     (BORD_SOFF && VMPR_MODE_3_OR_4) ? abContention4T :
-                     abContention234;
+        (vmpr_mode == MODE_1) ? abContention1 :
+        (BORD_SOFF && VMPR_MODE_3_OR_4) ? abContention4T :
+        abContention234;
 }
 
 
 // Read an instruction byte and update timing
-inline BYTE timed_read_code_byte (WORD addr)
+inline BYTE timed_read_code_byte(WORD addr)
 {
     MEM_ACCESS(addr);
     return read_byte(addr);
 }
 
 // Read a data byte and update timing
-inline BYTE timed_read_byte (WORD addr)
+inline BYTE timed_read_byte(WORD addr)
 {
     MEM_ACCESS(addr);
     return *(pbMemRead1 = AddrReadPtr(addr));
 }
 
 // Read an instruction word and update timing
-inline WORD timed_read_code_word (WORD addr)
+inline WORD timed_read_code_word(WORD addr)
 {
     MEM_ACCESS(addr);
     MEM_ACCESS(addr + 1);
@@ -218,7 +218,7 @@ inline WORD timed_read_code_word (WORD addr)
 }
 
 // Read a data word and update timing
-inline WORD timed_read_word (WORD addr)
+inline WORD timed_read_word(WORD addr)
 {
     MEM_ACCESS(addr);
     MEM_ACCESS(addr + 1);
@@ -226,7 +226,7 @@ inline WORD timed_read_word (WORD addr)
 }
 
 // Write a byte and update timing
-inline void timed_write_byte (WORD addr, BYTE contents)
+inline void timed_write_byte(WORD addr, BYTE contents)
 {
     MEM_ACCESS(addr);
     check_video_write(addr);
@@ -235,7 +235,7 @@ inline void timed_write_byte (WORD addr, BYTE contents)
 }
 
 // Write a word and update timing
-inline void timed_write_word (WORD addr, WORD contents)
+inline void timed_write_word(WORD addr, WORD contents)
 {
     MEM_ACCESS(addr);
     check_video_write(addr);
@@ -249,7 +249,7 @@ inline void timed_write_word (WORD addr, WORD contents)
 }
 
 // Write a word and update timing (high-byte first - used by stack functions)
-inline void timed_write_word_reversed (WORD addr, WORD contents)
+inline void timed_write_word_reversed(WORD addr, WORD contents)
 {
     MEM_ACCESS(addr + 1);
     check_video_write(addr + 1);
@@ -264,84 +264,84 @@ inline void timed_write_word_reversed (WORD addr, WORD contents)
 
 
 // Execute the CPU event specified
-void ExecuteEvent (CPU_EVENT sThisEvent)
+void ExecuteEvent(CPU_EVENT sThisEvent)
 {
     switch (sThisEvent.nEvent)
     {
-        case evtStdIntEnd:
-            // Reset the interrupt as we're done
-            status_reg |= (STATUS_INT_FRAME | STATUS_INT_LINE);
-            break;
+    case evtStdIntEnd:
+        // Reset the interrupt as we're done
+        status_reg |= (STATUS_INT_FRAME | STATUS_INT_LINE);
+        break;
 
-        case evtMidiOutIntStart:
-            // Begin the MIDI_OUT interrupt and add an event to end it
-            status_reg &= ~STATUS_INT_MIDIOUT;
-            AddCpuEvent(evtMidiOutIntEnd, sThisEvent.dwTime + MIDI_INT_ACTIVE_TIME);
-            break;
+    case evtMidiOutIntStart:
+        // Begin the MIDI_OUT interrupt and add an event to end it
+        status_reg &= ~STATUS_INT_MIDIOUT;
+        AddCpuEvent(evtMidiOutIntEnd, sThisEvent.dwTime + MIDI_INT_ACTIVE_TIME);
+        break;
 
-        case evtMidiOutIntEnd:
-            // Reset the interrupt and clear the 'transmitting' bit in LPEN as we're done
-            status_reg |= STATUS_INT_MIDIOUT;
-            lpen &= ~LPEN_TXFMST;
-            break;
+    case evtMidiOutIntEnd:
+        // Reset the interrupt and clear the 'transmitting' bit in LPEN as we're done
+        status_reg |= STATUS_INT_MIDIOUT;
+        lpen &= ~LPEN_TXFMST;
+        break;
 
-        case evtLineIntStart:
-        {
-            // Begin the line interrupt and add an event to end it
-            status_reg &= ~STATUS_INT_LINE;
-            AddCpuEvent(evtStdIntEnd, sThisEvent.dwTime + INT_ACTIVE_TIME);
+    case evtLineIntStart:
+    {
+        // Begin the line interrupt and add an event to end it
+        status_reg &= ~STATUS_INT_LINE;
+        AddCpuEvent(evtStdIntEnd, sThisEvent.dwTime + INT_ACTIVE_TIME);
 
-            AddCpuEvent(evtLineIntStart, sThisEvent.dwTime + TSTATES_PER_FRAME);
-            break;
-        }
+        AddCpuEvent(evtLineIntStart, sThisEvent.dwTime + TSTATES_PER_FRAME);
+        break;
+    }
 
-        case evtEndOfFrame:
-        {
-            // Signal a FRAME interrupt, and start the interrupt counter
-            status_reg &= ~STATUS_INT_FRAME;
-            AddCpuEvent(evtStdIntEnd, sThisEvent.dwTime + INT_ACTIVE_TIME);
+    case evtEndOfFrame:
+    {
+        // Signal a FRAME interrupt, and start the interrupt counter
+        status_reg &= ~STATUS_INT_FRAME;
+        AddCpuEvent(evtStdIntEnd, sThisEvent.dwTime + INT_ACTIVE_TIME);
 
-            AddCpuEvent(evtEndOfFrame, sThisEvent.dwTime + TSTATES_PER_FRAME);
+        AddCpuEvent(evtEndOfFrame, sThisEvent.dwTime + TSTATES_PER_FRAME);
 
-            // Signal end of the frame
-            g_fBreak = true;
-            break;
-        }
+        // Signal end of the frame
+        g_fBreak = true;
+        break;
+    }
 
-        case evtInputUpdate:
-            // Update the input in the centre of the screen (well away from the frame boundary) to avoid the ROM
-            // keyboard scanner discarding key presses when it thinks keys have bounced.  In old versions this was
-            // the cause of the first key press on the boot screen only clearing it (took AGES to track down!)
-            IO::UpdateInput();
+    case evtInputUpdate:
+        // Update the input in the centre of the screen (well away from the frame boundary) to avoid the ROM
+        // keyboard scanner discarding key presses when it thinks keys have bounced.  In old versions this was
+        // the cause of the first key press on the boot screen only clearing it (took AGES to track down!)
+        IO::UpdateInput();
 
-            // Schedule the next input check at the same position in the next frame
-            AddCpuEvent(evtInputUpdate, sThisEvent.dwTime + TSTATES_PER_FRAME);
-            break;
+        // Schedule the next input check at the same position in the next frame
+        AddCpuEvent(evtInputUpdate, sThisEvent.dwTime + TSTATES_PER_FRAME);
+        break;
 
-        case evtMouseReset:
-            pMouse->Reset();
-            break;
+    case evtMouseReset:
+        pMouse->Reset();
+        break;
 
-        case evtBlueAlphaClock:
-            // Clock the sampler, scheduling the next event if it's still running
-            if (pBlueAlpha->Clock())
-                AddCpuEvent(evtBlueAlphaClock, sThisEvent.dwTime + BLUE_ALPHA_CLOCK_TIME);
-            break;
+    case evtBlueAlphaClock:
+        // Clock the sampler, scheduling the next event if it's still running
+        if (pBlueAlpha->Clock())
+            AddCpuEvent(evtBlueAlphaClock, sThisEvent.dwTime + BLUE_ALPHA_CLOCK_TIME);
+        break;
 
-        case evtAsicStartup:
-            // ASIC is now responsive
-            IO::WakeAsic();
-            break;
+    case evtAsicStartup:
+        // ASIC is now responsive
+        IO::WakeAsic();
+        break;
 
-        case evtTapeEdge:
-            Tape::NextEdge(sThisEvent.dwTime);
-            break;
+    case evtTapeEdge:
+        Tape::NextEdge(sThisEvent.dwTime);
+        break;
     }
 }
 
 
 // Execute until the end of a frame, or a breakpoint, whichever comes first
-void ExecuteChunk ()
+void ExecuteChunk()
 {
     // Is the reset button is held in?
     if (g_fReset)
@@ -350,7 +350,7 @@ void ExecuteChunk ()
         g_dwCycleCounter = TSTATES_PER_FRAME;
     }
 
-// Execute the first CPU core if only 1 CPU core is compiled in
+    // Execute the first CPU core if only 1 CPU core is compiled in
 #if defined(USE_ONECPUCORE)
     if (1)
 #else
@@ -358,7 +358,7 @@ void ExecuteChunk ()
 #endif
     {
         // Loop until we've reached the end of the frame
-        for (g_fBreak = false ; !g_fBreak ; )
+        for (g_fBreak = false; !g_fBreak; )
         {
             // Keep track of the current and previous state of whether we're processing an indexed instruction
             pHlIxIy = pNewHlIxIy;
@@ -394,7 +394,7 @@ void ExecuteChunk ()
     else
     {
         // Loop until we've reached the end of the frame
-        for (g_fBreak = false ; !g_fBreak ; )
+        for (g_fBreak = false; !g_fBreak; )
         {
             // Keep track of the current and previous state of whether we're processing an indexed instruction
             pHlIxIy = pNewHlIxIy;
@@ -427,7 +427,7 @@ void ExecuteChunk ()
 
 
 // The main Z80 emulation loop
-void Run ()
+void Run()
 {
     // Loop until told to quit
     while (UI::CheckEvents())
@@ -467,7 +467,7 @@ void Run ()
 }
 
 
-void Reset (bool fPress_)
+void Reset(bool fPress_)
 {
     // Set CPU operating mode
     g_fReset = fPress_;
@@ -488,7 +488,7 @@ void Reset (bool fPress_)
 
         // Schedule the first end of line event, and an update check 3/4 through the frame
         AddCpuEvent(evtEndOfFrame, TSTATES_PER_FRAME);
-        AddCpuEvent(evtInputUpdate, TSTATES_PER_FRAME*3/4);
+        AddCpuEvent(evtInputUpdate, TSTATES_PER_FRAME * 3 / 4);
 
         // Re-initialise memory (for configuration changes) and reset I/O
         IO::Init();
@@ -529,7 +529,7 @@ void NMI()
 }
 
 
-inline void CheckInterrupt ()
+inline void CheckInterrupt()
 {
     // Only process if not delayed after a DI/EI and not in the middle of an indexed instruction
     if (bOpcode != OP_EI && bOpcode != OP_DI && (pNewHlIxIy == &HL))
@@ -557,34 +557,34 @@ inline void CheckInterrupt ()
         // The current interrupt mode determines how we handle the interrupt
         switch (IM)
         {
-            case 0:
-            {
-                PC = IM1_INTERRUPT_HANDLER;
-                g_dwCycleCounter += 6;
-                break;
-            }
+        case 0:
+        {
+            PC = IM1_INTERRUPT_HANDLER;
+            g_dwCycleCounter += 6;
+            break;
+        }
 
-            case 1:
-            {
-                PC = IM1_INTERRUPT_HANDLER;
-                g_dwCycleCounter += 7;
-                break;
-            }
+        case 1:
+        {
+            PC = IM1_INTERRUPT_HANDLER;
+            g_dwCycleCounter += 7;
+            break;
+        }
 
-            case 2:
-            {
-                // Fetch the IM 2 handler address from an address formed from I and 0xff (from the bus)
-                PC = timed_read_word((I << 8) | 0xff);
-                g_dwCycleCounter += 7;
-                break;
-            }
+        case 2:
+        {
+            // Fetch the IM 2 handler address from an address formed from I and 0xff (from the bus)
+            PC = timed_read_word((I << 8) | 0xff);
+            g_dwCycleCounter += 7;
+            break;
+        }
         }
     }
 }
 
 
 // Perform some initial tests to confirm the emulator is functioning correctly!
-void InitTests ()
+void InitTests()
 {
     // Sanity check the endian of the registers structure.  If this fails you'll need to add a new
     // symbol test to the top of SimCoupe.h, to help identify the new little-endian platform

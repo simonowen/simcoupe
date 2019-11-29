@@ -22,20 +22,20 @@
 #include "AtaAdapter.h"
 
 
-CAtaAdapter::~CAtaAdapter ()
+CAtaAdapter::~CAtaAdapter()
 {
     delete m_pDisk0;
     delete m_pDisk1;
 }
 
 // 8-bit read
-BYTE CAtaAdapter::In (WORD wPort_)
+BYTE CAtaAdapter::In(WORD wPort_)
 {
     return InWord(wPort_) & 0xff;
 }
 
 // 16-bit read
-WORD CAtaAdapter::InWord (WORD wPort_)
+WORD CAtaAdapter::InWord(WORD wPort_)
 {
     WORD wRet = 0x0000;
 
@@ -47,27 +47,27 @@ WORD CAtaAdapter::InWord (WORD wPort_)
 }
 
 // 8-bit write (16-bit handled by derived class)
-void CAtaAdapter::Out (WORD wPort_, BYTE bVal_)
+void CAtaAdapter::Out(WORD wPort_, BYTE bVal_)
 {
     if (m_pDisk0) m_pDisk0->Out(wPort_, bVal_);
     if (m_pDisk1) m_pDisk1->Out(wPort_, bVal_);
 }
 
 
-void CAtaAdapter::Reset ()
+void CAtaAdapter::Reset()
 {
     if (m_pDisk0) m_pDisk0->Reset();
     if (m_pDisk1) m_pDisk1->Reset();
 }
 
 
-bool CAtaAdapter::Attach (const char *pcszDisk_, int nDevice_)
+bool CAtaAdapter::Attach(const char* pcszDisk_, int nDevice_)
 {
     // Return if successfully or path is empty
     return Attach(CHardDisk::OpenObject(pcszDisk_), nDevice_) || !*pcszDisk_;
 }
 
-bool CAtaAdapter::Attach (CHardDisk *pDisk_, int nDevice_)
+bool CAtaAdapter::Attach(CHardDisk* pDisk_, int nDevice_)
 {
     if (nDevice_ == 0)
     {
@@ -89,7 +89,7 @@ bool CAtaAdapter::Attach (CHardDisk *pDisk_, int nDevice_)
     return pDisk_ != nullptr;
 }
 
-void CAtaAdapter::Detach ()
+void CAtaAdapter::Detach()
 {
     delete m_pDisk0; m_pDisk0 = nullptr;
     delete m_pDisk1; m_pDisk1 = nullptr;

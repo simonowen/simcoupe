@@ -23,12 +23,12 @@
 
 namespace Symbol
 {
-    void Update (const char *pcszFile_);
-    void Clear ();
+void Update(const char* pcszFile_);
+void Clear();
 
-    int LookupSymbol (std::string sSymbol_);
-    std::string LookupAddr (WORD wAddr_, int nMaxLen_=0, bool fAllowPlusOne_=false);
-    std::string LookupPort (BYTE bPort_, bool fInput_);
+int LookupSymbol(std::string sSymbol_);
+std::string LookupAddr(WORD wAddr_, int nMaxLen_ = 0, bool fAllowPlusOne_ = false);
+std::string LookupPort(BYTE bPort_, bool fInput_);
 }
 
 #endif

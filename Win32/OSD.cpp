@@ -39,7 +39,7 @@ PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 bool fPortable = false;
 
 
-bool OSD::Init (bool fFirstInit_/*=false*/)
+bool OSD::Init(bool fFirstInit_/*=false*/)
 {
     TRACE("OSD::Init(%d)\n", fFirstInit_);
     char szModule[MAX_PATH];
@@ -49,7 +49,7 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
         (GetFileAttributes(szModule) & FILE_ATTRIBUTE_READONLY) == FILE_ATTRIBUTE_READONLY)
     {
         // Quit after 42 seconds, to discourage eBay sellers bundling us on CD/DVD, likely with unauthorised SAM software
-        SetTimer(nullptr, 0, 42*1000, CloseTimerProc);
+        SetTimer(nullptr, 0, 42 * 1000, CloseTimerProc);
     }
 
     if (fFirstInit_)
@@ -85,18 +85,18 @@ bool OSD::Init (bool fFirstInit_/*=false*/)
     return true;
 }
 
-void OSD::Exit (bool fReInit_/*=false*/)
+void OSD::Exit(bool fReInit_/*=false*/)
 {
     if (!fReInit_)
     {
-        if (g_hinstDInput) { FreeLibrary(g_hinstDInput); g_hinstDInput = nullptr; pfnDirectInputCreate=nullptr; }
-        if (g_hinstDSound) { FreeLibrary(g_hinstDSound); g_hinstDSound = nullptr; pfnDirectSoundCreate=nullptr; }
+        if (g_hinstDInput) { FreeLibrary(g_hinstDInput); g_hinstDInput = nullptr; pfnDirectInputCreate = nullptr; }
+        if (g_hinstDSound) { FreeLibrary(g_hinstDSound); g_hinstDSound = nullptr; pfnDirectSoundCreate = nullptr; }
     }
 }
 
 
 // Return a time-stamp in milliseconds
-DWORD OSD::GetTime ()
+DWORD OSD::GetTime()
 {
     static LARGE_INTEGER llFreq;
     LARGE_INTEGER llNow;
@@ -111,7 +111,7 @@ DWORD OSD::GetTime ()
 }
 
 
-static bool GetSpecialFolderPath (int csidl_, char *pszPath_, int cbPath_)
+static bool GetSpecialFolderPath(int csidl_, char* pszPath_, int cbPath_)
 {
     char szPath[MAX_PATH] = "";
     LPITEMIDLIST pidl = nullptr;
@@ -122,10 +122,10 @@ static bool GetSpecialFolderPath (int csidl_, char *pszPath_, int cbPath_)
         if (SHGetPathFromIDList(pidl, szPath))
         {
             // Copy to the supplied buffer, leave room for backslash
-            lstrcpyn(pszPath_, szPath, cbPath_-1);
+            lstrcpyn(pszPath_, szPath, cbPath_ - 1);
 
             // Ensure any non-empty path ends in a backslash
-            if (*pszPath_ && pszPath_[lstrlen(pszPath_)-1] != '\\')
+            if (*pszPath_ && pszPath_[lstrlen(pszPath_) - 1] != '\\')
                 lstrcat(pszPath_, "\\");
 
             fRet = true;
@@ -137,9 +137,9 @@ static bool GetSpecialFolderPath (int csidl_, char *pszPath_, int cbPath_)
     return fRet;
 }
 
-const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
+const char* OSD::MakeFilePath(int nDir_, const char* pcszFile_/*=""*/)
 {
-    static char szPath[MAX_PATH*2];
+    static char szPath[MAX_PATH * 2];
     szPath[0] = '\0';
 
     // In portable mode, force everything to be kept with the EXE, like we used to
@@ -149,41 +149,41 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
     switch (nDir_)
     {
         // Settings are stored in the user's AppData\Roaming (under SimCoupe\)
-        case MFP_SETTINGS:
-            GetSpecialFolderPath(CSIDL_APPDATA, szPath, MAX_PATH);
-            CreateDirectory(lstrcat(szPath, "SimCoupe\\"), nullptr);
-            break;
+    case MFP_SETTINGS:
+        GetSpecialFolderPath(CSIDL_APPDATA, szPath, MAX_PATH);
+        CreateDirectory(lstrcat(szPath, "SimCoupe\\"), nullptr);
+        break;
 
         // Input file prompts default to the user's Documents directory
-        case MFP_INPUT:
-            if (GetOption(inpath)[0])
-                lstrcpyn(szPath, GetOption(inpath), MAX_PATH);
-            else
-                GetSpecialFolderPath(CSIDL_MYDOCUMENTS, szPath, MAX_PATH);
-            break;
+    case MFP_INPUT:
+        if (GetOption(inpath)[0])
+            lstrcpyn(szPath, GetOption(inpath), MAX_PATH);
+        else
+            GetSpecialFolderPath(CSIDL_MYDOCUMENTS, szPath, MAX_PATH);
+        break;
 
         // Output files go in the user's Documents (under SimCoupe\)
-        case MFP_OUTPUT:
-            if (GetOption(outpath)[0])
-                lstrcpyn(szPath, GetOption(outpath), MAX_PATH);
-            else
-            {
-                GetSpecialFolderPath(CSIDL_MYDOCUMENTS, szPath, MAX_PATH);
-                CreateDirectory(lstrcat(szPath, "SimCoupe\\"), nullptr);
-            }
-            break;
+    case MFP_OUTPUT:
+        if (GetOption(outpath)[0])
+            lstrcpyn(szPath, GetOption(outpath), MAX_PATH);
+        else
+        {
+            GetSpecialFolderPath(CSIDL_MYDOCUMENTS, szPath, MAX_PATH);
+            CreateDirectory(lstrcat(szPath, "SimCoupe\\"), nullptr);
+        }
+        break;
 
         // Resources are bundled with the EXE, which may be a read-only location
-        case MFP_RESOURCE:
+    case MFP_RESOURCE:
 #ifdef RESOURCE_DIR
-            strncpy(szPath, RESOURCE_DIR, _countof(szPath));
-            szPath[_countof(szPath) - 1] = '\0';
-            strncat(szPath, "/", _countof(szPath));
-            szPath[_countof(szPath) - 1] = '\0';
+        strncpy(szPath, RESOURCE_DIR, _countof(szPath));
+        szPath[_countof(szPath) - 1] = '\0';
+        strncat(szPath, "/", _countof(szPath));
+        szPath[_countof(szPath) - 1] = '\0';
 #else
-            szPath[0] = '\0';
+        szPath[0] = '\0';
 #endif
-            break;
+        break;
     }
 
     // Append any supplied filename (backslash separator already added)
@@ -194,7 +194,7 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
     {
         GetModuleFileName(GetModuleHandle(NULL), szPath, MAX_PATH);
         auto path = fs::path(szPath).remove_filename() / pcszFile_;
-        strncpy(szPath, path.u8string(). c_str(), MAX_PATH - 1);
+        strncpy(szPath, path.u8string().c_str(), MAX_PATH - 1);
     }
 
     // Return a pointer to the new path
@@ -204,31 +204,31 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
 
 
 // Check whether the specified path is accessible
-bool OSD::CheckPathAccess (const char* pcszPath_)
+bool OSD::CheckPathAccess(const char* pcszPath_)
 {
     return !access(pcszPath_, X_OK);
 }
 
 
 // Return whether a file/directory is normally hidden from a directory listing
-bool OSD::IsHidden (const char* pcszFile_)
+bool OSD::IsHidden(const char* pcszFile_)
 {
     // Hide entries with the hidden or system attribute bits set
     DWORD dwAttrs = GetFileAttributes(pcszFile_);
-    return (dwAttrs != INVALID_FILE_ATTRIBUTES) && (dwAttrs & (FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM));
+    return (dwAttrs != INVALID_FILE_ATTRIBUTES) && (dwAttrs & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM));
 }
 
 // Return the path to use for a given drive with direct floppy access
-const char* OSD::GetFloppyDevice (int nDrive_)
+const char* OSD::GetFloppyDevice(int nDrive_)
 {
     static char szDevice[] = "_:";
 
-    szDevice[0] = 'A' + nDrive_-1;
+    szDevice[0] = 'A' + nDrive_ - 1;
     return szDevice;
 }
 
 
-void OSD::DebugTrace (const char* pcsz_)
+void OSD::DebugTrace(const char* pcsz_)
 {
     OutputDebugString(pcsz_);
 }
@@ -240,18 +240,18 @@ VOID CALLBACK CloseTimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTim
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CPrinterDevice::CPrinterDevice ()
+CPrinterDevice::CPrinterDevice()
     : m_hPrinter(INVALID_HANDLE_VALUE)
 {
 }
 
-CPrinterDevice::~CPrinterDevice ()
+CPrinterDevice::~CPrinterDevice()
 {
     Close();
 }
 
 
-bool CPrinterDevice::Open ()
+bool CPrinterDevice::Open()
 {
     PRINTER_DEFAULTS pd = { "RAW", nullptr, PRINTER_ACCESS_USE };
 
@@ -276,7 +276,7 @@ bool CPrinterDevice::Open ()
     return false;
 }
 
-void CPrinterDevice::Close ()
+void CPrinterDevice::Close()
 {
     if (m_hPrinter != INVALID_HANDLE_VALUE)
     {
@@ -290,7 +290,7 @@ void CPrinterDevice::Close ()
     }
 }
 
-void CPrinterDevice::Write (BYTE *pb_, size_t uLen_)
+void CPrinterDevice::Write(BYTE* pb_, size_t uLen_)
 {
     if (m_hPrinter != INVALID_HANDLE_VALUE)
     {
@@ -310,7 +310,7 @@ void CPrinterDevice::Write (BYTE *pb_, size_t uLen_)
 WIN32_FIND_DATA s_fd;
 struct dirent s_dir;
 
-DIR* opendir (const char* pcszDir_)
+DIR* opendir(const char* pcszDir_)
 {
     static char szPath[MAX_PATH];
 
@@ -318,7 +318,7 @@ DIR* opendir (const char* pcszDir_)
 
     // Append a wildcard to match all files
     lstrcpy(szPath, pcszDir_);
-    if (szPath[lstrlen(szPath)-1] != '\\')
+    if (szPath[lstrlen(szPath) - 1] != '\\')
         lstrcat(szPath, "\\");
     lstrcat(szPath, "*");
 
@@ -329,7 +329,7 @@ DIR* opendir (const char* pcszDir_)
     return (h == INVALID_HANDLE_VALUE) ? nullptr : reinterpret_cast<DIR*>(h);
 }
 
-struct dirent* readdir (DIR* hDir_)
+struct dirent* readdir(DIR* hDir_)
 {
     // All done?
     if (!s_fd.cFileName[0])
@@ -346,7 +346,7 @@ struct dirent* readdir (DIR* hDir_)
     return &s_dir;
 }
 
-int closedir (DIR* hDir_)
+int closedir(DIR* hDir_)
 {
     return FindClose(reinterpret_cast<HANDLE>(hDir_)) ? 0 : -1;
 }

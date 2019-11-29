@@ -35,42 +35,42 @@
 #include "Options.h"
 
 
-CClockDevice::CClockDevice ()
+CClockDevice::CClockDevice()
 {
     // Initialise the clock to the current date/time
     Reset();
 }
 
 // Initialise a SAMTIME structure with the current date/time
-void CClockDevice::Reset ()
+void CClockDevice::Reset()
 {
     // Get current local time
     m_tLast = time(nullptr);
 
     // Break the current time into it's parts
-    tm *ptm = localtime(&m_tLast);
+    tm* ptm = localtime(&m_tLast);
 
-    m_st.nCentury = Encode((1900+ptm->tm_year) / 100);
-    m_st.nYear  = Encode(ptm->tm_year % 100);
-    m_st.nMonth = Encode(ptm->tm_mon+1);        // Change month from zero-based to one-based
+    m_st.nCentury = Encode((1900 + ptm->tm_year) / 100);
+    m_st.nYear = Encode(ptm->tm_year % 100);
+    m_st.nMonth = Encode(ptm->tm_mon + 1);        // Change month from zero-based to one-based
     m_st.nDay = Encode(ptm->tm_mday);
 
     m_st.nHour = Encode(ptm->tm_hour);
-    m_st.nMinute  = Encode(ptm->tm_min);
-    m_st.nSecond  = Encode(ptm->tm_sec);
+    m_st.nMinute = Encode(ptm->tm_min);
+    m_st.nSecond = Encode(ptm->tm_sec);
 }
 
-int CClockDevice::Decode (int nValue_)
+int CClockDevice::Decode(int nValue_)
 {
-    return m_fBCD ? ((nValue_ & 0xf0) >> 4)*10 + (nValue_ & 0x0f) : nValue_;
+    return m_fBCD ? ((nValue_ & 0xf0) >> 4) * 10 + (nValue_ & 0x0f) : nValue_;
 }
 
-int CClockDevice::Encode (int nValue_)
+int CClockDevice::Encode(int nValue_)
 {
     return m_fBCD ? ((nValue_ / 10) << 4) | (nValue_ % 10) : nValue_;
 }
 
-int CClockDevice::DateAdd (int &nValue_, int nAdd_, int nMax_)
+int CClockDevice::DateAdd(int& nValue_, int nAdd_, int nMax_)
 {
     if (!nAdd_)
         return 0;
@@ -83,8 +83,8 @@ int CClockDevice::DateAdd (int &nValue_, int nAdd_, int nMax_)
 
     // Add the difference, clipping to the maximum
     nValue_ += nAdd_;
-    int nCarry = nValue_ / (nMax_+1);
-    nValue_ %= (nMax_+1);
+    int nCarry = nValue_ / (nMax_ + 1);
+    nValue_ %= (nMax_ + 1);
 
     nValue_ = Encode(nValue_);
 
@@ -92,7 +92,7 @@ int CClockDevice::DateAdd (int &nValue_, int nAdd_, int nMax_)
     return nCarry;
 }
 
-bool CClockDevice::Update ()
+bool CClockDevice::Update()
 {
     // The clocks stays synchronised to real time
     time_t tNow = time(nullptr);
@@ -122,14 +122,14 @@ bool CClockDevice::Update ()
     while (nDiff > 0)
     {
         // Limit the month so we know how many days are in the current month
-        int nMonth  = Decode(m_st.nMonth);
+        int nMonth = Decode(m_st.nMonth);
         nMonth = std::min(nMonth ? nMonth : 1, 12);
 
         // Table for the number of days in each month
         static int anDays[] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
         // Decode the year and determine whether it's a leap year
-        int nYear = Decode(m_st.nCentury)*100 + Decode(m_st.nYear);
+        int nYear = Decode(m_st.nCentury) * 100 + Decode(m_st.nYear);
         anDays[2] = (!(nYear % 4) && ((nYear % 100) || !(nYear % 400))) ? 29 : 28;
 
         // Limit the day to between 1 and the maximum for the current month
@@ -165,16 +165,16 @@ bool CClockDevice::Update ()
 }
 
 // Get the day of the week for the current SAMTIME
-int CClockDevice::GetDayOfWeek ()
+int CClockDevice::GetDayOfWeek()
 {
-    struct tm t, *ptm;
+    struct tm t, * ptm;
 
     // Set the date and hour, just in case daylight savings is important
-    t.tm_year = Decode(m_st.nCentury)*100 + Decode(m_st.nYear);
-    t.tm_mon  = Decode(m_st.nMonth) - 1;
+    t.tm_year = Decode(m_st.nCentury) * 100 + Decode(m_st.nYear);
+    t.tm_mon = Decode(m_st.nMonth) - 1;
     t.tm_mday = Decode(m_st.nDay);
     t.tm_hour = Decode(m_st.nHour);
-    t.tm_min  = t.tm_sec = 0;
+    t.tm_min = t.tm_sec = 0;
 
     // Create a ctime value from the date
     if (t.tm_year >= 1900) t.tm_year -= 1900;
@@ -186,13 +186,13 @@ int CClockDevice::GetDayOfWeek ()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CSambusClock::CSambusClock ()
+CSambusClock::CSambusClock()
 {
     // Clear the clock registers
     memset(m_abRegs, 0, sizeof(m_abRegs));
 }
 
-BYTE CSambusClock::In (WORD wPort_)
+BYTE CSambusClock::In(WORD wPort_)
 {
     // Strip off the bottom 8 bits (239 for CLOCK_PORT)
     wPort_ >>= 8;
@@ -205,7 +205,7 @@ BYTE CSambusClock::In (WORD wPort_)
     return m_abRegs[bReg];
 }
 
-void CSambusClock::Out (WORD wPort_, BYTE bVal_)
+void CSambusClock::Out(WORD wPort_, BYTE bVal_)
 {
     // Strip off the bottom 8 bits (always 239 for CLOCK_PORT)
     wPort_ >>= 8;
@@ -224,32 +224,32 @@ void CSambusClock::Out (WORD wPort_, BYTE bVal_)
     switch (bReg)
     {
         // Set registers, assuming BCD to preserve all bits
-        case 0x00:  m_st.nSecond = (m_st.nSecond & 0xf0) |  bVal_;       break; // Seconds (ones)
-        case 0x01:  m_st.nSecond = (m_st.nSecond & 0x0f) | (bVal_ << 4); break; // Seconds (tens)
-        case 0x02:  m_st.nMinute = (m_st.nMinute & 0xf0) |  bVal_;       break; // Minutes (ones)
-        case 0x03:  m_st.nMinute = (m_st.nMinute & 0x0f) | (bVal_ << 4); break; // Minutes (tens)
-        case 0x04:  m_st.nHour   = (m_st.nHour   & 0xf0) |  bVal_;       break; // Hours (ones)
-        case 0x05:  m_st.nHour   = (m_st.nHour   & 0x0f) | (bVal_ << 4); break; // Hours (tens)
-        case 0x06:  m_st.nDay    = (m_st.nDay    & 0xf0) |  bVal_;       break; // Days (ones)
-        case 0x07:  m_st.nDay    = (m_st.nDay    & 0x0f) | (bVal_ << 4); break; // Days (tens)
-        case 0x08:  m_st.nMonth  = (m_st.nMonth  & 0xf0) |  bVal_;       break; // Months (ones)
-        case 0x09:  m_st.nMonth  = (m_st.nMonth  & 0x0f) | (bVal_ << 4); break; // Months (tens)
-        case 0x0a:  m_st.nYear   = (m_st.nYear   & 0xf0) |  bVal_;       break; // Year (ones)
-        case 0x0b:  m_st.nYear   = (m_st.nYear   & 0x0f) | (bVal_ << 4); break; // Year (tens)
+    case 0x00:  m_st.nSecond = (m_st.nSecond & 0xf0) | bVal_;       break; // Seconds (ones)
+    case 0x01:  m_st.nSecond = (m_st.nSecond & 0x0f) | (bVal_ << 4); break; // Seconds (tens)
+    case 0x02:  m_st.nMinute = (m_st.nMinute & 0xf0) | bVal_;       break; // Minutes (ones)
+    case 0x03:  m_st.nMinute = (m_st.nMinute & 0x0f) | (bVal_ << 4); break; // Minutes (tens)
+    case 0x04:  m_st.nHour = (m_st.nHour & 0xf0) | bVal_;       break; // Hours (ones)
+    case 0x05:  m_st.nHour = (m_st.nHour & 0x0f) | (bVal_ << 4); break; // Hours (tens)
+    case 0x06:  m_st.nDay = (m_st.nDay & 0xf0) | bVal_;       break; // Days (ones)
+    case 0x07:  m_st.nDay = (m_st.nDay & 0x0f) | (bVal_ << 4); break; // Days (tens)
+    case 0x08:  m_st.nMonth = (m_st.nMonth & 0xf0) | bVal_;       break; // Months (ones)
+    case 0x09:  m_st.nMonth = (m_st.nMonth & 0x0f) | (bVal_ << 4); break; // Months (tens)
+    case 0x0a:  m_st.nYear = (m_st.nYear & 0xf0) | bVal_;       break; // Year (ones)
+    case 0x0b:  m_st.nYear = (m_st.nYear & 0x0f) | (bVal_ << 4); break; // Year (tens)
 
-        case 0x0c:  break;  // unknown
+    case 0x0c:  break;  // unknown
 
-        // These appear to be control registers
-        case 0x0d:
-            m_abRegs[bReg] &= ~0x02;    // clear busy bit
-            break;
+    // These appear to be control registers
+    case 0x0d:
+        m_abRegs[bReg] &= ~0x02;    // clear busy bit
+        break;
 
-        case 0x0f:  // bit 3 NZ for test mode, bit 2 NZ for 24hr, other bits unknown
-            break;
+    case 0x0f:  // bit 3 NZ for test mode, bit 2 NZ for 24hr, other bits unknown
+        break;
     }
 }
 
-bool CSambusClock::Update ()
+bool CSambusClock::Update()
 {
     // Call base to update time values
     if (!CClockDevice::Update())
@@ -260,18 +260,18 @@ bool CSambusClock::Update ()
         return false;
 
     // Update registers with current time
-    m_abRegs[0x00] =  m_st.nSecond & 0x0f;          // Seconds (ones)
+    m_abRegs[0x00] = m_st.nSecond & 0x0f;          // Seconds (ones)
     m_abRegs[0x01] = (m_st.nSecond & 0xf0) >> 4;    // Seconds (tens)
-    m_abRegs[0x02] =  m_st.nMinute & 0x0f;          // Minutes (ones)
+    m_abRegs[0x02] = m_st.nMinute & 0x0f;          // Minutes (ones)
     m_abRegs[0x03] = (m_st.nMinute & 0xf0) >> 4;    // Minutes (tens)
-    m_abRegs[0x04] =  m_st.nHour   & 0x0f;          // Hours (ones)
-    m_abRegs[0x05] = (m_st.nHour   & 0xf0) >> 4;    // Hours (tens)
-    m_abRegs[0x06] =  m_st.nDay    & 0x0f;          // Days (ones)
-    m_abRegs[0x07] = (m_st.nDay    & 0xf0) >> 4;    // Days (tens)
-    m_abRegs[0x08] =  m_st.nMonth  & 0x0f;          // Months (ones)
-    m_abRegs[0x09] = (m_st.nMonth  & 0xf0) >> 4;    // Months (tens)
-    m_abRegs[0x0a] =  m_st.nYear   & 0x0f;          // Year (ones)
-    m_abRegs[0x0b] = (m_st.nYear   & 0xf0) >> 4;    // Year (tens)
+    m_abRegs[0x04] = m_st.nHour & 0x0f;          // Hours (ones)
+    m_abRegs[0x05] = (m_st.nHour & 0xf0) >> 4;    // Hours (tens)
+    m_abRegs[0x06] = m_st.nDay & 0x0f;          // Days (ones)
+    m_abRegs[0x07] = (m_st.nDay & 0xf0) >> 4;    // Days (tens)
+    m_abRegs[0x08] = m_st.nMonth & 0x0f;          // Months (ones)
+    m_abRegs[0x09] = (m_st.nMonth & 0xf0) >> 4;    // Months (tens)
+    m_abRegs[0x0a] = m_st.nYear & 0x0f;          // Year (ones)
+    m_abRegs[0x0b] = (m_st.nYear & 0xf0) >> 4;    // Year (tens)
     m_abRegs[0x0c] = localtime(&m_tLast)->tm_wday;  // Day of week (unsupported)
 
     return true;
@@ -282,7 +282,7 @@ bool CSambusClock::Update ()
 #define BANK1 0x40  // Bank 1 register offset
 
 
-CDallasClock::CDallasClock ()
+CDallasClock::CDallasClock()
     : m_bReg(0)
 {
     // Clear register and RAM areas
@@ -296,12 +296,12 @@ CDallasClock::CDallasClock ()
     m_abRegs[0x0d] = 0x80;      // Valid RAM and Time (b7 set)
 
     // Set the model, dummy serial number, and CRC
-    m_abRegs[0x40+BANK1] = 0x78;    // DS17887
-    memcpy(m_abRegs+0x41+BANK1, "\x11\x22\x33\x44\x55\x66", 6);
-    m_abRegs[0x47+BANK1] = 0x1e;    // p(x) = x^8 + x^5 + x^4 + x^0
+    m_abRegs[0x40 + BANK1] = 0x78;    // DS17887
+    memcpy(m_abRegs + 0x41 + BANK1, "\x11\x22\x33\x44\x55\x66", 6);
+    m_abRegs[0x47 + BANK1] = 0x1e;    // p(x) = x^8 + x^5 + x^4 + x^0
 }
 
-BYTE CDallasClock::In (WORD /*wPort_*/)
+BYTE CDallasClock::In(WORD /*wPort_*/)
 {
     // Update the clock
     Update();
@@ -314,20 +314,20 @@ BYTE CDallasClock::In (WORD /*wPort_*/)
     switch (bReg)
     {
         // Extended RAM reads come from a separate data area
-        case 0x53+BANK1:
-        {
-            // Determine the extended RAM offset
-            WORD wOffset = (m_abRegs[0x51+BANK1] << 8) | m_abRegs[0x50+BANK1];
+    case 0x53 + BANK1:
+    {
+        // Determine the extended RAM offset
+        WORD wOffset = (m_abRegs[0x51 + BANK1] << 8) | m_abRegs[0x50 + BANK1];
 
-            // Update the extended RAM data port, using 0xff if out of RAM range
-            m_abRegs[bReg] = (wOffset < sizeof(m_abRAM)) ? m_abRAM[wOffset] : 0xff;
+        // Update the extended RAM data port, using 0xff if out of RAM range
+        m_abRegs[bReg] = (wOffset < sizeof(m_abRAM)) ? m_abRAM[wOffset] : 0xff;
 
-            // Perform burst mode increment, if enabled
-            if ((m_abRegs[0x4a+BANK1] & 0x20) && !++m_abRegs[0x50+BANK1])
-                m_abRegs[0x51+BANK1]++;
+        // Perform burst mode increment, if enabled
+        if ((m_abRegs[0x4a + BANK1] & 0x20) && !++m_abRegs[0x50 + BANK1])
+            m_abRegs[0x51 + BANK1]++;
 
-            break;
-        }
+        break;
+    }
     }
 
     // Perform the read
@@ -337,16 +337,16 @@ BYTE CDallasClock::In (WORD /*wPort_*/)
     switch (bReg)
     {
         // Interrupt flags in register C are cleared when read
-        case 0x0c:
-            m_abRegs[bReg] = 0x00;
-            break;
+    case 0x0c:
+        m_abRegs[bReg] = 0x00;
+        break;
     }
 
     // Return what was read
     return bRet;
 }
 
-void CDallasClock::Out (WORD wPort_, BYTE bVal_)
+void CDallasClock::Out(WORD wPort_, BYTE bVal_)
 {
     // Strip off the bottom 8 bits (always 239 for CLOCK_PORT)
     wPort_ >>= 8;
@@ -369,21 +369,21 @@ void CDallasClock::Out (WORD wPort_, BYTE bVal_)
     switch (bReg)
     {
         // Control register A has b7 clear
-        case 0x0a:
-            bVal_ &= 0x7f;
-            break;
+    case 0x0a:
+        bVal_ &= 0x7f;
+        break;
 
         // Control registers C+D are read-only
-        case 0x0c:
-        case 0x0d:
+    case 0x0c:
+    case 0x0d:
+        return;
+
+    default:
+        // Model and serial number are read-only
+        if (bReg >= 0x40 + BANK1 && bReg <= 0x47 + BANK1)
             return;
 
-        default:
-            // Model and serial number are read-only
-            if (bReg >= 0x40+BANK1 && bReg <= 0x47+BANK1)
-                return;
-
-            break;
+        break;
     }
 
     // Perform the write
@@ -392,40 +392,40 @@ void CDallasClock::Out (WORD wPort_, BYTE bVal_)
     // Post-write side-effects
     switch (bReg)
     {
-        case 0x00: m_st.nSecond = bVal_;    break;
-        case 0x02: m_st.nMinute = bVal_;    break;
-        case 0x04: m_st.nHour   = bVal_;    break;
-        case 0x07: m_st.nDay    = bVal_;    break;
-        case 0x08: m_st.nMonth  = bVal_;    break;
-        case 0x09: m_st.nYear   = bVal_;    break;
+    case 0x00: m_st.nSecond = bVal_;    break;
+    case 0x02: m_st.nMinute = bVal_;    break;
+    case 0x04: m_st.nHour = bVal_;    break;
+    case 0x07: m_st.nDay = bVal_;    break;
+    case 0x08: m_st.nMonth = bVal_;    break;
+    case 0x09: m_st.nYear = bVal_;    break;
 
-        case 0x48+BANK1: m_st.nCentury = bVal_; break;
+    case 0x48 + BANK1: m_st.nCentury = bVal_; break;
 
         // Control register B
-        case 0x0b:
-            m_fBCD = !(m_abRegs[0x0b] & 0x04);
-            break;
+    case 0x0b:
+        m_fBCD = !(m_abRegs[0x0b] & 0x04);
+        break;
 
         // Extended RAM writes are to a separate data area
-        case 0x53+BANK1:
-        {
-            // Determine the extended RAM offset
-            WORD wOffset = (m_abRegs[0x51+BANK1]<< 8) | m_abRegs[0x50+BANK1];
+    case 0x53 + BANK1:
+    {
+        // Determine the extended RAM offset
+        WORD wOffset = (m_abRegs[0x51 + BANK1] << 8) | m_abRegs[0x50 + BANK1];
 
-            // Write the byte, if it's within RAM range
-            if (wOffset < sizeof(m_abRAM))
-                m_abRAM[wOffset] = m_abRegs[bReg];
+        // Write the byte, if it's within RAM range
+        if (wOffset < sizeof(m_abRAM))
+            m_abRAM[wOffset] = m_abRegs[bReg];
 
-            // Perform burst mode increment, if enabled
-            if ((m_abRegs[0x4a+BANK1] & 0x20) && !++m_abRegs[0x50+BANK1])
-                m_abRegs[0x51+BANK1]++;
+        // Perform burst mode increment, if enabled
+        if ((m_abRegs[0x4a + BANK1] & 0x20) && !++m_abRegs[0x50 + BANK1])
+            m_abRegs[0x51 + BANK1]++;
 
-            break;
-        }
+        break;
+    }
     }
 }
 
-bool CDallasClock::Update ()
+bool CDallasClock::Update()
 {
     // Call base to update time values
     if (!CClockDevice::Update())
@@ -439,25 +439,25 @@ bool CDallasClock::Update ()
     m_abRegs[0x00] = m_st.nSecond;          // Seconds
     m_abRegs[0x02] = m_st.nMinute;          // Minutes
     m_abRegs[0x04] = m_st.nHour;            // Hours
-    m_abRegs[0x06] = 1+GetDayOfWeek();      // Day of week
+    m_abRegs[0x06] = 1 + GetDayOfWeek();      // Day of week
     m_abRegs[0x07] = m_st.nDay;             // Day of the month
     m_abRegs[0x08] = m_st.nMonth;           // Month
     m_abRegs[0x09] = m_st.nYear;            // Year
-    m_abRegs[0x48+BANK1] = m_st.nCentury;   // Century
+    m_abRegs[0x48 + BANK1] = m_st.nCentury;   // Century
 
     return true;
 }
 
 
 // Load NVRAM contents from file
-bool CDallasClock::LoadState (const char *pcszFile_)
+bool CDallasClock::LoadState(const char* pcszFile_)
 {
     bool fRet = false;
 
-    FILE *f = fopen(pcszFile_, "rb");
+    FILE* f = fopen(pcszFile_, "rb");
     if (f)
     {
-        fRet =  (fread(m_abRegs+0x0e, 1, 0x80-0x0e, f) == (0x80-0x0e));      // User RAM
+        fRet = (fread(m_abRegs + 0x0e, 1, 0x80 - 0x0e, f) == (0x80 - 0x0e));      // User RAM
         fRet &= (fread(m_abRAM, 1, sizeof(m_abRAM), f) == sizeof(m_abRAM));  // Extended RAM
 
         fclose(f);
@@ -467,14 +467,14 @@ bool CDallasClock::LoadState (const char *pcszFile_)
 }
 
 // Save NVRAM contents to file
-bool CDallasClock::SaveState (const char *pcszFile_)
+bool CDallasClock::SaveState(const char* pcszFile_)
 {
     bool fRet = false;
 
-    FILE *f = fopen(pcszFile_, "wb");
+    FILE* f = fopen(pcszFile_, "wb");
     if (f)
     {
-        fRet =  (fwrite(m_abRegs+0x0e, 1, 0x80-0x0e, f) == (0x80-0x0e));      // User RAM
+        fRet = (fwrite(m_abRegs + 0x0e, 1, 0x80 - 0x0e, f) == (0x80 - 0x0e));      // User RAM
         fRet &= (fwrite(m_abRAM, 1, sizeof(m_abRAM), f) == sizeof(m_abRAM));  // Extended RAM
 
         fclose(f);

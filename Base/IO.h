@@ -32,78 +32,78 @@ enum { AUTOLOAD_NONE, AUTOLOAD_DISK, AUTOLOAD_TAPE };
 
 namespace IO
 {
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
+bool Init(bool fFirstInit_ = false);
+void Exit(bool fReInit_ = false);
 
-    BYTE In (WORD /*port*/);
-    void Out (WORD port, BYTE val);
+BYTE In(WORD /*port*/);
+void Out(WORD port, BYTE val);
 
-    void OutLmpr (BYTE bVal_);
-    void OutHmpr (BYTE bVal_);
-    void OutVmpr (BYTE bVal_);
-    void OutLepr (BYTE bVal_);
-    void OutHepr (BYTE bVal_);
+void OutLmpr(BYTE bVal_);
+void OutHmpr(BYTE bVal_);
+void OutVmpr(BYTE bVal_);
+void OutLepr(BYTE bVal_);
+void OutHepr(BYTE bVal_);
 
-    void OutClut (WORD wPort_, BYTE bVal_);
+void OutClut(WORD wPort_, BYTE bVal_);
 
-    void FrameUpdate ();
-    void UpdateInput();
-    const COLOUR *GetPalette ();
-    bool IsAtStartupScreen (bool fExit_=false);
-    void AutoLoad (int nType_, bool fOnlyAtStartup_=true);
-    void WakeAsic ();
+void FrameUpdate();
+void UpdateInput();
+const COLOUR* GetPalette();
+bool IsAtStartupScreen(bool fExit_ = false);
+void AutoLoad(int nType_, bool fOnlyAtStartup_ = true);
+void WakeAsic();
 
-    bool EiHook ();
-    bool Rst8Hook ();
-    bool Rst48Hook ();
+bool EiHook();
+bool Rst8Hook();
+bool Rst48Hook();
 }
 
 
 class CIoDevice
 {
-    public:
-        virtual ~CIoDevice () = default;
+public:
+    virtual ~CIoDevice() = default;
 
-    public:
-        virtual void Reset () { }
+public:
+    virtual void Reset() { }
 
-        virtual BYTE In (WORD /*port*/) { return 0xff; }
-        virtual void Out (WORD /*port*/, BYTE /*val*/) { }
+    virtual BYTE In(WORD /*port*/) { return 0xff; }
+    virtual void Out(WORD /*port*/, BYTE /*val*/) { }
 
-        virtual void FrameEnd () { }
+    virtual void FrameEnd() { }
 
-        virtual bool LoadState (const char * /*file*/) { return true; }  // preserve basic state (such as NVRAM)
-        virtual bool SaveState (const char * /*file*/) { return true; }
+    virtual bool LoadState(const char* /*file*/) { return true; }  // preserve basic state (such as NVRAM)
+    virtual bool SaveState(const char* /*file*/) { return true; }
 };
 
 enum { drvNone, drvFloppy, drvAtom, drvAtomLite, drvSDIDE };
 
-class CDiskDevice :  public CIoDevice
+class CDiskDevice : public CIoDevice
 {
-    public:
-        CDiskDevice () = default;
+public:
+    CDiskDevice() = default;
 
-    public:
-        void FrameEnd () override { if (m_uActive) m_uActive--; }
+public:
+    void FrameEnd() override { if (m_uActive) m_uActive--; }
 
-    public:
-        virtual bool Insert (const char* /*image*/, bool /*autoload*/=false) { return false; }
-        virtual void Eject () { }
-        virtual bool Save () { return true; }
+public:
+    virtual bool Insert(const char* /*image*/, bool /*autoload*/ = false) { return false; }
+    virtual void Eject() { }
+    virtual bool Save() { return true; }
 
-    public:
-        virtual const char* DiskPath () const = 0;
-        virtual const char* DiskFile () const = 0;
+public:
+    virtual const char* DiskPath() const = 0;
+    virtual const char* DiskFile() const = 0;
 
-        virtual bool HasDisk () const { return false; }
-        virtual bool DiskModified () const { return false; }
-        virtual bool IsLightOn () const { return false; }
-        virtual bool IsActive () const { return m_uActive != 0; }
+    virtual bool HasDisk() const { return false; }
+    virtual bool DiskModified() const { return false; }
+    virtual bool IsLightOn() const { return false; }
+    virtual bool IsActive() const { return m_uActive != 0; }
 
-        virtual void SetDiskModified (bool /*modified*/=true) { }
+    virtual void SetDiskModified(bool /*modified*/ = true) { }
 
-    protected:
-        UINT m_uActive = 0; // active when non-zero, decremented by FrameEnd()
+protected:
+    UINT m_uActive = 0; // active when non-zero, decremented by FrameEnd()
 };
 
 #define in_byte     IO::In
@@ -218,7 +218,7 @@ class CDiskDevice :  public CIoDevice
 #define MIDI_TRANSMIT_TIME      USECONDS_TO_TSTATES(320)
 #define MIDI_INT_ACTIVE_TIME    USECONDS_TO_TSTATES(16)
 
-#define N_PALETTE_COLOURS	128     // 128 colours in the SAM palette
+#define N_PALETTE_COLOURS   128     // 128 colours in the SAM palette
 #define N_CLUT_REGS         16      // 16 CLUT entries
 #define N_SAA_REGS          32      // 32 registers in the Philips SAA1099 sound chip
 
@@ -247,8 +247,8 @@ extern UINT clut[N_CLUT_REGS], mode3clut[4];
 extern BYTE status_reg;
 extern BYTE lpen;
 
-extern CDiskDevice *pFloppy1, *pFloppy2, *pBootDrive;
-extern CIoDevice *pParallel1, *pParallel2;
+extern CDiskDevice* pFloppy1, * pFloppy2, * pBootDrive;
+extern CIoDevice* pParallel1, * pParallel2;
 
 extern int g_nAutoLoad;
 

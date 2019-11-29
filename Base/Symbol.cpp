@@ -37,9 +37,9 @@ static SymToAddr symbol_values;
 
 
 // Read a cPickler format file, as used by pyz80 for symbols
-static void ReadcPickler (FILE *file_, AddrToSym &symtab_, SymToAddr *pValues_)
+static void ReadcPickler(FILE* file_, AddrToSym& symtab_, SymToAddr* pValues_)
 {
-    char szLine[128], *psz;
+    char szLine[128], * psz;
     std::string sName;
 
     // Process each line of the file
@@ -49,7 +49,7 @@ static void ReadcPickler (FILE *file_, AddrToSym &symtab_, SymToAddr *pValues_)
         if ((psz = strchr(szLine, '\'')))
         {
             // Skip the opening quote and look for the closing quote
-            char *pszEnd = strchr(++psz, '\'');
+            char* pszEnd = strchr(++psz, '\'');
             if (pszEnd)
             {
                 // Remove it and set the symbol name
@@ -60,7 +60,7 @@ static void ReadcPickler (FILE *file_, AddrToSym &symtab_, SymToAddr *pValues_)
         // The symbol values are integers, with an I type marker
         else if ((psz = strchr(szLine, 'I')))
         {
-            WORD wAddr = static_cast<WORD>(strtoul(psz+1, nullptr, 0));
+            WORD wAddr = static_cast<WORD>(strtoul(psz + 1, nullptr, 0));
 
             // If we have a name, set the mapping entries
             if (sName.length())
@@ -80,9 +80,9 @@ static void ReadcPickler (FILE *file_, AddrToSym &symtab_, SymToAddr *pValues_)
 }
 
 // Read a simple addr=name format text file, as used by pyz80 for map files.
-static void ReadSimple (FILE *file_, AddrToSym &symtab_, SymToAddr *pValues_)
+static void ReadSimple(FILE* file_, AddrToSym& symtab_, SymToAddr* pValues_)
 {
-    char szLine[128], *psz;
+    char szLine[128], * psz;
 
     while (fgets(szLine, sizeof(szLine), file_) != nullptr)
     {
@@ -119,12 +119,12 @@ static void ReadSimple (FILE *file_, AddrToSym &symtab_, SymToAddr *pValues_)
 }
 
 // Load a file into a given symbol table
-static bool Load (const char *pcszFile_, AddrToSym &symtab_, SymToAddr *pValues_)
+static bool Load(const char* pcszFile_, AddrToSym& symtab_, SymToAddr* pValues_)
 {
     // Clear any existing symbols and values
     symtab_.clear();
 
-    FILE *file = fopen(pcszFile_, "r");
+    FILE* file = fopen(pcszFile_, "r");
     if (!file)
         return false;
 
@@ -149,7 +149,7 @@ static bool Load (const char *pcszFile_, AddrToSym &symtab_, SymToAddr *pValues_
 }
 
 // Update user symbols, loading the ROM and port symbols if not already loaded
-void Update (const char *pcszFile_)
+void Update(const char* pcszFile_)
 {
     symbol_values.clear();
 
@@ -167,7 +167,7 @@ void Update (const char *pcszFile_)
 }
 
 // Look up the value of a given symbol (user symbols only)
-int LookupSymbol (std::string sSymbol_)
+int LookupSymbol(std::string sSymbol_)
 {
     // Convert to lower-case for case-insensitive look-up
     std::transform(sSymbol_.begin(), sSymbol_.end(), sSymbol_.begin(), ::tolower);
@@ -184,7 +184,7 @@ int LookupSymbol (std::string sSymbol_)
 }
 
 // Look up an address, with optional maximum length and offset to nearby symbols is no exact match
-std::string LookupAddr (WORD wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*=false*/)
+std::string LookupAddr(WORD wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*=false*/)
 {
     std::string symbol;
 
@@ -193,7 +193,7 @@ std::string LookupAddr (WORD wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*=fa
     bool fInROM = AddrPage(PC) == ROM0 || AddrPage(PC) == ROM1;
 
     // Select the ROM or user-defined RAM symbol table
-    auto &symtab = (fROM || fInROM) ? rom_symbols : ram_symbols;
+    auto& symtab = (fROM || fInROM) ? rom_symbols : ram_symbols;
 
     // Look up the address
     auto it = symtab.find(wAddr_);
@@ -202,9 +202,9 @@ std::string LookupAddr (WORD wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*=fa
     if (it == symtab.end() && fAllowOffset_)
     {
         // Search back for a nearby symbol
-        for (int i = 1 ; i <= MAX_SYMBOL_OFFSET ; i++)
+        for (int i = 1; i <= MAX_SYMBOL_OFFSET; i++)
         {
-            it = symtab.find(wAddr_-i);
+            it = symtab.find(wAddr_ - i);
 
             // Stop if we've found one to use as a base
             if (it != symtab.end())
@@ -239,7 +239,7 @@ std::string LookupAddr (WORD wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*=fa
 }
 
 // Look up a port symbol for an input or output port (which may have different functions)
-std::string LookupPort (BYTE bPort_, bool fInput_)
+std::string LookupPort(BYTE bPort_, bool fInput_)
 {
     std::string symbol;
 

@@ -30,12 +30,12 @@
 extern const BYTE abFixedFont[], abGUIFont[];
 
 // Sans-serif, around 9pt
-const GUIFONT sGUIFont       = { 0, 11, 12, 32, 127, false, abGUIFont };
+const GUIFONT sGUIFont = { 0, 11, 12, 32, 127, false, abGUIFont };
 const GUIFONT sSpacedGUIFont = { 1, 11, 12, 32, 127, false, abGUIFont };
 
 // Fixed and proportional fonts, based on the original TurboMON data
 const GUIFONT sFixedFont = { 5, 8, 9, 32, 129, true,  abFixedFont };
-const GUIFONT sPropFont  = { 0, 8, 9, 32, 129, false, abFixedFont };
+const GUIFONT sPropFont = { 0, 8, 9, 32, 129, false, abFixedFont };
 
 
 const BYTE abFixedFont[] =

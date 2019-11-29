@@ -32,7 +32,7 @@
 #include "Parallel.h"
 
 
-bool OSD::Init (bool /*fFirstInit_=false*/)
+bool OSD::Init(bool /*fFirstInit_=false*/)
 {
 #ifdef _WINDOWS
     // We'll do our own error handling, so suppress any windows error dialogs
@@ -48,7 +48,7 @@ bool OSD::Init (bool /*fFirstInit_=false*/)
     return true;
 }
 
-void OSD::Exit (bool /*fReInit_=false*/)
+void OSD::Exit(bool /*fReInit_=false*/)
 {
     SDL_Quit();
 }
@@ -56,15 +56,15 @@ void OSD::Exit (bool /*fReInit_=false*/)
 
 // Return a DWORD containing a millisecond accurate time stamp
 // Note: calling could should allow for the value wrapping by only comparing differences
-DWORD OSD::GetTime ()
+DWORD OSD::GetTime()
 {
     return SDL_GetTicks();
 }
 
 
-const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
+const char* OSD::MakeFilePath(int nDir_, const char* pcszFile_/*=""*/)
 {
-    static char szPath[MAX_PATH*2];
+    static char szPath[MAX_PATH * 2];
     szPath[0] = '\0';
 
     // Set an appropriate base location
@@ -76,8 +76,8 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
     strcpy(szPath, "PROGDIR:");
 #else
     // $HOME is a fairly safe default
-    strncpy(szPath, getenv("HOME"), MAX_PATH-2);
-    szPath[MAX_PATH-2] = '\0';
+    strncpy(szPath, getenv("HOME"), MAX_PATH - 2);
+    szPath[MAX_PATH - 2] = '\0';
 
     if (szPath[0])
         strcat(szPath, "/");
@@ -85,76 +85,76 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
 
     switch (nDir_)
     {
-        case MFP_SETTINGS:
+    case MFP_SETTINGS:
 #if defined(__APPLE__)
-            strcat(szPath, "Library/Preferences/SimCoupe/");
+        strcat(szPath, "Library/Preferences/SimCoupe/");
 #elif !defined(_WINDOWS) && !defined(__AMIGAOS4__)
-            strcat(szPath, ".simcoupe/");
+        strcat(szPath, ".simcoupe/");
 #endif
-            break;
+        break;
 
-        case MFP_INPUT:
-            // Input override
-            if (GetOption(inpath)[0])
-            {
-                strncpy(szPath, GetOption(inpath), MAX_PATH);
-                break;
-            }
-
-            // Default should be good enough
-            break;
-
-        case MFP_OUTPUT:
+    case MFP_INPUT:
+        // Input override
+        if (GetOption(inpath)[0])
         {
-            // Output override
-            if (GetOption(outpath)[0])
-            {
-                strncpy(szPath, GetOption(outpath), MAX_PATH-1);
-                szPath[MAX_PATH-1] = '\0';
-                break;
-            }
-
-#if defined(__APPLE__)
-            strncat(szPath, "Documents/SimCoupe/", MAX_PATH-strlen(szPath)-1);
-            szPath[MAX_PATH-1] = '\0';
-#elif !defined(_WINDOWS) && !defined(__AMIGAOS4__)
-            struct stat st;
-            size_t u = strlen(szPath);
-
-            // If there's a Desktop folder, it'll be more visible there
-            strncat(szPath, "Desktop/", MAX_PATH-strlen(szPath)-1);
-            szPath[MAX_PATH-1] = '\0';
-
-            // Ignore Desktop folder if it doesn't exist
-            if (stat(szPath, &st))
-                szPath[u] = '\0';
-
-            // Keep it tidy though
-            strncat(szPath, "SimCoupe/", MAX_PATH-strlen(szPath)-1);
-            szPath[MAX_PATH-1] = '\0';
-#endif
+            strncpy(szPath, GetOption(inpath), MAX_PATH);
             break;
         }
 
-        case MFP_RESOURCE:
+        // Default should be good enough
+        break;
+
+    case MFP_OUTPUT:
+    {
+        // Output override
+        if (GetOption(outpath)[0])
         {
+            strncpy(szPath, GetOption(outpath), MAX_PATH - 1);
+            szPath[MAX_PATH - 1] = '\0';
+            break;
+        }
+
+#if defined(__APPLE__)
+        strncat(szPath, "Documents/SimCoupe/", MAX_PATH - strlen(szPath) - 1);
+        szPath[MAX_PATH - 1] = '\0';
+#elif !defined(_WINDOWS) && !defined(__AMIGAOS4__)
+        struct stat st;
+        size_t u = strlen(szPath);
+
+        // If there's a Desktop folder, it'll be more visible there
+        strncat(szPath, "Desktop/", MAX_PATH - strlen(szPath) - 1);
+        szPath[MAX_PATH - 1] = '\0';
+
+        // Ignore Desktop folder if it doesn't exist
+        if (stat(szPath, &st))
+            szPath[u] = '\0';
+
+        // Keep it tidy though
+        strncat(szPath, "SimCoupe/", MAX_PATH - strlen(szPath) - 1);
+        szPath[MAX_PATH - 1] = '\0';
+#endif
+        break;
+    }
+
+    case MFP_RESOURCE:
+    {
 #if defined(__APPLE__) && defined(HAVE_LIBSDL2)
-            // Resources path in the app bundle (requires SDL 2.0.1)
-            char *pszBasePath = SDL_GetBasePath();
-            strncpy(szPath, pszBasePath, MAX_PATH-1);
-            szPath[MAX_PATH-1] = '\0';
-            SDL_free(pszBasePath);
+        // Resources path in the app bundle (requires SDL 2.0.1)
+        char* pszBasePath = SDL_GetBasePath();
+        strncpy(szPath, pszBasePath, MAX_PATH - 1);
+        szPath[MAX_PATH - 1] = '\0';
+        SDL_free(pszBasePath);
 #elif !defined(__AMIGAOS4__) && defined(RESOURCE_DIR)
-            // If available, use the resource directory from the build process
-            strncpy(szPath, RESOURCE_DIR, MAX_PATH-1);
-            strncat(szPath, "/", MAX_PATH - strlen(szPath) - 1);
-            szPath[MAX_PATH-1] = '\0';
+        // If available, use the resource directory from the build process
+        strncpy(szPath, RESOURCE_DIR, MAX_PATH - 1);
+        strncat(szPath, "/", MAX_PATH - strlen(szPath) - 1);
+        szPath[MAX_PATH - 1] = '\0';
 #else
-            // Fall back on an empty path as a safe default
-            szPath[0] = '\0';
+        // Fall back on an empty path as a safe default
+        szPath[0] = '\0';
 #endif
-            break;
-        }
+        break;
+    }
     }
 
     // Create the directory if it doesn't already exist
@@ -163,8 +163,8 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
         TRACE("!!! Failed to create directory: %s\n", szPath);
 
     // Append any supplied filename (backslash separator already added)
-    strncat(szPath, pcszFile_, sizeof(szPath)-strlen(szPath)-1);
-    szPath[sizeof(szPath)-1] = '\0';
+    strncat(szPath, pcszFile_, sizeof(szPath) - strlen(szPath) - 1);
+    szPath[sizeof(szPath) - 1] = '\0';
 
     // Return a pointer to the new path
     return szPath;
@@ -172,19 +172,19 @@ const char* OSD::MakeFilePath (int nDir_, const char* pcszFile_/*=""*/)
 
 
 // Check whether the specified path is accessible
-bool OSD::CheckPathAccess (const char* pcszPath_)
+bool OSD::CheckPathAccess(const char* pcszPath_)
 {
     return !access(pcszPath_, X_OK);
 }
 
 
 // Return whether a file/directory is normally hidden from a directory listing
-bool OSD::IsHidden (const char* pcszPath_)
+bool OSD::IsHidden(const char* pcszPath_)
 {
 #ifdef _WINDOWS
     // Hide entries with the hidden or system attribute bits set
     DWORD dwAttrs = GetFileAttributes(pcszPath_);
-    return (dwAttrs != 0xffffffff) && (dwAttrs & (FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM));
+    return (dwAttrs != 0xffffffff) && (dwAttrs & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM));
 #else
     // Hide entries beginning with a dot
     pcszPath_ = strrchr(pcszPath_, PATH_SEPARATOR);
@@ -194,7 +194,7 @@ bool OSD::IsHidden (const char* pcszPath_)
 
 
 // Return the path to use for a given drive with direct floppy access
-const char* OSD::GetFloppyDevice (int nDrive_)
+const char* OSD::GetFloppyDevice(int nDrive_)
 {
 #if defined (__AMIGAOS4__)
     static char szDevice[] = "DF0:";
@@ -202,12 +202,12 @@ const char* OSD::GetFloppyDevice (int nDrive_)
     static char szDevice[] = "/dev/fd_";
 #endif
 
-    szDevice[7] = '0' + nDrive_-1;
+    szDevice[7] = '0' + nDrive_ - 1;
     return szDevice;
 }
 
 
-void OSD::DebugTrace (const char* pcsz_)
+void OSD::DebugTrace(const char* pcsz_)
 {
 #ifdef _WINDOWS
     OutputDebugString(pcsz_);
@@ -222,11 +222,11 @@ void OSD::DebugTrace (const char* pcsz_)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Dummy printer device implementation
-CPrinterDevice::CPrinterDevice () { }
-CPrinterDevice::~CPrinterDevice () { }
-bool CPrinterDevice::Open () { return false; }
-void CPrinterDevice::Close () { }
-void CPrinterDevice::Write (BYTE * /*pb_*/, size_t /*uLen_*/) { }
+CPrinterDevice::CPrinterDevice() { }
+CPrinterDevice::~CPrinterDevice() { }
+bool CPrinterDevice::Open() { return false; }
+void CPrinterDevice::Close() { }
+void CPrinterDevice::Write(BYTE* /*pb_*/, size_t /*uLen_*/) { }
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -235,7 +235,7 @@ void CPrinterDevice::Write (BYTE * /*pb_*/, size_t /*uLen_*/) { }
 WIN32_FIND_DATA s_fd;
 struct dirent s_dir;
 
-DIR* opendir (const char* pcszDir_)
+DIR* opendir(const char* pcszDir_)
 {
     static char szPath[_MAX_PATH];
 
@@ -243,7 +243,7 @@ DIR* opendir (const char* pcszDir_)
 
     // Append a wildcard to match all files
     lstrcpy(szPath, pcszDir_);
-    if (szPath[lstrlen(szPath)-1] != '\\')
+    if (szPath[lstrlen(szPath) - 1] != '\\')
         lstrcat(szPath, "\\");
     lstrcat(szPath, "*");
 
@@ -254,7 +254,7 @@ DIR* opendir (const char* pcszDir_)
     return (h == INVALID_HANDLE_VALUE) ? nullptr : reinterpret_cast<DIR*>(h);
 }
 
-struct dirent* readdir (DIR* hDir_)
+struct dirent* readdir(DIR* hDir_)
 {
     // All done?
     if (!s_fd.cFileName[0])
@@ -271,7 +271,7 @@ struct dirent* readdir (DIR* hDir_)
     return &s_dir;
 }
 
-int closedir (DIR* hDir_)
+int closedir(DIR* hDir_)
 {
     return FindClose(reinterpret_cast<HANDLE>(hDir_)) ? 0 : -1;
 }

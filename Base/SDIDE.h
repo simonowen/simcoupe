@@ -25,14 +25,14 @@
 
 class CSDIDEDevice : public CAtaAdapter
 {
-    public:
-        BYTE In (WORD wPort_) override;
-        void Out (WORD wPort_, BYTE bVal_) override;
+public:
+    BYTE In(WORD wPort_) override;
+    void Out(WORD wPort_, BYTE bVal_) override;
 
-    protected:
-        BYTE m_bAddressLatch = 0;
-        BYTE m_bDataLatch = 0;
-        bool m_fDataLatched = false;
+protected:
+    BYTE m_bAddressLatch = 0;
+    BYTE m_bDataLatch = 0;
+    bool m_fDataLatched = false;
 };
 
 #endif // SDIDE_H

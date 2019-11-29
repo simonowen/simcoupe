@@ -23,33 +23,33 @@
 
 namespace Util
 {
-    bool Init ();
-    void Exit ();
+bool Init();
+void Exit();
 
-    char *GetUniqueFile (const char* pcszExt_, char* pszPath_, int cbPath_);
+char* GetUniqueFile(const char* pcszExt_, char* pszPath_, int cbPath_);
 }
 
 
 enum eMsgType { msgInfo, msgWarning, msgError, msgFatal };
-void Message (eMsgType eType_, const char* pcszFormat_, ...);
+void Message(eMsgType eType_, const char* pcszFormat_, ...);
 
-BYTE GetSizeCode (UINT uSize_);
-const char *AbbreviateSize (uint64_t ullSize_);
-WORD CrcBlock (const void* pcv_, size_t uLen_, WORD wCRC_=0xffff);
-void PatchBlock (BYTE *pb_, BYTE *pbPatch_);
-UINT TPeek (const BYTE *pb_);
+BYTE GetSizeCode(UINT uSize_);
+const char* AbbreviateSize(uint64_t ullSize_);
+WORD CrcBlock(const void* pcv_, size_t uLen_, WORD wCRC_ = 0xffff);
+void PatchBlock(BYTE* pb_, BYTE* pbPatch_);
+UINT TPeek(const BYTE* pb_);
 
-void AdjustBrightness (BYTE &r_, BYTE &g_, BYTE &b_, int nAdjust_);
-DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_);
-DWORD RGB2Native (BYTE r_, BYTE g_, BYTE b_, BYTE a_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_, DWORD dwAMask_);
+void AdjustBrightness(BYTE& r_, BYTE& g_, BYTE& b_, int nAdjust_);
+DWORD RGB2Native(BYTE r_, BYTE g_, BYTE b_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_);
+DWORD RGB2Native(BYTE r_, BYTE g_, BYTE b_, BYTE a_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_, DWORD dwAMask_);
 
-void TraceOutputString (const char *pcszFormat, ...);
-void TraceOutputString (const BYTE *pcb_, size_t uLen_=0);
+void TraceOutputString(const char* pcszFormat, ...);
+void TraceOutputString(const BYTE* pcb_, size_t uLen_ = 0);
 
 #ifdef _DEBUG
 #define TRACE ::TraceOutputString
 #else
-void TraceOutputString (const char *, ...);
+void TraceOutputString(const char*, ...);
 #define TRACE 1 ? (void)0 : ::TraceOutputString
 #endif
 

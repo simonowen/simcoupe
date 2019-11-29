@@ -26,13 +26,13 @@
 #include "Sound.h"
 
 
-BYTE CPrintBuffer::In (WORD wPort_)
+BYTE CPrintBuffer::In(WORD wPort_)
 {
     BYTE bBusy = GetOption(printeronline) ? 0x00 : 0x01;
-    return (wPort_ & 1) ? (m_bStatus|bBusy) : m_bData;
+    return (wPort_ & 1) ? (m_bStatus | bBusy) : m_bData;
 }
 
-void CPrintBuffer::Out (WORD wPort_, BYTE bVal_)
+void CPrintBuffer::Out(WORD wPort_, BYTE bVal_)
 {
     // Don't accept data if the printer is offline
     if (!GetOption(printeronline))
@@ -48,7 +48,7 @@ void CPrintBuffer::Out (WORD wPort_, BYTE bVal_)
         {
             // Add the new byte, and start the count-down to have it flushed
             m_abBuffer[m_uBuffer++] = m_bData;
-            m_uFlushDelay = GetOption(flushdelay)*EMULATED_FRAMES_PER_SECOND;
+            m_uFlushDelay = GetOption(flushdelay) * EMULATED_FRAMES_PER_SECOND;
 
             // Open the output stream if not already open
             if (!m_fOpen && Open())
@@ -70,7 +70,7 @@ void CPrintBuffer::Out (WORD wPort_, BYTE bVal_)
     }
 }
 
-void CPrintBuffer::Flush ()
+void CPrintBuffer::Flush()
 {
     // Do we have any unflushed data?
     if (m_uBuffer)
@@ -85,7 +85,7 @@ void CPrintBuffer::Flush ()
     }
 }
 
-void CPrintBuffer::FrameEnd ()
+void CPrintBuffer::FrameEnd()
 {
     // Flush the buffer when we've counted down to zero
     if (m_uFlushDelay && !--m_uFlushDelay)
@@ -94,7 +94,7 @@ void CPrintBuffer::FrameEnd ()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool CPrinterFile::Open ()
+bool CPrinterFile::Open()
 {
     m_pszFile = Util::GetUniqueFile("txt", m_szPath, sizeof(m_szPath));
 
@@ -108,7 +108,7 @@ bool CPrinterFile::Open ()
     return true;
 }
 
-void CPrinterFile::Close ()
+void CPrinterFile::Close()
 {
     if (m_hFile)
     {
@@ -120,7 +120,7 @@ void CPrinterFile::Close ()
     }
 }
 
-void CPrinterFile::Write (BYTE *pb_, size_t uLen_)
+void CPrinterFile::Write(BYTE* pb_, size_t uLen_)
 {
     if (m_hFile)
         fwrite(pb_, uLen_, 1, m_hFile);
@@ -128,7 +128,7 @@ void CPrinterFile::Write (BYTE *pb_, size_t uLen_)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void CMonoDACDevice::Out (WORD wPort_, BYTE bVal_)
+void CMonoDACDevice::Out(WORD wPort_, BYTE bVal_)
 {
     // If the write is to the data port, send it to the DAC
     if (!(wPort_ & 1))
@@ -137,7 +137,7 @@ void CMonoDACDevice::Out (WORD wPort_, BYTE bVal_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void CStereoDACDevice::Out (WORD wPort_, BYTE bVal_)
+void CStereoDACDevice::Out(WORD wPort_, BYTE bVal_)
 {
     // Sample data?
     if (!(wPort_ & 1))

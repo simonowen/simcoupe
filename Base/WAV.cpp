@@ -28,8 +28,8 @@
 namespace WAV
 {
 
-static char szPath[MAX_PATH], *pszFile;
-static FILE *f;
+static char szPath[MAX_PATH], * pszFile;
+static FILE* f;
 static int nFrames, nSilent = 0;
 static bool fSegment;
 
@@ -39,17 +39,17 @@ static bool fSegment;
 
 struct tagRIFF
 {
-    BYTE abRiffHeader[4];	// 'R','I','F','F'
+    BYTE abRiffHeader[4];   // 'R','I','F','F'
     BYTE abWaveLen[4];
 
     struct
     {
-        BYTE fmtheader[8];		// 'W','A','V','E','f','m','t',' '
+        BYTE fmtheader[8];  // 'W','A','V','E','f','m','t',' '
         BYTE fmtlen[4];
 
         struct
         {
-            BYTE FormatTag[2];		// WAVE_FORMAT_PCM = 1
+            BYTE FormatTag[2];      // WAVE_FORMAT_PCM = 1
             BYTE Channels[2];
             BYTE SamplesPerSec[4];
             BYTE AvgBytesPerSec[4];
@@ -59,13 +59,13 @@ struct tagRIFF
 
         struct
         {
-            BYTE dataheader[4];		// 'd','a','t','a'
+            BYTE dataheader[4];     // 'd','a','t','a'
             BYTE datalen[4];
 
             // PCM data starts here...
         } pcmdata;
     } wave;
-} riff = 
+} riff =
 {
     { 'R','I','F','F' }, { sizeof(riff.wave) },
         {  { 'W','A','V','E','f','m','t',' ' }, { sizeof(riff.wave.fmt) },
@@ -78,15 +78,15 @@ struct tagRIFF
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void WriteWaveValue (long lVal_, BYTE *pb_, int nSize_)
+static void WriteWaveValue(long lVal_, BYTE* pb_, int nSize_)
 {
-    for (int i = 0 ; i < nSize_ ; i++)
-        *pb_++ = static_cast<BYTE>((lVal_ >> (i<<3)) & 0xff);
+    for (int i = 0; i < nSize_; i++)
+        *pb_++ = static_cast<BYTE>((lVal_ >> (i << 3)) & 0xff);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-bool Start (bool fSegment_)
+bool Start(bool fSegment_)
 {
     // Fail if we're already recording
     if (f)
@@ -103,7 +103,7 @@ bool Start (bool fSegment_)
     // Write the RIFF header
     WriteWaveValue(SAMPLE_CHANNELS, riff.wave.fmt.Channels, sizeof(riff.wave.fmt.Channels));
     WriteWaveValue(SAMPLE_FREQ, riff.wave.fmt.SamplesPerSec, sizeof(riff.wave.fmt.SamplesPerSec));
-    WriteWaveValue(SAMPLE_FREQ*SAMPLE_BLOCK, riff.wave.fmt.AvgBytesPerSec, sizeof(riff.wave.fmt.AvgBytesPerSec));
+    WriteWaveValue(SAMPLE_FREQ * SAMPLE_BLOCK, riff.wave.fmt.AvgBytesPerSec, sizeof(riff.wave.fmt.AvgBytesPerSec));
     WriteWaveValue(SAMPLE_BLOCK, riff.wave.fmt.BlockAlign, sizeof(riff.wave.fmt.BlockAlign));
     WriteWaveValue(SAMPLE_BITS, riff.wave.fmt.BitsPerSample, sizeof(riff.wave.fmt.BitsPerSample));
     fwrite(&riff, sizeof(riff), 1, f);
@@ -116,7 +116,7 @@ bool Start (bool fSegment_)
     return true;
 }
 
-void Stop ()
+void Stop()
 {
     // Ignore if we're not recording
     if (!f)
@@ -125,7 +125,7 @@ void Stop ()
     // Update the data length in the header
     long lDataSize = ftell(f) - sizeof(riff);
     WriteWaveValue(lDataSize, riff.wave.pcmdata.datalen, sizeof(int32_t));
-    WriteWaveValue(lDataSize+sizeof(riff.wave), riff.abWaveLen, sizeof(int32_t));
+    WriteWaveValue(lDataSize + sizeof(riff.wave), riff.abWaveLen, sizeof(int32_t));
 
     // Rewrite the completed file header
     if (fseek(f, 0, SEEK_SET) == 0)
@@ -148,7 +148,7 @@ void Stop ()
     }
 }
 
-void Toggle (bool fSegment_)
+void Toggle(bool fSegment_)
 {
     if (!f)
         Start(fSegment_);
@@ -156,25 +156,25 @@ void Toggle (bool fSegment_)
         Stop();
 }
 
-bool IsRecording ()
+bool IsRecording()
 {
     return f != nullptr;
 }
 
 
-void AddFrame (const BYTE* pb_, int nLen_)
+void AddFrame(const BYTE* pb_, int nLen_)
 {
     // Fail if we're not recording
     if (!f)
         return;
 
     // Check for a full frame of repeated samples (silence)
-    if (!memcmp(pb_, pb_+SAMPLE_BLOCK, nLen_-SAMPLE_BLOCK))
+    if (!memcmp(pb_, pb_ + SAMPLE_BLOCK, nLen_ - SAMPLE_BLOCK))
     {
         ++nSilent;
 
         // If we're recording a segment, stop if the silence threshold has been exceeded
-        if (fSegment && nFrames && nSilent > 2*EMULATED_FRAMES_PER_SECOND)
+        if (fSegment && nFrames && nSilent > 2 * EMULATED_FRAMES_PER_SECOND)
             Stop();
     }
     else
@@ -183,7 +183,7 @@ void AddFrame (const BYTE* pb_, int nLen_)
         if (nSilent)
         {
             // Add the accumulated silence, unless we're at the start of the recording
-            if (nFrames && fseek(f, nLen_*nSilent, SEEK_CUR) == 0)
+            if (nFrames && fseek(f, nLen_ * nSilent, SEEK_CUR) == 0)
                 nFrames += nSilent;
 
             nSilent = 0;

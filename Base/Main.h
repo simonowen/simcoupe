@@ -23,8 +23,8 @@
 
 namespace Main
 {
-    bool Init (int argc_, char* argv_[]);
-    void Exit ();
+bool Init(int argc_, char* argv_[]);
+void Exit();
 }
 
 #endif  // MAIN_H

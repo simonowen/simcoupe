@@ -26,56 +26,56 @@
 
 namespace GIF
 {
-    bool Start (bool fAnimLoop_=false);
-    void Stop ();
-    void Toggle (bool fAnimLoop_=false);
-    bool IsRecording ();
+bool Start(bool fAnimLoop_ = false);
+void Stop();
+void Toggle(bool fAnimLoop_ = false);
+bool IsRecording();
 
-    void AddFrame (CScreen *pScreen_);
+void AddFrame(CScreen* pScreen_);
 }
 
 
 /*
   Packs a sequence of variable length codes into a buffer. Every time
-  255 bytes have been completed, they are written to a binary file as a 
+  255 bytes have been completed, they are written to a binary file as a
   data block of 256 bytes (where the first byte is the 'bytecount' of the
-  rest and therefore equals 255). Any remaining bits are moved to the 
-  buffer start to become part of the following block. After submitting 
-  the last code via Submit(), the user must call WriteFlush() to write 
-  a terminal, possibly shorter, data block. 
+  rest and therefore equals 255). Any remaining bits are moved to the
+  buffer start to become part of the following block. After submitting
+  the last code via Submit(), the user must call WriteFlush() to write
+  a terminal, possibly shorter, data block.
 */
 class BitPacker final
 {
 private:
-    FILE *binfile = nullptr;
+    FILE* binfile = nullptr;
     BYTE buffer[260];      // holds the total buffer
-    BYTE *pos = nullptr;   // points into buffer
+    BYTE* pos = nullptr;   // points into buffer
     WORD need = 8;         // used by AddCodeToBuffer(), see there
 
-    BYTE *AddCodeToBuffer (DWORD code, short n);
+    BYTE* AddCodeToBuffer(DWORD code, short n);
 
 public:
-    BitPacker (FILE *bf);
+    BitPacker(FILE* bf);
 
 public:
-    DWORD byteswritten = 0;	  // number of bytes written during the object's lifetime 
-    BYTE *Submit (DWORD code, WORD n);
-    void WriteFlush ();
+    DWORD byteswritten = 0; // number of bytes written during the object's lifetime 
+    BYTE* Submit(DWORD code, WORD n);
+    void WriteFlush();
 };
 
 
 class GifCompressor final
-/*
-  Contains the stringtable, generates compression codes and writes them to a 
-  binary file, formatted in data blocks of maximum length 255 with 
-  additional bytecount header. 
-  Users will open the binary file, write the first part themselves, 
-  create a GifCompressor, call its method writedatablocks(), delete it and 
-  write the last byte 0x3b themselves before closing the file.
-*/
+    /*
+      Contains the stringtable, generates compression codes and writes them to a
+      binary file, formatted in data blocks of maximum length 255 with
+      additional bytecount header.
+      Users will open the binary file, write the first part themselves,
+      create a GifCompressor, call its method writedatablocks(), delete it and
+      write the last byte 0x3b themselves before closing the file.
+    */
 {
 private:
-    BitPacker *bp = nullptr;  // object that does the packing and writing of the compression codes
+    BitPacker* bp = nullptr;  // object that does the packing and writing of the compression codes
 
     DWORD nofdata = 0;        // number of pixels in the data stream
     DWORD width = 0;          // width of bitmap in pixels
@@ -85,22 +85,22 @@ private:
     BYTE pixel = 0;           // next pixel to be encoded
 
     WORD nbits = 0;           // current length of compression codes in bits (changes during encoding process)
-    WORD *axon = nullptr;     // arrays making up the stringtable
-    WORD *next = nullptr;
-    BYTE *pix = nullptr;
+    WORD* axon = nullptr;     // arrays making up the stringtable
+    WORD* next = nullptr;
+    BYTE* pix = nullptr;
     DWORD cc = 0;             // "clear code" which signals the clearing of the string table
     DWORD eoi = 0;            // "end-of-information code" which must be the last item of the code stream
     WORD freecode = 0;        // next code to be added to the string table
 
-    void FlushStringTable ();
-    void InitRoots ();
-    DWORD DoNext ();
-    BYTE Map (DWORD);
-    WORD FindPixelOutlet(WORD headnode,BYTE pixel);
+    void FlushStringTable();
+    void InitRoots();
+    DWORD DoNext();
+    BYTE Map(DWORD);
+    WORD FindPixelOutlet(WORD headnode, BYTE pixel);
 
 public:
-    GifCompressor () = default;
-    DWORD WriteDataBlocks (FILE *bf,DWORD nof,WORD ds);
+    GifCompressor() = default;
+    DWORD WriteDataBlocks(FILE* bf, DWORD nof, WORD ds);
 };
 
 #endif

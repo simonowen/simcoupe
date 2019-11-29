@@ -23,19 +23,19 @@
 
 class Input
 {
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+public:
+    static bool Init(bool fFirstInit_ = false);
+    static void Exit(bool fReInit_ = false);
 
-        static void Update ();
-        static bool FilterEvent (SDL_Event* pEvent_);
+    static void Update();
+    static bool FilterEvent(SDL_Event* pEvent_);
 
-        static bool IsMouseAcquired ();
-        static void AcquireMouse (bool fAcquire_=true);
-        static void Purge ();
+    static bool IsMouseAcquired();
+    static void AcquireMouse(bool fAcquire_ = true);
+    static void Purge();
 
-        static int MapChar (int nChar_, int *pnMods_=nullptr);
-        static int MapKey (int nKey_);
+    static int MapChar(int nChar_, int* pnMods_ = nullptr);
+    static int MapKey(int nKey_);
 };
 
 #endif

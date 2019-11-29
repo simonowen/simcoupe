@@ -25,21 +25,21 @@
 namespace Keyin
 {
 
-static BYTE *pbInput;
+static BYTE* pbInput;
 static int nPos = -1;
 static bool fMapChars = true;
 
-BYTE MapChar (BYTE b_);
+BYTE MapChar(BYTE b_);
 
 
-void String (const char *pcsz_, bool fMapChars_)
+void String(const char* pcsz_, bool fMapChars_)
 {
     // Clean up any existing input
     Stop();
 
     // Determine the source length and allocate a buffer for it
     size_t nLen = strlen(pcsz_);
-    pbInput = new BYTE[nLen+1];
+    pbInput = new BYTE[nLen + 1];
 
     // Copy the string, appending a null terminator just in case
     memcpy(pbInput, pcsz_, nLen);
@@ -50,7 +50,7 @@ void String (const char *pcsz_, bool fMapChars_)
     nPos = 0;
 }
 
-void Stop ()
+void Stop()
 {
     // Clean up
     delete[] pbInput; pbInput = nullptr;
@@ -59,24 +59,24 @@ void Stop ()
     g_nTurbo &= ~TURBO_KEYIN;
 }
 
-bool CanType ()
+bool CanType()
 {
     // For safety, ensure ROM0 and the system variable page are present
     return GetSectionPage(SECTION_A) == ROM0 && GetSectionPage(SECTION_B) == 0;
 }
 
-bool IsTyping ()
+bool IsTyping()
 {
     // Do we have a string?
     return pbInput != nullptr;
 }
 
-bool Next ()
+bool Next()
 {
     char bKey = 0;
 
     // Return if we're not typing or the previous key hasn't been consumed
-    if (!IsTyping() || (PageReadPtr(0)[0x5c3b-0x4000] & 0x20))
+    if (!IsTyping() || (PageReadPtr(0)[0x5c3b - 0x4000] & 0x20))
         return false;
 
     // Read the next key
@@ -101,8 +101,8 @@ bool Next ()
     }
 
     // Simulate the key press
-    PageWritePtr(0)[0x5c08-0x4000] = bKey;  // set key in LASTK
-    PageWritePtr(0)[0x5c3b-0x4000] |= 0x20; // signal key available in FLAGS
+    PageWritePtr(0)[0x5c08 - 0x4000] = bKey;  // set key in LASTK
+    PageWritePtr(0)[0x5c3b - 0x4000] |= 0x20; // signal key available in FLAGS
 
     // Run at turbo speed during input
     g_nTurbo |= TURBO_KEYIN;
@@ -113,7 +113,7 @@ bool Next ()
 
 
 // Map special case input characters to the SAM key code equivalent
-BYTE MapChar (BYTE b_)
+BYTE MapChar(BYTE b_)
 {
     static BYTE abMap[256];
 
@@ -124,7 +124,7 @@ BYTE MapChar (BYTE b_)
 
         // Normal 7-bit ASCII range, excluding control characters
         // Note: SAM uses 0x60 for GBP and 0x7f for (c)
-        for (i = ' ' ; i <= 0x7f ; i++)
+        for (i = ' '; i <= 0x7f; i++)
             abMap[i] = i;
 
         // Preserve certain control characters

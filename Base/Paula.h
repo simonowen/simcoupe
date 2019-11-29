@@ -25,10 +25,10 @@
 
 class CPaulaDevice : public CIoDevice
 {
-    public:
-        void Out (WORD wPort_, BYTE bVal_) override;
+public:
+    void Out(WORD wPort_, BYTE bVal_) override;
 };
 
-extern CPaulaDevice *pPaula;
+extern CPaulaDevice* pPaula;
 
 #endif  // PAULA_H

@@ -23,28 +23,28 @@
 
 namespace Tape
 {
-    bool IsRecognised (const char *pcsz_);
-    bool IsPlaying ();
-    bool IsInserted ();
+bool IsRecognised(const char* pcsz_);
+bool IsPlaying();
+bool IsInserted();
 
-    const char* GetPath ();
-    const char* GetFile ();
+const char* GetPath();
+const char* GetFile();
 #ifdef HAVE_LIBSPECTRUM
-    libspectrum_tape *GetTape ();
-    const char *GetBlockDetails (libspectrum_tape_block *block);
+libspectrum_tape* GetTape();
+const char* GetBlockDetails(libspectrum_tape_block* block);
 #endif
 
-    bool Insert (const char* pcsz_);
-    void Eject ();
-    void Play ();
-    void Stop ();
+bool Insert(const char* pcsz_);
+void Eject();
+void Play();
+void Stop();
 
-    void NextEdge (DWORD dwTime_);
-    bool LoadTrap ();
+void NextEdge(DWORD dwTime_);
+bool LoadTrap();
 
-    bool EiHook ();
-    bool RetZHook ();
-    bool InFEHook ();
+bool EiHook();
+bool RetZHook();
+bool InFEHook();
 }
 
 #endif

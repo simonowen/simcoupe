@@ -32,13 +32,13 @@ static DWORD aulPalette[N_PALETTE_COLOURS];
 static DWORD aulScanline[N_PALETTE_COLOURS];
 
 
-DirectDrawVideo::DirectDrawVideo ()
+DirectDrawVideo::DirectDrawVideo()
 {
     m_nWidth = Frame::GetWidth();
     m_nHeight = Frame::GetHeight();
 }
 
-DirectDrawVideo::~DirectDrawVideo ()
+DirectDrawVideo::~DirectDrawVideo()
 {
     if (m_pddClipper) m_pddClipper->Release();
     if (m_pddsBack) m_pddsBack->Release();
@@ -53,13 +53,13 @@ DirectDrawVideo::~DirectDrawVideo ()
     }
 }
 
-int DirectDrawVideo::GetCaps () const
+int DirectDrawVideo::GetCaps() const
 {
-	return VCAP_STRETCH;
+    return VCAP_STRETCH;
 }
 
 
-bool DirectDrawVideo::Init (bool fFirstInit_)
+bool DirectDrawVideo::Init(bool fFirstInit_)
 {
     bool fRet = false;
     HRESULT hr;
@@ -92,7 +92,7 @@ bool DirectDrawVideo::Init (bool fFirstInit_)
     m_pdd->GetCaps(&ddcaps, nullptr);
 
     // Use exclusive mode for full-screen, or normal mode for windowed
-    hr = m_pdd->SetCooperativeLevel(g_hwnd, GetOption(fullscreen) ? DDSCL_EXCLUSIVE|DDSCL_FULLSCREEN|DDSCL_ALLOWREBOOT : DDSCL_NORMAL);
+    hr = m_pdd->SetCooperativeLevel(g_hwnd, GetOption(fullscreen) ? DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT : DDSCL_NORMAL);
     if (FAILED(hr))
         Message(msgError, "SetCooperativeLevel() failed (%#08lx).", hr);
     else
@@ -128,7 +128,7 @@ bool DirectDrawVideo::Init (bool fFirstInit_)
                 // Clear the back buffer
                 DDBLTFX bltfx = { sizeof(bltfx) };
                 bltfx.dwFillColor = 0;
-                m_pddsBack->Blt(nullptr, nullptr, nullptr, DDBLT_COLORFILL|DDBLT_WAIT, &bltfx);
+                m_pddsBack->Blt(nullptr, nullptr, nullptr, DDBLT_COLORFILL | DDBLT_WAIT, &bltfx);
 
                 UpdatePalette();
                 fRet = true;
@@ -139,7 +139,7 @@ bool DirectDrawVideo::Init (bool fFirstInit_)
     return fRet;
 }
 
-void DirectDrawVideo::UpdatePalette ()
+void DirectDrawVideo::UpdatePalette()
 {
     // Don't attempt anything without a surface pointer
     if (!m_pddsBack)
@@ -149,22 +149,22 @@ void DirectDrawVideo::UpdatePalette ()
     DDSURFACEDESC ddsd = { sizeof(ddsd) };
     m_pddsBack->GetSurfaceDesc(&ddsd);
 
-    const DDPIXELFORMAT *ddpf = &ddsd.ddpfPixelFormat;
-    const COLOUR *pSAM = IO::GetPalette();
+    const DDPIXELFORMAT* ddpf = &ddsd.ddpfPixelFormat;
+    const COLOUR* pSAM = IO::GetPalette();
 
     // Build the palette from SAM colours
-    for (int i = 0; i < N_PALETTE_COLOURS ; i++)
+    for (int i = 0; i < N_PALETTE_COLOURS; i++)
     {
         // Look up the colour in the SAM palette
-        const COLOUR *p = &pSAM[i];
+        const COLOUR* p = &pSAM[i];
         BYTE r = p->bRed, g = p->bGreen, b = p->bBlue;
 
         // Set regular pixel
-        aulPalette[i] = RGB2Native(r,g,b, ddpf->dwRBitMask, ddpf->dwGBitMask, ddpf->dwBBitMask);
+        aulPalette[i] = RGB2Native(r, g, b, ddpf->dwRBitMask, ddpf->dwGBitMask, ddpf->dwBBitMask);
 
         // Determine scanline pixel
-        AdjustBrightness(r,g,b, GetOption(scanlevel)-100);
-        aulScanline[i] = RGB2Native(r,g,b, ddpf->dwRBitMask, ddpf->dwGBitMask, ddpf->dwBBitMask);
+        AdjustBrightness(r, g, b, GetOption(scanlevel) - 100);
+        aulScanline[i] = RGB2Native(r, g, b, ddpf->dwRBitMask, ddpf->dwGBitMask, ddpf->dwBBitMask);
     }
 
     // Redraw to reflect any changes
@@ -172,7 +172,7 @@ void DirectDrawVideo::UpdatePalette ()
 }
 
 // Update the display to show anything that's changed since last time
-void DirectDrawVideo::Update (CScreen* pScreen_, bool *pafDirty_)
+void DirectDrawVideo::Update(CScreen* pScreen_, bool* pafDirty_)
 {
     HRESULT hr = 0;
     if (!m_pdd)
@@ -229,7 +229,7 @@ void DirectDrawVideo::Update (CScreen* pScreen_, bool *pafDirty_)
 }
 
 
-LPDIRECTDRAWSURFACE DirectDrawVideo::CreateSurface (DWORD dwCaps_, DWORD dwWidth_, DWORD dwHeight_, DWORD dwRequiredCaps_)
+LPDIRECTDRAWSURFACE DirectDrawVideo::CreateSurface(DWORD dwCaps_, DWORD dwWidth_, DWORD dwHeight_, DWORD dwRequiredCaps_)
 {
     LPDIRECTDRAWSURFACE pdds = nullptr;
 
@@ -261,7 +261,7 @@ LPDIRECTDRAWSURFACE DirectDrawVideo::CreateSurface (DWORD dwCaps_, DWORD dwWidth
     if (!(dwCaps_ & DDSCAPS_PRIMARYSURFACE))
     {
         // Make sure the surface is lockable, as some VRAM surfaces may not be
-        if (SUCCEEDED(hr = pdds->Lock(nullptr, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, nullptr)))
+        if (SUCCEEDED(hr = pdds->Lock(nullptr, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WRITEONLY | DDLOCK_WAIT, nullptr)))
             pdds->Unlock(ddsd.lpSurface);
 
         // If we've not just tried a system surface, try one now
@@ -283,14 +283,14 @@ LPDIRECTDRAWSURFACE DirectDrawVideo::CreateSurface (DWORD dwCaps_, DWORD dwWidth
 }
 
 // Draw the changed lines in the appropriate colour depth and hi/low resolution
-bool DirectDrawVideo::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
+bool DirectDrawVideo::DrawChanges(CScreen* pScreen_, bool* pafDirty_)
 {
     HRESULT hr;
     DDSURFACEDESC ddsd = { sizeof(ddsd) };
 
     // Lock the surface,  without taking the Win16Mutex if possible
-    if (FAILED(hr = m_pddsBack->Lock(nullptr, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT|DDLOCK_NOSYSLOCK, nullptr))
-     && FAILED(hr = m_pddsBack->Lock(nullptr, &ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, nullptr)))
+    if (FAILED(hr = m_pddsBack->Lock(nullptr, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WRITEONLY | DDLOCK_WAIT | DDLOCK_NOSYSLOCK, nullptr))
+        && FAILED(hr = m_pddsBack->Lock(nullptr, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WRITEONLY | DDLOCK_WAIT, nullptr)))
     {
         TRACE("!!! DrawChanges()  Failed to lock back surface (%#08lx)\n", hr);
         return false;
@@ -303,10 +303,10 @@ bool DirectDrawVideo::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     if (fInterlace)
         ddsd.lPitch <<= 1;
 
-    DWORD *pdwBack = reinterpret_cast<DWORD*>(ddsd.lpSurface), *pdw = pdwBack;
+    DWORD* pdwBack = reinterpret_cast<DWORD*>(ddsd.lpSurface), * pdw = pdwBack;
     LONG lPitchDW = ddsd.lPitch >> 2;
 
-    BYTE *pbSAM = pScreen_->GetLine(0), *pb = pbSAM;
+    BYTE* pbSAM = pScreen_->GetLine(0), * pb = pbSAM;
     LONG lPitch = pScreen_->GetPitch();
 
     int nDepth = ddsd.ddpfPixelFormat.dwRGBBitCount;
@@ -315,99 +315,99 @@ bool DirectDrawVideo::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
 
     switch (nDepth)
     {
-        case 16:
+    case 16:
+    {
+        nWidth <<= 1;
+
+        for (int y = 0; y < nBottom; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
         {
-            nWidth <<= 1;
+            if (!pafDirty_[y])
+                continue;
 
-            for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
+            for (int x = 0; x < nRightHi; x++)
             {
-                if (!pafDirty_[y])
-                    continue;
+                // Draw 8 pixels at a time
+                pdw[0] = (aulPalette[pb[1]] << 16) | aulPalette[pb[0]];
+                pdw[1] = (aulPalette[pb[3]] << 16) | aulPalette[pb[2]];
+                pdw[2] = (aulPalette[pb[5]] << 16) | aulPalette[pb[4]];
+                pdw[3] = (aulPalette[pb[7]] << 16) | aulPalette[pb[6]];
 
-                for (int x = 0 ; x < nRightHi ; x++)
+                pdw += 4;
+                pb += 8;
+            }
+
+            if (fInterlace)
+            {
+                pb = pbSAM;
+                pdw = pdwBack + lPitchDW / 2;
+
+                for (int x = 0; x < nRightHi; x++)
                 {
                     // Draw 8 pixels at a time
-                    pdw[0] = (aulPalette[pb[1]] << 16) | aulPalette[pb[0]];
-                    pdw[1] = (aulPalette[pb[3]] << 16) | aulPalette[pb[2]];
-                    pdw[2] = (aulPalette[pb[5]] << 16) | aulPalette[pb[4]];
-                    pdw[3] = (aulPalette[pb[7]] << 16) | aulPalette[pb[6]];
+                    pdw[0] = (aulScanline[pb[1]] << 16) | aulScanline[pb[0]];
+                    pdw[1] = (aulScanline[pb[3]] << 16) | aulScanline[pb[2]];
+                    pdw[2] = (aulScanline[pb[5]] << 16) | aulScanline[pb[4]];
+                    pdw[3] = (aulScanline[pb[7]] << 16) | aulScanline[pb[6]];
 
                     pdw += 4;
                     pb += 8;
                 }
-
-                if (fInterlace)
-                {
-                    pb = pbSAM;
-                    pdw = pdwBack + lPitchDW/2;
-
-                    for (int x = 0 ; x < nRightHi ; x++)
-                    {
-                        // Draw 8 pixels at a time
-                        pdw[0] = (aulScanline[pb[1]] << 16) | aulScanline[pb[0]];
-                        pdw[1] = (aulScanline[pb[3]] << 16) | aulScanline[pb[2]];
-                        pdw[2] = (aulScanline[pb[5]] << 16) | aulScanline[pb[4]];
-                        pdw[3] = (aulScanline[pb[7]] << 16) | aulScanline[pb[6]];
-
-                        pdw += 4;
-                        pb += 8;
-                    }
-                }
-
-                pafDirty_[y] = false;
             }
+
+            pafDirty_[y] = false;
         }
-        break;
+    }
+    break;
 
-        case 32:
+    case 32:
+    {
+        nWidth <<= 2;
+
+        for (int y = 0; y < nBottom; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
         {
-            nWidth <<= 2;
+            if (!pafDirty_[y])
+                continue;
 
-            for (int y = 0 ; y < nBottom ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
+            for (int x = 0; x < nRightHi; x++)
             {
-                if (!pafDirty_[y])
-                    continue;
+                pdw[0] = aulPalette[pb[0]];
+                pdw[1] = aulPalette[pb[1]];
+                pdw[2] = aulPalette[pb[2]];
+                pdw[3] = aulPalette[pb[3]];
+                pdw[4] = aulPalette[pb[4]];
+                pdw[5] = aulPalette[pb[5]];
+                pdw[6] = aulPalette[pb[6]];
+                pdw[7] = aulPalette[pb[7]];
 
-                for (int x = 0 ; x < nRightHi ; x++)
+                pdw += 8;
+                pb += 8;
+            }
+
+            if (fInterlace)
+            {
+                pb = pbSAM;
+                pdw = pdwBack + lPitchDW / 2;
+
+                for (int x = 0; x < nRightHi; x++)
                 {
-                    pdw[0] = aulPalette[pb[0]];
-                    pdw[1] = aulPalette[pb[1]];
-                    pdw[2] = aulPalette[pb[2]];
-                    pdw[3] = aulPalette[pb[3]];
-                    pdw[4] = aulPalette[pb[4]];
-                    pdw[5] = aulPalette[pb[5]];
-                    pdw[6] = aulPalette[pb[6]];
-                    pdw[7] = aulPalette[pb[7]];
+                    pdw[0] = aulScanline[pb[0]];
+                    pdw[1] = aulScanline[pb[1]];
+                    pdw[2] = aulScanline[pb[2]];
+                    pdw[3] = aulScanline[pb[3]];
+                    pdw[4] = aulScanline[pb[4]];
+                    pdw[5] = aulScanline[pb[5]];
+                    pdw[6] = aulScanline[pb[6]];
+                    pdw[7] = aulScanline[pb[7]];
 
                     pdw += 8;
                     pb += 8;
                 }
-
-                if (fInterlace)
-                {
-                    pb = pbSAM;
-                    pdw = pdwBack + lPitchDW/2;
-
-                    for (int x = 0 ; x < nRightHi ; x++)
-                    {
-                        pdw[0] = aulScanline[pb[0]];
-                        pdw[1] = aulScanline[pb[1]];
-                        pdw[2] = aulScanline[pb[2]];
-                        pdw[3] = aulScanline[pb[3]];
-                        pdw[4] = aulScanline[pb[4]];
-                        pdw[5] = aulScanline[pb[5]];
-                        pdw[6] = aulScanline[pb[6]];
-                        pdw[7] = aulScanline[pb[7]];
-
-                        pdw += 8;
-                        pb += 8;
-                    }
-                }
-
-                pafDirty_[y] = false;
             }
+
+            pafDirty_[y] = false;
         }
-        break;
+    }
+    break;
     }
 
     m_pddsBack->Unlock(ddsd.lpSurface);
@@ -418,17 +418,17 @@ bool DirectDrawVideo::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
 
 
 // Map a native size/offset to SAM view port
-void DirectDrawVideo::DisplayToSamSize (int* pnX_, int* pnY_)
+void DirectDrawVideo::DisplayToSamSize(int* pnX_, int* pnY_)
 {
     int nHalfWidth = !GUI::IsActive();
     int nHalfHeight = nHalfWidth && GetOption(scanlines);
 
-    *pnX_ = *pnX_ * m_nWidth  / (m_rTarget.right << nHalfWidth);
+    *pnX_ = *pnX_ * m_nWidth / (m_rTarget.right << nHalfWidth);
     *pnY_ = *pnY_ * m_nHeight / (m_rTarget.bottom << nHalfHeight);
 }
 
 // Map a native client point to SAM view port
-void DirectDrawVideo::DisplayToSamPoint (int* pnX_, int* pnY_)
+void DirectDrawVideo::DisplayToSamPoint(int* pnX_, int* pnY_)
 {
     DisplayToSamSize(pnX_, pnY_);
 }

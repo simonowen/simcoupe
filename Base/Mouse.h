@@ -40,28 +40,28 @@ typedef struct
 
 class CMouseDevice : public CIoDevice
 {
-    public:
-        CMouseDevice ();
+public:
+    CMouseDevice();
 
-    public:
-        void Reset () override;
-        BYTE In (WORD wPort_) override;
+public:
+    void Reset() override;
+    BYTE In(WORD wPort_) override;
 
-    public:
-        void Move (int nDeltaX_, int nDeltaY_);
-        void SetButton (int nButton_, bool fPressed_=true);
-        bool IsActive () const;
+public:
+    void Move(int nDeltaX_, int nDeltaY_);
+    void SetButton(int nButton_, bool fPressed_ = true);
+    bool IsActive() const;
 
-    protected:
-        int m_nDeltaX = 0, m_nDeltaY = 0;   // System change in X and Y since last read
-        int m_nReadX = 0, m_nReadY = 0;     // Read change in X and Y
-        BYTE m_bButtons = 0;                // Current button states
-        DWORD m_dwLastRead = 0;             // When the mouse was last read
+protected:
+    int m_nDeltaX = 0, m_nDeltaY = 0;   // System change in X and Y since last read
+    int m_nReadX = 0, m_nReadY = 0;     // Read change in X and Y
+    BYTE m_bButtons = 0;                // Current button states
+    DWORD m_dwLastRead = 0;             // When the mouse was last read
 
-        MOUSEBUFFER m_sMouse {};
-        UINT m_uBuffer = 0;                 // Read position in mouse data
+    MOUSEBUFFER m_sMouse{};
+    UINT m_uBuffer = 0;                 // Read position in mouse data
 };
 
-extern CMouseDevice *pMouse;
+extern CMouseDevice* pMouse;
 
 #endif // MOUSE_H

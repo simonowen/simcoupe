@@ -23,43 +23,43 @@
 
 #include "Screen.h"
 
-enum { VCAP_STRETCH=1, VCAP_FILTER=2, VCAP_SCANHIRES=4 };
+enum { VCAP_STRETCH = 1, VCAP_FILTER = 2, VCAP_SCANHIRES = 4 };
 
 namespace Video
 {
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
+bool Init(bool fFirstInit_ = false);
+void Exit(bool fReInit_ = false);
 
-    bool IsLineDirty (int nLine_);
-    void SetLineDirty (int nLine_);
-    void SetDirty ();
+bool IsLineDirty(int nLine_);
+void SetLineDirty(int nLine_);
+void SetDirty();
 
-    bool CheckCaps (int nCaps_);
+bool CheckCaps(int nCaps_);
 
-    void Update (CScreen* pScreen_);
-    void UpdateSize ();
-    void UpdatePalette ();
+void Update(CScreen* pScreen_);
+void UpdateSize();
+void UpdatePalette();
 
-    void DisplayToSamSize (int* pnX_, int* pnY_);
-    void DisplayToSamPoint (int* pnX_, int* pnY_);
+void DisplayToSamSize(int* pnX_, int* pnY_);
+void DisplayToSamPoint(int* pnX_, int* pnY_);
 }
 
 
 class VideoBase
 {
-    public:
-        virtual ~VideoBase () = default;
+public:
+    virtual ~VideoBase() = default;
 
-    public:
-        virtual int GetCaps () const = 0;
-        virtual bool Init (bool fFirstInit_) = 0;
+public:
+    virtual int GetCaps() const = 0;
+    virtual bool Init(bool fFirstInit_) = 0;
 
-        virtual void Update (CScreen* pScreen_, bool *pafDirty_) = 0;
-        virtual void UpdateSize () = 0;
-        virtual void UpdatePalette () = 0;
+    virtual void Update(CScreen* pScreen_, bool* pafDirty_) = 0;
+    virtual void UpdateSize() = 0;
+    virtual void UpdatePalette() = 0;
 
-        virtual void DisplayToSamSize (int* pnX_, int* pnY_) = 0;
-        virtual void DisplayToSamPoint (int* pnX_, int* pnY_) = 0;
+    virtual void DisplayToSamSize(int* pnX_, int* pnY_) = 0;
+    virtual void DisplayToSamPoint(int* pnX_, int* pnY_) = 0;
 };
 
 #endif

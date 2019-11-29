@@ -34,26 +34,26 @@ static DWORD aulPalette[N_PALETTE_COLOURS];
 static DWORD aulScanline[N_PALETTE_COLOURS];
 
 
-SDLSurface::SDLSurface ()
+SDLSurface::SDLSurface()
 {
     m_rTarget.x = m_rTarget.y = 0;
     m_rTarget.w = Frame::GetWidth();
     m_rTarget.h = Frame::GetHeight();
 }
 
-SDLSurface::~SDLSurface ()
+SDLSurface::~SDLSurface()
 {
     if (pBack) SDL_FreeSurface(pBack), pBack = nullptr;
     if (pIcon) SDL_FreeSurface(pIcon), pIcon = nullptr;
 }
 
 
-int SDLSurface::GetCaps () const
+int SDLSurface::GetCaps() const
 {
     return 0;
 }
 
-bool SDLSurface::Init (bool fFirstInit_)
+bool SDLSurface::Init(bool fFirstInit_)
 {
     TRACE("-> Video::Init(%s)\n", fFirstInit_ ? "first" : "");
 
@@ -63,7 +63,7 @@ bool SDLSurface::Init (bool fFirstInit_)
 
     if (fFirstInit_)
     {
-        const SDL_VideoInfo *pvi = SDL_GetVideoInfo();
+        const SDL_VideoInfo* pvi = SDL_GetVideoInfo();
         nDesktopWidth = pvi->current_w;
         nDesktopHeight = pvi->current_h;
         TRACE("Desktop resolution: %dx%d\n", nDesktopWidth, nDesktopHeight);
@@ -74,7 +74,7 @@ bool SDLSurface::Init (bool fFirstInit_)
 }
 
 
-void SDLSurface::Update (CScreen* pScreen_, bool *pafDirty_)
+void SDLSurface::Update(CScreen* pScreen_, bool* pafDirty_)
 {
     // Draw any changed lines to the back buffer
     if (!DrawChanges(pScreen_, pafDirty_))
@@ -82,31 +82,31 @@ void SDLSurface::Update (CScreen* pScreen_, bool *pafDirty_)
 }
 
 // Create whatever's needed for actually displaying the SAM image
-void SDLSurface::UpdatePalette ()
+void SDLSurface::UpdatePalette()
 {
     // Determine the scanline brightness level adjustment, in the range -100 to +100
     int nScanAdjust = GetOption(scanlines) ? (GetOption(scanlevel) - 100) : 0;
     if (nScanAdjust < -100) nScanAdjust = -100;
 
-    const COLOUR *pSAM = IO::GetPalette();
+    const COLOUR* pSAM = IO::GetPalette();
 
     // Build the full palette from SAM and GUI colours
-    for (int i = 0; i < N_PALETTE_COLOURS ; i++)
+    for (int i = 0; i < N_PALETTE_COLOURS; i++)
     {
         // Look up the colour in the SAM palette
-        const COLOUR *p = &pSAM[i];
+        const COLOUR* p = &pSAM[i];
         BYTE r = p->bRed, g = p->bGreen, b = p->bBlue;
 
-        aulPalette[i] = SDL_MapRGB(pBack->format, r,g,b);
-        AdjustBrightness(r,g,b, nScanAdjust);
-        aulScanline[i] = SDL_MapRGB(pBack->format, r,g,b);
+        aulPalette[i] = SDL_MapRGB(pBack->format, r, g, b);
+        AdjustBrightness(r, g, b, nScanAdjust);
+        aulScanline[i] = SDL_MapRGB(pBack->format, r, g, b);
     }
 
     // Ensure the display is redrawn to reflect the changes
     Video::SetDirty();
 }
 
-bool SDLSurface::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
+bool SDLSurface::DrawChanges(CScreen* pScreen_, bool* pafDirty_)
 {
     if (!pBack)
         return false;
@@ -126,10 +126,10 @@ bool SDLSurface::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     bool fInterlace = !GUI::IsActive();
     if (fInterlace) nHeight >>= 1;
 
-    DWORD *pdwBack = reinterpret_cast<DWORD*>(pBack->pixels), *pdw = pdwBack;
+    DWORD* pdwBack = reinterpret_cast<DWORD*>(pBack->pixels), * pdw = pdwBack;
     long lPitchDW = pBack->pitch >> (fInterlace ? 1 : 2);
 
-    BYTE *pbSAM = pScreen_->GetLine(0), *pb = pbSAM;
+    BYTE* pbSAM = pScreen_->GetLine(0), * pb = pbSAM;
     long lPitch = pScreen_->GetPitch();
 
     int nShift = fInterlace ? 1 : 0;
@@ -139,103 +139,103 @@ bool SDLSurface::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     // What colour depth is the target surface?
     switch (nDepth)
     {
-        case 16:
+    case 16:
+    {
+        nWidth <<= 1;
+
+        for (int y = 0; y < nHeight; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
         {
-            nWidth <<= 1;
+            if (!pafDirty_[y])
+                continue;
 
-            for (int y = 0 ; y < nHeight ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
+            for (int x = 0; x < nRightHi; x++)
             {
-                if (!pafDirty_[y])
-                    continue;
+                pdw[0] = SDL_SwapLE32((aulPalette[pb[1]] << 16) | aulPalette[pb[0]]);
+                pdw[1] = SDL_SwapLE32((aulPalette[pb[3]] << 16) | aulPalette[pb[2]]);
+                pdw[2] = SDL_SwapLE32((aulPalette[pb[5]] << 16) | aulPalette[pb[4]]);
+                pdw[3] = SDL_SwapLE32((aulPalette[pb[7]] << 16) | aulPalette[pb[6]]);
 
-                for (int x = 0 ; x < nRightHi ; x++)
+                pdw += 4;
+                pb += 8;
+            }
+
+            if (fInterlace)
+            {
+                pb = pbSAM;
+                pdw = pdwBack + lPitchDW / 2;
+
+                if (!GetOption(scanlevel))
+                    memset(pdw, 0x00, nWidth);
+                else
                 {
-                    pdw[0] = SDL_SwapLE32((aulPalette[pb[1]] << 16) | aulPalette[pb[0]]);
-                    pdw[1] = SDL_SwapLE32((aulPalette[pb[3]] << 16) | aulPalette[pb[2]]);
-                    pdw[2] = SDL_SwapLE32((aulPalette[pb[5]] << 16) | aulPalette[pb[4]]);
-                    pdw[3] = SDL_SwapLE32((aulPalette[pb[7]] << 16) | aulPalette[pb[6]]);
-
-                    pdw += 4;
-                    pb += 8;
-                }
-
-                if (fInterlace)
-                {
-                    pb = pbSAM;
-                    pdw = pdwBack + lPitchDW/2;
-
-                    if (!GetOption(scanlevel))
-                        memset(pdw, 0x00, nWidth);
-                    else
+                    for (int x = 0; x < nRightHi; x++)
                     {
-                        for (int x = 0 ; x < nRightHi ; x++)
-                        {
-                            pdw[0] = SDL_SwapLE32((aulScanline[pb[1]] << 16) | aulScanline[pb[0]]);
-                            pdw[1] = SDL_SwapLE32((aulScanline[pb[3]] << 16) | aulScanline[pb[2]]);
-                            pdw[2] = SDL_SwapLE32((aulScanline[pb[5]] << 16) | aulScanline[pb[4]]);
-                            pdw[3] = SDL_SwapLE32((aulScanline[pb[7]] << 16) | aulScanline[pb[6]]);
+                        pdw[0] = SDL_SwapLE32((aulScanline[pb[1]] << 16) | aulScanline[pb[0]]);
+                        pdw[1] = SDL_SwapLE32((aulScanline[pb[3]] << 16) | aulScanline[pb[2]]);
+                        pdw[2] = SDL_SwapLE32((aulScanline[pb[5]] << 16) | aulScanline[pb[4]]);
+                        pdw[3] = SDL_SwapLE32((aulScanline[pb[7]] << 16) | aulScanline[pb[6]]);
 
-                            pdw += 4;
-                            pb += 8;
-                        }
+                        pdw += 4;
+                        pb += 8;
                     }
                 }
             }
         }
-        break;
+    }
+    break;
 
-        case 32:
+    case 32:
+    {
+        nWidth <<= 2;
+
+        for (int y = 0; y < nHeight; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
         {
-            nWidth <<= 2;
+            if (!pafDirty_[y])
+                continue;
 
-            for (int y = 0 ; y < nHeight ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
+            for (int x = 0; x < nRightHi; x++)
             {
-                if (!pafDirty_[y])
-                    continue;
+                pdw[0] = aulPalette[pb[0]];
+                pdw[1] = aulPalette[pb[1]];
+                pdw[2] = aulPalette[pb[2]];
+                pdw[3] = aulPalette[pb[3]];
+                pdw[4] = aulPalette[pb[4]];
+                pdw[5] = aulPalette[pb[5]];
+                pdw[6] = aulPalette[pb[6]];
+                pdw[7] = aulPalette[pb[7]];
 
-                for (int x = 0 ; x < nRightHi ; x++)
+                pdw += 8;
+                pb += 8;
+            }
+
+            if (fInterlace)
+            {
+                pb = pbSAM;
+                pdw = pdwBack + lPitchDW / 2;
+
+                if (!GetOption(scanlevel))
+                    memset(pdw, 0x00, nWidth);
+                else
                 {
-                    pdw[0] = aulPalette[pb[0]];
-                    pdw[1] = aulPalette[pb[1]];
-                    pdw[2] = aulPalette[pb[2]];
-                    pdw[3] = aulPalette[pb[3]];
-                    pdw[4] = aulPalette[pb[4]];
-                    pdw[5] = aulPalette[pb[5]];
-                    pdw[6] = aulPalette[pb[6]];
-                    pdw[7] = aulPalette[pb[7]];
-
-                    pdw += 8;
-                    pb += 8;
-                }
-
-                if (fInterlace)
-                {
-                    pb = pbSAM;
-                    pdw = pdwBack + lPitchDW/2;
-
-                    if (!GetOption(scanlevel))
-                        memset(pdw, 0x00, nWidth);
-                    else
+                    for (int x = 0; x < nRightHi; x++)
                     {
-                        for (int x = 0 ; x < nRightHi ; x++)
-                        {
-                            pdw[0] = aulScanline[pb[0]];
-                            pdw[1] = aulScanline[pb[1]];
-                            pdw[2] = aulScanline[pb[2]];
-                            pdw[3] = aulScanline[pb[3]];
-                            pdw[4] = aulScanline[pb[4]];
-                            pdw[5] = aulScanline[pb[5]];
-                            pdw[6] = aulScanline[pb[6]];
-                            pdw[7] = aulScanline[pb[7]];
+                        pdw[0] = aulScanline[pb[0]];
+                        pdw[1] = aulScanline[pb[1]];
+                        pdw[2] = aulScanline[pb[2]];
+                        pdw[3] = aulScanline[pb[3]];
+                        pdw[4] = aulScanline[pb[4]];
+                        pdw[5] = aulScanline[pb[5]];
+                        pdw[6] = aulScanline[pb[6]];
+                        pdw[7] = aulScanline[pb[7]];
 
-                            pdw += 8;
-                            pb += 8;
-                        }
+                        pdw += 8;
+                        pb += 8;
                     }
                 }
             }
         }
-        break;
+    }
+    break;
     }
 
     // Unlock the surface now we're done drawing on it
@@ -244,16 +244,16 @@ bool SDLSurface::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
 
     // Find the first changed display line
     int nChangeFrom = 0;
-    for ( ; nChangeFrom < nHeight && !pafDirty_[nChangeFrom] ; nChangeFrom++);
+    for (; nChangeFrom < nHeight && !pafDirty_[nChangeFrom]; nChangeFrom++);
 
     if (nChangeFrom < nHeight)
     {
         // Find the last change display line
-        int nChangeTo = nHeight-1;
-        for ( ; nChangeTo && !pafDirty_[nChangeTo] ; nChangeTo--);
+        int nChangeTo = nHeight - 1;
+        for (; nChangeTo && !pafDirty_[nChangeTo]; nChangeTo--);
 
         // Clear the dirty flags for the changed block
-        for (int i = nChangeFrom ; i <= nChangeTo ; pafDirty_[i++] = false);
+        for (int i = nChangeFrom; i <= nChangeTo; pafDirty_[i++] = false);
 
         // Calculate the dirty source and target areas - non-GUI displays require the height doubling
         SDL_Rect rect;
@@ -277,7 +277,7 @@ bool SDLSurface::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     return true;
 }
 
-void SDLSurface::UpdateSize ()
+void SDLSurface::UpdateSize()
 {
     int nWidth = Frame::GetWidth();
     int nHeight = Frame::GetHeight();
@@ -299,7 +299,7 @@ void SDLSurface::UpdateSize ()
             nWidth = 1024, nHeight = 768;
 
         // Set the video mode
-        pFront = SDL_SetVideoMode(nWidth, nHeight, nDepth, SDL_FULLSCREEN|SDL_HWSURFACE);
+        pFront = SDL_SetVideoMode(nWidth, nHeight, nDepth, SDL_FULLSCREEN | SDL_HWSURFACE);
     }
 
     // Did we fail to create the front buffer?
@@ -308,7 +308,7 @@ void SDLSurface::UpdateSize ()
 
     // Create a back buffer in the same format as the front
     else if (!(pBack = SDL_CreateRGBSurface(SDL_HWSURFACE, nWidth, nHeight, pFront->format->BitsPerPixel,
-            pFront->format->Rmask, pFront->format->Gmask, pFront->format->Bmask, pFront->format->Amask)))
+        pFront->format->Rmask, pFront->format->Gmask, pFront->format->Bmask, pFront->format->Amask)))
         TRACE("Can't create back buffer: %s\n", SDL_GetError());
     else
     {
@@ -321,17 +321,17 @@ void SDLSurface::UpdateSize ()
 
 
 // Map a native size/offset to SAM view port
-void SDLSurface::DisplayToSamSize (int* pnX_, int* pnY_)
+void SDLSurface::DisplayToSamSize(int* pnX_, int* pnY_)
 {
     int nHalfWidth = !GUI::IsActive();
     int nHalfHeight = nHalfWidth;
 
-    *pnX_ = *pnX_ * Frame::GetWidth()  / (m_rTarget.w << nHalfWidth);
+    *pnX_ = *pnX_ * Frame::GetWidth() / (m_rTarget.w << nHalfWidth);
     *pnY_ = *pnY_ * Frame::GetHeight() / (m_rTarget.h << nHalfHeight);
 }
 
 // Map a native client point to SAM view port
-void SDLSurface::DisplayToSamPoint (int* pnX_, int* pnY_)
+void SDLSurface::DisplayToSamPoint(int* pnX_, int* pnY_)
 {
     *pnX_ -= m_rTarget.x;
     *pnY_ -= m_rTarget.y;

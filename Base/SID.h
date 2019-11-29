@@ -33,26 +33,26 @@
 
 class CSID final : public CSoundDevice
 {
-    public:
-        CSID ();
-        CSID (const CSID &) = delete;
-        void operator= (const CSID &) = delete;
-        ~CSID ();
+public:
+    CSID();
+    CSID(const CSID&) = delete;
+    void operator= (const CSID&) = delete;
+    ~CSID();
 
-    public:
-        void Reset () override;
-        void Update (bool fFrameEnd_);
-        void FrameEnd () override;
+public:
+    void Reset() override;
+    void Update(bool fFrameEnd_);
+    void FrameEnd() override;
 
-        void Out (WORD wPort_, BYTE bVal_) override;
+    void Out(WORD wPort_, BYTE bVal_) override;
 
-    protected:
+protected:
 #ifdef HAVE_LIBRESID
-        SID *m_pSID = nullptr;
+    SID* m_pSID = nullptr;
 #endif
-        int m_nChipType = 0;
+    int m_nChipType = 0;
 };
 
-extern CSID *pSID;
+extern CSID* pSID;
 
 #endif // SID_H

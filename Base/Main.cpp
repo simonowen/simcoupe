@@ -33,7 +33,7 @@
 #include "Video.h"
 
 
-extern "C" int main (int argc_, char* argv_[])
+extern "C" int main(int argc_, char* argv_[])
 {
     if (Main::Init(argc_, argv_))
         CPU::Run();
@@ -46,7 +46,7 @@ extern "C" int main (int argc_, char* argv_[])
 namespace Main
 {
 
-bool Init (int argc_, char* argv_[])
+bool Init(int argc_, char* argv_[])
 {
     // Load settings and check command-line options
     if (!Util::Init() || !Options::Load(argc_, argv_))
@@ -56,7 +56,7 @@ bool Init (int argc_, char* argv_[])
     return OSD::Init(true) && Frame::Init(true) && CPU::Init(true) && UI::Init(true) && Sound::Init(true) && Input::Init(true) && Video::Init(true);
 }
 
-void Exit ()
+void Exit()
 {
     GUI::Stop();
 

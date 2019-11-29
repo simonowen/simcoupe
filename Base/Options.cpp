@@ -167,20 +167,20 @@ OPTION aOptions[] =
     { nullptr, 0 }
 };
 
-inline bool IsTrue (const char* pcsz_)
+inline bool IsTrue(const char* pcsz_)
 {
     return pcsz_ && (!strcasecmp(pcsz_, "true") || !strcasecmp(pcsz_, "on") || !strcasecmp(pcsz_, "enabled") ||
-                    !strcasecmp(pcsz_, "yes") || !strcasecmp(pcsz_, "1"));
+        !strcasecmp(pcsz_, "yes") || !strcasecmp(pcsz_, "1"));
 }
 
 // Find a named option in the options list above
-static OPTION* FindOption (const char* pcszName_)
+static OPTION* FindOption(const char* pcszName_)
 {
     // Convert AutoBoot to AutoLoad, for backwards compatibility
     if (!strcasecmp(pcszName_, "AutoBoot"))
         pcszName_ = "AutoLoad";
 
-    for (OPTION* p = aOptions ; p->pcszName ; p++)
+    for (OPTION* p = aOptions; p->pcszName; p++)
     {
         if (!strcasecmp(pcszName_, p->pcszName))
             return p;
@@ -190,29 +190,29 @@ static OPTION* FindOption (const char* pcszName_)
 }
 
 // Set (optionally unspecified) options to their default values
-void SetDefaults (bool fForce_/*=true*/)
+void SetDefaults(bool fForce_/*=true*/)
 {
     // Process the full options list
-    for (OPTION* p = aOptions ; p->pcszName ; p++)
+    for (OPTION* p = aOptions; p->pcszName; p++)
     {
         // Set the default if forcing defaults, or if we've not already
         if (fForce_ || !p->fSpecified)
         {
             switch (p->nType)
             {
-                case OT_BOOL:       *p->pf = p->fDefault;   break;
-                case OT_INT:        *p->pn = p->nDefault;   break;
-                case OT_STRING:     strcpy(p->ppsz, p->pcszDefault);   break;
+            case OT_BOOL:       *p->pf = p->fDefault;   break;
+            case OT_INT:        *p->pn = p->nDefault;   break;
+            case OT_STRING:     strcpy(p->ppsz, p->pcszDefault);   break;
             }
         }
     }
 
     // Force the current compatability number
-    SetOption(cfgversion,CFG_VERSION);
+    SetOption(cfgversion, CFG_VERSION);
 }
 
 // Find the address of the variable holding the specified option default
-void* GetDefault (const char* pcszName_)
+void* GetDefault(const char* pcszName_)
 {
     OPTION* p = FindOption(pcszName_);
 
@@ -220,9 +220,9 @@ void* GetDefault (const char* pcszName_)
     {
         switch (p->nType)
         {
-            case OT_BOOL:       return &p->fDefault;
-            case OT_INT:        return &p->nDefault;
-//          case OT_STRING:     return &p->pcszDefault;     // Don't use - points to read-only string table!
+        case OT_BOOL:       return &p->fDefault;
+        case OT_INT:        return &p->nDefault;
+            //          case OT_STRING:     return &p->pcszDefault;     // Don't use - points to read-only string table!
         }
     }
 
@@ -231,7 +231,7 @@ void* GetDefault (const char* pcszName_)
     return &pv;
 }
 
-bool Load (int argc_, char* argv_[])
+bool Load(int argc_, char* argv_[])
 {
     FILE* hfOptions = fopen(OSD::MakeFilePath(MFP_SETTINGS, OPTIONS_FILE), "r");
     if (hfOptions)
@@ -239,8 +239,8 @@ bool Load (int argc_, char* argv_[])
         char szLine[256];
         while (fgets(szLine, sizeof(szLine), hfOptions))
         {
-            char *pszValue = strchr(szLine, '=');
-            char *pszName = strtok(szLine, " \t=");
+            char* pszValue = strchr(szLine, '=');
+            char* pszName = strtok(szLine, " \t=");
 
             if (!pszName || !pszValue)
                 continue;
@@ -250,7 +250,7 @@ bool Load (int argc_, char* argv_[])
             strtok(pszValue += strspn(pszValue, " \t=\r\n"), "\r\n");
 
             // Look for the option in the list
-            for (OPTION* p = aOptions ; p->pcszName ; p++)
+            for (OPTION* p = aOptions; p->pcszName; p++)
             {
                 if (!strcasecmp(pszName, p->pcszName))
                 {
@@ -260,9 +260,9 @@ bool Load (int argc_, char* argv_[])
                     // Extract the appropriate value type from the string
                     switch (p->nType)
                     {
-                        case OT_BOOL:       *p->pf = *pszValue ? IsTrue(pszValue) : p->fDefault;    break;
-                        case OT_INT:        *p->pn = *pszValue ? atoi(pszValue) : p->nDefault;      break;
-                        case OT_STRING:     strcpy(p->ppsz, *pszValue ? pszValue : p->pcszDefault); break;
+                    case OT_BOOL:       *p->pf = *pszValue ? IsTrue(pszValue) : p->fDefault;    break;
+                    case OT_INT:        *p->pn = *pszValue ? atoi(pszValue) : p->nDefault;      break;
+                    case OT_STRING:     strcpy(p->ppsz, *pszValue ? pszValue : p->pcszDefault); break;
                     }
                 }
             }
@@ -283,15 +283,15 @@ bool Load (int argc_, char* argv_[])
         if (*pcszOption == '-')
         {
             // Find the option in the list of known options
-            OPTION* p = FindOption(pcszOption+1);
+            OPTION* p = FindOption(pcszOption + 1);
 
             if (p)
             {
                 switch (p->nType)
                 {
-                    case OT_BOOL:   *p->pf = (argv_[1] && *argv_[1] == '-') || (argc_-- && IsTrue(*++argv_)); continue;
-                    case OT_INT:    *p->pn = atoi(*++argv_);    break;
-                    case OT_STRING: strcpy(p->ppsz, *++argv_);  break;
+                case OT_BOOL:   *p->pf = (argv_[1] && *argv_[1] == '-') || (argc_-- && IsTrue(*++argv_)); continue;
+                case OT_INT:    *p->pn = atoi(*++argv_);    break;
+                case OT_STRING: strcpy(p->ppsz, *++argv_);  break;
                 }
 
                 argc_--;
@@ -306,20 +306,20 @@ bool Load (int argc_, char* argv_[])
             // Bare filenames will be inserted into drive 1 then 2
             switch (nDrive++)
             {
-                case 1:
-                    SetOption(disk1, pcszOption);
-                    SetOption(drive1,drvFloppy);
-                    g_nAutoLoad = AUTOLOAD_DISK;
-                    break;
+            case 1:
+                SetOption(disk1, pcszOption);
+                SetOption(drive1, drvFloppy);
+                g_nAutoLoad = AUTOLOAD_DISK;
+                break;
 
-                case 2:
-                    SetOption(disk2, pcszOption);
-                    SetOption(drive2,drvFloppy);
-                    break;
+            case 2:
+                SetOption(disk2, pcszOption);
+                SetOption(drive2, drvFloppy);
+                break;
 
-                default:
-                    TRACE("Unexpected command-line parameter: %s\n", pcszOption);
-                    break;
+            default:
+                TRACE("Unexpected command-line parameter: %s\n", pcszOption);
+                break;
             }
         }
     }
@@ -328,9 +328,9 @@ bool Load (int argc_, char* argv_[])
 }
 
 
-bool Save ()
+bool Save()
 {
-    const char *pcszPath = OSD::MakeFilePath(MFP_SETTINGS, OPTIONS_FILE);
+    const char* pcszPath = OSD::MakeFilePath(MFP_SETTINGS, OPTIONS_FILE);
 
     // Open the options file for writing, fail if we can't
     FILE* hfOptions = fopen(pcszPath, "wb");
@@ -341,13 +341,13 @@ bool Save ()
     SetOption(speed, 100);
 
     // Loop through each option to write out
-    for (OPTION* p = aOptions ; p->pcszName ; p++)
+    for (OPTION* p = aOptions; p->pcszName; p++)
     {
         switch (p->nType)
         {
-            case OT_BOOL:       fprintf(hfOptions, "%s=%s\r\n", p->pcszName, *p->pf ? "Yes" : "No");  break;
-            case OT_INT:        fprintf(hfOptions, "%s=%d\r\n", p->pcszName, *p->pn);                 break;
-            case OT_STRING:     fprintf(hfOptions, "%s=%s\r\n", p->pcszName, p->ppsz);                break;
+        case OT_BOOL:       fprintf(hfOptions, "%s=%s\r\n", p->pcszName, *p->pf ? "Yes" : "No");  break;
+        case OT_INT:        fprintf(hfOptions, "%s=%d\r\n", p->pcszName, *p->pn);                 break;
+        case OT_STRING:     fprintf(hfOptions, "%s=%s\r\n", p->pcszName, p->ppsz);                break;
         }
     }
 

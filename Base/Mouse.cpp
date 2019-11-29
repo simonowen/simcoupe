@@ -31,20 +31,20 @@
 #include "Util.h"
 
 
-CMouseDevice::CMouseDevice ()
+CMouseDevice::CMouseDevice()
 {
     memset(&m_sMouse, 0, sizeof(m_sMouse));
     m_sMouse.bStrobe = m_sMouse.bDummy = 0xff;
 }
 
 
-void CMouseDevice::Reset ()
+void CMouseDevice::Reset()
 {
     // No longer strobed
     m_uBuffer = 0;
 }
 
-BYTE CMouseDevice::In (WORD /*wPort_*/)
+BYTE CMouseDevice::In(WORD /*wPort_*/)
 {
     // If the first real data byte is about to be read, update the mouse buffer
     if (m_uBuffer == 2)
@@ -54,13 +54,13 @@ BYTE CMouseDevice::In (WORD /*wPort_*/)
 
         // Horizontal movement
         m_sMouse.bX256 = (m_nDeltaX & 0xf00) >> 8;
-        m_sMouse.bX16  = (m_nDeltaX & 0x0f0) >> 4;
-        m_sMouse.bX1   = (m_nDeltaX & 0x00f);
+        m_sMouse.bX16 = (m_nDeltaX & 0x0f0) >> 4;
+        m_sMouse.bX1 = (m_nDeltaX & 0x00f);
 
         // Vertical movement
         m_sMouse.bY256 = (m_nDeltaY & 0xf00) >> 8;
-        m_sMouse.bY16  = (m_nDeltaY & 0x0f0) >> 4;
-        m_sMouse.bY1   = (m_nDeltaY & 0x00f);
+        m_sMouse.bY16 = (m_nDeltaY & 0x0f0) >> 4;
+        m_sMouse.bY1 = (m_nDeltaY & 0x00f);
 
         // Keep track of the movement we're reporting
         m_nReadX = m_nDeltaX;
@@ -95,17 +95,17 @@ BYTE CMouseDevice::In (WORD /*wPort_*/)
 
 
 // Move the mouse
-void CMouseDevice::Move (int nDeltaX_, int nDeltaY_)
+void CMouseDevice::Move(int nDeltaX_, int nDeltaY_)
 {
     m_nDeltaX += nDeltaX_;
     m_nDeltaY += nDeltaY_;
 }
 
 // Press or release a mouse button
-void CMouseDevice::SetButton (int nButton_, bool fPressed_/*=true*/)
+void CMouseDevice::SetButton(int nButton_, bool fPressed_/*=true*/)
 {
     // Work out the bit position for the button
-    BYTE bBit = 1 << (nButton_-1);
+    BYTE bBit = 1 << (nButton_ - 1);
 
     // Reset or set the bit depending on whether the button is being pressed or released
     if (fPressed_)
@@ -115,7 +115,7 @@ void CMouseDevice::SetButton (int nButton_, bool fPressed_/*=true*/)
 }
 
 // Report whetheer the mouse is actively in use
-bool CMouseDevice::IsActive () const
+bool CMouseDevice::IsActive() const
 {
     return (OSD::GetTime() - m_dwLastRead) <= MOUSE_ACTIVE_TIME;
 }

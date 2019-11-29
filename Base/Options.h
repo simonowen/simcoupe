@@ -137,13 +137,13 @@ OPTIONS;
 
 namespace Options
 {
-    void SetDefaults (bool fForce_=true);
-    void* GetDefault (const char* pcszName_);
+void SetDefaults(bool fForce_ = true);
+void* GetDefault(const char* pcszName_);
 
-    bool Load (int argc_, char* argv[]);
-    bool Save ();
+bool Load(int argc_, char* argv[]);
+bool Save();
 
-    extern OPTIONS s_Options;
+extern OPTIONS s_Options;
 }
 
 
@@ -153,9 +153,9 @@ namespace Options
 #define SetDefault(field,value) SetDefault_(#field, value, Options::s_Options.field)
 
 // inline functions so we can take advantage of function polymorphism
-inline bool SetOption_(bool& rfOption_, bool fValue_)   { return rfOption_ = fValue_; }
-inline int SetOption_(int& rnOption_, int nValue_)      { return rnOption_ = nValue_; }
-inline const char* SetOption_(char* pszOption_, const char* pszValue_)  { return strcpy(pszOption_, pszValue_); }
+inline bool SetOption_(bool& rfOption_, bool fValue_) { return rfOption_ = fValue_; }
+inline int SetOption_(int& rnOption_, int nValue_) { return rnOption_ = nValue_; }
+inline const char* SetOption_(char* pszOption_, const char* pszValue_) { return strcpy(pszOption_, pszValue_); }
 
 inline void SetDefault_(const char* pcszOption_, bool fValue_, bool&) { *((bool*)Options::GetDefault(pcszOption_)) = fValue_; }
 inline void SetDefault_(const char* pcszOption_, int nValue_, int&) { *((int*)Options::GetDefault(pcszOption_)) = nValue_; }

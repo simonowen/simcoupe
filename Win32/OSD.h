@@ -33,7 +33,7 @@
 #endif
 
 #define NOMINMAX        // no min/max macros from windef.h
-#define SID WIN32_SID	// TODO: limit scope of windows.h avoid SID symbol clash
+#define SID WIN32_SID   // TODO: limit scope of windows.h avoid SID symbol clash
 #include <windows.h>
 #undef SID
 
@@ -50,7 +50,7 @@
 #include <shellapi.h>   // for shell functions (ShellExecute, etc.)
 #include <Shlobj.h>     // for shell COM definitions
 #include <process.h>    // for _beginthreadex/_endthreadex
-#include <..\ucrt\io.h>	// for _access
+#include <..\ucrt\io.h> // for _access
 
 // For NT4 compatability we only use DX3 features, except for input which requires DX5
 #define DIRECTSOUND_VERSION     0x0300
@@ -61,8 +61,8 @@
 
 extern HINSTANCE g_hinstDInput, g_hinstDSound;
 
-typedef HRESULT (WINAPI *PFNDIRECTINPUTCREATE) (HINSTANCE, DWORD, LPDIRECTINPUTA*, LPUNKNOWN);
-typedef HRESULT (WINAPI *PFNDIRECTSOUNDCREATE) (LPGUID, LPDIRECTSOUND*, LPUNKNOWN);
+typedef HRESULT(WINAPI* PFNDIRECTINPUTCREATE) (HINSTANCE, DWORD, LPDIRECTINPUTA*, LPUNKNOWN);
+typedef HRESULT(WINAPI* PFNDIRECTSOUNDCREATE) (LPGUID, LPDIRECTSOUND*, LPUNKNOWN);
 
 extern PFNDIRECTINPUTCREATE pfnDirectInputCreate;
 extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
@@ -72,7 +72,7 @@ extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 #define strcasecmp  _strcmpi
 #define strncasecmp _strnicmp
 #define mkdir(p,m)  _mkdir(p)
-#define snprintf	_snprintf
+#define snprintf    _snprintf
 
 #if _MSC_VER > 1200
 #define off_t   __int64
@@ -105,9 +105,9 @@ struct dirent
 
 typedef void* DIR;
 
-DIR* opendir (const char* pcszDir_);
-struct dirent* readdir (DIR* hDir_);
-int closedir (DIR* hDir_);
+DIR* opendir(const char* pcszDir_);
+struct dirent* readdir(DIR* hDir_);
+int closedir(DIR* hDir_);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -115,17 +115,17 @@ enum { MFP_SETTINGS, MFP_INPUT, MFP_OUTPUT, MFP_RESOURCE };
 
 class OSD
 {
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+public:
+    static bool Init(bool fFirstInit_ = false);
+    static void Exit(bool fReInit_ = false);
 
-        static DWORD GetTime ();
-        static const char* MakeFilePath (int nDir_, const char* pcszFile_="");
-        static const char* GetFloppyDevice (int nDrive_);
-        static bool CheckPathAccess (const char* pcszPath_);
-        static bool IsHidden (const char* pcszFile_);
+    static DWORD GetTime();
+    static const char* MakeFilePath(int nDir_, const char* pcszFile_ = "");
+    static const char* GetFloppyDevice(int nDrive_);
+    static bool CheckPathAccess(const char* pcszPath_);
+    static bool IsHidden(const char* pcszFile_);
 
-        static void DebugTrace (const char* pcsz_);
+    static void DebugTrace(const char* pcsz_);
 };
 
 #endif

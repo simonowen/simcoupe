@@ -25,7 +25,7 @@
 #include "Options.h"
 
 
-CSID::CSID ()
+CSID::CSID()
 {
 #ifdef HAVE_LIBRESID
     m_pSID = new SID;
@@ -33,14 +33,14 @@ CSID::CSID ()
 #endif
 }
 
-CSID::~CSID ()
+CSID::~CSID()
 {
 #ifdef HAVE_LIBRESID
     delete m_pSID; m_pSID = nullptr;
 #endif
 }
 
-void CSID::Reset ()
+void CSID::Reset()
 {
 #ifdef HAVE_LIBRESID
     if (m_pSID)
@@ -54,7 +54,7 @@ void CSID::Reset ()
 #endif
 }
 
-void CSID::Update (bool fFrameEnd_=false)
+void CSID::Update(bool fFrameEnd_ = false)
 {
 #ifdef HAVE_LIBRESID
     int nSamplesSoFar = fFrameEnd_ ? pDAC->GetSampleCount() : pDAC->GetSamplesSoFar();
@@ -63,10 +63,10 @@ void CSID::Update (bool fFrameEnd_=false)
     if (!m_pSID || nNeeded <= 0)
         return;
 
-    short *ps = reinterpret_cast<short*>(m_pbFrameSample + m_nSamplesThisFrame*SAMPLE_BLOCK);
+    short* ps = reinterpret_cast<short*>(m_pbFrameSample + m_nSamplesThisFrame * SAMPLE_BLOCK);
 
     if (g_fReset)
-        memset(ps, 0x00, nNeeded*SAMPLE_BLOCK); // no clock means no output
+        memset(ps, 0x00, nNeeded * SAMPLE_BLOCK); // no clock means no output
     else
     {
         int sid_clock = SID_CLOCK_PAL;
@@ -75,17 +75,17 @@ void CSID::Update (bool fFrameEnd_=false)
         m_pSID->clock(sid_clock, ps, nNeeded, 2);
 
         // Duplicate the left samples for the right channel
-        for (int i = 0 ; i < nNeeded ; i++, ps += 2)
+        for (int i = 0; i < nNeeded; i++, ps += 2)
             ps[1] = ps[0];
     }
 
     m_nSamplesThisFrame = nSamplesSoFar;
 #else
-	(void)fFrameEnd_;
+    (void)fFrameEnd_;
 #endif
 }
 
-void CSID::FrameEnd ()
+void CSID::FrameEnd()
 {
     // Check for change of chip type
     if (GetOption(sid) != m_nChipType)
@@ -95,7 +95,7 @@ void CSID::FrameEnd ()
     m_nSamplesThisFrame = 0;
 }
 
-void CSID::Out (WORD wPort_, BYTE bVal_)
+void CSID::Out(WORD wPort_, BYTE bVal_)
 {
 #ifdef HAVE_LIBRESID
     Update();

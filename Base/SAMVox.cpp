@@ -25,24 +25,24 @@
 
 #include "Sound.h"
 
-void CSAMVoxDevice::Out (WORD wPort_, BYTE bVal_)
+void CSAMVoxDevice::Out(WORD wPort_, BYTE bVal_)
 {
     switch (wPort_ & 3)
     {
-        case 0:
-            pDAC->OutputRight(bVal_);
-            break;
+    case 0:
+        pDAC->OutputRight(bVal_);
+        break;
 
-        case 1:
-            pDAC->OutputLeft(bVal_);
-            break;
+    case 1:
+        pDAC->OutputLeft(bVal_);
+        break;
 
-        case 2:
-            pDAC->OutputRight2(bVal_);
-            break;
+    case 2:
+        pDAC->OutputRight2(bVal_);
+        break;
 
-        case 3:
-            pDAC->OutputLeft2(bVal_);
-            break;
+    case 3:
+        pDAC->OutputLeft2(bVal_);
+        break;
     }
 }

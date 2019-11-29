@@ -40,10 +40,10 @@ typedef struct
     WORD wItemCount;    // number of items
     WORD items[1];      // array of command IDs, actual size is wItemCount
 }
-TOOLBARDATA, *PTOOLBARDATA;
+TOOLBARDATA, * PTOOLBARDATA;
 
 
-COwnerDrawnMenu::COwnerDrawnMenu (HINSTANCE hinst_, int nId_, MENUICON* pIconMap_)
+COwnerDrawnMenu::COwnerDrawnMenu(HINSTANCE hinst_, int nId_, MENUICON* pIconMap_)
     : m_pIconMap(pIconMap_)
 {
 #ifndef NO_IMAGES
@@ -59,18 +59,18 @@ COwnerDrawnMenu::COwnerDrawnMenu (HINSTANCE hinst_, int nId_, MENUICON* pIconMap
         m_zButton.cx = ptbd->wWidth;
         m_zButton.cy = ptbd->wHeight;
 
-        m_hil = nId_ ? ImageList_LoadBitmap(hinst_, MAKEINTRESOURCE(nId_), m_zButton.cx, 10, RGB(255,0,255)) : nullptr;
+        m_hil = nId_ ? ImageList_LoadBitmap(hinst_, MAKEINTRESOURCE(nId_), m_zButton.cx, 10, RGB(255, 0, 255)) : nullptr;
         UnlockResource(hgres);
     }
 #endif
 }
 
-COwnerDrawnMenu::~COwnerDrawnMenu ()
+COwnerDrawnMenu::~COwnerDrawnMenu()
 {
     Cleanup();
 }
 
-void COwnerDrawnMenu::Cleanup ()
+void COwnerDrawnMenu::Cleanup()
 {
     if (m_hfont) DeleteObject(m_hfont);
     if (m_hfontBold) DeleteObject(m_hfontBold);
@@ -78,41 +78,41 @@ void COwnerDrawnMenu::Cleanup ()
 }
 
 
-LRESULT COwnerDrawnMenu::WindowProc (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_, LRESULT* plResult_)
+LRESULT COwnerDrawnMenu::WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_, LRESULT* plResult_)
 {
     switch (uMsg_)
     {
-        case WM_MEASUREITEM:
-            *plResult_ = TRUE;
-            return OnMeasureItem(reinterpret_cast<LPMEASUREITEMSTRUCT>(lParam_));
+    case WM_MEASUREITEM:
+        *plResult_ = TRUE;
+        return OnMeasureItem(reinterpret_cast<LPMEASUREITEMSTRUCT>(lParam_));
 
-        case WM_DRAWITEM:
-            *plResult_ = TRUE;
-            return OnDrawItem(reinterpret_cast<LPDRAWITEMSTRUCT>(lParam_));
+    case WM_DRAWITEM:
+        *plResult_ = TRUE;
+        return OnDrawItem(reinterpret_cast<LPDRAWITEMSTRUCT>(lParam_));
 
-        case WM_INITMENUPOPUP:
-            OnInitMenuPopup(reinterpret_cast<HMENU>(wParam_), LOWORD(lParam_), HIWORD(lParam_));
-            break;
+    case WM_INITMENUPOPUP:
+        OnInitMenuPopup(reinterpret_cast<HMENU>(wParam_), LOWORD(lParam_), HIWORD(lParam_));
+        break;
 
-        case WM_MENUSELECT:
-            OnMenuSelect(LOWORD(wParam_), HIWORD(wParam_), reinterpret_cast<HMENU>(lParam_));
-            break;
+    case WM_MENUSELECT:
+        OnMenuSelect(LOWORD(wParam_), HIWORD(wParam_), reinterpret_cast<HMENU>(lParam_));
+        break;
 
-        case WM_MENUCHAR:
-            *plResult_ = OnMenuChar(LOWORD(wParam_), HIWORD(wParam_), reinterpret_cast<HMENU>(lParam_));
-            return !!*plResult_;
+    case WM_MENUCHAR:
+        *plResult_ = OnMenuChar(LOWORD(wParam_), HIWORD(wParam_), reinterpret_cast<HMENU>(lParam_));
+        return !!*plResult_;
 
-        case WM_SYSCOLORCHANGE:
-        case WM_SETTINGCHANGE:
-            Cleanup();
-            break;
+    case WM_SYSCOLORCHANGE:
+    case WM_SETTINGCHANGE:
+        Cleanup();
+        break;
     }
 
     return false;
 }
 
 
-bool COwnerDrawnMenu::OnMeasureItem (LPMEASUREITEMSTRUCT lpms)
+bool COwnerDrawnMenu::OnMeasureItem(LPMEASUREITEMSTRUCT lpms)
 {
     CMenuItem* pmi = CMenuItem::GetItem(lpms->itemData);
     if (lpms->CtlType != ODT_MENU || !pmi)
@@ -120,7 +120,7 @@ bool COwnerDrawnMenu::OnMeasureItem (LPMEASUREITEMSTRUCT lpms)
 
     if (pmi->fType & MFT_SEPARATOR)
     {
-        lpms->itemHeight = GetSystemMetrics(SM_CYMENU)>>1;
+        lpms->itemHeight = GetSystemMetrics(SM_CYMENU) >> 1;
         lpms->itemWidth = 0;
     }
     else
@@ -138,7 +138,7 @@ bool COwnerDrawnMenu::OnMeasureItem (LPMEASUREITEMSTRUCT lpms)
         RECT r = { 0,0,0,0 };
         HDC hdc = GetDC(nullptr);
         HGDIOBJ hfontOld = SelectObject(hdc, pmi->fDefault ? m_hfontBold : m_hfont);
-        DrawText(hdc, pmi->szText, -1, &r, DT_SINGLELINE|DT_EXPANDTABS|DT_VCENTER|DT_CALCRECT);
+        DrawText(hdc, pmi->szText, -1, &r, DT_SINGLELINE | DT_EXPANDTABS | DT_VCENTER | DT_CALCRECT);
         SelectObject(hdc, hfontOld);
         ReleaseDC(nullptr, hdc);
 
@@ -146,17 +146,17 @@ bool COwnerDrawnMenu::OnMeasureItem (LPMEASUREITEMSTRUCT lpms)
         m_zBorder.cx = m_zBorder.cy = lpms->itemHeight = std::max(static_cast<LONG>(GetSystemMetrics(SM_CYMENU)), m_zButton.cy);
 
 #ifdef NO_IMAGES
-        m_zBorder.cx = GetSystemMetrics(SM_CXMENUCHECK)+1;
+        m_zBorder.cx = GetSystemMetrics(SM_CXMENUCHECK) + 1;
 #endif
 
         // Text width, margins, button-text gap, button/margin gaps, minus check mark size fiddle
-        lpms->itemWidth = (m_zBorder.cx<<1) + CXGAP + (CXTEXTMARGIN<<1) + r.right-r.left - (GetSystemMetrics(SM_CXMENUCHECK)-1);
+        lpms->itemWidth = (m_zBorder.cx << 1) + CXGAP + (CXTEXTMARGIN << 1) + r.right - r.left - (GetSystemMetrics(SM_CXMENUCHECK) - 1);
     }
 
     return true;
 }
 
-bool COwnerDrawnMenu::OnDrawItem (LPDRAWITEMSTRUCT lpds)
+bool COwnerDrawnMenu::OnDrawItem(LPDRAWITEMSTRUCT lpds)
 {
     CMenuItem* pmi = CMenuItem::GetItem(lpds->itemData);
     if (lpds->CtlType != ODT_MENU || !pmi)
@@ -167,16 +167,16 @@ bool COwnerDrawnMenu::OnDrawItem (LPDRAWITEMSTRUCT lpds)
 
     if (pmi->fType & MFT_SEPARATOR)
     {
-        r.top += (r.bottom-r.top) >> 1;
+        r.top += (r.bottom - r.top) >> 1;
         DrawEdge(hdc, &r, EDGE_ETCHED, BF_TOP);
     }
     else
     {
         bool fDisabled = (lpds->itemState & ODS_GRAYED) != 0;
         bool fSelected = (lpds->itemState & ODS_SELECTED) != 0;
-        bool fChecked  = (lpds->itemState & ODS_CHECKED) != 0;
+        bool fChecked = (lpds->itemState & ODS_CHECKED) != 0;
 
-        RECT rBorder = { r.left, r.top, r.left+m_zBorder.cx, r.top+m_zBorder.cy };
+        RECT rBorder = { r.left, r.top, r.left + m_zBorder.cx, r.top + m_zBorder.cy };
 
         int nBgCol = (fSelected && !fDisabled) ? COLOR_HIGHLIGHT : COLOR_MENU;
         if ((fSelected || lpds->itemAction == ODA_SELECT))
@@ -209,31 +209,31 @@ bool COwnerDrawnMenu::OnDrawItem (LPDRAWITEMSTRUCT lpds)
 #endif
 
         RECT rText = r;
-        rText.left  += m_zBorder.cx + CXGAP + CXTEXTMARGIN;
+        rText.left += m_zBorder.cx + CXGAP + CXTEXTMARGIN;
         rText.right -= m_zBorder.cx;
         rText.top += CYTEXTMARGIN;
 
         SetBkMode(hdc, TRANSPARENT);
-        DrawMenuText (hdc, &rText, pmi->szText, fDisabled);
+        DrawMenuText(hdc, &rText, pmi->szText, fDisabled);
     }
 
     return true;
 }
 
 
-void COwnerDrawnMenu::DrawMenuText (HDC hdc_, LPRECT lprc, LPCSTR pcsz_, bool fDisabled_)
+void COwnerDrawnMenu::DrawMenuText(HDC hdc_, LPRECT lprc, LPCSTR pcsz_, bool fDisabled_)
 {
     char sz[256];
     lstrcpyn(sz, pcsz_, sizeof(sz));
 
-    char *psz = strchr(sz, '\t');
+    char* psz = strchr(sz, '\t');
     if (psz)
     {
         *psz++ = '\0';
 
         // DSS_RIGHT doesn't seem to work, so calculate the shortcut position
         RECT r = { };
-        DrawText(hdc_, psz, -1, &r, DT_SINGLELINE|DT_CALCRECT);
+        DrawText(hdc_, psz, -1, &r, DT_SINGLELINE | DT_CALCRECT);
 
         DrawState(hdc_, nullptr, nullptr, (LPARAM)psz, lstrlen(psz),
             lprc->right - r.right, lprc->top, lprc->right, lprc->bottom,
@@ -245,7 +245,7 @@ void COwnerDrawnMenu::DrawMenuText (HDC hdc_, LPRECT lprc, LPCSTR pcsz_, bool fD
         DST_PREFIXTEXT | (fDisabled_ ? DSS_DISABLED : 0));
 }
 
-bool COwnerDrawnMenu::DrawCheck (HDC hdc, RECT r, UINT uType, UINT uState_)
+bool COwnerDrawnMenu::DrawCheck(HDC hdc, RECT r, UINT uType, UINT uState_)
 {
     RECT rBox = r;
     InflateRect(&rBox, 1, 1);
@@ -254,11 +254,11 @@ bool COwnerDrawnMenu::DrawCheck (HDC hdc, RECT r, UINT uType, UINT uState_)
     FrameRect(hdc, &rBox, GetSysColorBrush(COLOR_HIGHLIGHT));
 
     int cx = GetSystemMetrics(SM_CXMENUCHECK), cy = GetSystemMetrics(SM_CYMENUCHECK);
-    int x = r.left + ((r.right-r.left - cx+1) / 2), y = r.top + ((r.bottom-r.top - cy+1) / 2);
+    int x = r.left + ((r.right - r.left - cx + 1) / 2), y = r.top + ((r.bottom - r.top - cy + 1) / 2);
     RECT rCheck = { 0, 0, cx, cy };
 
     HDC hdcM = CreateCompatibleDC(hdc), hdc2 = CreateCompatibleDC(hdc);
-    HBITMAP hbmpM = CreateCompatibleBitmap(hdc, cx,cy), hbmp2 = CreateCompatibleBitmap(hdc, cx,cy);
+    HBITMAP hbmpM = CreateCompatibleBitmap(hdc, cx, cy), hbmp2 = CreateCompatibleBitmap(hdc, cx, cy);
     HGDIOBJ hbmpOldM = SelectObject(hdcM, hbmpM), hbmpOld2 = SelectObject(hdc2, hbmp2);
 
     DrawFrameControl(hdcM, &rCheck, DFC_MENU, (uType & MFT_RADIOCHECK) ? DFCS_MENUBULLET : DFCS_MENUCHECK);
@@ -277,11 +277,11 @@ bool COwnerDrawnMenu::DrawCheck (HDC hdc, RECT r, UINT uType, UINT uState_)
 
 #ifndef NO_IMAGES
 
-void COwnerDrawnMenu::DrawGreyedImage (HDC hdc_, HIMAGELIST hil_, int i, int x, int y)
+void COwnerDrawnMenu::DrawGreyedImage(HDC hdc_, HIMAGELIST hil_, int i, int x, int y)
 {
     IMAGEINFO info;
     ImageList_GetImageInfo(hil_, i, &info);
-    int cx = info.rcImage.right-info.rcImage.left, cy = info.rcImage.bottom-info.rcImage.top;
+    int cx = info.rcImage.right - info.rcImage.left, cy = info.rcImage.bottom - info.rcImage.top;
 
     HDC hdcMem = CreateCompatibleDC(hdc_);
     HBITMAP hbmp = CreateCompatibleBitmap(hdc_, cx, cy);
@@ -291,7 +291,7 @@ void COwnerDrawnMenu::DrawGreyedImage (HDC hdc_, HIMAGELIST hil_, int i, int x, 
     ImageList_Draw(hil_, i, hdcMem, 0, 0, ILD_TRANSPARENT);
 
     HGDIOBJ hbrOld = SelectObject(hdc_, GetSysColorBrush(COLOR_3DSHADOW));
-    BitBlt(hdc_, x+1, y+1, cx, cy, hdcMem, 0, 0, 0xb8074a);
+    BitBlt(hdc_, x + 1, y + 1, cx, cy, hdcMem, 0, 0, 0xb8074a);
     SelectObject(hdc_, hbrOld);
 
     SelectObject(hdcMem, hbmpOld);
@@ -300,18 +300,18 @@ void COwnerDrawnMenu::DrawGreyedImage (HDC hdc_, HIMAGELIST hil_, int i, int x, 
 #endif
 
 
-void COwnerDrawnMenu::OnInitMenuPopup (HMENU hmenu_, UINT nIndex_, BOOL bSysMenu_)
+void COwnerDrawnMenu::OnInitMenuPopup(HMENU hmenu_, UINT nIndex_, BOOL bSysMenu_)
 {
     ConvertMenu(hmenu_, nIndex_, bSysMenu_, true);
 }
 
-LRESULT COwnerDrawnMenu::OnMenuChar (UINT nChar_, UINT nFlags_, HMENU hmenu_)
+LRESULT COwnerDrawnMenu::OnMenuChar(UINT nChar_, UINT nFlags_, HMENU hmenu_)
 {
     int anMatches[64], nFound = 0, nCurrent = -1;
 
     int nItems = GetMenuItemCount(hmenu_), i;
 
-    for (i = 0; i < nItems && nFound < 64 ; i++)
+    for (i = 0; i < nItems && nFound < 64; i++)
     {
         MENUITEMINFO info = { sizeof(info) };
         info.fMask = MIIM_TYPE | MIIM_STATE | MIIM_DATA;
@@ -321,7 +321,7 @@ LRESULT COwnerDrawnMenu::OnMenuChar (UINT nChar_, UINT nFlags_, HMENU hmenu_)
         if ((info.fType & MFT_OWNERDRAW) && pmi->IsOurs())
         {
             char* pszAmp = nullptr;
-            for (char* psz = pmi->szText ; *psz ; psz = CharNext(psz))
+            for (char* psz = pmi->szText; *psz; psz = CharNext(psz))
                 if (*psz == '&')
                     pszAmp = psz;
 
@@ -345,7 +345,7 @@ LRESULT COwnerDrawnMenu::OnMenuChar (UINT nChar_, UINT nFlags_, HMENU hmenu_)
     return 0;
 }
 
-void COwnerDrawnMenu::OnMenuSelect (UINT nItemID_, UINT nFlags_, HMENU hmenuSys_)
+void COwnerDrawnMenu::OnMenuSelect(UINT nItemID_, UINT nFlags_, HMENU hmenuSys_)
 {
     if (!hmenuSys_ && nFlags_ == 0xFFFF)
     {
@@ -355,7 +355,7 @@ void COwnerDrawnMenu::OnMenuSelect (UINT nItemID_, UINT nFlags_, HMENU hmenuSys_
 }
 
 
-void COwnerDrawnMenu::ConvertMenu (HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, bool fConvert_)
+void COwnerDrawnMenu::ConvertMenu(HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, bool fConvert_)
 {
     UINT uDefault = GetMenuDefaultItem(hmenu_, FALSE, GMDI_USEDISABLED);
 
@@ -397,7 +397,7 @@ void COwnerDrawnMenu::ConvertMenu (HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, b
                     pmi->fType = info.fType;
 
 #ifndef NO_IMAGES
-                    for (int i = 0 ; m_hil && m_pIconMap[i].uID ; i++)
+                    for (int i = 0; m_hil && m_pIconMap[i].uID; i++)
                     {
                         if (m_pIconMap[i].uID == info.wID)
                             pmi->nImage = m_pIconMap[i].nOffset;
@@ -409,7 +409,7 @@ void COwnerDrawnMenu::ConvertMenu (HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, b
                 pmi->fDefault = (info.wID == uDefault);
             }
 
-            for (int i = 0 ; i <= m_nConverted ; i++)
+            for (int i = 0; i <= m_nConverted; i++)
             {
                 if (i == m_nConverted)
                     m_aConverted[m_nConverted++] = hmenu_;

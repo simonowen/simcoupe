@@ -23,12 +23,12 @@
 
 class Audio
 {
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+public:
+    static bool Init(bool fFirstInit_ = false);
+    static void Exit(bool fReInit_ = false);
 
-        static void Silence ();
-        static bool AddData (BYTE *pb_, int nLen_);
+    static void Silence();
+    static bool AddData(BYTE* pb_, int nLen_);
 };
 
 #endif  // AUDIO_H

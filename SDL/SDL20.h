@@ -27,36 +27,36 @@
 
 class SDLTexture final : public VideoBase
 {
-    public:
-        SDLTexture ();
-        SDLTexture (const SDLTexture &) = delete;
-        void operator= (const SDLTexture &) = delete;
-        ~SDLTexture ();
+public:
+    SDLTexture();
+    SDLTexture(const SDLTexture&) = delete;
+    void operator= (const SDLTexture&) = delete;
+    ~SDLTexture();
 
-    public:
-        int GetCaps () const override;
-        bool Init (bool fFirstInit_) override;
+public:
+    int GetCaps() const override;
+    bool Init(bool fFirstInit_) override;
 
-        void Update (CScreen* pScreen_, bool *pafDirty_) override;
-        void UpdateSize () override;
-        void UpdatePalette () override;
+    void Update(CScreen* pScreen_, bool* pafDirty_) override;
+    void UpdateSize() override;
+    void UpdatePalette() override;
 
-        void DisplayToSamSize (int* pnX_, int* pnY_) override;
-        void DisplayToSamPoint (int* pnX_, int* pnY_) override;
+    void DisplayToSamSize(int* pnX_, int* pnY_) override;
+    void DisplayToSamPoint(int* pnX_, int* pnY_) override;
 
-    protected:
-        bool DrawChanges (CScreen* pScreen_, bool *pafDirty_);
+protected:
+    bool DrawChanges(CScreen* pScreen_, bool* pafDirty_);
 
-    private:
-        SDL_Window *m_pWindow = nullptr;
-        SDL_Renderer *m_pRenderer = nullptr;
-        SDL_Texture *m_pTexture = nullptr;
-        SDL_Texture *m_pScanlineTexture = nullptr;
+private:
+    SDL_Window* m_pWindow = nullptr;
+    SDL_Renderer* m_pRenderer = nullptr;
+    SDL_Texture* m_pTexture = nullptr;
+    SDL_Texture* m_pScanlineTexture = nullptr;
 
-        int m_nDepth = 0;
-        bool m_fFilter = false;
+    int m_nDepth = 0;
+    bool m_fFilter = false;
 
-        SDL_Rect m_rTarget {};
+    SDL_Rect m_rTarget{};
 };
 
 #endif // HAVE_LIBSDL2

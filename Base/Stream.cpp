@@ -38,14 +38,14 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CStream::CStream (const char* pcszPath_, bool fReadOnly_/*=false*/)
+CStream::CStream(const char* pcszPath_, bool fReadOnly_/*=false*/)
     : m_fReadOnly(fReadOnly_)
 {
     // Keep a copy of the stream source as we'll need it for saving
     m_pszPath = strdup(pcszPath_);
 }
 
-CStream::~CStream ()
+CStream::~CStream()
 {
     free(m_pszPath);
     if (m_pszFile) free(m_pszFile);
@@ -53,7 +53,7 @@ CStream::~CStream ()
 
 
 // Identify the stream and create an object to supply data from it
-/*static*/ CStream* CStream::Open (const char* pcszPath_, bool fReadOnly_/*=false*/)
+/*static*/ CStream* CStream::Open(const char* pcszPath_, bool fReadOnly_/*=false*/)
 {
     // Reject empty strings immediately
     if (!pcszPath_ || !*pcszPath_)
@@ -75,7 +75,7 @@ CStream::~CStream ()
     if ((hfZip = unzOpen(pcszPath_)))
     {
         // Iterate through the contents of the zip looking for a file with a suitable size
-        for (int nRet = unzGoToFirstFile(hfZip) ; nRet == UNZ_OK ; nRet = unzGoToNextFile(hfZip))
+        for (int nRet = unzGoToFirstFile(hfZip); nRet == UNZ_OK; nRet = unzGoToNextFile(hfZip))
         {
             unz_file_info sInfo;
 
@@ -134,7 +134,7 @@ CStream::~CStream ()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CFileStream::CFileStream (FILE* hFile_, const char* pcszPath_, bool fReadOnly_/*=false*/)
+CFileStream::CFileStream(FILE* hFile_, const char* pcszPath_, bool fReadOnly_/*=false*/)
     : CStream(pcszPath_, fReadOnly_), m_hFile(hFile_)
 {
     struct stat st;
@@ -142,16 +142,16 @@ CFileStream::CFileStream (FILE* hFile_, const char* pcszPath_, bool fReadOnly_/*
     if (hFile_ && !stat(pcszPath_, &st))
         m_uSize = static_cast<size_t>(st.st_size);
 
-    for (const char* p = pcszPath_ ; *p ; p++)
+    for (const char* p = pcszPath_; *p; p++)
     {
         if (*p == PATH_SEPARATOR)
-            pcszPath_ = p+1;
+            pcszPath_ = p + 1;
     }
 
     m_pszFile = strdup(pcszPath_);
 }
 
-void CFileStream::Close ()
+void CFileStream::Close()
 {
     if (m_hFile)
     {
@@ -161,7 +161,7 @@ void CFileStream::Close ()
     }
 }
 
-bool CFileStream::Rewind ()
+bool CFileStream::Rewind()
 {
     if (IsOpen())
         Close();
@@ -169,7 +169,7 @@ bool CFileStream::Rewind ()
     return true;
 }
 
-size_t CFileStream::Read (void* pvBuffer_, size_t uLen_)
+size_t CFileStream::Read(void* pvBuffer_, size_t uLen_)
 {
     if (m_nMode != modeReading)
     {
@@ -185,7 +185,7 @@ size_t CFileStream::Read (void* pvBuffer_, size_t uLen_)
     return uRead;
 }
 
-size_t CFileStream::Write (void* pvBuffer_, size_t uLen_)
+size_t CFileStream::Write(void* pvBuffer_, size_t uLen_)
 {
     if (m_nMode != modeWriting)
     {
@@ -202,7 +202,7 @@ size_t CFileStream::Write (void* pvBuffer_, size_t uLen_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CMemStream::CMemStream (void* pv_, size_t uLen_, const char* pcszPath_)
+CMemStream::CMemStream(void* pv_, size_t uLen_, const char* pcszPath_)
     : CStream(pcszPath_, true)
 {
     m_nMode = modeReading;
@@ -211,18 +211,18 @@ CMemStream::CMemStream (void* pv_, size_t uLen_, const char* pcszPath_)
     m_pszFile = strdup(pcszPath_);
 }
 
-void CMemStream::Close ()
+void CMemStream::Close()
 {
     m_nMode = modeClosed;
 }
 
-bool CMemStream::Rewind ()
+bool CMemStream::Rewind()
 {
     m_uPos = 0;
     return true;
 }
 
-size_t CMemStream::Read (void* pvBuffer_, size_t uLen_)
+size_t CMemStream::Read(void* pvBuffer_, size_t uLen_)
 {
     if (m_nMode != modeReading)
     {
@@ -230,13 +230,13 @@ size_t CMemStream::Read (void* pvBuffer_, size_t uLen_)
         m_uPos = 0;
     }
 
-    size_t uRead = std::min(m_uSize-m_uPos, uLen_);
-    memcpy(pvBuffer_, m_pbData+m_uPos, uRead);
+    size_t uRead = std::min(m_uSize - m_uPos, uLen_);
+    memcpy(pvBuffer_, m_pbData + m_uPos, uRead);
     m_uPos += uRead;
     return uRead;
 }
 
-size_t CMemStream::Write (void* /*pvBuffer_*/, size_t /*uLen_*/)
+size_t CMemStream::Write(void* /*pvBuffer_*/, size_t /*uLen_*/)
 {
     m_nMode = modeWriting;
     return 0;
@@ -246,22 +246,22 @@ size_t CMemStream::Write (void* /*pvBuffer_*/, size_t /*uLen_*/)
 
 #ifdef HAVE_LIBZ
 
-CZLibStream::CZLibStream (gzFile hFile_, const char* pcszPath_, size_t uSize_, bool fReadOnly_/*=false*/)
+CZLibStream::CZLibStream(gzFile hFile_, const char* pcszPath_, size_t uSize_, bool fReadOnly_/*=false*/)
     : CStream(pcszPath_, fReadOnly_), m_hFile(hFile_), m_uSize(uSize_)
 {
-    for (const char* p = pcszPath_ ; *p ; p++)
+    for (const char* p = pcszPath_; *p; p++)
     {
         if (*p == PATH_SEPARATOR)
-            pcszPath_ = p+1;
+            pcszPath_ = p + 1;
     }
 
-    char szFile[MAX_PATH+7];
+    char szFile[MAX_PATH + 7];
     strncpy(szFile, pcszPath_, MAX_PATH);
     strcat(szFile, " (gzip)");
     m_pszFile = strdup(szFile);
 }
 
-void CZLibStream::Close ()
+void CZLibStream::Close()
 {
     if (m_hFile)
     {
@@ -272,7 +272,7 @@ void CZLibStream::Close ()
 }
 
 
-size_t CZLibStream::GetSize ()
+size_t CZLibStream::GetSize()
 {
     // Do we need to determine the size?
     if (!m_uSize && IsOpen())
@@ -293,12 +293,12 @@ size_t CZLibStream::GetSize ()
     return m_uSize;
 }
 
-bool CZLibStream::Rewind ()
+bool CZLibStream::Rewind()
 {
     return !IsOpen() || !gzrewind(m_hFile);
 }
 
-size_t CZLibStream::Read (void* pvBuffer_, size_t uLen_)
+size_t CZLibStream::Read(void* pvBuffer_, size_t uLen_)
 {
     if (m_nMode != modeReading)
     {
@@ -314,7 +314,7 @@ size_t CZLibStream::Read (void* pvBuffer_, size_t uLen_)
     return (nRead == -1) ? 0 : static_cast<size_t>(nRead);
 }
 
-size_t CZLibStream::Write (void* pvBuffer_, size_t uLen_)
+size_t CZLibStream::Write(void* pvBuffer_, size_t uLen_)
 {
     if (m_nMode != modeWriting)
     {
@@ -331,11 +331,11 @@ size_t CZLibStream::Write (void* pvBuffer_, size_t uLen_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CZipStream::CZipStream (unzFile hFile_, const char* pcszPath_, bool fReadOnly_/*=false*/)
+CZipStream::CZipStream(unzFile hFile_, const char* pcszPath_, bool fReadOnly_/*=false*/)
     : CStream(pcszPath_, fReadOnly_), m_hFile(hFile_)
 {
     unz_file_info sInfo;
-    char szFile[MAX_PATH+6];
+    char szFile[MAX_PATH + 6];
 
     // Get details of the current file
     if (unzGetCurrentFileInfo(hFile_, &sInfo, szFile, MAX_PATH, nullptr, 0, nullptr, 0) == UNZ_OK)
@@ -346,7 +346,7 @@ CZipStream::CZipStream (unzFile hFile_, const char* pcszPath_, bool fReadOnly_/*
     }
 }
 
-void CZipStream::Close ()
+void CZipStream::Close()
 {
     if (m_hFile)
     {
@@ -357,7 +357,7 @@ void CZipStream::Close ()
     }
 }
 
-bool CZipStream::Rewind ()
+bool CZipStream::Rewind()
 {
     // There's no zip rewind so we close and re-open the current file
     if (IsOpen())
@@ -366,12 +366,12 @@ bool CZipStream::Rewind ()
     return unzOpenCurrentFile(m_hFile) == UNZ_OK;
 }
 
-size_t CZipStream::Read (void* pvBuffer_, size_t uLen_)
+size_t CZipStream::Read(void* pvBuffer_, size_t uLen_)
 {
     return unzReadCurrentFile(m_hFile, pvBuffer_, static_cast<unsigned>(uLen_));
 }
 
-size_t CZipStream::Write (void* /*pvBuffer_*/, size_t /*uLen_*/)
+size_t CZipStream::Write(void* /*pvBuffer_*/, size_t /*uLen_*/)
 {
     // Currently there's no support for zip writing (yet)
     return 0;

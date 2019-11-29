@@ -39,57 +39,57 @@ typedef struct tagSAMTIME
 
 class CClockDevice : public CIoDevice
 {
-    public:
-        CClockDevice ();
+public:
+    CClockDevice();
 
-    public:
-        void Reset () override;
-        virtual bool Update ();
-        int GetDayOfWeek ();
+public:
+    void Reset() override;
+    virtual bool Update();
+    int GetDayOfWeek();
 
-        int Decode (int nValue_);
-        int Encode (int nValue_);
-        int DateAdd (int &nValue_, int nAdd_, int nMax_);
+    int Decode(int nValue_);
+    int Encode(int nValue_);
+    int DateAdd(int& nValue_, int nAdd_, int nMax_);
 
-    protected:
-        time_t m_tLast = 0;
-        SAMTIME m_st {};
-        bool m_fBCD = true;
+protected:
+    time_t m_tLast = 0;
+    SAMTIME m_st{};
+    bool m_fBCD = true;
 };
 
 
 class CSambusClock final : public CClockDevice
 {
-    public:
-        CSambusClock ();
+public:
+    CSambusClock();
 
-    public:
-        BYTE In (WORD wPort_) override;
-        void Out (WORD wPort_, BYTE bVal_) override;
-        bool Update () override;
+public:
+    BYTE In(WORD wPort_) override;
+    void Out(WORD wPort_, BYTE bVal_) override;
+    bool Update() override;
 
-    protected:
-        BYTE m_abRegs[16];    // 16 registers
+protected:
+    BYTE m_abRegs[16];    // 16 registers
 };
 
 
 class CDallasClock final : public CClockDevice
 {
-    public:
-        CDallasClock ();
+public:
+    CDallasClock();
 
-    public:
-        BYTE In (WORD wPort_) override;
-        void Out (WORD wPort_, BYTE bVal_) override;
-        bool Update () override;
+public:
+    BYTE In(WORD wPort_) override;
+    void Out(WORD wPort_, BYTE bVal_) override;
+    bool Update() override;
 
-        bool LoadState (const char *pcszFile_) override;
-        bool SaveState (const char *pcszFile_) override;
+    bool LoadState(const char* pcszFile_) override;
+    bool SaveState(const char* pcszFile_) override;
 
-    protected:
-        BYTE m_bReg = 0;             // Currently selected register
-        BYTE m_abRegs[14+114+64];   // 14 bank 0 registers, 50+64=114 bytes user RAM, 64 bank 1 registers
-        BYTE m_abRAM[0x2000];       // 8K of extended RAM
+protected:
+    BYTE m_bReg = 0;             // Currently selected register
+    BYTE m_abRegs[14 + 114 + 64];   // 14 bank 0 registers, 50+64=114 bytes user RAM, 64 bank 1 registers
+    BYTE m_abRAM[0x2000];       // 8K of extended RAM
 };
 
 #endif

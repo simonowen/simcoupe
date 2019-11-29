@@ -22,8 +22,8 @@
 #include "IDEDisk.h"
 
 // SAMdiskHelper definitions, for non-admin device access
-#define PIPENAME	"\\\\.\\pipe\\SAMdiskHelper"
-#define FN_OPEN		2
+#define PIPENAME    "\\\\.\\pipe\\SAMdiskHelper"
+#define FN_OPEN     2
 
 #pragma pack(1)
 typedef struct {
@@ -42,13 +42,13 @@ typedef struct {
 #pragma pack()
 
 
-CDeviceHardDisk::CDeviceHardDisk (const char* pcszDisk_)
+CDeviceHardDisk::CDeviceHardDisk(const char* pcszDisk_)
     : CHardDisk(pcszDisk_)
 {
-    m_pbSector = (PBYTE)VirtualAlloc(nullptr, 1<<9, MEM_COMMIT, PAGE_READWRITE);
+    m_pbSector = (PBYTE)VirtualAlloc(nullptr, 1 << 9, MEM_COMMIT, PAGE_READWRITE);
 }
 
-CDeviceHardDisk::~CDeviceHardDisk ()
+CDeviceHardDisk::~CDeviceHardDisk()
 {
     Close();
 
@@ -57,30 +57,30 @@ CDeviceHardDisk::~CDeviceHardDisk ()
 }
 
 
-bool CDeviceHardDisk::IsRecognised (const char* pcszDisk_)
+bool CDeviceHardDisk::IsRecognised(const char* pcszDisk_)
 {
-    char *pszEnd = nullptr;
+    char* pszEnd = nullptr;
 
     // Accept a device number followed by a colon, and anything beyond that
     return isdigit(pcszDisk_[0]) && strtoul(pcszDisk_, &pszEnd, 10) != ULONG_MAX && *pszEnd == ':';
 }
 
 
-bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/)
+bool CDeviceHardDisk::Open(bool fReadOnly_/*=false*/)
 {
     if (!IsRecognised(m_strPath.c_str()))
         return false;
 
-    char *pszEnd = nullptr;
+    char* pszEnd = nullptr;
     ULONG ulDevice = strtoul(m_strPath.c_str(), &pszEnd, 10);
     if (ulDevice == ULONG_MAX)
         return false;
 
     char sz[MAX_PATH] = {};
-    snprintf(sz, sizeof(sz)-1, "\\\\.\\PhysicalDrive%lu", ulDevice);
+    snprintf(sz, sizeof(sz) - 1, "\\\\.\\PhysicalDrive%lu", ulDevice);
 
     DWORD dwWrite = fReadOnly_ ? 0 : GENERIC_WRITE;
-    m_hDevice = CreateFile(sz, GENERIC_READ|dwWrite, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+    m_hDevice = CreateFile(sz, GENERIC_READ | dwWrite, 0, nullptr, OPEN_EXISTING, 0, nullptr);
     DWORD dwError = GetLastError();
 
     // If a direct open failed, try via SAMdiskHelper
@@ -89,7 +89,7 @@ bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/)
         DWORD dwRead;
         PIPEMESSAGE msg = {};
         msg.Input.dwMessage = FN_OPEN;
-        lstrcpyn(msg.Input.szPath, sz, sizeof(msg.Input.szPath)-1);
+        lstrcpyn(msg.Input.szPath, sz, sizeof(msg.Input.szPath) - 1);
 
         if (CallNamedPipe(PIPENAME, &msg, sizeof(msg.Input), &msg, sizeof(msg.Output), &dwRead, NMPWAIT_NOWAIT))
         {
@@ -139,7 +139,7 @@ bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/)
     return false;
 }
 
-void CDeviceHardDisk::Close ()
+void CDeviceHardDisk::Close()
 {
     if (IsOpen())
     {
@@ -149,18 +149,18 @@ void CDeviceHardDisk::Close ()
     }
 }
 
-bool CDeviceHardDisk::Lock (bool fReadOnly_/*=false*/)
+bool CDeviceHardDisk::Lock(bool fReadOnly_/*=false*/)
 {
     DWORD dwRet;
 
     // Determine our physical drive number
     STORAGE_DEVICE_NUMBER sdn;
-    if (!DeviceIoControl(m_hDevice, IOCTL_STORAGE_GET_DEVICE_NUMBER, nullptr,0, &sdn, sizeof(sdn), &dwRet, nullptr))
+    if (!DeviceIoControl(m_hDevice, IOCTL_STORAGE_GET_DEVICE_NUMBER, nullptr, 0, &sdn, sizeof(sdn), &dwRet, nullptr))
         return 0;
 
     DWORD dwDrives = GetLogicalDrives();
 
-    for (int i = 0 ; i <= 'Z'-'A' ; i++)
+    for (int i = 0; i <= 'Z' - 'A'; i++)
     {
         // Skip non-existent drives
         if (!(dwDrives & (1 << i)))
@@ -168,7 +168,7 @@ bool CDeviceHardDisk::Lock (bool fReadOnly_/*=false*/)
 
         // Form the root path to the volume
         char szDrive[] = "\\\\.\\_:";
-        szDrive[4] = 'A'+i;
+        szDrive[4] = 'A' + i;
 
         // Open it without accessing the drive contents
         HANDLE h = CreateFile(szDrive, 0, 0, nullptr, OPEN_EXISTING, 0, nullptr);
@@ -179,22 +179,22 @@ bool CDeviceHardDisk::Lock (bool fReadOnly_/*=false*/)
         PVOLUME_DISK_EXTENTS pvde = reinterpret_cast<PVOLUME_DISK_EXTENTS>(ab);
 
         // Get the extents of the volume, which may span multiple physical drives
-        if (DeviceIoControl(h, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS, nullptr,0, pvde, sizeof(ab), &dwRet, nullptr))
+        if (DeviceIoControl(h, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS, nullptr, 0, pvde, sizeof(ab), &dwRet, nullptr))
         {
             // Check each extent against the supplied drive number, and mark any matches
-            for (UINT u = 0 ; u < pvde->NumberOfDiskExtents ; u++)
+            for (UINT u = 0; u < pvde->NumberOfDiskExtents; u++)
             {
                 if (pvde->Extents[u].DiskNumber == sdn.DeviceNumber)
                 {
                     // Re-open the device in read-write mode
                     CloseHandle(h);
-                    h = CreateFile(szDrive, GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+                    h = CreateFile(szDrive, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
 
                     if (h == INVALID_HANDLE_VALUE)
                         TRACE("!!! Failed to re-open device\n");
-                    else if (!DeviceIoControl(h, FSCTL_LOCK_VOLUME, nullptr,0, nullptr,0, &dwRet, nullptr))
+                    else if (!DeviceIoControl(h, FSCTL_LOCK_VOLUME, nullptr, 0, nullptr, 0, &dwRet, nullptr))
                         TRACE("!!! Failed to lock volume\n");
-                    else if (!fReadOnly_ && !DeviceIoControl(h, FSCTL_DISMOUNT_VOLUME, nullptr,0, nullptr,0, &dwRet, nullptr))
+                    else if (!fReadOnly_ && !DeviceIoControl(h, FSCTL_DISMOUNT_VOLUME, nullptr, 0, nullptr, 0, &dwRet, nullptr))
                         TRACE("!!! Failed to dismount volume\n");
                     else
                     {
@@ -214,22 +214,22 @@ bool CDeviceHardDisk::Lock (bool fReadOnly_/*=false*/)
     return true;
 }
 
-void CDeviceHardDisk::Unlock ()
+void CDeviceHardDisk::Unlock()
 {
     if (m_hLock != INVALID_HANDLE_VALUE)
     {
         DWORD dwRet;
-        DeviceIoControl(m_hLock, FSCTL_UNLOCK_VOLUME, nullptr,0, nullptr,0, &dwRet, nullptr);
+        DeviceIoControl(m_hLock, FSCTL_UNLOCK_VOLUME, nullptr, 0, nullptr, 0, &dwRet, nullptr);
 
         CloseHandle(m_hLock);
         m_hLock = INVALID_HANDLE_VALUE;
     }
 }
 
-bool CDeviceHardDisk::ReadSector (UINT uSector_, BYTE* pb_)
+bool CDeviceHardDisk::ReadSector(UINT uSector_, BYTE* pb_)
 {
-    LARGE_INTEGER liOffset = { uSector_<<9 };
-    DWORD dwLow = static_cast<DWORD>(liOffset.QuadPart & 0xffffffff), dwSize = 1<<9, dwRead;
+    LARGE_INTEGER liOffset = { uSector_ << 9 };
+    DWORD dwLow = static_cast<DWORD>(liOffset.QuadPart & 0xffffffff), dwSize = 1 << 9, dwRead;
     LONG lHigh = static_cast<LONG>(liOffset.QuadPart >> 32);
 
     if (SetFilePointer(m_hDevice, dwLow, &lHigh, FILE_BEGIN) == 0xffffffff)
@@ -247,32 +247,32 @@ bool CDeviceHardDisk::ReadSector (UINT uSector_, BYTE* pb_)
     return false;
 }
 
-bool CDeviceHardDisk::WriteSector (UINT uSector_, BYTE* pb_)
+bool CDeviceHardDisk::WriteSector(UINT uSector_, BYTE* pb_)
 {
-    LARGE_INTEGER liOffset = { uSector_<<9 };
-    DWORD dwLow = static_cast<DWORD>(liOffset.QuadPart & 0xffffffff), dwSize = 1<<9, dwWritten;
+    LARGE_INTEGER liOffset = { uSector_ << 9 };
+    DWORD dwLow = static_cast<DWORD>(liOffset.QuadPart & 0xffffffff), dwSize = 1 << 9, dwWritten;
     LONG lHigh = static_cast<LONG>(liOffset.QuadPart >> 32);
 
     memcpy(m_pbSector, pb_, dwSize);
 
     return SetFilePointer(m_hDevice, dwLow, &lHigh, FILE_BEGIN) != 0xffffffff &&
-            WriteFile(m_hDevice, m_pbSector, dwSize, &dwWritten, nullptr) && dwWritten == dwSize;
+        WriteFile(m_hDevice, m_pbSector, dwSize, &dwWritten, nullptr) && dwWritten == dwSize;
 }
 
-const char *CDeviceHardDisk::GetDeviceList ()
+const char* CDeviceHardDisk::GetDeviceList()
 {
     static char szList[1024];
-    char *pszList = szList;
+    char* pszList = szList;
     szList[0] = '\0';
 
     BYTE ab[2048];
 
-    for (DWORD dw = 0 ; dw < 10 ; dw++)
+    for (DWORD dw = 0; dw < 10; dw++)
     {
         DWORD dwRet;
 
         char sz[32] = {};
-        snprintf(sz, sizeof(sz)-1, "\\\\.\\PhysicalDrive%lu", dw);
+        snprintf(sz, sizeof(sz) - 1, "\\\\.\\PhysicalDrive%lu", dw);
 
         // Open with limited rights, so we can fetch some details without Administrator access
         HANDLE h = CreateFile(sz, 0, 0, nullptr, OPEN_EXISTING, 0, nullptr);
@@ -280,20 +280,20 @@ const char *CDeviceHardDisk::GetDeviceList ()
             continue;
 
         // Read the partition table
-        if (!DeviceIoControl(h, IOCTL_DISK_GET_DRIVE_LAYOUT_EX, nullptr,0, &ab, sizeof(ab), &dwRet, nullptr))
+        if (!DeviceIoControl(h, IOCTL_DISK_GET_DRIVE_LAYOUT_EX, nullptr, 0, &ab, sizeof(ab), &dwRet, nullptr))
         {
             CloseHandle(h);
             continue;
         }
 
-        DRIVE_LAYOUT_INFORMATION_EX *pdli = reinterpret_cast<DRIVE_LAYOUT_INFORMATION_EX*>(ab);
+        DRIVE_LAYOUT_INFORMATION_EX* pdli = reinterpret_cast<DRIVE_LAYOUT_INFORMATION_EX*>(ab);
 
         // Require disks with at least one non-empty partition that begins at the start of the device.
         if (pdli->PartitionCount && pdli->PartitionEntry[0].PartitionLength.QuadPart && !pdli->PartitionEntry[0].StartingOffset.QuadPart)
         {
             // Generate a user friendly abbreviation of the disk size
             UINT uTotalSectors = static_cast<UINT>(pdli->PartitionEntry[0].PartitionLength.QuadPart >> 9) & ~1U;
-            const char *pcszSize = AbbreviateSize(static_cast<uint64_t>(uTotalSectors) * 512);
+            const char* pcszSize = AbbreviateSize(static_cast<uint64_t>(uTotalSectors) * 512);
 
             STORAGE_PROPERTY_QUERY spq = {};
             spq.QueryType = PropertyStandardQuery;
@@ -305,22 +305,22 @@ const char *CDeviceHardDisk::GetDeviceList ()
             if (DeviceIoControl(h, IOCTL_STORAGE_QUERY_PROPERTY, &spq, sizeof(spq), pDevDesc, pDevDesc->Size, &dwRet, nullptr) && pDevDesc->ProductIdOffset)
             {
                 // Extract make/model if defined
-                const char *pcszMake = pDevDesc->VendorIdOffset ? reinterpret_cast<const char*>(pDevDesc) + pDevDesc->VendorIdOffset : "";
-                const char *pcszModel = pDevDesc->ProductIdOffset ? reinterpret_cast<const char*>(pDevDesc) + pDevDesc->ProductIdOffset : "";
+                const char* pcszMake = pDevDesc->VendorIdOffset ? reinterpret_cast<const char*>(pDevDesc) + pDevDesc->VendorIdOffset : "";
+                const char* pcszModel = pDevDesc->ProductIdOffset ? reinterpret_cast<const char*>(pDevDesc) + pDevDesc->ProductIdOffset : "";
 
                 char sz[256];
                 snprintf(sz, sizeof(sz), "%lu: %s%s", dw, pcszMake, pcszModel);
 
                 // Strip trailing spaces
-                for (char *p = sz+strlen(sz)-1 ; p >= sz && *p == ' ' ; *p-- = '\0');
+                for (char* p = sz + strlen(sz) - 1; p >= sz && *p == ' '; *p-- = '\0');
 
                 // Append the size string
-                snprintf(sz+strlen(sz), sizeof(sz)-strlen(sz), " (%s)", pcszSize);
+                snprintf(sz + strlen(sz), sizeof(sz) - strlen(sz), " (%s)", pcszSize);
 
-                if (strlen(pszList)+strlen(sz)+2 < sizeof(szList))
+                if (strlen(pszList) + strlen(sz) + 2 < sizeof(szList))
                 {
                     strcpy(pszList, sz);
-                    pszList += strlen(pszList)+1;
+                    pszList += strlen(pszList) + 1;
                 }
             }
         }

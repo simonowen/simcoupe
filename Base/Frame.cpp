@@ -50,10 +50,10 @@
 
 
 // SAM palette colours to use for the floppy drive LED states
-const BYTE FLOPPY_LED_COLOUR    = GREEN_5;  // Green for floppy
-const BYTE ATOM_LED_COLOUR      = RED_6;    // Red for Atom
-const BYTE ATOMLITE_LED_COLOUR  = 89;       // Blue for Atom Lite
-const BYTE LED_OFF_COLOUR       = GREY_2;   // Grey for off
+const BYTE FLOPPY_LED_COLOUR = GREEN_5; // Green for floppy
+const BYTE ATOM_LED_COLOUR = RED_6;     // Red for Atom
+const BYTE ATOMLITE_LED_COLOUR = 89;    // Blue for Atom Lite
+const BYTE LED_OFF_COLOUR = GREY_2;     // Grey for off
 
 const unsigned int STATUS_ACTIVE_TIME = 2500;   // Time the status text is visible for (in ms)
 const unsigned int FPS_IN_TURBO_MODE = 5;       // Number of FPS to limit to in (non-key) Turbo mode
@@ -61,8 +61,8 @@ const unsigned int FPS_IN_TURBO_MODE = 5;       // Number of FPS to limit to in 
 int s_nViewTop, s_nViewBottom;
 int s_nViewLeft, s_nViewRight;
 
-CScreen *pScreen, *pLastScreen, *pGuiScreen, *pLastGuiScreen, *pDisplayScreen;
-CFrame *pFrame;
+CScreen* pScreen, * pLastScreen, * pGuiScreen, * pLastGuiScreen, * pDisplayScreen;
+CFrame* pFrame;
 
 bool fDrawFrame, g_fFlashPhase, fSaveScreen;
 int nFrame;
@@ -86,18 +86,18 @@ REGION;
 REGION asViews[] =
 {
     { SCREEN_BLOCKS, SCREEN_LINES },
-    { SCREEN_BLOCKS+2, SCREEN_LINES+20 },
-    { SCREEN_BLOCKS+4, SCREEN_LINES+48 },
-    { SCREEN_BLOCKS+4, SCREEN_LINES+74 },
+    { SCREEN_BLOCKS + 2, SCREEN_LINES + 20 },
+    { SCREEN_BLOCKS + 4, SCREEN_LINES + 48 },
+    { SCREEN_BLOCKS + 4, SCREEN_LINES + 74 },
     { WIDTH_BLOCKS, HEIGHT_LINES },
 };
 
 namespace Frame
 {
-static void DrawOSD (CScreen *pScreen_);
-static void Flip (CScreen *pScreen_);
+static void DrawOSD(CScreen* pScreen_);
+static void Flip(CScreen* pScreen_);
 
-bool Init (bool fFirstInit_/*=false*/)
+bool Init(bool fFirstInit_/*=false*/)
 {
     Exit(true);
     TRACE("Frame::Init(%d)\n", fFirstInit_);
@@ -111,7 +111,7 @@ bool Init (bool fFirstInit_/*=false*/)
 
     // If we're not showing the full scan image, offset the view to centre over the main screen area
     if ((s_nViewTop = (HEIGHT_LINES - asViews[uView].h) >> 1))
-        s_nViewTop += (TOP_BORDER_LINES-BOTTOM_BORDER_LINES) >> 1;
+        s_nViewTop += (TOP_BORDER_LINES - BOTTOM_BORDER_LINES) >> 1;
     s_nViewBottom = s_nViewTop + asViews[uView].h;
 
     // Convert the view area dimensions from blocks to mode 3 pixels
@@ -146,7 +146,7 @@ bool Init (bool fFirstInit_/*=false*/)
     return true;
 }
 
-void Exit (bool fReInit_/*=false*/)
+void Exit(bool fReInit_/*=false*/)
 {
     TRACE("Frame::Exit(%d)\n", fReInit_);
 
@@ -164,17 +164,17 @@ void Exit (bool fReInit_/*=false*/)
 }
 
 
-int GetWidth ()
+int GetWidth()
 {
     return pScreen ? pScreen->GetPitch() : 0;
 }
 
-int GetHeight ()
+int GetHeight()
 {
     return pScreen ? pScreen->GetHeight() : 0;
 }
 
-void SetView (UINT uBlocks_, UINT uLines_)
+void SetView(UINT uBlocks_, UINT uLines_)
 {
     UINT uView = GetOption(borders);
     if (uView >= (sizeof(asViews) / sizeof(asViews[0])))
@@ -187,7 +187,7 @@ void SetView (UINT uBlocks_, UINT uLines_)
 
 
 // Update the frame image to the current raster position
-void Update ()
+void Update()
 {
     // Don't do anything if the current frame is being skipped
     if (!fDrawFrame)
@@ -197,7 +197,7 @@ void Update ()
     int nLine, nBlock = GetRasterPos(&nLine) >> 3;
 
     // Restrict the drawing to the visible area
-    int nFrom = std::max(nLastLine, s_nViewTop), nTo = std::min(nLine, s_nViewBottom-1);
+    int nFrom = std::max(nLastLine, s_nViewTop), nTo = std::min(nLine, s_nViewBottom - 1);
 
     // If we're still on the same line as last time we've only got a part line to draw
     if (nLine == nLastLine)
@@ -234,7 +234,7 @@ void Update ()
             }
 
             // Draw any full lines in between
-            for (int i = nFrom ; i <= nTo ; i++)
+            for (int i = nFrom; i <= nTo; i++)
             {
                 // Draw a complete line
                 pFrame->UpdateLine(pScreen, i, 0, WIDTH_BLOCKS);
@@ -249,29 +249,29 @@ void Update ()
 
 
 // Begin the frame by copying from the previous frame, up to the last cange
-static void CopyBeforeLastUpdate ()
+static void CopyBeforeLastUpdate()
 {
     // Determine the range in the visible area
-    int nBottom = std::min(nLastLine, s_nViewBottom-1) - s_nViewTop;
+    int nBottom = std::min(nLastLine, s_nViewBottom - 1) - s_nViewTop;
 
     // If there anything to copy?
     if (nBottom > 0)
     {
         // Copy the last partial line first
-        if (nBottom == (nLastLine-s_nViewTop))
+        if (nBottom == (nLastLine - s_nViewTop))
         {
             BYTE* pLine = pScreen->GetLine(nBottom);
             BYTE* pLastLine = pLastScreen->GetLine(nBottom);
 
             int nRight = std::max(nLastBlock, s_nViewRight) - s_nViewLeft;
             if (nRight > 0)
-                memcpy(pLine, pLastLine, nRight<<4);
+                memcpy(pLine, pLastLine, nRight << 4);
 
             nBottom--;
         }
 
         // Copy the remaining full lines
-        for (int i = 0 ; i <= nBottom ; i++)
+        for (int i = 0; i <= nBottom; i++)
         {
             BYTE* pLine = pScreen->GetLine(i);
             BYTE* pLastLine = pLastScreen->GetLine(i);
@@ -281,7 +281,7 @@ static void CopyBeforeLastUpdate ()
 }
 
 // Complete the drawn frame after the raster using data from the previous frame
-static void CopyAfterRaster ()
+static void CopyAfterRaster()
 {
     // Work out the range that is within the visible area
     int nTop = std::max(nLastLine, s_nViewTop) - s_nViewTop;
@@ -291,7 +291,7 @@ static void CopyAfterRaster ()
     if (nTop <= nBottom)
     {
         // Complete the undrawn section of the current line, if any
-        if (nTop == (nLastLine-s_nViewTop))
+        if (nTop == (nLastLine - s_nViewTop))
         {
             BYTE* pLine = pScreen->GetLine(nTop);
             BYTE* pLastLine = pLastScreen->GetLine(nTop);
@@ -299,13 +299,13 @@ static void CopyAfterRaster ()
             int nOffset = (std::max(s_nViewLeft, nLastBlock) - s_nViewLeft) << 4;
             int nWidth = pScreen->GetPitch() - nOffset;
             if (nWidth > 0)
-                memcpy(pLine+nOffset, pLastLine+nOffset, nWidth);
+                memcpy(pLine + nOffset, pLastLine + nOffset, nWidth);
 
             nTop++;
         }
 
         // Copy the remaining lines
-        for (int i = nTop ; i < nBottom ; i++)
+        for (int i = nTop; i < nBottom; i++)
         {
             BYTE* pLine = pScreen->GetLine(i);
             BYTE* pLastLine = pLastScreen->GetLine(i);
@@ -315,7 +315,7 @@ static void CopyAfterRaster ()
 }
 
 // Highlight the current raster position if it's on the visible display
-static void DrawRaster (CScreen *pScreen_)
+static void DrawRaster(CScreen* pScreen_)
 {
     // Greyscale cycle, fading in and out
     static int anFlash[] = {
@@ -325,8 +325,8 @@ static void DrawRaster (CScreen *pScreen_)
 
     // Nothing to do if the raster isn't on the visible display
     if (nLastBlock < s_nViewLeft || nLastBlock >= s_nViewRight ||
-        nLastLine  < s_nViewTop  || nLastLine  >= s_nViewBottom)
-      return;
+        nLastLine < s_nViewTop || nLastLine >= s_nViewBottom)
+        return;
 
     // Determine the screen position
     int nOffset = (nLastBlock - s_nViewLeft) << 4;
@@ -338,13 +338,13 @@ static void DrawRaster (CScreen *pScreen_)
 
     // Write the 2x2 pixel block
     BYTE* pLine0 = pScreen_->GetLine(nLine);
-    BYTE* pLine1 = pScreen_->GetLine(nLine+1);
-    pLine0[nOffset] = pLine0[nOffset+1] = pLine1[nOffset] = pLine1[nOffset+1] = bColour;
+    BYTE* pLine1 = pScreen_->GetLine(nLine + 1);
+    pLine0[nOffset] = pLine0[nOffset + 1] = pLine1[nOffset] = pLine1[nOffset + 1] = bColour;
 }
 
 
 // Begin the frame by copying from the previous frame, up to the last cange
-void Begin ()
+void Begin()
 {
     // Return if we're skipping this frame
     if (!fDrawFrame)
@@ -355,7 +355,7 @@ void Begin ()
 }
 
 // Complete the displayed frame at the end of an emulated frame
-void End ()
+void End()
 {
     // Was the current frame drawn?
     if (fDrawFrame)
@@ -369,10 +369,10 @@ void End ()
         if (GUI::IsActive())
         {
             // Make a double-height copy of the current frame for the GUI to overlay
-            for (int i = 0 ; i < GetHeight() ; i++)
+            for (int i = 0; i < GetHeight(); i++)
             {
                 // Fetch the source line data
-                BYTE *pbLine = pScreen->GetLine(i>>1);
+                BYTE* pbLine = pScreen->GetLine(i >> 1);
                 int nWidth = pScreen->GetPitch();
 
                 // Copy the frame data
@@ -418,7 +418,7 @@ void End ()
 }
 
 // Flyback to start drawing new frame
-void Flyback ()
+void Flyback()
 {
     // Last drawn position is the start of the frame
     nLastLine = nLastBlock = 0;
@@ -437,7 +437,7 @@ void Flyback ()
 }
 
 
-void Sync ()
+void Sync()
 {
     static DWORD dwLastProfile, dwLastDrawn;
     DWORD dwNow = OSD::GetTime();
@@ -455,7 +455,7 @@ void Sync ()
     if (!GUI::IsActive() && g_nTurbo && !(g_nTurbo & TURBO_KEY))
     {
         // Should we draw a frame yet?
-        fDrawFrame = (dwNow - dwLastDrawn) >= 1000/FPS_IN_TURBO_MODE;
+        fDrawFrame = (dwNow - dwLastDrawn) >= 1000 / FPS_IN_TURBO_MODE;
 
         // If so, remember the time we drew it
         if (fDrawFrame)
@@ -466,7 +466,7 @@ void Sync ()
     if ((dwNow - dwLastProfile) >= 1000)
     {
         // Calculate the relative speed from the framerate, even though we're sound synced
-        int nPercent = nFrame*2;
+        int nPercent = nFrame * 2;
 
         // 100% speed is actually 50.08fps, so the 51fps we see every ~12 seconds is still fine
         if (nFrame == 51) nPercent = 100;
@@ -486,13 +486,13 @@ void Sync ()
     if (GUI::IsActive())
     {
         // Add a frame's worth of silence
-        static BYTE abSilence[SAMPLE_FREQ*SAMPLE_BLOCK/EMULATED_FRAMES_PER_SECOND];
+        static BYTE abSilence[SAMPLE_FREQ * SAMPLE_BLOCK / EMULATED_FRAMES_PER_SECOND];
         Audio::AddData(abSilence, sizeof(abSilence));
     }
 }
 
 
-void Redraw ()
+void Redraw()
 {
     // Draw the last complete frame
     Video::Update(pDisplayScreen);
@@ -500,7 +500,7 @@ void Redraw ()
 
 
 // Determine the frame difference from last time and flip buffers
-void Flip (CScreen *pScreen_)
+void Flip(CScreen* pScreen_)
 {
     int nHeight = pScreen_->GetHeight() >> (GUI::IsActive() ? 0 : 1);
 
@@ -509,7 +509,7 @@ void Flip (CScreen *pScreen_)
     int nPitchDW = pScreen_->GetPitch() >> 2;
 
     // Work out what has changed since the last frame
-    for (int i = 0 ; i < nHeight ; i++)
+    for (int i = 0; i < nHeight; i++)
     {
         // Skip lines currently marked as dirty
         if (Video::IsLineDirty(i))
@@ -533,7 +533,7 @@ void Flip (CScreen *pScreen_)
 
 
 // Draw on-screen display indicators, such as the floppy LEDs and the status text
-void DrawOSD (CScreen* pScreen_)
+void DrawOSD(CScreen* pScreen_)
 {
     int nWidth = pScreen_->GetPitch(), nHeight = pScreen_->GetHeight() >> 1;
 
@@ -541,7 +541,7 @@ void DrawOSD (CScreen* pScreen_)
     if (GetOption(drivelights))
     {
         int nX = 2;
-        int nY = ((GetOption(drivelights)-1) & 1) ? nHeight-4 : 2;
+        int nY = ((GetOption(drivelights) - 1) & 1) ? nHeight - 4 : 2;
 
         // Floppy 1 light
         if (GetOption(drive1))
@@ -569,8 +569,8 @@ void DrawOSD (CScreen* pScreen_)
     {
         int nX = nWidth - pScreen_->GetStringWidth(szProfile);
 
-        pScreen_->DrawString(nX,   2, szProfile, BLACK);
-        pScreen_->DrawString(nX-2, 1, szProfile, WHITE);
+        pScreen_->DrawString(nX, 2, szProfile, BLACK);
+        pScreen_->DrawString(nX - 2, 1, szProfile, WHITE);
     }
 
     // Any active status line?
@@ -578,23 +578,23 @@ void DrawOSD (CScreen* pScreen_)
     {
         int nX = nWidth - pScreen_->GetStringWidth(szStatus);
 
-        pScreen_->DrawString(nX,   nHeight-CHAR_HEIGHT-1, szStatus, BLACK);
-        pScreen_->DrawString(nX-2, nHeight-CHAR_HEIGHT-2, szStatus, WHITE);
+        pScreen_->DrawString(nX, nHeight - CHAR_HEIGHT - 1, szStatus, BLACK);
+        pScreen_->DrawString(nX - 2, nHeight - CHAR_HEIGHT - 2, szStatus, WHITE);
     }
 }
 
 // Screenshot save request
-void SaveScreenshot ()
+void SaveScreenshot()
 {
     fSaveScreen = true;
 }
 
 
 // Set a status message, which will remain on screen for a few seconds
-void SetStatus (const char *pcszFormat_, ...)
+void SetStatus(const char* pcszFormat_, ...)
 {
     va_list pcvArgs;
-    va_start (pcvArgs, pcszFormat_);
+    va_start(pcvArgs, pcszFormat_);
     vsprintf(szStatus, pcszFormat_, pcvArgs);
     va_end(pcvArgs);
 
@@ -605,7 +605,7 @@ void SetStatus (const char *pcszFormat_, ...)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Fetch the current horizontal raster position (in cycles) and the current line
-int GetRasterPos (int *pnLine_)
+int GetRasterPos(int* pnLine_)
 {
     if (g_dwCycleCounter >= BORDER_PIXELS)
     {
@@ -620,14 +620,14 @@ int GetRasterPos (int *pnLine_)
 }
 
 // Fetch the 4 bytes the ASIC uses to generate the next 8-pixel cell
-void GetAsicData (BYTE *pb0_, BYTE *pb1_, BYTE *pb2_, BYTE *pb3_)
+void GetAsicData(BYTE* pb0_, BYTE* pb1_, BYTE* pb2_, BYTE* pb3_)
 {
     pFrame->GetAsicData(pb0_, pb1_, pb2_, pb3_);
 }
 
 // Handle screen mode changes
 // Changes on the main screen may generate an artefact by using old data in the new mode (described by Dave Laundon)
-void ChangeMode (BYTE bNewVmpr_)
+void ChangeMode(BYTE bNewVmpr_)
 {
     int nLine, nBlock = GetRasterPos(&nLine) >> 3;
 
@@ -635,12 +635,12 @@ void ChangeMode (BYTE bNewVmpr_)
     if (IsScreenLine(nLine))
     {
         // Changes into the right border can't affect appearance, so ignore them
-        if (nBlock < (BORDER_BLOCKS+SCREEN_BLOCKS))
+        if (nBlock < (BORDER_BLOCKS + SCREEN_BLOCKS))
         {
             // Is the mode changing between 1/2 <-> 3/4 on the main screen?
             if (((vmpr_mode ^ bNewVmpr_) & VMPR_MDE1_MASK) && nBlock >= BORDER_BLOCKS)
             {
-                BYTE *pbLine = pScreen->GetLine(nLine-s_nViewTop);
+                BYTE* pbLine = pScreen->GetLine(nLine - s_nViewTop);
 
                 // Draw the artefact and advance the draw position
                 pFrame->ModeChange(pbLine, nLine, nBlock, bNewVmpr_);
@@ -656,14 +656,14 @@ void ChangeMode (BYTE bNewVmpr_)
 
 
 // Handle the screen being enabled, which causes a border pixel artefact (reported by Andrew Collier)
-void ChangeScreen (BYTE bNewBorder_)
+void ChangeScreen(BYTE bNewBorder_)
 {
     int nLine, nBlock = GetRasterPos(&nLine) >> 3;
 
     // Only draw if the artefact cell is visible
     if (nLine >= s_nViewTop && nLine < s_nViewBottom && nBlock >= s_nViewLeft && nBlock < s_nViewRight)
     {
-        BYTE *pbLine = pScreen->GetLine(nLine-s_nViewTop);
+        BYTE* pbLine = pScreen->GetLine(nLine - s_nViewTop);
 
         // Draw the artefact and advance the draw position
         pFrame->ScreenChange(pbLine, nLine, nBlock, bNewBorder_);
@@ -672,7 +672,7 @@ void ChangeScreen (BYTE bNewBorder_)
 }
 
 // A screen line in a specified range is being written to, so we need to ensure it's up-to-date
-void TouchLines (int nFrom_, int nTo_)
+void TouchLines(int nFrom_, int nTo_)
 {
     // Is the line being modified in the area since we last updated
     if (nTo_ >= nLastLine && nFrom_ <= (int)((g_dwCycleCounter - BORDER_PIXELS) / TSTATES_PER_LINE))
@@ -683,10 +683,10 @@ void TouchLines (int nFrom_, int nTo_)
 
 
 // Set a new screen mode (VMPR value)
-void CFrame::SetMode (BYTE bNewVmpr_)
+void CFrame::SetMode(BYTE bNewVmpr_)
 {
     static FNLINEUPDATE apfnLineUpdates[] =
-        { &CFrame::Mode1Line, &CFrame::Mode2Line, &CFrame::Mode3Line, &CFrame::Mode4Line };
+    { &CFrame::Mode1Line, &CFrame::Mode2Line, &CFrame::Mode3Line, &CFrame::Mode4Line };
 
     m_pLineUpdate = apfnLineUpdates[(bNewVmpr_ & VMPR_MODE_MASK) >> 5];
 
@@ -696,20 +696,20 @@ void CFrame::SetMode (BYTE bNewVmpr_)
 }
 
 // Update a line segment of display or border
-void CFrame::UpdateLine (CScreen *pScreen_, int nLine_, int nFrom_, int nTo_)
+void CFrame::UpdateLine(CScreen* pScreen_, int nLine_, int nFrom_, int nTo_)
 {
     // Is the line within the view port?
     if (nLine_ >= s_nViewTop && nLine_ < s_nViewBottom)
     {
         // Fetch the screen data pointer for the line
-        BYTE* pbLine = pScreen_->GetLine(nLine_-s_nViewTop);
+        BYTE* pbLine = pScreen_->GetLine(nLine_ - s_nViewTop);
 
         // Screen off in mode 3 or 4?
         if (BORD_SOFF && VMPR_MODE_3_OR_4)
             BlackLine(pbLine, nFrom_, nTo_);
 
         // Line on the main screen?
-        else if (nLine_ >= TOP_BORDER_LINES && nLine_ < (TOP_BORDER_LINES+SCREEN_LINES))
+        else if (nLine_ >= TOP_BORDER_LINES && nLine_ < (TOP_BORDER_LINES + SCREEN_LINES))
             (this->*m_pLineUpdate)(pbLine, nLine_, nFrom_, nTo_);
 
         // Top or bottom border
@@ -719,14 +719,14 @@ void CFrame::UpdateLine (CScreen *pScreen_, int nLine_, int nFrom_, int nTo_)
 }
 
 // Fetch the internal ASIC working values used when drawing the display
-void CFrame::GetAsicData (BYTE *pb0_, BYTE *pb1_, BYTE *pb2_, BYTE *pb3_)
+void CFrame::GetAsicData(BYTE* pb0_, BYTE* pb1_, BYTE* pb2_, BYTE* pb3_)
 {
     int nLine = g_dwCycleCounter / TSTATES_PER_LINE, nBlock = (g_dwCycleCounter % TSTATES_PER_LINE) >> 3;
 
     nLine -= TOP_BORDER_LINES;
-    nBlock -= BORDER_BLOCKS+BORDER_BLOCKS;
-    if (nBlock < 0) { nLine--; nBlock = SCREEN_BLOCKS-1; }
-    if (nLine < 0 || nLine >= SCREEN_LINES) { nLine = SCREEN_LINES-1; nBlock = SCREEN_BLOCKS-1; }
+    nBlock -= BORDER_BLOCKS + BORDER_BLOCKS;
+    if (nBlock < 0) { nLine--; nBlock = SCREEN_BLOCKS - 1; }
+    if (nLine < 0 || nLine >= SCREEN_LINES) { nLine = SCREEN_LINES - 1; nBlock = SCREEN_BLOCKS - 1; }
 
     if (VMPR_MODE_3_OR_4)
     {

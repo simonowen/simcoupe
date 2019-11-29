@@ -32,52 +32,52 @@
 #include "Options.h"
 
 
-BYTE CSDIDEDevice::In (WORD wPort_)
+BYTE CSDIDEDevice::In(WORD wPort_)
 {
     BYTE bRet = 0xff;
 
     switch (wPort_ & 0xff)
     {
         // Data (high latched)
-        case SDIDE_DATA:
-            if (m_fDataLatched)
-                bRet = m_bDataLatch;
-            else
-            {
-                WORD wData = CAtaAdapter::InWord(0x0100 | m_bAddressLatch);
-                m_bDataLatch = wData >> 8;
-                bRet = wData & 0xff;
-            }
+    case SDIDE_DATA:
+        if (m_fDataLatched)
+            bRet = m_bDataLatch;
+        else
+        {
+            WORD wData = CAtaAdapter::InWord(0x0100 | m_bAddressLatch);
+            m_bDataLatch = wData >> 8;
+            bRet = wData & 0xff;
+        }
 
-            m_fDataLatched = !m_fDataLatched;
-            break;
+        m_fDataLatched = !m_fDataLatched;
+        break;
 
-        default:
-            TRACE("SDIDE: Unrecognised read from %#04x\n", wPort_);
-            break;
+    default:
+        TRACE("SDIDE: Unrecognised read from %#04x\n", wPort_);
+        break;
     }
 
     return bRet;
 }
 
-void CSDIDEDevice::Out (WORD wPort_, BYTE bVal_)
+void CSDIDEDevice::Out(WORD wPort_, BYTE bVal_)
 {
     switch (wPort_ & 0xff)
     {
         // Register (latched)
-        case SDIDE_REG:
-            m_bAddressLatch = bVal_;
-            m_fDataLatched = false;
-            break;
+    case SDIDE_REG:
+        m_bAddressLatch = bVal_;
+        m_fDataLatched = false;
+        break;
 
         // Data (low latched)
-        case SDIDE_DATA:
-            if (!m_fDataLatched)
-                m_bDataLatch = bVal_;
-            else
-                 CAtaAdapter::Out(0x0100 | m_bAddressLatch, (static_cast<WORD>(bVal_) << 8) | m_bDataLatch);
+    case SDIDE_DATA:
+        if (!m_fDataLatched)
+            m_bDataLatch = bVal_;
+        else
+            CAtaAdapter::Out(0x0100 | m_bAddressLatch, (static_cast<WORD>(bVal_) << 8) | m_bDataLatch);
 
-            m_fDataLatched = !m_fDataLatched;
-            break;
+        m_fDataLatched = !m_fDataLatched;
+        break;
     }
 }

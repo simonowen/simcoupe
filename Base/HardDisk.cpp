@@ -27,19 +27,19 @@
 #include "IDEDisk.h"
 
 
-CHardDisk::CHardDisk (const char* path)
-: m_strPath(path)
+CHardDisk::CHardDisk(const char* path)
+    : m_strPath(path)
 {
 }
 
-bool CHardDisk::IsSDIDEDisk ()
+bool CHardDisk::IsSDIDEDisk()
 {
     // Check for the HDOS free space file-info-block in sector 1
     BYTE ab[512];
-    return ReadSector(1, ab) && !memcmp(ab+14, "Free_space", 10);
+    return ReadSector(1, ab) && !memcmp(ab + 14, "Free_space", 10);
 }
 
-bool CHardDisk::IsBDOSDisk (bool *pfByteSwapped_)
+bool CHardDisk::IsBDOSDisk(bool* pfByteSwapped_)
 {
     bool fBDOS = false, fByteSwapped = false;
     BYTE ab[512];
@@ -48,14 +48,14 @@ bool CHardDisk::IsBDOSDisk (bool *pfByteSwapped_)
     if (ReadSector(0, ab))
     {
         // Clear bits 7 and 5 (case) for the signature check
-        for (int i = 0 ; i < 4 ; i++) { ab[i+0x000] &= ~0xa0; ab[i+0x100] &= ~0xa0; }
+        for (int i = 0; i < 4; i++) { ab[i + 0x000] &= ~0xa0; ab[i + 0x100] &= ~0xa0; }
 
         // Check for byte-swapped signature (Atom)
-        if (!memcmp(ab+0x000, "OBTO", 4))
+        if (!memcmp(ab + 0x000, "OBTO", 4))
             fBDOS = fByteSwapped = true;
 
         // Then normal signature (Atom Lite)
-        else if (!memcmp(ab+0x100, "BOOT", 4))
+        else if (!memcmp(ab + 0x100, "BOOT", 4))
             fBDOS = true;
     }
 
@@ -97,12 +97,12 @@ typedef struct
 RS_IDE;
 
 
-CHDFHardDisk::CHDFHardDisk (const char* pcszDisk_)
+CHDFHardDisk::CHDFHardDisk(const char* pcszDisk_)
     : CHardDisk(pcszDisk_)
 {
 }
 
-/*static*/ CHardDisk* CHardDisk::OpenObject (const char* pcszDisk_, bool fReadOnly_/*=false*/)
+/*static*/ CHardDisk* CHardDisk::OpenObject(const char* pcszDisk_, bool fReadOnly_/*=false*/)
 {
     CHardDisk* pDisk = nullptr;
 
@@ -129,7 +129,7 @@ CHDFHardDisk::CHDFHardDisk (const char* pcszDisk_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/*static*/ bool CHDFHardDisk::Create (const char* pcszDisk_, UINT uTotalSectors_)
+/*static*/ bool CHDFHardDisk::Create(const char* pcszDisk_, UINT uTotalSectors_)
 {
     // Attempt to create the new disk
     CHDFHardDisk* pDisk = new CHDFHardDisk(pcszDisk_);
@@ -140,7 +140,7 @@ CHDFHardDisk::CHDFHardDisk (const char* pcszDisk_)
     return fRet;
 }
 
-bool CHDFHardDisk::Create (UINT uTotalSectors_)
+bool CHDFHardDisk::Create(UINT uTotalSectors_)
 {
     bool fRet = false;
 
@@ -169,9 +169,9 @@ bool CHDFHardDisk::Create (UINT uTotalSectors_)
 
         // Write the header, and extend the file up to the full size
         fRet = fwrite(&sHeader, sizeof(sHeader), 1, pFile) &&
-               fwrite(&m_sIdentify, sizeof(m_sIdentify), 1, pFile) &&
-              !fseek(pFile, lDataSize - sizeof(bNull), SEEK_CUR) &&
-               fwrite(&bNull, sizeof(bNull), 1, pFile);
+            fwrite(&m_sIdentify, sizeof(m_sIdentify), 1, pFile) &&
+            !fseek(pFile, lDataSize - sizeof(bNull), SEEK_CUR) &&
+            fwrite(&bNull, sizeof(bNull), 1, pFile);
 
         // Close the file (this may be slow)
         fclose(pFile);
@@ -185,7 +185,7 @@ bool CHDFHardDisk::Create (UINT uTotalSectors_)
 }
 
 
-bool CHDFHardDisk::Open (bool fReadOnly_/*=false*/)
+bool CHDFHardDisk::Open(bool fReadOnly_/*=false*/)
 {
     Close();
 
@@ -223,7 +223,7 @@ bool CHDFHardDisk::Open (bool fReadOnly_/*=false*/)
                 TRACE("HDF data offset is invalid!\n");
             else if (fstat(fileno(m_hfDisk), &st) == 0)
             {
-                m_sGeometry.uTotalSectors = static_cast<UINT>((st.st_size-m_uDataOffset)/m_uSectorSize);
+                m_sGeometry.uTotalSectors = static_cast<UINT>((st.st_size - m_uDataOffset) / m_uSectorSize);
 
                 // Update the identify data
                 SetIdentifyData(&m_sIdentify);
@@ -237,7 +237,7 @@ bool CHDFHardDisk::Open (bool fReadOnly_/*=false*/)
     return false;
 }
 
-void CHDFHardDisk::Close ()
+void CHDFHardDisk::Close()
 {
     if (IsOpen())
     {
@@ -246,14 +246,14 @@ void CHDFHardDisk::Close ()
     }
 }
 
-bool CHDFHardDisk::ReadSector (UINT uSector_, BYTE* pb_)
+bool CHDFHardDisk::ReadSector(UINT uSector_, BYTE* pb_)
 {
-    off_t lOffset = m_uDataOffset + static_cast<off_t>(uSector_) * m_uSectorSize;
+    off_t lOffset = m_uDataOffset + static_cast<off_t>(uSector_)* m_uSectorSize;
     return m_hfDisk && !fseek(m_hfDisk, lOffset, SEEK_SET) && (fread(pb_, 1, m_uSectorSize, m_hfDisk) == m_uSectorSize);
 }
 
-bool CHDFHardDisk::WriteSector (UINT uSector_, BYTE* pb_)
+bool CHDFHardDisk::WriteSector(UINT uSector_, BYTE* pb_)
 {
-    off_t lOffset = m_uDataOffset + static_cast<off_t>(uSector_) * m_uSectorSize;
+    off_t lOffset = m_uDataOffset + static_cast<off_t>(uSector_)* m_uSectorSize;
     return m_hfDisk && !fseek(m_hfDisk, lOffset, SEEK_SET) && (fwrite(pb_, 1, m_uSectorSize, m_hfDisk) == m_uSectorSize);
 }

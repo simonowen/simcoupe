@@ -25,7 +25,7 @@
 
 // ToDo: support slave device on the same interface
 
-CATADevice::CATADevice ()
+CATADevice::CATADevice()
 {
     memset(&m_sGeometry, 0, sizeof(m_sGeometry));
     memset(&m_sIdentify, 0, sizeof(m_sIdentify));
@@ -35,7 +35,7 @@ CATADevice::CATADevice ()
 }
 
 // Device hard reset
-void CATADevice::Reset (bool fSoft_/*=false*/)
+void CATADevice::Reset(bool fSoft_/*=false*/)
 {
     // Set specific registers to zero
     m_sRegs.bCylinderLow = m_sRegs.bCylinderHigh = m_sRegs.bDeviceHead = 0;
@@ -44,7 +44,7 @@ void CATADevice::Reset (bool fSoft_/*=false*/)
     m_sRegs.bError = m_sRegs.bSectorCount = m_sRegs.bSector = 0x01;
 
     // Device is settled and ready
-    m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_DSC;
+    m_sRegs.bStatus = ATA_STATUS_DRDY | ATA_STATUS_DSC;
 
     // No data available for reading or required for writing
     m_pbBuffer = nullptr;
@@ -55,7 +55,7 @@ void CATADevice::Reset (bool fSoft_/*=false*/)
 }
 
 
-WORD CATADevice::In (WORD wPort_)
+WORD CATADevice::In(WORD wPort_)
 {
     WORD wRet = 0xffff;
 
@@ -65,400 +65,400 @@ WORD CATADevice::In (WORD wPort_)
 
     switch (~wPort_ & ATA_CS_MASK)
     {
-        case ATA_CS0:
-            switch (wPort_ & ATA_DA_MASK)
+    case ATA_CS0:
+        switch (wPort_ & ATA_DA_MASK)
+        {
+            // Data register
+        case 0:
+        {
+            // Return zero if no more data is available
+            if (m_uBuffer)
             {
-                // Data register
-                case 0:
+                // Read a byte
+                m_sRegs.wData = *m_pbBuffer++;
+                m_uBuffer--;
+
+                // In 16-bit mode read a second byte
+                if (!m_f8bit)
                 {
-                    // Return zero if no more data is available
-                    if (m_uBuffer)
-                    {
-                        // Read a byte
-                        m_sRegs.wData = *m_pbBuffer++;
-                        m_uBuffer--;
-
-                        // In 16-bit mode read a second byte
-                        if (!m_f8bit)
-                        {
-                            m_sRegs.wData |= *m_pbBuffer++ << 8;
-                            m_uBuffer--;
-                        }
-
-                        if (!m_uBuffer)
-                            TRACE("ATA: All data read\n");
-                    }
-
-                    // Return the data register
-                    wRet = m_sRegs.wData;
-
-                    break;
+                    m_sRegs.wData |= *m_pbBuffer++ << 8;
+                    m_uBuffer--;
                 }
 
-                case 1:  wRet = m_sRegs.bError;             break;
-                case 2:  wRet = m_sRegs.bSectorCount;       break;
-                case 3:  wRet = m_sRegs.bSector;            break;
-                case 4:  wRet = m_sRegs.bCylinderLow;       break;
-                case 5:  wRet = m_sRegs.bCylinderHigh;      break;
-                case 6:  wRet = m_sRegs.bDeviceHead | 0xa0; break;	// bits 7+5 always set
-
-                // Status register
-                case 7:
-                {
-                    // Update the DRQ bit to show whether data is expected or available
-                    if (m_uBuffer)
-                        m_sRegs.bStatus |= ATA_STATUS_DRQ;
-                    else
-                        m_sRegs.bStatus &= ~ATA_STATUS_DRQ;
-
-                    // Return the current status
-                    wRet = m_sRegs.bStatus;
-
-                    break;
-                }
-
-                default:
-                    TRACE("ATA: Unhandled read from %#04x\n", wPort_);
-                    break;
+                if (!m_uBuffer)
+                    TRACE("ATA: All data read\n");
             }
+
+            // Return the data register
+            wRet = m_sRegs.wData;
+
+            break;
+        }
+
+        case 1:  wRet = m_sRegs.bError;             break;
+        case 2:  wRet = m_sRegs.bSectorCount;       break;
+        case 3:  wRet = m_sRegs.bSector;            break;
+        case 4:  wRet = m_sRegs.bCylinderLow;       break;
+        case 5:  wRet = m_sRegs.bCylinderHigh;      break;
+        case 6:  wRet = m_sRegs.bDeviceHead | 0xa0; break;  // bits 7+5 always set
+
+        // Status register
+        case 7:
+        {
+            // Update the DRQ bit to show whether data is expected or available
+            if (m_uBuffer)
+                m_sRegs.bStatus |= ATA_STATUS_DRQ;
+            else
+                m_sRegs.bStatus &= ~ATA_STATUS_DRQ;
+
+            // Return the current status
+            wRet = m_sRegs.bStatus;
+
+            break;
+        }
+
+        default:
+            TRACE("ATA: Unhandled read from %#04x\n", wPort_);
+            break;
+        }
+        break;
+
+    case ATA_CS1:
+        switch (wPort_ & ATA_DA_MASK)
+        {
+            // Alternate status register
+        case 6:
+            wRet = m_sRegs.bStatus;
             break;
 
-        case ATA_CS1:
-            switch (wPort_ & ATA_DA_MASK)
+        case 7:
+            TRACE("ATA: READ Drive Address\n");
+
+            // Only older HDD devices respond to this, newer ones such as CF cards don't
+            if (m_fLegacy)
             {
-                // Alternate status register
-                case 6:
-                    wRet = m_sRegs.bStatus;
-                    break;
+                // Bit 7 set, bit 6 clear (write gate), inverted head bits in b5-2
+                wRet = 0x80 | ((~m_sRegs.bDeviceHead & ATA_HEAD_MASK) << 2);
 
-                case 7:
-                    TRACE("ATA: READ Drive Address\n");
-
-                    // Only older HDD devices respond to this, newer ones such as CF cards don't
-                    if (m_fLegacy)
-                    {
-                        // Bit 7 set, bit 6 clear (write gate), inverted head bits in b5-2
-                        wRet = 0x80 | ((~m_sRegs.bDeviceHead & ATA_HEAD_MASK) << 2);
-
-                        // Set bits 0+1, leaving the active device bit clear
-                        if (~m_sRegs.bDeviceHead & ATA_DEVICE_MASK) // master?
-                            wRet |= 0x02;
-                        else
-                            wRet |= 0x01;
-                    }
-
-                    break;
-
-                default:
-                    TRACE("ATA: Unhandled read from %#04x\n", wPort_);
-                    break;
+                // Set bits 0+1, leaving the active device bit clear
+                if (~m_sRegs.bDeviceHead & ATA_DEVICE_MASK) // master?
+                    wRet |= 0x02;
+                else
+                    wRet |= 0x01;
             }
+
             break;
+
+        default:
+            TRACE("ATA: Unhandled read from %#04x\n", wPort_);
+            break;
+        }
+        break;
     }
 
     return wRet;
 }
 
 
-void CATADevice::Out (WORD wPort_, WORD wVal_)
+void CATADevice::Out(WORD wPort_, WORD wVal_)
 {
     BYTE bVal = wVal_ & 0xff;
 
     switch (~wPort_ & ATA_CS_MASK)
     {
-        case ATA_CS0:
+    case ATA_CS0:
+    {
+        // Ignore base register writes in reset condition
+        if (m_sRegs.bDeviceControl & ATA_DCR_SRST)
+            break;
+
+        switch (wPort_ & ATA_DA_MASK)
         {
-            // Ignore base register writes in reset condition
-            if (m_sRegs.bDeviceControl & ATA_DCR_SRST)
-                break;
-
-            switch (wPort_ & ATA_DA_MASK)
+        case 0:
+        {
+            // Data expected?
+            if (m_uBuffer)
             {
-                case 0:
-                {
-                    // Data expected?
-                    if (m_uBuffer)
-                    {
-                        // Write a byte
-                        *m_pbBuffer++ = wVal_ & 0xff;
-                        m_uBuffer--;
+                // Write a byte
+                *m_pbBuffer++ = wVal_ & 0xff;
+                m_uBuffer--;
 
-                        // In 16-bit mode write a second byte
-                        if (!m_f8bit)
+                // In 16-bit mode write a second byte
+                if (!m_f8bit)
+                {
+                    *m_pbBuffer++ = wVal_ >> 8;
+                    m_uBuffer--;
+                }
+
+                // Received eveything we need?
+                if (!m_uBuffer)
+                {
+                    TRACE("ATA: Received all data\n");
+
+                    // What we do with the data depends on the current command
+                    switch (m_sRegs.bCommand)
+                    {
+                    case 0x30:  // Write Sectors (with retries)
+                    case 0x31:  // Write Sectors
+                    case 0xc5:  // Write Multiple
+                    {
+                        // Write the full sector
+                        if (!ReadWriteSector(true))
                         {
-                            *m_pbBuffer++ = wVal_ >> 8;
-                            m_uBuffer--;
+                            // Flag an error if the write failed
+                            m_sRegs.bStatus |= ATA_STATUS_ERROR;
+                            m_sRegs.bError = ATA_ERROR_UNC;
                         }
 
-                        // Received eveything we need?
-                        if (!m_uBuffer)
+                        // Multi-sector write?
+                        else if (--m_sRegs.bSectorCount)
                         {
-                            TRACE("ATA: Received all data\n");
+                            TRACE(" %d sectors left in multi-sector write...\n", m_sRegs.bSectorCount);
 
-                            // What we do with the data depends on the current command
-                            switch (m_sRegs.bCommand)
+                            // Next sector
+                            if (++m_sRegs.bSector > m_sGeometry.uSectors)
                             {
-                                case 0x30:  // Write Sectors (with retries)
-                                case 0x31:  // Write Sectors
-                                case 0xc5:  // Write Multiple
+                                m_sRegs.bSector = 1;
+
+                                // Are the head bits just below max value?
+                                if ((m_sRegs.bDeviceHead & ATA_HEAD_MASK) == m_sGeometry.uHeads - 1)
                                 {
-                                    // Write the full sector
-                                    if (!ReadWriteSector(true))
-                                    {
-                                        // Flag an error if the write failed
-                                        m_sRegs.bStatus |= ATA_STATUS_ERROR;
-                                        m_sRegs.bError = ATA_ERROR_UNC;
-                                    }
+                                    // Head bits back to zero
+                                    m_sRegs.bDeviceHead &= ~ATA_HEAD_MASK;
 
-                                    // Multi-sector write?
-                                    else if (--m_sRegs.bSectorCount)
-                                    {
-                                        TRACE(" %d sectors left in multi-sector write...\n", m_sRegs.bSectorCount);
-
-                                        // Next sector
-                                        if (++m_sRegs.bSector > m_sGeometry.uSectors)
-                                        {
-                                            m_sRegs.bSector = 1;
-
-                                            // Are the head bits just below max value?
-                                            if ((m_sRegs.bDeviceHead & ATA_HEAD_MASK) == m_sGeometry.uHeads-1)
-                                            {
-                                                // Head bits back to zero
-                                                m_sRegs.bDeviceHead &= ~ATA_HEAD_MASK;
-
-                                                // Next cylinder
-                                                if (!++m_sRegs.bCylinderLow)
-                                                    m_sRegs.bCylinderHigh++;
-                                            }
-                                            else
-                                            {
-                                                // Next head
-                                                m_sRegs.bDeviceHead++;
-                                            }
-                                        }
-
-                                        // Set the sector buffer pointer and how much we have available to read
-                                        m_pbBuffer = m_abSectorData;
-                                        m_uBuffer = sizeof(m_abSectorData);
-                                    }
+                                    // Next cylinder
+                                    if (!++m_sRegs.bCylinderLow)
+                                        m_sRegs.bCylinderHigh++;
                                 }
-                                break;
-                            }
-                        }
-                    }
-
-                    return;
-                }
-
-                case 1:
-                    TRACE("ATA: WRITE features = %#02x\n", bVal);
-                    m_sRegs.bFeatures = bVal;
-                    break;
-
-                case 2:
-                    TRACE("ATA: WRITE sector count = %#02x\n", bVal);
-                    m_sRegs.bSectorCount = bVal;
-                    break;
-
-                case 3:
-                    TRACE("ATA: WRITE sector number = %#02x\n", bVal);
-                    m_sRegs.bSector = bVal;
-                    break;
-
-                case 4:
-                    TRACE("ATA: WRITE cylinder low = %#02x\n", bVal);
-                    m_sRegs.bCylinderLow = bVal;
-                    break;
-
-                case 5:
-                    TRACE("ATA: WRITE cylinder high = %#02x\n", bVal);
-                    m_sRegs.bCylinderHigh = bVal;
-                    break;
-
-                case 6:
-                {
-                    TRACE("ATA: WRITE device/head = %#02x\n", bVal);
-                    m_sRegs.bDeviceHead = bVal;
-
-                    // Device ready and selected head settled
-                    m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_DSC;
-                }
-                break;
-
-                case 7:
-                {
-                    // Assume the command will succeed for now
-                    m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_DSC;
-
-                    // Clear the error register
-                    m_sRegs.bError = 0;
-
-                    // Ignore the command if it's not for our device, unless it's Execute Device Diagnostic
-                    if (((m_sRegs.bDeviceHead ^ m_bDevice) & ATA_DEVICE_MASK) && m_sRegs.bCommand != 0x90)
-                        break;
-
-                    switch (m_sRegs.bCommand = bVal)
-                    {
-                        case 0x20:  // Read Sectors (with retries)
-                        case 0x21:  // Read Sectors
-                        case 0x40:  // Read Verify Sectors (with retries)
-                        case 0x41:  // Read Verify Sectors
-                        case 0xc4:  // Read Multiple
-                        {
-                            TRACE("ATA: Disk command: Read Sectors\n");
-
-                            if (!ReadWriteSector(false))
-                            {
-                                m_sRegs.bStatus |= ATA_STATUS_ERROR;
-                                m_sRegs.bError = ATA_ERROR_UNC;
-                                break;
+                                else
+                                {
+                                    // Next head
+                                    m_sRegs.bDeviceHead++;
+                                }
                             }
 
-                            // The data is only presented to the host if this is not a verify
-                            if ((bVal & ~1) != 0x40)
-                            {
-                                // Set the sector buffer pointer and how much we have available to read
-                                m_pbBuffer = m_abSectorData;
-                                m_uBuffer = sizeof(m_abSectorData);
-                            }
-                        }
-                        break;
-
-                        case 0x30:  // Write Sectors (with retries)
-                        case 0x31:  // Write Sectors
-                        case 0xc5:  // Write Multiple
-                        {
-                            TRACE("ATA: Disk command: Write Sectors\n");
-
-                            // Clear the sector buffer and indicate we're ready to receive data
-                            memset(&m_abSectorData, 0, sizeof(m_abSectorData));
-                            m_sRegs.bStatus |= ATA_STATUS_DRQ;
-
-                            // Set the sector buffer pointer and how much space we have available for writing
+                            // Set the sector buffer pointer and how much we have available to read
                             m_pbBuffer = m_abSectorData;
                             m_uBuffer = sizeof(m_abSectorData);
                         }
-                        break;
-
-                        case 0x90:
-                            TRACE("ATA: Disk command: Execute Device Diagnostic\n");
-                            m_sRegs.bError = 1;  // device 0 present, device 1 passed/absent
-                            break;
-
-                        case 0xe0:  // Standby Immediate
-                        case 0xe2:  // Standby
-                            TRACE("ATA: Disk command: Standby [Immediate]\n");
-                            break;
-
-                        case 0xe1:  // Idle Immediate
-                        case 0xe3:  // Idle
-                            TRACE("ATA: Disk command: Idle [Immediate]\n");
-                            break;
-
-                        case 0xe5:  // Check Power Mode
-                            TRACE("ATA: Disk command: Check Power Mode\n");
-                            m_sRegs.bSectorCount = 0xff;  // device is active
-                            break;
-
-                        case 0xe6:  // Sleep
-                            TRACE("ATA: Disk command: Sleep\n");
-                            break;
-
-                        case 0xec:
-                        {
-                            TRACE("ATA: Disk command: IDENTIFY\n");
-                            memcpy(&m_abSectorData, &m_sIdentify, sizeof(m_sIdentify));
-                            m_pbBuffer = m_abSectorData;
-                            m_uBuffer = sizeof(m_abSectorData);
-                        }
-                        break;
-
-                        case 0xef:
-                            TRACE("ATA: Disk write: Set features (%#02x)\n", m_sRegs.bFeatures);
-
-                            switch (m_sRegs.bFeatures)
-                            {
-                                case 0x01:
-                                    TRACE(" Enable 8-bit data transfers\n");
-                                    m_f8bit = true;
-                                    break;
-
-                                case 0x66:
-                                    TRACE(" Use current features as defaults\n");
-                                    m_f8bitOnReset = m_f8bit;
-                                    break;
-
-                                case 0x81:
-                                    TRACE(" Disable 8-bit data transfers\n");
-                                    m_f8bit = false;
-                                    m_uBuffer = 0;  // just in case
-                                    break;
-
-                                case 0xcc:
-                                    TRACE(" Restoring power-on default features\n");
-                                    m_f8bitOnReset = false;
-                                    break;
-
-                                default:
-                                    TRACE(" !!! Unsupported feature!\n");
-                                    m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_ERROR;
-                                    m_sRegs.bError = ATA_ERROR_ABRT;
-                                    break;
-                            }
-                            break;
-
-                        default:
-                            TRACE("ATA: !!! Unrecognised command (%#02x)\n", bVal);
-                            m_sRegs.bStatus = ATA_STATUS_DRDY|ATA_STATUS_ERROR;
-                            m_sRegs.bError = ATA_ERROR_ABRT;
-
-                            break;
                     }
                     break;
+                    }
                 }
+            }
+
+            return;
+        }
+
+        case 1:
+            TRACE("ATA: WRITE features = %#02x\n", bVal);
+            m_sRegs.bFeatures = bVal;
+            break;
+
+        case 2:
+            TRACE("ATA: WRITE sector count = %#02x\n", bVal);
+            m_sRegs.bSectorCount = bVal;
+            break;
+
+        case 3:
+            TRACE("ATA: WRITE sector number = %#02x\n", bVal);
+            m_sRegs.bSector = bVal;
+            break;
+
+        case 4:
+            TRACE("ATA: WRITE cylinder low = %#02x\n", bVal);
+            m_sRegs.bCylinderLow = bVal;
+            break;
+
+        case 5:
+            TRACE("ATA: WRITE cylinder high = %#02x\n", bVal);
+            m_sRegs.bCylinderHigh = bVal;
+            break;
+
+        case 6:
+        {
+            TRACE("ATA: WRITE device/head = %#02x\n", bVal);
+            m_sRegs.bDeviceHead = bVal;
+
+            // Device ready and selected head settled
+            m_sRegs.bStatus = ATA_STATUS_DRDY | ATA_STATUS_DSC;
+        }
+        break;
+
+        case 7:
+        {
+            // Assume the command will succeed for now
+            m_sRegs.bStatus = ATA_STATUS_DRDY | ATA_STATUS_DSC;
+
+            // Clear the error register
+            m_sRegs.bError = 0;
+
+            // Ignore the command if it's not for our device, unless it's Execute Device Diagnostic
+            if (((m_sRegs.bDeviceHead ^ m_bDevice) & ATA_DEVICE_MASK) && m_sRegs.bCommand != 0x90)
                 break;
+
+            switch (m_sRegs.bCommand = bVal)
+            {
+            case 0x20:  // Read Sectors (with retries)
+            case 0x21:  // Read Sectors
+            case 0x40:  // Read Verify Sectors (with retries)
+            case 0x41:  // Read Verify Sectors
+            case 0xc4:  // Read Multiple
+            {
+                TRACE("ATA: Disk command: Read Sectors\n");
+
+                if (!ReadWriteSector(false))
+                {
+                    m_sRegs.bStatus |= ATA_STATUS_ERROR;
+                    m_sRegs.bError = ATA_ERROR_UNC;
+                    break;
+                }
+
+                // The data is only presented to the host if this is not a verify
+                if ((bVal & ~1) != 0x40)
+                {
+                    // Set the sector buffer pointer and how much we have available to read
+                    m_pbBuffer = m_abSectorData;
+                    m_uBuffer = sizeof(m_abSectorData);
+                }
+            }
+            break;
+
+            case 0x30:  // Write Sectors (with retries)
+            case 0x31:  // Write Sectors
+            case 0xc5:  // Write Multiple
+            {
+                TRACE("ATA: Disk command: Write Sectors\n");
+
+                // Clear the sector buffer and indicate we're ready to receive data
+                memset(&m_abSectorData, 0, sizeof(m_abSectorData));
+                m_sRegs.bStatus |= ATA_STATUS_DRQ;
+
+                // Set the sector buffer pointer and how much space we have available for writing
+                m_pbBuffer = m_abSectorData;
+                m_uBuffer = sizeof(m_abSectorData);
+            }
+            break;
+
+            case 0x90:
+                TRACE("ATA: Disk command: Execute Device Diagnostic\n");
+                m_sRegs.bError = 1;  // device 0 present, device 1 passed/absent
+                break;
+
+            case 0xe0:  // Standby Immediate
+            case 0xe2:  // Standby
+                TRACE("ATA: Disk command: Standby [Immediate]\n");
+                break;
+
+            case 0xe1:  // Idle Immediate
+            case 0xe3:  // Idle
+                TRACE("ATA: Disk command: Idle [Immediate]\n");
+                break;
+
+            case 0xe5:  // Check Power Mode
+                TRACE("ATA: Disk command: Check Power Mode\n");
+                m_sRegs.bSectorCount = 0xff;  // device is active
+                break;
+
+            case 0xe6:  // Sleep
+                TRACE("ATA: Disk command: Sleep\n");
+                break;
+
+            case 0xec:
+            {
+                TRACE("ATA: Disk command: IDENTIFY\n");
+                memcpy(&m_abSectorData, &m_sIdentify, sizeof(m_sIdentify));
+                m_pbBuffer = m_abSectorData;
+                m_uBuffer = sizeof(m_abSectorData);
+            }
+            break;
+
+            case 0xef:
+                TRACE("ATA: Disk write: Set features (%#02x)\n", m_sRegs.bFeatures);
+
+                switch (m_sRegs.bFeatures)
+                {
+                case 0x01:
+                    TRACE(" Enable 8-bit data transfers\n");
+                    m_f8bit = true;
+                    break;
+
+                case 0x66:
+                    TRACE(" Use current features as defaults\n");
+                    m_f8bitOnReset = m_f8bit;
+                    break;
+
+                case 0x81:
+                    TRACE(" Disable 8-bit data transfers\n");
+                    m_f8bit = false;
+                    m_uBuffer = 0;  // just in case
+                    break;
+
+                case 0xcc:
+                    TRACE(" Restoring power-on default features\n");
+                    m_f8bitOnReset = false;
+                    break;
 
                 default:
-                    TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
+                    TRACE(" !!! Unsupported feature!\n");
+                    m_sRegs.bStatus = ATA_STATUS_DRDY | ATA_STATUS_ERROR;
+                    m_sRegs.bError = ATA_ERROR_ABRT;
                     break;
+                }
+                break;
+
+            default:
+                TRACE("ATA: !!! Unrecognised command (%#02x)\n", bVal);
+                m_sRegs.bStatus = ATA_STATUS_DRDY | ATA_STATUS_ERROR;
+                m_sRegs.bError = ATA_ERROR_ABRT;
+
+                break;
             }
             break;
         }
+        break;
 
-        case ATA_CS1:
+        default:
+            TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
+            break;
+        }
+        break;
+    }
+
+    case ATA_CS1:
+    {
+        switch (wPort_ & ATA_DA_MASK)
         {
-            switch (wPort_ & ATA_DA_MASK)
+        case 6:
+        {
+            TRACE("ATA: Device control register set to %#02x\n", bVal);
+            m_sRegs.bDeviceControl = bVal;
+
+            // If SRST is set, perform a soft reset
+            if (m_sRegs.bDeviceControl & ATA_DCR_SRST)
             {
-                case 6:
-                {
-                    TRACE("ATA: Device control register set to %#02x\n", bVal);
-                    m_sRegs.bDeviceControl = bVal;
-
-                    // If SRST is set, perform a soft reset
-                    if (m_sRegs.bDeviceControl & ATA_DCR_SRST)
-                    {
-                        TRACE(" Performing software reset\n");
-                        Reset(true);
-                    }
-
-                    break;
-                }
-
-                default:
-                    TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
-                    break;
+                TRACE(" Performing software reset\n");
+                Reset(true);
             }
+
             break;
         }
 
         default:
             TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
             break;
+        }
+        break;
+    }
+
+    default:
+        TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
+        break;
     }
 }
 
 
-bool CATADevice::ReadWriteSector (bool fWrite_)
+bool CATADevice::ReadWriteSector(bool fWrite_)
 {
     UINT uSector = 0;
 
@@ -497,7 +497,7 @@ bool CATADevice::ReadWriteSector (bool fWrite_)
 }
 
 
-void CATADevice::SetIdentifyData (IDENTIFYDEVICE *pid_)
+void CATADevice::SetIdentifyData(IDENTIFYDEVICE* pid_)
 {
     // Do we have data to set?
     if (pid_)
@@ -529,9 +529,9 @@ void CATADevice::SetIdentifyData (IDENTIFYDEVICE *pid_)
 
     // Form an 8-character string from the current date, to use as firmware revision
     time_t tNow = time(nullptr);
-    tm *ptm = localtime(&tNow);
+    tm* ptm = localtime(&tNow);
     char szDate[64] = {};
-    snprintf(szDate, sizeof(szDate)-1, "%04u%02u%02u", ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);
+    snprintf(szDate, sizeof(szDate) - 1, "%04u%02u%02u", ptm->tm_year + 1900, ptm->tm_mon + 1, ptm->tm_mday);
 
     // Serial number, firmware revision and model number
     SetIdentifyString("", &m_sIdentify.word[10], 20);
@@ -542,16 +542,16 @@ void CATADevice::SetIdentifyData (IDENTIFYDEVICE *pid_)
     m_sIdentify.word[47] = 1;
 
     // LBA supported
-    m_sIdentify.word[49] = (1<<9);
+    m_sIdentify.word[49] = (1 << 9);
 
     // Current override CHS values
-    m_sIdentify.word[53] = (1<<0);
+    m_sIdentify.word[53] = (1 << 0);
     m_sIdentify.word[54] = m_sIdentify.word[1];
     m_sIdentify.word[55] = m_sIdentify.word[3];
     m_sIdentify.word[56] = m_sIdentify.word[6];
 
     // Max CHS sector count is just C*H*S with maximum values for each
-    UINT uMaxSectorsCHS = 16383*16*63;
+    UINT uMaxSectorsCHS = 16383 * 16 * 63;
     UINT uTotalSectorsCHS = (m_sGeometry.uTotalSectors > uMaxSectorsCHS) ? uMaxSectorsCHS : m_sGeometry.uTotalSectors;
     m_sIdentify.word[57] = static_cast<WORD>(uTotalSectorsCHS & 0xffff);
     m_sIdentify.word[58] = static_cast<WORD>((uTotalSectorsCHS >> 16) & 0xffff);
@@ -563,20 +563,20 @@ void CATADevice::SetIdentifyData (IDENTIFYDEVICE *pid_)
     m_sIdentify.word[61] = (uTotalSectorsLBA28 >> 16) & 0xffff;
 
     // Advertise CFA features, for 8-bit mode
-    m_sIdentify.word[83] |= (1<<2) | (1<<14);
-    m_sIdentify.word[84] |= (1<<14);
-    m_sIdentify.word[86] |= (1<<2);
-    m_sIdentify.word[87] |= (1<<14);
+    m_sIdentify.word[83] |= (1 << 2) | (1 << 14);
+    m_sIdentify.word[84] |= (1 << 14);
+    m_sIdentify.word[86] |= (1 << 2);
+    m_sIdentify.word[87] |= (1 << 14);
 }
 
 
 // Calculate a suitable CHS geometry covering the supplied number of sectors
-/*static*/ void CATADevice::CalculateGeometry (ATA_GEOMETRY* pg_)
+/*static*/ void CATADevice::CalculateGeometry(ATA_GEOMETRY* pg_)
 {
     UINT uCylinders, uHeads, uSectors;
 
     // If the sector count is exactly divisible by 16*63, use them for heads and sectors
-    if ((pg_->uTotalSectors % (16*63)) == 0)
+    if ((pg_->uTotalSectors % (16 * 63)) == 0)
     {
         uHeads = 16;
         uSectors = 63;
@@ -609,15 +609,15 @@ void CATADevice::SetIdentifyData (IDENTIFYDEVICE *pid_)
 }
 
 
-/*static*/ void CATADevice::SetIdentifyString (const char* pcszValue_, void *pv_, size_t cb_)
+/*static*/ void CATADevice::SetIdentifyString(const char* pcszValue_, void* pv_, size_t cb_)
 {
-    BYTE *pb = reinterpret_cast<BYTE*>(pv_);
+    BYTE* pb = reinterpret_cast<BYTE*>(pv_);
 
     // Fill with spaces, then copy the string over it (excluding the null terminator)
     memset(pb, ' ', cb_);
     memcpy(pb, pcszValue_, cb_ = strlen(pcszValue_));
 
     // Byte-swap the string for the expected endian
-    for (size_t i = 0 ; i < cb_ ; i += 2)
-        std::swap(pb[i], pb[i+1]);
+    for (size_t i = 0; i < cb_; i += 2)
+        std::swap(pb[i], pb[i + 1]);
 }

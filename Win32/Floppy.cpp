@@ -27,16 +27,16 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-unsigned int __stdcall FloppyThreadProc (void *pv_)
+unsigned int __stdcall FloppyThreadProc(void* pv_)
 {
     int nRet = reinterpret_cast<CFloppyStream*>(pv_)->ThreadProc();
     _endthreadex(nRet);
     return nRet;
 }
 
-bool Ioctl (HANDLE h_, DWORD dwCode_, LPVOID pIn_=nullptr, DWORD cbIn_=0, LPVOID pOut_=nullptr, DWORD cbOut_=0)
+bool Ioctl(HANDLE h_, DWORD dwCode_, LPVOID pIn_ = nullptr, DWORD cbIn_ = 0, LPVOID pOut_ = nullptr, DWORD cbOut_ = 0)
 {
-    if (DeviceIoControl(h_, dwCode_, pIn_,cbIn_, pOut_,cbOut_, &cbOut_, nullptr))
+    if (DeviceIoControl(h_, dwCode_, pIn_, cbIn_, pOut_, cbOut_, &cbOut_, nullptr))
         return true;
 
     TRACE("!!! Ioctl %lu failed with %#08lx\n", dwCode_, GetLastError());
@@ -45,7 +45,7 @@ bool Ioctl (HANDLE h_, DWORD dwCode_, LPVOID pIn_=nullptr, DWORD cbIn_=0, LPVOID
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/*static*/ bool CFloppyStream::IsSupported ()
+/*static*/ bool CFloppyStream::IsSupported()
 {
     bool fSupported = false;
 
@@ -73,13 +73,13 @@ bool Ioctl (HANDLE h_, DWORD dwCode_, LPVOID pIn_=nullptr, DWORD cbIn_=0, LPVOID
     return fSupported;
 }
 
-/*static*/ bool CFloppyStream::IsAvailable ()
+/*static*/ bool CFloppyStream::IsAvailable()
 {
 #ifdef HAVE_FDRAWCMD_H
     static DWORD dwVersion = 0x00000000, dwRet;
 
     // Open the global driver object
-    HANDLE h = CreateFile("\\\\.\\fdrawcmd", GENERIC_READ|GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+    HANDLE h = CreateFile("\\\\.\\fdrawcmd", GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
 
     if (h != INVALID_HANDLE_VALUE)
     {
@@ -95,25 +95,25 @@ bool Ioctl (HANDLE h_, DWORD dwCode_, LPVOID pIn_=nullptr, DWORD cbIn_=0, LPVOID
 #endif
 }
 
-/*static*/ bool CFloppyStream::IsRecognised (const char* pcszStream_)
+/*static*/ bool CFloppyStream::IsRecognised(const char* pcszStream_)
 {
     return !lstrcmpi(pcszStream_, "A:") || !lstrcmpi(pcszStream_, "B:");
 }
 
-CFloppyStream::CFloppyStream (const char* pcszDevice_, bool fReadOnly_)
-: CStream(pcszDevice_, fReadOnly_)
+CFloppyStream::CFloppyStream(const char* pcszDevice_, bool fReadOnly_)
+    : CStream(pcszDevice_, fReadOnly_)
 {
     if (IsAvailable())
     {
         const char* pcszDevice = !lstrcmpi(GetFile(), "A:") ? "\\\\.\\fdraw0" : "\\\\.\\fdraw1";
-        m_hDevice = CreateFile(pcszDevice, GENERIC_READ|GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+        m_hDevice = CreateFile(pcszDevice, GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
     }
 
     // Prepare defaults used when device is closed after use
     Close();
 }
 
-CFloppyStream::~CFloppyStream ()
+CFloppyStream::~CFloppyStream()
 {
     BYTE bStatus;
     IsBusy(&bStatus, true);
@@ -123,13 +123,13 @@ CFloppyStream::~CFloppyStream ()
 }
 
 
-void CFloppyStream::Close ()
+void CFloppyStream::Close()
 {
     m_uSectors = GetOption(stdfloppy) ? NORMAL_DISK_SECTORS : 0;
 }
 
 // Start a command executing asynchronously
-BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSectorIndex_)
+BYTE CFloppyStream::StartCommand(BYTE bCommand_, PTRACK pTrack_, UINT uSectorIndex_)
 {
     UINT uThreadId;
 
@@ -149,7 +149,7 @@ BYTE CFloppyStream::StartCommand (BYTE bCommand_, PTRACK pTrack_, UINT uSectorIn
 }
 
 // Get the status of the current asynchronous operation, if any
-bool CFloppyStream::IsBusy (BYTE* pbStatus_, bool fWait_)
+bool CFloppyStream::IsBusy(BYTE* pbStatus_, bool fWait_)
 {
     // Is the worker thread active?
     if (m_hThread)
@@ -174,7 +174,7 @@ bool CFloppyStream::IsBusy (BYTE* pbStatus_, bool fWait_)
 ///////////////////////////////////////////////////////////////////////////////
 
 // Read a single sector
-static BYTE ReadSector (HANDLE hDevice_, BYTE phead_, PSECTOR ps_)
+static BYTE ReadSector(HANDLE hDevice_, BYTE phead_, PSECTOR ps_)
 {
 #ifdef HAVE_FDRAWCMD_H
     BYTE bStatus = 0;
@@ -190,7 +190,7 @@ static BYTE ReadSector (HANDLE hDevice_, BYTE phead_, PSECTOR ps_)
     rwp.gap = 0x0a;
     rwp.datalen = 0xff;
 
-    if (!Ioctl(hDevice_, IOCTL_FDCMD_READ_DATA , &rwp, sizeof(rwp), ps_->pbData, 128 << (ps_->size & 7)))
+    if (!Ioctl(hDevice_, IOCTL_FDCMD_READ_DATA, &rwp, sizeof(rwp), ps_->pbData, 128 << (ps_->size & 7)))
         bStatus = (GetLastError() == ERROR_CRC) ? CRC_ERROR : RECORD_NOT_FOUND;
 
     FD_CMD_RESULT res;
@@ -204,10 +204,10 @@ static BYTE ReadSector (HANDLE hDevice_, BYTE phead_, PSECTOR ps_)
 }
 
 // Write a single sector
-static BYTE WriteSector (HANDLE hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
+static BYTE WriteSector(HANDLE hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
 {
 #ifdef HAVE_FDRAWCMD_H
-    PSECTOR ps = reinterpret_cast<PSECTOR>(pTrack_+1) + uSectorIndex_;
+    PSECTOR ps = reinterpret_cast<PSECTOR>(pTrack_ + 1) + uSectorIndex_;
 
     FD_READ_WRITE_PARAMS rwp;
     rwp.flags = FD_OPTION_MFM;
@@ -220,7 +220,7 @@ static BYTE WriteSector (HANDLE hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
     rwp.gap = 0x0a;
     rwp.datalen = 0xff;
 
-    if (!Ioctl(hDevice_, IOCTL_FDCMD_WRITE_DATA , &rwp, sizeof(rwp), ps->pbData, 128 << (ps->size & 7)))
+    if (!Ioctl(hDevice_, IOCTL_FDCMD_WRITE_DATA, &rwp, sizeof(rwp), ps->pbData, 128 << (ps->size & 7)))
     {
         if (GetLastError() == ERROR_WRITE_PROTECT)
             return WRITE_PROTECT;
@@ -237,18 +237,18 @@ static BYTE WriteSector (HANDLE hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
 }
 
 // Format a track
-static BYTE FormatTrack (HANDLE hDevice_, PTRACK pTrack_)
+static BYTE FormatTrack(HANDLE hDevice_, PTRACK pTrack_)
 {
 #ifdef HAVE_FDRAWCMD_H
     int i, step;
     BYTE bStatus = 0;
 
     // Prepare space for the variable-size structure - 64 sectors is plenty
-    BYTE ab[sizeof(FD_FORMAT_PARAMS)+64*sizeof(FD_ID_HEADER)] = {0};
+    BYTE ab[sizeof(FD_FORMAT_PARAMS) + 64 * sizeof(FD_ID_HEADER)] = { 0 };
     PFD_FORMAT_PARAMS pfp = reinterpret_cast<PFD_FORMAT_PARAMS>(ab);
 
     PTRACK pt = pTrack_;
-    PSECTOR ps = reinterpret_cast<PSECTOR>(pt+1);
+    PSECTOR ps = reinterpret_cast<PSECTOR>(pt + 1);
     UINT uSize = pt->sectors ? (128U << (ps->size & 7)) : 0;
 
     // Set up the format parameters
@@ -262,16 +262,16 @@ static BYTE FormatTrack (HANDLE hDevice_, PTRACK pTrack_)
     // If the track contains any sectors, the size/gap/fill are tuned for the size/content
     if (pt->sectors)
     {
-        UINT uGap = ((MAX_TRACK_SIZE-50) - (pt->sectors*(62+1+uSize))) / pt->sectors;
+        UINT uGap = ((MAX_TRACK_SIZE - 50) - (pt->sectors * (62 + 1 + uSize))) / pt->sectors;
         if (uGap > 46) uGap = 46;
 
         pfp->size = ps->size;
         pfp->gap = uGap;
-        pfp->fill = ps[pt->sectors-1].pbData[uSize-1];  // last byte of last sector used for fill byte
+        pfp->fill = ps[pt->sectors - 1].pbData[uSize - 1];  // last byte of last sector used for fill byte
     }
 
     // Prepare the sector headers to write
-    for (i = 0 ; i < pt->sectors ; i++)
+    for (i = 0; i < pt->sectors; i++)
     {
         pfp->Header[i].cyl = ps[i].cyl;
         pfp->Header[i].head = ps[i].head;
@@ -284,7 +284,7 @@ static BYTE FormatTrack (HANDLE hDevice_, PTRACK pTrack_)
         pfp->sectors++;
 
     // Format the track
-    if (!Ioctl(hDevice_, IOCTL_FDCMD_FORMAT_TRACK, pfp, sizeof(FD_FORMAT_PARAMS)+pfp->sectors*sizeof(FD_ID_HEADER)))
+    if (!Ioctl(hDevice_, IOCTL_FDCMD_FORMAT_TRACK, pfp, sizeof(FD_FORMAT_PARAMS) + pfp->sectors * sizeof(FD_ID_HEADER)))
     {
         if (GetLastError() == ERROR_WRITE_PROTECT)
             return WRITE_PROTECT;
@@ -294,12 +294,12 @@ static BYTE FormatTrack (HANDLE hDevice_, PTRACK pTrack_)
 
     // Write any in-place format data, as needed by Pro-Dos (and future mixed-sector sizes)
     // 2 interleaved passes over the track is better than risking missing the next sector each time
-    for (i = 0, step = 2 ; i < step ; i++)
+    for (i = 0, step = 2; i < step; i++)
     {
-        for (int j = i ; !bStatus && j < pt->sectors ; j += step)
+        for (int j = i; !bStatus && j < pt->sectors; j += step)
         {
             // Skip the write if the contents match the format filler
-            if (ps[j].pbData[0] == pfp->fill && !memcmp(ps[j].pbData, ps[j].pbData+1, uSize-1))
+            if (ps[j].pbData[0] == pfp->fill && !memcmp(ps[j].pbData, ps[j].pbData + 1, uSize - 1))
                 continue;
 
             // Write the sector
@@ -314,24 +314,24 @@ static BYTE FormatTrack (HANDLE hDevice_, PTRACK pTrack_)
 }
 
 // Read a simple track of consecutive sectors, which is fast if it matches what's on the disk
-static bool ReadSimpleTrack (HANDLE hDevice_, PTRACK pTrack_, UINT &ruSectors_)
+static bool ReadSimpleTrack(HANDLE hDevice_, PTRACK pTrack_, UINT& ruSectors_)
 {
 #ifdef HAVE_FDRAWCMD_H
     int i;
 
     PTRACK pt = pTrack_;
-    PSECTOR ps = (PSECTOR)(pt+1);
-    PBYTE pb = (PBYTE)(ps+(pt->sectors=ruSectors_));
+    PSECTOR ps = (PSECTOR)(pt + 1);
+    PBYTE pb = (PBYTE)(ps + (pt->sectors = ruSectors_));
 
     // Prepare the normal track container
-    for (i = 0 ; i < pt->sectors ; i++)
+    for (i = 0; i < pt->sectors; i++)
     {
         ps[i].cyl = pt->cyl;
         ps[i].head = pt->head;
-        ps[i].sector = i+1;
+        ps[i].sector = i + 1;
         ps[i].size = 2;
         ps[i].status = 0;
-        ps[i].pbData = pb + i*NORMAL_SECTOR_SIZE;
+        ps[i].pbData = pb + i * NORMAL_SECTOR_SIZE;
     }
 
     // Attempt the full track in a single read
@@ -346,7 +346,7 @@ static bool ReadSimpleTrack (HANDLE hDevice_, PTRACK pTrack_, UINT &ruSectors_)
     rwp.gap = 0x0a;
     rwp.datalen = 0xff;
 
-    if (Ioctl(hDevice_, IOCTL_FDCMD_READ_DATA , &rwp, sizeof(rwp), ps->pbData, pt->sectors*NORMAL_SECTOR_SIZE))
+    if (Ioctl(hDevice_, IOCTL_FDCMD_READ_DATA, &rwp, sizeof(rwp), ps->pbData, pt->sectors * NORMAL_SECTOR_SIZE))
         return true;
 
     // Accept blank tracks as normal
@@ -379,10 +379,10 @@ static bool ReadSimpleTrack (HANDLE hDevice_, PTRACK pTrack_, UINT &ruSectors_)
 }
 
 // Read a custom track format, which is slower but more thorough
-static bool ReadCustomTrack (HANDLE hDevice_, PTRACK pTrack_)
+static bool ReadCustomTrack(HANDLE hDevice_, PTRACK pTrack_)
 {
 #ifdef HAVE_FDRAWCMD_H
-    BYTE abScan[1+64*sizeof(FD_SCAN_RESULT)];
+    BYTE abScan[1 + 64 * sizeof(FD_SCAN_RESULT)];
     PFD_SCAN_RESULT psr = (PFD_SCAN_RESULT)abScan;
 
     // Scan the track layout
@@ -391,13 +391,13 @@ static bool ReadCustomTrack (HANDLE hDevice_, PTRACK pTrack_)
         return false;
 
     PTRACK pt = pTrack_;
-    PSECTOR ps = (PSECTOR)(pt+1);
-    PBYTE pb = (PBYTE)(ps+(pt->sectors = psr->count));
+    PSECTOR ps = (PSECTOR)(pt + 1);
+    PBYTE pb = (PBYTE)(ps + (pt->sectors = psr->count));
 
     // Read the sectors in 2 interleaved passes
-    for (int i = 0, step = 2 ; i < step ; i++)
+    for (int i = 0, step = 2; i < step; i++)
     {
-        for (int j = i ; j < pt->sectors ; j += step)
+        for (int j = i; j < pt->sectors; j += step)
         {
             ps[j].cyl = psr->Header[j].cyl;
             ps[j].head = psr->Header[j].head;
@@ -418,7 +418,7 @@ static bool ReadCustomTrack (HANDLE hDevice_, PTRACK pTrack_)
 #endif
 }
 
-unsigned long CFloppyStream::ThreadProc ()
+unsigned long CFloppyStream::ThreadProc()
 {
 #ifdef HAVE_FDRAWCMD_H
     FD_SEEK_PARAMS sp = { m_pTrack->cyl, m_pTrack->head };
@@ -427,31 +427,31 @@ unsigned long CFloppyStream::ThreadProc ()
     switch (m_bCommand)
     {
         // Load track contents
-        case READ_MSECTOR:
-            // If we're in regular mode, try a simple read for all sectors
-            if (m_uSectors)
-                ReadSimpleTrack(m_hDevice, m_pTrack, m_uSectors);
+    case READ_MSECTOR:
+        // If we're in regular mode, try a simple read for all sectors
+        if (m_uSectors)
+            ReadSimpleTrack(m_hDevice, m_pTrack, m_uSectors);
 
-            // If we're not in regular mode, scan and read individual sectors (slower)
-            if (!m_uSectors)
-                ReadCustomTrack(m_hDevice, m_pTrack);
+        // If we're not in regular mode, scan and read individual sectors (slower)
+        if (!m_uSectors)
+            ReadCustomTrack(m_hDevice, m_pTrack);
 
-            break;
+        break;
 
         // Write a sector
-        case WRITE_1SECTOR:
-            m_bStatus = WriteSector(m_hDevice, m_pTrack, m_uSectorIndex);
-            break;
+    case WRITE_1SECTOR:
+        m_bStatus = WriteSector(m_hDevice, m_pTrack, m_uSectorIndex);
+        break;
 
         // Format track
-        case WRITE_TRACK:
-            m_bStatus = FormatTrack(m_hDevice, m_pTrack);
-            break;
+    case WRITE_TRACK:
+        m_bStatus = FormatTrack(m_hDevice, m_pTrack);
+        break;
 
-        default:
-            TRACE("!!! ThreadProc: unknown command (%u)\n", m_bCommand);
-            m_bStatus = LOST_DATA;
-            break;
+    default:
+        TRACE("!!! ThreadProc: unknown command (%u)\n", m_bCommand);
+        m_bStatus = LOST_DATA;
+        break;
     }
 #endif
 

@@ -50,11 +50,11 @@ static POINT ptCentre;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static bool InitKeyboard ();
-static bool InitJoysticks ();
+static bool InitKeyboard();
+static bool InitJoysticks();
 
 
-bool Input::Init (bool fFirstInit_/*=false*/)
+bool Input::Init(bool fFirstInit_/*=false*/)
 {
     bool fRet = false;
 
@@ -80,7 +80,7 @@ bool Input::Init (bool fFirstInit_/*=false*/)
 }
 
 
-void Input::Exit (bool fReInit_/*=false*/)
+void Input::Exit(bool fReInit_/*=false*/)
 {
     TRACE("Input::Exit(%d)\n", fReInit_);
 
@@ -93,7 +93,7 @@ void Input::Exit (bool fReInit_/*=false*/)
 }
 
 
-bool InitKeyboard ()
+bool InitKeyboard()
 {
     HRESULT hr;
     if (FAILED(hr = pdi->CreateDevice(GUID_SysKeyboard, &pdiKeyboard, nullptr)))
@@ -116,7 +116,7 @@ bool InitKeyboard ()
 }
 
 
-BOOL CALLBACK EnumJoystickProc (LPCDIDEVICEINSTANCE pdiDevice_, LPVOID lpv_)
+BOOL CALLBACK EnumJoystickProc(LPCDIDEVICEINSTANCE pdiDevice_, LPVOID lpv_)
 {
     HRESULT hr;
 
@@ -139,7 +139,7 @@ BOOL CALLBACK EnumJoystickProc (LPCDIDEVICEINSTANCE pdiDevice_, LPVOID lpv_)
             IDirectInputDevice2* pDevice;
 
             // We need an IDirectInputDevice2 interface for polling, so query for it
-            if (FAILED(hr = pdiJoystick->QueryInterface(IID_IDirectInputDevice2, reinterpret_cast<void **>(&pDevice))))
+            if (FAILED(hr = pdiJoystick->QueryInterface(IID_IDirectInputDevice2, reinterpret_cast<void**>(&pDevice))))
                 TRACE("!!! Failed to query joystick for IID_IDirectInputDevice2 (%#08lx)\n", hr);
 
             // If the device name matches the joystick 1 device name, save a pointer to it
@@ -163,7 +163,7 @@ BOOL CALLBACK EnumJoystickProc (LPCDIDEVICEINSTANCE pdiDevice_, LPVOID lpv_)
 }
 
 
-bool InitJoystick (LPDIRECTINPUTDEVICE2 &pJoystick_)
+bool InitJoystick(LPDIRECTINPUTDEVICE2& pJoystick_)
 {
     HRESULT hr;
 
@@ -180,7 +180,7 @@ bool InitJoystick (LPDIRECTINPUTDEVICE2 &pJoystick_)
 
         int anAxes[] = { DIJOFS_X, DIJOFS_Y, DIJOFS_RX, DIJOFS_RY };
 
-        for (int i = 0 ; i < _countof(anAxes) ; i++)
+        for (int i = 0; i < _countof(anAxes); i++)
         {
             diPdw.diph.dwObj = diPrg.diph.dwObj = anAxes[i];
 
@@ -201,7 +201,7 @@ bool InitJoystick (LPDIRECTINPUTDEVICE2 &pJoystick_)
 }
 
 
-bool InitJoysticks ()
+bool InitJoysticks()
 {
     HRESULT hr;
 
@@ -218,13 +218,13 @@ bool InitJoysticks ()
 
 
 // Return whether the emulation is using the mouse
-bool Input::IsMouseAcquired ()
+bool Input::IsMouseAcquired()
 {
     return fMouseActive;
 }
 
 
-void Input::AcquireMouse (bool fAcquire_)
+void Input::AcquireMouse(bool fAcquire_)
 {
     // Ignore if no state change
     if (fMouseActive == fAcquire_)
@@ -241,7 +241,7 @@ void Input::AcquireMouse (bool fAcquire_)
 
         // Calculate the centre position and move the cursor there
         ptCentre.x = r.left + (r.right - r.left) / 2;
-        ptCentre.y = r.top  + (r.bottom - r.top) / 2;
+        ptCentre.y = r.top + (r.bottom - r.top) / 2;
         SetCursorPos(ptCentre.x, ptCentre.y);
 
         // Confine the cursor to the client area so fast mouse movements don't escape
@@ -252,7 +252,7 @@ void Input::AcquireMouse (bool fAcquire_)
 }
 
 
-void Input::Purge ()
+void Input::Purge()
 {
     // Purge queued keyboard items
     if (pdiKeyboard && SUCCEEDED(pdiKeyboard->Acquire()))
@@ -266,7 +266,7 @@ void Input::Purge ()
 }
 
 
-void ReadKeyboard ()
+void ReadKeyboard()
 {
     if (pdiKeyboard && SUCCEEDED(pdiKeyboard->Acquire()))
     {
@@ -275,7 +275,7 @@ void ReadKeyboard ()
 
         if (SUCCEEDED(pdiKeyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), abEvents, &dwItems, 0)))
         {
-            for (DWORD i = 0 ; i < dwItems ; i++)
+            for (DWORD i = 0; i < dwItems; i++)
             {
                 int nScanCode = abEvents[i].dwOfs;
                 bool fPressed = !!(abEvents[i].dwData & 0x80);
@@ -287,7 +287,7 @@ void ReadKeyboard ()
     }
 }
 
-void ReadJoystick (int nJoystick_, LPDIRECTINPUTDEVICE2 pDevice_)
+void ReadJoystick(int nJoystick_, LPDIRECTINPUTDEVICE2 pDevice_)
 {
     HRESULT hr;
     int i;
@@ -307,7 +307,7 @@ void ReadJoystick (int nJoystick_, LPDIRECTINPUTDEVICE2 pDevice_)
     int nPosition = HJ_CENTRE;
 
     // Combine the states of all buttons so any button works as fire
-    for (i = 0 ; i < _countof(dijs.rgbButtons) ; i++)
+    for (i = 0; i < _countof(dijs.rgbButtons); i++)
     {
         if (dijs.rgbButtons[i] & 0x80)
             dwButtons |= (1 << i);
@@ -320,16 +320,16 @@ void ReadJoystick (int nJoystick_, LPDIRECTINPUTDEVICE2 pDevice_)
     if (dijs.lY > 0 || dijs.lRy > 0) nPosition |= HJ_DOWN;
 
     // Consider all hat positions too
-    for (i = 0 ; i < _countof(dijs.rgdwPOV) ; i++)
+    for (i = 0; i < _countof(dijs.rgdwPOV); i++)
     {
-        static int an[] = { HJ_UP, HJ_UP|HJ_RIGHT, HJ_RIGHT, HJ_DOWN|HJ_RIGHT, HJ_DOWN, HJ_DOWN|HJ_LEFT, HJ_LEFT, HJ_UP|HJ_LEFT };
+        static int an[] = { HJ_UP, HJ_UP | HJ_RIGHT, HJ_RIGHT, HJ_DOWN | HJ_RIGHT, HJ_DOWN, HJ_DOWN | HJ_LEFT, HJ_LEFT, HJ_UP | HJ_LEFT };
 
         // For best driver compatibility, only check the low WORD for the centre position
         if (LOWORD(dijs.rgdwPOV[i]) == 0xffff)
             continue;
 
         // Round the position and determine which of the 8 directions it's pointing
-        int nPos = ((dijs.rgdwPOV[i] + 4500/2) / 4500) & 7;
+        int nPos = ((dijs.rgdwPOV[i] + 4500 / 2) / 4500) & 7;
         nPosition |= an[nPos];
     }
 
@@ -339,7 +339,7 @@ void ReadJoystick (int nJoystick_, LPDIRECTINPUTDEVICE2 pDevice_)
 
 
 // Update the keyboard and joystick inputs
-void Input::Update ()
+void Input::Update()
 {
     // Update native keyboard state
     ReadKeyboard();
@@ -354,7 +354,7 @@ void Input::Update ()
 
 
 // Send a mouse message to the GUI, after mapping the mouse position to the SAM screen
-bool SendGuiMouseMessage (int nMessage_, POINT *ppt_)
+bool SendGuiMouseMessage(int nMessage_, POINT* ppt_)
 {
     // Map from display position to SAM screen position
     int nX = ppt_->x, nY = ppt_->y;
@@ -364,7 +364,7 @@ bool SendGuiMouseMessage (int nMessage_, POINT *ppt_)
     return GUI::SendMessage(nMessage_, nX, nY);
 }
 
-bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
+bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     // Mouse button decoder table, from the lower 3 bits of the Windows message values
     static int anMouseButtons[] = { 2, 1, 1, 0, 3, 3, 0, 2 };
@@ -376,158 +376,158 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
     switch (uMsg_)
     {
         // Input language has changed - reinitialise input to pick up the new mappings
-        case WM_INPUTLANGCHANGE:
-            Init();
-            break;
+    case WM_INPUTLANGCHANGE:
+        Init();
+        break;
 
         // Release the mouse and purge keyboard input on activation changes
-        case WM_ACTIVATE:
-            AcquireMouse(false);
-            Purge();
-            break;
+    case WM_ACTIVATE:
+        AcquireMouse(false);
+        Purge();
+        break;
 
         // Release the mouse on entering the menu
-        case WM_ENTERMENULOOP:
-            AcquireMouse(false);
-            Purge();	// needed to avoid Alt-X menu shortcuts from being seen
+    case WM_ENTERMENULOOP:
+        AcquireMouse(false);
+        Purge();    // needed to avoid Alt-X menu shortcuts from being seen
+        break;
+
+    case WM_MOUSEMOVE:
+    {
+        // If the GUI is active, pass the message to it
+        if (GUI::IsActive())
+        {
+            SendGuiMouseMessage(GM_MOUSEMOVE, &pt);
+            break;
+        }
+
+        // Otherwise the SAM mouse must be active for it to be of interest
+        else if (!fMouseActive)
             break;
 
-        case WM_MOUSEMOVE:
+        // Work out the relative movement since last time
+        POINT ptCursor;
+        GetCursorPos(&ptCursor);
+        int nX = ptCursor.x - ptCentre.x, nY = ptCursor.y - ptCentre.y;
+
+        // Any native movement?
+        if (nX || nY)
         {
-            // If the GUI is active, pass the message to it
-            if (GUI::IsActive())
-            {
-                SendGuiMouseMessage(GM_MOUSEMOVE, &pt);
-                break;
-            }
+            Video::DisplayToSamSize(&nX, &nY);
 
-            // Otherwise the SAM mouse must be active for it to be of interest
-            else if (!fMouseActive)
-                break;
-
-            // Work out the relative movement since last time
-            POINT ptCursor;
-            GetCursorPos(&ptCursor);
-            int nX = ptCursor.x - ptCentre.x, nY = ptCursor.y - ptCentre.y;
-
-            // Any native movement?
+            // Any SAM movement?
             if (nX || nY)
             {
-                Video::DisplayToSamSize(&nX, &nY);
-
-                // Any SAM movement?
-                if (nX || nY)
-                {
-                    // Update the SAM mouse and re-centre the cursor
-                    pMouse->Move(nX, -nY);
-                    SetCursorPos(ptCentre.x, ptCentre.y);
-                }
+                // Update the SAM mouse and re-centre the cursor
+                pMouse->Move(nX, -nY);
+                SetCursorPos(ptCentre.x, ptCentre.y);
             }
-            break;
         }
+        break;
+    }
 
-        case WM_LBUTTONDOWN:
-        case WM_RBUTTONDOWN:
-        case WM_MBUTTONDOWN:
-        case WM_LBUTTONDBLCLK:
+    case WM_LBUTTONDOWN:
+    case WM_RBUTTONDOWN:
+    case WM_MBUTTONDOWN:
+    case WM_LBUTTONDBLCLK:
+    {
+        // The GUI gets first chance to process the message
+        if (GUI::IsActive())
+            SendGuiMouseMessage(GM_BUTTONDOWN, &pt);
+
+        // If the mouse is already active, pass on button presses
+        else if (fMouseActive)
+            pMouse->SetButton(anMouseButtons[uMsg_ & 0x7], true);
+
+        // If the mouse interface is enabled and being read by something other than the ROM, a left-click acquires it
+        // Otherwise a double-click is required to forcibly acquire it
+        else if (GetOption(mouse) && ((uMsg_ == WM_LBUTTONDOWN && pMouse->IsActive()) || uMsg_ == WM_LBUTTONDBLCLK))
+            AcquireMouse(true);
+
+        break;
+    }
+
+    case WM_LBUTTONUP:
+    case WM_RBUTTONUP:
+    case WM_MBUTTONUP:
+    {
+        // The GUI gets first chance to process the message
+        if (GUI::IsActive())
+            SendGuiMouseMessage(GM_BUTTONUP, &pt);
+
+        // Pass the button release through to the mouse module
+        else if (fMouseActive)
+            pMouse->SetButton(anMouseButtons[uMsg_ & 0x7], false);
+
+        break;
+    }
+
+    case WM_MOUSEWHEEL:
+        if (GUI::IsActive())
+            GUI::SendMessage(GM_MOUSEWHEEL, (GET_WHEEL_DELTA_WPARAM(wParam_) < 0) ? 1 : -1);
+
+        break;
+
+    case WM_CHAR:
+    case WM_KEYDOWN:
+    {
+        if (!GUI::IsActive())
         {
-            // The GUI gets first chance to process the message
-            if (GUI::IsActive())
-                SendGuiMouseMessage(GM_BUTTONDOWN, &pt);
+            // If escape is pressed, release mouse capture and stop any auto-typing
+            if (wParam_ == VK_ESCAPE && GetOption(mouseesc))
+            {
+                AcquireMouse(false);
+                Keyin::Stop();
+            }
 
-            // If the mouse is already active, pass on button presses
-            else if (fMouseActive)
-                pMouse->SetButton(anMouseButtons[uMsg_ & 0x7], true);
-
-            // If the mouse interface is enabled and being read by something other than the ROM, a left-click acquires it
-            // Otherwise a double-click is required to forcibly acquire it
-            else if (GetOption(mouse) && ((uMsg_ == WM_LBUTTONDOWN &&  pMouse->IsActive()) || uMsg_ == WM_LBUTTONDBLCLK))
-                AcquireMouse(true);
-
-            break;
+            // Ignore key repeats for non-GUI keys
+            return !!(lParam_ & 0x40000000);
         }
 
-        case WM_LBUTTONUP:
-        case WM_RBUTTONUP:
-        case WM_MBUTTONUP:
+        // Determine the current shift states
+        int nMods = HM_NONE;
+        if (GetKeyState(VK_SHIFT) < 0)   nMods |= HM_SHIFT;
+        if (GetKeyState(VK_CONTROL) < 0) nMods |= HM_CTRL;
+
+        // Regular characters
+        if (uMsg_ == WM_CHAR)
         {
-            // The GUI gets first chance to process the message
-            if (GUI::IsActive())
-                SendGuiMouseMessage(GM_BUTTONUP, &pt);
-
-            // Pass the button release through to the mouse module
-            else if (fMouseActive)
-                pMouse->SetButton(anMouseButtons[uMsg_ & 0x7], false);
-
+            GUI::SendMessage(GM_CHAR, static_cast<int>(wParam_), nMods);
             break;
         }
 
-        case WM_MOUSEWHEEL:
-            if (GUI::IsActive())
-                GUI::SendMessage(GM_MOUSEWHEEL, (GET_WHEEL_DELTA_WPARAM(wParam_) < 0) ? 1 : -1);
+        // Ctrl-letter/digit
+        else if ((nMods & HM_CTRL) && (wParam_ >= 'A' && wParam_ <= 'Z' || wParam_ >= '0' && wParam_ <= '9'))
+            GUI::SendMessage(GM_CHAR, int(wParam_), nMods);
 
-            break;
+        // Keypad digits
+        else if (wParam_ >= VK_NUMPAD0 && wParam_ <= VK_NUMPAD9)
+            GUI::SendMessage(GM_CHAR, HK_KP0 + static_cast<int>(wParam_) - VK_NUMPAD0, nMods);
 
-        case WM_CHAR:
-        case WM_KEYDOWN:
+        // Keypad symbols
+        else if (wParam_ >= VK_MULTIPLY && wParam_ <= VK_DIVIDE)
         {
-            if (!GUI::IsActive())
-            {
-                // If escape is pressed, release mouse capture and stop any auto-typing
-                if (wParam_ == VK_ESCAPE && GetOption(mouseesc))
-                {
-                    AcquireMouse(false);
-                    Keyin::Stop();
-                }
-
-                // Ignore key repeats for non-GUI keys
-                return !!(lParam_ & 0x40000000);
-            }
-
-            // Determine the current shift states
-            int nMods = HM_NONE;
-            if (GetKeyState(VK_SHIFT) < 0)   nMods |= HM_SHIFT;
-            if (GetKeyState(VK_CONTROL) < 0) nMods |= HM_CTRL;
-
-            // Regular characters
-            if (uMsg_ == WM_CHAR)
-            {
-                GUI::SendMessage(GM_CHAR, static_cast<int>(wParam_), nMods);
-                break;
-            }
-
-            // Ctrl-letter/digit
-            else if ((nMods & HM_CTRL) && (wParam_ >= 'A' && wParam_ <= 'Z' || wParam_ >= '0' && wParam_ <= '9'))
-                GUI::SendMessage(GM_CHAR, int(wParam_), nMods);
-
-            // Keypad digits
-            else if (wParam_ >= VK_NUMPAD0 && wParam_ <= VK_NUMPAD9)
-                GUI::SendMessage(GM_CHAR, HK_KP0 + static_cast<int>(wParam_)-VK_NUMPAD0, nMods);
-
-            // Keypad symbols
-            else if (wParam_ >= VK_MULTIPLY && wParam_ <= VK_DIVIDE)
-            {
-                static int an[] = { HK_KPMULT, HK_KPPLUS, HK_RETURN, HK_KPMINUS, HK_KPDECIMAL, HK_KPDIVIDE };
-                GUI::SendMessage(GM_CHAR, an[wParam_ - VK_MULTIPLY], nMods);
-            }
-
-            // Cursor keys + navigation cluster
-            else if (wParam_ >= VK_PRIOR && wParam_ <= VK_DOWN)
-            {
-                static int an[] = { HK_PGUP, HK_PGDN, HK_END, HK_HOME, HK_LEFT, HK_UP, HK_RIGHT, HK_DOWN };
-                GUI::SendMessage(GM_CHAR, an[wParam_-VK_PRIOR], nMods);
-            }
-
-            // Delete
-            else if (wParam_ == VK_DELETE)
-                GUI::SendMessage(GM_CHAR, HK_DELETE, nMods);
-
-            // Not processed here, but may come back through decoded as WM_CHAR
-            else
-                return true;
-
-            return false;
+            static int an[] = { HK_KPMULT, HK_KPPLUS, HK_RETURN, HK_KPMINUS, HK_KPDECIMAL, HK_KPDIVIDE };
+            GUI::SendMessage(GM_CHAR, an[wParam_ - VK_MULTIPLY], nMods);
         }
+
+        // Cursor keys + navigation cluster
+        else if (wParam_ >= VK_PRIOR && wParam_ <= VK_DOWN)
+        {
+            static int an[] = { HK_PGUP, HK_PGDN, HK_END, HK_HOME, HK_LEFT, HK_UP, HK_RIGHT, HK_DOWN };
+            GUI::SendMessage(GM_CHAR, an[wParam_ - VK_PRIOR], nMods);
+        }
+
+        // Delete
+        else if (wParam_ == VK_DELETE)
+            GUI::SendMessage(GM_CHAR, HK_DELETE, nMods);
+
+        // Not processed here, but may come back through decoded as WM_CHAR
+        else
+            return true;
+
+        return false;
+    }
     }
 
     // Message not processed
@@ -536,7 +536,7 @@ bool Input::FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam
 
 
 // Fill the supplied combo-box with the list of connected joysticks
-void Input::FillJoystickCombo (HWND hwndCombo_)
+void Input::FillJoystickCombo(HWND hwndCombo_)
 {
     HRESULT hr;
     if (FAILED(hr = pdi->EnumDevices(DIDEVTYPE_JOYSTICK, EnumJoystickProc, reinterpret_cast<LPVOID>(hwndCombo_), DIEDFL_ATTACHEDONLY)))
@@ -545,7 +545,7 @@ void Input::FillJoystickCombo (HWND hwndCombo_)
 
 
 // Map a character to the native code and key modifiers needed to generate it
-int Input::MapChar (int nChar_, int *pnMods_)
+int Input::MapChar(int nChar_, int* pnMods_)
 {
     if (!nChar_)
         return 0;
@@ -572,67 +572,67 @@ int Input::MapChar (int nChar_, int *pnMods_)
     // Host keycode
     switch (nChar_)
     {
-        case HK_LSHIFT:		return DIK_LSHIFT;
-        case HK_RSHIFT:		return DIK_RSHIFT;
-        case HK_LCTRL:		return DIK_LCONTROL;
-        case HK_RCTRL:		return DIK_RCONTROL;
-        case HK_LALT:		return DIK_LMENU;
-        case HK_RALT:		return DIK_RMENU;
-        case HK_LWIN:		return DIK_LWIN;
-        case HK_RWIN:		return DIK_RWIN;
+    case HK_LSHIFT:     return DIK_LSHIFT;
+    case HK_RSHIFT:     return DIK_RSHIFT;
+    case HK_LCTRL:      return DIK_LCONTROL;
+    case HK_RCTRL:      return DIK_RCONTROL;
+    case HK_LALT:       return DIK_LMENU;
+    case HK_RALT:       return DIK_RMENU;
+    case HK_LWIN:       return DIK_LWIN;
+    case HK_RWIN:       return DIK_RWIN;
 
-        case HK_LEFT:		return DIK_LEFT;
-        case HK_RIGHT:		return DIK_RIGHT;
-        case HK_UP:			return DIK_UP;
-        case HK_DOWN:		return DIK_DOWN;
+    case HK_LEFT:       return DIK_LEFT;
+    case HK_RIGHT:      return DIK_RIGHT;
+    case HK_UP:         return DIK_UP;
+    case HK_DOWN:       return DIK_DOWN;
 
-        case HK_KP0:		return DIK_NUMPAD0;
-        case HK_KP1:		return DIK_NUMPAD1;
-        case HK_KP2:		return DIK_NUMPAD2;
-        case HK_KP3:		return DIK_NUMPAD3;
-        case HK_KP4:		return DIK_NUMPAD4;
-        case HK_KP5:		return DIK_NUMPAD5;
-        case HK_KP6:		return DIK_NUMPAD6;
-        case HK_KP7:		return DIK_NUMPAD7;
-        case HK_KP8:		return DIK_NUMPAD8;
-        case HK_KP9:		return DIK_NUMPAD9;
+    case HK_KP0:        return DIK_NUMPAD0;
+    case HK_KP1:        return DIK_NUMPAD1;
+    case HK_KP2:        return DIK_NUMPAD2;
+    case HK_KP3:        return DIK_NUMPAD3;
+    case HK_KP4:        return DIK_NUMPAD4;
+    case HK_KP5:        return DIK_NUMPAD5;
+    case HK_KP6:        return DIK_NUMPAD6;
+    case HK_KP7:        return DIK_NUMPAD7;
+    case HK_KP8:        return DIK_NUMPAD8;
+    case HK_KP9:        return DIK_NUMPAD9;
 
-        case HK_F1:			return DIK_F1;
-        case HK_F2:			return DIK_F2;
-        case HK_F3:			return DIK_F3;
-        case HK_F4:			return DIK_F4;
-        case HK_F5:			return DIK_F5;
-        case HK_F6:			return DIK_F6;
-        case HK_F7:			return DIK_F7;
-        case HK_F8:			return DIK_F8;
-        case HK_F9:			return DIK_F9;
-        case HK_F10:		return DIK_F10;
-        case HK_F11:		return DIK_F11;
-        case HK_F12:		return DIK_F12;
+    case HK_F1:         return DIK_F1;
+    case HK_F2:         return DIK_F2;
+    case HK_F3:         return DIK_F3;
+    case HK_F4:         return DIK_F4;
+    case HK_F5:         return DIK_F5;
+    case HK_F6:         return DIK_F6;
+    case HK_F7:         return DIK_F7;
+    case HK_F8:         return DIK_F8;
+    case HK_F9:         return DIK_F9;
+    case HK_F10:        return DIK_F10;
+    case HK_F11:        return DIK_F11;
+    case HK_F12:        return DIK_F12;
 
-        case HK_CAPSLOCK:	return DIK_CAPITAL;
-        case HK_NUMLOCK:	return DIK_NUMLOCK;
-        case HK_KPPLUS:		return DIK_ADD;
-        case HK_KPMINUS:	return DIK_SUBTRACT;
-        case HK_KPMULT:		return DIK_MULTIPLY;
-        case HK_KPDIVIDE:	return DIK_DIVIDE;
-        case HK_KPENTER:	return DIK_NUMPADENTER;
-        case HK_KPDECIMAL:	return DIK_DECIMAL;
+    case HK_CAPSLOCK:   return DIK_CAPITAL;
+    case HK_NUMLOCK:    return DIK_NUMLOCK;
+    case HK_KPPLUS:     return DIK_ADD;
+    case HK_KPMINUS:    return DIK_SUBTRACT;
+    case HK_KPMULT:     return DIK_MULTIPLY;
+    case HK_KPDIVIDE:   return DIK_DIVIDE;
+    case HK_KPENTER:    return DIK_NUMPADENTER;
+    case HK_KPDECIMAL:  return DIK_DECIMAL;
 
-        case HK_INSERT:		return DIK_INSERT;
-        case HK_DELETE:		return DIK_DELETE;
-        case HK_HOME:		return DIK_HOME;
-        case HK_END:		return DIK_END;
-        case HK_PGUP:		return DIK_PRIOR;
-        case HK_PGDN:		return DIK_NEXT;
+    case HK_INSERT:     return DIK_INSERT;
+    case HK_DELETE:     return DIK_DELETE;
+    case HK_HOME:       return DIK_HOME;
+    case HK_END:        return DIK_END;
+    case HK_PGUP:       return DIK_PRIOR;
+    case HK_PGDN:       return DIK_NEXT;
 
-        case HK_ESC:		return DIK_ESCAPE;
-        case HK_TAB:		return DIK_TAB;
-        case HK_BACKSPACE:	return DIK_BACK;
-        case HK_RETURN:		return DIK_RETURN;
+    case HK_ESC:        return DIK_ESCAPE;
+    case HK_TAB:        return DIK_TAB;
+    case HK_BACKSPACE:  return DIK_BACK;
+    case HK_RETURN:     return DIK_RETURN;
 
-        case HK_APPS:		return DIK_APPS;
-        case HK_NONE:		return 0;
+    case HK_APPS:       return DIK_APPS;
+    case HK_NONE:       return 0;
     }
 
     return 0;

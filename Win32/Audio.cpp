@@ -30,8 +30,8 @@
 #include "UI.h"
 
 // Direct sound interface and primary buffer pointers
-static IDirectSound *pds;
-static IDirectSoundBuffer *pdsb;
+static IDirectSound* pds;
+static IDirectSoundBuffer* pdsb;
 static int nSampleBufferSize;
 static DWORD dwWriteOffset;
 
@@ -39,14 +39,14 @@ static HANDLE hEvent;
 static MMRESULT hTimer;
 static DWORD dwTimer;
 
-static bool InitDirectSound ();
-static void ExitDirectSound ();
-static void CALLBACK TimeCallback (UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR);
+static bool InitDirectSound();
+static void ExitDirectSound();
+static void CALLBACK TimeCallback(UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR);
 
 ////////////////////////////////////////////////////////////////////////////////
 
 
-bool Audio::Init (bool fFirstInit_/*=false*/)
+bool Audio::Init(bool fFirstInit_/*=false*/)
 {
     Exit(true);
     TRACE("-> Audio::Init(%s)\n", fFirstInit_ ? "first" : "");
@@ -69,7 +69,7 @@ bool Audio::Init (bool fFirstInit_/*=false*/)
     return true;
 }
 
-void Audio::Exit (bool fReInit_/*=false*/)
+void Audio::Exit(bool fReInit_/*=false*/)
 {
     TRACE("-> Audio::Exit(%s)\n", fReInit_ ? "reinit" : "");
 
@@ -81,7 +81,7 @@ void Audio::Exit (bool fReInit_/*=false*/)
     TRACE("<- Audio::Exit()\n");
 }
 
-void Audio::Silence ()
+void Audio::Silence()
 {
     PVOID pvWrite;
     DWORD dwLength, dwPlayCursor;
@@ -102,7 +102,7 @@ void Audio::Silence ()
     dwWriteOffset = dwPlayCursor;
 }
 
-bool Audio::AddData (BYTE *pbData_, int nLength_)
+bool Audio::AddData(BYTE* pbData_, int nLength_)
 {
     LPVOID pvWrite1, pvWrite2;
     DWORD dwLength1, dwLength2;
@@ -112,7 +112,7 @@ bool Audio::AddData (BYTE *pbData_, int nLength_)
     if (!pdsb)
     {
         // Determine the time between frames in ms
-        DWORD dwTime = 1000 / (EMULATED_FRAMES_PER_SECOND*GetOption(speed)/100);
+        DWORD dwTime = 1000 / (EMULATED_FRAMES_PER_SECOND * GetOption(speed) / 100);
         if (!dwTime) dwTime = 1;
 
         // Has the frame time changed?
@@ -122,7 +122,7 @@ bool Audio::AddData (BYTE *pbData_, int nLength_)
             if (hTimer) timeKillEvent(hTimer);
 
             // Start a new one running
-            if (!(hTimer = timeSetEvent(dwTimer = dwTime, 0, TimeCallback, 0, TIME_PERIODIC|TIME_CALLBACK_FUNCTION)))
+            if (!(hTimer = timeSetEvent(dwTimer = dwTime, 0, TimeCallback, 0, TIME_PERIODIC | TIME_CALLBACK_FUNCTION)))
                 Message(msgWarning, "Failed to start frame timer (%#08lx)", GetLastError());
         }
 
@@ -154,7 +154,7 @@ bool Audio::AddData (BYTE *pbData_, int nLength_)
                 TRACE("!!! Failed to lock sound buffer! (%#08lx)\n", hr);
             else
             {
-                dwLength1 = std::min(dwLength1,static_cast<DWORD>(nLength_));
+                dwLength1 = std::min(dwLength1, static_cast<DWORD>(nLength_));
 
                 // Write the first part (maybe all)
                 if (dwLength1)
@@ -164,7 +164,7 @@ bool Audio::AddData (BYTE *pbData_, int nLength_)
                     nLength_ -= dwLength1;
                 }
 
-                dwLength2 = std::min(dwLength2,static_cast<DWORD>(nLength_));
+                dwLength2 = std::min(dwLength2, static_cast<DWORD>(nLength_));
 
                 // Write any second part
                 if (dwLength2)
@@ -195,7 +195,7 @@ bool Audio::AddData (BYTE *pbData_, int nLength_)
 
 //////////////////////////////////////////////////////////////////////////////
 
-static bool InitDirectSound ()
+static bool InitDirectSound()
 {
     HRESULT hr;
     bool fRet = false;
@@ -218,8 +218,8 @@ static bool InitDirectSound ()
         wf.nBlockAlign = SAMPLE_BLOCK;
         wf.nAvgBytesPerSec = SAMPLE_FREQ * SAMPLE_BLOCK;
 
-        int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND)+1;
-        nSampleBufferSize = nSamplesPerFrame*SAMPLE_BLOCK * (1+GetOption(latency));
+        int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND) + 1;
+        nSampleBufferSize = nSamplesPerFrame * SAMPLE_BLOCK * (1 + GetOption(latency));
 
         DSBUFFERDESC dsbd = { sizeof(DSBUFFERDESC) };
         dsbd.dwFlags = DSBCAPS_GLOBALFOCUS | DSBCAPS_CTRLFREQUENCY | DSBCAPS_GETCURRENTPOSITION2;
@@ -238,14 +238,14 @@ static bool InitDirectSound ()
     return fRet;
 }
 
-static void ExitDirectSound ()
+static void ExitDirectSound()
 {
     if (pdsb) pdsb->Release(), pdsb = nullptr;
     if (pds) pds->Release(), pds = nullptr;
 }
 
 
-static void CALLBACK TimeCallback (UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR)
+static void CALLBACK TimeCallback(UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR)
 {
     // Signal next frame due
     SetEvent(hEvent);

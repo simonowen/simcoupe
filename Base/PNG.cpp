@@ -50,7 +50,7 @@ namespace PNG
 
 
 // Write a PNG chunk block with header and CRC
-static bool WriteChunk (FILE* hFile_, DWORD dwType_, BYTE* pbData_, size_t uLength_)
+static bool WriteChunk(FILE* hFile_, DWORD dwType_, BYTE* pbData_, size_t uLength_)
 {
     // Write chunk length
     DWORD dw = static_cast<DWORD>(htonul(uLength_));
@@ -78,12 +78,12 @@ static bool WriteChunk (FILE* hFile_, DWORD dwType_, BYTE* pbData_, size_t uLeng
 
 
 // Write a pre-prepared image out to disk
-static bool WriteFile (FILE* hFile_, PNG_INFO* pPNG_)
+static bool WriteFile(FILE* hFile_, PNG_INFO* pPNG_)
 {
     char szProgram[] = "SimCoupe";
 
     // Prepare the image header describing what we've got
-    PNG_IHDR ihdr {};
+    PNG_IHDR ihdr{};
     ihdr.abWidth[0] = (pPNG_->dwWidth >> 24) & 0xff;
     ihdr.abWidth[1] = (pPNG_->dwWidth >> 16) & 0xff;
     ihdr.abWidth[2] = (pPNG_->dwWidth >> 8) & 0xff;
@@ -99,16 +99,16 @@ static bool WriteFile (FILE* hFile_, PNG_INFO* pPNG_)
     ihdr.bInterlaceType = PNG_INTERLACE_NONE;
 
     // Write everything out, returning true only if everything succeeds
-    return ((fwrite(PNG_SIGNATURE, 1, sizeof(PNG_SIGNATURE)-1, hFile_) == sizeof(PNG_SIGNATURE)-1) &&
-            WriteChunk(hFile_, PNG_CN_IHDR, reinterpret_cast<BYTE*>(&ihdr), sizeof(ihdr)) &&
-            WriteChunk(hFile_, PNG_CN_IDAT, pPNG_->pbImage, pPNG_->uCompressedSize) &&
-            WriteChunk(hFile_, PNG_CN_tEXt, reinterpret_cast<BYTE*>(szProgram), strlen(szProgram)) &&
-            WriteChunk(hFile_, PNG_CN_IEND, nullptr, 0));
+    return ((fwrite(PNG_SIGNATURE, 1, sizeof(PNG_SIGNATURE) - 1, hFile_) == sizeof(PNG_SIGNATURE) - 1) &&
+        WriteChunk(hFile_, PNG_CN_IHDR, reinterpret_cast<BYTE*>(&ihdr), sizeof(ihdr)) &&
+        WriteChunk(hFile_, PNG_CN_IDAT, pPNG_->pbImage, pPNG_->uCompressedSize) &&
+        WriteChunk(hFile_, PNG_CN_tEXt, reinterpret_cast<BYTE*>(szProgram), strlen(szProgram)) &&
+        WriteChunk(hFile_, PNG_CN_IEND, nullptr, 0));
 }
 
 
 // ZLib compress the image data (the default, and currently only method for PNG)
-static bool CompressImageData (PNG_INFO* pPNG_)
+static bool CompressImageData(PNG_INFO* pPNG_)
 {
     bool fRet = false;
 
@@ -136,7 +136,7 @@ static bool CompressImageData (PNG_INFO* pPNG_)
 }
 
 
-static bool SaveFile (FILE *f_, CScreen *pScreen_)
+static bool SaveFile(FILE* f_, CScreen* pScreen_)
 {
     // Are we to stretch the saved image?
     int nDen = 5, nNum = 4;
@@ -146,33 +146,33 @@ static bool SaveFile (FILE *f_, CScreen *pScreen_)
     int nScanAdjust = (GetOption(scanlines) && !GetOption(scanhires)) ? (GetOption(scanlevel) - 100) : 0;
     if (nScanAdjust < -100) nScanAdjust = -100;
 
-    PNG_INFO png {};
+    PNG_INFO png{};
     png.dwWidth = pScreen_->GetPitch();
     png.dwHeight = pScreen_->GetHeight();
-    if (fStretch) png.dwWidth = png.dwWidth *nDen/nNum;
+    if (fStretch) png.dwWidth = png.dwWidth * nDen / nNum;
 
     png.uSize = png.dwHeight * (1 + (png.dwWidth * 3));
     if (!(png.pbImage = new BYTE[png.uSize]))
         return false;
 
     memset(png.pbImage, 0, png.uSize);
-    const COLOUR *pPal = IO::GetPalette();
+    const COLOUR* pPal = IO::GetPalette();
 
 
-    BYTE *pb = png.pbImage;
+    BYTE* pb = png.pbImage;
 
-    for (UINT y = 0; y < png.dwHeight ; y++)
+    for (UINT y = 0; y < png.dwHeight; y++)
     {
-        BYTE *pbS = pScreen_->GetLine(y >> 1);
+        BYTE* pbS = pScreen_->GetLine(y >> 1);
 
         // Each image line begins with the filter type
         *pb++ = PNG_FILTER_TYPE_DEFAULT;
 
-        for (UINT x = 0 ; x < png.dwWidth ; x++)
+        for (UINT x = 0; x < png.dwWidth; x++)
         {
             // Map the image pixel back to the display pixel
-            int n = fStretch ? (x * nNum/nDen) : x;
-            BYTE b = pbS[n], b2 = pbS[n+1];
+            int n = fStretch ? (x * nNum / nDen) : x;
+            BYTE b = pbS[n], b2 = pbS[n + 1];
 
             // Look up the pixel components in the palette
             BYTE red = pPal[b].bRed, green = pPal[b].bGreen, blue = pPal[b].bBlue;
@@ -181,13 +181,13 @@ static bool SaveFile (FILE *f_, CScreen *pScreen_)
             if (fStretch && (x % nDen))
             {
                 // Determine how much of the current pixel to use
-                int nPercent = (x%nDen)*100/nNum;
-                AdjustBrightness(red, green, blue, nPercent-100);
+                int nPercent = (x % nDen) * 100 / nNum;
+                AdjustBrightness(red, green, blue, nPercent - 100);
 
                 // Determine how much of the next pixel
-                int nPercent2 = 100-nPercent;
+                int nPercent2 = 100 - nPercent;
                 BYTE red2 = pPal[b2].bRed, green2 = pPal[b2].bGreen, blue2 = pPal[b2].bBlue;
-                AdjustBrightness(red2, green2, blue2, nPercent2-100);
+                AdjustBrightness(red2, green2, blue2, nPercent2 - 100);
 
                 // Combine the part pixels for the overall colour
                 red += red2;
@@ -217,12 +217,12 @@ static bool SaveFile (FILE *f_, CScreen *pScreen_)
 
 
 // Process and save the supplied SAM image data to a file in PNG format
-bool Save (CScreen* pScreen_)
+bool Save(CScreen* pScreen_)
 {
     bool fRet = false;
 
 #ifdef HAVE_LIBZ
-    char szPath[MAX_PATH], *pszFile;
+    char szPath[MAX_PATH], * pszFile;
 
     // Create a unique filename in the format snapNNNN.png
     pszFile = Util::GetUniqueFile("png", szPath, sizeof(szPath));

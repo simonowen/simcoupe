@@ -32,7 +32,7 @@ static DWORD aulPalette[N_PALETTE_COLOURS];
 static DWORD aulScanline[N_PALETTE_COLOURS];
 
 
-SDLTexture::SDLTexture ()
+SDLTexture::SDLTexture()
     : m_fFilter(GetOption(filter))
 {
     m_rTarget.x = m_rTarget.y = 0;
@@ -46,7 +46,7 @@ SDLTexture::SDLTexture ()
 #endif
 }
 
-SDLTexture::~SDLTexture ()
+SDLTexture::~SDLTexture()
 {
     if (m_pScanlineTexture) { SDL_DestroyTexture(m_pScanlineTexture); m_pScanlineTexture = nullptr; }
     if (m_pTexture) { SDL_DestroyTexture(m_pTexture); m_pTexture = nullptr; }
@@ -55,12 +55,12 @@ SDLTexture::~SDLTexture ()
 }
 
 
-int SDLTexture::GetCaps () const
+int SDLTexture::GetCaps() const
 {
     return VCAP_STRETCH | VCAP_FILTER | VCAP_SCANHIRES;
 }
 
-bool SDLTexture::Init (bool fFirstInit_)
+bool SDLTexture::Init(bool fFirstInit_)
 {
     TRACE("-> Video::Init(%s)\n", fFirstInit_ ? "first" : "");
 
@@ -72,7 +72,7 @@ bool SDLTexture::Init (bool fFirstInit_)
     if (!GetOption(scale)) SetOption(scale, 2);
     int nWindowWidth = nWidth * GetOption(scale) / 2;
     int nWindowHeight = nHeight * GetOption(scale) / 2;
-    if (GetOption(ratio5_4)) nWindowWidth = nWindowWidth * 5/4;
+    if (GetOption(ratio5_4)) nWindowWidth = nWindowWidth * 5 / 4;
 
     // Create window hidden initially
     Uint32 flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
@@ -84,7 +84,7 @@ bool SDLTexture::Init (bool fFirstInit_)
     }
 
     // Limit window to 50% size (typically 384x240)
-    SDL_SetWindowMinimumSize(m_pWindow, nWidth/2, nHeight/2);
+    SDL_SetWindowMinimumSize(m_pWindow, nWidth / 2, nHeight / 2);
 
     m_pRenderer = SDL_CreateRenderer(m_pWindow, -1, SDL_RENDERER_ACCELERATED);
     if (!m_pRenderer)
@@ -117,7 +117,7 @@ bool SDLTexture::Init (bool fFirstInit_)
 }
 
 
-void SDLTexture::Update (CScreen* pScreen_, bool *pafDirty_)
+void SDLTexture::Update(CScreen* pScreen_, bool* pafDirty_)
 {
     // Draw any changed lines to the back buffer
     if (!DrawChanges(pScreen_, pafDirty_))
@@ -125,13 +125,13 @@ void SDLTexture::Update (CScreen* pScreen_, bool *pafDirty_)
 }
 
 // Create whatever's needed for actually displaying the SAM image
-void SDLTexture::UpdatePalette ()
+void SDLTexture::UpdatePalette()
 {
     // Determine the scanline brightness level adjustment, in the range -100 to +100
     int nScanAdjust = GetOption(scanlines) ? (GetOption(scanlevel) - 100) : 0;
     if (nScanAdjust < -100) nScanAdjust = -100;
 
-    const COLOUR *pSAM = IO::GetPalette();
+    const COLOUR* pSAM = IO::GetPalette();
 
     int w, h;
     Uint32 uFormat, uRmask, uGmask, uBmask, uAmask;
@@ -139,15 +139,15 @@ void SDLTexture::UpdatePalette ()
     SDL_PixelFormatEnumToMasks(uFormat, &m_nDepth, &uRmask, &uGmask, &uBmask, &uAmask);
 
     // Build the full palette from SAM and GUI colours
-    for (int i = 0; i < N_PALETTE_COLOURS ; i++)
+    for (int i = 0; i < N_PALETTE_COLOURS; i++)
     {
         // Look up the colour in the SAM palette
-        const COLOUR *p = &pSAM[i];
+        const COLOUR* p = &pSAM[i];
         BYTE r = p->bRed, g = p->bGreen, b = p->bBlue, a = 0xff;
 
-        aulPalette[i] = RGB2Native(r,g,b,a, uRmask, uGmask, uBmask, uAmask);
-        AdjustBrightness(r,g,b, nScanAdjust);
-        aulScanline[i] = RGB2Native(r,g,b,a, uRmask, uGmask, uBmask, uAmask);
+        aulPalette[i] = RGB2Native(r, g, b, a, uRmask, uGmask, uBmask, uAmask);
+        AdjustBrightness(r, g, b, nScanAdjust);
+        aulScanline[i] = RGB2Native(r, g, b, a, uRmask, uGmask, uBmask, uAmask);
     }
 
     // Ensure the display is redrawn to reflect the changes
@@ -156,7 +156,7 @@ void SDLTexture::UpdatePalette ()
 
 
 // OpenGL version of DisplayChanges
-bool SDLTexture::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
+bool SDLTexture::DrawChanges(CScreen* pScreen_, bool* pafDirty_)
 {
     // Force GUI filtering with odd scaling factors, otherwise respect the options
     bool fFilter = GUI::IsActive() ? GetOption(filtergui) || (GetOption(scale) & 1) : GetOption(filter);
@@ -177,12 +177,12 @@ bool SDLTexture::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     bool fHalfHeight = !GUI::IsActive();
     if (fHalfHeight) nHeight /= 2;
 
-    int nChangeFrom = 0, nChangeTo = nHeight-1;
-    for ( ; nChangeFrom < nHeight && !pafDirty_[nChangeFrom] ; nChangeFrom++);
+    int nChangeFrom = 0, nChangeTo = nHeight - 1;
+    for (; nChangeFrom < nHeight && !pafDirty_[nChangeFrom]; nChangeFrom++);
     if (nChangeFrom == nHeight)
         return true;
 
-    for ( ; nChangeTo && !pafDirty_[nChangeTo] ; nChangeTo--);
+    for (; nChangeTo && !pafDirty_[nChangeTo]; nChangeTo--);
 
     // With bilinear filtering enabled, the GUI display in the lower half bleeds
     // into the bottom line of the display, so clear it when changing modes.
@@ -192,8 +192,8 @@ bool SDLTexture::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     fLastHalfHeight = fHalfHeight;
 
     // Lock only the portion we're changing
-    SDL_Rect rLock = { 0, nChangeFrom, nWidth, nChangeTo-nChangeFrom+1 };
-    void *pvPixels = nullptr;
+    SDL_Rect rLock = { 0, nChangeFrom, nWidth, nChangeTo - nChangeFrom + 1 };
+    void* pvPixels = nullptr;
     int nPitch = 0;
 
     // Lock the surface for direct access below
@@ -205,61 +205,61 @@ bool SDLTexture::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
 
     int nRightHi = nWidth >> 3;
 
-    DWORD *pdwBack = reinterpret_cast<DWORD*>(pvPixels), *pdw = pdwBack;
+    DWORD* pdwBack = reinterpret_cast<DWORD*>(pvPixels), * pdw = pdwBack;
     long lPitchDW = nPitch >> 2;
 
-    BYTE *pbSAM = pScreen_->GetLine(nChangeFrom), *pb = pbSAM;
+    BYTE* pbSAM = pScreen_->GetLine(nChangeFrom), * pb = pbSAM;
     long lPitch = pScreen_->GetPitch();
 
 
     // What colour depth is the target surface?
     switch (m_nDepth)
     {
-        case 16:
+    case 16:
+    {
+        for (int y = nChangeFrom; y <= nChangeTo; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
         {
-            for (int y = nChangeFrom ; y <= nChangeTo ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
+            if (!pafDirty_[y])
+                continue;
+
+            for (int x = 0; x < nRightHi; x++)
             {
-                if (!pafDirty_[y])
-                    continue;
+                pdw[0] = SDL_SwapLE32((aulPalette[pb[1]] << 16) | aulPalette[pb[0]]);
+                pdw[1] = SDL_SwapLE32((aulPalette[pb[3]] << 16) | aulPalette[pb[2]]);
+                pdw[2] = SDL_SwapLE32((aulPalette[pb[5]] << 16) | aulPalette[pb[4]]);
+                pdw[3] = SDL_SwapLE32((aulPalette[pb[7]] << 16) | aulPalette[pb[6]]);
 
-                for (int x = 0 ; x < nRightHi ; x++)
-                {
-                    pdw[0] = SDL_SwapLE32((aulPalette[pb[1]] << 16) | aulPalette[pb[0]]);
-                    pdw[1] = SDL_SwapLE32((aulPalette[pb[3]] << 16) | aulPalette[pb[2]]);
-                    pdw[2] = SDL_SwapLE32((aulPalette[pb[5]] << 16) | aulPalette[pb[4]]);
-                    pdw[3] = SDL_SwapLE32((aulPalette[pb[7]] << 16) | aulPalette[pb[6]]);
-
-                    pdw += 4;
-                    pb += 8;
-                }
+                pdw += 4;
+                pb += 8;
             }
         }
-        break;
+    }
+    break;
 
-        case 32:
+    case 32:
+    {
+        for (int y = nChangeFrom; y <= nChangeTo; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
         {
-            for (int y = nChangeFrom ; y <= nChangeTo ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
+            if (!pafDirty_[y])
+                continue;
+
+            for (int x = 0; x < nRightHi; x++)
             {
-                if (!pafDirty_[y])
-                    continue;
+                pdw[0] = aulPalette[pb[0]];
+                pdw[1] = aulPalette[pb[1]];
+                pdw[2] = aulPalette[pb[2]];
+                pdw[3] = aulPalette[pb[3]];
+                pdw[4] = aulPalette[pb[4]];
+                pdw[5] = aulPalette[pb[5]];
+                pdw[6] = aulPalette[pb[6]];
+                pdw[7] = aulPalette[pb[7]];
 
-                for (int x = 0 ; x < nRightHi ; x++)
-                {
-                    pdw[0] = aulPalette[pb[0]];
-                    pdw[1] = aulPalette[pb[1]];
-                    pdw[2] = aulPalette[pb[2]];
-                    pdw[3] = aulPalette[pb[3]];
-                    pdw[4] = aulPalette[pb[4]];
-                    pdw[5] = aulPalette[pb[5]];
-                    pdw[6] = aulPalette[pb[6]];
-                    pdw[7] = aulPalette[pb[7]];
-
-                    pdw += 8;
-                    pb += 8;
-                }
+                pdw += 8;
+                pb += 8;
             }
         }
-        break;
+    }
+    break;
     }
 
     // Unlock the texture now we're done drawing on it
@@ -271,7 +271,7 @@ bool SDLTexture::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
 
     nWidth = Frame::GetWidth();
     nHeight = Frame::GetHeight();
-    if (GetOption(ratio5_4)) nWidth = nWidth * 5/4;
+    if (GetOption(ratio5_4)) nWidth = nWidth * 5 / 4;
 
     int nWidthFit = nWidth * rWindow.h / nHeight;
     int nHeightFit = nHeight * rWindow.w / nWidth;
@@ -309,7 +309,7 @@ bool SDLTexture::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     return true;
 }
 
-void SDLTexture::UpdateSize ()
+void SDLTexture::UpdateSize()
 {
     // Toggle fullscreen state if necessary
     bool fFullscreen = (SDL_GetWindowFlags(m_pWindow) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
@@ -337,12 +337,12 @@ void SDLTexture::UpdateSize ()
         SDL_QueryTexture(m_pScanlineTexture, &uFormat, nullptr, &w, &h);
         SDL_PixelFormatEnumToMasks(uFormat, &nDepth, &uRmask, &uGmask, &uBmask, &uAmask);
 
-        Uint32 ulScanline0 = RGB2Native(0,0,0, (100-GetOption(scanlevel))*0xff/100, uRmask, uGmask, uBmask, uAmask);
-        Uint32 ulScanline1 = RGB2Native(0,0,0, 0, uRmask, uGmask, uBmask, uAmask);
-        Uint32 *pbScanlines = new Uint32[h];
+        Uint32 ulScanline0 = RGB2Native(0, 0, 0, (100 - GetOption(scanlevel)) * 0xff / 100, uRmask, uGmask, uBmask, uAmask);
+        Uint32 ulScanline1 = RGB2Native(0, 0, 0, 0, uRmask, uGmask, uBmask, uAmask);
+        Uint32* pbScanlines = new Uint32[h];
 
-        for (int j = 0 ; j < h ; j++)
-            pbScanlines[j] = (j&1) ? ulScanline1 : ulScanline0;
+        for (int j = 0; j < h; j++)
+            pbScanlines[j] = (j & 1) ? ulScanline1 : ulScanline0;
 
         SDL_UpdateTexture(m_pScanlineTexture, nullptr, pbScanlines, sizeof(Uint32));
         delete[] pbScanlines;
@@ -351,17 +351,17 @@ void SDLTexture::UpdateSize ()
 
 
 // Map a native size/offset to SAM view port
-void SDLTexture::DisplayToSamSize (int* pnX_, int* pnY_)
+void SDLTexture::DisplayToSamSize(int* pnX_, int* pnY_)
 {
     int nHalfWidth = !GUI::IsActive();
     int nHalfHeight = nHalfWidth;
 
-    *pnX_ = *pnX_ * Frame::GetWidth()  / (m_rTarget.w << nHalfWidth);
+    *pnX_ = *pnX_ * Frame::GetWidth() / (m_rTarget.w << nHalfWidth);
     *pnY_ = *pnY_ * Frame::GetHeight() / (m_rTarget.h << nHalfHeight);
 }
 
 // Map a native client point to SAM view port
-void SDLTexture::DisplayToSamPoint (int* pnX_, int* pnY_)
+void SDLTexture::DisplayToSamPoint(int* pnX_, int* pnY_)
 {
     *pnX_ -= m_rTarget.x;
     *pnY_ -= m_rTarget.y;

@@ -23,33 +23,33 @@
 
 class Audio
 {
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+public:
+    static bool Init(bool fFirstInit_ = false);
+    static void Exit(bool fReInit_ = false);
 
-        static bool IsAvailable () { return SDL_GetAudioStatus() == SDL_AUDIO_PLAYING; }
-        static bool AddData (Uint8* pbData_, int nLength_);
-        static void Silence ();
+    static bool IsAvailable() { return SDL_GetAudioStatus() == SDL_AUDIO_PLAYING; }
+    static bool AddData(Uint8* pbData_, int nLength_);
+    static void Silence();
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 
 class CSoundStream
 {
-    public:
-        CSoundStream ();
-        CSoundStream (const CSoundStream &) = delete;
-        void operator= (const CSoundStream &) = delete;
-        virtual ~CSoundStream ();
+public:
+    CSoundStream();
+    CSoundStream(const CSoundStream&) = delete;
+    void operator= (const CSoundStream&) = delete;
+    virtual ~CSoundStream();
 
-    public:
-        void Silence ();
-        void AddData (Uint8* pbSampleData_, int nLength_);
+public:
+    void Silence();
+    void AddData(Uint8* pbSampleData_, int nLength_);
 
-        Uint8 *m_pbStart = nullptr;
-        Uint8 *m_pbEnd = nullptr;
-        Uint8 *m_pbNow = nullptr;
-        int m_nSampleBufferSize = 0;
+    Uint8* m_pbStart = nullptr;
+    Uint8* m_pbEnd = nullptr;
+    Uint8* m_pbNow = nullptr;
+    int m_nSampleBufferSize = 0;
 };
 
 #endif  // AUDIO_H

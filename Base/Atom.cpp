@@ -27,76 +27,76 @@
 #include "Options.h"
 
 
-BYTE CAtomDevice::In (WORD wPort_)
+BYTE CAtomDevice::In(WORD wPort_)
 {
     BYTE bRet = 0xff;
 
     switch (wPort_ & ATOM_REG_MASK)
     {
         // Data high
-        case 6:
-        {
-            // Read a 16-bit data value
-            WORD wData = CAtaAdapter::InWord(m_bAddressLatch & ATOM_ADDR_MASK);
+    case 6:
+    {
+        // Read a 16-bit data value
+        WORD wData = CAtaAdapter::InWord(m_bAddressLatch & ATOM_ADDR_MASK);
 
-            // Store the low-byte in the read latch and return the high-byte
-            m_bReadLatch = wData & 0xff;
-            bRet = wData >> 8;
+        // Store the low-byte in the read latch and return the high-byte
+        m_bReadLatch = wData & 0xff;
+        bRet = wData >> 8;
 
-            break;
-        }
+        break;
+    }
 
-        // Data low
-        case 7:
-            // Return the low-byte from the read latch
-            bRet = m_bReadLatch;
-            break;
+    // Data low
+    case 7:
+        // Return the low-byte from the read latch
+        bRet = m_bReadLatch;
+        break;
 
-        default:
-            TRACE("Atom: Unrecognised read from %#04x\n", wPort_);
-            break;
+    default:
+        TRACE("Atom: Unrecognised read from %#04x\n", wPort_);
+        break;
     }
 
     return bRet;
 }
 
-void CAtomDevice::Out (WORD wPort_, BYTE bVal_)
+void CAtomDevice::Out(WORD wPort_, BYTE bVal_)
 {
     switch (wPort_ & ATOM_REG_MASK)
     {
         // Address select
-        case 5:
-            m_bAddressLatch = bVal_;
+    case 5:
+        m_bAddressLatch = bVal_;
 
-            // If the reset pin is low, reset the disk
-            if (~bVal_ & ATOM_NRESET)
-                CAtaAdapter::Reset();
+        // If the reset pin is low, reset the disk
+        if (~bVal_ & ATOM_NRESET)
+            CAtaAdapter::Reset();
 
-            break;
+        break;
 
         // Data high - store in the write latch for later
-        case 6:
-            m_bWriteLatch = bVal_;
-            break;
+    case 6:
+        m_bWriteLatch = bVal_;
+        break;
 
         // Data low
-        case 7:
-            // If reset is asserted, ignore the write
-            if (~m_bAddressLatch & ATOM_NRESET)
-                break;
-
-            m_uActive = HDD_ACTIVE_FRAMES;
-            CAtaAdapter::Out(m_bAddressLatch & ATOM_ADDR_MASK, (m_bWriteLatch << 8) | bVal_);
+    case 7:
+        // If reset is asserted, ignore the write
+        if (~m_bAddressLatch & ATOM_NRESET)
             break;
 
-        default:
-            TRACE("Atom: Unhandled write to %#04x with %#02x\n", wPort_, bVal_);
-            break;
+        m_uActive = HDD_ACTIVE_FRAMES;
+        CAtaAdapter::Out(m_bAddressLatch & ATOM_ADDR_MASK, (m_bWriteLatch << 8) | bVal_);
+        break;
+
+    default:
+        TRACE("Atom: Unhandled write to %#04x with %#02x\n", wPort_, bVal_);
+        break;
     }
 }
 
 
-bool CAtomDevice::Attach (CHardDisk *pDisk_, int nDevice_)
+bool CAtomDevice::Attach(CHardDisk* pDisk_, int nDevice_)
 {
     if (pDisk_)
     {

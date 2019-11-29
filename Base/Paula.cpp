@@ -25,20 +25,20 @@
 
 #include "Sound.h"
 
-void CPaulaDevice::Out (WORD wPort_, BYTE bVal_)
+void CPaulaDevice::Out(WORD wPort_, BYTE bVal_)
 {
     switch (wPort_ & 1)
     {
-        case 0:
-            // A nibble to each channel on the first DAC
-            pDAC->OutputLeft(bVal_ << 4);
-            pDAC->OutputRight(bVal_ & 0xf0);
-            break;
+    case 0:
+        // A nibble to each channel on the first DAC
+        pDAC->OutputLeft(bVal_ << 4);
+        pDAC->OutputRight(bVal_ & 0xf0);
+        break;
 
-        case 1:
-            // A nibble to each channel on the second DAC
-            pDAC->OutputLeft2(bVal_ << 4);
-            pDAC->OutputRight2(bVal_ & 0xf0);
-            break;
+    case 1:
+        // A nibble to each channel on the second DAC
+        pDAC->OutputLeft2(bVal_ << 4);
+        pDAC->OutputRight2(bVal_ & 0xf0);
+        break;
     }
 }

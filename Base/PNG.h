@@ -25,7 +25,7 @@
 
 namespace PNG
 {
-    bool Save (CScreen *pScreen_);
+bool Save(CScreen* pScreen_);
 }
 
 #ifdef HAVE_LIBZ
@@ -64,7 +64,7 @@ typedef struct
 typedef struct
 {
     DWORD dwWidth, dwHeight;
-    BYTE *pbImage;
+    BYTE* pbImage;
     ULONG uSize, uCompressedSize;
 } PNG_INFO;
 

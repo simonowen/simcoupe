@@ -29,20 +29,20 @@
 #include "Util.h"
 #include "UI.h"
 
-#define SAMPLE_BUFFER_SIZE	2048
+#define SAMPLE_BUFFER_SIZE  2048
 
-static Uint8 *m_pbStart, *m_pbEnd, *m_pbNow;
+static Uint8* m_pbStart, * m_pbEnd, * m_pbNow;
 static int m_nSampleBufferSize;
 static Uint32 uLastTime;
 
-static bool InitSDLSound ();
-static void ExitSDLSound ();
-static void SoundCallback (void *pvParam_, Uint8 *pbStream_, int nLen_);
+static bool InitSDLSound();
+static void ExitSDLSound();
+static void SoundCallback(void* pvParam_, Uint8* pbStream_, int nLen_);
 
 ////////////////////////////////////////////////////////////////////////////////
 
 
-bool Audio::Init (bool fFirstInit_/*=false*/)
+bool Audio::Init(bool fFirstInit_/*=false*/)
 {
     // Clear out any existing config before starting again
     Exit(true);
@@ -55,13 +55,13 @@ bool Audio::Init (bool fFirstInit_/*=false*/)
         TRACE("Sound initialisation failed\n");
     else
     {
-        int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND)+1;
-        int nBufferedFrames = (SAMPLE_BUFFER_SIZE/nSamplesPerFrame) + 1 + GetOption(latency);
+        int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND) + 1;
+        int nBufferedFrames = (SAMPLE_BUFFER_SIZE / nSamplesPerFrame) + 1 + GetOption(latency);
 
         m_nSampleBufferSize = nSamplesPerFrame * SAMPLE_BLOCK * nBufferedFrames;
         m_pbEnd = (m_pbNow = m_pbStart = new Uint8[m_nSampleBufferSize]) + m_nSampleBufferSize;
 
-        TRACE("Sample buffer size = %d samples\n", m_nSampleBufferSize/SAMPLE_BLOCK);
+        TRACE("Sample buffer size = %d samples\n", m_nSampleBufferSize / SAMPLE_BLOCK);
     }
 
     // Sound initialisation failure isn't fatal, so always return success
@@ -69,7 +69,7 @@ bool Audio::Init (bool fFirstInit_/*=false*/)
     return true;
 }
 
-void Audio::Exit (bool fReInit_/*=false*/)
+void Audio::Exit(bool fReInit_/*=false*/)
 {
     TRACE("-> Audio::Exit(%s)\n", fReInit_ ? "reinit" : "");
 
@@ -78,12 +78,12 @@ void Audio::Exit (bool fReInit_/*=false*/)
     TRACE("<- Audio::Exit()\n");
 }
 
-bool Audio::AddData (Uint8* pbData_, int nLength_)
+bool Audio::AddData(Uint8* pbData_, int nLength_)
 {
     int nSpace = 0;
 
     // Calculate the frame time (in ms) from the sample data length
-    int nFrameTime = ((nLength_*1000/SAMPLE_BLOCK) + (SAMPLE_FREQ/2)) / SAMPLE_FREQ;
+    int nFrameTime = ((nLength_ * 1000 / SAMPLE_BLOCK) + (SAMPLE_FREQ / 2)) / SAMPLE_FREQ;
 
     // Loop until everything has been written
     while (m_pbNow && nLength_ > 0)
@@ -91,7 +91,7 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
         SDL_LockAudio();
 
         // Determine the available space
-        nSpace = static_cast<int>(m_pbEnd-m_pbNow);
+        nSpace = static_cast<int>(m_pbEnd - m_pbNow);
         int nAdd = std::min(nSpace, nLength_);
 
         // Copy as much as we can
@@ -117,14 +117,14 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
     Sint32 nElapsed = static_cast<Sint32>(uNow - uLastTime);
 
     // If we're too far behind, re-sync
-    if (nElapsed > nFrameTime*2)
+    if (nElapsed > nFrameTime * 2)
     {
         uLastTime = uNow;
     }
     else
     {
         // If we're falling behind, reduce the delay by 1ms
-        if (nSpace > (SAMPLE_BUFFER_SIZE*SAMPLE_BLOCK))
+        if (nSpace > (SAMPLE_BUFFER_SIZE * SAMPLE_BLOCK))
             nFrameTime--;
 
         for (;;)
@@ -148,20 +148,20 @@ bool Audio::AddData (Uint8* pbData_, int nLength_)
     return true;
 }
 
-void Audio::Silence ()
+void Audio::Silence()
 {
     if (!IsAvailable())
         return;
 
     SDL_LockAudio();
-    memset(m_pbStart, 0x00, m_pbEnd-m_pbStart);
+    memset(m_pbStart, 0x00, m_pbEnd - m_pbStart);
     m_pbNow = m_pbEnd;
     SDL_UnlockAudio();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool InitSDLSound ()
+bool InitSDLSound()
 {
     SDL_AudioSpec sDesired = { };
     sDesired.freq = SAMPLE_FREQ;
@@ -181,7 +181,7 @@ bool InitSDLSound ()
     return true;
 }
 
-void ExitSDLSound ()
+void ExitSDLSound()
 {
     SDL_CloseAudio();
 
@@ -189,17 +189,17 @@ void ExitSDLSound ()
 }
 
 // Callback used by SDL to request more sound data to play
-void SoundCallback (void * /*pvParam_*/, Uint8 *pbStream_, int nLen_)
+void SoundCallback(void* /*pvParam_*/, Uint8* pbStream_, int nLen_)
 {
     // Determine how much data we have available, how much to copy, and what is left over
     int nData = static_cast<int>(m_pbNow - m_pbStart);
-    int nCopy = std::min(nData, nLen_), nLeft = nData-nCopy;
+    int nCopy = std::min(nData, nLen_), nLeft = nData - nCopy;
 
     // Update the sound stream with what we have, padded with silence if we're short
     memcpy(pbStream_, m_pbStart, nCopy);
-    memset(pbStream_+nCopy, 0x00, nLen_-nCopy);
+    memset(pbStream_ + nCopy, 0x00, nLen_ - nCopy);
 
     // Move any remaining data to the start of our buffer
     m_pbNow = m_pbStart + nLeft;
-    memmove(m_pbStart, m_pbStart+nCopy, nLeft);
+    memmove(m_pbStart, m_pbStart + nCopy, nLeft);
 }

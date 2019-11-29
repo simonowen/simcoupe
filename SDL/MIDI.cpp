@@ -32,13 +32,13 @@
 #endif
 
 
-CMidiDevice::CMidiDevice ()
+CMidiDevice::CMidiDevice()
 {
     SetDevice(GetOption(midioutdev));
 }
 
 
-CMidiDevice::~CMidiDevice ()
+CMidiDevice::~CMidiDevice()
 {
     // Close the MIDI device here
     if (m_nDevice != -1)
@@ -46,14 +46,14 @@ CMidiDevice::~CMidiDevice ()
 }
 
 
-BYTE CMidiDevice::In (WORD /*wPort_*/)
+BYTE CMidiDevice::In(WORD /*wPort_*/)
 {
     // Not supported
     return 0x00;
 }
 
 
-void CMidiDevice::Out (WORD /*wPort_*/, BYTE bVal_)
+void CMidiDevice::Out(WORD /*wPort_*/, BYTE bVal_)
 {
     // Protect against very long System Exclusive blocks
     if ((m_nOut == (sizeof m_abOut - 1)) && bVal_ != 0xf7)
@@ -111,11 +111,11 @@ void CMidiDevice::Out (WORD /*wPort_*/, BYTE bVal_)
 #ifdef _DEBUG
     switch (m_nOut)
     {
-        case 1:     TRACE("MIDI: Sending 1 byte message from: %02x\n", m_abOut[0]);                                                         break;
-        case 2:     TRACE("MIDI: Sending 2 byte message from: %02x %02x\n", m_abOut[0], m_abOut[1]);                                            break;
-        case 3:     TRACE("MIDI: Sending 3 byte message from: %02x %02x %02x\n", m_abOut[0], m_abOut[1], m_abOut[2]);                               break;
-        case 4:     TRACE("MIDI: Sending 4 byte message from: %02x %02x %02x %02x\n", m_abOut[0], m_abOut[1], m_abOut[2], m_abOut[3]);              break;
-        default:    TRACE("MIDI: Sending %d byte message from: %02x %02x %02x %02x ...\n", m_nOut, m_abOut[0], m_abOut[1], m_abOut[2], m_abOut[3]); break;
+    case 1:     TRACE("MIDI: Sending 1 byte message from: %02x\n", m_abOut[0]);                                                         break;
+    case 2:     TRACE("MIDI: Sending 2 byte message from: %02x %02x\n", m_abOut[0], m_abOut[1]);                                            break;
+    case 3:     TRACE("MIDI: Sending 3 byte message from: %02x %02x %02x\n", m_abOut[0], m_abOut[1], m_abOut[2]);                               break;
+    case 4:     TRACE("MIDI: Sending 4 byte message from: %02x %02x %02x %02x\n", m_abOut[0], m_abOut[1], m_abOut[2], m_abOut[3]);              break;
+    default:    TRACE("MIDI: Sending %d byte message from: %02x %02x %02x %02x ...\n", m_nOut, m_abOut[0], m_abOut[1], m_abOut[2], m_abOut[3]); break;
     }
 #endif
 
@@ -127,7 +127,7 @@ void CMidiDevice::Out (WORD /*wPort_*/, BYTE bVal_)
     m_nOut = m_abOut[1] = m_abOut[2] = m_abOut[3] = 0;
 }
 
-bool CMidiDevice::SetDevice (const char *pcszDevice_)
+bool CMidiDevice::SetDevice(const char* pcszDevice_)
 {
     if (m_nDevice != -1)
     {
@@ -144,7 +144,7 @@ bool CMidiDevice::SetDevice (const char *pcszDevice_)
 
     // Reset the device to flush any partial messages
     if (m_nDevice != -1)
-        ioctl(m_nDevice,MIDIRESET,0);
+        ioctl(m_nDevice, MIDIRESET, 0);
 
     return m_nDevice != -1;
 }

@@ -34,14 +34,14 @@ typedef struct
     UINT uID;       // Menu command ID
     int nOffset;    // Offset into image map to use
 }
-MENUICON, *PMENUICON;
+MENUICON, * PMENUICON;
 
 struct CMenuItem
 {
-    CMenuItem () { dwSig = SIGNATURE; szText[0] = '\0'; nImage = -1; }
+    CMenuItem() { dwSig = SIGNATURE; szText[0] = '\0'; nImage = -1; }
 
-    bool IsOurs () const { return this && dwSig == SIGNATURE; }
-    static CMenuItem* GetItem (ULONG_PTR ulp_) { CMenuItem* p = reinterpret_cast<CMenuItem*>(ulp_); return p->IsOurs() ? p : nullptr; }
+    bool IsOurs() const { return this && dwSig == SIGNATURE; }
+    static CMenuItem* GetItem(ULONG_PTR ulp_) { CMenuItem* p = reinterpret_cast<CMenuItem*>(ulp_); return p->IsOurs() ? p : nullptr; }
 
     DWORD   dwSig;
     char    szText[64];
@@ -52,37 +52,37 @@ struct CMenuItem
 
 class COwnerDrawnMenu
 {
-    public:
-        COwnerDrawnMenu (HINSTANCE hinst_=nullptr, int nId_=0, MENUICON* pIconMap_=nullptr);
-        virtual ~COwnerDrawnMenu ();
+public:
+    COwnerDrawnMenu(HINSTANCE hinst_ = nullptr, int nId_ = 0, MENUICON* pIconMap_ = nullptr);
+    virtual ~COwnerDrawnMenu();
 
-        LRESULT WindowProc (HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT* plResult_);
+    LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT* plResult_);
 
-    protected:
-        void Cleanup ();
+protected:
+    void Cleanup();
 
-        bool OnMeasureItem (LPMEASUREITEMSTRUCT lpms);
-        bool OnDrawItem (LPDRAWITEMSTRUCT lpds);
-        void OnInitMenuPopup (HMENU hmenu_, UINT nIndex_, BOOL bSysMenu_);
-        void OnMenuSelect (UINT nItemID_, UINT nFlags_, HMENU hmenuSys_);
-        LRESULT OnMenuChar (UINT nChar_, UINT nFlags_, HMENU hmenu_);
+    bool OnMeasureItem(LPMEASUREITEMSTRUCT lpms);
+    bool OnDrawItem(LPDRAWITEMSTRUCT lpds);
+    void OnInitMenuPopup(HMENU hmenu_, UINT nIndex_, BOOL bSysMenu_);
+    void OnMenuSelect(UINT nItemID_, UINT nFlags_, HMENU hmenuSys_);
+    LRESULT OnMenuChar(UINT nChar_, UINT nFlags_, HMENU hmenu_);
 
-        void DrawMenuText (HDC hdc, LPRECT rc, LPCSTR text, bool fDisabled_);
-        bool DrawCheck (HDC hdc, RECT rc, UINT uType, UINT uState_);
-        void DrawGreyedImage (HDC hdc_, HIMAGELIST hil_, int i, int x, int y);
-        void ConvertMenu (HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, bool fConvert_);
+    void DrawMenuText(HDC hdc, LPRECT rc, LPCSTR text, bool fDisabled_);
+    bool DrawCheck(HDC hdc, RECT rc, UINT uType, UINT uState_);
+    void DrawGreyedImage(HDC hdc_, HIMAGELIST hil_, int i, int x, int y);
+    void ConvertMenu(HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, bool fConvert_);
 
-    protected:
-        HIMAGELIST m_hil = nullptr;
-        PMENUICON m_pIconMap = nullptr;
-        SIZE m_zButton {};
+protected:
+    HIMAGELIST m_hil = nullptr;
+    PMENUICON m_pIconMap = nullptr;
+    SIZE m_zButton{};
 
-        SIZE m_zBorder {};
-        HFONT m_hfont = nullptr;
-        HFONT m_hfontBold = nullptr;
+    SIZE m_zBorder{};
+    HFONT m_hfont = nullptr;
+    HFONT m_hfontBold = nullptr;
 
-        int m_nConverted = 0;
-        HMENU m_aConverted[64];
+    int m_nConverted = 0;
+    HMENU m_aConverted[64];
 };
 
 #endif

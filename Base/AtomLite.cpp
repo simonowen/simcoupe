@@ -24,73 +24,73 @@
 #include "Options.h"
 
 
-BYTE CAtomLiteDevice::In (WORD wPort_)
+BYTE CAtomLiteDevice::In(WORD wPort_)
 {
     BYTE bRet = 0xff;
 
     switch (wPort_ & ATOM_LITE_REG_MASK)
     {
         // Both data ports behave the same
-        case 6:
-        case 7:
-            switch (m_bAddressLatch & ATOM_LITE_ADDR_MASK)
-            {
-                // Dallas clock
-                case 0x1d:
-                    bRet = m_Dallas.In(wPort_ << 8);
-                    break;
-
-                // ATA device
-                default:
-                    bRet = CAtaAdapter::InWord(m_bAddressLatch & ATOM_LITE_ADDR_MASK) & 0xff;
-                    break;
-            }
+    case 6:
+    case 7:
+        switch (m_bAddressLatch & ATOM_LITE_ADDR_MASK)
+        {
+            // Dallas clock
+        case 0x1d:
+            bRet = m_Dallas.In(wPort_ << 8);
             break;
 
+            // ATA device
         default:
-            TRACE("AtomLite: Unrecognised read from %#04x\n", wPort_);
+            bRet = CAtaAdapter::InWord(m_bAddressLatch & ATOM_LITE_ADDR_MASK) & 0xff;
             break;
+        }
+        break;
+
+    default:
+        TRACE("AtomLite: Unrecognised read from %#04x\n", wPort_);
+        break;
     }
 
     return bRet;
 }
 
-void CAtomLiteDevice::Out (WORD wPort_, BYTE bVal_)
+void CAtomLiteDevice::Out(WORD wPort_, BYTE bVal_)
 {
     switch (wPort_ & ATOM_LITE_REG_MASK)
     {
         // Address select
-        case 5:
-            // Bits 5-7 are unused, so strip them
-            m_bAddressLatch = (bVal_ & ATOM_LITE_ADDR_MASK);
-            break;
+    case 5:
+        // Bits 5-7 are unused, so strip them
+        m_bAddressLatch = (bVal_ & ATOM_LITE_ADDR_MASK);
+        break;
 
         // Both data ports behave the same
-        case 6:
-        case 7:
-            switch (m_bAddressLatch & ATOM_LITE_ADDR_MASK)
-            {
-                // Dallas clock
-                case 0x1d:
-                    m_Dallas.Out(wPort_ << 8, bVal_);
-                    break;
-
-                // ATA device
-                default:
-                    m_uActive = HDD_ACTIVE_FRAMES;
-                    CAtaAdapter::Out(m_bAddressLatch & ATOM_LITE_ADDR_MASK, bVal_);
-                    break;
-            }
+    case 6:
+    case 7:
+        switch (m_bAddressLatch & ATOM_LITE_ADDR_MASK)
+        {
+            // Dallas clock
+        case 0x1d:
+            m_Dallas.Out(wPort_ << 8, bVal_);
             break;
 
+            // ATA device
         default:
-            TRACE("AtomLite: Unhandled write to %#04x with %#02x\n", wPort_, bVal_);
+            m_uActive = HDD_ACTIVE_FRAMES;
+            CAtaAdapter::Out(m_bAddressLatch & ATOM_LITE_ADDR_MASK, bVal_);
             break;
+        }
+        break;
+
+    default:
+        TRACE("AtomLite: Unhandled write to %#04x with %#02x\n", wPort_, bVal_);
+        break;
     }
 }
 
 
-bool CAtomLiteDevice::Attach (CHardDisk *pDisk_, int nDevice_)
+bool CAtomLiteDevice::Attach(CHardDisk* pDisk_, int nDevice_)
 {
     if (pDisk_)
     {

@@ -27,26 +27,26 @@
 
 class CBlueAlphaDevice final : public CIoDevice
 {
-    public:
-        CBlueAlphaDevice ();
+public:
+    CBlueAlphaDevice();
 
-    public:
-        void Reset () override;
+public:
+    void Reset() override;
 
-        BYTE In (WORD wPort_) override;
-        void Out (WORD wPort_, BYTE bVal_) override;
+    BYTE In(WORD wPort_) override;
+    void Out(WORD wPort_, BYTE bVal_) override;
 
-    public:
-        int GetClockFreq ();
-        bool Clock ();
+public:
+    int GetClockFreq();
+    bool Clock();
 
-    protected:
-        BYTE m_bControl = 0;
-        BYTE m_bPortA = 0;
-        BYTE m_bPortB = 0;
-        BYTE m_bPortC = 0;
+protected:
+    BYTE m_bControl = 0;
+    BYTE m_bPortA = 0;
+    BYTE m_bPortB = 0;
+    BYTE m_bPortC = 0;
 };
 
-extern CBlueAlphaDevice *pBlueAlpha;
+extern CBlueAlphaDevice* pBlueAlpha;
 
 #endif  // BLUEALPHA_H

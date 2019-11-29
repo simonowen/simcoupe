@@ -32,32 +32,32 @@ namespace Keyboard
 
 typedef struct
 {
-    int nChar;					// Symbol or HK_ virtual keycode
+    int nChar;                  // Symbol or HK_ virtual keycode
     eSamKey nSamMods, nSamKey;  // Up to 2 SAM keys needed to generate the above symbol
-    int nKey, nMods;			// Host scancode and modifiers
+    int nKey, nMods;            // Host scancode and modifiers
 
 } MAPPED_KEY;
 
 
-int anNativeKey[HK_MAX-HK_MIN+1];
+int anNativeKey[HK_MAX - HK_MIN + 1];
 
 int nComboKey, nComboMods;
 DWORD dwComboTime;
 
-BYTE abKeys[512>>3];
-inline bool IsPressed(int k)    { return !!(abKeys[k>>3] & (1<<(k&7))); }
-inline void PressKey(int k)     { abKeys[k>>3] |= (1 << (k&7)); }
-inline void ReleaseKey(int k)   { abKeys[k>>3] &= ~(1 << (k&7)); }
-inline void ToggleKey(int k)    { abKeys[k>>3] ^= (1 << (k&7)); }
+BYTE abKeys[512 >> 3];
+inline bool IsPressed(int k) { return !!(abKeys[k >> 3] & (1 << (k & 7))); }
+inline void PressKey(int k) { abKeys[k >> 3] |= (1 << (k & 7)); }
+inline void ReleaseKey(int k) { abKeys[k >> 3] &= ~(1 << (k & 7)); }
+inline void ToggleKey(int k) { abKeys[k >> 3] ^= (1 << (k & 7)); }
 
-inline bool IsPressed(eHostKey k) { return IsPressed(anNativeKey[k-HK_MIN]); }
-inline void PressKey(eHostKey k)  { PressKey(anNativeKey[k-HK_MIN]); }
-inline void ReleaseKey(eHostKey k){ ReleaseKey(anNativeKey[k-HK_MIN]); }
-inline void ToggleKey(eHostKey k) { ToggleKey(anNativeKey[k-HK_MIN]); }
+inline bool IsPressed(eHostKey k) { return IsPressed(anNativeKey[k - HK_MIN]); }
+inline void PressKey(eHostKey k) { PressKey(anNativeKey[k - HK_MIN]); }
+inline void ReleaseKey(eHostKey k) { ReleaseKey(anNativeKey[k - HK_MIN]); }
+inline void ToggleKey(eHostKey k) { ToggleKey(anNativeKey[k - HK_MIN]); }
 
-static void PrepareKeyTable (MAPPED_KEY* asKeys_);
-static void ProcessShiftedKeys (MAPPED_KEY* asKeys_);
-static void ProcessUnshiftedKeys (MAPPED_KEY* asKeys_);
+static void PrepareKeyTable(MAPPED_KEY* asKeys_);
+static void ProcessShiftedKeys(MAPPED_KEY* asKeys_);
+static void ProcessUnshiftedKeys(MAPPED_KEY* asKeys_);
 
 
 // Main keyboard matrix (minus modifiers)
@@ -116,14 +116,14 @@ MAPPED_KEY asSpectrumKeys[] =
     { '\'', SK_SYMBOL, SK_7 },      { '(',  SK_SYMBOL, SK_8 },      { ')',  SK_SYMBOL, SK_9 },
     { '_',  SK_SYMBOL, SK_0 },      { '<',  SK_SYMBOL, SK_R },      { '>',  SK_SYMBOL, SK_T },
     { '`',  SK_SYMBOL, SK_I },      { ';',  SK_SYMBOL, SK_O },      { '"',  SK_SYMBOL, SK_P },
-    { '-',  SK_SYMBOL, SK_J },		{ '^',  SK_SYMBOL, SK_H },      { '+',  SK_SYMBOL, SK_K },
-    { '=',  SK_SYMBOL, SK_L },		{ ':',  SK_SYMBOL, SK_Z },      { 163,  SK_SYMBOL, SK_X },
-    { '?',  SK_SYMBOL, SK_C },		{ '/',  SK_SYMBOL, SK_V },      { '*',  SK_SYMBOL, SK_B },
-    { ',',  SK_SYMBOL, SK_N },		{ '.',  SK_SYMBOL, SK_M },
+    { '-',  SK_SYMBOL, SK_J },      { '^',  SK_SYMBOL, SK_H },      { '+',  SK_SYMBOL, SK_K },
+    { '=',  SK_SYMBOL, SK_L },      { ':',  SK_SYMBOL, SK_Z },      { 163,  SK_SYMBOL, SK_X },
+    { '?',  SK_SYMBOL, SK_C },      { '/',  SK_SYMBOL, SK_V },      { '*',  SK_SYMBOL, SK_B },
+    { ',',  SK_SYMBOL, SK_N },      { '.',  SK_SYMBOL, SK_M },
 
     // Useful mappings
     { HK_BACKSPACE, SK_SHIFT, SK_0 },
-    { HK_APPS,	    SK_SHIFT, SK_1 },
+    { HK_APPS,      SK_SHIFT, SK_1 },
     { HK_CAPSLOCK,  SK_SHIFT, SK_2 },
     { HK_LEFT,      SK_SHIFT, SK_5 },
     { HK_DOWN,      SK_SHIFT, SK_6 },
@@ -135,18 +135,18 @@ MAPPED_KEY asSpectrumKeys[] =
 };
 
 
-bool Init (bool /*fFirstInit_=false*/)
+bool Init(bool /*fFirstInit_=false*/)
 {
     // Fill the SAM keys for the main keyboard matrix
-    for (int i = SK_MIN ; i < SK_MAX ; i++)
+    for (int i = SK_MIN; i < SK_MAX; i++)
     {
         asKeyMatrix[i].nSamMods = SK_NONE;
         asKeyMatrix[i].nSamKey = static_cast<eSamKey>(i);
     }
 
     // HK_ to scancode mapping
-    for (int j = HK_MIN ; j < HK_MAX ; j++)
-        anNativeKey[j-HK_MIN] = Input::MapChar(j);
+    for (int j = HK_MIN; j < HK_MAX; j++)
+        anNativeKey[j - HK_MIN] = Input::MapChar(j);
 
     // Prepare key tables in advance if possible (Win32)
     PrepareKeyTable(asKeyMatrix);
@@ -157,12 +157,12 @@ bool Init (bool /*fFirstInit_=false*/)
     return true;
 }
 
-void Exit (bool /*fReInit_=false*/)
+void Exit(bool /*fReInit_=false*/)
 {
 }
 
 
-void Purge ()
+void Purge()
 {
     memset(abKeys, 0, sizeof(abKeys));
     memset(keybuffer, 0xff, sizeof(keybuffer));
@@ -170,7 +170,7 @@ void Purge ()
 
 
 // Build the SAM keyboard matrix from the current PC state
-void Update ()
+void Update()
 {
     // Save a copy of the current key state, so we can modify it during matching below
     BYTE abKeysCopy[_countof(abKeys)];
@@ -221,9 +221,9 @@ void Update ()
         // Note: the SK_ range isn't contiguous
         static const int anS[] = { SK_F1, SK_F2, SK_F3, SK_F4, SK_F5, SK_F6, SK_F7, SK_F8, SK_F9, SK_F0 };
 
-        for (UINT u = 0 ; u < _countof(anS) ; u++)
+        for (UINT u = 0; u < _countof(anS); u++)
         {
-            if (IsPressed(static_cast<eHostKey>(HK_F1+u)))
+            if (IsPressed(static_cast<eHostKey>(HK_F1 + u)))
             {
                 // Press the SAM function key
                 PressSamKey(anS[u]);
@@ -241,21 +241,21 @@ void Update ()
     // Process the key combinations required for the mode we're in
     switch (nMapping)
     {
-        case 0:	// Raw (no mapping)
-            break;
+    case 0: // Raw (no mapping)
+        break;
 
-        default:
-        case 2:	// SAM
-            ProcessShiftedKeys(asSamKeys);
-            ProcessShiftedKeys(asKeyMatrix);
-            ProcessUnshiftedKeys(asSamKeys);
-            break;
+    default:
+    case 2: // SAM
+        ProcessShiftedKeys(asSamKeys);
+        ProcessShiftedKeys(asKeyMatrix);
+        ProcessUnshiftedKeys(asSamKeys);
+        break;
 
-        case 3:	// Spectrum
-            ProcessShiftedKeys(asSpectrumKeys);
-            ProcessShiftedKeys(asKeyMatrix);
-            ProcessUnshiftedKeys(asSpectrumKeys);
-            break;
+    case 3: // Spectrum
+        ProcessShiftedKeys(asSpectrumKeys);
+        ProcessShiftedKeys(asKeyMatrix);
+        ProcessUnshiftedKeys(asSpectrumKeys);
+        break;
     }
 
 
@@ -281,24 +281,24 @@ void Update ()
 
 
 // Prepare the more complicated combination keys that are fairly keyboard specific
-void PrepareKeyTable (MAPPED_KEY* asKeys_)
+void PrepareKeyTable(MAPPED_KEY* asKeys_)
 {
-    for (int i = 0 ; asKeys_[i].nChar ; i++)
+    for (int i = 0; asKeys_[i].nChar; i++)
     {
         asKeys_[i].nKey = Input::MapChar(asKeys_[i].nChar, &asKeys_[i].nMods);
-//		TRACE("%d maps to %d with mods of %02x\n", asKeys_[i].nChar, asKeys_[i].nKey, asKeys_[i].nMods);
+        // TRACE("%d maps to %d with mods of %02x\n", asKeys_[i].nChar, asKeys_[i].nKey, asKeys_[i].nMods);
     }
 }
 
 
 // Process shifted key combinations
-void ProcessShiftedKeys (MAPPED_KEY* asKeys_)
+void ProcessShiftedKeys(MAPPED_KEY* asKeys_)
 {
     int nMods = 0;
     if (IsPressed(HK_LSHIFT)) nMods |= HM_SHIFT;
     if (IsPressed(HK_LCTRL))  nMods |= HM_CTRL;
     if (IsPressed(HK_LALT))   nMods |= HM_ALT;
-    if (IsPressed(HK_RALT))   nMods |= (HM_CTRL|HM_ALT);
+    if (IsPressed(HK_RALT))   nMods |= (HM_CTRL | HM_ALT);
 
     // Have the mods changed while the combo was active?
     if (dwComboTime && nComboMods != nMods)
@@ -312,14 +312,14 @@ void ProcessShiftedKeys (MAPPED_KEY* asKeys_)
             dwComboTime = 0;
     }
 
-    for (int i = 0 ; asKeys_[i].nChar ; i++)
+    for (int i = 0; asKeys_[i].nChar; i++)
     {
         // Key and necessary modifiers pressed?
         if (asKeys_[i].nMods && IsPressed(asKeys_[i].nKey) && (asKeys_[i].nMods & nMods) == asKeys_[i].nMods)
         {
-//          TRACE("%d (%d) pressed with mods %02x (of %02x)\n", asKeys_[i].nKey, asKeys_[i].nChar, asKeys_[i].nMods, nMods);
+            //          TRACE("%d (%d) pressed with mods %02x (of %02x)\n", asKeys_[i].nKey, asKeys_[i].nChar, asKeys_[i].nMods, nMods);
 
-            // Press the keys required to generate the symbol
+                        // Press the keys required to generate the symbol
             PressSamKey(asKeys_[i].nSamMods);
             PressSamKey(asKeys_[i].nSamKey);
 
@@ -328,8 +328,8 @@ void ProcessShiftedKeys (MAPPED_KEY* asKeys_)
 
             // Release the modifiers keys and clear the processed modifier bit(s)
             if (asKeys_[i].nMods & HM_SHIFT) { ReleaseKey(HK_LSHIFT); nMods &= ~HM_SHIFT; }
-            if (asKeys_[i].nMods & HM_CTRL)  { ReleaseKey(HK_LCTRL); nMods &= ~HM_CTRL; }
-            if (asKeys_[i].nMods & HM_ALT)   { ReleaseKey(HK_LALT); ReleaseKey(HK_LCTRL); nMods &= ~(HM_CTRL|HM_ALT); }
+            if (asKeys_[i].nMods & HM_CTRL) { ReleaseKey(HK_LCTRL); nMods &= ~HM_CTRL; }
+            if (asKeys_[i].nMods & HM_ALT) { ReleaseKey(HK_LALT); ReleaseKey(HK_LCTRL); nMods &= ~(HM_CTRL | HM_ALT); }
 
             // Remember the combo key details and current time
             nComboKey = asKeys_[i].nKey;
@@ -340,9 +340,9 @@ void ProcessShiftedKeys (MAPPED_KEY* asKeys_)
 }
 
 // Process simple unshifted keys
-void ProcessUnshiftedKeys (MAPPED_KEY* asKeys_)
+void ProcessUnshiftedKeys(MAPPED_KEY* asKeys_)
 {
-    for (int i = 0 ; asKeys_[i].nChar ; i++)
+    for (int i = 0; asKeys_[i].nChar; i++)
     {
         if (!asKeys_[i].nMods && IsPressed(asKeys_[i].nKey))
         {
@@ -354,12 +354,12 @@ void ProcessUnshiftedKeys (MAPPED_KEY* asKeys_)
 
 
 // Update a combination key table with a symbol
-static bool UpdateKeyTable (MAPPED_KEY* asKeys_, int nKey_, int nMods_, int nChar_)
+static bool UpdateKeyTable(MAPPED_KEY* asKeys_, int nKey_, int nMods_, int nChar_)
 {
     // Convert upper-case symbols to lower-case without shift
     if (nChar_ >= 'A' && nChar_ <= 'Z')
     {
-        nChar_ += 'a'-'A';
+        nChar_ += 'a' - 'A';
         nMods_ &= ~HM_SHIFT;
     }
 
@@ -370,7 +370,7 @@ static bool UpdateKeyTable (MAPPED_KEY* asKeys_, int nKey_, int nMods_, int nCha
             nMods_ &= ~HM_CTRL;
     }
 
-    for (int i = 0 ; asKeys_[i].nChar ; i++)
+    for (int i = 0; asKeys_[i].nChar; i++)
     {
         // Is there a mapping entry for the symbol?
         if (asKeys_[i].nChar == nChar_)
@@ -392,7 +392,7 @@ static bool UpdateKeyTable (MAPPED_KEY* asKeys_, int nKey_, int nMods_, int nCha
 
 
 // Set the state of a native key, remember any character generated from it
-void SetKey (int nCode_, bool fPressed_, int nMods_/*=0*/, int nChar_/*=0*/)
+void SetKey(int nCode_, bool fPressed_, int nMods_/*=0*/, int nChar_/*=0*/)
 {
     // Key released?
     if (!fPressed_)

@@ -28,23 +28,23 @@ static int anPosition[MAX_JOYSTICKS];
 static DWORD adwButtons[MAX_JOYSTICKS];
 
 
-void Init (bool /*fFirstInit_*/)
+void Init(bool /*fFirstInit_*/)
 {
-    for (int i = 0 ; i < MAX_JOYSTICKS ; i++)
+    for (int i = 0; i < MAX_JOYSTICKS; i++)
     {
         anPosition[i] = HJ_CENTRE;
         adwButtons[i] = 0;
     }
 }
 
-void Exit (bool /*fReInit_*/)
+void Exit(bool /*fReInit_*/)
 {
 }
 
 
-void SetX (int nJoystick_, int nPosition_)
+void SetX(int nJoystick_, int nPosition_)
 {
-    int nLeftRight = HJ_LEFT|HJ_RIGHT;
+    int nLeftRight = HJ_LEFT | HJ_RIGHT;
 
     // Opposite directions cancel each other out
     if (!(~nPosition_ & nLeftRight))
@@ -55,9 +55,9 @@ void SetX (int nJoystick_, int nPosition_)
         (anPosition[nJoystick_] &= ~nLeftRight) |= (nPosition_ & nLeftRight);
 }
 
-void SetY (int nJoystick_, int nPosition_)
+void SetY(int nJoystick_, int nPosition_)
 {
-    int nUpDown = HJ_UP|HJ_DOWN;
+    int nUpDown = HJ_UP | HJ_DOWN;
 
     // Opposite directions cancel each other out
     if (!(~nPosition_ & nUpDown))
@@ -68,9 +68,9 @@ void SetY (int nJoystick_, int nPosition_)
         (anPosition[nJoystick_] &= ~nUpDown) |= (nPosition_ & nUpDown);
 }
 
-void SetPosition (int nJoystick_, int nPosition_)
+void SetPosition(int nJoystick_, int nPosition_)
 {
-    int nLeftRight = HJ_LEFT|HJ_RIGHT, nUpDown = HJ_UP|HJ_DOWN;
+    int nLeftRight = HJ_LEFT | HJ_RIGHT, nUpDown = HJ_UP | HJ_DOWN;
 
     // Opposite directions cancel each other out
     if (!(~nPosition_ & nLeftRight)) nPosition_ &= ~nLeftRight;
@@ -81,7 +81,7 @@ void SetPosition (int nJoystick_, int nPosition_)
         anPosition[nJoystick_] = nPosition_;
 }
 
-void SetButton (int nJoystick_, int nButton_, bool fPressed_)
+void SetButton(int nJoystick_, int nButton_, bool fPressed_)
 {
     if (nJoystick_ < MAX_JOYSTICKS)
     {
@@ -94,14 +94,14 @@ void SetButton (int nJoystick_, int nButton_, bool fPressed_)
     }
 }
 
-void SetButtons (int nJoystick_, DWORD dwButtons_)
+void SetButtons(int nJoystick_, DWORD dwButtons_)
 {
     if (nJoystick_ < MAX_JOYSTICKS)
         adwButtons[nJoystick_] = dwButtons_;
 }
 
 
-BYTE ReadSinclair1 (int nJoystick_)
+BYTE ReadSinclair1(int nJoystick_)
 {
     BYTE bRet = 0;
 
@@ -117,7 +117,7 @@ BYTE ReadSinclair1 (int nJoystick_)
     return bRet;
 }
 
-BYTE ReadSinclair2 (int nJoystick_)
+BYTE ReadSinclair2(int nJoystick_)
 {
     BYTE bRet = 0;
 
@@ -133,7 +133,7 @@ BYTE ReadSinclair2 (int nJoystick_)
     return bRet;
 }
 
-BYTE ReadKempston (int nJoystick_)
+BYTE ReadKempston(int nJoystick_)
 {
     BYTE bRet = 0;
 

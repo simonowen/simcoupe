@@ -49,7 +49,7 @@ struct CUSTOMVERTEX
 static DWORD adwPalette[N_PALETTE_COLOURS];
 
 
-Direct3D9Video::~Direct3D9Video ()
+Direct3D9Video::~Direct3D9Video()
 {
     if (m_pTexture) m_pTexture->Release();
     if (m_pPixelShader) m_pPixelShader->Release();
@@ -61,12 +61,12 @@ Direct3D9Video::~Direct3D9Video ()
 }
 
 
-int Direct3D9Video::GetCaps () const
+int Direct3D9Video::GetCaps() const
 {
     return VCAP_STRETCH | VCAP_FILTER | VCAP_SCANHIRES;
 }
 
-bool Direct3D9Video::Init (bool fFirstInit_)
+bool Direct3D9Video::Init(bool fFirstInit_)
 {
     TRACE("Direct3D9Video::Init()\n");
 
@@ -82,20 +82,20 @@ bool Direct3D9Video::Init (bool fFirstInit_)
 }
 
 
-void Direct3D9Video::UpdatePalette ()
+void Direct3D9Video::UpdatePalette()
 {
-    const COLOUR *pSAM = IO::GetPalette();
+    const COLOUR* pSAM = IO::GetPalette();
     const DWORD dwRmask = 0x00ff0000, dwGmask = 0x0000ff00, dwBmask = 0x000000ff, dwAmask = 0xff000000;
 
     // Build the palette from SAM colours
-    for (int i = 0; i < N_PALETTE_COLOURS ; i++)
+    for (int i = 0; i < N_PALETTE_COLOURS; i++)
     {
         // Look up the colour in the SAM palette
-        const COLOUR *p = &pSAM[i];
+        const COLOUR* p = &pSAM[i];
         BYTE r = p->bRed, g = p->bGreen, b = p->bBlue, a = 0xff;
 
         // Set native pixel value
-        adwPalette[i] = RGB2Native(r,g,b,a, dwRmask, dwGmask, dwBmask, dwAmask);
+        adwPalette[i] = RGB2Native(r, g, b, a, dwRmask, dwGmask, dwBmask, dwAmask);
     }
 
     // Redraw to reflect any changes
@@ -103,7 +103,7 @@ void Direct3D9Video::UpdatePalette ()
 }
 
 // Update the display to show anything that's changed since last time
-void Direct3D9Video::Update (CScreen* pScreen_, bool *pafDirty_)
+void Direct3D9Video::Update(CScreen* pScreen_, bool* pafDirty_)
 {
     HRESULT hr;
 
@@ -135,7 +135,7 @@ void Direct3D9Video::Update (CScreen* pScreen_, bool *pafDirty_)
     if (!DrawChanges(pScreen_, pafDirty_))
         return;
 
-    hr = m_pd3dDevice->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0,0,0), 1.0f, 0L);
+    hr = m_pd3dDevice->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0L);
     hr = m_pd3dDevice->BeginScene();
 
     bool fFilter = GUI::IsActive() ? GetOption(filtergui) || (GetOption(scale) & 1) : GetOption(filter);
@@ -184,7 +184,7 @@ void Direct3D9Video::Update (CScreen* pScreen_, bool *pafDirty_)
     hr = m_pd3dDevice->Present(nullptr, nullptr, hwndCanvas, nullptr);
 }
 
-HRESULT Direct3D9Video::CreateTextures ()
+HRESULT Direct3D9Video::CreateTextures()
 {
     HRESULT hr = 0;
 
@@ -202,7 +202,7 @@ HRESULT Direct3D9Video::CreateTextures ()
     return hr;
 }
 
-HRESULT Direct3D9Video::CreateVertices ()
+HRESULT Direct3D9Video::CreateVertices()
 {
     HRESULT hr = 0;
 
@@ -214,14 +214,14 @@ HRESULT Direct3D9Video::CreateVertices ()
 
     if (m_pVertexBuffer) m_pVertexBuffer->Release(), m_pVertexBuffer = nullptr;
 
-    if (FAILED(hr = m_pd3dDevice->CreateVertexBuffer(NUM_VERTICES*sizeof(CUSTOMVERTEX), D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &m_pVertexBuffer, nullptr)))
+    if (FAILED(hr = m_pd3dDevice->CreateVertexBuffer(NUM_VERTICES * sizeof(CUSTOMVERTEX), D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &m_pVertexBuffer, nullptr)))
         return hr;
 
     DWORD dwWidth = Frame::GetWidth();
     DWORD dwHeight = Frame::GetHeight();
 
-    CUSTOMVERTEX *pVertices = nullptr;
-    hr = m_pVertexBuffer->Lock(0, NUM_VERTICES*sizeof(CUSTOMVERTEX), (void**)&pVertices, 0);
+    CUSTOMVERTEX* pVertices = nullptr;
+    hr = m_pVertexBuffer->Lock(0, NUM_VERTICES * sizeof(CUSTOMVERTEX), (void**)&pVertices, 0);
 
     // Main display, also used for scanlines
     pVertices[0] = CUSTOMVERTEX(0, dwHeight);
@@ -236,7 +236,7 @@ HRESULT Direct3D9Video::CreateVertices ()
     UINT uHeightView = m_d3dpp.BackBufferHeight;
 
     UINT uWidth = dwWidth, uHeight = dwHeight;
-    if (GetOption(ratio5_4)) uWidth = uWidth * 5/4;
+    if (GetOption(ratio5_4)) uWidth = uWidth * 5 / 4;
 
     UINT uWidthFit = MulDiv(uWidth, uHeightView, uHeight);
     UINT uHeightFit = MulDiv(uHeight, uWidthView, uWidth);
@@ -257,7 +257,7 @@ HRESULT Direct3D9Video::CreateVertices ()
     return D3D_OK;
 }
 
-HRESULT Direct3D9Video::CreateShaders ()
+HRESULT Direct3D9Video::CreateShaders()
 {
     HRESULT hr = D3D_OK;
 
@@ -272,7 +272,7 @@ HRESULT Direct3D9Video::CreateShaders ()
     return hr;
 }
 
-HRESULT Direct3D9Video::CreateDevice ()
+HRESULT Direct3D9Video::CreateDevice()
 {
     HRESULT hr = D3D_OK;
 
@@ -311,7 +311,7 @@ HRESULT Direct3D9Video::CreateDevice ()
     return hr;
 }
 
-bool Direct3D9Video::Reset (bool fNewDevice_)
+bool Direct3D9Video::Reset(bool fNewDevice_)
 {
     static bool fResetting = false;
     HRESULT hr = 0;
@@ -357,7 +357,7 @@ bool Direct3D9Video::Reset (bool fNewDevice_)
 }
 
 // Draw the changed lines in the appropriate colour depth and hi/low resolution
-bool Direct3D9Video::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
+bool Direct3D9Video::DrawChanges(CScreen* pScreen_, bool* pafDirty_)
 {
     HRESULT hr = 0;
 
@@ -367,7 +367,7 @@ bool Direct3D9Video::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     bool fHalfHeight = !GUI::IsActive();
     if (fHalfHeight) nHeight /= 2;
 
-    RECT rect = { 0, 0, nWidth/4, nHeight/4 };
+    RECT rect = { 0, 0, nWidth / 4, nHeight / 4 };
     D3DLOCKED_RECT d3dlr;
     if (!m_pTexture || FAILED(hr = m_pTexture->LockRect(0, &d3dlr, &rect, 0)))
     {
@@ -375,22 +375,22 @@ bool Direct3D9Video::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
         return false;
     }
 
-    DWORD *pdwBack = reinterpret_cast<DWORD*>(d3dlr.pBits), *pdw = pdwBack;
+    DWORD* pdwBack = reinterpret_cast<DWORD*>(d3dlr.pBits), * pdw = pdwBack;
     LONG lPitchDW = d3dlr.Pitch >> 2;
 
-    BYTE *pbSAM = pScreen_->GetLine(0), *pb = pbSAM;
+    BYTE* pbSAM = pScreen_->GetLine(0), * pb = pbSAM;
     LONG lPitch = pScreen_->GetPitch();
 
     int nRightHi = nWidth >> 3;
 
     nWidth <<= 2;
 
-    for (int y = 0 ; y < nHeight ; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
+    for (int y = 0; y < nHeight; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
     {
         if (!pafDirty_[y])
             continue;
 
-        for (int x = 0 ; x < nRightHi ; x++)
+        for (int x = 0; x < nRightHi; x++)
         {
             pdw[0] = adwPalette[pb[0]];
             pdw[1] = adwPalette[pb[1]];
@@ -413,7 +413,7 @@ bool Direct3D9Video::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     static bool fLastHalfHeight = true;
     if (fHalfHeight && !fLastHalfHeight)
     {
-        BYTE *pb = reinterpret_cast<BYTE*>(d3dlr.pBits) + nHeight*d3dlr.Pitch;
+        BYTE* pb = reinterpret_cast<BYTE*>(d3dlr.pBits) + nHeight * d3dlr.Pitch;
         memset(pb, 0, d3dlr.Pitch);
     }
     fLastHalfHeight = fHalfHeight;
@@ -423,7 +423,7 @@ bool Direct3D9Video::DrawChanges (CScreen* pScreen_, bool *pafDirty_)
     return true;
 }
 
-void Direct3D9Video::UpdateSize ()
+void Direct3D9Video::UpdateSize()
 {
     // Don't attempt to adjust for a minimised state
     if (IsMinimized(g_hwnd))
@@ -443,17 +443,17 @@ void Direct3D9Video::UpdateSize ()
 
 
 // Map a native size/offset to SAM view port
-void Direct3D9Video::DisplayToSamSize (int* pnX_, int* pnY_)
+void Direct3D9Video::DisplayToSamSize(int* pnX_, int* pnY_)
 {
     int nHalfWidth = !GUI::IsActive();
     int nHalfHeight = nHalfWidth;
 
-    *pnX_ = *pnX_ * Frame::GetWidth()  / (m_rTarget.right << nHalfWidth);
+    *pnX_ = *pnX_ * Frame::GetWidth() / (m_rTarget.right << nHalfWidth);
     *pnY_ = *pnY_ * Frame::GetHeight() / (m_rTarget.bottom << nHalfHeight);
 }
 
 // Map a native client point to SAM view port
-void Direct3D9Video::DisplayToSamPoint (int* pnX_, int* pnY_)
+void Direct3D9Video::DisplayToSamPoint(int* pnX_, int* pnY_)
 {
     DisplayToSamSize(pnX_, pnY_);
 }

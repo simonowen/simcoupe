@@ -28,33 +28,33 @@
 
 class DirectDrawVideo : public VideoBase
 {
-	public:
-		DirectDrawVideo ();
-		~DirectDrawVideo ();
+public:
+    DirectDrawVideo();
+    ~DirectDrawVideo();
 
-	public:
-		int GetCaps () const;
-		bool Init (bool fFirstInit_);
+public:
+    int GetCaps() const;
+    bool Init(bool fFirstInit_);
 
-		void Update (CScreen* pScreen_, bool *pafDirty_);
-		void UpdateSize () { }
-		void UpdatePalette ();
+    void Update(CScreen* pScreen_, bool* pafDirty_);
+    void UpdateSize() { }
+    void UpdatePalette();
 
-		void DisplayToSamSize (int* pnX_, int* pnY_);
-		void DisplayToSamPoint (int* pnX_, int* pnY_);
+    void DisplayToSamSize(int* pnX_, int* pnY_);
+    void DisplayToSamPoint(int* pnX_, int* pnY_);
 
-	protected:
-		LPDIRECTDRAWSURFACE CreateSurface (DWORD dwCaps_, DWORD dwWidth_=0, DWORD dwHeight_=0, DWORD dwRequiredCaps_=0);
-		bool DrawChanges (CScreen* pScreen_, bool *pafDirty_);
+protected:
+    LPDIRECTDRAWSURFACE CreateSurface(DWORD dwCaps_, DWORD dwWidth_ = 0, DWORD dwHeight_ = 0, DWORD dwRequiredCaps_ = 0);
+    bool DrawChanges(CScreen* pScreen_, bool* pafDirty_);
 
-	private:
-		LPDIRECTDRAW m_pdd = nullptr;
-		LPDIRECTDRAWSURFACE m_pddsPrimary = nullptr;
-        LPDIRECTDRAWSURFACE m_pddsBack = nullptr;
-		LPDIRECTDRAWCLIPPER m_pddClipper = nullptr;
+private:
+    LPDIRECTDRAW m_pdd = nullptr;
+    LPDIRECTDRAWSURFACE m_pddsPrimary = nullptr;
+    LPDIRECTDRAWSURFACE m_pddsBack = nullptr;
+    LPDIRECTDRAWCLIPPER m_pddClipper = nullptr;
 
-		int m_nWidth = 0, m_nHeight = 0;
-		RECT m_rTarget {};
+    int m_nWidth = 0, m_nHeight = 0;
+    RECT m_rTarget{};
 };
 
 #endif // DIRECTDRAW_H

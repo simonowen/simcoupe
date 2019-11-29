@@ -29,46 +29,46 @@ const unsigned int HDD_ACTIVE_FRAMES = 2;    // Frames the HDD is considered act
 
 class CHardDisk : public CATADevice
 {
-    public:
-        CHardDisk (const char* pcszDisk_);
+public:
+    CHardDisk(const char* pcszDisk_);
 
-    public:
-        static CHardDisk* OpenObject (const char* pcszDisk_, bool fReadOnly_=false);
-        virtual bool Open (bool fReadOnly_=false) = 0;
+public:
+    static CHardDisk* OpenObject(const char* pcszDisk_, bool fReadOnly_ = false);
+    virtual bool Open(bool fReadOnly_ = false) = 0;
 
-    public:
-        bool IsSDIDEDisk ();
-        bool IsBDOSDisk (bool *pfByteSwapped=nullptr);
+public:
+    bool IsSDIDEDisk();
+    bool IsBDOSDisk(bool* pfByteSwapped = nullptr);
 
-    protected:
-        std::string m_strPath;
+protected:
+    std::string m_strPath;
 };
 
 
 class CHDFHardDisk final : public CHardDisk
 {
-    public:
-        CHDFHardDisk (const char* pcszDisk_);
-        CHDFHardDisk (const CHDFHardDisk &) = delete;
-        void operator= (const CHDFHardDisk &) = delete;
-        ~CHDFHardDisk () { Close(); }
+public:
+    CHDFHardDisk(const char* pcszDisk_);
+    CHDFHardDisk(const CHDFHardDisk&) = delete;
+    void operator= (const CHDFHardDisk&) = delete;
+    ~CHDFHardDisk() { Close(); }
 
-    public:
-        static bool Create (const char* pcszDisk_, UINT uTotalSectors_);
+public:
+    static bool Create(const char* pcszDisk_, UINT uTotalSectors_);
 
-    public:
-        bool IsOpen () const { return m_hfDisk != nullptr; }
-        bool Open (bool fReadOnly_=false) override;
-        bool Create (UINT uTotalSectors_);
-        void Close ();
+public:
+    bool IsOpen() const { return m_hfDisk != nullptr; }
+    bool Open(bool fReadOnly_ = false) override;
+    bool Create(UINT uTotalSectors_);
+    void Close();
 
-        bool ReadSector (UINT uSector_, BYTE* pb_) override;
-        bool WriteSector (UINT uSector_, BYTE* pb_) override;
+    bool ReadSector(UINT uSector_, BYTE* pb_) override;
+    bool WriteSector(UINT uSector_, BYTE* pb_) override;
 
-    protected:
-        FILE *m_hfDisk = nullptr;
-        UINT m_uDataOffset = 0;
-        UINT m_uSectorSize = 0;
+protected:
+    FILE* m_hfDisk = nullptr;
+    UINT m_uDataOffset = 0;
+    UINT m_uSectorSize = 0;
 };
 
 #endif // HARDDISK_H

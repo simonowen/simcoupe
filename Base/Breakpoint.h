@@ -29,20 +29,20 @@ enum AccessType { atNone, atRead, atWrite, atReadWrite };
 
 typedef struct tagBREAKTEMP
 {
-    const void *pPhysAddr;
+    const void* pPhysAddr;
 }
 BREAKTEMP;
 
 typedef struct tagBREAKEXEC
 {
-    const void *pPhysAddr;
+    const void* pPhysAddr;
 }
 BREAKEXEC;
 
 typedef struct tagBREAKMEM
 {
-    const void *pPhysAddrFrom;
-    const void *pPhysAddrTo;
+    const void* pPhysAddrFrom;
+    const void* pPhysAddrTo;
     AccessType nAccess;
 }
 BREAKMEM;
@@ -64,10 +64,10 @@ BREAKINT;
 
 typedef struct tagBREAKPT
 {
-    tagBREAKPT (BreakpointType nType_, EXPR *pExpr_)
+    tagBREAKPT(BreakpointType nType_, EXPR* pExpr_)
         : nType(nType_), pExpr(pExpr_) { }
-    tagBREAKPT (const tagBREAKPT &) = delete;
-    void operator= (const tagBREAKPT &) = delete;
+    tagBREAKPT(const tagBREAKPT&) = delete;
+    void operator= (const tagBREAKPT&) = delete;
     ~tagBREAKPT() { Expr::Release(pExpr); }
 
     BreakpointType nType;
@@ -89,23 +89,23 @@ typedef struct tagBREAKPT
 
 class Breakpoint
 {
-    public:
-        static bool IsSet ();
-        static bool IsHit ();
-        static void Add (BREAKPT *pBreak_);
-        static void AddTemp (void *pPhysAddr_, EXPR *pExpr_);
-        static void AddUntil (EXPR *pExpr_);
-        static void AddExec (void *pPhysAddr_, EXPR *pExpr_);
-        static void AddMemory (void *pPhysAddr_, AccessType nAccess_, EXPR *pExpr_, int nLength_=1);
-        static void AddPort (WORD wPort_, AccessType nAccess_, EXPR *pExpr_);
-        static void AddInterrupt (BYTE bIntMask_, EXPR *pExpr_);
-        static const char *GetDesc (BREAKPT *pBreak_);
-        static BREAKPT *GetAt (int nIndex_);
-        static bool IsExecAddr (WORD wAddr_);
-        static int GetIndex (BREAKPT *pBreak_);
-        static int GetExecIndex (void *pPhysAddr_);
-        static bool RemoveAt (int nIndex_);
-        static void RemoveAll ();
+public:
+    static bool IsSet();
+    static bool IsHit();
+    static void Add(BREAKPT* pBreak_);
+    static void AddTemp(void* pPhysAddr_, EXPR* pExpr_);
+    static void AddUntil(EXPR* pExpr_);
+    static void AddExec(void* pPhysAddr_, EXPR* pExpr_);
+    static void AddMemory(void* pPhysAddr_, AccessType nAccess_, EXPR* pExpr_, int nLength_ = 1);
+    static void AddPort(WORD wPort_, AccessType nAccess_, EXPR* pExpr_);
+    static void AddInterrupt(BYTE bIntMask_, EXPR* pExpr_);
+    static const char* GetDesc(BREAKPT* pBreak_);
+    static BREAKPT* GetAt(int nIndex_);
+    static bool IsExecAddr(WORD wAddr_);
+    static int GetIndex(BREAKPT* pBreak_);
+    static int GetExecIndex(void* pPhysAddr_);
+    static bool RemoveAt(int nIndex_);
+    static void RemoveAll();
 };
 
 #endif // BREAKPOINT_H

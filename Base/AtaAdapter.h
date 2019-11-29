@@ -25,38 +25,38 @@
 
 class CAtaAdapter : public CIoDevice
 {
-    public:
-        CAtaAdapter () = default;
-        CAtaAdapter (const CAtaAdapter &) = delete;
-        void operator= (const CAtaAdapter &) = delete;
-        ~CAtaAdapter ();
+public:
+    CAtaAdapter() = default;
+    CAtaAdapter(const CAtaAdapter&) = delete;
+    void operator= (const CAtaAdapter&) = delete;
+    ~CAtaAdapter();
 
-    public:
-        BYTE In (WORD wPort_) override;
-        void Out (WORD wPort_, BYTE bVal_) override;
+public:
+    BYTE In(WORD wPort_) override;
+    void Out(WORD wPort_, BYTE bVal_) override;
 
-        void Reset () override;
-        void FrameEnd () override { if (m_uActive) m_uActive--; }
+    void Reset() override;
+    void FrameEnd() override { if (m_uActive) m_uActive--; }
 
-    public:
-        bool IsActive () const { return m_uActive != 0; }
+public:
+    bool IsActive() const { return m_uActive != 0; }
 
-    public:
-        bool Attach (const char *pcszDisk_, int nDevice_);
-        virtual bool Attach (CHardDisk *pDisk_, int nDevice_);
-        virtual void Detach ();
+public:
+    bool Attach(const char* pcszDisk_, int nDevice_);
+    virtual bool Attach(CHardDisk* pDisk_, int nDevice_);
+    virtual void Detach();
 
-    protected:
-        WORD InWord (WORD wPort_);
+protected:
+    WORD InWord(WORD wPort_);
 
-    protected:
-        UINT m_uActive = 0; // active when non-zero, decremented by FrameEnd()
+protected:
+    UINT m_uActive = 0; // active when non-zero, decremented by FrameEnd()
 
-    private:
-        CHardDisk *m_pDisk0 = nullptr;
-        CHardDisk *m_pDisk1 = nullptr;
+private:
+    CHardDisk* m_pDisk0 = nullptr;
+    CHardDisk* m_pDisk1 = nullptr;
 };
 
-extern CAtaAdapter *pAtom, *pAtomLite, *pSDIDE;
+extern CAtaAdapter* pAtom, * pAtomLite, * pSDIDE;
 
 #endif // ATAADAPTER_H

@@ -84,6 +84,6 @@ namespace fs = std::filesystem;
 #include "zlib.h"        /* for gzopen, gzclose, etc. */
 #endif
 
-#endif	/* __cplusplus */
+#endif  /* __cplusplus */
 
 #endif  /* SIMCOUPE_H */

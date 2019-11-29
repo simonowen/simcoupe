@@ -25,13 +25,13 @@
 
 namespace AVI
 {
-    bool Start (bool fHalfSize_=false);
-    void Stop ();
-    void Toggle (bool fHalfSize_=false);
-    bool IsRecording ();
+bool Start(bool fHalfSize_ = false);
+void Stop();
+void Toggle(bool fHalfSize_ = false);
+bool IsRecording();
 
-    void AddFrame (CScreen *pScreen_);
-    void AddFrame (const BYTE *pbAudio_, UINT uLen_);
+void AddFrame(CScreen* pScreen_);
+void AddFrame(const BYTE* pbAudio_, UINT uLen_);
 }
 
 #endif // AVI_H

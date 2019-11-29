@@ -62,13 +62,13 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #ifdef _WINDOWS
 
 #define NOMINMAX        // no min/max macros from windef.h
-#define SID WIN32_SID	// TODO: limit scope of windows.h avoid SID symbol clash
+#define SID WIN32_SID   // TODO: limit scope of windows.h avoid SID symbol clash
 #include <windows.h>
 #undef SID
 
 #include <direct.h>
 
-#pragma include_alias(<io.h>, <..\ucrt\IO.h>)	// TODO: rename our io.h to fix this hack!
+#pragma include_alias(<io.h>, <..\ucrt\IO.h>)   // TODO: rename our io.h to fix this hack!
 #include <io.h>
 
 #pragma warning(disable:4786)   // Disable the stupid warning about debug symbols being truncated
@@ -80,13 +80,13 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #define mkdir(p,m)  _mkdir(p)
 #define snprintf    _snprintf
 #define lstat       stat
-#define ioctl(f,c,x)	-1
+#define ioctl(f,c,x)    -1
 #define readlink(p,b,n) -1
 
 #define access      _access
 #define R_OK        4
 #define W_OK        2
-#define X_OK        0			// Should be 1, but the VC runtime asserts if we use it!
+#define X_OK        0           // Should be 1, but the VC runtime asserts if we use it!
 #define F_OK        0
 
 #define O_NONBLOCK  0           // Normally 04000, but not needed
@@ -109,9 +109,9 @@ struct dirent
 
 typedef HANDLE  DIR;
 
-DIR* opendir (const char* pcszDir_);
-struct dirent* readdir (DIR* hDir_);
-int closedir (DIR* hDir_);
+DIR* opendir(const char* pcszDir_);
+struct dirent* readdir(DIR* hDir_);
+int closedir(DIR* hDir_);
 
 #endif  // _WINDOWS
 
@@ -122,16 +122,16 @@ enum { MFP_SETTINGS, MFP_INPUT, MFP_OUTPUT, MFP_RESOURCE };
 class OSD
 {
 public:
-    static bool Init (bool fFirstInit_=false);
-    static void Exit (bool fReInit_=false);
+    static bool Init(bool fFirstInit_ = false);
+    static void Exit(bool fReInit_ = false);
 
-    static DWORD GetTime ();
-    static const char* MakeFilePath (int nDir_, const char* pcszFile_="");
-    static const char* GetFloppyDevice (int nDrive_);
-    static bool CheckPathAccess (const char* pcszPath_);
-    static bool IsHidden (const char* pcszPath_);
+    static DWORD GetTime();
+    static const char* MakeFilePath(int nDir_, const char* pcszFile_ = "");
+    static const char* GetFloppyDevice(int nDrive_);
+    static bool CheckPathAccess(const char* pcszPath_);
+    static bool IsHidden(const char* pcszPath_);
 
-    static void DebugTrace (const char* pcsz_);
+    static void DebugTrace(const char* pcsz_);
 };
 
 #endif  // OSD_H

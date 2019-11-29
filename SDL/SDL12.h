@@ -27,33 +27,33 @@
 
 class SDLSurface : public VideoBase
 {
-    public:
-        SDLSurface ();
-        SDLSurface (const SDLSurface &) = delete;
-        void operator= (const SDLSurface &) = delete;
-        ~SDLSurface ();
+public:
+    SDLSurface();
+    SDLSurface(const SDLSurface&) = delete;
+    void operator= (const SDLSurface&) = delete;
+    ~SDLSurface();
 
-    public:
-        int GetCaps () const;
-        bool Init (bool fFirstInit_);
+public:
+    int GetCaps() const;
+    bool Init(bool fFirstInit_);
 
-        void Update (CScreen* pScreen_, bool *pafDirty_);
-        void UpdateSize ();
-        void UpdatePalette ();
+    void Update(CScreen* pScreen_, bool* pafDirty_);
+    void UpdateSize();
+    void UpdatePalette();
 
-        void DisplayToSamSize (int* pnX_, int* pnY_);
-        void DisplayToSamPoint (int* pnX_, int* pnY_);
+    void DisplayToSamSize(int* pnX_, int* pnY_);
+    void DisplayToSamPoint(int* pnX_, int* pnY_);
 
-    protected:
-        bool DrawChanges (CScreen* pScreen_, bool *pafDirty_);
+protected:
+    bool DrawChanges(CScreen* pScreen_, bool* pafDirty_);
 
-    private:
-        SDL_Surface *pFront = nullptr;
-        SDL_Surface *pBack = nullptr;
-        SDL_Surface *pIcon = nullptr;
-        int nDesktopWidth = 0, nDesktopHeight = 0;
+private:
+    SDL_Surface* pFront = nullptr;
+    SDL_Surface* pBack = nullptr;
+    SDL_Surface* pIcon = nullptr;
+    int nDesktopWidth = 0, nDesktopHeight = 0;
 
-        SDL_Rect m_rTarget {};
+    SDL_Rect m_rTarget{};
 };
 
 #endif // !HAVE_LIBSDL2

@@ -26,86 +26,86 @@
 
 class CPrintBuffer : public CIoDevice
 {
-    public:
-        BYTE In (WORD wPort_) override;
-        void Out (WORD wPort_, BYTE bVal_) override;
-        void FrameEnd () override;
+public:
+    BYTE In(WORD wPort_) override;
+    void Out(WORD wPort_, BYTE bVal_) override;
+    void FrameEnd() override;
 
-        bool IsFlushable() const { return !!m_uBuffer; }
-        void Flush ();
+    bool IsFlushable() const { return !!m_uBuffer; }
+    void Flush();
 
-    protected:
-        bool m_fOpen = false;
-        BYTE m_bControl = 0, m_bData = 0, m_bStatus = 0;
+protected:
+    bool m_fOpen = false;
+    BYTE m_bControl = 0, m_bData = 0, m_bStatus = 0;
 
-        UINT m_uBuffer = 0, m_uFlushDelay = 0;
-        BYTE m_abBuffer[1024];
+    UINT m_uBuffer = 0, m_uFlushDelay = 0;
+    BYTE m_abBuffer[1024];
 
-    protected:
-        bool IsOpen () const { return false; }
+protected:
+    bool IsOpen() const { return false; }
 
-        virtual bool Open () = 0;
-        virtual void Close () = 0;
-        virtual void Write (BYTE *pb_, size_t uLen_) = 0;
+    virtual bool Open() = 0;
+    virtual void Close() = 0;
+    virtual void Write(BYTE* pb_, size_t uLen_) = 0;
 };
 
 
 class CPrinterFile final : public CPrintBuffer
 {
-    public:
-        CPrinterFile () = default;
-        CPrinterFile (const CPrinterFile &) = delete;
-        void operator= (const CPrinterFile &) = delete;
-        ~CPrinterFile () { Close(); }
+public:
+    CPrinterFile() = default;
+    CPrinterFile(const CPrinterFile&) = delete;
+    void operator= (const CPrinterFile&) = delete;
+    ~CPrinterFile() { Close(); }
 
-    public:
-        bool Open () override;
-        void Close () override;
-        void Write (BYTE *pb_, size_t uLen_) override;
+public:
+    bool Open() override;
+    void Close() override;
+    void Write(BYTE* pb_, size_t uLen_) override;
 
-    protected:
-        FILE *m_hFile = nullptr;
-        char *m_pszFile = nullptr;
-        char m_szPath[MAX_PATH];
+protected:
+    FILE* m_hFile = nullptr;
+    char* m_pszFile = nullptr;
+    char m_szPath[MAX_PATH];
 };
 
 class CPrinterDevice : public CPrintBuffer
 {
-    public:
-        CPrinterDevice ();
-        ~CPrinterDevice ();
+public:
+    CPrinterDevice();
+    ~CPrinterDevice();
 
-    public:
-        bool Open () override;
-        void Close () override;
-        void Write (BYTE *pb_, size_t uLen_) override;
+public:
+    bool Open() override;
+    void Close() override;
+    void Write(BYTE* pb_, size_t uLen_) override;
 
-    protected:
+protected:
 #ifdef WIN32
-        HANDLE m_hPrinter;  // temporary!
+    HANDLE m_hPrinter;  // temporary!
 #endif
 };
 
 
 class CMonoDACDevice : public CIoDevice
 {
-    public:
-        void Out (WORD wPort_, BYTE bVal_) override;
+public:
+    void Out(WORD wPort_, BYTE bVal_) override;
 };
 
 
 class CStereoDACDevice : public CIoDevice
 {
-    public:
-        CStereoDACDevice () : m_bControl(0x00), m_bData(0x80) { }
+public:
+    CStereoDACDevice() : m_bControl(0x00), m_bData(0x80) { }
 
-    public:
-        void Out (WORD wPort_, BYTE bVal_) override;
+public:
+    void Out(WORD wPort_, BYTE bVal_) override;
 
-    protected:
-        BYTE m_bControl, m_bData;
+protected:
+    BYTE m_bControl, m_bData;
 };
 
-extern CPrintBuffer *pPrinterFile;
+extern CPrintBuffer* pPrinterFile;
 
 #endif  // PARALLEL_H

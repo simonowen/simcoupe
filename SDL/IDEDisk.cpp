@@ -36,7 +36,7 @@ struct hd_geometry {
 };
 
 
-bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/)
+bool CDeviceHardDisk::Open(bool fReadOnly_/*=false*/)
 {
     m_hDevice = open(m_strPath.c_str(), O_EXCL | (fReadOnly_ ? O_RDONLY : O_RDWR));
     if (m_hDevice == -1)
@@ -71,7 +71,7 @@ bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/)
     return false;
 }
 
-void CDeviceHardDisk::Close ()
+void CDeviceHardDisk::Close()
 {
     if (IsOpen())
     {
@@ -80,26 +80,26 @@ void CDeviceHardDisk::Close ()
     }
 }
 
-bool CDeviceHardDisk::ReadSector (UINT uSector_, BYTE* pb_)
+bool CDeviceHardDisk::ReadSector(UINT uSector_, BYTE* pb_)
 {
     off_t uOffset = uSector_ << 9, uSize = 1 << 9;
     return lseek(m_hDevice, uOffset, SEEK_SET) == uOffset &&
-            read(m_hDevice, pb_, uSize) == uSize;
+        read(m_hDevice, pb_, uSize) == uSize;
 }
 
-bool CDeviceHardDisk::WriteSector (UINT uSector_, BYTE* pb_)
+bool CDeviceHardDisk::WriteSector(UINT uSector_, BYTE* pb_)
 {
     off_t uOffset = uSector_ << 9, uSize = 1 << 9;
     return lseek(m_hDevice, uOffset, SEEK_SET) == uOffset &&
-            write(m_hDevice, pb_, uSize) == uSize;
+        write(m_hDevice, pb_, uSize) == uSize;
 }
 
 #else
 
 // Dummy implementation for non-Linux SDL versions
-bool CDeviceHardDisk::Open (bool fReadOnly_/*=false*/) { return false; }
-void CDeviceHardDisk::Close () { }
-bool CDeviceHardDisk::ReadSector (UINT, BYTE*) { return false; }
-bool CDeviceHardDisk::WriteSector (UINT, BYTE*) { return false; }
+bool CDeviceHardDisk::Open(bool fReadOnly_/*=false*/) { return false; }
+void CDeviceHardDisk::Close() { }
+bool CDeviceHardDisk::ReadSector(UINT, BYTE*) { return false; }
+bool CDeviceHardDisk::WriteSector(UINT, BYTE*) { return false; }
 
 #endif

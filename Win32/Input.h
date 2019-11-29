@@ -23,20 +23,20 @@
 
 class Input
 {
-    public:
-        static bool Init (bool fFirstInit_=false);
-        static void Exit (bool fReInit_=false);
+public:
+    static bool Init(bool fFirstInit_ = false);
+    static void Exit(bool fReInit_ = false);
 
-        static void Update ();
-        static bool FilterMessage (HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
+    static void Update();
+    static bool FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_);
 
-        static bool IsMouseAcquired ();
-        static void AcquireMouse (bool fAcquire_);
-        static void Purge ();
+    static bool IsMouseAcquired();
+    static void AcquireMouse(bool fAcquire_);
+    static void Purge();
 
-        static int MapChar (int nChar_, int *pnMods_=nullptr);
+    static int MapChar(int nChar_, int* pnMods_ = nullptr);
 
-        static void FillJoystickCombo (HWND hwndCombo_);    // Used by the Win32 GUI in UI.cpp
+    static void FillJoystickCombo(HWND hwndCombo_);    // Used by the Win32 GUI in UI.cpp
 };
 
 #endif

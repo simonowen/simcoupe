@@ -32,19 +32,19 @@ struct _Z80Regs;
 
 namespace CPU
 {
-    bool Init (bool fFirstInit_=false);
-    void Exit (bool fReInit_=false);
+bool Init(bool fFirstInit_ = false);
+void Exit(bool fReInit_ = false);
 
-    void Run ();
-    bool IsContentionActive ();
-    void UpdateContention (bool fActive_ = true);
-    void ExecuteEvent (struct _CPU_EVENT sThisEvent);
-    void ExecuteChunk ();
+void Run();
+bool IsContentionActive();
+void UpdateContention(bool fActive_ = true);
+void ExecuteEvent(struct _CPU_EVENT sThisEvent);
+void ExecuteChunk();
 
-    void Reset (bool fPress_);
-    void NMI ();
+void Reset(bool fPress_);
+void NMI();
 
-    void InitTests ();
+void InitTests();
 }
 
 
@@ -52,24 +52,24 @@ extern struct _Z80Regs regs;
 extern DWORD g_dwCycleCounter;
 extern bool g_fReset, g_fBreak, g_fPaused;
 extern int g_nTurbo;
-extern BYTE *pbMemRead1, *pbMemRead2, *pbMemWrite1, *pbMemWrite2;
+extern BYTE* pbMemRead1, * pbMemRead2, * pbMemWrite1, * pbMemWrite2;
 
-enum { TURBO_BOOT=0x01, TURBO_KEY=0x02, TURBO_DISK=0x04, TURBO_TAPE=0x08, TURBO_KEYIN=0x10 };
+enum { TURBO_BOOT = 0x01, TURBO_KEY = 0x02, TURBO_DISK = 0x04, TURBO_TAPE = 0x08, TURBO_KEYIN = 0x10 };
 
 #ifdef _DEBUG
 extern bool g_fDebug;
 #endif
 
-const BYTE OP_NOP   = 0x00;     // Z80 opcode for NOP
-const BYTE OP_DJNZ  = 0x10;     // Z80 opcode for DJNZ
-const BYTE OP_JR    = 0x18;     // Z80 opcode for JR
-const BYTE OP_HALT  = 0x76;     // Z80 opcode for HALT
-const BYTE OP_JP    = 0xc3;     // Z80 opcode for JP
-const BYTE OP_RET   = 0xc9;     // Z80 opcode for RET
-const BYTE OP_CALL  = 0xcd;     // Z80 opcode for CALL
-const BYTE OP_DI    = 0xf3;     // Z80 opcode for DI
-const BYTE OP_EI    = 0xfb;     // Z80 opcode for EI
-const BYTE OP_JPHL  = 0xe9;     // Z80 opcode for JP (HL)
+const BYTE OP_NOP = 0x00;     // Z80 opcode for NOP
+const BYTE OP_DJNZ = 0x10;     // Z80 opcode for DJNZ
+const BYTE OP_JR = 0x18;     // Z80 opcode for JR
+const BYTE OP_HALT = 0x76;     // Z80 opcode for HALT
+const BYTE OP_JP = 0xc3;     // Z80 opcode for JP
+const BYTE OP_RET = 0xc9;     // Z80 opcode for RET
+const BYTE OP_CALL = 0xcd;     // Z80 opcode for CALL
+const BYTE OP_DI = 0xf3;     // Z80 opcode for DI
+const BYTE OP_EI = 0xfb;     // Z80 opcode for EI
+const BYTE OP_JPHL = 0xe9;     // Z80 opcode for JP (HL)
 
 const BYTE IX_PREFIX = 0xdd;    // Opcode prefix used for IX instructions
 const BYTE IY_PREFIX = 0xfd;    // Opcode prefix used for IY instructions
@@ -105,7 +105,7 @@ typedef struct _CPU_EVENT
 {
     int nEvent = -1;
     DWORD dwTime = 0;
-    struct _CPU_EVENT *psNext = nullptr;
+    struct _CPU_EVENT* psNext = nullptr;
 } CPU_EVENT;
 
 
@@ -116,9 +116,9 @@ typedef struct
     {
         WORD    w;
 #ifdef __BIG_ENDIAN__
-    struct { BYTE h, l; } b;  // Big endian
+        struct { BYTE h, l; } b;  // Big endian
 #else
-    struct { BYTE l, h; } b;  // Little endian
+        struct { BYTE l, h; } b;  // Little endian
 #endif
     };
 } REGPAIR;
@@ -195,24 +195,24 @@ enum {
 
 const int MAX_EVENTS = 16;
 
-extern CPU_EVENT asCpuEvents[MAX_EVENTS], *psNextEvent, *psFreeEvent;
+extern CPU_EVENT asCpuEvents[MAX_EVENTS], * psNextEvent, * psFreeEvent;
 
 
 // Initialise the CPU events queue
-inline void InitCpuEvents ()
+inline void InitCpuEvents()
 {
-    for (int n = 0 ; n < MAX_EVENTS ; n++)
-        asCpuEvents[n].psNext = &asCpuEvents[(n+1) % MAX_EVENTS];
+    for (int n = 0; n < MAX_EVENTS; n++)
+        asCpuEvents[n].psNext = &asCpuEvents[(n + 1) % MAX_EVENTS];
 
     psFreeEvent = asCpuEvents;
     psNextEvent = nullptr;
 }
 
 // Add a CPU event into the queue
-inline void AddCpuEvent (int nEvent_, DWORD dwTime_)
+inline void AddCpuEvent(int nEvent_, DWORD dwTime_)
 {
-    CPU_EVENT *psNextFree = psFreeEvent->psNext;
-    CPU_EVENT **ppsEvent = &psNextEvent;
+    CPU_EVENT* psNextFree = psFreeEvent->psNext;
+    CPU_EVENT** ppsEvent = &psNextEvent;
 
     // Search through the queue while the events come before the new one
     // New events with equal time are inserted after existing entries
@@ -230,9 +230,9 @@ inline void AddCpuEvent (int nEvent_, DWORD dwTime_)
 }
 
 // Remove events of a specific type from the queue
-inline void CancelCpuEvent (int nEvent_)
+inline void CancelCpuEvent(int nEvent_)
 {
-    CPU_EVENT **ppsEvent = &psNextEvent;
+    CPU_EVENT** ppsEvent = &psNextEvent;
 
     while (*ppsEvent)
     {
@@ -240,7 +240,7 @@ inline void CancelCpuEvent (int nEvent_)
             ppsEvent = &((*ppsEvent)->psNext);
         else
         {
-            CPU_EVENT *psNext = (*ppsEvent)->psNext;
+            CPU_EVENT* psNext = (*ppsEvent)->psNext;
             (*ppsEvent)->psNext = psFreeEvent;
             psFreeEvent = *ppsEvent;
             *ppsEvent = psNext;
@@ -249,11 +249,11 @@ inline void CancelCpuEvent (int nEvent_)
 }
 
 // Return time until the next event of a specific  type
-inline DWORD GetEventTime (int nEvent_)
+inline DWORD GetEventTime(int nEvent_)
 {
-    CPU_EVENT *psEvent;
+    CPU_EVENT* psEvent;
 
-    for (psEvent = psNextEvent ; psEvent ; psEvent = psEvent->psNext)
+    for (psEvent = psNextEvent; psEvent; psEvent = psEvent->psNext)
     {
         if (psEvent->nEvent == nEvent_)
             return psEvent->dwTime - g_dwCycleCounter;
@@ -263,7 +263,7 @@ inline DWORD GetEventTime (int nEvent_)
 }
 
 // Update the line/global counters and check for pending events
-inline void CheckCpuEvents ()
+inline void CheckCpuEvents()
 {
     // Check for pending CPU events (note - psNextEvent will never be nullptr *at this stage*)
     while (g_dwCycleCounter >= psNextEvent->dwTime)
@@ -278,10 +278,10 @@ inline void CheckCpuEvents ()
 }
 
 // Subtract a frame's worth of time from all events
-inline void CpuEventFrame (DWORD dwFrameTime_)
+inline void CpuEventFrame(DWORD dwFrameTime_)
 {
     // Process all queued events, due sometime in the next or a later frame
-    for (CPU_EVENT *psEvent = psNextEvent ; psEvent ; psEvent = psEvent->psNext)
+    for (CPU_EVENT* psEvent = psNextEvent; psEvent; psEvent = psEvent->psNext)
         psEvent->dwTime -= dwFrameTime_;
 }
 

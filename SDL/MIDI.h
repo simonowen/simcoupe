@@ -25,25 +25,25 @@
 
 class CMidiDevice : public CIoDevice
 {
-    public:
-        CMidiDevice();
-        ~CMidiDevice();
+public:
+    CMidiDevice();
+    ~CMidiDevice();
 
-    public:
-        BYTE In (WORD wPort_) override;
-        void Out (WORD wPort_, BYTE bVal_) override;
+public:
+    BYTE In(WORD wPort_) override;
+    void Out(WORD wPort_, BYTE bVal_) override;
 
-    public:
-        bool SetDevice (const char *pcszDevice_);
+public:
+    bool SetDevice(const char* pcszDevice_);
 
-    protected:
-        BYTE m_abIn[256] {};       // Buffers for MIDI IN and MIDI OUT data
-        BYTE m_abOut[256] {};
-        int m_nIn = 0, m_nOut = 0; // Number of bytes in the buffers above
+protected:
+    BYTE m_abIn[256]{};       // Buffers for MIDI IN and MIDI OUT data
+    BYTE m_abOut[256]{};
+    int m_nIn = 0, m_nOut = 0; // Number of bytes in the buffers above
 
-        int m_nDevice = -1;        // Device handle, or -1 if not open
+    int m_nDevice = -1;        // Device handle, or -1 if not open
 };
 
-extern CMidiDevice *pMidi;
+extern CMidiDevice* pMidi;
 
 #endif // MIDI_H
