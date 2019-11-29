@@ -186,7 +186,7 @@ static bool LoadRoms()
     else if (GetOption(atombootrom))
     {
         // Atom Lite ROM used if active on either drive
-        if (GetOption(drive2) == drvAtomLite || GetOption(drive2) == drvAtomLite)
+        if (GetOption(drive1) == drvAtomLite || GetOption(drive2) == drvAtomLite)
             rom_file = OSD::MakeFilePath(MFP_RESOURCE, "atomlite.rom");
 
         // Atom ROM used if active as drive 2 only
