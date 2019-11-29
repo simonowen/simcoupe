@@ -67,8 +67,6 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #undef SID
 
 #include <direct.h>
-
-#pragma include_alias(<io.h>, <..\ucrt\IO.h>)   // TODO: rename our io.h to fix this hack!
 #include <io.h>
 
 #pragma warning(disable:4786)   // Disable the stupid warning about debug symbols being truncated

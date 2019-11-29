@@ -22,7 +22,7 @@
 #ifndef DRIVE_H
 #define DRIVE_H
 
-#include "IO.h"
+#include "SAMIO.h"
 #include "Options.h"
 
 #include "VL1772.h"

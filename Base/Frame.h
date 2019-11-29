@@ -26,7 +26,7 @@
 #define FRAME_H
 
 #include "CPU.h"
-#include "IO.h"
+#include "SAMIO.h"
 #include "Screen.h"
 #include "Util.h"
 

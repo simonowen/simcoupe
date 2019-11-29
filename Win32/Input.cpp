@@ -27,7 +27,7 @@
 
 #include "GUI.h"
 #include "Input.h"
-#include "IO.h"
+#include "SAMIO.h"
 #include "Joystick.h"
 #include "Keyboard.h"
 #include "Keyin.h"

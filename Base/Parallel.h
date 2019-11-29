@@ -21,7 +21,7 @@
 #ifndef PARALLEL_H
 #define PARALLEL_H
 
-#include "IO.h"
+#include "SAMIO.h"
 
 
 class CPrintBuffer : public CIoDevice

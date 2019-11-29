@@ -22,7 +22,7 @@
 #include "Tape.h"
 
 #include "CPU.h"
-#include "IO.h"
+#include "SAMIO.h"
 #include "Memory.h"
 #include "Sound.h"
 #include "Stream.h"

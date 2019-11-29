@@ -22,7 +22,7 @@
 #define GUI_H
 
 #include "GUIIcons.h"
-#include "IO.h"
+#include "SAMIO.h"
 #include "Screen.h"
 
 const int GM_MOUSE_MESSAGE = 0x40000000;

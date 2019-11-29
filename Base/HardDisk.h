@@ -21,7 +21,7 @@
 #ifndef HARDDISK_H
 #define HARDDISK_H
 
-#include "IO.h"
+#include "SAMIO.h"
 #include "ATA.h"
 
 const unsigned int HDD_ACTIVE_FRAMES = 2;    // Frames the HDD is considered active after a command

@@ -21,7 +21,7 @@
 #ifndef PAULA_H
 #define PAULA_H
 
-#include "IO.h"
+#include "SAMIO.h"
 
 class CPaulaDevice : public CIoDevice
 {

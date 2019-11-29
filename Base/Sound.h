@@ -21,7 +21,7 @@
 #ifndef SOUND_H
 #define SOUND_H
 
-#include "IO.h"
+#include "SAMIO.h"
 #include "BlipBuffer.h"
 
 #ifdef HAVE_LIBSAASOUND

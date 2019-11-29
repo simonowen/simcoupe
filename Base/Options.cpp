@@ -25,7 +25,7 @@
 #include "SimCoupe.h"
 #include "Options.h"
 
-#include "IO.h"
+#include "SAMIO.h"
 #include "OSD.h"
 #include "Util.h"
 

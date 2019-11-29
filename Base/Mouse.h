@@ -22,7 +22,7 @@
 #ifndef MOUSE_H
 #define MOUSE_H
 
-#include "IO.h"
+#include "SAMIO.h"
 
 #define MOUSE_RESET_TIME       USECONDS_TO_TSTATES(30)      // Mouse is reset 30us after the last read
 #define MOUSE_ACTIVE_TIME      1000                         // Device in active use if last read within 1000ms

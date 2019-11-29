@@ -21,7 +21,7 @@
 #ifndef BLUEALPHA_H
 #define BLUEALPHA_H
 
-#include "IO.h"
+#include "SAMIO.h"
 
 #define BLUE_ALPHA_CLOCK_TIME   (REAL_TSTATES_PER_SECOND/pBlueAlpha->GetClockFreq()/2)    // half period
 

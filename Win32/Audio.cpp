@@ -24,7 +24,7 @@
 #include "Sound.h"
 
 #include "CPU.h"
-#include "IO.h"
+#include "SAMIO.h"
 #include "Options.h"
 #include "Util.h"
 #include "UI.h"

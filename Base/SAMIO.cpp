@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// IO.cpp: SAM I/O port handling
+// SAMIO.cpp: SAM I/O port handling
 //
 //  Copyright (c) 1999-2015 Simon Owen
 //  Copyright (c) 1996-2001 Allan Skillman
@@ -21,7 +21,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "SimCoupe.h"
-#include "IO.h"
+#include "SAMIO.h"
 
 #include "Atom.h"
 #include "AtomLite.h"

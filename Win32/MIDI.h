@@ -21,7 +21,7 @@
 #ifndef MIDI_H
 #define MIDI_H
 
-#include "IO.h"
+#include "SAMIO.h"
 
 class CMidiDevice : public CIoDevice
 {

@@ -50,7 +50,7 @@
 #include <shellapi.h>   // for shell functions (ShellExecute, etc.)
 #include <Shlobj.h>     // for shell COM definitions
 #include <process.h>    // for _beginthreadex/_endthreadex
-#include <..\ucrt\io.h> // for _access
+#include <io.h>         // for _access
 
 // For NT4 compatability we only use DX3 features, except for input which requires DX5
 #define DIRECTSOUND_VERSION     0x0300

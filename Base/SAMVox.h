@@ -21,7 +21,7 @@
 #ifndef SAMVOX_H
 #define SAMVOX_H
 
-#include "IO.h"
+#include "SAMIO.h"
 
 class CSAMVoxDevice : public CIoDevice
 {

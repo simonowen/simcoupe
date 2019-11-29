@@ -24,7 +24,7 @@
 #define CPU_H
 
 #include "SAM.h"
-#include "IO.h"
+#include "SAMIO.h"
 #include "Util.h"
 
 struct _CPU_EVENT;

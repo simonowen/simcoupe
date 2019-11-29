@@ -38,7 +38,7 @@
 #include "Frame.h"
 #include "GUI.h"
 #include "Input.h"
-#include "IO.h"
+#include "SAMIO.h"
 #include "Memory.h"
 #include "Mouse.h"
 #include "Options.h"

@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// IO.h: SAM I/O port handling
+// SAMIO.h: SAM I/O port handling
 //
 //  Copyright (c) 1999-2015 Simon Owen
 //  Copyright (c) 1996-2001 Allan Skillman
@@ -20,8 +20,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef IO_H
-#define IO_H
+#ifndef SAMIO_H
+#define SAMIO_H
 
 typedef struct {
     BYTE bRed, bGreen, bBlue;

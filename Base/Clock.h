@@ -21,7 +21,7 @@
 #ifndef CLOCK_H
 #define CLOCK_H
 
-#include "IO.h"
+#include "SAMIO.h"
 
 
 typedef struct tagSAMTIME
