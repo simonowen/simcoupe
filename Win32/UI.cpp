@@ -25,7 +25,6 @@
 #include <shlobj.h>
 #include <VersionHelpers.h>
 
-#include "Action.h"
 #include "AtaAdapter.h"
 #include "AVI.h"
 #include "Clock.h"
@@ -1017,14 +1016,14 @@ void UpdateMenuFromOptions()
 }
 
 
-bool UI::DoAction(int nAction_, bool fPressed_/*=true*/)
+bool UI::DoAction(Action action, bool pressed)
 {
     // Key being pressed?
-    if (fPressed_)
+    if (pressed)
     {
-        switch (nAction_)
+        switch (action)
         {
-        case actToggleFullscreen:
+        case Action::ToggleFullscreen:
             SetOption(fullscreen, !GetOption(fullscreen));
             Sound::Silence();
 
@@ -1046,65 +1045,65 @@ bool UI::DoAction(int nAction_, bool fPressed_/*=true*/)
             }
             break;
 
-        case actToggle5_4:
+        case Action::Toggle5_4:
             SetOption(ratio5_4, !GetOption(ratio5_4));
             ResizeWindow();
             Frame::SetStatus("%s aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
             break;
 
-        case actInsertFloppy1:
+        case Action::InsertFloppy1:
             InsertDisk(pFloppy1);
             break;
 
-        case actEjectFloppy1:
+        case Action::EjectFloppy1:
             EjectDisk(pFloppy1);
             break;
 
-        case actInsertFloppy2:
+        case Action::InsertFloppy2:
             InsertDisk(pFloppy2);
             break;
 
-        case actEjectFloppy2:
+        case Action::EjectFloppy2:
             EjectDisk(pFloppy2);
             break;
 
-        case actNewDisk1:
+        case Action::NewDisk1:
             if (ChangesSaved(pFloppy1))
                 DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 1);
             break;
 
-        case actNewDisk2:
+        case Action::NewDisk2:
             if (ChangesSaved(pFloppy2))
                 DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 2);
             break;
 
 #ifdef HAVE_LIBSPECTRUM
-        case actTapeInsert:
+        case Action::TapeInsert:
             InsertTape(g_hwnd);
             break;
 
-        case actTapeBrowser:
+        case Action::TapeBrowser:
             DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_TAPE_BROWSER), g_hwnd, TapeBrowseDlgProc, 2);
             break;
 #endif
-        case actImportData:
+        case Action::ImportData:
             DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_IMPORT), g_hwnd, ImportExportDlgProc, 1);
             break;
 
-        case actExportData:
+        case Action::ExportData:
             DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_EXPORT), g_hwnd, ImportExportDlgProc, 0);
             break;
 
-        case actOptions:
+        case Action::Options:
             if (!GUI::IsActive())
                 DisplayOptions();
             break;
 
-        case actExitApplication:
+        case Action::ExitApplication:
             PostMessage(g_hwnd, WM_CLOSE, 0, 0L);
             break;
 
-        case actPause:
+        case Action::Pause:
         {
             // Reverse logic as we've not done the default processing yet
             SetWindowText(g_hwnd, g_fPaused ? WINDOW_CAPTION : WINDOW_CAPTION " - Paused");
@@ -1113,13 +1112,13 @@ bool UI::DoAction(int nAction_, bool fPressed_/*=true*/)
             return false;
         }
 
-        case actToggleScanlines:
+        case Action::ToggleScanlines:
             SetOption(scanlines, !GetOption(scanlines));
             Video::SetDirty();
             Frame::SetStatus("Scanlines %s", GetOption(scanlines) ? "enabled" : "disabled");
             break;
 
-        case actPaste:
+        case Action::Paste:
         {
             // Open the clipboard, preventing anyone from modifying its contents
             if (OpenClipboard(g_hwnd))
@@ -1752,7 +1751,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             if (GetAsyncKeyState(VK_SHIFT) < 0)
             {
                 // Toggle fullscreen instead
-                Action::Do(actToggleFullscreen);
+                Actions::Do(Action::ToggleFullscreen);
                 return 0;
             }
         }
@@ -1767,7 +1766,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
         // Alt-Return is used to toggle full-screen (ignore key repeats)
         else if (uMsg_ == WM_SYSKEYDOWN && wParam_ == VK_RETURN && (lParam_ & 0x60000000) == 0x20000000)
-            Action::Do(actToggleFullscreen);
+            Actions::Do(Action::ToggleFullscreen);
 
         break;
 
@@ -1782,7 +1781,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
         // Unpause on key-down so the user doesn't think we've hung
         if (fPress && g_fPaused && wParam_ != VK_PAUSE)
-            Action::Do(actPause);
+            Actions::Do(Action::Pause);
 
         // Read the current states of the shift keys
         bool fCtrl = GetAsyncKeyState(VK_CONTROL) < 0;
@@ -1796,17 +1795,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             if ((GetAsyncKeyState(VK_LWIN) < 0 || GetAsyncKeyState(VK_RWIN) < 0) && wParam_ <= VK_F10)
                 return 0;
 
-            Action::Key((int)wParam_ - VK_F1 + 1, fPress, fCtrl, fAlt, fShift);
+            Actions::Key((int)wParam_ - VK_F1 + 1, fPress, fCtrl, fAlt, fShift);
             return 0;
         }
 
         // Most of the emulator keys are handled above, but we've a few extra fixed mappings of our own (well, mine!)
         switch (wParam_)
         {
-        case VK_DIVIDE:     Action::Do(actDebugger, fPress); break;
-        case VK_MULTIPLY:   Action::Do(fCtrl ? actResetButton : actTempTurbo, fPress); break;
-        case VK_ADD:        Action::Do(fCtrl ? actTempTurbo : actSpeedFaster, fPress); break;
-        case VK_SUBTRACT:   Action::Do(fCtrl ? actSpeedNormal : actSpeedSlower, fPress); break;
+        case VK_DIVIDE:     Actions::Do(Action::Debugger, fPress); break;
+        case VK_MULTIPLY:   Actions::Do(fCtrl ? Action::ResetButton : Action::TempTurbo, fPress); break;
+        case VK_ADD:        Actions::Do(fCtrl ? Action::TempTurbo : Action::SpeedFaster, fPress); break;
+        case VK_SUBTRACT:   Actions::Do(fCtrl ? Action::SpeedNormal : Action::SpeedSlower, fPress); break;
 
         case VK_CANCEL:
         case VK_PAUSE:
@@ -1818,14 +1817,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
                 // Pause toggles pause mode
                 else
-                    Action::Do(actPause);
+                    Actions::Do(Action::Pause);
             }
             break;
 
         case VK_SNAPSHOT:
         case VK_SCROLL:
             if (!fPress)
-                Action::Do(actSaveScreenshot);
+                Actions::Do(Action::SaveScreenshot);
             break;
 
             // Use the default behaviour for anything we're not using
@@ -1864,30 +1863,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
         switch (wId)
         {
-        case IDM_FILE_NEW_DISK1:        Action::Do(actNewDisk1);          break;
-        case IDM_FILE_NEW_DISK2:        Action::Do(actNewDisk2);          break;
-        case IDM_FILE_IMPORT_DATA:      Action::Do(actImportData);        break;
-        case IDM_FILE_EXPORT_DATA:      Action::Do(actExportData);        break;
-        case IDM_FILE_EXIT:             Action::Do(actExitApplication);   break;
+        case IDM_FILE_NEW_DISK1:        Actions::Do(Action::NewDisk1);          break;
+        case IDM_FILE_NEW_DISK2:        Actions::Do(Action::NewDisk2);          break;
+        case IDM_FILE_IMPORT_DATA:      Actions::Do(Action::ImportData);        break;
+        case IDM_FILE_EXPORT_DATA:      Actions::Do(Action::ExportData);        break;
+        case IDM_FILE_EXIT:             Actions::Do(Action::ExitApplication);   break;
 
-        case IDM_RECORD_AVI_START:      Action::Do(actRecordAvi);         break;
-        case IDM_RECORD_AVI_HALF:       Action::Do(actRecordAviHalf);     break;
-        case IDM_RECORD_AVI_STOP:       Action::Do(actRecordAviStop);     break;
+        case IDM_RECORD_AVI_START:      Actions::Do(Action::RecordAvi);         break;
+        case IDM_RECORD_AVI_HALF:       Actions::Do(Action::RecordAviHalf);     break;
+        case IDM_RECORD_AVI_STOP:       Actions::Do(Action::RecordAviStop);     break;
 
-        case IDM_RECORD_GIF_START:      Action::Do(actRecordGif);         break;
-        case IDM_RECORD_GIF_LOOP:       Action::Do(actRecordGifLoop);     break;
-        case IDM_RECORD_GIF_STOP:       Action::Do(actRecordGifStop);     break;
+        case IDM_RECORD_GIF_START:      Actions::Do(Action::RecordGif);         break;
+        case IDM_RECORD_GIF_LOOP:       Actions::Do(Action::RecordGifLoop);     break;
+        case IDM_RECORD_GIF_STOP:       Actions::Do(Action::RecordGifStop);     break;
 
-        case IDM_RECORD_WAV_START:      Action::Do(actRecordWav);         break;
-        case IDM_RECORD_WAV_SEGMENT:    Action::Do(actRecordWavSegment);  break;
-        case IDM_RECORD_WAV_STOP:       Action::Do(actRecordWavStop);     break;
+        case IDM_RECORD_WAV_START:      Actions::Do(Action::RecordWav);         break;
+        case IDM_RECORD_WAV_SEGMENT:    Actions::Do(Action::RecordWavSegment);  break;
+        case IDM_RECORD_WAV_STOP:       Actions::Do(Action::RecordWavStop);     break;
 
-        case IDM_TOOLS_OPTIONS:         Action::Do(actOptions);           break;
-        case IDM_TOOLS_PASTE_CLIPBOARD: Action::Do(actPaste);             break;
-        case IDM_TOOLS_PRINTER_ONLINE:  Action::Do(actPrinterOnline);     break;
-        case IDM_TOOLS_FLUSH_PRINTER:   Action::Do(actFlushPrinter);      break;
-        case IDM_TOOLS_TAPE_BROWSER:    Action::Do(actTapeBrowser);       break;
-        case IDM_TOOLS_DEBUGGER:        Action::Do(actDebugger);          break;
+        case IDM_TOOLS_OPTIONS:         Actions::Do(Action::Options);           break;
+        case IDM_TOOLS_PASTE_CLIPBOARD: Actions::Do(Action::Paste);             break;
+        case IDM_TOOLS_PRINTER_ONLINE:  Actions::Do(Action::PrinterOnline);     break;
+        case IDM_TOOLS_FLUSH_PRINTER:   Actions::Do(Action::FlushPrinter);      break;
+        case IDM_TOOLS_TAPE_BROWSER:    Actions::Do(Action::TapeBrowser);       break;
+        case IDM_TOOLS_DEBUGGER:        Actions::Do(Action::Debugger);          break;
 
         case IDM_FILE_FLOPPY1_DEVICE:
             if (!CFloppyStream::IsAvailable())
@@ -1903,20 +1902,20 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
                 Frame::SetStatus("Using floppy drive %s", pFloppy1->DiskFile());
             break;
 
-        case IDM_FILE_FLOPPY1_INSERT:       Action::Do(actInsertFloppy1); break;
-        case IDM_FILE_FLOPPY1_EJECT:        Action::Do(actEjectFloppy1);  break;
-        case IDM_FILE_FLOPPY1_SAVE_CHANGES: Action::Do(actSaveFloppy1);   break;
+        case IDM_FILE_FLOPPY1_INSERT:       Actions::Do(Action::InsertFloppy1); break;
+        case IDM_FILE_FLOPPY1_EJECT:        Actions::Do(Action::EjectFloppy1);  break;
+        case IDM_FILE_FLOPPY1_SAVE_CHANGES: Actions::Do(Action::SaveFloppy1);   break;
 
-        case IDM_FILE_FLOPPY2_INSERT:       Action::Do(actInsertFloppy2); break;
-        case IDM_FILE_FLOPPY2_EJECT:        Action::Do(actEjectFloppy2);  break;
-        case IDM_FILE_FLOPPY2_SAVE_CHANGES: Action::Do(actSaveFloppy2);   break;
+        case IDM_FILE_FLOPPY2_INSERT:       Actions::Do(Action::InsertFloppy2); break;
+        case IDM_FILE_FLOPPY2_EJECT:        Actions::Do(Action::EjectFloppy2);  break;
+        case IDM_FILE_FLOPPY2_SAVE_CHANGES: Actions::Do(Action::SaveFloppy2);   break;
 
-        case IDM_VIEW_FULLSCREEN:           Action::Do(actToggleFullscreen); break;
-        case IDM_VIEW_RATIO54:              Action::Do(actToggle5_4);        break;
-        case IDM_VIEW_SCANLINES:            Action::Do(actToggleScanlines);  break;
-        case IDM_VIEW_SCANHIRES:            Action::Do(actToggleScanHiRes);  break;
-        case IDM_VIEW_FILTER:               Action::Do(actToggleFilter);     break;
-        case IDM_VIEW_GREYSCALE:            Action::Do(actToggleGreyscale);  break;
+        case IDM_VIEW_FULLSCREEN:           Actions::Do(Action::ToggleFullscreen); break;
+        case IDM_VIEW_RATIO54:              Actions::Do(Action::Toggle5_4);        break;
+        case IDM_VIEW_SCANLINES:            Actions::Do(Action::ToggleScanlines);  break;
+        case IDM_VIEW_SCANHIRES:            Actions::Do(Action::ToggleScanHiRes);  break;
+        case IDM_VIEW_FILTER:               Actions::Do(Action::ToggleFilter);     break;
+        case IDM_VIEW_GREYSCALE:            Actions::Do(Action::ToggleGreyscale);  break;
 
         case IDM_VIEW_ZOOM_50:
         case IDM_VIEW_ZOOM_100:
@@ -1938,10 +1937,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             ResizeWindow(Frame::GetHeight() * GetOption(scale) / 2);
             break;
 
-        case IDM_SYSTEM_PAUSE:      Action::Do(actPause);           break;
-        case IDM_SYSTEM_MUTESOUND:  Action::Do(actToggleMute);      break;
-        case IDM_SYSTEM_NMI:        Action::Do(actNmiButton);       break;
-        case IDM_SYSTEM_RESET:      Action::Do(actResetButton); Action::Do(actResetButton, false); break;
+        case IDM_SYSTEM_PAUSE:      Actions::Do(Action::Pause);           break;
+        case IDM_SYSTEM_MUTESOUND:  Actions::Do(Action::ToggleMute);      break;
+        case IDM_SYSTEM_NMI:        Actions::Do(Action::NmiButton);       break;
+        case IDM_SYSTEM_RESET:      Actions::Do(Action::ResetButton); Actions::Do(Action::ResetButton, false); break;
 
             // Items from help menu
         case IDM_HELP_GENERAL:

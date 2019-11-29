@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include "Actions.h"
 #include "Video.h"
 
 class UI
@@ -31,7 +32,7 @@ public:
     static VideoBase* GetVideo(bool fFirstInit_ = false);
     static bool CheckEvents();
 
-    static bool DoAction(int nAction_, bool fPressed_ = true);
+    static bool DoAction(Action action, bool pressed = true);
     static void ShowMessage(eMsgType eType_, const char* pszMessage_);
 };
 

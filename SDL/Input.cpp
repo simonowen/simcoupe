@@ -20,7 +20,7 @@
 
 #include "SimCoupe.h"
 
-#include "Action.h"
+#include "Actions.h"
 #include "Frame.h"
 #include "GUI.h"
 #include "Input.h"
@@ -321,7 +321,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
 
         // Unpause on key press if paused, so the user doesn't think we've hung
         if (fPress && g_fPaused && nKey != HK_PAUSE)
-            Action::Do(actPause);
+            Actions::Do(Action::Pause);
 
         // Use key repeats for GUI mode only
         if (fKeyboardActive == GUI::IsActive())
@@ -338,7 +338,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         // Check for function keys (unless the Windows key is pressed)
         if (!fWin && nKey >= HK_F1 && nKey <= HK_F12)
         {
-            Action::Key(nKey - HK_F1 + 1, fPress, fCtrl, fAlt, fShift);
+            Actions::Key(nKey - HK_F1 + 1, fPress, fCtrl, fAlt, fShift);
             break;
         }
 
@@ -357,15 +357,15 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         bool fAction = true;
         switch (nKey)
         {
-        case HK_RETURN:     fAction = fAlt; if (fAction) Action::Do(actToggleFullscreen, fPress); break;
-        case HK_KPDIVIDE:   Action::Do(actDebugger, fPress); break;
-        case HK_KPMULT:     Action::Do(fCtrl ? actResetButton : actTempTurbo, fPress); break;
-        case HK_KPPLUS:     Action::Do(fCtrl ? actTempTurbo : actSpeedFaster, fPress); break;
-        case HK_KPMINUS:    Action::Do(fCtrl ? actSpeedNormal : actSpeedSlower, fPress); break;
+        case HK_RETURN:     fAction = fAlt; if (fAction) Actions::Do(Action::ToggleFullscreen, fPress); break;
+        case HK_KPDIVIDE:   Actions::Do(Action::Debugger, fPress); break;
+        case HK_KPMULT:     Actions::Do(fCtrl ? Action::ResetButton : Action::TempTurbo, fPress); break;
+        case HK_KPPLUS:     Actions::Do(fCtrl ? Action::TempTurbo : Action::SpeedFaster, fPress); break;
+        case HK_KPMINUS:    Actions::Do(fCtrl ? Action::SpeedNormal : Action::SpeedSlower, fPress); break;
 
-        case HK_PRINT:      Action::Do(actSaveScreenshot, fPress); break;
+        case HK_PRINT:      Actions::Do(Action::SaveScreenshot, fPress); break;
         case HK_SCROLL:
-        case HK_PAUSE:      Action::Do(fCtrl ? actResetButton : fShift ? actFrameStep : actPause, fPress); break;
+        case HK_PAUSE:      Actions::Do(fCtrl ? Action::ResetButton : fShift ? Action::FrameStep : Action::Pause, fPress); break;
 
         default:            fAction = false; break;
         }

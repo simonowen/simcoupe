@@ -25,7 +25,7 @@
 #include "SimCoupe.h"
 #include "UI.h"
 
-#include "Action.h"
+#include "Actions.h"
 #include "CPU.h"
 #include "Frame.h"
 #include "GUI.h"
@@ -159,35 +159,35 @@ bool UI::CheckEvents()
                 }
 
                 case UE_RESETBUTTON:
-                    Action::Do(actResetButton, true);
-                    Action::Do(actResetButton, false);
+                    Actions::Do(Action::ResetButton, true);
+                    Actions::Do(Action::ResetButton, false);
                     break;
 
                 case UE_TEMPTURBOON:
                 case UE_TEMPTURBOOFF:
-                    Action::Do(actToggleTurbo, event.user.code == UE_TEMPTURBOON);
+                    Actions::Do(Action::ToggleTurbo, event.user.code == UE_TEMPTURBOON);
                     break;
 
-                case UE_TOGGLEFULLSCREEN:   Action::Do(actToggleFullscreen); break;
-                case UE_TOGGLEGREYSCALE:    Action::Do(actToggleGreyscale); break;
-                case UE_NMIBUTTON:          Action::Do(actNmiButton);       break;
-                case UE_TOGGLESCANLINES:    Action::Do(actToggleScanlines); break;
-                case UE_TOGGLE54:           Action::Do(actToggle5_4);       break;
-                case UE_DEBUGGER:           Action::Do(actDebugger);        break;
-                case UE_SAVESCREENSHOT:     Action::Do(actSaveScreenshot);  break;
-                case UE_PAUSE:              Action::Do(actPause);           break;
-                case UE_TOGGLETURBO:        Action::Do(actToggleTurbo);     break;
-                case UE_TOGGLEMUTE:         Action::Do(actToggleMute);      break;
-                case UE_RELEASEMOUSE:       Action::Do(actReleaseMouse);    break;
-                case UE_OPTIONS:            Action::Do(actOptions);         break;
-                case UE_IMPORTDATA:         Action::Do(actImportData);      break;
-                case UE_EXPORTDATA:         Action::Do(actExportData);      break;
-                case UE_RECORDAVI:          Action::Do(actRecordAvi);       break;
-                case UE_RECORDAVIHALF:      Action::Do(actRecordAviHalf);   break;
-                case UE_RECORDGIF:          Action::Do(actRecordGif);       break;
-                case UE_RECORDGIFLOOP:      Action::Do(actRecordGifLoop);   break;
-                case UE_RECORDWAV:          Action::Do(actRecordWav);       break;
-                case UE_RECORDWAVSEGMENT:   Action::Do(actRecordWavSegment); break;
+                case UE_TOGGLEFULLSCREEN:   Actions::Do(Action::ToggleFullscreen); break;
+                case UE_TOGGLEGREYSCALE:    Actions::Do(Action::ToggleGreyscale); break;
+                case UE_NMIBUTTON:          Actions::Do(Action::NmiButton);       break;
+                case UE_TOGGLESCANLINES:    Actions::Do(Action::ToggleScanlines); break;
+                case UE_TOGGLE54:           Actions::Do(Action::Toggle5_4);       break;
+                case UE_DEBUGGER:           Actions::Do(Action::Debugger);        break;
+                case UE_SAVESCREENSHOT:     Actions::Do(Action::SaveScreenshot);  break;
+                case UE_PAUSE:              Actions::Do(Action::Pause);           break;
+                case UE_TOGGLETURBO:        Actions::Do(Action::ToggleTurbo);     break;
+                case UE_TOGGLEMUTE:         Actions::Do(Action::ToggleMute);      break;
+                case UE_RELEASEMOUSE:       Actions::Do(Action::ReleaseMouse);    break;
+                case UE_OPTIONS:            Actions::Do(Action::Options);         break;
+                case UE_IMPORTDATA:         Actions::Do(Action::ImportData);      break;
+                case UE_EXPORTDATA:         Actions::Do(Action::ExportData);      break;
+                case UE_RECORDAVI:          Actions::Do(Action::RecordAvi);       break;
+                case UE_RECORDAVIHALF:      Actions::Do(Action::RecordAviHalf);   break;
+                case UE_RECORDGIF:          Actions::Do(Action::RecordGif);       break;
+                case UE_RECORDGIFLOOP:      Actions::Do(Action::RecordGifLoop);   break;
+                case UE_RECORDWAV:          Actions::Do(Action::RecordWav);       break;
+                case UE_RECORDWAVSEGMENT:   Actions::Do(Action::RecordWavSegment); break;
 
                 default:
                     TRACE("Unhandled user event (%d)\n", event.type);
@@ -223,21 +223,21 @@ void UI::ShowMessage(eMsgType eType_, const char* pcszMessage_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool UI::DoAction(int nAction_, bool fPressed_)
+bool UI::DoAction(Action action, bool pressed)
 {
     // Key pressed?
-    if (fPressed_)
+    if (pressed)
     {
-        switch (nAction_)
+        switch (action)
         {
-        case actExitApplication:
+        case Action::ExitApplication:
         {
             SDL_Event event = { SDL_QUIT };
             SDL_PushEvent(&event);
             break;
         }
 
-        case actPause:
+        case Action::Pause:
         {
 #ifndef HAVE_LIBSDL2
             // Reverse logic because the default processing hasn't occurred yet
