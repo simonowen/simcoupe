@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef UI_H
-#define UI_H
+#pragma once
 
 #ifdef _DEBUG
 #define WINDOW_CAPTION      "SimCoupe/SDL [DEBUG]"
@@ -27,6 +26,7 @@
 #define WINDOW_CAPTION      "SimCoupe/SDL"
 #endif
 
+// This file is included from ObjC source on macOS.
 #ifdef __cplusplus
 
 #include "Video.h"
@@ -46,7 +46,7 @@ public:
 
 extern bool g_fActive;
 
-#endif
+#endif  // __cplusplus
 
 // SDL_USEREVENT codes for external events (Mac OS X GUI)
 #define UE_BASE                 1000
@@ -81,5 +81,3 @@ extern bool g_fActive;
 #define UE_RECORDAVI            (UE_BASE+29)
 #define UE_RECORDAVIHALF        (UE_BASE+30)
 #define UE_RECORDAVISTOP        (UE_BASE+31)
-
-#endif  // UI_H

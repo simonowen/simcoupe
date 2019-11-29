@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef OSD_H
-#define OSD_H
+#pragma once
 
 #include <sys/types.h>      // for _off_t definition
 #include <fcntl.h>
@@ -131,5 +130,3 @@ public:
 
     static void DebugTrace(const char* pcsz_);
 };
-
-#endif  // OSD_H

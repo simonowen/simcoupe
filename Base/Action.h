@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef ACTION_H
-#define ACTION_H
+#pragma once
 
 enum eActions
 {
@@ -40,5 +39,3 @@ void Key(int nFnKey_, bool fPressed_, bool fCtrl_, bool fAlt_, bool fShift_);
 
 extern const char* aszActions[MAX_ACTION];
 }
-
-#endif  // ACTION_H

@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef STREAM_H
-#define STREAM_H
+#pragma once
 
 class CStream
 {
@@ -147,5 +146,3 @@ protected:
 };
 
 #endif  // HAVE_LIBZ
-
-#endif  // STREAM_H

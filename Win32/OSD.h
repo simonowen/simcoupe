@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef OSD_H
-#define OSD_H
+#pragma once
 
 // disable stupid 'debug symbols being truncated' warning
 #pragma warning(disable:4786)
@@ -127,5 +126,3 @@ public:
 
     static void DebugTrace(const char* pcsz_);
 };
-
-#endif

@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef SCREEN_H
-#define SCREEN_H
+#pragma once
 
 #include "Font.h"
 
@@ -82,5 +81,3 @@ protected:
     BYTE* m_pbFrame = nullptr;          // Screen data block
     BYTE** m_ppbLines = nullptr;        // Look-up table from line number to pointer to start of the line
 };
-
-#endif  // SCREEN_H

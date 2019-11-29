@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef SID_H
-#define SID_H
+#pragma once
 
 #include "Sound.h"
 
@@ -54,5 +53,3 @@ protected:
 };
 
 extern CSID* pSID;
-
-#endif // SID_H

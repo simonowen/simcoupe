@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef EXPR_H
-#define EXPR_H
+#pragma once
 
 typedef struct tagEXPR EXPR;
 
@@ -92,5 +91,3 @@ enum {
     VAR_INVAL, VAR_OUTVAL,
     VAR_LEPR, VAR_HEPR, VAR_LPEN, VAR_HPEN, VAR_STATUS, VAR_LMPR, VAR_HMPR, VAR_VMPR, VAR_MIDI, VAR_BORDER, VAR_ATTR
 };
-
-#endif

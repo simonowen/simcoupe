@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef SDL12_H
-#define SDL12_H
+#pragma once
 
 #ifndef HAVE_LIBSDL2
 
@@ -57,5 +56,3 @@ private:
 };
 
 #endif // !HAVE_LIBSDL2
-
-#endif // SDL12_H

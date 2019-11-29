@@ -18,11 +18,9 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef GIF_H
-#define GIF_H
+#pragma once
 
 #include "Screen.h"
-
 
 namespace GIF
 {
@@ -102,5 +100,3 @@ public:
     GifCompressor() = default;
     DWORD WriteDataBlocks(FILE* bf, DWORD nof, WORD ds);
 };
-
-#endif

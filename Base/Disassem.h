@@ -18,12 +18,9 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef DISASSEM_H
-#define DISASSEM_H
+#pragma once
 
 // Maximum Z80 instruction length
 #define MAX_Z80_INSTR_LEN  4
 
 UINT Disassemble(BYTE* pb_, WORD wPC_ = 0, char* psz_ = nullptr, size_t cbSize_ = 0, int nSymbolMax_ = 0);
-
-#endif

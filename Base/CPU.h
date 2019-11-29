@@ -20,8 +20,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef CPU_H
-#define CPU_H
+#pragma once
 
 #include "SAM.h"
 #include "SAMIO.h"
@@ -284,5 +283,3 @@ inline void CpuEventFrame(DWORD dwFrameTime_)
     for (CPU_EVENT* psEvent = psNextEvent; psEvent; psEvent = psEvent->psNext)
         psEvent->dwTime -= dwFrameTime_;
 }
-
-#endif  // CPU_H

@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef FONT_H
-#define FONT_H
+#pragma once
 
 typedef struct
 {
@@ -32,5 +31,3 @@ typedef struct
 GUIFONT;
 
 extern const GUIFONT sFixedFont, sPropFont, sGUIFont, sSpacedGUIFont;
-
-#endif

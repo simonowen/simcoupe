@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef GUIDLG_H
-#define GUIDLG_H
+#pragma once
 
 #include "GUI.h"
 
@@ -242,6 +241,3 @@ protected:
 };
 
 #endif  // _DEBUG
-
-
-#endif // GUIDLG_H

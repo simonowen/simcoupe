@@ -19,8 +19,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef SIMCOUPE_H
-#define SIMCOUPE_H
+#pragma once
 
 #include "config.h"
 
@@ -85,5 +84,3 @@ namespace fs = std::filesystem;
 #endif
 
 #endif  /* __cplusplus */
-
-#endif  /* SIMCOUPE_H */

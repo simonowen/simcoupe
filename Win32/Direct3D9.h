@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef DIRECT3D9_H
-#define DIRECT3D9_H
+#pragma once
 
 #ifdef _DEBUG
 #define D3D_DEBUG_INFO
@@ -68,5 +67,3 @@ private:
 
     RECT m_rTarget{};
 };
-
-#endif // DIRECT3D9_H

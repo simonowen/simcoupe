@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef HARDDISK_H
-#define HARDDISK_H
+#pragma once
 
 #include "SAMIO.h"
 #include "ATA.h"
@@ -70,5 +69,3 @@ protected:
     UINT m_uDataOffset = 0;
     UINT m_uSectorSize = 0;
 };
-
-#endif // HARDDISK_H

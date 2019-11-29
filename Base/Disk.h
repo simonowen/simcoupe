@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef DISK_H
-#define DISK_H
+#pragma once
 
 #include "Floppy.h"     // native floppy support
 #include "Stream.h"     // for the data stream abstraction
@@ -288,5 +287,3 @@ public:
 protected:
     UINT m_uSize;
 };
-
-#endif  // DISK_H

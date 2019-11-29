@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef IDEDISK_H
-#define IDEDISK_H
+#pragma once
 
 #include "HardDisk.h"
 
@@ -39,5 +38,3 @@ public:
 protected:
     int m_hDevice = -1;
 };
-
-#endif

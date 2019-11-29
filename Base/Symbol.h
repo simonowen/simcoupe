@@ -18,17 +18,13 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef SYMBOL_H
-#define SYMBOL_H
+#pragma once
 
 namespace Symbol
 {
 void Update(const char* pcszFile_);
-void Clear();
 
 int LookupSymbol(std::string sSymbol_);
 std::string LookupAddr(WORD wAddr_, int nMaxLen_ = 0, bool fAllowPlusOne_ = false);
 std::string LookupPort(BYTE bPort_, bool fInput_);
 }
-
-#endif

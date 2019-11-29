@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef PNG_H
-#define PNG_H
+#pragma once
 
 #include "Screen.h"
 
@@ -70,5 +69,3 @@ typedef struct
 
 
 #endif  // HAVE_LIBZ
-
-#endif  // PNG_H

@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef SOUND_H
-#define SOUND_H
+#pragma once
 
 #include "SAMIO.h"
 #include "BlipBuffer.h"
@@ -107,7 +106,6 @@ public:
 public:
     void Reset() override;
 
-    void Update(bool fFrameEnd_);
     void FrameEnd() override;
 
     void OutputLeft(BYTE bVal_);
@@ -134,5 +132,3 @@ public:
 
 extern CSAA* pSAA;
 extern CDAC* pDAC;
-
-#endif  // SOUND_H

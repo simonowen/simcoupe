@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef AVI_H
-#define AVI_H
+#pragma once
 
 #include "Screen.h"
 
@@ -33,5 +32,3 @@ bool IsRecording();
 void AddFrame(CScreen* pScreen_);
 void AddFrame(const BYTE* pbAudio_, UINT uLen_);
 }
-
-#endif // AVI_H

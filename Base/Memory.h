@@ -19,8 +19,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef MEMORY_H
-#define MEMORY_H
+#pragma once
 
 #include "Frame.h"
 
@@ -174,6 +173,3 @@ inline void write_to_screen_vmpr1(WORD wAddr_)
     if (wAddr_ < 8192)
         Frame::TouchLine(((wAddr_ + MEM_PAGE_SIZE) >> 7) + TOP_BORDER_LINES);
 }
-
-
-#endif  // MEMORY_H

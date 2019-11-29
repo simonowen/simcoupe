@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef DIRECTDRAW_H
-#define DIRECTDRAW_H
+#pragma once
 
 #define DIRECTDRAW_VERSION 0x0300
 #include <ddraw.h>
@@ -56,5 +55,3 @@ private:
     int m_nWidth = 0, m_nHeight = 0;
     RECT m_rTarget{};
 };
-
-#endif // DIRECTDRAW_H

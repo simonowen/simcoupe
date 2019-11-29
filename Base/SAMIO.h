@@ -20,8 +20,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef SAMIO_H
-#define SAMIO_H
+#pragma once
 
 typedef struct {
     BYTE bRed, bGreen, bBlue;
@@ -251,5 +250,3 @@ extern CDiskDevice* pFloppy1, * pFloppy2, * pBootDrive;
 extern CIoDevice* pParallel1, * pParallel2;
 
 extern int g_nAutoLoad;
-
-#endif

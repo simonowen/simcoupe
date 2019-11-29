@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef ATOM_H
-#define ATOM_H
+#pragma once
 
 #include "AtaAdapter.h"
 
@@ -41,5 +40,3 @@ protected:
     BYTE m_bReadLatch = 0;
     BYTE m_bWriteLatch = 0;
 };
-
-#endif // ATOM_H

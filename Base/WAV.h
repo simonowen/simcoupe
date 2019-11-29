@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef WAV_H
-#define WAV_H
+#pragma once
 
 namespace WAV
 {
@@ -30,5 +29,3 @@ bool IsRecording();
 
 void AddFrame(const BYTE* pb_, int nLen_);
 }
-
-#endif // WAV_H

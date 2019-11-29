@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef JOYSTICK_H
-#define JOYSTICK_H
+#pragma once
 
 const int MAX_JOYSTICKS = 2;
 
@@ -41,5 +40,3 @@ BYTE ReadKempston(int nJoystick_);
 
 enum { jtNone, jtJoystick1, jtJoystick2, jtKempston };
 enum eHostJoy { HJ_CENTRE = 0, HJ_LEFT = 1, HJ_RIGHT = 2, HJ_UP = 4, HJ_DOWN = 8, HJ_FIRE = 16 };
-
-#endif

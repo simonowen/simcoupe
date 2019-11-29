@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef DEBUG_H
-#define DEBUG_H
+#pragma once
 
 #include "Breakpoint.h"
 #include "GUI.h"
@@ -296,5 +295,3 @@ protected:
     CEditControl* m_pInput = nullptr;
     PFNINPUTPROC m_pfnNotify = nullptr;
 };
-
-#endif

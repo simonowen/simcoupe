@@ -17,8 +17,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-#ifndef SAM_H
-#define SAM_H
+
+#pragma once
 
 // Constants defining screen height and the visible portion of it
 #define HEIGHT_LINES            312                                         // Total generated screen lines
@@ -54,5 +54,3 @@
 #define N_PAGES_MAIN                (0x80000/MEM_PAGE_SIZE)     // Number of pages in the SAM's 512K main memory (32)
 #define N_PAGES_1MB                 (0x100000/MEM_PAGE_SIZE)    // Number of pages in 1MB of memory (64)
 #define MAX_EXTERNAL_MB             4                           // SAM supports 0 to 4 MB of external memory
-
-#endif  // SAM_H

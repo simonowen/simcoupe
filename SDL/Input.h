@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef INPUT_H
-#define INPUT_H
+#pragma once
 
 class Input
 {
@@ -37,5 +36,3 @@ public:
     static int MapChar(int nChar_, int* pnMods_ = nullptr);
     static int MapKey(int nKey_);
 };
-
-#endif

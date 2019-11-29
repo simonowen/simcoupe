@@ -5,8 +5,7 @@
 // Copyright (c) 1998-2014, Dave Hooper <dave@rebuzz.org>  
 // All rights reserved.
 
-#ifndef SAA1099_H
-#define SAA1099_H
+#pragma once
 
 class CSAAEnv
 {
@@ -196,5 +195,3 @@ public:
 
     void GenerateMany(BYTE* pBuffer, int nSamples);
 };
-
-#endif // SAA1099_H

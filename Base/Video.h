@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef VIDEO_H
-#define VIDEO_H
+#pragma once
 
 #include "Screen.h"
 
@@ -61,5 +60,3 @@ public:
     virtual void DisplayToSamSize(int* pnX_, int* pnY_) = 0;
     virtual void DisplayToSamPoint(int* pnX_, int* pnY_) = 0;
 };
-
-#endif

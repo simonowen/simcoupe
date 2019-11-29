@@ -18,11 +18,9 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef CLOCK_H
-#define CLOCK_H
+#pragma once
 
 #include "SAMIO.h"
-
 
 typedef struct tagSAMTIME
 {
@@ -91,5 +89,3 @@ protected:
     BYTE m_abRegs[14 + 114 + 64];   // 14 bank 0 registers, 50+64=114 bytes user RAM, 64 bank 1 registers
     BYTE m_abRAM[0x2000];       // 8K of extended RAM
 };
-
-#endif

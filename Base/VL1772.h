@@ -19,9 +19,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef VL1772_H
-#define VL1772_H
-
+#pragma once
 
 #define MAX_DISK_SIDES          2       // Maximum number of sides for a disk image
 
@@ -142,5 +140,3 @@ typedef struct
     BYTE    bCRC2;          // ID field CRC LSB
 }
 IDFIELD;
-
-#endif  // VL1772_H

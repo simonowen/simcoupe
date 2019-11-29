@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef FLOPPY_H
-#define FLOPPY_H
+#pragma once
 
 #include "Stream.h"
 
@@ -83,5 +82,3 @@ protected:
     PTRACK m_pTrack = nullptr;      // Track for command
     UINT m_uSectorIndex = 0;        // Zero-based sector for write command
 };
-
-#endif  // FLOPPY_H

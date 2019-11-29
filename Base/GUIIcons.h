@@ -18,9 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef GUIICONS_H
-#define GUIICONS_H
-
+#pragma once
 
 const int ICON_SIZE = 32;
 const int ICON_PALETTE_SIZE = 32;
@@ -41,4 +39,3 @@ extern const GUI_ICON sHardwareIcon, sMidiIcon, sPortIcon, sFloppyDriveIcon, sHa
 extern const GUI_ICON sMiscIcon, sFolderIcon, sDocumentIcon, sDiskIcon, sCompressedIcon;
 extern const GUI_ICON sInformationIcon, sWarningIcon, sErrorIcon;
 extern const GUI_ICON sStepIntoIcon, sStepOverIcon, sStepOutIcon, sStepToCursorIcon;
-#endif

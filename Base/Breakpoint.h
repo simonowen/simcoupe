@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef BREAKPOINT_H
-#define BREAKPOINT_H
+#pragma once
 
 #include "Expr.h"
 
@@ -107,5 +106,3 @@ public:
     static bool RemoveAt(int nIndex_);
     static void RemoveAll();
 };
-
-#endif // BREAKPOINT_H

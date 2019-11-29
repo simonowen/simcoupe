@@ -22,8 +22,7 @@
 //  Contains portions of the drawing code are from the original SAMGRX.C
 //  ASIC artefact during mode change identified by Dave Laundon
 
-#ifndef FRAME_H
-#define FRAME_H
+#pragma once
 
 #include "CPU.h"
 #include "SAMIO.h"
@@ -443,5 +442,3 @@ inline void CFrame::ScreenChange(BYTE* pbLine_, int /*nLine_*/, int nBlock_, BYT
         pFrame[8] = pFrame[9] = pFrame[10] = pFrame[11] =
         pFrame[12] = pFrame[13] = pFrame[14] = pFrame[15] = clut[BORD_COL(bNewBorder_)];
 }
-
-#endif  // FRAME_H

@@ -18,8 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef OPTIONS_H
-#define OPTIONS_H
+#pragma once
 
 #define OPTIONS_FILE  "SimCoupe.cfg"
 
@@ -159,5 +158,3 @@ inline const char* SetOption_(char* pszOption_, const char* pszValue_) { return 
 
 inline void SetDefault_(const char* pcszOption_, bool fValue_, bool&) { *((bool*)Options::GetDefault(pcszOption_)) = fValue_; }
 inline void SetDefault_(const char* pcszOption_, int nValue_, int&) { *((int*)Options::GetDefault(pcszOption_)) = nValue_; }
-
-#endif  // OPTIONS_H
