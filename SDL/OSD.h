@@ -60,7 +60,6 @@ typedef unsigned char       BYTE;   // must be 8-bit
 
 #ifdef _WINDOWS
 
-#define NOMINMAX        // no min/max macros from windef.h
 #define SID WIN32_SID   // TODO: limit scope of windows.h avoid SID symbol clash
 #include <windows.h>
 #undef SID

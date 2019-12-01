@@ -38,6 +38,9 @@ if (APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "Minimum OS X deployment version" FORCE)
 endif()
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 ########
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
@@ -125,9 +128,10 @@ add_executable(${PROJECT_NAME} WIN32 MACOSX_BUNDLE ${SOURCE_FILES} ${HEADER_FILE
 
 include(CheckCXXCompilerFlag)
 include(CheckIncludeFiles)
+include(CheckIncludeFileCXX)
 
 # Only newer Xcode versions and OS targets support std::filesystem
-check_include_files("<filesystem>" HAVE_STD_FILESYSTEM)
+check_include_file_cxx("filesystem" HAVE_STD_FILESYSTEM)
 
 set(CMAKE_THREAD_PREFER_PTHREAD pthread)
 find_package(Threads REQUIRED)
@@ -246,8 +250,6 @@ elseif (BUILD_ALLEGRO)
 endif()
 
 ########
-
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
 
 target_include_directories(${PROJECT_NAME} PRIVATE Base)
 
