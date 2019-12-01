@@ -1,13 +1,12 @@
-SimCoupe - A SAM Coupe Emulator
+# SimCoupe - A SAM Coupé Emulator
 
-Version 1.1 *ALPHA*, released ???
+## Version 1.1.x
 
-By Simon Owen <simon.owen@simcoupe.org>
+By Simon Owen (simon@simonowen.com)
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-INTRODUCTION
+## Introduction
 
 SimCoupe emulates the SAM Coupe - a Britsh Z80-based home computer released in
 1989 by Miles Gordon Technology. See the Links section at the end of this
@@ -17,10 +16,9 @@ This release of SimCoupe was derived from Allan Skillman's SimCoupe 0.72 for
 DOS and Unix. It has been almost completely rewritten to improve accuracy,
 features, and portability.
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-LOADING SOFTWARE
+## Loading Software
 
 SAM starts up ready to accept BASIC programs, with software loaded from tape
 or disk.
@@ -37,7 +35,7 @@ The equivalent steps in SimCoupe are:
    2) Press F1 to browse for a disk image
    3) Press Numpad-9 or type BOOT and press Enter
 
-The default SimCoupe settings actually make the final step unnecessary - disks
+The default SimCoupe settings actually make the final step unnecessary, as disks
 inserted into drive 1 at the SAM start-up screen are booted automatically. To
 boot a disk inserted at any other time, press F12 to reset then Numpad-9 to
 boot (Numlock must be On).
@@ -45,63 +43,71 @@ boot (Numlock must be On).
 Commercial titles will start automatically when booted, but some SAM disks
 found online may not. Here are the common failure messages:
 
-"55 Missing Disk, 0:1"
-   There's no disk in drive 1 - did you insert into drive 2 instead?
+```
+55 Missing Disk, 0:1
+```
+There's no disk in drive 1 - did you insert into drive 2 instead?
 
-"19 Loading error, 0:1"
-   The boot sector (track 4, sector 1) could not be loaded. The disk could be
-   unformatted or may be damaged.
+```
+19 Loading error, 0:1
+```
+The boot sector (track 4, sector 1) could not be loaded. The disk could be
+unformatted or may be damaged.
 
-"53 No DOS, 0:1"
-   The disk does not have a valid boot sector, and cannot be booted. The
-   default SimCoupe settings avoid this error by substituting an internal
-   DOS image, so you're more likely to see the following error instead.
+```
+53 No DOS, 0:1
+```
+The disk does not have a valid boot sector, and cannot be booted. The
+default SimCoupe settings avoid this error by substituting an internal
+DOS image, so you're more likely to see the following error instead.
 
-"101 no AUTO* file, 0:1"
-   DOS was booted, but no filename startig with "auto" was found to load. To
-   avoid this error, boot using BOOT 1 instead, which loads DOS but doesn't
-   attempt to auto-run any file. Try DIR 1 to list the files on drive 1, then
-   LOAD n, where n is a file number to load.
+```
+101 no AUTO* file, 0:1
+```
+DOS was booted, but no filename startig with "auto" was found to load. To
+avoid this error, boot using BOOT 1 instead, which loads DOS but doesn't
+attempt to auto-run any file. Try DIR 1 to list the files on drive 1, then
+LOAD n, where n is a file number to load.
 
-"0 OK, 0:1"
-   DOS was loaded and an "auto" file was found, but there was no auto-run line
-   number to execute from. Use LIST to check for a BASIC listing, and RUN to
-   execute it. Otherwise use DIR 1 for a directory listing, to manually
-   select a file to load.
+```
+0 OK, 0:1
+```
+DOS was loaded and an "auto" file was found, but there was no auto-run line
+number to execute from. Use LIST to check for a BASIC listing, and RUN to
+execute it. Otherwise use DIR 1 for a directory listing, to manually
+select a file to load.
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-DISK IMAGES
+## Disk Images
 
 SimCoupe can use software in the following disk image types:
 
- .MGT - Simple sector dump of +D/SAM disks: 2 sides, 80 tracks/side,
+ `.MGT` - Simple sector dump of +D/SAM disks: 2 sides, 80 tracks/side,
  10 sectors/track, 512 bytes/sector = 819200 bytes. Older images in this
  format may have a .dsk file extension. This is the preferred format for
  normal format SAM disks, and is compatible with the /dev/fd0u800 device in
  Linux.
 
- .SAD - SAm Disk format, created by Aley Keprt. Also a sector-based dump, but
+ `.SAD` - SAm Disk format, created by Aley Keprt. Also a sector-based dump, but
  with a 22-byte file header allowing disk-wide geometry adjustments to
  sides/disk, tracks/side, sectors/track and bytes/sector. Normal SAM disks
  stored in SAD format are 819222 bytes, but a difference in track order
  prevents removing the 22-byte header to give an equivalent MGT image.
  Version 2 SAD images are the same basic format, but compressed using gzip.
 
- .DSK - Extended DSK (EDSK) images, originally used for Amstrad CPC and
+ `.DSK` - Extended DSK (EDSK) images, originally used for Amstrad CPC and
  Spectum +3 disks. A flexible format able to represent all existing SAM disks,
  and also the preferred format used by the worldofsam.org archive. Images size
  is proportional to the disk geometry, with a normal SAM disk around 840K.
 
- SBT - Sam BooTable files, created by Andrew Collier. These are self-booting
+ `.SBT` - Sam BooTable files, created by Andrew Collier. These are self-booting
  files designed to be copied to an empty SAM disk, then booted. While not
  technically disk images, SimCoupe treats them as such (read-only).
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-REAL DISKS
+## Read Disks
 
 With only a few exceptions, original SAM disks can often be used directly in
 SimCoupe under Windows and Linux. Even custom-formatted titles such as
@@ -126,15 +132,14 @@ To use real disks under Linux:
    3) Press F1 to browse for a drive 1 disk
    4) Browse to /dev/fd0 and click OK
 
-Note: USB floppy drives don't allow access to the floppy controller, which is
+**Note:** USB floppy drives don't allow access to the floppy controller, which is
 needed for real disk access in SimCoupe. Only floppy drives connected directly
 to a motherboard floppy controller will work, and modern systems often lack
 one.
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-FLOPPY TRANSFERS
+## Floppy Transfers
 
 For occasional access to original SAM disks, the real disk feature is usually
 the most convenient option. For regular use it's better to create a disk
@@ -148,22 +153,20 @@ disks make them unsuitable for double-density use, even if you cover the
 density hole. As a very rough guide, double-density disks are generally blue
 and high-density disks are black.
 
+### Windows 2000 or later
 
-Windows 2000 or later
-
-Use SamDisk 3.x, available from http://simonowen.com/samdisk/
+Use SamDisk v3.x or later, available from http://simonowen.com/samdisk/
 
  To create a disk image from an existing SAM floppy disk:
-   SamDisk.exe a: image.dsk
+   SAMdisk.exe a: image.dsk
 
  To write a disk image back to a real floppy disk:
-   SamDisk.exe image.dsk a:
+   SAMdisk.exe image.dsk a:
 
 If your disk is a normal SAM/MGT format, add the -m option when creating the
 disk image to read only the used areas of the disk.
 
-
-Windows 98/98/Me
+### Windows 98/98/Me
 
 Use Edwin Blink's Disk Image Manager, available from:
   http://www.samcoupe-pro-dos.co.uk/edwin/software/diskmanager/diskmanager.htm
@@ -186,34 +189,42 @@ Disk Image Manager supports MGT (with a .dsk extension) and SAD disk images.
 It can also be used to add/extract single files from both real disks and disk
 images.
 
-
-Linux
+### Linux
 
 MGT images are directly compatible with the /dev/fd0u800 floppy device.
 
- If /dev/fd0u800 doesn't already exist, create it as root using:
-   mknod /dev/fd0u800 b 2 120
+If /dev/fd0u800 doesn't already exist, create it as root using:
+```
+mknod /dev/fd0u800 b 2 120
+```
 
- To create a disk image from an existing SAM floppy disk:
+To create a disk image from an existing SAM floppy disk:
+```
    dd if=/dev/fd0u800 of=image.mgt conv=noerror,sync
+```
 
- To write a disk image back to a real floppy disk:
+To write a disk image back to a real floppy disk:
+```
    dd if=image.mgt of=/dev/fd0u800 conv=noerror,sync
+```
 
- To format a new SAM disk use:
+To format a new SAM disk use:
+```
    fdformat /dev/fd0u800
+```
 
- To create a blank disk image use:
+To create a blank disk image use:
+```
    dd if=/dev/zero of=image.mgt bs=512 count=1600
+```
 
 Custom-formatted and copy-protected disks cannot be transferred using this
 method, but most can still be used directly in SimCoupe by opening /dev/fd0
 for floppy 1.
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-HARD DISKS
+## Hard Disks
 
 SimCoupe emulates the Atom and Atom Lite hard disk interfaces. Atom's DOS
 (BDOS) is compatible with the original SAMDOS. The hard disk is treated as an
@@ -245,11 +256,10 @@ To create and prepare a new HDF image:
    8) Press Enter again, then "Y" to begin the Atom format
    9) Your HDF image is now ready to use!
 
-For more details on using BDOS, visit Edwin Blink's site:
+For more details on using BDOS, visit Edwin Blink's pages:
   http://www.samcoupe-pro-dos.co.uk/edwin/software/bdos/bdos.htm
 
-
-Windows 2000/XP
+### Windows 2000/XP
 
   1) Insert your CF card in the USB reader
   2) In SimCoupe, press F10 to open the options
@@ -257,15 +267,14 @@ Windows 2000/XP
   4) Select the device to use (typically \\.\PhysicalDrive1)
   5) Click OK twice and you're ready to boot BDOS
 
-
-Linux
+### Linux
 
 The details for discovering the IDE/CF device path will depend on the Linux
 distribution you're using, but is usually one of the following:
 
-  - For IDE hard disks, try "fdisk -l" as root to list available devices
-  - For USB devices, try "tail -f /var/log/messages" then inserting it
-  - Failing those, browse through the raw "dmesg | less" output
+  - For IDE hard disks, try `fdisk -l` as root to list available devices.
+  - For USB devices, try `tail -f /var/log/messages` then inserting it.
+  - Failing those, browse through the raw `dmesg | less` output.
 
 Once you've found the device path:
 
@@ -273,14 +282,13 @@ Once you've found the device path:
   2) In the Disks section, enter the device path for the Atom hard disk
   3) Click OK then Close, and you're ready to boot BDOS
 
-
-Mac OS X
+### macOS
 
   1) Insert the CF card in your USB reader
   2) When warned about an unreadable disk, click Ignore
   3) Open Disk Utility and select your CF volume (orange USB icon)
   4) Click Info on the toolbar, and find the Disk Identifier (such as disk1)
-  5) Prefix the identifier with "/dev/r" for the device path (/dev/rdisk1)
+  5) Prefix the identifier with `/dev/r` for the device path (`/dev/rdisk1`)
   6) In SimCoupe, press Cmd-F10 to open the options dialog
   7) In the Disks section, enter the device path for the Atom hard disk
   8) Click OK then Close, and you're ready to boot BDOS!
@@ -289,10 +297,9 @@ In most cases you only need to determine the device path once, as it will be
 the same the next time you insert it. It will only change if other disk
 devices have been added/remove in the meantime.
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-PRINTING
+## Printing
 
 SimCoupe supports print-to-file on all platforms, making it easy to export
 code listings to a plain text file. Configure as follows:
@@ -313,10 +320,9 @@ be used, particularly if you're printing non-text output. If your device is
 not compatible, use the print-to-file option then open and print the text
 output.
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-KEYBOARD INPUT
+## Keyboard Input
 
 The default SAM keyboard mode allows letters, digits and symbols to be typed
 as normal on your keyboard, with SimCoupe automatically converting them to the
@@ -334,6 +340,7 @@ default mappings shown below. Under OS X, keys F9 to F12 are used by Expose
 and Dashboard, so you'll need to hold the Command key in addition to the
 combinations below to access them.
 
+```
              F1 = Open disk 1
        Shift-F1 = Eject disk 1
         Ctrl-F1 = Save disk 1
@@ -367,6 +374,7 @@ combinations below to access them.
        Keypad - = Reduce emulation speed
        Keypad + = Increase emulation speed
        Keypad * = Turbo speed
+```
 
 Turbo speed disables the frame sync and sound, and limits the display to just
 5 frames per second. This usually gives a big speed boost, which is useful for
@@ -374,7 +382,7 @@ zooming through slow sections in games and demos, etc.
 
 
 SAM shift modifier keys and special symbols are mapped as follows:
-
+```
          Insert = Inv
       Left-Ctrl = Symbol
      Right-Ctrl = Cntrl
@@ -384,10 +392,12 @@ SAM shift modifier keys and special symbols are mapped as follows:
   ` (backtick)  = (c)
   . (on keypad) = (c)
     § (section) = #
+```
 
 The following additional combinations are also provided for convenience, since
 they map common keys to the equivalent function on the SAM:
 
+```
      Native key   SAM key
      ----------   -------
          Delete = Shift-Delete
@@ -396,11 +406,11 @@ they map common keys to the equivalent function on the SAM:
             End = Cntrl-Right
         Page Up = F4
       Page Down = F1
+```
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-DEBUGGER
+## Debugger
 
 The debugger provides code, text, data and graphical views of memory, with
 typical debugging functions such as single-stepping and breakpoints.
@@ -410,38 +420,37 @@ Symbols are shown for ROM locations, and for custom code if built with pyz80
 using the --mapfile= option. The register panel on the right shows the current
 system state.
 
-
-Register panel
+### Register panel
 
 The first 7 lines of the panel show Z80 register values, with changed
 registers display in pink text. Below it are the current interrupt mode, and
 the interrupt state (EI or DI). The arrows below the SP value point to the
 top of the stack, where the top 4 values are shown.
 
-'IM' shows the current interrupt mode, and IFF1 status (DI/EI).
+**IM** shows the current interrupt mode, and IFF1 status (DI/EI).
 
-'Stat' shows the 5 interrupt status flags: O=midi-out, F=frame, I=midi-in,
+**Stat** shows the 5 interrupt status flags: O=midi-out, F=frame, I=midi-in,
 M=mouse and L=line. These letters are visible when the corresponding interrupt
 type is active (low) in the status port (F9/249).
 
-'Scan' shows the line number (0-311) and line-cycle counter (0-383) for the
+**Scan** shows the line number (0-311) and line-cycle counter (0-383) for the
 current raster position within the frame. If the position is within the
 visible area, the raster is shown on the display as a pulsing white dot.
 
-'T' shows the cycle offset within the current frame (0-119807). Below it is the
+**T** shows the cycle offset within the current frame (0-119807). Below it is the
 number of cycles since the debugger was last active. During single stepping
 this shows the timing for the last instruction, including any I/O contention
 delays. Stepping over an instruction will give the total time for the step.
 
-'A/B/C/D' show the page present in each of the four 16K mamory banks. This
+**A/B/C/D** show the page present in each of the four 16K mamory banks. This
 will be ROM 0-1, RAM 00-1F for internal memory, or EXT 00-FF for external
 memory. Cyan text indicates the area is read-only.
 
-'L/H/V/M' show the current LMPR/HMPR/VMPR paging register values, plus the
+**L/H/V/M** show the current LMPR/HMPR/VMPR paging register values, plus the
 current display mode (1-4).
 
-'Events' shows upcoming events, and the number of cycles before they are due:
-
+**Events** shows upcoming events, and the number of cycles before they are due:
+```
             FRAM = start of frame interrupt
             LINE = start of line interrupt
             IEND = end of active FRAME or LINE interrupt
@@ -451,9 +460,10 @@ current display mode (1-4).
             BLUE = Blue Alpha clock tick
             ASIC = end of ASIC startup sequence
             TAPE = next tape edge due
+```
 
 Keys active in all views:
-
+```
                A = enter new view address
                B = breakpoint list
                C = code trace history
@@ -471,8 +481,10 @@ Keys active in all views:
         Keypad-3 = toggle external RAM
           Ctrl-T = toggle debugger transparency
              Esc = exit debugger, or return to disassembly view
+```
 
 Disassembly View:
+```
                S = toggle symbol display
                U = execute until condition is met
         Keypad-7 = single step 1 instruction
@@ -488,15 +500,17 @@ Disassembly View:
  Ctrl-Left/Right = move PC by 1 byte
     Ctrl-Up/Down = move PC by 1 instruction
           Return = debugger command mode (see below)
+```
 
 Text/Number View:
-
+```
          Up/Down = scroll by 1 line
       Left/Right = scroll by 1 byte
        PgUp/PgDn = scroll by 1 page
+```
 
 Graphics View:
-
+```
          1/2/3/4 = select screen mode
          Up/Down = scroll by 1 line
       Left/Right = scroll by 1 byte
@@ -504,9 +518,10 @@ Graphics View:
  Ctrl-Left/Right = adjust column width by 1 byte
        PgUp/PgDn = scroll by 1 column
   Ctrl-PgUp/PgDn = scroll by 1 page
+```
 
 Debugger Command Mode:
-
+```
           q / quit = exit debugger
            di / ei = disable/enable interrupts
               im M = set interrupt mode M (0-2)
@@ -535,14 +550,14 @@ Debugger Command Mode:
              r R=N = load register R with value N
            out P,N = write value N to port P
 poke A,N1[,N2,...] = poke address A with one or more values
-
+```
 
 Breakpoint addresses are resolved to a physical location, so they'll trigger
 if the same underlying memory is access from a different paging position. They
 can also be specified in page:offset format for an explicit location e.g.  bpx
 1:0  will break when page 1 offset 0 (BASIC address 0x8000/32768) is executed.
 
-Breakpoints accept an optional condition, by adding "if COND" to the end of
+Breakpoints accept an optional condition, by adding `if COND` to the end of
 the command. If present, the breakpoint will only trigger when the expression
 is true.
 
@@ -553,7 +568,7 @@ instructions, and will single-step to follow the jump rather than attempting
 to step over it.
 
 To return to the current execution point after browsing other memory
-locations, press A to enter a new address and enter "pc" as the expression.
+locations, press A to enter a new address and enter `pc` as the expression.
 Alternatively, single-step and the view will automatically return to the next
 instruction.
 
@@ -565,17 +580,20 @@ the change is above or below the current location.
 Double-clicking on an instruction in disassembly view will set an execution
 breakpoint for that address.
 
-Numeric expressions:
+### Numeric expressions
 
- Operators
+ Operators:
+ ```
    Unary:  + - ~ ! * =
    Binary arithmetic:  + - * / \ %
    Logical:  && || and or
    Comparison:  == != <> < > <= >=
    Bitwise arithmetic:  & | ^ band bor bxor
    Bitwise shift:  << >>
+```
 
- Symbols:
+ ### Symbols
+ ```
    Single registers: a f b c d e h l i r ixh ixl iyh iyl
    Double registers: af bc de hl af' bc' de' hl' ix iy sp pc
    Paging: lpage hpage vpage vmode lepage hepage rom0 rom1 wprot
@@ -584,24 +602,27 @@ Numeric expressions:
    I/O: inval outval
    Display: dline sline
    Execution: inrom call autoexec
+```
 
- Functions
+#### Functions
+ ```
     PEEK <addr> = 8-bit lookup in currently paged RAM
    DPEEK <addr> = 16-bit lookup in currently paged RAM
+```
 
 The '=' unary operator has a special use in expressions. Its operand is
 evaluated immediately, and the value inserted in the expression instead of the
 operand itself. The first example below shows why this can be useful.
 
-Example UNTIL expressions:
+Example `UNTIL` expressions:
 
- Break when the current value of HL changes:  hl != =hl
- Break at the next HALT instruction:  peek pc == 0x76
- Break when 123 is written to any port:  outval == 123
- Break when screen mode 3 is selected: vmode == 3
- Break when 12345 is top of stack:  dpeek sp == 12345
- Break when the raster is drawing screen line 0:  sline == 0
- Break when A, B and IXl are equal:  (a == b) && (b == IXl)
+ - Break when the current value of HL changes: `hl != =hl`
+ - Break at the next HALT instruction: `peek pc == 0x76`
+ - Break when 123 is written to any port: `outval == 123`
+ - Break when screen mode 3 is selected: `vmode == 3`
+ - Break when 12345 is top of stack: `dpeek sp == 12345`
+ - Break when the raster is drawing screen line 0: `sline == 0`
+ - Break when A, B and IXl are equal: `(a == b) && (b == IXl)`
 
 Execute Until breakpoints are only temporary, and cleared when the debugger is
 next activated, regardless of whether they were triggered. This also applies
@@ -609,143 +630,135 @@ to other simple breakpoints, such as step-out and step-over.
 
 The debugger works natively in hexadecimal, but allows values to be entered in
 other bases using an appropriate prefix or suffix:
-
+```
        Decimal:  0n12345 or 12345.
    Hexadecimal:  1234 or 0x1234 or 1234h or $1234 or &1234 or #1234
      Character:  "a" or 'a'
         Binary:  %10101100
+```
 
 Octal is not supported, so leading zeroes have no special meaning.
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+## Options
 
-OPTIONS
+The section below describes all setting available in the Options (`F10`):
 
-The section below describes all setting available in the Options (F10):
+### System
 
-
-System
-
-Internal RAM - the base SAM model comes with only 256kB main memory, with an
+_Internal RAM_ - the base SAM model comes with only 256kB main memory, with an
 internal add-on board to boost it to 512kB. Many software titles require 512kB
 to work correctly.
 
-External memory - external add-on packs are available to extend memory in 1MB
+_External memory_ - external add-on packs are available to extend memory in 1MB
 blocks. Programs needed to be written specially to use external memory, with
 only a few titles doing so. They include MasterDOS, MasterBASIC and the TopGun
 Demo.
 
-Custom 32K ROM image - if blank a built-in v3.0 ROM image is used.
+_Custom 32K ROM image_ - if blank a built-in v3.0 ROM image is used.
 
-Use AL-BOOT ROM if Atom Lite is connected - if the Drive 2 is configured as an
+_Use AL-BOOT ROM if Atom Lite is connected_ - if the Drive 2 is configured as an
 Atom Lite device, this option applies ROM patches to automatically boot from
 it. This is not available if a custom ROM image is in use.
 
+### Display
 
-Display
-
-Enable hardware acceleration [Win32] - uses the hardware features of your
+_Enable hardware acceleration_ [Win32] - uses the hardware features of your
 video card to generate the display image. You should only ever need to
 temporarily disable this if troubleshooting display driver issues.
 
-Bi-linear fitering (smoothing) - smooth the display image when stretching to
+_Bi-linear fitering (smoothing)_ - smooth the display image when stretching to
 fill the SimCoupe window.
 
-Renderer [Win32] - Auto-select will use Direct3D 9 on Windows Vista or later,
+_Renderer_ [Win32] - Auto-select will use Direct3D 9 on Windows Vista or later,
 and DirectDraw on Windows XP.
 
-Enable TV scanlines - show alternate lines at reduced brightness, to simulate
+_Enable TV scanlines_ - show alternate lines at reduced brightness, to simulate
 the scanline effect present on older CRT displays (default = on).
 
-High resolution (display native) - alternate scanlines at the resolution of
+_High resolution (display native)_ - alternate scanlines at the resolution of
 your monitor, instead of the resolution of the SAM display (default = on).
 
-Intensity - set the intensity of the scanlines, from 0% to 95% (default =
+_Intensity_ - set the intensity of the scanlines, from 0% to 95% (default =
 75%).
 
+### Sound
 
-Sound
-
-SID Interface - selects the type of SID chip connected to the Quazar SID
+_SID Interface_ - selects the type of SID chip connected to the Quazar SID
 interface. The (default) 6581 is the traditional chip found in the original
 C64 machines, with a gritty sound. The 8580 is the chip found in newer C64
 models, with a cleaner and brighter sound.
 
-DAC on port 7C - select the type of DAC device present on SAM's port 7C. The
+_DAC on port 7C_ - select the type of DAC device present on SAM's port 7C. The
 Blue Alpha sampler has a custom clock frequency for variable speed playback.
 The SAMVoc and Paula (no relation to the Amiga chip!) are simple DAC output
 devices.
 
-MIDI Out - select a device for MIDI output, which may be a real device or
+_MIDI Out_ - select a device for MIDI output, which may be a real device or
 software synthesizer.
 
+### Parallel
 
-Parallel
-
-Port 1/2 - selects the device to connect to the virtual printer port. With
+_Port 1/2_ - selects the device to connect to the virtual printer port. With
 Printer selected you have a choice of printing to a file or a real printer
 device. Mono-DAC emulates an 8-bit mono sound device, and EDdac/SAMdac an
 8-bit stereo device. The latter is highly recommended for use with Stefan's
 SAM MOD Player.
 
-Printer device - if Printer is selected above, this is the file or device to
+_Printer device_ - if Printer is selected above, this is the file or device to
 use for output. The "File:" option auto-generates a unique file to hold the
 output, and saves it to your Data Files path.
 
-Automatically flush print jobs - if no data is sent to the port within 2
+_Automatically flush print jobs_ - if no data is sent to the port within 2
 seconds, any remaining print data with be flushed to the output device.
 
+### Input
 
-Input
-
-Keyboard - in SAM Coupe mode letters and symbols are converted to the key
+_Keyboard_ - in SAM Coupe mode letters and symbols are converted to the key
 sequence required to generate the same symbol on SAM. For example, pressing
 Shift-0 on a typical PC keyboard generates ')'. SimCoupe converts it to
 Shift-9 to generate the same symbol on SAM. If you require a literal Shift-0,
 select Disabled from the mode list. Automatic mode also detects the presence
 of a Spectrum ROM and will use ZX Spectrum mappings.
 
-Use Left-Alt for Cntrl key - maps the Left-Alt key to the Cntrl key on the SAM
+_Use Left-Alt for Cntrl key_ - maps the Left-Alt key to the Cntrl key on the SAM
 keyboard, in addition to the Right-Ctrl key. Left-Alt is located in a similar
 keyboard position to SAM's Cntrl key. Note: enabling this option blocks normal
 Windows menu combinations, such as Alt-F for the File menu. However, you can
 still press and release Alt to activate the menu, then press F to open the
 file menu and navigate as normal.
 
-Use Alt-Gr for Edit key - maps the Right-Alt key to the Edit key on the SAM
+_Use Alt-Gr for Edit key_ - maps the Right-Alt key to the Edit key on the SAM
 keyboard. Alt-Gr is located in a similar keyboard position to SAM's Edit key.
 
-Enable mouse interface - select to use your mouse with supported SAM software.
+_Enable mouse interface_ - select to use your mouse with supported SAM software.
 Clicking on the SimCoupe window will activate the mouse when a program is
 reading it. For BASIC use, double-click the SimCoupe window to active it. To
 release mouse control for normal desktop use, press Esc or switch to another
 task using the keyboard.
 
+### Joystick
 
-Joystick
-
-Player 1/2 - selects up to 2 devices to use for control input. Each can be set
+_Player 1/2_ - selects up to 2 devices to use for control input. Each can be set
 to control SAM joystick 1 (keys 6,7,8,9+0), SAM joystick 2 (keys 1,2,3,4+5),
 or a Kempston joystick used by Spectrum software.
 
+### Drive 1
 
-Drive 1
-
-Device - select whether floppy drive 1 is installed in the left-hand bay. The
+_Device_ - select whether floppy drive 1 is installed in the left-hand bay. The
 ROM only supports booting from drive 1, but later loading is supported from
 either drive.
 
-Media - select either a disk image file or real device from the drop-down list
+_Media_ - select either a disk image file or real device from the drop-down list
 (if supported).
 
+### Drive 2
 
-Drive 2
-
-Device - select the type of device installed in in the right-hand bay. This
+_Device_ - select the type of device installed in in the right-hand bay. This
 can be None, Floppy, Atom (legacy) or Atom Lite.
 
-Media - select either a disk image file or real device from the drop-down list
+_Media_ - select either a disk image file or real device from the drop-down list
 (if supported). Atom and Atom Lite devices support Master and Slave drives,
 which can be either HDF images or real devices. Only pre-formated hard disks
 and compact flash cards are listed, and you'll also need sufficient permission
@@ -753,54 +766,51 @@ to access the raw disk devices. Under Windows this requires the user be
 running as an Administrator (elevated), or having SAMdiskHelper installed.
 Under Linux the user will often need to be a member of the 'disk' group.
 
+### Misc
 
-Misc
-
-SAMBUS clock - the most common clock hardware interface, as used by MasterDOS
+_SAMBUS clock_ - the most common clock hardware interface, as used by MasterDOS
 and BDOS.
 
-DALLAS clock - advanced clock hardware, supported by BDOS.
+_DALLAS clock_ - advanced clock hardware, supported by BDOS.
 
-Show disk drive activity lights - enables on-screen LEDs in the top left of
+_Show disk drive activity lights_ - enables on-screen LEDs in the top left of
 the display, showing when the drive is active. Floppy drives are shown in
 green, Atom in orange, and Atom Lite in blue.
 
-Show status messages - enables the display of status text in the bottom right
+_Show status messages_ - enables the display of status text in the bottom right
 of the display. This are used to confirm various user actions, such as
 ejecting disks and changing runtime options.
 
-Show emulation speed - show the percentage of normal SAM running speed in the
+_Show emulation speed_ - show the percentage of normal SAM running speed in the
 upper-right of the display window.
 
-Ask before saving disk image changes - prompts for confirmation before saving
+_Ask before saving disk image changes_ - prompts for confirmation before saving
 modifications back to disk images when they are ejected. This doesn't apply to
 changes saved manually using Ctrl-F1/F2.
 
+### Helpers
 
-Helpers
-
-Fast boot after hardware reset - accelerates the cold-boot process, avoiding a
+_Fast boot after hardware reset_ - accelerates the cold-boot process, avoiding a
 few seconds delay while main memory is tested.
 
-Fast floppy disk access - accelerates the emulation speed when disks are being
+_Fast floppy disk access_ - accelerates the emulation speed when disks are being
 accessed, to speed up loading and saving.
 
-Auto-load media inserted at startup screen - automatically load disks and
+_Auto-load media inserted at startup screen_ - automatically load disks and
 tapes inserted when SAM is showing the stripey boot screen.
 
-Allow booting from non-bootable disks - detects booting from an unbootable
+_Allow booting from non-bootable disks_ - detects booting from an unbootable
 disk and temporarily replaces the boot disk with either an internal DOS image
 or a user-specified disk. Once DOS has booted the original disk is restored
 and the boot process continued.
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-COMMAND-LINE OPTIONS
+## Command-line Options
 
 SimCoupe supports the following command-line options, which override setting
 in the configuration file:
-
+```
     -scale <int>            Windowed mode scaling: 1=50%, 2=100%, 3=150%
     -ratio5_4 <bool>        Stretch display width to 125% (default=no)
     -scanlines <bool>       Show vertical lines for a TV effect
@@ -895,56 +905,49 @@ in the configuration file:
     <int>     an integer value in the range shown next to the parameter
     <string>  string of characters, in "quotes" if it contains spaces
     <path>    file/dir path, in "quotes" if it contains spaces
+```
 
 To restore the defaults settings, close SimCoupe and delete the file:
-  %APPDATA%\SimCoupe\SimCoupe.cfg  [Windows]
-  ~/.simcouperc  [Linux]
-  ~/Library/Preferences/SimCoupe Preferences  [Mac OS X]
+  - `%APPDATA%\SimCoupe\SimCoupe.cfg`  [Windows]
+  - `~/.simcouperc`  [Linux]
+  - `~/Library/Preferences/SimCoupe Preferences`  [Mac OS X]
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+## Thanks
 
-THANKS
-
-Allan Skillman - Father of the original SimCoupe
-Dave Laundon - CPU contention and sound enhancements
-Dr Ian Collier - Z80 core from his xz80 Spectrum emulator
-Dave Hooper - Phillips SAA 1099 chip emulator
-Dag Lem - MOS 6581/8580 chip emulator
-Dr Andy Wright - Permission to distribute the SAM ROMs
-Philip Kendall - Spectrum support library
-
-Sam Lantinga - Simple DirectMedia Library (SDL)
-Shawn Hargreaves - Allegro games programming library
-Jean-loup Gailly and Mark Adler - zlib compression library
+- Allan Skillman - Father of the original SimCoupe
+- Dave Laundon - CPU contention and sound enhancements
+- Dr Ian Collier - Z80 core from his xz80 Spectrum emulator
+- Dave Hooper - Phillips SAA 1099 chip emulator
+- Dag Lem - MOS 6581/8580 chip emulator
+- Dr Andy Wright - Permission to distribute the SAM ROMs
+- Philip Kendall - Spectrum support library
 
 Special thanks to Andrew Collier, Edwin Blink, Chris Pile, Frode Tennebo,
 Steve Parry-Thomas and Robert Wilkinson, for their active roles during
-development. Thanks also to the sam-users mailing list, and everyone who sent
-feedback.
+development. Thanks also to the sam-users mailing list, and everyone who
+sent feedback.
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-LINKS
+## Links
 
 SimCoupe Homepage:
-  http://www.simcoupe.org/
+  http://www.simcoupe.org
 
 SimCoupe project page:
   https://github.com/simonowen/simcoupe
-  http://sourceforge.net/projects/simcoupe/
-
+  
 World of Sam archive:
-  http://www.worldofsam.org/
+  https://www.worldofsam.org
 
 Wikipedia entry for the SAM Coupe (and for more links):
-  http://wikipedia.org/wiki/Sam_Coupe
+  https://wikipedia.org/wiki/SAM_Coupé
 
+---
 
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-DISCLAIMER
+## Disclaimer
 
 THIS PROGRAM AND DOCUMENTATION ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
 KIND, NOT EVEN THE IMPLIED WARRANTY OF MERCHANTABILITY OR FITNESS FOR A
