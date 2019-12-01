@@ -31,10 +31,6 @@ if (CMAKE_VERBOSE_MAKEFILE STREQUAL "")
 endif()
 
 if (APPLE)
-  if (NOT CMAKE_GENERATOR STREQUAL "Xcode")
-    message(FATAL_ERROR "Please use the Xcode generator for macOS")
-  endif()
-
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "Minimum OS X deployment version" FORCE)
 endif()
 
