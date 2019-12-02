@@ -286,7 +286,7 @@ static void sendUserEvent (int event)
 // Help -> SimCoupe Help
 - (IBAction)helpHelp:(id)sender
 {
-    [self openResourceFile:@"ReadMe.txt"];
+    [self openResourceFile:@"ReadMe.md"];
 }
 
 // Help -> View ChangeLog

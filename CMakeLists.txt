@@ -86,7 +86,7 @@ elseif (BUILD_SDL)
 
     file(GLOB MAC_ICON_FILES SDL/OSX/*.icns)
     set(RESOURCE_FILES ${RESOURCE_FILES} ${MAC_ICON_FILES}
-      ReadMe.txt
+      ReadMe.md
       ChangeLog.txt
       SDL/OSX/Credits.html
       SDL/OSX/Info-SimCoupe.plist)
