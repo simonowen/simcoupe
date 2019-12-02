@@ -4,6 +4,8 @@
 
 By Simon Owen (simon@simonowen.com)
 
+[![Build Status](https://travis-ci.org/simonowen/simcoupe.svg?branch=master)](https://travis-ci.org/simonowen/simcoupe)
+
 ---
 
 ## Introduction
