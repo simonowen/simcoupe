@@ -259,18 +259,18 @@ const int blip_low_quality = blip_med_quality;
 const int blip_best_quality = blip_high_quality;
 
 #define BLIP_FWD( i ) {                     \
-	long t0 = i0 * delta + buf [fwd + i];   \
-	long t1 = imp [blip_res * (i + 1)] * delta + buf [fwd + 1 + i]; \
-	i0 = imp [blip_res * (i + 2)];          \
-	buf [fwd + i] = t0;                     \
-	buf [fwd + 1 + i] = t1; }
+    long t0 = i0 * delta + buf [fwd + i];   \
+    long t1 = imp [blip_res * (i + 1)] * delta + buf [fwd + 1 + i]; \
+    i0 = imp [blip_res * (i + 2)];          \
+    buf [fwd + i] = t0;                     \
+    buf [fwd + 1 + i] = t1; }
 
 #define BLIP_REV( r ) {                     \
-	long t0 = i0 * delta + buf [rev - r];   \
-	long t1 = imp [blip_res * r] * delta + buf [rev + 1 - r];   \
-	i0 = imp [blip_res * (r - 1)];          \
-	buf [rev - r] = t0;                     \
-	buf [rev + 1 - r] = t1; }
+    long t0 = i0 * delta + buf [rev - r];   \
+    long t1 = imp [blip_res * r] * delta + buf [rev + 1 - r];   \
+    i0 = imp [blip_res * (r - 1)];          \
+    buf [rev - r] = t0;                     \
+    buf [rev + 1 - r] = t1; }
 
 template<int quality, int range>
 inline void Blip_Synth<quality, range>::offset_resampled(blip_resampled_time_t time,

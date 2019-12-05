@@ -5,6 +5,7 @@
 By Simon Owen (simon@simonowen.com)
 
 [![Build Status](https://travis-ci.org/simonowen/simcoupe.svg?branch=master)](https://travis-ci.org/simonowen/simcoupe)
+[![Licence](https://img.shields.io/badge/License-GPLv2-blue.svg?style=flat)](https://www.gnu.org/licenses/gpl-2.0.html)
 
 ---
 

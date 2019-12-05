@@ -154,7 +154,7 @@ if (PNG_FOUND)
   set(HAVE_LIBPNG 1)
 endif()
 
-find_library(SAASOUND_LIBRARY NAMES saasound)
+find_library(SAASOUND_LIBRARY NAMES SAASound saasound)
 find_path(SAASOUND_INCLUDE_DIR SAASound.h)
 if (SAASOUND_LIBRARY AND SAASOUND_INCLUDE_DIR)
   target_include_directories(${PROJECT_NAME} PRIVATE ${SAASOUND_INCLUDE_DIR})
