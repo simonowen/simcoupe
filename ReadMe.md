@@ -4,7 +4,8 @@
 
 By Simon Owen (simon@simonowen.com)
 
-[![Build Status](https://travis-ci.org/simonowen/simcoupe.svg?branch=master)](https://travis-ci.org/simonowen/simcoupe)
+[![Linux/macOS build status](https://travis-ci.org/simonowen/simcoupe.svg?branch=master)](https://travis-ci.org/simonowen/simcoupe)
+[![Windows build status](https://ci.appveyor.com/api/projects/status/512shikql4ctfrv9/branch/master?svg=true)](https://ci.appveyor.com/project/simonowen/simcoupe/branch/master)
 [![Licence](https://img.shields.io/badge/License-GPLv2-blue.svg?style=flat)](https://www.gnu.org/licenses/gpl-2.0.html)
 
 ---
