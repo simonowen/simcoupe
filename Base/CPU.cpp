@@ -514,7 +514,8 @@ void NMI()
     // Advance PC if we're stopped on a HALT
     if (regs.halted)
     {
-        PC++;
+        if (read_byte(PC) == OP_HALT)
+            PC++;
         regs.halted = 0;
     }
 
@@ -547,7 +548,8 @@ inline void CheckInterrupt()
         // Advance PC if we're stopped on a HALT
         if (regs.halted)
         {
-            PC++;
+            if (read_byte(PC) == OP_HALT)
+                PC++;
             regs.halted = 0;
         }
 
