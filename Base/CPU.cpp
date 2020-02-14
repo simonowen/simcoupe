@@ -519,11 +519,9 @@ void NMI()
         regs.halted = 0;
     }
 
-    push(PC);
-
-    // Call NMI handler at address 0x0066
-    PC = NMI_INTERRUPT_HANDLER;
     g_dwCycleCounter += 2;
+    push(PC);
+    PC = NMI_INTERRUPT_HANDLER;
 
     // Refresh the debugger for the NMI
     Debug::Refresh();
@@ -553,31 +551,30 @@ inline void CheckInterrupt()
             regs.halted = 0;
         }
 
-        // Save the current PC on the stack
-        push(PC);
-
         // The current interrupt mode determines how we handle the interrupt
         switch (IM)
         {
         case 0:
         {
-            PC = IM1_INTERRUPT_HANDLER;
             g_dwCycleCounter += 6;
+            push(PC);
+            PC = IM1_INTERRUPT_HANDLER;
             break;
         }
 
         case 1:
         {
-            PC = IM1_INTERRUPT_HANDLER;
             g_dwCycleCounter += 7;
+            push(PC);
+            PC = IM1_INTERRUPT_HANDLER;
             break;
         }
 
         case 2:
         {
-            // Fetch the IM 2 handler address from an address formed from I and 0xff (from the bus)
-            PC = timed_read_word((I << 8) | 0xff);
             g_dwCycleCounter += 7;
+            push(PC);
+            PC = timed_read_word((I << 8) | 0xff);
             break;
         }
         }
