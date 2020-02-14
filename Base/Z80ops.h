@@ -419,7 +419,7 @@ HLinstr(0136)   E = timed_read_byte(addr);                          endinstr;   
 HLinstr(0146)   H = timed_read_byte(addr);                          endinstr;   // ld h,(hl/ix+d/iy+d)
 HLinstr(0156)   L = timed_read_byte(addr);                          endinstr;   // ld l,(hl/ix+d/iy+d)
 
-instr(4, 0166)   regs.halted = 1; PC--;                              endinstr;   // halt
+instr(4, 0166)   PC--;                                              endinstr;   // halt
 
 HLinstr(0176)   A = timed_read_byte(addr);                          endinstr;   // ld a,(hl/ix+d/iy+d)
 

@@ -477,7 +477,6 @@ void Reset(bool fPress_)
         // Certain registers are initialised on every reset
         I = R = R7 = IFF1 = IFF2 = 0;
         PC = 0x0000;
-        regs.halted = 0;
         bOpcode = 0x00; // not after EI
 
         // Index prefix not active
@@ -512,12 +511,8 @@ void NMI()
     IFF1 = 0;
 
     // Advance PC if we're stopped on a HALT
-    if (regs.halted)
-    {
-        if (read_byte(PC) == OP_HALT)
-            PC++;
-        regs.halted = 0;
-    }
+    if (read_byte(PC) == OP_HALT)
+        PC++;
 
     g_dwCycleCounter += 2;
     push(PC);
@@ -544,12 +539,8 @@ inline void CheckInterrupt()
         IFF1 = IFF2 = 0;
 
         // Advance PC if we're stopped on a HALT
-        if (regs.halted)
-        {
-            if (read_byte(PC) == OP_HALT)
-                PC++;
-            regs.halted = 0;
-        }
+        if (bOpcode == OP_HALT)
+            PC++;
 
         // The current interrupt mode determines how we handle the interrupt
         switch (IM)

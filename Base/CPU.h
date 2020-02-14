@@ -131,7 +131,6 @@ typedef struct _Z80Regs
 
     BYTE    i, r, r7;
     BYTE    iff1, iff2, im;
-    BYTE    halted;
 } Z80Regs;
 
 #define A       regs.af.b.h
