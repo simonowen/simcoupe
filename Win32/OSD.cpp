@@ -58,7 +58,7 @@ bool OSD::Init(bool fFirstInit_/*=false*/)
         _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
 #endif
         // Enable portable mode if the options file is local
-        fPortable = GetFileAttributes(MakeFilePath(MFP_RESOURCE, OPTIONS_FILE)) != INVALID_FILE_ATTRIBUTES;
+        fPortable = fs::exists(fs::path(szModule).remove_filename() / OPTIONS_FILE);
         if (fPortable)
             Options::Load(__argc, __argv);
 

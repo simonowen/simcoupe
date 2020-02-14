@@ -51,6 +51,7 @@ typedef struct
 } OPTION;
 
 OPTIONS s_Options;
+static int nDrive = 1;
 
 // Helper macros for structure definition below
 #define OPT_S(o,v,s)        { o, OT_STRING, {&s_Options.v}, (s), 0,  false }
@@ -192,6 +193,8 @@ static OPTION* FindOption(const char* pcszName_)
 // Set (optionally unspecified) options to their default values
 void SetDefaults(bool fForce_/*=true*/)
 {
+    nDrive = 1;
+
     // Process the full options list
     for (OPTION* p = aOptions; p->pcszName; p++)
     {
@@ -233,6 +236,8 @@ void* GetDefault(const char* pcszName_)
 
 bool Load(int argc_, char* argv_[])
 {
+    SetDefaults(true);
+
     FILE* hfOptions = fopen(OSD::MakeFilePath(MFP_SETTINGS, OPTIONS_FILE), "r");
     if (hfOptions)
     {
@@ -301,8 +306,6 @@ bool Load(int argc_, char* argv_[])
         }
         else
         {
-            static int nDrive = 1;
-
             // Bare filenames will be inserted into drive 1 then 2
             switch (nDrive++)
             {
