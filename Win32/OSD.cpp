@@ -194,7 +194,7 @@ const char* OSD::MakeFilePath(int nDir_, const char* pcszFile_/*=""*/)
     {
         GetModuleFileName(GetModuleHandle(NULL), szPath, MAX_PATH);
         auto path = fs::path(szPath).remove_filename() / pcszFile_;
-        strncpy(szPath, path.u8string().c_str(), MAX_PATH - 1);
+        strncpy(szPath, path.string().c_str(), MAX_PATH - 1);
     }
 
     // Return a pointer to the new path
