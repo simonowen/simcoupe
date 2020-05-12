@@ -117,7 +117,7 @@
 #define cpi(loop)       do { \
                             BYTE carry = cy, x = timed_read_byte(HL); \
                             BYTE sum = A - x, z = A ^ x ^ sum; \
-                            g_dwCycleCounter += 2; \
+                            g_dwCycleCounter += 5; \
                             HL++; \
                             BC--; \
                             F = (sum & 0x80) | (!sum << 6) | (((sum - ((z&0x10)>>4)) & 2) << 4) | (z & 0x10) | ((sum - ((z >> 4) & 1)) & 8) | ((BC != 0) << 2) | FLAG_N | carry; \
@@ -133,7 +133,7 @@
 #define cpd(loop)       do { \
                             BYTE carry = cy, x = timed_read_byte(HL); \
                             BYTE sum = A - x, z = A ^ x ^ sum; \
-                            g_dwCycleCounter += 2; \
+                            g_dwCycleCounter += 5; \
                             HL--; \
                             BC--; \
                             F = (sum & 0x80) | (!sum << 6) | (((sum - ((z&0x10)>>4)) & 2) << 4) | (z & 0x10) | ((sum - ((z >> 4) & 1)) & 8) | ((BC != 0) << 2) | FLAG_N | carry; \
