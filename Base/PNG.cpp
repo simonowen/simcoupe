@@ -241,7 +241,7 @@ bool Save(CScreen* pScreen_)
 
     // Report what happened
     if (fRet)
-        Frame::SetStatus("Saved %s", pszFile);
+        Frame::SetStatus("Saved %s", szPath);
     else
         Frame::SetStatus("PNG save failed!?");
 #else

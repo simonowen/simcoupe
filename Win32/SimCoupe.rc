@@ -573,6 +573,9 @@ BEGIN
             MENUITEM SEPARATOR
             MENUITEM "&Stop Recording",             IDM_RECORD_WAV_STOP
         END
+        MENUITEM SEPARATOR
+        MENUITEM "Save Screenshot (&PNG)"           IDM_RECORD_SCREEN_PNG
+        MENUITEM "Save Screenshot (SS&X)"           IDM_RECORD_SCREEN_SSX
     END
     POPUP "&System"
     BEGIN

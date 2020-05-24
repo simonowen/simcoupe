@@ -363,7 +363,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         case HK_KPPLUS:     Actions::Do(fCtrl ? Action::TempTurbo : Action::SpeedFaster, fPress); break;
         case HK_KPMINUS:    Actions::Do(fCtrl ? Action::SpeedNormal : Action::SpeedSlower, fPress); break;
 
-        case HK_PRINT:      Actions::Do(Action::SaveScreenshot, fPress); break;
+        case HK_PRINT:      Actions::Do(Action::SavePNG, fPress); break;
         case HK_SCROLL:
         case HK_PAUSE:      Actions::Do(fCtrl ? Action::ResetButton : fShift ? Action::FrameStep : Action::Pause, fPress); break;
 

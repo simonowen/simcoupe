@@ -250,3 +250,4 @@ extern CDiskDevice* pFloppy1, * pFloppy2, * pBootDrive;
 extern CIoDevice* pParallel1, * pParallel2;
 
 extern int g_nAutoLoad;
+extern bool display_changed;

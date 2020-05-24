@@ -229,6 +229,8 @@
 #define IDM_RECORD_GIF_START            40231
 #define IDM_RECORD_WAV_START            40232
 #define IDM_RECORD_AVI_HALF             40235
+#define IDM_RECORD_SCREEN_PNG           40236
+#define IDM_RECORD_SCREEN_SSX           40237
 #define IDM_SYSTEM_SPEED_50             40250
 #define IDM_SYSTEM_SPEED_100            40251
 #define IDM_SYSTEM_SPEED_200            40252

@@ -174,7 +174,7 @@ bool UI::CheckEvents()
                 case UE_TOGGLESCANLINES:    Actions::Do(Action::ToggleScanlines); break;
                 case UE_TOGGLE54:           Actions::Do(Action::Toggle5_4);       break;
                 case UE_DEBUGGER:           Actions::Do(Action::Debugger);        break;
-                case UE_SAVESCREENSHOT:     Actions::Do(Action::SaveScreenshot);  break;
+                case UE_SAVESCREENSHOT:     Actions::Do(Action::SavePNG);         break;
                 case UE_PAUSE:              Actions::Do(Action::Pause);           break;
                 case UE_TOGGLETURBO:        Actions::Do(Action::ToggleTurbo);     break;
                 case UE_TOGGLEMUTE:         Actions::Do(Action::ToggleMute);      break;

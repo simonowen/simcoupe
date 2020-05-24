@@ -1824,7 +1824,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case VK_SNAPSHOT:
         case VK_SCROLL:
             if (!fPress)
-                Actions::Do(Action::SaveScreenshot);
+                Actions::Do(Action::SavePNG);
             break;
 
             // Use the default behaviour for anything we're not using
@@ -1880,6 +1880,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_RECORD_WAV_START:      Actions::Do(Action::RecordWav);         break;
         case IDM_RECORD_WAV_SEGMENT:    Actions::Do(Action::RecordWavSegment);  break;
         case IDM_RECORD_WAV_STOP:       Actions::Do(Action::RecordWavStop);     break;
+
+        case IDM_RECORD_SCREEN_PNG:     Actions::Do(Action::SavePNG);           break;
+        case IDM_RECORD_SCREEN_SSX:     Actions::Do(Action::SaveSSX);           break;
 
         case IDM_TOOLS_OPTIONS:         Actions::Do(Action::Options);           break;
         case IDM_TOOLS_PASTE_CLIPBOARD: Actions::Do(Action::Paste);             break;

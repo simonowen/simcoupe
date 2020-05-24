@@ -167,8 +167,12 @@ bool Do(Action action, bool pressed/*=true*/)
             }
             break;
 
-        case Action::SaveScreenshot:
-            Frame::SaveScreenshot();
+        case Action::SavePNG:
+            Frame::SavePNG();
+            break;
+
+        case Action::SaveSSX:
+            Frame::SaveSSX();
             break;
 
         case Action::Debugger:
@@ -394,7 +398,7 @@ std::string to_string(Action action)
         { Action::Debugger, "Debugger" },
         { Action::ImportData, "Import data" },
         { Action::ExportData, "Export data" },
-        { Action::SaveScreenshot, "Save screenshot" },
+        { Action::SavePNG, "Save screenshot (PNG)" },
         { Action::ResetButton, "Reset button" },
         { Action::NmiButton, "NMI button" },
         { Action::Pause, "Pause" },
@@ -429,6 +433,7 @@ std::string to_string(Action action)
         { Action::TapeInsert, "Insert Tape" },
         { Action::TapeEject, "Eject Tape" },
         { Action::TapeBrowser, "Tape Browser" },
+        { Action::SaveSSX, "Save screenshot (SSX)" },
     };
 
     auto it = action_descs.find(action);

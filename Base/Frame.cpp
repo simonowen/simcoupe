@@ -45,6 +45,7 @@
 #include "OSD.h"
 #include "PNG.h"
 #include "Sound.h"
+#include "SSX.h"
 #include "Util.h"
 #include "UI.h"
 
@@ -64,7 +65,7 @@ int s_nViewLeft, s_nViewRight;
 CScreen* pScreen, * pLastScreen, * pGuiScreen, * pLastGuiScreen, * pDisplayScreen;
 CFrame* pFrame;
 
-bool fDrawFrame, g_fFlashPhase, fSaveScreen;
+bool fDrawFrame, g_fFlashPhase, fSavePNG, fSaveSSX;
 int nFrame;
 
 int nLastLine, nLastBlock;      // Line and block we've drawn up to so far this frame
@@ -346,6 +347,8 @@ static void DrawRaster(CScreen* pScreen_)
 // Begin the frame by copying from the previous frame, up to the last cange
 void Begin()
 {
+    display_changed = false;
+
     // Return if we're skipping this frame
     if (!fDrawFrame)
         return;
@@ -392,10 +395,18 @@ void End()
         else
         {
             // Screenshot required?
-            if (fSaveScreen)
+            if (fSavePNG)
             {
                 PNG::Save(pScreen);
-                fSaveScreen = false;
+                fSavePNG = false;
+            }
+
+            if (fSaveSSX)
+            {
+                auto main_x = (BORDER_BLOCKS - s_nViewLeft) << 4;
+                auto main_y = (TOP_BORDER_LINES - s_nViewTop);
+                SSX::Save(pScreen, main_x, main_y);
+                fSaveSSX = false;
             }
 
             // Add the frame to any recordings
@@ -583,12 +594,15 @@ void DrawOSD(CScreen* pScreen_)
     }
 }
 
-// Screenshot save request
-void SaveScreenshot()
+void SavePNG()
 {
-    fSaveScreen = true;
+    fSavePNG = true;
 }
 
+void SaveSSX()
+{
+    fSaveSSX = true;
+}
 
 // Set a status message, which will remain on screen for a few seconds
 void SetStatus(const char* pcszFormat_, ...)

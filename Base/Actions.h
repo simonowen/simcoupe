@@ -24,14 +24,14 @@ enum class Action
 {
     NewDisk1, InsertFloppy1, EjectFloppy1, SaveFloppy1, NewDisk2, InsertFloppy2,
     EjectFloppy2, SaveFloppy2, ExitApplication, Options, Debugger, ImportData,
-    ExportData, SaveScreenshot, ChangeProfiler_REMOVED, ResetButton, NmiButton,
+    ExportData, SavePNG, ChangeProfiler_REMOVED, ResetButton, NmiButton,
     Pause, FrameStep, ToggleTurbo, TempTurbo, ToggleScanHiRes, ToggleFullscreen,
     ChangeWindowSize_REMOVED, ChangeBorders_REMOVED, Toggle5_4, ToggleFilter,
     ToggleScanlines, ToggleGreyscale, ToggleMute, ReleaseMouse, PrinterOnline,
     FlushPrinter, About, Minimise, RecordGif, RecordGifLoop, RecordGifStop,
     RecordWav, RecordWavSegment, RecordWavStop, RecordAvi, RecordAviHalf,
     RecordAviStop, SpeedFaster, SpeedSlower, SpeedNormal, Paste, TapeInsert,
-    TapeEject, TapeBrowser
+    TapeEject, TapeBrowser, SaveSSX
 };
 
 namespace Actions

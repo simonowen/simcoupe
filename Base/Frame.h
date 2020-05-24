@@ -50,7 +50,8 @@ void ChangeScreen(BYTE bNewBorder_);
 
 void Sync();
 void Redraw();
-void SaveScreenshot();
+void SavePNG();
+void SaveSSX();
 
 int GetWidth();
 int GetHeight();

@@ -95,6 +95,7 @@ BYTE keyports[9];       // 8 rows of keys (+ 1 row for unscanned keys)
 BYTE keybuffer[9];      // working buffer for key changed, activated mid-frame
 
 bool fASICStartup;      // If set, the ASIC will be unresponsive shortly after first power-on
+bool display_changed;   // Mid-frame main display change using VMPR or CLUT
 
 int g_nAutoLoad = AUTOLOAD_NONE;    // don't auto-load on startup
 
@@ -323,6 +324,14 @@ void OutVmpr(BYTE bVal_)
     // The ASIC changes mode before page, so consider an on-screen artifact from the mode change
     Frame::ChangeMode(bVal_);
 
+    if ((vmpr ^ bVal_) & (VMPR_MODE_MASK | VMPR_PAGE_MASK))
+    {
+        int line;
+        Frame::GetRasterPos(&line);
+        if (IsScreenLine(line))
+            display_changed = true;
+    }
+
     vmpr = bVal_ & (VMPR_MODE_MASK | VMPR_PAGE_MASK);
     vmpr_mode = VMPR_MODE;
 
@@ -354,6 +363,11 @@ void OutClut(WORD wPort_, BYTE bVal_)
     // Has the clut value actually changed?
     if (clut[wPort_] != bVal_)
     {
+        int line;
+        Frame::GetRasterPos(&line);
+        if (IsScreenLine(line))
+            display_changed = true;
+
         // Draw up to the current point with the previous settings
         Frame::Update();
 
@@ -434,13 +448,13 @@ BYTE In(WORD wPort_)
         bRet = lmpr;
         break;
 
-        // High memory page register
+    // High memory page register
     case HMPR_PORT:
         bRet = hmpr;
         break;
 
 
-        // Video memory page register
+    // Video memory page register
     case VMPR_PORT:
         bRet = vmpr;
         bRet |= 0x80;   // RXMIDI bit always one for now
