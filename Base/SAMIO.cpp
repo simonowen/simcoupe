@@ -87,6 +87,7 @@ BYTE keyboard;
 BYTE status_reg;
 BYTE line_int;
 BYTE lpen;
+BYTE hpen;
 BYTE attr;
 
 UINT clut[N_CLUT_REGS], mode3clut[4];
@@ -293,6 +294,41 @@ static inline void UpdatePaging()
         PageIn(SECTION_D, (HMPR_PAGE + 1) & HMPR_PAGE_MASK);
 }
 
+static uint8_t update_lpen()
+{
+    if (!VMPR_MODE_3_OR_4 || !BORD_SOFF)
+    {
+        int line = g_dwCycleCounter / TSTATES_PER_LINE, line_cycle = g_dwCycleCounter % TSTATES_PER_LINE;
+
+        if (!IsScreenLine(line) || line_cycle < (BORDER_PIXELS + BORDER_PIXELS))
+        {
+            lpen = (lpen & LPEN_TXFMST) | (border & 1);
+        }
+        else
+        {
+            auto xpos = static_cast<uint8_t>(line_cycle - (BORDER_PIXELS + BORDER_PIXELS));
+            auto b0 = (xpos < VIDEO_DELAY&& line == TOP_BORDER_LINES) ? 1 : xpos ? 0 : 1;
+            lpen = (xpos & 0xfc) | (lpen & LPEN_TXFMST) | b0;
+        }
+    }
+
+    return lpen;
+}
+
+static uint8_t update_hpen()
+{
+    if (!VMPR_MODE_3_OR_4 || !BORD_SOFF)
+    {
+        int line = g_dwCycleCounter / TSTATES_PER_LINE, line_cycle = g_dwCycleCounter % TSTATES_PER_LINE;
+
+        if (IsScreenLine(line) && (line != TOP_BORDER_LINES || line_cycle >= (BORDER_PIXELS + BORDER_PIXELS)))
+            hpen = line -TOP_BORDER_LINES;
+        else
+            hpen = SCREEN_LINES;
+    }
+
+    return hpen;
+}
 
 void OutLmpr(BYTE val)
 {
@@ -471,36 +507,11 @@ BYTE In(WORD wPort_)
         // HPEN and LPEN ports
     case LPEN_PORT:
     {
-        int nLine = g_dwCycleCounter / TSTATES_PER_LINE, nLineCycle = g_dwCycleCounter % TSTATES_PER_LINE;
-
         // Simulated a disconnected light pen, with LPEN/HPEN tracking the raster position.
         if ((wPort_ & PEN_MASK) == LPEN_PORT)
-        {
-            // Determine the horizontal scan position on the main screen (if enabled).
-            // Return the horizontal position or zero if outside or disabled.
-            BYTE bX = ((VMPR_MODE_3_OR_4 && BORD_SOFF) ||
-                    nLine < TOP_BORDER_LINES ||
-                    nLine >= (TOP_BORDER_LINES + SCREEN_LINES) ||
-                    nLineCycle < (BORDER_PIXELS + BORDER_PIXELS))
-                ? 0 : static_cast<BYTE>(nLineCycle - (BORDER_PIXELS + BORDER_PIXELS));
-
-            // Top 6 bits is x position, bit 1 is MIDI TX, and bit 0 is from border.
-            bRet = (bX & 0xfc) |
-                (lpen & LPEN_TXFMST) |
-                (bX ? 0 : (border & 1)) |
-                ((nLineCycle >= (BORDER_PIXELS + BORDER_PIXELS)) &&
-                    (nLineCycle < (BORDER_PIXELS + BORDER_PIXELS + VIDEO_DELAY)) ? 1 : 0);
-        }
+            bRet = update_lpen();
         else // HPEN
-        {
-            // Determine the vertical scan position on the main screen (if enabled).
-            // Return the main screen line number or 192 if outside or disabled.
-            bRet = ((VMPR_MODE_3_OR_4 && BORD_SOFF) ||
-                nLine < TOP_BORDER_LINES ||
-                (nLine == TOP_BORDER_LINES && nLineCycle < (BORDER_PIXELS + BORDER_PIXELS)) ||
-                nLine >= (TOP_BORDER_LINES + SCREEN_LINES)) ?
-                static_cast<BYTE>(SCREEN_LINES) : (nLine - TOP_BORDER_LINES);
-        }
+            bRet = update_hpen();
         break;
     }
 
@@ -668,6 +679,9 @@ void Out(WORD wPort_, BYTE bVal_)
             // Otherwise determine the current ATTR value to return whilst disabled
             else
             {
+                update_lpen();
+                update_hpen();
+
                 BYTE b1, b2, b3, b4;
                 Frame::GetAsicData(&b1, &b2, &b3, &b4);
                 attr = b3;
@@ -681,6 +695,7 @@ void Out(WORD wPort_, BYTE bVal_)
         // Store the new border value and extract the border colour for faster access by the video routines
         border = bVal_;
         border_col = BORD_VAL(bVal_);
+        lpen = (lpen & 0xfe) | (border & 1);
 
         // Update the port read value, including the screen-off status
         keyboard = (border & BORD_SOFF_MASK) | (keyboard & (BORD_EAR_MASK | BORD_KEY_MASK));
