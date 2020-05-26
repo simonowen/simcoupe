@@ -479,13 +479,17 @@ BYTE In(WORD wPort_)
             // Determine the horizontal scan position on the main screen (if enabled).
             // Return the horizontal position or zero if outside or disabled.
             BYTE bX = ((VMPR_MODE_3_OR_4 && BORD_SOFF) ||
-                nLine < TOP_BORDER_LINES ||
-                nLine >= (TOP_BORDER_LINES + SCREEN_LINES) ||
-                nLineCycle < (BORDER_PIXELS + BORDER_PIXELS))
-                ? 0 : static_cast<BYTE>(nLineCycle - (BORDER_PIXELS + BORDER_PIXELS)) / 1;
+                    nLine < TOP_BORDER_LINES ||
+                    nLine >= (TOP_BORDER_LINES + SCREEN_LINES) ||
+                    nLineCycle < (BORDER_PIXELS + BORDER_PIXELS))
+                ? 0 : static_cast<BYTE>(nLineCycle - (BORDER_PIXELS + BORDER_PIXELS));
 
             // Top 6 bits is x position, bit 1 is MIDI TX, and bit 0 is from border.
-            bRet = (bX & 0xfc) | (lpen & LPEN_TXFMST) | (border & 1);
+            bRet = (bX & 0xfc) |
+                (lpen & LPEN_TXFMST) |
+                (bX ? 0 : (border & 1)) |
+                ((nLineCycle >= (BORDER_PIXELS + BORDER_PIXELS)) &&
+                    (nLineCycle < (BORDER_PIXELS + BORDER_PIXELS + VIDEO_DELAY)) ? 1 : 0);
         }
         else // HPEN
         {
