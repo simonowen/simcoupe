@@ -216,6 +216,7 @@ protected:
 // MIDI transfer rates are 31.25 Kbaud. Data has 1 start bit, 8 data bits, and 1 stop bit, for 320us serial byte.
 #define MIDI_TRANSMIT_TIME      USECONDS_TO_TSTATES(320)
 #define MIDI_INT_ACTIVE_TIME    USECONDS_TO_TSTATES(16)
+#define MIDI_TXFMST_ACTIVE_TIME USECONDS_TO_TSTATES(32)
 
 #define N_PALETTE_COLOURS   128     // 128 colours in the SAM palette
 #define N_CLUT_REGS         16      // 16 CLUT entries

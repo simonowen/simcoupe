@@ -274,14 +274,16 @@ void ExecuteEvent(CPU_EVENT sThisEvent)
         break;
 
     case evtMidiOutIntStart:
-        // Begin the MIDI_OUT interrupt and add an event to end it
         status_reg &= ~STATUS_INT_MIDIOUT;
         AddCpuEvent(evtMidiOutIntEnd, sThisEvent.dwTime + MIDI_INT_ACTIVE_TIME);
+        AddCpuEvent(evtMidiTxfmstEnd, sThisEvent.dwTime + MIDI_TXFMST_ACTIVE_TIME);
         break;
 
     case evtMidiOutIntEnd:
-        // Reset the interrupt and clear the 'transmitting' bit in LPEN as we're done
         status_reg |= STATUS_INT_MIDIOUT;
+        break;
+
+    case evtMidiTxfmstEnd:
         lpen &= ~LPEN_TXFMST;
         break;
 
