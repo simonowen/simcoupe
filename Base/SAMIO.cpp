@@ -300,15 +300,18 @@ static uint8_t update_lpen()
     {
         int line = g_dwCycleCounter / TSTATES_PER_LINE, line_cycle = g_dwCycleCounter % TSTATES_PER_LINE;
 
-        if (!IsScreenLine(line) || line_cycle < (BORDER_PIXELS + BORDER_PIXELS))
+        if (IsScreenLine(line) && line_cycle >= (BORDER_PIXELS + BORDER_PIXELS))
         {
-            lpen = (lpen & LPEN_TXFMST) | (border & 1);
+            uint8_t b1, b2, b3, b4;
+            Frame::GetAsicData(&b1, &b2, &b3, &b4);
+
+            auto xpos = static_cast<uint8_t>(line_cycle - (BORDER_PIXELS + BORDER_PIXELS));
+            auto b0 = (line_cycle < (BORDER_PIXELS + BORDER_PIXELS)) ? (border & 1) : (b1 & 1);
+            lpen = (xpos & 0xfc) | (lpen & LPEN_TXFMST) | b0;
         }
         else
         {
-            auto xpos = static_cast<uint8_t>(line_cycle - (BORDER_PIXELS + BORDER_PIXELS));
-            auto b0 = (xpos < VIDEO_DELAY&& line == TOP_BORDER_LINES) ? 1 : xpos ? 0 : 1;
-            lpen = (xpos & 0xfc) | (lpen & LPEN_TXFMST) | b0;
+            lpen = (lpen & LPEN_TXFMST) | (border & 1);
         }
     }
 
@@ -322,7 +325,7 @@ static uint8_t update_hpen()
         int line = g_dwCycleCounter / TSTATES_PER_LINE, line_cycle = g_dwCycleCounter % TSTATES_PER_LINE;
 
         if (IsScreenLine(line) && (line != TOP_BORDER_LINES || line_cycle >= (BORDER_PIXELS + BORDER_PIXELS)))
-            hpen = line -TOP_BORDER_LINES;
+            hpen = line - TOP_BORDER_LINES;
         else
             hpen = SCREEN_LINES;
     }
@@ -504,16 +507,12 @@ BYTE In(WORD wPort_)
             bRet = pDallas->In(wPort_);
         break;
 
-        // HPEN and LPEN ports
     case LPEN_PORT:
-    {
-        // Simulated a disconnected light pen, with LPEN/HPEN tracking the raster position.
         if ((wPort_ & PEN_MASK) == LPEN_PORT)
             bRet = update_lpen();
-        else // HPEN
+        else
             bRet = update_hpen();
         break;
-    }
 
     // Spectrum ATTR port
     case ATTR_PORT:
