@@ -23,7 +23,7 @@
 #pragma once
 
 typedef struct {
-    BYTE bRed, bGreen, bBlue;
+    uint8_t bRed, bGreen, bBlue;
 } COLOUR;
 
 enum { AUTOLOAD_NONE, AUTOLOAD_DISK, AUTOLOAD_TAPE };
@@ -34,16 +34,16 @@ namespace IO
 bool Init(bool fFirstInit_ = false);
 void Exit(bool fReInit_ = false);
 
-BYTE In(WORD /*port*/);
-void Out(WORD port, BYTE val);
+uint8_t In(uint16_t /*port*/);
+void Out(uint16_t port, uint8_t val);
 
-void OutLmpr(BYTE bVal_);
-void OutHmpr(BYTE bVal_);
-void OutVmpr(BYTE bVal_);
-void OutLepr(BYTE bVal_);
-void OutHepr(BYTE bVal_);
+void OutLmpr(uint8_t bVal_);
+void OutHmpr(uint8_t bVal_);
+void OutVmpr(uint8_t bVal_);
+void OutLepr(uint8_t bVal_);
+void OutHepr(uint8_t bVal_);
 
-void OutClut(WORD wPort_, BYTE bVal_);
+void OutClut(uint16_t wPort_, uint8_t bVal_);
 
 void FrameUpdate();
 void UpdateInput();
@@ -66,8 +66,8 @@ public:
 public:
     virtual void Reset() { }
 
-    virtual BYTE In(WORD /*port*/) { return 0xff; }
-    virtual void Out(WORD /*port*/, BYTE /*val*/) { }
+    virtual uint8_t In(uint16_t /*port*/) { return 0xff; }
+    virtual void Out(uint16_t /*port*/, uint8_t /*val*/) { }
 
     virtual void FrameEnd() { }
 
@@ -102,7 +102,7 @@ public:
     virtual void SetDiskModified(bool /*modified*/ = true) { }
 
 protected:
-    UINT m_uActive = 0; // active when non-zero, decremented by FrameEnd()
+    unsigned int m_uActive = 0; // active when non-zero, decremented by FrameEnd()
 };
 
 #define in_byte     IO::In
@@ -226,26 +226,26 @@ protected:
 
 
 // Keyboard matrix buffer
-extern BYTE keybuffer[9];
+extern uint8_t keybuffer[9];
 
 // Last port read/written
-extern WORD wPortRead, wPortWrite;
-extern BYTE bPortInVal, bPortOutVal;
+extern uint16_t wPortRead, wPortWrite;
+extern uint8_t bPortInVal, bPortOutVal;
 
 // Paging ports for internal and external memory
-extern BYTE vmpr, hmpr, lmpr, lepr, hepr;
-extern BYTE vmpr_mode, vmpr_page1, vmpr_page2;
+extern uint8_t vmpr, hmpr, lmpr, lepr, hepr;
+extern uint8_t vmpr_mode, vmpr_page1, vmpr_page2;
 
-extern BYTE keyboard, border;
-extern BYTE border_col;
+extern uint8_t keyboard, border;
+extern uint8_t border_col;
 
 // Write only ports
-extern BYTE line_int;
-extern UINT clut[N_CLUT_REGS], mode3clut[4];
+extern uint8_t line_int;
+extern unsigned int clut[N_CLUT_REGS], mode3clut[4];
 
 // Read only ports
-extern BYTE status_reg;
-extern BYTE lpen;
+extern uint8_t status_reg;
+extern uint8_t lpen;
 
 extern CDiskDevice* pFloppy1, * pFloppy2, * pBootDrive;
 extern CIoDevice* pParallel1, * pParallel2;

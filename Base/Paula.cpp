@@ -25,7 +25,7 @@
 
 #include "Sound.h"
 
-void CPaulaDevice::Out(WORD wPort_, BYTE bVal_)
+void CPaulaDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     switch (wPort_ & 1)
     {

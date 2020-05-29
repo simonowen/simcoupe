@@ -109,7 +109,7 @@ bool Breakpoint::IsHit()
             if (~status_reg & p->Int.bMask)
             {
                 // The interrupt handler address depends on the current interrupt mode
-                WORD wIntHandler = (IM == 2) ? read_word((I << 8) | 0xff) : IM1_INTERRUPT_HANDLER;
+                uint16_t wIntHandler = (IM == 2) ? read_word((I << 8) | 0xff) : IM1_INTERRUPT_HANDLER;
 
                 // Start of interrupt handler?
                 if (PC == wIntHandler)
@@ -160,9 +160,9 @@ void Breakpoint::Add(BREAKPT* pBreak_)
     g_fBreak = true;
 }
 
-bool Breakpoint::IsExecAddr(WORD wAddr_)
+bool Breakpoint::IsExecAddr(uint16_t wAddr_)
 {
-    BYTE* pPhys = AddrReadPtr(wAddr_);
+    auto pPhys = AddrReadPtr(wAddr_);
 
     for (BREAKPT* p = pBreakpoints; p; p = p->pNext)
         if (p->nType == btExecute && p->Exec.pPhysAddr == pPhys)
@@ -210,13 +210,13 @@ void Breakpoint::AddMemory(void* pPhysAddr_, AccessType nAccess_, EXPR* pExpr_, 
     BREAKPT* pNew = new BREAKPT(btMemory, pExpr_);
 
     pNew->Mem.pPhysAddrFrom = pPhysAddr_;
-    pNew->Mem.pPhysAddrTo = reinterpret_cast<BYTE*>(pPhysAddr_) + nLength_ - 1;
+    pNew->Mem.pPhysAddrTo = reinterpret_cast<uint8_t*>(pPhysAddr_) + nLength_ - 1;
     pNew->Mem.nAccess = nAccess_;
 
     Add(pNew);
 }
 
-void Breakpoint::AddPort(WORD wPort_, AccessType nAccess_, EXPR* pExpr_)
+void Breakpoint::AddPort(uint16_t wPort_, AccessType nAccess_, EXPR* pExpr_)
 {
     // Add a new I/O breakpoint for the supplied port and access type
     BREAKPT* pNew = new BREAKPT(btPort, pExpr_);
@@ -228,7 +228,7 @@ void Breakpoint::AddPort(WORD wPort_, AccessType nAccess_, EXPR* pExpr_)
     Add(pNew);
 }
 
-void Breakpoint::AddInterrupt(BYTE bIntMask_, EXPR* pExpr_)
+void Breakpoint::AddInterrupt(uint8_t bIntMask_, EXPR* pExpr_)
 {
     // Search for an existing interrupt breakpoint to update
     // If we have an expression or the existing has, the pointer comparison is expected to fail
@@ -253,7 +253,7 @@ const char* Breakpoint::GetDesc(BREAKPT* pBreak_)
     static char sz[512];
     char* psz = sz;
     const void* pPhysAddr = nullptr;
-    UINT uExtent = 0;
+    unsigned int uExtent = 0;
 
     switch (pBreak_->nType)
     {
@@ -285,7 +285,7 @@ const char* Breakpoint::GetDesc(BREAKPT* pBreak_)
 
         if (pBreak_->Mem.pPhysAddrTo != pPhysAddr)
         {
-            uExtent = (UINT)((BYTE*)pBreak_->Mem.pPhysAddrTo - (BYTE*)pPhysAddr);
+            uExtent = (unsigned int)((uint8_t*)pBreak_->Mem.pPhysAddrTo - (uint8_t*)pPhysAddr);
             psz += sprintf(psz, " %X", uExtent + 1);
         }
 

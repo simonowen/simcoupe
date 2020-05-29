@@ -31,8 +31,8 @@ public:
     ~CAtaAdapter();
 
 public:
-    BYTE In(WORD wPort_) override;
-    void Out(WORD wPort_, BYTE bVal_) override;
+    uint8_t In(uint16_t wPort_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
 
     void Reset() override;
     void FrameEnd() override { if (m_uActive) m_uActive--; }
@@ -46,11 +46,11 @@ public:
     virtual void Detach();
 
 protected:
-    WORD InWord(WORD wPort_);
-    void OutWord(WORD wPort_, WORD wVal_);
+    uint16_t InWord(uint16_t wPort_);
+    void OutWord(uint16_t wPort_, uint16_t wVal_);
 
 protected:
-    UINT m_uActive = 0; // active when non-zero, decremented by FrameEnd()
+    unsigned int m_uActive = 0; // active when non-zero, decremented by FrameEnd()
 
 private:
     CHardDisk* m_pDisk0 = nullptr;

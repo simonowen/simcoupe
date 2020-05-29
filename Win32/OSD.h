@@ -31,39 +31,8 @@
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)   // track allocation locations
 #endif
 
-#define SID WIN32_SID   // TODO: limit scope of windows.h avoid SID symbol clash
-#include <windows.h>
-#undef SID
-
-#include <windowsx.h>   // for GET_X_LPARAM and GET_Y_LPARAM
-#include <winioctl.h>   // for DISK_GEOMETRY and IOCTL_DISK_GET_DRIVE_GEOMETRY
-#include <mmsystem.h>   // for timeSetEvent
-#include <sys/types.h>  // for _off_t etc.
-#include <direct.h>     // for _mkdir
-#include <stdio.h>      // for FILE structure
-#include <winspool.h>   // for print spooling
-#include <commctrl.h>   // for Windows common controls
-#include <commdlg.h>    // for Windows common dialogs
-#include <cderr.h>      // for common dialog errors
-#include <shellapi.h>   // for shell functions (ShellExecute, etc.)
-#include <Shlobj.h>     // for shell COM definitions
-#include <process.h>    // for _beginthreadex/_endthreadex
+#include <windows.h>    // TODO: remove to limit type pollution
 #include <io.h>         // for _access
-
-// For NT4 compatability we only use DX3 features, except for input which requires DX5
-#define DIRECTSOUND_VERSION     0x0300
-#define DIRECTINPUT_VERSION     0x0500  // we'll do a run-time check for DX5 before using it
-
-#include <dsound.h>
-#include <dinput.h>
-
-extern HINSTANCE g_hinstDInput, g_hinstDSound;
-
-typedef HRESULT(WINAPI* PFNDIRECTINPUTCREATE) (HINSTANCE, DWORD, LPDIRECTINPUTA*, LPUNKNOWN);
-typedef HRESULT(WINAPI* PFNDIRECTSOUNDCREATE) (LPGUID, LPDIRECTSOUND*, LPUNKNOWN);
-
-extern PFNDIRECTINPUTCREATE pfnDirectInputCreate;
-extern PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 
 #define PATH_SEPARATOR          '\\'
 
@@ -117,7 +86,7 @@ public:
     static bool Init(bool fFirstInit_ = false);
     static void Exit(bool fReInit_ = false);
 
-    static DWORD GetTime();
+    static uint32_t GetTime();
     static const char* MakeFilePath(int nDir_, const char* pcszFile_ = "");
     static const char* GetFloppyDevice(int nDrive_);
     static bool CheckPathAccess(const char* pcszPath_);

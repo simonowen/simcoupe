@@ -62,12 +62,12 @@ public:
     CSambusClock();
 
 public:
-    BYTE In(WORD wPort_) override;
-    void Out(WORD wPort_, BYTE bVal_) override;
+    uint8_t In(uint16_t wPort_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
     bool Update() override;
 
 protected:
-    BYTE m_abRegs[16];    // 16 registers
+    uint8_t m_abRegs[16];    // 16 registers
 };
 
 
@@ -77,15 +77,15 @@ public:
     CDallasClock();
 
 public:
-    BYTE In(WORD wPort_) override;
-    void Out(WORD wPort_, BYTE bVal_) override;
+    uint8_t In(uint16_t wPort_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
     bool Update() override;
 
     bool LoadState(const char* pcszFile_) override;
     bool SaveState(const char* pcszFile_) override;
 
 protected:
-    BYTE m_bReg = 0;             // Currently selected register
-    BYTE m_abRegs[14 + 114 + 64];   // 14 bank 0 registers, 50+64=114 bytes user RAM, 64 bank 1 registers
-    BYTE m_abRAM[0x2000];       // 8K of extended RAM
+    uint8_t m_bReg = 0;                 // Currently selected register
+    uint8_t m_abRegs[14 + 114 + 64];    // 14 bank 0 registers, 50+64=114 bytes user RAM, 64 bank 1 registers
+    uint8_t m_abRAM[0x2000];            // 8K of extended RAM
 };

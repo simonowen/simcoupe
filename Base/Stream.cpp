@@ -102,14 +102,14 @@ CStream::~CStream()
         if ((hf = fopen(pcszPath_, "rb")))
         {
 #ifdef HAVE_LIBZ
-            BYTE abSig[sizeof(GZ_SIGNATURE)];
+            uint8_t abSig[sizeof(GZ_SIGNATURE)];
             if ((fread(abSig, 1, sizeof(abSig), hf) != sizeof(abSig)) || memcmp(abSig, GZ_SIGNATURE, sizeof(abSig)))
 #endif
                 return new CFileStream(hf, pcszPath_, fReadOnly_);
 #ifdef HAVE_LIBZ
             else
             {
-                BYTE ab[4] = {};
+                uint8_t ab[4] = {};
                 size_t uSize = 0;
 
                 // Read the uncompressed size from the end of the file (if under 4GiB)
@@ -207,7 +207,7 @@ CMemStream::CMemStream(void* pv_, size_t uLen_, const char* pcszPath_)
 {
     m_nMode = modeReading;
     m_uSize = uLen_;
-    m_pbData = reinterpret_cast<BYTE*>(pv_);
+    m_pbData = reinterpret_cast<uint8_t*>(pv_);
     m_pszFile = strdup(pcszPath_);
 }
 
@@ -280,7 +280,7 @@ size_t CZLibStream::GetSize()
         long lPos = gztell(m_hFile);
         gzrewind(m_hFile);
 
-        BYTE ab[512];
+        uint8_t ab[512];
         int nRead;
 
         do {

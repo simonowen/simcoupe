@@ -22,15 +22,15 @@ protected:
 
     bool m_bEnabled = false;
     bool m_bInvertRightChannel = false;
-    BYTE m_nPhase = 0;
-    BYTE m_nPhasePosition = 0;
+    uint8_t m_nPhase = 0;
+    uint8_t m_nPhasePosition = 0;
     bool m_bEnvelopeEnded = true;
     char m_nPhaseAdd[2];
     bool m_bLooping = false;
     char m_nNumberOfPhases = 0;
     char m_nResolution = 0;
     bool m_bNewData = false;
-    BYTE m_nNextData = 0;
+    uint8_t m_nNextData = 0;
     bool m_bOkForNewData = false;
     bool m_bClockExternally = false;
     static const ENVDATA cs_EnvData[8];
@@ -47,7 +47,7 @@ public:
 
     void InternalClock();
     void ExternalClock();
-    void SetEnvControl(int nData); // really just a BYTE
+    void SetEnvControl(int nData); // really just a uint8_t
     unsigned short LeftLevel() const;
     unsigned short RightLevel() const;
     bool IsActive() const;
@@ -114,8 +114,8 @@ protected:
 public:
     CSAAFreq(CSAANoise* const pcNoiseGenerator, CSAAEnv* const pcEnvGenerator);
 
-    void SetFreqOffset(BYTE nOffset);
-    void SetFreqOctave(BYTE nOctave);
+    void SetFreqOffset(uint8_t nOffset);
+    void SetFreqOctave(uint8_t nOctave);
     void SetSampleRate(int nSampleRate);
     void Sync(bool bSync);
     unsigned short Tick();
@@ -146,7 +146,7 @@ protected:
     const CSAAEnv* const m_pcConnectedEnvGenerator = nullptr;
     const bool m_bUseEnvelope = false;
     mutable bool m_bMute = true;
-    mutable BYTE last_level_byte = 0;
+    mutable uint8_t last_level_byte = 0;
     mutable bool level_unchanged = false;
     mutable unsigned short last_leftlevel = 0, last_rightlevel = 0;
     mutable bool leftlevel_unchanged = false, rightlevel_unchanged = false;
@@ -155,9 +155,9 @@ protected:
 public:
     CSAAAmp(CSAAFreq* const ToneGenerator, const CSAANoise* const NoiseGenerator, const CSAAEnv* const EnvGenerator);
 
-    void SetAmpLevel(BYTE level_byte); // really just a BYTE
-    void SetToneMixer(BYTE bEnabled);
-    void SetNoiseMixer(BYTE bEnabled);
+    void SetAmpLevel(uint8_t level_byte); // really just a uint8_t
+    void SetToneMixer(uint8_t bEnabled);
+    void SetNoiseMixer(uint8_t bEnabled);
     unsigned short LeftOutput() const;
     unsigned short RightOutput() const;
     unsigned short MonoOutput() const;
@@ -187,11 +187,11 @@ public:
     void operator= (const CSAASound&) = delete;
     ~CSAASound();
 
-    void WriteAddress(BYTE nReg);
-    void WriteData(BYTE nData);
-    void WriteAddressData(BYTE nReg, BYTE nData);
+    void WriteAddress(uint8_t nReg);
+    void WriteData(uint8_t nData);
+    void WriteAddressData(uint8_t nReg, uint8_t nData);
     void Clear();
-    BYTE ReadAddress();
+    uint8_t ReadAddress();
 
-    void GenerateMany(BYTE* pBuffer, int nSamples);
+    void GenerateMany(uint8_t* pBuffer, int nSamples);
 };

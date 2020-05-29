@@ -51,10 +51,10 @@
 
 
 // SAM palette colours to use for the floppy drive LED states
-const BYTE FLOPPY_LED_COLOUR = GREEN_5; // Green for floppy
-const BYTE ATOM_LED_COLOUR = RED_6;     // Red for Atom
-const BYTE ATOMLITE_LED_COLOUR = 89;    // Blue for Atom Lite
-const BYTE LED_OFF_COLOUR = GREY_2;     // Grey for off
+const uint8_t FLOPPY_LED_COLOUR = GREEN_5; // Green for floppy
+const uint8_t ATOM_LED_COLOUR = RED_6;     // Red for Atom
+const uint8_t ATOMLITE_LED_COLOUR = 89;    // Blue for Atom Lite
+const uint8_t LED_OFF_COLOUR = GREY_2;     // Grey for off
 
 const unsigned int STATUS_ACTIVE_TIME = 2500;   // Time the status text is visible for (in ms)
 const unsigned int FPS_IN_TURBO_MODE = 5;       // Number of FPS to limit to in (non-key) Turbo mode
@@ -70,7 +70,7 @@ int nFrame;
 
 int nLastLine, nLastBlock;      // Line and block we've drawn up to so far this frame
 
-DWORD dwStatusTime;             // Time the status line was made visible
+uint32_t dwStatusTime;             // Time the status line was made visible
 
 int s_nWidth, s_nHeight;
 
@@ -103,7 +103,7 @@ bool Init(bool fFirstInit_/*=false*/)
     Exit(true);
     TRACE("Frame::Init(%d)\n", fFirstInit_);
 
-    UINT uView = GetOption(borders);
+    unsigned int uView = GetOption(borders);
     if (uView >= (sizeof(asViews) / sizeof(asViews[0])))
         uView = 0;
 
@@ -175,9 +175,9 @@ int GetHeight()
     return pScreen ? pScreen->GetHeight() : 0;
 }
 
-void SetView(UINT uBlocks_, UINT uLines_)
+void SetView(unsigned int uBlocks_, unsigned int uLines_)
 {
-    UINT uView = GetOption(borders);
+    unsigned int uView = GetOption(borders);
     if (uView >= (sizeof(asViews) / sizeof(asViews[0])))
         uView = 0;
 
@@ -261,8 +261,8 @@ static void CopyBeforeLastUpdate()
         // Copy the last partial line first
         if (nBottom == (nLastLine - s_nViewTop))
         {
-            BYTE* pLine = pScreen->GetLine(nBottom);
-            BYTE* pLastLine = pLastScreen->GetLine(nBottom);
+            auto pLine = pScreen->GetLine(nBottom);
+            auto pLastLine = pLastScreen->GetLine(nBottom);
 
             int nRight = std::max(nLastBlock, s_nViewRight) - s_nViewLeft;
             if (nRight > 0)
@@ -274,8 +274,8 @@ static void CopyBeforeLastUpdate()
         // Copy the remaining full lines
         for (int i = 0; i <= nBottom; i++)
         {
-            BYTE* pLine = pScreen->GetLine(i);
-            BYTE* pLastLine = pLastScreen->GetLine(i);
+            auto pLine = pScreen->GetLine(i);
+            auto pLastLine = pLastScreen->GetLine(i);
             memcpy(pLine, pLastLine, pScreen->GetPitch());
         }
     }
@@ -294,8 +294,8 @@ static void CopyAfterRaster()
         // Complete the undrawn section of the current line, if any
         if (nTop == (nLastLine - s_nViewTop))
         {
-            BYTE* pLine = pScreen->GetLine(nTop);
-            BYTE* pLastLine = pLastScreen->GetLine(nTop);
+            auto pLine = pScreen->GetLine(nTop);
+            auto pLastLine = pLastScreen->GetLine(nTop);
 
             int nOffset = (std::max(s_nViewLeft, nLastBlock) - s_nViewLeft) << 4;
             int nWidth = pScreen->GetPitch() - nOffset;
@@ -308,8 +308,8 @@ static void CopyAfterRaster()
         // Copy the remaining lines
         for (int i = nTop; i < nBottom; i++)
         {
-            BYTE* pLine = pScreen->GetLine(i);
-            BYTE* pLastLine = pLastScreen->GetLine(i);
+            auto pLine = pScreen->GetLine(i);
+            auto pLastLine = pLastScreen->GetLine(i);
             memcpy(pLine, pLastLine, pScreen->GetPitch());
         }
     }
@@ -335,11 +335,11 @@ static void DrawRaster(CScreen* pScreen_)
 
     // Look up the next cycle colour
     static int nPhase = 0;
-    BYTE bColour = anFlash[++nPhase & 0xf];
+    uint8_t bColour = anFlash[++nPhase & 0xf];
 
     // Write the 2x2 pixel block
-    BYTE* pLine0 = pScreen_->GetLine(nLine);
-    BYTE* pLine1 = pScreen_->GetLine(nLine + 1);
+    auto pLine0 = pScreen_->GetLine(nLine);
+    auto pLine1 = pScreen_->GetLine(nLine + 1);
     pLine0[nOffset] = pLine0[nOffset + 1] = pLine1[nOffset] = pLine1[nOffset + 1] = bColour;
 }
 
@@ -375,7 +375,7 @@ void End()
             for (int i = 0; i < GetHeight(); i++)
             {
                 // Fetch the source line data
-                BYTE* pbLine = pScreen->GetLine(i >> 1);
+                auto pbLine = pScreen->GetLine(i >> 1);
                 int nWidth = pScreen->GetPitch();
 
                 // Copy the frame data
@@ -450,8 +450,8 @@ void Flyback()
 
 void Sync()
 {
-    static DWORD dwLastProfile, dwLastDrawn;
-    DWORD dwNow = OSD::GetTime();
+    static uint32_t dwLastProfile, dwLastDrawn;
+    auto dwNow = OSD::GetTime();
 
     // Determine whether we're running at increased speed during disk activity
     if (GetOption(turbodisk) && (pFloppy1->IsActive() || pFloppy2->IsActive()))
@@ -497,7 +497,7 @@ void Sync()
     if (GUI::IsActive())
     {
         // Add a frame's worth of silence
-        static BYTE abSilence[SAMPLE_FREQ * SAMPLE_BLOCK / EMULATED_FRAMES_PER_SECOND];
+        static uint8_t abSilence[SAMPLE_FREQ * SAMPLE_BLOCK / EMULATED_FRAMES_PER_SECOND];
         Audio::AddData(abSilence, sizeof(abSilence));
     }
 }
@@ -515,8 +515,8 @@ void Flip(CScreen* pScreen_)
 {
     int nHeight = pScreen_->GetHeight() >> (GUI::IsActive() ? 0 : 1);
 
-    DWORD* pdwA = reinterpret_cast<DWORD*>(pScreen_->GetLine(0));
-    DWORD* pdwB = reinterpret_cast<DWORD*>(pDisplayScreen->GetLine(0));
+    auto pdwA = reinterpret_cast<uint32_t*>(pScreen_->GetLine(0));
+    auto pdwB = reinterpret_cast<uint32_t*>(pDisplayScreen->GetLine(0));
     int nPitchDW = pScreen_->GetPitch() >> 2;
 
     // Work out what has changed since the last frame
@@ -557,7 +557,7 @@ void DrawOSD(CScreen* pScreen_)
         // Floppy 1 light
         if (GetOption(drive1))
         {
-            BYTE bColour = pFloppy1->IsLightOn() ? FLOPPY_LED_COLOUR : LED_OFF_COLOUR;
+            uint8_t bColour = pFloppy1->IsLightOn() ? FLOPPY_LED_COLOUR : LED_OFF_COLOUR;
             pScreen_->FillRect(nX, nY, 14, 2, bColour);
         }
 
@@ -565,9 +565,9 @@ void DrawOSD(CScreen* pScreen_)
         if (GetOption(drive2))
         {
             bool fAtomActive = pAtom->IsActive() || pAtomLite->IsActive();
-            BYTE bAtomColour = pAtom->IsActive() ? ATOM_LED_COLOUR : ATOMLITE_LED_COLOUR;
+            uint8_t bAtomColour = pAtom->IsActive() ? ATOM_LED_COLOUR : ATOMLITE_LED_COLOUR;
 
-            BYTE bColour = pFloppy2->IsLightOn() ? FLOPPY_LED_COLOUR : (fAtomActive ? bAtomColour : LED_OFF_COLOUR);
+            uint8_t bColour = pFloppy2->IsLightOn() ? FLOPPY_LED_COLOUR : (fAtomActive ? bAtomColour : LED_OFF_COLOUR);
             pScreen_->FillRect(nX + 18, nY, 14, 2, bColour);
         }
     }
@@ -623,7 +623,7 @@ int GetRasterPos(int* pnLine_)
 {
     if (g_dwCycleCounter >= BORDER_PIXELS)
     {
-        DWORD dwScreenCycles = g_dwCycleCounter - BORDER_PIXELS;
+        uint32_t dwScreenCycles = g_dwCycleCounter - BORDER_PIXELS;
         *pnLine_ = dwScreenCycles / TSTATES_PER_LINE;
         return dwScreenCycles % TSTATES_PER_LINE;
     }
@@ -634,14 +634,14 @@ int GetRasterPos(int* pnLine_)
 }
 
 // Fetch the 4 bytes the ASIC uses to generate the next 8-pixel cell
-void GetAsicData(BYTE* pb0_, BYTE* pb1_, BYTE* pb2_, BYTE* pb3_)
+void GetAsicData(uint8_t* pb0_, uint8_t* pb1_, uint8_t* pb2_, uint8_t* pb3_)
 {
     pFrame->GetAsicData(pb0_, pb1_, pb2_, pb3_);
 }
 
 // Handle screen mode changes
 // Changes on the main screen may generate an artefact by using old data in the new mode (described by Dave Laundon)
-void ChangeMode(BYTE bNewVmpr_)
+void ChangeMode(uint8_t bNewVmpr_)
 {
     int nLine, nBlock = GetRasterPos(&nLine) >> 3;
 
@@ -654,7 +654,7 @@ void ChangeMode(BYTE bNewVmpr_)
             // Is the mode changing between 1/2 <-> 3/4 on the main screen?
             if (((vmpr_mode ^ bNewVmpr_) & VMPR_MDE1_MASK) && nBlock >= BORDER_BLOCKS)
             {
-                BYTE* pbLine = pScreen->GetLine(nLine - s_nViewTop);
+                auto pbLine = pScreen->GetLine(nLine - s_nViewTop);
 
                 // Draw the artefact and advance the draw position
                 pFrame->ModeChange(pbLine, nLine, nBlock, bNewVmpr_);
@@ -670,14 +670,14 @@ void ChangeMode(BYTE bNewVmpr_)
 
 
 // Handle the screen being enabled, which causes a border pixel artefact (reported by Andrew Collier)
-void ChangeScreen(BYTE bNewBorder_)
+void ChangeScreen(uint8_t bNewBorder_)
 {
     int nLine, nBlock = GetRasterPos(&nLine) >> 3;
 
     // Only draw if the artefact cell is visible
     if (nLine >= s_nViewTop && nLine < s_nViewBottom && nBlock >= s_nViewLeft && nBlock < s_nViewRight)
     {
-        BYTE* pbLine = pScreen->GetLine(nLine - s_nViewTop);
+        auto pbLine = pScreen->GetLine(nLine - s_nViewTop);
 
         // Draw the artefact and advance the draw position
         pFrame->ScreenChange(pbLine, nLine, nBlock, bNewBorder_);
@@ -697,7 +697,7 @@ void TouchLines(int nFrom_, int nTo_)
 
 
 // Set a new screen mode (VMPR value)
-void CFrame::SetMode(BYTE bNewVmpr_)
+void CFrame::SetMode(uint8_t bNewVmpr_)
 {
     static FNLINEUPDATE apfnLineUpdates[] =
     { &CFrame::Mode1Line, &CFrame::Mode2Line, &CFrame::Mode3Line, &CFrame::Mode4Line };
@@ -716,7 +716,7 @@ void CFrame::UpdateLine(CScreen* pScreen_, int nLine_, int nFrom_, int nTo_)
     if (nLine_ >= s_nViewTop && nLine_ < s_nViewBottom)
     {
         // Fetch the screen data pointer for the line
-        BYTE* pbLine = pScreen_->GetLine(nLine_ - s_nViewTop);
+        auto pbLine = pScreen_->GetLine(nLine_ - s_nViewTop);
 
         // Screen off in mode 3 or 4?
         if (BORD_SOFF && VMPR_MODE_3_OR_4)
@@ -733,7 +733,7 @@ void CFrame::UpdateLine(CScreen* pScreen_, int nLine_, int nFrom_, int nTo_)
 }
 
 // Fetch the internal ASIC working values used when drawing the display
-void CFrame::GetAsicData(BYTE* pb0_, BYTE* pb1_, BYTE* pb2_, BYTE* pb3_)
+void CFrame::GetAsicData(uint8_t* pb0_, uint8_t* pb1_, uint8_t* pb2_, uint8_t* pb3_)
 {
     int nLine = g_dwCycleCounter / TSTATES_PER_LINE, nBlock = (g_dwCycleCounter % TSTATES_PER_LINE) >> 3;
 
@@ -744,7 +744,7 @@ void CFrame::GetAsicData(BYTE* pb0_, BYTE* pb1_, BYTE* pb2_, BYTE* pb3_)
 
     if (VMPR_MODE_3_OR_4)
     {
-        BYTE* pb = m_pbScreenData + (nLine << 7) + (nBlock << 2);
+        auto pb = m_pbScreenData + (nLine << 7) + (nBlock << 2);
         *pb0_ = pb[0];
         *pb1_ = pb[1];
         *pb2_ = pb[2];
@@ -752,8 +752,8 @@ void CFrame::GetAsicData(BYTE* pb0_, BYTE* pb1_, BYTE* pb2_, BYTE* pb3_)
     }
     else
     {
-        BYTE* pData = m_pbScreenData + ((VMPR_MODE == MODE_1) ? g_awMode1LineToByte[nLine] + nBlock : (nLine << 5) + nBlock);
-        BYTE* pAttr = (VMPR_MODE == MODE_1) ? m_pbScreenData + 6144 + ((nLine & 0xf8) << 2) + nBlock : pData + 0x2000;
+        auto pData = m_pbScreenData + ((VMPR_MODE == MODE_1) ? g_awMode1LineToByte[nLine] + nBlock : (nLine << 5) + nBlock);
+        auto pAttr = (VMPR_MODE == MODE_1) ? m_pbScreenData + 6144 + ((nLine & 0xf8) << 2) + nBlock : pData + 0x2000;
         *pb0_ = *pb1_ = *pData;
         *pb2_ = *pb3_ = *pAttr;
     }

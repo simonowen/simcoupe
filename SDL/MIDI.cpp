@@ -46,14 +46,14 @@ CMidiDevice::~CMidiDevice()
 }
 
 
-BYTE CMidiDevice::In(WORD /*wPort_*/)
+uint8_t CMidiDevice::In(uint16_t /*wPort_*/)
 {
     // Not supported
     return 0x00;
 }
 
 
-void CMidiDevice::Out(WORD /*wPort_*/, BYTE bVal_)
+void CMidiDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
 {
     // Protect against very long System Exclusive blocks
     if ((m_nOut == (sizeof m_abOut - 1)) && bVal_ != 0xf7)

@@ -48,10 +48,10 @@ void InitTests();
 
 
 extern struct _Z80Regs regs;
-extern DWORD g_dwCycleCounter;
+extern uint32_t g_dwCycleCounter;
 extern bool g_fReset, g_fBreak, g_fPaused;
 extern int g_nTurbo;
-extern BYTE* pbMemRead1, * pbMemRead2, * pbMemWrite1, * pbMemWrite2;
+extern uint8_t* pbMemRead1, * pbMemRead2, * pbMemWrite1, * pbMemWrite2;
 
 enum { TURBO_BOOT = 0x01, TURBO_KEY = 0x02, TURBO_DISK = 0x04, TURBO_TAPE = 0x08, TURBO_KEYIN = 0x10 };
 
@@ -59,25 +59,25 @@ enum { TURBO_BOOT = 0x01, TURBO_KEY = 0x02, TURBO_DISK = 0x04, TURBO_TAPE = 0x08
 extern bool g_fDebug;
 #endif
 
-const BYTE OP_NOP = 0x00;     // Z80 opcode for NOP
-const BYTE OP_DJNZ = 0x10;     // Z80 opcode for DJNZ
-const BYTE OP_JR = 0x18;     // Z80 opcode for JR
-const BYTE OP_HALT = 0x76;     // Z80 opcode for HALT
-const BYTE OP_JP = 0xc3;     // Z80 opcode for JP
-const BYTE OP_RET = 0xc9;     // Z80 opcode for RET
-const BYTE OP_CALL = 0xcd;     // Z80 opcode for CALL
-const BYTE OP_DI = 0xf3;     // Z80 opcode for DI
-const BYTE OP_EI = 0xfb;     // Z80 opcode for EI
-const BYTE OP_JPHL = 0xe9;     // Z80 opcode for JP (HL)
+const uint8_t OP_NOP = 0x00;     // Z80 opcode for NOP
+const uint8_t OP_DJNZ = 0x10;     // Z80 opcode for DJNZ
+const uint8_t OP_JR = 0x18;     // Z80 opcode for JR
+const uint8_t OP_HALT = 0x76;     // Z80 opcode for HALT
+const uint8_t OP_JP = 0xc3;     // Z80 opcode for JP
+const uint8_t OP_RET = 0xc9;     // Z80 opcode for RET
+const uint8_t OP_CALL = 0xcd;     // Z80 opcode for CALL
+const uint8_t OP_DI = 0xf3;     // Z80 opcode for DI
+const uint8_t OP_EI = 0xfb;     // Z80 opcode for EI
+const uint8_t OP_JPHL = 0xe9;     // Z80 opcode for JP (HL)
 
-const BYTE IX_PREFIX = 0xdd;    // Opcode prefix used for IX instructions
-const BYTE IY_PREFIX = 0xfd;    // Opcode prefix used for IY instructions
-const BYTE CB_PREFIX = 0xcb;    // Prefix for CB instruction set
-const BYTE ED_PREFIX = 0xed;    // Prefix for ED instruction set
+const uint8_t IX_PREFIX = 0xdd;    // Opcode prefix used for IX instructions
+const uint8_t IY_PREFIX = 0xfd;    // Opcode prefix used for IY instructions
+const uint8_t CB_PREFIX = 0xcb;    // Prefix for CB instruction set
+const uint8_t ED_PREFIX = 0xed;    // Prefix for ED instruction set
 
 
-const WORD IM1_INTERRUPT_HANDLER = 0x0038;      // Interrupt mode 1 handler address
-const WORD NMI_INTERRUPT_HANDLER = 0x0066;      // Non-maskable interrupt handler address
+const uint16_t IM1_INTERRUPT_HANDLER = 0x0038;      // Interrupt mode 1 handler address
+const uint16_t NMI_INTERRUPT_HANDLER = 0x0066;      // Non-maskable interrupt handler address
 
 // This has been accurately measured on a real SAM using various tests (contact me for further details)
 const int INT_ACTIVE_TIME = 128;            // tstates interrupt is active and will be triggered
@@ -103,7 +103,7 @@ const int INT_ACTIVE_TIME = 128;            // tstates interrupt is active and w
 typedef struct _CPU_EVENT
 {
     int nEvent = -1;
-    DWORD dwTime = 0;
+    uint32_t dwTime = 0;
     struct _CPU_EVENT* psNext = nullptr;
 } CPU_EVENT;
 
@@ -113,11 +113,11 @@ typedef struct
 {
     union
     {
-        WORD    w;
+        uint16_t    w;
 #ifdef __BIG_ENDIAN__
-        struct { BYTE h, l; } b;  // Big endian
+        struct { uint8_t h, l; } b;  // Big endian
 #else
-        struct { BYTE l, h; } b;  // Little endian
+        struct { uint8_t l, h; } b;  // Little endian
 #endif
     };
 } REGPAIR;
@@ -129,8 +129,8 @@ typedef struct _Z80Regs
     REGPAIR ix, iy;
     REGPAIR sp, pc;
 
-    BYTE    i, r, r7;
-    BYTE    iff1, iff2, im;
+    uint8_t    i, r, r7;
+    uint8_t    iff1, iff2, im;
 } Z80Regs;
 
 #define A       regs.af.b.h
@@ -208,7 +208,7 @@ inline void InitCpuEvents()
 }
 
 // Add a CPU event into the queue
-inline void AddCpuEvent(int nEvent_, DWORD dwTime_)
+inline void AddCpuEvent(int nEvent_, uint32_t dwTime_)
 {
     CPU_EVENT* psNextFree = psFreeEvent->psNext;
     CPU_EVENT** ppsEvent = &psNextEvent;
@@ -247,8 +247,8 @@ inline void CancelCpuEvent(int nEvent_)
     }
 }
 
-// Return time until the next event of a specific  type
-inline DWORD GetEventTime(int nEvent_)
+// Return time until the next event of a specific type
+inline uint32_t GetEventTime(int nEvent_)
 {
     CPU_EVENT* psEvent;
 
@@ -277,7 +277,7 @@ inline void CheckCpuEvents()
 }
 
 // Subtract a frame's worth of time from all events
-inline void CpuEventFrame(DWORD dwFrameTime_)
+inline void CpuEventFrame(uint32_t dwFrameTime_)
 {
     // Process all queued events, due sometime in the next or a later frame
     for (CPU_EVENT* psEvent = psNextEvent; psEvent; psEvent = psEvent->psNext)

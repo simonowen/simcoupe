@@ -25,11 +25,11 @@
 namespace Keyin
 {
 
-static BYTE* pbInput;
+static uint8_t* pbInput;
 static int nPos = -1;
 static bool fMapChars = true;
 
-BYTE MapChar(BYTE b_);
+uint8_t MapChar(uint8_t b_);
 
 
 void String(const char* pcsz_, bool fMapChars_)
@@ -39,7 +39,7 @@ void String(const char* pcsz_, bool fMapChars_)
 
     // Determine the source length and allocate a buffer for it
     size_t nLen = strlen(pcsz_);
-    pbInput = new BYTE[nLen + 1];
+    pbInput = new uint8_t[nLen + 1];
 
     // Copy the string, appending a null terminator just in case
     memcpy(pbInput, pcsz_, nLen);
@@ -113,12 +113,12 @@ bool Next()
 
 
 // Map special case input characters to the SAM key code equivalent
-BYTE MapChar(BYTE b_)
+uint8_t MapChar(uint8_t b_)
 {
-    static BYTE abMap[256];
+    static uint8_t abMap[256];
 
     // Does the map need initialising?
-    if (!abMap[static_cast<BYTE>('A')])
+    if (!abMap[static_cast<uint8_t>('A')])
     {
         int i;
 
@@ -128,8 +128,8 @@ BYTE MapChar(BYTE b_)
             abMap[i] = i;
 
         // Preserve certain control characters
-        abMap[static_cast<BYTE>('\t')] = '\t';     // horizontal tab
-        abMap[static_cast<BYTE>('\n')] = '\r';     // convert LF to CR
+        abMap[static_cast<uint8_t>('\t')] = '\t';     // horizontal tab
+        abMap[static_cast<uint8_t>('\n')] = '\r';     // convert LF to CR
     }
 
     // Return the mapped character, or 0 if none

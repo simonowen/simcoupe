@@ -44,7 +44,7 @@ void CMouseDevice::Reset()
     m_uBuffer = 0;
 }
 
-BYTE CMouseDevice::In(WORD /*wPort_*/)
+uint8_t CMouseDevice::In(uint16_t /*wPort_*/)
 {
     // If the first real data byte is about to be read, update the mouse buffer
     if (m_uBuffer == 2)
@@ -68,7 +68,7 @@ BYTE CMouseDevice::In(WORD /*wPort_*/)
     }
 
     // Read the next byte
-    BYTE bRet = reinterpret_cast<BYTE*>(&m_sMouse)[m_uBuffer++];
+    uint8_t bRet = reinterpret_cast<uint8_t*>(&m_sMouse)[m_uBuffer++];
 
     // Has the full buffer been read?
     if (m_uBuffer == sizeof(m_sMouse))
@@ -105,7 +105,7 @@ void CMouseDevice::Move(int nDeltaX_, int nDeltaY_)
 void CMouseDevice::SetButton(int nButton_, bool fPressed_/*=true*/)
 {
     // Work out the bit position for the button
-    BYTE bBit = 1 << (nButton_ - 1);
+    uint8_t bBit = 1 << (nButton_ - 1);
 
     // Reset or set the bit depending on whether the button is being pressed or released
     if (fPressed_)

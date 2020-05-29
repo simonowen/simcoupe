@@ -19,6 +19,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "SimCoupe.h"
+#include <mmsystem.h>
+#define DIRECTSOUND_VERSION     0x0300
+#include <dsound.h>
+
+typedef HRESULT(WINAPI* PFNDIRECTSOUNDCREATE) (LPGUID, LPDIRECTSOUND*, LPUNKNOWN);
 
 #include "Audio.h"
 #include "Sound.h"
@@ -29,7 +34,7 @@
 #include "Util.h"
 #include "UI.h"
 
-// Direct sound interface and primary buffer pointers
+static PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 static IDirectSound* pds;
 static IDirectSoundBuffer* pdsb;
 static int nSampleBufferSize;
@@ -50,6 +55,23 @@ bool Audio::Init(bool fFirstInit_/*=false*/)
 {
     Exit(true);
     TRACE("-> Audio::Init(%s)\n", fFirstInit_ ? "first" : "");
+
+    auto hinstDSound = LoadLibrary("DSOUND.DLL");
+    if (!hinstDSound)
+    {
+        Message(msgError, "DSOUND.DLL not found.");
+        return false;
+    }
+
+    pfnDirectSoundCreate =
+        reinterpret_cast<PFNDIRECTSOUNDCREATE>(
+            GetProcAddress(hinstDSound, "DirectSoundCreate"));
+
+    if (!pfnDirectSoundCreate)
+    {
+        Message(msgError, "DirectSoundCreate failed.");
+        return false;
+    }
 
     // All sound disabled?
     if (!GetOption(sound))
@@ -77,6 +99,7 @@ void Audio::Exit(bool fReInit_/*=false*/)
 
     if (hTimer) timeKillEvent(hTimer), hTimer = 0;
     if (hEvent) CloseHandle(hEvent), hEvent = nullptr;
+    pfnDirectSoundCreate = nullptr;
 
     TRACE("<- Audio::Exit()\n");
 }
@@ -102,7 +125,7 @@ void Audio::Silence()
     dwWriteOffset = dwPlayCursor;
 }
 
-bool Audio::AddData(BYTE* pbData_, int nLength_)
+bool Audio::AddData(uint8_t* pbData_, int nLength_)
 {
     LPVOID pvWrite1, pvWrite2;
     DWORD dwLength1, dwLength2;

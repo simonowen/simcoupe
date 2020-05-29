@@ -221,8 +221,8 @@ int Expr::GetReg(int nReg_)
 
 void Expr::SetReg(int nReg_, int nValue_)
 {
-    WORD w = static_cast<WORD>(nValue_);
-    BYTE b = w & 0xff;
+    auto w = static_cast<uint16_t>(nValue_);
+    uint8_t b = w & 0xff;
 
     switch (nReg_)
     {
@@ -606,7 +606,7 @@ bool Expr::Factor()
     }
 
     // Check for literal values next
-    if (!fMatched && !(nFlags & noVals) && isxdigit(static_cast<BYTE>(*p)))
+    if (!fMatched && !(nFlags & noVals) && isxdigit(static_cast<uint8_t>(*p)))
     {
         // Assume we'll match the input
         fMatched = true;
@@ -661,7 +661,7 @@ bool Expr::Factor()
     }
 
     // Hex value with explicit prefix?
-    else if ((*p == '$' || *p == '&' || *p == '#') && isxdigit(static_cast<BYTE>(p[1])))
+    else if ((*p == '$' || *p == '&' || *p == '#') && isxdigit(static_cast<uint8_t>(p[1])))
     {
         p++;
         AddNode(T_NUMBER, static_cast<int>(strtoul(p, (char**)&p, 16)));

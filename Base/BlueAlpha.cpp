@@ -78,16 +78,16 @@ int CBlueAlphaDevice::GetClockFreq()
     return freq;
 }
 
-BYTE CBlueAlphaDevice::In(WORD wPort_)
+uint8_t CBlueAlphaDevice::In(uint16_t wPort_)
 {
     switch (wPort_ & 3)
     {
     case 0:
-        /*
-                    // TODO: If the ADC is active, read a sample
-                    if (!(m_bPortB & 0x02))
-                        m_bPortA = ...;
-        */
+/*
+        // TODO: If the ADC is active, read a sample
+        if (!(m_bPortB & 0x02))
+            m_bPortA = ...;
+*/
         return m_bPortA;
 
     case 2:
@@ -97,7 +97,7 @@ BYTE CBlueAlphaDevice::In(WORD wPort_)
     return 0x00;
 }
 
-void CBlueAlphaDevice::Out(WORD wPort_, BYTE bVal_)
+void CBlueAlphaDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     switch (wPort_ & 3)
     {

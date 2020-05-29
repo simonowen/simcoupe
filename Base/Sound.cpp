@@ -29,10 +29,10 @@
 #include "SID.h"
 #include "WAV.h"
 
-static BYTE* pbSampleBuffer;
+static uint8_t* pbSampleBuffer;
 
-static void MixAudio(BYTE* pDst_, const BYTE* pSrc_, int nLen_);
-static int AdjustSpeed(BYTE* pb_, int nSize_, int nSpeed_);
+static void MixAudio(uint8_t* pDst_, const uint8_t* pSrc_, int nLen_);
+static int AdjustSpeed(uint8_t* pb_, int nSize_, int nSpeed_);
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -42,7 +42,7 @@ bool Sound::Init(bool fFirstInit_/*=false*/)
 
     int nMaxFrameSamples = 2; // Needed for 50% running speed
     int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND) + 1;
-    pbSampleBuffer = new BYTE[nSamplesPerFrame * SAMPLE_BLOCK * nMaxFrameSamples];
+    pbSampleBuffer = new uint8_t[nSamplesPerFrame * SAMPLE_BLOCK * nMaxFrameSamples];
 
     bool fRet = Audio::Init(fFirstInit_);
     Audio::Silence();
@@ -107,7 +107,7 @@ void CSAA::Update(bool fFrameEnd_ = false)
     if (nNeeded <= 0)
         return;
 
-    BYTE* pb = m_pbFrameSample + m_nSamplesThisFrame * SAMPLE_BLOCK;
+    auto pb = m_pbFrameSample + m_nSamplesThisFrame * SAMPLE_BLOCK;
 
     if (g_fReset)
         memset(pb, 0x00, nNeeded * SAMPLE_BLOCK); // no clock means no SAA output
@@ -123,7 +123,7 @@ void CSAA::FrameEnd()
     m_nSamplesThisFrame = 0;
 }
 
-void CSAA::Out(WORD wPort_, BYTE bVal_)
+void CSAA::Out(uint16_t wPort_, uint8_t bVal_)
 {
     Update();
 
@@ -173,33 +173,33 @@ void CDAC::FrameEnd()
     buf_right.read_samples(ps + 1, m_nSamplesThisFrame, 1);
 }
 
-void CDAC::OutputLeft(BYTE bVal_)
+void CDAC::OutputLeft(uint8_t bVal_)
 {
     synth_left.update(g_dwCycleCounter, bVal_);
 }
 
-void CDAC::OutputLeft2(BYTE bVal_)
+void CDAC::OutputLeft2(uint8_t bVal_)
 {
     synth_left2.update(g_dwCycleCounter, bVal_);
 }
 
-void CDAC::OutputRight(BYTE bVal_)
+void CDAC::OutputRight(uint8_t bVal_)
 {
     synth_right.update(g_dwCycleCounter, bVal_);
 }
 
-void CDAC::OutputRight2(BYTE bVal_)
+void CDAC::OutputRight2(uint8_t bVal_)
 {
     synth_right2.update(g_dwCycleCounter, bVal_);
 }
 
-void CDAC::Output(BYTE bVal_)
+void CDAC::Output(uint8_t bVal_)
 {
     synth_left.update(g_dwCycleCounter, bVal_);
     synth_right.update(g_dwCycleCounter, bVal_);
 }
 
-void CDAC::Output2(BYTE bVal_)
+void CDAC::Output2(uint8_t bVal_)
 {
     synth_left2.update(g_dwCycleCounter, bVal_);
     synth_right2.update(g_dwCycleCounter, bVal_);
@@ -207,13 +207,13 @@ void CDAC::Output2(BYTE bVal_)
 
 int CDAC::GetSamplesSoFar()
 {
-    UINT uCycles = std::min(g_dwCycleCounter, static_cast<DWORD>(TSTATES_PER_FRAME));
+    auto uCycles = std::min(g_dwCycleCounter, static_cast<uint32_t>(TSTATES_PER_FRAME));
     return static_cast<int>(buf_left.count_samples(uCycles));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void CBeeperDevice::Out(WORD /*wPort_*/, BYTE bVal_)
+void CBeeperDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
 {
     if (pDAC)
         pDAC->Output((bVal_ & 0x10) ? 0xa0 : 0x80);
@@ -226,14 +226,14 @@ CSoundDevice::CSoundDevice()
     int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND) + 1;
     int nSize = nSamplesPerFrame * SAMPLE_BLOCK;
 
-    m_pbFrameSample = new BYTE[nSize];
+    m_pbFrameSample = new uint8_t[nSize];
     memset(m_pbFrameSample, 0x00, nSize);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // Basic audio mixing
-static void MixAudio(BYTE* pDst_, const BYTE* pSrc_, int nLen_)
+static void MixAudio(uint8_t* pDst_, const uint8_t* pSrc_, int nLen_)
 {
     for (nLen_ /= 2; nLen_-- > 0; pSrc_ += 2, pDst_ += 2)
     {
@@ -254,7 +254,7 @@ static void MixAudio(BYTE* pDst_, const BYTE* pSrc_, int nLen_)
 
 
 // Scale audio data to fit the current emulator speed setting
-static int AdjustSpeed(BYTE* pb_, int nSize_, int nSpeed_)
+static int AdjustSpeed(uint8_t* pb_, int nSize_, int nSpeed_)
 {
     // Limit speed range
     nSpeed_ = std::max(nSpeed_, 50);
@@ -263,8 +263,8 @@ static int AdjustSpeed(BYTE* pb_, int nSize_, int nSpeed_)
     // Slow?
     if (nSpeed_ < 100)
     {
-        DWORD* pdwS = reinterpret_cast<DWORD*>(pb_ + nSize_) - 1;
-        DWORD* pdwD = reinterpret_cast<DWORD*>(pb_ + nSize_ * 2) - 1;
+        auto pdwS = reinterpret_cast<uint32_t*>(pb_ + nSize_) - 1;
+        auto pdwD = reinterpret_cast<uint32_t*>(pb_ + nSize_ * 2) - 1;
 
         // Double samples in reverse order
         for (int i = 0; i < nSize_; i += SAMPLE_BLOCK, pdwS--)
@@ -285,8 +285,8 @@ static int AdjustSpeed(BYTE* pb_, int nSize_, int nSpeed_)
         int nScale = nSpeed_ / 100;
         nSize_ = (nSize_ / nScale) & ~(SAMPLE_BLOCK - 1);
 
-        DWORD* pdwS = reinterpret_cast<DWORD*>(pb_);
-        DWORD* pdwD = pdwS;
+        auto pdwS = reinterpret_cast<uint32_t*>(pb_);
+        auto pdwD = pdwS;
 
         // Skip the required number of samples
         for (int i = 0; i < nSize_; i += SAMPLE_BLOCK, pdwS += nScale)

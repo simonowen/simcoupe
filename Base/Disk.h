@@ -26,24 +26,24 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const UINT NORMAL_DISK_SIDES = 2;       // Normally 2 sides per disk
-const UINT NORMAL_DISK_TRACKS = 80;     // Normally 80 tracks per side
-const UINT NORMAL_DISK_SECTORS = 10;    // Normally 10 sectors per track
-const UINT NORMAL_SECTOR_SIZE = 512;    // Normally 512 bytes per sector
+const unsigned int NORMAL_DISK_SIDES = 2;       // Normally 2 sides per disk
+const unsigned int NORMAL_DISK_TRACKS = 80;     // Normally 80 tracks per side
+const unsigned int NORMAL_DISK_SECTORS = 10;    // Normally 10 sectors per track
+const unsigned int NORMAL_SECTOR_SIZE = 512;    // Normally 512 bytes per sector
 
-const UINT NORMAL_DIRECTORY_TRACKS = 4; // Normally 4 tracks in a SAMDOS directory
+const unsigned int NORMAL_DIRECTORY_TRACKS = 4; // Normally 4 tracks in a SAMDOS directory
 
-const UINT DOS_DISK_SECTORS = 9;        // Double-density MS-DOS disks are 9 sectors per track
+const unsigned int DOS_DISK_SECTORS = 9;        // Double-density MS-DOS disks are 9 sectors per track
 
 
 // The various disk format image sizes
 #define MGT_IMAGE_SIZE  (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE)
 #define DOS_IMAGE_SIZE  (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * DOS_DISK_SECTORS * NORMAL_SECTOR_SIZE)
 
-const UINT DISK_FILE_HEADER_SIZE = 9;    // From SAM Technical Manual  (bType, wSize, wOffset, wUnused, bPages, bStartPage)
+const unsigned int DISK_FILE_HEADER_SIZE = 9;    // From SAM Technical Manual  (bType, wSize, wOffset, wUnused, bPages, bStartPage)
 
 // Maximum size of a file that will fit on a SAM disk
-const UINT MAX_SAM_FILE_SIZE = ((NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS) - NORMAL_DIRECTORY_TRACKS) *
+const unsigned int MAX_SAM_FILE_SIZE = ((NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS) - NORMAL_DIRECTORY_TRACKS) *
 NORMAL_DISK_SECTORS * (NORMAL_SECTOR_SIZE - 2) - DISK_FILE_HEADER_SIZE;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -54,12 +54,12 @@ NORMAL_DISK_SECTORS * (NORMAL_SECTOR_SIZE - 2) - DISK_FILE_HEADER_SIZE;
 // SAD file header
 typedef struct
 {
-    BYTE abSignature[sizeof(SAD_SIGNATURE) - 1];
+    uint8_t abSignature[sizeof(SAD_SIGNATURE) - 1];
 
-    BYTE bSides;             // Number of sides on the disk
-    BYTE bTracks;            // Number of tracks per side
-    BYTE bSectors;           // Number of sectors per track
-    BYTE bSectorSizeDiv64;   // Sector size divided by 64
+    uint8_t bSides;             // Number of sides on the disk
+    uint8_t bTracks;            // Number of tracks per side
+    uint8_t bSectors;           // Number of sectors per track
+    uint8_t bSectorSizeDiv64;   // Sector size divided by 64
 }
 SAD_HEADER;
 
@@ -80,32 +80,32 @@ typedef struct
 {
     char szSignature[34];    // one of the signatures above, depending on DSK/EDSK
     char szCreator[14];      // name of creator (utility/emulator)
-    BYTE bTracks;
-    BYTE bSides;
-    BYTE abTrackSize[2];     // fixed track size (DSK only)
+    uint8_t bTracks;
+    uint8_t bSides;
+    uint8_t abTrackSize[2];     // fixed track size (DSK only)
 } EDSK_HEADER;
 
 typedef struct
 {
     char szSignature[13];    // Track-Info\r\n
-    BYTE bRate;              // 0=unknown (default=250K), 1=250K/300K, 2=500K, 3=1M
-    BYTE bEncoding;          // 0=unknown (default=MFM), 1=FM, 2=MFM
-    BYTE bUnused;
-    BYTE bTrack;
-    BYTE bSide;
-    BYTE abUnused[2];
-    BYTE bSize;
-    BYTE bSectors;
-    BYTE bGap3;
-    BYTE bFill;
+    uint8_t bRate;              // 0=unknown (default=250K), 1=250K/300K, 2=500K, 3=1M
+    uint8_t bEncoding;          // 0=unknown (default=MFM), 1=FM, 2=MFM
+    uint8_t bUnused;
+    uint8_t bTrack;
+    uint8_t bSide;
+    uint8_t abUnused[2];
+    uint8_t bSize;
+    uint8_t bSectors;
+    uint8_t bGap3;
+    uint8_t bFill;
 }
 EDSK_TRACK;
 
 typedef struct
 {
-    BYTE bTrack, bSide, bSector, bSize;
-    BYTE bStatus1, bStatus2;
-    BYTE bDatalow, bDatahigh;
+    uint8_t bTrack, bSide, bSector, bSize;
+    uint8_t bStatus1, bStatus2;
+    uint8_t bDatalow, bDatahigh;
 }
 EDSK_SECTOR;
 
@@ -135,7 +135,7 @@ public:
     virtual void Close() { m_pStream->Close(); }
     virtual void Flush() { }
     virtual bool Save() { return false; };
-    virtual BYTE FormatTrack(BYTE /*cyl_*/, BYTE /*head_*/, IDFIELD* /*paID_*/, BYTE* /*papbData_*/[], UINT /*uSectors_*/) { return WRITE_PROTECT; }
+    virtual uint8_t FormatTrack(uint8_t /*cyl_*/, uint8_t /*head_*/, IDFIELD* /*paID_*/, uint8_t* /*papbData_*/[], unsigned int /*uSectors_*/) { return WRITE_PROTECT; }
 
 
     // Public query functions
@@ -149,12 +149,12 @@ public:
 
     // Protected overrides
 protected:
-    virtual BYTE LoadTrack(BYTE /*cyl_*/, BYTE /*head_*/) { m_nBusy = LOAD_DELAY; return 0; }
-    virtual bool GetSector(BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_ = nullptr) = 0;
-    virtual BYTE ReadData(BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) = 0;
-    virtual BYTE WriteData(BYTE /*cyl_*/, BYTE /*head_*/, BYTE /*index_*/, BYTE* /*pbData_*/, UINT* /*puSize_*/) { return WRITE_PROTECT; }
+    virtual uint8_t LoadTrack(uint8_t /*cyl_*/, uint8_t /*head_*/) { m_nBusy = LOAD_DELAY; return 0; }
+    virtual bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_ = nullptr) = 0;
+    virtual uint8_t ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) = 0;
+    virtual uint8_t WriteData(uint8_t /*cyl_*/, uint8_t /*head_*/, uint8_t /*index_*/, uint8_t* /*pbData_*/, unsigned int* /*puSize_*/) { return WRITE_PROTECT; }
 
-    virtual bool IsBusy(BYTE* /*pbStatus_*/, bool /*fWait_*/ = false) { if (!m_nBusy) return false; m_nBusy--; return true; }
+    virtual bool IsBusy(uint8_t* /*pbStatus_*/, bool /*fWait_*/ = false) { if (!m_nBusy) return false; m_nBusy--; return true; }
 
 protected:
     int m_nType;
@@ -162,55 +162,55 @@ protected:
     bool m_fModified;
 
     CStream* m_pStream;
-    BYTE* m_pbData;
+    uint8_t* m_pbData;
 };
 
 
 class CMGTDisk : public CDisk
 {
 public:
-    CMGTDisk(CStream* pStream_, UINT uSectors_ = NORMAL_DISK_SECTORS);
+    CMGTDisk(CStream* pStream_, unsigned int uSectors_ = NORMAL_DISK_SECTORS);
 
 public:
     static bool IsRecognised(CStream* pStream_);
 
 public:
-    bool GetSector(BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_) override;
-    BYTE ReadData(BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) override;
-    BYTE WriteData(BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) override;
+    bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
+    uint8_t ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
+    uint8_t WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
     bool Save() override;
-    BYTE FormatTrack(BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) override;
+    uint8_t FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_) override;
 
 protected:
-    UINT m_uSectors = 0;
+    unsigned int m_uSectors = 0;
 };
 
 
 class CSADDisk : public CDisk
 {
 public:
-    CSADDisk(CStream* pStream_, UINT uSides_ = NORMAL_DISK_SIDES, UINT uTracks_ = NORMAL_DISK_TRACKS,
-        UINT uSectors_ = NORMAL_DISK_SECTORS, UINT uSectorSize_ = NORMAL_SECTOR_SIZE);
+    CSADDisk(CStream* pStream_, unsigned int uSides_ = NORMAL_DISK_SIDES, unsigned int uTracks_ = NORMAL_DISK_TRACKS,
+        unsigned int uSectors_ = NORMAL_DISK_SECTORS, unsigned int uSectorSize_ = NORMAL_SECTOR_SIZE);
 
 public:
     static bool IsRecognised(CStream* pStream_);
 
 public:
-    bool GetSector(BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_) override;
-    BYTE ReadData(BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) override;
-    BYTE WriteData(BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) override;
+    bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
+    uint8_t ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
+    uint8_t WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
     bool Save() override;
-    BYTE FormatTrack(BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) override;
+    uint8_t FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_) override;
 
 protected:
-    UINT m_uSides = 0, m_uTracks = 0, m_uSectors = 0, m_uSectorSize = 0;
+    unsigned int m_uSides = 0, m_uTracks = 0, m_uSectors = 0, m_uSectorSize = 0;
 };
 
 
 class CEDSKDisk final : public CDisk
 {
 public:
-    CEDSKDisk(CStream* pStream_, UINT uSides_ = NORMAL_DISK_SIDES, UINT uTracks_ = NORMAL_DISK_TRACKS);
+    CEDSKDisk(CStream* pStream_, unsigned int uSides_ = NORMAL_DISK_SIDES, unsigned int uTracks_ = NORMAL_DISK_TRACKS);
     CEDSKDisk(const CEDSKDisk&) = delete;
     void operator= (const CEDSKDisk&) = delete;
     ~CEDSKDisk();
@@ -219,22 +219,22 @@ public:
     static bool IsRecognised(CStream* pStream_);
 
 public:
-    bool GetSector(BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_) override;
-    BYTE ReadData(BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) override;
-    BYTE WriteData(BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) override;
+    bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
+    uint8_t ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
+    uint8_t WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
     bool Save() override;
-    BYTE FormatTrack(BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) override;
+    uint8_t FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_) override;
 
 protected:
-    UINT m_uSides = 0, m_uTracks = 0;
+    unsigned int m_uSides = 0, m_uTracks = 0;
 
     EDSK_TRACK* m_apTracks[MAX_DISK_SIDES][MAX_DISK_TRACKS];
-    BYTE m_abSizes[MAX_DISK_SIDES][MAX_DISK_TRACKS];
+    uint8_t m_abSizes[MAX_DISK_SIDES][MAX_DISK_TRACKS];
 
 private:
     // These are for private class use and only valid immediately after calling GetSector()
     EDSK_SECTOR* m_pSector = nullptr;
-    BYTE* m_pbData = nullptr;
+    uint8_t* m_pbData = nullptr;
 };
 
 
@@ -252,20 +252,20 @@ public:
     void Close() override { m_pFloppy->Close(); m_pTrack->head = 0xff; }
     void Flush() override { Close(); }
 
-    BYTE LoadTrack(BYTE cyl_, BYTE head_) override;
-    bool GetSector(BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_) override;
-    BYTE ReadData(BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) override;
-    BYTE WriteData(BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) override;
+    uint8_t LoadTrack(uint8_t cyl_, uint8_t head_) override;
+    bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
+    uint8_t ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
+    uint8_t WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
     bool Save() override;
 
-    BYTE FormatTrack(BYTE cyl_, BYTE head_, IDFIELD* paID_, BYTE* papbData_[], UINT uSectors_) override;
+    uint8_t FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_) override;
 
-    bool IsBusy(BYTE* pbStatus_, bool fWait_) override;
+    bool IsBusy(uint8_t* pbStatus_, bool fWait_) override;
 
 protected:
     CFloppyStream* m_pFloppy = nullptr;
 
-    BYTE m_bCommand = 0, m_bStatus = 0;     // Current command and final status
+    uint8_t m_bCommand = 0, m_bStatus = 0;     // Current command and final status
 
     PTRACK  m_pTrack = nullptr;             // Current track
     PSECTOR m_pSector = nullptr;            // Pointer to first sector on track
@@ -281,9 +281,9 @@ public:
     static bool IsRecognised(CStream* pStream_);
 
 public:
-    bool GetSector(BYTE cyl_, BYTE head_, BYTE index_, IDFIELD* pID_, BYTE* pbStatus_) override;
-    BYTE ReadData(BYTE cyl_, BYTE head_, BYTE index_, BYTE* pbData_, UINT* puSize_) override;
+    bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
+    uint8_t ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
 
 protected:
-    UINT m_uSize;
+    unsigned int m_uSize;
 };

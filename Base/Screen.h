@@ -51,7 +51,7 @@ public:
     ~CScreen();
 
 public:
-    BYTE* GetLine(int nLine_) { return m_ppbLines[nLine_]; }
+    uint8_t* GetLine(int nLine_) { return m_ppbLines[nLine_]; }
 
     int GetPitch() const { return m_nPitch; }
     int GetWidth() const { return m_nPitch; }
@@ -63,13 +63,13 @@ public:
     void SetClip(int nX_ = 0, int nY_ = 0, int nWidth_ = 0, int nHeight_ = 0);
     bool Clip(int& rnX_, int& rnY_, int& rnWidth_, int& rnHeight_);
 
-    void Plot(int nX_, int nY_, BYTE bColour_);
-    void DrawLine(int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_);
-    void FillRect(int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_);
-    void FrameRect(int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_, bool fRound_ = false);
-    void Poke(int nX_, int nY_, const BYTE* pcbData_, UINT uLen_);
-    void DrawImage(int nX_, int nY_, int nWidth_, int nHeight_, const BYTE* pbData_, const BYTE* pbPalette_);
-    int DrawString(int nX_, int nY_, const char* pcsz_, BYTE bInk_ = WHITE);
+    void Plot(int nX_, int nY_, uint8_t bColour_);
+    void DrawLine(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_);
+    void FillRect(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_);
+    void FrameRect(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_, bool fRound_ = false);
+    void Poke(int nX_, int nY_, const uint8_t* pcbData_, unsigned int uLen_);
+    void DrawImage(int nX_, int nY_, int nWidth_, int nHeight_, const uint8_t* pbData_, const uint8_t* pbPalette_);
+    int DrawString(int nX_, int nY_, const char* pcsz_, uint8_t bInk_ = WHITE);
     int Printf(int nX_, int nY_, const char* pcszFormat_, ...);
 
     static int GetStringWidth(const char* pcsz_, size_t nMaxChars_ = -1, const GUIFONT* pFont_ = nullptr);
@@ -78,6 +78,6 @@ public:
 protected:
     int m_nPitch = 0, m_nHeight = 0;    // Pitch and height of the screen
 
-    BYTE* m_pbFrame = nullptr;          // Screen data block
-    BYTE** m_ppbLines = nullptr;        // Look-up table from line number to pointer to start of the line
+    uint8_t* m_pbFrame = nullptr;          // Screen data block
+    uint8_t** m_ppbLines = nullptr;        // Look-up table from line number to pointer to start of the line
 };

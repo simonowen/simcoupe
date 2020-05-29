@@ -25,8 +25,8 @@
 class CPrintBuffer : public CIoDevice
 {
 public:
-    BYTE In(WORD wPort_) override;
-    void Out(WORD wPort_, BYTE bVal_) override;
+    uint8_t In(uint16_t wPort_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
     void FrameEnd() override;
 
     bool IsFlushable() const { return !!m_uBuffer; }
@@ -34,17 +34,17 @@ public:
 
 protected:
     bool m_fOpen = false;
-    BYTE m_bControl = 0, m_bData = 0, m_bStatus = 0;
+    uint8_t m_bControl = 0, m_bData = 0, m_bStatus = 0;
 
-    UINT m_uBuffer = 0, m_uFlushDelay = 0;
-    BYTE m_abBuffer[1024];
+    unsigned int m_uBuffer = 0, m_uFlushDelay = 0;
+    uint8_t m_abBuffer[1024];
 
 protected:
     bool IsOpen() const { return false; }
 
     virtual bool Open() = 0;
     virtual void Close() = 0;
-    virtual void Write(BYTE* pb_, size_t uLen_) = 0;
+    virtual void Write(uint8_t* pb_, size_t uLen_) = 0;
 };
 
 
@@ -59,7 +59,7 @@ public:
 public:
     bool Open() override;
     void Close() override;
-    void Write(BYTE* pb_, size_t uLen_) override;
+    void Write(uint8_t* pb_, size_t uLen_) override;
 
 protected:
     FILE* m_hFile = nullptr;
@@ -76,7 +76,7 @@ public:
 public:
     bool Open() override;
     void Close() override;
-    void Write(BYTE* pb_, size_t uLen_) override;
+    void Write(uint8_t* pb_, size_t uLen_) override;
 
 protected:
 #ifdef WIN32
@@ -88,7 +88,7 @@ protected:
 class CMonoDACDevice : public CIoDevice
 {
 public:
-    void Out(WORD wPort_, BYTE bVal_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
 };
 
 
@@ -98,10 +98,10 @@ public:
     CStereoDACDevice() : m_bControl(0x00), m_bData(0x80) { }
 
 public:
-    void Out(WORD wPort_, BYTE bVal_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 protected:
-    BYTE m_bControl, m_bData;
+    uint8_t m_bControl, m_bData;
 };
 
 extern CPrintBuffer* pPrinterFile;

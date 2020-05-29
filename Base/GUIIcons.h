@@ -25,8 +25,8 @@ const int ICON_PALETTE_SIZE = 32;
 
 typedef struct
 {
-    BYTE abPalette[ICON_PALETTE_SIZE];
-    BYTE abData[ICON_SIZE][ICON_SIZE];
+    uint8_t abPalette[ICON_PALETTE_SIZE];
+    uint8_t abData[ICON_SIZE][ICON_SIZE];
 }
 GUI_ICON;
 

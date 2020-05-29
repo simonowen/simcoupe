@@ -50,16 +50,16 @@ namespace PNG
 
 
 // Write a PNG chunk block with header and CRC
-static bool WriteChunk(FILE* hFile_, DWORD dwType_, BYTE* pbData_, size_t uLength_)
+static bool WriteChunk(FILE* hFile_, uint32_t dwType_, uint8_t* pbData_, size_t uLength_)
 {
     // Write chunk length
-    DWORD dw = static_cast<DWORD>(htonul(uLength_));
+    auto dw = static_cast<uint32_t>(htonul(uLength_));
     size_t uWritten = fwrite(&dw, 1, sizeof(dw), hFile_);
 
     // Write type (big endian) and start CRC with it
     dw = htonul(dwType_);
     uWritten += fwrite(&dw, 1, sizeof(dw), hFile_);
-    auto crc = crc32(0, reinterpret_cast<UINT8*>(&dw), sizeof(dw));
+    auto crc = crc32(0, reinterpret_cast<uint8_t*>(&dw), sizeof(dw));
 
     if (uLength_)
     {
@@ -69,7 +69,7 @@ static bool WriteChunk(FILE* hFile_, DWORD dwType_, BYTE* pbData_, size_t uLengt
     }
 
     // Write CRC (big endian)
-    dw = static_cast<DWORD>(htonul(crc));
+    dw = static_cast<uint32_t>(htonul(crc));
     uWritten += fwrite(&dw, 1, sizeof(dw), hFile_);
 
     // Return true if we wrote everything
@@ -100,9 +100,9 @@ static bool WriteFile(FILE* hFile_, PNG_INFO* pPNG_)
 
     // Write everything out, returning true only if everything succeeds
     return ((fwrite(PNG_SIGNATURE, 1, sizeof(PNG_SIGNATURE) - 1, hFile_) == sizeof(PNG_SIGNATURE) - 1) &&
-        WriteChunk(hFile_, PNG_CN_IHDR, reinterpret_cast<BYTE*>(&ihdr), sizeof(ihdr)) &&
+        WriteChunk(hFile_, PNG_CN_IHDR, reinterpret_cast<uint8_t*>(&ihdr), sizeof(ihdr)) &&
         WriteChunk(hFile_, PNG_CN_IDAT, pPNG_->pbImage, pPNG_->uCompressedSize) &&
-        WriteChunk(hFile_, PNG_CN_tEXt, reinterpret_cast<BYTE*>(szProgram), strlen(szProgram)) &&
+        WriteChunk(hFile_, PNG_CN_tEXt, reinterpret_cast<uint8_t*>(szProgram), strlen(szProgram)) &&
         WriteChunk(hFile_, PNG_CN_IEND, nullptr, 0));
 }
 
@@ -114,7 +114,7 @@ static bool CompressImageData(PNG_INFO* pPNG_)
 
     // ZLib says the compressed size could be at least 0.1% more than the source, plus 12 bytes
     uLongf ulSize = ((pPNG_->uSize * 1001) / 1000) + 12;
-    BYTE* pbCompressed = new BYTE[ulSize];
+    auto pbCompressed = new uint8_t[ulSize];
 
     // Compress the image data
     if (pbCompressed && compress(pbCompressed, &ulSize, pPNG_->pbImage, pPNG_->uSize) == Z_OK)
@@ -123,7 +123,7 @@ static bool CompressImageData(PNG_INFO* pPNG_)
         delete[] pPNG_->pbImage;
 
         // Save the compressed image and size
-        pPNG_->uCompressedSize = static_cast<DWORD>(ulSize);
+        pPNG_->uCompressedSize = static_cast<uint32_t>(ulSize);
         pPNG_->pbImage = pbCompressed;
         pbCompressed = nullptr;
 
@@ -152,30 +152,30 @@ static bool SaveFile(FILE* f_, CScreen* pScreen_)
     if (fStretch) png.dwWidth = png.dwWidth * nDen / nNum;
 
     png.uSize = png.dwHeight * (1 + (png.dwWidth * 3));
-    if (!(png.pbImage = new BYTE[png.uSize]))
+    if (!(png.pbImage = new uint8_t[png.uSize]))
         return false;
 
     memset(png.pbImage, 0, png.uSize);
     const COLOUR* pPal = IO::GetPalette();
 
 
-    BYTE* pb = png.pbImage;
+    auto pb = png.pbImage;
 
-    for (UINT y = 0; y < png.dwHeight; y++)
+    for (unsigned int y = 0; y < png.dwHeight; y++)
     {
-        BYTE* pbS = pScreen_->GetLine(y >> 1);
+        auto pbS = pScreen_->GetLine(y >> 1);
 
         // Each image line begins with the filter type
         *pb++ = PNG_FILTER_TYPE_DEFAULT;
 
-        for (UINT x = 0; x < png.dwWidth; x++)
+        for (unsigned int x = 0; x < png.dwWidth; x++)
         {
             // Map the image pixel back to the display pixel
             int n = fStretch ? (x * nNum / nDen) : x;
-            BYTE b = pbS[n], b2 = pbS[n + 1];
+            uint8_t b = pbS[n], b2 = pbS[n + 1];
 
             // Look up the pixel components in the palette
-            BYTE red = pPal[b].bRed, green = pPal[b].bGreen, blue = pPal[b].bBlue;
+            uint8_t red = pPal[b].bRed, green = pPal[b].bGreen, blue = pPal[b].bBlue;
 
             // In stretch mode we may need to blend the neighbouring pixels
             if (fStretch && (x % nDen))
@@ -186,7 +186,7 @@ static bool SaveFile(FILE* f_, CScreen* pScreen_)
 
                 // Determine how much of the next pixel
                 int nPercent2 = 100 - nPercent;
-                BYTE red2 = pPal[b2].bRed, green2 = pPal[b2].bGreen, blue2 = pPal[b2].bBlue;
+                uint8_t red2 = pPal[b2].bRed, green2 = pPal[b2].bGreen, blue2 = pPal[b2].bBlue;
                 AdjustBrightness(red2, green2, blue2, nPercent2 - 100);
 
                 // Combine the part pixels for the overall colour

@@ -44,13 +44,11 @@
 #endif
 
 #ifdef _WIN32
+#define SID WIN32_SID   // Win32 SID conflicts with reSID
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_NONSTDC_NO_DEPRECATE
 #define NOMINMAX    // no min/max macros from windef.h
 #endif
-
-typedef unsigned int        UINT;
-typedef unsigned long       ULONG;
 
 #include <stdio.h>
 #include <stdarg.h>

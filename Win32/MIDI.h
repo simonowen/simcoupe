@@ -21,6 +21,7 @@
 #pragma once
 
 #include "SAMIO.h"
+#include <mmsystem.h>
 
 class CMidiDevice : public CIoDevice
 {
@@ -29,8 +30,8 @@ public:
     ~CMidiDevice();
 
 public:
-    BYTE In(WORD wPort_) override;
-    void Out(WORD wPort_, BYTE bVal_) override;
+    uint8_t In(uint16_t wPort_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 public:
     bool SetDevice(const char* pcszDevice_);
@@ -38,7 +39,7 @@ public:
 protected:
     HMIDIOUT m_hMidiOut = nullptr; // Handle for Windows MIDI OUT device
 
-    BYTE m_abOut[256];       // Buffer to build up MIDI OUT messages
+    uint8_t m_abOut[256];       // Buffer to build up MIDI OUT messages
     int m_nOut = 0;          // Number of bytes currently in abOut
 };
 

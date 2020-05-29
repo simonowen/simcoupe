@@ -53,19 +53,19 @@ public:
     ~CHDFHardDisk() { Close(); }
 
 public:
-    static bool Create(const char* pcszDisk_, UINT uTotalSectors_);
+    static bool Create(const char* pcszDisk_, unsigned int uTotalSectors_);
 
 public:
     bool IsOpen() const { return m_hfDisk != nullptr; }
     bool Open(bool fReadOnly_ = false) override;
-    bool Create(UINT uTotalSectors_);
+    bool Create(unsigned int uTotalSectors_);
     void Close();
 
-    bool ReadSector(UINT uSector_, BYTE* pb_) override;
-    bool WriteSector(UINT uSector_, BYTE* pb_) override;
+    bool ReadSector(unsigned int uSector_, uint8_t* pb_) override;
+    bool WriteSector(unsigned int uSector_, uint8_t* pb_) override;
 
 protected:
     FILE* m_hfDisk = nullptr;
-    UINT m_uDataOffset = 0;
-    UINT m_uSectorSize = 0;
+    unsigned int m_uDataOffset = 0;
+    unsigned int m_uSectorSize = 0;
 };

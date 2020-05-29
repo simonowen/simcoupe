@@ -44,12 +44,6 @@
 
 #define PATH_SEPARATOR      '/'
 
-typedef unsigned int        DWORD;  // must be 32-bit
-#ifndef __AMIGAOS4__
-typedef unsigned short      WORD;   // must be 16-bit
-typedef unsigned char       BYTE;   // must be 8-bit
-#endif
-
 #endif
 
 
@@ -61,7 +55,7 @@ typedef unsigned char       BYTE;   // must be 8-bit
 #ifdef _WINDOWS
 
 #define SID WIN32_SID   // TODO: limit scope of windows.h avoid SID symbol clash
-#include <windows.h>
+//#include <windows.h>
 #undef SID
 
 #include <direct.h>
@@ -121,7 +115,7 @@ public:
     static bool Init(bool fFirstInit_ = false);
     static void Exit(bool fReInit_ = false);
 
-    static DWORD GetTime();
+    static uint32_t GetTime();
     static const char* MakeFilePath(int nDir_, const char* pcszFile_ = "");
     static const char* GetFloppyDevice(int nDrive_);
     static bool CheckPathAccess(const char* pcszPath_);

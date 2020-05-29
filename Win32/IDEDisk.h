@@ -37,8 +37,8 @@ public:
     bool Open(bool fReadOnly_ = false) override;
     void Close();
 
-    bool ReadSector(UINT uSector_, BYTE* pb_) override;
-    bool WriteSector(UINT uSector_, BYTE* pb_) override;
+    bool ReadSector(UINT uSector_, uint8_t* pb_) override;
+    bool WriteSector(UINT uSector_, uint8_t* pb_) override;
 
 protected:
     bool Lock(bool fReadOnly_ = false);
@@ -47,6 +47,6 @@ protected:
 protected:
     HANDLE m_hDevice = INVALID_HANDLE_VALUE;
     HANDLE m_hLock = INVALID_HANDLE_VALUE;
-    BYTE* m_pbSector = nullptr;
+    uint8_t* m_pbSector = nullptr;
     DWORD m_dwDriveLetters = 0; // drive letters on our physical drive
 };

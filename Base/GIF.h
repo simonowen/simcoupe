@@ -46,18 +46,18 @@ class BitPacker final
 {
 private:
     FILE* binfile = nullptr;
-    BYTE buffer[260];      // holds the total buffer
-    BYTE* pos = nullptr;   // points into buffer
-    WORD need = 8;         // used by AddCodeToBuffer(), see there
+    uint8_t buffer[260];      // holds the total buffer
+    uint8_t* pos = nullptr;   // points into buffer
+    uint16_t need = 8;         // used by AddCodeToBuffer(), see there
 
-    BYTE* AddCodeToBuffer(DWORD code, short n);
+    uint8_t* AddCodeToBuffer(uint32_t code, short n);
 
 public:
     BitPacker(FILE* bf);
 
 public:
-    DWORD byteswritten = 0; // number of bytes written during the object's lifetime 
-    BYTE* Submit(DWORD code, WORD n);
+    uint32_t byteswritten = 0; // number of bytes written during the object's lifetime 
+    uint8_t* Submit(uint32_t code, uint16_t n);
     void WriteFlush();
 };
 
@@ -75,28 +75,28 @@ class GifCompressor final
 private:
     BitPacker* bp = nullptr;  // object that does the packing and writing of the compression codes
 
-    DWORD nofdata = 0;        // number of pixels in the data stream
-    DWORD width = 0;          // width of bitmap in pixels
-    DWORD height = 0;         // height of bitmap in pixels
+    uint32_t nofdata = 0;       // number of pixels in the data stream
+    uint32_t width = 0;         // width of bitmap in pixels
+    uint32_t height = 0;        // height of bitmap in pixels
 
-    DWORD curordinal = 0;     // ordinal number of next pixel to be encoded
-    BYTE pixel = 0;           // next pixel to be encoded
+    uint32_t curordinal = 0;    // ordinal number of next pixel to be encoded
+    uint8_t pixel = 0;          // next pixel to be encoded
 
-    WORD nbits = 0;           // current length of compression codes in bits (changes during encoding process)
-    WORD* axon = nullptr;     // arrays making up the stringtable
-    WORD* next = nullptr;
-    BYTE* pix = nullptr;
-    DWORD cc = 0;             // "clear code" which signals the clearing of the string table
-    DWORD eoi = 0;            // "end-of-information code" which must be the last item of the code stream
-    WORD freecode = 0;        // next code to be added to the string table
+    uint16_t nbits = 0;         // current length of compression codes in bits (changes during encoding process)
+    uint16_t* axon = nullptr;   // arrays making up the stringtable
+    uint16_t* next = nullptr;
+    uint8_t* pix = nullptr;
+    uint32_t cc = 0;            // "clear code" which signals the clearing of the string table
+    uint32_t eoi = 0;           // "end-of-information code" which must be the last item of the code stream
+    uint16_t freecode = 0;      // next code to be added to the string table
 
     void FlushStringTable();
     void InitRoots();
-    DWORD DoNext();
-    BYTE Map(DWORD);
-    WORD FindPixelOutlet(WORD headnode, BYTE pixel);
+    uint32_t DoNext();
+    uint8_t Map(uint32_t);
+    uint16_t FindPixelOutlet(uint16_t headnode, uint8_t pixel);
 
 public:
     GifCompressor() = default;
-    DWORD WriteDataBlocks(FILE* bf, DWORD nof, WORD ds);
+    uint32_t WriteDataBlocks(FILE* bf, uint32_t nof, uint16_t ds);
 };

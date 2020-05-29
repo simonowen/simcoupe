@@ -31,9 +31,6 @@ bool Save(CScreen* pScreen_);
 
 // Define just the stuff we need - taken from libPNG's png.h
 
-typedef unsigned short      UINT16;
-typedef unsigned char       UINT8;
-
 #define PNG_SIGNATURE       "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
 
 #define PNG_CN_IHDR         0x49484452L
@@ -50,21 +47,21 @@ typedef unsigned char       UINT8;
 // PNG header
 typedef struct
 {
-    BYTE abWidth[4];
-    BYTE abHeight[4];
-    BYTE bBitDepth;
-    BYTE bColourType;
-    BYTE bCompressionType;
-    BYTE bFilterType;
-    BYTE bInterlaceType;
+    uint8_t abWidth[4];
+    uint8_t abHeight[4];
+    uint8_t bBitDepth;
+    uint8_t bColourType;
+    uint8_t bCompressionType;
+    uint8_t bFilterType;
+    uint8_t bInterlaceType;
 } PNG_IHDR;
 
 // PNG support
 typedef struct
 {
-    DWORD dwWidth, dwHeight;
-    BYTE* pbImage;
-    ULONG uSize, uCompressedSize;
+    uint32_t dwWidth, dwHeight;
+    uint8_t* pbImage;
+    unsigned long uSize, uCompressedSize;
 } PNG_INFO;
 
 

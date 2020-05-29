@@ -68,7 +68,7 @@ CSAAAmp::CSAAAmp(CSAAFreq* const ToneGenerator, const CSAANoise* const NoiseGene
     SetAmpLevel(0x00);
 }
 
-void CSAAAmp::SetAmpLevel(BYTE level_byte)
+void CSAAAmp::SetAmpLevel(uint8_t level_byte)
 {
     // if level unchanged since last call then do nothing
     if (level_byte != last_level_byte)
@@ -155,7 +155,7 @@ unsigned short CSAAAmp::RightOutput() const
     }
 }
 
-void CSAAAmp::SetToneMixer(BYTE bEnabled)
+void CSAAAmp::SetToneMixer(uint8_t bEnabled)
 {
     if (bEnabled == 0)
         m_nMixMode &= ~(0x01);
@@ -163,7 +163,7 @@ void CSAAAmp::SetToneMixer(BYTE bEnabled)
         m_nMixMode |= 0x01;
 }
 
-void CSAAAmp::SetNoiseMixer(BYTE bEnabled)
+void CSAAAmp::SetNoiseMixer(uint8_t bEnabled)
 {
     if (bEnabled == 0)
         m_nMixMode &= ~(0x02);
@@ -587,7 +587,7 @@ CSAAFreq::CSAAFreq(CSAANoise* const NoiseGenerator, CSAAEnv* const EnvGenerator)
     SetAdd(); // current octave, current offset
 }
 
-void CSAAFreq::SetFreqOffset(BYTE nOffset)
+void CSAAFreq::SetFreqOffset(uint8_t nOffset)
 {
     // nOffset between 0 and 255
 
@@ -616,7 +616,7 @@ void CSAAFreq::SetFreqOffset(BYTE nOffset)
 
 }
 
-void CSAAFreq::SetFreqOctave(BYTE nOctave)
+void CSAAFreq::SetFreqOctave(uint8_t nOctave)
 {
     // nOctave between 0 and 7
 
@@ -950,7 +950,7 @@ void CSAASound::Clear()
 }
 
 
-void CSAASound::WriteData(BYTE nData)
+void CSAASound::WriteData(uint8_t nData)
 {
     // originated from an OUT 255,d call
 
@@ -1112,7 +1112,7 @@ void CSAASound::WriteData(BYTE nData)
     }
 }
 
-void CSAASound::WriteAddress(BYTE nReg)
+void CSAASound::WriteAddress(uint8_t nReg)
 {
     // originated from an OUT 511,r call
     m_nCurrentSaaReg = nReg & 31;
@@ -1123,21 +1123,21 @@ void CSAASound::WriteAddress(BYTE nReg)
         Env[1]->ExternalClock();
 }
 
-void CSAASound::WriteAddressData(BYTE nReg, BYTE nData)
+void CSAASound::WriteAddressData(uint8_t nReg, uint8_t nData)
 {
     // performs WriteAddress(nReg) followed by WriteData(nData)
     WriteAddress(nReg);
     WriteData(nData);
 }
 
-BYTE CSAASound::ReadAddress()
+uint8_t CSAASound::ReadAddress()
 {
     // can't remember if this is actually supported by the real
     // SAA-1099 hardware - but hey, sometimes it's useful, right?
     return m_nCurrentSaaReg;
 }
 
-void CSAASound::GenerateMany(BYTE* pBuffer, int nSamples)
+void CSAASound::GenerateMany(uint8_t* pBuffer, int nSamples)
 {
     CSAAAmp::stereolevel stereoval;
 

@@ -27,7 +27,7 @@
 #include "SimCoupe.h"
 #include "Font.h"
 
-extern const BYTE abFixedFont[], abGUIFont[];
+extern const uint8_t abFixedFont[], abGUIFont[];
 
 // Sans-serif, around 9pt
 const GUIFONT sGUIFont = { 0, 11, 12, 32, 127, false, abGUIFont };
@@ -38,7 +38,7 @@ const GUIFONT sFixedFont = { 5, 8, 9, 32, 129, true,  abFixedFont };
 const GUIFONT sPropFont = { 0, 8, 9, 32, 129, false, abFixedFont };
 
 
-const BYTE abFixedFont[] =
+const uint8_t abFixedFont[] =
 {
     0x02,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // <space>
     0x21,  0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x80, 0x00,  // !
@@ -141,7 +141,7 @@ const BYTE abFixedFont[] =
 };
 
 
-const BYTE abGUIFont[] =
+const uint8_t abGUIFont[] =
 {
     0x02,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    // <space>
     0x01,  0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x80, 0x00, 0x00,    // !

@@ -50,11 +50,11 @@
 #undef USE_FLAG_TABLES      // Experimental - disabled for now
 
 // Look up table for the parity (and other common flags) for logical operations
-BYTE g_abParity[256];
+uint8_t g_abParity[256];
 #define parity(a) (g_abParity[a])
 
 #ifdef USE_FLAG_TABLES
-BYTE g_abInc[256], g_abDec[256];
+uint8_t g_abInc[256], g_abDec[256];
 #endif
 
 #define rflags(b_,c_)   (F = (c_) | parity(b_))
@@ -82,32 +82,32 @@ BYTE g_abInc[256], g_abDec[256];
 #define PORT_ACCESS(a)  do { g_dwCycleCounter += 4; if ((a) >= BASE_ASIC_PORT) g_dwCycleCounter += abPortContention[g_dwCycleCounter&7]; } while (0)
 
 
-BYTE bOpcode;
+uint8_t bOpcode;
 bool g_fReset, g_fBreak, g_fPaused;
 int g_nTurbo;
 
-DWORD g_dwCycleCounter;     // Global cycle counter used for various timings
+uint32_t g_dwCycleCounter;     // Global cycle counter used for various timings
 
 #ifdef _DEBUG
 bool g_fDebug;              // Debug only helper variable, to trigger the debugger when set
 #endif
 
 // Memory access tracking for the debugger
-BYTE* pbMemRead1, * pbMemRead2, * pbMemWrite1, * pbMemWrite2;
+uint8_t* pbMemRead1, * pbMemRead2, * pbMemWrite1, * pbMemWrite2;
 
 Z80Regs regs;
 
-WORD* pHlIxIy, * pNewHlIxIy;
+uint16_t* pHlIxIy, * pNewHlIxIy;
 CPU_EVENT asCpuEvents[MAX_EVENTS], * psNextEvent, * psFreeEvent;
 
 
 namespace CPU
 {
 // Memory access contention table
-static BYTE abContention1[TSTATES_PER_FRAME + 64], abContention234[TSTATES_PER_FRAME + 64], abContention4T[TSTATES_PER_FRAME + 64];
-static const BYTE* pMemContention = abContention1;
+static uint8_t abContention1[TSTATES_PER_FRAME + 64], abContention234[TSTATES_PER_FRAME + 64], abContention4T[TSTATES_PER_FRAME + 64];
+static const uint8_t* pMemContention = abContention1;
 static bool fContention = true;
-static const BYTE abPortContention[] = { 6, 5, 4, 3, 2, 1, 0, 7 };
+static const uint8_t abPortContention[] = { 6, 5, 4, 3, 2, 1, 0, 7 };
 //                                      T1 T2 T3 T4 T1 T2 T3 T4
 
 inline void CheckInterrupt();
@@ -125,7 +125,7 @@ bool Init(bool fFirstInit_/*=false*/)
         // Build the parity lookup table (including other flags for logical operations)
         for (int n = 0x00; n <= 0xff; n++)
         {
-            BYTE b2 = n ^ (n >> 4);
+            uint8_t b2 = n ^ (n >> 4);
             b2 ^= (b2 << 2);
             b2 = ~(b2 ^ (b2 >> 1))& FLAG_P;
             g_abParity[n] = (n & 0xa8) |    // S, 5, 3
@@ -145,7 +145,7 @@ bool Init(bool fFirstInit_/*=false*/)
         IX = IY = 0xffff;
 
         // Build the memory access contention tables
-        for (UINT t2 = 0; t2 < _countof(abContention1); t2++)
+        for (unsigned int t2 = 0; t2 < _countof(abContention1); t2++)
         {
             int nLine = t2 / TSTATES_PER_LINE, nLineCycle = t2 % TSTATES_PER_LINE;
             bool fScreen = nLine >= TOP_BORDER_LINES && nLine < TOP_BORDER_LINES + SCREEN_LINES &&
@@ -196,21 +196,21 @@ void UpdateContention(bool fActive_/*=true*/)
 
 
 // Read an instruction byte and update timing
-inline BYTE timed_read_code_byte(WORD addr)
+inline uint8_t timed_read_code_byte(uint16_t addr)
 {
     MEM_ACCESS(addr);
     return read_byte(addr);
 }
 
 // Read a data byte and update timing
-inline BYTE timed_read_byte(WORD addr)
+inline uint8_t timed_read_byte(uint16_t addr)
 {
     MEM_ACCESS(addr);
     return *(pbMemRead1 = AddrReadPtr(addr));
 }
 
 // Read an instruction word and update timing
-inline WORD timed_read_code_word(WORD addr)
+inline uint16_t timed_read_code_word(uint16_t addr)
 {
     MEM_ACCESS(addr);
     MEM_ACCESS(addr + 1);
@@ -218,7 +218,7 @@ inline WORD timed_read_code_word(WORD addr)
 }
 
 // Read a data word and update timing
-inline WORD timed_read_word(WORD addr)
+inline uint16_t timed_read_word(uint16_t addr)
 {
     MEM_ACCESS(addr);
     MEM_ACCESS(addr + 1);
@@ -226,7 +226,7 @@ inline WORD timed_read_word(WORD addr)
 }
 
 // Write a byte and update timing
-inline void timed_write_byte(WORD addr, BYTE contents)
+inline void timed_write_byte(uint16_t addr, uint8_t contents)
 {
     MEM_ACCESS(addr);
     check_video_write(addr);
@@ -235,7 +235,7 @@ inline void timed_write_byte(WORD addr, BYTE contents)
 }
 
 // Write a word and update timing
-inline void timed_write_word(WORD addr, WORD contents)
+inline void timed_write_word(uint16_t addr, uint16_t contents)
 {
     MEM_ACCESS(addr);
     check_video_write(addr);
@@ -249,7 +249,7 @@ inline void timed_write_word(WORD addr, WORD contents)
 }
 
 // Write a word and update timing (high-byte first - used by stack functions)
-inline void timed_write_word_reversed(WORD addr, WORD contents)
+inline void timed_write_word_reversed(uint16_t addr, uint16_t contents)
 {
     MEM_ACCESS(addr + 1);
     check_video_write(addr + 1);

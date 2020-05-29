@@ -21,6 +21,11 @@
 #include "SimCoupe.h"
 #include "OSD.h"
 
+#include <winspool.h>
+#include <mmsystem.h>
+#include <commctrl.h>
+#include <shlobj.h>
+
 #include "CPU.h"
 #include "Frame.h"
 #include "Main.h"
@@ -30,11 +35,7 @@
 #include "Video.h"
 
 
-HINSTANCE g_hinstDInput, g_hinstDSound;
-
 VOID CALLBACK CloseTimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime);
-PFNDIRECTINPUTCREATE pfnDirectInputCreate;
-PFNDIRECTSOUNDCREATE pfnDirectSoundCreate;
 
 bool fPortable = false;
 
@@ -62,18 +63,6 @@ bool OSD::Init(bool fFirstInit_/*=false*/)
         if (fPortable)
             Options::Load(__argc, __argv);
 
-        g_hinstDInput = LoadLibrary("DINPUT.DLL");
-        g_hinstDSound = LoadLibrary("DSOUND.DLL");
-
-        if (g_hinstDInput) pfnDirectInputCreate = reinterpret_cast<PFNDIRECTINPUTCREATE>(GetProcAddress(g_hinstDInput, "DirectInputCreateA"));
-        if (g_hinstDSound) pfnDirectSoundCreate = reinterpret_cast<PFNDIRECTSOUNDCREATE>(GetProcAddress(g_hinstDSound, "DirectSoundCreate"));
-
-        if (!pfnDirectInputCreate || !pfnDirectSoundCreate)
-        {
-            Message(msgError, "This program requires DirectX 3 or later to be installed.");
-            return false;
-        }
-
         // Initialise COM and Windows common controls
         CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         InitCommonControls();
@@ -87,16 +76,11 @@ bool OSD::Init(bool fFirstInit_/*=false*/)
 
 void OSD::Exit(bool fReInit_/*=false*/)
 {
-    if (!fReInit_)
-    {
-        if (g_hinstDInput) { FreeLibrary(g_hinstDInput); g_hinstDInput = nullptr; pfnDirectInputCreate = nullptr; }
-        if (g_hinstDSound) { FreeLibrary(g_hinstDSound); g_hinstDSound = nullptr; pfnDirectSoundCreate = nullptr; }
-    }
 }
 
 
 // Return a time-stamp in milliseconds
-DWORD OSD::GetTime()
+uint32_t OSD::GetTime()
 {
     static LARGE_INTEGER llFreq;
     LARGE_INTEGER llNow;
@@ -107,7 +91,7 @@ DWORD OSD::GetTime()
 
     // Read the current 64-bit time value, falling back on the multimedia timer
     QueryPerformanceCounter(&llNow);
-    return static_cast<DWORD>((llNow.QuadPart * 1000i64) / llFreq.QuadPart);
+    return static_cast<uint32_t>((llNow.QuadPart * 1000i64) / llFreq.QuadPart);
 }
 
 
@@ -214,7 +198,7 @@ bool OSD::CheckPathAccess(const char* pcszPath_)
 bool OSD::IsHidden(const char* pcszFile_)
 {
     // Hide entries with the hidden or system attribute bits set
-    DWORD dwAttrs = GetFileAttributes(pcszFile_);
+    uint32_t dwAttrs = GetFileAttributes(pcszFile_);
     return (dwAttrs != INVALID_FILE_ATTRIBUTES) && (dwAttrs & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM));
 }
 
@@ -266,7 +250,7 @@ bool CPrinterDevice::Open()
         docinfo.pDatatype = "RAW";
 
         // Start the job
-        if (StartDocPrinter(m_hPrinter, 1, reinterpret_cast<BYTE*>(&docinfo)) && StartPagePrinter(m_hPrinter))
+        if (StartDocPrinter(m_hPrinter, 1, reinterpret_cast<uint8_t*>(&docinfo)) && StartPagePrinter(m_hPrinter))
             return true;
 
         ClosePrinter(m_hPrinter);
@@ -290,7 +274,7 @@ void CPrinterDevice::Close()
     }
 }
 
-void CPrinterDevice::Write(BYTE* pb_, size_t uLen_)
+void CPrinterDevice::Write(uint8_t* pb_, size_t uLen_)
 {
     if (m_hPrinter != INVALID_HANDLE_VALUE)
     {

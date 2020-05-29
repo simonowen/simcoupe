@@ -27,9 +27,9 @@
 #include "Options.h"
 
 
-BYTE CAtomDevice::In(WORD wPort_)
+uint8_t CAtomDevice::In(uint16_t wPort_)
 {
-    BYTE bRet = 0xff;
+    uint8_t bRet = 0xff;
 
     switch (wPort_ & ATOM_REG_MASK)
     {
@@ -37,7 +37,7 @@ BYTE CAtomDevice::In(WORD wPort_)
     case 6:
     {
         // Read a 16-bit data value
-        WORD wData = CAtaAdapter::InWord(m_bAddressLatch & ATOM_ADDR_MASK);
+        auto wData = CAtaAdapter::InWord(m_bAddressLatch & ATOM_ADDR_MASK);
 
         // Store the low-byte in the read latch and return the high-byte
         m_bReadLatch = wData & 0xff;
@@ -60,7 +60,7 @@ BYTE CAtomDevice::In(WORD wPort_)
     return bRet;
 }
 
-void CAtomDevice::Out(WORD wPort_, BYTE bVal_)
+void CAtomDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     switch (wPort_ & ATOM_REG_MASK)
     {

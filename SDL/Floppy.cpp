@@ -114,10 +114,10 @@ void CFloppyStream::Close()
 
 
 // Start executing a floppy command
-BYTE CFloppyStream::StartCommand(BYTE bCommand_, PTRACK pTrack_, UINT uSectorIndex_)
+uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, PTRACK pTrack_, unsigned int uSectorIndex_)
 {
     // Wait for any in-progress operation to complete
-    BYTE bStatus;
+    uint8_t bStatus;
     IsBusy(&bStatus, true);
 
     // Set up the command to perform
@@ -131,7 +131,7 @@ BYTE CFloppyStream::StartCommand(BYTE bCommand_, PTRACK pTrack_, UINT uSectorInd
     return pthread_create(&m_hThread, nullptr, thread_proc, (void*)this) ? LOST_DATA : BUSY;
 }
 
-bool CFloppyStream::IsBusy(BYTE* pbStatus_, bool fWait_)
+bool CFloppyStream::IsBusy(uint8_t* pbStatus_, bool fWait_)
 {
     if (m_hThread)
     {
@@ -156,7 +156,7 @@ bool CFloppyStream::IsBusy(BYTE* pbStatus_, bool fWait_)
 
 
 // Read a single sector
-static BYTE ReadSector(int hDevice_, PTRACK pTrack_, UINT uSector_)
+static uint8_t ReadSector(int hDevice_, PTRACK pTrack_, unsigned int uSector_)
 {
     PTRACK pt = pTrack_;
     PSECTOR ps = reinterpret_cast<PSECTOR>(pt + 1);
@@ -171,7 +171,7 @@ static BYTE ReadSector(int hDevice_, PTRACK pTrack_, UINT uSector_)
     rc.rate = 2;
     rc.track = pt->cyl;
 
-    BYTE cmd[] = { FD_READ, static_cast<BYTE>(pt->head << 2), ps->cyl,ps->head,ps->sector,ps->size, static_cast<BYTE>(ps->sector + 1), 0x0a,0xff };
+    uint8_t cmd[] = { FD_READ, static_cast<uint8_t>(pt->head << 2), ps->cyl,ps->head,ps->sector,ps->size, static_cast<uint8_t>(ps->sector + 1), 0x0a,0xff };
     memcpy(rc.cmd, cmd, sizeof(cmd));
     rc.cmd_count = sizeof(cmd);
 
@@ -187,7 +187,7 @@ static BYTE ReadSector(int hDevice_, PTRACK pTrack_, UINT uSector_)
 }
 
 // Write a single sector
-static BYTE WriteSector(int hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
+static uint8_t WriteSector(int hDevice_, PTRACK pTrack_, unsigned int uSectorIndex_)
 {
     PTRACK pt = pTrack_;
     PSECTOR ps = reinterpret_cast<PSECTOR>(pt + 1) + uSectorIndex_;
@@ -201,7 +201,7 @@ static BYTE WriteSector(int hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
     rc.rate = 2;
     rc.track = pt->cyl;
 
-    BYTE abCommand[] = { FD_WRITE, static_cast<BYTE>(pt->head << 2), ps->cyl,ps->head,ps->sector,ps->size, static_cast<BYTE>(ps->sector + 1), 0x0a,0xff };
+    uint8_t abCommand[] = { FD_WRITE, static_cast<uint8_t>(pt->head << 2), ps->cyl,ps->head,ps->sector,ps->size, static_cast<uint8_t>(ps->sector + 1), 0x0a,0xff };
     memcpy(rc.cmd, abCommand, sizeof(abCommand));
     rc.cmd_count = sizeof(abCommand) / sizeof(abCommand[0]);
 
@@ -224,26 +224,26 @@ static BYTE WriteSector(int hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
 }
 
 // Format a track
-static BYTE FormatTrack(int hDevice_, PTRACK pTrack_)
+static uint8_t FormatTrack(int hDevice_, PTRACK pTrack_)
 {
     int i, step;
-    BYTE bStatus = 0, ab[64 * 4] = { 0 }, * pb = ab;
+    uint8_t bStatus = 0, ab[64 * 4] = { 0 }, * pb = ab;
 
     PTRACK pt = pTrack_;
     PSECTOR ps = reinterpret_cast<PSECTOR>(pt + 1);
-    UINT uSize = pt->sectors ? (128U << (ps->size & 7)) : 0;
+    unsigned int uSize = pt->sectors ? (128U << (ps->size & 7)) : 0;
 
     struct floppy_raw_cmd rc;
     memset(&rc, 0, sizeof(rc));
 
-    BYTE abCommand[] = { FD_FORMAT, static_cast<BYTE>(pt->head << 2), 6, pt->sectors, 1, 0x00 };
+    uint8_t abCommand[] = { FD_FORMAT, static_cast<uint8_t>(pt->head << 2), 6, pt->sectors, 1, 0x00 };
     memcpy(rc.cmd, abCommand, sizeof(abCommand));
     rc.cmd_count = sizeof(abCommand) / sizeof(abCommand[0]);
 
     // If the track contains any sectors, the size/gap/fill are tuned for the size/content
     if (pt->sectors)
     {
-        UINT uGap = ((MAX_TRACK_SIZE - 50) - (pt->sectors * (62 + 1 + uSize))) / pt->sectors;
+        unsigned int uGap = ((MAX_TRACK_SIZE - 50) - (pt->sectors * (62 + 1 + uSize))) / pt->sectors;
         if (uGap > 46) uGap = 46;
 
         rc.cmd[2] = ps->size;
@@ -302,13 +302,13 @@ static BYTE FormatTrack(int hDevice_, PTRACK pTrack_)
 }
 
 // Read a simple 10-sector MGT or 9-sector DOS track, allowing no errors
-static bool ReadSimpleTrack(int hDevice_, PTRACK pTrack_, UINT& ruSectors_)
+static bool ReadSimpleTrack(int hDevice_, PTRACK pTrack_, unsigned int& ruSectors_)
 {
     int i;
 
     PTRACK pt = pTrack_;
     PSECTOR ps = (PSECTOR)(pt + 1);
-    BYTE* pb = (BYTE*)(ps + (pt->sectors = NORMAL_DISK_SECTORS));
+    auto pb = (uint8_t*)(ps + (pt->sectors = NORMAL_DISK_SECTORS));
 
     // Prepare the track container
     for (i = 0; i < pt->sectors; i++)
@@ -333,7 +333,7 @@ static bool ReadSimpleTrack(int hDevice_, PTRACK pTrack_, UINT& ruSectors_)
     rc.track = pt->cyl;
 
     // Set up the command and its parameters
-    BYTE abCommand[] = { FD_READ, static_cast<BYTE>(pt->head << 2), pt->cyl, pt->head, ps->sector, ps->size, static_cast<BYTE>(ps->sector + pt->sectors), 0x0a,0xff };
+    uint8_t abCommand[] = { FD_READ, static_cast<uint8_t>(pt->head << 2), pt->cyl, pt->head, ps->sector, ps->size, static_cast<uint8_t>(ps->sector + pt->sectors), 0x0a,0xff };
     memcpy(rc.cmd, abCommand, sizeof(abCommand));
     rc.cmd_count = sizeof(abCommand) / sizeof(abCommand[0]);
 
@@ -372,8 +372,8 @@ static bool ReadCustomTrack(int hDevice_, PTRACK pTrack_)
     PTRACK pt = pTrack_;
     PSECTOR ps = (PSECTOR)(pt + 1);
 
-    BYTE ab[128] = { 0 };
-    BYTE sector = 0xef, size = 0;
+    uint8_t ab[128] = { 0 };
+    uint8_t sector = 0xef, size = 0;
 
     struct floppy_raw_cmd rc[64];
     memset(&rc, 0, sizeof(rc));
@@ -384,7 +384,7 @@ static bool ReadCustomTrack(int hDevice_, PTRACK pTrack_)
     rc[0].rate = 2;
     rc[0].track = pt->cyl;
 
-    BYTE cmd0[] = { FD_READ, static_cast<BYTE>(pt->head << 2), 0xef,0xef,sector,size, static_cast<BYTE>(sector + 1), 0x0a,0xff };
+    uint8_t cmd0[] = { FD_READ, static_cast<uint8_t>(pt->head << 2), 0xef,0xef,sector,size, static_cast<uint8_t>(sector + 1), 0x0a,0xff };
     memcpy(rc[0].cmd, cmd0, sizeof(cmd0));
     rc[0].cmd_count = sizeof(cmd0);
 
@@ -423,7 +423,7 @@ static bool ReadCustomTrack(int hDevice_, PTRACK pTrack_)
     }
 
     // Set up the data pointer after the sector headers
-    BYTE* pb = (BYTE*)(ps + pt->sectors);
+    auto pb = (uint8_t*)(ps + pt->sectors);
 
     // Copy from the scanned headers to the track sector headers
     // Use two passes in case we're not quick enough to do it in one
@@ -505,12 +505,12 @@ void CFloppyStream::Close()
 {
 }
 
-BYTE CFloppyStream::StartCommand(BYTE bCommand_, PTRACK pTrack_, UINT uSector_)
+uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, PTRACK pTrack_, unsigned int uSector_)
 {
     return BUSY;
 }
 
-bool CFloppyStream::IsBusy(BYTE* pbStatus_, bool fWait_)
+bool CFloppyStream::IsBusy(uint8_t* pbStatus_, bool fWait_)
 {
     *pbStatus_ = LOST_DATA;
     return false;

@@ -28,8 +28,8 @@
 
 #ifdef HAVE_LIBSDL2
 
-static DWORD aulPalette[N_PALETTE_COLOURS];
-static DWORD aulScanline[N_PALETTE_COLOURS];
+static uint32_t aulPalette[N_PALETTE_COLOURS];
+static uint32_t aulScanline[N_PALETTE_COLOURS];
 
 
 SDLTexture::SDLTexture()
@@ -143,7 +143,7 @@ void SDLTexture::UpdatePalette()
     {
         // Look up the colour in the SAM palette
         const COLOUR* p = &pSAM[i];
-        BYTE r = p->bRed, g = p->bGreen, b = p->bBlue, a = 0xff;
+        uint8_t r = p->bRed, g = p->bGreen, b = p->bBlue, a = 0xff;
 
         aulPalette[i] = RGB2Native(r, g, b, a, uRmask, uGmask, uBmask, uAmask);
         AdjustBrightness(r, g, b, nScanAdjust);
@@ -205,10 +205,10 @@ bool SDLTexture::DrawChanges(CScreen* pScreen_, bool* pafDirty_)
 
     int nRightHi = nWidth >> 3;
 
-    DWORD* pdwBack = reinterpret_cast<DWORD*>(pvPixels), * pdw = pdwBack;
+    uint32_t* pdwBack = reinterpret_cast<uint32_t*>(pvPixels), * pdw = pdwBack;
     long lPitchDW = nPitch >> 2;
 
-    BYTE* pbSAM = pScreen_->GetLine(nChangeFrom), * pb = pbSAM;
+    uint8_t* pbSAM = pScreen_->GetLine(nChangeFrom), * pb = pbSAM;
     long lPitch = pScreen_->GetPitch();
 
 

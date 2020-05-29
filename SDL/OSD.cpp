@@ -54,9 +54,9 @@ void OSD::Exit(bool /*fReInit_=false*/)
 }
 
 
-// Return a DWORD containing a millisecond accurate time stamp
+// Return a millisecond accurate time stamp.
 // Note: calling could should allow for the value wrapping by only comparing differences
-DWORD OSD::GetTime()
+uint32_t OSD::GetTime()
 {
     return SDL_GetTicks();
 }
@@ -183,7 +183,7 @@ bool OSD::IsHidden(const char* pcszPath_)
 {
 #ifdef _WINDOWS
     // Hide entries with the hidden or system attribute bits set
-    DWORD dwAttrs = GetFileAttributes(pcszPath_);
+    auto dwAttrs = GetFileAttributes(pcszPath_);
     return (dwAttrs != 0xffffffff) && (dwAttrs & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM));
 #else
     // Hide entries beginning with a dot
@@ -226,7 +226,7 @@ CPrinterDevice::CPrinterDevice() { }
 CPrinterDevice::~CPrinterDevice() { }
 bool CPrinterDevice::Open() { return false; }
 void CPrinterDevice::Close() { }
-void CPrinterDevice::Write(BYTE* /*pb_*/, size_t /*uLen_*/) { }
+void CPrinterDevice::Write(uint8_t* /*pb_*/, size_t /*uLen_*/) { }
 
 ////////////////////////////////////////////////////////////////////////////////
 

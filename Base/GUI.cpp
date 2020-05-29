@@ -43,7 +43,7 @@
 CWindow* GUI::s_pGUI;
 int GUI::s_nX, GUI::s_nY;
 
-static DWORD dwLastClick = 0;   // Time of last double-click
+static uint32_t dwLastClick = 0;   // Time of last double-click
 
 std::queue<CWindow*> GUI::s_garbageQueue;
 std::stack<CWindow*> GUI::s_dialogStack;
@@ -68,7 +68,7 @@ bool GUI::SendMessage(int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
         static bool fDouble = false;
 
         // Work out how long it's been since the last click, and how much the mouse has moved
-        DWORD dwNow = OSD::GetTime();
+        auto dwNow = OSD::GetTime();
         int nMovedSquared = (nLastX - nParam1_) * (nLastX - nParam1_) + (nLastY - nParam2_) * (nLastY - nParam2_);
 
         // If the click is close enough to the last click (in space and time), convert it to a double-click
@@ -166,7 +166,7 @@ void GUI::Draw(CScreen* pScreen_)
         // Use hardware cursor on Win32, software cursor on everything else (for now).
 #ifndef WIN32
         pScreen_->DrawImage(s_nX, s_nY, ICON_SIZE, ICON_SIZE,
-            reinterpret_cast<const BYTE*>(sMouseCursor.abData), sMouseCursor.abPalette);
+            reinterpret_cast<const uint8_t*>(sMouseCursor.abData), sMouseCursor.abPalette);
 #endif
     }
 }
@@ -365,14 +365,14 @@ void CWindow::SetText(const char* pcszText_)
     delete[] pcszOld;
 }
 
-UINT CWindow::GetValue() const
+unsigned int CWindow::GetValue() const
 {
     char* pEnd = nullptr;
     unsigned long ulValue = strtoul(m_pszText, &pEnd, 0);
-    return *pEnd ? 0 : static_cast<UINT>(ulValue);
+    return *pEnd ? 0 : static_cast<unsigned int>(ulValue);
 }
 
-void CWindow::SetValue(UINT u_)
+void CWindow::SetValue(unsigned int u_)
 {
     char sz[16];
     snprintf(sz, sizeof(sz) - 1, "%u", u_);
@@ -468,7 +468,7 @@ void CWindow::Inflate(int ndW_, int ndH_)
 ////////////////////////////////////////////////////////////////////////////////
 
 CTextControl::CTextControl(CWindow* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/,
-    BYTE bColour_/*=WHITE*/, BYTE bBackColour_/*=0*/)
+    uint8_t bColour_/*=WHITE*/, uint8_t bBackColour_/*=0*/)
     : CWindow(pParent_, nX_, nY_, 0, 0, ctText), m_bColour(bColour_), m_bBackColour(bBackColour_)
 {
     SetTextAndColour(pcszText_, bColour_);
@@ -483,7 +483,7 @@ void CTextControl::Draw(CScreen* pScreen_)
     pScreen_->DrawString(m_nX, m_nY, GetText(), IsEnabled() ? m_bColour : GREY_5);
 }
 
-void CTextControl::SetTextAndColour(const char* pcszText_, BYTE bColour_)
+void CTextControl::SetTextAndColour(const char* pcszText_, uint8_t bColour_)
 {
     m_bColour = bColour_;
     CWindow::SetText(pcszText_);
@@ -607,7 +607,7 @@ void CImageButton::Draw(CScreen* pScreen_)
     bool fPressed = m_fPressed && IsOver();
     int nX = m_nX + m_nDX + fPressed, nY = m_nY + m_nDY + fPressed;
 
-    pScreen_->DrawImage(nX, nY, ICON_SIZE, ICON_SIZE, reinterpret_cast<const BYTE*>(m_pIcon->abData),
+    pScreen_->DrawImage(nX, nY, ICON_SIZE, ICON_SIZE, reinterpret_cast<const uint8_t*>(m_pIcon->abData),
         IsEnabled() ? m_pIcon->abPalette : m_pIcon->abPalette);
 }
 
@@ -625,7 +625,7 @@ void CUpButton::Draw(CScreen* pScreen_)
     bool fPressed = m_fPressed && IsOver();
 
     int nX = m_nX + 2 + fPressed, nY = m_nY + 3 + fPressed;
-    BYTE bColour = GetParent()->IsEnabled() ? BLACK : GREY_5;
+    uint8_t bColour = GetParent()->IsEnabled() ? BLACK : GREY_5;
     pScreen_->DrawLine(nX + 5, nY, 1, 0, bColour);
     pScreen_->DrawLine(nX + 4, nY + 1, 3, 0, bColour);
     pScreen_->DrawLine(nX + 3, nY + 2, 2, 0, bColour);  pScreen_->DrawLine(nX + 6, nY + 2, 2, 0, bColour);
@@ -647,7 +647,7 @@ void CDownButton::Draw(CScreen* pScreen_)
     bool fPressed = m_fPressed && IsOver();
 
     int nX = m_nX + 2 + fPressed, nY = m_nY + 5 + fPressed;
-    BYTE bColour = GetParent()->IsEnabled() ? BLACK : GREY_5;
+    uint8_t bColour = GetParent()->IsEnabled() ? BLACK : GREY_5;
     pScreen_->DrawLine(nX + 5, nY + 5, 1, 0, bColour);
     pScreen_->DrawLine(nX + 4, nY + 4, 3, 0, bColour);
     pScreen_->DrawLine(nX + 3, nY + 3, 2, 0, bColour);  pScreen_->DrawLine(nX + 6, nY + 3, 2, 0, bColour);
@@ -661,7 +661,7 @@ const int PRETEXT_GAP = 5;
 const int BOX_SIZE = 11;
 
 CCheckBox::CCheckBox(CWindow* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/,
-    BYTE bColour_/*=WHITE*/, BYTE bBackColour_/*=0*/)
+    uint8_t bColour_/*=WHITE*/, uint8_t bBackColour_/*=0*/)
     : CWindow(pParent_, nX_, nY_, 0, BOX_SIZE, ctCheckBox), m_bColour(bColour_), m_bBackColour(bBackColour_)
 {
     SetText(pcszText_);
@@ -691,9 +691,9 @@ void CCheckBox::Draw(CScreen* pScreen_)
     // Draw the empty check box
     pScreen_->FrameRect(m_nX, m_nY, BOX_SIZE, BOX_SIZE, !IsEnabled() ? GREY_5 : IsActive() ? YELLOW_8 : GREY_7);
 
-    BYTE abEnabled[] = { 0, GREY_7 }, abDisabled[] = { 0, GREY_5 };
+    uint8_t abEnabled[] = { 0, GREY_7 }, abDisabled[] = { 0, GREY_5 };
 
-    static BYTE abCheck[11][11] =
+    static uint8_t abCheck[11][11] =
     {
         { 0,0,0,0,0,0,0,0,0,0,0 },
         { 0,0,0,0,0,0,0,0,0,0,0 },
@@ -710,7 +710,7 @@ void CCheckBox::Draw(CScreen* pScreen_)
 
     // Box checked?
     if (m_fChecked)
-        pScreen_->DrawImage(m_nX, m_nY, 11, 11, reinterpret_cast<BYTE*>(abCheck), IsEnabled() ? abEnabled : abDisabled);
+        pScreen_->DrawImage(m_nX, m_nY, 11, 11, reinterpret_cast<uint8_t*>(abCheck), IsEnabled() ? abEnabled : abDisabled);
 }
 
 bool CCheckBox::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
@@ -774,7 +774,7 @@ CEditControl::CEditControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, con
     SetText(pcszText_);
 }
 
-CEditControl::CEditControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, UINT u_)
+CEditControl::CEditControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, unsigned int u_)
     : CWindow(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit)
 {
     SetValue(u_);
@@ -1093,11 +1093,11 @@ void CRadioButton::Draw(CScreen* pScreen_)
 {
     int nX = m_nX + 1, nY = m_nY;
 
-    BYTE abActive[] = { 0, GREY_5, GREY_7, YELLOW_8 };
-    BYTE abEnabled[] = { 0, GREY_5, GREY_7, GREY_7 };
-    BYTE abDisabled[] = { 0, GREY_3, GREY_5, GREY_5 };
+    uint8_t abActive[] = { 0, GREY_5, GREY_7, YELLOW_8 };
+    uint8_t abEnabled[] = { 0, GREY_5, GREY_7, GREY_7 };
+    uint8_t abDisabled[] = { 0, GREY_3, GREY_5, GREY_5 };
 
-    static BYTE abSelected[10][10] =
+    static uint8_t abSelected[10][10] =
     {
         { 0,0,0,3,3,3,3 },
         { 0,0,3,0,0,0,0,3 },
@@ -1111,7 +1111,7 @@ void CRadioButton::Draw(CScreen* pScreen_)
         { 0,0,0,3,3,3,3 }
     };
 
-    static BYTE abUnselected[10][10] =
+    static uint8_t abUnselected[10][10] =
     {
         { 0,0,0,3,3,3,3 },
         { 0,0,3,0,0,0,0,3 },
@@ -1126,7 +1126,7 @@ void CRadioButton::Draw(CScreen* pScreen_)
     };
 
     // Draw the radio button image in the current state
-    pScreen_->DrawImage(nX, nY, 10, 10, reinterpret_cast<BYTE*>(m_fSelected ? abSelected : abUnselected),
+    pScreen_->DrawImage(nX, nY, 10, 10, reinterpret_cast<uint8_t*>(m_fSelected ? abSelected : abUnselected),
         !IsEnabled() ? abDisabled : IsActive() ? abActive : abEnabled);
 
     // Draw the text to the right of the button, grey if the control is disabled
@@ -1485,7 +1485,7 @@ void CComboBox::Draw(CScreen* pScreen_)
 
     // Show the arrow button, down a pixel if it's pressed
     nY += fPressed;
-    BYTE bColour = IsEnabled() ? BLACK : GREY_5;
+    uint8_t bColour = IsEnabled() ? BLACK : GREY_5;
     pScreen_->DrawLine(nX + 8, nY + 9, 1, 0, bColour);
     pScreen_->DrawLine(nX + 7, nY + 8, 3, 0, bColour);
     pScreen_->DrawLine(nX + 6, nY + 7, 2, 0, bColour);  pScreen_->DrawLine(nX + 9, nY + 7, 2, 0, bColour);
@@ -1861,7 +1861,7 @@ void CListView::DrawItem(CScreen* pScreen_, int nItem_, int nX_, int nY_, const 
 
     if (pItem_->m_pIcon)
         pScreen_->DrawImage(nX_ + (ITEM_SIZE - ICON_SIZE) / 2, nY_ + m_nItemOffset + 5, ICON_SIZE, ICON_SIZE,
-            reinterpret_cast<const BYTE*>(pItem_->m_pIcon->abData), pItem_->m_pIcon->abPalette);
+            reinterpret_cast<const uint8_t*>(pItem_->m_pIcon->abData), pItem_->m_pIcon->abPalette);
 
     const char* pcsz = pItem_->m_pszLabel;
     if (pcsz)
@@ -2033,8 +2033,8 @@ bool CListView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
         default:
         {
-            static DWORD dwLastChar = 0;
-            DWORD dwNow = OSD::GetTime();
+            static uint32_t dwLastChar = 0;
+            auto dwNow = OSD::GetTime();
 
             // Clear the buffer on any non-printing characters or if too long since the last one
             if (nParam1_ < ' ' || nParam1_ > 0x7f || (dwNow - dwLastChar > 1000))
@@ -2267,7 +2267,7 @@ const GUI_ICON* CFileView::GetFileIcon(const char* pcszFile_)
     static const char* aExts[] = { ".dsk", ".sad", ".sbt", ".mgt", ".img", ".cpm" };
     bool fDiskImage = false;
 
-    for (UINT u = 0; !fDiskImage && pszExt && u < _countof(aExts); u++)
+    for (unsigned int u = 0; !fDiskImage && pszExt && u < _countof(aExts); u++)
         fDiskImage = !strcasecmp(pszExt, aExts[u]);
 
     return nCompressType ? &sCompressedIcon : fDiskImage ? &sDiskIcon : &sDocumentIcon;
@@ -2495,7 +2495,7 @@ CIconControl::CIconControl(CWindow* pParent_, int nX_, int nY_, const GUI_ICON* 
 
 void CIconControl::Draw(CScreen* pScreen_)
 {
-    BYTE abGreyed[ICON_PALETTE_SIZE];
+    uint8_t abGreyed[ICON_PALETTE_SIZE];
 
     // Is the control to be drawn disabled?
     if (!IsEnabled())
@@ -2513,13 +2513,13 @@ void CIconControl::Draw(CScreen* pScreen_)
     }
 
     // Draw the icon, using the greyed palette if disabled
-    pScreen_->DrawImage(m_nX, m_nY, ICON_SIZE, ICON_SIZE, reinterpret_cast<const BYTE*>(m_pIcon->abData),
+    pScreen_->DrawImage(m_nX, m_nY, ICON_SIZE, ICON_SIZE, reinterpret_cast<const uint8_t*>(m_pIcon->abData),
         IsEnabled() ? m_pIcon->abPalette : abGreyed);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CFrameControl::CFrameControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_/*=WHITE*/, BYTE bFill_/*=0*/)
+CFrameControl::CFrameControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_/*=WHITE*/, uint8_t bFill_/*=0*/)
     : CWindow(pParent_, nX_, nY_, nWidth_, nHeight_, ctFrame), m_bColour(bColour_), m_bFill(bFill_)
 {
 }

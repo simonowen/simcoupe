@@ -24,9 +24,9 @@
 #include "Options.h"
 
 
-BYTE CAtomLiteDevice::In(WORD wPort_)
+uint8_t CAtomLiteDevice::In(uint16_t wPort_)
 {
-    BYTE bRet = 0xff;
+    uint8_t bRet = 0xff;
 
     switch (wPort_ & ATOM_LITE_REG_MASK)
     {
@@ -55,7 +55,7 @@ BYTE CAtomLiteDevice::In(WORD wPort_)
     return bRet;
 }
 
-void CAtomLiteDevice::Out(WORD wPort_, BYTE bVal_)
+void CAtomLiteDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     switch (wPort_ & ATOM_LITE_REG_MASK)
     {

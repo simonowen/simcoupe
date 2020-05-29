@@ -23,19 +23,19 @@
 #include "AtaAdapter.h"
 #include "Clock.h"
 
-const BYTE ATOM_LITE_ADDR_MASK = 0x1f;  // Chip select mask
-const BYTE ATOM_LITE_REG_MASK = 0x07;   // Device address mask
+const uint8_t ATOM_LITE_ADDR_MASK = 0x1f;  // Chip select mask
+const uint8_t ATOM_LITE_REG_MASK = 0x07;   // Device address mask
 
 class CAtomLiteDevice final : public CAtaAdapter
 {
 public:
-    BYTE In(WORD wPort_) override;
-    void Out(WORD wPort_, BYTE bVal_) override;
+    uint8_t In(uint16_t wPort_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 public:
     bool Attach(CHardDisk* pDisk_, int nDevice_) override;
 
 protected:
     CDallasClock m_Dallas{};
-    BYTE m_bAddressLatch = 0;
+    uint8_t m_bAddressLatch = 0;
 };

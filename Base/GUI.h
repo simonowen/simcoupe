@@ -36,7 +36,7 @@ const int GM_MOUSEWHEEL = GM_MOUSE_MESSAGE | 5;
 
 const int GM_CHAR = GM_KEYBOARD_MESSAGE | 1;
 
-const DWORD DOUBLE_CLICK_TIME = 400;    // Under 400ms between consecutive clicks counts as a double-click
+const uint32_t DOUBLE_CLICK_TIME = 400;    // Under 400ms between consecutive clicks counts as a double-click
 const int DOUBLE_CLICK_THRESHOLD = 5;   // Distance between clicks for double-clicks to be recognised
 
 
@@ -115,10 +115,10 @@ public:
 
     virtual const char* GetText() const { return m_pszText; }
     virtual const GUIFONT* GetFont() const { return m_pFont; }
-    virtual UINT GetValue() const;
+    virtual unsigned int GetValue() const;
     virtual void SetText(const char* pcszText_);
     virtual void SetFont(const GUIFONT* pFont_) { m_pFont = pFont_; }
-    virtual void SetValue(UINT u_);
+    virtual void SetValue(unsigned int u_);
 
     virtual void Activate();
     virtual bool HitTest(int nX_, int nY_);
@@ -158,14 +158,14 @@ protected:
 class CTextControl : public CWindow
 {
 public:
-    CTextControl(CWindow* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "", BYTE bColour = WHITE, BYTE bBackColour = 0);
+    CTextControl(CWindow* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "", uint8_t bColour = WHITE, uint8_t bBackColour = 0);
 
 public:
     void Draw(CScreen* pScreen_) override;
-    void SetTextAndColour(const char* pcszText_, BYTE bColour_);
+    void SetTextAndColour(const char* pcszText_, uint8_t bColour_);
 
 protected:
-    BYTE m_bColour = WHITE, m_bBackColour = 0;
+    uint8_t m_bColour = WHITE, m_bBackColour = 0;
 };
 
 
@@ -235,7 +235,7 @@ public:
 class CCheckBox : public CWindow
 {
 public:
-    CCheckBox(CWindow* pParent_, int nX_, int nY_, const char* pcszText_ = "", BYTE bColour_ = WHITE, BYTE bBackColour_ = 0);
+    CCheckBox(CWindow* pParent_, int nX_, int nY_, const char* pcszText_ = "", uint8_t bColour_ = WHITE, uint8_t bBackColour_ = 0);
 
 public:
     bool IsTabStop() const override { return true; }
@@ -248,7 +248,7 @@ public:
 
 protected:
     bool m_fChecked = false;
-    BYTE m_bColour = 0, m_bBackColour = 0;
+    uint8_t m_bColour = 0, m_bBackColour = 0;
 };
 
 
@@ -256,7 +256,7 @@ class CEditControl : public CWindow
 {
 public:
     CEditControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_ = "");
-    CEditControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, UINT u_);
+    CEditControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, unsigned int u_);
 
 public:
     bool IsTabStop() const override { return true; }
@@ -269,7 +269,7 @@ public:
 protected:
     size_t m_nViewOffset = 0;
     size_t m_nCaretStart = 0, m_nCaretEnd = 0;
-    DWORD m_dwCaretTime = 0;
+    uint32_t m_dwCaretTime = 0;
 };
 
 class CNumberEditControl : public CEditControl
@@ -404,14 +404,14 @@ protected:
 class CFrameControl : public CWindow
 {
 public:
-    CFrameControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_ = WHITE, BYTE bFill_ = 0);
+    CFrameControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_ = WHITE, uint8_t bFill_ = 0);
 
 public:
     bool HitTest(int /*nX_*/, int /*nY_*/) override { return false; }
     void Draw(CScreen* pScreen_) override;
 
 public:
-    BYTE m_bColour = 0, m_bFill = 0;
+    uint8_t m_bColour = 0, m_bFill = 0;
 };
 
 

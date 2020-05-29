@@ -38,7 +38,7 @@ void Eject();
 void Play();
 void Stop();
 
-void NextEdge(DWORD dwTime_);
+void NextEdge(uint32_t dwTime_);
 bool LoadTrap();
 
 bool EiHook();

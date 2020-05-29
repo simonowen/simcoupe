@@ -49,7 +49,7 @@
 
 // Indirect HL instructions affected by IX/IY prefixes
 #define HLinstr(opcode)         instr(4, opcode) \
-                                    WORD addr; \
+                                    uint16_t addr; \
                                     if (pHlIxIy == &HL) \
                                         addr = HL; \
                                     else { \
@@ -90,8 +90,8 @@
 // 16-bit add
 #define add_hl(x)       do { \
                             g_dwCycleCounter += 7; \
-                            WORD z = (x); \
-                            DWORD y = *pHlIxIy + z; \
+                            uint16_t z = (x); \
+                            uint32_t y = *pHlIxIy + z; \
                             F = (F & 0xc4) |                                        /* S, Z, V    */ \
                                 (((y & 0x3800) ^ ((*pHlIxIy ^ z) & 0x1000)) >> 8) | /* 5, H, 3    */ \
                                 ((y >> 16) & 0x01);                                 /* C          */ \
@@ -102,8 +102,8 @@
 #define add_a(x)        add_a1((x),0)
 #define adc_a(x)        add_a1((x),cy)
 #define add_a1(x,C)     do { \
-                            BYTE z = (x); \
-                            WORD y = A + z + (C); \
+                            uint8_t z = (x); \
+                            uint16_t y = A + z + (C); \
                             F = ((y & 0xb8) ^ ((A ^ z) & 0x10)) |                   /* S, 5, H, 3 */ \
                                 (y >> 8) |                                          /* C          */ \
                                 (((A ^ ~z) & (A ^ y) & 0x80) >> 5);                 /* V          */ \
@@ -115,8 +115,8 @@
 #define sub_a(x)        sub_a1((x),0)
 #define sbc_a(x)        sub_a1((x),cy)
 #define sub_a1(x,C)     do { \
-                            BYTE z = (x); \
-                            WORD y = A - z - (C); \
+                            uint8_t z = (x); \
+                            uint16_t y = A - z - (C); \
                             F = ((y & 0xb8) ^ ((A ^ z) & 0x10)) |                   /* S, 5, H, 3 */ \
                                 ((y >> 8) & 1) |                                    /* C          */ \
                                 (((A ^ z) & (A ^ y) & 0x80) >> 5) |                 /* V          */ \
@@ -128,8 +128,8 @@
 // 8-bit compare
 // Undocumented flags added by Ian Collier
 #define cp_a(x)          do { \
-                            BYTE z = (x); \
-                            WORD y = A - z; \
+                            uint8_t z = (x); \
+                            uint16_t y = A - z; \
                             F = ((y & 0x90) ^ ((A ^ z) & 0x10)) |                   /* S, H       */ \
                                 (z & 0x28) |                                        /* 5, 3       */ \
                                 ((y >> 8) & 1) |                                    /* C          */ \
@@ -174,7 +174,7 @@
 // Call
 #define call(cc)        do { \
                             if (cc) { \
-                                WORD npc = timed_read_code_word(PC); \
+                                auto npc = timed_read_code_word(PC); \
                                 g_dwCycleCounter++; \
                                 push(PC+2); \
                                 PC = npc; \
@@ -241,7 +241,7 @@ instr(4, 0024)   inc(D);                                             endinstr;  
 instr(4, 0034)   inc(E);                                             endinstr;   // inc e
 instr(4, 0044)   inc(xh);                                            endinstr;   // inc h/ixh/iyh
 instr(4, 0054)   inc(xl);                                            endinstr;   // inc l/ixl/iyl
-HLinstr(0064)   BYTE t = timed_read_byte(addr);
+HLinstr(0064)   auto t = timed_read_byte(addr);
 inc(t); g_dwCycleCounter++;
 timed_write_byte(addr, t);                           endinstr;   // inc (hl/ix+d/iy+d)
 instr(4, 0074)   inc(A);                                             endinstr;   // inc a
@@ -253,7 +253,7 @@ instr(4, 0025)   dec(D);                                             endinstr;  
 instr(4, 0035)   dec(E);                                             endinstr;   // dec e
 instr(4, 0045)   dec(xh);                                            endinstr;   // dec h/ixh/iyh
 instr(4, 0055)   dec(xl);                                            endinstr;   // dec l/ixl/iyl
-HLinstr(0065)   BYTE t = timed_read_byte(addr);
+HLinstr(0065)   auto t = timed_read_byte(addr);
 dec(t); g_dwCycleCounter++;
 timed_write_byte(addr, t);                           endinstr;   // dec (hl/ix+d/iy+d)
 instr(4, 0075)   dec(A);                                             endinstr;   // dec a
@@ -298,8 +298,8 @@ endinstr;
 
 // daa
 instr(4, 0047)
-WORD acc = A;
-BYTE carry = cy, incr = 0;
+uint16_t acc = A;
+uint8_t carry = cy, incr = 0;
 
 if ((F & FLAG_H) || (A & 0x0f) > 9)
 incr = 6;
@@ -331,7 +331,7 @@ else
         acc += 0x60;
 }
 
-A = (BYTE)acc;
+A = (uint8_t)acc;
 F = (A & 0xa8) | (!A << 6) | (F & 0x12) | (parity(A) & FLAG_P) | carry | !!(acc & 0x100);
 endinstr;
 
@@ -600,21 +600,21 @@ endinstr;
 
 // out (n),a
 instr(4, 0323)
-BYTE bPortLow = timed_read_code_byte(PC++);
+auto bPortLow = timed_read_code_byte(PC++);
 PORT_ACCESS(bPortLow);
 out_byte((A << 8) | bPortLow, A);
 endinstr;
 
 // in a,(n)
 instr(4, 0333)
-BYTE bPortLow = timed_read_code_byte(PC++);
+auto bPortLow = timed_read_code_byte(PC++);
 PORT_ACCESS(bPortLow);
 A = in_byte((A << 8) | bPortLow);
 endinstr;
 
 // ex (sp),hl
 instr(4, 0343)
-WORD t = timed_read_word(SP);
+auto t = timed_read_word(SP);
 g_dwCycleCounter++;
 timed_write_word_reversed(SP, *pHlIxIy);
 *pHlIxIy = t;

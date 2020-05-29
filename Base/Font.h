@@ -22,11 +22,11 @@
 
 typedef struct
 {
-    WORD    wWidth, wHeight, wCharSize;
-    BYTE    bFirst, bLast;
+    uint16_t wWidth, wHeight, wCharSize;
+    uint8_t bFirst, bLast;
     bool    fFixedWidth;
 
-    const BYTE* pcbData;
+    const uint8_t* pcbData;
 }
 GUIFONT;
 

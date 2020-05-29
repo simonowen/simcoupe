@@ -32,18 +32,18 @@ public:
 public:
     void Reset() override;
 
-    BYTE In(WORD wPort_) override;
-    void Out(WORD wPort_, BYTE bVal_) override;
+    uint8_t In(uint16_t wPort_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 public:
     int GetClockFreq();
     bool Clock();
 
 protected:
-    BYTE m_bControl = 0;
-    BYTE m_bPortA = 0;
-    BYTE m_bPortB = 0;
-    BYTE m_bPortC = 0;
+    uint8_t m_bControl = 0;
+    uint8_t m_bPortA = 0;
+    uint8_t m_bPortB = 0;
+    uint8_t m_bPortC = 0;
 };
 
 extern CBlueAlphaDevice* pBlueAlpha;

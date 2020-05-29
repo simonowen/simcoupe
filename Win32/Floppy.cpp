@@ -19,6 +19,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "SimCoupe.h"
+#include <process.h>
 #include "Floppy.h"
 
 #include "Disk.h"
@@ -115,7 +116,7 @@ CFloppyStream::CFloppyStream(const char* pcszDevice_, bool fReadOnly_)
 
 CFloppyStream::~CFloppyStream()
 {
-    BYTE bStatus;
+    uint8_t bStatus;
     IsBusy(&bStatus, true);
 
     if (m_hDevice != INVALID_HANDLE_VALUE)
@@ -129,12 +130,12 @@ void CFloppyStream::Close()
 }
 
 // Start a command executing asynchronously
-BYTE CFloppyStream::StartCommand(BYTE bCommand_, PTRACK pTrack_, UINT uSectorIndex_)
+uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, PTRACK pTrack_, unsigned int uSectorIndex_)
 {
-    UINT uThreadId;
+    unsigned int uThreadId;
 
     // Wait for any in-progress operation to complete
-    BYTE bStatus;
+    uint8_t bStatus;
     IsBusy(&bStatus, true);
 
     // Set up the command to perform
@@ -149,7 +150,7 @@ BYTE CFloppyStream::StartCommand(BYTE bCommand_, PTRACK pTrack_, UINT uSectorInd
 }
 
 // Get the status of the current asynchronous operation, if any
-bool CFloppyStream::IsBusy(BYTE* pbStatus_, bool fWait_)
+bool CFloppyStream::IsBusy(uint8_t* pbStatus_, bool fWait_)
 {
     // Is the worker thread active?
     if (m_hThread)
@@ -174,10 +175,10 @@ bool CFloppyStream::IsBusy(BYTE* pbStatus_, bool fWait_)
 ///////////////////////////////////////////////////////////////////////////////
 
 // Read a single sector
-static BYTE ReadSector(HANDLE hDevice_, BYTE phead_, PSECTOR ps_)
+static uint8_t ReadSector(HANDLE hDevice_, uint8_t phead_, PSECTOR ps_)
 {
 #ifdef HAVE_FDRAWCMD_H
-    BYTE bStatus = 0;
+    uint8_t bStatus = 0;
 
     FD_READ_WRITE_PARAMS rwp;
     rwp.flags = FD_OPTION_MFM;
@@ -204,7 +205,7 @@ static BYTE ReadSector(HANDLE hDevice_, BYTE phead_, PSECTOR ps_)
 }
 
 // Write a single sector
-static BYTE WriteSector(HANDLE hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
+static uint8_t WriteSector(HANDLE hDevice_, PTRACK pTrack_, unsigned int uSectorIndex_)
 {
 #ifdef HAVE_FDRAWCMD_H
     PSECTOR ps = reinterpret_cast<PSECTOR>(pTrack_ + 1) + uSectorIndex_;
@@ -237,19 +238,19 @@ static BYTE WriteSector(HANDLE hDevice_, PTRACK pTrack_, UINT uSectorIndex_)
 }
 
 // Format a track
-static BYTE FormatTrack(HANDLE hDevice_, PTRACK pTrack_)
+static uint8_t FormatTrack(HANDLE hDevice_, PTRACK pTrack_)
 {
 #ifdef HAVE_FDRAWCMD_H
     int i, step;
-    BYTE bStatus = 0;
+    uint8_t bStatus = 0;
 
     // Prepare space for the variable-size structure - 64 sectors is plenty
-    BYTE ab[sizeof(FD_FORMAT_PARAMS) + 64 * sizeof(FD_ID_HEADER)] = { 0 };
+    uint8_t ab[sizeof(FD_FORMAT_PARAMS) + 64 * sizeof(FD_ID_HEADER)] = { 0 };
     PFD_FORMAT_PARAMS pfp = reinterpret_cast<PFD_FORMAT_PARAMS>(ab);
 
     PTRACK pt = pTrack_;
     PSECTOR ps = reinterpret_cast<PSECTOR>(pt + 1);
-    UINT uSize = pt->sectors ? (128U << (ps->size & 7)) : 0;
+    unsigned int uSize = pt->sectors ? (128U << (ps->size & 7)) : 0;
 
     // Set up the format parameters
     pfp->flags = FD_OPTION_MFM;
@@ -262,7 +263,7 @@ static BYTE FormatTrack(HANDLE hDevice_, PTRACK pTrack_)
     // If the track contains any sectors, the size/gap/fill are tuned for the size/content
     if (pt->sectors)
     {
-        UINT uGap = ((MAX_TRACK_SIZE - 50) - (pt->sectors * (62 + 1 + uSize))) / pt->sectors;
+        unsigned int uGap = ((MAX_TRACK_SIZE - 50) - (pt->sectors * (62 + 1 + uSize))) / pt->sectors;
         if (uGap > 46) uGap = 46;
 
         pfp->size = ps->size;
@@ -314,7 +315,7 @@ static BYTE FormatTrack(HANDLE hDevice_, PTRACK pTrack_)
 }
 
 // Read a simple track of consecutive sectors, which is fast if it matches what's on the disk
-static bool ReadSimpleTrack(HANDLE hDevice_, PTRACK pTrack_, UINT& ruSectors_)
+static bool ReadSimpleTrack(HANDLE hDevice_, PTRACK pTrack_, unsigned int& ruSectors_)
 {
 #ifdef HAVE_FDRAWCMD_H
     int i;
@@ -382,7 +383,7 @@ static bool ReadSimpleTrack(HANDLE hDevice_, PTRACK pTrack_, UINT& ruSectors_)
 static bool ReadCustomTrack(HANDLE hDevice_, PTRACK pTrack_)
 {
 #ifdef HAVE_FDRAWCMD_H
-    BYTE abScan[1 + 64 * sizeof(FD_SCAN_RESULT)];
+    uint8_t abScan[1 + 64 * sizeof(FD_SCAN_RESULT)];
     PFD_SCAN_RESULT psr = (PFD_SCAN_RESULT)abScan;
 
     // Scan the track layout

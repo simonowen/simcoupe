@@ -29,14 +29,14 @@
 typedef struct
 {
     int sectors;
-    BYTE cyl, head;     // physical track location
+    uint8_t cyl, head;     // physical track location
 } TRACK, * PTRACK;
 
 typedef struct
 {
-    BYTE cyl, head, sector, size;
-    BYTE status;
-    BYTE* pbData;
+    uint8_t cyl, head, sector, size;
+    uint8_t status;
+    uint8_t* pbData;
 } SECTOR, * PSECTOR;
 
 
@@ -59,23 +59,23 @@ public:
 
 public:
     bool IsOpen() const override { return m_hDevice != INVALID_HANDLE_VALUE; }
-    bool IsBusy(BYTE* pbStatus_, bool fWait_);
+    bool IsBusy(uint8_t* pbStatus_, bool fWait_);
 
     // The normal stream functions are not used
     bool Rewind() override { return false; }
     size_t Read(void*, size_t) override { return 0; }
     size_t Write(void*, size_t) override { return 0; }
 
-    BYTE StartCommand(BYTE bCommand_, PTRACK pTrack_ = nullptr, UINT uSectorIndex_ = 0);
+    uint8_t StartCommand(uint8_t bCommand_, PTRACK pTrack_ = nullptr, unsigned int uSectorIndex_ = 0);
 
 protected:
     HANDLE m_hDevice = INVALID_HANDLE_VALUE; // Floppy device handle
     HANDLE m_hThread = nullptr; // Worker thread handles
-    UINT m_uSectors = 0;        // Sector count, or zero for auto-detect (slower)
+    unsigned int m_uSectors = 0;        // Sector count, or zero for auto-detect (slower)
 
-    BYTE m_bCommand = 0;        // Current command
-    BYTE m_bStatus;             // Final status
+    uint8_t m_bCommand = 0;        // Current command
+    uint8_t m_bStatus;             // Final status
 
     PTRACK m_pTrack = nullptr;  // Track for command
-    UINT m_uSectorIndex = 0;    // Zero-based sector for write command
+    unsigned int m_uSectorIndex = 0;    // Zero-based sector for write command
 };

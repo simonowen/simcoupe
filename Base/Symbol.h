@@ -25,6 +25,6 @@ namespace Symbol
 void Update(const char* pcszFile_);
 
 int LookupSymbol(std::string sSymbol_);
-std::string LookupAddr(WORD wAddr_, int nMaxLen_ = 0, bool fAllowPlusOne_ = false);
-std::string LookupPort(BYTE bPort_, bool fInput_);
+std::string LookupAddr(uint16_t wAddr_, int nMaxLen_ = 0, bool fAllowPlusOne_ = false);
+std::string LookupPort(uint8_t bPort_, bool fInput_);
 }

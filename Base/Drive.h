@@ -43,8 +43,8 @@ public:
     ~CDrive() { Eject(); }
 
 public:
-    BYTE In(WORD wPort_) override;
-    void Out(WORD wPort_, BYTE bVal_) override;
+    uint8_t In(uint16_t wPort_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
     void FrameEnd() override;
 
 public:
@@ -64,17 +64,17 @@ public:
     void SetDiskModified(bool fModified_ = true) override { if (m_pDisk) m_pDisk->SetModified(fModified_); }
 
 protected:
-    bool GetSector(BYTE index_, IDFIELD* pID_, BYTE* pbStatus_);
+    bool GetSector(uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_);
     bool FindSector(IDFIELD* pID_);
-    BYTE ReadSector(BYTE* pbData_, UINT* puSize_);
-    BYTE WriteSector(BYTE* pbData_, UINT* puSize_);
-    BYTE ReadAddress(IDFIELD* pID_);
-    void ReadTrack(BYTE* pbTrack_, UINT uSize_);
-    BYTE VerifyTrack();
-    BYTE WriteTrack(BYTE* pbTrack_, UINT uSize_);
+    uint8_t ReadSector(uint8_t* pbData_, unsigned int* puSize_);
+    uint8_t WriteSector(uint8_t* pbData_, unsigned int* puSize_);
+    uint8_t ReadAddress(IDFIELD* pID_);
+    void ReadTrack(uint8_t* pbTrack_, unsigned int uSize_);
+    uint8_t VerifyTrack();
+    uint8_t WriteTrack(uint8_t* pbTrack_, unsigned int uSize_);
 
 protected:
-    void ModifyStatus(BYTE bEnable_, BYTE bReset_);
+    void ModifyStatus(uint8_t bEnable_, uint8_t bReset_);
     void ModifyReadStatus();
     void ExecuteNext();
 
@@ -82,16 +82,16 @@ protected:
 
 protected:
     CDisk* m_pDisk = nullptr;   // The disk currently inserted in the drive, if any
-    BYTE m_bSide = 0;           // Side from port address
+    uint8_t m_bSide = 0;        // Side from port address
 
-    VL1772Regs m_sRegs{};       // VL1772 controller registers
-    BYTE m_bHeadCyl = 0;        // Physical track the drive head is above
-    BYTE m_bSectorIndex = 0;    // Sector iteration index
+    VL1772Regs m_sRegs{};          // VL1772 controller registers
+    uint8_t m_bHeadCyl = 0;        // Physical track the drive head is above
+    uint8_t m_bSectorIndex = 0;    // Sector iteration index
 
-    BYTE m_abBuffer[MAX_TRACK_SIZE]; // Buffer big enough for anything we'll read or write
-    BYTE* m_pbBuffer = nullptr;
-    UINT m_uBuffer = 0;
-    BYTE m_bDataStatus = 0;     // Status value for end of data, where the data CRC can be checked
+    uint8_t m_abBuffer[MAX_TRACK_SIZE]; // Buffer big enough for anything we'll read or write
+    uint8_t* m_pbBuffer = nullptr;
+    unsigned int m_uBuffer = 0;
+    uint8_t m_bDataStatus = 0;     // Status value for end of data, where the data CRC can be checked
 
     int m_nState = 0;           // Command state, for tracking multi-stage execution
     int m_nMotorDelay = 0;      // Delay before switching motor off

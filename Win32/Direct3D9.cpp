@@ -19,6 +19,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "SimCoupe.h"
+#include <windows.h>
+#include <windowsx.h>
+
 #include "Direct3D9.h"
 #include "D3D9_VS.h"
 #include "D3D9_PS.h"
@@ -46,7 +49,7 @@ struct CUSTOMVERTEX
 
 
 // SAM palette in native surface values (faster if kept at file scope)
-static DWORD adwPalette[N_PALETTE_COLOURS];
+static uint32_t adwPalette[N_PALETTE_COLOURS];
 
 
 Direct3D9Video::~Direct3D9Video()
@@ -85,14 +88,14 @@ bool Direct3D9Video::Init(bool fFirstInit_)
 void Direct3D9Video::UpdatePalette()
 {
     const COLOUR* pSAM = IO::GetPalette();
-    const DWORD dwRmask = 0x00ff0000, dwGmask = 0x0000ff00, dwBmask = 0x000000ff, dwAmask = 0xff000000;
+    const uint32_t dwRmask = 0x00ff0000, dwGmask = 0x0000ff00, dwBmask = 0x000000ff, dwAmask = 0xff000000;
 
     // Build the palette from SAM colours
     for (int i = 0; i < N_PALETTE_COLOURS; i++)
     {
         // Look up the colour in the SAM palette
         const COLOUR* p = &pSAM[i];
-        BYTE r = p->bRed, g = p->bGreen, b = p->bBlue, a = 0xff;
+        uint8_t r = p->bRed, g = p->bGreen, b = p->bBlue, a = 0xff;
 
         // Set native pixel value
         adwPalette[i] = RGB2Native(r, g, b, a, dwRmask, dwGmask, dwBmask, dwAmask);
@@ -139,7 +142,7 @@ void Direct3D9Video::Update(CScreen* pScreen_, bool* pafDirty_)
     hr = m_pd3dDevice->BeginScene();
 
     bool fFilter = GUI::IsActive() ? GetOption(filtergui) || (GetOption(scale) & 1) : GetOption(filter);
-    DWORD dwFilter = fFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT;
+    uint32_t dwFilter = fFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT;
     hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, dwFilter);
     hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, dwFilter);
 
@@ -217,8 +220,8 @@ HRESULT Direct3D9Video::CreateVertices()
     if (FAILED(hr = m_pd3dDevice->CreateVertexBuffer(NUM_VERTICES * sizeof(CUSTOMVERTEX), D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &m_pVertexBuffer, nullptr)))
         return hr;
 
-    DWORD dwWidth = Frame::GetWidth();
-    DWORD dwHeight = Frame::GetHeight();
+    uint32_t dwWidth = Frame::GetWidth();
+    uint32_t dwHeight = Frame::GetHeight();
 
     CUSTOMVERTEX* pVertices = nullptr;
     hr = m_pVertexBuffer->Lock(0, NUM_VERTICES * sizeof(CUSTOMVERTEX), (void**)&pVertices, 0);
@@ -375,10 +378,10 @@ bool Direct3D9Video::DrawChanges(CScreen* pScreen_, bool* pafDirty_)
         return false;
     }
 
-    DWORD* pdwBack = reinterpret_cast<DWORD*>(d3dlr.pBits), * pdw = pdwBack;
+    uint32_t* pdwBack = reinterpret_cast<uint32_t*>(d3dlr.pBits), * pdw = pdwBack;
     LONG lPitchDW = d3dlr.Pitch >> 2;
 
-    BYTE* pbSAM = pScreen_->GetLine(0), * pb = pbSAM;
+    uint8_t* pbSAM = pScreen_->GetLine(0), * pb = pbSAM;
     LONG lPitch = pScreen_->GetPitch();
 
     int nRightHi = nWidth >> 3;
@@ -413,7 +416,7 @@ bool Direct3D9Video::DrawChanges(CScreen* pScreen_, bool* pafDirty_)
     static bool fLastHalfHeight = true;
     if (fHalfHeight && !fLastHalfHeight)
     {
-        BYTE* pb = reinterpret_cast<BYTE*>(d3dlr.pBits) + nHeight * d3dlr.Pitch;
+        auto pb = reinterpret_cast<uint8_t*>(d3dlr.pBits) + nHeight * d3dlr.Pitch;
         memset(pb, 0, d3dlr.Pitch);
     }
     fLastHalfHeight = fHalfHeight;

@@ -104,7 +104,7 @@ void CDrive::FrameEnd()
 ////////////////////////////////////////////////////////////////////////////////
 
 
-inline void CDrive::ModifyStatus(BYTE bSet_, BYTE bReset_)
+inline void CDrive::ModifyStatus(uint8_t bSet_, uint8_t bReset_)
 {
     // Reset then set the specified bits
     m_sRegs.bStatus |= bSet_;
@@ -130,7 +130,7 @@ inline void CDrive::ModifyReadStatus()
 
 void CDrive::ExecuteNext()
 {
-    BYTE bStatus = m_sRegs.bStatus;
+    uint8_t bStatus = m_sRegs.bStatus;
 
     // Nothing to do if there's no disk in the drive
     if (!m_pDisk)
@@ -203,7 +203,7 @@ void CDrive::ExecuteNext()
     {
         // Read an ID field into our general buffer
         IDFIELD* pId = reinterpret_cast<IDFIELD*>(m_pbBuffer = m_abBuffer);
-        BYTE bReadStatus = ReadAddress(pId);
+        auto bReadStatus = ReadAddress(pId);
 
         // If successful set up the number of bytes available to read
         if (!(bReadStatus & TYPE23_ERROR_MASK))
@@ -241,9 +241,9 @@ void CDrive::ExecuteNext()
 }
 
 
-BYTE CDrive::In(WORD wPort_)
+uint8_t CDrive::In(uint16_t wPort_)
 {
-    BYTE bRet = 0x00;
+    uint8_t bRet = 0x00;
 
     // Continue command execution if we're busy but not transferring data
     if ((m_sRegs.bStatus & (BUSY | DRQ)) == BUSY)
@@ -290,7 +290,7 @@ BYTE CDrive::In(WORD wPort_)
         else if (m_uBuffer)
         {
             static int nDataTimeout = 0;
-            static UINT uLastBuffer = 0;
+            static unsigned int uLastBuffer = 0;
 
             // Clear busy after 16 polls of the status port
             if (uLastBuffer != m_uBuffer)
@@ -387,7 +387,7 @@ BYTE CDrive::In(WORD wPort_)
 }
 
 
-void CDrive::Out(WORD wPort_, BYTE bVal_)
+void CDrive::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // Extract side from port address
     m_bSide = ((wPort_) >> 2) & 1;
@@ -537,7 +537,7 @@ void CDrive::Out(WORD wPort_, BYTE bVal_)
         {
             TRACE("FDC: FORCE_INTERRUPT\n");
 
-            BYTE bStatus;
+            uint8_t bStatus;
             if (m_pDisk) m_pDisk->IsBusy(&bStatus, true);   // Wait until any active command is complete
 
             ModifyStatus(m_sRegs.bStatus &= MOTOR_ON, ~MOTOR_ON & 0xff);   // Leave motor on but reset everything else
@@ -589,16 +589,16 @@ void CDrive::Out(WORD wPort_, BYTE bVal_)
                 {
                 case WRITE_1SECTOR:
                 {
-                    UINT uWritten;
-                    BYTE bStatus = WriteSector(m_abBuffer, &uWritten);
+                    unsigned int uWritten;
+                    auto bStatus = WriteSector(m_abBuffer, &uWritten);
                     ModifyStatus(bStatus, 0);
                     break;
                 }
 
                 case WRITE_MSECTOR:
                 {
-                    UINT uWritten;
-                    BYTE bStatus = WriteSector(m_abBuffer, &uWritten);
+                    unsigned int uWritten;
+                    auto bStatus = WriteSector(m_abBuffer, &uWritten);
                     ModifyStatus(bStatus, 0);
 
                     // Add multi-sector writing here?
@@ -609,7 +609,7 @@ void CDrive::Out(WORD wPort_, BYTE bVal_)
                 case WRITE_TRACK:
                 {
                     // Examine and perform the format
-                    BYTE bStatus = WriteTrack(m_abBuffer, sizeof(m_abBuffer));
+                    auto bStatus = WriteTrack(m_abBuffer, sizeof(m_abBuffer));
                     ModifyStatus(bStatus, 0);
                 }
                 break;
@@ -625,7 +625,7 @@ void CDrive::Out(WORD wPort_, BYTE bVal_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool CDrive::GetSector(BYTE index_, IDFIELD* pID_, BYTE* pbStatus_)
+bool CDrive::GetSector(uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
 {
     return m_pDisk->GetSector(m_bHeadCyl, m_bSide, index_, pID_, pbStatus_);
 }
@@ -634,7 +634,7 @@ bool CDrive::GetSector(BYTE index_, IDFIELD* pID_, BYTE* pbStatus_)
 bool CDrive::FindSector(IDFIELD* pID_)
 {
     IDFIELD id;
-    BYTE bStatus;
+    uint8_t bStatus;
 
     int nIndexCount = 0;
     m_bSectorIndex = 0;
@@ -666,20 +666,20 @@ bool CDrive::FindSector(IDFIELD* pID_)
 }
 
 
-BYTE CDrive::ReadSector(BYTE* pbData_, UINT* puSize_)
+uint8_t CDrive::ReadSector(uint8_t* pbData_, unsigned int* puSize_)
 {
     return m_pDisk->ReadData(m_bHeadCyl, m_bSide, m_bSectorIndex, pbData_, puSize_);
 }
 
-BYTE CDrive::WriteSector(BYTE* pbData_, UINT* puSize_)
+uint8_t CDrive::WriteSector(uint8_t* pbData_, unsigned int* puSize_)
 {
     return m_pDisk->WriteData(m_bHeadCyl, m_bSide, m_bSectorIndex, pbData_, puSize_);
 }
 
 // Find and return the data for the next ID field seen on the spinning disk
-BYTE CDrive::ReadAddress(IDFIELD* pID_)
+uint8_t CDrive::ReadAddress(IDFIELD* pID_)
 {
-    BYTE bStatus = RECORD_NOT_FOUND;
+    uint8_t bStatus = RECORD_NOT_FOUND;
 
     // Fetch a sector, wrapping if necessary
     if (!m_pDisk->GetSector(m_bHeadCyl, m_bSide, m_bSectorIndex, pID_, &bStatus))
@@ -693,23 +693,23 @@ BYTE CDrive::ReadAddress(IDFIELD* pID_)
 
 
 // Helper macro for function below
-static void PutBlock(BYTE*& rpb_, BYTE bVal_, int nCount_ = 1)
+static void PutBlock(uint8_t*& rpb_, uint8_t bVal_, int nCount_ = 1)
 {
     while (nCount_--)
         *rpb_++ = bVal_;
 }
 
 // Construct the raw track from the information of each sector on the track to make it look real
-void CDrive::ReadTrack(BYTE* pbTrack_, UINT uSize_)
+void CDrive::ReadTrack(uint8_t* pbTrack_, unsigned int uSize_)
 {
     IDFIELD id;
-    BYTE bStatus;
+    uint8_t bStatus;
 
     // Initialise track with 4E gap filler
     memset(pbTrack_, 0x4e, uSize_);
 
     // Start of track
-    BYTE* pb = pbTrack_;
+    auto pb = pbTrack_;
     m_bSectorIndex = 0;
 
     // Gap 1 and track header (min 32)
@@ -738,11 +738,11 @@ void CDrive::ReadTrack(BYTE* pbTrack_, UINT uSize_)
         // The data block only really exists if the ID field is valid
         if (!(bStatus & CRC_ERROR))
         {
-            BYTE* pbData = pb;              // Data CRC begins here
+            auto pbData = pb;              // Data CRC begins here
             PutBlock(pb, 0xa1, 3);          // Gap 3: exactly 3 bytes of 0xa1
 
             // Read the sector contents, leaving a gap for the address mark
-            UINT uSize;
+            unsigned int uSize;
             bStatus = ReadSector(pb + 1, &uSize);
 
             // Write the appropriate data address mark: 1 byte of 0xfb (normal) or 0xf8 (deleted)
@@ -752,7 +752,7 @@ void CDrive::ReadTrack(BYTE* pbTrack_, UINT uSize_)
             pb += uSize;
 
             // CRC the entire data area, ensuring it's invalid for data CRC errors
-            WORD wCRC = CrcBlock(pbData, pb - pbData) ^ (bStatus & CRC_ERROR);
+            auto wCRC = CrcBlock(pbData, pb - pbData) ^ (bStatus & CRC_ERROR);
             PutBlock(pb, wCRC >> 8);    // CRC MSB
             PutBlock(pb, wCRC & 0xff);  // CRC LSB
         }
@@ -765,12 +765,12 @@ void CDrive::ReadTrack(BYTE* pbTrack_, UINT uSize_)
 
 
 // Verify the track position on the disk by looking for a sector with the correct track number and a valid CRC
-BYTE CDrive::VerifyTrack()
+uint8_t CDrive::VerifyTrack()
 {
     IDFIELD id;
 
     // Sniff the next passing header
-    BYTE bStatus = ReadAddress(&id);
+    auto bStatus = ReadAddress(&id);
 
     // Check the header track matches our location
     if (id.bTrack != m_bHeadCyl)
@@ -781,7 +781,7 @@ BYTE CDrive::VerifyTrack()
 
 
 // Helper function for WriteTrack below, to check for ranges of marker bytes
-static bool ExpectBlock(BYTE*& rpb_, BYTE* pbEnd_, BYTE bVal_, int nMin_, int nMax_ = INT_MAX)
+static bool ExpectBlock(uint8_t*& rpb_, uint8_t* pbEnd_, uint8_t bVal_, int nMin_, int nMax_ = INT_MAX)
 {
     // Find the end of the block of bytes
     for (; rpb_ < pbEnd_ && *rpb_ == bVal_ && nMax_; rpb_++, nMin_--, nMax_--);
@@ -791,20 +791,21 @@ static bool ExpectBlock(BYTE*& rpb_, BYTE* pbEnd_, BYTE bVal_, int nMin_, int nM
 }
 
 // Scan the raw track information for disk formatting
-BYTE CDrive::WriteTrack(BYTE* pbTrack_, UINT uSize_)
+uint8_t CDrive::WriteTrack(uint8_t* pbTrack_, unsigned int uSize_)
 {
-    BYTE* pb = pbTrack_, * pbEnd = pb + uSize_;
+    auto pb = pbTrack_;
+    auto pbEnd = pb + uSize_;
 
     int nSectors = 0, nMaxSectors = MAX_TRACK_SECTORS;
     IDFIELD* paID = new IDFIELD[nMaxSectors];
-    BYTE** papbData = new BYTE * [nMaxSectors];
+    auto papbData = new uint8_t * [nMaxSectors];
 
 
     // Note: the spec mentions that some things could be as small as 2 bytes for the 1772-02
     // If this is true the minimum values below could be reduced to accept even tighter formats
 
     // Look for Gap 1 and track header (min 32 bytes of 0x4e)
-    if ((pb = (reinterpret_cast<BYTE*>(memchr(pb, 0x4e, pbEnd - pb)))) && ExpectBlock(pb, pbEnd, 0x4e, 32))
+    if ((pb = (reinterpret_cast<uint8_t*>(memchr(pb, 0x4e, pbEnd - pb)))) && ExpectBlock(pb, pbEnd, 0x4e, 32))
     {
         // Loop looking for sectors now
         while (pb < pbEnd)
@@ -851,7 +852,7 @@ BYTE CDrive::WriteTrack(BYTE* pbTrack_, UINT uSize_)
     }
 
     // Present the format to the disk for laying out
-    BYTE bStatus = m_pDisk ? m_pDisk->FormatTrack(m_bHeadCyl, m_bSide, paID, papbData, nSectors) : WRITE_PROTECT;
+    uint8_t bStatus = m_pDisk ? m_pDisk->FormatTrack(m_bHeadCyl, m_bSide, paID, papbData, nSectors) : WRITE_PROTECT;
 
     delete[] paID;
     delete[] papbData;

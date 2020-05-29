@@ -179,7 +179,7 @@ protected:
 
 protected:
     static char s_szFile[];
-    static UINT s_uAddr, s_uPage, s_uOffset;
+    static unsigned int s_uAddr, s_uPage, s_uOffset;
     static bool s_fUseBasic;
 };
 
@@ -194,7 +194,7 @@ public:
 
 protected:
     CEditControl* m_pLength = nullptr;
-    static UINT s_uLength;
+    static unsigned int s_uLength;
 };
 
 
@@ -216,7 +216,7 @@ protected:
 
 protected:
     static char s_szFile[MAX_PATH];
-    static UINT s_uType;
+    static unsigned int s_uType;
     static bool s_fCompress;
     static bool s_fFormat;
 };

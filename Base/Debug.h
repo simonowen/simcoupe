@@ -50,12 +50,12 @@ public:
 public:
     bool OnMessage(int /*nMessage_*/, int /*nParam1_*/, int /*nParam2_*/) override { return false; }
 
-    WORD GetAddress() const;
-    virtual void SetAddress(WORD wAddr_, bool /*fForceTop_*/ = false);
+    uint16_t GetAddress() const;
+    virtual void SetAddress(uint16_t wAddr_, bool /*fForceTop_*/ = false);
     virtual bool cmdNavigate(int nKey_, int nMods_);
 
 private:
-    WORD m_wAddr = 0;
+    uint16_t m_wAddr = 0;
 };
 
 class CTextView : public CView
@@ -86,7 +86,7 @@ private:
 class CDisView : public CView
 {
 public:
-    static const UINT INVALID_TARGET = 0U - 1;
+    static const unsigned int INVALID_TARGET = 0U - 1;
 
 public:
     CDisView(CWindow* pParent_);
@@ -95,7 +95,7 @@ public:
     ~CDisView() { delete[] m_pszData; }
 
 public:
-    void SetAddress(WORD wAddr_, bool fForceTop_ = false) override;
+    void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
     void Draw(CScreen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
@@ -108,13 +108,13 @@ protected:
     bool cmdNavigate(int nKey_, int nMods_) override;
 
 private:
-    UINT m_uRows = 0, m_uColumns = 0;
-    UINT m_uCodeTarget = INVALID_TARGET;
-    UINT m_uDataTarget = INVALID_TARGET;
+    unsigned int m_uRows = 0, m_uColumns = 0;
+    unsigned int m_uCodeTarget = INVALID_TARGET;
+    unsigned int m_uDataTarget = INVALID_TARGET;
     const char* m_pcszDataTarget = nullptr;
     char* m_pszData = nullptr;
 
-    static WORD s_wAddrs[];
+    static uint16_t s_wAddrs[];
     static bool m_fUseSymbols;
 };
 
@@ -128,8 +128,8 @@ public:
     ~CTxtView() { delete[] m_pszData; }
 
 public:
-    bool GetAddrPosition(WORD wAddr_, int& x_, int& y_);
-    void SetAddress(WORD wAddr_, bool fForceTop_ = false) override;
+    bool GetAddrPosition(uint16_t wAddr_, int& x_, int& y_);
+    void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
     void Draw(CScreen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
@@ -139,10 +139,10 @@ protected:
 private:
     int m_nRows = 0, m_nColumns = 0;
     char* m_pszData = nullptr;
-    std::vector<WORD> m_aAccesses{};
+    std::vector<uint16_t> m_aAccesses{};
 
     bool m_fEditing = false;
-    WORD m_wEditAddr = 0;
+    uint16_t m_wEditAddr = 0;
 };
 
 class CHexView : public CView
@@ -154,8 +154,8 @@ public:
     ~CHexView() { delete[] m_pszData; }
 
 public:
-    bool GetAddrPosition(WORD wAddr_, int& x_, int& y_, int& textx_);
-    void SetAddress(WORD wAddr_, bool fForceTop_ = false) override;
+    bool GetAddrPosition(uint16_t wAddr_, int& x_, int& y_, int& textx_);
+    void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
     void Draw(CScreen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
@@ -165,10 +165,10 @@ protected:
 private:
     int m_nRows = 0, m_nColumns = 0;
     char* m_pszData = nullptr;
-    std::vector<WORD> m_aAccesses{};
+    std::vector<uint16_t> m_aAccesses{};
 
     bool m_fEditing = false, m_fRightNibble = false;
-    WORD m_wEditAddr = 0;
+    uint16_t m_wEditAddr = 0;
 };
 
 /*
@@ -178,7 +178,7 @@ class CMemView : public CView
         CMemView (CWindow* pParent_);
 
     public:
-        void SetAddress (WORD wAddr_, bool fForceTop_=false) override;
+        void SetAddress (uint16_t wAddr_, bool fForceTop_=false) override;
         void Draw (CScreen* pScreen_) override;
 };
 */
@@ -192,7 +192,7 @@ public:
     ~CGfxView() { delete[] m_pbData; }
 
 public:
-    void SetAddress(WORD wAddr_, bool fForceTop_ = false) override;
+    void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
     void Draw(CScreen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
@@ -201,10 +201,10 @@ protected:
 
 protected:
     bool m_fGrid = true;
-    UINT m_uStrips = 0, m_uStripWidth = 0, m_uStripLines = 0;
-    BYTE* m_pbData = nullptr;
+    unsigned int m_uStrips = 0, m_uStripWidth = 0, m_uStripLines = 0;
+    uint8_t* m_pbData = nullptr;
 
-    static UINT s_uMode, s_uWidth, s_uZoom;
+    static unsigned int s_uMode, s_uWidth, s_uZoom;
 };
 
 class CBptView : public CView
@@ -216,7 +216,7 @@ public:
     ~CBptView() { delete[] m_pszData; }
 
 public:
-    void SetAddress(WORD wAddr_, bool fForceTop_ = false) override;
+    void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
     void Draw(CScreen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
@@ -262,10 +262,10 @@ public:
 
     void Refresh();
     void SetSubTitle(const char* pcszSubTitle_);
-    void SetAddress(WORD wAddr_, bool fForceTop_ = false);
+    void SetAddress(uint16_t wAddr_, bool fForceTop_ = false);
     void SetView(ViewType nView);
     void SetStatus(const char* pcsz_, bool fOneShot_ = false, const GUIFONT* pFont_ = nullptr);
-    void SetStatusByte(WORD wAddr_);
+    void SetStatusByte(uint16_t wAddr_);
     bool Execute(const char* pcszCommand_);
 
 protected:

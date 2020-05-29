@@ -21,6 +21,11 @@
 #include "SimCoupe.h"
 #include "UI.h"
 
+#include <windowsx.h>
+#include <commctrl.h>
+#include <commdlg.h>
+#include <cderr.h>
+#include <shellapi.h>
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <VersionHelpers.h>
@@ -2596,15 +2601,15 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 IDFIELD abIDs[NORMAL_DISK_SECTORS];
 
                 // Create a data track to use during the format
-                BYTE abSector[NORMAL_SECTOR_SIZE], * apbData[NORMAL_DISK_SECTORS];
+                uint8_t abSector[NORMAL_SECTOR_SIZE], * apbData[NORMAL_DISK_SECTORS];
                 memset(abSector, 0, sizeof(abSector));
 
                 // Prepare the tracks across the disk
-                for (BYTE head = 0; head < NORMAL_DISK_SIDES; head++)
+                for (uint8_t head = 0; head < NORMAL_DISK_SIDES; head++)
                 {
-                    for (BYTE cyl = 0; cyl < NORMAL_DISK_TRACKS; cyl++)
+                    for (uint8_t cyl = 0; cyl < NORMAL_DISK_TRACKS; cyl++)
                     {
-                        for (BYTE sector = 0; sector < NORMAL_DISK_SECTORS; sector++)
+                        for (uint8_t sector = 0; sector < NORMAL_DISK_SECTORS; sector++)
                         {
                             abIDs[sector].bTrack = cyl;
                             abIDs[sector].bSide = head;

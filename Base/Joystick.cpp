@@ -25,7 +25,7 @@ namespace Joystick
 {
 
 static int anPosition[MAX_JOYSTICKS];
-static DWORD adwButtons[MAX_JOYSTICKS];
+static uint32_t adwButtons[MAX_JOYSTICKS];
 
 
 void Init(bool /*fFirstInit_*/)
@@ -85,7 +85,7 @@ void SetButton(int nJoystick_, int nButton_, bool fPressed_)
 {
     if (nJoystick_ < MAX_JOYSTICKS)
     {
-        DWORD dwBit = 1 << nButton_;
+        uint32_t dwBit = 1 << nButton_;
 
         if (fPressed_)
             adwButtons[nJoystick_] |= dwBit;
@@ -94,16 +94,16 @@ void SetButton(int nJoystick_, int nButton_, bool fPressed_)
     }
 }
 
-void SetButtons(int nJoystick_, DWORD dwButtons_)
+void SetButtons(int nJoystick_, uint32_t dwButtons_)
 {
     if (nJoystick_ < MAX_JOYSTICKS)
         adwButtons[nJoystick_] = dwButtons_;
 }
 
 
-BYTE ReadSinclair1(int nJoystick_)
+uint8_t ReadSinclair1(int nJoystick_)
 {
-    BYTE bRet = 0;
+    uint8_t bRet = 0;
 
     if (nJoystick_ < MAX_JOYSTICKS)
     {
@@ -117,9 +117,9 @@ BYTE ReadSinclair1(int nJoystick_)
     return bRet;
 }
 
-BYTE ReadSinclair2(int nJoystick_)
+uint8_t ReadSinclair2(int nJoystick_)
 {
-    BYTE bRet = 0;
+    uint8_t bRet = 0;
 
     if (nJoystick_ < MAX_JOYSTICKS)
     {
@@ -133,9 +133,9 @@ BYTE ReadSinclair2(int nJoystick_)
     return bRet;
 }
 
-BYTE ReadKempston(int nJoystick_)
+uint8_t ReadKempston(int nJoystick_)
 {
-    BYTE bRet = 0;
+    uint8_t bRet = 0;
 
     if (nJoystick_ < MAX_JOYSTICKS)
     {

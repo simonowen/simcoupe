@@ -55,9 +55,9 @@ void CATADevice::Reset(bool fSoft_/*=false*/)
 }
 
 
-WORD CATADevice::In(WORD wPort_)
+uint16_t CATADevice::In(uint16_t wPort_)
 {
-    WORD wRet = 0xffff;
+    uint16_t wRet = 0xffff;
 
     // If the request isn't for our device, ignore it
     if ((m_sRegs.bDeviceHead ^ m_bDevice) & ATA_DEVICE_MASK)
@@ -160,9 +160,9 @@ WORD CATADevice::In(WORD wPort_)
 }
 
 
-void CATADevice::Out(WORD wPort_, WORD wVal_)
+void CATADevice::Out(uint16_t wPort_, uint16_t wVal_)
 {
-    BYTE bVal = wVal_ & 0xff;
+    uint8_t bVal = wVal_ & 0xff;
 
     switch (~wPort_ & ATA_CS_MASK)
     {
@@ -460,7 +460,7 @@ void CATADevice::Out(WORD wPort_, WORD wVal_)
 
 bool CATADevice::ReadWriteSector(bool fWrite_)
 {
-    UINT uSector = 0;
+    unsigned int uSector = 0;
 
     // LBA request?
     if (m_sRegs.bDeviceHead & 0x40)
@@ -477,9 +477,9 @@ bool CATADevice::ReadWriteSector(bool fWrite_)
     else // CHS request
     {
         // Collect the CHS values
-        WORD wCylinder = (static_cast<WORD>(m_sRegs.bCylinderHigh) << 8) | m_sRegs.bCylinderLow;
-        BYTE bHead = m_sRegs.bDeviceHead & ATA_HEAD_MASK;
-        BYTE bSector = m_sRegs.bSector;
+        uint16_t wCylinder = (static_cast<uint16_t>(m_sRegs.bCylinderHigh) << 8) | m_sRegs.bCylinderLow;
+        uint8_t bHead = m_sRegs.bDeviceHead & ATA_HEAD_MASK;
+        uint8_t bSector = m_sRegs.bSector;
 
         // Fail if the location is outside the disk geometry
         if (!bSector || bSector > m_sGeometry.uSectors || bHead > m_sGeometry.uHeads || wCylinder > m_sGeometry.uCylinders)
@@ -551,14 +551,14 @@ void CATADevice::SetIdentifyData(IDENTIFYDEVICE* pid_)
     m_sIdentify.word[56] = m_sIdentify.word[6];
 
     // Max CHS sector count is just C*H*S with maximum values for each
-    UINT uMaxSectorsCHS = 16383 * 16 * 63;
-    UINT uTotalSectorsCHS = (m_sGeometry.uTotalSectors > uMaxSectorsCHS) ? uMaxSectorsCHS : m_sGeometry.uTotalSectors;
-    m_sIdentify.word[57] = static_cast<WORD>(uTotalSectorsCHS & 0xffff);
-    m_sIdentify.word[58] = static_cast<WORD>((uTotalSectorsCHS >> 16) & 0xffff);
+    unsigned int uMaxSectorsCHS = 16383 * 16 * 63;
+    unsigned int uTotalSectorsCHS = (m_sGeometry.uTotalSectors > uMaxSectorsCHS) ? uMaxSectorsCHS : m_sGeometry.uTotalSectors;
+    m_sIdentify.word[57] = static_cast<uint16_t>(uTotalSectorsCHS & 0xffff);
+    m_sIdentify.word[58] = static_cast<uint16_t>((uTotalSectorsCHS >> 16) & 0xffff);
 
     // Max LBA28 sector count is 0x0fffffff
-    UINT uMaxSectorsLBA28 = (1U << 28) - 1;
-    UINT uTotalSectorsLBA28 = (m_sGeometry.uTotalSectors > uMaxSectorsLBA28) ? uMaxSectorsLBA28 : m_sGeometry.uTotalSectors;
+    unsigned int uMaxSectorsLBA28 = (1U << 28) - 1;
+    unsigned int uTotalSectorsLBA28 = (m_sGeometry.uTotalSectors > uMaxSectorsLBA28) ? uMaxSectorsLBA28 : m_sGeometry.uTotalSectors;
     m_sIdentify.word[60] = uTotalSectorsLBA28 & 0xffff;
     m_sIdentify.word[61] = (uTotalSectorsLBA28 >> 16) & 0xffff;
 
@@ -573,7 +573,7 @@ void CATADevice::SetIdentifyData(IDENTIFYDEVICE* pid_)
 // Calculate a suitable CHS geometry covering the supplied number of sectors
 /*static*/ void CATADevice::CalculateGeometry(ATA_GEOMETRY* pg_)
 {
-    UINT uCylinders, uHeads, uSectors;
+    unsigned int uCylinders, uHeads, uSectors;
 
     // If the sector count is exactly divisible by 16*63, use them for heads and sectors
     if ((pg_->uTotalSectors % (16 * 63)) == 0)
@@ -611,7 +611,7 @@ void CATADevice::SetIdentifyData(IDENTIFYDEVICE* pid_)
 
 /*static*/ void CATADevice::SetIdentifyString(const char* pcszValue_, void* pv_, size_t cb_)
 {
-    BYTE* pb = reinterpret_cast<BYTE*>(pv_);
+    auto pb = reinterpret_cast<uint8_t*>(pv_);
 
     // Fill with spaces, then copy the string over it (excluding the null terminator)
     memset(pb, ' ', cb_);

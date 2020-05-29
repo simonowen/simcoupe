@@ -23,4 +23,4 @@
 // Maximum Z80 instruction length
 #define MAX_Z80_INSTR_LEN  4
 
-UINT Disassemble(BYTE* pb_, WORD wPC_ = 0, char* psz_ = nullptr, size_t cbSize_ = 0, int nSymbolMax_ = 0);
+unsigned int Disassemble(uint8_t* pb_, uint16_t wPC_ = 0, char* psz_ = nullptr, size_t cbSize_ = 0, int nSymbolMax_ = 0);

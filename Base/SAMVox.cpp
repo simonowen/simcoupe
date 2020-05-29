@@ -25,7 +25,7 @@
 
 #include "Sound.h"
 
-void CSAMVoxDevice::Out(WORD wPort_, BYTE bVal_)
+void CSAMVoxDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     switch (wPort_ & 3)
     {

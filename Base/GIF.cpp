@@ -32,7 +32,7 @@
 namespace GIF
 {
 
-static BYTE* pbCurr, * pbFirst, * pbSub;
+static uint8_t* pbCurr, * pbFirst, * pbSub;
 
 static char szPath[MAX_PATH], * pszFile;
 static FILE* f;
@@ -51,7 +51,7 @@ static LoopState nLoopState;
 
 static void WriteLogicalScreenDescriptor(CScreen* pScreen_)
 {
-    WORD w = pScreen_->GetPitch() / 2, h = pScreen_->GetHeight() / 2;
+    uint16_t w = pScreen_->GetPitch() / 2, h = pScreen_->GetHeight() / 2;
 
     fputc(w & 0xff, f);
     fputc(w >> 8, f);
@@ -75,7 +75,7 @@ static void WriteGlobalColourTable()
     }
 }
 
-static void WriteImageDescriptor(WORD wLeft_, WORD wTop_, WORD wWidth_, WORD wHeight_)
+static void WriteImageDescriptor(uint16_t wLeft_, uint16_t wTop_, uint16_t wWidth_, uint16_t wHeight_)
 {
     fputc(0x2c, f);             // Image separator character = ','
 
@@ -91,13 +91,13 @@ static void WriteImageDescriptor(WORD wLeft_, WORD wTop_, WORD wWidth_, WORD wHe
     fputc(0x00 | (0x7 & (COLOUR_DEPTH - 1)), f); // information on the local colour table
 }
 
-static void WriteGraphicControlExtension(WORD wDelay_, BYTE bTransIdx_)
+static void WriteGraphicControlExtension(uint16_t wDelay_, uint8_t bTransIdx_)
 {
     fputc(0x21, f);     // GIF extension code
     fputc(0xf9, f);     // graphic control label
     fputc(0x04, f);     // data length
 
-    BYTE bFlags = 0;
+    uint8_t bFlags = 0;
     bFlags |= (1 << 2);
     if (bTransIdx_ != 0xff) bFlags |= 1;
     fputc(bFlags, f);   // Bits 7-5: reserved
@@ -112,7 +112,7 @@ static void WriteGraphicControlExtension(WORD wDelay_, BYTE bTransIdx_)
     fputc(0x00, f);     // Data sub-block terminator
 }
 
-static bool WriteGraphicControlExtensionDelay(long lOffset_, WORD wDelay_)
+static bool WriteGraphicControlExtensionDelay(long lOffset_, uint16_t wDelay_)
 {
     // Save current position
     long lOldPos = ftell(f);
@@ -134,7 +134,7 @@ static bool WriteGraphicControlExtensionDelay(long lOffset_, WORD wDelay_)
 
 static void WriteNetscapeLoopExtension()
 {
-    WORD loops = 0;     // infinite
+    uint16_t loops = 0;     // infinite
 
     fputc(0x21, f);     // GIF Extension code
     fputc(0xff, f);     // Application Extension Label
@@ -156,20 +156,20 @@ static void WriteFileTerminator()
 
 
 // Compare our copy of the screen with the new display contents
-static bool GetChangeRect(BYTE* pb_, CScreen* pScreen_)
+static bool GetChangeRect(uint8_t* pb_, CScreen* pScreen_)
 {
     int l, t, r, b, w, h;
     l = t = r = b = 0;
 
-    WORD width = pScreen_->GetPitch() / 2, height = pScreen_->GetHeight() / 2;
+    uint16_t width = pScreen_->GetPitch() / 2, height = pScreen_->GetHeight() / 2;
     int step = 2; // sample alternate pixels
 
-    BYTE* pbC = pb_;
+    uint8_t* pbC = pb_;
 
     // Search down for the top-most change
     for (h = 0; h < height; h++)
     {
-        BYTE* pb = pScreen_->GetLine(h);
+        uint8_t* pb = pScreen_->GetLine(h);
 
         // Scan the full width of the current line
         for (w = 0; w < width; w++, pbC++, pb += step)
@@ -195,7 +195,7 @@ found_top:
     // Search up for the bottom-most change
     for (h = height - 1; h >= t; h--)
     {
-        BYTE* pb = pScreen_->GetLine(h);
+        auto pb = pScreen_->GetLine(h);
         pb += (width - 1) * step;
 
         // Scan the full width of the line, right to left
@@ -220,7 +220,7 @@ found_bottom:
     // Scan within the inclusive vertical extents of the change rect
     for (h = t; h <= b; h++, pbC += width)
     {
-        BYTE* pb = pScreen_->GetLine(h);
+        auto pb = pScreen_->GetLine(h);
 
         // Scan the unknown left strip
         for (w = 0; w < l; w++)
@@ -255,27 +255,27 @@ found_bottom:
 }
 
 // Update current image and determine sub-region difference to encode
-static BYTE UpdateImage(BYTE* pb_, CScreen* pScreen_)
+static uint8_t UpdateImage(uint8_t* pb_, CScreen* pScreen_)
 {
-    WORD width = pScreen_->GetPitch() / 2;
+    uint16_t width = pScreen_->GetPitch() / 2;
     int step = 2;
-    BYTE abUsed[1 << COLOUR_DEPTH] = { 0 };
-    BYTE* pbSub_ = pbSub;
+    uint8_t abUsed[1 << COLOUR_DEPTH] = { 0 };
+    auto pbSub_ = pbSub;
 
     // Move to top-left of sub-image
-    BYTE* pb = pb_ + (wt * width) + wl;
+    auto pb = pb_ + (wt * width) + wl;
 
-    BYTE bColour = *pb;
+    auto bColour = *pb;
     int nRun = 0, nTrans = 0;
 
     for (int y = wt; y < wt + wh; y++, pb += width)
     {
-        BYTE* pbScr = pScreen_->GetLine(y);
+        uint8_t* pbScr = pScreen_->GetLine(y);
         pbScr += (wl * step);
 
         for (int x = 0; x < ww; x++, pbScr += step)
         {
-            BYTE bOld = pb[x], bNew = *pbScr;
+            uint8_t bOld = pb[x], bNew = *pbScr;
             pb[x] = bNew;
             abUsed[bNew] = 1;
 #if 0
@@ -329,7 +329,7 @@ static BYTE UpdateImage(BYTE* pb_, CScreen* pScreen_)
         pbSub_ += nTrans;
     }
 
-    BYTE bTrans;
+    uint8_t bTrans;
     for (bTrans = 0; bTrans < (1 << COLOUR_DEPTH) && abUsed[bTrans]; bTrans++);
 
     // Have we found a free palette position for transparency?
@@ -432,15 +432,15 @@ void AddFrame(CScreen* pScreen_)
     if (!pScreen_)
         return;
 
-    WORD width = pScreen_->GetPitch() / 2;
-    WORD height = pScreen_->GetHeight() / 2;
-    DWORD size = (DWORD)width * (DWORD)height;
+    uint16_t width = pScreen_->GetPitch() / 2;
+    uint16_t height = pScreen_->GetHeight() / 2;
+    uint32_t size = (uint32_t)width * (uint32_t)height;
 
     // If this is the first frame, write the file headers
     if (ftell(f) == 0)
     {
-        pbCurr = new BYTE[size];
-        pbSub = new BYTE[size];
+        pbCurr = new uint8_t[size];
+        pbSub = new uint8_t[size];
         memset(pbCurr, 0xff, size);
 
         // File header
@@ -475,7 +475,7 @@ void AddFrame(CScreen* pScreen_)
     }
 
     // Update our copy and encode the difference in the changed region
-    BYTE bTrans = UpdateImage(pbCurr, pScreen_);
+    auto bTrans = UpdateImage(pbCurr, pScreen_);
 
     // If recording a loop, wait for the first real change
     if (nLoopState == kIgnoreFirstChange)
@@ -487,7 +487,7 @@ void AddFrame(CScreen* pScreen_)
     else if (nLoopState == kWaitLoopStart)
     {
         nLoopState = kLoopStarted;
-        pbFirst = new BYTE[size];
+        pbFirst = new uint8_t[size];
         memcpy(pbFirst, pbCurr, size);
     }
     // If we're looking for the end of a loop, compare with the first frame
@@ -528,14 +528,14 @@ BitPacker::BitPacker(FILE* bf)
     *pos = 0x00;
 }
 
-BYTE* BitPacker::AddCodeToBuffer(DWORD code, short n)
+uint8_t* BitPacker::AddCodeToBuffer(uint32_t code, short n)
 /*
  Copied from Michael A. Mayer's AddCodeToBuffer(), with the following
  changes:
  - AddCodeToBuffer() is now a class member of class BitPacker
  - former local static variable 'need' now is a class member and
    initialized with 8 in the constructor
- - former formal parameter 'buf' is now the class member 'BYTE *pos' and
+ - former formal parameter 'buf' is now the class member 'uint8_t *pos' and
    initialized with 'pos=buffer' in the constructor
  - type of 'code' has been changed to 'unsigned long'.
 
@@ -548,7 +548,7 @@ BYTE* BitPacker::AddCodeToBuffer(DWORD code, short n)
  the 'need' vacant bits are the most significant ones.
 */
 {
-    DWORD mask;
+    uint32_t mask;
 
     // If called with n==-1, then if the current byte is partially filled,
     // leave it alone and target the next byte (which is empty).
@@ -567,7 +567,7 @@ BYTE* BitPacker::AddCodeToBuffer(DWORD code, short n)
     while (n >= need)
     {
         mask = (1 << need) - 1;     // 'mask'= all zeroes followed by 'need' ones
-        *pos += (BYTE)((mask & code) << (8 - need));    // the 'need' lowest bits of 'code' fill the current byte at its upper end
+        *pos += (uint8_t)((mask & code) << (8 - need));    // the 'need' lowest bits of 'code' fill the current byte at its upper end
         *++pos = 0x00;              // byte is now full, initialise next byte
         code = code >> need;        // remove the written bits from code
         n -= need;                  // update the length of 'code'
@@ -578,7 +578,7 @@ BYTE* BitPacker::AddCodeToBuffer(DWORD code, short n)
     if (n > 0)
     {
         mask = (1 << n) - 1;
-        *pos += (BYTE)((mask & code) << (8 - need));        // (remainder of) code is written to the n rightmost free bits of the current byte.
+        *pos += (uint8_t)((mask & code) << (8 - need));        // (remainder of) code is written to the n rightmost free bits of the current byte.
 
         // The current byte can still take 'need' bits, and we have 'need'>0.  The bits will be filled upon future calls.
         need -= n;
@@ -590,7 +590,7 @@ BYTE* BitPacker::AddCodeToBuffer(DWORD code, short n)
 
 // Packs an incoming code of n bits to the buffer. As soon as 255 bytes are full,
 // they are written to 'binfile' as a data block and cleared from 'buffer'
-BYTE* BitPacker::Submit(DWORD code, WORD n)
+uint8_t* BitPacker::Submit(uint32_t code, uint16_t n)
 {
     AddCodeToBuffer(code, n);
 
@@ -633,12 +633,12 @@ void BitPacker::WriteFlush()
 // Initialize a root node for each root code
 void GifCompressor::InitRoots()
 {
-    WORD nofrootcodes = 1 << COLOUR_DEPTH;
+    uint16_t nofrootcodes = 1 << COLOUR_DEPTH;
 
-    for (WORD i = 0; i < nofrootcodes; i++)
+    for (uint16_t i = 0; i < nofrootcodes; i++)
     {
         axon[i] = 0;
-        pix[i] = (BYTE)i;
+        pix[i] = (uint8_t)i;
         // next[] is unused for root codes
     }
 }
@@ -647,9 +647,9 @@ void GifCompressor::InitRoots()
 // The stringtable is flushed by removing the outlets of all root nodes
 void GifCompressor::FlushStringTable()
 {
-    WORD nofrootcodes = 1 << COLOUR_DEPTH;
+    uint16_t nofrootcodes = 1 << COLOUR_DEPTH;
 
-    for (WORD i = 0; i < nofrootcodes; i++)
+    for (uint16_t i = 0; i < nofrootcodes; i++)
         axon[i] = 0;
 }
 
@@ -657,9 +657,9 @@ void GifCompressor::FlushStringTable()
 // Checks if the chain emanating from headnode's axon contains a node for 'pixel'.
 // Returns that node's address (=code), or 0 if there is no such node.
 // (0 cannot be the root node 0, since root nodes occur in no chain).
-WORD GifCompressor::FindPixelOutlet(WORD headnode, BYTE pixel_)
+uint16_t GifCompressor::FindPixelOutlet(uint16_t headnode, uint8_t pixel_)
 {
-    WORD outlet;
+    uint16_t outlet;
     for (outlet = axon[headnode]; outlet && pix[outlet] != pixel_; outlet = next[outlet]);
     return outlet;
 }
@@ -668,9 +668,9 @@ WORD GifCompressor::FindPixelOutlet(WORD headnode, BYTE pixel_)
 // Writes the next code to the codestream and adds one entry to the stringtable.
 // Does not change 'freecode'. Moves 'curordinal' forward and returns it pointing
 // to the first pixel that hasn't been encoded yet. Recognizes the end of the data stream.
-DWORD GifCompressor::DoNext()
+uint32_t GifCompressor::DoNext()
 {
-    WORD up = pixel, down;          // start with the root node for 'pixel'
+    uint16_t up = pixel, down;          // start with the root node for 'pixel'
 
     if (++curordinal >= nofdata)    // end of data stream ? Terminate
     {
@@ -721,7 +721,7 @@ DWORD GifCompressor::DoNext()
 }
 
 
-DWORD GifCompressor::WriteDataBlocks(FILE* bf, DWORD nof, WORD dd)
+uint32_t GifCompressor::WriteDataBlocks(FILE* bf, uint32_t nof, uint16_t dd)
 {
     nofdata = nof;              // number of pixels in data stream
 
@@ -731,12 +731,12 @@ DWORD GifCompressor::WriteDataBlocks(FILE* bf, DWORD nof, WORD dd)
     nbits = COLOUR_DEPTH + 1;       // initial size of compression codes
     cc = (1 << (nbits - 1));        // 'cc' is the lowest code requiring 'nbits' bits
     eoi = cc + 1;                   // 'end-of-information'-code
-    freecode = (WORD)cc + 2;        // code of the next entry to be added to the stringtable
+    freecode = (uint16_t)cc + 2;        // code of the next entry to be added to the stringtable
 
     bp = new BitPacker(bf);     // object that does the packing of the codes and renders them to the binary file 'bf'
-    axon = new WORD[4096];
-    next = new WORD[4096];
-    pix = new BYTE[4096];
+    axon = new uint16_t[4096];
+    next = new uint16_t[4096];
+    pix = new uint8_t[4096];
 
     if (!pix || !next || !axon || !bp)
     {
@@ -765,7 +765,7 @@ DWORD GifCompressor::WriteDataBlocks(FILE* bf, DWORD nof, WORD dd)
             delete[] next;
             delete[] pix;
 
-            DWORD byteswritten = 2 + bp->byteswritten;
+            uint32_t byteswritten = 2 + bp->byteswritten;
             delete bp;
             return byteswritten;
         }
@@ -780,7 +780,7 @@ DWORD GifCompressor::WriteDataBlocks(FILE* bf, DWORD nof, WORD dd)
             FlushStringTable();     // avoid stringtable overflow
             bp->Submit(cc, nbits);  // tell the decoding software to flush its stringtable
             nbits = dd + 1;
-            freecode = (WORD)cc + 2;
+            freecode = (uint16_t)cc + 2;
         }
     }
 }

@@ -92,14 +92,14 @@ public:
     size_t Write(void* pvBuffer_, size_t uLen_) override;
 
 protected:
-    BYTE* m_pbData = nullptr;
+    uint8_t* m_pbData = nullptr;
     size_t m_uPos = 0;
 };
 
 
 #ifdef HAVE_LIBZ
 
-const BYTE GZ_SIGNATURE[] = { 0x1f, 0x8b };
+const uint8_t GZ_SIGNATURE[] = { 0x1f, 0x8b };
 
 class CZLibStream final : public CStream
 {

@@ -74,26 +74,26 @@ CSID* pSID;
 
 
 // Port read/write addresses for I/O breakpoints
-WORD wPortRead, wPortWrite;
-BYTE bPortInVal, bPortOutVal;
+uint16_t wPortRead, wPortWrite;
+uint8_t bPortInVal, bPortOutVal;
 
 // Paging ports for internal and external memory
-BYTE vmpr, hmpr, lmpr, lepr, hepr;
-BYTE vmpr_mode, vmpr_page1, vmpr_page2;
+uint8_t vmpr, hmpr, lmpr, lepr, hepr;
+uint8_t vmpr_mode, vmpr_page1, vmpr_page2;
 
-BYTE border, border_col;
+uint8_t border, border_col;
 
-BYTE keyboard;
-BYTE status_reg;
-BYTE line_int;
-BYTE lpen;
-BYTE hpen;
-BYTE attr;
+uint8_t keyboard;
+uint8_t status_reg;
+uint8_t line_int;
+uint8_t lpen;
+uint8_t hpen;
+uint8_t attr;
 
-UINT clut[N_CLUT_REGS], mode3clut[4];
+unsigned int clut[N_CLUT_REGS], mode3clut[4];
 
-BYTE keyports[9];       // 8 rows of keys (+ 1 row for unscanned keys)
-BYTE keybuffer[9];      // working buffer for key changed, activated mid-frame
+uint8_t keyports[9];       // 8 rows of keys (+ 1 row for unscanned keys)
+uint8_t keybuffer[9];      // working buffer for key changed, activated mid-frame
 
 bool fASICStartup;      // If set, the ASIC will be unresponsive shortly after first power-on
 bool display_changed;   // Mid-frame main display change using VMPR or CLUT
@@ -101,7 +101,7 @@ bool display_changed;   // Mid-frame main display change using VMPR or CLUT
 int g_nAutoLoad = AUTOLOAD_NONE;    // don't auto-load on startup
 
 #ifdef _DEBUG
-static BYTE abUnhandled[32];    // track unhandled port access in debug mode
+static uint8_t abUnhandled[32];    // track unhandled port access in debug mode
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -257,10 +257,10 @@ void Exit(bool fReInit_/*=false*/)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static inline void PaletteChange(BYTE bHMPR_)
+static inline void PaletteChange(uint8_t bHMPR_)
 {
     // Update the 4 colours available to mode 3 (note: the middle colours are switched)
-    BYTE mode3_bcd48 = (bHMPR_ & HMPR_MD3COL_MASK) >> 3;
+    uint8_t mode3_bcd48 = (bHMPR_ & HMPR_MD3COL_MASK) >> 3;
     mode3clut[0] = clut[mode3_bcd48 | 0];
     mode3clut[1] = clut[mode3_bcd48 | 2];
     mode3clut[2] = clut[mode3_bcd48 | 1];
@@ -333,14 +333,14 @@ static uint8_t update_hpen()
     return hpen;
 }
 
-void OutLmpr(BYTE val)
+void OutLmpr(uint8_t val)
 {
     // Update LMPR and paging
     lmpr = val;
     UpdatePaging();
 }
 
-void OutHmpr(BYTE bVal_)
+void OutHmpr(uint8_t bVal_)
 {
     // Have the mode3 BCD4/8 bits changed?
     if ((hmpr ^ bVal_) & HMPR_MD3COL_MASK)
@@ -358,7 +358,7 @@ void OutHmpr(BYTE bVal_)
     UpdatePaging();
 }
 
-void OutVmpr(BYTE bVal_)
+void OutVmpr(uint8_t bVal_)
 {
     // The ASIC changes mode before page, so consider an on-screen artifact from the mode change
     Frame::ChangeMode(bVal_);
@@ -381,20 +381,20 @@ void OutVmpr(BYTE bVal_)
     vmpr_page2 = VMPR_MODE_3_OR_4 ? ((vmpr_page1 + 1) & VMPR_PAGE_MASK) : 0xff;
 }
 
-void OutLepr(BYTE bVal_)
+void OutLepr(uint8_t bVal_)
 {
     lepr = bVal_;
     UpdatePaging();
 }
 
-void OutHepr(BYTE bVal_)
+void OutHepr(uint8_t bVal_)
 {
     hepr = bVal_;
     UpdatePaging();
 }
 
 
-void OutClut(WORD wPort_, BYTE bVal_)
+void OutClut(uint16_t wPort_, uint8_t bVal_)
 {
     wPort_ &= (N_CLUT_REGS - 1);          // 16 clut registers, so only the bottom 4 bits are significant
     bVal_ &= (N_PALETTE_COLOURS - 1);     // 128 colours, so only the bottom 7 bits are significant
@@ -417,12 +417,12 @@ void OutClut(WORD wPort_, BYTE bVal_)
 }
 
 
-BYTE In(WORD wPort_)
+uint8_t In(uint16_t wPort_)
 {
-    BYTE bPortLow = (wPortRead = wPort_) & 0xff, bPortHigh = (wPort_ >> 8);
+    uint8_t bPortLow = (wPortRead = wPort_) & 0xff, bPortHigh = (wPort_ >> 8);
 
     // Default port result if not handled
-    BYTE bRet = 0xff;
+    uint8_t bRet = 0xff;
 
     // The ASIC doesn't respond to I/O immediately after power-on
     if (bPortLow >= BASE_ASIC_PORT && fASICStartup)
@@ -521,7 +521,7 @@ BYTE In(WORD wPort_)
         if (!(VMPR_MODE_3_OR_4 && BORD_SOFF))
         {
             // Determine the 4 ASIC display bytes and return the 3rd, as documented
-            BYTE b1, b2, b3, b4;
+            uint8_t b1, b2, b3, b4;
             Frame::GetAsicData(&b1, &b2, &b3, &b4);
             attr = b3;
         }
@@ -646,9 +646,9 @@ BYTE In(WORD wPort_)
 
 
 // The actual port input and output routines
-void Out(WORD wPort_, BYTE bVal_)
+void Out(uint16_t wPort_, uint8_t bVal_)
 {
-    BYTE bPortLow = (wPortWrite = wPort_) & 0xff, bPortHigh = (wPort_ >> 8);
+    uint8_t bPortLow = (wPortWrite = wPort_) & 0xff, bPortHigh = (wPort_ >> 8);
     bPortOutVal = bVal_;
 
     // The ASIC doesn't respond to I/O immediately after power-on
@@ -681,7 +681,7 @@ void Out(WORD wPort_, BYTE bVal_)
                 update_lpen();
                 update_hpen();
 
-                BYTE b1, b2, b3, b4;
+                uint8_t b1, b2, b3, b4;
                 Frame::GetAsicData(&b1, &b2, &b3, &b4);
                 attr = b3;
             }
@@ -802,7 +802,7 @@ void Out(WORD wPort_, BYTE bVal_)
             // Valid line interrupt set?
             if (line_int < SCREEN_LINES)
             {
-                DWORD dwLineTime = (line_int + TOP_BORDER_LINES) * TSTATES_PER_LINE;
+                uint32_t dwLineTime = (line_int + TOP_BORDER_LINES) * TSTATES_PER_LINE;
 
                 // Schedule the line interrupt (could be active now, or already passed this frame)
                 AddCpuEvent(evtLineIntStart, dwLineTime);
@@ -981,20 +981,20 @@ const COLOUR* GetPalette()
     static COLOUR asPalette[N_PALETTE_COLOURS];
 
     // Look-up table for an even intensity spread, used to map SAM colours to RGB
-    static const BYTE abIntensities[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
+    static const uint8_t abIntensities[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
 
     // Build the full palette: SAM's 128 colours and the extra colours for the GUI
     for (int i = 0; i < N_PALETTE_COLOURS; i++)
     {
         // Convert from SAM palette position to 8-bit RGB
-        BYTE bRed = abIntensities[(i & 0x02) | ((i & 0x20) >> 3) | ((i & 0x08) >> 3)];
-        BYTE bGreen = abIntensities[(i & 0x04) >> 1 | ((i & 0x40) >> 4) | ((i & 0x08) >> 3)];
-        BYTE bBlue = abIntensities[(i & 0x01) << 1 | ((i & 0x10) >> 2) | ((i & 0x08) >> 3)];
+        auto bRed = abIntensities[(i & 0x02) | ((i & 0x20) >> 3) | ((i & 0x08) >> 3)];
+        auto bGreen = abIntensities[(i & 0x04) >> 1 | ((i & 0x40) >> 4) | ((i & 0x08) >> 3)];
+        auto bBlue = abIntensities[(i & 0x01) << 1 | ((i & 0x10) >> 2) | ((i & 0x08) >> 3)];
 
         // If greyscale is enabled, convert the colour a suitable intensity grey
         if (GetOption(greyscale))
         {
-            BYTE bGrey = static_cast<BYTE>(0.299 * bRed + 0.587 * bGreen + 0.114 * bBlue + 0.5);
+            auto bGrey = static_cast<uint8_t>(0.299 * bRed + 0.587 * bGreen + 0.114 * bBlue + 0.5);
             bRed = bGreen = bBlue = bGrey;
         }
 
@@ -1078,7 +1078,7 @@ bool Rst8Hook()
     }
 
     // Read the error code after the RST 8 opcode
-    BYTE bErrCode = read_byte(PC);
+    uint8_t bErrCode = read_byte(PC);
 
     switch (bErrCode)
     {

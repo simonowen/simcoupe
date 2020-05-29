@@ -25,13 +25,13 @@
 
 
 #define rlc(x)  (x = (x << 1) | (x >> 7), rflags(x, x & 1))
-#define rrc(x)  { BYTE t = x & 1;  x = (x >> 1) | (t << 7); rflags(x,t); }
-#define rl(x)   { BYTE t = x >> 7; x = (x << 1) | (F & FLAG_C);  rflags(x,t); }
-#define rr(x)   { BYTE t = x & 1;  x = (x >> 1) | (F << 7); rflags(x,t); }
-#define sla(x)  { BYTE t = x >> 7; x <<= 1;                 rflags(x,t); }
-#define sra(x)  { BYTE t = x & 1;  x = ((signed char)x) >> 1;rflags(x,t); }
-#define sll(x)  { BYTE t = x >> 7; x = (x << 1) | 1;        rflags(x,t); }  // Z80 CPU bug: bit 0 always set in the result
-#define srl(x)  { BYTE t = x & 1;  x >>= 1;                 rflags(x,t); }
+#define rrc(x)  { uint8_t t = x & 1;  x = (x >> 1) | (t << 7); rflags(x,t); }
+#define rl(x)   { uint8_t t = x >> 7; x = (x << 1) | (F & FLAG_C);  rflags(x,t); }
+#define rr(x)   { uint8_t t = x & 1;  x = (x >> 1) | (F << 7); rflags(x,t); }
+#define sla(x)  { uint8_t t = x >> 7; x <<= 1;                 rflags(x,t); }
+#define sra(x)  { uint8_t t = x & 1;  x = ((signed char)x) >> 1;rflags(x,t); }
+#define sll(x)  { uint8_t t = x >> 7; x = (x << 1) | 1;        rflags(x,t); }  // Z80 CPU bug: bit 0 always set in the result
+#define srl(x)  { uint8_t t = x & 1;  x >>= 1;                 rflags(x,t); }
 
 #define bit(n,x) (F = (F & 1) | ((x & (1 << n)) ? n == 7 ? 0x90 : 0x10 : 0x54) | (((op & 7) == 6) ? 0 : (x & 0x28)))
 
@@ -42,8 +42,8 @@
     val = timed_read_byte(addr); g_dwCycleCounter++
 
 {
-WORD addr;
-BYTE op, reg = 0, val = 0;
+uint16_t addr;
+uint8_t op, reg = 0, val = 0;
 
 // Is this an undocumented indexed CB instruction?
 if (pHlIxIy != &HL)
@@ -152,7 +152,7 @@ if (op < 0x40)
 }
 else
 {
-    BYTE n = (op >> 3) & 7;
+    uint8_t n = (op >> 3) & 7;
     switch (op & 0xc7)
     {
     case 0x40: bit(n, B); break;

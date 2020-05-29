@@ -27,5 +27,5 @@ void Stop();
 void Toggle(bool fSegment_ = false);
 bool IsRecording();
 
-void AddFrame(const BYTE* pb_, int nLen_);
+void AddFrame(const uint8_t* pb_, int nLen_);
 }

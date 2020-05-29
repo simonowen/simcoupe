@@ -418,7 +418,7 @@ void CHDDProperties::OnNotify(CWindow* pWindow_, int /*nParam_*/)
             }
 
             // Determine the total sector count from the size
-            UINT uTotalSectors = static_cast<UINT>(strtoul(m_pSize->GetText(), nullptr, 10) << 11);
+            auto uTotalSectors = static_cast<unsigned int>(strtoul(m_pSize->GetText(), nullptr, 10) << 11);
 
             // Check the geometry is within range
             if (!uTotalSectors || (uTotalSectors > (16383 * 16 * 63)))
@@ -490,7 +490,7 @@ void CTestDialog::OnNotify(CWindow* pWindow_, int nParam_)
         bool fIsChecked = reinterpret_cast<CCheckBox*>(m_pEnable)->IsChecked();
 
         // Update the enabled/disabled state of the control so we can see what they look like
-        for (UINT u = 0; u < (sizeof(m_apControls) / sizeof(m_apControls[0])); u++)
+        for (unsigned int u = 0; u < (sizeof(m_apControls) / sizeof(m_apControls[0])); u++)
         {
             if (m_apControls[u])
                 m_apControls[u]->Enable(fIsChecked);
@@ -1316,7 +1316,7 @@ void COptionsDialog::OnNotify(CWindow* pWindow_, int nParam_)
 ////////////////////////////////////////////////////////////////////////////////
 
 char CImportDialog::s_szFile[MAX_PATH];
-UINT CImportDialog::s_uAddr = 32768, CImportDialog::s_uPage, CImportDialog::s_uOffset;
+unsigned int CImportDialog::s_uAddr = 32768, CImportDialog::s_uPage, CImportDialog::s_uOffset;
 bool CImportDialog::s_fUseBasic = true;
 
 CImportDialog::CImportDialog(CWindow* pParent_)
@@ -1409,12 +1409,12 @@ void CImportDialog::OnNotify(CWindow* pWindow_, int nParam_)
             return;
         }
 
-        UINT uPage = (s_uAddr < 0x4000) ? ROM0 : s_uPage;
-        UINT uOffset = s_uOffset, uLen = 0x400000;  // 4MB max import
+        unsigned int uPage = (s_uAddr < 0x4000) ? ROM0 : s_uPage;
+        unsigned int uOffset = s_uOffset, uLen = 0x400000;  // 4MB max import
         size_t uRead = 0;
 
         // Loop reading chunk blocks into the relevant pages
-        for (UINT uChunk; (uChunk = std::min(uLen, (0x4000 - uOffset))); uLen -= uChunk, uOffset = 0)
+        for (unsigned int uChunk; (uChunk = std::min(uLen, (0x4000 - uOffset))); uLen -= uChunk, uOffset = 0)
         {
             // Read directly into system memory
             uRead += fread(PageWritePtr(uPage) + uOffset, 1, uChunk, hFile);
@@ -1435,7 +1435,7 @@ void CImportDialog::OnNotify(CWindow* pWindow_, int nParam_)
 }
 
 
-UINT CExportDialog::s_uLength = 16384;  // show 16K as the initial export length
+unsigned int CExportDialog::s_uLength = 16384;  // show 16K as the initial export length
 
 CExportDialog::CExportDialog(CWindow* pParent_)
     : CImportDialog(pParent_)
@@ -1478,12 +1478,12 @@ void CExportDialog::OnNotify(CWindow* pWindow_, int nParam_)
             return;
         }
 
-        UINT uPage = (s_uAddr < 0x4000) ? ROM0 : s_uPage;
-        UINT uOffset = s_uOffset, uLen = s_uLength;
+        unsigned int uPage = (s_uAddr < 0x4000) ? ROM0 : s_uPage;
+        unsigned int uOffset = s_uOffset, uLen = s_uLength;
         size_t uWritten = 0;
 
         // Loop reading chunk blocks into the relevant pages
-        for (UINT uChunk; (uChunk = std::min(uLen, (0x4000 - uOffset))); uLen -= uChunk, uOffset = 0)
+        for (unsigned int uChunk; (uChunk = std::min(uLen, (0x4000 - uOffset))); uLen -= uChunk, uOffset = 0)
         {
             // Write directly from system memory
             uWritten += fwrite(PageReadPtr(uPage++) + uOffset, 1, uChunk, hFile);
@@ -1517,7 +1517,7 @@ void CExportDialog::OnNotify(CWindow* pWindow_, int nParam_)
 ////////////////////////////////////////////////////////////////////////////////
 
 char CNewDiskDialog::s_szFile[MAX_PATH];
-UINT CNewDiskDialog::s_uType = 0;
+unsigned int CNewDiskDialog::s_uType = 0;
 bool CNewDiskDialog::s_fCompress, CNewDiskDialog::s_fFormat = true;
 
 CNewDiskDialog::CNewDiskDialog(int nDrive_, CWindow* pParent_/*=nullptr*/)

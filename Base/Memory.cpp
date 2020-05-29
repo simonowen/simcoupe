@@ -31,7 +31,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Single block holding all memory needed
-BYTE* pMemory;
+uint8_t* pMemory;
 
 // Master read and write lists that are static for a given memory configuration
 int anReadPages[TOTAL_PAGES];
@@ -42,12 +42,12 @@ int anSectionPages[4];
 bool afSectionContended[4];
 
 // Array of pointers for memory to use when reading from or writing to each each section
-BYTE* apbSectionReadPtrs[4];
-BYTE* apbSectionWritePtrs[4];
+uint8_t* apbSectionReadPtrs[4];
+uint8_t* apbSectionWritePtrs[4];
 
 // Look-up tables for fast mapping between mode 1 display addresses and line numbers
-WORD g_awMode1LineToByte[SCREEN_LINES];
-BYTE g_abMode1ByteToLine[SCREEN_LINES];
+uint16_t g_awMode1LineToByte[SCREEN_LINES];
+uint8_t g_abMode1ByteToLine[SCREEN_LINES];
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -64,14 +64,14 @@ bool Init(bool fFirstInit_/*=false*/)
     if (fFirstInit_)
     {
         // Build the tables for fast mapping between mode 1 display addresses and line numbers
-        for (UINT uOffset = 0; uOffset < SCREEN_LINES; uOffset++)
+        for (unsigned int uOffset = 0; uOffset < SCREEN_LINES; uOffset++)
         {
             g_abMode1ByteToLine[uOffset] = (uOffset & 0xc0) + ((uOffset << 3) & 0x38) + ((uOffset >> 3) & 0x07);
             g_awMode1LineToByte[g_abMode1ByteToLine[uOffset]] = uOffset << 5;
         }
 
         // Allocate a single block for our memory requirements
-        if (!(pMemory = new BYTE[TOTAL_PAGES * MEM_PAGE_SIZE]))
+        if (!(pMemory = new uint8_t[TOTAL_PAGES * MEM_PAGE_SIZE]))
             Message(msgFatal, "Out of memory!");
 
         // Initialise memory to 0xff
@@ -172,8 +172,8 @@ static void SetConfig()
 // Set the ROM from our internal 3.0 image or external custom file
 static bool LoadRoms()
 {
-    BYTE* pb0 = PageReadPtr(ROM0);
-    BYTE* pb1 = PageReadPtr(ROM1);
+    auto pb0 = PageReadPtr(ROM0);
+    auto pb1 = PageReadPtr(ROM1);
 
     // Default to the standard ROM image
     std::string rom_file = OSD::MakeFilePath(MFP_RESOURCE, "samcoupe.rom");
@@ -207,7 +207,7 @@ static bool LoadRoms()
         size_t uRead = 0;
 
         // Read the header+bootstrap code from what could be a ZX82 file (for Andy Wright's ROM images)
-        BYTE abHeader[140];
+        uint8_t abHeader[140];
         rom->Read(abHeader, sizeof(abHeader));
 
         // If we don't find the ZX82 signature, rewind to read as a plain ROM file

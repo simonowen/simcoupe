@@ -42,10 +42,10 @@ CScreen::CScreen(int nWidth_, int nHeight_)
     m_nPitch = nWidth_ & ~15;   // Round down to the nearest mode 3 screen block chunk
     m_nHeight = nHeight_;
 
-    m_pbFrame = new BYTE[m_nPitch * m_nHeight];
+    m_pbFrame = new uint8_t[m_nPitch * m_nHeight];
 
     // Create the look-up table from line number to start of screen line
-    m_ppbLines = new BYTE * [m_nHeight];
+    m_ppbLines = new uint8_t * [m_nHeight];
     for (int i = 0; i < m_nHeight; i++)
         m_ppbLines[i] = m_pbFrame + (m_nPitch * i);
 
@@ -97,7 +97,7 @@ bool CScreen::Clip(int& rnX_, int& rnY_, int& rnWidth_, int& rnHeight_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void CScreen::Plot(int nX_, int nY_, BYTE bColour_)
+void CScreen::Plot(int nX_, int nY_, uint8_t bColour_)
 {
     int nWidth = 1, nHeight = 1;
 
@@ -106,7 +106,7 @@ void CScreen::Plot(int nX_, int nY_, BYTE bColour_)
 }
 
 // Draw a line from horizontal or vertical a given point (no diagonal lines yet)
-void CScreen::DrawLine(int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_)
+void CScreen::DrawLine(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_)
 {
     // Horizontal line?
     if (nWidth_ > 0)
@@ -127,7 +127,7 @@ void CScreen::DrawLine(int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour
 }
 
 // Draw a solid rectangle on the display
-void CScreen::FillRect(int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_)
+void CScreen::FillRect(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_)
 {
     if (Clip(nX_, nY_, nWidth_, nHeight_))
     {
@@ -138,7 +138,7 @@ void CScreen::FillRect(int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour
 }
 
 // Draw a rectangle outline
-void CScreen::FrameRect(int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColour_, bool fRound_/*=false*/)
+void CScreen::FrameRect(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_, bool fRound_/*=false*/)
 {
     // Single pixel width or height boxes can be drawn more efficiently
     if (nWidth_ == 1)
@@ -159,7 +159,7 @@ void CScreen::FrameRect(int nX_, int nY_, int nWidth_, int nHeight_, BYTE bColou
 }
 
 // Draw an image from a matrix of palette colours
-void CScreen::DrawImage(int nX_, int nY_, int nWidth_, int nHeight_, const BYTE* pcbData_, const BYTE* pcbPalette_)
+void CScreen::DrawImage(int nX_, int nY_, int nWidth_, int nHeight_, const uint8_t* pcbData_, const uint8_t* pcbPalette_)
 {
     // Return if the image is entirely clipped
     int nX = nX_, nY = nY_, nWidth = nWidth_, nHeight = nHeight_;
@@ -169,12 +169,12 @@ void CScreen::DrawImage(int nX_, int nY_, int nWidth_, int nHeight_, const BYTE*
     // Draw the region within the clipping area
     for (int y = nY; y < (nY + nHeight); y++)
     {
-        const BYTE* pcbImage = pcbData_ + (y - nY_) * nWidth_;
-        BYTE* pb = GetLine(y);
+        auto pcbImage = pcbData_ + (y - nY_) * nWidth_;
+        auto pb = GetLine(y);
 
         for (int x = nX; x < (nX + nWidth); x++)
         {
-            BYTE i = pcbImage[x - nX_];
+            auto i = pcbImage[x - nX_];
 
             if (i)
                 pb[x] = pcbPalette_[i];
@@ -183,7 +183,7 @@ void CScreen::DrawImage(int nX_, int nY_, int nWidth_, int nHeight_, const BYTE*
 }
 
 // Copy a line of raw data to a specified point on the screen
-void CScreen::Poke(int nX_, int nY_, const BYTE* pcbData_, UINT uLen_)
+void CScreen::Poke(int nX_, int nY_, const uint8_t* pcbData_, unsigned int uLen_)
 {
     int nWidth = static_cast<int>(uLen_), nHeight_ = 1, nX = nX_;
 
@@ -193,14 +193,14 @@ void CScreen::Poke(int nX_, int nY_, const BYTE* pcbData_, UINT uLen_)
 
 
 // Draw a proportionally spaced string of characters at a specified pixel position
-int CScreen::DrawString(int nX_, int nY_, const char* pcsz_, BYTE bInk_/*=WHITE*/)
+int CScreen::DrawString(int nX_, int nY_, const char* pcsz_, uint8_t bInk_/*=WHITE*/)
 {
     bool fColour = true;
-    BYTE bDefaultInk = bInk_;
+    uint8_t bDefaultInk = bInk_;
     int nLeft = nX_;
 
     // Iterate through characters in the string, stopping if we hit the character limit
-    for (BYTE bChar; (bChar = *pcsz_++); )
+    for (uint8_t bChar; (bChar = *pcsz_++); )
     {
         // Newline?
         if (bChar == '\n')
@@ -212,7 +212,7 @@ int CScreen::DrawString(int nX_, int nY_, const char* pcsz_, BYTE bInk_/*=WHITE*
         // Embedded colour code?
         else if (bChar == '\a')
         {
-            BYTE bColour = *pcsz_;
+            uint8_t bColour = *pcsz_;
             if (bColour) pcsz_++;
 
             // Ignore colours if disabled
@@ -257,7 +257,7 @@ int CScreen::DrawString(int nX_, int nY_, const char* pcsz_, BYTE bInk_/*=WHITE*
             bChar = CHAR_UNKNOWN;
 
         // Look up the font data for the character
-        const BYTE* pbData = pFont->pcbData + (bChar - pFont->bFirst) * pFont->wCharSize;
+        auto pbData = pFont->pcbData + (bChar - pFont->bFirst) * pFont->wCharSize;
 
         // Retrieve the character width
         int nWidth = (*pbData++ & 0x0f) + pFont->wWidth;
@@ -281,12 +281,12 @@ int CScreen::DrawString(int nX_, int nY_, const char* pcsz_, BYTE bInk_/*=WHITE*
         // Only draw the character if it's not a space, and the entire width fits inside the clipping area
         if (bChar != ' ' && (nX_ >= nClipX) && (nX_ + nWidth <= nClipX + nClipWidth))
         {
-            BYTE* pLine = GetLine(nFrom) + nX_;
+            auto pLine = GetLine(nFrom) + nX_;
             pbData += (nFrom - nY_);
 
             for (int i = nFrom; i < nTo; pLine += m_nPitch, i += 1)
             {
-                BYTE bData = *pbData++;
+                auto bData = *pbData++;
 
                 if (bData & 0x80) pLine[0] = bInk_;
                 if (bData & 0x40) pLine[1] = bInk_;
@@ -331,7 +331,7 @@ int CScreen::Printf(int nX_, int nY_, const char* pcszFormat_, ...)
     if (!pFont_)
         pFont_ = pFont;
 
-    for (BYTE bChar; (bChar = *pcsz_) && nMaxChars_--; pcsz_++)
+    for (uint8_t bChar; (bChar = *pcsz_) && nMaxChars_--; pcsz_++)
     {
         // Newlines reset the segment width
         if (bChar == '\n')
@@ -362,7 +362,7 @@ int CScreen::Printf(int nX_, int nY_, const char* pcszFormat_, ...)
         }
         else
         {
-            const BYTE* pChar = pFont_->pcbData + (bChar - pFont_->bFirst) * pFont_->wCharSize;
+            auto pChar = pFont_->pcbData + (bChar - pFont_->bFirst) * pFont_->wCharSize;
             nWidth += (nWidth ? CHAR_SPACING : 0) + (*pChar & 0xf) + pFont->wWidth;
         }
 

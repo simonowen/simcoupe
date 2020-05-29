@@ -24,6 +24,7 @@
 
 #ifdef HAVE_LIBRESID
 #undef F // TODO: limit scope of Z80 registers!
+#undef SID  // TODO: fix Win32 name clash using namespace
 
 #include <resid/sid.h>
 
@@ -43,7 +44,7 @@ public:
     void Update(bool fFrameEnd_);
     void FrameEnd() override;
 
-    void Out(WORD wPort_, BYTE bVal_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 protected:
 #ifdef HAVE_LIBRESID

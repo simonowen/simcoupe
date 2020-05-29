@@ -26,13 +26,13 @@
 #include "Sound.h"
 
 
-BYTE CPrintBuffer::In(WORD wPort_)
+uint8_t CPrintBuffer::In(uint16_t wPort_)
 {
-    BYTE bBusy = GetOption(printeronline) ? 0x00 : 0x01;
+    uint8_t bBusy = GetOption(printeronline) ? 0x00 : 0x01;
     return (wPort_ & 1) ? (m_bStatus | bBusy) : m_bData;
 }
 
-void CPrintBuffer::Out(WORD wPort_, BYTE bVal_)
+void CPrintBuffer::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // Don't accept data if the printer is offline
     if (!GetOption(printeronline))
@@ -120,7 +120,7 @@ void CPrinterFile::Close()
     }
 }
 
-void CPrinterFile::Write(BYTE* pb_, size_t uLen_)
+void CPrinterFile::Write(uint8_t* pb_, size_t uLen_)
 {
     if (m_hFile)
         fwrite(pb_, uLen_, 1, m_hFile);
@@ -128,7 +128,7 @@ void CPrinterFile::Write(BYTE* pb_, size_t uLen_)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void CMonoDACDevice::Out(WORD wPort_, BYTE bVal_)
+void CMonoDACDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // If the write is to the data port, send it to the DAC
     if (!(wPort_ & 1))
@@ -137,7 +137,7 @@ void CMonoDACDevice::Out(WORD wPort_, BYTE bVal_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void CStereoDACDevice::Out(WORD wPort_, BYTE bVal_)
+void CStereoDACDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // Sample data?
     if (!(wPort_ & 1))

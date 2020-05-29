@@ -37,7 +37,7 @@ static bool g_fPlaying;
 static std::string strFilePath;
 static std::string strFileName;
 
-const DWORD SPECTRUM_TSTATES_PER_SECOND = 3500000;
+const uint32_t SPECTRUM_TSTATES_PER_SECOND = 3500000;
 
 static libspectrum_tape* pTape;
 static libspectrum_byte* pbTape;
@@ -137,7 +137,7 @@ void Eject()
     strFileName = strFilePath = "";
 }
 
-void NextEdge(DWORD dwTime_)
+void NextEdge(uint32_t dwTime_)
 {
     libspectrum_error error;
 
@@ -253,7 +253,7 @@ bool LoadTrap()
     size_t nData = libspectrum_tape_block_data_length(block);
 
     // Base load address and load request size
-    WORD wDest = HL;
+    auto wDest = HL;
     int nWanted = (read_byte(0x5ac8) << 16) | DE;
 
     // Fetch block type
@@ -365,7 +365,7 @@ const char* GetBlockDetails(libspectrum_tape_block* block)
         {
             psz = "ZX BASIC";
 
-            UINT uLine = (data[15] << 8) | data[14];
+            unsigned int uLine = (data[15] << 8) | data[14];
             if (uLine != 0xffff)
                 sprintf(szExtra, " LINE %u", uLine);
 
@@ -379,8 +379,8 @@ const char* GetBlockDetails(libspectrum_tape_block* block)
         {
             psz = "ZX CODE";
 
-            UINT uAddr = (data[15] << 8) | data[14];
-            UINT uLen = (data[13] << 8) | data[12];
+            unsigned int uAddr = (data[15] << 8) | data[14];
+            unsigned int uLen = (data[13] << 8) | data[12];
             sprintf(szExtra, " %u,%u", uAddr, uLen);
 
             break;
@@ -398,7 +398,7 @@ const char* GetBlockDetails(libspectrum_tape_block* block)
         {
             psz = "BASIC";
 
-            UINT uLine = (data[40] << 8) | data[39];
+            unsigned int uLine = (data[40] << 8) | data[39];
             if (data[38] == 0)
                 sprintf(szExtra, " LINE %u", uLine);
 
@@ -411,8 +411,8 @@ const char* GetBlockDetails(libspectrum_tape_block* block)
         {
             psz = "CODE";
 
-            UINT uAddr = TPeek(data + 32) + 16384;
-            UINT uLen = TPeek(data + 35);
+            unsigned int uAddr = TPeek(data + 32) + 16384;
+            unsigned int uLen = TPeek(data + 35);
 
             sprintf(szExtra, " %u,%u", uAddr, uLen);
             if (data[38] == 0)
@@ -424,7 +424,7 @@ const char* GetBlockDetails(libspectrum_tape_block* block)
         case 20:
         {
             psz = "SCREEN$";
-            UINT uMode = data[17] + 1;
+            unsigned int uMode = data[17] + 1;
             sprintf(szExtra, " MODE %u", uMode);
             break;
         }
@@ -602,7 +602,7 @@ bool InFEHook()
         if (GetOption(tapetraps) && GetOption(turbotape))
         {
             // Fetch the time until the next tape edge
-            DWORD dwTime = GetEventTime(evtTapeEdge);
+            uint32_t dwTime = GetEventTime(evtTapeEdge);
 
             // Simulate the edge code to advance to the next edge
             // Return to normal processing if C hits 255 (no edge found) or the ear bit has changed
@@ -636,7 +636,7 @@ void Eject() { }
 void Play() { }
 void Stop() { }
 
-void NextEdge(DWORD /*dwTime_*/) { }
+void NextEdge(uint32_t /*dwTime_*/) { }
 bool LoadTrap() { return false; }
 
 bool EiHook() { return false; }

@@ -55,11 +55,11 @@ public:
 
 public:
     int GetSampleCount() { return m_nSamplesThisFrame; }
-    BYTE* GetSampleBuffer() { return m_pbFrameSample; }
+    uint8_t* GetSampleBuffer() { return m_pbFrameSample; }
 
 protected:
     int m_nSamplesThisFrame = 0;
-    BYTE* m_pbFrameSample = nullptr;
+    uint8_t* m_pbFrameSample = nullptr;
 };
 
 class CSAA final : public CSoundDevice
@@ -91,7 +91,7 @@ public:
     void Update(bool fFrameEnd_);
     void FrameEnd() override;
 
-    void Out(WORD wPort_, BYTE bVal_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 protected:
     CSAASound* m_pSAASound = nullptr;
@@ -108,12 +108,12 @@ public:
 
     void FrameEnd() override;
 
-    void OutputLeft(BYTE bVal_);
-    void OutputRight(BYTE bVal_);
-    void OutputLeft2(BYTE bVal_);
-    void OutputRight2(BYTE bVal_);
-    void Output(BYTE bVal_);
-    void Output2(BYTE bVal_);
+    void OutputLeft(uint8_t bVal_);
+    void OutputRight(uint8_t bVal_);
+    void OutputLeft2(uint8_t bVal_);
+    void OutputRight2(uint8_t bVal_);
+    void Output(uint8_t bVal_);
+    void Output2(uint8_t bVal_);
 
     int GetSamplesSoFar();
 
@@ -126,7 +126,7 @@ protected:
 class CBeeperDevice final : public CIoDevice
 {
 public:
-    void Out(WORD wPort_, BYTE bVal_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
 };
 
 

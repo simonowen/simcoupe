@@ -25,7 +25,7 @@
 class CSAMVoxDevice : public CIoDevice
 {
 public:
-    void Out(WORD wPort_, BYTE bVal_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
 };
 
 extern CSAMVoxDevice* pSAMVox;

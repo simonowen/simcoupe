@@ -37,7 +37,7 @@ const char* PageDesc(int nPage_, bool fCompact_ = false);
 enum { INTMEM, EXTMEM = N_PAGES_MAIN, ROM0 = EXTMEM + (N_PAGES_1MB * MAX_EXTERNAL_MB), ROM1, SCRATCH_READ, SCRATCH_WRITE, TOTAL_PAGES };
 enum eSection { SECTION_A, SECTION_B, SECTION_C, SECTION_D };
 
-extern BYTE* pMemory;
+extern uint8_t* pMemory;
 
 extern int anReadPages[];
 extern int anWritePages[];
@@ -45,37 +45,37 @@ extern int anWritePages[];
 extern int anSectionPages[4];
 extern bool afSectionContended[4];
 
-extern BYTE* apbSectionReadPtrs[4];
-extern BYTE* apbSectionWritePtrs[4];
+extern uint8_t* apbSectionReadPtrs[4];
+extern uint8_t* apbSectionWritePtrs[4];
 
-extern BYTE g_abMode1ByteToLine[SCREEN_LINES];
-extern WORD g_awMode1LineToByte[SCREEN_LINES];
+extern uint8_t g_abMode1ByteToLine[SCREEN_LINES];
+extern uint16_t g_awMode1LineToByte[SCREEN_LINES];
 
 
 // Map a 16-bit address through the memory indirection - allows fast paging
-inline int AddrSection(WORD wAddr_) { return wAddr_ >> 14; }
-inline int AddrPage(WORD wAddr_) { return anSectionPages[AddrSection(wAddr_)]; }
-inline int AddrOffset(WORD wAddr_) { return wAddr_ & (MEM_PAGE_SIZE - 1); }
+inline int AddrSection(uint16_t wAddr_) { return wAddr_ >> 14; }
+inline int AddrPage(uint16_t wAddr_) { return anSectionPages[AddrSection(wAddr_)]; }
+inline int AddrOffset(uint16_t wAddr_) { return wAddr_ & (MEM_PAGE_SIZE - 1); }
 
 inline int GetSectionPage(eSection nSection_) { return anSectionPages[nSection_]; }
 
-inline UINT PageReadOffset(int nPage_) { return anReadPages[nPage_] * MEM_PAGE_SIZE; }
-inline UINT PageWriteOffset(int nPage_) { return anWritePages[nPage_] * MEM_PAGE_SIZE; }
+inline unsigned int PageReadOffset(int nPage_) { return anReadPages[nPage_] * MEM_PAGE_SIZE; }
+inline unsigned int PageWriteOffset(int nPage_) { return anWritePages[nPage_] * MEM_PAGE_SIZE; }
 
-inline BYTE* PageReadPtr(int nPage_) { return pMemory + PageReadOffset(nPage_); }
-inline BYTE* PageWritePtr(int nPage_) { return pMemory + PageWriteOffset(nPage_); }
-inline BYTE* AddrReadPtr(WORD wAddr_) { return apbSectionReadPtrs[AddrSection(wAddr_)] + (wAddr_ & (MEM_PAGE_SIZE - 1)); }
-inline BYTE* AddrWritePtr(WORD wAddr_) { return apbSectionWritePtrs[AddrSection(wAddr_)] + (wAddr_ & (MEM_PAGE_SIZE - 1)); }
-inline bool ReadOnlyAddr(WORD wAddr_) { return apbSectionWritePtrs[AddrSection(wAddr_)] == PageWritePtr(SCRATCH_WRITE); }
+inline uint8_t* PageReadPtr(int nPage_) { return pMemory + PageReadOffset(nPage_); }
+inline uint8_t* PageWritePtr(int nPage_) { return pMemory + PageWriteOffset(nPage_); }
+inline uint8_t* AddrReadPtr(uint16_t wAddr_) { return apbSectionReadPtrs[AddrSection(wAddr_)] + (wAddr_ & (MEM_PAGE_SIZE - 1)); }
+inline uint8_t* AddrWritePtr(uint16_t wAddr_) { return apbSectionWritePtrs[AddrSection(wAddr_)] + (wAddr_ & (MEM_PAGE_SIZE - 1)); }
+inline bool ReadOnlyAddr(uint16_t wAddr_) { return apbSectionWritePtrs[AddrSection(wAddr_)] == PageWritePtr(SCRATCH_WRITE); }
 
-inline int PtrPage(const void* pv_) { return int((reinterpret_cast<const BYTE*>(pv_) - pMemory) / MEM_PAGE_SIZE); }
-inline int PtrOffset(const void* pv_) { return int((reinterpret_cast<const BYTE*>(pv_) - pMemory)& (MEM_PAGE_SIZE - 1)); }
+inline int PtrPage(const void* pv_) { return int((reinterpret_cast<const uint8_t*>(pv_) - pMemory) / MEM_PAGE_SIZE); }
+inline int PtrOffset(const void* pv_) { return int((reinterpret_cast<const uint8_t*>(pv_) - pMemory)& (MEM_PAGE_SIZE - 1)); }
 
-void write_to_screen_vmpr0(WORD wAddr_);
-void write_to_screen_vmpr1(WORD wAddr_);
-void write_word(WORD wAddr_, WORD wVal_);
+void write_to_screen_vmpr0(uint16_t wAddr_);
+void write_to_screen_vmpr1(uint16_t wAddr_);
+void write_word(uint16_t wAddr_, uint16_t wVal_);
 
-inline void check_video_write(WORD wAddr_)
+inline void check_video_write(uint16_t wAddr_)
 {
     // Look up the page containing the specified address
     int nPage = AddrPage(wAddr_);
@@ -90,22 +90,22 @@ inline void check_video_write(WORD wAddr_)
 }
 
 
-inline BYTE read_byte(WORD wAddr_)
+inline uint8_t read_byte(uint16_t wAddr_)
 {
     return *AddrReadPtr(wAddr_);
 }
 
-inline WORD read_word(WORD wAddr_)
+inline uint16_t read_word(uint16_t wAddr_)
 {
     return read_byte(wAddr_) | (read_byte(wAddr_ + 1) << 8);
 }
 
-inline void write_byte(WORD wAddr_, BYTE bVal_)
+inline void write_byte(uint16_t wAddr_, uint8_t bVal_)
 {
     *AddrWritePtr(wAddr_) = bVal_;
 }
 
-inline void write_word(WORD wAddr_, WORD wVal_)
+inline void write_word(uint16_t wAddr_, uint16_t wVal_)
 {
     // Write the low byte then the high byte
     write_byte(wAddr_, wVal_ & 0xff);
@@ -129,7 +129,7 @@ inline void PageIn(eSection nSection_, int nPage_)
 }
 
 
-inline void write_to_screen_vmpr0(WORD wAddr_)
+inline void write_to_screen_vmpr0(uint16_t wAddr_)
 {
     // Limit the address to the 16K page we're considering
     wAddr_ &= (MEM_PAGE_SIZE - 1);
@@ -165,7 +165,7 @@ inline void write_to_screen_vmpr0(WORD wAddr_)
     }
 }
 
-inline void write_to_screen_vmpr1(WORD wAddr_)
+inline void write_to_screen_vmpr1(uint16_t wAddr_)
 {
     // Limit the address to the 16K page we're considering
     wAddr_ &= (MEM_PAGE_SIZE - 1);

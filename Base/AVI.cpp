@@ -28,30 +28,30 @@
 namespace AVI
 {
 
-static BYTE* pbCurr, * pbResample;
+static uint8_t* pbCurr, * pbResample;
 
 static char szPath[MAX_PATH], * pszFile;
 static FILE* f;
 
-static WORD width, height;
+static uint16_t width, height;
 static bool fHalfSize = false;
 
 static long lRiffPos, lMoviPos;
 static long lVideoMax, lAudioMax;
-static DWORD dwVideoFrames, dwAudioFrames, dwAudioSamples;
+static uint32_t dwVideoFrames, dwAudioFrames, dwAudioSamples;
 static bool fWantVideo;
 
 // These hold the option settings during recording, so they can't change
 static int nAudioReduce = 0;
 static bool fScanlines = false;
 
-static bool WriteLittleEndianWORD(WORD w_)
+static bool WriteLittleEndianWORD(uint16_t w_)
 {
     fputc(w_ & 0xff, f);
     return fputc(w_ >> 8, f) != EOF;
 }
 
-static bool WriteLittleEndianDWORD(DWORD dw_)
+static bool WriteLittleEndianDWORD(uint32_t dw_)
 {
     fputc(dw_ & 0xff, f);
     fputc((dw_ >> 8) & 0xff, f);
@@ -61,12 +61,12 @@ static bool WriteLittleEndianDWORD(DWORD dw_)
 
 static bool WriteLittleEndianLong(long l_)
 {
-    return WriteLittleEndianDWORD(static_cast<DWORD>(l_));
+    return WriteLittleEndianDWORD(static_cast<uint32_t>(l_));
 }
 
-static DWORD ReadLittleEndianDWORD()
+static uint32_t ReadLittleEndianDWORD()
 {
-    BYTE ab[4] = {};
+    uint8_t ab[4] = {};
     if (fread(ab, 1, sizeof(ab), f) != sizeof(ab))
         return 0;
 
@@ -81,7 +81,7 @@ static long WriteChunkStart(FILE* f_, const char* pszChunk_, const char* pszType
 
     // Remember the length offset, and skip the length field (to be completed by WriteChunkEnd)
     long lPos = ftell(f_);
-    if (fseek(f_, sizeof(DWORD), SEEK_CUR) != 0)
+    if (fseek(f_, sizeof(uint32_t), SEEK_CUR) != 0)
         return 0;
 
     // If we have a type, write that too
@@ -96,7 +96,7 @@ static long WriteChunkEnd(FILE* f_, long lPos_)
 {
     // Remember the current position, and calculate the chunk size (not including the length field)
     long lPos = ftell(f_);
-    long lSize = lPos - lPos_ - sizeof(DWORD);
+    long lSize = lPos - lPos_ - sizeof(uint32_t);
 
     // Seek back to the length field
     if (lPos_ < 0 || fseek(f_, lPos_, SEEK_SET) != 0)
@@ -125,7 +125,7 @@ static bool WriteAVIHeader(FILE* f_)
     long lPos = WriteChunkStart(f_, "avih");
 
     // Should we include an audio stream?
-    DWORD dwStreams = (nAudioReduce < 4) ? 2 : 1;
+    uint32_t dwStreams = (nAudioReduce < 4) ? 2 : 1;
 
     WriteLittleEndianDWORD(19968);          // microseconds per frame: 1000000*TSTATES_PER_FRAME/REAL_TSTATES_PER_SECOND
     WriteLittleEndianLong((lVideoMax * EMULATED_FRAMES_PER_SECOND) + (lAudioMax * EMULATED_FRAMES_PER_SECOND)); // approximate max data rate
@@ -201,7 +201,7 @@ static bool WriteVideoHeader(FILE* f_)
     // The second half of the palette contains colours in scanline intensity
     for (i = 0; i < N_PALETTE_COLOURS; i++)
     {
-        BYTE r = pcPal[i].bRed, g = pcPal[i].bGreen, b = pcPal[i].bBlue;
+        uint8_t r = pcPal[i].bRed, g = pcPal[i].bGreen, b = pcPal[i].bBlue;
         AdjustBrightness(r, g, b, nScanAdjust);
 
         // Note: colour order is BGR
@@ -219,10 +219,10 @@ static bool WriteAudioHeader(FILE* f_)
     long lPos = WriteChunkStart(f_, "strh", "auds");
 
     // Default to normal sound parameters
-    WORD wFreq = SAMPLE_FREQ;
-    WORD wBits = SAMPLE_BITS;
-    WORD wBlock = SAMPLE_BLOCK;
-    WORD wChannels = SAMPLE_CHANNELS;
+    uint16_t wFreq = SAMPLE_FREQ;
+    uint16_t wBits = SAMPLE_BITS;
+    uint16_t wBlock = SAMPLE_BLOCK;
+    uint16_t wChannels = SAMPLE_CHANNELS;
 
     // 8-bit?
     if (nAudioReduce >= 1)
@@ -281,16 +281,16 @@ static bool WriteIndex(FILE* f_)
     WriteLittleEndianDWORD(0);
 
     // Locate the start of the movi data (after the chunk header)
-    lMoviPos += 2 * sizeof(DWORD);
+    lMoviPos += 2 * sizeof(uint32_t);
 
     // Calculate the number of entries in the index
-    DWORD dwIndexEntries = dwVideoFrames + dwAudioFrames;
-    DWORD dwVideoFrame = 0;
+    uint32_t dwIndexEntries = dwVideoFrames + dwAudioFrames;
+    uint32_t dwVideoFrame = 0;
 
     // Loop through all frames in the file
-    for (UINT u = 0; u < dwIndexEntries; u++)
+    for (unsigned int u = 0; u < dwIndexEntries; u++)
     {
-        BYTE abType[4];
+        uint8_t abType[4];
 
         if (fseek(f, lMoviPos, SEEK_SET) != 0)
             return false;
@@ -299,7 +299,7 @@ static bool WriteIndex(FILE* f_)
         if (fread(abType, 1, sizeof(abType), f) != sizeof(abType))
             return false;
 
-        DWORD dwSize = ReadLittleEndianDWORD();
+        auto dwSize = ReadLittleEndianDWORD();
         if (fseek(f, 0, SEEK_END) != 0)
             return false;
 
@@ -316,7 +316,7 @@ static bool WriteIndex(FILE* f_)
         WriteLittleEndianDWORD(dwSize);
 
         // Calculate next position, aligned to even boundary
-        lMoviPos += 2 * sizeof(DWORD) + ((dwSize + 1) & ~1);
+        lMoviPos += 2 * sizeof(uint32_t) + ((dwSize + 1) & ~1);
     }
 
     // Complete the index and riff chunks
@@ -347,7 +347,7 @@ static bool WriteFileHeaders(FILE* f_)
     lPos = WriteChunkStart(f_, "JUNK");
 
     // Align movi data to 2048-byte boundary
-    if (fseek(f_, (-ftell(f) - 3 * sizeof(DWORD)) & 0x3ff, SEEK_CUR) != 0)
+    if (fseek(f_, (-ftell(f) - 3 * sizeof(uint32_t)) & 0x3ff, SEEK_CUR) != 0)
         return false;
 
     WriteChunkEnd(f_, lPos);
@@ -362,7 +362,7 @@ static bool WriteFileHeaders(FILE* f_)
 
 
 
-static int FindRunFragment(BYTE* pb_, BYTE* pbP_, int nWidth_, int* pnJump_)
+static int FindRunFragment(uint8_t* pb_, uint8_t* pbP_, int nWidth_, int* pnJump_)
 {
     int x, nRun = 0;
 
@@ -392,7 +392,7 @@ static int FindRunFragment(BYTE* pb_, BYTE* pbP_, int nWidth_, int* pnJump_)
     return x - nRun;
 }
 
-static void EncodeAbsolute(BYTE* pb_, int nLength_)
+static void EncodeAbsolute(uint8_t* pb_, int nLength_)
 {
     // Short lengths conflict with RLE codes, and must be encoded as colour runs instead
     if (nLength_ < 3)
@@ -415,7 +415,7 @@ static void EncodeAbsolute(BYTE* pb_, int nLength_)
     }
 }
 
-static void EncodeBlock(BYTE* pb_, int nLength_)
+static void EncodeBlock(uint8_t* pb_, int nLength_)
 {
     while (nLength_)
     {
@@ -424,7 +424,7 @@ static void EncodeBlock(BYTE* pb_, int nLength_)
 
         // Start with a run of 1 pixel
         int nRun = 1;
-        BYTE bColour = *pb_++;
+        auto bColour = *pb_++;
 
         // Find the extent of the solid run
         for (; *pb_ == bColour && nRun < nMaxRun; nRun++, pb_++);
@@ -457,11 +457,6 @@ static void EncodeBlock(BYTE* pb_, int nLength_)
         EncodeAbsolute(pb_, nRun);
         pb_ += nRun;
         nLength_ -= nRun;
-
-#if defined(_DEBUG) && defined(WIN32)
-        if (nLength_ < 0)
-            DebugBreak();
-#endif
     }
 }
 
@@ -553,7 +548,7 @@ bool IsRecording()
 // Add a video frame to the file
 void AddFrame(CScreen* pScreen_)
 {
-    DWORD size;
+    uint32_t size;
 
     // Ignore if we're not recording or we're expecting audio
     if (!f || !fWantVideo)
@@ -575,8 +570,8 @@ void AddFrame(CScreen* pScreen_)
         // Store the dimensions, and allocate+invalidate the frame copy
         width = pScreen_->GetPitch() >> (fHalfSize ? 1 : 0);
         height = pScreen_->GetHeight() >> (fHalfSize ? 1 : 0);
-        size = (DWORD)width * (DWORD)height;
-        pbCurr = new BYTE[size];
+        size = (uint32_t)width * (uint32_t)height;
+        pbCurr = new uint8_t[size];
         memset(pbCurr, 0xff, size);
 
         // Write the placeholder file headers
@@ -593,8 +588,8 @@ void AddFrame(CScreen* pScreen_)
 
     for (int y = height - 1; y > 0; y--)
     {
-        BYTE* pbLine = pScreen_->GetLine(y >> (fHalfSize ? 0 : 1));
-        static BYTE abLine[WIDTH_PIXELS * 2];
+        auto pbLine = pScreen_->GetLine(y >> (fHalfSize ? 0 : 1));
+        static uint8_t abLine[WIDTH_PIXELS * 2];
 
         // Is the recording low-res?
         if (fHalfSize)
@@ -614,16 +609,16 @@ void AddFrame(CScreen* pScreen_)
         if (fScanlines && !fHalfSize && (y & 1))
         {
             // It's no problem if pbLine is already pointing to abLine
-            DWORD* pdwS = (DWORD*)pbLine, * pdwD = (DWORD*)abLine;
+            uint32_t* pdwS = (uint32_t*)pbLine, * pdwD = (uint32_t*)abLine;
 
             // Set bit 7 of each colour, in 4-pixels blocks
-            for (int i = 0; i < width; i += sizeof(DWORD))
+            for (int i = 0; i < width; i += sizeof(uint32_t))
                 *pdwD++ = *pdwS++ | 0x80808080;
 
             pbLine = abLine;
         }
 
-        BYTE* pb = pbLine, * pbP = pbCurr + (width * y);
+        uint8_t* pb = pbLine, * pbP = pbCurr + (width * y);
 
         for (x = 0; x < width; )
         {
@@ -700,15 +695,15 @@ void AddFrame(CScreen* pScreen_)
 }
 
 // Add an audio frame to the file
-void AddFrame(const BYTE* pb_, UINT uLen_)
+void AddFrame(const uint8_t* pb_, unsigned int uLen_)
 {
     // Ignore if we're not recording or we're expecting video
     if (!f || fWantVideo)
         return;
 
     // Calculate the number of input samples
-    UINT uBlock = SAMPLE_BLOCK;
-    UINT uSamples = uLen_ / uBlock;
+    unsigned int uBlock = SAMPLE_BLOCK;
+    unsigned int uSamples = uLen_ / uBlock;
 
     // Do we need to reduce the audio size?
     if (nAudioReduce)
@@ -716,10 +711,10 @@ void AddFrame(const BYTE* pb_, UINT uLen_)
         static bool fOddLast = false;
 
         // Allocate resample buffer if it doesn't already exist
-        if (!pbResample && !(pbResample = new BYTE[uLen_]))
+        if (!pbResample && !(pbResample = new uint8_t[uLen_]))
             return;
 
-        BYTE* pbNew = pbResample;
+        uint8_t* pbNew = pbResample;
 
         // 22kHz?
         if (nAudioReduce >= 2)
@@ -747,33 +742,33 @@ void AddFrame(const BYTE* pb_, UINT uLen_)
         if (nAudioReduce >= 3)
         {
             // Process every other sample
-            for (UINT u = 0; u < uSamples; u++, pb_ += uBlock)
+            for (unsigned int u = 0; u < uSamples; u++, pb_ += uBlock)
             {
                 // 16-bit stereo to 8-bit mono
                 int left = static_cast<short>((pb_[1] << 8) | pb_[0]);
                 int right = static_cast<short>((pb_[3] << 8) | pb_[2]);
                 short combined = static_cast<short>((left + right) / 2);
 
-                *pbNew++ = static_cast<BYTE>((combined >> 8) ^ 0x80);
+                *pbNew++ = static_cast<uint8_t>((combined >> 8) ^ 0x80);
             }
         }
         // Stereo
         else
         {
             // Process the required number of samples
-            for (UINT u = 0; u < uSamples; u++, pb_ += uBlock)
+            for (unsigned int u = 0; u < uSamples; u++, pb_ += uBlock)
             {
                 // 16-bit to 8-bit
                 short left = static_cast<short>((pb_[1] << 8) | pb_[0]);
                 short right = static_cast<short>((pb_[3] << 8) | pb_[2]);
 
-                *pbNew++ = static_cast<BYTE>((left >> 8) ^ 0x80);
-                *pbNew++ = static_cast<BYTE>((right >> 8) ^ 0x80);
+                *pbNew++ = static_cast<uint8_t>((left >> 8) ^ 0x80);
+                *pbNew++ = static_cast<uint8_t>((right >> 8) ^ 0x80);
             }
         }
 
         pb_ = pbResample;
-        uLen_ = static_cast<UINT>(pbNew - pbResample);
+        uLen_ = static_cast<unsigned int>(pbNew - pbResample);
     }
 
     // Write the audio chunk

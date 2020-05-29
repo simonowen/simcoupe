@@ -48,15 +48,15 @@ BREAKMEM;
 
 typedef struct tagBREAKPORT
 {
-    WORD wMask;
-    WORD wCompare;
+    uint16_t wMask;
+    uint16_t wCompare;
     AccessType nAccess;
 }
 BREAKPORT;
 
 typedef struct tagBREAKINT
 {
-    BYTE bMask;
+    uint8_t bMask;
 }
 BREAKINT;
 
@@ -96,11 +96,11 @@ public:
     static void AddUntil(EXPR* pExpr_);
     static void AddExec(void* pPhysAddr_, EXPR* pExpr_);
     static void AddMemory(void* pPhysAddr_, AccessType nAccess_, EXPR* pExpr_, int nLength_ = 1);
-    static void AddPort(WORD wPort_, AccessType nAccess_, EXPR* pExpr_);
-    static void AddInterrupt(BYTE bIntMask_, EXPR* pExpr_);
+    static void AddPort(uint16_t wPort_, AccessType nAccess_, EXPR* pExpr_);
+    static void AddInterrupt(uint8_t bIntMask_, EXPR* pExpr_);
     static const char* GetDesc(BREAKPT* pBreak_);
     static BREAKPT* GetAt(int nIndex_);
-    static bool IsExecAddr(WORD wAddr_);
+    static bool IsExecAddr(uint16_t wAddr_);
     static int GetIndex(BREAKPT* pBreak_);
     static int GetExecIndex(void* pPhysAddr_);
     static bool RemoveAt(int nIndex_);

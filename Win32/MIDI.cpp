@@ -44,14 +44,14 @@ CMidiDevice::~CMidiDevice()
 }
 
 
-BYTE CMidiDevice::In(WORD wPort_)
+uint8_t CMidiDevice::In(uint16_t wPort_)
 {
     // No MIDI-IN support yet
     return 0x00;
 }
 
 
-void CMidiDevice::Out(WORD wPort_, BYTE bVal_)
+void CMidiDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // Protect against very long System Exclusive blocks
     if ((m_nOut == (sizeof(m_abOut) - 1)) && bVal_ != 0xf7)
@@ -119,7 +119,7 @@ void CMidiDevice::Out(WORD wPort_, BYTE bVal_)
 
     // Output the MIDI message
     if (m_hMidiOut)
-        midiOutShortMsg(m_hMidiOut, *reinterpret_cast<DWORD*>(&m_abOut));
+        midiOutShortMsg(m_hMidiOut, *reinterpret_cast<uint32_t*>(&m_abOut));
 
     // Prepare for the next message, clearing out
     m_nOut = m_abOut[1] = m_abOut[2] = m_abOut[3] = 0;

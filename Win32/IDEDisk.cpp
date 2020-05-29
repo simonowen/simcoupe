@@ -21,6 +21,8 @@
 #include "SimCoupe.h"
 #include "IDEDisk.h"
 
+#include <winioctl.h>
+
 // SAMdiskHelper definitions, for non-admin device access
 #define PIPENAME    "\\\\.\\pipe\\SAMdiskHelper"
 #define FN_OPEN     2
@@ -175,7 +177,7 @@ bool CDeviceHardDisk::Lock(bool fReadOnly_/*=false*/)
         if (h == INVALID_HANDLE_VALUE)
             continue;
 
-        BYTE ab[256];
+        DWORD ab[256];
         PVOLUME_DISK_EXTENTS pvde = reinterpret_cast<PVOLUME_DISK_EXTENTS>(ab);
 
         // Get the extents of the volume, which may span multiple physical drives
@@ -226,11 +228,13 @@ void CDeviceHardDisk::Unlock()
     }
 }
 
-bool CDeviceHardDisk::ReadSector(UINT uSector_, BYTE* pb_)
+bool CDeviceHardDisk::ReadSector(UINT uSector_, uint8_t* pb_)
 {
     LARGE_INTEGER liOffset = { uSector_ << 9 };
-    DWORD dwLow = static_cast<DWORD>(liOffset.QuadPart & 0xffffffff), dwSize = 1 << 9, dwRead;
-    LONG lHigh = static_cast<LONG>(liOffset.QuadPart >> 32);
+    auto dwLow = static_cast<DWORD>(liOffset.QuadPart & 0xffffffff);
+    auto lHigh = static_cast<LONG>(liOffset.QuadPart >> 32);
+    DWORD dwSize = 1 << 9;
+    DWORD dwRead;
 
     if (SetFilePointer(m_hDevice, dwLow, &lHigh, FILE_BEGIN) == 0xffffffff)
         TRACE("CDeviceHardDisk::ReadSector: seek failed (%lu)\n", GetLastError());
@@ -247,11 +251,13 @@ bool CDeviceHardDisk::ReadSector(UINT uSector_, BYTE* pb_)
     return false;
 }
 
-bool CDeviceHardDisk::WriteSector(UINT uSector_, BYTE* pb_)
+bool CDeviceHardDisk::WriteSector(UINT uSector_, uint8_t* pb_)
 {
     LARGE_INTEGER liOffset = { uSector_ << 9 };
-    DWORD dwLow = static_cast<DWORD>(liOffset.QuadPart & 0xffffffff), dwSize = 1 << 9, dwWritten;
-    LONG lHigh = static_cast<LONG>(liOffset.QuadPart >> 32);
+    auto dwLow = static_cast<DWORD>(liOffset.QuadPart & 0xffffffff);
+    auto lHigh = static_cast<LONG>(liOffset.QuadPart >> 32);
+    DWORD dwSize = 1 << 9;
+    DWORD dwWritten;
 
     memcpy(m_pbSector, pb_, dwSize);
 
@@ -265,7 +271,7 @@ const char* CDeviceHardDisk::GetDeviceList()
     char* pszList = szList;
     szList[0] = '\0';
 
-    BYTE ab[2048];
+    DWORD ab[2048];
 
     for (DWORD dw = 0; dw < 10; dw++)
     {

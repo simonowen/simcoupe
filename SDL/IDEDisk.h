@@ -32,8 +32,8 @@ public:
     bool Open(bool fReadOnly_ = false) override;
     void Close();
 
-    bool ReadSector(UINT uSector_, BYTE* pb_) override;
-    bool WriteSector(UINT uSector_, BYTE* pb_) override;
+    bool ReadSector(unsigned int uSector_, uint8_t* pb_) override;
+    bool WriteSector(unsigned int uSector_, uint8_t* pb_) override;
 
 protected:
     int m_hDevice = -1;

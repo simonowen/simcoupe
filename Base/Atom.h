@@ -22,21 +22,21 @@
 
 #include "AtaAdapter.h"
 
-const BYTE ATOM_ADDR_MASK = 0x1f;   // Chip select mask
-const BYTE ATOM_REG_MASK = 0x07;    // Device address mask
-const BYTE ATOM_NRESET = 0x20;      // Reset pin (negative logic)
+const uint8_t ATOM_ADDR_MASK = 0x1f;   // Chip select mask
+const uint8_t ATOM_REG_MASK = 0x07;    // Device address mask
+const uint8_t ATOM_NRESET = 0x20;      // Reset pin (negative logic)
 
 class CAtomDevice : public CAtaAdapter
 {
 public:
-    BYTE In(WORD wPort_) override;
-    void Out(WORD wPort_, BYTE bVal_) override;
+    uint8_t In(uint16_t wPort_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 public:
     bool Attach(CHardDisk* pDisk_, int nDevice_) override;
 
 protected:
-    BYTE m_bAddressLatch = 0;
-    BYTE m_bReadLatch = 0;
-    BYTE m_bWriteLatch = 0;
+    uint8_t m_bAddressLatch = 0;
+    uint8_t m_bReadLatch = 0;
+    uint8_t m_bWriteLatch = 0;
 };

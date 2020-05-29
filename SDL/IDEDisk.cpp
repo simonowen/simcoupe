@@ -80,14 +80,14 @@ void CDeviceHardDisk::Close()
     }
 }
 
-bool CDeviceHardDisk::ReadSector(UINT uSector_, BYTE* pb_)
+bool CDeviceHardDisk::ReadSector(unsigned int uSector_, uint8_t* pb_)
 {
     off_t uOffset = uSector_ << 9, uSize = 1 << 9;
     return lseek(m_hDevice, uOffset, SEEK_SET) == uOffset &&
         read(m_hDevice, pb_, uSize) == uSize;
 }
 
-bool CDeviceHardDisk::WriteSector(UINT uSector_, BYTE* pb_)
+bool CDeviceHardDisk::WriteSector(unsigned int uSector_, uint8_t* pb_)
 {
     off_t uOffset = uSector_ << 9, uSize = 1 << 9;
     return lseek(m_hDevice, uOffset, SEEK_SET) == uOffset &&
@@ -99,7 +99,7 @@ bool CDeviceHardDisk::WriteSector(UINT uSector_, BYTE* pb_)
 // Dummy implementation for non-Linux SDL versions
 bool CDeviceHardDisk::Open(bool fReadOnly_/*=false*/) { return false; }
 void CDeviceHardDisk::Close() { }
-bool CDeviceHardDisk::ReadSector(UINT, BYTE*) { return false; }
-bool CDeviceHardDisk::WriteSector(UINT, BYTE*) { return false; }
+bool CDeviceHardDisk::ReadSector(unsigned int, uint8_t*) { return false; }
+bool CDeviceHardDisk::WriteSector(unsigned int, uint8_t*) { return false; }
 
 #endif

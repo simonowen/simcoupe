@@ -44,9 +44,9 @@ void Update();
 void TouchLines(int nFrom_, int nTo_);
 inline void TouchLine(int nLine_) { TouchLines(nLine_, nLine_); }
 
-void GetAsicData(BYTE* pb0_, BYTE* pb1_, BYTE* pb2_, BYTE* pb3_);
-void ChangeMode(BYTE bNewVmpr_);
-void ChangeScreen(BYTE bNewBorder_);
+void GetAsicData(uint8_t* pb0_, uint8_t* pb1_, uint8_t* pb2_, uint8_t* pb3_);
+void ChangeMode(uint8_t bNewVmpr_);
+void ChangeScreen(uint8_t bNewBorder_);
 
 void Sync();
 void Redraw();
@@ -56,15 +56,15 @@ void SaveSSX();
 int GetWidth();
 int GetHeight();
 int GetRasterPos(int* pnLine_);
-void SetView(UINT uBlocks_, UINT uLines_);
+void SetView(unsigned int uBlocks_, unsigned int uLines_);
 
 void SetStatus(const char* pcszFormat_, ...);
 }
 
 
 inline bool IsScreenLine(int nLine_) { return nLine_ >= (TOP_BORDER_LINES) && nLine_ < (TOP_BORDER_LINES + SCREEN_LINES); }
-inline BYTE AttrBg(BYTE bAttr_) { return (((bAttr_) >> 3) & 0xf); }
-inline BYTE AttrFg(BYTE bAttr_) { return ((((bAttr_) >> 3) & 8) | ((bAttr_) & 7)); }
+inline uint8_t AttrBg(uint8_t bAttr_) { return (((bAttr_) >> 3) & 0xf); }
+inline uint8_t AttrFg(uint8_t bAttr_) { return ((((bAttr_) >> 3) & 8) | ((bAttr_) & 7)); }
 
 
 extern bool fDrawFrame, g_fFlashPhase;
@@ -74,14 +74,14 @@ extern int s_nWidth, s_nHeight;         // in mode 3 pixels
 extern int s_nViewTop, s_nViewBottom;   // in lines
 extern int s_nViewLeft, s_nViewRight;   // in screen blocks
 
-extern WORD g_awMode1LineToByte[SCREEN_LINES];
+extern uint16_t g_awMode1LineToByte[SCREEN_LINES];
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // Generic base for all screen classes
 class CFrame
 {
-    typedef void (CFrame::* FNLINEUPDATE)(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_);
+    typedef void (CFrame::* FNLINEUPDATE)(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_);
 
 public:
     CFrame() : m_pLineUpdate(&CFrame::Mode1Line), m_pbScreenData(nullptr) { }
@@ -90,32 +90,32 @@ public:
     virtual ~CFrame() = default;
 
 public:
-    void SetMode(BYTE bVal_);
+    void SetMode(uint8_t bVal_);
     void UpdateLine(CScreen* pScreen_, int nLine_, int nFrom_, int nTo_);
-    void GetAsicData(BYTE* pb0_, BYTE* pb1_, BYTE* pb2_, BYTE* pb3_);
+    void GetAsicData(uint8_t* pb0_, uint8_t* pb1_, uint8_t* pb2_, uint8_t* pb3_);
 
-    void ModeChange(BYTE* pbLine_, int nLine_, int nBlock_, BYTE bNewVmpr_);
-    void ScreenChange(BYTE* pbLine_, int nLine_, int nBlock_, BYTE bNewBorder_);
+    void ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_t bNewVmpr_);
+    void ScreenChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_t bNewBorder_);
 
 protected:
-    void BorderLine(BYTE* pbLine_, int nFrom_, int nTo_);
-    void BlackLine(BYTE* pbLine_, int nFrom_, int nTo_);
-    void LeftBorder(BYTE* pbLine_, int nFrom_, int nTo_);
-    void RightBorder(BYTE* pbLine_, int nFrom_, int nTo_);
+    void BorderLine(uint8_t* pbLine_, int nFrom_, int nTo_);
+    void BlackLine(uint8_t* pbLine_, int nFrom_, int nTo_);
+    void LeftBorder(uint8_t* pbLine_, int nFrom_, int nTo_);
+    void RightBorder(uint8_t* pbLine_, int nFrom_, int nTo_);
 
-    void Mode1Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_);
-    void Mode2Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_);
-    void Mode3Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_);
-    void Mode4Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_);
+    void Mode1Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_);
+    void Mode2Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_);
+    void Mode3Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_);
+    void Mode4Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_);
 
 protected:
     FNLINEUPDATE m_pLineUpdate;     // Function used to draw current mode
-    BYTE* m_pbScreenData;           // Cached pointer to start of RAM page containing video memory
+    uint8_t* m_pbScreenData;           // Cached pointer to start of RAM page containing video memory
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 
-inline void CFrame::LeftBorder(BYTE* pbLine_, int nFrom_, int nTo_)
+inline void CFrame::LeftBorder(uint8_t* pbLine_, int nFrom_, int nTo_)
 {
     int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, BORDER_BLOCKS);
 
@@ -124,7 +124,7 @@ inline void CFrame::LeftBorder(BYTE* pbLine_, int nFrom_, int nTo_)
         memset(pbLine_ + ((nFrom - s_nViewLeft) << 4), clut[border_col], (nTo - nFrom) << 4);
 }
 
-inline void CFrame::RightBorder(BYTE* pbLine_, int nFrom_, int nTo_)
+inline void CFrame::RightBorder(uint8_t* pbLine_, int nFrom_, int nTo_)
 {
     int nFrom = std::max((WIDTH_BLOCKS - BORDER_BLOCKS), nFrom_), nTo = std::min(nTo_, s_nViewRight);
 
@@ -133,7 +133,7 @@ inline void CFrame::RightBorder(BYTE* pbLine_, int nFrom_, int nTo_)
         memset(pbLine_ + ((nFrom - s_nViewLeft) << 4), clut[border_col], (nTo - nFrom) << 4);
 }
 
-inline void CFrame::BorderLine(BYTE* pbLine_, int nFrom_, int nTo_)
+inline void CFrame::BorderLine(uint8_t* pbLine_, int nFrom_, int nTo_)
 {
     // Work out the range that within the visible area
     int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, s_nViewRight);
@@ -143,7 +143,7 @@ inline void CFrame::BorderLine(BYTE* pbLine_, int nFrom_, int nTo_)
         memset(pbLine_ + ((nFrom - s_nViewLeft) << 4), clut[border_col], (nTo - nFrom) << 4);
 }
 
-inline void CFrame::BlackLine(BYTE* pbLine_, int nFrom_, int nTo_)
+inline void CFrame::BlackLine(uint8_t* pbLine_, int nFrom_, int nTo_)
 {
     // Work out the range that within the visible area
     int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, s_nViewRight);
@@ -154,7 +154,7 @@ inline void CFrame::BlackLine(BYTE* pbLine_, int nFrom_, int nTo_)
 }
 
 
-inline void CFrame::Mode1Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void CFrame::Mode1Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
 {
     nLine_ -= TOP_BORDER_LINES;
 
@@ -167,20 +167,20 @@ inline void CFrame::Mode1Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_)
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
     {
-        BYTE* pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
-        BYTE* pbDataMem = m_pbScreenData + g_awMode1LineToByte[nLine_] + (nFrom - BORDER_BLOCKS);
-        BYTE* pbAttrMem = m_pbScreenData + 6144 + ((nLine_ & 0xf8) << 2) + (nFrom - BORDER_BLOCKS);
+        auto pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
+        auto pbDataMem = m_pbScreenData + g_awMode1LineToByte[nLine_] + (nFrom - BORDER_BLOCKS);
+        auto pbAttrMem = m_pbScreenData + 6144 + ((nLine_ & 0xf8) << 2) + (nFrom - BORDER_BLOCKS);
 
         // The actual screen line
         for (int i = nFrom; i < nTo; i++)
         {
-            BYTE bData = *pbDataMem++, bAttr = *pbAttrMem++, bInk = AttrFg(bAttr), bPaper = AttrBg(bAttr);
+            uint8_t bData = *pbDataMem++, bAttr = *pbAttrMem++, bInk = AttrFg(bAttr), bPaper = AttrBg(bAttr);
 
             // toggle the colours if we're in the inverse part of the FLASH cycle
             if (g_fFlashPhase && (bAttr & 0x80))
                 std::swap(bInk, bPaper);
 
-            BYTE ink = clut[bInk], paper = clut[bPaper];
+            uint8_t ink = clut[bInk], paper = clut[bPaper];
 
             pFrame[0] = pFrame[1] = (bData & 0x80) ? ink : paper;
             pFrame[2] = pFrame[3] = (bData & 0x40) ? ink : paper;
@@ -199,7 +199,7 @@ inline void CFrame::Mode1Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_)
     RightBorder(pbLine_, nFrom_, nTo_);
 }
 
-inline void CFrame::Mode2Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void CFrame::Mode2Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
 {
     nLine_ -= TOP_BORDER_LINES;
 
@@ -212,20 +212,20 @@ inline void CFrame::Mode2Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_)
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
     {
-        BYTE* pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
-        BYTE* pbDataMem = m_pbScreenData + (nLine_ << 5) + (nFrom - BORDER_BLOCKS);
-        BYTE* pbAttrMem = pbDataMem + 0x2000;
+        auto pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
+        auto pbDataMem = m_pbScreenData + (nLine_ << 5) + (nFrom - BORDER_BLOCKS);
+        auto pbAttrMem = pbDataMem + 0x2000;
 
         // The actual screen line
         for (int i = nFrom; i < nTo; i++)
         {
-            BYTE bData = *pbDataMem++, bAttr = *pbAttrMem++, bInk = AttrFg(bAttr), bPaper = AttrBg(bAttr);
+            uint8_t bData = *pbDataMem++, bAttr = *pbAttrMem++, bInk = AttrFg(bAttr), bPaper = AttrBg(bAttr);
 
             // toggle the colours if we're in the inverse part of the FLASH cycle
             if (g_fFlashPhase && (bAttr & 0x80))
                 std::swap(bInk, bPaper);
 
-            BYTE ink = clut[bInk], paper = clut[bPaper];
+            uint8_t ink = clut[bInk], paper = clut[bPaper];
 
             pFrame[0] = pFrame[1] = (bData & 0x80) ? ink : paper;
             pFrame[2] = pFrame[3] = (bData & 0x40) ? ink : paper;
@@ -244,7 +244,7 @@ inline void CFrame::Mode2Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_)
     RightBorder(pbLine_, nFrom_, nTo_);
 }
 
-inline void CFrame::Mode3Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void CFrame::Mode3Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
 {
     nLine_ -= TOP_BORDER_LINES;
 
@@ -257,13 +257,13 @@ inline void CFrame::Mode3Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_)
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
     {
-        BYTE* pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
-        BYTE* pbDataMem = m_pbScreenData + (nLine_ << 7) + ((nFrom - BORDER_BLOCKS) << 2);
+        auto pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
+        auto pbDataMem = m_pbScreenData + (nLine_ << 7) + ((nFrom - BORDER_BLOCKS) << 2);
 
         // The actual screen line
         for (int i = nFrom; i < nTo; i++)
         {
-            BYTE bData;
+            uint8_t bData;
 
             bData = pbDataMem[0];
             pFrame[0] = mode3clut[bData >> 6];
@@ -299,7 +299,7 @@ inline void CFrame::Mode3Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_)
     RightBorder(pbLine_, nFrom_, nTo_);
 }
 
-inline void CFrame::Mode4Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void CFrame::Mode4Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
 {
     nLine_ -= TOP_BORDER_LINES;
 
@@ -312,13 +312,13 @@ inline void CFrame::Mode4Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_)
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
     {
-        BYTE* pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
-        BYTE* pbDataMem = ((nFrom - BORDER_BLOCKS) << 2) + m_pbScreenData + (nLine_ << 7);
+        auto pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
+        auto pbDataMem = ((nFrom - BORDER_BLOCKS) << 2) + m_pbScreenData + (nLine_ << 7);
 
         // The actual screen line
         for (int i = nFrom; i < nTo; i++)
         {
-            BYTE bData;
+            uint8_t bData;
 
             bData = pbDataMem[0];
             pFrame[0] = pFrame[1] = clut[bData >> 4];
@@ -345,13 +345,13 @@ inline void CFrame::Mode4Line(BYTE* pbLine_, int nLine_, int nFrom_, int nTo_)
     RightBorder(pbLine_, nFrom_, nTo_);
 }
 
-inline void CFrame::ModeChange(BYTE* pbLine_, int nLine_, int nBlock_, BYTE bNewVmpr_)
+inline void CFrame::ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_t bNewVmpr_)
 {
     int nScreenLine = nLine_ - TOP_BORDER_LINES;
-    BYTE ab[4];
+    uint8_t ab[4];
 
     // Fetch the 4 display data bytes for the original mode
-    BYTE b0, b1, b2, b3;
+    uint8_t b0, b1, b2, b3;
     GetAsicData(&b0, &b1, &b2, &b3);
 
     // Perform the necessary massaging the ASIC does to prepare for display
@@ -379,8 +379,8 @@ inline void CFrame::ModeChange(BYTE* pbLine_, int nLine_, int nBlock_, BYTE bNew
     case MODE_1:
     {
         // Determine data+attr location for current cell, and preserve the values at each location
-        BYTE* pData = m_pbScreenData + g_awMode1LineToByte[nScreenLine] + (nBlock_ - BORDER_BLOCKS), bData = *pData;
-        BYTE* pAttr = m_pbScreenData + 6144 + ((nScreenLine & 0xf8) << 2) + (nBlock_ - BORDER_BLOCKS), bAttr = *pAttr;
+        uint8_t* pData = m_pbScreenData + g_awMode1LineToByte[nScreenLine] + (nBlock_ - BORDER_BLOCKS), bData = *pData;
+        uint8_t* pAttr = m_pbScreenData + 6144 + ((nScreenLine & 0xf8) << 2) + (nBlock_ - BORDER_BLOCKS), bAttr = *pAttr;
 
         // Write the artefact bytes from the old mode, and draw the cell
         *pData = ab[0];
@@ -395,8 +395,8 @@ inline void CFrame::ModeChange(BYTE* pbLine_, int nLine_, int nBlock_, BYTE bNew
 
     case MODE_2:
     {
-        BYTE* pData = m_pbScreenData + (nScreenLine << 5) + (nBlock_ - BORDER_BLOCKS), bData = *pData;
-        BYTE* pAttr = pData + 0x2000, bAttr = *pAttr;
+        uint8_t* pData = m_pbScreenData + (nScreenLine << 5) + (nBlock_ - BORDER_BLOCKS), bData = *pData;
+        uint8_t* pAttr = pData + 0x2000, bAttr = *pAttr;
 
         *pData = ab[0];
         *pAttr = ab[2];
@@ -409,8 +409,8 @@ inline void CFrame::ModeChange(BYTE* pbLine_, int nLine_, int nBlock_, BYTE bNew
 
     default:
     {
-        BYTE* pb = m_pbScreenData + (nScreenLine << 7) + ((nBlock_ - BORDER_BLOCKS) << 2);
-        DWORD* pdw = reinterpret_cast<DWORD*>(pb), dw = *pdw;
+        uint8_t* pb = m_pbScreenData + (nScreenLine << 7) + ((nBlock_ - BORDER_BLOCKS) << 2);
+        uint32_t* pdw = reinterpret_cast<uint32_t*>(pb), dw = *pdw;
 
         pb[0] = ab[0];
         pb[1] = ab[1];
@@ -428,9 +428,9 @@ inline void CFrame::ModeChange(BYTE* pbLine_, int nLine_, int nBlock_, BYTE bNew
     }
 }
 
-inline void CFrame::ScreenChange(BYTE* pbLine_, int /*nLine_*/, int nBlock_, BYTE bNewBorder_)
+inline void CFrame::ScreenChange(uint8_t* pbLine_, int /*nLine_*/, int nBlock_, uint8_t bNewBorder_)
 {
-    BYTE* pFrame = pbLine_ + ((nBlock_ - s_nViewLeft) << 4);
+    auto pFrame = pbLine_ + ((nBlock_ - s_nViewLeft) << 4);
 
     // Part of the first pixel is the previous border colour, from when the screen was disabled.
     // We don't have the resolution to show only part, but using the most significant colour bits

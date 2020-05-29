@@ -28,8 +28,8 @@
 #include "Video.h"
 
 // Normal and scanline palettes in native surface values (faster kept at file scope)
-static DWORD aulPalette[N_PALETTE_COLOURS];
-static DWORD aulScanline[N_PALETTE_COLOURS];
+static uint32_t aulPalette[N_PALETTE_COLOURS];
+static uint32_t aulScanline[N_PALETTE_COLOURS];
 
 
 DirectDrawVideo::DirectDrawVideo()
@@ -157,7 +157,7 @@ void DirectDrawVideo::UpdatePalette()
     {
         // Look up the colour in the SAM palette
         const COLOUR* p = &pSAM[i];
-        BYTE r = p->bRed, g = p->bGreen, b = p->bBlue;
+        uint8_t r = p->bRed, g = p->bGreen, b = p->bBlue;
 
         // Set regular pixel
         aulPalette[i] = RGB2Native(r, g, b, ddpf->dwRBitMask, ddpf->dwGBitMask, ddpf->dwBBitMask);
@@ -303,10 +303,10 @@ bool DirectDrawVideo::DrawChanges(CScreen* pScreen_, bool* pafDirty_)
     if (fInterlace)
         ddsd.lPitch <<= 1;
 
-    DWORD* pdwBack = reinterpret_cast<DWORD*>(ddsd.lpSurface), * pdw = pdwBack;
+    uint32_t* pdwBack = reinterpret_cast<uint32_t*>(ddsd.lpSurface), * pdw = pdwBack;
     LONG lPitchDW = ddsd.lPitch >> 2;
 
-    BYTE* pbSAM = pScreen_->GetLine(0), * pb = pbSAM;
+    uint8_t* pbSAM = pScreen_->GetLine(0), * pb = pbSAM;
     LONG lPitch = pScreen_->GetPitch();
 
     int nDepth = ddsd.ddpfPixelFormat.dwRGBBitCount;

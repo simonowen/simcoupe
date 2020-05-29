@@ -24,6 +24,10 @@
 //  symbols (e.g. US), letters (e.g. French), and digits (e.g. Czech).
 
 #include "SimCoupe.h"
+#include <windowsx.h>
+
+#define DIRECTINPUT_VERSION     0x0500
+#include <dinput.h>
 
 #include "GUI.h"
 #include "Input.h"
@@ -36,10 +40,12 @@
 #include "UI.h"
 #include "Util.h"
 
+typedef HRESULT(WINAPI* PFNDIRECTINPUTCREATE) (HINSTANCE, DWORD, LPDIRECTINPUTA*, LPUNKNOWN);
 
 const unsigned int EVENT_BUFFER_SIZE = 16;
 const unsigned int JOYSTICK_DEADZONE = 50; // 50% of analogue range
 
+static PFNDIRECTINPUTCREATE pfnDirectInputCreate;
 static LPDIRECTINPUT pdi;
 static LPDIRECTINPUTDEVICE pdiKeyboard;
 static LPDIRECTINPUTDEVICE2 pdidJoystick1, pdidJoystick2;
@@ -60,6 +66,23 @@ bool Input::Init(bool fFirstInit_/*=false*/)
 
     Exit(true);
     TRACE("Input::Init(%d)\n", fFirstInit_);
+
+    auto hinstDInput = LoadLibrary("DINPUT.DLL");
+    if (!hinstDInput)
+    {
+        Message(msgError, "DINPUT.DLL not found.");
+        return false;
+    }
+
+    pfnDirectInputCreate =
+        reinterpret_cast<PFNDIRECTINPUTCREATE>(
+            GetProcAddress(hinstDInput, "DirectInputCreateA"));
+
+    if (!pfnDirectInputCreate)
+    {
+        Message(msgError, "DirectInputCreate failed.");
+        return false;
+    }
 
     // If we can find DirectInput 5.0 we can have joystick support, otherwise fall back on 3.0 support for NT4
     if (fRet = SUCCEEDED(pfnDirectInputCreate(__hinstance, DIRECTINPUT_VERSION, &pdi, nullptr)))
@@ -90,6 +113,7 @@ void Input::Exit(bool fReInit_/*=false*/)
     if (pdi) { pdi->Release(); pdi = nullptr; }
 
     Keyboard::Exit(fReInit_);
+    pfnDirectInputCreate = nullptr;
 }
 
 

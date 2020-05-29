@@ -39,28 +39,28 @@ static bool fSegment;
 
 struct tagRIFF
 {
-    BYTE abRiffHeader[4];   // 'R','I','F','F'
-    BYTE abWaveLen[4];
+    uint8_t abRiffHeader[4];   // 'R','I','F','F'
+    uint8_t abWaveLen[4];
 
     struct
     {
-        BYTE fmtheader[8];  // 'W','A','V','E','f','m','t',' '
-        BYTE fmtlen[4];
+        uint8_t fmtheader[8];  // 'W','A','V','E','f','m','t',' '
+        uint8_t fmtlen[4];
 
         struct
         {
-            BYTE FormatTag[2];      // WAVE_FORMAT_PCM = 1
-            BYTE Channels[2];
-            BYTE SamplesPerSec[4];
-            BYTE AvgBytesPerSec[4];
-            BYTE BlockAlign[2];
-            BYTE BitsPerSample[2];
+            uint8_t FormatTag[2];      // WAVE_FORMAT_PCM = 1
+            uint8_t Channels[2];
+            uint8_t SamplesPerSec[4];
+            uint8_t AvgBytesPerSec[4];
+            uint8_t BlockAlign[2];
+            uint8_t BitsPerSample[2];
         } fmt;
 
         struct
         {
-            BYTE dataheader[4];     // 'd','a','t','a'
-            BYTE datalen[4];
+            uint8_t dataheader[4];     // 'd','a','t','a'
+            uint8_t datalen[4];
 
             // PCM data starts here...
         } pcmdata;
@@ -78,10 +78,10 @@ struct tagRIFF
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void WriteWaveValue(long lVal_, BYTE* pb_, int nSize_)
+static void WriteWaveValue(long lVal_, uint8_t* pb_, int nSize_)
 {
     for (int i = 0; i < nSize_; i++)
-        *pb_++ = static_cast<BYTE>((lVal_ >> (i << 3)) & 0xff);
+        *pb_++ = static_cast<uint8_t>((lVal_ >> (i << 3)) & 0xff);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -162,7 +162,7 @@ bool IsRecording()
 }
 
 
-void AddFrame(const BYTE* pb_, int nLen_)
+void AddFrame(const uint8_t* pb_, int nLen_)
 {
     // Fail if we're not recording
     if (!f)

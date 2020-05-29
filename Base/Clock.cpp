@@ -192,7 +192,7 @@ CSambusClock::CSambusClock()
     memset(m_abRegs, 0, sizeof(m_abRegs));
 }
 
-BYTE CSambusClock::In(WORD wPort_)
+uint8_t CSambusClock::In(uint16_t wPort_)
 {
     // Strip off the bottom 8 bits (239 for CLOCK_PORT)
     wPort_ >>= 8;
@@ -201,11 +201,11 @@ BYTE CSambusClock::In(WORD wPort_)
     Update();
 
     // The register is in the top 4 bits
-    BYTE bReg = (wPort_ >> 4) & 0x0f;
+    uint8_t bReg = (wPort_ >> 4) & 0x0f;
     return m_abRegs[bReg];
 }
 
-void CSambusClock::Out(WORD wPort_, BYTE bVal_)
+void CSambusClock::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // Strip off the bottom 8 bits (always 239 for CLOCK_PORT)
     wPort_ >>= 8;
@@ -214,7 +214,7 @@ void CSambusClock::Out(WORD wPort_, BYTE bVal_)
     Update();
 
     // Determine the register location and perform the write
-    BYTE bReg = (wPort_ >> 4) & 0x0f;
+    uint8_t bReg = (wPort_ >> 4) & 0x0f;
     m_abRegs[bReg] = bVal_;
 
     // SAMBUS clock only appears to use the lower 4 bits of the value
@@ -301,13 +301,13 @@ CDallasClock::CDallasClock()
     m_abRegs[0x47 + BANK1] = 0x1e;    // p(x) = x^8 + x^5 + x^4 + x^0
 }
 
-BYTE CDallasClock::In(WORD /*wPort_*/)
+uint8_t CDallasClock::In(uint16_t /*wPort_*/)
 {
     // Update the clock
     Update();
 
     // Determine the register location to read from
-    BYTE bReg = m_bReg & 0x7f;
+    uint8_t bReg = m_bReg & 0x7f;
     if (bReg >= 0x40 && (m_abRegs[0x0a] & 0x10)) bReg += BANK1;
 
     // Pre-read processing
@@ -317,7 +317,7 @@ BYTE CDallasClock::In(WORD /*wPort_*/)
     case 0x53 + BANK1:
     {
         // Determine the extended RAM offset
-        WORD wOffset = (m_abRegs[0x51 + BANK1] << 8) | m_abRegs[0x50 + BANK1];
+        uint16_t wOffset = (m_abRegs[0x51 + BANK1] << 8) | m_abRegs[0x50 + BANK1];
 
         // Update the extended RAM data port, using 0xff if out of RAM range
         m_abRegs[bReg] = (wOffset < sizeof(m_abRAM)) ? m_abRAM[wOffset] : 0xff;
@@ -331,7 +331,7 @@ BYTE CDallasClock::In(WORD /*wPort_*/)
     }
 
     // Perform the read
-    BYTE bRet = m_abRegs[bReg];
+    uint8_t bRet = m_abRegs[bReg];
 
     // Post-read side-effects
     switch (bReg)
@@ -346,7 +346,7 @@ BYTE CDallasClock::In(WORD /*wPort_*/)
     return bRet;
 }
 
-void CDallasClock::Out(WORD wPort_, BYTE bVal_)
+void CDallasClock::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // Strip off the bottom 8 bits (always 239 for CLOCK_PORT)
     wPort_ >>= 8;
@@ -362,7 +362,7 @@ void CDallasClock::Out(WORD wPort_, BYTE bVal_)
     }
 
     // Determine the register location to write to
-    BYTE bReg = m_bReg & 0x7f;
+    uint8_t bReg = m_bReg & 0x7f;
     if (bReg >= 0x40 && (m_abRegs[0x0a] & 0x10)) bReg += BANK1;
 
     // Pre-write processing
@@ -410,7 +410,7 @@ void CDallasClock::Out(WORD wPort_, BYTE bVal_)
     case 0x53 + BANK1:
     {
         // Determine the extended RAM offset
-        WORD wOffset = (m_abRegs[0x51 + BANK1] << 8) | m_abRegs[0x50 + BANK1];
+        uint16_t wOffset = (m_abRegs[0x51 + BANK1] << 8) | m_abRegs[0x50 + BANK1];
 
         // Write the byte, if it's within RAM range
         if (wOffset < sizeof(m_abRAM))

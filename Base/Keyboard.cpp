@@ -42,9 +42,9 @@ typedef struct
 int anNativeKey[HK_MAX - HK_MIN + 1];
 
 int nComboKey, nComboMods;
-DWORD dwComboTime;
+uint32_t dwComboTime;
 
-BYTE abKeys[512 >> 3];
+uint8_t abKeys[512 >> 3];
 inline bool IsPressed(int k) { return !!(abKeys[k >> 3] & (1 << (k & 7))); }
 inline void PressKey(int k) { abKeys[k >> 3] |= (1 << (k & 7)); }
 inline void ReleaseKey(int k) { abKeys[k >> 3] &= ~(1 << (k & 7)); }
@@ -173,7 +173,7 @@ void Purge()
 void Update()
 {
     // Save a copy of the current key state, so we can modify it during matching below
-    BYTE abKeysCopy[_countof(abKeys)];
+    uint8_t abKeysCopy[_countof(abKeys)];
     memcpy(abKeysCopy, abKeys, sizeof(abKeys));
 
     // No SAM keys are pressed initially
@@ -221,7 +221,7 @@ void Update()
         // Note: the SK_ range isn't contiguous
         static const int anS[] = { SK_F1, SK_F2, SK_F3, SK_F4, SK_F5, SK_F6, SK_F7, SK_F8, SK_F9, SK_F0 };
 
-        for (UINT u = 0; u < _countof(anS); u++)
+        for (unsigned int u = 0; u < _countof(anS); u++)
         {
             if (IsPressed(static_cast<eHostKey>(HK_F1 + u)))
             {

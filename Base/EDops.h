@@ -48,8 +48,8 @@
 // sbc HL,rr
 #define sbc_hl(x)       do { \
                             g_dwCycleCounter += 7; \
-                            WORD z = (x); \
-                            DWORD y = HL - z - cy; \
+                            uint16_t z = (x); \
+                            uint32_t y = HL - z - cy; \
                             F = (((y & 0xb800) ^ ((HL ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
                                 ((y >> 16) & 1) |                                   /* C          */ \
                                 (((HL ^ z) & (HL ^ y) & 0x8000) >> 13) |            /* V          */ \
@@ -61,8 +61,8 @@
 // adc HL,rr
 #define adc_hl(x)       do { \
                             g_dwCycleCounter += 7; \
-                            WORD z = (x); \
-                            DWORD y = HL + z + cy; \
+                            uint16_t z = (x); \
+                            uint32_t y = HL + z + cy; \
                             F = (((y & 0xb800) ^ ((HL ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
                                 ((y >> 16) & 0x01) |                                /* C          */ \
                                 (((HL ^ ~z) & (HL ^ y) & 0x8000) >> 13);            /* V          */ \
@@ -83,7 +83,7 @@
 
 // Load; increment; [repeat]
 #define ldi(loop)       do { \
-                            BYTE x = timed_read_byte(HL); \
+                            uint8_t x = timed_read_byte(HL); \
                             timed_write_byte(DE,x); \
                             g_dwCycleCounter += 2; \
                             HL++; \
@@ -99,7 +99,7 @@
 
 // Load; decrement; [repeat]
 #define ldd(loop)       do { \
-                            BYTE x = timed_read_byte(HL); \
+                            uint8_t x = timed_read_byte(HL); \
                             timed_write_byte(DE,x); \
                             g_dwCycleCounter += 2; \
                             HL--; \
@@ -115,8 +115,8 @@
 
 // Compare; increment; [repeat]
 #define cpi(loop)       do { \
-                            BYTE carry = cy, x = timed_read_byte(HL); \
-                            BYTE sum = A - x, z = A ^ x ^ sum; \
+                            uint8_t carry = cy, x = timed_read_byte(HL); \
+                            uint8_t sum = A - x, z = A ^ x ^ sum; \
                             g_dwCycleCounter += 5; \
                             HL++; \
                             BC--; \
@@ -131,8 +131,8 @@
 
 // Compare; decrement; [repeat]
 #define cpd(loop)       do { \
-                            BYTE carry = cy, x = timed_read_byte(HL); \
-                            BYTE sum = A - x, z = A ^ x ^ sum; \
+                            uint8_t carry = cy, x = timed_read_byte(HL); \
+                            uint8_t sum = A - x, z = A ^ x ^ sum; \
                             g_dwCycleCounter += 5; \
                             HL--; \
                             BC--; \
@@ -148,7 +148,7 @@
 // Input; increment; [repeat]
 #define ini(loop)       do { \
                             PORT_ACCESS(C); \
-                            BYTE t = in_byte(BC); \
+                            uint8_t t = in_byte(BC); \
                             timed_write_byte(HL,t); \
                             HL++; \
                             B--; \
@@ -162,7 +162,7 @@
 // Input; decrement; [repeat]
 #define ind(loop)       do { \
                             PORT_ACCESS(C); \
-                            BYTE t = in_byte(BC); \
+                            uint8_t t = in_byte(BC); \
                             timed_write_byte(HL,t); \
                             HL--; \
                             B--; \
@@ -179,7 +179,7 @@
 
 // Output; increment; [repeat]
 #define oti(loop)       do { \
-                            BYTE x = timed_read_byte(HL); \
+                            uint8_t x = timed_read_byte(HL); \
                             B--; \
                             PORT_ACCESS(C); \
                             out_byte(BC,x); \
@@ -193,7 +193,7 @@
 
 // Output; decrement; [repeat]
 #define otd(loop)       do { \
-                            BYTE x = timed_read_byte(HL); \
+                            uint8_t x = timed_read_byte(HL); \
                             B--; \
                             PORT_ACCESS(C); \
                             out_byte(BC,x); \
@@ -210,7 +210,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
-BYTE op = timed_read_code_byte(PC++);
+auto op = timed_read_code_byte(PC++);
 R++;
 
 switch (op)
@@ -223,7 +223,7 @@ switch (op)
     edinstr(4, 0130) in_c(E);                                            endinstr;   // in e,(c)
     edinstr(4, 0140) in_c(H);                                            endinstr;   // in h,(c)
     edinstr(4, 0150) in_c(L);                                            endinstr;   // in l,(c)
-    edinstr(4, 0160) BYTE x; in_c(x);                                    endinstr;   // in x,(c) [result discarded, but flags still set]
+    edinstr(4, 0160) uint8_t x; in_c(x);                                    endinstr;   // in x,(c) [result discarded, but flags still set]
     edinstr(4, 0170) in_c(A);                                            endinstr;   // in a,(c)
 
 
@@ -305,8 +305,8 @@ switch (op)
 
     // rrd
     edinstr(4, 0147)
-        BYTE t = timed_read_byte(HL);
-    BYTE u = (A << 4) | (t >> 4);
+        uint8_t t = timed_read_byte(HL);
+    uint8_t u = (A << 4) | (t >> 4);
     A = (A & 0xf0) | (t & 0x0f);
     g_dwCycleCounter += 4;
     timed_write_byte(HL, u);
@@ -315,8 +315,8 @@ switch (op)
 
     // rld
     edinstr(4, 0157)
-        BYTE t = timed_read_byte(HL);
-    BYTE u = (A & 0x0f) | (t << 4);
+        uint8_t t = timed_read_byte(HL);
+    uint8_t u = (A & 0x0f) | (t << 4);
     A = (A & 0xf0) | (t >> 4);
     g_dwCycleCounter += 4;
     timed_write_byte(HL, u);

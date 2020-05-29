@@ -28,8 +28,8 @@ namespace Symbol
 
 static const int MAX_SYMBOL_OFFSET = 3;
 
-typedef std::map <WORD, std::string> AddrToSym;
-typedef std::map <std::string, WORD> SymToAddr;
+typedef std::map <uint16_t, std::string> AddrToSym;
+typedef std::map <std::string, uint16_t> SymToAddr;
 
 static AddrToSym ram_symbols, rom_symbols;
 static AddrToSym port_symbols;
@@ -60,7 +60,7 @@ static void ReadcPickler(FILE* file_, AddrToSym& symtab_, SymToAddr* pValues_)
         // The symbol values are integers, with an I type marker
         else if ((psz = strchr(szLine, 'I')))
         {
-            WORD wAddr = static_cast<WORD>(strtoul(psz + 1, nullptr, 0));
+            auto wAddr = static_cast<uint16_t>(strtoul(psz + 1, nullptr, 0));
 
             // If we have a name, set the mapping entries
             if (sName.length())
@@ -95,7 +95,7 @@ static void ReadSimple(FILE* file_, AddrToSym& symtab_, SymToAddr* pValues_)
                 continue;
 
             // Extract address value from the hex string
-            WORD wAddr = static_cast<WORD>(strtoul(psz, nullptr, 16));
+            auto wAddr = static_cast<uint16_t>(strtoul(psz, nullptr, 16));
 
             // Find the label name, stripping EOL to preserve empty values
             if ((psz = strtok(nullptr, " =")) != nullptr)
@@ -184,7 +184,7 @@ int LookupSymbol(std::string sSymbol_)
 }
 
 // Look up an address, with optional maximum length and offset to nearby symbols is no exact match
-std::string LookupAddr(WORD wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*=false*/)
+std::string LookupAddr(uint16_t wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*=false*/)
 {
     std::string symbol;
 
@@ -239,12 +239,12 @@ std::string LookupAddr(WORD wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*=fal
 }
 
 // Look up a port symbol for an input or output port (which may have different functions)
-std::string LookupPort(BYTE bPort_, bool fInput_)
+std::string LookupPort(uint8_t bPort_, bool fInput_)
 {
     std::string symbol;
 
     // Use as-is for input ports but set bit 15 for output port look-up
-    WORD wPort = fInput_ ? bPort_ : (0x8000 | bPort_);
+    uint16_t wPort = fInput_ ? bPort_ : (0x8000 | bPort_);
 
     AddrToSym::iterator it = port_symbols.find(wPort);
 

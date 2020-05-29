@@ -29,15 +29,15 @@ public:
     ~CMidiDevice();
 
 public:
-    BYTE In(WORD wPort_) override;
-    void Out(WORD wPort_, BYTE bVal_) override;
+    uint8_t In(uint16_t wPort_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 public:
     bool SetDevice(const char* pcszDevice_);
 
 protected:
-    BYTE m_abIn[256]{};       // Buffers for MIDI IN and MIDI OUT data
-    BYTE m_abOut[256]{};
+    uint8_t m_abIn[256]{};       // Buffers for MIDI IN and MIDI OUT data
+    uint8_t m_abOut[256]{};
     int m_nIn = 0, m_nOut = 0; // Number of bytes in the buffers above
 
     int m_nDevice = -1;        // Device handle, or -1 if not open

@@ -95,12 +95,12 @@ void CSID::FrameEnd()
     m_nSamplesThisFrame = 0;
 }
 
-void CSID::Out(WORD wPort_, BYTE bVal_)
+void CSID::Out(uint16_t wPort_, uint8_t bVal_)
 {
 #ifdef HAVE_LIBRESID
     Update();
 
-    BYTE bReg = wPort_ >> 8;
+    uint8_t bReg = wPort_ >> 8;
 
     if (m_pSID)
         m_pSID->write(bReg & 0x1f, bVal_);

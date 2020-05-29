@@ -163,7 +163,7 @@ void Input::Purge()
 static void ReadJoystick(int nJoystick_, SDL_Joystick* pJoystick_, int nTolerance_)
 {
     int nPosition = HJ_CENTRE;
-    DWORD dwButtons = 0;
+    uint32_t dwButtons = 0;
     Uint8 bHat = 0;
     int i;
 
@@ -214,7 +214,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
     {
         SDL_TextInputEvent* pEvent = &pEvent_->text;
         int nChr = pEvent->text[0];
-        BYTE* pbText = reinterpret_cast<BYTE*>(pEvent->text);
+        auto pbText = reinterpret_cast<uint8_t*>(pEvent->text);
 
         // Ignore symbols from the keypad
         if ((nLastKey >= HK_KP0 && nLastKey <= HK_KP9) || (nLastKey >= HK_KPPLUS && nLastKey <= HK_KPDECIMAL))
@@ -436,7 +436,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
 
     case SDL_MOUSEBUTTONDOWN:
     {
-        static DWORD dwLastClick;
+        static uint32_t dwLastClick;
         static int nLastButton = -1;
 
         int nX = pEvent_->button.x;

@@ -30,8 +30,8 @@
 
 #define FULLSCREEN_DEPTH    16
 
-static DWORD aulPalette[N_PALETTE_COLOURS];
-static DWORD aulScanline[N_PALETTE_COLOURS];
+static uint32_t aulPalette[N_PALETTE_COLOURS];
+static uint32_t aulScanline[N_PALETTE_COLOURS];
 
 
 SDLSurface::SDLSurface()
@@ -95,7 +95,7 @@ void SDLSurface::UpdatePalette()
     {
         // Look up the colour in the SAM palette
         const COLOUR* p = &pSAM[i];
-        BYTE r = p->bRed, g = p->bGreen, b = p->bBlue;
+        uint8_t r = p->bRed, g = p->bGreen, b = p->bBlue;
 
         aulPalette[i] = SDL_MapRGB(pBack->format, r, g, b);
         AdjustBrightness(r, g, b, nScanAdjust);
@@ -126,10 +126,10 @@ bool SDLSurface::DrawChanges(CScreen* pScreen_, bool* pafDirty_)
     bool fInterlace = !GUI::IsActive();
     if (fInterlace) nHeight >>= 1;
 
-    DWORD* pdwBack = reinterpret_cast<DWORD*>(pBack->pixels), * pdw = pdwBack;
+    uint32_t* pdwBack = reinterpret_cast<uint32_t*>(pBack->pixels), * pdw = pdwBack;
     long lPitchDW = pBack->pitch >> (fInterlace ? 1 : 2);
 
-    BYTE* pbSAM = pScreen_->GetLine(0), * pb = pbSAM;
+    uint8_t* pbSAM = pScreen_->GetLine(0), * pb = pbSAM;
     long lPitch = pScreen_->GetPitch();
 
     int nShift = fInterlace ? 1 : 0;

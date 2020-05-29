@@ -28,7 +28,7 @@ public:
     static void Exit(bool fReInit_ = false);
 
     static void Silence();
-    static bool AddData(BYTE* pb_, int nLen_);
+    static bool AddData(uint8_t* pb_, int nLen_);
 };
 
 #endif  // AUDIO_H

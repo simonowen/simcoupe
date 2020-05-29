@@ -106,9 +106,9 @@ void Message(eMsgType eType_, const char* pcszFormat_, ...)
 }
 
 
-BYTE GetSizeCode(UINT uSize_)
+uint8_t GetSizeCode(unsigned int uSize_)
 {
-    BYTE bCode = 0;
+    uint8_t bCode = 0;
     for (bCode = 0; uSize_ > 128; bCode++, uSize_ >>= 1);
     return bCode;
 }
@@ -126,7 +126,7 @@ const char* AbbreviateSize(uint64_t ullSize_)
     while (ullSize_ >= 1000 && pcszUnits[nUnits + 1])
     {
         // Determine the percentage error/loss in the next scaling
-        UINT uClipPercent = static_cast<UINT>((ullSize_ % 1000) * 100 / (ullSize_ - (ullSize_ % 1000)));
+        auto uClipPercent = static_cast<unsigned int>((ullSize_ % 1000) * 100 / (ullSize_ - (ullSize_ % 1000)));
 
         // Stop if it's at least 20%
         if (uClipPercent >= 20)
@@ -138,22 +138,22 @@ const char* AbbreviateSize(uint64_t ullSize_)
     }
 
     static char sz[32] = {};
-    snprintf(sz, sizeof(sz) - 1, "%u%cB", static_cast<UINT>(ullSize_), pcszUnits[nUnits]);
+    snprintf(sz, sizeof(sz) - 1, "%u%cB", static_cast<unsigned int>(ullSize_), pcszUnits[nUnits]);
     return sz;
 }
 
 
 // CRC-CCITT for id/data checksums, with bit and byte order swapped
-WORD CrcBlock(const void* pcv_, size_t uLen_, WORD wCRC_/*=0xffff*/)
+uint16_t CrcBlock(const void* pcv_, size_t uLen_, uint16_t wCRC_/*=0xffff*/)
 {
-    static WORD awCRC[256];
+    static uint16_t awCRC[256];
 
     // Build the table if not already built
     if (!awCRC[1])
     {
         for (int i = 0; i < 256; i++)
         {
-            WORD w = i << 8;
+            uint16_t w = i << 8;
 
             // 8 shifts, for each bit in the update byte
             for (int j = 0; j < 8; j++)
@@ -164,7 +164,7 @@ WORD CrcBlock(const void* pcv_, size_t uLen_, WORD wCRC_/*=0xffff*/)
     }
 
     // Update the CRC with each byte in the block
-    const BYTE* pb = reinterpret_cast<const BYTE*>(pcv_);
+    auto pb = reinterpret_cast<const uint8_t*>(pcv_);
     while (uLen_--)
         wCRC_ = (wCRC_ << 8) ^ awCRC[((wCRC_ >> 8) ^ *pb++) & 0xff];
 
@@ -173,12 +173,12 @@ WORD CrcBlock(const void* pcv_, size_t uLen_, WORD wCRC_/*=0xffff*/)
 }
 
 
-void PatchBlock(BYTE* pb_, BYTE* pbPatch_)
+void PatchBlock(uint8_t* pb_, uint8_t* pbPatch_)
 {
     for (;;)
     {
         // Flag+length in big-endian format
-        WORD wLen = (pbPatch_[0] << 8) | pbPatch_[1];
+        uint16_t wLen = (pbPatch_[0] << 8) | pbPatch_[1];
         pbPatch_ += 2;
 
         // End marker is zero
@@ -202,16 +202,16 @@ void PatchBlock(BYTE* pb_, BYTE* pbPatch_)
 
 
 // SAM ROM triple-peek used for stored addresses
-UINT TPeek(const BYTE* pb_)
+unsigned int TPeek(const uint8_t* pb_)
 {
-    UINT u = ((pb_[0] & 0x1f) << 14) | ((pb_[2] & 0x3f) << 8) | pb_[1];
+    unsigned int u = ((pb_[0] & 0x1f) << 14) | ((pb_[2] & 0x3f) << 8) | pb_[1];
 
     // Clip to 512K
     return (u & ((1U << 19) - 1));
 }
 
 
-void AdjustBrightness(BYTE& r_, BYTE& g_, BYTE& b_, int nAdjust_)
+void AdjustBrightness(uint8_t& r_, uint8_t& g_, uint8_t& b_, int nAdjust_)
 {
     int nOffset = (nAdjust_ <= 0) ? 0 : nAdjust_;
     int nMult = 100 - ((nAdjust_ <= 0) ? -nAdjust_ : nAdjust_);
@@ -221,17 +221,17 @@ void AdjustBrightness(BYTE& r_, BYTE& g_, BYTE& b_, int nAdjust_)
     b_ = nOffset + (b_ * nMult / 100);
 }
 
-DWORD RGB2Native(BYTE r_, BYTE g_, BYTE b_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_)
+uint32_t RGB2Native(uint8_t r_, uint8_t g_, uint8_t b_, uint32_t dwRMask_, uint32_t dwGMask_, uint32_t dwBMask_)
 {
     return RGB2Native(r_, g_, b_, 0, dwRMask_, dwGMask_, dwBMask_, 0);
 }
 
-DWORD RGB2Native(BYTE r_, BYTE g_, BYTE b_, BYTE a_, DWORD dwRMask_, DWORD dwGMask_, DWORD dwBMask_, DWORD dwAMask_)
+uint32_t RGB2Native(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_, uint32_t dwRMask_, uint32_t dwGMask_, uint32_t dwBMask_, uint32_t dwAMask_)
 {
-    DWORD dwRed = static_cast<DWORD>(((static_cast<uint64_t>(dwRMask_)* (r_ + 1)) >> 8)& dwRMask_);
-    DWORD dwGreen = static_cast<DWORD>(((static_cast<uint64_t>(dwGMask_)* (g_ + 1)) >> 8)& dwGMask_);
-    DWORD dwBlue = static_cast<DWORD>(((static_cast<uint64_t>(dwBMask_)* (b_ + 1)) >> 8)& dwBMask_);
-    DWORD dwAlpha = static_cast<DWORD>(((static_cast<uint64_t>(dwAMask_)* (a_ + 1)) >> 8)& dwAMask_);
+    uint32_t dwRed = static_cast<uint32_t>(((static_cast<uint64_t>(dwRMask_)* (r_ + 1)) >> 8)& dwRMask_);
+    uint32_t dwGreen = static_cast<uint32_t>(((static_cast<uint64_t>(dwGMask_)* (g_ + 1)) >> 8)& dwGMask_);
+    uint32_t dwBlue = static_cast<uint32_t>(((static_cast<uint64_t>(dwBMask_)* (b_ + 1)) >> 8)& dwBMask_);
+    uint32_t dwAlpha = static_cast<uint32_t>(((static_cast<uint64_t>(dwAMask_)* (a_ + 1)) >> 8)& dwAMask_);
 
     return dwRed | dwGreen | dwBlue | dwAlpha;
 }
@@ -244,13 +244,13 @@ void TraceOutputString(const char* /*pcszFormat_*/, ...)
 {
 }
 
-void TraceOutputString(const BYTE* /*pcb*/, UINT /*uLen=0*/)
+void TraceOutputString(const uint8_t* /*pcb*/, unsigned int /*uLen=0*/)
 {
 }
 
 #else
 
-DWORD g_dwStart;
+uint32_t g_dwStart;
 
 static void TraceOutputString(const char* pcszFormat_, va_list pcvArgs);
 static void WriteTimeString(char* psz_);
@@ -291,7 +291,7 @@ static void TraceOutputString(const char* pcszFormat_, va_list pcvArgs_)
 
 
 // Output a formatted debug message in hex blocks with ASCII
-void TraceOutputString(const BYTE* pcb, size_t uLen/*=0*/)
+void TraceOutputString(const uint8_t* pcb, size_t uLen/*=0*/)
 {
     if (!s_pszTrace)
         return;
@@ -306,8 +306,8 @@ void TraceOutputString(const BYTE* pcb, size_t uLen/*=0*/)
     // Loop while there is still data to process
     while (uLen > 0)
     {
-        BYTE* pabASCIIPos = (BYTE*)s_pszTrace + 16 * 3 + 4;
-        BYTE* pabLinePos = reinterpret_cast<BYTE*>(s_pszTrace);
+        auto pabASCIIPos = (uint8_t*)s_pszTrace + 16 * 3 + 4;
+        auto pabLinePos = reinterpret_cast<uint8_t*>(s_pszTrace);
         memset(pabLinePos, ' ', 80);
 
         // Append each hex byte until no more bytes or this line is full.
@@ -318,7 +318,7 @@ void TraceOutputString(const BYTE* pcb, size_t uLen/*=0*/)
                 *pabLinePos++ = ' ';
 
             // Store the hex byte
-            static BYTE abHexBytes[] = "0123456789ABCDEF";
+            static uint8_t abHexBytes[] = "0123456789ABCDEF";
             *pabLinePos++ = abHexBytes[*pcb >> 4];
             *pabLinePos++ = abHexBytes[*pcb & 0xf];
             *pabLinePos++ = ' ';
@@ -347,12 +347,12 @@ void TraceOutputString(const BYTE* pcb, size_t uLen/*=0*/)
 void WriteTimeString(char* psz_)
 {
     // Fetch the current system time in milliseconds
-    DWORD dwNow = OSD::GetTime(), dwElapsed = g_dwStart ? dwNow - g_dwStart : dwNow - (g_dwStart = dwNow);
+    uint32_t dwNow = OSD::GetTime(), dwElapsed = g_dwStart ? dwNow - g_dwStart : dwNow - (g_dwStart = dwNow);
 
     // Break the elapsed time into seconds, minutes and milliseconds
-    DWORD dwMillisecs = dwElapsed % 1000, dwSecs = (dwElapsed /= 1000) % 60, dwMins = (dwElapsed /= 60) % 100;
+    uint32_t dwMillisecs = dwElapsed % 1000, dwSecs = (dwElapsed /= 1000) % 60, dwMins = (dwElapsed /= 60) % 100;
 
-    DWORD dwScreenCycles = g_dwCycleCounter - BORDER_PIXELS;
+    uint32_t dwScreenCycles = g_dwCycleCounter - BORDER_PIXELS;
     int nLine = dwScreenCycles / TSTATES_PER_LINE, nLineCycle = dwScreenCycles % TSTATES_PER_LINE;
 
     // Form the time string and send to the debugger

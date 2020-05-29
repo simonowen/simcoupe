@@ -31,11 +31,11 @@ void SetX(int nJoystick_, int nPosition_);
 void SetY(int nJoystick_, int nPosition_);
 void SetPosition(int nJoystick_, int nPosition_);
 void SetButton(int nJoystick_, int nButton_, bool fPressed_);
-void SetButtons(int nJoystick_, DWORD dwButtons_);
+void SetButtons(int nJoystick_, uint32_t dwButtons_);
 
-BYTE ReadSinclair1(int nJoystick_);
-BYTE ReadSinclair2(int nJoystick_);
-BYTE ReadKempston(int nJoystick_);
+uint8_t ReadSinclair1(int nJoystick_);
+uint8_t ReadSinclair2(int nJoystick_);
+uint8_t ReadKempston(int nJoystick_);
 }
 
 enum { jtNone, jtJoystick1, jtJoystick2, jtKempston };

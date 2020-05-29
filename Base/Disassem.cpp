@@ -32,7 +32,7 @@
 #include "Util.h"
 
 // Bit table indicating which opcodes can have a DD/FD index prefix
-BYTE abIndexableOpcodes[] =
+uint8_t abIndexableOpcodes[] =
 {
     0x08, 0x8A, 0x0A, 0x8A, 0x3E, 0xBE, 0x3E, 0x08, 0x08, 0x8B, 0x0A, 0x4A, 0x3E, 0x3E, 0x3E, 0x08,
     0x08, 0x08, 0x08, 0x08, 0x3E, 0x3E, 0x36, 0x08, 0x00, 0x87, 0x00, 0x00, 0x3C, 0x3C, 0x3C, 0x00
@@ -69,10 +69,10 @@ static const char* aszStrings[] =
 };
 
 
-static WORD wPC = 0;
+static uint16_t wPC = 0;
 static char szOutput[64], * pszOut;
-static BYTE bOpcode, * pbOpcode;
-static BYTE abStack[10], * pbStack;
+static uint8_t bOpcode, * pbOpcode;
+static uint8_t abStack[10], * pbStack;
 
 int nType = 0;
 
@@ -93,18 +93,18 @@ static void SkipBlock(const char** ppcszTable)
 }
 
 // Lower-case 'a'-'n' are function numbers
-static void Function(BYTE b_, int nSymbolMax_)
+static void Function(uint8_t b_, int nSymbolMax_)
 {
     int i;
-    BYTE bOp0 = pbOpcode[0], bOp1 = pbOpcode[1], bOp2 = pbOpcode[2];
+    uint8_t bOp0 = pbOpcode[0], bOp1 = pbOpcode[1], bOp2 = pbOpcode[2];
     bool fPositive = !(bOp1 & 0x80);
-    BYTE bDisp = fPositive ? bOp1 : (0 - bOp1);
+    uint8_t bDisp = fPositive ? bOp1 : (0 - bOp1);
 
     switch (b_)
     {
     case 'a':
     {
-        WORD wAddr = (bOp2 << 8) | bOp1;
+        uint16_t wAddr = (bOp2 << 8) | bOp1;
 
         std::string sName = nSymbolMax_ ? Symbol::LookupAddr(wAddr, nSymbolMax_, true) : "";
 
@@ -120,7 +120,7 @@ static void Function(BYTE b_, int nSymbolMax_)
     case 'd':   if (bOp1) pszOut += sprintf(pszOut, fHex ? "%c%02X" : "%c%d", fPositive ? '+' : '-', bDisp); break;
     case 'e':
     {
-        WORD wAddr = wPC + 2 + static_cast<signed char>(bOp1);
+        uint16_t wAddr = wPC + 2 + static_cast<signed char>(bOp1);
 
         std::string sName = nSymbolMax_ ? Symbol::LookupAddr(wAddr, nSymbolMax_, true) : "";
 
@@ -140,7 +140,7 @@ static void Function(BYTE b_, int nSymbolMax_)
     case 'o':   pszOut += sprintf(pszOut, fHex ? "%02X" : "%d", GetOption(cmosz80) ? 255 : 0); break;
     case 'p':
     {
-        BYTE bPort = bOp1;
+        uint8_t bPort = bOp1;
         bool fRead = (bOp0 == 0xdb); // IN A,(n)
 
         std::string sName = nSymbolMax_ ? Symbol::LookupPort(bPort, fRead).substr(0, nSymbolMax_) : "";
@@ -164,11 +164,11 @@ static void Function(BYTE b_, int nSymbolMax_)
     }
 }
 
-static UINT ParseStr(const char* pcsz_, int nSymbolMax_)
+static unsigned int ParseStr(const char* pcsz_, int nSymbolMax_)
 {
     while (1)
     {
-        BYTE b = *pcsz_++;
+        uint8_t b = *pcsz_++;
 
         switch (b)
         {
@@ -216,9 +216,9 @@ static UINT ParseStr(const char* pcsz_, int nSymbolMax_)
     return 0;
 }
 
-UINT Disassemble(BYTE* pb_, WORD wPC_/*=0*/, char* psz_/*=nullptr*/, size_t cbSize_/*=0*/, int nSymbolMax_/*=0*/)
+unsigned int Disassemble(uint8_t* pb_, uint16_t wPC_/*=0*/, char* psz_/*=nullptr*/, size_t cbSize_/*=0*/, int nSymbolMax_/*=0*/)
 {
-    BYTE abOpcode[MAX_Z80_INSTR_LEN];
+    uint8_t abOpcode[MAX_Z80_INSTR_LEN];
 
     // Initialise our working variables
     memset(pszOut = szOutput, ' ', sizeof(szOutput));
@@ -255,7 +255,7 @@ UINT Disassemble(BYTE* pb_, WORD wPC_/*=0*/, char* psz_/*=nullptr*/, size_t cbSi
     }
 
     // Parse the instruction, terminate and copy the output to the supplied buffer
-    UINT uLength = ParseStr(pcszTable, nSymbolMax_);
+    auto uLength = ParseStr(pcszTable, nSymbolMax_);
     *pszOut = '\0';
 
     // Copy the output to the supplied buffer (if any), taking care not to overflow it
