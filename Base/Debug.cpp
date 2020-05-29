@@ -394,6 +394,14 @@ static bool OnAddressNotify(EXPR* pExpr_)
 // Notify handler for Execute Until expression
 static bool OnUntilNotify(EXPR* pExpr_)
 {
+    if (pExpr_->nType == T_NUMBER && !pExpr_->pNext)
+    {
+        std::stringstream ss;
+        ss << "PC==" << std::hex << pExpr_->nValue;
+        Expr::Release(pExpr_);
+        pExpr_ = Expr::Compile(ss.str().c_str());
+    }
+
     Breakpoint::AddTemp(nullptr, pExpr_);
     Debug::Stop();
     return false;

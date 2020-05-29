@@ -68,6 +68,7 @@ typedef unsigned long       ULONG;
 #include <algorithm>
 #include <queue>
 #include <stack>
+#include <sstream>
 
 #ifdef HAVE_STD_FILESYSTEM
 #include <filesystem>
