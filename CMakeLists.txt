@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.8.2)
 project(simcoupe)
 set(PROJECT_TITLE SimCoupe)
 
