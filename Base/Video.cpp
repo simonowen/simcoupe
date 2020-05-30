@@ -30,7 +30,7 @@ namespace Video
 {
 
 static VideoBase* pVideo;
-static bool afDirty[HEIGHT_LINES * 2];
+static bool afDirty[GFX_HEIGHT_LINES * 2];
 
 
 bool Init(bool fFirstInit_)

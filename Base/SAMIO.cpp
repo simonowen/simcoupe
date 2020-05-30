@@ -181,7 +181,7 @@ bool Init(bool fFirstInit_/*=false*/)
     if (GetOption(asicdelay))
     {
         fASICStartup = true;
-        AddCpuEvent(evtAsicStartup, g_dwCycleCounter + ASIC_STARTUP_DELAY);
+        AddCpuEvent(evtAsicStartup, g_dwCycleCounter + CPU_CYCLES_ASIC_STARTUP);
     }
 
     // Reset the sound hardware
@@ -298,15 +298,15 @@ static uint8_t update_lpen()
 {
     if (!VMPR_MODE_3_OR_4 || !BORD_SOFF)
     {
-        int line = g_dwCycleCounter / TSTATES_PER_LINE, line_cycle = g_dwCycleCounter % TSTATES_PER_LINE;
+        int line = g_dwCycleCounter / CPU_CYCLES_PER_LINE, line_cycle = g_dwCycleCounter % CPU_CYCLES_PER_LINE;
 
-        if (IsScreenLine(line) && line_cycle >= (BORDER_PIXELS + BORDER_PIXELS))
+        if (IsScreenLine(line) && line_cycle >= (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER))
         {
             uint8_t b1, b2, b3, b4;
             Frame::GetAsicData(&b1, &b2, &b3, &b4);
 
-            auto xpos = static_cast<uint8_t>(line_cycle - (BORDER_PIXELS + BORDER_PIXELS));
-            auto b0 = (line_cycle < (BORDER_PIXELS + BORDER_PIXELS)) ? (border & 1) : (b1 & 1);
+            auto xpos = static_cast<uint8_t>(line_cycle - (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER));
+            auto b0 = (line_cycle < (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER)) ? (border & 1) : (b1 & 1);
             lpen = (xpos & 0xfc) | (lpen & LPEN_TXFMST) | b0;
         }
         else
@@ -322,12 +322,12 @@ static uint8_t update_hpen()
 {
     if (!VMPR_MODE_3_OR_4 || !BORD_SOFF)
     {
-        int line = g_dwCycleCounter / TSTATES_PER_LINE, line_cycle = g_dwCycleCounter % TSTATES_PER_LINE;
+        int line = g_dwCycleCounter / CPU_CYCLES_PER_LINE, line_cycle = g_dwCycleCounter % CPU_CYCLES_PER_LINE;
 
-        if (IsScreenLine(line) && (line != TOP_BORDER_LINES || line_cycle >= (BORDER_PIXELS + BORDER_PIXELS)))
+        if (IsScreenLine(line) && (line != TOP_BORDER_LINES || line_cycle >= (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER)))
             hpen = line - TOP_BORDER_LINES;
         else
-            hpen = SCREEN_LINES;
+            hpen = GFX_SCREEN_LINES;
     }
 
     return hpen;
@@ -727,9 +727,9 @@ void Out(uint16_t wPort_, uint8_t bVal_)
             else
             {
                 // There are no visible changes in the transition block
-                g_dwCycleCounter += VIDEO_DELAY;
+                g_dwCycleCounter += CPU_CYCLES_PER_CELL;
                 Frame::Update();
-                g_dwCycleCounter -= VIDEO_DELAY;
+                g_dwCycleCounter -= CPU_CYCLES_PER_CELL;
 
                 // Do the whole change here - the check below will not be triggered
                 OutVmpr(bVal_);
@@ -745,9 +745,9 @@ void Out(uint16_t wPort_, uint8_t bVal_)
         {
             // Changes to screen PAGE aren't visible until 8 tstates later
             // as the memory has been read by the ASIC already
-            g_dwCycleCounter += VIDEO_DELAY;
+            g_dwCycleCounter += CPU_CYCLES_PER_CELL;
             Frame::Update();
-            g_dwCycleCounter -= VIDEO_DELAY;
+            g_dwCycleCounter -= CPU_CYCLES_PER_CELL;
 
             OutVmpr(bVal_);
         }
@@ -790,7 +790,7 @@ void Out(uint16_t wPort_, uint8_t bVal_)
         if (line_int != bVal_)
         {
             // Cancel any existing line interrupt
-            if (line_int < SCREEN_LINES)
+            if (line_int < GFX_SCREEN_LINES)
             {
                 CancelCpuEvent(evtLineIntStart);
                 status_reg |= STATUS_INT_LINE;
@@ -800,9 +800,9 @@ void Out(uint16_t wPort_, uint8_t bVal_)
             line_int = bVal_;
 
             // Valid line interrupt set?
-            if (line_int < SCREEN_LINES)
+            if (line_int < GFX_SCREEN_LINES)
             {
-                uint32_t dwLineTime = (line_int + TOP_BORDER_LINES) * TSTATES_PER_LINE;
+                uint32_t dwLineTime = (line_int + TOP_BORDER_LINES) * CPU_CYCLES_PER_LINE;
 
                 // Schedule the line interrupt (could be active now, or already passed this frame)
                 AddCpuEvent(evtLineIntStart, dwLineTime);

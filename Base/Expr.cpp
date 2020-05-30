@@ -389,7 +389,7 @@ int Expr::Eval(const EXPR* pExpr_)
             {
                 int nLine;
                 Frame::GetRasterPos(&nLine);
-                if (nLine >= TOP_BORDER_LINES && nLine < (TOP_BORDER_LINES + SCREEN_LINES))
+                if (nLine >= TOP_BORDER_LINES && nLine < (TOP_BORDER_LINES + GFX_SCREEN_LINES))
                     r = nLine - TOP_BORDER_LINES;
                 else
                     r = -1;

@@ -22,7 +22,7 @@
 
 #include "SAMIO.h"
 
-#define BLUE_ALPHA_CLOCK_TIME   (REAL_TSTATES_PER_SECOND/pBlueAlpha->GetClockFreq()/2)    // half period
+#define BLUE_ALPHA_CLOCK_TIME   (CPU_CLOCK_HZ/pBlueAlpha->GetClockFreq()/2)    // half period
 
 class CBlueAlphaDevice final : public CIoDevice
 {

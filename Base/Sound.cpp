@@ -137,8 +137,8 @@ void CSAA::Out(uint16_t wPort_, uint8_t bVal_)
 
 CDAC::CDAC()
 {
-    buf_left.clock_rate(REAL_TSTATES_PER_SECOND);
-    buf_right.clock_rate(REAL_TSTATES_PER_SECOND);
+    buf_left.clock_rate(CPU_CLOCK_HZ);
+    buf_right.clock_rate(CPU_CLOCK_HZ);
     buf_left.set_sample_rate(SAMPLE_FREQ);
     buf_right.set_sample_rate(SAMPLE_FREQ);
 
@@ -163,8 +163,8 @@ void CDAC::Reset()
 
 void CDAC::FrameEnd()
 {
-    buf_left.end_frame(TSTATES_PER_FRAME);
-    buf_right.end_frame(TSTATES_PER_FRAME);
+    buf_left.end_frame(CPU_CYCLES_PER_FRAME);
+    buf_right.end_frame(CPU_CYCLES_PER_FRAME);
 
     blip_sample_t* ps = reinterpret_cast<blip_sample_t*>(m_pbFrameSample);
     m_nSamplesThisFrame = static_cast<int>(buf_left.samples_avail());
@@ -207,7 +207,7 @@ void CDAC::Output2(uint8_t bVal_)
 
 int CDAC::GetSamplesSoFar()
 {
-    auto uCycles = std::min(g_dwCycleCounter, static_cast<uint32_t>(TSTATES_PER_FRAME));
+    auto uCycles = std::min(g_dwCycleCounter, static_cast<uint32_t>(CPU_CYCLES_PER_FRAME));
     return static_cast<int>(buf_left.count_samples(uCycles));
 }
 

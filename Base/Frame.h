@@ -62,7 +62,7 @@ void SetStatus(const char* pcszFormat_, ...);
 }
 
 
-inline bool IsScreenLine(int nLine_) { return nLine_ >= (TOP_BORDER_LINES) && nLine_ < (TOP_BORDER_LINES + SCREEN_LINES); }
+inline bool IsScreenLine(int nLine_) { return nLine_ >= (TOP_BORDER_LINES) && nLine_ < (TOP_BORDER_LINES + GFX_SCREEN_LINES); }
 inline uint8_t AttrBg(uint8_t bAttr_) { return (((bAttr_) >> 3) & 0xf); }
 inline uint8_t AttrFg(uint8_t bAttr_) { return ((((bAttr_) >> 3) & 8) | ((bAttr_) & 7)); }
 
@@ -74,7 +74,7 @@ extern int s_nWidth, s_nHeight;         // in mode 3 pixels
 extern int s_nViewTop, s_nViewBottom;   // in lines
 extern int s_nViewLeft, s_nViewRight;   // in screen blocks
 
-extern uint16_t g_awMode1LineToByte[SCREEN_LINES];
+extern uint16_t g_awMode1LineToByte[GFX_SCREEN_LINES];
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -117,7 +117,7 @@ protected:
 
 inline void CFrame::LeftBorder(uint8_t* pbLine_, int nFrom_, int nTo_)
 {
-    int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, BORDER_BLOCKS);
+    int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, SIDE_BORDER_CELLS);
 
     // Draw the required section of the left border, if any
     if (nFrom < nTo)
@@ -126,7 +126,7 @@ inline void CFrame::LeftBorder(uint8_t* pbLine_, int nFrom_, int nTo_)
 
 inline void CFrame::RightBorder(uint8_t* pbLine_, int nFrom_, int nTo_)
 {
-    int nFrom = std::max((WIDTH_BLOCKS - BORDER_BLOCKS), nFrom_), nTo = std::min(nTo_, s_nViewRight);
+    int nFrom = std::max((GFX_WIDTH_CELLS - SIDE_BORDER_CELLS), nFrom_), nTo = std::min(nTo_, s_nViewRight);
 
     // Draw the required section of the right border, if any
     if (nFrom < nTo)
@@ -162,14 +162,14 @@ inline void CFrame::Mode1Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_
     LeftBorder(pbLine_, nFrom_, nTo_);
 
     // Work out the range that within the visible area
-    int nFrom = std::max(BORDER_BLOCKS, nFrom_), nTo = std::min(nTo_, BORDER_BLOCKS + SCREEN_BLOCKS);
+    int nFrom = std::max(SIDE_BORDER_CELLS, nFrom_), nTo = std::min(nTo_, SIDE_BORDER_CELLS + GFX_SCREEN_CELLS);
 
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
     {
         auto pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
-        auto pbDataMem = m_pbScreenData + g_awMode1LineToByte[nLine_] + (nFrom - BORDER_BLOCKS);
-        auto pbAttrMem = m_pbScreenData + 6144 + ((nLine_ & 0xf8) << 2) + (nFrom - BORDER_BLOCKS);
+        auto pbDataMem = m_pbScreenData + g_awMode1LineToByte[nLine_] + (nFrom - SIDE_BORDER_CELLS);
+        auto pbAttrMem = m_pbScreenData + 6144 + ((nLine_ & 0xf8) << 2) + (nFrom - SIDE_BORDER_CELLS);
 
         // The actual screen line
         for (int i = nFrom; i < nTo; i++)
@@ -207,13 +207,13 @@ inline void CFrame::Mode2Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_
     LeftBorder(pbLine_, nFrom_, nTo_);
 
     // Work out the range that within the visible area
-    int nFrom = std::max(BORDER_BLOCKS, nFrom_), nTo = std::min(nTo_, BORDER_BLOCKS + SCREEN_BLOCKS);
+    int nFrom = std::max(SIDE_BORDER_CELLS, nFrom_), nTo = std::min(nTo_, SIDE_BORDER_CELLS + GFX_SCREEN_CELLS);
 
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
     {
         auto pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
-        auto pbDataMem = m_pbScreenData + (nLine_ << 5) + (nFrom - BORDER_BLOCKS);
+        auto pbDataMem = m_pbScreenData + (nLine_ << 5) + (nFrom - SIDE_BORDER_CELLS);
         auto pbAttrMem = pbDataMem + 0x2000;
 
         // The actual screen line
@@ -252,13 +252,13 @@ inline void CFrame::Mode3Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_
     LeftBorder(pbLine_, nFrom_, nTo_);
 
     // Work out the range that within the visible area
-    int nFrom = std::max(BORDER_BLOCKS, nFrom_), nTo = std::min(nTo_, BORDER_BLOCKS + SCREEN_BLOCKS);
+    int nFrom = std::max(SIDE_BORDER_CELLS, nFrom_), nTo = std::min(nTo_, SIDE_BORDER_CELLS + GFX_SCREEN_CELLS);
 
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
     {
         auto pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
-        auto pbDataMem = m_pbScreenData + (nLine_ << 7) + ((nFrom - BORDER_BLOCKS) << 2);
+        auto pbDataMem = m_pbScreenData + (nLine_ << 7) + ((nFrom - SIDE_BORDER_CELLS) << 2);
 
         // The actual screen line
         for (int i = nFrom; i < nTo; i++)
@@ -307,13 +307,13 @@ inline void CFrame::Mode4Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_
     LeftBorder(pbLine_, nFrom_, nTo_);
 
     // Work out the range that within the visible area
-    int nFrom = std::max(BORDER_BLOCKS, nFrom_), nTo = std::min(nTo_, BORDER_BLOCKS + SCREEN_BLOCKS);
+    int nFrom = std::max(SIDE_BORDER_CELLS, nFrom_), nTo = std::min(nTo_, SIDE_BORDER_CELLS + GFX_SCREEN_CELLS);
 
     // Draw the required section of the main screen, if any
     if (nFrom < nTo)
     {
         auto pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
-        auto pbDataMem = ((nFrom - BORDER_BLOCKS) << 2) + m_pbScreenData + (nLine_ << 7);
+        auto pbDataMem = ((nFrom - SIDE_BORDER_CELLS) << 2) + m_pbScreenData + (nLine_ << 7);
 
         // The actual screen line
         for (int i = nFrom; i < nTo; i++)
@@ -379,8 +379,8 @@ inline void CFrame::ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_
     case MODE_1:
     {
         // Determine data+attr location for current cell, and preserve the values at each location
-        uint8_t* pData = m_pbScreenData + g_awMode1LineToByte[nScreenLine] + (nBlock_ - BORDER_BLOCKS), bData = *pData;
-        uint8_t* pAttr = m_pbScreenData + 6144 + ((nScreenLine & 0xf8) << 2) + (nBlock_ - BORDER_BLOCKS), bAttr = *pAttr;
+        uint8_t* pData = m_pbScreenData + g_awMode1LineToByte[nScreenLine] + (nBlock_ - SIDE_BORDER_CELLS), bData = *pData;
+        uint8_t* pAttr = m_pbScreenData + 6144 + ((nScreenLine & 0xf8) << 2) + (nBlock_ - SIDE_BORDER_CELLS), bAttr = *pAttr;
 
         // Write the artefact bytes from the old mode, and draw the cell
         *pData = ab[0];
@@ -395,7 +395,7 @@ inline void CFrame::ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_
 
     case MODE_2:
     {
-        uint8_t* pData = m_pbScreenData + (nScreenLine << 5) + (nBlock_ - BORDER_BLOCKS), bData = *pData;
+        uint8_t* pData = m_pbScreenData + (nScreenLine << 5) + (nBlock_ - SIDE_BORDER_CELLS), bData = *pData;
         uint8_t* pAttr = pData + 0x2000, bAttr = *pAttr;
 
         *pData = ab[0];
@@ -409,7 +409,7 @@ inline void CFrame::ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_
 
     default:
     {
-        uint8_t* pb = m_pbScreenData + (nScreenLine << 7) + ((nBlock_ - BORDER_BLOCKS) << 2);
+        uint8_t* pb = m_pbScreenData + (nScreenLine << 7) + ((nBlock_ - SIDE_BORDER_CELLS) << 2);
         uint32_t* pdw = reinterpret_cast<uint32_t*>(pb), dw = *pdw;
 
         pb[0] = ab[0];

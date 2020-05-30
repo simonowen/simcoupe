@@ -34,7 +34,7 @@ void UpdateRom();
 const char* PageDesc(int nPage_, bool fCompact_ = false);
 }
 
-enum { INTMEM, EXTMEM = N_PAGES_MAIN, ROM0 = EXTMEM + (N_PAGES_1MB * MAX_EXTERNAL_MB), ROM1, SCRATCH_READ, SCRATCH_WRITE, TOTAL_PAGES };
+enum { INTMEM, EXTMEM = NUM_INTERNAL_PAGES, ROM0 = EXTMEM + (NUM_EXTERNAL_PAGES_1MB * MAX_EXTERNAL_MB), ROM1, SCRATCH_READ, SCRATCH_WRITE, TOTAL_PAGES };
 enum eSection { SECTION_A, SECTION_B, SECTION_C, SECTION_D };
 
 extern uint8_t* pMemory;
@@ -48,8 +48,8 @@ extern bool afSectionContended[4];
 extern uint8_t* apbSectionReadPtrs[4];
 extern uint8_t* apbSectionWritePtrs[4];
 
-extern uint8_t g_abMode1ByteToLine[SCREEN_LINES];
-extern uint16_t g_awMode1LineToByte[SCREEN_LINES];
+extern uint8_t g_abMode1ByteToLine[GFX_SCREEN_LINES];
+extern uint16_t g_awMode1LineToByte[GFX_SCREEN_LINES];
 
 
 // Map a 16-bit address through the memory indirection - allows fast paging
@@ -117,7 +117,7 @@ inline void PageIn(eSection nSection_, int nPage_)
 {
     // Remember the page that's now occupying the section, and update the contention
     anSectionPages[nSection_] = nPage_;
-    afSectionContended[nSection_] = (nPage_ < N_PAGES_MAIN);
+    afSectionContended[nSection_] = (nPage_ < NUM_INTERNAL_PAGES);
 
     // Set the memory read and write pointers
     apbSectionReadPtrs[nSection_] = PageReadPtr(nPage_);

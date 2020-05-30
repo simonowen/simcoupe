@@ -1175,7 +1175,7 @@ bool CDebugger::Execute(const char* pcszCommand_)
             int nPage = nParam;
             int nOffset;
 
-            if (nPage < N_PAGES_MAIN && Expr::Eval(pszExprEnd + 1, &nOffset, &pszExprEnd) && nOffset < MEM_PAGE_SIZE)
+            if (nPage < NUM_INTERNAL_PAGES && Expr::Eval(pszExprEnd + 1, &nOffset, &pszExprEnd) && nOffset < MEM_PAGE_SIZE)
                 pPhysAddr = PageReadPtr(nPage) + nOffset;
             else
                 fRet = false;
@@ -1221,7 +1221,7 @@ bool CDebugger::Execute(const char* pcszCommand_)
             int nPage = nParam;
             int nOffset;
 
-            if (nPage < N_PAGES_MAIN && Expr::Eval(pszExprEnd + 1, &nOffset, &pszExprEnd) && nOffset < MEM_PAGE_SIZE)
+            if (nPage < NUM_INTERNAL_PAGES && Expr::Eval(pszExprEnd + 1, &nOffset, &pszExprEnd) && nOffset < MEM_PAGE_SIZE)
                 pPhysAddr = PageReadPtr(nPage) + nOffset;
             else
                 fRet = false;
@@ -1280,7 +1280,7 @@ bool CDebugger::Execute(const char* pcszCommand_)
             int nPage = nParam;
             int nOffset;
 
-            if (nPage < N_PAGES_MAIN && Expr::Eval(pszExprEnd + 1, &nOffset, &pszExprEnd) && nOffset < MEM_PAGE_SIZE)
+            if (nPage < NUM_INTERNAL_PAGES && Expr::Eval(pszExprEnd + 1, &nOffset, &pszExprEnd) && nOffset < MEM_PAGE_SIZE)
                 pPhysAddr = PageReadPtr(nPage) + nOffset;
             else
                 fRet = false;
@@ -1798,13 +1798,13 @@ void CDisView::Draw(CScreen* pScreen_)
         (bFlagDiff & FLAG_C) ? CHG_COL : (F & FLAG_C) ? 'X' : 'K', (F & FLAG_C) ? 'C' : '-');
 
 
-    int nLine = (g_dwCycleCounter < BORDER_PIXELS) ? HEIGHT_LINES - 1 : (g_dwCycleCounter - BORDER_PIXELS) / TSTATES_PER_LINE;
-    int nLineCycle = (g_dwCycleCounter + TSTATES_PER_LINE - BORDER_PIXELS) % TSTATES_PER_LINE;
+    int nLine = (g_dwCycleCounter < CPU_CYCLES_PER_SIDE_BORDER) ? GFX_HEIGHT_LINES - 1 : (g_dwCycleCounter - CPU_CYCLES_PER_SIDE_BORDER) / CPU_CYCLES_PER_LINE;
+    int nLineCycle = (g_dwCycleCounter + CPU_CYCLES_PER_LINE - CPU_CYCLES_PER_SIDE_BORDER) % CPU_CYCLES_PER_LINE;
 
     pScreen_->Printf(nX, nY + 148, "\agScan\aX %03d:%03d", nLine, nLineCycle);
     pScreen_->Printf(nX, nY + 160, "\agT\aX %u", g_dwCycleCounter);
 
-    uint32_t dwCycleDiff = ((nLastFrames * TSTATES_PER_FRAME) + g_dwCycleCounter) - dwLastCycle;
+    uint32_t dwCycleDiff = ((nLastFrames * CPU_CYCLES_PER_FRAME) + g_dwCycleCounter) - dwLastCycle;
     if (dwCycleDiff)
         pScreen_->Printf(nX + 12, nY + 172, "+%u", dwCycleDiff);
 

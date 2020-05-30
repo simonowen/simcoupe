@@ -127,7 +127,7 @@ static bool WriteAVIHeader(FILE* f_)
     // Should we include an audio stream?
     uint32_t dwStreams = (nAudioReduce < 4) ? 2 : 1;
 
-    WriteLittleEndianDWORD(19968);          // microseconds per frame: 1000000*TSTATES_PER_FRAME/REAL_TSTATES_PER_SECOND
+    WriteLittleEndianDWORD(19968);          // microseconds per frame: 1000000*CPU_CYCLES_PER_FRAME/CPU_CLOCK_HZ
     WriteLittleEndianLong((lVideoMax * EMULATED_FRAMES_PER_SECOND) + (lAudioMax * EMULATED_FRAMES_PER_SECOND)); // approximate max data rate
     WriteLittleEndianDWORD(0);              // reserved
     WriteLittleEndianDWORD((1 << 8) | (1 << 4)); // flags: bit 4 = has index(idx1), bit 5 = use index for AVI structure, bit 8 = interleaved file, bit 16 = optimized for live video capture, bit 17 = copyrighted data
@@ -153,8 +153,8 @@ static bool WriteVideoHeader(FILE* f_)
     WriteLittleEndianDWORD(0);              // flags, unused
     WriteLittleEndianDWORD(0);              // priority and language, unused
     WriteLittleEndianDWORD(0);              // initial frames
-    WriteLittleEndianDWORD(TSTATES_PER_FRAME); // scale
-    WriteLittleEndianDWORD(REAL_TSTATES_PER_SECOND); // rate
+    WriteLittleEndianDWORD(CPU_CYCLES_PER_FRAME); // scale
+    WriteLittleEndianDWORD(CPU_CLOCK_HZ);   // rate
     WriteLittleEndianDWORD(0);              // start time
     WriteLittleEndianDWORD(dwVideoFrames);  // total frames in stream
     WriteLittleEndianLong(lVideoMax);       // suggested buffer size
@@ -589,7 +589,7 @@ void AddFrame(CScreen* pScreen_)
     for (int y = height - 1; y > 0; y--)
     {
         auto pbLine = pScreen_->GetLine(y >> (fHalfSize ? 0 : 1));
-        static uint8_t abLine[WIDTH_PIXELS * 2];
+        static uint8_t abLine[GFX_PIXELS_PER_LINE];
 
         // Is the recording low-res?
         if (fHalfSize)

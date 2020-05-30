@@ -84,11 +84,11 @@ struct REGION
 }
 asViews[] =
 {
-    { SCREEN_BLOCKS, SCREEN_LINES },
-    { SCREEN_BLOCKS + 2, SCREEN_LINES + 20 },
-    { SCREEN_BLOCKS + 4, SCREEN_LINES + 48 },
-    { SCREEN_BLOCKS + 4, SCREEN_LINES + 74 },
-    { WIDTH_BLOCKS, HEIGHT_LINES },
+    { GFX_SCREEN_CELLS, GFX_SCREEN_LINES },
+    { GFX_SCREEN_CELLS + 2, GFX_SCREEN_LINES + 20 },
+    { GFX_SCREEN_CELLS + 4, GFX_SCREEN_LINES + 48 },
+    { GFX_SCREEN_CELLS + 4, GFX_SCREEN_LINES + 74 },
+    { GFX_WIDTH_CELLS, GFX_HEIGHT_LINES },
 };
 
 namespace Frame
@@ -105,11 +105,11 @@ bool Init(bool fFirstInit_/*=false*/)
     if (uView >= (sizeof(asViews) / sizeof(asViews[0])))
         uView = 0;
 
-    s_nViewLeft = (WIDTH_BLOCKS - asViews[uView].w) >> 1;
+    s_nViewLeft = (GFX_WIDTH_CELLS - asViews[uView].w) >> 1;
     s_nViewRight = s_nViewLeft + asViews[uView].w;
 
     // If we're not showing the full scan image, offset the view to centre over the main screen area
-    if ((s_nViewTop = (HEIGHT_LINES - asViews[uView].h) >> 1))
+    if ((s_nViewTop = (GFX_HEIGHT_LINES - asViews[uView].h) >> 1))
         s_nViewTop += (TOP_BORDER_LINES - BOTTOM_BORDER_LINES) >> 1;
     s_nViewBottom = s_nViewTop + asViews[uView].h;
 
@@ -218,7 +218,7 @@ void Update()
             if (nFrom == nLastLine)
             {
                 // Finish the line, and exclude it from the draw range
-                pFrame->UpdateLine(pScreen, nLastLine, nLastBlock, WIDTH_BLOCKS);
+                pFrame->UpdateLine(pScreen, nLastLine, nLastBlock, GFX_WIDTH_CELLS);
                 nFrom++;
             }
 
@@ -236,7 +236,7 @@ void Update()
             for (int i = nFrom; i <= nTo; i++)
             {
                 // Draw a complete line
-                pFrame->UpdateLine(pScreen, i, 0, WIDTH_BLOCKS);
+                pFrame->UpdateLine(pScreen, i, 0, GFX_WIDTH_CELLS);
             }
         }
 
@@ -401,7 +401,7 @@ void End()
 
             if (fSaveSSX)
             {
-                auto main_x = (BORDER_BLOCKS - s_nViewLeft) << 4;
+                auto main_x = (SIDE_BORDER_CELLS - s_nViewLeft) << 4;
                 auto main_y = (TOP_BORDER_LINES - s_nViewTop);
                 SSX::Save(pScreen, main_x, main_y);
                 fSaveSSX = false;
@@ -619,11 +619,11 @@ void SetStatus(const char* pcszFormat_, ...)
 // Fetch the current horizontal raster position (in cycles) and the current line
 int GetRasterPos(int* pnLine_)
 {
-    if (g_dwCycleCounter >= BORDER_PIXELS)
+    if (g_dwCycleCounter >= CPU_CYCLES_PER_SIDE_BORDER)
     {
-        uint32_t dwScreenCycles = g_dwCycleCounter - BORDER_PIXELS;
-        *pnLine_ = dwScreenCycles / TSTATES_PER_LINE;
-        return dwScreenCycles % TSTATES_PER_LINE;
+        uint32_t dwScreenCycles = g_dwCycleCounter - CPU_CYCLES_PER_SIDE_BORDER;
+        *pnLine_ = dwScreenCycles / CPU_CYCLES_PER_LINE;
+        return dwScreenCycles % CPU_CYCLES_PER_LINE;
     }
 
     // FIXME: the very start of the interrupt frame is from the final line of the display
@@ -647,17 +647,17 @@ void ChangeMode(uint8_t bNewVmpr_)
     if (IsScreenLine(nLine))
     {
         // Changes into the right border can't affect appearance, so ignore them
-        if (nBlock < (BORDER_BLOCKS + SCREEN_BLOCKS))
+        if (nBlock < (SIDE_BORDER_CELLS + GFX_SCREEN_CELLS))
         {
             // Is the mode changing between 1/2 <-> 3/4 on the main screen?
-            if (((vmpr_mode ^ bNewVmpr_) & VMPR_MDE1_MASK) && nBlock >= BORDER_BLOCKS)
+            if (((vmpr_mode ^ bNewVmpr_) & VMPR_MDE1_MASK) && nBlock >= SIDE_BORDER_CELLS)
             {
                 auto pbLine = pScreen->GetLine(nLine - s_nViewTop);
 
                 // Draw the artefact and advance the draw position
                 pFrame->ModeChange(pbLine, nLine, nBlock, bNewVmpr_);
 
-                nLastBlock += (VIDEO_DELAY >> 3);
+                nLastBlock += (CPU_CYCLES_PER_CELL >> 3);
             }
         }
     }
@@ -679,7 +679,7 @@ void ChangeScreen(uint8_t bNewBorder_)
 
         // Draw the artefact and advance the draw position
         pFrame->ScreenChange(pbLine, nLine, nBlock, bNewBorder_);
-        nLastBlock += (VIDEO_DELAY >> 3);
+        nLastBlock += (CPU_CYCLES_PER_CELL >> 3);
     }
 }
 
@@ -687,7 +687,7 @@ void ChangeScreen(uint8_t bNewBorder_)
 void TouchLines(int nFrom_, int nTo_)
 {
     // Is the line being modified in the area since we last updated
-    if (nTo_ >= nLastLine && nFrom_ <= (int)((g_dwCycleCounter - BORDER_PIXELS) / TSTATES_PER_LINE))
+    if (nTo_ >= nLastLine && nFrom_ <= (int)((g_dwCycleCounter - CPU_CYCLES_PER_SIDE_BORDER) / CPU_CYCLES_PER_LINE))
         Update();
 }
 
@@ -721,11 +721,11 @@ void CFrame::UpdateLine(CScreen* pScreen_, int nLine_, int nFrom_, int nTo_)
             BlackLine(pbLine, nFrom_, nTo_);
 
         // Line on the main screen?
-        else if (nLine_ >= TOP_BORDER_LINES && nLine_ < (TOP_BORDER_LINES + SCREEN_LINES))
+        else if (nLine_ >= TOP_BORDER_LINES && nLine_ < (TOP_BORDER_LINES + GFX_SCREEN_LINES))
             (this->*m_pLineUpdate)(pbLine, nLine_, nFrom_, nTo_);
 
         // Top or bottom border
-        else// if (nLine_ < TOP_BORDER_LINES || nLine_ >= (TOP_BORDER_LINES+SCREEN_LINES))
+        else// if (nLine_ < TOP_BORDER_LINES || nLine_ >= (TOP_BORDER_LINES+GFX_SCREEN_LINES))
             BorderLine(pbLine, nFrom_, nTo_);
     }
 }
@@ -733,12 +733,12 @@ void CFrame::UpdateLine(CScreen* pScreen_, int nLine_, int nFrom_, int nTo_)
 // Fetch the internal ASIC working values used when drawing the display
 void CFrame::GetAsicData(uint8_t* pb0_, uint8_t* pb1_, uint8_t* pb2_, uint8_t* pb3_)
 {
-    int nLine = g_dwCycleCounter / TSTATES_PER_LINE, nBlock = (g_dwCycleCounter % TSTATES_PER_LINE) >> 3;
+    int nLine = g_dwCycleCounter / CPU_CYCLES_PER_LINE, nBlock = (g_dwCycleCounter % CPU_CYCLES_PER_LINE) >> 3;
 
     nLine -= TOP_BORDER_LINES;
-    nBlock -= BORDER_BLOCKS + BORDER_BLOCKS;
-    if (nBlock < 0) { nLine--; nBlock = SCREEN_BLOCKS - 1; }
-    if (nLine < 0 || nLine >= SCREEN_LINES) { nLine = SCREEN_LINES - 1; nBlock = SCREEN_BLOCKS - 1; }
+    nBlock -= SIDE_BORDER_CELLS + SIDE_BORDER_CELLS;
+    if (nBlock < 0) { nLine--; nBlock = GFX_SCREEN_CELLS - 1; }
+    if (nLine < 0 || nLine >= GFX_SCREEN_LINES) { nLine = GFX_SCREEN_LINES - 1; nBlock = GFX_SCREEN_CELLS - 1; }
 
     if (VMPR_MODE_3_OR_4)
     {

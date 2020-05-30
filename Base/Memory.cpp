@@ -46,8 +46,8 @@ uint8_t* apbSectionReadPtrs[4];
 uint8_t* apbSectionWritePtrs[4];
 
 // Look-up tables for fast mapping between mode 1 display addresses and line numbers
-uint16_t g_awMode1LineToByte[SCREEN_LINES];
-uint8_t g_abMode1ByteToLine[SCREEN_LINES];
+uint16_t g_awMode1LineToByte[GFX_SCREEN_LINES];
+uint8_t g_abMode1ByteToLine[GFX_SCREEN_LINES];
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -64,7 +64,7 @@ bool Init(bool fFirstInit_/*=false*/)
     if (fFirstInit_)
     {
         // Build the tables for fast mapping between mode 1 display addresses and line numbers
-        for (unsigned int uOffset = 0; uOffset < SCREEN_LINES; uOffset++)
+        for (unsigned int uOffset = 0; uOffset < GFX_SCREEN_LINES; uOffset++)
         {
             g_abMode1ByteToLine[uOffset] = (uOffset & 0xc0) + ((uOffset << 3) & 0x38) + ((uOffset >> 3) & 0x07);
             g_awMode1LineToByte[g_abMode1ByteToLine[uOffset]] = uOffset << 5;
@@ -148,12 +148,12 @@ static void SetConfig()
     }
 
     // Add internal RAM as read/write
-    int nIntPages = (GetOption(mainmem) == 256) ? N_PAGES_MAIN / 2 : N_PAGES_MAIN;
+    int nIntPages = (GetOption(mainmem) == 256) ? NUM_INTERNAL_PAGES / 2 : NUM_INTERNAL_PAGES;
     for (int nInt = 0; nInt < nIntPages; nInt++)
         anReadPages[INTMEM + nInt] = anWritePages[INTMEM + nInt] = INTMEM + nInt;
 
     // Add external RAM as read/write
-    int nExtPages = std::min(GetOption(externalmem), MAX_EXTERNAL_MB) * N_PAGES_1MB;
+    int nExtPages = std::min(GetOption(externalmem), MAX_EXTERNAL_MB) * NUM_EXTERNAL_PAGES_1MB;
     for (int nExt = 0; nExt < nExtPages; nExt++)
         anReadPages[EXTMEM + nExt] = anWritePages[EXTMEM + nExt] = EXTMEM + nExt;
 

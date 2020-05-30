@@ -104,7 +104,7 @@ CPU_EVENT asCpuEvents[MAX_EVENTS], * psNextEvent, * psFreeEvent;
 namespace CPU
 {
 // Memory access contention table
-static uint8_t abContention1[TSTATES_PER_FRAME + 64], abContention234[TSTATES_PER_FRAME + 64], abContention4T[TSTATES_PER_FRAME + 64];
+static uint8_t abContention1[CPU_CYCLES_PER_FRAME + 64], abContention234[CPU_CYCLES_PER_FRAME + 64], abContention4T[CPU_CYCLES_PER_FRAME + 64];
 static const uint8_t* pMemContention = abContention1;
 static bool fContention = true;
 static const uint8_t abPortContention[] = { 6, 5, 4, 3, 2, 1, 0, 7 };
@@ -147,9 +147,9 @@ bool Init(bool fFirstInit_/*=false*/)
         // Build the memory access contention tables
         for (unsigned int t2 = 0; t2 < _countof(abContention1); t2++)
         {
-            int nLine = t2 / TSTATES_PER_LINE, nLineCycle = t2 % TSTATES_PER_LINE;
-            bool fScreen = nLine >= TOP_BORDER_LINES && nLine < TOP_BORDER_LINES + SCREEN_LINES &&
-                nLineCycle >= BORDER_PIXELS + BORDER_PIXELS;
+            int nLine = t2 / CPU_CYCLES_PER_LINE, nLineCycle = t2 % CPU_CYCLES_PER_LINE;
+            bool fScreen = nLine >= TOP_BORDER_LINES && nLine < TOP_BORDER_LINES + GFX_SCREEN_LINES &&
+                nLineCycle >= CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER;
             bool fMode1 = !(nLineCycle & 0x40);
 
             abContention1[t2] = ((t2 + 1) | ((fScreen | fMode1) ? 7 : 3)) - 1 - t2;
@@ -293,7 +293,7 @@ void ExecuteEvent(const CPU_EVENT& sThisEvent)
         status_reg &= ~STATUS_INT_LINE;
         AddCpuEvent(evtStdIntEnd, sThisEvent.dwTime + INT_ACTIVE_TIME);
 
-        AddCpuEvent(evtLineIntStart, sThisEvent.dwTime + TSTATES_PER_FRAME);
+        AddCpuEvent(evtLineIntStart, sThisEvent.dwTime + CPU_CYCLES_PER_FRAME);
         break;
     }
 
@@ -303,7 +303,7 @@ void ExecuteEvent(const CPU_EVENT& sThisEvent)
         status_reg &= ~STATUS_INT_FRAME;
         AddCpuEvent(evtStdIntEnd, sThisEvent.dwTime + INT_ACTIVE_TIME);
 
-        AddCpuEvent(evtEndOfFrame, sThisEvent.dwTime + TSTATES_PER_FRAME);
+        AddCpuEvent(evtEndOfFrame, sThisEvent.dwTime + CPU_CYCLES_PER_FRAME);
 
         // Signal end of the frame
         g_fBreak = true;
@@ -317,7 +317,7 @@ void ExecuteEvent(const CPU_EVENT& sThisEvent)
         IO::UpdateInput();
 
         // Schedule the next input check at the same position in the next frame
-        AddCpuEvent(evtInputUpdate, sThisEvent.dwTime + TSTATES_PER_FRAME);
+        AddCpuEvent(evtInputUpdate, sThisEvent.dwTime + CPU_CYCLES_PER_FRAME);
         break;
 
     case evtMouseReset:
@@ -349,7 +349,7 @@ void ExecuteChunk()
     if (g_fReset)
     {
         // Advance to the end of the frame
-        g_dwCycleCounter = TSTATES_PER_FRAME;
+        g_dwCycleCounter = CPU_CYCLES_PER_FRAME;
     }
 
     // Execute the first CPU core if only 1 CPU core is compiled in
@@ -452,16 +452,16 @@ void Run()
         Frame::End();
 
         // The real end of the SAM frame requires some additional handling
-        if (g_dwCycleCounter >= TSTATES_PER_FRAME)
+        if (g_dwCycleCounter >= CPU_CYCLES_PER_FRAME)
         {
-            CpuEventFrame(TSTATES_PER_FRAME);
+            CpuEventFrame(CPU_CYCLES_PER_FRAME);
 
             IO::FrameUpdate();
             Debug::FrameEnd();
             Frame::Flyback();
 
             // Step back up to start the next frame
-            g_dwCycleCounter %= TSTATES_PER_FRAME;
+            g_dwCycleCounter %= CPU_CYCLES_PER_FRAME;
         }
     }
 
@@ -488,8 +488,8 @@ void Reset(bool fPress_)
         InitCpuEvents();
 
         // Schedule the first end of line event, and an update check 3/4 through the frame
-        AddCpuEvent(evtEndOfFrame, TSTATES_PER_FRAME);
-        AddCpuEvent(evtInputUpdate, TSTATES_PER_FRAME * 3 / 4);
+        AddCpuEvent(evtEndOfFrame, CPU_CYCLES_PER_FRAME);
+        AddCpuEvent(evtInputUpdate, CPU_CYCLES_PER_FRAME * 3 / 4);
 
         // Re-initialise memory (for configuration changes) and reset I/O
         IO::Init();

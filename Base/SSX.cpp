@@ -39,8 +39,8 @@ bool Save(CScreen* screen, int main_x, int main_y)
 
     if (display_changed)
     {
-        for (auto y = 0; y < SCREEN_LINES; ++y)
-            fwrite(screen->GetLine(main_y + y) + main_x, 2, SCREEN_PIXELS, file);
+        for (auto y = 0; y < GFX_SCREEN_LINES; ++y)
+            fwrite(screen->GetLine(main_y + y) + main_x, 1, GFX_SCREEN_PIXELS, file);
     }
     else
     {

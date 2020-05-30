@@ -20,37 +20,61 @@
 
 #pragma once
 
-// Constants defining screen height and the visible portion of it
-#define HEIGHT_LINES            312                                         // Total generated screen lines
-#define SCREEN_LINES            192                                         // Lines in main screen area
-#define TOP_BORDER_LINES        68                                          // Lines in top border (8 above central position)
-#define BOTTOM_BORDER_LINES     (HEIGHT_LINES-SCREEN_LINES-TOP_BORDER_LINES)// Lines in bottom border
+constexpr auto PAL_LINES_PER_FRAME = 625;
+constexpr auto PAL_FIELDS_PER_SECOND = 50;
+constexpr auto PAL_FIELDS_PER_FRAME = 2;
 
-// Constants defining screen width and the visible portion of it (in 8 'pixel' blocks)
-#define WIDTH_BLOCKS            48                                      // Total generated screen width
-#define SCREEN_BLOCKS           32                                      // Blocks in main screen area
-#define BORDER_BLOCKS           ((WIDTH_BLOCKS-SCREEN_BLOCKS) >> 1)     // Blocks for each of left and right border
-#define WIDTH_PIXELS            (WIDTH_BLOCKS << 3)
-#define BORDER_PIXELS           (BORDER_BLOCKS << 3)
-#define SCREEN_PIXELS           (SCREEN_BLOCKS << 3)
+constexpr auto CRYSTAL_CLOCK_HZ = 24'000'000;
+constexpr auto GFX_PIXEL_CLOCK_HZ = CRYSTAL_CLOCK_HZ / 2;
+constexpr auto GFX_PIXELS_PER_LINE = GFX_PIXEL_CLOCK_HZ / PAL_FIELDS_PER_SECOND / PAL_LINES_PER_FRAME * PAL_FIELDS_PER_FRAME;
+constexpr auto GFX_PIXELS_PER_CELL = 16;
+constexpr auto GFX_LORES_PIXELS_PER_CELL = GFX_PIXELS_PER_CELL / 2;
+constexpr auto GFX_DATA_BYTES_PER_CELL = 4;
 
+constexpr auto GFX_WIDTH_CELLS = GFX_PIXELS_PER_LINE / GFX_PIXELS_PER_CELL;
+constexpr auto GFX_HEIGHT_LINES = PAL_LINES_PER_FRAME / PAL_FIELDS_PER_FRAME;  // 312.5 rounded to 312
+constexpr auto GFX_SCREEN_LINES = 192;
+constexpr auto GFX_SCREEN_CELLS = 32;
+constexpr auto GFX_SCREEN_PIXELS = GFX_SCREEN_CELLS * GFX_PIXELS_PER_CELL;
 
-// Constants for video/frame timing
-#define TSTATES_PER_LINE            (WIDTH_BLOCKS << 3)
-#define TSTATES_PER_FRAME           (TSTATES_PER_LINE * HEIGHT_LINES)
-#define REAL_TSTATES_PER_SECOND     6000000UL                                       // SAM's Z80b CPU runs at 6MHz
-//#define REAL_FRAMES_PER_SECOND    (REAL_TSTATES_PER_SECOND / TSTATES_PER_FRAME)   // Actually 50.08
-#define EMULATED_FRAMES_PER_SECOND  50
-#define EMULATED_TSTATES_PER_SECOND (EMULATED_FRAMES_PER_SECOND * TSTATES_PER_FRAME)
+constexpr auto TOP_BORDER_LINES = 68;
+constexpr auto BOTTOM_BORDER_LINES = GFX_HEIGHT_LINES - GFX_SCREEN_LINES - TOP_BORDER_LINES;
+constexpr auto FIRST_SCREEN_LINE = TOP_BORDER_LINES;
+constexpr auto LAST_SCREEN_LINE = TOP_BORDER_LINES + GFX_SCREEN_LINES - 1;
+constexpr auto SIDE_BORDER_CELLS = (GFX_WIDTH_CELLS - GFX_SCREEN_CELLS) / 2;
 
-#define ASIC_STARTUP_DELAY          291675  // approx. t-states after power-on before the ASIC responds to I/O (~49ms)
+constexpr auto CPU_CLOCK_HZ = 6'000'000;
+constexpr auto CPU_CYCLES_PER_CELL = CPU_CLOCK_HZ * GFX_PIXELS_PER_CELL / GFX_PIXEL_CLOCK_HZ;
+constexpr auto CPU_CYCLES_PER_LINE = CPU_CYCLES_PER_CELL * GFX_WIDTH_CELLS;
+constexpr auto CPU_CYCLES_PER_FRAME = CPU_CYCLES_PER_LINE * GFX_HEIGHT_LINES;
+constexpr auto CPU_CYCLES_PER_SIDE_BORDER = CPU_CYCLES_PER_CELL * SIDE_BORDER_CELLS;
+constexpr auto CPU_CYCLES_ASIC_TO_FRAME_OFFSET = CPU_CYCLES_PER_SIDE_BORDER;
 
-#define USECONDS_TO_TSTATES(x)      (static_cast<long>(x) * (REAL_TSTATES_PER_SECOND / 1000000))
+constexpr auto MODE1_FRAMES_PER_FLASH = 16;
+constexpr auto MODE1_LINES_PER_ATTR = 8;
+constexpr auto MODE1_OR_2_BYTES_PER_LINE = GFX_SCREEN_CELLS;
+constexpr auto MODE1_OR_2_DATA_BYTES = MODE1_OR_2_BYTES_PER_LINE * GFX_SCREEN_LINES;
+constexpr auto MODE1_ATTR_BYTES = GFX_SCREEN_CELLS * (GFX_SCREEN_LINES / MODE1_LINES_PER_ATTR);
+constexpr auto MODE1_DISPLAY_BYTES = MODE1_OR_2_DATA_BYTES + MODE1_ATTR_BYTES;
+constexpr auto MODE2_ATTR_BYTES = MODE1_OR_2_DATA_BYTES;
+constexpr auto MODE2_ATTR_OFFSET = 0x2000;
+constexpr auto MODE3_OR_4_BYTES_PER_LINE = GFX_DATA_BYTES_PER_CELL * GFX_SCREEN_CELLS;
+constexpr auto MODE3_OR_4_DISPLAY_BYTES = MODE3_OR_4_BYTES_PER_LINE * GFX_SCREEN_LINES;
 
-#define VIDEO_DELAY                 8       // t-states by which contention precedes the actual screen as seen
+constexpr auto EMULATED_FRAMES_PER_SECOND = PAL_FIELDS_PER_SECOND;
+constexpr auto ACTUAL_FRAMES_PER_SECOND = static_cast<float>(CPU_CLOCK_HZ) / CPU_CYCLES_PER_FRAME; // ~50.08
 
+constexpr auto CPU_CYCLES_INTERRUPT_ACTIVE = 128;
 
-#define MEM_PAGE_SIZE               0x4000                      // Memory pages are 16K
-#define N_PAGES_MAIN                (0x80000/MEM_PAGE_SIZE)     // Number of pages in the SAM's 512K main memory (32)
-#define N_PAGES_1MB                 (0x100000/MEM_PAGE_SIZE)    // Number of pages in 1MB of memory (64)
-#define MAX_EXTERNAL_MB             4                           // SAM supports 0 to 4 MB of external memory
+// CPU cycles after power-on before the ASIC responds to I/O (~49ms)
+constexpr auto CPU_CYCLES_ASIC_STARTUP = 291675;
+
+constexpr auto MEM_PAGE_SIZE = 0x4000;
+constexpr auto NUM_INTERNAL_PAGES = (0x80000 / MEM_PAGE_SIZE);
+constexpr auto NUM_EXTERNAL_PAGES_1MB = (0x100000 / MEM_PAGE_SIZE);
+constexpr auto MAX_EXTERNAL_MB = 4;
+
+constexpr auto USECONDS_TO_TSTATES(int cycles)
+{
+    return cycles * CPU_CLOCK_HZ / 1'000'000;
+}

@@ -176,7 +176,7 @@ void NextEdge(uint32_t dwTime_)
     else
     {
         // Timings are in 3.5MHz t-states, so convert to SAM t-states
-        tstates = tstates * (REAL_TSTATES_PER_SECOND / 1000) + tremain;
+        tstates = tstates * (CPU_CLOCK_HZ / 1000) + tremain;
         libspectrum_dword tadd = tstates / (SPECTRUM_TSTATES_PER_SECOND / 1000);
         tremain = tstates % (SPECTRUM_TSTATES_PER_SECOND / 1000);
 
