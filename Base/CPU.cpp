@@ -266,77 +266,63 @@ inline void timed_write_word_reversed(uint16_t addr, uint16_t contents)
 // Execute the CPU event specified
 void ExecuteEvent(const CPU_EVENT& sThisEvent)
 {
-    switch (sThisEvent.nEvent)
+    switch (sThisEvent.type)
     {
-    case evtStdIntEnd:
-        // Reset the interrupt as we're done
-        status_reg |= (STATUS_INT_FRAME | STATUS_INT_LINE);
+    case EventType::FrameInterrupt:
+        status_reg &= ~STATUS_INT_FRAME;
+        AddCpuEvent(EventType::FrameInterruptEnd, sThisEvent.due_time + INT_ACTIVE_TIME);
+        AddCpuEvent(EventType::FrameInterrupt, sThisEvent.due_time + CPU_CYCLES_PER_FRAME);
+
+        g_fBreak = true;
         break;
 
-    case evtMidiOutIntStart:
+    case EventType::FrameInterruptEnd:
+        status_reg |= STATUS_INT_FRAME;
+        break;
+
+    case EventType::LineInterrupt:
+        status_reg &= ~STATUS_INT_LINE;
+        AddCpuEvent(EventType::LineInterruptEnd, sThisEvent.due_time + INT_ACTIVE_TIME);
+        AddCpuEvent(EventType::LineInterrupt, sThisEvent.due_time + CPU_CYCLES_PER_FRAME);
+        break;
+
+    case EventType::LineInterruptEnd:
+        status_reg |= STATUS_INT_LINE;
+        break;
+
+    case EventType::MidiOutStart:
         status_reg &= ~STATUS_INT_MIDIOUT;
-        AddCpuEvent(evtMidiOutIntEnd, sThisEvent.dwTime + MIDI_INT_ACTIVE_TIME);
-        AddCpuEvent(evtMidiTxfmstEnd, sThisEvent.dwTime + MIDI_TXFMST_ACTIVE_TIME);
+        AddCpuEvent(EventType::MidiOutEnd, sThisEvent.due_time + MIDI_INT_ACTIVE_TIME);
+        AddCpuEvent(EventType::MidiTxfmstEnd, sThisEvent.due_time + MIDI_TXFMST_ACTIVE_TIME);
         break;
 
-    case evtMidiOutIntEnd:
+    case EventType::MidiOutEnd:
         status_reg |= STATUS_INT_MIDIOUT;
         break;
 
-    case evtMidiTxfmstEnd:
+    case EventType::MidiTxfmstEnd:
         lpen &= ~LPEN_TXFMST;
         break;
 
-    case evtLineIntStart:
-    {
-        // Begin the line interrupt and add an event to end it
-        status_reg &= ~STATUS_INT_LINE;
-        AddCpuEvent(evtStdIntEnd, sThisEvent.dwTime + INT_ACTIVE_TIME);
-
-        AddCpuEvent(evtLineIntStart, sThisEvent.dwTime + CPU_CYCLES_PER_FRAME);
-        break;
-    }
-
-    case evtEndOfFrame:
-    {
-        // Signal a FRAME interrupt, and start the interrupt counter
-        status_reg &= ~STATUS_INT_FRAME;
-        AddCpuEvent(evtStdIntEnd, sThisEvent.dwTime + INT_ACTIVE_TIME);
-
-        AddCpuEvent(evtEndOfFrame, sThisEvent.dwTime + CPU_CYCLES_PER_FRAME);
-
-        // Signal end of the frame
-        g_fBreak = true;
-        break;
-    }
-
-    case evtInputUpdate:
-        // Update the input in the centre of the screen (well away from the frame boundary) to avoid the ROM
-        // keyboard scanner discarding key presses when it thinks keys have bounced.  In old versions this was
-        // the cause of the first key press on the boot screen only clearing it (took AGES to track down!)
-        IO::UpdateInput();
-
-        // Schedule the next input check at the same position in the next frame
-        AddCpuEvent(evtInputUpdate, sThisEvent.dwTime + CPU_CYCLES_PER_FRAME);
-        break;
-
-    case evtMouseReset:
+    case EventType::MouseReset:
         pMouse->Reset();
         break;
 
-    case evtBlueAlphaClock:
-        // Clock the sampler, scheduling the next event if it's still running
-        if (pBlueAlpha->Clock())
-            AddCpuEvent(evtBlueAlphaClock, sThisEvent.dwTime + BLUE_ALPHA_CLOCK_TIME);
+    case EventType::BlueAlphaClock:
+        pBlueAlpha->Clock(sThisEvent.due_time);
         break;
 
-    case evtAsicStartup:
-        // ASIC is now responsive
+    case EventType::TapeEdge:
+        Tape::NextEdge(sThisEvent.due_time);
+        break;
+
+    case EventType::AsicReady:
         IO::WakeAsic();
         break;
 
-    case evtTapeEdge:
-        Tape::NextEdge(sThisEvent.dwTime);
+    case EventType::InputUpdate:
+        IO::UpdateInput();
+        AddCpuEvent(EventType::InputUpdate, sThisEvent.due_time + CPU_CYCLES_PER_FRAME);
         break;
     }
 }
@@ -488,8 +474,8 @@ void Reset(bool fPress_)
         InitCpuEvents();
 
         // Schedule the first end of line event, and an update check 3/4 through the frame
-        AddCpuEvent(evtEndOfFrame, CPU_CYCLES_PER_FRAME);
-        AddCpuEvent(evtInputUpdate, CPU_CYCLES_PER_FRAME * 3 / 4);
+        AddCpuEvent(EventType::FrameInterrupt, CPU_CYCLES_PER_FRAME);
+        AddCpuEvent(EventType::InputUpdate, CPU_CYCLES_PER_FRAME * 3 / 4);
 
         // Re-initialise memory (for configuration changes) and reset I/O
         IO::Init();

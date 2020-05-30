@@ -22,28 +22,25 @@
 
 #include "SAMIO.h"
 
-#define BLUE_ALPHA_CLOCK_TIME   (CPU_CLOCK_HZ/pBlueAlpha->GetClockFreq()/2)    // half period
-
 class CBlueAlphaDevice final : public CIoDevice
 {
 public:
     CBlueAlphaDevice();
 
 public:
-    void Reset() override;
-
-    uint8_t In(uint16_t wPort_) override;
-    void Out(uint16_t wPort_, uint8_t bVal_) override;
+    void Reset() override final;
+    uint8_t In(uint16_t wPort_) override final;
+    void Out(uint16_t wPort_, uint8_t bVal_) override final;
 
 public:
-    int GetClockFreq();
-    bool Clock();
+    void Clock(uint32_t event_time);
 
 protected:
     uint8_t m_bControl = 0;
     uint8_t m_bPortA = 0;
     uint8_t m_bPortB = 0;
     uint8_t m_bPortC = 0;
+    int m_cpuCyclesPerClock{};
 };
 
 extern CBlueAlphaDevice* pBlueAlpha;

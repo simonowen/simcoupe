@@ -1821,25 +1821,28 @@ void CDisView::Draw(CScreen* pScreen_)
     pScreen_->DrawString(nX, nY + 240, "\agEvents");
 
     CPU_EVENT* pEvent = psNextEvent;
-    for (i = 0; i < 3 && pEvent; i++, pEvent = pEvent->psNext)
+    for (i = 0; i < 3 && pEvent; i++, pEvent = pEvent->pNext)
     {
         const char* pcszEvent = "????";
-        switch (pEvent->nEvent)
+        switch (pEvent->type)
         {
-        case evtStdIntEnd:       pcszEvent = "IEND"; break;
-        case evtLineIntStart:    pcszEvent = "LINE"; break;
-        case evtEndOfFrame:      pcszEvent = "FRAM"; break;
-        case evtMidiOutIntStart: pcszEvent = "MIDI"; break;
-        case evtMidiOutIntEnd:   pcszEvent = "MEND"; break;
-        case evtMouseReset:      pcszEvent = "MOUS"; break;
-        case evtBlueAlphaClock:  pcszEvent = "BLUE"; break;
-        case evtAsicStartup:     pcszEvent = "ASIC"; break;
-        case evtTapeEdge:        pcszEvent = "TAPE"; break;
+        case EventType::FrameInterrupt:     pcszEvent = "FINT"; break;
+        case EventType::FrameInterruptEnd:  pcszEvent = "FEND"; break;
+        case EventType::LineInterrupt:      pcszEvent = "LINT"; break;
+        case EventType::LineInterruptEnd:   pcszEvent = "LEND"; break;
+        case EventType::MidiOutStart:       pcszEvent = "MIDI"; break;
+        case EventType::MidiOutEnd:         pcszEvent = "MEND"; break;
+        case EventType::MidiTxfmstEnd:      pcszEvent = "MTXF"; break;
+        case EventType::MouseReset:         pcszEvent = "MOUS"; break;
+        case EventType::BlueAlphaClock:     pcszEvent = "BLUE"; break;
+        case EventType::TapeEdge:           pcszEvent = "TAPE"; break;
+        case EventType::AsicReady:          pcszEvent = "ASIC"; break;
 
-        case evtInputUpdate:     i--; continue;
+        case EventType::InputUpdate:
+            i--; continue;
         }
 
-        pScreen_->Printf(nX, nY + 252 + i * 12, "%-4s \a%c%6u\aXT", pcszEvent, CHG_COL, pEvent->dwTime - g_dwCycleCounter);
+        pScreen_->Printf(nX, nY + 252 + i * 12, "%-4s \a%c%6u\aXT", pcszEvent, CHG_COL, pEvent->due_time - g_dwCycleCounter);
     }
 }
 

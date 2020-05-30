@@ -181,7 +181,7 @@ bool Init(bool fFirstInit_/*=false*/)
     if (GetOption(asicdelay))
     {
         fASICStartup = true;
-        AddCpuEvent(evtAsicStartup, g_dwCycleCounter + CPU_CYCLES_ASIC_STARTUP);
+        AddCpuEvent(EventType::AsicReady, g_dwCycleCounter + CPU_CYCLES_ASIC_STARTUP);
     }
 
     // Reset the sound hardware
@@ -792,7 +792,7 @@ void Out(uint16_t wPort_, uint8_t bVal_)
             // Cancel any existing line interrupt
             if (line_int < GFX_SCREEN_LINES)
             {
-                CancelCpuEvent(evtLineIntStart);
+                CancelCpuEvent(EventType::LineInterrupt);
                 status_reg |= STATUS_INT_LINE;
             }
 
@@ -805,7 +805,7 @@ void Out(uint16_t wPort_, uint8_t bVal_)
                 uint32_t dwLineTime = (line_int + TOP_BORDER_LINES) * CPU_CYCLES_PER_LINE;
 
                 // Schedule the line interrupt (could be active now, or already passed this frame)
-                AddCpuEvent(evtLineIntStart, dwLineTime);
+                AddCpuEvent(EventType::LineInterrupt, dwLineTime);
             }
         }
         break;
@@ -851,7 +851,7 @@ void Out(uint16_t wPort_, uint8_t bVal_)
             lpen |= LPEN_TXFMST;
 
             // Create an event to begin an interrupt at the required time
-            AddCpuEvent(evtMidiOutIntStart, g_dwCycleCounter +
+            AddCpuEvent(EventType::MidiOutStart, g_dwCycleCounter +
                 A_ROUND(MIDI_TRANSMIT_TIME + 16, 32) - 16 - 32 - MIDI_INT_ACTIVE_TIME + 1);
 
             // Output the byte to the appropriate device

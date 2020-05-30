@@ -26,8 +26,47 @@
 #include "SAMIO.h"
 #include "Util.h"
 
-struct CPU_EVENT;
-struct Z80Regs;
+// NOTE: ENDIAN-SENSITIVE!
+struct REGPAIR
+{
+    union
+    {
+        uint16_t    w;
+#ifdef __BIG_ENDIAN__
+        struct { uint8_t h, l; } b;  // Big endian
+#else
+        struct { uint8_t l, h; } b;  // Little endian
+#endif
+    };
+};
+
+struct Z80Regs
+{
+    REGPAIR af, bc, de, hl;
+    REGPAIR af_, bc_, de_, hl_;
+    REGPAIR ix, iy;
+    REGPAIR sp, pc;
+
+    uint8_t    i, r, r7;
+    uint8_t    iff1, iff2, im;
+};
+
+enum class EventType
+{
+    None,
+    FrameInterrupt, FrameInterruptEnd,
+    LineInterrupt, LineInterruptEnd,
+    MidiOutStart, MidiOutEnd, MidiTxfmstEnd,
+    MouseReset, BlueAlphaClock, TapeEdge,
+    AsicReady, InputUpdate
+};
+
+struct CPU_EVENT
+{
+    EventType type{ EventType::None };
+    uint32_t due_time = 0;
+    CPU_EVENT* pNext = nullptr;
+};
 
 namespace CPU
 {
@@ -98,41 +137,6 @@ const int INT_ACTIVE_TIME = 128;            // tstates interrupt is active and w
 #define FLAG_Z  0x40
 #define FLAG_S  0x80
 
-
-// CPU Event structure
-struct CPU_EVENT
-{
-    int nEvent = -1;
-    uint32_t dwTime = 0;
-    CPU_EVENT* psNext = nullptr;
-};
-
-
-// NOTE: ENDIAN-SENSITIVE!
-struct REGPAIR
-{
-    union
-    {
-        uint16_t    w;
-#ifdef __BIG_ENDIAN__
-        struct { uint8_t h, l; } b;  // Big endian
-#else
-        struct { uint8_t l, h; } b;  // Little endian
-#endif
-    };
-};
-
-struct Z80Regs
-{
-    REGPAIR af, bc, de, hl;
-    REGPAIR af_, bc_, de_, hl_;
-    REGPAIR ix, iy;
-    REGPAIR sp, pc;
-
-    uint8_t    i, r, r7;
-    uint8_t    iff1, iff2, im;
-};
-
 #define A       regs.af.b.h
 #define F       regs.af.b.l
 #define B       regs.bc.b.h
@@ -185,13 +189,6 @@ struct Z80Regs
 #define IR      ((I << 8) | (R7 & 0x80) | (R & 0x7f))
 
 
-// CPU Event Queue data
-enum {
-    evtStdIntEnd, evtLineIntStart, evtEndOfFrame,
-    evtMidiOutIntStart, evtMidiOutIntEnd, evtMidiTxfmstEnd,
-    evtInputUpdate, evtMouseReset, evtBlueAlphaClock, evtAsicStartup, evtTapeEdge
-};
-
 const int MAX_EVENTS = 16;
 
 extern CPU_EVENT asCpuEvents[MAX_EVENTS], * psNextEvent, * psFreeEvent;
@@ -201,46 +198,46 @@ extern CPU_EVENT asCpuEvents[MAX_EVENTS], * psNextEvent, * psFreeEvent;
 inline void InitCpuEvents()
 {
     for (int n = 0; n < MAX_EVENTS; n++)
-        asCpuEvents[n].psNext = &asCpuEvents[(n + 1) % MAX_EVENTS];
+        asCpuEvents[n].pNext = &asCpuEvents[(n + 1) % MAX_EVENTS];
 
     psFreeEvent = asCpuEvents;
     psNextEvent = nullptr;
 }
 
 // Add a CPU event into the queue
-inline void AddCpuEvent(int nEvent_, uint32_t dwTime_)
+inline void AddCpuEvent(EventType nEvent_, uint32_t dwTime_)
 {
-    CPU_EVENT* psNextFree = psFreeEvent->psNext;
+    CPU_EVENT* psNextFree = psFreeEvent->pNext;
     CPU_EVENT** ppsEvent = &psNextEvent;
 
     // Search through the queue while the events come before the new one
     // New events with equal time are inserted after existing entries
-    while (*ppsEvent && (*ppsEvent)->dwTime <= dwTime_)
-        ppsEvent = &((*ppsEvent)->psNext);
+    while (*ppsEvent && (*ppsEvent)->due_time <= dwTime_)
+        ppsEvent = &((*ppsEvent)->pNext);
 
     // Set this event (note - psFreeEvent will never be nullptr)
-    psFreeEvent->nEvent = nEvent_;
-    psFreeEvent->dwTime = dwTime_;
+    psFreeEvent->type = nEvent_;
+    psFreeEvent->due_time = dwTime_;
 
     // Link the events
-    psFreeEvent->psNext = *ppsEvent;
+    psFreeEvent->pNext = *ppsEvent;
     *ppsEvent = psFreeEvent;
     psFreeEvent = psNextFree;
 }
 
 // Remove events of a specific type from the queue
-inline void CancelCpuEvent(int nEvent_)
+inline void CancelCpuEvent(EventType nEvent_)
 {
     CPU_EVENT** ppsEvent = &psNextEvent;
 
     while (*ppsEvent)
     {
-        if ((*ppsEvent)->nEvent != nEvent_)
-            ppsEvent = &((*ppsEvent)->psNext);
+        if ((*ppsEvent)->type != nEvent_)
+            ppsEvent = &((*ppsEvent)->pNext);
         else
         {
-            CPU_EVENT* psNext = (*ppsEvent)->psNext;
-            (*ppsEvent)->psNext = psFreeEvent;
+            CPU_EVENT* psNext = (*ppsEvent)->pNext;
+            (*ppsEvent)->pNext = psFreeEvent;
             psFreeEvent = *ppsEvent;
             *ppsEvent = psNext;
         }
@@ -248,14 +245,14 @@ inline void CancelCpuEvent(int nEvent_)
 }
 
 // Return time until the next event of a specific type
-inline uint32_t GetEventTime(int nEvent_)
+inline uint32_t GetEventTime(EventType nEvent_)
 {
     CPU_EVENT* psEvent;
 
-    for (psEvent = psNextEvent; psEvent; psEvent = psEvent->psNext)
+    for (psEvent = psNextEvent; psEvent; psEvent = psEvent->pNext)
     {
-        if (psEvent->nEvent == nEvent_)
-            return psEvent->dwTime - g_dwCycleCounter;
+        if (psEvent->type == nEvent_)
+            return psEvent->due_time - g_dwCycleCounter;
     }
 
     return 0;
@@ -265,13 +262,13 @@ inline uint32_t GetEventTime(int nEvent_)
 inline void CheckCpuEvents()
 {
     // Check for pending CPU events (note - psNextEvent will never be nullptr *at this stage*)
-    while (g_dwCycleCounter >= psNextEvent->dwTime)
+    while (g_dwCycleCounter >= psNextEvent->due_time)
     {
         // Get the event from the queue and remove it before new events are added
         auto sThisEvent = *psNextEvent;
-        psNextEvent->psNext = psFreeEvent;
+        psNextEvent->pNext = psFreeEvent;
         psFreeEvent = psNextEvent;
-        psNextEvent = sThisEvent.psNext;
+        psNextEvent = sThisEvent.pNext;
         CPU::ExecuteEvent(sThisEvent);
     }
 }
@@ -280,6 +277,6 @@ inline void CheckCpuEvents()
 inline void CpuEventFrame(uint32_t dwFrameTime_)
 {
     // Process all queued events, due sometime in the next or a later frame
-    for (CPU_EVENT* psEvent = psNextEvent; psEvent; psEvent = psEvent->psNext)
-        psEvent->dwTime -= dwFrameTime_;
+    for (CPU_EVENT* psEvent = psNextEvent; psEvent; psEvent = psEvent->pNext)
+        psEvent->due_time -= dwFrameTime_;
 }

@@ -181,7 +181,7 @@ void NextEdge(uint32_t dwTime_)
         tremain = tstates % (SPECTRUM_TSTATES_PER_SECOND / 1000);
 
         // Schedule an event to activate the edge
-        AddCpuEvent(evtTapeEdge, dwTime_ + tadd);
+        AddCpuEvent(EventType::TapeEdge, dwTime_ + tadd);
     }
 }
 
@@ -205,7 +205,7 @@ void Stop()
     if (IsPlaying())
     {
         // Cancel any pending edge event
-        CancelCpuEvent(evtTapeEdge);
+        CancelCpuEvent(EventType::TapeEdge);
 
         g_fPlaying = false;
         fEar = false;
@@ -602,7 +602,7 @@ bool InFEHook()
         if (GetOption(tapetraps) && GetOption(turbotape))
         {
             // Fetch the time until the next tape edge
-            uint32_t dwTime = GetEventTime(evtTapeEdge);
+            auto dwTime = GetEventTime(EventType::TapeEdge);
 
             // Simulate the edge code to advance to the next edge
             // Return to normal processing if C hits 255 (no edge found) or the ear bit has changed

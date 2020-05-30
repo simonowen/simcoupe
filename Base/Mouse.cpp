@@ -87,8 +87,8 @@ uint8_t CMouseDevice::In(uint16_t /*wPort_*/)
     }
 
     // Cancel any pending reset event, and schedule a fresh one
-    if (m_uBuffer) CancelCpuEvent(evtMouseReset);
-    AddCpuEvent(evtMouseReset, g_dwCycleCounter + MOUSE_RESET_TIME);
+    if (m_uBuffer) CancelCpuEvent(EventType::MouseReset);
+    AddCpuEvent(EventType::MouseReset, g_dwCycleCounter + MOUSE_RESET_TIME);
 
     return bRet;
 }

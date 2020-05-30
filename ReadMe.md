@@ -455,15 +455,17 @@ current display mode (1-4).
 
 **Events** shows upcoming events, and the number of cycles before they are due:
 ```
-            FRAM = start of frame interrupt
-            LINE = start of line interrupt
-            IEND = end of active FRAME or LINE interrupt
+            FINT = start of frame interrupt
+            FEND = end of frame interrupt
+            LINT = start of line interrupt
+            LEND = end of line interrupt
             MIDI = MIDI OUT interrupt
             MEND = end of active MIDI OUT interrupt
+            MTXF = end of TXFMST active in LMPR
             MOUS = mouse reset after strobe
             BLUE = Blue Alpha clock tick
-            ASIC = end of ASIC startup sequence
             TAPE = next tape edge due
+            ASIC = end of ASIC startup sequence
 ```
 
 Keys active in all views:

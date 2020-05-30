@@ -56,26 +56,16 @@ void CBlueAlphaDevice::Reset()
     m_bControl = 0x18;  // control (initialised to BlueAlpha signature?)
 }
 
-bool CBlueAlphaDevice::Clock()
+void CBlueAlphaDevice::Clock(uint32_t event_time)
 {
     // Toggle clock bit every half period
     m_bPortC ^= PORTA_CLOCK;
 
     // If DAC or ADC are enabled, return true to keep the clock running
-    return !!(~m_bPortB & (PORTB_DAC_ENABLE | PORTB_ADC_ENABLE));
-}
-
-int CBlueAlphaDevice::GetClockFreq()
-{
-    int freq = GetOption(samplerfreq);
-
-    // Limit to sensible frequencies
-    if (freq < 8000)
-        freq = 8000;
-    else if (freq > 48000)
-        freq = 48000;
-
-    return freq;
+    if ((~m_bPortB & (PORTB_DAC_ENABLE | PORTB_ADC_ENABLE)) != 0)
+    {
+        AddCpuEvent(EventType::BlueAlphaClock, event_time + m_cpuCyclesPerClock);
+    }
 }
 
 uint8_t CBlueAlphaDevice::In(uint16_t wPort_)
@@ -114,7 +104,11 @@ void CBlueAlphaDevice::Out(uint16_t wPort_, uint8_t bVal_)
         // If DAC/ADC were disabled but one is now enabled, start the clock
         if (!(~m_bPortB & (PORTB_DAC_ENABLE | PORTB_ADC_ENABLE)) &&
             (~bVal_ & (PORTB_DAC_ENABLE | PORTB_ADC_ENABLE)))
-            AddCpuEvent(evtBlueAlphaClock, g_dwCycleCounter + BLUE_ALPHA_CLOCK_TIME);
+        {
+            auto freq = std::min(std::max(8000, GetOption(samplerfreq)), 48000);
+            m_cpuCyclesPerClock = CPU_CLOCK_HZ / freq / 2;
+            AddCpuEvent(EventType::BlueAlphaClock, g_dwCycleCounter + m_cpuCyclesPerClock);
+        }
 
         m_bPortB = bVal_;
         break;
