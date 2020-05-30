@@ -28,12 +28,11 @@
 
 const int SIGNATURE = 0x31415926;
 
-typedef struct
+struct MENUICON
 {
     UINT uID;       // Menu command ID
     int nOffset;    // Offset into image map to use
-}
-MENUICON, * PMENUICON;
+};
 
 struct CMenuItem
 {
@@ -73,7 +72,7 @@ protected:
 
 protected:
     HIMAGELIST m_hil = nullptr;
-    PMENUICON m_pIconMap = nullptr;
+    MENUICON* m_pIconMap = nullptr;
     SIZE m_zButton{};
 
     SIZE m_zBorder{};

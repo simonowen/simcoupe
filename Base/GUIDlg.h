@@ -23,11 +23,11 @@
 #include "GUI.h"
 
 
-typedef struct
+struct FILEFILTER
 {
     const char* pcszDesc;       // Strings describing the filters, separated by '|' symbols
     const char* pcszExts[10];   // Array of extensions for each string above, separated by ';' symbols
-} FILEFILTER;
+};
 
 
 class CFileDialog : public CDialog

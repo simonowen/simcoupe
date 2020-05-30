@@ -23,12 +23,11 @@
 const int ICON_SIZE = 32;
 const int ICON_PALETTE_SIZE = 32;
 
-typedef struct
+struct GUI_ICON
 {
     uint8_t abPalette[ICON_PALETTE_SIZE];
     uint8_t abData[ICON_SIZE][ICON_SIZE];
-}
-GUI_ICON;
+};
 
 
 // These are the icons currently available

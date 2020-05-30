@@ -27,14 +27,14 @@
 #define MOUSE_ACTIVE_TIME      1000                         // Device in active use if last read within 1000ms
 
 // Mouse buffer format, as read
-typedef struct
+struct MOUSEBUFFER
 {
     uint8_t bStrobe;
     uint8_t bDummy;
     uint8_t bButtons;
     uint8_t bY256, bY16, bY1;
     uint8_t bX256, bX16, bX1;
-} MOUSEBUFFER;
+};
 
 
 class CMouseDevice : public CIoDevice

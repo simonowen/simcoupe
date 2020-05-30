@@ -22,18 +22,18 @@
 
 #include "Stream.h"
 
-typedef struct
+struct TRACK
 {
     uint8_t sectors = 0;
     uint8_t cyl = 0, head = 0;     // physical track location
-} TRACK, * PTRACK;
+};
 
-typedef struct
+struct SECTOR
 {
     uint8_t cyl = 0, head = 0, sector = 0, size = 0;
     uint8_t status = 0;
     uint8_t* pbData = nullptr;
-} SECTOR, * PSECTOR;
+};
 
 
 class CFloppyStream final : public CStream
@@ -60,7 +60,7 @@ public:
     size_t Read(void*, size_t) override { return 0; }
     size_t Write(void*, size_t) override { return 0; }
 
-    uint8_t StartCommand(uint8_t bCommand_, PTRACK pTrack_ = nullptr, unsigned int uSectorIndex_ = 0);
+    uint8_t StartCommand(uint8_t bCommand_, TRACK* pTrack_ = nullptr, unsigned int uSectorIndex_ = 0);
 
 protected:
     bool Open();
@@ -79,6 +79,6 @@ protected:
     uint8_t m_bCommand = 0;            // Current command
     uint8_t m_bStatus = 0;             // Final status
 
-    PTRACK m_pTrack = nullptr;      // Track for command
+    TRACK* m_pTrack = nullptr;      // Track for command
     unsigned int m_uSectorIndex = 0;        // Zero-based sector for write command
 };

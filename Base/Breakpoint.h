@@ -26,48 +26,43 @@ enum BreakpointType { btNone, btTemp, btUntil, btExecute, btMemory, btPort, btIn
 enum AccessType { atNone, atRead, atWrite, atReadWrite };
 
 
-typedef struct tagBREAKTEMP
+struct BREAKTEMP
 {
     const void* pPhysAddr;
-}
-BREAKTEMP;
+};
 
-typedef struct tagBREAKEXEC
+struct BREAKEXEC
 {
     const void* pPhysAddr;
-}
-BREAKEXEC;
+};
 
-typedef struct tagBREAKMEM
+struct BREAKMEM
 {
     const void* pPhysAddrFrom;
     const void* pPhysAddrTo;
     AccessType nAccess;
-}
-BREAKMEM;
+};
 
-typedef struct tagBREAKPORT
+struct BREAKPORT
 {
     uint16_t wMask;
     uint16_t wCompare;
     AccessType nAccess;
-}
-BREAKPORT;
+};
 
-typedef struct tagBREAKINT
+struct BREAKINT
 {
     uint8_t bMask;
-}
-BREAKINT;
+};
 
 
-typedef struct tagBREAKPT
+struct BREAKPT
 {
-    tagBREAKPT(BreakpointType nType_, EXPR* pExpr_)
+    BREAKPT(BreakpointType nType_, EXPR* pExpr_)
         : nType(nType_), pExpr(pExpr_) { }
-    tagBREAKPT(const tagBREAKPT&) = delete;
-    void operator= (const tagBREAKPT&) = delete;
-    ~tagBREAKPT() { Expr::Release(pExpr); }
+    BREAKPT(const BREAKPT&) = delete;
+    void operator= (const BREAKPT&) = delete;
+    ~BREAKPT() { Expr::Release(pExpr); }
 
     BreakpointType nType;
     EXPR* pExpr = nullptr;
@@ -82,8 +77,8 @@ typedef struct tagBREAKPT
         BREAKINT Int;
     };
 
-    struct tagBREAKPT* pNext = nullptr;
-} BREAKPT;
+    BREAKPT* pNext = nullptr;
+};
 
 
 class Breakpoint

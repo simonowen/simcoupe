@@ -78,13 +78,11 @@ char szStatus[128], szProfile[128];
 char szScreenPath[MAX_PATH];
 
 
-typedef struct
+struct REGION
 {
     int w, h;
 }
-REGION;
-
-REGION asViews[] =
+asViews[] =
 {
     { SCREEN_BLOCKS, SCREEN_LINES },
     { SCREEN_BLOCKS + 2, SCREEN_LINES + 20 },

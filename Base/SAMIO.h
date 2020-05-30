@@ -22,9 +22,10 @@
 
 #pragma once
 
-typedef struct {
+struct COLOUR
+{
     uint8_t bRed, bGreen, bBlue;
-} COLOUR;
+};
 
 enum { AUTOLOAD_NONE, AUTOLOAD_DISK, AUTOLOAD_TAPE };
 

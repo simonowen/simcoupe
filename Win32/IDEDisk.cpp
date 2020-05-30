@@ -28,8 +28,10 @@
 #define FN_OPEN     2
 
 #pragma pack(1)
-typedef struct {
-    union {
+struct PIPEMESSAGE
+{
+    union
+    {
         struct {
             DWORD dwMessage;
             char szPath[MAX_PATH];
@@ -40,7 +42,7 @@ typedef struct {
             DWORD64 hDevice;
         } Output;
     };
-} PIPEMESSAGE;
+};
 #pragma pack()
 
 

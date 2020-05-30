@@ -736,8 +736,8 @@ CFloppyDisk::CFloppyDisk(CStream* pStream_)
     m_pFloppy = reinterpret_cast<CFloppyStream*>(pStream_);
 
     m_pbData = new uint8_t[MAX_TRACK_SIZE];
-    m_pTrack = reinterpret_cast<PTRACK>(m_pbData);
-    m_pSector = reinterpret_cast<PSECTOR>(m_pTrack + 1);
+    m_pTrack = reinterpret_cast<TRACK*>(m_pbData);
+    m_pSector = reinterpret_cast<SECTOR*>(m_pTrack + 1);
 
     // Invalidate track cache
     m_pTrack->cyl = m_pTrack->head = 0xff;
@@ -751,7 +751,7 @@ bool CFloppyDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD
     if (cyl_ != m_pTrack->cyl || head_ != m_pTrack->head || index_ >= m_pTrack->sectors)
         return false;
 
-    PSECTOR ps = &m_pSector[index_];
+    auto ps = &m_pSector[index_];
 
     // Construct a normal ID field for the sector
     pID_->bSide = ps->head;
@@ -778,7 +778,7 @@ uint8_t CFloppyDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8
         return RECORD_NOT_FOUND;
 
     // Read from the cached track
-    PSECTOR ps = &m_pSector[index_];
+    auto ps = &m_pSector[index_];
     memcpy(pbData_, ps->pbData, *puSize_ = (128 << (ps->size & 3)));
 
     return ps->status;
@@ -791,7 +791,7 @@ uint8_t CFloppyDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint
         return RECORD_NOT_FOUND;
 
     // Write to the track cache, assuming it will work for now
-    PSECTOR ps = &m_pSector[index_];
+    auto ps = &m_pSector[index_];
     memcpy(ps->pbData, pbData_, *puSize_ = (128U << (ps->size & 3)));
     ps->status &= ~CRC_ERROR;
 
@@ -826,8 +826,8 @@ uint8_t CFloppyDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, ui
         return WRITE_PROTECT;
 
     // Set up the initial track/sector/data pointers
-    PTRACK pt = m_pTrack;
-    PSECTOR ps = reinterpret_cast<PSECTOR>(pt + 1);
+    TRACK* pt = m_pTrack;
+    SECTOR* ps = reinterpret_cast<SECTOR*>(pt + 1);
     auto pb = reinterpret_cast<uint8_t*>(ps + uSectors_);
 
     // Complete a suitable track header

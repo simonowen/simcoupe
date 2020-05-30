@@ -264,7 +264,7 @@ inline void timed_write_word_reversed(uint16_t addr, uint16_t contents)
 
 
 // Execute the CPU event specified
-void ExecuteEvent(CPU_EVENT sThisEvent)
+void ExecuteEvent(const CPU_EVENT& sThisEvent)
 {
     switch (sThisEvent.nEvent)
     {

@@ -32,15 +32,14 @@ const int CYBUTTONMARGIN = 2;   // Pixels higher button is than bitmap
 
 
 // Structure of RT_TOOLBAR resource
-typedef struct
+struct TOOLBARDATA
 {
     WORD wVersion;      // version # should be 1
     WORD wWidth;        // width of one bitmap
     WORD wHeight;       // height of one bitmap
     WORD wItemCount;    // number of items
     WORD items[1];      // array of command IDs, actual size is wItemCount
-}
-TOOLBARDATA, * PTOOLBARDATA;
+};
 
 
 COwnerDrawnMenu::COwnerDrawnMenu(HINSTANCE hinst_, int nId_, MENUICON* pIconMap_)
@@ -49,12 +48,12 @@ COwnerDrawnMenu::COwnerDrawnMenu(HINSTANCE hinst_, int nId_, MENUICON* pIconMap_
 #ifndef NO_IMAGES
     HRSRC hrsrc;
     HGLOBAL hgres;
-    PTOOLBARDATA ptbd;
+    TOOLBARDATA* ptbd;
 
     if (!hinst_) hinst_ = GetModuleHandle(nullptr);
 
     if ((hrsrc = FindResource(hinst_, MAKEINTRESOURCE(nId_), RT_TOOLBAR)) && (hgres = LoadResource(hinst_, hrsrc)) &&
-        (ptbd = reinterpret_cast<PTOOLBARDATA>(LockResource(hgres))) && ptbd->wVersion == 1)
+        (ptbd = reinterpret_cast<TOOLBARDATA*>(LockResource(hgres))) && ptbd->wVersion == 1)
     {
         m_zButton.cx = ptbd->wWidth;
         m_zButton.cy = ptbd->wHeight;

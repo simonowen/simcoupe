@@ -21,7 +21,7 @@
 #pragma once
 
 // ATA controller registers
-typedef struct tagATAregs
+struct ATAregs
 {
     uint16_t wData;            // 0x1f0
 
@@ -43,19 +43,18 @@ typedef struct tagATAregs
     uint8_t bDeviceControl;    // 0x3f6
 
 //  uint8_t bDriveAddress;     // 0x3f7 (read) - value built on demand
-} ATAregs;
+};
 
 
 // Structure of IDENTIFY DEVICE command response
-typedef struct
+struct IDENTIFYDEVICE
 {
     union
     {
         uint8_t byte[512];
         uint16_t word[256];
     };
-}
-IDENTIFYDEVICE;
+};
 
 // Address lines
 const uint8_t ATA_CS0 = 0x08;           // Chip select 0 (negative logic)
@@ -94,12 +93,11 @@ const uint8_t ATA_DEVICE_MASK = 0x10;   // Selected device mask
 const uint8_t ATA_HEAD_MASK = 0x0f;     // Head bit mask
 
 
-typedef struct
+struct ATA_GEOMETRY
 {
     unsigned int uTotalSectors;
     unsigned int uCylinders, uHeads, uSectors;
-}
-ATA_GEOMETRY;
+};
 
 
 // Base class for a generic ATA device

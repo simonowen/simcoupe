@@ -26,8 +26,8 @@
 #include "SAMIO.h"
 #include "Util.h"
 
-struct _CPU_EVENT;
-struct _Z80Regs;
+struct CPU_EVENT;
+struct Z80Regs;
 
 namespace CPU
 {
@@ -37,7 +37,7 @@ void Exit(bool fReInit_ = false);
 void Run();
 bool IsContentionActive();
 void UpdateContention(bool fActive_ = true);
-void ExecuteEvent(struct _CPU_EVENT sThisEvent);
+void ExecuteEvent(const CPU_EVENT& sThisEvent);
 void ExecuteChunk();
 
 void Reset(bool fPress_);
@@ -47,7 +47,7 @@ void InitTests();
 }
 
 
-extern struct _Z80Regs regs;
+extern Z80Regs regs;
 extern uint32_t g_dwCycleCounter;
 extern bool g_fReset, g_fBreak, g_fPaused;
 extern int g_nTurbo;
@@ -100,16 +100,16 @@ const int INT_ACTIVE_TIME = 128;            // tstates interrupt is active and w
 
 
 // CPU Event structure
-typedef struct _CPU_EVENT
+struct CPU_EVENT
 {
     int nEvent = -1;
     uint32_t dwTime = 0;
-    struct _CPU_EVENT* psNext = nullptr;
-} CPU_EVENT;
+    CPU_EVENT* psNext = nullptr;
+};
 
 
 // NOTE: ENDIAN-SENSITIVE!
-typedef struct
+struct REGPAIR
 {
     union
     {
@@ -120,9 +120,9 @@ typedef struct
         struct { uint8_t l, h; } b;  // Little endian
 #endif
     };
-} REGPAIR;
+};
 
-typedef struct _Z80Regs
+struct Z80Regs
 {
     REGPAIR af, bc, de, hl;
     REGPAIR af_, bc_, de_, hl_;
@@ -131,7 +131,7 @@ typedef struct _Z80Regs
 
     uint8_t    i, r, r7;
     uint8_t    iff1, iff2, im;
-} Z80Regs;
+};
 
 #define A       regs.af.b.h
 #define F       regs.af.b.l
@@ -268,7 +268,7 @@ inline void CheckCpuEvents()
     while (g_dwCycleCounter >= psNextEvent->dwTime)
     {
         // Get the event from the queue and remove it before new events are added
-        CPU_EVENT sThisEvent = *psNextEvent;
+        auto sThisEvent = *psNextEvent;
         psNextEvent->psNext = psFreeEvent;
         psFreeEvent = psNextEvent;
         psNextEvent = sThisEvent.psNext;

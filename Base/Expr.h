@@ -20,7 +20,7 @@
 
 #pragma once
 
-typedef struct tagEXPR EXPR;
+struct EXPR;
 
 class Expr
 {
@@ -51,16 +51,16 @@ protected:
 };
 
 
-typedef struct tagEXPR
+struct EXPR
 {
     int nType, nValue;      // Item type and type-specific value
-    struct tagEXPR* pNext;  // Link to next item in expression
+    EXPR* pNext;  // Link to next item in expression
     const char* pcszExpr;   // Original expression text (head item only)
 
 private:
-    ~tagEXPR() = default;  // Use Expr::Release() to delete Expr chains
+    ~EXPR() = default;  // Use Expr::Release() to delete Expr chains
     friend class Expr;
-} EXPR;
+};
 
 
 // Leave the enums public to allow some poking around the tokenised expressions by calling code

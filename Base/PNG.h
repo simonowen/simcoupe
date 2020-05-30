@@ -45,7 +45,7 @@ bool Save(CScreen* pScreen_);
 
 
 // PNG header
-typedef struct
+struct PNG_IHDR
 {
     uint8_t abWidth[4];
     uint8_t abHeight[4];
@@ -54,15 +54,15 @@ typedef struct
     uint8_t bCompressionType;
     uint8_t bFilterType;
     uint8_t bInterlaceType;
-} PNG_IHDR;
+};
 
 // PNG support
-typedef struct
+struct PNG_INFO
 {
     uint32_t dwWidth, dwHeight;
     uint8_t* pbImage;
     unsigned long uSize, uCompressedSize;
-} PNG_INFO;
+};
 
 
 #endif  // HAVE_LIBZ

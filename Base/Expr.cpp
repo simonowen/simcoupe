@@ -67,12 +67,11 @@ static EXPR* AddNode(int nType_, int nValue_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef struct
+struct TOKEN
 {
     const char* pcsz;
     int nToken;
-}
-TOKEN;
+};
 
 // Binary operators, broken into precedence levels, sorted low to high
 static const TOKEN asBinaryOps[][5] =

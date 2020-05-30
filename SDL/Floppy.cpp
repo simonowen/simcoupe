@@ -114,7 +114,7 @@ void CFloppyStream::Close()
 
 
 // Start executing a floppy command
-uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, PTRACK pTrack_, unsigned int uSectorIndex_)
+uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, TRACK* pTrack_, unsigned int uSectorIndex_)
 {
     // Wait for any in-progress operation to complete
     uint8_t bStatus;
@@ -156,10 +156,10 @@ bool CFloppyStream::IsBusy(uint8_t* pbStatus_, bool fWait_)
 
 
 // Read a single sector
-static uint8_t ReadSector(int hDevice_, PTRACK pTrack_, unsigned int uSector_)
+static uint8_t ReadSector(int hDevice_, TRACK* pTrack_, unsigned int uSector_)
 {
-    PTRACK pt = pTrack_;
-    PSECTOR ps = reinterpret_cast<PSECTOR>(pt + 1);
+    auto pt = pTrack_;
+    auto ps = reinterpret_cast<SECTOR*>(pt + 1);
     ps += uSector_;
 
     struct floppy_raw_cmd rc;
@@ -187,10 +187,10 @@ static uint8_t ReadSector(int hDevice_, PTRACK pTrack_, unsigned int uSector_)
 }
 
 // Write a single sector
-static uint8_t WriteSector(int hDevice_, PTRACK pTrack_, unsigned int uSectorIndex_)
+static uint8_t WriteSector(int hDevice_, TRACK* pTrack_, unsigned int uSectorIndex_)
 {
-    PTRACK pt = pTrack_;
-    PSECTOR ps = reinterpret_cast<PSECTOR>(pt + 1) + uSectorIndex_;
+    auto pt = pTrack_;
+    auto ps = reinterpret_cast<SECTOR*>(pt + 1) + uSectorIndex_;
 
     struct floppy_raw_cmd rc;
     memset(&rc, 0, sizeof(rc));
@@ -224,13 +224,13 @@ static uint8_t WriteSector(int hDevice_, PTRACK pTrack_, unsigned int uSectorInd
 }
 
 // Format a track
-static uint8_t FormatTrack(int hDevice_, PTRACK pTrack_)
+static uint8_t FormatTrack(int hDevice_, TRACK* pTrack_)
 {
     int i, step;
     uint8_t bStatus = 0, ab[64 * 4] = { 0 }, * pb = ab;
 
-    PTRACK pt = pTrack_;
-    PSECTOR ps = reinterpret_cast<PSECTOR>(pt + 1);
+    auto pt = pTrack_;
+    auto ps = reinterpret_cast<SECTOR*>(pt + 1);
     unsigned int uSize = pt->sectors ? (128U << (ps->size & 7)) : 0;
 
     struct floppy_raw_cmd rc;
@@ -302,12 +302,12 @@ static uint8_t FormatTrack(int hDevice_, PTRACK pTrack_)
 }
 
 // Read a simple 10-sector MGT or 9-sector DOS track, allowing no errors
-static bool ReadSimpleTrack(int hDevice_, PTRACK pTrack_, unsigned int& ruSectors_)
+static bool ReadSimpleTrack(int hDevice_, TRACK* pTrack_, unsigned int& ruSectors_)
 {
     int i;
 
-    PTRACK pt = pTrack_;
-    PSECTOR ps = (PSECTOR)(pt + 1);
+    auto pt = pTrack_;
+    auto ps = reinterpret_cast<SECTOR*>(pt + 1);
     auto pb = (uint8_t*)(ps + (pt->sectors = NORMAL_DISK_SECTORS));
 
     // Prepare the track container
@@ -365,12 +365,12 @@ static bool ReadSimpleTrack(int hDevice_, PTRACK pTrack_, unsigned int& ruSector
     return false;
 }
 
-static bool ReadCustomTrack(int hDevice_, PTRACK pTrack_)
+static bool ReadCustomTrack(int hDevice_, TRACK* pTrack_)
 {
     unsigned int i;
 
-    PTRACK pt = pTrack_;
-    PSECTOR ps = (PSECTOR)(pt + 1);
+    auto pt = pTrack_;
+    auto ps = reinterpret_cast<SECTOR*>(pt + 1);
 
     uint8_t ab[128] = { 0 };
     uint8_t sector = 0xef, size = 0;
@@ -505,7 +505,7 @@ void CFloppyStream::Close()
 {
 }
 
-uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, PTRACK pTrack_, unsigned int uSector_)
+uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, TRACK* pTrack_, unsigned int uSector_)
 {
     return BUSY;
 }

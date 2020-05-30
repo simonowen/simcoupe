@@ -52,7 +52,7 @@ NORMAL_DISK_SECTORS * (NORMAL_SECTOR_SIZE - 2) - DISK_FILE_HEADER_SIZE;
 #define SAD_SIGNATURE           "Aley's disk backup"
 
 // SAD file header
-typedef struct
+struct SAD_HEADER
 {
     uint8_t abSignature[sizeof(SAD_SIGNATURE) - 1];
 
@@ -60,8 +60,7 @@ typedef struct
     uint8_t bTracks;            // Number of tracks per side
     uint8_t bSectors;           // Number of sectors per track
     uint8_t bSectorSizeDiv64;   // Sector size divided by 64
-}
-SAD_HEADER;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -76,16 +75,16 @@ SAD_HEADER;
 #define ST2_765_CRC_ERROR       0x20
 #define ST2_765_CONTROL_MARK    0x40
 
-typedef struct
+struct EDSK_HEADER
 {
     char szSignature[34];    // one of the signatures above, depending on DSK/EDSK
     char szCreator[14];      // name of creator (utility/emulator)
     uint8_t bTracks;
     uint8_t bSides;
     uint8_t abTrackSize[2];     // fixed track size (DSK only)
-} EDSK_HEADER;
+};
 
-typedef struct
+struct EDSK_TRACK
 {
     char szSignature[13];    // Track-Info\r\n
     uint8_t bRate;              // 0=unknown (default=250K), 1=250K/300K, 2=500K, 3=1M
@@ -98,16 +97,14 @@ typedef struct
     uint8_t bSectors;
     uint8_t bGap3;
     uint8_t bFill;
-}
-EDSK_TRACK;
+};
 
-typedef struct
+struct EDSK_SECTOR
 {
     uint8_t bTrack, bSide, bSector, bSize;
     uint8_t bStatus1, bStatus2;
     uint8_t bDatalow, bDatahigh;
-}
-EDSK_SECTOR;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -267,8 +264,8 @@ protected:
 
     uint8_t m_bCommand = 0, m_bStatus = 0;     // Current command and final status
 
-    PTRACK  m_pTrack = nullptr;             // Current track
-    PSECTOR m_pSector = nullptr;            // Pointer to first sector on track
+    TRACK* m_pTrack = nullptr;              // Current track
+    SECTOR* m_pSector = nullptr;            // Pointer to first sector on track
 };
 
 

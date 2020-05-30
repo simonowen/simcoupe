@@ -64,12 +64,12 @@ static const int ROW_GAP = 2;
 static const int ROW_HEIGHT = ROW_GAP + sFixedFont.wHeight + ROW_GAP;
 static const int CHR_WIDTH = sFixedFont.wWidth + CHAR_SPACING;
 
-typedef struct
+struct TRACEDATA
 {
     uint16_t wPC;                         // PC value
     uint8_t abInstr[MAX_Z80_INSTR_LEN];  // Instruction at PC
     Z80Regs regs;                     // Register values
-} TRACEDATA;
+};
 
 
 CDebugger* pDebugger;

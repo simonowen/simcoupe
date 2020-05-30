@@ -20,14 +20,13 @@
 
 #pragma once
 
-typedef struct
+struct GUIFONT
 {
     uint16_t wWidth, wHeight, wCharSize;
     uint8_t bFirst, bLast;
     bool    fFixedWidth;
 
     const uint8_t* pcbData;
-}
-GUIFONT;
+};
 
 extern const GUIFONT sFixedFont, sPropFont, sGUIFont, sSpacedGUIFont;

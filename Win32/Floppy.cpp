@@ -130,7 +130,7 @@ void CFloppyStream::Close()
 }
 
 // Start a command executing asynchronously
-uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, PTRACK pTrack_, unsigned int uSectorIndex_)
+uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, TRACK* pTrack_, unsigned int uSectorIndex_)
 {
     unsigned int uThreadId;
 
@@ -175,7 +175,7 @@ bool CFloppyStream::IsBusy(uint8_t* pbStatus_, bool fWait_)
 ///////////////////////////////////////////////////////////////////////////////
 
 // Read a single sector
-static uint8_t ReadSector(HANDLE hDevice_, uint8_t phead_, PSECTOR ps_)
+static uint8_t ReadSector(HANDLE hDevice_, uint8_t phead_, SECTOR* ps_)
 {
 #ifdef HAVE_FDRAWCMD_H
     uint8_t bStatus = 0;
@@ -205,10 +205,10 @@ static uint8_t ReadSector(HANDLE hDevice_, uint8_t phead_, PSECTOR ps_)
 }
 
 // Write a single sector
-static uint8_t WriteSector(HANDLE hDevice_, PTRACK pTrack_, unsigned int uSectorIndex_)
+static uint8_t WriteSector(HANDLE hDevice_, TRACK* pTrack_, unsigned int uSectorIndex_)
 {
 #ifdef HAVE_FDRAWCMD_H
-    PSECTOR ps = reinterpret_cast<PSECTOR>(pTrack_ + 1) + uSectorIndex_;
+    auto ps = reinterpret_cast<SECTOR*>(pTrack_ + 1) + uSectorIndex_;
 
     FD_READ_WRITE_PARAMS rwp;
     rwp.flags = FD_OPTION_MFM;
@@ -238,7 +238,7 @@ static uint8_t WriteSector(HANDLE hDevice_, PTRACK pTrack_, unsigned int uSector
 }
 
 // Format a track
-static uint8_t FormatTrack(HANDLE hDevice_, PTRACK pTrack_)
+static uint8_t FormatTrack(HANDLE hDevice_, TRACK* pTrack_)
 {
 #ifdef HAVE_FDRAWCMD_H
     int i, step;
@@ -248,8 +248,8 @@ static uint8_t FormatTrack(HANDLE hDevice_, PTRACK pTrack_)
     uint8_t ab[sizeof(FD_FORMAT_PARAMS) + 64 * sizeof(FD_ID_HEADER)] = { 0 };
     PFD_FORMAT_PARAMS pfp = reinterpret_cast<PFD_FORMAT_PARAMS>(ab);
 
-    PTRACK pt = pTrack_;
-    PSECTOR ps = reinterpret_cast<PSECTOR>(pt + 1);
+    auto pt = pTrack_;
+    auto ps = reinterpret_cast<SECTOR*>(pt + 1);
     unsigned int uSize = pt->sectors ? (128U << (ps->size & 7)) : 0;
 
     // Set up the format parameters
@@ -315,14 +315,14 @@ static uint8_t FormatTrack(HANDLE hDevice_, PTRACK pTrack_)
 }
 
 // Read a simple track of consecutive sectors, which is fast if it matches what's on the disk
-static bool ReadSimpleTrack(HANDLE hDevice_, PTRACK pTrack_, unsigned int& ruSectors_)
+static bool ReadSimpleTrack(HANDLE hDevice_, TRACK* pTrack_, unsigned int& ruSectors_)
 {
 #ifdef HAVE_FDRAWCMD_H
     int i;
 
-    PTRACK pt = pTrack_;
-    PSECTOR ps = (PSECTOR)(pt + 1);
-    PBYTE pb = (PBYTE)(ps + (pt->sectors = ruSectors_));
+    auto pt = pTrack_;
+    auto ps = reinterpret_cast<SECTOR*>(pt + 1);
+    auto pb = reinterpret_cast<uint8_t*>(ps + (pt->sectors = ruSectors_));
 
     // Prepare the normal track container
     for (i = 0; i < pt->sectors; i++)
@@ -380,7 +380,7 @@ static bool ReadSimpleTrack(HANDLE hDevice_, PTRACK pTrack_, unsigned int& ruSec
 }
 
 // Read a custom track format, which is slower but more thorough
-static bool ReadCustomTrack(HANDLE hDevice_, PTRACK pTrack_)
+static bool ReadCustomTrack(HANDLE hDevice_, TRACK* pTrack_)
 {
 #ifdef HAVE_FDRAWCMD_H
     uint8_t abScan[1 + 64 * sizeof(FD_SCAN_RESULT)];
@@ -391,9 +391,9 @@ static bool ReadCustomTrack(HANDLE hDevice_, PTRACK pTrack_)
     if (!Ioctl(hDevice_, IOCTL_FD_SCAN_TRACK, &sp, sizeof(sp), abScan, sizeof(abScan)))
         return false;
 
-    PTRACK pt = pTrack_;
-    PSECTOR ps = (PSECTOR)(pt + 1);
-    PBYTE pb = (PBYTE)(ps + (pt->sectors = psr->count));
+    auto pt = pTrack_;
+    auto ps = reinterpret_cast<SECTOR*>(pt + 1);
+    auto pb = reinterpret_cast<uint8_t*>(ps + (pt->sectors = psr->count));
 
     // Read the sectors in 2 interleaved passes
     for (int i = 0, step = 2; i < step; i++)

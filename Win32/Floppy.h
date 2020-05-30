@@ -26,18 +26,18 @@
 
 #include "Stream.h"
 
-typedef struct
+struct TRACK
 {
     int sectors;
     uint8_t cyl, head;     // physical track location
-} TRACK, * PTRACK;
+};
 
-typedef struct
+struct SECTOR
 {
     uint8_t cyl, head, sector, size;
     uint8_t status;
     uint8_t* pbData;
-} SECTOR, * PSECTOR;
+};
 
 
 class CFloppyStream final : public CStream
@@ -66,7 +66,7 @@ public:
     size_t Read(void*, size_t) override { return 0; }
     size_t Write(void*, size_t) override { return 0; }
 
-    uint8_t StartCommand(uint8_t bCommand_, PTRACK pTrack_ = nullptr, unsigned int uSectorIndex_ = 0);
+    uint8_t StartCommand(uint8_t bCommand_, TRACK* pTrack_ = nullptr, unsigned int uSectorIndex_ = 0);
 
 protected:
     HANDLE m_hDevice = INVALID_HANDLE_VALUE; // Floppy device handle
@@ -76,6 +76,6 @@ protected:
     uint8_t m_bCommand = 0;        // Current command
     uint8_t m_bStatus;             // Final status
 
-    PTRACK m_pTrack = nullptr;  // Track for command
+    TRACK* m_pTrack = nullptr;  // Track for command
     unsigned int m_uSectorIndex = 0;    // Zero-based sector for write command
 };

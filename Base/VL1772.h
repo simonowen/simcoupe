@@ -40,7 +40,7 @@ enum { regCommand = 0, regStatus = regCommand, regTrack, regSector, regData };
 
 
 // VL1772 registers
-typedef struct tagVL1772Regs
+struct VL1772Regs
 {
     uint8_t bCommand = 0;      // Command register (write-only)
     uint8_t bStatus = 0;       // Status register (read-only)
@@ -50,7 +50,7 @@ typedef struct tagVL1772Regs
     uint8_t bData = 0;         // Data read from and to write to the controller
 
     bool fDir = false;      // Direction flag: true to step out, false to step in (for non-specific STEP_ commands)
-} VL1772Regs;
+};
 
 // Status register status bits
 #define BUSY                0x01    // Wait BUSY=0 for a new command
@@ -129,14 +129,13 @@ typedef struct tagVL1772Regs
 ////////////////////////////////////////////////////////////////
 
 // Structure of the ID field that precedes each sector in a raw track
-typedef struct
+struct IDFIELD
 {
-    uint8_t    bTrack;         // Track number
-    uint8_t    bSide;          // Side number (0 or 1)
-    uint8_t    bSector;        // Sector number
-    uint8_t    bSize;          // 128 << bSize = sector size in bytes: 0=128K, 1=256K, 2=512K, 3=1024K
+    uint8_t bTrack;         // Track number
+    uint8_t bSide;          // Side number (0 or 1)
+    uint8_t bSector;        // Sector number
+    uint8_t bSize;          // 128 << bSize = sector size in bytes: 0=128K, 1=256K, 2=512K, 3=1024K
 
-    uint8_t    bCRC1;          // ID field CRC MSB
-    uint8_t    bCRC2;          // ID field CRC LSB
-}
-IDFIELD;
+    uint8_t bCRC1;          // ID field CRC MSB
+    uint8_t bCRC2;          // ID field CRC LSB
+};

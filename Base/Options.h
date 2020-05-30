@@ -22,7 +22,7 @@
 
 #define OPTIONS_FILE  "SimCoupe.cfg"
 
-typedef struct
+struct OPTIONS
 {
     int     cfgversion;             // Config compatability number (set defaults if mismatched)
     bool    firstrun;               // First run of the emulator?
@@ -130,8 +130,7 @@ typedef struct
 
     char    fnkeys[256];            // Function key bindings
     char    keymap[256];            // Custom keymap
-}
-OPTIONS;
+};
 
 
 namespace Options

@@ -30,13 +30,13 @@
 namespace Keyboard
 {
 
-typedef struct
+struct MAPPED_KEY
 {
     int nChar;                  // Symbol or HK_ virtual keycode
     eSamKey nSamMods, nSamKey;  // Up to 2 SAM keys needed to generate the above symbol
     int nKey, nMods;            // Host scancode and modifiers
 
-} MAPPED_KEY;
+};
 
 
 int anNativeKey[HK_MAX - HK_MIN + 1];

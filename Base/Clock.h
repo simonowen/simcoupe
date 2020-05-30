@@ -22,7 +22,7 @@
 
 #include "SAMIO.h"
 
-typedef struct tagSAMTIME
+struct SAMTIME
 {
     int nSecond = 0;
     int nMinute = 0;
@@ -32,7 +32,7 @@ typedef struct tagSAMTIME
     int nMonth = 0;
     int nYear = 0;
     int nCentury = 0;
-} SAMTIME;
+};
 
 
 class CClockDevice : public CIoDevice

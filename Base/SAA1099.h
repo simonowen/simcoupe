@@ -9,12 +9,12 @@
 
 class CSAAEnv
 {
-    typedef struct
+    struct ENVDATA
     {
         int nNumberOfPhases;
         bool bLooping;
         unsigned short nLevels[2][2][16]; // [Resolution][Phase][Withinphase]
-    } ENVDATA;
+    };
 
 protected:
     unsigned short m_nLeftLevel = 0, m_nRightLevel = 0;

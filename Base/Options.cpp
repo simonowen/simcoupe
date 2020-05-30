@@ -36,7 +36,7 @@ const int CFG_VERSION = 4;      // increment to force a config reset, if incompa
 
 enum { OT_BOOL, OT_INT, OT_STRING };
 
-typedef struct
+struct OPTION
 {
     const char* pcszName;                                       // Option name used in config file
     int nType;                                                  // Option type
@@ -48,7 +48,7 @@ typedef struct
     bool fDefault;
 
     bool fSpecified;
-} OPTION;
+};
 
 OPTIONS s_Options;
 static int nDrive = 1;

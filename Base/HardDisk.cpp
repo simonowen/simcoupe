@@ -84,7 +84,7 @@ bool CHardDisk::IsBDOSDisk(bool* pfByteSwapped_)
 }
 
 
-typedef struct
+struct RS_IDE
 {
     char szSignature[6];                // RS-IDE
     uint8_t bEOF;                       // 0x1a
@@ -93,8 +93,7 @@ typedef struct
     uint8_t bOffsetLow, bOffsetHigh;    // Offset from start of file to HDD data
     uint8_t abReserved[11];             // Must be zero
                                         // Identify data follows: 106 bytes for HDF 1.0, 512 for HDF 1.1+
-}
-RS_IDE;
+};
 
 
 CHDFHardDisk::CHDFHardDisk(const char* pcszDisk_)
