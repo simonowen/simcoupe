@@ -32,7 +32,6 @@
 #include "Input.h"
 #include "Options.h"
 #include "Sound.h"
-#include "SDL12.h"
 #include "SDL20.h"
 
 bool UI::Init(bool fFirstInit_/*=false*/)
@@ -40,7 +39,6 @@ bool UI::Init(bool fFirstInit_/*=false*/)
     bool fRet = true;
 
     Exit(true);
-    TRACE("UI::Init(%d)\n", fFirstInit_);
 
     // Set the window caption and disable the cursor until needed
 #ifdef HAVE_LIBSDL2
@@ -76,30 +74,13 @@ bool UI::Init(bool fFirstInit_/*=false*/)
 
 void UI::Exit(bool fReInit_/*=false*/)
 {
-    TRACE("UI::Exit(%d)\n", fReInit_);
 }
 
 
 // Create a video object to render the display
-VideoBase* UI::GetVideo(bool fFirstInit_)
+std::unique_ptr<IVideoRenderer> UI::CreateVideo()
 {
-    VideoBase* pVideo = nullptr;
-
-    if (!pVideo)
-    {
-#ifdef HAVE_LIBSDL2
-        pVideo = new SDLTexture;
-#else
-        pVideo = new SDLSurface;
-#endif
-        if (!pVideo->Init(fFirstInit_))
-        {
-            delete pVideo; pVideo = nullptr;
-            Message(msgError, "Video initialisation failed!");
-        }
-    }
-
-    return pVideo;
+    return std::make_unique<SDLTexture>();
 }
 
 

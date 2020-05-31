@@ -27,10 +27,6 @@
 #include "SDL2/SDL.h"
 #endif
 
-#ifdef HAVE_LIBSDL
-#include "SDL/SDL.h"
-#endif
-
 #ifdef __APPLE__
 #include <sys/disk.h>       // for DKIOCGETBLOCKCOUNT
 #define main SimCoupe_main  // rename main() so Cocoa can use it
@@ -53,10 +49,6 @@
 
 
 #ifdef _WINDOWS
-
-#define SID WIN32_SID   // TODO: limit scope of windows.h avoid SID symbol clash
-//#include <windows.h>
-#undef SID
 
 #include <direct.h>
 #include <io.h>
@@ -97,7 +89,7 @@ struct dirent
     char    d_name[256];
 };
 
-typedef HANDLE  DIR;
+using DIR = void*;
 
 DIR* opendir(const char* pcszDir_);
 struct dirent* readdir(DIR* hDir_);

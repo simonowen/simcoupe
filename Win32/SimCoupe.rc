@@ -103,18 +103,15 @@ STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Display"
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
-    CONTROL         "Enable hardware acceleration",IDC_HWACCEL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,25,180,10
-    CONTROL         "Bi-linear filtering (smoothing)",IDC_FILTER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,40,180,10
-    LTEXT           "Renderer:",IDS_RENDERER,50,57,32,8
-    COMBOBOX        IDC_RENDERER,86,55,100,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Enable TV scanlines",IDC_SCANLINES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,93,180,10
-    CONTROL         "High resolution (display native)",IDC_HIRES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,108,180,10
-    LTEXT           "Intensity:",IDS_INTENSITY,50,126,29,8
+    CONTROL         "Bi-linear filtering (smoothing)",IDC_FILTER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,25,180,10
+    CONTROL         "Enable TV scanlines",IDC_SCANLINES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,68,180,10
+    CONTROL         "High resolution (display native)",IDC_HIRES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,83,180,10
+    LTEXT           "Intensity:",IDS_INTENSITY,50,101,29,8
     ICON            IDI_DISPLAY,IDC_STATIC,16,20,20,20
-    GROUPBOX        "Hardware",IDC_STATIC,7,7,236,69
-    GROUPBOX        "Scanlines",IDC_STATIC,7,81,236,66
-    CONTROL         "",IDC_INTENSITY,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,81,119,100,18
-    LTEXT           "x%",IDS_INTENSITY_PERCENT,183,122,18,8
+    GROUPBOX        "Hardware",IDC_STATIC,7,7,236,44
+    GROUPBOX        "Scanlines",IDC_STATIC,7,56,236,66
+    CONTROL         "",IDC_INTENSITY,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,81,94,100,18
+    LTEXT           "x%",IDS_INTENSITY_PERCENT,183,97,18,8
 END
 
 IDD_PAGE_JOYSTICK DIALOGEX 0, 0, 250, 200

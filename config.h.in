@@ -17,9 +17,6 @@
 // Direct3D 9 video (Win32).
 #cmakedefine HAVE_D3D9
 
-// DirectDraw video (Win32).
-#cmakedefine HAVE_DDRAW
-
 // DirectInput 8 (Win32).
 #cmakedefine HAVE_DINPUT
 
@@ -28,12 +25,6 @@
 
 // Simple DirectMedia Layer v2.0
 #cmakedefine HAVE_LIBSDL2
-
-// Simple DirectMedia Layer v1.2 (legacy)
-#cmakedefine HAVE_LIBSDL
-
-// Allegro 5 library.
-#cmakedefine HAVE_LIBALLEGRO5
 
 // SAA-1099 emulation library.
 #cmakedefine HAVE_LIBSAASOUND

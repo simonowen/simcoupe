@@ -44,14 +44,12 @@ void DisplayToSamPoint(int* pnX_, int* pnY_);
 }
 
 
-class VideoBase
+struct IVideoRenderer
 {
-public:
-    virtual ~VideoBase() = default;
+    virtual ~IVideoRenderer() = default;
 
-public:
     virtual int GetCaps() const = 0;
-    virtual bool Init(bool fFirstInit_) = 0;
+    virtual bool Init() = 0;
 
     virtual void Update(CScreen* pScreen_, bool* pafDirty_) = 0;
     virtual void UpdateSize() = 0;

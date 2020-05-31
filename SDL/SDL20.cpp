@@ -60,10 +60,8 @@ int SDLTexture::GetCaps() const
     return VCAP_STRETCH | VCAP_FILTER | VCAP_SCANHIRES;
 }
 
-bool SDLTexture::Init(bool fFirstInit_)
+bool SDLTexture::Init()
 {
-    TRACE("-> Video::Init(%s)\n", fFirstInit_ ? "first" : "");
-
     // Original frame
     int nWidth = Frame::GetWidth();
     int nHeight = Frame::GetHeight();

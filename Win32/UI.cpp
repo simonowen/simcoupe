@@ -36,7 +36,6 @@
 #include "CPU.h"
 #include "Debug.h"
 #include "Direct3D9.h"
-#include "DirectDraw.h"
 #include "Drive.h"
 #include "Expr.h"
 #include "Floppy.h"
@@ -190,28 +189,9 @@ void UI::Exit(bool fReInit_/*=false*/)
 
 
 // Create a video object to render the display
-VideoBase* UI::GetVideo(bool fFirstInit_)
+std::unique_ptr<IVideoRenderer> UI::CreateVideo()
 {
-    VideoBase* pVideo = nullptr;
-
-    // Is D3D enabled (1), or are we in auto-mode (-1) and running Vista or later?
-    if (GetOption(direct3d) > 0 || (GetOption(direct3d) < 0 && IsWindowsVistaOrGreater()))
-    {
-        // Try for Direct3D9
-        pVideo = new Direct3D9Video;
-        if (pVideo && !pVideo->Init(fFirstInit_))
-            delete pVideo, pVideo = nullptr;
-    }
-
-    // Fall back on DirectDraw
-    if (!pVideo)
-    {
-        pVideo = new DirectDrawVideo;
-        if (!pVideo->Init(fFirstInit_))
-            delete pVideo, pVideo = nullptr;
-    }
-
-    return pVideo;
+    return std::make_unique<Direct3D9Video>();
 }
 
 // Check and process any incoming messages
@@ -2913,21 +2893,13 @@ INT_PTR CALLBACK DisplayPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
     {
         static const char* aszRenderer[] = { "Auto-select (Default)", "DirectDraw", "Direct3D (if available)", nullptr };
 
-        SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_SETCHECK, GetOption(hwaccel) ? BST_CHECKED : BST_UNCHECKED, 0L);
         SendDlgItemMessage(hdlg_, IDC_FILTER, BM_SETCHECK, GetOption(filter) ? BST_CHECKED : BST_UNCHECKED, 0L);
         SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_SETCHECK, GetOption(scanlines) ? BST_CHECKED : BST_UNCHECKED, 0L);
         SendDlgItemMessage(hdlg_, IDC_HIRES, BM_SETCHECK, GetOption(scanhires) ? BST_CHECKED : BST_UNCHECKED, 0L);
 
-        int nRenderer = GetOption(direct3d);
-        if (nRenderer < -1 || nRenderer > 1) nRenderer = -1;
-
         int nIntensity = std::max(0, std::min(95, GetOption(scanlevel)));
         SendDlgItemMessage(hdlg_, IDC_INTENSITY, TBM_SETRANGE, 0, MAKELONG(0, 19));
         SendDlgItemMessage(hdlg_, IDC_INTENSITY, TBM_SETPOS, TRUE, nIntensity / 5);
-
-        SetComboStrings(hdlg_, IDC_RENDERER, aszRenderer, nRenderer + 1);
-
-        SendMessage(hdlg_, WM_COMMAND, IDC_HWACCEL, 0L);
 
         break;
     }
@@ -2948,16 +2920,10 @@ INT_PTR CALLBACK DisplayPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
 
         if (pnmh->code == PSN_APPLY)
         {
-            SetOption(hwaccel, SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-            SetOption(direct3d, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_RENDERER, CB_GETCURSEL, 0, 0L)) - 1);
-
             SetOption(filter, SendDlgItemMessage(hdlg_, IDC_FILTER, BM_GETCHECK, 0, 0L) == BST_CHECKED);
             SetOption(scanlines, SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_GETCHECK, 0, 0L) == BST_CHECKED);
             SetOption(scanhires, SendDlgItemMessage(hdlg_, IDC_HIRES, BM_GETCHECK, 0, 0L) == BST_CHECKED);
             SetOption(scanlevel, nIntensity);
-
-            if (Changed(hwaccel) || Changed(direct3d))
-                Video::Init();
 
             if (Changed(scanlines) || Changed(scanhires) || Changed(scanlevel))
                 Video::UpdatePalette();
@@ -2969,17 +2935,6 @@ INT_PTR CALLBACK DisplayPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
     {
         switch (LOWORD(wParam_))
         {
-        case IDC_HWACCEL:
-        {
-            bool fAccel = SendDlgItemMessage(hdlg_, IDC_HWACCEL, BM_GETCHECK, 0, 0L) != 0;
-            EnableWindow(GetDlgItem(hdlg_, IDC_FILTER), fAccel);
-            EnableWindow(GetDlgItem(hdlg_, IDS_RENDERER), fAccel);
-            EnableWindow(GetDlgItem(hdlg_, IDC_RENDERER), fAccel);
-            EnableWindow(GetDlgItem(hdlg_, IDC_HIRES), fAccel);
-            fPreview = true;
-            break;
-        }
-
         case IDC_SCANLINES:
         {
             bool fScanlines = SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_GETCHECK, 0, 0L) == BST_CHECKED;

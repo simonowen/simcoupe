@@ -29,23 +29,21 @@
 namespace Video
 {
 
-static VideoBase* pVideo;
+static std::unique_ptr<IVideoRenderer> pVideo;
 static bool afDirty[GFX_HEIGHT_LINES * 2];
 
 
 bool Init(bool fFirstInit_)
 {
-    TRACE("Video::Init(%d)\n", fFirstInit_);
     Exit(true);
 
-    pVideo = UI::GetVideo(fFirstInit_);
-    return pVideo != nullptr;
+    pVideo = UI::CreateVideo();
+    return pVideo && pVideo->Init();
 }
 
 void Exit(bool fReInit_/*=false*/)
 {
-    TRACE("Video::Exit(%d)\n", fReInit_);
-    delete pVideo; pVideo = nullptr;
+    pVideo.reset();
 }
 
 

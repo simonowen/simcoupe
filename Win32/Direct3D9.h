@@ -31,14 +31,14 @@
 
 #include "Video.h"
 
-class Direct3D9Video : public VideoBase
+class Direct3D9Video final : public IVideoRenderer
 {
 public:
     ~Direct3D9Video();
 
 public:
     int GetCaps() const;
-    bool Init(bool fFirstInit_);
+    bool Init();
 
     void Update(CScreen* pScreen_, bool* pafDirty_);
     void UpdateSize();

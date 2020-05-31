@@ -72,11 +72,9 @@ OPTION aOptions[] =
     OPT_N("Mode3",        mode3,          0),         // Show only odd mode3 pixels on low-res displays
     OPT_F("Fullscreen",   fullscreen,     false),     // Not full screen
     OPT_N("Borders",      borders,        2),         // Same amount of borders as previous version
-    OPT_F("HWAccel",      hwaccel,        true),      // Use hardware accelerated video
     OPT_F("Greyscale",    greyscale,      false),     // Colour display
     OPT_F("Filter",       filter,         true),      // Filter the image when stretching
     OPT_F("FilterGUI",    filtergui,      false),     // Don't filter the image when the GUI is active
-    OPT_N("Direct3D",     direct3d,       -1),        // Automatic use of D3D (currently, Vista or later)
 
     OPT_N("AviReduce",    avireduce,      1),         // Record 44kHz 8-bit stereo audio (50% saving)
     OPT_F("AviScanlines", aviscanlines,   false),     // Don't include scanlines in AVI recordings

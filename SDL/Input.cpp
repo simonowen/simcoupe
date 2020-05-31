@@ -42,34 +42,6 @@ int nCentreX, nCentreY;
 int nLastKey, nLastMods;
 const Uint8* pKeyStates;
 
-// SDL 1.2 compatibility definitions
-#ifndef HAVE_LIBSDL2
-#define SDL_Keysym SDL_keysym
-#define SDL_Keymod SDLMod
-#define SDL_GetKeyboardState SDL_GetKeyState
-#define SDL_JoystickNameForIndex SDL_JoystickName
-#define SDL_WarpMouseInWindow(w,x,y) SDL_WarpMouse((x),(y))
-#define SDL_StartTextInput() SDL_EnableUNICODE(1)
-#define SDL_SetTextInputRect(r)
-#define SDLK_KP_0 SDLK_KP0
-#define SDLK_KP_1 SDLK_KP1
-#define SDLK_KP_2 SDLK_KP2
-#define SDLK_KP_3 SDLK_KP3
-#define SDLK_KP_4 SDLK_KP4
-#define SDLK_KP_5 SDLK_KP5
-#define SDLK_KP_6 SDLK_KP6
-#define SDLK_KP_7 SDLK_KP7
-#define SDLK_KP_8 SDLK_KP8
-#define SDLK_KP_9 SDLK_KP9
-#define SDLK_LGUI SDLK_LSUPER
-#define SDLK_RGUI SDLK_RSUPER
-#define SDLK_PRINTSCREEN SDLK_PRINT
-#define SDLK_SCROLLLOCK SDLK_SCROLLOCK
-#define SDLK_NUMLOCKCLEAR SDLK_NUMLOCK
-#define SDL_SCANCODE_LGUI SDLK_LSUPER
-#define SDL_SCANCODE_RGUI SDLK_RSUPER
-#endif
-
 ////////////////////////////////////////////////////////////////////////////////
 
 bool Input::Init(bool /*fFirstInit_=false*/)
@@ -143,11 +115,7 @@ void Input::Purge()
 {
     // Remove queued input messages
     SDL_Event event;
-#ifndef HAVE_LIBSDL2
-    while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_MOUSEEVENTMASK | SDL_KEYEVENTMASK) > 0);
-#else
     while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_KEYDOWN, SDL_JOYBUTTONUP));
-#endif
 
     // Discard relative motion and clear the key modifiers
     int n;
@@ -196,20 +164,6 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
 {
     switch (pEvent_->type)
     {
-#ifndef HAVE_LIBSDL2
-    case SDL_ACTIVEEVENT:
-        // Release the mouse when we lose input focus
-        if (!pEvent_->active.gain && pEvent_->active.state & SDL_APPINPUTFOCUS)
-            AcquireMouse(false);
-
-        // Refresh the keyboard mappings when we become active as they might have changed
-        if (pEvent_->active.gain && pEvent_->active.state & SDL_APPACTIVE)
-            Keyboard::Init();
-
-        break;
-#endif
-
-#ifdef HAVE_LIBSDL2
     case SDL_TEXTINPUT:
     {
         SDL_TextInputEvent* pEvent = &pEvent_->text;
@@ -237,7 +191,6 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         Keyboard::SetKey(nLastKey, true, nLastMods, nChr);
         break;
     }
-#endif
 
     case SDL_KEYDOWN:
     case SDL_KEYUP:
@@ -250,62 +203,15 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
             SDL_ShowCursor(SDL_DISABLE);
 
         // Ignore key repeats unless the GUI is active
-#ifdef HAVE_LIBSDL2
         if (pEvent->repeat && !GUI::IsActive())
             break;
-#endif
+
         int nKey = MapKey(pKey->sym);
         int nMods = ((pKey->mod & KMOD_SHIFT) ? HM_SHIFT : 0) |
             ((pKey->mod & KMOD_LCTRL) ? HM_CTRL : 0) |
             ((pKey->mod & KMOD_LALT) ? HM_ALT : 0);
-#ifdef HAVE_LIBSDL2
+
         int nChr = (nKey < HK_SPACE || (nKey < HK_MIN && (pKey->mod & KMOD_CTRL))) ? nKey : 0;
-#else
-        int nChr = fPress ? pKey->unicode : 0;
-
-        if (fPress)
-        {
-            // Force some simple keys that might be wrong
-            if (pKey->sym == SDLK_BACKSPACE || pKey->sym == SDLK_TAB ||
-                pKey->sym == SDLK_RETURN || pKey->sym == SDLK_ESCAPE)
-                pKey->unicode = pKey->sym;
-
-            // Keypad numbers
-            else if (pKey->sym >= SDLK_KP_0 && pKey->sym <= SDLK_KP_9)
-                nChr = HK_KP0 + pKey->sym - SDLK_KP0;
-
-            // Keypad symbols (discard symbol)
-            else if (pKey->sym >= SDLK_KP_PERIOD && pKey->sym <= SDLK_KP_EQUALS)
-                nChr = 0;
-
-            // Cursor keys
-            else if (pKey->sym >= SDLK_UP && pKey->sym <= SDLK_LEFT)
-            {
-                static int anCursors[] = { HK_UP, HK_DOWN, HK_RIGHT, HK_LEFT };
-                nChr = anCursors[pKey->sym - SDLK_UP];
-            }
-
-            // Navigation block
-            else if (pKey->sym >= SDLK_HOME && pKey->sym <= SDLK_PAGEDOWN)
-            {
-                static int anMovement[] = { HK_HOME, HK_END, HK_PGUP, HK_PGDN };
-                nChr = anMovement[pKey->sym - SDLK_HOME];
-            }
-
-            // Delete
-            else if (pKey->sym == SDLK_DELETE)
-                nChr = HK_DELETE;
-
-            // Convert ctrl-letter/digit to the base key (locale mapping not possible)
-            if (pKey->mod & KMOD_CTRL)
-            {
-                if (pKey->sym >= SDLK_a && pKey->sym <= SDLK_z)
-                    nChr = 'a' + pKey->sym - SDLK_a;
-                else if (pKey->sym >= SDLK_0 && pKey->sym <= SDLK_9)
-                    nChr = '0' + pKey->sym - SDLK_0;
-            }
-        }
-#endif
 
         TRACE("SDL_KEY%s (%d -> %d)\n", fPress ? "DOWN" : "UP", pKey->sym, nKey);
 
@@ -327,9 +233,6 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         if (fKeyboardActive == GUI::IsActive())
         {
             fKeyboardActive = !fKeyboardActive;
-#ifndef HAVE_LIBSDL2
-            SDL_EnableKeyRepeat(fKeyboardActive ? 0 : 250, fKeyboardActive ? 0 : 30);
-#endif
         }
 
         // Check for the Windows key, for use as a modifier
@@ -423,11 +326,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
                 {
                     // Update the SAM mouse and re-centre the cursor
                     pMouse->Move(nX, -nY);
-#ifndef HAVE_LIBSDL2
-                    SDL_WarpMouse(nCentreX, nCentreY);
-#else
                     SDL_WarpMouseInWindow(nullptr, nCentreX, nCentreY);
-#endif
                 }
             }
         }
@@ -493,7 +392,6 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         }
         break;
 
-#ifdef HAVE_LIBSDL2
     case SDL_MOUSEWHEEL:
         if (GUI::IsActive())
         {
@@ -503,7 +401,6 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
                 GUI::SendMessage(GM_MOUSEWHEEL, 1);
         }
         break;
-#endif
 
 #ifndef USE_JOYPOLLING
 

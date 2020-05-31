@@ -69,14 +69,8 @@ int Direct3D9Video::GetCaps() const
     return VCAP_STRETCH | VCAP_FILTER | VCAP_SCANHIRES;
 }
 
-bool Direct3D9Video::Init(bool fFirstInit_)
+bool Direct3D9Video::Init()
 {
-    TRACE("Direct3D9Video::Init()\n");
-
-    // If hardware acceleration is disabled we should fall back on DirectDraw software
-    if (!GetOption(hwaccel))
-        return false;
-
     m_pd3d = Direct3DCreate9(D3D_SDK_VERSION);
     CreateDevice();
     UpdateSize();

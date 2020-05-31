@@ -29,7 +29,7 @@ public:
     static bool Init(bool fFirstInit_ = false);
     static void Exit(bool fReInit_ = false);
 
-    static VideoBase* GetVideo(bool fFirstInit_ = false);
+    static std::unique_ptr<IVideoRenderer> CreateVideo();
     static bool CheckEvents();
 
     static bool DoAction(Action action, bool pressed = true);

@@ -24,7 +24,7 @@
 
 #include "Video.h"
 
-class SDLTexture final : public VideoBase
+class SDLTexture final : public IVideoRenderer
 {
 public:
     SDLTexture();
@@ -34,7 +34,7 @@ public:
 
 public:
     int GetCaps() const override;
-    bool Init(bool fFirstInit_) override;
+    bool Init() override;
 
     void Update(CScreen* pScreen_, bool* pafDirty_) override;
     void UpdateSize() override;

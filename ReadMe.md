@@ -827,11 +827,9 @@ in the configuration file:
     -depth <int>            Colour depth for full-screen (default=16)
     -borders <int>          Border size: 0=none, 1=small, 2=normal,
                              3=TV-visible, 4=full TV scan area
-    -hwaccel <bool>         Enable hardware acceleration (default=yes)
     -greyscale <bool>       Greyscale mode (default=no)
     -filter <bool>          Smooth emulated display (default=yes)
     -filtergui <bool>       Smooth built-in GUI display (default=no)
-    -direct3d <int>         Use D3D9: -1=auto (default), 0=no, 1=yes [Win32]
 
     -avireduce <int>        AVI audio: 0=lossless, 1=good (default) to 4=none
     -aviscanlines <bool>    Include scanlines in AVI recording (default=no)

@@ -36,11 +36,9 @@ struct OPTIONS
     int     mode3;                  // Which mode3 pixels to show on low-res displays?
     bool    fullscreen;             // Start in full-screen mode?
     int     borders;                // How much of the borders to show
-    bool    hwaccel;                // Use hardware accelerated video?
     bool    greyscale;              // Use greyscale instead of colour?
     bool    filter;                 // Filter image when stretching? (if available)
     bool    filtergui;              // Filter image when the GUI is active? (if available)
-    int     direct3d;               // Use Direct3D? <0=auto, 0=disable, >0=enable
 
     int     avireduce;              // Reduce AVI audio size (0=lossless to 4=muted)
     bool    aviscanlines;           // Include scanlines in AVI recording?
