@@ -376,27 +376,24 @@ void CHDDProperties::OnNotify(CWindow* pWindow_, int /*nParam_*/)
     else if (pWindow_ == m_pFile)
     {
         // If we can, open the existing hard disk image to retrieve the geometry
-        CHardDisk* pDisk = CHardDisk::OpenObject(m_pFile->GetText());
-        bool fExists = pDisk != nullptr;
+        auto disk = CHardDisk::OpenObject(m_pFile->GetText());
 
-        if (fExists)
+        if (disk)
         {
             // Fetch the existing disk geometry
-            const ATA_GEOMETRY* pGeom = pDisk->GetGeometry();
+            const ATA_GEOMETRY* pGeom = disk->GetGeometry();
 
             // Show the current size in decimal
             char szSize[16] = {};
             snprintf(szSize, sizeof(szSize) - 1, "%u", (pGeom->uTotalSectors + (1 << 11) - 1) >> 11);
             m_pSize->SetText(szSize);
-
-            delete pDisk;
         }
 
         // The geometry is read-only for existing images
-        m_pSize->Enable(!fExists);
+        m_pSize->Enable(!disk);
 
         // Set the text and state of the OK button, depending on the target file
-        m_pOK->SetText(fExists ? "OK" : "Create");
+        m_pOK->SetText(disk ? "OK" : "Create");
         m_pOK->Enable(!!*m_pFile->GetText());
     }
     else if (pWindow_ == m_pOK)
@@ -975,9 +972,9 @@ public:
                 pAtomLite->Detach();
 
                 // Attach new disks
-                CAtaAdapter* pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
-                AttachDisk(pActiveAtom, GetOption(atomdisk0), 0);
-                AttachDisk(pActiveAtom, GetOption(atomdisk1), 1);
+                auto& pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
+                AttachDisk(*pActiveAtom, GetOption(atomdisk0), 0);
+                AttachDisk(*pActiveAtom, GetOption(atomdisk1), 1);
             }
 
             Destroy();
@@ -993,9 +990,9 @@ public:
     }
 
 protected:
-    void AttachDisk(CAtaAdapter* pAdapter_, const char* pcszDisk_, int nDevice_)
+    void AttachDisk(CAtaAdapter& adapter, const char* pcszDisk_, int nDevice_)
     {
-        if (!pAdapter_->Attach(pcszDisk_, nDevice_))
+        if (!adapter.Attach(pcszDisk_, nDevice_))
         {
             char sz[MAX_PATH + 128];
             snprintf(sz, sizeof(sz), "Open failed: %s", pcszDisk_);
@@ -1070,10 +1067,10 @@ public:
                 pSDIDE->Detach();
 
                 // Attach new disks
-                CAtaAdapter* pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
-                AttachDisk(pActiveAtom, GetOption(atomdisk0), 0);
-                AttachDisk(pActiveAtom, GetOption(atomdisk1), 1);
-                AttachDisk(pSDIDE, GetOption(sdidedisk), 0);
+                auto& pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
+                AttachDisk(*pActiveAtom, GetOption(atomdisk0), 0);
+                AttachDisk(*pActiveAtom, GetOption(atomdisk1), 1);
+                AttachDisk(*pSDIDE, GetOption(sdidedisk), 0);
             }
 
             Destroy();
@@ -1087,9 +1084,9 @@ public:
     }
 
 protected:
-    void AttachDisk(CAtaAdapter* pAdapter_, const char* pcszDisk_, int nDevice_)
+    void AttachDisk(CAtaAdapter& adapter, const char* pcszDisk_, int nDevice_)
     {
-        if (!pAdapter_->Attach(pcszDisk_, nDevice_))
+        if (!adapter.Attach(pcszDisk_, nDevice_))
         {
             char sz[MAX_PATH + 128];
             snprintf(sz, sizeof(sz), "Open failed: %s", pcszDisk_);

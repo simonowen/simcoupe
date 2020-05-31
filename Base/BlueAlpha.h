@@ -43,4 +43,4 @@ protected:
     int m_cpuCyclesPerClock{};
 };
 
-extern CBlueAlphaDevice* pBlueAlpha;
+extern std::unique_ptr<CBlueAlphaDevice> pBlueAlpha;

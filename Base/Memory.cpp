@@ -31,7 +31,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Single block holding all memory needed
-uint8_t* pMemory;
+uint8_t pMemory[TOTAL_PAGES * MEM_PAGE_SIZE];
 
 // Master read and write lists that are static for a given memory configuration
 int anReadPages[TOTAL_PAGES];
@@ -70,10 +70,6 @@ bool Init(bool fFirstInit_/*=false*/)
             g_awMode1LineToByte[g_abMode1ByteToLine[uOffset]] = uOffset << 5;
         }
 
-        // Allocate a single block for our memory requirements
-        if (!(pMemory = new uint8_t[TOTAL_PAGES * MEM_PAGE_SIZE]))
-            Message(msgFatal, "Out of memory!");
-
         // Initialise memory to 0xff
         memset(pMemory, 0xff, TOTAL_PAGES * MEM_PAGE_SIZE);
 
@@ -97,11 +93,6 @@ bool Init(bool fFirstInit_/*=false*/)
 
 void Exit(bool fReInit_/*=false*/)
 {
-    if (!fReInit_)
-    {
-        delete[] pMemory;
-        pMemory = nullptr;
-    }
 }
 
 
@@ -217,9 +208,6 @@ static bool LoadRoms()
         // Read both 16K ROM images
         uRead += rom->Read(pb0, MEM_PAGE_SIZE);
         uRead += rom->Read(pb1, MEM_PAGE_SIZE);
-
-        // Clean up the ROM file stream
-        delete rom;
 
         // Return if the full 32K was read
         if (uRead == MEM_PAGE_SIZE * 2)

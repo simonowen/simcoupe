@@ -53,7 +53,7 @@ CStream::~CStream()
 
 
 // Identify the stream and create an object to supply data from it
-/*static*/ CStream* CStream::Open(const char* pcszPath_, bool fReadOnly_/*=false*/)
+/*static*/ std::unique_ptr<CStream> CStream::Open(const char* pcszPath_, bool fReadOnly_/*=false*/)
 {
     // Reject empty strings immediately
     if (!pcszPath_ || !*pcszPath_)
@@ -61,7 +61,7 @@ CStream::~CStream()
 
     // Give the OS-specific floppy driver first go at the path
     if (CFloppyStream::IsRecognised(pcszPath_))
-        return new CFloppyStream(pcszPath_, fReadOnly_);
+        return std::make_unique<CFloppyStream>(pcszPath_, fReadOnly_);
 
     // If the file is read-only, the stream will be read-only
     FILE* file = fopen(pcszPath_, "r+b");
@@ -88,7 +88,7 @@ CStream::~CStream()
 
             // Ok, so open and use the first file in the zip and use that
             if (unzOpenCurrentFile(hfZip) == UNZ_OK)
-                return new CZipStream(hfZip, pcszPath_, true/*fReadOnly_*/);  // ZIPs are currently read-only
+                return std::make_unique<CZipStream>(hfZip, pcszPath_, true/*fReadOnly_*/);  // ZIPs are currently read-only
         }
 
         // Failed to open the first file, so close the zip
@@ -105,7 +105,7 @@ CStream::~CStream()
             uint8_t abSig[sizeof(GZ_SIGNATURE)];
             if ((fread(abSig, 1, sizeof(abSig), hf) != sizeof(abSig)) || memcmp(abSig, GZ_SIGNATURE, sizeof(abSig)))
 #endif
-                return new CFileStream(hf, pcszPath_, fReadOnly_);
+                return std::make_unique<CFileStream>(hf, pcszPath_, fReadOnly_);
 #ifdef HAVE_LIBZ
             else
             {
@@ -122,7 +122,7 @@ CStream::~CStream()
                 // Try to open it as a gzipped file
                 gzFile hfGZip;
                 if ((hfGZip = gzopen(pcszPath_, "rb")))
-                    return new CZLibStream(hfGZip, pcszPath_, uSize, fReadOnly_);
+                    return std::make_unique<CZLibStream>(hfGZip, pcszPath_, uSize, fReadOnly_);
             }
 #endif  // HAVE_LIBZ
         }

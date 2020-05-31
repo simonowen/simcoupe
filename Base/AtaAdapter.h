@@ -25,12 +25,6 @@
 class CAtaAdapter : public CIoDevice
 {
 public:
-    CAtaAdapter() = default;
-    CAtaAdapter(const CAtaAdapter&) = delete;
-    void operator= (const CAtaAdapter&) = delete;
-    ~CAtaAdapter();
-
-public:
     uint8_t In(uint16_t wPort_) override;
     void Out(uint16_t wPort_, uint8_t bVal_) override;
 
@@ -42,7 +36,7 @@ public:
 
 public:
     bool Attach(const char* pcszDisk_, int nDevice_);
-    virtual bool Attach(CHardDisk* pDisk_, int nDevice_);
+    virtual bool Attach(std::unique_ptr<CHardDisk> disk, int nDevice_);
     virtual void Detach();
 
 protected:
@@ -53,8 +47,8 @@ protected:
     unsigned int m_uActive = 0; // active when non-zero, decremented by FrameEnd()
 
 private:
-    CHardDisk* m_pDisk0 = nullptr;
-    CHardDisk* m_pDisk1 = nullptr;
+    std::unique_ptr<CHardDisk> m_pDisk0;
+    std::unique_ptr<CHardDisk> m_pDisk1;
 };
 
-extern CAtaAdapter* pAtom, * pAtomLite, * pSDIDE;
+extern std::unique_ptr<CAtaAdapter> pAtom, pAtomLite, pSDIDE;

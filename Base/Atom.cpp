@@ -96,21 +96,19 @@ void CAtomDevice::Out(uint16_t wPort_, uint8_t bVal_)
 }
 
 
-bool CAtomDevice::Attach(CHardDisk* pDisk_, int nDevice_)
+bool CAtomDevice::Attach(std::unique_ptr<CHardDisk> disk, int nDevice_)
 {
-    if (pDisk_)
+    if (disk)
     {
         bool fByteSwapped = false;
 
         // Require an Atom format disk, rejecting Atom Lite disks
-        if (pDisk_->IsBDOSDisk(&fByteSwapped) && !fByteSwapped)
+        if (disk->IsBDOSDisk(&fByteSwapped) && !fByteSwapped)
             return false;
 
         // Enable old ATA requests for HDDs
-        pDisk_->SetLegacy(true);
+        disk->SetLegacy(true);
     }
 
-    CAtaAdapter::Attach(pDisk_, nDevice_);
-
-    return pDisk_ != nullptr;
+    return CAtaAdapter::Attach(std::move(disk), nDevice_);
 }

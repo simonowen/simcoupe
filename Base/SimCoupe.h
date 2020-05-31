@@ -67,6 +67,8 @@
 #include <queue>
 #include <stack>
 #include <sstream>
+#include <vector>
+#include <array>
 
 #ifdef HAVE_STD_FILESYSTEM
 #include <filesystem>

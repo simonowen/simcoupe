@@ -28,15 +28,8 @@
 CSID::CSID()
 {
 #ifdef HAVE_LIBRESID
-    m_pSID = new SID;
+    m_pSID = std::make_unique<SID>();
     Reset();
-#endif
-}
-
-CSID::~CSID()
-{
-#ifdef HAVE_LIBRESID
-    delete m_pSID; m_pSID = nullptr;
 #endif
 }
 
@@ -59,11 +52,11 @@ void CSID::Update(bool fFrameEnd_ = false)
 #ifdef HAVE_LIBRESID
     int nSamplesSoFar = fFrameEnd_ ? pDAC->GetSampleCount() : pDAC->GetSamplesSoFar();
 
-    int nNeeded = nSamplesSoFar - m_nSamplesThisFrame;
+    int nNeeded = nSamplesSoFar - m_samples_this_frame;
     if (!m_pSID || nNeeded <= 0)
         return;
 
-    short* ps = reinterpret_cast<short*>(m_pbFrameSample + m_nSamplesThisFrame * SAMPLE_BLOCK);
+    auto ps = reinterpret_cast<short*>(m_sample_buffer.data() + m_samples_this_frame * SAMPLE_BLOCK);
 
     if (g_fReset)
         memset(ps, 0x00, nNeeded * SAMPLE_BLOCK); // no clock means no output
@@ -79,7 +72,7 @@ void CSID::Update(bool fFrameEnd_ = false)
             ps[1] = ps[0];
     }
 
-    m_nSamplesThisFrame = nSamplesSoFar;
+    m_samples_this_frame = nSamplesSoFar;
 #else
     (void)fFrameEnd_;
 #endif
@@ -92,7 +85,7 @@ void CSID::FrameEnd()
         Reset();
 
     Update(true);
-    m_nSamplesThisFrame = 0;
+    m_samples_this_frame = 0;
 }
 
 void CSID::Out(uint16_t wPort_, uint8_t bVal_)

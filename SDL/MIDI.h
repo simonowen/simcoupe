@@ -43,4 +43,4 @@ protected:
     int m_nDevice = -1;        // Device handle, or -1 if not open
 };
 
-extern CMidiDevice* pMidi;
+extern std::unique_ptr<CMidiDevice> pMidi;

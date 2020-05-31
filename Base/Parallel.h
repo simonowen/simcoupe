@@ -104,4 +104,4 @@ protected:
     uint8_t m_bControl, m_bData;
 };
 
-extern CPrintBuffer* pPrinterFile;
+extern std::unique_ptr<CPrintBuffer> pPrinterFile;

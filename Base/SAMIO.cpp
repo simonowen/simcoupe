@@ -53,25 +53,29 @@
 #include "Util.h"
 #include "Video.h"
 
-CDiskDevice* pFloppy1, * pFloppy2, * pBootDrive;
-CAtaAdapter* pAtom, * pAtomLite, * pSDIDE;
+std::unique_ptr<CDiskDevice> pFloppy1;
+std::unique_ptr<CDiskDevice> pFloppy2;
+std::unique_ptr<CDiskDevice> pBootDrive;
+std::unique_ptr<CAtaAdapter> pAtom;
+std::unique_ptr<CAtaAdapter> pAtomLite;
+std::unique_ptr<CAtaAdapter> pSDIDE;
 
-CPrintBuffer* pPrinterFile;
-CMonoDACDevice* pMonoDac;
-CStereoDACDevice* pStereoDac;
+std::unique_ptr<CPrintBuffer> pPrinterFile;
+std::unique_ptr<CMonoDACDevice> pMonoDac;
+std::unique_ptr<CStereoDACDevice> pStereoDac;
 
-CClockDevice* pSambus, * pDallas;
-CMouseDevice* pMouse;
+std::unique_ptr<CClockDevice> pSambus;
+std::unique_ptr<CDallasClock> pDallas;
+std::unique_ptr<CMouseDevice> pMouse;
 
-CMidiDevice* pMidi;
-CBeeperDevice* pBeeper;
-CBlueAlphaDevice* pBlueAlpha;
-CSAMVoxDevice* pSAMVox;
-CPaulaDevice* pPaula;
-CDAC* pDAC;
-CSAA* pSAA;
-CSID* pSID;
-
+std::unique_ptr<CMidiDevice> pMidi;
+std::unique_ptr<CBeeperDevice> pBeeper;
+std::unique_ptr<CBlueAlphaDevice> pBlueAlpha;
+std::unique_ptr<CSAMVoxDevice> pSAMVox;
+std::unique_ptr<CPaulaDevice> pPaula;
+std::unique_ptr<CDAC> pDAC;
+std::unique_ptr<CSAA> pSAA;
+std::unique_ptr<CSID> pSID;
 
 // Port read/write addresses for I/O breakpoints
 uint16_t wPortRead, wPortWrite;
@@ -137,32 +141,30 @@ bool Init(bool fFirstInit_/*=false*/)
         // Release all keys
         memset(keyports, 0xff, sizeof(keyports));
 
-        pDAC = new CDAC;
-        pSAA = new CSAA;
-        pSID = new CSID;
-        pBeeper = new CBeeperDevice;
-        pBlueAlpha = new CBlueAlphaDevice;
-        pSAMVox = new CSAMVoxDevice;
-        pPaula = new CPaulaDevice;
-        pMidi = new CMidiDevice;
+        pDAC = std::make_unique<CDAC>();
+        pSAA = std::make_unique<CSAA>();
+        pSID = std::make_unique<CSID>();
+        pBeeper = std::make_unique<CBeeperDevice>();
+        pBlueAlpha = std::make_unique<CBlueAlphaDevice>();
+        pSAMVox = std::make_unique<CSAMVoxDevice>();
+        pPaula = std::make_unique<CPaulaDevice>();
+        pMidi = std::make_unique<CMidiDevice>();
 
-        pSambus = new CSambusClock;
-        pDallas = new CDallasClock;
-        pMouse = new CMouseDevice;
+        pSambus = std::make_unique<CSambusClock>();
+        pDallas = std::make_unique<CDallasClock>();
+        pMouse = std::make_unique<CMouseDevice>();
 
-        pPrinterFile = new CPrinterFile;
-        pMonoDac = new CMonoDACDevice;
-        pStereoDac = new CStereoDACDevice;
+        pPrinterFile = std::make_unique<CPrinterFile>();
+        pMonoDac = std::make_unique<CMonoDACDevice>();
+        pStereoDac = std::make_unique<CStereoDACDevice>();
 
-        pFloppy1 = new CDrive;
-        pFloppy2 = new CDrive;
-        pAtom = new CAtomDevice;
-        pAtomLite = new CAtomLiteDevice;
+        pFloppy1 = std::make_unique<CDrive>();
+        pFloppy2 = std::make_unique<CDrive>();
+        pAtom = std::make_unique<CAtomDevice>();
+        pAtomLite = std::make_unique<CAtomLiteDevice>();
 
-        pSDIDE = new CSDIDEDevice;
+        pSDIDE = std::make_unique<CSDIDEDevice>();
 
-        pFloppy1->LoadState(OSD::MakeFilePath(MFP_SETTINGS, "drive1"));
-        pFloppy2->LoadState(OSD::MakeFilePath(MFP_SETTINGS, "drive2"));
         pDallas->LoadState(OSD::MakeFilePath(MFP_SETTINGS, "dallas"));
 
         pFloppy1->Insert(GetOption(disk1));
@@ -170,7 +172,7 @@ bool Init(bool fFirstInit_/*=false*/)
 
         Tape::Insert(GetOption(tape));
 
-        CAtaAdapter* pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
+        auto& pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
         pActiveAtom->Attach(GetOption(atomdisk0), 0);
         pActiveAtom->Attach(GetOption(atomdisk1), 1);
 
@@ -211,16 +213,10 @@ void Exit(bool fReInit_/*=false*/)
             pPrinterFile->Flush();
 
         if (pFloppy1)
-        {
             SetOption(disk1, pFloppy1->DiskPath());
-            pFloppy1->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive1"));
-        }
 
         if (pFloppy2)
-        {
             SetOption(disk2, pFloppy2->DiskPath());
-            pFloppy2->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "drive2"));
-        }
 
         if (pDallas)
             pDallas->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "dallas"));
@@ -228,30 +224,30 @@ void Exit(bool fReInit_/*=false*/)
         SetOption(tape, Tape::GetPath());
         Tape::Eject();
 
-        delete pMidi; pMidi = nullptr;
-        delete pPaula; pPaula = nullptr;
-        delete pSAMVox; pSAMVox = nullptr;
-        delete pBlueAlpha; pBlueAlpha = nullptr;
-        delete pBeeper; pBeeper = nullptr;
-        delete pSID; pSID = nullptr;
-        delete pSAA; pSAA = nullptr;
-        delete pDAC; pDAC = nullptr;
+        pMidi.reset();
+        pPaula.reset();
+        pSAMVox.reset();
+        pBlueAlpha.reset();
+        pBeeper.reset();
+        pSID.reset();
+        pSAA.reset();
+        pDAC.reset();
 
-        delete pSambus; pSambus = nullptr;
-        delete pDallas; pDallas = nullptr;
-        delete pMouse; pMouse = nullptr;
+        pSambus.reset();
+        pDallas.reset();
+        pMouse.reset();
 
-        delete pPrinterFile; pPrinterFile = nullptr;
-        delete pMonoDac; pMonoDac = nullptr;
-        delete pStereoDac; pStereoDac = nullptr;
+        pPrinterFile.reset();
+        pMonoDac.reset();
+        pStereoDac.reset();
 
-        delete pFloppy1; pFloppy1 = nullptr;
-        delete pFloppy2; pFloppy2 = nullptr;
-        delete pBootDrive; pBootDrive = nullptr;
+        pFloppy1.reset();
+        pFloppy2.reset();
+        pBootDrive.reset();
 
-        delete pAtom; pAtom = nullptr;
-        delete pAtomLite; pAtomLite = nullptr;
-        delete pSDIDE; pSDIDE = nullptr;
+        pAtom.reset();
+        pAtomLite.reset();
+        pSDIDE.reset();
     }
 }
 
@@ -1071,11 +1067,7 @@ bool Rst8Hook()
         return false;
 
     // If a drive object exists, clean up after our boot attempt, whether or not it worked
-    if (pBootDrive)
-    {
-        delete pBootDrive;
-        pBootDrive = nullptr;
-    }
+    pBootDrive.reset();
 
     // Read the error code after the RST 8 opcode
     uint8_t bErrCode = read_byte(PC);
@@ -1103,16 +1095,16 @@ bool Rst8Hook()
         if (GetOption(dosboot))
         {
             // If there's a custom boot disk, load it read-only
-            CDisk* pDisk = CDisk::Open(GetOption(dosdisk), true);
+            auto disk = CDisk::Open(GetOption(dosdisk), true);
 
             // Fall back on the built-in SAMDOS2 image
-            if (!pDisk)
-                pDisk = CDisk::Open(abSAMDOS, sizeof(abSAMDOS), "mem:SAMDOS.sbt");
+            if (!disk)
+                disk = CDisk::Open(abSAMDOS, sizeof(abSAMDOS), "mem:SAMDOS.sbt");
 
-            if (pDisk)
+            if (disk)
             {
                 // Create a private drive for the DOS disk
-                pBootDrive = new CDrive(pDisk);
+                pBootDrive = std::make_unique<CDrive>(std::move(disk));
 
                 // Jump back to BOOTEX to try again
                 PC = 0xd8e5;

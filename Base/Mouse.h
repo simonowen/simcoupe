@@ -61,4 +61,4 @@ protected:
     unsigned int m_uBuffer = 0;         // Read position in mouse data
 };
 
-extern CMouseDevice* pMouse;
+extern std::unique_ptr<CMouseDevice> pMouse;

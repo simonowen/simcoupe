@@ -48,18 +48,18 @@ public:
 class CSoundDevice : public CIoDevice
 {
 public:
-    CSoundDevice();
-    CSoundDevice(const CSoundDevice&) = delete;
-    void operator= (const CSoundDevice&) = delete;
-    virtual ~CSoundDevice() { delete[] m_pbFrameSample; }
+    CSoundDevice()
+    {
+        int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND) + 1;
+        m_sample_buffer.resize(nSamplesPerFrame * SAMPLE_BLOCK);
+    }
 
-public:
-    int GetSampleCount() { return m_nSamplesThisFrame; }
-    uint8_t* GetSampleBuffer() { return m_pbFrameSample; }
+    int GetSampleCount() const { return m_samples_this_frame; }
+    const uint8_t* GetSampleBuffer() const { return m_sample_buffer.data(); }
 
 protected:
-    int m_nSamplesThisFrame = 0;
-    uint8_t* m_pbFrameSample = nullptr;
+    int m_samples_this_frame = 0;
+    std::vector<uint8_t> m_sample_buffer;
 };
 
 class CSAA final : public CSoundDevice
@@ -72,20 +72,18 @@ public:
         m_pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_44100 | SAAP_16BIT | SAAP_STEREO);
         static_assert(SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2, "SAA parameter mismatch");
 #else
-        m_pSAASound = new CSAASound(SAMPLE_FREQ);
+        m_pSAASound = std::make_unique<CSAASound>(SAMPLE_FREQ);
 #endif
     }
+
+#ifdef HAVE_LIBSAASOUND
     CSAA(const CSAA&) = delete;
     void operator= (const CSAA&) = delete;
     ~CSAA()
     {
-#ifdef HAVE_LIBSAASOUND
-        if (m_pSAASound)
-            DestroyCSAASound(m_pSAASound);
-#else
-        delete m_pSAASound;
-#endif
+        DestroyCSAASound(m_pSAASound);
     }
+#endif
 
 public:
     void Update(bool fFrameEnd_);
@@ -94,7 +92,11 @@ public:
     void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 protected:
+#ifdef HAVE_LIBSAASOUND
     CSAASound* m_pSAASound = nullptr;
+#else
+    std::unique_ptr<CSAASound> m_pSAASound;
+#endif
 };
 
 
@@ -130,5 +132,5 @@ public:
 };
 
 
-extern CSAA* pSAA;
-extern CDAC* pDAC;
+extern std::unique_ptr<CSAA> pSAA;
+extern std::unique_ptr<CDAC> pDAC;

@@ -28,7 +28,8 @@
 namespace AVI
 {
 
-static uint8_t* pbCurr, * pbResample;
+static std::vector<uint8_t> frame_buffer;
+static std::vector<uint8_t> resample_buffer;
 
 static char szPath[MAX_PATH], * pszFile;
 static FILE* f;
@@ -522,11 +523,8 @@ void Stop()
     fclose(f);
     f = nullptr;
 
-    // Free current frame data
-    delete[] pbCurr; pbCurr = nullptr;
-
-    // Free resample buffer
-    delete[] pbResample; pbResample = nullptr;
+    frame_buffer.clear();
+    resample_buffer.clear();
 
     Frame::SetStatus("Saved %s", pszFile);
 }
@@ -571,8 +569,8 @@ void AddFrame(CScreen* pScreen_)
         width = pScreen_->GetPitch() >> (fHalfSize ? 1 : 0);
         height = pScreen_->GetHeight() >> (fHalfSize ? 1 : 0);
         size = (uint32_t)width * (uint32_t)height;
-        pbCurr = new uint8_t[size];
-        memset(pbCurr, 0xff, size);
+        frame_buffer.resize(size);
+        std::fill(frame_buffer.begin(), frame_buffer.end(), 0xff);
 
         // Write the placeholder file headers
         WriteFileHeaders(f);
@@ -618,7 +616,7 @@ void AddFrame(CScreen* pScreen_)
             pbLine = abLine;
         }
 
-        uint8_t* pb = pbLine, * pbP = pbCurr + (width * y);
+        uint8_t* pb = pbLine, * pbP = frame_buffer.data() + (width * y);
 
         for (x = 0; x < width; )
         {
@@ -672,7 +670,7 @@ void AddFrame(CScreen* pScreen_)
         }
 
         // Update our copy of the frame line
-        memcpy(pbCurr + (width * y), pbLine, width);
+        memcpy(frame_buffer.data() + (width * y), pbLine, width);
 
         // Jump to the next line
         nJumpY++;
@@ -710,11 +708,8 @@ void AddFrame(const uint8_t* pb_, unsigned int uLen_)
     {
         static bool fOddLast = false;
 
-        // Allocate resample buffer if it doesn't already exist
-        if (!pbResample && !(pbResample = new uint8_t[uLen_]))
-            return;
-
-        uint8_t* pbNew = pbResample;
+        resample_buffer.resize(uLen_);
+        auto pbNew = resample_buffer.data();
 
         // 22kHz?
         if (nAudioReduce >= 2)
@@ -767,8 +762,8 @@ void AddFrame(const uint8_t* pb_, unsigned int uLen_)
             }
         }
 
-        pb_ = pbResample;
-        uLen_ = static_cast<unsigned int>(pbNew - pbResample);
+        pb_ = resample_buffer.data();
+        uLen_ = static_cast<unsigned int>(pbNew - resample_buffer.data());
     }
 
     // Write the audio chunk

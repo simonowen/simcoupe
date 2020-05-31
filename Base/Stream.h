@@ -29,7 +29,7 @@ public:
     virtual ~CStream();
 
 public:
-    static CStream* Open(const char* pcszPath_, bool fReadOnly_ = false);
+    static std::unique_ptr<CStream> Open(const char* pcszPath_, bool fReadOnly_ = false);
 
 public:
     bool IsReadOnly() const { return m_fReadOnly; }

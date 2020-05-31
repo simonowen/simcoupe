@@ -34,10 +34,18 @@ void UpdateRom();
 const char* PageDesc(int nPage_, bool fCompact_ = false);
 }
 
-enum { INTMEM, EXTMEM = NUM_INTERNAL_PAGES, ROM0 = EXTMEM + (NUM_EXTERNAL_PAGES_1MB * MAX_EXTERNAL_MB), ROM1, SCRATCH_READ, SCRATCH_WRITE, TOTAL_PAGES };
+constexpr auto NUM_SCRATCH_PAGES = 2;
+
+constexpr auto TOTAL_PAGES =
+    NUM_INTERNAL_PAGES +
+    NUM_EXTERNAL_PAGES_1MB * MAX_EXTERNAL_MB +
+    NUM_ROM_PAGES +
+    NUM_SCRATCH_PAGES;
+
+enum { INTMEM, EXTMEM = NUM_INTERNAL_PAGES, ROM0 = EXTMEM + (NUM_EXTERNAL_PAGES_1MB * MAX_EXTERNAL_MB), ROM1, SCRATCH_READ, SCRATCH_WRITE };
 enum eSection { SECTION_A, SECTION_B, SECTION_C, SECTION_D };
 
-extern uint8_t* pMemory;
+extern uint8_t pMemory[];
 
 extern int anReadPages[];
 extern int anWritePages[];

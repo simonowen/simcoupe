@@ -82,7 +82,7 @@ static void AddRecentFile(const char* pcsz_);
 static void LoadRecentFiles();
 static void SaveRecentFiles();
 
-static bool EjectDisk(CDiskDevice* pFloppy_);
+static bool EjectDisk(CDiskDevice& pFloppy_);
 static bool EjectTape();
 
 static void SaveWindowPosition(HWND hwnd_);
@@ -374,27 +374,27 @@ void ResizeWindow(int nHeight_)
 
 
 // Save changes to a given drive, optionally prompting for confirmation
-bool ChangesSaved(CDiskDevice* pFloppy_)
+bool ChangesSaved(CDiskDevice& floppy)
 {
-    if (!pFloppy_->DiskModified())
+    if (!floppy.DiskModified())
         return true;
 
     if (GetOption(saveprompt))
     {
         char sz[MAX_PATH] = {};
-        snprintf(sz, MAX_PATH - 1, "Save changes to %s?", pFloppy_->DiskFile());
+        snprintf(sz, MAX_PATH - 1, "Save changes to %s?", floppy.DiskFile());
 
         switch (MessageBox(g_hwnd, sz, WINDOW_CAPTION, MB_YESNOCANCEL | MB_ICONQUESTION))
         {
         case IDYES:     break;
-        case IDNO:      pFloppy_->SetDiskModified(false); return true;
+        case IDNO:      floppy.SetDiskModified(false); return true;
         default:        return false;
         }
     }
 
-    if (!pFloppy_->Save())
+    if (!floppy.Save())
     {
-        Message(msgWarning, "Failed to save changes to %s", pFloppy_->DiskFile());
+        Message(msgWarning, "Failed to save changes to %s", floppy.DiskFile());
         return false;
     }
 
@@ -511,13 +511,13 @@ void UpdateRecentFiles(HMENU hmenu_, int nId_, int nOffset_)
 }
 
 
-bool AttachDisk(CAtaAdapter* pAdapter_, const char* pcszDisk_, int nDevice_)
+bool AttachDisk(CAtaAdapter& adapter, const char* pcszDisk_, int nDevice_)
 {
-    if (!pAdapter_->Attach(pcszDisk_, nDevice_))
+    if (!adapter.Attach(pcszDisk_, nDevice_))
     {
         // Attempt to determine why we couldn't open the device
-        CHardDisk* pDisk = new CDeviceHardDisk(pcszDisk_);
-        if (!pDisk->Open(false))
+        auto disk = std::make_unique<CDeviceHardDisk>(pcszDisk_);
+        if (!disk->Open(false))
         {
             // Access will be denied if we're running as a regular user, and without SAMdiskHelper
             if (GetLastError() == ERROR_ACCESS_DENIED)
@@ -525,20 +525,19 @@ bool AttachDisk(CAtaAdapter* pAdapter_, const char* pcszDisk_, int nDevice_)
             else
                 Message(msgWarning, "Invalid or incompatible disk: %s", pcszDisk_);
         }
-        delete pDisk;
         return false;
     }
 
     return true;
 }
 
-bool InsertDisk(CDiskDevice* pFloppy_, const char* pcszPath_ = nullptr)
+bool InsertDisk(CDiskDevice& floppy, const char* pcszPath_ = nullptr)
 {
     char szFile[MAX_PATH] = "";
-    int nDrive = (pFloppy_ == pFloppy1) ? 1 : 2;
+    int nDrive = (&floppy == pFloppy1.get()) ? 1 : 2;
 
     // Save any changes to the current disk first
-    if (!ChangesSaved(pFloppy_))
+    if (!ChangesSaved(floppy))
         return false;
 
     // Check the floppy drive is present
@@ -552,7 +551,7 @@ bool InsertDisk(CDiskDevice* pFloppy_, const char* pcszPath_ = nullptr)
     // Eject any existing disk if the new path is blank
     if (pcszPath_ && !*pcszPath_)
     {
-        EjectDisk(pFloppy_);
+        EjectDisk(floppy);
         return true;
     }
 
@@ -561,7 +560,7 @@ bool InsertDisk(CDiskDevice* pFloppy_, const char* pcszPath_ = nullptr)
     ofn.lpstrFilter = szFloppyFilters;
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = sizeof(szFile);
-    lstrcpyn(szFile, pFloppy_->DiskFile(), MAX_PATH);
+    lstrcpyn(szFile, floppy.DiskFile(), MAX_PATH);
 
     // Don't use floppy paths for the initial directory
     if (szFile[0] == 'A' || szFile[0] == 'B')
@@ -579,27 +578,27 @@ bool InsertDisk(CDiskDevice* pFloppy_, const char* pcszPath_ = nullptr)
     bool fReadOnly = !!(ofn.Flags & OFN_READONLY);
 
     // Insert the disk to check it's a recognised format
-    if (!pFloppy_->Insert(pcszPath_, true))
+    if (!floppy.Insert(pcszPath_, true))
     {
         Message(msgWarning, "Invalid disk: %s", pcszPath_);
         RemoveRecentFile(pcszPath_);
         return false;
     }
 
-    Frame::SetStatus("%s  inserted into drive %d%s", pFloppy_->DiskFile(), (pFloppy_ == pFloppy1) ? 1 : 2, fReadOnly ? " (read-only)" : "");
+    Frame::SetStatus("%s  inserted into drive %d%s", floppy.DiskFile(), (&floppy == pFloppy1.get()) ? 1 : 2, fReadOnly ? " (read-only)" : "");
     AddRecentFile(pcszPath_);
     return true;
 }
 
-bool EjectDisk(CDiskDevice* pFloppy_)
+bool EjectDisk(CDiskDevice& floppy)
 {
-    if (!pFloppy_->HasDisk())
+    if (!floppy.HasDisk())
         return true;
 
-    if (ChangesSaved(pFloppy_))
+    if (ChangesSaved(floppy))
     {
-        Frame::SetStatus("%s  ejected from drive %d", pFloppy_->DiskFile(), (pFloppy_ == pFloppy1) ? 1 : 2);
-        pFloppy_->Eject();
+        Frame::SetStatus("%s  ejected from drive %d", floppy.DiskFile(), (&floppy == pFloppy1.get()) ? 1 : 2);
+        floppy.Eject();
         return true;
     }
 
@@ -1057,28 +1056,28 @@ bool UI::DoAction(Action action, bool pressed)
             break;
 
         case Action::InsertFloppy1:
-            InsertDisk(pFloppy1);
+            InsertDisk(*pFloppy1);
             break;
 
         case Action::EjectFloppy1:
-            EjectDisk(pFloppy1);
+            EjectDisk(*pFloppy1);
             break;
 
         case Action::InsertFloppy2:
-            InsertDisk(pFloppy2);
+            InsertDisk(*pFloppy2);
             break;
 
         case Action::EjectFloppy2:
-            EjectDisk(pFloppy2);
+            EjectDisk(*pFloppy2);
             break;
 
         case Action::NewDisk1:
-            if (ChangesSaved(pFloppy1))
+            if (ChangesSaved(*pFloppy1))
                 DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 1);
             break;
 
         case Action::NewDisk2:
-            if (ChangesSaved(pFloppy2))
+            if (ChangesSaved(*pFloppy2))
                 DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 2);
             break;
 
@@ -1434,7 +1433,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         // Application close request
     case WM_CLOSE:
         // Ensure both drives are saved before we exit
-        if (!ChangesSaved(pFloppy1) || !ChangesSaved(pFloppy2))
+        if (!ChangesSaved(*pFloppy1) || !ChangesSaved(*pFloppy2))
             return 0;
 
         UnhookWindowsHookEx(hWinKeyHook), hWinKeyHook = nullptr;
@@ -1492,7 +1491,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             if (Tape::IsRecognised(szFile))
                 InsertTape(hwnd_, szFile);
             else
-                InsertDisk(pFloppy1, szFile);
+                InsertDisk(*pFloppy1, szFile);
         }
 
         return 0;
@@ -1906,7 +1905,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
                     MB_ICONQUESTION | MB_YESNO) == IDYES)
                     ShellExecute(nullptr, nullptr, "http://simonowen.com/fdrawcmd/", nullptr, "", SW_SHOWMAXIMIZED);
             }
-            else if (GetOption(drive1) == drvFloppy && ChangesSaved(pFloppy1) && pFloppy1->Insert("A:"))
+            else if (GetOption(drive1) == drvFloppy && ChangesSaved(*pFloppy1) && pFloppy1->Insert("A:"))
                 Frame::SetStatus("Using floppy drive %s", pFloppy1->DiskFile());
             break;
 
@@ -1964,7 +1963,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
                 if (Tape::IsRecognised(pcszFile))
                     InsertTape(hwnd_, pcszFile);
                 else
-                    InsertDisk(pFloppy1, pcszFile);
+                    InsertDisk(*pFloppy1, pcszFile);
             }
             else if (wId >= IDM_FLOPPY2_RECENT1 && wId <= IDM_FLOPPY2_RECENT9)
             {
@@ -1972,7 +1971,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
                 if (Tape::IsRecognised(pcszFile))
                     InsertTape(hwnd_, pcszFile);
                 else
-                    InsertDisk(pFloppy2, pcszFile);
+                    InsertDisk(*pFloppy2, pcszFile);
             }
             else if (wId >= IDM_SYSTEM_SPEED_50 && wId <= IDM_SYSTEM_SPEED_1000)
             {
@@ -2578,21 +2577,27 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             if (!pcszExt || (pcszExt && lstrcmpi(pcszExt, aszTypes[nType])))
                 lstrcat(szFile, aszTypes[nType]);
 
-            CStream* pStream = nullptr;
-            CDisk* pDisk = nullptr;
+            std::unique_ptr<CStream> stream;
+            std::unique_ptr<CDisk> pDisk;
 #ifdef HAVE_LIBZ
             if (nType == 0 && fCompress)
-                pStream = new CZLibStream(nullptr, szFile);
+                stream = std::make_unique<CZLibStream>(nullptr, szFile);
             else
 #endif
-                pStream = new CFileStream(nullptr, szFile);
+                stream = std::make_unique<CFileStream>(nullptr, szFile);
 
             switch (nType)
             {
-            case 0: pDisk = new CMGTDisk(pStream); break;
+            case 0:
+                pDisk = std::make_unique<CMGTDisk>(std::move(stream));
+                break;
             default:
-            case 1: pDisk = new CEDSKDisk(pStream);  break;
-            case 2: pDisk = new CMGTDisk(pStream, DOS_DISK_SECTORS); break;
+            case 1:
+                pDisk = std::make_unique<CEDSKDisk>(std::move(stream));
+                break;
+            case 2:
+                pDisk = std::make_unique<CMGTDisk>(std::move(stream), DOS_DISK_SECTORS);
+                break;
             }
 
             // Format the EDSK image ready for use?
@@ -2628,7 +2633,7 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
 
             // Save the new disk and close it
             bool fSaved = pDisk->Save();
-            delete pDisk;
+            pDisk.reset();
 
             // If the save failed, moan about it
             if (!fSaved)
@@ -2638,8 +2643,8 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             }
 
             // Insert into the appropriate drive
-            CDiskDevice* pDrive = (nDrive == 1) ? pFloppy1 : pFloppy2;
-            InsertDisk(pDrive, szFile);
+            auto& pDrive = (nDrive == 1) ? pFloppy1 : pFloppy2;
+            InsertDisk(*pDrive, szFile);
 
             EndDialog(hdlg_, 1);
             break;
@@ -2695,24 +2700,21 @@ INT_PTR CALLBACK HardDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
             GetDlgItemPath(hdlg_, IDE_FILE, szFile, sizeof(szFile));
 
             // If we can, open the existing hard disk image to retrieve the geometry
-            CHardDisk* pDisk = CHardDisk::OpenObject(szFile);
-            bool fExists = pDisk != nullptr;
+            auto disk = CHardDisk::OpenObject(szFile);
 
-            if (pDisk)
+            if (disk)
             {
                 // Fetch the existing disk geometry
-                const ATA_GEOMETRY* pGeom = pDisk->GetGeometry();
+                const ATA_GEOMETRY* pGeom = disk->GetGeometry();
                 uSize = (pGeom->uTotalSectors + (1 << 11) - 1) >> 11;
                 SetDlgItemInt(hdlg_, IDE_SIZE, uSize, FALSE);
-
-                delete pDisk;
             }
 
             // The geometry is read-only for existing images
-            EnableWindow(GetDlgItem(hdlg_, IDE_SIZE), !fExists);
+            EnableWindow(GetDlgItem(hdlg_, IDE_SIZE), !disk);
 
             // Use an OK button to accept an existing file, or Create for a new one
-            SetDlgItemText(hdlg_, IDOK, fExists || !szFile[0] ? "OK" : "Create");
+            SetDlgItemText(hdlg_, IDOK, disk || !szFile[0] ? "OK" : "Create");
             EnableWindow(GetDlgItem(hdlg_, IDOK), szFile[0]);
 
             break;
@@ -3180,7 +3182,7 @@ INT_PTR CALLBACK Drive1PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
             // If the floppy is active and the disk has changed, insert the new one
             if (GetOption(drive1) == drvFloppy && ChangedString(disk1))
-                InsertDisk(pFloppy1, GetOption(disk1));
+                InsertDisk(*pFloppy1, GetOption(disk1));
         }
         break;
     }
@@ -3372,7 +3374,7 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
             // If the floppy is active and the disk has changed, insert the new one
             if (GetOption(drive2) == drvFloppy && ChangedString(disk2))
-                InsertDisk(pFloppy2, GetOption(disk2));
+                InsertDisk(*pFloppy2, GetOption(disk2));
 
             // If Atom boot ROM is enabled and a drive type has changed, trigger a ROM refresh
             if (GetOption(atombootrom) && (Changed(drive1) || Changed(drive2)))
@@ -3855,10 +3857,10 @@ void DisplayOptions()
         pSDIDE->Detach();
 
         // Attach new disks
-        CAtaAdapter* pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
-        AttachDisk(pActiveAtom, GetOption(atomdisk0), 0);
-        AttachDisk(pActiveAtom, GetOption(atomdisk1), 1);
-        AttachDisk(pSDIDE, GetOption(sdidedisk), 0);
+        auto& pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
+        AttachDisk(*pActiveAtom, GetOption(atomdisk0), 0);
+        AttachDisk(*pActiveAtom, GetOption(atomdisk1), 1);
+        AttachDisk(*pSDIDE, GetOption(sdidedisk), 0);
 
         // Save changed options to config file
         Options::Save();

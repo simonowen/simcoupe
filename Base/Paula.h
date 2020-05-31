@@ -28,4 +28,4 @@ public:
     void Out(uint16_t wPort_, uint8_t bVal_) override;
 };
 
-extern CPaulaDevice* pPaula;
+extern std::unique_ptr<CPaulaDevice> pPaula;

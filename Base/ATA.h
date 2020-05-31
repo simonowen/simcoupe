@@ -105,9 +105,6 @@ class CATADevice
 {
 public:
     CATADevice();
-    CATADevice(const CATADevice&) = delete;
-    void operator= (const CATADevice&) = delete;
-    virtual ~CATADevice() = default;
 
 public:
     void Reset(bool fSoft_ = false);
@@ -137,10 +134,8 @@ protected:
     IDENTIFYDEVICE m_sIdentify{};       // Identify device data
     ATA_GEOMETRY m_sGeometry{};         // Device geometry
 
-    uint8_t m_abSectorData[512];        // Sector buffer used for all reads and writes
-
-    unsigned int m_uBuffer = 0;         // Number of bytes available for reading, or expected for writing
-    uint8_t* m_pbBuffer = nullptr;      // Current position in sector buffer for read/write operations
+    std::array<uint8_t, 512> m_sector_data;
+    size_t m_data_offset = 0;
 
     bool m_f8bitOnReset = false;    // 8-bit data transfer state to set on soft reset
     bool m_f8bit = false;           // true if 8-bit data transfers are enabled

@@ -33,7 +33,7 @@ public:
     void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 public:
-    bool Attach(CHardDisk* pDisk_, int nDevice_) override;
+    bool Attach(std::unique_ptr<CHardDisk> disk, int nDevice_) override;
 
 protected:
     CDallasClock m_Dallas{};

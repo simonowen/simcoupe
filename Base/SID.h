@@ -37,7 +37,6 @@ public:
     CSID();
     CSID(const CSID&) = delete;
     void operator= (const CSID&) = delete;
-    ~CSID();
 
 public:
     void Reset() override;
@@ -48,9 +47,9 @@ public:
 
 protected:
 #ifdef HAVE_LIBRESID
-    SID* m_pSID = nullptr;
+    std::unique_ptr<SID> m_pSID;
 #endif
     int m_nChipType = 0;
 };
 
-extern CSID* pSID;
+extern std::unique_ptr<CSID> pSID;

@@ -27,10 +27,6 @@
 
 CATADevice::CATADevice()
 {
-    memset(&m_sGeometry, 0, sizeof(m_sGeometry));
-    memset(&m_sIdentify, 0, sizeof(m_sIdentify));
-    memset(&m_sRegs, 0, sizeof(m_sRegs));
-
     Reset();
 }
 
@@ -47,8 +43,7 @@ void CATADevice::Reset(bool fSoft_/*=false*/)
     m_sRegs.bStatus = ATA_STATUS_DRDY | ATA_STATUS_DSC;
 
     // No data available for reading or required for writing
-    m_pbBuffer = nullptr;
-    m_uBuffer = 0;
+    m_data_offset = m_sector_data.size();
 
     // Set appropriate 8-bit data transfer state
     m_f8bit = m_f8bitOnReset = fSoft_ ? m_f8bitOnReset : false;
@@ -72,20 +67,16 @@ uint16_t CATADevice::In(uint16_t wPort_)
         case 0:
         {
             // Return zero if no more data is available
-            if (m_uBuffer)
+            if (m_data_offset != m_sector_data.size())
             {
                 // Read a byte
-                m_sRegs.wData = *m_pbBuffer++;
-                m_uBuffer--;
+                m_sRegs.wData = m_sector_data[m_data_offset++];
 
                 // In 16-bit mode read a second byte
                 if (!m_f8bit)
-                {
-                    m_sRegs.wData |= *m_pbBuffer++ << 8;
-                    m_uBuffer--;
-                }
+                    m_sRegs.wData |= m_sector_data[m_data_offset++] << 8;
 
-                if (!m_uBuffer)
+                if (m_data_offset == m_sector_data.size())
                     TRACE("ATA: All data read\n");
             }
 
@@ -106,7 +97,7 @@ uint16_t CATADevice::In(uint16_t wPort_)
         case 7:
         {
             // Update the DRQ bit to show whether data is expected or available
-            if (m_uBuffer)
+            if (m_data_offset != m_sector_data.size())
                 m_sRegs.bStatus |= ATA_STATUS_DRQ;
             else
                 m_sRegs.bStatus &= ~ATA_STATUS_DRQ;
@@ -177,21 +168,17 @@ void CATADevice::Out(uint16_t wPort_, uint16_t wVal_)
         case 0:
         {
             // Data expected?
-            if (m_uBuffer)
+            if (m_data_offset != m_sector_data.size())
             {
                 // Write a byte
-                *m_pbBuffer++ = wVal_ & 0xff;
-                m_uBuffer--;
+                m_sector_data[m_data_offset++] = wVal_ & 0xff;
 
                 // In 16-bit mode write a second byte
                 if (!m_f8bit)
-                {
-                    *m_pbBuffer++ = wVal_ >> 8;
-                    m_uBuffer--;
-                }
+                    m_sector_data[m_data_offset++] = wVal_ >> 8;
 
                 // Received eveything we need?
-                if (!m_uBuffer)
+                if (m_data_offset == m_sector_data.size())
                 {
                     TRACE("ATA: Received all data\n");
 
@@ -238,8 +225,7 @@ void CATADevice::Out(uint16_t wPort_, uint16_t wVal_)
                             }
 
                             // Set the sector buffer pointer and how much we have available to read
-                            m_pbBuffer = m_abSectorData;
-                            m_uBuffer = sizeof(m_abSectorData);
+                            m_data_offset = 0;
                         }
                     }
                     break;
@@ -318,8 +304,7 @@ void CATADevice::Out(uint16_t wPort_, uint16_t wVal_)
                 if ((bVal & ~1) != 0x40)
                 {
                     // Set the sector buffer pointer and how much we have available to read
-                    m_pbBuffer = m_abSectorData;
-                    m_uBuffer = sizeof(m_abSectorData);
+                    m_data_offset = 0;
                 }
             }
             break;
@@ -331,12 +316,11 @@ void CATADevice::Out(uint16_t wPort_, uint16_t wVal_)
                 TRACE("ATA: Disk command: Write Sectors\n");
 
                 // Clear the sector buffer and indicate we're ready to receive data
-                memset(&m_abSectorData, 0, sizeof(m_abSectorData));
+                memset(&m_sector_data, 0, sizeof(m_sector_data));
                 m_sRegs.bStatus |= ATA_STATUS_DRQ;
 
                 // Set the sector buffer pointer and how much space we have available for writing
-                m_pbBuffer = m_abSectorData;
-                m_uBuffer = sizeof(m_abSectorData);
+                m_data_offset = 0;
             }
             break;
 
@@ -367,9 +351,8 @@ void CATADevice::Out(uint16_t wPort_, uint16_t wVal_)
             case 0xec:
             {
                 TRACE("ATA: Disk command: IDENTIFY\n");
-                memcpy(&m_abSectorData, &m_sIdentify, sizeof(m_sIdentify));
-                m_pbBuffer = m_abSectorData;
-                m_uBuffer = sizeof(m_abSectorData);
+                memcpy(&m_sector_data, &m_sIdentify, sizeof(m_sIdentify));
+                m_data_offset = 0;
             }
             break;
 
@@ -391,7 +374,7 @@ void CATADevice::Out(uint16_t wPort_, uint16_t wVal_)
                 case 0x81:
                     TRACE(" Disable 8-bit data transfers\n");
                     m_f8bit = false;
-                    m_uBuffer = 0;  // just in case
+                    m_data_offset = m_sector_data.size();
                     break;
 
                 case 0xcc:
@@ -491,9 +474,9 @@ bool CATADevice::ReadWriteSector(bool fWrite_)
     }
 
     if (fWrite_)
-        return WriteSector(uSector, m_abSectorData);
+        return WriteSector(uSector, m_sector_data.data());
 
-    return ReadSector(uSector, m_abSectorData);
+    return ReadSector(uSector, m_sector_data.data());
 }
 
 

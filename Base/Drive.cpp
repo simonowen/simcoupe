@@ -30,14 +30,17 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CDrive::CDrive(CDisk* pDisk_/*=nullptr*/)
-    : m_pDisk(pDisk_)
+CDrive::CDrive()
 {
     Reset();
-
-    // Head starts over track 0, motor off
     m_bHeadCyl = 0;
     m_nMotorDelay = 0;
+}
+
+CDrive::CDrive(std::unique_ptr<CDisk> disk) :
+    CDrive()
+{
+    m_pDisk = std::move(disk);
 }
 
 // Reset the controller back to default settings
@@ -69,7 +72,7 @@ bool CDrive::Insert(const char* pcszSource_, bool fAutoLoad_)
         return false;
 
     // Check for auto-booting with drive 1
-    if (this == pFloppy1 && fAutoLoad_)
+    if (this == pFloppy1.get() && fAutoLoad_)
         IO::AutoLoad(AUTOLOAD_DISK);
 
     return true;
@@ -81,7 +84,7 @@ void CDrive::Eject()
     if (m_pDisk && m_pDisk->IsModified())
         m_pDisk->Save();
 
-    delete m_pDisk; m_pDisk = nullptr;
+    m_pDisk.reset();
 }
 
 void CDrive::FrameEnd()

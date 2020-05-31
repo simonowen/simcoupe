@@ -32,7 +32,7 @@ public:
     CHardDisk(const char* pcszDisk_);
 
 public:
-    static CHardDisk* OpenObject(const char* pcszDisk_, bool fReadOnly_ = false);
+    static std::unique_ptr<CHardDisk> OpenObject(const char* pcszDisk_, bool fReadOnly_ = false);
     virtual bool Open(bool fReadOnly_ = false) = 0;
 
 public:

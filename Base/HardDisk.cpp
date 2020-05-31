@@ -101,29 +101,23 @@ CHDFHardDisk::CHDFHardDisk(const char* pcszDisk_)
 {
 }
 
-/*static*/ CHardDisk* CHardDisk::OpenObject(const char* pcszDisk_, bool fReadOnly_/*=false*/)
+/*static*/ std::unique_ptr<CHardDisk> CHardDisk::OpenObject(const char* pcszDisk_, bool fReadOnly_/*=false*/)
 {
-    CHardDisk* pDisk = nullptr;
+    std::unique_ptr<CHardDisk> disk;
 
     // Make sure we have a disk to try
     if (!pcszDisk_ || !*pcszDisk_)
         return nullptr;
 
     // Try for device path first
-    if (!pDisk && (pDisk = new CDeviceHardDisk(pcszDisk_)) && !pDisk->Open(fReadOnly_))
-    {
-        delete pDisk;
-        pDisk = nullptr;
-    }
+    if (!disk && (disk = std::make_unique<CDeviceHardDisk>(pcszDisk_)) && !disk->Open(fReadOnly_))
+        disk.reset();
 
     // Try for HDF disk image
-    if (!pDisk && (pDisk = new CHDFHardDisk(pcszDisk_)) && !pDisk->Open(fReadOnly_))
-    {
-        delete pDisk;
-        pDisk = nullptr;
-    }
+    if (!disk && (disk = std::make_unique<CHDFHardDisk>(pcszDisk_)) && !disk->Open(fReadOnly_))
+        disk.reset();
 
-    return pDisk;
+    return disk;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

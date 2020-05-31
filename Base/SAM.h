@@ -73,6 +73,7 @@ constexpr auto MEM_PAGE_SIZE = 0x4000;
 constexpr auto NUM_INTERNAL_PAGES = (0x80000 / MEM_PAGE_SIZE);
 constexpr auto NUM_EXTERNAL_PAGES_1MB = (0x100000 / MEM_PAGE_SIZE);
 constexpr auto MAX_EXTERNAL_MB = 4;
+constexpr auto NUM_ROM_PAGES = 2;
 
 constexpr auto USECONDS_TO_TSTATES(int cycles)
 {

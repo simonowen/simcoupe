@@ -97,22 +97,18 @@ bool Insert(const char* pcsz_)
 {
     Eject();
 
-    CStream* pStream = CStream::Open(pcsz_, true);
-    if (!pStream)
+    auto stream = CStream::Open(pcsz_, true);
+    if (!stream)
         return false;
 
     pTape = libspectrum_tape_alloc();
     if (!pTape)
-    {
-        delete pStream;
         return false;
-    }
 
-    strFileName = pStream->GetFile();
-    size_t uSize = pStream->GetSize();
+    strFileName = stream->GetFile();
+    size_t uSize = stream->GetSize();
     pbTape = new libspectrum_byte[uSize];
-    if (pbTape) pStream->Read(pbTape, uSize);
-    delete pStream;
+    if (pbTape) stream->Read(pbTape, uSize);
 
     if (!pbTape || libspectrum_tape_read(pTape, pbTape, uSize, LIBSPECTRUM_ID_UNKNOWN, pcsz_) != LIBSPECTRUM_ERROR_NONE)
     {

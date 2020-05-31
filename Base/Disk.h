@@ -108,7 +108,10 @@ struct EDSK_SECTOR
 
 ////////////////////////////////////////////////////////////////////////////////
 
-enum { dtNone, dtUnknown, dtFloppy, dtFile, dtEDSK, dtSAD, dtMGT, dtSBT, dtCAPS };
+enum class DiskType
+{
+    None, Unknown, Floppy, File, EDSK, SAD, MGT, SBT, CAPS
+};
 
 #define LOAD_DELAY  3   // Number of status reads to artificially stay busy for image file track loads
 // Pro-Dos relies on data not being available immediately a command is submitted
@@ -119,17 +122,14 @@ class CDisk
 
     // Constructor and virtual destructor
 public:
-    CDisk(CStream* pStream_, int nType_);
-    CDisk(const CDisk&) = delete;
-    void operator= (const CDisk&) = delete;
-    virtual ~CDisk();
+    CDisk(std::unique_ptr<CStream> stream, DiskType type);
 
 public:
-    static int GetType(CStream* pStream_);
-    static CDisk* Open(const char* pcszDisk_, bool fReadOnly_ = false);
-    static CDisk* Open(void* pv_, size_t uSize_, const char* pcszDisk_);
+    static DiskType GetType(CStream& pStream_);
+    static std::unique_ptr<CDisk> Open(const char* pcszDisk_, bool fReadOnly_ = false);
+    static std::unique_ptr<CDisk> Open(void* pv_, size_t uSize_, const char* pcszDisk_);
 
-    virtual void Close() { m_pStream->Close(); }
+    virtual void Close() { m_stream->Close(); }
     virtual void Flush() { }
     virtual bool Save() { return false; };
     virtual uint8_t FormatTrack(uint8_t /*cyl_*/, uint8_t /*head_*/, IDFIELD* /*paID_*/, uint8_t* /*papbData_*/[], unsigned int /*uSectors_*/) { return WRITE_PROTECT; }
@@ -137,9 +137,9 @@ public:
 
     // Public query functions
 public:
-    const char* GetPath() { return m_pStream->GetPath(); }
-    const char* GetFile() { return m_pStream->GetFile(); }
-    bool IsReadOnly() const { return m_pStream->IsReadOnly(); }
+    const char* GetPath() { return m_stream->GetPath(); }
+    const char* GetFile() { return m_stream->GetFile(); }
+    bool IsReadOnly() const { return m_stream->IsReadOnly(); }
     bool IsModified() const { return m_fModified; }
 
     void SetModified(bool fModified_ = true) { m_fModified = fModified_; }
@@ -154,22 +154,22 @@ protected:
     virtual bool IsBusy(uint8_t* /*pbStatus_*/, bool /*fWait_*/ = false) { if (!m_nBusy) return false; m_nBusy--; return true; }
 
 protected:
-    int m_nType;
+    DiskType m_nType;
     int m_nBusy;
     bool m_fModified;
 
-    CStream* m_pStream;
-    uint8_t* m_pbData;
+    std::unique_ptr<CStream> m_stream;
+    std::vector<uint8_t> m_data;
 };
 
 
 class CMGTDisk : public CDisk
 {
 public:
-    CMGTDisk(CStream* pStream_, unsigned int uSectors_ = NORMAL_DISK_SECTORS);
+    CMGTDisk(std::unique_ptr<CStream> stream, unsigned int uSectors_ = NORMAL_DISK_SECTORS);
 
 public:
-    static bool IsRecognised(CStream* pStream_);
+    static bool IsRecognised(CStream& stream);
 
 public:
     bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
@@ -186,11 +186,11 @@ protected:
 class CSADDisk : public CDisk
 {
 public:
-    CSADDisk(CStream* pStream_, unsigned int uSides_ = NORMAL_DISK_SIDES, unsigned int uTracks_ = NORMAL_DISK_TRACKS,
+    CSADDisk(std::unique_ptr<CStream> stream, unsigned int uSides_ = NORMAL_DISK_SIDES, unsigned int uTracks_ = NORMAL_DISK_TRACKS,
         unsigned int uSectors_ = NORMAL_DISK_SECTORS, unsigned int uSectorSize_ = NORMAL_SECTOR_SIZE);
 
 public:
-    static bool IsRecognised(CStream* pStream_);
+    static bool IsRecognised(CStream& stream);
 
 public:
     bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
@@ -207,13 +207,13 @@ protected:
 class CEDSKDisk final : public CDisk
 {
 public:
-    CEDSKDisk(CStream* pStream_, unsigned int uSides_ = NORMAL_DISK_SIDES, unsigned int uTracks_ = NORMAL_DISK_TRACKS);
+    CEDSKDisk(std::unique_ptr<CStream> stream, unsigned int uSides_ = NORMAL_DISK_SIDES, unsigned int uTracks_ = NORMAL_DISK_TRACKS);
     CEDSKDisk(const CEDSKDisk&) = delete;
     void operator= (const CEDSKDisk&) = delete;
     ~CEDSKDisk();
 
 public:
-    static bool IsRecognised(CStream* pStream_);
+    static bool IsRecognised(CStream& pStream_);
 
 public:
     bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
@@ -238,15 +238,15 @@ private:
 class CFloppyDisk final : public CDisk
 {
 public:
-    CFloppyDisk(CStream* pStream_);
+    CFloppyDisk(std::unique_ptr<CStream>);
     CFloppyDisk(const CFloppyDisk&) = delete;
     void operator= (const CFloppyDisk&) = delete;
 
 public:
-    static bool IsRecognised(CStream* pStream_);
+    static bool IsRecognised(CStream& pStream_);
 
 public:
-    void Close() override { m_pFloppy->Close(); m_pTrack->head = 0xff; }
+    void Close() override { m_stream->Close(); m_pTrack->head = 0xff; }
     void Flush() override { Close(); }
 
     uint8_t LoadTrack(uint8_t cyl_, uint8_t head_) override;
@@ -260,8 +260,6 @@ public:
     bool IsBusy(uint8_t* pbStatus_, bool fWait_) override;
 
 protected:
-    CFloppyStream* m_pFloppy = nullptr;
-
     uint8_t m_bCommand = 0, m_bStatus = 0;     // Current command and final status
 
     TRACK* m_pTrack = nullptr;              // Current track
@@ -272,10 +270,10 @@ protected:
 class CFileDisk final : public CDisk
 {
 public:
-    CFileDisk(CStream* pStream_);
+    CFileDisk(std::unique_ptr<CStream> stream);
 
 public:
-    static bool IsRecognised(CStream* pStream_);
+    static bool IsRecognised(CStream& stream);
 
 public:
     bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;

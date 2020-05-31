@@ -22,12 +22,6 @@
 #include "AtaAdapter.h"
 
 
-CAtaAdapter::~CAtaAdapter()
-{
-    delete m_pDisk0;
-    delete m_pDisk1;
-}
-
 // 8-bit read
 uint8_t CAtaAdapter::In(uint16_t wPort_)
 {
@@ -72,30 +66,27 @@ bool CAtaAdapter::Attach(const char* pcszDisk_, int nDevice_)
     return Attach(CHardDisk::OpenObject(pcszDisk_), nDevice_) || !*pcszDisk_;
 }
 
-bool CAtaAdapter::Attach(CHardDisk* pDisk_, int nDevice_)
+bool CAtaAdapter::Attach(std::unique_ptr<CHardDisk> disk, int nDevice_)
 {
+    if (!disk)
+        return false;
+
     if (nDevice_ == 0)
     {
-        delete m_pDisk0;
-        m_pDisk0 = pDisk_;
-
-        // Jumper the disk as device 0
-        if (m_pDisk0) m_pDisk0->SetDeviceAddress(ATA_DEVICE_0);
+        m_pDisk0 = std::move(disk);
+        m_pDisk0->SetDeviceAddress(ATA_DEVICE_0);
     }
     else
     {
-        delete m_pDisk1;
-        m_pDisk1 = pDisk_;
-
-        // Jumper the disk as device 1
-        if (m_pDisk1) m_pDisk1->SetDeviceAddress(ATA_DEVICE_1);
+        m_pDisk1 = std::move(disk);
+        m_pDisk1->SetDeviceAddress(ATA_DEVICE_1);
     }
 
-    return pDisk_ != nullptr;
+    return true;
 }
 
 void CAtaAdapter::Detach()
 {
-    delete m_pDisk0; m_pDisk0 = nullptr;
-    delete m_pDisk1; m_pDisk1 = nullptr;
+    m_pDisk0.reset();
+    m_pDisk1.reset();
 }

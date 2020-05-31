@@ -43,4 +43,4 @@ protected:
     int m_nOut = 0;          // Number of bytes currently in abOut
 };
 
-extern CMidiDevice* pMidi;
+extern std::unique_ptr<CMidiDevice> pMidi;

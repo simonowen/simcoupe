@@ -90,21 +90,19 @@ void CAtomLiteDevice::Out(uint16_t wPort_, uint8_t bVal_)
 }
 
 
-bool CAtomLiteDevice::Attach(CHardDisk* pDisk_, int nDevice_)
+bool CAtomLiteDevice::Attach(std::unique_ptr<CHardDisk> disk, int nDevice_)
 {
-    if (pDisk_)
+    if (disk)
     {
         bool fByteSwapped = false;
 
         // Require an Atom Lite format disk, rejecting Atom disks
-        if (pDisk_->IsBDOSDisk(&fByteSwapped) && fByteSwapped)
+        if (disk->IsBDOSDisk(&fByteSwapped) && fByteSwapped)
             return false;
 
         // Disable legacy ATA requests that CF cards don't support
-        pDisk_->SetLegacy(false);
+        disk->SetLegacy(false);
     }
 
-    CAtaAdapter::Attach(pDisk_, nDevice_);
-
-    return pDisk_ != nullptr;
+    return CAtaAdapter::Attach(std::move(disk), nDevice_);
 }

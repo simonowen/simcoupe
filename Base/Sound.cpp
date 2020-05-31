@@ -103,24 +103,24 @@ void CSAA::Update(bool fFrameEnd_ = false)
 {
     int nSamplesSoFar = fFrameEnd_ ? pDAC->GetSampleCount() : pDAC->GetSamplesSoFar();
 
-    int nNeeded = nSamplesSoFar - m_nSamplesThisFrame;
+    int nNeeded = nSamplesSoFar - m_samples_this_frame;
     if (nNeeded <= 0)
         return;
 
-    auto pb = m_pbFrameSample + m_nSamplesThisFrame * SAMPLE_BLOCK;
+    auto pb = m_sample_buffer.data() + m_samples_this_frame * SAMPLE_BLOCK;
 
     if (g_fReset)
         memset(pb, 0x00, nNeeded * SAMPLE_BLOCK); // no clock means no SAA output
     else
         m_pSAASound->GenerateMany(pb, nNeeded);
 
-    m_nSamplesThisFrame = nSamplesSoFar;
+    m_samples_this_frame = nSamplesSoFar;
 }
 
 void CSAA::FrameEnd()
 {
     Update(true);
-    m_nSamplesThisFrame = 0;
+    m_samples_this_frame = 0;
 }
 
 void CSAA::Out(uint16_t wPort_, uint8_t bVal_)
@@ -166,11 +166,11 @@ void CDAC::FrameEnd()
     buf_left.end_frame(CPU_CYCLES_PER_FRAME);
     buf_right.end_frame(CPU_CYCLES_PER_FRAME);
 
-    blip_sample_t* ps = reinterpret_cast<blip_sample_t*>(m_pbFrameSample);
-    m_nSamplesThisFrame = static_cast<int>(buf_left.samples_avail());
+    m_samples_this_frame = static_cast<int>(buf_left.samples_avail());
 
-    buf_left.read_samples(ps, m_nSamplesThisFrame, 1);
-    buf_right.read_samples(ps + 1, m_nSamplesThisFrame, 1);
+    auto ps = reinterpret_cast<blip_sample_t*>(m_sample_buffer.data());
+    buf_left.read_samples(ps, m_samples_this_frame, 1);
+    buf_right.read_samples(ps + 1, m_samples_this_frame, 1);
 }
 
 void CDAC::OutputLeft(uint8_t bVal_)
@@ -217,17 +217,6 @@ void CBeeperDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
 {
     if (pDAC)
         pDAC->Output((bVal_ & 0x10) ? 0xa0 : 0x80);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-CSoundDevice::CSoundDevice()
-{
-    int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND) + 1;
-    int nSize = nSamplesPerFrame * SAMPLE_BLOCK;
-
-    m_pbFrameSample = new uint8_t[nSize];
-    memset(m_pbFrameSample, 0x00, nSize);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

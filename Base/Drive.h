@@ -37,7 +37,8 @@ const unsigned int FLOPPY_ACTIVE_FRAMES = 5;   // Frames the floppy is considere
 class CDrive final : public CDiskDevice
 {
 public:
-    CDrive(CDisk* pDisk_ = nullptr);
+    CDrive();
+    CDrive(std::unique_ptr<CDisk> pDisk_);
     CDrive(const CDrive&) = delete;
     void operator= (const CDrive&) = delete;
     ~CDrive() { Eject(); }
@@ -81,7 +82,7 @@ protected:
     bool IsMotorOn() const { return (m_sRegs.bStatus & MOTOR_ON) != 0; }
 
 protected:
-    CDisk* m_pDisk = nullptr;   // The disk currently inserted in the drive, if any
+    std::unique_ptr<CDisk> m_pDisk;   // The disk currently inserted in the drive, if any
     uint8_t m_bSide = 0;        // Side from port address
 
     VL1772Regs m_sRegs{};          // VL1772 controller registers
