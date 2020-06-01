@@ -143,34 +143,15 @@ void Direct3D9Video::Update(CScreen* pScreen_, bool* pafDirty_)
     hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
     hr = m_pd3dDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
-    float vertexConsts[][4] =
+    float vertexConsts[] =
     {
-        {
-            2.0f / pScreen_->GetPitch(),
-            -2.0f / pScreen_->GetHeight() * (GUI::IsActive() ? 1.0f : 2.0f),
-            GetOption(scanhires) ? (float(m_rTarget.right) / pScreen_->GetPitch()) : 1.0f,
-            GetOption(scanhires) ? (float(m_rTarget.bottom) / pScreen_->GetHeight() / (GUI::IsActive() ? 2.0f : 1.0f)) : 1.0f,
-        },
-        {
-            0.5f / TEXTURE_SIZE,
-            1.0f / TEXTURE_SIZE,
-            1.0f,
-            1.0f,
-        }
+        2.0f / pScreen_->GetPitch(),
+        -2.0f / pScreen_->GetHeight() * (GUI::IsActive() ? 1.0f : 2.0f),
+        0.5f / TEXTURE_SIZE,
+        1.0f / TEXTURE_SIZE,
     };
 
-    float pixelConsts[][4] =
-    {
-        {
-            GetOption(scanlines) && !GUI::IsActive() ? GetOption(scanlevel) / 100.0f : 1.0f,
-            1.0f,
-            1.0f,
-            1.0f,
-        }
-    };
-
-    hr = m_pd3dDevice->SetVertexShaderConstantF(0, vertexConsts[0], ARRAYSIZE(vertexConsts));
-    hr = m_pd3dDevice->SetPixelShaderConstantF(0, pixelConsts[0], ARRAYSIZE(pixelConsts));
+    hr = m_pd3dDevice->SetVertexShaderConstantF(0, vertexConsts, 1);
 
     hr = m_pd3dDevice->SetVertexDeclaration(m_pVertexDecl);
     hr = m_pd3dDevice->SetStreamSource(0, m_pVertexBuffer, 0, sizeof(CUSTOMVERTEX));
@@ -220,7 +201,6 @@ HRESULT Direct3D9Video::CreateVertices()
     CUSTOMVERTEX* pVertices = nullptr;
     hr = m_pVertexBuffer->Lock(0, NUM_VERTICES * sizeof(CUSTOMVERTEX), (void**)&pVertices, 0);
 
-    // Main display, also used for scanlines
     pVertices[0] = CUSTOMVERTEX(0, dwHeight);
     pVertices[1] = CUSTOMVERTEX(0, 0);
     pVertices[2] = CUSTOMVERTEX(dwWidth, dwHeight);

@@ -30,9 +30,6 @@ struct OPTIONS
 
     int     scale;                  // Window scaling mode
     bool    ratio5_4;               // Use 5:4 screen ratio?
-    bool    scanlines;              // Show scanlines?
-    int     scanlevel;              // Scanline brightness level
-    bool    scanhires;              // Hi-res scanlines at native display resolution?
     int     mode3;                  // Which mode3 pixels to show on low-res displays?
     bool    fullscreen;             // Start in full-screen mode?
     int     borders;                // How much of the borders to show
@@ -41,7 +38,6 @@ struct OPTIONS
     bool    filtergui;              // Filter image when the GUI is active? (if available)
 
     int     avireduce;              // Reduce AVI audio size (0=lossless to 4=muted)
-    bool    aviscanlines;           // Include scanlines in AVI recording?
 
     char    rom[MAX_PATH];          // SAM ROM image path
     bool    romwrite;               // Allow writes to ROM?

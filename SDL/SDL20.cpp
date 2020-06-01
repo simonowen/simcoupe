@@ -29,7 +29,6 @@
 #ifdef HAVE_LIBSDL2
 
 static uint32_t aulPalette[N_PALETTE_COLOURS];
-static uint32_t aulScanline[N_PALETTE_COLOURS];
 
 
 SDLTexture::SDLTexture()
@@ -48,7 +47,6 @@ SDLTexture::SDLTexture()
 
 SDLTexture::~SDLTexture()
 {
-    if (m_pScanlineTexture) { SDL_DestroyTexture(m_pScanlineTexture); m_pScanlineTexture = nullptr; }
     if (m_pTexture) { SDL_DestroyTexture(m_pTexture); m_pTexture = nullptr; }
     if (m_pRenderer) { SDL_DestroyRenderer(m_pRenderer); m_pRenderer = nullptr; }
     if (m_pWindow) { SDL_DestroyWindow(m_pWindow); m_pWindow = nullptr; }
@@ -125,10 +123,6 @@ void SDLTexture::Update(CScreen* pScreen_, bool* pafDirty_)
 // Create whatever's needed for actually displaying the SAM image
 void SDLTexture::UpdatePalette()
 {
-    // Determine the scanline brightness level adjustment, in the range -100 to +100
-    int nScanAdjust = GetOption(scanlines) ? (GetOption(scanlevel) - 100) : 0;
-    if (nScanAdjust < -100) nScanAdjust = -100;
-
     const COLOUR* pSAM = IO::GetPalette();
 
     int w, h;
@@ -144,8 +138,6 @@ void SDLTexture::UpdatePalette()
         uint8_t r = p->bRed, g = p->bGreen, b = p->bBlue, a = 0xff;
 
         aulPalette[i] = RGB2Native(r, g, b, a, uRmask, uGmask, uBmask, uAmask);
-        AdjustBrightness(r, g, b, nScanAdjust);
-        aulScanline[i] = RGB2Native(r, g, b, a, uRmask, uGmask, uBmask, uAmask);
     }
 
     // Ensure the display is redrawn to reflect the changes
@@ -293,15 +285,6 @@ bool SDLTexture::DrawChanges(CScreen* pScreen_, bool* pafDirty_)
 
     SDL_RenderClear(m_pRenderer);
     SDL_RenderCopy(m_pRenderer, m_pTexture, &rTexture, &rWindow);
-
-    if (m_pScanlineTexture && GetOption(scanlines) && !GUI::IsActive())
-    {
-        SDL_Rect rScanlines = { 0, 0, 1, GetOption(scanhires) ? rWindow.h : Frame::GetHeight() };
-
-        SDL_SetTextureBlendMode(m_pScanlineTexture, SDL_BLENDMODE_BLEND);
-        SDL_RenderCopy(m_pRenderer, m_pScanlineTexture, &rScanlines, &rWindow);
-    }
-
     SDL_RenderPresent(m_pRenderer);
 
     return true;
@@ -314,7 +297,6 @@ void SDLTexture::UpdateSize()
     if (GetOption(fullscreen) != fFullscreen)
         SDL_SetWindowFullscreen(m_pWindow, GetOption(fullscreen) ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 
-    if (m_pScanlineTexture) { SDL_DestroyTexture(m_pScanlineTexture); m_pScanlineTexture = nullptr; }
     if (m_pTexture) { SDL_DestroyTexture(m_pTexture); m_pTexture = nullptr; }
 
     int nWidth = Frame::GetWidth();
@@ -325,26 +307,6 @@ void SDLTexture::UpdateSize()
 
     SDL_DisplayMode displaymode;
     SDL_GetDesktopDisplayMode(0, &displaymode);
-
-    m_pScanlineTexture = SDL_CreateTexture(m_pRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STATIC, 1, displaymode.h);
-
-    if (m_pScanlineTexture)
-    {
-        int w, h, nDepth;
-        Uint32 uFormat, uRmask, uGmask, uBmask, uAmask;
-        SDL_QueryTexture(m_pScanlineTexture, &uFormat, nullptr, &w, &h);
-        SDL_PixelFormatEnumToMasks(uFormat, &nDepth, &uRmask, &uGmask, &uBmask, &uAmask);
-
-        Uint32 ulScanline0 = RGB2Native(0, 0, 0, (100 - GetOption(scanlevel)) * 0xff / 100, uRmask, uGmask, uBmask, uAmask);
-        Uint32 ulScanline1 = RGB2Native(0, 0, 0, 0, uRmask, uGmask, uBmask, uAmask);
-        Uint32* pbScanlines = new Uint32[h];
-
-        for (int j = 0; j < h; j++)
-            pbScanlines[j] = (j & 1) ? ulScanline1 : ulScanline0;
-
-        SDL_UpdateTexture(m_pScanlineTexture, nullptr, pbScanlines, sizeof(Uint32));
-        delete[] pbScanlines;
-    }
 }
 
 

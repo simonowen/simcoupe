@@ -102,8 +102,6 @@
 #define IDC_SDIDE                       1138
 #define IDC_ATOM1                       1140
 #define IDC_AUTOLOAD                    1161
-#define IDC_HWACCEL                     1163
-#define IDC_SCANLINES                   1164
 #define IDC_TYPE                        1165
 #define IDS_PAGE                        1169
 #define IDS_OFFSET                      1170
@@ -214,7 +212,6 @@
 #define IDM_SYSTEM_MUTESOUND            40198
 #define IDM_VIEW_SYNC                   40199
 #define IDM_SYSTEM_PAUSE                40200
-#define IDM_VIEW_SCANLINES              40201
 #define IDM_TOOLS_DEBUGGER              40202
 #define IDM_SYSTEM_NMI                  40203
 #define IDM_SYSTEM_RESET                40204
@@ -239,7 +236,6 @@
 #define IDM_SYSTEM_SPEED_1000           40255
 #define IDM_TOOLS_PASTE_CLIPBOARD       40260
 #define IDM_VIEW_FILTER                 40263
-#define IDM_VIEW_SCANHIRES              40264
 #define IDM_TOOLS_TAPE_BROWSER          40278
 
 // Next default values for new objects

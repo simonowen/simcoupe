@@ -359,8 +359,6 @@ combinations below to access them.
          Alt-F4 = Exit application
              F5 = Toggle 5:4 display
              F6 = Toggle display smoothing
-             F7 = Toggle CRT scanlines
-       Shift-F7 = Toggle hi-res scanlines
              F8 = Toggle full-screen
              F9 = Debugger
        Shift-F9 = Save screenshot
@@ -670,24 +668,8 @@ it. This is not available if a custom ROM image is in use.
 
 ### Display
 
-_Enable hardware acceleration_ [Win32] - uses the hardware features of your
-video card to generate the display image. You should only ever need to
-temporarily disable this if troubleshooting display driver issues.
-
 _Bi-linear fitering (smoothing)_ - smooth the display image when stretching to
 fill the SimCoupe window.
-
-_Renderer_ [Win32] - Auto-select will use Direct3D 9 on Windows Vista or later,
-and DirectDraw on Windows XP.
-
-_Enable TV scanlines_ - show alternate lines at reduced brightness, to simulate
-the scanline effect present on older CRT displays (default = on).
-
-_High resolution (display native)_ - alternate scanlines at the resolution of
-your monitor, instead of the resolution of the SAM display (default = on).
-
-_Intensity_ - set the intensity of the scanlines, from 0% to 95% (default =
-75%).
 
 ### Sound
 
@@ -819,9 +801,6 @@ in the configuration file:
 ```
     -scale <int>            Windowed mode scaling: 1=50%, 2=100%, 3=150%
     -ratio5_4 <bool>        Stretch display width to 125% (default=no)
-    -scanlines <bool>       Show vertical lines for a TV effect
-    -scanlevel <int>        Scanline intensity percentage (default=75)
-    -scanhires <bool>       Scanlines at native resolution (default=yes)
     -mode3 <bool>           Sample odd pixels in low-res (default=no)
     -fullscreen <bool>      Start in full-screen mode (default=no)
     -depth <int>            Colour depth for full-screen (default=16)
@@ -832,7 +811,6 @@ in the configuration file:
     -filtergui <bool>       Smooth built-in GUI display (default=no)
 
     -avireduce <int>        AVI audio: 0=lossless, 1=good (default) to 4=none
-    -aviscanlines <bool>    Include scanlines in AVI recording (default=no)
 
     -rom <path>             32K custom ROM image (blank for default v3.0)
     -romwrite <bool>        Enable memory writes to ROM (default=no)

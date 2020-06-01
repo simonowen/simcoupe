@@ -903,7 +903,6 @@ void UpdateMenuFromOptions()
     HMENU hmenu = g_hmenu;
     HMENU hmenuFile = GetSubMenu(hmenu, 0);
     HMENU hmenuFloppy2 = GetSubMenu(hmenuFile, 6);
-    HMENU hmenuView = GetSubMenu(hmenu, 1);
     HMENU hmenuRecord = GetSubMenu(hmenu, 2);
 
     bool fFloppy1 = GetOption(drive1) == drvFloppy, fInserted1 = pFloppy1->HasDisk();
@@ -932,16 +931,9 @@ void UpdateMenuFromOptions()
     CheckOption(IDM_VIEW_FULLSCREEN, GetOption(fullscreen));
     CheckOption(IDM_VIEW_RATIO54, GetOption(ratio5_4));
     CheckOption(IDM_VIEW_GREYSCALE, GetOption(greyscale));
-    CheckOption(IDM_VIEW_SCANLINES, GetOption(scanlines));
 
     CheckOption(IDM_VIEW_FILTER, GetOption(filter) && Video::CheckCaps(VCAP_FILTER));
     EnableItem(IDM_VIEW_FILTER, Video::CheckCaps(VCAP_FILTER));
-
-    EnableMenuItem(hmenuView, 8, MF_BYPOSITION | (GetOption(scanlines) ? MF_ENABLED : MF_GRAYED));
-    EnableItem(IDM_VIEW_SCANHIRES, GetOption(scanlines));
-
-    CheckOption(IDM_VIEW_SCANHIRES, GetOption(scanhires) && Video::CheckCaps(VCAP_SCANHIRES));
-    EnableItem(IDM_VIEW_SCANHIRES, GetOption(scanlines) && Video::CheckCaps(VCAP_SCANHIRES));
 
     CheckMenuRadioItem(hmenu, IDM_VIEW_ZOOM_50, IDM_VIEW_ZOOM_300, IDM_VIEW_ZOOM_50 + GetOption(scale) - 1, MF_BYCOMMAND);
     CheckMenuRadioItem(hmenu, IDM_VIEW_BORDERS0, IDM_VIEW_BORDERS4, IDM_VIEW_BORDERS0 + GetOption(borders), MF_BYCOMMAND);
@@ -1095,12 +1087,6 @@ bool UI::DoAction(Action action, bool pressed)
             // Perform default processing
             return false;
         }
-
-        case Action::ToggleScanlines:
-            SetOption(scanlines, !GetOption(scanlines));
-            Video::SetDirty();
-            Frame::SetStatus("Scanlines %s", GetOption(scanlines) ? "enabled" : "disabled");
-            break;
 
         case Action::Paste:
         {
@@ -1899,8 +1885,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
         case IDM_VIEW_FULLSCREEN:           Actions::Do(Action::ToggleFullscreen); break;
         case IDM_VIEW_RATIO54:              Actions::Do(Action::Toggle5_4);        break;
-        case IDM_VIEW_SCANLINES:            Actions::Do(Action::ToggleScanlines);  break;
-        case IDM_VIEW_SCANHIRES:            Actions::Do(Action::ToggleScanHiRes);  break;
         case IDM_VIEW_FILTER:               Actions::Do(Action::ToggleFilter);     break;
         case IDM_VIEW_GREYSCALE:            Actions::Do(Action::ToggleGreyscale);  break;
 
@@ -2890,43 +2874,15 @@ INT_PTR CALLBACK DisplayPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
     switch (uMsg_)
     {
     case WM_INITDIALOG:
-    {
-        static const char* aszRenderer[] = { "Auto-select (Default)", "DirectDraw", "Direct3D (if available)", nullptr };
-
         SendDlgItemMessage(hdlg_, IDC_FILTER, BM_SETCHECK, GetOption(filter) ? BST_CHECKED : BST_UNCHECKED, 0L);
-        SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_SETCHECK, GetOption(scanlines) ? BST_CHECKED : BST_UNCHECKED, 0L);
-        SendDlgItemMessage(hdlg_, IDC_HIRES, BM_SETCHECK, GetOption(scanhires) ? BST_CHECKED : BST_UNCHECKED, 0L);
-
-        int nIntensity = std::max(0, std::min(95, GetOption(scanlevel)));
-        SendDlgItemMessage(hdlg_, IDC_INTENSITY, TBM_SETRANGE, 0, MAKELONG(0, 19));
-        SendDlgItemMessage(hdlg_, IDC_INTENSITY, TBM_SETPOS, TRUE, nIntensity / 5);
-
         break;
-    }
 
     case WM_NOTIFY:
     {
-        LPNMHDR pnmh = reinterpret_cast<LPNMHDR>(lParam_);
-
-        int nIntensity = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_INTENSITY, TBM_GETPOS, 0, 0L)) * 5;
-
-        if (pnmh->idFrom == IDC_INTENSITY)
-        {
-            char sz[16];
-            snprintf(sz, sizeof(sz), "%d%%", nIntensity);
-            SetDlgItemText(hdlg_, IDS_INTENSITY_PERCENT, sz);
-            fPreview = true;
-        }
-
+        auto pnmh = reinterpret_cast<LPNMHDR>(lParam_);
         if (pnmh->code == PSN_APPLY)
         {
             SetOption(filter, SendDlgItemMessage(hdlg_, IDC_FILTER, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-            SetOption(scanlines, SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-            SetOption(scanhires, SendDlgItemMessage(hdlg_, IDC_HIRES, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-            SetOption(scanlevel, nIntensity);
-
-            if (Changed(scanlines) || Changed(scanhires) || Changed(scanlevel))
-                Video::UpdatePalette();
         }
         break;
     }
@@ -2935,19 +2891,7 @@ INT_PTR CALLBACK DisplayPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
     {
         switch (LOWORD(wParam_))
         {
-        case IDC_SCANLINES:
-        {
-            bool fScanlines = SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_GETCHECK, 0, 0L) == BST_CHECKED;
-            EnableWindow(GetDlgItem(hdlg_, IDC_HIRES), fScanlines);
-            EnableWindow(GetDlgItem(hdlg_, IDS_INTENSITY), fScanlines);
-            EnableWindow(GetDlgItem(hdlg_, IDC_INTENSITY), fScanlines);
-            EnableWindow(GetDlgItem(hdlg_, IDS_INTENSITY_PERCENT), fScanlines);
-            fPreview = true;
-            break;
-        }
-
         case IDC_FILTER:
-        case IDC_HIRES:
             fPreview = true;
             break;
         }
@@ -2960,9 +2904,6 @@ INT_PTR CALLBACK DisplayPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
     {
         // Apply the current dialog settings
         SetOption(filter, SendDlgItemMessage(hdlg_, IDC_FILTER, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-        SetOption(scanlines, SendDlgItemMessage(hdlg_, IDC_SCANLINES, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-        SetOption(scanhires, SendDlgItemMessage(hdlg_, IDC_HIRES, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-        SetOption(scanlevel, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_INTENSITY, TBM_GETPOS, 0, 0L)) * 5);
 
         // Redraw the display to reflect the changes
         Video::UpdatePalette();
@@ -2970,9 +2911,6 @@ INT_PTR CALLBACK DisplayPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPAR
 
         // Restore the previous settings
         SetOption(filter, opts.filter);
-        SetOption(scanlines, opts.scanlines);
-        SetOption(scanlevel, opts.scanlevel);
-        SetOption(scanhires, opts.scanhires);
     }
 
     return fRet;

@@ -66,9 +66,6 @@ OPTION aOptions[] =
 
     OPT_N("Scale",        scale,          2),         // Windowed display is 150%
     OPT_F("Ratio5_4",     ratio5_4,       false),     // Don't use 5:4 screen ratio
-    OPT_F("Scanlines",    scanlines,      true),      // TV scanlines
-    OPT_N("ScanLevel",    scanlevel,      80),        // Scanlines are 80% brightness
-    OPT_F("ScanHiRes",    scanhires,      true),      // Scanlines at PC resolution (if supported)
     OPT_N("Mode3",        mode3,          0),         // Show only odd mode3 pixels on low-res displays
     OPT_F("Fullscreen",   fullscreen,     false),     // Not full screen
     OPT_N("Borders",      borders,        2),         // Same amount of borders as previous version
@@ -77,7 +74,6 @@ OPTION aOptions[] =
     OPT_F("FilterGUI",    filtergui,      false),     // Don't filter the image when the GUI is active
 
     OPT_N("AviReduce",    avireduce,      1),         // Record 44kHz 8-bit stereo audio (50% saving)
-    OPT_F("AviScanlines", aviscanlines,   false),     // Don't include scanlines in AVI recordings
 
     OPT_S("ROM",          rom,            ""),        // No custom ROM (use built-in)
     OPT_F("RomWrite",     romwrite,       false),     // ROM is read-only

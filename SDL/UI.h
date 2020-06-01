@@ -57,7 +57,6 @@ extern bool g_fActive;
 #define UE_TOGGLEGREYSCALE      (UE_BASE+4)
 #define UE_RESETBUTTON          (UE_BASE+5)
 #define UE_NMIBUTTON            (UE_BASE+6)
-#define UE_TOGGLESCANLINES      (UE_BASE+7)
 #define UE_TOGGLE54             (UE_BASE+8)
 #define UE_TEMPTURBOON          (UE_BASE+9)
 #define UE_TEMPTURBOOFF         (UE_BASE+10)

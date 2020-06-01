@@ -622,7 +622,7 @@ public:
     {
         new CIconControl(this, 10, 10, &sDisplayIcon);
 
-        new CFrameControl(this, 50, 17, 238, 139, WHITE);
+        new CFrameControl(this, 50, 17, 238, 120, WHITE);
         new CTextControl(this, 60, 13, "Settings", YELLOW_8, BLUE_2);
 
         m_pFullScreen = new CCheckBox(this, 60, 35, "Full-screen");
@@ -632,11 +632,10 @@ public:
 
         new CFrameControl(this, 63, 77, 212, 1, GREY_6);
 
-        m_pScanlines = new CCheckBox(this, 60, 90, "Display scanlines");
-        m_pRatio54 = new CCheckBox(this, 60, 111, "5:4 pixel shape");
+        m_pRatio54 = new CCheckBox(this, 60, 90, "5:4 pixel shape");
 
-        new CTextControl(this, 60, 134, "Viewable area:");
-        m_pViewArea = new CComboBox(this, 140, 131, "No borders|Small borders|Short TV area (default)|TV visible area|Complete scan area", 140);
+        new CTextControl(this, 60, 113, "Viewable area:");
+        m_pViewArea = new CComboBox(this, 140, 110, "No borders|Small borders|Short TV area (default)|TV visible area|Complete scan area", 140);
 
         m_pOK = new CTextButton(this, m_nWidth - 117, m_nHeight - 21, "OK", 50);
         m_pCancel = new CTextButton(this, m_nWidth - 62, m_nHeight - 21, "Cancel", 50);
@@ -646,7 +645,6 @@ public:
 
         m_pFullScreen->SetChecked(GetOption(fullscreen));
         m_pRatio54->SetChecked(GetOption(ratio5_4));
-        m_pScanlines->SetChecked(GetOption(scanlines));
 
         m_pViewArea->Select(GetOption(borders));
 
@@ -668,12 +666,10 @@ public:
             SetOption(scale, m_pScale->GetSelected() + 1);
 
             SetOption(ratio5_4, m_pRatio54->IsChecked());
-            SetOption(scanlines, m_pScanlines->IsChecked());
 
             SetOption(borders, m_pViewArea->GetSelected());
 
-            if (Changed(borders) || Changed(fullscreen) || Changed(ratio5_4) || Changed(scanlines) ||
-                Changed(scanlevel) || Changed(scale))
+            if (Changed(borders) || Changed(fullscreen) || Changed(ratio5_4) || Changed(scale))
             {
                 Frame::Init();
                 Video::UpdateSize();
@@ -698,15 +694,11 @@ public:
                 m_pScale->Enable(false);
                 m_pRatio54->Enable(false);
             }
-
-            if (!Video::CheckCaps(VCAP_FILTER))
-                m_pScanlines->Enable(false);
         }
     }
 
 protected:
     CCheckBox* m_pFullScreen = nullptr;
-    CCheckBox* m_pScanlines = nullptr;
     CCheckBox* m_pRatio54 = nullptr;
     CComboBox* m_pScale = nullptr;
     CComboBox* m_pViewArea = nullptr;

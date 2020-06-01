@@ -104,14 +104,8 @@ CAPTION "Display"
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
     CONTROL         "Bi-linear filtering (smoothing)",IDC_FILTER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,25,180,10
-    CONTROL         "Enable TV scanlines",IDC_SCANLINES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,68,180,10
-    CONTROL         "High resolution (display native)",IDC_HIRES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,83,180,10
-    LTEXT           "Intensity:",IDS_INTENSITY,50,101,29,8
-    ICON            IDI_DISPLAY,IDC_STATIC,16,20,20,20
+    ICON            IDI_DISPLAY, IDC_STATIC, 16, 20, 20, 20
     GROUPBOX        "Hardware",IDC_STATIC,7,7,236,44
-    GROUPBOX        "Scanlines",IDC_STATIC,7,56,236,66
-    CONTROL         "",IDC_INTENSITY,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,81,94,100,18
-    LTEXT           "x%",IDS_INTENSITY_PERCENT,183,97,18,8
 END
 
 IDD_PAGE_JOYSTICK DIALOGEX 0, 0, 250, 200
@@ -524,9 +518,6 @@ BEGIN
         MENUITEM "&TV Aspect Ratio\tF5",        IDM_VIEW_RATIO54
         MENUITEM "S&mooth Image\tF6",           IDM_VIEW_FILTER
         MENUITEM "&Greyscale",                  IDM_VIEW_GREYSCALE
-        MENUITEM SEPARATOR
-        MENUITEM "TV &Scanlines\tF7",           IDM_VIEW_SCANLINES
-        MENUITEM "&Hi-res Scanlines\tShift-F7", IDM_VIEW_SCANHIRES
         MENUITEM SEPARATOR
         POPUP "&Window Size"
         BEGIN

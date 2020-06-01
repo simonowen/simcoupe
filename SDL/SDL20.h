@@ -50,7 +50,6 @@ private:
     SDL_Window* m_pWindow = nullptr;
     SDL_Renderer* m_pRenderer = nullptr;
     SDL_Texture* m_pTexture = nullptr;
-    SDL_Texture* m_pScanlineTexture = nullptr;
 
     int m_nDepth = 0;
     bool m_fFilter = false;

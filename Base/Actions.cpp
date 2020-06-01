@@ -83,26 +83,12 @@ bool Do(Action action, bool pressed/*=true*/)
             }
             break;
 
-        case Action::ToggleScanlines:
-            SetOption(scanlines, !GetOption(scanlines));
-            Video::UpdatePalette();
-            Frame::SetStatus("Scanlines %s", GetOption(scanlines) ? "enabled" : "disabled");
-            break;
-
         case Action::ToggleFilter:
             if (Video::CheckCaps(VCAP_FILTER))
             {
                 SetOption(filter, !GetOption(filter));
                 Video::UpdateSize();
                 Frame::SetStatus("Smoothing %s", GetOption(filter) ? "enabled" : "disabled");
-            }
-            break;
-
-        case Action::ToggleScanHiRes:
-            if (GetOption(scanlines) && Video::CheckCaps(VCAP_SCANHIRES))
-            {
-                SetOption(scanhires, !GetOption(scanhires));
-                Frame::SetStatus("Hi-res scanlines %s", GetOption(scanhires) ? "enabled" : "disabled");
             }
             break;
 
@@ -405,11 +391,9 @@ std::string to_string(Action action)
         { Action::FrameStep, "Frame step" },
         { Action::ToggleTurbo, "Toggle turbo speed" },
         { Action::TempTurbo, "Turbo speed (when held)" },
-        { Action::ToggleScanHiRes, "Toggle Hi-res Scanlines" },
         { Action::ToggleFullscreen, "Toggle fullscreen" },
         { Action::Toggle5_4, "Toggle 5:4 display" },
         { Action::ToggleFilter, "Toggle graphics smoothing" },
-        { Action::ToggleScanlines, "Toggle scanlines" },
         { Action::ToggleGreyscale, "Toggle greyscale" },
         { Action::ToggleMute, "Mute sound" },
         { Action::ReleaseMouse, "Release mouse capture" },

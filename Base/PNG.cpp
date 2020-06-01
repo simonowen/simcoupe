@@ -142,10 +142,6 @@ static bool SaveFile(FILE* f_, CScreen* pScreen_)
     int nDen = 5, nNum = 4;
     bool fStretch = GetOption(ratio5_4);
 
-    // Calculate the intensity reduction for scanlines, in the range -100 to +100
-    int nScanAdjust = (GetOption(scanlines) && !GetOption(scanhires)) ? (GetOption(scanlevel) - 100) : 0;
-    if (nScanAdjust < -100) nScanAdjust = -100;
-
     PNG_INFO png{};
     png.dwWidth = pScreen_->GetPitch();
     png.dwHeight = pScreen_->GetHeight();
@@ -194,10 +190,6 @@ static bool SaveFile(FILE* f_, CScreen* pScreen_)
                 green += green2;
                 blue += blue2;
             }
-
-            // Odd lines are dimmed if scanlines are enabled
-            if (nScanAdjust && (y & 1))
-                AdjustBrightness(red, green, blue, nScanAdjust);
 
             // Add the pixel to the image data
             *pb++ = red;

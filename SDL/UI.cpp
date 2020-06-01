@@ -152,7 +152,6 @@ bool UI::CheckEvents()
                 case UE_TOGGLEFULLSCREEN:   Actions::Do(Action::ToggleFullscreen); break;
                 case UE_TOGGLEGREYSCALE:    Actions::Do(Action::ToggleGreyscale); break;
                 case UE_NMIBUTTON:          Actions::Do(Action::NmiButton);       break;
-                case UE_TOGGLESCANLINES:    Actions::Do(Action::ToggleScanlines); break;
                 case UE_TOGGLE54:           Actions::Do(Action::Toggle5_4);       break;
                 case UE_DEBUGGER:           Actions::Do(Action::Debugger);        break;
                 case UE_SAVESCREENSHOT:     Actions::Do(Action::SavePNG);         break;

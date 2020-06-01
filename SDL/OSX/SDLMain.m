@@ -124,7 +124,6 @@ static void setupApplicationMenus ()
     [menu addItem:[NSMenuItem separatorItem]];
     [menu addItemWithTitle:@"Toggle Greyscale" action:@selector(viewGreyscale:) keyEquivalent:@"g"];
     [menu addItemWithTitle:@"5:4 Aspect Ratio" action:@selector(viewRatio54:) keyEquivalent:@"5"];
-    [menu addItemWithTitle:@"TV Scanlines" action:@selector(viewScanlines:) keyEquivalent:@"l"];
 
     item = [[NSMenuItem alloc] initWithTitle:@"View" action:nil keyEquivalent:@""];
     [item setSubmenu:menu];
@@ -256,7 +255,6 @@ static void sendUserEvent (int event)
 - (IBAction)viewFullscreen:(id)sender { sendUserEvent(UE_TOGGLEFULLSCREEN); }
 - (IBAction)viewFrameSync:(id)sender { sendUserEvent(UE_TOGGLESYNC); }
 - (IBAction)viewGreyscale:(id)sender { sendUserEvent(UE_TOGGLEGREYSCALE); }
-- (IBAction)viewScanlines:(id)sender { sendUserEvent(UE_TOGGLESCANLINES); }
 - (IBAction)viewRatio54:(id)sender { sendUserEvent(UE_TOGGLE54); }
 - (IBAction)fileImportData:(id)sender { sendUserEvent(UE_IMPORTDATA); }
 - (IBAction)fileExportData:(id)sender { sendUserEvent(UE_EXPORTDATA); }

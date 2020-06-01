@@ -44,7 +44,6 @@ static bool fWantVideo;
 
 // These hold the option settings during recording, so they can't change
 static int nAudioReduce = 0;
-static bool fScanlines = false;
 
 static bool WriteLittleEndianWORD(uint16_t w_)
 {
@@ -195,22 +194,9 @@ static bool WriteVideoHeader(FILE* f_)
         fputc(0, f);    // RGBQUAD has this as reserved (zero) rather than alpha
     }
 
-    // Determine the appropriate brightness adjustment for scanlines
-    int nScanAdjust = GetOption(scanlevel) - 100;
-    if (nScanAdjust < -100) nScanAdjust = -100;
-
-    // The second half of the palette contains colours in scanline intensity
-    for (i = 0; i < N_PALETTE_COLOURS; i++)
-    {
-        uint8_t r = pcPal[i].bRed, g = pcPal[i].bGreen, b = pcPal[i].bBlue;
-        AdjustBrightness(r, g, b, nScanAdjust);
-
-        // Note: colour order is BGR
-        fputc(b, f);
-        fputc(g, f);
-        fputc(r, f);
-        fputc(0, f);    // RGBQUAD has this as reserved (zero) rather than alpha
-    }
+    // Second half of palette is unused.
+    for (i = 0; i < N_PALETTE_COLOURS * 4; i++)
+        fputc(0, f);
 
     return WriteChunkEnd(f_, lPos) != 0;
 }
@@ -486,9 +472,6 @@ bool Start(bool fHalfSize_)
     fHalfSize = fHalfSize_;
     fWantVideo = true;
 
-    // Set scanline mode for the recording (low-res only)
-    fScanlines = GetOption(scanlines) && !GetOption(scanhires) && GetOption(aviscanlines);
-
 #if SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2
     // Set the audio reduction level
     nAudioReduce = GetOption(avireduce);
@@ -599,19 +582,6 @@ void AddFrame(CScreen* pScreen_)
             // Use only half the pixels for a low-res line
             for (int i = 0; i < width; i++)
                 abLine[i] = pbLine[i * 2];
-
-            pbLine = abLine;
-        }
-
-        // If this is a scanline, adjust the pixel values to use the 2nd palette section
-        if (fScanlines && !fHalfSize && (y & 1))
-        {
-            // It's no problem if pbLine is already pointing to abLine
-            uint32_t* pdwS = (uint32_t*)pbLine, * pdwD = (uint32_t*)abLine;
-
-            // Set bit 7 of each colour, in 4-pixels blocks
-            for (int i = 0; i < width; i += sizeof(uint32_t))
-                *pdwD++ = *pdwS++ | 0x80808080;
 
             pbLine = abLine;
         }
