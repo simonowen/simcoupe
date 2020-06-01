@@ -31,27 +31,27 @@
 #include "Util.h"
 
 
-CMidiDevice::CMidiDevice()
+MidiDevice::MidiDevice()
 {
     SetDevice(GetOption(midioutdev));
 }
 
 
-CMidiDevice::~CMidiDevice()
+MidiDevice::~MidiDevice()
 {
     if (m_hMidiOut)
         midiOutClose(m_hMidiOut);
 }
 
 
-uint8_t CMidiDevice::In(uint16_t wPort_)
+uint8_t MidiDevice::In(uint16_t wPort_)
 {
     // No MIDI-IN support yet
     return 0x00;
 }
 
 
-void CMidiDevice::Out(uint16_t wPort_, uint8_t bVal_)
+void MidiDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // Protect against very long System Exclusive blocks
     if ((m_nOut == (sizeof(m_abOut) - 1)) && bVal_ != 0xf7)
@@ -125,7 +125,7 @@ void CMidiDevice::Out(uint16_t wPort_, uint8_t bVal_)
     m_nOut = m_abOut[1] = m_abOut[2] = m_abOut[3] = 0;
 }
 
-bool CMidiDevice::SetDevice(const char* pcszDevice_)
+bool MidiDevice::SetDevice(const char* pcszDevice_)
 {
     if (m_hMidiOut)
         midiOutClose(m_hMidiOut), m_hMidiOut = nullptr;

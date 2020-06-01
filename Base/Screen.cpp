@@ -37,7 +37,7 @@ static int nClipX, nClipY, nClipWidth, nClipHeight;    // Clip box for any scree
 static const GUIFONT* pFont = &sGUIFont;
 
 
-CScreen::CScreen(int nWidth_, int nHeight_)
+Screen::Screen(int nWidth_, int nHeight_)
 {
     m_nPitch = nWidth_ & ~15;   // Round down to the nearest mode 3 screen block chunk
     m_nHeight = nHeight_;
@@ -54,7 +54,7 @@ CScreen::CScreen(int nWidth_, int nHeight_)
     Clear();
 }
 
-CScreen::~CScreen()
+Screen::~Screen()
 {
     delete[] m_pbFrame;
     delete[] m_ppbLines;
@@ -62,14 +62,14 @@ CScreen::~CScreen()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void CScreen::Clear()
+void Screen::Clear()
 {
     memset(m_pbFrame, 0, m_nPitch * m_nHeight);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void CScreen::SetClip(int nX_/*=0*/, int nY_/*=0*/, int nWidth_/*=0*/, int nHeight_/*=0*/)
+void Screen::SetClip(int nX_/*=0*/, int nY_/*=0*/, int nWidth_/*=0*/, int nHeight_/*=0*/)
 {
     if (!nWidth_) nWidth_ = m_nPitch;
     if (!nHeight_) nHeight_ = m_nHeight;
@@ -81,7 +81,7 @@ void CScreen::SetClip(int nX_/*=0*/, int nY_/*=0*/, int nWidth_/*=0*/, int nHeig
     nClipHeight = (nClipY + nHeight_ > m_nHeight) ? m_nHeight - nClipY : nHeight_;
 }
 
-bool CScreen::Clip(int& rnX_, int& rnY_, int& rnWidth_, int& rnHeight_)
+bool Screen::Clip(int& rnX_, int& rnY_, int& rnWidth_, int& rnHeight_)
 {
     // Limit the supplied region to the current clipping region
     if (rnX_ < nClipX) { rnWidth_ -= nClipX - rnX_; rnX_ = nClipX; }
@@ -97,7 +97,7 @@ bool CScreen::Clip(int& rnX_, int& rnY_, int& rnWidth_, int& rnHeight_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void CScreen::Plot(int nX_, int nY_, uint8_t bColour_)
+void Screen::Plot(int nX_, int nY_, uint8_t bColour_)
 {
     int nWidth = 1, nHeight = 1;
 
@@ -106,7 +106,7 @@ void CScreen::Plot(int nX_, int nY_, uint8_t bColour_)
 }
 
 // Draw a line from horizontal or vertical a given point (no diagonal lines yet)
-void CScreen::DrawLine(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_)
+void Screen::DrawLine(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_)
 {
     // Horizontal line?
     if (nWidth_ > 0)
@@ -127,7 +127,7 @@ void CScreen::DrawLine(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bCol
 }
 
 // Draw a solid rectangle on the display
-void CScreen::FillRect(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_)
+void Screen::FillRect(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_)
 {
     if (Clip(nX_, nY_, nWidth_, nHeight_))
     {
@@ -138,7 +138,7 @@ void CScreen::FillRect(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bCol
 }
 
 // Draw a rectangle outline
-void CScreen::FrameRect(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_, bool fRound_/*=false*/)
+void Screen::FrameRect(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_, bool fRound_/*=false*/)
 {
     // Single pixel width or height boxes can be drawn more efficiently
     if (nWidth_ == 1)
@@ -159,7 +159,7 @@ void CScreen::FrameRect(int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bCo
 }
 
 // Draw an image from a matrix of palette colours
-void CScreen::DrawImage(int nX_, int nY_, int nWidth_, int nHeight_, const uint8_t* pcbData_, const uint8_t* pcbPalette_)
+void Screen::DrawImage(int nX_, int nY_, int nWidth_, int nHeight_, const uint8_t* pcbData_, const uint8_t* pcbPalette_)
 {
     // Return if the image is entirely clipped
     int nX = nX_, nY = nY_, nWidth = nWidth_, nHeight = nHeight_;
@@ -183,7 +183,7 @@ void CScreen::DrawImage(int nX_, int nY_, int nWidth_, int nHeight_, const uint8
 }
 
 // Copy a line of raw data to a specified point on the screen
-void CScreen::Poke(int nX_, int nY_, const uint8_t* pcbData_, unsigned int uLen_)
+void Screen::Poke(int nX_, int nY_, const uint8_t* pcbData_, unsigned int uLen_)
 {
     int nWidth = static_cast<int>(uLen_), nHeight_ = 1, nX = nX_;
 
@@ -193,7 +193,7 @@ void CScreen::Poke(int nX_, int nY_, const uint8_t* pcbData_, unsigned int uLen_
 
 
 // Draw a proportionally spaced string of characters at a specified pixel position
-int CScreen::DrawString(int nX_, int nY_, const char* pcsz_, uint8_t bInk_/*=WHITE*/)
+int Screen::DrawString(int nX_, int nY_, const char* pcsz_, uint8_t bInk_/*=WHITE*/)
 {
     bool fColour = true;
     uint8_t bDefaultInk = bInk_;
@@ -307,7 +307,7 @@ int CScreen::DrawString(int nX_, int nY_, const char* pcsz_, uint8_t bInk_/*=WHI
 }
 
 // Formatted string drawing, in white by default
-int CScreen::Printf(int nX_, int nY_, const char* pcszFormat_, ...)
+int Screen::Printf(int nX_, int nY_, const char* pcszFormat_, ...)
 {
     va_list args;
     va_start(args, pcszFormat_);
@@ -322,7 +322,7 @@ int CScreen::Printf(int nX_, int nY_, const char* pcszFormat_, ...)
 }
 
 // Get the on-screen width required for a specified string if drawn proportionally
-/*static*/ int CScreen::GetStringWidth(const char* pcsz_, size_t nMaxChars_/*=-1*/, const GUIFONT* pFont_/*=nullptr*/)
+/*static*/ int Screen::GetStringWidth(const char* pcsz_, size_t nMaxChars_/*=-1*/, const GUIFONT* pFont_/*=nullptr*/)
 {
     int nMaxWidth = 0;
     int nWidth = 0;
@@ -373,7 +373,7 @@ int CScreen::Printf(int nX_, int nY_, const char* pcszFormat_, ...)
     return nMaxWidth;
 }
 
-/*static*/ void CScreen::SetFont(const GUIFONT* pFont_)
+/*static*/ void Screen::SetFont(const GUIFONT* pFont_)
 {
     pFont = pFont_;
 }

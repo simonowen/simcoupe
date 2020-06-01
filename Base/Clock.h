@@ -35,10 +35,10 @@ struct SAMTIME
 };
 
 
-class CClockDevice : public CIoDevice
+class ClockDevice : public IoDevice
 {
 public:
-    CClockDevice();
+    ClockDevice();
 
 public:
     void Reset() override;
@@ -56,10 +56,10 @@ protected:
 };
 
 
-class CSambusClock final : public CClockDevice
+class SambusClock final : public ClockDevice
 {
 public:
-    CSambusClock();
+    SambusClock();
 
 public:
     uint8_t In(uint16_t wPort_) override;
@@ -71,10 +71,10 @@ protected:
 };
 
 
-class CDallasClock final : public CClockDevice
+class DallasClock final : public ClockDevice
 {
 public:
-    CDallasClock();
+    DallasClock();
 
 public:
     uint8_t In(uint16_t wPort_) override;

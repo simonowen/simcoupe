@@ -30,7 +30,7 @@
 
 unsigned int __stdcall FloppyThreadProc(void* pv_)
 {
-    int nRet = reinterpret_cast<CFloppyStream*>(pv_)->ThreadProc();
+    int nRet = reinterpret_cast<FloppyStream*>(pv_)->ThreadProc();
     _endthreadex(nRet);
     return nRet;
 }
@@ -46,7 +46,7 @@ bool Ioctl(HANDLE h_, DWORD dwCode_, LPVOID pIn_ = nullptr, DWORD cbIn_ = 0, LPV
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/*static*/ bool CFloppyStream::IsSupported()
+/*static*/ bool FloppyStream::IsSupported()
 {
     bool fSupported = false;
 
@@ -74,7 +74,7 @@ bool Ioctl(HANDLE h_, DWORD dwCode_, LPVOID pIn_ = nullptr, DWORD cbIn_ = 0, LPV
     return fSupported;
 }
 
-/*static*/ bool CFloppyStream::IsAvailable()
+/*static*/ bool FloppyStream::IsAvailable()
 {
 #ifdef HAVE_FDRAWCMD_H
     static DWORD dwVersion = 0x00000000, dwRet;
@@ -96,13 +96,13 @@ bool Ioctl(HANDLE h_, DWORD dwCode_, LPVOID pIn_ = nullptr, DWORD cbIn_ = 0, LPV
 #endif
 }
 
-/*static*/ bool CFloppyStream::IsRecognised(const char* pcszStream_)
+/*static*/ bool FloppyStream::IsRecognised(const char* pcszStream_)
 {
     return !lstrcmpi(pcszStream_, "A:") || !lstrcmpi(pcszStream_, "B:");
 }
 
-CFloppyStream::CFloppyStream(const char* pcszDevice_, bool fReadOnly_)
-    : CStream(pcszDevice_, fReadOnly_)
+FloppyStream::FloppyStream(const char* pcszDevice_, bool fReadOnly_)
+    : Stream(pcszDevice_, fReadOnly_)
 {
     if (IsAvailable())
     {
@@ -114,7 +114,7 @@ CFloppyStream::CFloppyStream(const char* pcszDevice_, bool fReadOnly_)
     Close();
 }
 
-CFloppyStream::~CFloppyStream()
+FloppyStream::~FloppyStream()
 {
     uint8_t bStatus;
     IsBusy(&bStatus, true);
@@ -124,13 +124,13 @@ CFloppyStream::~CFloppyStream()
 }
 
 
-void CFloppyStream::Close()
+void FloppyStream::Close()
 {
     m_uSectors = GetOption(stdfloppy) ? NORMAL_DISK_SECTORS : 0;
 }
 
 // Start a command executing asynchronously
-uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, TRACK* pTrack_, unsigned int uSectorIndex_)
+uint8_t FloppyStream::StartCommand(uint8_t bCommand_, TRACK* pTrack_, unsigned int uSectorIndex_)
 {
     unsigned int uThreadId;
 
@@ -150,7 +150,7 @@ uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, TRACK* pTrack_, unsigned 
 }
 
 // Get the status of the current asynchronous operation, if any
-bool CFloppyStream::IsBusy(uint8_t* pbStatus_, bool fWait_)
+bool FloppyStream::IsBusy(uint8_t* pbStatus_, bool fWait_)
 {
     // Is the worker thread active?
     if (m_hThread)
@@ -419,7 +419,7 @@ static bool ReadCustomTrack(HANDLE hDevice_, TRACK* pTrack_)
 #endif
 }
 
-unsigned long CFloppyStream::ThreadProc()
+unsigned long FloppyStream::ThreadProc()
 {
 #ifdef HAVE_FDRAWCMD_H
     FD_SEEK_PARAMS sp = { m_pTrack->cyl, m_pTrack->head };

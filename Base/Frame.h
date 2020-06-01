@@ -79,19 +79,19 @@ extern uint16_t g_awMode1LineToByte[GFX_SCREEN_LINES];
 ////////////////////////////////////////////////////////////////////////////////
 
 // Generic base for all screen classes
-class CFrame
+class ScreenWriter
 {
-    typedef void (CFrame::* FNLINEUPDATE)(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_);
+    typedef void (ScreenWriter::* FNLINEUPDATE)(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_);
 
 public:
-    CFrame() : m_pLineUpdate(&CFrame::Mode1Line), m_pbScreenData(nullptr) { }
-    CFrame(const CFrame&) = delete;
-    void operator= (const CFrame&) = delete;
-    virtual ~CFrame() = default;
+    ScreenWriter() : m_pLineUpdate(&ScreenWriter::Mode1Line), m_pbScreenData(nullptr) { }
+    ScreenWriter(const ScreenWriter&) = delete;
+    void operator= (const ScreenWriter&) = delete;
+    virtual ~ScreenWriter() = default;
 
 public:
     void SetMode(uint8_t bVal_);
-    void UpdateLine(CScreen* pScreen_, int nLine_, int nFrom_, int nTo_);
+    void UpdateLine(Screen* pScreen_, int nLine_, int nFrom_, int nTo_);
     void GetAsicData(uint8_t* pb0_, uint8_t* pb1_, uint8_t* pb2_, uint8_t* pb3_);
 
     void ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_t bNewVmpr_);
@@ -110,12 +110,12 @@ protected:
 
 protected:
     FNLINEUPDATE m_pLineUpdate;     // Function used to draw current mode
-    uint8_t* m_pbScreenData;           // Cached pointer to start of RAM page containing video memory
+    uint8_t* m_pbScreenData;        // Cached pointer to start of RAM page containing video memory
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 
-inline void CFrame::LeftBorder(uint8_t* pbLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::LeftBorder(uint8_t* pbLine_, int nFrom_, int nTo_)
 {
     int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, SIDE_BORDER_CELLS);
 
@@ -124,7 +124,7 @@ inline void CFrame::LeftBorder(uint8_t* pbLine_, int nFrom_, int nTo_)
         memset(pbLine_ + ((nFrom - s_nViewLeft) << 4), clut[border_col], (nTo - nFrom) << 4);
 }
 
-inline void CFrame::RightBorder(uint8_t* pbLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::RightBorder(uint8_t* pbLine_, int nFrom_, int nTo_)
 {
     int nFrom = std::max((GFX_WIDTH_CELLS - SIDE_BORDER_CELLS), nFrom_), nTo = std::min(nTo_, s_nViewRight);
 
@@ -133,7 +133,7 @@ inline void CFrame::RightBorder(uint8_t* pbLine_, int nFrom_, int nTo_)
         memset(pbLine_ + ((nFrom - s_nViewLeft) << 4), clut[border_col], (nTo - nFrom) << 4);
 }
 
-inline void CFrame::BorderLine(uint8_t* pbLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::BorderLine(uint8_t* pbLine_, int nFrom_, int nTo_)
 {
     // Work out the range that within the visible area
     int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, s_nViewRight);
@@ -143,7 +143,7 @@ inline void CFrame::BorderLine(uint8_t* pbLine_, int nFrom_, int nTo_)
         memset(pbLine_ + ((nFrom - s_nViewLeft) << 4), clut[border_col], (nTo - nFrom) << 4);
 }
 
-inline void CFrame::BlackLine(uint8_t* pbLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::BlackLine(uint8_t* pbLine_, int nFrom_, int nTo_)
 {
     // Work out the range that within the visible area
     int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, s_nViewRight);
@@ -154,7 +154,7 @@ inline void CFrame::BlackLine(uint8_t* pbLine_, int nFrom_, int nTo_)
 }
 
 
-inline void CFrame::Mode1Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::Mode1Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
 {
     nLine_ -= TOP_BORDER_LINES;
 
@@ -199,7 +199,7 @@ inline void CFrame::Mode1Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_
     RightBorder(pbLine_, nFrom_, nTo_);
 }
 
-inline void CFrame::Mode2Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::Mode2Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
 {
     nLine_ -= TOP_BORDER_LINES;
 
@@ -244,7 +244,7 @@ inline void CFrame::Mode2Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_
     RightBorder(pbLine_, nFrom_, nTo_);
 }
 
-inline void CFrame::Mode3Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::Mode3Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
 {
     nLine_ -= TOP_BORDER_LINES;
 
@@ -299,7 +299,7 @@ inline void CFrame::Mode3Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_
     RightBorder(pbLine_, nFrom_, nTo_);
 }
 
-inline void CFrame::Mode4Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::Mode4Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
 {
     nLine_ -= TOP_BORDER_LINES;
 
@@ -345,7 +345,7 @@ inline void CFrame::Mode4Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_
     RightBorder(pbLine_, nFrom_, nTo_);
 }
 
-inline void CFrame::ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_t bNewVmpr_)
+inline void ScreenWriter::ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_t bNewVmpr_)
 {
     int nScreenLine = nLine_ - TOP_BORDER_LINES;
     uint8_t ab[4];
@@ -428,7 +428,7 @@ inline void CFrame::ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_
     }
 }
 
-inline void CFrame::ScreenChange(uint8_t* pbLine_, int /*nLine_*/, int nBlock_, uint8_t bNewBorder_)
+inline void ScreenWriter::ScreenChange(uint8_t* pbLine_, int /*nLine_*/, int nBlock_, uint8_t bNewBorder_)
 {
     auto pFrame = pbLine_ + ((nBlock_ - s_nViewLeft) << 4);
 

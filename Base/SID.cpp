@@ -25,7 +25,7 @@
 #include "Options.h"
 
 
-CSID::CSID()
+SIDDevice::SIDDevice()
 {
 #ifdef HAVE_LIBRESID
     m_pSID = std::make_unique<SID>();
@@ -33,7 +33,7 @@ CSID::CSID()
 #endif
 }
 
-void CSID::Reset()
+void SIDDevice::Reset()
 {
 #ifdef HAVE_LIBRESID
     if (m_pSID)
@@ -47,7 +47,7 @@ void CSID::Reset()
 #endif
 }
 
-void CSID::Update(bool fFrameEnd_ = false)
+void SIDDevice::Update(bool fFrameEnd_ = false)
 {
 #ifdef HAVE_LIBRESID
     int nSamplesSoFar = fFrameEnd_ ? pDAC->GetSampleCount() : pDAC->GetSamplesSoFar();
@@ -78,7 +78,7 @@ void CSID::Update(bool fFrameEnd_ = false)
 #endif
 }
 
-void CSID::FrameEnd()
+void SIDDevice::FrameEnd()
 {
     // Check for change of chip type
     if (GetOption(sid) != m_nChipType)
@@ -88,7 +88,7 @@ void CSID::FrameEnd()
     m_samples_this_frame = 0;
 }
 
-void CSID::Out(uint16_t wPort_, uint8_t bVal_)
+void SIDDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
 #ifdef HAVE_LIBRESID
     Update();

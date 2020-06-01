@@ -32,7 +32,7 @@
 #include "Options.h"
 
 
-uint8_t CSDIDEDevice::In(uint16_t wPort_)
+uint8_t SDIDEDevice::In(uint16_t wPort_)
 {
     uint8_t bRet = 0xff;
 
@@ -44,7 +44,7 @@ uint8_t CSDIDEDevice::In(uint16_t wPort_)
             bRet = m_bDataLatch;
         else
         {
-            uint16_t wData = CAtaAdapter::InWord(0x0100 | m_bAddressLatch);
+            uint16_t wData = AtaAdapter::InWord(0x0100 | m_bAddressLatch);
             m_bDataLatch = wData >> 8;
             bRet = wData & 0xff;
         }
@@ -60,7 +60,7 @@ uint8_t CSDIDEDevice::In(uint16_t wPort_)
     return bRet;
 }
 
-void CSDIDEDevice::Out(uint16_t wPort_, uint8_t bVal_)
+void SDIDEDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     switch (wPort_ & 0xff)
     {
@@ -75,7 +75,7 @@ void CSDIDEDevice::Out(uint16_t wPort_, uint8_t bVal_)
         if (!m_fDataLatched)
             m_bDataLatch = bVal_;
         else
-            CAtaAdapter::Out(0x0100 | m_bAddressLatch, (static_cast<uint16_t>(bVal_) << 8) | m_bDataLatch);
+            AtaAdapter::Out(0x0100 | m_bAddressLatch, (static_cast<uint16_t>(bVal_) << 8) | m_bDataLatch);
 
         m_fDataLatched = !m_fDataLatched;
         break;

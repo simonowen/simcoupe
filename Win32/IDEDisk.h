@@ -22,11 +22,11 @@
 
 #include "HardDisk.h"
 
-class CDeviceHardDisk : public CHardDisk
+class DeviceHardDisk : public HardDisk
 {
 public:
-    CDeviceHardDisk(const char* pcszDisk_);
-    ~CDeviceHardDisk();
+    DeviceHardDisk(const char* pcszDisk_);
+    ~DeviceHardDisk();
 
 public:
     static bool IsRecognised(const char* pcszDisk_);

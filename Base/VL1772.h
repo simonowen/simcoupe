@@ -31,7 +31,7 @@
 #define MAX_SECTOR_SIZE         1024    // Maximum sector size in bytes
 
 #define MIN_TRACK_OVERHEAD      32      // 32 bytes of 0x4e at the start of a track
-#define MIN_SECTOR_OVERHEAD     95      // 22+12+3+1+6+22+8+3+1+1+16 - see CDrive::WriteTrack() for details
+#define MIN_SECTOR_OVERHEAD     95      // 22+12+3+1+6+22+8+3+1+1+16 - see Drive::WriteTrack() for details
 
 #define FLOPPY_RPM              300     // Floppy spins at 300rpm
 

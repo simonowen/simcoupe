@@ -22,10 +22,10 @@
 
 #include "SAMIO.h"
 
-class CSAMVoxDevice : public CIoDevice
+class SAMVoxDevice : public IoDevice
 {
 public:
     void Out(uint16_t wPort_, uint8_t bVal_) override;
 };
 
-extern std::unique_ptr<CSAMVoxDevice> pSAMVox;
+extern std::unique_ptr<SAMVoxDevice> pSAMVox;

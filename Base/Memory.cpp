@@ -185,12 +185,12 @@ static bool LoadRoms()
             rom_file = OSD::MakeFilePath(MFP_RESOURCE, "atom.rom");
     }
 
-    auto rom = CStream::Open(rom_file.c_str());
+    auto rom = Stream::Open(rom_file.c_str());
     if (!rom)
     {
         // Fall back on the default if a specific ROM image failed to load
         rom_file = OSD::MakeFilePath(MFP_RESOURCE, "samcoupe.rom");
-        rom = CStream::Open(rom_file.c_str());
+        rom = Stream::Open(rom_file.c_str());
     }
 
     if (rom)

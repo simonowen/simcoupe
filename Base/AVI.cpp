@@ -527,7 +527,7 @@ bool IsRecording()
 
 
 // Add a video frame to the file
-void AddFrame(CScreen* pScreen_)
+void AddFrame(Screen* pScreen_)
 {
     uint32_t size;
 

@@ -7,5 +7,5 @@
 
 namespace SSX
 {
-	bool Save(CScreen* screen, int main_x, int main_y);
+	bool Save(Screen* screen, int main_x, int main_y);
 }

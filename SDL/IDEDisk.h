@@ -22,10 +22,10 @@
 
 #include "HardDisk.h"
 
-class CDeviceHardDisk : public CHardDisk
+class DeviceHardDisk : public HardDisk
 {
 public:
-    CDeviceHardDisk(const char* pcszDisk_) : CHardDisk(pcszDisk_) { }
+    DeviceHardDisk(const char* pcszDisk_) : HardDisk(pcszDisk_) { }
 
 public:
     bool IsOpen() const { return m_hDevice != -1; }

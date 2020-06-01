@@ -43,12 +43,12 @@
 #define PORTB_ADC_ENABLE        0x02
 
 
-CBlueAlphaDevice::CBlueAlphaDevice()
+BlueAlphaDevice::BlueAlphaDevice()
 {
     Reset();
 }
 
-void CBlueAlphaDevice::Reset()
+void BlueAlphaDevice::Reset()
 {
     m_bPortA = 0x00;    // data
     m_bPortB = 0xff;    // no active features
@@ -56,7 +56,7 @@ void CBlueAlphaDevice::Reset()
     m_bControl = 0x18;  // control (initialised to BlueAlpha signature?)
 }
 
-void CBlueAlphaDevice::Clock(uint32_t event_time)
+void BlueAlphaDevice::Clock(uint32_t event_time)
 {
     // Toggle clock bit every half period
     m_bPortC ^= PORTA_CLOCK;
@@ -68,7 +68,7 @@ void CBlueAlphaDevice::Clock(uint32_t event_time)
     }
 }
 
-uint8_t CBlueAlphaDevice::In(uint16_t wPort_)
+uint8_t BlueAlphaDevice::In(uint16_t wPort_)
 {
     switch (wPort_ & 3)
     {
@@ -87,7 +87,7 @@ uint8_t CBlueAlphaDevice::In(uint16_t wPort_)
     return 0x00;
 }
 
-void CBlueAlphaDevice::Out(uint16_t wPort_, uint8_t bVal_)
+void BlueAlphaDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     switch (wPort_ & 3)
     {

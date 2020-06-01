@@ -99,7 +99,7 @@ void Sound::FrameUpdate()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void CSAA::Update(bool fFrameEnd_ = false)
+void SAADevice::Update(bool fFrameEnd_ = false)
 {
     int nSamplesSoFar = fFrameEnd_ ? pDAC->GetSampleCount() : pDAC->GetSamplesSoFar();
 
@@ -117,13 +117,13 @@ void CSAA::Update(bool fFrameEnd_ = false)
     m_samples_this_frame = nSamplesSoFar;
 }
 
-void CSAA::FrameEnd()
+void SAADevice::FrameEnd()
 {
     Update(true);
     m_samples_this_frame = 0;
 }
 
-void CSAA::Out(uint16_t wPort_, uint8_t bVal_)
+void SAADevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     Update();
 
@@ -135,7 +135,7 @@ void CSAA::Out(uint16_t wPort_, uint8_t bVal_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CDAC::CDAC()
+DAC::DAC()
 {
     buf_left.clock_rate(CPU_CLOCK_HZ);
     buf_right.clock_rate(CPU_CLOCK_HZ);
@@ -155,13 +155,13 @@ CDAC::CDAC()
     Reset();
 }
 
-void CDAC::Reset()
+void DAC::Reset()
 {
     Output(0);
     Output2(0);
 }
 
-void CDAC::FrameEnd()
+void DAC::FrameEnd()
 {
     buf_left.end_frame(CPU_CYCLES_PER_FRAME);
     buf_right.end_frame(CPU_CYCLES_PER_FRAME);
@@ -173,39 +173,39 @@ void CDAC::FrameEnd()
     buf_right.read_samples(ps + 1, m_samples_this_frame, 1);
 }
 
-void CDAC::OutputLeft(uint8_t bVal_)
+void DAC::OutputLeft(uint8_t bVal_)
 {
     synth_left.update(g_dwCycleCounter, bVal_);
 }
 
-void CDAC::OutputLeft2(uint8_t bVal_)
+void DAC::OutputLeft2(uint8_t bVal_)
 {
     synth_left2.update(g_dwCycleCounter, bVal_);
 }
 
-void CDAC::OutputRight(uint8_t bVal_)
+void DAC::OutputRight(uint8_t bVal_)
 {
     synth_right.update(g_dwCycleCounter, bVal_);
 }
 
-void CDAC::OutputRight2(uint8_t bVal_)
+void DAC::OutputRight2(uint8_t bVal_)
 {
     synth_right2.update(g_dwCycleCounter, bVal_);
 }
 
-void CDAC::Output(uint8_t bVal_)
+void DAC::Output(uint8_t bVal_)
 {
     synth_left.update(g_dwCycleCounter, bVal_);
     synth_right.update(g_dwCycleCounter, bVal_);
 }
 
-void CDAC::Output2(uint8_t bVal_)
+void DAC::Output2(uint8_t bVal_)
 {
     synth_left2.update(g_dwCycleCounter, bVal_);
     synth_right2.update(g_dwCycleCounter, bVal_);
 }
 
-int CDAC::GetSamplesSoFar()
+int DAC::GetSamplesSoFar()
 {
     auto uCycles = std::min(g_dwCycleCounter, static_cast<uint32_t>(CPU_CYCLES_PER_FRAME));
     return static_cast<int>(buf_left.count_samples(uCycles));
@@ -213,7 +213,7 @@ int CDAC::GetSamplesSoFar()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void CBeeperDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
+void BeeperDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
 {
     if (pDAC)
         pDAC->Output((bVal_ & 0x10) ? 0xa0 : 0x80);

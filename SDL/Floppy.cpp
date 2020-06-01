@@ -34,16 +34,16 @@
 
 void* thread_proc(void* pv_)
 {
-    return reinterpret_cast<CFloppyStream*>(pv_)->ThreadProc();
+    return reinterpret_cast<FloppyStream*>(pv_)->ThreadProc();
 }
 
 
-CFloppyStream::CFloppyStream(const char* pcszStream_, bool fReadOnly_/*=false*/)
-    : CStream(pcszStream_, fReadOnly_)
+FloppyStream::FloppyStream(const char* pcszStream_, bool fReadOnly_/*=false*/)
+    : Stream(pcszStream_, fReadOnly_)
 {
 }
 
-/*static*/ bool CFloppyStream::IsRecognised(const char* pcszStream_)
+/*static*/ bool FloppyStream::IsRecognised(const char* pcszStream_)
 {
     struct stat st;
     char sz[MAX_PATH];
@@ -88,7 +88,7 @@ CFloppyStream::CFloppyStream(const char* pcszStream_, bool fReadOnly_/*=false*/)
 }
 
 
-bool CFloppyStream::Open()
+bool FloppyStream::Open()
 {
     if (!IsOpen())
     {
@@ -106,7 +106,7 @@ bool CFloppyStream::Open()
     return IsOpen();
 }
 
-void CFloppyStream::Close()
+void FloppyStream::Close()
 {
     // Back to the default setting when the device is closed
     m_uSectors = GetOption(stdfloppy) ? NORMAL_DISK_SECTORS : 0;
@@ -114,7 +114,7 @@ void CFloppyStream::Close()
 
 
 // Start executing a floppy command
-uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, TRACK* pTrack_, unsigned int uSectorIndex_)
+uint8_t FloppyStream::StartCommand(uint8_t bCommand_, TRACK* pTrack_, unsigned int uSectorIndex_)
 {
     // Wait for any in-progress operation to complete
     uint8_t bStatus;
@@ -131,7 +131,7 @@ uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, TRACK* pTrack_, unsigned 
     return pthread_create(&m_hThread, nullptr, thread_proc, (void*)this) ? LOST_DATA : BUSY;
 }
 
-bool CFloppyStream::IsBusy(uint8_t* pbStatus_, bool fWait_)
+bool FloppyStream::IsBusy(uint8_t* pbStatus_, bool fWait_)
 {
     if (m_hThread)
     {
@@ -448,7 +448,7 @@ static bool ReadCustomTrack(int hDevice_, TRACK* pTrack_)
 }
 
 
-void* CFloppyStream::ThreadProc()
+void* FloppyStream::ThreadProc()
 {
     // Open the device, if not already open
     if (!IsOpen())
@@ -491,26 +491,26 @@ void* CFloppyStream::ThreadProc()
 #else
 // Dummy implementation for non-Linux SDL versions
 
-CFloppyStream::CFloppyStream(const char* pcszStream_, bool fReadOnly_/*=false*/)
-    : CStream(pcszStream_, fReadOnly_)
+FloppyStream::FloppyStream(const char* pcszStream_, bool fReadOnly_/*=false*/)
+    : Stream(pcszStream_, fReadOnly_)
 {
 }
 
-/*static*/ bool CFloppyStream::IsRecognised(const char* pcszStream_)
+/*static*/ bool FloppyStream::IsRecognised(const char* pcszStream_)
 {
     return false;
 }
 
-void CFloppyStream::Close()
+void FloppyStream::Close()
 {
 }
 
-uint8_t CFloppyStream::StartCommand(uint8_t bCommand_, TRACK* pTrack_, unsigned int uSector_)
+uint8_t FloppyStream::StartCommand(uint8_t bCommand_, TRACK* pTrack_, unsigned int uSector_)
 {
     return BUSY;
 }
 
-bool CFloppyStream::IsBusy(uint8_t* pbStatus_, bool fWait_)
+bool FloppyStream::IsBusy(uint8_t* pbStatus_, bool fWait_)
 {
     *pbStatus_ = LOST_DATA;
     return false;

@@ -23,13 +23,13 @@
 
 
 // 8-bit read
-uint8_t CAtaAdapter::In(uint16_t wPort_)
+uint8_t AtaAdapter::In(uint16_t wPort_)
 {
     return InWord(wPort_) & 0xff;
 }
 
 // 16-bit read
-uint16_t CAtaAdapter::InWord(uint16_t wPort_)
+uint16_t AtaAdapter::InWord(uint16_t wPort_)
 {
     uint16_t wRet = 0x0000;
 
@@ -40,33 +40,33 @@ uint16_t CAtaAdapter::InWord(uint16_t wPort_)
     return wRet;
 }
 
-void CAtaAdapter::Out(uint16_t wPort_, uint8_t bVal_)
+void AtaAdapter::Out(uint16_t wPort_, uint8_t bVal_)
 {
     if (m_pDisk0) m_pDisk0->Out(wPort_, bVal_);
     if (m_pDisk1) m_pDisk1->Out(wPort_, bVal_);
 }
 
-void CAtaAdapter::OutWord(uint16_t wPort_, uint16_t wVal_)
+void AtaAdapter::OutWord(uint16_t wPort_, uint16_t wVal_)
 {
     if (m_pDisk0) m_pDisk0->Out(wPort_, wVal_);
     if (m_pDisk1) m_pDisk1->Out(wPort_, wVal_);
 }
 
 
-void CAtaAdapter::Reset()
+void AtaAdapter::Reset()
 {
     if (m_pDisk0) m_pDisk0->Reset();
     if (m_pDisk1) m_pDisk1->Reset();
 }
 
 
-bool CAtaAdapter::Attach(const char* pcszDisk_, int nDevice_)
+bool AtaAdapter::Attach(const char* pcszDisk_, int nDevice_)
 {
     // Return if successfully or path is empty
-    return Attach(CHardDisk::OpenObject(pcszDisk_), nDevice_) || !*pcszDisk_;
+    return Attach(HardDisk::OpenObject(pcszDisk_), nDevice_) || !*pcszDisk_;
 }
 
-bool CAtaAdapter::Attach(std::unique_ptr<CHardDisk> disk, int nDevice_)
+bool AtaAdapter::Attach(std::unique_ptr<HardDisk> disk, int nDevice_)
 {
     if (!disk)
         return false;
@@ -85,7 +85,7 @@ bool CAtaAdapter::Attach(std::unique_ptr<CHardDisk> disk, int nDevice_)
     return true;
 }
 
-void CAtaAdapter::Detach()
+void AtaAdapter::Detach()
 {
     m_pDisk0.reset();
     m_pDisk1.reset();

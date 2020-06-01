@@ -53,29 +53,29 @@
 #include "Util.h"
 #include "Video.h"
 
-std::unique_ptr<CDiskDevice> pFloppy1;
-std::unique_ptr<CDiskDevice> pFloppy2;
-std::unique_ptr<CDiskDevice> pBootDrive;
-std::unique_ptr<CAtaAdapter> pAtom;
-std::unique_ptr<CAtaAdapter> pAtomLite;
-std::unique_ptr<CAtaAdapter> pSDIDE;
+std::unique_ptr<DiskDevice> pFloppy1;
+std::unique_ptr<DiskDevice> pFloppy2;
+std::unique_ptr<DiskDevice> pBootDrive;
+std::unique_ptr<AtaAdapter> pAtom;
+std::unique_ptr<AtaAdapter> pAtomLite;
+std::unique_ptr<AtaAdapter> pSDIDE;
 
-std::unique_ptr<CPrintBuffer> pPrinterFile;
-std::unique_ptr<CMonoDACDevice> pMonoDac;
-std::unique_ptr<CStereoDACDevice> pStereoDac;
+std::unique_ptr<PrintBuffer> pPrinterFile;
+std::unique_ptr<MonoDACDevice> pMonoDac;
+std::unique_ptr<StereoDACDevice> pStereoDac;
 
-std::unique_ptr<CClockDevice> pSambus;
-std::unique_ptr<CDallasClock> pDallas;
-std::unique_ptr<CMouseDevice> pMouse;
+std::unique_ptr<ClockDevice> pSambus;
+std::unique_ptr<DallasClock> pDallas;
+std::unique_ptr<MouseDevice> pMouse;
 
-std::unique_ptr<CMidiDevice> pMidi;
-std::unique_ptr<CBeeperDevice> pBeeper;
-std::unique_ptr<CBlueAlphaDevice> pBlueAlpha;
-std::unique_ptr<CSAMVoxDevice> pSAMVox;
-std::unique_ptr<CPaulaDevice> pPaula;
-std::unique_ptr<CDAC> pDAC;
-std::unique_ptr<CSAA> pSAA;
-std::unique_ptr<CSID> pSID;
+std::unique_ptr<MidiDevice> pMidi;
+std::unique_ptr<BeeperDevice> pBeeper;
+std::unique_ptr<BlueAlphaDevice> pBlueAlpha;
+std::unique_ptr<SAMVoxDevice> pSAMVox;
+std::unique_ptr<PaulaDevice> pPaula;
+std::unique_ptr<DAC> pDAC;
+std::unique_ptr<SAADevice> pSAA;
+std::unique_ptr<SIDDevice> pSID;
 
 // Port read/write addresses for I/O breakpoints
 uint16_t wPortRead, wPortWrite;
@@ -141,29 +141,29 @@ bool Init(bool fFirstInit_/*=false*/)
         // Release all keys
         memset(keyports, 0xff, sizeof(keyports));
 
-        pDAC = std::make_unique<CDAC>();
-        pSAA = std::make_unique<CSAA>();
-        pSID = std::make_unique<CSID>();
-        pBeeper = std::make_unique<CBeeperDevice>();
-        pBlueAlpha = std::make_unique<CBlueAlphaDevice>();
-        pSAMVox = std::make_unique<CSAMVoxDevice>();
-        pPaula = std::make_unique<CPaulaDevice>();
-        pMidi = std::make_unique<CMidiDevice>();
+        pDAC = std::make_unique<DAC>();
+        pSAA = std::make_unique<SAADevice>();
+        pSID = std::make_unique<SIDDevice>();
+        pBeeper = std::make_unique<BeeperDevice>();
+        pBlueAlpha = std::make_unique<BlueAlphaDevice>();
+        pSAMVox = std::make_unique<SAMVoxDevice>();
+        pPaula = std::make_unique<PaulaDevice>();
+        pMidi = std::make_unique<MidiDevice>();
 
-        pSambus = std::make_unique<CSambusClock>();
-        pDallas = std::make_unique<CDallasClock>();
-        pMouse = std::make_unique<CMouseDevice>();
+        pSambus = std::make_unique<SambusClock>();
+        pDallas = std::make_unique<DallasClock>();
+        pMouse = std::make_unique<MouseDevice>();
 
-        pPrinterFile = std::make_unique<CPrinterFile>();
-        pMonoDac = std::make_unique<CMonoDACDevice>();
-        pStereoDac = std::make_unique<CStereoDACDevice>();
+        pPrinterFile = std::make_unique<PrinterFile>();
+        pMonoDac = std::make_unique<MonoDACDevice>();
+        pStereoDac = std::make_unique<StereoDACDevice>();
 
-        pFloppy1 = std::make_unique<CDrive>();
-        pFloppy2 = std::make_unique<CDrive>();
-        pAtom = std::make_unique<CAtomDevice>();
-        pAtomLite = std::make_unique<CAtomLiteDevice>();
+        pFloppy1 = std::make_unique<Drive>();
+        pFloppy2 = std::make_unique<Drive>();
+        pAtom = std::make_unique<AtomDevice>();
+        pAtomLite = std::make_unique<AtomLiteDevice>();
 
-        pSDIDE = std::make_unique<CSDIDEDevice>();
+        pSDIDE = std::make_unique<SDIDEDevice>();
 
         pDallas->LoadState(OSD::MakeFilePath(MFP_SETTINGS, "dallas"));
 
@@ -1095,16 +1095,16 @@ bool Rst8Hook()
         if (GetOption(dosboot))
         {
             // If there's a custom boot disk, load it read-only
-            auto disk = CDisk::Open(GetOption(dosdisk), true);
+            auto disk = Disk::Open(GetOption(dosdisk), true);
 
             // Fall back on the built-in SAMDOS2 image
             if (!disk)
-                disk = CDisk::Open(abSAMDOS, sizeof(abSAMDOS), "mem:SAMDOS.sbt");
+                disk = Disk::Open(abSAMDOS, sizeof(abSAMDOS), "mem:SAMDOS.sbt");
 
             if (disk)
             {
                 // Create a private drive for the DOS disk
-                pBootDrive = std::make_unique<CDrive>(std::move(disk));
+                pBootDrive = std::make_unique<Drive>(std::move(disk));
 
                 // Jump back to BOOTEX to try again
                 PC = 0xd8e5;

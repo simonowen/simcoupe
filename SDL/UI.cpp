@@ -56,7 +56,7 @@ bool UI::Init(bool fFirstInit_/*=false*/)
         SetOption(firstrun, 0);
 
         // Simple message box showing some keys
-        GUI::Start(new CMessageBox(nullptr,
+        GUI::Start(new MsgBox(nullptr,
             "Some useful keys to get you started:\n\n"
             "  F1 - Insert disk image\n"
             "  F10 - Options\n"
@@ -191,13 +191,13 @@ bool UI::CheckEvents()
 void UI::ShowMessage(eMsgType eType_, const char* pcszMessage_)
 {
     if (eType_ == msgInfo)
-        GUI::Start(new CMessageBox(nullptr, pcszMessage_, WINDOW_CAPTION, mbInformation));
+        GUI::Start(new MsgBox(nullptr, pcszMessage_, WINDOW_CAPTION, mbInformation));
     else if (eType_ == msgWarning)
-        GUI::Start(new CMessageBox(nullptr, pcszMessage_, WINDOW_CAPTION, mbWarning));
+        GUI::Start(new MsgBox(nullptr, pcszMessage_, WINDOW_CAPTION, mbWarning));
     else
     {
         fprintf(stderr, "error: %s\n", pcszMessage_);
-        GUI::Start(new CMessageBox(nullptr, pcszMessage_, WINDOW_CAPTION, mbError));
+        GUI::Start(new MsgBox(nullptr, pcszMessage_, WINDOW_CAPTION, mbError));
     }
 }
 

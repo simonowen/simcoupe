@@ -49,7 +49,7 @@ static LoopState nLoopState;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void WriteLogicalScreenDescriptor(CScreen* pScreen_)
+static void WriteLogicalScreenDescriptor(Screen* pScreen_)
 {
     uint16_t w = pScreen_->GetPitch() / 2, h = pScreen_->GetHeight() / 2;
 
@@ -156,7 +156,7 @@ static void WriteFileTerminator()
 
 
 // Compare our copy of the screen with the new display contents
-static bool GetChangeRect(uint8_t* pb_, CScreen* pScreen_)
+static bool GetChangeRect(uint8_t* pb_, Screen* pScreen_)
 {
     int l, t, r, b, w, h;
     l = t = r = b = 0;
@@ -255,7 +255,7 @@ found_bottom:
 }
 
 // Update current image and determine sub-region difference to encode
-static uint8_t UpdateImage(uint8_t* pb_, CScreen* pScreen_)
+static uint8_t UpdateImage(uint8_t* pb_, Screen* pScreen_)
 {
     uint16_t width = pScreen_->GetPitch() / 2;
     int step = 2;
@@ -419,7 +419,7 @@ bool IsRecording()
 }
 
 
-void AddFrame(CScreen* pScreen_)
+void AddFrame(Screen* pScreen_)
 {
     // Fail if we're not recording
     if (!f)

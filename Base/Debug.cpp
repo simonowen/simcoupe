@@ -72,7 +72,7 @@ struct TRACEDATA
 };
 
 
-CDebugger* pDebugger;
+Debugger* pDebugger;
 
 // Stack position used to track stepping out
 int nStepOutSP = -1;
@@ -145,7 +145,7 @@ bool Start(BREAKPT* pBreak_)
     GUI::Stop();
 
     // Create the main debugger window, passing any breakpoint
-    if (!GUI::Start(pDebugger = new CDebugger(pBreak_)))
+    if (!GUI::Start(pDebugger = new Debugger(pBreak_)))
         pDebugger = nullptr;
 
     return true;
@@ -349,22 +349,22 @@ void cmdStepOut()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CInputDialog::CInputDialog(CWindow* pParent_/*=nullptr*/, const char* pcszCaption_, const char* pcszPrompt_, PFNINPUTPROC pfnNotify_)
-    : CDialog(pParent_, 0, 0, pcszCaption_), m_pfnNotify(pfnNotify_)
+InputDialog::InputDialog(Window* pParent_/*=nullptr*/, const char* pcszCaption_, const char* pcszPrompt_, PFNINPUTPROC pfnNotify_)
+    : Dialog(pParent_, 0, 0, pcszCaption_), m_pfnNotify(pfnNotify_)
 {
     // Get the length of the prompt string, so we can position the edit box correctly
     int n = GetTextWidth(pcszPrompt_);
 
     // Create the prompt text control and input edit control
-    new CTextControl(this, 5, 10, pcszPrompt_, WHITE);
-    m_pInput = new CNumberEditControl(this, 5 + n + 5, 6, 120);
+    new TextControl(this, 5, 10, pcszPrompt_, WHITE);
+    m_pInput = new NumberEditControl(this, 5 + n + 5, 6, 120);
 
     // Size the dialog to fit the prompt and edit control
     SetSize(8 + n + 120 + 8, 30);
     Centre();
 }
 
-void CInputDialog::OnNotify(CWindow* pWindow_, int nParam_)
+void InputDialog::OnNotify(Window* pWindow_, int nParam_)
 {
     if (pWindow_ == m_pInput && nParam_)
     {
@@ -458,18 +458,18 @@ static bool OnModeNotify(EXPR* pExpr_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-uint16_t CView::GetAddress() const
+uint16_t View::GetAddress() const
 {
     return m_wAddr;
 }
 
-void CView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
+void View::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 {
     m_wAddr = wAddr_;
     wLastAddr = wAddr_;
 }
 
-bool CView::cmdNavigate(int nKey_, int nMods_)
+bool View::cmdNavigate(int nKey_, int nMods_)
 {
     switch (nKey_)
     {
@@ -488,13 +488,13 @@ bool CView::cmdNavigate(int nKey_, int nMods_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CTextView::CTextView(CWindow* pParent_)
-    : CView(pParent_), m_nRows(m_nHeight / ROW_HEIGHT)
+TextView::TextView(Window* pParent_)
+    : View(pParent_), m_nRows(m_nHeight / ROW_HEIGHT)
 {
     SetFont(&sFixedFont);
 }
 
-void CTextView::Draw(CScreen* pScreen_)
+void TextView::Draw(Screen* pScreen_)
 {
     // Draw each line, always drawing line 0 to allow an empty message
     for (int i = m_nTopLine; i < m_nTopLine + m_nRows && (!i || i < m_nLines); i++)
@@ -505,10 +505,10 @@ void CTextView::Draw(CScreen* pScreen_)
         DrawLine(pScreen_, nX, nY, i);
     }
 
-    CDisView::DrawRegisterPanel(pScreen_, m_nX + m_nWidth - 6 * 16, m_nY);
+    DisView::DrawRegisterPanel(pScreen_, m_nX + m_nWidth - 6 * 16, m_nY);
 }
 
-bool CTextView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool TextView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     switch (nMessage_)
     {
@@ -532,7 +532,7 @@ bool CTextView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-bool CTextView::cmdNavigate(int nKey_, int /*nMods_*/)
+bool TextView::cmdNavigate(int nKey_, int /*nMods_*/)
 {
     switch (nKey_)
     {
@@ -562,17 +562,17 @@ bool CTextView::cmdNavigate(int nKey_, int /*nMods_*/)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool CDebugger::s_fTransparent = false;
+bool Debugger::s_fTransparent = false;
 
-CDebugger::CDebugger(BREAKPT* pBreak_/*=nullptr*/)
-    : CDialog(nullptr, 433, 260 + 36 + 2, "")
+Debugger::Debugger(BREAKPT* pBreak_/*=nullptr*/)
+    : Dialog(nullptr, 433, 260 + 36 + 2, "")
 {
     // Move to the last display position, if any
     if (nDebugX | nDebugY)
         Move(nDebugX, nDebugY);
 
     // Create the status text control
-    m_pStatus = new CTextControl(this, 4, m_nHeight - ROW_HEIGHT, "");
+    m_pStatus = new TextControl(this, 4, m_nHeight - ROW_HEIGHT, "");
 
     // If a breakpoint was supplied, report that it was triggered
     if (pBreak_)
@@ -607,7 +607,7 @@ CDebugger::CDebugger(BREAKPT* pBreak_/*=nullptr*/)
     g_fBreak = true;
 }
 
-CDebugger::~CDebugger()
+Debugger::~Debugger()
 {
     // Remember the dialog position for next time
     nDebugX = m_nX;
@@ -629,7 +629,7 @@ CDebugger::~CDebugger()
     pDebugger = nullptr;
 }
 
-void CDebugger::SetSubTitle(const char* pcszSubTitle_)
+void Debugger::SetSubTitle(const char* pcszSubTitle_)
 {
     char szTitle[128] = "SimICE";
 
@@ -643,40 +643,40 @@ void CDebugger::SetSubTitle(const char* pcszSubTitle_)
     SetText(szTitle);
 }
 
-void CDebugger::SetAddress(uint16_t wAddr_, bool fForceTop_/*=false*/)
+void Debugger::SetAddress(uint16_t wAddr_, bool fForceTop_/*=false*/)
 {
     m_pView->SetAddress(wAddr_, fForceTop_);
 }
 
-void CDebugger::SetView(ViewType nView_)
+void Debugger::SetView(ViewType nView_)
 {
-    CView* pNewView = nullptr;
+    View* pNewView = nullptr;
 
     // Create the new view
     switch (nView_)
     {
     case vtDis:
-        pNewView = new CDisView(this);
+        pNewView = new DisView(this);
         break;
 
     case vtTxt:
-        pNewView = new CTxtView(this);
+        pNewView = new TxtView(this);
         break;
 
     case vtHex:
-        pNewView = new CHexView(this);
+        pNewView = new HexView(this);
         break;
 
     case vtGfx:
-        pNewView = new CGfxView(this);
+        pNewView = new GfxView(this);
         break;
 
     case vtBpt:
-        pNewView = new CBptView(this);
+        pNewView = new BptView(this);
         break;
 
     case vtTrc:
-        pNewView = new CTrcView(this);
+        pNewView = new TrcView(this);
         break;
     }
 
@@ -702,7 +702,7 @@ void CDebugger::SetView(ViewType nView_)
     }
 }
 
-void CDebugger::SetStatus(const char* pcsz_, bool fOneShot_/*=false*/, const GUIFONT* pFont_)
+void Debugger::SetStatus(const char* pcsz_, bool fOneShot_/*=false*/, const GUIFONT* pFont_)
 {
     if (m_pStatus)
     {
@@ -719,7 +719,7 @@ void CDebugger::SetStatus(const char* pcsz_, bool fOneShot_/*=false*/, const GUI
     }
 }
 
-void CDebugger::SetStatusByte(uint16_t wAddr_)
+void Debugger::SetStatusByte(uint16_t wAddr_)
 {
     size_t i;
     char szBinary[9] = {};
@@ -746,7 +746,7 @@ void CDebugger::SetStatusByte(uint16_t wAddr_)
 }
 
 // Refresh the current debugger view
-void CDebugger::Refresh()
+void Debugger::Refresh()
 {
     // Re-set the view to the same address, to force a refresh
     m_pView->SetAddress(m_pView->GetAddress());
@@ -754,15 +754,15 @@ void CDebugger::Refresh()
 
 
 // Dialog override for background painting
-void CDebugger::EraseBackground(CScreen* pScreen_)
+void Debugger::EraseBackground(Screen* pScreen_)
 {
     // If we're not in transparent mode, call the base to draw the normal dialog background
     if (!s_fTransparent)
-        CDialog::EraseBackground(pScreen_);
+        Dialog::EraseBackground(pScreen_);
 }
 
 // Dialog override for dialog drawing
-void CDebugger::Draw(CScreen* pScreen_)
+void Debugger::Draw(Screen* pScreen_)
 {
     // First draw?
     if (!m_pView)
@@ -775,10 +775,10 @@ void CDebugger::Draw(CScreen* pScreen_)
         SetView(nLastView);
     }
 
-    CDialog::Draw(pScreen_);
+    Dialog::Draw(pScreen_);
 }
 
-bool CDebugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     char sz[64];
     bool fRet = false;
@@ -813,13 +813,13 @@ bool CDebugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
         case HK_RETURN:
             if (!m_pCommandEdit)
             {
-                m_pCommandEdit = new CNumberEditControl(this, -1, m_nHeight - 16, m_nWidth + 2);
+                m_pCommandEdit = new NumberEditControl(this, -1, m_nHeight - 16, m_nWidth + 2);
                 m_pCommandEdit->SetFont(&sPropFont);
             }
             break;
 
         case 'a':
-            new CInputDialog(this, "New location", "Address:", OnAddressNotify);
+            new InputDialog(this, "New location", "Address:", OnAddressNotify);
             break;
 
         case 'b':
@@ -853,12 +853,12 @@ bool CDebugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             if (fShift)
             {
                 sprintf(sz, "Change LEPR [%02X]:", lepr);
-                new CInputDialog(this, sz, "New Page:", OnLeprNotify);
+                new InputDialog(this, sz, "New Page:", OnLeprNotify);
             }
             else
             {
                 sprintf(sz, "Change LMPR [%02X]:", lmpr & LMPR_PAGE_MASK);
-                new CInputDialog(this, sz, "New Page:", OnLmprNotify);
+                new InputDialog(this, sz, "New Page:", OnLmprNotify);
             }
             break;
 
@@ -866,27 +866,27 @@ bool CDebugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             if (fShift)
             {
                 sprintf(sz, "Change HEPR [%02X]:", hepr);
-                new CInputDialog(this, sz, "New Page:", OnHeprNotify);
+                new InputDialog(this, sz, "New Page:", OnHeprNotify);
             }
             else
             {
                 sprintf(sz, "Change HMPR [%02X]:", hmpr & HMPR_PAGE_MASK);
-                new CInputDialog(this, sz, "New Page:", OnHmprNotify);
+                new InputDialog(this, sz, "New Page:", OnHmprNotify);
             }
             break;
 
         case 'v':
             sprintf(sz, "Change VMPR [%02X]:", vmpr & VMPR_PAGE_MASK);
-            new CInputDialog(this, sz, "New Page:", OnVmprNotify);
+            new InputDialog(this, sz, "New Page:", OnVmprNotify);
             break;
 
         case 'm':
             sprintf(sz, "Change Mode [%X]:", ((vmpr & VMPR_MODE_MASK) >> 5) + 1);
-            new CInputDialog(this, sz, "New Mode:", OnModeNotify);
+            new InputDialog(this, sz, "New Mode:", OnModeNotify);
             break;
 
         case 'u':
-            new CInputDialog(this, "Execute until", "Expression:", OnUntilNotify);
+            new InputDialog(this, "Execute until", "Expression:", OnUntilNotify);
             break;
 
         case HK_KP0:
@@ -915,13 +915,13 @@ bool CDebugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     if (fRet)
         Refresh();
     else
-        fRet = CDialog::OnMessage(nMessage_, nParam1_, nParam2_);
+        fRet = Dialog::OnMessage(nMessage_, nParam1_, nParam2_);
 
     return fRet;
 }
 
 
-void CDebugger::OnNotify(CWindow* pWindow_, int nParam_)
+void Debugger::OnNotify(Window* pWindow_, int nParam_)
 {
     // Command submitted?
     if (pWindow_ == m_pCommandEdit && nParam_ == 1)
@@ -956,7 +956,7 @@ AccessType GetAccessParam(const char* pcsz_)
     return atNone;
 }
 
-bool CDebugger::Execute(const char* pcszCommand_)
+bool Debugger::Execute(const char* pcszCommand_)
 {
     bool fRet = true;
 
@@ -1606,11 +1606,11 @@ bool CDebugger::Execute(const char* pcszCommand_)
 #define MAX_LABEL_LEN  19
 #define BAR_CHAR_LEN   54
 
-uint16_t CDisView::s_wAddrs[64];
-bool CDisView::m_fUseSymbols = true;
+uint16_t DisView::s_wAddrs[64];
+bool DisView::m_fUseSymbols = true;
 
-CDisView::CDisView(CWindow* pParent_)
-    : CView(pParent_)
+DisView::DisView(Window* pParent_)
+    : View(pParent_)
 {
     SetText("Disassemble");
     SetFont(&sFixedFont);
@@ -1623,9 +1623,9 @@ CDisView::CDisView(CWindow* pParent_)
     m_pszData = new char[m_uRows * m_uColumns * 2];
 }
 
-void CDisView::SetAddress(uint16_t wAddr_, bool fForceTop_)
+void DisView::SetAddress(uint16_t wAddr_, bool fForceTop_)
 {
-    CView::SetAddress(wAddr_);
+    View::SetAddress(wAddr_);
 
     // Update the control flow + data target address hints
     SetCodeTarget();
@@ -1701,7 +1701,7 @@ void CDisView::SetAddress(uint16_t wAddr_, bool fForceTop_)
 }
 
 
-void CDisView::Draw(CScreen* pScreen_)
+void DisView::Draw(Screen* pScreen_)
 {
     unsigned int u = 0;
     for (char* psz = (char*)m_pszData; *psz; psz += strlen(psz) + 1, u++)
@@ -1741,7 +1741,7 @@ void CDisView::Draw(CScreen* pScreen_)
     DrawRegisterPanel(pScreen_, m_nX + m_nWidth - 6 * 16, m_nY);
 }
 
-/*static*/ void CDisView::DrawRegisterPanel(CScreen* pScreen_, int nX_, int nY_)
+/*static*/ void DisView::DrawRegisterPanel(Screen* pScreen_, int nX_, int nY_)
 {
     int i;
     int nX = nX_;
@@ -1846,7 +1846,7 @@ void CDisView::Draw(CScreen* pScreen_)
     }
 }
 
-bool CDisView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool DisView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     switch (nMessage_)
     {
@@ -1909,7 +1909,7 @@ bool CDisView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     return true;
 }
 
-bool CDisView::cmdNavigate(int nKey_, int nMods_)
+bool DisView::cmdNavigate(int nKey_, int nMods_)
 {
     auto wAddr = GetAddress();
     bool fCtrl = (nMods_ & HM_CTRL) != 0;
@@ -2001,7 +2001,7 @@ bool CDisView::cmdNavigate(int nKey_, int nMods_)
     }
 
     default:
-        return CView::cmdNavigate(nKey_, nMods_);
+        return View::cmdNavigate(nKey_, nMods_);
     }
 
     SetAddress(wAddr, !fCtrl);
@@ -2009,7 +2009,7 @@ bool CDisView::cmdNavigate(int nKey_, int nMods_)
 }
 
 // Determine the code target address, if any
-bool CDisView::SetCodeTarget()
+bool DisView::SetCodeTarget()
 {
     // Extract the two bytes at PC, which we'll assume are single byte opcode and operand
     auto wPC = PC;
@@ -2097,7 +2097,7 @@ bool CDisView::SetCodeTarget()
 }
 
 // Determine the target address
-bool CDisView::SetDataTarget()
+bool DisView::SetDataTarget()
 {
     bool f16Bit = false;
 
@@ -2252,8 +2252,8 @@ bool CDisView::SetDataTarget()
 
 static const int TXT_COLUMNS = 64;
 
-CTxtView::CTxtView(CWindow* pParent_)
-    : CView(pParent_), m_nRows(m_nHeight / ROW_HEIGHT), m_nColumns(80)
+TxtView::TxtView(Window* pParent_)
+    : View(pParent_), m_nRows(m_nHeight / ROW_HEIGHT), m_nColumns(80)
 {
     SetText("Text");
     SetFont(&sFixedFont);
@@ -2262,9 +2262,9 @@ CTxtView::CTxtView(CWindow* pParent_)
     m_pszData = new char[m_nRows * m_nColumns + 1];
 }
 
-void CTxtView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
+void TxtView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 {
-    CView::SetAddress(wAddr_);
+    View::SetAddress(wAddr_);
     m_aAccesses.clear();
 
     char* psz = m_pszData;
@@ -2294,7 +2294,7 @@ void CTxtView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
     *psz = '\0';
 }
 
-bool CTxtView::GetAddrPosition(uint16_t wAddr_, int& x_, int& y_)
+bool TxtView::GetAddrPosition(uint16_t wAddr_, int& x_, int& y_)
 {
     uint16_t wOffset = wAddr_ - GetAddress();
     int nRow = wOffset / TXT_COLUMNS;
@@ -2309,7 +2309,7 @@ bool CTxtView::GetAddrPosition(uint16_t wAddr_, int& x_, int& y_)
     return true;
 }
 
-void CTxtView::Draw(CScreen* pScreen_)
+void TxtView::Draw(Screen* pScreen_)
 {
     int nX, nY;
 
@@ -2346,7 +2346,7 @@ void CTxtView::Draw(CScreen* pScreen_)
     }
 }
 
-bool CTxtView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool TxtView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     switch (nMessage_)
     {
@@ -2360,7 +2360,7 @@ bool CTxtView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-bool CTxtView::cmdNavigate(int nKey_, int nMods_)
+bool TxtView::cmdNavigate(int nKey_, int nMods_)
 {
     auto wAddr = GetAddress();
     auto wEditAddr = m_wEditAddr;
@@ -2441,7 +2441,7 @@ bool CTxtView::cmdNavigate(int nKey_, int nMods_)
             break;
         }
 
-        return CView::cmdNavigate(nKey_, nMods_);
+        return View::cmdNavigate(nKey_, nMods_);
     }
     }
 
@@ -2464,8 +2464,8 @@ bool CTxtView::cmdNavigate(int nKey_, int nMods_)
 
 static const int HEX_COLUMNS = 16;
 
-CHexView::CHexView(CWindow* pParent_)
-    : CView(pParent_)
+HexView::HexView(Window* pParent_)
+    : View(pParent_)
 {
     SetText("Numeric");
     SetFont(&sFixedFont);
@@ -2477,9 +2477,9 @@ CHexView::CHexView(CWindow* pParent_)
     m_pszData = new char[m_nRows * (m_nColumns + 1) + 2];
 }
 
-void CHexView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
+void HexView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 {
-    CView::SetAddress(wAddr_);
+    View::SetAddress(wAddr_);
     m_aAccesses.clear();
 
     char* psz = m_pszData;
@@ -2517,7 +2517,7 @@ void CHexView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
         pDebugger->SetStatusByte(m_wEditAddr);
 }
 
-bool CHexView::GetAddrPosition(uint16_t wAddr_, int& x_, int& y_, int& textx_)
+bool HexView::GetAddrPosition(uint16_t wAddr_, int& x_, int& y_, int& textx_)
 {
     uint16_t wOffset = wAddr_ - GetAddress();
     int nRow = wOffset / HEX_COLUMNS;
@@ -2533,7 +2533,7 @@ bool CHexView::GetAddrPosition(uint16_t wAddr_, int& x_, int& y_, int& textx_)
     return true;
 }
 
-void CHexView::Draw(CScreen* pScreen_)
+void HexView::Draw(Screen* pScreen_)
 {
     int nX, nY, nTextX;
 
@@ -2577,7 +2577,7 @@ void CHexView::Draw(CScreen* pScreen_)
     }
 }
 
-bool CHexView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool HexView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     switch (nMessage_)
     {
@@ -2591,7 +2591,7 @@ bool CHexView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-bool CHexView::cmdNavigate(int nKey_, int nMods_)
+bool HexView::cmdNavigate(int nKey_, int nMods_)
 {
     auto wAddr = GetAddress();
     auto wEditAddr = m_wEditAddr;
@@ -2688,7 +2688,7 @@ bool CHexView::cmdNavigate(int nKey_, int nMods_)
             break;
         }
 
-        return CView::cmdNavigate(nKey_, nMods_);
+        return View::cmdNavigate(nKey_, nMods_);
     }
     }
 
@@ -2712,8 +2712,8 @@ bool CHexView::cmdNavigate(int nKey_, int nMods_)
 
 ////////////////////////////////////////////////////////////////////////////////
 /*
-CMemView::CMemView (CWindow* pParent_)
-    : CView(pParent_)
+CMemView::CMemView (Window* pParent_)
+    : View(pParent_)
 {
 }
 
@@ -2731,7 +2731,7 @@ void CMemView::SetAddress (uint16_t wAddr_, bool fForceTop_)
 }
 
 
-void CMemView::Draw (CScreen* pScreen_)
+void CMemView::Draw (Screen* pScreen_)
 {
     pScreen_->SetFont(&sFixedFont, true);
 
@@ -2753,10 +2753,10 @@ void CMemView::Draw (CScreen* pScreen_)
 // Graphics View
 
 static const int STRIP_GAP = 8;
-unsigned int CGfxView::s_uMode = 4, CGfxView::s_uWidth = 8, CGfxView::s_uZoom = 1;
+unsigned int GfxView::s_uMode = 4, GfxView::s_uWidth = 8, GfxView::s_uZoom = 1;
 
-CGfxView::CGfxView(CWindow* pParent_)
-    : CView(pParent_)
+GfxView::GfxView(Window* pParent_)
+    : View(pParent_)
 {
     SetText("Graphics");
     SetFont(&sFixedFont);
@@ -2768,11 +2768,11 @@ CGfxView::CGfxView(CWindow* pParent_)
     s_uMode = ((vmpr & VMPR_MODE_MASK) >> 5) + 1;
 }
 
-void CGfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
+void GfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 {
     static const unsigned int auPPB[] = { 8, 8, 2, 2 };   // Pixels Per Byte in each mode
 
-    CView::SetAddress(wAddr_);
+    View::SetAddress(wAddr_);
 
     m_uStripWidth = s_uWidth * s_uZoom * auPPB[s_uMode - 1];
     m_uStripLines = m_nHeight / s_uZoom;
@@ -2839,7 +2839,7 @@ void CGfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 
 }
 
-void CGfxView::Draw(CScreen* pScreen_)
+void GfxView::Draw(Screen* pScreen_)
 {
     // Clip to the client area to prevent partial strips escaping
     pScreen_->SetClip(m_nX, m_nY, m_nWidth, m_nHeight);
@@ -2863,7 +2863,7 @@ void CGfxView::Draw(CScreen* pScreen_)
     pScreen_->SetClip();
 }
 
-bool CGfxView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool GfxView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     switch (nMessage_)
     {
@@ -2877,7 +2877,7 @@ bool CGfxView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-bool CGfxView::cmdNavigate(int nKey_, int nMods_)
+bool GfxView::cmdNavigate(int nKey_, int nMods_)
 {
     auto wAddr = GetAddress();
     bool fCtrl = (nMods_ & HM_CTRL) != 0;
@@ -2946,7 +2946,7 @@ bool CGfxView::cmdNavigate(int nKey_, int nMods_)
         break;
 
     default:
-        return CView::cmdNavigate(nKey_, nMods_);
+        return View::cmdNavigate(nKey_, nMods_);
     }
 
     SetAddress(wAddr, true);
@@ -2957,8 +2957,8 @@ bool CGfxView::cmdNavigate(int nKey_, int nMods_)
 ////////////////////////////////////////////////////////////////////////////////
 // Breakpoint View
 
-CBptView::CBptView(CWindow* pParent_)
-    : CView(pParent_)
+BptView::BptView(Window* pParent_)
+    : View(pParent_)
 {
     SetText("Breakpoints");
     SetFont(&sFixedFont);
@@ -2970,9 +2970,9 @@ CBptView::CBptView(CWindow* pParent_)
     m_pszData[0] = '\0';
 }
 
-void CBptView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
+void BptView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 {
-    CView::SetAddress(wAddr_);
+    View::SetAddress(wAddr_);
 
     char* psz = m_pszData;
 
@@ -3001,7 +3001,7 @@ void CBptView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 }
 
 
-void CBptView::Draw(CScreen* pScreen_)
+void BptView::Draw(Screen* pScreen_)
 {
     int i;
     char* psz = m_pszData;
@@ -3020,10 +3020,10 @@ void CBptView::Draw(CScreen* pScreen_)
         psz += strlen(psz) + 1;
     }
 
-    CDisView::DrawRegisterPanel(pScreen_, m_nX + m_nWidth - 6 * 16, m_nY);
+    DisView::DrawRegisterPanel(pScreen_, m_nX + m_nWidth - 6 * 16, m_nY);
 }
 
-bool CBptView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool BptView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     switch (nMessage_)
     {
@@ -3049,7 +3049,7 @@ bool CBptView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-bool CBptView::cmdNavigate(int nKey_, int nMods_)
+bool BptView::cmdNavigate(int nKey_, int nMods_)
 {
     switch (nKey_)
     {
@@ -3067,7 +3067,7 @@ bool CBptView::cmdNavigate(int nKey_, int nMods_)
     case HK_PGDN:   m_nTopLine += m_nRows; break;
 
     default:
-        return CView::cmdNavigate(nKey_, nMods_);
+        return View::cmdNavigate(nKey_, nMods_);
     }
 
     if (m_nTopLine < 0)
@@ -3081,15 +3081,15 @@ bool CBptView::cmdNavigate(int nKey_, int nMods_)
 ////////////////////////////////////////////////////////////////////////////////
 // Trace View
 
-CTrcView::CTrcView(CWindow* pParent_)
-    : CTextView(pParent_)
+TrcView::TrcView(Window* pParent_)
+    : TextView(pParent_)
 {
     SetText("Trace");
     SetLines(std::min(nNumTraces, TRACE_SLOTS));
     cmdNavigate(HK_END, 0);
 }
 
-void CTrcView::DrawLine(CScreen* pScreen_, int nX_, int nY_, int nLine_)
+void TrcView::DrawLine(Screen* pScreen_, int nX_, int nY_, int nLine_)
 {
     if (GetLines() <= 1)
         pScreen_->DrawString(nX_, nY_, "No instruction trace", WHITE);
@@ -3184,24 +3184,24 @@ void CTrcView::DrawLine(CScreen* pScreen_, int nX_, int nY_, int nLine_)
     }
 }
 
-bool CTrcView::cmdNavigate(int nKey_, int nMods_)
+bool TrcView::cmdNavigate(int nKey_, int nMods_)
 {
     if (nKey_ == HK_SPACE)
         m_fFullMode = !m_fFullMode;
 
-    return CTextView::cmdNavigate(nKey_, nMods_);
+    return TextView::cmdNavigate(nKey_, nMods_);
 }
 
-void CTrcView::OnDblClick(int nLine_)
+void TrcView::OnDblClick(int nLine_)
 {
     int nPos = (nNumTraces - GetLines() + 1 + GetTopLine() + nLine_ + TRACE_SLOTS) % TRACE_SLOTS;
     TRACEDATA* pTD = &aTrace[nPos];
 
-    CView::SetAddress(pTD->wPC, true);
+    View::SetAddress(pTD->wPC, true);
     pDebugger->SetView(vtDis);
 }
 
-void CTrcView::OnDelete()
+void TrcView::OnDelete()
 {
     nNumTraces = 0;
     SetLines(0);

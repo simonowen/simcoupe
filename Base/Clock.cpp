@@ -35,14 +35,14 @@
 #include "Options.h"
 
 
-CClockDevice::CClockDevice()
+ClockDevice::ClockDevice()
 {
     // Initialise the clock to the current date/time
     Reset();
 }
 
 // Initialise a SAMTIME structure with the current date/time
-void CClockDevice::Reset()
+void ClockDevice::Reset()
 {
     // Get current local time
     m_tLast = time(nullptr);
@@ -60,17 +60,17 @@ void CClockDevice::Reset()
     m_st.nSecond = Encode(ptm->tm_sec);
 }
 
-int CClockDevice::Decode(int nValue_)
+int ClockDevice::Decode(int nValue_)
 {
     return m_fBCD ? ((nValue_ & 0xf0) >> 4) * 10 + (nValue_ & 0x0f) : nValue_;
 }
 
-int CClockDevice::Encode(int nValue_)
+int ClockDevice::Encode(int nValue_)
 {
     return m_fBCD ? ((nValue_ / 10) << 4) | (nValue_ % 10) : nValue_;
 }
 
-int CClockDevice::DateAdd(int& nValue_, int nAdd_, int nMax_)
+int ClockDevice::DateAdd(int& nValue_, int nAdd_, int nMax_)
 {
     if (!nAdd_)
         return 0;
@@ -92,7 +92,7 @@ int CClockDevice::DateAdd(int& nValue_, int nAdd_, int nMax_)
     return nCarry;
 }
 
-bool CClockDevice::Update()
+bool ClockDevice::Update()
 {
     // The clocks stays synchronised to real time
     time_t tNow = time(nullptr);
@@ -165,7 +165,7 @@ bool CClockDevice::Update()
 }
 
 // Get the day of the week for the current SAMTIME
-int CClockDevice::GetDayOfWeek()
+int ClockDevice::GetDayOfWeek()
 {
     struct tm t, * ptm;
 
@@ -186,13 +186,13 @@ int CClockDevice::GetDayOfWeek()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CSambusClock::CSambusClock()
+SambusClock::SambusClock()
 {
     // Clear the clock registers
     memset(m_abRegs, 0, sizeof(m_abRegs));
 }
 
-uint8_t CSambusClock::In(uint16_t wPort_)
+uint8_t SambusClock::In(uint16_t wPort_)
 {
     // Strip off the bottom 8 bits (239 for CLOCK_PORT)
     wPort_ >>= 8;
@@ -205,7 +205,7 @@ uint8_t CSambusClock::In(uint16_t wPort_)
     return m_abRegs[bReg];
 }
 
-void CSambusClock::Out(uint16_t wPort_, uint8_t bVal_)
+void SambusClock::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // Strip off the bottom 8 bits (always 239 for CLOCK_PORT)
     wPort_ >>= 8;
@@ -249,10 +249,10 @@ void CSambusClock::Out(uint16_t wPort_, uint8_t bVal_)
     }
 }
 
-bool CSambusClock::Update()
+bool SambusClock::Update()
 {
     // Call base to update time values
-    if (!CClockDevice::Update())
+    if (!ClockDevice::Update())
         return false;
 
     // If the time update is disabled, do nothing more
@@ -282,7 +282,7 @@ bool CSambusClock::Update()
 #define BANK1 0x40  // Bank 1 register offset
 
 
-CDallasClock::CDallasClock()
+DallasClock::DallasClock()
     : m_bReg(0)
 {
     // Clear register and RAM areas
@@ -301,7 +301,7 @@ CDallasClock::CDallasClock()
     m_abRegs[0x47 + BANK1] = 0x1e;    // p(x) = x^8 + x^5 + x^4 + x^0
 }
 
-uint8_t CDallasClock::In(uint16_t /*wPort_*/)
+uint8_t DallasClock::In(uint16_t /*wPort_*/)
 {
     // Update the clock
     Update();
@@ -346,7 +346,7 @@ uint8_t CDallasClock::In(uint16_t /*wPort_*/)
     return bRet;
 }
 
-void CDallasClock::Out(uint16_t wPort_, uint8_t bVal_)
+void DallasClock::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // Strip off the bottom 8 bits (always 239 for CLOCK_PORT)
     wPort_ >>= 8;
@@ -425,10 +425,10 @@ void CDallasClock::Out(uint16_t wPort_, uint8_t bVal_)
     }
 }
 
-bool CDallasClock::Update()
+bool DallasClock::Update()
 {
     // Call base to update time values
-    if (!CClockDevice::Update())
+    if (!ClockDevice::Update())
         return false;
 
     // If the update or oscillators are disabled, do nothing more
@@ -450,7 +450,7 @@ bool CDallasClock::Update()
 
 
 // Load NVRAM contents from file
-bool CDallasClock::LoadState(const char* pcszFile_)
+bool DallasClock::LoadState(const char* pcszFile_)
 {
     bool fRet = false;
 
@@ -467,7 +467,7 @@ bool CDallasClock::LoadState(const char* pcszFile_)
 }
 
 // Save NVRAM contents to file
-bool CDallasClock::SaveState(const char* pcszFile_)
+bool DallasClock::SaveState(const char* pcszFile_)
 {
     bool fRet = false;
 

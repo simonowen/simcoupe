@@ -19,7 +19,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 // Notes:
-//  The CFloppyDisk implementation is OS-specific, and is in Floppy.cpp
+//  The FloppyDisk implementation is OS-specific, and is in Floppy.cpp
 
 #include "SimCoupe.h"
 #include "Disk.h"
@@ -30,16 +30,16 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/*static*/ DiskType CDisk::GetType(CStream& stream)
+/*static*/ DiskType Disk::GetType(Stream& stream)
 {
     // Try each type in turn to check for a match
-    if (CFloppyDisk::IsRecognised(stream))
+    if (FloppyDisk::IsRecognised(stream))
         return DiskType::Floppy;
-    else if (CEDSKDisk::IsRecognised(stream))
+    else if (EDSKDisk::IsRecognised(stream))
         return DiskType::EDSK;
-    else if (CSADDisk::IsRecognised(stream))
+    else if (SADDisk::IsRecognised(stream))
         return DiskType::SAD;
-    else if (CFileDisk::IsRecognised(stream))
+    else if (FileDisk::IsRecognised(stream))
     {
         // For now we'll only accept single files if they have a .sbt or .sbt.gz file extension
         const char* pcsz = stream.GetFile();
@@ -48,52 +48,52 @@
     }
 
     // The MGT format has no signature, so we try it last
-    if (CMGTDisk::IsRecognised(stream))
+    if (MGTDisk::IsRecognised(stream))
         return DiskType::MGT;
 
     return DiskType::Unknown;
 }
 
-/*static*/ std::unique_ptr<CDisk> CDisk::Open(const char* pcszDisk_, bool fReadOnly_/*=false*/)
+/*static*/ std::unique_ptr<Disk> Disk::Open(const char* pcszDisk_, bool fReadOnly_/*=false*/)
 {
-    std::unique_ptr<CDisk> disk;
+    std::unique_ptr<Disk> disk;
 
     // Fetch stream for the disk source
-    auto stream = CStream::Open(pcszDisk_, fReadOnly_);
+    auto stream = Stream::Open(pcszDisk_, fReadOnly_);
 
     // A disk will only be returned if the stream format is recognised
     if (stream)
     {
         switch (GetType(*stream))
         {
-        case DiskType::Floppy:  disk = std::make_unique<CFloppyDisk>(std::move(stream));   break;      // Direct floppy access
-        case DiskType::EDSK:    disk = std::make_unique<CEDSKDisk>(std::move(stream));     break;      // .DSK
-        case DiskType::SAD:     disk = std::make_unique<CSADDisk>(std::move(stream));      break;      // .SAD
-        case DiskType::MGT:     disk = std::make_unique<CMGTDisk>(std::move(stream));      break;      // .MGT
-        case DiskType::SBT:     disk = std::make_unique<CFileDisk>(std::move(stream));     break;      // .SBT (bootable SAM file on a floppy)
+        case DiskType::Floppy:  disk = std::make_unique<FloppyDisk>(std::move(stream));   break;      // Direct floppy access
+        case DiskType::EDSK:    disk = std::make_unique<EDSKDisk>(std::move(stream));     break;      // .DSK
+        case DiskType::SAD:     disk = std::make_unique<SADDisk>(std::move(stream));      break;      // .SAD
+        case DiskType::MGT:     disk = std::make_unique<MGTDisk>(std::move(stream));      break;      // .MGT
+        case DiskType::SBT:     disk = std::make_unique<FileDisk>(std::move(stream));     break;      // .SBT (bootable SAM file on a floppy)
         }
     }
 
     return disk;
 }
 
-/*static*/ std::unique_ptr<CDisk> CDisk::Open(void* pv_, size_t uSize_, const char* pcszDisk_)
+/*static*/ std::unique_ptr<Disk> Disk::Open(void* pv_, size_t uSize_, const char* pcszDisk_)
 {
-    auto stream = std::make_unique<CMemStream>(pv_, uSize_, pcszDisk_);
+    auto stream = std::make_unique<MemStream>(pv_, uSize_, pcszDisk_);
     if (!stream)
         return nullptr;
 
-    return std::make_unique<CFileDisk>(std::move(stream));
+    return std::make_unique<FileDisk>(std::move(stream));
 }
 
 
-CDisk::CDisk(std::unique_ptr<CStream> stream, DiskType type)
+Disk::Disk(std::unique_ptr<Stream> stream, DiskType type)
     : m_nType(type), m_nBusy(0), m_fModified(false), m_stream(std::move(stream))
 {
 }
 
 // Get the header for the specified sector index
-bool CDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_/*=nullptr*/, uint8_t* pbStatus_/*=nullptr*/)
+bool Disk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_/*=nullptr*/, uint8_t* pbStatus_/*=nullptr*/)
 {
     // Construct a normal ID field for the sector
     pID_->bTrack = cyl_;
@@ -117,7 +117,7 @@ bool CDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/*static*/ bool CMGTDisk::IsRecognised(CStream& stream)
+/*static*/ bool MGTDisk::IsRecognised(Stream& stream)
 {
     auto size = stream.GetSize();
 
@@ -125,8 +125,8 @@ bool CDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_
     return size == MGT_IMAGE_SIZE || size == DOS_IMAGE_SIZE;
 }
 
-CMGTDisk::CMGTDisk(std::unique_ptr<CStream> stream, unsigned int uSectors_/*=NORMAL_DISK_SECTORS*/)
-    : CDisk(std::move(stream), DiskType::MGT)
+MGTDisk::MGTDisk(std::unique_ptr<Stream> stream, unsigned int uSectors_/*=NORMAL_DISK_SECTORS*/)
+    : Disk(std::move(stream), DiskType::MGT)
 {
     // Allocate some memory and clear it, just in case it's not a complete MGT image
     m_data.resize(MGT_IMAGE_SIZE);
@@ -146,20 +146,20 @@ CMGTDisk::CMGTDisk(std::unique_ptr<CStream> stream, unsigned int uSectors_/*=NOR
 
 
 // Get sector details
-bool CMGTDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
+bool MGTDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
 {
     // Check sector is in range
     if (cyl_ >= NORMAL_DISK_TRACKS || head_ >= NORMAL_DISK_SIDES || index_ >= m_uSectors)
         return false;
 
     // Fill default values
-    CDisk::GetSector(cyl_, head_, index_, pID_, pbStatus_);
+    Disk::GetSector(cyl_, head_, index_, pID_, pbStatus_);
 
     return true;
 }
 
 // Read the data for the last sector found
-uint8_t CMGTDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+uint8_t MGTDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
 {
     // Sector must be in range
     if (index_ >= m_uSectors)
@@ -176,7 +176,7 @@ uint8_t CMGTDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t*
 }
 
 // Read the data for the last sector found
-uint8_t CMGTDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+uint8_t MGTDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
 {
     // Sector must be in range
     if (index_ >= m_uSectors)
@@ -199,7 +199,7 @@ uint8_t CMGTDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t
 }
 
 // Save the disk out to the stream
-bool CMGTDisk::Save()
+bool MGTDisk::Save()
 {
     size_t uSize = NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * m_uSectors * NORMAL_SECTOR_SIZE;
 
@@ -214,7 +214,7 @@ bool CMGTDisk::Save()
 }
 
 // Format a track using the specified format
-uint8_t CMGTDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_)
+uint8_t MGTDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_)
 {
     uint32_t dwSectors = 0;
     bool fNormal = true;
@@ -257,7 +257,7 @@ uint8_t CMGTDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/*static*/ bool CSADDisk::IsRecognised(CStream& stream)
+/*static*/ bool SADDisk::IsRecognised(Stream& stream)
 {
     SAD_HEADER sh{};
 
@@ -278,9 +278,9 @@ uint8_t CMGTDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8
     return fValid;
 }
 
-CSADDisk::CSADDisk(std::unique_ptr<CStream> stream, unsigned int uSides_/*=NORMAL_DISK_SIDES*/, unsigned int uTracks_/*=NORMAL_DISK_TRACKS*/,
+SADDisk::SADDisk(std::unique_ptr<Stream> stream, unsigned int uSides_/*=NORMAL_DISK_SIDES*/, unsigned int uTracks_/*=NORMAL_DISK_TRACKS*/,
     unsigned int uSectors_/*=NORMAL_DISK_SECTORS*/, unsigned int uSectorSize_/*=NORMAL_SECTOR_SIZE*/)
-    : CDisk(std::move(stream), DiskType::SAD)
+    : Disk(std::move(stream), DiskType::SAD)
 {
     SAD_HEADER sh;
     sh.bSides = static_cast<uint8_t>(uSides_);
@@ -315,21 +315,21 @@ CSADDisk::CSADDisk(std::unique_ptr<CStream> stream, unsigned int uSides_/*=NORMA
 
 
 // Get sector details
-bool CSADDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
+bool SADDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
 {
     // Check sector is in range
     if (cyl_ >= m_uTracks || head_ >= m_uSides || index_ >= m_uSectors)
         return false;
 
     // Fill default values, then update the sector size
-    CDisk::GetSector(cyl_, head_, index_, pID_, pbStatus_);
+    Disk::GetSector(cyl_, head_, index_, pID_, pbStatus_);
     pID_->bSize = GetSizeCode(m_uSectorSize);
 
     return true;
 }
 
 // Read the data for the last sector found
-uint8_t CSADDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+uint8_t SADDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
 {
     // Work out the offset for the required data
     long lPos = sizeof(SAD_HEADER) + (head_ * m_uTracks + cyl_) * (m_uSectors * m_uSectorSize) + (index_ * m_uSectorSize);
@@ -342,7 +342,7 @@ uint8_t CSADDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t*
 }
 
 // Read the data for the last sector found
-uint8_t CSADDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+uint8_t SADDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
 {
     // Fail if read-only
     if (IsReadOnly())
@@ -360,7 +360,7 @@ uint8_t CSADDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t
 }
 
 // Save the disk out to the stream
-bool CSADDisk::Save()
+bool SADDisk::Save()
 {
     unsigned int uDiskSize = sizeof(SAD_HEADER) + m_uSides * m_uTracks * m_uSectors * m_uSectorSize;
 
@@ -373,7 +373,7 @@ bool CSADDisk::Save()
 }
 
 // Format a track using the specified format
-uint8_t CSADDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_)
+uint8_t SADDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_)
 {
     uint32_t dwSectors = 0;
     bool fNormal = true;
@@ -417,7 +417,7 @@ uint8_t CSADDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-/*static*/ bool CEDSKDisk::IsRecognised(CStream& stream)
+/*static*/ bool EDSKDisk::IsRecognised(Stream& stream)
 {
     EDSK_HEADER eh;
 
@@ -430,8 +430,8 @@ uint8_t CSADDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8
     return fValid;
 }
 
-CEDSKDisk::CEDSKDisk(std::unique_ptr<CStream> stream, unsigned int uSides_/*=NORMAL_DISK_SIDES*/, unsigned int uTracks_/*=MAX_DISK_TRACKS*/)
-    : CDisk(std::move(stream), DiskType::EDSK), m_pSector(nullptr), m_pbData(nullptr)
+EDSKDisk::EDSKDisk(std::unique_ptr<Stream> stream, unsigned int uSides_/*=NORMAL_DISK_SIDES*/, unsigned int uTracks_/*=MAX_DISK_TRACKS*/)
+    : Disk(std::move(stream), DiskType::EDSK), m_pSector(nullptr), m_pbData(nullptr)
 {
     m_uSides = uSides_;
     m_uTracks = uTracks_;
@@ -486,7 +486,7 @@ CEDSKDisk::CEDSKDisk(std::unique_ptr<CStream> stream, unsigned int uSides_/*=NOR
     m_stream->Close();
 }
 
-CEDSKDisk::~CEDSKDisk()
+EDSKDisk::~EDSKDisk()
 {
     // Free any allocated tracks
     for (uint8_t cyl = 0; cyl < m_uTracks; cyl++)
@@ -495,7 +495,7 @@ CEDSKDisk::~CEDSKDisk()
 }
 
 // Find the next sector in the current track
-bool CEDSKDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
+bool EDSKDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
 {
     if (cyl_ >= m_uTracks || head_ >= m_uSides)
         return false;
@@ -536,7 +536,7 @@ bool CEDSKDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* 
 }
 
 // Read the data for the last sector found
-uint8_t CEDSKDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+uint8_t EDSKDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
 {
     IDFIELD id;
     uint8_t bStatus;
@@ -558,7 +558,7 @@ uint8_t CEDSKDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t
 }
 
 // Read the data for the last sector found
-uint8_t CEDSKDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+uint8_t EDSKDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
 {
     IDFIELD id;
     uint8_t bStatus;
@@ -582,7 +582,7 @@ uint8_t CEDSKDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_
 }
 
 // Save the disk out to the stream
-bool CEDSKDisk::Save()
+bool EDSKDisk::Save()
 {
     uint8_t abHeader[256] = { 0 }, cyl, head;
     EDSK_HEADER* peh = reinterpret_cast<EDSK_HEADER*>(abHeader);
@@ -627,7 +627,7 @@ bool CEDSKDisk::Save()
 }
 
 // Format a track using the specified format
-uint8_t CEDSKDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_)
+uint8_t EDSKDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_)
 {
     unsigned int u, uDataTotal = 0;
 
@@ -711,13 +711,13 @@ uint8_t CEDSKDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/*static*/ bool CFloppyDisk::IsRecognised(CStream& stream)
+/*static*/ bool FloppyDisk::IsRecognised(Stream& stream)
 {
-    return CFloppyStream::IsRecognised(stream.GetPath());
+    return FloppyStream::IsRecognised(stream.GetPath());
 }
 
-CFloppyDisk::CFloppyDisk(std::unique_ptr<CStream> stream)
-    : CDisk(std::move(stream), DiskType::Floppy), m_bCommand(0), m_bStatus(0)
+FloppyDisk::FloppyDisk(std::unique_ptr<Stream> stream)
+    : Disk(std::move(stream), DiskType::Floppy), m_bCommand(0), m_bStatus(0)
 {
     m_data.resize(MAX_TRACK_SIZE);
     m_pTrack = reinterpret_cast<TRACK*>(m_data.data());
@@ -729,7 +729,7 @@ CFloppyDisk::CFloppyDisk(std::unique_ptr<CStream> stream)
 
 
 // Find the next sector in the current track
-bool CFloppyDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
+bool FloppyDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
 {
     // Check sector is in range
     if (cyl_ != m_pTrack->cyl || head_ != m_pTrack->head || index_ >= m_pTrack->sectors)
@@ -756,7 +756,7 @@ bool CFloppyDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD
 }
 
 // Read the data for the last sector found
-uint8_t CFloppyDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+uint8_t FloppyDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
 {
     if (cyl_ != m_pTrack->cyl || head_ != m_pTrack->head || index_ >= m_pTrack->sectors)
         return RECORD_NOT_FOUND;
@@ -769,7 +769,7 @@ uint8_t CFloppyDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8
 }
 
 // Write the data for the last sector found
-uint8_t CFloppyDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+uint8_t FloppyDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
 {
     if (cyl_ != m_pTrack->cyl || head_ != m_pTrack->head || index_ >= m_pTrack->sectors)
         return RECORD_NOT_FOUND;
@@ -780,20 +780,20 @@ uint8_t CFloppyDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint
     ps->status &= ~CRC_ERROR;
 
     // Start the write command
-    auto& floppy = reinterpret_cast<CFloppyStream&>(*m_stream);
+    auto& floppy = reinterpret_cast<FloppyStream&>(*m_stream);
     m_bCommand = WRITE_1SECTOR;
     return m_bStatus = floppy.StartCommand(m_bCommand, m_pTrack, index_);
 }
 
 // Save the disk out to the stream
-bool CFloppyDisk::Save()
+bool FloppyDisk::Save()
 {
     // Writes are live, so there's nothing to save
     return true;
 }
 
 // Format a track using the specified format
-uint8_t CFloppyDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_)
+uint8_t FloppyDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_)
 {
     unsigned int uSize = uSectors_ ? (128U << (paID_->bSize & 7)) : 0, u;
 
@@ -837,12 +837,12 @@ uint8_t CFloppyDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, ui
     }
 
     // Start the format command
-    auto& floppy = reinterpret_cast<CFloppyStream&>(*m_stream);
+    auto& floppy = reinterpret_cast<FloppyStream&>(*m_stream);
     m_bCommand = WRITE_TRACK;
     return m_bStatus = floppy.StartCommand(m_bCommand, m_pTrack);
 }
 
-uint8_t CFloppyDisk::LoadTrack(uint8_t cyl_, uint8_t head_)
+uint8_t FloppyDisk::LoadTrack(uint8_t cyl_, uint8_t head_)
 {
     // Return if the track is already loaded
     if (cyl_ == m_pTrack->cyl && head_ == m_pTrack->head)
@@ -854,15 +854,15 @@ uint8_t CFloppyDisk::LoadTrack(uint8_t cyl_, uint8_t head_)
     m_pTrack->head = head_;
 
     // Read the track, setting busy if we've not finished yet
-    auto& floppy = reinterpret_cast<CFloppyStream&>(*m_stream);
+    auto& floppy = reinterpret_cast<FloppyStream&>(*m_stream);
     m_bCommand = READ_MSECTOR;
     return m_bStatus = floppy.StartCommand(m_bCommand, m_pTrack);
 }
 
 // Get the status of the current asynchronous operation, if any
-bool CFloppyDisk::IsBusy(uint8_t* pbStatus_, bool fWait_)
+bool FloppyDisk::IsBusy(uint8_t* pbStatus_, bool fWait_)
 {
-    auto& floppy = reinterpret_cast<CFloppyStream&>(*m_stream);
+    auto& floppy = reinterpret_cast<FloppyStream&>(*m_stream);
     bool fBusy = floppy.IsBusy(pbStatus_, fWait_);
 
     // If we've just finished a request, update the track cache
@@ -881,14 +881,14 @@ bool CFloppyDisk::IsBusy(uint8_t* pbStatus_, bool fWait_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/*static*/ bool CFileDisk::IsRecognised(CStream& stream)
+/*static*/ bool FileDisk::IsRecognised(Stream& stream)
 {
     // Accept any file that isn't too big
     return stream.GetSize() <= MAX_SAM_FILE_SIZE;
 }
 
-CFileDisk::CFileDisk(std::unique_ptr<CStream> stream)
-    : CDisk(std::move(stream), DiskType::File), m_uSize(0)
+FileDisk::FileDisk(std::unique_ptr<Stream> stream)
+    : Disk(std::move(stream), DiskType::File), m_uSize(0)
 {
     // Work out the maximum file size, allocate some memory for it
     unsigned int uSize = MAX_SAM_FILE_SIZE + DISK_FILE_HEADER_SIZE;
@@ -920,20 +920,20 @@ CFileDisk::CFileDisk(std::unique_ptr<CStream> stream)
 
 
 // Get sector details
-bool CFileDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
+bool FileDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
 {
     // Check sector is in range
     if (cyl_ >= NORMAL_DISK_TRACKS || head_ >= NORMAL_DISK_SIDES || index_ >= NORMAL_DISK_SECTORS)
         return false;
 
     // Fill default values
-    CDisk::GetSector(cyl_, head_, index_, pID_, pbStatus_);
+    Disk::GetSector(cyl_, head_, index_, pID_, pbStatus_);
 
     return true;
 }
 
 // Read the data for the last sector found
-uint8_t CFileDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+uint8_t FileDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
 {
     // Clear the sector out
     memset(pbData_, 0, *puSize_ = NORMAL_SECTOR_SIZE);

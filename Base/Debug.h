@@ -41,11 +41,11 @@ bool BreakpointHit();
 
 enum ViewType { vtDis, vtTxt, vtHex, vtGfx, vtBpt, vtTrc };
 
-class CView : public CWindow
+class View : public Window
 {
 public:
-    CView(CWindow* pParent_)
-        : CWindow(pParent_, 4, 5, pParent_->GetWidth() - 8, pParent_->GetHeight() - 10 - 12), m_wAddr(0) { }
+    View(Window* pParent_)
+        : Window(pParent_, 4, 5, pParent_->GetWidth() - 8, pParent_->GetHeight() - 10 - 12), m_wAddr(0) { }
 
 public:
     bool OnMessage(int /*nMessage_*/, int /*nParam1_*/, int /*nParam2_*/) override { return false; }
@@ -58,24 +58,24 @@ private:
     uint16_t m_wAddr = 0;
 };
 
-class CTextView : public CView
+class TextView : public View
 {
 public:
-    CTextView(CWindow* pParent_);
+    TextView(Window* pParent_);
 
 public:
     int GetLines() const { return m_nLines; }
     void SetLines(int nLines_) { m_nLines = nLines_; }
     int GetTopLine() const { return m_nTopLine; }
 
-    virtual void DrawLine(CScreen* pScreen_, int nX_, int nY_, int nLine_) = 0;
+    virtual void DrawLine(Screen* pScreen_, int nX_, int nY_, int nLine_) = 0;
     virtual bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
     virtual bool cmdNavigate(int nKey_, int nMods_) override;
     virtual void OnDblClick(int /*nLine_*/) { }
     virtual void OnDelete() { }
 
 protected:
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
 
 private:
     int m_nLines = 0;    // Lines of content to display
@@ -83,24 +83,24 @@ private:
     int m_nRows = 0;     // Maximum visible rows
 };
 
-class CDisView : public CView
+class DisView : public View
 {
 public:
     static const unsigned int INVALID_TARGET = 0U - 1;
 
 public:
-    CDisView(CWindow* pParent_);
-    CDisView(const CDisView&) = delete;
-    void operator= (const CDisView&) = delete;
-    ~CDisView() { delete[] m_pszData; }
+    DisView(Window* pParent_);
+    DisView(const DisView&) = delete;
+    void operator= (const DisView&) = delete;
+    ~DisView() { delete[] m_pszData; }
 
 public:
     void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 public:
-    static void DrawRegisterPanel(CScreen* pScreen_, int nX_, int nY_);
+    static void DrawRegisterPanel(Screen* pScreen_, int nX_, int nY_);
 
 protected:
     bool SetCodeTarget();
@@ -119,18 +119,18 @@ private:
 };
 
 
-class CTxtView : public CView
+class TxtView : public View
 {
 public:
-    CTxtView(CWindow* pParent_);
-    CTxtView(const CTxtView&) = delete;
-    void operator= (const CTxtView&) = delete;
-    ~CTxtView() { delete[] m_pszData; }
+    TxtView(Window* pParent_);
+    TxtView(const TxtView&) = delete;
+    void operator= (const TxtView&) = delete;
+    ~TxtView() { delete[] m_pszData; }
 
 public:
     bool GetAddrPosition(uint16_t wAddr_, int& x_, int& y_);
     void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -145,18 +145,18 @@ private:
     uint16_t m_wEditAddr = 0;
 };
 
-class CHexView : public CView
+class HexView : public View
 {
 public:
-    CHexView(CWindow* pParent_);
-    CHexView(const CHexView&) = delete;
-    void operator= (const CHexView&) = delete;
-    ~CHexView() { delete[] m_pszData; }
+    HexView(Window* pParent_);
+    HexView(const HexView&) = delete;
+    void operator= (const HexView&) = delete;
+    ~HexView() { delete[] m_pszData; }
 
 public:
     bool GetAddrPosition(uint16_t wAddr_, int& x_, int& y_, int& textx_);
     void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -172,28 +172,28 @@ private:
 };
 
 /*
-class CMemView : public CView
+class MemView : public View
 {
     public:
-        CMemView (CWindow* pParent_);
+        MemView (Window* pParent_);
 
     public:
         void SetAddress (uint16_t wAddr_, bool fForceTop_=false) override;
-        void Draw (CScreen* pScreen_) override;
+        void Draw (Screen* pScreen_) override;
 };
 */
 
-class CGfxView : public CView
+class GfxView : public View
 {
 public:
-    CGfxView(CWindow* pParent_);
-    CGfxView(const CGfxView&) = delete;
-    void operator= (const CGfxView&) = delete;
-    ~CGfxView() { delete[] m_pbData; }
+    GfxView(Window* pParent_);
+    GfxView(const GfxView&) = delete;
+    void operator= (const GfxView&) = delete;
+    ~GfxView() { delete[] m_pbData; }
 
 public:
     void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -207,17 +207,17 @@ protected:
     static unsigned int s_uMode, s_uWidth, s_uZoom;
 };
 
-class CBptView : public CView
+class BptView : public View
 {
 public:
-    CBptView(CWindow* pParent_);
-    CBptView(const CBptView&) = delete;
-    void operator= (const CBptView&) = delete;
-    ~CBptView() { delete[] m_pszData; }
+    BptView(Window* pParent_);
+    BptView(const BptView&) = delete;
+    void operator= (const BptView&) = delete;
+    ~BptView() { delete[] m_pszData; }
 
 public:
     void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -229,15 +229,15 @@ private:
     char* m_pszData = nullptr;
 };
 
-class CTrcView final : public CTextView
+class TrcView final : public TextView
 {
 public:
-    CTrcView(CWindow* pParent_);
-    CTrcView(const CTrcView&) = delete;
-    void operator= (const CTrcView&) = delete;
+    TrcView(Window* pParent_);
+    TrcView(const TrcView&) = delete;
+    void operator= (const TrcView&) = delete;
 
 public:
-    void DrawLine(CScreen* pScreen_, int nX_, int nY_, int nLine_) override;
+    void DrawLine(Screen* pScreen_, int nX_, int nY_, int nLine_) override;
     bool cmdNavigate(int nKey_, int nMods_) override;
     void OnDblClick(int nLine_) override;
     void OnDelete() override;
@@ -247,18 +247,18 @@ private:
 };
 
 
-class CDebugger final : public CDialog
+class Debugger final : public Dialog
 {
 public:
-    CDebugger(BREAKPT* pBreak_ = nullptr);
-    CDebugger(const CDebugger&) = delete;
-    void operator= (const CDebugger&) = delete;
-    ~CDebugger();
+    Debugger(BREAKPT* pBreak_ = nullptr);
+    Debugger(const Debugger&) = delete;
+    void operator= (const Debugger&) = delete;
+    ~Debugger();
 
     bool OnMessage(int nMessage_, int nParam1_ = 0, int nParam2_ = 0) override;
-    void OnNotify(CWindow* pWindow_, int nParam_) override;
-    void EraseBackground(CScreen* pScreen_) override;
-    void Draw(CScreen* pScreen_) override;
+    void OnNotify(Window* pWindow_, int nParam_) override;
+    void EraseBackground(Screen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
 
     void Refresh();
     void SetSubTitle(const char* pcszSubTitle_);
@@ -269,9 +269,9 @@ public:
     bool Execute(const char* pcszCommand_);
 
 protected:
-    CView* m_pView = nullptr;
-    CEditControl* m_pCommandEdit = nullptr;
-    CTextControl* m_pStatus = nullptr;
+    View* m_pView = nullptr;
+    EditControl* m_pCommandEdit = nullptr;
+    TextControl* m_pStatus = nullptr;
 
     std::string m_sStatus{};
 
@@ -281,17 +281,17 @@ protected:
 
 typedef bool (*PFNINPUTPROC)(EXPR* pExpr_);
 
-class CInputDialog final : public CDialog
+class InputDialog final : public Dialog
 {
 public:
-    CInputDialog(CWindow* pParent_, const char* pcszCaption_, const char* pcszPrompt_, PFNINPUTPROC pfn_);
-    CInputDialog(const CInputDialog&) = delete;
-    void operator= (const CInputDialog&) = delete;
+    InputDialog(Window* pParent_, const char* pcszCaption_, const char* pcszPrompt_, PFNINPUTPROC pfn_);
+    InputDialog(const InputDialog&) = delete;
+    void operator= (const InputDialog&) = delete;
 
 public:
-    void OnNotify(CWindow* pWindow_, int nParam_) override;
+    void OnNotify(Window* pWindow_, int nParam_) override;
 
 protected:
-    CEditControl* m_pInput = nullptr;
+    EditControl* m_pInput = nullptr;
     PFNINPUTPROC m_pfnNotify = nullptr;
 };

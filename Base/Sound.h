@@ -45,10 +45,10 @@ public:
     static void FrameUpdate();
 };
 
-class CSoundDevice : public CIoDevice
+class SoundDevice : public IoDevice
 {
 public:
-    CSoundDevice()
+    SoundDevice()
     {
         int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND) + 1;
         m_sample_buffer.resize(nSamplesPerFrame * SAMPLE_BLOCK);
@@ -62,10 +62,10 @@ protected:
     std::vector<uint8_t> m_sample_buffer;
 };
 
-class CSAA final : public CSoundDevice
+class SAADevice final : public SoundDevice
 {
 public:
-    CSAA()
+    SAADevice()
     {
 #ifdef HAVE_LIBSAASOUND
         m_pSAASound = CreateCSAASound();
@@ -77,9 +77,9 @@ public:
     }
 
 #ifdef HAVE_LIBSAASOUND
-    CSAA(const CSAA&) = delete;
-    void operator= (const CSAA&) = delete;
-    ~CSAA()
+    SAADevice(const SAADevice&) = delete;
+    void operator= (const SAADevice&) = delete;
+    ~SAADevice()
     {
         DestroyCSAASound(m_pSAASound);
     }
@@ -100,10 +100,10 @@ protected:
 };
 
 
-class CDAC final : public CSoundDevice
+class DAC final : public SoundDevice
 {
 public:
-    CDAC();
+    DAC();
 
 public:
     void Reset() override;
@@ -125,12 +125,12 @@ protected:
 };
 
 // Spectrum-style BEEPer
-class CBeeperDevice final : public CIoDevice
+class BeeperDevice final : public IoDevice
 {
 public:
     void Out(uint16_t wPort_, uint8_t bVal_) override;
 };
 
 
-extern std::unique_ptr<CSAA> pSAA;
-extern std::unique_ptr<CDAC> pDAC;
+extern std::unique_ptr<SAADevice> pSAA;
+extern std::unique_ptr<DAC> pDAC;

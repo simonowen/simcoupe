@@ -37,10 +37,10 @@ struct MOUSEBUFFER
 };
 
 
-class CMouseDevice : public CIoDevice
+class MouseDevice : public IoDevice
 {
 public:
-    CMouseDevice();
+    MouseDevice();
 
 public:
     void Reset() override;
@@ -61,4 +61,4 @@ protected:
     unsigned int m_uBuffer = 0;         // Read position in mouse data
 };
 
-extern std::unique_ptr<CMouseDevice> pMouse;
+extern std::unique_ptr<MouseDevice> pMouse;

@@ -101,10 +101,10 @@ struct ATA_GEOMETRY
 
 
 // Base class for a generic ATA device
-class CATADevice
+class ATADevice
 {
 public:
-    CATADevice();
+    ATADevice();
 
 public:
     void Reset(bool fSoft_ = false);

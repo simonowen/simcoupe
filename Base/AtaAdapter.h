@@ -22,7 +22,7 @@
 
 #include "HardDisk.h"
 
-class CAtaAdapter : public CIoDevice
+class AtaAdapter : public IoDevice
 {
 public:
     uint8_t In(uint16_t wPort_) override;
@@ -36,7 +36,7 @@ public:
 
 public:
     bool Attach(const char* pcszDisk_, int nDevice_);
-    virtual bool Attach(std::unique_ptr<CHardDisk> disk, int nDevice_);
+    virtual bool Attach(std::unique_ptr<HardDisk> disk, int nDevice_);
     virtual void Detach();
 
 protected:
@@ -47,8 +47,8 @@ protected:
     unsigned int m_uActive = 0; // active when non-zero, decremented by FrameEnd()
 
 private:
-    std::unique_ptr<CHardDisk> m_pDisk0;
-    std::unique_ptr<CHardDisk> m_pDisk1;
+    std::unique_ptr<HardDisk> m_pDisk0;
+    std::unique_ptr<HardDisk> m_pDisk1;
 };
 
-extern std::unique_ptr<CAtaAdapter> pAtom, pAtomLite, pSDIDE;
+extern std::unique_ptr<AtaAdapter> pAtom, pAtomLite, pSDIDE;

@@ -35,7 +35,7 @@ void SetDirty();
 
 bool CheckCaps(int nCaps_);
 
-void Update(CScreen* pScreen_);
+void Update(Screen* pScreen_);
 void UpdateSize();
 void UpdatePalette();
 
@@ -51,7 +51,7 @@ struct IVideoRenderer
     virtual int GetCaps() const = 0;
     virtual bool Init() = 0;
 
-    virtual void Update(CScreen* pScreen_, bool* pafDirty_) = 0;
+    virtual void Update(Screen* pScreen_, bool* pafDirty_) = 0;
     virtual void UpdateSize() = 0;
     virtual void UpdatePalette() = 0;
 

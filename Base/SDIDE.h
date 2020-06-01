@@ -22,7 +22,7 @@
 
 #include "AtaAdapter.h"
 
-class CSDIDEDevice : public CAtaAdapter
+class SDIDEDevice : public AtaAdapter
 {
 public:
     uint8_t In(uint16_t wPort_) override;

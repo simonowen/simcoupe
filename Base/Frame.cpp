@@ -20,7 +20,7 @@
 
 // Notes:
 //  This module generates a display-independant representation of a single
-//  TV frame in a CScreen object.  The platform-specific conversion to the
+//  TV frame in a Screen object.  The platform-specific conversion to the
 //  native display format is done in Display.cpp
 //
 //  The actual drawing work is done by a template class in Frame.h, depending
@@ -62,8 +62,8 @@ const unsigned int FPS_IN_TURBO_MODE = 5;       // Number of FPS to limit to in 
 int s_nViewTop, s_nViewBottom;
 int s_nViewLeft, s_nViewRight;
 
-CScreen* pScreen, * pLastScreen, * pGuiScreen, * pLastGuiScreen, * pDisplayScreen;
-CFrame* pFrame;
+Screen* pScreen, * pLastScreen, * pGuiScreen, * pLastGuiScreen, * pDisplayScreen;
+ScreenWriter* pFrame;
 
 bool fDrawFrame, g_fFlashPhase, fSavePNG, fSaveSSX;
 int nFrame;
@@ -93,8 +93,8 @@ asViews[] =
 
 namespace Frame
 {
-static void DrawOSD(CScreen* pScreen_);
-static void Flip(CScreen* pScreen_);
+static void DrawOSD(Screen* pScreen_);
+static void Flip(Screen* pScreen_);
 
 bool Init(bool fFirstInit_/*=false*/)
 {
@@ -118,13 +118,13 @@ bool Init(bool fFirstInit_/*=false*/)
     s_nHeight = (s_nViewBottom - s_nViewTop) << 1;
 
     // Create two SAM screens and two GUI screens, to allow for double-buffering
-    pScreen = new CScreen(s_nWidth, s_nHeight);
-    pLastScreen = new CScreen(s_nWidth, s_nHeight);
-    pGuiScreen = new CScreen(s_nWidth, s_nHeight);
-    pLastGuiScreen = new CScreen(s_nWidth, s_nHeight);
+    pScreen = new Screen(s_nWidth, s_nHeight);
+    pLastScreen = new Screen(s_nWidth, s_nHeight);
+    pGuiScreen = new Screen(s_nWidth, s_nHeight);
+    pLastGuiScreen = new Screen(s_nWidth, s_nHeight);
 
     // Create the frame rendering object
-    pFrame = new CFrame();
+    pFrame = new ScreenWriter();
 
     // Check we created everything successfully
     if (!pScreen || !pLastScreen || !pGuiScreen || !pLastGuiScreen || !pFrame)
@@ -314,7 +314,7 @@ static void CopyAfterRaster()
 }
 
 // Highlight the current raster position if it's on the visible display
-static void DrawRaster(CScreen* pScreen_)
+static void DrawRaster(Screen* pScreen_)
 {
     // Greyscale cycle, fading in and out
     static int anFlash[] = {
@@ -509,7 +509,7 @@ void Redraw()
 
 
 // Determine the frame difference from last time and flip buffers
-void Flip(CScreen* pScreen_)
+void Flip(Screen* pScreen_)
 {
     int nHeight = pScreen_->GetHeight() >> (GUI::IsActive() ? 0 : 1);
 
@@ -542,7 +542,7 @@ void Flip(CScreen* pScreen_)
 
 
 // Draw on-screen display indicators, such as the floppy LEDs and the status text
-void DrawOSD(CScreen* pScreen_)
+void DrawOSD(Screen* pScreen_)
 {
     int nWidth = pScreen_->GetPitch(), nHeight = pScreen_->GetHeight() >> 1;
 
@@ -695,10 +695,10 @@ void TouchLines(int nFrom_, int nTo_)
 
 
 // Set a new screen mode (VMPR value)
-void CFrame::SetMode(uint8_t bNewVmpr_)
+void ScreenWriter::SetMode(uint8_t bNewVmpr_)
 {
     static FNLINEUPDATE apfnLineUpdates[] =
-    { &CFrame::Mode1Line, &CFrame::Mode2Line, &CFrame::Mode3Line, &CFrame::Mode4Line };
+    { &ScreenWriter::Mode1Line, &ScreenWriter::Mode2Line, &ScreenWriter::Mode3Line, &ScreenWriter::Mode4Line };
 
     m_pLineUpdate = apfnLineUpdates[(bNewVmpr_ & VMPR_MODE_MASK) >> 5];
 
@@ -708,7 +708,7 @@ void CFrame::SetMode(uint8_t bNewVmpr_)
 }
 
 // Update a line segment of display or border
-void CFrame::UpdateLine(CScreen* pScreen_, int nLine_, int nFrom_, int nTo_)
+void ScreenWriter::UpdateLine(Screen* pScreen_, int nLine_, int nFrom_, int nTo_)
 {
     // Is the line within the view port?
     if (nLine_ >= s_nViewTop && nLine_ < s_nViewBottom)
@@ -731,7 +731,7 @@ void CFrame::UpdateLine(CScreen* pScreen_, int nLine_, int nFrom_, int nTo_)
 }
 
 // Fetch the internal ASIC working values used when drawing the display
-void CFrame::GetAsicData(uint8_t* pb0_, uint8_t* pb1_, uint8_t* pb2_, uint8_t* pb3_)
+void ScreenWriter::GetAsicData(uint8_t* pb0_, uint8_t* pb1_, uint8_t* pb2_, uint8_t* pb3_)
 {
     int nLine = g_dwCycleCounter / CPU_CYCLES_PER_LINE, nBlock = (g_dwCycleCounter % CPU_CYCLES_PER_LINE) >> 3;
 

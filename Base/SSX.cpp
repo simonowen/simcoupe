@@ -25,7 +25,7 @@
 namespace SSX
 {
 
-bool Save(CScreen* screen, int main_x, int main_y)
+bool Save(Screen* screen, int main_x, int main_y)
 {
     char szPath[MAX_PATH]{};
     Util::GetUniqueFile("ssx", szPath, sizeof(szPath));

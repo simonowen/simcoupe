@@ -22,7 +22,7 @@
 
 #include "SAMIO.h"
 
-class CPrintBuffer : public CIoDevice
+class PrintBuffer : public IoDevice
 {
 public:
     uint8_t In(uint16_t wPort_) override;
@@ -48,13 +48,13 @@ protected:
 };
 
 
-class CPrinterFile final : public CPrintBuffer
+class PrinterFile final : public PrintBuffer
 {
 public:
-    CPrinterFile() = default;
-    CPrinterFile(const CPrinterFile&) = delete;
-    void operator= (const CPrinterFile&) = delete;
-    ~CPrinterFile() { Close(); }
+    PrinterFile() = default;
+    PrinterFile(const PrinterFile&) = delete;
+    void operator= (const PrinterFile&) = delete;
+    ~PrinterFile() { Close(); }
 
 public:
     bool Open() override;
@@ -67,11 +67,11 @@ protected:
     char m_szPath[MAX_PATH];
 };
 
-class CPrinterDevice : public CPrintBuffer
+class PrinterDevice : public PrintBuffer
 {
 public:
-    CPrinterDevice();
-    ~CPrinterDevice();
+    PrinterDevice();
+    ~PrinterDevice();
 
 public:
     bool Open() override;
@@ -85,17 +85,17 @@ protected:
 };
 
 
-class CMonoDACDevice : public CIoDevice
+class MonoDACDevice : public IoDevice
 {
 public:
     void Out(uint16_t wPort_, uint8_t bVal_) override;
 };
 
 
-class CStereoDACDevice : public CIoDevice
+class StereoDACDevice : public IoDevice
 {
 public:
-    CStereoDACDevice() : m_bControl(0x00), m_bData(0x80) { }
+    StereoDACDevice() : m_bControl(0x00), m_bData(0x80) { }
 
 public:
     void Out(uint16_t wPort_, uint8_t bVal_) override;
@@ -104,4 +104,4 @@ protected:
     uint8_t m_bControl, m_bData;
 };
 
-extern std::unique_ptr<CPrintBuffer> pPrinterFile;
+extern std::unique_ptr<PrintBuffer> pPrinterFile;

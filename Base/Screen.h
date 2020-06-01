@@ -42,13 +42,13 @@ enum : uint8_t
 };
 
 
-class CScreen final
+class Screen final
 {
 public:
-    CScreen(int nWidth_, int nHeight_);
-    CScreen(const CScreen&) = delete;
-    void operator= (const CScreen&) = delete;
-    ~CScreen();
+    Screen(int nWidth_, int nHeight_);
+    Screen(const Screen&) = delete;
+    void operator= (const Screen&) = delete;
+    ~Screen();
 
 public:
     uint8_t* GetLine(int nLine_) { return m_ppbLines[nLine_]; }

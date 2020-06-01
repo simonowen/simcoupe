@@ -116,18 +116,18 @@ enum class DiskType
 #define LOAD_DELAY  3   // Number of status reads to artificially stay busy for image file track loads
 // Pro-Dos relies on data not being available immediately a command is submitted
 
-class CDisk
+class Disk
 {
-    friend class CDrive;
+    friend class Drive;
 
     // Constructor and virtual destructor
 public:
-    CDisk(std::unique_ptr<CStream> stream, DiskType type);
+    Disk(std::unique_ptr<Stream> stream, DiskType type);
 
 public:
-    static DiskType GetType(CStream& pStream_);
-    static std::unique_ptr<CDisk> Open(const char* pcszDisk_, bool fReadOnly_ = false);
-    static std::unique_ptr<CDisk> Open(void* pv_, size_t uSize_, const char* pcszDisk_);
+    static DiskType GetType(Stream& pStream_);
+    static std::unique_ptr<Disk> Open(const char* pcszDisk_, bool fReadOnly_ = false);
+    static std::unique_ptr<Disk> Open(void* pv_, size_t uSize_, const char* pcszDisk_);
 
     virtual void Close() { m_stream->Close(); }
     virtual void Flush() { }
@@ -158,18 +158,18 @@ protected:
     int m_nBusy;
     bool m_fModified;
 
-    std::unique_ptr<CStream> m_stream;
+    std::unique_ptr<Stream> m_stream;
     std::vector<uint8_t> m_data;
 };
 
 
-class CMGTDisk : public CDisk
+class MGTDisk : public Disk
 {
 public:
-    CMGTDisk(std::unique_ptr<CStream> stream, unsigned int uSectors_ = NORMAL_DISK_SECTORS);
+    MGTDisk(std::unique_ptr<Stream> stream, unsigned int uSectors_ = NORMAL_DISK_SECTORS);
 
 public:
-    static bool IsRecognised(CStream& stream);
+    static bool IsRecognised(Stream& stream);
 
 public:
     bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
@@ -183,14 +183,14 @@ protected:
 };
 
 
-class CSADDisk : public CDisk
+class SADDisk : public Disk
 {
 public:
-    CSADDisk(std::unique_ptr<CStream> stream, unsigned int uSides_ = NORMAL_DISK_SIDES, unsigned int uTracks_ = NORMAL_DISK_TRACKS,
+    SADDisk(std::unique_ptr<Stream> stream, unsigned int uSides_ = NORMAL_DISK_SIDES, unsigned int uTracks_ = NORMAL_DISK_TRACKS,
         unsigned int uSectors_ = NORMAL_DISK_SECTORS, unsigned int uSectorSize_ = NORMAL_SECTOR_SIZE);
 
 public:
-    static bool IsRecognised(CStream& stream);
+    static bool IsRecognised(Stream& stream);
 
 public:
     bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
@@ -204,16 +204,16 @@ protected:
 };
 
 
-class CEDSKDisk final : public CDisk
+class EDSKDisk final : public Disk
 {
 public:
-    CEDSKDisk(std::unique_ptr<CStream> stream, unsigned int uSides_ = NORMAL_DISK_SIDES, unsigned int uTracks_ = NORMAL_DISK_TRACKS);
-    CEDSKDisk(const CEDSKDisk&) = delete;
-    void operator= (const CEDSKDisk&) = delete;
-    ~CEDSKDisk();
+    EDSKDisk(std::unique_ptr<Stream> stream, unsigned int uSides_ = NORMAL_DISK_SIDES, unsigned int uTracks_ = NORMAL_DISK_TRACKS);
+    EDSKDisk(const EDSKDisk&) = delete;
+    void operator= (const EDSKDisk&) = delete;
+    ~EDSKDisk();
 
 public:
-    static bool IsRecognised(CStream& pStream_);
+    static bool IsRecognised(Stream& pStream_);
 
 public:
     bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
@@ -235,15 +235,15 @@ private:
 };
 
 
-class CFloppyDisk final : public CDisk
+class FloppyDisk final : public Disk
 {
 public:
-    CFloppyDisk(std::unique_ptr<CStream>);
-    CFloppyDisk(const CFloppyDisk&) = delete;
-    void operator= (const CFloppyDisk&) = delete;
+    FloppyDisk(std::unique_ptr<Stream>);
+    FloppyDisk(const FloppyDisk&) = delete;
+    void operator= (const FloppyDisk&) = delete;
 
 public:
-    static bool IsRecognised(CStream& pStream_);
+    static bool IsRecognised(Stream& pStream_);
 
 public:
     void Close() override { m_stream->Close(); m_pTrack->head = 0xff; }
@@ -267,13 +267,13 @@ protected:
 };
 
 
-class CFileDisk final : public CDisk
+class FileDisk final : public Disk
 {
 public:
-    CFileDisk(std::unique_ptr<CStream> stream);
+    FileDisk(std::unique_ptr<Stream> stream);
 
 public:
-    static bool IsRecognised(CStream& stream);
+    static bool IsRecognised(Stream& stream);
 
 public:
     bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;

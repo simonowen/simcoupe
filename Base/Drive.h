@@ -34,14 +34,14 @@ const int FLOPPY_MOTOR_TIMEOUT = (10 / (FLOPPY_RPM / 60)) * EMULATED_FRAMES_PER_
 const unsigned int FLOPPY_ACTIVE_FRAMES = 5;   // Frames the floppy is considered active after a command
 
 
-class CDrive final : public CDiskDevice
+class Drive final : public DiskDevice
 {
 public:
-    CDrive();
-    CDrive(std::unique_ptr<CDisk> pDisk_);
-    CDrive(const CDrive&) = delete;
-    void operator= (const CDrive&) = delete;
-    ~CDrive() { Eject(); }
+    Drive();
+    Drive(std::unique_ptr<Disk> pDisk_);
+    Drive(const Drive&) = delete;
+    void operator= (const Drive&) = delete;
+    ~Drive() { Eject(); }
 
 public:
     uint8_t In(uint16_t wPort_) override;
@@ -82,7 +82,7 @@ protected:
     bool IsMotorOn() const { return (m_sRegs.bStatus & MOTOR_ON) != 0; }
 
 protected:
-    std::unique_ptr<CDisk> m_pDisk;   // The disk currently inserted in the drive, if any
+    std::unique_ptr<Disk> m_pDisk;   // The disk currently inserted in the drive, if any
     uint8_t m_bSide = 0;        // Side from port address
 
     VL1772Regs m_sRegs{};          // VL1772 controller registers

@@ -26,13 +26,13 @@
 const unsigned int HDD_ACTIVE_FRAMES = 2;    // Frames the HDD is considered active after a command
 
 
-class CHardDisk : public CATADevice
+class HardDisk : public ATADevice
 {
 public:
-    CHardDisk(const char* pcszDisk_);
+    HardDisk(const char* pcszDisk_);
 
 public:
-    static std::unique_ptr<CHardDisk> OpenObject(const char* pcszDisk_, bool fReadOnly_ = false);
+    static std::unique_ptr<HardDisk> OpenObject(const char* pcszDisk_, bool fReadOnly_ = false);
     virtual bool Open(bool fReadOnly_ = false) = 0;
 
 public:
@@ -44,13 +44,13 @@ protected:
 };
 
 
-class CHDFHardDisk final : public CHardDisk
+class HDFHardDisk final : public HardDisk
 {
 public:
-    CHDFHardDisk(const char* pcszDisk_);
-    CHDFHardDisk(const CHDFHardDisk&) = delete;
-    void operator= (const CHDFHardDisk&) = delete;
-    ~CHDFHardDisk() { Close(); }
+    HDFHardDisk(const char* pcszDisk_);
+    HDFHardDisk(const HDFHardDisk&) = delete;
+    void operator= (const HDFHardDisk&) = delete;
+    ~HDFHardDisk() { Close(); }
 
 public:
     static bool Create(const char* pcszDisk_, unsigned int uTotalSectors_);

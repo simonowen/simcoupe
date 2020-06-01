@@ -33,13 +33,13 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class CSoundStream
+class SoundStream
 {
 public:
-    CSoundStream();
-    CSoundStream(const CSoundStream&) = delete;
-    void operator= (const CSoundStream&) = delete;
-    virtual ~CSoundStream();
+    SoundStream();
+    SoundStream(const SoundStream&) = delete;
+    void operator= (const SoundStream&) = delete;
+    virtual ~SoundStream();
 
 public:
     void Silence();

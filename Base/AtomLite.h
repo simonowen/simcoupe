@@ -26,16 +26,16 @@
 const uint8_t ATOM_LITE_ADDR_MASK = 0x1f;  // Chip select mask
 const uint8_t ATOM_LITE_REG_MASK = 0x07;   // Device address mask
 
-class CAtomLiteDevice final : public CAtaAdapter
+class AtomLiteDevice final : public AtaAdapter
 {
 public:
     uint8_t In(uint16_t wPort_) override;
     void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 public:
-    bool Attach(std::unique_ptr<CHardDisk> disk, int nDevice_) override;
+    bool Attach(std::unique_ptr<HardDisk> disk, int nDevice_) override;
 
 protected:
-    CDallasClock m_Dallas{};
+    DallasClock m_Dallas{};
     uint8_t m_bAddressLatch = 0;
 };

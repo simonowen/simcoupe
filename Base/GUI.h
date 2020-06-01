@@ -40,8 +40,8 @@ const uint32_t DOUBLE_CLICK_TIME = 400;    // Under 400ms between consecutive cl
 const int DOUBLE_CLICK_THRESHOLD = 5;   // Distance between clicks for double-clicks to be recognised
 
 
-class CWindow;
-class CDialog;
+class Window;
+class Dialog;
 
 class GUI
 {
@@ -50,39 +50,39 @@ public:
     static bool IsModal();
 
 public:
-    static bool Start(CWindow* pGUI_);
+    static bool Start(Window* pGUI_);
     static void Stop();
 
-    static void Draw(CScreen* pScreen_);
+    static void Draw(Screen* pScreen_);
     static bool SendMessage(int nMessage_, int nParam1_ = 0, int nParam2_ = 0);
-    static void Delete(CWindow* pWindow_);
+    static void Delete(Window* pWindow_);
 
 protected:
-    static CWindow* s_pGUI;
-    static std::queue<CWindow*> s_garbageQueue;
-    static std::stack<CWindow*> s_dialogStack;
+    static Window* s_pGUI;
+    static std::queue<Window*> s_garbageQueue;
+    static std::stack<Window*> s_dialogStack;
     static int s_nX, s_nY;
 
-    friend class CWindow;
-    friend class CDialog;     // only needed for test cross-hair to access cursor position
+    friend class Window;
+    friend class Dialog;     // only needed for test cross-hair to access cursor position
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Control types, as returned by GetType() from any base CWindow pointer
+// Control types, as returned by GetType() from any base Window pointer
 enum {
     ctUnknown, ctText, ctButton, ctImageButton, ctCheckBox, ctComboBox, ctEdit, ctRadio,
     ctMenu, ctImage, ctFrame, ctListView, ctDialog, ctMessageBox
 };
 
 
-class CWindow
+class Window
 {
 public:
-    CWindow(CWindow* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, int nWidth_ = 0, int nHeight_ = 0, int nType_ = ctUnknown);
-    CWindow(const CWindow&) = delete;
-    void operator= (const CWindow&) = delete;
-    virtual ~CWindow();
+    Window(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, int nWidth_ = 0, int nHeight_ = 0, int nType_ = ctUnknown);
+    Window(const Window&) = delete;
+    void operator= (const Window&) = delete;
+    virtual ~Window();
 
 public:
     bool IsEnabled() const { return m_fEnabled; }
@@ -94,15 +94,15 @@ public:
     int GetTextWidth(size_t nOffset_ = 0, size_t nMaxLength_ = -1) const;
     int GetTextWidth(const char* pcsz_) const;
 
-    CWindow* GetParent() { return m_pParent; }
-    CWindow* GetChildren() { return m_pChildren; }
-    CWindow* GetSiblings() { return GetParent() ? GetParent()->GetChildren() : nullptr; }
-    CWindow* GetGroup();
+    Window* GetParent() { return m_pParent; }
+    Window* GetChildren() { return m_pChildren; }
+    Window* GetSiblings() { return GetParent() ? GetParent()->GetChildren() : nullptr; }
+    Window* GetGroup();
 
-    CWindow* GetNext(bool fWrap_ = false);
-    CWindow* GetPrev(bool fWrap_ = false);
+    Window* GetNext(bool fWrap_ = false);
+    Window* GetPrev(bool fWrap_ = false);
 
-    void SetParent(CWindow* pParent_);
+    void SetParent(Window* pParent_);
     void Destroy();
     void Enable(bool fEnable_ = true) { m_fEnabled = fEnable_; }
     void Move(int nX_, int nY_);
@@ -122,16 +122,16 @@ public:
 
     virtual void Activate();
     virtual bool HitTest(int nX_, int nY_);
-    virtual void EraseBackground(CScreen* /*pScreen_*/) { }
-    virtual void Draw(CScreen* pScreen_) = 0;
+    virtual void EraseBackground(Screen* /*pScreen_*/) { }
+    virtual void Draw(Screen* pScreen_) = 0;
 
     virtual void NotifyParent(int nParam_ = 0);
-    virtual void OnNotify(CWindow* /*pWindow_*/, int /*nParam_*/) { }
+    virtual void OnNotify(Window* /*pWindow_*/, int /*nParam_*/) { }
     virtual bool OnMessage(int nMessage_, int nParam1_ = 0, int nParam2_ = 0);
 
 protected:
     void RemoveChild();
-    void MoveRecurse(CWindow* pWindow_, int ndX_, int ndY_);
+    void MoveRecurse(Window* pWindow_, int ndX_, int ndY_);
     bool RouteMessage(int nMessage_, int nParam1_, int nParam2_);
 
 protected:
@@ -145,23 +145,23 @@ protected:
     bool m_fEnabled = true;
     bool m_fHover = false;
 
-    CWindow* m_pParent = nullptr;
-    CWindow* m_pChildren = nullptr;
-    CWindow* m_pNext = nullptr;
-    CWindow* m_pActive = nullptr;
+    Window* m_pParent = nullptr;
+    Window* m_pChildren = nullptr;
+    Window* m_pNext = nullptr;
+    Window* m_pActive = nullptr;
 
     friend class GUI;
-    friend class CDialog;
+    friend class Dialog;
 };
 
 
-class CTextControl : public CWindow
+class TextControl : public Window
 {
 public:
-    CTextControl(CWindow* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "", uint8_t bColour = WHITE, uint8_t bBackColour = 0);
+    TextControl(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "", uint8_t bColour = WHITE, uint8_t bBackColour = 0);
 
 public:
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     void SetTextAndColour(const char* pcszText_, uint8_t bColour_);
 
 protected:
@@ -169,16 +169,16 @@ protected:
 };
 
 
-class CButton : public CWindow
+class Button : public Window
 {
 public:
-    CButton(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
+    Button(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
 
 public:
     bool IsTabStop() const override { return true; }
     bool IsPressed() const { return m_fPressed; }
 
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -186,30 +186,30 @@ protected:
 };
 
 
-class CTextButton : public CButton
+class TextButton : public Button
 {
 public:
-    CTextButton(CWindow* pParent_, int nX_, int nY_, const char* pcszText_ = "", int nMinWidth_ = 0);
+    TextButton(Window* pParent_, int nX_, int nY_, const char* pcszText_ = "", int nMinWidth_ = 0);
 
 public:
     void SetText(const char* pcszText_) override;
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
 
 protected:
     int m_nMinWidth = 0;
 };
 
 
-class CImageButton : public CButton
+class ImageButton : public Button
 {
 public:
-    CImageButton(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_,
+    ImageButton(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_,
         const GUI_ICON* pIcon_, int nDX_ = 0, int nDY_ = 0);
-    CImageButton(const CImageButton&) = delete;
-    void operator= (const CImageButton&) = delete;
+    ImageButton(const ImageButton&) = delete;
+    void operator= (const ImageButton&) = delete;
 
 public:
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
 
 protected:
     const GUI_ICON* m_pIcon = nullptr;
@@ -217,25 +217,25 @@ protected:
 };
 
 
-class CUpButton : public CButton
+class UpButton : public Button
 {
 public:
-    CUpButton(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
-    void Draw(CScreen* pScreen_) override;
+    UpButton(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
+    void Draw(Screen* pScreen_) override;
 };
 
-class CDownButton : public CButton
+class DownButton : public Button
 {
 public:
-    CDownButton(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
-    void Draw(CScreen* pScreen_) override;
+    DownButton(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
+    void Draw(Screen* pScreen_) override;
 };
 
 
-class CCheckBox : public CWindow
+class CheckBox : public Window
 {
 public:
-    CCheckBox(CWindow* pParent_, int nX_, int nY_, const char* pcszText_ = "", uint8_t bColour_ = WHITE, uint8_t bBackColour_ = 0);
+    CheckBox(Window* pParent_, int nX_, int nY_, const char* pcszText_ = "", uint8_t bColour_ = WHITE, uint8_t bBackColour_ = 0);
 
 public:
     bool IsTabStop() const override { return true; }
@@ -243,7 +243,7 @@ public:
     void SetChecked(bool fChecked_ = true) { m_fChecked = fChecked_; }
 
     void SetText(const char* pcszText_) override;
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -252,18 +252,18 @@ protected:
 };
 
 
-class CEditControl : public CWindow
+class EditControl : public Window
 {
 public:
-    CEditControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_ = "");
-    CEditControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, unsigned int u_);
+    EditControl(Window* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_ = "");
+    EditControl(Window* pParent_, int nX_, int nY_, int nWidth_, unsigned int u_);
 
 public:
     bool IsTabStop() const override { return true; }
     void Activate() override;
 
     void SetSelectedText(const char* pcszText_, bool fSelected_);
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -272,19 +272,19 @@ protected:
     uint32_t m_dwCaretTime = 0;
 };
 
-class CNumberEditControl : public CEditControl
+class NumberEditControl : public EditControl
 {
 public:
-    using CEditControl::CEditControl;
+    using EditControl::EditControl;
 
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 };
 
 
-class CRadioButton : public CWindow
+class RadioButton : public Window
 {
 public:
-    CRadioButton(CWindow* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "", int nWidth_ = 0);
+    RadioButton(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "", int nWidth_ = 0);
 
 public:
     bool IsTabStop() const override { return IsSelected(); }
@@ -292,7 +292,7 @@ public:
     void Select(bool fSelected_ = true);
     void SetText(const char* pcszText_) override;
 
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -300,17 +300,17 @@ protected:
 };
 
 
-class CMenu : public CWindow
+class Menu : public Window
 {
 public:
-    CMenu(CWindow* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "");
+    Menu(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "");
 
 public:
     int GetSelected() const { return m_nSelected; }
     void Select(int nItem_);
     void SetText(const char* pcszText_) override;
 
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -320,10 +320,10 @@ protected:
 };
 
 
-class CDropList : public CMenu
+class DropList : public Menu
 {
 public:
-    CDropList(CWindow* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "", int nMinWidth_ = 0);
+    DropList(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "", int nMinWidth_ = 0);
 
 public:
     void SetText(const char* pcszText_) override;
@@ -334,12 +334,12 @@ protected:
 };
 
 
-class CComboBox : public CWindow
+class ComboBox : public Window
 {
 public:
-    CComboBox(CWindow* pParent_, int nX_, int nY_, const char* pcszText_, int nWidth_);
-    CComboBox(const CComboBox&) = delete;
-    void operator= (const CComboBox&) = delete;
+    ComboBox(Window* pParent_, int nX_, int nY_, const char* pcszText_, int nWidth_);
+    ComboBox(const ComboBox&) = delete;
+    void operator= (const ComboBox&) = delete;
 
 public:
     bool IsTabStop() const override { return true; }
@@ -349,23 +349,23 @@ public:
     void Select(const char* pcszItem_);
     void SetText(const char* pcszText_) override;
 
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
-    void OnNotify(CWindow* pWindow_, int nParam_) override;
+    void OnNotify(Window* pWindow_, int nParam_) override;
 
 protected:
     int m_nItems = 0, m_nSelected = 0;
     bool m_fPressed = false;
-    CDropList* m_pDropList = nullptr;
+    DropList* m_pDropList = nullptr;
 };
 
 
-class CScrollBar : public CWindow
+class ScrollBar : public Window
 {
 public:
-    CScrollBar(CWindow* pParent_, int nX_, int nY_, int nHeight, int nMaxPos_, int nStep_ = 1);
-    CScrollBar(const CScrollBar&) = delete;
-    void operator= (const CScrollBar&) = delete;
+    ScrollBar(Window* pParent_, int nX_, int nY_, int nHeight, int nMaxPos_, int nStep_ = 1);
+    ScrollBar(const ScrollBar&) = delete;
+    void operator= (const ScrollBar&) = delete;
 
 public:
     bool IsTabStop() const override { return true; }
@@ -373,72 +373,72 @@ public:
     void SetPos(int nPosition_);
     void SetMaxPos(int nMaxPos_);
 
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
-    void OnNotify(CWindow* pWindow_, int nParam_) override;
+    void OnNotify(Window* pWindow_, int nParam_) override;
 
 protected:
     int m_nPos = 0, m_nMaxPos = 0, m_nStep = 0;
     int m_nScrollHeight = 0, m_nThumbSize = 0;
     bool m_fDragging = false;
-    CButton* m_pUp = nullptr;
-    CButton* m_pDown = nullptr;
+    Button* m_pUp = nullptr;
+    Button* m_pDown = nullptr;
 };
 
 
-class CIconControl : public CWindow
+class IconControl : public Window
 {
 public:
-    CIconControl(CWindow* pParent_, int nX_, int nY_, const GUI_ICON* pIcon_);
-    CIconControl(const CIconControl&) = delete;
-    void operator= (const CIconControl&) = delete;
+    IconControl(Window* pParent_, int nX_, int nY_, const GUI_ICON* pIcon_);
+    IconControl(const IconControl&) = delete;
+    void operator= (const IconControl&) = delete;
 
 public:
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
 
 protected:
     const GUI_ICON* m_pIcon = nullptr;
 };
 
 
-class CFrameControl : public CWindow
+class FrameControl : public Window
 {
 public:
-    CFrameControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_ = WHITE, uint8_t bFill_ = 0);
+    FrameControl(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_ = WHITE, uint8_t bFill_ = 0);
 
 public:
     bool HitTest(int /*nX_*/, int /*nY_*/) override { return false; }
-    void Draw(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
 
 public:
     uint8_t m_bColour = 0, m_bFill = 0;
 };
 
 
-class CListViewItem
+class ListViewItem
 {
 public:
-    CListViewItem(const GUI_ICON* pIcon_, const char* pcszLabel_, CListViewItem* pNext_ = nullptr) :
+    ListViewItem(const GUI_ICON* pIcon_, const char* pcszLabel_, ListViewItem* pNext_ = nullptr) :
         m_pIcon(pIcon_), m_pszLabel(nullptr), m_pNext(pNext_) {
         m_pszLabel = strdup(pcszLabel_);
     }
-    CListViewItem(const CListViewItem&) = delete;
-    void operator= (const CListViewItem&) = delete;
-    virtual ~CListViewItem() { free(m_pszLabel); }
+    ListViewItem(const ListViewItem&) = delete;
+    void operator= (const ListViewItem&) = delete;
+    virtual ~ListViewItem() { free(m_pszLabel); }
 
 public:
     const GUI_ICON* m_pIcon = nullptr;
     char* m_pszLabel = nullptr;
-    CListViewItem* m_pNext = nullptr;
+    ListViewItem* m_pNext = nullptr;
 };
 
-class CListView : public CWindow
+class ListView : public Window
 {
 public:
-    CListView(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, int nItemOffset = 0);
-    CListView(const CListView&) = delete;
-    void operator= (const CListView&) = delete;
-    ~CListView();
+    ListView(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, int nItemOffset = 0);
+    ListView(const ListView&) = delete;
+    void operator= (const ListView&) = delete;
+    ~ListView();
 
 public:
     bool IsTabStop() const override { return true; }
@@ -446,30 +446,30 @@ public:
     int GetSelected() const { return m_nSelected; }
     void Select(int nItem_);
 
-    const CListViewItem* GetItem(int nItem_ = -1) const;
+    const ListViewItem* GetItem(int nItem_ = -1) const;
     int FindItem(const char* pcszLabel_, int nStart_ = 0);
-    void SetItems(CListViewItem* pItems_);
+    void SetItems(ListViewItem* pItems_);
 
-    void EraseBackground(CScreen* pScreen_) override;
-    void Draw(CScreen* pScreen_) override;
+    void EraseBackground(Screen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
-    virtual void DrawItem(CScreen* pScreen_, int nItem_, int nX_, int nY_, const CListViewItem* pItem_);
+    virtual void DrawItem(Screen* pScreen_, int nItem_, int nX_, int nY_, const ListViewItem* pItem_);
 
 protected:
     int m_nItems = 0, m_nSelected = 0, m_nHoverItem = 0;
     int m_nAcross = 0, m_nDown = 0, m_nItemOffset = 0;
 
-    CListViewItem* m_pItems = nullptr;
-    CScrollBar* m_pScrollBar = nullptr;
+    ListViewItem* m_pItems = nullptr;
+    ScrollBar* m_pScrollBar = nullptr;
 };
 
 
-class CDialog : public CWindow
+class Dialog : public Window
 {
 public:
-    CDialog(CWindow* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_);
-    ~CDialog();
+    Dialog(Window* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_);
+    ~Dialog();
 
 public:
     bool IsActiveDialog() const;
@@ -478,8 +478,8 @@ public:
     void Centre();
     void Activate() override;
     bool HitTest(int nX_, int nY_) override;
-    void Draw(CScreen* pScreen_) override;
-    void EraseBackground(CScreen* pScreen_) override;
+    void Draw(Screen* pScreen_) override;
+    void EraseBackground(Screen* pScreen_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -492,31 +492,31 @@ protected:
 
 enum { mbOk, mbOkCancel, mbYesNo, mbYesNoCancel, mbRetryCancel, mbInformation = 0x10, mbWarning = 0x20, mbError = 0x30 };
 
-class CMessageBox : public CDialog
+class MsgBox : public Dialog
 {
 public:
-    CMessageBox(CWindow* pParent_, const char* pcszBody_, const char* pcszCaption_, int nFlags_);
-    CMessageBox(const CMessageBox&) = delete;
-    void operator= (const CMessageBox&) = delete;
-    ~CMessageBox() { if (m_pszBody) free(m_pszBody); }
+    MsgBox(Window* pParent_, const char* pcszBody_, const char* pcszCaption_, int nFlags_);
+    MsgBox(const MsgBox&) = delete;
+    void operator= (const MsgBox&) = delete;
+    ~MsgBox() { if (m_pszBody) free(m_pszBody); }
 
 public:
-    void OnNotify(CWindow* /*pWindow_*/, int /*nParam_*/) override { Destroy(); }
-    void Draw(CScreen* pScreen_) override;
+    void OnNotify(Window* /*pWindow_*/, int /*nParam_*/) override { Destroy(); }
+    void Draw(Screen* pScreen_) override;
 
 protected:
     int m_nLines = 0;
     char* m_pszBody = nullptr;
-    CIconControl* m_pIcon = nullptr;
+    IconControl* m_pIcon = nullptr;
 };
 
-class CFileView : public CListView
+class FileView : public ListView
 {
 public:
-    CFileView(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
-    CFileView(const CFileView&) = delete;
-    void operator= (const CFileView&) = delete;
-    ~CFileView();
+    FileView(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
+    FileView(const FileView&) = delete;
+    void operator= (const FileView&) = delete;
+    ~FileView();
 
 public:
     const char* GetFullPath() const;

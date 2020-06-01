@@ -32,13 +32,13 @@
 #endif
 
 
-CMidiDevice::CMidiDevice()
+MidiDevice::MidiDevice()
 {
     SetDevice(GetOption(midioutdev));
 }
 
 
-CMidiDevice::~CMidiDevice()
+MidiDevice::~MidiDevice()
 {
     // Close the MIDI device here
     if (m_nDevice != -1)
@@ -46,14 +46,14 @@ CMidiDevice::~CMidiDevice()
 }
 
 
-uint8_t CMidiDevice::In(uint16_t /*wPort_*/)
+uint8_t MidiDevice::In(uint16_t /*wPort_*/)
 {
     // Not supported
     return 0x00;
 }
 
 
-void CMidiDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
+void MidiDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
 {
     // Protect against very long System Exclusive blocks
     if ((m_nOut == (sizeof m_abOut - 1)) && bVal_ != 0xf7)
@@ -127,7 +127,7 @@ void CMidiDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
     m_nOut = m_abOut[1] = m_abOut[2] = m_abOut[3] = 0;
 }
 
-bool CMidiDevice::SetDevice(const char* pcszDevice_)
+bool MidiDevice::SetDevice(const char* pcszDevice_)
 {
     if (m_nDevice != -1)
     {

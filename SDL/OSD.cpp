@@ -222,11 +222,11 @@ void OSD::DebugTrace(const char* pcsz_)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Dummy printer device implementation
-CPrinterDevice::CPrinterDevice() { }
-CPrinterDevice::~CPrinterDevice() { }
-bool CPrinterDevice::Open() { return false; }
-void CPrinterDevice::Close() { }
-void CPrinterDevice::Write(uint8_t* /*pb_*/, size_t /*uLen_*/) { }
+PrinterDevice::PrinterDevice() { }
+PrinterDevice::~PrinterDevice() { }
+bool PrinterDevice::Open() { return false; }
+void PrinterDevice::Close() { }
+void PrinterDevice::Write(uint8_t* /*pb_*/, size_t /*uLen_*/) { }
 
 ////////////////////////////////////////////////////////////////////////////////
 

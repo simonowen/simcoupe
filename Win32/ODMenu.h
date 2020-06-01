@@ -34,12 +34,12 @@ struct MENUICON
     int nOffset;    // Offset into image map to use
 };
 
-struct CMenuItem
+struct MenuItem
 {
-    CMenuItem() { dwSig = SIGNATURE; szText[0] = '\0'; nImage = -1; }
+    MenuItem() { dwSig = SIGNATURE; szText[0] = '\0'; nImage = -1; }
 
     bool IsOurs() const { return this && dwSig == SIGNATURE; }
-    static CMenuItem* GetItem(ULONG_PTR ulp_) { CMenuItem* p = reinterpret_cast<CMenuItem*>(ulp_); return p->IsOurs() ? p : nullptr; }
+    static MenuItem* GetItem(ULONG_PTR ulp_) { MenuItem* p = reinterpret_cast<MenuItem*>(ulp_); return p->IsOurs() ? p : nullptr; }
 
     DWORD   dwSig;
     char    szText[64];
@@ -48,11 +48,11 @@ struct CMenuItem
     int     nImage;
 };
 
-class COwnerDrawnMenu
+class OwnerDrawnMenu
 {
 public:
-    COwnerDrawnMenu(HINSTANCE hinst_ = nullptr, int nId_ = 0, MENUICON* pIconMap_ = nullptr);
-    virtual ~COwnerDrawnMenu();
+    OwnerDrawnMenu(HINSTANCE hinst_ = nullptr, int nId_ = 0, MENUICON* pIconMap_ = nullptr);
+    virtual ~OwnerDrawnMenu();
 
     LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT* plResult_);
 

@@ -26,14 +26,14 @@ const uint8_t ATOM_ADDR_MASK = 0x1f;   // Chip select mask
 const uint8_t ATOM_REG_MASK = 0x07;    // Device address mask
 const uint8_t ATOM_NRESET = 0x20;      // Reset pin (negative logic)
 
-class CAtomDevice final : public CAtaAdapter
+class AtomDevice final : public AtaAdapter
 {
 public:
     uint8_t In(uint16_t wPort_) override;
     void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 public:
-    bool Attach(std::unique_ptr<CHardDisk> disk, int nDevice_) override;
+    bool Attach(std::unique_ptr<HardDisk> disk, int nDevice_) override;
 
 protected:
     uint8_t m_bAddressLatch = 0;

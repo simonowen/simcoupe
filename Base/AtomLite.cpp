@@ -24,7 +24,7 @@
 #include "Options.h"
 
 
-uint8_t CAtomLiteDevice::In(uint16_t wPort_)
+uint8_t AtomLiteDevice::In(uint16_t wPort_)
 {
     uint8_t bRet = 0xff;
 
@@ -42,7 +42,7 @@ uint8_t CAtomLiteDevice::In(uint16_t wPort_)
 
             // ATA device
         default:
-            bRet = CAtaAdapter::InWord(m_bAddressLatch & ATOM_LITE_ADDR_MASK) & 0xff;
+            bRet = AtaAdapter::InWord(m_bAddressLatch & ATOM_LITE_ADDR_MASK) & 0xff;
             break;
         }
         break;
@@ -55,7 +55,7 @@ uint8_t CAtomLiteDevice::In(uint16_t wPort_)
     return bRet;
 }
 
-void CAtomLiteDevice::Out(uint16_t wPort_, uint8_t bVal_)
+void AtomLiteDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     switch (wPort_ & ATOM_LITE_REG_MASK)
     {
@@ -78,7 +78,7 @@ void CAtomLiteDevice::Out(uint16_t wPort_, uint8_t bVal_)
             // ATA device
         default:
             m_uActive = HDD_ACTIVE_FRAMES;
-            CAtaAdapter::Out(m_bAddressLatch & ATOM_LITE_ADDR_MASK, bVal_);
+            AtaAdapter::Out(m_bAddressLatch & ATOM_LITE_ADDR_MASK, bVal_);
             break;
         }
         break;
@@ -90,7 +90,7 @@ void CAtomLiteDevice::Out(uint16_t wPort_, uint8_t bVal_)
 }
 
 
-bool CAtomLiteDevice::Attach(std::unique_ptr<CHardDisk> disk, int nDevice_)
+bool AtomLiteDevice::Attach(std::unique_ptr<HardDisk> disk, int nDevice_)
 {
     if (disk)
     {
@@ -104,5 +104,5 @@ bool CAtomLiteDevice::Attach(std::unique_ptr<CHardDisk> disk, int nDevice_)
         disk->SetLegacy(false);
     }
 
-    return CAtaAdapter::Attach(std::move(disk), nDevice_);
+    return AtaAdapter::Attach(std::move(disk), nDevice_);
 }

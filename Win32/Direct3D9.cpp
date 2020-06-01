@@ -100,7 +100,7 @@ void Direct3D9Video::UpdatePalette()
 }
 
 // Update the display to show anything that's changed since last time
-void Direct3D9Video::Update(CScreen* pScreen_, bool* pafDirty_)
+void Direct3D9Video::Update(Screen* pScreen_, bool* pafDirty_)
 {
     HRESULT hr;
 
@@ -334,7 +334,7 @@ bool Direct3D9Video::Reset(bool fNewDevice_)
 }
 
 // Draw the changed lines in the appropriate colour depth and hi/low resolution
-bool Direct3D9Video::DrawChanges(CScreen* pScreen_, bool* pafDirty_)
+bool Direct3D9Video::DrawChanges(Screen* pScreen_, bool* pafDirty_)
 {
     HRESULT hr = 0;
 

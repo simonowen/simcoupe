@@ -42,7 +42,7 @@ struct TOOLBARDATA
 };
 
 
-COwnerDrawnMenu::COwnerDrawnMenu(HINSTANCE hinst_, int nId_, MENUICON* pIconMap_)
+OwnerDrawnMenu::OwnerDrawnMenu(HINSTANCE hinst_, int nId_, MENUICON* pIconMap_)
     : m_pIconMap(pIconMap_)
 {
 #ifndef NO_IMAGES
@@ -64,12 +64,12 @@ COwnerDrawnMenu::COwnerDrawnMenu(HINSTANCE hinst_, int nId_, MENUICON* pIconMap_
 #endif
 }
 
-COwnerDrawnMenu::~COwnerDrawnMenu()
+OwnerDrawnMenu::~OwnerDrawnMenu()
 {
     Cleanup();
 }
 
-void COwnerDrawnMenu::Cleanup()
+void OwnerDrawnMenu::Cleanup()
 {
     if (m_hfont) DeleteObject(m_hfont);
     if (m_hfontBold) DeleteObject(m_hfontBold);
@@ -77,7 +77,7 @@ void COwnerDrawnMenu::Cleanup()
 }
 
 
-LRESULT COwnerDrawnMenu::WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_, LRESULT* plResult_)
+LRESULT OwnerDrawnMenu::WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_, LRESULT* plResult_)
 {
     switch (uMsg_)
     {
@@ -111,9 +111,9 @@ LRESULT COwnerDrawnMenu::WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPAR
 }
 
 
-bool COwnerDrawnMenu::OnMeasureItem(LPMEASUREITEMSTRUCT lpms)
+bool OwnerDrawnMenu::OnMeasureItem(LPMEASUREITEMSTRUCT lpms)
 {
-    CMenuItem* pmi = CMenuItem::GetItem(lpms->itemData);
+    MenuItem* pmi = MenuItem::GetItem(lpms->itemData);
     if (lpms->CtlType != ODT_MENU || !pmi)
         return false;
 
@@ -155,9 +155,9 @@ bool COwnerDrawnMenu::OnMeasureItem(LPMEASUREITEMSTRUCT lpms)
     return true;
 }
 
-bool COwnerDrawnMenu::OnDrawItem(LPDRAWITEMSTRUCT lpds)
+bool OwnerDrawnMenu::OnDrawItem(LPDRAWITEMSTRUCT lpds)
 {
-    CMenuItem* pmi = CMenuItem::GetItem(lpds->itemData);
+    MenuItem* pmi = MenuItem::GetItem(lpds->itemData);
     if (lpds->CtlType != ODT_MENU || !pmi)
         return false;
 
@@ -220,7 +220,7 @@ bool COwnerDrawnMenu::OnDrawItem(LPDRAWITEMSTRUCT lpds)
 }
 
 
-void COwnerDrawnMenu::DrawMenuText(HDC hdc_, LPRECT lprc, LPCSTR pcsz_, bool fDisabled_)
+void OwnerDrawnMenu::DrawMenuText(HDC hdc_, LPRECT lprc, LPCSTR pcsz_, bool fDisabled_)
 {
     char sz[256];
     lstrcpyn(sz, pcsz_, sizeof(sz));
@@ -244,7 +244,7 @@ void COwnerDrawnMenu::DrawMenuText(HDC hdc_, LPRECT lprc, LPCSTR pcsz_, bool fDi
         DST_PREFIXTEXT | (fDisabled_ ? DSS_DISABLED : 0));
 }
 
-bool COwnerDrawnMenu::DrawCheck(HDC hdc, RECT r, UINT uType, UINT uState_)
+bool OwnerDrawnMenu::DrawCheck(HDC hdc, RECT r, UINT uType, UINT uState_)
 {
     RECT rBox = r;
     InflateRect(&rBox, 1, 1);
@@ -276,7 +276,7 @@ bool COwnerDrawnMenu::DrawCheck(HDC hdc, RECT r, UINT uType, UINT uState_)
 
 #ifndef NO_IMAGES
 
-void COwnerDrawnMenu::DrawGreyedImage(HDC hdc_, HIMAGELIST hil_, int i, int x, int y)
+void OwnerDrawnMenu::DrawGreyedImage(HDC hdc_, HIMAGELIST hil_, int i, int x, int y)
 {
     IMAGEINFO info;
     ImageList_GetImageInfo(hil_, i, &info);
@@ -299,12 +299,12 @@ void COwnerDrawnMenu::DrawGreyedImage(HDC hdc_, HIMAGELIST hil_, int i, int x, i
 #endif
 
 
-void COwnerDrawnMenu::OnInitMenuPopup(HMENU hmenu_, UINT nIndex_, BOOL bSysMenu_)
+void OwnerDrawnMenu::OnInitMenuPopup(HMENU hmenu_, UINT nIndex_, BOOL bSysMenu_)
 {
     ConvertMenu(hmenu_, nIndex_, bSysMenu_, true);
 }
 
-LRESULT COwnerDrawnMenu::OnMenuChar(UINT nChar_, UINT nFlags_, HMENU hmenu_)
+LRESULT OwnerDrawnMenu::OnMenuChar(UINT nChar_, UINT nFlags_, HMENU hmenu_)
 {
     int anMatches[64], nFound = 0, nCurrent = -1;
 
@@ -316,7 +316,7 @@ LRESULT COwnerDrawnMenu::OnMenuChar(UINT nChar_, UINT nFlags_, HMENU hmenu_)
         info.fMask = MIIM_TYPE | MIIM_STATE | MIIM_DATA;
         GetMenuItemInfo(hmenu_, i, TRUE, &info);
 
-        CMenuItem* pmi = CMenuItem::GetItem(info.dwItemData);
+        MenuItem* pmi = MenuItem::GetItem(info.dwItemData);
         if ((info.fType & MFT_OWNERDRAW) && pmi->IsOurs())
         {
             char* pszAmp = nullptr;
@@ -344,7 +344,7 @@ LRESULT COwnerDrawnMenu::OnMenuChar(UINT nChar_, UINT nFlags_, HMENU hmenu_)
     return 0;
 }
 
-void COwnerDrawnMenu::OnMenuSelect(UINT nItemID_, UINT nFlags_, HMENU hmenuSys_)
+void OwnerDrawnMenu::OnMenuSelect(UINT nItemID_, UINT nFlags_, HMENU hmenuSys_)
 {
     if (!hmenuSys_ && nFlags_ == 0xFFFF)
     {
@@ -354,7 +354,7 @@ void COwnerDrawnMenu::OnMenuSelect(UINT nItemID_, UINT nFlags_, HMENU hmenuSys_)
 }
 
 
-void COwnerDrawnMenu::ConvertMenu(HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, bool fConvert_)
+void OwnerDrawnMenu::ConvertMenu(HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, bool fConvert_)
 {
     UINT uDefault = GetMenuDefaultItem(hmenu_, FALSE, GMDI_USEDISABLED);
 
@@ -369,7 +369,7 @@ void COwnerDrawnMenu::ConvertMenu(HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, bo
         info.dwTypeData = szItem;
         info.cch = sizeof(szItem);
         GetMenuItemInfo(hmenu_, i, TRUE, &info);
-        CMenuItem* pmi = CMenuItem::GetItem(info.dwItemData);
+        MenuItem* pmi = MenuItem::GetItem(info.dwItemData);
 
         // Reject foreign owner-drawn items
         if (info.dwItemData && !pmi)
@@ -391,7 +391,7 @@ void COwnerDrawnMenu::ConvertMenu(HMENU hmenu_, UINT nIndex_, BOOL fSysMenu_, bo
 
                 if (!pmi)
                 {
-                    info.dwItemData = reinterpret_cast<ULONG_PTR>(pmi = new CMenuItem);
+                    info.dwItemData = reinterpret_cast<ULONG_PTR>(pmi = new MenuItem);
                     info.fMask |= MIIM_DATA;
                     pmi->fType = info.fType;
 

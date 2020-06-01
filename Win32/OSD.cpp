@@ -224,18 +224,18 @@ VOID CALLBACK CloseTimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTim
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CPrinterDevice::CPrinterDevice()
+PrinterDevice::PrinterDevice()
     : m_hPrinter(INVALID_HANDLE_VALUE)
 {
 }
 
-CPrinterDevice::~CPrinterDevice()
+PrinterDevice::~PrinterDevice()
 {
     Close();
 }
 
 
-bool CPrinterDevice::Open()
+bool PrinterDevice::Open()
 {
     PRINTER_DEFAULTS pd = { "RAW", nullptr, PRINTER_ACCESS_USE };
 
@@ -260,7 +260,7 @@ bool CPrinterDevice::Open()
     return false;
 }
 
-void CPrinterDevice::Close()
+void PrinterDevice::Close()
 {
     if (m_hPrinter != INVALID_HANDLE_VALUE)
     {
@@ -274,7 +274,7 @@ void CPrinterDevice::Close()
     }
 }
 
-void CPrinterDevice::Write(uint8_t* pb_, size_t uLen_)
+void PrinterDevice::Write(uint8_t* pb_, size_t uLen_)
 {
     if (m_hPrinter != INVALID_HANDLE_VALUE)
     {

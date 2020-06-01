@@ -96,7 +96,7 @@ bool Do(Action action, bool pressed/*=true*/)
             if (GetOption(drive1) != drvFloppy)
                 Message(msgInfo, "Floppy drive %d is not present", 1);
             else
-                GUI::Start(new CInsertFloppy(1));
+                GUI::Start(new BrowseFloppy(1));
             break;
 
         case Action::EjectFloppy1:
@@ -116,7 +116,7 @@ bool Do(Action action, bool pressed/*=true*/)
             if (GetOption(drive2) != drvFloppy)
                 Message(msgInfo, "Floppy drive %d is not present", 2);
             else
-                GUI::Start(new CInsertFloppy(2));
+                GUI::Start(new BrowseFloppy(2));
             break;
 
         case Action::EjectFloppy2:
@@ -133,16 +133,16 @@ bool Do(Action action, bool pressed/*=true*/)
             break;
 
         case Action::NewDisk1:
-            GUI::Start(new CNewDiskDialog(1));
+            GUI::Start(new NewDiskDialog(1));
             break;
 
         case Action::NewDisk2:
-            GUI::Start(new CNewDiskDialog(2));
+            GUI::Start(new NewDiskDialog(2));
             break;
 
         case Action::TapeInsert:
         case Action::TapeBrowser:
-            GUI::Start(new CInsertTape());
+            GUI::Start(new BrowseTape());
             break;
 
         case Action::TapeEject:
@@ -167,19 +167,19 @@ bool Do(Action action, bool pressed/*=true*/)
             break;
 
         case Action::ImportData:
-            GUI::Start(new CImportDialog);
+            GUI::Start(new ImportDialog);
             break;
 
         case Action::ExportData:
-            GUI::Start(new CExportDialog);
+            GUI::Start(new ExportDialog);
             break;
 
         case Action::Options:
-            GUI::Start(new COptionsDialog);
+            GUI::Start(new OptionsDialog);
             break;
 
         case Action::About:
-            GUI::Start(new CAboutDialog);
+            GUI::Start(new AboutDialog);
             break;
 
         case Action::ToggleTurbo:

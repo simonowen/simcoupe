@@ -30,21 +30,21 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CDrive::CDrive()
+Drive::Drive()
 {
     Reset();
     m_bHeadCyl = 0;
     m_nMotorDelay = 0;
 }
 
-CDrive::CDrive(std::unique_ptr<CDisk> disk) :
-    CDrive()
+Drive::Drive(std::unique_ptr<Disk> disk) :
+    Drive()
 {
     m_pDisk = std::move(disk);
 }
 
 // Reset the controller back to default settings
-void CDrive::Reset()
+void Drive::Reset()
 {
     // Initialise registers
     m_sRegs.bCommand = 0;
@@ -62,12 +62,12 @@ void CDrive::Reset()
 }
 
 // Insert a new disk from the named source (usually a file)
-bool CDrive::Insert(const char* pcszSource_, bool fAutoLoad_)
+bool Drive::Insert(const char* pcszSource_, bool fAutoLoad_)
 {
     Eject();
 
     // Open the new disk image
-    m_pDisk = CDisk::Open(pcszSource_);
+    m_pDisk = Disk::Open(pcszSource_);
     if (!m_pDisk)
         return false;
 
@@ -79,7 +79,7 @@ bool CDrive::Insert(const char* pcszSource_, bool fAutoLoad_)
 }
 
 // Eject any inserted disk
-void CDrive::Eject()
+void Drive::Eject()
 {
     if (m_pDisk && m_pDisk->IsModified())
         m_pDisk->Save();
@@ -87,10 +87,10 @@ void CDrive::Eject()
     m_pDisk.reset();
 }
 
-void CDrive::FrameEnd()
+void Drive::FrameEnd()
 {
     // Base implementation includes default activity handling
-    CDiskDevice::FrameEnd();
+    DiskDevice::FrameEnd();
 
     // If the motor hasn't been used for 2 seconds, switch it off
     if (m_nMotorDelay && !--m_nMotorDelay)
@@ -107,7 +107,7 @@ void CDrive::FrameEnd()
 ////////////////////////////////////////////////////////////////////////////////
 
 
-inline void CDrive::ModifyStatus(uint8_t bSet_, uint8_t bReset_)
+inline void Drive::ModifyStatus(uint8_t bSet_, uint8_t bReset_)
 {
     // Reset then set the specified bits
     m_sRegs.bStatus |= bSet_;
@@ -119,7 +119,7 @@ inline void CDrive::ModifyStatus(uint8_t bSet_, uint8_t bReset_)
 }
 
 // Set the status of a read operation before the data has been read by the CPU
-inline void CDrive::ModifyReadStatus()
+inline void Drive::ModifyReadStatus()
 {
     // Report errors (other than CRC errors) and busy status (from asynchronous operations)
     if (m_bDataStatus & ~CRC_ERROR)
@@ -131,7 +131,7 @@ inline void CDrive::ModifyReadStatus()
 }
 
 
-void CDrive::ExecuteNext()
+void Drive::ExecuteNext()
 {
     uint8_t bStatus = m_sRegs.bStatus;
 
@@ -244,7 +244,7 @@ void CDrive::ExecuteNext()
 }
 
 
-uint8_t CDrive::In(uint16_t wPort_)
+uint8_t Drive::In(uint16_t wPort_)
 {
     uint8_t bRet = 0x00;
 
@@ -390,7 +390,7 @@ uint8_t CDrive::In(uint16_t wPort_)
 }
 
 
-void CDrive::Out(uint16_t wPort_, uint8_t bVal_)
+void Drive::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // Extract side from port address
     m_bSide = ((wPort_) >> 2) & 1;
@@ -628,13 +628,13 @@ void CDrive::Out(uint16_t wPort_, uint8_t bVal_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool CDrive::GetSector(uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
+bool Drive::GetSector(uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
 {
     return m_pDisk->GetSector(m_bHeadCyl, m_bSide, index_, pID_, pbStatus_);
 }
 
 // Locate the sector matching the current register details
-bool CDrive::FindSector(IDFIELD* pID_)
+bool Drive::FindSector(IDFIELD* pID_)
 {
     IDFIELD id;
     uint8_t bStatus;
@@ -669,18 +669,18 @@ bool CDrive::FindSector(IDFIELD* pID_)
 }
 
 
-uint8_t CDrive::ReadSector(uint8_t* pbData_, unsigned int* puSize_)
+uint8_t Drive::ReadSector(uint8_t* pbData_, unsigned int* puSize_)
 {
     return m_pDisk->ReadData(m_bHeadCyl, m_bSide, m_bSectorIndex, pbData_, puSize_);
 }
 
-uint8_t CDrive::WriteSector(uint8_t* pbData_, unsigned int* puSize_)
+uint8_t Drive::WriteSector(uint8_t* pbData_, unsigned int* puSize_)
 {
     return m_pDisk->WriteData(m_bHeadCyl, m_bSide, m_bSectorIndex, pbData_, puSize_);
 }
 
 // Find and return the data for the next ID field seen on the spinning disk
-uint8_t CDrive::ReadAddress(IDFIELD* pID_)
+uint8_t Drive::ReadAddress(IDFIELD* pID_)
 {
     uint8_t bStatus = RECORD_NOT_FOUND;
 
@@ -703,7 +703,7 @@ static void PutBlock(uint8_t*& rpb_, uint8_t bVal_, int nCount_ = 1)
 }
 
 // Construct the raw track from the information of each sector on the track to make it look real
-void CDrive::ReadTrack(uint8_t* pbTrack_, unsigned int uSize_)
+void Drive::ReadTrack(uint8_t* pbTrack_, unsigned int uSize_)
 {
     IDFIELD id;
     uint8_t bStatus;
@@ -768,7 +768,7 @@ void CDrive::ReadTrack(uint8_t* pbTrack_, unsigned int uSize_)
 
 
 // Verify the track position on the disk by looking for a sector with the correct track number and a valid CRC
-uint8_t CDrive::VerifyTrack()
+uint8_t Drive::VerifyTrack()
 {
     IDFIELD id;
 
@@ -794,7 +794,7 @@ static bool ExpectBlock(uint8_t*& rpb_, uint8_t* pbEnd_, uint8_t bVal_, int nMin
 }
 
 // Scan the raw track information for disk formatting
-uint8_t CDrive::WriteTrack(uint8_t* pbTrack_, unsigned int uSize_)
+uint8_t Drive::WriteTrack(uint8_t* pbTrack_, unsigned int uSize_)
 {
     auto pb = pbTrack_;
     auto pbEnd = pb + uSize_;

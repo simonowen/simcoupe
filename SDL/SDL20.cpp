@@ -113,7 +113,7 @@ bool SDLTexture::Init()
 }
 
 
-void SDLTexture::Update(CScreen* pScreen_, bool* pafDirty_)
+void SDLTexture::Update(Screen* pScreen_, bool* pafDirty_)
 {
     // Draw any changed lines to the back buffer
     if (!DrawChanges(pScreen_, pafDirty_))
@@ -146,7 +146,7 @@ void SDLTexture::UpdatePalette()
 
 
 // OpenGL version of DisplayChanges
-bool SDLTexture::DrawChanges(CScreen* pScreen_, bool* pafDirty_)
+bool SDLTexture::DrawChanges(Screen* pScreen_, bool* pafDirty_)
 {
     // Force GUI filtering with odd scaling factors, otherwise respect the options
     bool fFilter = GUI::IsActive() ? GetOption(filtergui) || (GetOption(scale) & 1) : GetOption(filter);

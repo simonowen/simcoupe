@@ -81,7 +81,7 @@ static void AddRecentFile(const char* pcsz_);
 static void LoadRecentFiles();
 static void SaveRecentFiles();
 
-static bool EjectDisk(CDiskDevice& pFloppy_);
+static bool EjectDisk(DiskDevice& pFloppy_);
 static bool EjectTape();
 
 static void SaveWindowPosition(HWND hwnd_);
@@ -354,7 +354,7 @@ void ResizeWindow(int nHeight_)
 
 
 // Save changes to a given drive, optionally prompting for confirmation
-bool ChangesSaved(CDiskDevice& floppy)
+bool ChangesSaved(DiskDevice& floppy)
 {
     if (!floppy.DiskModified())
         return true;
@@ -491,12 +491,12 @@ void UpdateRecentFiles(HMENU hmenu_, int nId_, int nOffset_)
 }
 
 
-bool AttachDisk(CAtaAdapter& adapter, const char* pcszDisk_, int nDevice_)
+bool AttachDisk(AtaAdapter& adapter, const char* pcszDisk_, int nDevice_)
 {
     if (!adapter.Attach(pcszDisk_, nDevice_))
     {
         // Attempt to determine why we couldn't open the device
-        auto disk = std::make_unique<CDeviceHardDisk>(pcszDisk_);
+        auto disk = std::make_unique<DeviceHardDisk>(pcszDisk_);
         if (!disk->Open(false))
         {
             // Access will be denied if we're running as a regular user, and without SAMdiskHelper
@@ -511,7 +511,7 @@ bool AttachDisk(CAtaAdapter& adapter, const char* pcszDisk_, int nDevice_)
     return true;
 }
 
-bool InsertDisk(CDiskDevice& floppy, const char* pcszPath_ = nullptr)
+bool InsertDisk(DiskDevice& floppy, const char* pcszPath_ = nullptr)
 {
     char szFile[MAX_PATH] = "";
     int nDrive = (&floppy == pFloppy1.get()) ? 1 : 2;
@@ -570,7 +570,7 @@ bool InsertDisk(CDiskDevice& floppy, const char* pcszPath_ = nullptr)
     return true;
 }
 
-bool EjectDisk(CDiskDevice& floppy)
+bool EjectDisk(DiskDevice& floppy)
 {
     if (!floppy.HasDisk())
         return true;
@@ -920,8 +920,8 @@ void UpdateMenuFromOptions()
     EnableItem(IDM_FILE_FLOPPY1_SAVE_CHANGES, fFloppy1 && pFloppy1->DiskModified());
 
     // Only enable the floppy device menu item if it's supported
-    EnableItem(IDM_FILE_FLOPPY1_DEVICE, CFloppyStream::IsSupported());
-    CheckOption(IDM_FILE_FLOPPY1_DEVICE, fInserted1 && CFloppyStream::IsRecognised(pFloppy1->DiskFile()));
+    EnableItem(IDM_FILE_FLOPPY1_DEVICE, FloppyStream::IsSupported());
+    CheckOption(IDM_FILE_FLOPPY1_DEVICE, fInserted1 && FloppyStream::IsRecognised(pFloppy1->DiskFile()));
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 2 options
     EnableMenuItem(hmenuFile, 6, MF_BYPOSITION | (fFloppy2 ? MF_ENABLED : MF_GRAYED));
@@ -1373,7 +1373,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
     static bool fInMenu = false, fHideCursor = false;
     static UINT_PTR ulMouseTimer = 0;
 
-    static COwnerDrawnMenu odmenu(nullptr, IDT_MENU, aMenuIcons);
+    static OwnerDrawnMenu odmenu(nullptr, IDT_MENU, aMenuIcons);
 
     //    TRACE("WindowProc(%#08lx,%#04x,%#08lx,%#08lx)\n", hwnd_, uMsg_, wParam_, lParam_);
 
@@ -1817,17 +1817,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         {
             switch (wId)
             {
-            case IDM_FILE_IMPORT_DATA:      GUI::Start(new CImportDialog);      return 0;
-            case IDM_FILE_EXPORT_DATA:      GUI::Start(new CExportDialog);      return 0;
-            case IDM_FILE_FLOPPY1_INSERT:   GUI::Start(new CInsertFloppy(1));   return 0;
-            case IDM_FILE_FLOPPY2_INSERT:   GUI::Start(new CInsertFloppy(2));   return 0;
-            case IDM_TOOLS_OPTIONS:         GUI::Start(new COptionsDialog);     return 0;
-            case IDM_TOOLS_DEBUGGER:        GUI::Start(new CDebugger);          return 0;
-            case IDM_HELP_ABOUT:            GUI::Start(new CAboutDialog);       return 0;
+            case IDM_FILE_IMPORT_DATA:      GUI::Start(new ImportDialog);      return 0;
+            case IDM_FILE_EXPORT_DATA:      GUI::Start(new ExportDialog);      return 0;
+            case IDM_FILE_FLOPPY1_INSERT:   GUI::Start(new BrowseFloppy(1));   return 0;
+            case IDM_FILE_FLOPPY2_INSERT:   GUI::Start(new BrowseFloppy(2));   return 0;
+            case IDM_TOOLS_OPTIONS:         GUI::Start(new OptionsDialog);     return 0;
+            case IDM_TOOLS_DEBUGGER:        GUI::Start(new Debugger);          return 0;
+            case IDM_HELP_ABOUT:            GUI::Start(new AboutDialog);       return 0;
 
-            case IDM_FILE_NEW_DISK1:        GUI::Start(new CNewDiskDialog(1));  return 0;
-            case IDM_FILE_NEW_DISK2:        GUI::Start(new CNewDiskDialog(2));  return 0;
-            case IDM_TOOLS_TAPE_BROWSER:    GUI::Start(new CInsertTape());      return 0; // no tape browser yet
+            case IDM_FILE_NEW_DISK1:        GUI::Start(new NewDiskDialog(1));  return 0;
+            case IDM_FILE_NEW_DISK2:        GUI::Start(new NewDiskDialog(2));  return 0;
+            case IDM_TOOLS_TAPE_BROWSER:    GUI::Start(new BrowseTape());      return 0; // no tape browser yet
             }
         }
 
@@ -1862,7 +1862,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_TOOLS_DEBUGGER:        Actions::Do(Action::Debugger);          break;
 
         case IDM_FILE_FLOPPY1_DEVICE:
-            if (!CFloppyStream::IsAvailable())
+            if (!FloppyStream::IsAvailable())
             {
                 if (MessageBox(hwnd_, "Real floppy disk support requires a 3rd party driver.\n"
                     "\n"
@@ -2541,26 +2541,26 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             if (!pcszExt || (pcszExt && lstrcmpi(pcszExt, aszTypes[nType])))
                 lstrcat(szFile, aszTypes[nType]);
 
-            std::unique_ptr<CStream> stream;
-            std::unique_ptr<CDisk> pDisk;
+            std::unique_ptr<Stream> stream;
+            std::unique_ptr<Disk> pDisk;
 #ifdef HAVE_LIBZ
             if (nType == 0 && fCompress)
-                stream = std::make_unique<CZLibStream>(nullptr, szFile);
+                stream = std::make_unique<ZLibStream>(nullptr, szFile);
             else
 #endif
-                stream = std::make_unique<CFileStream>(nullptr, szFile);
+                stream = std::make_unique<FileStream>(nullptr, szFile);
 
             switch (nType)
             {
             case 0:
-                pDisk = std::make_unique<CMGTDisk>(std::move(stream));
+                pDisk = std::make_unique<MGTDisk>(std::move(stream));
                 break;
             default:
             case 1:
-                pDisk = std::make_unique<CEDSKDisk>(std::move(stream));
+                pDisk = std::make_unique<EDSKDisk>(std::move(stream));
                 break;
             case 2:
-                pDisk = std::make_unique<CMGTDisk>(std::move(stream), DOS_DISK_SECTORS);
+                pDisk = std::make_unique<MGTDisk>(std::move(stream), DOS_DISK_SECTORS);
                 break;
             }
 
@@ -2664,7 +2664,7 @@ INT_PTR CALLBACK HardDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
             GetDlgItemPath(hdlg_, IDE_FILE, szFile, sizeof(szFile));
 
             // If we can, open the existing hard disk image to retrieve the geometry
-            auto disk = CHardDisk::OpenObject(szFile);
+            auto disk = HardDisk::OpenObject(szFile);
 
             if (disk)
             {
@@ -2724,7 +2724,7 @@ INT_PTR CALLBACK HardDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
                     break;
 
                 // Create the new HDF image
-                else if (!CHDFHardDisk::Create(szFile, uTotalSectors))
+                else if (!HDFHardDisk::Create(szFile, uTotalSectors))
                 {
                     MessageBox(hdlg_, "Failed to create new disk (disk full?)", "Create", MB_OK | MB_ICONEXCLAMATION);
                     break;
@@ -2972,7 +2972,7 @@ int FillHDDCombos(HWND hdlg_, int nCombo1_, int nCombo2_)
     SendMessage(hwndCombo1, CB_RESETCONTENT, 0, 0L);
     if (hwndCombo2) SendMessage(hwndCombo2, CB_RESETCONTENT, 0, 0L);
 
-    for (const char* pcszList = CDeviceHardDisk::GetDeviceList(); *pcszList; pcszList += strlen(pcszList) + 1, nDevices++)
+    for (const char* pcszList = DeviceHardDisk::GetDeviceList(); *pcszList; pcszList += strlen(pcszList) + 1, nDevices++)
     {
         SendMessage(hwndCombo1, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(pcszList));
         if (hwndCombo2) SendMessage(hwndCombo2, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(pcszList));
@@ -3046,7 +3046,7 @@ INT_PTR CALLBACK Drive1PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         EnableWindow(GetDlgItem(hdlg_, IDR_DEVICE), nDevices != 0);
         SendDlgItemMessage(hdlg_, IDE_FLOPPY_IMAGE, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
 
-        if (CFloppyStream::IsRecognised(GetOption(disk1)))
+        if (FloppyStream::IsRecognised(GetOption(disk1)))
             SendDlgItemMessage(hdlg_, IDC_FLOPPY_DEVICE, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(disk1)));
         else
             SetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE, GetOption(disk1));
@@ -3159,7 +3159,7 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         int nType = static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_DEVICE_TYPE), CB_GETCURSEL, 0, 0L));
 
         // Set floppy image path or device selection
-        if (CFloppyStream::IsRecognised(GetOption(disk2)))
+        if (FloppyStream::IsRecognised(GetOption(disk2)))
         {
             if (nType == drvFloppy) CheckRadioButton(hdlg_, IDR_IMAGE, IDR_DEVICE, IDR_DEVICE);
             SendDlgItemMessage(hdlg_, IDC_FLOPPY_DEVICE, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(disk2)));
@@ -3170,14 +3170,14 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         }
 
         // Set Atom master device selection
-        if (CDeviceHardDisk::IsRecognised(GetOption(atomdisk0)))
+        if (DeviceHardDisk::IsRecognised(GetOption(atomdisk0)))
         {
             if (nType >= drvAtom) CheckRadioButton(hdlg_, IDR_IMAGE, IDR_DEVICE, IDR_DEVICE);
             SendDlgItemMessage(hdlg_, IDC_HDD_DEVICE, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(atomdisk0)));
         }
 
         // Set Atom slave device selection
-        if (CDeviceHardDisk::IsRecognised(GetOption(atomdisk1)))
+        if (DeviceHardDisk::IsRecognised(GetOption(atomdisk1)))
         {
             if (nType >= drvAtom) CheckRadioButton(hdlg_, IDR_IMAGE2, IDR_DEVICE2, IDR_DEVICE);
             SendDlgItemMessage(hdlg_, IDC_HDD_DEVICE2, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(atomdisk1)));
@@ -3213,15 +3213,15 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         SendDlgItemMessage(hdlg_, IDE_HDD_IMAGE2, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
 
         // Set floppy image path or device selection
-        if (!CFloppyStream::IsRecognised(GetOption(disk2)))
+        if (!FloppyStream::IsRecognised(GetOption(disk2)))
             SetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE, GetOption(disk2));
 
         // Set Atom master image path
-        if (!CDeviceHardDisk::IsRecognised(GetOption(atomdisk0)))
+        if (!DeviceHardDisk::IsRecognised(GetOption(atomdisk0)))
             SetDlgItemText(hdlg_, IDE_HDD_IMAGE, GetOption(atomdisk0));
 
         // Set Atom slave image path
-        if (!CDeviceHardDisk::IsRecognised(GetOption(atomdisk1)))
+        if (!DeviceHardDisk::IsRecognised(GetOption(atomdisk1)))
             SetDlgItemText(hdlg_, IDE_HDD_IMAGE2, GetOption(atomdisk1));
 
         SHAutoComplete(GetDlgItem(hdlg_, IDE_FLOPPY_IMAGE), SHACF_FILESYS_ONLY | SHACF_USETAB);

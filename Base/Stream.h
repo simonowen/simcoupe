@@ -20,16 +20,16 @@
 
 #pragma once
 
-class CStream
+class Stream
 {
 public:
-    CStream(const char* pcszPath_, bool fReadOnly_ = false);
-    CStream(const CStream&) = delete;
-    void operator= (const CStream&) = delete;
-    virtual ~CStream();
+    Stream(const char* pcszPath_, bool fReadOnly_ = false);
+    Stream(const Stream&) = delete;
+    void operator= (const Stream&) = delete;
+    virtual ~Stream();
 
 public:
-    static std::unique_ptr<CStream> Open(const char* pcszPath_, bool fReadOnly_ = false);
+    static std::unique_ptr<Stream> Open(const char* pcszPath_, bool fReadOnly_ = false);
 
 public:
     bool IsReadOnly() const { return m_fReadOnly; }
@@ -53,13 +53,13 @@ protected:
     size_t m_uSize = 0;
 };
 
-class CFileStream final : public CStream
+class FileStream final : public Stream
 {
 public:
-    CFileStream(FILE* hFile_, const char* pcszPath_, bool fReadOnly_ = false);
-    CFileStream(const CFileStream&) = delete;
-    void operator= (const CFileStream&) = delete;
-    ~CFileStream() { Close(); }
+    FileStream(FILE* hFile_, const char* pcszPath_, bool fReadOnly_ = false);
+    FileStream(const FileStream&) = delete;
+    void operator= (const FileStream&) = delete;
+    ~FileStream() { Close(); }
 
 public:
     bool IsOpen() const override { return m_hFile != nullptr; }
@@ -74,13 +74,13 @@ protected:
     FILE* m_hFile = nullptr;
 };
 
-class CMemStream final : public CStream
+class MemStream final : public Stream
 {
 public:
-    CMemStream(void* pv_, size_t uSize_, const char* pcszPath_);
-    CMemStream(const CMemStream&) = delete;
-    void operator= (const CMemStream&) = delete;
-    ~CMemStream() { Close(); }
+    MemStream(void* pv_, size_t uSize_, const char* pcszPath_);
+    MemStream(const MemStream&) = delete;
+    void operator= (const MemStream&) = delete;
+    ~MemStream() { Close(); }
 
 public:
     bool IsOpen() const override { return m_nMode != modeClosed; }
@@ -101,13 +101,13 @@ protected:
 
 const uint8_t GZ_SIGNATURE[] = { 0x1f, 0x8b };
 
-class CZLibStream final : public CStream
+class ZLibStream final : public Stream
 {
 public:
-    CZLibStream(gzFile hFile_, const char* pcszPath_, size_t uSize_ = 0, bool fReadOnly_ = false);
-    CZLibStream(const CZLibStream&) = delete;
-    void operator= (const CZLibStream&) = delete;
-    ~CZLibStream() { Close(); }
+    ZLibStream(gzFile hFile_, const char* pcszPath_, size_t uSize_ = 0, bool fReadOnly_ = false);
+    ZLibStream(const ZLibStream&) = delete;
+    void operator= (const ZLibStream&) = delete;
+    ~ZLibStream() { Close(); }
 
 public:
     bool IsOpen() const override { return m_hFile != nullptr; }
@@ -124,13 +124,13 @@ protected:
     size_t m_uSize = 0;
 };
 
-class CZipStream final : public CStream
+class ZipStream final : public Stream
 {
 public:
-    CZipStream(unzFile hFile_, const char* pcszPath_, bool fReadOnly_ = false);
-    CZipStream(const CZipStream&) = delete;
-    void operator= (const CZipStream&) = delete;
-    ~CZipStream() { Close(); }
+    ZipStream(unzFile hFile_, const char* pcszPath_, bool fReadOnly_ = false);
+    ZipStream(const ZipStream&) = delete;
+    void operator= (const ZipStream&) = delete;
+    ~ZipStream() { Close(); }
 
 public:
     bool IsOpen() const  override { return m_hFile != nullptr; }

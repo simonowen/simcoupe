@@ -23,11 +23,11 @@
 #include "SAMIO.h"
 #include <mmsystem.h>
 
-class CMidiDevice : public CIoDevice
+class MidiDevice : public IoDevice
 {
 public:
-    CMidiDevice();
-    ~CMidiDevice();
+    MidiDevice();
+    ~MidiDevice();
 
 public:
     uint8_t In(uint16_t wPort_) override;
@@ -43,4 +43,4 @@ protected:
     int m_nOut = 0;          // Number of bytes currently in abOut
 };
 
-extern std::unique_ptr<CMidiDevice> pMidi;
+extern std::unique_ptr<MidiDevice> pMidi;

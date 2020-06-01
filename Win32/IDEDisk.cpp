@@ -46,13 +46,13 @@ struct PIPEMESSAGE
 #pragma pack()
 
 
-CDeviceHardDisk::CDeviceHardDisk(const char* pcszDisk_)
-    : CHardDisk(pcszDisk_)
+DeviceHardDisk::DeviceHardDisk(const char* pcszDisk_)
+    : HardDisk(pcszDisk_)
 {
     m_pbSector = (PBYTE)VirtualAlloc(nullptr, 1 << 9, MEM_COMMIT, PAGE_READWRITE);
 }
 
-CDeviceHardDisk::~CDeviceHardDisk()
+DeviceHardDisk::~DeviceHardDisk()
 {
     Close();
 
@@ -61,7 +61,7 @@ CDeviceHardDisk::~CDeviceHardDisk()
 }
 
 
-bool CDeviceHardDisk::IsRecognised(const char* pcszDisk_)
+bool DeviceHardDisk::IsRecognised(const char* pcszDisk_)
 {
     char* pszEnd = nullptr;
 
@@ -70,7 +70,7 @@ bool CDeviceHardDisk::IsRecognised(const char* pcszDisk_)
 }
 
 
-bool CDeviceHardDisk::Open(bool fReadOnly_/*=false*/)
+bool DeviceHardDisk::Open(bool fReadOnly_/*=false*/)
 {
     if (!IsRecognised(m_strPath.c_str()))
         return false;
@@ -143,7 +143,7 @@ bool CDeviceHardDisk::Open(bool fReadOnly_/*=false*/)
     return false;
 }
 
-void CDeviceHardDisk::Close()
+void DeviceHardDisk::Close()
 {
     if (IsOpen())
     {
@@ -153,7 +153,7 @@ void CDeviceHardDisk::Close()
     }
 }
 
-bool CDeviceHardDisk::Lock(bool fReadOnly_/*=false*/)
+bool DeviceHardDisk::Lock(bool fReadOnly_/*=false*/)
 {
     DWORD dwRet;
 
@@ -218,7 +218,7 @@ bool CDeviceHardDisk::Lock(bool fReadOnly_/*=false*/)
     return true;
 }
 
-void CDeviceHardDisk::Unlock()
+void DeviceHardDisk::Unlock()
 {
     if (m_hLock != INVALID_HANDLE_VALUE)
     {
@@ -230,7 +230,7 @@ void CDeviceHardDisk::Unlock()
     }
 }
 
-bool CDeviceHardDisk::ReadSector(UINT uSector_, uint8_t* pb_)
+bool DeviceHardDisk::ReadSector(UINT uSector_, uint8_t* pb_)
 {
     LARGE_INTEGER liOffset = { uSector_ << 9 };
     auto dwLow = static_cast<DWORD>(liOffset.QuadPart & 0xffffffff);
@@ -253,7 +253,7 @@ bool CDeviceHardDisk::ReadSector(UINT uSector_, uint8_t* pb_)
     return false;
 }
 
-bool CDeviceHardDisk::WriteSector(UINT uSector_, uint8_t* pb_)
+bool DeviceHardDisk::WriteSector(UINT uSector_, uint8_t* pb_)
 {
     LARGE_INTEGER liOffset = { uSector_ << 9 };
     auto dwLow = static_cast<DWORD>(liOffset.QuadPart & 0xffffffff);
@@ -267,7 +267,7 @@ bool CDeviceHardDisk::WriteSector(UINT uSector_, uint8_t* pb_)
         WriteFile(m_hDevice, m_pbSector, dwSize, &dwWritten, nullptr) && dwWritten == dwSize;
 }
 
-const char* CDeviceHardDisk::GetDeviceList()
+const char* DeviceHardDisk::GetDeviceList()
 {
     static char szList[1024];
     char* pszList = szList;

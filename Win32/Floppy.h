@@ -40,13 +40,13 @@ struct SECTOR
 };
 
 
-class CFloppyStream final : public CStream
+class FloppyStream final : public Stream
 {
 public:
-    CFloppyStream(const char* pcszDevice_, bool fReadOnly_);
-    CFloppyStream(const CFloppyStream&) = delete;
-    void operator= (const CFloppyStream&) = delete;
-    virtual ~CFloppyStream();
+    FloppyStream(const char* pcszDevice_, bool fReadOnly_);
+    FloppyStream(const FloppyStream&) = delete;
+    void operator= (const FloppyStream&) = delete;
+    virtual ~FloppyStream();
 
 public:
     static bool IsSupported();

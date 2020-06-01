@@ -136,7 +136,7 @@ static bool CompressImageData(PNG_INFO* pPNG_)
 }
 
 
-static bool SaveFile(FILE* f_, CScreen* pScreen_)
+static bool SaveFile(FILE* f_, Screen* pScreen_)
 {
     // Are we to stretch the saved image?
     int nDen = 5, nNum = 4;
@@ -209,7 +209,7 @@ static bool SaveFile(FILE* f_, CScreen* pScreen_)
 
 
 // Process and save the supplied SAM image data to a file in PNG format
-bool Save(CScreen* pScreen_)
+bool Save(Screen* pScreen_)
 {
     bool fRet = false;
 

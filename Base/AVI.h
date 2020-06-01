@@ -29,6 +29,6 @@ void Stop();
 void Toggle(bool fHalfSize_ = false);
 bool IsRecording();
 
-void AddFrame(CScreen* pScreen_);
+void AddFrame(Screen* pScreen_);
 void AddFrame(const uint8_t* pbAudio_, unsigned int uLen_);
 }

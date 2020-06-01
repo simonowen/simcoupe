@@ -36,13 +36,13 @@ struct SECTOR
 };
 
 
-class CFloppyStream final : public CStream
+class FloppyStream final : public Stream
 {
 public:
-    CFloppyStream(const char* pcszStream_, bool fReadOnly_ = false);
-    CFloppyStream(const CFloppyStream&) = delete;
-    void operator= (const CFloppyStream&) = delete;
-    ~CFloppyStream() { Close(); }
+    FloppyStream(const char* pcszStream_, bool fReadOnly_ = false);
+    FloppyStream(const FloppyStream&) = delete;
+    void operator= (const FloppyStream&) = delete;
+    ~FloppyStream() { Close(); }
 
 public:
     static bool IsRecognised(const char* pcszStream_);

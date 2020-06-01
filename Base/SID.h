@@ -31,12 +31,12 @@
 #define SID_CLOCK_PAL   985248
 #endif // HAVE_LIBRESID
 
-class CSID final : public CSoundDevice
+class SIDDevice final : public SoundDevice
 {
 public:
-    CSID();
-    CSID(const CSID&) = delete;
-    void operator= (const CSID&) = delete;
+    SIDDevice();
+    SIDDevice(const SIDDevice&) = delete;
+    void operator= (const SIDDevice&) = delete;
 
 public:
     void Reset() override;
@@ -52,4 +52,4 @@ protected:
     int m_nChipType = 0;
 };
 
-extern std::unique_ptr<CSID> pSID;
+extern std::unique_ptr<SIDDevice> pSID;

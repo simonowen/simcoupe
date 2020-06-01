@@ -22,10 +22,10 @@
 
 #include "SAMIO.h"
 
-class CPaulaDevice : public CIoDevice
+class PaulaDevice : public IoDevice
 {
 public:
     void Out(uint16_t wPort_, uint8_t bVal_) override;
 };
 
-extern std::unique_ptr<CPaulaDevice> pPaula;
+extern std::unique_ptr<PaulaDevice> pPaula;

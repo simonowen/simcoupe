@@ -19,7 +19,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 //  ToDo:
-//   - CFileView derived class needed to supply file icons
+//   - FileView derived class needed to supply file icons
 //   - button repeat on scrollbar
 //   - add extra message box buttons (yes/no/cancel, etc.)
 //   - regular list box?
@@ -40,13 +40,13 @@
 #include "UI.h"
 #include "Video.h"
 
-CWindow* GUI::s_pGUI;
+Window* GUI::s_pGUI;
 int GUI::s_nX, GUI::s_nY;
 
 static uint32_t dwLastClick = 0;   // Time of last double-click
 
-std::queue<CWindow*> GUI::s_garbageQueue;
-std::stack<CWindow*> GUI::s_dialogStack;
+std::queue<Window*> GUI::s_garbageQueue;
+std::stack<Window*> GUI::s_dialogStack;
 
 bool GUI::SendMessage(int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 {
@@ -110,7 +110,7 @@ bool GUI::SendMessage(int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 }
 
 
-bool GUI::Start(CWindow* pGUI_)
+bool GUI::Start(Window* pGUI_)
 {
     // Reject the new GUI if it's already running, or if the emulator is paused
     if (s_pGUI || g_fPaused)
@@ -147,7 +147,7 @@ void GUI::Stop()
     Input::Purge();
 }
 
-void GUI::Delete(CWindow* pWindow_)
+void GUI::Delete(Window* pWindow_)
 {
     s_garbageQueue.push(pWindow_);
 
@@ -156,11 +156,11 @@ void GUI::Delete(CWindow* pWindow_)
         s_pGUI = nullptr;
 }
 
-void GUI::Draw(CScreen* pScreen_)
+void GUI::Draw(Screen* pScreen_)
 {
     if (s_pGUI)
     {
-        CScreen::SetFont(s_pGUI->GetFont());
+        Screen::SetFont(s_pGUI->GetFont());
         s_pGUI->Draw(pScreen_);
 
         // Use hardware cursor on Win32, software cursor on everything else (for now).
@@ -179,7 +179,7 @@ bool GUI::IsModal()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CWindow::CWindow(CWindow* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, int nWidth_/*=0*/, int nHeight_/*=0*/, int nType_/*=ctUnknown*/)
+Window::Window(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, int nWidth_/*=0*/, int nHeight_/*=0*/, int nType_/*=ctUnknown*/)
     : m_nX(nX_), m_nY(nY_), m_nWidth(nWidth_), m_nHeight(nHeight_), m_nType(nType_), m_pFont(&sGUIFont)
 {
     if (pParent_)
@@ -193,12 +193,12 @@ CWindow::CWindow(CWindow* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, in
     }
 }
 
-CWindow::~CWindow()
+Window::~Window()
 {
     // Delete any child controls
     while (m_pChildren)
     {
-        CWindow* pChild = m_pChildren;
+        Window* pChild = m_pChildren;
         m_pChildren = m_pChildren->m_pNext;
         delete pChild;
     }
@@ -208,15 +208,15 @@ CWindow::~CWindow()
 
 
 // Test whether the given point is inside the current control
-bool CWindow::HitTest(int nX_, int nY_)
+bool Window::HitTest(int nX_, int nY_)
 {
     return (nX_ >= m_nX) && (nX_ < (m_nX + m_nWidth)) && (nY_ >= m_nY) && (nY_ < (m_nY + m_nHeight));
 }
 
 // Draw the child controls on the current window
-void CWindow::Draw(CScreen* pScreen_)
+void Window::Draw(Screen* pScreen_)
 {
-    for (CWindow* p = m_pChildren; p; p = p->m_pNext)
+    for (Window* p = m_pChildren; p; p = p->m_pNext)
     {
         if (p != m_pActive)
         {
@@ -234,13 +234,13 @@ void CWindow::Draw(CScreen* pScreen_)
 }
 
 // Notify the parent something has changed
-void CWindow::NotifyParent(int nParam_/*=0*/)
+void Window::NotifyParent(int nParam_/*=0*/)
 {
     if (m_pParent)
         m_pParent->OnNotify(this, nParam_);
 }
 
-bool CWindow::RouteMessage(int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
+bool Window::RouteMessage(int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
 {
     bool fProcessed = false;
     bool fMouseMessage = (nMessage_ & GM_TYPE_MASK) == GM_MOUSE_MESSAGE;
@@ -256,9 +256,9 @@ bool CWindow::RouteMessage(int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/
     }
 
     // Give the remaining child controls a chance to process the message
-    for (CWindow* p = m_pChildren; !fProcessed && p; )
+    for (Window* p = m_pChildren; !fProcessed && p; )
     {
-        CWindow* pChild = p;
+        Window* pChild = p;
         p = p->m_pNext;
 
         // If it's a mouse message, update the child control hit status
@@ -288,18 +288,18 @@ bool CWindow::RouteMessage(int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/
     return fProcessed;
 }
 
-bool CWindow::OnMessage(int /*nMessage_*/, int /*nParam1_=0*/, int /*nParam2_=0*/)
+bool Window::OnMessage(int /*nMessage_*/, int /*nParam1_=0*/, int /*nParam2_=0*/)
 {
     return false;
 }
 
 
-void CWindow::SetParent(CWindow* pParent_/*=nullptr*/)
+void Window::SetParent(Window* pParent_/*=nullptr*/)
 {
     // Unlink from any existing parent
     if (m_pParent)
     {
-        CWindow* pPrev = GetPrev();
+        Window* pPrev = GetPrev();
 
         if (!pPrev)
             m_pParent->m_pChildren = GetNext();
@@ -321,7 +321,7 @@ void CWindow::SetParent(CWindow* pParent_/*=nullptr*/)
             pParent_->m_pChildren = this;
         else
         {
-            CWindow* p;
+            Window* p;
             for (p = pParent_->m_pChildren; p->GetNext(); p = p->GetNext());
             p->m_pNext = this;
         }
@@ -329,7 +329,7 @@ void CWindow::SetParent(CWindow* pParent_/*=nullptr*/)
 }
 
 
-void CWindow::Destroy()
+void Window::Destroy()
 {
     // Destroy any child windows first
     while (m_pChildren)
@@ -338,7 +338,7 @@ void CWindow::Destroy()
     if (m_pParent)
     {
         // Unlink us from the parent, but remember what it was
-        CWindow* pParent = m_pParent;
+        Window* pParent = m_pParent;
         SetParent(nullptr);
 
         // Re-activate the parent now we're gone
@@ -350,14 +350,14 @@ void CWindow::Destroy()
 }
 
 
-void CWindow::Activate()
+void Window::Activate()
 {
     if (m_pParent)
         m_pParent->m_pActive = this;
 }
 
 
-void CWindow::SetText(const char* pcszText_)
+void Window::SetText(const char* pcszText_)
 {
     // Delete any old string and make a copy of the new one (take care in case the new string is the old one)
     char* pcszOld = m_pszText;
@@ -365,41 +365,41 @@ void CWindow::SetText(const char* pcszText_)
     delete[] pcszOld;
 }
 
-unsigned int CWindow::GetValue() const
+unsigned int Window::GetValue() const
 {
     char* pEnd = nullptr;
     unsigned long ulValue = strtoul(m_pszText, &pEnd, 0);
     return *pEnd ? 0 : static_cast<unsigned int>(ulValue);
 }
 
-void CWindow::SetValue(unsigned int u_)
+void Window::SetValue(unsigned int u_)
 {
     char sz[16];
     snprintf(sz, sizeof(sz) - 1, "%u", u_);
     SetText(sz);
 }
 
-int CWindow::GetTextWidth(size_t nOffset_/*=0*/, size_t nMaxLength_/*=-1*/) const
+int Window::GetTextWidth(size_t nOffset_/*=0*/, size_t nMaxLength_/*=-1*/) const
 {
-    return CScreen::GetStringWidth(GetText() + nOffset_, nMaxLength_, m_pFont);
+    return Screen::GetStringWidth(GetText() + nOffset_, nMaxLength_, m_pFont);
 }
 
-int CWindow::GetTextWidth(const char* pcsz_) const
+int Window::GetTextWidth(const char* pcsz_) const
 {
-    return CScreen::GetStringWidth(pcsz_, -1, m_pFont);
+    return Screen::GetStringWidth(pcsz_, -1, m_pFont);
 }
 
 
-CWindow* CWindow::GetNext(bool fWrap_/*=false*/)
+Window* Window::GetNext(bool fWrap_/*=false*/)
 {
     return m_pNext ? m_pNext : (fWrap_ ? GetSiblings() : nullptr);
 }
 
-CWindow* CWindow::GetPrev(bool fWrap_/*=false*/)
+Window* Window::GetPrev(bool fWrap_/*=false*/)
 {
-    CWindow* pLast = nullptr;
+    Window* pLast = nullptr;
 
-    for (CWindow* p = GetSiblings(); p; pLast = p, p = p->m_pNext)
+    for (Window* p = GetSiblings(); p; pLast = p, p = p->m_pNext)
         if (p->m_pNext == this)
             return p;
 
@@ -407,17 +407,17 @@ CWindow* CWindow::GetPrev(bool fWrap_/*=false*/)
 }
 
 // Return the start of the control group containing the current control
-CWindow* CWindow::GetGroup()
+Window* Window::GetGroup()
 {
     // Search our sibling controls
-    for (CWindow* p = GetSiblings(); p; p = p->GetNext())
+    for (Window* p = GetSiblings(); p; p = p->GetNext())
     {
         // Continue looking if it's not a radio button
         if (p->GetType() != GetType())
             continue;
 
         // Search the rest of the radio group
-        for (CWindow* p2 = p; p2 && p2->GetType() == GetType(); p2 = p2->GetNext())
+        for (Window* p2 = p; p2 && p2->GetType() == GetType(); p2 = p2->GetNext())
         {
             // If we've found ourselves, return the start of the group
             if (p2 == this)
@@ -429,37 +429,37 @@ CWindow* CWindow::GetGroup()
 }
 
 
-void CWindow::MoveRecurse(CWindow* pWindow_, int ndX_, int ndY_)
+void Window::MoveRecurse(Window* pWindow_, int ndX_, int ndY_)
 {
     // Move our window by the specified offset
     pWindow_->m_nX += ndX_;
     pWindow_->m_nY += ndY_;
 
     // Move and child windows
-    for (CWindow* p = pWindow_->m_pChildren; p; p = p->m_pNext)
+    for (Window* p = pWindow_->m_pChildren; p; p = p->m_pNext)
         MoveRecurse(p, ndX_, ndY_);
 }
 
-void CWindow::Move(int nX_, int nY_)
+void Window::Move(int nX_, int nY_)
 {
     // Perform a recursive relative move of the window and all children
     MoveRecurse(this, nX_ - m_nX, nY_ - m_nY);
 }
 
-void CWindow::Offset(int ndX_, int ndY_)
+void Window::Offset(int ndX_, int ndY_)
 {
     // Perform a recursive relative move of the window and all children
     MoveRecurse(this, ndX_, ndY_);
 }
 
 
-void CWindow::SetSize(int nWidth_, int nHeight_)
+void Window::SetSize(int nWidth_, int nHeight_)
 {
     if (nWidth_) m_nWidth = nWidth_;
     if (nHeight_) m_nHeight = nHeight_;
 }
 
-void CWindow::Inflate(int ndW_, int ndH_)
+void Window::Inflate(int ndW_, int ndH_)
 {
     m_nWidth += ndW_;
     m_nHeight += ndH_;
@@ -467,15 +467,15 @@ void CWindow::Inflate(int ndW_, int ndH_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CTextControl::CTextControl(CWindow* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/,
+TextControl::TextControl(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/,
     uint8_t bColour_/*=WHITE*/, uint8_t bBackColour_/*=0*/)
-    : CWindow(pParent_, nX_, nY_, 0, 0, ctText), m_bColour(bColour_), m_bBackColour(bBackColour_)
+    : Window(pParent_, nX_, nY_, 0, 0, ctText), m_bColour(bColour_), m_bBackColour(bBackColour_)
 {
     SetTextAndColour(pcszText_, bColour_);
     m_nWidth = GetTextWidth();
 }
 
-void CTextControl::Draw(CScreen* pScreen_)
+void TextControl::Draw(Screen* pScreen_)
 {
     if (m_bBackColour)
         pScreen_->FillRect(m_nX - 1, m_nY - 1, GetTextWidth() + 2, 14, m_bBackColour);
@@ -483,10 +483,10 @@ void CTextControl::Draw(CScreen* pScreen_)
     pScreen_->DrawString(m_nX, m_nY, GetText(), IsEnabled() ? m_bColour : GREY_5);
 }
 
-void CTextControl::SetTextAndColour(const char* pcszText_, uint8_t bColour_)
+void TextControl::SetTextAndColour(const char* pcszText_, uint8_t bColour_)
 {
     m_bColour = bColour_;
-    CWindow::SetText(pcszText_);
+    Window::SetText(pcszText_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -494,12 +494,12 @@ void CTextControl::SetTextAndColour(const char* pcszText_, uint8_t bColour_)
 const int BUTTON_BORDER = 3;
 const int BUTTON_HEIGHT = BUTTON_BORDER + CHAR_HEIGHT + BUTTON_BORDER;
 
-CButton::CButton(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
-    : CWindow(pParent_, nX_, nY_, nWidth_, nHeight_ ? nHeight_ : BUTTON_HEIGHT, ctButton)
+Button::Button(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
+    : Window(pParent_, nX_, nY_, nWidth_, nHeight_ ? nHeight_ : BUTTON_HEIGHT, ctButton)
 {
 }
 
-void CButton::Draw(CScreen* pScreen_)
+void Button::Draw(Screen* pScreen_)
 {
     bool fPressed = m_fPressed && IsOver();
 
@@ -515,7 +515,7 @@ void CButton::Draw(CScreen* pScreen_)
     pScreen_->DrawLine(m_nX + m_nWidth - 1, m_nY + 1, 0, m_nHeight - 1, fPressed ? WHITE : GREY_5);
 }
 
-bool CButton::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
+bool Button::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
 {
     switch (nMessage_)
     {
@@ -561,15 +561,15 @@ bool CButton::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CTextButton::CTextButton(CWindow* pParent_, int nX_, int nY_, const char* pcszText_/*=""*/, int nMinWidth_/*=0*/)
-    : CButton(pParent_, nX_, nY_, 0, BUTTON_HEIGHT), m_nMinWidth(nMinWidth_)
+TextButton::TextButton(Window* pParent_, int nX_, int nY_, const char* pcszText_/*=""*/, int nMinWidth_/*=0*/)
+    : Button(pParent_, nX_, nY_, 0, BUTTON_HEIGHT), m_nMinWidth(nMinWidth_)
 {
     SetText(pcszText_);
 }
 
-void CTextButton::SetText(const char* pcszText_)
+void TextButton::SetText(const char* pcszText_)
 {
-    CWindow::SetText(pcszText_);
+    Window::SetText(pcszText_);
 
     // Set the control width to be just enough to contain the text and a border
     m_nWidth = BUTTON_BORDER + GetTextWidth() + BUTTON_BORDER;
@@ -579,9 +579,9 @@ void CTextButton::SetText(const char* pcszText_)
         m_nWidth = m_nMinWidth;
 }
 
-void CTextButton::Draw(CScreen* pScreen_)
+void TextButton::Draw(Screen* pScreen_)
 {
-    CButton::Draw(pScreen_);
+    Button::Draw(pScreen_);
 
     bool fPressed = m_fPressed && IsOver();
 
@@ -593,16 +593,16 @@ void CTextButton::Draw(CScreen* pScreen_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CImageButton::CImageButton(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_,
+ImageButton::ImageButton(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_,
     const GUI_ICON* pIcon_, int nDX_/*=0*/, int nDY_/*=0*/)
-    : CButton(pParent_, nX_, nY_, nWidth_, nHeight_), m_pIcon(pIcon_), m_nDX(nDX_), m_nDY(nDY_)
+    : Button(pParent_, nX_, nY_, nWidth_, nHeight_), m_pIcon(pIcon_), m_nDX(nDX_), m_nDY(nDY_)
 {
     m_nType = ctImageButton;
 }
 
-void CImageButton::Draw(CScreen* pScreen_)
+void ImageButton::Draw(Screen* pScreen_)
 {
-    CButton::Draw(pScreen_);
+    Button::Draw(pScreen_);
 
     bool fPressed = m_fPressed && IsOver();
     int nX = m_nX + m_nDX + fPressed, nY = m_nY + m_nDY + fPressed;
@@ -613,14 +613,14 @@ void CImageButton::Draw(CScreen* pScreen_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CUpButton::CUpButton(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
-    : CButton(pParent_, nX_, nY_, nWidth_, nHeight_)
+UpButton::UpButton(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
+    : Button(pParent_, nX_, nY_, nWidth_, nHeight_)
 {
 }
 
-void CUpButton::Draw(CScreen* pScreen_)
+void UpButton::Draw(Screen* pScreen_)
 {
-    CButton::Draw(pScreen_);
+    Button::Draw(pScreen_);
 
     bool fPressed = m_fPressed && IsOver();
 
@@ -635,14 +635,14 @@ void CUpButton::Draw(CScreen* pScreen_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CDownButton::CDownButton(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
-    : CButton(pParent_, nX_, nY_, nWidth_, nHeight_)
+DownButton::DownButton(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
+    : Button(pParent_, nX_, nY_, nWidth_, nHeight_)
 {
 }
 
-void CDownButton::Draw(CScreen* pScreen_)
+void DownButton::Draw(Screen* pScreen_)
 {
-    CButton::Draw(pScreen_);
+    Button::Draw(pScreen_);
 
     bool fPressed = m_fPressed && IsOver();
 
@@ -660,22 +660,22 @@ void CDownButton::Draw(CScreen* pScreen_)
 const int PRETEXT_GAP = 5;
 const int BOX_SIZE = 11;
 
-CCheckBox::CCheckBox(CWindow* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/,
+CheckBox::CheckBox(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/,
     uint8_t bColour_/*=WHITE*/, uint8_t bBackColour_/*=0*/)
-    : CWindow(pParent_, nX_, nY_, 0, BOX_SIZE, ctCheckBox), m_bColour(bColour_), m_bBackColour(bBackColour_)
+    : Window(pParent_, nX_, nY_, 0, BOX_SIZE, ctCheckBox), m_bColour(bColour_), m_bBackColour(bBackColour_)
 {
     SetText(pcszText_);
 }
 
-void CCheckBox::SetText(const char* pcszText_)
+void CheckBox::SetText(const char* pcszText_)
 {
-    CWindow::SetText(pcszText_);
+    Window::SetText(pcszText_);
 
     // Set the control width to be just enough to contain the text
     m_nWidth = 1 + BOX_SIZE + PRETEXT_GAP + GetTextWidth();
 }
 
-void CCheckBox::Draw(CScreen* pScreen_)
+void CheckBox::Draw(Screen* pScreen_)
 {
     // Draw the text to the right of the box, grey if the control is disabled
     int nX = m_nX + BOX_SIZE + PRETEXT_GAP;
@@ -713,7 +713,7 @@ void CCheckBox::Draw(CScreen* pScreen_)
         pScreen_->DrawImage(m_nX, m_nY, 11, 11, reinterpret_cast<uint8_t*>(abCheck), IsEnabled() ? abEnabled : abDisabled);
 }
 
-bool CCheckBox::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
+bool CheckBox::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
 {
     static bool fPressed = false;
 
@@ -768,36 +768,36 @@ const int EDIT_HEIGHT = EDIT_BORDER + CHAR_HEIGHT + EDIT_BORDER;
 
 const size_t MAX_EDIT_LENGTH = 250;
 
-CEditControl::CEditControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_/*=""*/)
-    : CWindow(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit)
+EditControl::EditControl(Window* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_/*=""*/)
+    : Window(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit)
 {
     SetText(pcszText_);
 }
 
-CEditControl::CEditControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, unsigned int u_)
-    : CWindow(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit)
+EditControl::EditControl(Window* pParent_, int nX_, int nY_, int nWidth_, unsigned int u_)
+    : Window(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit)
 {
     SetValue(u_);
 }
 
-void CEditControl::Activate()
+void EditControl::Activate()
 {
-    CWindow::Activate();
+    Window::Activate();
 
     m_nCaretStart = 0;
     m_nCaretEnd = strlen(GetText());
 }
 
-void CEditControl::SetSelectedText(const char* pcszText_, bool fSelected_)
+void EditControl::SetSelectedText(const char* pcszText_, bool fSelected_)
 {
-    CWindow::SetText(pcszText_);
+    Window::SetText(pcszText_);
 
     // Select the text or position the caret at the end, as requested
     m_nCaretEnd = strlen(pcszText_);
     m_nCaretStart = fSelected_ ? 0 : m_nCaretEnd;
 }
 
-void CEditControl::Draw(CScreen* pScreen_)
+void EditControl::Draw(Screen* pScreen_)
 {
     int nWidth = m_nWidth - 2 * EDIT_BORDER;
 
@@ -889,7 +889,7 @@ void CEditControl::Draw(CScreen* pScreen_)
     }
 }
 
-bool CEditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool EditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     switch (nMessage_)
     {
@@ -1014,7 +1014,7 @@ bool CEditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
                 // Remove the selection, and set the text back
                 strcpy(sz, GetText());
                 memmove(sz + m_nCaretStart, sz + m_nCaretEnd, strlen(sz + m_nCaretEnd) + 1);
-                CWindow::SetText(sz);
+                Window::SetText(sz);
 
                 // Move the end selection to the previous selection start position
                 m_nCaretEnd = m_nCaretStart;
@@ -1034,7 +1034,7 @@ bool CEditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
                     memmove(sz + m_nCaretEnd + 1, GetText() + m_nCaretEnd, strlen(GetText() + m_nCaretEnd) + 1);
                     m_nCaretStart = ++m_nCaretEnd;
 
-                    CWindow::SetText(sz);
+                    Window::SetText(sz);
                 }
             }
 
@@ -1050,7 +1050,7 @@ bool CEditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool CNumberEditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool NumberEditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     if (nMessage_ == GM_CHAR)
     {
@@ -1068,28 +1068,28 @@ bool CNumberEditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
         }
     }
 
-    return CEditControl::OnMessage(nMessage_, nParam1_, nParam2_);
+    return EditControl::OnMessage(nMessage_, nParam1_, nParam2_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 const int RADIO_PRETEXT_GAP = 16;
 
-CRadioButton::CRadioButton(CWindow* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nWidth_/*=0*/)
-    : CWindow(pParent_, nX_, nY_, nWidth_, CHAR_HEIGHT + 2, ctRadio)
+RadioButton::RadioButton(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nWidth_/*=0*/)
+    : Window(pParent_, nX_, nY_, nWidth_, CHAR_HEIGHT + 2, ctRadio)
 {
     SetText(pcszText_);
 }
 
-void CRadioButton::SetText(const char* pcszText_)
+void RadioButton::SetText(const char* pcszText_)
 {
-    CWindow::SetText(pcszText_);
+    Window::SetText(pcszText_);
 
     // Set the control width to be just enough to contain the text
     m_nWidth = 1 + RADIO_PRETEXT_GAP + GetTextWidth();
 }
 
-void CRadioButton::Draw(CScreen* pScreen_)
+void RadioButton::Draw(Screen* pScreen_)
 {
     int nX = m_nX + 1, nY = m_nY;
 
@@ -1133,7 +1133,7 @@ void CRadioButton::Draw(CScreen* pScreen_)
     pScreen_->DrawString(nX + RADIO_PRETEXT_GAP, nY + 1, GetText(), IsEnabled() ? (IsActive() ? YELLOW_8 : GREY_7) : GREY_5);
 }
 
-bool CRadioButton::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
+bool RadioButton::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
 {
     static bool fPressed = false;
 
@@ -1149,11 +1149,11 @@ bool CRadioButton::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
         case HK_LEFT:
         case HK_UP:
         {
-            CWindow* pPrev = GetPrev();
+            Window* pPrev = GetPrev();
             if (pPrev && pPrev->GetType() == GetType())
             {
                 pPrev->Activate();
-                reinterpret_cast<CRadioButton*>(pPrev)->Select();
+                reinterpret_cast<RadioButton*>(pPrev)->Select();
                 NotifyParent();
             }
             return true;
@@ -1162,11 +1162,11 @@ bool CRadioButton::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
         case HK_RIGHT:
         case HK_DOWN:
         {
-            CWindow* pNext = GetNext();
+            Window* pNext = GetNext();
             if (pNext && pNext->GetType() == GetType())
             {
                 pNext->Activate();
-                reinterpret_cast<CRadioButton*>(pNext)->Select();
+                reinterpret_cast<RadioButton*>(pNext)->Select();
                 NotifyParent();
             }
             return true;
@@ -1202,7 +1202,7 @@ bool CRadioButton::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
     return fPressed;
 }
 
-void CRadioButton::Select(bool fSelected_/*=true*/)
+void RadioButton::Select(bool fSelected_/*=true*/)
 {
     // Remember the new status
     m_fSelected = fSelected_;
@@ -1211,11 +1211,11 @@ void CRadioButton::Select(bool fSelected_/*=true*/)
     if (m_fSelected)
     {
         // Search the control group
-        for (CWindow* p = GetGroup(); p && p->GetType() == ctRadio; p = p->GetNext())
+        for (Window* p = GetGroup(); p && p->GetType() == ctRadio; p = p->GetNext())
         {
             // Deselect the button if it's not us
             if (p != this)
-                reinterpret_cast<CRadioButton*>(p)->Select(false);
+                reinterpret_cast<RadioButton*>(p)->Select(false);
         }
     }
 }
@@ -1226,21 +1226,21 @@ const char* const MENU_DELIMITERS = "|";
 const int MENU_TEXT_GAP = 5;
 const int MENU_ITEM_HEIGHT = 2 + CHAR_HEIGHT + 2;
 
-CMenu::CMenu(CWindow* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/)
-    : CWindow(pParent_, nX_, nY_, 0, 0, ctMenu)
+Menu::Menu(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/)
+    : Window(pParent_, nX_, nY_, 0, 0, ctMenu)
 {
     SetText(pcszText_);
     Activate();
 }
 
-void CMenu::Select(int nItem_)
+void Menu::Select(int nItem_)
 {
     m_nSelected = (nItem_ < 0) ? 0 : (nItem_ >= m_nItems) ? m_nItems - 1 : nItem_;
 }
 
-void CMenu::SetText(const char* pcszText_)
+void Menu::SetText(const char* pcszText_)
 {
-    CWindow::SetText(pcszText_);
+    Window::SetText(pcszText_);
 
     int nMaxLen = 0;
     char sz[256];
@@ -1261,7 +1261,7 @@ void CMenu::SetText(const char* pcszText_)
     m_nHeight = MENU_ITEM_HEIGHT * m_nItems;
 }
 
-void CMenu::Draw(CScreen* pScreen_)
+void Menu::Draw(Screen* pScreen_)
 {
     // Fill overall control background and frame it
     pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, YELLOW_8);
@@ -1292,7 +1292,7 @@ void CMenu::Draw(CScreen* pScreen_)
     }
 }
 
-bool CMenu::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool Menu::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     switch (nMessage_)
     {
@@ -1374,28 +1374,28 @@ bool CMenu::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CDropList::CDropList(CWindow* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nMinWidth_/*=0*/)
-    : CMenu(pParent_, nX_, nY_, pcszText_), m_nMinWidth(nMinWidth_)
+DropList::DropList(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nMinWidth_/*=0*/)
+    : Menu(pParent_, nX_, nY_, pcszText_), m_nMinWidth(nMinWidth_)
 {
     m_nSelected = 0;
     SetText(pcszText_);
 }
 
-void CDropList::SetText(const char* pcszText_)
+void DropList::SetText(const char* pcszText_)
 {
-    CMenu::SetText(pcszText_);
+    Menu::SetText(pcszText_);
 
     if (m_nWidth < m_nMinWidth)
         m_nWidth = m_nMinWidth;
 }
 
-bool CDropList::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool DropList::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     // Eat movement messages that are not over the control
     if (nMessage_ == GM_MOUSEMOVE && !IsOver())
         return true;
 
-    return CMenu::OnMessage(nMessage_, nParam1_, nParam2_);
+    return Menu::OnMessage(nMessage_, nParam1_, nParam2_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1403,15 +1403,15 @@ bool CDropList::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 const int COMBO_BORDER = 3;
 const int COMBO_HEIGHT = COMBO_BORDER + CHAR_HEIGHT + COMBO_BORDER;
 
-CComboBox::CComboBox(CWindow* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nWidth_/*=0*/)
-    : CWindow(pParent_, nX_, nY_, nWidth_, COMBO_HEIGHT, ctComboBox),
+ComboBox::ComboBox(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nWidth_/*=0*/)
+    : Window(pParent_, nX_, nY_, nWidth_, COMBO_HEIGHT, ctComboBox),
     m_nItems(0), m_nSelected(0), m_fPressed(false), m_pDropList(nullptr)
 {
     SetText(pcszText_);
 }
 
 
-void CComboBox::Select(int nSelected_)
+void ComboBox::Select(int nSelected_)
 {
     int nOldSelection = m_nSelected;
     m_nSelected = (nSelected_ < 0 || !m_nItems) ? 0 : (nSelected_ >= m_nItems) ? m_nItems - 1 : nSelected_;
@@ -1421,7 +1421,7 @@ void CComboBox::Select(int nSelected_)
         NotifyParent();
 }
 
-void CComboBox::Select(const char* pcszItem_)
+void ComboBox::Select(const char* pcszItem_)
 {
     char sz[256];
     strncpy(sz, GetText(), sizeof(sz) - 1);
@@ -1441,7 +1441,7 @@ void CComboBox::Select(const char* pcszItem_)
 }
 
 
-const char* CComboBox::GetSelectedText()
+const char* ComboBox::GetSelectedText()
 {
     static char sz[256];
     strncpy(sz, GetText(), sizeof(sz) - 1);
@@ -1455,16 +1455,16 @@ const char* CComboBox::GetSelectedText()
     return psz ? psz : "";
 }
 
-void CComboBox::SetText(const char* pcszText_)
+void ComboBox::SetText(const char* pcszText_)
 {
-    CWindow::SetText(pcszText_);
+    Window::SetText(pcszText_);
 
     // Count the number of items in the list, then select the first one
     for (m_nItems = !!*pcszText_; (pcszText_ = strchr(pcszText_, '|')); pcszText_++, m_nItems++);
     Select(0);
 }
 
-void CComboBox::Draw(CScreen* pScreen_)
+void ComboBox::Draw(Screen* pScreen_)
 {
     bool fPressed = m_fPressed;
 
@@ -1507,13 +1507,13 @@ void CComboBox::Draw(CScreen* pScreen_)
     pScreen_->DrawString(nX, nY, psz ? psz : "", IsEnabled() ? (IsActive() ? BLACK : BLACK) : GREY_5);
 
     // Call the base to paint any child controls
-    CWindow::Draw(pScreen_);
+    Window::Draw(pScreen_);
 }
 
-bool CComboBox::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool ComboBox::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     // Give child controls first go at the message
-    if (CWindow::OnMessage(nMessage_, nParam1_, nParam2_))
+    if (Window::OnMessage(nMessage_, nParam1_, nParam2_))
         return true;
 
     switch (nMessage_)
@@ -1528,7 +1528,7 @@ bool CComboBox::OnMessage(int nMessage_, int nParam1_, int nParam2_)
         case HK_RETURN:
             m_fPressed = !m_fPressed;
             if (m_fPressed)
-                (m_pDropList = new CDropList(this, 1, COMBO_HEIGHT, GetText(), m_nWidth - 2))->Select(m_nSelected);
+                (m_pDropList = new DropList(this, 1, COMBO_HEIGHT, GetText(), m_nWidth - 2))->Select(m_nSelected);
             return true;
 
         case HK_UP:
@@ -1556,7 +1556,7 @@ bool CComboBox::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
         // If the click was over us, and the button is pressed, create the drop list
         if (IsOver() && (m_fPressed = !m_fPressed))
-            (m_pDropList = new CDropList(this, 1, COMBO_HEIGHT, GetText(), m_nWidth - 2))->Select(m_nSelected);
+            (m_pDropList = new DropList(this, 1, COMBO_HEIGHT, GetText(), m_nWidth - 2))->Select(m_nSelected);
 
         return true;
 
@@ -1572,7 +1572,7 @@ bool CComboBox::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-void CComboBox::OnNotify(CWindow* pWindow_, int /*nParam_=0*/)
+void ComboBox::OnNotify(Window* pWindow_, int /*nParam_=0*/)
 {
     if (pWindow_ == m_pDropList)
     {
@@ -1590,22 +1590,22 @@ void CComboBox::OnNotify(CWindow* pWindow_, int /*nParam_=0*/)
 const int SCROLLBAR_WIDTH = 15;
 const int SB_BUTTON_HEIGHT = 15;
 
-CScrollBar::CScrollBar(CWindow* pParent_, int nX_, int nY_, int nHeight_, int nMaxPos_, int nStep_/*=1*/)
-    : CWindow(pParent_, nX_, nY_, SCROLLBAR_WIDTH, nHeight_), m_nStep(nStep_)
+ScrollBar::ScrollBar(Window* pParent_, int nX_, int nY_, int nHeight_, int nMaxPos_, int nStep_/*=1*/)
+    : Window(pParent_, nX_, nY_, SCROLLBAR_WIDTH, nHeight_), m_nStep(nStep_)
 {
-    m_pUp = new CUpButton(this, 0, 0, m_nWidth, SB_BUTTON_HEIGHT);
-    m_pDown = new CDownButton(this, 0, m_nHeight - SB_BUTTON_HEIGHT, m_nWidth, SB_BUTTON_HEIGHT);
+    m_pUp = new UpButton(this, 0, 0, m_nWidth, SB_BUTTON_HEIGHT);
+    m_pDown = new DownButton(this, 0, m_nHeight - SB_BUTTON_HEIGHT, m_nWidth, SB_BUTTON_HEIGHT);
 
     m_nScrollHeight = nHeight_ - SB_BUTTON_HEIGHT * 2;
     SetMaxPos(nMaxPos_);
 }
 
-void CScrollBar::SetPos(int nPosition_)
+void ScrollBar::SetPos(int nPosition_)
 {
     m_nPos = (nPosition_ < 0) ? 0 : (nPosition_ > m_nMaxPos) ? m_nMaxPos : nPosition_;
 }
 
-void CScrollBar::SetMaxPos(int nMaxPos_)
+void ScrollBar::SetMaxPos(int nMaxPos_)
 {
     m_nPos = 0;
 
@@ -1617,7 +1617,7 @@ void CScrollBar::SetMaxPos(int nMaxPos_)
         m_nThumbSize = std::max(m_nHeight * m_nScrollHeight / nMaxPos_, 10);
 }
 
-void CScrollBar::Draw(CScreen* pScreen_)
+void ScrollBar::Draw(Screen* pScreen_)
 {
     // Don't draw anything if we don't have a scroll range
     if (m_nMaxPos <= 0)
@@ -1644,10 +1644,10 @@ void CScrollBar::Draw(CScreen* pScreen_)
     pScreen_->DrawLine(nX + 1, nY + m_nThumbSize - 1, m_nWidth - 1, 0, GREY_4);
     pScreen_->DrawLine(nX + m_nWidth - 1, nY + 1, 0, m_nThumbSize - 1, GREY_4);
 
-    CWindow::Draw(pScreen_);
+    Window::Draw(pScreen_);
 }
 
-bool CScrollBar::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool ScrollBar::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     static int nDragOffset;
     static bool fDragging;
@@ -1656,7 +1656,7 @@ bool CScrollBar::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     if (m_nMaxPos <= 0)
         return false;
 
-    bool fRet = CWindow::OnMessage(nMessage_, nParam1_, nParam2_);
+    bool fRet = Window::OnMessage(nMessage_, nParam1_, nParam2_);
 
     // Stop the buttons remaining active
     m_pActive = nullptr;
@@ -1732,7 +1732,7 @@ bool CScrollBar::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     return false;
 }
 
-void CScrollBar::OnNotify(CWindow* pWindow_, int /*nParam_=0*/)
+void ScrollBar::OnNotify(Window* pWindow_, int /*nParam_=0*/)
 {
     if (pWindow_ == m_pUp)
         SetPos(m_nPos - m_nStep);
@@ -1759,21 +1759,21 @@ static bool IsPrefix(const char* pcszPrefix_, const char* pcszName_)
 }
 
 
-CListView::CListView(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, int nItemOffset_/*=0*/)
-    : CWindow(pParent_, nX_, nY_, nWidth_, nHeight_, ctListView), m_nItemOffset(nItemOffset_)
+ListView::ListView(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, int nItemOffset_/*=0*/)
+    : Window(pParent_, nX_, nY_, nWidth_, nHeight_, ctListView), m_nItemOffset(nItemOffset_)
 {
     // Create a scrollbar to cover the overall height, scrolling if necessary
-    m_pScrollBar = new CScrollBar(this, m_nWidth - SCROLLBAR_WIDTH, 0, m_nHeight, 0, ITEM_SIZE);
+    m_pScrollBar = new ScrollBar(this, m_nWidth - SCROLLBAR_WIDTH, 0, m_nHeight, 0, ITEM_SIZE);
 }
 
-CListView::~CListView()
+ListView::~ListView()
 {
     // Free any existing items
     SetItems(nullptr);
 }
 
 
-void CListView::Select(int nItem_)
+void ListView::Select(int nItem_)
 {
     int nOldSelection = m_nSelected;
     m_nSelected = (nItem_ < 0) ? 0 : (nItem_ >= m_nItems) ? m_nItems - 1 : nItem_;
@@ -1792,7 +1792,7 @@ void CListView::Select(int nItem_)
 
 
 // Return the entry for the specified item, or the current item if none was specified
-const CListViewItem* CListView::GetItem(int nItem_/*=-1*/) const
+const ListViewItem* ListView::GetItem(int nItem_/*=-1*/) const
 {
     int i;
 
@@ -1801,7 +1801,7 @@ const CListViewItem* CListView::GetItem(int nItem_/*=-1*/) const
         nItem_ = GetSelected();
 
     // Linear search for the item - not so good for large directories!
-    const CListViewItem* pItem = m_pItems;
+    const ListViewItem* pItem = m_pItems;
     for (i = 0; pItem && i < nItem_; i++)
         pItem = pItem->m_pNext;
 
@@ -1810,11 +1810,11 @@ const CListViewItem* CListView::GetItem(int nItem_/*=-1*/) const
 }
 
 // Find the item with the specified label (not case-sensitive)
-int CListView::FindItem(const char* pcszLabel_, int nStart_/*=0*/)
+int ListView::FindItem(const char* pcszLabel_, int nStart_/*=0*/)
 {
     // Linear search for the item - not so good for large directories!
     int nItem = 0;
-    for (const CListViewItem* pItem = GetItem(nStart_); pItem; pItem = pItem->m_pNext, nItem++)
+    for (const ListViewItem* pItem = GetItem(nStart_); pItem; pItem = pItem->m_pNext, nItem++)
     {
         if (!strcasecmp(pItem->m_pszLabel, pcszLabel_))
             return nItem;
@@ -1825,10 +1825,10 @@ int CListView::FindItem(const char* pcszLabel_, int nStart_/*=0*/)
 }
 
 
-void CListView::SetItems(CListViewItem* pItems_)
+void ListView::SetItems(ListViewItem* pItems_)
 {
     // Delete any existing list
-    for (CListViewItem* pNext; m_pItems; m_pItems = pNext)
+    for (ListViewItem* pNext; m_pItems; m_pItems = pNext)
     {
         pNext = m_pItems->m_pNext;
         delete m_pItems;
@@ -1848,7 +1848,7 @@ void CListView::SetItems(CListViewItem* pItems_)
     }
 }
 
-void CListView::DrawItem(CScreen* pScreen_, int nItem_, int nX_, int nY_, const CListViewItem* pItem_)
+void ListView::DrawItem(Screen* pScreen_, int nItem_, int nX_, int nY_, const ListViewItem* pItem_)
 {
     // If this is the selected item, draw a box round it (darkened if the control isn't active)
     if (nItem_ == m_nSelected)
@@ -1927,12 +1927,12 @@ void CListView::DrawItem(CScreen* pScreen_, int nItem_, int nX_, int nY_, const 
 }
 
 // Erase the control background
-void CListView::EraseBackground(CScreen* pScreen_)
+void ListView::EraseBackground(Screen* pScreen_)
 {
     pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, BLUE_1);
 }
 
-void CListView::Draw(CScreen* pScreen_)
+void ListView::Draw(Screen* pScreen_)
 {
     // Fill the main background of the control
     EraseBackground(pScreen_);
@@ -1948,7 +1948,7 @@ void CListView::Draw(CScreen* pScreen_)
     // Clip to the main control, to keep partly drawn icons within our client area
     pScreen_->SetClip(m_nX, m_nY, m_nWidth, m_nHeight);
 
-    const CListViewItem* pItem = GetItem(nStart);
+    const ListViewItem* pItem = GetItem(nStart);
     for (int i = nStart; pItem && i < nEnd; pItem = pItem->m_pNext, i++)
     {
         int x = m_nX + ((i % m_nAcross) * ITEM_SIZE), y = m_nY + (((i - nStart) / m_nAcross) * ITEM_SIZE) - nOffset;
@@ -1957,16 +1957,16 @@ void CListView::Draw(CScreen* pScreen_)
 
     // Restore the default clip area
     pScreen_->SetClip();
-    CWindow::Draw(pScreen_);
+    Window::Draw(pScreen_);
 }
 
 
-bool CListView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool ListView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     static char szPrefix[16] = "";
 
     // Give the scrollbar first look at the message, but prevent it remaining active
-    bool fRet = CWindow::OnMessage(nMessage_, nParam1_, nParam2_);
+    bool fRet = Window::OnMessage(nMessage_, nParam1_, nParam2_);
     m_pActive = nullptr;
     if (fRet)
         return fRet;
@@ -2057,7 +2057,7 @@ bool CListView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
             // Look for a match, starting *after* the current selection if this is the first character
             int nItem = GetSelected() + (strlen(szPrefix) == 1);
-            const CListViewItem* p = GetItem(nItem);
+            const ListViewItem* p = GetItem(nItem);
 
             bool fFound = false;
             for (; p && !(fFound = IsPrefix(szPrefix, p->m_pszLabel)); p = p->m_pNext, nItem++);
@@ -2140,7 +2140,7 @@ static bool SortCompare(const char* pcsz1_, const char* pcsz2_)
 }
 
 // Compare two file entries, returning true if the 1st entry comes after the 2nd
-static bool SortCompare(CListViewItem* p1_, CListViewItem* p2_)
+static bool SortCompare(ListViewItem* p1_, ListViewItem* p2_)
 {
     // Drives come before directories, which come before files
     if ((p1_->m_pIcon == &sFolderIcon) ^ (p2_->m_pIcon == &sFolderIcon))
@@ -2151,21 +2151,21 @@ static bool SortCompare(CListViewItem* p1_, CListViewItem* p2_)
 }
 
 
-CFileView::CFileView(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
-    : CListView(pParent_, nX_, nY_, nWidth_, nHeight_)
+FileView::FileView(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
+    : ListView(pParent_, nX_, nY_, nWidth_, nHeight_)
 {
 }
 
-CFileView::~CFileView()
+FileView::~FileView()
 {
     delete[] m_pszPath;
     delete[] m_pszFilter;
 }
 
 
-bool CFileView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool FileView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
-    bool fRet = CListView::OnMessage(nMessage_, nParam1_, nParam2_);
+    bool fRet = ListView::OnMessage(nMessage_, nParam1_, nParam2_);
 
     // Backspace moves up a directory
     if (!fRet && nMessage_ == GM_CHAR && nParam1_ == HK_BACKSPACE)
@@ -2183,9 +2183,9 @@ bool CFileView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     return fRet;
 }
 
-void CFileView::NotifyParent(int nParam_)
+void FileView::NotifyParent(int nParam_)
 {
-    const CListViewItem* pItem = GetItem();
+    const ListViewItem* pItem = GetItem();
 
     if (pItem && nParam_)
     {
@@ -2231,17 +2231,17 @@ void CFileView::NotifyParent(int nParam_)
             {
                 char szError[256];
                 sprintf(szError, "%s%c\n\nCan't access directory.", pItem->m_pszLabel, PATH_SEPARATOR);
-                new CMessageBox(this, szError, "Access Denied", mbError);
+                new MsgBox(this, szError, "Access Denied", mbError);
             }
         }
     }
 
     // Base handling, to notify parent
-    CWindow::NotifyParent(nParam_);
+    Window::NotifyParent(nParam_);
 }
 
 // Determine an appropriate icon for the supplied file name/extension
-const GUI_ICON* CFileView::GetFileIcon(const char* pcszFile_)
+const GUI_ICON* FileView::GetFileIcon(const char* pcszFile_)
 {
     // Determine the main file extension
     char sz[MAX_PATH];
@@ -2275,10 +2275,10 @@ const GUI_ICON* CFileView::GetFileIcon(const char* pcszFile_)
 
 
 // Get the full path of the current item
-const char* CFileView::GetFullPath() const
+const char* FileView::GetFullPath() const
 {
     static char szPath[MAX_PATH];
-    const CListViewItem* pItem;
+    const ListViewItem* pItem;
 
     if (!m_pszPath || !(pItem = GetItem()))
         return nullptr;
@@ -2293,7 +2293,7 @@ const char* CFileView::GetFullPath() const
 }
 
 // Set a new path to browse
-void CFileView::SetPath(const char* pcszPath_)
+void FileView::SetPath(const char* pcszPath_)
 {
     if (pcszPath_)
     {
@@ -2316,7 +2316,7 @@ void CFileView::SetPath(const char* pcszPath_)
 }
 
 // Set a new file filter
-void CFileView::SetFilter(const char* pcszFilter_)
+void FileView::SetFilter(const char* pcszFilter_)
 {
     if (pcszFilter_)
     {
@@ -2327,7 +2327,7 @@ void CFileView::SetFilter(const char* pcszFilter_)
 }
 
 // Set whether hidden files should be shown
-void CFileView::ShowHidden(bool fShow_)
+void FileView::ShowHidden(bool fShow_)
 {
     // Update the option and refresh the file list
     m_fShowHidden = fShow_;
@@ -2336,19 +2336,19 @@ void CFileView::ShowHidden(bool fShow_)
 
 
 // Populate the list view with items from the path matching the current file filter
-void CFileView::Refresh()
+void FileView::Refresh()
 {
     // Return unless we've got both a path and a file filter
     if (!m_pszPath || !m_pszFilter)
         return;
 
     // Make a copy of the current selection label name
-    const CListViewItem* pItem = GetItem();
+    const ListViewItem* pItem = GetItem();
     char* pszLabel = pItem ? strdup(pItem->m_pszLabel) : nullptr;
 
     // Free any existing list before we allocate a new one
     SetItems(nullptr);
-    CListViewItem* pItems = nullptr;
+    ListViewItem* pItems = nullptr;
 
     // An empty path gives a virtual drive list (only possible on DOS/Win32)
     if (!m_pszPath[0])
@@ -2363,7 +2363,7 @@ void CFileView::Refresh()
             {
                 // Remove the backslash to leave just X:, and add to the list
                 szRoot[2] = '\0';
-                pItems = new CListViewItem(&sFolderIcon, szRoot, pItems);
+                pItems = new ListViewItem(&sFolderIcon, szRoot, pItems);
             }
         }
     }
@@ -2443,12 +2443,12 @@ void CFileView::Refresh()
                     continue;
 
                 // Create a new list entry for the current item
-                CListViewItem* pNew = new CListViewItem(S_ISDIR(st.st_mode) ? &sFolderIcon :
+                ListViewItem* pNew = new ListViewItem(S_ISDIR(st.st_mode) ? &sFolderIcon :
                     S_ISBLK(st.st_mode) ? &sMiscIcon :
                     GetFileIcon(entry->d_name), entry->d_name);
 
                 // Insert the item into the correct sort position
-                CListViewItem* p = pItems, * pPrev = nullptr;
+                ListViewItem* p = pItems, * pPrev = nullptr;
                 while (p && SortCompare(pNew, p))
                 {
                     pPrev = p;
@@ -2467,7 +2467,7 @@ void CFileView::Refresh()
         // If we're not a top-level directory, add a .. entry to the head of the list
         // This prevents non-DOS/Win32 machines stepping back up to the device list level
         if (strlen(m_pszPath) > 1)
-            pItems = new CListViewItem(&sFolderIcon, "..", pItems);
+            pItems = new ListViewItem(&sFolderIcon, "..", pItems);
     }
 
     // Give the item list to the list control
@@ -2488,12 +2488,12 @@ void CFileView::Refresh()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CIconControl::CIconControl(CWindow* pParent_, int nX_, int nY_, const GUI_ICON* pIcon_)
-    : CWindow(pParent_, nX_, nY_, 0, 0, ctImage), m_pIcon(pIcon_)
+IconControl::IconControl(Window* pParent_, int nX_, int nY_, const GUI_ICON* pIcon_)
+    : Window(pParent_, nX_, nY_, 0, 0, ctImage), m_pIcon(pIcon_)
 {
 }
 
-void CIconControl::Draw(CScreen* pScreen_)
+void IconControl::Draw(Screen* pScreen_)
 {
     uint8_t abGreyed[ICON_PALETTE_SIZE];
 
@@ -2519,12 +2519,12 @@ void CIconControl::Draw(CScreen* pScreen_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CFrameControl::CFrameControl(CWindow* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_/*=WHITE*/, uint8_t bFill_/*=0*/)
-    : CWindow(pParent_, nX_, nY_, nWidth_, nHeight_, ctFrame), m_bColour(bColour_), m_bFill(bFill_)
+FrameControl::FrameControl(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, uint8_t bColour_/*=WHITE*/, uint8_t bFill_/*=0*/)
+    : Window(pParent_, nX_, nY_, nWidth_, nHeight_, ctFrame), m_bColour(bColour_), m_bFill(bFill_)
 {
 }
 
-void CFrameControl::Draw(CScreen* pScreen_)
+void FrameControl::Draw(Screen* pScreen_)
 {
     // If we've got a fill colour, use it now
     if (m_bFill)
@@ -2544,41 +2544,41 @@ const int DIALOG_FRAME_COLOUR = GREY_7;
 const int TITLE_HEIGHT = 4 + CHAR_HEIGHT + 5;
 
 
-CDialog::CDialog(CWindow* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_)
-    : CWindow(pParent_, 0, 0, nWidth_, nHeight_, ctDialog), m_nTitleColour(TITLE_BACK_COLOUR), m_nBodyColour(DIALOG_BACK_COLOUR)
+Dialog::Dialog(Window* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_)
+    : Window(pParent_, 0, 0, nWidth_, nHeight_, ctDialog), m_nTitleColour(TITLE_BACK_COLOUR), m_nBodyColour(DIALOG_BACK_COLOUR)
 {
     SetText(pcszCaption_);
 
     Centre();
-    CWindow::Activate();
+    Window::Activate();
 
     GUI::s_dialogStack.push(this);
 }
 
-CDialog::~CDialog()
+Dialog::~Dialog()
 {
     GUI::s_dialogStack.pop();
 }
 
-bool CDialog::IsActiveDialog() const
+bool Dialog::IsActiveDialog() const
 {
     return !GUI::s_dialogStack.empty() && GUI::s_dialogStack.top() == this;
 }
 
-void CDialog::Centre()
+void Dialog::Centre()
 {
     // Position the window slightly above centre
     Move((Frame::GetWidth() - m_nWidth) >> 1, ((Frame::GetHeight() - m_nHeight) * 9 / 10) >> 1);
 }
 
 // Activating the dialog will activate the first child control that accepts focus
-void CDialog::Activate()
+void Dialog::Activate()
 {
     // If there's no active window on the dialog, activate the tab-stop
     if (m_pChildren)
     {
         // Look for the first control with a tab-stop
-        CWindow* p;
+        Window* p;
         for (p = m_pChildren; p && !p->IsTabStop(); p = p->GetNext());
 
         // If we found one, activate it
@@ -2587,19 +2587,19 @@ void CDialog::Activate()
     }
 }
 
-bool CDialog::HitTest(int nX_, int nY_)
+bool Dialog::HitTest(int nX_, int nY_)
 {
     // The caption is outside the original dimensions, so we need a special test
     return (nX_ >= m_nX - 1) && (nX_ < (m_nX + m_nWidth + 1)) && (nY_ >= m_nY - TITLE_HEIGHT) && (nY_ < (m_nY + 1));
 }
 
 // Fill the dialog background
-void CDialog::EraseBackground(CScreen* pScreen_)
+void Dialog::EraseBackground(Screen* pScreen_)
 {
     pScreen_->FillRect(m_nX, m_nY, m_nWidth, m_nHeight, IsActiveDialog() ? m_nBodyColour : (m_nBodyColour & ~0x7));
 }
 
-void CDialog::Draw(CScreen* pScreen_)
+void Dialog::Draw(Screen* pScreen_)
 {
     // Make sure there's always an active control
     if (!m_pActive)
@@ -2623,20 +2623,20 @@ void CDialog::Draw(CScreen* pScreen_)
     pScreen_->DrawLine(m_nX, m_nY - 1, m_nWidth, 0, DIALOG_FRAME_COLOUR);
 
     // Draw caption text on the left side
-    CScreen::SetFont(&sSpacedGUIFont);
+    Screen::SetFont(&sSpacedGUIFont);
     pScreen_->DrawString(m_nX + 5, m_nY - TITLE_HEIGHT + 5, GetText(), TITLE_TEXT_COLOUR);
     pScreen_->DrawString(m_nX + 5 + 1, m_nY - TITLE_HEIGHT + 5, GetText(), TITLE_TEXT_COLOUR);
-    CScreen::SetFont(&sGUIFont);
+    Screen::SetFont(&sGUIFont);
 
     // Call the base to draw any child controls
-    CWindow::Draw(pScreen_);
+    Window::Draw(pScreen_);
 }
 
 
-bool CDialog::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+bool Dialog::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
     // Pass to the active control, then the base implementation for the remaining child controls
-    if (CWindow::OnMessage(nMessage_, nParam1_, nParam2_))
+    if (Window::OnMessage(nMessage_, nParam1_, nParam2_))
         return true;
 
     switch (nMessage_)
@@ -2675,7 +2675,7 @@ bool CDialog::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
             // Look for the next enabled/tabstop control of the same type
 
-            for (CWindow* p = m_pActive; p; )
+            for (Window* p = m_pActive; p; )
             {
                 p = fPrev ? p->GetPrev(true) : p->GetNext(true);
 
@@ -2747,8 +2747,8 @@ const int MSGBOX_BUTTON_SIZE = 50;
 const int MSGBOX_LINE_HEIGHT = 15;
 const int MSGBOX_GAP = 13;
 
-CMessageBox::CMessageBox(CWindow* pParent_, const char* pcszBody_, const char* pcszCaption_, int nFlags_)
-    : CDialog(pParent_, 0, 0, pcszCaption_)
+MsgBox::MsgBox(Window* pParent_, const char* pcszBody_, const char* pcszCaption_, int nFlags_)
+    : Dialog(pParent_, 0, 0, pcszCaption_)
 {
     // We need to be recognisably different from a regular dialog, despite being based on one
     m_nType = ctMessageBox;
@@ -2779,7 +2779,7 @@ CMessageBox::CMessageBox(CWindow* pParent_, const char* pcszBody_, const char* p
         m_nWidth += ICON_SIZE + MSGBOX_GAP / 2;
 
         // Add the icon to the top-left of the dialog
-        m_pIcon = new CIconControl(this, MSGBOX_GAP / 2, MSGBOX_GAP / 2, pIcon);
+        m_pIcon = new IconControl(this, MSGBOX_GAP / 2, MSGBOX_GAP / 2, pIcon);
     }
 
     // Work out the width of the button block, which depends on how many buttons are needed
@@ -2792,7 +2792,7 @@ CMessageBox::CMessageBox(CWindow* pParent_, const char* pcszBody_, const char* p
 
     // Centre the button block at the bottom of the dialog [ToDo: add remaining buttons]
     int nButtonOffset = (m_nWidth - nButtonWidth) >> 1;
-    (new CTextButton(this, nButtonOffset, m_nHeight, "OK", MSGBOX_BUTTON_SIZE))->Activate();
+    (new TextButton(this, nButtonOffset, m_nHeight, "OK", MSGBOX_BUTTON_SIZE))->Activate();
 
     // Allow for the button height and a small gap underneath it
     m_nHeight += BUTTON_HEIGHT + MSGBOX_GAP / 2;
@@ -2803,14 +2803,14 @@ CMessageBox::CMessageBox(CWindow* pParent_, const char* pcszBody_, const char* p
 
     // Error boxes are shown in red
     if (pIcon == &sInformationIcon)
-        CDialog::SetColours(MSGBOX_NORMAL_COLOUR + 2, MSGBOX_NORMAL_COLOUR);
+        Dialog::SetColours(MSGBOX_NORMAL_COLOUR + 2, MSGBOX_NORMAL_COLOUR);
     else
-        CDialog::SetColours(MSGBOX_ERROR_COLOUR + 1, MSGBOX_ERROR_COLOUR);
+        Dialog::SetColours(MSGBOX_ERROR_COLOUR + 1, MSGBOX_ERROR_COLOUR);
 }
 
-void CMessageBox::Draw(CScreen* pScreen_)
+void MsgBox::Draw(Screen* pScreen_)
 {
-    CDialog::Draw(pScreen_);
+    Dialog::Draw(pScreen_);
 
     // Calculate the x-offset to the body text
     int nX = m_nX + MSGBOX_GAP + (m_pIcon ? ICON_SIZE + MSGBOX_GAP / 2 : 0);

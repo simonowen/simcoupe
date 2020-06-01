@@ -59,10 +59,10 @@ bool Rst48Hook();
 }
 
 
-class CIoDevice
+class IoDevice
 {
 public:
-    virtual ~CIoDevice() = default;
+    virtual ~IoDevice() = default;
 
 public:
     virtual void Reset() { }
@@ -78,10 +78,10 @@ public:
 
 enum { drvNone, drvFloppy, drvAtom, drvAtomLite, drvSDIDE };
 
-class CDiskDevice : public CIoDevice
+class DiskDevice : public IoDevice
 {
 public:
-    CDiskDevice() = default;
+    DiskDevice() = default;
 
 public:
     void FrameEnd() override { if (m_uActive) m_uActive--; }
@@ -248,8 +248,8 @@ extern unsigned int clut[N_CLUT_REGS], mode3clut[4];
 extern uint8_t status_reg;
 extern uint8_t lpen;
 
-extern std::unique_ptr<CDiskDevice> pFloppy1, pFloppy2, pBootDrive;
-extern std::unique_ptr<CIoDevice> pParallel1, pParallel2;
+extern std::unique_ptr<DiskDevice> pFloppy1, pFloppy2, pBootDrive;
+extern std::unique_ptr<IoDevice> pParallel1, pParallel2;
 
 extern int g_nAutoLoad;
 extern bool display_changed;

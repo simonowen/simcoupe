@@ -97,7 +97,7 @@ bool Insert(const char* pcsz_)
 {
     Eject();
 
-    auto stream = CStream::Open(pcsz_, true);
+    auto stream = Stream::Open(pcsz_, true);
     if (!stream)
         return false;
 

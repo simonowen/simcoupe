@@ -27,19 +27,19 @@
 #include "IDEDisk.h"
 
 
-CHardDisk::CHardDisk(const char* path)
+HardDisk::HardDisk(const char* path)
     : m_strPath(path)
 {
 }
 
-bool CHardDisk::IsSDIDEDisk()
+bool HardDisk::IsSDIDEDisk()
 {
     // Check for the HDOS free space file-info-block in sector 1
     uint8_t ab[512];
     return ReadSector(1, ab) && !memcmp(ab + 14, "Free_space", 10);
 }
 
-bool CHardDisk::IsBDOSDisk(bool* pfByteSwapped_)
+bool HardDisk::IsBDOSDisk(bool* pfByteSwapped_)
 {
     bool fBDOS = false, fByteSwapped = false;
     uint8_t ab[512];
@@ -96,25 +96,25 @@ struct RS_IDE
 };
 
 
-CHDFHardDisk::CHDFHardDisk(const char* pcszDisk_)
-    : CHardDisk(pcszDisk_)
+HDFHardDisk::HDFHardDisk(const char* pcszDisk_)
+    : HardDisk(pcszDisk_)
 {
 }
 
-/*static*/ std::unique_ptr<CHardDisk> CHardDisk::OpenObject(const char* pcszDisk_, bool fReadOnly_/*=false*/)
+/*static*/ std::unique_ptr<HardDisk> HardDisk::OpenObject(const char* pcszDisk_, bool fReadOnly_/*=false*/)
 {
-    std::unique_ptr<CHardDisk> disk;
+    std::unique_ptr<HardDisk> disk;
 
     // Make sure we have a disk to try
     if (!pcszDisk_ || !*pcszDisk_)
         return nullptr;
 
     // Try for device path first
-    if (!disk && (disk = std::make_unique<CDeviceHardDisk>(pcszDisk_)) && !disk->Open(fReadOnly_))
+    if (!disk && (disk = std::make_unique<DeviceHardDisk>(pcszDisk_)) && !disk->Open(fReadOnly_))
         disk.reset();
 
     // Try for HDF disk image
-    if (!disk && (disk = std::make_unique<CHDFHardDisk>(pcszDisk_)) && !disk->Open(fReadOnly_))
+    if (!disk && (disk = std::make_unique<HDFHardDisk>(pcszDisk_)) && !disk->Open(fReadOnly_))
         disk.reset();
 
     return disk;
@@ -122,10 +122,10 @@ CHDFHardDisk::CHDFHardDisk(const char* pcszDisk_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/*static*/ bool CHDFHardDisk::Create(const char* pcszDisk_, unsigned int uTotalSectors_)
+/*static*/ bool HDFHardDisk::Create(const char* pcszDisk_, unsigned int uTotalSectors_)
 {
     // Attempt to create the new disk
-    CHDFHardDisk* pDisk = new CHDFHardDisk(pcszDisk_);
+    HDFHardDisk* pDisk = new HDFHardDisk(pcszDisk_);
     bool fRet = pDisk && pDisk->Create(uTotalSectors_);
 
     // Delete the object and return the result
@@ -133,7 +133,7 @@ CHDFHardDisk::CHDFHardDisk(const char* pcszDisk_)
     return fRet;
 }
 
-bool CHDFHardDisk::Create(unsigned int uTotalSectors_)
+bool HDFHardDisk::Create(unsigned int uTotalSectors_)
 {
     bool fRet = false;
 
@@ -178,7 +178,7 @@ bool CHDFHardDisk::Create(unsigned int uTotalSectors_)
 }
 
 
-bool CHDFHardDisk::Open(bool fReadOnly_/*=false*/)
+bool HDFHardDisk::Open(bool fReadOnly_/*=false*/)
 {
     Close();
 
@@ -230,7 +230,7 @@ bool CHDFHardDisk::Open(bool fReadOnly_/*=false*/)
     return false;
 }
 
-void CHDFHardDisk::Close()
+void HDFHardDisk::Close()
 {
     if (IsOpen())
     {
@@ -239,13 +239,13 @@ void CHDFHardDisk::Close()
     }
 }
 
-bool CHDFHardDisk::ReadSector(unsigned int uSector_, uint8_t* pb_)
+bool HDFHardDisk::ReadSector(unsigned int uSector_, uint8_t* pb_)
 {
     off_t lOffset = m_uDataOffset + static_cast<off_t>(uSector_)* m_uSectorSize;
     return m_hfDisk && !fseek(m_hfDisk, lOffset, SEEK_SET) && (fread(pb_, 1, m_uSectorSize, m_hfDisk) == m_uSectorSize);
 }
 
-bool CHDFHardDisk::WriteSector(unsigned int uSector_, uint8_t* pb_)
+bool HDFHardDisk::WriteSector(unsigned int uSector_, uint8_t* pb_)
 {
     off_t lOffset = m_uDataOffset + static_cast<off_t>(uSector_)* m_uSectorSize;
     return m_hfDisk && !fseek(m_hfDisk, lOffset, SEEK_SET) && (fwrite(pb_, 1, m_uSectorSize, m_hfDisk) == m_uSectorSize);

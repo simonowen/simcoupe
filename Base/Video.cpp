@@ -75,7 +75,7 @@ void UpdatePalette()
         pVideo->UpdatePalette();
 }
 
-void Update(CScreen* pScreen_)
+void Update(Screen* pScreen_)
 {
     if (pVideo)
         pVideo->Update(pScreen_, afDirty);

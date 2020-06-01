@@ -27,7 +27,7 @@
 #include "Options.h"
 
 
-uint8_t CAtomDevice::In(uint16_t wPort_)
+uint8_t AtomDevice::In(uint16_t wPort_)
 {
     uint8_t bRet = 0xff;
 
@@ -37,7 +37,7 @@ uint8_t CAtomDevice::In(uint16_t wPort_)
     case 6:
     {
         // Read a 16-bit data value
-        auto wData = CAtaAdapter::InWord(m_bAddressLatch & ATOM_ADDR_MASK);
+        auto wData = AtaAdapter::InWord(m_bAddressLatch & ATOM_ADDR_MASK);
 
         // Store the low-byte in the read latch and return the high-byte
         m_bReadLatch = wData & 0xff;
@@ -60,7 +60,7 @@ uint8_t CAtomDevice::In(uint16_t wPort_)
     return bRet;
 }
 
-void CAtomDevice::Out(uint16_t wPort_, uint8_t bVal_)
+void AtomDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     switch (wPort_ & ATOM_REG_MASK)
     {
@@ -70,7 +70,7 @@ void CAtomDevice::Out(uint16_t wPort_, uint8_t bVal_)
 
         // If the reset pin is low, reset the disk
         if (~bVal_ & ATOM_NRESET)
-            CAtaAdapter::Reset();
+            AtaAdapter::Reset();
 
         break;
 
@@ -86,7 +86,7 @@ void CAtomDevice::Out(uint16_t wPort_, uint8_t bVal_)
             break;
 
         m_uActive = HDD_ACTIVE_FRAMES;
-        CAtaAdapter::OutWord(m_bAddressLatch & ATOM_ADDR_MASK, (m_bWriteLatch << 8) | bVal_);
+        AtaAdapter::OutWord(m_bAddressLatch & ATOM_ADDR_MASK, (m_bWriteLatch << 8) | bVal_);
         break;
 
     default:
@@ -96,7 +96,7 @@ void CAtomDevice::Out(uint16_t wPort_, uint8_t bVal_)
 }
 
 
-bool CAtomDevice::Attach(std::unique_ptr<CHardDisk> disk, int nDevice_)
+bool AtomDevice::Attach(std::unique_ptr<HardDisk> disk, int nDevice_)
 {
     if (disk)
     {
@@ -110,5 +110,5 @@ bool CAtomDevice::Attach(std::unique_ptr<CHardDisk> disk, int nDevice_)
         disk->SetLegacy(true);
     }
 
-    return CAtaAdapter::Attach(std::move(disk), nDevice_);
+    return AtaAdapter::Attach(std::move(disk), nDevice_);
 }

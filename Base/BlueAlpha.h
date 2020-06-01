@@ -22,10 +22,10 @@
 
 #include "SAMIO.h"
 
-class CBlueAlphaDevice final : public CIoDevice
+class BlueAlphaDevice final : public IoDevice
 {
 public:
-    CBlueAlphaDevice();
+    BlueAlphaDevice();
 
 public:
     void Reset() override final;
@@ -43,4 +43,4 @@ protected:
     int m_cpuCyclesPerClock{};
 };
 
-extern std::unique_ptr<CBlueAlphaDevice> pBlueAlpha;
+extern std::unique_ptr<BlueAlphaDevice> pBlueAlpha;

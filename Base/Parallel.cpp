@@ -26,13 +26,13 @@
 #include "Sound.h"
 
 
-uint8_t CPrintBuffer::In(uint16_t wPort_)
+uint8_t PrintBuffer::In(uint16_t wPort_)
 {
     uint8_t bBusy = GetOption(printeronline) ? 0x00 : 0x01;
     return (wPort_ & 1) ? (m_bStatus | bBusy) : m_bData;
 }
 
-void CPrintBuffer::Out(uint16_t wPort_, uint8_t bVal_)
+void PrintBuffer::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // Don't accept data if the printer is offline
     if (!GetOption(printeronline))
@@ -70,7 +70,7 @@ void CPrintBuffer::Out(uint16_t wPort_, uint8_t bVal_)
     }
 }
 
-void CPrintBuffer::Flush()
+void PrintBuffer::Flush()
 {
     // Do we have any unflushed data?
     if (m_uBuffer)
@@ -85,7 +85,7 @@ void CPrintBuffer::Flush()
     }
 }
 
-void CPrintBuffer::FrameEnd()
+void PrintBuffer::FrameEnd()
 {
     // Flush the buffer when we've counted down to zero
     if (m_uFlushDelay && !--m_uFlushDelay)
@@ -94,7 +94,7 @@ void CPrintBuffer::FrameEnd()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool CPrinterFile::Open()
+bool PrinterFile::Open()
 {
     m_pszFile = Util::GetUniqueFile("txt", m_szPath, sizeof(m_szPath));
 
@@ -108,7 +108,7 @@ bool CPrinterFile::Open()
     return true;
 }
 
-void CPrinterFile::Close()
+void PrinterFile::Close()
 {
     if (m_hFile)
     {
@@ -120,7 +120,7 @@ void CPrinterFile::Close()
     }
 }
 
-void CPrinterFile::Write(uint8_t* pb_, size_t uLen_)
+void PrinterFile::Write(uint8_t* pb_, size_t uLen_)
 {
     if (m_hFile)
         fwrite(pb_, uLen_, 1, m_hFile);
@@ -128,7 +128,7 @@ void CPrinterFile::Write(uint8_t* pb_, size_t uLen_)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void CMonoDACDevice::Out(uint16_t wPort_, uint8_t bVal_)
+void MonoDACDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // If the write is to the data port, send it to the DAC
     if (!(wPort_ & 1))
@@ -137,7 +137,7 @@ void CMonoDACDevice::Out(uint16_t wPort_, uint8_t bVal_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void CStereoDACDevice::Out(uint16_t wPort_, uint8_t bVal_)
+void StereoDACDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     // Sample data?
     if (!(wPort_ & 1))

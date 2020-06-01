@@ -25,13 +25,13 @@
 
 // ToDo: support slave device on the same interface
 
-CATADevice::CATADevice()
+ATADevice::ATADevice()
 {
     Reset();
 }
 
 // Device hard reset
-void CATADevice::Reset(bool fSoft_/*=false*/)
+void ATADevice::Reset(bool fSoft_/*=false*/)
 {
     // Set specific registers to zero
     m_sRegs.bCylinderLow = m_sRegs.bCylinderHigh = m_sRegs.bDeviceHead = 0;
@@ -50,7 +50,7 @@ void CATADevice::Reset(bool fSoft_/*=false*/)
 }
 
 
-uint16_t CATADevice::In(uint16_t wPort_)
+uint16_t ATADevice::In(uint16_t wPort_)
 {
     uint16_t wRet = 0xffff;
 
@@ -151,7 +151,7 @@ uint16_t CATADevice::In(uint16_t wPort_)
 }
 
 
-void CATADevice::Out(uint16_t wPort_, uint16_t wVal_)
+void ATADevice::Out(uint16_t wPort_, uint16_t wVal_)
 {
     uint8_t bVal = wVal_ & 0xff;
 
@@ -441,7 +441,7 @@ void CATADevice::Out(uint16_t wPort_, uint16_t wVal_)
 }
 
 
-bool CATADevice::ReadWriteSector(bool fWrite_)
+bool ATADevice::ReadWriteSector(bool fWrite_)
 {
     unsigned int uSector = 0;
 
@@ -480,7 +480,7 @@ bool CATADevice::ReadWriteSector(bool fWrite_)
 }
 
 
-void CATADevice::SetIdentifyData(IDENTIFYDEVICE* pid_)
+void ATADevice::SetIdentifyData(IDENTIFYDEVICE* pid_)
 {
     // Do we have data to set?
     if (pid_)
@@ -554,7 +554,7 @@ void CATADevice::SetIdentifyData(IDENTIFYDEVICE* pid_)
 
 
 // Calculate a suitable CHS geometry covering the supplied number of sectors
-/*static*/ void CATADevice::CalculateGeometry(ATA_GEOMETRY* pg_)
+/*static*/ void ATADevice::CalculateGeometry(ATA_GEOMETRY* pg_)
 {
     unsigned int uCylinders, uHeads, uSectors;
 
@@ -592,7 +592,7 @@ void CATADevice::SetIdentifyData(IDENTIFYDEVICE* pid_)
 }
 
 
-/*static*/ void CATADevice::SetIdentifyString(const char* pcszValue_, void* pv_, size_t cb_)
+/*static*/ void ATADevice::SetIdentifyString(const char* pcszValue_, void* pv_, size_t cb_)
 {
     auto pb = reinterpret_cast<uint8_t*>(pv_);
 
