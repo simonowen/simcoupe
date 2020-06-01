@@ -71,6 +71,10 @@
         case DiskType::SAD:     disk = std::make_unique<SADDisk>(std::move(stream));      break;      // .SAD
         case DiskType::MGT:     disk = std::make_unique<MGTDisk>(std::move(stream));      break;      // .MGT
         case DiskType::SBT:     disk = std::make_unique<FileDisk>(std::move(stream));     break;      // .SBT (bootable SAM file on a floppy)
+
+        case DiskType::File:
+        case DiskType::Unknown:
+            break;
         }
     }
 

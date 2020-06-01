@@ -30,6 +30,7 @@ class HardDisk : public ATADevice
 {
 public:
     HardDisk(const char* pcszDisk_);
+    virtual ~HardDisk() = default;
 
 public:
     static std::unique_ptr<HardDisk> OpenObject(const char* pcszDisk_, bool fReadOnly_ = false);

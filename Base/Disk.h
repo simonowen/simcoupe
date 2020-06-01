@@ -110,7 +110,7 @@ struct EDSK_SECTOR
 
 enum class DiskType
 {
-    None, Unknown, Floppy, File, EDSK, SAD, MGT, SBT, CAPS
+    Unknown, Floppy, File, EDSK, SAD, MGT, SBT, CAPS
 };
 
 #define LOAD_DELAY  3   // Number of status reads to artificially stay busy for image file track loads
@@ -120,9 +120,9 @@ class Disk
 {
     friend class Drive;
 
-    // Constructor and virtual destructor
 public:
     Disk(std::unique_ptr<Stream> stream, DiskType type);
+    virtual ~Disk() = default;
 
 public:
     static DiskType GetType(Stream& pStream_);

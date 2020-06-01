@@ -1839,6 +1839,7 @@ void DisView::Draw(Screen* pScreen_)
         case EventType::AsicReady:          pcszEvent = "ASIC"; break;
 
         case EventType::InputUpdate:
+        case EventType::None:
             i--; continue;
         }
 

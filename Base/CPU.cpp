@@ -324,6 +324,9 @@ void ExecuteEvent(const CPU_EVENT& sThisEvent)
         IO::UpdateInput();
         AddCpuEvent(EventType::InputUpdate, sThisEvent.due_time + CPU_CYCLES_PER_FRAME);
         break;
+
+    case EventType::None:
+        break;
     }
 }
 
