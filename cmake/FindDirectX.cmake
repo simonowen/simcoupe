@@ -85,8 +85,10 @@ macro(find_component name header library)
     # Handle the QUIETLY and REQUIRED arguments and set ${name}_FOUND to TRUE if
     # all listed variables are TRUE.
     include(FindPackageHandleStandardArgs)
+    set(FPHSA_NAME_MISMATCHED 1)
     find_package_handle_standard_args(${name} DEFAULT_MSG
         ${name}_INCLUDE_DIR ${name}_LIBRARY)
+    unset(FPHSA_NAME_MISMATCHED)
 
     if(${name}_FOUND)
         set(${name}_LIBRARIES ${${name}_LIBRARY})
