@@ -298,9 +298,8 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
     {
         int nX = pEvent_->motion.x, nY = pEvent_->motion.y;
 
-        // Show the cursor in windowed mode unless the mouse is acquired or the GUI is active
-        bool fShowCursor = !fMouseActive && !GUI::IsActive() && !GetOption(fullscreen);
-        SDL_ShowCursor(fShowCursor ? SDL_ENABLE : SDL_DISABLE);
+        bool hide_cursor = fMouseActive && !GUI::IsActive();
+        SDL_ShowCursor(hide_cursor ? SDL_DISABLE : SDL_ENABLE);
 
         // Mouse in use by the GUI?
         if (GUI::IsActive())
