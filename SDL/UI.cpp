@@ -116,10 +116,6 @@ bool UI::CheckEvents()
                 SDL_free(pszFile);
                 break;
             }
-#else
-            case SDL_VIDEOEXPOSE:
-                Video::SetDirty();
-                break;
 #endif
             case SDL_USEREVENT:
             {

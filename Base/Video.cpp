@@ -30,7 +30,6 @@ namespace Video
 {
 
 static std::unique_ptr<IVideoRenderer> pVideo;
-static bool afDirty[GFX_HEIGHT_LINES * 2];
 
 
 bool Init(bool fFirstInit_)
@@ -44,23 +43,6 @@ bool Init(bool fFirstInit_)
 void Exit(bool fReInit_/*=false*/)
 {
     pVideo.reset();
-}
-
-
-bool IsLineDirty(int nLine_)
-{
-    return afDirty[nLine_];
-}
-
-void SetLineDirty(int nLine_)
-{
-    afDirty[nLine_] = true;
-}
-
-void SetDirty()
-{
-    for (int i = 0, nHeight = Frame::GetHeight(); i < nHeight; i++)
-        afDirty[i] = true;
 }
 
 
@@ -78,7 +60,7 @@ void UpdatePalette()
 void Update(const Screen& pScreen_)
 {
     if (pVideo)
-        pVideo->Update(pScreen_, afDirty);
+        pVideo->Update(pScreen_);
 }
 
 void UpdateSize()

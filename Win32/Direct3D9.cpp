@@ -66,7 +66,7 @@ Direct3D9Video::~Direct3D9Video()
 
 int Direct3D9Video::GetCaps() const
 {
-    return VCAP_STRETCH | VCAP_FILTER | VCAP_SCANHIRES;
+    return VCAP_STRETCH | VCAP_FILTER;
 }
 
 bool Direct3D9Video::Init()
@@ -94,13 +94,10 @@ void Direct3D9Video::UpdatePalette()
         // Set native pixel value
         adwPalette[i] = RGB2Native(r, g, b, a, dwRmask, dwGmask, dwBmask, dwAmask);
     }
-
-    // Redraw to reflect any changes
-    Video::SetDirty();
 }
 
 // Update the display to show anything that's changed since last time
-void Direct3D9Video::Update(const Screen& pScreen_, bool* pafDirty_)
+void Direct3D9Video::Update(const Screen& pScreen_)
 {
     HRESULT hr;
 
@@ -129,7 +126,7 @@ void Direct3D9Video::Update(const Screen& pScreen_, bool* pafDirty_)
     }
 
     // Draw any changed lines to the back buffer
-    if (!DrawChanges(pScreen_, pafDirty_))
+    if (!DrawChanges(pScreen_))
         return;
 
     hr = m_pd3dDevice->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0L);
@@ -175,7 +172,6 @@ HRESULT Direct3D9Video::CreateTextures()
         return hr;
 
     UpdatePalette();
-    Video::SetDirty();
 
     return hr;
 }
@@ -328,13 +324,11 @@ bool Direct3D9Video::Reset(bool fNewDevice_)
         CreateShaders();
     }
 
-    Video::SetDirty();
-
     return SUCCEEDED(hr);
 }
 
 // Draw the changed lines in the appropriate colour depth and hi/low resolution
-bool Direct3D9Video::DrawChanges(const Screen& pScreen_, bool* pafDirty_)
+bool Direct3D9Video::DrawChanges(const Screen& pScreen_)
 {
     HRESULT hr = 0;
 
@@ -365,9 +359,6 @@ bool Direct3D9Video::DrawChanges(const Screen& pScreen_, bool* pafDirty_)
 
     for (int y = 0; y < nHeight; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
     {
-        if (!pafDirty_[y])
-            continue;
-
         for (int x = 0; x < nRightHi; x++)
         {
             pdw[0] = adwPalette[pb[0]];
@@ -382,8 +373,6 @@ bool Direct3D9Video::DrawChanges(const Screen& pScreen_, bool* pafDirty_)
             pdw += 8;
             pb += 8;
         }
-
-        pafDirty_[y] = false;
     }
 
     // With bilinear filtering enabled, the GUI display in the lower half bleeds

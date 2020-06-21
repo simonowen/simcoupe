@@ -129,7 +129,6 @@ bool GUI::Start(Window* pGUI_)
 
     // Silence sound playback
     Sound::Silence();
-    Video::SetDirty();
 
     return true;
 }
@@ -143,7 +142,6 @@ void GUI::Stop()
         s_pGUI = nullptr;
     }
 
-    Video::SetDirty();
     Input::Purge();
 }
 

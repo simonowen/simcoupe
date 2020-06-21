@@ -55,7 +55,7 @@ SDLTexture::~SDLTexture()
 
 int SDLTexture::GetCaps() const
 {
-    return VCAP_STRETCH | VCAP_FILTER | VCAP_SCANHIRES;
+    return VCAP_STRETCH | VCAP_FILTER;
 }
 
 bool SDLTexture::Init()
@@ -113,10 +113,10 @@ bool SDLTexture::Init()
 }
 
 
-void SDLTexture::Update(const Screen& pScreen_, bool* pafDirty_)
+void SDLTexture::Update(const Screen& pScreen_)
 {
     // Draw any changed lines to the back buffer
-    if (!DrawChanges(pScreen_, pafDirty_))
+    if (!DrawChanges(pScreen_))
         return;
 }
 
@@ -139,14 +139,11 @@ void SDLTexture::UpdatePalette()
 
         aulPalette[i] = RGB2Native(r, g, b, a, uRmask, uGmask, uBmask, uAmask);
     }
-
-    // Ensure the display is redrawn to reflect the changes
-    Video::SetDirty();
 }
 
 
 // OpenGL version of DisplayChanges
-bool SDLTexture::DrawChanges(const Screen& pScreen_, bool* pafDirty_)
+bool SDLTexture::DrawChanges(const Screen& pScreen_)
 {
     // Force GUI filtering with odd scaling factors, otherwise respect the options
     bool fFilter = GUI::IsActive() ? GetOption(filtergui) || (GetOption(scale) & 1) : GetOption(filter);
@@ -167,20 +164,9 @@ bool SDLTexture::DrawChanges(const Screen& pScreen_, bool* pafDirty_)
     bool fHalfHeight = !GUI::IsActive();
     if (fHalfHeight) nHeight /= 2;
 
-    int nChangeFrom = 0, nChangeTo = nHeight - 1;
-    for (; nChangeFrom < nHeight && !pafDirty_[nChangeFrom]; nChangeFrom++);
-    if (nChangeFrom == nHeight)
-        return true;
-
-    for (; nChangeTo && !pafDirty_[nChangeTo]; nChangeTo--);
-
-    // Lock only the portion we're changing
-    SDL_Rect rLock = { 0, nChangeFrom, nWidth, nChangeTo - nChangeFrom + 1 };
-    void* pvPixels = nullptr;
-    int nPitch = 0;
-
-    // Lock the surface for direct access below
-    if (SDL_LockTexture(m_pTexture, &rLock, &pvPixels, &nPitch) != 0)
+    void* pvPixels{};
+    int nPitch{};
+    if (SDL_LockTexture(m_pTexture, nullptr, &pvPixels, &nPitch) != 0)
     {
         TRACE("!!! SDL_LockSurface failed: %s\n", SDL_GetError());
         return false;
@@ -191,21 +177,17 @@ bool SDLTexture::DrawChanges(const Screen& pScreen_, bool* pafDirty_)
     uint32_t* pdwBack = reinterpret_cast<uint32_t*>(pvPixels), * pdw = pdwBack;
     long lPitchDW = nPitch >> 2;
 
-    auto pbSAM = pScreen_.GetLine(nChangeFrom);
+    auto pbSAM = pScreen_.GetLine(0);
     auto pb = pbSAM;
     long lPitch = pScreen_.GetPitch();
-
 
     // What colour depth is the target surface?
     switch (m_nDepth)
     {
     case 16:
     {
-        for (int y = nChangeFrom; y <= nChangeTo; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
+        for (int y = 0; y <= nHeight; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
         {
-            if (!pafDirty_[y])
-                continue;
-
             for (int x = 0; x < nRightHi; x++)
             {
                 pdw[0] = SDL_SwapLE32((aulPalette[pb[1]] << 16) | aulPalette[pb[0]]);
@@ -222,11 +204,8 @@ bool SDLTexture::DrawChanges(const Screen& pScreen_, bool* pafDirty_)
 
     case 32:
     {
-        for (int y = nChangeFrom; y <= nChangeTo; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
+        for (int y = 0; y <= nHeight; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
         {
-            if (!pafDirty_[y])
-                continue;
-
             for (int x = 0; x < nRightHi; x++)
             {
                 pdw[0] = aulPalette[pb[0]];

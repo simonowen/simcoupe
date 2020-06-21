@@ -22,16 +22,12 @@
 
 #include "Screen.h"
 
-enum { VCAP_STRETCH = 1, VCAP_FILTER = 2, VCAP_SCANHIRES = 4 };
+enum { VCAP_STRETCH = 1, VCAP_FILTER = 2 };
 
 namespace Video
 {
 bool Init(bool fFirstInit_ = false);
 void Exit(bool fReInit_ = false);
-
-bool IsLineDirty(int nLine_);
-void SetLineDirty(int nLine_);
-void SetDirty();
 
 bool CheckCaps(int nCaps_);
 
@@ -51,7 +47,7 @@ struct IVideoRenderer
     virtual int GetCaps() const = 0;
     virtual bool Init() = 0;
 
-    virtual void Update(const Screen& pScreen_, bool* pafDirty_) = 0;
+    virtual void Update(const Screen& pScreen_) = 0;
     virtual void UpdateSize() = 0;
     virtual void UpdatePalette() = 0;
 

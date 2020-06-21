@@ -62,8 +62,7 @@ const unsigned int FPS_IN_TURBO_MODE = 5;       // Number of FPS to limit to in 
 int s_nViewTop, s_nViewBottom;
 int s_nViewLeft, s_nViewRight;
 
-std::unique_ptr<Screen> pScreen, pLastScreen, pGuiScreen, pLastGuiScreen;
-Screen* pDisplayScreen;
+std::unique_ptr<Screen> pScreen, pGuiScreen;
 std::unique_ptr<ScreenWriter> pFrame;
 
 bool fDrawFrame, g_fFlashPhase, fSavePNG, fSaveSSX;
@@ -95,7 +94,6 @@ asViews[] =
 namespace Frame
 {
 static void DrawOSD(Screen& pScreen_);
-static void Flip(Screen& pScreen_);
 
 bool Init(bool fFirstInit_/*=false*/)
 {
@@ -120,15 +118,10 @@ bool Init(bool fFirstInit_/*=false*/)
 
     // Create two SAM screens and two GUI screens, to allow for double-buffering
     pScreen = std::make_unique<Screen>(s_nWidth, s_nHeight);
-    pLastScreen = std::make_unique<Screen>(s_nWidth, s_nHeight);
     pGuiScreen = std::make_unique<Screen>(s_nWidth, s_nHeight);
-    pLastGuiScreen = std::make_unique<Screen>(s_nWidth, s_nHeight);
 
     // Create the frame rendering object
     pFrame = std::make_unique<ScreenWriter>();
-
-    // Drawn screen is the last (initially blank) screen
-    pDisplayScreen = pLastScreen.get();
 
     // Set the renderer display mode
     pFrame->SetMode(vmpr);
@@ -149,11 +142,7 @@ void Exit(bool fReInit_/*=false*/)
 
     pFrame.reset();
     pScreen.reset();
-    pLastScreen.reset();
     pGuiScreen.reset();
-    pLastGuiScreen.reset();
-
-    pDisplayScreen = nullptr;
 }
 
 
@@ -241,72 +230,6 @@ void Update()
 }
 
 
-// Begin the frame by copying from the previous frame, up to the last cange
-static void CopyBeforeLastUpdate()
-{
-    // Determine the range in the visible area
-    int nBottom = std::min(nLastLine, s_nViewBottom - 1) - s_nViewTop;
-
-    // If there anything to copy?
-    if (nBottom > 0)
-    {
-        // Copy the last partial line first
-        if (nBottom == (nLastLine - s_nViewTop))
-        {
-            auto pLine = pScreen->GetLine(nBottom);
-            auto pLastLine = pLastScreen->GetLine(nBottom);
-
-            int nRight = std::max(nLastBlock, s_nViewRight) - s_nViewLeft;
-            if (nRight > 0)
-                memcpy(pLine, pLastLine, nRight << 4);
-
-            nBottom--;
-        }
-
-        // Copy the remaining full lines
-        for (int i = 0; i <= nBottom; i++)
-        {
-            auto pLine = pScreen->GetLine(i);
-            auto pLastLine = pLastScreen->GetLine(i);
-            memcpy(pLine, pLastLine, pScreen->GetPitch());
-        }
-    }
-}
-
-// Complete the drawn frame after the raster using data from the previous frame
-static void CopyAfterRaster()
-{
-    // Work out the range that is within the visible area
-    int nTop = std::max(nLastLine, s_nViewTop) - s_nViewTop;
-    int nBottom = s_nViewBottom - s_nViewTop;
-
-    // If there anything to copy?
-    if (nTop <= nBottom)
-    {
-        // Complete the undrawn section of the current line, if any
-        if (nTop == (nLastLine - s_nViewTop))
-        {
-            auto pLine = pScreen->GetLine(nTop);
-            auto pLastLine = pLastScreen->GetLine(nTop);
-
-            int nOffset = (std::max(s_nViewLeft, nLastBlock) - s_nViewLeft) << 4;
-            int nWidth = pScreen->GetPitch() - nOffset;
-            if (nWidth > 0)
-                memcpy(pLine + nOffset, pLastLine + nOffset, nWidth);
-
-            nTop++;
-        }
-
-        // Copy the remaining lines
-        for (int i = nTop; i < nBottom; i++)
-        {
-            auto pLine = pScreen->GetLine(i);
-            auto pLastLine = pLastScreen->GetLine(i);
-            memcpy(pLine, pLastLine, pScreen->GetPitch());
-        }
-    }
-}
-
 // Highlight the current raster position if it's on the visible display
 static void DrawRaster(Screen& pScreen_)
 {
@@ -344,9 +267,6 @@ void Begin()
     // Return if we're skipping this frame
     if (!fDrawFrame)
         return;
-
-    // If we're debugging, copy up to the last-update position from the previous frame
-    CopyBeforeLastUpdate();
 }
 
 // Complete the displayed frame at the end of an emulated frame
@@ -357,9 +277,6 @@ void End()
     {
         // Update the screen to the current raster position
         Update();
-
-        // If we're debugging, copy after the raster from the previous frame
-        CopyAfterRaster();
 
         if (GUI::IsActive())
         {
@@ -380,9 +297,6 @@ void End()
 
             // Overlay the GUI widgets
             GUI::Draw(*pGuiScreen);
-
-            // Submit the completed frame
-            Flip(*pGuiScreen);
         }
         else
         {
@@ -407,9 +321,6 @@ void End()
 
             // Overlay the floppy LEDs and status text
             DrawOSD(*pScreen);
-
-            // Submit the completed frame
-            Flip(*pScreen);
         }
 
         // Redraw what's new
@@ -497,41 +408,10 @@ void Sync()
 
 void Redraw()
 {
-    // Draw the last complete frame
-    Video::Update(*pDisplayScreen);
-}
-
-
-// Determine the frame difference from last time and flip buffers
-void Flip(Screen& pScreen_)
-{
-    int nHeight = pScreen_.GetHeight() >> (GUI::IsActive() ? 0 : 1);
-
-    auto pdwA = reinterpret_cast<uint32_t*>(pScreen_.GetLine(0));
-    auto pdwB = reinterpret_cast<uint32_t*>(pDisplayScreen->GetLine(0));
-    int nPitchDW = pScreen_.GetPitch() >> 2;
-
-    // Work out what has changed since the last frame
-    for (int i = 0; i < nHeight; i++)
-    {
-        // Skip lines currently marked as dirty
-        if (Video::IsLineDirty(i))
-            continue;
-
-        // If they're different resolutions, or have different contents, they're dirty
-        if (memcmp(pdwA, pdwB, pScreen_.GetPitch()))
-            Video::SetLineDirty(i);
-
-        pdwA += nPitchDW;
-        pdwB += nPitchDW;
-    }
-
-    // Remember the last drawn screen, to compare differences next time
-    pDisplayScreen = &pScreen_;
-
-    // Flip screen buffers
-    std::swap(pScreen, pLastScreen);
-    std::swap(pGuiScreen, pLastGuiScreen);
+    if (GUI::IsActive())
+        Video::Update(*pGuiScreen);
+    else
+        Video::Update(*pScreen);
 }
 
 
