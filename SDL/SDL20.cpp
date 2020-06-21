@@ -113,7 +113,7 @@ bool SDLTexture::Init()
 }
 
 
-void SDLTexture::Update(Screen* pScreen_, bool* pafDirty_)
+void SDLTexture::Update(const Screen& pScreen_, bool* pafDirty_)
 {
     // Draw any changed lines to the back buffer
     if (!DrawChanges(pScreen_, pafDirty_))
@@ -146,7 +146,7 @@ void SDLTexture::UpdatePalette()
 
 
 // OpenGL version of DisplayChanges
-bool SDLTexture::DrawChanges(Screen* pScreen_, bool* pafDirty_)
+bool SDLTexture::DrawChanges(const Screen& pScreen_, bool* pafDirty_)
 {
     // Force GUI filtering with odd scaling factors, otherwise respect the options
     bool fFilter = GUI::IsActive() ? GetOption(filtergui) || (GetOption(scale) & 1) : GetOption(filter);
@@ -174,13 +174,6 @@ bool SDLTexture::DrawChanges(Screen* pScreen_, bool* pafDirty_)
 
     for (; nChangeTo && !pafDirty_[nChangeTo]; nChangeTo--);
 
-    // With bilinear filtering enabled, the GUI display in the lower half bleeds
-    // into the bottom line of the display, so clear it when changing modes.
-    static bool fLastHalfHeight = true;
-    if (fHalfHeight && !fLastHalfHeight)
-        pScreen_->FillRect(0, nChangeTo = nHeight, pScreen_->GetPitch(), 1, BLACK);
-    fLastHalfHeight = fHalfHeight;
-
     // Lock only the portion we're changing
     SDL_Rect rLock = { 0, nChangeFrom, nWidth, nChangeTo - nChangeFrom + 1 };
     void* pvPixels = nullptr;
@@ -198,8 +191,9 @@ bool SDLTexture::DrawChanges(Screen* pScreen_, bool* pafDirty_)
     uint32_t* pdwBack = reinterpret_cast<uint32_t*>(pvPixels), * pdw = pdwBack;
     long lPitchDW = nPitch >> 2;
 
-    uint8_t* pbSAM = pScreen_->GetLine(nChangeFrom), * pb = pbSAM;
-    long lPitch = pScreen_->GetPitch();
+    auto pbSAM = pScreen_.GetLine(nChangeFrom);
+    auto pb = pbSAM;
+    long lPitch = pScreen_.GetPitch();
 
 
     // What colour depth is the target surface?

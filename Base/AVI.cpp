@@ -349,7 +349,7 @@ static bool WriteFileHeaders(FILE* f_)
 
 
 
-static int FindRunFragment(uint8_t* pb_, uint8_t* pbP_, int nWidth_, int* pnJump_)
+static int FindRunFragment(const uint8_t* pb_, uint8_t* pbP_, int nWidth_, int* pnJump_)
 {
     int x, nRun = 0;
 
@@ -379,7 +379,7 @@ static int FindRunFragment(uint8_t* pb_, uint8_t* pbP_, int nWidth_, int* pnJump
     return x - nRun;
 }
 
-static void EncodeAbsolute(uint8_t* pb_, int nLength_)
+static void EncodeAbsolute(const uint8_t* pb_, int nLength_)
 {
     // Short lengths conflict with RLE codes, and must be encoded as colour runs instead
     if (nLength_ < 3)
@@ -402,7 +402,7 @@ static void EncodeAbsolute(uint8_t* pb_, int nLength_)
     }
 }
 
-static void EncodeBlock(uint8_t* pb_, int nLength_)
+static void EncodeBlock(const uint8_t* pb_, int nLength_)
 {
     while (nLength_)
     {
@@ -527,7 +527,7 @@ bool IsRecording()
 
 
 // Add a video frame to the file
-void AddFrame(Screen* pScreen_)
+void AddFrame(const Screen& pScreen_)
 {
     uint32_t size;
 
@@ -549,8 +549,8 @@ void AddFrame(Screen* pScreen_)
     if (ftell(f) == 0)
     {
         // Store the dimensions, and allocate+invalidate the frame copy
-        width = pScreen_->GetPitch() >> (fHalfSize ? 1 : 0);
-        height = pScreen_->GetHeight() >> (fHalfSize ? 1 : 0);
+        width = pScreen_.GetPitch() >> (fHalfSize ? 1 : 0);
+        height = pScreen_.GetHeight() >> (fHalfSize ? 1 : 0);
         size = (uint32_t)width * (uint32_t)height;
         frame_buffer.resize(size);
         std::fill(frame_buffer.begin(), frame_buffer.end(), 0xff);
@@ -569,7 +569,7 @@ void AddFrame(Screen* pScreen_)
 
     for (int y = height - 1; y > 0; y--)
     {
-        auto pbLine = pScreen_->GetLine(y >> (fHalfSize ? 0 : 1));
+        auto pbLine = pScreen_.GetLine(y >> (fHalfSize ? 0 : 1));
         static uint8_t abLine[GFX_PIXELS_PER_LINE];
 
         // Is the recording low-res?
@@ -586,7 +586,8 @@ void AddFrame(Screen* pScreen_)
             pbLine = abLine;
         }
 
-        uint8_t* pb = pbLine, * pbP = frame_buffer.data() + (width * y);
+        auto pb = pbLine;
+        auto pbP = frame_buffer.data() + (width * y);
 
         for (x = 0; x < width; )
         {

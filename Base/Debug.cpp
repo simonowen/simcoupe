@@ -494,7 +494,7 @@ TextView::TextView(Window* pParent_)
     SetFont(&sFixedFont);
 }
 
-void TextView::Draw(Screen* pScreen_)
+void TextView::Draw(Screen& pScreen_)
 {
     // Draw each line, always drawing line 0 to allow an empty message
     for (int i = m_nTopLine; i < m_nTopLine + m_nRows && (!i || i < m_nLines); i++)
@@ -754,7 +754,7 @@ void Debugger::Refresh()
 
 
 // Dialog override for background painting
-void Debugger::EraseBackground(Screen* pScreen_)
+void Debugger::EraseBackground(Screen& pScreen_)
 {
     // If we're not in transparent mode, call the base to draw the normal dialog background
     if (!s_fTransparent)
@@ -762,7 +762,7 @@ void Debugger::EraseBackground(Screen* pScreen_)
 }
 
 // Dialog override for dialog drawing
-void Debugger::Draw(Screen* pScreen_)
+void Debugger::Draw(Screen& pScreen_)
 {
     // First draw?
     if (!m_pView)
@@ -1701,7 +1701,7 @@ void DisView::SetAddress(uint16_t wAddr_, bool fForceTop_)
 }
 
 
-void DisView::Draw(Screen* pScreen_)
+void DisView::Draw(Screen& pScreen_)
 {
     unsigned int u = 0;
     for (char* psz = (char*)m_pszData; *psz; psz += strlen(psz) + 1, u++)
@@ -1715,12 +1715,12 @@ void DisView::Draw(Screen* pScreen_)
         {
             // The location bar is green for a change in code flow or yellow otherwise, with black text
             uint8_t bBarColour = (m_uCodeTarget != INVALID_TARGET) ? GREEN_7 : YELLOW_7;
-            pScreen_->FillRect(nX - 1, nY - 1, BAR_CHAR_LEN * CHR_WIDTH + 1, ROW_HEIGHT - 3, bBarColour);
+            pScreen_.FillRect(nX - 1, nY - 1, BAR_CHAR_LEN * CHR_WIDTH + 1, ROW_HEIGHT - 3, bBarColour);
             bColour = 'k';
 
             // Add a direction arrow if we have a code target
             if (m_uCodeTarget != INVALID_TARGET)
-                pScreen_->DrawString(nX + CHR_WIDTH * (BAR_CHAR_LEN - 1), nY, (m_uCodeTarget <= PC) ? "\x80" : "\x81", BLACK);
+                pScreen_.DrawString(nX + CHR_WIDTH * (BAR_CHAR_LEN - 1), nY, (m_uCodeTarget <= PC) ? "\x80" : "\x81", BLACK);
         }
 
         // Check for a breakpoint at the current address.
@@ -1733,15 +1733,15 @@ void DisView::Draw(Screen* pScreen_)
         // Show the current entry normally if it's not the current code target, otherwise show all
         // in black text with an arrow instead of the address, indicating it's the code target.
         if (m_uCodeTarget == INVALID_TARGET || s_wAddrs[u] != m_uCodeTarget)
-            pScreen_->Printf(nX, nY, "\a%c\a%c%s", bColour, (bColour != 'W') ? '0' : bColour, psz);
+            pScreen_.Printf(nX, nY, "\a%c\a%c%s", bColour, (bColour != 'W') ? '0' : bColour, psz);
         else
-            pScreen_->Printf(nX, nY, "\a%c===>\a%c%s", (bColour == 'k') ? 'k' : 'G', (bColour == 'k') ? '0' : bColour, psz + 4);
+            pScreen_.Printf(nX, nY, "\a%c===>\a%c%s", (bColour == 'k') ? 'k' : 'G', (bColour == 'k') ? '0' : bColour, psz + 4);
     }
 
     DrawRegisterPanel(pScreen_, m_nX + m_nWidth - 6 * 16, m_nY);
 }
 
-/*static*/ void DisView::DrawRegisterPanel(Screen* pScreen_, int nX_, int nY_)
+/*static*/ void DisView::DrawRegisterPanel(Screen& pScreen_, int nX_, int nY_)
 {
     int i;
     int nX = nX_;
@@ -1749,14 +1749,14 @@ void DisView::Draw(Screen* pScreen_)
 
 #define DoubleReg(dx,dy,name,reg) \
     { \
-        pScreen_->Printf(nX+dx, nY+dy, "\ag%-3s\a%c%02X\a%c%02X", name, \
+        pScreen_.Printf(nX+dx, nY+dy, "\ag%-3s\a%c%02X\a%c%02X", name, \
                     (regs.reg.b.h != sLastRegs.reg.b.h)?CHG_COL:'X', regs.reg.b.h,  \
                     (regs.reg.b.l != sLastRegs.reg.b.l)?CHG_COL:'X', regs.reg.b.l); \
     }
 
 #define SingleReg(dx,dy,name,reg) \
     { \
-        pScreen_->Printf(nX+dx, nY+dy, "\ag%-2s\a%c%02X", name, \
+        pScreen_.Printf(nX+dx, nY+dy, "\ag%-2s\a%c%02X", name, \
                     (regs.reg != sLastRegs.reg)?CHG_COL:'X', regs.reg); \
     }
 
@@ -1770,16 +1770,16 @@ void DisView::Draw(Screen* pScreen_)
 
     SingleReg(0, 80, "I", i);      SingleReg(36, 80, "R", r);
 
-    pScreen_->DrawString(nX + 80, nY + 74, "\aK\x81\x81");
+    pScreen_.DrawString(nX + 80, nY + 74, "\aK\x81\x81");
 
     for (i = 0; i < 4; i++)
-        pScreen_->Printf(nX + 72, nY + 84 + i * 12, "%04X", read_word(SP + i * 2));
+        pScreen_.Printf(nX + 72, nY + 84 + i * 12, "%04X", read_word(SP + i * 2));
 
-    pScreen_->Printf(nX, nY + 96, "\agIM \a%c%u", (IM != sLastRegs.im) ? CHG_COL : 'X', IM);
-    pScreen_->Printf(nX + 18, nY + 96, "  \a%c%cI", (IFF1 != sLastRegs.iff1) ? CHG_COL : 'X', IFF1 ? 'E' : 'D');
+    pScreen_.Printf(nX, nY + 96, "\agIM \a%c%u", (IM != sLastRegs.im) ? CHG_COL : 'X', IM);
+    pScreen_.Printf(nX + 18, nY + 96, "  \a%c%cI", (IFF1 != sLastRegs.iff1) ? CHG_COL : 'X', IFF1 ? 'E' : 'D');
 
     char bIntDiff = status_reg ^ bLastStatus;
-    pScreen_->Printf(nX, nY + 108, "\agStat \a%c%c\a%c%c\a%c%c\a%c%c\a%c%c",
+    pScreen_.Printf(nX, nY + 108, "\agStat \a%c%c\a%c%c\a%c%c\a%c%c\a%c%c",
         (bIntDiff & 0x10) ? CHG_COL : (status_reg & 0x10) ? 'K' : 'X', (status_reg & 0x10) ? '-' : 'O',
         (bIntDiff & 0x08) ? CHG_COL : (status_reg & 0x08) ? 'K' : 'X', (status_reg & 0x08) ? '-' : 'F',
         (bIntDiff & 0x04) ? CHG_COL : (status_reg & 0x04) ? 'K' : 'X', (status_reg & 0x04) ? '-' : 'I',
@@ -1787,7 +1787,7 @@ void DisView::Draw(Screen* pScreen_)
         (bIntDiff & 0x01) ? CHG_COL : (status_reg & 0x01) ? 'K' : 'X', (status_reg & 0x01) ? '-' : 'L');
 
     char bFlagDiff = F ^ sLastRegs.af.b.l;
-    pScreen_->Printf(nX, nY + 132, "\agFlag \a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c",
+    pScreen_.Printf(nX, nY + 132, "\agFlag \a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c",
         (bFlagDiff & FLAG_S) ? CHG_COL : (F & FLAG_S) ? 'X' : 'K', (F & FLAG_S) ? 'S' : '-',
         (bFlagDiff & FLAG_Z) ? CHG_COL : (F & FLAG_Z) ? 'X' : 'K', (F & FLAG_Z) ? 'Z' : '-',
         (bFlagDiff & FLAG_5) ? CHG_COL : (F & FLAG_5) ? 'X' : 'K', (F & FLAG_5) ? '5' : '-',
@@ -1801,24 +1801,24 @@ void DisView::Draw(Screen* pScreen_)
     int nLine = (g_dwCycleCounter < CPU_CYCLES_PER_SIDE_BORDER) ? GFX_HEIGHT_LINES - 1 : (g_dwCycleCounter - CPU_CYCLES_PER_SIDE_BORDER) / CPU_CYCLES_PER_LINE;
     int nLineCycle = (g_dwCycleCounter + CPU_CYCLES_PER_LINE - CPU_CYCLES_PER_SIDE_BORDER) % CPU_CYCLES_PER_LINE;
 
-    pScreen_->Printf(nX, nY + 148, "\agScan\aX %03d:%03d", nLine, nLineCycle);
-    pScreen_->Printf(nX, nY + 160, "\agT\aX %u", g_dwCycleCounter);
+    pScreen_.Printf(nX, nY + 148, "\agScan\aX %03d:%03d", nLine, nLineCycle);
+    pScreen_.Printf(nX, nY + 160, "\agT\aX %u", g_dwCycleCounter);
 
     uint32_t dwCycleDiff = ((nLastFrames * CPU_CYCLES_PER_FRAME) + g_dwCycleCounter) - dwLastCycle;
     if (dwCycleDiff)
-        pScreen_->Printf(nX + 12, nY + 172, "+%u", dwCycleDiff);
+        pScreen_.Printf(nX + 12, nY + 172, "+%u", dwCycleDiff);
 
-    pScreen_->Printf(nX, nY + 188, "\agA \a%c%s", ReadOnlyAddr(0x0000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_A)));
-    pScreen_->Printf(nX, nY + 200, "\agB \a%c%s", ReadOnlyAddr(0x4000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_B)));
-    pScreen_->Printf(nX, nY + 212, "\agC \a%c%s", ReadOnlyAddr(0x8000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_C)));
-    pScreen_->Printf(nX, nY + 224, "\agD \a%c%s", ReadOnlyAddr(0xc000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_D)));
+    pScreen_.Printf(nX, nY + 188, "\agA \a%c%s", ReadOnlyAddr(0x0000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_A)));
+    pScreen_.Printf(nX, nY + 200, "\agB \a%c%s", ReadOnlyAddr(0x4000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_B)));
+    pScreen_.Printf(nX, nY + 212, "\agC \a%c%s", ReadOnlyAddr(0x8000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_C)));
+    pScreen_.Printf(nX, nY + 224, "\agD \a%c%s", ReadOnlyAddr(0xc000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_D)));
 
-    pScreen_->Printf(nX + 66, nY + 188, "\agL\aX %02X", lmpr);
-    pScreen_->Printf(nX + 66, nY + 200, "\agH\aX %02X", hmpr);
-    pScreen_->Printf(nX + 66, nY + 212, "\agV\aX %02X", vmpr);
-    pScreen_->Printf(nX + 66, nY + 224, "\agM\aX %X", ((vmpr & VMPR_MODE_MASK) >> 5) + 1);
+    pScreen_.Printf(nX + 66, nY + 188, "\agL\aX %02X", lmpr);
+    pScreen_.Printf(nX + 66, nY + 200, "\agH\aX %02X", hmpr);
+    pScreen_.Printf(nX + 66, nY + 212, "\agV\aX %02X", vmpr);
+    pScreen_.Printf(nX + 66, nY + 224, "\agM\aX %X", ((vmpr & VMPR_MODE_MASK) >> 5) + 1);
 
-    pScreen_->DrawString(nX, nY + 240, "\agEvents");
+    pScreen_.DrawString(nX, nY + 240, "\agEvents");
 
     CPU_EVENT* pEvent = psNextEvent;
     for (i = 0; i < 3 && pEvent; i++, pEvent = pEvent->pNext)
@@ -1843,7 +1843,7 @@ void DisView::Draw(Screen* pScreen_)
             i--; continue;
         }
 
-        pScreen_->Printf(nX, nY + 252 + i * 12, "%-4s \a%c%6u\aXT", pcszEvent, CHG_COL, pEvent->due_time - g_dwCycleCounter);
+        pScreen_.Printf(nX, nY + 252 + i * 12, "%-4s \a%c%6u\aXT", pcszEvent, CHG_COL, pEvent->due_time - g_dwCycleCounter);
     }
 }
 
@@ -2310,7 +2310,7 @@ bool TxtView::GetAddrPosition(uint16_t wAddr_, int& x_, int& y_)
     return true;
 }
 
-void TxtView::Draw(Screen* pScreen_)
+void TxtView::Draw(Screen& pScreen_)
 {
     int nX, nY;
 
@@ -2322,7 +2322,7 @@ void TxtView::Draw(Screen* pScreen_)
         uint8_t bColour = (fRead && fWrite) ? YELLOW_3 : fWrite ? RED_3 : GREEN_3;
         if (GetAddrPosition(wAddr, nX, nY))
         {
-            pScreen_->FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
+            pScreen_.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
         }
     }
 
@@ -2332,7 +2332,7 @@ void TxtView::Draw(Screen* pScreen_)
         int nX = m_nX;
         int nY = m_nY + ROW_HEIGHT * u;
 
-        pScreen_->DrawString(nX, nY, psz, WHITE);
+        pScreen_.DrawString(nX, nY, psz, WHITE);
     }
 
     if (m_fEditing && GetAddrPosition(m_wEditAddr, nX, nY))
@@ -2340,8 +2340,8 @@ void TxtView::Draw(Screen* pScreen_)
         auto b = read_byte(m_wEditAddr);
         char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
 
-        pScreen_->FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, YELLOW_8);
-        pScreen_->Printf(nX, nY, "\ak%c", ch);
+        pScreen_.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, YELLOW_8);
+        pScreen_.Printf(nX, nY, "\ak%c", ch);
 
         pDebugger->SetStatusByte(m_wEditAddr);
     }
@@ -2534,7 +2534,7 @@ bool HexView::GetAddrPosition(uint16_t wAddr_, int& x_, int& y_, int& textx_)
     return true;
 }
 
-void HexView::Draw(Screen* pScreen_)
+void HexView::Draw(Screen& pScreen_)
 {
     int nX, nY, nTextX;
 
@@ -2546,8 +2546,8 @@ void HexView::Draw(Screen* pScreen_)
         uint8_t bColour = (fRead && fWrite) ? YELLOW_3 : fWrite ? RED_3 : GREEN_3;
         if (GetAddrPosition(wAddr, nX, nY, nTextX))
         {
-            pScreen_->FillRect(nX - 1, nY - 1, CHR_WIDTH * 2 + 1, ROW_HEIGHT - 3, bColour);
-            pScreen_->FillRect(nTextX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
+            pScreen_.FillRect(nX - 1, nY - 1, CHR_WIDTH * 2 + 1, ROW_HEIGHT - 3, bColour);
+            pScreen_.FillRect(nTextX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
         }
     }
 
@@ -2557,7 +2557,7 @@ void HexView::Draw(Screen* pScreen_)
         int nX = m_nX;
         int nY = m_nY + ROW_HEIGHT * u;
 
-        pScreen_->DrawString(nX, nY, psz, WHITE);
+        pScreen_.DrawString(nX, nY, psz, WHITE);
     }
 
     if (m_fEditing && GetAddrPosition(m_wEditAddr, nX, nY, nTextX))
@@ -2569,12 +2569,12 @@ void HexView::Draw(Screen* pScreen_)
         if (m_fRightNibble)
             nY += CHR_WIDTH;
 
-        pScreen_->FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, YELLOW_8);
-        pScreen_->Printf(nX, nY, "\ak%c", sz[m_fRightNibble]);
+        pScreen_.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, YELLOW_8);
+        pScreen_.Printf(nX, nY, "\ak%c", sz[m_fRightNibble]);
 
         char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
-        pScreen_->FillRect(nTextX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, GREY_6);
-        pScreen_->Printf(nTextX, nY, "\ak%c", ch);
+        pScreen_.FillRect(nTextX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, GREY_6);
+        pScreen_.Printf(nTextX, nY, "\ak%c", ch);
     }
 }
 
@@ -2732,21 +2732,21 @@ void CMemView::SetAddress (uint16_t wAddr_, bool fForceTop_)
 }
 
 
-void CMemView::Draw (Screen* pScreen_)
+void CMemView::Draw (Screen& pScreen_)
 {
-    pScreen_->SetFont(&sFixedFont, true);
+    pScreen_.SetFont(&sFixedFont, true);
 
     unsigned int uGap = 12;
 
     for (unsigned int u = 0 ; u < 256 ; u++)
     {
         unsigned int uLen = (m_nHeight - uGap) * ((uint8_t*)szDisassem)[u] / 100;
-        pScreen_->DrawLine(m_nX+u, m_nY+m_nHeight-uGap-uLen, 0, uLen, (u & 16) ? WHITE : GREY_7);
+        pScreen_.DrawLine(m_nX+u, m_nY+m_nHeight-uGap-uLen, 0, uLen, (u & 16) ? WHITE : GREY_7);
     }
 
-    pScreen_->DrawString(m_nX, m_nY+m_nHeight-10, "Page 0: 16K in 1K units", WHITE);
+    pScreen_.DrawString(m_nX, m_nY+m_nHeight-10, "Page 0: 16K in 1K units", WHITE);
 
-    pScreen_->SetFont(&sGUIFont);
+    pScreen_.SetFont(&sGUIFont);
 }
 */
 
@@ -2840,10 +2840,10 @@ void GfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 
 }
 
-void GfxView::Draw(Screen* pScreen_)
+void GfxView::Draw(Screen& pScreen_)
 {
     // Clip to the client area to prevent partial strips escaping
-    pScreen_->SetClip(m_nX, m_nY, m_nWidth, m_nHeight);
+    pScreen_.SetClip(m_nX, m_nY, m_nWidth, m_nHeight);
 
     auto pb = m_pbData;
 
@@ -2856,12 +2856,12 @@ void GfxView::Draw(Screen* pScreen_)
         {
             for (unsigned int w = 0; w < s_uZoom; w++, nY++)
             {
-                pScreen_->Poke(nX, nY, pb, m_uStripWidth);
+                pScreen_.Poke(nX, nY, pb, m_uStripWidth);
             }
         }
     }
 
-    pScreen_->SetClip();
+    pScreen_.SetClip();
 }
 
 bool GfxView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
@@ -3002,7 +3002,7 @@ void BptView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 }
 
 
-void BptView::Draw(Screen* pScreen_)
+void BptView::Draw(Screen& pScreen_)
 {
     int i;
     char* psz = m_pszData;
@@ -3017,7 +3017,7 @@ void BptView::Draw(Screen* pScreen_)
 
         BREAKPT* pBreak = Breakpoint::GetAt(m_nTopLine + i);
         uint8_t bColour = (m_nTopLine + i == m_nActive) ? CYAN_7 : (pBreak && !pBreak->fEnabled) ? GREY_4 : WHITE;
-        pScreen_->DrawString(nX, nY, psz, bColour);
+        pScreen_.DrawString(nX, nY, psz, bColour);
         psz += strlen(psz) + 1;
     }
 
@@ -3090,10 +3090,10 @@ TrcView::TrcView(Window* pParent_)
     cmdNavigate(HK_END, 0);
 }
 
-void TrcView::DrawLine(Screen* pScreen_, int nX_, int nY_, int nLine_)
+void TrcView::DrawLine(Screen& pScreen_, int nX_, int nY_, int nLine_)
 {
     if (GetLines() <= 1)
-        pScreen_->DrawString(nX_, nY_, "No instruction trace", WHITE);
+        pScreen_.DrawString(nX_, nY_, "No instruction trace", WHITE);
     else
     {
         char szDis[32], sz[128], * psz = sz;
@@ -3177,11 +3177,11 @@ void TrcView::DrawLine(Screen* pScreen_, int nX_, int nY_, int nLine_)
 
         if (nLine_ == GetLines() - 1)
         {
-            pScreen_->FillRect(nX_ - 1, nY_ - 1, m_nWidth - 112, ROW_HEIGHT - 3, YELLOW_7);
+            pScreen_.FillRect(nX_ - 1, nY_ - 1, m_nWidth - 112, ROW_HEIGHT - 3, YELLOW_7);
             bColour = BLACK;
         }
 
-        pScreen_->DrawString(nX_, nY_, sz, bColour);
+        pScreen_.DrawString(nX_, nY_, sz, bColour);
     }
 }
 

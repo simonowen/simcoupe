@@ -136,15 +136,15 @@ static bool CompressImageData(PNG_INFO* pPNG_)
 }
 
 
-static bool SaveFile(FILE* f_, Screen* pScreen_)
+static bool SaveFile(FILE* f_, const Screen& pScreen_)
 {
     // Are we to stretch the saved image?
     int nDen = 5, nNum = 4;
     bool fStretch = GetOption(ratio5_4);
 
     PNG_INFO png{};
-    png.dwWidth = pScreen_->GetPitch();
-    png.dwHeight = pScreen_->GetHeight();
+    png.dwWidth = pScreen_.GetPitch();
+    png.dwHeight = pScreen_.GetHeight();
     if (fStretch) png.dwWidth = png.dwWidth * nDen / nNum;
 
     png.uSize = png.dwHeight * (1 + (png.dwWidth * 3));
@@ -159,7 +159,7 @@ static bool SaveFile(FILE* f_, Screen* pScreen_)
 
     for (unsigned int y = 0; y < png.dwHeight; y++)
     {
-        auto pbS = pScreen_->GetLine(y >> 1);
+        auto pbS = pScreen_.GetLine(y >> 1);
 
         // Each image line begins with the filter type
         *pb++ = PNG_FILTER_TYPE_DEFAULT;
@@ -209,7 +209,7 @@ static bool SaveFile(FILE* f_, Screen* pScreen_)
 
 
 // Process and save the supplied SAM image data to a file in PNG format
-bool Save(Screen* pScreen_)
+bool Save(const Screen& pScreen_)
 {
     bool fRet = false;
 

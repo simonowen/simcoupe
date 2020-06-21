@@ -100,7 +100,7 @@ void Direct3D9Video::UpdatePalette()
 }
 
 // Update the display to show anything that's changed since last time
-void Direct3D9Video::Update(Screen* pScreen_, bool* pafDirty_)
+void Direct3D9Video::Update(const Screen& pScreen_, bool* pafDirty_)
 {
     HRESULT hr;
 
@@ -145,8 +145,8 @@ void Direct3D9Video::Update(Screen* pScreen_, bool* pafDirty_)
 
     float vertexConsts[] =
     {
-        2.0f / pScreen_->GetPitch(),
-        -2.0f / pScreen_->GetHeight() * (GUI::IsActive() ? 1.0f : 2.0f),
+        2.0f / pScreen_.GetPitch(),
+        -2.0f / pScreen_.GetHeight() * (GUI::IsActive() ? 1.0f : 2.0f),
         0.5f / TEXTURE_SIZE,
         1.0f / TEXTURE_SIZE,
     };
@@ -334,12 +334,12 @@ bool Direct3D9Video::Reset(bool fNewDevice_)
 }
 
 // Draw the changed lines in the appropriate colour depth and hi/low resolution
-bool Direct3D9Video::DrawChanges(Screen* pScreen_, bool* pafDirty_)
+bool Direct3D9Video::DrawChanges(const Screen& pScreen_, bool* pafDirty_)
 {
     HRESULT hr = 0;
 
-    int nWidth = pScreen_->GetPitch();
-    int nHeight = pScreen_->GetHeight();
+    int nWidth = pScreen_.GetPitch();
+    int nHeight = pScreen_.GetHeight();
 
     bool fHalfHeight = !GUI::IsActive();
     if (fHalfHeight) nHeight /= 2;
@@ -355,8 +355,9 @@ bool Direct3D9Video::DrawChanges(Screen* pScreen_, bool* pafDirty_)
     uint32_t* pdwBack = reinterpret_cast<uint32_t*>(d3dlr.pBits), * pdw = pdwBack;
     LONG lPitchDW = d3dlr.Pitch >> 2;
 
-    uint8_t* pbSAM = pScreen_->GetLine(0), * pb = pbSAM;
-    LONG lPitch = pScreen_->GetPitch();
+    auto pbSAM = pScreen_.GetLine(0);
+    auto pb = pbSAM;
+    LONG lPitch = pScreen_.GetPitch();
 
     int nRightHi = nWidth >> 3;
 

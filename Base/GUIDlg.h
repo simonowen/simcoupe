@@ -127,7 +127,7 @@ public:
     void operator= (const AboutDialog&) = delete;
 
     void OnNotify(Window* pWindow_, int nParam_) override;
-    void EraseBackground(Screen* pScreen_) override;
+    void EraseBackground(Screen& pScreen_) override;
 
 protected:
     Window* m_pCloseButton = nullptr;

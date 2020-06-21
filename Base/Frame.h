@@ -91,7 +91,7 @@ public:
 
 public:
     void SetMode(uint8_t bVal_);
-    void UpdateLine(Screen* pScreen_, int nLine_, int nFrom_, int nTo_);
+    void UpdateLine(Screen& pScreen_, int nLine_, int nFrom_, int nTo_);
     void GetAsicData(uint8_t* pb0_, uint8_t* pb1_, uint8_t* pb2_, uint8_t* pb3_);
 
     void ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_t bNewVmpr_);

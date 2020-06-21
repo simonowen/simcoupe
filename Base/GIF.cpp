@@ -49,9 +49,9 @@ static LoopState nLoopState;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void WriteLogicalScreenDescriptor(Screen* pScreen_)
+static void WriteLogicalScreenDescriptor(const Screen& pScreen_)
 {
-    uint16_t w = pScreen_->GetPitch() / 2, h = pScreen_->GetHeight() / 2;
+    uint16_t w = pScreen_.GetPitch() / 2, h = pScreen_.GetHeight() / 2;
 
     fputc(w & 0xff, f);
     fputc(w >> 8, f);
@@ -156,12 +156,12 @@ static void WriteFileTerminator()
 
 
 // Compare our copy of the screen with the new display contents
-static bool GetChangeRect(uint8_t* pb_, Screen* pScreen_)
+static bool GetChangeRect(uint8_t* pb_, const Screen& pScreen_)
 {
     int l, t, r, b, w, h;
     l = t = r = b = 0;
 
-    uint16_t width = pScreen_->GetPitch() / 2, height = pScreen_->GetHeight() / 2;
+    uint16_t width = pScreen_.GetPitch() / 2, height = pScreen_.GetHeight() / 2;
     int step = 2; // sample alternate pixels
 
     uint8_t* pbC = pb_;
@@ -169,7 +169,7 @@ static bool GetChangeRect(uint8_t* pb_, Screen* pScreen_)
     // Search down for the top-most change
     for (h = 0; h < height; h++)
     {
-        uint8_t* pb = pScreen_->GetLine(h);
+        auto pb = pScreen_.GetLine(h);
 
         // Scan the full width of the current line
         for (w = 0; w < width; w++, pbC++, pb += step)
@@ -195,7 +195,7 @@ found_top:
     // Search up for the bottom-most change
     for (h = height - 1; h >= t; h--)
     {
-        auto pb = pScreen_->GetLine(h);
+        auto pb = pScreen_.GetLine(h);
         pb += (width - 1) * step;
 
         // Scan the full width of the line, right to left
@@ -220,7 +220,7 @@ found_bottom:
     // Scan within the inclusive vertical extents of the change rect
     for (h = t; h <= b; h++, pbC += width)
     {
-        auto pb = pScreen_->GetLine(h);
+        auto pb = pScreen_.GetLine(h);
 
         // Scan the unknown left strip
         for (w = 0; w < l; w++)
@@ -255,9 +255,9 @@ found_bottom:
 }
 
 // Update current image and determine sub-region difference to encode
-static uint8_t UpdateImage(uint8_t* pb_, Screen* pScreen_)
+static uint8_t UpdateImage(uint8_t* pb_, const Screen& pScreen_)
 {
-    uint16_t width = pScreen_->GetPitch() / 2;
+    uint16_t width = pScreen_.GetPitch() / 2;
     int step = 2;
     uint8_t abUsed[1 << COLOUR_DEPTH] = { 0 };
     auto pbSub_ = pbSub;
@@ -270,7 +270,7 @@ static uint8_t UpdateImage(uint8_t* pb_, Screen* pScreen_)
 
     for (int y = wt; y < wt + wh; y++, pb += width)
     {
-        uint8_t* pbScr = pScreen_->GetLine(y);
+        auto pbScr = pScreen_.GetLine(y);
         pbScr += (wl * step);
 
         for (int x = 0; x < ww; x++, pbScr += step)
@@ -419,7 +419,7 @@ bool IsRecording()
 }
 
 
-void AddFrame(Screen* pScreen_)
+void AddFrame(const Screen& pScreen_)
 {
     // Fail if we're not recording
     if (!f)
@@ -428,12 +428,8 @@ void AddFrame(Screen* pScreen_)
     // Count the frames between changes
     nDelay++;
 
-    // Return if there's no screen to record
-    if (!pScreen_)
-        return;
-
-    uint16_t width = pScreen_->GetPitch() / 2;
-    uint16_t height = pScreen_->GetHeight() / 2;
+    uint16_t width = pScreen_.GetPitch() / 2;
+    uint16_t height = pScreen_.GetHeight() / 2;
     uint32_t size = (uint32_t)width * (uint32_t)height;
 
     // If this is the first frame, write the file headers

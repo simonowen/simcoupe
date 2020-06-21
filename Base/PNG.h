@@ -24,7 +24,7 @@
 
 namespace PNG
 {
-bool Save(Screen* pScreen_);
+bool Save(const Screen& pScreen_);
 }
 
 #ifdef HAVE_LIBZ

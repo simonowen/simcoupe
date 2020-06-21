@@ -51,6 +51,7 @@ public:
     ~Screen();
 
 public:
+    const uint8_t* GetLine(int nLine_) const { return m_ppbLines[nLine_]; }
     uint8_t* GetLine(int nLine_) { return m_ppbLines[nLine_]; }
 
     int GetPitch() const { return m_nPitch; }

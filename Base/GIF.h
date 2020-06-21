@@ -29,7 +29,7 @@ void Stop();
 void Toggle(bool fAnimLoop_ = false);
 bool IsRecording();
 
-void AddFrame(Screen* pScreen_);
+void AddFrame(const Screen& pScreen_);
 }
 
 

@@ -25,7 +25,7 @@
 namespace SSX
 {
 
-bool Save(Screen* screen, int main_x, int main_y)
+bool Save(const Screen& screen, int main_x, int main_y)
 {
     char szPath[MAX_PATH]{};
     Util::GetUniqueFile("ssx", szPath, sizeof(szPath));
@@ -40,7 +40,7 @@ bool Save(Screen* screen, int main_x, int main_y)
     if (display_changed)
     {
         for (auto y = 0; y < GFX_SCREEN_LINES; ++y)
-            fwrite(screen->GetLine(main_y + y) + main_x, 1, GFX_SCREEN_PIXELS, file);
+            fwrite(screen.GetLine(main_y + y) + main_x, 1, GFX_SCREEN_PIXELS, file);
     }
     else
     {

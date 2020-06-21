@@ -62,8 +62,9 @@ const unsigned int FPS_IN_TURBO_MODE = 5;       // Number of FPS to limit to in 
 int s_nViewTop, s_nViewBottom;
 int s_nViewLeft, s_nViewRight;
 
-Screen* pScreen, * pLastScreen, * pGuiScreen, * pLastGuiScreen, * pDisplayScreen;
-ScreenWriter* pFrame;
+std::unique_ptr<Screen> pScreen, pLastScreen, pGuiScreen, pLastGuiScreen;
+Screen* pDisplayScreen;
+std::unique_ptr<ScreenWriter> pFrame;
 
 bool fDrawFrame, g_fFlashPhase, fSavePNG, fSaveSSX;
 int nFrame;
@@ -93,8 +94,8 @@ asViews[] =
 
 namespace Frame
 {
-static void DrawOSD(Screen* pScreen_);
-static void Flip(Screen* pScreen_);
+static void DrawOSD(Screen& pScreen_);
+static void Flip(Screen& pScreen_);
 
 bool Init(bool fFirstInit_/*=false*/)
 {
@@ -118,23 +119,16 @@ bool Init(bool fFirstInit_/*=false*/)
     s_nHeight = (s_nViewBottom - s_nViewTop) << 1;
 
     // Create two SAM screens and two GUI screens, to allow for double-buffering
-    pScreen = new Screen(s_nWidth, s_nHeight);
-    pLastScreen = new Screen(s_nWidth, s_nHeight);
-    pGuiScreen = new Screen(s_nWidth, s_nHeight);
-    pLastGuiScreen = new Screen(s_nWidth, s_nHeight);
+    pScreen = std::make_unique<Screen>(s_nWidth, s_nHeight);
+    pLastScreen = std::make_unique<Screen>(s_nWidth, s_nHeight);
+    pGuiScreen = std::make_unique<Screen>(s_nWidth, s_nHeight);
+    pLastGuiScreen = std::make_unique<Screen>(s_nWidth, s_nHeight);
 
     // Create the frame rendering object
-    pFrame = new ScreenWriter();
-
-    // Check we created everything successfully
-    if (!pScreen || !pLastScreen || !pGuiScreen || !pLastGuiScreen || !pFrame)
-    {
-        Message(msgFatal, "Out of memory!");
-        return false;
-    }
+    pFrame = std::make_unique<ScreenWriter>();
 
     // Drawn screen is the last (initially blank) screen
-    pDisplayScreen = pLastScreen;
+    pDisplayScreen = pLastScreen.get();
 
     // Set the renderer display mode
     pFrame->SetMode(vmpr);
@@ -153,11 +147,11 @@ void Exit(bool fReInit_/*=false*/)
     GIF::Stop();
     AVI::Stop();
 
-    delete pFrame; pFrame = nullptr;
-    delete pScreen; pScreen = nullptr;
-    delete pLastScreen; pLastScreen = nullptr;
-    delete pGuiScreen; pGuiScreen = nullptr;
-    delete pLastGuiScreen; pLastGuiScreen = nullptr;
+    pFrame.reset();
+    pScreen.reset();
+    pLastScreen.reset();
+    pGuiScreen.reset();
+    pLastGuiScreen.reset();
 
     pDisplayScreen = nullptr;
 }
@@ -203,7 +197,7 @@ void Update()
     {
         if (nBlock > nLastBlock)
         {
-            pFrame->UpdateLine(pScreen, nLine, nLastBlock, nBlock);
+            pFrame->UpdateLine(*pScreen, nLine, nLastBlock, nBlock);
             nLastBlock = nBlock;
         }
     }
@@ -218,7 +212,7 @@ void Update()
             if (nFrom == nLastLine)
             {
                 // Finish the line, and exclude it from the draw range
-                pFrame->UpdateLine(pScreen, nLastLine, nLastBlock, GFX_WIDTH_CELLS);
+                pFrame->UpdateLine(*pScreen, nLastLine, nLastBlock, GFX_WIDTH_CELLS);
                 nFrom++;
             }
 
@@ -226,7 +220,7 @@ void Update()
             if (nTo == nLine)
             {
                 // Draw a partial line
-                pFrame->UpdateLine(pScreen, nLine, 0, nBlock);
+                pFrame->UpdateLine(*pScreen, nLine, 0, nBlock);
 
                 // Exclude the line from the block as we've drawn it now
                 nTo--;
@@ -236,7 +230,7 @@ void Update()
             for (int i = nFrom; i <= nTo; i++)
             {
                 // Draw a complete line
-                pFrame->UpdateLine(pScreen, i, 0, GFX_WIDTH_CELLS);
+                pFrame->UpdateLine(*pScreen, i, 0, GFX_WIDTH_CELLS);
             }
         }
 
@@ -314,7 +308,7 @@ static void CopyAfterRaster()
 }
 
 // Highlight the current raster position if it's on the visible display
-static void DrawRaster(Screen* pScreen_)
+static void DrawRaster(Screen& pScreen_)
 {
     // Greyscale cycle, fading in and out
     static int anFlash[] = {
@@ -336,8 +330,8 @@ static void DrawRaster(Screen* pScreen_)
     uint8_t bColour = anFlash[++nPhase & 0xf];
 
     // Write the 2x2 pixel block
-    auto pLine0 = pScreen_->GetLine(nLine);
-    auto pLine1 = pScreen_->GetLine(nLine + 1);
+    auto pLine0 = pScreen_.GetLine(nLine);
+    auto pLine1 = pScreen_.GetLine(nLine + 1);
     pLine0[nOffset] = pLine0[nOffset + 1] = pLine1[nOffset] = pLine1[nOffset + 1] = bColour;
 }
 
@@ -382,20 +376,20 @@ void End()
 
             // If the debugger is active, highlight the current raster position
             if (Debug::IsActive())
-                DrawRaster(pGuiScreen);
+                DrawRaster(*pGuiScreen);
 
             // Overlay the GUI widgets
-            GUI::Draw(pGuiScreen);
+            GUI::Draw(*pGuiScreen);
 
             // Submit the completed frame
-            Flip(pGuiScreen);
+            Flip(*pGuiScreen);
         }
         else
         {
             // Screenshot required?
             if (fSavePNG)
             {
-                PNG::Save(pScreen);
+                PNG::Save(*pScreen);
                 fSavePNG = false;
             }
 
@@ -403,19 +397,19 @@ void End()
             {
                 auto main_x = (SIDE_BORDER_CELLS - s_nViewLeft) << 4;
                 auto main_y = (TOP_BORDER_LINES - s_nViewTop);
-                SSX::Save(pScreen, main_x, main_y);
+                SSX::Save(*pScreen, main_x, main_y);
                 fSaveSSX = false;
             }
 
             // Add the frame to any recordings
-            GIF::AddFrame(pScreen);
-            AVI::AddFrame(pScreen);
+            GIF::AddFrame(*pScreen);
+            AVI::AddFrame(*pScreen);
 
             // Overlay the floppy LEDs and status text
-            DrawOSD(pScreen);
+            DrawOSD(*pScreen);
 
             // Submit the completed frame
-            Flip(pScreen);
+            Flip(*pScreen);
         }
 
         // Redraw what's new
@@ -504,18 +498,18 @@ void Sync()
 void Redraw()
 {
     // Draw the last complete frame
-    Video::Update(pDisplayScreen);
+    Video::Update(*pDisplayScreen);
 }
 
 
 // Determine the frame difference from last time and flip buffers
-void Flip(Screen* pScreen_)
+void Flip(Screen& pScreen_)
 {
-    int nHeight = pScreen_->GetHeight() >> (GUI::IsActive() ? 0 : 1);
+    int nHeight = pScreen_.GetHeight() >> (GUI::IsActive() ? 0 : 1);
 
-    auto pdwA = reinterpret_cast<uint32_t*>(pScreen_->GetLine(0));
+    auto pdwA = reinterpret_cast<uint32_t*>(pScreen_.GetLine(0));
     auto pdwB = reinterpret_cast<uint32_t*>(pDisplayScreen->GetLine(0));
-    int nPitchDW = pScreen_->GetPitch() >> 2;
+    int nPitchDW = pScreen_.GetPitch() >> 2;
 
     // Work out what has changed since the last frame
     for (int i = 0; i < nHeight; i++)
@@ -525,7 +519,7 @@ void Flip(Screen* pScreen_)
             continue;
 
         // If they're different resolutions, or have different contents, they're dirty
-        if (memcmp(pdwA, pdwB, pScreen_->GetPitch()))
+        if (memcmp(pdwA, pdwB, pScreen_.GetPitch()))
             Video::SetLineDirty(i);
 
         pdwA += nPitchDW;
@@ -533,7 +527,7 @@ void Flip(Screen* pScreen_)
     }
 
     // Remember the last drawn screen, to compare differences next time
-    pDisplayScreen = pScreen_;
+    pDisplayScreen = &pScreen_;
 
     // Flip screen buffers
     std::swap(pScreen, pLastScreen);
@@ -542,9 +536,9 @@ void Flip(Screen* pScreen_)
 
 
 // Draw on-screen display indicators, such as the floppy LEDs and the status text
-void DrawOSD(Screen* pScreen_)
+void DrawOSD(Screen& pScreen_)
 {
-    int nWidth = pScreen_->GetPitch(), nHeight = pScreen_->GetHeight() >> 1;
+    int nWidth = pScreen_.GetPitch(), nHeight = pScreen_.GetHeight() >> 1;
 
     // Drive LEDs enabled?
     if (GetOption(drivelights))
@@ -556,7 +550,7 @@ void DrawOSD(Screen* pScreen_)
         if (GetOption(drive1))
         {
             uint8_t bColour = pFloppy1->IsLightOn() ? FLOPPY_LED_COLOUR : LED_OFF_COLOUR;
-            pScreen_->FillRect(nX, nY, 14, 2, bColour);
+            pScreen_.FillRect(nX, nY, 14, 2, bColour);
         }
 
         // Floppy 2 or Atom drive light
@@ -566,29 +560,29 @@ void DrawOSD(Screen* pScreen_)
             uint8_t bAtomColour = pAtom->IsActive() ? ATOM_LED_COLOUR : ATOMLITE_LED_COLOUR;
 
             uint8_t bColour = pFloppy2->IsLightOn() ? FLOPPY_LED_COLOUR : (fAtomActive ? bAtomColour : LED_OFF_COLOUR);
-            pScreen_->FillRect(nX + 18, nY, 14, 2, bColour);
+            pScreen_.FillRect(nX + 18, nY, 14, 2, bColour);
         }
     }
 
     // We'll use the fixed font for the simple on-screen text
-    pScreen_->SetFont(&sPropFont);
+    pScreen_.SetFont(&sPropFont);
 
     // Show the profiling statistics?
     if (GetOption(profile) && !GUI::IsActive())
     {
-        int nX = nWidth - pScreen_->GetStringWidth(szProfile);
+        int nX = nWidth - pScreen_.GetStringWidth(szProfile);
 
-        pScreen_->DrawString(nX, 2, szProfile, BLACK);
-        pScreen_->DrawString(nX - 2, 1, szProfile, WHITE);
+        pScreen_.DrawString(nX, 2, szProfile, BLACK);
+        pScreen_.DrawString(nX - 2, 1, szProfile, WHITE);
     }
 
     // Any active status line?
     if (GetOption(status) && szStatus[0])
     {
-        int nX = nWidth - pScreen_->GetStringWidth(szStatus);
+        int nX = nWidth - pScreen_.GetStringWidth(szStatus);
 
-        pScreen_->DrawString(nX, nHeight - CHAR_HEIGHT - 1, szStatus, BLACK);
-        pScreen_->DrawString(nX - 2, nHeight - CHAR_HEIGHT - 2, szStatus, WHITE);
+        pScreen_.DrawString(nX, nHeight - CHAR_HEIGHT - 1, szStatus, BLACK);
+        pScreen_.DrawString(nX - 2, nHeight - CHAR_HEIGHT - 2, szStatus, WHITE);
     }
 }
 
@@ -708,13 +702,13 @@ void ScreenWriter::SetMode(uint8_t bNewVmpr_)
 }
 
 // Update a line segment of display or border
-void ScreenWriter::UpdateLine(Screen* pScreen_, int nLine_, int nFrom_, int nTo_)
+void ScreenWriter::UpdateLine(Screen& pScreen_, int nLine_, int nFrom_, int nTo_)
 {
     // Is the line within the view port?
     if (nLine_ >= s_nViewTop && nLine_ < s_nViewBottom)
     {
         // Fetch the screen data pointer for the line
-        auto pbLine = pScreen_->GetLine(nLine_ - s_nViewTop);
+        auto pbLine = pScreen_.GetLine(nLine_ - s_nViewTop);
 
         // Screen off in mode 3 or 4?
         if (BORD_SOFF && VMPR_MODE_3_OR_4)
