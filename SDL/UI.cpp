@@ -41,11 +41,7 @@ bool UI::Init(bool fFirstInit_/*=false*/)
     Exit(true);
 
     // Set the window caption and disable the cursor until needed
-#ifdef HAVE_LIBSDL2
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
-#else
-    SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);
-#endif
     SDL_ShowCursor(SDL_DISABLE);
 
     // To help on platforms without a native GUI, we'll display a one-time welcome message
@@ -105,18 +101,14 @@ bool UI::CheckEvents()
             {
             case SDL_QUIT:
                 return false;
-#ifdef HAVE_LIBSDL2
-            case SDL_DROPFILE:
-            {
-                char* pszFile = event.drop.file;
 
-                if (pFloppy1->Insert(pszFile, true))
+            case SDL_DROPFILE:
+                if (pFloppy1->Insert(event.drop.file, true))
                     Frame::SetStatus("%s  inserted into drive 1", pFloppy1->DiskFile());
 
-                SDL_free(pszFile);
+                SDL_free(event.drop.file);
                 break;
-            }
-#endif
+
             case SDL_USEREVENT:
             {
                 switch (event.user.code)
@@ -213,20 +205,6 @@ bool UI::DoAction(Action action, bool pressed)
             break;
         }
 
-        case Action::Pause:
-        {
-#ifndef HAVE_LIBSDL2
-            // Reverse logic because the default processing hasn't occurred yet
-            if (g_fPaused)
-                SDL_WM_SetCaption(WINDOW_CAPTION, WINDOW_CAPTION);
-            else
-                SDL_WM_SetCaption(WINDOW_CAPTION " - Paused", WINDOW_CAPTION " - Paused");
-#endif
-            // Perform default processing
-            return false;
-        }
-
-        // Not processed
         default:
             return false;
         }
