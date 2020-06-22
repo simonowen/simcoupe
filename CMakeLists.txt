@@ -12,7 +12,7 @@ if (CMAKE_TOOLCHAIN_FILE)
 endif()
 
 set(BUILD_BACKEND "auto" CACHE STRING "Back-end framework for video/sound/input")
-set_property(CACHE BUILD_BACKEND PROPERTY STRINGS auto win32 sdl allegro)
+set_property(CACHE BUILD_BACKEND PROPERTY STRINGS auto win32 sdl)
 
 if (BUILD_BACKEND STREQUAL "win32" OR (BUILD_BACKEND STREQUAL "auto" AND WIN32))
   set(BUILD_WIN32 1)
@@ -39,10 +39,37 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 include(PreCompiledHeaders)
 
-file(GLOB BASE_CPP_FILES Base/*.cpp)
-file(GLOB BASE_C_FILES Base/*.c)
-file(GLOB BASE_H_FILES Base/*.h)
-file(GLOB BASE_RUNTIME_FILES Resource/*)
+set(BASE_CPP_FILES
+    Base/Actions.cpp Base/ATA.cpp Base/AtaAdapter.cpp Base/Atom.cpp
+    Base/AtomLite.cpp Base/AVI.cpp Base/BlipBuffer.cpp Base/BlueAlpha.cpp
+    Base/Breakpoint.cpp Base/Clock.cpp Base/CPU.cpp Base/Debug.cpp
+    Base/Disassem.cpp Base/Disk.cpp Base/Drive.cpp Base/Expr.cpp Base/Font.cpp
+    Base/Frame.cpp Base/FrameBuffer.cpp Base/GIF.cpp Base/GUI.cpp
+    Base/GUIDlg.cpp Base/GUIIcons.cpp Base/HardDisk.cpp Base/Joystick.cpp
+    Base/Keyboard.cpp Base/Keyin.cpp Base/Main.cpp Base/Memory.cpp
+    Base/Mouse.cpp Base/Options.cpp Base/Parallel.cpp Base/Paula.cpp
+    Base/PNG.cpp Base/SAA1099.cpp Base/SAMIO.cpp Base/SAMVox.cpp Base/SDIDE.cpp
+    Base/SID.cpp Base/Sound.cpp Base/SSX.cpp Base/Stream.cpp Base/Symbol.cpp
+    Base/Tape.cpp Base/Util.cpp Base/Video.cpp Base/WAV.cpp)
+
+set(BASE_C_FILES Base/ioapi.c Base/unzip.c)
+
+set(BASE_H_FILES
+    Base/Actions.h Base/ATA.h Base/AtaAdapter.h Base/Atom.h Base/AtomLite.h
+    Base/AVI.h Base/BlipBuffer.h Base/BlueAlpha.h Base/Breakpoint.h
+    Base/CBops.h Base/Clock.h Base/CPU.h Base/Debug.h Base/Disassem.h
+    Base/Disk.h Base/Drive.h Base/EDops.h Base/Expr.h Base/Font.h Base/Frame.h
+    Base/GIF.h Base/GUI.h Base/GUIDlg.h Base/GUIIcons.h Base/HardDisk.h
+    Base/ioapi.h Base/Joystick.h Base/Keyboard.h Base/Keyin.h Base/Main.h
+    Base/Memory.h Base/Mouse.h Base/Options.h Base/Parallel.h Base/Paula.h
+    Base/PNG.h Base/SAA1099.h Base/SAM.h Base/SAMDOS.h Base/SAMIO.h
+    Base/SAMVox.h Base/SDIDE.h Base/SID.h Base/SimCoupe.h Base/Sound.h
+    Base/SSX.h Base/Stream.h Base/Symbol.h Base/Tape.h Base/unzip.h
+    Base/Util.h Base/Video.h Base/VL1772.h Base/WAV.h Base/Z80ops.h)
+
+set(BASE_RUNTIME_FILES
+    Resource/atom.rom Resource/atomlite.rom Resource/samcoupe.rom
+    Resource/samports.map Resource/samrom.map Resource/SimCoupe.bmp)
 
 set(SOURCE_FILES ${BASE_CPP_FILES} ${BASE_C_FILES})
 set(HEADER_FILES ${BASE_H_FILES})
@@ -52,12 +79,20 @@ if (BUILD_WIN32)
   find_package(DirectX)
   include(HlslCompile)
 
-  file(GLOB WIN_CPP_FILES Win32/*.cpp)
-  file(GLOB WIN_H_FILES Win32/*.h)
-  file(GLOB WIN_RC_FILES Win32/${PROJECT_NAME}.rc)
-  file(GLOB WIN_VS_FILES Win32/Shaders/*VS.hlsl)
-  file(GLOB WIN_PS_FILES Win32/Shaders/*PS.hlsl)
-  file(GLOB WIN_MANIFEST_FILES Win32/*.manifest)
+  set(WIN_CPP_FILES
+    Win32/Audio.cpp Win32/Direct3D9.cpp Win32/Floppy.cpp Win32/IDEDisk.cpp
+    Win32/Input.cpp Win32/MIDI.cpp Win32/ODMenu.cpp Win32/OSD.cpp
+    Win32/UI.cpp)
+
+  set(WIN_H_FILES
+    Win32/afxres.h Win32/Audio.h Win32/Direct3D9.h Win32/fdrawcmd.h
+    Win32/Floppy.h Win32/IDEDisk.h Win32/Input.h Win32/MIDI.h Win32/ODMenu.h
+    Win32/OSD.h Win32/resource.h Win32/UI.h)
+
+  set(WIN_RC_FILES Win32/${PROJECT_NAME}.rc)
+  set(WIN_VS_FILES Win32/Shaders/D3D9_VS.hlsl)
+  set(WIN_PS_FILES Win32/Shaders/D3D9_PS.hlsl)
+  set(WIN_MANIFEST_FILES Win32/Custom.manifest)
 
   set(SOURCE_FILES ${SOURCE_FILES} ${WIN_CPP_FILES})
   set(HEADER_FILES ${HEADER_FILES} ${WIN_H_FILES})
@@ -71,8 +106,12 @@ if (BUILD_WIN32)
     SET_SHADER_COMPILER(${f} ps_3_0)
   endforeach()
 elseif (BUILD_SDL)
-  file(GLOB SDL_CPP_FILES SDL/*.cpp)
-  file(GLOB SDL_H_FILES SDL/*.h)
+  set(SDL_CPP_FILES
+    SDL/Audio.cpp SDL/Floppy.cpp SDL/IDEDisk.cpp SDL/Input.cpp SDL/MIDI.cpp
+    SDL/OSD.cpp SDL/SDL20.cpp SDL/UI.cpp)
+  set(SDL_H_FILES
+    SDL/Audio.h SDL/Floppy.h SDL/IDEDisk.h SDL/Input.h SDL/MIDI.h SDL/OSD.h
+    SDL/SDL20.h SDL/UI.h)
 
   set(SOURCE_FILES ${SOURCE_FILES} ${SDL_CPP_FILES})
   set(HEADER_FILES ${HEADER_FILES} ${SDL_H_FILES})
@@ -81,7 +120,11 @@ elseif (BUILD_SDL)
     set(SOURCE_FILES ${SOURCE_FILES} SDL/OSX/SDLMain.m)
     set(HEADER_FILES ${HEADER_FILES} SDL/OSX/SDLMain.h)
 
-    file(GLOB MAC_ICON_FILES SDL/OSX/*.icns)
+    set(MAC_ICON_FILES
+      SDL/OSX/file_blank.icns SDL/OSX/file_dsk.icns SDL/OSX/file_mgt.icns
+      SDL/OSX/file_sad.icns SDL/OSX/file_sbt.icns SDL/OSX/SimCoupe.icns
+      SDL/OSX/Volume.icns)
+
     set(RESOURCE_FILES ${RESOURCE_FILES} ${MAC_ICON_FILES}
       ReadMe.md
       ChangeLog.txt
@@ -89,17 +132,11 @@ elseif (BUILD_SDL)
       SDL/OSX/Info-SimCoupe.plist)
     set_source_files_properties(${RESOURCE_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   endif()
-elseif (BUILD_ALLEGRO)
-  file(GLOB ALLEGRO_CPP_FILES Allegro/*.cpp)
-  file(GLOB ALLEGRO_H_FILES Allegro/*.h)
-
-  set(SOURCE_FILES ${SOURCE_FILES} ${ALLEGRO_CPP_FILES})
-  set(HEADER_FILES ${HEADER_FILES} ${ALLEGRO_H_FILES})
 endif()
 
 if (WIN32)
   if (NOT WIN_RC_FILES)
-    file(GLOB WIN_RC_FILES Win32/IconOnly.rc)
+    set(WIN_RC_FILES Win32/IconOnly.rc)
   endif()
   set(RESOURCE_FILES ${RESOURCE_FILES} ${WIN_RC_FILES})
   set_source_files_properties(${WIN_RC_FILES} PROPERTIES COMPILE_FLAGS /nologo)
@@ -233,8 +270,6 @@ if (BUILD_WIN32)
   target_link_libraries(${PROJECT_NAME} winmm comctl32 shlwapi)
 elseif (BUILD_SDL)
   target_include_directories(${PROJECT_NAME} PRIVATE SDL)
-elseif (BUILD_ALLEGRO)
-  target_include_directories(${PROJECT_NAME} PRIVATE Allegro)
 endif()
 
 if (WIN32)
