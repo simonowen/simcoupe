@@ -26,14 +26,15 @@
 
 #include "CPU.h"
 #include "SAMIO.h"
-#include "Screen.h"
+#include "FrameBuffer.h"
 #include "Util.h"
 
+extern uint8_t pMemory[];
 
 namespace Frame
 {
-bool Init(bool fFirstInit_ = false);
-void Exit(bool fReInit_ = false);
+bool Init();
+void Exit();
 
 void Flyback();
 void Begin();
@@ -41,10 +42,10 @@ void End();
 
 void Update();
 
-void TouchLines(int nFrom_, int nTo_);
+void TouchLines(int from, int to);
 inline void TouchLine(int nLine_) { TouchLines(nLine_, nLine_); }
 
-void GetAsicData(uint8_t* pb0_, uint8_t* pb1_, uint8_t* pb2_, uint8_t* pb3_);
+std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> GetAsicData();
 void ChangeMode(uint8_t bNewVmpr_);
 void ChangeScreen(uint8_t bNewBorder_);
 
@@ -53,12 +54,32 @@ void Redraw();
 void SavePNG();
 void SaveSSX();
 
-int GetWidth();
-int GetHeight();
-int GetRasterPos(int* pnLine_);
-void SetView(unsigned int uBlocks_, unsigned int uLines_);
+int Width();
+int Height();
 
+void SetView(int num_cells, int num_lines);
 void SetStatus(const char* pcszFormat_, ...);
+
+constexpr std::pair<int, int> GetRasterPos(uint32_t cycle_counter)
+{
+    int line{}, line_cycle{};
+
+    if (cycle_counter >= CPU_CYCLES_PER_SIDE_BORDER)
+    {
+        auto screen_cycles = g_dwCycleCounter - CPU_CYCLES_PER_SIDE_BORDER;
+        line = screen_cycles / CPU_CYCLES_PER_LINE;
+        line_cycle = screen_cycles % CPU_CYCLES_PER_LINE;
+    }
+    else
+    {
+        // FIXME: start of interrupt frame is final line of display
+        line = 0;
+        line_cycle = 0;
+    }
+
+    return std::make_pair(line, line_cycle);
+}
+
 }
 
 
@@ -66,298 +87,271 @@ inline bool IsScreenLine(int nLine_) { return nLine_ >= (TOP_BORDER_LINES) && nL
 inline uint8_t AttrBg(uint8_t bAttr_) { return (((bAttr_) >> 3) & 0xf); }
 inline uint8_t AttrFg(uint8_t bAttr_) { return ((((bAttr_) >> 3) & 8) | ((bAttr_) & 7)); }
 
+extern bool g_flash_phase;
 
-extern bool fDrawFrame, g_fFlashPhase;
-extern int nFrame;
-
-extern int s_nWidth, s_nHeight;         // in mode 3 pixels
-extern int s_nViewTop, s_nViewBottom;   // in lines
-extern int s_nViewLeft, s_nViewRight;   // in screen blocks
+extern int s_view_top, s_view_bottom;
+extern int s_view_left, s_view_right;
 
 extern uint16_t g_awMode1LineToByte[GFX_SCREEN_LINES];
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Generic base for all screen classes
 class ScreenWriter
 {
-    typedef void (ScreenWriter::* FNLINEUPDATE)(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_);
-
-public:
-    ScreenWriter() : m_pLineUpdate(&ScreenWriter::Mode1Line), m_pbScreenData(nullptr) { }
-    ScreenWriter(const ScreenWriter&) = delete;
-    void operator= (const ScreenWriter&) = delete;
-    virtual ~ScreenWriter() = default;
-
 public:
     void SetMode(uint8_t bVal_);
-    void UpdateLine(Screen& pScreen_, int nLine_, int nFrom_, int nTo_);
-    void GetAsicData(uint8_t* pb0_, uint8_t* pb1_, uint8_t* pb2_, uint8_t* pb3_);
+    void UpdateLine(FrameBuffer& fb, int line, int from, int to);
+    std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> GetAsicData();
 
-    void ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_t bNewVmpr_);
-    void ScreenChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_t bNewBorder_);
-
-protected:
-    void BorderLine(uint8_t* pbLine_, int nFrom_, int nTo_);
-    void BlackLine(uint8_t* pbLine_, int nFrom_, int nTo_);
-    void LeftBorder(uint8_t* pbLine_, int nFrom_, int nTo_);
-    void RightBorder(uint8_t* pbLine_, int nFrom_, int nTo_);
-
-    void Mode1Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_);
-    void Mode2Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_);
-    void Mode3Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_);
-    void Mode4Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_);
+    void ModeChange(uint8_t* pLine, int line, int cell, uint8_t new_vmpr);
+    void ScreenChange(uint8_t* pLine, int line, int cell, uint8_t new_border);
 
 protected:
-    FNLINEUPDATE m_pLineUpdate;     // Function used to draw current mode
-    uint8_t* m_pbScreenData;        // Cached pointer to start of RAM page containing video memory
+    void BorderLine(uint8_t* line, int from, int to);
+    void BlackLine(uint8_t* line, int from, int to);
+    void LeftBorder(uint8_t* line, int from, int to);
+    void RightBorder(uint8_t* line, int from, int to);
+
+    void Mode1Line(uint8_t* pLine, int line, int from, int to);
+    void Mode2Line(uint8_t* pLine, int line, int from, int to);
+    void Mode3Line(uint8_t* pLine, int line, int from, int to);
+    void Mode4Line(uint8_t* pLine, int line, int from, int to);
+
+protected:
+    int m_display_mem_offset{};
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 
-inline void ScreenWriter::LeftBorder(uint8_t* pbLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::LeftBorder(uint8_t* pLine, int from, int to)
 {
-    int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, SIDE_BORDER_CELLS);
+    auto left = std::max(s_view_left, from);
+    auto right = std::min(to, SIDE_BORDER_CELLS);
 
-    // Draw the required section of the left border, if any
-    if (nFrom < nTo)
-        memset(pbLine_ + ((nFrom - s_nViewLeft) << 4), clut[border_col], (nTo - nFrom) << 4);
+    if (left < right)
+        memset(pLine + ((left - s_view_left) << 4), clut[border_col], (right - left) << 4);
 }
 
-inline void ScreenWriter::RightBorder(uint8_t* pbLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::RightBorder(uint8_t* pLine, int from, int to)
 {
-    int nFrom = std::max((GFX_WIDTH_CELLS - SIDE_BORDER_CELLS), nFrom_), nTo = std::min(nTo_, s_nViewRight);
+    auto left = std::max((GFX_WIDTH_CELLS - SIDE_BORDER_CELLS), from);
+    auto right = std::min(to, s_view_right);
 
-    // Draw the required section of the right border, if any
-    if (nFrom < nTo)
-        memset(pbLine_ + ((nFrom - s_nViewLeft) << 4), clut[border_col], (nTo - nFrom) << 4);
+    if (left < right)
+        memset(pLine + ((left - s_view_left) << 4), clut[border_col], (right - left) << 4);
 }
 
-inline void ScreenWriter::BorderLine(uint8_t* pbLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::BorderLine(uint8_t* pLine, int from, int to)
 {
-    // Work out the range that within the visible area
-    int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, s_nViewRight);
+    auto left = std::max(s_view_left, from);
+    auto right = std::min(to, s_view_right);
 
-    // Draw the required section of the border, if any
-    if (nFrom < nTo)
-        memset(pbLine_ + ((nFrom - s_nViewLeft) << 4), clut[border_col], (nTo - nFrom) << 4);
+    if (left < right)
+        memset(pLine + ((left - s_view_left) << 4), clut[border_col], (right - left) << 4);
 }
 
-inline void ScreenWriter::BlackLine(uint8_t* pbLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::BlackLine(uint8_t* pLine, int from, int to)
 {
-    // Work out the range that within the visible area
-    int nFrom = std::max(s_nViewLeft, nFrom_), nTo = std::min(nTo_, s_nViewRight);
+    auto left = std::max(s_view_left, from);
+    auto right = std::min(to, s_view_right);
 
-    // Draw the required section of the left border, if any
-    if (nFrom < nTo)
-        memset(pbLine_ + ((nFrom - s_nViewLeft) << 4), 0, (nTo - nFrom) << 4);
+    if (left < right)
+        memset(pLine + ((left - s_view_left) << 4), 0, (right - left) << 4);
 }
 
 
-inline void ScreenWriter::Mode1Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::Mode1Line(uint8_t* pLine, int line, int from, int to)
 {
-    nLine_ -= TOP_BORDER_LINES;
+    line -= TOP_BORDER_LINES;
 
-    // Draw the required section of the left border, if any
-    LeftBorder(pbLine_, nFrom_, nTo_);
+    LeftBorder(pLine, from, to);
 
-    // Work out the range that within the visible area
-    int nFrom = std::max(SIDE_BORDER_CELLS, nFrom_), nTo = std::min(nTo_, SIDE_BORDER_CELLS + GFX_SCREEN_CELLS);
+    auto left = std::max(SIDE_BORDER_CELLS, from);
+    auto right = std::min(to, SIDE_BORDER_CELLS + GFX_SCREEN_CELLS);
 
-    // Draw the required section of the main screen, if any
-    if (nFrom < nTo)
+    if (left < right)
     {
-        auto pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
-        auto pbDataMem = m_pbScreenData + g_awMode1LineToByte[nLine_] + (nFrom - SIDE_BORDER_CELLS);
-        auto pbAttrMem = m_pbScreenData + 6144 + ((nLine_ & 0xf8) << 2) + (nFrom - SIDE_BORDER_CELLS);
+        auto pFrame = pLine + ((left - s_view_left) << 4);
+        auto pDataMem = pMemory + m_display_mem_offset + g_awMode1LineToByte[line] + (left - SIDE_BORDER_CELLS);
+        auto pAttrMem = pMemory + m_display_mem_offset + 6144 + ((line & 0xf8) << 2) + (left - SIDE_BORDER_CELLS);
 
-        // The actual screen line
-        for (int i = nFrom; i < nTo; i++)
+        for (auto i = left; i < right; i++)
         {
-            uint8_t bData = *pbDataMem++, bAttr = *pbAttrMem++, bInk = AttrFg(bAttr), bPaper = AttrBg(bAttr);
+            auto data = *pDataMem++;
+            auto attr = *pAttrMem++;
+            auto ink_idx = AttrFg(attr);
+            auto paper_idx = AttrBg(attr);
 
-            // toggle the colours if we're in the inverse part of the FLASH cycle
-            if (g_fFlashPhase && (bAttr & 0x80))
-                std::swap(bInk, bPaper);
+            if (g_flash_phase && (attr & 0x80))
+                std::swap(ink_idx, paper_idx);
 
-            uint8_t ink = clut[bInk], paper = clut[bPaper];
+            auto ink = clut[ink_idx];
+            auto paper = clut[paper_idx];
 
-            pFrame[0] = pFrame[1] = (bData & 0x80) ? ink : paper;
-            pFrame[2] = pFrame[3] = (bData & 0x40) ? ink : paper;
-            pFrame[4] = pFrame[5] = (bData & 0x20) ? ink : paper;
-            pFrame[6] = pFrame[7] = (bData & 0x10) ? ink : paper;
-            pFrame[8] = pFrame[9] = (bData & 0x08) ? ink : paper;
-            pFrame[10] = pFrame[11] = (bData & 0x04) ? ink : paper;
-            pFrame[12] = pFrame[13] = (bData & 0x02) ? ink : paper;
-            pFrame[14] = pFrame[15] = (bData & 0x01) ? ink : paper;
+            pFrame[0] = pFrame[1] = (data & 0x80) ? ink : paper;
+            pFrame[2] = pFrame[3] = (data & 0x40) ? ink : paper;
+            pFrame[4] = pFrame[5] = (data & 0x20) ? ink : paper;
+            pFrame[6] = pFrame[7] = (data & 0x10) ? ink : paper;
+            pFrame[8] = pFrame[9] = (data & 0x08) ? ink : paper;
+            pFrame[10] = pFrame[11] = (data & 0x04) ? ink : paper;
+            pFrame[12] = pFrame[13] = (data & 0x02) ? ink : paper;
+            pFrame[14] = pFrame[15] = (data & 0x01) ? ink : paper;
 
             pFrame += 16;
         }
     }
 
-    // Draw the required section of the right border, if any
-    RightBorder(pbLine_, nFrom_, nTo_);
+    RightBorder(pLine, from, to);
 }
 
-inline void ScreenWriter::Mode2Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::Mode2Line(uint8_t* pLine, int line, int from, int to)
 {
-    nLine_ -= TOP_BORDER_LINES;
+    line -= TOP_BORDER_LINES;
 
-    // Draw the required section of the left border, if any
-    LeftBorder(pbLine_, nFrom_, nTo_);
+    LeftBorder(pLine, from, to);
 
-    // Work out the range that within the visible area
-    int nFrom = std::max(SIDE_BORDER_CELLS, nFrom_), nTo = std::min(nTo_, SIDE_BORDER_CELLS + GFX_SCREEN_CELLS);
+    auto left = std::max(SIDE_BORDER_CELLS, from);
+    auto right = std::min(to, SIDE_BORDER_CELLS + GFX_SCREEN_CELLS);
 
-    // Draw the required section of the main screen, if any
-    if (nFrom < nTo)
+    if (left < right)
     {
-        auto pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
-        auto pbDataMem = m_pbScreenData + (nLine_ << 5) + (nFrom - SIDE_BORDER_CELLS);
-        auto pbAttrMem = pbDataMem + 0x2000;
+        auto pFrame = pLine + ((left - s_view_left) << 4);
+        auto pDataMem = pMemory + m_display_mem_offset + (line << 5) + (left - SIDE_BORDER_CELLS);
+        auto pAttrMem = pDataMem + 0x2000;
 
-        // The actual screen line
-        for (int i = nFrom; i < nTo; i++)
+        for (auto i = left; i < right; i++)
         {
-            uint8_t bData = *pbDataMem++, bAttr = *pbAttrMem++, bInk = AttrFg(bAttr), bPaper = AttrBg(bAttr);
+            auto data = *pDataMem++;
+            auto attr = *pAttrMem++;
+            auto ink_idx = AttrFg(attr);
+            auto paper_idx = AttrBg(attr);
 
-            // toggle the colours if we're in the inverse part of the FLASH cycle
-            if (g_fFlashPhase && (bAttr & 0x80))
-                std::swap(bInk, bPaper);
+            if (g_flash_phase && (attr & 0x80))
+                std::swap(ink_idx, paper_idx);
 
-            uint8_t ink = clut[bInk], paper = clut[bPaper];
+            auto ink = clut[ink_idx];
+            auto paper = clut[paper_idx];
 
-            pFrame[0] = pFrame[1] = (bData & 0x80) ? ink : paper;
-            pFrame[2] = pFrame[3] = (bData & 0x40) ? ink : paper;
-            pFrame[4] = pFrame[5] = (bData & 0x20) ? ink : paper;
-            pFrame[6] = pFrame[7] = (bData & 0x10) ? ink : paper;
-            pFrame[8] = pFrame[9] = (bData & 0x08) ? ink : paper;
-            pFrame[10] = pFrame[11] = (bData & 0x04) ? ink : paper;
-            pFrame[12] = pFrame[13] = (bData & 0x02) ? ink : paper;
-            pFrame[14] = pFrame[15] = (bData & 0x01) ? ink : paper;
+            pFrame[0] = pFrame[1] = (data & 0x80) ? ink : paper;
+            pFrame[2] = pFrame[3] = (data & 0x40) ? ink : paper;
+            pFrame[4] = pFrame[5] = (data & 0x20) ? ink : paper;
+            pFrame[6] = pFrame[7] = (data & 0x10) ? ink : paper;
+            pFrame[8] = pFrame[9] = (data & 0x08) ? ink : paper;
+            pFrame[10] = pFrame[11] = (data & 0x04) ? ink : paper;
+            pFrame[12] = pFrame[13] = (data & 0x02) ? ink : paper;
+            pFrame[14] = pFrame[15] = (data & 0x01) ? ink : paper;
 
             pFrame += 16;
         }
     }
 
-    // Draw the required section of the right border, if any
-    RightBorder(pbLine_, nFrom_, nTo_);
+    RightBorder(pLine, from, to);
 }
 
-inline void ScreenWriter::Mode3Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::Mode3Line(uint8_t* pLine, int line, int from, int to)
 {
-    nLine_ -= TOP_BORDER_LINES;
+    line -= TOP_BORDER_LINES;
 
-    // Draw the required section of the left border, if any
-    LeftBorder(pbLine_, nFrom_, nTo_);
+    LeftBorder(pLine, from, to);
 
-    // Work out the range that within the visible area
-    int nFrom = std::max(SIDE_BORDER_CELLS, nFrom_), nTo = std::min(nTo_, SIDE_BORDER_CELLS + GFX_SCREEN_CELLS);
+    auto left = std::max(SIDE_BORDER_CELLS, from);
+    auto right = std::min(to, SIDE_BORDER_CELLS + GFX_SCREEN_CELLS);
 
-    // Draw the required section of the main screen, if any
-    if (nFrom < nTo)
+    if (left < right)
     {
-        auto pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
-        auto pbDataMem = m_pbScreenData + (nLine_ << 7) + ((nFrom - SIDE_BORDER_CELLS) << 2);
+        auto pFrame = pLine + ((left - s_view_left) << 4);
+        auto pMem = pMemory + m_display_mem_offset + (line << 7) + ((left - SIDE_BORDER_CELLS) << 2);
 
-        // The actual screen line
-        for (int i = nFrom; i < nTo; i++)
+        for (auto i = left; i < right; i++)
         {
-            uint8_t bData;
+            uint8_t data{};
 
-            bData = pbDataMem[0];
-            pFrame[0] = mode3clut[bData >> 6];
-            pFrame[1] = mode3clut[(bData & 0x30) >> 4];
-            pFrame[2] = mode3clut[(bData & 0x0c) >> 2];
-            pFrame[3] = mode3clut[(bData & 0x03)];
+            data = pMem[0];
+            pFrame[0] = mode3clut[data >> 6];
+            pFrame[1] = mode3clut[(data & 0x30) >> 4];
+            pFrame[2] = mode3clut[(data & 0x0c) >> 2];
+            pFrame[3] = mode3clut[(data & 0x03)];
 
-            bData = pbDataMem[1];
-            pFrame[4] = mode3clut[bData >> 6];
-            pFrame[5] = mode3clut[(bData & 0x30) >> 4];
-            pFrame[6] = mode3clut[(bData & 0x0c) >> 2];
-            pFrame[7] = mode3clut[(bData & 0x03)];
+            data = pMem[1];
+            pFrame[4] = mode3clut[data >> 6];
+            pFrame[5] = mode3clut[(data & 0x30) >> 4];
+            pFrame[6] = mode3clut[(data & 0x0c) >> 2];
+            pFrame[7] = mode3clut[(data & 0x03)];
 
-            bData = pbDataMem[2];
-            pFrame[8] = mode3clut[bData >> 6];
-            pFrame[9] = mode3clut[(bData & 0x30) >> 4];
-            pFrame[10] = mode3clut[(bData & 0x0c) >> 2];
-            pFrame[11] = mode3clut[(bData & 0x03)];
+            data = pMem[2];
+            pFrame[8] = mode3clut[data >> 6];
+            pFrame[9] = mode3clut[(data & 0x30) >> 4];
+            pFrame[10] = mode3clut[(data & 0x0c) >> 2];
+            pFrame[11] = mode3clut[(data & 0x03)];
 
-            bData = pbDataMem[3];
-            pFrame[12] = mode3clut[bData >> 6];
-            pFrame[13] = mode3clut[(bData & 0x30) >> 4];
-            pFrame[14] = mode3clut[(bData & 0x0c) >> 2];
-            pFrame[15] = mode3clut[(bData & 0x03)];
+            data = pMem[3];
+            pFrame[12] = mode3clut[data >> 6];
+            pFrame[13] = mode3clut[(data & 0x30) >> 4];
+            pFrame[14] = mode3clut[(data & 0x0c) >> 2];
+            pFrame[15] = mode3clut[(data & 0x03)];
 
             pFrame += 16;
 
-            pbDataMem += 4;
+            pMem += 4;
         }
     }
 
-    // Draw the required section of the right border, if any
-    RightBorder(pbLine_, nFrom_, nTo_);
+    RightBorder(pLine, from, to);
 }
 
-inline void ScreenWriter::Mode4Line(uint8_t* pbLine_, int nLine_, int nFrom_, int nTo_)
+inline void ScreenWriter::Mode4Line(uint8_t* pLine, int line, int from, int to)
 {
-    nLine_ -= TOP_BORDER_LINES;
+    line -= TOP_BORDER_LINES;
 
-    // Draw the required section of the left border, if any
-    LeftBorder(pbLine_, nFrom_, nTo_);
+    LeftBorder(pLine, from, to);
 
-    // Work out the range that within the visible area
-    int nFrom = std::max(SIDE_BORDER_CELLS, nFrom_), nTo = std::min(nTo_, SIDE_BORDER_CELLS + GFX_SCREEN_CELLS);
+    auto left = std::max(SIDE_BORDER_CELLS, from);
+    auto right = std::min(to, SIDE_BORDER_CELLS + GFX_SCREEN_CELLS);
 
-    // Draw the required section of the main screen, if any
-    if (nFrom < nTo)
+    if (left < right)
     {
-        auto pFrame = pbLine_ + ((nFrom - s_nViewLeft) << 4);
-        auto pbDataMem = ((nFrom - SIDE_BORDER_CELLS) << 2) + m_pbScreenData + (nLine_ << 7);
+        auto pFrame = pLine + ((left - s_view_left) << 4);
+        auto pMem = pMemory + m_display_mem_offset + ((left - SIDE_BORDER_CELLS) << 2) + (line << 7);
 
-        // The actual screen line
-        for (int i = nFrom; i < nTo; i++)
+        for (auto i = left; i < right; i++)
         {
-            uint8_t bData;
+            uint8_t data{};
 
-            bData = pbDataMem[0];
-            pFrame[0] = pFrame[1] = clut[bData >> 4];
-            pFrame[2] = pFrame[3] = clut[bData & 0x0f];
+            data = pMem[0];
+            pFrame[0] = pFrame[1] = clut[data >> 4];
+            pFrame[2] = pFrame[3] = clut[data & 0x0f];
 
-            bData = pbDataMem[1];
-            pFrame[4] = pFrame[5] = clut[bData >> 4];
-            pFrame[6] = pFrame[7] = clut[bData & 0x0f];
+            data = pMem[1];
+            pFrame[4] = pFrame[5] = clut[data >> 4];
+            pFrame[6] = pFrame[7] = clut[data & 0x0f];
 
-            bData = pbDataMem[2];
-            pFrame[8] = pFrame[9] = clut[bData >> 4];
-            pFrame[10] = pFrame[11] = clut[bData & 0x0f];
+            data = pMem[2];
+            pFrame[8] = pFrame[9] = clut[data >> 4];
+            pFrame[10] = pFrame[11] = clut[data & 0x0f];
 
-            bData = pbDataMem[3];
-            pFrame[12] = pFrame[13] = clut[bData >> 4];
-            pFrame[14] = pFrame[15] = clut[bData & 0x0f];
+            data = pMem[3];
+            pFrame[12] = pFrame[13] = clut[data >> 4];
+            pFrame[14] = pFrame[15] = clut[data & 0x0f];
 
             pFrame += 16;
-            pbDataMem += 4;
+            pMem += 4;
         }
     }
 
-    // Draw the required section of the right border, if any
-    RightBorder(pbLine_, nFrom_, nTo_);
+    RightBorder(pLine, from, to);
 }
 
-inline void ScreenWriter::ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, uint8_t bNewVmpr_)
+inline void ScreenWriter::ModeChange(uint8_t* pLine, int line, int cell, uint8_t bNewVmpr_)
 {
-    int nScreenLine = nLine_ - TOP_BORDER_LINES;
+    int screen_line = line - TOP_BORDER_LINES;
     uint8_t ab[4];
 
     // Fetch the 4 display data bytes for the original mode
-    uint8_t b0, b1, b2, b3;
-    GetAsicData(&b0, &b1, &b2, &b3);
+    auto [b0, b1, b2, b3] = GetAsicData();
 
     // Perform the necessary massaging the ASIC does to prepare for display
     if (VMPR_MODE_3_OR_4)
     {
-        // Mode 3+4
         ab[0] = ab[1] = (b0 & 0x80) | ((b0 << 3) & 0x40) |
             ((b1 >> 2) & 0x20) | ((b1 << 1) & 0x10) |
             ((b2 >> 4) & 0x08) | ((b2 >> 1) & 0x04) |
@@ -366,7 +360,6 @@ inline void ScreenWriter::ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, 
     }
     else
     {
-        // Mode 1+2
         ab[0] = (b0 & 0x77) | (b0 & 0x80) | ((b0 >> 3) & 0x08);
         ab[1] = (b1 & 0x77) | ((b1 << 2) & 0x80) | ((b1 >> 1) & 0x08);
         ab[2] = (b2 & 0x77) | ((b0 << 4) & 0x80) | ((b0 << 1) & 0x08);
@@ -378,16 +371,15 @@ inline void ScreenWriter::ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, 
     {
     case MODE_1:
     {
-        // Determine data+attr location for current cell, and preserve the values at each location
-        uint8_t* pData = m_pbScreenData + g_awMode1LineToByte[nScreenLine] + (nBlock_ - SIDE_BORDER_CELLS), bData = *pData;
-        uint8_t* pAttr = m_pbScreenData + 6144 + ((nScreenLine & 0xf8) << 2) + (nBlock_ - SIDE_BORDER_CELLS), bAttr = *pAttr;
+        auto pData = pMemory + m_display_mem_offset + g_awMode1LineToByte[screen_line] + (cell - SIDE_BORDER_CELLS);
+        auto pAttr = pMemory + m_display_mem_offset + MODE12_DATA_BYTES + ((screen_line & 0xf8) << 2) + (cell - SIDE_BORDER_CELLS);
+        auto bData = *pData;
+        auto bAttr = *pAttr;
 
-        // Write the artefact bytes from the old mode, and draw the cell
+        // TODO: avoid temporary write
         *pData = ab[0];
         *pAttr = ab[2];
-        Mode1Line(pbLine_, nLine_, nBlock_, nBlock_ + 1);
-
-        // Restore the original data+attr bytes
+        Mode1Line(pLine, line, cell, cell + 1);
         *pData = bData;
         *pAttr = bAttr;
         break;
@@ -395,13 +387,15 @@ inline void ScreenWriter::ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, 
 
     case MODE_2:
     {
-        uint8_t* pData = m_pbScreenData + (nScreenLine << 5) + (nBlock_ - SIDE_BORDER_CELLS), bData = *pData;
-        uint8_t* pAttr = pData + 0x2000, bAttr = *pAttr;
+        auto pData = pMemory + m_display_mem_offset + (screen_line << 5) + (cell - SIDE_BORDER_CELLS);
+        auto pAttr = pData + MODE2_ATTR_OFFSET;
+        auto bData = *pData;
+        auto bAttr = *pAttr;
 
+        // TODO: avoid temporary write
         *pData = ab[0];
         *pAttr = ab[2];
-        Mode2Line(pbLine_, nLine_, nBlock_, nBlock_ + 1);
-
+        Mode2Line(pLine, line, cell, cell + 1);
         *pData = bData;
         *pAttr = bAttr;
         break;
@@ -409,18 +403,20 @@ inline void ScreenWriter::ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, 
 
     default:
     {
-        uint8_t* pb = m_pbScreenData + (nScreenLine << 7) + ((nBlock_ - SIDE_BORDER_CELLS) << 2);
-        uint32_t* pdw = reinterpret_cast<uint32_t*>(pb), dw = *pdw;
+        auto pb = pMemory + m_display_mem_offset + (screen_line << 7) + ((cell - SIDE_BORDER_CELLS) << 2);
+        auto pdw = reinterpret_cast<uint32_t*>(pb);
+        auto dw = *pdw;
 
+        // TODO: avoid temporary write
         pb[0] = ab[0];
         pb[1] = ab[1];
         pb[2] = ab[2];
         pb[3] = ab[3];
 
         if ((bNewVmpr_ & VMPR_MODE_MASK) == MODE_3)
-            Mode3Line(pbLine_, nLine_, nBlock_, nBlock_ + 1);
+            Mode3Line(pLine, line, cell, cell + 1);
         else
-            Mode4Line(pbLine_, nLine_, nBlock_, nBlock_ + 1);
+            Mode4Line(pLine, line, cell, cell + 1);
 
         *pdw = dw;
         break;
@@ -428,18 +424,17 @@ inline void ScreenWriter::ModeChange(uint8_t* pbLine_, int nLine_, int nBlock_, 
     }
 }
 
-inline void ScreenWriter::ScreenChange(uint8_t* pbLine_, int /*nLine_*/, int nBlock_, uint8_t bNewBorder_)
+inline void ScreenWriter::ScreenChange(uint8_t* pLine, int /*line*/, int cell, uint8_t new_border)
 {
-    auto pFrame = pbLine_ + ((nBlock_ - s_nViewLeft) << 4);
+    auto pFrame = pLine + ((cell - s_view_left) << 4);
 
     // Part of the first pixel is the previous border colour, from when the screen was disabled.
     // We don't have the resolution to show only part, but using the most significant colour bits
     // in the least significant position will reduce the intensity enough to be close
     pFrame[0] = clut[border_col] >> 4;
 
-    // The rest of the cell is the new border colour, even on the main screen since the ASIC has no data!
     pFrame[1] = pFrame[2] = pFrame[3] =
         pFrame[4] = pFrame[5] = pFrame[6] = pFrame[7] =
         pFrame[8] = pFrame[9] = pFrame[10] = pFrame[11] =
-        pFrame[12] = pFrame[13] = pFrame[14] = pFrame[15] = clut[BORD_COL(bNewBorder_)];
+        pFrame[12] = pFrame[13] = pFrame[14] = pFrame[15] = clut[BORD_COL(new_border)];
 }

@@ -57,10 +57,10 @@ void UpdatePalette()
         pVideo->UpdatePalette();
 }
 
-void Update(const Screen& pScreen_)
+void Update(const FrameBuffer& fb)
 {
     if (pVideo)
-        pVideo->Update(pScreen_);
+        pVideo->Update(fb);
 }
 
 void UpdateSize()

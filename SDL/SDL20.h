@@ -36,7 +36,7 @@ public:
     int GetCaps() const override;
     bool Init() override;
 
-    void Update(const Screen& pScreen_) override;
+    void Update(const FrameBuffer& fb) override;
     void UpdateSize() override;
     void UpdatePalette() override;
 
@@ -44,7 +44,7 @@ public:
     void DisplayToSamPoint(int* pnX_, int* pnY_) override;
 
 protected:
-    bool DrawChanges(const Screen& pScreen_);
+    bool DrawChanges(const FrameBuffer& fb);
 
 private:
     SDL_Window* m_pWindow = nullptr;

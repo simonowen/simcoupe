@@ -20,11 +20,11 @@
 
 #pragma once
 
-#include "Screen.h"
+#include "FrameBuffer.h"
 
 namespace PNG
 {
-bool Save(const Screen& pScreen_);
+bool Save(const FrameBuffer& fb);
 }
 
 #ifdef HAVE_LIBZ

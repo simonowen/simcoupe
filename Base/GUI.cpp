@@ -154,16 +154,16 @@ void GUI::Delete(Window* pWindow_)
         s_pGUI = nullptr;
 }
 
-void GUI::Draw(Screen& pScreen_)
+void GUI::Draw(FrameBuffer& fb)
 {
     if (s_pGUI)
     {
-        Screen::SetFont(s_pGUI->GetFont());
-        s_pGUI->Draw(pScreen_);
+        fb.SetFont(s_pGUI->GetFont());
+        s_pGUI->Draw(fb);
 
         // Use hardware cursor on Win32, software cursor on everything else (for now).
 #ifndef WIN32
-        pScreen_.DrawImage(s_nX, s_nY, ICON_SIZE, ICON_SIZE,
+        fb.DrawImage(s_nX, s_nY, ICON_SIZE, ICON_SIZE,
             reinterpret_cast<const uint8_t*>(sMouseCursor.abData), sMouseCursor.abPalette);
 #endif
     }
@@ -178,7 +178,7 @@ bool GUI::IsModal()
 ////////////////////////////////////////////////////////////////////////////////
 
 Window::Window(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, int nWidth_/*=0*/, int nHeight_/*=0*/, int nType_/*=ctUnknown*/)
-    : m_nX(nX_), m_nY(nY_), m_nWidth(nWidth_), m_nHeight(nHeight_), m_nType(nType_), m_pFont(&sGUIFont)
+    : m_nX(nX_), m_nY(nY_), m_nWidth(nWidth_), m_nHeight(nHeight_), m_nType(nType_), m_pFont(sGUIFont)
 {
     if (pParent_)
     {
@@ -212,22 +212,22 @@ bool Window::HitTest(int nX_, int nY_)
 }
 
 // Draw the child controls on the current window
-void Window::Draw(Screen& pScreen_)
+void Window::Draw(FrameBuffer& fb)
 {
     for (Window* p = m_pChildren; p; p = p->m_pNext)
     {
         if (p != m_pActive)
         {
-            pScreen_.SetFont(p->m_pFont);
-            p->Draw(pScreen_);
+            fb.SetFont(p->m_pFont);
+            p->Draw(fb);
         }
     }
 
     // Draw the active control last to ensure it's shown above any other controls
     if (m_pActive)
     {
-        pScreen_.SetFont(m_pActive->m_pFont);
-        m_pActive->Draw(pScreen_);
+        fb.SetFont(m_pActive->m_pFont);
+        m_pActive->Draw(fb);
     }
 }
 
@@ -377,14 +377,14 @@ void Window::SetValue(unsigned int u_)
     SetText(sz);
 }
 
-int Window::GetTextWidth(size_t nOffset_/*=0*/, size_t nMaxLength_/*=-1*/) const
+int Window::GetTextWidth(size_t offset, size_t max_length) const
 {
-    return Screen::GetStringWidth(GetText() + nOffset_, nMaxLength_, m_pFont);
+    return m_pFont->StringWidth(GetText() + offset, static_cast<int>(max_length));
 }
 
 int Window::GetTextWidth(const char* pcsz_) const
 {
-    return Screen::GetStringWidth(pcsz_, -1, m_pFont);
+    return m_pFont->StringWidth(pcsz_);
 }
 
 
@@ -473,12 +473,12 @@ TextControl::TextControl(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=
     m_nWidth = GetTextWidth();
 }
 
-void TextControl::Draw(Screen& pScreen_)
+void TextControl::Draw(FrameBuffer& fb)
 {
     if (m_bBackColour)
-        pScreen_.FillRect(m_nX - 1, m_nY - 1, GetTextWidth() + 2, 14, m_bBackColour);
+        fb.FillRect(m_nX - 1, m_nY - 1, GetTextWidth() + 2, 14, m_bBackColour);
 
-    pScreen_.DrawString(m_nX, m_nY, GetText(), IsEnabled() ? m_bColour : GREY_5);
+    fb.DrawString(m_nX, m_nY, GetText(), IsEnabled() ? m_bColour : GREY_5);
 }
 
 void TextControl::SetTextAndColour(const char* pcszText_, uint8_t bColour_)
@@ -490,27 +490,27 @@ void TextControl::SetTextAndColour(const char* pcszText_, uint8_t bColour_)
 ////////////////////////////////////////////////////////////////////////////////
 
 const int BUTTON_BORDER = 3;
-const int BUTTON_HEIGHT = BUTTON_BORDER + CHAR_HEIGHT + BUTTON_BORDER;
+const int BUTTON_HEIGHT = BUTTON_BORDER + Font::CHAR_HEIGHT + BUTTON_BORDER;
 
 Button::Button(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
     : Window(pParent_, nX_, nY_, nWidth_, nHeight_ ? nHeight_ : BUTTON_HEIGHT, ctButton)
 {
 }
 
-void Button::Draw(Screen& pScreen_)
+void Button::Draw(FrameBuffer& fb)
 {
     bool fPressed = m_fPressed && IsOver();
 
     // Fill the main button background
-    pScreen_.FillRect(m_nX + 1, m_nY + 1, m_nWidth - 2, m_nHeight - 2, IsActive() ? YELLOW_8 : GREY_7);
+    fb.FillRect(m_nX + 1, m_nY + 1, m_nWidth - 2, m_nHeight - 2, IsActive() ? YELLOW_8 : GREY_7);
 
     // Draw the edge highlight for the top and left
-    pScreen_.DrawLine(m_nX, m_nY, m_nWidth, 0, fPressed ? GREY_5 : WHITE);
-    pScreen_.DrawLine(m_nX, m_nY, 0, m_nHeight, fPressed ? GREY_5 : WHITE);
+    fb.DrawLine(m_nX, m_nY, m_nWidth, 0, fPressed ? GREY_5 : WHITE);
+    fb.DrawLine(m_nX, m_nY, 0, m_nHeight, fPressed ? GREY_5 : WHITE);
 
     // Draw the edge highlight for the bottom and right
-    pScreen_.DrawLine(m_nX + 1, m_nY + m_nHeight - 1, m_nWidth - 2, 0, fPressed ? WHITE : GREY_5);
-    pScreen_.DrawLine(m_nX + m_nWidth - 1, m_nY + 1, 0, m_nHeight - 1, fPressed ? WHITE : GREY_5);
+    fb.DrawLine(m_nX + 1, m_nY + m_nHeight - 1, m_nWidth - 2, 0, fPressed ? WHITE : GREY_5);
+    fb.DrawLine(m_nX + m_nWidth - 1, m_nY + 1, 0, m_nHeight - 1, fPressed ? WHITE : GREY_5);
 }
 
 bool Button::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
@@ -577,16 +577,16 @@ void TextButton::SetText(const char* pcszText_)
         m_nWidth = m_nMinWidth;
 }
 
-void TextButton::Draw(Screen& pScreen_)
+void TextButton::Draw(FrameBuffer& fb)
 {
-    Button::Draw(pScreen_);
+    Button::Draw(fb);
 
     bool fPressed = m_fPressed && IsOver();
 
     // Centralise the text in the button, and offset down and right if it's pressed
     int nX = m_nX + fPressed + (m_nWidth - GetTextWidth()) / 2;
-    int nY = m_nY + fPressed + (m_nHeight - CHAR_HEIGHT) / 2 + 1;
-    pScreen_.DrawString(nX, nY, GetText(), IsEnabled() ? (IsActive() ? BLACK : BLACK) : GREY_5);
+    int nY = m_nY + fPressed + (m_nHeight - Font::CHAR_HEIGHT) / 2 + 1;
+    fb.DrawString(nX, nY, GetText(), IsEnabled() ? (IsActive() ? BLACK : BLACK) : GREY_5);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -598,14 +598,14 @@ ImageButton::ImageButton(Window* pParent_, int nX_, int nY_, int nWidth_, int nH
     m_nType = ctImageButton;
 }
 
-void ImageButton::Draw(Screen& pScreen_)
+void ImageButton::Draw(FrameBuffer& fb)
 {
-    Button::Draw(pScreen_);
+    Button::Draw(fb);
 
     bool fPressed = m_fPressed && IsOver();
     int nX = m_nX + m_nDX + fPressed, nY = m_nY + m_nDY + fPressed;
 
-    pScreen_.DrawImage(nX, nY, ICON_SIZE, ICON_SIZE, reinterpret_cast<const uint8_t*>(m_pIcon->abData),
+    fb.DrawImage(nX, nY, ICON_SIZE, ICON_SIZE, reinterpret_cast<const uint8_t*>(m_pIcon->abData),
         IsEnabled() ? m_pIcon->abPalette : m_pIcon->abPalette);
 }
 
@@ -616,19 +616,19 @@ UpButton::UpButton(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_
 {
 }
 
-void UpButton::Draw(Screen& pScreen_)
+void UpButton::Draw(FrameBuffer& fb)
 {
-    Button::Draw(pScreen_);
+    Button::Draw(fb);
 
     bool fPressed = m_fPressed && IsOver();
 
     int nX = m_nX + 2 + fPressed, nY = m_nY + 3 + fPressed;
     uint8_t bColour = GetParent()->IsEnabled() ? BLACK : GREY_5;
-    pScreen_.DrawLine(nX + 5, nY, 1, 0, bColour);
-    pScreen_.DrawLine(nX + 4, nY + 1, 3, 0, bColour);
-    pScreen_.DrawLine(nX + 3, nY + 2, 2, 0, bColour);  pScreen_.DrawLine(nX + 6, nY + 2, 2, 0, bColour);
-    pScreen_.DrawLine(nX + 2, nY + 3, 2, 0, bColour);  pScreen_.DrawLine(nX + 7, nY + 3, 2, 0, bColour);
-    pScreen_.DrawLine(nX + 1, nY + 4, 2, 0, bColour);  pScreen_.DrawLine(nX + 8, nY + 4, 2, 0, bColour);
+    fb.DrawLine(nX + 5, nY, 1, 0, bColour);
+    fb.DrawLine(nX + 4, nY + 1, 3, 0, bColour);
+    fb.DrawLine(nX + 3, nY + 2, 2, 0, bColour);  fb.DrawLine(nX + 6, nY + 2, 2, 0, bColour);
+    fb.DrawLine(nX + 2, nY + 3, 2, 0, bColour);  fb.DrawLine(nX + 7, nY + 3, 2, 0, bColour);
+    fb.DrawLine(nX + 1, nY + 4, 2, 0, bColour);  fb.DrawLine(nX + 8, nY + 4, 2, 0, bColour);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -638,19 +638,19 @@ DownButton::DownButton(Window* pParent_, int nX_, int nY_, int nWidth_, int nHei
 {
 }
 
-void DownButton::Draw(Screen& pScreen_)
+void DownButton::Draw(FrameBuffer& fb)
 {
-    Button::Draw(pScreen_);
+    Button::Draw(fb);
 
     bool fPressed = m_fPressed && IsOver();
 
     int nX = m_nX + 2 + fPressed, nY = m_nY + 5 + fPressed;
     uint8_t bColour = GetParent()->IsEnabled() ? BLACK : GREY_5;
-    pScreen_.DrawLine(nX + 5, nY + 5, 1, 0, bColour);
-    pScreen_.DrawLine(nX + 4, nY + 4, 3, 0, bColour);
-    pScreen_.DrawLine(nX + 3, nY + 3, 2, 0, bColour);  pScreen_.DrawLine(nX + 6, nY + 3, 2, 0, bColour);
-    pScreen_.DrawLine(nX + 2, nY + 2, 2, 0, bColour);  pScreen_.DrawLine(nX + 7, nY + 2, 2, 0, bColour);
-    pScreen_.DrawLine(nX + 1, nY + 1, 2, 0, bColour);  pScreen_.DrawLine(nX + 8, nY + 1, 2, 0, bColour);
+    fb.DrawLine(nX + 5, nY + 5, 1, 0, bColour);
+    fb.DrawLine(nX + 4, nY + 4, 3, 0, bColour);
+    fb.DrawLine(nX + 3, nY + 3, 2, 0, bColour);  fb.DrawLine(nX + 6, nY + 3, 2, 0, bColour);
+    fb.DrawLine(nX + 2, nY + 2, 2, 0, bColour);  fb.DrawLine(nX + 7, nY + 2, 2, 0, bColour);
+    fb.DrawLine(nX + 1, nY + 1, 2, 0, bColour);  fb.DrawLine(nX + 8, nY + 1, 2, 0, bColour);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -673,42 +673,42 @@ void CheckBox::SetText(const char* pcszText_)
     m_nWidth = 1 + BOX_SIZE + PRETEXT_GAP + GetTextWidth();
 }
 
-void CheckBox::Draw(Screen& pScreen_)
+void CheckBox::Draw(FrameBuffer& fb)
 {
     // Draw the text to the right of the box, grey if the control is disabled
     int nX = m_nX + BOX_SIZE + PRETEXT_GAP;
-    int nY = m_nY + (BOX_SIZE - CHAR_HEIGHT) / 2 + 1;
+    int nY = m_nY + (BOX_SIZE - Font::CHAR_HEIGHT) / 2 + 1;
 
     // Fill the background if required
     if (m_bBackColour)
-        pScreen_.FillRect(m_nX - 1, m_nY - 1, BOX_SIZE + PRETEXT_GAP + GetTextWidth() + 2, BOX_SIZE + 2, m_bBackColour);
+        fb.FillRect(m_nX - 1, m_nY - 1, BOX_SIZE + PRETEXT_GAP + GetTextWidth() + 2, BOX_SIZE + 2, m_bBackColour);
 
     // Draw the label text
-    pScreen_.DrawString(nX, nY, GetText(), IsEnabled() ? (IsActive() ? YELLOW_8 : m_bColour) : GREY_5);
+    fb.DrawString(nX, nY, GetText(), IsEnabled() ? (IsActive() ? YELLOW_8 : m_bColour) : GREY_5);
 
     // Draw the empty check box
-    pScreen_.FrameRect(m_nX, m_nY, BOX_SIZE, BOX_SIZE, !IsEnabled() ? GREY_5 : IsActive() ? YELLOW_8 : GREY_7);
+    fb.FrameRect(m_nX, m_nY, BOX_SIZE, BOX_SIZE, !IsEnabled() ? GREY_5 : IsActive() ? YELLOW_8 : GREY_7);
 
     uint8_t abEnabled[] = { 0, GREY_7 }, abDisabled[] = { 0, GREY_5 };
 
-    static uint8_t abCheck[11][11] =
+    static const std::vector<uint8_t> check_mark
     {
-        { 0,0,0,0,0,0,0,0,0,0,0 },
-        { 0,0,0,0,0,0,0,0,0,0,0 },
-        { 0,0,0,0,0,0,0,0,1,0,0 },
-        { 0,0,0,0,0,0,0,1,1,0,0 },
-        { 0,0,0,0,0,0,1,1,1,0,0 },
-        { 0,0,1,0,0,1,1,1,0,0,0 },
-        { 0,0,1,1,1,1,1,0,0,0,0 },
-        { 0,0,1,1,1,1,0,0,0,0,0 },
-        { 0,0,0,1,1,0,0,0,0,0,0 },
-        { 0,0,0,0,0,0,0,0,0,0,0 },
-        { 0,0,0,0,0,0,0,0,0,0,0 },
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,1,0,0,
+        0,0,0,0,0,0,0,1,1,0,0,
+        0,0,0,0,0,0,1,1,1,0,0,
+        0,0,1,0,0,1,1,1,0,0,0,
+        0,0,1,1,1,1,1,0,0,0,0,
+        0,0,1,1,1,1,0,0,0,0,0,
+        0,0,0,1,1,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,
     };
 
     // Box checked?
     if (m_fChecked)
-        pScreen_.DrawImage(m_nX, m_nY, 11, 11, reinterpret_cast<uint8_t*>(abCheck), IsEnabled() ? abEnabled : abDisabled);
+        fb.DrawImage(m_nX, m_nY, 11, 11, check_mark.data(), IsEnabled() ? abEnabled : abDisabled);
 }
 
 bool CheckBox::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
@@ -762,7 +762,7 @@ bool CheckBox::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
 ////////////////////////////////////////////////////////////////////////////////
 
 const int EDIT_BORDER = 3;
-const int EDIT_HEIGHT = EDIT_BORDER + CHAR_HEIGHT + EDIT_BORDER;
+const int EDIT_HEIGHT = EDIT_BORDER + Font::CHAR_HEIGHT + EDIT_BORDER;
 
 const size_t MAX_EDIT_LENGTH = 250;
 
@@ -795,17 +795,17 @@ void EditControl::SetSelectedText(const char* pcszText_, bool fSelected_)
     m_nCaretStart = fSelected_ ? 0 : m_nCaretEnd;
 }
 
-void EditControl::Draw(Screen& pScreen_)
+void EditControl::Draw(FrameBuffer& fb)
 {
     int nWidth = m_nWidth - 2 * EDIT_BORDER;
 
     // Fill overall control background, and draw a frame round it
-    pScreen_.FillRect(m_nX + 1, m_nY + 1, m_nWidth - 2, m_nHeight - 2, IsEnabled() ? (IsActive() ? YELLOW_8 : WHITE) : GREY_7);
-    pScreen_.FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, GREY_7);
+    fb.FillRect(m_nX + 1, m_nY + 1, m_nWidth - 2, m_nHeight - 2, IsEnabled() ? (IsActive() ? YELLOW_8 : WHITE) : GREY_7);
+    fb.FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, GREY_7);
 
     // Draw a light edge highlight for the bottom and right
-    pScreen_.DrawLine(m_nX + 1, m_nY + m_nHeight - 1, m_nWidth - 1, 0, GREY_7);
-    pScreen_.DrawLine(m_nX + m_nWidth - 1, m_nY + 1, 0, m_nHeight - 1, GREY_7);
+    fb.DrawLine(m_nX + 1, m_nY + m_nHeight - 1, m_nWidth - 1, 0, GREY_7);
+    fb.DrawLine(m_nX + m_nWidth - 1, m_nY + 1, 0, m_nHeight - 1, GREY_7);
 
     // If the caret is before the current view start we need to shift the view back
     if (m_nCaretEnd < m_nViewOffset)
@@ -850,7 +850,7 @@ void EditControl::Draw(Screen& pScreen_)
     }
 
     // Draw the visible text
-    pScreen_.Printf(nX, nY + 1, "\a%c%.*s", IsEnabled() ? 'k' : 'K', nViewLength, GetText() + m_nViewOffset);
+    fb.Printf(nX, nY + 1, "\a%c%.*s", IsEnabled() ? 'k' : 'K', nViewLength, GetText() + m_nViewOffset);
 
     // Is the control focussed with an active selection?
     if (IsActive() && m_nCaretStart != m_nCaretEnd)
@@ -872,8 +872,8 @@ void EditControl::Draw(Screen& pScreen_)
         int wx = GetTextWidth(nStart, nEnd - nStart);
 
         // Draw the black selection highlight and white text over it
-        pScreen_.FillRect(nX + dx + !!dx - 1, nY - 1, 1 + wx + 1, 1 + CHAR_HEIGHT + 1, IsEnabled() ? (IsActive() ? BLACK : GREY_4) : GREY_6);
-        pScreen_.Printf(nX + dx + !!dx, nY + 1, "%.*s", nEnd - nStart, GetText() + nStart);
+        fb.FillRect(nX + dx + !!dx - 1, nY - 1, 1 + wx + 1, 1 + Font::CHAR_HEIGHT + 1, IsEnabled() ? (IsActive() ? BLACK : GREY_4) : GREY_6);
+        fb.Printf(nX + dx + !!dx, nY + 1, "%.*s", nEnd - nStart, GetText() + nStart);
     }
 
     // If the control is enabled and focussed we'll show a flashing caret after the text
@@ -883,7 +883,7 @@ void EditControl::Draw(Screen& pScreen_)
         int dx = GetTextWidth(m_nViewOffset, m_nCaretEnd - m_nViewOffset);
 
         // Draw a character-height vertical bar after the text
-        pScreen_.DrawLine(nX + dx - !dx, nY - 1, 0, 1 + CHAR_HEIGHT + 1, fCaretOn ? BLACK : YELLOW_8);
+        fb.DrawLine(nX + dx - !dx, nY - 1, 0, 1 + Font::CHAR_HEIGHT + 1, fCaretOn ? BLACK : YELLOW_8);
     }
 }
 
@@ -1074,7 +1074,7 @@ bool NumberEditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 const int RADIO_PRETEXT_GAP = 16;
 
 RadioButton::RadioButton(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nWidth_/*=0*/)
-    : Window(pParent_, nX_, nY_, nWidth_, CHAR_HEIGHT + 2, ctRadio)
+    : Window(pParent_, nX_, nY_, nWidth_, Font::CHAR_HEIGHT + 2, ctRadio)
 {
     SetText(pcszText_);
 }
@@ -1087,7 +1087,7 @@ void RadioButton::SetText(const char* pcszText_)
     m_nWidth = 1 + RADIO_PRETEXT_GAP + GetTextWidth();
 }
 
-void RadioButton::Draw(Screen& pScreen_)
+void RadioButton::Draw(FrameBuffer& fb)
 {
     int nX = m_nX + 1, nY = m_nY;
 
@@ -1095,40 +1095,40 @@ void RadioButton::Draw(Screen& pScreen_)
     uint8_t abEnabled[] = { 0, GREY_5, GREY_7, GREY_7 };
     uint8_t abDisabled[] = { 0, GREY_3, GREY_5, GREY_5 };
 
-    static uint8_t abSelected[10][10] =
+    static const std::vector<uint8_t> selected
     {
-        { 0,0,0,3,3,3,3 },
-        { 0,0,3,0,0,0,0,3 },
-        { 0,3,0,1,2,2,1,0,3 },
-        { 3,0,1,2,2,2,2,1,0,3 },
-        { 3,0,2,2,2,2,2,2,0,3 },
-        { 3,0,2,2,2,2,2,2,0,3 },
-        { 3,0,1,2,2,2,2,1,0,3 },
-        { 0,3,0,1,2,2,1,0,3 },
-        { 0,0,3,0,0,0,0,3 },
-        { 0,0,0,3,3,3,3 }
+        0,0,0,3,3,3,3,0,0,0,
+        0,0,3,0,0,0,0,3,0,0,
+        0,3,0,1,2,2,1,0,3,0,
+        3,0,1,2,2,2,2,1,0,3,
+        3,0,2,2,2,2,2,2,0,3,
+        3,0,2,2,2,2,2,2,0,3,
+        3,0,1,2,2,2,2,1,0,3,
+        0,3,0,1,2,2,1,0,3,0,
+        0,0,3,0,0,0,0,3,0,0,
+        0,0,0,3,3,3,3,0,0,0,
     };
 
-    static uint8_t abUnselected[10][10] =
+    static const std::vector<uint8_t> unselected
     {
-        { 0,0,0,3,3,3,3 },
-        { 0,0,3,0,0,0,0,3 },
-        { 0,3,0,0,0,0,0,0,3 },
-        { 3,0,0,0,0,0,0,0,0,3 },
-        { 3,0,0,0,0,0,0,0,0,3 },
-        { 3,0,0,0,0,0,0,0,0,3 },
-        { 3,0,0,0,0,0,0,0,0,3 },
-        { 0,3,0,0,0,0,0,0,3 },
-        { 0,0,3,0,0,0,0,3 },
-        { 0,0,0,3,3,3,3 }
+        0,0,0,3,3,3,3,0,0,0,
+        0,0,3,0,0,0,0,3,0,0,
+        0,3,0,0,0,0,0,0,3,0,
+        3,0,0,0,0,0,0,0,0,3,
+        3,0,0,0,0,0,0,0,0,3,
+        3,0,0,0,0,0,0,0,0,3,
+        3,0,0,0,0,0,0,0,0,3,
+        0,3,0,0,0,0,0,0,3,0,
+        0,0,3,0,0,0,0,3,0,0,
+        0,0,0,3,3,3,3,0,0,0,
     };
 
     // Draw the radio button image in the current state
-    pScreen_.DrawImage(nX, nY, 10, 10, reinterpret_cast<uint8_t*>(m_fSelected ? abSelected : abUnselected),
+    fb.DrawImage(nX, nY, 10, 10, (m_fSelected ? selected : unselected).data(),
         !IsEnabled() ? abDisabled : IsActive() ? abActive : abEnabled);
 
     // Draw the text to the right of the button, grey if the control is disabled
-    pScreen_.DrawString(nX + RADIO_PRETEXT_GAP, nY + 1, GetText(), IsEnabled() ? (IsActive() ? YELLOW_8 : GREY_7) : GREY_5);
+    fb.DrawString(nX + RADIO_PRETEXT_GAP, nY + 1, GetText(), IsEnabled() ? (IsActive() ? YELLOW_8 : GREY_7) : GREY_5);
 }
 
 bool RadioButton::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
@@ -1222,7 +1222,7 @@ void RadioButton::Select(bool fSelected_/*=true*/)
 
 const char* const MENU_DELIMITERS = "|";
 const int MENU_TEXT_GAP = 5;
-const int MENU_ITEM_HEIGHT = 2 + CHAR_HEIGHT + 2;
+const int MENU_ITEM_HEIGHT = 2 + Font::CHAR_HEIGHT + 2;
 
 Menu::Menu(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/)
     : Window(pParent_, nX_, nY_, 0, 0, ctMenu)
@@ -1259,11 +1259,11 @@ void Menu::SetText(const char* pcszText_)
     m_nHeight = MENU_ITEM_HEIGHT * m_nItems;
 }
 
-void Menu::Draw(Screen& pScreen_)
+void Menu::Draw(FrameBuffer& fb)
 {
     // Fill overall control background and frame it
-    pScreen_.FillRect(m_nX, m_nY, m_nWidth, m_nHeight, YELLOW_8);
-    pScreen_.FrameRect(m_nX - 1, m_nY - 1, m_nWidth + 2, m_nHeight + 2, GREY_7);
+    fb.FillRect(m_nX, m_nY, m_nWidth, m_nHeight, YELLOW_8);
+    fb.FrameRect(m_nX - 1, m_nY - 1, m_nWidth + 2, m_nHeight + 2, GREY_7);
 
     // Make a copy of the menu item list as strtok() munges as it iterates
     char sz[256];
@@ -1279,13 +1279,13 @@ void Menu::Draw(Screen& pScreen_)
 
         // Draw the string over the default background if not selected
         if (i != m_nSelected)
-            pScreen_.DrawString(nX + MENU_TEXT_GAP, nY + 2, psz, BLACK);
+            fb.DrawString(nX + MENU_TEXT_GAP, nY + 2, psz, BLACK);
 
         // Otherwise draw the selected item as white on black
         else
         {
-            pScreen_.FillRect(nX, nY, m_nWidth, MENU_ITEM_HEIGHT, BLACK);
-            pScreen_.DrawString(nX + MENU_TEXT_GAP, nY + 2, psz, WHITE);
+            fb.FillRect(nX, nY, m_nWidth, MENU_ITEM_HEIGHT, BLACK);
+            fb.DrawString(nX + MENU_TEXT_GAP, nY + 2, psz, WHITE);
         }
     }
 }
@@ -1399,7 +1399,7 @@ bool DropList::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 ////////////////////////////////////////////////////////////////////////////////
 
 const int COMBO_BORDER = 3;
-const int COMBO_HEIGHT = COMBO_BORDER + CHAR_HEIGHT + COMBO_BORDER;
+const int COMBO_HEIGHT = COMBO_BORDER + Font::CHAR_HEIGHT + COMBO_BORDER;
 
 ComboBox::ComboBox(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nWidth_/*=0*/)
     : Window(pParent_, nX_, nY_, nWidth_, COMBO_HEIGHT, ctComboBox),
@@ -1462,33 +1462,33 @@ void ComboBox::SetText(const char* pcszText_)
     Select(0);
 }
 
-void ComboBox::Draw(Screen& pScreen_)
+void ComboBox::Draw(FrameBuffer& fb)
 {
     bool fPressed = m_fPressed;
 
     // Fill the main control background
-    pScreen_.FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, GREY_7);
-    pScreen_.FillRect(m_nX + 1, m_nY + 1, m_nWidth - COMBO_HEIGHT - 1, m_nHeight - 2,
+    fb.FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, GREY_7);
+    fb.FillRect(m_nX + 1, m_nY + 1, m_nWidth - COMBO_HEIGHT - 1, m_nHeight - 2,
         !IsEnabled() ? GREY_7 : (IsActive() && !fPressed) ? YELLOW_8 : WHITE);
 
     // Fill the main button background
     int nX = m_nX + m_nWidth - COMBO_HEIGHT, nY = m_nY + 1;
-    pScreen_.FillRect(nX + 1, nY + 1, COMBO_HEIGHT - 1, m_nHeight - 3, GREY_7);
+    fb.FillRect(nX + 1, nY + 1, COMBO_HEIGHT - 1, m_nHeight - 3, GREY_7);
 
     // Draw the edge highlight for the top, left, right and bottom
-    pScreen_.DrawLine(nX, nY, COMBO_HEIGHT, 0, fPressed ? GREY_5 : WHITE);
-    pScreen_.DrawLine(nX, nY, 0, m_nHeight - 2, fPressed ? GREY_5 : WHITE);
-    pScreen_.DrawLine(nX + 1, nY + m_nHeight - 2, COMBO_HEIGHT - 2, 0, fPressed ? WHITE : GREY_5);
-    pScreen_.DrawLine(nX + COMBO_HEIGHT - 1, nY + 1, 0, m_nHeight - 2, fPressed ? WHITE : GREY_5);
+    fb.DrawLine(nX, nY, COMBO_HEIGHT, 0, fPressed ? GREY_5 : WHITE);
+    fb.DrawLine(nX, nY, 0, m_nHeight - 2, fPressed ? GREY_5 : WHITE);
+    fb.DrawLine(nX + 1, nY + m_nHeight - 2, COMBO_HEIGHT - 2, 0, fPressed ? WHITE : GREY_5);
+    fb.DrawLine(nX + COMBO_HEIGHT - 1, nY + 1, 0, m_nHeight - 2, fPressed ? WHITE : GREY_5);
 
     // Show the arrow button, down a pixel if it's pressed
     nY += fPressed;
     uint8_t bColour = IsEnabled() ? BLACK : GREY_5;
-    pScreen_.DrawLine(nX + 8, nY + 9, 1, 0, bColour);
-    pScreen_.DrawLine(nX + 7, nY + 8, 3, 0, bColour);
-    pScreen_.DrawLine(nX + 6, nY + 7, 2, 0, bColour);  pScreen_.DrawLine(nX + 9, nY + 7, 2, 0, bColour);
-    pScreen_.DrawLine(nX + 5, nY + 6, 2, 0, bColour);  pScreen_.DrawLine(nX + 10, nY + 6, 2, 0, bColour);
-    pScreen_.DrawLine(nX + 4, nY + 5, 2, 0, bColour);  pScreen_.DrawLine(nX + 11, nY + 5, 2, 0, bColour);
+    fb.DrawLine(nX + 8, nY + 9, 1, 0, bColour);
+    fb.DrawLine(nX + 7, nY + 8, 3, 0, bColour);
+    fb.DrawLine(nX + 6, nY + 7, 2, 0, bColour);  fb.DrawLine(nX + 9, nY + 7, 2, 0, bColour);
+    fb.DrawLine(nX + 5, nY + 6, 2, 0, bColour);  fb.DrawLine(nX + 10, nY + 6, 2, 0, bColour);
+    fb.DrawLine(nX + 4, nY + 5, 2, 0, bColour);  fb.DrawLine(nX + 11, nY + 5, 2, 0, bColour);
 
 
     char sz[256];
@@ -1501,11 +1501,11 @@ void ComboBox::Draw(Screen& pScreen_)
 
     // Draw the current selection
     nX = m_nX + 5;
-    nY = m_nY + (m_nHeight - CHAR_HEIGHT) / 2 + 1;
-    pScreen_.DrawString(nX, nY, psz ? psz : "", IsEnabled() ? (IsActive() ? BLACK : BLACK) : GREY_5);
+    nY = m_nY + (m_nHeight - Font::CHAR_HEIGHT) / 2 + 1;
+    fb.DrawString(nX, nY, psz ? psz : "", IsEnabled() ? (IsActive() ? BLACK : BLACK) : GREY_5);
 
     // Call the base to paint any child controls
-    Window::Draw(pScreen_);
+    Window::Draw(fb);
 }
 
 bool ComboBox::OnMessage(int nMessage_, int nParam1_, int nParam2_)
@@ -1615,34 +1615,34 @@ void ScrollBar::SetMaxPos(int nMaxPos_)
         m_nThumbSize = std::max(m_nHeight * m_nScrollHeight / nMaxPos_, 10);
 }
 
-void ScrollBar::Draw(Screen& pScreen_)
+void ScrollBar::Draw(FrameBuffer& fb)
 {
     // Don't draw anything if we don't have a scroll range
     if (m_nMaxPos <= 0)
         return;
 
     // Fill the main button background
-    pScreen_.FillRect(m_nX + 1, m_nY + 1, m_nWidth - 2, m_nHeight - 2, GREY_7);
+    fb.FillRect(m_nX + 1, m_nY + 1, m_nWidth - 2, m_nHeight - 2, GREY_7);
 
     // Draw the edge highlight for the top, left, bottom and right
-    pScreen_.DrawLine(m_nX, m_nY, m_nWidth, 0, WHITE);
-    pScreen_.DrawLine(m_nX, m_nY, 0, m_nHeight, WHITE);
-    pScreen_.DrawLine(m_nX + 1, m_nY + m_nHeight - 1, m_nWidth - 2, 0, WHITE);
-    pScreen_.DrawLine(m_nX + m_nWidth - 1, m_nY + 1, 0, m_nHeight - 1, WHITE);
+    fb.DrawLine(m_nX, m_nY, m_nWidth, 0, WHITE);
+    fb.DrawLine(m_nX, m_nY, 0, m_nHeight, WHITE);
+    fb.DrawLine(m_nX + 1, m_nY + m_nHeight - 1, m_nWidth - 2, 0, WHITE);
+    fb.DrawLine(m_nX + m_nWidth - 1, m_nY + 1, 0, m_nHeight - 1, WHITE);
 
     int nHeight = m_nScrollHeight - m_nThumbSize, nPos = nHeight * m_nPos / m_nMaxPos;
 
     int nX = m_nX, nY = m_nY + SB_BUTTON_HEIGHT + nPos;
 
     // Fill the main button background
-    pScreen_.FillRect(nX, nY, m_nWidth, m_nThumbSize, !IsEnabled() ? GREY_7 : GREY_7);
+    fb.FillRect(nX, nY, m_nWidth, m_nThumbSize, !IsEnabled() ? GREY_7 : GREY_7);
 
-    pScreen_.DrawLine(nX, nY, m_nWidth, 0, WHITE);
-    pScreen_.DrawLine(nX, nY, 0, m_nThumbSize, WHITE);
-    pScreen_.DrawLine(nX + 1, nY + m_nThumbSize - 1, m_nWidth - 1, 0, GREY_4);
-    pScreen_.DrawLine(nX + m_nWidth - 1, nY + 1, 0, m_nThumbSize - 1, GREY_4);
+    fb.DrawLine(nX, nY, m_nWidth, 0, WHITE);
+    fb.DrawLine(nX, nY, 0, m_nThumbSize, WHITE);
+    fb.DrawLine(nX + 1, nY + m_nThumbSize - 1, m_nWidth - 1, 0, GREY_4);
+    fb.DrawLine(nX + m_nWidth - 1, nY + 1, 0, m_nThumbSize - 1, GREY_4);
 
-    Window::Draw(pScreen_);
+    Window::Draw(fb);
 }
 
 bool ScrollBar::OnMessage(int nMessage_, int nParam1_, int nParam2_)
@@ -1846,25 +1846,27 @@ void ListView::SetItems(ListViewItem* pItems_)
     }
 }
 
-void ListView::DrawItem(Screen& pScreen_, int nItem_, int nX_, int nY_, const ListViewItem* pItem_)
+void ListView::DrawItem(FrameBuffer& fb, int nItem_, int nX_, int nY_, const ListViewItem* pItem_)
 {
     // If this is the selected item, draw a box round it (darkened if the control isn't active)
     if (nItem_ == m_nSelected)
     {
         if (IsActive())
-            pScreen_.FillRect(nX_ + 1, nY_ + 1, ITEM_SIZE - 2, ITEM_SIZE - 2, BLUE_2);
+            fb.FillRect(nX_ + 1, nY_ + 1, ITEM_SIZE - 2, ITEM_SIZE - 2, BLUE_2);
 
-        pScreen_.FrameRect(nX_, nY_, ITEM_SIZE, ITEM_SIZE, IsActive() ? GREY_7 : GREY_5, true);
+        fb.FrameRect(nX_, nY_, ITEM_SIZE, ITEM_SIZE, IsActive() ? GREY_7 : GREY_5, true);
     }
 
     if (pItem_->m_pIcon)
-        pScreen_.DrawImage(nX_ + (ITEM_SIZE - ICON_SIZE) / 2, nY_ + m_nItemOffset + 5, ICON_SIZE, ICON_SIZE,
+    {
+        fb.DrawImage(nX_ + (ITEM_SIZE - ICON_SIZE) / 2, nY_ + m_nItemOffset + 5, ICON_SIZE, ICON_SIZE,
             reinterpret_cast<const uint8_t*>(pItem_->m_pIcon->abData), pItem_->m_pIcon->abPalette);
+    }
 
     const char* pcsz = pItem_->m_pszLabel;
     if (pcsz)
     {
-        pScreen_.SetFont(&sPropFont);
+        fb.SetFont(sPropFont);
 
         int nLine = 0;
         const char* pszStart = pcsz, * pszBreak = nullptr;
@@ -1917,23 +1919,23 @@ void ListView::DrawItem(Screen& pScreen_, int nItem_, int nX_, int nY_, const Li
         // Output the two text lines using the small font, each centralised below the icon
         nY_ += m_nItemOffset + 42;
 
-        pScreen_.DrawString(nX_ + (ITEM_SIZE - pScreen_.GetStringWidth(szLines[0])) / 2, nY_, szLines[0], WHITE);
-        pScreen_.DrawString(nX_ + (ITEM_SIZE - pScreen_.GetStringWidth(szLines[1])) / 2, nY_ + 12, szLines[1], WHITE);
+        fb.DrawString(nX_ + (ITEM_SIZE - fb.StringWidth(szLines[0])) / 2, nY_, szLines[0], WHITE);
+        fb.DrawString(nX_ + (ITEM_SIZE - fb.StringWidth(szLines[1])) / 2, nY_ + 12, szLines[1], WHITE);
 
-        pScreen_.SetFont(&sGUIFont);
+        fb.SetFont(sGUIFont);
     }
 }
 
 // Erase the control background
-void ListView::EraseBackground(Screen& pScreen_)
+void ListView::EraseBackground(FrameBuffer& fb)
 {
-    pScreen_.FillRect(m_nX, m_nY, m_nWidth, m_nHeight, BLUE_1);
+    fb.FillRect(m_nX, m_nY, m_nWidth, m_nHeight, BLUE_1);
 }
 
-void ListView::Draw(Screen& pScreen_)
+void ListView::Draw(FrameBuffer& fb)
 {
     // Fill the main background of the control
-    EraseBackground(pScreen_);
+    EraseBackground(fb);
 
     // Fetch the current scrollbar position
     int nScrollPos = m_pScrollBar->GetPos();
@@ -1944,18 +1946,18 @@ void ListView::Draw(Screen& pScreen_)
     int nEnd = std::min(m_nItems, nStart + m_nAcross * nDepth);
 
     // Clip to the main control, to keep partly drawn icons within our client area
-    pScreen_.SetClip(m_nX, m_nY, m_nWidth, m_nHeight);
+    fb.ClipTo(m_nX, m_nY, m_nWidth, m_nHeight);
 
     const ListViewItem* pItem = GetItem(nStart);
     for (int i = nStart; pItem && i < nEnd; pItem = pItem->m_pNext, i++)
     {
         int x = m_nX + ((i % m_nAcross) * ITEM_SIZE), y = m_nY + (((i - nStart) / m_nAcross) * ITEM_SIZE) - nOffset;
-        DrawItem(pScreen_, i, x, y, pItem);
+        DrawItem(fb, i, x, y, pItem);
     }
 
     // Restore the default clip area
-    pScreen_.SetClip();
-    Window::Draw(pScreen_);
+    fb.ClipNone();
+    Window::Draw(fb);
 }
 
 
@@ -2491,7 +2493,7 @@ IconControl::IconControl(Window* pParent_, int nX_, int nY_, const GUI_ICON* pIc
 {
 }
 
-void IconControl::Draw(Screen& pScreen_)
+void IconControl::Draw(FrameBuffer& fb)
 {
     uint8_t abGreyed[ICON_PALETTE_SIZE];
 
@@ -2511,7 +2513,7 @@ void IconControl::Draw(Screen& pScreen_)
     }
 
     // Draw the icon, using the greyed palette if disabled
-    pScreen_.DrawImage(m_nX, m_nY, ICON_SIZE, ICON_SIZE, reinterpret_cast<const uint8_t*>(m_pIcon->abData),
+    fb.DrawImage(m_nX, m_nY, ICON_SIZE, ICON_SIZE, reinterpret_cast<const uint8_t*>(m_pIcon->abData),
         IsEnabled() ? m_pIcon->abPalette : abGreyed);
 }
 
@@ -2522,14 +2524,14 @@ FrameControl::FrameControl(Window* pParent_, int nX_, int nY_, int nWidth_, int 
 {
 }
 
-void FrameControl::Draw(Screen& pScreen_)
+void FrameControl::Draw(FrameBuffer& fb)
 {
     // If we've got a fill colour, use it now
     if (m_bFill)
-        pScreen_.FillRect(m_nX, m_nY, m_nWidth, m_nHeight, m_bFill);
+        fb.FillRect(m_nX, m_nY, m_nWidth, m_nHeight, m_bFill);
 
     // Draw the frame around the area
-    pScreen_.FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, m_bColour, true);
+    fb.FrameRect(m_nX, m_nY, m_nWidth, m_nHeight, m_bColour, true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2539,7 +2541,7 @@ const int TITLE_BACK_COLOUR = BLUE_3;
 const int DIALOG_BACK_COLOUR = BLUE_2;
 const int DIALOG_FRAME_COLOUR = GREY_7;
 
-const int TITLE_HEIGHT = 4 + CHAR_HEIGHT + 5;
+const int TITLE_HEIGHT = 4 + Font::CHAR_HEIGHT + 5;
 
 
 Dialog::Dialog(Window* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_)
@@ -2566,7 +2568,7 @@ bool Dialog::IsActiveDialog() const
 void Dialog::Centre()
 {
     // Position the window slightly above centre
-    Move((Frame::GetWidth() - m_nWidth) >> 1, ((Frame::GetHeight() - m_nHeight) * 9 / 10) >> 1);
+    Move((Frame::Width() - m_nWidth) >> 1, ((Frame::Height() - m_nHeight) * 9 / 10) >> 1);
 }
 
 // Activating the dialog will activate the first child control that accepts focus
@@ -2592,12 +2594,12 @@ bool Dialog::HitTest(int nX_, int nY_)
 }
 
 // Fill the dialog background
-void Dialog::EraseBackground(Screen& pScreen_)
+void Dialog::EraseBackground(FrameBuffer& fb)
 {
-    pScreen_.FillRect(m_nX, m_nY, m_nWidth, m_nHeight, IsActiveDialog() ? m_nBodyColour : (m_nBodyColour & ~0x7));
+    fb.FillRect(m_nX, m_nY, m_nWidth, m_nHeight, IsActiveDialog() ? m_nBodyColour : (m_nBodyColour & ~0x7));
 }
 
-void Dialog::Draw(Screen& pScreen_)
+void Dialog::Draw(FrameBuffer& fb)
 {
     // Make sure there's always an active control
     if (!m_pActive)
@@ -2605,29 +2607,29 @@ void Dialog::Draw(Screen& pScreen_)
 
 #if 0
     // Debug crosshairs to track mapped GUI cursor position
-    pScreen_.DrawLine(GUI::s_nX, 0, 0, pScreen_.GetHeight(), WHITE);
-    pScreen_.DrawLine(0, GUI::s_nY, pScreen_.GetPitch(), 0, WHITE);
+    fb.DrawLine(GUI::s_nX, 0, 0, fb.Height(), WHITE);
+    fb.DrawLine(0, GUI::s_nY, fb.Width(), 0, WHITE);
 #endif
 
     // Fill dialog background and draw a 3D frame
-    EraseBackground(pScreen_);
-    pScreen_.FrameRect(m_nX - 2, m_nY - TITLE_HEIGHT - 2, m_nWidth + 3, m_nHeight + TITLE_HEIGHT + 3, DIALOG_FRAME_COLOUR);
-    pScreen_.FrameRect(m_nX - 1, m_nY - TITLE_HEIGHT - 1, m_nWidth + 3, m_nHeight + TITLE_HEIGHT + 3, DIALOG_FRAME_COLOUR - 2);
-    pScreen_.Plot(m_nX + m_nWidth + 1, m_nY - TITLE_HEIGHT - 2, DIALOG_FRAME_COLOUR);
-    pScreen_.Plot(m_nX - 2, m_nY + m_nHeight + 1, DIALOG_FRAME_COLOUR - 2);
+    EraseBackground(fb);
+    fb.FrameRect(m_nX - 2, m_nY - TITLE_HEIGHT - 2, m_nWidth + 3, m_nHeight + TITLE_HEIGHT + 3, DIALOG_FRAME_COLOUR);
+    fb.FrameRect(m_nX - 1, m_nY - TITLE_HEIGHT - 1, m_nWidth + 3, m_nHeight + TITLE_HEIGHT + 3, DIALOG_FRAME_COLOUR - 2);
+    fb.Plot(m_nX + m_nWidth + 1, m_nY - TITLE_HEIGHT - 2, DIALOG_FRAME_COLOUR);
+    fb.Plot(m_nX - 2, m_nY + m_nHeight + 1, DIALOG_FRAME_COLOUR - 2);
 
     // Fill caption background and draw the diving line at the bottom of it
-    pScreen_.FillRect(m_nX, m_nY - TITLE_HEIGHT, m_nWidth, TITLE_HEIGHT - 1, IsActiveDialog() ? m_nTitleColour : (m_nTitleColour & ~0x7));
-    pScreen_.DrawLine(m_nX, m_nY - 1, m_nWidth, 0, DIALOG_FRAME_COLOUR);
+    fb.FillRect(m_nX, m_nY - TITLE_HEIGHT, m_nWidth, TITLE_HEIGHT - 1, IsActiveDialog() ? m_nTitleColour : (m_nTitleColour & ~0x7));
+    fb.DrawLine(m_nX, m_nY - 1, m_nWidth, 0, DIALOG_FRAME_COLOUR);
 
     // Draw caption text on the left side
-    Screen::SetFont(&sSpacedGUIFont);
-    pScreen_.DrawString(m_nX + 5, m_nY - TITLE_HEIGHT + 5, GetText(), TITLE_TEXT_COLOUR);
-    pScreen_.DrawString(m_nX + 5 + 1, m_nY - TITLE_HEIGHT + 5, GetText(), TITLE_TEXT_COLOUR);
-    Screen::SetFont(&sGUIFont);
+    fb.SetFont(sSpacedGUIFont);
+    fb.DrawString(m_nX + 5, m_nY - TITLE_HEIGHT + 5, GetText(), TITLE_TEXT_COLOUR);
+    fb.DrawString(m_nX + 5 + 1, m_nY - TITLE_HEIGHT + 5, GetText(), TITLE_TEXT_COLOUR);
+    fb.SetFont(sGUIFont);
 
     // Call the base to draw any child controls
-    Window::Draw(pScreen_);
+    Window::Draw(fb);
 }
 
 
@@ -2796,7 +2798,7 @@ MsgBox::MsgBox(Window* pParent_, const char* pcszBody_, const char* pcszCaption_
     m_nHeight += BUTTON_HEIGHT + MSGBOX_GAP / 2;
 
     // Centralise the dialog on the screen by default
-    int nX = (Frame::GetWidth() - m_nWidth) >> 1, nY = (Frame::GetHeight() - m_nHeight) * 2 / 5;
+    int nX = (Frame::Width() - m_nWidth) >> 1, nY = (Frame::Height() - m_nHeight) * 2 / 5;
     Move(nX, nY);
 
     // Error boxes are shown in red
@@ -2806,9 +2808,9 @@ MsgBox::MsgBox(Window* pParent_, const char* pcszBody_, const char* pcszCaption_
         Dialog::SetColours(MSGBOX_ERROR_COLOUR + 1, MSGBOX_ERROR_COLOUR);
 }
 
-void MsgBox::Draw(Screen& pScreen_)
+void MsgBox::Draw(FrameBuffer& fb)
 {
-    Dialog::Draw(pScreen_);
+    Dialog::Draw(fb);
 
     // Calculate the x-offset to the body text
     int nX = m_nX + MSGBOX_GAP + (m_pIcon ? ICON_SIZE + MSGBOX_GAP / 2 : 0);
@@ -2816,5 +2818,5 @@ void MsgBox::Draw(Screen& pScreen_)
     // Draw each line in the body text
     const char* psz = m_pszBody;
     for (int i = 0; i < m_nLines; psz += strlen(psz) + 1, i++)
-        pScreen_.DrawString(nX, m_nY + MSGBOX_GAP + (MSGBOX_LINE_HEIGHT * i), psz, WHITE);
+        fb.DrawString(nX, m_nY + MSGBOX_GAP + (MSGBOX_LINE_HEIGHT * i), psz, WHITE);
 }

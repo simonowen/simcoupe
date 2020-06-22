@@ -22,7 +22,7 @@
 
 #include "GUIIcons.h"
 #include "SAMIO.h"
-#include "Screen.h"
+#include "FrameBuffer.h"
 
 const int GM_MOUSE_MESSAGE = 0x40000000;
 const int GM_KEYBOARD_MESSAGE = 0x20000000;
@@ -53,7 +53,7 @@ public:
     static bool Start(Window* pGUI_);
     static void Stop();
 
-    static void Draw(Screen& pScreen_);
+    static void Draw(FrameBuffer& fb);
     static bool SendMessage(int nMessage_, int nParam1_ = 0, int nParam2_ = 0);
     static void Delete(Window* pWindow_);
 
@@ -91,7 +91,7 @@ public:
     int GetType() const { return m_nType; }
     int GetWidth() const { return m_nWidth; }
     int GetHeight() const { return m_nHeight; }
-    int GetTextWidth(size_t nOffset_ = 0, size_t nMaxLength_ = -1) const;
+    int GetTextWidth(size_t offset=0, size_t max_length=-1) const;
     int GetTextWidth(const char* pcsz_) const;
 
     Window* GetParent() { return m_pParent; }
@@ -114,23 +114,22 @@ public:
     virtual bool IsTabStop() const { return false; }
 
     virtual const char* GetText() const { return m_pszText; }
-    virtual const GUIFONT* GetFont() const { return m_pFont; }
+    virtual std::shared_ptr<Font> GetFont() const { return m_pFont; }
     virtual unsigned int GetValue() const;
     virtual void SetText(const char* pcszText_);
-    virtual void SetFont(const GUIFONT* pFont_) { m_pFont = pFont_; }
+    virtual void SetFont(std::shared_ptr<Font>& font) { m_pFont = font; }
     virtual void SetValue(unsigned int u_);
 
     virtual void Activate();
     virtual bool HitTest(int nX_, int nY_);
-    virtual void EraseBackground(Screen& /*pScreen_*/) { }
-    virtual void Draw(Screen& pScreen_) = 0;
+    virtual void EraseBackground(FrameBuffer& /*fb*/) { }
+    virtual void Draw(FrameBuffer& fb) = 0;
 
     virtual void NotifyParent(int nParam_ = 0);
     virtual void OnNotify(Window* /*pWindow_*/, int /*nParam_*/) { }
     virtual bool OnMessage(int nMessage_, int nParam1_ = 0, int nParam2_ = 0);
 
 protected:
-    void RemoveChild();
     void MoveRecurse(Window* pWindow_, int ndX_, int ndY_);
     bool RouteMessage(int nMessage_, int nParam1_, int nParam2_);
 
@@ -140,7 +139,7 @@ protected:
     int m_nType = 0;
 
     char* m_pszText = nullptr;
-    const GUIFONT* m_pFont = nullptr;
+    std::shared_ptr<Font> m_pFont{ sGUIFont };
 
     bool m_fEnabled = true;
     bool m_fHover = false;
@@ -161,7 +160,7 @@ public:
     TextControl(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "", uint8_t bColour = WHITE, uint8_t bBackColour = 0);
 
 public:
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
     void SetTextAndColour(const char* pcszText_, uint8_t bColour_);
 
 protected:
@@ -178,7 +177,7 @@ public:
     bool IsTabStop() const override { return true; }
     bool IsPressed() const { return m_fPressed; }
 
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -193,7 +192,7 @@ public:
 
 public:
     void SetText(const char* pcszText_) override;
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
 
 protected:
     int m_nMinWidth = 0;
@@ -209,7 +208,7 @@ public:
     void operator= (const ImageButton&) = delete;
 
 public:
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
 
 protected:
     const GUI_ICON* m_pIcon = nullptr;
@@ -221,14 +220,14 @@ class UpButton : public Button
 {
 public:
     UpButton(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
 };
 
 class DownButton : public Button
 {
 public:
     DownButton(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_);
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
 };
 
 
@@ -243,7 +242,7 @@ public:
     void SetChecked(bool fChecked_ = true) { m_fChecked = fChecked_; }
 
     void SetText(const char* pcszText_) override;
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -263,7 +262,7 @@ public:
     void Activate() override;
 
     void SetSelectedText(const char* pcszText_, bool fSelected_);
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -292,7 +291,7 @@ public:
     void Select(bool fSelected_ = true);
     void SetText(const char* pcszText_) override;
 
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -310,7 +309,7 @@ public:
     void Select(int nItem_);
     void SetText(const char* pcszText_) override;
 
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -349,7 +348,7 @@ public:
     void Select(const char* pcszItem_);
     void SetText(const char* pcszText_) override;
 
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
     void OnNotify(Window* pWindow_, int nParam_) override;
 
@@ -373,7 +372,7 @@ public:
     void SetPos(int nPosition_);
     void SetMaxPos(int nMaxPos_);
 
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
     void OnNotify(Window* pWindow_, int nParam_) override;
 
@@ -394,7 +393,7 @@ public:
     void operator= (const IconControl&) = delete;
 
 public:
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
 
 protected:
     const GUI_ICON* m_pIcon = nullptr;
@@ -408,7 +407,7 @@ public:
 
 public:
     bool HitTest(int /*nX_*/, int /*nY_*/) override { return false; }
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
 
 public:
     uint8_t m_bColour = 0, m_bFill = 0;
@@ -450,11 +449,11 @@ public:
     int FindItem(const char* pcszLabel_, int nStart_ = 0);
     void SetItems(ListViewItem* pItems_);
 
-    void EraseBackground(Screen& pScreen_) override;
-    void Draw(Screen& pScreen_) override;
+    void EraseBackground(FrameBuffer& fb) override;
+    void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
-    virtual void DrawItem(Screen& pScreen_, int nItem_, int nX_, int nY_, const ListViewItem* pItem_);
+    virtual void DrawItem(FrameBuffer& fb, int nItem_, int nX_, int nY_, const ListViewItem* pItem_);
 
 protected:
     int m_nItems = 0, m_nSelected = 0, m_nHoverItem = 0;
@@ -478,8 +477,8 @@ public:
     void Centre();
     void Activate() override;
     bool HitTest(int nX_, int nY_) override;
-    void Draw(Screen& pScreen_) override;
-    void EraseBackground(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
+    void EraseBackground(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -502,7 +501,7 @@ public:
 
 public:
     void OnNotify(Window* /*pWindow_*/, int /*nParam_*/) override { Destroy(); }
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
 
 protected:
     int m_nLines = 0;

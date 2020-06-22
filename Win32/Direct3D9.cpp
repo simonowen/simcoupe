@@ -97,7 +97,7 @@ void Direct3D9Video::UpdatePalette()
 }
 
 // Update the display to show anything that's changed since last time
-void Direct3D9Video::Update(const Screen& pScreen_)
+void Direct3D9Video::Update(const FrameBuffer& fb)
 {
     HRESULT hr;
 
@@ -126,7 +126,7 @@ void Direct3D9Video::Update(const Screen& pScreen_)
     }
 
     // Draw any changed lines to the back buffer
-    if (!DrawChanges(pScreen_))
+    if (!DrawChanges(fb))
         return;
 
     hr = m_pd3dDevice->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0L);
@@ -142,8 +142,8 @@ void Direct3D9Video::Update(const Screen& pScreen_)
 
     float vertexConsts[] =
     {
-        2.0f / pScreen_.GetPitch(),
-        -2.0f / pScreen_.GetHeight() * (GUI::IsActive() ? 1.0f : 2.0f),
+        2.0f / fb.Width(),
+        -2.0f / fb.Height() * (GUI::IsActive() ? 1.0f : 2.0f),
         0.5f / TEXTURE_SIZE,
         1.0f / TEXTURE_SIZE,
     };
@@ -191,8 +191,8 @@ HRESULT Direct3D9Video::CreateVertices()
     if (FAILED(hr = m_pd3dDevice->CreateVertexBuffer(NUM_VERTICES * sizeof(CUSTOMVERTEX), D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &m_pVertexBuffer, nullptr)))
         return hr;
 
-    uint32_t dwWidth = Frame::GetWidth();
-    uint32_t dwHeight = Frame::GetHeight();
+    uint32_t dwWidth = Frame::Width();
+    uint32_t dwHeight = Frame::Height();
 
     CUSTOMVERTEX* pVertices = nullptr;
     hr = m_pVertexBuffer->Lock(0, NUM_VERTICES * sizeof(CUSTOMVERTEX), (void**)&pVertices, 0);
@@ -328,12 +328,12 @@ bool Direct3D9Video::Reset(bool fNewDevice_)
 }
 
 // Draw the changed lines in the appropriate colour depth and hi/low resolution
-bool Direct3D9Video::DrawChanges(const Screen& pScreen_)
+bool Direct3D9Video::DrawChanges(const FrameBuffer& fb)
 {
     HRESULT hr = 0;
 
-    int nWidth = pScreen_.GetPitch();
-    int nHeight = pScreen_.GetHeight();
+    int nWidth = fb.Width();
+    int nHeight = fb.Height();
 
     bool fHalfHeight = !GUI::IsActive();
     if (fHalfHeight) nHeight /= 2;
@@ -349,9 +349,9 @@ bool Direct3D9Video::DrawChanges(const Screen& pScreen_)
     uint32_t* pdwBack = reinterpret_cast<uint32_t*>(d3dlr.pBits), * pdw = pdwBack;
     LONG lPitchDW = d3dlr.Pitch >> 2;
 
-    auto pbSAM = pScreen_.GetLine(0);
+    auto pbSAM = fb.GetLine(0);
     auto pb = pbSAM;
-    LONG lPitch = pScreen_.GetPitch();
+    LONG lPitch = fb.Width();
 
     int nRightHi = nWidth >> 3;
 
@@ -415,8 +415,8 @@ void Direct3D9Video::DisplayToSamSize(int* pnX_, int* pnY_)
     int nHalfWidth = !GUI::IsActive();
     int nHalfHeight = nHalfWidth;
 
-    *pnX_ = *pnX_ * Frame::GetWidth() / (m_rTarget.right << nHalfWidth);
-    *pnY_ = *pnY_ * Frame::GetHeight() / (m_rTarget.bottom << nHalfHeight);
+    *pnX_ = *pnX_ * Frame::Width() / (m_rTarget.right << nHalfWidth);
+    *pnY_ = *pnY_ * Frame::Height() / (m_rTarget.bottom << nHalfHeight);
 }
 
 // Map a native client point to SAM view port

@@ -9,3 +9,7 @@ Thumbs.db
 /[Bb]uild
 /out
 /CMakeSettings.json
+/SimCoupe-*.exe
+/SimCoupe-*.zip
+/install.iss
+/make_release.bat

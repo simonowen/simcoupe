@@ -27,18 +27,7 @@
 #include "SimCoupe.h"
 #include "Font.h"
 
-extern const uint8_t abFixedFont[], abGUIFont[];
-
-// Sans-serif, around 9pt
-const GUIFONT sGUIFont = { 0, 11, 12, 32, 127, false, abGUIFont };
-const GUIFONT sSpacedGUIFont = { 1, 11, 12, 32, 127, false, abGUIFont };
-
-// Fixed and proportional fonts, based on the original TurboMON data
-const GUIFONT sFixedFont = { 5, 8, 9, 32, 129, true,  abFixedFont };
-const GUIFONT sPropFont = { 0, 8, 9, 32, 129, false, abFixedFont };
-
-
-const uint8_t abFixedFont[] =
+static const std::vector<uint8_t> fixed_font
 {
     0x02,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // <space>
     0x21,  0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x80, 0x00,  // !
@@ -141,7 +130,7 @@ const uint8_t abFixedFont[] =
 };
 
 
-const uint8_t abGUIFont[] =
+static const std::vector<uint8_t> gui_font
 {
     0x02,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    // <space>
     0x01,  0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x80, 0x00, 0x00,    // !
@@ -240,3 +229,57 @@ const uint8_t abGUIFont[] =
     0x06,  0x64, 0x98, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    // ~
     0x08,  0x3c, 0x42, 0x81, 0x99, 0xa5, 0xa1, 0xa5, 0x99, 0x81, 0x42, 0x3c,    // (c)
 };
+
+////////////////////////////////////////////////////////////////////////////////
+
+int Font::StringWidth(const char* str, int max_chars) const
+{
+    int max_width = 0;
+    int width = 0;
+
+    for (uint8_t ch; (ch = *str) && max_chars--; ++str)
+    {
+        if (ch == '\n')
+        {
+            width = 0;
+            continue;
+        }
+
+        if (ch == '\a')
+        {
+            if (*str)
+            {
+                str++;
+                max_chars++;
+            }
+
+            continue;
+        }
+
+        if (ch < first_chr || ch > last_chr)
+            ch = DEFAULT_CHR;
+
+        if (fixed_width)
+        {
+            width += (width ? CHAR_SPACING : 0) + width;
+        }
+        else
+        {
+            auto char_width = data[(ch - first_chr) * bytes_per_chr] & 0xf;
+            width += (width ? CHAR_SPACING : 0) + char_width + this->width;
+        }
+
+        max_width = std::max(width, max_width);
+    }
+
+    return max_width;
+}
+
+
+// Sans-serif, around 9pt
+std::shared_ptr<Font> sGUIFont = std::make_shared<Font>(0, 11, 12, 32, 127, false, gui_font);
+std::shared_ptr<Font> sSpacedGUIFont = std::make_shared<Font>(1, 11, 12, 32, 127, false, gui_font);
+
+// Fixed and proportional fonts, based on the original TurboMON data
+std::shared_ptr<Font> sFixedFont = std::make_shared<Font>(5, 8, 9, 32, 129, true,  fixed_font);
+std::shared_ptr<Font> sPropFont = std::make_shared<Font>(0, 8, 9, 32, 129, false, fixed_font);

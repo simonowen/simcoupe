@@ -103,8 +103,8 @@ void Input::AcquireMouse(bool fAcquire_)
     if (fMouseActive && GetOption(mouse))
     {
         // Move the mouse to the centre of the window
-        nCentreX = Frame::GetWidth() >> 1;
-        nCentreY = Frame::GetHeight() >> 1;
+        nCentreX = Frame::Width() >> 1;
+        nCentreY = Frame::Height() >> 1;
         SDL_WarpMouseInWindow(nullptr, nCentreX, nCentreY);
     }
 }

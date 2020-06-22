@@ -87,9 +87,9 @@ void AboutDialog::OnNotify(Window* pWindow_, int /*nParam_*/)
         Destroy();
 }
 
-void AboutDialog::EraseBackground(Screen& pScreen_)
+void AboutDialog::EraseBackground(FrameBuffer& fb)
 {
-    pScreen_.FillRect(m_nX, m_nY, m_nWidth, m_nHeight, WHITE);
+    fb.FillRect(m_nX, m_nY, m_nWidth, m_nHeight, WHITE);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

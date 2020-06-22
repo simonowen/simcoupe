@@ -22,7 +22,7 @@
 
 #include "Breakpoint.h"
 #include "GUI.h"
-#include "Screen.h"
+#include "FrameBuffer.h"
 
 namespace Debug
 {
@@ -68,14 +68,14 @@ public:
     void SetLines(int nLines_) { m_nLines = nLines_; }
     int GetTopLine() const { return m_nTopLine; }
 
-    virtual void DrawLine(Screen& pScreen_, int nX_, int nY_, int nLine_) = 0;
+    virtual void DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_) = 0;
     virtual bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
     virtual bool cmdNavigate(int nKey_, int nMods_) override;
     virtual void OnDblClick(int /*nLine_*/) { }
     virtual void OnDelete() { }
 
 protected:
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
 
 private:
     int m_nLines = 0;    // Lines of content to display
@@ -96,11 +96,11 @@ public:
 
 public:
     void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 public:
-    static void DrawRegisterPanel(Screen& pScreen_, int nX_, int nY_);
+    static void DrawRegisterPanel(FrameBuffer& fb, int nX_, int nY_);
 
 protected:
     bool SetCodeTarget();
@@ -130,7 +130,7 @@ public:
 public:
     bool GetAddrPosition(uint16_t wAddr_, int& x_, int& y_);
     void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -156,7 +156,7 @@ public:
 public:
     bool GetAddrPosition(uint16_t wAddr_, int& x_, int& y_, int& textx_);
     void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -179,7 +179,7 @@ class MemView : public View
 
     public:
         void SetAddress (uint16_t wAddr_, bool fForceTop_=false) override;
-        void Draw (Screen& pScreen_) override;
+        void Draw (FrameBuffer& fb) override;
 };
 */
 
@@ -193,7 +193,7 @@ public:
 
 public:
     void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -217,7 +217,7 @@ public:
 
 public:
     void SetAddress(uint16_t wAddr_, bool fForceTop_ = false) override;
-    void Draw(Screen& pScreen_) override;
+    void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -237,7 +237,7 @@ public:
     void operator= (const TrcView&) = delete;
 
 public:
-    void DrawLine(Screen& pScreen_, int nX_, int nY_, int nLine_) override;
+    void DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_) override;
     bool cmdNavigate(int nKey_, int nMods_) override;
     void OnDblClick(int nLine_) override;
     void OnDelete() override;
@@ -257,14 +257,14 @@ public:
 
     bool OnMessage(int nMessage_, int nParam1_ = 0, int nParam2_ = 0) override;
     void OnNotify(Window* pWindow_, int nParam_) override;
-    void EraseBackground(Screen& pScreen_) override;
-    void Draw(Screen& pScreen_) override;
+    void EraseBackground(FrameBuffer& fb) override;
+    void Draw(FrameBuffer& fb) override;
 
     void Refresh();
     void SetSubTitle(const char* pcszSubTitle_);
     void SetAddress(uint16_t wAddr_, bool fForceTop_ = false);
     void SetView(ViewType nView);
-    void SetStatus(const char* pcsz_, bool fOneShot_ = false, const GUIFONT* pFont_ = nullptr);
+    void SetStatus(const char* pcsz_, bool fOneShot_ = false, std::shared_ptr<Font> font = {});
     void SetStatusByte(uint16_t wAddr_);
     bool Execute(const char* pcszCommand_);
 

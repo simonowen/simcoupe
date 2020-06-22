@@ -35,8 +35,8 @@ SDLTexture::SDLTexture()
     : m_fFilter(GetOption(filter))
 {
     m_rTarget.x = m_rTarget.y = 0;
-    m_rTarget.w = Frame::GetWidth();
-    m_rTarget.h = Frame::GetHeight();
+    m_rTarget.w = Frame::Width();
+    m_rTarget.h = Frame::Height();
 
     SDL_SetHint(SDL_HINT_RENDER_VSYNC, "0");
 
@@ -61,8 +61,8 @@ int SDLTexture::GetCaps() const
 bool SDLTexture::Init()
 {
     // Original frame
-    int nWidth = Frame::GetWidth();
-    int nHeight = Frame::GetHeight();
+    int nWidth = Frame::Width();
+    int nHeight = Frame::Height();
 
     // Apply window scaling and aspect ratio
     if (!GetOption(scale)) SetOption(scale, 2);
@@ -113,10 +113,10 @@ bool SDLTexture::Init()
 }
 
 
-void SDLTexture::Update(const Screen& pScreen_)
+void SDLTexture::Update(const FrameBuffer& fb)
 {
     // Draw any changed lines to the back buffer
-    if (!DrawChanges(pScreen_))
+    if (!DrawChanges(fb))
         return;
 }
 
@@ -143,7 +143,7 @@ void SDLTexture::UpdatePalette()
 
 
 // OpenGL version of DisplayChanges
-bool SDLTexture::DrawChanges(const Screen& pScreen_)
+bool SDLTexture::DrawChanges(const FrameBuffer& fb)
 {
     // Force GUI filtering with odd scaling factors, otherwise respect the options
     bool fFilter = GUI::IsActive() ? GetOption(filtergui) || (GetOption(scale) & 1) : GetOption(filter);
@@ -158,8 +158,8 @@ bool SDLTexture::DrawChanges(const Screen& pScreen_)
     if (!m_pTexture)
         return false;
 
-    int nWidth = Frame::GetWidth();
-    int nHeight = Frame::GetHeight();
+    int nWidth = Frame::Width();
+    int nHeight = Frame::Height();
 
     bool fHalfHeight = !GUI::IsActive();
     if (fHalfHeight) nHeight /= 2;
@@ -177,9 +177,9 @@ bool SDLTexture::DrawChanges(const Screen& pScreen_)
     uint32_t* pdwBack = reinterpret_cast<uint32_t*>(pvPixels), * pdw = pdwBack;
     long lPitchDW = nPitch >> 2;
 
-    auto pbSAM = pScreen_.GetLine(0);
+    auto pbSAM = fb.GetLine(0);
     auto pb = pbSAM;
-    long lPitch = pScreen_.GetPitch();
+    long lPitch = fb.Width();
 
     // What colour depth is the target surface?
     switch (m_nDepth)
@@ -232,8 +232,8 @@ bool SDLTexture::DrawChanges(const Screen& pScreen_)
     SDL_Rect rWindow = { 0,0, 0,0 };
     SDL_GetWindowSize(m_pWindow, &rWindow.w, &rWindow.h);
 
-    nWidth = Frame::GetWidth();
-    nHeight = Frame::GetHeight();
+    nWidth = Frame::Width();
+    nHeight = Frame::Height();
     if (GetOption(ratio5_4)) nWidth = nWidth * 5 / 4;
 
     int nWidthFit = nWidth * rWindow.h / nHeight;
@@ -272,8 +272,8 @@ void SDLTexture::UpdateSize()
 
     if (m_pTexture) { SDL_DestroyTexture(m_pTexture); m_pTexture = nullptr; }
 
-    int nWidth = Frame::GetWidth();
-    int nHeight = Frame::GetHeight();
+    int nWidth = Frame::Width();
+    int nHeight = Frame::Height();
 
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, m_fFilter ? "linear" : "nearest");
     m_pTexture = SDL_CreateTexture(m_pRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, nWidth, nHeight);
@@ -289,8 +289,8 @@ void SDLTexture::DisplayToSamSize(int* pnX_, int* pnY_)
     int nHalfWidth = !GUI::IsActive();
     int nHalfHeight = nHalfWidth;
 
-    *pnX_ = *pnX_ * Frame::GetWidth() / (m_rTarget.w << nHalfWidth);
-    *pnY_ = *pnY_ * Frame::GetHeight() / (m_rTarget.h << nHalfHeight);
+    *pnX_ = *pnX_ * Frame::Width() / (m_rTarget.w << nHalfWidth);
+    *pnY_ = *pnY_ * Frame::Height() / (m_rTarget.h << nHalfHeight);
 }
 
 // Map a native client point to SAM view port

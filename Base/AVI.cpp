@@ -527,7 +527,7 @@ bool IsRecording()
 
 
 // Add a video frame to the file
-void AddFrame(const Screen& pScreen_)
+void AddFrame(const FrameBuffer& fb)
 {
     uint32_t size;
 
@@ -549,8 +549,8 @@ void AddFrame(const Screen& pScreen_)
     if (ftell(f) == 0)
     {
         // Store the dimensions, and allocate+invalidate the frame copy
-        width = pScreen_.GetPitch() >> (fHalfSize ? 1 : 0);
-        height = pScreen_.GetHeight() >> (fHalfSize ? 1 : 0);
+        width = fb.Width() >> (fHalfSize ? 1 : 0);
+        height = fb.Height() >> (fHalfSize ? 1 : 0);
         size = (uint32_t)width * (uint32_t)height;
         frame_buffer.resize(size);
         std::fill(frame_buffer.begin(), frame_buffer.end(), 0xff);
@@ -569,7 +569,7 @@ void AddFrame(const Screen& pScreen_)
 
     for (int y = height - 1; y > 0; y--)
     {
-        auto pbLine = pScreen_.GetLine(y >> (fHalfSize ? 0 : 1));
+        auto pbLine = fb.GetLine(y >> (fHalfSize ? 0 : 1));
         static uint8_t abLine[GFX_PIXELS_PER_LINE];
 
         // Is the recording low-res?

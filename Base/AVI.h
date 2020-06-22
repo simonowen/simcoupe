@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "Screen.h"
+#include "FrameBuffer.h"
 
 namespace AVI
 {
@@ -29,6 +29,6 @@ void Stop();
 void Toggle(bool fHalfSize_ = false);
 bool IsRecording();
 
-void AddFrame(const Screen& pScreen_);
+void AddFrame(const FrameBuffer& fb);
 void AddFrame(const uint8_t* pbAudio_, unsigned int uLen_);
 }

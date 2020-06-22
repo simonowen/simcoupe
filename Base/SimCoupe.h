@@ -50,15 +50,17 @@
 #define NOMINMAX    // no min/max macros from windef.h
 #endif
 
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <ctype.h>
-#include <limits.h>
-#include <errno.h>
-#include <time.h>
+#include <cstdio>
+#include <cstdarg>
+#include <cstring>
+#include <cstdlib>
+#include <cstdint>
+#include <cctype>
+#include <cassert>
+#include <climits>
+#include <cerrno>
+#include <ctime>
+
 #include <sys/stat.h>
 
 #include <string>

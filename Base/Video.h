@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "Screen.h"
+#include "FrameBuffer.h"
 
 enum { VCAP_STRETCH = 1, VCAP_FILTER = 2 };
 
@@ -31,7 +31,7 @@ void Exit(bool fReInit_ = false);
 
 bool CheckCaps(int nCaps_);
 
-void Update(const Screen& pScreen_);
+void Update(const FrameBuffer& fb);
 void UpdateSize();
 void UpdatePalette();
 
@@ -47,7 +47,7 @@ struct IVideoRenderer
     virtual int GetCaps() const = 0;
     virtual bool Init() = 0;
 
-    virtual void Update(const Screen& pScreen_) = 0;
+    virtual void Update(const FrameBuffer& fb) = 0;
     virtual void UpdateSize() = 0;
     virtual void UpdatePalette() = 0;
 

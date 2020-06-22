@@ -263,8 +263,8 @@ void ResizeCanvas(int nWidthView_, int nHeightView_)
         nHeightView_ += nMenu;
     }
 
-    int nWidth = Frame::GetWidth();
-    int nHeight = Frame::GetHeight();
+    int nWidth = Frame::Width();
+    int nHeight = Frame::Height();
     if (GetOption(ratio5_4)) nWidth = nWidth * 5 / 4;
 
     int nWidthFit = MulDiv(nWidth, nHeightView_, nHeight);
@@ -322,7 +322,7 @@ void ResizeWindow(int nHeight_)
         int nHeight = (wp.rcNormalPosition.bottom - wp.rcNormalPosition.top) - (rect.bottom - rect.top);
 
         // Calculate the appropriate width matching the height, taking aspect ratio into consideration
-        int nWidth = MulDiv(nHeight, Frame::GetWidth(), Frame::GetHeight());
+        int nWidth = MulDiv(nHeight, Frame::Width(), Frame::Height());
         if (GetOption(ratio5_4)) nWidth = nWidth * 5 / 4;
         nWidth += (rect.right - rect.left);
 
@@ -340,7 +340,7 @@ void ResizeWindow(int nHeight_)
             nHeight_ = rClient.bottom;
 
         // Calculate the appropriate width matching the height
-        int nWidth_ = MulDiv(nHeight_, Frame::GetWidth(), Frame::GetHeight());
+        int nWidth_ = MulDiv(nHeight_, Frame::Width(), Frame::Height());
         if (GetOption(ratio5_4)) nWidth_ = nWidth_ * 5 / 4;
 
         // Calculate the full window size for our given client area
@@ -1537,8 +1537,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         OffsetRect(&rWindow, -rWindow.left, -rWindow.top);
 
         // Get the screen size, adjusting for 5:4 mode if necessary
-        int nWidth = Frame::GetWidth() >> 1;
-        int nHeight = Frame::GetHeight() >> 1;
+        int nWidth = Frame::Width() >> 1;
+        int nHeight = Frame::Height() >> 1;
         if (GetOption(ratio5_4))
             nWidth = MulDiv(nWidth, 5, 4);
 
@@ -1895,7 +1895,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_VIEW_ZOOM_250:
         case IDM_VIEW_ZOOM_300:
             SetOption(scale, wId - IDM_VIEW_ZOOM_50 + 1);
-            ResizeWindow(Frame::GetHeight() * GetOption(scale) / 2);
+            ResizeWindow(Frame::Height() * GetOption(scale) / 2);
             break;
 
         case IDM_VIEW_BORDERS0:
@@ -1905,7 +1905,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_VIEW_BORDERS4:
             SetOption(borders, wId - IDM_VIEW_BORDERS0);
             Frame::Init();
-            ResizeWindow(Frame::GetHeight() * GetOption(scale) / 2);
+            ResizeWindow(Frame::Height() * GetOption(scale) / 2);
             break;
 
         case IDM_SYSTEM_PAUSE:      Actions::Do(Action::Pause);           break;
@@ -2025,8 +2025,8 @@ bool InitWindow()
 
     g_hmenu = LoadMenu(wc.hInstance, MAKEINTRESOURCE(IDR_MENU));
 
-    int nWidth = Frame::GetWidth() * GetOption(scale) / 2;
-    int nHeight = Frame::GetHeight() * GetOption(scale) / 2;
+    int nWidth = Frame::Width() * GetOption(scale) / 2;
+    int nHeight = Frame::Height() * GetOption(scale) / 2;
     int nInitX = (GetSystemMetrics(SM_CXSCREEN) - nWidth) / 2;
     int nInitY = (GetSystemMetrics(SM_CYSCREEN) - nHeight) * 5 / 12;
 

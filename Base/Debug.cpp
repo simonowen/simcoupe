@@ -32,7 +32,8 @@
 
 
 // SAM BASIC keywords tokens
-static const char* aszBasicKeywords[] = {
+static const std::vector<const char*> basic_keywords
+{
     "PI", "RND", "POINT", "FREE", "LENGTH", "ITEM", "ATTR", "FN", "BIN",
     "XMOUSE", "YMOUSE", "XPEN", "YPEN", "RAMTOP", "-", "INSTR", "INKEY$",
     "SCREEN$", "MEM$", "-", "PATH$", "STRING$", "-", "-", "SIN", "COS", "TAN",
@@ -57,12 +58,16 @@ static const char* aszBasicKeywords[] = {
     "ZAP", "POW", "BOOM", "ZOOM", "-", "-", "-", "-", "-", "-", "-", "-", "INK"
 };
 
+constexpr auto BASE_KEYWORD = 60;
+
 // Changed value colour (light red)
 #define CHG_COL  'r'
 
-static const int ROW_GAP = 2;
-static const int ROW_HEIGHT = ROW_GAP + sFixedFont.wHeight + ROW_GAP;
-static const int CHR_WIDTH = sFixedFont.wWidth + CHAR_SPACING;
+constexpr auto ROW_GAP = 2;
+constexpr auto FIXED_FONT_WIDTH = 5;
+constexpr auto FIXED_FONT_HEIGHT = 8;
+constexpr auto ROW_HEIGHT = ROW_GAP + FIXED_FONT_HEIGHT + ROW_GAP;
+constexpr auto CHR_WIDTH = FIXED_FONT_WIDTH + Font::CHAR_SPACING;
 
 struct TRACEDATA
 {
@@ -491,10 +496,10 @@ bool View::cmdNavigate(int nKey_, int nMods_)
 TextView::TextView(Window* pParent_)
     : View(pParent_), m_nRows(m_nHeight / ROW_HEIGHT)
 {
-    SetFont(&sFixedFont);
+    SetFont(sFixedFont);
 }
 
-void TextView::Draw(Screen& pScreen_)
+void TextView::Draw(FrameBuffer& fb)
 {
     // Draw each line, always drawing line 0 to allow an empty message
     for (int i = m_nTopLine; i < m_nTopLine + m_nRows && (!i || i < m_nLines); i++)
@@ -502,10 +507,10 @@ void TextView::Draw(Screen& pScreen_)
         int nX = m_nX;
         int nY = m_nY + ROW_HEIGHT * (i - m_nTopLine);
 
-        DrawLine(pScreen_, nX, nY, i);
+        DrawLine(fb, nX, nY, i);
     }
 
-    DisView::DrawRegisterPanel(pScreen_, m_nX + m_nWidth - 6 * 16, m_nY);
+    DisView::DrawRegisterPanel(fb, m_nX + m_nWidth - 6 * 16, m_nY);
 }
 
 bool TextView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
@@ -587,7 +592,7 @@ Debugger::Debugger(BREAKPT* pBreak_/*=nullptr*/)
                 snprintf(sz, sizeof(sz) - 1, "\aYUNTIL condition met:  %s", pBreak_->pExpr->pcszExpr);
         }
 
-        SetStatus(sz, true, &sPropFont);
+        SetStatus(sz, true, sPropFont);
     }
 
     // Remove all temporary breakpoints
@@ -702,7 +707,7 @@ void Debugger::SetView(ViewType nView_)
     }
 }
 
-void Debugger::SetStatus(const char* pcsz_, bool fOneShot_/*=false*/, const GUIFONT* pFont_)
+void Debugger::SetStatus(const char* pcsz_, bool fOneShot_, std::shared_ptr<Font> font)
 {
     if (m_pStatus)
     {
@@ -712,8 +717,8 @@ void Debugger::SetStatus(const char* pcsz_, bool fOneShot_/*=false*/, const GUIF
         else if (!m_sStatus.empty())
             return;
 
-        if (pFont_)
-            m_pStatus->SetFont(pFont_);
+        if (font)
+            m_pStatus->SetFont(font);
 
         m_pStatus->SetText(pcsz_);
     }
@@ -732,8 +737,8 @@ void Debugger::SetStatusByte(uint16_t wAddr_)
     char ch = (b >= ' ' && b <= 0x7f) ? b : ' ';
 
     // Keyword range?
-    if (b >= 60)
-        pcszKeyword = aszBasicKeywords[b - 60];
+    if (b >= BASE_KEYWORD)
+        pcszKeyword = basic_keywords[b - BASE_KEYWORD];
 
     // Generate binary representation
     for (i = 128; i > 0; i >>= 1)
@@ -742,7 +747,7 @@ void Debugger::SetStatusByte(uint16_t wAddr_)
     // Form full status line, and set it
     char sz[128] = {};
     snprintf(sz, sizeof(sz) - 1, "%04X  %02X  %03d  %s  %c  %s", wAddr_, b, b, szBinary, ch, pcszKeyword);
-    SetStatus(sz, false, &sFixedFont);
+    SetStatus(sz, false, sFixedFont);
 }
 
 // Refresh the current debugger view
@@ -754,15 +759,15 @@ void Debugger::Refresh()
 
 
 // Dialog override for background painting
-void Debugger::EraseBackground(Screen& pScreen_)
+void Debugger::EraseBackground(FrameBuffer& fb)
 {
     // If we're not in transparent mode, call the base to draw the normal dialog background
     if (!s_fTransparent)
-        Dialog::EraseBackground(pScreen_);
+        Dialog::EraseBackground(fb);
 }
 
 // Dialog override for dialog drawing
-void Debugger::Draw(Screen& pScreen_)
+void Debugger::Draw(FrameBuffer& fb)
 {
     // First draw?
     if (!m_pView)
@@ -775,7 +780,7 @@ void Debugger::Draw(Screen& pScreen_)
         SetView(nLastView);
     }
 
-    Dialog::Draw(pScreen_);
+    Dialog::Draw(fb);
 }
 
 bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
@@ -814,7 +819,7 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             if (!m_pCommandEdit)
             {
                 m_pCommandEdit = new NumberEditControl(this, -1, m_nHeight - 16, m_nWidth + 2);
-                m_pCommandEdit->SetFont(&sPropFont);
+                m_pCommandEdit->SetFont(sPropFont);
             }
             break;
 
@@ -1613,7 +1618,7 @@ DisView::DisView(Window* pParent_)
     : View(pParent_)
 {
     SetText("Disassemble");
-    SetFont(&sFixedFont);
+    SetFont(sFixedFont);
 
     // Calculate the number of rows and columns in the view
     m_uRows = m_nHeight / ROW_HEIGHT;
@@ -1632,7 +1637,7 @@ void DisView::SetAddress(uint16_t wAddr_, bool fForceTop_)
     SetDataTarget();
 
     // Show any data target in the status line
-    pDebugger->SetStatus(m_pcszDataTarget ? m_pcszDataTarget : "", false, &sFixedFont);
+    pDebugger->SetStatus(m_pcszDataTarget ? m_pcszDataTarget : "", false, sFixedFont);
 
     if (!fForceTop_)
     {
@@ -1701,7 +1706,7 @@ void DisView::SetAddress(uint16_t wAddr_, bool fForceTop_)
 }
 
 
-void DisView::Draw(Screen& pScreen_)
+void DisView::Draw(FrameBuffer& fb)
 {
     unsigned int u = 0;
     for (char* psz = (char*)m_pszData; *psz; psz += strlen(psz) + 1, u++)
@@ -1715,12 +1720,12 @@ void DisView::Draw(Screen& pScreen_)
         {
             // The location bar is green for a change in code flow or yellow otherwise, with black text
             uint8_t bBarColour = (m_uCodeTarget != INVALID_TARGET) ? GREEN_7 : YELLOW_7;
-            pScreen_.FillRect(nX - 1, nY - 1, BAR_CHAR_LEN * CHR_WIDTH + 1, ROW_HEIGHT - 3, bBarColour);
+            fb.FillRect(nX - 1, nY - 1, BAR_CHAR_LEN * CHR_WIDTH + 1, ROW_HEIGHT - 3, bBarColour);
             bColour = 'k';
 
             // Add a direction arrow if we have a code target
             if (m_uCodeTarget != INVALID_TARGET)
-                pScreen_.DrawString(nX + CHR_WIDTH * (BAR_CHAR_LEN - 1), nY, (m_uCodeTarget <= PC) ? "\x80" : "\x81", BLACK);
+                fb.DrawString(nX + CHR_WIDTH * (BAR_CHAR_LEN - 1), nY, (m_uCodeTarget <= PC) ? "\x80" : "\x81", BLACK);
         }
 
         // Check for a breakpoint at the current address.
@@ -1733,15 +1738,15 @@ void DisView::Draw(Screen& pScreen_)
         // Show the current entry normally if it's not the current code target, otherwise show all
         // in black text with an arrow instead of the address, indicating it's the code target.
         if (m_uCodeTarget == INVALID_TARGET || s_wAddrs[u] != m_uCodeTarget)
-            pScreen_.Printf(nX, nY, "\a%c\a%c%s", bColour, (bColour != 'W') ? '0' : bColour, psz);
+            fb.Printf(nX, nY, "\a%c\a%c%s", bColour, (bColour != 'W') ? '0' : bColour, psz);
         else
-            pScreen_.Printf(nX, nY, "\a%c===>\a%c%s", (bColour == 'k') ? 'k' : 'G', (bColour == 'k') ? '0' : bColour, psz + 4);
+            fb.Printf(nX, nY, "\a%c===>\a%c%s", (bColour == 'k') ? 'k' : 'G', (bColour == 'k') ? '0' : bColour, psz + 4);
     }
 
-    DrawRegisterPanel(pScreen_, m_nX + m_nWidth - 6 * 16, m_nY);
+    DrawRegisterPanel(fb, m_nX + m_nWidth - 6 * 16, m_nY);
 }
 
-/*static*/ void DisView::DrawRegisterPanel(Screen& pScreen_, int nX_, int nY_)
+/*static*/ void DisView::DrawRegisterPanel(FrameBuffer& fb, int nX_, int nY_)
 {
     int i;
     int nX = nX_;
@@ -1749,14 +1754,14 @@ void DisView::Draw(Screen& pScreen_)
 
 #define DoubleReg(dx,dy,name,reg) \
     { \
-        pScreen_.Printf(nX+dx, nY+dy, "\ag%-3s\a%c%02X\a%c%02X", name, \
+        fb.Printf(nX+dx, nY+dy, "\ag%-3s\a%c%02X\a%c%02X", name, \
                     (regs.reg.b.h != sLastRegs.reg.b.h)?CHG_COL:'X', regs.reg.b.h,  \
                     (regs.reg.b.l != sLastRegs.reg.b.l)?CHG_COL:'X', regs.reg.b.l); \
     }
 
 #define SingleReg(dx,dy,name,reg) \
     { \
-        pScreen_.Printf(nX+dx, nY+dy, "\ag%-2s\a%c%02X", name, \
+        fb.Printf(nX+dx, nY+dy, "\ag%-2s\a%c%02X", name, \
                     (regs.reg != sLastRegs.reg)?CHG_COL:'X', regs.reg); \
     }
 
@@ -1770,16 +1775,16 @@ void DisView::Draw(Screen& pScreen_)
 
     SingleReg(0, 80, "I", i);      SingleReg(36, 80, "R", r);
 
-    pScreen_.DrawString(nX + 80, nY + 74, "\aK\x81\x81");
+    fb.DrawString(nX + 80, nY + 74, "\aK\x81\x81");
 
     for (i = 0; i < 4; i++)
-        pScreen_.Printf(nX + 72, nY + 84 + i * 12, "%04X", read_word(SP + i * 2));
+        fb.Printf(nX + 72, nY + 84 + i * 12, "%04X", read_word(SP + i * 2));
 
-    pScreen_.Printf(nX, nY + 96, "\agIM \a%c%u", (IM != sLastRegs.im) ? CHG_COL : 'X', IM);
-    pScreen_.Printf(nX + 18, nY + 96, "  \a%c%cI", (IFF1 != sLastRegs.iff1) ? CHG_COL : 'X', IFF1 ? 'E' : 'D');
+    fb.Printf(nX, nY + 96, "\agIM \a%c%u", (IM != sLastRegs.im) ? CHG_COL : 'X', IM);
+    fb.Printf(nX + 18, nY + 96, "  \a%c%cI", (IFF1 != sLastRegs.iff1) ? CHG_COL : 'X', IFF1 ? 'E' : 'D');
 
     char bIntDiff = status_reg ^ bLastStatus;
-    pScreen_.Printf(nX, nY + 108, "\agStat \a%c%c\a%c%c\a%c%c\a%c%c\a%c%c",
+    fb.Printf(nX, nY + 108, "\agStat \a%c%c\a%c%c\a%c%c\a%c%c\a%c%c",
         (bIntDiff & 0x10) ? CHG_COL : (status_reg & 0x10) ? 'K' : 'X', (status_reg & 0x10) ? '-' : 'O',
         (bIntDiff & 0x08) ? CHG_COL : (status_reg & 0x08) ? 'K' : 'X', (status_reg & 0x08) ? '-' : 'F',
         (bIntDiff & 0x04) ? CHG_COL : (status_reg & 0x04) ? 'K' : 'X', (status_reg & 0x04) ? '-' : 'I',
@@ -1787,7 +1792,7 @@ void DisView::Draw(Screen& pScreen_)
         (bIntDiff & 0x01) ? CHG_COL : (status_reg & 0x01) ? 'K' : 'X', (status_reg & 0x01) ? '-' : 'L');
 
     char bFlagDiff = F ^ sLastRegs.af.b.l;
-    pScreen_.Printf(nX, nY + 132, "\agFlag \a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c",
+    fb.Printf(nX, nY + 132, "\agFlag \a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c",
         (bFlagDiff & FLAG_S) ? CHG_COL : (F & FLAG_S) ? 'X' : 'K', (F & FLAG_S) ? 'S' : '-',
         (bFlagDiff & FLAG_Z) ? CHG_COL : (F & FLAG_Z) ? 'X' : 'K', (F & FLAG_Z) ? 'Z' : '-',
         (bFlagDiff & FLAG_5) ? CHG_COL : (F & FLAG_5) ? 'X' : 'K', (F & FLAG_5) ? '5' : '-',
@@ -1801,24 +1806,24 @@ void DisView::Draw(Screen& pScreen_)
     int nLine = (g_dwCycleCounter < CPU_CYCLES_PER_SIDE_BORDER) ? GFX_HEIGHT_LINES - 1 : (g_dwCycleCounter - CPU_CYCLES_PER_SIDE_BORDER) / CPU_CYCLES_PER_LINE;
     int nLineCycle = (g_dwCycleCounter + CPU_CYCLES_PER_LINE - CPU_CYCLES_PER_SIDE_BORDER) % CPU_CYCLES_PER_LINE;
 
-    pScreen_.Printf(nX, nY + 148, "\agScan\aX %03d:%03d", nLine, nLineCycle);
-    pScreen_.Printf(nX, nY + 160, "\agT\aX %u", g_dwCycleCounter);
+    fb.Printf(nX, nY + 148, "\agScan\aX %03d:%03d", nLine, nLineCycle);
+    fb.Printf(nX, nY + 160, "\agT\aX %u", g_dwCycleCounter);
 
     uint32_t dwCycleDiff = ((nLastFrames * CPU_CYCLES_PER_FRAME) + g_dwCycleCounter) - dwLastCycle;
     if (dwCycleDiff)
-        pScreen_.Printf(nX + 12, nY + 172, "+%u", dwCycleDiff);
+        fb.Printf(nX + 12, nY + 172, "+%u", dwCycleDiff);
 
-    pScreen_.Printf(nX, nY + 188, "\agA \a%c%s", ReadOnlyAddr(0x0000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_A)));
-    pScreen_.Printf(nX, nY + 200, "\agB \a%c%s", ReadOnlyAddr(0x4000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_B)));
-    pScreen_.Printf(nX, nY + 212, "\agC \a%c%s", ReadOnlyAddr(0x8000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_C)));
-    pScreen_.Printf(nX, nY + 224, "\agD \a%c%s", ReadOnlyAddr(0xc000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_D)));
+    fb.Printf(nX, nY + 188, "\agA \a%c%s", ReadOnlyAddr(0x0000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_A)));
+    fb.Printf(nX, nY + 200, "\agB \a%c%s", ReadOnlyAddr(0x4000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_B)));
+    fb.Printf(nX, nY + 212, "\agC \a%c%s", ReadOnlyAddr(0x8000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_C)));
+    fb.Printf(nX, nY + 224, "\agD \a%c%s", ReadOnlyAddr(0xc000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_D)));
 
-    pScreen_.Printf(nX + 66, nY + 188, "\agL\aX %02X", lmpr);
-    pScreen_.Printf(nX + 66, nY + 200, "\agH\aX %02X", hmpr);
-    pScreen_.Printf(nX + 66, nY + 212, "\agV\aX %02X", vmpr);
-    pScreen_.Printf(nX + 66, nY + 224, "\agM\aX %X", ((vmpr & VMPR_MODE_MASK) >> 5) + 1);
+    fb.Printf(nX + 66, nY + 188, "\agL\aX %02X", lmpr);
+    fb.Printf(nX + 66, nY + 200, "\agH\aX %02X", hmpr);
+    fb.Printf(nX + 66, nY + 212, "\agV\aX %02X", vmpr);
+    fb.Printf(nX + 66, nY + 224, "\agM\aX %X", ((vmpr & VMPR_MODE_MASK) >> 5) + 1);
 
-    pScreen_.DrawString(nX, nY + 240, "\agEvents");
+    fb.DrawString(nX, nY + 240, "\agEvents");
 
     CPU_EVENT* pEvent = psNextEvent;
     for (i = 0; i < 3 && pEvent; i++, pEvent = pEvent->pNext)
@@ -1843,7 +1848,7 @@ void DisView::Draw(Screen& pScreen_)
             i--; continue;
         }
 
-        pScreen_.Printf(nX, nY + 252 + i * 12, "%-4s \a%c%6u\aXT", pcszEvent, CHG_COL, pEvent->due_time - g_dwCycleCounter);
+        fb.Printf(nX, nY + 252 + i * 12, "%-4s \a%c%6u\aXT", pcszEvent, CHG_COL, pEvent->due_time - g_dwCycleCounter);
     }
 }
 
@@ -2257,7 +2262,7 @@ TxtView::TxtView(Window* pParent_)
     : View(pParent_), m_nRows(m_nHeight / ROW_HEIGHT), m_nColumns(80)
 {
     SetText("Text");
-    SetFont(&sFixedFont);
+    SetFont(sFixedFont);
 
     // Allocate enough for a full screen of characters
     m_pszData = new char[m_nRows * m_nColumns + 1];
@@ -2310,7 +2315,7 @@ bool TxtView::GetAddrPosition(uint16_t wAddr_, int& x_, int& y_)
     return true;
 }
 
-void TxtView::Draw(Screen& pScreen_)
+void TxtView::Draw(FrameBuffer& fb)
 {
     int nX, nY;
 
@@ -2322,7 +2327,7 @@ void TxtView::Draw(Screen& pScreen_)
         uint8_t bColour = (fRead && fWrite) ? YELLOW_3 : fWrite ? RED_3 : GREEN_3;
         if (GetAddrPosition(wAddr, nX, nY))
         {
-            pScreen_.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
+            fb.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
         }
     }
 
@@ -2332,7 +2337,7 @@ void TxtView::Draw(Screen& pScreen_)
         int nX = m_nX;
         int nY = m_nY + ROW_HEIGHT * u;
 
-        pScreen_.DrawString(nX, nY, psz, WHITE);
+        fb.DrawString(nX, nY, psz, WHITE);
     }
 
     if (m_fEditing && GetAddrPosition(m_wEditAddr, nX, nY))
@@ -2340,8 +2345,8 @@ void TxtView::Draw(Screen& pScreen_)
         auto b = read_byte(m_wEditAddr);
         char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
 
-        pScreen_.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, YELLOW_8);
-        pScreen_.Printf(nX, nY, "\ak%c", ch);
+        fb.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, YELLOW_8);
+        fb.Printf(nX, nY, "\ak%c", ch);
 
         pDebugger->SetStatusByte(m_wEditAddr);
     }
@@ -2469,7 +2474,7 @@ HexView::HexView(Window* pParent_)
     : View(pParent_)
 {
     SetText("Numeric");
-    SetFont(&sFixedFont);
+    SetFont(sFixedFont);
 
     m_nRows = m_nHeight / ROW_HEIGHT;
     m_nColumns = 80;
@@ -2534,7 +2539,7 @@ bool HexView::GetAddrPosition(uint16_t wAddr_, int& x_, int& y_, int& textx_)
     return true;
 }
 
-void HexView::Draw(Screen& pScreen_)
+void HexView::Draw(FrameBuffer& fb)
 {
     int nX, nY, nTextX;
 
@@ -2546,8 +2551,8 @@ void HexView::Draw(Screen& pScreen_)
         uint8_t bColour = (fRead && fWrite) ? YELLOW_3 : fWrite ? RED_3 : GREEN_3;
         if (GetAddrPosition(wAddr, nX, nY, nTextX))
         {
-            pScreen_.FillRect(nX - 1, nY - 1, CHR_WIDTH * 2 + 1, ROW_HEIGHT - 3, bColour);
-            pScreen_.FillRect(nTextX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
+            fb.FillRect(nX - 1, nY - 1, CHR_WIDTH * 2 + 1, ROW_HEIGHT - 3, bColour);
+            fb.FillRect(nTextX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, bColour);
         }
     }
 
@@ -2557,7 +2562,7 @@ void HexView::Draw(Screen& pScreen_)
         int nX = m_nX;
         int nY = m_nY + ROW_HEIGHT * u;
 
-        pScreen_.DrawString(nX, nY, psz, WHITE);
+        fb.DrawString(nX, nY, psz, WHITE);
     }
 
     if (m_fEditing && GetAddrPosition(m_wEditAddr, nX, nY, nTextX))
@@ -2569,12 +2574,12 @@ void HexView::Draw(Screen& pScreen_)
         if (m_fRightNibble)
             nY += CHR_WIDTH;
 
-        pScreen_.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, YELLOW_8);
-        pScreen_.Printf(nX, nY, "\ak%c", sz[m_fRightNibble]);
+        fb.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, YELLOW_8);
+        fb.Printf(nX, nY, "\ak%c", sz[m_fRightNibble]);
 
         char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
-        pScreen_.FillRect(nTextX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, GREY_6);
-        pScreen_.Printf(nTextX, nY, "\ak%c", ch);
+        fb.FillRect(nTextX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, GREY_6);
+        fb.Printf(nTextX, nY, "\ak%c", ch);
     }
 }
 
@@ -2732,21 +2737,21 @@ void CMemView::SetAddress (uint16_t wAddr_, bool fForceTop_)
 }
 
 
-void CMemView::Draw (Screen& pScreen_)
+void CMemView::Draw (FrameBuffer& fb)
 {
-    pScreen_.SetFont(&sFixedFont, true);
+    fb.SetFont(sFixedFont);
 
     unsigned int uGap = 12;
 
     for (unsigned int u = 0 ; u < 256 ; u++)
     {
         unsigned int uLen = (m_nHeight - uGap) * ((uint8_t*)szDisassem)[u] / 100;
-        pScreen_.DrawLine(m_nX+u, m_nY+m_nHeight-uGap-uLen, 0, uLen, (u & 16) ? WHITE : GREY_7);
+        fb.DrawLine(m_nX+u, m_nY+m_nHeight-uGap-uLen, 0, uLen, (u & 16) ? WHITE : GREY_7);
     }
 
-    pScreen_.DrawString(m_nX, m_nY+m_nHeight-10, "Page 0: 16K in 1K units", WHITE);
+    fb.DrawString(m_nX, m_nY+m_nHeight-10, "Page 0: 16K in 1K units", WHITE);
 
-    pScreen_.SetFont(&sGUIFont);
+    fb.SetFont(sGUIFont);
 }
 */
 
@@ -2760,7 +2765,7 @@ GfxView::GfxView(Window* pParent_)
     : View(pParent_)
 {
     SetText("Graphics");
-    SetFont(&sFixedFont);
+    SetFont(sFixedFont);
 
     // Allocate enough space for a double-width window, at 1 byte per pixel
     m_pbData = new uint8_t[m_nWidth * m_nHeight * 2];
@@ -2836,14 +2841,13 @@ void GfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 
     char sz[128] = {};
     snprintf(sz, sizeof(sz) - 1, "%04X  Mode %u  Width %u  Zoom %ux", GetAddress(), s_uMode, s_uWidth, s_uZoom);
-    pDebugger->SetStatus(sz, false, &sFixedFont);
+    pDebugger->SetStatus(sz, false, sFixedFont);
 
 }
 
-void GfxView::Draw(Screen& pScreen_)
+void GfxView::Draw(FrameBuffer& fb)
 {
-    // Clip to the client area to prevent partial strips escaping
-    pScreen_.SetClip(m_nX, m_nY, m_nWidth, m_nHeight);
+    fb.ClipTo(m_nX, m_nY, m_nWidth, m_nHeight);
 
     auto pb = m_pbData;
 
@@ -2856,12 +2860,12 @@ void GfxView::Draw(Screen& pScreen_)
         {
             for (unsigned int w = 0; w < s_uZoom; w++, nY++)
             {
-                pScreen_.Poke(nX, nY, pb, m_uStripWidth);
+                fb.Poke(nX, nY, pb, m_uStripWidth);
             }
         }
     }
 
-    pScreen_.SetClip();
+    fb.ClipNone();
 }
 
 bool GfxView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
@@ -2962,7 +2966,7 @@ BptView::BptView(Window* pParent_)
     : View(pParent_)
 {
     SetText("Breakpoints");
-    SetFont(&sFixedFont);
+    SetFont(sFixedFont);
 
     m_nRows = (m_nHeight / ROW_HEIGHT) - 1;
 
@@ -3002,7 +3006,7 @@ void BptView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 }
 
 
-void BptView::Draw(Screen& pScreen_)
+void BptView::Draw(FrameBuffer& fb)
 {
     int i;
     char* psz = m_pszData;
@@ -3017,11 +3021,11 @@ void BptView::Draw(Screen& pScreen_)
 
         BREAKPT* pBreak = Breakpoint::GetAt(m_nTopLine + i);
         uint8_t bColour = (m_nTopLine + i == m_nActive) ? CYAN_7 : (pBreak && !pBreak->fEnabled) ? GREY_4 : WHITE;
-        pScreen_.DrawString(nX, nY, psz, bColour);
+        fb.DrawString(nX, nY, psz, bColour);
         psz += strlen(psz) + 1;
     }
 
-    DisView::DrawRegisterPanel(pScreen_, m_nX + m_nWidth - 6 * 16, m_nY);
+    DisView::DrawRegisterPanel(fb, m_nX + m_nWidth - 6 * 16, m_nY);
 }
 
 bool BptView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
@@ -3090,10 +3094,10 @@ TrcView::TrcView(Window* pParent_)
     cmdNavigate(HK_END, 0);
 }
 
-void TrcView::DrawLine(Screen& pScreen_, int nX_, int nY_, int nLine_)
+void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
 {
     if (GetLines() <= 1)
-        pScreen_.DrawString(nX_, nY_, "No instruction trace", WHITE);
+        fb.DrawString(nX_, nY_, "No instruction trace", WHITE);
     else
     {
         char szDis[32], sz[128], * psz = sz;
@@ -3177,11 +3181,11 @@ void TrcView::DrawLine(Screen& pScreen_, int nX_, int nY_, int nLine_)
 
         if (nLine_ == GetLines() - 1)
         {
-            pScreen_.FillRect(nX_ - 1, nY_ - 1, m_nWidth - 112, ROW_HEIGHT - 3, YELLOW_7);
+            fb.FillRect(nX_ - 1, nY_ - 1, m_nWidth - 112, ROW_HEIGHT - 3, YELLOW_7);
             bColour = BLACK;
         }
 
-        pScreen_.DrawString(nX_, nY_, sz, bColour);
+        fb.DrawString(nX_, nY_, sz, bColour);
     }
 }
 

@@ -379,18 +379,16 @@ int Expr::Eval(const EXPR* pExpr_)
 
             case VAR_DLINE:
             {
-                int nLine;
-                Frame::GetRasterPos(&nLine);
-                r = nLine;
+                auto [line, line_cycle] = Frame::GetRasterPos(g_dwCycleCounter);
+                r = line;
                 break;
             }
 
             case VAR_SLINE:
             {
-                int nLine;
-                Frame::GetRasterPos(&nLine);
-                if (nLine >= TOP_BORDER_LINES && nLine < (TOP_BORDER_LINES + GFX_SCREEN_LINES))
-                    r = nLine - TOP_BORDER_LINES;
+                auto [line, line_cycle] = Frame::GetRasterPos(g_dwCycleCounter);
+                if (line >= TOP_BORDER_LINES && line < (TOP_BORDER_LINES + GFX_SCREEN_LINES))
+                    r = line - TOP_BORDER_LINES;
                 else
                     r = -1;
                 break;

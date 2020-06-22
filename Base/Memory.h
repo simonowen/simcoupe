@@ -67,8 +67,8 @@ inline int AddrOffset(uint16_t wAddr_) { return wAddr_ & (MEM_PAGE_SIZE - 1); }
 
 inline int GetSectionPage(eSection nSection_) { return anSectionPages[nSection_]; }
 
-inline unsigned int PageReadOffset(int nPage_) { return anReadPages[nPage_] * MEM_PAGE_SIZE; }
-inline unsigned int PageWriteOffset(int nPage_) { return anWritePages[nPage_] * MEM_PAGE_SIZE; }
+inline int PageReadOffset(int nPage_) { return anReadPages[nPage_] * MEM_PAGE_SIZE; }
+inline int PageWriteOffset(int nPage_) { return anWritePages[nPage_] * MEM_PAGE_SIZE; }
 
 inline uint8_t* PageReadPtr(int nPage_) { return pMemory + PageReadOffset(nPage_); }
 inline uint8_t* PageWritePtr(int nPage_) { return pMemory + PageWriteOffset(nPage_); }

@@ -49,9 +49,10 @@ static LoopState nLoopState;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void WriteLogicalScreenDescriptor(const Screen& pScreen_)
+static void WriteLogicalScreenDescriptor(const FrameBuffer& fb)
 {
-    uint16_t w = pScreen_.GetPitch() / 2, h = pScreen_.GetHeight() / 2;
+    uint16_t w = fb.Width() / 2;
+    uint16_t h = fb.Height() / 2;
 
     fputc(w & 0xff, f);
     fputc(w >> 8, f);
@@ -156,12 +157,12 @@ static void WriteFileTerminator()
 
 
 // Compare our copy of the screen with the new display contents
-static bool GetChangeRect(uint8_t* pb_, const Screen& pScreen_)
+static bool GetChangeRect(uint8_t* pb_, const FrameBuffer& fb)
 {
     int l, t, r, b, w, h;
     l = t = r = b = 0;
 
-    uint16_t width = pScreen_.GetPitch() / 2, height = pScreen_.GetHeight() / 2;
+    uint16_t width = fb.Width() / 2, height = fb.Height() / 2;
     int step = 2; // sample alternate pixels
 
     uint8_t* pbC = pb_;
@@ -169,7 +170,7 @@ static bool GetChangeRect(uint8_t* pb_, const Screen& pScreen_)
     // Search down for the top-most change
     for (h = 0; h < height; h++)
     {
-        auto pb = pScreen_.GetLine(h);
+        auto pb = fb.GetLine(h);
 
         // Scan the full width of the current line
         for (w = 0; w < width; w++, pbC++, pb += step)
@@ -195,7 +196,7 @@ found_top:
     // Search up for the bottom-most change
     for (h = height - 1; h >= t; h--)
     {
-        auto pb = pScreen_.GetLine(h);
+        auto pb = fb.GetLine(h);
         pb += (width - 1) * step;
 
         // Scan the full width of the line, right to left
@@ -220,7 +221,7 @@ found_bottom:
     // Scan within the inclusive vertical extents of the change rect
     for (h = t; h <= b; h++, pbC += width)
     {
-        auto pb = pScreen_.GetLine(h);
+        auto pb = fb.GetLine(h);
 
         // Scan the unknown left strip
         for (w = 0; w < l; w++)
@@ -255,9 +256,9 @@ found_bottom:
 }
 
 // Update current image and determine sub-region difference to encode
-static uint8_t UpdateImage(uint8_t* pb_, const Screen& pScreen_)
+static uint8_t UpdateImage(uint8_t* pb_, const FrameBuffer& fb)
 {
-    uint16_t width = pScreen_.GetPitch() / 2;
+    uint16_t width = fb.Width() / 2;
     int step = 2;
     uint8_t abUsed[1 << COLOUR_DEPTH] = { 0 };
     auto pbSub_ = pbSub;
@@ -270,7 +271,7 @@ static uint8_t UpdateImage(uint8_t* pb_, const Screen& pScreen_)
 
     for (int y = wt; y < wt + wh; y++, pb += width)
     {
-        auto pbScr = pScreen_.GetLine(y);
+        auto pbScr = fb.GetLine(y);
         pbScr += (wl * step);
 
         for (int x = 0; x < ww; x++, pbScr += step)
@@ -419,7 +420,7 @@ bool IsRecording()
 }
 
 
-void AddFrame(const Screen& pScreen_)
+void AddFrame(const FrameBuffer& fb)
 {
     // Fail if we're not recording
     if (!f)
@@ -428,8 +429,8 @@ void AddFrame(const Screen& pScreen_)
     // Count the frames between changes
     nDelay++;
 
-    uint16_t width = pScreen_.GetPitch() / 2;
-    uint16_t height = pScreen_.GetHeight() / 2;
+    uint16_t width = fb.Width() / 2;
+    uint16_t height = fb.Height() / 2;
     uint32_t size = (uint32_t)width * (uint32_t)height;
 
     // If this is the first frame, write the file headers
@@ -443,7 +444,7 @@ void AddFrame(const Screen& pScreen_)
         fwrite("GIF89a", 6, 1, f);
 
         // Write the image dimensions and palette
-        WriteLogicalScreenDescriptor(pScreen_);
+        WriteLogicalScreenDescriptor(fb);
         WriteGlobalColourTable();
 
         // Set the animation to loop back to the start when it finishes
@@ -456,7 +457,7 @@ void AddFrame(const Screen& pScreen_)
         return;
 
     // Return if there were no changes from the last frame
-    if (!GetChangeRect(pbCurr, pScreen_))
+    if (!GetChangeRect(pbCurr, fb))
         return;
 
     // If recording a loop, force this frame to be encoded in full
@@ -471,7 +472,7 @@ void AddFrame(const Screen& pScreen_)
     }
 
     // Update our copy and encode the difference in the changed region
-    auto bTrans = UpdateImage(pbCurr, pScreen_);
+    auto bTrans = UpdateImage(pbCurr, fb);
 
     // If recording a loop, wait for the first real change
     if (nLoopState == kIgnoreFirstChange)

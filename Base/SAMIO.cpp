@@ -298,12 +298,11 @@ static uint8_t update_lpen()
 
         if (IsScreenLine(line) && line_cycle >= (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER))
         {
-            uint8_t b1, b2, b3, b4;
-            Frame::GetAsicData(&b1, &b2, &b3, &b4);
+            auto [b0, b1, b2, b3] = Frame::GetAsicData();
 
             auto xpos = static_cast<uint8_t>(line_cycle - (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER));
-            auto b0 = (line_cycle < (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER)) ? (border & 1) : (b1 & 1);
-            lpen = (xpos & 0xfc) | (lpen & LPEN_TXFMST) | b0;
+            auto bcd1 = (line_cycle < (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER)) ? (border & 1) : (b0 & 1);
+            lpen = (xpos & 0xfc) | (lpen & LPEN_TXFMST) | bcd1;
         }
         else
         {
@@ -361,8 +360,7 @@ void OutVmpr(uint8_t bVal_)
 
     if ((vmpr ^ bVal_) & (VMPR_MODE_MASK | VMPR_PAGE_MASK))
     {
-        int line;
-        Frame::GetRasterPos(&line);
+        auto [line, line_cycle] = Frame::GetRasterPos(g_dwCycleCounter);
         if (IsScreenLine(line))
             display_changed = true;
     }
@@ -398,8 +396,7 @@ void OutClut(uint16_t wPort_, uint8_t bVal_)
     // Has the clut value actually changed?
     if (clut[wPort_] != bVal_)
     {
-        int line;
-        Frame::GetRasterPos(&line);
+        auto [line, line_cycle] = Frame::GetRasterPos(g_dwCycleCounter);
         if (IsScreenLine(line))
             display_changed = true;
 
@@ -517,9 +514,8 @@ uint8_t In(uint16_t wPort_)
         if (!(VMPR_MODE_3_OR_4 && BORD_SOFF))
         {
             // Determine the 4 ASIC display bytes and return the 3rd, as documented
-            uint8_t b1, b2, b3, b4;
-            Frame::GetAsicData(&b1, &b2, &b3, &b4);
-            attr = b3;
+            auto [b0, b1, b2, b3] = Frame::GetAsicData();
+            attr = b2;
         }
 
         // Return the current attribute port value
@@ -677,9 +673,8 @@ void Out(uint16_t wPort_, uint8_t bVal_)
                 update_lpen();
                 update_hpen();
 
-                uint8_t b1, b2, b3, b4;
-                Frame::GetAsicData(&b1, &b2, &b3, &b4);
-                attr = b3;
+                auto [b0, b1, b2, b3] = Frame::GetAsicData();
+                attr = b2;
             }
         }
 

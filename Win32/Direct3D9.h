@@ -40,7 +40,7 @@ public:
     int GetCaps() const;
     bool Init();
 
-    void Update(const Screen& pScreen_);
+    void Update(const FrameBuffer& fb);
     void UpdateSize();
     void UpdatePalette();
 
@@ -53,7 +53,7 @@ protected:
     HRESULT CreateVertices();
     HRESULT CreateDevice();
     bool Reset(bool fNewDevice_ = false);
-    bool DrawChanges(const Screen& pScreen_);
+    bool DrawChanges(const FrameBuffer& fb);
 
 private:
     LPDIRECT3D9 m_pd3d = nullptr;

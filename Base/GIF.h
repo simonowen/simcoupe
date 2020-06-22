@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "Screen.h"
+#include "FrameBuffer.h"
 
 namespace GIF
 {
@@ -29,7 +29,7 @@ void Stop();
 void Toggle(bool fAnimLoop_ = false);
 bool IsRecording();
 
-void AddFrame(const Screen& pScreen_);
+void AddFrame(const FrameBuffer& fb);
 }
 
 

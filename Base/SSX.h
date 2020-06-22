@@ -3,9 +3,9 @@
 // SSX.h: SAM main screen data saving in raw formats
 
 #pragma once
-#include "Screen.h"
+#include "FrameBuffer.h"
 
 namespace SSX
 {
-	bool Save(const Screen& screen, int main_x, int main_y);
+	bool Save(const FrameBuffer& fb, int main_x, int main_y);
 }

@@ -426,10 +426,6 @@ void Run()
         if (g_fPaused)
             continue;
 
-        // If fast booting is active, don't draw any video
-        if (g_nTurbo & TURBO_BOOT)
-            fDrawFrame = GUI::IsActive();
-
         // Prepare start of frame image, in case we've already started it
         Frame::Begin();
 

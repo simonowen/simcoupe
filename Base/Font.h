@@ -20,13 +20,25 @@
 
 #pragma once
 
-struct GUIFONT
+struct Font
 {
-    uint16_t wWidth, wHeight, wCharSize;
-    uint8_t bFirst, bLast;
-    bool    fFixedWidth;
+    static constexpr auto CHAR_HEIGHT = 11;
+    static constexpr auto CHAR_SPACING = 1;
+    static constexpr auto LINE_SPACING = 4;
+    static constexpr auto DEFAULT_CHR = '_';
 
-    const uint8_t* pcbData;
+    Font(int width, int height, int bytes_per_chr, uint8_t first_chr, uint8_t last_chr, bool fixed_width, const std::vector<uint8_t>& data) :
+        width(width), height(height), bytes_per_chr(bytes_per_chr), first_chr(first_chr), last_chr(last_chr), fixed_width(fixed_width), data(data) { }
+
+    int width;          // zero for variable width
+    int height;
+    int bytes_per_chr;
+    uint8_t first_chr;
+    uint8_t last_chr;
+    bool fixed_width;
+    const std::vector<uint8_t>& data;
+
+    int StringWidth(const char* str, int max_chars=-1) const;
 };
 
-extern const GUIFONT sFixedFont, sPropFont, sGUIFont, sSpacedGUIFont;
+extern std::shared_ptr<Font> sFixedFont, sPropFont, sGUIFont, sSpacedGUIFont;

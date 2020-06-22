@@ -488,7 +488,10 @@ bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
 
     case WM_MOUSEWHEEL:
         if (GUI::IsActive())
+        {
             GUI::SendMessage(GM_MOUSEWHEEL, (GET_WHEEL_DELTA_WPARAM(wParam_) < 0) ? 1 : -1);
+            return true;
+        }
 
         break;
 
