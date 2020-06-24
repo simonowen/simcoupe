@@ -26,6 +26,8 @@ struct Font
     static constexpr auto CHAR_SPACING = 1;
     static constexpr auto LINE_SPACING = 4;
     static constexpr auto DEFAULT_CHR = '_';
+    static constexpr auto FIXED_FONT_WIDTH = 5;
+    static constexpr auto FIXED_FONT_HEIGHT = 8;
 
     Font(int width, int height, int bytes_per_chr, uint8_t first_chr, uint8_t last_chr, bool fixed_width, const std::vector<uint8_t>& data) :
         width(width), height(height), bytes_per_chr(bytes_per_chr), first_chr(first_chr), last_chr(last_chr), fixed_width(fixed_width), data(data) { }

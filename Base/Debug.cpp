@@ -64,10 +64,8 @@ constexpr auto BASE_KEYWORD = 60;
 #define CHG_COL  'r'
 
 constexpr auto ROW_GAP = 2;
-constexpr auto FIXED_FONT_WIDTH = 5;
-constexpr auto FIXED_FONT_HEIGHT = 8;
-constexpr auto ROW_HEIGHT = ROW_GAP + FIXED_FONT_HEIGHT + ROW_GAP;
-constexpr auto CHR_WIDTH = FIXED_FONT_WIDTH + Font::CHAR_SPACING;
+constexpr auto ROW_HEIGHT = ROW_GAP + Font::FIXED_FONT_HEIGHT + ROW_GAP;
+constexpr auto CHR_WIDTH = Font::FIXED_FONT_WIDTH + Font::CHAR_SPACING;
 
 struct TRACEDATA
 {
