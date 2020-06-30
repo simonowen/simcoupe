@@ -131,7 +131,7 @@ bool Disk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_/
 }
 
 MGTDisk::MGTDisk(std::unique_ptr<Stream> stream, unsigned int uSectors_/*=NORMAL_DISK_SECTORS*/)
-    : Disk(std::move(stream), DiskType::MGT)
+    : Disk(std::move(stream), DiskType::MGT), m_uSectors(uSectors_)
 {
     // Allocate some memory and clear it, just in case it's not a complete MGT image
     m_data.resize(MGT_IMAGE_SIZE);
