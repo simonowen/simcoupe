@@ -46,11 +46,16 @@ WORD CAtaAdapter::InWord(WORD wPort_)
     return wRet;
 }
 
-// 8-bit write (16-bit handled by derived class)
 void CAtaAdapter::Out(WORD wPort_, BYTE bVal_)
 {
     if (m_pDisk0) m_pDisk0->Out(wPort_, bVal_);
     if (m_pDisk1) m_pDisk1->Out(wPort_, bVal_);
+}
+
+void CAtaAdapter::OutWord(WORD wPort_, WORD wVal_)
+{
+    if (m_pDisk0) m_pDisk0->Out(wPort_, wVal_);
+    if (m_pDisk1) m_pDisk1->Out(wPort_, wVal_);
 }
 
 

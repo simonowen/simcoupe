@@ -86,7 +86,7 @@ void CAtomDevice::Out(WORD wPort_, BYTE bVal_)
             break;
 
         m_uActive = HDD_ACTIVE_FRAMES;
-        CAtaAdapter::Out(m_bAddressLatch & ATOM_ADDR_MASK, (m_bWriteLatch << 8) | bVal_);
+        CAtaAdapter::OutWord(m_bAddressLatch & ATOM_ADDR_MASK, (m_bWriteLatch << 8) | bVal_);
         break;
 
     default:

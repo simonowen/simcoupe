@@ -47,6 +47,7 @@ public:
 
 protected:
     WORD InWord(WORD wPort_);
+    void OutWord(WORD wPort_, WORD wVal_);
 
 protected:
     UINT m_uActive = 0; // active when non-zero, decremented by FrameEnd()
