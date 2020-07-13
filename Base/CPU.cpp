@@ -462,7 +462,9 @@ void Reset(bool fPress_)
     if (g_fReset)
     {
         // Certain registers are initialised on every reset
-        I = R = R7 = IFF1 = IFF2 = 0;
+        IFF1 = IFF2 = IM = 0;
+        I = R = 0;
+        SP = AF = 0xffff;
         PC = 0x0000;
         bOpcode = 0x00; // not after EI
 
