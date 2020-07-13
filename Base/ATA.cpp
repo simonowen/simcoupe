@@ -77,7 +77,25 @@ uint16_t ATADevice::In(uint16_t wPort_)
                     m_sRegs.wData |= m_sector_data[m_data_offset++] << 8;
 
                 if (m_data_offset == m_sector_data.size())
+                {
                     TRACE("ATA: All data read\n");
+
+                    if (--m_sRegs.bSectorCount > 0)
+                    {
+                        NextSector();
+
+                        if (!ReadWriteSector(false))
+                        {
+                            m_sRegs.bStatus |= ATA_STATUS_ERROR;
+                            m_sRegs.bError = ATA_ERROR_UNC;
+                            break;
+                        }
+                        else
+                        {
+                            m_data_offset = 0;
+                        }
+                    }
+                }
             }
 
             // Return the data register
@@ -202,27 +220,7 @@ void ATADevice::Out(uint16_t wPort_, uint16_t wVal_)
                         {
                             TRACE(" %d sectors left in multi-sector write...\n", m_sRegs.bSectorCount);
 
-                            // Next sector
-                            if (++m_sRegs.bSector > m_sGeometry.uSectors)
-                            {
-                                m_sRegs.bSector = 1;
-
-                                // Are the head bits just below max value?
-                                if ((m_sRegs.bDeviceHead & ATA_HEAD_MASK) == m_sGeometry.uHeads - 1)
-                                {
-                                    // Head bits back to zero
-                                    m_sRegs.bDeviceHead &= ~ATA_HEAD_MASK;
-
-                                    // Next cylinder
-                                    if (!++m_sRegs.bCylinderLow)
-                                        m_sRegs.bCylinderHigh++;
-                                }
-                                else
-                                {
-                                    // Next head
-                                    m_sRegs.bDeviceHead++;
-                                }
-                            }
+                            NextSector();
 
                             // Set the sector buffer pointer and how much we have available to read
                             m_data_offset = 0;
@@ -479,6 +477,40 @@ bool ATADevice::ReadWriteSector(bool fWrite_)
     return ReadSector(uSector, m_sector_data.data());
 }
 
+void ATADevice::NextSector()
+{
+    if (m_sRegs.bDeviceHead & 0x40)
+    {
+        if (!++m_sRegs.bSector &&
+            !++m_sRegs.bCylinderLow &&
+            !++m_sRegs.bCylinderHigh &&
+            !(++m_sRegs.bDeviceHead & 0x0f))
+        {
+            m_sRegs.bDeviceHead = (m_sRegs.bDeviceHead - 1) & 0xf0;
+        }
+    }
+    else if (++m_sRegs.bSector > m_sGeometry.uSectors)
+    {
+        m_sRegs.bSector = 1;
+
+        m_sRegs.bDeviceHead =
+            (m_sRegs.bDeviceHead & ~ATA_HEAD_MASK) |
+            ((m_sRegs.bDeviceHead + 1) & ATA_HEAD_MASK);
+
+        if ((m_sRegs.bDeviceHead & ATA_HEAD_MASK) == m_sGeometry.uHeads)
+        {
+            if (!++m_sRegs.bCylinderLow)
+            {
+                m_sRegs.bCylinderHigh++;
+            }
+
+            if (((m_sRegs.bCylinderHigh << 8) | m_sRegs.bCylinderLow) == m_sGeometry.uCylinders)
+            {
+                m_sRegs.bCylinderHigh = m_sRegs.bCylinderLow = 0;
+            }
+        }
+    }
+}
 
 void ATADevice::SetIdentifyData(IDENTIFYDEVICE* pid_)
 {

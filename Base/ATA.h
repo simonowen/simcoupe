@@ -125,6 +125,7 @@ protected:
     void SetIdentifyData(IDENTIFYDEVICE* pid_);
 
 protected:
+    void NextSector();
     static void CalculateGeometry(ATA_GEOMETRY* pg_);
     static void SetIdentifyString(const char* pcszValue_, void* pv_, size_t cb_);
 
