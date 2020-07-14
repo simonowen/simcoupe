@@ -991,6 +991,7 @@ bool Debugger::Execute(const char* pcszCommand_)
     else if (fCommandOnly && (!strcasecmp(pszCommand, "q") || !strcasecmp(pszCommand, "quit")))
     {
         Debug::Stop();
+        return false;
     }
 
     // di
@@ -1098,6 +1099,7 @@ bool Debugger::Execute(const char* pcszCommand_)
         IO::Out(HMPR_PORT, 0x01);
 
         Debug::Stop();
+        return false;
     }
     /*
         // step [count]
@@ -1127,6 +1129,7 @@ bool Debugger::Execute(const char* pcszCommand_)
             Expr::nCount = nParam;
             Breakpoint::AddTemp(nullptr, &Expr::Counter);
             Debug::Stop();
+            return false;
         }
         // x until cond
         else if (psz && !strcasecmp(psz, "until"))
@@ -1145,7 +1148,10 @@ bool Debugger::Execute(const char* pcszCommand_)
             fRet = false;
 
         if (fRet)
+        {
             Debug::Stop();
+            return false;
+        }
     }
 
     // until expr
@@ -1155,6 +1161,7 @@ bool Debugger::Execute(const char* pcszCommand_)
         {
             Breakpoint::AddTemp(nullptr, Expr::Compile(pszParam));
             Debug::Stop();
+            return false;
         }
         else
             fRet = false;
