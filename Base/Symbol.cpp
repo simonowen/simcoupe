@@ -69,7 +69,7 @@ static void ReadcPickler(FILE* file_, AddrToSym& symtab_, SymToAddr* pValues_)
 
                 if (pValues_)
                 {
-                    std::transform(sName.begin(), sName.end(), sName.begin(), ::tolower);
+                    sName = tolower(sName);
                     (*pValues_)[sName] = wAddr;
                 }
 
@@ -110,7 +110,7 @@ static void ReadSimple(FILE* file_, AddrToSym& symtab_, SymToAddr* pValues_)
                 // Optionally store the reverse mapping for symbol to value look-ups
                 if (pValues_ && *psz)
                 {
-                    std::transform(sName.begin(), sName.end(), sName.begin(), ::tolower);
+                    sName = tolower(sName);
                     (*pValues_)[sName] = wAddr;
                 }
             }
@@ -170,7 +170,7 @@ void Update(const char* pcszFile_)
 int LookupSymbol(std::string sSymbol_)
 {
     // Convert to lower-case for case-insensitive look-up
-    std::transform(sSymbol_.begin(), sSymbol_.end(), sSymbol_.begin(), ::tolower);
+    sSymbol_ = tolower(sSymbol_);
 
     SymToAddr::iterator it = symbol_values.find(sSymbol_);
     if (it != symbol_values.end())

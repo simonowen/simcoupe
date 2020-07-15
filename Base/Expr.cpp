@@ -25,56 +25,16 @@
 #include "Options.h"
 #include "Symbol.h"
 
+const Expr Expr::Counter{ "(counter)", { { TokenType::Variable, VAR_COUNT} } };
+int Expr::count{};
 
-static const char* p;
-static EXPR* pHead, * pTail;
-static int nFlags;
-
-EXPR Expr::Counter = { T_VARIABLE, VAR_COUNT, nullptr, "(counter)" };
-int Expr::nCount;
-
-// Free all elements in an expression list
-void Expr::Release(EXPR* pExpr_)
+struct Token
 {
-    // Take care not to free the built-in special expressions
-    if (pExpr_ && pExpr_ != &Counter)
-    {
-        delete[] pExpr_->pcszExpr;
-        for (EXPR* pDel; (pDel = pExpr_); pExpr_ = pExpr_->pNext, delete pDel);
-    }
-}
-
-// Add an expression chain to the current expression
-static EXPR* AddNode(EXPR* pExpr_)
-{
-    if (!pHead)
-        return pHead = pTail = pExpr_;
-    else
-        return pTail = pTail->pNext = pExpr_;
-}
-
-// Add a new node to the end of the current expression
-static EXPR* AddNode(int nType_, int nValue_)
-{
-    EXPR* pExpr = new EXPR;
-    pExpr->nType = nType_;
-    pExpr->nValue = nValue_;
-    pExpr->pNext = nullptr;
-    pExpr->pcszExpr = nullptr;
-
-    return AddNode(pExpr);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-struct TOKEN
-{
-    const char* pcsz;
-    int nToken;
+    std::string str;
+    int token{};
 };
 
-// Binary operators, broken into precedence levels, sorted low to high
-static const TOKEN asBinaryOps[][5] =
+static const std::vector<std::vector<Token>> binary_ops
 {
     { {"||",OP_OR},     {"or",OP_OR} },
     { {"&&",OP_AND},    {"and",OP_AND} },
@@ -86,17 +46,15 @@ static const TOKEN asBinaryOps[][5] =
     { {"<<",OP_SHIFTL}, {">>",OP_SHIFTR} },
     { {"+",OP_ADD},     {"-",OP_SUB} },
     { {"*",OP_MUL},     {"/",OP_DIV},       {"%",OP_MOD},   {"\\",OP_MOD} },
-    { {} }
 };
 
-static const TOKEN asUnaryOps[] =
+static const std::vector<Token> unary_funcs
 {
     {"peek",OP_PEEK},
     {"dpeek",OP_DPEEK},
-    {}
 };
 
-static const TOKEN asRegisters[] =
+static const std::vector<Token> reg_symbols
 {
     {"a'",REG_ALT_A}, {"f'",REG_ALT_F}, {"b'",REG_ALT_B}, {"c'",REG_ALT_C},
     {"d'",REG_ALT_D}, {"e'",REG_ALT_E}, {"h'",REG_ALT_H}, {"l'",REG_ALT_L},
@@ -106,10 +64,9 @@ static const TOKEN asRegisters[] =
     {"ix",REG_IX}, {"iy",REG_IY}, {"ixh",REG_IXH}, {"ixl",REG_IXL}, {"iyh",REG_IYH}, {"iyl",REG_IYL},
     {"sp",REG_SP}, {"pc",REG_PC}, {"sph",REG_SPH}, {"spl",REG_SPL}, {"pch",REG_PCH}, {"pcl",REG_PCL},
     {"i",REG_I}, {"r",REG_R}, {"iff1",REG_IFF1}, {"iff2",REG_IFF2}, {"im",REG_IM},
-    {}
 };
 
-static const TOKEN asVariables[] =
+static const std::vector<Token> var_symbols
 {
     {"ei",VAR_EI}, {"di",VAR_DI},
     {"dline",VAR_DLINE}, {"sline",VAR_SLINE},
@@ -118,195 +75,94 @@ static const TOKEN asVariables[] =
     {"inval",VAR_INVAL}, {"outval",VAR_OUTVAL},
     {"lepr",VAR_LEPR}, {"hepr",VAR_HEPR}, {"lpen",VAR_LPEN}, {"hpen",VAR_HPEN}, {"status",VAR_STATUS},
     {"lmpr",VAR_LMPR}, {"hmpr",VAR_HMPR}, {"vmpr",VAR_VMPR}, {"midi",VAR_MIDI}, {"border",VAR_BORDER}, {"attr",VAR_ATTR},
-    {}
 };
 
-static const TOKEN* LookupToken(const char* pcsz_, size_t uLen_, const TOKEN* pTokens_)
+static bool FindToken(std::string str_token, const std::vector<Token>& tokens, Token& token)
 {
-    for (; pTokens_->pcsz; pTokens_++)
-        if (strlen(pTokens_->pcsz) == uLen_ && !strncasecmp(pcsz_, pTokens_->pcsz, uLen_))
-            return pTokens_;
+    str_token = tolower(str_token);
 
-    return nullptr;
+    auto it = std::find_if(tokens.begin(), tokens.end(),
+        [&](const auto& token) { return token.str == str_token; });
+
+    if (it == tokens.end())
+        return false;
+
+    token = *it;
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Compile an infix expression to an easy-to-process postfix expression list
-EXPR* Expr::Compile(const char* pcsz_, char** ppszEnd_/*=nullptr*/, int nFlags_/*=0*/)
+bool Expr::IsTokenType(TokenType type) const
 {
-    // Clear the expression list and set the expression string and flags
-    pHead = pTail = nullptr;
-    p = pcsz_;
-    nFlags = nFlags_;
-
-    // Fail if the expression was bad, or there's unexpected garbage on the end
-    if (!Term() || (!ppszEnd_ && *p) || !pHead)
-    {
-        Release(pHead);
-        return nullptr;
-    }
-
-    // Supply the end pointer if required, or nullptr if nothing was left
-    if (ppszEnd_)
-        *ppszEnd_ = const_cast<char*>(p);
-
-    // Keep a copy of the original expression text in the head item
-    pHead->pcszExpr = strcpy(new char[strlen(pcsz_) + 1], pcsz_);
-
-    // Return the expression list
-    return pHead;
+    return nodes.size() == 1 && nodes.front().type == type;
 }
 
-
-int Expr::GetReg(int nReg_)
+int Expr::TokenValue() const
 {
-    int nRet = 0;
-
-    switch (nReg_)
-    {
-    case REG_A:         nRet = A;      break;
-    case REG_F:         nRet = F;      break;
-    case REG_B:         nRet = B;      break;
-    case REG_C:         nRet = C;      break;
-    case REG_D:         nRet = D;      break;
-    case REG_E:         nRet = E;      break;
-    case REG_H:         nRet = H;      break;
-    case REG_L:         nRet = L;      break;
-
-    case REG_ALT_A:     nRet = A_;     break;
-    case REG_ALT_F:     nRet = F_;     break;
-    case REG_ALT_B:     nRet = B_;     break;
-    case REG_ALT_C:     nRet = C_;     break;
-    case REG_ALT_D:     nRet = D_;     break;
-    case REG_ALT_E:     nRet = E_;     break;
-    case REG_ALT_H:     nRet = H_;     break;
-    case REG_ALT_L:     nRet = L_;     break;
-
-    case REG_AF:        nRet = AF;     break;
-    case REG_BC:        nRet = BC;     break;
-    case REG_DE:        nRet = DE;     break;
-    case REG_HL:        nRet = HL;     break;
-
-    case REG_ALT_AF:    nRet = AF_;    break;
-    case REG_ALT_BC:    nRet = BC_;    break;
-    case REG_ALT_DE:    nRet = DE_;    break;
-    case REG_ALT_HL:    nRet = HL_;    break;
-
-    case REG_IX:        nRet = IX;     break;
-    case REG_IY:        nRet = IY;     break;
-    case REG_SP:        nRet = SP;     break;
-    case REG_PC:        nRet = PC;     break;
-
-    case REG_IXH:       nRet = IXH;    break;
-    case REG_IXL:       nRet = IXL;    break;
-    case REG_IYH:       nRet = IYH;    break;
-    case REG_IYL:       nRet = IYL;    break;
-
-    case REG_SPH:       nRet = SPH;    break;
-    case REG_SPL:       nRet = SPL;    break;
-    case REG_PCH:       nRet = PCH;    break;
-    case REG_PCL:       nRet = PCL;    break;
-
-    case REG_I:         nRet = I;      break;
-    case REG_R:         nRet = (R7 & 0x80) | (R & 0x7f); break;
-    case REG_IFF1:      nRet = IFF1;   break;
-    case REG_IFF2:      nRet = IFF2;   break;
-    case REG_IM:        nRet = IM;     break;
-    }
-
-    return nRet;
+    assert(nodes.size() == 1);
+    return nodes.front().value;
 }
 
-void Expr::SetReg(int nReg_, int nValue_)
+void Expr::AddNode(Expr::TokenType type, int value)
 {
-    auto w = static_cast<uint16_t>(nValue_);
-    uint8_t b = w & 0xff;
-
-    switch (nReg_)
-    {
-    case REG_A:      A = b; break;
-    case REG_F:      F = b; break;
-    case REG_B:      B = b; break;
-    case REG_C:      C = b; break;
-    case REG_D:      D = b; break;
-    case REG_E:      E = b; break;
-    case REG_H:      H = b; break;
-    case REG_L:      L = b; break;
-
-    case REG_ALT_A:  A_ = b; break;
-    case REG_ALT_F:  F_ = b; break;
-    case REG_ALT_B:  B_ = b; break;
-    case REG_ALT_C:  C_ = b; break;
-    case REG_ALT_D:  D_ = b; break;
-    case REG_ALT_E:  E_ = b; break;
-    case REG_ALT_H:  H_ = b; break;
-    case REG_ALT_L:  L_ = b; break;
-
-    case REG_AF:     AF = w; break;
-    case REG_BC:     BC = w; break;
-    case REG_DE:     DE = w; break;
-    case REG_HL:     HL = w; break;
-
-    case REG_ALT_AF: AF_ = w; break;
-    case REG_ALT_BC: BC_ = w; break;
-    case REG_ALT_DE: DE_ = w; break;
-    case REG_ALT_HL: HL_ = w; break;
-
-    case REG_IX:     IX = w; break;
-    case REG_IY:     IY = w; break;
-    case REG_SP:     SP = w; break;
-    case REG_PC:     PC = w; break;
-
-    case REG_IXH:    IXH = b; break;
-    case REG_IXL:    IXL = b; break;
-    case REG_IYH:    IYH = b; break;
-    case REG_IYL:    IYL = b; break;
-
-    case REG_SPH:    SPH = b; break;
-    case REG_SPL:    SPL = b; break;
-    case REG_PCH:    PCH = b; break;
-    case REG_PCL:    PCL = b; break;
-
-    case REG_I:      I = b; break;
-    case REG_R:      R7 = R = b; break;
-    case REG_IFF1:   IFF1 = !!b; break;
-    case REG_IFF2:   IFF2 = !!b; break;
-    case REG_IM:     if (b <= 2) IM = b; break;
-    }
+    nodes.push_back({ type, value });
 }
 
-
-// Evaluate a compiled expression
-int Expr::Eval(const EXPR* pExpr_)
+Expr Expr::Compile(std::string str)
 {
-    // No expression?
-    if (!pExpr_)
+    std::string remainder;
+
+    auto expr = Compile(str, remainder, noFlags);
+    if (!remainder.empty())
+        expr.nodes.clear();
+
+    return expr;
+}
+
+Expr Expr::Compile(std::string str, std::string& remain, int flags)
+{
+    Expr expr;
+    expr.str = str;
+
+    auto p = str.c_str();
+
+    if (!expr.Term(p, flags))
+        expr.nodes.clear();
+
+    remain = p;
+    return expr;
+}
+
+int Expr::Eval() const
+{
+    return Eval(nodes);
+}
+
+int Expr::Eval(const std::vector<Node>& nodes)
+{
+    if (nodes.empty())
         return -1;
 
-    // Value stack
-    int an[128], n = 0;
+    std::array<int, 128> stack{};
+    int sp = 0;
 
-    // Walk the expression list
-    for (; pExpr_; pExpr_ = pExpr_->pNext)
+    for (auto& node : nodes)
     {
-        switch (pExpr_->nType)
+        switch (node.type)
         {
-        case T_NUMBER:
-            // Push value
-            an[n++] = pExpr_->nValue;
+        case TokenType::Number:
+            stack[sp++] = node.value;
             break;
 
-        case T_UNARY_OP:
+        case TokenType::UnaryOp:
         {
-            // Ensure we have an argument
-            if (n < 1)
+            if (sp < 1)
                 break;
 
-            // Pop one argument
-            int x = an[--n];
+            auto x = stack[--sp];
 
-            switch (pExpr_->nValue)
+            switch (node.value)
             {
             case OP_UMINUS: x = -x; break;
             case OP_UPLUS:          break;
@@ -317,62 +173,55 @@ int Expr::Eval(const EXPR* pExpr_)
             case OP_DPEEK:  x = read_word(x); break;
             }
 
-            // Push the result
-            an[n++] = x;
+            stack[sp++] = x;
             break;
         }
 
-        case T_BINARY_OP:
+        case TokenType::BinaryOp:
         {
-            // Ensure we have 2 arguments
-            if (n < 2)
+            if (sp < 2)
                 break;
 
             // Pop the arguments (in reverse order)
-            int b = an[--n];
-            int a = an[--n];
-            int c = 0;
+            int b = stack[--sp];
+            int a = stack[--sp];
+            int r{};
 
-            switch (pExpr_->nValue)
+            switch (node.value)
             {
-            case OP_OR:     c = a || b; break;
-            case OP_AND:    c = a && b; break;
-            case OP_BOR:    c = a | b;  break;
-            case OP_BXOR:   c = a ^ b;  break;
-            case OP_BAND:   c = a & b;  break;
-            case OP_EQ:     c = a == b; break;
-            case OP_NE:     c = a != b; break;
-            case OP_LT:     c = a < b;  break;
-            case OP_LE:     c = a <= b; break;
-            case OP_GE:     c = a >= b; break;
-            case OP_GT:     c = a > b;  break;
-            case OP_SHIFTL: c = a << b; break;
-            case OP_SHIFTR: c = a >> b; break;
-            case OP_ADD:    c = a + b;  break;
-            case OP_SUB:    c = a - b;  break;
-            case OP_MUL:    c = a * b;  break;
-            case OP_DIV:    c = b ? a / b : 0; break; // Avoid/ignore division by zero
-            case OP_MOD:    c = b ? a % b : 0; break;
+            case OP_OR:     r = a || b; break;
+            case OP_AND:    r = a && b; break;
+            case OP_BOR:    r = a | b;  break;
+            case OP_BXOR:   r = a ^ b;  break;
+            case OP_BAND:   r = a & b;  break;
+            case OP_EQ:     r = a == b; break;
+            case OP_NE:     r = a != b; break;
+            case OP_LT:     r = a < b;  break;
+            case OP_LE:     r = a <= b; break;
+            case OP_GE:     r = a >= b; break;
+            case OP_GT:     r = a > b;  break;
+            case OP_SHIFTL: r = a << b; break;
+            case OP_SHIFTR: r = a >> b; break;
+            case OP_ADD:    r = a + b;  break;
+            case OP_SUB:    r = a - b;  break;
+            case OP_MUL:    r = a * b;  break;
+            case OP_DIV:    r = b ? a / b : 0; break;   // ignore division by zero
+            case OP_MOD:    r = b ? a % b : 0; break;   // ignore division by zero
             }
 
-            // Push the result
-            an[n++] = c;
+            stack[sp++] = r;
             break;
         }
 
-        case T_REGISTER:
-        {
-            // Push register value
-            int r = GetReg(pExpr_->nValue);
-            an[n++] = r;
+        case TokenType::Register:
+            stack[sp++] = GetReg(node.value);
             break;
-        }
 
-        case T_VARIABLE:
+        case TokenType::Variable:
         {
             int r = 0;
 
-            switch (pExpr_->nValue)
+            switch (node.value)
             {
             case VAR_EI:        r = !!IFF1; break;
             case VAR_DI:        r = !IFF1;  break;
@@ -424,260 +273,200 @@ int Expr::Eval(const EXPR* pExpr_)
             case VAR_CALL:      r = PC == HL && !(lmpr & LMPR_ROM0_OFF) && (read_word(SP) == 0x180d); break;
             case VAR_AUTOEXEC:  r = PC == HL && !(lmpr & LMPR_ROM0_OFF) && (read_word(SP) == 0x0213) && (read_word(SP + 2) == 0x5f00); break;
 
-            case VAR_COUNT:     r = nCount ? !--nCount : 1; break;
+            case VAR_COUNT:     r = count ? !--count : 1; break;
             }
 
-            // Push variable value
-            an[n++] = r;
+            stack[sp++] = r;
             break;
         }
-        /*
-                    case T_FUNCTION:
-                    {
-                        // Pop the parameter count, and adjust the stack to the start of the parameters
-                        int nParams = an[--n], f = 0;
-                        n -= nParams;
 
-                        switch (pExpr_->nValue)
-                        {
-                            case FN_BLAH:   f = do_stuff(an[n]);    break;
-                        }
-
-                        // Push return value
-                        an[n++] = f;
-                        break;
-                    }
-        */
-        default:
-            TRACE("Expr::Eval(): unknown type %d!\n", pExpr_->nType);
-            an[n++] = 0;
+        case TokenType::Unknown:
+            TRACE("Expr::Eval(): unknown type %d!\n", node.type);
+            stack[sp++] = 0;
             break;
         }
     }
 
-    // Ensure we have a stacked value to return
-    if (n < 1)
-        return 0;
-
-    // Return the overall result
-    return an[--n];
+    return (sp < 1) ? 0 : stack[--sp];
 }
 
-// Evaluate an expression, returning the value and whether it was valid
-bool Expr::Eval(const char* pcsz_, int* pnValue_, char** ppszEnd_/*=nullptr*/, int nFlags_/*=0*/)
+bool Expr::Eval(const std::string& str, int& value, std::string& remainder, int flags)
 {
-    static char sz[] = "";
-
-    // Invalidate output values
-    if (pnValue_) *pnValue_ = -1;
-    if (ppszEnd_) *ppszEnd_ = sz;
-
-    // Fail obviously invalid inputs
-    if (!pcsz_ || !*pcsz_ || !pnValue_)
+    if (str.empty())
         return false;
 
-    // Compile the expression, failing if there's an error
-    EXPR* pExpr = Compile(pcsz_, ppszEnd_, nFlags_);
-    if (!pExpr)
+    auto expr = Compile(str, remainder, flags);
+    if (!expr)
         return false;
 
-    // Evaluate and release the expression
-    int n = Eval(pExpr);
-    Release(pExpr);
-
-    // Expression valid
-    *pnValue_ = n;
+    value = expr.Eval();
     return true;
 }
 
-// Parse an expression, optionally containing binary operators of a specified precedence level (or above)
-bool Expr::Term(int n_/*=0*/)
+bool Expr::Term(const char*& p, int flags, int level)
 {
-    bool fLast = !asBinaryOps[n_ + 1][0].pcsz;
+    bool fLast = level == (binary_ops.size() - 1);
 
-    // Recurse to the highest precedence first, dropping out if we hit a problem
-    if (!(fLast ? Factor() : Term(n_ + 1)))
+    // Recurse to the highest precedence first
+    if (!(fLast ? Factor(p, flags) : Term(p, flags, level + 1)))
         return false;
 
-    while (1)
+    for (;;)
     {
-        int i;
-        size_t uLen = 0, uMaxLen = 0;
+        size_t max_len = 0;
+        Token match;
 
-        // Check for an operator at any precedence level
-        for (i = 0; asBinaryOps[i][0].pcsz; i++)
+        // Check for stack operator at any precedence level
+        for (auto& ops : binary_ops)
         {
-            for (int j = 0; asBinaryOps[i][j].pcsz; j++)
+            for (auto& op : ops)
             {
-                uLen = strlen(asBinaryOps[i][j].pcsz);
+                if (op.str.length() > max_len && strlen(p) >= op.str.length())
+                {
+                    auto str = std::string(p, op.str.length());
 
-                // Store the length of the largest matching token at this point
-                if (!strncasecmp(asBinaryOps[i][j].pcsz, p, uLen) && uLen > uMaxLen)
-                    uMaxLen = uLen;
+                    if (op.str == str)
+                        max_len = op.str.length();
+                }
             }
-        };
+        }
 
-        // Check for an operator at the current precedence level
-        for (i = 0; asBinaryOps[n_][i].pcsz; i++)
+        // Check for stack operator at the current precedence level
+        for (auto& op : binary_ops[level])
         {
-            uLen = strlen(asBinaryOps[n_][i].pcsz);
+            if (op.str.length() >= max_len && strlen(p) >= op.str.length())
+            {
+                auto str = std::string_view(p, op.str.length());
 
-            // Skip if it's shorter than the longest matching token
-            if (uLen < uMaxLen)
-                continue;
+                if (op.str == str)
+                {
+                    match = op;
+                    break;
+                }
+            }
+        }
 
-            // Found a match at current precedence?
-            if (!strncasecmp(asBinaryOps[n_][i].pcsz, p, uLen))
-                break;
-        };
-
-        // Fall back if not found
-        if (!asBinaryOps[n_][i].pcsz)
+        if (match.str.empty())
             return true;
 
-        // Skip the operator on the input
-        p += uLen;
+        p += match.str.length();
 
-        // Recurse, and drop out if we hit a problem
-        if (!(fLast ? Factor() : Term(n_ + 1)))
+        if (!(fLast ? Factor(p, flags) : Term(p, flags, level + 1)))
             return false;
 
-        // Add the operator to the expression (after the operands)
-        AddNode(T_BINARY_OP, asBinaryOps[n_][i].nToken);
+        AddNode(TokenType::BinaryOp, match.token);
     }
 }
 
-// Parse a factor (number/variable/function) along with right-associative unary operators
-bool Expr::Factor()
+bool Expr::Factor(const char*& p, int flags)
 {
-    bool fMatched = false;
+    bool matched = false;
 
-    // Strip leading whitespace
-    for (; isspace(*p); p++);
+    for (; std::isspace(static_cast<uint8_t>(*p)); p++);
 
-    // Look for registers, variables and unary operators
-    if (!fMatched && isalpha(*p))
+    if (!matched && isalpha(*p))
     {
-        const char* p2 = p;
-        const TOKEN* pToken;
-        int nSymValue;
+        auto p2 = p;
+        int sym_value{};
 
-        // Assume we'll match the input
-        fMatched = true;
+        matched = true;
 
-        // Scan for an identifier, allowing an optional trailing single-quote
         for (; isalnum(*p2) || *p2 == '_'; p2++);
         if (*p2 == '\'') p2++;
 
-        // Register?
-        if (!(nFlags & noRegs) && (pToken = LookupToken(p, p2 - p, asRegisters)))
-            AddNode(T_REGISTER, pToken->nToken);
+        Token token{};
+        auto str_token = std::string(p, p2);
 
-        // Variable?
-        else if (!(nFlags & noVars) && (pToken = LookupToken(p, p2 - p, asVariables)))
-            AddNode(T_VARIABLE, pToken->nToken);
-
-        // Symbol?
-        else if (!(nFlags & noSyms) && (nSymValue = Symbol::LookupSymbol(std::string(p, p2))) >= 0)
-            AddNode(T_NUMBER, nSymValue);
-
-        // Unary operator (word)?
-        else if ((pToken = LookupToken(p, p2 - p, asUnaryOps)))
+        if (!(flags & noRegs) && FindToken(str_token, reg_symbols, token))
         {
-            // Advance the input pointer ahead of the recursive call
+            AddNode(TokenType::Register, token.token);
+        }
+        else if (!(flags & noVars) && FindToken(str_token, var_symbols, token))
+        {
+            AddNode(TokenType::Variable, token.token);
+        }
+        else if (!(flags & noSyms) && (sym_value = Symbol::LookupSymbol(str_token)) >= 0)
+        {
+            AddNode(TokenType::Number, sym_value);
+        }
+        else if (FindToken(std::string(p, p2), unary_funcs, token))
+        {
             p = p2;
 
-            // Look for a factor for the unary operator
-            if (!Factor())
+            if (!Factor(p, flags))
                 return false;
 
-            AddNode(T_UNARY_OP, pToken->nToken);
+            AddNode(TokenType::UnaryOp, token.token);
             return true;
         }
         else
-            fMatched = false;
+            matched = false;
 
-        // Advanced the input if we matched
-        if (fMatched)
+        if (matched)
             p = p2;
     }
 
-    // Check for literal values next
-    if (!fMatched && !(nFlags & noVals) && isxdigit(static_cast<uint8_t>(*p)))
+    if (!matched && !(flags & noVals) && std::isxdigit(*p))
     {
-        // Assume we'll match the input
-        fMatched = true;
+        matched = true;
 
-        // Parse as decimal and hex
-        const char* pDecEnd, * pHexEnd;
-        int nDecValue = static_cast<int>(strtoul(p, (char**)&pDecEnd, 10));
-        int nHexValue = static_cast<int>(strtoul(p, (char**)&pHexEnd, 16));
+        char* pDecEnd{};
+        char* pHexEnd{};
+        int dec_value = static_cast<int>(std::strtoul(p, &pDecEnd, 10));
+        int hex_value = static_cast<int>(std::strtoul(p, &pHexEnd, 16));
 
-        // Accept decimal values with a '.' suffix
         if (*pDecEnd == '.')
         {
-            AddNode(T_NUMBER, nDecValue);
+            AddNode(TokenType::Number, dec_value);
             p = pDecEnd + 1;
         }
-
-        // Accept hex values with an 'h' suffix
         else if (tolower(*pHexEnd) == 'h')
         {
-            AddNode(T_NUMBER, nHexValue);
+            AddNode(TokenType::Number, hex_value);
             p = pHexEnd + 1;
         }
-
-        // Accept hex values using a C-style "0x" prefix
-        else if (p[0] == '0' && tolower(p[1]) == 'x')
+        else if (p[0] == '0' && p[1] == 'x')
         {
-            AddNode(T_NUMBER, nHexValue);
+            AddNode(TokenType::Number, hex_value);
             p = pHexEnd;
         }
-
-        // Accept decimal values using a WinDbg-style "0n" prefix
-        else if (p[0] == '0' && tolower(p[1]) == 'n')
+        else if (p[0] == '0' && p[1] == 'n')
         {
-            nDecValue = static_cast<int>(strtoul(p + 2, (char**)&pDecEnd, 10));
-            AddNode(T_NUMBER, nDecValue);
+            dec_value = static_cast<int>(strtoul(p + 2, (char**)&pDecEnd, 10));
+            AddNode(TokenType::Number, dec_value);
             p = pDecEnd;
         }
-
-        // Anything not followed by an alphabetic is taken as hex
         else if (!isalpha(*pHexEnd))
         {
-            AddNode(T_NUMBER, nHexValue);
+            AddNode(TokenType::Number, hex_value);
             p = pHexEnd;
         }
         else
-            fMatched = false;
+        {
+            matched = false;
+        }
     }
 
-    if (fMatched)
+    if (matched)
     {
         // Nothing more to do
     }
-
-    // Hex value with explicit prefix?
     else if ((*p == '$' || *p == '&' || *p == '#') && isxdigit(static_cast<uint8_t>(p[1])))
     {
         p++;
-        AddNode(T_NUMBER, static_cast<int>(strtoul(p, (char**)&p, 16)));
+        AddNode(TokenType::Number, static_cast<int>(strtoul(p, (char**)&p, 16)));
     }
-
-    // Binary value?
     else if (*p == '%' && (p[1] == '0' || p[1] == '1'))
     {
         unsigned u = 0;
         for (p++; *p == '0' || *p == '1'; p++)
             (u <<= 1) |= (*p - '0');
 
-        AddNode(T_NUMBER, u);
+        AddNode(TokenType::Number, u);
     }
-
-    // Quoted character?
     else if (*p == '"' || *p == '\'')
     {
-        AddNode(T_NUMBER, *++p);
+        AddNode(TokenType::Number, *++p);
 
         // Ensure the closing quote matches the open
         if (p[-1] != p[1])
@@ -685,71 +474,162 @@ bool Expr::Factor()
         else
             p += 2;
     }
-
-    // Unary operator symbol?
     else if (*p == '-' || *p == '+' || *p == '~' || *p == '!' || *p == '*' || *p == '=')
     {
         static const char* pcszUnary = "-+~!*=";
         static int anUnary[] = { OP_UMINUS, OP_UPLUS, OP_BNOT, OP_NOT, OP_DEREF, OP_EVAL };
 
-        // Remember the operator, and the node connected to the operand
         char op = *p++;
-        EXPR* pOldTail = pTail;
+        auto node_count = nodes.size();
 
-        // Look for a factor for the unary operator
-        if (!Factor())
+        if (!Factor(p, flags))
             return false;
 
-        // If it's not an eval operator, add the new node
         if (op != '=')
-            AddNode(T_UNARY_OP, anUnary[strchr(pcszUnary, op) - pcszUnary]);
-
-        // Otherwise we need to evaluate the expression now and insert the current value
+        {
+            AddNode(TokenType::UnaryOp, anUnary[strchr(pcszUnary, op) - pcszUnary]);
+        }
         else
         {
-            int n;
-
-            if (pOldTail)
-            {
-                // Step back to the old tail position for the operand
-                pTail = pOldTail;
-                n = Expr::Eval(pTail->pNext);
-                Release(pTail->pNext);
-                pTail->pNext = nullptr;
-            }
-            else
-            {
-                // Use the full stored expression
-                n = Expr::Eval(pTail);
-                Release(pTail);
-                pHead = pTail = nullptr;
-            }
-
-            AddNode(T_NUMBER, n);
+            auto n = Expr::Eval(std::vector<Node>(nodes.begin() + node_count, nodes.end()));
+            nodes.resize(node_count);
+            AddNode(TokenType::Number, n);
         }
     }
-
-    // Program Counter '$' symbol?
-    else if (*p == '$' && !(nFlags & noRegs))
+    else if (*p == '$' && !(flags & noRegs))
     {
-        AddNode(T_REGISTER, REG_PC);
+        AddNode(TokenType::Register, REG_PC);
         p++;
     }
-
-    // Expression in parentheses?
     else if (*p == '(')
     {
         p++;
-        if (!Term() || *p++ != ')')
+        if (!Term(p, flags) || *p++ != ')')
             return false;
     }
-
-    // Input not recognised
     else
+    {
         return false;
+    }
 
-    // Strip trailing whitespace
-    for (; isspace(*p); p++);
+    for (; std::isspace(static_cast<uint8_t>(*p)); p++);
 
     return true;
+}
+
+int Expr::GetReg(int reg)
+{
+    int ret = 0;
+
+    switch (reg)
+    {
+    case REG_A:         ret = A;      break;
+    case REG_F:         ret = F;      break;
+    case REG_B:         ret = B;      break;
+    case REG_C:         ret = C;      break;
+    case REG_D:         ret = D;      break;
+    case REG_E:         ret = E;      break;
+    case REG_H:         ret = H;      break;
+    case REG_L:         ret = L;      break;
+
+    case REG_ALT_A:     ret = A_;     break;
+    case REG_ALT_F:     ret = F_;     break;
+    case REG_ALT_B:     ret = B_;     break;
+    case REG_ALT_C:     ret = C_;     break;
+    case REG_ALT_D:     ret = D_;     break;
+    case REG_ALT_E:     ret = E_;     break;
+    case REG_ALT_H:     ret = H_;     break;
+    case REG_ALT_L:     ret = L_;     break;
+
+    case REG_AF:        ret = AF;     break;
+    case REG_BC:        ret = BC;     break;
+    case REG_DE:        ret = DE;     break;
+    case REG_HL:        ret = HL;     break;
+
+    case REG_ALT_AF:    ret = AF_;    break;
+    case REG_ALT_BC:    ret = BC_;    break;
+    case REG_ALT_DE:    ret = DE_;    break;
+    case REG_ALT_HL:    ret = HL_;    break;
+
+    case REG_IX:        ret = IX;     break;
+    case REG_IY:        ret = IY;     break;
+    case REG_SP:        ret = SP;     break;
+    case REG_PC:        ret = PC;     break;
+
+    case REG_IXH:       ret = IXH;    break;
+    case REG_IXL:       ret = IXL;    break;
+    case REG_IYH:       ret = IYH;    break;
+    case REG_IYL:       ret = IYL;    break;
+
+    case REG_SPH:       ret = SPH;    break;
+    case REG_SPL:       ret = SPL;    break;
+    case REG_PCH:       ret = PCH;    break;
+    case REG_PCL:       ret = PCL;    break;
+
+    case REG_I:         ret = I;      break;
+    case REG_R:         ret = (R7 & 0x80) | (R & 0x7f); break;
+    case REG_IFF1:      ret = IFF1;   break;
+    case REG_IFF2:      ret = IFF2;   break;
+    case REG_IM:        ret = IM;     break;
+    }
+
+    return ret;
+}
+
+void Expr::SetReg(int reg, int value)
+{
+    auto w = static_cast<uint16_t>(value);
+    uint8_t b = w & 0xff;
+
+    switch (reg)
+    {
+    case REG_A:      A = b; break;
+    case REG_F:      F = b; break;
+    case REG_B:      B = b; break;
+    case REG_C:      C = b; break;
+    case REG_D:      D = b; break;
+    case REG_E:      E = b; break;
+    case REG_H:      H = b; break;
+    case REG_L:      L = b; break;
+
+    case REG_ALT_A:  A_ = b; break;
+    case REG_ALT_F:  F_ = b; break;
+    case REG_ALT_B:  B_ = b; break;
+    case REG_ALT_C:  C_ = b; break;
+    case REG_ALT_D:  D_ = b; break;
+    case REG_ALT_E:  E_ = b; break;
+    case REG_ALT_H:  H_ = b; break;
+    case REG_ALT_L:  L_ = b; break;
+
+    case REG_AF:     AF = w; break;
+    case REG_BC:     BC = w; break;
+    case REG_DE:     DE = w; break;
+    case REG_HL:     HL = w; break;
+
+    case REG_ALT_AF: AF_ = w; break;
+    case REG_ALT_BC: BC_ = w; break;
+    case REG_ALT_DE: DE_ = w; break;
+    case REG_ALT_HL: HL_ = w; break;
+
+    case REG_IX:     IX = w; break;
+    case REG_IY:     IY = w; break;
+    case REG_SP:     SP = w; break;
+    case REG_PC:     PC = w; break;
+
+    case REG_IXH:    IXH = b; break;
+    case REG_IXL:    IXL = b; break;
+    case REG_IYH:    IYH = b; break;
+    case REG_IYL:    IYL = b; break;
+
+    case REG_SPH:    SPH = b; break;
+    case REG_SPL:    SPL = b; break;
+    case REG_PCH:    PCH = b; break;
+    case REG_PCL:    PCL = b; break;
+
+    case REG_I:      I = b; break;
+    case REG_R:      R7 = R = b; break;
+    case REG_IFF1:   IFF1 = !!b; break;
+    case REG_IFF2:   IFF2 = !!b; break;
+    case REG_IM:     if (b <= 2) IM = b; break;
+    }
 }

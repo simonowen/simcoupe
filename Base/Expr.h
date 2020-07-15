@@ -20,65 +20,60 @@
 
 #pragma once
 
-struct EXPR;
-
-class Expr
+struct Expr
 {
-public:
-    // Flags to limit expression scope
-    enum {
-        none = 0x00, noRegs = 0x01, noVars = 0x02, noFuncs = 0x04, noVals = 0x08, noSyms = 0x10,
+    enum
+    {
+        noFlags = 0x00, noRegs = 0x01, noVars = 0x02, noFuncs = 0x04, noVals = 0x08, noSyms = 0x10,
         valOnly = noRegs | noVars | noFuncs | noSyms, regOnly = noVars | noFuncs | noVals | noSyms, simple = valOnly
     };
 
-public:
-    static EXPR* Compile(const char* pcsz_, char** ppszEnd_ = nullptr, int nFlags_ = none);
-    static void Release(EXPR* pExpr_);
-    static int Eval(const EXPR* pExpr_);
-    static bool Eval(const char* pcsz_, int* pnValue_, char** ppszEnd_ = nullptr, int nFlags_ = none);
+    enum class TokenType { Unknown, Number, UnaryOp, BinaryOp, Register, Variable };
 
-public:
-    static int GetReg(int nReg_);
-    static void SetReg(int nReg_, int nValue_);
+    struct Node
+    {
+        TokenType type{ TokenType::Unknown };
+        int value{};
+    };
 
-public:
-    static EXPR Counter;
-    static int nCount;
+    static Expr Compile(std::string str);
+    static Expr Compile(std::string str, std::string& remain, int flags = noFlags);
+    static bool Eval(const std::string& str, int& value, std::string& remain, int flags = noFlags);
+    static int GetReg(int reg);
+    static void SetReg(int reg, int value);
+
+    operator bool() const { return !nodes.empty(); }
+    bool IsTokenType(TokenType type) const;
+    int Eval() const;
+    int TokenValue() const;
+
+    static const Expr Counter;
+    static int count;
+
+    std::string str;
+    std::vector<Node> nodes;
 
 protected:
-    static bool Term(int n_ = 0);
-    static bool Factor();
+    static int Eval(const std::vector<Node>& nodes);
+
+    void AddNode(TokenType type, int value);
+    bool Term(const char*& p, int flags, int level = 0);
+    bool Factor(const char*& p, int flags);
 };
 
-
-struct EXPR
+enum : int
 {
-    int nType, nValue;      // Item type and type-specific value
-    EXPR* pNext;  // Link to next item in expression
-    const char* pcszExpr;   // Original expression text (head item only)
-
-private:
-    ~EXPR() = default;  // Use Expr::Release() to delete Expr chains
-    friend class Expr;
+    OP_UMINUS, OP_UPLUS, OP_BNOT, OP_NOT, OP_DEREF, OP_PEEK, OP_DPEEK, OP_EVAL
 };
 
-
-// Leave the enums public to allow some poking around the tokenised expressions by calling code
-
-// Token types
-enum { T_NUMBER, T_UNARY_OP, T_BINARY_OP, T_REGISTER, T_VARIABLE, T_FUNCTION };
-
-// Unary operators
-enum { OP_UMINUS, OP_UPLUS, OP_BNOT, OP_NOT, OP_DEREF, OP_PEEK, OP_DPEEK, OP_EVAL };
-
-// Binary operators
-enum {
+enum : int
+{
     OP_AND, OP_OR, OP_BOR, OP_BXOR, OP_BAND, OP_EQ, OP_NE, OP_LT, OP_LE, OP_GE,
     OP_GT, OP_SHIFTL, OP_SHIFTR, OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_MOD
 };
 
-// Registers and (read-only) variables
-enum {
+enum : int
+{
     REG_A, REG_F, REG_B, REG_C, REG_D, REG_E, REG_H, REG_L,
     REG_ALT_A, REG_ALT_F, REG_ALT_B, REG_ALT_C, REG_ALT_D, REG_ALT_E, REG_ALT_H, REG_ALT_L,
     REG_AF, REG_BC, REG_DE, REG_HL, REG_ALT_AF, REG_ALT_BC, REG_ALT_DE, REG_ALT_HL,

@@ -266,7 +266,7 @@ public:
     void SetView(ViewType nView);
     void SetStatus(const char* pcsz_, bool fOneShot_ = false, std::shared_ptr<Font> font = {});
     void SetStatusByte(uint16_t wAddr_);
-    bool Execute(const char* pcszCommand_);
+    bool Execute(const std::string& cmdline);
 
 protected:
     View* m_pView = nullptr;
@@ -279,7 +279,7 @@ protected:
 };
 
 
-typedef bool (*PFNINPUTPROC)(EXPR* pExpr_);
+typedef bool (*PFNINPUTPROC)(const Expr& expr);
 
 class InputDialog final : public Dialog
 {

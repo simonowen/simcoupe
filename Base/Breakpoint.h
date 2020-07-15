@@ -58,14 +58,11 @@ struct BREAKINT
 
 struct BREAKPT
 {
-    BREAKPT(BreakpointType nType_, EXPR* pExpr_)
-        : nType(nType_), pExpr(pExpr_) { }
-    BREAKPT(const BREAKPT&) = delete;
-    void operator= (const BREAKPT&) = delete;
-    ~BREAKPT() { Expr::Release(pExpr); }
+    BREAKPT(BreakpointType nType_, const Expr& expr)
+        : nType(nType_), expr(expr) { }
 
     BreakpointType nType;
-    EXPR* pExpr = nullptr;
+    Expr expr;
     bool fEnabled = true;
 
     union
@@ -87,12 +84,12 @@ public:
     static bool IsSet();
     static bool IsHit();
     static void Add(BREAKPT* pBreak_);
-    static void AddTemp(void* pPhysAddr_, EXPR* pExpr_);
-    static void AddUntil(EXPR* pExpr_);
-    static void AddExec(void* pPhysAddr_, EXPR* pExpr_);
-    static void AddMemory(void* pPhysAddr_, AccessType nAccess_, EXPR* pExpr_, int nLength_ = 1);
-    static void AddPort(uint16_t wPort_, AccessType nAccess_, EXPR* pExpr_);
-    static void AddInterrupt(uint8_t bIntMask_, EXPR* pExpr_);
+    static void AddTemp(void* pPhysAddr_, const Expr& expr);
+    static void AddUntil(const Expr& expr);
+    static void AddExec(void* pPhysAddr_, const Expr& expr);
+    static void AddMemory(void* pPhysAddr_, AccessType nAccess_, const Expr& expr, int nLength_ = 1);
+    static void AddPort(uint16_t wPort_, AccessType nAccess_, const Expr& expr);
+    static void AddInterrupt(uint8_t bIntMask_, const Expr& expr);
     static const char* GetDesc(BREAKPT* pBreak_);
     static BREAKPT* GetAt(int nIndex_);
     static bool IsExecAddr(uint16_t wAddr_);

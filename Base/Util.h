@@ -42,6 +42,8 @@ void AdjustBrightness(uint8_t& r_, uint8_t& g_, uint8_t& b_, int nAdjust_);
 uint32_t RGB2Native(uint8_t r_, uint8_t g_, uint8_t b_, uint32_t dwRMask_, uint32_t dwGMask_, uint32_t dwBMask_);
 uint32_t RGB2Native(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_, uint32_t dwRMask_, uint32_t dwGMask_, uint32_t dwBMask_, uint32_t dwAMask_);
 
+std::string tolower(std::string str);
+
 void TraceOutputString(const char* pcszFormat, ...);
 void TraceOutputString(const uint8_t* pcb_, size_t uLen_ = 0);
 

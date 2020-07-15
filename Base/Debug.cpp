@@ -286,13 +286,14 @@ void cmdStep(int nCount_ = 1, bool fCtrl_ = false)
 
     // If an address has been set, execute up to it
     if (pPhysAddr)
-        Breakpoint::AddTemp(pPhysAddr, nullptr);
+        Breakpoint::AddTemp(pPhysAddr, {});
 
     // Otherwise execute the requested number of instructions
     else
     {
-        Expr::nCount = nCount_;
-        Breakpoint::AddTemp(nullptr, &Expr::Counter);
+        Expr::count = nCount_;
+        auto expr = Expr::Counter;
+        Breakpoint::AddTemp(nullptr, expr);
     }
 
     Debug::Stop();
@@ -338,7 +339,7 @@ void cmdStepOver(bool fCtrl_ = false)
         cmdStep();
     else
     {
-        Breakpoint::AddTemp(pPhysAddr, nullptr);
+        Breakpoint::AddTemp(pPhysAddr, {});
         Debug::Stop();
     }
 }
@@ -373,13 +374,12 @@ void InputDialog::OnNotify(Window* pWindow_, int nParam_)
     {
         // Fetch and compile the input expression
         const char* pcszExpr = m_pInput->GetText();
-        EXPR* pExpr = Expr::Compile(pcszExpr);
+        auto expr = Expr::Compile(pcszExpr);
 
         // Close the dialog if the input was blank, or the notify handler tells us
-        if (!*pcszExpr || (pExpr && m_pfnNotify(pExpr)))
+        if (!*pcszExpr || (expr && m_pfnNotify(expr)))
         {
             Destroy();
-            Expr::Release(pExpr);
             pDebugger->Refresh();
         }
     }
@@ -387,71 +387,73 @@ void InputDialog::OnNotify(Window* pWindow_, int nParam_)
 
 
 // Notify handler for New Address input
-static bool OnAddressNotify(EXPR* pExpr_)
+static bool OnAddressNotify(const Expr& expr)
 {
-    int nAddr = Expr::Eval(pExpr_);
+    int nAddr = expr.Eval();
     pDebugger->SetAddress(nAddr, true);
     return true;
 }
 
 // Notify handler for Execute Until expression
-static bool OnUntilNotify(EXPR* pExpr_)
+static bool OnUntilNotify(const Expr& expr)
 {
-    if (pExpr_->nType == T_NUMBER && !pExpr_->pNext)
+    if (expr.IsTokenType(Expr::TokenType::Number))
     {
         std::stringstream ss;
-        ss << "PC==" << std::hex << pExpr_->nValue;
-        Expr::Release(pExpr_);
-        pExpr_ = Expr::Compile(ss.str().c_str());
+        ss << "PC==" << std::hex << expr.nodes.front().value;
+        Breakpoint::AddTemp(nullptr, Expr::Compile(ss.str().c_str()));
+    }
+    else
+    {
+        Breakpoint::AddTemp(nullptr, expr);
     }
 
-    Breakpoint::AddTemp(nullptr, pExpr_);
     Debug::Stop();
     return false;
 }
 
 // Notify handler for Change Lmpr input
-static bool OnLmprNotify(EXPR* pExpr_)
+static bool OnLmprNotify(const Expr& expr)
 {
-    int nPage = Expr::Eval(pExpr_) & LMPR_PAGE_MASK;
+    int nPage = expr.Eval() & LMPR_PAGE_MASK;
     IO::OutLmpr((lmpr & ~LMPR_PAGE_MASK) | nPage);
     return true;
 }
 
 // Notify handler for Change Hmpr input
-static bool OnHmprNotify(EXPR* pExpr_)
+static bool OnHmprNotify(const Expr& expr)
 {
-    int nPage = Expr::Eval(pExpr_) & HMPR_PAGE_MASK;
+    int nPage = expr.Eval() & HMPR_PAGE_MASK;
     IO::OutHmpr((hmpr & ~HMPR_PAGE_MASK) | nPage);
     return true;
 }
 
 // Notify handler for Change Lmpr input
-static bool OnLeprNotify(EXPR* pExpr_)
+static bool OnLeprNotify(const Expr& expr)
 {
-    IO::OutLepr(Expr::Eval(pExpr_));
+    IO::OutLepr(expr.Eval());
     return true;
 }
 
 // Notify handler for Change Hepr input
-static bool OnHeprNotify(EXPR* pExpr_)
+static bool OnHeprNotify(const Expr& expr)
 {
-    IO::OutHepr(Expr::Eval(pExpr_));
+    IO::OutHepr(expr.Eval());
     return true;
 }
 
 // Notify handler for Change Vmpr input
-static bool OnVmprNotify(EXPR* pExpr_)
+static bool OnVmprNotify(const Expr& expr)
 {
-    int nPage = Expr::Eval(pExpr_) & VMPR_PAGE_MASK;
+    int nPage = expr.Eval() & VMPR_PAGE_MASK;
     IO::OutVmpr(VMPR_MODE | nPage);
     return true;
 }
 
 // Notify handler for Change Mode input
-static bool OnModeNotify(EXPR* pExpr_)
+static bool OnModeNotify(const Expr& expr)
 {
-    int nMode = Expr::Eval(pExpr_);
+    int nMode = expr.Eval();
     if (nMode < 1 || nMode > 4)
         return false;
 
@@ -584,10 +586,9 @@ Debugger::Debugger(BREAKPT* pBreak_/*=nullptr*/)
 
         if (pBreak_->nType != btTemp)
             snprintf(sz, sizeof(sz) - 1, "\aYBreakpoint %d hit:  %s", Breakpoint::GetIndex(pBreak_), Breakpoint::GetDesc(pBreak_));
-        else
+        else if (pBreak_->expr && pBreak_->expr.str != "(counter)")
         {
-            if (pBreak_->pExpr && pBreak_->pExpr != &Expr::Counter)
-                snprintf(sz, sizeof(sz) - 1, "\aYUNTIL condition met:  %s", pBreak_->pExpr->pcszExpr);
+            snprintf(sz, sizeof(sz) - 1, "\aYUNTIL condition met:  %s", pBreak_->expr.str.c_str());
         }
 
         SetStatus(sz, true, sPropFont);
@@ -959,27 +960,32 @@ AccessType GetAccessParam(const char* pcsz_)
     return atNone;
 }
 
-bool Debugger::Execute(const char* pcszCommand_)
+bool Debugger::Execute(const std::string& cmdline)
 {
     bool fRet = true;
 
     char* psz = nullptr;
 
-    char szCommand[256] = {};
-    strncpy(szCommand, pcszCommand_, sizeof(szCommand) - 1);
-    char* pszCommand = strtok(szCommand, " ");
-    if (!pszCommand)
+    std::istringstream ss(cmdline);
+    std::string command;
+    if (!std::getline(ss, command, ' '))
         return false;
 
-    // Locate any parameter, stripping leading spaces
-    char* pszParam = pszCommand + strlen(pszCommand) + 1;
-    for (; *pszParam == ' '; pszParam++);
-    bool fCommandOnly = !*pszParam;
+    std::string args;
+    ss >> args;
+    ss.str(args);
+
+    bool fCommandOnly = args.empty();
 
     // Evaluate the parameter as an expression
-    char* pszExprEnd = nullptr;
-    EXPR* pExpr = Expr::Compile(pszParam, &pszExprEnd);
-    int nParam = Expr::Eval(pExpr);
+    std::string remain;
+    auto expr = Expr::Compile(args, remain);
+    int nParam = expr.Eval();
+
+    // Temporary compatibility hacks, to reduce changes to existing raw pointers.
+    auto pszCommand = command.data();
+    auto pszParam = args.data();
+    auto pszExprEnd = remain.data();
 
     // nop
     if (fCommandOnly && (!strcasecmp(pszCommand, "nop")))
@@ -1009,7 +1015,7 @@ bool Debugger::Execute(const char* pcszCommand_)
     // im 0|1|2
     else if (!strcasecmp(pszCommand, "im"))
     {
-        if (nParam >= 0 && nParam <= 2 && !*pszExprEnd)
+        if (nParam >= 0 && nParam <= 2 && remain.empty())
             IM = nParam;
         else
             fRet = false;
@@ -1047,7 +1053,7 @@ bool Debugger::Execute(const char* pcszCommand_)
     }
 
     // call addr
-    else if (!strcasecmp(pszCommand, "call") && nParam != -1 && !*pszExprEnd)
+    else if (!strcasecmp(pszCommand, "call") && nParam != -1 && remain.empty())
     {
         SP -= 2;
         write_word(SP, PC);
@@ -1062,7 +1068,7 @@ bool Debugger::Execute(const char* pcszCommand_)
     }
 
     // push value
-    else if (!strcasecmp(pszCommand, "push") && nParam != -1 && !*pszExprEnd)
+    else if (!strcasecmp(pszCommand, "push") && nParam != -1 && remain.empty())
     {
         SP -= 2;
         write_word(SP, nParam);
@@ -1072,14 +1078,13 @@ bool Debugger::Execute(const char* pcszCommand_)
     else if (!strcasecmp(pszCommand, "pop"))
     {
         // Re-parse the first argument as a register
-        Expr::Release(pExpr);
-        pExpr = Expr::Compile(pszParam, &pszExprEnd, Expr::regOnly);
+        expr = Expr::Compile(pszParam, remain, Expr::regOnly);
 
         if (fCommandOnly)
             SP += 2;
-        else if (pExpr && pExpr->nType == T_REGISTER && !pExpr->pNext && !*pszExprEnd)
+        else if (expr.IsTokenType(Expr::TokenType::Register) && remain.empty())
         {
-            Expr::SetReg(pExpr->nValue, read_word(SP));
+            Expr::SetReg(expr.TokenValue(), read_word(SP));
             SP += 2;
         }
         else
@@ -1112,8 +1117,8 @@ bool Debugger::Execute(const char* pcszCommand_)
 
             if (fRet)
             {
-                Expr::nCount = nParam;
-                Break.pExpr = &Expr::Counter;
+                Expr::count = nParam;
+                Break.expr = &Expr::Counter;
                 Stop();
             }
         }
@@ -1124,10 +1129,10 @@ bool Debugger::Execute(const char* pcszCommand_)
         psz = strtok(pszExprEnd, " ");
 
         // x 123  (instruction count)
-        if (nParam != -1 && !*pszExprEnd)
+        if (nParam != -1 && remain.empty())
         {
-            Expr::nCount = nParam;
-            Breakpoint::AddTemp(nullptr, &Expr::Counter);
+            Expr::count = nParam;
+            Breakpoint::AddTemp(nullptr, Expr::Counter);
             Debug::Stop();
             return false;
         }
@@ -1135,11 +1140,11 @@ bool Debugger::Execute(const char* pcszCommand_)
         else if (psz && !strcasecmp(psz, "until"))
         {
             psz += strlen(psz) + 1;
-            EXPR* pExpr2 = Expr::Compile(psz);
+            auto expr2 = Expr::Compile(psz);
 
             // If we have an expression set a temporary breakpoint using it
-            if (pExpr2)
-                Breakpoint::AddTemp(nullptr, pExpr2);
+            if (expr2)
+                Breakpoint::AddTemp(nullptr, expr2);
             else
                 fRet = false;
         }
@@ -1157,7 +1162,7 @@ bool Debugger::Execute(const char* pcszCommand_)
     // until expr
     else if (!strcasecmp(pszCommand, "u") || !strcasecmp(pszCommand, "until"))
     {
-        if (nParam != -1 && !*pszExprEnd)
+        if (nParam != -1 && remain.empty())
         {
             Breakpoint::AddTemp(nullptr, Expr::Compile(pszParam));
             Debug::Stop();
@@ -1168,24 +1173,24 @@ bool Debugger::Execute(const char* pcszCommand_)
     }
 
     // bpu cond
-    else if (!strcasecmp(pszCommand, "bpu") && nParam != -1 && !*pszExprEnd)
+    else if (!strcasecmp(pszCommand, "bpu") && nParam != -1 && remain.empty())
     {
-        Breakpoint::AddUntil(Expr::Compile(pszParam));
+        Breakpoint::AddUntil(expr);
     }
 
     // bpx addr [if cond]
     else if (!strcasecmp(pszCommand, "bpx") && nParam != -1)
     {
-        EXPR* pExpr = nullptr;
+        Expr expr;
         void* pPhysAddr = nullptr;
 
         // Physical address?
         if (*pszExprEnd == ':')
         {
             int nPage = nParam;
-            int nOffset;
+            int nOffset{};
 
-            if (nPage < NUM_INTERNAL_PAGES && Expr::Eval(pszExprEnd + 1, &nOffset, &pszExprEnd) && nOffset < MEM_PAGE_SIZE)
+            if (nPage < NUM_INTERNAL_PAGES && Expr::Eval(pszExprEnd + 1, nOffset, remain) && nOffset < MEM_PAGE_SIZE)
                 pPhysAddr = PageReadPtr(nPage) + nOffset;
             else
                 fRet = false;
@@ -1196,6 +1201,7 @@ bool Debugger::Execute(const char* pcszCommand_)
         }
 
         // Extract a token from after the location expression
+        pszExprEnd = remain.data();
         psz = strtok(pszExprEnd, " ");
 
         if (psz)
@@ -1205,21 +1211,21 @@ bool Debugger::Execute(const char* pcszCommand_)
             {
                 // Compile the expression following it
                 psz += strlen(psz) + 1;
-                pExpr = Expr::Compile(psz);
-                fRet &= pExpr != nullptr;
+                expr = Expr::Compile(psz);
+                fRet &= expr;
             }
             else
                 fRet = false;
         }
 
         if (fRet)
-            Breakpoint::AddExec(pPhysAddr, pExpr);
+            Breakpoint::AddExec(pPhysAddr, expr);
     }
 
     // bpm addr [rw|r|w] [if cond]
     else if (!strcasecmp(pszCommand, "bpm") && nParam != -1)
     {
-        EXPR* pExpr = nullptr;
+        Expr expr;
         void* pPhysAddr = nullptr;
 
         // Default is read/write
@@ -1229,9 +1235,9 @@ bool Debugger::Execute(const char* pcszCommand_)
         if (*pszExprEnd == ':')
         {
             int nPage = nParam;
-            int nOffset;
+            int nOffset{};
 
-            if (nPage < NUM_INTERNAL_PAGES && Expr::Eval(pszExprEnd + 1, &nOffset, &pszExprEnd) && nOffset < MEM_PAGE_SIZE)
+            if (nPage < NUM_INTERNAL_PAGES && Expr::Eval(pszExprEnd + 1, nOffset, remain) && nOffset < MEM_PAGE_SIZE)
                 pPhysAddr = PageReadPtr(nPage) + nOffset;
             else
                 fRet = false;
@@ -1242,6 +1248,7 @@ bool Debugger::Execute(const char* pcszCommand_)
         }
 
         // Extract a token from after the location expression
+        pszExprEnd = remain.data();
         psz = strtok(pszExprEnd, " ");
 
         if (psz)
@@ -1264,21 +1271,21 @@ bool Debugger::Execute(const char* pcszCommand_)
             {
                 // Compile the expression following it
                 psz += strlen(psz) + 1;
-                pExpr = Expr::Compile(psz);
-                fRet = pExpr != nullptr;
+                expr = Expr::Compile(psz);
+                fRet = expr;
             }
             else
                 fRet = false;
         }
 
         if (fRet)
-            Breakpoint::AddMemory(pPhysAddr, nAccess, pExpr);
+            Breakpoint::AddMemory(pPhysAddr, nAccess, expr);
     }
 
     // bpmr addrfrom addrto [rw|r|w] [if cond]
     else if (!strcasecmp(pszCommand, "bpmr") && nParam != -1)
     {
-        EXPR* pExpr = nullptr;
+        Expr expr;
         void* pPhysAddr = nullptr;
 
         // Default is read/write
@@ -1288,9 +1295,9 @@ bool Debugger::Execute(const char* pcszCommand_)
         if (*pszExprEnd == ':')
         {
             int nPage = nParam;
-            int nOffset;
+            int nOffset{};
 
-            if (nPage < NUM_INTERNAL_PAGES && Expr::Eval(pszExprEnd + 1, &nOffset, &pszExprEnd) && nOffset < MEM_PAGE_SIZE)
+            if (nPage < NUM_INTERNAL_PAGES && Expr::Eval(pszExprEnd + 1, nOffset, remain) && nOffset < MEM_PAGE_SIZE)
                 pPhysAddr = PageReadPtr(nPage) + nOffset;
             else
                 fRet = false;
@@ -1301,15 +1308,15 @@ bool Debugger::Execute(const char* pcszCommand_)
         }
 
         // Parse a length expression
-        EXPR* pExpr2 = Expr::Compile(pszExprEnd, &pszExprEnd);
-        int nLength = Expr::Eval(pExpr2);
-        Expr::Release(pExpr2);
+        auto expr2 = Expr::Compile(remain, remain);
+        int nLength = expr2.Eval();
 
         // Length must be valid and non-zero
         if (nLength <= 0)
             fRet = false;
 
         // Extract a token from after the length expression
+        pszExprEnd = remain.data();
         psz = strtok(pszExprEnd, " ");
 
         if (psz)
@@ -1332,15 +1339,15 @@ bool Debugger::Execute(const char* pcszCommand_)
             {
                 // Compile the expression following it
                 psz += strlen(psz) + 1;
-                pExpr = Expr::Compile(psz);
-                fRet = pExpr != nullptr;
+                expr = Expr::Compile(psz);
+                fRet = expr;
             }
             else
                 fRet = false;
         }
 
         if (fRet)
-            Breakpoint::AddMemory(pPhysAddr, nAccess, pExpr, nLength);
+            Breakpoint::AddMemory(pPhysAddr, nAccess, expr, nLength);
     }
 
     // bpio port [rw|r|w] [if cond]
@@ -1348,7 +1355,7 @@ bool Debugger::Execute(const char* pcszCommand_)
     {
         // Default is read/write and no expression
         AccessType nAccess = atReadWrite;
-        EXPR* pExpr = nullptr;
+        Expr expr;
 
         // Extract a token from after the port expression
         psz = strtok(pszExprEnd, " ");
@@ -1373,21 +1380,21 @@ bool Debugger::Execute(const char* pcszCommand_)
             {
                 // Compile the expression following it
                 psz += strlen(psz) + 1;
-                pExpr = Expr::Compile(psz);
-                fRet = pExpr != nullptr;
+                expr = Expr::Compile(psz);
+                fRet = expr;
             }
             else
                 fRet = false;
         }
 
-        Breakpoint::AddPort(nParam, nAccess, pExpr);
+        Breakpoint::AddPort(nParam, nAccess, expr);
     }
 
     // bpint frame|line|midi
     else if (!strcasecmp(pszCommand, "bpint"))
     {
         uint8_t bMask = 0x00;
-        EXPR* pExpr = nullptr;
+        Expr expr;
 
         if (fCommandOnly)
             bMask = 0x1f;
@@ -1405,12 +1412,12 @@ bool Debugger::Execute(const char* pcszCommand_)
                     bMask |= STATUS_INT_MIDIIN;
                 else if (!strcasecmp(psz, "midiout") || !strcasecmp(psz, "mo"))
                     bMask |= STATUS_INT_MIDIOUT;
-                else if (!strcasecmp(psz, "if") && !pExpr)
+                else if (!strcasecmp(psz, "if") && !expr)
                 {
                     // Compile the expression following it
                     psz += strlen(psz) + 1;
-                    pExpr = Expr::Compile(psz);
-                    fRet = pExpr != nullptr;
+                    expr = Expr::Compile(psz);
+                    fRet = expr;
                     break;
                 }
                 else
@@ -1419,7 +1426,7 @@ bool Debugger::Execute(const char* pcszCommand_)
         }
 
         if (fRet)
-            Breakpoint::AddInterrupt(bMask, pExpr);
+            Breakpoint::AddInterrupt(bMask, expr);
     }
 
     // flag [+|-][sz5h3vnc]
@@ -1464,7 +1471,7 @@ bool Debugger::Execute(const char* pcszCommand_)
     // bc n  or  bc *
     else if (!strcasecmp(pszCommand, "bc"))
     {
-        if (nParam != -1 && !*pszExprEnd)
+        if (nParam != -1 && remain.empty())
             fRet = Breakpoint::RemoveAt(nParam);
         else if (!strcmp(pszParam, "*"))
             Breakpoint::RemoveAll();
@@ -1477,7 +1484,7 @@ bool Debugger::Execute(const char* pcszCommand_)
     {
         bool fNewState = !strcasecmp(pszCommand, "be");
 
-        if (nParam != -1 && !*pszExprEnd)
+        if (nParam != -1 && remain.empty())
         {
             BREAKPT* pBreak = Breakpoint::GetAt(nParam);
             if (pBreak)
@@ -1507,52 +1514,49 @@ bool Debugger::Execute(const char* pcszCommand_)
     // ex reg,reg2
     else if (!strcasecmp(pszCommand, "ex"))
     {
-        EXPR* pExpr2 = nullptr;
+        Expr expr2;
 
         // Re-parse the first argument as a register
-        Expr::Release(pExpr);
-        pExpr = Expr::Compile(pszParam, &pszExprEnd, Expr::regOnly);
+        expr = Expr::Compile(pszParam, remain, Expr::regOnly);
 
         // Locate and extract the second register parameter
         if ((psz = strtok(pszExprEnd, ",")))
-            pExpr2 = Expr::Compile(psz, nullptr, Expr::regOnly);
+            expr2 = Expr::Compile(psz, remain, Expr::regOnly);
 
         // Accept if both parameters are registers
-        if (pExpr && pExpr->nType == T_REGISTER && !pExpr->pNext &&
-            pExpr2 && pExpr2->nType == T_REGISTER && !pExpr2->pNext)
+        if (expr.IsTokenType(Expr::TokenType::Register) && expr2.IsTokenType(Expr::TokenType::Register))
         {
-            int nReg = Expr::GetReg(pExpr->nValue);
-            int nReg2 = Expr::GetReg(pExpr2->nValue);
-            Expr::SetReg(pExpr->nValue, nReg2);
-            Expr::SetReg(pExpr2->nValue, nReg);
+            auto reg1 = expr.TokenValue();
+            auto reg2 = expr.TokenValue();
+            auto reg1_value = Expr::GetReg(reg1);
+            auto reg2_value = Expr::GetReg(reg2);
+            Expr::SetReg(reg1, reg2_value);
+            Expr::SetReg(reg2, reg1_value);
         }
         else
             fRet = false;
-
-        Expr::Release(pExpr2);
     }
 
     // ld reg,value  or  r reg=value  or  r reg value
     else if (!strcasecmp(pszCommand, "r") || !strcasecmp(pszCommand, "ld"))
     {
-        int nValue;
+        int value{};
 
         // Re-parse the first argument as a register
-        Expr::Release(pExpr);
-        pExpr = Expr::Compile(pszParam, &pszExprEnd, Expr::regOnly);
+        expr = Expr::Compile(pszParam, remain, Expr::regOnly);
 
         // Locate second parameter (either  ld hl,123  or r hl=123  syntax)
         psz = strtok(pszExprEnd, ",=");
 
         // The first parameter must be a register, the second can be any value
-        if (pExpr && pExpr->nType == T_REGISTER && !pExpr->pNext && psz && Expr::Eval(psz, &nValue))
+        if (expr.IsTokenType(Expr::TokenType::Register) && psz && Expr::Eval(psz, value, remain))
         {
             // If the view address matches PC, and PC is being set, update the view
-            if (m_pView->GetAddress() == PC && pExpr->nValue == REG_PC)
-                m_pView->SetAddress(nValue, true);
+            if (m_pView->GetAddress() == PC && expr.TokenValue() == REG_PC)
+                m_pView->SetAddress(value, true);
 
             // Set the register value
-            Expr::SetReg(pExpr->nValue, nValue);
+            Expr::SetReg(expr.TokenValue(), value);
         }
         else
             fRet = false;
@@ -1561,14 +1565,14 @@ bool Debugger::Execute(const char* pcszCommand_)
     // out port,value
     else if (!strcasecmp(pszCommand, "out") && nParam != -1)
     {
-        int nValue;
+        int value{};
 
         // Locate value to output
         psz = strtok(pszExprEnd, ",");
 
         // Evaluate and output it
-        if (psz && Expr::Eval(psz, &nValue))
-            IO::Out(nParam, nValue);
+        if (psz && Expr::Eval(psz, value, remain))
+            IO::Out(nParam, value);
         else
             fRet = false;
     }
@@ -1581,9 +1585,9 @@ bool Debugger::Execute(const char* pcszCommand_)
 
         for (psz = strtok(pszExprEnd, ","); fRet && psz; psz = strtok(nullptr, ","))
         {
-            int nVal;
+            int nVal{};
 
-            if (Expr::Eval(psz, &nVal, &pszExprEnd) && !*pszExprEnd)
+            if (Expr::Eval(psz, nVal, remain) && remain.empty())
             {
                 ab[nBytes++] = nVal;
 
@@ -1605,7 +1609,6 @@ bool Debugger::Execute(const char* pcszCommand_)
     else
         fRet = false;
 
-    Expr::Release(pExpr);
     return fRet;
 }
 
@@ -1738,7 +1741,7 @@ void DisView::Draw(FrameBuffer& fb)
         auto pPhysAddr = AddrReadPtr(s_wAddrs[u]);
         int nIndex = Breakpoint::GetExecIndex(pPhysAddr);
         if (nIndex != -1)
-            bColour = Breakpoint::GetAt(nIndex)->pExpr ? 'M' : 'R';
+            bColour = Breakpoint::GetAt(nIndex)->expr ? 'M' : 'R';
 
         // Show the current entry normally if it's not the current code target, otherwise show all
         // in black text with an arrow instead of the address, indicating it's the code target.
@@ -1873,7 +1876,7 @@ bool DisView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
             // If there's no breakpoint, add a new one
             if (nIndex == -1)
-                Breakpoint::AddExec(pPhysAddr, nullptr);
+                Breakpoint::AddExec(pPhysAddr, {});
             else
                 Breakpoint::RemoveAt(nIndex);
         }

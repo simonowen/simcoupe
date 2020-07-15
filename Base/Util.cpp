@@ -236,6 +236,15 @@ uint32_t RGB2Native(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_, uint32_t dwR
     return dwRed | dwGreen | dwBlue | dwAlpha;
 }
 
+
+std::string tolower(std::string str)
+{
+    std::transform(str.begin(), str.end(), str.begin(),
+        [](uint8_t ch) { return std::tolower(ch); });
+
+    return str;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef _DEBUG

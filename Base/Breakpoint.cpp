@@ -121,14 +121,14 @@ bool Breakpoint::IsHit()
             // Temporary breakpoint
         case btTemp:
             // Execution match or expression to evaluate?
-            if (p->Exec.pPhysAddr == pPC || p->pExpr)
+            if (p->Exec.pPhysAddr == pPC || p->expr)
                 break;
 
             continue;
         }
 
         // Skip the breakpoint if there's a condition that's false
-        if (p->pExpr && !Expr::Eval(p->pExpr))
+        if (!p->expr.Eval())
             continue;
 
         // Breakpoint hit!
@@ -182,32 +182,32 @@ int Breakpoint::GetExecIndex(void* pPhysAddr_)
     return -1;
 }
 
-void Breakpoint::AddTemp(void* pPhysAddr_, EXPR* pExpr_)
+void Breakpoint::AddTemp(void* pPhysAddr_, const Expr& expr)
 {
     // Add a new temporary breakpoint for the supplied address and/or expression
-    BREAKPT* pNew = new BREAKPT(btTemp, pExpr_);
+    BREAKPT* pNew = new BREAKPT(btTemp, expr);
     pNew->Temp.pPhysAddr = pPhysAddr_;
     Add(pNew);
 }
 
-void Breakpoint::AddUntil(EXPR* pExpr_)
+void Breakpoint::AddUntil(const Expr& expr)
 {
     // Add Until breakpoint for the supplied expression
-    Add(new BREAKPT(btUntil, pExpr_));
+    Add(new BREAKPT(btUntil, expr));
 }
 
-void Breakpoint::AddExec(void* pPhysAddr_, EXPR* pExpr_)
+void Breakpoint::AddExec(void* pPhysAddr_, const Expr& expr)
 {
     // Add a new execution breakpoint for the supplied address
-    BREAKPT* pNew = new BREAKPT(btExecute, pExpr_);
+    BREAKPT* pNew = new BREAKPT(btExecute, expr);
     pNew->Exec.pPhysAddr = pPhysAddr_;
     Add(pNew);
 }
 
-void Breakpoint::AddMemory(void* pPhysAddr_, AccessType nAccess_, EXPR* pExpr_, int nLength_/*=1*/)
+void Breakpoint::AddMemory(void* pPhysAddr_, AccessType nAccess_, const Expr& expr, int nLength_/*=1*/)
 {
     // Add a new memory breakpoint for the supplied address and access type
-    BREAKPT* pNew = new BREAKPT(btMemory, pExpr_);
+    BREAKPT* pNew = new BREAKPT(btMemory, expr);
 
     pNew->Mem.pPhysAddrFrom = pPhysAddr_;
     pNew->Mem.pPhysAddrTo = reinterpret_cast<uint8_t*>(pPhysAddr_) + nLength_ - 1;
@@ -216,10 +216,10 @@ void Breakpoint::AddMemory(void* pPhysAddr_, AccessType nAccess_, EXPR* pExpr_, 
     Add(pNew);
 }
 
-void Breakpoint::AddPort(uint16_t wPort_, AccessType nAccess_, EXPR* pExpr_)
+void Breakpoint::AddPort(uint16_t wPort_, AccessType nAccess_, const Expr& expr)
 {
     // Add a new I/O breakpoint for the supplied port and access type
-    BREAKPT* pNew = new BREAKPT(btPort, pExpr_);
+    BREAKPT* pNew = new BREAKPT(btPort, expr);
 
     pNew->Port.wCompare = wPort_;
     pNew->Port.wMask = (wPort_ <= 0xff) ? 0xff : 0xffff;
@@ -228,12 +228,12 @@ void Breakpoint::AddPort(uint16_t wPort_, AccessType nAccess_, EXPR* pExpr_)
     Add(pNew);
 }
 
-void Breakpoint::AddInterrupt(uint8_t bIntMask_, EXPR* pExpr_)
+void Breakpoint::AddInterrupt(uint8_t bIntMask_, const Expr& expr)
 {
     // Search for an existing interrupt breakpoint to update
     // If we have an expression or the existing has, the pointer comparison is expected to fail
     BREAKPT* p = pBreakpoints;
-    for (; p && (p->nType != btInt || p->pExpr != pExpr_); p = p->pNext);
+    for (; p && (p->nType != btInt || p->expr != expr); p = p->pNext);
 
     // If we found one, merge in the new bits
     if (p)
@@ -243,7 +243,7 @@ void Breakpoint::AddInterrupt(uint8_t bIntMask_, EXPR* pExpr_)
     }
 
     // Add a new interrupt breakpoint for the supplied lines
-    BREAKPT* pNew = new BREAKPT(btInt, pExpr_);
+    BREAKPT* pNew = new BREAKPT(btInt, expr);
     pNew->Int.bMask = bIntMask_;
     Add(pNew);
 }
@@ -263,7 +263,7 @@ const char* Breakpoint::GetDesc(BREAKPT* pBreak_)
 
     case btUntil:
     {
-        psz += sprintf(psz, "UNTIL %s", pBreak_->pExpr->pcszExpr);
+        psz += sprintf(psz, "UNTIL %s", pBreak_->expr.str.c_str());
         break;
     }
 
@@ -362,8 +362,8 @@ const char* Breakpoint::GetDesc(BREAKPT* pBreak_)
         }
     }
 
-    if (pBreak_->pExpr && pBreak_->nType != btUntil)
-        psz += sprintf(psz, " if %s", pBreak_->pExpr->pcszExpr);
+    if (pBreak_->expr && pBreak_->nType != btUntil)
+        psz += sprintf(psz, " if %s", pBreak_->expr.str.c_str());
 
     return sz;
 }
