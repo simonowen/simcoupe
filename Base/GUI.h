@@ -261,6 +261,7 @@ public:
     bool IsTabStop() const override { return true; }
     void Activate() override;
 
+    void SetText(const char* pcszText_) override;
     void SetSelectedText(const char* pcszText_, bool fSelected_);
     void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;

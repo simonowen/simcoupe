@@ -786,6 +786,11 @@ void EditControl::Activate()
     m_nCaretEnd = strlen(GetText());
 }
 
+void EditControl::SetText(const char* pcszText_)
+{
+    SetSelectedText(pcszText_, false);
+}
+
 void EditControl::SetSelectedText(const char* pcszText_, bool fSelected_)
 {
     Window::SetText(pcszText_);
