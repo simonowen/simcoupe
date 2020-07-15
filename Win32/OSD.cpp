@@ -160,10 +160,10 @@ const char* OSD::MakeFilePath(int nDir_, const char* pcszFile_/*=""*/)
         // Resources are bundled with the EXE, which may be a read-only location
     case MFP_RESOURCE:
 #ifdef RESOURCE_DIR
-        strncpy(szPath, RESOURCE_DIR, _countof(szPath));
-        szPath[_countof(szPath) - 1] = '\0';
-        strncat(szPath, "/", _countof(szPath));
-        szPath[_countof(szPath) - 1] = '\0';
+        strncpy(szPath, RESOURCE_DIR, std::size(szPath));
+        szPath[std::size(szPath) - 1] = '\0';
+        strncat(szPath, "/", std::size(szPath));
+        szPath[std::size(szPath) - 1] = '\0';
 #else
         szPath[0] = '\0';
 #endif
@@ -182,7 +182,7 @@ const char* OSD::MakeFilePath(int nDir_, const char* pcszFile_/*=""*/)
     }
 
     // Return a pointer to the new path
-    szPath[_countof(szPath) - 1] = '\0';
+    szPath[std::size(szPath) - 1] = '\0';
     return szPath;
 }
 

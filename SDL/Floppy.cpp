@@ -388,7 +388,7 @@ static bool ReadCustomTrack(int hDevice_, TRACK* pTrack_)
     memcpy(rc[0].cmd, cmd0, sizeof(cmd0));
     rc[0].cmd_count = sizeof(cmd0);
 
-    for (i = 1; i < _countof(rc); i++)
+    for (i = 1; i < std::size(rc); i++)
     {
         rc[i].flags = FD_RAW_INTR;
         rc[i].rate = rc[0].rate;
@@ -409,7 +409,7 @@ static bool ReadCustomTrack(int hDevice_, TRACK* pTrack_)
         return true;
     }
 
-    for (i = 1; i < _countof(rc); i++)
+    for (i = 1; i < std::size(rc); i++)
     {
         if (ioctl(hDevice_, FDRAWCMD, &rc[i]))
             return false;

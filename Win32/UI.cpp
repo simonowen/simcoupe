@@ -734,7 +734,7 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         };
 
         // Add the toolbar buttons and configure settings
-        SendMessage(hwndToolbar, TB_ADDBUTTONS, _countof(tbb), (LPARAM)&tbb);
+        SendMessage(hwndToolbar, TB_ADDBUTTONS, std::size(tbb), (LPARAM)&tbb);
         SendMessage(hwndToolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(28, 28));
         SendMessage(hwndToolbar, TB_SETINDENT, 6, 0L);
         SendMessage(hwndToolbar, TB_AUTOSIZE, 0, 0);
@@ -2306,17 +2306,13 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
 
         case IDC_TYPE:
         {
-            int nType = (int)SendDlgItemMessage(hdlg_, IDC_TYPE, CB_GETCURSEL, 0, 0L);
-            int nShow1 = !nType ? SW_SHOW : SW_HIDE, nShow2 = nShow1 ^ SW_SHOW, i;
+            auto nType = SendDlgItemMessage(hdlg_, IDC_TYPE, CB_GETCURSEL, 0, 0L);
 
-            int an1[] = { IDS_ADDRESS, IDE_ADDRESS, IDS_LENGTH2, IDE_LENGTH2 };
-            int an2[] = { IDS_PAGE, IDE_PAGE, IDS_OFFSET, IDE_OFFSET, IDS_LENGTH, IDE_LENGTH };
+            for (auto id : { IDS_ADDRESS, IDE_ADDRESS, IDS_LENGTH2, IDE_LENGTH2 })
+                ShowWindow(GetDlgItem(hdlg_, id), !nType ? SW_SHOW : SW_HIDE);
 
-            for (i = 0; i < _countof(an1); i++)
-                ShowWindow(GetDlgItem(hdlg_, an1[i]), nShow1);
-
-            for (i = 0; i < _countof(an2); i++)
-                ShowWindow(GetDlgItem(hdlg_, an2[i]), nShow2);
+            for (auto id : { IDS_PAGE, IDE_PAGE, IDS_OFFSET, IDE_OFFSET, IDS_LENGTH, IDE_LENGTH })
+                ShowWindow(GetDlgItem(hdlg_, id), nType ? SW_SHOW : SW_HIDE);
 
             break;
         }
@@ -3108,9 +3104,9 @@ INT_PTR CALLBACK Drive1PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                 ShowWindow(GetDlgItem(hdlg_, IDE_FLOPPY_IMAGE), (nType == 1) ? SW_SHOW : SW_HIDE);
                 ShowWindow(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE), (nType == 1) ? SW_SHOW : SW_HIDE);
 
-                int anControls[] = { IDS_DEVICE, IDF_MEDIA, IDS_TEXT1, IDR_IMAGE, IDB_BROWSE, IDR_DEVICE, IDC_HDD_DEVICE };
-                for (int i = 0; i < _countof(anControls); i++)
-                    ShowWindow(GetDlgItem(hdlg_, anControls[i]), (nType >= 1) ? SW_SHOW : SW_HIDE);
+                int control_ids[] = { IDS_DEVICE, IDF_MEDIA, IDS_TEXT1, IDR_IMAGE, IDB_BROWSE, IDR_DEVICE, IDC_HDD_DEVICE };
+                for (auto id : control_ids)
+                    ShowWindow(GetDlgItem(hdlg_, id), (nType >= 1) ? SW_SHOW : SW_HIDE);
             }
             break;
         }
@@ -3333,13 +3329,13 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                 ShowWindow(GetDlgItem(hdlg_, IDE_FLOPPY_IMAGE), (nType == drvFloppy) ? SW_SHOW : SW_HIDE);
                 ShowWindow(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE), (nType == drvFloppy) ? SW_SHOW : SW_HIDE);
 
-                int anControls[] = { IDS_DEVICE, IDF_MEDIA, IDS_TEXT1, IDR_IMAGE, IDB_BROWSE, IDR_DEVICE, IDC_HDD_DEVICE };
-                for (int i = 0; i < _countof(anControls); i++)
-                    ShowWindow(GetDlgItem(hdlg_, anControls[i]), (nType >= drvFloppy) ? SW_SHOW : SW_HIDE);
+                int control_ids[] = { IDS_DEVICE, IDF_MEDIA, IDS_TEXT1, IDR_IMAGE, IDB_BROWSE, IDR_DEVICE, IDC_HDD_DEVICE };
+                for (auto id : control_ids)
+                    ShowWindow(GetDlgItem(hdlg_, id), (nType >= drvFloppy) ? SW_SHOW : SW_HIDE);
 
-                int anControls2[] = { IDF_MEDIA2, IDS_TEXT2, IDR_IMAGE2, IDE_HDD_IMAGE, IDE_HDD_IMAGE2, IDB_BROWSE2, IDC_HDD_DEVICE, IDR_DEVICE2, IDC_HDD_DEVICE2 };
-                for (int i = 0; i < _countof(anControls2); i++)
-                    ShowWindow(GetDlgItem(hdlg_, anControls2[i]), (nType >= drvAtom) ? SW_SHOW : SW_HIDE);
+                int control_ids2[] = { IDF_MEDIA2, IDS_TEXT2, IDR_IMAGE2, IDE_HDD_IMAGE, IDE_HDD_IMAGE2, IDB_BROWSE2, IDC_HDD_DEVICE, IDR_DEVICE2, IDC_HDD_DEVICE2 };
+                for (auto id : control_ids2)
+                    ShowWindow(GetDlgItem(hdlg_, id), (nType >= drvAtom) ? SW_SHOW : SW_HIDE);
 
                 uTimer = SetTimer(hdlg_, 1, 1, nullptr);
             }
@@ -3733,7 +3729,7 @@ void DisplayOptions()
     psh.hInstance = __hinstance;
     psh.pszIcon = MAKEINTRESOURCE(IDI_MISC);
     psh.pszCaption = "Options";
-    psh.nPages = _countof(aPages);
+    psh.nPages = static_cast<UINT>(std::size(aPages));
     psh.nStartPage = nOptionPage;
     psh.ppsp = aPages;
 

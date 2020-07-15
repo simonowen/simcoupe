@@ -204,7 +204,7 @@ bool InitJoystick(LPDIRECTINPUTDEVICE2& pJoystick_)
 
         int anAxes[] = { DIJOFS_X, DIJOFS_Y, DIJOFS_RX, DIJOFS_RY };
 
-        for (int i = 0; i < _countof(anAxes); i++)
+        for (size_t i = 0; i < std::size(anAxes); i++)
         {
             diPdw.diph.dwObj = diPrg.diph.dwObj = anAxes[i];
 
@@ -314,7 +314,6 @@ void ReadKeyboard()
 void ReadJoystick(int nJoystick_, LPDIRECTINPUTDEVICE2 pDevice_)
 {
     HRESULT hr;
-    int i;
 
     DIJOYSTATE dijs = { 0 };
     if (pDevice_ && (FAILED(hr = pDevice_->Poll()) || FAILED(hr = pDevice_->GetDeviceState(sizeof(dijs), &dijs))))
@@ -331,10 +330,10 @@ void ReadJoystick(int nJoystick_, LPDIRECTINPUTDEVICE2 pDevice_)
     int nPosition = HJ_CENTRE;
 
     // Combine the states of all buttons so any button works as fire
-    for (i = 0; i < _countof(dijs.rgbButtons); i++)
+    for (size_t i = 0; i < std::size(dijs.rgbButtons); i++)
     {
         if (dijs.rgbButtons[i] & 0x80)
-            dwButtons |= (1 << i);
+            dwButtons |= (1U << i);
     }
 
     // Set the position from the main axes
@@ -344,7 +343,7 @@ void ReadJoystick(int nJoystick_, LPDIRECTINPUTDEVICE2 pDevice_)
     if (dijs.lY > 0 || dijs.lRy > 0) nPosition |= HJ_DOWN;
 
     // Consider all hat positions too
-    for (i = 0; i < _countof(dijs.rgdwPOV); i++)
+    for (size_t i = 0; i < std::size(dijs.rgdwPOV); i++)
     {
         static int an[] = { HJ_UP, HJ_UP | HJ_RIGHT, HJ_RIGHT, HJ_DOWN | HJ_RIGHT, HJ_DOWN, HJ_DOWN | HJ_LEFT, HJ_LEFT, HJ_UP | HJ_LEFT };
 

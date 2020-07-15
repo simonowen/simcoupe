@@ -145,7 +145,7 @@ bool Init(bool fFirstInit_/*=false*/)
         IX = IY = 0xffff;
 
         // Build the memory access contention tables
-        for (unsigned int t2 = 0; t2 < _countof(abContention1); t2++)
+        for (unsigned int t2 = 0; t2 < std::size(abContention1); t2++)
         {
             int nLine = t2 / CPU_CYCLES_PER_LINE, nLineCycle = t2 % CPU_CYCLES_PER_LINE;
             bool fScreen = nLine >= TOP_BORDER_LINES && nLine < TOP_BORDER_LINES + GFX_SCREEN_LINES &&

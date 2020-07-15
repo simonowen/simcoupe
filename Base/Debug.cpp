@@ -2237,7 +2237,7 @@ bool DisView::SetDataTarget()
 
         if (f16Bit)
         {
-            snprintf(sz, _countof(sz), "%04X  \aK%04X %04X %04X\aX %04X \aK%04X %04X %04X",
+            snprintf(sz, std::size(sz), "%04X  \aK%04X %04X %04X\aX %04X \aK%04X %04X %04X",
                 m_uDataTarget,
                 read_word(m_uDataTarget - 6), read_word(m_uDataTarget - 4), read_word(m_uDataTarget - 2),
                 read_word(m_uDataTarget),
@@ -2245,7 +2245,7 @@ bool DisView::SetDataTarget()
         }
         else
         {
-            snprintf(sz, _countof(sz), "%04X  \aK%02X %02X %02X %02X %02X\aX %02X \aK%02X %02X %02X %02X %02X",
+            snprintf(sz, std::size(sz), "%04X  \aK%02X %02X %02X %02X %02X\aX %02X \aK%02X %02X %02X %02X %02X",
                 m_uDataTarget,
                 read_byte(m_uDataTarget - 5), read_byte(m_uDataTarget - 4), read_byte(m_uDataTarget - 3),
                 read_byte(m_uDataTarget - 2), read_byte(m_uDataTarget - 1),

@@ -52,10 +52,6 @@ void TraceOutputString(const char*, ...);
 #define TRACE 1 ? (void)0 : ::TraceOutputString
 #endif
 
-#ifndef _countof
-#define _countof(_Array) (sizeof(_Array)/sizeof(_Array[0]))
-#endif
-
 #ifndef MAX_PATH
 #define MAX_PATH            260
 #endif

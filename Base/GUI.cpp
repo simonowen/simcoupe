@@ -2272,7 +2272,7 @@ const GUI_ICON* FileView::GetFileIcon(const char* pcszFile_)
     static const char* aExts[] = { ".dsk", ".sad", ".sbt", ".mgt", ".img", ".cpm" };
     bool fDiskImage = false;
 
-    for (unsigned int u = 0; !fDiskImage && pszExt && u < _countof(aExts); u++)
+    for (unsigned int u = 0; !fDiskImage && pszExt && u < std::size(aExts); u++)
         fDiskImage = !strcasecmp(pszExt, aExts[u]);
 
     return nCompressType ? &sCompressedIcon : fDiskImage ? &sDiskIcon : &sDocumentIcon;
