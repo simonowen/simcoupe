@@ -80,6 +80,8 @@ namespace fs = std::filesystem;
 namespace fs = ghc::filesystem;
 #endif
 
+#include <fmt/format.h>
+
 #include "OSD.h"        /* OS-dependent stuff */
 #include "SAM.h"        /* Various SAM constants */
 #include "Util.h"       /* TRACE macro and other utility functions */

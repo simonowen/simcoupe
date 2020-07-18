@@ -228,6 +228,9 @@ if (NOT MSVC)
   endif()
 endif()
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Extern/fmt)
+target_link_libraries(${PROJECT_NAME} fmt)
+
 ########
 
 if (BUILD_WIN32)
