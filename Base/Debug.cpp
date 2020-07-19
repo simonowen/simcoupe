@@ -121,7 +121,7 @@ bool Start(std::optional<int> bp_index)
             aTrace[nNumTraces = 0].regs = regs;
 
             // Add the current location as the only entry
-            RecordTrace();
+            AddTraceRecord();
         }
 
         // Is drive 1 a floppy drive with a disk in it?
@@ -174,9 +174,11 @@ void Refresh()
     {
         // Set the address without forcing it to the top of the window
         pDebugger->SetAddress((nLastView == vtDis) ? PC : wLastAddr, false);
+    }
 
-        // Re-test breakpoints for the likely changed location
-        BreakpointHit();
+    if (auto bp_index = Breakpoint::Hit())
+    {
+        Debug::Start(bp_index);
     }
 }
 
@@ -214,29 +216,7 @@ bool IsActive()
     return pDebugger != nullptr;
 }
 
-// Return whether any breakpoints are active
-bool IsBreakpointSet()
-{
-    return !Breakpoint::breakpoints.empty();
-}
-
-// Return whether any of the active breakpoints have been hit
-bool BreakpointHit()
-{
-    if (Breakpoint::breakpoints.empty())
-        return false;
-
-    RecordTrace();
-
-    if (auto bp_index = Breakpoint::Hit())
-    {
-        return Debug::Start(bp_index);
-    }
-
-    return false;
-}
-
-void RecordTrace()
+void AddTraceRecord()
 {
     if (aTrace[nNumTraces % TRACE_SLOTS].wPC != PC)
     {

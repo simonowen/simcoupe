@@ -332,91 +332,54 @@ void ExecuteEvent(const CPU_EVENT& sThisEvent)
 }
 
 
-// Execute until the end of a frame, or a breakpoint, whichever comes first
+// Execute until end of frame or breakpoint
 void ExecuteChunk()
 {
-    // Is the reset button is held in?
     if (g_fReset)
     {
-        // Advance to the end of the frame
         g_dwCycleCounter = CPU_CYCLES_PER_FRAME;
+        CheckCpuEvents();
+        return;
     }
 
-    // Execute the first CPU core if only 1 CPU core is compiled in
-#if defined(USE_ONECPUCORE)
-    if (1)
-#else
-    if (Debug::IsBreakpointSet())
-#endif
+    auto no_breakpoints = Breakpoint::breakpoints.empty();
+
+    for (g_fBreak = false; !g_fBreak; )
     {
-        // Loop until we've reached the end of the frame
-        for (g_fBreak = false; !g_fBreak; )
+        pHlIxIy = pNewHlIxIy;
+        pNewHlIxIy = &HL;
+
+        bOpcode = timed_read_code_byte(PC++);
+        R++;
+
+        switch (bOpcode)
         {
-            // Keep track of the current and previous state of whether we're processing an indexed instruction
-            pHlIxIy = pNewHlIxIy;
-            pNewHlIxIy = &HL;
-
-            // Fetch... (and advance PC)
-            bOpcode = timed_read_code_byte(PC++);
-            R++;
-
-            // ... Decode ...
-            switch (bOpcode)
-            {
-#include "Z80ops.h"     // ... Execute!
-            }
-
-            // Update the line/global counters and check/process for pending events
-            CheckCpuEvents();
-
-            // Are there any active interrupts?
-            if (status_reg != STATUS_INT_NONE && IFF1)
-                CheckInterrupt();
-
-            // If we're not in an IX/IY instruction, check for breakpoints
-            if (pNewHlIxIy == &HL && Debug::BreakpointHit())
-                break;
-
-#ifdef _DEBUG
-            if (g_fDebug) g_fDebug = !Debug::Start();
-#endif
+#include "Z80ops.h"
         }
-    }
-#if !defined(USE_ONECPUCORE)
-    else
-    {
-        // Loop until we've reached the end of the frame
-        for (g_fBreak = false; !g_fBreak; )
+
+        CheckCpuEvents();
+
+        if (status_reg != STATUS_INT_NONE && IFF1)
+            CheckInterrupt();
+
+        if (pNewHlIxIy != &HL || no_breakpoints)
+            continue;
+
+        Debug::AddTraceRecord();
+
+        if (auto bp_index = Breakpoint::Hit())
         {
-            // Keep track of the current and previous state of whether we're processing an indexed instruction
-            pHlIxIy = pNewHlIxIy;
-            pNewHlIxIy = &HL;
-
-            // Fetch... (and advance PC)
-            bOpcode = timed_read_code_byte(PC++);
-            R++;
-
-            // ... Decode ...
-            switch (bOpcode)
-            {
-#include "Z80ops.h"     // ... Execute!
-            }
-
-            // Update the line/global counters and check/process for pending events
-            CheckCpuEvents();
-
-            // Are there any active interrupts?
-            if (status_reg != STATUS_INT_NONE && IFF1)
-                CheckInterrupt();
-
-#ifdef _DEBUG
-            if (g_fDebug) g_fDebug = !Debug::Start();
-#endif
+            Debug::Start(bp_index);
         }
+#ifdef _DEBUG
+        else if (g_fDebug)
+        {
+            Debug::Start();
+            g_fDebug = false;
+        }
+#endif
     }
-#endif  // !defined(USE_ONECPUCORE)
 }
-
 
 // The main Z80 emulation loop
 void Run()

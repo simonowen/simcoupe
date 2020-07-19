@@ -35,9 +35,7 @@ void OnRet();
 bool RetZHook();
 
 bool IsActive();
-bool IsBreakpointSet();
-bool BreakpointHit();
-void RecordTrace();
+void AddTraceRecord();
 }
 
 enum ViewType { vtDis, vtTxt, vtHex, vtGfx, vtBpt, vtTrc };
