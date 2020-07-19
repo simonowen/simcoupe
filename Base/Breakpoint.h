@@ -22,79 +22,60 @@
 
 #include "Expr.h"
 
-enum BreakpointType { btNone, btTemp, btUntil, btExecute, btMemory, btPort, btInt };
-enum AccessType { atNone, atRead, atWrite, atReadWrite };
+enum class BreakType { Temp, Until, Execute, Memory, Port, Interrupt };
+enum class AccessType { ReadWrite, Read, Write };
 
 
-struct BREAKTEMP
+struct BreakExec
 {
-    const void* pPhysAddr;
+    const void* phys_addr{};
 };
 
-struct BREAKEXEC
+struct BreakMem
 {
-    const void* pPhysAddr;
+    const void* phys_addr_from{};
+    const void* phys_addr_to{};
+    AccessType access{};
 };
 
-struct BREAKMEM
+struct BreakPort
 {
-    const void* pPhysAddrFrom;
-    const void* pPhysAddrTo;
-    AccessType nAccess;
+    uint16_t mask{};
+    uint16_t compare{};
+    AccessType access{};
 };
 
-struct BREAKPORT
+struct BreakInt
 {
-    uint16_t wMask;
-    uint16_t wCompare;
-    AccessType nAccess;
+    uint8_t mask{};
 };
 
-struct BREAKINT
+struct Breakpoint
 {
-    uint8_t bMask;
-};
+    Breakpoint(BreakType type, const Expr& expr) :
+        enabled(true), type(type), expr(expr) { }
 
-
-struct BREAKPT
-{
-    BREAKPT(BreakpointType nType_, const Expr& expr)
-        : nType(nType_), expr(expr) { }
-
-    BreakpointType nType;
+    bool enabled;
+    BreakType type;
     Expr expr;
-    bool fEnabled = true;
+    std::variant<BreakExec, BreakMem, BreakPort, BreakInt> data;
 
-    union
-    {
-        BREAKEXEC Temp;
-        BREAKEXEC Exec;
-        BREAKMEM Mem;
-        BREAKPORT Port;
-        BREAKINT Int;
-    };
+    static std::vector<Breakpoint> breakpoints;
 
-    BREAKPT* pNext = nullptr;
-};
-
-
-class Breakpoint
-{
-public:
-    static bool IsSet();
-    static bool IsHit();
-    static void Add(BREAKPT* pBreak_);
-    static void AddTemp(void* pPhysAddr_, const Expr& expr);
+    static std::optional<int> Hit();
+    static void Add(Breakpoint&& bp);
+    static void AddTemp(void* pPhysAddr_, const Expr& expr = {});
     static void AddUntil(const Expr& expr);
-    static void AddExec(void* pPhysAddr_, const Expr& expr);
+    static void AddExec(void* pPhysAddr_, const Expr& expr = {});
     static void AddMemory(void* pPhysAddr_, AccessType nAccess_, const Expr& expr, int nLength_ = 1);
-    static void AddPort(uint16_t wPort_, AccessType nAccess_, const Expr& expr);
-    static void AddInterrupt(uint8_t bIntMask_, const Expr& expr);
-    static const char* GetDesc(BREAKPT* pBreak_);
-    static BREAKPT* GetAt(int nIndex_);
-    static bool IsExecAddr(uint16_t wAddr_);
-    static int GetIndex(BREAKPT* pBreak_);
-    static int GetExecIndex(void* pPhysAddr_);
-    static bool RemoveAt(int nIndex_);
+    static void AddPort(uint16_t wPort_, AccessType nAccess_, const Expr& expr = {});
+    static void AddInterrupt(uint8_t bIntMask_, const Expr& expr = {});
+    static Breakpoint* GetAt(int index);
+    static std::optional<int> GetExecIndex(void* pPhysAddr_);
+    static void Remove(int index);
+    static void RemoveType(BreakType type);
     static void RemoveAll();
 };
+
+std::string to_string(const Breakpoint& bp);
+std::string to_string(AccessType access);

@@ -173,6 +173,7 @@ void Exit(bool fReInit_/*=false*/)
     IO::Exit(fReInit_);
     Memory::Exit(fReInit_);
 
+    // TODO: remove after switching to use "physical" offsets instead of pointers
     if (!fReInit_)
         Breakpoint::RemoveAll();
 }

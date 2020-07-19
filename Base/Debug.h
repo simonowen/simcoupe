@@ -26,7 +26,7 @@
 
 namespace Debug
 {
-bool Start(BREAKPT* pBreak_ = nullptr);
+bool Start(std::optional<int> bp_index = std::nullopt);
 void Stop();
 void FrameEnd();
 void Refresh();
@@ -37,6 +37,7 @@ bool RetZHook();
 bool IsActive();
 bool IsBreakpointSet();
 bool BreakpointHit();
+void RecordTrace();
 }
 
 enum ViewType { vtDis, vtTxt, vtHex, vtGfx, vtBpt, vtTrc };
@@ -250,7 +251,7 @@ private:
 class Debugger final : public Dialog
 {
 public:
-    Debugger(BREAKPT* pBreak_ = nullptr);
+    Debugger(std::optional<int> bp_index = std::nullopt);
     Debugger(const Debugger&) = delete;
     void operator= (const Debugger&) = delete;
     ~Debugger();

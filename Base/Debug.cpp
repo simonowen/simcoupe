@@ -99,13 +99,13 @@ namespace Debug
 {
 
 // Activate the debug GUI, if not already active
-bool Start(BREAKPT* pBreak_)
+bool Start(std::optional<int> bp_index)
 {
     // Restore memory contention in case of a timing measurement
     CPU::UpdateContention();
 
     // Reset the last entry counters, unless we're started from a triggered breakpoint
-    if (!pBreak_ && nStepOutSP == -1)
+    if (!bp_index.has_value() && nStepOutSP == -1)
     {
         nLastFrames = 0;
         dwLastCycle = g_dwCycleCounter;
@@ -115,13 +115,13 @@ bool Start(BREAKPT* pBreak_)
         bLastStatus = status_reg;
 
         // If there's no breakpoint set any existing trace is meaningless
-        if (!Breakpoint::IsSet())
+        if (Breakpoint::breakpoints.empty())
         {
             // Set the previous entry to have the current register values
             aTrace[nNumTraces = 0].regs = regs;
 
             // Add the current location as the only entry
-            BreakpointHit();
+            RecordTrace();
         }
 
         // Is drive 1 a floppy drive with a disk in it?
@@ -148,7 +148,7 @@ bool Start(BREAKPT* pBreak_)
     GUI::Stop();
 
     // Create the main debugger window, passing any breakpoint
-    if (!GUI::Start(pDebugger = new Debugger(pBreak_)))
+    if (!GUI::Start(pDebugger = new Debugger(bp_index)))
         pDebugger = nullptr;
 
     return true;
@@ -217,13 +217,27 @@ bool IsActive()
 // Return whether any breakpoints are active
 bool IsBreakpointSet()
 {
-    return Breakpoint::IsSet();
+    return !Breakpoint::breakpoints.empty();
 }
 
 // Return whether any of the active breakpoints have been hit
 bool BreakpointHit()
 {
-    // Add a new trace entry if PC has changed
+    if (Breakpoint::breakpoints.empty())
+        return false;
+
+    RecordTrace();
+
+    if (auto bp_index = Breakpoint::Hit())
+    {
+        return Debug::Start(bp_index);
+    }
+
+    return false;
+}
+
+void RecordTrace()
+{
     if (aTrace[nNumTraces % TRACE_SLOTS].wPC != PC)
     {
         TRACEDATA* p = &aTrace[(++nNumTraces) % TRACE_SLOTS];
@@ -234,8 +248,6 @@ bool BreakpointHit()
         p->abInstr[3] = read_byte(PC + 3);
         p->regs = regs;
     }
-
-    return Breakpoint::IsHit();
 }
 
 } // namespace Debug
@@ -286,7 +298,7 @@ void cmdStep(int nCount_ = 1, bool fCtrl_ = false)
 
     // If an address has been set, execute up to it
     if (pPhysAddr)
-        Breakpoint::AddTemp(pPhysAddr, {});
+        Breakpoint::AddTemp(pPhysAddr);
 
     // Otherwise execute the requested number of instructions
     else
@@ -339,7 +351,7 @@ void cmdStepOver(bool fCtrl_ = false)
         cmdStep();
     else
     {
-        Breakpoint::AddTemp(pPhysAddr, {});
+        Breakpoint::AddTemp(pPhysAddr);
         Debug::Stop();
     }
 }
@@ -569,7 +581,7 @@ bool TextView::cmdNavigate(int nKey_, int /*nMods_*/)
 
 bool Debugger::s_fTransparent = false;
 
-Debugger::Debugger(BREAKPT* pBreak_/*=nullptr*/)
+Debugger::Debugger(std::optional<int> bp_index)
     : Dialog(nullptr, 433, 260 + 36 + 2, "")
 {
     // Move to the last display position, if any
@@ -580,29 +592,24 @@ Debugger::Debugger(BREAKPT* pBreak_/*=nullptr*/)
     m_pStatus = new TextControl(this, 4, m_nHeight - ROW_HEIGHT, "");
 
     // If a breakpoint was supplied, report that it was triggered
-    if (pBreak_)
+    if (bp_index.has_value())
     {
-        char sz[128] = {};
+        auto& bp = Breakpoint::breakpoints[*bp_index];
+        std::stringstream ss;
 
-        if (pBreak_->nType != btTemp)
-            snprintf(sz, sizeof(sz) - 1, "\aYBreakpoint %d hit:  %s", Breakpoint::GetIndex(pBreak_), Breakpoint::GetDesc(pBreak_));
-        else if (pBreak_->expr && pBreak_->expr.str != "(counter)")
+        if (bp.type != BreakType::Temp)
         {
-            snprintf(sz, sizeof(sz) - 1, "\aYUNTIL condition met:  %s", pBreak_->expr.str.c_str());
+            ss << fmt::format("\aYBreakpoint {} hit:  {}", *bp_index, to_string(bp));
+        }
+        else if (bp.expr && bp.expr.str != "(counter)")
+        {
+            ss << fmt::format("\aYUNTIL condition met:  {}", bp.expr.str);
         }
 
-        SetStatus(sz, true, sPropFont);
+        SetStatus(ss.str().c_str(), true, sPropFont);
     }
 
-    // Remove all temporary breakpoints
-    for (int i = 0; (pBreak_ = Breakpoint::GetAt(i)); i++)
-    {
-        if (pBreak_->nType == btTemp)
-        {
-            Breakpoint::RemoveAt(i);
-            i--;
-        }
-    }
+    Breakpoint::RemoveType(BreakType::Temp);
 
     // Clear step-out stack watch
     nStepOutSP = -1;
@@ -948,16 +955,18 @@ void Debugger::OnNotify(Window* pWindow_, int nParam_)
 }
 
 
-AccessType GetAccessParam(const char* pcsz_)
+std::optional<AccessType> GetAccessParam(std::string access)
 {
-    if (!strcasecmp(pcsz_, "r"))
-        return atRead;
-    else if (!strcasecmp(pcsz_, "w"))
-        return atWrite;
-    else if (!strcasecmp(pcsz_, "rw"))
-        return atReadWrite;
+    access = tolower(access);
 
-    return atNone;
+    if (access == "r")
+        return AccessType::Read;
+    else if (access == "w")
+        return AccessType::Write;
+    else if (access == "rw")
+        return AccessType::ReadWrite;
+
+    return std::nullopt;
 }
 
 bool Debugger::Execute(const std::string& cmdline)
@@ -1229,7 +1238,7 @@ bool Debugger::Execute(const std::string& cmdline)
         void* pPhysAddr = nullptr;
 
         // Default is read/write
-        AccessType nAccess = atReadWrite;
+        auto access = AccessType::ReadWrite;
 
         // Physical address?
         if (*pszExprEnd == ':')
@@ -1253,13 +1262,9 @@ bool Debugger::Execute(const std::string& cmdline)
 
         if (psz)
         {
-            // Check for access parameter
-            AccessType t = GetAccessParam(psz);
-
-            // If supplied, use it and skip to the next token
-            if (t != atNone)
+            if (auto access_param = GetAccessParam(psz))
             {
-                nAccess = t;
+                access = *access_param;
                 psz = strtok(nullptr, " ");
             }
         }
@@ -1279,7 +1284,7 @@ bool Debugger::Execute(const std::string& cmdline)
         }
 
         if (fRet)
-            Breakpoint::AddMemory(pPhysAddr, nAccess, expr);
+            Breakpoint::AddMemory(pPhysAddr, access, expr);
     }
 
     // bpmr addrfrom addrto [rw|r|w] [if cond]
@@ -1288,8 +1293,7 @@ bool Debugger::Execute(const std::string& cmdline)
         Expr expr;
         void* pPhysAddr = nullptr;
 
-        // Default is read/write
-        AccessType nAccess = atReadWrite;
+        auto access = AccessType::ReadWrite;
 
         // Physical address?
         if (*pszExprEnd == ':')
@@ -1321,13 +1325,9 @@ bool Debugger::Execute(const std::string& cmdline)
 
         if (psz)
         {
-            // Check for access parameter
-            AccessType t = GetAccessParam(psz);
-
-            // If supplied, use it and skip to the next token
-            if (t != atNone)
+            if (auto access_type = GetAccessParam(psz))
             {
-                nAccess = t;
+                access = *access_type;
                 psz = strtok(nullptr, " ");
             }
         }
@@ -1347,14 +1347,13 @@ bool Debugger::Execute(const std::string& cmdline)
         }
 
         if (fRet)
-            Breakpoint::AddMemory(pPhysAddr, nAccess, expr, nLength);
+            Breakpoint::AddMemory(pPhysAddr, access, expr, nLength);
     }
 
     // bpio port [rw|r|w] [if cond]
     else if (!strcasecmp(pszCommand, "bpio") && nParam != -1)
     {
-        // Default is read/write and no expression
-        AccessType nAccess = atReadWrite;
+        auto access = AccessType::ReadWrite;
         Expr expr;
 
         // Extract a token from after the port expression
@@ -1362,13 +1361,9 @@ bool Debugger::Execute(const std::string& cmdline)
 
         if (psz)
         {
-            // Check for access parameter
-            AccessType t = GetAccessParam(psz);
-
-            // If supplied, use it and skip to the next token
-            if (t != atNone)
+            if (auto access_type = GetAccessParam(psz))
             {
-                nAccess = t;
+                access = *access_type;
                 psz = strtok(nullptr, " ");
             }
         }
@@ -1387,7 +1382,7 @@ bool Debugger::Execute(const std::string& cmdline)
                 fRet = false;
         }
 
-        Breakpoint::AddPort(nParam, nAccess, expr);
+        Breakpoint::AddPort(nParam, access, expr);
     }
 
     // bpint frame|line|midi
@@ -1472,7 +1467,7 @@ bool Debugger::Execute(const std::string& cmdline)
     else if (!strcasecmp(pszCommand, "bc"))
     {
         if (nParam != -1 && remain.empty())
-            fRet = Breakpoint::RemoveAt(nParam);
+            Breakpoint::Remove(nParam);
         else if (!strcmp(pszParam, "*"))
             Breakpoint::RemoveAll();
         else
@@ -1486,17 +1481,15 @@ bool Debugger::Execute(const std::string& cmdline)
 
         if (nParam != -1 && remain.empty())
         {
-            BREAKPT* pBreak = Breakpoint::GetAt(nParam);
-            if (pBreak)
-                pBreak->fEnabled = fNewState;
+            if (auto pBreak = Breakpoint::GetAt(nParam))
+                pBreak->enabled = fNewState;
             else
                 fRet = false;
         }
         else if (!strcmp(pszParam, "*"))
         {
-            BREAKPT* pBreak = nullptr;
-            for (int i = 0; (pBreak = Breakpoint::GetAt(i)); i++)
-                pBreak->fEnabled = fNewState;
+            for (auto& bp : Breakpoint::breakpoints)
+                bp.enabled = fNewState;
         }
         else
             fRet = false;
@@ -1739,9 +1732,10 @@ void DisView::Draw(FrameBuffer& fb)
         // Check for a breakpoint at the current address.
         // Show conditional breakpoints in magenta, unconditional in red.
         auto pPhysAddr = AddrReadPtr(s_wAddrs[u]);
-        int nIndex = Breakpoint::GetExecIndex(pPhysAddr);
-        if (nIndex != -1)
-            bColour = Breakpoint::GetAt(nIndex)->expr ? 'M' : 'R';
+        if (auto index_val = Breakpoint::GetExecIndex(pPhysAddr))
+        {
+            bColour = Breakpoint::GetAt(*index_val)->expr ? 'M' : 'R';
+        }
 
         // Show the current entry normally if it's not the current code target, otherwise show all
         // in black text with an arrow instead of the address, indicating it's the code target.
@@ -1872,13 +1866,10 @@ bool DisView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
         {
             // Find any existing execution breakpoint
             auto pPhysAddr = AddrReadPtr(s_wAddrs[uRow]);
-            int nIndex = Breakpoint::GetExecIndex(pPhysAddr);
-
-            // If there's no breakpoint, add a new one
-            if (nIndex == -1)
-                Breakpoint::AddExec(pPhysAddr, {});
+            if (auto index_val = Breakpoint::GetExecIndex(pPhysAddr))
+                Breakpoint::Remove(*index_val);
             else
-                Breakpoint::RemoveAt(nIndex);
+                Breakpoint::AddExec(pPhysAddr);
         }
         break;
     }
@@ -2736,7 +2727,7 @@ void CMemView::SetAddress (uint16_t wAddr_, bool fForceTop_)
     auto psz = (uint8_t*)szDisassem;
 
     unsigned int uLen = 16384, uBlock = uLen >> 8;
-    for (int i = 0 ; i < 256 ; i++)
+    for (int index = 0 ; index < 256 ; index++)
     {
         unsigned int uCount = 0;
         for (unsigned int u = uBlock ; u-- ; uCount += !!read_byte(wAddr_++));
@@ -2989,23 +2980,32 @@ void BptView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 
     char* psz = m_pszData;
 
-    if (!Breakpoint::IsSet())
+    if (Breakpoint::breakpoints.empty())
         psz += sprintf(psz, "No breakpoints") + 1;
     else
     {
-        int i = 0;
+        int index = 0;
 
         m_nLines = 0;
         m_nActive = -1;
 
-        for (BREAKPT* p = nullptr; (p = Breakpoint::GetAt(i)); i++, m_nLines++)
+        for (const auto& bp : Breakpoint::breakpoints)
         {
-            psz += sprintf(psz, "%2d: %s", i, Breakpoint::GetDesc(p)) + 1;
+            psz += sprintf(psz, "%2d: %s", index, to_string(bp).c_str()) + 1;
+            m_nLines++;
 
             // Check if we're on an execution breakpoint (ignoring condition)
             auto pPhys = AddrReadPtr(PC);
-            if (p->nType == btExecute && p->Exec.pPhysAddr == pPhys)
-                m_nActive = i;
+            if (bp.type == BreakType::Execute)
+            {
+                if (auto exec = std::get_if<BreakExec>(&bp.data))
+                {
+                    if (exec->phys_addr == pPhys)
+                        m_nActive = index;
+                }
+            }
+
+            index++;
         }
     }
 
@@ -3027,8 +3027,8 @@ void BptView::Draw(FrameBuffer& fb)
         int nX = m_nX;
         int nY = m_nY + ROW_HEIGHT * i;
 
-        BREAKPT* pBreak = Breakpoint::GetAt(m_nTopLine + i);
-        uint8_t bColour = (m_nTopLine + i == m_nActive) ? CYAN_7 : (pBreak && !pBreak->fEnabled) ? GREY_4 : WHITE;
+        auto pBreak = Breakpoint::GetAt(m_nTopLine + i);
+        uint8_t bColour = (m_nTopLine + i == m_nActive) ? CYAN_7 : (pBreak && !pBreak->enabled) ? GREY_4 : WHITE;
         fb.DrawString(nX, nY, psz, bColour);
         psz += strlen(psz) + 1;
     }
@@ -3046,8 +3046,8 @@ bool BptView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
         if (IsOver() && nIndex >= 0 && nIndex < m_nLines)
         {
-            BREAKPT* pBreak = Breakpoint::GetAt(nIndex);
-            pBreak->fEnabled = !pBreak->fEnabled;
+            auto pBreak = Breakpoint::GetAt(nIndex);
+            pBreak->enabled = !pBreak->enabled;
         }
         break;
     }
