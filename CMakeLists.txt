@@ -28,7 +28,7 @@ if (CMAKE_VERBOSE_MAKEFILE STREQUAL "")
 endif()
 
 if (APPLE)
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "Minimum OS X deployment version" FORCE)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.12" CACHE STRING "Minimum OS X deployment version" FORCE)
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
@@ -160,8 +160,18 @@ include(CheckCXXCompilerFlag)
 include(CheckIncludeFiles)
 include(CheckIncludeFileCXX)
 
-# Only newer Xcode versions and OS targets support std::filesystem
+# Check for some later C++17 headers known to be problematic.
+check_include_file_cxx("optional" HAVE_STD_OPTIONAL)
+check_include_file_cxx("variant" HAVE_STD_VARIANT)
+if (NOT HAVE_STD_OPTIONAL OR NOT HAVE_STD_VARIANT)
+  message(FATAL_ERROR "missing some required C++17 headers")
+endif()
+
+# Prefer a 3rd party implementation to std::experimental::filesystem.
 check_include_file_cxx("filesystem" HAVE_STD_FILESYSTEM)
+if (NOT HAVE_STD_FILESYSTEM)
+  target_include_directories(${PROJECT_NAME} PRIVATE Extern/ghc)
+endif()
 
 set(CMAKE_THREAD_PREFER_PTHREAD pthread)
 find_package(Threads REQUIRED)

@@ -71,6 +71,8 @@
 #include <sstream>
 #include <vector>
 #include <array>
+#include <optional>
+#include <variant>
 
 #ifdef HAVE_STD_FILESYSTEM
 #include <filesystem>
