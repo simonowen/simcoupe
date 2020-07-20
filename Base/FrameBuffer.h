@@ -57,8 +57,7 @@ public:
     void FrameRect(int x, int y, int nWidth_, int nHeight_, uint8_t colour, bool round_ = false);
     void Poke(int x, int y, const uint8_t* data, int len);
     void DrawImage(int x, int y, int width, int height, const uint8_t* img_data, const uint8_t* img_palette);
-    void DrawString(int x, int y, const char* str, uint8_t colour = WHITE);
-    void Printf(int x, int y, const char* format, ...);
+    void DrawString(int x, int y, const std::string& str, uint8_t colour = WHITE);
 
     void SetFont(std::shared_ptr<Font> font);
     int StringWidth(const char* pcsz_, int max_chars=-1) const;

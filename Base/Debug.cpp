@@ -1651,14 +1651,14 @@ void DisView::Draw(FrameBuffer& fb)
         int nX = m_nX;
         int nY = m_nY + ROW_HEIGHT * u;
 
-        uint8_t bColour = 'W';
+        auto colour = 'W';
 
         if (s_wAddrs[u] == PC)
         {
             // The location bar is green for a change in code flow or yellow otherwise, with black text
             uint8_t bBarColour = (m_uCodeTarget != INVALID_TARGET) ? GREEN_7 : YELLOW_7;
             fb.FillRect(nX - 1, nY - 1, BAR_CHAR_LEN * CHR_WIDTH + 1, ROW_HEIGHT - 3, bBarColour);
-            bColour = 'k';
+            colour = 'k';
 
             // Add a direction arrow if we have a code target
             if (m_uCodeTarget != INVALID_TARGET)
@@ -1670,15 +1670,15 @@ void DisView::Draw(FrameBuffer& fb)
         auto pPhysAddr = AddrReadPtr(s_wAddrs[u]);
         if (auto index_val = Breakpoint::GetExecIndex(pPhysAddr))
         {
-            bColour = Breakpoint::GetAt(*index_val)->expr ? 'M' : 'R';
+            colour = Breakpoint::GetAt(*index_val)->expr ? 'M' : 'R';
         }
 
         // Show the current entry normally if it's not the current code target, otherwise show all
         // in black text with an arrow instead of the address, indicating it's the code target.
         if (m_uCodeTarget == INVALID_TARGET || s_wAddrs[u] != m_uCodeTarget)
-            fb.Printf(nX, nY, "\a%c\a%c%s", bColour, (bColour != 'W') ? '0' : bColour, psz);
+            fb.DrawString(nX, nY, fmt::format("\a{}\a{}{}", colour, (colour != 'W') ? '0' : colour, psz));
         else
-            fb.Printf(nX, nY, "\a%c===>\a%c%s", (bColour == 'k') ? 'k' : 'G', (bColour == 'k') ? '0' : bColour, psz + 4);
+            fb.DrawString(nX, nY, fmt::format("\a{}===>\a{}{}", (colour == 'k') ? 'k' : 'G', (colour == 'k') ? '0' : colour, psz + 4));
     }
 
     DrawRegisterPanel(fb, m_nX + m_nWidth - 6 * 16, m_nY);
@@ -1692,15 +1692,15 @@ void DisView::Draw(FrameBuffer& fb)
 
 #define DoubleReg(dx,dy,name,reg) \
     { \
-        fb.Printf(nX+dx, nY+dy, "\ag%-3s\a%c%02X\a%c%02X", name, \
+        fb.DrawString(nX+dx, nY+dy, fmt::format("\ag{:<3s}\a{}{:02X}\a{}{:02X}", name, \
                     (regs.reg.b.h != sLastRegs.reg.b.h)?CHG_COL:'X', regs.reg.b.h,  \
-                    (regs.reg.b.l != sLastRegs.reg.b.l)?CHG_COL:'X', regs.reg.b.l); \
+                    (regs.reg.b.l != sLastRegs.reg.b.l)?CHG_COL:'X', regs.reg.b.l)); \
     }
 
 #define SingleReg(dx,dy,name,reg) \
     { \
-        fb.Printf(nX+dx, nY+dy, "\ag%-2s\a%c%02X", name, \
-                    (regs.reg != sLastRegs.reg)?CHG_COL:'X', regs.reg); \
+        fb.DrawString(nX+dx, nY+dy, fmt::format("\ag{:<2s}\a{}{:02X}", name, \
+                    (regs.reg != sLastRegs.reg)?CHG_COL:'X', regs.reg)); \
     }
 
     DoubleReg(0, 0, "AF", af);    DoubleReg(54, 0, "AF'", af_);
@@ -1716,21 +1716,21 @@ void DisView::Draw(FrameBuffer& fb)
     fb.DrawString(nX + 80, nY + 74, "\aK\x81\x81");
 
     for (i = 0; i < 4; i++)
-        fb.Printf(nX + 72, nY + 84 + i * 12, "%04X", read_word(SP + i * 2));
+        fb.DrawString(nX + 72, nY + 84 + i * 12, fmt::format("{:04X}", read_word(SP + i * 2)));
 
-    fb.Printf(nX, nY + 96, "\agIM \a%c%u", (IM != sLastRegs.im) ? CHG_COL : 'X', IM);
-    fb.Printf(nX + 18, nY + 96, "  \a%c%cI", (IFF1 != sLastRegs.iff1) ? CHG_COL : 'X', IFF1 ? 'E' : 'D');
+    fb.DrawString(nX, nY + 96, fmt::format("\agIM \a{}{}", (IM != sLastRegs.im) ? CHG_COL : 'X', IM));
+    fb.DrawString(nX + 18, nY + 96, fmt::format("  \a{}{}I", (IFF1 != sLastRegs.iff1) ? CHG_COL : 'X', IFF1 ? 'E' : 'D'));
 
     char bIntDiff = status_reg ^ bLastStatus;
-    fb.Printf(nX, nY + 108, "\agStat \a%c%c\a%c%c\a%c%c\a%c%c\a%c%c",
+    fb.DrawString(nX, nY + 108, fmt::format("\agStat \a{}{}\a{}{}\a{}{}\a{}{}\a{}{}",
         (bIntDiff & 0x10) ? CHG_COL : (status_reg & 0x10) ? 'K' : 'X', (status_reg & 0x10) ? '-' : 'O',
         (bIntDiff & 0x08) ? CHG_COL : (status_reg & 0x08) ? 'K' : 'X', (status_reg & 0x08) ? '-' : 'F',
         (bIntDiff & 0x04) ? CHG_COL : (status_reg & 0x04) ? 'K' : 'X', (status_reg & 0x04) ? '-' : 'I',
         (bIntDiff & 0x02) ? CHG_COL : (status_reg & 0x02) ? 'K' : 'X', (status_reg & 0x02) ? '-' : 'M',
-        (bIntDiff & 0x01) ? CHG_COL : (status_reg & 0x01) ? 'K' : 'X', (status_reg & 0x01) ? '-' : 'L');
+        (bIntDiff & 0x01) ? CHG_COL : (status_reg & 0x01) ? 'K' : 'X', (status_reg & 0x01) ? '-' : 'L'));
 
     char bFlagDiff = F ^ sLastRegs.af.b.l;
-    fb.Printf(nX, nY + 132, "\agFlag \a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c\a%c%c",
+    fb.DrawString(nX, nY + 132, fmt::format("\agFlag \a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}",
         (bFlagDiff & FLAG_S) ? CHG_COL : (F & FLAG_S) ? 'X' : 'K', (F & FLAG_S) ? 'S' : '-',
         (bFlagDiff & FLAG_Z) ? CHG_COL : (F & FLAG_Z) ? 'X' : 'K', (F & FLAG_Z) ? 'Z' : '-',
         (bFlagDiff & FLAG_5) ? CHG_COL : (F & FLAG_5) ? 'X' : 'K', (F & FLAG_5) ? '5' : '-',
@@ -1738,28 +1738,28 @@ void DisView::Draw(FrameBuffer& fb)
         (bFlagDiff & FLAG_3) ? CHG_COL : (F & FLAG_3) ? 'X' : 'K', (F & FLAG_3) ? '3' : '-',
         (bFlagDiff & FLAG_V) ? CHG_COL : (F & FLAG_V) ? 'X' : 'K', (F & FLAG_V) ? 'V' : '-',
         (bFlagDiff & FLAG_N) ? CHG_COL : (F & FLAG_N) ? 'X' : 'K', (F & FLAG_N) ? 'N' : '-',
-        (bFlagDiff & FLAG_C) ? CHG_COL : (F & FLAG_C) ? 'X' : 'K', (F & FLAG_C) ? 'C' : '-');
+        (bFlagDiff & FLAG_C) ? CHG_COL : (F & FLAG_C) ? 'X' : 'K', (F & FLAG_C) ? 'C' : '-'));
 
 
     int nLine = (g_dwCycleCounter < CPU_CYCLES_PER_SIDE_BORDER) ? GFX_HEIGHT_LINES - 1 : (g_dwCycleCounter - CPU_CYCLES_PER_SIDE_BORDER) / CPU_CYCLES_PER_LINE;
     int nLineCycle = (g_dwCycleCounter + CPU_CYCLES_PER_LINE - CPU_CYCLES_PER_SIDE_BORDER) % CPU_CYCLES_PER_LINE;
 
-    fb.Printf(nX, nY + 148, "\agScan\aX %03d:%03d", nLine, nLineCycle);
-    fb.Printf(nX, nY + 160, "\agT\aX %u", g_dwCycleCounter);
+    fb.DrawString(nX, nY + 148, fmt::format("\agScan\aX {:03d}:{:03d}", nLine, nLineCycle));
+    fb.DrawString(nX, nY + 160, fmt::format("\agT\aX {}", g_dwCycleCounter));
 
     uint32_t dwCycleDiff = ((nLastFrames * CPU_CYCLES_PER_FRAME) + g_dwCycleCounter) - dwLastCycle;
     if (dwCycleDiff)
-        fb.Printf(nX + 12, nY + 172, "+%u", dwCycleDiff);
+        fb.DrawString(nX + 12, nY + 172, fmt::format("+{}", dwCycleDiff));
 
-    fb.Printf(nX, nY + 188, "\agA \a%c%s", ReadOnlyAddr(0x0000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_A)));
-    fb.Printf(nX, nY + 200, "\agB \a%c%s", ReadOnlyAddr(0x4000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_B)));
-    fb.Printf(nX, nY + 212, "\agC \a%c%s", ReadOnlyAddr(0x8000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_C)));
-    fb.Printf(nX, nY + 224, "\agD \a%c%s", ReadOnlyAddr(0xc000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_D)));
+    fb.DrawString(nX, nY + 188, fmt::format("\agA \a{}{}", ReadOnlyAddr(0x0000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_A))));
+    fb.DrawString(nX, nY + 200, fmt::format("\agB \a{}{}", ReadOnlyAddr(0x4000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_B))));
+    fb.DrawString(nX, nY + 212, fmt::format("\agC \a{}{}", ReadOnlyAddr(0x8000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_C))));
+    fb.DrawString(nX, nY + 224, fmt::format("\agD \a{}{}", ReadOnlyAddr(0xc000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_D))));
 
-    fb.Printf(nX + 66, nY + 188, "\agL\aX %02X", lmpr);
-    fb.Printf(nX + 66, nY + 200, "\agH\aX %02X", hmpr);
-    fb.Printf(nX + 66, nY + 212, "\agV\aX %02X", vmpr);
-    fb.Printf(nX + 66, nY + 224, "\agM\aX %X", ((vmpr & VMPR_MODE_MASK) >> 5) + 1);
+    fb.DrawString(nX + 66, nY + 188, fmt::format("\agL\aX {:02X}", lmpr));
+    fb.DrawString(nX + 66, nY + 200, fmt::format("\agH\aX {:02X}", hmpr));
+    fb.DrawString(nX + 66, nY + 212, fmt::format("\agV\aX {:02X}", vmpr));
+    fb.DrawString(nX + 66, nY + 224, fmt::format("\agM\aX {:X}", ((vmpr & VMPR_MODE_MASK) >> 5) + 1));
 
     fb.DrawString(nX, nY + 240, "\agEvents");
 
@@ -1786,7 +1786,7 @@ void DisView::Draw(FrameBuffer& fb)
             i--; continue;
         }
 
-        fb.Printf(nX, nY + 252 + i * 12, "%-4s \a%c%6u\aXT", pcszEvent, CHG_COL, pEvent->due_time - g_dwCycleCounter);
+        fb.DrawString(nX, nY + 252 + i * 12, fmt::format("{:<4s} \a{}{:6d}\aXT", pcszEvent, CHG_COL, pEvent->due_time - g_dwCycleCounter));
     }
 }
 
@@ -2281,7 +2281,7 @@ void TxtView::Draw(FrameBuffer& fb)
         char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
 
         fb.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, YELLOW_8);
-        fb.Printf(nX, nY, "\ak%c", ch);
+        fb.DrawString(nX, nY, fmt::format("\ak{}", ch));
 
         pDebugger->SetStatusByte(m_wEditAddr);
     }
@@ -2502,19 +2502,18 @@ void HexView::Draw(FrameBuffer& fb)
 
     if (m_fEditing && GetAddrPosition(m_wEditAddr, nX, nY, nTextX))
     {
-        char sz[3];
         auto b = read_byte(m_wEditAddr);
-        snprintf(sz, 3, "%02X", b);
+        auto str = fmt::format("{:02X}", b);
 
         if (m_fRightNibble)
             nY += CHR_WIDTH;
 
         fb.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, YELLOW_8);
-        fb.Printf(nX, nY, "\ak%c", sz[m_fRightNibble]);
+        fb.DrawString(nX, nY, fmt::format("\ak{}", str[m_fRightNibble]));
 
         char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
         fb.FillRect(nTextX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, GREY_6);
-        fb.Printf(nTextX, nY, "\ak%c", ch);
+        fb.DrawString(nTextX, nY, fmt::format("\ak{}", ch));
     }
 }
 

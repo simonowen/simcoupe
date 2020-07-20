@@ -156,29 +156,34 @@ int FrameBuffer::StringWidth(const char* pcsz_, int max_chars) const
     return m_pFont->StringWidth(pcsz_, max_chars);
 }
 
-void FrameBuffer::DrawString(int x, int y, const char* str, uint8_t default_colour)
+void FrameBuffer::DrawString(int x, int y, const std::string& str, uint8_t default_colour)
 {
     auto in_colour = true;
+    auto expect_colour = false;
     auto colour = default_colour;
     int left = x;
 
-    for (uint8_t ch; (ch = *str++); )
+    for (uint8_t ch : str)
     {
         if (ch == '\n')
         {
-            x = left;
-            y += m_pFont->height + Font::LINE_SPACING;
-            continue;
+        x = left;
+        y += m_pFont->height + Font::LINE_SPACING;
+        continue;
         }
         else if (ch == '\a')
         {
-            auto colour_chr = *str;
-            if (colour_chr) str++;
+            expect_colour = true;
+            continue;
+        }
+        else if (expect_colour)
+        {
+            expect_colour = false;
 
             if (!in_colour)
                 continue;
 
-            switch (colour_chr)
+            switch (ch)
             {
             case 'k': colour = BLACK;       break;
             case 'b': colour = BLUE_8;      break;
@@ -198,10 +203,17 @@ void FrameBuffer::DrawString(int x, int y, const char* str, uint8_t default_colo
             case 'Y': colour = YELLOW_5;    break;
             case 'W': colour = WHITE;       break;
 
-            case '0': in_colour = false; default_colour = colour; break;
-            case '1': in_colour = true;       break;
+            case '0':
+                in_colour = false;
+                default_colour = colour;
+                break;
+            case '1':
+                in_colour = true;
+                break;
 
-            case 'X': colour = default_colour; break;
+            case 'X':
+                colour = default_colour;
+                break;
             }
 
             continue;
@@ -246,18 +258,6 @@ void FrameBuffer::DrawString(int x, int y, const char* str, uint8_t default_colo
 
         x += width + Font::CHAR_SPACING;
     }
-}
-
-void FrameBuffer::Printf(int x, int y, const char* format, ...)
-{
-    char sz[512]{};
-
-    va_list args{};
-    va_start(args, format);
-    vsnprintf(sz, std::size(sz) - 1, format, args);
-    va_end(args);
-
-    DrawString(x, y, sz, WHITE);
 }
 
 void FrameBuffer::SetFont(std::shared_ptr<Font> font)

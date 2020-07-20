@@ -855,7 +855,7 @@ void EditControl::Draw(FrameBuffer& fb)
     }
 
     // Draw the visible text
-    fb.Printf(nX, nY + 1, "\a%c%.*s", IsEnabled() ? 'k' : 'K', nViewLength, GetText() + m_nViewOffset);
+    fb.DrawString(nX, nY + 1, fmt::format("\a{}{:{}}", IsEnabled() ? 'k' : 'K', GetText() + m_nViewOffset, nViewLength));
 
     // Is the control focussed with an active selection?
     if (IsActive() && m_nCaretStart != m_nCaretEnd)
@@ -878,7 +878,7 @@ void EditControl::Draw(FrameBuffer& fb)
 
         // Draw the black selection highlight and white text over it
         fb.FillRect(nX + dx + !!dx - 1, nY - 1, 1 + wx + 1, 1 + Font::CHAR_HEIGHT + 1, IsEnabled() ? (IsActive() ? BLACK : GREY_4) : GREY_6);
-        fb.Printf(nX + dx + !!dx, nY + 1, "%.*s", nEnd - nStart, GetText() + nStart);
+        fb.DrawString(nX + dx + !!dx, nY + 1, fmt::format("{:{}}", GetText() + nStart, nEnd - nStart));
     }
 
     // If the control is enabled and focussed we'll show a flashing caret after the text
