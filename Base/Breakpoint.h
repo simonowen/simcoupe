@@ -67,7 +67,7 @@ struct Breakpoint
     static void AddTemp(void* pPhysAddr_, const Expr& expr = {});
     static void AddUntil(const Expr& expr);
     static void AddExec(void* pPhysAddr_, const Expr& expr = {});
-    static void AddMemory(void* pPhysAddr_, AccessType nAccess_, const Expr& expr, int nLength_ = 1);
+    static void AddMemory(void* pPhysAddr_, AccessType nAccess_, const Expr& expr = {}, int nLength_ = 1);
     static void AddPort(uint16_t wPort_, AccessType nAccess_, const Expr& expr = {});
     static void AddInterrupt(uint8_t bIntMask_, const Expr& expr = {});
     static Breakpoint* GetAt(int index);

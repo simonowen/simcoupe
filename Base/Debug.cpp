@@ -389,17 +389,7 @@ static bool OnAddressNotify(const Expr& expr)
 // Notify handler for Execute Until expression
 static bool OnUntilNotify(const Expr& expr)
 {
-    if (expr.IsTokenType(Expr::TokenType::Number))
-    {
-        std::stringstream ss;
-        ss << "PC==" << std::hex << expr.nodes.front().value;
-        Breakpoint::AddTemp(nullptr, Expr::Compile(ss.str().c_str()));
-    }
-    else
-    {
-        Breakpoint::AddTemp(nullptr, expr);
-    }
-
+    Breakpoint::AddTemp(nullptr, expr);
     Debug::Stop();
     return false;
 }
@@ -949,69 +939,121 @@ std::optional<AccessType> GetAccessParam(std::string access)
     return std::nullopt;
 }
 
+std::string Arg(const std::string& str, std::string& remain)
+{
+    std::string arg;
+    std::istringstream ss(str);
+
+    if (std::getline(ss, arg, ' '))
+    {
+        remain.clear();
+        std::getline(ss, remain);
+    }
+
+    return arg;
+}
+
+std::optional<int> ArgValue(const std::string& str, std::string& remain)
+{
+    if (auto expr = Expr::Compile(str, remain))
+    {
+        if (auto value = expr.Eval(); value >= 0)
+        {
+            return value;
+        }
+    }
+
+    return std::nullopt;
+}
+
+std::optional<int> ArgValue(const std::string& str)
+{
+    std::string remain;
+    if (auto value = ArgValue(str, remain); value && remain.empty())
+    {
+        return value;
+    }
+
+    return std::nullopt;
+}
+
+void* ArgPhys(const std::string str, std::string& remain)
+{
+    std::string remain2;
+    if (auto page = ArgValue(str, remain2))
+    {
+        if (remain2.length() >= 2 && remain2.front() == ':')
+        {
+            if (auto offset = ArgValue(remain2.substr(1), remain))
+            {
+                if (*page >= 0 && *page < NUM_INTERNAL_PAGES && *offset >= 0 && *offset < MEM_PAGE_SIZE)
+                    return PageReadPtr(*page) + *offset;
+            }
+        }
+        else
+        {
+            remain = remain2;
+            auto addr = *page;
+            return AddrReadPtr(addr);
+        }
+    }
+
+    return nullptr;
+}
+
+std::optional<AccessType> ArgAccess(const std::string str, std::string& remain)
+{
+    std::string remain2 = str;
+
+    if (auto arg = Arg(str, remain); !arg.empty())
+    {
+        if (arg == "r")
+            return AccessType::Read;
+        else if (arg == "w")
+            return AccessType::Write;
+        else if (arg == "rw")
+            return AccessType::ReadWrite;
+    }
+
+    std::swap(remain, remain2);
+    return std::nullopt;
+}
+
 bool Debugger::Execute(const std::string& cmdline)
 {
-    bool fRet = true;
-
-    char* psz = nullptr;
-
-    std::istringstream ss(cmdline);
-    std::string command;
-    if (!std::getline(ss, command, ' '))
-        return false;
-
-    std::string args;
-    ss >> args;
-    ss.str(args);
-
-    bool fCommandOnly = args.empty();
-
-    // Evaluate the parameter as an expression
     std::string remain;
-    auto expr = Expr::Compile(args, remain);
-    int nParam = expr.Eval();
-
-    // Temporary compatibility hacks, to reduce changes to existing raw pointers.
-    auto pszCommand = command.data();
-    auto pszParam = args.data();
-    auto pszExprEnd = remain.data();
-
-    // nop
-    if (fCommandOnly && (!strcasecmp(pszCommand, "nop")))
-    {
-        // Does exactly what it says on the tin
-    }
-
-    // quit  or  q
-    else if (fCommandOnly && (!strcasecmp(pszCommand, "q") || !strcasecmp(pszCommand, "quit")))
-    {
-        Debug::Stop();
+    auto command = tolower(Arg(cmdline, remain));
+    if (command.empty())
         return false;
-    }
+
+    bool no_args = remain.empty();
 
     // di
-    else if (fCommandOnly && !strcasecmp(pszCommand, "di"))
+    if (command == "di" && no_args)
     {
         IFF1 = IFF2 = 0;
+        return true;
     }
 
     // ei
-    else if (fCommandOnly && !strcasecmp(pszCommand, "ei"))
+    else if (command == "ei"  && no_args)
     {
         IFF1 = IFF2 = 1;
+        return true;
     }
 
     // im 0|1|2
-    else if (!strcasecmp(pszCommand, "im"))
+    else if (command == "im")
     {
-        if (nParam >= 0 && nParam <= 2 && remain.empty())
-            IM = nParam;
-        else
-            fRet = false;
+        if (auto im_mode = ArgValue(remain); im_mode && *im_mode >= 0 && *im_mode <= 2)
+        {
+            IM = *im_mode;
+            return true;
+        }
     }
 
     // reset
-    else if (fCommandOnly && !strcasecmp(pszCommand, "reset"))
+    else if (command == "reset" && no_args)
     {
         CPU::Reset(true);
         CPU::Reset(false);
@@ -1020,70 +1062,84 @@ bool Debugger::Execute(const std::string& cmdline)
         dwLastCycle = g_dwCycleCounter;
 
         SetAddress(PC);
+        return true;
     }
 
     // nmi
-    else if (fCommandOnly && !strcasecmp(pszCommand, "nmi"))
+    else if (command == "nmi" && no_args)
     {
         CPU::NMI();
         SetAddress(PC);
     }
 
     // zap
-    else if (fCommandOnly && !strcasecmp(pszCommand, "zap"))
+    else if (command == "zap" && no_args)
     {
-        // Disassemble the current instruction
-        uint8_t ab[MAX_Z80_INSTR_LEN] = { read_byte(PC), read_byte(PC + 1), read_byte(PC + 2), read_byte(PC + 3) };
-        auto uLen = Disassemble(ab, PC);
+        uint8_t instr[MAX_Z80_INSTR_LEN]{};
+        for (auto i = 0; i < MAX_Z80_INSTR_LEN; ++i)
+            instr[i] = read_byte(PC + i);
 
-        // Replace instruction with the appropriate number of NOPs
-        for (unsigned int u = 0; u < uLen; u++)
-            write_byte(PC + u, OP_NOP);
+        auto len = static_cast<int>(Disassemble(instr));
+
+        for (auto i = 0; i < len; ++i)
+            write_byte(PC + i, OP_NOP);
+
+        return true;
     }
 
     // call addr
-    else if (!strcasecmp(pszCommand, "call") && nParam != -1 && remain.empty())
+    else if (command == "call")
     {
-        SP -= 2;
-        write_word(SP, PC);
-        SetAddress(PC = nParam);
+        if (auto addr = ArgValue(remain))
+        {
+            SP -= 2;
+            write_word(SP, PC);
+            SetAddress(PC = *addr);
+            return true;
+        }
     }
 
     // ret
-    else if (fCommandOnly && !strcasecmp(pszCommand, "ret"))
+    else if (command == "ret" && no_args)
     {
         SetAddress(PC = read_word(SP));
         SP += 2;
+        return true;
     }
 
     // push value
-    else if (!strcasecmp(pszCommand, "push") && nParam != -1 && remain.empty())
+    else if (command == "push")
     {
-        SP -= 2;
-        write_word(SP, nParam);
+        if (auto value = ArgValue(remain))
+        {
+            SP -= 2;
+            write_word(SP, *value);
+            return true;
+        }
     }
 
     // pop [register]
-    else if (!strcasecmp(pszCommand, "pop"))
+    else if (command == "pop")
     {
-        // Re-parse the first argument as a register
-        expr = Expr::Compile(pszParam, remain, Expr::regOnly);
-
-        if (fCommandOnly)
-            SP += 2;
-        else if (expr.IsTokenType(Expr::TokenType::Register) && remain.empty())
+        if (no_args)
         {
-            Expr::SetReg(expr.TokenValue(), read_word(SP));
             SP += 2;
+            return true;
         }
-        else
-            fRet = false;
+        else if (auto reg_expr = Expr::Compile(remain, remain))
+        {
+            if (reg_expr.IsTokenType(Expr::TokenType::Register) && remain.empty())
+            {
+                Expr::SetReg(reg_expr.TokenValue(), read_word(SP));
+                SP += 2;
+                return true;
+            }
+        }
     }
 
     // break
-    else if (fCommandOnly && !strcasecmp(pszCommand, "break"))
+    else if (command == "break" && no_args)
     {
-        // EI, IM 1, force NMI (super-break)
         IFF1 = 1;
         IM = 1;
         PC = NMI_INTERRUPT_HANDLER;
@@ -1095,388 +1151,284 @@ bool Debugger::Execute(const std::string& cmdline)
         Debug::Stop();
         return false;
     }
-    /*
-        // step [count]
-        else if (!strcasecmp(pszCommand, "s") || !strcasecmp(pszCommand, "step"))
-        {
-            if (fCommandOnly)
-                nParam = 1;
-            else if (nParam == -1 || *pszExprEnd)
-                fRet = false;
 
-            if (fRet)
-            {
-                Expr::count = nParam;
-                Break.expr = &Expr::Counter;
-                Stop();
-            }
-        }
-    */
     // x [count|until cond]
-    else if (!strcasecmp(pszCommand, "x"))
+    else if (command == "x")
     {
-        psz = strtok(pszExprEnd, " ");
+        std::string remain2;
 
-        // x 123  (instruction count)
-        if (nParam != -1 && remain.empty())
+        // x
+        if (remain.empty())
         {
-            Expr::count = nParam;
-            Breakpoint::AddTemp(nullptr, Expr::Counter);
             Debug::Stop();
             return false;
         }
         // x until cond
-        else if (psz && !strcasecmp(psz, "until"))
+        else if (tolower(Arg(remain, remain2)) == "until")
         {
-            psz += strlen(psz) + 1;
-            auto expr2 = Expr::Compile(psz);
-
-            // If we have an expression set a temporary breakpoint using it
-            if (expr2)
-                Breakpoint::AddTemp(nullptr, expr2);
-            else
-                fRet = false;
+            if (auto expr = Expr::Compile(remain2))
+            {
+                Breakpoint::AddTemp(nullptr, expr);
+                return true;
+            }
         }
-        // Otherwise fail if not unconditional execution
-        else if (!fCommandOnly)
-            fRet = false;
-
-        if (fRet)
+        // x 123  (instruction count)
+        else if (auto count = ArgValue(remain))
         {
+            Expr::count = *count;
+            Breakpoint::AddTemp(nullptr, Expr::Counter);
             Debug::Stop();
             return false;
         }
     }
 
     // until expr
-    else if (!strcasecmp(pszCommand, "u") || !strcasecmp(pszCommand, "until"))
+    else if (command == "u" || command == "until")
     {
-        if (nParam != -1 && remain.empty())
+        if (auto expr = Expr::Compile(remain))
         {
-            Breakpoint::AddTemp(nullptr, Expr::Compile(pszParam));
+            Breakpoint::AddTemp(nullptr, expr);
             Debug::Stop();
             return false;
         }
-        else
-            fRet = false;
     }
 
     // bpu cond
-    else if (!strcasecmp(pszCommand, "bpu") && nParam != -1 && remain.empty())
+    else if (command == "bpu")
     {
-        Breakpoint::AddUntil(expr);
+        if (auto expr = Expr::Compile(remain))
+        {
+            Breakpoint::AddUntil(expr);
+            return true;
+        }
     }
 
     // bpx addr [if cond]
-    else if (!strcasecmp(pszCommand, "bpx") && nParam != -1)
+    else if (command == "bpx")
     {
-        Expr expr;
-        void* pPhysAddr = nullptr;
-
-        // Physical address?
-        if (*pszExprEnd == ':')
+        if (auto phys_addr = ArgPhys(remain, remain))
         {
-            int nPage = nParam;
-            int nOffset{};
-
-            if (nPage < NUM_INTERNAL_PAGES && Expr::Eval(pszExprEnd + 1, nOffset, remain) && nOffset < MEM_PAGE_SIZE)
-                pPhysAddr = PageReadPtr(nPage) + nOffset;
-            else
-                fRet = false;
-        }
-        else
-        {
-            pPhysAddr = AddrReadPtr(nParam);
-        }
-
-        // Extract a token from after the location expression
-        pszExprEnd = remain.data();
-        psz = strtok(pszExprEnd, " ");
-
-        if (psz)
-        {
-            // If condition?
-            if (!strcasecmp(psz, "if"))
+            if (tolower(Arg(remain, remain)) == "if")
             {
-                // Compile the expression following it
-                psz += strlen(psz) + 1;
-                expr = Expr::Compile(psz);
-                fRet &= expr;
+                if (auto expr = Expr::Compile(remain))
+                {
+                    Breakpoint::AddExec(phys_addr, expr);
+                    return true;
+                }
             }
-            else
-                fRet = false;
+            else if (remain.empty())
+            {
+                Breakpoint::AddExec(phys_addr);
+                return true;
+            }
         }
-
-        if (fRet)
-            Breakpoint::AddExec(pPhysAddr, expr);
     }
 
     // bpm addr [rw|r|w] [if cond]
-    else if (!strcasecmp(pszCommand, "bpm") && nParam != -1)
+    else if (command == "bpm")
     {
-        Expr expr;
-        void* pPhysAddr = nullptr;
-
-        // Default is read/write
-        auto access = AccessType::ReadWrite;
-
-        // Physical address?
-        if (*pszExprEnd == ':')
+        if (auto phys_addr = ArgPhys(remain, remain))
         {
-            int nPage = nParam;
-            int nOffset{};
-
-            if (nPage < NUM_INTERNAL_PAGES && Expr::Eval(pszExprEnd + 1, nOffset, remain) && nOffset < MEM_PAGE_SIZE)
-                pPhysAddr = PageReadPtr(nPage) + nOffset;
-            else
-                fRet = false;
-        }
-        else
-        {
-            pPhysAddr = AddrReadPtr(nParam);
-        }
-
-        // Extract a token from after the location expression
-        pszExprEnd = remain.data();
-        psz = strtok(pszExprEnd, " ");
-
-        if (psz)
-        {
-            if (auto access_param = GetAccessParam(psz))
+            auto access = AccessType::ReadWrite;
+            if (auto access_arg = ArgAccess(remain, remain))
             {
-                access = *access_param;
-                psz = strtok(nullptr, " ");
+                access = *access_arg;
+            }
+
+            if (tolower(Arg(remain, remain)) == "if")
+            {
+                if (auto expr = Expr::Compile(remain))
+                {
+                    Breakpoint::AddMemory(phys_addr, access, expr);
+                    return true;
+                }
+            }
+            else if (remain.empty())
+            {
+                Breakpoint::AddMemory(phys_addr, access);
+                return true;
             }
         }
-
-        if (psz)
-        {
-            // If condition?
-            if (!strcasecmp(psz, "if"))
-            {
-                // Compile the expression following it
-                psz += strlen(psz) + 1;
-                expr = Expr::Compile(psz);
-                fRet = expr;
-            }
-            else
-                fRet = false;
-        }
-
-        if (fRet)
-            Breakpoint::AddMemory(pPhysAddr, access, expr);
     }
 
-    // bpmr addrfrom addrto [rw|r|w] [if cond]
-    else if (!strcasecmp(pszCommand, "bpmr") && nParam != -1)
+    // bpmr addr length [rw|r|w] [if cond]
+    else if (command == "bpmr")
     {
-        Expr expr;
-        void* pPhysAddr = nullptr;
-
-        auto access = AccessType::ReadWrite;
-
-        // Physical address?
-        if (*pszExprEnd == ':')
+        if (auto phys_addr = ArgPhys(remain, remain))
         {
-            int nPage = nParam;
-            int nOffset{};
-
-            if (nPage < NUM_INTERNAL_PAGES && Expr::Eval(pszExprEnd + 1, nOffset, remain) && nOffset < MEM_PAGE_SIZE)
-                pPhysAddr = PageReadPtr(nPage) + nOffset;
-            else
-                fRet = false;
-        }
-        else
-        {
-            pPhysAddr = AddrReadPtr(nParam);
-        }
-
-        // Parse a length expression
-        auto expr2 = Expr::Compile(remain, remain);
-        int nLength = expr2.Eval();
-
-        // Length must be valid and non-zero
-        if (nLength <= 0)
-            fRet = false;
-
-        // Extract a token from after the length expression
-        pszExprEnd = remain.data();
-        psz = strtok(pszExprEnd, " ");
-
-        if (psz)
-        {
-            if (auto access_type = GetAccessParam(psz))
+            if (auto length = ArgValue(remain, remain))
             {
-                access = *access_type;
-                psz = strtok(nullptr, " ");
+                auto access = AccessType::ReadWrite;
+                if (auto access_arg = ArgAccess(remain, remain))
+                {
+                    access = *access_arg;
+                }
+
+                if (tolower(Arg(remain, remain)) == "if")
+                {
+                    if (auto expr = Expr::Compile(remain))
+                    {
+                        Breakpoint::AddMemory(phys_addr, access, expr, *length);
+                        return true;
+                    }
+                }
+                else if (remain.empty())
+                {
+                    Breakpoint::AddMemory(phys_addr, access, {}, *length);
+                    return true;
+                }
             }
         }
-
-        if (psz)
-        {
-            // If condition?
-            if (!strcasecmp(psz, "if"))
-            {
-                // Compile the expression following it
-                psz += strlen(psz) + 1;
-                expr = Expr::Compile(psz);
-                fRet = expr;
-            }
-            else
-                fRet = false;
-        }
-
-        if (fRet)
-            Breakpoint::AddMemory(pPhysAddr, access, expr, nLength);
     }
 
     // bpio port [rw|r|w] [if cond]
-    else if (!strcasecmp(pszCommand, "bpio") && nParam != -1)
+    else if (command == "bpio")
     {
-        auto access = AccessType::ReadWrite;
-        Expr expr;
-
-        // Extract a token from after the port expression
-        psz = strtok(pszExprEnd, " ");
-
-        if (psz)
+        if (auto port = ArgValue(remain, remain))
         {
-            if (auto access_type = GetAccessParam(psz))
+            auto access = AccessType::ReadWrite;
+            if (auto access_arg = ArgAccess(remain, remain))
             {
-                access = *access_type;
-                psz = strtok(nullptr, " ");
+                access = *access_arg;
+            }
+
+            if (tolower(Arg(remain, remain)) == "if")
+            {
+                if (auto expr = Expr::Compile(remain))
+                {
+                    Breakpoint::AddPort(*port, access, expr);
+                    return true;
+                }
+            }
+            else if (remain.empty())
+            {
+                Breakpoint::AddPort(*port, access);
+                return true;
             }
         }
-
-        if (psz)
-        {
-            // If condition?
-            if (!strcasecmp(psz, "if"))
-            {
-                // Compile the expression following it
-                psz += strlen(psz) + 1;
-                expr = Expr::Compile(psz);
-                fRet = expr;
-            }
-            else
-                fRet = false;
-        }
-
-        Breakpoint::AddPort(nParam, access, expr);
     }
 
-    // bpint frame|line|midi
-    else if (!strcasecmp(pszCommand, "bpint"))
+    // bpint frame|line|midi [if cond]
+    else if (command == "bpint")
     {
-        uint8_t bMask = 0x00;
+        uint8_t mask{};
         Expr expr;
 
-        if (fCommandOnly)
-            bMask = 0x1f;
+        if (no_args)
+        {
+            mask = 0x1f;
+        }
         else
         {
-            for (psz = strtok(pszParam, " ,"); fRet && psz; psz = strtok(nullptr, " ,"))
+            while (!remain.empty())
             {
-                if (!strcasecmp(psz, "frame") || !strcasecmp(psz, "f"))
-                    bMask |= STATUS_INT_FRAME;
-                else if (!strcasecmp(psz, "line") || !strcasecmp(psz, "l"))
-                    bMask |= STATUS_INT_LINE;
-                else if (!strcasecmp(psz, "midi") || !strcasecmp(psz, "m"))
-                    bMask |= STATUS_INT_MIDIIN | STATUS_INT_MIDIOUT;
-                else if (!strcasecmp(psz, "midiin") || !strcasecmp(psz, "mi"))
-                    bMask |= STATUS_INT_MIDIIN;
-                else if (!strcasecmp(psz, "midiout") || !strcasecmp(psz, "mo"))
-                    bMask |= STATUS_INT_MIDIOUT;
-                else if (!strcasecmp(psz, "if") && !expr)
+                if (auto arg = tolower(Arg(remain, remain)); !arg.empty())
                 {
-                    // Compile the expression following it
-                    psz += strlen(psz) + 1;
-                    expr = Expr::Compile(psz);
-                    fRet = expr;
-                    break;
+                    if (arg == "frame" || arg == "f")
+                        mask |= STATUS_INT_FRAME;
+                    else if (arg == "line" || arg == "l")
+                        mask |= STATUS_INT_LINE;
+                    else if (arg == "midi" || arg == "m")
+                        mask |= STATUS_INT_MIDIIN | STATUS_INT_MIDIOUT;
+                    else if (arg == "midiin" || arg == "mi")
+                        mask |= STATUS_INT_MIDIIN;
+                    else if (arg == "midiout" || arg == "mo")
+                        mask |= STATUS_INT_MIDIOUT;
+                    else if (arg == "if")
+                    {
+                        if (auto expr = Expr::Compile(remain))
+                        {
+                            Breakpoint::AddInterrupt(mask, expr);
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
-                else
-                    fRet = false;
             }
         }
 
-        if (fRet)
-            Breakpoint::AddInterrupt(bMask, expr);
+        Breakpoint::AddInterrupt(mask);
+        return true;
     }
 
     // flag [+|-][sz5h3vnc]
-    else if (!fCommandOnly && (!strcasecmp(pszCommand, "f") || !strcasecmp(pszCommand, "flag")))
+    else if ((command == "flag" || command == "f") && !no_args)
     {
-        bool fSet = true;
-        uint8_t bNewF = F;
+        bool set = true;
+        uint8_t new_f = F;
 
-        while (fRet && *pszParam)
+        for (auto ch : tolower(remain))
         {
-            uint8_t bFlag = 0;
+            uint8_t flag{};
 
-            switch (*pszParam++)
+            switch (ch)
             {
-            case '+': fSet = true;  continue;
-            case '-': fSet = false; continue;
+                case '+': set = true;  continue;
+                case '-': set = false; continue;
 
-            case 's': case 'S': bFlag = FLAG_S; break;
-            case 'z': case 'Z': bFlag = FLAG_Z; break;
-            case '5':           bFlag = FLAG_5; break;
-            case 'h': case 'H': bFlag = FLAG_H; break;
-            case '3':           bFlag = FLAG_3; break;
-            case 'v': case 'V': bFlag = FLAG_V; break;
-            case 'n': case 'N': bFlag = FLAG_N; break;
-            case 'c': case 'C': bFlag = FLAG_C; break;
+                case 's': flag = FLAG_S; break;
+                case 'z': flag = FLAG_Z; break;
+                case '5': flag = FLAG_5; break;
+                case 'h': flag = FLAG_H; break;
+                case '3': flag = FLAG_3; break;
+                case 'v': flag = FLAG_V; break;
+                case 'n': flag = FLAG_N; break;
+                case 'c': flag = FLAG_C; break;
 
-            default: fRet = false; break;
+                default: return false;
             }
 
-            // Set or reset the flag, as appropriate
-            if (fSet)
-                bNewF |= bFlag;
+            if (set)
+                new_f |= flag;
             else
-                bNewF &= ~bFlag;
+                new_f &= ~flag;
         }
 
-        // If successful, set the modified flags
-        if (fRet)
-            F = bNewF;
+        F = new_f;
+        return true;
     }
 
     // bc n  or  bc *
-    else if (!strcasecmp(pszCommand, "bc"))
+    else if (command == "bc")
     {
-        if (nParam != -1 && remain.empty())
-            Breakpoint::Remove(nParam);
-        else if (!strcmp(pszParam, "*"))
+        if (remain == "*")
+        {
             Breakpoint::RemoveAll();
-        else
-            fRet = false;
+            return true;
+        }
+        if (auto index = ArgValue(remain))
+        {
+            Breakpoint::Remove(*index);
+            return true;
+        }
     }
 
     // bd n  or  bd *  or  be n  or  be *
-    else if (!strcasecmp(pszCommand, "bd") || !strcasecmp(pszCommand, "be"))
+    else if (command == "bd" || command == "be")
     {
-        bool fNewState = !strcasecmp(pszCommand, "be");
+        bool enable = (command == "be");
 
-        if (nParam != -1 && remain.empty())
-        {
-            if (auto pBreak = Breakpoint::GetAt(nParam))
-                pBreak->enabled = fNewState;
-            else
-                fRet = false;
-        }
-        else if (!strcmp(pszParam, "*"))
+        if (remain == "*")
         {
             for (auto& bp : Breakpoint::breakpoints)
-                bp.enabled = fNewState;
+                bp.enabled = enable;
+            return true;
         }
-        else
-            fRet = false;
+        else if (auto index = ArgValue(remain))
+        {
+            if (auto pBreak = Breakpoint::GetAt(*index))
+            {
+                pBreak->enabled = enable;
+                return true;
+            }
+        }
     }
 
     // exx
-    else if (fCommandOnly && !strcasecmp(pszCommand, "exx"))
+    else if (command == "exx" && no_args)
     {
         // EXX
         std::swap(BC, BC_);
@@ -1485,104 +1437,108 @@ bool Debugger::Execute(const std::string& cmdline)
     }
 
     // ex reg,reg2
-    else if (!strcasecmp(pszCommand, "ex"))
+    else if (command == "ex")
     {
-        Expr expr2;
-
-        // Re-parse the first argument as a register
-        expr = Expr::Compile(pszParam, remain, Expr::regOnly);
-
-        // Locate and extract the second register parameter
-        if ((psz = strtok(pszExprEnd, ",")))
-            expr2 = Expr::Compile(psz, remain, Expr::regOnly);
-
-        // Accept if both parameters are registers
-        if (expr.IsTokenType(Expr::TokenType::Register) && expr2.IsTokenType(Expr::TokenType::Register))
+        if (auto expr1 = Expr::Compile(remain, remain, Expr::regOnly))
         {
-            auto reg1 = expr.TokenValue();
-            auto reg2 = expr.TokenValue();
-            auto reg1_value = Expr::GetReg(reg1);
-            auto reg2_value = Expr::GetReg(reg2);
-            Expr::SetReg(reg1, reg2_value);
-            Expr::SetReg(reg2, reg1_value);
+            if (remain.empty() || remain.front() != ',')
+            {
+                return false;
+            }
+
+            if (auto expr2 = Expr::Compile(remain.substr(1), remain, Expr::regOnly); expr2 && remain.empty())
+            {
+                if (expr1.IsTokenType(Expr::TokenType::Register) && expr2.IsTokenType(Expr::TokenType::Register))
+                {
+                    auto reg1 = expr1.TokenValue();
+                    auto reg2 = expr2.TokenValue();
+                    auto reg1_value = Expr::GetReg(reg1);
+                    auto reg2_value = Expr::GetReg(reg2);
+                    Expr::SetReg(reg1, reg2_value);
+                    Expr::SetReg(reg2, reg1_value);
+                    return true;
+                }
+            }
         }
-        else
-            fRet = false;
     }
 
     // ld reg,value  or  r reg=value  or  r reg value
-    else if (!strcasecmp(pszCommand, "r") || !strcasecmp(pszCommand, "ld"))
+    else if (command == "r" || command == "ld")
     {
-        int value{};
-
-        // Re-parse the first argument as a register
-        expr = Expr::Compile(pszParam, remain, Expr::regOnly);
-
-        // Locate second parameter (either  ld hl,123  or r hl=123  syntax)
-        psz = strtok(pszExprEnd, ",=");
-
-        // The first parameter must be a register, the second can be any value
-        if (expr.IsTokenType(Expr::TokenType::Register) && psz && Expr::Eval(psz, value, remain))
+        if (auto expr = Expr::Compile(remain, remain, Expr::regOnly); expr.IsTokenType(Expr::TokenType::Register))
         {
-            // If the view address matches PC, and PC is being set, update the view
-            if (m_pView->GetAddress() == PC && expr.TokenValue() == REG_PC)
-                m_pView->SetAddress(value, true);
+            // Expect  ld hl,123  or r hl=123  syntax
+            if (remain.empty() || (remain.front() != ',' && remain.front() != '='))
+            {
+                return false;
+            }
 
-            // Set the register value
-            Expr::SetReg(expr.TokenValue(), value);
+            if (auto value = ArgValue(remain.substr(1)))
+            {
+                // If the view address matches PC, and PC is being set, update the view
+                if (m_pView->GetAddress() == PC && expr.TokenValue() == REG_PC)
+                    m_pView->SetAddress(*value, true);
+
+                Expr::SetReg(expr.TokenValue(), *value);
+                return true;
+            }
         }
-        else
-            fRet = false;
     }
 
     // out port,value
-    else if (!strcasecmp(pszCommand, "out") && nParam != -1)
+    else if (command == "out")
     {
-        int value{};
+        if (auto port = ArgValue(remain, remain))
+        {
+            if (remain.empty() || remain.front() != ',')
+            {
+                return false;
+            }
 
-        // Locate value to output
-        psz = strtok(pszExprEnd, ",");
-
-        // Evaluate and output it
-        if (psz && Expr::Eval(psz, value, remain))
-            IO::Out(nParam, value);
-        else
-            fRet = false;
+            if (auto value = ArgValue(remain.substr(1)))
+            {
+                IO::Out(*port, *value);
+                return true;
+            }
+        }
     }
 
     // poke addr,val[,val,...]
-    else if (!strcasecmp(pszCommand, "poke") && nParam != -1)
+    else if (command == "poke")
     {
-        uint8_t ab[128];
-        int nBytes = 0;
-
-        for (psz = strtok(pszExprEnd, ","); fRet && psz; psz = strtok(nullptr, ","))
+        if (auto addr = ArgValue(remain, remain); addr && !remain.empty())
         {
-            int nVal{};
+            std::vector<uint8_t> values;
 
-            if (Expr::Eval(psz, nVal, remain) && remain.empty())
+            while (!remain.empty())
             {
-                ab[nBytes++] = nVal;
+                if (remain.front() != ',')
+                {
+                    return false;
+                }
 
-                if (nVal > 256)
-                    ab[nBytes++] = nVal >> 8;
+                if (auto value = ArgValue(remain.substr(1), remain))
+                {
+                    if (*value >= 0x100)
+                        values.push_back(static_cast<uint8_t>(*value >> 8));
+
+                    values.push_back(static_cast<uint8_t>(*value));
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-                fRet = false;
-        }
 
-        if (fRet && nBytes)
-        {
-            for (int i = 0; i < nBytes; i++)
-                write_byte(nParam + i, ab[i]);
+            auto offset = 0;
+            for (auto b : values)
+                write_byte(*addr + offset++, b);
+
+            return true;
         }
-        else
-            fRet = false;
     }
-    else
-        fRet = false;
 
-    return fRet;
+    return false;
 }
 
 
@@ -2706,7 +2662,7 @@ void CMemView::SetAddress (uint16_t wAddr_, bool fForceTop_)
 {
     auto psz = (uint8_t*)szDisassem;
 
-    unsigned int uLen = 16384, uBlock = uLen >> 8;
+    unsigned int len = 16384, uBlock = len >> 8;
     for (int index = 0 ; index < 256 ; index++)
     {
         unsigned int uCount = 0;
@@ -2724,8 +2680,8 @@ void CMemView::Draw (FrameBuffer& fb)
 
     for (unsigned int u = 0 ; u < 256 ; u++)
     {
-        unsigned int uLen = (m_nHeight - uGap) * ((uint8_t*)szDisassem)[u] / 100;
-        fb.DrawLine(m_nX+u, m_nY+m_nHeight-uGap-uLen, 0, uLen, (u & 16) ? WHITE : GREY_7);
+        unsigned int len = (m_nHeight - uGap) * ((uint8_t*)szDisassem)[u] / 100;
+        fb.DrawLine(m_nX+u, m_nY+m_nHeight-uGap-len, 0, len, (u & 16) ? WHITE : GREY_7);
     }
 
     fb.DrawString(m_nX, m_nY+m_nHeight-10, "Page 0: 16K in 1K units", WHITE);

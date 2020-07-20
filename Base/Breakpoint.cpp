@@ -126,6 +126,15 @@ std::optional<int> Breakpoint::Hit()
 
 void Breakpoint::Add(Breakpoint&& bp)
 {
+    // Allow address-only shorthand for Until conditions.
+    if ((bp.type == BreakType::Until || bp.type == BreakType::Temp) &&
+        bp.expr.IsTokenType(Expr::TokenType::Number))
+    {
+        std::stringstream ss;
+        ss << "PC==" << std::hex << bp.expr.TokenValue();
+        bp.expr = Expr::Compile(ss.str());
+    }
+
     breakpoints.push_back(std::move(bp));
 
     // Break from the main execution loop to activate breakpoint testing
@@ -302,7 +311,7 @@ std::string to_string(const Breakpoint& bp)
             if (mem->phys_addr_to != pPhysAddr)
             {
                 extent = static_cast<int>((uint8_t*)mem->phys_addr_to - (uint8_t*)pPhysAddr);
-                ss << fmt::format(" {:04X}", (extent + 1));
+                ss << fmt::format(" L{:04X}", (extent + 1));
             }
 
             ss << fmt::format(" {}", to_string(mem->access));
@@ -352,24 +361,24 @@ std::string to_string(const Breakpoint& bp)
         {
             if (extent)
             {
-                ss << fmt::format(" ({:04X}-{:04X},{:04X}-{:04X})",
+                ss << fmt::format(" (@{:04X}-{:04X},@{:04X}-{:04X})",
                     *addr2, (*addr2 + extent),
                     *addr1, (*addr1 + extent));
             }
             else
             {
-                ss << fmt::format(" ({:04X},{:04X})", *addr2, *addr1);
+                ss << fmt::format(" (@{:04X},@{:04X})", *addr2, *addr1);
             }
         }
         else if (addr1.has_value())
         {
             if (extent)
             {
-                ss << fmt::format(" ({:04X}-{:04X})", *addr1, (*addr1 + extent));
+                ss << fmt::format(" (@{:04X}-{:04X})", *addr1, (*addr1 + extent));
             }
             else
             {
-                ss << fmt::format(" ({:04X})", *addr1);
+                ss << fmt::format(" (@{:04X})", *addr1);
             }
         }
     }
