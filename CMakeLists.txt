@@ -31,9 +31,6 @@ if (APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.12" CACHE STRING "Minimum OS X deployment version" FORCE)
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 ########
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
@@ -153,6 +150,8 @@ source_group("Resource Files" FILES ${RESOURCE_FILES})
 ########
 
 add_executable(${PROJECT_NAME} WIN32 MACOSX_BUNDLE ${SOURCE_FILES} ${HEADER_FILES} ${RESOURCE_FILES})
+
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 
 ########
 
