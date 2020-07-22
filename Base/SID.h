@@ -23,7 +23,6 @@
 #include "Sound.h"
 
 #ifdef HAVE_LIBRESID
-#undef F // TODO: limit scope of Z80 registers!
 #undef SID  // TODO: fix Win32 name clash using namespace
 
 #include <resid/sid.h>

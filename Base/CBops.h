@@ -26,14 +26,14 @@
 
 #define rlc(x)  (x = (x << 1) | (x >> 7), rflags(x, x & 1))
 #define rrc(x)  { uint8_t t = x & 1;  x = (x >> 1) | (t << 7); rflags(x,t); }
-#define rl(x)   { uint8_t t = x >> 7; x = (x << 1) | (F & FLAG_C);  rflags(x,t); }
-#define rr(x)   { uint8_t t = x & 1;  x = (x >> 1) | (F << 7); rflags(x,t); }
+#define rl(x)   { uint8_t t = x >> 7; x = (x << 1) | (REG_F & FLAG_C);  rflags(x,t); }
+#define rr(x)   { uint8_t t = x & 1;  x = (x >> 1) | (REG_F << 7); rflags(x,t); }
 #define sla(x)  { uint8_t t = x >> 7; x <<= 1;                 rflags(x,t); }
 #define sra(x)  { uint8_t t = x & 1;  x = ((signed char)x) >> 1;rflags(x,t); }
 #define sll(x)  { uint8_t t = x >> 7; x = (x << 1) | 1;        rflags(x,t); }  // Z80 CPU bug: bit 0 always set in the result
 #define srl(x)  { uint8_t t = x & 1;  x >>= 1;                 rflags(x,t); }
 
-#define bit(n,x) (F = (F & 1) | ((x & (1 << n)) ? n == 7 ? 0x90 : 0x10 : 0x54) | (((op & 7) == 6) ? 0 : (x & 0x28)))
+#define bit(n,x) (REG_F = (REG_F & 1) | ((x & (1 << n)) ? n == 7 ? 0x90 : 0x10 : 0x54) | (((op & 7) == 6) ? 0 : (x & 0x28)))
 
 #define set(n,x) (x |=  (1 << n))
 #define res(n,x) (x &= ~(1 << n))
@@ -46,14 +46,14 @@ uint16_t addr;
 uint8_t op, reg = 0, val = 0;
 
 // Is this an undocumented indexed CB instruction?
-if (pHlIxIy != &HL)
+if (pHlIxIy != &REG_HL)
 {
     // Get the offset
-    addr = *pHlIxIy + (signed char)timed_read_code_byte(PC++);
+    addr = *pHlIxIy + (signed char)timed_read_code_byte(REG_PC++);
     g_dwCycleCounter += 5;
 
     // Extract the register to store the result in, and modify the opcode to be a regular indexed version
-    op = timed_read_code_byte(PC++);
+    op = timed_read_code_byte(REG_PC++);
     g_dwCycleCounter++;
 
     reg = op & 7;
@@ -65,89 +65,89 @@ if (pHlIxIy != &HL)
 // Instruction involving normal register or (HL)
 else
 {
-    addr = HL;
+    addr = REG_HL;
 
-    op = timed_read_code_byte(PC++);
+    op = timed_read_code_byte(REG_PC++);
     g_dwCycleCounter++;
 
-    R++;
+    REG_R++;
 }
 
 if (op < 0x40)
 {
     switch (op)
     {
-    case 0x00: rlc(B); break;
-    case 0x01: rlc(C); break;
-    case 0x02: rlc(D); break;
-    case 0x03: rlc(E); break;
-    case 0x04: rlc(H); break;
-    case 0x05: rlc(L); break;
+    case 0x00: rlc(REG_B); break;
+    case 0x01: rlc(REG_C); break;
+    case 0x02: rlc(REG_D); break;
+    case 0x03: rlc(REG_E); break;
+    case 0x04: rlc(REG_H); break;
+    case 0x05: rlc(REG_L); break;
     case 0x06: HLbitop; rlc(val); timed_write_byte(addr, val); break;
-    case 0x07: rlc(A); break;
+    case 0x07: rlc(REG_A); break;
 
-    case 0x08: rrc(B); break;
-    case 0x09: rrc(C); break;
-    case 0x0a: rrc(D); break;
-    case 0x0b: rrc(E); break;
-    case 0x0c: rrc(H); break;
-    case 0x0d: rrc(L); break;
+    case 0x08: rrc(REG_B); break;
+    case 0x09: rrc(REG_C); break;
+    case 0x0a: rrc(REG_D); break;
+    case 0x0b: rrc(REG_E); break;
+    case 0x0c: rrc(REG_H); break;
+    case 0x0d: rrc(REG_L); break;
     case 0x0e: HLbitop; rrc(val); timed_write_byte(addr, val); break;
-    case 0x0f: rrc(A); break;
+    case 0x0f: rrc(REG_A); break;
 
-    case 0x10: rl(B); break;
-    case 0x11: rl(C); break;
-    case 0x12: rl(D); break;
-    case 0x13: rl(E); break;
-    case 0x14: rl(H); break;
-    case 0x15: rl(L); break;
+    case 0x10: rl(REG_B); break;
+    case 0x11: rl(REG_C); break;
+    case 0x12: rl(REG_D); break;
+    case 0x13: rl(REG_E); break;
+    case 0x14: rl(REG_H); break;
+    case 0x15: rl(REG_L); break;
     case 0x16: HLbitop; rl(val); timed_write_byte(addr, val); break;
-    case 0x17: rl(A); break;
+    case 0x17: rl(REG_A); break;
 
-    case 0x18: rr(B); break;
-    case 0x19: rr(C); break;
-    case 0x1a: rr(D); break;
-    case 0x1b: rr(E); break;
-    case 0x1c: rr(H); break;
-    case 0x1d: rr(L); break;
+    case 0x18: rr(REG_B); break;
+    case 0x19: rr(REG_C); break;
+    case 0x1a: rr(REG_D); break;
+    case 0x1b: rr(REG_E); break;
+    case 0x1c: rr(REG_H); break;
+    case 0x1d: rr(REG_L); break;
     case 0x1e: HLbitop; rr(val); timed_write_byte(addr, val); break;
-    case 0x1f: rr(A); break;
+    case 0x1f: rr(REG_A); break;
 
-    case 0x20: sla(B); break;
-    case 0x21: sla(C); break;
-    case 0x22: sla(D); break;
-    case 0x23: sla(E); break;
-    case 0x24: sla(H); break;
-    case 0x25: sla(L); break;
+    case 0x20: sla(REG_B); break;
+    case 0x21: sla(REG_C); break;
+    case 0x22: sla(REG_D); break;
+    case 0x23: sla(REG_E); break;
+    case 0x24: sla(REG_H); break;
+    case 0x25: sla(REG_L); break;
     case 0x26: HLbitop; sla(val); timed_write_byte(addr, val); break;
-    case 0x27: sla(A); break;
+    case 0x27: sla(REG_A); break;
 
-    case 0x28: sra(B); break;
-    case 0x29: sra(C); break;
-    case 0x2a: sra(D); break;
-    case 0x2b: sra(E); break;
-    case 0x2c: sra(H); break;
-    case 0x2d: sra(L); break;
+    case 0x28: sra(REG_B); break;
+    case 0x29: sra(REG_C); break;
+    case 0x2a: sra(REG_D); break;
+    case 0x2b: sra(REG_E); break;
+    case 0x2c: sra(REG_H); break;
+    case 0x2d: sra(REG_L); break;
     case 0x2e: HLbitop; sra(val); timed_write_byte(addr, val); break;
-    case 0x2f: sra(A); break;
+    case 0x2f: sra(REG_A); break;
 
-    case 0x30: sll(B); break;
-    case 0x31: sll(C); break;
-    case 0x32: sll(D); break;
-    case 0x33: sll(E); break;
-    case 0x34: sll(H); break;
-    case 0x35: sll(L); break;
+    case 0x30: sll(REG_B); break;
+    case 0x31: sll(REG_C); break;
+    case 0x32: sll(REG_D); break;
+    case 0x33: sll(REG_E); break;
+    case 0x34: sll(REG_H); break;
+    case 0x35: sll(REG_L); break;
     case 0x36: HLbitop; sll(val); timed_write_byte(addr, val); break;
-    case 0x37: sll(A); break;
+    case 0x37: sll(REG_A); break;
 
-    case 0x38: srl(B); break;
-    case 0x39: srl(C); break;
-    case 0x3a: srl(D); break;
-    case 0x3b: srl(E); break;
-    case 0x3c: srl(H); break;
-    case 0x3d: srl(L); break;
+    case 0x38: srl(REG_B); break;
+    case 0x39: srl(REG_C); break;
+    case 0x3a: srl(REG_D); break;
+    case 0x3b: srl(REG_E); break;
+    case 0x3c: srl(REG_H); break;
+    case 0x3d: srl(REG_L); break;
     case 0x3e: HLbitop; srl(val); timed_write_byte(addr, val); break;
-    case 0x3f: srl(A); break;
+    case 0x3f: srl(REG_A); break;
     }
 }
 else
@@ -155,48 +155,48 @@ else
     uint8_t n = (op >> 3) & 7;
     switch (op & 0xc7)
     {
-    case 0x40: bit(n, B); break;
-    case 0x41: bit(n, C); break;
-    case 0x42: bit(n, D); break;
-    case 0x43: bit(n, E); break;
-    case 0x44: bit(n, H); break;
-    case 0x45: bit(n, L); break;
+    case 0x40: bit(n, REG_B); break;
+    case 0x41: bit(n, REG_C); break;
+    case 0x42: bit(n, REG_D); break;
+    case 0x43: bit(n, REG_E); break;
+    case 0x44: bit(n, REG_H); break;
+    case 0x45: bit(n, REG_L); break;
     case 0x46: HLbitop; bit(n, val); break;
-    case 0x47: bit(n, A); break;
+    case 0x47: bit(n, REG_A); break;
 
-    case 0x80: res(n, B); break;
-    case 0x81: res(n, C); break;
-    case 0x82: res(n, D); break;
-    case 0x83: res(n, E); break;
-    case 0x84: res(n, H); break;
-    case 0x85: res(n, L); break;
+    case 0x80: res(n, REG_B); break;
+    case 0x81: res(n, REG_C); break;
+    case 0x82: res(n, REG_D); break;
+    case 0x83: res(n, REG_E); break;
+    case 0x84: res(n, REG_H); break;
+    case 0x85: res(n, REG_L); break;
     case 0x86: HLbitop; res(n, val); timed_write_byte(addr, val); break;
-    case 0x87: res(n, A); break;
+    case 0x87: res(n, REG_A); break;
 
-    case 0xc0: set(n, B); break;
-    case 0xc1: set(n, C); break;
-    case 0xc2: set(n, D); break;
-    case 0xc3: set(n, E); break;
-    case 0xc4: set(n, H); break;
-    case 0xc5: set(n, L); break;
+    case 0xc0: set(n, REG_B); break;
+    case 0xc1: set(n, REG_C); break;
+    case 0xc2: set(n, REG_D); break;
+    case 0xc3: set(n, REG_E); break;
+    case 0xc4: set(n, REG_H); break;
+    case 0xc5: set(n, REG_L); break;
     case 0xc6: HLbitop; set(n, val); timed_write_byte(addr, val); break;
-    case 0xc7: set(n, A); break;
+    case 0xc7: set(n, REG_A); break;
     }
 }
 
 // With the undocumented DDDB/FDCB instructions, we load the result back into a register
-if (pHlIxIy != &HL)
+if (pHlIxIy != &REG_HL)
 {
     switch (reg)
     {
-    case 0: B = val; break;
-    case 1: C = val; break;
-    case 2: D = val; break;
-    case 3: E = val; break;
-    case 4: H = val; break;
-    case 5: L = val; break;
+    case 0: REG_B = val; break;
+    case 1: REG_C = val; break;
+    case 2: REG_D = val; break;
+    case 3: REG_E = val; break;
+    case 4: REG_H = val; break;
+    case 5: REG_L = val; break;
     case 6:          break;     // This is the ordinary documented case
-    case 7: A = val; break;
+    case 7: REG_A = val; break;
     }
 }
 

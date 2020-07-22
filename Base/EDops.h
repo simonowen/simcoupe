@@ -34,142 +34,142 @@
 
 // in R,(C)
 #define in_c(x)         { \
-                            PORT_ACCESS(C); \
-                            x = in_byte(BC); \
-                            F = cy | parity(x); \
+                            PORT_ACCESS(REG_C); \
+                            x = in_byte(REG_BC); \
+                            REG_F = cy | parity(x); \
                         }
 
 // out (C),R
 #define out_c(x)        { \
-                            PORT_ACCESS(C); \
-                            out_byte(BC,x); \
+                            PORT_ACCESS(REG_C); \
+                            out_byte(REG_BC,x); \
                         }
 
 // sbc HL,rr
 #define sbc_hl(x)       do { \
                             g_dwCycleCounter += 7; \
                             uint16_t z = (x); \
-                            uint32_t y = HL - z - cy; \
-                            F = (((y & 0xb800) ^ ((HL ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
+                            uint32_t y = REG_HL - z - cy; \
+                            REG_F = (((y & 0xb800) ^ ((REG_HL ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
                                 ((y >> 16) & 1) |                                   /* C          */ \
-                                (((HL ^ z) & (HL ^ y) & 0x8000) >> 13) |            /* V          */ \
+                                (((REG_HL ^ z) & (REG_HL ^ y) & 0x8000) >> 13) |            /* V          */ \
                                 2;                                                  /* N          */ \
-                            HL = (y & 0xffff);                                                        \
-                            F |= (!HL) << 6;                                        /* Z          */ \
+                            REG_HL = (y & 0xffff);                                                        \
+                            REG_F |= (!REG_HL) << 6;                                        /* Z          */ \
                         } while (0)
 
 // adc HL,rr
 #define adc_hl(x)       do { \
                             g_dwCycleCounter += 7; \
                             uint16_t z = (x); \
-                            uint32_t y = HL + z + cy; \
-                            F = (((y & 0xb800) ^ ((HL ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
+                            uint32_t y = REG_HL + z + cy; \
+                            REG_F = (((y & 0xb800) ^ ((REG_HL ^ z) & 0x1000)) >> 8) |       /* S, 5, H, 3 */ \
                                 ((y >> 16) & 0x01) |                                /* C          */ \
-                                (((HL ^ ~z) & (HL ^ y) & 0x8000) >> 13);            /* V          */ \
-                            HL = (y & 0xffff);                                                       \
-                            F |= (!HL) << 6;                                        /* Z          */ \
+                                (((REG_HL ^ ~z) & (REG_HL ^ y) & 0x8000) >> 13);            /* V          */ \
+                            REG_HL = (y & 0xffff);                                                       \
+                            REG_F |= (!REG_HL) << 6;                                        /* Z          */ \
                         } while (0)
 
 // negate a
 #define neg             ( \
-                            A = -A, \
-                            F = (A & 0xa8) |                                        /* S, 5, 3    */ \
-                                (((A & 0xf) != 0) << 4) |                           /* H          */ \
-                                (A != 0) |                                          /* C          */ \
-                                ((A == 0x80) << 2) |                                /* V          */ \
+                            REG_A = -REG_A, \
+                            REG_F = (REG_A & 0xa8) |                                        /* S, 5, 3    */ \
+                                (((REG_A & 0xf) != 0) << 4) |                           /* H          */ \
+                                (REG_A != 0) |                                          /* C          */ \
+                                ((REG_A == 0x80) << 2) |                                /* V          */ \
                                 2 |                                                 /* N          */ \
-                                ((!A) << 6)                                         /* Z          */ \
+                                ((!REG_A) << 6)                                         /* Z          */ \
                         )
 
 // Load; increment; [repeat]
 #define ldi(loop)       do { \
-                            uint8_t x = timed_read_byte(HL); \
-                            timed_write_byte(DE,x); \
+                            uint8_t x = timed_read_byte(REG_HL); \
+                            timed_write_byte(REG_DE,x); \
                             g_dwCycleCounter += 2; \
-                            HL++; \
-                            DE++; \
-                            BC--; \
-                            x += A; \
-                            F = (F & 0xc1) | (x & 0x08) | ((x & 0x02) << 4) | ((BC != 0) << 2); \
+                            REG_HL++; \
+                            REG_DE++; \
+                            REG_BC--; \
+                            x += REG_A; \
+                            REG_F = (REG_F & 0xc1) | (x & 0x08) | ((x & 0x02) << 4) | ((REG_BC != 0) << 2); \
                             if (loop) { \
                                 g_dwCycleCounter += 5; \
-                                PC -= 2; \
+                                REG_PC -= 2; \
                             } \
                         } while (0)
 
 // Load; decrement; [repeat]
 #define ldd(loop)       do { \
-                            uint8_t x = timed_read_byte(HL); \
-                            timed_write_byte(DE,x); \
+                            uint8_t x = timed_read_byte(REG_HL); \
+                            timed_write_byte(REG_DE,x); \
                             g_dwCycleCounter += 2; \
-                            HL--; \
-                            DE--; \
-                            BC--; \
-                            x += A; \
-                            F = (F & 0xc1) | (x & 0x08) | ((x & 0x02) << 4) | ((BC != 0) << 2); \
+                            REG_HL--; \
+                            REG_DE--; \
+                            REG_BC--; \
+                            x += REG_A; \
+                            REG_F = (REG_F & 0xc1) | (x & 0x08) | ((x & 0x02) << 4) | ((REG_BC != 0) << 2); \
                             if (loop) { \
                                 g_dwCycleCounter += 5; \
-                                PC -= 2; \
+                                REG_PC -= 2; \
                             } \
                         } while (0)
 
 // Compare; increment; [repeat]
 #define cpi(loop)       do { \
-                            uint8_t carry = cy, x = timed_read_byte(HL); \
-                            uint8_t sum = A - x, z = A ^ x ^ sum; \
+                            uint8_t carry = cy, x = timed_read_byte(REG_HL); \
+                            uint8_t sum = REG_A - x, z = REG_A ^ x ^ sum; \
                             g_dwCycleCounter += 5; \
-                            HL++; \
-                            BC--; \
-                            F = (sum & 0x80) | (!sum << 6) | (((sum - ((z&0x10)>>4)) & 2) << 4) | (z & 0x10) | ((sum - ((z >> 4) & 1)) & 8) | ((BC != 0) << 2) | FLAG_N | carry; \
+                            REG_HL++; \
+                            REG_BC--; \
+                            REG_F = (sum & 0x80) | (!sum << 6) | (((sum - ((z&0x10)>>4)) & 2) << 4) | (z & 0x10) | ((sum - ((z >> 4) & 1)) & 8) | ((REG_BC != 0) << 2) | FLAG_N | carry; \
                             if ((sum & 15) == 8 && (z & 16) != 0)   \
-                                F &= ~8;    \
+                                REG_F &= ~8;    \
                             if (loop) { \
                                 g_dwCycleCounter += 5; \
-                                PC -= 2; \
+                                REG_PC -= 2; \
                             } \
                         } while (0)
 
 // Compare; decrement; [repeat]
 #define cpd(loop)       do { \
-                            uint8_t carry = cy, x = timed_read_byte(HL); \
-                            uint8_t sum = A - x, z = A ^ x ^ sum; \
+                            uint8_t carry = cy, x = timed_read_byte(REG_HL); \
+                            uint8_t sum = REG_A - x, z = REG_A ^ x ^ sum; \
                             g_dwCycleCounter += 5; \
-                            HL--; \
-                            BC--; \
-                            F = (sum & 0x80) | (!sum << 6) | (((sum - ((z&0x10)>>4)) & 2) << 4) | (z & 0x10) | ((sum - ((z >> 4) & 1)) & 8) | ((BC != 0) << 2) | FLAG_N | carry; \
+                            REG_HL--; \
+                            REG_BC--; \
+                            REG_F = (sum & 0x80) | (!sum << 6) | (((sum - ((z&0x10)>>4)) & 2) << 4) | (z & 0x10) | ((sum - ((z >> 4) & 1)) & 8) | ((REG_BC != 0) << 2) | FLAG_N | carry; \
                             if ((sum & 15) == 8 && (z & 16) != 0)   \
-                                F &= ~8;    \
+                                REG_F &= ~8;    \
                             if (loop) { \
                                 g_dwCycleCounter += 5; \
-                                PC -= 2; \
+                                REG_PC -= 2; \
                             } \
                         } while (0)
 
 // Input; increment; [repeat]
 #define ini(loop)       do { \
-                            PORT_ACCESS(C); \
-                            uint8_t t = in_byte(BC); \
-                            timed_write_byte(HL,t); \
-                            HL++; \
-                            B--; \
-                            F = FLAG_N | (parity(B) ^ (C & FLAG_P)); \
+                            PORT_ACCESS(REG_C); \
+                            uint8_t t = in_byte(REG_BC); \
+                            timed_write_byte(REG_HL,t); \
+                            REG_HL++; \
+                            REG_B--; \
+                            REG_F = FLAG_N | (parity(REG_B) ^ (REG_C & FLAG_P)); \
                             if (loop) { \
                                 g_dwCycleCounter += 5; \
-                                PC -= 2; \
+                                REG_PC -= 2; \
                             } \
                         } while (0)
 
 // Input; decrement; [repeat]
 #define ind(loop)       do { \
-                            PORT_ACCESS(C); \
-                            uint8_t t = in_byte(BC); \
-                            timed_write_byte(HL,t); \
-                            HL--; \
-                            B--; \
-                            F = FLAG_N | (parity(B) ^ (C & FLAG_P) ^ FLAG_P); \
+                            PORT_ACCESS(REG_C); \
+                            uint8_t t = in_byte(REG_BC); \
+                            timed_write_byte(REG_HL,t); \
+                            REG_HL--; \
+                            REG_B--; \
+                            REG_F = FLAG_N | (parity(REG_B) ^ (REG_C & FLAG_P) ^ FLAG_P); \
                             if (loop) { \
                                 g_dwCycleCounter += 5; \
-                                PC -= 2; \
+                                REG_PC -= 2; \
                             } \
                         } while (0)
 
@@ -179,29 +179,29 @@
 
 // Output; increment; [repeat]
 #define oti(loop)       do { \
-                            uint8_t x = timed_read_byte(HL); \
-                            B--; \
-                            PORT_ACCESS(C); \
-                            out_byte(BC,x); \
-                            HL++; \
-                            F = cy | (B & 0xa8) | ((!B) << 6) | FLAG_H | FLAG_N; \
+                            uint8_t x = timed_read_byte(REG_HL); \
+                            REG_B--; \
+                            PORT_ACCESS(REG_C); \
+                            out_byte(REG_BC,x); \
+                            REG_HL++; \
+                            REG_F = cy | (REG_B & 0xa8) | ((!REG_B) << 6) | FLAG_H | FLAG_N; \
                             if (loop) { \
                                 g_dwCycleCounter += 5; \
-                                PC -= 2; \
+                                REG_PC -= 2; \
                             } \
                         } while (0)
 
 // Output; decrement; [repeat]
 #define otd(loop)       do { \
-                            uint8_t x = timed_read_byte(HL); \
-                            B--; \
-                            PORT_ACCESS(C); \
-                            out_byte(BC,x); \
-                            HL--; \
-                            F = cy | (B & 0xa8) | ((!B) << 6) | FLAG_H | FLAG_N; \
+                            uint8_t x = timed_read_byte(REG_HL); \
+                            REG_B--; \
+                            PORT_ACCESS(REG_C); \
+                            out_byte(REG_BC,x); \
+                            REG_HL--; \
+                            REG_F = cy | (REG_B & 0xa8) | ((!REG_B) << 6) | FLAG_H | FLAG_N; \
                             if (loop) { \
                                 g_dwCycleCounter += 5; \
-                                PC -= 2; \
+                                REG_PC -= 2; \
                             } \
                         } while (0)
 
@@ -210,51 +210,51 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
-auto op = timed_read_code_byte(PC++);
-R++;
+auto op = timed_read_code_byte(REG_PC++);
+REG_R++;
 
 switch (op)
 {
 
 
-    edinstr(4, 0100) in_c(B);                                            endinstr;   // in b,(c)
-    edinstr(4, 0110) in_c(C);                                            endinstr;   // in c,(c)
-    edinstr(4, 0120) in_c(D);                                            endinstr;   // in d,(c)
-    edinstr(4, 0130) in_c(E);                                            endinstr;   // in e,(c)
-    edinstr(4, 0140) in_c(H);                                            endinstr;   // in h,(c)
-    edinstr(4, 0150) in_c(L);                                            endinstr;   // in l,(c)
+    edinstr(4, 0100) in_c(REG_B);                                            endinstr;   // in b,(c)
+    edinstr(4, 0110) in_c(REG_C);                                            endinstr;   // in c,(c)
+    edinstr(4, 0120) in_c(REG_D);                                            endinstr;   // in d,(c)
+    edinstr(4, 0130) in_c(REG_E);                                            endinstr;   // in e,(c)
+    edinstr(4, 0140) in_c(REG_H);                                            endinstr;   // in h,(c)
+    edinstr(4, 0150) in_c(REG_L);                                            endinstr;   // in l,(c)
     edinstr(4, 0160) uint8_t x; in_c(x);                                    endinstr;   // in x,(c) [result discarded, but flags still set]
-    edinstr(4, 0170) in_c(A);                                            endinstr;   // in a,(c)
+    edinstr(4, 0170) in_c(REG_A);                                            endinstr;   // in a,(c)
 
 
-    edinstr(4, 0101) out_c(B);                                           endinstr;   // out (c),b
-    edinstr(4, 0111) out_c(C);                                           endinstr;   // out (c),c
-    edinstr(4, 0121) out_c(D);                                           endinstr;   // out (c),d
-    edinstr(4, 0131) out_c(E);                                           endinstr;   // out (c),e
-    edinstr(4, 0141) out_c(H);                                           endinstr;   // out (c),h
-    edinstr(4, 0151) out_c(L);                                           endinstr;   // out (c),l
+    edinstr(4, 0101) out_c(REG_B);                                           endinstr;   // out (c),b
+    edinstr(4, 0111) out_c(REG_C);                                           endinstr;   // out (c),c
+    edinstr(4, 0121) out_c(REG_D);                                           endinstr;   // out (c),d
+    edinstr(4, 0131) out_c(REG_E);                                           endinstr;   // out (c),e
+    edinstr(4, 0141) out_c(REG_H);                                           endinstr;   // out (c),h
+    edinstr(4, 0151) out_c(REG_L);                                           endinstr;   // out (c),l
     edinstr(4, 0161) out_c(GetOption(cmosz80) ? 255 : 0);                    endinstr;   // out (c),0/255
-    edinstr(4, 0171) out_c(A);                                           endinstr;   // out (c),a
+    edinstr(4, 0171) out_c(REG_A);                                           endinstr;   // out (c),a
 
 
-    edinstr(4, 0102) sbc_hl(BC);                                         endinstr;   // sbc hl,bc
-    edinstr(4, 0112) adc_hl(BC);                                         endinstr;   // adc hl,bc
-    edinstr(4, 0122) sbc_hl(DE);                                         endinstr;   // sbc hl,de
-    edinstr(4, 0132) adc_hl(DE);                                         endinstr;   // adc hl,de
-    edinstr(4, 0142) sbc_hl(HL);                                         endinstr;   // sbc hl,hl
-    edinstr(4, 0152) adc_hl(HL);                                         endinstr;   // adc hl,hl
-    edinstr(4, 0162) sbc_hl(SP);                                         endinstr;   // sbc hl,sp
-    edinstr(4, 0172) adc_hl(SP);                                         endinstr;   // adc hl,sp
+    edinstr(4, 0102) sbc_hl(REG_BC);                                         endinstr;   // sbc hl,bc
+    edinstr(4, 0112) adc_hl(REG_BC);                                         endinstr;   // adc hl,bc
+    edinstr(4, 0122) sbc_hl(REG_DE);                                         endinstr;   // sbc hl,de
+    edinstr(4, 0132) adc_hl(REG_DE);                                         endinstr;   // adc hl,de
+    edinstr(4, 0142) sbc_hl(REG_HL);                                         endinstr;   // sbc hl,hl
+    edinstr(4, 0152) adc_hl(REG_HL);                                         endinstr;   // adc hl,hl
+    edinstr(4, 0162) sbc_hl(REG_SP);                                         endinstr;   // sbc hl,sp
+    edinstr(4, 0172) adc_hl(REG_SP);                                         endinstr;   // adc hl,sp
 
 
-    edinstr(4, 0103) ld_pnn_rr(BC);                                      endinstr;   // ld (nn),bc
-    edinstr(4, 0113) ld_rr_pnn(BC);                                      endinstr;   // ld bc,(nn)
-    edinstr(4, 0123) ld_pnn_rr(DE);                                      endinstr;   // ld (nn),de
-    edinstr(4, 0133) ld_rr_pnn(DE);                                      endinstr;   // ld de,(nn)
-    edinstr(4, 0143) ld_pnn_rr(HL);                                      endinstr;   // ld (nn),hl
-    edinstr(4, 0153) ld_rr_pnn(HL);                                      endinstr;   // ld hl,(nn)
-    edinstr(4, 0163) ld_pnn_rr(SP);                                      endinstr;   // ld (nn),sp
-    edinstr(4, 0173) ld_rr_pnn(SP);                                      endinstr;   // ld sp,(nn)
+    edinstr(4, 0103) ld_pnn_rr(REG_BC);                                      endinstr;   // ld (nn),bc
+    edinstr(4, 0113) ld_rr_pnn(REG_BC);                                      endinstr;   // ld bc,(nn)
+    edinstr(4, 0123) ld_pnn_rr(REG_DE);                                      endinstr;   // ld (nn),de
+    edinstr(4, 0133) ld_rr_pnn(REG_DE);                                      endinstr;   // ld de,(nn)
+    edinstr(4, 0143) ld_pnn_rr(REG_HL);                                      endinstr;   // ld (nn),hl
+    edinstr(4, 0153) ld_rr_pnn(REG_HL);                                      endinstr;   // ld hl,(nn)
+    edinstr(4, 0163) ld_pnn_rr(REG_SP);                                      endinstr;   // ld (nn),sp
+    edinstr(4, 0173) ld_rr_pnn(REG_SP);                                      endinstr;   // ld sp,(nn)
 
 
     edinstr(4, 0104) neg;                                                endinstr;   // neg
@@ -277,75 +277,75 @@ switch (op)
     edinstr(4, 0175) ret(true);                                          endinstr;   // reti
 
 
-    edinstr(4, 0106) IM = 0;                                             endinstr;   // im 0
-    edinstr(4, 0116) IM = 0;                                             endinstr;   // im 0/1
-    edinstr(4, 0126) IM = 1;                                             endinstr;   // im 1
-    edinstr(4, 0136) IM = 2;                                             endinstr;   // im 2
-    edinstr(4, 0146) IM = 0;                                             endinstr;   // im 0
-    edinstr(4, 0156) IM = 0;                                             endinstr;   // im 0/1
-    edinstr(4, 0166) IM = 1;                                             endinstr;   // im 1
-    edinstr(4, 0176) IM = 2;                                             endinstr;   // im 2
+    edinstr(4, 0106) REG_IM = 0;                                             endinstr;   // im 0
+    edinstr(4, 0116) REG_IM = 0;                                             endinstr;   // im 0/1
+    edinstr(4, 0126) REG_IM = 1;                                             endinstr;   // im 1
+    edinstr(4, 0136) REG_IM = 2;                                             endinstr;   // im 2
+    edinstr(4, 0146) REG_IM = 0;                                             endinstr;   // im 0
+    edinstr(4, 0156) REG_IM = 0;                                             endinstr;   // im 0/1
+    edinstr(4, 0166) REG_IM = 1;                                             endinstr;   // im 1
+    edinstr(4, 0176) REG_IM = 2;                                             endinstr;   // im 2
 
 
-    edinstr(5, 0107) I = A;                                              endinstr;   // ld i,a
-    edinstr(5, 0117) R7 = R = A;                                         endinstr;   // ld r,a
+    edinstr(5, 0107) REG_I = REG_A;                                              endinstr;   // ld i,a
+    edinstr(5, 0117) REG_R7 = REG_R = REG_A;                                         endinstr;   // ld r,a
 
     // ld a,i
     edinstr(5, 0127)
-        A = I;
-    F = cy | (A & 0xa8) | ((!A) << 6) | (IFF2 << 2);
+        REG_A = REG_I;
+    REG_F = cy | (REG_A & 0xa8) | ((!REG_A) << 6) | (REG_IFF2 << 2);
     endinstr;
 
     // ld a,r
     edinstr(5, 0137)
         // Only the bottom 7 bits of R are advanced by memory refresh, so the top bit is preserved
-        A = R = (R7 & 0x80) | (R & 0x7f);
-    F = cy | (A & 0xa8) | ((!A) << 6) | (IFF2 << 2);
+        REG_A = REG_R = (REG_R7 & 0x80) | (REG_R & 0x7f);
+    REG_F = cy | (REG_A & 0xa8) | ((!REG_A) << 6) | (REG_IFF2 << 2);
     endinstr;
 
     // rrd
     edinstr(4, 0147)
-        uint8_t t = timed_read_byte(HL);
-    uint8_t u = (A << 4) | (t >> 4);
-    A = (A & 0xf0) | (t & 0x0f);
+        uint8_t t = timed_read_byte(REG_HL);
+    uint8_t u = (REG_A << 4) | (t >> 4);
+    REG_A = (REG_A & 0xf0) | (t & 0x0f);
     g_dwCycleCounter += 4;
-    timed_write_byte(HL, u);
-    F = cy | parity(A);
+    timed_write_byte(REG_HL, u);
+    REG_F = cy | parity(REG_A);
     endinstr;
 
     // rld
     edinstr(4, 0157)
-        uint8_t t = timed_read_byte(HL);
-    uint8_t u = (A & 0x0f) | (t << 4);
-    A = (A & 0xf0) | (t >> 4);
+        uint8_t t = timed_read_byte(REG_HL);
+    uint8_t u = (REG_A & 0x0f) | (t << 4);
+    REG_A = (REG_A & 0xf0) | (t >> 4);
     g_dwCycleCounter += 4;
-    timed_write_byte(HL, u);
-    F = cy | parity(A);
+    timed_write_byte(REG_HL, u);
+    REG_F = cy | parity(REG_A);
     endinstr;
 
 
     edinstr(4, 0240) ldi(false);                                         endinstr;   // ldi
     edinstr(4, 0250) ldd(false);                                         endinstr;   // ldd
-    edinstr(4, 0260) ldi(BC);                                            endinstr;   // ldir
-    edinstr(4, 0270) ldd(BC);                                            endinstr;   // lddr
+    edinstr(4, 0260) ldi(REG_BC);                                            endinstr;   // ldir
+    edinstr(4, 0270) ldd(REG_BC);                                            endinstr;   // lddr
 
 
     edinstr(4, 0241) cpi(false);                                         endinstr;   // cpi
     edinstr(4, 0251) cpd(false);                                         endinstr;   // cpd
-    edinstr(4, 0261) cpi((F & 0x44) == 4);                               endinstr;   // cpir
-    edinstr(4, 0271) cpd((F & 0x44) == 4);                               endinstr;   // cpdr
+    edinstr(4, 0261) cpi((REG_F & 0x44) == 4);                               endinstr;   // cpir
+    edinstr(4, 0271) cpd((REG_F & 0x44) == 4);                               endinstr;   // cpdr
 
 
     edinstr(5, 0242) ini(false);                                         endinstr;   // ini
     edinstr(5, 0252) ind(false);                                         endinstr;   // ind
-    edinstr(5, 0262) ini(B);                                             endinstr;   // inir
-    edinstr(5, 0272) ind(B);                                             endinstr;   // indr
+    edinstr(5, 0262) ini(REG_B);                                             endinstr;   // inir
+    edinstr(5, 0272) ind(REG_B);                                             endinstr;   // indr
 
 
     edinstr(5, 0243) oti(false);                                         endinstr;   // outi
     edinstr(5, 0253) otd(false);                                         endinstr;   // outd
-    edinstr(5, 0263) oti(B);                                             endinstr;   // otir
-    edinstr(5, 0273) otd(B);                                             endinstr;   // otdr
+    edinstr(5, 0263) oti(REG_B);                                             endinstr;   // otir
+    edinstr(5, 0273) otd(REG_B);                                             endinstr;   // otdr
 
 
     // Anything not explicitly handled is effectively a 2 byte NOP (with predictable timing)

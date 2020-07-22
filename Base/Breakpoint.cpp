@@ -28,7 +28,7 @@ std::vector<Breakpoint> Breakpoint::breakpoints;
 
 std::optional<int> Breakpoint::Hit()
 {
-    auto pPC = AddrReadPtr(PC);
+    auto pPC = AddrReadPtr(REG_PC);
 
     auto index = -1;
     for (const auto& bp : breakpoints)
@@ -96,11 +96,11 @@ std::optional<int> Breakpoint::Hit()
             {
                 if (~status_reg & intr->mask)
                 {
-                    auto handler_addr = (IM == 2) ?
-                        read_word((I << 8) | 0xff) :
+                    auto handler_addr = (REG_IM == 2) ?
+                        read_word((REG_I << 8) | 0xff) :
                         IM1_INTERRUPT_HANDLER;
 
-                    if (PC == handler_addr)
+                    if (REG_PC == handler_addr)
                         break;
                 }
             }
@@ -127,12 +127,17 @@ std::optional<int> Breakpoint::Hit()
 void Breakpoint::Add(Breakpoint&& bp)
 {
     // Allow address-only shorthand for Until conditions.
-    if ((bp.type == BreakType::Until || bp.type == BreakType::Temp) &&
-        bp.expr.IsTokenType(Expr::TokenType::Number))
+    if ((bp.type == BreakType::Until || bp.type == BreakType::Temp) && bp.expr)
     {
-        std::stringstream ss;
-        ss << "PC==" << std::hex << bp.expr.TokenValue();
-        bp.expr = Expr::Compile(ss.str());
+        if (auto val = bp.expr.TokenValue(Expr::TokenType::Number))
+        {
+            if (auto value = std::get_if<int>(&*val))
+            {
+                std::stringstream ss;
+                ss << "PC==" << std::hex << *value;
+                bp.expr = Expr::Compile(ss.str());
+            }
+        }
     }
 
     breakpoints.push_back(std::move(bp));

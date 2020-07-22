@@ -249,34 +249,34 @@ bool LoadTrap()
     size_t nData = libspectrum_tape_block_data_length(block);
 
     // Base load address and load request size
-    auto wDest = HL;
-    int nWanted = (read_byte(0x5ac8) << 16) | DE;
+    auto wDest = REG_HL;
+    int nWanted = (read_byte(0x5ac8) << 16) | REG_DE;
 
     // Fetch block type
-    H = *pbData++;
+    REG_H = *pbData++;
     nData--;
 
     // Spectrum header?
-    if (H == 0)
+    if (REG_H == 0)
     {
         // Override request length 
         nWanted = (nWanted & ~0xff) | 17;
     }
     // Otherwise the type byte must match the request
-    else if (H != A_)
+    else if (REG_H != REG_A_)
     {
         // Advance to next block
         libspectrum_tape_select_next_block(pTape);
 
         // Failed, exit via: RET NZ
-        F &= ~(FLAG_C | FLAG_Z);
-        PC = 0xe6f6;
+        REG_F &= ~(FLAG_C | FLAG_Z);
+        REG_PC = 0xe6f6;
 
         return true;
     }
 
     // Parity byte initialised to type byte
-    L = H;
+    REG_L = REG_H;
 
     // More still to load?
     while (nWanted >= 0)
@@ -288,14 +288,14 @@ bool LoadTrap()
             libspectrum_tape_select_next_block(pTape);
 
             // Failed, exit via: RET NZ
-            F &= ~(FLAG_C | FLAG_Z);
-            PC = 0xe6f6;
+            REG_F &= ~(FLAG_C | FLAG_Z);
+            REG_PC = 0xe6f6;
 
             return true;
         }
 
         // Read next byte and update parity
-        L ^= (H = *pbData++);
+        REG_L ^= (REG_H = *pbData++);
         nData--;
 
         // Request complete?
@@ -303,7 +303,7 @@ bool LoadTrap()
             break;
 
         // Write new byte
-        write_byte(wDest, H);
+        write_byte(wDest, REG_H);
         wDest++;
         nWanted--;
 
@@ -320,7 +320,7 @@ bool LoadTrap()
     libspectrum_tape_select_next_block(pTape);
 
     // Exit via: LD A,L ; CP 1 ; RET
-    PC = 0xe739;
+    REG_PC = 0xe739;
 
     return true;
 }
@@ -569,7 +569,7 @@ const char* GetBlockDetails(libspectrum_tape_block* block)
 bool EiHook()
 {
     // If we're leaving the ROM tape loader, consider stopping the tape
-    if (PC == 0xe612 /*&& GetOption(tapeauto)*/)
+    if (REG_PC == 0xe612 /*&& GetOption(tapeauto)*/)
         Stop();
 
     // Continue normal processing
@@ -579,7 +579,7 @@ bool EiHook()
 bool RetZHook()
 {
     // If we're at LDSTRT in ROM1, consider using the loading trap
-    if (PC == 0xe679 && GetSectionPage(SECTION_D) == ROM1 && GetOption(tapetraps))
+    if (REG_PC == 0xe679 && GetSectionPage(SECTION_D) == ROM1 && GetOption(tapetraps))
         return LoadTrap();
 
     // Continue normal processing
@@ -589,7 +589,7 @@ bool RetZHook()
 bool InFEHook()
 {
     // Are we at the port read in the ROM tape edge routine?
-    if (PC == 0x2053)
+    if (REG_PC == 0x2053)
     {
         // Ensure the tape is playing
         Play();
@@ -602,13 +602,13 @@ bool InFEHook()
 
             // Simulate the edge code to advance to the next edge
             // Return to normal processing if C hits 255 (no edge found) or the ear bit has changed
-            while (dwTime > 48 && C < 0xff && !((keyboard ^ B) & BORD_EAR_MASK))
+            while (dwTime > 48 && REG_C < 0xff && !((keyboard ^ REG_B) & BORD_EAR_MASK))
             {
-                C += 1;
-                R7 += 7;
+                REG_C += 1;
+                REG_R7 += 7;
                 g_dwCycleCounter += 48;
                 dwTime -= 48;
-                PC = 0x2051;
+                REG_PC = 0x2051;
             }
         }
     }

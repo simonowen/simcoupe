@@ -110,7 +110,7 @@ bool Start(std::optional<int> bp_index)
         nLastFrames = 0;
         dwLastCycle = g_dwCycleCounter;
 
-        R = (R7 & 0x80) | (R & 0x7f);
+        REG_R = (REG_R7 & 0x80) | (REG_R & 0x7f);
         sLastRegs = sCurrRegs = regs;
         bLastStatus = status_reg;
 
@@ -173,7 +173,7 @@ void Refresh()
     if (pDebugger)
     {
         // Set the address without forcing it to the top of the window
-        pDebugger->SetAddress((nLastView == vtDis) ? PC : wLastAddr, false);
+        pDebugger->SetAddress((nLastView == vtDis) ? REG_PC : wLastAddr, false);
     }
 
     if (auto bp_index = Breakpoint::Hit())
@@ -190,7 +190,7 @@ void OnRet()
     {
         // If the stack is at or just above the starting position, it should mean we've returned
         // Allow some generous slack for data that may have been on the stack above the address
-        if ((SP - nStepOutSP) >= 0 && (SP - nStepOutSP) < 64)
+        if ((REG_SP - nStepOutSP) >= 0 && (REG_SP - nStepOutSP) < 64)
             Start();
     }
 }
@@ -198,7 +198,7 @@ void OnRet()
 bool RetZHook()
 {
     // Are we in in HDNSTP in ROM1, about to start an auto-executing code file?
-    if (PC == 0xe294 && GetSectionPage(SECTION_D) == ROM1 && !(F & FLAG_Z))
+    if (REG_PC == 0xe294 && GetSectionPage(SECTION_D) == ROM1 && !(REG_F & FLAG_Z))
     {
         // If the option is enabled, set a temporary breakpoint for the start
         if (GetOption(breakonexec))
@@ -218,14 +218,14 @@ bool IsActive()
 
 void AddTraceRecord()
 {
-    if (aTrace[nNumTraces % TRACE_SLOTS].wPC != PC)
+    if (aTrace[nNumTraces % TRACE_SLOTS].wPC != REG_PC)
     {
         TRACEDATA* p = &aTrace[(++nNumTraces) % TRACE_SLOTS];
-        p->wPC = PC;
-        p->abInstr[0] = read_byte(PC);
-        p->abInstr[1] = read_byte(PC + 1);
-        p->abInstr[2] = read_byte(PC + 2);
-        p->abInstr[3] = read_byte(PC + 3);
+        p->wPC = REG_PC;
+        p->abInstr[0] = read_byte(REG_PC);
+        p->abInstr[1] = read_byte(REG_PC + 1);
+        p->abInstr[2] = read_byte(REG_PC + 2);
+        p->abInstr[3] = read_byte(REG_PC + 3);
         p->regs = regs;
     }
 }
@@ -261,15 +261,15 @@ void cmdStep(int nCount_ = 1, bool fCtrl_ = false)
     uint16_t wPC;
 
     // Skip any index prefixes on the instruction to reach the real opcode or a CD/ED prefix
-    for (wPC = PC; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX); wPC++);
+    for (wPC = REG_PC; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX); wPC++);
 
     // Stepping into a HALT (with interrupt enabled) will enter the appropriate interrupt handler
     // This is much friendlier than single-stepping NOPs up to the next interrupt!
-    if (nCount_ == 1 && bOpcode == OP_HALT && IFF1 && !fCtrl_)
+    if (nCount_ == 1 && bOpcode == OP_HALT && REG_IFF1 && !fCtrl_)
     {
         // For IM 2, form the address of the handler and break there
-        if (IM == 2)
-            pPhysAddr = AddrReadPtr(read_word((I << 8) | 0xff));
+        if (REG_IM == 2)
+            pPhysAddr = AddrReadPtr(read_word((REG_I << 8) | 0xff));
 
         // IM 0 and IM1 both use the handler at 0x0038
         else
@@ -309,7 +309,7 @@ void cmdStepOver(bool fCtrl_ = false)
     }
 
     // Skip any index prefixes on the instruction to reach a CB/ED prefix or the real opcode
-    for (wPC = PC; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX); wPC++);
+    for (wPC = REG_PC; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX); wPC++);
     bOperand = read_byte(wPC + 1);
 
     // 1-byte HALT or RST ?
@@ -339,7 +339,7 @@ void cmdStepOver(bool fCtrl_ = false)
 void cmdStepOut()
 {
     // Store the current stack pointer, for checking on RETurn calls
-    nStepOutSP = SP;
+    nStepOutSP = REG_SP;
     Debug::Stop();
 }
 
@@ -577,6 +577,7 @@ Debugger::Debugger(std::optional<int> bp_index)
         }
 
         SetStatus(ss.str().c_str(), true, sPropFont);
+        nLastView = vtDis;
     }
 
     Breakpoint::RemoveType(BreakType::Temp);
@@ -668,7 +669,7 @@ void Debugger::SetView(ViewType nView_)
 
         if (!m_pView)
         {
-            pNewView->SetAddress((nView_ == vtDis) ? PC : wLastAddr);
+            pNewView->SetAddress((nView_ == vtDis) ? REG_PC : wLastAddr);
         }
         else
         {
@@ -749,7 +750,7 @@ void Debugger::Draw(FrameBuffer& fb)
     if (!m_pView)
     {
         // Form the R register from its working components, and save the current register state
-        R = (R7 & 0x80) | (R & 0x7f);
+        REG_R = (REG_R7 & 0x80) | (REG_R & 0x7f);
         sCurrRegs = regs;
 
         // Set the last view
@@ -785,7 +786,7 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             else if (nLastView != vtDis)
             {
                 SetView(vtDis);
-                SetAddress(PC);
+                SetAddress(REG_PC);
             }
             else
                 fRet = false;
@@ -1031,14 +1032,14 @@ bool Debugger::Execute(const std::string& cmdline)
     // di
     if (command == "di" && no_args)
     {
-        IFF1 = IFF2 = 0;
+        REG_IFF1 = REG_IFF2 = 0;
         return true;
     }
 
     // ei
     else if (command == "ei"  && no_args)
     {
-        IFF1 = IFF2 = 1;
+        REG_IFF1 = REG_IFF2 = 1;
         return true;
     }
 
@@ -1047,7 +1048,7 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         if (auto im_mode = ArgValue(remain); im_mode && *im_mode >= 0 && *im_mode <= 2)
         {
-            IM = *im_mode;
+            REG_IM = *im_mode;
             return true;
         }
     }
@@ -1061,7 +1062,7 @@ bool Debugger::Execute(const std::string& cmdline)
         nLastFrames = 0;
         dwLastCycle = g_dwCycleCounter;
 
-        SetAddress(PC);
+        SetAddress(REG_PC);
         return true;
     }
 
@@ -1069,7 +1070,7 @@ bool Debugger::Execute(const std::string& cmdline)
     else if (command == "nmi" && no_args)
     {
         CPU::NMI();
-        SetAddress(PC);
+        SetAddress(REG_PC);
     }
 
     // zap
@@ -1077,12 +1078,12 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         uint8_t instr[MAX_Z80_INSTR_LEN]{};
         for (auto i = 0; i < MAX_Z80_INSTR_LEN; ++i)
-            instr[i] = read_byte(PC + i);
+            instr[i] = read_byte(REG_PC + i);
 
         auto len = static_cast<int>(Disassemble(instr));
 
         for (auto i = 0; i < len; ++i)
-            write_byte(PC + i, OP_NOP);
+            write_byte(REG_PC + i, OP_NOP);
 
         return true;
     }
@@ -1092,9 +1093,9 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         if (auto addr = ArgValue(remain))
         {
-            SP -= 2;
-            write_word(SP, PC);
-            SetAddress(PC = *addr);
+            REG_SP -= 2;
+            write_word(REG_SP, REG_PC);
+            SetAddress(REG_PC = *addr);
             return true;
         }
     }
@@ -1102,8 +1103,8 @@ bool Debugger::Execute(const std::string& cmdline)
     // ret
     else if (command == "ret" && no_args)
     {
-        SetAddress(PC = read_word(SP));
-        SP += 2;
+        SetAddress(REG_PC = read_word(REG_SP));
+        REG_SP += 2;
         return true;
     }
 
@@ -1112,8 +1113,8 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         if (auto value = ArgValue(remain))
         {
-            SP -= 2;
-            write_word(SP, *value);
+            REG_SP -= 2;
+            write_word(REG_SP, *value);
             return true;
         }
     }
@@ -1123,16 +1124,19 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         if (no_args)
         {
-            SP += 2;
+            REG_SP += 2;
             return true;
         }
-        else if (auto reg_expr = Expr::Compile(remain, remain))
+        else if (auto reg_expr = Expr::Compile(remain, remain); reg_expr && remain.empty())
         {
-            if (reg_expr.IsTokenType(Expr::TokenType::Register) && remain.empty())
+            if (auto val = reg_expr.TokenValue(Expr::TokenType::Register))
             {
-                Expr::SetReg(reg_expr.TokenValue(), read_word(SP));
-                SP += 2;
-                return true;
+                if (auto reg = std::get_if<Expr::Token>(&*val))
+                {
+                    Expr::SetReg(*reg, read_word(REG_SP));
+                    REG_SP += 2;
+                    return true;
+                }
             }
         }
     }
@@ -1140,9 +1144,9 @@ bool Debugger::Execute(const std::string& cmdline)
     // break
     else if (command == "break" && no_args)
     {
-        IFF1 = 1;
-        IM = 1;
-        PC = NMI_INTERRUPT_HANDLER;
+        REG_IFF1 = 1;
+        REG_IM = 1;
+        REG_PC = NMI_INTERRUPT_HANDLER;
 
         // Set up SAM BASIC paging
         IO::Out(LMPR_PORT, 0x1f);
@@ -1358,7 +1362,7 @@ bool Debugger::Execute(const std::string& cmdline)
     else if ((command == "flag" || command == "f") && !no_args)
     {
         bool set = true;
-        uint8_t new_f = F;
+        uint8_t new_f = REG_F;
 
         for (auto ch : tolower(remain))
         {
@@ -1387,7 +1391,7 @@ bool Debugger::Execute(const std::string& cmdline)
                 new_f &= ~flag;
         }
 
-        F = new_f;
+        REG_F = new_f;
         return true;
     }
 
@@ -1430,57 +1434,43 @@ bool Debugger::Execute(const std::string& cmdline)
     // exx
     else if (command == "exx" && no_args)
     {
-        // EXX
-        std::swap(BC, BC_);
-        std::swap(DE, DE_);
-        std::swap(HL, HL_);
+        std::swap(REG_BC, REG_BC_);
+        std::swap(REG_DE, REG_DE_);
+        std::swap(REG_HL, REG_HL_);
+        return true;
     }
 
-    // ex reg,reg2
+    // ex de,hl
     else if (command == "ex")
     {
-        if (auto expr1 = Expr::Compile(remain, remain, Expr::regOnly))
+        if (auto arg = tolower(Arg(remain, remain)); arg == "de,hl" && remain.empty())
         {
-            if (remain.empty() || remain.front() != ',')
-            {
-                return false;
-            }
-
-            if (auto expr2 = Expr::Compile(remain.substr(1), remain, Expr::regOnly); expr2 && remain.empty())
-            {
-                if (expr1.IsTokenType(Expr::TokenType::Register) && expr2.IsTokenType(Expr::TokenType::Register))
-                {
-                    auto reg1 = expr1.TokenValue();
-                    auto reg2 = expr2.TokenValue();
-                    auto reg1_value = Expr::GetReg(reg1);
-                    auto reg2_value = Expr::GetReg(reg2);
-                    Expr::SetReg(reg1, reg2_value);
-                    Expr::SetReg(reg2, reg1_value);
-                    return true;
-                }
-            }
+            std::swap(REG_DE, REG_HL);
+            return true;
         }
     }
 
     // ld reg,value  or  r reg=value  or  r reg value
     else if (command == "r" || command == "ld")
     {
-        if (auto expr = Expr::Compile(remain, remain, Expr::regOnly); expr.IsTokenType(Expr::TokenType::Register))
+        if (auto expr = Expr::Compile(remain, remain, Expr::regOnly))
         {
-            // Expect  ld hl,123  or r hl=123  syntax
-            if (remain.empty() || (remain.front() != ',' && remain.front() != '='))
+            if (auto reg = expr.TokenValue(Expr::TokenType::Register))
             {
-                return false;
-            }
+                // Expect  ld hl,123  or r hl=123  syntax
+                if (remain.empty() || (remain.front() != ',' && remain.front() != '='))
+                {
+                    return false;
+                }
 
-            if (auto value = ArgValue(remain.substr(1)))
-            {
-                // If the view address matches PC, and PC is being set, update the view
-                if (m_pView->GetAddress() == PC && expr.TokenValue() == REG_PC)
-                    m_pView->SetAddress(*value, true);
-
-                Expr::SetReg(expr.TokenValue(), *value);
-                return true;
+                if (auto value = ArgValue(remain.substr(1)))
+                {
+                    if (auto token = std::get_if<Expr::Token>(&*reg))
+                    {
+                        Expr::SetReg(*token, *value);
+                        return true;
+                    }
+                }
             }
         }
     }
@@ -1653,7 +1643,7 @@ void DisView::Draw(FrameBuffer& fb)
 
         auto colour = 'W';
 
-        if (s_wAddrs[u] == PC)
+        if (s_wAddrs[u] == REG_PC)
         {
             // The location bar is green for a change in code flow or yellow otherwise, with black text
             uint8_t bBarColour = (m_uCodeTarget != INVALID_TARGET) ? GREEN_7 : YELLOW_7;
@@ -1662,7 +1652,7 @@ void DisView::Draw(FrameBuffer& fb)
 
             // Add a direction arrow if we have a code target
             if (m_uCodeTarget != INVALID_TARGET)
-                fb.DrawString(nX + CHR_WIDTH * (BAR_CHAR_LEN - 1), nY, (m_uCodeTarget <= PC) ? "\x80" : "\x81", BLACK);
+                fb.DrawString(nX + CHR_WIDTH * (BAR_CHAR_LEN - 1), nY, (m_uCodeTarget <= REG_PC) ? "\x80" : "\x81", BLACK);
         }
 
         // Check for a breakpoint at the current address.
@@ -1716,10 +1706,10 @@ void DisView::Draw(FrameBuffer& fb)
     fb.DrawString(nX + 80, nY + 74, "\aK\x81\x81");
 
     for (i = 0; i < 4; i++)
-        fb.DrawString(nX + 72, nY + 84 + i * 12, fmt::format("{:04X}", read_word(SP + i * 2)));
+        fb.DrawString(nX + 72, nY + 84 + i * 12, fmt::format("{:04X}", read_word(REG_SP + i * 2)));
 
-    fb.DrawString(nX, nY + 96, fmt::format("\agIM \a{}{}", (IM != sLastRegs.im) ? CHG_COL : 'X', IM));
-    fb.DrawString(nX + 18, nY + 96, fmt::format("  \a{}{}I", (IFF1 != sLastRegs.iff1) ? CHG_COL : 'X', IFF1 ? 'E' : 'D'));
+    fb.DrawString(nX, nY + 96, fmt::format("\agIM \a{}{}", (REG_IM != sLastRegs.im) ? CHG_COL : 'X', REG_IM));
+    fb.DrawString(nX + 18, nY + 96, fmt::format("  \a{}{}I", (REG_IFF1 != sLastRegs.iff1) ? CHG_COL : 'X', REG_IFF1 ? 'E' : 'D'));
 
     char bIntDiff = status_reg ^ bLastStatus;
     fb.DrawString(nX, nY + 108, fmt::format("\agStat \a{}{}\a{}{}\a{}{}\a{}{}\a{}{}",
@@ -1729,16 +1719,16 @@ void DisView::Draw(FrameBuffer& fb)
         (bIntDiff & 0x02) ? CHG_COL : (status_reg & 0x02) ? 'K' : 'X', (status_reg & 0x02) ? '-' : 'M',
         (bIntDiff & 0x01) ? CHG_COL : (status_reg & 0x01) ? 'K' : 'X', (status_reg & 0x01) ? '-' : 'L'));
 
-    char bFlagDiff = F ^ sLastRegs.af.b.l;
+    char bFlagDiff = REG_F ^ sLastRegs.af.b.l;
     fb.DrawString(nX, nY + 132, fmt::format("\agFlag \a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}",
-        (bFlagDiff & FLAG_S) ? CHG_COL : (F & FLAG_S) ? 'X' : 'K', (F & FLAG_S) ? 'S' : '-',
-        (bFlagDiff & FLAG_Z) ? CHG_COL : (F & FLAG_Z) ? 'X' : 'K', (F & FLAG_Z) ? 'Z' : '-',
-        (bFlagDiff & FLAG_5) ? CHG_COL : (F & FLAG_5) ? 'X' : 'K', (F & FLAG_5) ? '5' : '-',
-        (bFlagDiff & FLAG_H) ? CHG_COL : (F & FLAG_H) ? 'X' : 'K', (F & FLAG_H) ? 'H' : '-',
-        (bFlagDiff & FLAG_3) ? CHG_COL : (F & FLAG_3) ? 'X' : 'K', (F & FLAG_3) ? '3' : '-',
-        (bFlagDiff & FLAG_V) ? CHG_COL : (F & FLAG_V) ? 'X' : 'K', (F & FLAG_V) ? 'V' : '-',
-        (bFlagDiff & FLAG_N) ? CHG_COL : (F & FLAG_N) ? 'X' : 'K', (F & FLAG_N) ? 'N' : '-',
-        (bFlagDiff & FLAG_C) ? CHG_COL : (F & FLAG_C) ? 'X' : 'K', (F & FLAG_C) ? 'C' : '-'));
+        (bFlagDiff & FLAG_S) ? CHG_COL : (REG_F & FLAG_S) ? 'X' : 'K', (REG_F & FLAG_S) ? 'S' : '-',
+        (bFlagDiff & FLAG_Z) ? CHG_COL : (REG_F & FLAG_Z) ? 'X' : 'K', (REG_F & FLAG_Z) ? 'Z' : '-',
+        (bFlagDiff & FLAG_5) ? CHG_COL : (REG_F & FLAG_5) ? 'X' : 'K', (REG_F & FLAG_5) ? '5' : '-',
+        (bFlagDiff & FLAG_H) ? CHG_COL : (REG_F & FLAG_H) ? 'X' : 'K', (REG_F & FLAG_H) ? 'H' : '-',
+        (bFlagDiff & FLAG_3) ? CHG_COL : (REG_F & FLAG_3) ? 'X' : 'K', (REG_F & FLAG_3) ? '3' : '-',
+        (bFlagDiff & FLAG_V) ? CHG_COL : (REG_F & FLAG_V) ? 'X' : 'K', (REG_F & FLAG_V) ? 'V' : '-',
+        (bFlagDiff & FLAG_N) ? CHG_COL : (REG_F & FLAG_N) ? 'X' : 'K', (REG_F & FLAG_N) ? 'N' : '-',
+        (bFlagDiff & FLAG_C) ? CHG_COL : (REG_F & FLAG_C) ? 'X' : 'K', (REG_F & FLAG_C) ? 'C' : '-'));
 
 
     int nLine = (g_dwCycleCounter < CPU_CYCLES_PER_SIDE_BORDER) ? GFX_HEIGHT_LINES - 1 : (g_dwCycleCounter - CPU_CYCLES_PER_SIDE_BORDER) / CPU_CYCLES_PER_LINE;
@@ -1859,7 +1849,7 @@ bool DisView::cmdNavigate(int nKey_, int nMods_)
     {
     case HK_HOME:
         if (!fCtrl)
-            wAddr = PC;
+            wAddr = REG_PC;
         else
             SetAddress(wAddr = 0, true);
         break;
@@ -1877,7 +1867,7 @@ bool DisView::cmdNavigate(int nKey_, int nMods_)
         if (!fCtrl)
             wAddr = GetPrevInstruction(s_wAddrs[0]);
         else
-            PC = wAddr = GetPrevInstruction(PC);
+            REG_PC = wAddr = GetPrevInstruction(REG_PC);
         break;
 
     case HK_DOWN:
@@ -1887,9 +1877,9 @@ bool DisView::cmdNavigate(int nKey_, int nMods_)
         {
             uint8_t ab[MAX_Z80_INSTR_LEN];
             for (unsigned int u = 0; u < sizeof(ab); u++)
-                ab[u] = read_byte(PC + u);
+                ab[u] = read_byte(REG_PC + u);
 
-            wAddr = (PC += Disassemble(ab));
+            wAddr = (REG_PC += Disassemble(ab));
         }
         break;
 
@@ -1897,14 +1887,14 @@ bool DisView::cmdNavigate(int nKey_, int nMods_)
         if (!fCtrl)
             wAddr = s_wAddrs[0] - 1;
         else
-            wAddr = --PC;
+            wAddr = --REG_PC;
         break;
 
     case HK_RIGHT:
         if (!fCtrl)
             wAddr = s_wAddrs[0] + 1;
         else
-            wAddr = ++PC;
+            wAddr = ++REG_PC;
         break;
 
     case HK_PGDN:
@@ -1953,15 +1943,15 @@ bool DisView::cmdNavigate(int nKey_, int nMods_)
 bool DisView::SetCodeTarget()
 {
     // Extract the two bytes at PC, which we'll assume are single byte opcode and operand
-    auto wPC = PC;
+    auto wPC = REG_PC;
     auto bOpcode = read_byte(wPC);
     auto bOperand = read_byte(wPC + 1);
-    uint8_t bFlags = F, bCond = 0xff;
+    uint8_t bFlags = REG_F, bCond = 0xff;
 
     // Work out the possible next instruction addresses, which depend on the instruction found
     auto wJpTarget = read_word(wPC + 1);
     uint16_t wJrTarget = wPC + 2 + static_cast<signed char>(read_byte(wPC + 1));
-    auto wRetTarget = read_word(SP);
+    auto wRetTarget = read_word(REG_SP);
     uint16_t wRstTarget = bOpcode & 0x38;
 
     // No instruction target or conditional jump helper string yet
@@ -1972,7 +1962,7 @@ bool DisView::SetCodeTarget()
     {
     case OP_DJNZ:
         // Set a pretend zero flag if B is 1 and would be decremented to zero
-        bFlags = (B == 1) ? FLAG_Z : 0;
+        bFlags = (REG_B == 1) ? FLAG_Z : 0;
         bCond = 0;
         // Fall through...
 
@@ -1980,7 +1970,7 @@ bool DisView::SetCodeTarget()
     case OP_RET:    m_uCodeTarget = wRetTarget; break;
     case OP_JP:
     case OP_CALL:   m_uCodeTarget = wJpTarget;  break;
-    case OP_JPHL:   m_uCodeTarget = HL;  break;
+    case OP_JPHL:   m_uCodeTarget = REG_HL;  break;
 
     case ED_PREFIX:
     {
@@ -1991,8 +1981,8 @@ bool DisView::SetCodeTarget()
         break;
     }
 
-    case IX_PREFIX: if (bOperand == OP_JPHL) m_uCodeTarget = IX;  break;  // JP (IX)
-    case IY_PREFIX: if (bOperand == OP_JPHL) m_uCodeTarget = IY;  break;  // JP (IY)
+    case IX_PREFIX: if (bOperand == OP_JPHL) m_uCodeTarget = REG_IX;  break;  // JP (IX)
+    case IY_PREFIX: if (bOperand == OP_JPHL) m_uCodeTarget = REG_IY;  break;  // JP (IY)
 
     default:
         // JR cc ?
@@ -2047,7 +2037,7 @@ bool DisView::SetDataTarget()
     m_pcszDataTarget = nullptr;
 
     // Extract potential instruction bytes
-    auto wPC = PC;
+    auto wPC = REG_PC;
     auto bOp0 = read_byte(wPC);
     auto bOp1 = read_byte(wPC + 1);
     auto bOp2 = read_byte(wPC + 2);
@@ -2062,13 +2052,13 @@ bool DisView::SetDataTarget()
     uint16_t wAddr12 = (bOp2 << 8) | bOp1;
     uint16_t wAddr23 = (bOp3 << 8) | bOp2;
     uint16_t wAddr = fIndex ? wAddr23 : wAddr12;
-    uint16_t wHLIXIYd = !fIndex ? HL : (((bOp0 == 0xdd) ? IX : IY) + bOp2);
+    uint16_t wHLIXIYd = !fIndex ? REG_HL : (((bOp0 == 0xdd) ? REG_IX : REG_IY) + bOp2);
 
 
     // 000r0010 = LD (BC/DE),A
     // 000r1010 = LD A,(BC/DE)
     if ((bOpcode & 0xe7) == 0x02)
-        m_uDataTarget = (bOpcode & 0x10) ? DE : BC;
+        m_uDataTarget = (bOpcode & 0x10) ? REG_DE : REG_BC;
 
     // 00110010 = LD (nn),A
     // 00111010 = LD A,(nn)
@@ -2095,7 +2085,7 @@ bool DisView::SetDataTarget()
     // (DD) E3 = EX (SP),HL/IX/IY
     else if (bOpcode == 0xe3)
     {
-        m_uDataTarget = SP;
+        m_uDataTarget = REG_SP;
         f16Bit = true;
     }
     /*
@@ -2109,7 +2099,7 @@ bool DisView::SetDataTarget()
     // 11rr0001 = POP rr
     else if ((bOpcode & 0xcf) == 0xc1)
     {
-        m_uDataTarget = SP;
+        m_uDataTarget = REG_SP;
         f16Bit = true;
     }
 
@@ -2132,7 +2122,7 @@ bool DisView::SetDataTarget()
     // ED 0110x111 = RRD/RLD
     else if (bOpcode == ED_PREFIX && (bOp1 & 0xf7) == 0x67)
     {
-        m_uDataTarget = HL;
+        m_uDataTarget = REG_HL;
     }
 
     // ED 101000xx = LDI/CPI/INI/OUTI
@@ -2141,7 +2131,7 @@ bool DisView::SetDataTarget()
     // ED 101110xx = LDDR/CPDR/INDR/OTDR
     else if (bOpcode == ED_PREFIX && (bOp1 & 0xe4) == 0xa0)
     {
-        m_uDataTarget = HL;
+        m_uDataTarget = REG_HL;
     }
 
     // CB prefix?
@@ -2156,7 +2146,7 @@ bool DisView::SetDataTarget()
         // CB 00ooo110 = RLC|RRC|RL|RR|SLA|SRA|SLL|SRL (HL)
         // CB oobbbrrr = [_|BIT|RES|SET] b,(HL)
         else if ((bOp1 & 0x07) == 0x06)
-            m_uDataTarget = HL;
+            m_uDataTarget = REG_HL;
     }
 
     // Do we have something to display?
@@ -2325,12 +2315,12 @@ bool TxtView::cmdNavigate(int nKey_, int nMods_)
         break;
 
     case HK_HOME:
-        wEditAddr = wAddr = fCtrl ? 0 : (fShift && m_fEditing) ? wEditAddr : PC;
+        wEditAddr = wAddr = fCtrl ? 0 : (fShift && m_fEditing) ? wEditAddr : REG_PC;
         break;
 
     case HK_END:
-        wAddr = fCtrl ? (0 - m_nRows * TXT_COLUMNS) : PC;
-        wEditAddr = (fCtrl ? 0 : PC + m_nRows * TXT_COLUMNS) - 1;
+        wAddr = fCtrl ? (0 - m_nRows * TXT_COLUMNS) : REG_PC;
+        wEditAddr = (fCtrl ? 0 : REG_PC + m_nRows * TXT_COLUMNS) - 1;
         break;
 
     case HK_UP:
@@ -2556,12 +2546,12 @@ bool HexView::cmdNavigate(int nKey_, int nMods_)
         break;
 
     case HK_HOME:
-        wEditAddr = wAddr = fCtrl ? 0 : (fShift && m_fEditing) ? wEditAddr : PC;
+        wEditAddr = wAddr = fCtrl ? 0 : (fShift && m_fEditing) ? wEditAddr : REG_PC;
         break;
 
     case HK_END:
-        wAddr = fCtrl ? (0 - m_nRows * HEX_COLUMNS) : PC;
-        wEditAddr = (fCtrl ? 0 : PC + m_nRows * HEX_COLUMNS) - 1;
+        wAddr = fCtrl ? (0 - m_nRows * HEX_COLUMNS) : REG_PC;
+        wEditAddr = (fCtrl ? 0 : REG_PC + m_nRows * HEX_COLUMNS) - 1;
         break;
 
     case HK_UP:
@@ -2835,11 +2825,11 @@ bool GfxView::cmdNavigate(int nKey_, int nMods_)
         break;
 
     case HK_HOME:
-        wAddr = fCtrl ? 0 : PC;
+        wAddr = fCtrl ? 0 : REG_PC;
         break;
 
     case HK_END:
-        wAddr = fCtrl ? (static_cast<uint16_t>(0) - m_uStrips * m_uStripLines * s_uWidth) : PC;
+        wAddr = fCtrl ? (static_cast<uint16_t>(0) - m_uStrips * m_uStripLines * s_uWidth) : REG_PC;
         break;
 
     case HK_UP:
@@ -2930,7 +2920,7 @@ void BptView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
             m_nLines++;
 
             // Check if we're on an execution breakpoint (ignoring condition)
-            auto pPhys = AddrReadPtr(PC);
+            auto pPhys = AddrReadPtr(REG_PC);
             if (bp.type == BreakType::Execute)
             {
                 if (auto exec = std::get_if<BreakExec>(&bp.data))
@@ -3082,7 +3072,7 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
             // Same for BC+DE+HL changing in block instructions
             else if (CHG_D(bc) && CHG_D(de) && CHG_D(hl))
             {
-                psz += sprintf(psz, "\agBC\aX->%04X \agDE\aX->%04X \agHL\aX->%04X", BC, DE, HL);
+                psz += sprintf(psz, "\agBC\aX->%04X \agDE\aX->%04X \agHL\aX->%04X", REG_BC, REG_DE, REG_HL);
             }
             else
             {

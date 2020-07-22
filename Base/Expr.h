@@ -22,30 +22,50 @@
 
 struct Expr
 {
+    enum class Token
+    {
+        UMINUS, UPLUS, BNOT, NOT, DEREF, PEEK, DPEEK, EVAL,
+
+        AND, OR, BOR, BXOR, BAND, EQ, NE, LT, LE, GE,
+        GT, ShiftL, ShiftR, ADD, SUB, MUL, DIV, MOD,
+
+        A, F, B, C, D, E, H, L,
+        Alt_A, Alt_F, Alt_B, Alt_C, Alt_D, Alt_E, Alt_H, Alt_L,
+        AF, BC, DE, HL, Alt_AF, Alt_BC, Alt_DE, Alt_HL,
+        IX, IY, IXH, IXL, IYH, IYL,
+        SP, PC, SPH, SPL, PCH, PCL,
+        I, R, IFF1, IFF2, IM,
+
+        EI, DI, DLine, SLine, Count,
+        ROM0, ROM1, WProt, InROM, Call, AutoExec,
+        LEPage, HEPage, LPage, HPage, VPage, VMode,
+        InVal, OutVal,
+        LEPR, HEPR, LPEN, HPEN, STATUS, LMPR, HMPR, VMPR, MIDI, BORDER, ATTR,
+    };
+
     enum
     {
         noFlags = 0x00, noRegs = 0x01, noVars = 0x02, noFuncs = 0x04, noVals = 0x08, noSyms = 0x10,
         valOnly = noRegs | noVars | noFuncs | noSyms, regOnly = noVars | noFuncs | noVals | noSyms, simple = valOnly
     };
 
-    enum class TokenType { Unknown, Number, UnaryOp, BinaryOp, Register, Variable };
+    enum class TokenType { Number, UnaryOp, BinaryOp, Register, Variable };
 
     struct Node
     {
-        TokenType type{ TokenType::Unknown };
-        int value{};
+        TokenType type{};
+        std::variant<Token, int> value;
     };
 
     static Expr Compile(std::string str);
     static Expr Compile(std::string str, std::string& remain, int flags = noFlags);
     static bool Eval(const std::string& str, int& value, std::string& remain, int flags = noFlags);
-    static int GetReg(int reg);
-    static void SetReg(int reg, int value);
+    static int GetReg(Token reg);
+    static void SetReg(Token reg, int value);
 
     operator bool() const { return !nodes.empty(); }
-    bool IsTokenType(TokenType type) const;
     int Eval() const;
-    int TokenValue() const;
+    std::optional<std::variant<Token, int>> TokenValue(TokenType type) const;
 
     static const Expr Counter;
     static int count;
@@ -54,35 +74,20 @@ struct Expr
     std::vector<Node> nodes;
 
 protected:
-    static int Eval(const std::vector<Node>& nodes);
+    struct TokenEntry
+    {
+        std::string str;
+        Expr::Token token;
+    };
 
-    void AddNode(TokenType type, int value);
+    static const std::vector<std::vector<TokenEntry>> binary_op_tokens;
+    static const std::vector<TokenEntry> unary_op_tokens;
+    static const std::vector<TokenEntry> reg_tokens;
+    static const std::vector<TokenEntry> var_tokens;
+
+    static int Eval(const std::vector<Node>& nodes);
+    static bool FindToken(std::string str_token, const std::vector<TokenEntry>& var_tokens, TokenEntry& token);
+
     bool Term(const char*& p, int flags, int level = 0);
     bool Factor(const char*& p, int flags);
-};
-
-enum : int
-{
-    OP_UMINUS, OP_UPLUS, OP_BNOT, OP_NOT, OP_DEREF, OP_PEEK, OP_DPEEK, OP_EVAL
-};
-
-enum : int
-{
-    OP_AND, OP_OR, OP_BOR, OP_BXOR, OP_BAND, OP_EQ, OP_NE, OP_LT, OP_LE, OP_GE,
-    OP_GT, OP_SHIFTL, OP_SHIFTR, OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_MOD
-};
-
-enum : int
-{
-    REG_A, REG_F, REG_B, REG_C, REG_D, REG_E, REG_H, REG_L,
-    REG_ALT_A, REG_ALT_F, REG_ALT_B, REG_ALT_C, REG_ALT_D, REG_ALT_E, REG_ALT_H, REG_ALT_L,
-    REG_AF, REG_BC, REG_DE, REG_HL, REG_ALT_AF, REG_ALT_BC, REG_ALT_DE, REG_ALT_HL,
-    REG_IX, REG_IY, REG_IXH, REG_IXL, REG_IYH, REG_IYL,
-    REG_SP, REG_PC, REG_SPH, REG_SPL, REG_PCH, REG_PCL,
-    REG_I, REG_R, REG_IFF1, REG_IFF2, REG_IM,
-    VAR_EI, VAR_DI, VAR_DLINE, VAR_SLINE, VAR_COUNT,
-    VAR_ROM0, VAR_ROM1, VAR_WPROT, VAR_INROM, VAR_CALL, VAR_AUTOEXEC,
-    VAR_LEPAGE, VAR_HEPAGE, VAR_LPAGE, VAR_HPAGE, VAR_VPAGE, VAR_VMODE,
-    VAR_INVAL, VAR_OUTVAL,
-    VAR_LEPR, VAR_HEPR, VAR_LPEN, VAR_HPEN, VAR_STATUS, VAR_LMPR, VAR_HMPR, VAR_VMPR, VAR_MIDI, VAR_BORDER, VAR_ATTR
 };

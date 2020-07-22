@@ -526,7 +526,6 @@ Graphics View:
 
 Debugger Command Mode:
 ```
-          q / quit = exit debugger
            di / ei = disable/enable interrupts
               im M = set interrupt mode M (0-2)
              reset = reset emulation
@@ -549,7 +548,7 @@ Debugger Command Mode:
               bd N = disable breakpoint N
               bd N = enable breakpoint N
                exx = exchange BC/DE/HL with BC'/DE'/HL'
-          ex R1,R2 = exchange register R1 with register D2
+          ex de,hl = exchange DE with HL
             ld R,N = load register R with value N
              r R=N = load register R with value N
            out P,N = write value N to port P

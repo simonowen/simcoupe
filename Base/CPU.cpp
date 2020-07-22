@@ -57,7 +57,7 @@ uint8_t g_abParity[256];
 uint8_t g_abInc[256], g_abDec[256];
 #endif
 
-#define rflags(b_,c_)   (F = (c_) | parity(b_))
+#define rflags(b_,c_)   (REG_F = (c_) | parity(b_))
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -142,7 +142,7 @@ bool Init(bool fFirstInit_/*=false*/)
 
         // Clear all registers, but set IX/IY to 0xffff
         memset(&regs, 0, sizeof(regs));
-        IX = IY = 0xffff;
+        REG_IX = REG_IY = 0xffff;
 
         // Build the memory access contention tables
         for (unsigned int t2 = 0; t2 < std::size(abContention1); t2++)
@@ -347,10 +347,10 @@ void ExecuteChunk()
     for (g_fBreak = false; !g_fBreak; )
     {
         pHlIxIy = pNewHlIxIy;
-        pNewHlIxIy = &HL;
+        pNewHlIxIy = &REG_HL;
 
-        bOpcode = timed_read_code_byte(PC++);
-        R++;
+        bOpcode = timed_read_code_byte(REG_PC++);
+        REG_R++;
 
         switch (bOpcode)
         {
@@ -359,10 +359,10 @@ void ExecuteChunk()
 
         CheckCpuEvents();
 
-        if (status_reg != STATUS_INT_NONE && IFF1)
+        if (status_reg != STATUS_INT_NONE && REG_IFF1)
             CheckInterrupt();
 
-        if (pNewHlIxIy != &HL || no_breakpoints)
+        if (pNewHlIxIy != &REG_HL || no_breakpoints)
             continue;
 
         Debug::AddTraceRecord();
@@ -426,14 +426,14 @@ void Reset(bool fPress_)
     if (g_fReset)
     {
         // Certain registers are initialised on every reset
-        IFF1 = IFF2 = IM = 0;
-        I = R = 0;
-        SP = AF = 0xffff;
-        PC = 0x0000;
+        REG_IFF1 = REG_IFF2 = REG_IM = 0;
+        REG_I = REG_R = 0;
+        REG_SP = REG_AF = 0xffff;
+        REG_PC = 0x0000;
         bOpcode = 0x00; // not after EI
 
         // Index prefix not active
-        pHlIxIy = pNewHlIxIy = &HL;
+        pHlIxIy = pNewHlIxIy = &REG_HL;
 
         // Clear the CPU events queue
         InitCpuEvents();
@@ -458,18 +458,18 @@ void Reset(bool fPress_)
 void NMI()
 {
     // R is incremented when the interrupt is acknowledged
-    R++;
+    REG_R++;
 
     // Disable interrupts
-    IFF1 = 0;
+    REG_IFF1 = 0;
 
     // Advance PC if we're stopped on a HALT
-    if (read_byte(PC) == OP_HALT)
-        PC++;
+    if (read_byte(REG_PC) == OP_HALT)
+        REG_PC++;
 
     g_dwCycleCounter += 2;
-    push(PC);
-    PC = NMI_INTERRUPT_HANDLER;
+    push(REG_PC);
+    REG_PC = NMI_INTERRUPT_HANDLER;
 
     // Refresh the debugger for the NMI
     Debug::Refresh();
@@ -479,46 +479,46 @@ void NMI()
 inline void CheckInterrupt()
 {
     // Only process if not delayed after a DI/EI and not in the middle of an indexed instruction
-    if (bOpcode != OP_EI && bOpcode != OP_DI && (pNewHlIxIy == &HL))
+    if (bOpcode != OP_EI && bOpcode != OP_DI && (pNewHlIxIy == &REG_HL))
     {
         // If we're running in debugger timing mode, skip the interrupt handler
         if (!IsContentionActive())
             return;
 
         // R is incremented when the interrupt is acknowledged
-        R++;
+        REG_R++;
 
         // Disable maskable interrupts to prevent the handler being triggered again immediately
-        IFF1 = IFF2 = 0;
+        REG_IFF1 = REG_IFF2 = 0;
 
         // Advance PC if we're stopped on a HALT
         if (bOpcode == OP_HALT)
-            PC++;
+            REG_PC++;
 
         // The current interrupt mode determines how we handle the interrupt
-        switch (IM)
+        switch (REG_IM)
         {
         case 0:
         {
             g_dwCycleCounter += 6;
-            push(PC);
-            PC = IM1_INTERRUPT_HANDLER;
+            push(REG_PC);
+            REG_PC = IM1_INTERRUPT_HANDLER;
             break;
         }
 
         case 1:
         {
             g_dwCycleCounter += 7;
-            push(PC);
-            PC = IM1_INTERRUPT_HANDLER;
+            push(REG_PC);
+            REG_PC = IM1_INTERRUPT_HANDLER;
             break;
         }
 
         case 2:
         {
             g_dwCycleCounter += 7;
-            push(PC);
-            PC = timed_read_word((I << 8) | 0xff);
+            push(REG_PC);
+            REG_PC = timed_read_word((REG_I << 8) | 0xff);
             break;
         }
         }
@@ -531,8 +531,8 @@ void InitTests()
 {
     // Sanity check the endian of the registers structure.  If this fails you'll need to add a new
     // symbol test to the top of SimCoupe.h, to help identify the new little-endian platform
-    HL = 1;
-    if (H)
+    REG_HL = 1;
+    if (REG_H)
         Message(msgFatal, "Startup test: the Z80Regs structure is the wrong endian for this platform!");
 }
 

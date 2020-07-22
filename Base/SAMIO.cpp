@@ -1006,11 +1006,11 @@ bool IsAtStartupScreen(bool fExit_)
     for (int i = 0; i < 20; i += 2)
     {
         // Check for 0f78 on stack, with previous location pointing at JR Z,-5
-        if (read_word(SP + i + 2) == 0x0f78 && read_word(read_word(SP + i)) == 0xfb28)
+        if (read_word(REG_SP + i + 2) == 0x0f78 && read_word(read_word(REG_SP + i)) == 0xfb28)
         {
             // Optionally skip JR to exit WTFK loop at copyright message
             if (fExit_)
-                write_word(SP + i, read_word(SP + i) + 2);
+                write_word(REG_SP + i, read_word(REG_SP + i) + 2);
 
             return true;
         }
@@ -1045,7 +1045,7 @@ void WakeAsic()
 bool EiHook()
 {
     // If we're leaving the ROM interrupt handler, inject any auto-typing input
-    if (PC == 0x005a && GetSectionPage(SECTION_A) == ROM0)
+    if (REG_PC == 0x005a && GetSectionPage(SECTION_A) == ROM0)
         Keyin::Next();
 
     Tape::EiHook();
@@ -1057,15 +1057,15 @@ bool EiHook()
 bool Rst8Hook()
 {
     // Return for normal processing if we're not executing ROM code
-    if ((PC < 0x4000 && GetSectionPage(SECTION_A) != ROM0) ||
-        (PC >= 0xc000 && GetSectionPage(SECTION_D) != ROM1))
+    if ((REG_PC < 0x4000 && GetSectionPage(SECTION_A) != ROM0) ||
+        (REG_PC >= 0xc000 && GetSectionPage(SECTION_D) != ROM1))
         return false;
 
     // If a drive object exists, clean up after our boot attempt, whether or not it worked
     pBootDrive.reset();
 
     // Read the error code after the RST 8 opcode
-    uint8_t bErrCode = read_byte(PC);
+    uint8_t bErrCode = read_byte(REG_PC);
 
     switch (bErrCode)
     {
@@ -1102,7 +1102,7 @@ bool Rst8Hook()
                 pBootDrive = std::make_unique<Drive>(std::move(disk));
 
                 // Jump back to BOOTEX to try again
-                PC = 0xd8e5;
+                REG_PC = 0xd8e5;
                 return true;
             }
         }
@@ -1121,7 +1121,7 @@ bool Rst8Hook()
 bool Rst48Hook()
 {
     // Are we at READKEY in ROM0?
-    if (PC == 0x1cb2 && GetSectionPage(SECTION_A) == ROM0)
+    if (REG_PC == 0x1cb2 && GetSectionPage(SECTION_A) == ROM0)
     {
         // If we have auto-type input, skip the startup screen
         if (Keyin::IsTyping())

@@ -137,56 +137,56 @@ const int INT_ACTIVE_TIME = 128;            // tstates interrupt is active and w
 #define FLAG_Z  0x40
 #define FLAG_S  0x80
 
-#define A       regs.af.b.h
-#define F       regs.af.b.l
-#define B       regs.bc.b.h
-#define C       regs.bc.b.l
-#define D       regs.de.b.h
-#define E       regs.de.b.l
-#define H       regs.hl.b.h
-#define L       regs.hl.b.l
+#define REG_A   regs.af.b.h
+#define REG_F   regs.af.b.l
+#define REG_B   regs.bc.b.h
+#define REG_C   regs.bc.b.l
+#define REG_D   regs.de.b.h
+#define REG_E   regs.de.b.l
+#define REG_H   regs.hl.b.h
+#define REG_L   regs.hl.b.l
 
-#define AF      regs.af.w
-#define BC      regs.bc.w
-#define DE      regs.de.w
-#define HL      regs.hl.w
+#define REG_AF  regs.af.w
+#define REG_BC  regs.bc.w
+#define REG_DE  regs.de.w
+#define REG_HL  regs.hl.w
 
-#define A_      regs.af_.b.h
-#define F_      regs.af_.b.l
-#define B_      regs.bc_.b.h
-#define C_      regs.bc_.b.l
-#define D_      regs.de_.b.h
-#define E_      regs.de_.b.l
-#define H_      regs.hl_.b.h
-#define L_      regs.hl_.b.l
+#define REG_A_  regs.af_.b.h
+#define REG_F_  regs.af_.b.l
+#define REG_B_  regs.bc_.b.h
+#define REG_C_  regs.bc_.b.l
+#define REG_D_  regs.de_.b.h
+#define REG_E_  regs.de_.b.l
+#define REG_H_  regs.hl_.b.h
+#define REG_L_  regs.hl_.b.l
 
-#define AF_     regs.af_.w
-#define BC_     regs.bc_.w
-#define DE_     regs.de_.w
-#define HL_     regs.hl_.w
+#define REG_AF_ regs.af_.w
+#define REG_BC_ regs.bc_.w
+#define REG_DE_ regs.de_.w
+#define REG_HL_ regs.hl_.w
 
-#define IX      regs.ix.w
-#define IY      regs.iy.w
-#define SP      regs.sp.w
-#define PC      regs.pc.w
+#define REG_IX  regs.ix.w
+#define REG_IY  regs.iy.w
+#define REG_SP  regs.sp.w
+#define REG_PC  regs.pc.w
 
-#define IXH     regs.ix.b.h
-#define IXL     regs.ix.b.l
-#define IYH     regs.iy.b.h
-#define IYL     regs.iy.b.l
+#define REG_IXH regs.ix.b.h
+#define REG_IXL regs.ix.b.l
+#define REG_IYH regs.iy.b.h
+#define REG_IYL regs.iy.b.l
 
-#define SPH     regs.sp.b.h
-#define SPL     regs.sp.b.l
-#define PCH     regs.pc.b.h
-#define PCL     regs.pc.b.l
+#define REG_SPH regs.sp.b.h
+#define REG_SPL regs.sp.b.l
+#define REG_PCH regs.pc.b.h
+#define REG_PCL regs.pc.b.l
 
-#define R       regs.r
-#define R7      regs.r7
-#define I       regs.i
-#define IFF1    regs.iff1
-#define IFF2    regs.iff2
-#define IM      regs.im
-#define IR      ((I << 8) | (R7 & 0x80) | (R & 0x7f))
+#define REG_R    regs.r
+#define REG_R7   regs.r7
+#define REG_I    regs.i
+#define REG_IFF1 regs.iff1
+#define REG_IFF2 regs.iff2
+#define REG_IM   regs.im
+#define REG_IR   ((REG_I << 8) | (REG_R7 & 0x80) | (REG_R & 0x7f))
 
 
 const int MAX_EVENTS = 16;
