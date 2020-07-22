@@ -2275,6 +2275,10 @@ void TxtView::Draw(FrameBuffer& fb)
 
         pDebugger->SetStatusByte(m_wEditAddr);
     }
+    else
+    {
+        pDebugger->SetStatus("");
+    }
 }
 
 bool TxtView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
@@ -2446,6 +2450,8 @@ void HexView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 
     if (m_fEditing)
         pDebugger->SetStatusByte(m_wEditAddr);
+    else
+        pDebugger->SetStatus("");
 }
 
 bool HexView::GetAddrPosition(uint16_t wAddr_, int& x_, int& y_, int& textx_)
