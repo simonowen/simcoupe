@@ -68,7 +68,7 @@ static void setupApplicationMenus ()
     [menu addItemWithTitle:title action:@selector(hide:) keyEquivalent:@"h"];
 
     item = [menu addItemWithTitle:@"Hide Others" action:@selector(hideOtherApplications:) keyEquivalent:@"h"];
-    [item setKeyEquivalentModifierMask:(NSAlternateKeyMask|NSCommandKeyMask)];
+    [item setKeyEquivalentModifierMask:(NSEventModifierFlagOption|NSEventModifierFlagCommand)];
 
     [menu addItemWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""];
     [menu addItem:[NSMenuItem separatorItem]];
@@ -107,9 +107,9 @@ static void setupApplicationMenus ()
     [menu addItem:[NSMenuItem separatorItem]];
     
     item = [menu addItemWithTitle:@"Import Data" action:@selector(fileImportData:) keyEquivalent:@"i"];
-    [item setKeyEquivalentModifierMask:(NSShiftKeyMask|NSCommandKeyMask)];
+    [item setKeyEquivalentModifierMask:(NSEventModifierFlagShift|NSEventModifierFlagCommand)];
     item = [menu addItemWithTitle:@"Export Data" action:@selector(fileExportData:) keyEquivalent:@"e"];
-    [item setKeyEquivalentModifierMask:(NSShiftKeyMask|NSCommandKeyMask)];
+    [item setKeyEquivalentModifierMask:(NSEventModifierFlagShift|NSEventModifierFlagCommand)];
     
     item = [[NSMenuItem alloc] initWithTitle:@"File" action:nil keyEquivalent:@""];
     [item setSubmenu:menu];
@@ -138,12 +138,12 @@ static void setupApplicationMenus ()
     [menu addItemWithTitle:@"Pause" action:@selector(systemPause:) keyEquivalent:@"p"];
     [menu addItem:[NSMenuItem separatorItem]];
     [menu addItemWithTitle:@"Generate NMI" action:@selector(systemNMI:) keyEquivalent:@"n"];
-    [item setKeyEquivalentModifierMask:(NSShiftKeyMask|NSCommandKeyMask)];
+    [item setKeyEquivalentModifierMask:(NSEventModifierFlagShift|NSEventModifierFlagCommand)];
     [menu addItemWithTitle:@"Reset" action:@selector(systemReset:) keyEquivalent:@"r"];
     [menu addItemWithTitle:@"Debugger" action:@selector(systemDebugger:) keyEquivalent:@"d"];
     [menu addItem:[NSMenuItem separatorItem]];
     item = [menu addItemWithTitle:@"Mute sound" action:@selector(systemMute:) keyEquivalent:@"m"];
-    [item setKeyEquivalentModifierMask:(NSShiftKeyMask|NSCommandKeyMask)];
+    [item setKeyEquivalentModifierMask:(NSEventModifierFlagShift|NSEventModifierFlagCommand)];
 
     item = [[NSMenuItem alloc] initWithTitle:@"System" action:nil keyEquivalent:@""];
     [item setSubmenu:menu];
