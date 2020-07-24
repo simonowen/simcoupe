@@ -48,7 +48,7 @@ uint8_t AtomLiteDevice::In(uint16_t wPort_)
         break;
 
     default:
-        TRACE("AtomLite: Unrecognised read from %#04x\n", wPort_);
+        TRACE("AtomLite: Unrecognised read from {:04x}\n", wPort_);
         break;
     }
 
@@ -84,7 +84,7 @@ void AtomLiteDevice::Out(uint16_t wPort_, uint8_t bVal_)
         break;
 
     default:
-        TRACE("AtomLite: Unhandled write to %#04x with %#02x\n", wPort_, bVal_);
+        TRACE("AtomLite: Unhandled write to {:04x} with {:02x}\n", wPort_, bVal_);
         break;
     }
 }

@@ -71,30 +71,6 @@
 #define X_OK        0           // Should be 1, but the VC runtime asserts if we use it!
 #define F_OK        0
 
-#define O_NONBLOCK  0           // Normally 04000, but not needed
-
-#define _S_ISTYPE(mode,mask)    (((mode) & _S_IFMT) == (mask))
-#define S_ISDIR(mode)           _S_ISTYPE((mode), _S_IFDIR)
-#define S_ISREG(mode)           _S_ISTYPE((mode), _S_IFREG)
-#define S_ISBLK(mode)           0
-#define S_ISLNK(mode)           0
-
-
-// Windows lacks direct.h, so we'll supply our own
-struct dirent
-{
-    long    d_ino;
-    _off_t  d_off;
-    unsigned short d_reclen;
-    char    d_name[256];
-};
-
-using DIR = void*;
-
-DIR* opendir(const char* pcszDir_);
-struct dirent* readdir(DIR* hDir_);
-int closedir(DIR* hDir_);
-
 #endif  // _WINDOWS
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -110,8 +86,8 @@ public:
     static uint32_t GetTime();
     static const char* MakeFilePath(int nDir_, const char* pcszFile_ = "");
     static const char* GetFloppyDevice(int nDrive_);
-    static bool CheckPathAccess(const char* pcszPath_);
-    static bool IsHidden(const char* pcszPath_);
+    static bool CheckPathAccess(const std::string& path);
+    static bool IsHidden(const std::string& path);
 
-    static void DebugTrace(const char* pcsz_);
+    static void DebugTrace(const std::string& str);
 };

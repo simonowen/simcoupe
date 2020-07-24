@@ -223,7 +223,7 @@ bool Save(const FrameBuffer& fb)
     FILE* f = fopen(szPath, "wb");
     if (!f)
     {
-        Frame::SetStatus("Failed to open %s for writing!", szPath);
+        Frame::SetStatus("Failed to open {} for writing!", szPath);
         return false;
     }
 
@@ -233,7 +233,7 @@ bool Save(const FrameBuffer& fb)
 
     // Report what happened
     if (fRet)
-        Frame::SetStatus("Saved %s", szPath);
+        Frame::SetStatus("Saved {}", szPath);
     else
         Frame::SetStatus("PNG save failed!?");
 #else

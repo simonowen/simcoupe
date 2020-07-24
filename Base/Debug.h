@@ -38,7 +38,7 @@ bool IsActive();
 void AddTraceRecord();
 }
 
-enum ViewType { vtDis, vtTxt, vtHex, vtGfx, vtBpt, vtTrc };
+enum class ViewType { Dis, Txt, Hex, Gfx, Bpt, Trc };
 
 class View : public Window
 {
@@ -110,7 +110,7 @@ private:
     unsigned int m_uRows = 0, m_uColumns = 0;
     unsigned int m_uCodeTarget = INVALID_TARGET;
     unsigned int m_uDataTarget = INVALID_TARGET;
-    const char* m_pcszDataTarget = nullptr;
+    std::string m_data_target;
     char* m_pszData = nullptr;
 
     static uint16_t s_wAddrs[];
@@ -260,11 +260,11 @@ public:
     void Draw(FrameBuffer& fb) override;
 
     void Refresh();
-    void SetSubTitle(const char* pcszSubTitle_);
+    void SetSubTitle(const std::string& sub_title);
     void SetAddress(uint16_t wAddr_, bool fForceTop_ = false);
     void SetView(ViewType nView);
-    void SetStatus(const char* pcsz_, bool fOneShot_ = false, std::shared_ptr<Font> font = {});
-    void SetStatusByte(uint16_t wAddr_);
+    void SetStatus(const std::string& status, bool fOneShot_ = false, std::shared_ptr<Font> font = {});
+    void SetStatusByte(uint16_t addr);
     bool Execute(const std::string& cmdline);
 
 protected:
@@ -283,7 +283,7 @@ typedef bool (*PFNINPUTPROC)(const Expr& expr);
 class InputDialog final : public Dialog
 {
 public:
-    InputDialog(Window* pParent_, const char* pcszCaption_, const char* pcszPrompt_, PFNINPUTPROC pfn_);
+    InputDialog(Window* pParent_, const std::string& caption, const std::string& prompt, PFNINPUTPROC pfn_);
     InputDialog(const InputDialog&) = delete;
     void operator= (const InputDialog&) = delete;
 

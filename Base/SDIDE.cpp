@@ -53,7 +53,7 @@ uint8_t SDIDEDevice::In(uint16_t wPort_)
         break;
 
     default:
-        TRACE("SDIDE: Unrecognised read from %#04x\n", wPort_);
+        TRACE("SDIDE: Unrecognised read from {:04x}\n", wPort_);
         break;
     }
 

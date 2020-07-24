@@ -151,12 +151,17 @@ void FrameBuffer::Poke(int x, int y, const uint8_t* data, int len)
         memcpy(GetLine(y++) + x, data + x - orig_x, width);
 }
 
-int FrameBuffer::StringWidth(const char* pcsz_, int max_chars) const
+int FrameBuffer::StringWidth(const std::string_view& str, int max_chars) const
 {
-    return m_pFont->StringWidth(pcsz_, max_chars);
+    return m_pFont->StringWidth(str, max_chars);
 }
 
-void FrameBuffer::DrawString(int x, int y, const std::string& str, uint8_t default_colour)
+void FrameBuffer::DrawString(int x, int y, const std::string_view& str)
+{
+    DrawString(x, y, WHITE, str);
+}
+
+void FrameBuffer::DrawString(int x, int y, uint8_t default_colour, const std::string_view& str)
 {
     auto in_colour = true;
     auto expect_colour = false;
@@ -167,9 +172,9 @@ void FrameBuffer::DrawString(int x, int y, const std::string& str, uint8_t defau
     {
         if (ch == '\n')
         {
-        x = left;
-        y += m_pFont->height + Font::LINE_SPACING;
-        continue;
+            x = left;
+            y += m_pFont->height + Font::LINE_SPACING;
+            continue;
         }
         else if (ch == '\a')
         {

@@ -119,12 +119,12 @@ static void ReadSimple(FILE* file_, AddrToSym& symtab_, SymToAddr* pValues_)
 }
 
 // Load a file into a given symbol table
-static bool Load(const char* pcszFile_, AddrToSym& symtab_, SymToAddr* pValues_)
+static bool Load(const std::string& path, AddrToSym& symtab_, SymToAddr* pValues_)
 {
     // Clear any existing symbols and values
     symtab_.clear();
 
-    FILE* file = fopen(pcszFile_, "r");
+    FILE* file = fopen(path.c_str(), "r");
     if (!file)
         return false;
 
@@ -149,7 +149,7 @@ static bool Load(const char* pcszFile_, AddrToSym& symtab_, SymToAddr* pValues_)
 }
 
 // Update user symbols, loading the ROM and port symbols if not already loaded
-void Update(const char* pcszFile_)
+void Update(const std::string& path)
 {
     symbol_values.clear();
 
@@ -162,25 +162,20 @@ void Update(const char* pcszFile_)
         Load(OSD::MakeFilePath(MFP_RESOURCE, "samports.map"), port_symbols, nullptr);
 
     // If a file was supplied, load RAM symbols from it
-    if (pcszFile_)
-        Load(pcszFile_, ram_symbols, &symbol_values);
+    if (!path.empty())
+        Load(path, ram_symbols, &symbol_values);
 }
 
 // Look up the value of a given symbol (user symbols only)
-int LookupSymbol(std::string sSymbol_)
+std::optional<int> LookupSymbol(const std::string& symbol)
 {
-    // Convert to lower-case for case-insensitive look-up
-    sSymbol_ = tolower(sSymbol_);
-
-    SymToAddr::iterator it = symbol_values.find(sSymbol_);
+    auto it = symbol_values.find(tolower(symbol));
     if (it != symbol_values.end())
     {
-        // Return the symbol value
         return static_cast<int>((*it).second);
     }
 
-    // Symbol not found
-    return -1;
+    return std::nullopt;
 }
 
 // Look up an address, with optional maximum length and offset to nearby symbols is no exact match

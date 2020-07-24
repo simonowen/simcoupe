@@ -28,9 +28,14 @@ void Exit();
 char* GetUniqueFile(const char* pcszExt_, char* pszPath_, int cbPath_);
 }
 
+enum class MsgType { Info, Warning, Error, Fatal };
 
-enum eMsgType { msgInfo, msgWarning, msgError, msgFatal };
-void Message(eMsgType eType_, const char* pcszFormat_, ...);
+void Message(MsgType type, const std::string& message);
+template <typename ...Args>
+void Message(MsgType type, const std::string& format, Args&& ... args)
+{
+    Message(type, fmt::format(format, std::forward<Args>(args)...));
+}
 
 uint8_t GetSizeCode(unsigned int uSize_);
 const char* AbbreviateSize(uint64_t ullSize_);
@@ -43,14 +48,29 @@ uint32_t RGB2Native(uint8_t r_, uint8_t g_, uint8_t b_, uint32_t dwRMask_, uint3
 uint32_t RGB2Native(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_, uint32_t dwRMask_, uint32_t dwGMask_, uint32_t dwBMask_, uint32_t dwAMask_);
 
 std::string tolower(std::string str);
+std::vector<std::string> split(const std::string& str, char sep);
 
-void TraceOutputString(const char* pcszFormat, ...);
-void TraceOutputString(const uint8_t* pcb_, size_t uLen_ = 0);
+template <typename T>
+std::set<typename T::value_type> to_set(T&& items)
+{
+    std::set<typename T::value_type> set;
+    for (auto&& item : items)
+        set.insert(std::move(item));
+    return set;
+}
 
 #ifdef _DEBUG
+void TraceOutputString(const std::string& str);
+template <typename ...Args>
+void TraceOutputString(const std::string& format, Args&& ... args)
+{
+    TraceOutputString(fmt::format(format, std::forward<Args>(args)...));
+}
 #define TRACE ::TraceOutputString
 #else
-void TraceOutputString(const char*, ...);
+inline void TraceOutputString(const std::string& str) { }
+template <typename ...Args>
+void TraceOutputString(const std::string& format, Args&& ... args) { }
 #define TRACE 1 ? (void)0 : ::TraceOutputString
 #endif
 

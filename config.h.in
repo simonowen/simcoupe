@@ -35,8 +35,5 @@
 // Spectrum support library for tapes and snapshots.
 #cmakedefine HAVE_LIBSPECTRUM
 
-// C++17 <filesystem> header for std::filesystem
-#cmakedefine HAVE_STD_FILESYSTEM
-
 // Define the resource directory for ROM images etc.
 #cmakedefine RESOURCE_DIR "${RESOURCE_DIR}"

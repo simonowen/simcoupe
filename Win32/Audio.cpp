@@ -54,12 +54,11 @@ static void CALLBACK TimeCallback(UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR);
 bool Audio::Init(bool fFirstInit_/*=false*/)
 {
     Exit(true);
-    TRACE("-> Audio::Init(%s)\n", fFirstInit_ ? "first" : "");
 
     auto hinstDSound = LoadLibrary("DSOUND.DLL");
     if (!hinstDSound)
     {
-        Message(msgError, "DSOUND.DLL not found.");
+        Message(MsgType::Error, "DSOUND.DLL not found.");
         return false;
     }
 
@@ -69,7 +68,7 @@ bool Audio::Init(bool fFirstInit_/*=false*/)
 
     if (!pfnDirectSoundCreate)
     {
-        Message(msgError, "DirectSoundCreate failed.");
+        Message(MsgType::Error, "DirectSoundCreate failed.");
         return false;
     }
 
@@ -87,21 +86,16 @@ bool Audio::Init(bool fFirstInit_/*=false*/)
     }
 
     // Sound initialisation failure isn't fatal, so always return success
-    TRACE("<- Audio::Init()\n");
     return true;
 }
 
 void Audio::Exit(bool fReInit_/*=false*/)
 {
-    TRACE("-> Audio::Exit(%s)\n", fReInit_ ? "reinit" : "");
-
     ExitDirectSound();
 
     if (hTimer) timeKillEvent(hTimer), hTimer = 0;
     if (hEvent) CloseHandle(hEvent), hEvent = nullptr;
     pfnDirectSoundCreate = nullptr;
-
-    TRACE("<- Audio::Exit()\n");
 }
 
 void Audio::Silence()
@@ -146,7 +140,7 @@ bool Audio::AddData(uint8_t* pbData_, int nLength_)
 
             // Start a new one running
             if (!(hTimer = timeSetEvent(dwTimer = dwTime, 0, TimeCallback, 0, TIME_PERIODIC | TIME_CALLBACK_FUNCTION)))
-                Message(msgWarning, "Failed to start frame timer (%#08lx)", GetLastError());
+                Message(MsgType::Warning, "Failed to start frame timer ({:08lx})", GetLastError());
         }
 
         // Wait for the timer event
@@ -162,7 +156,7 @@ bool Audio::AddData(uint8_t* pbData_, int nLength_)
         // Fetch current play and write cursor positions
         if (FAILED(hr = pdsb->GetCurrentPosition(&dwPlayCursor, &dwWriteCursor)))
         {
-            TRACE("!!! Failed to get sound position! (%#08lx)\n", hr);
+            TRACE("!!! Failed to get sound position! ({:08x})\n", hr);
             break;
         }
 
@@ -174,7 +168,7 @@ bool Audio::AddData(uint8_t* pbData_, int nLength_)
         {
             // Lock the available space
             if (FAILED(hr = pdsb->Lock(dwWriteOffset, nSpace, &pvWrite1, &dwLength1, &pvWrite2, &dwLength2, 0)))
-                TRACE("!!! Failed to lock sound buffer! (%#08lx)\n", hr);
+                TRACE("!!! Failed to lock sound buffer! ({:08x})\n", hr);
             else
             {
                 dwLength1 = std::min(dwLength1, static_cast<DWORD>(nLength_));
@@ -225,11 +219,11 @@ static bool InitDirectSound()
 
     // Initialise DirectSound
     if (FAILED(hr = pfnDirectSoundCreate(nullptr, &pds, nullptr)))
-        TRACE("!!! DirectSoundCreate failed (%#08lx)\n", hr);
+        TRACE("!!! DirectSoundCreate failed ({:08x})\n", hr);
 
     // We want priority control over the sound format while we're active
     else if (FAILED(hr = pds->SetCooperativeLevel(g_hwnd, DSSCL_PRIORITY)))
-        TRACE("!!! SetCooperativeLevel() failed (%#08lx)\n", hr);
+        TRACE("!!! SetCooperativeLevel() failed ({:08x})\n", hr);
     else
     {
         // Set up the sound format according to the sound options
@@ -251,9 +245,9 @@ static bool InitDirectSound()
 
         HRESULT hr = pds->CreateSoundBuffer(&dsbd, &pdsb, nullptr);
         if (FAILED(hr))
-            TRACE("!!! CreateSoundBuffer failed (%#08lx)\n", hr);
+            TRACE("!!! CreateSoundBuffer failed ({:08x})\n", hr);
         else if (FAILED(hr = pdsb->Play(0, 0, DSBPLAY_LOOPING)))
-            TRACE("!!! Play failed on secondary sound buffer (%#08lx)\n", hr);
+            TRACE("!!! Play failed on secondary sound buffer ({:08x})\n", hr);
         else
             fRet = true;
     }

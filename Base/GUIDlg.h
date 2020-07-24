@@ -33,13 +33,13 @@ struct FILEFILTER
 class FileDialog : public Dialog
 {
 public:
-    FileDialog(const char* pcszCaption_, const char* pcszPath_,
+    FileDialog(const std::string& caption, const std::string& path_str,
         const FILEFILTER* pcFileFilter_, int* pnFilter_, Window* pParent_ = nullptr);
     FileDialog(const FileDialog&) = delete;
     void operator= (const FileDialog&) = delete;
 
 public:
-    void SetPath(const char* pcszPath_);
+    void SetPath(const std::string& path);
 
 public:
     void OnNotify(Window* pWindow_, int nParam_) override;
@@ -67,9 +67,6 @@ class BrowseFloppy final : public FileDialog
 {
 public:
     BrowseFloppy(int nDrive_, Window* pParent_ = nullptr);
-    BrowseFloppy(const BrowseFloppy&) = delete;
-    void operator= (const BrowseFloppy&) = delete;
-
     void OnOK() override;
 
 protected:
@@ -88,7 +85,7 @@ public:
 class FileBrowser final : public FileDialog
 {
 public:
-    FileBrowser(EditControl* pEdit_, Window* pParent_, const char* pcszCaption_, const FILEFILTER* pcsFilter_, int* pnFilter_);
+    FileBrowser(EditControl* pEdit_, Window* pParent_, const std::string& caption, const FILEFILTER* pcsFilter_, int* pnFilter_);
     FileBrowser(const FileBrowser&) = delete;
     void operator= (const FileBrowser&) = delete;
 
@@ -178,7 +175,7 @@ protected:
     FrameControl* m_pFrame = nullptr;
 
 protected:
-    static char s_szFile[];
+    static std::string s_filepath;
     static unsigned int s_uAddr, s_uPage, s_uOffset;
     static bool s_fUseBasic;
 };
@@ -215,7 +212,7 @@ protected:
     TextButton* m_pCancel = nullptr;
 
 protected:
-    static char s_szFile[MAX_PATH];
+    static std::string s_filepath;
     static unsigned int s_uType;
     static bool s_fCompress;
     static bool s_fFormat;

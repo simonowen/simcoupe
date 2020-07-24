@@ -479,7 +479,7 @@ void* FloppyStream::ThreadProc()
         break;
 
     default:
-        TRACE("!!! ThreadProc: unknown command: %u\n", m_bCommand);
+        TRACE("!!! ThreadProc: unknown command: {}\n", m_bCommand);
         m_bStatus = LOST_DATA;
         break;
     }

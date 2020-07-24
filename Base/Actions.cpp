@@ -65,13 +65,13 @@ bool Do(Action action, bool pressed/*=true*/)
         case Action::ToggleMute:
             SetOption(sound, !GetOption(sound));
             Sound::Init();
-            Frame::SetStatus("Sound %s", GetOption(sound) ? "enabled" : "muted");
+            Frame::SetStatus("Sound {}", GetOption(sound) ? "enabled" : "muted");
             break;
 
         case Action::ToggleGreyscale:
             SetOption(greyscale, !GetOption(greyscale));
             Video::UpdatePalette();
-            Frame::SetStatus("%s", GetOption(greyscale) ? "Greyscale" : "Colour");
+            Frame::SetStatus(GetOption(greyscale) ? "Greyscale" : "Colour");
             break;
 
         case Action::Toggle5_4:
@@ -79,7 +79,7 @@ bool Do(Action action, bool pressed/*=true*/)
             {
                 SetOption(ratio5_4, !GetOption(ratio5_4));
                 Video::UpdateSize();
-                Frame::SetStatus("%s aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
+                Frame::SetStatus("{} aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
             }
             break;
 
@@ -88,13 +88,13 @@ bool Do(Action action, bool pressed/*=true*/)
             {
                 SetOption(filter, !GetOption(filter));
                 Video::UpdateSize();
-                Frame::SetStatus("Smoothing %s", GetOption(filter) ? "enabled" : "disabled");
+                Frame::SetStatus("Smoothing {}", GetOption(filter) ? "enabled" : "disabled");
             }
             break;
 
         case Action::InsertFloppy1:
             if (GetOption(drive1) != drvFloppy)
-                Message(msgInfo, "Floppy drive %d is not present", 1);
+                Message(MsgType::Info, "Floppy drive 1 is not present");
             else
                 GUI::Start(new BrowseFloppy(1));
             break;
@@ -102,19 +102,19 @@ bool Do(Action action, bool pressed/*=true*/)
         case Action::EjectFloppy1:
             if (pFloppy1->HasDisk())
             {
-                Frame::SetStatus("%s  ejected from drive %d", pFloppy1->DiskFile(), 1);
+                Frame::SetStatus("{}  ejected from drive 1", pFloppy1->DiskFile());
                 pFloppy1->Eject();
             }
             break;
 
         case Action::SaveFloppy1:
             if (pFloppy1->HasDisk() && pFloppy1->DiskModified() && pFloppy1->Save())
-                Frame::SetStatus("%s  changes saved", pFloppy1->DiskFile());
+                Frame::SetStatus("{}  changes saved", pFloppy1->DiskFile());
             break;
 
         case Action::InsertFloppy2:
             if (GetOption(drive2) != drvFloppy)
-                Message(msgInfo, "Floppy drive %d is not present", 2);
+                Message(MsgType::Info, "Floppy drive 2 is not present");
             else
                 GUI::Start(new BrowseFloppy(2));
             break;
@@ -122,14 +122,14 @@ bool Do(Action action, bool pressed/*=true*/)
         case Action::EjectFloppy2:
             if (pFloppy2->HasDisk())
             {
-                Frame::SetStatus("%s  ejected from drive %d", pFloppy2->DiskFile(), 2);
+                Frame::SetStatus("{}  ejected from drive 2", pFloppy2->DiskFile());
                 pFloppy2->Eject();
             }
             break;
 
         case Action::SaveFloppy2:
             if (pFloppy2->HasDisk() && pFloppy2->DiskModified() && pFloppy2->Save())
-                Frame::SetStatus("%s  changes saved", pFloppy2->DiskFile());
+                Frame::SetStatus("{}  changes saved", pFloppy2->DiskFile());
             break;
 
         case Action::NewDisk1:
@@ -148,7 +148,7 @@ bool Do(Action action, bool pressed/*=true*/)
         case Action::TapeEject:
             if (Tape::IsInserted())
             {
-                Frame::SetStatus("%s  ejected", Tape::GetFile());
+                Frame::SetStatus("{}  ejected", Tape::GetFile());
                 Tape::Eject();
             }
             break;
@@ -186,7 +186,7 @@ bool Do(Action action, bool pressed/*=true*/)
         {
             g_nTurbo ^= TURBO_KEY;
             Sound::Silence();
-            Frame::SetStatus("Turbo mode %s", (g_nTurbo & TURBO_KEY) ? "enabled" : "disabled");
+            Frame::SetStatus("Turbo mode {}", (g_nTurbo & TURBO_KEY) ? "enabled" : "disabled");
             break;
         }
 
@@ -230,7 +230,7 @@ bool Do(Action action, bool pressed/*=true*/)
 
         case Action::PrinterOnline:
             SetOption(printeronline, !GetOption(printeronline));
-            Frame::SetStatus("Printer %s", GetOption(printeronline) ? "online" : "offline");
+            Frame::SetStatus("Printer {}", GetOption(printeronline) ? "online" : "offline");
             break;
 
         case Action::FlushPrinter:
@@ -283,7 +283,7 @@ bool Do(Action action, bool pressed/*=true*/)
             default:   SetOption(speed, 1000); break;
             }
 
-            Frame::SetStatus("%u%% Speed", GetOption(speed));
+            Frame::SetStatus("{}% Speed", GetOption(speed));
             break;
 
         case Action::SpeedSlower:
@@ -296,12 +296,12 @@ bool Do(Action action, bool pressed/*=true*/)
             default:   SetOption(speed, 50); break;
             }
 
-            Frame::SetStatus("%u%% Speed", GetOption(speed));
+            Frame::SetStatus("{}% Speed", GetOption(speed));
             break;
 
         case Action::SpeedNormal:
             SetOption(speed, 100);
-            Frame::SetStatus("100%% Speed");
+            Frame::SetStatus("100% Speed");
             break;
 
             // Not processed

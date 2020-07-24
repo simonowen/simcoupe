@@ -112,7 +112,7 @@ bool Start(bool fSegment_)
     nFrames = nSilent = 0;
     fSegment = fSegment_;
 
-    Frame::SetStatus("Recording WAV%s", fSegment_ ? " segment" : "");
+    Frame::SetStatus("Recording WAV{}", fSegment_ ? " segment" : "");
     return true;
 }
 
@@ -140,7 +140,7 @@ void Stop()
 
     // Report what happened
     if (nFrames)
-        Frame::SetStatus("Saved %s", pszFile);
+        Frame::SetStatus("Saved {}", pszFile);
     else
     {
         Frame::SetStatus("WAV cancelled");

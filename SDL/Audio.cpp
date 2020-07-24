@@ -46,7 +46,6 @@ bool Audio::Init(bool fFirstInit_/*=false*/)
 {
     // Clear out any existing config before starting again
     Exit(true);
-    TRACE("-> Audio::Init(%s)\n", fFirstInit_ ? "first" : "");
 
     // All sound disabled?
     if (!GetOption(sound))
@@ -61,21 +60,16 @@ bool Audio::Init(bool fFirstInit_/*=false*/)
         m_nSampleBufferSize = nSamplesPerFrame * SAMPLE_BLOCK * nBufferedFrames;
         m_pbEnd = (m_pbNow = m_pbStart = new Uint8[m_nSampleBufferSize]) + m_nSampleBufferSize;
 
-        TRACE("Sample buffer size = %d samples\n", m_nSampleBufferSize / SAMPLE_BLOCK);
+        TRACE("Sample buffer size = {} samples\n", m_nSampleBufferSize / SAMPLE_BLOCK);
     }
 
     // Sound initialisation failure isn't fatal, so always return success
-    TRACE("<- Audio::Init()\n");
     return true;
 }
 
 void Audio::Exit(bool fReInit_/*=false*/)
 {
-    TRACE("-> Audio::Exit(%s)\n", fReInit_ ? "reinit" : "");
-
     ExitSDLSound();
-
-    TRACE("<- Audio::Exit()\n");
 }
 
 bool Audio::AddData(Uint8* pbData_, int nLength_)
@@ -172,7 +166,7 @@ bool InitSDLSound()
 
     if (SDL_OpenAudio(&sDesired, nullptr) < 0)
     {
-        TRACE("SDL_OpenAudio failed: %s\n", SDL_GetError());
+        TRACE("SDL_OpenAudio failed: {}\n", SDL_GetError());
         return false;
     }
 

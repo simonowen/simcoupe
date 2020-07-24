@@ -40,7 +40,7 @@ bool Ioctl(HANDLE h_, DWORD dwCode_, LPVOID pIn_ = nullptr, DWORD cbIn_ = 0, LPV
     if (DeviceIoControl(h_, dwCode_, pIn_, cbIn_, pOut_, cbOut_, &cbOut_, nullptr))
         return true;
 
-    TRACE("!!! Ioctl %lu failed with %#08lx\n", dwCode_, GetLastError());
+    TRACE("!!! Ioctl {} failed with {:08x}\n", dwCode_, GetLastError());
     return false;
 }
 
@@ -450,7 +450,7 @@ unsigned long FloppyStream::ThreadProc()
         break;
 
     default:
-        TRACE("!!! ThreadProc: unknown command (%u)\n", m_bCommand);
+        TRACE("!!! ThreadProc: unknown command ({})\n", m_bCommand);
         m_bStatus = LOST_DATA;
         break;
     }

@@ -36,26 +36,16 @@
 #include "OSD.h"
 #include "UI.h"
 
-static const int TRACE_BUFFER_SIZE = 2048;
-static char* s_pszTrace;
-
 namespace Util
 {
 
 bool Init()
 {
-    if (!(s_pszTrace = new char[TRACE_BUFFER_SIZE]))
-    {
-        Message(msgError, "Out of memory!\n");
-        return false;
-    }
-
     return true;
 }
 
 void Exit()
 {
-    if (s_pszTrace) { delete[] s_pszTrace; s_pszTrace = nullptr; }
 }
 
 
@@ -82,23 +72,12 @@ char* GetUniqueFile(const char* pcszExt_, char* psz_, int cb_)
 
 //////////////////////////////////////////////////////////////////////////////
 
-// Report an info, warning, error or fatal message.  Exit if a fatal message has been reported
-void Message(eMsgType eType_, const char* pcszFormat_, ...)
+void Message(MsgType type, const std::string& message)
 {
-    va_list args;
-    va_start(args, pcszFormat_);
+    TRACE("{}\n", message);
+    UI::ShowMessage(type, message);
 
-    char sz[512];
-    vsnprintf(sz, sizeof(sz) - 1, pcszFormat_, args);
-    sz[sizeof(sz) - 1] = '\0';
-
-    va_end(args);
-
-    TRACE("%s\n", sz);
-    UI::ShowMessage(eType_, sz);
-
-    // Fatal error?
-    if (eType_ == msgFatal)
+    if (type == MsgType::Fatal)
     {
         Main::Exit();
         exit(1);
@@ -245,127 +224,43 @@ std::string tolower(std::string str)
     return str;
 }
 
+std::vector<std::string> split(const std::string& str, char sep)
+{
+    std::vector<std::string> strings;
+    std::istringstream ss(str);
+    std::string s;
+    while (getline(ss, s, sep))
+    {
+        strings.push_back(std::move(s));
+    }
+    return strings;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef _DEBUG
-
-void TraceOutputString(const char* /*pcszFormat_*/, ...)
-{
-}
-
-void TraceOutputString(const uint8_t* /*pcb*/, unsigned int /*uLen=0*/)
-{
-}
-
-#else
-
+#ifdef _DEBUG
 uint32_t g_dwStart;
 
-static void TraceOutputString(const char* pcszFormat_, va_list pcvArgs);
-static void WriteTimeString(char* psz_);
-
-
-// Output a formatted debug message
-void TraceOutputString(const char* pcszFormat_, ...)
+std::string TimeString()
 {
-    if (!s_pszTrace)
-        return;
+    auto now = OSD::GetTime();
+    if (!g_dwStart)
+        g_dwStart = now;
+    auto elapsed = now - g_dwStart;
 
-    va_list pcvArgs;
-    va_start(pcvArgs, pcszFormat_);
+    auto ms = elapsed % 1000;
+    auto secs = (elapsed /= 1000) % 60;
+    auto mins = (elapsed /= 60) % 100;
 
-    TraceOutputString(pcszFormat_, pcvArgs);
+    auto screen_cycles = (g_dwCycleCounter + CPU_CYCLES_PER_FRAME - CPU_CYCLES_PER_SIDE_BORDER) % CPU_CYCLES_PER_FRAME;
+    auto line = screen_cycles / CPU_CYCLES_PER_LINE;
+    auto line_cycle = screen_cycles % CPU_CYCLES_PER_LINE;
 
-    va_end(pcvArgs);
+    return fmt::format("{:02}:{:02}.{:03} {:03}:{:03}", mins, secs, ms, line, line_cycle);
 }
 
-
-// Output a formatted debug message
-static void TraceOutputString(const char* pcszFormat_, va_list pcvArgs_)
+void TraceOutputString(const std::string& str)
 {
-    // Write the time value to the start of the output
-    WriteTimeString(s_pszTrace);
-
-    // If the format string doesn't require any parameters, don't bother formatting it
-    if (!strchr(pcszFormat_, '%'))
-        strcat(s_pszTrace, pcszFormat_);
-
-    // Format the string to a buffer, verify that it doesn't overflow and corrupt memory
-    else
-        vsprintf(s_pszTrace + strlen(s_pszTrace), pcszFormat_, pcvArgs_);
-
-    // Output the debug message
-    OSD::DebugTrace(s_pszTrace);
+    OSD::DebugTrace(fmt::format("{} {}", TimeString(), str));
 }
-
-
-// Output a formatted debug message in hex blocks with ASCII
-void TraceOutputString(const uint8_t* pcb, size_t uLen/*=0*/)
-{
-    if (!s_pszTrace)
-        return;
-
-    // Write the time value to the start of the output
-    WriteTimeString(s_pszTrace);
-
-    // If the length wasn't given or was zero, assume it's a string and use strlen to get the length
-    if (!uLen)
-        uLen = strlen(reinterpret_cast<const char*>(pcb));
-
-    // Loop while there is still data to process
-    while (uLen > 0)
-    {
-        auto pabASCIIPos = (uint8_t*)s_pszTrace + 16 * 3 + 4;
-        auto pabLinePos = reinterpret_cast<uint8_t*>(s_pszTrace);
-        memset(pabLinePos, ' ', 80);
-
-        // Append each hex byte until no more bytes or this line is full.
-        for (int i = 0; uLen && i < 16; i++, pcb++, uLen--)
-        {
-            // Make the data more readable by adding an extra space every 4 bytes
-            if (i && !(i % 4))
-                *pabLinePos++ = ' ';
-
-            // Store the hex byte
-            static uint8_t abHexBytes[] = "0123456789ABCDEF";
-            *pabLinePos++ = abHexBytes[*pcb >> 4];
-            *pabLinePos++ = abHexBytes[*pcb & 0xf];
-            *pabLinePos++ = ' ';
-
-            // Store the ASCII character or '.' for out-of-range characters
-            *pabASCIIPos++ = (*pcb > 0x1f && *pcb < 0x7f) ? *pcb : '.';
-
-            // Double up '%' character so they're displayed correctly
-            if (*pcb == '%')
-                *pabASCIIPos++ = '%';
-        }
-
-        // Terminate with a newline and a null
-        pabLinePos = pabASCIIPos;
-
-        *pabLinePos++ = '\n';
-        *pabLinePos = '\0';
-
-        // Output the debug message
-        OSD::DebugTrace(s_pszTrace);
-    }
-}
-
-
-// Output the time string to the debug device
-void WriteTimeString(char* psz_)
-{
-    // Fetch the current system time in milliseconds
-    uint32_t dwNow = OSD::GetTime(), dwElapsed = g_dwStart ? dwNow - g_dwStart : dwNow - (g_dwStart = dwNow);
-
-    // Break the elapsed time into seconds, minutes and milliseconds
-    uint32_t dwMillisecs = dwElapsed % 1000, dwSecs = (dwElapsed /= 1000) % 60, dwMins = (dwElapsed /= 60) % 100;
-
-    uint32_t dwScreenCycles = g_dwCycleCounter - CPU_CYCLES_PER_SIDE_BORDER;
-    int nLine = dwScreenCycles / CPU_CYCLES_PER_LINE, nLineCycle = dwScreenCycles % CPU_CYCLES_PER_LINE;
-
-    // Form the time string and send to the debugger
-    sprintf(psz_, "%02u:%02u.%03u  %03d:%03d  ", dwMins, dwSecs, dwMillisecs, nLine, nLineCycle);
-}
-
 #endif  // _DEBUG

@@ -33,7 +33,7 @@ bool Save(const FrameBuffer& fb, int main_x, int main_y)
     auto file = fopen(szPath, "wb");
     if (!file)
     {
-        Frame::SetStatus("Failed to open %s for writing!", szPath);
+        Frame::SetStatus("Failed to open {} for writing!", szPath);
         return false;
     }
 
@@ -93,7 +93,7 @@ bool Save(const FrameBuffer& fb, int main_x, int main_y)
     }
 
     fclose(file);
-    Frame::SetStatus("Saved %s", szPath);
+    Frame::SetStatus("Saved {}", szPath);
 
     return true;
 }

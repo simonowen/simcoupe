@@ -166,11 +166,8 @@ if (NOT HAVE_STD_OPTIONAL OR NOT HAVE_STD_VARIANT)
   message(FATAL_ERROR "missing some required C++17 headers")
 endif()
 
-# Prefer a 3rd party implementation to std::experimental::filesystem.
-check_include_file_cxx("filesystem" HAVE_STD_FILESYSTEM)
-if (NOT HAVE_STD_FILESYSTEM)
-  target_include_directories(${PROJECT_NAME} PRIVATE Extern/ghc)
-endif()
+# Use a 3rd party implementation of std::filesystem to avoid needing macOS 10.15.
+target_include_directories(${PROJECT_NAME} PRIVATE Extern/ghc)
 
 set(CMAKE_THREAD_PREFER_PTHREAD pthread)
 find_package(Threads REQUIRED)

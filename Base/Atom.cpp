@@ -53,7 +53,7 @@ uint8_t AtomDevice::In(uint16_t wPort_)
         break;
 
     default:
-        TRACE("Atom: Unrecognised read from %#04x\n", wPort_);
+        TRACE("Atom: Unrecognised read from {:04x}\n", wPort_);
         break;
     }
 
@@ -90,7 +90,7 @@ void AtomDevice::Out(uint16_t wPort_, uint8_t bVal_)
         break;
 
     default:
-        TRACE("Atom: Unhandled write to %#04x with %#02x\n", wPort_, bVal_);
+        TRACE("Atom: Unhandled write to {:04x} with {:02x}\n", wPort_, bVal_);
         break;
     }
 }

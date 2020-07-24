@@ -218,7 +218,7 @@ static bool LoadRoms()
     memset(pb0, 0xff, MEM_PAGE_SIZE);
     memset(pb1, 0xff, MEM_PAGE_SIZE);
 
-    Message(msgWarning, "Error loading ROM:\n\n%s", rom_file.c_str());
+    Message(MsgType::Warning, "Error loading ROM:\n\n{}", rom_file);
     return false;
 }
 

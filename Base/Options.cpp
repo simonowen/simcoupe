@@ -158,8 +158,6 @@ OPTION aOptions[] =
 
     OPT_S("FnKeys",       fnkeys,
      "F1=1,SF1=2,AF1=0,CF1=3,F2=5,SF2=6,AF2=4,CF2=7,F3=50,SF3=49,F4=11,SF4=12,AF4=8,F5=25,SF5=23,F6=26,F7=27,SF7=21,F8=22,F9=10,SF9=13,F10=9,SF10=10,F11=16,F12=15,CF12=8"),
-
-    { nullptr, 0 }
 };
 
 inline bool IsTrue(const char* pcsz_)
@@ -175,10 +173,10 @@ static OPTION* FindOption(const char* pcszName_)
     if (!strcasecmp(pcszName_, "AutoBoot"))
         pcszName_ = "AutoLoad";
 
-    for (OPTION* p = aOptions; p->pcszName; p++)
+    for (auto& opt : aOptions)
     {
-        if (!strcasecmp(pcszName_, p->pcszName))
-            return p;
+        if (!strcasecmp(pcszName_, opt.pcszName))
+            return &opt;
     }
 
     return nullptr;
@@ -189,17 +187,15 @@ void SetDefaults(bool fForce_/*=true*/)
 {
     nDrive = 1;
 
-    // Process the full options list
-    for (OPTION* p = aOptions; p->pcszName; p++)
+    for (auto& opt : aOptions)
     {
-        // Set the default if forcing defaults, or if we've not already
-        if (fForce_ || !p->fSpecified)
+        if (fForce_ || !opt.fSpecified)
         {
-            switch (p->nType)
+            switch (opt.nType)
             {
-            case OT_BOOL:       *p->pf = p->fDefault;   break;
-            case OT_INT:        *p->pn = p->nDefault;   break;
-            case OT_STRING:     strcpy(p->ppsz, p->pcszDefault);   break;
+            case OT_BOOL:       *opt.pf = opt.fDefault;   break;
+            case OT_INT:        *opt.pn = opt.nDefault;   break;
+            case OT_STRING:     strcpy(opt.ppsz, opt.pcszDefault);   break;
             }
         }
     }
@@ -211,9 +207,7 @@ void SetDefaults(bool fForce_/*=true*/)
 // Find the address of the variable holding the specified option default
 void* GetDefault(const char* pcszName_)
 {
-    OPTION* p = FindOption(pcszName_);
-
-    if (p)
+    if (auto p = FindOption(pcszName_))
     {
         switch (p->nType)
         {
@@ -249,19 +243,19 @@ bool Load(int argc_, char* argv_[])
             strtok(pszValue += strspn(pszValue, " \t=\r\n"), "\r\n");
 
             // Look for the option in the list
-            for (OPTION* p = aOptions; p->pcszName; p++)
+            for (auto& opt : aOptions)
             {
-                if (!strcasecmp(pszName, p->pcszName))
+                if (!strcasecmp(pszName, opt.pcszName))
                 {
                     // Remember that a value has been found for this option
-                    p->fSpecified = true;
+                    opt.fSpecified = true;
 
                     // Extract the appropriate value type from the string
-                    switch (p->nType)
+                    switch (opt.nType)
                     {
-                    case OT_BOOL:       *p->pf = *pszValue ? IsTrue(pszValue) : p->fDefault;    break;
-                    case OT_INT:        *p->pn = *pszValue ? atoi(pszValue) : p->nDefault;      break;
-                    case OT_STRING:     strcpy(p->ppsz, *pszValue ? pszValue : p->pcszDefault); break;
+                    case OT_BOOL:       *opt.pf = *pszValue ? IsTrue(pszValue) : opt.fDefault;    break;
+                    case OT_INT:        *opt.pn = *pszValue ? atoi(pszValue) : opt.nDefault;      break;
+                    case OT_STRING:     strcpy(opt.ppsz, *pszValue ? pszValue : opt.pcszDefault); break;
                     }
                 }
             }
@@ -278,13 +272,11 @@ bool Load(int argc_, char* argv_[])
     // Process any commmand-line arguments to look for options
     while (argc_ && --argc_)
     {
-        const char* pcszOption = *++argv_;
+        auto pcszOption = *++argv_;
         if (*pcszOption == '-')
         {
             // Find the option in the list of known options
-            OPTION* p = FindOption(pcszOption + 1);
-
-            if (p)
+            if (auto p = FindOption(pcszOption + 1))
             {
                 switch (p->nType)
                 {
@@ -296,7 +288,7 @@ bool Load(int argc_, char* argv_[])
                 argc_--;
             }
             else
-                TRACE("Unknown command-line option: %s\n", pcszOption);
+                TRACE("Unknown command-line option: {}\n", pcszOption);
         }
         else
         {
@@ -315,7 +307,7 @@ bool Load(int argc_, char* argv_[])
                 break;
 
             default:
-                TRACE("Unexpected command-line parameter: %s\n", pcszOption);
+                TRACE("Unexpected command-line parameter: {}\n", pcszOption);
                 break;
             }
         }
@@ -327,28 +319,30 @@ bool Load(int argc_, char* argv_[])
 
 bool Save()
 {
-    const char* pcszPath = OSD::MakeFilePath(MFP_SETTINGS, OPTIONS_FILE);
-
-    // Open the options file for writing, fail if we can't
-    FILE* hfOptions = fopen(pcszPath, "wb");
-    if (!hfOptions)
-        return false;
-
-    // Some settings shouldn't be saved
     SetOption(speed, 100);
 
-    // Loop through each option to write out
-    for (OPTION* p = aOptions; p->pcszName; p++)
+    auto path = OSD::MakeFilePath(MFP_SETTINGS, OPTIONS_FILE);
+    try
     {
-        switch (p->nType)
+        std::ofstream ofs(path, std::ofstream::out);
+        for (auto& opt : aOptions)
         {
-        case OT_BOOL:       fprintf(hfOptions, "%s=%s\r\n", p->pcszName, *p->pf ? "Yes" : "No");  break;
-        case OT_INT:        fprintf(hfOptions, "%s=%d\r\n", p->pcszName, *p->pn);                 break;
-        case OT_STRING:     fprintf(hfOptions, "%s=%s\r\n", p->pcszName, p->ppsz);                break;
+            ofs << opt.pcszName << '=';
+            switch (opt.nType)
+            {
+            case OT_BOOL:   ofs << (*opt.pf ? "Yes" : "No");  break;
+            case OT_INT:    ofs << *opt.pn;  break;
+            case OT_STRING: ofs << opt.ppsz;  break;
+            }
+            ofs << std::endl;
         }
     }
+    catch (...)
+    {
+        TRACE("Failed to save options\n");
+        return false;
+    }
 
-    fclose(hfOptions);
     return true;
 }
 

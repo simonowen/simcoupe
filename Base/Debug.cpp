@@ -32,7 +32,7 @@
 
 
 // SAM BASIC keywords tokens
-static const std::vector<const char*> basic_keywords
+static const std::vector<std::string_view> basic_keywords
 {
     "PI", "RND", "POINT", "FREE", "LENGTH", "ITEM", "ATTR", "FN", "BIN",
     "XMOUSE", "YMOUSE", "XPEN", "YPEN", "RAMTOP", "-", "INSTR", "INKEY$",
@@ -86,7 +86,7 @@ Z80Regs sLastRegs, sCurrRegs;
 uint8_t bLastStatus;
 uint32_t dwLastCycle;
 int nLastFrames;
-ViewType nLastView = vtDis;
+auto nLastView = ViewType::Dis;
 uint16_t wLastAddr;
 
 // Instruction tracing
@@ -140,7 +140,7 @@ bool Start(std::optional<int> bp_index)
         else
         {
             // Unload user symbols if there's no drive or disk
-            Symbol::Update(nullptr);
+            Symbol::Update("");
         }
     }
 
@@ -173,7 +173,7 @@ void Refresh()
     if (pDebugger)
     {
         // Set the address without forcing it to the top of the window
-        pDebugger->SetAddress((nLastView == vtDis) ? REG_PC : wLastAddr, false);
+        pDebugger->SetAddress((nLastView == ViewType::Dis) ? REG_PC : wLastAddr, false);
     }
 
     if (auto bp_index = Breakpoint::Hit())
@@ -345,14 +345,14 @@ void cmdStepOut()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-InputDialog::InputDialog(Window* pParent_/*=nullptr*/, const char* pcszCaption_, const char* pcszPrompt_, PFNINPUTPROC pfnNotify_)
-    : Dialog(pParent_, 0, 0, pcszCaption_), m_pfnNotify(pfnNotify_)
+InputDialog::InputDialog(Window* pParent_/*=nullptr*/, const std::string& caption, const std::string& prompt, PFNINPUTPROC pfnNotify_)
+    : Dialog(pParent_, 0, 0, caption), m_pfnNotify(pfnNotify_)
 {
     // Get the length of the prompt string, so we can position the edit box correctly
-    int n = GetTextWidth(pcszPrompt_);
+    int n = GetTextWidth(prompt);
 
     // Create the prompt text control and input edit control
-    new TextControl(this, 5, 10, pcszPrompt_, WHITE);
+    new TextControl(this, 5, 10, prompt, WHITE);
     m_pInput = new NumberEditControl(this, 5 + n + 5, 6, 120);
 
     // Size the dialog to fit the prompt and edit control
@@ -365,11 +365,11 @@ void InputDialog::OnNotify(Window* pWindow_, int nParam_)
     if (pWindow_ == m_pInput && nParam_)
     {
         // Fetch and compile the input expression
-        const char* pcszExpr = m_pInput->GetText();
-        auto expr = Expr::Compile(pcszExpr);
+        auto expr_str = m_pInput->GetText();
+        auto expr = Expr::Compile(expr_str);
 
         // Close the dialog if the input was blank, or the notify handler tells us
-        if (!*pcszExpr || (expr && m_pfnNotify(expr)))
+        if (expr_str.empty() || (expr && m_pfnNotify(expr)))
         {
             Destroy();
             pDebugger->Refresh();
@@ -577,7 +577,7 @@ Debugger::Debugger(std::optional<int> bp_index)
         }
 
         SetStatus(ss.str().c_str(), true, sPropFont);
-        nLastView = vtDis;
+        nLastView = ViewType::Dis;
     }
 
     Breakpoint::RemoveType(BreakType::Temp);
@@ -611,18 +611,16 @@ Debugger::~Debugger()
     pDebugger = nullptr;
 }
 
-void Debugger::SetSubTitle(const char* pcszSubTitle_)
+void Debugger::SetSubTitle(const std::string& sub_title)
 {
-    char szTitle[128] = "SimICE";
+    std::string title = "SimICE";
 
-    if (pcszSubTitle_ && *pcszSubTitle_)
+    if (!sub_title.empty())
     {
-        strcat(szTitle, " -- ");
-        strncat(szTitle, pcszSubTitle_, sizeof(szTitle) - strlen(szTitle) - 1);
-        szTitle[sizeof(szTitle) - 1] = '\0';
+        title += " -- " + sub_title;
     }
 
-    SetText(szTitle);
+    SetText(title);
 }
 
 void Debugger::SetAddress(uint16_t wAddr_, bool fForceTop_/*=false*/)
@@ -637,27 +635,27 @@ void Debugger::SetView(ViewType nView_)
     // Create the new view
     switch (nView_)
     {
-    case vtDis:
+    case ViewType::Dis:
         pNewView = new DisView(this);
         break;
 
-    case vtTxt:
+    case ViewType::Txt:
         pNewView = new TxtView(this);
         break;
 
-    case vtHex:
+    case ViewType::Hex:
         pNewView = new HexView(this);
         break;
 
-    case vtGfx:
+    case ViewType::Gfx:
         pNewView = new GfxView(this);
         break;
 
-    case vtBpt:
+    case ViewType::Bpt:
         pNewView = new BptView(this);
         break;
 
-    case vtTrc:
+    case ViewType::Trc:
         pNewView = new TrcView(this);
         break;
     }
@@ -669,7 +667,7 @@ void Debugger::SetView(ViewType nView_)
 
         if (!m_pView)
         {
-            pNewView->SetAddress((nView_ == vtDis) ? REG_PC : wLastAddr);
+            pNewView->SetAddress((nView_ == ViewType::Dis) ? REG_PC : wLastAddr);
         }
         else
         {
@@ -684,47 +682,31 @@ void Debugger::SetView(ViewType nView_)
     }
 }
 
-void Debugger::SetStatus(const char* pcsz_, bool fOneShot_, std::shared_ptr<Font> font)
+void Debugger::SetStatus(const std::string& status, bool fOneShot_, std::shared_ptr<Font> font)
 {
     if (m_pStatus)
     {
         // One-shot status messages get priority
         if (fOneShot_)
-            m_sStatus = pcsz_;
+            m_sStatus = status;
         else if (!m_sStatus.empty())
             return;
 
         if (font)
             m_pStatus->SetFont(font);
 
-        m_pStatus->SetText(pcsz_);
+        m_pStatus->SetText(status);
     }
 }
 
-void Debugger::SetStatusByte(uint16_t wAddr_)
+void Debugger::SetStatusByte(uint16_t addr)
 {
-    size_t i;
-    char szBinary[9] = {};
-    const char* pcszKeyword = "";
+    auto b = read_byte(addr);
+    char ch = (b >= sFixedFont->first_chr && b <= sFixedFont->last_chr) ? b : ' ';
+    auto keyword = (b >= BASE_KEYWORD) ? basic_keywords[b - BASE_KEYWORD] : "";
 
-    // Read byte at status location
-    auto b = read_byte(wAddr_);
-
-    // Change unprintable characters to a space
-    char ch = (b >= ' ' && b <= 0x7f) ? b : ' ';
-
-    // Keyword range?
-    if (b >= BASE_KEYWORD)
-        pcszKeyword = basic_keywords[b - BASE_KEYWORD];
-
-    // Generate binary representation
-    for (i = 128; i > 0; i >>= 1)
-        strcat(szBinary, (b & i) ? "1" : "0");
-
-    // Form full status line, and set it
-    char sz[128] = {};
-    snprintf(sz, sizeof(sz) - 1, "%04X  %02X  %03d  %s  %c  %s", wAddr_, b, b, szBinary, ch, pcszKeyword);
-    SetStatus(sz, false, sFixedFont);
+    auto status = fmt::format("{:04X}  {:02X}  {:03}  {:08b}  {}  {}", addr, b, b, b, ch, keyword);
+    SetStatus(status, false, sFixedFont);
 }
 
 // Refresh the current debugger view
@@ -762,7 +744,6 @@ void Debugger::Draw(FrameBuffer& fb)
 
 bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
-    char sz[64];
     bool fRet = false;
 
     if (!fRet && nMessage_ == GM_CHAR)
@@ -783,9 +764,9 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
                 m_pCommandEdit->Destroy();
                 m_pCommandEdit = nullptr;
             }
-            else if (nLastView != vtDis)
+            else if (nLastView != ViewType::Dis)
             {
-                SetView(vtDis);
+                SetView(ViewType::Dis);
                 SetAddress(REG_PC);
             }
             else
@@ -805,67 +786,71 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             break;
 
         case 'b':
-            SetView(vtBpt);
+            SetView(ViewType::Bpt);
             break;
 
         case 'c':
-            SetView(vtTrc);
+            SetView(ViewType::Trc);
             break;
 
         case 'd':
-            SetView(vtDis);
+            SetView(ViewType::Dis);
             break;
 
         case 't':
             if (fCtrl)
                 s_fTransparent = !s_fTransparent;
             else
-                SetView(vtTxt);
+                SetView(ViewType::Txt);
             break;
 
         case 'n':
-            SetView(vtHex);
+            SetView(ViewType::Hex);
             break;
 
         case 'g':
-            SetView(vtGfx);
+            SetView(ViewType::Gfx);
             break;
 
         case 'l':
             if (fShift)
             {
-                sprintf(sz, "Change LEPR [%02X]:", lepr);
-                new InputDialog(this, sz, "New Page:", OnLeprNotify);
+                auto caption = fmt::format("Change LEPR [{:02X}]:", lepr);
+                new InputDialog(this, caption, "New Page:", OnLeprNotify);
             }
             else
             {
-                sprintf(sz, "Change LMPR [%02X]:", lmpr & LMPR_PAGE_MASK);
-                new InputDialog(this, sz, "New Page:", OnLmprNotify);
+                auto caption = fmt::format("Change LMPR [{:02X}]:", lmpr & LMPR_PAGE_MASK);
+                new InputDialog(this, caption, "New Page:", OnLmprNotify);
             }
             break;
 
         case 'h':
             if (fShift)
             {
-                sprintf(sz, "Change HEPR [%02X]:", hepr);
-                new InputDialog(this, sz, "New Page:", OnHeprNotify);
+                auto caption = fmt::format("Change HEPR [{:02X}]:", hepr);
+                new InputDialog(this, caption, "New Page:", OnHeprNotify);
             }
             else
             {
-                sprintf(sz, "Change HMPR [%02X]:", hmpr & HMPR_PAGE_MASK);
-                new InputDialog(this, sz, "New Page:", OnHmprNotify);
+                auto caption = fmt::format("Change HMPR [{:02X}]:", hmpr & HMPR_PAGE_MASK);
+                new InputDialog(this, caption, "New Page:", OnHmprNotify);
             }
             break;
 
         case 'v':
-            sprintf(sz, "Change VMPR [%02X]:", vmpr & VMPR_PAGE_MASK);
-            new InputDialog(this, sz, "New Page:", OnVmprNotify);
+        {
+            auto caption = fmt::format("Change VMPR [{:02X}]:", vmpr & VMPR_PAGE_MASK);
+            new InputDialog(this, caption, "New Page:", OnVmprNotify);
             break;
+        }
 
         case 'm':
-            sprintf(sz, "Change Mode [%X]:", ((vmpr & VMPR_MODE_MASK) >> 5) + 1);
-            new InputDialog(this, sz, "New Mode:", OnModeNotify);
+        {
+            auto caption = fmt::format("Change Mode [{:X}]:", ((vmpr & VMPR_MODE_MASK) >> 5) + 1);
+            new InputDialog(this, caption, "New Mode:", OnModeNotify);
             break;
+        }
 
         case 'u':
             new InputDialog(this, "Execute until", "Expression:", OnUntilNotify);
@@ -905,19 +890,16 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
 void Debugger::OnNotify(Window* pWindow_, int nParam_)
 {
-    // Command submitted?
     if (pWindow_ == m_pCommandEdit && nParam_ == 1)
     {
-        const char* pcsz = m_pCommandEdit->GetText();
+        auto command = m_pCommandEdit->GetText();
 
-        // If no command is given, close the command bar
-        if (!*pcsz)
+        if (command.empty())
         {
             m_pCommandEdit->Destroy();
             m_pCommandEdit = nullptr;
         }
-        // Otherwise execute the command, and if successful, clear the command text
-        else if (Execute(pcsz))
+        else if (Execute(command))
         {
             m_pCommandEdit->SetText("");
             Refresh();
@@ -1564,7 +1546,7 @@ void DisView::SetAddress(uint16_t wAddr_, bool fForceTop_)
     SetDataTarget();
 
     // Show any data target in the status line
-    pDebugger->SetStatus(m_pcszDataTarget ? m_pcszDataTarget : "", false, sFixedFont);
+    pDebugger->SetStatus(m_data_target, false, sFixedFont);
 
     if (!fForceTop_)
     {
@@ -1652,7 +1634,7 @@ void DisView::Draw(FrameBuffer& fb)
 
             // Add a direction arrow if we have a code target
             if (m_uCodeTarget != INVALID_TARGET)
-                fb.DrawString(nX + CHR_WIDTH * (BAR_CHAR_LEN - 1), nY, (m_uCodeTarget <= REG_PC) ? "\x80" : "\x81", BLACK);
+                fb.DrawString(nX + CHR_WIDTH * (BAR_CHAR_LEN - 1), nY, (m_uCodeTarget <= REG_PC) ? "\ak\x80" : "\ak\x81");
         }
 
         // Check for a breakpoint at the current address.
@@ -1666,9 +1648,9 @@ void DisView::Draw(FrameBuffer& fb)
         // Show the current entry normally if it's not the current code target, otherwise show all
         // in black text with an arrow instead of the address, indicating it's the code target.
         if (m_uCodeTarget == INVALID_TARGET || s_wAddrs[u] != m_uCodeTarget)
-            fb.DrawString(nX, nY, fmt::format("\a{}\a{}{}", colour, (colour != 'W') ? '0' : colour, psz));
+            fb.DrawString(nX, nY, "\a{}\a{}{}", colour, (colour != 'W') ? '0' : colour, psz);
         else
-            fb.DrawString(nX, nY, fmt::format("\a{}===>\a{}{}", (colour == 'k') ? 'k' : 'G', (colour == 'k') ? '0' : colour, psz + 4));
+            fb.DrawString(nX, nY, "\a{}===>\a{}{}", (colour == 'k') ? 'k' : 'G', (colour == 'k') ? '0' : colour, psz + 4);
     }
 
     DrawRegisterPanel(fb, m_nX + m_nWidth - 6 * 16, m_nY);
@@ -1682,15 +1664,15 @@ void DisView::Draw(FrameBuffer& fb)
 
 #define DoubleReg(dx,dy,name,reg) \
     { \
-        fb.DrawString(nX+dx, nY+dy, fmt::format("\ag{:<3s}\a{}{:02X}\a{}{:02X}", name, \
+        fb.DrawString(nX+dx, nY+dy, "\ag{:<3s}\a{}{:02X}\a{}{:02X}", name, \
                     (regs.reg.b.h != sLastRegs.reg.b.h)?CHG_COL:'X', regs.reg.b.h,  \
-                    (regs.reg.b.l != sLastRegs.reg.b.l)?CHG_COL:'X', regs.reg.b.l)); \
+                    (regs.reg.b.l != sLastRegs.reg.b.l)?CHG_COL:'X', regs.reg.b.l); \
     }
 
 #define SingleReg(dx,dy,name,reg) \
     { \
-        fb.DrawString(nX+dx, nY+dy, fmt::format("\ag{:<2s}\a{}{:02X}", name, \
-                    (regs.reg != sLastRegs.reg)?CHG_COL:'X', regs.reg)); \
+        fb.DrawString(nX+dx, nY+dy, "\ag{:<2s}\a{}{:02X}", name, \
+                    (regs.reg != sLastRegs.reg)?CHG_COL:'X', regs.reg); \
     }
 
     DoubleReg(0, 0, "AF", af);    DoubleReg(54, 0, "AF'", af_);
@@ -1706,21 +1688,21 @@ void DisView::Draw(FrameBuffer& fb)
     fb.DrawString(nX + 80, nY + 74, "\aK\x81\x81");
 
     for (i = 0; i < 4; i++)
-        fb.DrawString(nX + 72, nY + 84 + i * 12, fmt::format("{:04X}", read_word(REG_SP + i * 2)));
+        fb.DrawString(nX + 72, nY + 84 + i * 12, "{:04X}", read_word(REG_SP + i * 2));
 
-    fb.DrawString(nX, nY + 96, fmt::format("\agIM \a{}{}", (REG_IM != sLastRegs.im) ? CHG_COL : 'X', REG_IM));
-    fb.DrawString(nX + 18, nY + 96, fmt::format("  \a{}{}I", (REG_IFF1 != sLastRegs.iff1) ? CHG_COL : 'X', REG_IFF1 ? 'E' : 'D'));
+    fb.DrawString(nX, nY + 96, "\agIM \a{}{}", (REG_IM != sLastRegs.im) ? CHG_COL : 'X', REG_IM);
+    fb.DrawString(nX + 18, nY + 96, "  \a{}{}I", (REG_IFF1 != sLastRegs.iff1) ? CHG_COL : 'X', REG_IFF1 ? 'E' : 'D');
 
     char bIntDiff = status_reg ^ bLastStatus;
-    fb.DrawString(nX, nY + 108, fmt::format("\agStat \a{}{}\a{}{}\a{}{}\a{}{}\a{}{}",
+    fb.DrawString(nX, nY + 108, "\agStat \a{}{}\a{}{}\a{}{}\a{}{}\a{}{}",
         (bIntDiff & 0x10) ? CHG_COL : (status_reg & 0x10) ? 'K' : 'X', (status_reg & 0x10) ? '-' : 'O',
         (bIntDiff & 0x08) ? CHG_COL : (status_reg & 0x08) ? 'K' : 'X', (status_reg & 0x08) ? '-' : 'F',
         (bIntDiff & 0x04) ? CHG_COL : (status_reg & 0x04) ? 'K' : 'X', (status_reg & 0x04) ? '-' : 'I',
         (bIntDiff & 0x02) ? CHG_COL : (status_reg & 0x02) ? 'K' : 'X', (status_reg & 0x02) ? '-' : 'M',
-        (bIntDiff & 0x01) ? CHG_COL : (status_reg & 0x01) ? 'K' : 'X', (status_reg & 0x01) ? '-' : 'L'));
+        (bIntDiff & 0x01) ? CHG_COL : (status_reg & 0x01) ? 'K' : 'X', (status_reg & 0x01) ? '-' : 'L');
 
     char bFlagDiff = REG_F ^ sLastRegs.af.b.l;
-    fb.DrawString(nX, nY + 132, fmt::format("\agFlag \a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}",
+    fb.DrawString(nX, nY + 132, "\agFlag \a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}",
         (bFlagDiff & FLAG_S) ? CHG_COL : (REG_F & FLAG_S) ? 'X' : 'K', (REG_F & FLAG_S) ? 'S' : '-',
         (bFlagDiff & FLAG_Z) ? CHG_COL : (REG_F & FLAG_Z) ? 'X' : 'K', (REG_F & FLAG_Z) ? 'Z' : '-',
         (bFlagDiff & FLAG_5) ? CHG_COL : (REG_F & FLAG_5) ? 'X' : 'K', (REG_F & FLAG_5) ? '5' : '-',
@@ -1728,28 +1710,28 @@ void DisView::Draw(FrameBuffer& fb)
         (bFlagDiff & FLAG_3) ? CHG_COL : (REG_F & FLAG_3) ? 'X' : 'K', (REG_F & FLAG_3) ? '3' : '-',
         (bFlagDiff & FLAG_V) ? CHG_COL : (REG_F & FLAG_V) ? 'X' : 'K', (REG_F & FLAG_V) ? 'V' : '-',
         (bFlagDiff & FLAG_N) ? CHG_COL : (REG_F & FLAG_N) ? 'X' : 'K', (REG_F & FLAG_N) ? 'N' : '-',
-        (bFlagDiff & FLAG_C) ? CHG_COL : (REG_F & FLAG_C) ? 'X' : 'K', (REG_F & FLAG_C) ? 'C' : '-'));
+        (bFlagDiff & FLAG_C) ? CHG_COL : (REG_F & FLAG_C) ? 'X' : 'K', (REG_F & FLAG_C) ? 'C' : '-');
 
 
     int nLine = (g_dwCycleCounter < CPU_CYCLES_PER_SIDE_BORDER) ? GFX_HEIGHT_LINES - 1 : (g_dwCycleCounter - CPU_CYCLES_PER_SIDE_BORDER) / CPU_CYCLES_PER_LINE;
     int nLineCycle = (g_dwCycleCounter + CPU_CYCLES_PER_LINE - CPU_CYCLES_PER_SIDE_BORDER) % CPU_CYCLES_PER_LINE;
 
-    fb.DrawString(nX, nY + 148, fmt::format("\agScan\aX {:03d}:{:03d}", nLine, nLineCycle));
-    fb.DrawString(nX, nY + 160, fmt::format("\agT\aX {}", g_dwCycleCounter));
+    fb.DrawString(nX, nY + 148, "\agScan\aX {:03}:{:03}", nLine, nLineCycle);
+    fb.DrawString(nX, nY + 160, "\agT\aX {}", g_dwCycleCounter);
 
     uint32_t dwCycleDiff = ((nLastFrames * CPU_CYCLES_PER_FRAME) + g_dwCycleCounter) - dwLastCycle;
     if (dwCycleDiff)
-        fb.DrawString(nX + 12, nY + 172, fmt::format("+{}", dwCycleDiff));
+        fb.DrawString(nX + 12, nY + 172, "+{}", dwCycleDiff);
 
-    fb.DrawString(nX, nY + 188, fmt::format("\agA \a{}{}", ReadOnlyAddr(0x0000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_A))));
-    fb.DrawString(nX, nY + 200, fmt::format("\agB \a{}{}", ReadOnlyAddr(0x4000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_B))));
-    fb.DrawString(nX, nY + 212, fmt::format("\agC \a{}{}", ReadOnlyAddr(0x8000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_C))));
-    fb.DrawString(nX, nY + 224, fmt::format("\agD \a{}{}", ReadOnlyAddr(0xc000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_D))));
+    fb.DrawString(nX, nY + 188, "\agA \a{}{}", ReadOnlyAddr(0x0000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_A)));
+    fb.DrawString(nX, nY + 200, "\agB \a{}{}", ReadOnlyAddr(0x4000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_B)));
+    fb.DrawString(nX, nY + 212, "\agC \a{}{}", ReadOnlyAddr(0x8000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_C)));
+    fb.DrawString(nX, nY + 224, "\agD \a{}{}", ReadOnlyAddr(0xc000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_D)));
 
-    fb.DrawString(nX + 66, nY + 188, fmt::format("\agL\aX {:02X}", lmpr));
-    fb.DrawString(nX + 66, nY + 200, fmt::format("\agH\aX {:02X}", hmpr));
-    fb.DrawString(nX + 66, nY + 212, fmt::format("\agV\aX {:02X}", vmpr));
-    fb.DrawString(nX + 66, nY + 224, fmt::format("\agM\aX {:X}", ((vmpr & VMPR_MODE_MASK) >> 5) + 1));
+    fb.DrawString(nX + 66, nY + 188, "\agL\aX {:02X}", lmpr);
+    fb.DrawString(nX + 66, nY + 200, "\agH\aX {:02X}", hmpr);
+    fb.DrawString(nX + 66, nY + 212, "\agV\aX {:02X}", vmpr);
+    fb.DrawString(nX + 66, nY + 224, "\agM\aX {:X}", ((vmpr & VMPR_MODE_MASK) >> 5) + 1);
 
     fb.DrawString(nX, nY + 240, "\agEvents");
 
@@ -1776,7 +1758,7 @@ void DisView::Draw(FrameBuffer& fb)
             i--; continue;
         }
 
-        fb.DrawString(nX, nY + 252 + i * 12, fmt::format("{:<4s} \a{}{:6d}\aXT", pcszEvent, CHG_COL, pEvent->due_time - g_dwCycleCounter));
+        fb.DrawString(nX, nY + 252 + i * 12, "{:<4s} \a{}{:6}\aXT", pcszEvent, CHG_COL, pEvent->due_time - g_dwCycleCounter);
     }
 }
 
@@ -2034,7 +2016,7 @@ bool DisView::SetDataTarget()
 
     // No target or helper string yet
     m_uDataTarget = INVALID_TARGET;
-    m_pcszDataTarget = nullptr;
+    m_data_target.clear();
 
     // Extract potential instruction bytes
     auto wPC = REG_PC;
@@ -2152,12 +2134,9 @@ bool DisView::SetDataTarget()
     // Do we have something to display?
     if (m_uDataTarget != INVALID_TARGET)
     {
-        static char sz[128];
-        m_pcszDataTarget = sz;
-
         if (f16Bit)
         {
-            snprintf(sz, std::size(sz), "%04X  \aK%04X %04X %04X\aX %04X \aK%04X %04X %04X",
+            m_data_target = fmt::format("{:04X}  \aK{:04X} {:04X} {:04X}\aX {:04X} \aK{:04X} {:04X} {:04X}",
                 m_uDataTarget,
                 read_word(m_uDataTarget - 6), read_word(m_uDataTarget - 4), read_word(m_uDataTarget - 2),
                 read_word(m_uDataTarget),
@@ -2165,7 +2144,7 @@ bool DisView::SetDataTarget()
         }
         else
         {
-            snprintf(sz, std::size(sz), "%04X  \aK%02X %02X %02X %02X %02X\aX %02X \aK%02X %02X %02X %02X %02X",
+            m_data_target = fmt::format("{:04X}  \aK{:02X} {:02X} {:02X} {:02X} {:02X}\aX {:02X} \aK{:02X} {:02X} {:02X} {:02X} {:02X}",
                 m_uDataTarget,
                 read_byte(m_uDataTarget - 5), read_byte(m_uDataTarget - 4), read_byte(m_uDataTarget - 3),
                 read_byte(m_uDataTarget - 2), read_byte(m_uDataTarget - 1),
@@ -2262,7 +2241,7 @@ void TxtView::Draw(FrameBuffer& fb)
         int nX = m_nX;
         int nY = m_nY + ROW_HEIGHT * u;
 
-        fb.DrawString(nX, nY, psz, WHITE);
+        fb.DrawString(nX, nY, psz);
     }
 
     if (m_fEditing && GetAddrPosition(m_wEditAddr, nX, nY))
@@ -2271,7 +2250,7 @@ void TxtView::Draw(FrameBuffer& fb)
         char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
 
         fb.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, YELLOW_8);
-        fb.DrawString(nX, nY, fmt::format("\ak{}", ch));
+        fb.DrawString(nX, nY, "\ak{}", ch);
 
         pDebugger->SetStatusByte(m_wEditAddr);
     }
@@ -2493,7 +2472,7 @@ void HexView::Draw(FrameBuffer& fb)
         int nX = m_nX;
         int nY = m_nY + ROW_HEIGHT * u;
 
-        fb.DrawString(nX, nY, psz, WHITE);
+        fb.DrawString(nX, nY, psz);
     }
 
     if (m_fEditing && GetAddrPosition(m_wEditAddr, nX, nY, nTextX))
@@ -2505,11 +2484,11 @@ void HexView::Draw(FrameBuffer& fb)
             nY += CHR_WIDTH;
 
         fb.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, YELLOW_8);
-        fb.DrawString(nX, nY, fmt::format("\ak{}", str[m_fRightNibble]));
+        fb.DrawString(nX, nY, "\ak{}", str[m_fRightNibble]);
 
         char ch = (b >= ' ' && b <= 0x7f) ? b : '.';
         fb.FillRect(nTextX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, GREY_6);
-        fb.DrawString(nTextX, nY, fmt::format("\ak{}", ch));
+        fb.DrawString(nTextX, nY, "\ak{}", ch);
     }
 }
 
@@ -2679,7 +2658,7 @@ void CMemView::Draw (FrameBuffer& fb)
         fb.DrawLine(m_nX+u, m_nY+m_nHeight-uGap-len, 0, len, (u & 16) ? WHITE : GREY_7);
     }
 
-    fb.DrawString(m_nX, m_nY+m_nHeight-10, "Page 0: 16K in 1K units", WHITE);
+    fb.DrawString(m_nX, m_nY+m_nHeight-10, "Page 0: 16K in 1K units");
 
     fb.SetFont(sGUIFont);
 }
@@ -2959,8 +2938,8 @@ void BptView::Draw(FrameBuffer& fb)
         int nY = m_nY + ROW_HEIGHT * i;
 
         auto pBreak = Breakpoint::GetAt(m_nTopLine + i);
-        uint8_t bColour = (m_nTopLine + i == m_nActive) ? CYAN_7 : (pBreak && !pBreak->enabled) ? GREY_4 : WHITE;
-        fb.DrawString(nX, nY, psz, bColour);
+        auto colour = (m_nTopLine + i == m_nActive) ? CYAN_7 : (pBreak && !pBreak->enabled) ? GREY_4 : WHITE;
+        fb.DrawString(nX, nY, colour, psz);
         psz += strlen(psz) + 1;
     }
 
@@ -3036,7 +3015,7 @@ TrcView::TrcView(Window* pParent_)
 void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
 {
     if (GetLines() <= 1)
-        fb.DrawString(nX_, nY_, "No instruction trace", WHITE);
+        fb.DrawString(nX_, nY_, "No instruction trace");
     else
     {
         char szDis[32], sz[128], * psz = sz;
@@ -3142,7 +3121,7 @@ void TrcView::OnDblClick(int nLine_)
     TRACEDATA* pTD = &aTrace[nPos];
 
     View::SetAddress(pTD->wPC, true);
-    pDebugger->SetView(vtDis);
+    pDebugger->SetView(ViewType::Dis);
 }
 
 void TrcView::OnDelete()

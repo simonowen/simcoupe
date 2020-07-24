@@ -22,9 +22,9 @@
 
 namespace Symbol
 {
-void Update(const char* pcszFile_);
+void Update(const std::string& path);
 
-int LookupSymbol(std::string sSymbol_);
+std::optional<int> LookupSymbol(const std::string& symbol);
 std::string LookupAddr(uint16_t wAddr_, int nMaxLen_ = 0, bool fAllowPlusOne_ = false);
 std::string LookupPort(uint8_t bPort_, bool fInput_);
 }

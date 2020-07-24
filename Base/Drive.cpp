@@ -313,13 +313,13 @@ uint8_t Drive::In(uint16_t wPort_)
     case regTrack:
         // Return the current track register value (may not match the current physical head position)
         bRet = m_sRegs.bTrack;
-        TRACE("Disk track: returning %#02x\n", bRet);
+        TRACE("Disk track: returning {:02x}\n", bRet);
         break;
 
     case regSector:
         // Return the current sector register value
         bRet = m_sRegs.bSector;
-        //          TRACE("Disk sector: returning %#02x\n", byte);
+        // TRACE("Disk sector: returning {:02x}\n", byte);
         break;
 
     case regData:
@@ -366,7 +366,7 @@ uint8_t Drive::In(uint16_t wPort_)
                         // Are there any more sectors to return?
                         if (FindSector(&id))
                         {
-                            TRACE("FDC: Multiple-sector read moving to sector %d\n", id.bSector);
+                            TRACE("FDC: Multiple-sector read moving to sector {}\n", id.bSector);
 
                             // Read the data, reporting anything but CRC errors now
                             m_bDataStatus = ReadSector(m_pbBuffer = m_abBuffer, &m_uBuffer);
@@ -376,7 +376,7 @@ uint8_t Drive::In(uint16_t wPort_)
                     break;
 
                 default:
-                    TRACE("Data requested for unknown command (%d)!\n", m_sRegs.bCommand);
+                    TRACE("Data requested for unknown command ({})!\n", m_sRegs.bCommand);
                 }
             }
         }
@@ -431,7 +431,7 @@ void Drive::Out(uint16_t wPort_, uint8_t bVal_)
         // Seek the track in the data register
         case SEEK:
         {
-            TRACE("FDC: SEEK to track %d\n", m_sRegs.bData);
+            TRACE("FDC: SEEK to track {}\n", m_sRegs.bData);
 
             // Move the head and update the direction flag
             m_sRegs.fDir = (m_sRegs.bData > m_sRegs.bTrack);
@@ -448,7 +448,7 @@ void Drive::Out(uint16_t wPort_, uint8_t bVal_)
         case STEP_OUT_UPD:
         case STEP_OUT_NUPD:
         {
-            TRACE("FDC: STEP to cyl %d\n", m_bHeadCyl);
+            TRACE("FDC: STEP to cyl {}\n", m_bHeadCyl);
 
             // Step in/out commands update the direction flag
             if (m_sRegs.bCommand & CMD_FLAG_STEPDIR)
@@ -474,7 +474,7 @@ void Drive::Out(uint16_t wPort_, uint8_t bVal_)
         case READ_1SECTOR:
         case READ_MSECTOR:
         {
-            TRACE("FDC: READ_xSECTOR (from cyl %d, head %d, sector %d)\n", m_bHeadCyl, m_bSide, m_sRegs.bSector);
+            TRACE("FDC: READ_xSECTOR (from cyl {}, head {}, sector {})\n", m_bHeadCyl, m_bSide, m_sRegs.bSector);
 
             ModifyStatus(BUSY, 0);
             if (m_pDisk) m_pDisk->LoadTrack(m_bHeadCyl, m_bSide);
@@ -485,7 +485,7 @@ void Drive::Out(uint16_t wPort_, uint8_t bVal_)
         case WRITE_1SECTOR:
         case WRITE_MSECTOR:
         {
-            TRACE("FDC: WRITE_xSECTOR (to cyl %d, head %d, sector %d)\n", m_bHeadCyl, m_bSide, m_sRegs.bSector);
+            TRACE("FDC: WRITE_xSECTOR (to cyl {}, head {}, sector {})\n", m_bHeadCyl, m_bSide, m_sRegs.bSector);
 
             ModifyStatus(BUSY, 0);
             if (m_pDisk) m_pDisk->LoadTrack(m_bHeadCyl, m_bSide);
@@ -497,7 +497,7 @@ void Drive::Out(uint16_t wPort_, uint8_t bVal_)
         // Read address, read track, write track
         case READ_ADDRESS:
         {
-            TRACE("FDC: READ_ADDRESS on cyl %d head %d\n", m_bHeadCyl, m_bSide);
+            TRACE("FDC: READ_ADDRESS on cyl {} head {}\n", m_bHeadCyl, m_bSide);
 
             ModifyStatus(BUSY, 0);
             if (m_pDisk) m_pDisk->LoadTrack(m_bHeadCyl, m_bSide);
@@ -555,7 +555,7 @@ void Drive::Out(uint16_t wPort_, uint8_t bVal_)
     break;
 
     case regTrack:
-        TRACE("FDC: Set TRACK to %d\n", bVal_);
+        TRACE("FDC: Set TRACK to {}\n", bVal_);
 
         // Only allow register write if we're not busy
         if (!(m_sRegs.bStatus & BUSY))
@@ -563,7 +563,7 @@ void Drive::Out(uint16_t wPort_, uint8_t bVal_)
         break;
 
     case regSector:
-        TRACE("FDC: Set SECTOR to %d\n", bVal_);
+        TRACE("FDC: Set SECTOR to {}\n", bVal_);
 
         // Only allow register write if we're not busy
         if (!(m_sRegs.bStatus & BUSY))

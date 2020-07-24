@@ -101,7 +101,7 @@ bool PrinterFile::Open()
     m_hFile = fopen(m_szPath, "wb");
     if (!m_hFile)
     {
-        Frame::SetStatus("Failed to open %s", m_szPath);
+        Frame::SetStatus("Failed to open {}", m_szPath);
         return false;
     }
 
@@ -115,7 +115,7 @@ void PrinterFile::Close()
         fclose(m_hFile);
         m_hFile = nullptr;
 
-        Frame::SetStatus("Saved %s", m_pszFile);
+        Frame::SetStatus("Saved {}", m_pszFile);
         m_pszFile = nullptr;
     }
 }

@@ -116,12 +116,12 @@ bool UI::CheckEvents()
                 case UE_OPENFILE:
                 {
                     char* psz = reinterpret_cast<char*>(event.user.data1);
-                    TRACE("UE_OPENFILE: %s\n", psz);
+                    TRACE("UE_OPENFILE: {}\n", psz);
 
                     if (GetOption(drive1) != drvFloppy)
-                        Message(msgWarning, "Floppy drive %d is not present", 1);
+                        Message(MsgType::Warning, "Floppy drive 1 is not present");
                     else if (pFloppy1->Insert(psz, true))
-                        Frame::SetStatus("%s  inserted into drive 1", pFloppy1->DiskFile());
+                        Frame::SetStatus("{}  inserted into drive 1", pFloppy1->DiskFile());
 
                     free(psz);
                     break;
@@ -158,7 +158,7 @@ bool UI::CheckEvents()
                 case UE_RECORDWAVSEGMENT:   Actions::Do(Action::RecordWavSegment); break;
 
                 default:
-                    TRACE("Unhandled user event (%d)\n", event.type);
+                    TRACE("Unhandled user event ({})\n", event.type);
                     break;
                 }
             }
@@ -176,16 +176,16 @@ bool UI::CheckEvents()
     return true;
 }
 
-void UI::ShowMessage(eMsgType eType_, const char* pcszMessage_)
+void UI::ShowMessage(MsgType type, const std::string& str)
 {
-    if (eType_ == msgInfo)
-        GUI::Start(new MsgBox(nullptr, pcszMessage_, WINDOW_CAPTION, mbInformation));
-    else if (eType_ == msgWarning)
-        GUI::Start(new MsgBox(nullptr, pcszMessage_, WINDOW_CAPTION, mbWarning));
+    if (type == MsgType::Info)
+        GUI::Start(new MsgBox(nullptr, str, WINDOW_CAPTION, mbInformation));
+    else if (type == MsgType::Warning)
+        GUI::Start(new MsgBox(nullptr, str, WINDOW_CAPTION, mbWarning));
     else
     {
-        fprintf(stderr, "error: %s\n", pcszMessage_);
-        GUI::Start(new MsgBox(nullptr, pcszMessage_, WINDOW_CAPTION, mbError));
+        fprintf(stderr, "error: %s\n", str.c_str());
+        GUI::Start(new MsgBox(nullptr, str, WINDOW_CAPTION, mbError));
     }
 }
 

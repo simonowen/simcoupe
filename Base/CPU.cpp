@@ -533,7 +533,7 @@ void InitTests()
     // symbol test to the top of SimCoupe.h, to help identify the new little-endian platform
     REG_HL = 1;
     if (REG_H)
-        Message(msgFatal, "Startup test: the Z80Regs structure is the wrong endian for this platform!");
+        Message(MsgType::Fatal, "Z80Regs structure is the wrong endian for this platform!");
 }
 
 } // namespace CPU

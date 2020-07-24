@@ -200,8 +200,6 @@ Window::~Window()
         m_pChildren = m_pChildren->m_pNext;
         delete pChild;
     }
-
-    delete[] m_pszText;
 }
 
 
@@ -355,36 +353,31 @@ void Window::Activate()
 }
 
 
-void Window::SetText(const char* pcszText_)
+void Window::SetText(const std::string& str)
 {
-    // Delete any old string and make a copy of the new one (take care in case the new string is the old one)
-    char* pcszOld = m_pszText;
-    strcpy(m_pszText = new char[strlen(pcszText_) + 1], pcszText_);
-    delete[] pcszOld;
+    m_text = str;
 }
 
 unsigned int Window::GetValue() const
 {
     char* pEnd = nullptr;
-    unsigned long ulValue = strtoul(m_pszText, &pEnd, 0);
+    unsigned long ulValue = std::strtoul(m_text.c_str(), &pEnd, 0);
     return *pEnd ? 0 : static_cast<unsigned int>(ulValue);
 }
 
 void Window::SetValue(unsigned int u_)
 {
-    char sz[16];
-    snprintf(sz, sizeof(sz) - 1, "%u", u_);
-    SetText(sz);
+    SetText(fmt::format("{}", u_).c_str());
 }
 
 int Window::GetTextWidth(size_t offset, size_t max_length) const
 {
-    return m_pFont->StringWidth(GetText() + offset, static_cast<int>(max_length));
+    return m_pFont->StringWidth(GetText().substr(offset), static_cast<int>(max_length));
 }
 
-int Window::GetTextWidth(const char* pcsz_) const
+int Window::GetTextWidth(const std::string& str) const
 {
-    return m_pFont->StringWidth(pcsz_);
+    return m_pFont->StringWidth(str);
 }
 
 
@@ -465,11 +458,11 @@ void Window::Inflate(int ndW_, int ndH_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-TextControl::TextControl(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/,
+TextControl::TextControl(Window* pParent_, int nX_, int nY_, const std::string& str,
     uint8_t bColour_/*=WHITE*/, uint8_t bBackColour_/*=0*/)
     : Window(pParent_, nX_, nY_, 0, 0, ctText), m_bColour(bColour_), m_bBackColour(bBackColour_)
 {
-    SetTextAndColour(pcszText_, bColour_);
+    SetTextAndColour(str, bColour_);
     m_nWidth = GetTextWidth();
 }
 
@@ -478,13 +471,14 @@ void TextControl::Draw(FrameBuffer& fb)
     if (m_bBackColour)
         fb.FillRect(m_nX - 1, m_nY - 1, GetTextWidth() + 2, 14, m_bBackColour);
 
-    fb.DrawString(m_nX, m_nY, GetText(), IsEnabled() ? m_bColour : GREY_5);
+    auto colour = IsEnabled() ? m_bColour : GREY_5;
+    fb.DrawString(m_nX, m_nY, colour, GetText());
 }
 
-void TextControl::SetTextAndColour(const char* pcszText_, uint8_t bColour_)
+void TextControl::SetTextAndColour(const std::string& str, uint8_t colour)
 {
-    m_bColour = bColour_;
-    Window::SetText(pcszText_);
+    m_bColour = colour;
+    Window::SetText(str);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -559,15 +553,15 @@ bool Button::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-TextButton::TextButton(Window* pParent_, int nX_, int nY_, const char* pcszText_/*=""*/, int nMinWidth_/*=0*/)
+TextButton::TextButton(Window* pParent_, int nX_, int nY_, const std::string& str, int nMinWidth_/*=0*/)
     : Button(pParent_, nX_, nY_, 0, BUTTON_HEIGHT), m_nMinWidth(nMinWidth_)
 {
-    SetText(pcszText_);
+    SetText(str);
 }
 
-void TextButton::SetText(const char* pcszText_)
+void TextButton::SetText(const std::string& str)
 {
-    Window::SetText(pcszText_);
+    Window::SetText(str);
 
     // Set the control width to be just enough to contain the text and a border
     m_nWidth = BUTTON_BORDER + GetTextWidth() + BUTTON_BORDER;
@@ -586,7 +580,8 @@ void TextButton::Draw(FrameBuffer& fb)
     // Centralise the text in the button, and offset down and right if it's pressed
     int nX = m_nX + fPressed + (m_nWidth - GetTextWidth()) / 2;
     int nY = m_nY + fPressed + (m_nHeight - Font::CHAR_HEIGHT) / 2 + 1;
-    fb.DrawString(nX, nY, GetText(), IsEnabled() ? (IsActive() ? BLACK : BLACK) : GREY_5);
+    auto colour = IsEnabled() ? (IsActive() ? BLACK : BLACK) : GREY_5;
+    fb.DrawString(nX, nY, colour, GetText());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -658,16 +653,16 @@ void DownButton::Draw(FrameBuffer& fb)
 const int PRETEXT_GAP = 5;
 const int BOX_SIZE = 11;
 
-CheckBox::CheckBox(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/,
+CheckBox::CheckBox(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const std::string& str/*=""*/,
     uint8_t bColour_/*=WHITE*/, uint8_t bBackColour_/*=0*/)
     : Window(pParent_, nX_, nY_, 0, BOX_SIZE, ctCheckBox), m_bColour(bColour_), m_bBackColour(bBackColour_)
 {
-    SetText(pcszText_);
+    SetText(str);
 }
 
-void CheckBox::SetText(const char* pcszText_)
+void CheckBox::SetText(const std::string& str)
 {
-    Window::SetText(pcszText_);
+    Window::SetText(str);
 
     // Set the control width to be just enough to contain the text
     m_nWidth = 1 + BOX_SIZE + PRETEXT_GAP + GetTextWidth();
@@ -684,7 +679,8 @@ void CheckBox::Draw(FrameBuffer& fb)
         fb.FillRect(m_nX - 1, m_nY - 1, BOX_SIZE + PRETEXT_GAP + GetTextWidth() + 2, BOX_SIZE + 2, m_bBackColour);
 
     // Draw the label text
-    fb.DrawString(nX, nY, GetText(), IsEnabled() ? (IsActive() ? YELLOW_8 : m_bColour) : GREY_5);
+    auto colour = IsEnabled() ? (IsActive() ? YELLOW_8 : m_bColour) : GREY_5;
+    fb.DrawString(nX, nY, colour, GetText());
 
     // Draw the empty check box
     fb.FrameRect(m_nX, m_nY, BOX_SIZE, BOX_SIZE, !IsEnabled() ? GREY_5 : IsActive() ? YELLOW_8 : GREY_7);
@@ -766,10 +762,10 @@ const int EDIT_HEIGHT = EDIT_BORDER + Font::CHAR_HEIGHT + EDIT_BORDER;
 
 const size_t MAX_EDIT_LENGTH = 250;
 
-EditControl::EditControl(Window* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_/*=""*/)
+EditControl::EditControl(Window* pParent_, int nX_, int nY_, int nWidth_, const std::string& str)
     : Window(pParent_, nX_, nY_, nWidth_, EDIT_HEIGHT, ctEdit)
 {
-    SetText(pcszText_);
+    SetText(str);
 }
 
 EditControl::EditControl(Window* pParent_, int nX_, int nY_, int nWidth_, unsigned int u_)
@@ -783,20 +779,20 @@ void EditControl::Activate()
     Window::Activate();
 
     m_nCaretStart = 0;
-    m_nCaretEnd = strlen(GetText());
+    m_nCaretEnd = GetText().size();
 }
 
-void EditControl::SetText(const char* pcszText_)
+void EditControl::SetText(const std::string& str)
 {
-    SetSelectedText(pcszText_, false);
+    SetSelectedText(str, false);
 }
 
-void EditControl::SetSelectedText(const char* pcszText_, bool fSelected_)
+void EditControl::SetSelectedText(const std::string& str, bool fSelected_)
 {
-    Window::SetText(pcszText_);
+    Window::SetText(str);
 
     // Select the text or position the caret at the end, as requested
-    m_nCaretEnd = strlen(pcszText_);
+    m_nCaretEnd = str.length();
     m_nCaretStart = fSelected_ ? 0 : m_nCaretEnd;
 }
 
@@ -855,7 +851,7 @@ void EditControl::Draw(FrameBuffer& fb)
     }
 
     // Draw the visible text
-    fb.DrawString(nX, nY + 1, fmt::format("\a{}{:{}}", IsEnabled() ? 'k' : 'K', GetText() + m_nViewOffset, nViewLength));
+    fb.DrawString(nX, nY + 1, "\a{}{}", IsEnabled() ? 'k' : 'K', GetText().substr(m_nViewOffset, nViewLength));
 
     // Is the control focussed with an active selection?
     if (IsActive() && m_nCaretStart != m_nCaretEnd)
@@ -878,7 +874,7 @@ void EditControl::Draw(FrameBuffer& fb)
 
         // Draw the black selection highlight and white text over it
         fb.FillRect(nX + dx + !!dx - 1, nY - 1, 1 + wx + 1, 1 + Font::CHAR_HEIGHT + 1, IsEnabled() ? (IsActive() ? BLACK : GREY_4) : GREY_6);
-        fb.DrawString(nX + dx + !!dx, nY + 1, fmt::format("{:{}}", GetText() + nStart, nEnd - nStart));
+        fb.DrawString(nX + dx + !!dx, nY + 1, "{}", GetText().substr(nStart, nEnd - nStart));
     }
 
     // If the control is enabled and focussed we'll show a flashing caret after the text
@@ -923,7 +919,7 @@ bool EditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
         case HK_END:
             // End of line, with optional select
-            m_nCaretEnd = fShift ? strlen(GetText()) : m_nCaretStart = strlen(GetText());
+            m_nCaretEnd = fShift ? GetText().size() : m_nCaretStart = GetText().size();
             return true;
 
         case HK_LEFT:
@@ -984,7 +980,7 @@ bool EditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
                 if (nParam1_ == 'A')
                 {
                     m_nCaretStart = 0;
-                    m_nCaretEnd = strlen(GetText());
+                    m_nCaretEnd = GetText().length();
                     return true;
                 }
 
@@ -997,7 +993,7 @@ bool EditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
                 // For backspace and delete, create a single character selection, if not at the ends
                 if (nParam1_ == HK_BACKSPACE && m_nCaretStart > 0)
                     m_nCaretStart--;
-                else if (nParam1_ == HK_DELETE && m_nCaretEnd < strlen(GetText()))
+                else if (nParam1_ == HK_DELETE && m_nCaretEnd < GetText().length())
                     m_nCaretEnd++;
             }
 
@@ -1008,16 +1004,13 @@ bool EditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             // Active selection?
             if (m_nCaretStart != m_nCaretEnd)
             {
-                char sz[MAX_EDIT_LENGTH + 1];
-
                 // Ensure start < end
                 if (m_nCaretStart > m_nCaretEnd)
                     std::swap(m_nCaretStart, m_nCaretEnd);
 
                 // Remove the selection, and set the text back
-                strcpy(sz, GetText());
-                memmove(sz + m_nCaretStart, sz + m_nCaretEnd, strlen(sz + m_nCaretEnd) + 1);
-                Window::SetText(sz);
+                auto new_text = GetText().substr(0, m_nCaretStart) + GetText().substr(m_nCaretEnd);
+                Window::SetText(new_text);
 
                 // Move the end selection to the previous selection start position
                 m_nCaretEnd = m_nCaretStart;
@@ -1027,17 +1020,12 @@ bool EditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             if (nParam1_ >= ' ' && nParam1_ <= 0x7f)
             {
                 // Only add a character if we're not at the maximum length yet
-                if (strlen(GetText()) < MAX_EDIT_LENGTH)
+                if (GetText().length() < MAX_EDIT_LENGTH)
                 {
-                    char sz[MAX_EDIT_LENGTH + 1];
-
                     // Insert the new character at the caret position
-                    strcpy(sz, GetText());
-                    sz[m_nCaretEnd] = nParam1_;
-                    memmove(sz + m_nCaretEnd + 1, GetText() + m_nCaretEnd, strlen(GetText() + m_nCaretEnd) + 1);
+                    auto new_text = GetText().substr(0, m_nCaretStart) + static_cast<char>(nParam1_) + GetText().substr(m_nCaretEnd);
                     m_nCaretStart = ++m_nCaretEnd;
-
-                    Window::SetText(sz);
+                    Window::SetText(new_text);
                 }
             }
 
@@ -1078,15 +1066,15 @@ bool NumberEditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
 const int RADIO_PRETEXT_GAP = 16;
 
-RadioButton::RadioButton(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nWidth_/*=0*/)
+RadioButton::RadioButton(Window* pParent_, int nX_, int nY_, const std::string& str, int nWidth_/*=0*/)
     : Window(pParent_, nX_, nY_, nWidth_, Font::CHAR_HEIGHT + 2, ctRadio)
 {
-    SetText(pcszText_);
+    SetText(str);
 }
 
-void RadioButton::SetText(const char* pcszText_)
+void RadioButton::SetText(const std::string& str)
 {
-    Window::SetText(pcszText_);
+    Window::SetText(str);
 
     // Set the control width to be just enough to contain the text
     m_nWidth = 1 + RADIO_PRETEXT_GAP + GetTextWidth();
@@ -1133,7 +1121,8 @@ void RadioButton::Draw(FrameBuffer& fb)
         !IsEnabled() ? abDisabled : IsActive() ? abActive : abEnabled);
 
     // Draw the text to the right of the button, grey if the control is disabled
-    fb.DrawString(nX + RADIO_PRETEXT_GAP, nY + 1, GetText(), IsEnabled() ? (IsActive() ? YELLOW_8 : GREY_7) : GREY_5);
+    auto colour = IsEnabled() ? (IsActive() ? YELLOW_8 : GREY_7) : GREY_5;
+    fb.DrawString(nX + RADIO_PRETEXT_GAP, nY + 1, colour, GetText());
 }
 
 bool RadioButton::OnMessage(int nMessage_, int nParam1_, int /*nParam2_*/)
@@ -1225,73 +1214,61 @@ void RadioButton::Select(bool fSelected_/*=true*/)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const char* const MENU_DELIMITERS = "|";
 const int MENU_TEXT_GAP = 5;
 const int MENU_ITEM_HEIGHT = 2 + Font::CHAR_HEIGHT + 2;
 
-Menu::Menu(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/)
+Menu::Menu(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const std::string& str)
     : Window(pParent_, nX_, nY_, 0, 0, ctMenu)
 {
-    SetText(pcszText_);
+    SetText(str);
     Activate();
 }
 
-void Menu::Select(int nItem_)
+void Menu::Select(int index)
 {
-    m_nSelected = (nItem_ < 0) ? 0 : (nItem_ >= m_nItems) ? m_nItems - 1 : nItem_;
+    auto num_items = static_cast<int>(m_items.size());
+
+    if (index >= 0 && index < num_items)
+        m_nSelected = index;
+    else if (index < 0)
+        m_nSelected = num_items - 1;
+    else if (index > num_items)
+        m_nSelected = 0;
 }
 
-void Menu::SetText(const char* pcszText_)
+void Menu::SetText(const std::string& str)
 {
-    Window::SetText(pcszText_);
+    Window::SetText(str);
+    m_items = split(str, '|');
 
-    int nMaxLen = 0;
-    char sz[256];
-    strncpy(sz, GetText(), sizeof(sz) - 1);
-    sz[sizeof(sz) - 1] = '\0';
+    auto it = std::max_element(m_items.begin(), m_items.end(),
+        [&](auto& a, auto& b) { return GetTextWidth(a) < GetTextWidth(b); });
 
-    char* psz = strtok(sz, MENU_DELIMITERS);
-
-    for (m_nItems = 0; psz; psz = strtok(nullptr, MENU_DELIMITERS), m_nItems++)
-    {
-        int nLen = GetTextWidth(psz);
-        if (nLen > nMaxLen)
-            nMaxLen = nLen;
-    }
-
-    // Set the control width to be just enough to contain the text
-    m_nWidth = MENU_TEXT_GAP + nMaxLen + MENU_TEXT_GAP;
-    m_nHeight = MENU_ITEM_HEIGHT * m_nItems;
+    auto maxlen = (it != m_items.end()) ? GetTextWidth(*it) : 0;
+    m_nWidth = MENU_TEXT_GAP + maxlen + MENU_TEXT_GAP;
+    m_nHeight = MENU_ITEM_HEIGHT * static_cast<int>(m_items.size());
 }
 
 void Menu::Draw(FrameBuffer& fb)
 {
-    // Fill overall control background and frame it
     fb.FillRect(m_nX, m_nY, m_nWidth, m_nHeight, YELLOW_8);
     fb.FrameRect(m_nX - 1, m_nY - 1, m_nWidth + 2, m_nHeight + 2, GREY_7);
 
-    // Make a copy of the menu item list as strtok() munges as it iterates
-    char sz[256];
-    strncpy(sz, GetText(), sizeof(sz) - 1);
-    sz[sizeof(sz) - 1] = '\0';
-
-    char* psz = strtok(sz, MENU_DELIMITERS);
-
-    // Loop through the items on the menu
-    for (int i = 0; psz; psz = strtok(nullptr, MENU_DELIMITERS), i++)
+    auto index = 0;
+    for (const auto& item_str : m_items)
     {
-        int nX = m_nX, nY = m_nY + (MENU_ITEM_HEIGHT * i);
+        auto nX = m_nX;
+        auto nY = m_nY + (MENU_ITEM_HEIGHT * index);
 
-        // Draw the string over the default background if not selected
-        if (i != m_nSelected)
-            fb.DrawString(nX + MENU_TEXT_GAP, nY + 2, psz, BLACK);
-
-        // Otherwise draw the selected item as white on black
+        if (index != m_nSelected)
+            fb.DrawString(nX + MENU_TEXT_GAP, nY + 2, BLACK, item_str);
         else
         {
             fb.FillRect(nX, nY, m_nWidth, MENU_ITEM_HEIGHT, BLACK);
-            fb.DrawString(nX + MENU_TEXT_GAP, nY + 2, psz, WHITE);
+            fb.DrawString(nX + MENU_TEXT_GAP, nY + 2, item_str);
         }
+
+        index++;
     }
 }
 
@@ -1317,12 +1294,12 @@ bool Menu::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
             // Move to the previous selection, wrapping to the bottom if necessary
         case HK_UP:
-            Select((m_nSelected - 1 + m_nItems) % m_nItems);
+            Select(static_cast<int>((m_nSelected - 1 + m_items.size()) % m_items.size()));
             break;
 
             // Move to the next selection, wrapping to the top if necessary
         case HK_DOWN:
-            Select((m_nSelected + 1) % m_nItems);
+            Select(static_cast<int>((m_nSelected + 1) % m_items.size()));
             break;
         }
         return true;
@@ -1366,7 +1343,7 @@ bool Menu::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     case GM_MOUSEWHEEL:
         if (IsActive())
         {
-            Select((m_nSelected + nParam1_ + m_nItems) % m_nItems);
+            Select(static_cast<int>((m_nSelected + nParam1_ + m_items.size()) % m_items.size()));
             return true;
         }
         break;
@@ -1377,16 +1354,16 @@ bool Menu::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-DropList::DropList(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nMinWidth_/*=0*/)
-    : Menu(pParent_, nX_, nY_, pcszText_), m_nMinWidth(nMinWidth_)
+DropList::DropList(Window* pParent_, int nX_, int nY_, const std::string& str, int nMinWidth_)
+    : Menu(pParent_, nX_, nY_, str), m_nMinWidth(nMinWidth_)
 {
     m_nSelected = 0;
-    SetText(pcszText_);
+    SetText(str);
 }
 
-void DropList::SetText(const char* pcszText_)
+void DropList::SetText(const std::string& str)
 {
-    Menu::SetText(pcszText_);
+    Menu::SetText(str);
 
     if (m_nWidth < m_nMinWidth)
         m_nWidth = m_nMinWidth;
@@ -1406,64 +1383,48 @@ bool DropList::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 const int COMBO_BORDER = 3;
 const int COMBO_HEIGHT = COMBO_BORDER + Font::CHAR_HEIGHT + COMBO_BORDER;
 
-ComboBox::ComboBox(Window* pParent_/*=nullptr*/, int nX_/*=0*/, int nY_/*=0*/, const char* pcszText_/*=""*/, int nWidth_/*=0*/)
-    : Window(pParent_, nX_, nY_, nWidth_, COMBO_HEIGHT, ctComboBox),
-    m_nItems(0), m_nSelected(0), m_fPressed(false), m_pDropList(nullptr)
+ComboBox::ComboBox(Window* pParent_, int nX_, int nY_, const std::string& items_str, int nWidth_)
+    : Window(pParent_, nX_, nY_, nWidth_, COMBO_HEIGHT, ctComboBox)
 {
-    SetText(pcszText_);
+    SetText(items_str);
 }
 
 
-void ComboBox::Select(int nSelected_)
+void ComboBox::Select(int index)
 {
-    int nOldSelection = m_nSelected;
-    m_nSelected = (nSelected_ < 0 || !m_nItems) ? 0 : (nSelected_ >= m_nItems) ? m_nItems - 1 : nSelected_;
+    auto prev_selected = m_nSelected;
+    int num_items = static_cast<int>(m_items.size());
 
-    // Nofify the parent if the selection has changed
-    if (m_nSelected != nOldSelection)
+    m_nSelected = std::min(std::max(0, index), num_items - 1);
+
+    if (m_nSelected != prev_selected)
         NotifyParent();
 }
 
-void ComboBox::Select(const char* pcszItem_)
+void ComboBox::Select(const std::string& item_str)
 {
-    char sz[256];
-    strncpy(sz, GetText(), sizeof(sz) - 1);
-    sz[sizeof(sz) - 1] = '\0';
+    auto find_str = tolower(item_str);
 
-    // Find the text for the current selection
-    char* psz = strtok(sz, "|");
-    for (int i = 0; psz && i < m_nSelected; psz = strtok(nullptr, "|"), i++)
-    {
-        // If we've found the item, select it
-        if (!strcasecmp(psz, pcszItem_))
-        {
-            Select(i);
-            break;
-        }
-    }
+    auto it = std::find_if(m_items.begin(), m_items.end(),
+        [&](auto& str) { return tolower(str) == find_str; });
+
+    if (it != m_items.end())
+        Select(static_cast<int>(std::distance(m_items.begin(), it)));
 }
 
 
-const char* ComboBox::GetSelectedText()
+std::string ComboBox::GetSelectedText()
 {
-    static char sz[256];
-    strncpy(sz, GetText(), sizeof(sz) - 1);
-    sz[sizeof(sz) - 1] = '\0';
+    if (m_nSelected >= 0 && m_nSelected < static_cast<int>(m_items.size()))
+        return m_items[m_nSelected];
 
-    // Find the text for the current selection
-    char* psz = strtok(sz, "|");
-    for (int i = 0; psz && i < m_nSelected; psz = strtok(nullptr, "|"), i++);
-
-    // Return the item string if found
-    return psz ? psz : "";
+    return "";
 }
 
-void ComboBox::SetText(const char* pcszText_)
+void ComboBox::SetText(const std::string& items_str)
 {
-    Window::SetText(pcszText_);
-
-    // Count the number of items in the list, then select the first one
-    for (m_nItems = !!*pcszText_; (pcszText_ = strchr(pcszText_, '|')); pcszText_++, m_nItems++);
+    Window::SetText(items_str);
+    m_items = split(items_str, '|');
     Select(0);
 }
 
@@ -1495,19 +1456,13 @@ void ComboBox::Draw(FrameBuffer& fb)
     fb.DrawLine(nX + 5, nY + 6, 2, 0, bColour);  fb.DrawLine(nX + 10, nY + 6, 2, 0, bColour);
     fb.DrawLine(nX + 4, nY + 5, 2, 0, bColour);  fb.DrawLine(nX + 11, nY + 5, 2, 0, bColour);
 
+    auto item_str = (m_nSelected >= 0 && m_nSelected < static_cast<int>(m_items.size())) ?
+        m_items[m_nSelected] : "";
 
-    char sz[256];
-    strncpy(sz, GetText(), sizeof(sz) - 1);
-    sz[sizeof(sz) - 1] = '\0';
-
-    // Find the text for the current selection
-    char* psz = strtok(sz, "|");
-    for (int i = 0; psz && i < m_nSelected; psz = strtok(nullptr, "|"), i++);
-
-    // Draw the current selection
     nX = m_nX + 5;
     nY = m_nY + (m_nHeight - Font::CHAR_HEIGHT) / 2 + 1;
-    fb.DrawString(nX, nY, psz ? psz : "", IsEnabled() ? (IsActive() ? BLACK : BLACK) : GREY_5);
+    auto colour = IsEnabled() ? (IsActive() ? BLACK : BLACK) : GREY_5;
+    fb.DrawString(nX, nY, colour, item_str);
 
     // Call the base to paint any child controls
     Window::Draw(fb);
@@ -1547,7 +1502,7 @@ bool ComboBox::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             return true;
 
         case HK_END:
-            Select(m_nItems - 1);
+            Select(static_cast<int>(m_items.size() - 1));
             return true;
         }
         break;
@@ -1769,86 +1724,68 @@ ListView::ListView(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_
     m_pScrollBar = new ScrollBar(this, m_nWidth - SCROLLBAR_WIDTH, 0, m_nHeight, 0, ITEM_SIZE);
 }
 
-ListView::~ListView()
+void ListView::Select(int index)
 {
-    // Free any existing items
-    SetItems(nullptr);
-}
-
-
-void ListView::Select(int nItem_)
-{
-    int nOldSelection = m_nSelected;
-    m_nSelected = (nItem_ < 0) ? 0 : (nItem_ >= m_nItems) ? m_nItems - 1 : nItem_;
+    auto prev_selected = m_nSelected;
+    auto num_items = static_cast<int>(m_items.size());
+    m_nSelected = (index < 0) ? 0 : (index >= num_items) ? num_items - 1 : index;
 
     // Calculate the row containing the new item, and the vertical offset in the list overall
-    int nRow = m_nSelected / m_nAcross, nOffset = nRow * ITEM_SIZE - m_pScrollBar->GetPos();
+    auto row = m_nSelected / m_nAcross;
+    auto offset = row * ITEM_SIZE - m_pScrollBar->GetPos();
 
     // If the new item is not completely visible, scroll the list so it _just_ is
-    if (nOffset < 0 || nOffset >= (m_nHeight - ITEM_SIZE))
-        m_pScrollBar->SetPos(nRow * ITEM_SIZE - ((nOffset < 0) ? 0 : (m_nHeight - ITEM_SIZE)));
+    if (offset < 0 || offset >= (m_nHeight - ITEM_SIZE))
+        m_pScrollBar->SetPos(row * ITEM_SIZE - ((offset < 0) ? 0 : (m_nHeight - ITEM_SIZE)));
 
-    // Inform the owner if the selection has changed
-    if (m_nSelected != nOldSelection)
+    if (m_nSelected != prev_selected)
         NotifyParent();
 }
 
 
 // Return the entry for the specified item, or the current item if none was specified
-const ListViewItem* ListView::GetItem(int nItem_/*=-1*/) const
+const ListViewItem* ListView::GetItem(int index/*=-1*/) const
 {
-    int i;
+    if (index == -1)
+        index = GetSelected();
 
-    // If no item is specified, return the default
-    if (nItem_ == -1)
-        nItem_ = GetSelected();
+    if (index >= 0 && index < static_cast<int>(m_items.size()))
+    {
+        return &m_items[index];
+    }
 
-    // Linear search for the item - not so good for large directories!
-    const ListViewItem* pItem = m_pItems;
-    for (i = 0; pItem && i < nItem_; i++)
-        pItem = pItem->m_pNext;
-
-    // Return the item if found
-    return (i == nItem_) ? pItem : nullptr;
+    return nullptr;
 }
 
 // Find the item with the specified label (not case-sensitive)
-int ListView::FindItem(const char* pcszLabel_, int nStart_/*=0*/)
+std::optional<int> ListView::FindItem(const std::string& label, int nStart_/*=0*/)
 {
-    // Linear search for the item - not so good for large directories!
-    int nItem = 0;
-    for (const ListViewItem* pItem = GetItem(nStart_); pItem; pItem = pItem->m_pNext, nItem++)
+    auto label_lower = tolower(label);
+
+    auto it = std::find_if(m_items.begin(), m_items.end(),
+        [&](ListViewItem& item) { return tolower(item.m_label) == label_lower; });
+
+    if (it != m_items.end())
     {
-        if (!strcasecmp(pItem->m_pszLabel, pcszLabel_))
-            return nItem;
+        auto index = std::distance(m_items.begin(), it);
+        return static_cast<int>(index);
     }
 
-    // Not found
-    return -1;
+    return std::nullopt;
 }
 
 
-void ListView::SetItems(ListViewItem* pItems_)
+void ListView::SetItems(std::vector<ListViewItem>&& items)
 {
-    // Delete any existing list
-    for (ListViewItem* pNext; m_pItems; m_pItems = pNext)
-    {
-        pNext = m_pItems->m_pNext;
-        delete m_pItems;
-    }
+    m_items = std::move(items);
+    m_num_items = static_cast<int>(m_items.size());
 
-    if (pItems_)
-    {
-        // Count the number of items in the new list
-        for (m_nItems = 0, m_pItems = pItems_; pItems_; pItems_ = pItems_->m_pNext, m_nItems++);
+    // Calculate how many items on a row, and how many rows, and set the required scrollbar size
+    m_nAcross = m_nWidth / ITEM_SIZE;
+    m_nDown = static_cast<int>((m_items.size() + m_nAcross - 1) / m_nAcross);
+    m_pScrollBar->SetMaxPos(m_nDown * ITEM_SIZE);
 
-        // Calculate how many items on a row, and how many rows, and set the required scrollbar size
-        m_nAcross = m_nWidth / ITEM_SIZE;
-        m_nDown = (m_nItems + m_nAcross - 1) / m_nAcross;
-        m_pScrollBar->SetMaxPos(m_nDown * ITEM_SIZE);
-
-        Select(0);
-    }
+    Select(0);
 }
 
 void ListView::DrawItem(FrameBuffer& fb, int nItem_, int nX_, int nY_, const ListViewItem* pItem_)
@@ -1862,18 +1799,17 @@ void ListView::DrawItem(FrameBuffer& fb, int nItem_, int nX_, int nY_, const Lis
         fb.FrameRect(nX_, nY_, ITEM_SIZE, ITEM_SIZE, IsActive() ? GREY_7 : GREY_5, true);
     }
 
-    if (pItem_->m_pIcon)
-    {
-        fb.DrawImage(nX_ + (ITEM_SIZE - ICON_SIZE) / 2, nY_ + m_nItemOffset + 5, ICON_SIZE, ICON_SIZE,
-            reinterpret_cast<const uint8_t*>(pItem_->m_pIcon->abData), pItem_->m_pIcon->abPalette);
-    }
+    auto& icon = pItem_->m_pIcon.get();
+    fb.DrawImage(nX_ + (ITEM_SIZE - ICON_SIZE) / 2, nY_ + m_nItemOffset + 5, ICON_SIZE, ICON_SIZE,
+        reinterpret_cast<const uint8_t*>(icon.abData), icon.abPalette);
 
-    const char* pcsz = pItem_->m_pszLabel;
-    if (pcsz)
+    auto& label = pItem_->m_label;
+    if (!label.empty())
     {
         fb.SetFont(sPropFont);
 
         int nLine = 0;
+        auto pcsz = label.c_str();
         const char* pszStart = pcsz, * pszBreak = nullptr;
         char szLines[2][64], sz[64];
         *szLines[0] = *szLines[1] = '\0';
@@ -1924,8 +1860,8 @@ void ListView::DrawItem(FrameBuffer& fb, int nItem_, int nX_, int nY_, const Lis
         // Output the two text lines using the small font, each centralised below the icon
         nY_ += m_nItemOffset + 42;
 
-        fb.DrawString(nX_ + (ITEM_SIZE - fb.StringWidth(szLines[0])) / 2, nY_, szLines[0], WHITE);
-        fb.DrawString(nX_ + (ITEM_SIZE - fb.StringWidth(szLines[1])) / 2, nY_ + 12, szLines[1], WHITE);
+        fb.DrawString(nX_ + (ITEM_SIZE - fb.StringWidth(szLines[0])) / 2, nY_, szLines[0]);
+        fb.DrawString(nX_ + (ITEM_SIZE - fb.StringWidth(szLines[1])) / 2, nY_ + 12, szLines[1]);
 
         fb.SetFont(sGUIFont);
     }
@@ -1946,18 +1882,26 @@ void ListView::Draw(FrameBuffer& fb)
     int nScrollPos = m_pScrollBar->GetPos();
 
     // Calculate the range of icons that are visible and need drawing
+    auto num_items = static_cast<int>(m_items.size());
     int nStart = nScrollPos / ITEM_SIZE * m_nAcross, nOffset = nScrollPos % ITEM_SIZE;
     int nDepth = (m_nHeight + nOffset + ITEM_SIZE - 1) / ITEM_SIZE;
-    int nEnd = std::min(m_nItems, nStart + m_nAcross * nDepth);
+    int nEnd = std::min(num_items, nStart + m_nAcross * nDepth);
 
     // Clip to the main control, to keep partly drawn icons within our client area
     fb.ClipTo(m_nX, m_nY, m_nWidth, m_nHeight);
 
-    const ListViewItem* pItem = GetItem(nStart);
-    for (int i = nStart; pItem && i < nEnd; pItem = pItem->m_pNext, i++)
+    for (int i = nStart; i < nEnd; ++i)
     {
-        int x = m_nX + ((i % m_nAcross) * ITEM_SIZE), y = m_nY + (((i - nStart) / m_nAcross) * ITEM_SIZE) - nOffset;
-        DrawItem(fb, i, x, y, pItem);
+        if (auto pItem = GetItem(i))
+        {
+            auto x = m_nX + ((i % m_nAcross) * ITEM_SIZE);
+            auto y = m_nY + (((i - nStart) / m_nAcross) * ITEM_SIZE) - nOffset;
+            DrawItem(fb, i, x, y, pItem);
+        }
+        else
+        {
+            break;
+        }
     }
 
     // Restore the default clip area
@@ -1968,7 +1912,7 @@ void ListView::Draw(FrameBuffer& fb)
 
 bool ListView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 {
-    static char szPrefix[16] = "";
+    static std::string s_prefix;
 
     // Give the scrollbar first look at the message, but prevent it remaining active
     bool fRet = Window::OnMessage(nMessage_, nParam1_, nParam2_);
@@ -1996,7 +1940,7 @@ bool ListView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
         case HK_DOWN:
         {
             // Calculate the row the new item would be on
-            int nNewRow = std::min(m_nSelected + m_nAcross, m_nItems - 1) / m_nAcross;
+            int nNewRow = std::min(m_nSelected + m_nAcross, m_num_items - 1) / m_nAcross;
 
             // Only move down if we're not already on the bottom row
             if (nNewRow != m_nSelected / m_nAcross)
@@ -2015,7 +1959,7 @@ bool ListView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
         // Move down one screen full, staying on the same column
         case HK_PGDN:
         {
-            int nDown = std::min(m_nHeight / ITEM_SIZE, (m_nItems - m_nSelected - 1) / m_nAcross) * m_nAcross;
+            int nDown = std::min(m_nHeight / ITEM_SIZE, (m_num_items - m_nSelected - 1) / m_nAcross) * m_nAcross;
             Select(m_nSelected + nDown);
             break;
         }
@@ -2025,14 +1969,14 @@ bool ListView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             Select(0);
             break;
 
-            // Move to last item
+        // Move to last item
         case HK_END:
-            Select(m_nItems - 1);
+            Select(m_num_items - 1);
             break;
 
-            // Return selects the current item - like a double-click
+        // Return selects the current item - like a double-click
         case HK_RETURN:
-            szPrefix[0] = '\0';
+            s_prefix.clear();
             NotifyParent(1);
             break;
 
@@ -2043,44 +1987,34 @@ bool ListView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
             // Clear the buffer on any non-printing characters or if too long since the last one
             if (nParam1_ < ' ' || nParam1_ > 0x7f || (dwNow - dwLastChar > 1000))
-                szPrefix[0] = '\0';
+                s_prefix.clear();
 
             // Ignore non-printable characters, or if the buffer is full
-            if (nParam1_ < ' ' || nParam1_ > 0x7f || strlen(szPrefix) >= 15)
+            if (nParam1_ < ' ' || nParam1_ > 0x7f)
                 return false;
 
             // Ignore duplicates of the same first character, to skip to the next match
-            if (!(strlen(szPrefix) == 1 && szPrefix[0] == nParam1_))
+            if (!(s_prefix.length() == 1 && s_prefix.front() == nParam1_))
             {
-                // Add the new character to the buffer
-                char* psz = szPrefix + strlen(szPrefix);
-                *psz++ = nParam1_;
-                *psz = '\0';
-
+                s_prefix += std::tolower(nParam1_);
                 dwLastChar = dwNow;
             }
 
             // Look for a match, starting *after* the current selection if this is the first character
-            int nItem = GetSelected() + (strlen(szPrefix) == 1);
-            const ListViewItem* p = GetItem(nItem);
+            auto start_index = (GetSelected() + (s_prefix.length() == 1)) % static_cast<int>(m_items.size());
 
-            bool fFound = false;
-            for (; p && !(fFound = IsPrefix(szPrefix, p->m_pszLabel)); p = p->m_pNext, nItem++);
-
-            // Nothing found from the item to the end of the list
-            if (!fFound)
+            auto prefix_pred = [&](const ListViewItem& item) { return tolower(item.m_label.substr(0, s_prefix.length())) == s_prefix; };
+            auto it = std::find_if(m_items.begin() + start_index, m_items.end(), prefix_pred);
+            if (it == m_items.end())
             {
-                // Wrap to search from the start
-                p = GetItem(nItem = 0);
-                for (; p && !(fFound = IsPrefix(szPrefix, p->m_pszLabel)); p = p->m_pNext, nItem++);
-
-                // No match, so give up
-                if (!fFound)
-                    break;
+                it = std::find_if(m_items.begin(), m_items.begin() + start_index, prefix_pred);
             }
 
-            // Select the matching item
-            Select(nItem);
+            if (it != m_items.end())
+            {
+                auto index = static_cast<int>(std::distance(m_items.begin(), it));
+                Select(index);
+            }
             break;
         }
         }
@@ -2100,7 +2034,7 @@ bool ListView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
         // Calculate the item we're above, if any
         int nHoverItem = nAcross + (nDown * m_nAcross);
-        m_nHoverItem = (nAcross < m_nAcross && nHoverItem < m_nItems) ? nHoverItem : -1;
+        m_nHoverItem = (nAcross < m_nAcross && nHoverItem < m_num_items) ? nHoverItem : -1;
 
         break;
     }
@@ -2130,32 +2064,6 @@ bool ListView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Compare two filenames, returning true if the 1st entry comes after the 2nd
-static bool SortCompare(const char* pcsz1_, const char* pcsz2_)
-{
-    // Skip any common characters at the start of the name
-    while (*pcsz1_ && *pcsz2_ && tolower(*pcsz1_) == tolower(*pcsz2_))
-    {
-        pcsz1_++;
-        pcsz2_++;
-    }
-
-    // Compare the first character that differs
-    return tolower(*pcsz1_) > tolower(*pcsz2_);
-}
-
-// Compare two file entries, returning true if the 1st entry comes after the 2nd
-static bool SortCompare(ListViewItem* p1_, ListViewItem* p2_)
-{
-    // Drives come before directories, which come before files
-    if ((p1_->m_pIcon == &sFolderIcon) ^ (p2_->m_pIcon == &sFolderIcon))
-        return p2_->m_pIcon == &sFolderIcon;
-
-    // Compare the filenames
-    return SortCompare(p1_->m_pszLabel, p2_->m_pszLabel);
-}
-
-
 FileView::FileView(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_)
     : ListView(pParent_, nX_, nY_, nWidth_, nHeight_)
 {
@@ -2163,7 +2071,6 @@ FileView::FileView(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_
 
 FileView::~FileView()
 {
-    delete[] m_pszPath;
     delete[] m_pszFilter;
 }
 
@@ -2175,11 +2082,9 @@ bool FileView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     // Backspace moves up a directory
     if (!fRet && nMessage_ == GM_CHAR && nParam1_ == HK_BACKSPACE)
     {
-        // We can only move up if there's a .. entry
-        int nItem = FindItem("..");
-        if (nItem != -1)
+        if (auto index = FindItem(".."))
         {
-            Select(nItem);
+            Select(*index);
             NotifyParent(1);
             fRet = true;
         }
@@ -2195,48 +2100,32 @@ void FileView::NotifyParent(int nParam_)
     if (pItem && nParam_)
     {
         // Double-clicking to open a directory?
-        if (pItem->m_pIcon == &sFolderIcon)
+        if (std::addressof(pItem->m_pIcon.get()) == std::addressof(sFolderIcon))
         {
-            // Make a copy of the current path to modify
-            char szPath[MAX_PATH];
-            strncpy(szPath, m_pszPath, MAX_PATH - 1);
-            szPath[MAX_PATH - 1] = '\0';
+            auto path = m_path;
 
-            // Stepping up a level?
-            if (!strcmp(pItem->m_pszLabel, ".."))
+            if (pItem->m_label == "..")
             {
-                // Strip the trailing [back]slash
-                szPath[strlen(szPath) - 1] = '\0';
-
-                // Strip the current directory name, if we find another separator
-                char* psz = strrchr(szPath, PATH_SEPARATOR);
-                if (psz)
-                    psz[1] = '\0';
-
-                // Otherwise remove the drive letter to leave a blank path for a virtual drive list (DOS/Win32 only)
+                if (path != path.root_path())
+                    path = path.parent_path();
                 else
-                    szPath[0] = '\0';
+                    path.clear();
             }
-
-            // Change to a sub-directory
             else
             {
-                // Add the sub-directory name and a trailing backslash
-                char szSep[2] = { PATH_SEPARATOR, '\0' };
-                strncat(szPath, pItem->m_pszLabel, MAX_PATH - strlen(szPath) - 1);
-                szPath[MAX_PATH - 1] = '\0';
-                strncat(szPath, szSep, MAX_PATH - strlen(szPath) - 1);
-                szPath[MAX_PATH - 1] = '\0';
+                path = path / pItem->m_label;
             }
 
             // Make sure we have access to the path before setting it
-            if (!szPath[0] || OSD::CheckPathAccess(szPath))
-                SetPath(szPath);
+            if (path.empty() || OSD::CheckPathAccess(path.string()))
+            {
+                m_path = path;
+                Refresh();
+            }
             else
             {
-                char szError[256];
-                sprintf(szError, "%s%c\n\nCan't access directory.", pItem->m_pszLabel, PATH_SEPARATOR);
-                new MsgBox(this, szError, "Access Denied", mbError);
+                auto body = fmt::format("{}{}\n\nCan't access directory.", pItem->m_label, PATH_SEPARATOR);
+                new MsgBox(this, body, "Access Denied", mbError);
             }
         }
     }
@@ -2246,78 +2135,47 @@ void FileView::NotifyParent(int nParam_)
 }
 
 // Determine an appropriate icon for the supplied file name/extension
-const GUI_ICON* FileView::GetFileIcon(const char* pcszFile_)
+const GUI_ICON& FileView::GetFileIcon(const std::string& path_str)
 {
-    // Determine the main file extension
-    char sz[MAX_PATH];
-    strncpy(sz, pcszFile_, MAX_PATH - 1);
-    sz[MAX_PATH - 1] = '\0';
+    auto path = fs::path(path_str);
+    auto file_ext = tolower(path.extension().string());
 
-    char* pszExt = strrchr(sz, '.');
-
-    int nCompressType = 0;
-    if (pszExt)
+    static const std::set<std::string_view> archive_exts{ ".zip", ".gz" };
+    bool is_archive = archive_exts.find(file_ext) != archive_exts.end();
+    if (is_archive)
     {
-        if (!strcasecmp(pszExt, ".gz")) nCompressType = 1;
-        if (!strcasecmp(pszExt, ".zip")) nCompressType = 2;
-
-        // Strip off the main extension and look for another
-        if (nCompressType)
-        {
-            *pszExt = '\0';
-            pszExt = strrchr(sz, '.');
-        }
+        path = path.replace_extension();
+        file_ext = tolower(path.extension().string());
     }
 
-    static const char* aExts[] = { ".dsk", ".sad", ".sbt", ".mgt", ".img", ".cpm" };
-    bool fDiskImage = false;
+    static const std::set<std::string_view> disk_exts{ ".dsk", ".sad", ".sbt", ".mgt", ".img", ".cpm" };
+    bool is_disk_image = disk_exts.find(file_ext) != disk_exts.end();
 
-    for (unsigned int u = 0; !fDiskImage && pszExt && u < std::size(aExts); u++)
-        fDiskImage = !strcasecmp(pszExt, aExts[u]);
-
-    return nCompressType ? &sCompressedIcon : fDiskImage ? &sDiskIcon : &sDocumentIcon;
+    return is_archive ? sCompressedIcon : is_disk_image ? sDiskIcon : sDocumentIcon;
 }
 
 
 // Get the full path of the current item
-const char* FileView::GetFullPath() const
+std::string FileView::GetFullPath() const
 {
-    static char szPath[MAX_PATH];
-    const ListViewItem* pItem;
+    const ListViewItem* pItem{};
+    if (m_path.empty() || !(pItem = GetItem()))
+        return "";
 
-    if (!m_pszPath || !(pItem = GetItem()))
-        return nullptr;
-
-    strncpy(szPath, m_pszPath, MAX_PATH - 1);
-    szPath[MAX_PATH - 1] = '\0';
-
-    strncat(szPath, pItem->m_pszLabel, MAX_PATH - strlen(szPath) - 1);
-    szPath[MAX_PATH - 1] = '\0';
-
-    return szPath;
+    return (m_path / pItem->m_label).string();
 }
 
 // Set a new path to browse
-void FileView::SetPath(const char* pcszPath_)
+void FileView::SetPath(const std::string& filepath)
 {
-    if (pcszPath_)
-    {
-        delete[] m_pszPath;
-        strcpy(m_pszPath = new char[strlen(pcszPath_) + 1], pcszPath_);
+    auto path = fs::path(filepath);
+    auto filename = path.filename().string();
+    m_path = path.parent_path();
 
-        // If the path doesn't end in a separator, we've got a filename too
-        const char* pcszFile = strrchr(pcszPath_, PATH_SEPARATOR);
-        if (pcszFile && *++pcszFile)
-            m_pszPath[pcszFile - pcszPath_] = '\0';
+    Refresh();
 
-        // Fill the file list
-        Refresh();
-
-        // If we can find the file in the list, select it
-        int nItem;
-        if (pcszFile && (nItem = FindItem(pcszFile)) != -1)
-            Select(nItem);
-    }
+    if (auto index = FindItem(filename))
+        Select(*index);
 }
 
 // Set a new file filter
@@ -2343,151 +2201,80 @@ void FileView::ShowHidden(bool fShow_)
 // Populate the list view with items from the path matching the current file filter
 void FileView::Refresh()
 {
-    // Return unless we've got both a path and a file filter
-    if (!m_pszPath || !m_pszFilter)
+    if (!m_pszFilter)
         return;
 
-    // Make a copy of the current selection label name
-    const ListViewItem* pItem = GetItem();
-    char* pszLabel = pItem ? strdup(pItem->m_pszLabel) : nullptr;
+    auto pItem = GetItem();
+    auto label = pItem ? pItem->m_label : "";
 
-    // Free any existing list before we allocate a new one
-    SetItems(nullptr);
-    ListViewItem* pItems = nullptr;
+    std::vector<ListViewItem> items;
 
     // An empty path gives a virtual drive list (only possible on DOS/Win32)
-    if (!m_pszPath[0])
+#ifdef _WIN32
+    if (m_path.empty())
     {
-        // Work through the letters backwards as we add to the head of the file chain
-        for (char chDrive = 'Z'; chDrive >= 'A'; chDrive--)
+        for (char chDrive = 'A'; chDrive <= 'Z'; ++chDrive)
         {
-            char szRoot[] = { chDrive, ':', '\\', '\0' };
+            auto root_path = fmt::format("{}:\\", chDrive);
 
-            // Can we access the root directory?
-            if (OSD::CheckPathAccess(szRoot))
+            if (OSD::CheckPathAccess(root_path))
             {
-                // Remove the backslash to leave just X:, and add to the list
-                szRoot[2] = '\0';
-                pItems = new ListViewItem(&sFolderIcon, szRoot, pItems);
+                items.emplace_back(sFolderIcon, root_path);
             }
         }
     }
     else
+#endif
     {
-        DIR* dir = opendir(m_pszPath);
-        if (dir)
+        auto filters = to_set(split(m_pszFilter, ';'));
+
+        for (auto& entry : fs::directory_iterator(m_path))
         {
-            // Count the number of filter items to apply
-            int nFilters = *m_pszFilter ? 1 : 0;
-            char szFilters[256];
-            strncpy(szFilters, m_pszFilter, sizeof(szFilters) - 1);
-            szFilters[sizeof(szFilters) - 1] = '\0';
+            auto file_path = entry.path();// m_path / entry->d_name;
+            auto file_name = file_path.filename().string();
+            auto file_ext = tolower(file_path.extension().string());
 
-            for (char* psz = strtok(szFilters, ";"); psz && (psz = strtok(nullptr, ";")); nFilters++);
+            if (file_name == "." || file_name == "..")
+                continue;
 
-            for (struct dirent* entry; (entry = readdir(dir)); )
+            if (!m_fShowHidden && OSD::IsHidden(file_path.string()))
+                continue;
+
+            if (entry.is_regular_file() && !filters.empty())
             {
-                char sz[MAX_PATH];
-                struct stat st;
-
-                // Ignore . and .. for now (we'll add .. back later if required)
-                if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
+                if (filters.find(file_ext) == filters.end())
                     continue;
-
-                // Should we remove hidden files from the listing?
-                if (!m_fShowHidden)
-                {
-                    // Form the full path of the current file
-                    char szPath[MAX_PATH];
-                    strncpy(szPath, m_pszPath, MAX_PATH - 1);
-                    szPath[MAX_PATH - 1] = '\0';
-                    strncat(szPath, entry->d_name, MAX_PATH - strlen(szPath) - 1);
-                    szPath[MAX_PATH - 1] = '\0';
-
-                    // Skip the file if it's considered hidden
-                    if (OSD::IsHidden(szPath))
-                        continue;
-                }
-
-                // Examine the entry to see what it is
-                strncpy(sz, m_pszPath, MAX_PATH - 1);
-                sz[MAX_PATH - 1] = '\0';
-                strncat(sz, entry->d_name, MAX_PATH - strlen(sz) - 1);
-
-                sz[MAX_PATH - 1] = '\0';
-
-                // Skip if there's no entry to examine
-                if (stat(sz, &st) != 0)
-                    continue;
-
-                // Only regular files are affected by the file filter
-                if (S_ISREG(st.st_mode))
-                {
-                    // If we have a filter list, apply it now
-                    if (nFilters)
-                    {
-                        int i;
-
-                        // Ignore files with no extension
-                        char* pszExt = strrchr(entry->d_name, '.');
-                        if (!pszExt)
-                            continue;
-
-                        // Compare the extension with each of the filters
-                        char* pszFilter = szFilters;
-                        for (i = 0; i < nFilters && strcasecmp(pszFilter, pszExt); i++, pszFilter += strlen(pszFilter) + 1);
-
-                        // Ignore the entry if we didn't match it
-                        if (i == nFilters)
-                            continue;
-                    }
-                }
-
-                // Ignore anything that isn't a directory or a block device (or a symbolic link to one)
-                else if (!S_ISDIR(st.st_mode) && !S_ISBLK(st.st_mode))
-                    continue;
-
-                // Create a new list entry for the current item
-                ListViewItem* pNew = new ListViewItem(S_ISDIR(st.st_mode) ? &sFolderIcon :
-                    S_ISBLK(st.st_mode) ? &sMiscIcon :
-                    GetFileIcon(entry->d_name), entry->d_name);
-
-                // Insert the item into the correct sort position
-                ListViewItem* p = pItems, * pPrev = nullptr;
-                while (p && SortCompare(pNew, p))
-                {
-                    pPrev = p;
-                    p = p->m_pNext;
-                }
-
-                // Adjust the links to any neighbouring entries
-                if (pPrev) pPrev->m_pNext = pNew;
-                pNew->m_pNext = p;
-                if (pItems == p) pItems = pNew;
             }
 
-            closedir(dir);
+            // Ignore anything that isn't a directory or a block device (or a symbolic link to one)
+            else if (!entry.is_directory() && !entry.is_block_file())
+            {
+                continue;
+            }
+
+            items.emplace_back(
+                entry.is_directory() ? sFolderIcon : entry.is_block_file() ? sMiscIcon : GetFileIcon(file_name),
+                file_name);
         }
 
-        // If we're not a top-level directory, add a .. entry to the head of the list
-        // This prevents non-DOS/Win32 machines stepping back up to the device list level
-        if (strlen(m_pszPath) > 1)
-            pItems = new ListViewItem(&sFolderIcon, "..", pItems);
+        // Sort by type (directories first) then filename.
+        std::sort(items.begin(), items.end(),
+            [](auto& lhs, auto& rhs)
+            {
+                auto ltype = (std::addressof(lhs.m_pIcon.get()) != std::addressof(sFolderIcon));
+                auto rtype = (std::addressof(rhs.m_pIcon.get()) != std::addressof(sFolderIcon));
+                return (ltype < rtype) || (ltype == rtype && lhs.m_label < rhs.m_label);
+            });
+
+        items.emplace(items.begin(), sFolderIcon, "..");
     }
 
-    // Give the item list to the list control
-    SetItems(pItems);
+    SetItems(std::move(items));
 
-    // Was there a previous selection?
-    if (pszLabel)
+    if (!label.empty())
     {
-        // Look for it in the new list
-        int nItem = FindItem(pszLabel);
-        free(pszLabel);
-
-        // If found, select it
-        if (nItem != -1)
-            Select(nItem);
+        if (auto index = FindItem(label))
+            Select(*index);
     }
 }
 
@@ -2549,10 +2336,10 @@ const int DIALOG_FRAME_COLOUR = GREY_7;
 const int TITLE_HEIGHT = 4 + Font::CHAR_HEIGHT + 5;
 
 
-Dialog::Dialog(Window* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_)
+Dialog::Dialog(Window* pParent_, int nWidth_, int nHeight_, const std::string& caption)
     : Window(pParent_, 0, 0, nWidth_, nHeight_, ctDialog), m_nTitleColour(TITLE_BACK_COLOUR), m_nBodyColour(DIALOG_BACK_COLOUR)
 {
-    SetText(pcszCaption_);
+    SetText(caption);
 
     Centre();
     Window::Activate();
@@ -2629,8 +2416,8 @@ void Dialog::Draw(FrameBuffer& fb)
 
     // Draw caption text on the left side
     fb.SetFont(sSpacedGUIFont);
-    fb.DrawString(m_nX + 5, m_nY - TITLE_HEIGHT + 5, GetText(), TITLE_TEXT_COLOUR);
-    fb.DrawString(m_nX + 5 + 1, m_nY - TITLE_HEIGHT + 5, GetText(), TITLE_TEXT_COLOUR);
+    fb.DrawString(m_nX + 5, m_nY - TITLE_HEIGHT + 5, TITLE_TEXT_COLOUR, GetText());
+    fb.DrawString(m_nX + 5 + 1, m_nY - TITLE_HEIGHT + 5, TITLE_TEXT_COLOUR, GetText());
     fb.SetFont(sGUIFont);
 
     // Call the base to draw any child controls
@@ -2752,26 +2539,20 @@ const int MSGBOX_BUTTON_SIZE = 50;
 const int MSGBOX_LINE_HEIGHT = 15;
 const int MSGBOX_GAP = 13;
 
-MsgBox::MsgBox(Window* pParent_, const char* pcszBody_, const char* pcszCaption_, int nFlags_)
-    : Dialog(pParent_, 0, 0, pcszCaption_)
+MsgBox::MsgBox(Window* pParent_, const std::string& body, const std::string& caption, int nFlags_)
+    : Dialog(pParent_, 0, 0, caption), m_lines(split(body, '\n'))
 {
     // We need to be recognisably different from a regular dialog, despite being based on one
     m_nType = ctMessageBox;
 
-    // Break the body text into lines
-    for (char* psz = m_pszBody = strdup(pcszBody_), *pszEOL = psz; pszEOL && *psz; psz += strlen(psz) + 1, m_nLines++)
-    {
-        if ((pszEOL = strchr(psz, '\n')))
-            *pszEOL = '\0';
+    auto it = std::max_element(m_lines.begin(), m_lines.end(),
+        [&](auto& a, auto& b) { return GetTextWidth(a) < GetTextWidth(b); });
 
-        // Keep track of the maximum line width
-        int nLen = GetTextWidth(psz);
-        if (nLen > m_nWidth)
-            m_nWidth = nLen;
-    }
+    auto maxlen = (it != m_lines.end()) ? GetTextWidth(*it) : 0;
+    m_nWidth = std::max(m_nWidth, maxlen);
 
     // Calculate the text area height
-    m_nHeight = (MSGBOX_LINE_HEIGHT * m_nLines);
+    m_nHeight = static_cast<int>(MSGBOX_LINE_HEIGHT * m_lines.size());
 
     // Work out the icon to use, if any
     const GUI_ICON* apIcons[] = { nullptr, &sInformationIcon, &sWarningIcon, &sErrorIcon };
@@ -2821,7 +2602,9 @@ void MsgBox::Draw(FrameBuffer& fb)
     int nX = m_nX + MSGBOX_GAP + (m_pIcon ? ICON_SIZE + MSGBOX_GAP / 2 : 0);
 
     // Draw each line in the body text
-    const char* psz = m_pszBody;
-    for (int i = 0; i < m_nLines; psz += strlen(psz) + 1, i++)
-        fb.DrawString(nX, m_nY + MSGBOX_GAP + (MSGBOX_LINE_HEIGHT * i), psz, WHITE);
+    auto index = 0;
+    for (auto& line : m_lines)
+    {
+        fb.DrawString(nX, m_nY + MSGBOX_GAP + (MSGBOX_LINE_HEIGHT * index++), line);
+    }
 }

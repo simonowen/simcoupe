@@ -71,18 +71,15 @@
 #include <sstream>
 #include <vector>
 #include <array>
+#include <set>
 #include <optional>
 #include <variant>
 
-#ifdef HAVE_STD_FILESYSTEM
-#include <filesystem>
-namespace fs = std::filesystem;
-#else
 #include "filesystem.hpp"
 namespace fs = ghc::filesystem;
-#endif
 
 #include <fmt/format.h>
+#include <fmt/chrono.h>
 
 #include "OSD.h"        /* OS-dependent stuff */
 #include "SAM.h"        /* Various SAM constants */

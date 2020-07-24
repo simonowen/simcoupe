@@ -92,7 +92,7 @@ public:
     int GetWidth() const { return m_nWidth; }
     int GetHeight() const { return m_nHeight; }
     int GetTextWidth(size_t offset=0, size_t max_length=-1) const;
-    int GetTextWidth(const char* pcsz_) const;
+    int GetTextWidth(const std::string& str) const;
 
     Window* GetParent() { return m_pParent; }
     Window* GetChildren() { return m_pChildren; }
@@ -113,10 +113,10 @@ public:
 public:
     virtual bool IsTabStop() const { return false; }
 
-    virtual const char* GetText() const { return m_pszText; }
+    virtual const std::string& GetText() const { return m_text; }
     virtual std::shared_ptr<Font> GetFont() const { return m_pFont; }
     virtual unsigned int GetValue() const;
-    virtual void SetText(const char* pcszText_);
+    virtual void SetText(const std::string& str);
     virtual void SetFont(std::shared_ptr<Font>& font) { m_pFont = font; }
     virtual void SetValue(unsigned int u_);
 
@@ -138,7 +138,7 @@ protected:
     int m_nWidth = 0, m_nHeight = 0;
     int m_nType = 0;
 
-    char* m_pszText = nullptr;
+    std::string m_text;
     std::shared_ptr<Font> m_pFont{ sGUIFont };
 
     bool m_fEnabled = true;
@@ -157,11 +157,11 @@ protected:
 class TextControl : public Window
 {
 public:
-    TextControl(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "", uint8_t bColour = WHITE, uint8_t bBackColour = 0);
+    TextControl(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const std::string& str = "", uint8_t bColour = WHITE, uint8_t bBackColour = 0);
 
 public:
     void Draw(FrameBuffer& fb) override;
-    void SetTextAndColour(const char* pcszText_, uint8_t bColour_);
+    void SetTextAndColour(const std::string& str, uint8_t colour);
 
 protected:
     uint8_t m_bColour = WHITE, m_bBackColour = 0;
@@ -188,10 +188,10 @@ protected:
 class TextButton : public Button
 {
 public:
-    TextButton(Window* pParent_, int nX_, int nY_, const char* pcszText_ = "", int nMinWidth_ = 0);
+    TextButton(Window* pParent_, int nX_, int nY_, const std::string& str, int nMinWidth_ = 0);
 
 public:
-    void SetText(const char* pcszText_) override;
+    void SetText(const std::string& str) override;
     void Draw(FrameBuffer& fb) override;
 
 protected:
@@ -234,14 +234,14 @@ public:
 class CheckBox : public Window
 {
 public:
-    CheckBox(Window* pParent_, int nX_, int nY_, const char* pcszText_ = "", uint8_t bColour_ = WHITE, uint8_t bBackColour_ = 0);
+    CheckBox(Window* pParent_, int nX_, int nY_, const std::string& str, uint8_t bColour_ = WHITE, uint8_t bBackColour_ = 0);
 
 public:
     bool IsTabStop() const override { return true; }
     bool IsChecked() const { return m_fChecked; }
     void SetChecked(bool fChecked_ = true) { m_fChecked = fChecked_; }
 
-    void SetText(const char* pcszText_) override;
+    void SetText(const std::string& str) override;
     void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
@@ -254,15 +254,15 @@ protected:
 class EditControl : public Window
 {
 public:
-    EditControl(Window* pParent_, int nX_, int nY_, int nWidth_, const char* pcszText_ = "");
+    EditControl(Window* pParent_, int nX_, int nY_, int nWidth_, const std::string& str="");
     EditControl(Window* pParent_, int nX_, int nY_, int nWidth_, unsigned int u_);
 
 public:
     bool IsTabStop() const override { return true; }
     void Activate() override;
 
-    void SetText(const char* pcszText_) override;
-    void SetSelectedText(const char* pcszText_, bool fSelected_);
+    void SetText(const std::string& str) override;
+    void SetSelectedText(const std::string& str, bool fSelected_);
     void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
@@ -284,13 +284,13 @@ public:
 class RadioButton : public Window
 {
 public:
-    RadioButton(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "", int nWidth_ = 0);
+    RadioButton(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const std::string& str="", int nWidth_ = 0);
 
 public:
     bool IsTabStop() const override { return IsSelected(); }
     bool IsSelected() const { return m_fSelected; }
     void Select(bool fSelected_ = true);
-    void SetText(const char* pcszText_) override;
+    void SetText(const std::string& str) override;
 
     void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
@@ -303,18 +303,18 @@ protected:
 class Menu : public Window
 {
 public:
-    Menu(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "");
+    Menu(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const std::string& str="");
 
 public:
     int GetSelected() const { return m_nSelected; }
-    void Select(int nItem_);
-    void SetText(const char* pcszText_) override;
+    void Select(int index);
+    void SetText(const std::string& str) override;
 
     void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
-    int m_nItems = 0;
+    std::vector<std::string> m_items;
     int m_nSelected = -1;
     bool m_fPressed = false;
 };
@@ -323,10 +323,10 @@ protected:
 class DropList : public Menu
 {
 public:
-    DropList(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const char* pcszText_ = "", int nMinWidth_ = 0);
+    DropList(Window* pParent_ = nullptr, int nX_ = 0, int nY_ = 0, const std::string& str = "", int nMinWidth_ = 0);
 
 public:
-    void SetText(const char* pcszText_) override;
+    void SetText(const std::string& str) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
 protected:
@@ -337,24 +337,25 @@ protected:
 class ComboBox : public Window
 {
 public:
-    ComboBox(Window* pParent_, int nX_, int nY_, const char* pcszText_, int nWidth_);
+    ComboBox(Window* pParent_, int nX_, int nY_, const std::string& str, int nWidth_);
     ComboBox(const ComboBox&) = delete;
     void operator= (const ComboBox&) = delete;
 
 public:
     bool IsTabStop() const override { return true; }
     int GetSelected() const { return m_nSelected; }
-    const char* GetSelectedText();
-    void Select(int nSelected_);
-    void Select(const char* pcszItem_);
-    void SetText(const char* pcszText_) override;
+    std::string GetSelectedText();
+    void Select(int index);
+    void Select(const std::string& item_str);
+    void SetText(const std::string& items_str) override;
 
     void Draw(FrameBuffer& fb) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
     void OnNotify(Window* pWindow_, int nParam_) override;
 
 protected:
-    int m_nItems = 0, m_nSelected = 0;
+    std::vector<std::string> m_items;
+    int m_nSelected = 0;
     bool m_fPressed = false;
     DropList* m_pDropList = nullptr;
 };
@@ -415,21 +416,13 @@ public:
 };
 
 
-class ListViewItem
+struct ListViewItem
 {
-public:
-    ListViewItem(const GUI_ICON* pIcon_, const char* pcszLabel_, ListViewItem* pNext_ = nullptr) :
-        m_pIcon(pIcon_), m_pszLabel(nullptr), m_pNext(pNext_) {
-        m_pszLabel = strdup(pcszLabel_);
-    }
-    ListViewItem(const ListViewItem&) = delete;
-    void operator= (const ListViewItem&) = delete;
-    virtual ~ListViewItem() { free(m_pszLabel); }
+    ListViewItem(const GUI_ICON& icon, const std::string& label) :
+        m_pIcon(icon), m_label(label) { }
 
-public:
-    const GUI_ICON* m_pIcon = nullptr;
-    char* m_pszLabel = nullptr;
-    ListViewItem* m_pNext = nullptr;
+    std::reference_wrapper<const GUI_ICON> m_pIcon;
+    std::string m_label;
 };
 
 class ListView : public Window
@@ -438,7 +431,6 @@ public:
     ListView(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, int nItemOffset = 0);
     ListView(const ListView&) = delete;
     void operator= (const ListView&) = delete;
-    ~ListView();
 
 public:
     bool IsTabStop() const override { return true; }
@@ -447,8 +439,8 @@ public:
     void Select(int nItem_);
 
     const ListViewItem* GetItem(int nItem_ = -1) const;
-    int FindItem(const char* pcszLabel_, int nStart_ = 0);
-    void SetItems(ListViewItem* pItems_);
+    std::optional<int> FindItem(const std::string& label, int nStart_ = 0);
+    void SetItems(std::vector<ListViewItem>&& items);
 
     void EraseBackground(FrameBuffer& fb) override;
     void Draw(FrameBuffer& fb) override;
@@ -457,10 +449,10 @@ public:
     virtual void DrawItem(FrameBuffer& fb, int nItem_, int nX_, int nY_, const ListViewItem* pItem_);
 
 protected:
-    int m_nItems = 0, m_nSelected = 0, m_nHoverItem = 0;
+    int m_num_items, m_nSelected = 0, m_nHoverItem = 0;
     int m_nAcross = 0, m_nDown = 0, m_nItemOffset = 0;
 
-    ListViewItem* m_pItems = nullptr;
+    std::vector<ListViewItem> m_items;
     ScrollBar* m_pScrollBar = nullptr;
 };
 
@@ -468,7 +460,7 @@ protected:
 class Dialog : public Window
 {
 public:
-    Dialog(Window* pParent_, int nWidth_, int nHeight_, const char* pcszCaption_);
+    Dialog(Window* pParent_, int nWidth_, int nHeight_, const std::string& caption);
     ~Dialog();
 
 public:
@@ -495,19 +487,17 @@ enum { mbOk, mbOkCancel, mbYesNo, mbYesNoCancel, mbRetryCancel, mbInformation = 
 class MsgBox : public Dialog
 {
 public:
-    MsgBox(Window* pParent_, const char* pcszBody_, const char* pcszCaption_, int nFlags_);
+    MsgBox(Window* pParent_, const std::string& body, const std::string& caption, int nFlags_);
     MsgBox(const MsgBox&) = delete;
     void operator= (const MsgBox&) = delete;
-    ~MsgBox() { if (m_pszBody) free(m_pszBody); }
 
 public:
     void OnNotify(Window* /*pWindow_*/, int /*nParam_*/) override { Destroy(); }
     void Draw(FrameBuffer& fb) override;
 
 protected:
-    int m_nLines = 0;
-    char* m_pszBody = nullptr;
-    IconControl* m_pIcon = nullptr;
+    std::vector<std::string> m_lines;
+    IconControl* m_pIcon{};
 };
 
 class FileView : public ListView
@@ -519,10 +509,10 @@ public:
     ~FileView();
 
 public:
-    const char* GetFullPath() const;
-    const char* GetPath() const { return m_pszPath; }
+    std::string GetFullPath() const;
+    std::string GetPath() const { return m_path.string(); }
     const char* GetFilter() const { return m_pszFilter; }
-    void SetPath(const char* pcszPath_);
+    void SetPath(const std::string& path);
     void SetFilter(const char* pcszFilter_);
     void ShowHidden(bool fShow_);
 
@@ -530,10 +520,10 @@ public:
     void NotifyParent(int nParam_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 
-    static const GUI_ICON* GetFileIcon(const char* pcszFile_);
+    static const GUI_ICON& GetFileIcon(const std::string& path_str);
 
 protected:
-    char* m_pszPath = nullptr;
+    fs::path m_path;
     char* m_pszFilter = nullptr;
     bool m_fShowHidden = false;
 };

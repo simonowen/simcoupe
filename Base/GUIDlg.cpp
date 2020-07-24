@@ -97,8 +97,8 @@ void AboutDialog::EraseBackground(FrameBuffer& fb)
 // Persist show-hidden option between uses, shared by all file selectors
 bool FileDialog::s_fShowHidden = false;
 
-FileDialog::FileDialog(const char* pcszCaption_, const char* pcszPath_, const FILEFILTER* pcFileFilter_, int* pnFilter_,
-    Window* pParent_/*=nullptr*/) : Dialog(pParent_, 527, 339 + 22, pcszCaption_), m_pcFileFilter(pcFileFilter_), m_pnFilter(pnFilter_)
+FileDialog::FileDialog(const std::string& caption, const std::string& path_str, const FILEFILTER* pcFileFilter_, int* pnFilter_,
+    Window* pParent_/*=nullptr*/) : Dialog(pParent_, 527, 339 + 22, caption), m_pcFileFilter(pcFileFilter_), m_pnFilter(pnFilter_)
 {
     // Create all the controls for the dialog (the objects are deleted by the GUI when closed)
     m_pFileView = new FileView(this, 2, 2, (7 * 72) + 19, (4 * 72));
@@ -128,16 +128,14 @@ FileDialog::FileDialog(const char* pcszCaption_, const char* pcszPath_, const FI
 
     // Set the filter and path
     OnNotify(m_pFilter, 0);
-    SetPath(pcszPath_);
+    SetPath(path_str);
 }
 
 // Set browse path
-void FileDialog::SetPath(const char* pcszPath_)
+void FileDialog::SetPath(const std::string& path)
 {
-    m_pFileView->SetPath(pcszPath_);
-
-    if (pcszPath_)
-        m_pPath->SetText(m_pFileView->GetPath());
+    m_pFileView->SetPath(path);
+    m_pPath->SetText(m_pFileView->GetPath());
 }
 
 // Handle control notifications
@@ -162,12 +160,14 @@ void FileDialog::OnNotify(Window* pWindow_, int nParam_)
     }
     else if (pWindow_ == m_pFile)
     {
-        int nItem = m_pFileView->FindItem(m_pFile->GetText());
-
         if (nParam_)
+        {
             OnOK();
-        else if (nItem != -1)
-            m_pFileView->Select(nItem);
+        }
+        else if (auto index = m_pFileView->FindItem(m_pFile->GetText()))
+        {
+            m_pFileView->Select(*index);
+        }
     }
     else if (pWindow_ == m_pFileView)
     {
@@ -175,11 +175,14 @@ void FileDialog::OnNotify(Window* pWindow_, int nParam_)
 
         if (pItem)
         {
-            if (pItem->m_pIcon == &sFolderIcon)
+            if (std::addressof(pItem->m_pIcon.get()) == std::addressof(sFolderIcon))
+            {
                 m_pPath->SetText(m_pFileView->GetPath());
+                m_pFile->SetText("");
+            }
             else
             {
-                m_pFile->SetText(pItem->m_pszLabel);
+                m_pFile->SetText(pItem->m_label);
 
                 if (nParam_)
                     OnOK();
@@ -214,45 +217,40 @@ static const FILEFILTER sFloppyFilter =
     }
 };
 
-BrowseFloppy::BrowseFloppy(int nDrive_, Window* pParent_/*=nullptr*/)
-    : FileDialog("", nullptr, &sFloppyFilter, &nFloppyFilter, pParent_), m_nDrive(nDrive_)
+BrowseFloppy::BrowseFloppy(int drive, Window* pParent_/*=nullptr*/)
+    : FileDialog("", "", &sFloppyFilter, &nFloppyFilter, pParent_), m_nDrive(drive)
 {
     // Set the dialog caption to show which drive we're dealing with
-    char szCaption[] = "Insert Floppy x";
-    szCaption[strlen(szCaption) - 1] = '0' + nDrive_;
-    SetText(szCaption);
+    SetText(fmt::format("Insert Floppy {}", drive));
 
     // Browse from the location of the previous image, or the default directory if none
-    const char* pcszImage = ((nDrive_ == 1) ? pFloppy1 : pFloppy2)->DiskPath();
+    auto pcszImage = ((drive == 1) ? pFloppy1 : pFloppy2)->DiskPath();
     SetPath(*pcszImage ? pcszImage : OSD::MakeFilePath(MFP_INPUT));
 }
 
 // Handle OK being clicked when a file is selected
 void BrowseFloppy::OnOK()
 {
-    const char* pcszPath = m_pFileView->GetFullPath();
-
-    if (pcszPath)
+    if (auto full_path = m_pFileView->GetFullPath(); !full_path.empty())
     {
         bool fInserted = false;
 
         // Insert the disk into the appropriate drive
-        fInserted = ((m_nDrive == 1) ? pFloppy1 : pFloppy2)->Insert(pcszPath, true);
+        fInserted = ((m_nDrive == 1) ? pFloppy1 : pFloppy2)->Insert(full_path.c_str(), true);
 
         // If we succeeded, show a status message and close the file selector
         if (fInserted)
         {
             // Update the status text and close the dialog
-            Frame::SetStatus("%s  inserted into drive %d", m_pFileView->GetItem()->m_pszLabel, m_nDrive);
+            Frame::SetStatus("{}  inserted into drive {}", m_pFileView->GetItem()->m_label, m_nDrive);
             Destroy();
             return;
         }
     }
 
     // Report any error
-    char szBody[MAX_PATH + 32];
-    sprintf(szBody, "Invalid disk image:\n\n%s", m_pFileView->GetItem()->m_pszLabel);
-    new MsgBox(this, szBody, "Open Failed", mbWarning);
+    auto err = fmt::format("Invalid disk image:\n\n{}", m_pFileView->GetItem()->m_label);
+    new MsgBox(this, err, "Open Failed", mbWarning);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -282,7 +280,7 @@ static const FILEFILTER sTapeFilter =
 };
 
 BrowseTape::BrowseTape(Window* pParent_/*=nullptr*/)
-    : FileDialog("Insert Tape", nullptr, &sTapeFilter, &nTapeFilter, pParent_)
+    : FileDialog("Insert Tape", "", &sTapeFilter, &nTapeFilter, pParent_)
 {
     // Browse from the location of the previous image, or the default directory if none
     const char* pcszImage = Tape::GetPath();
@@ -292,46 +290,43 @@ BrowseTape::BrowseTape(Window* pParent_/*=nullptr*/)
 // Handle OK being clicked when a file is selected
 void BrowseTape::OnOK()
 {
-    const char* pcszPath = m_pFileView->GetFullPath();
-
-    if (pcszPath)
+    auto full_path = m_pFileView->GetFullPath();
+    if (!full_path.empty())
     {
-        bool fInserted = Tape::Insert(pcszPath);
+        bool fInserted = Tape::Insert(full_path.c_str());
 
         // If we succeeded, show a status message and close the file selector
         if (fInserted)
         {
             // Update the status text and close the dialog
-            Frame::SetStatus("%s  inserted", m_pFileView->GetItem()->m_pszLabel);
+            Frame::SetStatus("{}  inserted", m_pFileView->GetItem()->m_label);
             Destroy();
             return;
         }
     }
 
     // Report any error
-    char szBody[MAX_PATH + 32];
-    sprintf(szBody, "Invalid tape image:\n\n%s", m_pFileView->GetItem()->m_pszLabel);
-    new MsgBox(this, szBody, "Open Failed", mbWarning);
+    auto err_msg = fmt::format("Invalid tape image:\n\n{}", m_pFileView->GetItem()->m_label);
+    new MsgBox(this, err_msg.c_str(), "Open Failed", mbWarning);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-FileBrowser::FileBrowser(EditControl* pEdit_, Window* pParent_, const char* pcszCaption_, const FILEFILTER* pcsFilter_, int* pnFilter_)
-    : FileDialog(pcszCaption_, nullptr, pcsFilter_, pnFilter_, pParent_), m_pEdit(pEdit_)
+FileBrowser::FileBrowser(EditControl* pEdit_, Window* pParent_, const std::string& caption, const FILEFILTER* pcsFilter_, int* pnFilter_)
+    : FileDialog(caption, "", pcsFilter_, pnFilter_, pParent_), m_pEdit(pEdit_)
 {
     // Browse from the location of the previous image, or the default directory if none
-    SetPath(*pEdit_->GetText() ? pEdit_->GetText() : OSD::MakeFilePath(MFP_INPUT));
+    SetPath(!pEdit_->GetText().empty() ? pEdit_->GetText() : OSD::MakeFilePath(MFP_INPUT));
 }
 
 // Handle OK being clicked when a file is selected
 void FileBrowser::OnOK()
 {
-    const char* pcszPath = m_pFileView->GetFullPath();
-
-    if (pcszPath)
+    auto full_path = m_pFileView->GetFullPath();
+    if (!full_path.empty())
     {
         // Set the edit control text, activate it, and notify the parent of the change
-        m_pEdit->SetText(pcszPath);
+        m_pEdit->SetText(full_path);
         m_pEdit->Activate();
         m_pParent->OnNotify(m_pEdit, 0);
         Destroy();
@@ -376,7 +371,7 @@ void HDDProperties::OnNotify(Window* pWindow_, int /*nParam_*/)
     else if (pWindow_ == m_pFile)
     {
         // If we can, open the existing hard disk image to retrieve the geometry
-        auto disk = HardDisk::OpenObject(m_pFile->GetText());
+        auto disk = HardDisk::OpenObject(m_pFile->GetText().c_str());
 
         if (disk)
         {
@@ -394,7 +389,7 @@ void HDDProperties::OnNotify(Window* pWindow_, int /*nParam_*/)
 
         // Set the text and state of the OK button, depending on the target file
         m_pOK->SetText(disk ? "OK" : "Create");
-        m_pOK->Enable(!!*m_pFile->GetText());
+        m_pOK->Enable(!m_pFile->GetText().empty());
     }
     else if (pWindow_ == m_pOK)
     {
@@ -402,7 +397,7 @@ void HDDProperties::OnNotify(Window* pWindow_, int /*nParam_*/)
         if (m_pSize->IsEnabled())
         {
             char sz[MAX_PATH];
-            strncpy(sz, m_pFile->GetText(), MAX_PATH - 1);
+            strncpy(sz, m_pFile->GetText().c_str(), MAX_PATH - 1);
             sz[MAX_PATH - 1] = '\0';
 
             size_t nLen = strlen(sz);
@@ -415,7 +410,7 @@ void HDDProperties::OnNotify(Window* pWindow_, int /*nParam_*/)
             }
 
             // Determine the total sector count from the size
-            auto uTotalSectors = static_cast<unsigned int>(strtoul(m_pSize->GetText(), nullptr, 10) << 11);
+            auto uTotalSectors = static_cast<unsigned int>(std::stoul(m_pSize->GetText(), nullptr, 10) << 11);
 
             // Check the geometry is within range
             if (!uTotalSectors || (uTotalSectors > (16383 * 16 * 63)))
@@ -425,7 +420,7 @@ void HDDProperties::OnNotify(Window* pWindow_, int /*nParam_*/)
             }
 
             // Create a new disk of the required size
-            if (!HDFHardDisk::Create(m_pFile->GetText(), uTotalSectors))
+            if (!HDFHardDisk::Create(m_pFile->GetText().c_str(), uTotalSectors))
             {
                 new MsgBox(this, "Failed to create new disk (disk full?)", "Warning", mbWarning);
                 return;
@@ -451,20 +446,19 @@ OptionsDialog::OptionsDialog(Window* pParent_/*=nullptr*/)
     m_pStatus = new TextControl(this, 4, m_nHeight - 15, "", GREY_7);
     m_pClose = new TextButton(this, m_nWidth - 57, m_nHeight - 19, "Close", 55);
 
-    ListViewItem* pItem = nullptr;
+    std::vector<ListViewItem> items{
+        { sChipIcon, "System" },
+        { sDisplayIcon, "Display" },
+        { sSoundIcon, "Sound" },
+        { sMidiIcon, "MIDI" },
+        { sKeyboardIcon, "Input" },
+        { sHardDiskIcon, "Drives" },
+        { sFloppyDriveIcon, "Disks" },
+        { sPortIcon, "Parallel" },
+        { sHardwareIcon, "Misc" },
+        { sSamIcon, "About" } };
 
-    // Add icons in reverse order
-    pItem = new ListViewItem(&sSamIcon, "About", pItem);
-    pItem = new ListViewItem(&sHardwareIcon, "Misc", pItem);
-    pItem = new ListViewItem(&sPortIcon, "Parallel", pItem);
-    pItem = new ListViewItem(&sFloppyDriveIcon, "Disks", pItem);
-    pItem = new ListViewItem(&sHardDiskIcon, "Drives", pItem);
-    pItem = new ListViewItem(&sKeyboardIcon, "Input", pItem);
-    pItem = new ListViewItem(&sMidiIcon, "MIDI", pItem);
-    pItem = new ListViewItem(&sSoundIcon, "Sound", pItem);
-    pItem = new ListViewItem(&sDisplayIcon, "Display", pItem);
-    pItem = new ListViewItem(&sChipIcon, "System", pItem);
-    m_pOptions->SetItems(pItem);
+    m_pOptions->SetItems(std::move(items));
 
     // Set the initial status text
     OnNotify(m_pOptions, 0);
@@ -528,12 +522,12 @@ public:
         else if (pWindow_ == m_pBrowse)
             new FileBrowser(m_pROM, this, "Browse for ROM", &sROMFilter, &nROMFilter);
         else if (pWindow_ == m_pROM)
-            m_pAtomBootRom->Enable(!*m_pROM->GetText());
+            m_pAtomBootRom->Enable(m_pROM->GetText().empty());
         else if (pWindow_ == m_pOK)
         {
             SetOption(mainmem, (m_pMain->GetSelected() + 1) << 8);
             SetOption(externalmem, m_pExternal->GetSelected());
-            SetOption(rom, m_pROM->GetText());
+            SetOption(rom, m_pROM->GetText().c_str());
             SetOption(atombootrom, m_pAtomBootRom->IsChecked());
 
             // If Atom boot ROM is enabled and a drive type has changed, trigger a ROM refresh
@@ -742,8 +736,8 @@ public:
         else if (pWindow_ == m_pOK)
         {
             SetOption(midi, m_pMidi->GetSelected());
-            SetOption(midioutdev, m_pMidiOut->GetSelectedText());
-            SetOption(midiindev, m_pMidiIn->GetSelectedText());
+            SetOption(midioutdev, m_pMidiOut->GetSelectedText().c_str());
+            SetOption(midiindev, m_pMidiIn->GetSelectedText().c_str());
 
             if (Changed(midi) || Changed(midiindev) || Changed(midioutdev))
                 pMidi->SetDevice(GetOption(midioutdev));
@@ -895,7 +889,7 @@ public:
             SetOption(autoload, m_pAutoLoad->IsChecked());
 
             SetOption(dosboot, m_pDosBoot->IsChecked());
-            SetOption(dosdisk, m_pDosDisk->GetText());
+            SetOption(dosdisk, m_pDosDisk->GetText().c_str());
 
             // Drive 2 type changed?
             if (Changed(drive2))
@@ -987,9 +981,9 @@ public:
         else if (pWindow_ == m_pOK)
         {
             // Set the options from the edit control values
-            SetOption(atomdisk0, m_pAtom0->GetText());
-            SetOption(atomdisk1, m_pAtom1->GetText());
-            SetOption(sdidedisk, m_pSDIDE->GetText());
+            SetOption(atomdisk0, m_pAtom0->GetText().c_str());
+            SetOption(atomdisk1, m_pAtom1->GetText().c_str());
+            SetOption(sdidedisk, m_pSDIDE->GetText().c_str());
 
             // Any path changes?
             if (Changed(atomdisk0) || Changed(atomdisk1) || Changed(sdidedisk))
@@ -1188,53 +1182,54 @@ void OptionsDialog::OnNotify(Window* pWindow_, int nParam_)
         {
             // Save the current options for change comparisons
             g_opts = Options::s_Options;
+            auto label_lower = tolower(pItem->m_label);
 
-            if (!strcasecmp(pItem->m_pszLabel, "system"))
+            if (label_lower == "system")
             {
                 m_pStatus->SetText("Main/external memory configuration and ROM image paths");
                 if (nParam_) new SystemOptions(this);
             }
-            else if (!strcasecmp(pItem->m_pszLabel, "display"))
+            else if (label_lower == "display")
             {
                 m_pStatus->SetText("Display settings for mode, depth, view size, etc.");
                 if (nParam_) new DisplayOptions(this);
             }
-            else if (!strcasecmp(pItem->m_pszLabel, "sound"))
+            else if (label_lower == "sound")
             {
                 m_pStatus->SetText("Sound device settings");
                 if (nParam_) new SoundOptions(this);
             }
-            else if (!strcasecmp(pItem->m_pszLabel, "midi"))
+            else if (label_lower == "midi")
             {
                 m_pStatus->SetText("MIDI settings for music and network");
                 if (nParam_) new MidiOptions(this);
             }
-            else if (!strcasecmp(pItem->m_pszLabel, "input"))
+            else if (label_lower == "input")
             {
                 m_pStatus->SetText("Keyboard mapping and mouse settings");
                 if (nParam_) new InputOptions(this);
             }
-            else if (!strcasecmp(pItem->m_pszLabel, "drives"))
+            else if (label_lower == "drives")
             {
                 m_pStatus->SetText("Floppy disk drive configuration");
                 if (nParam_) new DriveOptions(this);
             }
-            else if (!strcasecmp(pItem->m_pszLabel, "disks"))
+            else if (label_lower == "disks")
             {
                 m_pStatus->SetText("Disks for floppy and hard disk drives");
                 if (nParam_) new DiskOptions(this);
             }
-            else if (!strcasecmp(pItem->m_pszLabel, "parallel"))
+            else if (label_lower ==  "parallel")
             {
                 m_pStatus->SetText("Parallel port settings for printer and DACs)");
                 if (nParam_) new ParallelOptions(this);
             }
-            else if (!strcasecmp(pItem->m_pszLabel, "misc"))
+            else if (label_lower == "misc")
             {
                 m_pStatus->SetText("Clock settings and miscellaneous front-end options");
                 if (nParam_) new MiscOptions(this);
             }
-            else if (!strcasecmp(pItem->m_pszLabel, "about"))
+            else if (label_lower == "about")
             {
                 m_pStatus->SetText("Display SimCoupe version number and credits");
                 if (nParam_) new AboutDialog(this);
@@ -1245,7 +1240,7 @@ void OptionsDialog::OnNotify(Window* pWindow_, int nParam_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-char ImportDialog::s_szFile[MAX_PATH];
+std::string ImportDialog::s_filepath;
 unsigned int ImportDialog::s_uAddr = 32768, ImportDialog::s_uPage, ImportDialog::s_uOffset;
 bool ImportDialog::s_fUseBasic = true;
 
@@ -1253,7 +1248,7 @@ ImportDialog::ImportDialog(Window* pParent_)
     : Dialog(pParent_, 230, 165, "Import Data")
 {
     new TextControl(this, 10, 18, "File:");
-    m_pFile = new EditControl(this, 35, 15, 160, s_szFile);
+    m_pFile = new EditControl(this, 35, 15, 160, s_filepath);
     m_pBrowse = new TextButton(this, 200, 15, "...", 17);
 
     m_pFrame = new FrameControl(this, 10, 47, 208, 88);
@@ -1329,11 +1324,10 @@ void ImportDialog::OnNotify(Window* pWindow_, int nParam_)
     else if (pWindow_ == m_pOK || nParam_)
     {
         // Fetch/update the stored filename
-        strncpy(s_szFile, m_pFile->GetText(), sizeof(s_szFile) - 1);
-        s_szFile[sizeof(s_szFile) - 1] = '\0';
+        s_filepath = m_pFile->GetText();
 
-        FILE* hFile;
-        if (!s_szFile[0] || !(hFile = fopen(s_szFile, "rb")))
+        FILE* hFile{};
+        if (s_filepath.empty() || !(hFile = fopen(s_filepath.c_str(), "rb")))
         {
             new MsgBox(this, "Failed to open file for reading", "Error", mbWarning);
             return;
@@ -1359,7 +1353,7 @@ void ImportDialog::OnNotify(Window* pWindow_, int nParam_)
         }
 
         fclose(hFile);
-        Frame::SetStatus("Imported %u bytes", uRead);
+        Frame::SetStatus("Imported {} bytes", uRead);
         Destroy();
     }
 }
@@ -1398,11 +1392,10 @@ void ExportDialog::OnNotify(Window* pWindow_, int nParam_)
     else if (pWindow_ == m_pOK || nParam_)
     {
         // Fetch/update the stored filename
-        strncpy(s_szFile, m_pFile->GetText(), sizeof(s_szFile) - 1);
-        s_szFile[sizeof(s_szFile) - 1] = '\0';
+        s_filepath = m_pFile->GetText();
 
-        FILE* hFile;
-        if (!s_szFile[0] || !(hFile = fopen(s_szFile, "wb")))
+        FILE* hFile{};
+        if (s_filepath.empty() || !(hFile = fopen(s_filepath.c_str(), "wb")))
         {
             new MsgBox(this, "Failed to open file for writing", "Error", mbWarning);
             return;
@@ -1435,7 +1428,7 @@ void ExportDialog::OnNotify(Window* pWindow_, int nParam_)
         }
 
         fclose(hFile);
-        Frame::SetStatus("Exported %u bytes", uWritten);
+        Frame::SetStatus("Exported {} bytes", uWritten);
         Destroy();
     }
 
@@ -1446,17 +1439,14 @@ void ExportDialog::OnNotify(Window* pWindow_, int nParam_)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-char NewDiskDialog::s_szFile[MAX_PATH];
+std::string NewDiskDialog::s_filepath;
 unsigned int NewDiskDialog::s_uType = 0;
 bool NewDiskDialog::s_fCompress, NewDiskDialog::s_fFormat = true;
 
 NewDiskDialog::NewDiskDialog(int nDrive_, Window* pParent_/*=nullptr*/)
     : Dialog(pParent_, 355, 100, "New Disk")
 {
-    // Set the dialog caption to show which drive we're dealing with
-    char szCaption[] = "New Disk x";
-    szCaption[strlen(szCaption) - 1] = '0' + nDrive_;
-    SetText(szCaption);
+    SetText(fmt::format("New Disk {}", nDrive_));
 
     new IconControl(this, 10, 10, &sDiskIcon);
 

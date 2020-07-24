@@ -58,14 +58,14 @@ void MidiDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
     // Protect against very long System Exclusive blocks
     if ((m_nOut == (sizeof m_abOut - 1)) && bVal_ != 0xf7)
     {
-        TRACE("!!! MIDI: System Exclusive buffer overflow, discarding %#02x\n", bVal_);
+        TRACE("!!! MIDI: System Exclusive buffer overflow, discarding {:02x}\n", bVal_);
         return;
     }
 
     // Do we have the start of a message while an incomplete message remains?
     if (m_nOut && (bVal_ & 0x80))
     {
-        TRACE("!!! MIDI: Discarding incomplete %d byte message\n", m_nOut);
+        TRACE("!!! MIDI: Discarding incomplete {} byte message\n", m_nOut);
         m_nOut = 0;
     }
 
@@ -79,7 +79,7 @@ void MidiDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
         // Discard the byte as there isn't much we can do with it
         else
         {
-            TRACE("!!! MIDI: Discarding leading non-status byte: %#02x\n", bVal_);
+            TRACE("!!! MIDI: Discarding leading non-status byte: {:02x}\n", bVal_);
             return;
         }
     }
@@ -89,7 +89,7 @@ void MidiDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
 
     // Spot the end of a System Exclusive variable length block (we don't do anything with it yet)
     if (m_abOut[0] == 0xf0 && bVal_ == 0xf7)
-        TRACE("MIDI: Variable block of %d bytes\n", m_nOut - 2);
+        TRACE("MIDI: Variable block of {} bytes\n", m_nOut - 2);
 
     // Break out if the command we're building up hasn't got the required number of parameters yet
     else if (((m_abOut[0] & 0xfd) == 0xf1) || ((m_abOut[0] & 0xe0) == 0xc0))    // 1 byte
@@ -111,17 +111,17 @@ void MidiDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
 #ifdef _DEBUG
     switch (m_nOut)
     {
-    case 1:     TRACE("MIDI: Sending 1 byte message from: %02x\n", m_abOut[0]);                                                         break;
-    case 2:     TRACE("MIDI: Sending 2 byte message from: %02x %02x\n", m_abOut[0], m_abOut[1]);                                            break;
-    case 3:     TRACE("MIDI: Sending 3 byte message from: %02x %02x %02x\n", m_abOut[0], m_abOut[1], m_abOut[2]);                               break;
-    case 4:     TRACE("MIDI: Sending 4 byte message from: %02x %02x %02x %02x\n", m_abOut[0], m_abOut[1], m_abOut[2], m_abOut[3]);              break;
-    default:    TRACE("MIDI: Sending %d byte message from: %02x %02x %02x %02x ...\n", m_nOut, m_abOut[0], m_abOut[1], m_abOut[2], m_abOut[3]); break;
+    case 1:     TRACE("MIDI: Sending 1 byte message from: {:02x}\n", m_abOut[0]);                                                         break;
+    case 2:     TRACE("MIDI: Sending 2 byte message from: {:02x} {:02x}\n", m_abOut[0], m_abOut[1]);                                            break;
+    case 3:     TRACE("MIDI: Sending 3 byte message from: {:02x} {:02x} {:02x}\n", m_abOut[0], m_abOut[1], m_abOut[2]);                               break;
+    case 4:     TRACE("MIDI: Sending 4 byte message from: {:02x} {:02x} {:02x} {:02x}\n", m_abOut[0], m_abOut[1], m_abOut[2], m_abOut[3]);              break;
+    default:    TRACE("MIDI: Sending {} byte message from: {:02x} {:02x} {:02x} {:02x} ...\n", m_nOut, m_abOut[0], m_abOut[1], m_abOut[2], m_abOut[3]); break;
     }
 #endif
 
     // Output the MIDI message here
     if (m_nDevice != -1 && write(m_nDevice, m_abOut, m_nOut) == -1)
-        TRACE("!!! MIDI write failed (%d)\n", errno);
+        TRACE("!!! MIDI write failed ({})\n", errno);
 
     // Prepare for the next message
     m_nOut = m_abOut[1] = m_abOut[2] = m_abOut[3] = 0;

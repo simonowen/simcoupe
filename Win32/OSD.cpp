@@ -42,7 +42,6 @@ bool fPortable = false;
 
 bool OSD::Init(bool fFirstInit_/*=false*/)
 {
-    TRACE("OSD::Init(%d)\n", fFirstInit_);
     char szModule[MAX_PATH];
 
     // Check if our executable has a read-only attribute set
@@ -188,17 +187,17 @@ const char* OSD::MakeFilePath(int nDir_, const char* pcszFile_/*=""*/)
 
 
 // Check whether the specified path is accessible
-bool OSD::CheckPathAccess(const char* pcszPath_)
+bool OSD::CheckPathAccess(const std::string& path)
 {
-    return !access(pcszPath_, X_OK);
+    return !access(path.c_str(), X_OK);
 }
 
 
 // Return whether a file/directory is normally hidden from a directory listing
-bool OSD::IsHidden(const char* pcszFile_)
+bool OSD::IsHidden(const std::string& path)
 {
     // Hide entries with the hidden or system attribute bits set
-    uint32_t dwAttrs = GetFileAttributes(pcszFile_);
+    uint32_t dwAttrs = GetFileAttributes(path.c_str());
     return (dwAttrs != INVALID_FILE_ATTRIBUTES) && (dwAttrs & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM));
 }
 
@@ -212,9 +211,9 @@ const char* OSD::GetFloppyDevice(int nDrive_)
 }
 
 
-void OSD::DebugTrace(const char* pcsz_)
+void OSD::DebugTrace(const std::string& str)
 {
-    OutputDebugString(pcsz_);
+    OutputDebugString(str.c_str());
 }
 
 VOID CALLBACK CloseTimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
@@ -256,7 +255,7 @@ bool PrinterDevice::Open()
         ClosePrinter(m_hPrinter);
     }
 
-    Frame::SetStatus("Failed to open %s", GetOption(printerdev));
+    Frame::SetStatus("Failed to open {}", GetOption(printerdev));
     return false;
 }
 
@@ -270,7 +269,7 @@ void PrinterDevice::Close()
         ClosePrinter(m_hPrinter);
         m_hPrinter = INVALID_HANDLE_VALUE;
 
-        Frame::SetStatus("Printed to %s", GetOption(printerdev));
+        Frame::SetStatus("Printed to {}", GetOption(printerdev));
     }
 }
 
@@ -286,51 +285,4 @@ void PrinterDevice::Write(uint8_t* pb_, size_t uLen_)
             Frame::SetStatus("Printer error!");
         }
     }
-}
-
-
-// Win32 lacks a few of the required POSIX functions, so we'll implement them ourselves...
-
-WIN32_FIND_DATA s_fd;
-struct dirent s_dir;
-
-DIR* opendir(const char* pcszDir_)
-{
-    static char szPath[MAX_PATH];
-
-    memset(&s_dir, 0, sizeof(s_dir));
-
-    // Append a wildcard to match all files
-    lstrcpy(szPath, pcszDir_);
-    if (szPath[lstrlen(szPath) - 1] != '\\')
-        lstrcat(szPath, "\\");
-    lstrcat(szPath, "*");
-
-    // Find the first file, saving the details for later
-    HANDLE h = FindFirstFile(szPath, &s_fd);
-
-    // Return the handle if successful, otherwise nullptr
-    return (h == INVALID_HANDLE_VALUE) ? nullptr : reinterpret_cast<DIR*>(h);
-}
-
-struct dirent* readdir(DIR* hDir_)
-{
-    // All done?
-    if (!s_fd.cFileName[0])
-        return nullptr;
-
-    // Copy the filename and set the length
-    s_dir.d_reclen = lstrlen(lstrcpyn(s_dir.d_name, s_fd.cFileName, sizeof(s_dir.d_name)));
-
-    // If we'd already reached the end
-    if (!FindNextFile(reinterpret_cast<HANDLE>(hDir_), &s_fd))
-        s_fd.cFileName[0] = '\0';
-
-    // Return the current entry
-    return &s_dir;
-}
-
-int closedir(DIR* hDir_)
-{
-    return FindClose(reinterpret_cast<HANDLE>(hDir_)) ? 0 : -1;
 }

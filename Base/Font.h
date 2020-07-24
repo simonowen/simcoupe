@@ -40,7 +40,7 @@ struct Font
     bool fixed_width;
     const std::vector<uint8_t>& data;
 
-    int StringWidth(const char* str, int max_chars=-1) const;
+    int StringWidth(const std::string_view& str, int max_chars=-1) const;
 };
 
 extern std::shared_ptr<Font> sFixedFont, sPropFont, sGUIFont, sSpacedGUIFont;

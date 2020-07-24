@@ -258,7 +258,7 @@ HRESULT Direct3D9Video::CreateDevice()
     hr = m_pd3d->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &d3ddm);
     if (FAILED(hr))
     {
-        TRACE("GetAdapterDisplayMode failed with %#08lx\n", hr);
+        TRACE("GetAdapterDisplayMode failed with {:08x}\n", hr);
         return hr;
     }
 
@@ -279,7 +279,7 @@ HRESULT Direct3D9Video::CreateDevice()
 
     hr = m_pd3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hwndCanvas, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &m_d3dpp, &m_pd3dDevice);
     if (FAILED(hr))
-        TRACE("CreateDevice failed with %#08lx\n", hr);
+        TRACE("CreateDevice failed with {:08x}\n", hr);
 
     return hr;
 }
@@ -302,7 +302,7 @@ bool Direct3D9Video::Reset(bool fNewDevice_)
     {
         fResetting = true;
         if (FAILED(hr = m_pd3dDevice->Reset(&m_d3dpp)))
-            TRACE("Reset() returned %#08lx\n", hr);
+            TRACE("Reset() returned {:08x}\n", hr);
         fResetting = false;
     }
     else
@@ -342,7 +342,7 @@ bool Direct3D9Video::DrawChanges(const FrameBuffer& fb)
     D3DLOCKED_RECT d3dlr;
     if (!m_pTexture || FAILED(hr = m_pTexture->LockRect(0, &d3dlr, &rect, 0)))
     {
-        TRACE("!!! DrawChanges() failed to lock back surface (%#08lx)\n", hr);
+        TRACE("!!! DrawChanges() failed to lock back surface ({:08x})\n", hr);
         return false;
     }
 

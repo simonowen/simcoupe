@@ -370,7 +370,7 @@ bool Expr::Factor(const char*& p, int flags)
     if (!matched && isalpha(*p))
     {
         auto p2 = p;
-        int sym_value{};
+        std::optional<int> sym_value;
 
         matched = true;
 
@@ -388,9 +388,9 @@ bool Expr::Factor(const char*& p, int flags)
         {
             nodes.push_back({ TokenType::Variable, token.token });
         }
-        else if (!(flags & noSyms) && (sym_value = Symbol::LookupSymbol(str_token)) >= 0)
+        else if (!(flags & noSyms) && (sym_value = Symbol::LookupSymbol(str_token)))
         {
-            nodes.push_back({ TokenType::Number, sym_value });
+            nodes.push_back({ TokenType::Number, *sym_value });
         }
         else if (FindToken(std::string(p, p2), unary_op_tokens, token))
         {

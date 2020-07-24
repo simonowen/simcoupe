@@ -57,10 +57,17 @@ public:
     void FrameRect(int x, int y, int nWidth_, int nHeight_, uint8_t colour, bool round_ = false);
     void Poke(int x, int y, const uint8_t* data, int len);
     void DrawImage(int x, int y, int width, int height, const uint8_t* img_data, const uint8_t* img_palette);
-    void DrawString(int x, int y, const std::string& str, uint8_t colour = WHITE);
+    void DrawString(int x, int y, const std::string_view& str);
+    void DrawString(int x, int y, uint8_t colour, const std::string_view& str);
+
+    template <typename ...Args>
+    void DrawString(int x, int y, const std::string_view& format, Args&&... args)
+    {
+        DrawString(x, y, WHITE, fmt::format(format, std::forward<Args>(args)...));
+    }
 
     void SetFont(std::shared_ptr<Font> font);
-    int StringWidth(const char* pcsz_, int max_chars=-1) const;
+    int StringWidth(const std::string_view& str, int max_chars=-1) const;
 
 protected:
     int m_width{};

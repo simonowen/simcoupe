@@ -460,7 +460,7 @@ bool Start(bool fHalfSize_)
     f = fopen(szPath, "wb+");
     if (!f)
     {
-        Frame::SetStatus("Failed to open %s for writing!", szPath);
+        Frame::SetStatus("Failed to open {} for writing!", szPath);
         return false;
     }
 
@@ -509,7 +509,7 @@ void Stop()
     frame_buffer.clear();
     resample_buffer.clear();
 
-    Frame::SetStatus("Saved %s", pszFile);
+    Frame::SetStatus("Saved {}", pszFile);
 }
 
 void Toggle(bool fHalfSize_)

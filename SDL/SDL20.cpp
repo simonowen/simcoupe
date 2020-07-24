@@ -168,7 +168,7 @@ bool SDLTexture::DrawChanges(const FrameBuffer& fb)
     int nPitch{};
     if (SDL_LockTexture(m_pTexture, nullptr, &pvPixels, &nPitch) != 0)
     {
-        TRACE("!!! SDL_LockSurface failed: %s\n", SDL_GetError());
+        TRACE("!!! SDL_LockSurface failed: {}\n", SDL_GetError());
         return false;
     }
 

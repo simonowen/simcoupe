@@ -65,12 +65,11 @@ bool Input::Init(bool fFirstInit_/*=false*/)
     bool fRet = false;
 
     Exit(true);
-    TRACE("Input::Init(%d)\n", fFirstInit_);
 
     auto hinstDInput = LoadLibrary("DINPUT.DLL");
     if (!hinstDInput)
     {
-        Message(msgError, "DINPUT.DLL not found.");
+        Message(MsgType::Error, "DINPUT.DLL not found.");
         return false;
     }
 
@@ -80,7 +79,7 @@ bool Input::Init(bool fFirstInit_/*=false*/)
 
     if (!pfnDirectInputCreate)
     {
-        Message(msgError, "DirectInputCreate failed.");
+        Message(MsgType::Error, "DirectInputCreate failed.");
         return false;
     }
 
@@ -105,8 +104,6 @@ bool Input::Init(bool fFirstInit_/*=false*/)
 
 void Input::Exit(bool fReInit_/*=false*/)
 {
-    TRACE("Input::Exit(%d)\n", fReInit_);
-
     if (pdiKeyboard) { pdiKeyboard->Unacquire(); pdiKeyboard->Release(); pdiKeyboard = nullptr; }
     if (pdidJoystick1) { pdidJoystick1->Unacquire(); pdidJoystick1->Release(); pdidJoystick1 = nullptr; }
     if (pdidJoystick2) { pdidJoystick2->Unacquire(); pdidJoystick2->Release(); pdidJoystick2 = nullptr; }
@@ -121,11 +118,11 @@ bool InitKeyboard()
 {
     HRESULT hr;
     if (FAILED(hr = pdi->CreateDevice(GUID_SysKeyboard, &pdiKeyboard, nullptr)))
-        TRACE("!!! Failed to create keyboard device (%#08lx)\n", hr);
+        TRACE("!!! Failed to create keyboard device ({:08x})\n", hr);
     else if (FAILED(hr = pdiKeyboard->SetCooperativeLevel(g_hwnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND)))
-        TRACE("!!! Failed to set cooperative level of keyboard device (%#08lx)\n", hr);
+        TRACE("!!! Failed to set cooperative level of keyboard device ({:08x})\n", hr);
     else if (FAILED(hr = pdiKeyboard->SetDataFormat(&c_dfDIKeyboard)))
-        TRACE("!!! Failed to set data format of keyboard device (%#08lx)\n", hr);
+        TRACE("!!! Failed to set data format of keyboard device ({:08x})\n", hr);
     else
     {
         DIPROPDWORD dipdw = { { sizeof(DIPROPDWORD), sizeof(DIPROPHEADER), 0, DIPH_DEVICE, }, EVENT_BUFFER_SIZE, };
@@ -146,14 +143,14 @@ BOOL CALLBACK EnumJoystickProc(LPCDIDEVICEINSTANCE pdiDevice_, LPVOID lpv_)
 
     LPDIRECTINPUTDEVICE pdiJoystick;
     if (FAILED(hr = pdi->CreateDevice(pdiDevice_->guidInstance, &pdiJoystick, nullptr)))
-        TRACE("!!! Failed to create joystick device (%#08lx)\n", hr);
+        TRACE("!!! Failed to create joystick device ({:08x})\n", hr);
     else
     {
         DIDEVICEINSTANCE didi = { sizeof(didi) };
         strcpy(didi.tszInstanceName, "<unknown>");  // WINE fix for missing implementation
 
         if (FAILED(hr = pdiJoystick->GetDeviceInfo(&didi)))
-            TRACE("!!! Failed to get joystick device info (%#08lx)\n", hr);
+            TRACE("!!! Failed to get joystick device info ({:08x})\n", hr);
 
         // Overloaded use - if custom data was supplied, it's a combo box ID to add the string to
         else if (lpv_)
@@ -164,7 +161,7 @@ BOOL CALLBACK EnumJoystickProc(LPCDIDEVICEINSTANCE pdiDevice_, LPVOID lpv_)
 
             // We need an IDirectInputDevice2 interface for polling, so query for it
             if (FAILED(hr = pdiJoystick->QueryInterface(IID_IDirectInputDevice2, reinterpret_cast<void**>(&pDevice))))
-                TRACE("!!! Failed to query joystick for IID_IDirectInputDevice2 (%#08lx)\n", hr);
+                TRACE("!!! Failed to query joystick for IID_IDirectInputDevice2 ({:08x})\n", hr);
 
             // If the device name matches the joystick 1 device name, save a pointer to it
             else if (!lstrcmpi(didi.tszInstanceName, GetOption(joydev1)))
@@ -193,9 +190,9 @@ bool InitJoystick(LPDIRECTINPUTDEVICE2& pJoystick_)
 
     // Set the joystick device to use the joystick format
     if (FAILED(hr = pJoystick_->SetDataFormat(&c_dfDIJoystick)))
-        TRACE("!!! Failed to set data format of joystick device (%#08lx)\n", hr);
+        TRACE("!!! Failed to set data format of joystick device ({:08x})\n", hr);
     else if (FAILED(hr = pJoystick_->SetCooperativeLevel(g_hwnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND)))
-        TRACE("!!! Failed to set cooperative level of joystick device (%#08lx)\n", hr);
+        TRACE("!!! Failed to set cooperative level of joystick device ({:08x})\n", hr);
     else
     {
         // Deadzone tolerance percentage and range of each axis (-100 to +100)
@@ -209,9 +206,9 @@ bool InitJoystick(LPDIRECTINPUTDEVICE2& pJoystick_)
             diPdw.diph.dwObj = diPrg.diph.dwObj = anAxes[i];
 
             if (FAILED(hr = pJoystick_->SetProperty(DIPROP_DEADZONE, &diPdw.diph)))
-                TRACE("!!! Failed to set joystick deadzone (%#08lx)\n", hr);
+                TRACE("!!! Failed to set joystick deadzone ({:08x})\n", hr);
             else if (FAILED(hr = pJoystick_->SetProperty(DIPROP_RANGE, &diPrg.diph)))
-                TRACE("!!! Failed to set joystick range (%#08lx)\n", hr);
+                TRACE("!!! Failed to set joystick range ({:08x})\n", hr);
         }
 
         return true;
@@ -231,7 +228,7 @@ bool InitJoysticks()
 
     // Enumerate the joystick devices
     if (FAILED(hr = pdi->EnumDevices(DIDEVTYPE_JOYSTICK, EnumJoystickProc, nullptr, DIEDFL_ATTACHEDONLY)))
-        TRACE("!!! Failed to enumerate joystick devices (%#08lx)\n", hr);
+        TRACE("!!! Failed to enumerate joystick devices ({:08x})\n", hr);
 
     // Initialise matched joysticks
     if (pdidJoystick1) InitJoystick(pdidJoystick1);
@@ -283,7 +280,7 @@ void Input::Purge()
     {
         DWORD dwItems = ULONG_MAX;
         if (SUCCEEDED(pdiKeyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), nullptr, &dwItems, 0)) && dwItems)
-            TRACE("%lu keyboard items purged\n", dwItems);
+            TRACE("{} keyboard items purged\n", dwItems);
     }
 
     Keyboard::Purge();
@@ -305,7 +302,7 @@ void ReadKeyboard()
                 bool fPressed = !!(abEvents[i].dwData & 0x80);
 
                 Keyboard::SetKey(nScanCode, fPressed);
-                TRACE("%d %s\n", nScanCode, fPressed ? "pressed" : "released");
+                TRACE("{} {}\n", nScanCode, fPressed ? "pressed" : "released");
             }
         }
     }
@@ -322,7 +319,7 @@ void ReadJoystick(int nJoystick_, LPDIRECTINPUTDEVICE2 pDevice_)
             return;
 
         if (FAILED(hr = pDevice_->Poll()) || FAILED(hr = pDevice_->GetDeviceState(sizeof(dijs), &dijs)))
-            TRACE("!!! Failed to read joystick %d state (%#08lx)\n", nJoystick_, hr);
+            TRACE("!!! Failed to read joystick {} state ({:08x})\n", nJoystick_, hr);
     }
 
 
@@ -566,7 +563,7 @@ void Input::FillJoystickCombo(HWND hwndCombo_)
 {
     HRESULT hr;
     if (FAILED(hr = pdi->EnumDevices(DIDEVTYPE_JOYSTICK, EnumJoystickProc, reinterpret_cast<LPVOID>(hwndCombo_), DIEDFL_ATTACHEDONLY)))
-        TRACE("!!! Failed to enumerate joystick devices (%#08lx)\n", hr);
+        TRACE("!!! Failed to enumerate joystick devices ({:08x})\n", hr);
 }
 
 

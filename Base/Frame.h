@@ -58,7 +58,13 @@ int Width();
 int Height();
 
 void SetView(int num_cells, int num_lines);
-void SetStatus(const char* pcszFormat_, ...);
+void SetStatus(std::string&& str);
+
+template <typename ...Args>
+void SetStatus(const std::string& format, Args&& ... args)
+{
+    SetStatus(fmt::format(format, std::forward<Args>(args)...));
+}
 
 constexpr std::pair<int, int> GetRasterPos(uint32_t cycle_counter)
 {

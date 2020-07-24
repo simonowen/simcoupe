@@ -107,11 +107,11 @@ bool DeviceHardDisk::Open(bool fReadOnly_/*=false*/)
     if (!IsOpen())
     {
         if (dwError != ERROR_FILE_NOT_FOUND && dwError != ERROR_PATH_NOT_FOUND)
-            TRACE("Failed to open %s (%#08lx)\n", sz, dwError);
+            TRACE("Failed to open {} ({:08x})\n", sz, dwError);
     }
     else if (!Lock(fReadOnly_))
     {
-        TRACE("Failed to get exclusive access to %s\n", sz);
+        TRACE("Failed to get exclusive access to {}\n", sz);
     }
     else if (!m_pbSector)
     {
@@ -239,11 +239,11 @@ bool DeviceHardDisk::ReadSector(UINT uSector_, uint8_t* pb_)
     DWORD dwRead;
 
     if (SetFilePointer(m_hDevice, dwLow, &lHigh, FILE_BEGIN) == 0xffffffff)
-        TRACE("CDeviceHardDisk::ReadSector: seek failed (%lu)\n", GetLastError());
+        TRACE("CDeviceHardDisk::ReadSector: seek failed ({})\n", GetLastError());
     else if (!ReadFile(m_hDevice, m_pbSector, dwSize, &dwRead, nullptr))
-        TRACE("CDeviceHardDisk::ReadSector: read failed (%lu) [pb_=%08lx dwSize=%lu]\n", GetLastError(), pb_, dwSize);
+        TRACE("CDeviceHardDisk::ReadSector: read failed ({}) [size={}]\n", GetLastError(), dwSize);
     else if (dwRead != dwSize)
-        TRACE("CDeviceHardDisk::ReadSector: short read of %lu bytes\n", dwRead);
+        TRACE("CDeviceHardDisk::ReadSector: short read of {} bytes\n", dwRead);
     else
     {
         memcpy(pb_, m_pbSector, dwSize);

@@ -232,29 +232,32 @@ static const std::vector<uint8_t> gui_font
 
 ////////////////////////////////////////////////////////////////////////////////
 
-int Font::StringWidth(const char* str, int max_chars) const
+int Font::StringWidth(const std::string_view& str, int max_chars) const
 {
+    bool expect_colour = false;
     int max_width = 0;
     int width = 0;
 
-    for (uint8_t ch; (ch = *str) && max_chars--; ++str)
+    for (uint8_t ch : str)
     {
         if (ch == '\n')
         {
             width = 0;
             continue;
         }
-
-        if (ch == '\a')
+        else if (ch == '\a')
         {
-            if (*str)
-            {
-                str++;
-                max_chars++;
-            }
-
+            expect_colour = true;
             continue;
         }
+        else if (expect_colour)
+        {
+            expect_colour = false;
+            continue;
+        }
+
+        if (!max_chars--)
+            break;
 
         if (ch < first_chr || ch > last_chr)
             ch = DEFAULT_CHR;
@@ -265,7 +268,8 @@ int Font::StringWidth(const char* str, int max_chars) const
         }
         else
         {
-            auto char_width = data[(ch - first_chr) * bytes_per_chr] & 0xf;
+            size_t offset = (ch - first_chr) * bytes_per_chr;
+            auto char_width = data[offset] & 0xf;
             width += (width ? CHAR_SPACING : 0) + char_width + this->width;
         }
 

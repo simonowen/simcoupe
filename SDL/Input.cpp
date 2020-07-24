@@ -187,7 +187,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
                 break;
         }
 
-        TRACE("SDL_TEXTINPUT: %s (nLastKey=%d, nLastMods=%d)\n", pEvent->text, nLastKey, nLastMods);
+        TRACE("SDL_TEXTINPUT: {} (nLastKey={}, nLastMods={})\n", pEvent->text, nLastKey, nLastMods);
         Keyboard::SetKey(nLastKey, true, nLastMods, nChr);
         break;
     }
@@ -213,7 +213,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
 
         int nChr = (nKey < HK_SPACE || (nKey < HK_MIN && (pKey->mod & KMOD_CTRL))) ? nKey : 0;
 
-        TRACE("SDL_KEY%s (%d -> %d)\n", fPress ? "DOWN" : "UP", pKey->sym, nKey);
+        TRACE("SDL_KEY{} ({} -> {})\n", fPress ? "DOWN" : "UP", pKey->sym, nKey);
 
         if (fPress)
         {
@@ -245,7 +245,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
             break;
         }
 
-        //            TRACE("Key %s: %d (mods=%03x u=%d)\n", fPress ? "down" : "up", nKey, pKey->mod, pKey->unicode);
+        // TRACE("Key {}: {} (mods={:03x} u={})\n", fPress ? "down" : "up", nKey, pKey->mod, pKey->unicode);
 
         if (GUI::IsActive())
         {
@@ -361,7 +361,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         else if (fMouseActive)
         {
             pMouse->SetButton(pEvent_->button.button, true);
-            TRACE("Mouse button %d pressed\n", pEvent_->button.button);
+            TRACE("Mouse button {} pressed\n", pEvent_->button.button);
         }
 
         // If the mouse interface is enabled and being read by something other than the ROM, a left-click acquires it
@@ -386,7 +386,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         }
         else if (fMouseActive)
         {
-            TRACE("Mouse button %d released\n", pEvent_->button.button);
+            TRACE("Mouse button {} released\n", pEvent_->button.button);
             pMouse->SetButton(pEvent_->button.button, false);
         }
         break;

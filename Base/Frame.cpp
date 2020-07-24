@@ -63,7 +63,8 @@ static uint32_t status_time;
 
 int s_nWidth, s_nHeight;
 
-char szStatus[128], szProfile[128];
+static std::string status_text;
+static std::string profile_text;
 char szScreenPath[MAX_PATH];
 
 struct REGION
@@ -278,8 +279,8 @@ void Flyback()
     if (!(++flash_frame % MODE12_FLASH_FRAMES))
         g_flash_phase = !g_flash_phase;
 
-    if (szStatus[0] && ((OSD::GetTime() - status_time) > STATUS_ACTIVE_TIME))
-        szStatus[0] = '\0';
+    if (!status_text.empty() && ((OSD::GetTime() - status_time) > STATUS_ACTIVE_TIME))
+        status_text.clear();
 
     frame_number++;
 }
@@ -312,10 +313,7 @@ void Sync()
     if ((dwNow - dwLastProfile) >= 1000)
     {
         int nPercent = frame_number * 2;
-
-        sprintf(szProfile, "%d%%", nPercent);
-        TRACE("%s  %d frames\n", szProfile, frame_number);
-
+        profile_text = fmt::format("{}%", nPercent);
         dwLastProfile = dwNow - ((dwNow - dwLastProfile) % 1000);
         frame_number = 0;
     }
@@ -364,16 +362,16 @@ void DrawOSD(FrameBuffer& fb)
 
     if (GetOption(profile) && !GUI::IsActive())
     {
-        int x = width - fb.StringWidth(szProfile);
-        fb.DrawString(x, 2, szProfile, BLACK);
-        fb.DrawString(x - 2, 1, szProfile, WHITE);
+        int x = width - fb.StringWidth(profile_text);
+        fb.DrawString(x, 2, BLACK, profile_text);
+        fb.DrawString(x - 2, 1, WHITE, profile_text);
     }
 
-    if (GetOption(status) && szStatus[0])
+    if (GetOption(status) && !status_text.empty())
     {
-        int x = width - fb.StringWidth(szStatus);
-        fb.DrawString(x, height - Font::CHAR_HEIGHT - 1, szStatus, BLACK);
-        fb.DrawString(x - 2, height - Font::CHAR_HEIGHT - 2, szStatus, WHITE);
+        int x = width - fb.StringWidth(status_text);
+        fb.DrawString(x, height - Font::CHAR_HEIGHT - 1, BLACK, status_text);
+        fb.DrawString(x - 2, height - Font::CHAR_HEIGHT - 2, WHITE, status_text);
     }
 }
 
@@ -387,15 +385,10 @@ void SaveSSX()
     save_ssx = true;
 }
 
-void SetStatus(const char* pcszFormat_, ...)
+void SetStatus(std::string&& str)
 {
-    va_list pcvArgs;
-    va_start(pcvArgs, pcszFormat_);
-    vsprintf(szStatus, pcszFormat_, pcvArgs);
-    va_end(pcvArgs);
-
+    status_text = std::move(str);
     status_time = OSD::GetTime();
-    TRACE("Status: %s\n", szStatus);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -127,7 +127,7 @@ uint16_t ATADevice::In(uint16_t wPort_)
         }
 
         default:
-            TRACE("ATA: Unhandled read from %#04x\n", wPort_);
+            TRACE("ATA: Unhandled read from {:04x}\n", wPort_);
             break;
         }
         break;
@@ -159,7 +159,7 @@ uint16_t ATADevice::In(uint16_t wPort_)
             break;
 
         default:
-            TRACE("ATA: Unhandled read from %#04x\n", wPort_);
+            TRACE("ATA: Unhandled read from {:04x}\n", wPort_);
             break;
         }
         break;
@@ -218,7 +218,7 @@ void ATADevice::Out(uint16_t wPort_, uint16_t wVal_)
                         // Multi-sector write?
                         else if (--m_sRegs.bSectorCount)
                         {
-                            TRACE(" %d sectors left in multi-sector write...\n", m_sRegs.bSectorCount);
+                            TRACE(" {} sectors left in multi-sector write...\n", m_sRegs.bSectorCount);
 
                             NextSector();
 
@@ -235,33 +235,33 @@ void ATADevice::Out(uint16_t wPort_, uint16_t wVal_)
         }
 
         case 1:
-            TRACE("ATA: WRITE features = %#02x\n", bVal);
+            TRACE("ATA: WRITE features = {:02x}\n", bVal);
             m_sRegs.bFeatures = bVal;
             break;
 
         case 2:
-            TRACE("ATA: WRITE sector count = %#02x\n", bVal);
+            TRACE("ATA: WRITE sector count = {:02x}\n", bVal);
             m_sRegs.bSectorCount = bVal;
             break;
 
         case 3:
-            TRACE("ATA: WRITE sector number = %#02x\n", bVal);
+            TRACE("ATA: WRITE sector number = {:02x}\n", bVal);
             m_sRegs.bSector = bVal;
             break;
 
         case 4:
-            TRACE("ATA: WRITE cylinder low = %#02x\n", bVal);
+            TRACE("ATA: WRITE cylinder low = {:02x}\n", bVal);
             m_sRegs.bCylinderLow = bVal;
             break;
 
         case 5:
-            TRACE("ATA: WRITE cylinder high = %#02x\n", bVal);
+            TRACE("ATA: WRITE cylinder high = {:02x}\n", bVal);
             m_sRegs.bCylinderHigh = bVal;
             break;
 
         case 6:
         {
-            TRACE("ATA: WRITE device/head = %#02x\n", bVal);
+            TRACE("ATA: WRITE device/head = {:02x}\n", bVal);
             m_sRegs.bDeviceHead = bVal;
 
             // Device ready and selected head settled
@@ -355,7 +355,7 @@ void ATADevice::Out(uint16_t wPort_, uint16_t wVal_)
             break;
 
             case 0xef:
-                TRACE("ATA: Disk write: Set features (%#02x)\n", m_sRegs.bFeatures);
+                TRACE("ATA: Disk write: Set features ({:02x})\n", m_sRegs.bFeatures);
 
                 switch (m_sRegs.bFeatures)
                 {
@@ -389,7 +389,7 @@ void ATADevice::Out(uint16_t wPort_, uint16_t wVal_)
                 break;
 
             default:
-                TRACE("ATA: !!! Unrecognised command (%#02x)\n", bVal);
+                TRACE("ATA: !!! Unrecognised command ({:02x})\n", bVal);
                 m_sRegs.bStatus = ATA_STATUS_DRDY | ATA_STATUS_ERROR;
                 m_sRegs.bError = ATA_ERROR_ABRT;
 
@@ -400,7 +400,7 @@ void ATADevice::Out(uint16_t wPort_, uint16_t wVal_)
         break;
 
         default:
-            TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
+            TRACE("ATA: Unhandled write to {:04x} with {:02x}\n", wPort_, bVal);
             break;
         }
         break;
@@ -412,7 +412,7 @@ void ATADevice::Out(uint16_t wPort_, uint16_t wVal_)
         {
         case 6:
         {
-            TRACE("ATA: Device control register set to %#02x\n", bVal);
+            TRACE("ATA: Device control register set to {:02x}\n", bVal);
             m_sRegs.bDeviceControl = bVal;
 
             // If SRST is set, perform a soft reset
@@ -426,14 +426,14 @@ void ATADevice::Out(uint16_t wPort_, uint16_t wVal_)
         }
 
         default:
-            TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
+            TRACE("ATA: Unhandled write to {:04x} with {:02x}\n", wPort_, bVal);
             break;
         }
         break;
     }
 
     default:
-        TRACE("ATA: Unhandled write to %#04x with %#02x\n", wPort_, bVal);
+        TRACE("ATA: Unhandled write to {:04x} with {:02x}\n", wPort_, bVal);
         break;
     }
 }
@@ -453,7 +453,7 @@ bool ATADevice::ReadWriteSector(bool fWrite_)
         if (uSector >= m_sGeometry.uTotalSectors)
             return false;
 
-        TRACE("%s LBA=%u\n", fWrite_ ? "Writing" : "Reading", uSector);
+        TRACE("{} LBA={}\n", fWrite_ ? "Writing" : "Reading", uSector);
     }
     else // CHS request
     {
@@ -468,7 +468,7 @@ bool ATADevice::ReadWriteSector(bool fWrite_)
 
         // Calculate the logical block number from the CHS position
         uSector = (wCylinder * m_sGeometry.uHeads + bHead) * m_sGeometry.uSectors + (bSector - 1);
-        TRACE("%s CHS %u:%u:%u  [LBA=%u]\n", fWrite_ ? "Writing" : "Reading", wCylinder, bHead, bSector, uSector);
+        TRACE("{} CHS {}:{}:{}  [LBA={}]\n", fWrite_ ? "Writing" : "Reading", wCylinder, bHead, bSector, uSector);
     }
 
     if (fWrite_)
@@ -543,14 +543,12 @@ void ATADevice::SetIdentifyData(IDENTIFYDEVICE* pid_)
     m_sIdentify.word[6] = m_sGeometry.uSectors;
 
     // Form an 8-character string from the current date, to use as firmware revision
-    time_t tNow = time(nullptr);
-    tm* ptm = localtime(&tNow);
-    char szDate[64] = {};
-    snprintf(szDate, sizeof(szDate) - 1, "%04u%02u%02u", ptm->tm_year + 1900, ptm->tm_mon + 1, ptm->tm_mday);
+    auto now = time(nullptr);
+    auto date_str = fmt::format(":%Y-%m-%d", fmt::localtime(now));
 
     // Serial number, firmware revision and model number
     SetIdentifyString("", &m_sIdentify.word[10], 20);
-    SetIdentifyString(szDate, &m_sIdentify.word[23], 8);
+    SetIdentifyString(date_str, &m_sIdentify.word[23], 8);
     SetIdentifyString("SimCoupe Device", &m_sIdentify.word[27], 40);
 
     // Read/write multiple supports 1 sector blocks
@@ -624,13 +622,13 @@ void ATADevice::SetIdentifyData(IDENTIFYDEVICE* pid_)
 }
 
 
-/*static*/ void ATADevice::SetIdentifyString(const char* pcszValue_, void* pv_, size_t cb_)
+/*static*/ void ATADevice::SetIdentifyString(const std::string& str , void* pv_, size_t cb_)
 {
     auto pb = reinterpret_cast<uint8_t*>(pv_);
 
     // Fill with spaces, then copy the string over it (excluding the null terminator)
     memset(pb, ' ', cb_);
-    memcpy(pb, pcszValue_, cb_ = strlen(pcszValue_));
+    memcpy(pb, str.data(), cb_ = str.length());
 
     // Byte-swap the string for the expected endian
     for (size_t i = 0; i < cb_; i += 2)

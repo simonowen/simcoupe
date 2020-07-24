@@ -246,7 +246,6 @@ found_bottom:
         }
     }
 
-    // TRACE("RECT: l=%u t=%u r=%u b=%u\n", l, t, r, b);
     wl = l;
     wt = t;
     ww = r - l + 1;
@@ -288,14 +287,12 @@ static uint8_t UpdateImage(uint8_t* pb_, const FrameBuffer& fb)
             // End of a colour run?
             if (!fMatch && nRun > nTrans)
             {
-                // TRACE("colour run of %d * %02X\n", nRun, bColour);
                 memset(pbSub_, bColour, nRun);
                 pbSub_ += nRun;
             }
             // End of a transparency run, or colour/transparent run of equal size?
             else if (!fTrans && (nTrans > nRun || (!fMatch && nRun)))
             {
-                // TRACE("trans run of %d\n", nTrans);
                 memset(pbSub_, 0xff, nTrans);
                 pbSub_ += nTrans;
             }
@@ -318,14 +315,12 @@ static uint8_t UpdateImage(uint8_t* pb_, const FrameBuffer& fb)
     // Complete the final colour run, if larger
     if (nRun > nTrans)
     {
-        // TRACE("final run of %d x %02X\n", nRun, bColour);
         memset(pbSub_, bColour, nRun);
         pbSub_ += nRun;
     }
     // or the final transparent run
     else if (nTrans)
     {
-        // TRACE("final trans of %d\n", nTrans);
         memset(pbSub_, 0xff, nTrans);
         pbSub_ += nTrans;
     }
@@ -381,7 +376,7 @@ bool Start(bool fAnimLoop_)
     // Recording a looped animation?
     nLoopState = fAnimLoop_ ? kIgnoreFirstChange : kNone;
 
-    Frame::SetStatus("Recording GIF %s", fAnimLoop_ ? "loop" : "animation");
+    Frame::SetStatus("Recording GIF {}", fAnimLoop_ ? "loop" : "animation");
     return true;
 }
 
@@ -403,7 +398,7 @@ void Stop()
     delete[] pbFirst; pbFirst = nullptr;
     delete[] pbSub; pbSub = nullptr;
 
-    Frame::SetStatus("Saved %s", pszFile);
+    Frame::SetStatus("Saved {}", pszFile);
 }
 
 void Toggle(bool fAnimLoop_)

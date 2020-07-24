@@ -33,7 +33,7 @@ public:
     static bool CheckEvents();
 
     static bool DoAction(Action action, bool pressed = true);
-    static void ShowMessage(eMsgType eType_, const char* pszMessage_);
+    static void ShowMessage(MsgType type, const std::string& message);
 };
 
 

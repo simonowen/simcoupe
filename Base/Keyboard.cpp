@@ -286,7 +286,7 @@ void PrepareKeyTable(MAPPED_KEY* asKeys_)
     for (int i = 0; asKeys_[i].nChar; i++)
     {
         asKeys_[i].nKey = Input::MapChar(asKeys_[i].nChar, &asKeys_[i].nMods);
-        // TRACE("%d maps to %d with mods of %02x\n", asKeys_[i].nChar, asKeys_[i].nKey, asKeys_[i].nMods);
+        // TRACE("{} maps to {} with mods of {:02x}\n", asKeys_[i].nChar, asKeys_[i].nKey, asKeys_[i].nMods);
     }
 }
 
@@ -317,9 +317,9 @@ void ProcessShiftedKeys(MAPPED_KEY* asKeys_)
         // Key and necessary modifiers pressed?
         if (asKeys_[i].nMods && IsPressed(asKeys_[i].nKey) && (asKeys_[i].nMods & nMods) == asKeys_[i].nMods)
         {
-            //          TRACE("%d (%d) pressed with mods %02x (of %02x)\n", asKeys_[i].nKey, asKeys_[i].nChar, asKeys_[i].nMods, nMods);
+            // TRACE("{} ({}) pressed with mods {:02x} (of {:02x})\n", asKeys_[i].nKey, asKeys_[i].nChar, asKeys_[i].nMods, nMods);
 
-                        // Press the keys required to generate the symbol
+            // Press the keys required to generate the symbol
             PressSamKey(asKeys_[i].nSamMods);
             PressSamKey(asKeys_[i].nSamKey);
 
@@ -377,7 +377,7 @@ static bool UpdateKeyTable(MAPPED_KEY* asKeys_, int nKey_, int nMods_, int nChar
         {
             // Log if the mapping is new
             if (!asKeys_[i].nKey)
-                TRACE("%d maps to %d with mods of %02x\n", nChar_, nKey_, nMods_);
+                TRACE("{} maps to {} with mods of {:02x}\n", nChar_, nKey_, nMods_);
 
             // Update the key mapping
             asKeys_[i].nKey = nKey_;

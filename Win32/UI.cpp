@@ -167,17 +167,12 @@ void ClipPath(char* pszPath_, size_t nLength_);
 
 bool UI::Init(bool fFirstInit_/*=false*/)
 {
-    TRACE("UI::Init()\n");
-
     LoadRecentFiles();
-
     return InitWindow();
 }
 
 void UI::Exit(bool fReInit_/*=false*/)
 {
-    TRACE("UI::Exit()\n");
-
     if (g_hwnd)
     {
         SaveWindowPosition(g_hwnd);
@@ -226,24 +221,24 @@ bool UI::CheckEvents()
     return true;
 }
 
-void UI::ShowMessage(eMsgType eType_, const char* pcszMessage_)
+void UI::ShowMessage(MsgType type, const std::string& message)
 {
     const char* const pcszCaption = WINDOW_CAPTION;
     HWND hwndParent = GetActiveWindow();
 
-    switch (eType_)
+    switch (type)
     {
-    case msgWarning:
-        MessageBox(hwndParent, pcszMessage_, pcszCaption, MB_OK | MB_ICONEXCLAMATION);
+    case MsgType::Warning:
+        MessageBox(hwndParent, message.c_str(), pcszCaption, MB_OK | MB_ICONEXCLAMATION);
         break;
 
-    case msgError:
-        MessageBox(hwndParent, pcszMessage_, pcszCaption, MB_OK | MB_ICONSTOP);
+    case MsgType::Error:
+        MessageBox(hwndParent, message.c_str(), pcszCaption, MB_OK | MB_ICONSTOP);
         break;
 
         // Something went seriously wrong!
-    case msgFatal:
-        MessageBox(hwndParent, pcszMessage_, pcszCaption, MB_OK | MB_ICONSTOP);
+    case MsgType::Fatal:
+        MessageBox(hwndParent, message.c_str(), pcszCaption, MB_OK | MB_ICONSTOP);
         break;
     }
 }
@@ -287,7 +282,7 @@ void ResizeCanvas(int nWidthView_, int nHeightView_)
 
     // Set the new canvas position and size
     MoveWindow(hwndCanvas, nX, nY, nWidth, nHeight, TRUE);
-    TRACE("Canvas: %d,%d %dx%d\n", nX, nY, nWidth, nHeight);
+    TRACE("Canvas: {},{} {}x{}\n", nX, nY, nWidth, nHeight);
 }
 
 // Resize the main window to a given height, or update width if height is zero
@@ -374,7 +369,7 @@ bool ChangesSaved(DiskDevice& floppy)
 
     if (!floppy.Save())
     {
-        Message(msgWarning, "Failed to save changes to %s", floppy.DiskFile());
+        Message(MsgType::Warning, "Failed to save changes to {}", floppy.DiskFile());
         return false;
     }
 
@@ -395,7 +390,7 @@ bool GetSaveLoadFile(LPOPENFILENAME lpofn_, bool fLoad_, bool fCheckExisting_ = 
             *lpofn_->lpstrFile = '\0';
         else
         {
-            TRACE("!!! GetSaveLoadFile() failed with %#08lx\n", CommDlgExtendedError());
+            TRACE("!!! GetSaveLoadFile() failed with {:x}\n", CommDlgExtendedError());
             return false;
         }
     }
@@ -501,9 +496,9 @@ bool AttachDisk(AtaAdapter& adapter, const char* pcszDisk_, int nDevice_)
         {
             // Access will be denied if we're running as a regular user, and without SAMdiskHelper
             if (GetLastError() == ERROR_ACCESS_DENIED)
-                Message(msgWarning, "Failed to open: %s\n\nAdminstrator access or SAMdiskHelper is required.", pcszDisk_);
+                Message(MsgType::Warning, "Failed to open: {}\n\nAdminstrator access or SAMdiskHelper is required.", pcszDisk_);
             else
-                Message(msgWarning, "Invalid or incompatible disk: %s", pcszDisk_);
+                Message(MsgType::Warning, "Invalid or incompatible disk: {}", pcszDisk_);
         }
         return false;
     }
@@ -524,7 +519,7 @@ bool InsertDisk(DiskDevice& floppy, const char* pcszPath_ = nullptr)
     if ((nDrive == 1 && GetOption(drive1) != drvFloppy) ||
         (nDrive == 2 && GetOption(drive2) != drvFloppy))
     {
-        Message(msgWarning, "Floppy drive %d is not present", nDrive);
+        Message(MsgType::Warning, "Floppy drive {} is not present", nDrive);
         return false;
     }
 
@@ -560,12 +555,12 @@ bool InsertDisk(DiskDevice& floppy, const char* pcszPath_ = nullptr)
     // Insert the disk to check it's a recognised format
     if (!floppy.Insert(pcszPath_, true))
     {
-        Message(msgWarning, "Invalid disk: %s", pcszPath_);
+        Message(MsgType::Warning, "Invalid disk: {}", pcszPath_);
         RemoveRecentFile(pcszPath_);
         return false;
     }
 
-    Frame::SetStatus("%s  inserted into drive %d%s", floppy.DiskFile(), (&floppy == pFloppy1.get()) ? 1 : 2, fReadOnly ? " (read-only)" : "");
+    Frame::SetStatus("{}  inserted into drive {}{}", floppy.DiskFile(), (&floppy == pFloppy1.get()) ? 1 : 2, fReadOnly ? " (read-only)" : "");
     AddRecentFile(pcszPath_);
     return true;
 }
@@ -577,7 +572,7 @@ bool EjectDisk(DiskDevice& floppy)
 
     if (ChangesSaved(floppy))
     {
-        Frame::SetStatus("%s  ejected from drive %d", floppy.DiskFile(), (&floppy == pFloppy1.get()) ? 1 : 2);
+        Frame::SetStatus("{}  ejected from drive {}", floppy.DiskFile(), (&floppy == pFloppy1.get()) ? 1 : 2);
         floppy.Eject();
         return true;
     }
@@ -615,12 +610,12 @@ bool InsertTape(HWND hwndParent_, const char* pcszPath_ = nullptr)
 
     if (!Tape::Insert(pcszPath_))
     {
-        Message(msgWarning, "Invalid tape: %s", pcszPath_);
+        Message(MsgType::Warning, "Invalid tape: {}", pcszPath_);
         RemoveRecentFile(pcszPath_);
         return false;
     }
 
-    Frame::SetStatus("%s  inserted", Tape::GetFile());
+    Frame::SetStatus("{}  inserted", Tape::GetFile());
     AddRecentFile(pcszPath_);
     return true;
 }
@@ -630,7 +625,7 @@ bool EjectTape()
     if (!Tape::IsInserted())
         return true;
 
-    Frame::SetStatus("%s  ejected", Tape::GetFile());
+    Frame::SetStatus("{}  ejected", Tape::GetFile());
     Tape::Eject();
     return true;
 }
@@ -1024,7 +1019,7 @@ bool UI::DoAction(Action action, bool pressed)
         case Action::Toggle5_4:
             SetOption(ratio5_4, !GetOption(ratio5_4));
             ResizeWindow();
-            Frame::SetStatus("%s aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
+            Frame::SetStatus("{} aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
             break;
 
         case Action::InsertFloppy1:
@@ -1325,7 +1320,7 @@ INT_PTR CALLBACK AboutDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
             GetDlgItemText(hdlg_, ID_HOMEPAGE, szURL, sizeof(szURL));
 
             if (ShellExecute(nullptr, nullptr, szURL, nullptr, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
-                Message(msgWarning, "Failed to launch SimCoupe homepage");
+                Message(MsgType::Warning, "Failed to launch SimCoupe homepage");
             break;
         }
         break;
@@ -1375,8 +1370,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
     static OwnerDrawnMenu odmenu(nullptr, IDT_MENU, aMenuIcons);
 
-    //    TRACE("WindowProc(%#08lx,%#04x,%#08lx,%#08lx)\n", hwnd_, uMsg_, wParam_, lParam_);
-
     LRESULT lResult;
     if (odmenu.WindowProc(hwnd_, uMsg_, wParam_, lParam_, &lResult))
         return lResult;
@@ -1423,7 +1416,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         // Main window activation change
     case WM_ACTIVATE:
     {
-        TRACE("WM_ACTIVATE (%#08lx)\n", wParam_);
+        TRACE("WM_ACTIVATE ({:x})\n", wParam_);
         HWND hwndActive = reinterpret_cast<HWND>(lParam_);
         bool fActive = LOWORD(wParam_) != WA_INACTIVE;
         bool fChildOpen = !fActive && hwndActive && GetParent(hwndActive) == hwnd_;
@@ -1872,7 +1865,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
                     ShellExecute(nullptr, nullptr, "http://simonowen.com/fdrawcmd/", nullptr, "", SW_SHOWMAXIMIZED);
             }
             else if (GetOption(drive1) == drvFloppy && ChangesSaved(*pFloppy1) && pFloppy1->Insert("A:"))
-                Frame::SetStatus("Using floppy drive %s", pFloppy1->DiskFile());
+                Frame::SetStatus("Using floppy drive {}", pFloppy1->DiskFile());
             break;
 
         case IDM_FILE_FLOPPY1_INSERT:       Actions::Do(Action::InsertFloppy1); break;
@@ -1941,7 +1934,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             {
                 int anSpeeds[] = { 50, 100, 200, 300, 500, 1000 };
                 SetOption(speed, anSpeeds[wId - IDM_SYSTEM_SPEED_50]);
-                Frame::SetStatus("%u%% Speed", GetOption(speed));
+                Frame::SetStatus("{}% Speed", GetOption(speed));
             }
             break;
         }
@@ -2410,7 +2403,7 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
                         break;
                 }
 
-                Frame::SetStatus("Imported %d bytes", nDone);
+                Frame::SetStatus("Imported {} bytes", nDone);
             }
             else
             {
@@ -2434,7 +2427,7 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
                         break;
                 }
 
-                Frame::SetStatus("Exported %d bytes", nDone);
+                Frame::SetStatus("Exported {} bytes", nDone);
             }
 
             fclose(f);
@@ -2598,7 +2591,7 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             // If the save failed, moan about it
             if (!fSaved)
             {
-                Message(msgWarning, "Failed to save to %s\n", szFile);
+                Message(MsgType::Warning, "Failed to save to {}\n", szFile);
                 break;
             }
 
@@ -2947,7 +2940,7 @@ INT_PTR CALLBACK SoundPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
                 SendDlgItemMessage(hdlg_, IDC_MIDI_OUT, CB_GETLBTEXT, nMidi, reinterpret_cast<LPARAM>(GetOption(midioutdev)));
 
             if (ChangedString(midioutdev) && !pMidi->SetDevice(GetOption(midioutdev)))
-                Message(msgWarning, "Failed to open MIDI device\n");
+                Message(MsgType::Warning, "Failed to open MIDI device\n");
         }
 
         break;

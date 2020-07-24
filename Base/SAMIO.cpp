@@ -623,7 +623,7 @@ uint8_t In(uint16_t wPort_)
 
             if (!(abUnhandled[nEntry] & nBit))
             {
-                Message(msgWarning, "Unhandled read from port %#04x\n", wPort_);
+                Message(MsgType::Warning, "Unhandled read from port {:04x}\n", wPort_);
                 abUnhandled[nEntry] |= nBit;
                 g_fDebug = true;
             }
@@ -883,7 +883,7 @@ void Out(uint16_t wPort_, uint8_t bVal_)
         // Floppy drive 2 *OR* the ATOM hard disk
         else if ((wPort_ & FLOPPY_MASK) == FLOPPY2_BASE)
         {
-            TRACE("PORT OUT(%04X) wrote %02X\n", wPort_, bVal_);
+            TRACE("PORT OUT({:02x}) wrote {:02x}\n", wPort_, bVal_);
 
             switch (GetOption(drive2))
             {
@@ -933,7 +933,7 @@ void Out(uint16_t wPort_, uint8_t bVal_)
 
             if (!(abUnhandled[nEntry] & nBit))
             {
-                Message(msgWarning, "Unhandled write to port %#04x, value = %02x\n", wPort_, bVal_);
+                Message(MsgType::Warning, "Unhandled write to port {:04x}, value = {:02x}\n", wPort_, bVal_);
                 abUnhandled[nEntry] |= nBit;
                 g_fDebug = true;
             }
