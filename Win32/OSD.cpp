@@ -37,6 +37,8 @@
 
 VOID CALLBACK CloseTimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime);
 
+constexpr auto TIMER_RESOLUTION_MS = 1;
+
 bool fPortable = false;
 
 
@@ -68,6 +70,8 @@ bool OSD::Init(bool fFirstInit_/*=false*/)
 
         // We'll do our own error handling, so suppress any windows error dialogs
         SetErrorMode(SEM_FAILCRITICALERRORS);
+
+        timeBeginPeriod(TIMER_RESOLUTION_MS);
     }
 
     return true;
@@ -75,6 +79,7 @@ bool OSD::Init(bool fFirstInit_/*=false*/)
 
 void OSD::Exit(bool fReInit_/*=false*/)
 {
+    timeEndPeriod(TIMER_RESOLUTION_MS);
 }
 
 
