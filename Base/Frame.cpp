@@ -42,7 +42,7 @@ constexpr uint8_t ATOM_LED_COLOUR = RED_6;
 constexpr uint8_t ATOMLITE_LED_COLOUR = 89;
 constexpr uint8_t LED_OFF_COLOUR = GREY_2;
 
-constexpr auto STATUS_ACTIVE_TIME = 2500;
+constexpr auto STATUS_ACTIVE_TIME = std::chrono::milliseconds(2500);
 constexpr auto FPS_IN_TURBO_MODE = 5;
 
 int s_view_top, s_view_bottom;
@@ -58,8 +58,8 @@ static bool save_png;
 static bool save_ssx;
 
 static int last_line, last_cell;
-static int frame_number;
-static uint32_t status_time;
+static int num_frames;
+static std::chrono::steady_clock::time_point status_time;
 
 int s_nWidth, s_nHeight;
 
@@ -220,6 +220,7 @@ static void DrawRaster(FrameBuffer& fb)
 void Begin()
 {
     display_changed = false;
+    num_frames++;
 }
 
 void End()
@@ -279,16 +280,20 @@ void Flyback()
     if (!(++flash_frame % MODE12_FLASH_FRAMES))
         g_flash_phase = !g_flash_phase;
 
-    if (!status_text.empty() && ((OSD::GetTime() - status_time) > STATUS_ACTIVE_TIME))
-        status_text.clear();
-
-    frame_number++;
+    if (!status_text.empty())
+    {
+        auto now = std::chrono::steady_clock::now();
+        if ((now - status_time) > STATUS_ACTIVE_TIME)
+            status_text.clear();
+    }
 }
 
 void Sync()
 {
-    static uint32_t dwLastProfile, dwLastDrawn;
-    auto dwNow = OSD::GetTime();
+    using namespace std::chrono;
+    using namespace std::literals::chrono_literals;
+
+    auto now = high_resolution_clock::now();
 
     if (GetOption(turbodisk) && (pFloppy1->IsActive() || pFloppy2->IsActive()))
         g_nTurbo |= TURBO_DISK;
@@ -301,21 +306,28 @@ void Sync()
     }
     else if (!GUI::IsActive() && g_nTurbo && !(g_nTurbo & TURBO_KEY))
     {
-        draw_frame = (dwNow - dwLastDrawn) >= 1000 / FPS_IN_TURBO_MODE;
+        static high_resolution_clock::time_point last_drawn;
+        draw_frame = ((now - last_drawn) >= (1s / static_cast<float>(FPS_IN_TURBO_MODE)));
         if (draw_frame)
-            dwLastDrawn = dwNow;
+            last_drawn = now;
     }
     else
     {
         draw_frame = true;
     }
 
-    if ((dwNow - dwLastProfile) >= 1000)
+    static std::optional<high_resolution_clock::time_point> last_profiled;
+    if ((now - *last_profiled) >= 1s)
     {
-        int nPercent = frame_number * 2;
-        profile_text = fmt::format("{}%", nPercent);
-        dwLastProfile = dwNow - ((dwNow - dwLastProfile) % 1000);
-        frame_number = 0;
+        if (last_profiled)
+        {
+            auto fps = 1s / ((now - *last_profiled) / static_cast<float>(num_frames));
+            auto percent = fps / EMULATED_FRAMES_PER_SECOND * 100;
+            profile_text = fmt::format("{:.0f}%", percent);
+        }
+
+        last_profiled = now;
+        num_frames = 0;
     }
 
     if (GUI::IsActive())
@@ -388,7 +400,7 @@ void SaveSSX()
 void SetStatus(std::string&& str)
 {
     status_text = std::move(str);
-    status_time = OSD::GetTime();
+    status_time = std::chrono::steady_clock::now();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -24,7 +24,7 @@
 #include "SAMIO.h"
 
 #define MOUSE_RESET_TIME       USECONDS_TO_TSTATES(30)      // Mouse is reset 30us after the last read
-#define MOUSE_ACTIVE_TIME      1000                         // Device in active use if last read within 1000ms
+#define MOUSE_ACTIVE_TIME      std::chrono::seconds(1)      // Device in active use if last read within 1s
 
 // Mouse buffer format, as read
 struct MOUSEBUFFER
@@ -55,7 +55,7 @@ protected:
     int m_nDeltaX = 0, m_nDeltaY = 0;   // System change in X and Y since last read
     int m_nReadX = 0, m_nReadY = 0;     // Read change in X and Y
     uint8_t m_bButtons = 0;             // Current button states
-    uint32_t m_dwLastRead = 0;          // When the mouse was last read
+    std::optional<std::chrono::steady_clock::time_point> read_time;  // When the mouse was last read
 
     MOUSEBUFFER m_sMouse{};
     unsigned int m_uBuffer = 0;         // Read position in mouse data

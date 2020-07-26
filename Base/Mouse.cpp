@@ -83,7 +83,7 @@ uint8_t MouseDevice::In(uint16_t /*wPort_*/)
 
         // If it's not the ROM reading the mouse, remember the last read time
         if (REG_PC != 0xd4d6)
-            m_dwLastRead = OSD::GetTime();
+            read_time = std::chrono::steady_clock::now();
     }
 
     // Cancel any pending reset event, and schedule a fresh one
@@ -114,8 +114,9 @@ void MouseDevice::SetButton(int nButton_, bool fPressed_/*=true*/)
         m_bButtons &= ~bBit;
 }
 
-// Report whetheer the mouse is actively in use
+// Report whether the mouse is actively in use
 bool MouseDevice::IsActive() const
 {
-    return (OSD::GetTime() - m_dwLastRead) <= MOUSE_ACTIVE_TIME;
+    auto now = std::chrono::steady_clock::now();
+    return read_time && (now - *read_time) <= MOUSE_ACTIVE_TIME;
 }

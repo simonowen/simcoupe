@@ -43,7 +43,7 @@ constexpr auto TOTAL_PAGES =
     NUM_SCRATCH_PAGES;
 
 enum { INTMEM, EXTMEM = NUM_INTERNAL_PAGES, ROM0 = EXTMEM + (NUM_EXTERNAL_PAGES_1MB * MAX_EXTERNAL_MB), ROM1, SCRATCH_READ, SCRATCH_WRITE };
-enum eSection { SECTION_A, SECTION_B, SECTION_C, SECTION_D };
+enum class Section { A, B, C, D };
 
 extern uint8_t pMemory[];
 
@@ -65,7 +65,7 @@ inline int AddrSection(uint16_t wAddr_) { return wAddr_ >> 14; }
 inline int AddrPage(uint16_t wAddr_) { return anSectionPages[AddrSection(wAddr_)]; }
 inline int AddrOffset(uint16_t wAddr_) { return wAddr_ & (MEM_PAGE_SIZE - 1); }
 
-inline int GetSectionPage(eSection nSection_) { return anSectionPages[nSection_]; }
+inline int GetSectionPage(Section section) { return anSectionPages[static_cast<int>(section)]; }
 
 inline int PageReadOffset(int nPage_) { return anReadPages[nPage_] * MEM_PAGE_SIZE; }
 inline int PageWriteOffset(int nPage_) { return anWritePages[nPage_] * MEM_PAGE_SIZE; }
@@ -121,19 +121,17 @@ inline void write_word(uint16_t wAddr_, uint16_t wVal_)
 }
 
 // Page in real memory page at <nSection_>, where <nSection_> is in range 0..3
-inline void PageIn(eSection nSection_, int nPage_)
+inline void PageIn(Section section, int page)
 {
-    // Remember the page that's now occupying the section, and update the contention
-    anSectionPages[nSection_] = nPage_;
-    afSectionContended[nSection_] = (nPage_ < NUM_INTERNAL_PAGES);
+    auto index = static_cast<int>(section);
+    anSectionPages[index] = page;
+    afSectionContended[index] = (page < NUM_INTERNAL_PAGES);
 
-    // Set the memory read and write pointers
-    apbSectionReadPtrs[nSection_] = PageReadPtr(nPage_);
-    apbSectionWritePtrs[nSection_] = PageWritePtr(nPage_);
+    apbSectionReadPtrs[index] = PageReadPtr(page);
+    apbSectionWritePtrs[index] = PageWritePtr(page);
 
-    // If section A is write-protected, writes should be discarded
-    if ((nSection_ == SECTION_A) && (lmpr & LMPR_WPROT))
-        apbSectionWritePtrs[nSection_] = PageWritePtr(SCRATCH_WRITE);
+    if ((section == Section::A) && (lmpr & LMPR_WPROT))
+        apbSectionWritePtrs[index] = PageWritePtr(SCRATCH_WRITE);
 }
 
 

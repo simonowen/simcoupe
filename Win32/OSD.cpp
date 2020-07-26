@@ -83,22 +83,6 @@ void OSD::Exit(bool fReInit_/*=false*/)
 }
 
 
-// Return a time-stamp in milliseconds
-uint32_t OSD::GetTime()
-{
-    static LARGE_INTEGER llFreq;
-    LARGE_INTEGER llNow;
-
-    // Read high frequency counter, falling back on the multimedia timer
-    if (!llFreq.QuadPart && !QueryPerformanceFrequency(&llFreq))
-        return timeGetTime();
-
-    // Read the current 64-bit time value, falling back on the multimedia timer
-    QueryPerformanceCounter(&llNow);
-    return static_cast<uint32_t>((llNow.QuadPart * 1000i64) / llFreq.QuadPart);
-}
-
-
 static bool GetSpecialFolderPath(int csidl_, char* pszPath_, int cbPath_)
 {
     char szPath[MAX_PATH] = "";

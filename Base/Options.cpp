@@ -151,7 +151,7 @@ OPTION aOptions[] =
     OPT_N("SID",          sid,            1),         // SID interface with MOS6581
 
     OPT_N("DriveLights",  drivelights,    1),         // Show drive activity lights
-    OPT_F("Profile",      profile,        true),      // Show only emulation speed and framerate
+    OPT_F("Profile",      profile,        false),     // Don't show emulation speed
     OPT_F("Status",       status,         true),      // Show status line for changed options, etc.
 
     OPT_F("BreakOnExec",  breakonexec,    false),     // Don't break on code auto-execute

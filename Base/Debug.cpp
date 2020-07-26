@@ -198,7 +198,7 @@ void OnRet()
 bool RetZHook()
 {
     // Are we in in HDNSTP in ROM1, about to start an auto-executing code file?
-    if (REG_PC == 0xe294 && GetSectionPage(SECTION_D) == ROM1 && !(REG_F & FLAG_Z))
+    if (REG_PC == 0xe294 && GetSectionPage(Section::D) == ROM1 && !(REG_F & FLAG_Z))
     {
         // If the option is enabled, set a temporary breakpoint for the start
         if (GetOption(breakonexec))
@@ -1723,10 +1723,10 @@ void DisView::Draw(FrameBuffer& fb)
     if (dwCycleDiff)
         fb.DrawString(nX + 12, nY + 172, "+{}", dwCycleDiff);
 
-    fb.DrawString(nX, nY + 188, "\agA \a{}{}", ReadOnlyAddr(0x0000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_A)));
-    fb.DrawString(nX, nY + 200, "\agB \a{}{}", ReadOnlyAddr(0x4000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_B)));
-    fb.DrawString(nX, nY + 212, "\agC \a{}{}", ReadOnlyAddr(0x8000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_C)));
-    fb.DrawString(nX, nY + 224, "\agD \a{}{}", ReadOnlyAddr(0xc000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(SECTION_D)));
+    fb.DrawString(nX, nY + 188, "\agA \a{}{}", ReadOnlyAddr(0x0000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(Section::A)));
+    fb.DrawString(nX, nY + 200, "\agB \a{}{}", ReadOnlyAddr(0x4000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(Section::B)));
+    fb.DrawString(nX, nY + 212, "\agC \a{}{}", ReadOnlyAddr(0x8000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(Section::C)));
+    fb.DrawString(nX, nY + 224, "\agD \a{}{}", ReadOnlyAddr(0xc000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(Section::D)));
 
     fb.DrawString(nX + 66, nY + 188, "\agL\aX {:02X}", lmpr);
     fb.DrawString(nX + 66, nY + 200, "\agH\aX {:02X}", hmpr);

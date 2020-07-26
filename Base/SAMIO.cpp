@@ -268,26 +268,26 @@ static inline void UpdatePaging()
 {
     // ROM0 or internal RAM in section A
     if (!(lmpr & LMPR_ROM0_OFF))
-        PageIn(SECTION_A, ROM0);
+        PageIn(Section::A, ROM0);
     else
-        PageIn(SECTION_A, LMPR_PAGE);
+        PageIn(Section::A, LMPR_PAGE);
 
     // Internal RAM in section B
-    PageIn(SECTION_B, (LMPR_PAGE + 1) & LMPR_PAGE_MASK);
+    PageIn(Section::B, (LMPR_PAGE + 1) & LMPR_PAGE_MASK);
 
     // External RAM or internal RAM in section C
     if (hmpr & HMPR_MCNTRL_MASK)
-        PageIn(SECTION_C, EXTMEM + lepr);
+        PageIn(Section::C, EXTMEM + lepr);
     else
-        PageIn(SECTION_C, HMPR_PAGE);
+        PageIn(Section::C, HMPR_PAGE);
 
     // External RAM, ROM1, or internal RAM in section D
     if (hmpr & HMPR_MCNTRL_MASK)
-        PageIn(SECTION_D, EXTMEM + hepr);
+        PageIn(Section::D, EXTMEM + hepr);
     else if (lmpr & LMPR_ROM1)
-        PageIn(SECTION_D, ROM1);
+        PageIn(Section::D, ROM1);
     else
-        PageIn(SECTION_D, (HMPR_PAGE + 1) & HMPR_PAGE_MASK);
+        PageIn(Section::D, (HMPR_PAGE + 1) & HMPR_PAGE_MASK);
 }
 
 static uint8_t update_lpen()
@@ -1045,7 +1045,7 @@ void WakeAsic()
 bool EiHook()
 {
     // If we're leaving the ROM interrupt handler, inject any auto-typing input
-    if (REG_PC == 0x005a && GetSectionPage(SECTION_A) == ROM0)
+    if (REG_PC == 0x005a && GetSectionPage(Section::A) == ROM0)
         Keyin::Next();
 
     Tape::EiHook();
@@ -1057,8 +1057,8 @@ bool EiHook()
 bool Rst8Hook()
 {
     // Return for normal processing if we're not executing ROM code
-    if ((REG_PC < 0x4000 && GetSectionPage(SECTION_A) != ROM0) ||
-        (REG_PC >= 0xc000 && GetSectionPage(SECTION_D) != ROM1))
+    if ((REG_PC < 0x4000 && GetSectionPage(Section::A) != ROM0) ||
+        (REG_PC >= 0xc000 && GetSectionPage(Section::D) != ROM1))
         return false;
 
     // If a drive object exists, clean up after our boot attempt, whether or not it worked
@@ -1121,7 +1121,7 @@ bool Rst8Hook()
 bool Rst48Hook()
 {
     // Are we at READKEY in ROM0?
-    if (REG_PC == 0x1cb2 && GetSectionPage(SECTION_A) == ROM0)
+    if (REG_PC == 0x1cb2 && GetSectionPage(Section::A) == ROM0)
     {
         // If we have auto-type input, skip the startup screen
         if (Keyin::IsTyping())

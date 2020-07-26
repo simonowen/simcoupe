@@ -62,7 +62,7 @@ void Stop()
 bool CanType()
 {
     // For safety, ensure ROM0 and the system variable page are present
-    return GetSectionPage(SECTION_A) == ROM0 && GetSectionPage(SECTION_B) == 0;
+    return GetSectionPage(Section::A) == ROM0 && GetSectionPage(Section::B) == 0;
 }
 
 bool IsTyping()

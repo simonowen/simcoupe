@@ -334,12 +334,14 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
 
     case SDL_MOUSEBUTTONDOWN:
     {
-        static uint32_t dwLastClick;
+        static std::optional<std::chrono::steady_clock::time_point> last_click_time;
         static int nLastButton = -1;
 
         int nX = pEvent_->button.x;
         int nY = pEvent_->button.y;
-        bool fDoubleClick = (pEvent_->button.button == nLastButton) && ((OSD::GetTime() - dwLastClick) < DOUBLE_CLICK_TIME);
+        auto now = std::chrono::steady_clock::now();
+        bool double_click = (pEvent_->button.button == nLastButton) &&
+            last_click_time && ((now - *last_click_time) < DOUBLE_CLICK_TIME);
 
         // Button presses go to the GUI if it's active
         if (GUI::IsActive())
@@ -366,12 +368,12 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
 
         // If the mouse interface is enabled and being read by something other than the ROM, a left-click acquires it
         // Otherwise a double-click is required to forcibly acquire it
-        else if (GetOption(mouse) && pEvent_->button.button == 1 && (pMouse->IsActive() || fDoubleClick))
+        else if (GetOption(mouse) && pEvent_->button.button == 1 && (pMouse->IsActive() || double_click))
             AcquireMouse();
 
         // Remember the last click click time and button, for double-click tracking
         nLastButton = pEvent_->button.button;
-        dwLastClick = OSD::GetTime();
+        last_click_time = std::chrono::steady_clock::now();
 
         break;
     }

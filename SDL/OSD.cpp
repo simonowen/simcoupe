@@ -54,14 +54,6 @@ void OSD::Exit(bool /*fReInit_=false*/)
 }
 
 
-// Return a millisecond accurate time stamp.
-// Note: calling could should allow for the value wrapping by only comparing differences
-uint32_t OSD::GetTime()
-{
-    return SDL_GetTicks();
-}
-
-
 const char* OSD::MakeFilePath(int nDir_, const char* pcszFile_/*=""*/)
 {
     static char szPath[MAX_PATH * 2];

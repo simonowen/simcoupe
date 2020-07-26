@@ -43,7 +43,7 @@
 Window* GUI::s_pGUI;
 int GUI::s_nX, GUI::s_nY;
 
-static uint32_t dwLastClick = 0;   // Time of last double-click
+static std::optional<std::chrono::steady_clock::time_point> last_click_time;
 
 std::queue<Window*> GUI::s_garbageQueue;
 std::stack<Window*> GUI::s_dialogStack;
@@ -68,16 +68,19 @@ bool GUI::SendMessage(int nMessage_, int nParam1_/*=0*/, int nParam2_/*=0*/)
         static bool fDouble = false;
 
         // Work out how long it's been since the last click, and how much the mouse has moved
-        auto dwNow = OSD::GetTime();
+        auto now = std::chrono::steady_clock::now();
+
         int nMovedSquared = (nLastX - nParam1_) * (nLastX - nParam1_) + (nLastY - nParam2_) * (nLastY - nParam2_);
 
         // If the click is close enough to the last click (in space and time), convert it to a double-click
         if (!fDouble && nMovedSquared < (DOUBLE_CLICK_THRESHOLD * DOUBLE_CLICK_THRESHOLD) &&
-            dwNow != dwLastClick && dwNow - dwLastClick < DOUBLE_CLICK_TIME)
+            last_click_time && (now - *last_click_time) < DOUBLE_CLICK_TIME)
+        {
             nMessage_ = GM_BUTTONDBLCLK;
+        }
 
         // Remember the last time and position of the click
-        dwLastClick = dwNow;
+        last_click_time = now;
         nLastX = nParam1_;
         nLastY = nParam2_;
 
@@ -122,7 +125,7 @@ bool GUI::Start(Window* pGUI_)
 
     // Set the top level window and clear any last click time
     s_pGUI = pGUI_;
-    dwLastClick = 0;
+    last_click_time = std::nullopt;
 
     // Position the cursor off-screen, to ensure the first drawn position matches the native OS position
     s_nX = s_nY = -ICON_SIZE;
@@ -880,7 +883,9 @@ void EditControl::Draw(FrameBuffer& fb)
     // If the control is enabled and focussed we'll show a flashing caret after the text
     if (IsEnabled() && IsActive())
     {
-        bool fCaretOn = ((OSD::GetTime() - m_dwCaretTime) % 800) < 400;
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - caret_time);
+        bool fCaretOn = (elapsed_ms.count() % 800) < 400;
         int dx = GetTextWidth(m_nViewOffset, m_nCaretEnd - m_nViewOffset);
 
         // Draw a character-height vertical bar after the text
@@ -905,7 +910,7 @@ bool EditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             break;
 
         // Reset caret blink time so it's visible
-        m_dwCaretTime = OSD::GetTime();
+        caret_time = std::chrono::steady_clock::now();
 
         bool fCtrl = !!(nParam2_ & HM_CTRL);
         bool fShift = !!(nParam2_ & HM_SHIFT);
@@ -1982,12 +1987,15 @@ bool ListView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
 
         default:
         {
-            static uint32_t dwLastChar = 0;
-            auto dwNow = OSD::GetTime();
+            static std::optional<std::chrono::steady_clock::time_point> last_char_time;
+            auto now = std::chrono::steady_clock::now();
 
             // Clear the buffer on any non-printing characters or if too long since the last one
-            if (nParam1_ < ' ' || nParam1_ > 0x7f || (dwNow - dwLastChar > 1000))
+            if (nParam1_ < ' ' || nParam1_ > 0x7f ||
+                (last_char_time && (now - *last_char_time > std::chrono::seconds(1))))
+            {
                 s_prefix.clear();
+            }
 
             // Ignore non-printable characters, or if the buffer is full
             if (nParam1_ < ' ' || nParam1_ > 0x7f)
@@ -1997,7 +2005,7 @@ bool ListView::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             if (!(s_prefix.length() == 1 && s_prefix.front() == nParam1_))
             {
                 s_prefix += std::tolower(nParam1_);
-                dwLastChar = dwNow;
+                last_char_time = now;
             }
 
             // Look for a match, starting *after* the current selection if this is the first character

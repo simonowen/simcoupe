@@ -42,7 +42,7 @@ struct MAPPED_KEY
 int anNativeKey[HK_MAX - HK_MIN + 1];
 
 int nComboKey, nComboMods;
-uint32_t dwComboTime;
+std::optional<std::chrono::steady_clock::time_point> combo_time;
 
 uint8_t abKeys[512 >> 3];
 inline bool IsPressed(int k) { return !!(abKeys[k >> 3] & (1 << (k & 7))); }
@@ -301,15 +301,18 @@ void ProcessShiftedKeys(MAPPED_KEY* asKeys_)
     if (IsPressed(HK_RALT))   nMods |= (HM_CTRL | HM_ALT);
 
     // Have the mods changed while the combo was active?
-    if (dwComboTime && nComboMods != nMods)
+    if (combo_time && nComboMods != nMods)
     {
         // If we're within the threshold, ensure the key remains released
-        if ((OSD::GetTime() - dwComboTime) < 250)
+        auto now = std::chrono::steady_clock::now();
+        if ((now - *combo_time) < std::chrono::milliseconds(250))
+        {
             ReleaseKey(nComboKey);
-
-        // Otherwise clear the expired timer
+        }
         else
-            dwComboTime = 0;
+        {
+            combo_time = std::nullopt;
+        }
     }
 
     for (int i = 0; asKeys_[i].nChar; i++)
@@ -334,7 +337,7 @@ void ProcessShiftedKeys(MAPPED_KEY* asKeys_)
             // Remember the combo key details and current time
             nComboKey = asKeys_[i].nKey;
             nComboMods = asKeys_[i].nMods;
-            dwComboTime = OSD::GetTime();
+            combo_time = std::chrono::steady_clock::now();
         }
     }
 }

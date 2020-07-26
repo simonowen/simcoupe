@@ -36,7 +36,7 @@ const int GM_MOUSEWHEEL = GM_MOUSE_MESSAGE | 5;
 
 const int GM_CHAR = GM_KEYBOARD_MESSAGE | 1;
 
-const uint32_t DOUBLE_CLICK_TIME = 400;    // Under 400ms between consecutive clicks counts as a double-click
+const auto DOUBLE_CLICK_TIME = std::chrono::milliseconds(400);
 const int DOUBLE_CLICK_THRESHOLD = 5;   // Distance between clicks for double-clicks to be recognised
 
 
@@ -269,7 +269,7 @@ public:
 protected:
     size_t m_nViewOffset = 0;
     size_t m_nCaretStart = 0, m_nCaretEnd = 0;
-    uint32_t m_dwCaretTime = 0;
+    std::chrono::steady_clock::time_point caret_time;
 };
 
 class NumberEditControl : public EditControl

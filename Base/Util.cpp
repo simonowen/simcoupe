@@ -239,14 +239,16 @@ std::vector<std::string> split(const std::string& str, char sep)
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef _DEBUG
-uint32_t g_dwStart;
 
 std::string TimeString()
 {
-    auto now = OSD::GetTime();
-    if (!g_dwStart)
-        g_dwStart = now;
-    auto elapsed = now - g_dwStart;
+    using namespace std::chrono;
+
+    static std::optional<high_resolution_clock::time_point> start_time;
+    auto now = high_resolution_clock::now();
+    if (!start_time)
+        start_time = now;
+    auto elapsed = duration_cast<milliseconds>(now - *start_time).count();
 
     auto ms = elapsed % 1000;
     auto secs = (elapsed /= 1000) % 60;

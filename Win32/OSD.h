@@ -64,7 +64,6 @@ public:
     static bool Init(bool fFirstInit_ = false);
     static void Exit(bool fReInit_ = false);
 
-    static uint32_t GetTime();
     static const char* MakeFilePath(int nDir_, const char* pcszFile_ = "");
     static const char* GetFloppyDevice(int nDrive_);
     static bool CheckPathAccess(const std::string& path);

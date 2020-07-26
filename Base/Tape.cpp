@@ -579,7 +579,7 @@ bool EiHook()
 bool RetZHook()
 {
     // If we're at LDSTRT in ROM1, consider using the loading trap
-    if (REG_PC == 0xe679 && GetSectionPage(SECTION_D) == ROM1 && GetOption(tapetraps))
+    if (REG_PC == 0xe679 && GetSectionPage(Section::D) == ROM1 && GetOption(tapetraps))
         return LoadTrap();
 
     // Continue normal processing
