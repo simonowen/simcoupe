@@ -122,6 +122,10 @@ bool Init(bool fFirstInit_/*=false*/)
     {
         InitCpuEvents();
 
+        // Schedule the first end of line event, and an update check 3/4 through the frame
+        AddCpuEvent(EventType::FrameInterrupt, CPU_CYCLES_PER_FRAME);
+        AddCpuEvent(EventType::InputUpdate, CPU_CYCLES_PER_FRAME * 3 / 4);
+
         // Build the parity lookup table (including other flags for logical operations)
         for (int n = 0x00; n <= 0xff; n++)
         {
@@ -434,13 +438,6 @@ void Reset(bool fPress_)
 
         // Index prefix not active
         pHlIxIy = pNewHlIxIy = &REG_HL;
-
-        // Clear the CPU events queue
-        InitCpuEvents();
-
-        // Schedule the first end of line event, and an update check 3/4 through the frame
-        AddCpuEvent(EventType::FrameInterrupt, CPU_CYCLES_PER_FRAME);
-        AddCpuEvent(EventType::InputUpdate, CPU_CYCLES_PER_FRAME * 3 / 4);
 
         // Re-initialise memory (for configuration changes) and reset I/O
         IO::Init();
