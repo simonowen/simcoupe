@@ -27,7 +27,7 @@ enum class Action
     ExportData, SavePNG, ChangeProfiler_REMOVED, ResetButton, NmiButton,
     Pause, FrameStep, ToggleTurbo, TempTurbo, ToggleScanHiRes_REMOVED, ToggleFullscreen,
     ChangeWindowSize_REMOVED, ChangeBorders_REMOVED, Toggle5_4, ToggleFilter,
-    ToggleScanlines_REMOVED, ToggleGreyscale, ToggleMute, ReleaseMouse, PrinterOnline,
+    ToggleScanlines_REMOVED, ToggleGreyscale, ToggleMute_REMOVED, ReleaseMouse, PrinterOnline,
     FlushPrinter, About, Minimise, RecordGif, RecordGifLoop, RecordGifStop,
     RecordWav, RecordWavSegment, RecordWavStop, RecordAvi, RecordAviHalf,
     RecordAviStop, SpeedFaster, SpeedSlower, SpeedNormal, Paste, TapeInsert,

@@ -144,7 +144,6 @@ OPTION aOptions[] =
     OPT_F("SambusClock",  sambusclock,    true),      // SAMBUS clock present
     OPT_F("DallasClock",  dallasclock,    false),     // DALLAS clock not present
 
-    OPT_F("Sound",        sound,          true),      // Sound enabled
     OPT_N("Latency",      latency,        3),         // Sound latency of 3 frames
     OPT_N("DAC7C",        dac7c,          1),         // Blue Alpha Sampler on port &7c
     OPT_N("SamplerFreq",  samplerfreq,    18000),     // Blue Alpha clock frequency (default=18KHz)

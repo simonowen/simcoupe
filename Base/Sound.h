@@ -29,17 +29,18 @@
 #include "SAA1099.h"
 #endif
 
-#define SAMPLE_FREQ         44100
-#define SAMPLE_BITS         16
-#define SAMPLE_CHANNELS     2
-#define SAMPLE_BLOCK        (SAMPLE_BITS*SAMPLE_CHANNELS/8)
+constexpr auto SAMPLE_FREQ = 44100;
+constexpr auto SAMPLE_BITS = 16;
+constexpr auto SAMPLE_CHANNELS = 2;
+constexpr auto BYTES_PER_SAMPLE = SAMPLE_BITS * SAMPLE_CHANNELS / 8;
+constexpr auto SAMPLES_PER_FRAME = SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND;
 
 
 class Sound
 {
 public:
-    static bool Init(bool fFirstInit_ = false);
-    static void Exit(bool fReInit_ = false);
+    static bool Init();
+    static void Exit();
 
     static void Silence();
     static void FrameUpdate();
@@ -51,7 +52,7 @@ public:
     SoundDevice()
     {
         int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND) + 1;
-        m_sample_buffer.resize(nSamplesPerFrame * SAMPLE_BLOCK);
+        m_sample_buffer.resize(nSamplesPerFrame * BYTES_PER_SAMPLE);
     }
 
     int GetSampleCount() const { return m_samples_this_frame; }

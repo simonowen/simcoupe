@@ -62,12 +62,6 @@ bool Do(Action action, bool pressed/*=true*/)
             CPU::NMI();
             break;
 
-        case Action::ToggleMute:
-            SetOption(sound, !GetOption(sound));
-            Sound::Init();
-            Frame::SetStatus("Sound {}", GetOption(sound) ? "enabled" : "muted");
-            break;
-
         case Action::ToggleGreyscale:
             SetOption(greyscale, !GetOption(greyscale));
             Video::UpdatePalette();
@@ -395,7 +389,6 @@ std::string to_string(Action action)
         { Action::Toggle5_4, "Toggle 5:4 display" },
         { Action::ToggleFilter, "Toggle graphics smoothing" },
         { Action::ToggleGreyscale, "Toggle greyscale" },
-        { Action::ToggleMute, "Mute sound" },
         { Action::ReleaseMouse, "Release mouse capture" },
         { Action::PrinterOnline, "Toggle printer online" },
         { Action::FlushPrinter, "Flush printer" },

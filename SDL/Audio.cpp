@@ -42,32 +42,27 @@ static void SoundCallback(void* pvParam_, Uint8* pbStream_, int nLen_);
 ////////////////////////////////////////////////////////////////////////////////
 
 
-bool Audio::Init(bool fFirstInit_/*=false*/)
+bool Audio::Init()
 {
-    // Clear out any existing config before starting again
-    Exit(true);
+    Exit();
 
-    // All sound disabled?
-    if (!GetOption(sound))
-        TRACE("Sound disabled, nothing to initialise\n");
-    else if (!InitSDLSound())
-        TRACE("Sound initialisation failed\n");
-    else
+    if (!InitSDLSound())
     {
-        int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND) + 1;
-        int nBufferedFrames = (SAMPLE_BUFFER_SIZE / nSamplesPerFrame) + 1 + GetOption(latency);
-
-        m_nSampleBufferSize = nSamplesPerFrame * SAMPLE_BLOCK * nBufferedFrames;
-        m_pbEnd = (m_pbNow = m_pbStart = new Uint8[m_nSampleBufferSize]) + m_nSampleBufferSize;
-
-        TRACE("Sample buffer size = {} samples\n", m_nSampleBufferSize / SAMPLE_BLOCK);
+        TRACE("Sound initialisation failed\n");
+        return false;
     }
 
-    // Sound initialisation failure isn't fatal, so always return success
+    int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND) + 1;
+    int nBufferedFrames = (SAMPLE_BUFFER_SIZE / nSamplesPerFrame) + 1 + GetOption(latency);
+
+    m_nSampleBufferSize = nSamplesPerFrame * BYTES_PER_SAMPLE * nBufferedFrames;
+    m_pbEnd = (m_pbNow = m_pbStart = new Uint8[m_nSampleBufferSize]) + m_nSampleBufferSize;
+    TRACE("Sample buffer size = {} samples\n", m_nSampleBufferSize / BYTES_PER_SAMPLE);
+
     return true;
 }
 
-void Audio::Exit(bool fReInit_/*=false*/)
+void Audio::Exit()
 {
     ExitSDLSound();
 }
@@ -77,7 +72,7 @@ bool Audio::AddData(Uint8* pbData_, int nLength_)
     int nSpace = 0;
 
     // Calculate the frame time (in ms) from the sample data length
-    int nFrameTime = ((nLength_ * 1000 / SAMPLE_BLOCK) + (SAMPLE_FREQ / 2)) / SAMPLE_FREQ;
+    int nFrameTime = ((nLength_ * 1000 / BYTES_PER_SAMPLE) + (SAMPLE_FREQ / 2)) / SAMPLE_FREQ;
 
     // Loop until everything has been written
     while (m_pbNow && nLength_ > 0)
@@ -118,7 +113,7 @@ bool Audio::AddData(Uint8* pbData_, int nLength_)
     else
     {
         // If we're falling behind, reduce the delay by 1ms
-        if (nSpace > (SAMPLE_BUFFER_SIZE * SAMPLE_BLOCK))
+        if (nSpace > (SAMPLE_BUFFER_SIZE * BYTES_PER_SAMPLE))
             nFrameTime--;
 
         for (;;)

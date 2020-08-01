@@ -103,8 +103,8 @@ bool Start(bool fSegment_)
     // Write the RIFF header
     WriteWaveValue(SAMPLE_CHANNELS, riff.wave.fmt.Channels, sizeof(riff.wave.fmt.Channels));
     WriteWaveValue(SAMPLE_FREQ, riff.wave.fmt.SamplesPerSec, sizeof(riff.wave.fmt.SamplesPerSec));
-    WriteWaveValue(SAMPLE_FREQ * SAMPLE_BLOCK, riff.wave.fmt.AvgBytesPerSec, sizeof(riff.wave.fmt.AvgBytesPerSec));
-    WriteWaveValue(SAMPLE_BLOCK, riff.wave.fmt.BlockAlign, sizeof(riff.wave.fmt.BlockAlign));
+    WriteWaveValue(SAMPLE_FREQ * BYTES_PER_SAMPLE, riff.wave.fmt.AvgBytesPerSec, sizeof(riff.wave.fmt.AvgBytesPerSec));
+    WriteWaveValue(BYTES_PER_SAMPLE, riff.wave.fmt.BlockAlign, sizeof(riff.wave.fmt.BlockAlign));
     WriteWaveValue(SAMPLE_BITS, riff.wave.fmt.BitsPerSample, sizeof(riff.wave.fmt.BitsPerSample));
     fwrite(&riff, sizeof(riff), 1, f);
 
@@ -169,7 +169,7 @@ void AddFrame(const uint8_t* pb_, int nLen_)
         return;
 
     // Check for a full frame of repeated samples (silence)
-    if (!memcmp(pb_, pb_ + SAMPLE_BLOCK, nLen_ - SAMPLE_BLOCK))
+    if (!memcmp(pb_, pb_ + BYTES_PER_SAMPLE, nLen_ - BYTES_PER_SAMPLE))
     {
         ++nSilent;
 

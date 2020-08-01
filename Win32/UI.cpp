@@ -898,7 +898,6 @@ void UpdateMenuFromOptions()
     HMENU hmenu = g_hmenu;
     HMENU hmenuFile = GetSubMenu(hmenu, 0);
     HMENU hmenuFloppy2 = GetSubMenu(hmenuFile, 6);
-    HMENU hmenuRecord = GetSubMenu(hmenu, 2);
 
     bool fFloppy1 = GetOption(drive1) == drvFloppy, fInserted1 = pFloppy1->HasDisk();
     bool fFloppy2 = GetOption(drive2) == drvFloppy, fInserted2 = pFloppy2->HasDisk();
@@ -933,8 +932,6 @@ void UpdateMenuFromOptions()
     CheckMenuRadioItem(hmenu, IDM_VIEW_ZOOM_50, IDM_VIEW_ZOOM_300, IDM_VIEW_ZOOM_50 + GetOption(scale) - 1, MF_BYCOMMAND);
     CheckMenuRadioItem(hmenu, IDM_VIEW_BORDERS0, IDM_VIEW_BORDERS4, IDM_VIEW_BORDERS0 + GetOption(borders), MF_BYCOMMAND);
 
-    EnableMenuItem(hmenuRecord, 3, MF_BYPOSITION | (GetOption(sound) ? MF_ENABLED : MF_GRAYED));
-
     EnableItem(IDM_RECORD_AVI_START, !AVI::IsRecording());
     EnableItem(IDM_RECORD_AVI_HALF, !AVI::IsRecording());
     EnableItem(IDM_RECORD_AVI_STOP, AVI::IsRecording());
@@ -948,7 +945,6 @@ void UpdateMenuFromOptions()
     EnableItem(IDM_RECORD_WAV_STOP, WAV::IsRecording());
 
     CheckOption(IDM_SYSTEM_PAUSE, g_fPaused);
-    CheckOption(IDM_SYSTEM_MUTESOUND, !GetOption(sound));
 
     int speedid = IDM_SYSTEM_SPEED_100;
     switch (GetOption(speed))
@@ -1902,7 +1898,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             break;
 
         case IDM_SYSTEM_PAUSE:      Actions::Do(Action::Pause);           break;
-        case IDM_SYSTEM_MUTESOUND:  Actions::Do(Action::ToggleMute);      break;
         case IDM_SYSTEM_NMI:        Actions::Do(Action::NmiButton);       break;
         case IDM_SYSTEM_RESET:      Actions::Do(Action::ResetButton); Actions::Do(Action::ResetButton, false); break;
 

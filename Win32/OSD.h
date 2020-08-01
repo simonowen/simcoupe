@@ -34,6 +34,9 @@
 #include <windows.h>    // TODO: remove to limit type pollution
 #include <io.h>         // for _access
 
+#include <wrl/client.h>
+using Microsoft::WRL::ComPtr;
+
 #define PATH_SEPARATOR          '\\'
 
 #define strcasecmp  _strcmpi

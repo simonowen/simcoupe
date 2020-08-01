@@ -332,7 +332,7 @@ void Sync()
 
     if (GUI::IsActive())
     {
-        static uint8_t abSilence[SAMPLE_FREQ * SAMPLE_BLOCK / EMULATED_FRAMES_PER_SECOND];
+        static uint8_t abSilence[SAMPLE_FREQ * BYTES_PER_SAMPLE / EMULATED_FRAMES_PER_SECOND];
         Audio::AddData(abSilence, sizeof(abSilence));
     }
 }

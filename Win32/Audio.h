@@ -1,6 +1,6 @@
 // Part of SimCoupe - A SAM Coupe emulator
 //
-// Audio.h: Win32 sound implementation using DirectSound
+// Audio.h: Win32 sound implementation using XAudio2
 //
 //  Copyright (c) 1999-2012 Simon Owen
 //
@@ -24,8 +24,8 @@
 class Audio
 {
 public:
-    static bool Init(bool fFirstInit_ = false);
-    static void Exit(bool fReInit_ = false);
+    static bool Init();
+    static void Exit();
 
     static void Silence();
     static bool AddData(uint8_t* pb_, int nLen_);

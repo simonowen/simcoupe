@@ -65,7 +65,7 @@ extern bool g_fActive;
 //#define UE_CHANGEPROFILER       (UE_BASE+13)
 #define UE_PAUSE                (UE_BASE+14)
 #define UE_TOGGLETURBO          (UE_BASE+15)
-#define UE_TOGGLEMUTE           (UE_BASE+16)
+//#define UE_TOGGLEMUTE           (UE_BASE+16)
 #define UE_RELEASEMOUSE         (UE_BASE+17)
 //#define UE_CHANGEWINDOWSIZE     (UE_BASE+18)
 //#define UE_CHANGEBORDERS        (UE_BASE+19)

@@ -36,27 +36,27 @@ static int AdjustSpeed(uint8_t* pb_, int nSize_, int nSpeed_);
 
 //////////////////////////////////////////////////////////////////////////////
 
-bool Sound::Init(bool fFirstInit_/*=false*/)
+bool Sound::Init()
 {
     Exit();
 
     int nMaxFrameSamples = 2; // Needed for 50% running speed
     int nSamplesPerFrame = (SAMPLE_FREQ / EMULATED_FRAMES_PER_SECOND) + 1;
-    pbSampleBuffer = new uint8_t[nSamplesPerFrame * SAMPLE_BLOCK * nMaxFrameSamples];
+    pbSampleBuffer = new uint8_t[nSamplesPerFrame * BYTES_PER_SAMPLE * nMaxFrameSamples];
 
-    bool fRet = Audio::Init(fFirstInit_);
+    bool fRet = Audio::Init();
     Audio::Silence();
     return fRet;
 }
 
-void Sound::Exit(bool fReInit_/*=false*/)
+void Sound::Exit()
 {
     // Stop any recording
     WAV::Stop();
     AVI::Stop();
 
     delete[] pbSampleBuffer; pbSampleBuffer = nullptr;
-    Audio::Exit(fReInit_);
+    Audio::Exit();
 }
 
 void Sound::Silence()
@@ -77,7 +77,7 @@ void Sound::FrameUpdate()
 
     // Use the DAC as the master clock for sample count
     int nSamples = pDAC->GetSampleCount();
-    int nSize = nSamples * SAMPLE_BLOCK;
+    int nSize = nSamples * BYTES_PER_SAMPLE;
 
     // Copy in the DAC samples, then mix SAA and possibly SID too
     memcpy(pbSampleBuffer, pDAC->GetSampleBuffer(), nSize);
@@ -88,10 +88,9 @@ void Sound::FrameUpdate()
     WAV::AddFrame(pbSampleBuffer, nSize);
     AVI::AddFrame(pbSampleBuffer, nSize);
 
-#if SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2
     // Scale the audio to fit the require running speed
-    nSize = AdjustSpeed(pbSampleBuffer, nSize, GetOption(speed));
-#endif
+    if (SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2)
+        nSize = AdjustSpeed(pbSampleBuffer, nSize, GetOption(speed));
 
     // Queue the data for playback
     Audio::AddData(pbSampleBuffer, nSize);
@@ -107,10 +106,10 @@ void SAADevice::Update(bool fFrameEnd_ = false)
     if (nNeeded <= 0)
         return;
 
-    auto pb = m_sample_buffer.data() + m_samples_this_frame * SAMPLE_BLOCK;
+    auto pb = m_sample_buffer.data() + m_samples_this_frame * BYTES_PER_SAMPLE;
 
     if (g_fReset)
-        memset(pb, 0x00, nNeeded * SAMPLE_BLOCK); // no clock means no SAA output
+        memset(pb, 0x00, nNeeded * BYTES_PER_SAMPLE); // no clock means no SAA output
     else
         m_pSAASound->GenerateMany(pb, nNeeded);
 
@@ -256,7 +255,7 @@ static int AdjustSpeed(uint8_t* pb_, int nSize_, int nSpeed_)
         auto pdwD = reinterpret_cast<uint32_t*>(pb_ + nSize_ * 2) - 1;
 
         // Double samples in reverse order
-        for (int i = 0; i < nSize_; i += SAMPLE_BLOCK, pdwS--)
+        for (int i = 0; i < nSize_; i += BYTES_PER_SAMPLE, pdwS--)
         {
             *pdwD-- = *pdwS;
             *pdwD-- = *pdwS;
@@ -272,13 +271,13 @@ static int AdjustSpeed(uint8_t* pb_, int nSize_, int nSpeed_)
     else if (nSpeed_ > 100)
     {
         int nScale = nSpeed_ / 100;
-        nSize_ = (nSize_ / nScale) & ~(SAMPLE_BLOCK - 1);
+        nSize_ = (nSize_ / nScale) & ~(BYTES_PER_SAMPLE - 1);
 
         auto pdwS = reinterpret_cast<uint32_t*>(pb_);
         auto pdwD = pdwS;
 
         // Skip the required number of samples
-        for (int i = 0; i < nSize_; i += SAMPLE_BLOCK, pdwS += nScale)
+        for (int i = 0; i < nSize_; i += BYTES_PER_SAMPLE, pdwS += nScale)
             *pdwD++ = *pdwS;
     }
 

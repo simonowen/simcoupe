@@ -74,6 +74,7 @@
 #include <set>
 #include <optional>
 #include <variant>
+#include <thread>
 
 #include "filesystem.hpp"
 namespace fs = ghc::filesystem;

@@ -227,6 +227,23 @@ else()
   message(STATUS "reSID library not found (no SID chip support)")
 endif()
 
+find_library(XAUDIO2REDIST_LIBRARY NAMES xaudio2_9redist)
+find_path(XAUDIO2REDIST_INCLUDE_DIR xaudio2redist.h)
+if (XAUDIO2REDIST_LIBRARY AND XAUDIO2REDIST_INCLUDE_DIR)
+  target_include_directories(${PROJECT_NAME} PRIVATE ${XAUDIO2REDIST_INCLUDE_DIR})
+  target_link_libraries(${PROJECT_NAME} ${XAUDIO2REDIST_LIBRARY})
+  message(STATUS "Found xaudio2_9redist: ${XAUDIO2REDIST_LIBRARY}")
+  set(HAVE_XAUDIO2REDIST 1)
+
+  get_filename_component(XAUDIO2REDIST_DIR ${XAUDIO2REDIST_LIBRARY} DIRECTORY)
+  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${XAUDIO2REDIST_DIR}/../bin/xaudio2_9redist.dll"
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>)
+else()
+  message(STATUS "xaudio2_9redist not found")
+endif()
+
 if (NOT MSVC)
   CHECK_CXX_COMPILER_FLAG("-stdlib=libc++" COMPILER_SUPPORTS_STDLIBCXX)
   if (COMPILER_SUPPORTS_STDLIBCXX AND NOT APPLE)

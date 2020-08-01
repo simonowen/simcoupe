@@ -580,8 +580,6 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Generate &NMI\tF11",          IDM_SYSTEM_NMI
         MENUITEM "&Reset\tF12",                 IDM_SYSTEM_RESET
-        MENUITEM SEPARATOR
-        MENUITEM "&Mute Sound",                 IDM_SYSTEM_MUTESOUND
     END
     POPUP "&Tools"
     BEGIN

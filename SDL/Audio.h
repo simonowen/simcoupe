@@ -23,30 +23,10 @@
 class Audio
 {
 public:
-    static bool Init(bool fFirstInit_ = false);
-    static void Exit(bool fReInit_ = false);
+    static bool Init();
+    static void Exit();
 
     static bool IsAvailable() { return SDL_GetAudioStatus() == SDL_AUDIO_PLAYING; }
     static bool AddData(Uint8* pbData_, int nLength_);
     static void Silence();
-};
-
-////////////////////////////////////////////////////////////////////////////////
-
-class SoundStream
-{
-public:
-    SoundStream();
-    SoundStream(const SoundStream&) = delete;
-    void operator= (const SoundStream&) = delete;
-    virtual ~SoundStream();
-
-public:
-    void Silence();
-    void AddData(Uint8* pbSampleData_, int nLength_);
-
-    Uint8* m_pbStart = nullptr;
-    Uint8* m_pbEnd = nullptr;
-    Uint8* m_pbNow = nullptr;
-    int m_nSampleBufferSize = 0;
 };

@@ -208,7 +208,7 @@ static bool WriteAudioHeader(FILE* f_)
     // Default to normal sound parameters
     uint16_t wFreq = SAMPLE_FREQ;
     uint16_t wBits = SAMPLE_BITS;
-    uint16_t wBlock = SAMPLE_BLOCK;
+    uint16_t wBlock = BYTES_PER_SAMPLE;
     uint16_t wChannels = SAMPLE_CHANNELS;
 
     // 8-bit?
@@ -671,7 +671,7 @@ void AddFrame(const uint8_t* pb_, unsigned int uLen_)
         return;
 
     // Calculate the number of input samples
-    unsigned int uBlock = SAMPLE_BLOCK;
+    unsigned int uBlock = BYTES_PER_SAMPLE;
     unsigned int uSamples = uLen_ / uBlock;
 
     // Do we need to reduce the audio size?

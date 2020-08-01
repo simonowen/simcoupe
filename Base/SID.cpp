@@ -56,10 +56,10 @@ void SIDDevice::Update(bool fFrameEnd_ = false)
     if (!m_pSID || nNeeded <= 0)
         return;
 
-    auto ps = reinterpret_cast<short*>(m_sample_buffer.data() + m_samples_this_frame * SAMPLE_BLOCK);
+    auto ps = reinterpret_cast<short*>(m_sample_buffer.data() + m_samples_this_frame * BYTES_PER_SAMPLE);
 
     if (g_fReset)
-        memset(ps, 0x00, nNeeded * SAMPLE_BLOCK); // no clock means no output
+        memset(ps, 0x00, nNeeded * BYTES_PER_SAMPLE); // no clock means no output
     else
     {
         int sid_clock = SID_CLOCK_PAL;

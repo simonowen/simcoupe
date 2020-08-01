@@ -53,7 +53,7 @@ bool Init(int argc_, char* argv_[])
         return 0;
 
     // Initialise all modules
-    return OSD::Init(true) && Frame::Init() && CPU::Init(true) && UI::Init(true) && Sound::Init(true) && Input::Init(true) && Video::Init(true);
+    return OSD::Init(true) && Frame::Init() && CPU::Init(true) && UI::Init(true) && Sound::Init() && Input::Init(true) && Video::Init(true);
 }
 
 void Exit()

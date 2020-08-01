@@ -141,8 +141,6 @@ static void setupApplicationMenus ()
     [item setKeyEquivalentModifierMask:(NSEventModifierFlagShift|NSEventModifierFlagCommand)];
     [menu addItemWithTitle:@"Reset" action:@selector(systemReset:) keyEquivalent:@"r"];
     [menu addItemWithTitle:@"Debugger" action:@selector(systemDebugger:) keyEquivalent:@"d"];
-    [menu addItem:[NSMenuItem separatorItem]];
-    item = [menu addItemWithTitle:@"Mute sound" action:@selector(systemMute:) keyEquivalent:@"m"];
     [item setKeyEquivalentModifierMask:(NSEventModifierFlagShift|NSEventModifierFlagCommand)];
 
     item = [[NSMenuItem alloc] initWithTitle:@"System" action:nil keyEquivalent:@""];
@@ -251,7 +249,6 @@ static void sendUserEvent (int event)
 - (IBAction)systemNMI:(id)sender { sendUserEvent(UE_NMIBUTTON); }
 - (IBAction)systemReset:(id)sender { sendUserEvent(UE_RESETBUTTON); }
 - (IBAction)systemDebugger:(id)sender { sendUserEvent(UE_DEBUGGER); }
-- (IBAction)systemMute:(id)sender { sendUserEvent(UE_TOGGLEMUTE); }
 - (IBAction)viewFullscreen:(id)sender { sendUserEvent(UE_TOGGLEFULLSCREEN); }
 - (IBAction)viewFrameSync:(id)sender { sendUserEvent(UE_TOGGLESYNC); }
 - (IBAction)viewGreyscale:(id)sender { sendUserEvent(UE_TOGGLEGREYSCALE); }
