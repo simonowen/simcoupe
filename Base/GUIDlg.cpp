@@ -557,34 +557,16 @@ public:
     {
         new IconControl(this, 10, 10, &sDisplayIcon);
 
-        new FrameControl(this, 50, 17, 238, 120, WHITE);
+        new FrameControl(this, 50, 17, 238, 42, WHITE);
         new TextControl(this, 60, 13, "Settings", YELLOW_8, BLUE_2);
 
-        m_pFullScreen = new CheckBox(this, 60, 35, "Full-screen");
-
-        m_pScaleText = new TextControl(this, 85, 57, "Windowed mode zoom:");
-        m_pScale = new ComboBox(this, 215, 54, "50%|100%|150%|200%|250%|300%", 55);
-
-        new FrameControl(this, 63, 77, 212, 1, GREY_6);
-
-        m_pRatio54 = new CheckBox(this, 60, 90, "5:4 pixel shape");
-
-        new TextControl(this, 60, 113, "Viewable area:");
-        m_pViewArea = new ComboBox(this, 140, 110, "No borders|Small borders|Short TV area (default)|TV visible area|Complete scan area", 140);
+        new TextControl(this, 60, 35, "Viewable area:");
+        m_pViewArea = new ComboBox(this, 140, 32, "No borders|Small borders|Short TV area (default)|TV visible area|Complete scan area", 140);
 
         m_pOK = new TextButton(this, m_nWidth - 117, m_nHeight - 21, "OK", 50);
         m_pCancel = new TextButton(this, m_nWidth - 62, m_nHeight - 21, "Cancel", 50);
 
-        // Set the initial state from the options
-        m_pScale->Select(GetOption(scale) - 1);
-
-        m_pFullScreen->SetChecked(GetOption(fullscreen));
-        m_pRatio54->SetChecked(GetOption(ratio5_4));
-
         m_pViewArea->Select(GetOption(borders));
-
-        // Update the state of the controls to reflect the current settings
-        OnNotify(m_pScale, 0);
     }
     DisplayOptions(const DisplayOptions&) = delete;
     void operator= (const DisplayOptions&) = delete;
@@ -596,48 +578,19 @@ public:
             Destroy();
         else if (pWindow_ == m_pOK)
         {
-            SetOption(fullscreen, m_pFullScreen->IsChecked());
-
-            SetOption(scale, m_pScale->GetSelected() + 1);
-
-            SetOption(ratio5_4, m_pRatio54->IsChecked());
-
             SetOption(borders, m_pViewArea->GetSelected());
 
-            if (Changed(borders) || Changed(fullscreen) || Changed(ratio5_4) || Changed(scale))
+            if (Changed(borders))
             {
                 Frame::Init();
-                Video::UpdateSize();
-
-                // Re-centre the window, including the parent if that's a dialog
-                if (GetParent()->GetType() == ctDialog)
-                    reinterpret_cast<Dialog*>(GetParent())->Centre();
-                Centre();
             }
 
             Destroy();
         }
-        else
-        {
-            bool fFullScreen = m_pFullScreen->IsChecked();
-            m_pScaleText->Enable(!fFullScreen);
-            m_pScale->Enable(!fFullScreen);
-
-            if (!Video::CheckCaps(VCAP_STRETCH))
-            {
-                m_pScaleText->Enable(false);
-                m_pScale->Enable(false);
-                m_pRatio54->Enable(false);
-            }
-        }
     }
 
 protected:
-    CheckBox* m_pFullScreen = nullptr;
-    CheckBox* m_pRatio54 = nullptr;
-    ComboBox* m_pScale = nullptr;
     ComboBox* m_pViewArea = nullptr;
-    TextControl* m_pScaleText = nullptr;
     TextButton* m_pOK = nullptr;
     TextButton* m_pCancel = nullptr;
 };

@@ -66,13 +66,11 @@ static void WriteLogicalScreenDescriptor(const FrameBuffer& fb)
 
 static void WriteGlobalColourTable()
 {
-    const COLOUR* pcPal = IO::GetPalette();
-
-    for (int i = 0; i < N_PALETTE_COLOURS; i++, pcPal++)
+    for (auto& colour : IO::Palette())
     {
-        fputc(pcPal->bRed, f);
-        fputc(pcPal->bGreen, f);
-        fputc(pcPal->bBlue, f);
+        fputc(colour.red, f);
+        fputc(colour.green, f);
+        fputc(colour.blue, f);
     }
 }
 

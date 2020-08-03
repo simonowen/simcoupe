@@ -23,8 +23,8 @@
 class Input
 {
 public:
-    static bool Init(bool fFirstInit_ = false);
-    static void Exit(bool fReInit_ = false);
+    static bool Init();
+    static void Exit();
 
     static void Update();
     static bool FilterEvent(SDL_Event* pEvent_);

@@ -20,6 +20,13 @@
 
 #pragma once
 
+#include <winsdkver.h>
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT _WIN32_WINNT_WIN7
+#endif
+#include <SDKDDKVer.h>
+#include <VersionHelpers.h>
+
 // disable stupid 'debug symbols being truncated' warning
 #pragma warning(disable:4786)
 
@@ -32,6 +39,7 @@
 #endif
 
 #include <windows.h>    // TODO: remove to limit type pollution
+#include <windowsx.h>
 #include <io.h>         // for _access
 
 #include <wrl/client.h>

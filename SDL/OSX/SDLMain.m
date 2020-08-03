@@ -122,7 +122,6 @@ static void setupApplicationMenus ()
     
     [menu addItemWithTitle:@"Fullscreen" action:@selector(viewFullscreen:) keyEquivalent:@"f"];
     [menu addItem:[NSMenuItem separatorItem]];
-    [menu addItemWithTitle:@"Toggle Greyscale" action:@selector(viewGreyscale:) keyEquivalent:@"g"];
     [menu addItemWithTitle:@"5:4 Aspect Ratio" action:@selector(viewRatio54:) keyEquivalent:@"5"];
 
     item = [[NSMenuItem alloc] initWithTitle:@"View" action:nil keyEquivalent:@""];
@@ -251,7 +250,6 @@ static void sendUserEvent (int event)
 - (IBAction)systemDebugger:(id)sender { sendUserEvent(UE_DEBUGGER); }
 - (IBAction)viewFullscreen:(id)sender { sendUserEvent(UE_TOGGLEFULLSCREEN); }
 - (IBAction)viewFrameSync:(id)sender { sendUserEvent(UE_TOGGLESYNC); }
-- (IBAction)viewGreyscale:(id)sender { sendUserEvent(UE_TOGGLEGREYSCALE); }
 - (IBAction)viewRatio54:(id)sender { sendUserEvent(UE_TOGGLE54); }
 - (IBAction)fileImportData:(id)sender { sendUserEvent(UE_IMPORTDATA); }
 - (IBAction)fileExportData:(id)sender { sendUserEvent(UE_EXPORTDATA); }

@@ -62,28 +62,22 @@ bool Do(Action action, bool pressed/*=true*/)
             CPU::NMI();
             break;
 
-        case Action::ToggleGreyscale:
-            SetOption(greyscale, !GetOption(greyscale));
-            Video::UpdatePalette();
-            Frame::SetStatus(GetOption(greyscale) ? "Greyscale" : "Colour");
-            break;
-
         case Action::Toggle5_4:
-            if (Video::CheckCaps(VCAP_STRETCH))
-            {
-                SetOption(ratio5_4, !GetOption(ratio5_4));
-                Video::UpdateSize();
-                Frame::SetStatus("{} aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
-            }
+            SetOption(ratio5_4, !GetOption(ratio5_4));
+            Video::OptionsChanged();
+            Frame::SetStatus("{} aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
             break;
 
-        case Action::ToggleFilter:
-            if (Video::CheckCaps(VCAP_FILTER))
-            {
-                SetOption(filter, !GetOption(filter));
-                Video::UpdateSize();
-                Frame::SetStatus("Smoothing {}", GetOption(filter) ? "enabled" : "disabled");
-            }
+        case Action::ToggleSmoothing:
+            SetOption(smooth, !GetOption(smooth));
+            Video::OptionsChanged();
+            Frame::SetStatus("Smoothing {}", GetOption(smooth) ? "enabled" : "disabled");
+            break;
+
+        case Action::ToggleMotionBlur:
+            SetOption(motionblur, !GetOption(motionblur));
+            Video::OptionsChanged();
+            Frame::SetStatus("Motion blur {}", GetOption(motionblur) ? "enabled" : "disabled");
             break;
 
         case Action::InsertFloppy1:
@@ -219,7 +213,7 @@ bool Do(Action action, bool pressed/*=true*/)
         case Action::ToggleFullscreen:
             SetOption(fullscreen, !GetOption(fullscreen));
             Sound::Silence();
-            Video::UpdateSize();
+            Video::OptionsChanged();
             break;
 
         case Action::PrinterOnline:
@@ -387,8 +381,7 @@ std::string to_string(Action action)
         { Action::TempTurbo, "Turbo speed (when held)" },
         { Action::ToggleFullscreen, "Toggle fullscreen" },
         { Action::Toggle5_4, "Toggle 5:4 display" },
-        { Action::ToggleFilter, "Toggle graphics smoothing" },
-        { Action::ToggleGreyscale, "Toggle greyscale" },
+        { Action::ToggleSmoothing, "Toggle graphics smoothing" },
         { Action::ReleaseMouse, "Release mouse capture" },
         { Action::PrinterOnline, "Toggle printer online" },
         { Action::FlushPrinter, "Flush printer" },

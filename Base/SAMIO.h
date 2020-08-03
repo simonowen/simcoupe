@@ -24,7 +24,7 @@
 
 struct COLOUR
 {
-    uint8_t bRed, bGreen, bBlue;
+    uint8_t red, green, blue;
 };
 
 enum { AUTOLOAD_NONE, AUTOLOAD_DISK, AUTOLOAD_TAPE };
@@ -48,7 +48,7 @@ void OutClut(uint16_t wPort_, uint8_t bVal_);
 
 void FrameUpdate();
 void UpdateInput();
-const COLOUR* GetPalette();
+std::vector<COLOUR> Palette();
 bool IsAtStartupScreen(bool fExit_ = false);
 void AutoLoad(int nType_, bool fOnlyAtStartup_ = true);
 void WakeAsic();

@@ -61,8 +61,6 @@ static int last_line, last_cell;
 static int num_frames;
 static std::chrono::steady_clock::time_point status_time;
 
-int s_nWidth, s_nHeight;
-
 static std::string status_text;
 static std::string profile_text;
 char szScreenPath[MAX_PATH];
@@ -99,11 +97,11 @@ bool Init()
         s_view_top += (TOP_BORDER_LINES - BOTTOM_BORDER_LINES) >> 1;
     s_view_bottom = s_view_top + asViews[view_idx].h;
 
-    s_nWidth = (s_view_right - s_view_left) << 4;
-    s_nHeight = (s_view_bottom - s_view_top) << 1;
+    auto width = (s_view_right - s_view_left) * GFX_PIXELS_PER_CELL ;
+    auto height = (s_view_bottom - s_view_top);
 
-    pFrameBuffer = std::make_unique<FrameBuffer>(s_nWidth, s_nHeight);
-    pGuiScreen = std::make_unique<FrameBuffer>(s_nWidth, s_nHeight);
+    pFrameBuffer = std::make_unique<FrameBuffer>(width, height);
+    pGuiScreen = std::make_unique<FrameBuffer>(width, height * 2);
 
     pFrame = std::make_unique<ScreenWriter>();
     pFrame->SetMode(vmpr);
@@ -126,12 +124,12 @@ void Exit()
 
 int Width()
 {
-    return pFrameBuffer ? pFrameBuffer->Width() : 0;
+    return pGuiScreen ? pGuiScreen->Width() : 1;
 }
 
 int Height()
 {
-    return pFrameBuffer ? pFrameBuffer->Height() : 0;
+    return pGuiScreen ? pGuiScreen->Height() : 1;
 }
 
 void SetView(int num_cells, int num_lines)
@@ -348,7 +346,7 @@ void Redraw()
 void DrawOSD(FrameBuffer& fb)
 {
     auto width = fb.Width();
-    auto height = fb.Height() >> 1;
+    auto height = fb.Height();
 
     if (GetOption(drivelights))
     {
@@ -370,7 +368,8 @@ void DrawOSD(FrameBuffer& fb)
         }
     }
 
-    fb.SetFont(sPropFont);
+    auto font = sPropFont;
+    fb.SetFont(font);
 
     if (GetOption(profile) && !GUI::IsActive())
     {
@@ -382,8 +381,8 @@ void DrawOSD(FrameBuffer& fb)
     if (GetOption(status) && !status_text.empty())
     {
         int x = width - fb.StringWidth(status_text);
-        fb.DrawString(x, height - Font::CHAR_HEIGHT - 1, BLACK, status_text);
-        fb.DrawString(x - 2, height - Font::CHAR_HEIGHT - 2, WHITE, status_text);
+        fb.DrawString(x, height - font->height - 1, BLACK, status_text);
+        fb.DrawString(x - 2, height - font->height - 2, WHITE, status_text);
     }
 }
 

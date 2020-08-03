@@ -84,10 +84,10 @@ bool Input::Init(bool fFirstInit_/*=false*/)
     }
 
     // If we can find DirectInput 5.0 we can have joystick support, otherwise fall back on 3.0 support for NT4
-    if (fRet = SUCCEEDED(pfnDirectInputCreate(__hinstance, DIRECTINPUT_VERSION, &pdi, nullptr)))
+    if (fRet = SUCCEEDED(pfnDirectInputCreate(GetModuleHandle(NULL), DIRECTINPUT_VERSION, &pdi, nullptr)))
         InitJoysticks();
     else
-        fRet = SUCCEEDED(pfnDirectInputCreate(__hinstance, 0x0300, &pdi, nullptr));
+        fRet = SUCCEEDED(pfnDirectInputCreate(GetModuleHandle(NULL), 0x0300, &pdi, nullptr));
 
     if (fRet)
     {
@@ -256,14 +256,13 @@ void Input::AcquireMouse(bool fAcquire_)
     // Mouse active?
     if (fMouseActive && GetOption(mouse))
     {
-        // Fetch the position of the canvas window
         RECT r;
-        GetWindowRect(hwndCanvas, &r);
+        GetWindowRect(g_hwnd, &r);
 
         // Calculate the centre position and move the cursor there
-        ptCentre.x = r.left + (r.right - r.left) / 2;
-        ptCentre.y = r.top + (r.bottom - r.top) / 2;
-        SetCursorPos(ptCentre.x, ptCentre.y);
+        //ptCentre.x = r.left + (r.right - r.left) / 2;
+        //ptCentre.y = r.top + (r.bottom - r.top) / 2;
+        //SetCursorPos(ptCentre.x, ptCentre.y);
 
         // Confine the cursor to the client area so fast mouse movements don't escape
         ClipCursor(&r);
@@ -378,7 +377,7 @@ bool SendGuiMouseMessage(int nMessage_, POINT* ppt_)
 {
     // Map from display position to SAM screen position
     int nX = ppt_->x, nY = ppt_->y;
-    Video::DisplayToSamPoint(&nX, &nY);
+    Video::NativeToSam(nX, nY);
 
     // Finally, send the message now we have the appropriate position
     return GUI::SendMessage(nMessage_, nX, nY);
@@ -389,9 +388,8 @@ bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
     // Mouse button decoder table, from the lower 3 bits of the Windows message values
     static int anMouseButtons[] = { 2, 1, 1, 0, 3, 3, 0, 2 };
 
-    POINT pt = { GET_X_LPARAM(lParam_), GET_Y_LPARAM(lParam_) };
-    ClientToScreen(hwnd_, &pt);
-    ScreenToClient(hwndCanvas, &pt);
+    int x = GET_X_LPARAM(lParam_);
+    int y = GET_Y_LPARAM(lParam_);
 
     switch (uMsg_)
     {
@@ -417,30 +415,17 @@ bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
         // If the GUI is active, pass the message to it
         if (GUI::IsActive())
         {
-            SendGuiMouseMessage(GM_MOUSEMOVE, &pt);
+            Video::NativeToSam(x, y);
+            GUI::SendMessage(GM_MOUSEMOVE, x, y);
             break;
         }
-
-        // Otherwise the SAM mouse must be active for it to be of interest
-        else if (!fMouseActive)
-            break;
-
-        // Work out the relative movement since last time
-        POINT ptCursor;
-        GetCursorPos(&ptCursor);
-        int nX = ptCursor.x - ptCentre.x, nY = ptCursor.y - ptCentre.y;
-
-        // Any native movement?
-        if (nX || nY)
+        else if (fMouseActive)
         {
-            Video::DisplayToSamSize(&nX, &nY);
-
-            // Any SAM movement?
-            if (nX || nY)
+            auto [dx, dy] = Video::MouseRelative();
+            if (dx || dy)
             {
-                // Update the SAM mouse and re-centre the cursor
-                pMouse->Move(nX, -nY);
-                SetCursorPos(ptCentre.x, ptCentre.y);
+                TRACE("Mouse: {} {}\n", dx, -dy);
+                pMouse->Move(dx, -dy);
             }
         }
         break;
@@ -453,16 +438,23 @@ bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
     {
         // The GUI gets first chance to process the message
         if (GUI::IsActive())
-            SendGuiMouseMessage(GM_BUTTONDOWN, &pt);
+        {
+            Video::NativeToSam(x, y);
+            GUI::SendMessage(GM_BUTTONDOWN, x, y);
+        }
 
         // If the mouse is already active, pass on button presses
         else if (fMouseActive)
+        {
             pMouse->SetButton(anMouseButtons[uMsg_ & 0x7], true);
+        }
 
         // If the mouse interface is enabled and being read by something other than the ROM, a left-click acquires it
         // Otherwise a double-click is required to forcibly acquire it
         else if (GetOption(mouse) && ((uMsg_ == WM_LBUTTONDOWN && pMouse->IsActive()) || uMsg_ == WM_LBUTTONDBLCLK))
+        {
             AcquireMouse(true);
+        }
 
         break;
     }
@@ -473,7 +465,10 @@ bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
     {
         // The GUI gets first chance to process the message
         if (GUI::IsActive())
-            SendGuiMouseMessage(GM_BUTTONUP, &pt);
+        {
+            Video::NativeToSam(x, y);
+            GUI::SendMessage(GM_BUTTONUP, x, y);
+        }
 
         // Pass the button release through to the mouse module
         else if (fMouseActive)
@@ -499,7 +494,7 @@ bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             // If escape is pressed, release mouse capture and stop any auto-typing
             if (wParam_ == VK_ESCAPE && GetOption(mouseesc))
             {
-                AcquireMouse(false);
+                Actions::Do(Action::ReleaseMouse);
                 Keyin::Stop();
             }
 

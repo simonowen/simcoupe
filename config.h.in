@@ -14,9 +14,6 @@
 // PNG library for screenshot saving.
 #cmakedefine HAVE_LIBPNG
 
-// Direct3D 9 video (Win32).
-#cmakedefine HAVE_D3D9
-
 // DirectInput 8 (Win32).
 #cmakedefine HAVE_DINPUT
 

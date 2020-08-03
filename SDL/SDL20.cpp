@@ -30,275 +30,313 @@
 
 static uint32_t aulPalette[N_PALETTE_COLOURS];
 
-
 SDLTexture::SDLTexture()
-    : m_fFilter(GetOption(filter))
 {
-    m_rTarget.x = m_rTarget.y = 0;
-    m_rTarget.w = Frame::Width();
-    m_rTarget.h = Frame::Height();
-
     SDL_SetHint(SDL_HINT_RENDER_VSYNC, "0");
 
 #ifdef SDL_VIDEO_FULLSCREEN_SPACES
     SDL_SetHint(SDL_VIDEO_FULLSCREEN_SPACES, "1");
 #endif
+
+    if (!Init())
+        throw std::runtime_error("SDL initialisation failed");
 }
 
 SDLTexture::~SDLTexture()
 {
-    if (m_pTexture) { SDL_DestroyTexture(m_pTexture); m_pTexture = nullptr; }
-    if (m_pRenderer) { SDL_DestroyRenderer(m_pRenderer); m_pRenderer = nullptr; }
-    if (m_pWindow) { SDL_DestroyWindow(m_pWindow); m_pWindow = nullptr; }
+    SaveWindowPosition();
 }
 
-
-int SDLTexture::GetCaps() const
+Rect SDLTexture::DisplayRect() const
 {
-    return VCAP_STRETCH | VCAP_FILTER;
+    return { m_rDisplay.x, m_rDisplay.y, m_rDisplay.w, m_rDisplay.h };
 }
 
 bool SDLTexture::Init()
 {
-    // Original frame
-    int nWidth = Frame::Width();
-    int nHeight = Frame::Height();
+    int width = Frame::Width();
+    int height = Frame::Height();
 
-    // Apply window scaling and aspect ratio
-    if (!GetOption(scale)) SetOption(scale, 2);
-    int nWindowWidth = nWidth * GetOption(scale) / 2;
-    int nWindowHeight = nHeight * GetOption(scale) / 2;
-    if (GetOption(ratio5_4)) nWindowWidth = nWindowWidth * 5 / 4;
-
-    // Create window hidden initially
     Uint32 flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
-    m_pWindow = SDL_CreateWindow(WINDOW_CAPTION, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, nWindowWidth, nWindowHeight, flags);
+    m_pWindow.reset(
+        SDL_CreateWindow(
+            WINDOW_CAPTION,
+            SDL_WINDOWPOS_CENTERED,
+            SDL_WINDOWPOS_CENTERED,
+            width * 2,
+            height * 2,
+            flags));
+
     if (!m_pWindow)
-    {
-        TRACE("Failed to create SDL2 window!\n");
         return false;
-    }
 
-    // Limit window to 50% size (typically 384x240)
-    SDL_SetWindowMinimumSize(m_pWindow, nWidth / 2, nHeight / 2);
+    SDL_SetWindowMinimumSize(m_pWindow.get(), width / 2, height / 2);
 
-    m_pRenderer = SDL_CreateRenderer(m_pWindow, -1, SDL_RENDERER_ACCELERATED);
+    m_pRenderer.reset(
+        SDL_CreateRenderer(m_pWindow.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE));
+
     if (!m_pRenderer)
-    {
-        TRACE("Failed to create SDL2 renderer!\n");
-        SDL_DestroyWindow(m_pWindow);
-        m_pWindow = nullptr;
         return false;
-    }
 
-    SDL_RendererInfo ri;
-    SDL_GetRendererInfo(m_pRenderer, &ri);
-
-    // Ensure the renderer is accelerated
-    if (!(ri.flags & SDL_RENDERER_ACCELERATED))
-    {
-        TRACE("SDLTexture: skipping non-accelerated renderer\n");
-        SDL_DestroyRenderer(m_pRenderer);
-        m_pRenderer = nullptr;
-        SDL_DestroyWindow(m_pWindow);
-        m_pWindow = nullptr;
-        return false;
-    }
-
-    UpdateSize();
-    UpdatePalette();
-    SDL_ShowWindow(m_pWindow);
+    OptionsChanged();
+    RestoreWindowPosition();
+    SDL_ShowWindow(m_pWindow.get());
 
     return true;
 }
 
 
+void SDLTexture::OptionsChanged()
+{
+    uint8_t fill_intensity = GetOption(blackborder) ? 0 : 25;
+    SDL_SetRenderDrawColor(m_pRenderer.get(), fill_intensity, fill_intensity, fill_intensity, 0xff);
+
+    m_rSource.w = m_rSource.h = 0;
+    m_rTarget.w = m_rTarget.h = 0;
+}
+
 void SDLTexture::Update(const FrameBuffer& fb)
 {
-    // Draw any changed lines to the back buffer
-    if (!DrawChanges(fb))
-        return;
+    if (DrawChanges(fb))
+        Render();
 }
 
-// Create whatever's needed for actually displaying the SAM image
+void SDLTexture::ResizeWindow(int height) const
+{
+    auto width = static_cast<float>(height)* Frame::Width() / Frame::Height();
+    if (GetOption(ratio5_4))
+        width *= 1.25f;
+
+    SDL_SetWindowSize(m_pWindow.get(), static_cast<int>(width + 0.5f), height);
+}
+
+std::pair<int, int> SDLTexture::MouseRelative()
+{
+    SDL_Point mouse{};
+    SDL_GetMouseState(&mouse.x, &mouse.y);
+
+    SDL_Point centre{ m_rTarget.w / 2, m_rTarget.h / 2 };
+    auto dx = mouse.x - centre.x;
+    auto dy = mouse.y - centre.y;
+
+    auto pix_x = static_cast<float>(m_rDisplay.w) / Frame::Width() * 2;
+    auto pix_y = static_cast<float>(m_rDisplay.h) / Frame::Height() * 2;
+
+    auto dx_sam = static_cast<int>(dx / pix_x);
+    auto dy_sam = static_cast<int>(dy / pix_y);
+
+    if (dx_sam || dy_sam)
+    {
+        auto x_remain = static_cast<int>(std::fmod(dx, pix_x));
+        auto y_remain = static_cast<int>(std::fmod(dy, pix_y));
+        SDL_WarpMouseInWindow(nullptr, centre.x + x_remain, centre.y + y_remain);
+    }
+
+    return { dx_sam, dy_sam };
+}
+
 void SDLTexture::UpdatePalette()
 {
-    const COLOUR* pSAM = IO::GetPalette();
+    if (!m_pTexture)
+        return;
 
-    int w, h;
-    Uint32 uFormat, uRmask, uGmask, uBmask, uAmask;
-    SDL_QueryTexture(m_pTexture, &uFormat, nullptr, &w, &h);
-    SDL_PixelFormatEnumToMasks(uFormat, &m_nDepth, &uRmask, &uGmask, &uBmask, &uAmask);
+    int bpp;
+    Uint32 format, r_mask, g_mask, b_mask, a_mask;
+    SDL_QueryTexture(m_pTexture.get(), &format, nullptr, nullptr, nullptr);
+    SDL_PixelFormatEnumToMasks(format, &bpp, &r_mask, &g_mask, &b_mask, &a_mask);
 
-    // Build the full palette from SAM and GUI colours
-    for (int i = 0; i < N_PALETTE_COLOURS; i++)
+    auto palette = IO::Palette();
+    for (size_t i = 0; i < palette.size(); ++i)
     {
-        // Look up the colour in the SAM palette
-        const COLOUR* p = &pSAM[i];
-        uint8_t r = p->bRed, g = p->bGreen, b = p->bBlue, a = 0xff;
-
-        aulPalette[i] = RGB2Native(r, g, b, a, uRmask, uGmask, uBmask, uAmask);
+        auto& colour = palette[i];
+        aulPalette[i] = RGB2Native(
+            colour.red, colour.green, colour.blue, 0xff,
+            r_mask, g_mask, b_mask, a_mask);
     }
 }
 
-
-// OpenGL version of DisplayChanges
 bool SDLTexture::DrawChanges(const FrameBuffer& fb)
 {
-    // Force GUI filtering with odd scaling factors, otherwise respect the options
-    bool fFilter = GUI::IsActive() ? GetOption(filtergui) || (GetOption(scale) & 1) : GetOption(filter);
-
-    // If the required filter state has changed, apply it
-    if (m_fFilter != fFilter)
+    bool is_fullscreen = (SDL_GetWindowFlags(m_pWindow.get()) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
+    if (is_fullscreen != GetOption(fullscreen))
     {
-        m_fFilter = fFilter;
-        UpdateSize();
+        SDL_SetWindowFullscreen(
+            m_pWindow.get(),
+            GetOption(fullscreen) ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
     }
+
+    int width = fb.Width();
+    int height = fb.Height();
+
+    int window_width{};
+    int window_height{};
+    SDL_GetWindowSize(m_pWindow.get(), &window_width, &window_height);
+
+    bool smooth = !GUI::IsActive() && GetOption(smooth);
+    bool smooth_changed = smooth != m_smooth;
+    bool source_changed = (width != m_rSource.w) || (height != m_rSource.h);
+    bool target_changed = window_width != m_rTarget.w || window_height != m_rTarget.h;
+
+    if (source_changed)
+        ResizeSource(width, height);
+
+    if (target_changed)
+        ResizeTarget(window_width, window_height);
+
+    if (source_changed || target_changed || smooth_changed)
+        ResizeIntermediate(smooth);
 
     if (!m_pTexture)
         return false;
 
-    int nWidth = Frame::Width();
-    int nHeight = Frame::Height();
-
-    bool fHalfHeight = !GUI::IsActive();
-    if (fHalfHeight) nHeight /= 2;
-
-    void* pvPixels{};
-    int nPitch{};
-    if (SDL_LockTexture(m_pTexture, nullptr, &pvPixels, &nPitch) != 0)
-    {
-        TRACE("!!! SDL_LockSurface failed: {}\n", SDL_GetError());
+    int texture_pitch = 0;
+    uint8_t* pTexture = nullptr;
+    if (SDL_LockTexture(m_pTexture.get(), nullptr, (void**)&pTexture, &texture_pitch) != 0)
         return false;
-    }
 
-    int nRightHi = nWidth >> 3;
+    int width_cells = width / GFX_PIXELS_PER_CELL;
+    auto pLine = fb.GetLine(0);
+    long line_pitch = fb.Width();
 
-    uint32_t* pdwBack = reinterpret_cast<uint32_t*>(pvPixels), * pdw = pdwBack;
-    long lPitchDW = nPitch >> 2;
-
-    auto pbSAM = fb.GetLine(0);
-    auto pb = pbSAM;
-    long lPitch = fb.Width();
-
-    // What colour depth is the target surface?
-    switch (m_nDepth)
+    for (int y = 0; y < height; ++y)
     {
-    case 16:
-    {
-        for (int y = 0; y <= nHeight; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
+        auto pdw = reinterpret_cast<uint32_t*>(pTexture);
+        auto pb = pLine;
+
+        for (int x = 0; x < width_cells; ++x)
         {
-            for (int x = 0; x < nRightHi; x++)
-            {
-                pdw[0] = SDL_SwapLE32((aulPalette[pb[1]] << 16) | aulPalette[pb[0]]);
-                pdw[1] = SDL_SwapLE32((aulPalette[pb[3]] << 16) | aulPalette[pb[2]]);
-                pdw[2] = SDL_SwapLE32((aulPalette[pb[5]] << 16) | aulPalette[pb[4]]);
-                pdw[3] = SDL_SwapLE32((aulPalette[pb[7]] << 16) | aulPalette[pb[6]]);
+            for (int i = 0; i < GFX_PIXELS_PER_CELL; ++i)
+                pdw[i] = aulPalette[pb[i]];
 
-                pdw += 4;
-                pb += 8;
-            }
+            pdw += GFX_PIXELS_PER_CELL;
+            pb += GFX_PIXELS_PER_CELL;
+
         }
-    }
-    break;
 
-    case 32:
-    {
-        for (int y = 0; y <= nHeight; pdw = pdwBack += lPitchDW, pb = pbSAM += lPitch, y++)
-        {
-            for (int x = 0; x < nRightHi; x++)
-            {
-                pdw[0] = aulPalette[pb[0]];
-                pdw[1] = aulPalette[pb[1]];
-                pdw[2] = aulPalette[pb[2]];
-                pdw[3] = aulPalette[pb[3]];
-                pdw[4] = aulPalette[pb[4]];
-                pdw[5] = aulPalette[pb[5]];
-                pdw[6] = aulPalette[pb[6]];
-                pdw[7] = aulPalette[pb[7]];
-
-                pdw += 8;
-                pb += 8;
-            }
-        }
-    }
-    break;
+        pTexture += texture_pitch;
+        pLine += line_pitch;
     }
 
-    // Unlock the texture now we're done drawing on it
-    SDL_UnlockTexture(m_pTexture);
-
-    SDL_Rect rTexture = { 0,0, nWidth, nHeight };
-    SDL_Rect rWindow = { 0,0, 0,0 };
-    SDL_GetWindowSize(m_pWindow, &rWindow.w, &rWindow.h);
-
-    nWidth = Frame::Width();
-    nHeight = Frame::Height();
-    if (GetOption(ratio5_4)) nWidth = nWidth * 5 / 4;
-
-    int nWidthFit = nWidth * rWindow.h / nHeight;
-    int nHeightFit = nHeight * rWindow.w / nWidth;
-
-    if (nWidthFit <= rWindow.w)
-    {
-        nWidth = nWidthFit;
-        nHeight = rWindow.h;
-    }
-    else if (nHeightFit <= rWindow.h)
-    {
-        nWidth = rWindow.w;
-        nHeight = nHeightFit;
-    }
-
-    rWindow.x = (rWindow.w - nWidth) / 2;
-    rWindow.y = (rWindow.h - nHeight) / 2;
-    rWindow.w = nWidth;
-    rWindow.h = nHeight;
-    m_rTarget = rWindow;
-
-    SDL_RenderClear(m_pRenderer);
-    SDL_RenderCopy(m_pRenderer, m_pTexture, &rTexture, &rWindow);
-    SDL_RenderPresent(m_pRenderer);
-
+    SDL_UnlockTexture(m_pTexture.get());
     return true;
 }
 
-void SDLTexture::UpdateSize()
+void SDLTexture::Render()
 {
-    // Toggle fullscreen state if necessary
-    bool fFullscreen = (SDL_GetWindowFlags(m_pWindow) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
-    if (GetOption(fullscreen) != fFullscreen)
-        SDL_SetWindowFullscreen(m_pWindow, GetOption(fullscreen) ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+    SDL_Rect rScaledTexture{};
+    SDL_QueryTexture(m_pScaledTexture.get(), nullptr, nullptr, &rScaledTexture.w, &rScaledTexture.h);
 
-    if (m_pTexture) { SDL_DestroyTexture(m_pTexture); m_pTexture = nullptr; }
+    // Integer scale original image using point sampling.
+    SDL_SetRenderTarget(m_pRenderer.get(), m_pScaledTexture.get());
+    SDL_RenderCopy(m_pRenderer.get(), m_pTexture.get(), nullptr, nullptr);
 
-    int nWidth = Frame::Width();
-    int nHeight = Frame::Height();
-
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, m_fFilter ? "linear" : "nearest");
-    m_pTexture = SDL_CreateTexture(m_pRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, nWidth, nHeight);
-
-    SDL_DisplayMode displaymode;
-    SDL_GetDesktopDisplayMode(0, &displaymode);
+    // Draw to window with remaining scaling using linear sampling.
+    SDL_SetRenderTarget(m_pRenderer.get(), nullptr);
+    SDL_RenderClear(m_pRenderer.get());
+    SDL_RenderCopy(m_pRenderer.get(), m_pScaledTexture.get(), nullptr, &m_rDisplay);
+    SDL_RenderPresent(m_pRenderer.get());
 }
 
-
-// Map a native size/offset to SAM view port
-void SDLTexture::DisplayToSamSize(int* pnX_, int* pnY_)
+void SDLTexture::ResizeSource(int source_width, int source_height)
 {
-    int nHalfWidth = !GUI::IsActive();
-    int nHalfHeight = nHalfWidth;
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
 
-    *pnX_ = *pnX_ * Frame::Width() / (m_rTarget.w << nHalfWidth);
-    *pnY_ = *pnY_ * Frame::Height() / (m_rTarget.h << nHalfHeight);
+    m_pTexture.reset(
+        SDL_CreateTexture(
+            m_pRenderer.get(),
+            SDL_PIXELFORMAT_UNKNOWN,
+            SDL_TEXTUREACCESS_STREAMING,
+            source_width,
+            source_height));
+
+    UpdatePalette();
+
+    m_rSource.w = source_width;
+    m_rSource.h = source_height;
 }
 
-// Map a native client point to SAM view port
-void SDLTexture::DisplayToSamPoint(int* pnX_, int* pnY_)
+void SDLTexture::ResizeTarget(int target_width, int target_height)
 {
-    *pnX_ -= m_rTarget.x;
-    *pnY_ -= m_rTarget.y;
-    DisplayToSamSize(pnX_, pnY_);
+    int width = Frame::Width();
+    int height = Frame::Height();
+    if (GetOption(ratio5_4)) width = width * 5 / 4;
+
+    int width_fit = width * target_height / height;
+    int height_fit = height * target_width / width;
+
+    if (width_fit <= target_width)
+    {
+        width = width_fit;
+        height = target_height;
+    }
+    else if (height_fit <= target_height)
+    {
+        width = target_width;
+        height = height_fit;
+    }
+
+    m_rDisplay.x = (target_width - width) / 2;
+    m_rDisplay.y = (target_height - height) / 2;
+    m_rDisplay.w = width;
+    m_rDisplay.h = height;
+
+    m_rTarget.w = target_width;
+    m_rTarget.h = target_height;
+}
+
+void SDLTexture::ResizeIntermediate(bool smooth)
+{
+    int width_scale = (m_rTarget.w + (m_rSource.w - 1)) / m_rSource.w;
+    int height_scale = (m_rTarget.h + (m_rSource.h - 1)) / m_rSource.h;
+
+    if (smooth)
+    {
+        width_scale = 1;
+        height_scale = 2;
+    }
+
+    int width = m_rSource.w * width_scale;
+    int height = m_rSource.h * height_scale;
+
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+
+    m_pScaledTexture.reset(
+        SDL_CreateTexture(
+            m_pRenderer.get(),
+            SDL_PIXELFORMAT_UNKNOWN,
+            SDL_TEXTUREACCESS_TARGET,
+            width,
+            height));
+
+    m_smooth = smooth;
+}
+
+void SDLTexture::SaveWindowPosition()
+{
+    SDL_SetWindowFullscreen(m_pWindow.get(), 0);
+
+    auto window_flags = SDL_GetWindowFlags(m_pWindow.get());
+    auto maximised = (window_flags & SDL_WINDOW_MAXIMIZED) ? 1 : 0;
+    SDL_RestoreWindow(m_pWindow.get());
+
+    int x, y, width, height;
+    SDL_GetWindowPosition(m_pWindow.get(), &x, &y);
+    SDL_GetWindowSize(m_pWindow.get(), &width, &height);
+
+    SetOption(windowpos, fmt::format("{},{},{},{},{}", x, y, width, height, maximised).c_str());
+}
+
+void SDLTexture::RestoreWindowPosition()
+{
+    int x, y, width, height, maximised;
+    if (sscanf(GetOption(windowpos), "%d,%d,%d,%d,%d", &x, &y, &width, &height, &maximised) == 5)
+    {
+        SDL_SetWindowPosition(m_pWindow.get(), x, y);
+        SDL_SetWindowSize(m_pWindow.get(), width, height);
+
+        if (maximised)
+            SDL_MaximizeWindow(m_pWindow.get());
+    }
 }
 
 #endif // HAVE_LIBSDL2

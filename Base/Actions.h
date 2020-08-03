@@ -26,12 +26,12 @@ enum class Action
     EjectFloppy2, SaveFloppy2, ExitApplication, Options, Debugger, ImportData,
     ExportData, SavePNG, ChangeProfiler_REMOVED, ResetButton, NmiButton,
     Pause, FrameStep, ToggleTurbo, TempTurbo, ToggleScanHiRes_REMOVED, ToggleFullscreen,
-    ChangeWindowSize_REMOVED, ChangeBorders_REMOVED, Toggle5_4, ToggleFilter,
-    ToggleScanlines_REMOVED, ToggleGreyscale, ToggleMute_REMOVED, ReleaseMouse, PrinterOnline,
+    ChangeWindowSize_REMOVED, ChangeBorders_REMOVED, Toggle5_4, ToggleSmoothing,
+    ToggleScanlines_REMOVED, ToggleGreyscale_REMOVED, ToggleMute_REMOVED, ReleaseMouse, PrinterOnline,
     FlushPrinter, About, Minimise, RecordGif, RecordGifLoop, RecordGifStop,
     RecordWav, RecordWavSegment, RecordWavStop, RecordAvi, RecordAviHalf,
     RecordAviStop, SpeedFaster, SpeedSlower, SpeedNormal, Paste, TapeInsert,
-    TapeEject, TapeBrowser, SaveSSX
+    TapeEject, TapeBrowser, SaveSSX, ToggleMotionBlur
 };
 
 namespace Actions

@@ -38,7 +38,7 @@ public:
     static bool Init(bool fFirstInit_ = false);
     static void Exit(bool fReInit_ = false);
 
-    static std::unique_ptr<IVideoRenderer> CreateVideo();
+    static std::unique_ptr<IVideoBase> CreateVideo();
     static bool CheckEvents();
 
     static bool DoAction(Action action, bool pressed = true);
@@ -54,7 +54,7 @@ extern bool g_fActive;
 #define UE_OPENFILE             (UE_BASE+1)
 #define UE_TOGGLEFULLSCREEN     (UE_BASE+2)
 #define UE_TOGGLESYNC           (UE_BASE+3)
-#define UE_TOGGLEGREYSCALE      (UE_BASE+4)
+//#define UE_TOGGLEGREYSCALE      (UE_BASE+4)
 #define UE_RESETBUTTON          (UE_BASE+5)
 #define UE_NMIBUTTON            (UE_BASE+6)
 #define UE_TOGGLE54             (UE_BASE+8)

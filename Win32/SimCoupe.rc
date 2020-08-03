@@ -98,16 +98,6 @@ BEGIN
     COMBOBOX        IDC_MIDI_OUT,50,153,130,69,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
-IDD_PAGE_DISPLAY DIALOGEX 0, 0, 250, 200
-STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
-CAPTION "Display"
-FONT 8, "MS Sans Serif", 0, 0, 0x0
-BEGIN
-    CONTROL         "Bi-linear filtering (smoothing)",IDC_FILTER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,25,180,10
-    ICON            IDI_DISPLAY, IDC_STATIC, 16, 20, 20, 20
-    GROUPBOX        "Hardware",IDC_STATIC,7,7,236,44
-END
-
 IDD_PAGE_JOYSTICK DIALOGEX 0, 0, 250, 200
 STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Joystick"
@@ -516,8 +506,8 @@ BEGIN
         MENUITEM "&Full Screen\tF8",            IDM_VIEW_FULLSCREEN
         MENUITEM SEPARATOR
         MENUITEM "&TV Aspect Ratio\tF5",        IDM_VIEW_RATIO54
-        MENUITEM "S&mooth Image\tF6",           IDM_VIEW_FILTER
-        MENUITEM "&Greyscale",                  IDM_VIEW_GREYSCALE
+        MENUITEM "&Motion Blur\tF7",            IDM_VIEW_MOTIONBLUR
+        MENUITEM "S&mooth Image\tF6",           IDM_VIEW_SMOOTH
         MENUITEM SEPARATOR
         POPUP "&Window Size"
         BEGIN
@@ -527,6 +517,10 @@ BEGIN
             MENUITEM "200%\tAlt-&3",                IDM_VIEW_ZOOM_200
             MENUITEM "250%\tAlt-&4",                IDM_VIEW_ZOOM_250
             MENUITEM "300%\tAlt-&5",                IDM_VIEW_ZOOM_300
+            MENUITEM "350%\tAlt-&6",                IDM_VIEW_ZOOM_350
+            MENUITEM "400%\tAlt-&7",                IDM_VIEW_ZOOM_400
+            MENUITEM "450%\tAlt-&8",                IDM_VIEW_ZOOM_450
+            MENUITEM "500%\tAlt-&9",                IDM_VIEW_ZOOM_500
         END
         POPUP "&Border Area"
         BEGIN

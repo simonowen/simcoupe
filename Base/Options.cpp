@@ -64,14 +64,14 @@ OPTION aOptions[] =
     OPT_F("FirstRun",     firstrun,       true),      // Non-zero if this is the first run
     OPT_S("WindowPos",    windowpos,      ""),        // Main window position, if supported
 
-    OPT_N("Scale",        scale,          2),         // Windowed display is 150%
     OPT_F("Ratio5_4",     ratio5_4,       false),     // Don't use 5:4 screen ratio
-    OPT_N("Mode3",        mode3,          0),         // Show only odd mode3 pixels on low-res displays
     OPT_F("Fullscreen",   fullscreen,     false),     // Not full screen
     OPT_N("Borders",      borders,        2),         // Same amount of borders as previous version
-    OPT_F("Greyscale",    greyscale,      false),     // Colour display
-    OPT_F("Filter",       filter,         true),      // Filter the image when stretching
-    OPT_F("FilterGUI",    filtergui,      false),     // Don't filter the image when the GUI is active
+    OPT_F("Smooth",       smooth,         true),      // Smooth image when stretching
+    OPT_F("MotionBlur",   motionblur,     false),     // No motion blur (reduces Gigascreen flicker)
+    OPT_N("BlurPercent",  blurpercent,    25),        // Retain 25% of previous output image
+    OPT_N("MaxIntensity", maxintensity,   255),       // Maximum colour channel intensity
+    OPT_F("BlackBorder",  blackborder,    false),     // Off-black border regions
 
     OPT_N("AviReduce",    avireduce,      1),         // Record 44kHz 8-bit stereo audio (50% saving)
 
@@ -156,7 +156,7 @@ OPTION aOptions[] =
     OPT_F("BreakOnExec",  breakonexec,    false),     // Don't break on code auto-execute
 
     OPT_S("FnKeys",       fnkeys,
-     "F1=1,SF1=2,AF1=0,CF1=3,F2=5,SF2=6,AF2=4,CF2=7,F3=50,SF3=49,F4=11,SF4=12,AF4=8,F5=25,SF5=23,F6=26,F7=27,SF7=21,F8=22,F9=10,SF9=13,F10=9,SF10=10,F11=16,F12=15,CF12=8"),
+     "F1=1,SF1=2,AF1=0,CF1=3,F2=5,SF2=6,AF2=4,CF2=7,F3=50,SF3=49,F4=11,SF4=12,AF4=8,F5=25,SF5=23,F6=26,F7=52,SF7=21,F8=22,F9=10,SF9=13,F10=9,SF10=10,F11=16,F12=15,CF12=8"),
 };
 
 inline bool IsTrue(const char* pcsz_)

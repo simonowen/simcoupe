@@ -148,18 +148,10 @@
 #define IDS_EXTERNAL                    1222
 #define IDS_TEXT1                       1223
 #define IDS_TEXT2                       1224
-#define IDC_CHECK1                      1228
 #define IDC_AUTO_FLUSH                  1228
-#define IDC_HIRES                       1228
 #define IDC_SAM_JOYSTICK1               1230
 #define IDC_SAM_JOYSTICK2               1231
-#define IDC_RENDERER                    1232
-#define IDS_RENDERER                    1233
-#define IDC_INTENSITY                   1234
-#define IDC_FILTER                      1235
-#define IDS_INTENSITY                   1236
-#define IDS_INTENSITY2                  1238
-#define IDS_INTENSITY_PERCENT           1238
+#define IDC_SMOOTH                      1235
 #define IDT_MENU                        7389
 #define IDM_FILE_EXIT                   40001
 #define IDM_HELP_ABOUT                  40050
@@ -183,15 +175,19 @@
 #define IDM_VIEW_ZOOM_200               40165
 #define IDM_VIEW_ZOOM_250               40166
 #define IDM_VIEW_ZOOM_300               40167
-#define IDM_FILE_RECENT1                40171
-#define IDM_FILE_RECENT2                40172
-#define IDM_FILE_RECENT3                40173
-#define IDM_FILE_RECENT4                40174
-#define IDM_FILE_RECENT5                40175
-#define IDM_FILE_RECENT6                40176
-#define IDM_FILE_RECENT7                40177
-#define IDM_FILE_RECENT8                40178
-#define IDM_FILE_RECENT9                40179
+#define IDM_VIEW_ZOOM_350               40168
+#define IDM_VIEW_ZOOM_400               40169
+#define IDM_VIEW_ZOOM_450               40170
+#define IDM_VIEW_ZOOM_500               40171
+#define IDM_FILE_RECENT1                40172
+#define IDM_FILE_RECENT2                40173
+#define IDM_FILE_RECENT3                40174
+#define IDM_FILE_RECENT4                40175
+#define IDM_FILE_RECENT5                40176
+#define IDM_FILE_RECENT6                40177
+#define IDM_FILE_RECENT7                40178
+#define IDM_FILE_RECENT8                40179
+#define IDM_FILE_RECENT9                40180
 #define IDM_FLOPPY2_RECENT1             40181
 #define IDM_FLOPPY2_RECENT2             40182
 #define IDM_FLOPPY2_RECENT3             40183
@@ -201,7 +197,6 @@
 #define IDM_FLOPPY2_RECENT7             40187
 #define IDM_FLOPPY2_RECENT8             40188
 #define IDM_FLOPPY2_RECENT9             40189
-#define IDM_VIEW_GREYSCALE              40190
 #define IDM_VIEW_BORDERS0               40191
 #define IDM_VIEW_BORDERS1               40192
 #define IDM_VIEW_BORDERS2               40193
@@ -212,6 +207,7 @@
 #define IDM_SYSTEM_MUTESOUND            40198
 #define IDM_VIEW_SYNC                   40199
 #define IDM_SYSTEM_PAUSE                40200
+#define IDM_VIEW_MOTIONBLUR             40201
 #define IDM_TOOLS_DEBUGGER              40202
 #define IDM_SYSTEM_NMI                  40203
 #define IDM_SYSTEM_RESET                40204
@@ -235,7 +231,7 @@
 #define IDM_SYSTEM_SPEED_500            40254
 #define IDM_SYSTEM_SPEED_1000           40255
 #define IDM_TOOLS_PASTE_CLIPBOARD       40260
-#define IDM_VIEW_FILTER                 40263
+#define IDM_VIEW_SMOOTH                 40263
 #define IDM_TOOLS_TAPE_BROWSER          40278
 
 // Next default values for new objects

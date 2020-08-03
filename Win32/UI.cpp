@@ -35,7 +35,7 @@
 #include "Clock.h"
 #include "CPU.h"
 #include "Debug.h"
-#include "Direct3D9.h"
+#include "D3D11.h"
 #include "Drive.h"
 #include "Expr.h"
 #include "Floppy.h"
@@ -90,7 +90,7 @@ static void ResizeWindow(int nHeight_ = 0);
 
 
 HINSTANCE __hinstance;
-HWND g_hwnd, hwndCanvas;
+HWND g_hwnd;
 static HMENU g_hmenu;
 extern HINSTANCE __hinstance;
 
@@ -154,7 +154,11 @@ static const char* aszBorders[] =
 
 extern "C" int main(int argc_, char* argv_[]);
 
-int WINAPI WinMain(HINSTANCE hinst_, HINSTANCE hinstPrev_, LPSTR pszCmdLine_, int nCmdShow_)
+int WINAPI WinMain(
+    _In_ HINSTANCE hinst_,
+    _In_opt_ HINSTANCE hinstPrev_,
+    _In_ LPSTR pszCmdLine_,
+    _In_ int nCmdShow_)
 {
     __hinstance = hinst_;
 
@@ -165,13 +169,13 @@ int WINAPI WinMain(HINSTANCE hinst_, HINSTANCE hinstPrev_, LPSTR pszCmdLine_, in
 
 void ClipPath(char* pszPath_, size_t nLength_);
 
-bool UI::Init(bool fFirstInit_/*=false*/)
+bool UI::Init()
 {
     LoadRecentFiles();
     return InitWindow();
 }
 
-void UI::Exit(bool fReInit_/*=false*/)
+void UI::Exit()
 {
     if (g_hwnd)
     {
@@ -184,9 +188,9 @@ void UI::Exit(bool fReInit_/*=false*/)
 
 
 // Create a video object to render the display
-std::unique_ptr<IVideoRenderer> UI::CreateVideo()
+std::unique_ptr<IVideoBase> UI::CreateVideo()
 {
-    return std::make_unique<Direct3D9Video>();
+    return std::make_unique<Direct3D11Video>(g_hwnd);
 }
 
 // Check and process any incoming messages
@@ -243,106 +247,20 @@ void UI::ShowMessage(MsgType type, const std::string& message)
     }
 }
 
-
-// Resize canvas window to a given container view size
-void ResizeCanvas(int nWidthView_, int nHeightView_)
-{
-    int nX = 0;
-    int nY = 0;
-
-    // In fullscreen mode with a menu, adjust to exclude it
-    if (GetOption(fullscreen) && GetMenu(g_hwnd))
-    {
-        int nMenu = GetSystemMetrics(SM_CYMENU);
-        nY -= nMenu;
-        nHeightView_ += nMenu;
-    }
-
-    int nWidth = Frame::Width();
-    int nHeight = Frame::Height();
-    if (GetOption(ratio5_4)) nWidth = nWidth * 5 / 4;
-
-    int nWidthFit = MulDiv(nWidth, nHeightView_, nHeight);
-    int nHeightFit = MulDiv(nHeight, nWidthView_, nWidth);
-
-    // Fit width to full height?
-    if (nWidthFit <= nWidthView_)
-    {
-        nWidth = nWidthFit;
-        nHeight = nHeightView_;
-        nX += (nWidthView_ - nWidth) / 2;
-    }
-    // Fit height to full width
-    else
-    {
-        nWidth = nWidthView_;
-        nHeight = nHeightFit;
-        nY += (nHeightView_ - nHeight) / 2;
-    }
-
-    // Set the new canvas position and size
-    MoveWindow(hwndCanvas, nX, nY, nWidth, nHeight, TRUE);
-    TRACE("Canvas: {},{} {}x{}\n", nX, nY, nWidth, nHeight);
-}
-
-// Resize the main window to a given height, or update width if height is zero
 void ResizeWindow(int nHeight_)
 {
     RECT rClient;
     GetClientRect(g_hwnd, &rClient);
+    if (!nHeight_)
+        nHeight_ = rClient.bottom;
 
-    if (GetOption(fullscreen))
+    if (!GetOption(fullscreen) && !IsMaximized(g_hwnd))
     {
-        // Change the window style to a visible pop-up, with no caption, border or menu
-        SetWindowLongPtr(g_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
-        SetMenu(g_hwnd, nullptr);
+        int width = MulDiv(nHeight_, Frame::Width(), Frame::Height());
+        if (GetOption(ratio5_4)) width = width * 5 / 4;
 
-        // Force the window to be top-most, and sized to fill the full screen
-        SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), SWP_FRAMECHANGED);
-        ResizeCanvas(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
-        return;
-    }
-
-    if (IsMaximized(g_hwnd))
-    {
-        // Fetch window position details, including the window position when restored
-        WINDOWPLACEMENT wp = { sizeof(wp) };
-        GetWindowPlacement(g_hwnd, &wp);
-
-        // Calculate the size of a window with 0x0 client area, to determine the frame/title sizes
-        RECT rect = { 0,0, 0,0 };
+        RECT rect{ 0, 0, width, nHeight_ };
         AdjustWindowRectEx(&rect, GetWindowStyle(g_hwnd), TRUE, GetWindowExStyle(g_hwnd));
-
-        // Calculate the height of the client area in the normalised window
-        int nHeight = (wp.rcNormalPosition.bottom - wp.rcNormalPosition.top) - (rect.bottom - rect.top);
-
-        // Calculate the appropriate width matching the height, taking aspect ratio into consideration
-        int nWidth = MulDiv(nHeight, Frame::Width(), Frame::Height());
-        if (GetOption(ratio5_4)) nWidth = nWidth * 5 / 4;
-        nWidth += (rect.right - rect.left);
-
-        // Update the restored window to be the correct shape once restored
-        wp.rcNormalPosition.right = wp.rcNormalPosition.left + nWidth;
-        SetWindowPlacement(g_hwnd, &wp);
-
-        // Adjust the canvas to match the new client area
-        ResizeCanvas(rClient.right, rClient.bottom);
-    }
-    else
-    {
-        // If a specific height wasn't supplied, use the existing height
-        if (!nHeight_)
-            nHeight_ = rClient.bottom;
-
-        // Calculate the appropriate width matching the height
-        int nWidth_ = MulDiv(nHeight_, Frame::Width(), Frame::Height());
-        if (GetOption(ratio5_4)) nWidth_ = nWidth_ * 5 / 4;
-
-        // Calculate the full window size for our given client area
-        RECT rect = { 0, 0, nWidth_, nHeight_ };
-        AdjustWindowRectEx(&rect, GetWindowStyle(g_hwnd), TRUE, GetWindowExStyle(g_hwnd));
-
-        // Set the new window size
         SetWindowPos(g_hwnd, HWND_NOTOPMOST, 0, 0, rect.right - rect.left, rect.bottom - rect.top, SWP_SHOWWINDOW | SWP_NOMOVE);
     }
 }
@@ -356,10 +274,9 @@ bool ChangesSaved(DiskDevice& floppy)
 
     if (GetOption(saveprompt))
     {
-        char sz[MAX_PATH] = {};
-        snprintf(sz, MAX_PATH - 1, "Save changes to %s?", floppy.DiskFile());
-
-        switch (MessageBox(g_hwnd, sz, WINDOW_CAPTION, MB_YESNOCANCEL | MB_ICONQUESTION))
+        switch (MessageBox(g_hwnd,
+            fmt::format("Save changes to {}?", floppy.DiskFile()).c_str(),
+            WINDOW_CAPTION, MB_YESNOCANCEL | MB_ICONQUESTION))
         {
         case IDYES:     break;
         case IDNO:      floppy.SetDiskModified(false); return true;
@@ -893,8 +810,6 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
 void UpdateMenuFromOptions()
 {
-    char szEject[MAX_PATH] = {};
-
     HMENU hmenu = g_hmenu;
     HMENU hmenuFile = GetSubMenu(hmenu, 0);
     HMENU hmenuFloppy2 = GetSubMenu(hmenuFile, 6);
@@ -902,10 +817,10 @@ void UpdateMenuFromOptions()
     bool fFloppy1 = GetOption(drive1) == drvFloppy, fInserted1 = pFloppy1->HasDisk();
     bool fFloppy2 = GetOption(drive2) == drvFloppy, fInserted2 = pFloppy2->HasDisk();
 
-    snprintf(szEject, MAX_PATH - 1, "&Close %s", fInserted1 ? pFloppy1->DiskFile() : "");
-    ModifyMenu(hmenu, IDM_FILE_FLOPPY1_EJECT, MF_STRING, IDM_FILE_FLOPPY1_EJECT, szEject);
-    snprintf(szEject, MAX_PATH - 1, "&Close %s", fInserted2 ? pFloppy2->DiskFile() : "");
-    ModifyMenu(hmenu, IDM_FILE_FLOPPY2_EJECT, MF_STRING, IDM_FILE_FLOPPY2_EJECT, szEject);
+    ModifyMenu(hmenu, IDM_FILE_FLOPPY1_EJECT, MF_STRING, IDM_FILE_FLOPPY1_EJECT,
+        fmt::format("&Close {}", fInserted1 ? pFloppy1->DiskFile() : "").c_str());
+    ModifyMenu(hmenu, IDM_FILE_FLOPPY2_EJECT, MF_STRING, IDM_FILE_FLOPPY2_EJECT,
+        fmt::format("&Close {}", fInserted2 ? pFloppy2->DiskFile() : "").c_str());
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 1 options
     EnableItem(IDM_FILE_NEW_DISK1, fFloppy1 && !GUI::IsActive());
@@ -924,12 +839,10 @@ void UpdateMenuFromOptions()
 
     CheckOption(IDM_VIEW_FULLSCREEN, GetOption(fullscreen));
     CheckOption(IDM_VIEW_RATIO54, GetOption(ratio5_4));
-    CheckOption(IDM_VIEW_GREYSCALE, GetOption(greyscale));
 
-    CheckOption(IDM_VIEW_FILTER, GetOption(filter) && Video::CheckCaps(VCAP_FILTER));
-    EnableItem(IDM_VIEW_FILTER, Video::CheckCaps(VCAP_FILTER));
+    CheckOption(IDM_VIEW_SMOOTH, GetOption(smooth));
+    CheckOption(IDM_VIEW_MOTIONBLUR, GetOption(motionblur));
 
-    CheckMenuRadioItem(hmenu, IDM_VIEW_ZOOM_50, IDM_VIEW_ZOOM_300, IDM_VIEW_ZOOM_50 + GetOption(scale) - 1, MF_BYCOMMAND);
     CheckMenuRadioItem(hmenu, IDM_VIEW_BORDERS0, IDM_VIEW_BORDERS4, IDM_VIEW_BORDERS0 + GetOption(borders), MF_BYCOMMAND);
 
     EnableItem(IDM_RECORD_AVI_START, !AVI::IsRecording());
@@ -996,26 +909,21 @@ bool UI::DoAction(Action action, bool pressed)
 
             if (GetOption(fullscreen))
             {
-                // Remember the window position, then re-initialise the video system
                 GetWindowPlacement(g_hwnd, &g_wp);
-                ResizeWindow();
+
+                SetWindowLongPtr(g_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+                SetMenu(g_hwnd, nullptr);
+                SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), SWP_FRAMECHANGED);
             }
             else
             {
-                SetWindowPlacement(g_hwnd, &g_wp);
-
-                DWORD dwStyle = (GetWindowStyle(g_hwnd) & WS_VISIBLE) | WS_OVERLAPPEDWINDOW;
-                SetWindowLongPtr(g_hwnd, GWL_STYLE, dwStyle);
+                auto style = (GetWindowStyle(g_hwnd) & WS_VISIBLE) | WS_OVERLAPPEDWINDOW;
+                SetWindowLongPtr(g_hwnd, GWL_STYLE, style);
                 SetMenu(g_hwnd, g_hmenu);
+                SetWindowPos(g_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
 
-                ResizeWindow();
+                SetWindowPlacement(g_hwnd, &g_wp);
             }
-            break;
-
-        case Action::Toggle5_4:
-            SetOption(ratio5_4, !GetOption(ratio5_4));
-            ResizeWindow();
-            Frame::SetStatus("{} aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
             break;
 
         case Action::InsertFloppy1:
@@ -1396,18 +1304,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         PostQuitMessage(0);
         return 0;
 
-        // Main window is being destroyed
-    case WM_DESTROY:
-        DestroyWindow(hwndCanvas), hwndCanvas = nullptr;
-        return 0;
-
         // System shutting down or using logging out
     case WM_QUERYENDSESSION:
         // Save without prompting, to avoid data loss
         if (pFloppy1) pFloppy1->Save();
         if (pFloppy2) pFloppy2->Save();
         return TRUE;
-
 
         // Main window activation change
     case WM_ACTIVATE:
@@ -1428,6 +1330,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
                 ShowWindow(hwnd_, SW_SHOWMINNOACTIVE);
         }
 
+        return 0;
+    }
+
+    case WM_GETMINMAXINFO:
+    {
+        RECT rect{ 0, 0, Frame::Width() / 2, Frame::Height() / 2 };
+        AdjustWindowRectEx(&rect, GetWindowStyle(g_hwnd), TRUE, GetWindowExStyle(g_hwnd));
+
+        auto pMMI = reinterpret_cast<MINMAXINFO*>(lParam_);
+        pMMI->ptMinTrackSize.x = rect.right - rect.left;
+        pMMI->ptMinTrackSize.y = rect.bottom - rect.top;
         return 0;
     }
 
@@ -1464,9 +1377,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         ulMouseTimer = 0;
         fHideCursor = true;
 
-        if (!fInMenu && GetOption(fullscreen))
-            SetMenu(hwnd_, nullptr);
-
         // Generate a WM_SETCURSOR to update the cursor state
         POINT pt;
         GetCursorPos(&pt);
@@ -1493,147 +1403,20 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         POINT pt = { GET_X_LPARAM(lParam_), GET_Y_LPARAM(lParam_) };
         ClientToScreen(hwnd_, &pt);
 
-        // Has the mouse moved since last time?
         if ((pt.x != ptLast.x || pt.y != ptLast.y) && !Input::IsMouseAcquired())
         {
-            // Show the cursor, but set a timer to hide it if not moved for a few seconds
             fHideCursor = false;
             ulMouseTimer = SetTimer(g_hwnd, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, nullptr);
-
-            // In fullscreen mode, show the popup menu
-            if (GetOption(fullscreen) && !GetMenu(g_hwnd))
-                SetMenu(g_hwnd, g_hmenu);
-
-            // Remember the new position
             ptLast = pt;
         }
 
         return 0;
     }
 
-
-    case WM_SIZE:
-        // Resize the canvas to fit the new main window size
-        ResizeCanvas(LOWORD(lParam_), HIWORD(lParam_));
-        break;
-
-    case WM_SIZING:
-    {
-        RECT* pRect = reinterpret_cast<RECT*>(lParam_);
-
-        // Determine the size of the current sizing area
-        RECT rWindow = *pRect;
-        OffsetRect(&rWindow, -rWindow.left, -rWindow.top);
-
-        // Get the screen size, adjusting for 5:4 mode if necessary
-        int nWidth = Frame::Width() >> 1;
-        int nHeight = Frame::Height() >> 1;
-        if (GetOption(ratio5_4))
-            nWidth = MulDiv(nWidth, 5, 4);
-
-        // Determine how big the window would be for an nWidth*nHeight client area
-        DWORD dwStyle = GetWindowStyle(hwnd_);
-        DWORD dwExStyle = GetWindowExStyle(hwnd_);
-        RECT rNonClient = { 0, 0, nWidth, nHeight };
-        AdjustWindowRectEx(&rNonClient, dwStyle, TRUE, dwExStyle);
-        rNonClient.right += nWindowDx;
-        rNonClient.bottom += nWindowDy;
-        OffsetRect(&rNonClient, -rNonClient.left, -rNonClient.top);
-
-        // Remove the non-client region to leave just the client area
-        rWindow.right -= (rNonClient.right -= nWidth);
-        rWindow.bottom -= (rNonClient.bottom -= nHeight);
-
-
-        // The size adjustment depends on which edge is being dragged
-        switch (wParam_)
-        {
-        case WMSZ_TOP:
-        case WMSZ_BOTTOM:
-            rWindow.right = MulDiv(rWindow.bottom, nWidth, nHeight);
-            break;
-
-        case WMSZ_LEFT:
-        case WMSZ_RIGHT:
-            rWindow.bottom = MulDiv(rWindow.right, nHeight, nWidth);
-            break;
-
-        default:
-            // With a diagonal drag the larger of the axis sizes (width:height adjusted) is used
-            if (MulDiv(rWindow.right, nHeight, nWidth) > rWindow.bottom)
-                rWindow.bottom = MulDiv(rWindow.right, nHeight, nWidth);
-            else
-                rWindow.right = MulDiv(rWindow.bottom, nWidth, nHeight);
-            break;
-        }
-
-
-        // Work out the the nearest scaling option factor  (multiple of half size, with 1 as the minimum)
-        int nScale = (rWindow.right + (nWidth >> 1)) / nWidth;
-        SetOption(scale, nScale + !nScale);
-
-        // Holding shift permits free scaling
-        if (GetAsyncKeyState(VK_SHIFT) < 0)
-        {
-            // Use the new size if at least 1x
-            if (rWindow.right >= nWidth)
-            {
-                if (rWindow.bottom != nHeight * GetOption(scale))
-                    SetOption(scale, 0);
-
-                nWidth = rWindow.right;
-                nHeight = rWindow.bottom;
-            }
-        }
-        // Otherwise stick to exact multiples only
-        else
-        {
-            // Form the new client size
-            nWidth *= GetOption(scale);
-            nHeight *= GetOption(scale);
-        }
-
-        // Add the non-client region back on to give a full window size
-        nWidth += rNonClient.right;
-        nHeight += rNonClient.bottom;
-
-        // Adjust the appropriate part of sizing area, depending on the drag corner again
-        switch (wParam_)
-        {
-        case WMSZ_TOPLEFT:
-            pRect->top = pRect->bottom - nHeight;
-            pRect->left = pRect->right - nWidth;
-            break;
-
-        case WMSZ_TOP:
-        case WMSZ_TOPRIGHT:
-            pRect->top = pRect->bottom - nHeight;
-            pRect->right = pRect->left + nWidth;
-            break;
-
-        case WMSZ_LEFT:
-        case WMSZ_BOTTOMLEFT:
-            pRect->bottom = pRect->top + nHeight;
-            pRect->left = pRect->right - nWidth;
-
-        case WMSZ_BOTTOM:
-        case WMSZ_RIGHT:
-        case WMSZ_BOTTOMRIGHT:
-            pRect->bottom = pRect->top + nHeight;
-            pRect->right = pRect->left + nWidth;
-            break;
-        }
-
-        return TRUE;
-    }
-
-
-    // Menu is about to be activated
     case WM_INITMENU:
         UpdateMenuFromOptions();
         break;
 
-        // Menu has been opened
     case WM_ENTERMENULOOP:
         fInMenu = true;
         Sound::Silence();
@@ -1649,32 +1432,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         break;
 
 
-        // To avoid flicker, don't erase the background
     case WM_ERASEBKGND:
-    {
-        RECT rMain, rCanvas;
-        HDC hdc = reinterpret_cast<HDC>(wParam_);
-        HBRUSH hbrush = GetStockBrush(BLACK_BRUSH);
-
-        // Fetch main window client area, and convert canvas client to same coords
-        GetClientRect(hwnd_, &rMain);
-        GetClientRect(hwndCanvas, &rCanvas);
-        MapWindowRect(hwndCanvas, hwnd_, &rCanvas);
-
-        // Determine borders around the canvas window
-        RECT rLeft = { 0, 0, rCanvas.left, rMain.bottom };
-        RECT rTop = { 0, 0, rMain.right, rCanvas.top };
-        RECT rRight = { rCanvas.right, 0, rMain.right, rMain.bottom };
-        RECT rBottom = { 0, rCanvas.bottom, rMain.right, rMain.bottom };
-
-        // Clear any that exist with black
-        if (!IsRectEmpty(&rLeft)) FillRect(hdc, &rLeft, hbrush);
-        if (!IsRectEmpty(&rTop)) FillRect(hdc, &rTop, hbrush);
-        if (!IsRectEmpty(&rRight)) FillRect(hdc, &rRight, hbrush);
-        if (!IsRectEmpty(&rBottom)) FillRect(hdc, &rBottom, hbrush);
-
         return 1;
-    }
 
     // Silence the sound during window drags, and other clicks in the non-client area
     case WM_NCLBUTTONDOWN:
@@ -1690,17 +1449,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             if ((GetAsyncKeyState(VK_CONTROL) < 0) || GetAsyncKeyState(VK_RMENU) < 0)
                 return 0;
 
-            // If Alt alone is pressed, ensure the menu is visible (for fullscreen)
-            if ((!GetOption(altforcntrl) || !lParam_) && !GetMenu(hwnd_))
-                SetMenu(hwnd_, g_hmenu);
-
             // Stop Windows processing SAM Cntrl-key combinations (if enabled) and Alt-Enter
             // As well as blocking access to the menu it avoids a beep for the unhandled ones (mainly Alt-Enter)
             if ((GetOption(altforcntrl) && lParam_) || lParam_ == VK_RETURN)
                 return 0;
 
-            // Alt-0 to Alt-5 set the zoom level
-            if (lParam_ >= '0' && lParam_ <= '5')
+            // Alt-0 to Alt-9 set the zoom level
+            if (lParam_ >= '0' && lParam_ <= '9')
                 return SendMessage(hwnd_, WM_COMMAND, IDM_VIEW_ZOOM_50 + lParam_ - '0', 0L);
         }
         // Maximize?
@@ -1874,8 +1629,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
         case IDM_VIEW_FULLSCREEN:           Actions::Do(Action::ToggleFullscreen); break;
         case IDM_VIEW_RATIO54:              Actions::Do(Action::Toggle5_4);        break;
-        case IDM_VIEW_FILTER:               Actions::Do(Action::ToggleFilter);     break;
-        case IDM_VIEW_GREYSCALE:            Actions::Do(Action::ToggleGreyscale);  break;
+        case IDM_VIEW_SMOOTH:               Actions::Do(Action::ToggleSmoothing);  break;
+        case IDM_VIEW_MOTIONBLUR:           Actions::Do(Action::ToggleMotionBlur); break;
 
         case IDM_VIEW_ZOOM_50:
         case IDM_VIEW_ZOOM_100:
@@ -1883,9 +1638,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_VIEW_ZOOM_200:
         case IDM_VIEW_ZOOM_250:
         case IDM_VIEW_ZOOM_300:
-            SetOption(scale, wId - IDM_VIEW_ZOOM_50 + 1);
-            ResizeWindow(Frame::Height() * GetOption(scale) / 2);
+        case IDM_VIEW_ZOOM_350:
+        case IDM_VIEW_ZOOM_400:
+        case IDM_VIEW_ZOOM_450:
+        case IDM_VIEW_ZOOM_500:
+        {
+            auto scale_2x = wId - IDM_VIEW_ZOOM_50 + 1;
+            ResizeWindow(Frame::Height() * scale_2x / 2);
             break;
+        }
 
         case IDM_VIEW_BORDERS0:
         case IDM_VIEW_BORDERS1:
@@ -1894,7 +1655,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_VIEW_BORDERS4:
             SetOption(borders, wId - IDM_VIEW_BORDERS0);
             Frame::Init();
-            ResizeWindow(Frame::Height() * GetOption(scale) / 2);
             break;
 
         case IDM_SYSTEM_PAUSE:      Actions::Do(Action::Pause);           break;
@@ -1941,58 +1701,28 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 }
 
 
-// Handle messages for the canvas window
-LRESULT CALLBACK CanvasWindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
-{
-    // Pass mouse messages to the main window
-    if (uMsg_ >= WM_MOUSEFIRST && uMsg_ <= WM_MOUSELAST)
-        return WindowProc(hwnd_, uMsg_, wParam_, lParam_);
-
-    switch (uMsg_)
-    {
-    case WM_CREATE:
-        return 0;
-
-        // To avoid flicker, don't erase the background
-    case WM_ERASEBKGND:
-        return 1;
-
-    case WM_PAINT:
-        Frame::Redraw();
-        ValidateRect(hwnd_, nullptr);
-        break;
-
-    case WM_SIZE:
-        Video::UpdateSize();
-        break;
-
-    }
-
-    return DefWindowProc(hwnd_, uMsg_, wParam_, lParam_);
-}
-
-
-
 void SaveWindowPosition(HWND hwnd_)
 {
-    char sz[128];
     WINDOWPLACEMENT wp = { sizeof(wp) };
-    RECT* pr = &wp.rcNormalPosition;
     GetWindowPlacement(hwnd_, &wp);
 
-    wsprintf(sz, "%d,%d,%d,%d,%d", pr->left, pr->top, pr->right - pr->left, pr->bottom - pr->top, wp.showCmd == SW_SHOWMAXIMIZED);
-    SetOption(windowpos, sz);
+    auto& rect = wp.rcNormalPosition;
+    SetOption(windowpos,
+        fmt::format("{},{},{},{},{}",
+            rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+            wp.showCmd == SW_SHOWMAXIMIZED).c_str());
 }
 
 bool RestoreWindowPosition(HWND hwnd_)
 {
-    int nX, nY, nW, nH, nMax;
-    if (sscanf(GetOption(windowpos), "%d,%d,%d,%d,%d", &nX, &nY, &nW, &nH, &nMax) != 5)
+    int x, y, width, height, maximised;
+    if (sscanf(GetOption(windowpos), "%d,%d,%d,%d,%d", &x, &y, &width, &height, &maximised) != 5)
         return false;
 
-    WINDOWPLACEMENT wp = { sizeof(wp) };
-    SetRect(&wp.rcNormalPosition, nX, nY, nX + nW, nY + nH);
-    wp.showCmd = nMax ? SW_MAXIMIZE : SW_SHOW;
+    WINDOWPLACEMENT wp{};
+    wp.length = sizeof(wp);
+    SetRect(&wp.rcNormalPosition, x, y, x + width, y + height);
+    wp.showCmd = maximised ? SW_MAXIMIZE : SW_SHOW;
     SetWindowPlacement(hwnd_, &wp);
 
     return true;
@@ -2002,7 +1732,7 @@ bool RestoreWindowPosition(HWND hwnd_)
 bool InitWindow()
 {
     // Set up and register window class
-    WNDCLASS wc = { };
+    WNDCLASS wc{};
     wc.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = __hinstance;
@@ -2013,28 +1743,28 @@ bool InitWindow()
 
     g_hmenu = LoadMenu(wc.hInstance, MAKEINTRESOURCE(IDR_MENU));
 
-    int nWidth = Frame::Width() * GetOption(scale) / 2;
-    int nHeight = Frame::Height() * GetOption(scale) / 2;
-    int nInitX = (GetSystemMetrics(SM_CXSCREEN) - nWidth) / 2;
-    int nInitY = (GetSystemMetrics(SM_CYSCREEN) - nHeight) * 5 / 12;
+    int width = Frame::Width() * 3 / 2;
+    int height = Frame::Height() * 3 / 2;
+    if (GetOption(ratio5_4))
+        width = width * 5 / 4;
 
-    // Create a window for the display (initially invisible)
+    int x = (GetSystemMetrics(SM_CXSCREEN) - width) / 2;
+    int y = (GetSystemMetrics(SM_CYSCREEN) - height) * 5 / 12;
+
     g_hwnd = CreateWindowEx(WS_EX_APPWINDOW, wc.lpszClassName, WINDOW_CAPTION, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
-        nInitX, nInitY, 1, 1, nullptr, g_hmenu, wc.hInstance, nullptr);
-
-    wc.lpfnWndProc = CanvasWindowProc;
-    wc.hIcon = nullptr;
-    wc.lpszClassName = "SimCoupeCanvas";
-    RegisterClass(&wc);
-
-    // Create the canvas child window to hold the emulation view
-    hwndCanvas = CreateWindow(wc.lpszClassName, "", WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, g_hwnd, nullptr, wc.hInstance, nullptr);
+        x, y, width, height, nullptr, g_hmenu, wc.hInstance, nullptr);
 
     // Restore the window position, falling back on the current options to determine its size
     if (!RestoreWindowPosition(g_hwnd))
-        ResizeWindow(nHeight);
+    {
+        RECT rect{ 0, 0, width, height };
+        AdjustWindowRectEx(&rect, GetWindowStyle(g_hwnd), TRUE, GetWindowExStyle(g_hwnd));
+        SetWindowPos(g_hwnd, HWND_NOTOPMOST,
+            0, 0, rect.right - rect.left, rect.bottom - rect.top,
+            SWP_SHOWWINDOW | SWP_NOMOVE);
+    }
 
-    return g_hwnd && hwndCanvas;
+    return g_hwnd != NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2850,57 +2580,6 @@ INT_PTR CALLBACK SystemPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 }
 
 
-INT_PTR CALLBACK DisplayPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
-{
-    INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
-    bool fPreview = false;
-
-    switch (uMsg_)
-    {
-    case WM_INITDIALOG:
-        SendDlgItemMessage(hdlg_, IDC_FILTER, BM_SETCHECK, GetOption(filter) ? BST_CHECKED : BST_UNCHECKED, 0L);
-        break;
-
-    case WM_NOTIFY:
-    {
-        auto pnmh = reinterpret_cast<LPNMHDR>(lParam_);
-        if (pnmh->code == PSN_APPLY)
-        {
-            SetOption(filter, SendDlgItemMessage(hdlg_, IDC_FILTER, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-        }
-        break;
-    }
-
-    case WM_COMMAND:
-    {
-        switch (LOWORD(wParam_))
-        {
-        case IDC_FILTER:
-            fPreview = true;
-            break;
-        }
-        break;
-    }
-    }
-
-    // Are we to preview the display option changes?
-    if (fPreview)
-    {
-        // Apply the current dialog settings
-        SetOption(filter, SendDlgItemMessage(hdlg_, IDC_FILTER, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-
-        // Redraw the display to reflect the changes
-        Video::UpdatePalette();
-        Frame::Redraw();
-
-        // Restore the previous settings
-        SetOption(filter, opts.filter);
-    }
-
-    return fRet;
-}
-
-
 INT_PTR CALLBACK SoundPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
     INT_PTR fRet = BasePageDlgProc(hdlg_, uMsg_, wParam_, lParam_);
@@ -3676,17 +3355,15 @@ INT_PTR CALLBACK HelperPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 }
 
 
-static void InitPage(PROPSHEETPAGE* pPage_, int nPage_, int nDialogId_, DLGPROC pfnDlgProc_)
+static void AddPage(std::vector<PROPSHEETPAGE>& pages, int dialog_id, DLGPROC pfnDlgProc)
 {
-    pPage_ = &pPage_[nPage_];
-
-    ZeroMemory(pPage_, sizeof(*pPage_));
-    pPage_->dwSize = sizeof(*pPage_);
-    pPage_->hInstance = __hinstance;
-    pPage_->pszTemplate = MAKEINTRESOURCE(nDialogId_);
-    pPage_->pfnDlgProc = pfnDlgProc_;
-    pPage_->lParam = nPage_;
-    pPage_->pfnCallback = nullptr;
+    PROPSHEETPAGE page{};
+    page.dwSize = sizeof(page);
+    page.hInstance = __hinstance;
+    page.pszTemplate = MAKEINTRESOURCE(dialog_id);
+    page.pfnDlgProc = pfnDlgProc;
+    page.lParam = static_cast<LPARAM>(pages.size());
+    pages.push_back(page);
 }
 
 
@@ -3697,29 +3374,27 @@ void DisplayOptions()
     SetOption(disk2, pFloppy2->DiskPath());
 
     // Initialise the pages to go on the sheet
-    PROPSHEETPAGE aPages[10] = {};
-    InitPage(aPages, 0, IDD_PAGE_SYSTEM, SystemPageDlgProc);
-    InitPage(aPages, 1, IDD_PAGE_DISPLAY, DisplayPageDlgProc);
-    InitPage(aPages, 2, IDD_PAGE_SOUND, SoundPageDlgProc);
-    InitPage(aPages, 3, IDD_PAGE_PARALLEL, ParallelPageDlgProc);
-    InitPage(aPages, 4, IDD_PAGE_INPUT, InputPageDlgProc);
-    InitPage(aPages, 5, IDD_PAGE_JOYSTICK, JoystickPageDlgProc);
-    InitPage(aPages, 6, IDD_PAGE_DRIVE1, Drive1PageDlgProc);
-    InitPage(aPages, 7, IDD_PAGE_DRIVE2, Drive2PageDlgProc);
-    InitPage(aPages, 8, IDD_PAGE_MISC, MiscPageDlgProc);
-    InitPage(aPages, 9, IDD_PAGE_HELPER, HelperPageDlgProc);
+    std::vector<PROPSHEETPAGE> pages;
+    AddPage(pages, IDD_PAGE_SYSTEM, SystemPageDlgProc);
+    AddPage(pages, IDD_PAGE_SOUND, SoundPageDlgProc);
+    AddPage(pages, IDD_PAGE_PARALLEL, ParallelPageDlgProc);
+    AddPage(pages, IDD_PAGE_INPUT, InputPageDlgProc);
+    AddPage(pages, IDD_PAGE_JOYSTICK, JoystickPageDlgProc);
+    AddPage(pages, IDD_PAGE_MISC, MiscPageDlgProc);
+    AddPage(pages, IDD_PAGE_DRIVE1, Drive1PageDlgProc);
+    AddPage(pages, IDD_PAGE_DRIVE2, Drive2PageDlgProc);
+    AddPage(pages, IDD_PAGE_HELPER, HelperPageDlgProc);
 
-    PROPSHEETHEADER psh;
-    ZeroMemory(&psh, sizeof(psh));
+    PROPSHEETHEADER psh{};
     psh.dwSize = PROPSHEETHEADER_V1_SIZE;
     psh.dwFlags = PSH_PROPSHEETPAGE | PSH_USEICONID | PSH_NOAPPLYNOW | PSH_NOCONTEXTHELP;
     psh.hwndParent = g_hwnd;
     psh.hInstance = __hinstance;
     psh.pszIcon = MAKEINTRESOURCE(IDI_MISC);
     psh.pszCaption = "Options";
-    psh.nPages = static_cast<UINT>(std::size(aPages));
+    psh.nPages = static_cast<UINT>(pages.size());
     psh.nStartPage = nOptionPage;
-    psh.ppsp = aPages;
+    psh.ppsp = pages.data();
 
     // Save the current option state, flag that we've not centred the dialogue box, then display them for editing
     opts = Options::s_Options;

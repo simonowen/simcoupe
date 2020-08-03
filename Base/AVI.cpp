@@ -181,22 +181,19 @@ static bool WriteVideoHeader(FILE* f_)
     WriteLittleEndianDWORD(256);            // biClrUsed;
     WriteLittleEndianDWORD(0);              // biClrImportant;
 
-    const COLOUR* pcPal = IO::GetPalette();
-    int i;
-
-    // The first half of the palette contains SAM colours
-    for (i = 0; i < N_PALETTE_COLOURS; i++)
+    auto palette = IO::Palette();
+    for (auto& colour : palette)
     {
-        // Note: colour order is BGR
-        fputc(pcPal[i].bBlue, f);
-        fputc(pcPal[i].bGreen, f);
-        fputc(pcPal[i].bRed, f);
-        fputc(0, f);    // RGBQUAD has this as reserved (zero) rather than alpha
+        // Note: BGR, plus zero reserved field from RGBQUAD
+        fputc(colour.blue, f);
+        fputc(colour.green, f);
+        fputc(colour.red, f);
+        fputc(0, f);
     }
 
-    // Second half of palette is unused.
-    for (i = 0; i < N_PALETTE_COLOURS * 4; i++)
-        fputc(0, f);
+    // The second half of the palette is all black
+    std::vector<uint8_t> filler(256 - palette.size(), 0);
+    fwrite(filler.data(), 1, filler.size(), f);
 
     return WriteChunkEnd(f_, lPos) != 0;
 }
@@ -575,9 +572,8 @@ void AddFrame(const FrameBuffer& fb)
         // Is the recording low-res?
         if (fHalfSize)
         {
-            // Decide if we should sample the odd pixel for mode 3 lines
-            if (GetOption(mode3))
-                pbLine++;
+            // Sample the odd pixel for mode 3 lines
+            pbLine++;
 
             // Use only half the pixels for a low-res line
             for (int i = 0; i < width; i++)

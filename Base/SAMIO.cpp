@@ -777,29 +777,29 @@ void Out(uint16_t wPort_, uint8_t bVal_)
         break;
 
     case LINE_PORT:
-        // Line changed?
-        if (line_int != bVal_)
+    // Line changed?
+    if (line_int != bVal_)
+    {
+        // Cancel any existing line interrupt
+        if (line_int < GFX_SCREEN_LINES)
         {
-            // Cancel any existing line interrupt
-            if (line_int < GFX_SCREEN_LINES)
-            {
-                CancelCpuEvent(EventType::LineInterrupt);
-                status_reg |= STATUS_INT_LINE;
-            }
-
-            // Set the new value
-            line_int = bVal_;
-
-            // Valid line interrupt set?
-            if (line_int < GFX_SCREEN_LINES)
-            {
-                uint32_t dwLineTime = (line_int + TOP_BORDER_LINES) * CPU_CYCLES_PER_LINE;
-
-                // Schedule the line interrupt (could be active now, or already passed this frame)
-                AddCpuEvent(EventType::LineInterrupt, dwLineTime);
-            }
+            CancelCpuEvent(EventType::LineInterrupt);
+            status_reg |= STATUS_INT_LINE;
         }
-        break;
+
+        // Set the new value
+        line_int = bVal_;
+
+        // Valid line interrupt set?
+        if (line_int < GFX_SCREEN_LINES)
+        {
+            uint32_t dwLineTime = (line_int + TOP_BORDER_LINES) * CPU_CYCLES_PER_LINE;
+
+            // Schedule the line interrupt (could be active now, or already passed this frame)
+            AddCpuEvent(EventType::LineInterrupt, dwLineTime);
+        }
+    }
+    break;
 
     case SOUND_DATA:
         pSAA->Out(wPort_, bVal_);
@@ -967,36 +967,32 @@ void UpdateInput()
     memcpy(keyports, keybuffer, sizeof(keyports));
 }
 
-const COLOUR* GetPalette()
+std::vector<COLOUR> Palette()
 {
-    static COLOUR asPalette[N_PALETTE_COLOURS];
+    std::vector<COLOUR> palette(N_PALETTE_COLOURS);
 
-    // Look-up table for an even intensity spread, used to map SAM colours to RGB
-    static const uint8_t abIntensities[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
-
-    // Build the full palette: SAM's 128 colours and the extra colours for the GUI
-    for (int i = 0; i < N_PALETTE_COLOURS; i++)
+    for (size_t i = 0; i < palette.size(); ++i)
     {
-        // Convert from SAM palette position to 8-bit RGB
-        auto bRed = abIntensities[(i & 0x02) | ((i & 0x20) >> 3) | ((i & 0x08) >> 3)];
-        auto bGreen = abIntensities[(i & 0x04) >> 1 | ((i & 0x40) >> 4) | ((i & 0x08) >> 3)];
-        auto bBlue = abIntensities[(i & 0x01) << 1 | ((i & 0x10) >> 2) | ((i & 0x08) >> 3)];
+        auto r = (((i & 0x02) << 0) | ((i & 0x20) >> 3) | ((i & 0x08) >> 3)) / 7.0f;
+        auto g = (((i & 0x04) >> 1) | ((i & 0x40) >> 4) | ((i & 0x08) >> 3)) / 7.0f;
+        auto b = (((i & 0x01) << 1) | ((i & 0x10) >> 2) | ((i & 0x08) >> 3)) / 7.0f;
 
-        // If greyscale is enabled, convert the colour a suitable intensity grey
-        if (GetOption(greyscale))
+#if 0 // TODO
+        if (srgb)
         {
-            auto bGrey = static_cast<uint8_t>(0.299 * bRed + 0.587 * bGreen + 0.114 * bBlue + 0.5);
-            bRed = bGreen = bBlue = bGrey;
+            r = RGB2sRGB(r);
+            g = RGB2sRGB(g);
+            b = RGB2sRGB(b);
         }
+#endif
 
-        // Store the calculated values for the entry
-        asPalette[i].bRed = bRed;
-        asPalette[i].bGreen = bGreen;
-        asPalette[i].bBlue = bBlue;
+        auto max_intensity = static_cast<float>(GetOption(maxintensity));
+        palette[i].red = static_cast<uint8_t>(std::lround(r * max_intensity));
+        palette[i].green = static_cast<uint8_t>(std::lround(g * max_intensity));
+        palette[i].blue = static_cast<uint8_t>(std::lround(b * max_intensity));
     }
 
-    // Return the freshly prepared palette
-    return asPalette;
+    return palette;
 }
 
 // Check if we're at the striped SAM startup screen

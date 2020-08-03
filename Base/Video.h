@@ -22,35 +22,30 @@
 
 #include "FrameBuffer.h"
 
-enum { VCAP_STRETCH = 1, VCAP_FILTER = 2 };
-
 namespace Video
 {
-bool Init(bool fFirstInit_ = false);
-void Exit(bool fReInit_ = false);
+constexpr auto background_fill_percent = 10;
 
-bool CheckCaps(int nCaps_);
+bool Init();
+void Exit();
 
+void NativeToSam(int& x, int& y);
+void ResizeWindow(int height);
+std::pair<int, int> MouseRelative();
+
+void OptionsChanged();
 void Update(const FrameBuffer& fb);
-void UpdateSize();
-void UpdatePalette();
-
-void DisplayToSamSize(int* pnX_, int* pnY_);
-void DisplayToSamPoint(int* pnX_, int* pnY_);
 }
 
 
-struct IVideoRenderer
+class IVideoBase
 {
-    virtual ~IVideoRenderer() = default;
+public:
+    virtual ~IVideoBase() = default;
 
-    virtual int GetCaps() const = 0;
-    virtual bool Init() = 0;
-
+    virtual Rect DisplayRect() const = 0;
+    virtual void ResizeWindow(int height) const = 0;
+    virtual std::pair<int, int> MouseRelative() = 0;
+    virtual void OptionsChanged() = 0;
     virtual void Update(const FrameBuffer& fb) = 0;
-    virtual void UpdateSize() = 0;
-    virtual void UpdatePalette() = 0;
-
-    virtual void DisplayToSamSize(int* pnX_, int* pnY_) = 0;
-    virtual void DisplayToSamPoint(int* pnX_, int* pnY_) = 0;
 };

@@ -46,6 +46,7 @@ unsigned int TPeek(const uint8_t* pb_);
 void AdjustBrightness(uint8_t& r_, uint8_t& g_, uint8_t& b_, int nAdjust_);
 uint32_t RGB2Native(uint8_t r_, uint8_t g_, uint8_t b_, uint32_t dwRMask_, uint32_t dwGMask_, uint32_t dwBMask_);
 uint32_t RGB2Native(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_, uint32_t dwRMask_, uint32_t dwGMask_, uint32_t dwBMask_, uint32_t dwAMask_);
+inline float RGB2sRGB(float x) { return (x < 0.0031308f) ? (x * 12.92f) : (1.055f * std::pow(x, 1 / 2.4f) - 0.055f); }
 
 std::string tolower(std::string str);
 std::vector<std::string> split(const std::string& str, char sep);
@@ -77,3 +78,8 @@ void TraceOutputString(const std::string& format, Args&& ... args) { }
 #ifndef MAX_PATH
 #define MAX_PATH            260
 #endif
+
+struct Rect
+{
+    int x, y, w, h;
+};

@@ -24,6 +24,7 @@
 #include "Frame.h"
 #include "GUI.h"
 #include "Input.h"
+#include "Keyin.h"
 #include "SAMIO.h"
 #include "Joystick.h"
 #include "Keyboard.h"
@@ -38,15 +39,14 @@ int nJoystick1 = -1, nJoystick2 = -1;
 SDL_Joystick* pJoystick1, * pJoystick2;
 
 bool fMouseActive, fKeyboardActive;
-int nCentreX, nCentreY;
 int nLastKey, nLastMods;
 const Uint8* pKeyStates;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool Input::Init(bool /*fFirstInit_=false*/)
+bool Input::Init()
 {
-    Exit(true);
+    Exit();
 
     // Loop through the available devices for the ones to use (if any)
     for (int i = 0; i < SDL_NumJoysticks(); i++)
@@ -80,13 +80,10 @@ bool Input::Init(bool /*fFirstInit_=false*/)
     return true;
 }
 
-void Input::Exit(bool fReInit_/*=false*/)
+void Input::Exit()
 {
-    if (!fReInit_)
-    {
-        if (pJoystick1) { SDL_JoystickClose(pJoystick1); pJoystick1 = nullptr; nJoystick1 = -1; }
-        if (pJoystick2) { SDL_JoystickClose(pJoystick2); pJoystick2 = nullptr; nJoystick2 = -1; }
-    }
+    if (pJoystick1) { SDL_JoystickClose(pJoystick1); pJoystick1 = nullptr; nJoystick1 = -1; }
+    if (pJoystick2) { SDL_JoystickClose(pJoystick2); pJoystick2 = nullptr; nJoystick2 = -1; }
 }
 
 // Return whether the emulation is using the mouse
@@ -95,18 +92,19 @@ bool Input::IsMouseAcquired()
     return fMouseActive;
 }
 
-void Input::AcquireMouse(bool fAcquire_)
+void Input::AcquireMouse(bool active)
 {
-    fMouseActive = fAcquire_;
+    if (fMouseActive == active)
+        return;
 
-    // Mouse active?
-    if (fMouseActive && GetOption(mouse))
+    if (GetOption(mouse))
     {
-        // Move the mouse to the centre of the window
-        nCentreX = Frame::Width() >> 1;
-        nCentreY = Frame::Height() >> 1;
-        SDL_WarpMouseInWindow(nullptr, nCentreX, nCentreY);
+        SDL_ShowCursor(active ? SDL_DISABLE : SDL_ENABLE);
+        Video::MouseRelative();
+        SDL_CaptureMouse(active ? SDL_TRUE : SDL_FALSE);
     }
+
+    fMouseActive = active;
 }
 
 
@@ -213,7 +211,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
 
         int nChr = (nKey < HK_SPACE || (nKey < HK_MIN && (pKey->mod & KMOD_CTRL))) ? nKey : 0;
 
-        TRACE("SDL_KEY{} ({} -> {})\n", fPress ? "DOWN" : "UP", pKey->sym, nKey);
+        TRACE("SDL_KEY{} ({:x} -> {:x})\n", fPress ? "DOWN" : "UP", pKey->sym, nKey);
 
         if (fPress)
         {
@@ -237,15 +235,20 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
 
         // Check for the Windows key, for use as a modifier
         bool fWin = pKeyStates[SDL_SCANCODE_LGUI] || pKeyStates[SDL_SCANCODE_RGUI];
-
-        // Check for function keys (unless the Windows key is pressed)
-        if (!fWin && nKey >= HK_F1 && nKey <= HK_F12)
+        if (!fWin)
         {
-            Actions::Key(nKey - HK_F1 + 1, fPress, fCtrl, fAlt, fShift);
-            break;
+            if (nKey >= HK_F1 && nKey <= HK_F12)
+            {
+                Actions::Key(nKey - HK_F1 + 1, fPress, fCtrl, fAlt, fShift);
+                break;
+            }
+            else if (nKey >= '0' && nKey <= '9' && fAlt && !fCtrl && !fShift)
+            {
+                auto scale_2x = nKey - '0' + 1;
+                auto height = Frame::Height() * scale_2x / 2;
+                Video::ResizeWindow(height);
+            }
         }
-
-        // TRACE("Key {}: {} (mods={:03x} u={})\n", fPress ? "down" : "up", nKey, pKey->mod, pKey->unicode);
 
         if (GUI::IsActive())
         {
@@ -279,7 +282,10 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
 
         // Optionally release the mouse capture if Esc is pressed
         if (fPress && nKey == HK_ESC && GetOption(mouseesc))
-            AcquireMouse(false);
+        {
+            Actions::Do(Action::ReleaseMouse);
+            Keyin::Stop();
+        }
 
         // Key press (CapsLock/NumLock are toggle keys in SDL, so we must treat any event as a press)
         if (fPress || pKey->sym == SDLK_CAPSLOCK || pKey->sym == SDLK_NUMLOCKCLEAR)
@@ -296,7 +302,8 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
 
     case SDL_MOUSEMOTION:
     {
-        int nX = pEvent_->motion.x, nY = pEvent_->motion.y;
+        int x = pEvent_->motion.x;
+        int y = pEvent_->motion.y;
 
         bool hide_cursor = fMouseActive && !GUI::IsActive();
         SDL_ShowCursor(hide_cursor ? SDL_DISABLE : SDL_ENABLE);
@@ -304,29 +311,16 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         // Mouse in use by the GUI?
         if (GUI::IsActive())
         {
-            Video::DisplayToSamPoint(&nX, &nY);
-            GUI::SendMessage(GM_MOUSEMOVE, nX, nY);
+            Video::NativeToSam(x, y);
+            GUI::SendMessage(GM_MOUSEMOVE, x, y);
         }
-
-        // Mouse captured for emulation?
         else if (fMouseActive)
         {
-            // Work out the relative movement since last time
-            nX -= nCentreX;
-            nY -= nCentreY;
-
-            // Any native movement?
-            if (nX || nY)
+            auto [dx, dy] = Video::MouseRelative();
+            if (dx || dy)
             {
-                Video::DisplayToSamSize(&nX, &nY);
-
-                // Any SAM movement?
-                if (nX || nY)
-                {
-                    // Update the SAM mouse and re-centre the cursor
-                    pMouse->Move(nX, -nY);
-                    SDL_WarpMouseInWindow(nullptr, nCentreX, nCentreY);
-                }
+                TRACE("Mouse: {} {}\n", dx, -dy);
+                pMouse->Move(dx, -dy);
             }
         }
         break;
@@ -337,8 +331,8 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         static std::optional<std::chrono::steady_clock::time_point> last_click_time;
         static int nLastButton = -1;
 
-        int nX = pEvent_->button.x;
-        int nY = pEvent_->button.y;
+        int x = pEvent_->button.x;
+        int y = pEvent_->button.y;
         auto now = std::chrono::steady_clock::now();
         bool double_click = (pEvent_->button.button == nLastButton) &&
             last_click_time && ((now - *last_click_time) < DOUBLE_CLICK_TIME);
@@ -346,16 +340,18 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         // Button presses go to the GUI if it's active
         if (GUI::IsActive())
         {
-            Video::DisplayToSamPoint(&nX, &nY);
-
             switch (pEvent_->button.button)
             {
-                // Mouse wheel up and down
-            case 4:  GUI::SendMessage(GM_MOUSEWHEEL, -1); break;
-            case 5:  GUI::SendMessage(GM_MOUSEWHEEL, 1); break;
-
-                // Any other mouse button
-            default: GUI::SendMessage(GM_BUTTONDOWN, nX, nY); break;
+            case 4:
+                GUI::SendMessage(GM_MOUSEWHEEL, -1);
+                break;
+            case 5:
+                GUI::SendMessage(GM_MOUSEWHEEL, 1);
+                break;
+            default:
+                Video::NativeToSam(x, y);
+                GUI::SendMessage(GM_BUTTONDOWN, x, y);
+                break;
             }
         }
 
@@ -382,9 +378,10 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         // Button presses go to the GUI if it's active
         if (GUI::IsActive())
         {
-            int nX = pEvent_->button.x, nY = pEvent_->button.y;
-            Video::DisplayToSamPoint(&nX, &nY);
-            GUI::SendMessage(GM_BUTTONUP, nX, nY);
+            int x = pEvent_->button.x;
+            int y = pEvent_->button.y;
+            Video::NativeToSam(x, y);
+            GUI::SendMessage(GM_BUTTONUP, x, y);
         }
         else if (fMouseActive)
         {
@@ -446,6 +443,15 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         break;
     }
 #endif
+
+    case SDL_WINDOWEVENT:
+    {
+        if (pEvent_->window.event == SDL_WINDOWEVENT_FOCUS_LOST)
+        {
+            AcquireMouse(false);
+        }
+        break;
+    }
     }
 
     // Allow additional event processing

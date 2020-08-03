@@ -24,37 +24,73 @@
 
 #include "Video.h"
 
-class SDLTexture final : public IVideoRenderer
+struct SDLRendererDeleter
+{
+    using pointer = SDL_Renderer*;
+    void operator()(pointer p) { SDL_DestroyRenderer(p); }
+};
+using unique_sdl_renderer = std::unique_ptr<SDL_Renderer, SDLRendererDeleter>;
+
+struct SDLWindowDeleter
+{
+    using pointer = SDL_Window*;
+    void operator()(pointer p) { SDL_DestroyWindow(p); }
+};
+using unique_sdl_window = std::unique_ptr<SDL_Window, SDLWindowDeleter>;
+
+struct SDLTextureDeleter
+{
+    using pointer = SDL_Texture*;
+    void operator()(pointer p) { SDL_DestroyTexture(p); }
+};
+using unique_sdl_texture = std::unique_ptr<SDL_Texture, SDLTextureDeleter>;
+
+struct SDLPaletteDeleter
+{
+    using pointer = SDL_Palette*;
+    void operator()(pointer p) { SDL_FreePalette(p); }
+};
+using unique_sdl_palette = std::unique_ptr<SDL_Texture, SDLPaletteDeleter>;
+
+
+class SDLTexture final : public IVideoBase
 {
 public:
     SDLTexture();
-    SDLTexture(const SDLTexture&) = delete;
-    void operator= (const SDLTexture&) = delete;
     ~SDLTexture();
 
 public:
-    int GetCaps() const override;
-    bool Init() override;
-
+    Rect DisplayRect() const override;
+    void ResizeWindow(int height) const override;
+    std::pair<int, int> MouseRelative() override;
+    void OptionsChanged() override;
     void Update(const FrameBuffer& fb) override;
-    void UpdateSize() override;
-    void UpdatePalette() override;
-
-    void DisplayToSamSize(int* pnX_, int* pnY_) override;
-    void DisplayToSamPoint(int* pnX_, int* pnY_) override;
 
 protected:
+    bool Init();
+    void UpdatePalette();
+    void ResizeSource(int width, int height);
+    void ResizeTarget(int width, int height);
+    void ResizeIntermediate(bool smooth);
     bool DrawChanges(const FrameBuffer& fb);
+    void Render();
+    void SaveWindowPosition();
+    void RestoreWindowPosition();
 
 private:
-    SDL_Window* m_pWindow = nullptr;
-    SDL_Renderer* m_pRenderer = nullptr;
-    SDL_Texture* m_pTexture = nullptr;
+    unique_sdl_window m_pWindow;
+    unique_sdl_renderer m_pRenderer;
+    unique_sdl_texture m_pTexture;
+    unique_sdl_texture m_pScaledTexture;
+    unique_sdl_palette m_paletteTex;
 
-    int m_nDepth = 0;
-    bool m_fFilter = false;
-
+    SDL_Rect m_rSource{};
     SDL_Rect m_rTarget{};
+    SDL_Rect m_rDisplay{};
+
+    bool m_smooth{ true };
+
+    int m_int_scale{ 1 };
 };
 
 #endif // HAVE_LIBSDL2

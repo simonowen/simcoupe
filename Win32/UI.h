@@ -26,17 +26,14 @@
 class UI
 {
 public:
-    static bool Init(bool fFirstInit_ = false);
-    static void Exit(bool fReInit_ = false);
+    static bool Init();
+    static void Exit();
 
-    static std::unique_ptr<IVideoRenderer> CreateVideo();
+    static std::unique_ptr<IVideoBase> CreateVideo();
     static bool CheckEvents();
 
     static bool DoAction(Action action, bool pressed = true);
     static void ShowMessage(MsgType type, const std::string& message);
 };
 
-
-// Some bits needed by other modules
-extern HWND g_hwnd, hwndCanvas;
-extern HINSTANCE __hinstance;
+extern HWND g_hwnd;

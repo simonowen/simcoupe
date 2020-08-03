@@ -74,7 +74,7 @@ void UI::Exit(bool fReInit_/*=false*/)
 
 
 // Create a video object to render the display
-std::unique_ptr<IVideoRenderer> UI::CreateVideo()
+std::unique_ptr<IVideoBase> UI::CreateVideo()
 {
     return std::make_unique<SDLTexture>();
 }
@@ -138,7 +138,6 @@ bool UI::CheckEvents()
                     break;
 
                 case UE_TOGGLEFULLSCREEN:   Actions::Do(Action::ToggleFullscreen); break;
-                case UE_TOGGLEGREYSCALE:    Actions::Do(Action::ToggleGreyscale); break;
                 case UE_NMIBUTTON:          Actions::Do(Action::NmiButton);       break;
                 case UE_TOGGLE54:           Actions::Do(Action::Toggle5_4);       break;
                 case UE_DEBUGGER:           Actions::Do(Action::Debugger);        break;

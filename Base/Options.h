@@ -28,14 +28,14 @@ struct OPTIONS
     bool    firstrun;               // First run of the emulator?
     char    windowpos[128];         // Main window position
 
-    int     scale;                  // Window scaling mode
     bool    ratio5_4;               // Use 5:4 screen ratio?
-    int     mode3;                  // Which mode3 pixels to show on low-res displays?
     bool    fullscreen;             // Start in full-screen mode?
     int     borders;                // How much of the borders to show
-    bool    greyscale;              // Use greyscale instead of colour?
-    bool    filter;                 // Filter image when stretching? (if available)
-    bool    filtergui;              // Filter image when the GUI is active? (if available)
+    bool    smooth;                 // Smooth image when stretching?
+    bool    motionblur;             // Motion blur to reduce animation flicker?
+    int     blurpercent;            // Percentage of previous frame retained
+    int     maxintensity;           // Maximum colour channel intensity
+    bool    blackborder;            // Black non-screen area?
 
     int     avireduce;              // Reduce AVI audio size (0=lossless to 4=muted)
 

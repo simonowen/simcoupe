@@ -29,56 +29,63 @@
 namespace Video
 {
 
-static std::unique_ptr<IVideoRenderer> pVideo;
+static std::unique_ptr<IVideoBase> s_pVideo;
 
 
-bool Init(bool fFirstInit_)
+bool Init()
 {
-    Exit(true);
+    Exit();
 
-    pVideo = UI::CreateVideo();
-    return pVideo && pVideo->Init();
+    try
+    {
+        s_pVideo = UI::CreateVideo();
+    }
+    catch (...)
+    {
+        Message(MsgType::Fatal, "Video initialisation failed");
+    }
+
+    return s_pVideo != nullptr;
 }
 
-void Exit(bool fReInit_/*=false*/)
+void Exit()
 {
-    pVideo.reset();
+    s_pVideo.reset();
 }
 
-
-bool CheckCaps(int nCaps_)
+void OptionsChanged()
 {
-    return pVideo && ((~pVideo->GetCaps() & nCaps_) == 0);
-}
-
-void UpdatePalette()
-{
-    if (pVideo)
-        pVideo->UpdatePalette();
+    if (s_pVideo)
+    {
+        s_pVideo->OptionsChanged();
+    }
 }
 
 void Update(const FrameBuffer& fb)
 {
-    if (pVideo)
-        pVideo->Update(fb);
+    s_pVideo->Update(fb);
 }
 
-void UpdateSize()
+void NativeToSam(int& x, int& y)
 {
-    if (pVideo)
-        pVideo->UpdateSize();
+    auto scale = GUI::IsActive() ? 1 : 2;
+    auto rect = s_pVideo->DisplayRect();
+
+    if (rect.w && rect.h)
+    {
+        x = (x - rect.x) * Frame::Width() / rect.w / scale;
+        y = (y - rect.y) * Frame::Height() / rect.h / scale;
+    }
 }
 
-void DisplayToSamSize(int* pnX_, int* pnY_)
+void ResizeWindow(int height)
 {
-    if (pVideo)
-        pVideo->DisplayToSamSize(pnX_, pnY_);
+    s_pVideo->ResizeWindow(height);
 }
 
-void DisplayToSamPoint(int* pnX_, int* pnY_)
+std::pair<int, int> MouseRelative()
 {
-    if (pVideo)
-        pVideo->DisplayToSamPoint(pnX_, pnY_);
+    return s_pVideo->MouseRelative();
 }
 
 } // namespace Video

@@ -77,18 +77,18 @@ if (BUILD_WIN32)
   include(HlslCompile)
 
   set(WIN_CPP_FILES
-    Win32/Audio.cpp Win32/Direct3D9.cpp Win32/Floppy.cpp Win32/IDEDisk.cpp
+    Win32/Audio.cpp Win32/D3D11.cpp Win32/Floppy.cpp Win32/IDEDisk.cpp
     Win32/Input.cpp Win32/MIDI.cpp Win32/ODMenu.cpp Win32/OSD.cpp
     Win32/UI.cpp)
 
   set(WIN_H_FILES
-    Win32/afxres.h Win32/Audio.h Win32/Direct3D9.h Win32/fdrawcmd.h
+    Win32/afxres.h Win32/Audio.h Win32/D3D11.h Win32/fdrawcmd.h
     Win32/Floppy.h Win32/IDEDisk.h Win32/Input.h Win32/MIDI.h Win32/ODMenu.h
     Win32/OSD.h Win32/resource.h Win32/UI.h)
 
   set(WIN_RC_FILES Win32/${PROJECT_NAME}.rc)
-  set(WIN_VS_FILES Win32/Shaders/D3D9_VS.hlsl)
-  set(WIN_PS_FILES Win32/Shaders/D3D9_PS.hlsl)
+  set(WIN_VS_FILES Win32/Shaders/D3D11_Aspect_VS.hlsl Win32/Shaders/D3D11_Copy_VS.hlsl)
+  set(WIN_PS_FILES Win32/Shaders/D3D11_Blend_PS.hlsl Win32/Shaders/D3D11_Palette_PS.hlsl Win32/Shaders/D3D11_Sample_PS.hlsl)
   set(WIN_MANIFEST_FILES Win32/Custom.manifest)
 
   set(SOURCE_FILES ${SOURCE_FILES} ${WIN_CPP_FILES})
@@ -96,11 +96,11 @@ if (BUILD_WIN32)
   set(RESOURCE_FILES ${RESOURCE_FILES} ${WIN_RC_FILES} ${WIN_VS_FILES} ${WIN_PS_FILES} ${WIN_MANIFEST_FILES})
 
   foreach(f ${WIN_VS_FILES})
-    SET_SHADER_COMPILER(${f} vs_3_0)
+    SET_SHADER_COMPILER(${f} vs_4_0)
   endforeach()
 
   foreach(f ${WIN_PS_FILES})
-    SET_SHADER_COMPILER(${f} ps_3_0)
+    SET_SHADER_COMPILER(${f} ps_4_0)
   endforeach()
 elseif (BUILD_SDL)
   set(SDL_CPP_FILES
@@ -258,14 +258,6 @@ target_link_libraries(${PROJECT_NAME} fmt)
 
 if (BUILD_WIN32)
   find_package(DirectX)
-  if (D3D9_LIBRARY AND D3D9_INCLUDE_DIR)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${D3D9_INCLUDE_DIR})
-    target_link_libraries(${PROJECT_NAME} ${D3D9_LIBRARY} dxguid.lib)
-    message(STATUS "Found d3d9: ${D3D9_LIBRARY}")
-    set(HAVE_D3D9 1)
-  else()
-    message(FATAL_ERROR "Direct3D9 library (d3d9) not found")
-  endif()
   if (DINPUT_LIBRARY AND DINPUT_INCLUDE_DIR)
     target_include_directories(${PROJECT_NAME} PRIVATE ${DINPUT_INCLUDE_DIR})
     target_link_libraries(${PROJECT_NAME} ${DINPUT_LIBRARY} dxguid.lib)

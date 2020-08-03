@@ -139,50 +139,53 @@ static bool CompressImageData(PNG_INFO* pPNG_)
 static bool SaveFile(FILE* f_, const FrameBuffer& fb)
 {
     // Are we to stretch the saved image?
-    int nDen = 5, nNum = 4;
+    int den = 5, num = 4;
     bool fStretch = GetOption(ratio5_4);
 
     PNG_INFO png{};
     png.dwWidth = fb.Width();
     png.dwHeight = fb.Height();
-    if (fStretch) png.dwWidth = png.dwWidth * nDen / nNum;
+    if (fStretch) png.dwWidth = png.dwWidth * den / num;
 
     png.uSize = png.dwHeight * (1 + (png.dwWidth * 3));
     if (!(png.pbImage = new uint8_t[png.uSize]))
         return false;
 
     memset(png.pbImage, 0, png.uSize);
-    const COLOUR* pPal = IO::GetPalette();
-
+    auto palette = IO::Palette();
 
     auto pb = png.pbImage;
 
-    for (unsigned int y = 0; y < png.dwHeight; y++)
+    for (uint32_t y = 0; y < png.dwHeight; y++)
     {
         auto pbS = fb.GetLine(y >> 1);
 
         // Each image line begins with the filter type
         *pb++ = PNG_FILTER_TYPE_DEFAULT;
 
-        for (unsigned int x = 0; x < png.dwWidth; x++)
+        for (uint32_t x = 0; x < png.dwWidth; x++)
         {
             // Map the image pixel back to the display pixel
-            int n = fStretch ? (x * nNum / nDen) : x;
+            int n = fStretch ? (x * den / num) : x;
             uint8_t b = pbS[n], b2 = pbS[n + 1];
 
             // Look up the pixel components in the palette
-            uint8_t red = pPal[b].bRed, green = pPal[b].bGreen, blue = pPal[b].bBlue;
+            auto red = palette[b].red;
+            auto green = palette[b].green;
+            auto blue = palette[b].blue;
 
             // In stretch mode we may need to blend the neighbouring pixels
-            if (fStretch && (x % nDen))
+            if (fStretch && (x % num))
             {
                 // Determine how much of the current pixel to use
-                int nPercent = (x % nDen) * 100 / nNum;
+                int nPercent = (x % num) * 100 / den;
                 AdjustBrightness(red, green, blue, nPercent - 100);
 
                 // Determine how much of the next pixel
                 int nPercent2 = 100 - nPercent;
-                uint8_t red2 = pPal[b2].bRed, green2 = pPal[b2].bGreen, blue2 = pPal[b2].bBlue;
+                auto red2 = palette[b2].red;
+                auto green2 = palette[b2].green;
+                auto blue2 = palette[b2].blue;
                 AdjustBrightness(red2, green2, blue2, nPercent2 - 100);
 
                 // Combine the part pixels for the overall colour
