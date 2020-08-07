@@ -560,7 +560,7 @@ int Input::MapKey(int nKey_)
     case SDLK_SCROLLLOCK:return HK_SCROLL;
     case SDLK_PAUSE:    return HK_PAUSE;
 
-    case SDLK_MENU:     return HK_APPS;
+    case SDLK_APPLICATION: return HK_APPS;
     }
 
     return (nKey_ && nKey_ < HK_MIN) ? nKey_ : HK_NONE;
