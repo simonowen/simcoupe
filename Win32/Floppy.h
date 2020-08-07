@@ -20,10 +20,7 @@
 
 #pragma once
 
-#ifdef HAVE_FDRAWCMD_H
-#include <fdrawcmd.h>   // https://simonowen.com/fdrawcmd/fdrawcmd.h
-#endif
-
+#include "fdrawcmd.h"   // https://simonowen.com/fdrawcmd/fdrawcmd.h
 #include "Stream.h"
 
 struct TRACK

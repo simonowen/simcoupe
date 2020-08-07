@@ -82,7 +82,7 @@ if (BUILD_WIN32)
     Win32/UI.cpp)
 
   set(WIN_H_FILES
-    Win32/afxres.h Win32/Audio.h Win32/D3D11.h Win32/fdrawcmd.h
+    Win32/afxres.h Win32/Audio.h Win32/D3D11.h Extern/fdrawcmd/fdrawcmd.h
     Win32/Floppy.h Win32/IDEDisk.h Win32/Input.h Win32/MIDI.h Win32/ODMenu.h
     Win32/OSD.h Win32/resource.h Win32/UI.h)
 
@@ -137,8 +137,6 @@ if (WIN32)
   endif()
   set(RESOURCE_FILES ${RESOURCE_FILES} ${WIN_RC_FILES})
   set_source_files_properties(${WIN_RC_FILES} PROPERTIES COMPILE_FLAGS /nologo)
-
-  set(HAVE_FDRAWCMD_H 1)
 elseif (APPLE)
   set_source_files_properties(${BASE_RUNTIME_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 endif()
@@ -168,6 +166,11 @@ endif()
 
 # Use a 3rd party implementation of std::filesystem to avoid needing macOS 10.15.
 target_include_directories(${PROJECT_NAME} PRIVATE Extern/ghc)
+
+# Use bundled version of fdrawcmd.h for fdrawcmd.sys definitions.
+if (WIN32)
+  target_include_directories(${PROJECT_NAME} PRIVATE Extern/fdrawcmd)
+endif()
 
 set(CMAKE_THREAD_PREFER_PTHREAD pthread)
 find_package(Threads REQUIRED)
