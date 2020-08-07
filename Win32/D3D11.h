@@ -38,6 +38,7 @@ public:
     Direct3D11Video(HWND hwnd);
     ~Direct3D11Video();
 
+    bool Init() override;
     Rect DisplayRect() const override;
     void ResizeWindow(int height) const override;
     std::pair<int, int> MouseRelative() override;
@@ -59,7 +60,6 @@ protected:
         return hr;
     }
 
-    HRESULT InitD3D(HWND hwnd);
     HRESULT ResizeSource(int width, int height);
     HRESULT ResizeTarget(int width, int height);
     HRESULT ResizeIntermediate(bool smooth);

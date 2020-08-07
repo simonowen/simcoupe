@@ -24,33 +24,17 @@
 
 #include "Video.h"
 
-struct SDLRendererDeleter
-{
-    using pointer = SDL_Renderer*;
-    void operator()(pointer p) { SDL_DestroyRenderer(p); }
-};
-using unique_sdl_renderer = std::unique_ptr<SDL_Renderer, SDLRendererDeleter>;
+struct SDLRendererDeleter { void operator()(SDL_Renderer* renderer) { SDL_DestroyRenderer(renderer); } };
+using unique_sdl_renderer = unique_resource<SDL_Renderer*, nullptr, SDLRendererDeleter>;
 
-struct SDLWindowDeleter
-{
-    using pointer = SDL_Window*;
-    void operator()(pointer p) { SDL_DestroyWindow(p); }
-};
-using unique_sdl_window = std::unique_ptr<SDL_Window, SDLWindowDeleter>;
+struct SDLWindowDeleter { void operator()(SDL_Window* window) { SDL_DestroyWindow(window); } };
+using unique_sdl_window = unique_resource<SDL_Window*, nullptr, SDLWindowDeleter>;
 
-struct SDLTextureDeleter
-{
-    using pointer = SDL_Texture*;
-    void operator()(pointer p) { SDL_DestroyTexture(p); }
-};
-using unique_sdl_texture = std::unique_ptr<SDL_Texture, SDLTextureDeleter>;
+struct SDLTextureDeleter { void operator()(SDL_Texture* texture) { SDL_DestroyTexture(texture); } };
+using unique_sdl_texture = unique_resource<SDL_Texture*, nullptr, SDLTextureDeleter>;
 
-struct SDLPaletteDeleter
-{
-    using pointer = SDL_Palette*;
-    void operator()(pointer p) { SDL_FreePalette(p); }
-};
-using unique_sdl_palette = std::unique_ptr<SDL_Texture, SDLPaletteDeleter>;
+struct SDLPaletteDeleter { void operator()(SDL_Palette* palette) { SDL_FreePalette(palette); } };
+using unique_sdl_palette = unique_resource<SDL_Palette*, nullptr, SDLPaletteDeleter>;
 
 
 class SDLTexture final : public IVideoBase
@@ -60,6 +44,7 @@ public:
     ~SDLTexture();
 
 public:
+    bool Init() override;
     Rect DisplayRect() const override;
     void ResizeWindow(int height) const override;
     std::pair<int, int> MouseRelative() override;
@@ -67,7 +52,6 @@ public:
     void Update(const FrameBuffer& fb) override;
 
 protected:
-    bool Init();
     void UpdatePalette();
     void ResizeSource(int width, int height);
     void ResizeTarget(int width, int height);
@@ -78,11 +62,11 @@ protected:
     void RestoreWindowPosition();
 
 private:
-    unique_sdl_window m_pWindow;
-    unique_sdl_renderer m_pRenderer;
-    unique_sdl_texture m_pTexture;
-    unique_sdl_texture m_pScaledTexture;
-    unique_sdl_palette m_paletteTex;
+    unique_sdl_window m_window;
+    unique_sdl_renderer m_renderer;
+    unique_sdl_texture m_screen_texture;
+    unique_sdl_texture m_scaled_texture;
+    unique_sdl_palette m_palette_texture;
 
     SDL_Rect m_rSource{};
     SDL_Rect m_rTarget{};

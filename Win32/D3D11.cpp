@@ -35,8 +35,6 @@
 Direct3D11Video::Direct3D11Video(HWND hwnd) :
     m_hwnd(hwnd)
 {
-    if (FAILED(InitD3D(hwnd)))
-        throw std::runtime_error("D3D initialisation failed");
 }
 
 Direct3D11Video::~Direct3D11Video()
@@ -116,7 +114,7 @@ std::pair<int, int> Direct3D11Video::MouseRelative()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-HRESULT Fail(HRESULT hr, const std::string& operation)
+static bool Fail(HRESULT hr, const std::string& operation)
 {
     if (FAILED(hr))
     {
@@ -126,10 +124,10 @@ HRESULT Fail(HRESULT hr, const std::string& operation)
 #endif
     }
 
-    return hr;
+    return false;
 }
 
-HRESULT Direct3D11Video::InitD3D(HWND hwnd)
+bool Direct3D11Video::Init()
 {
     D3D_FEATURE_LEVEL featureLevel{};
     std::vector<D3D_FEATURE_LEVEL> featureLevels
@@ -213,7 +211,7 @@ HRESULT Direct3D11Video::InitD3D(HWND hwnd)
     if (FAILED(hr))
         return Fail(hr, "CreateSwapChainForHwnd");
 
-    hr = pDXGIFactory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
+    hr = pDXGIFactory->MakeWindowAssociation(m_hwnd, DXGI_MWA_NO_ALT_ENTER);
 
     if (FAILED(hr = m_device->CreateVertexShader(g_D3D11_Aspect_VS, sizeof(g_D3D11_Aspect_VS), NULL, &m_aspectVS)))
         return Fail(hr, "CreateVertexShader");
@@ -265,7 +263,7 @@ HRESULT Direct3D11Video::InitD3D(HWND hwnd)
 
     OptionsChanged();
 
-    return S_OK;
+    return true;
 }
 
 HRESULT Direct3D11Video::ResizeSource(int width, int height)
@@ -496,16 +494,13 @@ HRESULT Direct3D11Video::Render()
     if (!m_d3dContext)
         return S_FALSE;
 
-    auto fill_intensity = GetOption(blackborder) ? 0.0f : 0.005f;
-    FLOAT fill_colour[]{ fill_intensity, fill_intensity, fill_intensity, 1.0f };
     auto viewport = CD3D11_VIEWPORT(0.0f, 0.0f, 0.0f, 0.0f);
-    ID3D11ShaderResourceView* null_srvs[]{ nullptr, nullptr };
-
     viewport.Width = static_cast<float>(m_rIntermediate.right);
     viewport.Height = static_cast<float>(m_rIntermediate.bottom);
     m_d3dContext->RSSetViewports(1, &viewport);
 
     // Convert palettised data to RGB with any integer scaling.
+    ID3D11ShaderResourceView* null_srvs[]{ nullptr, nullptr };
     m_d3dContext->PSSetShaderResources(2, 2, null_srvs);
     m_d3dContext->OMSetRenderTargets(1, m_scaledRTV.GetAddressOf(), nullptr);
     m_d3dContext->PSSetShaderResources(1, 1, m_palettisedSRV.GetAddressOf());
@@ -524,6 +519,9 @@ HRESULT Direct3D11Video::Render()
     viewport.Height = static_cast<float>(m_rTarget.bottom);
     m_d3dContext->RSSetViewports(1, &viewport);
 
+    auto fill_intensity = GetOption(blackborder) ? 0.0f : 0.01f;
+    FLOAT fill_colour[]{ fill_intensity, fill_intensity, fill_intensity, 1.0f };
+
     // Finally, render to the aspect correct area in the back buffer.
     m_d3dContext->OMSetRenderTargets(1, m_swapChainRTV.GetAddressOf(), nullptr);
     m_d3dContext->ClearRenderTargetView(m_swapChainRTV.Get(), fill_colour);
@@ -541,7 +539,7 @@ HRESULT Direct3D11Video::Render()
     auto hr = m_swapChain->Present(0, (m_allow_tearing && !m_fullscreen) ? DXGI_PRESENT_ALLOW_TEARING : 0);
     if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
     {
-        hr = InitD3D(m_hwnd);
+        Init();
     }
     else if (FAILED(hr))
     {

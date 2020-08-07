@@ -43,6 +43,7 @@ class IVideoBase
 public:
     virtual ~IVideoBase() = default;
 
+    virtual bool Init() = 0;
     virtual Rect DisplayRect() const = 0;
     virtual void ResizeWindow(int height) const = 0;
     virtual std::pair<int, int> MouseRelative() = 0;

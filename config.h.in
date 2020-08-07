@@ -20,6 +20,9 @@
 // Simple DirectMedia Layer v2.0
 #cmakedefine HAVE_LIBSDL2
 
+// OpenGL library.
+#cmakedefine HAVE_OPENGL
+
 // SAA-1099 emulation library.
 #cmakedefine HAVE_LIBSAASOUND
 

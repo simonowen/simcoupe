@@ -60,6 +60,29 @@ std::set<typename T::value_type> to_set(T&& items)
     return set;
 }
 
+template<typename T, T invalid, typename D>
+struct unique_resource
+{
+    unique_resource() = default;
+    unique_resource(T res) : _res(res) {}
+    unique_resource(const unique_resource&) = delete;
+    unique_resource(unique_resource&& other) noexcept { _res = other.release(); }
+    unique_resource& operator=(const unique_resource&) = delete;
+    unique_resource& operator=(unique_resource&& other) noexcept { reset(other.release()); return *this; }
+    ~unique_resource() { reset(); }
+
+    operator const T& () const { return _res; }
+    T* operator&() { return &_res; }
+    T get() const { return _res; }
+
+    void reset() { if (_res != invalid) { D deleter; deleter(_res); _res = invalid; } }
+    void reset(T res) { reset(); _res = res; }
+    T release() { T res = _res; _res = invalid; return res; }
+
+private:
+    T _res = invalid;
+};
+
 #ifdef _DEBUG
 void TraceOutputString(const std::string& str);
 template <typename ...Args>

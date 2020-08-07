@@ -33,6 +33,7 @@
 #include "Options.h"
 #include "Sound.h"
 #include "SDL20.h"
+#include "SDL20_GL3.h"
 
 bool UI::Init(bool fFirstInit_/*=false*/)
 {
@@ -76,7 +77,19 @@ void UI::Exit(bool fReInit_/*=false*/)
 // Create a video object to render the display
 std::unique_ptr<IVideoBase> UI::CreateVideo()
 {
-    return std::make_unique<SDLTexture>();
+#ifdef HAVE_OPENGL
+    if (auto backend = std::make_unique<SDL_GL3>(); backend->Init())
+    {
+        return backend;
+    }
+#endif
+
+    if (auto backend = std::make_unique<SDLTexture>(); backend->Init())
+    {
+        return backend;
+    }
+
+    return nullptr;
 }
 
 

@@ -187,10 +187,14 @@ void UI::Exit()
 }
 
 
-// Create a video object to render the display
 std::unique_ptr<IVideoBase> UI::CreateVideo()
 {
-    return std::make_unique<Direct3D11Video>(g_hwnd);
+    if (auto backend = std::make_unique<Direct3D11Video>(g_hwnd); backend->Init())
+    {
+        return backend;
+    }
+
+    return nullptr;
 }
 
 // Check and process any incoming messages

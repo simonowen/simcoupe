@@ -49,7 +49,7 @@ set(BASE_CPP_FILES
     Base/SID.cpp Base/Sound.cpp Base/SSX.cpp Base/Stream.cpp Base/Symbol.cpp
     Base/Tape.cpp Base/Util.cpp Base/Video.cpp Base/WAV.cpp)
 
-set(BASE_C_FILES Base/ioapi.c Base/unzip.c)
+set(BASE_C_FILES Base/ioapi.c Base/unzip.c Extern/gl3w/src/gl3w.c)
 
 set(BASE_H_FILES
     Base/Actions.h Base/ATA.h Base/AtaAdapter.h Base/Atom.h Base/AtomLite.h
@@ -62,7 +62,8 @@ set(BASE_H_FILES
     Base/PNG.h Base/SAA1099.h Base/SAM.h Base/SAMDOS.h Base/SAMIO.h
     Base/SAMVox.h Base/SDIDE.h Base/SID.h Base/SimCoupe.h Base/Sound.h
     Base/SSX.h Base/Stream.h Base/Symbol.h Base/Tape.h Base/unzip.h
-    Base/Util.h Base/Video.h Base/VL1772.h Base/WAV.h Base/Z80ops.h)
+    Base/Util.h Base/Video.h Base/VL1772.h Base/WAV.h Base/Z80ops.h
+    Extern/gl3w/include/GL/gl3w.h)
 
 set(BASE_RUNTIME_FILES
     Resource/atom.rom Resource/atomlite.rom Resource/samcoupe.rom
@@ -105,10 +106,10 @@ if (BUILD_WIN32)
 elseif (BUILD_SDL)
   set(SDL_CPP_FILES
     SDL/Audio.cpp SDL/Floppy.cpp SDL/IDEDisk.cpp SDL/Input.cpp SDL/MIDI.cpp
-    SDL/OSD.cpp SDL/SDL20.cpp SDL/UI.cpp)
+    SDL/OSD.cpp SDL/SDL20.cpp SDL/SDL20_GL3.cpp SDL/UI.cpp)
   set(SDL_H_FILES
     SDL/Audio.h SDL/Floppy.h SDL/IDEDisk.h SDL/Input.h SDL/MIDI.h SDL/OSD.h
-    SDL/SDL20.h SDL/UI.h)
+    SDL/SDL20.h SDL/SDL20_GL3.h SDL/UI.h)
 
   set(SOURCE_FILES ${SOURCE_FILES} ${SDL_CPP_FILES})
   set(HEADER_FILES ${HEADER_FILES} ${SDL_H_FILES})
@@ -166,6 +167,10 @@ endif()
 
 # Use a 3rd party implementation of std::filesystem to avoid needing macOS 10.15.
 target_include_directories(${PROJECT_NAME} PRIVATE Extern/ghc)
+
+# OpenGL loader
+target_include_directories(${PROJECT_NAME} PRIVATE Extern/gl3w/include)
+target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
 
 # Use bundled version of fdrawcmd.h for fdrawcmd.sys definitions.
 if (WIN32)
@@ -270,13 +275,16 @@ if (BUILD_WIN32)
     message(FATAL_ERROR "DirectInput library (dinput8) not found")
   endif()
 elseif (BUILD_SDL)
-  find_package(SDL2)
-  if (SDL2_FOUND)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIR})
-    target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY})
-    set(HAVE_LIBSDL2 1)
-  else()
-    message(FATAL_ERROR "This program requires SDL 2.x")
+  find_package(SDL2 REQUIRED)
+  target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIR})
+  target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY})
+  set(HAVE_LIBSDL2 1)
+
+  find_package(OpenGL)
+  if (OPENGL_FOUND)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${OPENGL_INCLUDE_DIR})
+    target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARY})
+    set(HAVE_OPENGL 1)
   endif()
 endif()
 

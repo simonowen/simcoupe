@@ -37,9 +37,6 @@ SDLTexture::SDLTexture()
 #ifdef SDL_VIDEO_FULLSCREEN_SPACES
     SDL_SetHint(SDL_VIDEO_FULLSCREEN_SPACES, "1");
 #endif
-
-    if (!Init())
-        throw std::runtime_error("SDL initialisation failed");
 }
 
 SDLTexture::~SDLTexture()
@@ -57,30 +54,24 @@ bool SDLTexture::Init()
     int width = Frame::Width();
     int height = Frame::Height();
 
-    Uint32 flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
-    m_pWindow.reset(
-        SDL_CreateWindow(
-            WINDOW_CAPTION,
-            SDL_WINDOWPOS_CENTERED,
-            SDL_WINDOWPOS_CENTERED,
-            width * 2,
-            height * 2,
-            flags));
-
-    if (!m_pWindow)
+    Uint32 window_flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
+    m_window = SDL_CreateWindow(
+        WINDOW_CAPTION, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        width * 2, height * 2, window_flags);
+    if (!m_window)
         return false;
 
-    SDL_SetWindowMinimumSize(m_pWindow.get(), width / 2, height / 2);
+    SDL_SetWindowMinimumSize(m_window, width / 2, height / 2);
 
-    m_pRenderer.reset(
-        SDL_CreateRenderer(m_pWindow.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE));
+    m_renderer.reset(
+        SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE));
 
-    if (!m_pRenderer)
+    if (!m_renderer)
         return false;
 
     OptionsChanged();
     RestoreWindowPosition();
-    SDL_ShowWindow(m_pWindow.get());
+    SDL_ShowWindow(m_window);
 
     return true;
 }
@@ -89,7 +80,7 @@ bool SDLTexture::Init()
 void SDLTexture::OptionsChanged()
 {
     uint8_t fill_intensity = GetOption(blackborder) ? 0 : 25;
-    SDL_SetRenderDrawColor(m_pRenderer.get(), fill_intensity, fill_intensity, fill_intensity, 0xff);
+    SDL_SetRenderDrawColor(m_renderer, fill_intensity, fill_intensity, fill_intensity, 0xff);
 
     m_rSource.w = m_rSource.h = 0;
     m_rTarget.w = m_rTarget.h = 0;
@@ -107,7 +98,7 @@ void SDLTexture::ResizeWindow(int height) const
     if (GetOption(ratio5_4))
         width *= 1.25f;
 
-    SDL_SetWindowSize(m_pWindow.get(), static_cast<int>(width + 0.5f), height);
+    SDL_SetWindowSize(m_window, static_cast<int>(width + 0.5f), height);
 }
 
 std::pair<int, int> SDLTexture::MouseRelative()
@@ -137,12 +128,12 @@ std::pair<int, int> SDLTexture::MouseRelative()
 
 void SDLTexture::UpdatePalette()
 {
-    if (!m_pTexture)
+    if (!m_screen_texture)
         return;
 
     int bpp;
     Uint32 format, r_mask, g_mask, b_mask, a_mask;
-    SDL_QueryTexture(m_pTexture.get(), &format, nullptr, nullptr, nullptr);
+    SDL_QueryTexture(m_screen_texture, &format, nullptr, nullptr, nullptr);
     SDL_PixelFormatEnumToMasks(format, &bpp, &r_mask, &g_mask, &b_mask, &a_mask);
 
     auto palette = IO::Palette();
@@ -157,11 +148,11 @@ void SDLTexture::UpdatePalette()
 
 bool SDLTexture::DrawChanges(const FrameBuffer& fb)
 {
-    bool is_fullscreen = (SDL_GetWindowFlags(m_pWindow.get()) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
+    bool is_fullscreen = (SDL_GetWindowFlags(m_window) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
     if (is_fullscreen != GetOption(fullscreen))
     {
         SDL_SetWindowFullscreen(
-            m_pWindow.get(),
+            m_window,
             GetOption(fullscreen) ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
     }
 
@@ -170,7 +161,7 @@ bool SDLTexture::DrawChanges(const FrameBuffer& fb)
 
     int window_width{};
     int window_height{};
-    SDL_GetWindowSize(m_pWindow.get(), &window_width, &window_height);
+    SDL_GetWindowSize(m_window, &window_width, &window_height);
 
     bool smooth = !GUI::IsActive() && GetOption(smooth);
     bool smooth_changed = smooth != m_smooth;
@@ -186,12 +177,12 @@ bool SDLTexture::DrawChanges(const FrameBuffer& fb)
     if (source_changed || target_changed || smooth_changed)
         ResizeIntermediate(smooth);
 
-    if (!m_pTexture)
+    if (!m_screen_texture)
         return false;
 
     int texture_pitch = 0;
     uint8_t* pTexture = nullptr;
-    if (SDL_LockTexture(m_pTexture.get(), nullptr, (void**)&pTexture, &texture_pitch) != 0)
+    if (SDL_LockTexture(m_screen_texture, nullptr, (void**)&pTexture, &texture_pitch) != 0)
         return false;
 
     int width_cells = width / GFX_PIXELS_PER_CELL;
@@ -217,33 +208,33 @@ bool SDLTexture::DrawChanges(const FrameBuffer& fb)
         pLine += line_pitch;
     }
 
-    SDL_UnlockTexture(m_pTexture.get());
+    SDL_UnlockTexture(m_screen_texture);
     return true;
 }
 
 void SDLTexture::Render()
 {
     SDL_Rect rScaledTexture{};
-    SDL_QueryTexture(m_pScaledTexture.get(), nullptr, nullptr, &rScaledTexture.w, &rScaledTexture.h);
+    SDL_QueryTexture(m_scaled_texture, nullptr, nullptr, &rScaledTexture.w, &rScaledTexture.h);
 
     // Integer scale original image using point sampling.
-    SDL_SetRenderTarget(m_pRenderer.get(), m_pScaledTexture.get());
-    SDL_RenderCopy(m_pRenderer.get(), m_pTexture.get(), nullptr, nullptr);
+    SDL_SetRenderTarget(m_renderer, m_scaled_texture);
+    SDL_RenderCopy(m_renderer, m_screen_texture, nullptr, nullptr);
 
     // Draw to window with remaining scaling using linear sampling.
-    SDL_SetRenderTarget(m_pRenderer.get(), nullptr);
-    SDL_RenderClear(m_pRenderer.get());
-    SDL_RenderCopy(m_pRenderer.get(), m_pScaledTexture.get(), nullptr, &m_rDisplay);
-    SDL_RenderPresent(m_pRenderer.get());
+    SDL_SetRenderTarget(m_renderer, nullptr);
+    SDL_RenderClear(m_renderer);
+    SDL_RenderCopy(m_renderer, m_scaled_texture, nullptr, &m_rDisplay);
+    SDL_RenderPresent(m_renderer);
 }
 
 void SDLTexture::ResizeSource(int source_width, int source_height)
 {
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
 
-    m_pTexture.reset(
+    m_screen_texture.reset(
         SDL_CreateTexture(
-            m_pRenderer.get(),
+            m_renderer,
             SDL_PIXELFORMAT_UNKNOWN,
             SDL_TEXTUREACCESS_STREAMING,
             source_width,
@@ -300,9 +291,9 @@ void SDLTexture::ResizeIntermediate(bool smooth)
 
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 
-    m_pScaledTexture.reset(
+    m_scaled_texture.reset(
         SDL_CreateTexture(
-            m_pRenderer.get(),
+            m_renderer,
             SDL_PIXELFORMAT_UNKNOWN,
             SDL_TEXTUREACCESS_TARGET,
             width,
@@ -313,15 +304,18 @@ void SDLTexture::ResizeIntermediate(bool smooth)
 
 void SDLTexture::SaveWindowPosition()
 {
-    SDL_SetWindowFullscreen(m_pWindow.get(), 0);
+    if (!m_window)
+        return;
 
-    auto window_flags = SDL_GetWindowFlags(m_pWindow.get());
+    SDL_SetWindowFullscreen(m_window, 0);
+
+    auto window_flags = SDL_GetWindowFlags(m_window);
     auto maximised = (window_flags & SDL_WINDOW_MAXIMIZED) ? 1 : 0;
-    SDL_RestoreWindow(m_pWindow.get());
+    SDL_RestoreWindow(m_window);
 
     int x, y, width, height;
-    SDL_GetWindowPosition(m_pWindow.get(), &x, &y);
-    SDL_GetWindowSize(m_pWindow.get(), &width, &height);
+    SDL_GetWindowPosition(m_window, &x, &y);
+    SDL_GetWindowSize(m_window, &width, &height);
 
     SetOption(windowpos, fmt::format("{},{},{},{},{}", x, y, width, height, maximised).c_str());
 }
@@ -331,11 +325,11 @@ void SDLTexture::RestoreWindowPosition()
     int x, y, width, height, maximised;
     if (sscanf(GetOption(windowpos), "%d,%d,%d,%d,%d", &x, &y, &width, &height, &maximised) == 5)
     {
-        SDL_SetWindowPosition(m_pWindow.get(), x, y);
-        SDL_SetWindowSize(m_pWindow.get(), width, height);
+        SDL_SetWindowPosition(m_window, x, y);
+        SDL_SetWindowSize(m_window, width, height);
 
         if (maximised)
-            SDL_MaximizeWindow(m_pWindow.get());
+            SDL_MaximizeWindow(m_window);
     }
 }
 
