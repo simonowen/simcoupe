@@ -25,8 +25,5 @@ class Audio
 public:
     static bool Init();
     static void Exit();
-
-    static bool IsAvailable() { return SDL_GetAudioStatus() == SDL_AUDIO_PLAYING; }
-    static bool AddData(Uint8* pbData_, int nLength_);
-    static void Silence();
+    static float AddData(uint8_t* pData, int len_bytes);
 };

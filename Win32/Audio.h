@@ -26,9 +26,7 @@ class Audio
 public:
     static bool Init();
     static void Exit();
-
-    static void Silence();
-    static bool AddData(uint8_t* pb_, int nLen_);
+    static float AddData(uint8_t* pData, int len_bytes);
 };
 
 #endif  // AUDIO_H

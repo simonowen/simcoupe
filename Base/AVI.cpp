@@ -484,9 +484,6 @@ void Stop()
     if (!f)
         return;
 
-    // Silence the sound in case index generation is slow
-    Sound::Silence();
-
     // Complete the movi chunk, add the index, and complete the RIFF
     WriteChunkEnd(f, lMoviPos);
     WriteIndex(f);

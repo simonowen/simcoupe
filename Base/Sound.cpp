@@ -45,7 +45,6 @@ bool Sound::Init()
     pbSampleBuffer = new uint8_t[nSamplesPerFrame * BYTES_PER_SAMPLE * nMaxFrameSamples];
 
     bool fRet = Audio::Init();
-    Audio::Silence();
     return fRet;
 }
 
@@ -57,11 +56,6 @@ void Sound::Exit()
 
     delete[] pbSampleBuffer; pbSampleBuffer = nullptr;
     Audio::Exit();
-}
-
-void Sound::Silence()
-{
-    Audio::Silence();
 }
 
 void Sound::FrameUpdate()
@@ -92,8 +86,25 @@ void Sound::FrameUpdate()
     if (SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2)
         nSize = AdjustSpeed(pbSampleBuffer, nSize, GetOption(speed));
 
-    // Queue the data for playback
-    Audio::AddData(pbSampleBuffer, nSize);
+    auto buffer_level = Audio::AddData(pbSampleBuffer, nSize);
+
+    using namespace std::chrono;
+    static high_resolution_clock::time_point frame_time;
+    auto one_frame = duration_cast<microseconds>(
+        seconds(1) / ACTUAL_FRAMES_PER_SECOND * 100.0f / GetOption(speed));
+
+    auto now = high_resolution_clock::now();
+    if (now - frame_time > one_frame * 2)
+    {
+        frame_time = now;
+    }
+    else if (!GetOption(audiosync) && GetOption(speed) == 100)
+    {
+        auto max_adjust = 0.01f;
+        auto scale = (1.0f - max_adjust) + 2.0f * max_adjust * buffer_level;
+        frame_time += duration_cast<microseconds>(one_frame * scale);
+        std::this_thread::sleep_until(frame_time);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

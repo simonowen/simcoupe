@@ -221,8 +221,6 @@ bool UI::CheckEvents()
         if (!g_fPaused)
             break;
 
-        // Silence the audio and block until something happens
-        Sound::Silence();
         WaitMessage();
     }
 
@@ -909,7 +907,6 @@ bool UI::DoAction(Action action, bool pressed)
         {
         case Action::ToggleFullscreen:
             SetOption(fullscreen, !GetOption(fullscreen));
-            Sound::Silence();
 
             if (GetOption(fullscreen))
             {
@@ -1319,20 +1316,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
     case WM_ACTIVATE:
     {
         TRACE("WM_ACTIVATE ({:x})\n", wParam_);
-        HWND hwndActive = reinterpret_cast<HWND>(lParam_);
-        bool fActive = LOWORD(wParam_) != WA_INACTIVE;
-        bool fChildOpen = !fActive && hwndActive && GetParent(hwndActive) == hwnd_;
-
-        // Inactive?
-        if (!fActive)
-        {
-            // If a child window is open, silence the sound
-            if (fChildOpen)
-                Sound::Silence();
-            // If we're in fullscreen mode, minimise the app
-            else if (GetOption(fullscreen))
-                ShowWindow(hwnd_, SW_SHOWMINNOACTIVE);
-        }
+        auto active = LOWORD(wParam_) != WA_INACTIVE;
+        if (!active && GetOption(fullscreen))
+            ShowWindow(hwnd_, SW_SHOWMINNOACTIVE);
 
         return 0;
     }
@@ -1423,7 +1409,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
     case WM_ENTERMENULOOP:
         fInMenu = true;
-        Sound::Silence();
         break;
 
     case WM_EXITMENULOOP:
@@ -1438,12 +1423,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
     case WM_ERASEBKGND:
         return 1;
-
-    // Silence the sound during window drags, and other clicks in the non-client area
-    case WM_NCLBUTTONDOWN:
-    case WM_NCRBUTTONDOWN:
-        Sound::Silence();
-        break;
 
     case WM_SYSCOMMAND:
         // Is this an Alt-key combination?

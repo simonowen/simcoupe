@@ -173,7 +173,6 @@ bool Do(Action action, bool pressed/*=true*/)
         case Action::ToggleTurbo:
         {
             g_nTurbo ^= TURBO_KEY;
-            Sound::Silence();
             Frame::SetStatus("Turbo mode {}", (g_nTurbo & TURBO_KEY) ? "enabled" : "disabled");
             break;
         }
@@ -182,7 +181,6 @@ bool Do(Action action, bool pressed/*=true*/)
             if (!(g_nTurbo & TURBO_KEY))
             {
                 g_nTurbo |= TURBO_KEY;
-                Sound::Silence();
             }
             break;
 
@@ -212,7 +210,6 @@ bool Do(Action action, bool pressed/*=true*/)
 
         case Action::ToggleFullscreen:
             SetOption(fullscreen, !GetOption(fullscreen));
-            Sound::Silence();
             Video::OptionsChanged();
             break;
 

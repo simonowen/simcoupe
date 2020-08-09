@@ -180,7 +180,6 @@ bool UI::CheckEvents()
         if (!g_fPaused)
             break;
 
-        Sound::Silence();
         SDL_WaitEvent(nullptr);
     }
 

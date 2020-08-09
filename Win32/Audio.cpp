@@ -31,16 +31,15 @@
 #endif
 
 #include "Audio.h"
+#include "Options.h"
 #include "Sound.h"
 
-constexpr auto SOUND_BUFFERS = 2;
+constexpr auto SOUND_BUFFERS = 32;
+constexpr auto MIN_LATENCY_FRAMES = 3;
 
 static ComPtr<IXAudio2> pXAudio2;
 static IXAudio2MasteringVoice* pMasteringVoice;
 static IXAudio2SourceVoice* pSourceVoice;
-
-static std::array<std::vector<uint8_t>, SOUND_BUFFERS> buffers;
-static size_t buffer_index = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -70,6 +69,17 @@ bool Audio::Init()
     }
 
     auto hr = pfnXAudio2Create(pXAudio2.GetAddressOf(), 0, XAUDIO2_DEFAULT_PROCESSOR);
+
+#ifdef _DEBUG
+    if (SUCCEEDED(hr))
+    {
+        XAUDIO2_DEBUG_CONFIGURATION debug{};
+        debug.TraceMask = XAUDIO2_LOG_ERRORS | XAUDIO2_LOG_WARNINGS;
+        debug.BreakMask = XAUDIO2_LOG_ERRORS;
+        pXAudio2->SetDebugConfiguration(&debug);
+    }
+#endif
+
     if (SUCCEEDED(hr))
         hr = pXAudio2->CreateMasteringVoice(&pMasteringVoice, 2, SAMPLE_FREQ);
 
@@ -108,41 +118,44 @@ void Audio::Exit()
     pXAudio2.Reset();
 }
 
-void Audio::Silence()
-{
-}
-
-bool Audio::AddData(uint8_t* pData, int len_bytes)
+float Audio::AddData(uint8_t* pData, int len_bytes)
 {
     XAUDIO2_VOICE_STATE state{};
 
-    for (;;)
-    {
-#if (_WIN32_WINNT < _WIN32_WINNT_WIN8)
-        pSourceVoice->GetState(&state, XAUDIO2_VOICE_NOSAMPLESPLAYED);
-#else
-        pSourceVoice->GetState(&state);
-#endif
-        if (state.BuffersQueued < SOUND_BUFFERS)
-            break;
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-
-    auto& data = buffers[buffer_index];
+    static std::vector<uint8_t> data;
     data.insert(data.end(), pData, pData + len_bytes);
 
-    size_t samples_per_frame = SAMPLE_FREQ * BYTES_PER_SAMPLE / EMULATED_FRAMES_PER_SECOND;
-    if (data.size() >= samples_per_frame / 2)
+    auto buffer_frames = std::max(GetOption(latency), MIN_LATENCY_FRAMES);
+    size_t buffer_size = SAMPLES_PER_FRAME * buffer_frames / SOUND_BUFFERS * BYTES_PER_SAMPLE;
+    while (data.size() >= buffer_size)
     {
+        for (;;)
+        {
+#if (_WIN32_WINNT < _WIN32_WINNT_WIN8)
+            pSourceVoice->GetState(&state, XAUDIO2_VOICE_NOSAMPLESPLAYED);
+#else
+            pSourceVoice->GetState(&state);
+#endif
+            if (state.BuffersQueued < SOUND_BUFFERS)
+                break;
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        static std::array<std::vector<uint8_t>, SOUND_BUFFERS> buffers;
+        static size_t buffer_index = 0;
+
+        auto& current_buffer = buffers[buffer_index];
+        current_buffer.assign(data.begin(), data.begin() + buffer_size);
+        data.erase(data.begin(), data.begin() + buffer_size);
+
         XAUDIO2_BUFFER buffer{};
-        buffer.pAudioData = data.data();
-        buffer.AudioBytes = static_cast<UINT32>(data.size());
+        buffer.pAudioData = current_buffer.data();
+        buffer.AudioBytes = static_cast<UINT32>(current_buffer.size());
         pSourceVoice->SubmitSourceBuffer(&buffer);
 
         buffer_index = (buffer_index + 1) % SOUND_BUFFERS;
-        buffers[buffer_index].clear();
     }
 
-    return true;
+    return static_cast<float>(state.BuffersQueued) / SOUND_BUFFERS;
 }

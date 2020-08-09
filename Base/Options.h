@@ -110,6 +110,7 @@ struct OPTIONS
     bool    sambusclock;            // Enable SAMBUS clock support?
     bool    dallasclock;            // Enable DALLAS clock support?
 
+    bool    audiosync;              // Forced audio sync? (seamless but jittery)
     int     latency;                // Amount of sound buffering
     int     dac7c;                  // DAC device on shared port &7c? (0=none, 1=BlueAlpha Sampler, 2=SAMVox, 3=Paula)
     int     samplerfreq;            // Blue Alpha Sampler clock frequency

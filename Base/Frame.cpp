@@ -320,7 +320,7 @@ void Sync()
         if (last_profiled)
         {
             auto fps = 1s / ((now - *last_profiled) / static_cast<float>(num_frames));
-            auto percent = fps / EMULATED_FRAMES_PER_SECOND * 100;
+            auto percent = fps / ACTUAL_FRAMES_PER_SECOND * 100;
             profile_text = fmt::format("{:.0f}%", percent);
         }
 

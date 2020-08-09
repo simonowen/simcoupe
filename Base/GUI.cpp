@@ -130,9 +130,6 @@ bool GUI::Start(Window* pGUI_)
     // Position the cursor off-screen, to ensure the first drawn position matches the native OS position
     s_nX = s_nY = -ICON_SIZE;
 
-    // Silence sound playback
-    Sound::Silence();
-
     return true;
 }
 
