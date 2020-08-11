@@ -82,9 +82,9 @@ namespace fs = ghc::filesystem;
 #include <fmt/format.h>
 #include <fmt/chrono.h>
 
+#include "Util.h"       /* Utility functions */
 #include "OSD.h"        /* OS-dependent stuff */
 #include "SAM.h"        /* Various SAM constants */
-#include "Util.h"       /* TRACE macro and other utility functions */
 
 #ifdef HAVE_LIBSPECTRUM
 #include "libspectrum.h"

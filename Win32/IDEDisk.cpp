@@ -80,20 +80,18 @@ bool DeviceHardDisk::Open(bool fReadOnly_/*=false*/)
     if (ulDevice == ULONG_MAX)
         return false;
 
-    char sz[MAX_PATH] = {};
-    snprintf(sz, sizeof(sz) - 1, "\\\\.\\PhysicalDrive%lu", ulDevice);
-
+    auto device_path = fmt::format(R"(\\.\PhysicalDrive{})", ulDevice);
     DWORD dwWrite = fReadOnly_ ? 0 : GENERIC_WRITE;
-    m_hDevice = CreateFile(sz, GENERIC_READ | dwWrite, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+    m_hDevice = CreateFile(device_path.c_str(), GENERIC_READ | dwWrite, 0, nullptr, OPEN_EXISTING, 0, nullptr);
     DWORD dwError = GetLastError();
 
     // If a direct open failed, try via SAMdiskHelper
     if (!IsOpen())
     {
-        DWORD dwRead;
-        PIPEMESSAGE msg = {};
+        DWORD dwRead{};
+        PIPEMESSAGE msg{};
         msg.Input.dwMessage = FN_OPEN;
-        lstrcpyn(msg.Input.szPath, sz, sizeof(msg.Input.szPath) - 1);
+        lstrcpyn(msg.Input.szPath, device_path.c_str(), sizeof(msg.Input.szPath) - 1);
 
         if (CallNamedPipe(PIPENAME, &msg, sizeof(msg.Input), &msg, sizeof(msg.Output), &dwRead, NMPWAIT_NOWAIT))
         {
@@ -107,11 +105,11 @@ bool DeviceHardDisk::Open(bool fReadOnly_/*=false*/)
     if (!IsOpen())
     {
         if (dwError != ERROR_FILE_NOT_FOUND && dwError != ERROR_PATH_NOT_FOUND)
-            TRACE("Failed to open {} ({:08x})\n", sz, dwError);
+            TRACE("Failed to open {} ({:08x})\n", device_path, dwError);
     }
     else if (!Lock(fReadOnly_))
     {
-        TRACE("Failed to get exclusive access to {}\n", sz);
+        TRACE("Failed to get exclusive access to {}\n", device_path);
     }
     else if (!m_pbSector)
     {
@@ -267,27 +265,21 @@ bool DeviceHardDisk::WriteSector(UINT uSector_, uint8_t* pb_)
         WriteFile(m_hDevice, m_pbSector, dwSize, &dwWritten, nullptr) && dwWritten == dwSize;
 }
 
-const char* DeviceHardDisk::GetDeviceList()
+std::vector<std::string> DeviceHardDisk::GetDeviceList()
 {
-    static char szList[1024];
-    char* pszList = szList;
-    szList[0] = '\0';
-
-    DWORD ab[2048];
+    std::vector<std::string> device_list;
 
     for (DWORD dw = 0; dw < 10; dw++)
     {
         DWORD dwRet;
-
-        char sz[32] = {};
-        snprintf(sz, sizeof(sz) - 1, "\\\\.\\PhysicalDrive%lu", dw);
+        auto device_path = fmt::format(R"(\\.\PhysicalDrive{})", dw);
 
         // Open with limited rights, so we can fetch some details without Administrator access
-        HANDLE h = CreateFile(sz, 0, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+        HANDLE h = CreateFile(device_path.c_str(), 0, 0, nullptr, OPEN_EXISTING, 0, nullptr);
         if (h == INVALID_HANDLE_VALUE)
             continue;
 
-        // Read the partition table
+        DWORD ab[2048]{};
         if (!DeviceIoControl(h, IOCTL_DISK_GET_DRIVE_LAYOUT_EX, nullptr, 0, &ab, sizeof(ab), &dwRet, nullptr))
         {
             CloseHandle(h);
@@ -301,7 +293,7 @@ const char* DeviceHardDisk::GetDeviceList()
         {
             // Generate a user friendly abbreviation of the disk size
             UINT uTotalSectors = static_cast<UINT>(pdli->PartitionEntry[0].PartitionLength.QuadPart >> 9) & ~1U;
-            const char* pcszSize = AbbreviateSize(static_cast<uint64_t>(uTotalSectors) * 512);
+            auto size_desc = AbbreviateSize(static_cast<uint64_t>(uTotalSectors) * 512);
 
             STORAGE_PROPERTY_QUERY spq = {};
             spq.QueryType = PropertyStandardQuery;
@@ -316,28 +308,14 @@ const char* DeviceHardDisk::GetDeviceList()
                 const char* pcszMake = pDevDesc->VendorIdOffset ? reinterpret_cast<const char*>(pDevDesc) + pDevDesc->VendorIdOffset : "";
                 const char* pcszModel = pDevDesc->ProductIdOffset ? reinterpret_cast<const char*>(pDevDesc) + pDevDesc->ProductIdOffset : "";
 
-                char sz[256];
-                snprintf(sz, sizeof(sz), "%lu: %s%s", dw, pcszMake, pcszModel);
-
-                // Strip trailing spaces
-                for (char* p = sz + strlen(sz) - 1; p >= sz && *p == ' '; *p-- = '\0');
-
-                // Append the size string
-                snprintf(sz + strlen(sz), sizeof(sz) - strlen(sz), " (%s)", pcszSize);
-
-                if (strlen(pszList) + strlen(sz) + 2 < sizeof(szList))
-                {
-                    strcpy(pszList, sz);
-                    pszList += strlen(pszList) + 1;
-                }
+                auto str = trim(fmt::format("{}: {}{}", dw, pcszMake, pcszModel));
+                str += fmt::format(" ({})", size_desc);
+                device_list.push_back(str);
             }
         }
 
         CloseHandle(h);
     }
 
-    // Double-terminate the list
-    *pszList = '\0';
-
-    return szList;
+    return device_list;
 }

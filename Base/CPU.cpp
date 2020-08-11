@@ -44,7 +44,6 @@
 #include "Options.h"
 #include "Tape.h"
 #include "UI.h"
-#include "Util.h"
 
 
 #undef USE_FLAG_TABLES      // Experimental - disabled for now

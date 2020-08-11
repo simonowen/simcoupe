@@ -38,19 +38,19 @@ void* thread_proc(void* pv_)
 }
 
 
-FloppyStream::FloppyStream(const char* pcszStream_, bool fReadOnly_/*=false*/)
-    : Stream(pcszStream_, fReadOnly_)
+FloppyStream::FloppyStream(const std::string& filepath, bool read_only/*=false*/)
+    : Stream(filepath, read_only)
 {
 }
 
-/*static*/ bool FloppyStream::IsRecognised(const char* pcszStream_)
+/*static*/ bool FloppyStream::IsRecognised(const std::string& filepath)
 {
     struct stat st;
     char sz[MAX_PATH];
     int nMaxFollow = 10;
 
     // Work with a copy of the path as it may be updated to follow links
-    strncpy(sz, pcszStream_, sizeof(sz) - 1);
+    strncpy(sz, filepath.c_str(), sizeof(sz) - 1);
     sz[sizeof(sz) - 1] = '\0';
 
     // Loop examining, in case there are links to follow
@@ -93,9 +93,9 @@ bool FloppyStream::Open()
     if (!IsOpen())
     {
         // Open the floppy in the appropriate mode, falling back to read-only if necessary
-        if (m_fReadOnly || (m_hFloppy = open(m_pszPath, O_EXCL | O_RDWR)) == -1)
+        if (m_fReadOnly || (m_hFloppy = open(m_path.c_str(), O_EXCL | O_RDWR)) == -1)
         {
-            m_hFloppy = open(m_pszPath, O_EXCL | O_RDONLY);
+            m_hFloppy = open(m_path.c_str(), O_EXCL | O_RDONLY);
             m_fReadOnly = true;
         }
 
@@ -491,12 +491,12 @@ void* FloppyStream::ThreadProc()
 #else
 // Dummy implementation for non-Linux SDL versions
 
-FloppyStream::FloppyStream(const char* pcszStream_, bool fReadOnly_/*=false*/)
-    : Stream(pcszStream_, fReadOnly_)
+FloppyStream::FloppyStream(const std::string& filepath, bool read_only/*=false*/)
+    : Stream(filepath, read_only)
 {
 }
 
-/*static*/ bool FloppyStream::IsRecognised(const char* pcszStream_)
+/*static*/ bool FloppyStream::IsRecognised(const std::string& filepath)
 {
     return false;
 }

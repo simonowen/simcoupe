@@ -49,15 +49,12 @@ class HDFHardDisk final : public HardDisk
 {
 public:
     HDFHardDisk(const char* pcszDisk_);
-    HDFHardDisk(const HDFHardDisk&) = delete;
-    void operator= (const HDFHardDisk&) = delete;
-    ~HDFHardDisk() { Close(); }
 
 public:
     static bool Create(const char* pcszDisk_, unsigned int uTotalSectors_);
 
 public:
-    bool IsOpen() const { return m_hfDisk != nullptr; }
+    bool IsOpen() const { return m_file; }
     bool Open(bool fReadOnly_ = false) override;
     bool Create(unsigned int uTotalSectors_);
     void Close();
@@ -66,7 +63,7 @@ public:
     bool WriteSector(unsigned int uSector_, uint8_t* pb_) override;
 
 protected:
-    FILE* m_hfDisk = nullptr;
+    unique_FILE m_file;
     unsigned int m_uDataOffset = 0;
     unsigned int m_uSectorSize = 0;
 };

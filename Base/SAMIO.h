@@ -72,8 +72,8 @@ public:
 
     virtual void FrameEnd() { }
 
-    virtual bool LoadState(const char* /*file*/) { return true; }  // preserve basic state (such as NVRAM)
-    virtual bool SaveState(const char* /*file*/) { return true; }
+    virtual bool LoadState(const std::string&) { return true; }  // preserve basic state (such as NVRAM)
+    virtual bool SaveState(const std::string&) { return true; }
 };
 
 enum { drvNone, drvFloppy, drvAtom, drvAtomLite, drvSDIDE };
@@ -92,8 +92,8 @@ public:
     virtual bool Save() { return true; }
 
 public:
-    virtual const char* DiskPath() const = 0;
-    virtual const char* DiskFile() const = 0;
+    virtual std::string DiskPath() const = 0;
+    virtual std::string DiskFile() const = 0;
 
     virtual bool HasDisk() const { return false; }
     virtual bool DiskModified() const { return false; }

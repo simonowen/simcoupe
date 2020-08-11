@@ -28,7 +28,6 @@
 #include "Memory.h"
 #include "Options.h"
 #include "Symbol.h"
-#include "Util.h"
 
 
 // SAM BASIC keywords tokens
@@ -2748,9 +2747,8 @@ void GfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
         }
     }
 
-    char sz[128] = {};
-    snprintf(sz, sizeof(sz) - 1, "%04X  Mode %u  Width %u  Zoom %ux", GetAddress(), s_uMode, s_uWidth, s_uZoom);
-    pDebugger->SetStatus(sz, false, sFixedFont);
+    auto status = fmt::format("{:04X}  Mode {}  Width {}  Zoom {}x", GetAddress(), s_uMode, s_uWidth, s_uZoom);
+    pDebugger->SetStatus(status, false, sFixedFont);
 
 }
 

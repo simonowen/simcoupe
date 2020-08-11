@@ -214,36 +214,21 @@ static bool SaveFile(FILE* f_, const FrameBuffer& fb)
 // Process and save the supplied SAM image data to a file in PNG format
 bool Save(const FrameBuffer& fb)
 {
-    bool fRet = false;
-
 #ifdef HAVE_LIBZ
-    char szPath[MAX_PATH], * pszFile;
-
-    // Create a unique filename in the format snapNNNN.png
-    pszFile = Util::GetUniqueFile("png", szPath, sizeof(szPath));
-
-    // Create the new file
-    FILE* f = fopen(szPath, "wb");
-    if (!f)
+    auto png_path = Util::UniqueOutputPath("png");
+    unique_FILE file = fopen(png_path.c_str(), "wb");
+    if (file && SaveFile(file, fb))
     {
-        Frame::SetStatus("Failed to open {} for writing!", szPath);
-        return false;
+        Frame::SetStatus("Saved {}", png_path.string());
+        return true;
     }
 
-    // Perform the actual save
-    fRet = SaveFile(f, fb);
-    fclose(f);
-
-    // Report what happened
-    if (fRet)
-        Frame::SetStatus("Saved {}", szPath);
-    else
-        Frame::SetStatus("PNG save failed!?");
+    Frame::SetStatus("Save failed: {}", png_path.string());
 #else
     Frame::SetStatus("Screen saving requires zLib");
 #endif
 
-    return fRet;
+    return false;
 }
 
 } // namespace PNG

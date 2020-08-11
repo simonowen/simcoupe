@@ -26,7 +26,6 @@
 
 #include "Drive.h"
 #include "Floppy.h"
-#include "Util.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -41,9 +40,8 @@
         return DiskType::SAD;
     else if (FileDisk::IsRecognised(stream))
     {
-        // For now we'll only accept single files if they have a .sbt or .sbt.gz file extension
-        const char* pcsz = stream.GetFile();
-        if (strlen(pcsz) > 4 && (!strcasecmp(pcsz + strlen(pcsz) - 4, ".sbt") || !strcasecmp(pcsz + strlen(pcsz) - 4, ".sbt.gz")))
+        fs::path file = stream.GetFile();
+        if (tolower(file.extension()) == ".sbt")
             return DiskType::SBT;
     }
 

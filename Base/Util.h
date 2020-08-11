@@ -25,8 +25,10 @@ namespace Util
 bool Init();
 void Exit();
 
-char* GetUniqueFile(const char* pcszExt_, char* pszPath_, int cbPath_);
+fs::path UniqueOutputPath(const std::string& ext);
 }
+
+enum class PathType { Settings, Input, Output, Resource };
 
 enum class MsgType { Info, Warning, Error, Fatal };
 
@@ -38,7 +40,7 @@ void Message(MsgType type, const std::string& format, Args&& ... args)
 }
 
 uint8_t GetSizeCode(unsigned int uSize_);
-const char* AbbreviateSize(uint64_t ullSize_);
+std::string AbbreviateSize(uint64_t ullSize_);
 uint16_t CrcBlock(const void* pcv_, size_t uLen_, uint16_t wCRC_ = 0xffff);
 void PatchBlock(uint8_t* pb_, uint8_t* pbPatch_);
 unsigned int TPeek(const uint8_t* pb_);
@@ -58,6 +60,14 @@ std::set<typename T::value_type> to_set(T&& items)
     for (auto&& item : items)
         set.insert(std::move(item));
     return set;
+}
+
+inline std::string trim(const std::string& str)
+{
+    std::string s(str.c_str());
+    s.erase(0, s.find_first_not_of(" \t\r\n"));
+    s.erase(s.find_last_not_of(" \t\r\n") + 1);
+    return s;
 }
 
 template<typename T, T invalid, typename D>
@@ -86,6 +96,10 @@ struct unique_resource
 private:
     T _res{ invalid };
 };
+
+struct FILECloser { void operator()(FILE* file) { fclose(file); } };
+using unique_FILE = unique_resource<FILE*, nullptr, FILECloser>;
+
 
 #ifdef _DEBUG
 void TraceOutputString(const std::string& str);

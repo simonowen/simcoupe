@@ -450,35 +450,31 @@ bool DallasClock::Update()
 
 
 // Load NVRAM contents from file
-bool DallasClock::LoadState(const char* pcszFile_)
+bool DallasClock::LoadState(const std::string& path)
 {
-    bool fRet = false;
+    bool ret = false;
 
-    FILE* f = fopen(pcszFile_, "rb");
-    if (f)
+    unique_FILE file = fopen(path.c_str(), "rb");
+    if (file)
     {
-        fRet = (fread(m_abRegs + 0x0e, 1, 0x80 - 0x0e, f) == (0x80 - 0x0e));      // User RAM
-        fRet &= (fread(m_abRAM, 1, sizeof(m_abRAM), f) == sizeof(m_abRAM));  // Extended RAM
-
-        fclose(f);
+        ret = (fread(m_abRegs + 0x0e, 1, 0x80 - 0x0e, file) == (0x80 - 0x0e));      // User RAM
+        ret &= (fread(m_abRAM, 1, sizeof(m_abRAM), file) == sizeof(m_abRAM));  // Extended RAM
     }
 
-    return fRet;
+    return ret;
 }
 
 // Save NVRAM contents to file
-bool DallasClock::SaveState(const char* pcszFile_)
+bool DallasClock::SaveState(const std::string& path)
 {
-    bool fRet = false;
+    bool ret = false;
 
-    FILE* f = fopen(pcszFile_, "wb");
-    if (f)
+    unique_FILE file = fopen(path.c_str(), "wb");
+    if (file)
     {
-        fRet = (fwrite(m_abRegs + 0x0e, 1, 0x80 - 0x0e, f) == (0x80 - 0x0e));      // User RAM
-        fRet &= (fwrite(m_abRAM, 1, sizeof(m_abRAM), f) == sizeof(m_abRAM));  // Extended RAM
-
-        fclose(f);
+        ret = (fwrite(m_abRegs + 0x0e, 1, 0x80 - 0x0e, file) == (0x80 - 0x0e)); // User RAM
+        ret &= (fwrite(m_abRAM, 1, sizeof(m_abRAM), file) == sizeof(m_abRAM));  // Extended RAM
     }
 
-    return fRet;
+    return ret;
 }

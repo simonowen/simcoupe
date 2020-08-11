@@ -2121,16 +2121,12 @@ void FileView::NotifyParent(int nParam_)
                 path = path / pItem->m_label;
             }
 
-            // Make sure we have access to the path before setting it
-            if (path.empty() || OSD::CheckPathAccess(path.string()))
+            m_path = path;
+            if (!Refresh())
             {
-                m_path = path;
-                Refresh();
-            }
-            else
-            {
-                auto body = fmt::format("{}{}\n\nCan't access directory.", pItem->m_label, PATH_SEPARATOR);
-                new MsgBox(this, body, "Access Denied", mbError);
+                auto body = fmt::format("Failed to access directory:\n\n{}", m_path.string());
+                new MsgBox(this, body, "Access Error", mbError);
+                m_path = m_path.parent_path();
             }
         }
     }
@@ -2204,10 +2200,10 @@ void FileView::ShowHidden(bool fShow_)
 
 
 // Populate the list view with items from the path matching the current file filter
-void FileView::Refresh()
+bool FileView::Refresh()
 {
     if (!m_pszFilter)
-        return;
+        return true;
 
     auto pItem = GetItem();
     auto label = pItem ? pItem->m_label : "";
@@ -2218,11 +2214,13 @@ void FileView::Refresh()
 #ifdef _WIN32
     if (m_path.empty())
     {
-        for (char chDrive = 'A'; chDrive <= 'Z'; ++chDrive)
+        for (char chDrive = 'C'; chDrive <= 'Z'; ++chDrive)
         {
             auto root_path = fmt::format("{}:\\", chDrive);
 
-            if (OSD::CheckPathAccess(root_path))
+            std::error_code error{};
+            auto it = fs::directory_iterator(root_path, error);
+            if (!error)
             {
                 items.emplace_back(sFolderIcon, root_path);
             }
@@ -2233,7 +2231,8 @@ void FileView::Refresh()
     {
         auto filters = to_set(split(m_pszFilter, ';'));
 
-        for (auto& entry : fs::directory_iterator(m_path))
+        std::error_code error{};
+        for (auto& entry : fs::directory_iterator(m_path, error))
         {
             auto file_path = entry.path();// m_path / entry->d_name;
             auto file_name = file_path.filename().string();
@@ -2262,6 +2261,9 @@ void FileView::Refresh()
                 file_name);
         }
 
+        if (error)
+            return false;
+
         // Sort by type (directories first) then filename.
         std::sort(items.begin(), items.end(),
             [](auto& lhs, auto& rhs)
@@ -2281,6 +2283,8 @@ void FileView::Refresh()
         if (auto index = FindItem(label))
             Select(*index);
     }
+
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -26,8 +26,6 @@
 #include "Options.h"
 
 #include "SAMIO.h"
-#include "OSD.h"
-#include "Util.h"
 
 namespace Options
 {
@@ -226,11 +224,12 @@ bool Load(int argc_, char* argv_[])
 {
     SetDefaults(true);
 
-    FILE* hfOptions = fopen(OSD::MakeFilePath(MFP_SETTINGS, OPTIONS_FILE), "r");
-    if (hfOptions)
+    auto path = OSD::MakeFilePath(PathType::Settings, OPTIONS_FILE);
+    unique_FILE file = fopen(path.c_str(), "r");
+    if (file)
     {
         char szLine[256];
-        while (fgets(szLine, sizeof(szLine), hfOptions))
+        while (fgets(szLine, sizeof(szLine), file))
         {
             char* pszValue = strchr(szLine, '=');
             char* pszName = strtok(szLine, " \t=");
@@ -260,9 +259,6 @@ bool Load(int argc_, char* argv_[])
                 }
             }
         }
-
-        // We're done with the file
-        fclose(hfOptions);
     }
 
     // Set the default values for any missing options, or all if the config version has changed
@@ -321,7 +317,7 @@ bool Save()
 {
     SetOption(speed, 100);
 
-    auto path = OSD::MakeFilePath(MFP_SETTINGS, OPTIONS_FILE);
+    auto path = OSD::MakeFilePath(PathType::Settings, OPTIONS_FILE);
     try
     {
         std::ofstream ofs(path, std::ofstream::out);

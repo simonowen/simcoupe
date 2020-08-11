@@ -22,18 +22,18 @@
 
 namespace Tape
 {
-bool IsRecognised(const char* pcsz_);
+bool IsRecognised(const std::string& filepath);
 bool IsPlaying();
 bool IsInserted();
 
-const char* GetPath();
-const char* GetFile();
+std::string GetPath();
+std::string GetFile();
 #ifdef HAVE_LIBSPECTRUM
 libspectrum_tape* GetTape();
 const char* GetBlockDetails(libspectrum_tape_block* block);
 #endif
 
-bool Insert(const char* pcsz_);
+bool Insert(const std::string& filepath);
 void Eject();
 void Play();
 void Stop();

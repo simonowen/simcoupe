@@ -30,11 +30,9 @@
 #include "GUI.h"
 #include "Memory.h"
 #include "Options.h"
-#include "OSD.h"
 #include "PNG.h"
 #include "Sound.h"
 #include "SSX.h"
-#include "Util.h"
 #include "UI.h"
 
 constexpr uint8_t FLOPPY_LED_COLOUR = GREEN_5;

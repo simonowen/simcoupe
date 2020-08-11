@@ -96,12 +96,11 @@ void PrintBuffer::FrameEnd()
 
 bool PrinterFile::Open()
 {
-    m_pszFile = Util::GetUniqueFile("txt", m_szPath, sizeof(m_szPath));
-
-    m_hFile = fopen(m_szPath, "wb");
-    if (!m_hFile)
+    print_path = Util::UniqueOutputPath("txt");
+    m_file = fopen(print_path.c_str(), "wb");
+    if (!m_file)
     {
-        Frame::SetStatus("Failed to open {}", m_szPath);
+        Frame::SetStatus("Failed to open {}", print_path.string());
         return false;
     }
 
@@ -110,20 +109,17 @@ bool PrinterFile::Open()
 
 void PrinterFile::Close()
 {
-    if (m_hFile)
+    if (m_file)
     {
-        fclose(m_hFile);
-        m_hFile = nullptr;
-
-        Frame::SetStatus("Saved {}", m_pszFile);
-        m_pszFile = nullptr;
+        m_file.reset();
+        Frame::SetStatus("Saved {}", print_path.string());
     }
 }
 
 void PrinterFile::Write(uint8_t* pb_, size_t uLen_)
 {
-    if (m_hFile)
-        fwrite(pb_, uLen_, 1, m_hFile);
+    if (m_file)
+        fwrite(pb_, uLen_, 1, m_file);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

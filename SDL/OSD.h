@@ -20,7 +20,6 @@
 
 #pragma once
 
-#include <sys/types.h>      // for _off_t definition
 #include <fcntl.h>
 
 #ifdef HAVE_LIBSDL2
@@ -65,27 +64,17 @@
 #define ioctl(f,c,x)    -1
 #define readlink(p,b,n) -1
 
-#define access      _access
-#define R_OK        4
-#define W_OK        2
-#define X_OK        0           // Should be 1, but the VC runtime asserts if we use it!
-#define F_OK        0
-
 #endif  // _WINDOWS
 
 ////////////////////////////////////////////////////////////////////////////////
 
-enum { MFP_SETTINGS, MFP_INPUT, MFP_OUTPUT, MFP_RESOURCE };
-
 class OSD
 {
 public:
-    static bool Init(bool fFirstInit_ = false);
-    static void Exit(bool fReInit_ = false);
+    static bool Init();
+    static void Exit();
 
-    static const char* MakeFilePath(int nDir_, const char* pcszFile_ = "");
-    static const char* GetFloppyDevice(int nDrive_);
-    static bool CheckPathAccess(const std::string& path);
+    static fs::path MakeFilePath(PathType type, const std::string& filename="");
     static bool IsHidden(const std::string& path);
 
     static void DebugTrace(const std::string& str);

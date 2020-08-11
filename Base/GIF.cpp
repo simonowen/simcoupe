@@ -34,8 +34,8 @@ namespace GIF
 
 static uint8_t* pbCurr, * pbFirst, * pbSub;
 
-static char szPath[MAX_PATH], * pszFile;
-static FILE* f;
+static fs::path gif_path;
+static unique_FILE file;
 
 static int nDelay = 0;
 static long lDelayOffset;
@@ -54,78 +54,78 @@ static void WriteLogicalScreenDescriptor(const FrameBuffer& fb)
     uint16_t w = fb.Width() / 2;
     uint16_t h = fb.Height() / 2;
 
-    fputc(w & 0xff, f);
-    fputc(w >> 8, f);
-    fputc(h & 0xff, f);
-    fputc(h >> 8, f);
+    fputc(w & 0xff, file);
+    fputc(w >> 8, file);
+    fputc(h & 0xff, file);
+    fputc(h >> 8, file);
 
-    fputc(0xf0 | (0x7 & (COLOUR_DEPTH - 1)), f);
-    fputc(0x00, f); // Background colour index
-    fputc(GetOption(ratio5_4) ? 0x41 : 0x00, f);    // Pixel Aspect Ratio
+    fputc(0xf0 | (0x7 & (COLOUR_DEPTH - 1)), file);
+    fputc(0x00, file); // Background colour index
+    fputc(GetOption(ratio5_4) ? 0x41 : 0x00, file);    // Pixel Aspect Ratio
 }
 
 static void WriteGlobalColourTable()
 {
     for (auto& colour : IO::Palette())
     {
-        fputc(colour.red, f);
-        fputc(colour.green, f);
-        fputc(colour.blue, f);
+        fputc(colour.red, file);
+        fputc(colour.green, file);
+        fputc(colour.blue, file);
     }
 }
 
 static void WriteImageDescriptor(uint16_t wLeft_, uint16_t wTop_, uint16_t wWidth_, uint16_t wHeight_)
 {
-    fputc(0x2c, f);             // Image separator character = ','
+    fputc(0x2c, file);             // Image separator character = ','
 
-    fputc(wLeft_ & 0xff, f);    // left
-    fputc(wLeft_ >> 8, f);
-    fputc(wTop_ & 0xff, f);     // top
-    fputc(wTop_ >> 8, f);
-    fputc(wWidth_ & 0xff, f);   // width
-    fputc(wWidth_ >> 8, f);
-    fputc(wHeight_ & 0xff, f);  // height
-    fputc(wHeight_ >> 8, f);
+    fputc(wLeft_ & 0xff, file);    // left
+    fputc(wLeft_ >> 8, file);
+    fputc(wTop_ & 0xff, file);     // top
+    fputc(wTop_ >> 8, file);
+    fputc(wWidth_ & 0xff, file);   // width
+    fputc(wWidth_ >> 8, file);
+    fputc(wHeight_ & 0xff, file);  // height
+    fputc(wHeight_ >> 8, file);
 
-    fputc(0x00 | (0x7 & (COLOUR_DEPTH - 1)), f); // information on the local colour table
+    fputc(0x00 | (0x7 & (COLOUR_DEPTH - 1)), file); // information on the local colour table
 }
 
 static void WriteGraphicControlExtension(uint16_t wDelay_, uint8_t bTransIdx_)
 {
-    fputc(0x21, f);     // GIF extension code
-    fputc(0xf9, f);     // graphic control label
-    fputc(0x04, f);     // data length
+    fputc(0x21, file);     // GIF extension code
+    fputc(0xf9, file);     // graphic control label
+    fputc(0x04, file);     // data length
 
     uint8_t bFlags = 0;
     bFlags |= (1 << 2);
     if (bTransIdx_ != 0xff) bFlags |= 1;
-    fputc(bFlags, f);   // Bits 7-5: reserved
+    fputc(bFlags, file);   // Bits 7-5: reserved
                         // Bits 4-2: disposal method (0=none, 1=leave, 2=restore bkg, 3=restore prev)
                         // Bit 1: user input field
                         // Bit 0: transparent colour flag
 
-    fputc(wDelay_ & 0xff, f);   // delay time (ms)
-    fputc(wDelay_ >> 8, f);
+    fputc(wDelay_ & 0xff, file);   // delay time (ms)
+    fputc(wDelay_ >> 8, file);
 
-    fputc((bFlags & 1) ? bTransIdx_ : 0x00, f); // Transparent colour index, or 0 if unused
-    fputc(0x00, f);     // Data sub-block terminator
+    fputc((bFlags & 1) ? bTransIdx_ : 0x00, file); // Transparent colour index, or 0 if unused
+    fputc(0x00, file);     // Data sub-block terminator
 }
 
 static bool WriteGraphicControlExtensionDelay(long lOffset_, uint16_t wDelay_)
 {
     // Save current position
-    long lOldPos = ftell(f);
+    long lOldPos = ftell(file);
 
     // Seek to delay offset
-    if (lOffset_ < 0 || fseek(f, lOffset_, SEEK_SET) != 0)
+    if (lOffset_ < 0 || fseek(file, lOffset_, SEEK_SET) != 0)
         return false;
 
     // Write delay time (in 1/100ths second)
-    fputc(wDelay_ & 0xff, f);
-    fputc(wDelay_ >> 8, f);
+    fputc(wDelay_ & 0xff, file);
+    fputc(wDelay_ >> 8, file);
 
     // Return to original position
-    if (lOldPos < 0 || fseek(f, lOldPos, SEEK_SET) != 0)
+    if (lOldPos < 0 || fseek(file, lOldPos, SEEK_SET) != 0)
         return false;
 
     return true;
@@ -135,22 +135,22 @@ static void WriteNetscapeLoopExtension()
 {
     uint16_t loops = 0;     // infinite
 
-    fputc(0x21, f);     // GIF Extension code
-    fputc(0xff, f);     // Application Extension Label
-    fputc(0x0b, f);     // Length of Application Block (eleven bytes of data to follow)
+    fputc(0x21, file);     // GIF Extension code
+    fputc(0xff, file);     // Application Extension Label
+    fputc(0x0b, file);     // Length of Application Block (eleven bytes of data to follow)
 
-    fwrite("NETSCAPE2.0", 11, 1, f);
+    fwrite("NETSCAPE2.0", 11, 1, file);
 
-    fputc(0x03, f);     //Length of Data Sub-Block (three bytes of data to follow)
-    fputc(0x01, f);
-    fputc(loops & 0xff, f);     // 2-byte loop iteration count
-    fputc(loops >> 8, f);
-    fputc(0x00, f);     // Data sub-block terminator
+    fputc(0x03, file);     //Length of Data Sub-Block (three bytes of data to follow)
+    fputc(0x01, file);
+    fputc(loops & 0xff, file);     // 2-byte loop iteration count
+    fputc(loops >> 8, file);
+    fputc(0x00, file);     // Data sub-block terminator
 }
 
 static void WriteFileTerminator()
 {
-    fputc(';', f);
+    fputc(';', file);
 }
 
 
@@ -355,17 +355,16 @@ static uint8_t UpdateImage(uint8_t* pb_, const FrameBuffer& fb)
 
 bool Start(bool fAnimLoop_)
 {
-    // Fail if we're already recording
-    if (f)
+    if (file)
         return false;
 
-    // Find a unique filename to use, in the format aniNNNN.gif
-    pszFile = Util::GetUniqueFile("gif", szPath, sizeof(szPath));
-
-    // Create the file
-    f = fopen(szPath, "wb+");
-    if (!f)
+    gif_path = Util::UniqueOutputPath("gif");
+    file = fopen(gif_path.c_str(), "wb+");
+    if (!file)
+    {
+        Frame::SetStatus("Save failed: {}", gif_path.string());
         return false;
+    }
 
     // Reset the frame counters
     nDelay = 0;
@@ -381,7 +380,7 @@ bool Start(bool fAnimLoop_)
 void Stop()
 {
     // Ignore if we're not recording
-    if (!f)
+    if (!file)
         return;
 
     // Add any final delay to allow for identical frames at the end
@@ -389,19 +388,19 @@ void Stop()
         WriteGraphicControlExtensionDelay(lDelayOffset, nDelay * 2);
 
     WriteFileTerminator();
-    fclose(f);
-    f = nullptr;
+    file.reset();
+    file = nullptr;
 
     delete[] pbCurr; pbCurr = nullptr;
     delete[] pbFirst; pbFirst = nullptr;
     delete[] pbSub; pbSub = nullptr;
 
-    Frame::SetStatus("Saved {}", pszFile);
+    Frame::SetStatus("Saved {}", gif_path.string());
 }
 
 void Toggle(bool fAnimLoop_)
 {
-    if (!f)
+    if (!file)
         Start(fAnimLoop_);
     else
         Stop();
@@ -409,14 +408,14 @@ void Toggle(bool fAnimLoop_)
 
 bool IsRecording()
 {
-    return f != nullptr;
+    return file != nullptr;
 }
 
 
 void AddFrame(const FrameBuffer& fb)
 {
     // Fail if we're not recording
-    if (!f)
+    if (!file)
         return;
 
     // Count the frames between changes
@@ -427,14 +426,14 @@ void AddFrame(const FrameBuffer& fb)
     uint32_t size = (uint32_t)width * (uint32_t)height;
 
     // If this is the first frame, write the file headers
-    if (ftell(f) == 0)
+    if (ftell(file) == 0)
     {
         pbCurr = new uint8_t[size];
         pbSub = new uint8_t[size];
         memset(pbCurr, 0xff, size);
 
         // File header
-        fwrite("GIF89a", 6, 1, f);
+        fwrite("GIF89a", 6, 1, file);
 
         // Write the image dimensions and palette
         WriteLogicalScreenDescriptor(fb);
@@ -496,7 +495,7 @@ void AddFrame(const FrameBuffer& fb)
     }
 
     // Write the GCE, storing its offset for the following delay
-    lDelayOffset = ftell(f) + 4;
+    lDelayOffset = ftell(file) + 4;
     WriteGraphicControlExtension(0, bTrans);
 
     // Write the image header and changed frame data
@@ -504,7 +503,7 @@ void AddFrame(const FrameBuffer& fb)
 
     // Write the compressed image data
     GifCompressor* pgc = new GifCompressor;
-    if (pgc) pgc->WriteDataBlocks(f, ww * wh, COLOUR_DEPTH);
+    if (pgc) pgc->WriteDataBlocks(file, ww * wh, COLOUR_DEPTH);
     delete pgc;
 }
 

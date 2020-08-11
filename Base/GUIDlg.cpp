@@ -224,8 +224,8 @@ BrowseFloppy::BrowseFloppy(int drive, Window* pParent_/*=nullptr*/)
     SetText(fmt::format("Insert Floppy {}", drive));
 
     // Browse from the location of the previous image, or the default directory if none
-    auto pcszImage = ((drive == 1) ? pFloppy1 : pFloppy2)->DiskPath();
-    SetPath(*pcszImage ? pcszImage : OSD::MakeFilePath(MFP_INPUT));
+    auto disk_path = ((drive == 1) ? pFloppy1 : pFloppy2)->DiskPath();
+    SetPath(disk_path.empty() ? OSD::MakeFilePath(PathType::Input).string() : disk_path);
 }
 
 // Handle OK being clicked when a file is selected
@@ -283,8 +283,8 @@ BrowseTape::BrowseTape(Window* pParent_/*=nullptr*/)
     : FileDialog("Insert Tape", "", &sTapeFilter, &nTapeFilter, pParent_)
 {
     // Browse from the location of the previous image, or the default directory if none
-    const char* pcszImage = Tape::GetPath();
-    SetPath(*pcszImage ? pcszImage : OSD::MakeFilePath(MFP_INPUT));
+    auto tape_path = Tape::GetPath();
+    SetPath(tape_path.empty() ? OSD::MakeFilePath(PathType::Input).string() : tape_path);
 }
 
 // Handle OK being clicked when a file is selected
@@ -316,7 +316,7 @@ FileBrowser::FileBrowser(EditControl* pEdit_, Window* pParent_, const std::strin
     : FileDialog(caption, "", pcsFilter_, pnFilter_, pParent_), m_pEdit(pEdit_)
 {
     // Browse from the location of the previous image, or the default directory if none
-    SetPath(!pEdit_->GetText().empty() ? pEdit_->GetText() : OSD::MakeFilePath(MFP_INPUT));
+    SetPath(!pEdit_->GetText().empty() ? pEdit_->GetText() : OSD::MakeFilePath(PathType::Input).string());
 }
 
 // Handle OK being clicked when a file is selected
@@ -375,13 +375,8 @@ void HDDProperties::OnNotify(Window* pWindow_, int /*nParam_*/)
 
         if (disk)
         {
-            // Fetch the existing disk geometry
-            const ATA_GEOMETRY* pGeom = disk->GetGeometry();
-
-            // Show the current size in decimal
-            char szSize[16] = {};
-            snprintf(szSize, sizeof(szSize) - 1, "%u", (pGeom->uTotalSectors + (1 << 11) - 1) >> 11);
-            m_pSize->SetText(szSize);
+            auto pGeom = disk->GetGeometry();
+            m_pSize->SetText(fmt::format("{}", (pGeom->uTotalSectors + (1 << 11) - 1) >> 11));
         }
 
         // The geometry is read-only for existing images
@@ -874,9 +869,8 @@ protected:
     {
         if (!adapter.Attach(pcszDisk_, nDevice_))
         {
-            char sz[MAX_PATH + 128];
-            snprintf(sz, sizeof(sz), "Open failed: %s", pcszDisk_);
-            new MsgBox(this, sz, "Warning", mbWarning);
+            auto message = fmt::format("Open failed: {}", pcszDisk_);
+            new MsgBox(this, message, "Warning", mbWarning);
         }
     }
 
@@ -900,8 +894,8 @@ public:
     DiskOptions(Window* pParent_)
         : Dialog(pParent_, 300, 160, "Disk Settings")
     {
-        SetOption(disk1, pFloppy1->DiskPath());
-        SetOption(disk2, pFloppy2->DiskPath());
+        SetOption(disk1, pFloppy1->DiskPath().c_str());
+        SetOption(disk2, pFloppy2->DiskPath().c_str());
 
         new IconControl(this, 10, 10, &sFloppyDriveIcon);
 
@@ -968,9 +962,8 @@ protected:
     {
         if (!adapter.Attach(pcszDisk_, nDevice_))
         {
-            char sz[MAX_PATH + 128];
-            snprintf(sz, sizeof(sz), "Open failed: %s", pcszDisk_);
-            new MsgBox(this, sz, "Warning", mbWarning);
+            auto message = fmt::format("Open failed: {}", pcszDisk_);
+            new MsgBox(this, message, "Warning", mbWarning);
         }
     }
 
@@ -1279,10 +1272,10 @@ void ImportDialog::OnNotify(Window* pWindow_, int nParam_)
         // Fetch/update the stored filename
         s_filepath = m_pFile->GetText();
 
-        FILE* hFile{};
-        if (s_filepath.empty() || !(hFile = fopen(s_filepath.c_str(), "rb")))
+        unique_FILE file;
+        if (s_filepath.empty() || !(file = fopen(s_filepath.c_str(), "rb")))
         {
-            new MsgBox(this, "Failed to open file for reading", "Error", mbWarning);
+            new MsgBox(this, s_filepath.c_str(), "Read Error", mbWarning);
             return;
         }
 
@@ -1294,18 +1287,17 @@ void ImportDialog::OnNotify(Window* pWindow_, int nParam_)
         for (unsigned int uChunk; (uChunk = std::min(uLen, (0x4000 - uOffset))); uLen -= uChunk, uOffset = 0)
         {
             // Read directly into system memory
-            uRead += fread(PageWritePtr(uPage) + uOffset, 1, uChunk, hFile);
+            uRead += fread(PageWritePtr(uPage) + uOffset, 1, uChunk, file);
 
             // Wrap to page 0 after ROM0
             if (uPage == ROM0 + 1)
                 uPage = 0;
 
             // Stop reading if we've hit the end or reached the end of a logical block
-            if (feof(hFile) || uPage == EXTMEM || uPage >= ROM0)
+            if (feof(file) || uPage == EXTMEM || uPage >= ROM0)
                 break;
         }
 
-        fclose(hFile);
         Frame::SetStatus("Imported {} bytes", uRead);
         Destroy();
     }
@@ -1347,8 +1339,8 @@ void ExportDialog::OnNotify(Window* pWindow_, int nParam_)
         // Fetch/update the stored filename
         s_filepath = m_pFile->GetText();
 
-        FILE* hFile{};
-        if (s_filepath.empty() || !(hFile = fopen(s_filepath.c_str(), "wb")))
+        unique_FILE file;
+        if (s_filepath.empty() || !(file = fopen(s_filepath.c_str(), "wb")))
         {
             new MsgBox(this, "Failed to open file for writing", "Error", mbWarning);
             return;
@@ -1362,12 +1354,11 @@ void ExportDialog::OnNotify(Window* pWindow_, int nParam_)
         for (unsigned int uChunk; (uChunk = std::min(uLen, (0x4000 - uOffset))); uLen -= uChunk, uOffset = 0)
         {
             // Write directly from system memory
-            uWritten += fwrite(PageReadPtr(uPage++) + uOffset, 1, uChunk, hFile);
+            uWritten += fwrite(PageReadPtr(uPage++) + uOffset, 1, uChunk, file);
 
-            if (ferror(hFile))
+            if (ferror(file))
             {
                 new MsgBox(this, "Error writing to file (disk full?)", "Error", mbWarning);
-                fclose(hFile);
                 return;
             }
 
@@ -1380,7 +1371,6 @@ void ExportDialog::OnNotify(Window* pWindow_, int nParam_)
                 break;
         }
 
-        fclose(hFile);
         Frame::SetStatus("Exported {} bytes", uWritten);
         Destroy();
     }

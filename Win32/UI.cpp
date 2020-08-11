@@ -50,7 +50,6 @@
 #include "Midi.h"
 #include "ODmenu.h"
 #include "Options.h"
-#include "OSD.h"
 #include "Parallel.h"
 #include "Sound.h"
 #include "Tape.h"
@@ -427,7 +426,6 @@ bool AttachDisk(AtaAdapter& adapter, const char* pcszDisk_, int nDevice_)
 
 bool InsertDisk(DiskDevice& floppy, const char* pcszPath_ = nullptr)
 {
-    char szFile[MAX_PATH] = "";
     int nDrive = (&floppy == pFloppy1.get()) ? 1 : 2;
 
     // Save any changes to the current disk first
@@ -449,16 +447,15 @@ bool InsertDisk(DiskDevice& floppy, const char* pcszPath_ = nullptr)
         return true;
     }
 
+    char szFile[MAX_PATH]{};
     OPENFILENAME ofn = { sizeof(ofn) };
     ofn.hwndOwner = g_hwnd;
     ofn.lpstrFilter = szFloppyFilters;
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = sizeof(szFile);
-    lstrcpyn(szFile, floppy.DiskFile(), MAX_PATH);
 
-    // Don't use floppy paths for the initial directory
-    if (szFile[0] == 'A' || szFile[0] == 'B')
-        szFile[0] = '\0';
+    auto disk_path = floppy.DiskFile();
+    std::copy(disk_path.begin(), disk_path.end(), szFile);
 
     // Prompt for the a new disk to insert if we don't have one
     if (!pcszPath_)
@@ -502,8 +499,9 @@ bool EjectDisk(DiskDevice& floppy)
 
 bool InsertTape(HWND hwndParent_, const char* pcszPath_ = nullptr)
 {
-    char szFile[MAX_PATH] = "";
-    lstrcpyn(szFile, Tape::GetPath(), sizeof(szFile));
+    char szFile[MAX_PATH]{};
+    auto tape_path = Tape::GetPath();
+    std::copy(tape_path.begin(), tape_path.end(), szFile);
 
     // Eject any existing disk if the new path is blank
     if (pcszPath_ && !*pcszPath_)
@@ -1644,11 +1642,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_SYSTEM_NMI:        Actions::Do(Action::NmiButton);       break;
         case IDM_SYSTEM_RESET:      Actions::Do(Action::ResetButton); Actions::Do(Action::ResetButton, false); break;
 
-            // Items from help menu
         case IDM_HELP_GENERAL:
-            if (ShellExecute(hwnd_, nullptr, OSD::MakeFilePath(MFP_RESOURCE, "SimCoupe.txt"), nullptr, "", SW_SHOWMAXIMIZED) <= reinterpret_cast<HINSTANCE>(32))
-                MessageBox(hwnd_, "Can't find SimCoupe.txt", WINDOW_CAPTION, MB_ICONEXCLAMATION);
+        {
+            auto help_path = OSD::MakeFilePath(PathType::Resource, "ReadMe.md");
+            if (fs::exists(help_path))
+                ShellExecute(hwnd_, nullptr, "notepad.exe", help_path.c_str(), "", SW_SHOWNORMAL);
+            else
+                Message(MsgType::Warning, "Help not found:\n\n{}", help_path.string());
             break;
+        }
+
         case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), hwnd_, AboutDlgProc, 0);   break;
 
         default:
@@ -2070,13 +2073,14 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
             ofn.nMaxFile = sizeof(szFile);
             ofn.Flags = OFN_HIDEREADONLY;
 
-            FILE* f;
             if (!GetSaveLoadFile(&ofn, fImport))
             {
                 EndDialog(hdlg_, 0);
                 return TRUE;
             }
-            else if (!(f = fopen(szFile, fImport ? "rb" : "wb")))
+
+            unique_FILE file = fopen(szFile, fImport ? "rb" : "wb");
+            if (!file)
             {
                 MessageBox(hdlg_, "Failed to open file", fImport ? "Import" : "Export", MB_ICONEXCLAMATION);
                 EndDialog(hdlg_, 0);
@@ -2100,14 +2104,14 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
             {
                 for (int nChunk; (nChunk = std::min(nLength, (0x4000 - nOffset))); nLength -= nChunk, nOffset = 0)
                 {
-                    nDone += fread(PageWritePtr(nPage++) + nOffset, 1, nChunk, f);
+                    nDone += fread(PageWritePtr(nPage++) + nOffset, 1, nChunk, file);
 
                     // Wrap to page 0 after ROM0
                     if (nPage == ROM0 + 1)
                         nPage = 0;
 
                     // Stop at the end of the file or if we've hit the end of a logical block
-                    if (feof(f) || nPage == EXTMEM || nPage >= ROM0)
+                    if (feof(file) || nPage == EXTMEM || nPage >= ROM0)
                         break;
                 }
 
@@ -2117,12 +2121,11 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
             {
                 for (int nChunk; (nChunk = std::min(nLength, (0x4000 - nOffset))); nLength -= nChunk, nOffset = 0)
                 {
-                    nDone += fwrite(PageReadPtr(nPage++) + nOffset, 1, nChunk, f);
+                    nDone += fwrite(PageReadPtr(nPage++) + nOffset, 1, nChunk, file);
 
-                    if (ferror(f))
+                    if (ferror(file))
                     {
                         MessageBox(hdlg_, "Error writing to file", "Export Data", MB_ICONEXCLAMATION);
-                        fclose(f);
                         return FALSE;
                     }
 
@@ -2138,7 +2141,6 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
                 Frame::SetStatus("Exported {} bytes", nDone);
             }
 
-            fclose(f);
             return EndDialog(hdlg_, 1);
         }
         }
@@ -2216,8 +2218,7 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             fCompress = SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_GETCHECK, 0, 0L) == BST_CHECKED;
             fFormat = SendDlgItemMessage(hdlg_, IDC_FORMAT, BM_GETCHECK, 0, 0L) == BST_CHECKED;
 
-            char szFile[MAX_PATH] = {};
-            snprintf(szFile, MAX_PATH - 1, "untitled%s", aszTypes[nType]);
+            char szFile[MAX_PATH] = "Untitled";
 
             OPENFILENAME ofn = { sizeof(ofn) };
             ofn.hwndOwner = hdlg_;
@@ -2225,6 +2226,7 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             ofn.nFilterIndex = nType + 1;
             ofn.lpstrFile = szFile;
             ofn.nMaxFile = sizeof(szFile);
+            ofn.lpstrDefExt = aszTypes[nType];
             ofn.Flags = OFN_HIDEREADONLY;
 
             if (!GetSaveLoadFile(&ofn, false))
@@ -2232,11 +2234,6 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
 
             // Fetch the file type, in case it's changed
             nType = ofn.nFilterIndex - 1;
-
-            // Append the appropriate file extension if it's not already present
-            const char* pcszExt = strrchr(szFile, '.');
-            if (!pcszExt || (pcszExt && lstrcmpi(pcszExt, aszTypes[nType])))
-                lstrcat(szFile, aszTypes[nType]);
 
             std::unique_ptr<Stream> stream;
             std::unique_ptr<Disk> pDisk;
@@ -2513,11 +2510,9 @@ INT_PTR CALLBACK SystemPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         LPNMHDR pnmh = reinterpret_cast<LPNMHDR>(lParam_);
         if (pnmh->idFrom == IDC_EXTERNAL)
         {
-            char sz[16];
-
             int nExternalMB = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_EXTERNAL, TBM_GETPOS, 0, 0L));
-            snprintf(sz, sizeof(sz), "%dMB", nExternalMB);
-            SetDlgItemText(hdlg_, IDS_EXTERNAL, sz);
+            auto size = fmt::format("{}MB", nExternalMB);
+            SetDlgItemText(hdlg_, IDS_EXTERNAL, size.c_str());
         }
         else if (pnmh->code == PSN_APPLY)
         {
@@ -2610,21 +2605,21 @@ INT_PTR CALLBACK SoundPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
 
 int FillHDDCombos(HWND hdlg_, int nCombo1_, int nCombo2_)
 {
-    int nDevices = 0;
-
     HWND hwndCombo1 = GetDlgItem(hdlg_, nCombo1_);
     HWND hwndCombo2 = nCombo2_ ? GetDlgItem(hdlg_, nCombo2_) : nullptr;
 
     SendMessage(hwndCombo1, CB_RESETCONTENT, 0, 0L);
     if (hwndCombo2) SendMessage(hwndCombo2, CB_RESETCONTENT, 0, 0L);
 
-    for (const char* pcszList = DeviceHardDisk::GetDeviceList(); *pcszList; pcszList += strlen(pcszList) + 1, nDevices++)
+    auto device_list = DeviceHardDisk::GetDeviceList();
+    for (auto& device : device_list)
     {
-        SendMessage(hwndCombo1, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(pcszList));
-        if (hwndCombo2) SendMessage(hwndCombo2, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(pcszList));
+        auto string = reinterpret_cast<LPARAM>(device.c_str());
+        SendMessage(hwndCombo1, CB_ADDSTRING, 0, string);
+        if (hwndCombo2) SendMessage(hwndCombo2, CB_ADDSTRING, 0, string);
     }
 
-    if (!nDevices)
+    if (device_list.empty())
     {
         LPARAM lNone = reinterpret_cast<LPARAM>("<None>");
         SendMessage(hwndCombo1, CB_ADDSTRING, 0, lNone);
@@ -2637,11 +2632,11 @@ int FillHDDCombos(HWND hdlg_, int nCombo1_, int nCombo2_)
         if (hwndCombo2) SendMessage(hwndCombo2, CB_SETCURSEL, 0, 0L);
     }
 
-    bool fEnable = nDevices != 0;
+    bool fEnable = !device_list.empty();
     EnableWindow(hwndCombo1, fEnable);
     if (hwndCombo2) EnableWindow(hwndCombo2, fEnable);
 
-    return nDevices;
+    return static_cast<int>(device_list.size());
 }
 
 
@@ -3353,8 +3348,8 @@ static void AddPage(std::vector<PROPSHEETPAGE>& pages, int dialog_id, DLGPROC pf
 void DisplayOptions()
 {
     // Update floppy path options
-    SetOption(disk1, pFloppy1->DiskPath());
-    SetOption(disk2, pFloppy2->DiskPath());
+    SetOption(disk1, pFloppy1->DiskPath().c_str());
+    SetOption(disk2, pFloppy2->DiskPath().c_str());
 
     // Initialise the pages to go on the sheet
     std::vector<PROPSHEETPAGE> pages;

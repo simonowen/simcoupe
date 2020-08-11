@@ -59,25 +59,15 @@ using Microsoft::WRL::ComPtr;
 #define stat    _stat64
 #endif
 
-#define R_OK        4
-#define W_OK        2
-#define X_OK        0   // Should be 1, but the VC runtime asserts if we use it!
-#define F_OK        0
-
-#define access(p,m)      _access((p),(m)&(R_OK|W_OK))
 ////////////////////////////////////////////////////////////////////////////////
-
-enum { MFP_SETTINGS, MFP_INPUT, MFP_OUTPUT, MFP_RESOURCE };
 
 class OSD
 {
 public:
-    static bool Init(bool fFirstInit_ = false);
-    static void Exit(bool fReInit_ = false);
+    static bool Init();
+    static void Exit();
 
-    static const char* MakeFilePath(int nDir_, const char* pcszFile_ = "");
-    static const char* GetFloppyDevice(int nDrive_);
-    static bool CheckPathAccess(const std::string& path);
+    static fs::path MakeFilePath(PathType type, const std::string& filename = "");
     static bool IsHidden(const std::string& path);
 
     static void DebugTrace(const std::string& str);

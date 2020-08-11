@@ -55,8 +55,8 @@ public:
     void Reset() override;
 
 public:
-    const char* DiskPath() const override { return m_pDisk ? m_pDisk->GetPath() : ""; }
-    const char* DiskFile() const override { return m_pDisk ? m_pDisk->GetFile() : ""; }
+    std::string DiskPath() const override { return m_pDisk ? m_pDisk->GetPath() : ""; }
+    std::string DiskFile() const override { return m_pDisk ? m_pDisk->GetFile() : ""; }
 
     bool HasDisk() const override { return m_pDisk != nullptr; }
     bool DiskModified() const override { return m_pDisk && m_pDisk->IsModified(); }

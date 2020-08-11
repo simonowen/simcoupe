@@ -24,7 +24,6 @@
 
 #include "Disk.h"
 #include "Options.h"
-#include "Util.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -92,18 +91,19 @@ bool Ioctl(HANDLE h_, DWORD dwCode_, LPVOID pIn_ = nullptr, DWORD cbIn_ = 0, LPV
     return (dwVersion & 0xffff0000) >= (FDRAWCMD_VERSION & 0xffff0000);
 }
 
-/*static*/ bool FloppyStream::IsRecognised(const char* pcszStream_)
+/*static*/ bool FloppyStream::IsRecognised(const std::string& filepath)
 {
-    return !lstrcmpi(pcszStream_, "A:") || !lstrcmpi(pcszStream_, "B:");
+    auto device = tolower(filepath);
+    return device == "a:" || device == "b:";
 }
 
-FloppyStream::FloppyStream(const char* pcszDevice_, bool fReadOnly_)
-    : Stream(pcszDevice_, fReadOnly_)
+FloppyStream::FloppyStream(const std::string& filepath, bool read_only)
+    : Stream(filepath, read_only)
 {
     if (IsAvailable())
     {
-        const char* pcszDevice = !lstrcmpi(GetFile(), "A:") ? "\\\\.\\fdraw0" : "\\\\.\\fdraw1";
-        m_hDevice = CreateFile(pcszDevice, GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+        std::string dev_path = (tolower(filepath) == "a:") ? R"(\\.\fdraw0)" : R"(\\.\fdraw1)";
+        m_hDevice = CreateFile(dev_path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
     }
 
     // Prepare defaults used when device is closed after use

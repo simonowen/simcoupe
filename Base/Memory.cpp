@@ -24,9 +24,7 @@
 
 #include "CPU.h"
 #include "Options.h"
-#include "OSD.h"
 #include "Stream.h"
-#include "Util.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -167,7 +165,7 @@ static bool LoadRoms()
     auto pb1 = PageReadPtr(ROM1);
 
     // Default to the standard ROM image
-    std::string rom_file = OSD::MakeFilePath(MFP_RESOURCE, "samcoupe.rom");
+    std::string rom_file = OSD::MakeFilePath(PathType::Resource, "samcoupe.rom");
 
     // Allow a custom ROM override
     if (*GetOption(rom))
@@ -178,18 +176,18 @@ static bool LoadRoms()
     {
         // Atom Lite ROM used if active on either drive
         if (GetOption(drive1) == drvAtomLite || GetOption(drive2) == drvAtomLite)
-            rom_file = OSD::MakeFilePath(MFP_RESOURCE, "atomlite.rom");
+            rom_file = OSD::MakeFilePath(PathType::Resource, "atomlite.rom");
 
         // Atom ROM used if active as drive 2 only
         else if (GetOption(drive2) == drvAtom)
-            rom_file = OSD::MakeFilePath(MFP_RESOURCE, "atom.rom");
+            rom_file = OSD::MakeFilePath(PathType::Resource, "atom.rom");
     }
 
     auto rom = Stream::Open(rom_file.c_str());
     if (!rom)
     {
         // Fall back on the default if a specific ROM image failed to load
-        rom_file = OSD::MakeFilePath(MFP_RESOURCE, "samcoupe.rom");
+        rom_file = OSD::MakeFilePath(PathType::Resource, "samcoupe.rom");
         rom = Stream::Open(rom_file.c_str());
     }
 

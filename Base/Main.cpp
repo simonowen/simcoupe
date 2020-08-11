@@ -26,10 +26,8 @@
 #include "GUI.h"
 #include "Input.h"
 #include "Options.h"
-#include "OSD.h"
 #include "Sound.h"
 #include "UI.h"
-#include "Util.h"
 #include "Video.h"
 
 
@@ -48,12 +46,10 @@ namespace Main
 
 bool Init(int argc_, char* argv_[])
 {
-    // Load settings and check command-line options
-    if (!Util::Init() || !Options::Load(argc_, argv_))
+    if (!Options::Load(argc_, argv_))
         return 0;
 
-    // Initialise all modules
-    return OSD::Init(true) && Frame::Init() && CPU::Init(true) && UI::Init() && Sound::Init() && Input::Init() && Video::Init();
+    return OSD::Init() && Frame::Init() && CPU::Init(true) && UI::Init() && Sound::Init() && Input::Init() && Video::Init();
 }
 
 void Exit()
@@ -69,8 +65,6 @@ void Exit()
     OSD::Exit();
 
     Options::Save();
-
-    Util::Exit();
 }
 
 } // namespace Main

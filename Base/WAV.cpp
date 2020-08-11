@@ -28,8 +28,8 @@
 namespace WAV
 {
 
-static char szPath[MAX_PATH], * pszFile;
-static FILE* f;
+static fs::path wav_path;
+static unique_FILE file;
 static int nFrames, nSilent = 0;
 static bool fSegment;
 
@@ -89,16 +89,16 @@ static void WriteWaveValue(long lVal_, uint8_t* pb_, int nSize_)
 bool Start(bool fSegment_)
 {
     // Fail if we're already recording
-    if (f)
+    if (file)
         return false;
 
-    // Find a unique filename to use, in the format sndNNNN.wav
-    pszFile = Util::GetUniqueFile("wav", szPath, sizeof(szPath));
-
-    // Create the file
-    f = fopen(szPath, "wb");
-    if (!f)
+    wav_path = Util::UniqueOutputPath("wav");
+    file = fopen(wav_path.c_str(), "wb");
+    if (!file)
+    {
+        Frame::SetStatus("Save failed: {}", wav_path.string());
         return false;
+    }
 
     // Write the RIFF header
     WriteWaveValue(SAMPLE_CHANNELS, riff.wave.fmt.Channels, sizeof(riff.wave.fmt.Channels));
@@ -106,7 +106,7 @@ bool Start(bool fSegment_)
     WriteWaveValue(SAMPLE_FREQ * BYTES_PER_SAMPLE, riff.wave.fmt.AvgBytesPerSec, sizeof(riff.wave.fmt.AvgBytesPerSec));
     WriteWaveValue(BYTES_PER_SAMPLE, riff.wave.fmt.BlockAlign, sizeof(riff.wave.fmt.BlockAlign));
     WriteWaveValue(SAMPLE_BITS, riff.wave.fmt.BitsPerSample, sizeof(riff.wave.fmt.BitsPerSample));
-    fwrite(&riff, sizeof(riff), 1, f);
+    fwrite(&riff, sizeof(riff), 1, file);
 
     // Reset the frame counters and store the fragment flag
     nFrames = nSilent = 0;
@@ -119,38 +119,39 @@ bool Start(bool fSegment_)
 void Stop()
 {
     // Ignore if we're not recording
-    if (!f)
+    if (!file)
         return;
 
     // Update the data length in the header
-    long lDataSize = ftell(f) - sizeof(riff);
+    long lDataSize = ftell(file) - sizeof(riff);
     WriteWaveValue(lDataSize, riff.wave.pcmdata.datalen, sizeof(int32_t));
     WriteWaveValue(lDataSize + sizeof(riff.wave), riff.abWaveLen, sizeof(int32_t));
 
     // Rewrite the completed file header
-    if (fseek(f, 0, SEEK_SET) == 0)
+    if (fseek(file, 0, SEEK_SET) == 0)
     {
-        if (fwrite(&riff, 1, sizeof(riff), f) != sizeof(riff))
+        if (fwrite(&riff, 1, sizeof(riff), file) != sizeof(riff))
             TRACE("!!! WAV::Stop(): Failed to write RIFF header\n");
     }
 
-    // Close the recording
-    fclose(f);
-    f = nullptr;
-
     // Report what happened
     if (nFrames)
-        Frame::SetStatus("Saved {}", pszFile);
+    {
+        Frame::SetStatus("Saved {}", wav_path.string());
+    }
     else
     {
-        Frame::SetStatus("WAV cancelled");
-        unlink(szPath);
+        Frame::SetStatus("WAV save cancelled");
+        file.reset();
+
+        std::error_code error{};
+        fs::remove(wav_path, error);
     }
 }
 
 void Toggle(bool fSegment_)
 {
-    if (!f)
+    if (!file)
         Start(fSegment_);
     else
         Stop();
@@ -158,14 +159,14 @@ void Toggle(bool fSegment_)
 
 bool IsRecording()
 {
-    return f != nullptr;
+    return file != nullptr;
 }
 
 
 void AddFrame(const uint8_t* pb_, int nLen_)
 {
     // Fail if we're not recording
-    if (!f)
+    if (!file)
         return;
 
     // Check for a full frame of repeated samples (silence)
@@ -183,14 +184,14 @@ void AddFrame(const uint8_t* pb_, int nLen_)
         if (nSilent)
         {
             // Add the accumulated silence, unless we're at the start of the recording
-            if (nFrames && fseek(f, nLen_ * nSilent, SEEK_CUR) == 0)
+            if (nFrames && fseek(file, nLen_ * nSilent, SEEK_CUR) == 0)
                 nFrames += nSilent;
 
             nSilent = 0;
         }
 
         // Write the new frame data
-        if (fwrite(pb_, nLen_, 1, f))
+        if (fwrite(pb_, nLen_, 1, file))
             nFrames++;
         else
             Stop();

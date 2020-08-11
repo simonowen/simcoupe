@@ -39,13 +39,13 @@ struct SECTOR
 class FloppyStream final : public Stream
 {
 public:
-    FloppyStream(const char* pcszStream_, bool fReadOnly_ = false);
+    FloppyStream(const std::string& filepath, bool fReadOnly_ = false);
     FloppyStream(const FloppyStream&) = delete;
     void operator= (const FloppyStream&) = delete;
     ~FloppyStream() { Close(); }
 
 public:
-    static bool IsRecognised(const char* pcszStream_);
+    static bool IsRecognised(const std::string& filepath);
 
 public:
     void Close() override;

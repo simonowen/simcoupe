@@ -23,7 +23,6 @@
 //  conditional blocks, but it's probably forgiveable in here!
 
 #include "SimCoupe.h"
-#include "OSD.h"
 
 #include "CPU.h"
 #include "Frame.h"
@@ -32,10 +31,9 @@
 #include "Parallel.h"
 
 
-bool OSD::Init(bool /*fFirstInit_=false*/)
+bool OSD::Init()
 {
 #ifdef _WINDOWS
-    // We'll do our own error handling, so suppress any windows error dialogs
     SetErrorMode(SEM_FAILCRITICALERRORS);
 #endif
 
@@ -48,125 +46,91 @@ bool OSD::Init(bool /*fFirstInit_=false*/)
     return true;
 }
 
-void OSD::Exit(bool /*fReInit_=false*/)
+void OSD::Exit()
 {
     SDL_Quit();
 }
 
 
-const char* OSD::MakeFilePath(int nDir_, const char* pcszFile_/*=""*/)
+fs::path OSD::MakeFilePath(PathType type, const std::string& filename)
 {
-    static char szPath[MAX_PATH * 2];
-    szPath[0] = '\0';
+    fs::path base_path;
+    fs::path path;
 
-    // Set an appropriate base location
 #if defined(_WINDOWS)
+    char szPath[MAX_PATH]{};
     GetModuleFileName(nullptr, szPath, MAX_PATH);
-    strrchr(szPath, '\\')[1] = '\0';
+    base_path = fs::path(szPath).remove_filename();
 #elif defined(__AMIGAOS4__)
-    // Amiga uses the magic PROGDIR device for EXE location
-    strcpy(szPath, "PROGDIR:");
+    base_path = "PROGDIR:";
 #else
-    // $HOME is a fairly safe default
-    strncpy(szPath, getenv("HOME"), MAX_PATH - 2);
-    szPath[MAX_PATH - 2] = '\0';
-
-    if (szPath[0])
-        strcat(szPath, "/");
+    base_path = getenv("HOME");
 #endif
 
-    switch (nDir_)
+    switch (type)
     {
-    case MFP_SETTINGS:
-#if defined(__APPLE__)
-        strcat(szPath, "Library/Preferences/SimCoupe/");
-#elif !defined(_WINDOWS) && !defined(__AMIGAOS4__)
-        strcat(szPath, ".simcoupe/");
+    case PathType::Settings:
+#if defined(_WINDOWS)
+        path = fs::path(getenv("APPDATA")) / "SimCoupe";
+#elif defined(__APPLE__)
+        path = base_path / "Library/Preferences/SimCoupe";
+#elif defined(__AMIGAOS4__)
+        path = base_path;
+#else
+        path = base_path / ".simcoupe";
 #endif
         break;
 
-    case MFP_INPUT:
-        // Input override
-        if (GetOption(inpath)[0])
+    case PathType::Input:
+        path = GetOption(inpath);
+        if (path.empty())
         {
-            strncpy(szPath, GetOption(inpath), MAX_PATH);
-            break;
+            path = base_path;
         }
-
-        // Default should be good enough
         break;
 
-    case MFP_OUTPUT:
-    {
-        // Output override
+    case PathType::Output:
         if (GetOption(outpath)[0])
         {
-            strncpy(szPath, GetOption(outpath), MAX_PATH - 1);
-            szPath[MAX_PATH - 1] = '\0';
+            path = GetOption(outpath);
             break;
         }
 
 #if defined(__APPLE__)
-        strncat(szPath, "Documents/SimCoupe/", MAX_PATH - strlen(szPath) - 1);
-        szPath[MAX_PATH - 1] = '\0';
+        path = base_path / "Documents/SimCoupe";
 #elif !defined(_WINDOWS) && !defined(__AMIGAOS4__)
-        struct stat st;
-        size_t u = strlen(szPath);
-
-        // If there's a Desktop folder, it'll be more visible there
-        strncat(szPath, "Desktop/", MAX_PATH - strlen(szPath) - 1);
-        szPath[MAX_PATH - 1] = '\0';
-
-        // Ignore Desktop folder if it doesn't exist
-        if (stat(szPath, &st))
-            szPath[u] = '\0';
-
-        // Keep it tidy though
-        strncat(szPath, "SimCoupe/", MAX_PATH - strlen(szPath) - 1);
-        szPath[MAX_PATH - 1] = '\0';
+        path = base_path / "Desktop";
+        if (!fs::exists(path))
+        {
+            path = base_path;
+        }
+        path /= "SimCoupe";
 #endif
         break;
-    }
 
-    case MFP_RESOURCE:
-    {
+    case PathType::Resource:
 #if defined(__APPLE__) && defined(HAVE_LIBSDL2)
-        // Resources path in the app bundle (requires SDL 2.0.1)
-        char* pszBasePath = SDL_GetBasePath();
-        strncpy(szPath, pszBasePath, MAX_PATH - 1);
-        szPath[MAX_PATH - 1] = '\0';
-        SDL_free(pszBasePath);
-#elif !defined(__AMIGAOS4__) && defined(RESOURCE_DIR)
-        // If available, use the resource directory from the build process
-        strncpy(szPath, RESOURCE_DIR, MAX_PATH - 1);
-        strncat(szPath, "/", MAX_PATH - strlen(szPath) - 1);
-        szPath[MAX_PATH - 1] = '\0';
+        // Resources path in the app bundle
+        if (auto pBasePath = SDL_GetBasePath())
+        {
+            path = pBasePath;
+            SDL_free(pBasePath);
+        }
+#elif defined(RESOURCE_DIR) && !defined(__AMIGAOS4__)
+        path = RESOURCE_DIR;
 #else
-        // Fall back on an empty path as a safe default
-        szPath[0] = '\0';
+        path.clear();
 #endif
         break;
     }
-    }
 
-    // Create the directory if it doesn't already exist
-    // This assumes only the last component could be missing
-    if (mkdir(szPath, 0755) != 0 && errno != EEXIST)
-        TRACE("!!! Failed to create directory: {}\n", szPath);
+    std::error_code error;
+    fs::create_directories(path, error);
 
-    // Append any supplied filename (backslash separator already added)
-    strncat(szPath, pcszFile_, sizeof(szPath) - strlen(szPath) - 1);
-    szPath[sizeof(szPath) - 1] = '\0';
+    if (!filename.empty())
+        path /= filename;
 
-    // Return a pointer to the new path
-    return szPath;
-}
-
-
-// Check whether the specified path is accessible
-bool OSD::CheckPathAccess(const std::string& path)
-{
-    return !access(path.c_str(), X_OK);
+    return path;
 }
 
 
@@ -181,20 +145,6 @@ bool OSD::IsHidden(const std::string& path)
     auto filepath = fs::path(path);
     return filepath.has_filename() && filepath.filename().string().front() == '.';
 #endif
-}
-
-
-// Return the path to use for a given drive with direct floppy access
-const char* OSD::GetFloppyDevice(int nDrive_)
-{
-#if defined (__AMIGAOS4__)
-    static char szDevice[] = "DF0:";
-#else
-    static char szDevice[] = "/dev/fd_";
-#endif
-
-    szDevice[7] = '0' + nDrive_ - 1;
-    return szDevice;
 }
 
 

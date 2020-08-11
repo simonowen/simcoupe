@@ -27,7 +27,6 @@
 #include "CPU.h"
 #include "SAMIO.h"
 #include "FrameBuffer.h"
-#include "Util.h"
 
 extern uint8_t pMemory[];
 

@@ -24,7 +24,6 @@
 
 #include "SAM.h"
 #include "SAMIO.h"
-#include "Util.h"
 
 // NOTE: ENDIAN-SENSITIVE!
 struct REGPAIR

@@ -62,9 +62,8 @@ public:
     void Write(uint8_t* pb_, size_t uLen_) override;
 
 protected:
-    FILE* m_hFile = nullptr;
-    char* m_pszFile = nullptr;
-    char m_szPath[MAX_PATH];
+    unique_FILE m_file;
+    fs::path print_path;
 };
 
 class PrinterDevice : public PrintBuffer

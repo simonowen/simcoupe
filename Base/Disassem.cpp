@@ -29,7 +29,6 @@
 #include "Memory.h"
 #include "Options.h"
 #include "Symbol.h"
-#include "Util.h"
 
 // Bit table indicating which opcodes can have a DD/FD index prefix
 uint8_t abIndexableOpcodes[] =

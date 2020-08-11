@@ -33,7 +33,6 @@
 #include "Memory.h"
 #include "Main.h"
 #include "Options.h"
-#include "OSD.h"
 #include "UI.h"
 
 namespace Util
@@ -49,23 +48,20 @@ void Exit()
 }
 
 
-char* GetUniqueFile(const char* pcszExt_, char* psz_, int cb_)
+fs::path UniqueOutputPath(const std::string& ext)
 {
-    char szPath[MAX_PATH];
-    struct stat st;
+    auto output_path = OSD::MakeFilePath(PathType::Output);
 
-    const char* pcszPath = OSD::MakeFilePath(MFP_OUTPUT);
-    int nNext = GetOption(nextfile);
+    for (;;)
+    {
+        auto path = output_path / fmt::format("simc{:04}.{}", GetOption(nextfile), ext);
+        SetOption(nextfile, GetOption(nextfile) + 1);
 
-    do {
-        snprintf(szPath, MAX_PATH, "%ssimc%04d.%s", pcszPath, nNext++, pcszExt_);
-    } while (!::stat(szPath, &st));
-
-    SetOption(nextfile, nNext);
-
-    // Copy the completed string, returning the filename pointer
-    strncpy(psz_, szPath, cb_);
-    return psz_ + strlen(pcszPath);
+        if (!fs::exists(path))
+        {
+            return path;
+        }
+    }
 }
 
 } // namespace Util
@@ -93,16 +89,16 @@ uint8_t GetSizeCode(unsigned int uSize_)
 }
 
 
-const char* AbbreviateSize(uint64_t ullSize_)
+std::string AbbreviateSize(uint64_t ullSize_)
 {
-    static const char* pcszUnits = "KMGTPE";
+    static std::string units = "KMGTPE";
 
     // Work up from Kilobytes
     auto nUnits = 0;
     ullSize_ /= 1000;
 
     // Loop while there are more than 1000 and we have another unit to move up to
-    while (ullSize_ >= 1000 && pcszUnits[nUnits + 1])
+    while (ullSize_ >= 1000)
     {
         // Determine the percentage error/loss in the next scaling
         auto uClipPercent = static_cast<unsigned int>((ullSize_ % 1000) * 100 / (ullSize_ - (ullSize_ % 1000)));
@@ -116,9 +112,7 @@ const char* AbbreviateSize(uint64_t ullSize_)
         ullSize_ = (ullSize_ + 500) / 1000;
     }
 
-    static char sz[32] = {};
-    snprintf(sz, sizeof(sz) - 1, "%u%cB", static_cast<unsigned int>(ullSize_), pcszUnits[nUnits]);
-    return sz;
+    return fmt::format("{}{}B", static_cast<unsigned int>(ullSize_), units[nUnits]);
 }
 
 

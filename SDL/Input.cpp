@@ -30,7 +30,6 @@
 #include "Keyboard.h"
 #include "Options.h"
 #include "Mouse.h"
-#include "Util.h"
 #include "UI.h"
 
 //#define USE_JOYPOLLING

@@ -124,7 +124,7 @@ static bool Load(const std::string& path, AddrToSym& symtab_, SymToAddr* pValues
     // Clear any existing symbols and values
     symtab_.clear();
 
-    FILE* file = fopen(path.c_str(), "r");
+    unique_FILE file = fopen(path.c_str(), "r");
     if (!file)
         return false;
 
@@ -136,7 +136,6 @@ static bool Load(const std::string& path, AddrToSym& symtab_, SymToAddr* pValues
     // Fall back a simple ADDR=NAME text file
     else if (fseek(file, 0, SEEK_SET) != 0)
     {
-        fclose(file);
         return false;
     }
     else
@@ -144,7 +143,6 @@ static bool Load(const std::string& path, AddrToSym& symtab_, SymToAddr* pValues
         ReadSimple(file, symtab_, pValues_);
     }
 
-    fclose(file);
     return true;
 }
 
@@ -155,11 +153,11 @@ void Update(const std::string& path)
 
     // Load ROM symbols if not already loaded
     if (rom_symbols.empty())
-        Load(OSD::MakeFilePath(MFP_RESOURCE, "samrom.map"), rom_symbols, &symbol_values);
+        Load(OSD::MakeFilePath(PathType::Resource, "samrom.map"), rom_symbols, &symbol_values);
 
     // Load I/O port symbols if not already loaded
     if (port_symbols.empty())
-        Load(OSD::MakeFilePath(MFP_RESOURCE, "samports.map"), port_symbols, nullptr);
+        Load(OSD::MakeFilePath(PathType::Resource, "samports.map"), port_symbols, nullptr);
 
     // If a file was supplied, load RAM symbols from it
     if (!path.empty())

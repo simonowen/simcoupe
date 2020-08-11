@@ -23,18 +23,16 @@
 class Stream
 {
 public:
-    Stream(const char* pcszPath_, bool fReadOnly_ = false);
-    Stream(const Stream&) = delete;
-    void operator= (const Stream&) = delete;
-    virtual ~Stream();
+    Stream(const std::string& filepath, bool read_only = false);
+    virtual ~Stream() = default;
 
 public:
-    static std::unique_ptr<Stream> Open(const char* pcszPath_, bool fReadOnly_ = false);
+    static std::unique_ptr<Stream> Open(const std::string& filepath, bool read_only = false);
 
 public:
     bool IsReadOnly() const { return m_fReadOnly; }
-    const char* GetPath() const { return m_pszPath; }
-    const char* GetFile() const { return m_pszFile ? m_pszFile : m_pszPath; }
+    std::string GetPath() const { return m_path.string(); }
+    std::string GetFile() const { return !m_filename.empty() ? m_filename : m_path.string(); }
     virtual size_t GetSize() { return m_uSize; }
     virtual bool IsOpen() const = 0;
 
@@ -47,8 +45,8 @@ protected:
     enum { modeClosed, modeReading, modeWriting };
     int m_nMode = modeClosed;
 
-    char* m_pszPath = nullptr;
-    char* m_pszFile = nullptr;
+    fs::path m_path;
+    std::string m_filename;
     bool m_fReadOnly = false;
     size_t m_uSize = 0;
 };
@@ -56,13 +54,10 @@ protected:
 class FileStream final : public Stream
 {
 public:
-    FileStream(FILE* hFile_, const char* pcszPath_, bool fReadOnly_ = false);
-    FileStream(const FileStream&) = delete;
-    void operator= (const FileStream&) = delete;
-    ~FileStream() { Close(); }
+    FileStream(unique_FILE&& file, const std::string& filepath, bool read_only = false);
 
 public:
-    bool IsOpen() const override { return m_hFile != nullptr; }
+    bool IsOpen() const override { return m_file; }
 
 public:
     void Close() override;
@@ -71,16 +66,15 @@ public:
     size_t Write(void* pvBuffer_, size_t uLen_) override;
 
 protected:
-    FILE* m_hFile = nullptr;
+    unique_FILE m_file;
 };
 
 class MemStream final : public Stream
 {
 public:
-    MemStream(void* pv_, size_t uSize_, const char* pcszPath_);
+    MemStream(void* pv_, size_t uSize_, const std::string& filepath);
     MemStream(const MemStream&) = delete;
     void operator= (const MemStream&) = delete;
-    ~MemStream() { Close(); }
 
 public:
     bool IsOpen() const override { return m_nMode != modeClosed; }
@@ -101,16 +95,16 @@ protected:
 
 const uint8_t GZ_SIGNATURE[] = { 0x1f, 0x8b };
 
+struct gzFileCloser { void operator()(gzFile file) { gzclose(file); } };
+using unique_gzFile = unique_resource<gzFile, nullptr, gzFileCloser>;
+
 class ZLibStream final : public Stream
 {
 public:
-    ZLibStream(gzFile hFile_, const char* pcszPath_, size_t uSize_ = 0, bool fReadOnly_ = false);
-    ZLibStream(const ZLibStream&) = delete;
-    void operator= (const ZLibStream&) = delete;
-    ~ZLibStream() { Close(); }
+    ZLibStream(gzFile hFile_, const std::string& filepath, size_t uSize_ = 0, bool read_only = false);
 
 public:
-    bool IsOpen() const override { return m_hFile != nullptr; }
+    bool IsOpen() const override { return m_file; }
     size_t GetSize() override;
 
 public:
@@ -120,20 +114,21 @@ public:
     size_t Write(void* pvBuffer_, size_t uLen_) override;
 
 protected:
-    gzFile m_hFile = nullptr;
+    unique_gzFile m_file;
     size_t m_uSize = 0;
 };
+
+
+struct unzFileCloser { void operator()(unzFile file) { unzCloseCurrentFile(file);  unzClose(file); } };
+using unique_unzFile = unique_resource<unzFile, nullptr, unzFileCloser>;
 
 class ZipStream final : public Stream
 {
 public:
-    ZipStream(unzFile hFile_, const char* pcszPath_, bool fReadOnly_ = false);
-    ZipStream(const ZipStream&) = delete;
-    void operator= (const ZipStream&) = delete;
-    ~ZipStream() { Close(); }
+    ZipStream(unzFile hFile_, const std::string& filepath, bool read_only = false);
 
 public:
-    bool IsOpen() const  override { return m_hFile != nullptr; }
+    bool IsOpen() const  override { return m_file; }
 
 public:
     void Close() override;
@@ -142,7 +137,7 @@ public:
     size_t Write(void* pvBuffer_, size_t uLen_) override;
 
 protected:
-    unzFile m_hFile = nullptr;
+    unique_unzFile m_file;
 };
 
 #endif  // HAVE_LIBZ

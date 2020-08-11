@@ -28,7 +28,6 @@
 
 #include "CPU.h"
 #include "Options.h"
-#include "Util.h"
 
 
 MouseDevice::MouseDevice()

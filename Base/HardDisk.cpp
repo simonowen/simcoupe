@@ -135,7 +135,7 @@ HDFHardDisk::HDFHardDisk(const char* pcszDisk_)
 
 bool HDFHardDisk::Create(unsigned int uTotalSectors_)
 {
-    bool fRet = false;
+    bool ret = false;
 
     Close();
 
@@ -149,8 +149,8 @@ bool HDFHardDisk::Create(unsigned int uTotalSectors_)
                        static_cast<uint8_t>(uDataOffset & 0xff), static_cast<uint8_t>(uDataOffset >> 8) };
 
     // Create the file in binary mode
-    FILE* pFile = fopen(m_strPath.c_str(), "wb");
-    if (pFile)
+    unique_FILE file = fopen(m_strPath.c_str(), "wb");
+    if (file)
     {
         // Set the sector count, and generate suitable identify data
         m_sGeometry.uTotalSectors = uTotalSectors_;
@@ -161,20 +161,21 @@ bool HDFHardDisk::Create(unsigned int uTotalSectors_)
         uint8_t bNull = 0;
 
         // Write the header, and extend the file up to the full size
-        fRet = fwrite(&sHeader, sizeof(sHeader), 1, pFile) &&
-            fwrite(&m_sIdentify, sizeof(m_sIdentify), 1, pFile) &&
-            !fseek(pFile, lDataSize - sizeof(bNull), SEEK_CUR) &&
-            fwrite(&bNull, sizeof(bNull), 1, pFile);
+        ret = fwrite(&sHeader, sizeof(sHeader), 1, file) &&
+            fwrite(&m_sIdentify, sizeof(m_sIdentify), 1, file) &&
+            !fseek(file, lDataSize - sizeof(bNull), SEEK_CUR) &&
+            fwrite(&bNull, sizeof(bNull), 1, file);
 
-        // Close the file (this may be slow)
-        fclose(pFile);
+        file.reset();
 
-        // Remove the file if unsuccessful
-        if (!fRet)
-            unlink(m_strPath.c_str());
+        if (!ret)
+        {
+            std::error_code error;
+            fs::remove(m_strPath, error);
+        }
     }
 
-    return fRet;
+    return ret;
 }
 
 
@@ -187,12 +188,12 @@ bool HDFHardDisk::Open(bool fReadOnly_/*=false*/)
         return false;
 
     // Open read-write, falling back on read-only (not ideal!)
-    if ((!fReadOnly_ && (m_hfDisk = fopen(m_strPath.c_str(), "r+b"))) || (m_hfDisk = fopen(m_strPath.c_str(), "rb")))
+    if ((!fReadOnly_ && (m_file = fopen(m_strPath.c_str(), "r+b"))) || (m_file = fopen(m_strPath.c_str(), "rb")))
     {
         RS_IDE sHeader;
 
         // Read and check the header is valid/supported
-        if (fread(&sHeader, 1, sizeof(sHeader), m_hfDisk) != sizeof(sHeader) || (sHeader.bFlags & 3) ||
+        if (fread(&sHeader, 1, sizeof(sHeader), m_file) != sizeof(sHeader) || (sHeader.bFlags & 3) ||
             memcmp(sHeader.szSignature, "RS-IDE", sizeof(sHeader.szSignature)))
             TRACE("!!! Invalid or incompatible HDF file\n");
         else
@@ -212,9 +213,9 @@ bool HDFHardDisk::Open(bool fReadOnly_/*=false*/)
                 uIdentifyLen = sizeof(m_sIdentify);
 
             // Read the identify data
-            if (m_uDataOffset < sizeof(sHeader) || fread(&m_sIdentify, 1, uIdentifyLen, m_hfDisk) != uIdentifyLen)
+            if (m_uDataOffset < sizeof(sHeader) || fread(&m_sIdentify, 1, uIdentifyLen, m_file) != uIdentifyLen)
                 TRACE("HDF data offset is invalid!\n");
-            else if (fstat(fileno(m_hfDisk), &st) == 0)
+            else if (fstat(fileno(m_file), &st) == 0)
             {
                 m_sGeometry.uTotalSectors = static_cast<unsigned int>((st.st_size - m_uDataOffset) / m_uSectorSize);
 
@@ -232,21 +233,17 @@ bool HDFHardDisk::Open(bool fReadOnly_/*=false*/)
 
 void HDFHardDisk::Close()
 {
-    if (IsOpen())
-    {
-        fclose(m_hfDisk);
-        m_hfDisk = nullptr;
-    }
+    m_file.reset();
 }
 
 bool HDFHardDisk::ReadSector(unsigned int uSector_, uint8_t* pb_)
 {
     off_t lOffset = m_uDataOffset + static_cast<off_t>(uSector_)* m_uSectorSize;
-    return m_hfDisk && !fseek(m_hfDisk, lOffset, SEEK_SET) && (fread(pb_, 1, m_uSectorSize, m_hfDisk) == m_uSectorSize);
+    return m_file && !fseek(m_file, lOffset, SEEK_SET) && (fread(pb_, 1, m_uSectorSize, m_file) == m_uSectorSize);
 }
 
 bool HDFHardDisk::WriteSector(unsigned int uSector_, uint8_t* pb_)
 {
     off_t lOffset = m_uDataOffset + static_cast<off_t>(uSector_)* m_uSectorSize;
-    return m_hfDisk && !fseek(m_hfDisk, lOffset, SEEK_SET) && (fwrite(pb_, 1, m_uSectorSize, m_hfDisk) == m_uSectorSize);
+    return m_file && !fseek(m_file, lOffset, SEEK_SET) && (fwrite(pb_, 1, m_uSectorSize, m_file) == m_uSectorSize);
 }

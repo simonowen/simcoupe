@@ -81,8 +81,8 @@ public:
     void Out(uint16_t wPort_, uint8_t bVal_) override;
     bool Update() override;
 
-    bool LoadState(const char* pcszFile_) override;
-    bool SaveState(const char* pcszFile_) override;
+    bool LoadState(const std::string& path) override;
+    bool SaveState(const std::string& path) override;
 
 protected:
     uint8_t m_bReg = 0;                 // Currently selected register

@@ -516,7 +516,7 @@ public:
     void SetFilter(const char* pcszFilter_);
     void ShowHidden(bool fShow_);
 
-    void Refresh();
+    bool Refresh();
     void NotifyParent(int nParam_) override;
     bool OnMessage(int nMessage_, int nParam1_, int nParam2_) override;
 

@@ -40,7 +40,7 @@ struct SECTOR
 class FloppyStream final : public Stream
 {
 public:
-    FloppyStream(const char* pcszDevice_, bool fReadOnly_);
+    FloppyStream(const std::string& filepath, bool read_only);
     FloppyStream(const FloppyStream&) = delete;
     void operator= (const FloppyStream&) = delete;
     virtual ~FloppyStream();
@@ -48,7 +48,7 @@ public:
 public:
     static bool IsSupported();
     static bool IsAvailable();
-    static bool IsRecognised(const char* pcszStream_);
+    static bool IsRecognised(const std::string& filepath);
 
 public:
     void Close() override;

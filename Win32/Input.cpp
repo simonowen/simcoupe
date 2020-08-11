@@ -38,7 +38,6 @@
 #include "Mouse.h"
 #include "Options.h"
 #include "UI.h"
-#include "Util.h"
 
 typedef HRESULT(WINAPI* PFNDIRECTINPUTCREATE) (HINSTANCE, DWORD, LPDIRECTINPUTA*, LPUNKNOWN);
 

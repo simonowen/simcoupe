@@ -30,7 +30,7 @@ public:
 
 public:
     static bool IsRecognised(const char* pcszDisk_);
-    static const char* GetDeviceList();
+    static std::vector<std::string> GetDeviceList();
 
 public:
     bool IsOpen() const { return m_hDevice != INVALID_HANDLE_VALUE; }

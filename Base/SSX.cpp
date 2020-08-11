@@ -27,13 +27,11 @@ namespace SSX
 
 bool Save(const FrameBuffer& fb, int main_x, int main_y)
 {
-    char szPath[MAX_PATH]{};
-    Util::GetUniqueFile("ssx", szPath, sizeof(szPath));
-
-    auto file = fopen(szPath, "wb");
+    auto ssx_path = Util::UniqueOutputPath("ssx");
+    unique_FILE file = fopen(ssx_path.c_str(), "wb");
     if (!file)
     {
-        Frame::SetStatus("Failed to open {} for writing!", szPath);
+        Frame::SetStatus("Save failed: {}", ssx_path.string());
         return false;
     }
 
@@ -92,8 +90,7 @@ bool Save(const FrameBuffer& fb, int main_x, int main_y)
         }
     }
 
-    fclose(file);
-    Frame::SetStatus("Saved {}", szPath);
+    Frame::SetStatus("Saved {}", ssx_path.string());
 
     return true;
 }

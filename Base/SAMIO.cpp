@@ -41,7 +41,6 @@
 #include "MIDI.h"
 #include "Mouse.h"
 #include "Options.h"
-#include "OSD.h"
 #include "Parallel.h"
 #include "Paula.h"
 #include "SAMDOS.h"
@@ -50,7 +49,6 @@
 #include "SID.h"
 #include "Sound.h"
 #include "Tape.h"
-#include "Util.h"
 #include "Video.h"
 
 std::unique_ptr<DiskDevice> pFloppy1;
@@ -165,7 +163,7 @@ bool Init(bool fFirstInit_/*=false*/)
 
         pSDIDE = std::make_unique<SDIDEDevice>();
 
-        pDallas->LoadState(OSD::MakeFilePath(MFP_SETTINGS, "dallas"));
+        pDallas->LoadState(OSD::MakeFilePath(PathType::Settings, "dallas"));
 
         pFloppy1->Insert(GetOption(disk1));
         pFloppy2->Insert(GetOption(disk2));
@@ -213,15 +211,15 @@ void Exit(bool fReInit_/*=false*/)
             pPrinterFile->Flush();
 
         if (pFloppy1)
-            SetOption(disk1, pFloppy1->DiskPath());
+            SetOption(disk1, pFloppy1->DiskPath().c_str());
 
         if (pFloppy2)
-            SetOption(disk2, pFloppy2->DiskPath());
+            SetOption(disk2, pFloppy2->DiskPath().c_str());
 
         if (pDallas)
-            pDallas->SaveState(OSD::MakeFilePath(MFP_SETTINGS, "dallas"));
+            pDallas->SaveState(OSD::MakeFilePath(PathType::Settings, "dallas"));
 
-        SetOption(tape, Tape::GetPath());
+        SetOption(tape, Tape::GetPath().c_str());
         Tape::Eject();
 
         pMidi.reset();

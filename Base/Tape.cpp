@@ -34,8 +34,7 @@ namespace Tape
 #ifdef HAVE_LIBSPECTRUM
 
 static bool g_fPlaying;
-static std::string strFilePath;
-static std::string strFileName;
+static fs::path tape_path;
 
 const uint32_t SPECTRUM_TSTATES_PER_SECOND = 3500000;
 
@@ -45,11 +44,11 @@ static bool fEar;
 static libspectrum_dword tremain = 0;
 
 // Return whether the supplied filename appears to be a tape image
-bool IsRecognised(const char* pcsz_)
+bool IsRecognised(const std::string& filepath)
 {
     libspectrum_id_t type = LIBSPECTRUM_ID_UNKNOWN;
 
-    if (libspectrum_identify_file(&type, pcsz_, nullptr, 0) == LIBSPECTRUM_ERROR_NONE)
+    if (libspectrum_identify_file(&type, filepath.c_str(), nullptr, 0) == LIBSPECTRUM_ERROR_NONE)
     {
         switch (type)
         {
@@ -77,15 +76,15 @@ bool IsInserted()
 }
 
 // Return the full path of the inserted tape image
-const char* GetPath()
+std::string GetPath()
 {
-    return strFilePath.c_str();;
+    return tape_path.string();
 }
 
 // Return just the filename of the inserted tape image
-const char* GetFile()
+std::string GetFile()
 {
-    return strFileName.c_str();
+    return tape_path.filename().string();
 }
 
 libspectrum_tape* GetTape()
@@ -93,11 +92,11 @@ libspectrum_tape* GetTape()
     return pTape;
 }
 
-bool Insert(const char* pcsz_)
+bool Insert(const std::string& filepath)
 {
     Eject();
 
-    auto stream = Stream::Open(pcsz_, true);
+    auto stream = Stream::Open(filepath, true);
     if (!stream)
         return false;
 
@@ -105,19 +104,18 @@ bool Insert(const char* pcsz_)
     if (!pTape)
         return false;
 
-    strFileName = stream->GetFile();
     size_t uSize = stream->GetSize();
     pbTape = new libspectrum_byte[uSize];
     if (pbTape) stream->Read(pbTape, uSize);
 
-    if (!pbTape || libspectrum_tape_read(pTape, pbTape, uSize, LIBSPECTRUM_ID_UNKNOWN, pcsz_) != LIBSPECTRUM_ERROR_NONE)
+    if (!pbTape || libspectrum_tape_read(pTape, pbTape, uSize, LIBSPECTRUM_ID_UNKNOWN, filepath.c_str()) != LIBSPECTRUM_ERROR_NONE)
     {
         Eject();
         return false;
     }
 
     // Store tape path on successful insert
-    strFilePath = pcsz_;
+    tape_path = filepath;
 
     IO::AutoLoad(AUTOLOAD_TAPE);
     return true;
@@ -130,7 +128,7 @@ void Eject()
     if (pTape) libspectrum_tape_free(pTape), pTape = nullptr;
     delete[] pbTape, pbTape = nullptr;
 
-    strFileName = strFilePath = "";
+    tape_path.clear();
 }
 
 void NextEdge(uint32_t dwTime_)
@@ -621,13 +619,13 @@ bool InFEHook()
 
 // Dummy implementations, rather than peppering the above with conditional code
 
-bool IsRecognised(const char* /*pcsz_*/) { return false; }
+bool IsRecognised(const std::string&) { return false; }
 bool IsPlaying() { return false; }
 bool IsInserted() { return false; }
-const char* GetPath() { return ""; }
-const char* GetFile() { return ""; }
+const std::string GetPath() { return ""; }
+const std::string GetFile() { return ""; }
 
-bool Insert(const char* /*pcsz_*/) { return false; }
+bool Insert(const std::string&) { return false; }
 void Eject() { }
 void Play() { }
 void Stop() { }
