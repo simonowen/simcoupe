@@ -22,20 +22,15 @@
 
 #include "Sound.h"
 
-#ifdef HAVE_LIBRESID
 #undef SID  // TODO: fix Win32 name clash using namespace
 
 #include <resid/sid.h>
-
 #define SID_CLOCK_PAL   985248
-#endif // HAVE_LIBRESID
 
 class SIDDevice final : public SoundDevice
 {
 public:
     SIDDevice();
-    SIDDevice(const SIDDevice&) = delete;
-    void operator= (const SIDDevice&) = delete;
 
 public:
     void Reset() override;
@@ -45,10 +40,8 @@ public:
     void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 protected:
-#ifdef HAVE_LIBRESID
-    std::unique_ptr<SID> m_pSID;
-#endif
-    int m_nChipType = 0;
+    std::unique_ptr<SID> m_sid;
+    int m_chip_type = 0;
 };
 
 extern std::unique_ptr<SIDDevice> pSID;

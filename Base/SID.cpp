@@ -27,33 +27,28 @@
 
 SIDDevice::SIDDevice()
 {
-#ifdef HAVE_LIBRESID
-    m_pSID = std::make_unique<SID>();
+    m_sid = std::make_unique<SID>();
     Reset();
-#endif
 }
 
 void SIDDevice::Reset()
 {
-#ifdef HAVE_LIBRESID
-    if (m_pSID)
+    if (m_sid)
     {
-        m_nChipType = GetOption(sid);
-        m_pSID->set_chip_model((m_nChipType == 2) ? MOS8580 : MOS6581);
+        m_chip_type = GetOption(sid);
+        m_sid->set_chip_model((m_chip_type == 2) ? MOS8580 : MOS6581);
 
-        m_pSID->reset();
-        m_pSID->adjust_sampling_frequency(SAMPLE_FREQ);
+        m_sid->reset();
+        m_sid->adjust_sampling_frequency(SAMPLE_FREQ);
     }
-#endif
 }
 
 void SIDDevice::Update(bool fFrameEnd_ = false)
 {
-#ifdef HAVE_LIBRESID
     int nSamplesSoFar = fFrameEnd_ ? pDAC->GetSampleCount() : pDAC->GetSamplesSoFar();
 
     int nNeeded = nSamplesSoFar - m_samples_this_frame;
-    if (!m_pSID || nNeeded <= 0)
+    if (!m_sid || nNeeded <= 0)
         return;
 
     auto ps = reinterpret_cast<short*>(m_sample_buffer.data() + m_samples_this_frame * BYTES_PER_SAMPLE);
@@ -65,7 +60,7 @@ void SIDDevice::Update(bool fFrameEnd_ = false)
         int sid_clock = SID_CLOCK_PAL;
 
         // Generate the mono SID samples for the left channel
-        m_pSID->clock(sid_clock, ps, nNeeded, 2);
+        m_sid->clock(sid_clock, ps, nNeeded, 2);
 
         // Duplicate the left samples for the right channel
         for (int i = 0; i < nNeeded; i++, ps += 2)
@@ -73,31 +68,23 @@ void SIDDevice::Update(bool fFrameEnd_ = false)
     }
 
     m_samples_this_frame = nSamplesSoFar;
-#else
-    (void)fFrameEnd_;
-#endif
 }
 
 void SIDDevice::FrameEnd()
 {
-    // Check for change of chip type
-    if (GetOption(sid) != m_nChipType)
+    if (GetOption(sid) != m_chip_type)
         Reset();
 
     Update(true);
     m_samples_this_frame = 0;
 }
 
-void SIDDevice::Out(uint16_t wPort_, uint8_t bVal_)
+void SIDDevice::Out(uint16_t port, uint8_t val)
 {
-#ifdef HAVE_LIBRESID
     Update();
 
-    uint8_t bReg = wPort_ >> 8;
+    uint8_t reg = port >> 8;
 
-    if (m_pSID)
-        m_pSID->write(bReg & 0x1f, bVal_);
-#else
-    (void)wPort_; (void)bVal_;
-#endif
+    if (m_sid)
+        m_sid->write(reg & 0x1f, val);
 }

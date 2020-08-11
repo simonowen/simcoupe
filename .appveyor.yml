@@ -27,8 +27,6 @@ cache:
 install:
   - set CMAKE_BUILD_PARALLEL_LEVEL=2
   - vcpkg install --recurse --triplet %VCPKG_TRIPLET% zlib bzip2 libpng sdl2
-  - if not exist C:\Tools\vcpkg\installed\x64-windows\bin\resid.dll curl --fail -O https://home.simonowen.com/vcpkg-export.zip
-  - if exist vcpkg-export.zip 7z x vcpkg-export.zip -oC:\Tools\vcpkg\
 
 before_build:
   - if "%LIBRARIES%"=="false" (set CMAKE_FLAGS=) else (set CMAKE_FLAGS=-DCMAKE_TOOLCHAIN_FILE=C:/Tools/vcpkg/scripts/buildsystems/vcpkg.cmake)

@@ -23,9 +23,6 @@
 // OpenGL library.
 #cmakedefine HAVE_OPENGL
 
-// ReSID library for SID tune playback.
-#cmakedefine HAVE_LIBRESID
-
 // Spectrum support library for tapes and snapshots.
 #cmakedefine HAVE_LIBSPECTRUM
 
