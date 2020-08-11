@@ -71,16 +71,20 @@ struct unique_resource
     unique_resource& operator=(unique_resource&& other) noexcept { reset(other.release()); return *this; }
     ~unique_resource() { reset(); }
 
+    const T& operator=(const T res) { reset(res); return _res; }
     operator const T& () const { return _res; }
     T* operator&() { return &_res; }
     T get() const { return _res; }
+
+    template<typename T_ = T, typename = std::enable_if_t<std::is_pointer_v<T_>>>
+    T operator->() { return _res; }
 
     void reset() { if (_res != invalid) { D deleter; deleter(_res); _res = invalid; } }
     void reset(T res) { reset(); _res = res; }
     T release() { T res = _res; _res = invalid; return res; }
 
 private:
-    T _res = invalid;
+    T _res{ invalid };
 };
 
 #ifdef _DEBUG

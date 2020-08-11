@@ -23,9 +23,6 @@
 // OpenGL library.
 #cmakedefine HAVE_OPENGL
 
-// SAA-1099 emulation library.
-#cmakedefine HAVE_LIBSAASOUND
-
 // ReSID library for SID tune playback.
 #cmakedefine HAVE_LIBRESID
 

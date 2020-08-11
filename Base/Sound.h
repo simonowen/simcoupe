@@ -23,11 +23,7 @@
 #include "SAMIO.h"
 #include "BlipBuffer.h"
 
-#ifdef HAVE_LIBSAASOUND
 #include "SAASound.h"
-#else
-#include "SAA1099.h"
-#endif
 
 constexpr auto SAMPLE_FREQ = 44100;
 constexpr auto SAMPLE_BITS = 16;
@@ -41,8 +37,6 @@ class Sound
 public:
     static bool Init();
     static void Exit();
-
-    static void Silence();
     static void FrameUpdate();
 };
 
@@ -63,28 +57,19 @@ protected:
     std::vector<uint8_t> m_sample_buffer;
 };
 
+
+struct CSAASoundDeleter { void operator()(LPCSAASOUND saasound) { DestroyCSAASound(saasound); } };
+using unique_saasound = unique_resource<LPCSAASOUND, nullptr, CSAASoundDeleter>;
+
 class SAADevice final : public SoundDevice
 {
 public:
     SAADevice()
     {
-#ifdef HAVE_LIBSAASOUND
         m_pSAASound = CreateCSAASound();
         m_pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_44100 | SAAP_16BIT | SAAP_STEREO);
         static_assert(SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2, "SAA parameter mismatch");
-#else
-        m_pSAASound = std::make_unique<CSAASound>(SAMPLE_FREQ);
-#endif
     }
-
-#ifdef HAVE_LIBSAASOUND
-    SAADevice(const SAADevice&) = delete;
-    void operator= (const SAADevice&) = delete;
-    ~SAADevice()
-    {
-        DestroyCSAASound(m_pSAASound);
-    }
-#endif
 
 public:
     void Update(bool fFrameEnd_);
@@ -93,11 +78,7 @@ public:
     void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 protected:
-#ifdef HAVE_LIBSAASOUND
-    CSAASound* m_pSAASound = nullptr;
-#else
-    std::unique_ptr<CSAASound> m_pSAASound;
-#endif
+    unique_saasound m_pSAASound;
 };
 
 
