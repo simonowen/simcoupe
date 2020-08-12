@@ -133,7 +133,7 @@ FileStream::FileStream(unique_FILE&& file, const std::string& filepath, bool rea
 void FileStream::Close()
 {
     m_file.reset();
-    m_nMode = modeClosed;
+    m_mode = Mode::Closed;
 }
 
 bool FileStream::Rewind()
@@ -144,14 +144,14 @@ bool FileStream::Rewind()
 
 size_t FileStream::Read(void* pvBuffer_, size_t uLen_)
 {
-    if (m_nMode != modeReading)
+    if (m_mode != Mode::Reading)
     {
         // Close the file, if open for writing
         Close();
 
         // Open the file for writing, using compression if the source file did
         if ((m_file = fopen(m_path.c_str(), "rb")))
-            m_nMode = modeReading;
+            m_mode = Mode::Reading;
     }
 
     size_t uRead = m_file ? fread(pvBuffer_, 1, uLen_, m_file) : 0;
@@ -160,14 +160,14 @@ size_t FileStream::Read(void* pvBuffer_, size_t uLen_)
 
 size_t FileStream::Write(void* pvBuffer_, size_t uLen_)
 {
-    if (m_nMode != modeWriting)
+    if (m_mode != Mode::Writing)
     {
         // Close the file, if open for reading
         Close();
 
         // Open the file for writing, using compression if the source file did
         if ((m_file = fopen(m_path.c_str(), "wb")))
-            m_nMode = modeWriting;
+            m_mode = Mode::Writing;
     }
 
     return m_file ? fwrite(pvBuffer_, 1, uLen_, m_file) : 0;
@@ -178,7 +178,7 @@ size_t FileStream::Write(void* pvBuffer_, size_t uLen_)
 MemStream::MemStream(void* pv_, size_t uLen_, const std::string& filepath)
     : Stream(filepath, true)
 {
-    m_nMode = modeReading;
+    m_mode = Mode::Reading;
     m_uSize = uLen_;
     m_pbData = reinterpret_cast<uint8_t*>(pv_);
     m_filename = m_path.filename();
@@ -186,7 +186,7 @@ MemStream::MemStream(void* pv_, size_t uLen_, const std::string& filepath)
 
 void MemStream::Close()
 {
-    m_nMode = modeClosed;
+    m_mode = Mode::Closed;
 }
 
 bool MemStream::Rewind()
@@ -197,9 +197,9 @@ bool MemStream::Rewind()
 
 size_t MemStream::Read(void* pvBuffer_, size_t uLen_)
 {
-    if (m_nMode != modeReading)
+    if (m_mode != Mode::Reading)
     {
-        m_nMode = modeReading;
+        m_mode = Mode::Reading;
         m_uPos = 0;
     }
 
@@ -211,7 +211,7 @@ size_t MemStream::Read(void* pvBuffer_, size_t uLen_)
 
 size_t MemStream::Write(void* /*pvBuffer_*/, size_t /*uLen_*/)
 {
-    m_nMode = modeWriting;
+    m_mode = Mode::Writing;
     return 0;
 }
 
@@ -228,7 +228,7 @@ ZLibStream::ZLibStream(gzFile hFile_, const std::string& filepath, size_t uSize_
 void ZLibStream::Close()
 {
     m_file.reset();
-    m_nMode = modeClosed;
+    m_mode = Mode::Closed;
 }
 
 
@@ -260,14 +260,14 @@ bool ZLibStream::Rewind()
 
 size_t ZLibStream::Read(void* pvBuffer_, size_t uLen_)
 {
-    if (m_nMode != modeReading)
+    if (m_mode != Mode::Reading)
     {
         // Close the file, if open for writing
         Close();
 
         // Open the file for writing, using compression if the source file did
         if ((m_file = gzopen(m_path.c_str(), "rb")))
-            m_nMode = modeReading;
+            m_mode = Mode::Reading;
     }
 
     int nRead = m_file ? gzread(m_file, pvBuffer_, static_cast<unsigned>(uLen_)) : 0;
@@ -276,14 +276,14 @@ size_t ZLibStream::Read(void* pvBuffer_, size_t uLen_)
 
 size_t ZLibStream::Write(void* pvBuffer_, size_t uLen_)
 {
-    if (m_nMode != modeWriting)
+    if (m_mode != Mode::Writing)
     {
         // Close the file, if open for reading
         Close();
 
         // Open the file for writing, using compression if the source file did
         if ((m_file = gzopen(m_path.c_str(), "wb9")))
-            m_nMode = modeWriting;
+            m_mode = Mode::Writing;
     }
 
     return m_file ? gzwrite(m_file, pvBuffer_, static_cast<unsigned>(uLen_)) : 0;
@@ -306,7 +306,7 @@ ZipStream::ZipStream(unzFile hFile_, const std::string& filepath, bool read_only
 void ZipStream::Close()
 {
     m_file.reset();
-    m_nMode = modeClosed;
+    m_mode = Mode::Closed;
 }
 
 bool ZipStream::Rewind()

@@ -42,8 +42,8 @@ public:
     virtual size_t Write(void* pvBuffer_, size_t uLen_) = 0;
 
 protected:
-    enum { modeClosed, modeReading, modeWriting };
-    int m_nMode = modeClosed;
+    enum class Mode { Closed, Reading, Writing };
+    Mode m_mode = Mode::Closed;
 
     fs::path m_path;
     std::string m_filename;
@@ -77,7 +77,7 @@ public:
     void operator= (const MemStream&) = delete;
 
 public:
-    bool IsOpen() const override { return m_nMode != modeClosed; }
+    bool IsOpen() const override { return m_mode != Mode::Closed; }
 
 public:
     void Close() override;
