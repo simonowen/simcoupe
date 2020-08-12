@@ -30,7 +30,7 @@ std::string GetPath();
 std::string GetFile();
 #ifdef HAVE_LIBSPECTRUM
 libspectrum_tape* GetTape();
-const char* GetBlockDetails(libspectrum_tape_block* block);
+std::string GetBlockDetails(libspectrum_tape_block* block);
 #endif
 
 bool Insert(const std::string& filepath);

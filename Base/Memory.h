@@ -31,7 +31,7 @@ void Exit(bool fReInit_ = false);
 void UpdateConfig();
 void UpdateRom();
 
-const char* PageDesc(int nPage_, bool fCompact_ = false);
+std::string PageDesc(int nPage_, bool fCompact_ = false);
 }
 
 constexpr auto NUM_SCRATCH_PAGES = 2;

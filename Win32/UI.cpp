@@ -599,7 +599,8 @@ void UpdateTapeBlockList(HWND hdlg_)
             int nIndex = ListView_InsertItem(hwndList, &lvi);
 
             // Set the second column to the block details
-            ListView_SetItemText(hwndList, nIndex, 1, const_cast<char*>(Tape::GetBlockDetails(block)));
+            auto details = Tape::GetBlockDetails(block);
+            ListView_SetItemText(hwndList, nIndex, 1, const_cast<char*>(details.c_str()));
         }
 
         // Fetch the current block index

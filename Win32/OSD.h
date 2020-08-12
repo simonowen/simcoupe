@@ -50,7 +50,6 @@ using Microsoft::WRL::ComPtr;
 #define strcasecmp  _strcmpi
 #define strncasecmp _strnicmp
 #define mkdir(p,m)  _mkdir(p)
-#define snprintf    _snprintf
 
 #if _MSC_VER > 1200
 #define off_t   __int64

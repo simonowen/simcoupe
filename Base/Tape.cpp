@@ -325,18 +325,14 @@ bool LoadTrap()
 
 
 // Return a string describing a give tape block
-const char* GetBlockDetails(libspectrum_tape_block* block)
+std::string GetBlockDetails(libspectrum_tape_block* block)
 {
-    static char sz[128];
-    sz[0] = '\0';
-
-    char szExtra[64] = "";
-    char szName[11] = "";
-    const char* psz = nullptr;
+    std::string type;
+    std::string filename;
+    std::string extra;
 
     libspectrum_byte* data = libspectrum_tape_block_data(block);
     long length = static_cast<long>(libspectrum_tape_block_data_length(block));
-
 
     // Is there enough data to include a possible filename?
     if (length >= 12)
@@ -344,9 +340,8 @@ const char* GetBlockDetails(libspectrum_tape_block* block)
         for (int i = 0; i < 10; i++)
         {
             char ch = data[i + 2];
-            szName[i] = (ch >= ' ' && ch <= 0x7f) ? ch : '?';
+            filename += (ch >= ' ' && ch <= 0x7f) ? ch : '?';
         }
-        szName[10] = '\0';
     }
 
     // Spectrum header length and type byte?
@@ -357,25 +352,25 @@ const char* GetBlockDetails(libspectrum_tape_block* block)
         {
         case 0:
         {
-            psz = "ZX BASIC";
+            type = "ZX BASIC";
 
-            unsigned int uLine = (data[15] << 8) | data[14];
-            if (uLine != 0xffff)
-                sprintf(szExtra, " LINE %u", uLine);
+            unsigned int line = (data[15] << 8) | data[14];
+            if (line != 0xffff)
+                extra = fmt::format(" LINE {}", line);
 
             break;
         }
 
-        case 1: psz = "ZX DATA()"; break;
-        case 2: psz = "ZX DATA$()"; break;
+        case 1: type = "ZX DATA()"; break;
+        case 2: type = "ZX DATA$()"; break;
 
         case 3:
         {
-            psz = "ZX CODE";
+            type = "ZX CODE";
 
-            unsigned int uAddr = (data[15] << 8) | data[14];
-            unsigned int uLen = (data[13] << 8) | data[12];
-            sprintf(szExtra, " %u,%u", uAddr, uLen);
+            unsigned int addr = (data[15] << 8) | data[14];
+            unsigned int len = (data[13] << 8) | data[12];
+            extra = fmt::format(" {},{}", addr, len);
 
             break;
         }
@@ -390,60 +385,53 @@ const char* GetBlockDetails(libspectrum_tape_block* block)
         {
         case 16:
         {
-            psz = "BASIC";
+            type = "BASIC";
 
-            unsigned int uLine = (data[40] << 8) | data[39];
+            unsigned int line = (data[40] << 8) | data[39];
             if (data[38] == 0)
-                sprintf(szExtra, " LINE %u", uLine);
+                extra = fmt::format(" LINE {}", line);
 
             break;
         }
 
-        case 17: psz = "DATA()"; break;
-        case 18: psz = "DATA$"; break;
+        case 17: type = "DATA()"; break;
+        case 18: type = "DATA$"; break;
         case 19:
         {
-            psz = "CODE";
+            type = "CODE";
 
-            unsigned int uAddr = TPeek(data + 32) + 16384;
-            unsigned int uLen = TPeek(data + 35);
+            unsigned int addr = TPeek(data + 32) + 16384;
+            unsigned int len = TPeek(data + 35);
+            extra = fmt::format(" {},{}", addr, len);
 
-            sprintf(szExtra, " %u,%u", uAddr, uLen);
             if (data[38] == 0)
-                sprintf(szExtra + strlen(szExtra), ",%u", TPeek(data + 38));
+                extra += fmt::format(",{}", TPeek(data + 38));
 
             break;
         }
 
         case 20:
         {
-            psz = "SCREEN$";
-            unsigned int uMode = data[17] + 1;
-            sprintf(szExtra, " MODE %u", uMode);
+            type = "SCREEN$";
+
+            unsigned int mode = data[17] + 1;
+            extra = fmt::format(" MODE {}", mode);
             break;
         }
         }
     }
 
-    // Do we have a type string?
-    if (psz)
+    std::stringstream ss;
+    if (!type.empty())
     {
-        // Start with type and append filename
-        strcpy(sz, psz);
-        strcat(sz, ": '");
-        strcat(sz, szName);
-        strcat(sz, "'");
+        ss << fmt::format("{}: '{}'", type, filename);
 
-        // Append any additional type-specific details
-        if (szExtra[0])
+        if (!extra.empty())
         {
-            strcat(sz, " ");
-            strcat(sz, szExtra);
+            ss << " " << extra;
         }
     }
-
-    // No details yet?
-    if (!sz[0])
+    else
     {
         libspectrum_tape_type type = libspectrum_tape_block_type(block);
 
@@ -459,54 +447,54 @@ const char* GetBlockDetails(libspectrum_tape_block* block)
             if (length >= 3)
                 length -= 3;
 
-            snprintf(sz, sizeof(sz), "%zu bytes", length);
+            ss << fmt::format("{} bytes", length);
             break;
         }
 
         case LIBSPECTRUM_TAPE_BLOCK_PURE_DATA:
         case LIBSPECTRUM_TAPE_BLOCK_RAW_DATA:
-            snprintf(sz, sizeof(sz), "%zu bytes", libspectrum_tape_block_data_length(block));
+            ss << fmt::format("{} bytes", libspectrum_tape_block_data_length(block));
             break;
 
         case LIBSPECTRUM_TAPE_BLOCK_PURE_TONE:
-            snprintf(sz, sizeof(sz), "%u tstates", libspectrum_tape_block_pulse_length(block));
+            ss << fmt::format("{} tstates", libspectrum_tape_block_pulse_length(block));
             break;
 
         case LIBSPECTRUM_TAPE_BLOCK_PULSES:
-            snprintf(sz, sizeof(sz), "%zu pulses", libspectrum_tape_block_count(block));
+            ss << fmt::format("{} pulses", libspectrum_tape_block_count(block));
             break;
 
         case LIBSPECTRUM_TAPE_BLOCK_PAUSE:
-            snprintf(sz, sizeof(sz), "%ums", libspectrum_tape_block_pause(block));
+            ss << fmt::format("{}ms", libspectrum_tape_block_pause(block));
             break;
 
         case LIBSPECTRUM_TAPE_BLOCK_GROUP_START:
         case LIBSPECTRUM_TAPE_BLOCK_COMMENT:
         case LIBSPECTRUM_TAPE_BLOCK_MESSAGE:
         case LIBSPECTRUM_TAPE_BLOCK_CUSTOM:
-            snprintf(sz, sizeof(sz), "%s", libspectrum_tape_block_text(block));
+            ss << libspectrum_tape_block_text(block);
             break;
 
         case LIBSPECTRUM_TAPE_BLOCK_JUMP:
         {
             int offset = libspectrum_tape_block_offset(block);
             if (offset >= 0)
-                snprintf(sz, sizeof(sz), "Forward %d blocks", offset);
+                ss << fmt::format("Forward {} blocks", offset);
             else
-                snprintf(sz, sizeof(sz), "Backward %d blocks", -offset);
+                ss << fmt::format("Backward {} blocks", -offset);
             break;
         }
 
         case LIBSPECTRUM_TAPE_BLOCK_LOOP_START:
-            snprintf(sz, sizeof(sz), "%zu iterations", libspectrum_tape_block_count(block));
+            ss << fmt::format("{} iterations", libspectrum_tape_block_count(block));
             break;
 
         case LIBSPECTRUM_TAPE_BLOCK_SELECT:
-            snprintf(sz, sizeof(sz), "%zu options", libspectrum_tape_block_count(block));
+            ss << fmt::format("{} options", libspectrum_tape_block_count(block));
             break;
 
         case LIBSPECTRUM_TAPE_BLOCK_GENERALISED_DATA:
-            snprintf(sz, sizeof(sz), "%u data symbols",
+            ss << fmt::format("{} data symbols",
                 libspectrum_tape_generalised_data_symbol_table_symbols_in_block(libspectrum_tape_block_data_table(block)));
             break;
 
@@ -517,11 +505,11 @@ const char* GetBlockDetails(libspectrum_tape_block* block)
             for (size_t i = 0; i < count; i++)
             {
                 int id = libspectrum_tape_block_ids(block, i);
-                const char* value = libspectrum_tape_block_texts(block, i);
+                auto value = libspectrum_tape_block_texts(block, i);
 
                 // Full title TZX id?
                 if (id == 0x00)
-                    strncpy(sz, value, sizeof(sz) - 1);
+                    ss << value;
             }
             break;
         }
@@ -541,15 +529,15 @@ const char* GetBlockDetails(libspectrum_tape_block* block)
 
                 // Check for relevant computer ids
                 if (id == 9)
-                    strcpy(sz, "SAM Coupe");
+                    ss << "SAM Coupe";
                 else if ((id >= 0x00 && id <= 0x05) || id == 0x0e)
-                    strcpy(sz, "ZX Spectrum");
+                    ss << "ZX Spectrum";
                 else if (id == 0x08)
-                    strcpy(sz, "Pentagon");
+                    ss << "Pentagon";
                 else if (id == 0x06 || id == 0x07)
-                    strcpy(sz, "Timex Sinclair");
+                    ss << "Timex Sinclair";
                 else
-                    snprintf(sz, sizeof(sz), "Unknown (%02X)", id);
+                    ss << fmt::format("Unknown hardware ({:02x})", id);
             }
 
             break;
@@ -560,7 +548,7 @@ const char* GetBlockDetails(libspectrum_tape_block* block)
         }
     }
 
-    return sz;
+    return ss.str();
 }
 
 

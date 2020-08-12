@@ -108,21 +108,18 @@ void UpdateRom()
 
 
 // Memory page description, for the debugger
-const char* PageDesc(int nPage_, bool fCompact_/*=false*/)
+std::string PageDesc(int page, bool compact)
 {
-    static char sz[32];
-    const char* pcszSep = fCompact_ ? "" : " ";
+    auto separator = compact ? "" : " ";
 
-    if (nPage_ >= INTMEM && nPage_ < EXTMEM)
-        snprintf(sz, sizeof(sz) - 1, "RAM%s%02X", pcszSep, nPage_ - INTMEM);
-    else if (nPage_ >= EXTMEM && nPage_ < ROM0)
-        snprintf(sz, sizeof(sz) - 1, "EXT%s%02X", pcszSep, nPage_ - EXTMEM);
-    else if (nPage_ == ROM0 || nPage_ == ROM1)
-        snprintf(sz, sizeof(sz) - 1, "ROM%s%X", pcszSep, nPage_ - ROM0);
+    if (page >= INTMEM && page < EXTMEM)
+        return fmt::format("RAM{}{:02X}", separator, page - INTMEM);
+    else if (page >= EXTMEM && page < ROM0)
+        return fmt::format("EXT{}{:02X}", separator, page - EXTMEM);
+    else if (page == ROM0 || page == ROM1)
+        return fmt::format("ROM{}{:X}", separator, page - ROM0);
     else
-        snprintf(sz, sizeof(sz) - 1, "UNK%s%02X", pcszSep, nPage_);
-
-    return sz;
+        return fmt::format("UNK{}{:02X}", separator, page);
 }
 
 
