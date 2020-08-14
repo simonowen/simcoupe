@@ -27,8 +27,8 @@
 #include "IDEDisk.h"
 
 
-HardDisk::HardDisk(const char* path)
-    : m_strPath(path)
+HardDisk::HardDisk(const std::string& disk_path) :
+    m_strPath(disk_path)
 {
 }
 
@@ -96,41 +96,33 @@ struct RS_IDE
 };
 
 
-HDFHardDisk::HDFHardDisk(const char* pcszDisk_)
-    : HardDisk(pcszDisk_)
+HDFHardDisk::HDFHardDisk(const std::string& disk_path)
+    : HardDisk(disk_path)
 {
 }
 
-/*static*/ std::unique_ptr<HardDisk> HardDisk::OpenObject(const char* pcszDisk_, bool fReadOnly_/*=false*/)
+/*static*/ std::unique_ptr<HardDisk> HardDisk::OpenObject(const std::string& disk_path, bool read_only)
 {
-    std::unique_ptr<HardDisk> disk;
-
-    // Make sure we have a disk to try
-    if (!pcszDisk_ || !*pcszDisk_)
+    if (disk_path.empty())
         return nullptr;
 
-    // Try for device path first
-    if (!disk && (disk = std::make_unique<DeviceHardDisk>(pcszDisk_)) && !disk->Open(fReadOnly_))
+    if (auto disk = std::make_unique<DeviceHardDisk>(disk_path); disk->Open(read_only))
+    {
+        return disk;
+    }
+
+    if (auto disk = std::make_unique<HDFHardDisk>(disk_path); disk->Open(read_only))
         disk.reset();
 
-    // Try for HDF disk image
-    if (!disk && (disk = std::make_unique<HDFHardDisk>(pcszDisk_)) && !disk->Open(fReadOnly_))
-        disk.reset();
-
-    return disk;
+    return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/*static*/ bool HDFHardDisk::Create(const char* pcszDisk_, unsigned int uTotalSectors_)
+/*static*/ bool HDFHardDisk::Create(const std::string& disk_path, unsigned int uTotalSectors_)
 {
-    // Attempt to create the new disk
-    HDFHardDisk* pDisk = new HDFHardDisk(pcszDisk_);
-    bool fRet = pDisk && pDisk->Create(uTotalSectors_);
-
-    // Delete the object and return the result
-    delete pDisk;
-    return fRet;
+    auto pDisk = std::make_unique<HDFHardDisk>(disk_path);
+    return pDisk && pDisk->Create(uTotalSectors_);
 }
 
 bool HDFHardDisk::Create(unsigned int uTotalSectors_)
@@ -179,7 +171,7 @@ bool HDFHardDisk::Create(unsigned int uTotalSectors_)
 }
 
 
-bool HDFHardDisk::Open(bool fReadOnly_/*=false*/)
+bool HDFHardDisk::Open(bool read_only)
 {
     Close();
 
@@ -188,7 +180,7 @@ bool HDFHardDisk::Open(bool fReadOnly_/*=false*/)
         return false;
 
     // Open read-write, falling back on read-only (not ideal!)
-    if ((!fReadOnly_ && (m_file = fopen(m_strPath.c_str(), "r+b"))) || (m_file = fopen(m_strPath.c_str(), "rb")))
+    if ((!read_only && (m_file = fopen(m_strPath.c_str(), "r+b"))) || (m_file = fopen(m_strPath.c_str(), "rb")))
     {
         RS_IDE sHeader;
 

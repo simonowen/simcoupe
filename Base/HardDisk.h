@@ -29,12 +29,12 @@ const unsigned int HDD_ACTIVE_FRAMES = 2;    // Frames the HDD is considered act
 class HardDisk : public ATADevice
 {
 public:
-    HardDisk(const char* pcszDisk_);
+    HardDisk(const std::string& disk_path);
     virtual ~HardDisk() = default;
 
 public:
-    static std::unique_ptr<HardDisk> OpenObject(const char* pcszDisk_, bool fReadOnly_ = false);
-    virtual bool Open(bool fReadOnly_ = false) = 0;
+    static std::unique_ptr<HardDisk> OpenObject(const std::string& disk_path, bool read_only = false);
+    virtual bool Open(bool read_only = false) = 0;
 
 public:
     bool IsSDIDEDisk();
@@ -48,14 +48,14 @@ protected:
 class HDFHardDisk final : public HardDisk
 {
 public:
-    HDFHardDisk(const char* pcszDisk_);
+    HDFHardDisk(const std::string& disk_path);
 
 public:
-    static bool Create(const char* pcszDisk_, unsigned int uTotalSectors_);
+    static bool Create(const std::string& disk_path, unsigned int uTotalSectors_);
 
 public:
     bool IsOpen() const { return m_file; }
-    bool Open(bool fReadOnly_ = false) override;
+    bool Open(bool read_only = false) override;
     bool Create(unsigned int uTotalSectors_);
     void Close();
 

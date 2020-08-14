@@ -509,13 +509,13 @@ void SDL_GL3::SaveWindowPosition()
     SDL_GetWindowPosition(m_window, &x, &y);
     SDL_GetWindowSize(m_window, &width, &height);
 
-    SetOption(windowpos, fmt::format("{},{},{},{},{}", x, y, width, height, maximised).c_str());
+    SetOption(windowpos, fmt::format("{},{},{},{},{}", x, y, width, height, maximised));
 }
 
 void SDL_GL3::RestoreWindowPosition()
 {
     int x, y, width, height, maximised;
-    if (sscanf(GetOption(windowpos), "%d,%d,%d,%d,%d", &x, &y, &width, &height, &maximised) == 5)
+    if (sscanf(GetOption(windowpos).c_str(), "%d,%d,%d,%d,%d", &x, &y, &width, &height, &maximised) == 5)
     {
         SDL_SetWindowPosition(m_window, x, y);
         SDL_SetWindowSize(m_window, width, height);

@@ -34,11 +34,8 @@
 #include "Video.h"
 
 
-OPTIONS g_opts;
-
-// Helper macro for detecting options changes
-#define Changed(o)         (g_opts.o != GetOption(o))
-#define ChangedString(o)   (strcasecmp(g_opts.o, GetOption(o)))
+static Config current_config;
+#define Changed(o)  (current_config.o != GetOption(o))
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -236,7 +233,7 @@ void BrowseFloppy::OnOK()
         bool fInserted = false;
 
         // Insert the disk into the appropriate drive
-        fInserted = ((m_nDrive == 1) ? pFloppy1 : pFloppy2)->Insert(full_path.c_str(), true);
+        fInserted = ((m_nDrive == 1) ? pFloppy1 : pFloppy2)->Insert(full_path, true);
 
         // If we succeeded, show a status message and close the file selector
         if (fInserted)
@@ -293,7 +290,7 @@ void BrowseTape::OnOK()
     auto full_path = m_pFileView->GetFullPath();
     if (!full_path.empty())
     {
-        bool fInserted = Tape::Insert(full_path.c_str());
+        bool fInserted = Tape::Insert(full_path);
 
         // If we succeeded, show a status message and close the file selector
         if (fInserted)
@@ -307,7 +304,7 @@ void BrowseTape::OnOK()
 
     // Report any error
     auto err_msg = fmt::format("Invalid tape image:\n\n{}", m_pFileView->GetItem()->m_label);
-    new MsgBox(this, err_msg.c_str(), "Open Failed", mbWarning);
+    new MsgBox(this, err_msg, "Open Failed", mbWarning);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -371,7 +368,7 @@ void HDDProperties::OnNotify(Window* pWindow_, int /*nParam_*/)
     else if (pWindow_ == m_pFile)
     {
         // If we can, open the existing hard disk image to retrieve the geometry
-        auto disk = HardDisk::OpenObject(m_pFile->GetText().c_str());
+        auto disk = HardDisk::OpenObject(m_pFile->GetText());
 
         if (disk)
         {
@@ -415,7 +412,7 @@ void HDDProperties::OnNotify(Window* pWindow_, int /*nParam_*/)
             }
 
             // Create a new disk of the required size
-            if (!HDFHardDisk::Create(m_pFile->GetText().c_str(), uTotalSectors))
+            if (!HDFHardDisk::Create(m_pFile->GetText(), uTotalSectors))
             {
                 new MsgBox(this, "Failed to create new disk (disk full?)", "Warning", mbWarning);
                 return;
@@ -522,7 +519,7 @@ public:
         {
             SetOption(mainmem, (m_pMain->GetSelected() + 1) << 8);
             SetOption(externalmem, m_pExternal->GetSelected());
-            SetOption(rom, m_pROM->GetText().c_str());
+            SetOption(rom, m_pROM->GetText());
             SetOption(atombootrom, m_pAtomBootRom->IsChecked());
 
             // If Atom boot ROM is enabled and a drive type has changed, trigger a ROM refresh
@@ -684,8 +681,8 @@ public:
         else if (pWindow_ == m_pOK)
         {
             SetOption(midi, m_pMidi->GetSelected());
-            SetOption(midioutdev, m_pMidiOut->GetSelectedText().c_str());
-            SetOption(midiindev, m_pMidiIn->GetSelectedText().c_str());
+            SetOption(midioutdev, m_pMidiOut->GetSelectedText());
+            SetOption(midiindev, m_pMidiIn->GetSelectedText());
 
             if (Changed(midi) || Changed(midiindev) || Changed(midioutdev))
                 pMidi->SetDevice(GetOption(midioutdev));
@@ -837,7 +834,7 @@ public:
             SetOption(autoload, m_pAutoLoad->IsChecked());
 
             SetOption(dosboot, m_pDosBoot->IsChecked());
-            SetOption(dosdisk, m_pDosDisk->GetText().c_str());
+            SetOption(dosdisk, m_pDosDisk->GetText());
 
             // Drive 2 type changed?
             if (Changed(drive2))
@@ -865,11 +862,11 @@ public:
     }
 
 protected:
-    void AttachDisk(AtaAdapter& adapter, const char* pcszDisk_, int nDevice_)
+    void AttachDisk(AtaAdapter& adapter, const std::string& disk_path, int nDevice_)
     {
-        if (!adapter.Attach(pcszDisk_, nDevice_))
+        if (!adapter.Attach(disk_path, nDevice_))
         {
-            auto message = fmt::format("Open failed: {}", pcszDisk_);
+            auto message = fmt::format("Open failed: {}", disk_path);
             new MsgBox(this, message, "Warning", mbWarning);
         }
     }
@@ -894,8 +891,8 @@ public:
     DiskOptions(Window* pParent_)
         : Dialog(pParent_, 300, 160, "Disk Settings")
     {
-        SetOption(disk1, pFloppy1->DiskPath().c_str());
-        SetOption(disk2, pFloppy2->DiskPath().c_str());
+        SetOption(disk1, pFloppy1->DiskPath());
+        SetOption(disk2, pFloppy2->DiskPath());
 
         new IconControl(this, 10, 10, &sFloppyDriveIcon);
 
@@ -928,9 +925,9 @@ public:
         else if (pWindow_ == m_pOK)
         {
             // Set the options from the edit control values
-            SetOption(atomdisk0, m_pAtom0->GetText().c_str());
-            SetOption(atomdisk1, m_pAtom1->GetText().c_str());
-            SetOption(sdidedisk, m_pSDIDE->GetText().c_str());
+            SetOption(atomdisk0, m_pAtom0->GetText());
+            SetOption(atomdisk1, m_pAtom1->GetText());
+            SetOption(sdidedisk, m_pSDIDE->GetText());
 
             // Any path changes?
             if (Changed(atomdisk0) || Changed(atomdisk1) || Changed(sdidedisk))
@@ -958,11 +955,11 @@ public:
     }
 
 protected:
-    void AttachDisk(AtaAdapter& adapter, const char* pcszDisk_, int nDevice_)
+    void AttachDisk(AtaAdapter& adapter, const std::string& disk_path, int nDevice_)
     {
-        if (!adapter.Attach(pcszDisk_, nDevice_))
+        if (!adapter.Attach(disk_path, nDevice_))
         {
-            auto message = fmt::format("Open failed: {}", pcszDisk_);
+            auto message = fmt::format("Open failed: {}", disk_path);
             new MsgBox(this, message, "Warning", mbWarning);
         }
     }
@@ -1127,7 +1124,7 @@ void OptionsDialog::OnNotify(Window* pWindow_, int nParam_)
         if (pItem)
         {
             // Save the current options for change comparisons
-            g_opts = Options::s_Options;
+            current_config = Options::g_config;
             auto label_lower = tolower(pItem->m_label);
 
             if (label_lower == "system")
@@ -1275,7 +1272,7 @@ void ImportDialog::OnNotify(Window* pWindow_, int nParam_)
         unique_FILE file;
         if (s_filepath.empty() || !(file = fopen(s_filepath.c_str(), "rb")))
         {
-            new MsgBox(this, s_filepath.c_str(), "Read Error", mbWarning);
+            new MsgBox(this, s_filepath, "Read Error", mbWarning);
             return;
         }
 

@@ -25,11 +25,11 @@
 class DeviceHardDisk : public HardDisk
 {
 public:
-    DeviceHardDisk(const char* pcszDisk_) : HardDisk(pcszDisk_) { }
+    DeviceHardDisk(const std::string& disk_path) : HardDisk(disk_path) { }
 
 public:
     bool IsOpen() const { return m_hDevice != -1; }
-    bool Open(bool fReadOnly_ = false) override;
+    bool Open(bool read_only = false) override;
     void Close();
 
     bool ReadSector(unsigned int uSector_, uint8_t* pb_) override;

@@ -35,7 +35,7 @@ public:
     bool IsActive() const { return m_uActive != 0; }
 
 public:
-    bool Attach(const char* pcszDisk_, int nDevice_);
+    bool Attach(const std::string& disk_path, int nDevice_);
     virtual bool Attach(std::unique_ptr<HardDisk> disk, int nDevice_);
     virtual void Detach();
 

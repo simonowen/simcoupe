@@ -162,10 +162,10 @@ static bool LoadRoms()
     auto pb1 = PageReadPtr(ROM1);
 
     // Default to the standard ROM image
-    std::string rom_file = OSD::MakeFilePath(PathType::Resource, "samcoupe.rom");
+    auto rom_file = OSD::MakeFilePath(PathType::Resource, "samcoupe.rom").string();
 
     // Allow a custom ROM override
-    if (*GetOption(rom))
+    if (!GetOption(rom).empty())
         rom_file = GetOption(rom);
 
     // Allow an Atom / Atom Lite ROM override

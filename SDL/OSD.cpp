@@ -158,15 +158,3 @@ void OSD::DebugTrace(const std::string& str)
     fprintf(stderr, "%s", str.c_str());
 #endif
 }
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-// Dummy printer device implementation
-PrinterDevice::PrinterDevice() { }
-PrinterDevice::~PrinterDevice() { }
-bool PrinterDevice::Open() { return false; }
-void PrinterDevice::Close() { }
-void PrinterDevice::Write(uint8_t* /*pb_*/, size_t /*uLen_*/) { }
-
-////////////////////////////////////////////////////////////////////////////////

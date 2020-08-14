@@ -322,9 +322,9 @@ bool Do(Action action, bool pressed/*=true*/)
 void Key(int fn_key, bool pressed, bool ctrl, bool alt, bool shift)
 {
     // Grab a copy of the function key definition string (could do with being converted to upper-case)
-    char szKeys[256];
-    strncpy(szKeys, GetOption(fnkeys), sizeof(szKeys) - 1);
-    szKeys[sizeof(szKeys) - 1] = '\0';
+    char szKeys[256]{};
+    auto fnkeys = GetOption(fnkeys);
+    std::copy(fnkeys.begin(), fnkeys.end(), szKeys);
 
     // Process each of the 'key=action' pairs in the string
     for (char* psz = strtok(szKeys, ", \t"); psz; psz = strtok(nullptr, ", \t"))

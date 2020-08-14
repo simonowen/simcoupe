@@ -29,200 +29,120 @@
 
 namespace Options
 {
+Config g_config;
 
-const int CFG_VERSION = 4;      // increment to force a config reset, if incompatible changes are made
 
-enum { OT_BOOL, OT_INT, OT_STRING };
-
-struct OPTION
+static void SetValue(int& value, const std::string& str)
 {
-    const char* pcszName;                                       // Option name used in config file
-    int nType;                                                  // Option type
-
-    union { void* pv;  char* ppsz;  bool* pf;  int* pn; };      // Address of config variable
-
-    const char* pcszDefault;                                    // Default value of option, with only appropriate type used
-    int nDefault;
-    bool fDefault;
-
-    bool fSpecified;
-};
-
-OPTIONS s_Options;
-static int nDrive = 1;
-
-// Helper macros for structure definition below
-#define OPT_S(o,v,s)        { o, OT_STRING, {&s_Options.v}, (s), 0,  false }
-#define OPT_N(o,v,n)        { o, OT_INT,    {&s_Options.v}, "", (n), false }
-#define OPT_F(o,v,f)        { o, OT_BOOL,   {&s_Options.v}, "",  0,  (f) }
-
-OPTION aOptions[] =
-{
-    OPT_N("CfgVersion",   cfgversion,     0),         // Config compatability number
-    OPT_F("FirstRun",     firstrun,       true),      // Non-zero if this is the first run
-    OPT_S("WindowPos",    windowpos,      ""),        // Main window position, if supported
-
-    OPT_F("Ratio5_4",     ratio5_4,       false),     // Don't use 5:4 screen ratio
-    OPT_F("Fullscreen",   fullscreen,     false),     // Not full screen
-    OPT_N("Borders",      borders,        2),         // Same amount of borders as previous version
-    OPT_F("Smooth",       smooth,         true),      // Smooth image when stretching
-    OPT_F("MotionBlur",   motionblur,     false),     // No motion blur (reduces Gigascreen flicker)
-    OPT_N("BlurPercent",  blurpercent,    25),        // Retain 25% of previous output image
-    OPT_N("MaxIntensity", maxintensity,   255),       // Maximum colour channel intensity
-    OPT_F("BlackBorder",  blackborder,    false),     // Off-black border regions
-
-    OPT_N("AviReduce",    avireduce,      1),         // Record 44kHz 8-bit stereo audio (50% saving)
-
-    OPT_S("ROM",          rom,            ""),        // No custom ROM (use built-in)
-    OPT_F("RomWrite",     romwrite,       false),     // ROM is read-only
-    OPT_F("AtomBootRom",  atombootrom,    true),      // Use Atom boot ROM if one is connected
-    OPT_F("FastReset",    fastreset,      true),      // Allow fast Z80 resets
-    OPT_F("AsicDelay",    asicdelay,      true),      // ASIC startup delay of ~50ms
-    OPT_N("MainMemory",   mainmem,        512),       // 512K main memory
-    OPT_N("ExternalMem",  externalmem,    0),         // No external memory
-    OPT_F("CMOSZ80",      cmosz80,        false),     // CMOS rather than NMOS Z80?
-    OPT_N("Speed",        speed,          100),       // Default to 100% speed
-
-    OPT_N("Drive1",       drive1,         1),         // Floppy drive 1 present
-    OPT_N("Drive2",       drive2,         1),         // Floppy drive 2 present
-    OPT_N("TurboDisk",    turbodisk,      true),      // Accelerated disk access
-    OPT_F("SavePrompt",   saveprompt,     true),      // Prompt before saving changes
-    OPT_F("DosBoot",      dosboot,        true),      // Automagically boot DOS from non-bootable disks
-    OPT_S("DosDisk",      dosdisk,        ""),        // No override DOS disk, use internal SAMDOS 2.2
-    OPT_F("StdFloppy",    stdfloppy,      true),      // Assume real disks are standard format, initially
-    OPT_N("NextFile",     nextfile,       0),         // Start from 0000
-
-    OPT_S("Disk1",        disk1,          ""),        // No disk in floppy drive 1
-    OPT_S("Disk2",        disk2,          ""),        // No disk in floppy drive 2
-    OPT_S("AtomDisk0",    atomdisk0,      ""),        // No Atom disk 0
-    OPT_S("AtomDisk1",    atomdisk1,      ""),        // No Atom disk 1
-    OPT_S("SDIDEDisk",    sdidedisk,      ""),        // No SD IDE hard disk
-    OPT_S("Tape",         tape,           ""),        // No tape image
-    OPT_F("AutoLoad",     autoload,       true),      // Auto-load media inserted at the startup screen
-
-    OPT_F("TurboTape",    turbotape,      true),      // Accelerated tape loading
-    OPT_F("TapeTraps",    tapetraps,      true),      // Short-circuit ROM loading for a speed boost
-
-    OPT_S("InPath",       inpath,         ""),        // Default input path
-    OPT_S("OutPath",      outpath,        ""),        // Default output path
-    OPT_S("MRU0",         mru0,           ""),        // No recently used files
-    OPT_S("MRU1",         mru1,           ""),
-    OPT_S("MRU2",         mru2,           ""),
-    OPT_S("MRU3",         mru3,           ""),
-    OPT_S("MRU4",         mru4,           ""),
-    OPT_S("MRU5",         mru5,           ""),
-
-    OPT_N("KeyMapping",   keymapping,     1),         // SAM keyboard mapping
-    OPT_F("AltForCntrl",  altforcntrl,    false),     // Left-Alt not used for SAM Cntrl
-    OPT_F("AltGrForEdit", altgrforedit,   true),      // Right-Alt used for SAM Edit
-    OPT_F("Mouse",        mouse,          true),      // Mouse interface connected
-    OPT_F("MouseEsc",     mouseesc,       true),      // Allow Esc to release the mouse capture
-
-    OPT_N("JoyType1",     joytype1,       1),         // Joystick 1 controls SAM joystick 1
-    OPT_N("JoyType2",     joytype2,       2),         // Joystick 2 controls SAM joystick 2
-    OPT_S("JoyDev1",      joydev1,        ""),        // Joystick 1 device
-    OPT_S("JoyDev2",      joydev2,        ""),        // Joystick 2 device
-    OPT_N("DeadZone1",    deadzone1,      20),        // Joystick 1 deadzone is 20% around central position
-    OPT_N("DeadZone2",    deadzone2,      20),        // Joystick 2 deadzone is 20% around central position
-
-    OPT_N("Parallel1",    parallel1,      0),         // Nothing on parallel port 1
-    OPT_N("Parallel2",    parallel2,      0),         // Nothing on parallel port 2
-    OPT_S("PrinterDev",   printerdev,     ""),        // No printer device (save to file)
-    OPT_F("PrinterOnline",printeronline,  true),      // Printer is online
-    OPT_N("FlushDelay",   flushdelay,     2),         // Auto-flush printer data after 2 seconds
-
-    OPT_S("SerialDev1",   serialdev1,     ""),        // Serial port 1 device
-    OPT_S("SerialDev2",   serialdev2,     ""),        // Serial port 2 device
-
-    OPT_N("Midi",         midi,           0),         // Nothing on MIDI port
-    OPT_S("MidiInDev",    midiindev,      ""),        // MIDI-In device
-    OPT_S("MidiOutDev",   midioutdev,     ""),        // MIDI-Out device
-//  OPT_N("NetworkId",    networkid,      1),         // Network station number, or something, eventually
-
-    OPT_F("SambusClock",  sambusclock,    true),      // SAMBUS clock present
-    OPT_F("DallasClock",  dallasclock,    false),     // DALLAS clock not present
-
-    OPT_F("AudioSync",    audiosync,      false),     // No forced audio synchronisation
-    OPT_N("Latency",      latency,        3),         // Sound latency of 3 frames
-    OPT_N("DAC7C",        dac7c,          1),         // Blue Alpha Sampler on port &7c
-    OPT_N("SamplerFreq",  samplerfreq,    18000),     // Blue Alpha clock frequency (default=18KHz)
-    OPT_N("SID",          sid,            1),         // SID interface with MOS6581
-
-    OPT_N("DriveLights",  drivelights,    1),         // Show drive activity lights
-    OPT_F("Profile",      profile,        false),     // Don't show emulation speed
-    OPT_F("Status",       status,         true),      // Show status line for changed options, etc.
-
-    OPT_F("BreakOnExec",  breakonexec,    false),     // Don't break on code auto-execute
-
-    OPT_S("FnKeys",       fnkeys,
-     "F1=1,SF1=2,AF1=0,CF1=3,F2=5,SF2=6,AF2=4,CF2=7,F3=50,SF3=49,F4=11,SF4=12,AF4=8,F5=25,SF5=23,F6=26,F7=52,SF7=21,F8=22,F9=10,SF9=13,F10=9,SF10=10,F11=16,F12=15,CF12=8"),
-};
-
-inline bool IsTrue(const char* pcsz_)
-{
-    return pcsz_ && (!strcasecmp(pcsz_, "true") || !strcasecmp(pcsz_, "on") || !strcasecmp(pcsz_, "enabled") ||
-        !strcasecmp(pcsz_, "yes") || !strcasecmp(pcsz_, "1"));
+    try {
+        value = std::stoi(str);
+    } catch (...) {
+        // keep default value
+    }
 }
 
-// Find a named option in the options list above
-static OPTION* FindOption(const char* pcszName_)
+static void SetValue(bool& value, const std::string& str)
 {
-    // Convert AutoBoot to AutoLoad, for backwards compatibility
-    if (!strcasecmp(pcszName_, "AutoBoot"))
-        pcszName_ = "AutoLoad";
-
-    for (auto& opt : aOptions)
-    {
-        if (!strcasecmp(pcszName_, opt.pcszName))
-            return &opt;
-    }
-
-    return nullptr;
+    value = str == "1" || tolower(str) == "yes";
 }
 
-// Set (optionally unspecified) options to their default values
-void SetDefaults(bool fForce_/*=true*/)
+static void SetValue(std::string& value, const std::string_view& sv)
 {
-    nDrive = 1;
-
-    for (auto& opt : aOptions)
-    {
-        if (fForce_ || !opt.fSpecified)
-        {
-            switch (opt.nType)
-            {
-            case OT_BOOL:       *opt.pf = opt.fDefault;   break;
-            case OT_INT:        *opt.pn = opt.nDefault;   break;
-            case OT_STRING:     strcpy(opt.ppsz, opt.pcszDefault);   break;
-            }
-        }
-    }
-
-    // Force the current compatability number
-    SetOption(cfgversion, CFG_VERSION);
+    value = sv;
 }
 
-// Find the address of the variable holding the specified option default
-void* GetDefault(const char* pcszName_)
+static bool SetNamedValue(const std::string& option_name, const std::string& str)
 {
-    if (auto p = FindOption(pcszName_))
+    auto name = trim(tolower(option_name));
+
+    if (name == "cfgversion") SetValue(g_config.cfgversion, str);
+    else if (name == "firstrun") SetValue(g_config.firstrun, str);
+    else if (name == "windowpos") SetValue(g_config.windowpos, str);
+    else if (name == "ratio5_4") SetValue(g_config.ratio5_4, str);
+    else if (name == "fullscreen") SetValue(g_config.fullscreen, str);
+    else if (name == "borders") SetValue(g_config.borders, str);
+    else if (name == "smooth") SetValue(g_config.smooth, str);
+    else if (name == "motionblur") SetValue(g_config.motionblur, str);
+    else if (name == "blurpercent") SetValue(g_config.blurpercent, str);
+    else if (name == "maxintensity") SetValue(g_config.maxintensity, str);
+    else if (name == "blackborder") SetValue(g_config.blackborder, str);
+    else if (name == "avireduce") SetValue(g_config.avireduce, str);
+    else if (name == "rom") SetValue(g_config.rom, str);
+    else if (name == "romwrite") SetValue(g_config.romwrite, str);
+    else if (name == "atombootrom") SetValue(g_config.atombootrom, str);
+    else if (name == "fastreset") SetValue(g_config.fastreset, str);
+    else if (name == "asicdelay") SetValue(g_config.asicdelay, str);
+    else if (name == "mainmem") SetValue(g_config.mainmem, str);
+    else if (name == "externalmem") SetValue(g_config.externalmem, str);
+    else if (name == "cmosz80") SetValue(g_config.cmosz80, str);
+    else if (name == "speed") SetValue(g_config.speed, str);
+    else if (name == "drive1") SetValue(g_config.drive1, str);
+    else if (name == "drive2") SetValue(g_config.drive2, str);
+    else if (name == "turbodisk") SetValue(g_config.turbodisk, str);
+    else if (name == "saveprompt") SetValue(g_config.saveprompt, str);
+    else if (name == "dosboot") SetValue(g_config.dosboot, str);
+    else if (name == "dosdisk") SetValue(g_config.dosdisk, str);
+    else if (name == "stdfloppy") SetValue(g_config.stdfloppy, str);
+    else if (name == "nextfile") SetValue(g_config.nextfile, str);
+    else if (name == "turbotape") SetValue(g_config.turbotape, str);
+    else if (name == "tapetraps") SetValue(g_config.tapetraps, str);
+    else if (name == "disk1") SetValue(g_config.disk1, str);
+    else if (name == "disk2") SetValue(g_config.disk2, str);
+    else if (name == "atomdisk0") SetValue(g_config.atomdisk0, str);
+    else if (name == "atomdisk1") SetValue(g_config.atomdisk1, str);
+    else if (name == "sdidedisk") SetValue(g_config.sdidedisk, str);
+    else if (name == "tape") SetValue(g_config.tape, str);
+    else if (name == "autoload") SetValue(g_config.autoload, str);
+    else if (name == "inpath") SetValue(g_config.inpath, str);
+    else if (name == "outpath") SetValue(g_config.outpath, str);
+    else if (name == "mru0") SetValue(g_config.mru0, str);
+    else if (name == "mru1") SetValue(g_config.mru1, str);
+    else if (name == "mru2") SetValue(g_config.mru2, str);
+    else if (name == "mru3") SetValue(g_config.mru3, str);
+    else if (name == "mru4") SetValue(g_config.mru4, str);
+    else if (name == "mru5") SetValue(g_config.mru5, str);
+    else if (name == "keymapping") SetValue(g_config.keymapping, str);
+    else if (name == "altforcntrl") SetValue(g_config.altforcntrl, str);
+    else if (name == "altgrforedit") SetValue(g_config.altgrforedit, str);
+    else if (name == "mouse") SetValue(g_config.mouse, str);
+    else if (name == "mouseesc") SetValue(g_config.mouseesc, str);
+    else if (name == "joydev1") SetValue(g_config.joydev1, str);
+    else if (name == "joydev2") SetValue(g_config.joydev2, str);
+    else if (name == "joytype1") SetValue(g_config.joytype1, str);
+    else if (name == "joytype2") SetValue(g_config.joytype2, str);
+    else if (name == "deadzone1") SetValue(g_config.deadzone1, str);
+    else if (name == "deadzone2") SetValue(g_config.deadzone2, str);
+    else if (name == "parallel1") SetValue(g_config.parallel1, str);
+    else if (name == "parallel2") SetValue(g_config.parallel2, str);
+    else if (name == "printeronline") SetValue(g_config.printeronline, str);
+    else if (name == "flushdelay") SetValue(g_config.flushdelay, str);
+    else if (name == "midi") SetValue(g_config.midi, str);
+    else if (name == "midiindev") SetValue(g_config.midiindev, str);
+    else if (name == "midioutdev") SetValue(g_config.midioutdev, str);
+    else if (name == "sambusclock") SetValue(g_config.sambusclock, str);
+    else if (name == "dallasclock") SetValue(g_config.dallasclock, str);
+    else if (name == "audiosync") SetValue(g_config.audiosync, str);
+    else if (name == "latency") SetValue(g_config.latency, str);
+    else if (name == "dac7c") SetValue(g_config.dac7c, str);
+    else if (name == "samplerfreq") SetValue(g_config.samplerfreq, str);
+    else if (name == "sid") SetValue(g_config.sid, str);
+    else if (name == "drivelights") SetValue(g_config.drivelights, str);
+    else if (name == "profile") SetValue(g_config.profile, str);
+    else if (name == "status") SetValue(g_config.status, str);
+    else if (name == "breakonexec") SetValue(g_config.breakonexec, str);
+    else if (name == "fnkeys") SetValue(g_config.fnkeys, str);
+    else
     {
-        switch (p->nType)
-        {
-        case OT_BOOL:       return &p->fDefault;
-        case OT_INT:        return &p->nDefault;
-            //          case OT_STRING:     return &p->pcszDefault;     // Don't use - points to read-only string table!
-        }
+        return false;
     }
 
-    // This should never happen, thanks to a compile-time check in the header
-    static void* pv = nullptr;
-    return &pv;
+    return true;
 }
 
 bool Load(int argc_, char* argv_[])
 {
-    SetDefaults(true);
+    // Set defaults.
+    g_config = {};
 
     auto path = OSD::MakeFilePath(PathType::Settings, OPTIONS_FILE);
     unique_FILE file = fopen(path.c_str(), "r");
@@ -237,59 +157,38 @@ bool Load(int argc_, char* argv_[])
             if (!pszName || !pszValue)
                 continue;
 
-            // Skip delimiters up to the value, and take the value up to a <CR> or <LF>
             pszValue++;
             strtok(pszValue += strspn(pszValue, " \t=\r\n"), "\r\n");
 
-            // Look for the option in the list
-            for (auto& opt : aOptions)
+            if (!SetNamedValue(pszName, pszValue))
             {
-                if (!strcasecmp(pszName, opt.pcszName))
-                {
-                    // Remember that a value has been found for this option
-                    opt.fSpecified = true;
-
-                    // Extract the appropriate value type from the string
-                    switch (opt.nType)
-                    {
-                    case OT_BOOL:       *opt.pf = *pszValue ? IsTrue(pszValue) : opt.fDefault;    break;
-                    case OT_INT:        *opt.pn = *pszValue ? atoi(pszValue) : opt.nDefault;      break;
-                    case OT_STRING:     strcpy(opt.ppsz, *pszValue ? pszValue : opt.pcszDefault); break;
-                    }
-                }
+                TRACE("Unknown setting: {}={}", pszName, pszValue);
             }
         }
     }
 
-    // Set the default values for any missing options, or all if the config version has changed
-    bool fIncompatible = GetOption(cfgversion) != CFG_VERSION;
-    SetDefaults(fIncompatible);
+    // If the loaded configuration is incompatible, reset to defaults.
+    if (g_config.cfgversion != ConfigVersion)
+        g_config = {};
 
-    // Process any commmand-line arguments to look for options
+    auto drive_arg = 1;
     while (argc_ && --argc_)
     {
         auto pcszOption = *++argv_;
         if (*pcszOption == '-')
         {
-            // Find the option in the list of known options
-            if (auto p = FindOption(pcszOption + 1))
-            {
-                switch (p->nType)
-                {
-                case OT_BOOL:   *p->pf = (argv_[1] && *argv_[1] == '-') || (argc_-- && IsTrue(*++argv_)); continue;
-                case OT_INT:    *p->pn = atoi(*++argv_);    break;
-                case OT_STRING: strcpy(p->ppsz, *++argv_);  break;
-                }
+            pcszOption++;
+            argc_--;
 
-                argc_--;
-            }
-            else
+            if (argc_ <= 0 || !SetNamedValue(pcszOption, *++argv_))
+            {
                 TRACE("Unknown command-line option: {}\n", pcszOption);
+            }
         }
         else
         {
             // Bare filenames will be inserted into drive 1 then 2
-            switch (nDrive++)
+            switch (drive_arg++)
             {
             case 1:
                 SetOption(disk1, pcszOption);
@@ -312,26 +211,91 @@ bool Load(int argc_, char* argv_[])
     return true;
 }
 
-
 bool Save()
 {
-    SetOption(speed, 100);
-
     auto path = OSD::MakeFilePath(PathType::Settings, OPTIONS_FILE);
     try
     {
         std::ofstream ofs(path, std::ofstream::out);
-        for (auto& opt : aOptions)
-        {
-            ofs << opt.pcszName << '=';
-            switch (opt.nType)
-            {
-            case OT_BOOL:   ofs << (*opt.pf ? "Yes" : "No");  break;
-            case OT_INT:    ofs << *opt.pn;  break;
-            case OT_STRING: ofs << opt.ppsz;  break;
-            }
-            ofs << std::endl;
-        }
+        ofs << std::noboolalpha;
+
+        using namespace std;
+        ofs << "cfgversion=" << to_string(g_config.cfgversion) << std::endl;
+        ofs << "firstrun=" << to_string(g_config.firstrun) << std::endl;
+        ofs << "windowpos=" << to_string(g_config.windowpos) << std::endl;
+        ofs << "ratio5_4=" << to_string(g_config.ratio5_4) << std::endl;
+        ofs << "fullscreen=" << to_string(g_config.fullscreen) << std::endl;
+        ofs << "borders=" << to_string(g_config.borders) << std::endl;
+        ofs << "smooth=" << to_string(g_config.smooth) << std::endl;
+        ofs << "motionblur=" << to_string(g_config.motionblur) << std::endl;
+        ofs << "blurpercent=" << to_string(g_config.blurpercent) << std::endl;
+        ofs << "maxintensity=" << to_string(g_config.maxintensity) << std::endl;
+        ofs << "blackborder=" << to_string(g_config.blackborder) << std::endl;
+        ofs << "avireduce=" << to_string(g_config.avireduce) << std::endl;
+        ofs << "rom=" << to_string(g_config.rom) << std::endl;
+        ofs << "romwrite=" << to_string(g_config.romwrite) << std::endl;
+        ofs << "atombootrom=" << to_string(g_config.atombootrom) << std::endl;
+        ofs << "fastreset=" << to_string(g_config.fastreset) << std::endl;
+        ofs << "asicdelay=" << to_string(g_config.asicdelay) << std::endl;
+        ofs << "mainmem=" << to_string(g_config.mainmem) << std::endl;
+        ofs << "externalmem=" << to_string(g_config.externalmem) << std::endl;
+        ofs << "cmosz80=" << to_string(g_config.cmosz80) << std::endl;
+        ofs << "speed=" << to_string(g_config.speed) << std::endl;
+        ofs << "drive1=" << to_string(g_config.drive1) << std::endl;
+        ofs << "drive2=" << to_string(g_config.drive2) << std::endl;
+        ofs << "turbodisk=" << to_string(g_config.turbodisk) << std::endl;
+        ofs << "saveprompt=" << to_string(g_config.saveprompt) << std::endl;
+        ofs << "dosboot=" << to_string(g_config.dosboot) << std::endl;
+        ofs << "dosdisk=" << to_string(g_config.dosdisk) << std::endl;
+        ofs << "stdfloppy=" << to_string(g_config.stdfloppy) << std::endl;
+        ofs << "nextfile=" << to_string(g_config.nextfile) << std::endl;
+        ofs << "turbotape=" << to_string(g_config.turbotape) << std::endl;
+        ofs << "tapetraps=" << to_string(g_config.tapetraps) << std::endl;
+        ofs << "disk1=" << to_string(g_config.disk1) << std::endl;
+        ofs << "disk2=" << to_string(g_config.disk2) << std::endl;
+        ofs << "atomdisk0=" << to_string(g_config.atomdisk0) << std::endl;
+        ofs << "atomdisk1=" << to_string(g_config.atomdisk1) << std::endl;
+        ofs << "sdidedisk=" << to_string(g_config.sdidedisk) << std::endl;
+        ofs << "tape=" << to_string(g_config.tape) << std::endl;
+        ofs << "autoload=" << to_string(g_config.autoload) << std::endl;
+        ofs << "inpath=" << to_string(g_config.inpath) << std::endl;
+        ofs << "outpath=" << to_string(g_config.outpath) << std::endl;
+        ofs << "mru0=" << to_string(g_config.mru0) << std::endl;
+        ofs << "mru1=" << to_string(g_config.mru1) << std::endl;
+        ofs << "mru2=" << to_string(g_config.mru2) << std::endl;
+        ofs << "mru3=" << to_string(g_config.mru3) << std::endl;
+        ofs << "mru4=" << to_string(g_config.mru4) << std::endl;
+        ofs << "mru5=" << to_string(g_config.mru5) << std::endl;
+        ofs << "keymapping=" << to_string(g_config.keymapping) << std::endl;
+        ofs << "altforcntrl=" << to_string(g_config.altforcntrl) << std::endl;
+        ofs << "altgrforedit=" << to_string(g_config.altgrforedit) << std::endl;
+        ofs << "mouse=" << to_string(g_config.mouse) << std::endl;
+        ofs << "mouseesc=" << to_string(g_config.mouseesc) << std::endl;
+        ofs << "joydev1=" << to_string(g_config.joydev1) << std::endl;
+        ofs << "joydev2=" << to_string(g_config.joydev2) << std::endl;
+        ofs << "joytype1=" << to_string(g_config.joytype1) << std::endl;
+        ofs << "joytype2=" << to_string(g_config.joytype2) << std::endl;
+        ofs << "deadzone1=" << to_string(g_config.deadzone1) << std::endl;
+        ofs << "deadzone2=" << to_string(g_config.deadzone2) << std::endl;
+        ofs << "parallel1=" << to_string(g_config.parallel1) << std::endl;
+        ofs << "parallel2=" << to_string(g_config.parallel2) << std::endl;
+        ofs << "printeronline=" << to_string(g_config.printeronline) << std::endl;
+        ofs << "flushdelay=" << to_string(g_config.flushdelay) << std::endl;
+        ofs << "midi=" << to_string(g_config.midi) << std::endl;
+        ofs << "midiindev=" << to_string(g_config.midiindev) << std::endl;
+        ofs << "midioutdev=" << to_string(g_config.midioutdev) << std::endl;
+        ofs << "sambusclock=" << to_string(g_config.sambusclock) << std::endl;
+        ofs << "dallasclock=" << to_string(g_config.dallasclock) << std::endl;
+        ofs << "audiosync=" << to_string(g_config.audiosync) << std::endl;
+        ofs << "latency=" << to_string(g_config.latency) << std::endl;
+        ofs << "dac7c=" << to_string(g_config.dac7c) << std::endl;
+        ofs << "samplerfreq=" << to_string(g_config.samplerfreq) << std::endl;
+        ofs << "sid=" << to_string(g_config.sid) << std::endl;
+        ofs << "drivelights=" << to_string(g_config.drivelights) << std::endl;
+        ofs << "profile=" << to_string(g_config.profile) << std::endl;
+        ofs << "status=" << to_string(g_config.status) << std::endl;
+        ofs << "breakonexec=" << to_string(g_config.breakonexec) << std::endl;
+        ofs << "fnkeys=" << to_string(g_config.fnkeys) << std::endl;
     }
     catch (...)
     {

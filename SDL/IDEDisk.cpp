@@ -36,9 +36,9 @@ struct hd_geometry {
 };
 
 
-bool DeviceHardDisk::Open(bool fReadOnly_/*=false*/)
+bool DeviceHardDisk::Open(bool read_only/*=false*/)
 {
-    m_hDevice = open(m_strPath.c_str(), O_EXCL | (fReadOnly_ ? O_RDONLY : O_RDWR));
+    m_hDevice = open(m_strPath.c_str(), O_EXCL | (read_only ? O_RDONLY : O_RDWR));
     if (m_hDevice == -1)
         m_hDevice = open(m_strPath.c_str(), O_EXCL | O_RDONLY);
 
@@ -97,7 +97,7 @@ bool DeviceHardDisk::WriteSector(unsigned int uSector_, uint8_t* pb_)
 #else
 
 // Dummy implementation for non-Linux SDL versions
-bool DeviceHardDisk::Open(bool fReadOnly_/*=false*/) { return false; }
+bool DeviceHardDisk::Open(bool read_only) { return false; }
 void DeviceHardDisk::Close() { }
 bool DeviceHardDisk::ReadSector(unsigned int, uint8_t*) { return false; }
 bool DeviceHardDisk::WriteSector(unsigned int, uint8_t*) { return false; }

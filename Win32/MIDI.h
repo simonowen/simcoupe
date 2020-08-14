@@ -34,7 +34,7 @@ public:
     void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 public:
-    bool SetDevice(const char* pcszDevice_);
+    bool SetDevice(const std::string& dev_path);
 
 protected:
     HMIDIOUT m_hMidiOut = nullptr; // Handle for Windows MIDI OUT device

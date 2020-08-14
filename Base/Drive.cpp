@@ -62,12 +62,12 @@ void Drive::Reset()
 }
 
 // Insert a new disk from the named source (usually a file)
-bool Drive::Insert(const char* pcszSource_, bool fAutoLoad_)
+bool Drive::Insert(const std::string& disk_path, bool fAutoLoad_)
 {
     Eject();
 
     // Open the new disk image
-    m_pDisk = Disk::Open(pcszSource_);
+    m_pDisk = Disk::Open(disk_path);
     if (!m_pDisk)
         return false;
 

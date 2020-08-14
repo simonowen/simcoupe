@@ -60,10 +60,10 @@ void AtaAdapter::Reset()
 }
 
 
-bool AtaAdapter::Attach(const char* pcszDisk_, int nDevice_)
+bool AtaAdapter::Attach(const std::string& disk_path, int nDevice_)
 {
     // Return if successfully or path is empty
-    return Attach(HardDisk::OpenObject(pcszDisk_), nDevice_) || !*pcszDisk_;
+    return Attach(HardDisk::OpenObject(disk_path), nDevice_) || disk_path.empty();
 }
 
 bool AtaAdapter::Attach(std::unique_ptr<HardDisk> disk, int nDevice_)

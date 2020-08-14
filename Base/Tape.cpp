@@ -610,8 +610,8 @@ bool InFEHook()
 bool IsRecognised(const std::string&) { return false; }
 bool IsPlaying() { return false; }
 bool IsInserted() { return false; }
-const std::string GetPath() { return ""; }
-const std::string GetFile() { return ""; }
+std::string GetPath() { return ""; }
+std::string GetFile() { return ""; }
 
 bool Insert(const std::string&) { return false; }
 void Eject() { }

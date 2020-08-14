@@ -367,7 +367,7 @@ unsigned int Window::GetValue() const
 
 void Window::SetValue(unsigned int u_)
 {
-    SetText(fmt::format("{}", u_).c_str());
+    SetText(fmt::format("{}", u_));
 }
 
 int Window::GetTextWidth(size_t offset, size_t max_length) const

@@ -127,7 +127,7 @@ void MidiDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
     m_nOut = m_abOut[1] = m_abOut[2] = m_abOut[3] = 0;
 }
 
-bool MidiDevice::SetDevice(const char* pcszDevice_)
+bool MidiDevice::SetDevice(const std::string& dev_path)
 {
     if (m_nDevice != -1)
     {
@@ -136,10 +136,10 @@ bool MidiDevice::SetDevice(const char* pcszDevice_)
     }
 
     // Open the MIDI device read/write, or write only if that fails
-    if (*pcszDevice_)
+    if (dev_path.empty())
     {
-        if ((m_nDevice = open(pcszDevice_, O_RDWR) == -1))
-            m_nDevice = open(pcszDevice_, O_WRONLY);
+        if ((m_nDevice = open(dev_path.c_str(), O_RDWR) == -1))
+            m_nDevice = open(dev_path.c_str(), O_WRONLY);
     }
 
     // Reset the device to flush any partial messages

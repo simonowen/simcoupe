@@ -39,7 +39,7 @@ struct SECTOR
 class FloppyStream final : public Stream
 {
 public:
-    FloppyStream(const std::string& filepath, bool fReadOnly_ = false);
+    FloppyStream(const std::string& filepath, bool read_only = false);
     FloppyStream(const FloppyStream&) = delete;
     void operator= (const FloppyStream&) = delete;
     ~FloppyStream() { Close(); }

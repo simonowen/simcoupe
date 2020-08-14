@@ -20,134 +20,125 @@
 
 #pragma once
 
-#define OPTIONS_FILE  "SimCoupe.cfg"
+constexpr auto OPTIONS_FILE = "SimCoupe.cfg";
+constexpr auto ConfigVersion = 4;       // increment to force a config reset if incompatible changes are made
 
-struct OPTIONS
+struct Config
 {
-    int     cfgversion;             // Config compatability number (set defaults if mismatched)
-    bool    firstrun;               // First run of the emulator?
-    char    windowpos[128];         // Main window position
+    int cfgversion = ConfigVersion;     // Config compatability number (set defaults if mismatched)
+    bool firstrun = true;               // First run of the emulator?
+    std::string windowpos;              // Main window position (client area)
 
-    bool    ratio5_4;               // Use 5:4 screen ratio?
-    bool    fullscreen;             // Start in full-screen mode?
-    int     borders;                // How much of the borders to show
-    bool    smooth;                 // Smooth image when stretching?
-    bool    motionblur;             // Motion blur to reduce animation flicker?
-    int     blurpercent;            // Percentage of previous frame retained
-    int     maxintensity;           // Maximum colour channel intensity
-    bool    blackborder;            // Black non-screen area?
+    bool ratio5_4 = false;              // Use 5:4 screen ratio?
+    bool fullscreen = false;            // Start in full-screen mode?
+    int borders = 2;                    // How much of the borders to show
+    bool smooth = true;                 // Smooth image when stretching? (disables integer scaling)
+    bool motionblur = false;            // Motion blur to reduce animation flicker?
+    int blurpercent = 25;               // Percentage of previous frame retained with motion blur enabled
+    int maxintensity = 255;             // Maximum colour channel intensity (0-255)
+    bool blackborder = false;           // Black border around emulated screen?
 
-    int     avireduce;              // Reduce AVI audio size (0=lossless to 4=muted)
+    int avireduce = 1;                  // Reduce AVI audio size (0=lossless, 1=44KHz 8-bit, ..., 4=muted)
 
-    char    rom[MAX_PATH];          // SAM ROM image path
-    bool    romwrite;               // Allow writes to ROM?
-    bool    atombootrom;            // Use Atom boot ROM if one is connected?
-    bool    fastreset;              // Fast SAM system reset?
-    bool    asicdelay;              // Enforce ASIC startup delay (~49ms)?
-    int     mainmem;                // 256 or 512 for amount of main memory
-    int     externalmem;            // Number of MB of external memory
-    bool    cmosz80;                // CMOS rather than NMOS Z80?
-    int     speed;                  // Running speed (percentage)
+    std::string rom;                    // Custom SAM ROM path (blank for built-in v3.0)
+    bool romwrite = false;              // Enable writes to ROM?
+    bool atombootrom = true;            // Use Atom boot ROM if Atom/AtomLite device is connected?
+    bool fastreset = true;              // Run at turbo speed during SAM ROM memory test?
+    bool asicdelay = true;              // Enforce ASIC startup delay (~49ms)?
+    int mainmem = 512;                  // Main memory size in K (256 or 512)
+    int externalmem = 0;                // External memory size in MB (0-4)
+    bool cmosz80 = false;               // CMOS rather than NMOS Z80? (affects OUT (C),X)
+    int speed = 100;                    // Emulation speed (50-1000%)
 
-    int     drive1;                 // Drive 1 type
-    int     drive2;                 // Drive 2 type
-    bool    turbodisk;              // Accelerated disk access?
-    bool    saveprompt;             // Prompt before saving disk changes?
-    bool    dosboot;                // Automagically boot DOS from non-bootable disks?
-    char    dosdisk[MAX_PATH];      // Override DOS boot disk to use instead of the internal SAMDOS 2.2 image
-    bool    stdfloppy;              // Assume real disks are standard format, initially?
-    int     nextfile;               // Next file number for auto-generated filenames
+    int drive1 = 1;                     // Drive 1 type (0=none, 1=floppy, 2=Atom, 3=AtomLite, 4=SDIDE)
+    int drive2 = 1;                     // Drive 2 type
+    bool turbodisk = true;              // Run at turbo speed during disk access?
+    bool saveprompt = true;             // Prompt before saving disk changes?
+    bool dosboot = true;                // Automagically boot DOS from non-bootable disks?
+    std::string dosdisk;                // Custom DOS boot disk path (blank for built-in SAMDOS 2.2)
+    bool stdfloppy = true;              // Assume real disks are standard format, initially?
+    int nextfile = 0;                   // Next file number for auto-generated filenames
 
-    bool    turbotape;              // True to accelerate emulation during tape loading
-    bool    tapetraps;              // True to short-circuit ROM loading, for a speed boost
+    bool turbotape = true;              // Run at turn speed during tape loading?
+    bool tapetraps = true;              // Instant loading of ROM tape blocks?
 
-    char    disk1[MAX_PATH];        // Floppy disk image in drive 1
-    char    disk2[MAX_PATH];        // Floppy disk image in drive 2
-    char    atomdisk0[MAX_PATH];    // Atom disk 0
-    char    atomdisk1[MAX_PATH];    // Atom disk 1
-    char    sdidedisk[MAX_PATH];    // Hard disk image for SD IDE interface
-    char    tape[MAX_PATH];         // Tape image file
-    bool    autoload;               // Auto-load media inserted at the startup screen?
+    std::string disk1;                  // Floppy disk image in drive 1
+    std::string disk2;                  // Floppy disk image in drive 2
+    std::string atomdisk0;              // Atom disk 0
+    std::string atomdisk1;              // Atom disk 1
+    std::string sdidedisk;              // Hard disk image for SD IDE interface
+    std::string tape;                   // Tape image file
+    bool autoload = true;               // Auto-load media inserted at the startup screen?
 
-    char    inpath[MAX_PATH];       // Override path for input files
-    char    outpath[MAX_PATH];      // Override path for output files
-    char    mru0[MAX_PATH];         // Most recently used files
-    char    mru1[MAX_PATH];         // Most recently used files
-    char    mru2[MAX_PATH];         // Most recently used files
-    char    mru3[MAX_PATH];         // Most recently used files
-    char    mru4[MAX_PATH];         // Most recently used files
-    char    mru5[MAX_PATH];         // Most recently used files
+    std::string inpath;                 // Default path for input files
+    std::string outpath;                // Default path for output files
+    std::string mru0;                   // Most recently used files
+    std::string mru1;
+    std::string mru2;
+    std::string mru3;
+    std::string mru4;
+    std::string mru5;
 
-    int     keymapping;             // Keyboard mapping mode (raw/SAM/Spectrum)
-    bool    altforcntrl;            // Use Left-Alt for SAM Cntrl?
-    bool    altgrforedit;           // Use Right-Alt for SAM Edit?
-    bool    mouse;                  // Mouse interface connected?
-    bool    mouseesc;               // Allow Esc to release the mouse capture?
+    int keymapping = 1;                 // Keyboard mapping mode (0=raw, 1=Auto-detect, 2=SAM, 3=Spectrum)
+    bool altforcntrl = false;           // Use Left-Alt for SAM Cntrl key?
+    bool altgrforedit = true;           // Use Right-Alt for SAM Edit key?
+    bool mouse = true;                  // Mouse interface connected?
+    bool mouseesc = true;               // Relase mouse capture if Esc is pressed?
 
-    char    joydev1[128];           // Joystick 1 device
-    char    joydev2[128];           // Joystick 2 device number
-    int     joytype1;               // Joystick 1 mapping (0=None, 1=Joystick1, 2=Joystick2, 3=Kempston)
-    int     joytype2;               // Joystick 2 mapping
-    int     deadzone1;              // Joystick 1 deadzone
-    int     deadzone2;              // Joystick 2 deadzone
+    std::string joydev1;                // Joystick 1 device
+    std::string joydev2;                // Joystick 2 device number
+    int joytype1 = 1;                   // Joystick 1 mapping (0=None, 1=Joystick1, 2=Joystick2, 3=Kempston)
+    int joytype2 = 2;                   // Joystick 2 mapping
+    int deadzone1 = 20;                 // Joystick 1 deadzone
+    int deadzone2 = 20;                 // Joystick 2 deadzone
 
-    int     parallel1;              // Parallel port 1 function
-    int     parallel2;              // Parallel port 2 function
-    char    printerdev[128];        // Printer device name
-    bool    printeronline;          // Printer is online?
-    int     flushdelay;             // Delay before auto-flushing print data
+    int parallel1 = 0;                  // Parallel port 1 function
+    int parallel2 = 0;                  // Parallel port 2 function
+    bool printeronline = true;          // Printer is online?
+    int flushdelay = 2;                 // Delay (in seconds) before auto-flushing print data
 
-    int     serial1;                // Serial port 1 function
-    int     serial2;                // Serial port 2 function
-    char    serialdev1[128];        // Serial port 1 device
-    char    serialdev2[128];        // Serial port 2 device
+    int midi = 0;                       // MIDI port function (0=none, 1=device)
+    std::string midiindev;              // MIDI-In device
+    std::string midioutdev;             // MIDI-Out device
 
-    int     midi;                   // MIDI port function
-    char    midiindev[128];         // MIDI-In device
-    char    midioutdev[128];        // MIDI-Out device
-    int     networkid;              // Network station number
+    bool sambusclock = true;            // Enable SAMBUS clock support?
+    bool dallasclock = false;           // Enable DALLAS clock support?
 
-    bool    sambusclock;            // Enable SAMBUS clock support?
-    bool    dallasclock;            // Enable DALLAS clock support?
+    bool audiosync = false;             // Forced audio sync? (seamless but jittery)
+    int latency = 3;                    // Amount of sound buffering
+    int dac7c = 1;                      // DAC device on shared port &7c? (0=none, 1=BlueAlpha Sampler, 2=SAMVox, 3=Paula)
+    int samplerfreq = 18000;            // Blue Alpha Sampler clock frequency (default=18KHz)
+    int sid = 1;                        // SID chip type (0=none, 1=MOS6581, 2=MOS8580)
 
-    bool    audiosync;              // Forced audio sync? (seamless but jittery)
-    int     latency;                // Amount of sound buffering
-    int     dac7c;                  // DAC device on shared port &7c? (0=none, 1=BlueAlpha Sampler, 2=SAMVox, 3=Paula)
-    int     samplerfreq;            // Blue Alpha Sampler clock frequency
-    int     sid;                    // SID chip type (0=none, 1=MOS6581, 2=MOS8580)
+    int drivelights = 1;                // Show floppy drive LEDs (0=none, 1=top-left, 2=bottom-left)
+    bool profile = true;                // Show current emulation speed?
+    bool status = true;                 // Show status messages?
 
-    int     drivelights;            // Show floppy drive LEDs
-    bool    profile;                // Show profile stats?
-    bool    status;                 // Show status line?
+    bool breakonexec = false;           // Break on code auto-execute?
 
-    bool    breakonexec;            // Break on code auto-execute?
-
-    char    fnkeys[256];            // Function key bindings
-    char    keymap[256];            // Custom keymap
+    std::string fnkeys =                // Function key bindings
+        "F1=1,SF1=2,AF1=0,CF1=3,"
+        "F2=5,SF2=6,AF2=4,CF2=7,"
+        "F3=50,SF3=49,"
+        "F4=11,SF4=12,AF4=8,"
+        "F5=25,SF5=23,"
+        "F6=26,"
+        "F7=52,SF7=21,"
+        "F8=22,"
+        "F9=10,SF9=13,"
+        "F10=9,SF10=10,"
+        "F11=16,"
+        "F12=15,CF12=8";
 };
 
 
 namespace Options
 {
-void SetDefaults(bool fForce_ = true);
-void* GetDefault(const char* pcszName_);
-
 bool Load(int argc_, char* argv[]);
 bool Save();
 
-extern OPTIONS s_Options;
+extern Config g_config;
 }
 
-
-// Helper macros for getting/setting options
-#define GetOption(field)        (const_cast<const OPTIONS*>(&Options::s_Options)->field)
-#define SetOption(field,value)  SetOption_(Options::s_Options.field, value)
-#define SetDefault(field,value) SetDefault_(#field, value, Options::s_Options.field)
-
-// inline functions so we can take advantage of function polymorphism
-inline bool SetOption_(bool& rfOption_, bool fValue_) { return rfOption_ = fValue_; }
-inline int SetOption_(int& rnOption_, int nValue_) { return rnOption_ = nValue_; }
-inline const char* SetOption_(char* pszOption_, const char* pszValue_) { return strcpy(pszOption_, pszValue_); }
-
-inline void SetDefault_(const char* pcszOption_, bool fValue_, bool&) { *((bool*)Options::GetDefault(pcszOption_)) = fValue_; }
-inline void SetDefault_(const char* pcszOption_, int nValue_, int&) { *((int*)Options::GetDefault(pcszOption_)) = nValue_; }
+#define GetOption(field)        (Options::g_config.field)
+#define SetOption(field,value)  (Options::g_config.field = (value))

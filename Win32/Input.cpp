@@ -163,11 +163,11 @@ BOOL CALLBACK EnumJoystickProc(LPCDIDEVICEINSTANCE pdiDevice_, LPVOID lpv_)
                 TRACE("!!! Failed to query joystick for IID_IDirectInputDevice2 ({:08x})\n", hr);
 
             // If the device name matches the joystick 1 device name, save a pointer to it
-            else if (!lstrcmpi(didi.tszInstanceName, GetOption(joydev1)))
+            else if (didi.tszInstanceName == GetOption(joydev1))
                 pdidJoystick1 = pDevice;
 
             // If the device name matches the joystick 2 device name, save a pointer to it
-            else if (!lstrcmpi(didi.tszInstanceName, GetOption(joydev2)))
+            else if (didi.tszInstanceName == GetOption(joydev2))
                 pdidJoystick2 = pDevice;
 
             // No match

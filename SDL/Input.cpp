@@ -56,9 +56,9 @@ bool Input::Init()
             continue;
 
         // Match against the required joystick names, or auto-select the first available
-        if (!pJoystick1 && (!strcasecmp(SDL_JoystickNameForIndex(i), GetOption(joydev1)) || !*GetOption(joydev1)))
+        if (!pJoystick1 && (SDL_JoystickNameForIndex(i) == GetOption(joydev1)) || GetOption(joydev1).empty())
             pJoystick1 = SDL_JoystickOpen(nJoystick1 = i);
-        else if (!pJoystick2 && (!strcasecmp(SDL_JoystickNameForIndex(i), GetOption(joydev2)) || !*GetOption(joydev2)))
+        else if (!pJoystick2 && (SDL_JoystickNameForIndex(i) == GetOption(joydev2)) || GetOption(joydev2).empty())
             pJoystick2 = SDL_JoystickOpen(nJoystick2 = i);
     }
 

@@ -126,7 +126,7 @@ public:
 
 public:
     static DiskType GetType(Stream& pStream_);
-    static std::unique_ptr<Disk> Open(const char* pcszDisk_, bool fReadOnly_ = false);
+    static std::unique_ptr<Disk> Open(const std::string& disk_path, bool read_only = false);
     static std::unique_ptr<Disk> Open(void* pv_, size_t uSize_, const char* pcszDisk_);
 
     virtual void Close() { m_stream->Close(); }

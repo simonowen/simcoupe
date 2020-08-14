@@ -41,7 +41,7 @@
     else if (FileDisk::IsRecognised(stream))
     {
         fs::path file = stream.GetFile();
-        if (tolower(file.extension()) == ".sbt")
+        if (tolower(file.extension().string()) == ".sbt")
             return DiskType::SBT;
     }
 
@@ -52,12 +52,12 @@
     return DiskType::Unknown;
 }
 
-/*static*/ std::unique_ptr<Disk> Disk::Open(const char* pcszDisk_, bool fReadOnly_/*=false*/)
+/*static*/ std::unique_ptr<Disk> Disk::Open(const std::string& disk_path, bool read_only)
 {
     std::unique_ptr<Disk> disk;
 
     // Fetch stream for the disk source
-    auto stream = Stream::Open(pcszDisk_, fReadOnly_);
+    auto stream = Stream::Open(disk_path, read_only);
 
     // A disk will only be returned if the stream format is recognised
     if (stream)

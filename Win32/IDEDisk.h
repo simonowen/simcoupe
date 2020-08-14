@@ -25,23 +25,23 @@
 class DeviceHardDisk : public HardDisk
 {
 public:
-    DeviceHardDisk(const char* pcszDisk_);
+    DeviceHardDisk(const std::string& disk_path);
     ~DeviceHardDisk();
 
 public:
-    static bool IsRecognised(const char* pcszDisk_);
+    static bool IsRecognised(const std::string& disk_path);
     static std::vector<std::string> GetDeviceList();
 
 public:
     bool IsOpen() const { return m_hDevice != INVALID_HANDLE_VALUE; }
-    bool Open(bool fReadOnly_ = false) override;
+    bool Open(bool read_only = false) override;
     void Close();
 
     bool ReadSector(UINT uSector_, uint8_t* pb_) override;
     bool WriteSector(UINT uSector_, uint8_t* pb_) override;
 
 protected:
-    bool Lock(bool fReadOnly_ = false);
+    bool Lock(bool read_only = false);
     void Unlock();
 
 protected:

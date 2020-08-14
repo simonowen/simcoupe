@@ -76,7 +76,6 @@ void CentreWindow(HWND hwnd_, HWND hwndParent_ = nullptr);
 static void DisplayOptions();
 static bool InitWindow();
 
-static void AddRecentFile(const char* pcsz_);
 static void LoadRecentFiles();
 static void SaveRecentFiles();
 
@@ -104,10 +103,8 @@ static int nOptionPage = 0;                // Last active option property page
 static const int MAX_OPTION_PAGES = 16;    // Maximum number of option propery pages
 static bool fCentredOptions;
 
-static OPTIONS opts;
-// Helper macro for detecting options changes
-#define Changed(o)        (opts.o != GetOption(o))
-#define ChangedString(o)  (strcasecmp(opts.o, GetOption(o)))
+static Config current_config;
+#define Changed(o)  (current_config.o != GetOption(o))
 
 static char szFloppyFilters[] =
 #ifdef HAVE_LIBZ
@@ -248,6 +245,40 @@ void UI::ShowMessage(MsgType type, const std::string& message)
     }
 }
 
+
+std::string GetDlgItemText(HWND hdlg_, int ctrl_id = 0)
+{
+    char sz[MAX_PATH]{};
+    HWND hctrl = ctrl_id ? GetDlgItem(hdlg_, ctrl_id) : hdlg_;
+    GetWindowText(hctrl, sz, _countof(sz));
+    return sz;
+}
+
+void SetDlgItemText(HWND hdlg_, int ctrl_id, const std::string& str, bool select = false)
+{
+    HWND hctrl = ctrl_id ? GetDlgItem(hdlg_, ctrl_id) : hdlg_;
+    SetWindowText(hctrl, str.c_str());
+
+    if (select)
+    {
+        Edit_SetSel(hctrl, 0, -1);
+        SetFocus(hctrl);
+    }
+}
+
+int GetDlgItemValue(HWND hdlg_, int nId_, int default_value = -1)
+{
+    try
+    {
+        return std::stoi(GetDlgItemText(hdlg_, nId_));
+    }
+    catch (...)
+    {
+        return default_value;
+    }
+}
+
+
 void ResizeWindow(int nHeight_)
 {
     RECT rClient;
@@ -317,65 +348,56 @@ bool GetSaveLoadFile(LPOPENFILENAME lpofn_, bool fLoad_, bool fCheckExisting_ = 
 }
 
 
-#define NUM_RECENT_FILES        6
-char szRecentFiles[NUM_RECENT_FILES][MAX_PATH];
+constexpr auto MAX_RECENT_FILES = 6;
+static std::vector<std::string> recent_files;
+
+void RemoveRecentFile(const std::string& path)
+{
+    auto lower_path = tolower(path);
+    auto it = std::find_if(recent_files.begin(), recent_files.end(),
+        [&](std::string& entry) { return tolower(entry) == lower_path; });
+
+    if (it != recent_files.end())
+    {
+        recent_files.erase(it);
+    }
+}
+
+void AddRecentFile(const std::string& path)
+{
+    RemoveRecentFile(path);
+    recent_files.insert(recent_files.begin(), path);
+    recent_files.resize(MAX_RECENT_FILES);
+}
 
 void LoadRecentFiles()
 {
-    lstrcpyn(szRecentFiles[0], GetOption(mru0), sizeof(szRecentFiles[0]));
-    lstrcpyn(szRecentFiles[1], GetOption(mru1), sizeof(szRecentFiles[1]));
-    lstrcpyn(szRecentFiles[2], GetOption(mru2), sizeof(szRecentFiles[2]));
-    lstrcpyn(szRecentFiles[3], GetOption(mru3), sizeof(szRecentFiles[3]));
-    lstrcpyn(szRecentFiles[4], GetOption(mru4), sizeof(szRecentFiles[4]));
-    lstrcpyn(szRecentFiles[5], GetOption(mru5), sizeof(szRecentFiles[5]));
+    recent_files.clear();
+    AddRecentFile(GetOption(mru5));
+    AddRecentFile(GetOption(mru4));
+    AddRecentFile(GetOption(mru3));
+    AddRecentFile(GetOption(mru2));
+    AddRecentFile(GetOption(mru1));
+    AddRecentFile(GetOption(mru0));
 }
 
 void SaveRecentFiles()
 {
-    SetOption(mru0, szRecentFiles[0]);
-    SetOption(mru1, szRecentFiles[1]);
-    SetOption(mru2, szRecentFiles[2]);
-    SetOption(mru3, szRecentFiles[3]);
-    SetOption(mru4, szRecentFiles[4]);
-    SetOption(mru5, szRecentFiles[5]);
-}
-
-void AddRecentFile(const char* pcsz_)
-{
-    int i;
-
-    char szNew[MAX_PATH];
-    lstrcpyn(szNew, pcsz_, sizeof(szNew));
-
-    for (i = 0; lstrcmpi(szRecentFiles[i], szNew) && i < NUM_RECENT_FILES - 1; i++);
-
-    for (; i > 0; i--)
-        lstrcpy(szRecentFiles[i], szRecentFiles[i - 1]);
-
-    lstrcpy(szRecentFiles[0], szNew);
-}
-
-void RemoveRecentFile(const char* pcsz_)
-{
-    int i;
-
-    for (i = 0; lstrcmpi(szRecentFiles[i], pcsz_) && i < NUM_RECENT_FILES; i++);
-
-    if (i == NUM_RECENT_FILES)
-        return;
-
-    for (; i < NUM_RECENT_FILES - 1; i++)
-        lstrcpy(szRecentFiles[i], szRecentFiles[i + 1]);
-
-    szRecentFiles[i][0] = '\0';
+    recent_files.resize(MAX_RECENT_FILES);
+    SetOption(mru0, recent_files[0]);
+    SetOption(mru1, recent_files[1]);
+    SetOption(mru2, recent_files[2]);
+    SetOption(mru3, recent_files[3]);
+    SetOption(mru4, recent_files[4]);
+    SetOption(mru5, recent_files[5]);
 }
 
 void UpdateRecentFiles(HMENU hmenu_, int nId_, int nOffset_)
 {
-    for (int i = 0; i < NUM_RECENT_FILES; i++)
+    for (int i = 0; i < MAX_RECENT_FILES; i++)
         DeleteMenu(hmenu_, nId_ + i, MF_BYCOMMAND);
 
-    if (!szRecentFiles[0][0])
+    if (recent_files.front().empty())
     {
         InsertMenu(hmenu_, GetMenuItemCount(hmenu_) - nOffset_, MF_STRING | MF_BYPOSITION, nId_, "Recent Files");
         EnableMenuItem(hmenu_, nId_, MF_GRAYED);
@@ -384,12 +406,12 @@ void UpdateRecentFiles(HMENU hmenu_, int nId_, int nOffset_)
     {
         int nInsertPos = GetMenuItemCount(hmenu_) - nOffset_;
 
-        for (int i = 0; szRecentFiles[i][0] && i < NUM_RECENT_FILES; i++)
+        for (int i = 0; i < MAX_RECENT_FILES && !recent_files[i].empty(); i++)
         {
             char szItem[MAX_PATH * 2], * psz = szItem;
             psz += wsprintf(szItem, "&%d ", i + 1);
 
-            for (char* p = szRecentFiles[i]; *p; *psz++ = *p++)
+            for (auto p = recent_files[i].c_str(); *p; *psz++ = *p++)
             {
                 if (*p == '&')
                     *psz++ = *p;
@@ -404,19 +426,19 @@ void UpdateRecentFiles(HMENU hmenu_, int nId_, int nOffset_)
 }
 
 
-bool AttachDisk(AtaAdapter& adapter, const char* pcszDisk_, int nDevice_)
+bool AttachDisk(AtaAdapter& adapter, const std::string& disk_path, int nDevice_)
 {
-    if (!adapter.Attach(pcszDisk_, nDevice_))
+    if (!adapter.Attach(disk_path, nDevice_))
     {
         // Attempt to determine why we couldn't open the device
-        auto disk = std::make_unique<DeviceHardDisk>(pcszDisk_);
+        auto disk = std::make_unique<DeviceHardDisk>(disk_path);
         if (!disk->Open(false))
         {
             // Access will be denied if we're running as a regular user, and without SAMdiskHelper
             if (GetLastError() == ERROR_ACCESS_DENIED)
-                Message(MsgType::Warning, "Failed to open: {}\n\nAdminstrator access or SAMdiskHelper is required.", pcszDisk_);
+                Message(MsgType::Warning, "Failed to open: {}\n\nAdminstrator access or SAMdiskHelper is required.", disk_path);
             else
-                Message(MsgType::Warning, "Invalid or incompatible disk: {}", pcszDisk_);
+                Message(MsgType::Warning, "Invalid or incompatible disk: {}", disk_path);
         }
         return false;
     }
@@ -424,7 +446,7 @@ bool AttachDisk(AtaAdapter& adapter, const char* pcszDisk_, int nDevice_)
     return true;
 }
 
-bool InsertDisk(DiskDevice& floppy, const char* pcszPath_ = nullptr)
+bool InsertDisk(DiskDevice& floppy, std::optional<std::string> new_path = std::nullopt)
 {
     int nDrive = (&floppy == pFloppy1.get()) ? 1 : 2;
 
@@ -441,7 +463,7 @@ bool InsertDisk(DiskDevice& floppy, const char* pcszPath_ = nullptr)
     }
 
     // Eject any existing disk if the new path is blank
-    if (pcszPath_ && !*pcszPath_)
+    if (new_path && (*new_path).empty())
     {
         EjectDisk(floppy);
         return true;
@@ -457,27 +479,25 @@ bool InsertDisk(DiskDevice& floppy, const char* pcszPath_ = nullptr)
     auto disk_path = floppy.DiskFile();
     std::copy(disk_path.begin(), disk_path.end(), szFile);
 
-    // Prompt for the a new disk to insert if we don't have one
-    if (!pcszPath_)
+    if (!new_path)
     {
         if (!GetSaveLoadFile(&ofn, true))
             return false;
 
-        pcszPath_ = szFile;
+        new_path = szFile;
     }
 
-    bool fReadOnly = !!(ofn.Flags & OFN_READONLY);
+    bool read_only = !!(ofn.Flags & OFN_READONLY);
 
-    // Insert the disk to check it's a recognised format
-    if (!floppy.Insert(pcszPath_, true))
+    if (!floppy.Insert(*new_path, true))
     {
-        Message(MsgType::Warning, "Invalid disk: {}", pcszPath_);
-        RemoveRecentFile(pcszPath_);
+        Message(MsgType::Warning, "Invalid disk: {}", *new_path);
+        RemoveRecentFile(*new_path);
         return false;
     }
 
-    Frame::SetStatus("{}  inserted into drive {}{}", floppy.DiskFile(), (&floppy == pFloppy1.get()) ? 1 : 2, fReadOnly ? " (read-only)" : "");
-    AddRecentFile(pcszPath_);
+    Frame::SetStatus("{}  inserted into drive {}{}", floppy.DiskFile(), (&floppy == pFloppy1.get()) ? 1 : 2, read_only ? " (read-only)" : "");
+    AddRecentFile(*new_path);
     return true;
 }
 
@@ -497,14 +517,13 @@ bool EjectDisk(DiskDevice& floppy)
 }
 
 
-bool InsertTape(HWND hwndParent_, const char* pcszPath_ = nullptr)
+bool InsertTape(HWND hwndParent_, std::optional<std::string> new_path = std::nullopt)
 {
     char szFile[MAX_PATH]{};
     auto tape_path = Tape::GetPath();
     std::copy(tape_path.begin(), tape_path.end(), szFile);
 
-    // Eject any existing disk if the new path is blank
-    if (pcszPath_ && !*pcszPath_)
+    if (new_path && (*new_path).empty())
     {
         EjectTape();
         return true;
@@ -516,24 +535,23 @@ bool InsertTape(HWND hwndParent_, const char* pcszPath_ = nullptr)
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = MAX_PATH;
 
-    if (!pcszPath_)
+    if (!new_path)
     {
-        // Prompt for the a new disk to insert
         if (!GetSaveLoadFile(&ofn, true))
             return false;
 
-        pcszPath_ = szFile;
+        new_path = szFile;
     }
 
-    if (!Tape::Insert(pcszPath_))
+    if (!Tape::Insert(*new_path))
     {
-        Message(MsgType::Warning, "Invalid tape: {}", pcszPath_);
-        RemoveRecentFile(pcszPath_);
+        Message(MsgType::Warning, "Invalid tape: {}", *new_path);
+        RemoveRecentFile(*new_path);
         return false;
     }
 
     Frame::SetStatus("{}  inserted", Tape::GetFile());
-    AddRecentFile(pcszPath_);
+    AddRecentFile(*new_path);
     return true;
 }
 
@@ -1163,12 +1181,11 @@ INT_PTR CALLBACK AboutDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
     case WM_INITDIALOG:
     {
         // Append extra details to the version string
-        char szVersion[128];
-        GetDlgItemText(hdlg_, IDS_VERSION, szVersion, sizeof(szVersion));
+        auto version = GetDlgItemText(hdlg_, IDS_VERSION);
 #ifdef _WIN64
-        lstrcat(szVersion, " x64");
+        version += " x64";
 #endif
-        SetDlgItemText(hdlg_, IDS_VERSION, szVersion);
+        SetDlgItemText(hdlg_, IDS_VERSION, version);
 
         // Grab the attributes of the current GUI font
         LOGFONT lf;
@@ -1658,24 +1675,24 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         default:
             if (wId >= IDM_FILE_RECENT1 && wId <= IDM_FILE_RECENT9)
             {
-                const char* pcszFile = szRecentFiles[wId - IDM_FILE_RECENT1];
-                if (Tape::IsRecognised(pcszFile))
-                    InsertTape(hwnd_, pcszFile);
+                auto path = recent_files[wId - IDM_FILE_RECENT1];
+                if (Tape::IsRecognised(path))
+                    InsertTape(hwnd_, path);
                 else
-                    InsertDisk(*pFloppy1, pcszFile);
+                    InsertDisk(*pFloppy1, path);
             }
             else if (wId >= IDM_FLOPPY2_RECENT1 && wId <= IDM_FLOPPY2_RECENT9)
             {
-                const char* pcszFile = szRecentFiles[wId - IDM_FLOPPY2_RECENT1];
-                if (Tape::IsRecognised(pcszFile))
-                    InsertTape(hwnd_, pcszFile);
+                auto path = recent_files[wId - IDM_FLOPPY2_RECENT1];
+                if (Tape::IsRecognised(path))
+                    InsertTape(hwnd_, path);
                 else
-                    InsertDisk(*pFloppy2, pcszFile);
+                    InsertDisk(*pFloppy2, path);
             }
             else if (wId >= IDM_SYSTEM_SPEED_50 && wId <= IDM_SYSTEM_SPEED_1000)
             {
-                int anSpeeds[] = { 50, 100, 200, 300, 500, 1000 };
-                SetOption(speed, anSpeeds[wId - IDM_SYSTEM_SPEED_50]);
+                static std::vector<int> speeds{ 50, 100, 200, 300, 500, 1000 };
+                SetOption(speed, speeds[wId - IDM_SYSTEM_SPEED_50]);
                 Frame::SetStatus("{}% Speed", GetOption(speed));
             }
             break;
@@ -1697,13 +1714,13 @@ void SaveWindowPosition(HWND hwnd_)
     SetOption(windowpos,
         fmt::format("{},{},{},{},{}",
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-            wp.showCmd == SW_SHOWMAXIMIZED).c_str());
+            wp.showCmd == SW_SHOWMAXIMIZED));
 }
 
 bool RestoreWindowPosition(HWND hwnd_)
 {
     int x, y, width, height, maximised;
-    if (sscanf(GetOption(windowpos), "%d,%d,%d,%d,%d", &x, &y, &width, &height, &maximised) != 5)
+    if (sscanf(GetOption(windowpos).c_str(), "%d,%d,%d,%d,%d", &x, &y, &width, &height, &maximised) != 5)
         return false;
 
     WINDOWPLACEMENT wp{};
@@ -1801,88 +1818,39 @@ void ClipPath(char* pszPath_, size_t nLen_)
     }
 }
 
-void GetDlgItemPath(HWND hdlg_, int nId_, char* psz_, int nSize_)
-{
-    HWND hctrl = nId_ ? GetDlgItem(hdlg_, nId_) : hdlg_;
-    GetWindowText(hctrl, psz_, nSize_);
-}
-
-void SetDlgItemPath(HWND hdlg_, int nId_, const char* pcsz_, bool fSelect_ = false)
-{
-    HWND hctrl = nId_ ? GetDlgItem(hdlg_, nId_) : hdlg_;
-    SetWindowText(hctrl, pcsz_);
-
-    if (fSelect_)
-    {
-        SendMessage(hctrl, EM_SETSEL, 0, -1);
-        SetFocus(hctrl);
-    }
-}
-
-int GetDlgItemValue(HWND hdlg_, int nId_, int nDefault_ = -1)
-{
-    char sz[256], * pEnd = nullptr;
-    GetDlgItemText(hdlg_, nId_, sz, sizeof(sz));
-
-    long lValue = strtol(sz, &pEnd, 0);
-    return *pEnd ? nDefault_ : static_cast<int>(lValue);
-}
-
-void SetDlgItemValue(HWND hdlg_, int nId_, int nValue_, int nBytes_)
-{
-    char sz[256];
-    wsprintf(sz, (nBytes_ == 1) ? "%02X" : (nBytes_ == 2) ? "%04X" : "%06X", nValue_);
-    SetDlgItemText(hdlg_, nId_, sz);
-}
-
-
 // Helper function for filling a combo-box with strings and selecting one
-void SetComboStrings(HWND hdlg_, UINT uID_, const char** ppcsz_, int nDefault_/*=0*/)
+void SetComboStrings(HWND hdlg_, UINT uID_, const std::vector<std::string>& strings, int nDefault_/*=0*/)
 {
-    HWND hwndCombo = GetDlgItem(hdlg_, uID_);
+    auto hwndCombo = GetDlgItem(hdlg_, uID_);
+    ComboBox_ResetContent(hwndCombo);
 
-    // Clear any existing contents
-    SendMessage(hwndCombo, CB_RESETCONTENT, 0, 0L);
+    for (auto& str : strings)
+        ComboBox_AddString(hwndCombo, str.c_str());
 
-    // Add each string from the list
-    while (*ppcsz_)
-        SendMessage(hwndCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(*ppcsz_++));
-
-    // Select the specified default, or the first item if there wasn't one
-    SendMessage(hwndCombo, CB_SETCURSEL, (nDefault_ == -1) ? 0 : nDefault_, 0L);
+    ComboBox_SetCurSel(hwndCombo, (nDefault_ == -1) ? 0 : nDefault_);
 }
 
-const char* GetComboText(HWND hdlg_, UINT uID_, int nMaxLen_)
+std::string GetComboText(HWND hdlg, UINT ctrl_id)
 {
-    static char sz[MAX_PATH];
-    sz[0] = '\0';
+    auto hwndCombo = GetDlgItem(hdlg, ctrl_id);
+    auto index = ComboBox_GetCurSel(hwndCombo);
 
-    if (nMaxLen_ > MAX_PATH)
-        nMaxLen_ = MAX_PATH;
+    auto len = ComboBox_GetLBTextLen(hwndCombo, index);
+    std::vector<char> text(len + 1);
+    ComboBox_GetLBText(hwndCombo, index, text.data());
 
-    // Fetch the current selection
-    HWND hwndCombo = GetDlgItem(hdlg_, uID_);
-    int nSel = static_cast<int>(SendMessage(hwndCombo, CB_GETCURSEL, 0, 0L));
-
-    // Fetch the item text if it's not too long
-    if (SendMessage(hwndCombo, CB_GETLBTEXTLEN, nSel, 0L) < nMaxLen_)
-        GetWindowText(hwndCombo, sz, nMaxLen_);
-
-    // Clear the entry if it's a placeholder
-    if (!lstrcmpi(sz, "<None>"))
-        sz[0] = '\0';
-
-    return sz;
+    auto str = text.data();
+    return (str == "None" || str == "<None>") ? "" : str;
 }
 
-void AddComboString(HWND hdlg_, UINT uID_, const char* pcsz_)
+void AddComboString(HWND hdlg, UINT ctrl_id, const char* pcsz_)
 {
-    SendDlgItemMessage(hdlg_, uID_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(pcsz_));
+    ComboBox_AddString(GetDlgItem(hdlg, ctrl_id), pcsz_);
 }
 
 void AddComboExString(HWND hdlg_, UINT uID_, const char* pcsz_)
 {
-    COMBOBOXEXITEM cbei = {};
+    COMBOBOXEXITEM cbei{};
     cbei.iItem = -1;
     cbei.mask = CBEIF_TEXT;
     cbei.pszText = const_cast<char*>(pcsz_);
@@ -1891,54 +1859,46 @@ void AddComboExString(HWND hdlg_, UINT uID_, const char* pcsz_)
 }
 
 
-void FillMidiOutCombo(HWND hwndCombo_)
+void FillMidiOutCombo(HWND hwndCombo)
 {
-    SendMessage(hwndCombo_, CB_RESETCONTENT, 0, 0L);
+    ComboBox_ResetContent(hwndCombo);
 
     int nDevs = midiOutGetNumDevs();
-    SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(nDevs ? "None" : "<None>"));
+    ComboBox_AddString(hwndCombo, nDevs ? "None" : "<None>");
 
     for (int i = 0; i < nDevs; i++)
     {
-        MIDIOUTCAPS mc;
+        MIDIOUTCAPS mc{};
         if (midiOutGetDevCaps(i, &mc, sizeof(mc)) == MMSYSERR_NOERROR)
-            SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(mc.szPname));
+            ComboBox_AddString(hwndCombo, mc.szPname);
     }
 
-    // Select the current device in the list, or the first one if that fails
-    if (SendMessage(hwndCombo_, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(midioutdev))) == CB_ERR)
-        SendMessage(hwndCombo_, CB_SETCURSEL, 0, 0L);
+    if (ComboBox_SelectString(hwndCombo, -1, GetOption(midioutdev).c_str()) == CB_ERR)
+        ComboBox_SetCurSel(hwndCombo, 0);
 
-    // Enable combo if there are devices, disable otherwise
-    EnableWindow(hwndCombo_, nDevs != 0);
+    ComboBox_Enable(hwndCombo, nDevs != 0);
 }
 
 
-void FillPrintersCombo(HWND hwndCombo_, LPCSTR pcszSelected_)
+void FillPrintersCombo(HWND hwndCombo)
 {
-    int lSelected = 0;
-    SendMessage(hwndCombo_, CB_RESETCONTENT, 0, 0L);
-
-    // The first entry is to allow printing to auto-generated prntNNNN.bin files
-    SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>("File: simcNNNN.txt (auto-generated)"));
-
-    // Select the active printer
-    SendMessage(hwndCombo_, CB_SETCURSEL, lSelected, 0L);
+    ComboBox_ResetContent(hwndCombo);
+    ComboBox_AddString(hwndCombo, "File: simcNNNN.txt (auto-generated)");
+    ComboBox_SetCurSel(hwndCombo, 0);
 }
 
 
-void FillJoystickCombo(HWND hwndCombo_, const char* pcszSelected_)
+void FillJoystickCombo(HWND hwndCombo, const std::string& selected)
 {
-    SendMessage(hwndCombo_, CB_RESETCONTENT, 0, 0L);
-    Input::FillJoystickCombo(hwndCombo_);
+    ComboBox_ResetContent(hwndCombo);
+    Input::FillJoystickCombo(hwndCombo);
 
-    int nItems = static_cast<int>(SendMessage(hwndCombo_, CB_GETCOUNT, 0, 0L));
-    EnableWindow(hwndCombo_, nItems != 0);
-    SendMessage(hwndCombo_, CB_INSERTSTRING, 0, reinterpret_cast<LPARAM>(nItems ? "None" : "<None>"));
+    auto num_items = ComboBox_GetCount(hwndCombo);
+    ComboBox_Enable(hwndCombo, num_items != 0);
+    ComboBox_InsertString(hwndCombo, 0, num_items ? "None" : "<None>");
 
-    // Select the current item, falling back on the first entry (None) if it's missing
-    if (SendMessage(hwndCombo_, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(pcszSelected_)) == CB_ERR)
-        SendMessage(hwndCombo_, CB_SETCURSEL, 0, 0L);
+    if (ComboBox_SelectString(hwndCombo, -1, selected.c_str()) == CB_ERR)
+        ComboBox_SetCurSel(hwndCombo, 0);
 }
 
 
@@ -1947,9 +1907,9 @@ void FillJoystickCombo(HWND hwndCombo_, const char* pcszSelected_)
 // Browse for an image, setting a specified filter with the path selected
 void BrowseImage(HWND hdlg_, int nControl_, const char* pcszFilters_)
 {
-    char szFile[MAX_PATH] = "";
-
-    GetDlgItemText(hdlg_, nControl_, szFile, sizeof(szFile));
+    char szFile[MAX_PATH]{};
+    auto file_path = GetDlgItemText(hdlg_, nControl_);
+    std::copy(file_path.begin(), file_path.end(), szFile);
 
     OPENFILENAME ofn = { sizeof(ofn) };
     ofn.hwndOwner = hdlg_;
@@ -1959,13 +1919,15 @@ void BrowseImage(HWND hdlg_, int nControl_, const char* pcszFilters_)
     ofn.Flags = 0;
 
     if (GetSaveLoadFile(&ofn, true))
-        SetDlgItemPath(hdlg_, nControl_, szFile);
+    {
+        SetDlgItemText(hdlg_, nControl_, szFile);
+    }
 }
 
 BOOL BadField(HWND hdlg_, int nId_)
 {
     HWND hctrl = GetDlgItem(hdlg_, nId_);
-    SendMessage(hctrl, EM_SETSEL, 0, -1);
+    Edit_SetSel(hctrl, 0, -1);
     SetFocus(hctrl);
     MessageBeep(MB_ICONHAND);
     return FALSE;
@@ -1986,8 +1948,8 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
         CentreWindow(hdlg_);
         fImport = !!lParam_;
 
-        static const char* asz[] = { "BASIC Address (0-540671)", "Main Memory (pages 0-31)", "External RAM (pages 0-255)", nullptr };
-        SetComboStrings(hdlg_, IDC_TYPE, asz, nType);
+        static const std::vector<std::string> types{ "BASIC Address (0-540671)", "Main Memory (pages 0-31)", "External RAM (pages 0-255)" };
+        SetComboStrings(hdlg_, IDC_TYPE, types, nType);
 
         SendMessage(hdlg_, WM_COMMAND, IDC_TYPE, 0);
         SetDlgItemText(hdlg_, IDE_ADDRESS, szAddress);
@@ -2011,13 +1973,13 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
 
         case IDC_TYPE:
         {
-            auto nType = SendDlgItemMessage(hdlg_, IDC_TYPE, CB_GETCURSEL, 0, 0L);
+            auto type = ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_TYPE));
 
             for (auto id : { IDS_ADDRESS, IDE_ADDRESS, IDS_LENGTH2, IDE_LENGTH2 })
-                ShowWindow(GetDlgItem(hdlg_, id), !nType ? SW_SHOW : SW_HIDE);
+                ShowWindow(GetDlgItem(hdlg_, id), !type ? SW_SHOW : SW_HIDE);
 
             for (auto id : { IDS_PAGE, IDE_PAGE, IDS_OFFSET, IDE_OFFSET, IDS_LENGTH, IDE_LENGTH })
-                ShowWindow(GetDlgItem(hdlg_, id), nType ? SW_SHOW : SW_HIDE);
+                ShowWindow(GetDlgItem(hdlg_, id), type ? SW_SHOW : SW_HIDE);
 
             break;
         }
@@ -2045,7 +2007,7 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
             GetDlgItemText(hdlg_, IDE_OFFSET, szOffset, sizeof(szOffset));
             GetDlgItemText(hdlg_, IDE_LENGTH, szLength, sizeof(szLength));
 
-            nType = (int)SendDlgItemMessage(hdlg_, IDC_TYPE, CB_GETCURSEL, 0, 0L);
+            nType = ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_TYPE));
             int nAddress = GetDlgItemValue(hdlg_, IDE_ADDRESS);
             int nPage = GetDlgItemValue(hdlg_, IDE_PAGE);
             int nOffset = GetDlgItemValue(hdlg_, IDE_OFFSET);
@@ -2167,14 +2129,14 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
         wsprintf(sz, "New Disk %d", nDrive = static_cast<int>(lParam_));
         SetWindowText(hdlg_, sz);
 
-        static const char* aszTypes[] = { "MGT disk image (800K)", "EDSK disk image (flexible format)", "DOS CP/M image (720K)", nullptr };
-        SetComboStrings(hdlg_, IDC_TYPES, aszTypes, nType);
+        static const std::vector<std::string> types{ "MGT disk image (800K)", "EDSK disk image (flexible format)", "DOS CP/M image (720K)" };
+        SetComboStrings(hdlg_, IDC_TYPES, types, nType);
         SendMessage(hdlg_, WM_COMMAND, IDC_TYPES, 0L);
 
-        SendDlgItemMessage(hdlg_, IDC_FORMAT, BM_SETCHECK, fFormat ? BST_CHECKED : BST_UNCHECKED, 0L);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_FORMAT), fFormat ? BST_CHECKED : BST_UNCHECKED);
 
 #ifdef HAVE_LIBZ
-        SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_SETCHECK, fCompress ? BST_CHECKED : BST_UNCHECKED, 0L);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_COMPRESS), fCompress ? BST_CHECKED : BST_UNCHECKED);
 #else
         // Disable the compression check-box if zlib isn't available
         EnableWindow(GetDlgItem(hdlg_, IDC_COMPRESS), FALSE);
@@ -2192,21 +2154,21 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             return TRUE;
 
         case IDC_TYPES:
-            nType = (int)SendDlgItemMessage(hdlg_, IDC_TYPES, CB_GETCURSEL, 0, 0L);
+            nType = ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_TYPES));
 
             // Enable the format checkbox for EDSK only
             EnableWindow(GetDlgItem(hdlg_, IDC_FORMAT), nType == 1);
 
             // Enable formatting for non-EDSK
             if (nType != 1)
-                SendDlgItemMessage(hdlg_, IDC_FORMAT, BM_SETCHECK, BST_CHECKED, 0L);
+                Button_SetCheck(GetDlgItem(hdlg_, IDC_FORMAT), BST_CHECKED);
 
             // Enable the compress checkbox for MGT only
             EnableWindow(GetDlgItem(hdlg_, IDC_COMPRESS), nType == 0);
 
             // Disable compression for non-MGT
             if (nType != 0)
-                SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_SETCHECK, BST_UNCHECKED, 0L);
+                Button_SetCheck(GetDlgItem(hdlg_, IDC_COMPRESS), BST_UNCHECKED);
 
             break;
 
@@ -2215,9 +2177,9 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
             // File extensions for each type, plus an additional extension if compressed
             static const char* aszTypes[] = { ".mgt", ".dsk", ".cpm" };
 
-            nType = (int)SendDlgItemMessage(hdlg_, IDC_TYPES, CB_GETCURSEL, 0, 0L);
-            fCompress = SendDlgItemMessage(hdlg_, IDC_COMPRESS, BM_GETCHECK, 0, 0L) == BST_CHECKED;
-            fFormat = SendDlgItemMessage(hdlg_, IDC_FORMAT, BM_GETCHECK, 0, 0L) == BST_CHECKED;
+            nType = ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_TYPES));
+            fCompress = Button_GetCheck(GetDlgItem(hdlg_, IDC_COMPRESS)) == BST_CHECKED;
+            fFormat = Button_GetCheck(GetDlgItem(hdlg_, IDC_FORMAT)) == BST_CHECKED;
 
             char szFile[MAX_PATH] = "Untitled";
 
@@ -2333,8 +2295,8 @@ INT_PTR CALLBACK HardDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
 
         // Locate the parent control holding the old path, and to receive the new one
         hwndEdit = reinterpret_cast<HWND>(lParam_);
-        GetDlgItemPath(hwndEdit, 0, szFile, sizeof(szFile));
-        SetDlgItemPath(hdlg_, IDE_FILE, szFile);
+        GetDlgItemText(hwndEdit, 0, szFile, sizeof(szFile));
+        SetDlgItemText(hdlg_, IDE_FILE, szFile);
 
         return TRUE;
     }
@@ -2356,15 +2318,13 @@ INT_PTR CALLBACK HardDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
             if (!fChange)
                 break;
 
-            GetDlgItemPath(hdlg_, IDE_FILE, szFile, sizeof(szFile));
+            GetDlgItemText(hdlg_, IDE_FILE, szFile, sizeof(szFile));
 
-            // If we can, open the existing hard disk image to retrieve the geometry
             auto disk = HardDisk::OpenObject(szFile);
-
             if (disk)
             {
                 // Fetch the existing disk geometry
-                const ATA_GEOMETRY* pGeom = disk->GetGeometry();
+                auto pGeom = disk->GetGeometry();
                 uSize = (pGeom->uTotalSectors + (1 << 11) - 1) >> 11;
                 SetDlgItemInt(hdlg_, IDE_SIZE, uSize, FALSE);
             }
@@ -2390,7 +2350,7 @@ INT_PTR CALLBACK HardDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
             ofn.Flags = OFN_HIDEREADONLY;
 
             if (GetSaveLoadFile(&ofn, true, false))
-                SetDlgItemPath(hdlg_, IDE_FILE, szFile, true);
+                SetDlgItemText(hdlg_, IDE_FILE, szFile, true);
 
             break;
         }
@@ -2427,7 +2387,7 @@ INT_PTR CALLBACK HardDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
             }
 
             // Set the new path back in the parent dialog, and close our dialog
-            SetDlgItemPath(hwndEdit, 0, szFile, true);
+            SetDlgItemText(hwndEdit, 0, szFile, true);
             EndDialog(hdlg_, 1);
             return TRUE;
         }
@@ -2497,11 +2457,11 @@ INT_PTR CALLBACK SystemPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         SendDlgItemMessage(hdlg_, IDC_EXTERNAL, TBM_SETPOS, TRUE, GetOption(externalmem));
 
         // Set the current custom ROM path, and enable filesystem auto-complete
-        SetDlgItemPath(hdlg_, IDE_ROM, GetOption(rom));
+        SetDlgItemText(hdlg_, IDE_ROM, GetOption(rom));
         SHAutoComplete(GetDlgItem(hdlg_, IDE_ROM), SHACF_FILESYS_ONLY | SHACF_USETAB);
         SendDlgItemMessage(hdlg_, IDE_ROM, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
 
-        SendDlgItemMessage(hdlg_, IDC_ALBOOT_ROM, BM_SETCHECK, GetOption(atombootrom) ? BST_CHECKED : BST_UNCHECKED, 0L);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_ALBOOT_ROM), GetOption(atombootrom) ? BST_CHECKED : BST_UNCHECKED);
 
         break;
     }
@@ -2513,23 +2473,23 @@ INT_PTR CALLBACK SystemPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         {
             int nExternalMB = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_EXTERNAL, TBM_GETPOS, 0, 0L));
             auto size = fmt::format("{}MB", nExternalMB);
-            SetDlgItemText(hdlg_, IDS_EXTERNAL, size.c_str());
+            SetDlgItemText(hdlg_, IDS_EXTERNAL, size);
         }
         else if (pnmh->code == PSN_APPLY)
         {
-            SetOption(mainmem, (SendDlgItemMessage(hdlg_, IDR_256K, BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 256 : 512);
+            SetOption(mainmem, (Button_GetCheck(GetDlgItem(hdlg_, IDR_256K)) == BST_CHECKED) ? 256 : 512);
             SetOption(externalmem, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_EXTERNAL, TBM_GETPOS, 0, 0L)));
 
             // If the memory configuration has changed, apply the changes
             if (Changed(mainmem) || Changed(externalmem))
                 Memory::UpdateConfig();
 
-            GetDlgItemPath(hdlg_, IDE_ROM, const_cast<char*>(GetOption(rom)), MAX_PATH);
+            SetOption(rom, GetDlgItemText(hdlg_, IDE_ROM));
 
-            SetOption(atombootrom, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALBOOT_ROM, BM_GETCHECK, 0, 0L) == BST_CHECKED));
+            SetOption(atombootrom, Button_GetCheck(GetDlgItem(hdlg_, IDC_ALBOOT_ROM)) == BST_CHECKED);
 
             // If the ROM config has changed, schedule the changes for the next reset
-            if (ChangedString(rom) || Changed(atombootrom))
+            if (Changed(rom) || Changed(atombootrom))
                 Memory::UpdateRom();
         }
         break;
@@ -2567,11 +2527,11 @@ INT_PTR CALLBACK SoundPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
     {
     case WM_INITDIALOG:
     {
-        static const char* aszSIDs[] = { "None", "MOS6581 (Default)", "MOS8580", nullptr };
-        SetComboStrings(hdlg_, IDC_SID_TYPE, aszSIDs, GetOption(sid));
+        static const std::vector<std::string> sid_types{ "None", "MOS6581 (Default)", "MOS8580" };
+        SetComboStrings(hdlg_, IDC_SID_TYPE, sid_types, GetOption(sid));
 
-        static const char* aszDAC7C[] = { "None", "Blue Alpha Sampler (8-bit mono)", "SAMVox (4 channel 8-bit mono)", "Paula (2 channel 4-bit stereo)", nullptr };
-        SetComboStrings(hdlg_, IDC_DAC_7C, aszDAC7C, GetOption(dac7c));
+        static const std::vector<std::string> dac7c_types{ "None", "Blue Alpha Sampler (8-bit mono)", "SAMVox (4 channel 8-bit mono)", "Paula (2 channel 4-bit stereo)" };
+        SetComboStrings(hdlg_, IDC_DAC_7C, dac7c_types, GetOption(dac7c));
 
         FillMidiOutCombo(GetDlgItem(hdlg_, IDC_MIDI_OUT));
         break;
@@ -2581,18 +2541,12 @@ INT_PTR CALLBACK SoundPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
     {
         if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
         {
-            SetOption(sid, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_SID_TYPE, CB_GETCURSEL, 0, 0L)));
-            SetOption(dac7c, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_DAC_7C, CB_GETCURSEL, 0, 0L)));
+            SetOption(sid, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_SID_TYPE)));
+            SetOption(dac7c, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DAC_7C)));
+            SetOption(midi, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_MIDI_OUT)) ? 1 : 0);
+            SetOption(midioutdev, GetOption(midi) ? GetComboText(hdlg_, IDC_MIDI_OUT) : "");
 
-            int nMidi = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_MIDI_OUT, CB_GETCURSEL, 0, 0L));
-            SetOption(midi, nMidi ? 1 : 0);
-
-            if (nMidi == 0)
-                SetOption(midioutdev, "");
-            else if (SendDlgItemMessage(hdlg_, IDC_MIDI_OUT, CB_GETLBTEXTLEN, nMidi, 0L) < sizeof(opts.midioutdev))
-                SendDlgItemMessage(hdlg_, IDC_MIDI_OUT, CB_GETLBTEXT, nMidi, reinterpret_cast<LPARAM>(GetOption(midioutdev)));
-
-            if (ChangedString(midioutdev) && !pMidi->SetDevice(GetOption(midioutdev)))
+            if (Changed(midioutdev) && !pMidi->SetDevice(GetOption(midioutdev)))
                 Message(MsgType::Warning, "Failed to open MIDI device\n");
         }
 
@@ -2609,33 +2563,31 @@ int FillHDDCombos(HWND hdlg_, int nCombo1_, int nCombo2_)
     HWND hwndCombo1 = GetDlgItem(hdlg_, nCombo1_);
     HWND hwndCombo2 = nCombo2_ ? GetDlgItem(hdlg_, nCombo2_) : nullptr;
 
-    SendMessage(hwndCombo1, CB_RESETCONTENT, 0, 0L);
-    if (hwndCombo2) SendMessage(hwndCombo2, CB_RESETCONTENT, 0, 0L);
+    ComboBox_ResetContent(hwndCombo1);
+    if (hwndCombo2) ComboBox_ResetContent(hwndCombo2);
 
     auto device_list = DeviceHardDisk::GetDeviceList();
     for (auto& device : device_list)
     {
-        auto string = reinterpret_cast<LPARAM>(device.c_str());
-        SendMessage(hwndCombo1, CB_ADDSTRING, 0, string);
-        if (hwndCombo2) SendMessage(hwndCombo2, CB_ADDSTRING, 0, string);
+        ComboBox_AddString(hwndCombo1, device.c_str());
+        if (hwndCombo2) ComboBox_AddString(hwndCombo2, device.c_str());
     }
 
     if (device_list.empty())
     {
-        LPARAM lNone = reinterpret_cast<LPARAM>("<None>");
-        SendMessage(hwndCombo1, CB_ADDSTRING, 0, lNone);
-        if (hwndCombo2) SendMessage(hwndCombo2, CB_ADDSTRING, 0, lNone);
+        ComboBox_AddString(hwndCombo1, "<None>");
+        if (hwndCombo2) ComboBox_AddString(hwndCombo2, "<None>");
     }
 
-    if (SendMessage(hwndCombo1, CB_GETCURSEL, 0, 0L) < 0)
+    if (ComboBox_GetCurSel(hwndCombo1) < 0)
     {
-        SendMessage(hwndCombo1, CB_SETCURSEL, 0, 0L);
-        if (hwndCombo2) SendMessage(hwndCombo2, CB_SETCURSEL, 0, 0L);
+        ComboBox_SetCurSel(hwndCombo1, 0);
+        if (hwndCombo2) ComboBox_SetCurSel(hwndCombo2, 0);
     }
 
-    bool fEnable = !device_list.empty();
-    EnableWindow(hwndCombo1, fEnable);
-    if (hwndCombo2) EnableWindow(hwndCombo2, fEnable);
+    bool enable = !device_list.empty();
+    ComboBox_Enable(hwndCombo1, enable);
+    if (hwndCombo2) ComboBox_Enable(hwndCombo2, enable);
 
     return static_cast<int>(device_list.size());
 }
@@ -2645,29 +2597,27 @@ int FillFloppyCombo(HWND hwndCombo_)
 {
     int nDevices = 0;
 
-    SendMessage(hwndCombo_, CB_RESETCONTENT, 0, 0L);
+    ComboBox_ResetContent(hwndCombo_);
 
     for (UINT u = 0; u < 2; u++)
     {
-        char sz[32];
-        wsprintf(sz, "\\\\.\\fdraw%u", u);
-        GetFileAttributes(sz);
-
+        auto device = fmt::format(R"(\\.\fdraw{})", u);
+        GetFileAttributes(device.c_str());
         if (GetLastError() != ERROR_FILE_NOT_FOUND)
         {
-            wsprintf(sz, "%c:", 'A' + u);
-            SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(sz));
+            device = fmt::format("{}:", 'A' + u);
+            ComboBox_AddString(hwndCombo_, device.c_str());
             nDevices++;
         }
     }
 
     if (!nDevices)
-        SendMessage(hwndCombo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>("<None>"));
+        ComboBox_AddString(hwndCombo_, "<None>");
 
-    if (SendMessage(hwndCombo_, CB_GETCURSEL, 0, 0L) < 0)
-        SendMessage(hwndCombo_, CB_SETCURSEL, 0, 0L);
+    if (ComboBox_GetCurSel(hwndCombo_) < 0)
+        ComboBox_SetCurSel(hwndCombo_, 0);
 
-    EnableWindow(hwndCombo_, nDevices != 0);
+    ComboBox_Enable(hwndCombo_, nDevices != 0);
 
     return nDevices;
 }
@@ -2681,17 +2631,21 @@ INT_PTR CALLBACK Drive1PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
     case WM_INITDIALOG:
     {
-        const char* aszDevices[] = { "None", "Floppy Drive", nullptr };
-        SetComboStrings(hdlg_, IDC_DEVICE_TYPE, aszDevices, GetOption(drive1));
+        static const std::vector<std::string> types{ "None", "Floppy Drive" };
+        SetComboStrings(hdlg_, IDC_DEVICE_TYPE, types, GetOption(drive1));
 
         int nDevices = FillFloppyCombo(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE));
         EnableWindow(GetDlgItem(hdlg_, IDR_DEVICE), nDevices != 0);
         SendDlgItemMessage(hdlg_, IDE_FLOPPY_IMAGE, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
 
         if (FloppyStream::IsRecognised(GetOption(disk1)))
-            SendDlgItemMessage(hdlg_, IDC_FLOPPY_DEVICE, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(disk1)));
+        {
+            ComboBox_SelectString(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE), -1, GetOption(disk1).c_str());
+        }
         else
-            SetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE, GetOption(disk1));
+        {
+            SetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE, GetOption(disk1).c_str());
+        }
 
         SHAutoComplete(GetDlgItem(hdlg_, IDE_FLOPPY_IMAGE), SHACF_FILESYS_ONLY | SHACF_USETAB);
 
@@ -2703,20 +2657,23 @@ INT_PTR CALLBACK Drive1PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
         if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
         {
-            SetOption(drive1, static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_DEVICE_TYPE), CB_GETCURSEL, 0, 0L)));
+            SetOption(drive1, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE)));
 
             if (GetOption(drive1) == drvFloppy)
             {
-                bool fImage = SendDlgItemMessage(hdlg_, IDR_DEVICE, BM_GETCHECK, 0, 0L) != BST_CHECKED;
-
+                bool fImage = Button_GetCheck(GetDlgItem(hdlg_, IDR_DEVICE)) != BST_CHECKED;
                 if (fImage)
-                    GetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE, const_cast<char*>(GetOption(disk1)), MAX_PATH);
+                {
+                    SetOption(disk1, GetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE));
+                }
                 else
-                    SetOption(disk1, GetComboText(hdlg_, IDC_FLOPPY_DEVICE, MAX_PATH));
+                {
+                    SetOption(disk1, GetComboText(hdlg_, IDC_FLOPPY_DEVICE));
+                }
             }
 
             // If the floppy is active and the disk has changed, insert the new one
-            if (GetOption(drive1) == drvFloppy && ChangedString(disk1))
+            if (GetOption(drive1) == drvFloppy && Changed(disk1))
                 InsertDisk(*pFloppy1, GetOption(disk1));
         }
         break;
@@ -2745,23 +2702,22 @@ INT_PTR CALLBACK Drive1PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         {
             if (HIWORD(wParam_) == CBN_SELCHANGE)
             {
-                int nType = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_DEVICE_TYPE, CB_GETCURSEL, 0, 0L));
+                auto type = ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE));
 
-                ShowWindow(GetDlgItem(hdlg_, IDE_FLOPPY_IMAGE), (nType == 1) ? SW_SHOW : SW_HIDE);
-                ShowWindow(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE), (nType == 1) ? SW_SHOW : SW_HIDE);
+                ShowWindow(GetDlgItem(hdlg_, IDE_FLOPPY_IMAGE), (type == 1) ? SW_SHOW : SW_HIDE);
+                ShowWindow(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE), (type == 1) ? SW_SHOW : SW_HIDE);
 
                 int control_ids[] = { IDS_DEVICE, IDF_MEDIA, IDS_TEXT1, IDR_IMAGE, IDB_BROWSE, IDR_DEVICE, IDC_HDD_DEVICE };
                 for (auto id : control_ids)
-                    ShowWindow(GetDlgItem(hdlg_, id), (nType >= 1) ? SW_SHOW : SW_HIDE);
+                    ShowWindow(GetDlgItem(hdlg_, id), (type >= 1) ? SW_SHOW : SW_HIDE);
             }
             break;
         }
 
         case IDB_BROWSE:
         {
-            int nType = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_DEVICE_TYPE, CB_GETCURSEL, 0, 0L));
-
-            if (nType == 1)
+            auto type = ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE));
+            if (type == 1)
                 BrowseImage(hdlg_, IDE_FLOPPY_IMAGE, szFloppyFilters);
             break;
         }
@@ -2798,13 +2754,13 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         FillFloppyCombo(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE));
         FillHDDCombos(hdlg_, IDC_HDD_DEVICE, IDC_HDD_DEVICE2);
 
-        int nType = static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_DEVICE_TYPE), CB_GETCURSEL, 0, 0L));
+        int type = ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE));
 
         // Set floppy image path or device selection
         if (FloppyStream::IsRecognised(GetOption(disk2)))
         {
-            if (nType == drvFloppy) CheckRadioButton(hdlg_, IDR_IMAGE, IDR_DEVICE, IDR_DEVICE);
-            SendDlgItemMessage(hdlg_, IDC_FLOPPY_DEVICE, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(disk2)));
+            if (type == drvFloppy) CheckRadioButton(hdlg_, IDR_IMAGE, IDR_DEVICE, IDR_DEVICE);
+            ComboBox_SelectString(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE), -1, GetOption(disk2).c_str());
         }
         else
         {
@@ -2814,15 +2770,15 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         // Set Atom master device selection
         if (DeviceHardDisk::IsRecognised(GetOption(atomdisk0)))
         {
-            if (nType >= drvAtom) CheckRadioButton(hdlg_, IDR_IMAGE, IDR_DEVICE, IDR_DEVICE);
-            SendDlgItemMessage(hdlg_, IDC_HDD_DEVICE, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(atomdisk0)));
+            if (type >= drvAtom) CheckRadioButton(hdlg_, IDR_IMAGE, IDR_DEVICE, IDR_DEVICE);
+            ComboBox_SelectString(GetDlgItem(hdlg_, IDC_HDD_DEVICE), -1, GetOption(atomdisk0).c_str());
         }
 
         // Set Atom slave device selection
         if (DeviceHardDisk::IsRecognised(GetOption(atomdisk1)))
         {
-            if (nType >= drvAtom) CheckRadioButton(hdlg_, IDR_IMAGE2, IDR_DEVICE2, IDR_DEVICE);
-            SendDlgItemMessage(hdlg_, IDC_HDD_DEVICE2, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(GetOption(atomdisk1)));
+            if (type >= drvAtom) CheckRadioButton(hdlg_, IDR_IMAGE2, IDR_DEVICE2, IDR_DEVICE);
+            ComboBox_SelectString(GetDlgItem(hdlg_, IDC_HDD_DEVICE2), -1, GetOption(atomdisk1).c_str());
         }
 
         break;
@@ -2847,8 +2803,8 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             }
         }
 
-        const char* aszDevices[] = { "None", "Floppy Drive", "Atom (Legacy)", "Atom Lite", nullptr };
-        SetComboStrings(hdlg_, IDC_DEVICE_TYPE, aszDevices, GetOption(drive2));
+        static const std::vector<std::string> types{ "None", "Floppy Drive", "Atom (Legacy)", "Atom Lite" };
+        SetComboStrings(hdlg_, IDC_DEVICE_TYPE, types, GetOption(drive2));
 
         SendDlgItemMessage(hdlg_, IDE_FLOPPY_IMAGE, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
         SendDlgItemMessage(hdlg_, IDE_HDD_IMAGE, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
@@ -2878,37 +2834,37 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
         if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
         {
-            SetOption(drive2, static_cast<int>(SendMessage(GetDlgItem(hdlg_, IDC_DEVICE_TYPE), CB_GETCURSEL, 0, 0L)));
+            SetOption(drive2, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE)));
 
-            bool fImage = SendDlgItemMessage(hdlg_, IDR_DEVICE, BM_GETCHECK, 0, 0L) != BST_CHECKED;
-            bool fImage2 = SendDlgItemMessage(hdlg_, IDR_DEVICE2, BM_GETCHECK, 0, 0L) != BST_CHECKED;
+            bool fImage = Button_GetCheck(GetDlgItem(hdlg_, IDR_DEVICE)) != BST_CHECKED;
+            bool fImage2 = Button_GetCheck(GetDlgItem(hdlg_, IDR_DEVICE2)) != BST_CHECKED;
 
             switch (GetOption(drive2))
             {
             case drvFloppy:
                 if (fImage)
-                    GetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE, const_cast<char*>(GetOption(disk2)), MAX_PATH);
+                    SetOption(disk2, GetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE));
                 else
-                    SetOption(disk2, GetComboText(hdlg_, IDC_FLOPPY_DEVICE, MAX_PATH));
+                    SetOption(disk2, GetComboText(hdlg_, IDC_FLOPPY_DEVICE));
                 break;
 
             case drvAtom:
             case drvAtomLite:
                 if (fImage)
-                    GetDlgItemText(hdlg_, IDE_HDD_IMAGE, const_cast<char*>(GetOption(atomdisk0)), MAX_PATH);
+                    SetOption(atomdisk0, GetDlgItemText(hdlg_, IDE_HDD_IMAGE));
                 else
-                    SetOption(atomdisk0, GetComboText(hdlg_, IDC_HDD_DEVICE, MAX_PATH));
+                    SetOption(atomdisk0, GetComboText(hdlg_, IDC_HDD_DEVICE));
 
                 if (fImage2)
-                    GetDlgItemText(hdlg_, IDE_HDD_IMAGE2, const_cast<char*>(GetOption(atomdisk1)), MAX_PATH);
+                    SetOption(atomdisk1, GetDlgItemText(hdlg_, IDE_HDD_IMAGE2));
                 else
-                    SetOption(atomdisk1, GetComboText(hdlg_, IDC_HDD_DEVICE2, MAX_PATH));
+                    SetOption(atomdisk1, GetComboText(hdlg_, IDC_HDD_DEVICE2));
 
                 break;
             }
 
             // If the floppy is active and the disk has changed, insert the new one
-            if (GetOption(drive2) == drvFloppy && ChangedString(disk2))
+            if (GetOption(drive2) == drvFloppy && Changed(disk2))
                 InsertDisk(*pFloppy2, GetOption(disk2));
 
             // If Atom boot ROM is enabled and a drive type has changed, trigger a ROM refresh
@@ -2965,23 +2921,23 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         {
             if (HIWORD(wParam_) == CBN_SELCHANGE)
             {
-                int nType = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_DEVICE_TYPE, CB_GETCURSEL, 0, 0L));
+                int type = ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE));
 
-                HICON hicon = LoadIcon(__hinstance, MAKEINTRESOURCE((nType >= 2) ? IDI_DRIVE : IDI_FLOPPY));
+                HICON hicon = LoadIcon(__hinstance, MAKEINTRESOURCE((type >= 2) ? IDI_DRIVE : IDI_FLOPPY));
                 SendDlgItemMessage(hdlg_, IDS_DEVICE, STM_SETICON, reinterpret_cast<WPARAM>(hicon), 0L);
 
-                SetDlgItemText(hdlg_, IDF_MEDIA, (nType >= 2) ? "Master" : "Media");
+                SetDlgItemText(hdlg_, IDF_MEDIA, (type >= 2) ? "Master" : "Media");
 
-                ShowWindow(GetDlgItem(hdlg_, IDE_FLOPPY_IMAGE), (nType == drvFloppy) ? SW_SHOW : SW_HIDE);
-                ShowWindow(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE), (nType == drvFloppy) ? SW_SHOW : SW_HIDE);
+                ShowWindow(GetDlgItem(hdlg_, IDE_FLOPPY_IMAGE), (type == drvFloppy) ? SW_SHOW : SW_HIDE);
+                ShowWindow(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE), (type == drvFloppy) ? SW_SHOW : SW_HIDE);
 
                 int control_ids[] = { IDS_DEVICE, IDF_MEDIA, IDS_TEXT1, IDR_IMAGE, IDB_BROWSE, IDR_DEVICE, IDC_HDD_DEVICE };
                 for (auto id : control_ids)
-                    ShowWindow(GetDlgItem(hdlg_, id), (nType >= drvFloppy) ? SW_SHOW : SW_HIDE);
+                    ShowWindow(GetDlgItem(hdlg_, id), (type >= drvFloppy) ? SW_SHOW : SW_HIDE);
 
                 int control_ids2[] = { IDF_MEDIA2, IDS_TEXT2, IDR_IMAGE2, IDE_HDD_IMAGE, IDE_HDD_IMAGE2, IDB_BROWSE2, IDC_HDD_DEVICE, IDR_DEVICE2, IDC_HDD_DEVICE2 };
                 for (auto id : control_ids2)
-                    ShowWindow(GetDlgItem(hdlg_, id), (nType >= drvAtom) ? SW_SHOW : SW_HIDE);
+                    ShowWindow(GetDlgItem(hdlg_, id), (type >= drvAtom) ? SW_SHOW : SW_HIDE);
 
                 uTimer = SetTimer(hdlg_, 1, 1, nullptr);
             }
@@ -2990,8 +2946,8 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
         case IDB_BROWSE:
         {
-            int nType = static_cast<int>(SendDlgItemMessage(hdlg_, IDC_DEVICE_TYPE, CB_GETCURSEL, 0, 0L));
-            if (nType == drvFloppy)
+            auto type = ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE));
+            if (type == drvFloppy)
                 BrowseImage(hdlg_, IDE_FLOPPY_IMAGE, szFloppyFilters);
             else
                 BrowseImage(hdlg_, IDE_HDD_IMAGE, szHDDFilters);
@@ -3034,15 +2990,11 @@ void BrowseFolder(HWND hdlg_, int nControl_, const char* pcszDefDir_)
     bi.lParam = reinterpret_cast<LPARAM>(sz);
     bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
 
-    LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
-
-    if (pidl)
+    if (auto pidl = SHBrowseForFolder(&bi))
     {
         if (SHGetPathFromIDList(pidl, sz))
         {
-            SetDlgItemPath(hdlg_, nControl_, sz);
-            SendMessage(hctrl, EM_SETSEL, 0, -1);
-            SetFocus(hctrl);
+            SetDlgItemText(hdlg_, nControl_, sz, true);
         }
 
         CoTaskMemFree(pidl);
@@ -3057,13 +3009,13 @@ INT_PTR CALLBACK InputPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
     {
     case WM_INITDIALOG:
     {
-        static const char* aszMapping[] = { "Disabled", "Automatic (default)", "SAM Coupé", "ZX Spectrum", nullptr };
-        SetComboStrings(hdlg_, IDC_KEYBOARD_MAPPING, aszMapping, GetOption(keymapping));
+        static const std::vector<std::string> mappings{ "Disabled", "Automatic (default)", "SAM Coupé", "ZX Spectrum" };
+        SetComboStrings(hdlg_, IDC_KEYBOARD_MAPPING, mappings, GetOption(keymapping));
 
-        SendDlgItemMessage(hdlg_, IDC_ALT_FOR_CNTRL, BM_SETCHECK, GetOption(altforcntrl) ? BST_CHECKED : BST_UNCHECKED, 0L);
-        SendDlgItemMessage(hdlg_, IDC_ALTGR_FOR_EDIT, BM_SETCHECK, GetOption(altgrforedit) ? BST_CHECKED : BST_UNCHECKED, 0L);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_ALT_FOR_CNTRL), GetOption(altforcntrl) ? BST_CHECKED : BST_UNCHECKED);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_ALTGR_FOR_EDIT), GetOption(altgrforedit) ? BST_CHECKED : BST_UNCHECKED);
 
-        SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_SETCHECK, GetOption(mouse) ? BST_CHECKED : BST_UNCHECKED, 0L);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_MOUSE_ENABLED), GetOption(mouse) ? BST_CHECKED : BST_UNCHECKED);
 
         SendMessage(hdlg_, WM_COMMAND, IDC_MOUSE_ENABLED, 0L);
         break;
@@ -3073,12 +3025,12 @@ INT_PTR CALLBACK InputPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
     {
         if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
         {
-            SetOption(keymapping, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_KEYBOARD_MAPPING, CB_GETCURSEL, 0, 0L)));
+            SetOption(keymapping, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_KEYBOARD_MAPPING)));
 
-            SetOption(altforcntrl, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALT_FOR_CNTRL, BM_GETCHECK, 0, 0L)) == BST_CHECKED);
-            SetOption(altgrforedit, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_ALTGR_FOR_EDIT, BM_GETCHECK, 0, 0L)) == BST_CHECKED);
+            SetOption(altforcntrl, Button_GetCheck(GetDlgItem(hdlg_, IDC_ALT_FOR_CNTRL)) == BST_CHECKED);
+            SetOption(altgrforedit, Button_GetCheck(GetDlgItem(hdlg_, IDC_ALTGR_FOR_EDIT)) == BST_CHECKED);
 
-            SetOption(mouse, SendDlgItemMessage(hdlg_, IDC_MOUSE_ENABLED, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+            SetOption(mouse, Button_GetCheck(GetDlgItem(hdlg_, IDC_MOUSE_ENABLED)) == BST_CHECKED);
 
             if (Changed(keymapping) || Changed(mouse))
                 Input::Init();
@@ -3121,9 +3073,9 @@ INT_PTR CALLBACK JoystickPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
         FillJoystickCombo(GetDlgItem(hdlg_, IDC_JOYSTICK1), GetOption(joydev1));
         FillJoystickCombo(GetDlgItem(hdlg_, IDC_JOYSTICK2), GetOption(joydev2));
 
-        static const char* aszJoysticks[] = { "None", "Joystick 1", "Joystick 2", "Kempston", nullptr };
-        SetComboStrings(hdlg_, IDC_SAM_JOYSTICK1, aszJoysticks, GetOption(joytype1));
-        SetComboStrings(hdlg_, IDC_SAM_JOYSTICK2, aszJoysticks, GetOption(joytype2));
+        static const std::vector<std::string> types{ "None", "Joystick 1", "Joystick 2", "Kempston" };
+        SetComboStrings(hdlg_, IDC_SAM_JOYSTICK1, types, GetOption(joytype1));
+        SetComboStrings(hdlg_, IDC_SAM_JOYSTICK2, types, GetOption(joytype2));
 
         SendMessage(hdlg_, WM_COMMAND, IDC_JOYSTICK1, 0L);
         break;
@@ -3135,14 +3087,10 @@ INT_PTR CALLBACK JoystickPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
 
         if (pnmh->code == PSN_APPLY)
         {
-            HWND hwndJoy1 = GetDlgItem(hdlg_, IDC_JOYSTICK1), hwndJoy2 = GetDlgItem(hdlg_, IDC_JOYSTICK2);
-            SendMessage(hwndJoy1, CB_GETLBTEXT, SendMessage(hwndJoy1, CB_GETCURSEL, 0, 0L), (LPARAM)GetOption(joydev1));
-            SendMessage(hwndJoy2, CB_GETLBTEXT, SendMessage(hwndJoy2, CB_GETCURSEL, 0, 0L), (LPARAM)GetOption(joydev2));
-
-            SetOption(joytype1, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_SAM_JOYSTICK1, CB_GETCURSEL, 0, 0L)));
-            SetOption(joytype2, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_SAM_JOYSTICK2, CB_GETCURSEL, 0, 0L)));
-
-            // Always reinitialise to ensure we pick up connected devices
+            SetOption(joydev1, GetComboText(hdlg_, IDC_JOYSTICK1));
+            SetOption(joydev2, GetComboText(hdlg_, IDC_JOYSTICK2));
+            SetOption(joytype1, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_SAM_JOYSTICK1)));
+            SetOption(joytype2, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_SAM_JOYSTICK2)));
             Input::Init();
         }
 
@@ -3155,8 +3103,8 @@ INT_PTR CALLBACK JoystickPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
         {
         case IDC_JOYSTICK1:
         case IDC_JOYSTICK2:
-            EnableWindow(GetDlgItem(hdlg_, IDC_SAM_JOYSTICK1), SendDlgItemMessage(hdlg_, IDC_JOYSTICK1, CB_GETCURSEL, 0, 0L) != 0);
-            EnableWindow(GetDlgItem(hdlg_, IDC_SAM_JOYSTICK2), SendDlgItemMessage(hdlg_, IDC_JOYSTICK2, CB_GETCURSEL, 0, 0L) != 0);
+            ComboBox_Enable(GetDlgItem(hdlg_, IDC_SAM_JOYSTICK1), ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_JOYSTICK1)) != 0);
+            ComboBox_Enable(GetDlgItem(hdlg_, IDC_SAM_JOYSTICK2), ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_JOYSTICK2)) != 0);
             break;
         }
         break;
@@ -3175,12 +3123,12 @@ INT_PTR CALLBACK ParallelPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
     {
     case WM_INITDIALOG:
     {
-        static const char* aszParallel[] = { "None", "Printer", "DAC (8-bit mono)", "SAMDAC (8-bit stereo)", nullptr };
-        SetComboStrings(hdlg_, IDC_PARALLEL_1, aszParallel, GetOption(parallel1));
-        SetComboStrings(hdlg_, IDC_PARALLEL_2, aszParallel, GetOption(parallel2));
+        static const std::vector<std::string> types{ "None", "Printer", "DAC (8-bit mono)", "SAMDAC (8-bit stereo)" };
+        SetComboStrings(hdlg_, IDC_PARALLEL_1, types, GetOption(parallel1));
+        SetComboStrings(hdlg_, IDC_PARALLEL_2, types, GetOption(parallel2));
 
-        SendDlgItemMessage(hdlg_, IDC_AUTO_FLUSH, BM_SETCHECK, GetOption(flushdelay) ? BST_CHECKED : BST_UNCHECKED, 0L);
-        FillPrintersCombo(GetDlgItem(hdlg_, IDC_PRINTERS), GetOption(printerdev));
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_AUTO_FLUSH), GetOption(flushdelay) ? BST_CHECKED : BST_UNCHECKED);
+        FillPrintersCombo(GetDlgItem(hdlg_, IDC_PRINTERS));
 
         SendMessage(hdlg_, WM_COMMAND, IDC_PARALLEL_1, 0L);
         SendMessage(hdlg_, WM_COMMAND, IDC_PARALLEL_2, 0L);
@@ -3191,20 +3139,9 @@ INT_PTR CALLBACK ParallelPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
     {
         if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
         {
-            SetOption(parallel1, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_PARALLEL_1, CB_GETCURSEL, 0, 0L)));
-            SetOption(parallel2, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_PARALLEL_2, CB_GETCURSEL, 0, 0L)));
-
-            LRESULT lPrinter = SendDlgItemMessage(hdlg_, IDC_PRINTERS, CB_GETCURSEL, 0, 0L);
-
-            // Fetch the printer name unless print-to-file is selected
-            if (lPrinter)
-            {
-                char szPrinter[256];
-                SendDlgItemMessage(hdlg_, IDC_PRINTERS, CB_GETLBTEXT, lPrinter, reinterpret_cast<LPARAM>(szPrinter));
-                SetOption(printerdev, szPrinter + lstrlen(PRINTER_PREFIX));
-            }
-
-            SetOption(flushdelay, (SendDlgItemMessage(hdlg_, IDC_AUTO_FLUSH, BM_GETCHECK, 0, 0L) == BST_CHECKED) ? 2 : 0);
+            SetOption(parallel1, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_PARALLEL_1)));
+            SetOption(parallel2, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_PARALLEL_2)));
+            SetOption(flushdelay, (Button_GetCheck(GetDlgItem(hdlg_, IDC_AUTO_FLUSH)) == BST_CHECKED) ? 2 : 0);
         }
 
         break;
@@ -3217,8 +3154,8 @@ INT_PTR CALLBACK ParallelPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
         case IDC_PARALLEL_1:
         case IDC_PARALLEL_2:
         {
-            bool fPrinter1 = (SendDlgItemMessage(hdlg_, IDC_PARALLEL_1, CB_GETCURSEL, 0, 0L) == 1);
-            bool fPrinter2 = (SendDlgItemMessage(hdlg_, IDC_PARALLEL_2, CB_GETCURSEL, 0, 0L) == 1);
+            bool fPrinter1 = (ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_PARALLEL_1)) == 1);
+            bool fPrinter2 = (ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_PARALLEL_2)) == 1);
 
             EnableWindow(GetDlgItem(hdlg_, IDC_PRINTERS), fPrinter1 || fPrinter2);
             EnableWindow(GetDlgItem(hdlg_, IDS_PRINTERS), fPrinter1 || fPrinter2);
@@ -3243,13 +3180,13 @@ INT_PTR CALLBACK MiscPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
     {
     case WM_INITDIALOG:
     {
-        SendDlgItemMessage(hdlg_, IDC_SAMBUS_CLOCK, BM_SETCHECK, GetOption(sambusclock) ? BST_CHECKED : BST_UNCHECKED, 0L);
-        SendDlgItemMessage(hdlg_, IDC_DALLAS_CLOCK, BM_SETCHECK, GetOption(dallasclock) ? BST_CHECKED : BST_UNCHECKED, 0L);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_SAMBUS_CLOCK), GetOption(sambusclock) ? BST_CHECKED : BST_UNCHECKED);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_DALLAS_CLOCK), GetOption(dallasclock) ? BST_CHECKED : BST_UNCHECKED);
 
-        SendDlgItemMessage(hdlg_, IDC_DRIVE_LIGHTS, BM_SETCHECK, GetOption(drivelights) ? BST_CHECKED : BST_UNCHECKED, 0L);
-        SendDlgItemMessage(hdlg_, IDC_STATUS, BM_SETCHECK, GetOption(status) ? BST_CHECKED : BST_UNCHECKED, 0L);
-        SendDlgItemMessage(hdlg_, IDC_PROFILE, BM_SETCHECK, GetOption(profile) ? BST_CHECKED : BST_UNCHECKED, 0L);
-        SendDlgItemMessage(hdlg_, IDC_SAVE_PROMPT, BM_SETCHECK, GetOption(saveprompt) ? BST_CHECKED : BST_UNCHECKED, 0L);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_DRIVE_LIGHTS), GetOption(drivelights) ? BST_CHECKED : BST_UNCHECKED);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_STATUS), GetOption(status) ? BST_CHECKED : BST_UNCHECKED);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_PROFILE), GetOption(profile) ? BST_CHECKED : BST_UNCHECKED);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_SAVE_PROMPT), GetOption(saveprompt) ? BST_CHECKED : BST_UNCHECKED);
 
         break;
     }
@@ -3258,13 +3195,13 @@ INT_PTR CALLBACK MiscPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
     {
         if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
         {
-            SetOption(sambusclock, SendDlgItemMessage(hdlg_, IDC_SAMBUS_CLOCK, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-            SetOption(dallasclock, SendDlgItemMessage(hdlg_, IDC_DALLAS_CLOCK, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+            SetOption(sambusclock, Button_GetCheck(GetDlgItem(hdlg_, IDC_SAMBUS_CLOCK)) == BST_CHECKED);
+            SetOption(dallasclock, Button_GetCheck(GetDlgItem(hdlg_, IDC_DALLAS_CLOCK)) == BST_CHECKED);
 
-            SetOption(drivelights, SendDlgItemMessage(hdlg_, IDC_DRIVE_LIGHTS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-            SetOption(status, SendDlgItemMessage(hdlg_, IDC_STATUS, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-            SetOption(profile, SendDlgItemMessage(hdlg_, IDC_PROFILE, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-            SetOption(saveprompt, SendDlgItemMessage(hdlg_, IDC_SAVE_PROMPT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+            SetOption(drivelights, Button_GetCheck(GetDlgItem(hdlg_, IDC_DRIVE_LIGHTS)) == BST_CHECKED);
+            SetOption(status, Button_GetCheck(GetDlgItem(hdlg_, IDC_STATUS)) == BST_CHECKED);
+            SetOption(profile, Button_GetCheck(GetDlgItem(hdlg_, IDC_PROFILE)) == BST_CHECKED);
+            SetOption(saveprompt, Button_GetCheck(GetDlgItem(hdlg_, IDC_SAVE_PROMPT)) == BST_CHECKED);
         }
         break;
     }
@@ -3282,11 +3219,11 @@ INT_PTR CALLBACK HelperPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
     case WM_INITDIALOG:
     {
-        SendDlgItemMessage(hdlg_, IDC_TURBO_DISK, BM_SETCHECK, GetOption(turbodisk) ? BST_CHECKED : BST_UNCHECKED, 0L);
-        SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_SETCHECK, GetOption(fastreset) ? BST_CHECKED : BST_UNCHECKED, 0L);
-        SendDlgItemMessage(hdlg_, IDC_AUTOLOAD, BM_SETCHECK, GetOption(autoload) ? BST_CHECKED : BST_UNCHECKED, 0L);
-        SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_SETCHECK, GetOption(dosboot) ? BST_CHECKED : BST_UNCHECKED, 0L);
-        SetDlgItemPath(hdlg_, IDE_DOSDISK, GetOption(dosdisk));
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_TURBO_DISK), GetOption(turbodisk) ? BST_CHECKED : BST_UNCHECKED);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_FAST_RESET), GetOption(fastreset) ? BST_CHECKED : BST_UNCHECKED);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_AUTOLOAD), GetOption(autoload) ? BST_CHECKED : BST_UNCHECKED);
+        Button_SetCheck(GetDlgItem(hdlg_, IDC_DOSBOOT), GetOption(dosboot) ? BST_CHECKED : BST_UNCHECKED);
+        SetDlgItemText(hdlg_, IDE_DOSDISK, GetOption(dosdisk));
         SendDlgItemMessage(hdlg_, IDE_DOSDISK, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));
 
         SendMessage(hdlg_, WM_COMMAND, IDC_DOSBOOT, 0L);
@@ -3297,12 +3234,14 @@ INT_PTR CALLBACK HelperPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
         if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
         {
-            SetOption(turbodisk, SendDlgItemMessage(hdlg_, IDC_TURBO_DISK, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-            SetOption(fastreset, static_cast<int>(SendDlgItemMessage(hdlg_, IDC_FAST_RESET, BM_GETCHECK, 0, 0L) == BST_CHECKED));
-            SetOption(autoload, SendDlgItemMessage(hdlg_, IDC_AUTOLOAD, BM_GETCHECK, 0, 0L) == BST_CHECKED);
-            SetOption(dosboot, SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_GETCHECK, 0, 0L) == BST_CHECKED);
+            SetOption(turbodisk, Button_GetCheck(GetDlgItem(hdlg_, IDC_TURBO_DISK)) == BST_CHECKED);
+            SetOption(fastreset, Button_GetCheck(GetDlgItem(hdlg_, IDC_FAST_RESET)) == BST_CHECKED);
+            SetOption(autoload, Button_GetCheck(GetDlgItem(hdlg_, IDC_AUTOLOAD)) == BST_CHECKED);
+            SetOption(dosboot, Button_GetCheck(GetDlgItem(hdlg_, IDC_DOSBOOT)) == BST_CHECKED);
 
-            GetDlgItemPath(hdlg_, IDE_DOSDISK, const_cast<char*>(GetOption(dosdisk)), MAX_PATH);
+            std::vector<char> path(MAX_PATH);
+            GetDlgItemText(hdlg_, IDE_DOSDISK, path.data(), static_cast<DWORD>(path.size()));
+            SetOption(dosdisk, path.data());
         }
         break;
     }
@@ -3313,7 +3252,7 @@ INT_PTR CALLBACK HelperPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         {
         case IDC_DOSBOOT:
         {
-            bool fDosBoot = SendDlgItemMessage(hdlg_, IDC_DOSBOOT, BM_GETCHECK, 0, 0L) == BST_CHECKED;
+            bool fDosBoot = Button_GetCheck(GetDlgItem(hdlg_, IDC_DOSBOOT)) == BST_CHECKED;
             EnableWindow(GetDlgItem(hdlg_, IDS_DOSDISK), fDosBoot);
             EnableWindow(GetDlgItem(hdlg_, IDE_DOSDISK), fDosBoot);
             EnableWindow(GetDlgItem(hdlg_, IDB_BROWSE), fDosBoot);
@@ -3349,8 +3288,8 @@ static void AddPage(std::vector<PROPSHEETPAGE>& pages, int dialog_id, DLGPROC pf
 void DisplayOptions()
 {
     // Update floppy path options
-    SetOption(disk1, pFloppy1->DiskPath().c_str());
-    SetOption(disk2, pFloppy2->DiskPath().c_str());
+    SetOption(disk1, pFloppy1->DiskPath());
+    SetOption(disk2, pFloppy2->DiskPath());
 
     // Initialise the pages to go on the sheet
     std::vector<PROPSHEETPAGE> pages;
@@ -3376,7 +3315,7 @@ void DisplayOptions()
     psh.ppsp = pages.data();
 
     // Save the current option state, flag that we've not centred the dialogue box, then display them for editing
-    opts = Options::s_Options;
+    current_config = Options::g_config;
     fCentredOptions = false;
 
     // Display option property sheet

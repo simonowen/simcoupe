@@ -124,25 +124,23 @@ void MidiDevice::Out(uint16_t wPort_, uint8_t bVal_)
     m_nOut = m_abOut[1] = m_abOut[2] = m_abOut[3] = 0;
 }
 
-bool MidiDevice::SetDevice(const char* pcszDevice_)
+bool MidiDevice::SetDevice(const std::string& dev_path)
 {
     if (m_hMidiOut)
         midiOutClose(m_hMidiOut), m_hMidiOut = nullptr;
 
-    // Do we have a device name?
-    if (*pcszDevice_)
+    if (!dev_path.empty())
     {
-        for (UINT u = 0, uDevs = midiOutGetNumDevs(); u < uDevs; u++)
+        for (UINT i = 0, num_devs = midiOutGetNumDevs(); i < num_devs; i++)
         {
-            MIDIOUTCAPS mc;
-            if (midiOutGetDevCaps(u, &mc, sizeof(mc)) == MMSYSERR_NOERROR && !lstrcmpi(mc.szPname, pcszDevice_))
+            MIDIOUTCAPS mc{};
+            if (midiOutGetDevCaps(i, &mc, sizeof(mc)) == MMSYSERR_NOERROR && (mc.szPname == dev_path))
             {
-                midiOutOpen(&m_hMidiOut, u, 0, 0, CALLBACK_NULL);
+                midiOutOpen(&m_hMidiOut, i, 0, 0, CALLBACK_NULL);
                 break;
             }
         }
     }
 
-    // Successful if the device name is empty or we have opened a device
-    return !*pcszDevice_ || m_hMidiOut != nullptr;
+    return dev_path.empty() || m_hMidiOut != nullptr;
 }

@@ -50,6 +50,8 @@ uint32_t RGB2Native(uint8_t r_, uint8_t g_, uint8_t b_, uint32_t dwRMask_, uint3
 uint32_t RGB2Native(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_, uint32_t dwRMask_, uint32_t dwGMask_, uint32_t dwBMask_, uint32_t dwAMask_);
 inline float RGB2sRGB(float x) { return (x < 0.0031308f) ? (x * 12.92f) : (1.055f * std::pow(x, 1 / 2.4f) - 0.055f); }
 
+inline std::string to_string(const std::string& s) { return s; }    // std:: lacks to_string to strings(!)
+
 std::string tolower(std::string str);
 std::vector<std::string> split(const std::string& str, char sep);
 

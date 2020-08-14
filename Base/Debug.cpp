@@ -134,7 +134,7 @@ bool Start(std::optional<int> bp_index)
                 strPath = strPath.substr(0, nExt);
 
             // Attempt to load user symbols from a corresponding .map file
-            Symbol::Update(strPath.append(".map").c_str());
+            Symbol::Update(strPath.append(".map"));
         }
         else
         {
@@ -575,7 +575,7 @@ Debugger::Debugger(std::optional<int> bp_index)
             ss << fmt::format("\aYUNTIL condition met:  {}", bp.expr.str);
         }
 
-        SetStatus(ss.str().c_str(), true, sPropFont);
+        SetStatus(ss.str(), true, sPropFont);
         nLastView = ViewType::Dis;
     }
 

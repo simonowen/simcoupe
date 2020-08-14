@@ -46,8 +46,8 @@ struct PIPEMESSAGE
 #pragma pack()
 
 
-DeviceHardDisk::DeviceHardDisk(const char* pcszDisk_)
-    : HardDisk(pcszDisk_)
+DeviceHardDisk::DeviceHardDisk(const std::string& disk_path) :
+    HardDisk(disk_path)
 {
     m_pbSector = (PBYTE)VirtualAlloc(nullptr, 1 << 9, MEM_COMMIT, PAGE_READWRITE);
 }
@@ -61,16 +61,15 @@ DeviceHardDisk::~DeviceHardDisk()
 }
 
 
-bool DeviceHardDisk::IsRecognised(const char* pcszDisk_)
+bool DeviceHardDisk::IsRecognised(const std::string& disk_path)
 {
-    char* pszEnd = nullptr;
-
-    // Accept a device number followed by a colon, and anything beyond that
-    return isdigit(pcszDisk_[0]) && strtoul(pcszDisk_, &pszEnd, 10) != ULONG_MAX && *pszEnd == ':';
+    unsigned int index{};
+    char colon{};
+    return std::sscanf(disk_path.c_str(), "%u%c", &index, &colon) == 2;
 }
 
 
-bool DeviceHardDisk::Open(bool fReadOnly_/*=false*/)
+bool DeviceHardDisk::Open(bool read_only)
 {
     if (!IsRecognised(m_strPath.c_str()))
         return false;
@@ -81,7 +80,7 @@ bool DeviceHardDisk::Open(bool fReadOnly_/*=false*/)
         return false;
 
     auto device_path = fmt::format(R"(\\.\PhysicalDrive{})", ulDevice);
-    DWORD dwWrite = fReadOnly_ ? 0 : GENERIC_WRITE;
+    DWORD dwWrite = read_only ? 0 : GENERIC_WRITE;
     m_hDevice = CreateFile(device_path.c_str(), GENERIC_READ | dwWrite, 0, nullptr, OPEN_EXISTING, 0, nullptr);
     DWORD dwError = GetLastError();
 
@@ -107,7 +106,7 @@ bool DeviceHardDisk::Open(bool fReadOnly_/*=false*/)
         if (dwError != ERROR_FILE_NOT_FOUND && dwError != ERROR_PATH_NOT_FOUND)
             TRACE("Failed to open {} ({:08x})\n", device_path, dwError);
     }
-    else if (!Lock(fReadOnly_))
+    else if (!Lock(read_only))
     {
         TRACE("Failed to get exclusive access to {}\n", device_path);
     }
@@ -151,7 +150,7 @@ void DeviceHardDisk::Close()
     }
 }
 
-bool DeviceHardDisk::Lock(bool fReadOnly_/*=false*/)
+bool DeviceHardDisk::Lock(bool read_only)
 {
     DWORD dwRet;
 
@@ -196,7 +195,7 @@ bool DeviceHardDisk::Lock(bool fReadOnly_/*=false*/)
                         TRACE("!!! Failed to re-open device\n");
                     else if (!DeviceIoControl(h, FSCTL_LOCK_VOLUME, nullptr, 0, nullptr, 0, &dwRet, nullptr))
                         TRACE("!!! Failed to lock volume\n");
-                    else if (!fReadOnly_ && !DeviceIoControl(h, FSCTL_DISMOUNT_VOLUME, nullptr, 0, nullptr, 0, &dwRet, nullptr))
+                    else if (!read_only && !DeviceIoControl(h, FSCTL_DISMOUNT_VOLUME, nullptr, 0, nullptr, 0, &dwRet, nullptr))
                         TRACE("!!! Failed to dismount volume\n");
                     else
                     {

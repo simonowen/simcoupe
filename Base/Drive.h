@@ -49,7 +49,7 @@ public:
     void FrameEnd() override;
 
 public:
-    bool Insert(const char* pcszSource_, bool fAutoLoad_ = false) override;
+    bool Insert(const std::string& disk_path, bool auto_load = false) override;
     void Eject() override;
     bool Save() override { return m_pDisk && m_pDisk->Save(); }
     void Reset() override;

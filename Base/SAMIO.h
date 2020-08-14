@@ -87,7 +87,7 @@ public:
     void FrameEnd() override { if (m_uActive) m_uActive--; }
 
 public:
-    virtual bool Insert(const char* /*image*/, bool /*autoload*/ = false) { return false; }
+    virtual bool Insert(const std::string& /*disk_path*/, bool /*autoload*/ = false) { return false; }
     virtual void Eject() { }
     virtual bool Save() { return true; }
 

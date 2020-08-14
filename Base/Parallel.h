@@ -66,24 +66,6 @@ protected:
     fs::path print_path;
 };
 
-class PrinterDevice : public PrintBuffer
-{
-public:
-    PrinterDevice();
-    ~PrinterDevice();
-
-public:
-    bool Open() override;
-    void Close() override;
-    void Write(uint8_t* pb_, size_t uLen_) override;
-
-protected:
-#ifdef WIN32
-    HANDLE m_hPrinter;  // temporary!
-#endif
-};
-
-
 class MonoDACDevice : public IoDevice
 {
 public:

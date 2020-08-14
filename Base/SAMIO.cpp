@@ -211,15 +211,15 @@ void Exit(bool fReInit_/*=false*/)
             pPrinterFile->Flush();
 
         if (pFloppy1)
-            SetOption(disk1, pFloppy1->DiskPath().c_str());
+            SetOption(disk1, pFloppy1->DiskPath());
 
         if (pFloppy2)
-            SetOption(disk2, pFloppy2->DiskPath().c_str());
+            SetOption(disk2, pFloppy2->DiskPath());
 
         if (pDallas)
             pDallas->SaveState(OSD::MakeFilePath(PathType::Settings, "dallas"));
 
-        SetOption(tape, Tape::GetPath().c_str());
+        SetOption(tape, Tape::GetPath());
         Tape::Eject();
 
         pMidi.reset();
