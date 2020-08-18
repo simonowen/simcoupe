@@ -22,21 +22,24 @@
 
 enum class Action
 {
-    NewDisk1, InsertFloppy1, EjectFloppy1, SaveFloppy1, NewDisk2, InsertFloppy2,
-    EjectFloppy2, SaveFloppy2, ExitApplication, Options, Debugger, ImportData,
-    ExportData, SavePNG, ChangeProfiler_REMOVED, ResetButton, NmiButton,
-    Pause, FrameStep, ToggleTurbo, TempTurbo, ToggleScanHiRes_REMOVED, ToggleFullscreen,
-    ChangeWindowSize_REMOVED, ChangeBorders_REMOVED, Toggle5_4, ToggleSmoothing,
-    ToggleScanlines_REMOVED, ToggleGreyscale_REMOVED, ToggleMute_REMOVED, ReleaseMouse, PrinterOnline,
-    FlushPrinter, About, Minimise, RecordGif, RecordGifLoop, RecordGifStop,
-    RecordWav, RecordWavSegment, RecordWavStop, RecordAvi, RecordAviHalf,
-    RecordAviStop, SpeedFaster, SpeedSlower, SpeedNormal, Paste, TapeInsert,
-    TapeEject, TapeBrowser, SaveSSX, ToggleMotionBlur
+    None,
+    NewDisk1, InsertDisk1, EjectDisk1, SaveDisk1,
+    NewDisk2, InsertDisk2, EjectDisk2, SaveDisk2,
+    InsertTape, EjectTape, TapeBrowser,
+    Paste, ImportData, ExportData, SavePNG, SaveSSX,
+    TogglePrinter, FlushPrinter,
+    ToggleFullscreen, Toggle54, ToggleSmoothing, ToggleMotionBlur,
+    RecordAvi, RecordAviHalf, RecordAviStop,
+    RecordGif, RecordGifLoop, RecordGifStop,
+    RecordWav, RecordWavSegment, RecordWavStop,
+    SpeedNormal, SpeedSlower, SpeedFaster, SpeedTurbo, ToggleTurbo,
+    Reset, Nmi, Pause, FrameStep,
+    ReleaseMouse,
+    Options, Debugger, About, Minimise, ExitApp,
 };
 
 namespace Actions
 {
 bool Do(Action action, bool pressed = true);
 void Key(int fn_key, bool pressed, bool ctrl, bool alt, bool shift);
-std::string to_string(Action action);
 }

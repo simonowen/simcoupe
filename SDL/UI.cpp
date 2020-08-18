@@ -141,8 +141,8 @@ bool UI::CheckEvents()
                 }
 
                 case UE_RESETBUTTON:
-                    Actions::Do(Action::ResetButton, true);
-                    Actions::Do(Action::ResetButton, false);
+                    Actions::Do(Action::Reset, true);
+                    Actions::Do(Action::Reset, false);
                     break;
 
                 case UE_TEMPTURBOON:
@@ -151,8 +151,8 @@ bool UI::CheckEvents()
                     break;
 
                 case UE_TOGGLEFULLSCREEN:   Actions::Do(Action::ToggleFullscreen); break;
-                case UE_NMIBUTTON:          Actions::Do(Action::NmiButton);       break;
-                case UE_TOGGLE54:           Actions::Do(Action::Toggle5_4);       break;
+                case UE_NMIBUTTON:          Actions::Do(Action::Nmi);       break;
+                case UE_TOGGLE54:           Actions::Do(Action::Toggle54);       break;
                 case UE_DEBUGGER:           Actions::Do(Action::Debugger);        break;
                 case UE_SAVESCREENSHOT:     Actions::Do(Action::SavePNG);         break;
                 case UE_PAUSE:              Actions::Do(Action::Pause);           break;
@@ -208,7 +208,7 @@ bool UI::DoAction(Action action, bool pressed)
     {
         switch (action)
         {
-        case Action::ExitApplication:
+        case Action::ExitApp:
         {
             SDL_Event event = { SDL_QUIT };
             SDL_PushEvent(&event);

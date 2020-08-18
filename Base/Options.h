@@ -117,18 +117,18 @@ struct Config
     bool breakonexec = false;           // Break on code auto-execute?
 
     std::string fnkeys =                // Function key bindings
-        "F1=1,SF1=2,AF1=0,CF1=3,"
-        "F2=5,SF2=6,AF2=4,CF2=7,"
-        "F3=50,SF3=49,"
-        "F4=11,SF4=12,AF4=8,"
-        "F5=25,SF5=23,"
-        "F6=26,"
-        "F7=52,SF7=21,"
-        "F8=22,"
-        "F9=10,SF9=13,"
-        "F10=9,SF10=10,"
-        "F11=16,"
-        "F12=15,CF12=8";
+        "F1=InsertDisk1,SF1=EjectDisk1,AF1=NewDisk1,CF1=SaveDisk1,"
+        "F2=InsertDisk2,SF2=EjectDisk2,AF2=NewDisk2,CF2=SaveDisk2,"
+        "F3=TapeBrowser,SF3=EjectTape,"
+        "F4=ImportData,SF4=ExportData,AF4=ExitApp,"
+        "F5=Toggle54,"
+        "F6=ToggleSmoothing,SF6=ToggleMotionBlur,"
+        ""
+        "F8=ToggleFullscreen,"
+        "F9=Debugger,SF9=SavePNG,"
+        "F10=Options,"
+        "F11=Nmi,"
+        "F12=Reset,CF12=ExitApp";
 };
 
 

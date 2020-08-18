@@ -40,6 +40,74 @@
 namespace Actions
 {
 
+struct ActionKey
+{
+    Action action{ Action::None };
+    int fn_key{};
+    bool ctrl;
+    bool alt;
+    bool shift;
+};
+
+static std::vector<ActionKey> s_mappings;
+
+struct ActionEntry
+{
+    Action action;
+    std::string name;
+    std::string desc;
+};
+
+static const std::vector<ActionEntry> actions =
+{
+    { Action::NewDisk1, "NewDisk1", "New disk 1", },
+    { Action::InsertDisk1, "InsertDisk1", "Insert disk 1" },
+    { Action::EjectDisk1, "EjectDisk1", "Close disk 1" },
+    { Action::SaveDisk1, "SaveDisk1", "Save disk 1" },
+    { Action::NewDisk2, "NewDisk2", "New disk 2" },
+    { Action::InsertDisk2, "InsertDisk2", "Insert disk 2" },
+    { Action::EjectDisk2, "EjectDisk2", "Close disk 2" },
+    { Action::SaveDisk2, "SaveDisk2", "Save disk 2" },
+    { Action::InsertTape, "InsertTape", "Insert Tape" },
+    { Action::EjectTape, "EjectTape", "Eject Tape" },
+    { Action::TapeBrowser, "TapeBrowser", "Tape Browser" },
+    { Action::Paste, "Paste", "Paste Clipboard" },
+    { Action::ImportData, "ImportData", "Import data" },
+    { Action::ExportData, "ExportData", "Export data" },
+    { Action::SavePNG, "SavePNG", "Save screenshot (PNG)" },
+    { Action::SaveSSX, "SaveSSX", "Save screenshot (SSX)" },
+    { Action::TogglePrinter, "TogglePrinter", "Toggle printer online" },
+    { Action::FlushPrinter, "FlushPrinter", "Flush printer" },
+    { Action::ToggleFullscreen, "ToggleFullscreen", "Toggle fullscreen" },
+    { Action::Toggle54, "Toggle54", "Toggle 5:4 display" },
+    { Action::ToggleSmoothing, "ToggleSmoothing", "Toggle graphics smoothing" },
+    { Action::ToggleMotionBlur, "ToggleMotionBlur", "Toggle motion blur" },
+    { Action::RecordAvi, "RecordAvi", "Record AVI video" },
+    { Action::RecordAviHalf, "RecordAviHalf", "Record AVI half-size" },
+    { Action::RecordAviStop, "RecordAviStop", "Stop AVI Recording" },
+    { Action::RecordGif, "RecordGif", "Record GIF animation" },
+    { Action::RecordGifLoop, "RecordGifLoop", "Record GIF loop" },
+    { Action::RecordGifStop, "RecordGifStop", "Stop GIF Recording" },
+    { Action::RecordWav, "RecordWav", "Record WAV audio" },
+    { Action::RecordWavSegment, "RecordWavSegment", "Record WAV segment" },
+    { Action::RecordWavStop, "RecordWavStop", "Stop WAV Recording" },
+    { Action::SpeedNormal, "SpeedNormal", "Speed Normal" },
+    { Action::SpeedSlower, "SpeedSlower", "Speed Slower" },
+    { Action::SpeedFaster, "SpeedFaster", "Speed Faster" },
+    { Action::SpeedTurbo, "SpeedTurbo", "Turbo speed (when held)" },
+    { Action::ToggleTurbo, "ToggleTurbo", "Toggle turbo speed" },
+    { Action::Reset, "Reset", "Reset button" },
+    { Action::Nmi, "Nmi", "NMI button" },
+    { Action::Pause, "Pause", "Pause" },
+    { Action::FrameStep, "FrameStep", "Frame step" },
+    { Action::ReleaseMouse, "ReleaseMouse", "Release mouse capture" },
+    { Action::Options, "Options", "Options" },
+    { Action::Debugger, "Debugger", "Debugger" },
+    { Action::About, "About", "About SimCoupe" },
+    { Action::Minimise, "Minimise", "Minimise window" },
+    { Action::ExitApp, "ExitApp", "Exit application" },
+};
+
 bool Do(Action action, bool pressed/*=true*/)
 {
     // OS-specific functionality takes precedence
@@ -51,18 +119,18 @@ bool Do(Action action, bool pressed/*=true*/)
     {
         switch (action)
         {
-        case Action::ResetButton:
+        case Action::Reset:
             // Ensure we're not paused, to avoid confusion
             g_fPaused = false;
 
             CPU::Reset(true);
             break;
 
-        case Action::NmiButton:
+        case Action::Nmi:
             CPU::NMI();
             break;
 
-        case Action::Toggle5_4:
+        case Action::Toggle54:
             SetOption(ratio5_4, !GetOption(ratio5_4));
             Video::OptionsChanged();
             Frame::SetStatus("{} aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
@@ -80,14 +148,14 @@ bool Do(Action action, bool pressed/*=true*/)
             Frame::SetStatus("Motion blur {}", GetOption(motionblur) ? "enabled" : "disabled");
             break;
 
-        case Action::InsertFloppy1:
+        case Action::InsertDisk1:
             if (GetOption(drive1) != drvFloppy)
                 Message(MsgType::Info, "Floppy drive 1 is not present");
             else
                 GUI::Start(new BrowseFloppy(1));
             break;
 
-        case Action::EjectFloppy1:
+        case Action::EjectDisk1:
             if (pFloppy1->HasDisk())
             {
                 Frame::SetStatus("{}  ejected from drive 1", pFloppy1->DiskFile());
@@ -95,19 +163,19 @@ bool Do(Action action, bool pressed/*=true*/)
             }
             break;
 
-        case Action::SaveFloppy1:
+        case Action::SaveDisk1:
             if (pFloppy1->HasDisk() && pFloppy1->DiskModified() && pFloppy1->Save())
                 Frame::SetStatus("{}  changes saved", pFloppy1->DiskFile());
             break;
 
-        case Action::InsertFloppy2:
+        case Action::InsertDisk2:
             if (GetOption(drive2) != drvFloppy)
                 Message(MsgType::Info, "Floppy drive 2 is not present");
             else
                 GUI::Start(new BrowseFloppy(2));
             break;
 
-        case Action::EjectFloppy2:
+        case Action::EjectDisk2:
             if (pFloppy2->HasDisk())
             {
                 Frame::SetStatus("{}  ejected from drive 2", pFloppy2->DiskFile());
@@ -115,7 +183,7 @@ bool Do(Action action, bool pressed/*=true*/)
             }
             break;
 
-        case Action::SaveFloppy2:
+        case Action::SaveDisk2:
             if (pFloppy2->HasDisk() && pFloppy2->DiskModified() && pFloppy2->Save())
                 Frame::SetStatus("{}  changes saved", pFloppy2->DiskFile());
             break;
@@ -128,12 +196,12 @@ bool Do(Action action, bool pressed/*=true*/)
             GUI::Start(new NewDiskDialog(2));
             break;
 
-        case Action::TapeInsert:
+        case Action::InsertTape:
         case Action::TapeBrowser:
             GUI::Start(new BrowseTape());
             break;
 
-        case Action::TapeEject:
+        case Action::EjectTape:
             if (Tape::IsInserted())
             {
                 Frame::SetStatus("{}  ejected", Tape::GetFile());
@@ -177,7 +245,7 @@ bool Do(Action action, bool pressed/*=true*/)
             break;
         }
 
-        case Action::TempTurbo:
+        case Action::SpeedTurbo:
             if (!(g_nTurbo & TURBO_KEY))
             {
                 g_nTurbo |= TURBO_KEY;
@@ -213,7 +281,7 @@ bool Do(Action action, bool pressed/*=true*/)
             Video::OptionsChanged();
             break;
 
-        case Action::PrinterOnline:
+        case Action::TogglePrinter:
             SetOption(printeronline, !GetOption(printeronline));
             Frame::SetStatus("Printer {}", GetOption(printeronline) ? "online" : "offline");
             break;
@@ -298,11 +366,11 @@ bool Do(Action action, bool pressed/*=true*/)
     {
         switch (action)
         {
-        case Action::ResetButton:
+        case Action::Reset:
             CPU::Reset(false);
             break;
 
-        case Action::TempTurbo:
+        case Action::SpeedTurbo:
         case Action::SpeedFaster:
             CPU::Reset(false);
             g_nTurbo = 0;
@@ -318,96 +386,85 @@ bool Do(Action action, bool pressed/*=true*/)
     return true;
 }
 
-
-void Key(int fn_key, bool pressed, bool ctrl, bool alt, bool shift)
+static void UpdateMappings()
 {
-    // Grab a copy of the function key definition string (could do with being converted to upper-case)
-    char szKeys[256]{};
-    auto fnkeys = GetOption(fnkeys);
-    std::copy(fnkeys.begin(), fnkeys.end(), szKeys);
-
-    // Process each of the 'key=action' pairs in the string
-    for (char* psz = strtok(szKeys, ", \t"); psz; psz = strtok(nullptr, ", \t"))
+    for (auto entry : split(GetOption(fnkeys), ','))
     {
-        // Leading C/A/S characters indicate that Ctrl/Alt/Shift modifiers are required with the key
-        bool mapping_ctrl = (*psz == 'C');  if (mapping_ctrl)  psz++;
-        bool mapping_alt = (*psz == 'A');  if (mapping_alt)   psz++;
-        bool mapping_shift = (*psz == 'S');  if (mapping_shift) psz++;
+        auto fields = split(entry, '=');
+        if (fields.size() != 2)
+            continue;
 
-        // Currently we only support function keys F1-F12
-        if (*psz++ == 'F')
+        auto lower_action = tolower(fields[1]);
+        auto it_action = std::find_if(actions.begin(), actions.end(),
+            [&](ActionEntry action) { return tolower(action.name) == lower_action; });
+        if (it_action == actions.end())
         {
-            // If we've not found a matching key, keep looking...
-            if (fn_key != static_cast<int>(strtoul(psz, &psz, 10)))
-                continue;
+            TRACE("Unknown action: {}\n", fields[1]);
+            continue;
+        }
 
-            // If the Ctrl/Shift states match, perform the action
-            if (ctrl == mapping_ctrl && alt == mapping_alt && shift == mapping_shift)
+        try
+        {
+            ActionKey key{};
+            key.action = it_action->action;
+
+            auto mapping = tolower(fields[0]);
+            for (auto it = mapping.begin(); it != mapping.end(); ++it)
             {
-                auto action = static_cast<Action>(strtoul(++psz, nullptr, 10));
-                Do(action, pressed);
+                switch (*it)
+                {
+                case 'c': key.ctrl = true; continue;
+                case 'a': key.alt = true; continue;
+                case 's': key.shift = true; continue;
+                case 'f':
+                if ((it + 1) != mapping.end())
+                {
+                    key.fn_key = std::stoi(std::string(it + 1, mapping.end()));
+                }
                 break;
+                }
             }
+
+            if (key.fn_key)
+            {
+                s_mappings.emplace_back(std::move(key));
+            }
+        }
+        catch (...)
+        {
+            // invalid mapping
         }
     }
 }
 
-std::string to_string(Action action)
+void Key(int fn_key, bool pressed, bool ctrl, bool alt, bool shift)
 {
-    static const std::map<Action, std::string> action_descs =
+    if (s_mappings.empty() && !GetOption(fnkeys).empty())
     {
-        { Action::NewDisk1, "New disk 1", },
-        { Action::InsertFloppy1, "Open disk 1" },
-        { Action::EjectFloppy1, "Close disk 1" },
-        { Action::SaveFloppy1, "Save disk 1" },
-        { Action::NewDisk2, "New disk 2" },
-        { Action::InsertFloppy2, "Open disk 2" },
-        { Action::EjectFloppy2, "Close disk 2" },
-        { Action::SaveFloppy2, "Save disk 2" },
-        { Action::ExitApplication, "Exit application" },
-        { Action::Options, "Options" },
-        { Action::Debugger, "Debugger" },
-        { Action::ImportData, "Import data" },
-        { Action::ExportData, "Export data" },
-        { Action::SavePNG, "Save screenshot (PNG)" },
-        { Action::ResetButton, "Reset button" },
-        { Action::NmiButton, "NMI button" },
-        { Action::Pause, "Pause" },
-        { Action::FrameStep, "Frame step" },
-        { Action::ToggleTurbo, "Toggle turbo speed" },
-        { Action::TempTurbo, "Turbo speed (when held)" },
-        { Action::ToggleFullscreen, "Toggle fullscreen" },
-        { Action::Toggle5_4, "Toggle 5:4 display" },
-        { Action::ToggleSmoothing, "Toggle graphics smoothing" },
-        { Action::ReleaseMouse, "Release mouse capture" },
-        { Action::PrinterOnline, "Toggle printer online" },
-        { Action::FlushPrinter, "Flush printer" },
-        { Action::About, "About SimCoupe" },
-        { Action::Minimise, "Minimise window" },
-        { Action::RecordGif, "Record GIF animation" },
-        { Action::RecordGifLoop, "Record GIF loop" },
-        { Action::RecordGifStop, "Stop GIF Recording" },
-        { Action::RecordWav, "Record WAV audio" },
-        { Action::RecordWavSegment, "Record WAV segment" },
-        { Action::RecordWavStop, "Stop WAV Recording" },
-        { Action::RecordAvi, "Record AVI video" },
-        { Action::RecordAviHalf, "Record AVI half-size" },
-        { Action::RecordAviStop, "Stop AVI Recording" },
-        { Action::SpeedFaster, "Speed Faster" },
-        { Action::SpeedSlower, "Speed Slower" },
-        { Action::SpeedNormal, "Speed Normal" },
-        { Action::Paste, "Paste Clipboard" },
-        { Action::TapeInsert, "Insert Tape" },
-        { Action::TapeEject, "Eject Tape" },
-        { Action::TapeBrowser, "Tape Browser" },
-        { Action::SaveSSX, "Save screenshot (SSX)" },
-    };
+        UpdateMappings();
 
-    auto it = action_descs.find(action);
-    if (it == action_descs.end())
-        return "";
+        // Use the default mappings if the configuration was incompatible.
+        if (s_mappings.empty())
+        {
+            Config config{};
+            SetOption(fnkeys, config.fnkeys);
+            UpdateMappings();
+        }
+    }
 
-    return it->second;
+    auto it = std::find_if(s_mappings.begin(), s_mappings.end(),
+        [&](ActionKey ak)
+        {
+            return ak.fn_key == fn_key &&
+                ak.ctrl == ctrl &&
+                ak.alt == alt &&
+                ak.shift == shift;
+        });
+
+    if (it != s_mappings.end())
+    {
+        Do(it->action, pressed);
+    }
 }
 
 } // namespace Actions

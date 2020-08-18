@@ -145,24 +145,16 @@ bool Load(int argc_, char* argv_[])
     g_config = {};
 
     auto path = OSD::MakeFilePath(PathType::Settings, OPTIONS_FILE);
-    unique_FILE file = fopen(path.c_str(), "r");
-    if (file)
+    std::ifstream file(path);
+    for (std::string line; std::getline(file, line); )
     {
-        char szLine[256];
-        while (fgets(szLine, sizeof(szLine), file))
+        std::stringstream ss(line);
+        std::string key, value;
+        if (std::getline(ss, key, '=') && std::getline(ss, value))
         {
-            char* pszValue = strchr(szLine, '=');
-            char* pszName = strtok(szLine, " \t=");
-
-            if (!pszName || !pszValue)
-                continue;
-
-            pszValue++;
-            strtok(pszValue += strspn(pszValue, " \t=\r\n"), "\r\n");
-
-            if (!SetNamedValue(pszName, pszValue))
+            if (!SetNamedValue(key, value))
             {
-                TRACE("Unknown setting: {}={}", pszName, pszValue);
+                TRACE("Unknown setting: {}={}", key, value);
             }
         }
     }

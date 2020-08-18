@@ -264,13 +264,13 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         {
         case HK_RETURN:     fAction = fAlt; if (fAction) Actions::Do(Action::ToggleFullscreen, fPress); break;
         case HK_KPDIVIDE:   Actions::Do(Action::Debugger, fPress); break;
-        case HK_KPMULT:     Actions::Do(fCtrl ? Action::ResetButton : Action::TempTurbo, fPress); break;
-        case HK_KPPLUS:     Actions::Do(fCtrl ? Action::TempTurbo : Action::SpeedFaster, fPress); break;
+        case HK_KPMULT:     Actions::Do(fCtrl ? Action::Reset : Action::SpeedTurbo, fPress); break;
+        case HK_KPPLUS:     Actions::Do(fCtrl ? Action::SpeedTurbo : Action::SpeedFaster, fPress); break;
         case HK_KPMINUS:    Actions::Do(fCtrl ? Action::SpeedNormal : Action::SpeedSlower, fPress); break;
 
         case HK_PRINT:      Actions::Do(Action::SavePNG, fPress); break;
         case HK_SCROLL:
-        case HK_PAUSE:      Actions::Do(fCtrl ? Action::ResetButton : fShift ? Action::FrameStep : Action::Pause, fPress); break;
+        case HK_PAUSE:      Actions::Do(fCtrl ? Action::Reset : fShift ? Action::FrameStep : Action::Pause, fPress); break;
 
         default:            fAction = false; break;
         }

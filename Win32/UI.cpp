@@ -944,19 +944,19 @@ bool UI::DoAction(Action action, bool pressed)
             }
             break;
 
-        case Action::InsertFloppy1:
+        case Action::InsertDisk1:
             InsertDisk(*pFloppy1);
             break;
 
-        case Action::EjectFloppy1:
+        case Action::EjectDisk1:
             EjectDisk(*pFloppy1);
             break;
 
-        case Action::InsertFloppy2:
+        case Action::InsertDisk2:
             InsertDisk(*pFloppy2);
             break;
 
-        case Action::EjectFloppy2:
+        case Action::EjectDisk2:
             EjectDisk(*pFloppy2);
             break;
 
@@ -971,7 +971,7 @@ bool UI::DoAction(Action action, bool pressed)
             break;
 
 #ifdef HAVE_LIBSPECTRUM
-        case Action::TapeInsert:
+        case Action::InsertTape:
             InsertTape(g_hwnd);
             break;
 
@@ -992,7 +992,7 @@ bool UI::DoAction(Action action, bool pressed)
                 DisplayOptions();
             break;
 
-        case Action::ExitApplication:
+        case Action::ExitApp:
             PostMessage(g_hwnd, WM_CLOSE, 0, 0L);
             break;
 
@@ -1516,8 +1516,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         switch (wParam_)
         {
         case VK_DIVIDE:     Actions::Do(Action::Debugger, fPress); break;
-        case VK_MULTIPLY:   Actions::Do(fCtrl ? Action::ResetButton : Action::TempTurbo, fPress); break;
-        case VK_ADD:        Actions::Do(fCtrl ? Action::TempTurbo : Action::SpeedFaster, fPress); break;
+        case VK_MULTIPLY:   Actions::Do(fCtrl ? Action::Reset : Action::SpeedTurbo, fPress); break;
+        case VK_ADD:        Actions::Do(fCtrl ? Action::SpeedTurbo : Action::SpeedFaster, fPress); break;
         case VK_SUBTRACT:   Actions::Do(fCtrl ? Action::SpeedNormal : Action::SpeedSlower, fPress); break;
 
         case VK_CANCEL:
@@ -1580,7 +1580,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_FILE_NEW_DISK2:        Actions::Do(Action::NewDisk2);          break;
         case IDM_FILE_IMPORT_DATA:      Actions::Do(Action::ImportData);        break;
         case IDM_FILE_EXPORT_DATA:      Actions::Do(Action::ExportData);        break;
-        case IDM_FILE_EXIT:             Actions::Do(Action::ExitApplication);   break;
+        case IDM_FILE_EXIT:             Actions::Do(Action::ExitApp);   break;
 
         case IDM_RECORD_AVI_START:      Actions::Do(Action::RecordAvi);         break;
         case IDM_RECORD_AVI_HALF:       Actions::Do(Action::RecordAviHalf);     break;
@@ -1599,7 +1599,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
         case IDM_TOOLS_OPTIONS:         Actions::Do(Action::Options);           break;
         case IDM_TOOLS_PASTE_CLIPBOARD: Actions::Do(Action::Paste);             break;
-        case IDM_TOOLS_PRINTER_ONLINE:  Actions::Do(Action::PrinterOnline);     break;
+        case IDM_TOOLS_PRINTER_ONLINE:  Actions::Do(Action::TogglePrinter);     break;
         case IDM_TOOLS_FLUSH_PRINTER:   Actions::Do(Action::FlushPrinter);      break;
         case IDM_TOOLS_TAPE_BROWSER:    Actions::Do(Action::TapeBrowser);       break;
         case IDM_TOOLS_DEBUGGER:        Actions::Do(Action::Debugger);          break;
@@ -1618,16 +1618,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
                 Frame::SetStatus("Using floppy drive {}", pFloppy1->DiskFile());
             break;
 
-        case IDM_FILE_FLOPPY1_INSERT:       Actions::Do(Action::InsertFloppy1); break;
-        case IDM_FILE_FLOPPY1_EJECT:        Actions::Do(Action::EjectFloppy1);  break;
-        case IDM_FILE_FLOPPY1_SAVE_CHANGES: Actions::Do(Action::SaveFloppy1);   break;
+        case IDM_FILE_FLOPPY1_INSERT:       Actions::Do(Action::InsertDisk1); break;
+        case IDM_FILE_FLOPPY1_EJECT:        Actions::Do(Action::EjectDisk1);  break;
+        case IDM_FILE_FLOPPY1_SAVE_CHANGES: Actions::Do(Action::SaveDisk1);   break;
 
-        case IDM_FILE_FLOPPY2_INSERT:       Actions::Do(Action::InsertFloppy2); break;
-        case IDM_FILE_FLOPPY2_EJECT:        Actions::Do(Action::EjectFloppy2);  break;
-        case IDM_FILE_FLOPPY2_SAVE_CHANGES: Actions::Do(Action::SaveFloppy2);   break;
+        case IDM_FILE_FLOPPY2_INSERT:       Actions::Do(Action::InsertDisk2); break;
+        case IDM_FILE_FLOPPY2_EJECT:        Actions::Do(Action::EjectDisk2);  break;
+        case IDM_FILE_FLOPPY2_SAVE_CHANGES: Actions::Do(Action::SaveDisk2);   break;
 
         case IDM_VIEW_FULLSCREEN:           Actions::Do(Action::ToggleFullscreen); break;
-        case IDM_VIEW_RATIO54:              Actions::Do(Action::Toggle5_4);        break;
+        case IDM_VIEW_RATIO54:              Actions::Do(Action::Toggle54);        break;
         case IDM_VIEW_SMOOTH:               Actions::Do(Action::ToggleSmoothing);  break;
         case IDM_VIEW_MOTIONBLUR:           Actions::Do(Action::ToggleMotionBlur); break;
 
@@ -1657,8 +1657,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             break;
 
         case IDM_SYSTEM_PAUSE:      Actions::Do(Action::Pause);           break;
-        case IDM_SYSTEM_NMI:        Actions::Do(Action::NmiButton);       break;
-        case IDM_SYSTEM_RESET:      Actions::Do(Action::ResetButton); Actions::Do(Action::ResetButton, false); break;
+        case IDM_SYSTEM_NMI:        Actions::Do(Action::Nmi);       break;
+        case IDM_SYSTEM_RESET:      Actions::Do(Action::Reset); Actions::Do(Action::Reset, false); break;
 
         case IDM_HELP_GENERAL:
         {

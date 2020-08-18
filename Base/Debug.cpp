@@ -1734,8 +1734,8 @@ void DisView::Draw(FrameBuffer& fb)
 
     fb.DrawString(nX, nY + 240, "\agEvents");
 
-    CPU_EVENT* pEvent = psNextEvent;
-    for (i = 0; i < 3 && pEvent; i++, pEvent = pEvent->pNext)
+    i = 0;
+    for (auto pEvent = psNextEvent; pEvent; pEvent = pEvent->pNext)
     {
         const char* pcszEvent = "????";
         switch (pEvent->type)
@@ -1754,10 +1754,12 @@ void DisView::Draw(FrameBuffer& fb)
 
         case EventType::InputUpdate:
         case EventType::None:
-            i--; continue;
+            continue;
         }
 
         fb.DrawString(nX, nY + 252 + i * 12, "{:<4s} \a{}{:6}\aXT", pcszEvent, CHG_COL, pEvent->due_time - g_dwCycleCounter);
+        if (++i == 3)
+            break;
     }
 }
 
