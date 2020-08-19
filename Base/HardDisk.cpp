@@ -112,7 +112,9 @@ HDFHardDisk::HDFHardDisk(const std::string& disk_path)
     }
 
     if (auto disk = std::make_unique<HDFHardDisk>(disk_path); disk->Open(read_only))
-        disk.reset();
+    {
+        return disk;
+    }
 
     return nullptr;
 }
