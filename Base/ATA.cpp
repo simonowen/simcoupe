@@ -23,7 +23,7 @@
 #include "ATA.h"
 #include "Frame.h"
 
-// ToDo: support slave device on the same interface
+// ToDo: support secondary device on the same interface
 
 ATADevice::ATADevice()
 {
@@ -150,7 +150,7 @@ uint16_t ATADevice::In(uint16_t wPort_)
                 wRet = 0x80 | ((~m_sRegs.bDeviceHead & ATA_HEAD_MASK) << 2);
 
                 // Set bits 0+1, leaving the active device bit clear
-                if (~m_sRegs.bDeviceHead & ATA_DEVICE_MASK) // master?
+                if (~m_sRegs.bDeviceHead & ATA_DEVICE_MASK) // primary?
                     wRet |= 0x02;
                 else
                     wRet |= 0x01;

@@ -31,7 +31,7 @@
 // Single block holding all memory needed
 uint8_t pMemory[TOTAL_PAGES * MEM_PAGE_SIZE];
 
-// Master read and write lists that are static for a given memory configuration
+// Primary read and write lists that are static for a given memory configuration
 int anReadPages[TOTAL_PAGES];
 int anWritePages[TOTAL_PAGES];
 

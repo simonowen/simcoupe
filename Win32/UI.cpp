@@ -2767,14 +2767,14 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             CheckRadioButton(hdlg_, IDR_IMAGE, IDR_DEVICE, IDR_IMAGE);
         }
 
-        // Set Atom master device selection
+        // Set Atom primary device selection
         if (DeviceHardDisk::IsRecognised(GetOption(atomdisk0)))
         {
             if (type >= drvAtom) CheckRadioButton(hdlg_, IDR_IMAGE, IDR_DEVICE, IDR_DEVICE);
             ComboBox_SelectString(GetDlgItem(hdlg_, IDC_HDD_DEVICE), -1, GetOption(atomdisk0).c_str());
         }
 
-        // Set Atom slave device selection
+        // Set Atom secondary device selection
         if (DeviceHardDisk::IsRecognised(GetOption(atomdisk1)))
         {
             if (type >= drvAtom) CheckRadioButton(hdlg_, IDR_IMAGE2, IDR_DEVICE2, IDR_DEVICE);
@@ -2814,11 +2814,11 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         if (!FloppyStream::IsRecognised(GetOption(disk2)))
             SetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE, GetOption(disk2));
 
-        // Set Atom master image path
+        // Set Atom primary image path
         if (!DeviceHardDisk::IsRecognised(GetOption(atomdisk0)))
             SetDlgItemText(hdlg_, IDE_HDD_IMAGE, GetOption(atomdisk0));
 
-        // Set Atom slave image path
+        // Set Atom secondary image path
         if (!DeviceHardDisk::IsRecognised(GetOption(atomdisk1)))
             SetDlgItemText(hdlg_, IDE_HDD_IMAGE2, GetOption(atomdisk1));
 
@@ -2926,7 +2926,7 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                 HICON hicon = LoadIcon(__hinstance, MAKEINTRESOURCE((type >= 2) ? IDI_DRIVE : IDI_FLOPPY));
                 SendDlgItemMessage(hdlg_, IDS_DEVICE, STM_SETICON, reinterpret_cast<WPARAM>(hicon), 0L);
 
-                SetDlgItemText(hdlg_, IDF_MEDIA, (type >= 2) ? "Master" : "Media");
+                SetDlgItemText(hdlg_, IDF_MEDIA, (type >= 2) ? "Primary" : "Media");
 
                 ShowWindow(GetDlgItem(hdlg_, IDE_FLOPPY_IMAGE), (type == drvFloppy) ? SW_SHOW : SW_HIDE);
                 ShowWindow(GetDlgItem(hdlg_, IDC_FLOPPY_DEVICE), (type == drvFloppy) ? SW_SHOW : SW_HIDE);

@@ -69,7 +69,7 @@ void Sound::FrameUpdate()
     pSAA->FrameEnd();   // catch-up to the DAC position
     if (fSidUsed) pSID->FrameEnd();
 
-    // Use the DAC as the master clock for sample count
+    // Use the DAC as the primary clock for sample count
     int nSamples = pDAC->GetSampleCount();
     int nSize = nSamples * BYTES_PER_SAMPLE;
 
