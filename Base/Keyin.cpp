@@ -24,116 +24,76 @@
 
 namespace Keyin
 {
+constexpr uint8_t FLAGS_NEW_KEY = 0x20;
+constexpr auto MAX_STUCK_FRAMES = 500;
 
-static uint8_t* pbInput;
-static int nPos = -1;
-static bool fMapChars = true;
-
-uint8_t MapChar(uint8_t b_);
+static std::string s_input_text;
+static bool s_map_chars = true;
+static int s_skipped_frames;
 
 
-void String(const char* pcsz_, bool fMapChars_)
+void String(const std::string& text, bool map_chars)
 {
-    // Clean up any existing input
-    Stop();
-
-    // Determine the source length and allocate a buffer for it
-    size_t nLen = strlen(pcsz_);
-    pbInput = new uint8_t[nLen + 1];
-
-    // Copy the string, appending a null terminator just in case
-    memcpy(pbInput, pcsz_, nLen);
-    pbInput[nLen] = '\0';
-
-    // Copy character mapping flag and set starting offset
-    fMapChars = fMapChars_;
-    nPos = 0;
+    s_input_text = text + '\0'; // keep-alive end marker
+    s_map_chars = map_chars;
+    s_skipped_frames = 0;
 }
 
 void Stop()
 {
-    // Clean up
-    delete[] pbInput; pbInput = nullptr;
+    s_input_text.clear();
 
-    // Normal speed
-    g_nTurbo &= ~TURBO_KEYIN;
+    if (CanType())
+    {
+        auto pPage0 = PageReadPtr(0);
+        pPage0[SYSVAR_FLAGS & MEM_PAGE_MASK] &= ~FLAGS_NEW_KEY;
+    }
 }
 
 bool CanType()
 {
-    // For safety, ensure ROM0 and the system variable page are present
     return GetSectionPage(Section::A) == ROM0 && GetSectionPage(Section::B) == 0;
 }
 
 bool IsTyping()
 {
-    // Do we have a string?
-    return pbInput != nullptr;
+    return !s_input_text.empty();
 }
 
-bool Next()
+void Next()
 {
-    char bKey = 0;
-
-    // Return if we're not typing or the previous key hasn't been consumed
-    if (!IsTyping() || (PageReadPtr(0)[0x5c3b - 0x4000] & 0x20))
-        return false;
-
-    // Read the next key
-    bKey = pbInput[nPos++];
-
-    // Stop at the first null character
-    if (!bKey)
+    if (!IsTyping() || !CanType())
     {
-        Stop();
-        return false;
+        return;
     }
 
-    // Are we to perform character mapping? (disable to allow keyword codes)
-    if (fMapChars)
+    auto pPage0 = PageReadPtr(0);
+    if (pPage0[SYSVAR_FLAGS & MEM_PAGE_MASK] & FLAGS_NEW_KEY)
     {
-        // Map the character to a SAM key code, if required
-        bKey = MapChar(bKey);
+        if (++s_skipped_frames == MAX_STUCK_FRAMES)
+        {
+            Stop();
+        }
 
-        // Ignore characters without a mapping
-        if (!bKey)
-            return false;
+        g_nTurbo &= ~TURBO_KEYIN;
+        return;
     }
 
-    // Simulate the key press
-    PageWritePtr(0)[0x5c08 - 0x4000] = bKey;  // set key in LASTK
-    PageWritePtr(0)[0x5c3b - 0x4000] |= 0x20; // signal key available in FLAGS
+    auto b = static_cast<uint8_t>(s_input_text.front());
+    s_input_text.erase(s_input_text.begin());
 
-    // Run at turbo speed during input
-    g_nTurbo |= TURBO_KEYIN;
-
-    // Key simulated
-    return true;
-}
-
-
-// Map special case input characters to the SAM key code equivalent
-uint8_t MapChar(uint8_t b_)
-{
-    static uint8_t abMap[256];
-
-    // Does the map need initialising?
-    if (!abMap[static_cast<uint8_t>('A')])
+    if (s_map_chars)
     {
-        int i;
-
-        // Normal 7-bit ASCII range, excluding control characters
-        // Note: SAM uses 0x60 for GBP and 0x7f for (c)
-        for (i = ' '; i <= 0x7f; i++)
-            abMap[i] = i;
-
-        // Preserve certain control characters
-        abMap[static_cast<uint8_t>('\t')] = '\t';     // horizontal tab
-        abMap[static_cast<uint8_t>('\n')] = '\r';     // convert LF to CR
+        b = (b == '\n') ? '\r' : (b < ' ' && b >= 0x80 && b != '\t') ? 0 : b;
     }
 
-    // Return the mapped character, or 0 if none
-    return abMap[b_];
+    if (b)
+    {
+        pPage0[SYSVAR_LAST_K & MEM_PAGE_MASK] = b;
+        pPage0[SYSVAR_FLAGS & MEM_PAGE_MASK] |= FLAGS_NEW_KEY;
+
+        g_nTurbo |= TURBO_KEYIN;
+    }
 }
 
 } // namespace Keyin

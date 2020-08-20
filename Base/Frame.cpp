@@ -284,23 +284,34 @@ void Flyback()
     }
 }
 
+bool TurboMode()
+{
+    if (g_nTurbo != 0)
+        return true;
+
+    if (GetOption(turbotape) && Tape::IsPlaying())
+        return true;
+
+    if (GetOption(turbodisk) && (pFloppy1->IsActive() || pFloppy2->IsActive()))
+        return true;
+
+    if (Keyin::IsTyping())
+        return true;
+
+    return false;
+}
+
 void Sync()
 {
     using namespace std::chrono;
     using namespace std::literals::chrono_literals;
-
     auto now = high_resolution_clock::now();
 
-    if (GetOption(turbodisk) && (pFloppy1->IsActive() || pFloppy2->IsActive()))
-        g_nTurbo |= TURBO_DISK;
-    else
-        g_nTurbo &= ~TURBO_DISK;
-
-    if (g_nTurbo & TURBO_BOOT)
+    if ((g_nTurbo & TURBO_BOOT) && !GUI::IsActive())
     {
-        draw_frame = GUI::IsActive();
+        draw_frame = false;
     }
-    else if (!GUI::IsActive() && g_nTurbo && !(g_nTurbo & TURBO_KEY))
+    else if (!(g_nTurbo & TURBO_KEY) && !GUI::IsActive() && TurboMode())
     {
         static high_resolution_clock::time_point last_drawn;
         draw_frame = ((now - last_drawn) >= (1s / static_cast<float>(FPS_IN_TURBO_MODE)));

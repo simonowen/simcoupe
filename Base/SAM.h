@@ -71,6 +71,7 @@ constexpr auto CPU_CYCLES_INTERRUPT_ACTIVE = 128;
 constexpr auto CPU_CYCLES_ASIC_STARTUP = 291675;
 
 constexpr auto MEM_PAGE_SIZE = 0x4000;
+constexpr auto MEM_PAGE_MASK = MEM_PAGE_SIZE - 1;
 constexpr auto NUM_INTERNAL_PAGES = (0x80000 / MEM_PAGE_SIZE);
 constexpr auto NUM_EXTERNAL_PAGES_1MB = (0x100000 / MEM_PAGE_SIZE);
 constexpr auto MAX_EXTERNAL_MB = 4;
@@ -80,3 +81,6 @@ constexpr auto USECONDS_TO_TSTATES(int cycles)
 {
     return cycles * CPU_CLOCK_HZ / 1'000'000;
 }
+
+constexpr uint16_t SYSVAR_LAST_K = 0x5c08;
+constexpr uint16_t SYSVAR_FLAGS = 0x5c3b;

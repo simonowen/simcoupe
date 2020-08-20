@@ -22,11 +22,10 @@
 
 namespace Keyin
 {
-void String(const char* pcsz_, bool fMapChars_ = true);
+void String(const std::string& text, bool map_chars = true);
+void Next();
 void Stop();
 
 bool CanType();
 bool IsTyping();
-
-bool Next();
 }
