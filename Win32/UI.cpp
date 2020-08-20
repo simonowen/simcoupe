@@ -804,12 +804,10 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     // Handle a file being dropped on the dialog
     case WM_DROPFILES:
     {
-        char szFile[MAX_PATH] = "";
-
-        // Query details of the file dropped
+        char szFile[MAX_PATH]{};
         if (DragQueryFile(reinterpret_cast<HDROP>(wParam_), 0, szFile, sizeof(szFile)))
         {
-            Tape::Insert(szFile);
+            InsertTape(hdlg_, szFile);
             UpdateTapeToolbar(hdlg_);
             UpdateTapeBlockList(hdlg_);
         }
@@ -1353,19 +1351,20 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
     // File has been dropped on our window
     case WM_DROPFILES:
     {
-        char szFile[MAX_PATH] = "";
-
-        // Query the first (and only?) file dropped
+        char szFile[MAX_PATH]{};
         if (DragQueryFile(reinterpret_cast<HDROP>(wParam_), 0, szFile, sizeof(szFile)))
         {
-            // Bring our window to the front
-            SetForegroundWindow(hwnd_);
-
-            // Insert file as tape or disk, depending on file extension
-            if (Tape::IsRecognised(szFile))
-                InsertTape(hwnd_, szFile);
+            auto file_path = szFile;
+            if (Tape::IsRecognised(file_path))
+            {
+                InsertTape(hwnd_, file_path);
+            }
             else
-                InsertDisk(*pFloppy1, szFile);
+            {
+                InsertDisk(*pFloppy1, file_path);
+            }
+
+            SetForegroundWindow(hwnd_);
         }
 
         return 0;
@@ -1672,28 +1671,37 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
         case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), hwnd_, AboutDlgProc, 0);   break;
 
+
+        case IDM_SYSTEM_SPEED_50:
+        case IDM_SYSTEM_SPEED_100:
+        case IDM_SYSTEM_SPEED_200:
+        case IDM_SYSTEM_SPEED_300:
+        case IDM_SYSTEM_SPEED_500:
+        case IDM_SYSTEM_SPEED_1000:
+        {
+            static const std::vector<int> speeds{ 50, 100, 200, 300, 500, 1000 };
+            SetOption(speed, speeds[wId - IDM_SYSTEM_SPEED_50]);
+            Frame::SetStatus("{}% Speed", GetOption(speed));
+            break;
+        }
+
+
         default:
-            if (wId >= IDM_FILE_RECENT1 && wId <= IDM_FILE_RECENT9)
+            if ((wId >= IDM_FILE_RECENT1 && wId <= IDM_FILE_RECENT9) ||
+                (wId >= IDM_FLOPPY2_RECENT1 && wId <= IDM_FLOPPY2_RECENT9))
             {
-                auto path = recent_files[wId - IDM_FILE_RECENT1];
-                if (Tape::IsRecognised(path))
-                    InsertTape(hwnd_, path);
+                auto drive1 = (wId <= IDM_FILE_RECENT9);
+                auto file_index = wId - (drive1 ? IDM_FILE_RECENT1 : IDM_FLOPPY2_RECENT1);
+                auto file_path = recent_files[file_index];
+
+                if (Tape::IsRecognised(file_path))
+                {
+                    InsertTape(hwnd_, file_path);
+                }
                 else
-                    InsertDisk(*pFloppy1, path);
-            }
-            else if (wId >= IDM_FLOPPY2_RECENT1 && wId <= IDM_FLOPPY2_RECENT9)
-            {
-                auto path = recent_files[wId - IDM_FLOPPY2_RECENT1];
-                if (Tape::IsRecognised(path))
-                    InsertTape(hwnd_, path);
-                else
-                    InsertDisk(*pFloppy2, path);
-            }
-            else if (wId >= IDM_SYSTEM_SPEED_50 && wId <= IDM_SYSTEM_SPEED_1000)
-            {
-                static std::vector<int> speeds{ 50, 100, 200, 300, 500, 1000 };
-                SetOption(speed, speeds[wId - IDM_SYSTEM_SPEED_50]);
-                Frame::SetStatus("{}% Speed", GetOption(speed));
+                {
+                    InsertDisk(drive1 ? *pFloppy1 : *pFloppy2, file_path);
+                }
             }
             break;
         }
