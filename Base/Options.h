@@ -116,7 +116,7 @@ struct Config
 
     bool breakonexec = false;           // Break on code auto-execute?
 
-    std::string fnkeys =                // Function key bindings
+    std::string fkeys =                 // Function key bindings
         "F1=InsertDisk1,SF1=EjectDisk1,AF1=NewDisk1,CF1=SaveDisk1,"
         "F2=InsertDisk2,SF2=EjectDisk2,AF2=NewDisk2,CF2=SaveDisk2,"
         "F3=TapeBrowser,SF3=EjectTape,"

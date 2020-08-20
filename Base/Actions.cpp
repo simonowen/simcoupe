@@ -388,7 +388,7 @@ bool Do(Action action, bool pressed/*=true*/)
 
 static void UpdateMappings()
 {
-    for (auto entry : split(GetOption(fnkeys), ','))
+    for (auto entry : split(GetOption(fkeys), ','))
     {
         auto fields = split(entry, '=');
         if (fields.size() != 2)
@@ -439,7 +439,7 @@ static void UpdateMappings()
 
 void Key(int fn_key, bool pressed, bool ctrl, bool alt, bool shift)
 {
-    if (s_mappings.empty() && !GetOption(fnkeys).empty())
+    if (s_mappings.empty() && !GetOption(fkeys).empty())
     {
         UpdateMappings();
 
@@ -447,7 +447,7 @@ void Key(int fn_key, bool pressed, bool ctrl, bool alt, bool shift)
         if (s_mappings.empty())
         {
             Config config{};
-            SetOption(fnkeys, config.fnkeys);
+            SetOption(fkeys, config.fkeys);
             UpdateMappings();
         }
     }
