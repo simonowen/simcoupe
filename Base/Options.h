@@ -46,7 +46,7 @@ struct Config
     bool fastreset = true;              // Run at turbo speed during SAM ROM memory test?
     bool asicdelay = true;              // Enforce ASIC startup delay (~49ms)?
     int mainmem = 512;                  // Main memory size in K (256 or 512)
-    int externalmem = 0;                // External memory size in MB (0-4)
+    int externalmem = 1;                // External memory size in MB (0-4)
     bool cmosz80 = false;               // CMOS rather than NMOS Z80? (affects OUT (C),X)
     int speed = 100;                    // Emulation speed (50-1000%)
 
