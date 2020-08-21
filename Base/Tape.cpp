@@ -140,7 +140,7 @@ void NextEdge(uint32_t dwTime_)
     else
         keyboard &= ~BORD_EAR_MASK;
 
-    if (!g_nTurbo)
+    if (!Frame::TurboMode())
         pDAC->Output(fEar ? 0xa0 : 0x80);
 
     libspectrum_dword tstates;
@@ -187,10 +187,6 @@ void Play()
 
         // Schedule next edge
         NextEdge(g_dwCycleCounter);
-
-        // Trigger turbo mode if fast loading is enabled
-        if (IsPlaying() && GetOption(turbotape))
-            g_nTurbo |= TURBO_TAPE;
     }
 }
 
@@ -203,9 +199,6 @@ void Stop()
 
         g_fPlaying = false;
         fEar = false;
-
-        // Clear both tape and key turbo modes, due to some overlap
-        g_nTurbo &= ~(TURBO_TAPE | TURBO_KEYIN);
     }
 }
 

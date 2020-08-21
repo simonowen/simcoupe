@@ -781,11 +781,6 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
         case ID_TAPE_TURBOLOAD:
             SetOption(turbotape, !GetOption(turbotape));
-
-            // If the tape is playing, toggle the turbo flag state too
-            if (Tape::IsPlaying())
-                g_nTurbo ^= TURBO_TAPE;
-
             break;
 
         case ID_TAPE_TRAPS:

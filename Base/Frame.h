@@ -40,6 +40,7 @@ void Begin();
 void End();
 
 void Update();
+bool TurboMode();
 
 void TouchLines(int from, int to);
 inline void TouchLine(int nLine_) { TouchLines(nLine_, nLine_); }

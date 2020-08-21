@@ -28,11 +28,13 @@
 #include "Drive.h"
 #include "GIF.h"
 #include "GUI.h"
+#include "Keyin.h"
 #include "Memory.h"
 #include "Options.h"
 #include "SavePNG.h"
 #include "Sound.h"
 #include "SSX.h"
+#include "Tape.h"
 #include "UI.h"
 
 constexpr uint8_t FLOPPY_LED_COLOUR = GREEN_5;

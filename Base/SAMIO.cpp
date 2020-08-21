@@ -951,7 +951,7 @@ void FrameUpdate()
 
     Input::Update();
 
-    if (!g_nTurbo)
+    if (!Frame::TurboMode())
         Sound::FrameUpdate();
 }
 

@@ -91,7 +91,7 @@ extern bool g_fReset, g_fBreak, g_fPaused;
 extern int g_nTurbo;
 extern uint8_t* pbMemRead1, * pbMemRead2, * pbMemWrite1, * pbMemWrite2;
 
-enum { TURBO_BOOT = 0x01, TURBO_KEY = 0x02, TURBO_DISK = 0x04, TURBO_TAPE = 0x08, TURBO_KEYIN = 0x10 };
+enum { TURBO_BOOT = 0x01, TURBO_KEY = 0x02 };
 
 #ifdef _DEBUG
 extern bool g_fDebug;

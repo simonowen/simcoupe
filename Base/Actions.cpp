@@ -239,17 +239,12 @@ bool Do(Action action, bool pressed/*=true*/)
             break;
 
         case Action::ToggleTurbo:
-        {
             g_nTurbo ^= TURBO_KEY;
             Frame::SetStatus("Turbo mode {}", (g_nTurbo & TURBO_KEY) ? "enabled" : "disabled");
             break;
-        }
 
         case Action::SpeedTurbo:
-            if (!(g_nTurbo & TURBO_KEY))
-            {
-                g_nTurbo |= TURBO_KEY;
-            }
+            g_nTurbo |= TURBO_KEY;
             break;
 
         case Action::ReleaseMouse:
@@ -373,7 +368,7 @@ bool Do(Action action, bool pressed/*=true*/)
         case Action::SpeedTurbo:
         case Action::SpeedFaster:
             CPU::Reset(false);
-            g_nTurbo = 0;
+            g_nTurbo &= ~TURBO_KEY;
             break;
 
             // Not processed

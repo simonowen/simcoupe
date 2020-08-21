@@ -75,7 +75,6 @@ void Next()
             Stop();
         }
 
-        g_nTurbo &= ~TURBO_KEYIN;
         return;
     }
 
@@ -91,8 +90,6 @@ void Next()
     {
         pPage0[SYSVAR_LAST_K & MEM_PAGE_MASK] = b;
         pPage0[SYSVAR_FLAGS & MEM_PAGE_MASK] |= FLAGS_NEW_KEY;
-
-        g_nTurbo |= TURBO_KEYIN;
     }
 }
 
