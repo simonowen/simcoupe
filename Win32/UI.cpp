@@ -862,6 +862,10 @@ void UpdateMenuFromOptions()
 
     CheckMenuRadioItem(hmenu, IDM_VIEW_BORDERS0, IDM_VIEW_BORDERS4, IDM_VIEW_BORDERS0 + GetOption(borders), MF_BYCOMMAND);
 
+#ifndef HAVE_LIBPNG
+    EnableItem(IDM_RECORD_SCREEN_PNG, FALSE);
+#endif
+
     EnableItem(IDM_RECORD_AVI_START, !AVI::IsRecording());
     EnableItem(IDM_RECORD_AVI_HALF, !AVI::IsRecording());
     EnableItem(IDM_RECORD_AVI_STOP, AVI::IsRecording());

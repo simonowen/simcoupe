@@ -30,7 +30,7 @@
 #include "GUI.h"
 #include "Memory.h"
 #include "Options.h"
-#include "PNG.h"
+#include "SavePNG.h"
 #include "Sound.h"
 #include "SSX.h"
 #include "UI.h"

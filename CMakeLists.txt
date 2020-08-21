@@ -45,7 +45,7 @@ set(BASE_CPP_FILES
     Base/GUIDlg.cpp Base/GUIIcons.cpp Base/HardDisk.cpp Base/Joystick.cpp
     Base/Keyboard.cpp Base/Keyin.cpp Base/Main.cpp Base/Memory.cpp
     Base/Mouse.cpp Base/Options.cpp Base/Parallel.cpp Base/Paula.cpp
-    Base/PNG.cpp Base/SAMIO.cpp Base/SAMVox.cpp Base/SDIDE.cpp
+    Base/SavePNG.cpp Base/SAMIO.cpp Base/SAMVox.cpp Base/SDIDE.cpp
     Base/SID.cpp Base/Sound.cpp Base/SSX.cpp Base/Stream.cpp Base/Symbol.cpp
     Base/Tape.cpp Base/Util.cpp Base/Video.cpp Base/WAV.cpp)
 
@@ -59,7 +59,7 @@ set(BASE_H_FILES
     Base/GIF.h Base/GUI.h Base/GUIDlg.h Base/GUIIcons.h Base/HardDisk.h
     Base/ioapi.h Base/Joystick.h Base/Keyboard.h Base/Keyin.h Base/Main.h
     Base/Memory.h Base/Mouse.h Base/Options.h Base/Parallel.h Base/Paula.h
-    Base/PNG.h Base/SAM.h Base/SAMDOS.h Base/SAMIO.h
+    Base/SavePNG.h Base/SAM.h Base/SAMDOS.h Base/SAMIO.h
     Base/SAMVox.h Base/SDIDE.h Base/SID.h Base/SimCoupe.h Base/Sound.h
     Base/SSX.h Base/Stream.h Base/Symbol.h Base/Tape.h Base/unzip.h
     Base/Util.h Base/Video.h Base/VL1772.h Base/WAV.h Base/Z80ops.h
