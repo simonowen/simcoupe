@@ -451,8 +451,11 @@ HRESULT Direct3D11Video::DrawChanges(const FrameBuffer& screen)
     int width = screen.Width();
     int height = screen.Height();
 
-    RECT rClient;
-    GetClientRect(m_hwnd, &rClient);
+    RECT rClient = m_rTarget;
+    if (!IsMinimized(m_hwnd))
+    {
+        GetClientRect(m_hwnd, &rClient);
+    }
 
     bool smooth = !GUI::IsActive() && GetOption(smooth);
     bool source_changed = (width != m_rSource.right) || (height != m_rSource.bottom);
