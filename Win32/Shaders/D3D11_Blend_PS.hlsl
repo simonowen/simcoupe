@@ -17,8 +17,8 @@ struct VS_Output
 float4 main(VS_Output input) : SV_Target
 {
     float3 colour = tex.Sample(sampLinear, input.coord0).rgb;
-    float3 prev_colour = texPrev.Sample(sampLinear, input.coord0).rgb * blend_factor;
-    float3 mix = max(colour, prev_colour);
+    float3 prev_colour = texPrev.Sample(sampLinear, input.coord0).rgb;
+    float3 mix = lerp(colour, prev_colour, blend_factor);
 
     return float4(mix, 1.0f);
 }
