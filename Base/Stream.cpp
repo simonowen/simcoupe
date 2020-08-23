@@ -41,6 +41,7 @@ Stream::Stream(const std::string& filepath, bool read_only/*=false*/)
     : m_fReadOnly(read_only)
 {
     m_path = filepath;
+    m_shortname = m_path.filename();
 }
 
 
@@ -126,8 +127,12 @@ Stream::Stream(const std::string& filepath, bool read_only/*=false*/)
 FileStream::FileStream(unique_FILE&& file, const std::string& filepath, bool read_only)
     : Stream(filepath, read_only), m_file(std::move(file))
 {
-    m_uSize = static_cast<size_t>(fs::file_size(filepath));
-    m_filename = m_path.filename();
+    std::error_code error;
+    m_uSize = static_cast<size_t>(fs::file_size(filepath, error));
+    if (error)
+    {
+        m_uSize = 0;
+    }
 }
 
 void FileStream::Close()
@@ -181,7 +186,6 @@ MemStream::MemStream(void* pv_, size_t uLen_, const std::string& filepath)
     m_mode = Mode::Reading;
     m_uSize = uLen_;
     m_pbData = reinterpret_cast<uint8_t*>(pv_);
-    m_filename = m_path.filename();
 }
 
 void MemStream::Close()
@@ -222,7 +226,7 @@ size_t MemStream::Write(void* /*pvBuffer_*/, size_t /*uLen_*/)
 ZLibStream::ZLibStream(gzFile hFile_, const std::string& filepath, size_t uSize_, bool read_only)
     : Stream(filepath, read_only), m_file(hFile_), m_uSize(uSize_)
 {
-    m_filename = m_path.filename().string() + " (gzip)";
+    m_shortname += " (gzip)";
 }
 
 void ZLibStream::Close()
@@ -294,12 +298,12 @@ size_t ZLibStream::Write(void* pvBuffer_, size_t uLen_)
 ZipStream::ZipStream(unzFile hFile_, const std::string& filepath, bool read_only)
     : Stream(filepath, read_only), m_file(hFile_)
 {
-    char szFile[MAX_PATH];
+    char szFile[MAX_PATH]{};
     unz_file_info sInfo;
     if (unzGetCurrentFileInfo(hFile_, &sInfo, szFile, MAX_PATH, nullptr, 0, nullptr, 0) == UNZ_OK)
     {
         m_uSize = sInfo.uncompressed_size;
-        m_filename = std::string(szFile) + " (zip)";
+        m_shortname += " (zip)";
     }
 }
 

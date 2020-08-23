@@ -40,7 +40,7 @@
         return DiskType::SAD;
     else if (FileDisk::IsRecognised(stream))
     {
-        fs::path file = stream.GetFile();
+        fs::path file = stream.GetName();
         if (tolower(file.extension().string()) == ".sbt")
             return DiskType::SBT;
     }

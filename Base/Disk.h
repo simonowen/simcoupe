@@ -138,7 +138,7 @@ public:
     // Public query functions
 public:
     std::string GetPath() { return m_stream->GetPath(); }
-    std::string GetFile() { return m_stream->GetFile(); }
+    std::string GetFile() { return m_stream->GetName(); }
     bool IsReadOnly() const { return m_stream->IsReadOnly(); }
     bool IsModified() const { return m_fModified; }
 

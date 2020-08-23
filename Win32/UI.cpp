@@ -446,7 +446,7 @@ bool AttachDisk(AtaAdapter& adapter, const std::string& disk_path, int nDevice_)
     return true;
 }
 
-bool InsertDisk(DiskDevice& floppy, std::optional<std::string> new_path = std::nullopt)
+bool InsertDisk(DiskDevice& floppy, std::optional<std::string> new_path = std::nullopt, bool autoload = true)
 {
     int nDrive = (&floppy == pFloppy1.get()) ? 1 : 2;
 
@@ -489,7 +489,7 @@ bool InsertDisk(DiskDevice& floppy, std::optional<std::string> new_path = std::n
 
     bool read_only = !!(ofn.Flags & OFN_READONLY);
 
-    if (!floppy.Insert(*new_path, true))
+    if (!floppy.Insert(*new_path, autoload))
     {
         Message(MsgType::Warning, "Invalid disk: {}", *new_path);
         RemoveRecentFile(*new_path);
@@ -2270,9 +2270,8 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 break;
             }
 
-            // Insert into the appropriate drive
             auto& pDrive = (nDrive == 1) ? pFloppy1 : pFloppy2;
-            InsertDisk(*pDrive, szFile);
+            InsertDisk(*pDrive, szFile, false);
 
             EndDialog(hdlg_, 1);
             break;

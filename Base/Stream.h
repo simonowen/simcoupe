@@ -32,7 +32,7 @@ public:
 public:
     bool IsReadOnly() const { return m_fReadOnly; }
     std::string GetPath() const { return m_path.string(); }
-    std::string GetFile() const { return !m_filename.empty() ? m_filename : m_path.string(); }
+    std::string GetName() const { return !m_shortname.empty() ? m_shortname : m_path.filename().string(); }
     virtual size_t GetSize() { return m_uSize; }
     virtual bool IsOpen() const = 0;
 
@@ -46,7 +46,7 @@ protected:
     Mode m_mode = Mode::Closed;
 
     fs::path m_path;
-    std::string m_filename;
+    std::string m_shortname;
     bool m_fReadOnly = false;
     size_t m_uSize = 0;
 };
