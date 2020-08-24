@@ -538,8 +538,8 @@ void AddFrame(const FrameBuffer& fb)
     if (ftell(file) == 0)
     {
         // Store the dimensions, and allocate+invalidate the frame copy
-        width = fb.Width() >> (fHalfSize ? 1 : 0);
-        height = fb.Height() >> (fHalfSize ? 1 : 0);
+        width = fb.Width() / (fHalfSize ? 2 : 1);
+        height = fb.Height() * (fHalfSize ? 1 : 2);
         size = (uint32_t)width * (uint32_t)height;
         frame_buffer.resize(size);
         std::fill(frame_buffer.begin(), frame_buffer.end(), 0xff);
