@@ -43,20 +43,20 @@
 #define PORTB_ADC_ENABLE        0x02
 
 
-BlueAlphaDevice::BlueAlphaDevice()
+BASamplerDevice::BASamplerDevice()
 {
     Reset();
 }
 
-void BlueAlphaDevice::Reset()
+void BASamplerDevice::Reset()
 {
     m_bPortA = 0x00;    // data
     m_bPortB = 0xff;    // no active features
     m_bPortC = 0x00;    // no clock
-    m_bControl = 0x18;  // control (initialised to BlueAlpha signature?)
+    m_bControl = BLUEALPHA_SIGNATURE;  // control
 }
 
-void BlueAlphaDevice::Clock(uint32_t event_time)
+void BASamplerDevice::Clock(uint32_t event_time)
 {
     // Toggle clock bit every half period
     m_bPortC ^= PORTA_CLOCK;
@@ -68,7 +68,7 @@ void BlueAlphaDevice::Clock(uint32_t event_time)
     }
 }
 
-uint8_t BlueAlphaDevice::In(uint16_t wPort_)
+uint8_t BASamplerDevice::In(uint16_t wPort_)
 {
     switch (wPort_ & 3)
     {
@@ -87,7 +87,7 @@ uint8_t BlueAlphaDevice::In(uint16_t wPort_)
     return 0x00;
 }
 
-void BlueAlphaDevice::Out(uint16_t wPort_, uint8_t bVal_)
+void BASamplerDevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     switch (wPort_ & 3)
     {

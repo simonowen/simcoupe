@@ -50,6 +50,7 @@
 #include "Sound.h"
 #include "Tape.h"
 #include "Video.h"
+#include "VoiceBox.h"
 
 std::unique_ptr<DiskDevice> pFloppy1;
 std::unique_ptr<DiskDevice> pFloppy2;
@@ -68,7 +69,8 @@ std::unique_ptr<MouseDevice> pMouse;
 
 std::unique_ptr<MidiDevice> pMidi;
 std::unique_ptr<BeeperDevice> pBeeper;
-std::unique_ptr<BlueAlphaDevice> pBlueAlpha;
+std::unique_ptr<BASamplerDevice> pSampler;
+std::unique_ptr<VoiceBoxDevice> pVoiceBox;
 std::unique_ptr<SAMVoxDevice> pSAMVox;
 std::unique_ptr<PaulaDevice> pPaula;
 std::unique_ptr<DAC> pDAC;
@@ -143,7 +145,8 @@ bool Init(bool fFirstInit_/*=false*/)
         pSAA = std::make_unique<SAADevice>();
         pSID = std::make_unique<SIDDevice>();
         pBeeper = std::make_unique<BeeperDevice>();
-        pBlueAlpha = std::make_unique<BlueAlphaDevice>();
+        pSampler = std::make_unique<BASamplerDevice>();
+        pVoiceBox = std::make_unique<VoiceBoxDevice>();
         pSAMVox = std::make_unique<SAMVoxDevice>();
         pPaula = std::make_unique<PaulaDevice>();
         pMidi = std::make_unique<MidiDevice>();
@@ -187,7 +190,8 @@ bool Init(bool fFirstInit_/*=false*/)
     // Reset the sound hardware
     pDAC->Reset();
     pSID->Reset();
-    pBlueAlpha->Reset();
+    pSampler->Reset();
+    pVoiceBox->Reset();
 
     // Reset the disk hardware
     pFloppy1->Reset();
@@ -225,7 +229,8 @@ void Exit(bool fReInit_/*=false*/)
         pMidi.reset();
         pPaula.reset();
         pSAMVox.reset();
-        pBlueAlpha.reset();
+        pSampler.reset();
+        pVoiceBox.reset();
         pBeeper.reset();
         pSID.reset();
         pSAA.reset();
@@ -578,6 +583,17 @@ uint8_t In(uint16_t wPort_)
         if (GetOption(joytype2) == jtKempston) bRet &= ~Joystick::ReadKempston(1);
         break;
 
+    case BLUE_ALPHA_PORT:
+        if (wPort_ == BA_VOICEBOX_PORT)
+        {
+            bRet = pVoiceBox->In(wPort_);
+        }
+        else if (GetOption(dac7c) == 1 && (wPort_ & BA_SAMPLER_MASK) == BA_SAMPLER_BASE)
+        {
+            bRet = pSampler->In(bPortHigh & 0x03);
+        }
+        break;
+
     default:
     {
         // Floppy drive 1
@@ -601,18 +617,6 @@ uint8_t In(uint16_t wPort_)
             }
         }
 
-        // Blue Alpha and SAMVox ports overlap!
-        else if ((bPortLow & 0xfc) == 0x7c)
-        {
-            // Blue Alpha Sampler?
-            if (GetOption(dac7c) == 1 && bPortLow == BLUE_ALPHA_PORT)
-            {
-                if ((bPortHigh & 0xfc) == 0x7c)
-                    bRet = pBlueAlpha->In(bPortHigh & 0x03);
-                /*else if (highbyte == 0xff)
-                      bRet = BlueAlphaVoiceBox::In(0);*/
-            }
-        }
 #ifdef _DEBUG
         // Only unsupported hardware should reach here
         else
@@ -890,6 +894,10 @@ void Out(uint16_t wPort_, uint8_t bVal_)
             case drvAtomLite:   pAtomLite->Out(wPort_, bVal_); break;
             }
         }
+        else if (wPort_ == BA_VOICEBOX_PORT)
+        {
+            pVoiceBox->Out(0, bVal_);
+        }
 
         // Blue Alpha, SAMVox and Paula ports overlap!
         else if ((bPortLow & 0xfc) == 0x7c)
@@ -900,14 +908,9 @@ void Out(uint16_t wPort_, uint8_t bVal_)
                 // Blue Alpha Sampler
             case 1:
                 // Blue Alpha only uses a single port
-                if (bPortLow == BLUE_ALPHA_PORT)
+                if ((wPort_ & BA_SAMPLER_MASK) == BA_SAMPLER_BASE)
                 {
-                    if ((bPortHigh & 0xfc) == 0x7c)
-                        pBlueAlpha->Out(bPortHigh & 0x03, bVal_);
-                    /*
-                                                else if (bPortHigh == 0xff)
-                                                    BlueAlphaVoiceBox::Out(0, bVal_);
-                    */
+                    pSampler->Out(bPortHigh & 0x03, bVal_);
                 }
                 break;
 

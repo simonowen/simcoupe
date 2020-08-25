@@ -108,6 +108,7 @@ struct Config
     int latency = 3;                    // Amount of sound buffering
     int dac7c = 1;                      // DAC device on shared port &7c? (0=none, 1=BlueAlpha Sampler, 2=SAMVox, 3=Paula)
     int samplerfreq = 18000;            // Blue Alpha Sampler clock frequency (default=18KHz)
+    bool voicebox = true;               // Blue Alpha VoiceBox connected?
     int sid = 1;                        // SID chip type (0=none, 1=MOS6581, 2=MOS8580)
 
     int drivelights = 1;                // Show floppy drive LEDs (0=none, 1=top-left, 2=bottom-left)

@@ -125,6 +125,7 @@ static bool SetNamedValue(const std::string& option_name, const std::string& str
     else if (name == "latency") SetValue(g_config.latency, str);
     else if (name == "dac7c") SetValue(g_config.dac7c, str);
     else if (name == "samplerfreq") SetValue(g_config.samplerfreq, str);
+    else if (name == "voicebox") SetValue(g_config.voicebox, str);
     else if (name == "sid") SetValue(g_config.sid, str);
     else if (name == "drivelights") SetValue(g_config.drivelights, str);
     else if (name == "profile") SetValue(g_config.profile, str);
@@ -282,6 +283,7 @@ bool Save()
         ofs << "latency=" << to_string(g_config.latency) << std::endl;
         ofs << "dac7c=" << to_string(g_config.dac7c) << std::endl;
         ofs << "samplerfreq=" << to_string(g_config.samplerfreq) << std::endl;
+        ofs << "voicebox=" << to_string(g_config.voicebox) << std::endl;
         ofs << "sid=" << to_string(g_config.sid) << std::endl;
         ofs << "drivelights=" << to_string(g_config.drivelights) << std::endl;
         ofs << "profile=" << to_string(g_config.profile) << std::endl;

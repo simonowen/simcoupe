@@ -47,7 +47,8 @@ set(BASE_CPP_FILES
     Base/Mouse.cpp Base/Options.cpp Base/Parallel.cpp Base/Paula.cpp
     Base/SavePNG.cpp Base/SAMIO.cpp Base/SAMVox.cpp Base/SDIDE.cpp
     Base/SID.cpp Base/Sound.cpp Base/SSX.cpp Base/Stream.cpp Base/Symbol.cpp
-    Base/Tape.cpp Base/Util.cpp Base/Video.cpp Base/WAV.cpp)
+    Base/Tape.cpp Base/Util.cpp Base/Video.cpp Base/WAV.cpp Base/VoiceBox.cpp
+    Base/sp0256.cpp)
 
 set(BASE_C_FILES Base/ioapi.c Base/unzip.c Extern/gl3w/src/gl3w.c)
 
@@ -63,7 +64,7 @@ set(BASE_H_FILES
     Base/SAMVox.h Base/SDIDE.h Base/SID.h Base/SimCoupe.h Base/Sound.h
     Base/SSX.h Base/Stream.h Base/Symbol.h Base/Tape.h Base/unzip.h
     Base/Util.h Base/Video.h Base/VL1772.h Base/WAV.h Base/Z80ops.h
-    Extern/gl3w/include/GL/gl3w.h)
+    Base/VoiceBox.h Base/sp0256.h Extern/gl3w/include/GL/gl3w.h)
 
 set(BASE_RUNTIME_FILES
     Resource/atom.rom Resource/atomlite.rom Resource/samcoupe.rom

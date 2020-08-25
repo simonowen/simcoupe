@@ -22,15 +22,17 @@
 
 #include "SAMIO.h"
 
-class BlueAlphaDevice final : public IoDevice
+constexpr uint8_t BLUEALPHA_SIGNATURE = 0x18;
+
+class BASamplerDevice final : public IoDevice
 {
 public:
-    BlueAlphaDevice();
+    BASamplerDevice();
 
 public:
-    void Reset() override final;
-    uint8_t In(uint16_t wPort_) override final;
-    void Out(uint16_t wPort_, uint8_t bVal_) override final;
+    void Reset() override;
+    uint8_t In(uint16_t wPort_) override;
+    void Out(uint16_t wPort_, uint8_t bVal_) override;
 
 public:
     void Clock(uint32_t event_time);
@@ -43,4 +45,4 @@ protected:
     int m_cpuCyclesPerClock{};
 };
 
-extern std::unique_ptr<BlueAlphaDevice> pBlueAlpha;
+extern std::unique_ptr<BASamplerDevice> pSampler;

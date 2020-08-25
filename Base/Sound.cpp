@@ -27,6 +27,7 @@
 #include "Frame.h"
 #include "Options.h"
 #include "SID.h"
+#include "VoiceBox.h"
 #include "WAV.h"
 
 static uint8_t* pbSampleBuffer;
@@ -61,13 +62,16 @@ void Sound::Exit()
 void Sound::FrameUpdate()
 {
     static bool fSidUsed = false;
+    static bool sp0256_used = false;
 
-    // Track whether SID has been used, to avoid unnecessary sample generation+mixing
+    // Track whether devices have been used, to avoid unnecessary sample generation+mixing
     fSidUsed |= pSID->GetSampleCount() != 0;
+    sp0256_used |= pVoiceBox->GetSampleCount() != 0;
 
     pDAC->FrameEnd();   // set the actual sample count
     pSAA->FrameEnd();   // catch-up to the DAC position
     if (fSidUsed) pSID->FrameEnd();
+    if (sp0256_used) pVoiceBox->FrameEnd();
 
     // Use the DAC as the primary clock for sample count
     int nSamples = pDAC->GetSampleCount();
@@ -77,6 +81,7 @@ void Sound::FrameUpdate()
     memcpy(pbSampleBuffer, pDAC->GetSampleBuffer(), nSize);
     MixAudio(pbSampleBuffer, pSAA->GetSampleBuffer(), nSize);
     if (fSidUsed && GetOption(sid)) MixAudio(pbSampleBuffer, pSID->GetSampleBuffer(), nSize);
+    if (sp0256_used && GetOption(voicebox)) MixAudio(pbSampleBuffer, pVoiceBox->GetSampleBuffer(), nSize);
 
     // Add the frame to any recordings
     WAV::AddFrame(pbSampleBuffer, nSize);

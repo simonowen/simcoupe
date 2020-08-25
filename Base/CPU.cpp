@@ -313,7 +313,7 @@ void ExecuteEvent(const CPU_EVENT& sThisEvent)
         break;
 
     case EventType::BlueAlphaClock:
-        pBlueAlpha->Clock(sThisEvent.due_time);
+        pSampler->Clock(sThisEvent.due_time);
         break;
 
     case EventType::TapeEdge:

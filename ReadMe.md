@@ -910,6 +910,9 @@ Steve Parry-Thomas and Robert Wilkinson, for their active roles during
 development. Thanks also to the sam-users mailing list, and everyone who
 sent feedback.
 
+The sp0256-al2.bin allophone data is copyright Microchip Technology
+Incorporated. See: http://spatula-city.org/~im14u2c/sp0256-al2/
+
 ---
 
 ## Links

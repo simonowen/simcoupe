@@ -138,7 +138,10 @@ protected:
 
 #define KEMPSTON_PORT       31          // Kempston joystick
 
-#define BLUE_ALPHA_PORT     127         // Blue Alpha Sampler and VoiceBox
+#define BLUE_ALPHA_PORT     0x7f        // Blue Alpha port
+#define BA_VOICEBOX_PORT    0xff7f      // Blue Alpha VoiceBox
+#define BA_SAMPLER_MASK     0xfcff      // Blue Alpha Sampler address mask
+#define BA_SAMPLER_BASE     0x7c7f      // Blue Alpha Sampler address compare
 
 #define QUAZAR_PORT         208         // Quazar Surround
 #define SID_PORT            212         // Quazar SID interface at 0xD4xx
