@@ -127,12 +127,10 @@ Stream::Stream(const std::string& filepath, bool read_only/*=false*/)
 FileStream::FileStream(unique_FILE&& file, const std::string& filepath, bool read_only)
     : Stream(filepath, read_only), m_file(std::move(file))
 {
-    std::error_code error;
-    m_uSize = static_cast<size_t>(fs::file_size(filepath, error));
-    if (error)
-    {
-        m_uSize = 0;
-    }
+    struct stat st{};
+
+    if (stat(filepath.c_str(), &st) == 0)
+        m_uSize = st.st_size;
 }
 
 void FileStream::Close()
