@@ -100,11 +100,14 @@ bool Insert(const std::string& filepath)
     if (!stream)
         return false;
 
+    auto uSize = stream->GetSize();
+    if (!uSize)
+        return false;
+
     pTape = libspectrum_tape_alloc();
     if (!pTape)
         return false;
 
-    size_t uSize = stream->GetSize();
     pbTape = new libspectrum_byte[uSize];
     if (pbTape) stream->Read(pbTape, uSize);
 

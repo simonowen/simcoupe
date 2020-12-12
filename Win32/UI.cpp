@@ -600,16 +600,17 @@ void UpdateTapeBlockList(HWND hdlg_)
 
         libspectrum_tape_iterator it = nullptr;
         libspectrum_tape_block* block = libspectrum_tape_iterator_init(&it, tape);
+        int block_idx = 0;
 
         // Loop over all blocks in the tape
-        for (int nBlock = 0; block; block = libspectrum_tape_iterator_next(&it), nBlock++)
+        for (; block; block = libspectrum_tape_iterator_next(&it), block_idx++)
         {
             char sz[128] = "";
             libspectrum_tape_block_description(sz, sizeof(sz), block);
 
             LVITEM lvi = {};
             lvi.mask = LVIF_TEXT;
-            lvi.iItem = nBlock;
+            lvi.iItem = block_idx;
             lvi.iSubItem = 0;
             lvi.pszText = sz;
 
@@ -622,12 +623,11 @@ void UpdateTapeBlockList(HWND hdlg_)
         }
 
         // Fetch the current block index
-        int nCurBlock = 0;
-        if (libspectrum_tape_position(&nCurBlock, tape) == LIBSPECTRUM_ERROR_NONE)
+        if (block_idx > 0 && libspectrum_tape_position(&block_idx, tape) == LIBSPECTRUM_ERROR_NONE)
         {
             // Select the current block in the list, and ensure it's visible
-            ListView_SetItemState(hwndList, nCurBlock, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-            ListView_EnsureVisible(hwndList, nCurBlock, FALSE);
+            ListView_SetItemState(hwndList, block_idx, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+            ListView_EnsureVisible(hwndList, block_idx, FALSE);
         }
     }
 }
