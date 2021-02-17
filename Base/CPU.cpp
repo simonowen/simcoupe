@@ -423,7 +423,11 @@ void Run()
 
 void Reset(bool fPress_)
 {
-    // Set CPU operating mode
+    if (GetOption(fastreset) && g_fReset && !fPress_)
+    {
+        g_nTurbo |= TURBO_BOOT;
+    }
+
     g_fReset = fPress_;
 
     if (g_fReset)
@@ -438,16 +442,11 @@ void Reset(bool fPress_)
         // Index prefix not active
         pHlIxIy = pNewHlIxIy = &REG_HL;
 
-        // Re-initialise memory (for configuration changes) and reset I/O
         IO::Init();
         Memory::Init();
 
-        // Refresh the debugger and re-test breakpoints
         Debug::Refresh();
     }
-    // Set up the fast reset for first power-on
-    else if (GetOption(fastreset))
-        g_nTurbo |= TURBO_BOOT;
 }
 
 
