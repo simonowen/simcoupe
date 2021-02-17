@@ -584,7 +584,7 @@ uint8_t In(uint16_t wPort_)
         break;
 
     case BLUE_ALPHA_PORT:
-        if (wPort_ == BA_VOICEBOX_PORT)
+        if (GetOption(voicebox) && wPort_ == BA_VOICEBOX_PORT)
         {
             bRet = pVoiceBox->In(wPort_);
         }
