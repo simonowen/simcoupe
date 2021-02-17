@@ -41,6 +41,7 @@ static int nDelay = 0;
 static long lDelayOffset;
 static int wl, wt, ww, wh;  // left/top/width/height for change rect
 static int nFrameSkip = 3;  // 50/2 = 25fps (FF/Chrome/Safari/Opera), 50/3 = 16.6fps (IE grrr!)
+constexpr auto WIDTH_DIVISOR = 2;
 
 enum LoopState { kNone, kIgnoreFirstChange, kWaitLoopStart, kLoopStarted };
 static LoopState nLoopState;
@@ -51,8 +52,8 @@ static LoopState nLoopState;
 
 static void WriteLogicalScreenDescriptor(const FrameBuffer& fb)
 {
-    uint16_t w = fb.Width() / 2;
-    uint16_t h = fb.Height() / 2;
+    uint16_t w = fb.Width() / WIDTH_DIVISOR;
+    uint16_t h = fb.Height();
 
     fputc(w & 0xff, file);
     fputc(w >> 8, file);
@@ -160,8 +161,8 @@ static bool GetChangeRect(uint8_t* pb_, const FrameBuffer& fb)
     int l, t, r, b, w, h;
     l = t = r = b = 0;
 
-    uint16_t width = fb.Width() / 2, height = fb.Height() / 2;
-    int step = 2; // sample alternate pixels
+    uint16_t width = fb.Width() / WIDTH_DIVISOR;
+    uint16_t height = fb.Height();
 
     uint8_t* pbC = pb_;
 
@@ -171,7 +172,7 @@ static bool GetChangeRect(uint8_t* pb_, const FrameBuffer& fb)
         auto pb = fb.GetLine(h);
 
         // Scan the full width of the current line
-        for (w = 0; w < width; w++, pbC++, pb += step)
+        for (w = 0; w < width; w++, pbC++, pb += WIDTH_DIVISOR)
         {
             if (*pbC != *pb)
             {
@@ -195,10 +196,10 @@ found_top:
     for (h = height - 1; h >= t; h--)
     {
         auto pb = fb.GetLine(h);
-        pb += (width - 1) * step;
+        pb += (width - 1) * WIDTH_DIVISOR;
 
         // Scan the full width of the line, right to left
-        for (w = width - 1; w >= 0; w--, pbC--, pb -= step)
+        for (w = width - 1; w >= 0; w--, pbC--, pb -= WIDTH_DIVISOR)
         {
             if (*pbC != *pb)
             {
@@ -224,7 +225,7 @@ found_bottom:
         // Scan the unknown left strip
         for (w = 0; w < l; w++)
         {
-            if (pbC[w] != pb[w * step])
+            if (pbC[w] != pb[w * WIDTH_DIVISOR])
             {
                 // Reduce the left edge to the change point
                 if (w < l) l = w;
@@ -235,7 +236,7 @@ found_bottom:
         // Scan the unknown right strip
         for (w = width - 1; w > r; w--)
         {
-            if (pbC[w] != pb[w * step])
+            if (pbC[w] != pb[w * WIDTH_DIVISOR])
             {
                 // Increase the right edge to the change point
                 if (w > r) r = w;
@@ -255,8 +256,7 @@ found_bottom:
 // Update current image and determine sub-region difference to encode
 static uint8_t UpdateImage(uint8_t* pb_, const FrameBuffer& fb)
 {
-    uint16_t width = fb.Width() / 2;
-    int step = 2;
+    uint16_t width = fb.Width() / WIDTH_DIVISOR;
     uint8_t abUsed[1 << COLOUR_DEPTH] = { 0 };
     auto pbSub_ = pbSub;
 
@@ -269,9 +269,9 @@ static uint8_t UpdateImage(uint8_t* pb_, const FrameBuffer& fb)
     for (int y = wt; y < wt + wh; y++, pb += width)
     {
         auto pbScr = fb.GetLine(y);
-        pbScr += (wl * step);
+        pbScr += (wl * WIDTH_DIVISOR);
 
-        for (int x = 0; x < ww; x++, pbScr += step)
+        for (int x = 0; x < ww; x++, pbScr += WIDTH_DIVISOR)
         {
             uint8_t bOld = pb[x], bNew = *pbScr;
             pb[x] = bNew;
@@ -421,8 +421,8 @@ void AddFrame(const FrameBuffer& fb)
     // Count the frames between changes
     nDelay++;
 
-    uint16_t width = fb.Width() / 2;
-    uint16_t height = fb.Height() / 2;
+    uint16_t width = fb.Width() / WIDTH_DIVISOR;
+    uint16_t height = fb.Height();
     uint32_t size = (uint32_t)width * (uint32_t)height;
 
     // If this is the first frame, write the file headers
