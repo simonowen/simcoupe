@@ -2482,7 +2482,7 @@ void HexView::Draw(FrameBuffer& fb)
         auto str = fmt::format("{:02X}", b);
 
         if (m_fRightNibble)
-            nY += CHR_WIDTH;
+            nX += CHR_WIDTH;
 
         fb.FillRect(nX - 1, nY - 1, CHR_WIDTH + 1, ROW_HEIGHT - 3, YELLOW_8);
         fb.DrawString(nX, nY, "\ak{}", str[m_fRightNibble]);
