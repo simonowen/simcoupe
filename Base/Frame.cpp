@@ -326,7 +326,7 @@ void Sync()
     }
 
     static std::optional<high_resolution_clock::time_point> last_profiled;
-    if ((now - *last_profiled) >= 1s)
+    if (!last_profiled || (now - *last_profiled) >= 1s)
     {
         if (last_profiled)
         {
