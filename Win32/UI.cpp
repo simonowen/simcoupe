@@ -355,30 +355,29 @@ void RemoveRecentFile(const std::string& path)
 {
     auto lower_path = tolower(path);
     auto it = std::find_if(recent_files.begin(), recent_files.end(),
-        [&](std::string& entry) { return tolower(entry) == lower_path; });
+        [&](const auto& str) { return tolower(str) == lower_path; });
 
     if (it != recent_files.end())
-    {
         recent_files.erase(it);
-    }
 }
 
 void AddRecentFile(const std::string& path)
 {
     RemoveRecentFile(path);
     recent_files.insert(recent_files.begin(), path);
-    recent_files.resize(MAX_RECENT_FILES);
 }
 
 void LoadRecentFiles()
 {
-    recent_files.clear();
-    AddRecentFile(GetOption(mru5));
-    AddRecentFile(GetOption(mru4));
-    AddRecentFile(GetOption(mru3));
-    AddRecentFile(GetOption(mru2));
-    AddRecentFile(GetOption(mru1));
-    AddRecentFile(GetOption(mru0));
+    recent_files = {
+        GetOption(mru0), GetOption(mru1), GetOption(mru2),
+        GetOption(mru3), GetOption(mru4), GetOption(mru5)
+    };
+
+    recent_files.erase(
+        std::remove_if(recent_files.begin(), recent_files.end(),
+            [](const auto& str) { return str.empty(); }),
+        recent_files.end());
 }
 
 void SaveRecentFiles()
@@ -397,7 +396,7 @@ void UpdateRecentFiles(HMENU hmenu_, int nId_, int nOffset_)
     for (int i = 0; i < MAX_RECENT_FILES; i++)
         DeleteMenu(hmenu_, nId_ + i, MF_BYCOMMAND);
 
-    if (recent_files.front().empty())
+    if (recent_files.empty())
     {
         InsertMenu(hmenu_, GetMenuItemCount(hmenu_) - nOffset_, MF_STRING | MF_BYPOSITION, nId_, "Recent Files");
         EnableMenuItem(hmenu_, nId_, MF_GRAYED);
@@ -406,7 +405,7 @@ void UpdateRecentFiles(HMENU hmenu_, int nId_, int nOffset_)
     {
         int nInsertPos = GetMenuItemCount(hmenu_) - nOffset_;
 
-        for (int i = 0; i < MAX_RECENT_FILES && !recent_files[i].empty(); i++)
+        for (int i = 0; i < static_cast<int>(recent_files.size()); i++)
         {
             char szItem[MAX_PATH * 2], * psz = szItem;
             psz += wsprintf(szItem, "&%d ", i + 1);
