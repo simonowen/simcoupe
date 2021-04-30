@@ -96,7 +96,7 @@ static HHOOK hWinKeyHook;
 
 static WNDPROC pfnStaticWndProc;           // Old static window procedure (internal value)
 
-static WINDOWPLACEMENT g_wp = { sizeof(WINDOWPLACEMENT) };
+static WINDOWPLACEMENT g_wp{};
 static int nWindowDx, nWindowDy;
 
 static int nOptionPage = 0;                // Last active option property page
@@ -293,7 +293,7 @@ void ResizeWindow(int nHeight_)
 
         RECT rect{ 0, 0, width, nHeight_ };
         AdjustWindowRectEx(&rect, GetWindowStyle(g_hwnd), TRUE, GetWindowExStyle(g_hwnd));
-        SetWindowPos(g_hwnd, HWND_NOTOPMOST, 0, 0, rect.right - rect.left, rect.bottom - rect.top, SWP_SHOWWINDOW | SWP_NOMOVE);
+        SetWindowPos(g_hwnd, HWND_TOP, 0, 0, rect.right - rect.left, rect.bottom - rect.top, SWP_SHOWWINDOW | SWP_NOMOVE);
     }
 }
 
@@ -924,20 +924,21 @@ bool UI::DoAction(Action action, bool pressed)
 
             if (GetOption(fullscreen))
             {
+                g_wp.length = sizeof(WINDOWPLACEMENT);
                 GetWindowPlacement(g_hwnd, &g_wp);
 
-                SetWindowLongPtr(g_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+                SetWindowLongPtr(g_hwnd, GWL_STYLE, WS_POPUP);
                 SetMenu(g_hwnd, nullptr);
-                SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), SWP_FRAMECHANGED);
+                SetWindowPos(g_hwnd, HWND_TOP, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), SWP_SHOWWINDOW  | SWP_FRAMECHANGED);
             }
             else
             {
-                auto style = (GetWindowStyle(g_hwnd) & WS_VISIBLE) | WS_OVERLAPPEDWINDOW;
-                SetWindowLongPtr(g_hwnd, GWL_STYLE, style);
+                SetWindowLongPtr(g_hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
                 SetMenu(g_hwnd, g_hmenu);
-                SetWindowPos(g_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+                SetWindowPos(g_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_FRAMECHANGED);
 
-                SetWindowPlacement(g_hwnd, &g_wp);
+                if (g_wp.length)
+                    SetWindowPlacement(g_hwnd, &g_wp);
             }
             break;
 
@@ -1325,17 +1326,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         if (pFloppy2) pFloppy2->Save();
         return TRUE;
 
-        // Main window activation change
-    case WM_ACTIVATE:
-    {
-        TRACE("WM_ACTIVATE ({:x})\n", wParam_);
-        auto active = LOWORD(wParam_) != WA_INACTIVE;
-        if (!active && GetOption(fullscreen))
-            ShowWindow(hwnd_, SW_SHOWMINNOACTIVE);
-
-        return 0;
-    }
-
     case WM_GETMINMAXINFO:
     {
         RECT rect{ 0, 0, Frame::Width() / 2, Frame::Height() / 2 };
@@ -1714,6 +1704,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
 void SaveWindowPosition(HWND hwnd_)
 {
+    bool fullscreen = GetOption(fullscreen);
+    if (fullscreen)
+        Actions::Do(Action::ToggleFullscreen);
+
     WINDOWPLACEMENT wp = { sizeof(wp) };
     GetWindowPlacement(hwnd_, &wp);
 
@@ -1721,7 +1715,9 @@ void SaveWindowPosition(HWND hwnd_)
     SetOption(windowpos,
         fmt::format("{},{},{},{},{}",
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-            wp.showCmd == SW_SHOWMAXIMIZED));
+            (wp.showCmd == SW_SHOWMAXIMIZED) ? 1 : 0));
+
+    SetOption(fullscreen, fullscreen);
 }
 
 bool RestoreWindowPosition(HWND hwnd_)
@@ -1733,7 +1729,7 @@ bool RestoreWindowPosition(HWND hwnd_)
     WINDOWPLACEMENT wp{};
     wp.length = sizeof(wp);
     SetRect(&wp.rcNormalPosition, x, y, x + width, y + height);
-    wp.showCmd = maximised ? SW_MAXIMIZE : SW_SHOW;
+    wp.showCmd = maximised ? SW_MAXIMIZE : GetOption(fullscreen) ? SW_HIDE : SW_SHOW;
     SetWindowPlacement(hwnd_, &wp);
 
     return true;
@@ -1762,20 +1758,28 @@ bool InitWindow()
     int x = (GetSystemMetrics(SM_CXSCREEN) - width) / 2;
     int y = (GetSystemMetrics(SM_CYSCREEN) - height) * 5 / 12;
 
-    g_hwnd = CreateWindowEx(WS_EX_APPWINDOW, wc.lpszClassName, WINDOW_CAPTION, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
+    g_hwnd = CreateWindowEx(WS_EX_APPWINDOW, wc.lpszClassName, WINDOW_CAPTION, WS_OVERLAPPEDWINDOW,
         x, y, width, height, nullptr, g_hmenu, wc.hInstance, nullptr);
+    if (!g_hwnd)
+        return false;
 
     // Restore the window position, falling back on the current options to determine its size
     if (!RestoreWindowPosition(g_hwnd))
     {
         RECT rect{ 0, 0, width, height };
         AdjustWindowRectEx(&rect, GetWindowStyle(g_hwnd), TRUE, GetWindowExStyle(g_hwnd));
-        SetWindowPos(g_hwnd, HWND_NOTOPMOST,
+        SetWindowPos(g_hwnd, HWND_TOP,
             0, 0, rect.right - rect.left, rect.bottom - rect.top,
             SWP_SHOWWINDOW | SWP_NOMOVE);
     }
 
-    return g_hwnd != NULL;
+    if (GetOption(fullscreen))
+    {
+        SetOption(fullscreen, false);
+        Actions::Do(Action::ToggleFullscreen);
+    }
+
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

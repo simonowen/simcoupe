@@ -533,13 +533,7 @@ HRESULT Direct3D11Video::Render()
     m_d3dContext->PSSetShader(m_samplePS.Get(), nullptr, 0);
     m_d3dContext->Draw(4, 0);
 
-    BOOL fullScreen{};
-    if (SUCCEEDED(m_swapChain->GetFullscreenState(&fullScreen, nullptr)))
-    {
-        m_fullscreen = (fullScreen == TRUE);
-    }
-
-    auto hr = m_swapChain->Present(0, (m_allow_tearing && !m_fullscreen) ? DXGI_PRESENT_ALLOW_TEARING : 0);
+    auto hr = m_swapChain->Present(0, m_allow_tearing ? DXGI_PRESENT_ALLOW_TEARING : 0);
     if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
     {
         Init();
