@@ -190,11 +190,9 @@ void Update()
     // Left-Alt?
     if (IsPressed(HK_LALT))
     {
-        // Ignore Alt key combinations if not used for Cntrl
-        if (!GetOption(altforcntrl))
+        if (!GetOption(altforcntrl) || IsPressed(HK_TAB))
             return;
 
-        // Release Left-Alt, press SAM Cntrl
         ReleaseKey(HK_LALT);
         PressSamKey(SK_CONTROL);
     }
@@ -220,16 +218,20 @@ void Update()
     {
         // Note: the SK_ range isn't contiguous
         static const int anS[] = { SK_F1, SK_F2, SK_F3, SK_F4, SK_F5, SK_F6, SK_F7, SK_F8, SK_F9, SK_F0 };
+        bool fkey_detected{ false };
 
         for (unsigned int u = 0; u < std::size(anS); u++)
         {
             if (IsPressed(static_cast<eHostKey>(HK_F1 + u)))
             {
-                // Press the SAM function key
                 PressSamKey(anS[u]);
+                fkey_detected = true;
                 break;
             }
         }
+
+        if (!fkey_detected)
+            return;
     }
 
     int nMapping = GetOption(keymapping);
