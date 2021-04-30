@@ -220,6 +220,8 @@ bool Do(Action action, bool pressed/*=true*/)
         case Action::Debugger:
             if (!GUI::IsActive())
                 Debug::Start();
+            else
+                GUI::Stop();
             break;
 
         case Action::ImportData:

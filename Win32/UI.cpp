@@ -888,7 +888,8 @@ void UpdateMenuFromOptions()
 
     // The built-in GUI prevents some items from being used, so disable them if necessary
     EnableItem(IDM_TOOLS_OPTIONS, !GUI::IsActive());
-    EnableItem(IDM_TOOLS_DEBUGGER, !g_fPaused && !GUI::IsActive());
+    EnableItem(IDM_TOOLS_DEBUGGER, !g_fPaused && (Debug::IsActive() || !GUI::IsActive()));
+    CheckOption(IDM_TOOLS_DEBUGGER, Debug::IsActive());
 
     // Enable the Flush printer item if there's buffered data in either printer
     bool fPrinter1 = GetOption(parallel1) == 1, fPrinter2 = GetOption(parallel2) == 1;
@@ -1552,7 +1553,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             case IDM_FILE_FLOPPY1_INSERT:   GUI::Start(new BrowseFloppy(1));   return 0;
             case IDM_FILE_FLOPPY2_INSERT:   GUI::Start(new BrowseFloppy(2));   return 0;
             case IDM_TOOLS_OPTIONS:         GUI::Start(new OptionsDialog);     return 0;
-            case IDM_TOOLS_DEBUGGER:        GUI::Start(new Debugger);          return 0;
             case IDM_HELP_ABOUT:            GUI::Start(new AboutDialog);       return 0;
 
             case IDM_FILE_NEW_DISK1:        GUI::Start(new NewDiskDialog(1));  return 0;
