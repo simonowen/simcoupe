@@ -2812,7 +2812,7 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             }
         }
 
-        static const std::vector<std::string> types{ "None", "Floppy Drive", "Atom (Legacy)", "Atom Lite" };
+        static const std::vector<std::string> types{ "None", "Floppy Drive", "Atom Classic", "Atom Lite" };
         SetComboStrings(hdlg_, IDC_DEVICE_TYPE, types, GetOption(drive2));
 
         SendDlgItemMessage(hdlg_, IDE_FLOPPY_IMAGE, EM_SETCUEBANNER, FALSE, reinterpret_cast<LPARAM>(L"<None>"));

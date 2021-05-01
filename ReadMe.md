@@ -743,7 +743,7 @@ _Media_ - select either a disk image file or real device from the drop-down list
 ### Drive 2
 
 _Device_ - select the type of device installed in in the right-hand bay. This
-can be None, Floppy, Atom (legacy) or Atom Lite.
+can be None, Floppy, Atom Classic or Atom Lite.
 
 _Media_ - select either a disk image file or real device from the drop-down list
 (if supported). Atom and Atom Lite devices support Master and Slave drives,

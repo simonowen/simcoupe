@@ -787,7 +787,7 @@ public:
         m_pDrive1 = new ComboBox(this, 83, 29, "None|Floppy", 60);
 
         new TextControl(this, 158, 32, "D2:");
-        m_pDrive2 = new ComboBox(this, 178, 29, "None|Floppy|Atom (Legacy)|Atom Lite", 100);
+        m_pDrive2 = new ComboBox(this, 178, 29, "None|Floppy|Atom Classic|Atom Lite", 100);
 
         new FrameControl(this, 50, 71, 238, 120);
         new TextControl(this, 60, 67, "Options", YELLOW_8, BLUE_2);
