@@ -130,7 +130,7 @@ FileStream::FileStream(unique_FILE&& file, const std::string& filepath, bool rea
     struct stat st{};
 
     if (stat(filepath.c_str(), &st) == 0)
-        m_uSize = st.st_size;
+        m_uSize = static_cast<size_t>(st.st_size);
 }
 
 void FileStream::Close()
