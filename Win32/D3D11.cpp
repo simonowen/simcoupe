@@ -465,7 +465,7 @@ HRESULT Direct3D11Video::DrawChanges(const FrameBuffer& screen)
     if (source_changed)
         ResizeSource(width, height);
 
-    if (target_changed)
+    if (source_changed || target_changed)
         ResizeTarget(rClient.right, rClient.bottom);
 
     if (source_changed || target_changed || smooth_changed)

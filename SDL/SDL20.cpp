@@ -171,7 +171,7 @@ bool SDLTexture::DrawChanges(const FrameBuffer& fb)
     if (source_changed)
         ResizeSource(width, height);
 
-    if (target_changed)
+    if (source_changed || target_changed)
         ResizeTarget(window_width, window_height);
 
     if (source_changed || target_changed || smooth_changed)
