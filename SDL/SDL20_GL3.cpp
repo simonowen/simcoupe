@@ -204,6 +204,9 @@ void SDL_GL3::Update(const FrameBuffer& fb)
 
 void SDL_GL3::ResizeWindow(int height) const
 {
+    if (SDL_GetWindowFlags(m_window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_MINIMIZED))
+        return;
+
     auto width_f = static_cast<float>(height)* Frame::Width() / Frame::Height();
     if (GetOption(ratio5_4))
         width_f *= 1.25f;

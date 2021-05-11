@@ -94,6 +94,9 @@ void SDLTexture::Update(const FrameBuffer& fb)
 
 void SDLTexture::ResizeWindow(int height) const
 {
+    if (SDL_GetWindowFlags(m_window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_MINIMIZED))
+        return;
+
     auto width = static_cast<float>(height)* Frame::Width() / Frame::Height();
     if (GetOption(ratio5_4))
         width *= 1.25f;

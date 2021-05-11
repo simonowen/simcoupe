@@ -37,18 +37,6 @@ Direct3D11Video::Direct3D11Video(HWND hwnd) :
 {
 }
 
-Direct3D11Video::~Direct3D11Video()
-{
-    if (m_d3dContext)
-    {
-        m_d3dContext->ClearState();
-        m_d3dContext->Flush();
-    }
-
-    if (m_swapChain)
-        m_swapChain->SetFullscreenState(FALSE, nullptr);
-}
-
 Rect Direct3D11Video::DisplayRect() const
 {
     return m_rDisplay;
@@ -74,6 +62,9 @@ void Direct3D11Video::Update(const FrameBuffer& screen)
 
 void Direct3D11Video::ResizeWindow(int height) const
 {
+    if (GetOption(fullscreen) || IsMaximized(m_hwnd) || IsMinimized(m_hwnd))
+        return;
+
     int width = MulDiv(height, Frame::Width(), Frame::Height());
     if (GetOption(ratio5_4)) width = width * 5 / 4;
 

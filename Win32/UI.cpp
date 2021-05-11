@@ -84,7 +84,6 @@ static bool EjectTape();
 
 static void SaveWindowPosition(HWND hwnd_);
 static bool RestoreWindowPosition(HWND hwnd_);
-static void ResizeWindow(int nHeight_ = 0);
 
 
 HINSTANCE __hinstance;
@@ -277,26 +276,6 @@ int GetDlgItemValue(HWND hdlg_, int nId_, int default_value = -1)
         return default_value;
     }
 }
-
-
-void ResizeWindow(int nHeight_)
-{
-    RECT rClient;
-    GetClientRect(g_hwnd, &rClient);
-    if (!nHeight_)
-        nHeight_ = rClient.bottom;
-
-    if (!GetOption(fullscreen) && !IsMaximized(g_hwnd))
-    {
-        int width = MulDiv(nHeight_, Frame::Width(), Frame::Height());
-        if (GetOption(ratio5_4)) width = width * 5 / 4;
-
-        RECT rect{ 0, 0, width, nHeight_ };
-        AdjustWindowRectEx(&rect, GetWindowStyle(g_hwnd), TRUE, GetWindowExStyle(g_hwnd));
-        SetWindowPos(g_hwnd, HWND_TOP, 0, 0, rect.right - rect.left, rect.bottom - rect.top, SWP_SHOWWINDOW | SWP_NOMOVE);
-    }
-}
-
 
 // Save changes to a given drive, optionally prompting for confirmation
 bool ChangesSaved(DiskDevice& floppy)
@@ -1630,7 +1609,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_VIEW_ZOOM_500:
         {
             auto scale_2x = wId - IDM_VIEW_ZOOM_50 + 1;
-            ResizeWindow(Frame::Height() * scale_2x / 2);
+            Video::ResizeWindow(Frame::Height()* scale_2x / 2);
             break;
         }
 

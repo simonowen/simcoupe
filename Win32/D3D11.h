@@ -36,7 +36,6 @@ class Direct3D11Video final : public IVideoBase
 {
 public:
     Direct3D11Video(HWND hwnd);
-    ~Direct3D11Video();
 
     bool Init() override;
     Rect DisplayRect() const override;
