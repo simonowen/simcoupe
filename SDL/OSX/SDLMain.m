@@ -250,7 +250,7 @@ static void sendUserEvent (int event)
 - (IBAction)systemDebugger:(id)sender { sendUserEvent(UE_DEBUGGER); }
 - (IBAction)viewFullscreen:(id)sender { sendUserEvent(UE_TOGGLEFULLSCREEN); }
 - (IBAction)viewFrameSync:(id)sender { sendUserEvent(UE_TOGGLESYNC); }
-- (IBAction)viewRatio54:(id)sender { sendUserEvent(UE_TOGGLE54); }
+- (IBAction)viewRatio54:(id)sender { sendUserEvent(UE_TOGGLETV); }
 - (IBAction)fileImportData:(id)sender { sendUserEvent(UE_IMPORTDATA); }
 - (IBAction)fileExportData:(id)sender { sendUserEvent(UE_EXPORTDATA); }
 

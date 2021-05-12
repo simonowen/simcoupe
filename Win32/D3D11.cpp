@@ -65,8 +65,8 @@ void Direct3D11Video::ResizeWindow(int height) const
     if (GetOption(fullscreen) || IsMaximized(m_hwnd) || IsMinimized(m_hwnd))
         return;
 
-    int width = MulDiv(height, Frame::Width(), Frame::Height());
-    if (GetOption(ratio5_4)) width = width * 5 / 4;
+    auto aspect_ratio = GetOption(tvaspect) ? GFX_DISPLAY_ASPECT_RATIO : 1.0f;
+    auto width = static_cast<int>(std::round(height * Frame::Width() * aspect_ratio / Frame::Height()));
 
     RECT rect = { 0, 0, width, height };
     AdjustWindowRectEx(&rect, GetWindowStyle(m_hwnd), TRUE, GetWindowExStyle(m_hwnd));
@@ -289,9 +289,9 @@ HRESULT Direct3D11Video::ResizeTarget(int target_width, int target_height)
     if (!m_d3dContext)
         return S_FALSE;
 
-    int width = Frame::Width();
-    int height = Frame::Height();
-    if (GetOption(ratio5_4)) width = width * 5 / 4;
+    auto aspect_ratio = GetOption(tvaspect) ? GFX_DISPLAY_ASPECT_RATIO : 1.0f;
+    auto width = static_cast<int>(std::round(Frame::Width() * aspect_ratio));
+    auto height = Frame::Height();
 
     int width_fit = width * target_height / height;
     int height_fit = height * target_width / width;

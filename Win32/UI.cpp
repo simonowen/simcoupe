@@ -828,7 +828,7 @@ void UpdateMenuFromOptions()
     EnableItem(IDM_FILE_FLOPPY2_SAVE_CHANGES, pFloppy2->DiskModified());
 
     CheckOption(IDM_VIEW_FULLSCREEN, GetOption(fullscreen));
-    CheckOption(IDM_VIEW_RATIO54, GetOption(ratio5_4));
+    CheckOption(IDM_VIEW_TVASPECT, GetOption(tvaspect));
 
     CheckOption(IDM_VIEW_SMOOTH, GetOption(smooth));
     CheckOption(IDM_VIEW_MOTIONBLUR, GetOption(motionblur));
@@ -1593,7 +1593,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_FILE_FLOPPY2_SAVE_CHANGES: Actions::Do(Action::SaveDisk2);   break;
 
         case IDM_VIEW_FULLSCREEN:           Actions::Do(Action::ToggleFullscreen); break;
-        case IDM_VIEW_RATIO54:              Actions::Do(Action::Toggle54);        break;
+        case IDM_VIEW_TVASPECT:             Actions::Do(Action::ToggleTV);        break;
         case IDM_VIEW_SMOOTH:               Actions::Do(Action::ToggleSmoothing);  break;
         case IDM_VIEW_MOTIONBLUR:           Actions::Do(Action::ToggleMotionBlur); break;
 
@@ -1728,10 +1728,9 @@ bool InitWindow()
 
     g_hmenu = LoadMenu(wc.hInstance, MAKEINTRESOURCE(IDR_MENU));
 
-    int width = Frame::Width() * 3 / 2;
-    int height = Frame::Height() * 3 / 2;
-    if (GetOption(ratio5_4))
-        width = width * 5 / 4;
+    auto aspect_ratio = GetOption(tvaspect) ? GFX_DISPLAY_ASPECT_RATIO : 1.0f;
+    auto width = static_cast<int>(std::round(Frame::Width() * 3 * aspect_ratio / 2));
+    auto height = Frame::Height() * 3 / 2;
 
     int x = (GetSystemMetrics(SM_CXSCREEN) - width) / 2;
     int y = (GetSystemMetrics(SM_CYSCREEN) - height) * 5 / 12;

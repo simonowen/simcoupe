@@ -203,7 +203,7 @@
 #define IDM_VIEW_BORDERS3               40194
 #define IDM_VIEW_BORDERS4               40195
 #define IDM_VIEW_FULLSCREEN             40196
-#define IDM_VIEW_RATIO54                40197
+#define IDM_VIEW_TVASPECT               40197
 #define IDM_SYSTEM_MUTESOUND            40198
 #define IDM_VIEW_SYNC                   40199
 #define IDM_SYSTEM_PAUSE                40200

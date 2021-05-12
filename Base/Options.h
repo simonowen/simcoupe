@@ -29,7 +29,7 @@ struct Config
     bool firstrun = true;               // First run of the emulator?
     std::string windowpos;              // Main window position (client area)
 
-    bool ratio5_4 = false;              // Use 5:4 screen ratio?
+    bool tvaspect = false;              // TV pixel aspect ratio?
     bool fullscreen = false;            // Start in full-screen mode?
     int borders = 2;                    // How much of the borders to show
     bool smooth = true;                 // Smooth image when stretching? (disables integer scaling)

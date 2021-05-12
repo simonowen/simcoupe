@@ -207,11 +207,9 @@ void SDL_GL3::ResizeWindow(int height) const
     if (SDL_GetWindowFlags(m_window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_MINIMIZED))
         return;
 
-    auto width_f = static_cast<float>(height)* Frame::Width() / Frame::Height();
-    if (GetOption(ratio5_4))
-        width_f *= 1.25f;
+    auto aspect_ratio = GetOption(tvaspect) ? GFX_DISPLAY_ASPECT_RATIO : 1.0f;
+    auto width = static_cast<int>(std::round(height * Frame::Width() * aspect_ratio / Frame::Height()));
 
-    auto width = static_cast<int>(width_f + 0.5f);
     SDL_SetWindowSize(m_window, width, height);
 }
 
@@ -371,9 +369,9 @@ void SDL_GL3::ResizeSource(int width, int height)
 
 void SDL_GL3::ResizeTarget(int target_width, int target_height)
 {
-    int width = Frame::Width();
-    int height = Frame::Height();
-    if (GetOption(ratio5_4)) width = width * 5 / 4;
+    auto aspect_ratio = GetOption(tvaspect) ? GFX_DISPLAY_ASPECT_RATIO : 1.0f;
+    auto width = static_cast<int>(std::round(Frame::Width() * aspect_ratio));
+    auto height = Frame::Height();
 
     int width_fit = width * target_height / height;
     int height_fit = height * target_width / width;

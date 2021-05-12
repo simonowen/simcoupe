@@ -62,7 +62,9 @@ static void WriteLogicalScreenDescriptor(const FrameBuffer& fb)
 
     fputc(0xf0 | (0x7 & (COLOUR_DEPTH - 1)), file);
     fputc(0x00, file); // Background colour index
-    fputc(GetOption(ratio5_4) ? 0x41 : 0x00, file);    // Pixel Aspect Ratio
+
+    auto aspect_ratio = GetOption(tvaspect) ? GFX_DISPLAY_ASPECT_RATIO : 1.0f;
+    fputc(static_cast<int>(std::round(aspect_ratio * 64)) - 15, file);
 }
 
 static void WriteGlobalColourTable()

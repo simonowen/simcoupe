@@ -505,7 +505,7 @@ BEGIN
     BEGIN
         MENUITEM "&Full Screen\tF8",            IDM_VIEW_FULLSCREEN
         MENUITEM SEPARATOR
-        MENUITEM "&TV Aspect Ratio\tF5",        IDM_VIEW_RATIO54
+        MENUITEM "&TV Aspect Ratio\tF5",        IDM_VIEW_TVASPECT
         MENUITEM "&Motion Blur\tShift-F6",      IDM_VIEW_MOTIONBLUR
         MENUITEM "S&mooth Image\tF6",           IDM_VIEW_SMOOTH
         MENUITEM SEPARATOR

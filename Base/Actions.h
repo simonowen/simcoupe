@@ -28,7 +28,7 @@ enum class Action
     InsertTape, EjectTape, TapeBrowser,
     Paste, ImportData, ExportData, SavePNG, SaveSSX,
     TogglePrinter, FlushPrinter,
-    ToggleFullscreen, Toggle54, ToggleSmoothing, ToggleMotionBlur,
+    ToggleFullscreen, ToggleTV, ToggleSmoothing, ToggleMotionBlur,
     RecordAvi, RecordAviHalf, RecordAviStop,
     RecordGif, RecordGifLoop, RecordGifStop,
     RecordWav, RecordWavSegment, RecordWavStop,

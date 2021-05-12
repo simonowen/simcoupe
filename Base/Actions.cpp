@@ -79,7 +79,7 @@ static const std::vector<ActionEntry> actions =
     { Action::TogglePrinter, "TogglePrinter", "Toggle printer online" },
     { Action::FlushPrinter, "FlushPrinter", "Flush printer" },
     { Action::ToggleFullscreen, "ToggleFullscreen", "Toggle fullscreen" },
-    { Action::Toggle54, "Toggle54", "Toggle 5:4 display" },
+    { Action::ToggleTV, "Toggle54", "Toggle TV aspect ratio" },
     { Action::ToggleSmoothing, "ToggleSmoothing", "Toggle graphics smoothing" },
     { Action::ToggleMotionBlur, "ToggleMotionBlur", "Toggle motion blur" },
     { Action::RecordAvi, "RecordAvi", "Record AVI video" },
@@ -130,10 +130,10 @@ bool Do(Action action, bool pressed/*=true*/)
             CPU::NMI();
             break;
 
-        case Action::Toggle54:
-            SetOption(ratio5_4, !GetOption(ratio5_4));
+        case Action::ToggleTV:
+            SetOption(tvaspect, !GetOption(tvaspect));
             Video::OptionsChanged();
-            Frame::SetStatus("{} aspect ratio", GetOption(ratio5_4) ? "5:4" : "1:1");
+            Frame::SetStatus("{} pixels", GetOption(tvaspect) ? "TV" : "Square");
             break;
 
         case Action::ToggleSmoothing:

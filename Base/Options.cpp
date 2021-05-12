@@ -58,7 +58,7 @@ static bool SetNamedValue(const std::string& option_name, const std::string& str
     if (name == "cfgversion") SetValue(g_config.cfgversion, str);
     else if (name == "firstrun") SetValue(g_config.firstrun, str);
     else if (name == "windowpos") SetValue(g_config.windowpos, str);
-    else if (name == "ratio5_4") SetValue(g_config.ratio5_4, str);
+    else if (name == "tvaspect") SetValue(g_config.tvaspect, str);
     else if (name == "fullscreen") SetValue(g_config.fullscreen, str);
     else if (name == "borders") SetValue(g_config.borders, str);
     else if (name == "smooth") SetValue(g_config.smooth, str);
@@ -216,7 +216,7 @@ bool Save()
         ofs << "cfgversion=" << to_string(g_config.cfgversion) << std::endl;
         ofs << "firstrun=" << to_string(g_config.firstrun) << std::endl;
         ofs << "windowpos=" << to_string(g_config.windowpos) << std::endl;
-        ofs << "ratio5_4=" << to_string(g_config.ratio5_4) << std::endl;
+        ofs << "tvaspect=" << to_string(g_config.tvaspect) << std::endl;
         ofs << "fullscreen=" << to_string(g_config.fullscreen) << std::endl;
         ofs << "borders=" << to_string(g_config.borders) << std::endl;
         ofs << "smooth=" << to_string(g_config.smooth) << std::endl;

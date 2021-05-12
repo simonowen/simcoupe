@@ -799,7 +799,7 @@ SimCoupe supports the following command-line options, which override setting
 in the configuration file:
 ```
     -scale <int>            Windowed mode scaling: 1=50%, 2=100%, 3=150%
-    -ratio5_4 <bool>        Stretch display width to 125% (default=no)
+    -tvaspect <bool>        TV aspect ratio (default=yes)
     -mode3 <bool>           Sample odd pixels in low-res (default=no)
     -fullscreen <bool>      Start in full-screen mode (default=no)
     -depth <int>            Colour depth for full-screen (default=16)
