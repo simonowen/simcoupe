@@ -106,6 +106,7 @@ static const std::vector<ActionEntry> actions =
     { Action::About, "About", "About SimCoupe" },
     { Action::Minimise, "Minimise", "Minimise window" },
     { Action::ExitApp, "ExitApp", "Exit application" },
+    { Action::ToggleRasterDebug, "ToggleRasterDebug", "Toggle raster debugging" },
 };
 
 bool Do(Action action, bool pressed/*=true*/)
@@ -222,6 +223,11 @@ bool Do(Action action, bool pressed/*=true*/)
                 Debug::Start();
             else
                 GUI::Stop();
+            break;
+
+        case Action::ToggleRasterDebug:
+            SetOption(rasterdebug, !GetOption(rasterdebug));
+            Frame::SetStatus("Raster debug {}", GetOption(rasterdebug) ? "enabled" : "disabled");
             break;
 
         case Action::ImportData:

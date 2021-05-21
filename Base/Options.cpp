@@ -132,6 +132,7 @@ static bool SetNamedValue(const std::string& option_name, const std::string& str
     else if (name == "status") SetValue(g_config.status, str);
     else if (name == "breakonexec") SetValue(g_config.breakonexec, str);
     else if (name == "fkeys") SetValue(g_config.fkeys, str);
+    else if (name == "rasterdebug") SetValue(g_config.rasterdebug, str);
     else
     {
         return false;
@@ -290,6 +291,7 @@ bool Save()
         ofs << "status=" << to_string(g_config.status) << std::endl;
         ofs << "breakonexec=" << to_string(g_config.breakonexec) << std::endl;
         ofs << "fkeys=" << to_string(g_config.fkeys) << std::endl;
+        ofs << "rasterdebug=" << to_string(g_config.rasterdebug) << std::endl;
     }
     catch (...)
     {

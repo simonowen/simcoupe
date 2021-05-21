@@ -116,6 +116,7 @@ struct Config
     bool status = true;                 // Show status messages?
 
     bool breakonexec = false;           // Break on code auto-execute?
+    bool rasterdebug = true;            // Raster-accurate debugger display
 
     std::string fkeys =                 // Function key bindings
         "F1=InsertDisk1,SF1=EjectDisk1,AF1=NewDisk1,CF1=SaveDisk1,"

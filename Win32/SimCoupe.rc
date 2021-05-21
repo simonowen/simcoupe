@@ -585,7 +585,9 @@ BEGIN
         MENUITEM "&Flush Print Job",            IDM_TOOLS_FLUSH_PRINTER
         MENUITEM SEPARATOR
         MENUITEM "&Tape Browser\tF3",           IDM_TOOLS_TAPE_BROWSER, GRAYED
+        MENUITEM SEPARATOR
         MENUITEM "&Debugger\tNumpad-/",         IDM_TOOLS_DEBUGGER
+        MENUITEM "Raster Debugging"             IDM_TOOLS_RASTER_DEBUG
     END
     POPUP "&Help"
     BEGIN

@@ -188,6 +188,18 @@ void Update()
     }
 }
 
+std::unique_ptr<FrameBuffer> RedrawnDisplay()
+{
+    auto frame_buffer = std::make_unique<FrameBuffer>(*pFrameBuffer);
+
+    for (int i = s_view_top; i < s_view_bottom; ++i)
+    {
+        pFrame->UpdateLine(*frame_buffer, i, 0, GFX_WIDTH_CELLS);
+    }
+
+    return frame_buffer;
+}
+
 static void DrawRaster(FrameBuffer& fb)
 {
     static const std::vector<int> raster_colours
@@ -229,10 +241,19 @@ void End()
 
         if (GUI::IsActive())
         {
+            std::unique_ptr<FrameBuffer> full_frame_buffer;
+            auto pBuffer = pFrameBuffer.get();
+
+            if (Debug::IsActive() && !GetOption(rasterdebug))
+            {
+                full_frame_buffer = RedrawnDisplay();
+                pBuffer = full_frame_buffer.get();
+            }
+
             for (int i = 0; i < Height(); i++)
             {
-                auto pLine = pFrameBuffer->GetLine(i >> 1);
-                auto width = pFrameBuffer->Width();
+                auto pLine = pBuffer->GetLine(i >> 1);
+                auto width = pBuffer->Width();
 
                 memcpy(pGuiScreen->GetLine(i), pLine, width);
             }

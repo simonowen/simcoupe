@@ -233,6 +233,7 @@
 #define IDM_TOOLS_PASTE_CLIPBOARD       40260
 #define IDM_VIEW_SMOOTH                 40263
 #define IDM_TOOLS_TAPE_BROWSER          40278
+#define IDM_TOOLS_RASTER_DEBUG          40279
 
 // Next default values for new objects
 // 
@@ -240,7 +241,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        205
-#define _APS_NEXT_COMMAND_VALUE         40279
+#define _APS_NEXT_COMMAND_VALUE         40280
 #define _APS_NEXT_CONTROL_VALUE         1239
 #define _APS_NEXT_SYMED_VALUE           114
 #endif

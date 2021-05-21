@@ -869,6 +869,7 @@ void UpdateMenuFromOptions()
     EnableItem(IDM_TOOLS_OPTIONS, !GUI::IsActive());
     EnableItem(IDM_TOOLS_DEBUGGER, !g_fPaused && (Debug::IsActive() || !GUI::IsActive()));
     CheckOption(IDM_TOOLS_DEBUGGER, Debug::IsActive());
+    CheckOption(IDM_TOOLS_RASTER_DEBUG, GetOption(rasterdebug));
 
     // Enable the Flush printer item if there's buffered data in either printer
     bool fPrinter1 = GetOption(parallel1) == 1, fPrinter2 = GetOption(parallel2) == 1;
@@ -1569,6 +1570,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_TOOLS_FLUSH_PRINTER:   Actions::Do(Action::FlushPrinter);      break;
         case IDM_TOOLS_TAPE_BROWSER:    Actions::Do(Action::TapeBrowser);       break;
         case IDM_TOOLS_DEBUGGER:        Actions::Do(Action::Debugger);          break;
+        case IDM_TOOLS_RASTER_DEBUG:    Actions::Do(Action::ToggleRasterDebug); break;
 
         case IDM_FILE_FLOPPY1_DEVICE:
             if (!FloppyStream::IsAvailable())

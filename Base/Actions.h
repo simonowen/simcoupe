@@ -35,7 +35,7 @@ enum class Action
     SpeedNormal, SpeedSlower, SpeedFaster, SpeedTurbo, ToggleTurbo,
     Reset, Nmi, Pause, FrameStep,
     ReleaseMouse,
-    Options, Debugger, About, Minimise, ExitApp,
+    Options, Debugger, About, Minimise, ExitApp, ToggleRasterDebug,
 };
 
 namespace Actions
