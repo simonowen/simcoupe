@@ -102,7 +102,7 @@ uint8_t keybuffer[9];      // working buffer for key changed, activated mid-fram
 bool fASICStartup;      // If set, the ASIC will be unresponsive shortly after first power-on
 bool display_changed;   // Mid-frame main display change using VMPR or CLUT
 
-int g_nAutoLoad = AUTOLOAD_NONE;    // don't auto-load on startup
+AutoLoadType g_auto_load = AutoLoadType::None;
 
 #ifdef _DEBUG
 static uint8_t abUnhandled[32];    // track unhandled port access in debug mode
@@ -1017,18 +1017,18 @@ bool IsAtStartupScreen(bool fExit_)
     return false;
 }
 
-void AutoLoad(int nType_, bool fOnlyAtStartup_/*=true*/)
+void AutoLoad(AutoLoadType type, bool fOnlyAtStartup_/*=true*/)
 {
     // Ignore if auto-load is disabled, or we need to be at the startup screen but we're not
     if (!GetOption(autoload) || (fOnlyAtStartup_ && !IsAtStartupScreen()))
         return;
 
     // For disk booting press F9
-    if (nType_ == AUTOLOAD_DISK)
+    if (type == AutoLoadType::Disk)
         Keyin::String("\xc9", false);
 
     // For tape loading press F7
-    else if (nType_ == AUTOLOAD_TAPE)
+    else if (type == AutoLoadType::Tape)
         Keyin::String("\xc7", false);
 }
 
@@ -1073,10 +1073,10 @@ bool Rst8Hook()
         // Copyright message
     case 0x50:
         // Forced boot on startup?
-        if (g_nAutoLoad != AUTOLOAD_NONE)
+        if (g_auto_load != AutoLoadType::None)
         {
-            AutoLoad(g_nAutoLoad, false);
-            g_nAutoLoad = AUTOLOAD_NONE;
+            AutoLoad(g_auto_load, false);
+            g_auto_load = AutoLoadType::None;
         }
         break;
 

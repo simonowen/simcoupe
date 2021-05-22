@@ -27,7 +27,7 @@ struct COLOUR
     uint8_t red, green, blue;
 };
 
-enum { AUTOLOAD_NONE, AUTOLOAD_DISK, AUTOLOAD_TAPE };
+enum class AutoLoadType { None, Disk, Tape };
 
 
 namespace IO
@@ -50,7 +50,7 @@ void FrameUpdate();
 void UpdateInput();
 std::vector<COLOUR> Palette();
 bool IsAtStartupScreen(bool fExit_ = false);
-void AutoLoad(int nType_, bool fOnlyAtStartup_ = true);
+void AutoLoad(AutoLoadType type, bool fOnlyAtStartup_ = true);
 void WakeAsic();
 
 bool EiHook();
@@ -254,5 +254,5 @@ extern uint8_t lpen;
 extern std::unique_ptr<DiskDevice> pFloppy1, pFloppy2, pBootDrive;
 extern std::unique_ptr<IoDevice> pParallel1, pParallel2;
 
-extern int g_nAutoLoad;
+extern AutoLoadType g_auto_load;
 extern bool display_changed;

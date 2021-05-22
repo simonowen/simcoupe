@@ -73,7 +73,7 @@ bool Drive::Insert(const std::string& disk_path, bool fAutoLoad_)
 
     // Check for auto-booting with drive 1
     if (this == pFloppy1.get() && fAutoLoad_)
-        IO::AutoLoad(AUTOLOAD_DISK);
+        IO::AutoLoad(AutoLoadType::Disk);
 
     return true;
 }

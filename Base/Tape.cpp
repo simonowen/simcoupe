@@ -120,7 +120,7 @@ bool Insert(const std::string& filepath)
     // Store tape path on successful insert
     tape_path = filepath;
 
-    IO::AutoLoad(AUTOLOAD_TAPE);
+    IO::AutoLoad(AutoLoadType::Tape);
     return true;
 }
 

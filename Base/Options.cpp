@@ -93,6 +93,7 @@ static bool SetNamedValue(const std::string& option_name, const std::string& str
     else if (name == "sdidedisk") SetValue(g_config.sdidedisk, str);
     else if (name == "tape") SetValue(g_config.tape, str);
     else if (name == "autoload") SetValue(g_config.autoload, str);
+    else if (name == "autoboot") SetValue(g_config.autoboot, str);
     else if (name == "inpath") SetValue(g_config.inpath, str);
     else if (name == "outpath") SetValue(g_config.outpath, str);
     else if (name == "mru0") SetValue(g_config.mru0, str);
@@ -166,6 +167,8 @@ bool Load(int argc_, char* argv_[])
         g_config = {};
 
     auto drive_arg = 1;
+    g_config.autoboot = true;
+
     while (argc_ && --argc_)
     {
         auto pcszOption = *++argv_;
@@ -187,7 +190,6 @@ bool Load(int argc_, char* argv_[])
             case 1:
                 SetOption(disk1, pcszOption);
                 SetOption(drive1, drvFloppy);
-                g_nAutoLoad = AUTOLOAD_DISK;
                 break;
 
             case 2:
@@ -201,6 +203,9 @@ bool Load(int argc_, char* argv_[])
             }
         }
     }
+
+    if (drive_arg > 1 && g_config.autoboot)
+        g_auto_load = AutoLoadType::Disk;
 
     return true;
 }

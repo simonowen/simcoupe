@@ -740,7 +740,7 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         case IDCLOSE:
             // Trigger auto-load if required
             if (fAutoLoad && Tape::IsInserted())
-                IO::AutoLoad(AUTOLOAD_TAPE);
+                IO::AutoLoad(AutoLoadType::Tape);
 
             EndDialog(hdlg_, 0);
             break;

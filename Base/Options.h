@@ -69,6 +69,7 @@ struct Config
     std::string sdidedisk;              // Hard disk image for SD IDE interface
     std::string tape;                   // Tape image file
     bool autoload = true;               // Auto-load media inserted at the startup screen?
+    bool autoboot = true;               // Auto-boot disks passed on command-line? (not saved)
 
     std::string inpath;                 // Default path for input files
     std::string outpath;                // Default path for output files
