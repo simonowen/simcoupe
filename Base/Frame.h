@@ -437,10 +437,10 @@ inline void ScreenWriter::ScreenChange(uint8_t* pLine, int /*line*/, int cell, u
     // Part of the first pixel is the previous border colour, from when the screen was disabled.
     // We don't have the resolution to show only part, but using the most significant colour bits
     // in the least significant position will reduce the intensity enough to be close
-    pFrame[0] = clut[border_col] >> 4;
+    pFrame[0] = clut[BORD_VAL(border)] >> 4;
 
     pFrame[1] = pFrame[2] = pFrame[3] =
         pFrame[4] = pFrame[5] = pFrame[6] = pFrame[7] =
         pFrame[8] = pFrame[9] = pFrame[10] = pFrame[11] =
-        pFrame[12] = pFrame[13] = pFrame[14] = pFrame[15] = clut[BORD_COL(new_border)];
+        pFrame[12] = pFrame[13] = pFrame[14] = pFrame[15] = clut[BORD_VAL(new_border)];
 }
