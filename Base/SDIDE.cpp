@@ -39,7 +39,7 @@ uint8_t SDIDEDevice::In(uint16_t wPort_)
     switch (wPort_ & 0xff)
     {
         // Data (high latched)
-    case SDIDE_DATA:
+    case SDIDE_DATA_PORT:
         if (m_fDataLatched)
             bRet = m_bDataLatch;
         else
@@ -65,13 +65,13 @@ void SDIDEDevice::Out(uint16_t wPort_, uint8_t bVal_)
     switch (wPort_ & 0xff)
     {
         // Register (latched)
-    case SDIDE_REG:
+    case SDIDE_REG_PORT:
         m_bAddressLatch = bVal_;
         m_fDataLatched = false;
         break;
 
         // Data (low latched)
-    case SDIDE_DATA:
+    case SDIDE_DATA_PORT:
         if (!m_fDataLatched)
             m_bDataLatch = bVal_;
         else

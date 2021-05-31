@@ -142,7 +142,7 @@ void SAADevice::Out(uint16_t wPort_, uint8_t bVal_)
 {
     Update();
 
-    if ((wPort_ & SOUND_MASK) == SOUND_ADDR)
+    if ((wPort_ & SAA_MASK) == SAA_ADDR_PORT)
         m_pSAASound->WriteAddress(bVal_);
     else
         m_pSAASound->WriteData(bVal_);

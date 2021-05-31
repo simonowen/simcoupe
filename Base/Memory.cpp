@@ -76,8 +76,7 @@ bool Init(bool fFirstInit_/*=false*/)
             memset(pMemory + i, 0x00, 0x80);
     }
 
-    // Set the active memory configuration
-    SetConfig();
+    UpdateConfig();
 
     // Load the ROM on first boot, or if asked to refresh it
     if (fFirstInit_ || fUpdateRom)
@@ -94,60 +93,30 @@ void Exit(bool fReInit_/*=false*/)
 }
 
 
-// Update the active memory configuration
-void UpdateConfig()
-{
-    SetConfig();
-}
-
-// Request the ROM image be reloaded on the next reset
 void UpdateRom()
 {
     fUpdateRom = true;
 }
 
-
-// Memory page description, for the debugger
-std::string PageDesc(int page, bool compact)
+void UpdateConfig()
 {
-    auto separator = compact ? "" : " ";
-
-    if (page >= INTMEM && page < EXTMEM)
-        return fmt::format("RAM{}{:02X}", separator, page - INTMEM);
-    else if (page >= EXTMEM && page < ROM0)
-        return fmt::format("EXT{}{:02X}", separator, page - EXTMEM);
-    else if (page == ROM0 || page == ROM1)
-        return fmt::format("ROM{}{:X}", separator, page - ROM0);
-    else
-        return fmt::format("UNK{}{:02X}", separator, page);
-}
-
-
-// Set the current memory configuration
-static void SetConfig()
-{
-    // Start with no memory accessible
-    for (int nPage = 0; nPage < TOTAL_PAGES; nPage++)
+    for (int page = 0; page < TOTAL_PAGES; page++)
     {
-        anReadPages[nPage] = SCRATCH_READ;
-        anWritePages[nPage] = SCRATCH_WRITE;
+        anReadPages[page] = SCRATCH_READ;
+        anWritePages[page] = SCRATCH_WRITE;
     }
 
-    // Add internal RAM as read/write
     int nIntPages = (GetOption(mainmem) == 256) ? NUM_INTERNAL_PAGES / 2 : NUM_INTERNAL_PAGES;
     for (int nInt = 0; nInt < nIntPages; nInt++)
         anReadPages[INTMEM + nInt] = anWritePages[INTMEM + nInt] = INTMEM + nInt;
 
-    // Add external RAM as read/write
     int nExtPages = std::min(GetOption(externalmem), MAX_EXTERNAL_MB) * NUM_EXTERNAL_PAGES_1MB;
     for (int nExt = 0; nExt < nExtPages; nExt++)
         anReadPages[EXTMEM + nExt] = anWritePages[EXTMEM + nExt] = EXTMEM + nExt;
 
-    // Add the ROMs as read-only
     anReadPages[ROM0] = ROM0;
     anReadPages[ROM1] = ROM1;
 
-    // If enabled, allow ROM writes
     if (GetOption(romwrite))
     {
         anWritePages[ROM0] = anReadPages[ROM0];
@@ -215,6 +184,20 @@ static bool LoadRoms()
 
     Message(MsgType::Warning, "Error loading ROM:\n\n{}", rom_file);
     return false;
+}
+
+std::string PageDesc(int page, bool compact)
+{
+    auto separator = compact ? "" : " ";
+
+    if (page >= INTMEM && page < EXTMEM)
+        return fmt::format("RAM{}{:02X}", separator, page - INTMEM);
+    else if (page >= EXTMEM && page < ROM0)
+        return fmt::format("EXT{}{:02X}", separator, page - EXTMEM);
+    else if (page == ROM0 || page == ROM1)
+        return fmt::format("ROM{}{:X}", separator, page - ROM0);
+    else
+        return fmt::format("UNK{}{:02X}", separator, page);
 }
 
 } // namespace Memory

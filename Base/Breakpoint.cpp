@@ -76,16 +76,16 @@ std::optional<int> Breakpoint::Hit()
             if (auto port = std::get_if<BreakPort>(&bp.data))
             {
                 if ((port->access == AccessType::Read || port->access == AccessType::ReadWrite) &&
-                    ((wPortRead & port->mask) == port->compare))
+                    ((IO::last_in_port & port->mask) == port->compare))
                 {
-                    wPortRead = 0;
+                    IO::last_in_port = 0;
                     break;
                 }
 
                 if ((port->access == AccessType::Write || port->access == AccessType::ReadWrite) &&
-                    ((wPortWrite & port->mask) == port->compare))
+                    ((IO::last_out_port & port->mask) == port->compare))
                 {
-                    wPortWrite = 0;
+                    IO::last_out_port = 0;
                     break;
                 }
             }
@@ -94,7 +94,7 @@ std::optional<int> Breakpoint::Hit()
         case BreakType::Interrupt:
             if (auto intr = std::get_if<BreakInt>(&bp.data))
             {
-                if (~status_reg & intr->mask)
+                if (~IO::State().status_reg & intr->mask)
                 {
                     auto handler_addr = (REG_IM == 2) ?
                         read_word((REG_I << 8) | 0xff) :

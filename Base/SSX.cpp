@@ -35,15 +35,17 @@ bool Save(const FrameBuffer& fb, int main_x, int main_y)
         return false;
     }
 
-    if (display_changed)
+    if (IO::mid_frame_change)
     {
         for (auto y = 0; y < GFX_SCREEN_LINES; ++y)
             fwrite(fb.GetLine(main_y + y) + main_x, 1, GFX_SCREEN_PIXELS, file);
     }
     else
     {
-        auto vmpr_page = VMPR_PAGE;
-        auto screen_mode = 1 + (VMPR_MODE >> VMPR_MODE_SHIFT);
+        const auto& clut = IO::State().clut;
+        auto vmpr = IO::State().vmpr;
+        auto vmpr_page = vmpr & VMPR_PAGE_MASK;
+        auto screen_mode = 1 + ((vmpr & VMPR_MODE_MASK) >> VMPR_MODE_SHIFT);
 
         const void* ptr0 = PageReadPtr(vmpr_page);
         const void* ptr1 = nullptr;
@@ -81,11 +83,11 @@ bool Save(const FrameBuffer& fb, int main_x, int main_y)
         if (screen_mode == 3)
         {
             for (int i = 0; i < 4; ++i)
-                fputc(mode3clut[i], file);
+                fputc(IO::Mode3Clut(i), file);
         }
         else
         {
-            for (int i = 0; i < N_CLUT_REGS; ++i)
+            for (int i = 0; i < NUM_CLUT_REGS; ++i)
                 fputc(clut[i], file);
         }
     }

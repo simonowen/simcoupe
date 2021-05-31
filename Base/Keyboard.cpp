@@ -29,6 +29,8 @@
 
 namespace Keyboard
 {
+std::array<uint8_t, 9> key_matrix;
+inline void PressSamKey(int k) { key_matrix[k >> 3] &= ~(1 << (k & 7)); }
 
 struct MAPPED_KEY
 {
@@ -39,21 +41,20 @@ struct MAPPED_KEY
 };
 
 
-int anNativeKey[HK_MAX - HK_MIN + 1];
-
 int nComboKey, nComboMods;
 std::optional<std::chrono::steady_clock::time_point> combo_time;
 
-uint8_t abKeys[512 >> 3];
-inline bool IsPressed(int k) { return !!(abKeys[k >> 3] & (1 << (k & 7))); }
-inline void PressKey(int k) { abKeys[k >> 3] |= (1 << (k & 7)); }
-inline void ReleaseKey(int k) { abKeys[k >> 3] &= ~(1 << (k & 7)); }
-inline void ToggleKey(int k) { abKeys[k >> 3] ^= (1 << (k & 7)); }
+std::array<uint8_t, 512 / 8> key_states;
+inline bool IsPressed(int k) { return !!(key_states[k >> 3] & (1 << (k & 7))); }
+inline void PressKey(int k) { key_states[k >> 3] |= (1 << (k & 7)); }
+inline void ReleaseKey(int k) { key_states[k >> 3] &= ~(1 << (k & 7)); }
+inline void ToggleKey(int k) { key_states[k >> 3] ^= (1 << (k & 7)); }
 
-inline bool IsPressed(eHostKey k) { return IsPressed(anNativeKey[k - HK_MIN]); }
-inline void PressKey(eHostKey k) { PressKey(anNativeKey[k - HK_MIN]); }
-inline void ReleaseKey(eHostKey k) { ReleaseKey(anNativeKey[k - HK_MIN]); }
-inline void ToggleKey(eHostKey k) { ToggleKey(anNativeKey[k - HK_MIN]); }
+std::array<int, HK_MAX - HK_MIN + 1> hk_mappings;
+inline bool IsPressed(eHostKey k) { return IsPressed(hk_mappings[k - HK_MIN]); }
+inline void PressKey(eHostKey k) { PressKey(hk_mappings[k - HK_MIN]); }
+inline void ReleaseKey(eHostKey k) { ReleaseKey(hk_mappings[k - HK_MIN]); }
+inline void ToggleKey(eHostKey k) { ToggleKey(hk_mappings[k - HK_MIN]); }
 
 static void PrepareKeyTable(MAPPED_KEY* asKeys_);
 static void ProcessShiftedKeys(MAPPED_KEY* asKeys_);
@@ -135,7 +136,7 @@ MAPPED_KEY asSpectrumKeys[] =
 };
 
 
-bool Init(bool /*fFirstInit_=false*/)
+bool Init()
 {
     // Fill the SAM keys for the main keyboard matrix
     for (int i = SK_MIN; i < SK_MAX; i++)
@@ -146,7 +147,7 @@ bool Init(bool /*fFirstInit_=false*/)
 
     // HK_ to scancode mapping
     for (int j = HK_MIN; j < HK_MAX; j++)
-        anNativeKey[j - HK_MIN] = Input::MapChar(j);
+        hk_mappings[j - HK_MIN] = Input::MapChar(j);
 
     // Prepare key tables in advance if possible (Win32)
     PrepareKeyTable(asKeyMatrix);
@@ -157,15 +158,10 @@ bool Init(bool /*fFirstInit_=false*/)
     return true;
 }
 
-void Exit(bool /*fReInit_=false*/)
-{
-}
-
-
 void Purge()
 {
-    memset(abKeys, 0, sizeof(abKeys));
-    memset(keybuffer, 0xff, sizeof(keybuffer));
+    key_states.fill(0);
+    key_matrix.fill(0xff);
 }
 
 
@@ -173,11 +169,11 @@ void Purge()
 void Update()
 {
     // Save a copy of the current key state, so we can modify it during matching below
-    uint8_t abKeysCopy[std::size(abKeys)];
-    memcpy(abKeysCopy, abKeys, sizeof(abKeys));
+    static decltype(key_states) key_states_copy;
+    key_states_copy = key_states;
 
     // No SAM keys are pressed initially
-    memset(keybuffer, 0xff, sizeof(keybuffer));
+    key_matrix.fill(0xff);
 
     // Suppress normal key input if we're auto-typing
     if (Keyin::IsTyping())
@@ -270,15 +266,15 @@ void Update()
     ProcessUnshiftedKeys(asKeyMatrix);
 
     // Apply joystick 1 input if either device is mapped to it
-    if (GetOption(joytype1) == jtJoystick1) keybuffer[4] &= ~Joystick::ReadSinclair2(0);
-    if (GetOption(joytype2) == jtJoystick1) keybuffer[4] &= ~Joystick::ReadSinclair2(1);
+    if (GetOption(joytype1) == jtJoystick1) key_matrix[4] &= ~Joystick::ReadSinclair2(0);
+    if (GetOption(joytype2) == jtJoystick1) key_matrix[4] &= ~Joystick::ReadSinclair2(1);
 
     // Apply joystick 2 input if either device is mapped to it
-    if (GetOption(joytype1) == jtJoystick2) keybuffer[3] &= ~Joystick::ReadSinclair1(0);
-    if (GetOption(joytype2) == jtJoystick2) keybuffer[3] &= ~Joystick::ReadSinclair1(1);
+    if (GetOption(joytype1) == jtJoystick2) key_matrix[3] &= ~Joystick::ReadSinclair1(0);
+    if (GetOption(joytype2) == jtJoystick2) key_matrix[3] &= ~Joystick::ReadSinclair1(1);
 
     // Restore the key states
-    memcpy(abKeys, abKeysCopy, sizeof(abKeys));
+    key_states = key_states_copy;
 }
 
 

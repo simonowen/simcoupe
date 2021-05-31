@@ -108,7 +108,6 @@ void Input::Exit(bool fReInit_/*=false*/)
     if (pdidJoystick2) { pdidJoystick2->Unacquire(); pdidJoystick2->Release(); pdidJoystick2 = nullptr; }
     if (pdi) { pdi->Release(); pdi = nullptr; }
 
-    Keyboard::Exit(fReInit_);
     pfnDirectInputCreate = nullptr;
 }
 

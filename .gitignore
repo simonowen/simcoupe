@@ -11,5 +11,7 @@ Thumbs.db
 /CMakeSettings.json
 /SimCoupe-*.exe
 /SimCoupe-*.zip
+/SimCoupe-20??????/
 /install.iss
 /make_release.bat
+/build_*

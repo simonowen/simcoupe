@@ -24,22 +24,14 @@
 
 namespace Keyboard
 {
-bool Init(bool fFirstInit_ = false);
-void Exit(bool fReInit_ = false);
-
+bool Init();
 void Update();
 void Purge();
 
 void SetKey(int nCode_, bool fPressed_, int nMods_ = 0, int nChar_ = 0);
+
+extern std::array<uint8_t, 9> key_matrix;
 }
-
-
-// Helper macros for SAM keyboard matrix manipulation
-inline bool IsSamKeyPressed(int k) { return !(keybuffer[(k) >> 3] & (1 << ((k) & 7))); }
-inline void PressSamKey(int k) { keybuffer[k >> 3] &= ~(1 << (k & 7)); }
-inline void ReleaseSamKey(int k) { keybuffer[k >> 3] |= (1 << (k & 7)); }
-inline void ToggleSamKey(int k) { keybuffer[k >> 3] ^= (1 << (k & 7)); }
-inline void ReleaseAllSamKeys() { memset(keybuffer, 0xff, sizeof(keybuffer)); }
 
 // Key constants used with the key macros above
 enum eSamKey

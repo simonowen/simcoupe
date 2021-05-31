@@ -28,7 +28,7 @@
 
 #ifdef HAVE_LIBSDL2
 
-static uint32_t aulPalette[N_PALETTE_COLOURS];
+static uint32_t aulPalette[NUM_PALETTE_COLOURS];
 
 SDLTexture::SDLTexture()
 {

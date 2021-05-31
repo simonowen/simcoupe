@@ -1999,20 +1999,20 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
 
             nType = ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_TYPE));
             int nAddress = GetDlgItemValue(hdlg_, IDE_ADDRESS);
-            int nPage = GetDlgItemValue(hdlg_, IDE_PAGE);
+            int page = GetDlgItemValue(hdlg_, IDE_PAGE);
             int nOffset = GetDlgItemValue(hdlg_, IDE_OFFSET);
             int nLength = GetDlgItemValue(hdlg_, IDE_LENGTH);
 
             // Allow offset to span pages
             if (nType && nOffset > 16384)
             {
-                nPage += nOffset / 16384;
+                page += nOffset / 16384;
                 nOffset &= 0x3fff;
             }
 
             if (!nType && nAddress < 0 || nAddress > 540671)
                 return BadField(hdlg_, IDE_ADDRESS);
-            else if (nType == 1 && nPage < 0 || nPage > 31 || nType == 2 && nPage > 255)
+            else if (nType == 1 && page < 0 || page > 31 || nType == 2 && page > 255)
                 return BadField(hdlg_, IDE_PAGE);
             else if (nType && nOffset < 0 || nOffset > 16384)
                 return BadField(hdlg_, IDE_OFFSET);
@@ -2042,13 +2042,13 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
 
             if (!nType)
             {
-                nPage = (nAddress < 0x4000) ? ROM0 : (nAddress - 0x4000) / 0x4000;
+                page = (nAddress < 0x4000) ? ROM0 : (nAddress - 0x4000) / 0x4000;
                 nOffset = nAddress & 0x3fff;
             }
             else if (nType == 1)
-                nPage &= 0x1f;
+                page &= 0x1f;
             else
-                nPage += EXTMEM;
+                page += EXTMEM;
 
             if (fImport) nLength = 0x400000;    // 4MB max import
             size_t nDone = 0;
@@ -2057,14 +2057,14 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
             {
                 for (int nChunk; (nChunk = std::min(nLength, (0x4000 - nOffset))); nLength -= nChunk, nOffset = 0)
                 {
-                    nDone += fread(PageWritePtr(nPage++) + nOffset, 1, nChunk, file);
+                    nDone += fread(PageWritePtr(page++) + nOffset, 1, nChunk, file);
 
                     // Wrap to page 0 after ROM0
-                    if (nPage == ROM0 + 1)
-                        nPage = 0;
+                    if (page == ROM0 + 1)
+                        page = 0;
 
                     // Stop at the end of the file or if we've hit the end of a logical block
-                    if (feof(file) || nPage == EXTMEM || nPage >= ROM0)
+                    if (feof(file) || page == EXTMEM || page >= ROM0)
                         break;
                 }
 
@@ -2074,7 +2074,7 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
             {
                 for (int nChunk; (nChunk = std::min(nLength, (0x4000 - nOffset))); nLength -= nChunk, nOffset = 0)
                 {
-                    nDone += fwrite(PageReadPtr(nPage++) + nOffset, 1, nChunk, file);
+                    nDone += fwrite(PageReadPtr(page++) + nOffset, 1, nChunk, file);
 
                     if (ferror(file))
                     {
@@ -2083,11 +2083,11 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
                     }
 
                     // Wrap to page 0 after ROM0
-                    if (nPage == ROM0 + 1)
-                        nPage = 0;
+                    if (page == ROM0 + 1)
+                        page = 0;
 
                     // Stop if we've hit the end of a logical block
-                    if (nPage == EXTMEM || nPage == ROM0)
+                    if (page == EXTMEM || page == ROM0)
                         break;
                 }
 

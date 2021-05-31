@@ -135,6 +135,7 @@ int Expr::Eval(const std::vector<Node>& nodes)
     if (nodes.empty())
         return -1;
 
+    const auto& io_state = IO::State();
     std::array<int, 128> stack{};
     int sp = 0;
 
@@ -248,19 +249,19 @@ int Expr::Eval(const std::vector<Node>& nodes)
                 break;
             }
 
-            case Token::ROM0:      r = !(lmpr & LMPR_ROM0_OFF);  break;
-            case Token::ROM1:      r = !!(lmpr & LMPR_ROM1);     break;
-            case Token::WProt:     r = !!(lmpr & LMPR_WPROT);    break;
+            case Token::ROM0:      r = !(io_state.lmpr & LMPR_ROM0_OFF);  break;
+            case Token::ROM1:      r = !!(io_state.lmpr & LMPR_ROM1);     break;
+            case Token::WProt:     r = !!(io_state.lmpr & LMPR_WPROT);    break;
 
-            case Token::LEPage:    r = lepr; break;
-            case Token::HEPage:    r = hepr; break;
-            case Token::LPage:     r = lmpr & LMPR_PAGE_MASK;    break;
-            case Token::HPage:     r = hmpr & HMPR_PAGE_MASK;    break;
-            case Token::VPage:     r = vmpr & VMPR_PAGE_MASK;    break;
-            case Token::VMode:     r = ((vmpr & VMPR_MODE_MASK) >> VMPR_MODE_SHIFT) + 1; break;
+            case Token::LEPage:    r = io_state.lepr; break;
+            case Token::HEPage:    r = io_state.hepr; break;
+            case Token::LPage:     r = io_state.lmpr & LMPR_PAGE_MASK;    break;
+            case Token::HPage:     r = io_state.hmpr & HMPR_PAGE_MASK;    break;
+            case Token::VPage:     r = io_state.vmpr & VMPR_PAGE_MASK;    break;
+            case Token::VMode:     r = ((io_state.vmpr & VMPR_MODE_MASK) >> VMPR_MODE_SHIFT) + 1; break;
 
-            case Token::InVal:     r = bPortInVal;               break;
-            case Token::OutVal:    r = bPortOutVal;              break;
+            case Token::InVal:     r = IO::last_in_val;          break;
+            case Token::OutVal:    r = IO::last_out_val;         break;
 
             case Token::LEPR:      r = LEPR_PORT;                break;    // 128
             case Token::HEPR:      r = HEPR_PORT;                break;    // 129
@@ -274,9 +275,9 @@ int Expr::Eval(const std::vector<Node>& nodes)
             case Token::BORDER:    r = BORDER_PORT;              break;    // 254
             case Token::ATTR:      r = ATTR_PORT;                break;    // 255
 
-            case Token::InROM:     r = (!(lmpr & LMPR_ROM0_OFF) && REG_PC < 0x4000) || (lmpr & LMPR_ROM1 && REG_PC >= 0xc000); break;
-            case Token::Call:      r = REG_PC == REG_HL && !(lmpr & LMPR_ROM0_OFF) && (read_word(REG_SP) == 0x180d); break;
-            case Token::AutoExec:  r = REG_PC == REG_HL && !(lmpr & LMPR_ROM0_OFF) && (read_word(REG_SP) == 0x0213) && (read_word(REG_SP + 2) == 0x5f00); break;
+            case Token::InROM:     r = (!(io_state.lmpr & LMPR_ROM0_OFF) && REG_PC < 0x4000) || (io_state.lmpr & LMPR_ROM1 && REG_PC >= 0xc000); break;
+            case Token::Call:      r = REG_PC == REG_HL && !(io_state.lmpr & LMPR_ROM0_OFF) && (read_word(REG_SP) == 0x180d); break;
+            case Token::AutoExec:  r = REG_PC == REG_HL && !(io_state.lmpr & LMPR_ROM0_OFF) && (read_word(REG_SP) == 0x0213) && (read_word(REG_SP + 2) == 0x5f00); break;
 
             case Token::Count:     r = count ? !--count : 1; break;
             default:               break;

@@ -82,7 +82,10 @@ constexpr auto NUM_EXTERNAL_PAGES_1MB = (0x100000 / MEM_PAGE_SIZE);
 constexpr auto MAX_EXTERNAL_MB = 4;
 constexpr auto NUM_ROM_PAGES = 2;
 
-constexpr auto USECONDS_TO_TSTATES(int cycles)
+constexpr auto NUM_PALETTE_COLOURS = 128;
+constexpr auto NUM_CLUT_REGS = 16;
+
+constexpr auto usecs_to_tstates(int cycles)
 {
     return cycles * CPU_CLOCK_HZ / 1'000'000;
 }

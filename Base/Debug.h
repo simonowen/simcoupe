@@ -203,7 +203,8 @@ protected:
     unsigned int m_uStrips = 0, m_uStripWidth = 0, m_uStripLines = 0;
     uint8_t* m_pbData = nullptr;
 
-    static unsigned int s_uMode, s_uWidth, s_uZoom;
+    static unsigned int s_uWidth, s_uZoom;
+    static int s_mode;
 };
 
 class BptView : public View

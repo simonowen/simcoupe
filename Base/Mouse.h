@@ -23,8 +23,8 @@
 
 #include "SAMIO.h"
 
-#define MOUSE_RESET_TIME       USECONDS_TO_TSTATES(30)      // Mouse is reset 30us after the last read
-#define MOUSE_ACTIVE_TIME      std::chrono::seconds(1)      // Device in active use if last read within 1s
+constexpr auto MOUSE_RESET_TIME = usecs_to_tstates(30);
+constexpr auto MOUSE_ACTIVE_TIME = std::chrono::seconds(1);
 
 // Mouse buffer format, as read
 struct MOUSEBUFFER

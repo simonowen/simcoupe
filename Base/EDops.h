@@ -35,14 +35,14 @@
 // in R,(C)
 #define in_c(x)         { \
                             PORT_ACCESS(REG_C); \
-                            x = in_byte(REG_BC); \
+                            x = IO::In(REG_BC); \
                             REG_F = cy | parity(x); \
                         }
 
 // out (C),R
 #define out_c(x)        { \
                             PORT_ACCESS(REG_C); \
-                            out_byte(REG_BC,x); \
+                            IO::Out(REG_BC,x); \
                         }
 
 // sbc HL,rr
@@ -148,7 +148,7 @@
 // Input; increment; [repeat]
 #define ini(loop)       do { \
                             PORT_ACCESS(REG_C); \
-                            uint8_t t = in_byte(REG_BC); \
+                            uint8_t t = IO::In(REG_BC); \
                             timed_write_byte(REG_HL,t); \
                             REG_HL++; \
                             REG_B--; \
@@ -162,7 +162,7 @@
 // Input; decrement; [repeat]
 #define ind(loop)       do { \
                             PORT_ACCESS(REG_C); \
-                            uint8_t t = in_byte(REG_BC); \
+                            uint8_t t = IO::In(REG_BC); \
                             timed_write_byte(REG_HL,t); \
                             REG_HL--; \
                             REG_B--; \
@@ -182,7 +182,7 @@
                             uint8_t x = timed_read_byte(REG_HL); \
                             REG_B--; \
                             PORT_ACCESS(REG_C); \
-                            out_byte(REG_BC,x); \
+                            IO::Out(REG_BC,x); \
                             REG_HL++; \
                             REG_F = cy | (REG_B & 0xa8) | ((!REG_B) << 6) | FLAG_H | FLAG_N; \
                             if (loop) { \
@@ -196,7 +196,7 @@
                             uint8_t x = timed_read_byte(REG_HL); \
                             REG_B--; \
                             PORT_ACCESS(REG_C); \
-                            out_byte(REG_BC,x); \
+                            IO::Out(REG_BC,x); \
                             REG_HL--; \
                             REG_F = cy | (REG_B & 0xa8) | ((!REG_B) << 6) | FLAG_H | FLAG_N; \
                             if (loop) { \

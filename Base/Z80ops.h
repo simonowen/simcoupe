@@ -613,14 +613,14 @@ endinstr;
 instr(4, 0323)
     auto bPortLow = timed_read_code_byte(REG_PC++);
     PORT_ACCESS(bPortLow);
-    out_byte((REG_A << 8) | bPortLow, REG_A);
+    IO::Out((REG_A << 8) | bPortLow, REG_A);
 endinstr;
 
 // in a,(n)
 instr(4, 0333)
     auto bPortLow = timed_read_code_byte(REG_PC++);
     PORT_ACCESS(bPortLow);
-    REG_A = in_byte((REG_A << 8) | bPortLow);
+    REG_A = IO::In((REG_A << 8) | bPortLow);
 endinstr;
 
 // ex (sp),hl

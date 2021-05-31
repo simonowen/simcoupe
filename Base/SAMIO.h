@@ -22,6 +22,101 @@
 
 #pragma once
 
+constexpr uint8_t KEMPSTON_PORT = 0x1f;
+
+constexpr uint8_t BLUE_ALPHA_PORT = 0x7f;
+constexpr uint16_t BA_VOICEBOX_PORT = 0xff7f;
+constexpr uint16_t BA_SAMPLER_BASE = 0x7c7f;
+constexpr uint16_t BA_SAMPLER_MASK = 0xfcff;
+
+constexpr uint8_t LEPR_PORT = 0x80;
+constexpr uint8_t HEPR_PORT = 0x81;
+
+constexpr uint8_t SDIDE_DATA_PORT = 0xbd;
+constexpr uint8_t SDIDE_REG_PORT = 0xbf;
+
+constexpr uint8_t QUAZAR_PORT = 0xd0;
+constexpr uint8_t SID_PORT = 0xd4;
+
+constexpr uint8_t FLOPPY1_BASE = 0xe0;
+constexpr uint8_t FLOPPY2_BASE = 0xf0;
+constexpr uint8_t FLOPPY_MASK = 0xf8;
+
+constexpr uint8_t PRINTL1_DATA_PORT = 0xe8;
+constexpr uint8_t PRINTL1_STAT_PORT = 0xe9;
+constexpr uint8_t PRINTL2_DATA_PORT = 0xea;
+constexpr uint8_t PRINTL2_STAT_PORT = 0xeb;
+
+constexpr uint8_t CLOCK_PORT = 0xef;
+
+constexpr uint8_t BASE_ASIC_PORT = 0xf8;
+
+constexpr uint8_t LPEN_PORT = 0xf8;
+constexpr uint8_t LPEN_TXFMST = 0x02;
+constexpr uint8_t LPEN_BORDER_BCD0 = 0x01;
+constexpr uint16_t HPEN_PORT = 0x1f8;
+constexpr uint16_t PEN_PORT_MASK = 0x1ff;
+
+constexpr uint8_t CLUT_BASE_PORT = 0xf8;
+
+constexpr uint8_t STATUS_PORT = 0xf9;
+constexpr uint8_t STATUS_INT_LINE = 0x01;
+constexpr uint8_t STATUS_INT_MOUSE = 0x02;    // Part of original SAM design, but never used
+constexpr uint8_t STATUS_INT_MIDIIN = 0x04;
+constexpr uint8_t STATUS_INT_FRAME = 0x08;
+constexpr uint8_t STATUS_INT_MIDIOUT = 0x10;
+constexpr uint8_t STATUS_INT_MASK = 0x1f;
+
+constexpr uint8_t LINE_PORT = 0xf9;
+
+constexpr uint8_t LMPR_PORT = 0xfa;
+constexpr uint8_t LMPR_PAGE_MASK = 0x1f;
+constexpr uint8_t LMPR_ROM0_OFF = 0x20;
+constexpr uint8_t LMPR_ROM1 = 0x40;
+constexpr uint8_t LMPR_WPROT = 0x80;
+
+constexpr uint8_t HMPR_PORT = 0xfb;
+constexpr uint8_t HMPR_PAGE_MASK = 0x1f;
+constexpr uint8_t HMPR_MD3COL_MASK = 0x60;
+constexpr uint8_t HMPR_MCNTRL_MASK = 0x80;
+
+constexpr uint8_t VMPR_PORT = 0xfc;
+constexpr uint8_t VMPR_RXMIDI_MASK = 0x80;
+constexpr uint8_t VMPR_MDE1_MASK = 0x40;
+constexpr uint8_t VMPR_MDE0_MASK = 0x20;
+constexpr uint8_t VMPR_PAGE_MASK = 0x1f;
+constexpr uint8_t VMPR_MODE_MASK = 0x60;
+constexpr uint8_t VMPR_MODE_SHIFT = 5;
+constexpr uint8_t VMPR_MODE_1 = 0x00;
+constexpr uint8_t VMPR_MODE_2 = 0x20;
+constexpr uint8_t VMPR_MODE_3 = 0x40;
+constexpr uint8_t VMPR_MODE_4 = 0x60;
+
+constexpr uint8_t MIDI_PORT = 0xfd;
+constexpr auto MIDI_TRANSMIT_TIME = usecs_to_tstates(320);  // 1 start + 8 data + 1 stop @31.25Kbps = 320us
+constexpr auto MIDI_INT_ACTIVE_TIME = usecs_to_tstates(16);
+constexpr auto MIDI_TXFMST_ACTIVE_TIME = usecs_to_tstates(32);
+
+constexpr uint8_t KEYBOARD_PORT = 0xfe;
+constexpr uint8_t KEYBOARD_KEY_MASK = 0x1f;
+constexpr uint8_t KEYBOARD_SPEN_MASK = 0x20;
+constexpr uint8_t KEYBOARD_EAR_MASK = 0x40;
+constexpr uint8_t KEYBOARD_SOFF_MASK = 0x80;
+
+constexpr uint8_t BORDER_PORT = 0xfe;
+constexpr uint8_t BORDER_COLOUR_MASK = 0x27;
+constexpr uint8_t BORDER_MIC_MASK = 0x08;
+constexpr uint8_t BORDER_BEEP_MASK = 0x10;
+constexpr uint8_t BORDER_SOFF_MASK = 0x80;
+constexpr uint8_t BORDER_COLOUR(uint8_t x) { return ((((x) & 0x20) >> 2) | ((x) & 0x07)); }
+
+constexpr uint8_t ATTR_PORT = 0xff;
+
+constexpr uint8_t SAA_PORT = 0xff;
+constexpr uint8_t SAA_DATA = 0xff;
+constexpr uint16_t SAA_ADDR_PORT = 0x1ff;
+constexpr uint16_t SAA_MASK = 0x1ff;
+
 struct COLOUR
 {
     uint8_t red, green, blue;
@@ -29,35 +124,67 @@ struct COLOUR
 
 enum class AutoLoadType { None, Disk, Tape };
 
-
 namespace IO
 {
-bool Init(bool fFirstInit_ = false);
+extern uint16_t last_in_port, last_out_port;
+extern uint8_t last_in_val, last_out_val;
+extern bool mid_frame_change;
+extern std::array<uint8_t, 9> key_matrix;
+
+struct IoState
+{
+    uint8_t lepr = 0x00;
+    uint8_t hepr = 0x00;
+    uint8_t lpen = 0x00;
+    uint8_t hpen = 0x00;
+    uint8_t line_int = 0xff;
+    uint8_t status_reg = 0xff;
+    uint8_t lmpr = 0x00;
+    uint8_t hmpr = 0x00;
+    uint8_t vmpr = 0x00;
+    uint8_t keyboard = KEYBOARD_EAR_MASK;
+    uint8_t border = 0x00;
+    uint8_t attr = 0x00;
+
+    bool asic_asleep = false;
+    uint8_t clut[NUM_CLUT_REGS]{};
+};
+
+bool Init();
 void Exit(bool fReInit_ = false);
+
+constexpr IoState& State();
 
 uint8_t In(uint16_t /*port*/);
 void Out(uint16_t port, uint8_t val);
 
-void OutLmpr(uint8_t bVal_);
-void OutHmpr(uint8_t bVal_);
-void OutVmpr(uint8_t bVal_);
-void OutLepr(uint8_t bVal_);
-void OutHepr(uint8_t bVal_);
+void out_lmpr(uint8_t val);
+void out_hmpr(uint8_t val);
+void out_vmpr(uint8_t val);
+void out_lepr(uint8_t val);
+void out_hepr(uint8_t val);
 
-void OutClut(uint16_t wPort_, uint8_t bVal_);
+void out_clut(uint16_t port, uint8_t val);
+
+bool ScreenDisabled();
+bool ScreenMode3or4();
+int ScreenMode();
+int VisibleScreenPage();
+uint8_t Mode3Clut(int index);
 
 void FrameUpdate();
 void UpdateInput();
 std::vector<COLOUR> Palette();
-bool IsAtStartupScreen(bool fExit_ = false);
+bool TestStartupScreen(bool fExit_ = false);
+void SetAutoLoad(AutoLoadType type);
 void AutoLoad(AutoLoadType type, bool fOnlyAtStartup_ = true);
-void WakeAsic();
 
 bool EiHook();
 bool Rst8Hook();
 bool Rst48Hook();
 }
 
+////////////////////////////////////////////////////////////////////////////////
 
 class IoDevice
 {
@@ -106,153 +233,8 @@ protected:
     unsigned int m_uActive = 0; // active when non-zero, decremented by FrameEnd()
 };
 
-#define in_byte     IO::In
-#define out_byte    IO::Out
-
-
-#define LEPR_PORT           128
-#define HEPR_PORT           129
-
-#define CLOCK_PORT          239         // SAMBUS and DALLAS clocks
-
-#define PEN_MASK            0x1f8
-#define LPEN_PORT           248         // Input
-#define HPEN_PORT           504         // Input
-#define CLUT_BASE_PORT      248         // Output
-
-#define STATUS_PORT         249         // Input
-#define LINE_PORT           249         // Output
-
-#define LMPR_PORT           250
-#define HMPR_PORT           251
-#define VMPR_PORT           252
-#define MIDI_PORT           253
-
-#define KEYBOARD_PORT       254         // Input
-#define BORDER_PORT         254         // Output
-
-#define SOUND_MASK          0x1ff
-#define SOUND_DATA          255         // Output (register select)
-#define SOUND_ADDR          511         // Output (data)
-#define ATTR_PORT           255         // Input
-
-#define KEMPSTON_PORT       31          // Kempston joystick
-
-#define BLUE_ALPHA_PORT     0x7f        // Blue Alpha port
-#define BA_VOICEBOX_PORT    0xff7f      // Blue Alpha VoiceBox
-#define BA_SAMPLER_MASK     0xfcff      // Blue Alpha Sampler address mask
-#define BA_SAMPLER_BASE     0x7c7f      // Blue Alpha Sampler address compare
-
-#define QUAZAR_PORT         208         // Quazar Surround
-#define SID_PORT            212         // Quazar SID interface at 0xD4xx
-
-// Floppy drives or ATOM hard disk - 111d0srr : d = drive, s = side, r = register
-#define FLOPPY_MASK         0xf8        // 11111000
-#define FLOPPY1_BASE        224         // 224 to 231
-#define FLOPPY2_BASE        240         // 240 to 247
-
-#define PRINTL_MASK         0xfc        // 11111100
-#define PRINTL_BASE         232         // 11101000
-#define PRINTL1_DATA        232
-#define PRINTL1_STAT        233
-#define PRINTL2_DATA        234
-#define PRINTL2_STAT        235
-
-#define SERIAL_MASK         0xfe        // 11111110
-#define SERIAL_BASE         236         // 11101100
-#define SERIAL1             236
-#define SERIAL2             237
-#define SERIAL3             238
-//#define SERIAL4           239         // disabled due to clock port clash
-
-#define SDIDE_DATA          189
-#define SDIDE_REG           191
-
-#define LMPR_PAGE_MASK      0x1f
-#define LMPR_PAGE           (lmpr & LMPR_PAGE_MASK)
-#define LMPR_ROM0_OFF       0x20
-#define LMPR_ROM1           0x40
-#define LMPR_WPROT          0x80
-
-#define HMPR_PAGE_MASK      0x1f
-#define HMPR_MD3COL_MASK    0x60
-#define HMPR_MCNTRL_MASK    0x80
-#define HMPR_PAGE           (hmpr & HMPR_PAGE_MASK)
-#define HMPR_MD3COL         (hmpr & HMPR_MD3_MASK)
-#define HMPR_MCNTRL         (hmpr & HMPR_MCNTRL_MASK)
-
-#define MODE_1              0x00
-#define MODE_2              0x20
-#define MODE_3              0x40
-#define MODE_4              0x60
-
-#define VMPR_PAGE_MASK      0x1f
-#define VMPR_MODE_MASK      0x60
-#define VMPR_MODE_SHIFT     5
-#define VMPR_MDE0_MASK      0x20
-#define VMPR_MDE1_MASK      0x40
-#define VMPR_PAGE           (vmpr & VMPR_PAGE_MASK)
-#define VMPR_MODE           (vmpr & VMPR_MODE_MASK)
-#define VMPR_MODE_3_OR_4    (vmpr & VMPR_MDE1_MASK)
-
-#define BORD_COLOUR_MASK    0x27
-#define BORD_KEY_MASK       0x1f
-#define BORD_MIC_MASK       0x08
-#define BORD_BEEP_MASK      0x10
-#define BORD_SPEN_MASK      0x20
-#define BORD_EAR_MASK       0x40
-#define BORD_SOFF_MASK      0x80
-#define BORD_VAL(x)         ((((x) & 0x20 ) >> 2) | ((x) & 0x07))
-#define BORD_COL(x)         ((x) & BORD_COLOUR_MASK)
-#define BORD_SOFF           (border & BORD_SOFF_MASK)
-
-#define LPEN_TXFMST         0x02    // Bit set if MIDI OUT is currently transmitting a byte
-
-
-// Bits in the status register to RESET to signal the various interrupts
-#define STATUS_INT_LINE     0x01
-#define STATUS_INT_MOUSE    0x02    // Part of original SAM design, but never used
-#define STATUS_INT_MIDIIN   0x04
-#define STATUS_INT_FRAME    0x08
-#define STATUS_INT_MIDIOUT  0x10
-#define STATUS_INT_NONE     0x1f
-
-// MIDI transfer rates are 31.25 Kbaud. Data has 1 start bit, 8 data bits, and 1 stop bit, for 320us serial byte.
-#define MIDI_TRANSMIT_TIME      USECONDS_TO_TSTATES(320)
-#define MIDI_INT_ACTIVE_TIME    USECONDS_TO_TSTATES(16)
-#define MIDI_TXFMST_ACTIVE_TIME USECONDS_TO_TSTATES(32)
-
-#define N_PALETTE_COLOURS   128     // 128 colours in the SAM palette
-#define N_CLUT_REGS         16      // 16 CLUT entries
-#define N_SAA_REGS          32      // 32 registers in the Philips SAA1099 sound chip
-
-#define BASE_ASIC_PORT      0xf8    // Ports from this value require ASIC attention, and can cause contention delays
-
-
-// Keyboard matrix buffer
-extern uint8_t keybuffer[9];
-
-// Last port read/written
-extern uint16_t wPortRead, wPortWrite;
-extern uint8_t bPortInVal, bPortOutVal;
-
-// Paging ports for internal and external memory
-extern uint8_t vmpr, hmpr, lmpr, lepr, hepr;
-extern uint8_t vmpr_mode, vmpr_page1, vmpr_page2;
-
-extern uint8_t keyboard, border;
-extern uint8_t border_col;
-
-// Write only ports
-extern uint8_t line_int;
-extern unsigned int clut[N_CLUT_REGS], mode3clut[4];
-
-// Read only ports
-extern uint8_t status_reg;
-extern uint8_t lpen;
+////////////////////////////////////////////////////////////////////////////////
 
 extern std::unique_ptr<DiskDevice> pFloppy1, pFloppy2, pBootDrive;
 extern std::unique_ptr<IoDevice> pParallel1, pParallel2;
 
-extern AutoLoadType g_auto_load;
-extern bool display_changed;

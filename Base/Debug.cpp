@@ -111,7 +111,7 @@ bool Start(std::optional<int> bp_index)
 
         REG_R = (REG_R7 & 0x80) | (REG_R & 0x7f);
         sLastRegs = sCurrRegs = regs;
-        bLastStatus = status_reg;
+        bLastStatus = IO::State().status_reg;
 
         // If there's no breakpoint set any existing trace is meaningless
         if (Breakpoint::breakpoints.empty())
@@ -396,38 +396,38 @@ static bool OnUntilNotify(const Expr& expr)
 // Notify handler for Change Lmpr input
 static bool OnLmprNotify(const Expr& expr)
 {
-    int nPage = expr.Eval() & LMPR_PAGE_MASK;
-    IO::OutLmpr((lmpr & ~LMPR_PAGE_MASK) | nPage);
+    int page = expr.Eval() & LMPR_PAGE_MASK;
+    IO::out_lmpr((IO::State().lmpr & ~LMPR_PAGE_MASK) | page);
     return true;
 }
 
 // Notify handler for Change Hmpr input
 static bool OnHmprNotify(const Expr& expr)
 {
-    int nPage = expr.Eval() & HMPR_PAGE_MASK;
-    IO::OutHmpr((hmpr & ~HMPR_PAGE_MASK) | nPage);
+    int page = expr.Eval() & HMPR_PAGE_MASK;
+    IO::out_hmpr((IO::State(). hmpr & ~HMPR_PAGE_MASK) | page);
     return true;
 }
 
 // Notify handler for Change Lmpr input
 static bool OnLeprNotify(const Expr& expr)
 {
-    IO::OutLepr(expr.Eval());
+    IO::out_lepr(expr.Eval());
     return true;
 }
 
 // Notify handler for Change Hepr input
 static bool OnHeprNotify(const Expr& expr)
 {
-    IO::OutHepr(expr.Eval());
+    IO::out_hepr(expr.Eval());
     return true;
 }
 
 // Notify handler for Change Vmpr input
 static bool OnVmprNotify(const Expr& expr)
 {
-    int nPage = expr.Eval() & VMPR_PAGE_MASK;
-    IO::OutVmpr(VMPR_MODE | nPage);
+    int page = expr.Eval() & VMPR_PAGE_MASK;
+    IO::out_vmpr((IO::State().vmpr & VMPR_MODE_MASK) | page);
     return true;
 }
 
@@ -438,7 +438,7 @@ static bool OnModeNotify(const Expr& expr)
     if (nMode < 1 || nMode > 4)
         return false;
 
-    IO::OutVmpr(((nMode - 1) << 5) | VMPR_PAGE);
+    IO::out_vmpr(((nMode - 1) << 5) | (IO::State().vmpr & VMPR_PAGE_MASK));
     return true;
 }
 
@@ -596,14 +596,14 @@ Debugger::~Debugger()
 
     // Remember the current register values so we know what's changed next time
     sLastRegs = regs;
-    bLastStatus = status_reg;
+    bLastStatus = IO::State().status_reg;
 
     // Save the cycle counter for timing comparisons
     dwLastCycle = g_dwCycleCounter;
     nLastFrames = 0;
 
     // Clear any cached data that could cause an immediate retrigger
-    wPortRead = wPortWrite = 0;
+    IO::last_in_port = IO::last_out_port = 0;
     pbMemRead1 = pbMemRead2 = pbMemWrite1 = pbMemWrite2 = nullptr;
 
     // Debugger is gone
@@ -814,12 +814,12 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
         case 'l':
             if (fShift)
             {
-                auto caption = fmt::format("Change LEPR [{:02X}]:", lepr);
+                auto caption = fmt::format("Change LEPR [{:02X}]:", IO::State().lepr);
                 new InputDialog(this, caption, "New Page:", OnLeprNotify);
             }
             else
             {
-                auto caption = fmt::format("Change LMPR [{:02X}]:", lmpr & LMPR_PAGE_MASK);
+                auto caption = fmt::format("Change LMPR [{:02X}]:", IO::State().lmpr & LMPR_PAGE_MASK);
                 new InputDialog(this, caption, "New Page:", OnLmprNotify);
             }
             break;
@@ -827,26 +827,26 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
         case 'h':
             if (fShift)
             {
-                auto caption = fmt::format("Change HEPR [{:02X}]:", hepr);
+                auto caption = fmt::format("Change HEPR [{:02X}]:", IO::State().hepr);
                 new InputDialog(this, caption, "New Page:", OnHeprNotify);
             }
             else
             {
-                auto caption = fmt::format("Change HMPR [{:02X}]:", hmpr & HMPR_PAGE_MASK);
+                auto caption = fmt::format("Change HMPR [{:02X}]:", IO::State().hmpr & HMPR_PAGE_MASK);
                 new InputDialog(this, caption, "New Page:", OnHmprNotify);
             }
             break;
 
         case 'v':
         {
-            auto caption = fmt::format("Change VMPR [{:02X}]:", vmpr & VMPR_PAGE_MASK);
+            auto caption = fmt::format("Change VMPR [{:02X}]:", IO::State().vmpr & VMPR_PAGE_MASK);
             new InputDialog(this, caption, "New Page:", OnVmprNotify);
             break;
         }
 
         case 'm':
         {
-            auto caption = fmt::format("Change Mode [{:X}]:", ((vmpr & VMPR_MODE_MASK) >> 5) + 1);
+            auto caption = fmt::format("Change Mode [{:X}]:", ((IO::State().vmpr & VMPR_MODE_MASK) >> 5) + 1);
             new InputDialog(this, caption, "New Mode:", OnModeNotify);
             break;
         }
@@ -856,19 +856,19 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             break;
 
         case HK_KP0:
-            IO::OutLmpr(lmpr ^ LMPR_ROM0_OFF);
+            IO::out_lmpr(IO::State().lmpr ^ LMPR_ROM0_OFF);
             break;
 
         case HK_KP1:
-            IO::OutLmpr(lmpr ^ LMPR_ROM1);
+            IO::out_lmpr(IO::State().lmpr ^ LMPR_ROM1);
             break;
 
         case HK_KP2:
-            IO::OutLmpr(lmpr ^ LMPR_WPROT);
+            IO::out_lmpr(IO::State().lmpr ^ LMPR_WPROT);
             break;
 
         case HK_KP3:
-            IO::OutHmpr(hmpr ^ HMPR_MCNTRL_MASK);
+            IO::out_hmpr(IO::State().hmpr ^ HMPR_MCNTRL_MASK);
             break;
 
         default:
@@ -1692,7 +1692,8 @@ void DisView::Draw(FrameBuffer& fb)
     fb.DrawString(nX, nY + 96, "\agIM \a{}{}", (REG_IM != sLastRegs.im) ? CHG_COL : 'X', REG_IM);
     fb.DrawString(nX + 18, nY + 96, "  \a{}{}I", (REG_IFF1 != sLastRegs.iff1) ? CHG_COL : 'X', REG_IFF1 ? 'E' : 'D');
 
-    char bIntDiff = status_reg ^ bLastStatus;
+    char bIntDiff = IO::State().status_reg ^ bLastStatus;
+    auto status_reg = IO::State().status_reg;
     fb.DrawString(nX, nY + 108, "\agStat \a{}{}\a{}{}\a{}{}\a{}{}\a{}{}",
         (bIntDiff & 0x10) ? CHG_COL : (status_reg & 0x10) ? 'K' : 'X', (status_reg & 0x10) ? '-' : 'O',
         (bIntDiff & 0x08) ? CHG_COL : (status_reg & 0x08) ? 'K' : 'X', (status_reg & 0x08) ? '-' : 'F',
@@ -1727,10 +1728,10 @@ void DisView::Draw(FrameBuffer& fb)
     fb.DrawString(nX, nY + 212, "\agC \a{}{}", ReadOnlyAddr(0x8000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(Section::C)));
     fb.DrawString(nX, nY + 224, "\agD \a{}{}", ReadOnlyAddr(0xc000) ? 'c' : 'X', Memory::PageDesc(GetSectionPage(Section::D)));
 
-    fb.DrawString(nX + 66, nY + 188, "\agL\aX {:02X}", lmpr);
-    fb.DrawString(nX + 66, nY + 200, "\agH\aX {:02X}", hmpr);
-    fb.DrawString(nX + 66, nY + 212, "\agV\aX {:02X}", vmpr);
-    fb.DrawString(nX + 66, nY + 224, "\agM\aX {:X}", ((vmpr & VMPR_MODE_MASK) >> 5) + 1);
+    fb.DrawString(nX + 66, nY + 188, "\agL\aX {:02X}", IO::State().lmpr);
+    fb.DrawString(nX + 66, nY + 200, "\agH\aX {:02X}", IO::State().hmpr);
+    fb.DrawString(nX + 66, nY + 212, "\agV\aX {:02X}", IO::State().vmpr);
+    fb.DrawString(nX + 66, nY + 224, "\agM\aX {:X}", IO::ScreenMode());
 
     fb.DrawString(nX, nY + 240, "\agEvents");
 
@@ -2669,7 +2670,8 @@ void CMemView::Draw (FrameBuffer& fb)
 // Graphics View
 
 static const int STRIP_GAP = 8;
-unsigned int GfxView::s_uMode = 4, GfxView::s_uWidth = 8, GfxView::s_uZoom = 1;
+unsigned int GfxView::s_uWidth = 8, GfxView::s_uZoom = 1;
+int GfxView::s_mode = 4;
 
 GfxView::GfxView(Window* pParent_)
     : View(pParent_)
@@ -2680,8 +2682,7 @@ GfxView::GfxView(Window* pParent_)
     // Allocate enough space for a double-width window, at 1 byte per pixel
     m_pbData = new uint8_t[m_nWidth * m_nHeight * 2];
 
-    // Start with the current video mode
-    s_uMode = ((vmpr & VMPR_MODE_MASK) >> 5) + 1;
+    s_mode = IO::ScreenMode();
 }
 
 void GfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
@@ -2690,14 +2691,14 @@ void GfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 
     View::SetAddress(wAddr_);
 
-    m_uStripWidth = s_uWidth * s_uZoom * auPPB[s_uMode - 1];
+    m_uStripWidth = s_uWidth * s_uZoom * auPPB[s_mode - 1];
     m_uStripLines = m_nHeight / s_uZoom;
     m_uStrips = (m_nWidth + STRIP_GAP + m_uStripWidth + STRIP_GAP - 1) / (m_uStripWidth + STRIP_GAP);
 
     auto pb = m_pbData;
     for (unsigned int u = 0; u < ((m_uStrips + 1) * m_uStripLines); u++)
     {
-        switch (s_uMode)
+        switch (s_mode)
         {
         case 1:
         case 2:
@@ -2729,8 +2730,9 @@ void GfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
                 auto b = read_byte(wAddr_++);
 
                 // To keep things simple, draw only the odd pixels
-                memset(pb, mode3clut[(b & 0x30) >> 4], s_uZoom); pb += s_uZoom;
-                memset(pb, mode3clut[(b & 0x03)], s_uZoom); pb += s_uZoom;
+                
+                memset(pb, IO::Mode3Clut((b & 0x30) >> 4), s_uZoom); pb += s_uZoom;
+                memset(pb, IO::Mode3Clut((b & 0x03) >> 0), s_uZoom); pb += s_uZoom;
             }
             break;
         }
@@ -2741,15 +2743,15 @@ void GfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
             {
                 auto b = read_byte(wAddr_++);
 
-                memset(pb, clut[b >> 4], s_uZoom); pb += s_uZoom;
-                memset(pb, clut[b & 0xf], s_uZoom); pb += s_uZoom;
+                memset(pb, IO::State().clut[b >> 4], s_uZoom); pb += s_uZoom;
+                memset(pb, IO::State().clut[b & 0xf], s_uZoom); pb += s_uZoom;
             }
             break;
         }
         }
     }
 
-    auto status = fmt::format("{:04X}  Mode {}  Width {}  Zoom {}x", GetAddress(), s_uMode, s_uWidth, s_uZoom);
+    auto status = fmt::format("{:04X}  Mode {}  Width {}  Zoom {}x", GetAddress(), s_mode, s_uWidth, s_uZoom);
     pDebugger->SetStatus(status, false, sFixedFont);
 
 }
@@ -2800,8 +2802,8 @@ bool GfxView::cmdNavigate(int nKey_, int nMods_)
     {
         // Keys 1 to 4 select the screen mode
     case '1': case '2': case '3': case '4':
-        s_uMode = nKey_ - '0';
-        if (s_uMode < 3 && s_uWidth > 32U) s_uWidth = 32U;  // Clip width in modes 1+2
+        s_mode = nKey_ - '0';
+        if (s_mode < 3 && s_uWidth > 32U) s_uWidth = 32U;  // Clip width in modes 1+2
         break;
 
         // Toggle grid view in modes 1+2
@@ -2841,7 +2843,7 @@ bool GfxView::cmdNavigate(int nKey_, int nMods_)
     case HK_RIGHT:
         if (!fCtrl)
             wAddr++;
-        else if (s_uWidth < ((s_uMode < 3) ? 32U : 128U))   // Restrict byte width to mode limit
+        else if (s_uWidth < ((s_mode < 3) ? 32U : 128U))   // Restrict byte width to mode limit
             s_uWidth++;
         break;
 

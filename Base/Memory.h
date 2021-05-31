@@ -61,66 +61,59 @@ extern uint16_t g_awMode1LineToByte[GFX_SCREEN_LINES];
 
 
 // Map a 16-bit address through the memory indirection - allows fast paging
-inline int AddrSection(uint16_t wAddr_) { return wAddr_ >> 14; }
-inline int AddrPage(uint16_t wAddr_) { return anSectionPages[AddrSection(wAddr_)]; }
-inline int AddrOffset(uint16_t wAddr_) { return wAddr_ & (MEM_PAGE_SIZE - 1); }
+inline int AddrSection(uint16_t addr) { return addr >> 14; }
+inline int AddrPage(uint16_t addr) { return anSectionPages[AddrSection(addr)]; }
+inline int AddrOffset(uint16_t addr) { return addr & (MEM_PAGE_SIZE - 1); }
 
 inline int GetSectionPage(Section section) { return anSectionPages[static_cast<int>(section)]; }
 
-inline int PageReadOffset(int nPage_) { return anReadPages[nPage_] * MEM_PAGE_SIZE; }
-inline int PageWriteOffset(int nPage_) { return anWritePages[nPage_] * MEM_PAGE_SIZE; }
+inline int PageReadOffset(int page) { return anReadPages[page] * MEM_PAGE_SIZE; }
+inline int PageWriteOffset(int page) { return anWritePages[page] * MEM_PAGE_SIZE; }
 
-inline uint8_t* PageReadPtr(int nPage_) { return pMemory + PageReadOffset(nPage_); }
-inline uint8_t* PageWritePtr(int nPage_) { return pMemory + PageWriteOffset(nPage_); }
-inline uint8_t* AddrReadPtr(uint16_t wAddr_) { return apbSectionReadPtrs[AddrSection(wAddr_)] + (wAddr_ & (MEM_PAGE_SIZE - 1)); }
-inline uint8_t* AddrWritePtr(uint16_t wAddr_) { return apbSectionWritePtrs[AddrSection(wAddr_)] + (wAddr_ & (MEM_PAGE_SIZE - 1)); }
-inline bool ReadOnlyAddr(uint16_t wAddr_) { return apbSectionWritePtrs[AddrSection(wAddr_)] == PageWritePtr(SCRATCH_WRITE); }
+inline uint8_t* PageReadPtr(int page) { return pMemory + PageReadOffset(page); }
+inline uint8_t* PageWritePtr(int page) { return pMemory + PageWriteOffset(page); }
+inline uint8_t* AddrReadPtr(uint16_t addr) { return apbSectionReadPtrs[AddrSection(addr)] + (addr & (MEM_PAGE_SIZE - 1)); }
+inline uint8_t* AddrWritePtr(uint16_t addr) { return apbSectionWritePtrs[AddrSection(addr)] + (addr & (MEM_PAGE_SIZE - 1)); }
+inline bool ReadOnlyAddr(uint16_t addr) { return apbSectionWritePtrs[AddrSection(addr)] == PageWritePtr(SCRATCH_WRITE); }
 
 inline int PtrPage(const void* pv_) { return int((reinterpret_cast<const uint8_t*>(pv_) - pMemory) / MEM_PAGE_SIZE); }
 inline int PtrOffset(const void* pv_) { return int((reinterpret_cast<const uint8_t*>(pv_) - pMemory)& (MEM_PAGE_SIZE - 1)); }
 
-void write_to_screen_vmpr0(uint16_t wAddr_);
-void write_to_screen_vmpr1(uint16_t wAddr_);
-void write_word(uint16_t wAddr_, uint16_t wVal_);
+void write_to_screen_vmpr0(uint16_t addr);
+void write_to_screen_vmpr1(uint16_t addr);
+void write_word(uint16_t addr, uint16_t val);
 
-inline void check_video_write(uint16_t wAddr_)
+inline void check_video_write(uint16_t addr)
 {
-    // Look up the page containing the specified address
-    int nPage = AddrPage(wAddr_);
-
-    // Does the write fall within the first display page?
-    if (nPage == vmpr_page1)
-        write_to_screen_vmpr0(wAddr_);
-
-    // Does the write fall within the second display page? (modes 3 and 4 only)
-    else if (nPage == vmpr_page2)
-        write_to_screen_vmpr1(wAddr_);
+    auto page = AddrPage(addr);
+    if (page == (IO::State().vmpr & VMPR_PAGE_MASK))
+        write_to_screen_vmpr0(addr);
+    else if (page == ((IO::State().vmpr + 1) & VMPR_PAGE_MASK))
+        write_to_screen_vmpr1(addr);
 }
 
 
-inline uint8_t read_byte(uint16_t wAddr_)
+inline uint8_t read_byte(uint16_t addr)
 {
-    return *AddrReadPtr(wAddr_);
+    return *AddrReadPtr(addr);
 }
 
-inline uint16_t read_word(uint16_t wAddr_)
+inline uint16_t read_word(uint16_t addr)
 {
-    return read_byte(wAddr_) | (read_byte(wAddr_ + 1) << 8);
+    return read_byte(addr) | (read_byte(addr + 1) << 8);
 }
 
-inline void write_byte(uint16_t wAddr_, uint8_t bVal_)
+inline void write_byte(uint16_t addr, uint8_t bVal_)
 {
-    *AddrWritePtr(wAddr_) = bVal_;
+    *AddrWritePtr(addr) = bVal_;
 }
 
-inline void write_word(uint16_t wAddr_, uint16_t wVal_)
+inline void write_word(uint16_t addr, uint16_t wVal_)
 {
-    // Write the low byte then the high byte
-    write_byte(wAddr_, wVal_ & 0xff);
-    write_byte(wAddr_ + 1, wVal_ >> 8);
+    write_byte(addr, wVal_ & 0xff);
+    write_byte(addr + 1, wVal_ >> 8);
 }
 
-// Page in real memory page at <nSection_>, where <nSection_> is in range 0..3
 inline void PageIn(Section section, int page)
 {
     auto index = static_cast<int>(section);
@@ -130,52 +123,44 @@ inline void PageIn(Section section, int page)
     apbSectionReadPtrs[index] = PageReadPtr(page);
     apbSectionWritePtrs[index] = PageWritePtr(page);
 
-    if ((section == Section::A) && (lmpr & LMPR_WPROT))
+    if ((section == Section::A) && (IO::State().lmpr & LMPR_WPROT))
         apbSectionWritePtrs[index] = PageWritePtr(SCRATCH_WRITE);
 }
 
-
-inline void write_to_screen_vmpr0(uint16_t wAddr_)
+inline void write_to_screen_vmpr0(uint16_t addr)
 {
-    // Limit the address to the 16K page we're considering
-    wAddr_ &= (MEM_PAGE_SIZE - 1);
+    addr &= (MEM_PAGE_SIZE - 1);
 
-    // The display area affected by the write depends on the current screen mode
-    switch (vmpr_mode)
+    switch (IO::State().vmpr & VMPR_MODE_MASK)
     {
-    case MODE_1:
-        // If writing to the main screen data, invalidate the screen line we're writing to
-        if (wAddr_ < 6144)
-            Frame::TouchLine(g_abMode1ByteToLine[wAddr_ >> 5] + TOP_BORDER_LINES);
-
-        // If writing to the attribute area, invalidate the 8 lines containing the attribute
-        else if (wAddr_ < 6912)
+    case VMPR_MODE_1:
+        if (addr < MODE12_DATA_BYTES)
         {
-            int nLine = (((wAddr_ - 6144) & 0xffe0) >> 2) + TOP_BORDER_LINES;
-            Frame::TouchLines(nLine, nLine + 7);
+            Frame::TouchLine(g_abMode1ByteToLine[addr >> 5] + TOP_BORDER_LINES);
+        }
+        else if (addr < MODE1_DISPLAY_BYTES)
+        {
+            auto line = (((addr - MODE12_DATA_BYTES) & 0xffe0) >> 2) + TOP_BORDER_LINES;
+            Frame::TouchLines(line, line + 7);
         }
 
         break;
 
-    case MODE_2:
-        // If the write falls within the screen data or attributes, invalidate the line
-        if (wAddr_ < 6144 || (wAddr_ >= 8192 && wAddr_ < (8192 + 6144)))
-            Frame::TouchLine(((wAddr_ & 0x1fff) >> 5) + TOP_BORDER_LINES);
+    case VMPR_MODE_2:
+        if (addr < MODE12_DATA_BYTES || (addr >= MODE2_ATTR_OFFSET && addr < (MODE2_ATTR_OFFSET + MODE12_DATA_BYTES)))
+            Frame::TouchLine(((addr & 0x1fff) >> 5) + TOP_BORDER_LINES);
         break;
 
-        // Modes 3 and 4
     default:
-        // The write is to the first 16K of a mode 3 or 4 screen
-        Frame::TouchLine((wAddr_ >> 7) + TOP_BORDER_LINES);
+        Frame::TouchLine((addr >> 7) + TOP_BORDER_LINES);
         break;
     }
 }
 
-inline void write_to_screen_vmpr1(uint16_t wAddr_)
+inline void write_to_screen_vmpr1(uint16_t addr)
 {
-    // Limit the address to the 16K page we're considering
-    wAddr_ &= (MEM_PAGE_SIZE - 1);
+    addr &= (MEM_PAGE_SIZE - 1);
 
-    if (wAddr_ < 8192)
-        Frame::TouchLine(((wAddr_ + MEM_PAGE_SIZE) >> 7) + TOP_BORDER_LINES);
+    if (addr < (MODE34_DISPLAY_BYTES - MEM_PAGE_SIZE))
+        Frame::TouchLine(((addr + MEM_PAGE_SIZE) >> 7) + TOP_BORDER_LINES);
 }

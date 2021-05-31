@@ -32,9 +32,9 @@ struct REGPAIR
     {
         uint16_t    w;
 #ifdef __BIG_ENDIAN__
-        struct { uint8_t h, l; } b;  // Big endian
+        struct { uint8_t h, l; } b;
 #else
-        struct { uint8_t l, h; } b;  // Little endian
+        struct { uint8_t l, h; } b;
 #endif
     };
 };
@@ -94,31 +94,30 @@ extern uint8_t* pbMemRead1, * pbMemRead2, * pbMemWrite1, * pbMemWrite2;
 enum { TURBO_BOOT = 0x01, TURBO_KEY = 0x02 };
 
 #ifdef _DEBUG
-extern bool g_fDebug;
+extern bool debug_break;
 #endif
 
-const uint8_t OP_NOP = 0x00;     // Z80 opcode for NOP
-const uint8_t OP_DJNZ = 0x10;     // Z80 opcode for DJNZ
-const uint8_t OP_JR = 0x18;     // Z80 opcode for JR
-const uint8_t OP_HALT = 0x76;     // Z80 opcode for HALT
-const uint8_t OP_JP = 0xc3;     // Z80 opcode for JP
-const uint8_t OP_RET = 0xc9;     // Z80 opcode for RET
-const uint8_t OP_CALL = 0xcd;     // Z80 opcode for CALL
-const uint8_t OP_DI = 0xf3;     // Z80 opcode for DI
-const uint8_t OP_EI = 0xfb;     // Z80 opcode for EI
-const uint8_t OP_JPHL = 0xe9;     // Z80 opcode for JP (HL)
+const uint8_t OP_NOP = 0x00;
+const uint8_t OP_DJNZ = 0x10;
+const uint8_t OP_JR = 0x18;
+const uint8_t OP_HALT = 0x76;
+const uint8_t OP_JP = 0xc3;
+const uint8_t OP_RET = 0xc9;
+const uint8_t OP_CALL = 0xcd;
+const uint8_t OP_DI = 0xf3;
+const uint8_t OP_EI = 0xfb;
+const uint8_t OP_JPHL = 0xe9;
 
-const uint8_t IX_PREFIX = 0xdd;    // Opcode prefix used for IX instructions
-const uint8_t IY_PREFIX = 0xfd;    // Opcode prefix used for IY instructions
-const uint8_t CB_PREFIX = 0xcb;    // Prefix for CB instruction set
-const uint8_t ED_PREFIX = 0xed;    // Prefix for ED instruction set
+const uint8_t IX_PREFIX = 0xdd;
+const uint8_t IY_PREFIX = 0xfd;
+const uint8_t CB_PREFIX = 0xcb;
+const uint8_t ED_PREFIX = 0xed;
 
 
-const uint16_t IM1_INTERRUPT_HANDLER = 0x0038;      // Interrupt mode 1 handler address
-const uint16_t NMI_INTERRUPT_HANDLER = 0x0066;      // Non-maskable interrupt handler address
+const uint16_t IM1_INTERRUPT_HANDLER = 0x0038;
+const uint16_t NMI_INTERRUPT_HANDLER = 0x0066;
 
-// This has been accurately measured on a real SAM using various tests (contact me for further details)
-const int INT_ACTIVE_TIME = 128;            // tstates interrupt is active and will be triggered
+const int INT_ACTIVE_TIME = 128;
 
 
 // Round a tstate value up to a given power of 2 (-1); and so the line total rounds up to the next whole multiple

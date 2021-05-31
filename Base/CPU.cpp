@@ -38,6 +38,7 @@
 #include "Frame.h"
 #include "GUI.h"
 #include "Input.h"
+#include "Keyin.h"
 #include "SAMIO.h"
 #include "Memory.h"
 #include "Mouse.h"
@@ -46,15 +47,9 @@
 #include "UI.h"
 
 
-#undef USE_FLAG_TABLES      // Experimental - disabled for now
-
 // Look up table for the parity (and other common flags) for logical operations
 uint8_t g_abParity[256];
 #define parity(a) (g_abParity[a])
-
-#ifdef USE_FLAG_TABLES
-uint8_t g_abInc[256], g_abDec[256];
-#endif
 
 #define rflags(b_,c_)   (REG_F = (c_) | parity(b_))
 
@@ -88,7 +83,7 @@ int g_nTurbo;
 uint32_t g_dwCycleCounter;     // Global cycle counter used for various timings
 
 #ifdef _DEBUG
-bool g_fDebug;              // Debug only helper variable, to trigger the debugger when set
+bool debug_break;              // Debug only helper variable, to trigger the debugger when set
 #endif
 
 // Memory access tracking for the debugger
@@ -134,10 +129,6 @@ bool Init(bool fFirstInit_/*=false*/)
             g_abParity[n] = (n & 0xa8) |    // S, 5, 3
                 ((!n) << 6) |   // Z
                 b2;             // P
-#ifdef USE_FLAG_TABLES
-            g_abInc[n] = (n & 0xa8) | ((!n) << 6) | ((!(n & 0xf)) << 4) | ((n == 0x80) << 2);
-            g_abDec[n] = (n & 0xa8) | ((!n) << 6) | ((!(~n & 0xf)) << 4) | ((n == 0x7f) << 2) | FLAG_N;
-#endif
         }
 
         // Perform some initial tests to confirm the emulator is functioning correctly!
@@ -161,7 +152,7 @@ bool Init(bool fFirstInit_/*=false*/)
         }
 
         // Set up RAM and initial I/O settings
-        fRet &= Memory::Init(true) && IO::Init(true);
+        fRet &= Memory::Init(true) && IO::Init();
     }
 
     // Perform a general reset by pressing and releasing the reset button
@@ -193,8 +184,8 @@ void UpdateContention(bool fActive_/*=true*/)
     fContention = fActive_;
 
     pMemContention = !fActive_ ? abContention4T :
-        (vmpr_mode == MODE_1) ? abContention1 :
-        (BORD_SOFF && VMPR_MODE_3_OR_4) ? abContention4T :
+        ((IO::State().vmpr & VMPR_MODE_MASK) == VMPR_MODE_1) ? abContention1 :
+        IO::ScreenDisabled() ? abContention4T :
         abContention234;
 }
 
@@ -273,7 +264,7 @@ void ExecuteEvent(const CPU_EVENT& sThisEvent)
     switch (sThisEvent.type)
     {
     case EventType::FrameInterrupt:
-        status_reg &= ~STATUS_INT_FRAME;
+        IO::State().status_reg &= ~STATUS_INT_FRAME;
         AddCpuEvent(EventType::FrameInterruptEnd, sThisEvent.due_time + INT_ACTIVE_TIME);
         AddCpuEvent(EventType::FrameInterrupt, sThisEvent.due_time + CPU_CYCLES_PER_FRAME);
 
@@ -281,31 +272,31 @@ void ExecuteEvent(const CPU_EVENT& sThisEvent)
         break;
 
     case EventType::FrameInterruptEnd:
-        status_reg |= STATUS_INT_FRAME;
+        IO::State().status_reg |= STATUS_INT_FRAME;
         break;
 
     case EventType::LineInterrupt:
-        status_reg &= ~STATUS_INT_LINE;
+        IO::State().status_reg &= ~STATUS_INT_LINE;
         AddCpuEvent(EventType::LineInterruptEnd, sThisEvent.due_time + INT_ACTIVE_TIME);
         AddCpuEvent(EventType::LineInterrupt, sThisEvent.due_time + CPU_CYCLES_PER_FRAME);
         break;
 
     case EventType::LineInterruptEnd:
-        status_reg |= STATUS_INT_LINE;
+        IO::State().status_reg |= STATUS_INT_LINE;
         break;
 
     case EventType::MidiOutStart:
-        status_reg &= ~STATUS_INT_MIDIOUT;
+        IO::State().status_reg &= ~STATUS_INT_MIDIOUT;
         AddCpuEvent(EventType::MidiOutEnd, sThisEvent.due_time + MIDI_INT_ACTIVE_TIME);
         AddCpuEvent(EventType::MidiTxfmstEnd, sThisEvent.due_time + MIDI_TXFMST_ACTIVE_TIME);
         break;
 
     case EventType::MidiOutEnd:
-        status_reg |= STATUS_INT_MIDIOUT;
+        IO::State().status_reg |= STATUS_INT_MIDIOUT;
         break;
 
     case EventType::MidiTxfmstEnd:
-        lpen &= ~LPEN_TXFMST;
+        IO::State().lpen &= ~LPEN_TXFMST;
         break;
 
     case EventType::MouseReset:
@@ -321,7 +312,7 @@ void ExecuteEvent(const CPU_EVENT& sThisEvent)
         break;
 
     case EventType::AsicReady:
-        IO::WakeAsic();
+        IO::State().asic_asleep = false;
         break;
 
     case EventType::InputUpdate:
@@ -362,7 +353,7 @@ void ExecuteChunk()
 
         CheckCpuEvents();
 
-        if (status_reg != STATUS_INT_NONE && REG_IFF1)
+        if (REG_IFF1 && (~IO::State().status_reg & STATUS_INT_MASK))
             CheckInterrupt();
 
         if (pNewHlIxIy != &REG_HL || no_breakpoints)
@@ -375,10 +366,10 @@ void ExecuteChunk()
             Debug::Start(bp_index);
         }
 #ifdef _DEBUG
-        else if (g_fDebug)
+        else if (debug_break)
         {
             Debug::Start();
-            g_fDebug = false;
+            debug_break = false;
         }
 #endif
     }
@@ -441,6 +432,9 @@ void Reset(bool fPress_)
 
         // Index prefix not active
         pHlIxIy = pNewHlIxIy = &REG_HL;
+
+        Keyin::Stop();
+        Tape::Stop();
 
         IO::Init();
         Memory::Init();

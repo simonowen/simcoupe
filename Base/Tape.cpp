@@ -139,9 +139,9 @@ void NextEdge(uint32_t dwTime_)
     libspectrum_error error;
 
     if (fEar)
-        keyboard |= BORD_EAR_MASK;
+        IO::State().keyboard |= KEYBOARD_EAR_MASK;
     else
-        keyboard &= ~BORD_EAR_MASK;
+        IO::State().keyboard &= ~KEYBOARD_EAR_MASK;
 
     if (!Frame::TurboMode())
         pDAC->Output(fEar ? 0xa0 : 0x80);
@@ -305,7 +305,7 @@ bool LoadTrap()
         if (wDest >= 0xc000)
         {
             // Slide paging up and move pointer back
-            IO::OutHmpr(hmpr + 1);
+            IO::out_hmpr(IO::State().hmpr + 1);
             wDest -= 0x4000;
         }
     }
@@ -584,7 +584,7 @@ bool InFEHook()
 
             // Simulate the edge code to advance to the next edge
             // Return to normal processing if C hits 255 (no edge found) or the ear bit has changed
-            while (dwTime > 48 && REG_C < 0xff && !((keyboard ^ REG_B) & BORD_EAR_MASK))
+            while (dwTime > 48 && REG_C < 0xff && !((IO::State().keyboard ^ REG_B) & KEYBOARD_EAR_MASK))
             {
                 REG_C += 1;
                 REG_R7 += 7;
