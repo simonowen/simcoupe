@@ -79,7 +79,6 @@ static bool SetNamedValue(const std::string& option_name, const std::string& str
     else if (name == "drive1") SetValue(g_config.drive1, str);
     else if (name == "drive2") SetValue(g_config.drive2, str);
     else if (name == "turbodisk") SetValue(g_config.turbodisk, str);
-    else if (name == "saveprompt") SetValue(g_config.saveprompt, str);
     else if (name == "dosboot") SetValue(g_config.dosboot, str);
     else if (name == "dosdisk") SetValue(g_config.dosdisk, str);
     else if (name == "stdfloppy") SetValue(g_config.stdfloppy, str);
@@ -243,7 +242,6 @@ bool Save()
         ofs << "drive1=" << to_string(g_config.drive1) << std::endl;
         ofs << "drive2=" << to_string(g_config.drive2) << std::endl;
         ofs << "turbodisk=" << to_string(g_config.turbodisk) << std::endl;
-        ofs << "saveprompt=" << to_string(g_config.saveprompt) << std::endl;
         ofs << "dosboot=" << to_string(g_config.dosboot) << std::endl;
         ofs << "dosdisk=" << to_string(g_config.dosdisk) << std::endl;
         ofs << "stdfloppy=" << to_string(g_config.stdfloppy) << std::endl;

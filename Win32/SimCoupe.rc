@@ -34,13 +34,11 @@ BEGIN
     CONTROL         "Show disk drive activity lights",IDC_DRIVE_LIGHTS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,73,108,10
     CONTROL         "Show status messages",IDC_STATUS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,89,88,10
-    GROUPBOX        "Misc.",IDC_STATIC,7,58,236,80
+    GROUPBOX        "Misc.",IDC_STATIC,7,58,236,64
     ICON            IDI_CLOCK,IDC_STATIC,16,20,20,20
     ICON            IDI_MISC,IDC_STATIC,16,70,21,20
     GROUPBOX        "Clocks",IDC_STATIC,7,7,236,49
     CONTROL         "Show emulation speed",IDC_PROFILE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,105,87,10
-    CONTROL         "Ask before saving disk image changes",IDC_SAVE_PROMPT,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,121,137,10
 END
 
 IDD_ABOUT DIALOGEX 0, 0, 193, 164

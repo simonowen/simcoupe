@@ -53,7 +53,6 @@ struct Config
     int drive1 = 1;                     // Drive 1 type (0=none, 1=floppy, 2=Atom, 3=AtomLite, 4=SDIDE)
     int drive2 = 1;                     // Drive 2 type
     bool turbodisk = true;              // Run at turbo speed during disk access?
-    bool saveprompt = true;             // Prompt before saving disk changes?
     bool dosboot = true;                // Automagically boot DOS from non-bootable disks?
     std::string dosdisk;                // Custom DOS boot disk path (blank for built-in SAMDOS 2.2)
     bool stdfloppy = true;              // Assume real disks are standard format, initially?

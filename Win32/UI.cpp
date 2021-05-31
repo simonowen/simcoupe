@@ -277,25 +277,9 @@ int GetDlgItemValue(HWND hdlg_, int nId_, int default_value = -1)
     }
 }
 
-// Save changes to a given drive, optionally prompting for confirmation
 bool ChangesSaved(DiskDevice& floppy)
 {
-    if (!floppy.DiskModified())
-        return true;
-
-    if (GetOption(saveprompt))
-    {
-        switch (MessageBox(g_hwnd,
-            fmt::format("Save changes to {}?", floppy.DiskFile()).c_str(),
-            WINDOW_CAPTION, MB_YESNOCANCEL | MB_ICONQUESTION))
-        {
-        case IDYES:     break;
-        case IDNO:      floppy.SetDiskModified(false); return true;
-        default:        return false;
-        }
-    }
-
-    if (!floppy.Save())
+    if (floppy.DiskModified() && !floppy.Save())
     {
         Message(MsgType::Warning, "Failed to save changes to {}", floppy.DiskFile());
         return false;
@@ -3175,7 +3159,6 @@ INT_PTR CALLBACK MiscPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
         Button_SetCheck(GetDlgItem(hdlg_, IDC_DRIVE_LIGHTS), GetOption(drivelights) ? BST_CHECKED : BST_UNCHECKED);
         Button_SetCheck(GetDlgItem(hdlg_, IDC_STATUS), GetOption(status) ? BST_CHECKED : BST_UNCHECKED);
         Button_SetCheck(GetDlgItem(hdlg_, IDC_PROFILE), GetOption(profile) ? BST_CHECKED : BST_UNCHECKED);
-        Button_SetCheck(GetDlgItem(hdlg_, IDC_SAVE_PROMPT), GetOption(saveprompt) ? BST_CHECKED : BST_UNCHECKED);
 
         break;
     }
@@ -3190,7 +3173,6 @@ INT_PTR CALLBACK MiscPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM 
             SetOption(drivelights, Button_GetCheck(GetDlgItem(hdlg_, IDC_DRIVE_LIGHTS)) == BST_CHECKED);
             SetOption(status, Button_GetCheck(GetDlgItem(hdlg_, IDC_STATUS)) == BST_CHECKED);
             SetOption(profile, Button_GetCheck(GetDlgItem(hdlg_, IDC_PROFILE)) == BST_CHECKED);
-            SetOption(saveprompt, Button_GetCheck(GetDlgItem(hdlg_, IDC_SAVE_PROMPT)) == BST_CHECKED);
         }
         break;
     }

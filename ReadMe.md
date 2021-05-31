@@ -824,7 +824,6 @@ in the configuration file:
     -drive1 <int>           Drive 1: 0=none, 1=floppy
     -drive2 <int>           Drive 2: 0=none, 1=floppy, 2=Atom, 3=Atom Lite
     -turbodisk <bool>       Fast disk access sensitivity (default=yes)
-    -saveprompt <bool>      Prompt before saving changes (default=yes)
     -dosboot <bool>         Automagically boot DOS (default=yes)
     -dosdisk <path>         Custom DOS boot disk (blank for SamDos 2.2)
     -stdfloppy <bool>       Assume real disks are normal format (default=yes)

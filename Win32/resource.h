@@ -114,7 +114,6 @@
 #define IDE_SIZE                        1182
 #define IDS_LENGTH                      1184
 #define IDS_DOSDISK                     1186
-#define IDC_SAVE_PROMPT                 1187
 #define IDS_VERSION                     1188
 #define IDC_FLUSHDELAY                  1190
 #define IDS_FLUSHDELAY                  1191
