@@ -21,6 +21,7 @@
 #include "SimCoupe.h"
 #include "Breakpoint.h"
 
+#include "CPU.h"
 #include "Debug.h"
 #include "Memory.h"
 
@@ -28,7 +29,7 @@ std::vector<Breakpoint> Breakpoint::breakpoints;
 
 std::optional<int> Breakpoint::Hit()
 {
-    auto pPC = AddrReadPtr(REG_PC);
+    auto pPC = AddrReadPtr(cpu.get_pc());
 
     auto index = -1;
     for (const auto& bp : breakpoints)
@@ -55,18 +56,18 @@ std::optional<int> Breakpoint::Hit()
             if (auto mem = std::get_if<BreakMem>(&bp.data))
             {
                 if ((mem->access == AccessType::Read || mem->access == AccessType::ReadWrite) &&
-                    ((pbMemRead1 >= mem->phys_addr_from && pbMemRead1 <= mem->phys_addr_to) ||
-                        (pbMemRead2 >= mem->phys_addr_from && pbMemRead2 <= mem->phys_addr_to)))
+                    ((Memory::last_phys_read1 >= mem->phys_addr_from && Memory::last_phys_read1 <= mem->phys_addr_to) ||
+                        (Memory::last_phys_read2 >= mem->phys_addr_from && Memory::last_phys_read2 <= mem->phys_addr_to)))
                 {
-                    pbMemRead1 = pbMemRead2 = nullptr;
+                    Memory::last_phys_read1 = Memory::last_phys_read2 = nullptr;
                     break;
                 }
 
                 if ((mem->access == AccessType::Write || mem->access == AccessType::ReadWrite) &&
-                    ((pbMemWrite1 >= mem->phys_addr_from && pbMemWrite1 <= mem->phys_addr_to) ||
-                        (pbMemWrite2 >= mem->phys_addr_from && pbMemWrite2 <= mem->phys_addr_to)))
+                    ((Memory::last_phys_write1 >= mem->phys_addr_from && Memory::last_phys_write1 <= mem->phys_addr_to) ||
+                        (Memory::last_phys_write2 >= mem->phys_addr_from && Memory::last_phys_write2 <= mem->phys_addr_to)))
                 {
-                    pbMemWrite1 = pbMemWrite2 = nullptr;
+                    Memory::last_phys_write1 = Memory::last_phys_write2 = nullptr;
                     break;
                 }
             }
@@ -94,13 +95,13 @@ std::optional<int> Breakpoint::Hit()
         case BreakType::Interrupt:
             if (auto intr = std::get_if<BreakInt>(&bp.data))
             {
-                if (~IO::State().status_reg & intr->mask)
+                if (~IO::State().status & intr->mask)
                 {
-                    auto handler_addr = (REG_IM == 2) ?
-                        read_word((REG_I << 8) | 0xff) :
+                    auto handler_addr = (cpu.get_int_mode() == 2) ?
+                        read_word((cpu.get_i() << 8) | 0xff) :
                         IM1_INTERRUPT_HANDLER;
 
-                    if (REG_PC == handler_addr)
+                    if (cpu.get_pc() == handler_addr)
                         break;
                 }
             }
@@ -141,9 +142,6 @@ void Breakpoint::Add(Breakpoint&& bp)
     }
 
     breakpoints.push_back(std::move(bp));
-
-    // Break from the main execution loop to activate breakpoint testing
-    g_fBreak = true;
 }
 
 std::optional<int> Breakpoint::GetExecIndex(void* pPhysAddr)

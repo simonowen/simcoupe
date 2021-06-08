@@ -32,7 +32,7 @@ void FrameEnd();
 void Refresh();
 
 void OnRet();
-bool RetZHook();
+void RetZHook();
 
 bool IsActive();
 void AddTraceRecord();

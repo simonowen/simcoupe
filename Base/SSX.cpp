@@ -19,8 +19,10 @@
 // each native pixel is represented by a pair of thin pixels.
 
 #include "SimCoupe.h"
-#include "SAMIO.h"
+
+#include "Frame.h"
 #include "Memory.h"
+#include "SAMIO.h"
 
 namespace SSX
 {

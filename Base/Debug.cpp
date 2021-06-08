@@ -23,6 +23,7 @@
 
 #include "CPU.h"
 #include "Disassem.h"
+#include "Events.h"
 #include "Frame.h"
 #include "Keyboard.h"
 #include "Memory.h"
@@ -68,9 +69,9 @@ constexpr auto CHR_WIDTH = Font::FIXED_FONT_WIDTH + Font::CHAR_SPACING;
 
 struct TRACEDATA
 {
-    uint16_t wPC;                         // PC value
-    uint8_t abInstr[MAX_Z80_INSTR_LEN];  // Instruction at PC
-    Z80Regs regs;                     // Register values
+    uint16_t wPC;
+    uint8_t abInstr[MAX_Z80_INSTR_LEN];
+    sam_cpu::z80_state regs;
 };
 
 
@@ -81,7 +82,7 @@ int nStepOutSP = -1;
 
 // Last position of debugger window and last register values
 int nDebugX, nDebugY;
-Z80Regs sLastRegs, sCurrRegs;
+sam_cpu::z80_state sLastRegs, sCurrRegs;
 uint8_t bLastStatus;
 uint32_t dwLastCycle;
 int nLastFrames;
@@ -100,24 +101,22 @@ namespace Debug
 // Activate the debug GUI, if not already active
 bool Start(std::optional<int> bp_index)
 {
-    // Restore memory contention in case of a timing measurement
-    CPU::UpdateContention();
+    Memory::full_contention = true;
 
     // Reset the last entry counters, unless we're started from a triggered breakpoint
     if (!bp_index.has_value() && nStepOutSP == -1)
     {
         nLastFrames = 0;
-        dwLastCycle = g_dwCycleCounter;
+        dwLastCycle = CPU::frame_cycles;
 
-        REG_R = (REG_R7 & 0x80) | (REG_R & 0x7f);
-        sLastRegs = sCurrRegs = regs;
-        bLastStatus = IO::State().status_reg;
+        sLastRegs = sCurrRegs = cpu;
+        bLastStatus = IO::State().status;
 
         // If there's no breakpoint set any existing trace is meaningless
         if (Breakpoint::breakpoints.empty())
         {
             // Set the previous entry to have the current register values
-            aTrace[nNumTraces = 0].regs = regs;
+            aTrace[nNumTraces = 0].regs = cpu;
 
             // Add the current location as the only entry
             AddTraceRecord();
@@ -172,7 +171,7 @@ void Refresh()
     if (pDebugger)
     {
         // Set the address without forcing it to the top of the window
-        pDebugger->SetAddress((nLastView == ViewType::Dis) ? REG_PC : wLastAddr, false);
+        pDebugger->SetAddress((nLastView == ViewType::Dis) ? cpu.get_pc() : wLastAddr, false);
     }
 
     if (auto bp_index = Breakpoint::Hit())
@@ -189,23 +188,20 @@ void OnRet()
     {
         // If the stack is at or just above the starting position, it should mean we've returned
         // Allow some generous slack for data that may have been on the stack above the address
-        if ((REG_SP - nStepOutSP) >= 0 && (REG_SP - nStepOutSP) < 64)
+        if ((cpu.get_sp() - nStepOutSP) >= 0 && (cpu.get_sp() - nStepOutSP) < 64)
             Start();
     }
 }
 
-bool RetZHook()
+void RetZHook()
 {
     // Are we in in HDNSTP in ROM1, about to start an auto-executing code file?
-    if (REG_PC == 0xe294 && GetSectionPage(Section::D) == ROM1 && !(REG_F & FLAG_Z))
+    if (cpu.get_pc() == 0xe294 && GetSectionPage(Section::D) == ROM1 && !(cpu.get_f() & cpu.zf_mask))
     {
         // If the option is enabled, set a temporary breakpoint for the start
         if (GetOption(breakonexec))
             Breakpoint::AddTemp(nullptr, Expr::Compile("autoexec"));
     }
-
-    // Continue normal processing
-    return false;
 }
 
 
@@ -217,15 +213,15 @@ bool IsActive()
 
 void AddTraceRecord()
 {
-    if (aTrace[nNumTraces % TRACE_SLOTS].wPC != REG_PC)
+    if (aTrace[nNumTraces % TRACE_SLOTS].wPC != cpu.get_pc())
     {
         TRACEDATA* p = &aTrace[(++nNumTraces) % TRACE_SLOTS];
-        p->wPC = REG_PC;
-        p->abInstr[0] = read_byte(REG_PC);
-        p->abInstr[1] = read_byte(REG_PC + 1);
-        p->abInstr[2] = read_byte(REG_PC + 2);
-        p->abInstr[3] = read_byte(REG_PC + 3);
-        p->regs = regs;
+        p->wPC = cpu.get_pc();
+        p->abInstr[0] = read_byte(p->wPC);
+        p->abInstr[1] = read_byte(p->wPC + 1);
+        p->abInstr[2] = read_byte(p->wPC + 2);
+        p->abInstr[3] = read_byte(p->wPC + 3);
+        p->regs = cpu;
     }
 }
 
@@ -260,15 +256,15 @@ void cmdStep(int nCount_ = 1, bool fCtrl_ = false)
     uint16_t wPC;
 
     // Skip any index prefixes on the instruction to reach the real opcode or a CD/ED prefix
-    for (wPC = REG_PC; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX); wPC++);
+    for (wPC = cpu.get_pc(); ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX); wPC++);
 
     // Stepping into a HALT (with interrupt enabled) will enter the appropriate interrupt handler
     // This is much friendlier than single-stepping NOPs up to the next interrupt!
-    if (nCount_ == 1 && bOpcode == OP_HALT && REG_IFF1 && !fCtrl_)
+    if (nCount_ == 1 && bOpcode == OP_HALT && cpu.get_iff1() && !fCtrl_)
     {
         // For IM 2, form the address of the handler and break there
-        if (REG_IM == 2)
-            pPhysAddr = AddrReadPtr(read_word((REG_I << 8) | 0xff));
+        if (cpu.get_int_mode() == 2)
+            pPhysAddr = AddrReadPtr(read_word((cpu.get_i() << 8) | 0xff));
 
         // IM 0 and IM1 both use the handler at 0x0038
         else
@@ -300,15 +296,14 @@ void cmdStepOver(bool fCtrl_ = false)
     // This provides a pure SAM execution environment, eliminating avoidable runtime variations.
     if (fCtrl_)
     {
-        // Set minimal contention
-        CPU::UpdateContention(false);
+        Memory::full_contention = false;
 
         // Round to the next 4T contention boundary to eliminate any slack on the next opcode fetch
-        g_dwCycleCounter |= 3;
+        CPU::frame_cycles |= 3;
     }
 
     // Skip any index prefixes on the instruction to reach a CB/ED prefix or the real opcode
-    for (wPC = REG_PC; ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX); wPC++);
+    for (wPC = cpu.get_pc(); ((bOpcode = read_byte(wPC)) == IX_PREFIX || bOpcode == IY_PREFIX); wPC++);
     bOperand = read_byte(wPC + 1);
 
     // 1-byte HALT or RST ?
@@ -338,7 +333,7 @@ void cmdStepOver(bool fCtrl_ = false)
 void cmdStepOut()
 {
     // Store the current stack pointer, for checking on RETurn calls
-    nStepOutSP = REG_SP;
+    nStepOutSP = cpu.get_sp();
     Debug::Stop();
 }
 
@@ -595,16 +590,16 @@ Debugger::~Debugger()
     nDebugY = m_nY;
 
     // Remember the current register values so we know what's changed next time
-    sLastRegs = regs;
-    bLastStatus = IO::State().status_reg;
+    sLastRegs = cpu;
+    bLastStatus = IO::State().status;
 
     // Save the cycle counter for timing comparisons
-    dwLastCycle = g_dwCycleCounter;
+    dwLastCycle = CPU::frame_cycles;
     nLastFrames = 0;
 
     // Clear any cached data that could cause an immediate retrigger
     IO::last_in_port = IO::last_out_port = 0;
-    pbMemRead1 = pbMemRead2 = pbMemWrite1 = pbMemWrite2 = nullptr;
+    Memory::last_phys_read1 = Memory::last_phys_read2 = Memory::last_phys_write1 = Memory::last_phys_write2 = nullptr;
 
     // Debugger is gone
     pDebugger = nullptr;
@@ -666,7 +661,7 @@ void Debugger::SetView(ViewType nView_)
 
         if (!m_pView)
         {
-            pNewView->SetAddress((nView_ == ViewType::Dis) ? REG_PC : wLastAddr);
+            pNewView->SetAddress((nView_ == ViewType::Dis) ? cpu.get_pc() : wLastAddr);
         }
         else
         {
@@ -730,11 +725,7 @@ void Debugger::Draw(FrameBuffer& fb)
     // First draw?
     if (!m_pView)
     {
-        // Form the R register from its working components, and save the current register state
-        REG_R = (REG_R7 & 0x80) | (REG_R & 0x7f);
-        sCurrRegs = regs;
-
-        // Set the last view
+        sCurrRegs = cpu;
         SetView(nLastView);
     }
 
@@ -766,7 +757,7 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             else if (nLastView != ViewType::Dis)
             {
                 SetView(ViewType::Dis);
-                SetAddress(REG_PC);
+                SetAddress(cpu.get_pc());
             }
             else
                 fRet = false;
@@ -1013,14 +1004,16 @@ bool Debugger::Execute(const std::string& cmdline)
     // di
     if (command == "di" && no_args)
     {
-        REG_IFF1 = REG_IFF2 = 0;
+        cpu.set_iff1(false);
+        cpu.set_iff2(false);
         return true;
     }
 
     // ei
     else if (command == "ei"  && no_args)
     {
-        REG_IFF1 = REG_IFF2 = 1;
+        cpu.set_iff1(true);
+        cpu.set_iff2(true);
         return true;
     }
 
@@ -1029,7 +1022,7 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         if (auto im_mode = ArgValue(remain); im_mode && *im_mode >= 0 && *im_mode <= 2)
         {
-            REG_IM = *im_mode;
+            cpu.set_int_mode(*im_mode);
             return true;
         }
     }
@@ -1041,9 +1034,9 @@ bool Debugger::Execute(const std::string& cmdline)
         CPU::Reset(false);
 
         nLastFrames = 0;
-        dwLastCycle = g_dwCycleCounter;
+        dwLastCycle = CPU::frame_cycles;
 
-        SetAddress(REG_PC);
+        SetAddress(cpu.get_pc());
         return true;
     }
 
@@ -1051,7 +1044,7 @@ bool Debugger::Execute(const std::string& cmdline)
     else if (command == "nmi" && no_args)
     {
         CPU::NMI();
-        SetAddress(REG_PC);
+        SetAddress(cpu.get_pc());
     }
 
     // zap
@@ -1059,12 +1052,12 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         uint8_t instr[MAX_Z80_INSTR_LEN]{};
         for (auto i = 0; i < MAX_Z80_INSTR_LEN; ++i)
-            instr[i] = read_byte(REG_PC + i);
+            instr[i] = read_byte(cpu.get_pc() + i);
 
         auto len = static_cast<int>(Disassemble(instr));
 
         for (auto i = 0; i < len; ++i)
-            write_byte(REG_PC + i, OP_NOP);
+            write_byte(cpu.get_pc() + i, OP_NOP);
 
         return true;
     }
@@ -1074,9 +1067,10 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         if (auto addr = ArgValue(remain))
         {
-            REG_SP -= 2;
-            write_word(REG_SP, REG_PC);
-            SetAddress(REG_PC = *addr);
+            cpu.set_sp(cpu.get_sp() - 2);
+            write_word(cpu.get_sp(), cpu.get_pc());
+            cpu.set_pc(*addr);
+            SetAddress(cpu.get_pc());
             return true;
         }
     }
@@ -1084,8 +1078,9 @@ bool Debugger::Execute(const std::string& cmdline)
     // ret
     else if (command == "ret" && no_args)
     {
-        SetAddress(REG_PC = read_word(REG_SP));
-        REG_SP += 2;
+        cpu.set_sp(read_word(cpu.get_sp()));
+        SetAddress(cpu.get_pc());
+        cpu.set_sp(cpu.get_sp() + 2);
         return true;
     }
 
@@ -1094,8 +1089,8 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         if (auto value = ArgValue(remain))
         {
-            REG_SP -= 2;
-            write_word(REG_SP, *value);
+            cpu.set_sp(cpu.get_sp() - 2);
+            write_word(cpu.get_sp(), *value);
             return true;
         }
     }
@@ -1105,7 +1100,7 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         if (no_args)
         {
-            REG_SP += 2;
+            cpu.set_sp(cpu.get_sp() + 2);
             return true;
         }
         else if (auto reg_expr = Expr::Compile(remain, remain); reg_expr && remain.empty())
@@ -1114,8 +1109,8 @@ bool Debugger::Execute(const std::string& cmdline)
             {
                 if (auto reg = std::get_if<Expr::Token>(&*val))
                 {
-                    Expr::SetReg(*reg, read_word(REG_SP));
-                    REG_SP += 2;
+                    Expr::SetReg(*reg, read_word(cpu.get_sp()));
+                    cpu.set_sp(cpu.get_sp() + 2);
                     return true;
                 }
             }
@@ -1125,9 +1120,9 @@ bool Debugger::Execute(const std::string& cmdline)
     // break
     else if (command == "break" && no_args)
     {
-        REG_IFF1 = 1;
-        REG_IM = 1;
-        REG_PC = NMI_INTERRUPT_HANDLER;
+        cpu.set_iff1(true);
+        cpu.set_int_mode(1);
+        cpu.set_pc(NMI_INTERRUPT_HANDLER);
 
         // Set up SAM BASIC paging
         IO::Out(LMPR_PORT, 0x1f);
@@ -1343,7 +1338,7 @@ bool Debugger::Execute(const std::string& cmdline)
     else if ((command == "flag" || command == "f") && !no_args)
     {
         bool set = true;
-        uint8_t new_f = REG_F;
+        uint8_t new_f = cpu.get_f();
 
         for (auto ch : tolower(remain))
         {
@@ -1354,14 +1349,14 @@ bool Debugger::Execute(const std::string& cmdline)
                 case '+': set = true;  continue;
                 case '-': set = false; continue;
 
-                case 's': flag = FLAG_S; break;
-                case 'z': flag = FLAG_Z; break;
-                case '5': flag = FLAG_5; break;
-                case 'h': flag = FLAG_H; break;
-                case '3': flag = FLAG_3; break;
-                case 'v': flag = FLAG_V; break;
-                case 'n': flag = FLAG_N; break;
-                case 'c': flag = FLAG_C; break;
+                case 's': flag = cpu.sf_mask; break;
+                case 'z': flag = cpu.zf_mask; break;
+                case '5': flag = cpu.yf_mask; break;
+                case 'h': flag = cpu.hf_mask; break;
+                case '3': flag = cpu.xf_mask; break;
+                case 'v': flag = cpu.pf_mask; break;
+                case 'n': flag = cpu.nf_mask; break;
+                case 'c': flag = cpu.cf_mask; break;
 
                 default: return false;
             }
@@ -1372,7 +1367,7 @@ bool Debugger::Execute(const std::string& cmdline)
                 new_f &= ~flag;
         }
 
-        REG_F = new_f;
+        cpu.set_f(new_f);
         return true;
     }
 
@@ -1415,9 +1410,7 @@ bool Debugger::Execute(const std::string& cmdline)
     // exx
     else if (command == "exx" && no_args)
     {
-        std::swap(REG_BC, REG_BC_);
-        std::swap(REG_DE, REG_DE_);
-        std::swap(REG_HL, REG_HL_);
+        cpu.exx_regs();
         return true;
     }
 
@@ -1426,7 +1419,7 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         if (auto arg = tolower(Arg(remain, remain)); arg == "de,hl" && remain.empty())
         {
-            std::swap(REG_DE, REG_HL);
+            cpu.on_ex_de_hl_regs();
             return true;
         }
     }
@@ -1624,7 +1617,7 @@ void DisView::Draw(FrameBuffer& fb)
 
         auto colour = 'W';
 
-        if (s_wAddrs[u] == REG_PC)
+        if (s_wAddrs[u] == cpu.get_pc())
         {
             // The location bar is green for a change in code flow or yellow otherwise, with black text
             uint8_t bBarColour = (m_uCodeTarget != INVALID_TARGET) ? GREEN_7 : YELLOW_7;
@@ -1633,7 +1626,7 @@ void DisView::Draw(FrameBuffer& fb)
 
             // Add a direction arrow if we have a code target
             if (m_uCodeTarget != INVALID_TARGET)
-                fb.DrawString(nX + CHR_WIDTH * (BAR_CHAR_LEN - 1), nY, (m_uCodeTarget <= REG_PC) ? "\ak\x80" : "\ak\x81");
+                fb.DrawString(nX + CHR_WIDTH * (BAR_CHAR_LEN - 1), nY, (m_uCodeTarget <= cpu.get_pc()) ? "\ak\x80" : "\ak\x81");
         }
 
         // Check for a breakpoint at the current address.
@@ -1664,20 +1657,20 @@ void DisView::Draw(FrameBuffer& fb)
 #define DoubleReg(dx,dy,name,reg) \
     { \
         fb.DrawString(nX+dx, nY+dy, "\ag{:<3s}\a{}{:02X}\a{}{:02X}", name, \
-                    (regs.reg.b.h != sLastRegs.reg.b.h)?CHG_COL:'X', regs.reg.b.h,  \
-                    (regs.reg.b.l != sLastRegs.reg.b.l)?CHG_COL:'X', regs.reg.b.l); \
+                    (z80::get_high8(cpu.get_##reg()) != z80::get_high8(sLastRegs.get_##reg()))?CHG_COL:'X', z80::get_high8(cpu.get_##reg()),  \
+                    (z80::get_low8(cpu.get_##reg()) != z80::get_low8(sLastRegs.get_##reg()))?CHG_COL:'X', z80::get_low8(cpu.get_##reg())); \
     }
 
 #define SingleReg(dx,dy,name,reg) \
     { \
         fb.DrawString(nX+dx, nY+dy, "\ag{:<2s}\a{}{:02X}", name, \
-                    (regs.reg != sLastRegs.reg)?CHG_COL:'X', regs.reg); \
+                    (cpu.get_##reg() != sLastRegs.get_##reg())?CHG_COL:'X', cpu.get_##reg()); \
     }
 
-    DoubleReg(0, 0, "AF", af);    DoubleReg(54, 0, "AF'", af_);
-    DoubleReg(0, 12, "BC", bc);    DoubleReg(54, 12, "BC'", bc_);
-    DoubleReg(0, 24, "DE", de);    DoubleReg(54, 24, "DE'", de_);
-    DoubleReg(0, 36, "HL", hl);    DoubleReg(54, 36, "HL'", hl_);
+    DoubleReg(0, 0, "AF", af);    DoubleReg(54, 0, "AF'", alt_af);
+    DoubleReg(0, 12, "BC", bc);    DoubleReg(54, 12, "BC'", alt_bc);
+    DoubleReg(0, 24, "DE", de);    DoubleReg(54, 24, "DE'", alt_de);
+    DoubleReg(0, 36, "HL", hl);    DoubleReg(54, 36, "HL'", alt_hl);
 
     DoubleReg(0, 52, "IX", ix);    DoubleReg(54, 52, "IY", iy);
     DoubleReg(0, 64, "PC", pc);    DoubleReg(54, 64, "SP", sp);
@@ -1687,39 +1680,39 @@ void DisView::Draw(FrameBuffer& fb)
     fb.DrawString(nX + 80, nY + 74, "\aK\x81\x81");
 
     for (i = 0; i < 4; i++)
-        fb.DrawString(nX + 72, nY + 84 + i * 12, "{:04X}", read_word(REG_SP + i * 2));
+        fb.DrawString(nX + 72, nY + 84 + i * 12, "{:04X}", read_word(cpu.get_sp() + i * 2));
 
-    fb.DrawString(nX, nY + 96, "\agIM \a{}{}", (REG_IM != sLastRegs.im) ? CHG_COL : 'X', REG_IM);
-    fb.DrawString(nX + 18, nY + 96, "  \a{}{}I", (REG_IFF1 != sLastRegs.iff1) ? CHG_COL : 'X', REG_IFF1 ? 'E' : 'D');
+    fb.DrawString(nX, nY + 96, "\agIM \a{}{}", (cpu.get_int_mode() != sLastRegs.get_int_mode()) ? CHG_COL : 'X', cpu.get_int_mode());
+    fb.DrawString(nX + 18, nY + 96, "  \a{}{}I", (cpu.get_iff1() != sLastRegs.get_iff1()) ? CHG_COL : 'X', cpu.get_iff1() ? 'E' : 'D');
 
-    char bIntDiff = IO::State().status_reg ^ bLastStatus;
-    auto status_reg = IO::State().status_reg;
+    char bIntDiff = IO::State().status ^ bLastStatus;
+    auto status = IO::State().status;
     fb.DrawString(nX, nY + 108, "\agStat \a{}{}\a{}{}\a{}{}\a{}{}\a{}{}",
-        (bIntDiff & 0x10) ? CHG_COL : (status_reg & 0x10) ? 'K' : 'X', (status_reg & 0x10) ? '-' : 'O',
-        (bIntDiff & 0x08) ? CHG_COL : (status_reg & 0x08) ? 'K' : 'X', (status_reg & 0x08) ? '-' : 'F',
-        (bIntDiff & 0x04) ? CHG_COL : (status_reg & 0x04) ? 'K' : 'X', (status_reg & 0x04) ? '-' : 'I',
-        (bIntDiff & 0x02) ? CHG_COL : (status_reg & 0x02) ? 'K' : 'X', (status_reg & 0x02) ? '-' : 'M',
-        (bIntDiff & 0x01) ? CHG_COL : (status_reg & 0x01) ? 'K' : 'X', (status_reg & 0x01) ? '-' : 'L');
+        (bIntDiff & 0x10) ? CHG_COL : (status & 0x10) ? 'K' : 'X', (status & 0x10) ? '-' : 'O',
+        (bIntDiff & 0x08) ? CHG_COL : (status & 0x08) ? 'K' : 'X', (status & 0x08) ? '-' : 'F',
+        (bIntDiff & 0x04) ? CHG_COL : (status & 0x04) ? 'K' : 'X', (status & 0x04) ? '-' : 'I',
+        (bIntDiff & 0x02) ? CHG_COL : (status & 0x02) ? 'K' : 'X', (status & 0x02) ? '-' : 'M',
+        (bIntDiff & 0x01) ? CHG_COL : (status & 0x01) ? 'K' : 'X', (status & 0x01) ? '-' : 'L');
 
-    char bFlagDiff = REG_F ^ sLastRegs.af.b.l;
+    char bFlagDiff = cpu.get_f() ^ sLastRegs.get_f();
     fb.DrawString(nX, nY + 132, "\agFlag \a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}\a{}{}",
-        (bFlagDiff & FLAG_S) ? CHG_COL : (REG_F & FLAG_S) ? 'X' : 'K', (REG_F & FLAG_S) ? 'S' : '-',
-        (bFlagDiff & FLAG_Z) ? CHG_COL : (REG_F & FLAG_Z) ? 'X' : 'K', (REG_F & FLAG_Z) ? 'Z' : '-',
-        (bFlagDiff & FLAG_5) ? CHG_COL : (REG_F & FLAG_5) ? 'X' : 'K', (REG_F & FLAG_5) ? '5' : '-',
-        (bFlagDiff & FLAG_H) ? CHG_COL : (REG_F & FLAG_H) ? 'X' : 'K', (REG_F & FLAG_H) ? 'H' : '-',
-        (bFlagDiff & FLAG_3) ? CHG_COL : (REG_F & FLAG_3) ? 'X' : 'K', (REG_F & FLAG_3) ? '3' : '-',
-        (bFlagDiff & FLAG_V) ? CHG_COL : (REG_F & FLAG_V) ? 'X' : 'K', (REG_F & FLAG_V) ? 'V' : '-',
-        (bFlagDiff & FLAG_N) ? CHG_COL : (REG_F & FLAG_N) ? 'X' : 'K', (REG_F & FLAG_N) ? 'N' : '-',
-        (bFlagDiff & FLAG_C) ? CHG_COL : (REG_F & FLAG_C) ? 'X' : 'K', (REG_F & FLAG_C) ? 'C' : '-');
+        (bFlagDiff & cpu.sf_mask) ? CHG_COL : (cpu.get_f() & cpu.sf_mask) ? 'X' : 'K', (cpu.get_f() & cpu.sf_mask) ? 'S' : '-',
+        (bFlagDiff & cpu.zf_mask) ? CHG_COL : (cpu.get_f() & cpu.zf_mask) ? 'X' : 'K', (cpu.get_f() & cpu.zf_mask) ? 'Z' : '-',
+        (bFlagDiff & cpu.yf_mask) ? CHG_COL : (cpu.get_f() & cpu.yf_mask) ? 'X' : 'K', (cpu.get_f() & cpu.yf_mask) ? '5' : '-',
+        (bFlagDiff & cpu.hf_mask) ? CHG_COL : (cpu.get_f() & cpu.hf_mask) ? 'X' : 'K', (cpu.get_f() & cpu.hf_mask) ? 'H' : '-',
+        (bFlagDiff & cpu.xf_mask) ? CHG_COL : (cpu.get_f() & cpu.xf_mask) ? 'X' : 'K', (cpu.get_f() & cpu.xf_mask) ? '3' : '-',
+        (bFlagDiff & cpu.pf_mask) ? CHG_COL : (cpu.get_f() & cpu.pf_mask) ? 'X' : 'K', (cpu.get_f() & cpu.pf_mask) ? 'V' : '-',
+        (bFlagDiff & cpu.nf_mask) ? CHG_COL : (cpu.get_f() & cpu.nf_mask) ? 'X' : 'K', (cpu.get_f() & cpu.nf_mask) ? 'N' : '-',
+        (bFlagDiff & cpu.cf_mask) ? CHG_COL : (cpu.get_f() & cpu.cf_mask) ? 'X' : 'K', (cpu.get_f() & cpu.cf_mask) ? 'C' : '-');
 
 
-    int nLine = (g_dwCycleCounter < CPU_CYCLES_PER_SIDE_BORDER) ? GFX_HEIGHT_LINES - 1 : (g_dwCycleCounter - CPU_CYCLES_PER_SIDE_BORDER) / CPU_CYCLES_PER_LINE;
-    int nLineCycle = (g_dwCycleCounter + CPU_CYCLES_PER_LINE - CPU_CYCLES_PER_SIDE_BORDER) % CPU_CYCLES_PER_LINE;
+    int nLine = (CPU::frame_cycles < CPU_CYCLES_PER_SIDE_BORDER) ? GFX_HEIGHT_LINES - 1 : (CPU::frame_cycles - CPU_CYCLES_PER_SIDE_BORDER) / CPU_CYCLES_PER_LINE;
+    int nLineCycle = (CPU::frame_cycles + CPU_CYCLES_PER_LINE - CPU_CYCLES_PER_SIDE_BORDER) % CPU_CYCLES_PER_LINE;
 
     fb.DrawString(nX, nY + 148, "\agScan\aX {:03}:{:03}", nLine, nLineCycle);
-    fb.DrawString(nX, nY + 160, "\agT\aX {}", g_dwCycleCounter);
+    fb.DrawString(nX, nY + 160, "\agT\aX {}", CPU::frame_cycles);
 
-    uint32_t dwCycleDiff = ((nLastFrames * CPU_CYCLES_PER_FRAME) + g_dwCycleCounter) - dwLastCycle;
+    uint32_t dwCycleDiff = ((nLastFrames * CPU_CYCLES_PER_FRAME) + CPU::frame_cycles) - dwLastCycle;
     if (dwCycleDiff)
         fb.DrawString(nX + 12, nY + 172, "+{}", dwCycleDiff);
 
@@ -1736,7 +1729,7 @@ void DisView::Draw(FrameBuffer& fb)
     fb.DrawString(nX, nY + 240, "\agEvents");
 
     i = 0;
-    for (auto pEvent = psNextEvent; pEvent; pEvent = pEvent->pNext)
+    for (auto pEvent = head_ptr; pEvent; pEvent = pEvent->next_ptr)
     {
         const char* pcszEvent = "????";
         switch (pEvent->type)
@@ -1758,7 +1751,7 @@ void DisView::Draw(FrameBuffer& fb)
             continue;
         }
 
-        fb.DrawString(nX, nY + 252 + i * 12, "{:<4s} \a{}{:6}\aXT", pcszEvent, CHG_COL, pEvent->due_time - g_dwCycleCounter);
+        fb.DrawString(nX, nY + 252 + i * 12, "{:<4s} \a{}{:6}\aXT", pcszEvent, CHG_COL, pEvent->due_time - CPU::frame_cycles);
         if (++i == 3)
             break;
     }
@@ -1833,7 +1826,7 @@ bool DisView::cmdNavigate(int nKey_, int nMods_)
     {
     case HK_HOME:
         if (!fCtrl)
-            wAddr = REG_PC;
+            wAddr = cpu.get_pc();
         else
             SetAddress(wAddr = 0, true);
         break;
@@ -1851,7 +1844,10 @@ bool DisView::cmdNavigate(int nKey_, int nMods_)
         if (!fCtrl)
             wAddr = GetPrevInstruction(s_wAddrs[0]);
         else
-            REG_PC = wAddr = GetPrevInstruction(REG_PC);
+        {
+            wAddr = GetPrevInstruction(cpu.get_pc());
+            cpu.set_pc(wAddr);
+        }
         break;
 
     case HK_DOWN:
@@ -1861,9 +1857,10 @@ bool DisView::cmdNavigate(int nKey_, int nMods_)
         {
             uint8_t ab[MAX_Z80_INSTR_LEN];
             for (unsigned int u = 0; u < sizeof(ab); u++)
-                ab[u] = read_byte(REG_PC + u);
+                ab[u] = read_byte(cpu.get_pc() + u);
 
-            wAddr = (REG_PC += Disassemble(ab));
+            wAddr = cpu.get_pc() + Disassemble(ab);
+            cpu.set_pc(wAddr);
         }
         break;
 
@@ -1871,14 +1868,20 @@ bool DisView::cmdNavigate(int nKey_, int nMods_)
         if (!fCtrl)
             wAddr = s_wAddrs[0] - 1;
         else
-            wAddr = --REG_PC;
+        {
+            cpu.set_pc(cpu.get_pc() - 1);
+            wAddr = cpu.get_pc();
+        }
         break;
 
     case HK_RIGHT:
         if (!fCtrl)
             wAddr = s_wAddrs[0] + 1;
         else
-            wAddr = ++REG_PC;
+        {
+            cpu.set_pc(cpu.get_pc() + 1);
+            wAddr = cpu.get_pc();
+        }
         break;
 
     case HK_PGDN:
@@ -1927,15 +1930,15 @@ bool DisView::cmdNavigate(int nKey_, int nMods_)
 bool DisView::SetCodeTarget()
 {
     // Extract the two bytes at PC, which we'll assume are single byte opcode and operand
-    auto wPC = REG_PC;
+    auto wPC = cpu.get_pc();
     auto bOpcode = read_byte(wPC);
     auto bOperand = read_byte(wPC + 1);
-    uint8_t bFlags = REG_F, bCond = 0xff;
+    uint8_t bFlags = cpu.get_f(), bCond = 0xff;
 
     // Work out the possible next instruction addresses, which depend on the instruction found
     auto wJpTarget = read_word(wPC + 1);
     uint16_t wJrTarget = wPC + 2 + static_cast<signed char>(read_byte(wPC + 1));
-    auto wRetTarget = read_word(REG_SP);
+    auto wRetTarget = read_word(cpu.get_sp());
     uint16_t wRstTarget = bOpcode & 0x38;
 
     // No instruction target or conditional jump helper string yet
@@ -1946,7 +1949,7 @@ bool DisView::SetCodeTarget()
     {
     case OP_DJNZ:
         // Set a pretend zero flag if B is 1 and would be decremented to zero
-        bFlags = (REG_B == 1) ? FLAG_Z : 0;
+        bFlags = (cpu.get_b() == 1) ? cpu.zf_mask : 0;
         bCond = 0;
         // Fall through...
 
@@ -1954,7 +1957,7 @@ bool DisView::SetCodeTarget()
     case OP_RET:    m_uCodeTarget = wRetTarget; break;
     case OP_JP:
     case OP_CALL:   m_uCodeTarget = wJpTarget;  break;
-    case OP_JPHL:   m_uCodeTarget = REG_HL;  break;
+    case OP_JPHL:   m_uCodeTarget = cpu.get_hl();  break;
 
     case ED_PREFIX:
     {
@@ -1965,8 +1968,8 @@ bool DisView::SetCodeTarget()
         break;
     }
 
-    case IX_PREFIX: if (bOperand == OP_JPHL) m_uCodeTarget = REG_IX;  break;  // JP (IX)
-    case IY_PREFIX: if (bOperand == OP_JPHL) m_uCodeTarget = REG_IY;  break;  // JP (IY)
+    case IX_PREFIX: if (bOperand == OP_JPHL) m_uCodeTarget = cpu.get_ix();  break;  // JP (IX)
+    case IY_PREFIX: if (bOperand == OP_JPHL) m_uCodeTarget = cpu.get_iy();  break;  // JP (IY)
 
     default:
         // JR cc ?
@@ -1997,7 +2000,8 @@ bool DisView::SetCodeTarget()
     // Have we got a condition to test?
     if (bCond <= 0x07)
     {
-        static const uint8_t abFlags[] = { FLAG_Z, FLAG_C, FLAG_P, FLAG_S };
+        static const uint8_t abFlags[] = {
+            cpu.zf_mask, cpu.cf_mask, cpu.pf_mask, cpu.sf_mask };
 
         // Invert the 'not' conditions to give a set bit for a mask
         bFlags ^= (bCond & 1) ? 0x00 : 0xff;
@@ -2021,7 +2025,7 @@ bool DisView::SetDataTarget()
     m_data_target.clear();
 
     // Extract potential instruction bytes
-    auto wPC = REG_PC;
+    auto wPC = cpu.get_pc();
     auto bOp0 = read_byte(wPC);
     auto bOp1 = read_byte(wPC + 1);
     auto bOp2 = read_byte(wPC + 2);
@@ -2036,13 +2040,13 @@ bool DisView::SetDataTarget()
     uint16_t wAddr12 = (bOp2 << 8) | bOp1;
     uint16_t wAddr23 = (bOp3 << 8) | bOp2;
     uint16_t wAddr = fIndex ? wAddr23 : wAddr12;
-    uint16_t wHLIXIYd = !fIndex ? REG_HL : (((bOp0 == 0xdd) ? REG_IX : REG_IY) + bOp2);
+    uint16_t wHLIXIYd = !fIndex ? cpu.get_hl() : (((bOp0 == 0xdd) ? cpu.get_ix() : cpu.get_iy()) + bOp2);
 
 
     // 000r0010 = LD (BC/DE),A
     // 000r1010 = LD A,(BC/DE)
     if ((bOpcode & 0xe7) == 0x02)
-        m_uDataTarget = (bOpcode & 0x10) ? REG_DE : REG_BC;
+        m_uDataTarget = (bOpcode & 0x10) ? cpu.get_de() : cpu.get_bc();
 
     // 00110010 = LD (nn),A
     // 00111010 = LD A,(nn)
@@ -2069,7 +2073,7 @@ bool DisView::SetDataTarget()
     // (DD) E3 = EX (SP),HL/IX/IY
     else if (bOpcode == 0xe3)
     {
-        m_uDataTarget = REG_SP;
+        m_uDataTarget = cpu.get_sp();
         f16Bit = true;
     }
     /*
@@ -2083,7 +2087,7 @@ bool DisView::SetDataTarget()
     // 11rr0001 = POP rr
     else if ((bOpcode & 0xcf) == 0xc1)
     {
-        m_uDataTarget = REG_SP;
+        m_uDataTarget = cpu.get_sp();
         f16Bit = true;
     }
 
@@ -2106,7 +2110,7 @@ bool DisView::SetDataTarget()
     // ED 0110x111 = RRD/RLD
     else if (bOpcode == ED_PREFIX && (bOp1 & 0xf7) == 0x67)
     {
-        m_uDataTarget = REG_HL;
+        m_uDataTarget = cpu.get_hl();
     }
 
     // ED 101000xx = LDI/CPI/INI/OUTI
@@ -2115,7 +2119,7 @@ bool DisView::SetDataTarget()
     // ED 101110xx = LDDR/CPDR/INDR/OTDR
     else if (bOpcode == ED_PREFIX && (bOp1 & 0xe4) == 0xa0)
     {
-        m_uDataTarget = REG_HL;
+        m_uDataTarget = cpu.get_hl();
     }
 
     // CB prefix?
@@ -2130,7 +2134,7 @@ bool DisView::SetDataTarget()
         // CB 00ooo110 = RLC|RRC|RL|RR|SLA|SRA|SLL|SRL (HL)
         // CB oobbbrrr = [_|BIT|RES|SET] b,(HL)
         else if ((bOp1 & 0x07) == 0x06)
-            m_uDataTarget = REG_HL;
+            m_uDataTarget = cpu.get_hl();
     }
 
     // Do we have something to display?
@@ -2190,8 +2194,8 @@ void TxtView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
         for (int j = 0; j < 64; j++)
         {
             // Remember addresses matching the last read/write access.
-            if ((AddrReadPtr(wAddr_) == pbMemRead1 || AddrReadPtr(wAddr_) == pbMemRead2) ||
-                (AddrWritePtr(wAddr_) == pbMemWrite1 || AddrReadPtr(wAddr_) == pbMemWrite2))
+            if ((AddrReadPtr(wAddr_) == Memory::last_phys_read1 || AddrReadPtr(wAddr_) == Memory::last_phys_read2) ||
+                (AddrWritePtr(wAddr_) == Memory::last_phys_write1 || AddrReadPtr(wAddr_) == Memory::last_phys_write2))
             {
                 m_aAccesses.push_back(wAddr_);
             }
@@ -2228,8 +2232,8 @@ void TxtView::Draw(FrameBuffer& fb)
     // Change the background colour of locations matching the last read/write access.
     for (auto wAddr : m_aAccesses)
     {
-        bool fRead = AddrReadPtr(wAddr) == pbMemRead1 || AddrReadPtr(wAddr) == pbMemRead2;
-        bool fWrite = AddrWritePtr(wAddr) == pbMemWrite1 || AddrWritePtr(wAddr) == pbMemWrite2;
+        bool fRead = AddrReadPtr(wAddr) == Memory::last_phys_read1 || AddrReadPtr(wAddr) == Memory::last_phys_read2;
+        bool fWrite = AddrWritePtr(wAddr) == Memory::last_phys_write1 || AddrWritePtr(wAddr) == Memory::last_phys_write2;
         uint8_t bColour = (fRead && fWrite) ? YELLOW_3 : fWrite ? RED_3 : GREEN_3;
         if (GetAddrPosition(wAddr, nX, nY))
         {
@@ -2300,12 +2304,12 @@ bool TxtView::cmdNavigate(int nKey_, int nMods_)
         break;
 
     case HK_HOME:
-        wEditAddr = wAddr = fCtrl ? 0 : (fShift && m_fEditing) ? wEditAddr : REG_PC;
+        wEditAddr = wAddr = fCtrl ? 0 : (fShift && m_fEditing) ? wEditAddr : cpu.get_pc();
         break;
 
     case HK_END:
-        wAddr = fCtrl ? (0 - m_nRows * TXT_COLUMNS) : REG_PC;
-        wEditAddr = (fCtrl ? 0 : REG_PC + m_nRows * TXT_COLUMNS) - 1;
+        wAddr = fCtrl ? (0 - m_nRows * TXT_COLUMNS) : cpu.get_pc();
+        wEditAddr = (fCtrl ? 0 : cpu.get_pc() + m_nRows * TXT_COLUMNS) - 1;
         break;
 
     case HK_UP:
@@ -2412,8 +2416,8 @@ void HexView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
         for (int j = 0; j < HEX_COLUMNS; j++)
         {
             // Remember addresses matching the last read/write access.
-            if ((AddrReadPtr(wAddr_) == pbMemRead1 || AddrReadPtr(wAddr_) == pbMemRead2) ||
-                (AddrWritePtr(wAddr_) == pbMemWrite1 || AddrReadPtr(wAddr_) == pbMemWrite2))
+            if ((AddrReadPtr(wAddr_) == Memory::last_phys_read1 || AddrReadPtr(wAddr_) == Memory::last_phys_read2) ||
+                (AddrWritePtr(wAddr_) == Memory::last_phys_write1 || AddrReadPtr(wAddr_) == Memory::last_phys_write2))
             {
                 m_aAccesses.push_back(wAddr_);
             }
@@ -2458,8 +2462,8 @@ void HexView::Draw(FrameBuffer& fb)
     // Change the background colour of locations matching the last read/write access.
     for (auto wAddr : m_aAccesses)
     {
-        bool fRead = AddrReadPtr(wAddr) == pbMemRead1 || AddrReadPtr(wAddr) == pbMemRead2;
-        bool fWrite = AddrWritePtr(wAddr) == pbMemWrite1 || AddrWritePtr(wAddr) == pbMemWrite2;
+        bool fRead = AddrReadPtr(wAddr) == Memory::last_phys_read1 || AddrReadPtr(wAddr) == Memory::last_phys_read2;
+        bool fWrite = AddrWritePtr(wAddr) == Memory::last_phys_write1 || AddrWritePtr(wAddr) == Memory::last_phys_write2;
         uint8_t bColour = (fRead && fWrite) ? YELLOW_3 : fWrite ? RED_3 : GREEN_3;
         if (GetAddrPosition(wAddr, nX, nY, nTextX))
         {
@@ -2533,12 +2537,12 @@ bool HexView::cmdNavigate(int nKey_, int nMods_)
         break;
 
     case HK_HOME:
-        wEditAddr = wAddr = fCtrl ? 0 : (fShift && m_fEditing) ? wEditAddr : REG_PC;
+        wEditAddr = wAddr = fCtrl ? 0 : (fShift && m_fEditing) ? wEditAddr : cpu.get_pc();
         break;
 
     case HK_END:
-        wAddr = fCtrl ? (0 - m_nRows * HEX_COLUMNS) : REG_PC;
-        wEditAddr = (fCtrl ? 0 : REG_PC + m_nRows * HEX_COLUMNS) - 1;
+        wAddr = fCtrl ? (0 - m_nRows * HEX_COLUMNS) : cpu.get_pc();
+        wEditAddr = (fCtrl ? 0 : cpu.get_pc() + m_nRows * HEX_COLUMNS) - 1;
         break;
 
     case HK_UP:
@@ -2812,11 +2816,11 @@ bool GfxView::cmdNavigate(int nKey_, int nMods_)
         break;
 
     case HK_HOME:
-        wAddr = fCtrl ? 0 : REG_PC;
+        wAddr = fCtrl ? 0 : cpu.get_pc();
         break;
 
     case HK_END:
-        wAddr = fCtrl ? (static_cast<uint16_t>(0) - m_uStrips * m_uStripLines * s_uWidth) : REG_PC;
+        wAddr = fCtrl ? (static_cast<uint16_t>(0) - m_uStrips * m_uStripLines * s_uWidth) : cpu.get_pc();
         break;
 
     case HK_UP:
@@ -2907,7 +2911,7 @@ void BptView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
             m_nLines++;
 
             // Check if we're on an execution breakpoint (ignoring condition)
-            auto pPhys = AddrReadPtr(REG_PC);
+            auto pPhys = AddrReadPtr(cpu.get_pc());
             if (bp.type == BreakType::Execute)
             {
                 if (auto exec = std::get_if<BreakExec>(&bp.data))
@@ -3036,48 +3040,50 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
             TRACEDATA* p1 = &aTrace[nPos1];
 
             // Macro-tastic!
-#define CHG_S(r)    (p1->regs.r != p0->regs.r)
-#define CHG_H(r,h)  (p1->regs.r.b.h != p0->regs.r.b.h)
-#define CHG_D(r)    (p1->regs.r.w != p0->regs.r.w)
+#define CHG(r)    (p1->regs.get_##r() != p0->regs.get_##r())
+#define CHG_H(r,h)  (z80::get_high8(p1->regs.get_##r()) != z80::get_high8(p0->regs.get_##r()))
 
-#define CHK_S(r,RL)     if (CHG_S(r)) PRINT_S(RL,r);
+#define CHK_S(r,RL)     if (CHG(r)) PRINT_S(RL,r);
 #define CHK(rr,RH,RL)   if (CHG_H(rr,h) && !CHG_H(rr,l)) PRINT_H(RH,rr,h);      \
                         else if (!CHG_H(rr,h) && CHG_H(rr,l)) PRINT_H(RL,rr,l); \
-                        else if (CHG_D(rr)) PRINT_D(RH RL,rr)
+                        else if (CHG(rr)) PRINT_D(RH RL,rr)
 
-#define PRINT_H(N,r,h)  psz += sprintf(psz, "\ag" N "\aX %02X->%02X  ", p0->regs.r.b.h, p1->regs.r.b.h)
-#define PRINT_S(N,r)    psz += sprintf(psz, "\ag" N "\aX %02X->%02X  ", p0->regs.r, p1->regs.r)
-#define PRINT_D(N,r)    psz += sprintf(psz, "\ag" N "\aX %04X->%04X  ", p0->regs.r.w, p1->regs.r.w)
+#define PRINT_H(N,r,h)  psz += sprintf(psz, "\ag" N "\aX %02X->%02X  ", static_cast<unsigned>(z80::get_high8(p0->regs.get_##r())), static_cast<unsigned>(z80::get_high8(p1->regs.get_##r())))
+#define PRINT_S(N,r)    psz += sprintf(psz, "\ag" N "\aX %02X->%02X  ", static_cast<unsigned>(p0->regs.get_##r()), static_cast<unsigned>(p1->regs.get_##r()))
+#define PRINT_D(N,r)    psz += sprintf(psz, "\ag" N "\aX %04X->%04X  ", static_cast<unsigned>(p0->regs.get_##r()), static_cast<unsigned>(p1->regs.get_##r()))
 
             // Special check for EXX, as we don't have room for all changes
-            if ((CHG_D(bc) && CHG_D(bc_)) ||
-                (CHG_D(de) && CHG_D(de_)) ||
-                (CHG_D(hl) && CHG_D(hl_)))
+            if ((CHG(bc) && CHG(alt_bc)) ||
+                (CHG(de) && CHG(alt_de)) ||
+                (CHG(hl) && CHG(alt_hl)))
             {
                 psz += sprintf(psz, "BC/DE/HL <=> BC'/DE'/HL'");
             }
             // Same for BC+DE+HL changing in block instructions
-            else if (CHG_D(bc) && CHG_D(de) && CHG_D(hl))
+            else if (CHG(bc) && CHG(de) && CHG(hl))
             {
-                psz += sprintf(psz, "\agBC\aX->%04X \agDE\aX->%04X \agHL\aX->%04X", REG_BC, REG_DE, REG_HL);
+                psz += sprintf(psz, "\agBC\aX->%04X \agDE\aX->%04X \agHL\aX->%04X",
+                    static_cast<unsigned>(cpu.get_bc()),
+                    static_cast<unsigned>(cpu.get_de()),
+                    static_cast<unsigned>(cpu.get_hl()));
             }
             else
             {
-                if (CHG_D(sp))
+                if (CHG(sp))
                 {
-                    if (CHG_D(af)) PRINT_D("AF", af);
-                    if (CHG_D(bc)) PRINT_D("BC", bc);
-                    if (CHG_D(de)) PRINT_D("DE", de);
-                    if (CHG_D(hl)) PRINT_D("HL", hl);
+                    if (CHG(af)) PRINT_D("AF", af);
+                    if (CHG(bc)) PRINT_D("BC", bc);
+                    if (CHG(de)) PRINT_D("DE", de);
+                    if (CHG(hl)) PRINT_D("HL", hl);
                 }
                 else
                 {
                     if (m_fFullMode)
                     {
-                        if (CHG_D(af)) PRINT_D("AF", af);
-                        if (CHG_D(bc)) PRINT_D("BC", bc);
-                        if (CHG_D(de)) PRINT_D("DE", de);
-                        if (CHG_D(hl)) PRINT_D("HL", hl);
+                        if (CHG(af)) PRINT_D("AF", af);
+                        if (CHG(bc)) PRINT_D("BC", bc);
+                        if (CHG(de)) PRINT_D("DE", de);
+                        if (CHG(hl)) PRINT_D("HL", hl);
                     }
                     else
                     {
@@ -3088,12 +3094,12 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
                     }
                 }
 
-                if (CHG_D(ix)) PRINT_D("IX", ix);
-                if (CHG_D(iy)) PRINT_D("IY", iy);
-                if (CHG_D(sp)) PRINT_D("SP", sp);
+                if (CHG(ix)) PRINT_D("IX", ix);
+                if (CHG(iy)) PRINT_D("IY", iy);
+                if (CHG(sp)) PRINT_D("SP", sp);
 
                 CHK_S(i, "I");
-                CHK_S(im, "IM");
+                CHK_S(int_mode, "IM");
             }
         }
 

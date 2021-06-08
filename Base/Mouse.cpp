@@ -27,6 +27,7 @@
 #include "Mouse.h"
 
 #include "CPU.h"
+#include "Events.h"
 #include "Options.h"
 
 
@@ -81,13 +82,13 @@ uint8_t MouseDevice::In(uint16_t /*wPort_*/)
         m_uBuffer = 1;
 
         // If it's not the ROM reading the mouse, remember the last read time
-        if (REG_PC != 0xd4d6)
+        if (cpu.get_pc() != 0xd4d6)
             read_time = std::chrono::steady_clock::now();
     }
 
     // Cancel any pending reset event, and schedule a fresh one
-    if (m_uBuffer) CancelCpuEvent(EventType::MouseReset);
-    AddCpuEvent(EventType::MouseReset, g_dwCycleCounter + MOUSE_RESET_TIME);
+    if (m_uBuffer) CancelEvent(EventType::MouseReset);
+    AddEvent(EventType::MouseReset, CPU::frame_cycles + MOUSE_RESET_TIME);
 
     return bRet;
 }

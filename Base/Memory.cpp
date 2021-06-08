@@ -23,6 +23,7 @@
 #include "Memory.h"
 
 #include "CPU.h"
+#include "Frame.h"
 #include "Options.h"
 #include "Stream.h"
 
@@ -51,9 +52,11 @@ uint8_t g_abMode1ByteToLine[GFX_SCREEN_LINES];
 
 namespace Memory
 {
+bool full_contention = true;
+uint8_t *last_phys_read1, *last_phys_read2, *last_phys_write1, *last_phys_write2;
+
 static bool fUpdateRom;
 
-static void SetConfig();
 static bool LoadRoms();
 
 // Allocate and initialise memory
@@ -201,3 +204,42 @@ std::string PageDesc(int page, bool compact)
 }
 
 } // namespace Memory
+
+
+void write_to_screen_vmpr0(uint16_t addr)
+{
+    addr &= (MEM_PAGE_SIZE - 1);
+
+    switch (IO::State().vmpr & VMPR_MODE_MASK)
+    {
+    case VMPR_MODE_1:
+        if (addr < MODE12_DATA_BYTES)
+        {
+            Frame::TouchLine(g_abMode1ByteToLine[addr >> 5] + TOP_BORDER_LINES);
+        }
+        else if (addr < MODE1_DISPLAY_BYTES)
+        {
+            auto line = (((addr - MODE12_DATA_BYTES) & 0xffe0) >> 2) + TOP_BORDER_LINES;
+            Frame::TouchLines(line, line + 7);
+        }
+
+        break;
+
+    case VMPR_MODE_2:
+        if (addr < MODE12_DATA_BYTES || (addr >= MODE2_ATTR_OFFSET && addr < (MODE2_ATTR_OFFSET + MODE12_DATA_BYTES)))
+            Frame::TouchLine(((addr & 0x1fff) >> 5) + TOP_BORDER_LINES);
+        break;
+
+    default:
+        Frame::TouchLine((addr >> 7) + TOP_BORDER_LINES);
+        break;
+    }
+}
+
+void write_to_screen_vmpr1(uint16_t addr)
+{
+    addr &= (MEM_PAGE_SIZE - 1);
+
+    if (addr < (MODE34_DISPLAY_BYTES - MEM_PAGE_SIZE))
+        Frame::TouchLine(((addr + MEM_PAGE_SIZE) >> 7) + TOP_BORDER_LINES);
+}

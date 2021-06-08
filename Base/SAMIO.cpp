@@ -29,6 +29,7 @@
 #include "Clock.h"
 #include "CPU.h"
 #include "Drive.h"
+#include "Events.h"
 #include "Floppy.h"
 #include "Frame.h"
 #include "GUI.h"
@@ -95,16 +96,21 @@ std::array<uint8_t, 9> key_matrix;
 std::array<uint8_t, 32> unhandled_ports;
 #endif
 
+constexpr uint32_t A_ROUND(uint32_t frame_cycles, int add_cycles, int power_of_2) {
+    return Round(frame_cycles + add_cycles, power_of_2) - frame_cycles;
+}
 
 bool Init()
 {
     bool fRet = true;
     Exit(true);
 
-    m_state.lepr = m_state.hepr = m_state.lpen = m_state.border = 0;
+    m_state.lpen = m_state.border = 0;
     m_state.keyboard = KEYBOARD_EAR_MASK;
-    m_state.status_reg = 0xff;
+    m_state.status = 0xff;
 
+    out_lepr(0);
+    out_hepr(0);
     out_lmpr(0);
     out_hmpr(0);
     out_vmpr(0);
@@ -154,7 +160,7 @@ bool Init()
     if (GetOption(asicdelay))
     {
         m_state.asic_asleep = true;
-        AddCpuEvent(EventType::AsicReady, g_dwCycleCounter + CPU_CYCLES_ASIC_STARTUP);
+        AddEvent(EventType::AsicReady, CPU::frame_cycles + CPU_CYCLES_ASIC_STARTUP);
     }
 
     pDAC->Reset();
@@ -215,7 +221,7 @@ void Exit(bool reinit)
     }
 }
 
-constexpr IoState& State()
+IoState& State()
 {
     return m_state;
 }
@@ -252,7 +258,8 @@ static uint8_t update_lpen()
 {
     if (!ScreenDisabled())
     {
-        int line = g_dwCycleCounter / CPU_CYCLES_PER_LINE, line_cycle = g_dwCycleCounter % CPU_CYCLES_PER_LINE;
+        auto line = CPU::frame_cycles / CPU_CYCLES_PER_LINE;
+        auto line_cycle = CPU::frame_cycles % CPU_CYCLES_PER_LINE;
 
         if (IsScreenLine(line) && line_cycle >= (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER))
         {
@@ -279,7 +286,8 @@ static uint8_t update_hpen()
 {
     if (!ScreenDisabled())
     {
-        int line = g_dwCycleCounter / CPU_CYCLES_PER_LINE, line_cycle = g_dwCycleCounter % CPU_CYCLES_PER_LINE;
+        auto line = CPU::frame_cycles / CPU_CYCLES_PER_LINE;
+        auto line_cycle = CPU::frame_cycles % CPU_CYCLES_PER_LINE;
 
         if (IsScreenLine(line) && (line != TOP_BORDER_LINES || line_cycle >= (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER)))
             m_state.hpen = line - TOP_BORDER_LINES;
@@ -315,7 +323,7 @@ void out_vmpr(uint8_t val)
 
     if ((m_state.vmpr ^ val) & (VMPR_MODE_MASK | VMPR_PAGE_MASK))
     {
-        auto [line, line_cycle] = Frame::GetRasterPos(g_dwCycleCounter);
+        auto [line, line_cycle] = Frame::GetRasterPos(CPU::frame_cycles);
         mid_frame_change |= IsScreenLine(line);
     }
 
@@ -342,7 +350,7 @@ void out_clut(uint16_t port, uint8_t val)
 
     if (m_state.clut[clut_index] != palette_index)
     {
-        auto [line, line_cycle] = Frame::GetRasterPos(g_dwCycleCounter);
+        auto [line, line_cycle] = Frame::GetRasterPos(CPU::frame_cycles);
         if (IsScreenLine(line))
             mid_frame_change = true;
 
@@ -358,7 +366,7 @@ uint8_t In(uint16_t port)
     uint8_t port_high = port >> 8;
     last_in_port = port;
 
-    CheckCpuEvents();
+    CheckEvents(CPU::frame_cycles);
 
     if (port_low >= BASE_ASIC_PORT && m_state.asic_asleep)
         return last_in_val = 0x00;
@@ -398,7 +406,6 @@ uint8_t In(uint16_t port)
     }
 
     case STATUS_PORT:
-    {
         if (!(port_high & 0x80)) ret &= key_matrix[7];
         if (!(port_high & 0x40)) ret &= key_matrix[6];
         if (!(port_high & 0x20)) ret &= key_matrix[5];
@@ -408,9 +415,8 @@ uint8_t In(uint16_t port)
         if (!(port_high & 0x02)) ret &= key_matrix[1];
         if (!(port_high & 0x01)) ret &= key_matrix[0];
 
-        ret = (ret & 0xe0) | (m_state.status_reg & 0x1f);
+        ret = (ret & 0xe0) | (m_state.status & 0x1f);
         break;
-    }
 
     case LMPR_PORT:
         ret = m_state.lmpr;
@@ -439,7 +445,6 @@ uint8_t In(uint16_t port)
         break;
 
     case ATTR_PORT:
-    {
         if (!ScreenDisabled())
         {
             auto [b0, b1, b2, b3] = Frame::GetAsicData();
@@ -448,7 +453,6 @@ uint8_t In(uint16_t port)
 
         ret = m_state.attr;
         break;
-    }
 
     case PRINTL1_STAT_PORT:
     case PRINTL1_DATA_PORT:
@@ -553,7 +557,7 @@ void Out(uint16_t port, uint8_t val)
     last_out_port = port;
     last_out_val = val;
 
-    CheckCpuEvents();
+    CheckEvents(CPU::frame_cycles);
 
     if (port_low >= BASE_ASIC_PORT && m_state.asic_asleep)
         return;
@@ -588,9 +592,6 @@ void Out(uint16_t port, uint8_t val)
             pBeeper->Out(port, val);
 
         m_state.border = val;
-
-        if (soff_change)
-            CPU::UpdateContention(CPU::IsContentionActive());
     }
     break;
 
@@ -607,21 +608,19 @@ void Out(uint16_t port, uint8_t val)
             }
             else
             {
-                g_dwCycleCounter += CPU_CYCLES_PER_CELL;
+                CPU::frame_cycles += CPU_CYCLES_PER_CELL;
                 Frame::Update();
-                g_dwCycleCounter -= CPU_CYCLES_PER_CELL;
+                CPU::frame_cycles -= CPU_CYCLES_PER_CELL;
 
                 out_vmpr(val);
             }
-
-            CPU::UpdateContention(CPU::IsContentionActive());
         }
 
         if (vmpr_changes & VMPR_PAGE_MASK)
         {
-            g_dwCycleCounter += CPU_CYCLES_PER_CELL;
+            CPU::frame_cycles += CPU_CYCLES_PER_CELL;
             Frame::Update();
-            g_dwCycleCounter -= CPU_CYCLES_PER_CELL;
+            CPU::frame_cycles -= CPU_CYCLES_PER_CELL;
 
             out_vmpr(val);
         }
@@ -658,22 +657,20 @@ void Out(uint16_t port, uint8_t val)
         break;
 
     case LINE_PORT:
-        if (m_state.line_int != val)
+        if (m_state.line != val)
         {
-            if (m_state.line_int < GFX_SCREEN_LINES)
+            if (m_state.line < GFX_SCREEN_LINES)
             {
-                CancelCpuEvent(EventType::LineInterrupt);
-                m_state.status_reg |= STATUS_INT_LINE;
+                CancelEvent(EventType::LineInterrupt);
+                m_state.status |= STATUS_INT_LINE;
             }
 
-            m_state.line_int = val;
+            m_state.line = val;
 
-            if (m_state.line_int < GFX_SCREEN_LINES)
+            if (m_state.line < GFX_SCREEN_LINES)
             {
-                uint32_t dwLineTime = (m_state.line_int + TOP_BORDER_LINES) * CPU_CYCLES_PER_LINE;
-
-                // Schedule the line interrupt (could be active now, or already passed this frame)
-                AddCpuEvent(EventType::LineInterrupt, dwLineTime);
+                auto line_int_time = (m_state.line + TOP_BORDER_LINES) * CPU_CYCLES_PER_LINE;
+                AddEvent(EventType::LineInterrupt, line_int_time);
             }
         }
         break;
@@ -706,8 +703,9 @@ void Out(uint16_t port, uint8_t val)
         if (!(m_state.lpen & LPEN_TXFMST))
         {
             m_state.lpen |= LPEN_TXFMST;
-            AddCpuEvent(EventType::MidiOutStart, g_dwCycleCounter +
-                A_ROUND(MIDI_TRANSMIT_TIME + 16, 32) - 16 - 32 - MIDI_INT_ACTIVE_TIME + 1);
+            auto midi_int_time = CPU::frame_cycles +
+                A_ROUND(CPU::frame_cycles, MIDI_TRANSMIT_TIME + 16, 32) - 16 - 32 - MIDI_INT_ACTIVE_TIME + 1;
+            AddEvent(EventType::MidiOutStart, midi_int_time);
 
             if (GetOption(midi) == 1)
                 pMidi->Out(port, val);
@@ -879,11 +877,11 @@ bool TestStartupScreen(bool skip_startup)
     for (int i = 0; i < 20; i += 2)
     {
         // Check for 0f78 on stack, with previous location pointing at JR Z,-5
-        if (read_word(REG_SP + i + 2) == 0x0f78 && read_word(read_word(REG_SP + i)) == 0xfb28)
+        if (read_word(cpu.get_sp() + i + 2) == 0x0f78 && read_word(read_word(cpu.get_sp() + i)) == 0xfb28)
         {
             // Optionally skip JR to exit WTFK loop at copyright message
             if (skip_startup)
-                write_word(REG_SP + i, read_word(REG_SP + i) + 2);
+                write_word(cpu.get_sp() + i, read_word(cpu.get_sp() + i) + 2);
 
             return true;
         }
@@ -908,20 +906,19 @@ void AutoLoad(AutoLoadType type, bool fOnlyAtStartup_/*=true*/)
         Keyin::String("\xc7", false);
 }
 
-bool EiHook()
+void EiHook()
 {
     // If we're leaving the ROM interrupt handler, inject any auto-typing input
-    if (REG_PC == 0x005a && GetSectionPage(Section::A) == ROM0)
+    if (cpu.get_pc() == 0x005a && GetSectionPage(Section::A) == ROM0)
         Keyin::Next();
 
     Tape::EiHook();
-    return false;
 }
 
 bool Rst8Hook()
 {
-    if ((REG_PC < 0x4000 && GetSectionPage(Section::A) != ROM0) ||
-        (REG_PC >= 0xc000 && GetSectionPage(Section::D) != ROM1))
+    if ((cpu.get_pc() < 0x4000 && GetSectionPage(Section::A) != ROM0) ||
+        (cpu.get_pc() >= 0xc000 && GetSectionPage(Section::D) != ROM1))
     {
         return false;
     }
@@ -929,7 +926,7 @@ bool Rst8Hook()
     // If a drive object exists, clean up after our boot attempt, whether or not it worked
     pBootDrive.reset();
 
-    switch (read_byte(REG_PC))
+    switch (read_byte(cpu.get_pc()))
     {
     // No error
     case 0x00:
@@ -959,7 +956,7 @@ bool Rst8Hook()
                 pBootDrive = std::make_unique<Drive>(std::move(disk));
 
                 // Jump back to BOOTEX to try again
-                REG_PC = 0xd8e5;
+                cpu.set_pc(0xd8e5);
                 return true;
             }
         }
@@ -973,16 +970,14 @@ bool Rst8Hook()
     return false;
 }
 
-bool Rst48Hook()
+void Rst48Hook()
 {
     // Are we at READKEY in ROM0?
-    if (REG_PC == 0x1cb2 && GetSectionPage(Section::A) == ROM0)
+    if (cpu.get_pc() == 0x1cb2 && GetSectionPage(Section::A) == ROM0)
     {
         if (Keyin::IsTyping())
             TestStartupScreen(true);
     }
-
-    return false;
 }
 
 } // namespace IO

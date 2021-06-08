@@ -21,18 +21,7 @@
 
 #pragma once
 
-#include "Frame.h"
-
-namespace Memory
-{
-bool Init(bool fFirstInit_ = false);
-void Exit(bool fReInit_ = false);
-
-void UpdateConfig();
-void UpdateRom();
-
-std::string PageDesc(int nPage_, bool fCompact_ = false);
-}
+#include "SAMIO.h"
 
 constexpr auto NUM_SCRATCH_PAGES = 2;
 
@@ -127,40 +116,46 @@ inline void PageIn(Section section, int page)
         apbSectionWritePtrs[index] = PageWritePtr(SCRATCH_WRITE);
 }
 
-inline void write_to_screen_vmpr0(uint16_t addr)
+namespace Memory
 {
-    addr &= (MEM_PAGE_SIZE - 1);
+    extern bool full_contention;
+    extern uint8_t* last_phys_read1, * last_phys_read2, * last_phys_write1, * last_phys_write2;
 
-    switch (IO::State().vmpr & VMPR_MODE_MASK)
+    bool Init(bool fFirstInit_ = false);
+    void Exit(bool fReInit_ = false);
+
+    void UpdateConfig();
+    void UpdateRom();
+
+    inline uint8_t Read(uint16_t addr)
     {
-    case VMPR_MODE_1:
-        if (addr < MODE12_DATA_BYTES)
-        {
-            Frame::TouchLine(g_abMode1ByteToLine[addr >> 5] + TOP_BORDER_LINES);
-        }
-        else if (addr < MODE1_DISPLAY_BYTES)
-        {
-            auto line = (((addr - MODE12_DATA_BYTES) & 0xffe0) >> 2) + TOP_BORDER_LINES;
-            Frame::TouchLines(line, line + 7);
-        }
-
-        break;
-
-    case VMPR_MODE_2:
-        if (addr < MODE12_DATA_BYTES || (addr >= MODE2_ATTR_OFFSET && addr < (MODE2_ATTR_OFFSET + MODE12_DATA_BYTES)))
-            Frame::TouchLine(((addr & 0x1fff) >> 5) + TOP_BORDER_LINES);
-        break;
-
-    default:
-        Frame::TouchLine((addr >> 7) + TOP_BORDER_LINES);
-        break;
+        last_phys_read2 = last_phys_read1;
+        return *(last_phys_read1 = AddrReadPtr(addr));
     }
-}
 
-inline void write_to_screen_vmpr1(uint16_t addr)
-{
-    addr &= (MEM_PAGE_SIZE - 1);
+    inline void Write(uint16_t addr, uint8_t val)
+    {
+        last_phys_write2 = last_phys_write1;
+        *(last_phys_write1 = AddrWritePtr(addr)) = val;
+    }
 
-    if (addr < (MODE34_DISPLAY_BYTES - MEM_PAGE_SIZE))
-        Frame::TouchLine(((addr + MEM_PAGE_SIZE) >> 7) + TOP_BORDER_LINES);
+    inline int WaitStates(uint32_t frame_cycles, uint16_t addr)
+    {
+        if (!afSectionContended[AddrSection(addr)])
+            return 0;
+
+        int line = frame_cycles / CPU_CYCLES_PER_LINE;
+        auto line_cycle = (frame_cycles + CPU_CYCLES_SCREEN_CONTENTION_OFFSET) % CPU_CYCLES_PER_LINE;
+        bool main_screen =
+            line >= TOP_BORDER_LINES &&
+            line < TOP_BORDER_LINES + GFX_SCREEN_LINES &&
+            line_cycle >= CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER;
+        bool mode1 = (!(line_cycle & 0x40)) && ((IO::State().vmpr & VMPR_MODE_MASK) == VMPR_MODE_1);
+
+        auto mask = (full_contention && !IO::ScreenDisabled() && (main_screen || mode1)) ? 7 : 3;
+        auto delay = (mask - ((frame_cycles + 2) & mask));
+        return delay;
+    }
+
+    std::string PageDesc(int nPage_, bool fCompact_ = false);
 }

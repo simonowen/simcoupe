@@ -35,6 +35,7 @@
 #include "BlueAlpha.h"
 
 #include "CPU.h"
+#include "Events.h"
 #include "Options.h"
 #include "Sound.h"
 
@@ -64,7 +65,7 @@ void BASamplerDevice::Clock(uint32_t event_time)
     // If DAC or ADC are enabled, return true to keep the clock running
     if ((~m_bPortB & (PORTB_DAC_ENABLE | PORTB_ADC_ENABLE)) != 0)
     {
-        AddCpuEvent(EventType::BlueAlphaClock, event_time + m_cpuCyclesPerClock);
+        AddEvent(EventType::BlueAlphaClock, event_time + m_cpuCyclesPerClock);
     }
 }
 
@@ -107,7 +108,7 @@ void BASamplerDevice::Out(uint16_t wPort_, uint8_t bVal_)
         {
             auto freq = std::min(std::max(8000, GetOption(samplerfreq)), 48000);
             m_cpuCyclesPerClock = CPU_CLOCK_HZ / freq / 2;
-            AddCpuEvent(EventType::BlueAlphaClock, g_dwCycleCounter + m_cpuCyclesPerClock);
+            AddEvent(EventType::BlueAlphaClock, CPU::frame_cycles + m_cpuCyclesPerClock);
         }
 
         m_bPortB = bVal_;

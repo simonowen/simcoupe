@@ -70,7 +70,9 @@ constexpr auto MODE34_DISPLAY_BYTES = MODE34_BYTES_PER_LINE * GFX_SCREEN_LINES;
 constexpr auto EMULATED_FRAMES_PER_SECOND = PAL_FIELDS_PER_SECOND;
 constexpr auto ACTUAL_FRAMES_PER_SECOND = static_cast<float>(CPU_CLOCK_HZ) / CPU_CYCLES_PER_FRAME; // ~50.08
 
-constexpr auto CPU_CYCLES_INTERRUPT_ACTIVE = 128;
+constexpr auto CPU_CYCLES_INT_ACTIVE = 128;
+
+constexpr auto CPU_CYCLES_SCREEN_CONTENTION_OFFSET = 4;
 
 // CPU cycles after power-on before the ASIC responds to I/O (~49ms)
 constexpr auto CPU_CYCLES_ASIC_STARTUP = 291675;

@@ -20,8 +20,9 @@
 
 #include "SimCoupe.h"
 
+#include "CPU.h"
 #include "Expr.h"
-#include "Memory.h"
+#include "Frame.h"
 #include "Options.h"
 #include "Symbol.h"
 
@@ -229,19 +230,24 @@ int Expr::Eval(const std::vector<Node>& nodes)
 
             switch (*var)
             {
-            case Token::EI:        r = !!REG_IFF1; break;
-            case Token::DI:        r = !REG_IFF1;  break;
+            case Token::EI:
+                r = cpu.get_iff1() ? 1 : 0;
+                break;
+
+            case Token::DI:
+                r = cpu.get_iff1() ? 0 : 1;
+                break;
 
             case Token::DLine:
             {
-                auto [line, line_cycle] = Frame::GetRasterPos(g_dwCycleCounter);
+                auto [line, line_cycle] = Frame::GetRasterPos(CPU::frame_cycles);
                 r = line;
                 break;
             }
 
             case Token::SLine:
             {
-                auto [line, line_cycle] = Frame::GetRasterPos(g_dwCycleCounter);
+                auto [line, line_cycle] = Frame::GetRasterPos(CPU::frame_cycles);
                 if (line >= TOP_BORDER_LINES && line < (TOP_BORDER_LINES + GFX_SCREEN_LINES))
                     r = line - TOP_BORDER_LINES;
                 else
@@ -263,23 +269,40 @@ int Expr::Eval(const std::vector<Node>& nodes)
             case Token::InVal:     r = IO::last_in_val;          break;
             case Token::OutVal:    r = IO::last_out_val;         break;
 
-            case Token::LEPR:      r = LEPR_PORT;                break;    // 128
-            case Token::HEPR:      r = HEPR_PORT;                break;    // 129
-            case Token::LPEN:      r = LPEN_PORT;                break;    // 248
-            case Token::HPEN:      r = HPEN_PORT;                break;    // 248+256
-            case Token::STATUS:    r = STATUS_PORT;              break;    // 249
-            case Token::LMPR:      r = LMPR_PORT;                break;    // 250
-            case Token::HMPR:      r = HMPR_PORT;                break;    // 251
-            case Token::VMPR:      r = VMPR_PORT;                break;    // 252
-            case Token::MIDI:      r = MIDI_PORT;                break;    // 253
-            case Token::BORDER:    r = BORDER_PORT;              break;    // 254
-            case Token::ATTR:      r = ATTR_PORT;                break;    // 255
+            case Token::LEPR:      r = LEPR_PORT;                break;
+            case Token::HEPR:      r = HEPR_PORT;                break;
+            case Token::LPEN:      r = LPEN_PORT;                break;
+            case Token::HPEN:      r = HPEN_PORT;                break;
+            case Token::STATUS:    r = STATUS_PORT;              break;
+            case Token::LMPR:      r = LMPR_PORT;                break;
+            case Token::HMPR:      r = HMPR_PORT;                break;
+            case Token::VMPR:      r = VMPR_PORT;                break;
+            case Token::MIDI:      r = MIDI_PORT;                break;
+            case Token::BORDER:    r = BORDER_PORT;              break;
+            case Token::ATTR:      r = ATTR_PORT;                break;
 
-            case Token::InROM:     r = (!(io_state.lmpr & LMPR_ROM0_OFF) && REG_PC < 0x4000) || (io_state.lmpr & LMPR_ROM1 && REG_PC >= 0xc000); break;
-            case Token::Call:      r = REG_PC == REG_HL && !(io_state.lmpr & LMPR_ROM0_OFF) && (read_word(REG_SP) == 0x180d); break;
-            case Token::AutoExec:  r = REG_PC == REG_HL && !(io_state.lmpr & LMPR_ROM0_OFF) && (read_word(REG_SP) == 0x0213) && (read_word(REG_SP + 2) == 0x5f00); break;
+            case Token::InROM:
+                r = (!(io_state.lmpr & LMPR_ROM0_OFF) && cpu.get_pc() < 0x4000) ||
+                    (io_state.lmpr & LMPR_ROM1 && cpu.get_pc() >= 0xc000);
+                break;
 
-            case Token::Count:     r = count ? !--count : 1; break;
+            case Token::Call:
+                r = cpu.get_pc() == cpu.get_hl() &&
+                    !(io_state.lmpr & LMPR_ROM0_OFF) &&
+                    (read_word(cpu.get_sp()) == 0x180d);
+                break;
+
+            case Token::AutoExec:
+                r = cpu.get_pc() == cpu.get_hl() &&
+                    !(io_state.lmpr & LMPR_ROM0_OFF) &&
+                    (read_word(cpu.get_sp()) == 0x0213) &&
+                    (read_word(cpu.get_sp() + 2) == 0x5f00);
+                break;
+
+            case Token::Count:
+                r = count ? !--count : 1;
+                break;
+
             default:               break;
             }
 
@@ -531,54 +554,54 @@ int Expr::GetReg(Token reg)
 
     switch (reg)
     {
-    case Token::A:         ret = REG_A;      break;
-    case Token::F:         ret = REG_F;      break;
-    case Token::B:         ret = REG_B;      break;
-    case Token::C:         ret = REG_C;      break;
-    case Token::D:         ret = REG_D;      break;
-    case Token::E:         ret = REG_E;      break;
-    case Token::H:         ret = REG_H;      break;
-    case Token::L:         ret = REG_L;      break;
+    case Token::A:         ret = cpu.get_a(); break;
+    case Token::F:         ret = cpu.get_f(); break;
+    case Token::B:         ret = cpu.get_b(); break;
+    case Token::C:         ret = cpu.get_c(); break;
+    case Token::D:         ret = cpu.get_d(); break;
+    case Token::E:         ret = cpu.get_e(); break;
+    case Token::H:         ret = cpu.get_h(); break;
+    case Token::L:         ret = cpu.get_l(); break;
 
-    case Token::Alt_A:     ret = REG_A_;     break;
-    case Token::Alt_F:     ret = REG_F_;     break;
-    case Token::Alt_B:     ret = REG_B_;     break;
-    case Token::Alt_C:     ret = REG_C_;     break;
-    case Token::Alt_D:     ret = REG_D_;     break;
-    case Token::Alt_E:     ret = REG_E_;     break;
-    case Token::Alt_H:     ret = REG_H_;     break;
-    case Token::Alt_L:     ret = REG_L_;     break;
+    case Token::Alt_A:     ret = z80::get_high8(cpu.get_alt_af()); break;
+    case Token::Alt_F:     ret = z80::get_low8(cpu.get_alt_af()); break;
+    case Token::Alt_B:     ret = z80::get_high8(cpu.get_alt_bc()); break;
+    case Token::Alt_C:     ret = z80::get_low8(cpu.get_alt_bc()); break;
+    case Token::Alt_D:     ret = z80::get_high8(cpu.get_alt_de()); break;
+    case Token::Alt_E:     ret = z80::get_low8(cpu.get_alt_de()); break;
+    case Token::Alt_H:     ret = z80::get_high8(cpu.get_alt_hl()); break;
+    case Token::Alt_L:     ret = z80::get_low8(cpu.get_alt_hl()); break;
 
-    case Token::AF:        ret = REG_AF;     break;
-    case Token::BC:        ret = REG_BC;     break;
-    case Token::DE:        ret = REG_DE;     break;
-    case Token::HL:        ret = REG_HL;     break;
+    case Token::AF:        ret = cpu.get_af(); break;
+    case Token::BC:        ret = cpu.get_bc(); break;
+    case Token::DE:        ret = cpu.get_de(); break;
+    case Token::HL:        ret = cpu.get_hl(); break;
 
-    case Token::Alt_AF:    ret = REG_AF_;    break;
-    case Token::Alt_BC:    ret = REG_BC_;    break;
-    case Token::Alt_DE:    ret = REG_DE_;    break;
-    case Token::Alt_HL:    ret = REG_HL_;    break;
+    case Token::Alt_AF:    ret = cpu.get_alt_af(); break;
+    case Token::Alt_BC:    ret = cpu.get_alt_bc(); break;
+    case Token::Alt_DE:    ret = cpu.get_alt_de(); break;
+    case Token::Alt_HL:    ret = cpu.get_alt_hl(); break;
 
-    case Token::IX:        ret = REG_IX;     break;
-    case Token::IY:        ret = REG_IY;     break;
-    case Token::SP:        ret = REG_SP;     break;
-    case Token::PC:        ret = REG_PC;     break;
+    case Token::IX:        ret = cpu.get_ix(); break;
+    case Token::IY:        ret = cpu.get_iy(); break;
+    case Token::SP:        ret = cpu.get_sp(); break;
+    case Token::PC:        ret = cpu.get_pc(); break;
 
-    case Token::IXH:       ret = REG_IXH;    break;
-    case Token::IXL:       ret = REG_IXL;    break;
-    case Token::IYH:       ret = REG_IYH;    break;
-    case Token::IYL:       ret = REG_IYL;    break;
+    case Token::IXH:       ret = cpu.get_ixh(); break;
+    case Token::IXL:       ret = cpu.get_ixl(); break;
+    case Token::IYH:       ret = cpu.get_iyh(); break;
+    case Token::IYL:       ret = cpu.get_iyl(); break;
 
-    case Token::SPH:       ret = REG_SPH;    break;
-    case Token::SPL:       ret = REG_SPL;    break;
-    case Token::PCH:       ret = REG_PCH;    break;
-    case Token::PCL:       ret = REG_PCL;    break;
+    case Token::SPH:       ret = z80::get_high8(cpu.get_sp()); break;
+    case Token::SPL:       ret = z80::get_low8(cpu.get_sp()); break;
+    case Token::PCH:       ret = z80::get_high8(cpu.get_pc()); break;
+    case Token::PCL:       ret = z80::get_low8(cpu.get_pc()); break;
 
-    case Token::I:         ret = REG_I;      break;
-    case Token::R:         ret = (REG_R7 & 0x80) | (REG_R & 0x7f); break;
-    case Token::IFF1:      ret = REG_IFF1;   break;
-    case Token::IFF2:      ret = REG_IFF2;   break;
-    case Token::IM:        ret = REG_IM;     break;
+    case Token::I:         ret = cpu.get_i(); break;
+    case Token::R:         ret = cpu.get_r(); break;
+    case Token::IFF1:      ret = cpu.get_iff1() ? 1 : 0; break;
+    case Token::IFF2:      ret = cpu.get_iff2() ? 1 : 0; break;
+    case Token::IM:        ret = cpu.get_int_mode(); break;
 
     default:
         assert(false);
@@ -596,54 +619,54 @@ void Expr::SetReg(Token reg, int value)
 
     switch (reg)
     {
-    case Token::A:      REG_A = b; break;
-    case Token::F:      REG_F = b; break;
-    case Token::B:      REG_B = b; break;
-    case Token::C:      REG_C = b; break;
-    case Token::D:      REG_D = b; break;
-    case Token::E:      REG_E = b; break;
-    case Token::H:      REG_H = b; break;
-    case Token::L:      REG_L = b; break;
+    case Token::A:      cpu.set_a(b); break;
+    case Token::F:      cpu.set_f(b); break;
+    case Token::B:      cpu.set_b(b); break;
+    case Token::C:      cpu.set_c(b); break;
+    case Token::D:      cpu.set_d(b); break;
+    case Token::E:      cpu.set_e(b); break;
+    case Token::H:      cpu.set_h(b); break;
+    case Token::L:      cpu.set_l(b); break;
 
-    case Token::Alt_A:  REG_A_ = b; break;
-    case Token::Alt_F:  REG_F_ = b; break;
-    case Token::Alt_B:  REG_B_ = b; break;
-    case Token::Alt_C:  REG_C_ = b; break;
-    case Token::Alt_D:  REG_D_ = b; break;
-    case Token::Alt_E:  REG_E_ = b; break;
-    case Token::Alt_H:  REG_H_ = b; break;
-    case Token::Alt_L:  REG_L_ = b; break;
+    case Token::Alt_A:  cpu.set_alt_af(z80::make16(b, z80::get_low8(cpu.get_af()))); break;
+    case Token::Alt_F:  cpu.set_alt_af(z80::make16(z80::get_high8(cpu.get_af()), b)); break;
+    case Token::Alt_B:  cpu.set_alt_bc(z80::make16(b, z80::get_low8(cpu.get_bc()))); break;
+    case Token::Alt_C:  cpu.set_alt_bc(z80::make16(z80::get_high8(cpu.get_bc()), b)); break;
+    case Token::Alt_D:  cpu.set_alt_de(z80::make16(b, z80::get_low8(cpu.get_de()))); break;
+    case Token::Alt_E:  cpu.set_alt_de(z80::make16(z80::get_high8(cpu.get_de()), b)); break;
+    case Token::Alt_H:  cpu.set_alt_hl(z80::make16(b, z80::get_low8(cpu.get_hl()))); break;
+    case Token::Alt_L:  cpu.set_alt_hl(z80::make16(z80::get_high8(cpu.get_hl()), b)); break;
 
-    case Token::AF:     REG_AF = w; break;
-    case Token::BC:     REG_BC = w; break;
-    case Token::DE:     REG_DE = w; break;
-    case Token::HL:     REG_HL = w; break;
+    case Token::AF:     cpu.set_af(w); break;
+    case Token::BC:     cpu.set_bc(w); break;
+    case Token::DE:     cpu.set_de(w); break;
+    case Token::HL:     cpu.set_hl(w); break;
 
-    case Token::Alt_AF: REG_AF_ = w; break;
-    case Token::Alt_BC: REG_BC_ = w; break;
-    case Token::Alt_DE: REG_DE_ = w; break;
-    case Token::Alt_HL: REG_HL_ = w; break;
+    case Token::Alt_AF: cpu.set_alt_af(w); break;
+    case Token::Alt_BC: cpu.set_alt_bc(w); break;
+    case Token::Alt_DE: cpu.set_alt_de(w); break;
+    case Token::Alt_HL: cpu.set_alt_hl(w); break;
 
-    case Token::IX:     REG_IX = w; break;
-    case Token::IY:     REG_IY = w; break;
-    case Token::SP:     REG_SP = w; break;
-    case Token::PC:     REG_PC = w; break;
+    case Token::IX:     cpu.set_ix(w); break;
+    case Token::IY:     cpu.set_iy(w); break;
+    case Token::SP:     cpu.set_sp(w); break;
+    case Token::PC:     cpu.set_pc(w); break;
 
-    case Token::IXH:    REG_IXH = b; break;
-    case Token::IXL:    REG_IXL = b; break;
-    case Token::IYH:    REG_IYH = b; break;
-    case Token::IYL:    REG_IYL = b; break;
+    case Token::IXH:    cpu.set_ixh(b); break;
+    case Token::IXL:    cpu.set_ixl(b); break;
+    case Token::IYH:    cpu.set_iyh(b); break;
+    case Token::IYL:    cpu.set_iyl (b); break;
 
-    case Token::SPH:    REG_SPH = b; break;
-    case Token::SPL:    REG_SPL = b; break;
-    case Token::PCH:    REG_PCH = b; break;
-    case Token::PCL:    REG_PCL = b; break;
+    case Token::SPH:    cpu.set_sp(z80::make16(b, z80::get_low8(cpu.get_sp()))); break;
+    case Token::SPL:    cpu.set_alt_af(z80::make16(z80::get_high8(cpu.get_sp()), b)); break;
+    case Token::PCH:    cpu.set_pc(z80::make16(b, z80::get_low8(cpu.get_pc()))); break;
+    case Token::PCL:    cpu.set_alt_af(z80::make16(z80::get_high8(cpu.get_pc()), b)); break;
 
-    case Token::I:      REG_I = b; break;
-    case Token::R:      REG_R7 = REG_R = b; break;
-    case Token::IFF1:   REG_IFF1 = !!b; break;
-    case Token::IFF2:   REG_IFF2 = !!b; break;
-    case Token::IM:     if (b <= 2) REG_IM = b; break;
+    case Token::I:      cpu.set_i(b); break;
+    case Token::R:      cpu.set_r(b); break;
+    case Token::IFF1:   cpu.set_iff1(!!b); break;
+    case Token::IFF2:   cpu.set_iff2(!!b); break;
+    case Token::IM:     if (b <= 2) cpu.set_int_mode(b); break;
 
     default:
         assert(false);

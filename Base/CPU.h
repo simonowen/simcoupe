@@ -22,50 +22,29 @@
 
 #pragma once
 
+#include "Debug.h"
+#include "Memory.h"
 #include "SAM.h"
 #include "SAMIO.h"
+#include "Tape.h"
+#include "z80.h"
 
-// NOTE: ENDIAN-SENSITIVE!
-struct REGPAIR
-{
-    union
-    {
-        uint16_t    w;
-#ifdef __BIG_ENDIAN__
-        struct { uint8_t h, l; } b;
-#else
-        struct { uint8_t l, h; } b;
-#endif
-    };
-};
+constexpr uint16_t IM1_INTERRUPT_HANDLER = 0x0038;
+constexpr uint16_t NMI_INTERRUPT_HANDLER = 0x0066;
 
-struct Z80Regs
-{
-    REGPAIR af, bc, de, hl;
-    REGPAIR af_, bc_, de_, hl_;
-    REGPAIR ix, iy;
-    REGPAIR sp, pc;
+constexpr uint8_t OP_NOP = 0x00;
+constexpr uint8_t OP_DJNZ = 0x10;
+constexpr uint8_t OP_JR = 0x18;
+constexpr uint8_t OP_HALT = 0x76;
+constexpr uint8_t OP_JP = 0xc3;
+constexpr uint8_t OP_RET = 0xc9;
+constexpr uint8_t OP_CALL = 0xcd;
+constexpr uint8_t OP_JPHL = 0xe9;
 
-    uint8_t    i, r, r7;
-    uint8_t    iff1, iff2, im;
-};
-
-enum class EventType
-{
-    None,
-    FrameInterrupt, FrameInterruptEnd,
-    LineInterrupt, LineInterruptEnd,
-    MidiOutStart, MidiOutEnd, MidiTxfmstEnd,
-    MouseReset, BlueAlphaClock, TapeEdge,
-    AsicReady, InputUpdate
-};
-
-struct CPU_EVENT
-{
-    EventType type{ EventType::None };
-    uint32_t due_time = 0;
-    CPU_EVENT* pNext = nullptr;
-};
+constexpr uint8_t IX_PREFIX = 0xdd;
+constexpr uint8_t IY_PREFIX = 0xfd;
+constexpr uint8_t CB_PREFIX = 0xcb;
+constexpr uint8_t ED_PREFIX = 0xed;
 
 namespace CPU
 {
@@ -73,209 +52,86 @@ bool Init(bool fFirstInit_ = false);
 void Exit(bool fReInit_ = false);
 
 void Run();
-bool IsContentionActive();
-void UpdateContention(bool fActive_ = true);
-void ExecuteEvent(const CPU_EVENT& sThisEvent);
 void ExecuteChunk();
 
-void Reset(bool fPress_);
+void Reset(bool active);
 void NMI();
 
-void InitTests();
+extern uint32_t frame_cycles;
+extern bool reset_asserted;
 }
 
-
-extern Z80Regs regs;
-extern uint32_t g_dwCycleCounter;
-extern bool g_fReset, g_fBreak, g_fPaused;
+extern bool g_fBreak, g_fPaused;
 extern int g_nTurbo;
-extern uint8_t* pbMemRead1, * pbMemRead2, * pbMemWrite1, * pbMemWrite2;
-
-enum { TURBO_BOOT = 0x01, TURBO_KEY = 0x02 };
 
 #ifdef _DEBUG
 extern bool debug_break;
 #endif
 
-const uint8_t OP_NOP = 0x00;
-const uint8_t OP_DJNZ = 0x10;
-const uint8_t OP_JR = 0x18;
-const uint8_t OP_HALT = 0x76;
-const uint8_t OP_JP = 0xc3;
-const uint8_t OP_RET = 0xc9;
-const uint8_t OP_CALL = 0xcd;
-const uint8_t OP_DI = 0xf3;
-const uint8_t OP_EI = 0xfb;
-const uint8_t OP_JPHL = 0xe9;
 
-const uint8_t IX_PREFIX = 0xdd;
-const uint8_t IY_PREFIX = 0xfd;
-const uint8_t CB_PREFIX = 0xcb;
-const uint8_t ED_PREFIX = 0xed;
-
-
-const uint16_t IM1_INTERRUPT_HANDLER = 0x0038;
-const uint16_t NMI_INTERRUPT_HANDLER = 0x0066;
-
-const int INT_ACTIVE_TIME = 128;
-
-
-// Round a tstate value up to a given power of 2 (-1); and so the line total rounds up to the next whole multiple
-#define ROUND(t,n)          ((t)|((n)-1))
-#define A_ROUND(t,n)        (ROUND(g_dwCycleCounter+(t),n) - g_dwCycleCounter)
-
-// Bit values for the F register
-#define FLAG_C  0x01
-#define FLAG_N  0x02
-#define FLAG_P  0x04
-#define FLAG_V  FLAG_P
-#define FLAG_3  0x08
-#define FLAG_H  0x10
-#define FLAG_5  0x20
-#define FLAG_Z  0x40
-#define FLAG_S  0x80
-
-#define REG_A   regs.af.b.h
-#define REG_F   regs.af.b.l
-#define REG_B   regs.bc.b.h
-#define REG_C   regs.bc.b.l
-#define REG_D   regs.de.b.h
-#define REG_E   regs.de.b.l
-#define REG_H   regs.hl.b.h
-#define REG_L   regs.hl.b.l
-
-#define REG_AF  regs.af.w
-#define REG_BC  regs.bc.w
-#define REG_DE  regs.de.w
-#define REG_HL  regs.hl.w
-
-#define REG_A_  regs.af_.b.h
-#define REG_F_  regs.af_.b.l
-#define REG_B_  regs.bc_.b.h
-#define REG_C_  regs.bc_.b.l
-#define REG_D_  regs.de_.b.h
-#define REG_E_  regs.de_.b.l
-#define REG_H_  regs.hl_.b.h
-#define REG_L_  regs.hl_.b.l
-
-#define REG_AF_ regs.af_.w
-#define REG_BC_ regs.bc_.w
-#define REG_DE_ regs.de_.w
-#define REG_HL_ regs.hl_.w
-
-#define REG_IX  regs.ix.w
-#define REG_IY  regs.iy.w
-#define REG_SP  regs.sp.w
-#define REG_PC  regs.pc.w
-
-#define REG_IXH regs.ix.b.h
-#define REG_IXL regs.ix.b.l
-#define REG_IYH regs.iy.b.h
-#define REG_IYL regs.iy.b.l
-
-#define REG_SPH regs.sp.b.h
-#define REG_SPL regs.sp.b.l
-#define REG_PCH regs.pc.b.h
-#define REG_PCL regs.pc.b.l
-
-#undef REG_R7
-#define REG_R    regs.r
-#define REG_R7   regs.r7
-#define REG_I    regs.i
-#define REG_IFF1 regs.iff1
-#define REG_IFF2 regs.iff2
-#define REG_IM   regs.im
-#define REG_IR   ((REG_I << 8) | (REG_R7 & 0x80) | (REG_R & 0x7f))
-
-
-const int MAX_EVENTS = 16;
-
-extern CPU_EVENT asCpuEvents[MAX_EVENTS], * psNextEvent, * psFreeEvent;
-
-
-// Initialise the CPU events queue
-inline void InitCpuEvents()
+struct sam_cpu : public z80::z80_cpu<sam_cpu>
 {
-    for (int n = 0; n < MAX_EVENTS; n++)
-        asCpuEvents[n].pNext = &asCpuEvents[(n + 1) % MAX_EVENTS];
+    using base = z80::z80_cpu<sam_cpu>;
 
-    psFreeEvent = asCpuEvents;
-    psNextEvent = nullptr;
-}
+    void on_tick(unsigned t) { CPU::frame_cycles += t; }
 
-// Add a CPU event into the queue
-inline void AddCpuEvent(EventType nEvent_, uint32_t dwTime_)
-{
-    CPU_EVENT* psNextFree = psFreeEvent->pNext;
-    CPU_EVENT** ppsEvent = &psNextEvent;
-
-    // Search through the queue while the events come before the new one
-    // New events with equal time are inserted after existing entries
-    while (*ppsEvent && (*ppsEvent)->due_time <= dwTime_)
-        ppsEvent = &((*ppsEvent)->pNext);
-
-    // Set this event (note - psFreeEvent will never be nullptr)
-    psFreeEvent->type = nEvent_;
-    psFreeEvent->due_time = dwTime_;
-
-    // Link the events
-    psFreeEvent->pNext = *ppsEvent;
-    *ppsEvent = psFreeEvent;
-    psFreeEvent = psNextFree;
-}
-
-// Remove events of a specific type from the queue
-inline void CancelCpuEvent(EventType nEvent_)
-{
-    CPU_EVENT** ppsEvent = &psNextEvent;
-
-    while (*ppsEvent)
+    void on_mreq(z80::fast_u16 addr)
     {
-        if ((*ppsEvent)->type != nEvent_)
-            ppsEvent = &((*ppsEvent)->pNext);
-        else
+        on_tick(Memory::WaitStates(CPU::frame_cycles, addr));
+    }
+
+    void on_iorq(z80::fast_u16 port)
+    {
+        on_tick(IO::WaitStates(CPU::frame_cycles, port));
+    }
+
+    z80::fast_u8 on_read(z80::fast_u16 addr)
+    {
+        return Memory::Read(addr);
+    }
+
+    void on_write(z80::fast_u16 addr, z80::fast_u8 val)
+    {
+        Memory::Write(addr, val);
+    }
+
+    z80::fast_u8 on_input(z80::fast_u16 port)
+    {
+        return IO::In(port);
+    }
+
+    void on_output(z80::fast_u16 port, z80::fast_u8 val)
+    {
+        IO::Out(port, val);
+    }
+
+    void on_ei()
+    {
+        IO::EiHook();
+        base::on_ei();
+    }
+
+    void on_ret_cc(z80::condition cc)
+    {
+        if (cc == z80::condition::z)
         {
-            CPU_EVENT* psNext = (*ppsEvent)->pNext;
-            (*ppsEvent)->pNext = psFreeEvent;
-            psFreeEvent = *ppsEvent;
-            *ppsEvent = psNext;
+            Debug::RetZHook();
+            if (Tape::RetZHook())
+                return;
         }
+
+        base::on_ret_cc(cc);
     }
-}
 
-// Return time until the next event of a specific type
-inline uint32_t GetEventTime(EventType nEvent_)
-{
-    CPU_EVENT* psEvent;
-
-    for (psEvent = psNextEvent; psEvent; psEvent = psEvent->pNext)
+    void on_rst(z80::fast_u16 nn)
     {
-        if (psEvent->type == nEvent_)
-            return psEvent->due_time - g_dwCycleCounter;
+        if (nn == 48)
+            IO::Rst48Hook();
+        else if (nn == 8 && IO::Rst8Hook())
+            return;
+
+        base::on_rst(nn);
     }
+};
 
-    return 0;
-}
-
-// Update the line/global counters and check for pending events
-inline void CheckCpuEvents()
-{
-    // Check for pending CPU events (note - psNextEvent will never be nullptr *at this stage*)
-    while (g_dwCycleCounter >= psNextEvent->due_time)
-    {
-        // Get the event from the queue and remove it before new events are added
-        auto sThisEvent = *psNextEvent;
-        psNextEvent->pNext = psFreeEvent;
-        psFreeEvent = psNextEvent;
-        psNextEvent = sThisEvent.pNext;
-        CPU::ExecuteEvent(sThisEvent);
-    }
-}
-
-// Subtract a frame's worth of time from all events
-inline void CpuEventFrame(uint32_t dwFrameTime_)
-{
-    // Process all queued events, due sometime in the next or a later frame
-    for (CPU_EVENT* psEvent = psNextEvent; psEvent; psEvent = psEvent->pNext)
-        psEvent->due_time -= dwFrameTime_;
-}
+extern sam_cpu cpu;

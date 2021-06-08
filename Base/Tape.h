@@ -41,7 +41,7 @@ void Stop();
 void NextEdge(uint32_t dwTime_);
 bool LoadTrap();
 
-bool EiHook();
+void EiHook();
 bool RetZHook();
-bool InFEHook();
+void InFEHook();
 }

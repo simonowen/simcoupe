@@ -248,7 +248,7 @@ std::string TimeString()
     auto secs = (elapsed /= 1000) % 60;
     auto mins = (elapsed /= 60) % 100;
 
-    auto screen_cycles = (g_dwCycleCounter + CPU_CYCLES_PER_FRAME - CPU_CYCLES_PER_SIDE_BORDER) % CPU_CYCLES_PER_FRAME;
+    auto screen_cycles = (CPU::frame_cycles + CPU_CYCLES_PER_FRAME - CPU_CYCLES_PER_SIDE_BORDER) % CPU_CYCLES_PER_FRAME;
     auto line = screen_cycles / CPU_CYCLES_PER_LINE;
     auto line_cycle = screen_cycles % CPU_CYCLES_PER_LINE;
 

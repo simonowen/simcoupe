@@ -30,6 +30,8 @@
 
 extern uint8_t pMemory[];
 
+enum { TURBO_BOOT = 0x01, TURBO_KEY = 0x02 };
+
 namespace Frame
 {
 bool Init();
@@ -65,13 +67,13 @@ void SetStatus(const std::string& format, Args&& ... args)
     SetStatus(fmt::format(format, std::forward<Args>(args)...));
 }
 
-constexpr std::pair<int, int> GetRasterPos(uint32_t cycle_counter)
+constexpr std::pair<int, int> GetRasterPos(uint32_t frame_cycles)
 {
     int line{}, line_cycle{};
 
-    if (cycle_counter >= CPU_CYCLES_PER_SIDE_BORDER)
+    if (frame_cycles >= CPU_CYCLES_PER_SIDE_BORDER)
     {
-        auto screen_cycles = g_dwCycleCounter - CPU_CYCLES_PER_SIDE_BORDER;
+        auto screen_cycles = frame_cycles - CPU_CYCLES_PER_SIDE_BORDER;
         line = screen_cycles / CPU_CYCLES_PER_LINE;
         line_cycle = screen_cycles % CPU_CYCLES_PER_LINE;
     }

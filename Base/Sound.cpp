@@ -124,7 +124,7 @@ void SAADevice::Update(bool fFrameEnd_ = false)
 
     auto pb = m_sample_buffer.data() + m_samples_this_frame * BYTES_PER_SAMPLE;
 
-    if (g_fReset)
+    if (CPU::reset_asserted)
         memset(pb, 0x00, nNeeded * BYTES_PER_SAMPLE); // no clock means no SAA output
     else
         m_pSAASound->GenerateMany(pb, nNeeded);
@@ -190,39 +190,39 @@ void DAC::FrameEnd()
 
 void DAC::OutputLeft(uint8_t bVal_)
 {
-    synth_left.update(g_dwCycleCounter, bVal_);
+    synth_left.update(CPU::frame_cycles, bVal_);
 }
 
 void DAC::OutputLeft2(uint8_t bVal_)
 {
-    synth_left2.update(g_dwCycleCounter, bVal_);
+    synth_left2.update(CPU::frame_cycles, bVal_);
 }
 
 void DAC::OutputRight(uint8_t bVal_)
 {
-    synth_right.update(g_dwCycleCounter, bVal_);
+    synth_right.update(CPU::frame_cycles, bVal_);
 }
 
 void DAC::OutputRight2(uint8_t bVal_)
 {
-    synth_right2.update(g_dwCycleCounter, bVal_);
+    synth_right2.update(CPU::frame_cycles, bVal_);
 }
 
 void DAC::Output(uint8_t bVal_)
 {
-    synth_left.update(g_dwCycleCounter, bVal_);
-    synth_right.update(g_dwCycleCounter, bVal_);
+    synth_left.update(CPU::frame_cycles, bVal_);
+    synth_right.update(CPU::frame_cycles, bVal_);
 }
 
 void DAC::Output2(uint8_t bVal_)
 {
-    synth_left2.update(g_dwCycleCounter, bVal_);
-    synth_right2.update(g_dwCycleCounter, bVal_);
+    synth_left2.update(CPU::frame_cycles, bVal_);
+    synth_right2.update(CPU::frame_cycles, bVal_);
 }
 
 int DAC::GetSamplesSoFar()
 {
-    auto uCycles = std::min(g_dwCycleCounter, static_cast<uint32_t>(CPU_CYCLES_PER_FRAME));
+    auto uCycles = std::min(CPU::frame_cycles, static_cast<uint32_t>(CPU_CYCLES_PER_FRAME));
     return static_cast<int>(buf_left.count_samples(uCycles));
 }
 

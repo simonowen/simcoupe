@@ -21,6 +21,7 @@
 #include "SimCoupe.h"
 #include "Symbol.h"
 
+#include "CPU.h"
 #include "Memory.h"
 
 namespace Symbol
@@ -183,7 +184,7 @@ std::string LookupAddr(uint16_t wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*
 
     // Determine if the address is currently paged as ROM, or we're executing in ROM
     bool fROM = AddrPage(wAddr_) == ROM0 || AddrPage(wAddr_) == ROM1;
-    bool fInROM = AddrPage(REG_PC) == ROM0 || AddrPage(REG_PC) == ROM1;
+    bool fInROM = AddrPage(cpu.get_pc()) == ROM0 || AddrPage(cpu.get_pc()) == ROM1;
 
     // Select the ROM or user-defined RAM symbol table
     auto& symtab = (fROM || fInROM) ? rom_symbols : ram_symbols;

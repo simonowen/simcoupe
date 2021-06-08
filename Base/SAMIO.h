@@ -137,33 +137,42 @@ struct IoState
     uint8_t hepr = 0x00;
     uint8_t lpen = 0x00;
     uint8_t hpen = 0x00;
-    uint8_t line_int = 0xff;
-    uint8_t status_reg = 0xff;
+    uint8_t line = 0xff;
+    uint8_t status = 0xff;
     uint8_t lmpr = 0x00;
     uint8_t hmpr = 0x00;
     uint8_t vmpr = 0x00;
     uint8_t keyboard = KEYBOARD_EAR_MASK;
     uint8_t border = 0x00;
     uint8_t attr = 0x00;
+    uint8_t clut[NUM_CLUT_REGS]{};
 
     bool asic_asleep = false;
-    uint8_t clut[NUM_CLUT_REGS]{};
 };
 
 bool Init();
 void Exit(bool fReInit_ = false);
 
-constexpr IoState& State();
+IoState& State();
 
-uint8_t In(uint16_t /*port*/);
+uint8_t In(uint16_t port);
 void Out(uint16_t port, uint8_t val);
+
+inline int WaitStates(uint32_t frame_cycles, uint16_t port)
+{
+    if ((port & 0xff) < BASE_ASIC_PORT)
+        return 0;
+
+    constexpr auto mask = 7;
+    auto delay = mask - ((frame_cycles + 1) & mask);
+    return delay;
+}
 
 void out_lmpr(uint8_t val);
 void out_hmpr(uint8_t val);
 void out_vmpr(uint8_t val);
 void out_lepr(uint8_t val);
 void out_hepr(uint8_t val);
-
 void out_clut(uint16_t port, uint8_t val);
 
 bool ScreenDisabled();
@@ -175,13 +184,13 @@ uint8_t Mode3Clut(int index);
 void FrameUpdate();
 void UpdateInput();
 std::vector<COLOUR> Palette();
-bool TestStartupScreen(bool fExit_ = false);
+bool TestStartupScreen(bool exit = false);
 void SetAutoLoad(AutoLoadType type);
 void AutoLoad(AutoLoadType type, bool fOnlyAtStartup_ = true);
 
-bool EiHook();
+void EiHook();
 bool Rst8Hook();
-bool Rst48Hook();
+void Rst48Hook();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

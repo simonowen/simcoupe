@@ -22,8 +22,9 @@
 #include "Tape.h"
 
 #include "CPU.h"
+#include "Events.h"
+#include "Frame.h"
 #include "SAMIO.h"
-#include "Memory.h"
 #include "Sound.h"
 #include "Stream.h"
 #include "Options.h"
@@ -178,7 +179,7 @@ void NextEdge(uint32_t dwTime_)
         tremain = tstates % (SPECTRUM_TSTATES_PER_SECOND / 1000);
 
         // Schedule an event to activate the edge
-        AddCpuEvent(EventType::TapeEdge, dwTime_ + tadd);
+        AddEvent(EventType::TapeEdge, dwTime_ + tadd);
     }
 }
 
@@ -189,7 +190,7 @@ void Play()
         g_fPlaying = true;
 
         // Schedule next edge
-        NextEdge(g_dwCycleCounter);
+        NextEdge(CPU::frame_cycles);
     }
 }
 
@@ -198,7 +199,7 @@ void Stop()
     if (IsPlaying())
     {
         // Cancel any pending edge event
-        CancelCpuEvent(EventType::TapeEdge);
+        CancelEvent(EventType::TapeEdge);
 
         g_fPlaying = false;
         fEar = false;
@@ -243,34 +244,34 @@ bool LoadTrap()
     size_t nData = libspectrum_tape_block_data_length(block);
 
     // Base load address and load request size
-    auto wDest = REG_HL;
-    int nWanted = (read_byte(0x5ac8) << 16) | REG_DE;
+    auto wDest = cpu.get_hl();
+    int nWanted = (read_byte(0x5ac8) << 16) | cpu.get_de();
 
     // Fetch block type
-    REG_H = *pbData++;
+    cpu.set_h(*pbData++);
     nData--;
 
     // Spectrum header?
-    if (REG_H == 0)
+    if (cpu.get_h() == 0)
     {
         // Override request length 
         nWanted = (nWanted & ~0xff) | 17;
     }
     // Otherwise the type byte must match the request
-    else if (REG_H != REG_A_)
+    else if (cpu.get_h() != z80::get_high8(cpu.get_alt_af()))
     {
         // Advance to next block
         libspectrum_tape_select_next_block(pTape);
 
         // Failed, exit via: RET NZ
-        REG_F &= ~(FLAG_C | FLAG_Z);
-        REG_PC = 0xe6f6;
+        cpu.set_f(cpu.get_f() & ~(cpu.zf_mask | cpu.cf_mask));
+        cpu.set_pc(0xe6f6);
 
         return true;
     }
 
     // Parity byte initialised to type byte
-    REG_L = REG_H;
+    cpu.set_l(cpu.get_h());
 
     // More still to load?
     while (nWanted >= 0)
@@ -282,14 +283,15 @@ bool LoadTrap()
             libspectrum_tape_select_next_block(pTape);
 
             // Failed, exit via: RET NZ
-            REG_F &= ~(FLAG_C | FLAG_Z);
-            REG_PC = 0xe6f6;
+            cpu.set_f(cpu.get_f() & ~(cpu.zf_mask | cpu.cf_mask));
+            cpu.set_pc(0xe6f6);
 
             return true;
         }
 
         // Read next byte and update parity
-        REG_L ^= (REG_H = *pbData++);
+        cpu.set_h(*pbData++);
+        cpu.set_l(cpu.get_l() ^ cpu.get_h());
         nData--;
 
         // Request complete?
@@ -297,7 +299,7 @@ bool LoadTrap()
             break;
 
         // Write new byte
-        write_byte(wDest, REG_H);
+        write_byte(wDest, cpu.get_h());
         wDest++;
         nWanted--;
 
@@ -314,7 +316,7 @@ bool LoadTrap()
     libspectrum_tape_select_next_block(pTape);
 
     // Exit via: LD A,L ; CP 1 ; RET
-    REG_PC = 0xe739;
+    cpu.set_pc(0xe739);
 
     return true;
 }
@@ -548,30 +550,26 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
 }
 
 
-bool EiHook()
+void EiHook()
 {
     // If we're leaving the ROM tape loader, consider stopping the tape
-    if (REG_PC == 0xe612 /*&& GetOption(tapeauto)*/)
+    if (cpu.get_pc() == 0xe612 /*&& GetOption(tapeauto)*/)
         Stop();
-
-    // Continue normal processing
-    return false;
 }
 
 bool RetZHook()
 {
     // If we're at LDSTRT in ROM1, consider using the loading trap
-    if (REG_PC == 0xe679 && GetSectionPage(Section::D) == ROM1 && GetOption(tapetraps))
+    if (cpu.get_pc() == 0xe679 && GetSectionPage(Section::D) == ROM1 && GetOption(tapetraps))
         return LoadTrap();
 
-    // Continue normal processing
     return false;
 }
 
-bool InFEHook()
+void InFEHook()
 {
     // Are we at the port read in the ROM tape edge routine?
-    if (REG_PC == 0x2053)
+    if (cpu.get_pc() == 0x2053)
     {
         // Ensure the tape is playing
         Play();
@@ -584,18 +582,16 @@ bool InFEHook()
 
             // Simulate the edge code to advance to the next edge
             // Return to normal processing if C hits 255 (no edge found) or the ear bit has changed
-            while (dwTime > 48 && REG_C < 0xff && !((IO::State().keyboard ^ REG_B) & KEYBOARD_EAR_MASK))
+            while (dwTime > 48 && cpu.get_c() < 0xff && !((IO::State().keyboard ^ cpu.get_b()) & KEYBOARD_EAR_MASK))
             {
-                REG_C += 1;
-                REG_R7 += 7;
-                g_dwCycleCounter += 48;
+                cpu.set_c(cpu.get_c() + 1);
+                cpu.set_r((cpu.get_r() & 0x80) | ((cpu.get_r() + 7) & 0x7f));
+                CPU::frame_cycles += 48;
                 dwTime -= 48;
-                REG_PC = 0x2051;
+                cpu.set_pc(0x2051);
             }
         }
     }
-
-    return false;
 }
 
 
@@ -617,9 +613,9 @@ void Stop() { }
 void NextEdge(uint32_t /*dwTime_*/) { }
 bool LoadTrap() { return false; }
 
-bool EiHook() { return false; }
+void EiHook() { }
 bool RetZHook() { return false; }
-bool InFEHook() { return false; }
+void InFEHook() { }
 
 #endif // HAVE_LIBSPECTRUM
 

@@ -142,7 +142,7 @@ void Update()
         };
     }
 
-    auto [line, line_cycle] = Frame::GetRasterPos(g_dwCycleCounter);
+    auto [line, line_cycle] = Frame::GetRasterPos(CPU::frame_cycles);
     auto cell = line_cycle / CPU_CYCLES_PER_CELL;
 
     auto from = std::max(last_line, s_view_top);
@@ -435,7 +435,7 @@ void SetStatus(std::string&& str)
 
 void ModeChanged(uint8_t new_vmpr)
 {
-    auto [line, line_cycle] = Frame::GetRasterPos(g_dwCycleCounter);
+    auto [line, line_cycle] = Frame::GetRasterPos(CPU::frame_cycles);
     if (IsScreenLine(line))
     {
         auto cell = line_cycle / CPU_CYCLES_PER_CELL;
@@ -453,7 +453,7 @@ void ModeChanged(uint8_t new_vmpr)
 
 void BorderChanged(uint8_t new_border)
 {
-    auto [line, line_cycle] = Frame::GetRasterPos(g_dwCycleCounter);
+    auto [line, line_cycle] = Frame::GetRasterPos(CPU::frame_cycles);
     auto cell = line_cycle / CPU_CYCLES_PER_CELL;
 
     if (line >= s_view_top && line < s_view_bottom && cell >= s_view_left && cell < s_view_right)
@@ -466,7 +466,7 @@ void BorderChanged(uint8_t new_border)
 
 void TouchLines(int from, int to)
 {
-    if (to >= last_line && from <= (int)((g_dwCycleCounter - CPU_CYCLES_PER_SIDE_BORDER) / CPU_CYCLES_PER_LINE))
+    if (to >= last_line && from <= (int)((CPU::frame_cycles - CPU_CYCLES_PER_SIDE_BORDER) / CPU_CYCLES_PER_LINE))
         Update();
 }
 
@@ -501,8 +501,8 @@ std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> GetAsicData()
 {
     display_mem = pMemory + PageReadOffset(IO::VisibleScreenPage());
 
-    int line = g_dwCycleCounter / CPU_CYCLES_PER_LINE;
-    int cell = (g_dwCycleCounter % CPU_CYCLES_PER_LINE) >> 3;
+    int line = CPU::frame_cycles / CPU_CYCLES_PER_LINE;
+    int cell = (CPU::frame_cycles % CPU_CYCLES_PER_LINE) >> 3;
 
     line -= TOP_BORDER_LINES;
     cell -= SIDE_BORDER_CELLS + SIDE_BORDER_CELLS;

@@ -40,8 +40,8 @@ set(BASE_CPP_FILES
     Base/Actions.cpp Base/ATA.cpp Base/AtaAdapter.cpp Base/Atom.cpp
     Base/AtomLite.cpp Base/AVI.cpp Base/BlipBuffer.cpp Base/BlueAlpha.cpp
     Base/Breakpoint.cpp Base/Clock.cpp Base/CPU.cpp Base/Debug.cpp
-    Base/Disassem.cpp Base/Disk.cpp Base/Drive.cpp Base/Expr.cpp Base/Font.cpp
-    Base/Frame.cpp Base/FrameBuffer.cpp Base/GIF.cpp Base/GUI.cpp
+    Base/Disassem.cpp Base/Disk.cpp Base/Drive.cpp Base/Expr.cpp Base/Events.cpp
+    Base/Font.cpp Base/Frame.cpp Base/FrameBuffer.cpp Base/GIF.cpp Base/GUI.cpp
     Base/GUIDlg.cpp Base/GUIIcons.cpp Base/HardDisk.cpp Base/Joystick.cpp
     Base/Keyboard.cpp Base/Keyin.cpp Base/Main.cpp Base/Memory.cpp
     Base/Mouse.cpp Base/Options.cpp Base/Parallel.cpp Base/Paula.cpp
@@ -55,16 +55,17 @@ set(BASE_C_FILES Base/ioapi.c Base/unzip.c Extern/gl3w/src/gl3w.c)
 set(BASE_H_FILES
     Base/Actions.h Base/ATA.h Base/AtaAdapter.h Base/Atom.h Base/AtomLite.h
     Base/AVI.h Base/BlipBuffer.h Base/BlueAlpha.h Base/Breakpoint.h
-    Base/CBops.h Base/Clock.h Base/CPU.h Base/Debug.h Base/Disassem.h
-    Base/Disk.h Base/Drive.h Base/EDops.h Base/Expr.h Base/Font.h Base/Frame.h
+    Base/Clock.h Base/CPU.h Base/Debug.h Base/Disassem.h
+    Base/Disk.h Base/Drive.h Base/Events.h Base/Expr.h Base/Font.h Base/Frame.h
     Base/GIF.h Base/GUI.h Base/GUIDlg.h Base/GUIIcons.h Base/HardDisk.h
     Base/ioapi.h Base/Joystick.h Base/Keyboard.h Base/Keyin.h Base/Main.h
     Base/Memory.h Base/Mouse.h Base/Options.h Base/Parallel.h Base/Paula.h
     Base/SavePNG.h Base/SAM.h Base/SAMDOS.h Base/SAMIO.h
     Base/SAMVox.h Base/SDIDE.h Base/SID.h Base/SimCoupe.h Base/Sound.h
     Base/SSX.h Base/Stream.h Base/Symbol.h Base/Tape.h Base/unzip.h
-    Base/Util.h Base/Video.h Base/VL1772.h Base/WAV.h Base/Z80ops.h
-    Base/VoiceBox.h Base/sp0256.h Extern/gl3w/include/GL/gl3w.h)
+    Base/Util.h Base/Video.h Base/VL1772.h Base/WAV.h
+    Base/VoiceBox.h Base/sp0256.h Extern/gl3w/include/GL/gl3w.h
+    Extern/z80/z80.h)
 
 set(BASE_RUNTIME_FILES
     Resource/atom.rom Resource/atomlite.rom Resource/samcoupe.rom
@@ -172,6 +173,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE Extern/ghc)
 # OpenGL loader
 target_include_directories(${PROJECT_NAME} PRIVATE Extern/gl3w/include)
 target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
+
+# Z80 core
+target_include_directories(${PROJECT_NAME} PRIVATE Extern/z80)
 
 # Use bundled version of fdrawcmd.h for fdrawcmd.sys definitions.
 if (WIN32)

@@ -53,7 +53,7 @@ void SIDDevice::Update(bool fFrameEnd_ = false)
 
     auto ps = reinterpret_cast<short*>(m_sample_buffer.data() + m_samples_this_frame * BYTES_PER_SAMPLE);
 
-    if (g_fReset)
+    if (CPU::reset_asserted)
         memset(ps, 0x00, nNeeded * BYTES_PER_SAMPLE); // no clock means no output
     else
     {

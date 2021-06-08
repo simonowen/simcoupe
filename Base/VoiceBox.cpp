@@ -75,7 +75,7 @@ void VoiceBoxDevice::Update(bool frame_end)
         return;
 
     auto pb = m_sample_buffer.data() + m_samples_this_frame * BYTES_PER_SAMPLE;
-    if (g_fReset)
+    if (CPU::reset_asserted)
     {
         memset(pb, 0x00, samples_needed * BYTES_PER_SAMPLE);
     }
