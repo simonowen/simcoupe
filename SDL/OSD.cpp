@@ -83,14 +83,10 @@ fs::path OSD::MakeFilePath(PathType type, const std::string& filename)
 
     case PathType::Input:
         path = GetOption(inpath);
-        if (path.empty())
-        {
-            path = base_path;
-        }
         break;
 
     case PathType::Output:
-        if (GetOption(outpath)[0])
+        if (!GetOption(outpath).empty())
         {
             path = GetOption(outpath);
             break;
@@ -124,8 +120,14 @@ fs::path OSD::MakeFilePath(PathType type, const std::string& filename)
         break;
     }
 
-    std::error_code error;
-    fs::create_directories(path, error);
+    if (path.empty())
+        path = base_path;
+
+    if (!fs::exists(path))
+    {
+        std::error_code error;
+        fs::create_directories(path, error);
+    }
 
     if (!filename.empty())
         path /= filename;

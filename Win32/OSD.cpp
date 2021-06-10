@@ -102,6 +102,10 @@ fs::path OSD::MakeFilePath(PathType type, const std::string& filename)
 {
     fs::path path;
 
+    char exe_path[MAX_PATH]{};
+    GetModuleFileName(GetModuleHandle(NULL), exe_path, _countof(exe_path) - 1);
+    auto exe_dir = fs::path(exe_path).remove_filename();
+
     switch (type)
     {
     case PathType::Settings:
@@ -128,24 +132,23 @@ fs::path OSD::MakeFilePath(PathType type, const std::string& filename)
 #ifdef RESOURCE_DIR
         path = RESOURCE_DIR;
 #else
-        path.clear();
+        path = exe_dir;
 #endif
         break;
     }
 
-    std::error_code error;
-    fs::create_directories(path, error);
+    if (!path.empty() && !fs::exists(path))
+    {
+        std::error_code error;
+        fs::create_directories(path, error);
+    }
 
     if (!filename.empty())
         path /= filename;
 
     // Use the EXE location in portable mode, or if we can't find the resource.
     if (portable_mode || (type == PathType::Resource && !fs::exists(path)))
-    {
-        char szPath[MAX_PATH + 1]{};
-        GetModuleFileName(GetModuleHandle(NULL), szPath, MAX_PATH);
-        path = fs::path(szPath).remove_filename() / filename;
-    }
+        path = exe_dir / filename;
 
     return path;
 }

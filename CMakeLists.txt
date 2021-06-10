@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8.2)
+cmake_minimum_required(VERSION 3.14)
 project(simcoupe)
 set(PROJECT_TITLE SimCoupe)
 
@@ -34,7 +34,9 @@ endif()
 ########
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+include(GNUInstallDirs)
 include(PreCompiledHeaders)
+include(FetchContent)
 
 set(BASE_CPP_FILES
     Base/Actions.cpp Base/ATA.cpp Base/AtaAdapter.cpp Base/Atom.cpp
@@ -150,7 +152,9 @@ source_group("Resource Files" FILES ${RESOURCE_FILES})
 
 ########
 
-add_executable(${PROJECT_NAME} WIN32 MACOSX_BUNDLE ${SOURCE_FILES} ${HEADER_FILES} ${RESOURCE_FILES})
+add_executable(${PROJECT_NAME}
+  WIN32 MACOSX_BUNDLE
+  ${SOURCE_FILES} ${HEADER_FILES} ${RESOURCE_FILES})
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 
@@ -167,12 +171,15 @@ if (NOT HAVE_STD_OPTIONAL OR NOT HAVE_STD_VARIANT)
   message(FATAL_ERROR "missing some required C++17 headers")
 endif()
 
+# Build runtime files should go with other built files.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
 # Use a 3rd party implementation of std::filesystem to avoid needing macOS 10.15.
 target_include_directories(${PROJECT_NAME} PRIVATE Extern/ghc)
 
 # OpenGL loader
 target_include_directories(${PROJECT_NAME} PRIVATE Extern/gl3w/include)
-target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_DL_LIBS})
 
 # Z80 core
 target_include_directories(${PROJECT_NAME} PRIVATE Extern/z80)
@@ -184,47 +191,46 @@ endif()
 
 set(CMAKE_THREAD_PREFER_PTHREAD pthread)
 find_package(Threads REQUIRED)
-target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
 
 find_package(ZLIB)
 if (ZLIB_FOUND)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${ZLIB_INCLUDE_DIR})
-  target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARY})
+  target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
   set(HAVE_LIBZ 1)
 endif()
 
 find_package(BZip2)
 if (BZIP2_FOUND)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${BZIP2_INCLUDE_DIR})
-  target_link_libraries(${PROJECT_NAME} ${BZIP2_LIBRARIES})
+  target_link_libraries(${PROJECT_NAME} PRIVATE BZip2::BZip2)
   set(HAVE_LIBBZ2 1)
 endif()
 
 find_package(PNG)
 if (PNG_FOUND)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${PNG_INCLUDE_DIR})
-  target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARIES})
+  target_link_libraries(${PROJECT_NAME} PRIVATE PNG::PNG)
   set(HAVE_LIBPNG 1)
 endif()
 
-find_library(SAASOUND_LIBRARY NAMES SAASound saasound)
-find_path(SAASOUND_INCLUDE_DIR SAASound.h)
-if (SAASOUND_LIBRARY AND SAASOUND_INCLUDE_DIR)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${SAASOUND_INCLUDE_DIR})
-  target_link_libraries(${PROJECT_NAME} ${SAASOUND_LIBRARY})
-  message(STATUS "Found SAASound: ${SAASOUND_LIBRARY}")
+find_package(SAASound)
+if(SAASOUND_FOUND)
+  target_link_libraries(${PROJECT_NAME} PRIVATE SAASound::SAASound)
 else()
-  message(STATUS "Using Extern/saasound")
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Extern/saasound)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Extern/saasound/include)
-  target_link_libraries(${PROJECT_NAME} SAASound)
+  message(STATUS "Fetching GitHub SAASound")
+  FetchContent_Declare(
+    SAASound
+    GIT_REPOSITORY https://github.com/stripwax/SAASound.git
+    GIT_TAG 11c53c7a57dc2f621ee5eabf99dd0e5b243b492d )
+  FetchContent_MakeAvailable(SAASound)
+  target_link_libraries(${PROJECT_NAME} PRIVATE SAASound)
+  # TODO: remove once upstream is compatible
+  target_include_directories(${PROJECT_NAME} PRIVATE ${saasound_SOURCE_DIR}/include)
 endif()
 
 find_library(SPECTRUM_LIBRARY NAMES spectrum)
 find_path(SPECTRUM_INCLUDE_DIR libspectrum.h)
 if (SPECTRUM_LIBRARY AND SPECTRUM_INCLUDE_DIR)
   target_include_directories(${PROJECT_NAME} PRIVATE ${SPECTRUM_INCLUDE_DIR})
-  target_link_libraries(${PROJECT_NAME} ${SPECTRUM_LIBRARY})
+  target_link_libraries(${PROJECT_NAME} PRIVATE ${SPECTRUM_LIBRARY})
   message(STATUS "Found libspectrum: ${SPECTRUM_LIBRARY}")
   set(HAVE_LIBSPECTRUM 1)
 else()
@@ -235,20 +241,20 @@ find_library(RESID_LIBRARY NAMES resid)
 find_path(RESID_INCLUDE_DIR resid/sid.h)
 if (RESID_LIBRARY AND RESID_INCLUDE_DIR)
   target_include_directories(${PROJECT_NAME} PRIVATE ${RESID_INCLUDE_DIR})
-  target_link_libraries(${PROJECT_NAME} ${RESID_LIBRARY})
+  target_link_libraries(${PROJECT_NAME} PRIVATE ${RESID_LIBRARY})
   message(STATUS "Found reSID: ${RESID_LIBRARY}")
 else()
   message(STATUS "Using Extern/resid")
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Extern/resid)
   target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Extern)
-  target_link_libraries(${PROJECT_NAME} resid)
+  target_link_libraries(${PROJECT_NAME} PRIVATE resid)
 endif()
 
 find_library(XAUDIO2REDIST_LIBRARY NAMES xaudio2_9redist)
 find_path(XAUDIO2REDIST_INCLUDE_DIR xaudio2redist.h)
 if (XAUDIO2REDIST_LIBRARY AND XAUDIO2REDIST_INCLUDE_DIR)
   target_include_directories(${PROJECT_NAME} PRIVATE ${XAUDIO2REDIST_INCLUDE_DIR})
-  target_link_libraries(${PROJECT_NAME} ${XAUDIO2REDIST_LIBRARY})
+  target_link_libraries(${PROJECT_NAME} PRIVATE ${XAUDIO2REDIST_LIBRARY})
   message(STATUS "Found xaudio2_9redist: ${XAUDIO2REDIST_LIBRARY}")
   set(HAVE_XAUDIO2REDIST 1)
 
@@ -269,7 +275,7 @@ if (NOT MSVC)
 endif()
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Extern/fmt)
-target_link_libraries(${PROJECT_NAME} fmt)
+target_link_libraries(${PROJECT_NAME} PRIVATE fmt)
 
 ########
 
@@ -277,7 +283,7 @@ if (BUILD_WIN32)
   find_package(DirectX)
   if (DINPUT_LIBRARY AND DINPUT_INCLUDE_DIR)
     target_include_directories(${PROJECT_NAME} PRIVATE ${DINPUT_INCLUDE_DIR})
-    target_link_libraries(${PROJECT_NAME} ${DINPUT_LIBRARY} dxguid.lib)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${DINPUT_LIBRARY} dxguid.lib)
     message(STATUS "Found dinput: ${DINPUT_LIBRARY}")
     set(HAVE_DINPUT 1)
   else()
@@ -286,13 +292,13 @@ if (BUILD_WIN32)
 elseif (BUILD_SDL)
   find_package(SDL2 REQUIRED)
   target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIR})
-  target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY})
+  target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARY})
   set(HAVE_LIBSDL2 1)
 
   find_package(OpenGL)
   if (OPENGL_FOUND)
     target_include_directories(${PROJECT_NAME} PRIVATE ${OPENGL_INCLUDE_DIR})
-    target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARY})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENGL_LIBRARY})
     set(HAVE_OPENGL 1)
   endif()
 endif()
@@ -305,7 +311,7 @@ if (BUILD_WIN32)
   target_include_directories(${PROJECT_NAME} PRIVATE Win32)
   target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})  # Generated shader headers
 
-  target_link_libraries(${PROJECT_NAME} winmm comctl32 shlwapi)
+  target_link_libraries(${PROJECT_NAME} PRIVATE winmm comctl32 shlwapi)
 elseif (BUILD_SDL)
   target_include_directories(${PROJECT_NAME} PRIVATE SDL)
 endif()
@@ -334,17 +340,11 @@ elseif (APPLE)
   set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_TITLE})
 endif()
 
-if (WIN32)
-  set(RESOURCE_DIR ${CMAKE_INSTALL_PREFIX})
-  install(DIRECTORY Resource/ DESTINATION ${CMAKE_INSTALL_PREFIX})
-  install(FILES ReadMe.md DESTINATION ${CMAKE_INSTALL_PREFIX})
-  install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX})
-else()
-  set(RESOURCE_DIR ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME})
-  install(DIRECTORY Resource/ DESTINATION ${RESOURCE_DIR})
-  install(FILES ReadMe.md DESTINATION ${RESOURCE_DIR})
-  install(TARGETS ${PROJECT_NAME} DESTINATION bin)
-endif()
+set(RESOURCE_DIR ${CMAKE_INSTALL_FULL_DATAROOTDIR}/${PROJECT_NAME})
+
+install(DIRECTORY Resource/ DESTINATION ${RESOURCE_DIR})
+install(FILES ReadMe.md DESTINATION ${RESOURCE_DIR})
+install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 configure_file(config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
