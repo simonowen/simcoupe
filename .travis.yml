@@ -20,14 +20,14 @@ matrix:
     - os: osx
       osx_image: xcode12
 
-    # Ubuntu LTS, gcc, x64
+    # Ubuntu 20.04 LTS, gcc, x64
     - os: linux
-      dist: bionic
+      dist: focal
       compiler: gcc
 
-    # Ubuntu LTS, Clang, x64
+    # Ubuntu 20.04 LTS, Clang, x64
     - os: linux
-      dist: bionic
+      dist: focal
       compiler: clang
 
 before_install:
