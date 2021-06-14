@@ -50,11 +50,10 @@ namespace Frame
 struct REGION {
     int w, h;
 } view_areas[] = {
-    { GFX_SCREEN_CELLS, GFX_SCREEN_LINES },
-    { GFX_SCREEN_CELLS + 2, GFX_SCREEN_LINES + 20 },
-    { GFX_SCREEN_CELLS + 4, GFX_SCREEN_LINES + 48 },
-    { GFX_SCREEN_CELLS + 4, GFX_SCREEN_LINES + 74 },
-    { GFX_WIDTH_CELLS, GFX_HEIGHT_LINES },
+    { GFX_SCREEN_CELLS, GFX_SCREEN_LINES },          // paper only
+    { GFX_SCREEN_CELLS + 2, GFX_SCREEN_LINES + 16 }, // 8 pixel border
+    { GFX_SCREEN_CELLS + 4, GFX_SCREEN_LINES + 76 }, // action safe (93%)
+    { GFX_SCREEN_CELLS + 8, GFX_SCREEN_LINES + 96 }, // full active
 };
 
 static void DrawOSD(FrameBuffer& fb);

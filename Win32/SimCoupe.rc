@@ -524,9 +524,8 @@ BEGIN
         BEGIN
             MENUITEM "&None",                       IDM_VIEW_BORDERS0
             MENUITEM "&Small",                      IDM_VIEW_BORDERS1
-            MENUITEM "&Medium (default)",           IDM_VIEW_BORDERS2
-            MENUITEM "&Large (TV-visible)",         IDM_VIEW_BORDERS3
-            MENUITEM "&Complete",                   IDM_VIEW_BORDERS4
+            MENUITEM "&TV Visible (default)",       IDM_VIEW_BORDERS2
+            MENUITEM "&Full Active",                IDM_VIEW_BORDERS3
         END
     END
     POPUP "&Record"

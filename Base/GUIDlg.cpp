@@ -552,8 +552,8 @@ public:
         new FrameControl(this, 50, 17, 238, 42, WHITE);
         new TextControl(this, 60, 13, "Settings", YELLOW_8, BLUE_2);
 
-        new TextControl(this, 60, 35, "Viewable area:");
-        m_pViewArea = new ComboBox(this, 140, 32, "No borders|Small borders|Short TV area (default)|TV visible area|Complete scan area", 140);
+        new TextControl(this, 60, 35, "Border size:");
+        m_pViewArea = new ComboBox(this, 140, 32, "None|Small|TV Visible (default)|Full Active", 140);
 
         m_pOK = new TextButton(this, m_nWidth - 117, m_nHeight - 21, "OK", 50);
         m_pCancel = new TextButton(this, m_nWidth - 62, m_nHeight - 21, "Cancel", 50);

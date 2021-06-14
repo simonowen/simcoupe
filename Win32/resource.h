@@ -200,7 +200,6 @@
 #define IDM_VIEW_BORDERS1               40192
 #define IDM_VIEW_BORDERS2               40193
 #define IDM_VIEW_BORDERS3               40194
-#define IDM_VIEW_BORDERS4               40195
 #define IDM_VIEW_FULLSCREEN             40196
 #define IDM_VIEW_TVASPECT               40197
 #define IDM_SYSTEM_MUTESOUND            40198
