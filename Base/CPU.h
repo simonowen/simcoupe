@@ -27,7 +27,6 @@
 #include "SAM.h"
 #include "SAMIO.h"
 #include "Tape.h"
-#include "z80.h"
 
 constexpr uint16_t IM1_INTERRUPT_HANDLER = 0x0038;
 constexpr uint16_t NMI_INTERRUPT_HANDLER = 0x0066;
@@ -75,12 +74,12 @@ struct sam_cpu : public z80::z80_cpu<sam_cpu>
 
     void on_tick(unsigned t) { CPU::frame_cycles += t; }
 
-    void on_mreq(z80::fast_u16 addr)
+    void on_mreq_wait(z80::fast_u16 addr)
     {
         on_tick(Memory::WaitStates(CPU::frame_cycles, addr));
     }
 
-    void on_iorq(z80::fast_u16 port)
+    void on_iorq_wait(z80::fast_u16 port)
     {
         on_tick(IO::WaitStates(CPU::frame_cycles, port));
     }

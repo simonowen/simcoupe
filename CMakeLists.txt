@@ -66,8 +66,7 @@ set(BASE_H_FILES
     Base/SAMVox.h Base/SDIDE.h Base/SID.h Base/SimCoupe.h Base/Sound.h
     Base/SSX.h Base/Stream.h Base/Symbol.h Base/Tape.h Base/unzip.h
     Base/Util.h Base/Video.h Base/VL1772.h Base/WAV.h
-    Base/VoiceBox.h Base/sp0256.h Extern/gl3w/include/GL/gl3w.h
-    Extern/z80/z80.h)
+    Base/VoiceBox.h Base/sp0256.h Extern/gl3w/include/GL/gl3w.h)
 
 set(BASE_RUNTIME_FILES
     Resource/atom.rom Resource/atomlite.rom Resource/samcoupe.rom Resource/sp0256-al2.bin
@@ -182,7 +181,13 @@ target_include_directories(${PROJECT_NAME} PRIVATE Extern/gl3w/include)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_DL_LIBS})
 
 # Z80 core
-target_include_directories(${PROJECT_NAME} PRIVATE Extern/z80)
+message(STATUS "Fetching github.com/kosarev/z80")
+FetchContent_Declare(
+  z80
+  GIT_REPOSITORY https://github.com/kosarev/z80.git
+  GIT_TAG 94e777443733d2946a67579a5942b22e7b71839d )
+FetchContent_Populate(z80)
+target_include_directories(${PROJECT_NAME} PRIVATE ${z80_SOURCE_DIR})
 
 # Use bundled version of fdrawcmd.h for fdrawcmd.sys definitions.
 if (WIN32)
@@ -215,7 +220,7 @@ find_package(SAASound)
 if(SAASOUND_FOUND)
   target_link_libraries(${PROJECT_NAME} PRIVATE SAASound::SAASound)
 else()
-  message(STATUS "Fetching GitHub SAASound")
+  message(STATUS "Fetching github.com/stripwax/SAASound")
   FetchContent_Declare(
     SAASound
     GIT_REPOSITORY https://github.com/stripwax/SAASound.git

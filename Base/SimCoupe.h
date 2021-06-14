@@ -82,6 +82,8 @@ namespace fs = ghc::filesystem;
 #include <fmt/format.h>
 #include <fmt/chrono.h>
 
+#include "z80.h"
+
 #include "Util.h"       /* Utility functions */
 #include "OSD.h"        /* OS-dependent stuff */
 #include "SAM.h"        /* Various SAM constants */

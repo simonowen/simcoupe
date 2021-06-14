@@ -164,7 +164,7 @@ inline int WaitStates(uint32_t frame_cycles, uint16_t port)
         return 0;
 
     constexpr auto mask = 7;
-    auto delay = mask - ((frame_cycles + 1) & mask);
+    auto delay = mask - ((frame_cycles + 2) & mask);
     return delay;
 }
 
