@@ -70,7 +70,7 @@ set(BASE_H_FILES
     Extern/z80/z80.h)
 
 set(BASE_RUNTIME_FILES
-    Resource/atom.rom Resource/atomlite.rom Resource/samcoupe.rom
+    Resource/atom.rom Resource/atomlite.rom Resource/samcoupe.rom Resource/sp0256-al2.bin
     Resource/samports.map Resource/samrom.map Resource/SimCoupe.bmp)
 
 set(SOURCE_FILES ${BASE_CPP_FILES} ${BASE_C_FILES})
