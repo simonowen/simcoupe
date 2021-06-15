@@ -38,8 +38,6 @@ struct Config
     int maxintensity = 255;             // Maximum colour channel intensity (0-255)
     bool blackborder = false;           // Black border around emulated screen?
 
-    int avireduce = 1;                  // Reduce AVI audio size (0=lossless, 1=44KHz 8-bit, ..., 4=muted)
-
     std::string rom;                    // Custom SAM ROM path (blank for built-in v3.0)
     bool romwrite = false;              // Enable writes to ROM?
     bool atombootrom = true;            // Use Atom boot ROM if Atom/AtomLite device is connected?

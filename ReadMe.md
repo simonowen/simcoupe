@@ -809,8 +809,6 @@ in the configuration file:
     -filter <bool>          Smooth emulated display (default=yes)
     -filtergui <bool>       Smooth built-in GUI display (default=no)
 
-    -avireduce <int>        AVI audio: 0=lossless, 1=good (default) to 4=none
-
     -rom <path>             32K custom ROM image (blank for default v3.0)
     -romwrite <bool>        Enable memory writes to ROM (default=no)
     -albootrom <bool>       Enable Atom Lite boot ROM patches (default=no)

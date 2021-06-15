@@ -87,8 +87,7 @@ void Sound::FrameUpdate()
     WAV::AddFrame(pbSampleBuffer, nSize);
     AVI::AddFrame(pbSampleBuffer, nSize);
 
-    // Scale the audio to fit the require running speed
-    if (SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2)
+    if (SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2)
         nSize = AdjustSpeed(pbSampleBuffer, nSize, GetOption(speed));
 
     auto buffer_level = Audio::AddData(pbSampleBuffer, nSize);
@@ -222,8 +221,8 @@ void DAC::Output2(uint8_t bVal_)
 
 int DAC::GetSamplesSoFar()
 {
-    auto uCycles = std::min(CPU::frame_cycles, static_cast<uint32_t>(CPU_CYCLES_PER_FRAME));
-    return static_cast<int>(buf_left.count_samples(uCycles));
+    auto cpu_cycles = std::min(CPU::frame_cycles, static_cast<uint32_t>(CPU_CYCLES_PER_FRAME));
+    return static_cast<int>(buf_left.count_samples(cpu_cycles));
 }
 
 ////////////////////////////////////////////////////////////////////////////////

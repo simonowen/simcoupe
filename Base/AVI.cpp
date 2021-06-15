@@ -466,11 +466,6 @@ bool Start(bool fHalfSize_)
     fHalfSize = fHalfSize_;
     fWantVideo = true;
 
-#if SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2
-    // Set the audio reduction level
-    nAudioReduce = GetOption(avireduce);
-#endif
-
     Frame::SetStatus("Recording AVI");
     return true;
 }

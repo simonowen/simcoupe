@@ -67,8 +67,9 @@ public:
     SAADevice()
     {
         m_pSAASound = CreateCSAASound();
-        m_pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_44100 | SAAP_16BIT | SAAP_STEREO);
-        static_assert(SAMPLE_FREQ == 44100 && SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2, "SAA parameter mismatch");
+        m_pSAASound->SetSoundParameters(SAAP_NOFILTER | SAAP_16BIT | SAAP_STEREO);
+        m_pSAASound->SetSampleRate(SAMPLE_FREQ);
+        static_assert(SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2, "SAA parameter mismatch");
     }
 
 public:
