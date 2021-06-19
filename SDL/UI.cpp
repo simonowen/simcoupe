@@ -117,7 +117,7 @@ bool UI::CheckEvents()
 
             case SDL_DROPFILE:
                 if (pFloppy1->Insert(event.drop.file, true))
-                    Frame::SetStatus("%s  inserted into drive 1", pFloppy1->DiskFile());
+                    Frame::SetStatus("{}  inserted into drive 1", pFloppy1->DiskFile());
 
                 SDL_free(event.drop.file);
                 break;
