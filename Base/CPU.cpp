@@ -65,6 +65,8 @@ namespace CPU
 {
 uint32_t frame_cycles;
 bool reset_asserted = false;
+uint16_t last_in_port, last_out_port;
+uint8_t last_in_val, last_out_val;
 
 bool Init(bool fFirstInit_/*=false*/)
 {

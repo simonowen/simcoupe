@@ -77,16 +77,16 @@ std::optional<int> Breakpoint::Hit()
             if (auto port = std::get_if<BreakPort>(&bp.data))
             {
                 if ((port->access == AccessType::Read || port->access == AccessType::ReadWrite) &&
-                    ((IO::last_in_port & port->mask) == port->compare))
+                    ((CPU::last_in_port & port->mask) == port->compare))
                 {
-                    IO::last_in_port = 0;
+                    CPU::last_in_port = 0;
                     break;
                 }
 
                 if ((port->access == AccessType::Write || port->access == AccessType::ReadWrite) &&
-                    ((IO::last_out_port & port->mask) == port->compare))
+                    ((CPU::last_out_port & port->mask) == port->compare))
                 {
-                    IO::last_out_port = 0;
+                    CPU::last_out_port = 0;
                     break;
                 }
             }

@@ -66,6 +66,7 @@ constexpr uint8_t STATUS_INT_MIDIIN = 0x04;
 constexpr uint8_t STATUS_INT_FRAME = 0x08;
 constexpr uint8_t STATUS_INT_MIDIOUT = 0x10;
 constexpr uint8_t STATUS_INT_MASK = 0x1f;
+constexpr uint8_t STATUS_KEY_MASK = 0xe0;
 
 constexpr uint8_t LINE_PORT = 0xf9;
 
@@ -126,8 +127,6 @@ enum class AutoLoadType { None, Disk, Tape };
 
 namespace IO
 {
-extern uint16_t last_in_port, last_out_port;
-extern uint8_t last_in_val, last_out_val;
 extern bool mid_frame_change;
 extern std::array<uint8_t, 9> key_matrix;
 

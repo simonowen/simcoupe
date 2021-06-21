@@ -598,7 +598,7 @@ Debugger::~Debugger()
     nLastFrames = 0;
 
     // Clear any cached data that could cause an immediate retrigger
-    IO::last_in_port = IO::last_out_port = 0;
+    CPU::last_in_port = CPU::last_out_port = 0;
     Memory::last_phys_read1 = Memory::last_phys_read2 = Memory::last_phys_write1 = Memory::last_phys_write2 = nullptr;
 
     // Debugger is gone

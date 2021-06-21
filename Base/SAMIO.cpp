@@ -84,16 +84,15 @@ namespace IO
 {
 IoState m_state{};
 
-uint16_t last_in_port, last_out_port;
-uint8_t last_in_val, last_out_val;
-
 auto auto_load = AutoLoadType::None;
 bool mid_frame_change;
 
 std::array<uint8_t, 9> key_matrix;
 
 #ifdef _DEBUG
-std::array<uint8_t, 32> unhandled_ports;
+std::array<uint8_t, 32> unhandled_ports{};
+bool is_unhandled_port(uint16_t port) { return (unhandled_ports[(port >> 3) & 0x1f] & (1U << (port & 7))) == 0; }
+void mark_unhandled_port(uint16_t port) { unhandled_ports[(port >> 3) & 0x1f] |= (1U << (port & 7)); }
 #endif
 
 constexpr uint32_t A_ROUND(uint32_t frame_cycles, int add_cycles, int power_of_2) {
@@ -173,6 +172,11 @@ bool Init()
     pAtom->Reset();
     pAtomLite->Reset();
     pSDIDE->Reset();
+
+#ifdef _DEBUG
+    mark_unhandled_port(0); // KEDisk bug
+    mark_unhandled_port(QUAZAR_PORT);
+#endif
 
     return fRet;
 }
@@ -364,14 +368,12 @@ uint8_t In(uint16_t port)
 {
     uint8_t port_low = port & 0xff;
     uint8_t port_high = port >> 8;
-    last_in_port = port;
 
     CheckEvents(CPU::frame_cycles);
 
     if (port_low >= BASE_ASIC_PORT && m_state.asic_asleep)
-        return last_in_val = 0x00;
+        return 0x00;
 
-    uint8_t ret = 0xff;
     switch (port_low)
     {
     case KEYBOARD_PORT:
@@ -380,69 +382,66 @@ uint8_t In(uint16_t port)
 
         g_nTurbo &= ~TURBO_BOOT;
 
+        auto keys = KEYBOARD_KEY_MASK;
         if (port_high == 0xff)
         {
-            ret = key_matrix[8];
-
+            keys &= key_matrix[8];
             if (GetOption(mouse))
-                ret &= pMouse->In(port);
+                keys &= pMouse->In(port);
         }
         else
         {
-            if (!(port_high & 0x80)) ret &= key_matrix[7];
-            if (!(port_high & 0x40)) ret &= key_matrix[6];
-            if (!(port_high & 0x20)) ret &= key_matrix[5];
-            if (!(port_high & 0x10)) ret &= key_matrix[4];
-            if (!(port_high & 0x08)) ret &= key_matrix[3];
-            if (!(port_high & 0x04)) ret &= key_matrix[2];
-            if (!(port_high & 0x02)) ret &= key_matrix[1];
-            if (!(port_high & 0x01)) ret &= key_matrix[0];
+            if (!(port_high & 0x80)) keys &= key_matrix[7];
+            if (!(port_high & 0x40)) keys &= key_matrix[6];
+            if (!(port_high & 0x20)) keys &= key_matrix[5];
+            if (!(port_high & 0x10)) keys &= key_matrix[4];
+            if (!(port_high & 0x08)) keys &= key_matrix[3];
+            if (!(port_high & 0x04)) keys &= key_matrix[2];
+            if (!(port_high & 0x02)) keys &= key_matrix[1];
+            if (!(port_high & 0x01)) keys &= key_matrix[0];
         }
 
-        ret &= KEYBOARD_KEY_MASK;
-        ret |= (m_state.border & BORDER_SOFF_MASK);
-        ret |= (m_state.keyboard & (KEYBOARD_EAR_MASK | KEYBOARD_SPEN_MASK));
-        break;
+        return keys |
+            (m_state.border & BORDER_SOFF_MASK) |
+            (m_state.keyboard & (KEYBOARD_EAR_MASK | KEYBOARD_SPEN_MASK));
     }
 
     case STATUS_PORT:
-        if (!(port_high & 0x80)) ret &= key_matrix[7];
-        if (!(port_high & 0x40)) ret &= key_matrix[6];
-        if (!(port_high & 0x20)) ret &= key_matrix[5];
-        if (!(port_high & 0x10)) ret &= key_matrix[4];
-        if (!(port_high & 0x08)) ret &= key_matrix[3];
-        if (!(port_high & 0x04)) ret &= key_matrix[2];
-        if (!(port_high & 0x02)) ret &= key_matrix[1];
-        if (!(port_high & 0x01)) ret &= key_matrix[0];
+    {
+        auto keys = STATUS_KEY_MASK;
+        if (!(port_high & 0x80)) keys &= key_matrix[7];
+        if (!(port_high & 0x40)) keys &= key_matrix[6];
+        if (!(port_high & 0x20)) keys &= key_matrix[5];
+        if (!(port_high & 0x10)) keys &= key_matrix[4];
+        if (!(port_high & 0x08)) keys &= key_matrix[3];
+        if (!(port_high & 0x04)) keys &= key_matrix[2];
+        if (!(port_high & 0x02)) keys &= key_matrix[1];
+        if (!(port_high & 0x01)) keys &= key_matrix[0];
 
-        ret = (ret & 0xe0) | (m_state.status & 0x1f);
-        break;
+        return keys | (m_state.status & 0x1f);
+    }
 
     case LMPR_PORT:
-        ret = m_state.lmpr;
-        break;
+        return m_state.lmpr;
 
     case HMPR_PORT:
-        ret = m_state.hmpr;
-        break;
+        return m_state.hmpr;
 
     case VMPR_PORT:
-        ret = VMPR_RXMIDI_MASK | m_state.vmpr;
-        break;
+        return VMPR_RXMIDI_MASK | m_state.vmpr;
 
     case CLOCK_PORT:
         if (port < 0xfe00 && GetOption(sambusclock))
-            ret = pSambus->In(port);
+            return pSambus->In(port);
         else if (port >= 0xfe00 && GetOption(dallasclock))
-            ret = pDallas->In(port);
+            return pDallas->In(port);
         break;
 
     case LPEN_PORT:
         if ((port & PEN_PORT_MASK) == LPEN_PORT)
-            ret = update_lpen();
-        else
-            ret = update_hpen();
-        break;
+            return update_lpen();
+
+        return update_hpen();
 
     case ATTR_PORT:
         if (!ScreenDisabled())
@@ -450,62 +449,51 @@ uint8_t In(uint16_t port)
             auto [b0, b1, b2, b3] = Frame::GetAsicData();
             m_state.attr = b2;
         }
-
-        ret = m_state.attr;
-        break;
+        return m_state.attr;
 
     case PRINTL1_STAT_PORT:
     case PRINTL1_DATA_PORT:
-    {
         switch (GetOption(parallel1))
         {
-        case 1: ret = pPrinterFile->In(port); break;
-        case 2: ret = pMonoDac->In(port); break;
-        case 3: ret = pStereoDac->In(port); break;
+        case 1: return pPrinterFile->In(port); break;
+        case 2: return pMonoDac->In(port); break;
+        case 3: return pStereoDac->In(port); break;
         }
         break;
-    }
 
     case PRINTL2_STAT_PORT:
     case PRINTL2_DATA_PORT:
-    {
         switch (GetOption(parallel2))
         {
-        case 1: ret = pPrinterFile->In(port); break;
-        case 2: ret = pMonoDac->In(port); break;
-        case 3: ret = pStereoDac->In(port); break;
+        case 1: return pPrinterFile->In(port); break;
+        case 2: return pMonoDac->In(port); break;
+        case 3: return pStereoDac->In(port); break;
         }
         break;
-    }
 
     case MIDI_PORT:
         if (GetOption(midi) == 1)
-            ret = pMidi->In(port);
+            return pMidi->In(port);
         break;
 
     case SDIDE_REG_PORT:
     case SDIDE_DATA_PORT:
-        ret = pSDIDE->In(port);
-        break;
+        return pSDIDE->In(port);
 
     case KEMPSTON_PORT:
-        if (GetOption(joytype1) == jtKempston) ret &= ~Joystick::ReadKempston(0);
-        if (GetOption(joytype2) == jtKempston) ret &= ~Joystick::ReadKempston(1);
-        break;
+    {
+        auto kempston = 0xff;
+        if (GetOption(joytype1) == jtKempston) kempston &= ~Joystick::ReadKempston(0);
+        if (GetOption(joytype2) == jtKempston) kempston &= ~Joystick::ReadKempston(1);
+        return kempston;
+    }
 
     case BLUE_ALPHA_PORT:
         if (GetOption(voicebox) && port == BA_VOICEBOX_PORT)
-        {
-            ret = pVoiceBox->In(port);
-        }
-        else if (GetOption(dac7c) == 1 && (port & BA_SAMPLER_MASK) == BA_SAMPLER_BASE)
-        {
-            ret = pSampler->In(port_high & 0x03);
-        }
-        break;
+            return pVoiceBox->In(port);
 
-    case SID_PORT:
-    case QUAZAR_PORT:
+        if (GetOption(dac7c) == 1 && (port & BA_SAMPLER_MASK) == BA_SAMPLER_BASE)
+            return pSampler->In(port_high & 0x03);
         break;
 
     default:
@@ -513,7 +501,7 @@ uint8_t In(uint16_t port)
         {
             switch (GetOption(drive1))
             {
-            case drvFloppy: ret = (pBootDrive ? pBootDrive : pFloppy1)->In(port); break;
+            case drvFloppy: return (pBootDrive ? pBootDrive : pFloppy1)->In(port); break;
             default: break;
             }
         }
@@ -522,30 +510,31 @@ uint8_t In(uint16_t port)
         {
             switch (GetOption(drive2))
             {
-            case drvFloppy:     ret = pFloppy2->In(port); break;
-            case drvAtom:       ret = pAtom->In(port); break;
-            case drvAtomLite:   ret = pAtomLite->In(port); break;
+            case drvFloppy:     return pFloppy2->In(port); break;
+            case drvAtom:       return pAtom->In(port); break;
+            case drvAtomLite:   return pAtomLite->In(port); break;
             }
         }
-
-#ifdef _DEBUG
-        else
-        {
-            auto index = port_low >> 3;
-            auto bitmask = 1 << (port_low & 7);
-
-            if (!(unhandled_ports[index] & bitmask))
-            {
-                Message(MsgType::Warning, "Unhandled read from port {:04x}\n", port);
-                unhandled_ports[index] |= bitmask;
-                debug_break = true;
-            }
-        }
-#endif
     }
 
-    last_in_val = ret;
-    return ret;
+#ifdef _DEBUG
+    if (is_unhandled_port(port))
+    {
+        Message(MsgType::Warning, "Unhandled read from port {:04x}\n", port);
+        mark_unhandled_port(port);
+        debug_break = true;
+    }
+#endif
+
+    auto line = CPU::frame_cycles / CPU_CYCLES_PER_LINE;
+    auto line_cycle = CPU::frame_cycles % CPU_CYCLES_PER_LINE;
+    if (IsScreenLine(line) && line_cycle >= (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER))
+    {
+        auto [b0, b1, b2, b3] = Frame::GetAsicData();
+        return b2;
+    }
+
+    return 0xff;
 }
 
 
@@ -553,9 +542,6 @@ void Out(uint16_t port, uint8_t val)
 {
     auto port_low = port & 0xff;
     auto port_high = port >> 8;
-
-    last_out_port = port;
-    last_out_val = val;
 
     CheckEvents(CPU::frame_cycles);
 
@@ -722,9 +708,6 @@ void Out(uint16_t port, uint8_t val)
             pSID->Out(port, val);
         break;
 
-    case QUAZAR_PORT:
-        break;
-
     default:
     {
         if ((port & FLOPPY_MASK) == FLOPPY1_BASE)
@@ -775,17 +758,11 @@ void Out(uint16_t port, uint8_t val)
         }
 
 #ifdef _DEBUG
-        else
+        else if (is_unhandled_port(port))
         {
-            auto index = port_low >> 3;
-            auto bitmask = 1 << (port_low & 7);
-
-            if (!(unhandled_ports[index] & bitmask))
-            {
-                Message(MsgType::Warning, "Unhandled write to port {:04x}, value = {:02x}\n", port, val);
-                unhandled_ports[index] |= bitmask;
-                debug_break = true;
-            }
+            Message(MsgType::Warning, "Unhandled write to port {:04x}, value = {:02x}\n", port, val);
+            mark_unhandled_port(port);
+            debug_break = true;
         }
 #endif
     }

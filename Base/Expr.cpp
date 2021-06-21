@@ -266,8 +266,8 @@ int Expr::Eval(const std::vector<Node>& nodes)
             case Token::VPage:     r = io_state.vmpr & VMPR_PAGE_MASK;    break;
             case Token::VMode:     r = ((io_state.vmpr & VMPR_MODE_MASK) >> VMPR_MODE_SHIFT) + 1; break;
 
-            case Token::InVal:     r = IO::last_in_val;          break;
-            case Token::OutVal:    r = IO::last_out_val;         break;
+            case Token::InVal:     r = CPU::last_in_val;          break;
+            case Token::OutVal:    r = CPU::last_out_val;         break;
 
             case Token::LEPR:      r = LEPR_PORT;                break;
             case Token::HEPR:      r = HEPR_PORT;                break;

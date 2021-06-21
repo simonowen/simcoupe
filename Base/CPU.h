@@ -58,6 +58,8 @@ void NMI();
 
 extern uint32_t frame_cycles;
 extern bool reset_asserted;
+extern uint16_t last_in_port, last_out_port;
+extern uint8_t last_in_val, last_out_val;
 }
 
 extern bool g_fBreak, g_fPaused;
@@ -96,11 +98,15 @@ struct sam_cpu : public z80::z80_cpu<sam_cpu>
 
     z80::fast_u8 on_input(z80::fast_u16 port)
     {
-        return IO::In(port);
+        CPU::last_in_port = port;
+        CPU::last_in_val = IO::In(port);
+        return CPU::last_in_val;
     }
 
     void on_output(z80::fast_u16 port, z80::fast_u8 val)
     {
+        CPU::last_out_port = port;
+        CPU::last_out_val = val;
         IO::Out(port, val);
     }
 
