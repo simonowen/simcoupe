@@ -3103,15 +3103,15 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
             }
         }
 
-        uint8_t bColour = WHITE;
+        auto colour = 'W';
 
         if (nLine_ == GetLines() - 1)
         {
             fb.FillRect(nX_ - 1, nY_ - 1, m_nWidth - 112, ROW_HEIGHT - 3, YELLOW_7);
-            bColour = BLACK;
+            colour = 'k';
         }
 
-        fb.DrawString(nX_, nY_, sz, bColour);
+        fb.DrawString(nX_, nY_, "\a{}{}", colour, sz);
     }
 }
 
