@@ -95,6 +95,7 @@ static auto blend_fs_code = R"(
 SDL_GL3::~SDL_GL3()
 {
     SaveWindowPosition();
+    SDL_GL_ResetAttributes();
 }
 
 Rect SDL_GL3::DisplayRect() const
@@ -137,6 +138,13 @@ bool SDL_GL3::Init()
 
     if (gl3wInit() != GL3W_OK)
         return false;
+
+    if (auto renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER)))
+    {
+        // Reject software render implementations as they're too slow.
+        if (strstr(renderer, "llvmpipe") || strstr(renderer, "softpipe"))
+            return false;
+    }
 
     // Disable vsync for as long as we're in the same thread as emulation and sound.
     SDL_GL_SetSwapInterval(0);

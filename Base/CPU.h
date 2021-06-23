@@ -179,6 +179,7 @@ const int INT_ACTIVE_TIME = 128;            // tstates interrupt is active and w
 #define REG_PCH regs.pc.b.h
 #define REG_PCL regs.pc.b.l
 
+#undef REG_R7
 #define REG_R    regs.r
 #define REG_R7   regs.r7
 #define REG_I    regs.i
