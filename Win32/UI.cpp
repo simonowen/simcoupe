@@ -817,7 +817,7 @@ void UpdateMenuFromOptions()
     CheckOption(IDM_VIEW_SMOOTH, GetOption(smooth));
     CheckOption(IDM_VIEW_MOTIONBLUR, GetOption(motionblur));
 
-    CheckMenuRadioItem(hmenu, IDM_VIEW_BORDERS0, IDM_VIEW_BORDERS3, IDM_VIEW_BORDERS0 + GetOption(borders), MF_BYCOMMAND);
+    CheckMenuRadioItem(hmenu, IDM_VIEW_BORDERS0, IDM_VIEW_BORDERS3, IDM_VIEW_BORDERS0 + GetOption(visiblearea), MF_BYCOMMAND);
 
 #ifndef HAVE_LIBPNG
     EnableItem(IDM_RECORD_SCREEN_PNG, FALSE);
@@ -1603,7 +1603,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_VIEW_BORDERS1:
         case IDM_VIEW_BORDERS2:
         case IDM_VIEW_BORDERS3:
-            SetOption(borders, wId - IDM_VIEW_BORDERS0);
+            SetOption(visiblearea, wId - IDM_VIEW_BORDERS0);
             Frame::Init();
             break;
 

@@ -803,8 +803,8 @@ in the configuration file:
     -mode3 <bool>           Sample odd pixels in low-res (default=no)
     -fullscreen <bool>      Start in full-screen mode (default=no)
     -depth <int>            Colour depth for full-screen (default=16)
-    -borders <int>          Border size: 0=None, 1=Small, 2=TV Visible,
-                             3=Full Active (default=2)
+    -visiblearea <int>      0=No Border, 1=Small Border, 2=TV Visible,
+                            3=Full Active (default=2)
     -greyscale <bool>       Greyscale mode (default=no)
     -filter <bool>          Smooth emulated display (default=yes)
     -filtergui <bool>       Smooth built-in GUI display (default=no)

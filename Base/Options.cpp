@@ -60,7 +60,7 @@ static bool SetNamedValue(const std::string& option_name, const std::string& str
     else if (name == "windowpos") SetValue(g_config.windowpos, str);
     else if (name == "tvaspect") SetValue(g_config.tvaspect, str);
     else if (name == "fullscreen") SetValue(g_config.fullscreen, str);
-    else if (name == "borders") SetValue(g_config.borders, str);
+    else if (name == "visiblearea") SetValue(g_config.visiblearea, str);
     else if (name == "smooth") SetValue(g_config.smooth, str);
     else if (name == "motionblur") SetValue(g_config.motionblur, str);
     else if (name == "blurpercent") SetValue(g_config.blurpercent, str);
@@ -222,7 +222,7 @@ bool Save()
         ofs << "windowpos=" << to_string(g_config.windowpos) << std::endl;
         ofs << "tvaspect=" << to_string(g_config.tvaspect) << std::endl;
         ofs << "fullscreen=" << to_string(g_config.fullscreen) << std::endl;
-        ofs << "borders=" << to_string(g_config.borders) << std::endl;
+        ofs << "visiblearea=" << to_string(g_config.visiblearea) << std::endl;
         ofs << "smooth=" << to_string(g_config.smooth) << std::endl;
         ofs << "motionblur=" << to_string(g_config.motionblur) << std::endl;
         ofs << "blurpercent=" << to_string(g_config.blurpercent) << std::endl;

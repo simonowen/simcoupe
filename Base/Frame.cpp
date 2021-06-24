@@ -47,12 +47,11 @@ constexpr auto FPS_IN_TURBO_MODE = 5;
 
 namespace Frame
 {
-struct REGION {
-    int w, h;
-} view_areas[] = {
-    { GFX_SCREEN_CELLS, GFX_SCREEN_LINES },          // paper only
+struct REGION { int w, h; };
+const std::vector<REGION> view_areas = {
+    { GFX_SCREEN_CELLS, GFX_SCREEN_LINES },          // no border
     { GFX_SCREEN_CELLS + 2, GFX_SCREEN_LINES + 16 }, // 8 pixel border
-    { GFX_SCREEN_CELLS + 4, GFX_SCREEN_LINES + 76 }, // action safe (93%)
+    { GFX_SCREEN_CELLS + 4, GFX_SCREEN_LINES + 76 }, // TV visible (action safe, 93%)
     { GFX_SCREEN_CELLS + 8, GFX_SCREEN_LINES + 96 }, // full active
 };
 
@@ -82,7 +81,7 @@ bool Init()
 {
     Exit();
 
-    auto view_idx = std::min(GetOption(borders), static_cast<int>(std::size(view_areas) - 1));
+    auto view_idx = std::min(GetOption(visiblearea), static_cast<int>(view_areas.size()) - 1);
 
     s_view_left = (GFX_WIDTH_CELLS - view_areas[view_idx].w) >> 1;
     s_view_right = s_view_left + view_areas[view_idx].w;

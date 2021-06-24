@@ -507,7 +507,7 @@ BEGIN
         MENUITEM "&Motion Blur\tShift-F6",      IDM_VIEW_MOTIONBLUR
         MENUITEM "S&mooth Image\tF6",           IDM_VIEW_SMOOTH
         MENUITEM SEPARATOR
-        POPUP "&Window Size"
+        POPUP "&Window Zoom"
         BEGIN
             MENUITEM "50%\tAlt-&0",                 IDM_VIEW_ZOOM_50
             MENUITEM "100%\tAlt-&1",                IDM_VIEW_ZOOM_100
@@ -520,11 +520,11 @@ BEGIN
             MENUITEM "450%\tAlt-&8",                IDM_VIEW_ZOOM_450
             MENUITEM "500%\tAlt-&9",                IDM_VIEW_ZOOM_500
         END
-        POPUP "&Border Area"
+        POPUP "&Visible Area"
         BEGIN
-            MENUITEM "&None",                       IDM_VIEW_BORDERS0
-            MENUITEM "&Small",                      IDM_VIEW_BORDERS1
-            MENUITEM "&TV Visible (default)",       IDM_VIEW_BORDERS2
+            MENUITEM "&No Border",                  IDM_VIEW_BORDERS0
+            MENUITEM "&Small Border",               IDM_VIEW_BORDERS1
+            MENUITEM "&TV Visible",                 IDM_VIEW_BORDERS2
             MENUITEM "&Full Active",                IDM_VIEW_BORDERS3
         END
     END

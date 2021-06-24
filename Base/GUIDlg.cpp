@@ -553,12 +553,12 @@ public:
         new TextControl(this, 60, 13, "Settings", YELLOW_8, BLUE_2);
 
         new TextControl(this, 60, 35, "Border size:");
-        m_pViewArea = new ComboBox(this, 140, 32, "None|Small|TV Visible (default)|Full Active", 140);
+        m_pViewArea = new ComboBox(this, 140, 32, "No Border|Small Border|TV Visible|Full Active", 100);
 
         m_pOK = new TextButton(this, m_nWidth - 117, m_nHeight - 21, "OK", 50);
         m_pCancel = new TextButton(this, m_nWidth - 62, m_nHeight - 21, "Cancel", 50);
 
-        m_pViewArea->Select(GetOption(borders));
+        m_pViewArea->Select(GetOption(visiblearea));
     }
     DisplayOptions(const DisplayOptions&) = delete;
     void operator= (const DisplayOptions&) = delete;
@@ -570,9 +570,9 @@ public:
             Destroy();
         else if (pWindow_ == m_pOK)
         {
-            SetOption(borders, m_pViewArea->GetSelected());
+            SetOption(visiblearea, m_pViewArea->GetSelected());
 
-            if (Changed(borders))
+            if (Changed(visiblearea))
             {
                 Frame::Init();
             }
