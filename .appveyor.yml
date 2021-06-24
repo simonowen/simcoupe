@@ -22,7 +22,7 @@ environment:
     LIBRARIES: false
 
 cache:
-  - C:\Tools\vcpkg\installed\
+  - C:\Tools\vcpkg\installed\ -> .appveyor.yml
 
 install:
   - set CMAKE_BUILD_PARALLEL_LEVEL=2
