@@ -66,6 +66,7 @@ static bool SetNamedValue(const std::string& option_name, const std::string& str
     else if (name == "blurpercent") SetValue(g_config.blurpercent, str);
     else if (name == "maxintensity") SetValue(g_config.maxintensity, str);
     else if (name == "blackborder") SetValue(g_config.blackborder, str);
+    else if (name == "tryvrr") SetValue(g_config.tryvrr, str);
     else if (name == "rom") SetValue(g_config.rom, str);
     else if (name == "romwrite") SetValue(g_config.romwrite, str);
     else if (name == "atombootrom") SetValue(g_config.atombootrom, str);
@@ -228,6 +229,7 @@ bool Save()
         ofs << "blurpercent=" << to_string(g_config.blurpercent) << std::endl;
         ofs << "maxintensity=" << to_string(g_config.maxintensity) << std::endl;
         ofs << "blackborder=" << to_string(g_config.blackborder) << std::endl;
+        ofs << "tryvrr=" << to_string(g_config.tryvrr) << std::endl;
         ofs << "rom=" << to_string(g_config.rom) << std::endl;
         ofs << "romwrite=" << to_string(g_config.romwrite) << std::endl;
         ofs << "atombootrom=" << to_string(g_config.atombootrom) << std::endl;

@@ -159,18 +159,21 @@ bool Direct3D11Video::Init()
     if (FAILED(hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory2), &pDXGIFactory)))
         return Fail(hr, "pDXGIDevice->GetParent(IDXGIFactory2)");
 
-    ComPtr<IDXGIFactory5> factory5;
-    hr = pDXGIFactory.As(&factory5);
-    if (SUCCEEDED(hr))
+    if (GetOption(tryvrr))
     {
-        BOOL allowTearing = FALSE;
+        ComPtr<IDXGIFactory5> factory5;
+        hr = pDXGIFactory.As(&factory5);
+        if (SUCCEEDED(hr))
+        {
+            BOOL allowTearing = FALSE;
 
-        hr = factory5->CheckFeatureSupport(
-            DXGI_FEATURE_PRESENT_ALLOW_TEARING,
-            &allowTearing,
-            sizeof(allowTearing));
+            hr = factory5->CheckFeatureSupport(
+                DXGI_FEATURE_PRESENT_ALLOW_TEARING,
+                &allowTearing,
+                sizeof(allowTearing));
 
-        m_allow_tearing = SUCCEEDED(hr) && allowTearing;
+            m_allow_tearing = SUCCEEDED(hr) && allowTearing;
+        }
     }
 
     RECT rClient;
