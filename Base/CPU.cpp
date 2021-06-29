@@ -118,7 +118,7 @@ void ExecuteChunk()
         if (~IO::State().status & STATUS_INT_MASK)
             cpu.on_handle_active_int();
 
-        if (Breakpoint::breakpoints.empty())
+        if (cpu.get_iregp_kind() != z80::iregp::hl || Breakpoint::breakpoints.empty())
             continue;
 
         Debug::AddTraceRecord();
