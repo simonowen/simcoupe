@@ -115,7 +115,7 @@ void ExecuteChunk()
 
         CheckEvents(CPU::frame_cycles);
 
-        if (~IO::State().status & STATUS_INT_MASK)
+        if ((~IO::State().status & STATUS_INT_MASK) && Memory::full_contention)
             cpu.on_handle_active_int();
 
         if (cpu.get_iregp_kind() != z80::iregp::hl || Breakpoint::breakpoints.empty())

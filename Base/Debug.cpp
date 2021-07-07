@@ -297,9 +297,7 @@ void cmdStepOver(bool fCtrl_ = false)
     if (fCtrl_)
     {
         Memory::full_contention = false;
-
-        // Round to the next 4T contention boundary to eliminate any slack on the next opcode fetch
-        CPU::frame_cycles |= 3;
+        cpu.on_mreq_wait(cpu.get_pc()); // remove opcode fetch slack
     }
 
     // Skip any index prefixes on the instruction to reach a CB/ED prefix or the real opcode
