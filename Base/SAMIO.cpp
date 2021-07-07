@@ -648,6 +648,7 @@ void Out(uint16_t port, uint8_t val)
             if (m_state.line < GFX_SCREEN_LINES)
             {
                 CancelEvent(EventType::LineInterrupt);
+                CancelEvent(EventType::LineInterruptEnd);
                 m_state.status |= STATUS_INT_LINE;
             }
 
