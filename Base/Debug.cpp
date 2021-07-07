@@ -450,14 +450,16 @@ void View::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 
 bool View::cmdNavigate(int nKey_, int nMods_)
 {
+    auto ctrl = (nMods_ == HM_CTRL);
+
     switch (nKey_)
     {
     case HK_KP7:  cmdStep(1, nMods_ != HM_NONE); break;
-    case HK_KP8:  cmdStepOver(nMods_ == HM_CTRL); break;
+    case HK_KP8:  cmdStepOver(ctrl); break;
     case HK_KP9:  cmdStepOut();     break;
-    case HK_KP4:  cmdStep(10);      break;
-    case HK_KP5:  cmdStep(100);     break;
-    case HK_KP6:  cmdStep(1000);    break;
+    case HK_KP4:  cmdStep(ctrl ? 10'000 : 10);      break;
+    case HK_KP5:  cmdStep(ctrl ? 100'000 : 100);     break;
+    case HK_KP6:  cmdStep(ctrl ? 1'000'000 : 1000);    break;
 
     default:      return false;
     }

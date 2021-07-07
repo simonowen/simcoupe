@@ -494,9 +494,9 @@ Disassembly View:
         Keypad-7 = single step 1 instruction
         Keypad-8 = step over instruction
         Keypad-9 = step out of function
-        Keypad-4 = step 10 instructions
-        Keypad-5 = step 100 instructions
-        Keypad-6 = step 1000 instructions
+        Keypad-4 = step 10 instructions (10000)
+    Keypad-4/5/6 = step 10/100/1000 instructions
+    Ctrl-KP4/5/6 = step 10K/100K/1M instructions
    Ctrl-Keypad-8 = step over with code timing (no ints, border contention)
       Left/Right = scroll 1 byte
          Up/Down = scroll 1 instruction
