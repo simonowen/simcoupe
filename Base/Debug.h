@@ -243,7 +243,7 @@ public:
     void OnDelete() override;
 
 private:
-    bool m_fFullMode = false;
+    bool m_flags = false;
 };
 
 

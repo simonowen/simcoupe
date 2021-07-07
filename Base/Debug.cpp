@@ -3039,16 +3039,18 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
 
             // Macro-tastic!
 #define CHG(r)    (p1->regs.get_##r() != p0->regs.get_##r())
-#define CHG_H(r,h)  (z80::get_high8(p1->regs.get_##r()) != z80::get_high8(p0->regs.get_##r()))
+#define CHG_H(rr)  (z80::get_high8(p1->regs.get_##rr()) != z80::get_high8(p0->regs.get_##rr()))
+#define CHG_L(rr)  (z80::get_low8(p1->regs.get_##rr()) != z80::get_low8(p0->regs.get_##rr()))
 
 #define CHK_S(r,RL)     if (CHG(r)) PRINT_S(RL,r);
-#define CHK(rr,RH,RL)   if (CHG_H(rr,h) && !CHG_H(rr,l)) PRINT_H(RH,rr,h);      \
-                        else if (!CHG_H(rr,h) && CHG_H(rr,l)) PRINT_H(RL,rr,l); \
+#define CHK(rr,RH,RL)   if (CHG_H(rr) && !CHG_L(rr)) PRINT_H(RH,rr);      \
+                        else if (!CHG_H(rr) && CHG_L(rr)) PRINT_L(RL,rr); \
                         else if (CHG(rr)) PRINT_D(RH RL,rr)
 
-#define PRINT_H(N,r,h)  psz += sprintf(psz, "\ag" N "\aX %02X->%02X  ", static_cast<unsigned>(z80::get_high8(p0->regs.get_##r())), static_cast<unsigned>(z80::get_high8(p1->regs.get_##r())))
+#define PRINT_H(N,rr)  psz += sprintf(psz, "\ag" N "\aX %02X->%02X  ", static_cast<unsigned>(z80::get_high8(p0->regs.get_##rr())), static_cast<unsigned>(z80::get_high8(p1->regs.get_##rr())))
+#define PRINT_L(N,rr)  psz += sprintf(psz, "\ag" N "\aX %02X->%02X  ", static_cast<unsigned>(z80::get_low8(p0->regs.get_##rr())), static_cast<unsigned>(z80::get_low8(p1->regs.get_##rr())))
 #define PRINT_S(N,r)    psz += sprintf(psz, "\ag" N "\aX %02X->%02X  ", static_cast<unsigned>(p0->regs.get_##r()), static_cast<unsigned>(p1->regs.get_##r()))
-#define PRINT_D(N,r)    psz += sprintf(psz, "\ag" N "\aX %04X->%04X  ", static_cast<unsigned>(p0->regs.get_##r()), static_cast<unsigned>(p1->regs.get_##r()))
+#define PRINT_D(N,rr)    psz += sprintf(psz, "\ag" N "\aX %04X->%04X  ", static_cast<unsigned>(p0->regs.get_##rr()), static_cast<unsigned>(p1->regs.get_##rr()))
 
             // Special check for EXX, as we don't have room for all changes
             if ((CHG(bc) && CHG(alt_bc)) ||
@@ -3076,19 +3078,15 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
                 }
                 else
                 {
-                    if (m_fFullMode)
+                    if (CHG_H(af)) PRINT_H("A", af);
+
+                    CHK(bc, "B", "C");
+                    CHK(de, "D", "E");
+                    CHK(hl, "H", "L");
+
+                    if (m_flags)
                     {
-                        if (CHG(af)) PRINT_D("AF", af);
-                        if (CHG(bc)) PRINT_D("BC", bc);
-                        if (CHG(de)) PRINT_D("DE", de);
-                        if (CHG(hl)) PRINT_D("HL", hl);
-                    }
-                    else
-                    {
-                        if (CHG_H(af, h)) PRINT_H("A", af, h);
-                        CHK(bc, "B", "C");
-                        CHK(de, "D", "E");
-                        CHK(hl, "H", "L");
+                        if (CHG_L(af)) PRINT_L("F", af);
                     }
                 }
 
@@ -3116,7 +3114,7 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
 bool TrcView::cmdNavigate(int nKey_, int nMods_)
 {
     if (nKey_ == HK_SPACE)
-        m_fFullMode = !m_fFullMode;
+        m_flags = !m_flags;
 
     return TextView::cmdNavigate(nKey_, nMods_);
 }

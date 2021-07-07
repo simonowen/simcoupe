@@ -524,6 +524,11 @@ Graphics View:
   Ctrl-PgUp/PgDn = scroll by 1 page
 ```
 
+Trace View:
+```
+             Space = toggle flags display
+```
+
 Debugger Command Mode:
 ```
            di / ei = disable/enable interrupts
