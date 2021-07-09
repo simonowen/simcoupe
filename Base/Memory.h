@@ -135,6 +135,7 @@ namespace Memory
 
     inline void Write(uint16_t addr, uint8_t val)
     {
+        check_video_write(addr);
         last_phys_write2 = last_phys_write1;
         *(last_phys_write1 = AddrWritePtr(addr)) = val;
     }
