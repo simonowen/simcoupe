@@ -230,22 +230,18 @@ void BrowseFloppy::OnOK()
 {
     if (auto full_path = m_pFileView->GetFullPath(); !full_path.empty())
     {
-        bool fInserted = false;
+        auto inserted = ((m_nDrive == 1) ? pFloppy1 : pFloppy2)->Insert(full_path);
+        if (inserted && m_nDrive == 1)
+            IO::AutoLoad(AutoLoadType::Disk);
 
-        // Insert the disk into the appropriate drive
-        fInserted = ((m_nDrive == 1) ? pFloppy1 : pFloppy2)->Insert(full_path, true);
-
-        // If we succeeded, show a status message and close the file selector
-        if (fInserted)
+        if (inserted)
         {
-            // Update the status text and close the dialog
             Frame::SetStatus("{}  inserted into drive {}", m_pFileView->GetItem()->m_label, m_nDrive);
             Destroy();
             return;
         }
     }
 
-    // Report any error
     auto err = fmt::format("Invalid disk image:\n\n{}", m_pFileView->GetItem()->m_label);
     new MsgBox(this, err, "Open Failed", mbWarning);
 }

@@ -108,10 +108,10 @@ if (BUILD_WIN32)
   endforeach()
 elseif (BUILD_SDL)
   set(SDL_CPP_FILES
-    SDL/Audio.cpp SDL/Floppy.cpp SDL/IDEDisk.cpp SDL/Input.cpp SDL/MIDI.cpp
+    SDL/Audio.cpp SDL/IDEDisk.cpp SDL/Input.cpp SDL/MIDI.cpp
     SDL/OSD.cpp SDL/SDL20.cpp SDL/SDL20_GL3.cpp SDL/UI.cpp)
   set(SDL_H_FILES
-    SDL/Audio.h SDL/Floppy.h SDL/IDEDisk.h SDL/Input.h SDL/MIDI.h SDL/OSD.h
+    SDL/Audio.h SDL/IDEDisk.h SDL/Input.h SDL/MIDI.h SDL/OSD.h
     SDL/SDL20.h SDL/SDL20_GL3.h SDL/UI.h)
 
   set(SOURCE_FILES ${SOURCE_FILES} ${SDL_CPP_FILES})

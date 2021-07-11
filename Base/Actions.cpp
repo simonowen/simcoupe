@@ -63,11 +63,9 @@ static const std::vector<ActionEntry> actions =
     { Action::NewDisk1, "NewDisk1", "New disk 1", },
     { Action::InsertDisk1, "InsertDisk1", "Insert disk 1" },
     { Action::EjectDisk1, "EjectDisk1", "Close disk 1" },
-    { Action::SaveDisk1, "SaveDisk1", "Save disk 1" },
     { Action::NewDisk2, "NewDisk2", "New disk 2" },
     { Action::InsertDisk2, "InsertDisk2", "Insert disk 2" },
     { Action::EjectDisk2, "EjectDisk2", "Close disk 2" },
-    { Action::SaveDisk2, "SaveDisk2", "Save disk 2" },
     { Action::InsertTape, "InsertTape", "Insert Tape" },
     { Action::EjectTape, "EjectTape", "Eject Tape" },
     { Action::TapeBrowser, "TapeBrowser", "Tape Browser" },
@@ -164,11 +162,6 @@ bool Do(Action action, bool pressed/*=true*/)
             }
             break;
 
-        case Action::SaveDisk1:
-            if (pFloppy1->HasDisk() && pFloppy1->DiskModified() && pFloppy1->Save())
-                Frame::SetStatus("{}  changes saved", pFloppy1->DiskFile());
-            break;
-
         case Action::InsertDisk2:
             if (GetOption(drive2) != drvFloppy)
                 Message(MsgType::Info, "Floppy drive 2 is not present");
@@ -182,11 +175,6 @@ bool Do(Action action, bool pressed/*=true*/)
                 Frame::SetStatus("{}  ejected from drive 2", pFloppy2->DiskFile());
                 pFloppy2->Eject();
             }
-            break;
-
-        case Action::SaveDisk2:
-            if (pFloppy2->HasDisk() && pFloppy2->DiskModified() && pFloppy2->Save())
-                Frame::SetStatus("{}  changes saved", pFloppy2->DiskFile());
             break;
 
         case Action::NewDisk1:

@@ -109,18 +109,23 @@ SimCoupe can use software in the following disk image types:
  files designed to be copied to an empty SAM disk, then booted. While not
  technically disk images, SimCoupe treats them as such (read-only).
 
+TeleDisk .TD0 (and other) images can be converted to EDSK using SAMdisk.
+
 ---
 
-## Read Disks
+## Real Disks
 
-With only a few exceptions, original SAM disks can often be used directly in
-SimCoupe under Windows and Linux. Even custom-formatted titles such as
-Lemmings and Prince of Persia can be booted directly from original disks.
+If you are a Windows user and your PC motherboard still includes a floppy port
+you can use many original SAM disks directly in SimCoupe. Even custom-formatted
+titles such as Lemmings and Prince of Persia can be booted directly.
 
-Windows requires use of a free driver for complete control over the floppy
-drive. This is a one-time install, and must be run by a user with
-Administrator access rights. The driver installer is available from:
-http://simonowen.com/fdrawcmd/
+To use this you must connect your floppy drive directly to the motherboard
+using a standard 34-pin cable. Very few modern motherboard still support this.
+USB floppy drives will NOT work as they can't read the 10th sector from tracks.
+
+You must also install a free 3rd party driver to give full access to the drive.
+This is a one-time install and must be run by a user with Administrator access
+rights. The driver installer is available from: https://simonowen.com/fdrawcmd/
 
 To use real disks under Windows XP or later:
 
@@ -128,18 +133,6 @@ To use real disks under Windows XP or later:
    2) Insert your SAM disk into PC drive A:
    3) Select "Open A:" from the File menu to use as SAM drive 1
    4) Boot/use the disk as normal
-
-To use real disks under Linux:
-
-   1) Ensure your user has read-write access to /dev/fd0
-   2) Insert your SAM disk into PC drive A:
-   3) Press F1 to browse for a drive 1 disk
-   4) Browse to /dev/fd0 and click OK
-
-**Note:** USB floppy drives don't allow access to the floppy controller, which is
-needed for real disk access in SimCoupe. Only floppy drives connected directly
-to a motherboard floppy controller will work, and modern systems often lack
-one.
 
 ---
 

@@ -18,991 +18,838 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-// Notes:
-//  The FloppyDisk implementation is OS-specific, and is in Floppy.cpp
-
 #include "SimCoupe.h"
 #include "Disk.h"
 
 #include "Drive.h"
-#include "Floppy.h"
 
-////////////////////////////////////////////////////////////////////////////////
-
-/*static*/ DiskType Disk::GetType(Stream& stream)
+DiskType Disk::GetType(Stream& stream)
 {
-    // Try each type in turn to check for a match
+#ifdef _WIN32
     if (FloppyDisk::IsRecognised(stream))
         return DiskType::Floppy;
-    else if (EDSKDisk::IsRecognised(stream))
+    else
+#endif
+    if (EDSKDisk::IsRecognised(stream))
         return DiskType::EDSK;
     else if (SADDisk::IsRecognised(stream))
         return DiskType::SAD;
+    else if (MGTDisk::IsRecognised(stream))
+        return DiskType::MGT;
     else if (FileDisk::IsRecognised(stream))
     {
-        fs::path file = stream.GetName();
+        fs::path file = fs::path(stream.GetName());
         if (tolower(file.extension().string()) == ".sbt")
             return DiskType::SBT;
     }
 
-    // The MGT format has no signature, so we try it last
-    if (MGTDisk::IsRecognised(stream))
-        return DiskType::MGT;
-
     return DiskType::Unknown;
 }
 
-/*static*/ std::unique_ptr<Disk> Disk::Open(const std::string& disk_path, bool read_only)
+std::unique_ptr<Disk>
+Disk::Open(const std::string& disk_path, bool read_only)
 {
-    std::unique_ptr<Disk> disk;
-
-    // Fetch stream for the disk source
-    auto stream = Stream::Open(disk_path, read_only);
-
-    // A disk will only be returned if the stream format is recognised
-    if (stream)
+    if (auto stream = Stream::Open(disk_path, read_only))
     {
         switch (GetType(*stream))
         {
-        case DiskType::Floppy:  disk = std::make_unique<FloppyDisk>(std::move(stream));   break;      // Direct floppy access
-        case DiskType::EDSK:    disk = std::make_unique<EDSKDisk>(std::move(stream));     break;      // .DSK
-        case DiskType::SAD:     disk = std::make_unique<SADDisk>(std::move(stream));      break;      // .SAD
-        case DiskType::MGT:     disk = std::make_unique<MGTDisk>(std::move(stream));      break;      // .MGT
-        case DiskType::SBT:     disk = std::make_unique<FileDisk>(std::move(stream));     break;      // .SBT (bootable SAM file on a floppy)
-
-        case DiskType::CAPS:
-        case DiskType::File:
-        case DiskType::Unknown:
-            break;
+#ifdef _WIN32
+        case DiskType::Floppy:  return std::make_unique<FloppyDisk>(std::move(stream));
+#endif
+        case DiskType::EDSK:    return std::make_unique<EDSKDisk>(std::move(stream));
+        case DiskType::SAD:     return std::make_unique<SADDisk>(std::move(stream));
+        case DiskType::MGT:     return std::make_unique<MGTDisk>(std::move(stream));
+        case DiskType::SBT:     return std::make_unique<FileDisk>(std::move(stream));
+        default: break;
         }
     }
 
-    return disk;
+    return nullptr;
 }
 
-/*static*/ std::unique_ptr<Disk> Disk::Open(void* pv_, size_t uSize_, const char* pcszDisk_)
+std::unique_ptr<Disk>
+Disk::Open(const std::vector<uint8_t>& mem_file, const std::string& file_desc)
 {
-    auto stream = std::make_unique<MemStream>(pv_, uSize_, pcszDisk_);
-    if (!stream)
-        return nullptr;
+    if (auto stream = std::make_unique<MemStream>(mem_file))
+        return std::make_unique<FileDisk>(std::move(stream));
 
-    return std::make_unique<FileDisk>(std::move(stream));
+    return nullptr;
 }
-
 
 Disk::Disk(std::unique_ptr<Stream> stream, DiskType type)
-    : m_nType(type), m_nBusy(0), m_fModified(false), m_stream(std::move(stream))
+    : m_type(type), m_busy_frames(0), m_stream(std::move(stream))
 {
+    m_last_write_time = m_stream->LastWriteTime();
 }
 
-// Get the header for the specified sector index
-bool Disk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_/*=nullptr*/, uint8_t* pbStatus_/*=nullptr*/)
+void Disk::Close()
 {
-    // Construct a normal ID field for the sector
-    pID_->bTrack = cyl_;
-    pID_->bSide = head_;
-    pID_->bSector = index_ + 1;
-    pID_->bSize = 2;           // 128 << 2 = 512 bytes
+    if (m_modified)
+        Save();
 
-    // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
-    auto wCRC = CrcBlock("\xa1\xa1\xa1\xfe", 4);
-    wCRC = CrcBlock(pID_, 4, wCRC);
-    pID_->bCRC1 = wCRC >> 8;
-    pID_->bCRC2 = wCRC & 0xff;
+    m_stream->Close();
+}
 
-    // Sector OK so reset all errors
-    if (pbStatus_)
-        *pbStatus_ = 0;
+std::pair<uint8_t, IDFIELD>
+Disk::GetSector(uint8_t cyl, uint8_t head, uint8_t sector_index)
+{
+    IDFIELD id{};
+    id.cyl = cyl;
+    id.head = head;
+    id.sector = sector_index + 1;
+    id.size = 2;
 
-    // Always successful
+    auto crc = CrcBlock("\xa1\xa1\xa1\xfe", 4);
+    crc = CrcBlock(&id, 4, crc);
+    id.crc1 = crc >> 8;
+    id.crc2 = crc & 0xff;
+
+    return std::make_pair(0, id);
+}
+
+bool Disk::IsBusy(uint8_t& status, bool wait)
+{
+    status = 0;
+
+    if (wait || !m_busy_frames)
+    {
+        m_busy_frames = 0;
+        return false;
+    }
+
+    m_busy_frames--;
     return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/*static*/ bool MGTDisk::IsRecognised(Stream& stream)
+bool MGTDisk::IsRecognised(Stream& stream)
 {
     auto size = stream.GetSize();
-
-    // Accept 800K (10-sector) SAM disks and 720K (9-sector DOS) disks
     return size == MGT_IMAGE_SIZE || size == DOS_IMAGE_SIZE;
 }
 
-MGTDisk::MGTDisk(std::unique_ptr<Stream> stream, unsigned int uSectors_/*=NORMAL_DISK_SECTORS*/)
-    : Disk(std::move(stream), DiskType::MGT), m_uSectors(uSectors_)
+MGTDisk::MGTDisk(std::unique_ptr<Stream> stream, int num_sectors)
+    : Disk(std::move(stream), DiskType::MGT), m_sectors(num_sectors)
 {
-    // Allocate some memory and clear it, just in case it's not a complete MGT image
-    m_data.resize(MGT_IMAGE_SIZE);
-    memset(m_data.data(), (uSectors_ == NORMAL_DISK_SECTORS) ? 0x00 : 0xe5, MGT_IMAGE_SIZE);
+    m_data.resize((num_sectors == DOS_DISK_SECTORS) ? DOS_IMAGE_SIZE : MGT_IMAGE_SIZE);
 
-    // Read the data from any existing stream
-    if (m_stream->IsOpen())
+    if (m_stream->GetSize())
     {
         m_stream->Rewind();
-        size_t uRead = m_stream->Read(m_data.data(), MGT_IMAGE_SIZE);
-        Close();
-
-        // If it's an MS-DOS image, treat as 9 sectors-per-track, otherwise 10 as normal for SAM
-        m_uSectors = (uRead == DOS_IMAGE_SIZE) ? DOS_DISK_SECTORS : NORMAL_DISK_SECTORS;
-    }
-}
-
-
-// Get sector details
-bool MGTDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
-{
-    // Check sector is in range
-    if (cyl_ >= NORMAL_DISK_TRACKS || head_ >= NORMAL_DISK_SIDES || index_ >= m_uSectors)
-        return false;
-
-    // Fill default values
-    Disk::GetSector(cyl_, head_, index_, pID_, pbStatus_);
-
-    return true;
-}
-
-// Read the data for the last sector found
-uint8_t MGTDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
-{
-    // Sector must be in range
-    if (index_ >= m_uSectors)
-        return RECORD_NOT_FOUND;
-
-    // Work out the offset for the required data
-    long lPos = (head_ + NORMAL_DISK_SIDES * cyl_) * (m_uSectors * NORMAL_SECTOR_SIZE) + (index_ * NORMAL_SECTOR_SIZE);
-
-    // Copy the sector data from the image buffer
-    memcpy(pbData_, m_data.data() + lPos, *puSize_ = NORMAL_SECTOR_SIZE);
-
-    // Data is always perfect on MGT images, so return OK
-    return 0;
-}
-
-// Read the data for the last sector found
-uint8_t MGTDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
-{
-    // Sector must be in range
-    if (index_ >= m_uSectors)
-        return RECORD_NOT_FOUND;
-
-    // Fail if read-only
-    if (IsReadOnly())
-        return WRITE_PROTECT;
-
-    // Work out the offset for the required data (MGT and IMG use different track interleaves)
-    long lPos = head_ + NORMAL_DISK_SIDES * cyl_;
-    lPos = lPos * (m_uSectors * NORMAL_SECTOR_SIZE) + (index_ * NORMAL_SECTOR_SIZE);
-
-    // Copy the sector data to the image buffer, and set the modified flag
-    memcpy(m_data.data() + lPos, pbData_, *puSize_ = NORMAL_SECTOR_SIZE);
-    SetModified();
-
-    // Data is always perfect on MGT images, so return OK
-    return 0;
-}
-
-// Save the disk out to the stream
-bool MGTDisk::Save()
-{
-    size_t uSize = NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * m_uSectors * NORMAL_SECTOR_SIZE;
-
-    // Write the image out as a single block
-    if (!m_stream->Rewind() || m_stream->Write(m_data.data(), uSize) != uSize)
-        return false;
-
-    m_stream->Close();
-    SetModified(false);
-
-    return true;
-}
-
-// Format a track using the specified format
-uint8_t MGTDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_)
-{
-    uint32_t dwSectors = 0;
-    bool fNormal = true;
-    unsigned int u;
-
-    // Disk must be writable, same number of sectors, and within track limit
-    if (IsReadOnly() || uSectors_ != m_uSectors || cyl_ >= NORMAL_DISK_TRACKS)
-        return WRITE_PROTECT;
-
-    // Make sure the remaining sectors are completely normal
-    for (u = 0; u < uSectors_; u++)
-    {
-        // Side and track must match the ones it's being laid on
-        fNormal &= (paID_[u].bSide == head_ && paID_[u].bTrack == cyl_);
-
-        // Sector size must be the same
-        fNormal &= ((128U << paID_[u].bSize) == NORMAL_SECTOR_SIZE);
-
-        // Remember we've seen this sector number
-        dwSectors |= (1 << (paID_[u].bSector - 1));
-    }
-
-    // There must be only 1 of each sector number from 1 to N (in any order though)
-    fNormal &= (dwSectors == ((1UL << m_uSectors) - 1));
-
-    // Reject tracks that are not completely normal
-    if (!fNormal)
-        return WRITE_PROTECT;
-
-    // Work out the offset for the required track
-    long lPos = (head_ + NORMAL_DISK_SIDES * cyl_) * (m_uSectors * NORMAL_SECTOR_SIZE);
-
-    // Process each sector to write the supplied data
-    for (u = 0; u < uSectors_; u++)
-        memcpy(m_data.data() + lPos + ((paID_[u].bSector - 1) * NORMAL_SECTOR_SIZE), papbData_[u], NORMAL_SECTOR_SIZE);
-
-    SetModified();
-    return 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-/*static*/ bool SADDisk::IsRecognised(Stream& stream)
-{
-    SAD_HEADER sh{};
-
-    // Read the header, check for the signature, and make sure the disk geometry is sensible
-    bool fValid = (stream.Rewind() && stream.Read(&sh, sizeof(sh)) == sizeof(sh) &&
-        !memcmp(sh.abSignature, SAD_SIGNATURE, sizeof(sh.abSignature)) &&
-        sh.bSides && sh.bSides <= MAX_DISK_SIDES && sh.bTracks && sh.bTracks <= 127 &&
-        sh.bSectorSizeDiv64 && (sh.bSectorSizeDiv64 <= (MAX_SECTOR_SIZE >> 6)) &&
-        (sh.bSectorSizeDiv64 & -sh.bSectorSizeDiv64) == sh.bSectorSizeDiv64);
-
-    // If we know the stream size, validate the image size
-    if (fValid && stream.GetSize())
-    {
-        unsigned int uDiskSize = sizeof(sh) + sh.bSides * sh.bTracks * sh.bSectors * (sh.bSectorSizeDiv64 << 6);
-        fValid &= (stream.GetSize() == uDiskSize);
-    }
-
-    return fValid;
-}
-
-SADDisk::SADDisk(std::unique_ptr<Stream> stream, unsigned int uSides_/*=NORMAL_DISK_SIDES*/, unsigned int uTracks_/*=NORMAL_DISK_TRACKS*/,
-    unsigned int uSectors_/*=NORMAL_DISK_SECTORS*/, unsigned int uSectorSize_/*=NORMAL_SECTOR_SIZE*/)
-    : Disk(std::move(stream), DiskType::SAD)
-{
-    SAD_HEADER sh;
-    sh.bSides = static_cast<uint8_t>(uSides_);
-    sh.bTracks = static_cast<uint8_t>(uTracks_);
-    sh.bSectors = static_cast<uint8_t>(uSectors_);
-    sh.bSectorSizeDiv64 = static_cast<uint8_t>(uSectorSize_ >> 6);
-
-    if (!m_stream->IsOpen())
-        memcpy(sh.abSignature, SAD_SIGNATURE, sizeof(sh.abSignature));
-    else
-    {
-        m_stream->Rewind();
-        m_stream->Read(&sh, sizeof(sh));
-    }
-
-    m_uSides = sh.bSides;
-    m_uTracks = sh.bTracks;
-    m_uSectors = sh.bSectors;
-    m_uSectorSize = sh.bSectorSizeDiv64 << 6;
-
-    unsigned int uDiskSize = sizeof(sh) + m_uSides * m_uTracks * m_uSectors * m_uSectorSize;
-    m_data.resize(uDiskSize);
-    memcpy(m_data.data(), &sh, sizeof(sh));
-    memset(m_data.data() + sizeof(sh), 0, uDiskSize - sizeof(sh));
-
-    if (m_stream->IsOpen())
-    {
-        m_stream->Read(m_data.data() + sizeof(sh), uDiskSize - sizeof(sh));
+        m_stream->Read(m_data.data(), m_data.size());
         m_stream->Close();
     }
 }
 
-
-// Get sector details
-bool SADDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
+std::pair<uint8_t, IDFIELD>
+MGTDisk::GetSector(uint8_t cyl, uint8_t head, uint8_t sector_index)
 {
-    // Check sector is in range
-    if (cyl_ >= m_uTracks || head_ >= m_uSides || index_ >= m_uSectors)
-        return false;
+    if (cyl >= MGT_DISK_CYLS || head >= MGT_DISK_HEADS || sector_index >= m_sectors)
+        return std::make_pair(RECORD_NOT_FOUND, IDFIELD{});
 
-    // Fill default values, then update the sector size
-    Disk::GetSector(cyl_, head_, index_, pID_, pbStatus_);
-    pID_->bSize = GetSizeCode(m_uSectorSize);
-
-    return true;
+    return Disk::GetSector(cyl, head, sector_index);
 }
 
-// Read the data for the last sector found
-uint8_t SADDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+std::pair<uint8_t, std::vector<uint8_t>>
+MGTDisk::ReadData(uint8_t cyl, uint8_t head, uint8_t sector_index)
 {
-    // Work out the offset for the required data
-    long lPos = sizeof(SAD_HEADER) + (head_ * m_uTracks + cyl_) * (m_uSectors * m_uSectorSize) + (index_ * m_uSectorSize);
+    if (sector_index >= m_sectors)
+        return std::make_pair(RECORD_NOT_FOUND, std::vector<uint8_t>());
 
-    // Copy the sector data from the image buffer
-    memcpy(pbData_, m_data.data() + lPos, *puSize_ = m_uSectorSize);
+    auto offset = ((static_cast<size_t>(cyl) * MGT_DISK_HEADS + head) * m_sectors + sector_index) * NORMAL_SECTOR_SIZE;
+    auto data = std::vector<uint8_t>(m_data.begin() + offset, m_data.begin() + offset + NORMAL_SECTOR_SIZE);
 
-    // Data is always perfect on SAD images, so return OK
-    return 0;
+    return std::make_pair(0, std::move(data));
 }
 
-// Read the data for the last sector found
-uint8_t SADDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+uint8_t MGTDisk::WriteData(uint8_t cyl, uint8_t head, uint8_t sector_index, const std::vector<uint8_t>& data)
 {
-    // Fail if read-only
-    if (IsReadOnly())
+    if (sector_index >= m_sectors || data.size() != NORMAL_SECTOR_SIZE)
+        return RECORD_NOT_FOUND;
+
+    if (WriteProtected())
         return WRITE_PROTECT;
 
-    // Work out the offset for the required data
-    long lPos = sizeof(SAD_HEADER) + (head_ * m_uTracks + cyl_) * (m_uSectors * m_uSectorSize) + (index_ * m_uSectorSize);
+    auto offset = ((static_cast<size_t>(cyl) * MGT_DISK_HEADS + head) * m_sectors + sector_index) * NORMAL_SECTOR_SIZE;
+    std::copy(data.begin(), data.end(), m_data.begin() + offset);
+    m_modified = true;
 
-    // Copy the sector data to the image buffer, and set the modified flag
-    memcpy(m_data.data() + lPos, pbData_, *puSize_ = m_uSectorSize);
-    SetModified();
-
-    // Data is always perfect on SAD images, so return OK
     return 0;
 }
 
-// Save the disk out to the stream
+bool MGTDisk::Save()
+{
+    m_stream->Rewind();
+    auto saved = m_stream->Write(m_data.data(), m_data.size()) == m_data.size();
+    m_stream->Close();
+
+    m_last_write_time = m_stream->LastWriteTime();
+    m_modified = false;
+    return saved;
+}
+
+uint8_t MGTDisk::FormatTrack(uint8_t cyl, uint8_t head,
+    const std::vector<std::pair<IDFIELD, std::vector<uint8_t>>>& sectors)
+{
+    if (WriteProtected())
+        return WRITE_PROTECT;
+    else if (cyl >= MGT_DISK_CYLS || head >= MGT_DISK_HEADS || sectors.size() != m_sectors)
+        return WRITE_FAULT;
+
+    bool normal = true;
+    int sector_mask = 0;
+    for (auto& [id, data] : sectors)
+    {
+        normal &= (id.head == head && id.cyl == cyl);
+        normal &= (SizeFromSizeCode(id.size) == NORMAL_SECTOR_SIZE);
+        normal &= (data.size() == NORMAL_SECTOR_SIZE);
+        sector_mask |= (1 << (id.sector - 1));
+    }
+
+    if (!normal || (sector_mask != ((1 << m_sectors) - 1)))
+        return WRITE_FAULT;
+
+    auto track_offset = (static_cast<size_t>(cyl) * MGT_DISK_HEADS + head) * (m_sectors * NORMAL_SECTOR_SIZE);
+
+    for (auto& [id, data] : sectors)
+    {
+        auto sector_offset = (id.sector - 1) * NORMAL_SECTOR_SIZE;
+        std::copy(data.begin(), data.end(), m_data.begin() + track_offset + sector_offset);
+    }
+
+    m_modified = true;
+    return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+bool SADDisk::IsRecognised(Stream& stream)
+{
+    SAD_HEADER sh{};
+
+    auto valid = stream.Rewind() &&
+        stream.Read(&sh, sizeof(sh)) == sizeof(sh) &&
+        std::string_view(sh.signature, SAD_SIGNATURE.size()) == SAD_SIGNATURE &&
+        sh.heads > 0 && sh.heads <= MAX_DISK_HEADS &&
+        sh.cyls > 0 && sh.cyls <= MAX_DISK_CYLS &&
+        (sh.sector_size_div64 << 6) >= MIN_SECTOR_SIZE &&
+        (sh.sector_size_div64 << 6) <= MAX_SECTOR_SIZE &&
+        (sh.sector_size_div64 & -sh.sector_size_div64) == sh.sector_size_div64;
+
+    return valid;
+}
+
+SADDisk::SADDisk(std::unique_ptr<Stream> stream)
+    : Disk(std::move(stream), DiskType::SAD)
+{
+    if (m_stream->GetSize())
+    {
+        SAD_HEADER sh{};
+        m_stream->Rewind();
+        m_stream->Read(&sh, sizeof(sh));
+
+        m_heads = sh.heads;
+        m_cyls = sh.cyls;
+        m_sectors = sh.sectors;
+        m_sector_size = sh.sector_size_div64 << 6;
+        m_data.resize(static_cast<size_t>(m_cyls) * m_heads * m_sectors * m_sector_size);
+
+        m_stream->Read(m_data.data(), m_data.size());
+        m_stream->Close();
+    }
+    else
+    {
+        m_data.resize(m_cyls * m_heads * m_sectors * m_sector_size);
+    }
+}
+
+std::pair<uint8_t, IDFIELD>
+SADDisk::GetSector(uint8_t cyl, uint8_t head, uint8_t sector_index)
+{
+    if (cyl >= m_cyls || head >= m_heads || sector_index >= m_sectors)
+        return std::make_pair(RECORD_NOT_FOUND, IDFIELD{});
+
+    auto [status, id] = Disk::GetSector(cyl, head, sector_index);
+    id.size = GetSizeCode(m_sector_size);
+    return std::make_pair(status, id);
+}
+
+std::pair<uint8_t, std::vector<uint8_t>>
+SADDisk::ReadData(uint8_t cyl, uint8_t head, uint8_t sector_index)
+{
+    size_t offset = (head * m_cyls + cyl) * (m_sectors * m_sector_size) +
+        (sector_index * m_sector_size);
+
+    return std::make_pair(0, std::vector<uint8_t>(
+        m_data.begin() + offset,
+        m_data.begin() + offset + m_sector_size));
+}
+
+uint8_t SADDisk::WriteData(uint8_t cyl, uint8_t head, uint8_t sector_index, const std::vector<uint8_t>& data)
+{
+    if (sector_index >= m_sectors || data.size() != m_sector_size)
+        return RECORD_NOT_FOUND;
+
+    if (WriteProtected())
+        return WRITE_PROTECT;
+
+    auto offset = (head * m_cyls + cyl) * (m_sectors * m_sector_size) + (sector_index * m_sector_size);
+    std::copy(data.begin(), data.end(), m_data.begin() + offset);
+    m_modified = true;
+
+    return 0;
+}
+
 bool SADDisk::Save()
 {
-    unsigned int uDiskSize = sizeof(SAD_HEADER) + m_uSides * m_uTracks * m_uSectors * m_uSectorSize;
-
-    if (!m_stream->Rewind() || m_stream->Write(m_data.data(), uDiskSize) != uDiskSize)
-        return false;
-
-    SetModified(false);
-    m_stream->Close();
-    return true;
-}
-
-// Format a track using the specified format
-uint8_t SADDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_)
-{
-    uint32_t dwSectors = 0;
-    bool fNormal = true;
-    unsigned int u;
-
-    // Disk must be writable, same number of sectors, and within track limit
-    if (IsReadOnly() || uSectors_ != m_uSectors || cyl_ >= m_uTracks)
-        return WRITE_PROTECT;
-
-    // Make sure the remaining sectors are completely normal
-    for (u = 0; u < uSectors_; u++)
-    {
-        // Side and track must match the ones it's being laid on
-        fNormal &= (paID_[u].bSide == head_ && paID_[u].bTrack == cyl_);
-
-        // Sector size must be the same
-        fNormal &= ((128U << paID_[u].bSize) == m_uSectorSize);
-
-        // Remember we've seen this sector number
-        dwSectors |= (1 << (paID_[u].bSector - 1));
-    }
-
-    // There must be only 1 of each sector number from 1 to N (in any order though)
-    fNormal &= (dwSectors == ((1UL << m_uSectors) - 1));
-
-    // Reject tracks that are not completely normal
-    if (!fNormal)
-        return WRITE_PROTECT;
-
-    // Work out the offset for the required track
-    long lPos = sizeof(SAD_HEADER) + (head_ * m_uTracks + cyl_) * (m_uSectors * NORMAL_SECTOR_SIZE);
-
-    // Process each sector to write the supplied data
-    for (u = 0; u < uSectors_; u++)
-        memcpy(m_data.data() + lPos + ((paID_[u].bSector - 1) * m_uSectorSize), papbData_[u], m_uSectorSize);
-
-    // Mark the disk stream as modified
-    SetModified();
-
-    return 0;
-}
-////////////////////////////////////////////////////////////////////////////////
-
-/*static*/ bool EDSKDisk::IsRecognised(Stream& stream)
-{
-    EDSK_HEADER eh;
-
-    // Read the header, check the signature and basic geometry
-    bool fValid = (stream.Rewind() && stream.Read(&eh, sizeof(eh)) == sizeof(eh) &&
-        (!memcmp(eh.szSignature, EDSK_SIGNATURE, sizeof(EDSK_SIGNATURE) - 1) ||
-            !memcmp(eh.szSignature, DSK_SIGNATURE, sizeof(DSK_SIGNATURE) - 1)) &&
-        eh.bSides >= 1 && eh.bSides <= MAX_DISK_SIDES);
-
-    return fValid;
-}
-
-EDSKDisk::EDSKDisk(std::unique_ptr<Stream> stream, unsigned int uSides_/*=NORMAL_DISK_SIDES*/, unsigned int uTracks_/*=MAX_DISK_TRACKS*/)
-    : Disk(std::move(stream), DiskType::EDSK), m_pSector(nullptr), m_pbData(nullptr)
-{
-    m_uSides = uSides_;
-    m_uTracks = uTracks_;
-
-    // Unformatted, initially
-    memset(m_apTracks, 0, sizeof(m_apTracks));
-    memset(m_abSizes, 0, sizeof(m_abSizes));
-
-    // There's nothing more to do if we don't have a stream
-    if (!m_stream->IsOpen())
-        return;
-
-    uint8_t ab[256];
-    EDSK_HEADER* peh = reinterpret_cast<EDSK_HEADER*>(ab);
-    uint8_t* pbSizes = reinterpret_cast<uint8_t*>(peh + 1);
+    SAD_HEADER sh{};
+    SAD_SIGNATURE.copy(sh.signature, sizeof(sh.signature));
+    sh.cyls = static_cast<uint8_t>(m_cyls);
+    sh.heads = static_cast<uint8_t>(m_heads);
+    sh.sectors = static_cast<uint8_t>(m_sectors);
+    sh.sector_size_div64 = static_cast<uint8_t>(m_sector_size >> 6);
 
     m_stream->Rewind();
-    m_stream->Read(ab, sizeof(ab));
+    auto saved = m_stream->Write(&sh, sizeof(sh)) == sizeof(sh) &&
+        m_stream->Write(m_data.data(), m_data.size()) == m_data.size();
+    m_stream->Close();
 
-    m_uSides = peh->bSides;
-    m_uTracks = std::min(peh->bTracks, static_cast<uint8_t>(MAX_DISK_TRACKS));
+    m_last_write_time = m_stream->LastWriteTime();
+    m_modified = false;
+    return saved;
+}
 
-    bool fEDSK = peh->szSignature[0] == EDSK_SIGNATURE[0];
-    uint16_t wDSKTrackSize = peh->abTrackSize[0] | (peh->abTrackSize[1] << 8);  // DSK only
+uint8_t SADDisk::FormatTrack(uint8_t cyl, uint8_t head,
+    const std::vector<std::pair<IDFIELD, std::vector<uint8_t>>>& sectors)
+{
+    if (WriteProtected() || sectors.size() != m_sectors || cyl >= m_cyls)
+        return WRITE_PROTECT;
 
-    for (uint8_t cyl = 0; cyl < m_uTracks; cyl++)
+    bool normal = true;
+    uint32_t sector_mask = 0;
+    for (auto& [id, data] : sectors)
     {
-        for (uint8_t head = 0; head < m_uSides; head++)
+        normal &= (id.head == head && id.cyl == cyl);
+        normal &= (SizeFromSizeCode(id.size) == m_sector_size);
+        sector_mask |= (1 << (id.sector - 1));
+    }
+
+    normal &= (sector_mask == ((1UL << m_sectors) - 1));
+    if (!normal)
+        return WRITE_PROTECT;
+
+    auto track_offset = sizeof(SAD_HEADER) + (head * m_cyls + cyl) * (m_sectors * NORMAL_SECTOR_SIZE);
+
+    for (auto& [id, data] : sectors)
+    {
+        auto sector_offset = (id.sector - 1) * m_sector_size;
+        std::copy(data.begin(), data.end(), m_data.begin() + track_offset + sector_offset);
+    }
+
+    m_modified = true;
+    return 0;
+}
+////////////////////////////////////////////////////////////////////////////////
+
+bool EDSKDisk::IsRecognised(Stream& stream)
+{
+    EDSK_HEADER eh{};
+
+    return stream.Rewind() &&
+        stream.Read(&eh, sizeof(eh)) == sizeof(eh) &&
+        (std::string_view(eh.signature, EDSK_SIGNATURE.size()) == EDSK_SIGNATURE ||
+            std::string_view(eh.signature, DSK_SIGNATURE.size()) == DSK_SIGNATURE);
+}
+
+EDSKDisk::EDSKDisk(std::unique_ptr<Stream> stream, int cyls, int heads)
+    : Disk(std::move(stream), DiskType::EDSK), m_cyls(cyls), m_heads(heads)
+{
+    m_tracks.resize(MAX_DISK_CYLS * MAX_DISK_HEADS);
+
+    if (!m_stream->GetSize())
+        return;
+
+    EDSK_HEADER eh{};
+    m_stream->Rewind();
+    m_stream->Read(&eh, sizeof(eh));
+
+    m_cyls = std::min(eh.cyls, static_cast<uint8_t>(MAX_DISK_CYLS));
+    m_heads = std::min(eh.heads, static_cast<uint8_t>(MAX_DISK_HEADS));
+
+    auto is_dsk = std::string_view(eh.signature, DSK_SIGNATURE.size()) == DSK_SIGNATURE;
+    size_t dsk_track_size = eh.dsk_track_size[0] | (eh.dsk_track_size[1] << 8);
+
+    for (uint8_t cyl = 0; cyl < m_cyls; cyl++)
+    {
+        for (uint8_t head = 0; head < m_heads; head++)
         {
-            // Nothing to do for empty tracks
-            unsigned int size = fEDSK ? (pbSizes[cyl * m_uSides + head] << 8) : wDSKTrackSize;
-            if (!size)
+            auto edsk_track_size = eh.size_msbs[cyl * m_heads + head] << 8;
+            auto track_size = is_dsk ? dsk_track_size : edsk_track_size;
+            if (!track_size)
                 continue;
 
-            uint8_t* pb = new uint8_t[size];
-            EDSK_TRACK* pt = reinterpret_cast<EDSK_TRACK*>(pb);
-
-            // Read the track, rejecting anything but 250Kbps MFM
-            if (pt && (m_stream->Read(pt, size) != size || (pt->bRate && pt->bRate != 1) || (pt->bEncoding && pt->bEncoding != 1)))
+            EDSK_TRACK et{};
+            if (m_stream->Read(&et, sizeof(et)) != sizeof(et) ||
+                std::string_view(et.signature, EDSK_TRACK_SIGNATURE.size()) != EDSK_TRACK_SIGNATURE)
             {
-                delete[] pb;
-                pt = nullptr;
-                size = 0;
+                return;
             }
 
-            // Save the track (or nullptr) and size MSB
-            m_apTracks[head][cyl] = pt;
-            m_abSizes[head][cyl] = size >> 8;
+            std::vector<std::pair<EDSK_SECTOR, std::vector<uint8_t>>> track;
+            track.resize(et.sectors);
+
+            for (auto& s : track)
+            {
+                auto& [sector, data] = s;
+                if (m_stream->Read(&sector, sizeof(sector)) != sizeof(sector))
+                    return;
+            }
+
+            auto slack_size = (0x100 - sizeof(EDSK_TRACK) - sizeof(EDSK_SECTOR) * et.sectors) & 0xff;
+            std::vector<uint8_t> slack(slack_size);
+            m_stream->Read(slack.data(), slack.size());
+
+            for (auto& [sector, data] : track)
+            {
+                size_t data_size = (sector.data_high << 8) | sector.data_low;
+                data.resize(data_size);
+                if (m_stream->Read(data.data(), data.size()) != data.size())
+                    return;
+
+                data_size = SizeFromSizeCode(sector.size);
+                data.resize(data_size);
+            }
+
+            if ((et.data_rate != 0 && et.data_rate != 1) || (et.data_encoding != 0 && et.data_encoding != 1))
+                track.clear();
+
+            m_tracks[static_cast<size_t>(cyl) * m_heads + head] = std::move(track);
         }
     }
 
     m_stream->Close();
 }
 
-EDSKDisk::~EDSKDisk()
+std::pair<uint8_t, IDFIELD>
+EDSKDisk::GetSector(uint8_t cyl, uint8_t head, uint8_t sector_index)
 {
-    // Free any allocated tracks
-    for (uint8_t cyl = 0; cyl < m_uTracks; cyl++)
-        for (uint8_t head = 0; head < m_uSides; head++)
-            delete[] m_apTracks[head][cyl];
-}
+    auto entry = static_cast<size_t>(cyl) * m_heads + head;
+    if (entry >= m_tracks.size() || sector_index >= m_tracks[entry].size())
+        return std::make_pair(RECORD_NOT_FOUND, IDFIELD{});
 
-// Find the next sector in the current track
-bool EDSKDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
-{
-    if (cyl_ >= m_uTracks || head_ >= m_uSides)
-        return false;
+    auto& [sector, data] = m_tracks[entry][sector_index];
 
-    EDSK_TRACK* pTrack = m_apTracks[head_][cyl_];
-    m_pSector = reinterpret_cast<EDSK_SECTOR*>(pTrack + 1);
-    m_pbData = reinterpret_cast<uint8_t*>(m_pSector + EDSK_MAX_SECTORS);
+    IDFIELD id{};
+    id.cyl = sector.cyl;
+    id.head = sector.head;
+    id.sector = sector.sector;
+    id.size = sector.size;
 
-    // Check the track exists and the sector is in range
-    if (!pTrack || index_ >= pTrack->bSectors)
-        return false;
+    auto crc = CrcBlock("\xa1\xa1\xa1\xfe", 4);
+    crc = CrcBlock(&id, 4, crc);
+    id.crc1 = crc >> 8;
+    id.crc2 = crc & 0xff;
 
-    // Advance to the required sector and its data field
-    for (int i = 0; i < index_; i++)
+    auto status = 0;
+    if (sector.status1 & ST1_765_CRC_ERROR)
     {
-        m_pbData += (m_pSector->bDatahigh << 8) | m_pSector->bDatalow;
-        m_pSector++;
+        status = CRC_ERROR;
+        id.crc1 ^= 0x55;
     }
-
-    // Complete the ID field
-    pID_->bSide = m_pSector->bSide;
-    pID_->bTrack = m_pSector->bTrack;
-    pID_->bSector = m_pSector->bSector;
-    pID_->bSize = m_pSector->bSize;
-    pID_->bCRC1 = pID_->bCRC2 = 0;
-
-    // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
-    auto wCRC = CrcBlock("\xa1\xa1\xa1\xfe", 4);
-    wCRC = CrcBlock(pID_, 4, wCRC);
-    if (m_pSector->bStatus1 & ST1_765_CRC_ERROR) wCRC ^= 0x5555;  // Force an error if required
-    pID_->bCRC1 = wCRC >> 8;
-    pID_->bCRC2 = wCRC & 0xff;
-
-    // Set the ID status
-    *pbStatus_ = (m_pSector->bStatus1 & ST1_765_CRC_ERROR) ? CRC_ERROR : 0;
-
-    return true;
+    return std::make_pair(status, id);
 }
 
-// Read the data for the last sector found
-uint8_t EDSKDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+std::pair<uint8_t, std::vector<uint8_t>>
+EDSKDisk::ReadData(uint8_t cyl, uint8_t head, uint8_t sector_index)
 {
-    IDFIELD id;
-    uint8_t bStatus;
+    auto [status, id] = GetSector(cyl, head, sector_index);
+    if (status & RECORD_NOT_FOUND)
+        return std::make_pair(RECORD_NOT_FOUND, std::vector<uint8_t>());
 
-    if (!GetSector(cyl_, head_, index_, &id, &bStatus) || !m_pSector || !m_pbData)
-        return RECORD_NOT_FOUND;
+    auto entry = static_cast<size_t>(cyl) * m_heads + head;
+    auto [sector, data] = m_tracks[entry][sector_index];
 
-    // Read the data field
-    unsigned int uDataSize = 128U << (m_pSector->bSize & 3);  // clip to a 3 bit size
-    memcpy(pbData_, m_pbData, *puSize_ = uDataSize);
+    auto data_size = SizeFromSizeCode(sector.size);
+    data.resize(data_size);
 
-    // Form the data status
-    bStatus = 0;
-    if (m_pSector->bStatus2 & ST2_765_DATA_NOT_FOUND) bStatus |= RECORD_NOT_FOUND;
-    if (m_pSector->bStatus2 & ST2_765_CRC_ERROR) { bStatus |= CRC_ERROR; }
-    if (m_pSector->bStatus2 & ST2_765_CONTROL_MARK)   bStatus |= DELETED_DATA;
+    status = 0;
+    if (sector.status2 & ST2_765_DATA_NOT_FOUND) status |= RECORD_NOT_FOUND;
+    if (sector.status2 & ST2_765_CRC_ERROR) { status |= CRC_ERROR; }
+    if (sector.status2 & ST2_765_CONTROL_MARK)   status |= DELETED_DATA;
 
-    return bStatus;
+    return std::make_pair(status, std::move(data));
 }
 
-// Read the data for the last sector found
-uint8_t EDSKDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+uint8_t EDSKDisk::WriteData(uint8_t cyl, uint8_t head, uint8_t sector_index, const std::vector<uint8_t>& data)
 {
-    IDFIELD id;
-    uint8_t bStatus;
-
-    if (!GetSector(cyl_, head_, index_, &id, &bStatus) || !m_pSector || !m_pbData)
+    auto [status, id] = GetSector(cyl, head, sector_index);
+    if (status & RECORD_NOT_FOUND)
         return RECORD_NOT_FOUND;
 
-    if (IsReadOnly())
+    if (WriteProtected())
         return WRITE_PROTECT;
 
-    // Write the data field
-    unsigned int uDataSize = 128U << (m_pSector->bSize & 3);
-    memcpy(m_pbData, pbData_, *puSize_ = uDataSize);
+    auto entry = static_cast<size_t>(cyl) * m_heads + head;
+    auto& [sector, sector_data] = m_tracks[entry][sector_index];
 
-    // Clean any CRC error on the old sector
-    m_pSector->bStatus1 &= ~ST1_765_CRC_ERROR;
-    m_pSector->bStatus2 &= ~ST2_765_CRC_ERROR;
+    auto data_size = SizeFromSizeCode(sector.size);
+    if (data.size() != data_size)
+        return RECORD_NOT_FOUND;
 
-    SetModified();
+    sector_data = data;
+    m_modified = true;
+    sector.status1 &= ~ST1_765_CRC_ERROR;
+    sector.status2 &= ~ST2_765_CRC_ERROR;
+
     return 0;
 }
 
-// Save the disk out to the stream
 bool EDSKDisk::Save()
 {
-    uint8_t abHeader[256] = { 0 }, cyl, head;
-    EDSK_HEADER* peh = reinterpret_cast<EDSK_HEADER*>(abHeader);
-    uint8_t* pbSizes = reinterpret_cast<uint8_t*>(peh + 1);
+    EDSK_HEADER eh{};
+    EDSK_SIGNATURE.copy(&eh.signature[0], sizeof(eh.signature));
+    EDSK_SIMCOUPE_CREATOR.copy(&eh.creator[0], sizeof(eh.creator));
+    eh.cyls = m_cyls;
+    eh.heads = m_heads;
 
-    // Complete the disk header
-    memcpy(peh->szSignature, EDSK_SIGNATURE, sizeof(peh->szSignature));
-    memcpy(peh->szCreator, "SimCoupe 1.1 ", sizeof(peh->szCreator)); // note: trailing space+null fills field
-    peh->bTracks = m_uTracks;
-    peh->bSides = m_uSides;
-
-    // Complete the MSB size table
-    for (cyl = 0; cyl < m_uTracks; cyl++)
-        for (head = 0; head < m_uSides; head++)
-            *pbSizes++ = m_abSizes[head][cyl];
-
-    // Write the disk header
-    bool fSuccess = m_stream->Rewind() && m_stream->Write(&abHeader, sizeof(abHeader)) == sizeof(abHeader);
-
-    // Write the track data
-    for (cyl = 0; fSuccess && cyl < m_uTracks; cyl++)
+    for (auto cyl = 0; cyl < m_cyls; cyl++)
     {
-        for (head = 0; head < m_uSides; head++)
+        for (auto head = 0; head < m_heads; head++)
         {
-            // Nothing to write?
-            if (!m_apTracks[head][cyl])
-                continue;
-
-            unsigned int uSize = m_abSizes[head][cyl] << 8;
-            fSuccess &= (m_stream->Write(m_apTracks[head][cyl], uSize) == uSize);
+            auto entry = static_cast<size_t>(cyl) * m_heads + head;
+            auto& track = m_tracks[entry];
+            auto track_size = sizeof(EDSK_TRACK);
+            track_size += std::accumulate(track.begin(), track.end(), size_t{ 0 },
+                [](size_t val, auto& s) { return val + s.second.size(); });
+            eh.size_msbs[entry] = static_cast<uint8_t>((track_size + 0xff) >> 8);
         }
     }
 
-    // Any problems?
-    if (!fSuccess)
-        return false;
+    bool saved = m_stream->Rewind() && m_stream->Write(&eh, sizeof(eh)) == sizeof(eh);
 
-    m_stream->Close();
-    SetModified(false);
-
-    return true;
-}
-
-// Format a track using the specified format
-uint8_t EDSKDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_)
-{
-    unsigned int u, uDataTotal = 0;
-
-    // Disk must be writeable and within track limit
-    if (IsReadOnly() || cyl_ >= MAX_DISK_TRACKS || head_ >= MAX_DISK_SIDES)
-        return WRITE_PROTECT;
-
-    // The 256-byte track header limits the number of sectors it can hold
-    if (uSectors_ > EDSK_MAX_SECTORS)
-        return WRITE_PROTECT;
-
-    // Add up the space needed for data fields
-    for (u = 0; u < uSectors_; u++)
-        uDataTotal += (128U << (paID_[u].bSize & 7));
-
-    // Make sure the track contents are within the maximum size
-    if ((uDataTotal + (62 + 1) * uSectors_) >= MAX_TRACK_SIZE)
-        return WRITE_PROTECT;
-
-    // Calculate the total track size, including header and padding up to the next 256-byte boundary
-    uDataTotal = (sizeof(EDSK_TRACK) + uDataTotal + 0xff) & ~0xff;
-
-    // EDSK limits the total track length to 0xff00, as only the high byte of the size is stored
-    // This should always fit due to the above tests, but we may as well be sure
-    if (uDataTotal > 0xff00)
-        return WRITE_PROTECT;
-
-    // Allocate space for the new track
-    auto pb = new uint8_t[uDataTotal];
-    memset(pb, 0, uDataTotal);
-
-    // Set up the initial track/sector/data pointers
-    EDSK_TRACK* pt = reinterpret_cast<EDSK_TRACK*>(pb);
-    EDSK_SECTOR* ps = reinterpret_cast<EDSK_SECTOR*>(pt + 1);
-    pb += 256;
-
-    // Complete a suitable track header
-    memcpy(pt->szSignature, EDSK_TRACK_SIGNATURE, sizeof(pt->szSignature));
-    pt->bRate = 0;              // default, which is 250Kbps
-    pt->bEncoding = 0;          // default, which is MFM
-    pt->bTrack = cyl_;          // physical cylinder
-    pt->bSide = head_;          // physical head
-    pt->bSize = 2;              // dummy, we'll use 512-bytes
-    pt->bSectors = uSectors_;   // sectors per track
-    pt->bGap3 = 78;             // dummy, we'll use the normal EDSK value
-    pt->bFill = 0x00;           // zero filler
-
-    // Write each of the supplied sectors
-    for (u = 0; u < uSectors_; u++)
+    for (auto cyl = 0; cyl < m_cyls; cyl++)
     {
-        // Complete the ID header, with no status conditions flagged
-        ps[u].bTrack = paID_[u].bTrack;
-        ps[u].bSide = paID_[u].bSide;
-        ps[u].bSector = paID_[u].bSector;
-        ps[u].bSize = paID_[u].bSize;
-        ps[u].bStatus1 = ps[u].bStatus2 = 0;
+        for (auto head = 0; head < m_heads; head++)
+        {
+            auto entry = static_cast<size_t>(cyl) * m_heads + head;
+            auto& track = m_tracks[entry];
 
-        unsigned int uDataSize = (128U << (paID_[u].bSize & 7));
-        ps[u].bDatalow = uDataSize & 0xff;
-        ps[u].bDatahigh = uDataSize >> 8;
+            EDSK_TRACK et{};
+            EDSK_TRACK_SIGNATURE.copy(et.signature, EDSK_TRACK_SIGNATURE.size());
+            et.cyl = cyl;
+            et.head = head;
+            et.size = 2;
+            et.sectors = static_cast<uint8_t>(track.size());
+            et.size = 2;
+            et.gap3 = 0x4e;
+            et.fill = 0x00;
 
-        // Copy the sector data, advancing the pointer for the next one
-        memcpy(pb, papbData_[u], uDataSize);
-        pb += uDataSize;
+            saved &= m_stream->Write(&et, sizeof(et)) == sizeof(et);
+
+            for (auto& [sector, data] : track)
+                saved &= m_stream->Write(&sector, sizeof(sector)) == sizeof(sector);
+
+            auto slack_size = (0x100 - sizeof(EDSK_TRACK) - sizeof(EDSK_SECTOR) * et.sectors) & 0xff;
+            std::vector<uint8_t> slack(slack_size);
+            saved &= m_stream->Write(slack.data(), slack.size()) == slack.size();
+
+            for (auto& [sector, data] : track)
+                saved &= m_stream->Write(data.data(), data.size()) == data.size();
+        }
     }
 
-    // Delete any old track, and assign the new one
-    delete m_apTracks[head_][cyl_];
-    m_apTracks[head_][cyl_] = pt;
-    m_abSizes[head_][cyl_] = uDataTotal >> 8;
+    m_stream->Close();
+    m_last_write_time = m_stream->LastWriteTime();
+    m_modified = false;
+    return saved;
+}
 
-    // Update the disk extents if required
-    if (cyl_ >= m_uTracks) m_uTracks = cyl_ + 1;
-    if (head_ >= m_uSides) m_uSides = head_ + 1;
+uint8_t EDSKDisk::FormatTrack(uint8_t cyl, uint8_t head,
+    const std::vector<std::pair<IDFIELD, std::vector<uint8_t>>>& sectors)
+{
+    if (WriteProtected() || sectors.size() > EDSK_MAX_SECTORS)
+        return WRITE_PROTECT;
 
-    // Mark the disk stream as modified
-    SetModified();
+    auto entry = static_cast<size_t>(cyl) * m_heads + head;
+    if (entry >= m_tracks.size())
+        return WRITE_PROTECT;
 
+    auto& track = m_tracks[entry];
+    track.clear();
+
+    for (auto& [id, data] : sectors)
+    {
+        EDSK_SECTOR es{};
+        es.cyl = id.cyl;
+        es.head = id.head;
+        es.sector = id.sector;
+        es.size = id.size;
+        es.data_low = static_cast<uint8_t>(data.size() & 0xff);
+        es.data_high = static_cast<uint8_t>(data.size() >> 8);
+
+        track.push_back(std::make_pair(es, data));
+    }
+
+    m_modified = true;
     return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/*static*/ bool FloppyDisk::IsRecognised(Stream& stream)
+bool FileDisk::IsRecognised(Stream& stream)
+{
+    return stream.GetSize() <= MAX_SAM_FILE_SIZE;
+}
+
+FileDisk::FileDisk(std::unique_ptr<Stream> stream)
+    : Disk(std::move(stream), DiskType::File)
+{
+    if (auto file_size = m_stream->GetSize())
+    {
+        m_data.resize(DISK_FILE_HEADER_SIZE + file_size);
+
+        m_data[0] = 19;                         // CODE file type
+        m_data[1] = file_size & 0xff;           // LSB of size mod 16384
+        m_data[2] = (file_size >> 8) & 0xff;    // MSB of size mod 16384
+        m_data[3] = 0x00;                       // LSB of offset start
+        m_data[4] = 0x80;                       // MSB of offset start
+        m_data[5] = 0xff;                       // unused
+        m_data[6] = 0xff;                       // unused
+        m_data[7] = (file_size >> 14) & 0xff;   // page count (size div 16384)
+        m_data[8] = 0x01;                       // first page
+
+        m_stream->Rewind();
+        m_stream->Read(m_data.data() + DISK_FILE_HEADER_SIZE, file_size);
+        m_stream->Close();
+    }
+}
+
+std::pair<uint8_t, IDFIELD>
+FileDisk::GetSector(uint8_t cyl, uint8_t head, uint8_t sector_index)
+{
+    if (cyl >= MGT_DISK_CYLS || head >= MGT_DISK_HEADS || sector_index >= MGT_DISK_SECTORS)
+        return std::make_pair(RECORD_NOT_FOUND, IDFIELD{});
+
+    return Disk::GetSector(cyl, head, sector_index);
+}
+
+std::pair<uint8_t, std::vector<uint8_t>>
+FileDisk::ReadData(uint8_t cyl, uint8_t head, uint8_t sector_index)
+{
+    std::vector<uint8_t> data(NORMAL_SECTOR_SIZE);
+
+    // The first directory sector?
+    if (cyl == 0 && head == 0 && sector_index == 0)
+    {
+        // file type
+        data[0] = m_data[0];
+
+        // Use a fixed filename, starting with "auto" so SimCoupe's embedded DOS boots it
+        const std::string filename = "autoExec  ";
+        std::copy(filename.begin(), filename.end(), data.begin() + 1);
+
+        auto num_sectors = (m_data.size() + NORMAL_SECTOR_SIZE - 3) / (NORMAL_SECTOR_SIZE - 2);
+        data[11] = static_cast<uint8_t>(num_sectors >> 8);
+        data[12] = static_cast<uint8_t>(num_sectors & 0xff);
+
+        // Starting track and sector
+        data[13] = MGT_DIRECTORY_TRACKS;
+        data[14] = 1;
+
+        // Sector address map
+        std::fill(data.begin() + 15, data.begin() + 15 + num_sectors / 8, 0xff);
+        if (num_sectors & 7)
+            data[15 + (num_sectors / 8)] = (1U << (num_sectors & 7)) - 1;
+
+        // Starting page number and offset
+        data[236] = m_data[8];
+        data[237] = m_data[3];
+        data[238] = m_data[4];
+
+        // Size in pages and mod 16384
+        data[239] = m_data[7];
+        data[240] = m_data[1];
+        data[241] = m_data[2];
+
+        // Auto-execute code with normal paging (see PDPSUBR in ROM0 for details)
+        data[242] = 2;
+        data[243] = m_data[3];
+        data[244] = m_data[4];
+    }
+    else if (cyl >= MGT_DIRECTORY_TRACKS)
+    {
+        auto offset = (head * MGT_DISK_CYLS + cyl - MGT_DIRECTORY_TRACKS) *
+            (MGT_DISK_SECTORS * (NORMAL_SECTOR_SIZE - 2)) +
+            (sector_index * (NORMAL_SECTOR_SIZE - 2));
+        auto size = std::min(NORMAL_SECTOR_SIZE - 2, m_data.size() - offset);
+        std::copy(m_data.begin() + offset, m_data.begin() + offset + size, data.begin());
+
+        if (offset + NORMAL_SECTOR_SIZE < m_data.size())
+        {
+            auto next_sector = 1 + ((sector_index + 1) % MGT_DISK_SECTORS);
+            auto next_cyl = ((next_sector == 1) ? cyl + 1 : cyl) % MGT_DISK_CYLS;
+            auto next_head = ((next_cyl == 0) ? head + 1 : head) % MGT_DISK_HEADS;
+
+            data[NORMAL_SECTOR_SIZE - 2] = next_cyl + (next_head ? 0x80 : 0x00);
+            data[NORMAL_SECTOR_SIZE - 1] = next_sector;
+        }
+    }
+
+    return std::make_pair(0, std::move(data));
+}
+
+uint8_t FileDisk::WriteData(uint8_t, uint8_t, uint8_t, const std::vector<uint8_t>&)
+{
+    return WRITE_PROTECT;
+}
+
+bool FileDisk::Save()
+{
+    return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef _WIN32
+
+bool FloppyDisk::IsRecognised(Stream& stream)
 {
     return FloppyStream::IsRecognised(stream.GetPath());
 }
 
 FloppyDisk::FloppyDisk(std::unique_ptr<Stream> stream)
-    : Disk(std::move(stream), DiskType::Floppy), m_bCommand(0), m_bStatus(0)
+    : Disk(std::move(stream), DiskType::Floppy),
+    m_track(std::make_shared<TRACK>())
 {
-    m_data.resize(MAX_TRACK_SIZE);
-    m_pTrack = reinterpret_cast<TRACK*>(m_data.data());
-    m_pSector = reinterpret_cast<SECTOR*>(m_pTrack + 1);
-
-    // Invalidate track cache
-    m_pTrack->cyl = m_pTrack->head = 0xff;
+    m_track->head = 0xff;   // invalidate cache
 }
 
-
-// Find the next sector in the current track
-bool FloppyDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
+std::pair<uint8_t, IDFIELD>
+FloppyDisk::GetSector(uint8_t cyl, uint8_t head, uint8_t sector_index)
 {
-    // Check sector is in range
-    if (cyl_ != m_pTrack->cyl || head_ != m_pTrack->head || index_ >= m_pTrack->sectors)
-        return false;
+    if (cyl != m_track->cyl || head != m_track->head || sector_index >= m_track->sectors.size())
+        return std::make_pair(RECORD_NOT_FOUND, IDFIELD{});
 
-    auto ps = &m_pSector[index_];
+    auto& sector = m_track->sectors[sector_index];
 
-    // Construct a normal ID field for the sector
-    pID_->bSide = ps->head;
-    pID_->bTrack = ps->cyl;
-    pID_->bSector = ps->sector;
-    pID_->bSize = ps->size;
+    IDFIELD id{};
+    id.head = sector.head;
+    id.cyl = sector.cyl;
+    id.sector = sector.sector;
+    id.size = sector.size;
 
-    // Calculate and set the CRC for the ID field, including the 3 gap bytes and address mark
-    auto wCRC = CrcBlock("\xa1\xa1\xa1\xfe", 4);
-    wCRC = CrcBlock(pID_, 4, wCRC);
-    if (ps->status & CRC_ERROR) wCRC ^= 0x5555; // Force an error if required
-    pID_->bCRC1 = wCRC >> 8;
-    pID_->bCRC2 = wCRC & 0xff;
+    auto crc = CrcBlock("\xa1\xa1\xa1\xfe", 4);
+    crc = CrcBlock(&id, 4, crc);
+    if (sector.status & CRC_ERROR)
+        crc ^= 0x5555;
+    id.crc1 = crc >> 8;
+    id.crc2 = crc & 0xff;
 
-    *pbStatus_ = ps->status;
-
-    return true;
+    return std::make_pair(sector.status, id);
 }
 
-// Read the data for the last sector found
-uint8_t FloppyDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
+std::pair<uint8_t, std::vector<uint8_t>>
+FloppyDisk::ReadData(uint8_t cyl, uint8_t head, uint8_t sector_index)
 {
-    if (cyl_ != m_pTrack->cyl || head_ != m_pTrack->head || index_ >= m_pTrack->sectors)
+    if (cyl != m_track->cyl || head != m_track->head || sector_index >= m_track->sectors.size())
+        return std::make_pair(RECORD_NOT_FOUND, std::vector<uint8_t>());
+
+    auto& sector = m_track->sectors[sector_index];
+    return std::make_pair(sector.status, sector.data);
+}
+
+uint8_t FloppyDisk::WriteData(uint8_t cyl, uint8_t head, uint8_t sector_index, const std::vector<uint8_t>& data)
+{
+    if (cyl != m_track->cyl || head != m_track->head || sector_index >= m_track->sectors.size())
         return RECORD_NOT_FOUND;
 
-    // Read from the cached track
-    auto ps = &m_pSector[index_];
-    memcpy(pbData_, ps->pbData, *puSize_ = (128 << (ps->size & 3)));
-
-    return ps->status;
-}
-
-// Write the data for the last sector found
-uint8_t FloppyDisk::WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
-{
-    if (cyl_ != m_pTrack->cyl || head_ != m_pTrack->head || index_ >= m_pTrack->sectors)
+    auto& sector = m_track->sectors[sector_index];
+    auto data_size = SizeFromSizeCode(sector.size);
+    if (data.size() != data_size)
         return RECORD_NOT_FOUND;
 
-    // Write to the track cache, assuming it will work for now
-    auto ps = &m_pSector[index_];
-    memcpy(ps->pbData, pbData_, *puSize_ = (128U << (ps->size & 3)));
-    ps->status &= ~CRC_ERROR;
+    sector.data = data;
+    m_modified = true;
+    sector.status &= ~CRC_ERROR;
 
-    // Start the write command
     auto& floppy = reinterpret_cast<FloppyStream&>(*m_stream);
-    m_bCommand = WRITE_1SECTOR;
-    return m_bStatus = floppy.StartCommand(m_bCommand, m_pTrack, index_);
+    floppy.StartCommand(WRITE_1SECTOR, m_track, sector_index);
+    return BUSY;
 }
 
-// Save the disk out to the stream
+void FloppyDisk::Close()
+{
+    Disk::Close();
+    m_track->head = 0xff;   // invalidate cache
+}
+
 bool FloppyDisk::Save()
 {
-    // Writes are live, so there's nothing to save
+    m_last_write_time = m_stream->LastWriteTime();
+    m_modified = false;
     return true;
 }
 
-// Format a track using the specified format
-uint8_t FloppyDisk::FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_)
+uint8_t FloppyDisk::FormatTrack(uint8_t cyl, uint8_t head,
+    const std::vector<std::pair<IDFIELD, std::vector<uint8_t>>>& sectors)
 {
-    unsigned int uSize = uSectors_ ? (128U << (paID_->bSize & 7)) : 0, u;
-
-    // Disk must be writeable and within track limit
-    if (IsReadOnly() || cyl_ >= MAX_DISK_TRACKS)
+    if (WriteProtected() || cyl >= MAX_DISK_TRACKS)
         return WRITE_PROTECT;
 
-    // For now, ensure all the sectors are the same size
-    for (u = 1; u < uSectors_; u++)
-        if (paID_[u].bSize != paID_->bSize)
-            return WRITE_PROTECT;
-
-    // Make sure the track contents aren't too big to format
-    if (((62 + uSize + 1) * uSectors_) >= (MAX_TRACK_SIZE - 50))
-        return WRITE_PROTECT;
-
-    // Set up the initial track/sector/data pointers
-    TRACK* pt = m_pTrack;
-    SECTOR* ps = reinterpret_cast<SECTOR*>(pt + 1);
-    auto pb = reinterpret_cast<uint8_t*>(ps + uSectors_);
-
-    // Complete a suitable track header
-    pt->sectors = uSectors_;
-    pt->cyl = cyl_;
-    pt->head = head_;
-
-    // Prepare each of the supplied sectors
-    for (u = 0; u < uSectors_; u++)
+    // For now, require all sectors to be the same size
+    auto size0 = sectors.empty() ? 0 : sectors[0].first.size;
+    if (std::any_of(sectors.begin(), sectors.end(),
+        [=](auto& s) { return s.first.size != size0; }))
     {
-        // Complete the ID header, with no status conditions flagged
-        ps[u].cyl = paID_[u].bTrack;
-        ps[u].head = paID_[u].bSide;
-        ps[u].sector = paID_[u].bSector;
-        ps[u].size = paID_[u].bSize;
-        ps[u].status = 0;
-        ps[u].pbData = pb;
-
-        // Copy the sector data, advancing the pointer for the next one
-        memcpy(pb, papbData_[u], uSize);
-        pb += uSize;
+        return WRITE_PROTECT;
     }
 
-    // Start the format command
+    m_track->cyl = cyl;
+    m_track->head = head;
+    m_track->sectors.clear();
+
+    for (auto& [id, data] : sectors)
+    {
+        SECTOR sector{};
+        sector.cyl = id.cyl;
+        sector.head = id.head;
+        sector.sector = id.sector;
+        sector.size = id.size;
+        sector.status = 0;
+        sector.data = data;
+
+        m_track->sectors.push_back(std::move(sector));
+    }
+
     auto& floppy = reinterpret_cast<FloppyStream&>(*m_stream);
-    m_bCommand = WRITE_TRACK;
-    return m_bStatus = floppy.StartCommand(m_bCommand, m_pTrack);
+    floppy.StartCommand(WRITE_TRACK, m_track);
+    return BUSY;
 }
 
-uint8_t FloppyDisk::LoadTrack(uint8_t cyl_, uint8_t head_)
+uint8_t FloppyDisk::LoadTrack(uint8_t cyl, uint8_t head)
 {
-    // Return if the track is already loaded
-    if (cyl_ == m_pTrack->cyl && head_ == m_pTrack->head)
+    if (cyl == m_track->cyl && head == m_track->head)
         return 0;
 
-    // Prepare a fresh track
-    m_pTrack->sectors = 0;
-    m_pTrack->cyl = cyl_;
-    m_pTrack->head = head_;
+    m_track->sectors.clear();
+    m_track->cyl = cyl;
+    m_track->head = head;
 
-    // Read the track, setting busy if we've not finished yet
     auto& floppy = reinterpret_cast<FloppyStream&>(*m_stream);
-    m_bCommand = READ_MSECTOR;
-    return m_bStatus = floppy.StartCommand(m_bCommand, m_pTrack);
+    floppy.StartCommand(READ_MSECTOR, m_track);
+    return BUSY;
 }
 
-// Get the status of the current asynchronous operation, if any
-bool FloppyDisk::IsBusy(uint8_t* pbStatus_, bool fWait_)
+bool FloppyDisk::IsBusy(uint8_t& status, bool wait)
 {
     auto& floppy = reinterpret_cast<FloppyStream&>(*m_stream);
-    bool fBusy = floppy.IsBusy(pbStatus_, fWait_);
+    auto busy = floppy.IsBusy(status, wait);
 
-    // If we've just finished a request, update the track cache
-    if (!fBusy && m_bStatus == BUSY)
-    {
-        // Invaliate the track cache if the command failed
-        if (*pbStatus_)
-            m_pTrack->head = 0xff;
+    if (!busy && status)
+        m_track->head = 0xff;   // invalidate cache after errors
 
-        // Clear the FDC status
-        m_bStatus = 0;
-    }
-
-    return fBusy;
+    return busy;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-/*static*/ bool FileDisk::IsRecognised(Stream& stream)
-{
-    // Accept any file that isn't too big
-    return stream.GetSize() <= MAX_SAM_FILE_SIZE;
-}
-
-FileDisk::FileDisk(std::unique_ptr<Stream> stream)
-    : Disk(std::move(stream), DiskType::File), m_uSize(0)
-{
-    // Work out the maximum file size, allocate some memory for it
-    unsigned int uSize = MAX_SAM_FILE_SIZE + DISK_FILE_HEADER_SIZE;
-    m_data.resize(uSize);
-    memset(m_data.data(), 0, uSize);
-
-    // Read the data from any existing stream, or show an empty disk as we don't support saving
-    if (m_stream->IsOpen())
-    {
-        // Read in the file, leaving a 9-byte gap for the disk file header
-        m_stream->Rewind();
-        m_uSize = static_cast<unsigned int>(m_stream->Read(m_data.data() + DISK_FILE_HEADER_SIZE, MAX_SAM_FILE_SIZE));
-        m_stream->Close();
-
-        // Create the disk file header
-        m_data[0] = 19;                           // CODE file type
-        m_data[1] = m_uSize & 0xff;               // LSB of size mod 16384
-        m_data[2] = (m_uSize >> 8) & 0xff;        // MSB of size mod 16384
-        m_data[3] = 0x00;                         // LSB of offset start
-        m_data[4] = 0x80;                         // MSB of offset start
-        m_data[5] = 0xff;                         // Unused
-        m_data[6] = 0xff;                         // Unused
-        m_data[7] = (m_uSize >> 14) & 0xff;       // Number of pages (size div 16384)
-        m_data[8] = 0x01;                         // Starting page number
-
-        m_uSize += DISK_FILE_HEADER_SIZE;
-    }
-}
-
-
-// Get sector details
-bool FileDisk::GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_)
-{
-    // Check sector is in range
-    if (cyl_ >= NORMAL_DISK_TRACKS || head_ >= NORMAL_DISK_SIDES || index_ >= NORMAL_DISK_SECTORS)
-        return false;
-
-    // Fill default values
-    Disk::GetSector(cyl_, head_, index_, pID_, pbStatus_);
-
-    return true;
-}
-
-// Read the data for the last sector found
-uint8_t FileDisk::ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_)
-{
-    // Clear the sector out
-    memset(pbData_, 0, *puSize_ = NORMAL_SECTOR_SIZE);
-
-    // The first directory sector?
-    if (cyl_ == 0 && head_ == 0 && index_ == 0)
-    {
-        // CODE file type
-        pbData_[0] = 19;
-
-        // Use a fixed filename, starting with "auto" so SimCoupe's embedded DOS boots it
-        memcpy(pbData_ + 1, "autoExec  ", 10);
-
-        // Number of sectors required
-        uint16_t wSectors = (m_uSize + NORMAL_SECTOR_SIZE - 3) / (NORMAL_SECTOR_SIZE - 2);
-        pbData_[11] = wSectors >> 8;
-        pbData_[12] = wSectors & 0xff;
-
-        // Starting track and sector
-        pbData_[13] = NORMAL_DIRECTORY_TRACKS;
-        pbData_[14] = 1;
-
-        // Sector address map
-        memset(pbData_ + 15, 0xff, wSectors >> 3);
-        if (wSectors & 7)
-            pbData_[15 + (wSectors >> 3)] = (1U << (wSectors & 7)) - 1;
-
-        // Starting page number and offset
-        pbData_[236] = m_data[8];
-        pbData_[237] = m_data[3];
-        pbData_[238] = m_data[4];
-
-        // Size in pages and mod 16384
-        pbData_[239] = m_data[7];
-        pbData_[240] = m_data[1];
-        pbData_[241] = m_data[2];
-
-        // Auto-execute code
-        pbData_[242] = 2;  // Normal paging (see PDPSUBR in ROM0 for details)
-        pbData_[243] = m_data[3];
-        pbData_[244] = m_data[4];
-    }
-
-    // Does the position fall within the file?
-    else if (cyl_ >= NORMAL_DIRECTORY_TRACKS)
-    {
-        // Work out the offset for the required data
-        unsigned int uPos = (head_ * NORMAL_DISK_TRACKS + cyl_ - NORMAL_DIRECTORY_TRACKS) *
-            (NORMAL_DISK_SECTORS * (NORMAL_SECTOR_SIZE - 2)) + (index_ * (NORMAL_SECTOR_SIZE - 2));
-
-        // Copy the file segment required
-        memcpy(pbData_, m_data.data() + uPos, std::min(NORMAL_SECTOR_SIZE - 2, m_uSize - uPos));
-
-        // If there are more sectors in the file, set the chain to the next sector
-        if (uPos + NORMAL_SECTOR_SIZE < m_uSize)
-        {
-            // Work out the next sector
-            unsigned int uSector = 1 + ((index_ + 1) % NORMAL_DISK_SECTORS);
-            unsigned int uTrack = ((uSector == 1) ? cyl_ + 1 : cyl_) % NORMAL_DISK_TRACKS;
-            unsigned int uSide = (uTrack == 0 ? head_ + 1 : head_) % NORMAL_DISK_SIDES;
-
-            pbData_[NORMAL_SECTOR_SIZE - 2] = uTrack + (uSide ? 0x80 : 0x00);
-            pbData_[NORMAL_SECTOR_SIZE - 1] = uSector;
-        }
-    }
-
-    // Data is always perfect
-    return 0;
-}
+#endif // _WIN32

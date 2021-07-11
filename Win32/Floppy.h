@@ -23,56 +23,65 @@
 #include "fdrawcmd.h"   // https://simonowen.com/fdrawcmd/fdrawcmd.h
 #include "Stream.h"
 
-struct TRACK
-{
-    int sectors;
-    uint8_t cyl, head;     // physical track location
-};
-
 struct SECTOR
 {
-    uint8_t cyl, head, sector, size;
+    uint8_t cyl;
+    uint8_t head;
+    uint8_t sector;
+    uint8_t size;
     uint8_t status;
-    uint8_t* pbData;
+    std::vector<uint8_t> data;
 };
 
+struct TRACK
+{
+    uint8_t cyl = 0;
+    uint8_t head = 0xff;
+    std::vector<SECTOR> sectors;
+};
+
+struct Win32HandleCloser { void operator()(HANDLE h) { if (h != INVALID_HANDLE_VALUE) CloseHandle(h); } };
+using unique_HANDLE = unique_resource<HANDLE, nullptr, Win32HandleCloser>;
 
 class FloppyStream final : public Stream
 {
 public:
     FloppyStream(const std::string& filepath, bool read_only);
-    FloppyStream(const FloppyStream&) = delete;
-    void operator= (const FloppyStream&) = delete;
-    virtual ~FloppyStream();
 
-public:
     static bool IsSupported();
     static bool IsAvailable();
     static bool IsRecognised(const std::string& filepath);
 
-public:
     void Close() override;
-    unsigned long ThreadProc();
 
-public:
-    bool IsOpen() const override { return m_hDevice != INVALID_HANDLE_VALUE; }
-    bool IsBusy(uint8_t* pbStatus_, bool fWait_);
+    bool IsBusy(uint8_t& status, bool wait);
+    fs::file_time_type LastWriteTime() const override { return {}; }
 
     // The normal stream functions are not used
+    size_t GetSize() override { return 0; }
     bool Rewind() override { return false; }
     size_t Read(void*, size_t) override { return 0; }
-    size_t Write(void*, size_t) override { return 0; }
+    size_t Write(const void*, size_t) override { return 0; }
 
-    uint8_t StartCommand(uint8_t bCommand_, TRACK* pTrack_ = nullptr, unsigned int uSectorIndex_ = 0);
+    void StartCommand(uint8_t command, std::shared_ptr<TRACK> track, int sector_index = 0);
 
 protected:
-    HANDLE m_hDevice = INVALID_HANDLE_VALUE; // Floppy device handle
-    HANDLE m_hThread = nullptr; // Worker thread handles
-    unsigned int m_uSectors = 0;        // Sector count, or zero for auto-detect (slower)
+    bool Ioctl(DWORD ioctl_code, LPVOID in_ptr = nullptr, size_t in_size = 0, LPVOID out_ptr = nullptr, size_t out_size = 0);
+    uint8_t ReadSector(int sector_index);
+    uint8_t WriteSector(int sector_index);
+    uint8_t ReadSimpleTrack();
+    uint8_t ReadCustomTrack();
+    uint8_t FormatTrack();
 
-    uint8_t m_bCommand = 0;        // Current command
-    uint8_t m_bStatus;             // Final status
+    void ThreadProc();
 
-    TRACK* m_pTrack = nullptr;  // Track for command
-    unsigned int m_uSectorIndex = 0;    // Zero-based sector for write command
+    unique_HANDLE m_hdev = INVALID_HANDLE_VALUE;
+    int m_sectors = 0;
+
+    uint8_t m_command = 0;
+    int m_sector_index = 0;
+    std::shared_ptr<TRACK> m_track;
+
+    std::thread m_thread;
+    std::optional<uint8_t> m_status;
 };

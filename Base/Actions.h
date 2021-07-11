@@ -23,8 +23,8 @@
 enum class Action
 {
     None,
-    NewDisk1, InsertDisk1, EjectDisk1, SaveDisk1,
-    NewDisk2, InsertDisk2, EjectDisk2, SaveDisk2,
+    NewDisk1, InsertDisk1, EjectDisk1,
+    NewDisk2, InsertDisk2, EjectDisk2,
     InsertTape, EjectTape, TapeBrowser,
     Paste, ImportData, ExportData, SavePNG, SaveSSX,
     TogglePrinter, FlushPrinter,

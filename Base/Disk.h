@@ -20,101 +20,109 @@
 
 #pragma once
 
-#include "Floppy.h"     // native floppy support
-#include "Stream.h"     // for the data stream abstraction
-#include "VL1772.h"     // for the VL-1772 controller definitions
+#include "Stream.h"
+#include "VL1772.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const unsigned int NORMAL_DISK_SIDES = 2;       // Normally 2 sides per disk
-const unsigned int NORMAL_DISK_TRACKS = 80;     // Normally 80 tracks per side
-const unsigned int NORMAL_DISK_SECTORS = 10;    // Normally 10 sectors per track
-const unsigned int NORMAL_SECTOR_SIZE = 512;    // Normally 512 bytes per sector
+constexpr auto MGT_DISK_HEADS = 2;
+constexpr auto MGT_DISK_CYLS = 80;
+constexpr auto MGT_DISK_SECTORS = 10;
+constexpr auto MGT_FIRST_SECTOR = 1;
+constexpr size_t NORMAL_SECTOR_SIZE = 512U;
+constexpr uint8_t MGT_SECTOR_FILL = 0x00;
 
-const unsigned int NORMAL_DIRECTORY_TRACKS = 4; // Normally 4 tracks in a SAMDOS directory
+constexpr auto MGT_DIRECTORY_TRACKS = 4;
+constexpr auto MGT_TRACK_SIZE = MGT_DISK_SECTORS * NORMAL_SECTOR_SIZE;
+constexpr auto MGT_IMAGE_SIZE = MGT_DISK_HEADS * MGT_DISK_CYLS * MGT_TRACK_SIZE;
 
-const unsigned int DOS_DISK_SECTORS = 9;        // Double-density MS-DOS disks are 9 sectors per track
+constexpr auto DOS_DISK_SECTORS = 9;
+constexpr auto DOS_TRACK_SIZE = DOS_DISK_SECTORS * NORMAL_SECTOR_SIZE;
+constexpr auto DOS_IMAGE_SIZE = MGT_DISK_HEADS * MGT_DISK_CYLS * DOS_TRACK_SIZE;
+constexpr uint8_t DOS_SECTOR_FILL = 0xe5;
 
+constexpr size_t DISK_FILE_HEADER_SIZE = 9;    // From SAM Technical Manual  (type, size16, offset16, unused16, pages, startpage)
 
-// The various disk format image sizes
-#define MGT_IMAGE_SIZE  (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * NORMAL_DISK_SECTORS * NORMAL_SECTOR_SIZE)
-#define DOS_IMAGE_SIZE  (NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS * DOS_DISK_SECTORS * NORMAL_SECTOR_SIZE)
-
-const unsigned int DISK_FILE_HEADER_SIZE = 9;    // From SAM Technical Manual  (bType, wSize, wOffset, wUnused, bPages, bStartPage)
-
-// Maximum size of a file that will fit on a SAM disk
-const unsigned int MAX_SAM_FILE_SIZE = ((NORMAL_DISK_SIDES * NORMAL_DISK_TRACKS) - NORMAL_DIRECTORY_TRACKS) *
-NORMAL_DISK_SECTORS * (NORMAL_SECTOR_SIZE - 2) - DISK_FILE_HEADER_SIZE;
+constexpr auto MAX_SAM_FILE_SIZE = ((MGT_DISK_HEADS * MGT_DISK_CYLS) - MGT_DIRECTORY_TRACKS) *
+    MGT_DISK_SECTORS * (NORMAL_SECTOR_SIZE - 2) - DISK_FILE_HEADER_SIZE;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// The ID string for Aley Keprt's SAD disk images
-#define SAD_SIGNATURE           "Aley's disk backup"
+constexpr std::string_view SAD_SIGNATURE = "Aley's disk backup";
 
-// SAD file header
 struct SAD_HEADER
 {
-    uint8_t abSignature[sizeof(SAD_SIGNATURE) - 1];
-
-    uint8_t bSides;             // Number of sides on the disk
-    uint8_t bTracks;            // Number of tracks per side
-    uint8_t bSectors;           // Number of sectors per track
-    uint8_t bSectorSizeDiv64;   // Sector size divided by 64
+    char signature[SAD_SIGNATURE.size()];
+    uint8_t heads;
+    uint8_t cyls;
+    uint8_t sectors;
+    uint8_t sector_size_div64;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define DSK_SIGNATURE           "MV - CPC"
-#define EDSK_SIGNATURE          "EXTENDED CPC DSK File\r\nDisk-Info\r\n"
-#define EDSK_TRACK_SIGNATURE    "Track-Info\r\n"
-#define ESDK_MAX_TRACK_SIZE     0xff00
-#define EDSK_MAX_SECTORS        ((256 - sizeof(EDSK_TRACK)) / sizeof(EDSK_SECTOR))  // = 29
+constexpr std::string_view DSK_SIGNATURE = "MV - CPC";
+constexpr std::string_view EDSK_SIGNATURE = "EXTENDED CPC DSK File\r\nDisk-Info\r\n";
+constexpr std::string_view EDSK_TRACK_SIGNATURE = "Track-Info\r\n";
+constexpr std::string_view EDSK_SIMCOUPE_CREATOR = "SimCoupe";
+constexpr auto EDSK_DATA_RATE_250K = 0;
+constexpr auto EDSK_DATA_ENCODING_MFM = 0;
 
-#define ST1_765_CRC_ERROR       0x20
-#define ST2_765_DATA_NOT_FOUND  0x01
-#define ST2_765_CRC_ERROR       0x20
-#define ST2_765_CONTROL_MARK    0x40
+constexpr uint8_t ST1_765_CRC_ERROR = 0x20;
+constexpr uint8_t ST2_765_DATA_NOT_FOUND = 0x01;
+constexpr uint8_t ST2_765_CRC_ERROR = 0x20;
+constexpr uint8_t ST2_765_CONTROL_MARK = 0x40;
 
 struct EDSK_HEADER
 {
-    char szSignature[34];    // one of the signatures above, depending on DSK/EDSK
-    char szCreator[14];      // name of creator (utility/emulator)
-    uint8_t bTracks;
-    uint8_t bSides;
-    uint8_t abTrackSize[2];     // fixed track size (DSK only)
+    char signature[34];
+    char creator[14];
+    uint8_t cyls;
+    uint8_t heads;
+    uint8_t dsk_track_size[2];  // DSK only
+    uint8_t size_msbs[204];
 };
+static_assert(sizeof(EDSK_HEADER) == 0x100);
 
 struct EDSK_TRACK
 {
-    char szSignature[13];    // Track-Info\r\n
-    uint8_t bRate;              // 0=unknown (default=250K), 1=250K/300K, 2=500K, 3=1M
-    uint8_t bEncoding;          // 0=unknown (default=MFM), 1=FM, 2=MFM
-    uint8_t bUnused;
-    uint8_t bTrack;
-    uint8_t bSide;
-    uint8_t abUnused[2];
-    uint8_t bSize;
-    uint8_t bSectors;
-    uint8_t bGap3;
-    uint8_t bFill;
+    char signature[13];
+    uint8_t data_rate;      // 0=unknown (default=250K), 1=250K/300K, 2=500K, 3=1M
+    uint8_t data_encoding;  // 0=unknown (default=MFM), 1=FM, 2=MFM
+    uint8_t unused;
+    uint8_t cyl;
+    uint8_t head;
+    uint8_t unused2[2];
+    uint8_t size;
+    uint8_t sectors;
+    uint8_t gap3;
+    uint8_t fill;
 };
 
 struct EDSK_SECTOR
 {
-    uint8_t bTrack, bSide, bSector, bSize;
-    uint8_t bStatus1, bStatus2;
-    uint8_t bDatalow, bDatahigh;
+    uint8_t cyl;
+    uint8_t head;
+    uint8_t sector;
+    uint8_t size;
+    uint8_t status1;
+    uint8_t status2;
+    uint8_t data_low;
+    uint8_t data_high;
 };
+
+constexpr size_t ESDK_MAX_TRACK_SIZE = 0xff00;
+constexpr auto EDSK_MAX_SECTORS = ((0x100 - sizeof(EDSK_TRACK)) / sizeof(EDSK_SECTOR));
 
 ////////////////////////////////////////////////////////////////////////////////
 
 enum class DiskType
 {
-    Unknown, Floppy, File, EDSK, SAD, MGT, SBT, CAPS
+    Unknown, Floppy, File, EDSK, SAD, MGT, SBT
 };
 
-#define LOAD_DELAY  3   // Number of status reads to artificially stay busy for image file track loads
-// Pro-Dos relies on data not being available immediately a command is submitted
+// Stay BUSY for a few status reads after each command. Needed by Pro-Dos.
+#define LOAD_DELAY  3
 
 class Disk
 {
@@ -124,161 +132,130 @@ public:
     Disk(std::unique_ptr<Stream> stream, DiskType type);
     virtual ~Disk() = default;
 
-public:
     static DiskType GetType(Stream& pStream_);
     static std::unique_ptr<Disk> Open(const std::string& disk_path, bool read_only = false);
-    static std::unique_ptr<Disk> Open(void* pv_, size_t uSize_, const char* pcszDisk_);
+    static std::unique_ptr<Disk> Open(const std::vector<uint8_t>& mem_file, const std::string& file_desc);
 
-    virtual void Close() { m_stream->Close(); }
-    virtual void Flush() { }
-    virtual bool Save() { return false; };
-    virtual uint8_t FormatTrack(uint8_t /*cyl_*/, uint8_t /*head_*/, IDFIELD* /*paID_*/, uint8_t* /*papbData_*/[], unsigned int /*uSectors_*/) { return WRITE_PROTECT; }
-
-
-    // Public query functions
-public:
     std::string GetPath() { return m_stream->GetPath(); }
     std::string GetFile() { return m_stream->GetName(); }
-    bool IsReadOnly() const { return m_stream->IsReadOnly(); }
-    bool IsModified() const { return m_fModified; }
+    bool WriteProtected() const { return m_stream->WriteProtected(); }
+    bool StreamChanged() const { return m_stream->LastWriteTime() != m_last_write_time; }
 
-    void SetModified(bool fModified_ = true) { m_fModified = fModified_; }
-
-    // Protected overrides
-protected:
-    virtual uint8_t LoadTrack(uint8_t /*cyl_*/, uint8_t /*head_*/) { m_nBusy = LOAD_DELAY; return 0; }
-    virtual bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_ = nullptr) = 0;
-    virtual uint8_t ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) = 0;
-    virtual uint8_t WriteData(uint8_t /*cyl_*/, uint8_t /*head_*/, uint8_t /*index_*/, uint8_t* /*pbData_*/, unsigned int* /*puSize_*/) { return WRITE_PROTECT; }
-
-    virtual bool IsBusy(uint8_t* /*pbStatus_*/, bool /*fWait_*/ = false) { if (!m_nBusy) return false; m_nBusy--; return true; }
+    virtual void Close();
+    virtual bool Save() = 0;
+    virtual uint8_t FormatTrack(uint8_t cyl, uint8_t head,
+        const std::vector<std::pair<IDFIELD, std::vector<uint8_t>>>& sectors) { return WRITE_PROTECT; }
 
 protected:
-    DiskType m_nType;
-    int m_nBusy;
-    bool m_fModified;
+    virtual uint8_t LoadTrack(uint8_t, uint8_t) { m_busy_frames = LOAD_DELAY; return 0; }
+    virtual std::pair<uint8_t, IDFIELD> GetSector(uint8_t cyl, uint8_t head, uint8_t sector_index) = 0;
+    virtual std::pair<uint8_t, std::vector<uint8_t>> ReadData(uint8_t cyl, uint8_t head, uint8_t sector_index) = 0;
+    virtual uint8_t WriteData(uint8_t, uint8_t, uint8_t, const std::vector<uint8_t>&) = 0;
+    virtual bool IsBusy(uint8_t& status, bool wait = false);
+
+protected:
+    DiskType m_type = DiskType::Unknown;
+    int m_busy_frames = 0;
+    bool m_modified = false;
+    fs::file_time_type m_last_write_time{};
 
     std::unique_ptr<Stream> m_stream;
     std::vector<uint8_t> m_data;
 };
 
-
 class MGTDisk : public Disk
 {
 public:
-    MGTDisk(std::unique_ptr<Stream> stream, unsigned int uSectors_ = NORMAL_DISK_SECTORS);
+    MGTDisk(std::unique_ptr<Stream> stream, int sectors = MGT_DISK_SECTORS);
 
-public:
     static bool IsRecognised(Stream& stream);
 
-public:
-    bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
-    uint8_t ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
-    uint8_t WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
     bool Save() override;
-    uint8_t FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_) override;
+    std::pair<uint8_t, IDFIELD> GetSector(uint8_t cyl, uint8_t head, uint8_t index) override;
+    std::pair<uint8_t, std::vector<uint8_t>> ReadData(uint8_t cyl, uint8_t head, uint8_t index) override;
+    uint8_t WriteData(uint8_t cyl, uint8_t head, uint8_t sector_index, const std::vector<uint8_t>& data) override;
+    uint8_t FormatTrack(uint8_t cyl, uint8_t head, const std::vector<std::pair<IDFIELD, std::vector<uint8_t>>>& sectors) override;
 
 protected:
-    unsigned int m_uSectors = 0;
+    int m_sectors = 0;
 };
-
 
 class SADDisk : public Disk
 {
 public:
-    SADDisk(std::unique_ptr<Stream> stream, unsigned int uSides_ = NORMAL_DISK_SIDES, unsigned int uTracks_ = NORMAL_DISK_TRACKS,
-        unsigned int uSectors_ = NORMAL_DISK_SECTORS, unsigned int uSectorSize_ = NORMAL_SECTOR_SIZE);
+    SADDisk(std::unique_ptr<Stream> stream);
 
-public:
     static bool IsRecognised(Stream& stream);
 
-public:
-    bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
-    uint8_t ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
-    uint8_t WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
     bool Save() override;
-    uint8_t FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_) override;
+    std::pair<uint8_t, IDFIELD> GetSector(uint8_t cyl, uint8_t head, uint8_t sector_index) override;
+    std::pair<uint8_t, std::vector<uint8_t>> ReadData(uint8_t cyl, uint8_t head, uint8_t sector_index) override;
+    uint8_t WriteData(uint8_t cyl, uint8_t head, uint8_t sector_index, const std::vector<uint8_t>& data) override;
+    uint8_t FormatTrack(uint8_t cyl, uint8_t head, const std::vector<std::pair<IDFIELD, std::vector<uint8_t>>>& sectors) override;
 
 protected:
-    unsigned int m_uSides = 0, m_uTracks = 0, m_uSectors = 0, m_uSectorSize = 0;
+    int m_cyls = MGT_DISK_CYLS;
+    int m_heads = MGT_DISK_HEADS;
+    int m_sectors = MGT_DISK_SECTORS;
+    int m_sector_size = NORMAL_SECTOR_SIZE;
 };
-
 
 class EDSKDisk final : public Disk
 {
 public:
-    EDSKDisk(std::unique_ptr<Stream> stream, unsigned int uSides_ = NORMAL_DISK_SIDES, unsigned int uTracks_ = NORMAL_DISK_TRACKS);
-    EDSKDisk(const EDSKDisk&) = delete;
-    void operator= (const EDSKDisk&) = delete;
-    ~EDSKDisk();
+    EDSKDisk(std::unique_ptr<Stream> stream, int cyls = MGT_DISK_CYLS, int heads = MGT_DISK_HEADS);
 
-public:
     static bool IsRecognised(Stream& pStream_);
 
-public:
-    bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
-    uint8_t ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
-    uint8_t WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
     bool Save() override;
-    uint8_t FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_) override;
+    std::pair<uint8_t, IDFIELD> GetSector(uint8_t cyl, uint8_t head, uint8_t sector_index) override;
+    std::pair<uint8_t, std::vector<uint8_t>> ReadData(uint8_t cyl, uint8_t head, uint8_t sector_index) override;
+    uint8_t WriteData(uint8_t cyl, uint8_t head, uint8_t sector_index, const std::vector<uint8_t>& data) override;
+    uint8_t FormatTrack(uint8_t cyl, uint8_t head, const std::vector<std::pair<IDFIELD, std::vector<uint8_t>>>& sectors) override;
 
 protected:
-    unsigned int m_uSides = 0, m_uTracks = 0;
+    int m_heads = 0;
+    int m_cyls = 0;
 
-    EDSK_TRACK* m_apTracks[MAX_DISK_SIDES][MAX_DISK_TRACKS];
-    uint8_t m_abSizes[MAX_DISK_SIDES][MAX_DISK_TRACKS];
-
-private:
-    // These are for private class use and only valid immediately after calling GetSector()
-    EDSK_SECTOR* m_pSector = nullptr;
-    uint8_t* m_pbData = nullptr;
+    std::vector<std::vector<std::pair<EDSK_SECTOR, std::vector<uint8_t>>>> m_tracks;
 };
-
-
-class FloppyDisk final : public Disk
-{
-public:
-    FloppyDisk(std::unique_ptr<Stream>);
-    FloppyDisk(const FloppyDisk&) = delete;
-    void operator= (const FloppyDisk&) = delete;
-
-public:
-    static bool IsRecognised(Stream& pStream_);
-
-public:
-    void Close() override { m_stream->Close(); m_pTrack->head = 0xff; }
-    void Flush() override { Close(); }
-
-    uint8_t LoadTrack(uint8_t cyl_, uint8_t head_) override;
-    bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
-    uint8_t ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
-    uint8_t WriteData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
-    bool Save() override;
-
-    uint8_t FormatTrack(uint8_t cyl_, uint8_t head_, IDFIELD* paID_, uint8_t* papbData_[], unsigned int uSectors_) override;
-
-    bool IsBusy(uint8_t* pbStatus_, bool fWait_) override;
-
-protected:
-    uint8_t m_bCommand = 0, m_bStatus = 0;     // Current command and final status
-
-    TRACK* m_pTrack = nullptr;              // Current track
-    SECTOR* m_pSector = nullptr;            // Pointer to first sector on track
-};
-
 
 class FileDisk final : public Disk
 {
 public:
     FileDisk(std::unique_ptr<Stream> stream);
 
-public:
     static bool IsRecognised(Stream& stream);
 
+    bool Save() override;
+    std::pair<uint8_t, IDFIELD> GetSector(uint8_t cyl, uint8_t head, uint8_t sector_index) override;
+    std::pair<uint8_t, std::vector<uint8_t>> ReadData(uint8_t cyl, uint8_t head, uint8_t sector_index) override;
+    uint8_t WriteData(uint8_t, uint8_t, uint8_t, const std::vector<uint8_t>&) override;
+};
+
+#ifdef _WIN32
+
+#include "Floppy.h"
+
+class FloppyDisk final : public Disk
+{
 public:
-    bool GetSector(uint8_t cyl_, uint8_t head_, uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_) override;
-    uint8_t ReadData(uint8_t cyl_, uint8_t head_, uint8_t index_, uint8_t* pbData_, unsigned int* puSize_) override;
+    FloppyDisk(std::unique_ptr<Stream>);
+
+    static bool IsRecognised(Stream& pStream_);
+
+    void Close() override;
+    bool Save() override;
+    uint8_t LoadTrack(uint8_t cyl, uint8_t head) override;
+    std::pair<uint8_t, IDFIELD> GetSector(uint8_t cyl, uint8_t head, uint8_t sector_index) override;
+    std::pair<uint8_t, std::vector<uint8_t>> ReadData(uint8_t cyl, uint8_t head, uint8_t sector_index) override;
+    uint8_t WriteData(uint8_t cyl, uint8_t head, uint8_t sector_index, const std::vector<uint8_t>& data) override;
+    uint8_t FormatTrack(uint8_t cyl, uint8_t head, const std::vector<std::pair<IDFIELD, std::vector<uint8_t>>>& sectors) override;
+
+    bool IsBusy(uint8_t& status, bool wait) override;
 
 protected:
-    unsigned int m_uSize;
+    std::shared_ptr<TRACK> m_track;
 };
+
+#endif // _WIN32

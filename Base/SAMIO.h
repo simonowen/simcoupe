@@ -222,20 +222,18 @@ public:
     void FrameEnd() override { if (m_uActive) m_uActive--; }
 
 public:
-    virtual bool Insert(const std::string& /*disk_path*/, bool /*autoload*/ = false) { return false; }
+    virtual bool Insert(const std::string& disk_path) { return false; }
+    virtual bool Insert(const std::vector<uint8_t>& mem_file) { return false; }
     virtual void Eject() { }
-    virtual bool Save() { return true; }
+    virtual void Flush() { }
 
 public:
     virtual std::string DiskPath() const = 0;
     virtual std::string DiskFile() const = 0;
 
     virtual bool HasDisk() const { return false; }
-    virtual bool DiskModified() const { return false; }
     virtual bool IsLightOn() const { return false; }
     virtual bool IsActive() const { return m_uActive != 0; }
-
-    virtual void SetDiskModified(bool /*modified*/ = true) { }
 
 protected:
     unsigned int m_uActive = 0; // active when non-zero, decremented by FrameEnd()

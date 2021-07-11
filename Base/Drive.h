@@ -29,7 +29,7 @@
 
 
 // Time motor stays on after no further activity:  10 revolutions at 300rpm (2 seconds)
-const int FLOPPY_MOTOR_TIMEOUT = (10 / (FLOPPY_RPM / 60)) * EMULATED_FRAMES_PER_SECOND;
+constexpr auto FLOPPY_MOTOR_TIMEOUT = (10 / (FLOPPY_RPM / 60)) * EMULATED_FRAMES_PER_SECOND;
 
 const unsigned int FLOPPY_ACTIVE_FRAMES = 5;   // Frames the floppy is considered active after a command
 
@@ -38,62 +38,50 @@ class Drive final : public DiskDevice
 {
 public:
     Drive();
-    Drive(std::unique_ptr<Disk> pDisk_);
-    Drive(const Drive&) = delete;
-    void operator= (const Drive&) = delete;
     ~Drive() { Eject(); }
 
-public:
     uint8_t In(uint16_t wPort_) override;
     void Out(uint16_t wPort_, uint8_t bVal_) override;
     void FrameEnd() override;
 
-public:
-    bool Insert(const std::string& disk_path, bool auto_load = false) override;
+    bool Insert(const std::string& disk_path) override;
+    bool Insert(const std::vector<uint8_t>& mem_file) override;
     void Eject() override;
-    bool Save() override { return m_pDisk && m_pDisk->Save(); }
+    void Flush() override;
     void Reset() override;
 
-public:
-    std::string DiskPath() const override { return m_pDisk ? m_pDisk->GetPath() : ""; }
-    std::string DiskFile() const override { return m_pDisk ? m_pDisk->GetFile() : ""; }
+    std::string DiskPath() const override { return m_disk ? m_disk->GetPath() : ""; }
+    std::string DiskFile() const override { return m_disk ? m_disk->GetFile() : ""; }
 
-    bool HasDisk() const override { return m_pDisk != nullptr; }
-    bool DiskModified() const override { return m_pDisk && m_pDisk->IsModified(); }
-    bool IsLightOn() const override { return IsMotorOn(); }
-
-    void SetDiskModified(bool fModified_ = true) override { if (m_pDisk) m_pDisk->SetModified(fModified_); }
+    bool HasDisk() const override { return m_disk != nullptr; }
+    bool IsLightOn() const override { return (m_regs.status & MOTOR_ON) != 0; }
 
 protected:
-    bool GetSector(uint8_t index_, IDFIELD* pID_, uint8_t* pbStatus_);
-    bool FindSector(IDFIELD* pID_);
-    uint8_t ReadSector(uint8_t* pbData_, unsigned int* puSize_);
-    uint8_t WriteSector(uint8_t* pbData_, unsigned int* puSize_);
-    uint8_t ReadAddress(IDFIELD* pID_);
-    void ReadTrack(uint8_t* pbTrack_, unsigned int uSize_);
+    std::pair<uint8_t, IDFIELD> GetSector(uint8_t index);
+    std::optional<IDFIELD> FindSector();
+    std::pair<uint8_t, std::vector<uint8_t>> ReadSector();
+    uint8_t WriteSector(const std::vector<uint8_t>& data);
+    std::pair<uint8_t, IDFIELD> ReadAddress();
+    std::vector<uint8_t> ReadTrack();
     uint8_t VerifyTrack();
-    uint8_t WriteTrack(uint8_t* pbTrack_, unsigned int uSize_);
+    uint8_t WriteTrack(const std::vector<uint8_t>& data);
 
-protected:
     void ModifyStatus(uint8_t bEnable_, uint8_t bReset_);
     void ModifyReadStatus();
     void ExecuteNext();
 
-    bool IsMotorOn() const { return (m_sRegs.bStatus & MOTOR_ON) != 0; }
+    std::unique_ptr<Disk> m_disk;
 
-protected:
-    std::unique_ptr<Disk> m_pDisk;   // The disk currently inserted in the drive, if any
-    uint8_t m_bSide = 0;        // Side from port address
+    VL1772Regs m_regs{};
+    uint8_t m_cyl = 0;
+    uint8_t m_head = 0;
+    uint8_t m_sector_index = 0;
 
-    VL1772Regs m_sRegs{};          // VL1772 controller registers
-    uint8_t m_bHeadCyl = 0;        // Physical track the drive head is above
-    uint8_t m_bSectorIndex = 0;    // Sector iteration index
+    std::vector<uint8_t> m_buffer;
+    size_t m_buffer_pos = 0;
+    size_t m_status_reads_with_data = 0;
+    uint8_t m_data_status = 0;
 
-    uint8_t m_abBuffer[MAX_TRACK_SIZE]; // Buffer big enough for anything we'll read or write
-    uint8_t* m_pbBuffer = nullptr;
-    unsigned int m_uBuffer = 0;
-    uint8_t m_bDataStatus = 0;     // Status value for end of data, where the data CRC can be checked
-
-    int m_nState = 0;           // Command state, for tracking multi-stage execution
-    int m_nMotorDelay = 0;      // Delay before switching motor off
+    int m_state = 0;
+    int m_motor_off_frames = 0;
 };

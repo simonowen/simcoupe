@@ -18,102 +18,78 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-// Notes:
-//  Currently supports read-write access of uncompressed files, gzipped
-//  files, and read-only zip archive access.
-//
-//  Access to real standard format disks is also supported where a
-//  Floppy.cpp implementation exists.
-
-// Todo:
-//  - remove 32K file test done on zip archives (add a container layer?)
-//  - maybe add support for updating zip archives
-
 #include "SimCoupe.h"
 #include "Stream.h"
 
 #include "Disk.h"
-#include "Floppy.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Stream::Stream(const std::string& filepath, bool read_only/*=false*/)
-    : m_fReadOnly(read_only)
+Stream::Stream(const std::string& filepath, bool read_only)
+    : m_read_only(read_only)
 {
     m_path = filepath;
-    m_shortname = m_path.filename();
+    m_short_name = m_path.filename();
 }
 
-
-// Identify the stream and create an object to supply data from it
-/*static*/ std::unique_ptr<Stream> Stream::Open(const std::string& filepath, bool read_only)
+std::unique_ptr<Stream>
+Stream::Open(const std::string& file_path, bool read_only)
 {
-    if (filepath.empty())
+    if (file_path.empty())
         return nullptr;
 
-    // Give the OS-specific floppy driver first go at the path
-    if (FloppyStream::IsRecognised(filepath))
-        return std::make_unique<FloppyStream>(filepath, read_only);
+#ifdef _WIN32
+    if (FloppyStream::IsRecognised(file_path))
+        return std::make_unique<FloppyStream>(file_path, read_only);
+#endif
 
-    // If the file is read-only, the stream will be read-only
-    unique_FILE file = fopen(filepath.c_str(), "r+b");
+    unique_FILE file = fopen(file_path.c_str(), "r+b");
     read_only |= !file;
     file.reset();
 
 #ifdef HAVE_LIBZ
-    // Try and open it as a zip file
-    unzFile hfZip;
-    if ((hfZip = unzOpen(filepath.c_str())))
+    if (auto hfZip = unzOpen(file_path.c_str()))
     {
-        // Iterate through the contents of the zip looking for a file with a suitable size
-        for (int nRet = unzGoToFirstFile(hfZip); nRet == UNZ_OK; nRet = unzGoToNextFile(hfZip))
+        std::regex regex_types(R"(\.(dsk|sad|mgt|sbt|cpm)$)", std::regex::extended | std::regex::icase);
+
+        for (auto ret = unzGoToFirstFile(hfZip); ret == UNZ_OK; ret = unzGoToNextFile(hfZip))
         {
-            unz_file_info sInfo;
+            unz_file_info info{};
+            std::array<char, MAX_PATH> file_name{};
+            unzGetCurrentFileInfo(hfZip, &info, file_name.data(), MAX_PATH, nullptr, 0, nullptr, 0);
 
-            // Get details of the current file
-            unzGetCurrentFileInfo(hfZip, &sInfo, nullptr, 0, nullptr, 0, nullptr, 0);
-
-            // Continue looking if it's too small to be considered [strictly this shouldn't really be done here!]
-            if (sInfo.uncompressed_size < 32768)
-                continue;
-
-            // Ok, so open and use the first file in the zip and use that
-            if (unzOpenCurrentFile(hfZip) == UNZ_OK)
-                return std::make_unique<ZipStream>(hfZip, filepath, true/*read_only*/);  // ZIPs are currently read-only
+            if (std::regex_search(file_name.data(), regex_types) && unzOpenCurrentFile(hfZip) == UNZ_OK)
+                return std::make_unique<ZipStream>(hfZip, file_path, file_name.data());
         }
 
-        // Failed to open the first file, so close the zip
         unzClose(hfZip);
     }
     else
 #endif
     {
-        // Open the file using the regular CRT file functions
-        unique_FILE file;
-        if ((file = fopen(filepath.c_str(), "rb")))
+        if (unique_FILE file = fopen(file_path.c_str(), "rb"))
         {
 #ifdef HAVE_LIBZ
-            uint8_t abSig[sizeof(GZ_SIGNATURE)];
-            if ((fread(abSig, 1, sizeof(abSig), file) != sizeof(abSig)) || memcmp(abSig, GZ_SIGNATURE, sizeof(abSig)))
+            std::array<uint8_t, 2> sig;
+            if ((fread(sig.data(), 1, sig.size(), file) != sig.size()) || sig != GZ_SIGNATURE)
 #endif
-                return std::make_unique<FileStream>(std::move(file), filepath, read_only);
+                return std::make_unique<FileStream>(std::move(file), file_path, read_only);
 #ifdef HAVE_LIBZ
             else
             {
-                uint8_t ab[4] = {};
-                size_t uSize = 0;
+                std::array<uint8_t, 4> size_le{};
+                size_t file_size{};
 
-                // Read the uncompressed size from the end of the file (if under 4GiB)
-                if (fseek(file, -4, SEEK_END) == 0 && fread(ab, 1, sizeof(ab), file) == sizeof(ab))
-                    uSize = ((size_t)ab[3] << 24) | ((size_t)ab[2] << 16) | ((size_t)ab[1] << 8) | (size_t)ab[0];
+                if (fseek(file, -4, SEEK_END) == 0 &&
+                    fread(size_le.data(), 1, size_le.size(), file) == size_le.size())
+                {
+                    file_size = (size_le[3] << 24) | (size_le[2] << 16) | (size_le[1] << 8) | size_le[0];
+                }
 
-                // Close the file so we can open it through ZLib
                 file.reset();
 
-                // Try to open it as a gzipped file
-                gzFile hfGZip;
-                if ((hfGZip = gzopen(filepath.c_str(), "rb")))
-                    return std::make_unique<ZLibStream>(hfGZip, filepath, uSize, read_only);
+                if (auto hfile = gzopen(file_path.c_str(), "rb"))
+                    return std::make_unique<ZLibStream>(hfile, file_path, file_size, read_only);
             }
 #endif  // HAVE_LIBZ
         }
@@ -122,98 +98,106 @@ Stream::Stream(const std::string& filepath, bool read_only/*=false*/)
     return nullptr;
 }
 
+fs::file_time_type
+Stream::LastWriteTime() const
+{
+    std::error_code ec{};
+    auto file_time = fs::last_write_time(m_path, ec);
+    return ec ? fs::file_time_type{} : file_time;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 FileStream::FileStream(unique_FILE&& file, const std::string& filepath, bool read_only)
     : Stream(filepath, read_only), m_file(std::move(file))
 {
-    struct stat st{};
+    if (!m_file)
+        Write("", 0);
+}
 
-    if (stat(filepath.c_str(), &st) == 0)
-        m_uSize = static_cast<size_t>(st.st_size);
+size_t FileStream::GetSize()
+{
+    std::error_code ec;
+    auto file_size = static_cast<size_t>(fs::file_size(m_path, ec));
+    return ec ? 0U : file_size;
 }
 
 void FileStream::Close()
 {
     m_file.reset();
-    m_mode = Mode::Closed;
+    m_mode = FileMode::Closed;
 }
 
 bool FileStream::Rewind()
 {
-    Close();
-    return true;
+    return m_file && fseek(m_file, 0, SEEK_SET) == 0;
 }
 
-size_t FileStream::Read(void* pvBuffer_, size_t uLen_)
+size_t FileStream::Read(void* buffer, size_t len)
 {
-    if (m_mode != Mode::Reading)
+    if (m_mode != FileMode::Reading)
     {
-        // Close the file, if open for writing
-        Close();
-
-        // Open the file for writing, using compression if the source file did
-        if ((m_file = fopen(m_path.c_str(), "rb")))
-            m_mode = Mode::Reading;
+        m_file.reset();
+        m_file = fopen(m_path.c_str(), "rb");
+        m_mode = FileMode::Reading;
     }
 
-    size_t uRead = m_file ? fread(pvBuffer_, 1, uLen_, m_file) : 0;
-    return uRead;
+    return m_file ? fread(buffer, 1, len, m_file) : 0U;
 }
 
-size_t FileStream::Write(void* pvBuffer_, size_t uLen_)
+size_t FileStream::Write(const void* buffer, size_t len)
 {
-    if (m_mode != Mode::Writing)
+    if (m_mode != FileMode::Writing)
     {
-        // Close the file, if open for reading
-        Close();
-
-        // Open the file for writing, using compression if the source file did
-        if ((m_file = fopen(m_path.c_str(), "wb")))
-            m_mode = Mode::Writing;
+        m_file.reset();
+        m_file = fopen(m_path.c_str(), "wb");
+        m_mode = FileMode::Writing;
     }
 
-    return m_file ? fwrite(pvBuffer_, 1, uLen_, m_file) : 0;
+    return m_file ? fwrite(buffer, 1, len, m_file) : 0U;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-MemStream::MemStream(void* pv_, size_t uLen_, const std::string& filepath)
-    : Stream(filepath, true)
+MemStream::MemStream(const std::vector<uint8_t>& file_data)
+    : Stream("<memory>", true)
 {
-    m_mode = Mode::Reading;
-    m_uSize = uLen_;
-    m_pbData = reinterpret_cast<uint8_t*>(pv_);
+    m_data = file_data;
 }
 
 void MemStream::Close()
 {
-    m_mode = Mode::Closed;
+    m_mode = FileMode::Closed;
+}
+
+size_t MemStream::GetSize()
+{
+    return m_data.size();
 }
 
 bool MemStream::Rewind()
 {
-    m_uPos = 0;
+    m_pos = 0;
     return true;
 }
 
-size_t MemStream::Read(void* pvBuffer_, size_t uLen_)
+size_t MemStream::Read(void* buffer, size_t len)
 {
-    if (m_mode != Mode::Reading)
+    if (m_mode != FileMode::Reading)
     {
-        m_mode = Mode::Reading;
-        m_uPos = 0;
+        m_mode = FileMode::Reading;
+        m_pos = 0;
     }
 
-    size_t uRead = std::min(m_uSize - m_uPos, uLen_);
-    memcpy(pvBuffer_, m_pbData + m_uPos, uRead);
-    m_uPos += uRead;
-    return uRead;
+    auto avail = std::min(m_data.size() - m_pos, len);
+    memcpy(buffer, m_data.data() + m_pos, avail);
+    m_pos += avail;
+    return avail;
 }
 
-size_t MemStream::Write(void* /*pvBuffer_*/, size_t /*uLen_*/)
+size_t MemStream::Write(const void*, size_t)
 {
-    m_mode = Mode::Writing;
+    m_mode = FileMode::Writing;
     return 0;
 }
 
@@ -221,113 +205,91 @@ size_t MemStream::Write(void* /*pvBuffer_*/, size_t /*uLen_*/)
 
 #ifdef HAVE_LIBZ
 
-ZLibStream::ZLibStream(gzFile hFile_, const std::string& filepath, size_t uSize_, bool read_only)
-    : Stream(filepath, read_only), m_file(hFile_), m_uSize(uSize_)
+ZLibStream::ZLibStream(gzFile file, const std::string& filepath, size_t file_size, bool read_only)
+    : Stream(filepath, read_only), m_file(file), m_size(file_size)
 {
-    m_shortname += " (gzip)";
+    if (!m_file)
+        Write("", 0);
+
+    m_short_name += " (gzip)";
 }
 
 void ZLibStream::Close()
 {
     m_file.reset();
-    m_mode = Mode::Closed;
 }
-
 
 size_t ZLibStream::GetSize()
 {
-    // Do we need to determine the size?
-    if (!m_uSize && IsOpen())
-    {
-        long lPos = gztell(m_file);
-        gzrewind(m_file);
-
-        uint8_t ab[512];
-        int nRead;
-
-        do {
-            m_uSize += (nRead = gzread(m_file, ab, sizeof(ab)));
-        } while (nRead > 0);
-
-        gzseek(m_file, lPos, SEEK_SET);
-    }
-
-    return m_uSize;
+    return m_file ? m_size : 0U;
 }
 
 bool ZLibStream::Rewind()
 {
-    return !IsOpen() || !gzrewind(m_file);
+    if (m_file && m_mode == FileMode::Reading)
+        return !gzrewind(m_file);
+
+    return m_file != nullptr;
 }
 
-size_t ZLibStream::Read(void* pvBuffer_, size_t uLen_)
+size_t ZLibStream::Read(void* buffer, size_t len)
 {
-    if (m_mode != Mode::Reading)
+    if (m_mode != FileMode::Reading)
     {
-        // Close the file, if open for writing
         Close();
-
-        // Open the file for writing, using compression if the source file did
-        if ((m_file = gzopen(m_path.c_str(), "rb")))
-            m_mode = Mode::Reading;
+        m_file = gzopen(m_path.c_str(), "rb");
+        m_mode = FileMode::Reading;
     }
 
-    int nRead = m_file ? gzread(m_file, pvBuffer_, static_cast<unsigned>(uLen_)) : 0;
-    return (nRead == -1) ? 0 : static_cast<size_t>(nRead);
+    auto avail = m_file ? gzread(m_file, buffer, static_cast<unsigned>(len)) : 0;
+    return (avail < 0) ? 0 : static_cast<size_t>(avail);
 }
 
-size_t ZLibStream::Write(void* pvBuffer_, size_t uLen_)
+size_t ZLibStream::Write(const void* buffer, size_t len)
 {
-    if (m_mode != Mode::Writing)
+    if (m_mode != FileMode::Writing)
     {
-        // Close the file, if open for reading
         Close();
-
-        // Open the file for writing, using compression if the source file did
-        if ((m_file = gzopen(m_path.c_str(), "wb9")))
-            m_mode = Mode::Writing;
+        m_file = gzopen(m_path.c_str(), "wb9");
+        m_mode = FileMode::Writing;
     }
 
-    return m_file ? gzwrite(m_file, pvBuffer_, static_cast<unsigned>(uLen_)) : 0;
+    auto written = m_file ? gzwrite(m_file, buffer, static_cast<unsigned>(len)) : 0;
+    return (written < 0) ? 0U : static_cast<size_t>(written);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-ZipStream::ZipStream(unzFile hFile_, const std::string& filepath, bool read_only)
-    : Stream(filepath, read_only), m_file(hFile_)
+ZipStream::ZipStream(unzFile file, const std::string& filepath, const std::string& filename)
+    : Stream(filepath, true), m_file(file)
 {
-    char szFile[MAX_PATH]{};
-    unz_file_info sInfo;
-    if (unzGetCurrentFileInfo(hFile_, &sInfo, szFile, MAX_PATH, nullptr, 0, nullptr, 0) == UNZ_OK)
-    {
-        m_uSize = sInfo.uncompressed_size;
-        m_shortname += " (zip)";
-    }
+    m_short_name = filename + " (zip)";
 }
 
 void ZipStream::Close()
 {
-    m_file.reset();
-    m_mode = Mode::Closed;
+    // We can't easily re-open the zip container so leave the current file open.
+}
+
+size_t ZipStream::GetSize()
+{
+    unz_file_info info{};
+    unzGetCurrentFileInfo(m_file, &info, nullptr, 0, nullptr, 0, nullptr, 0);
+    return info.uncompressed_size;
 }
 
 bool ZipStream::Rewind()
 {
-    // There's no zip rewind so we close and re-open the current file
-    if (IsOpen())
-        unzCloseCurrentFile(m_file);
-
-    return unzOpenCurrentFile(m_file) == UNZ_OK;
+    return unzSetOffset(m_file, 0) == UNZ_OK;
 }
 
-size_t ZipStream::Read(void* pvBuffer_, size_t uLen_)
+size_t ZipStream::Read(void* buffer, size_t len)
 {
-    return unzReadCurrentFile(m_file, pvBuffer_, static_cast<unsigned>(uLen_));
+    return unzReadCurrentFile(m_file, buffer, static_cast<unsigned>(len));
 }
 
-size_t ZipStream::Write(void* /*pvBuffer_*/, size_t /*uLen_*/)
+size_t ZipStream::Write(const void*, size_t)
 {
-    // Currently there's no support for zip writing (yet)
     return 0;
 }
 

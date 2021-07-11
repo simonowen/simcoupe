@@ -30,7 +30,6 @@
 #include "CPU.h"
 #include "Drive.h"
 #include "Events.h"
-#include "Floppy.h"
 #include "Frame.h"
 #include "GUI.h"
 #include "HardDisk.h"
@@ -925,18 +924,13 @@ bool Rst8Hook()
     case 0x13:
         if (GetOption(dosboot))
         {
-            auto disk = Disk::Open(GetOption(dosdisk), true);
-            if (!disk)
-                disk = Disk::Open(abSAMDOS, sizeof(abSAMDOS), "mem:SAMDOS.sbt");
+            pBootDrive = std::make_unique<Drive>();
+            if (GetOption(dosdisk).empty() || !pBootDrive->Insert(GetOption(dosdisk)))
+                pBootDrive->Insert(samdos_image);
 
-            if (disk)
-            {
-                pBootDrive = std::make_unique<Drive>(std::move(disk));
-
-                // Jump back to BOOTEX to try again
-                cpu.set_pc(0xd8e5);
-                return true;
-            }
+            // Jump back to BOOTEX to try again
+            cpu.set_pc(0xd8e5);
+            return true;
         }
         break;
 

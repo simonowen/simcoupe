@@ -79,8 +79,8 @@ static bool InitWindow();
 static void LoadRecentFiles();
 static void SaveRecentFiles();
 
-static bool EjectDisk(DiskDevice& pFloppy_);
-static bool EjectTape();
+static void EjectDisk(DiskDevice& pFloppy_);
+static void EjectTape();
 
 static void SaveWindowPosition(HWND hwnd_);
 static bool RestoreWindowPosition(HWND hwnd_);
@@ -277,17 +277,6 @@ int GetDlgItemValue(HWND hdlg_, int nId_, int default_value = -1)
     }
 }
 
-bool ChangesSaved(DiskDevice& floppy)
-{
-    if (floppy.DiskModified() && !floppy.Save())
-    {
-        Message(MsgType::Warning, "Failed to save changes to {}", floppy.DiskFile());
-        return false;
-    }
-
-    return true;
-}
-
 bool GetSaveLoadFile(LPOPENFILENAME lpofn_, bool fLoad_, bool fCheckExisting_ = true)
 {
     // Force an Explorer-style dialog, and ensure loaded files exist
@@ -411,10 +400,7 @@ bool AttachDisk(AtaAdapter& adapter, const std::string& disk_path, int nDevice_)
 bool InsertDisk(DiskDevice& floppy, std::optional<std::string> new_path = std::nullopt, bool autoload = true)
 {
     int nDrive = (&floppy == pFloppy1.get()) ? 1 : 2;
-
-    // Save any changes to the current disk first
-    if (!ChangesSaved(floppy))
-        return false;
+    floppy.Flush();
 
     // Check the floppy drive is present
     if ((nDrive == 1 && GetOption(drive1) != drvFloppy) ||
@@ -438,8 +424,10 @@ bool InsertDisk(DiskDevice& floppy, std::optional<std::string> new_path = std::n
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = sizeof(szFile);
 
-    auto disk_path = floppy.DiskFile();
-    std::copy(disk_path.begin(), disk_path.end(), szFile);
+    // Use existing path if longer than just a drive.
+    auto disk_path = floppy.DiskPath();
+    if (disk_path.length() > 2)
+        std::copy(disk_path.begin(), disk_path.end(), szFile);
 
     if (!new_path)
     {
@@ -451,31 +439,28 @@ bool InsertDisk(DiskDevice& floppy, std::optional<std::string> new_path = std::n
 
     bool read_only = !!(ofn.Flags & OFN_READONLY);
 
-    if (!floppy.Insert(*new_path, autoload))
+    if (!floppy.Insert(*new_path))
     {
         Message(MsgType::Warning, "Invalid disk: {}", *new_path);
         RemoveRecentFile(*new_path);
         return false;
     }
 
+    if (autoload && nDrive == 1)
+        IO::AutoLoad(AutoLoadType::Disk);
+
     Frame::SetStatus("{}  inserted into drive {}{}", floppy.DiskFile(), (&floppy == pFloppy1.get()) ? 1 : 2, read_only ? " (read-only)" : "");
     AddRecentFile(*new_path);
     return true;
 }
 
-bool EjectDisk(DiskDevice& floppy)
+void EjectDisk(DiskDevice& floppy)
 {
-    if (!floppy.HasDisk())
-        return true;
-
-    if (ChangesSaved(floppy))
+    if (floppy.HasDisk())
     {
         Frame::SetStatus("{}  ejected from drive {}", floppy.DiskFile(), (&floppy == pFloppy1.get()) ? 1 : 2);
         floppy.Eject();
-        return true;
     }
-
-    return false;
 }
 
 
@@ -517,14 +502,13 @@ bool InsertTape(HWND hwndParent_, std::optional<std::string> new_path = std::nul
     return true;
 }
 
-bool EjectTape()
+void EjectTape()
 {
-    if (!Tape::IsInserted())
-        return true;
-
-    Frame::SetStatus("{}  ejected", Tape::GetFile());
-    Tape::Eject();
-    return true;
+    if (Tape::IsInserted())
+    {
+        Frame::SetStatus("{}  ejected", Tape::GetFile());
+        Tape::Eject();
+    }
 }
 
 #ifdef HAVE_LIBSPECTRUM
@@ -800,7 +784,6 @@ void UpdateMenuFromOptions()
     EnableItem(IDM_FILE_NEW_DISK1, fFloppy1 && !GUI::IsActive());
     EnableItem(IDM_FILE_FLOPPY1_INSERT, fFloppy1 && !GUI::IsActive());
     EnableItem(IDM_FILE_FLOPPY1_EJECT, fInserted1);
-    EnableItem(IDM_FILE_FLOPPY1_SAVE_CHANGES, fFloppy1 && pFloppy1->DiskModified());
 
     // Only enable the floppy device menu item if it's supported
     EnableItem(IDM_FILE_FLOPPY1_DEVICE, FloppyStream::IsSupported());
@@ -809,7 +792,6 @@ void UpdateMenuFromOptions()
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 2 options
     EnableMenuItem(hmenuFile, 6, MF_BYPOSITION | (fFloppy2 ? MF_ENABLED : MF_GRAYED));
     EnableItem(IDM_FILE_FLOPPY2_EJECT, fInserted2);
-    EnableItem(IDM_FILE_FLOPPY2_SAVE_CHANGES, pFloppy2->DiskModified());
 
     CheckOption(IDM_VIEW_FULLSCREEN, GetOption(fullscreen));
     CheckOption(IDM_VIEW_TVASPECT, GetOption(tvaspect));
@@ -923,13 +905,11 @@ bool UI::DoAction(Action action, bool pressed)
             break;
 
         case Action::NewDisk1:
-            if (ChangesSaved(*pFloppy1))
-                DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 1);
+            DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 1);
             break;
 
         case Action::NewDisk2:
-            if (ChangesSaved(*pFloppy2))
-                DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 2);
+            DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 2);
             break;
 
 #ifdef HAVE_LIBSPECTRUM
@@ -1218,10 +1198,8 @@ static MENUICON aMenuIcons[] =
 {
     { IDM_FILE_NEW_DISK1, 0 },
     { IDM_FILE_FLOPPY1_INSERT, 1},
-    { IDM_FILE_FLOPPY1_SAVE_CHANGES, 2 },
     { IDM_FILE_NEW_DISK2, 0 },
     { IDM_FILE_FLOPPY2_INSERT, 1},
-    { IDM_FILE_FLOPPY2_SAVE_CHANGES, 2 },
     { IDM_HELP_ABOUT, 4 },
     { IDM_TOOLS_OPTIONS, 6},
     { IDM_SYSTEM_RESET, 7}
@@ -1274,21 +1252,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
         // Application close request
     case WM_CLOSE:
-        // Ensure both drives are saved before we exit
-        if (!ChangesSaved(*pFloppy1) || !ChangesSaved(*pFloppy2))
-            return 0;
-
         UnhookWindowsHookEx(hWinKeyHook), hWinKeyHook = nullptr;
 
         PostQuitMessage(0);
         return 0;
-
-        // System shutting down or using logging out
-    case WM_QUERYENDSESSION:
-        // Save without prompting, to avoid data loss
-        if (pFloppy1) pFloppy1->Save();
-        if (pFloppy2) pFloppy2->Save();
-        return TRUE;
 
     case WM_GETMINMAXINFO:
     {
@@ -1566,17 +1533,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
                     MB_ICONQUESTION | MB_YESNO) == IDYES)
                     ShellExecute(nullptr, nullptr, "http://simonowen.com/fdrawcmd/", nullptr, "", SW_SHOWMAXIMIZED);
             }
-            else if (GetOption(drive1) == drvFloppy && ChangesSaved(*pFloppy1) && pFloppy1->Insert("A:"))
-                Frame::SetStatus("Using floppy drive {}", pFloppy1->DiskFile());
+            else
+            {
+                if (GetOption(drive1) == drvFloppy && pFloppy1->Insert("A:"))
+                    Frame::SetStatus("Using floppy drive {}", pFloppy1->DiskFile());
+            }
             break;
 
         case IDM_FILE_FLOPPY1_INSERT:       Actions::Do(Action::InsertDisk1); break;
         case IDM_FILE_FLOPPY1_EJECT:        Actions::Do(Action::EjectDisk1);  break;
-        case IDM_FILE_FLOPPY1_SAVE_CHANGES: Actions::Do(Action::SaveDisk1);   break;
 
         case IDM_FILE_FLOPPY2_INSERT:       Actions::Do(Action::InsertDisk2); break;
         case IDM_FILE_FLOPPY2_EJECT:        Actions::Do(Action::EjectDisk2);  break;
-        case IDM_FILE_FLOPPY2_SAVE_CHANGES: Actions::Do(Action::SaveDisk2);   break;
 
         case IDM_VIEW_FULLSCREEN:           Actions::Do(Action::ToggleFullscreen); break;
         case IDM_VIEW_TVASPECT:             Actions::Do(Action::ToggleTV);        break;
@@ -2114,6 +2082,8 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
         // Disable the compression check-box if zlib isn't available
         EnableWindow(GetDlgItem(hdlg_, IDC_COMPRESS), FALSE);
 #endif
+        pFloppy1->Flush();
+        pFloppy2->Flush();
         return TRUE;
     }
 
@@ -2147,7 +2117,6 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
 
         case IDOK:
         {
-            // File extensions for each type, plus an additional extension if compressed
             static const char* aszTypes[] = { ".mgt", ".dsk", ".cpm" };
 
             nType = ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_TYPES));
@@ -2180,6 +2149,9 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
 #endif
                 stream = std::make_unique<FileStream>(nullptr, szFile);
 
+            auto num_sectors = MGT_DISK_SECTORS;
+            auto fill_byte = MGT_SECTOR_FILL;
+
             switch (nType)
             {
             case 0:
@@ -2190,47 +2162,43 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                 pDisk = std::make_unique<EDSKDisk>(std::move(stream));
                 break;
             case 2:
-                pDisk = std::make_unique<MGTDisk>(std::move(stream), DOS_DISK_SECTORS);
+                num_sectors = DOS_DISK_SECTORS;
+                fill_byte = DOS_SECTOR_FILL;
+                pDisk = std::make_unique<MGTDisk>(std::move(stream), num_sectors);
                 break;
             }
 
-            // Format the EDSK image ready for use?
-            if (nType == 1 && fFormat)
+            if (nType != 1 || fFormat)
             {
-                IDFIELD abIDs[NORMAL_DISK_SECTORS];
+                auto data = std::vector<uint8_t>(NORMAL_SECTOR_SIZE, fill_byte);
 
-                // Create a data track to use during the format
-                uint8_t abSector[NORMAL_SECTOR_SIZE], * apbData[NORMAL_DISK_SECTORS];
-                memset(abSector, 0, sizeof(abSector));
-
-                // Prepare the tracks across the disk
-                for (uint8_t head = 0; head < NORMAL_DISK_SIDES; head++)
+                for (uint8_t head = 0; head < MGT_DISK_HEADS; head++)
                 {
-                    for (uint8_t cyl = 0; cyl < NORMAL_DISK_TRACKS; cyl++)
+                    for (uint8_t cyl = 0; cyl < MGT_DISK_CYLS; cyl++)
                     {
-                        for (uint8_t sector = 0; sector < NORMAL_DISK_SECTORS; sector++)
-                        {
-                            abIDs[sector].bTrack = cyl;
-                            abIDs[sector].bSide = head;
-                            abIDs[sector].bSector = 1 + ((sector + NORMAL_DISK_SECTORS - (cyl % NORMAL_DISK_SECTORS)) % NORMAL_DISK_SECTORS);
-                            abIDs[sector].bSize = 2;
-                            abIDs[sector].bCRC1 = abIDs[sector].bCRC2 = 0;
+                        std::vector<std::pair<IDFIELD, std::vector<uint8_t>>> sectors;
 
-                            // Point all data sectors to our reference sector
-                            apbData[sector] = abSector;
+                        for (uint8_t sector = 0; sector < num_sectors; ++sector)
+                        {
+                            IDFIELD id{};
+                            id.cyl = cyl;
+                            id.head = head;
+                            id.sector = 1 + ((sector + num_sectors - (cyl % num_sectors)) % num_sectors);
+                            id.size = 2;
+                            id.crc1 = id.crc2 = 0;
+                            
+                            sectors.push_back(std::make_pair(id, data));
                         }
 
-                        pDisk->FormatTrack(cyl, head, abIDs, apbData, NORMAL_DISK_SECTORS);
+                        pDisk->FormatTrack(cyl, head, sectors);
                     }
                 }
             }
 
-            // Save the new disk and close it
-            bool fSaved = pDisk->Save();
+            bool saved = pDisk->Save();
             pDisk.reset();
 
-            // If the save failed, moan about it
-            if (!fSaved)
+            if (!saved)
             {
                 Message(MsgType::Warning, "Failed to save to {}\n", szFile);
                 break;

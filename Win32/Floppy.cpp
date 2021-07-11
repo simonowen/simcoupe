@@ -19,7 +19,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "SimCoupe.h"
-#include <process.h>
 #include "Floppy.h"
 
 #include "Disk.h"
@@ -27,71 +26,44 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-unsigned int __stdcall FloppyThreadProc(void* pv_)
-{
-    int nRet = reinterpret_cast<FloppyStream*>(pv_)->ThreadProc();
-    _endthreadex(nRet);
-    return nRet;
-}
+struct ServiceHandleCloser { void operator()(SC_HANDLE h) { CloseServiceHandle(h); } };
+using unique_SC_HANDLE = unique_resource<SC_HANDLE, nullptr, ServiceHandleCloser>;
 
-bool Ioctl(HANDLE h_, DWORD dwCode_, LPVOID pIn_ = nullptr, DWORD cbIn_ = 0, LPVOID pOut_ = nullptr, DWORD cbOut_ = 0)
+bool FloppyStream::IsSupported()
 {
-    if (DeviceIoControl(h_, dwCode_, pIn_, cbIn_, pOut_, cbOut_, &cbOut_, nullptr))
-        return true;
+    if (unique_SC_HANDLE scm = OpenSCManager(nullptr, nullptr, GENERIC_READ))
+    {
+        if (unique_SC_HANDLE service = OpenService(scm, "fdc", GENERIC_READ))
+        {
+            SERVICE_STATUS ss{};
+            if (QueryServiceStatus(service, &ss))
+            {
+                // If fdc.sys is running then fdrawcmd.sys is supported
+                return (ss.dwCurrentState == SERVICE_RUNNING);
+            }
+        }
+    }
 
-    TRACE("!!! Ioctl {} failed with {:08x}\n", dwCode_, GetLastError());
     return false;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-/*static*/ bool FloppyStream::IsSupported()
+bool FloppyStream::IsAvailable()
 {
-    bool fSupported = false;
+    DWORD driver_version = 0x00000000;
 
-    // Open the Service Control manager
-    SC_HANDLE hSCM = OpenSCManager(nullptr, nullptr, GENERIC_READ);
-    if (hSCM)
-    {
-        // Open the FDC service, for fdc.sys (floppy disk controller driver)
-        SC_HANDLE hService = OpenService(hSCM, "fdc", GENERIC_READ);
-        if (hService)
-        {
-            SERVICE_STATUS ss;
-            if (QueryServiceStatus(hService, &ss))
-            {
-                // If fdc.sys is running then fdrawcmd.sys is supported
-                fSupported = ss.dwCurrentState == SERVICE_RUNNING;
-            }
-
-            CloseServiceHandle(hService);
-        }
-
-        CloseServiceHandle(hSCM);
-    }
-
-    return fSupported;
-}
-
-/*static*/ bool FloppyStream::IsAvailable()
-{
-    static DWORD dwVersion = 0x00000000, dwRet;
-
-    // Open the global driver object
-    HANDLE h = CreateFile("\\\\.\\fdrawcmd", GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
-
+    auto h = CreateFile("\\\\.\\fdrawcmd", GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
     if (h != INVALID_HANDLE_VALUE)
     {
-        // Request the driver version number
-        DeviceIoControl(h, IOCTL_FDRAWCMD_GET_VERSION, nullptr, 0, &dwVersion, sizeof(dwVersion), &dwRet, nullptr);
+        DWORD ret{};
+        DeviceIoControl(h, IOCTL_FDRAWCMD_GET_VERSION, nullptr, 0, &driver_version, sizeof(driver_version), &ret, nullptr);
         CloseHandle(h);
     }
 
     // Ensure we're using fdrawcmd.sys >= 1.0.x.x
-    return (dwVersion & 0xffff0000) >= (FDRAWCMD_VERSION & 0xffff0000);
+    return (driver_version & 0xffff0000) >= (FDRAWCMD_VERSION & 0xffff0000);
 }
 
-/*static*/ bool FloppyStream::IsRecognised(const std::string& filepath)
+bool FloppyStream::IsRecognised(const std::string& filepath)
 {
     auto device = tolower(filepath);
     return device == "a:" || device == "b:";
@@ -103,332 +75,309 @@ FloppyStream::FloppyStream(const std::string& filepath, bool read_only)
     if (IsAvailable())
     {
         std::string dev_path = (tolower(filepath) == "a:") ? R"(\\.\fdraw0)" : R"(\\.\fdraw1)";
-        m_hDevice = CreateFile(dev_path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+        m_hdev = CreateFile(dev_path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+        m_short_name = m_path;
     }
 
-    // Prepare defaults used when device is closed after use
     Close();
 }
 
-FloppyStream::~FloppyStream()
-{
-    uint8_t bStatus;
-    IsBusy(&bStatus, true);
-
-    if (m_hDevice != INVALID_HANDLE_VALUE)
-        CloseHandle(m_hDevice);
-}
-
-
 void FloppyStream::Close()
 {
-    m_uSectors = GetOption(stdfloppy) ? NORMAL_DISK_SECTORS : 0;
+    if (m_thread.joinable())
+        m_thread.join();
+
+    m_sectors = GetOption(stdfloppy) ? MGT_DISK_SECTORS : 0;
 }
 
-// Start a command executing asynchronously
-uint8_t FloppyStream::StartCommand(uint8_t bCommand_, TRACK* pTrack_, unsigned int uSectorIndex_)
+void FloppyStream::StartCommand(uint8_t command, std::shared_ptr<TRACK> track, int sector_index)
 {
-    unsigned int uThreadId;
+    if (m_thread.joinable())
+        m_thread.join();
 
-    // Wait for any in-progress operation to complete
-    uint8_t bStatus;
-    IsBusy(&bStatus, true);
+    m_command = command;
+    m_track = track;
+    m_sector_index = sector_index;
 
-    // Set up the command to perform
-    m_bCommand = bCommand_;
-    m_pTrack = pTrack_;
-    m_uSectorIndex = uSectorIndex_;
-    m_bStatus = 0;
-
-    // Create a new thread to perform it
-    m_hThread = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, FloppyThreadProc, this, 0, &uThreadId));
-    return m_hThread ? BUSY : LOST_DATA;
+    m_status.reset();
+    m_thread = std::thread(&FloppyStream::ThreadProc, this);
 }
 
-// Get the status of the current asynchronous operation, if any
-bool FloppyStream::IsBusy(uint8_t* pbStatus_, bool fWait_)
+bool FloppyStream::IsBusy(uint8_t& status, bool wait)
 {
-    // Is the worker thread active?
-    if (m_hThread)
-    {
-        // Either wait until the thread completes, or simply check whether it's done
-        if (WaitForSingleObject(m_hThread, fWait_ ? INFINITE : 0) == WAIT_TIMEOUT)
-            return true;
+    if (wait && m_thread.joinable())
+        m_thread.join();
 
-        // Close the thread handle to delete it
-        CloseHandle(m_hThread);
-        m_hThread = nullptr;
+    if (!m_status.has_value())
+        return true;
 
-        // Return the command status
-        *pbStatus_ = m_bStatus;
-    }
-
-    // Not busy
+    status = m_status.value();
     return false;
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// Read a single sector
-static uint8_t ReadSector(HANDLE hDevice_, uint8_t phead_, SECTOR* ps_)
+bool FloppyStream::Ioctl(DWORD ioctl_code, LPVOID in_ptr, size_t in_size, LPVOID out_ptr, size_t out_size)
 {
-    uint8_t bStatus = 0;
-
-    FD_READ_WRITE_PARAMS rwp;
-    rwp.flags = FD_OPTION_MFM;
-    rwp.phead = phead_;
-    rwp.cyl = ps_->cyl;
-    rwp.head = ps_->head;
-    rwp.sector = ps_->sector;
-    rwp.size = ps_->size;
-    rwp.eot = ps_->sector + 1;
-    rwp.gap = 0x0a;
-    rwp.datalen = 0xff;
-
-    if (!Ioctl(hDevice_, IOCTL_FDCMD_READ_DATA, &rwp, sizeof(rwp), ps_->pbData, 128 << (ps_->size & 7)))
-        bStatus = (GetLastError() == ERROR_CRC) ? CRC_ERROR : RECORD_NOT_FOUND;
-
-    FD_CMD_RESULT res;
-    Ioctl(hDevice_, IOCTL_FD_GET_RESULT, nullptr, 0, &res, sizeof(res));
-    if (res.st2 & 0x40) bStatus |= DELETED_DATA;
-
-    return bStatus;
-}
-
-// Write a single sector
-static uint8_t WriteSector(HANDLE hDevice_, TRACK* pTrack_, unsigned int uSectorIndex_)
-{
-    auto ps = reinterpret_cast<SECTOR*>(pTrack_ + 1) + uSectorIndex_;
-
-    FD_READ_WRITE_PARAMS rwp;
-    rwp.flags = FD_OPTION_MFM;
-    rwp.phead = pTrack_->head;
-    rwp.cyl = ps->cyl;
-    rwp.head = ps->head;
-    rwp.sector = ps->sector;
-    rwp.size = ps->size;
-    rwp.eot = ps->sector + 1;
-    rwp.gap = 0x0a;
-    rwp.datalen = 0xff;
-
-    if (!Ioctl(hDevice_, IOCTL_FDCMD_WRITE_DATA, &rwp, sizeof(rwp), ps->pbData, 128 << (ps->size & 7)))
-    {
-        if (GetLastError() == ERROR_WRITE_PROTECT)
-            return WRITE_PROTECT;
-        else if (GetLastError() == ERROR_SECTOR_NOT_FOUND)
-            return RECORD_NOT_FOUND;
-
-        return WRITE_FAULT;
-    }
-
-    return 0;
-}
-
-// Format a track
-static uint8_t FormatTrack(HANDLE hDevice_, TRACK* pTrack_)
-{
-    int i, step;
-    uint8_t bStatus = 0;
-
-    // Prepare space for the variable-size structure - 64 sectors is plenty
-    uint8_t ab[sizeof(FD_FORMAT_PARAMS) + 64 * sizeof(FD_ID_HEADER)] = { 0 };
-    PFD_FORMAT_PARAMS pfp = reinterpret_cast<PFD_FORMAT_PARAMS>(ab);
-
-    auto pt = pTrack_;
-    auto ps = reinterpret_cast<SECTOR*>(pt + 1);
-    unsigned int uSize = pt->sectors ? (128U << (ps->size & 7)) : 0;
-
-    // Set up the format parameters
-    pfp->flags = FD_OPTION_MFM;
-    pfp->phead = pTrack_->head;
-    pfp->size = 6;
-    pfp->sectors = pt->sectors;
-    pfp->gap = 1;
-    pfp->fill = 0x00;
-
-    // If the track contains any sectors, the size/gap/fill are tuned for the size/content
-    if (pt->sectors)
-    {
-        unsigned int uGap = ((MAX_TRACK_SIZE - 50) - (pt->sectors * (62 + 1 + uSize))) / pt->sectors;
-        if (uGap > 46) uGap = 46;
-
-        pfp->size = ps->size;
-        pfp->gap = uGap;
-        pfp->fill = ps[pt->sectors - 1].pbData[uSize - 1];  // last byte of last sector used for fill byte
-    }
-
-    // Prepare the sector headers to write
-    for (i = 0; i < pt->sectors; i++)
-    {
-        pfp->Header[i].cyl = ps[i].cyl;
-        pfp->Header[i].head = ps[i].head;
-        pfp->Header[i].sector = ps[i].sector;
-        pfp->Header[i].size = ps[i].size;
-    }
-
-    // For blank tracks we still write a single long sector
-    if (!pfp->sectors)
-        pfp->sectors++;
-
-    // Format the track
-    if (!Ioctl(hDevice_, IOCTL_FDCMD_FORMAT_TRACK, pfp, sizeof(FD_FORMAT_PARAMS) + pfp->sectors * sizeof(FD_ID_HEADER)))
-    {
-        if (GetLastError() == ERROR_WRITE_PROTECT)
-            return WRITE_PROTECT;
-
-        return WRITE_FAULT;
-    }
-
-    // Write any in-place format data, as needed by Pro-Dos (and future mixed-sector sizes)
-    // 2 interleaved passes over the track is better than risking missing the next sector each time
-    for (i = 0, step = 2; i < step; i++)
-    {
-        for (int j = i; !bStatus && j < pt->sectors; j += step)
-        {
-            // Skip the write if the contents match the format filler
-            if (ps[j].pbData[0] == pfp->fill && !memcmp(ps[j].pbData, ps[j].pbData + 1, uSize - 1))
-                continue;
-
-            // Write the sector
-            bStatus = WriteSector(hDevice_, pt, j);
-        }
-    }
-
-    return bStatus;
-}
-
-// Read a simple track of consecutive sectors, which is fast if it matches what's on the disk
-static bool ReadSimpleTrack(HANDLE hDevice_, TRACK* pTrack_, unsigned int& ruSectors_)
-{
-    int i;
-
-    auto pt = pTrack_;
-    auto ps = reinterpret_cast<SECTOR*>(pt + 1);
-    auto pb = reinterpret_cast<uint8_t*>(ps + (pt->sectors = ruSectors_));
-
-    // Prepare the normal track container
-    for (i = 0; i < pt->sectors; i++)
-    {
-        ps[i].cyl = pt->cyl;
-        ps[i].head = pt->head;
-        ps[i].sector = i + 1;
-        ps[i].size = 2;
-        ps[i].status = 0;
-        ps[i].pbData = pb + i * NORMAL_SECTOR_SIZE;
-    }
-
-    // Attempt the full track in a single read
-    FD_READ_WRITE_PARAMS rwp;
-    rwp.flags = FD_OPTION_MFM;
-    rwp.phead = pt->head;
-    rwp.cyl = pt->cyl;
-    rwp.head = pt->head;
-    rwp.sector = 1;
-    rwp.size = ps->size;
-    rwp.eot = pt->sectors + 1;
-    rwp.gap = 0x0a;
-    rwp.datalen = 0xff;
-
-    if (Ioctl(hDevice_, IOCTL_FDCMD_READ_DATA, &rwp, sizeof(rwp), ps->pbData, pt->sectors * NORMAL_SECTOR_SIZE))
+    DWORD ret{};
+    if (DeviceIoControl(m_hdev, ioctl_code, in_ptr, static_cast<DWORD>(in_size), out_ptr, static_cast<DWORD>(out_size), &ret, nullptr))
         return true;
 
-    // Accept blank tracks as normal
-    if (GetLastError() == ERROR_FLOPPY_ID_MARK_NOT_FOUND)
-    {
-        pt->sectors = 0;
-        return true;
-    }
-
-    // Failed to find one of the sectors?
-    if (GetLastError() == ERROR_SECTOR_NOT_FOUND)
-    {
-        FD_CMD_RESULT res;
-
-        // If it was the final sector that failed, it's probably a DOS disk
-        if (Ioctl(hDevice_, IOCTL_FD_GET_RESULT, nullptr, 0, &res, sizeof(res)) && res.sector == NORMAL_DISK_SECTORS)
-        {
-            // Assume 9 sectors for the rest of this session
-            pt->sectors = ruSectors_ = DOS_DISK_SECTORS;
-            return true;
-        }
-    }
-
-    // For any other failures, fall back on non-regular mode for a more thorough scan
-    ruSectors_ = 0;
+    TRACE("!!! Ioctl {} failed with {:08x}\n", ioctl_code, GetLastError());
     return false;
 }
 
-// Read a custom track format, which is slower but more thorough
-static bool ReadCustomTrack(HANDLE hDevice_, TRACK* pTrack_)
+uint8_t FloppyStream::ReadSector(int sector_index)
 {
-    uint8_t abScan[1 + 64 * sizeof(FD_SCAN_RESULT)];
-    PFD_SCAN_RESULT psr = (PFD_SCAN_RESULT)abScan;
+    auto& sector = m_track->sectors[sector_index];
 
-    // Scan the track layout
-    FD_SCAN_PARAMS sp = { FD_OPTION_MFM, pTrack_->head };
-    if (!Ioctl(hDevice_, IOCTL_FD_SCAN_TRACK, &sp, sizeof(sp), abScan, sizeof(abScan)))
-        return false;
+    FD_READ_WRITE_PARAMS rwp{};
+    rwp.flags = FD_OPTION_MFM;
+    rwp.phead = m_track->head;
+    rwp.cyl = sector.cyl;
+    rwp.head = sector.head;
+    rwp.sector = sector.sector;
+    rwp.size = sector.size;
+    rwp.eot = sector.sector + 1;
+    rwp.gap = 0x0a;
+    rwp.datalen = 0xff;
 
-    auto pt = pTrack_;
-    auto ps = reinterpret_cast<SECTOR*>(pt + 1);
-    auto pb = reinterpret_cast<uint8_t*>(ps + (pt->sectors = psr->count));
+    auto sector_size = SizeFromSizeCode(sector.size);
+    sector.data.resize(sector_size);
 
-    // Read the sectors in 2 interleaved passes
-    for (int i = 0, step = 2; i < step; i++)
+    uint8_t status = 0;
+    if (!Ioctl(IOCTL_FDCMD_READ_DATA, &rwp, sizeof(rwp), sector.data.data(), sector.data.size()))
+        status = (GetLastError() == ERROR_CRC) ? CRC_ERROR : RECORD_NOT_FOUND;
+
+    FD_CMD_RESULT res{};
+    Ioctl(IOCTL_FD_GET_RESULT, nullptr, 0, &res, sizeof(res));
+
+    if (res.st2 & 0x40)
+        status |= DELETED_DATA;
+
+    return status;
+}
+
+uint8_t FloppyStream::WriteSector(int sector_index)
+{
+    auto& sector = m_track->sectors[sector_index];
+
+    FD_READ_WRITE_PARAMS rwp{};
+    rwp.flags = FD_OPTION_MFM;
+    rwp.phead = m_track->head;
+    rwp.cyl = sector.cyl;
+    rwp.head = sector.head;
+    rwp.sector = sector.sector;
+    rwp.size = sector.size;
+    rwp.eot = sector.sector + 1;
+    rwp.gap = 0x0a;
+    rwp.datalen = 0xff;
+
+    auto data_ptr = const_cast<uint8_t*>(sector.data.data());
+
+    if (!Ioctl(IOCTL_FDCMD_WRITE_DATA, &rwp, sizeof(rwp), data_ptr, sector.data.size()))
     {
-        for (int j = i; j < pt->sectors; j += step)
+        switch (GetLastError())
         {
-            ps[j].cyl = psr->Header[j].cyl;
-            ps[j].head = psr->Header[j].head;
-            ps[j].sector = psr->Header[j].sector;
-            ps[j].size = psr->Header[j].size;
-            ps[j].status = 0;
-            ps[j].pbData = pb;
-
-            // Save individual status values for each sector
-            ps[j].status = ReadSector(hDevice_, pt->head, &ps[j]);
-            pb += (128U << (ps[j].size & 7));
+        case ERROR_WRITE_PROTECT:       return WRITE_PROTECT;
+        case ERROR_SECTOR_NOT_FOUND:    return RECORD_NOT_FOUND;
+        default:                        return WRITE_FAULT;
         }
     }
 
-    return true;
+    return 0;
 }
 
-unsigned long FloppyStream::ThreadProc()
+uint8_t FloppyStream::FormatTrack()
 {
-    FD_SEEK_PARAMS sp = { m_pTrack->cyl, m_pTrack->head };
-    Ioctl(m_hDevice, IOCTL_FDCMD_SEEK, &sp, sizeof(sp));
-
-    switch (m_bCommand)
+    struct
     {
-        // Load track contents
-    case READ_MSECTOR:
-        // If we're in regular mode, try a simple read for all sectors
-        if (m_uSectors)
-            ReadSimpleTrack(m_hDevice, m_pTrack, m_uSectors);
+        BYTE flags;
+        BYTE phead;
+        BYTE size, sectors, gap, fill;
+        std::array<FD_ID_HEADER, 64> headers;
+    } format{};
 
-        // If we're not in regular mode, scan and read individual sectors (slower)
-        if (!m_uSectors)
-            ReadCustomTrack(m_hDevice, m_pTrack);
+    format.flags = FD_OPTION_MFM;
+    format.phead = m_track->head;
+    format.sectors = static_cast<uint8_t>(m_track->sectors.size());
 
-        break;
+    if (m_track->sectors.empty())
+    {
+        format.sectors = 1;
+        format.size = 6;
+        format.gap = 1;
+        format.fill = 0x00;
+    }
+    else
+    {
+        auto& last_sector = m_track->sectors.back();
+        auto sector_size = SizeFromSizeCode(last_sector.size);
+        format.size = last_sector.size;
+        format.fill = last_sector.data.back();  // last byte used for filler
 
-        // Write a sector
-    case WRITE_1SECTOR:
-        m_bStatus = WriteSector(m_hDevice, m_pTrack, m_uSectorIndex);
-        break;
+        auto gap3 = ((MAX_TRACK_SIZE - 50) - (m_track->sectors.size() * (62 + 1 + sector_size))) / m_track->sectors.size();
+        if (gap3 > 46) gap3 = 46;
+        format.gap = static_cast<uint8_t>(gap3);
+    }
 
-        // Format track
-    case WRITE_TRACK:
-        m_bStatus = FormatTrack(m_hDevice, m_pTrack);
-        break;
+    for (size_t i = 0; i < m_track->sectors.size(); ++i)
+    {
+        auto& sector = m_track->sectors[i];
+        format.headers[i].cyl = sector.cyl;
+        format.headers[i].head = sector.head;
+        format.headers[i].sector = sector.sector;
+        format.headers[i].size = sector.size;
+    }
 
-    default:
-        TRACE("!!! ThreadProc: unknown command ({})\n", m_bCommand);
-        m_bStatus = LOST_DATA;
-        break;
+    if (!Ioctl(IOCTL_FDCMD_FORMAT_TRACK, &format, sizeof(format)))
+        return (GetLastError() == ERROR_WRITE_PROTECT) ? WRITE_PROTECT : WRITE_FAULT;
+
+    // Write any in-place format data, needed by Pro-Dos.
+    uint8_t status = 0;
+    for (auto start = 0, step = 2; start < step; ++start)
+    {
+        for (auto i = start; !status && i < static_cast<int>(m_track->sectors.size()); i += step)
+        {
+            auto& data = m_track->sectors[i].data;
+            auto it = std::find_if(data.begin(), data.end(), [&](auto b) { return b != format.fill; });
+            if (it != data.end())
+                status = WriteSector(i);
+        }
+    }
+
+    return status;
+}
+
+uint8_t FloppyStream::ReadSimpleTrack()
+{
+    m_track->sectors.clear();
+
+    FD_READ_WRITE_PARAMS rwp{};
+    rwp.flags = FD_OPTION_MFM;
+    rwp.phead = m_track->head;
+    rwp.cyl = m_track->cyl;
+    rwp.head = m_track->head;
+    rwp.sector = MGT_FIRST_SECTOR;
+    rwp.size = 2;
+    rwp.eot = MGT_FIRST_SECTOR + m_sectors;
+    rwp.gap = 0x0a;
+    rwp.datalen = 0xff;
+
+    std::vector<uint8_t> track_data(MGT_TRACK_SIZE);
+    if (!Ioctl(IOCTL_FDCMD_READ_DATA, &rwp, sizeof(rwp), track_data.data(), track_data.size()))
+    {
+        switch (GetLastError())
+        {
+        case ERROR_FLOPPY_ID_MARK_NOT_FOUND:
+            return 0;
+
+        case ERROR_SECTOR_NOT_FOUND:
+        {
+            FD_CMD_RESULT res{};
+            Ioctl(IOCTL_FD_GET_RESULT, nullptr, 0, &res, sizeof(res));
+
+            if (res.sector != MGT_DISK_SECTORS)
+                return RECORD_NOT_FOUND;
+
+            m_sectors = DOS_DISK_SECTORS;
+            break;
+        }
+
+        default:
+            return RECORD_NOT_FOUND;
+        }
+    }
+
+    m_track->sectors.resize(m_sectors);
+
+    for (auto i = 0; i < m_sectors; ++i)
+    {
+        auto& sector = m_track->sectors[i];
+        sector.cyl = m_track->cyl;
+        sector.head = m_track->head;
+        sector.sector = MGT_FIRST_SECTOR + i;
+        sector.size = 2;
+        sector.data = std::vector<uint8_t>(
+            track_data.begin() + i * NORMAL_SECTOR_SIZE,
+            track_data.begin() + (i + 1) * NORMAL_SECTOR_SIZE);
     }
 
     return 0;
+}
+
+uint8_t FloppyStream::ReadCustomTrack()
+{
+    struct
+    {
+        uint8_t count;
+        std::array<FD_ID_HEADER, 64> headers;
+    } scan{};
+
+    FD_SCAN_PARAMS sp{};
+    sp.head = m_track->head;
+    sp.flags = FD_OPTION_MFM;
+
+    if (!Ioctl(IOCTL_FD_SCAN_TRACK, &sp, sizeof(sp), &scan, sizeof(scan)))
+        return RECORD_NOT_FOUND;
+
+    m_track->sectors.resize(scan.count);
+
+    for (auto start = 0, step = 2; start < step; ++start)
+    {
+        for (auto i = start; i < static_cast<int>(m_track->sectors.size()); i += step)
+        {
+            auto& sector = m_track->sectors[i];
+            const auto& result = scan.headers[i];
+            auto sector_size = SizeFromSizeCode(result.size);
+
+            sector.cyl = result.cyl;
+            sector.head = result.head;
+            sector.sector = result.sector;
+            sector.size = result.size;
+            sector.data.resize(sector_size);
+            sector.status = ReadSector(i);
+        }
+    }
+
+    m_sectors = 0;
+    return 0;
+}
+
+void FloppyStream::ThreadProc()
+{
+    TRACE("Starting command {} for cyl {} head {}\n", m_command, m_track->cyl, m_track->head);
+
+    FD_SEEK_PARAMS sp{};
+    sp.cyl = m_track->cyl;
+    sp.head = m_track->head;
+
+    Ioctl(IOCTL_FDCMD_SEEK, &sp, sizeof(sp));
+
+    auto status = 0;
+    switch (m_command)
+    {
+    case READ_MSECTOR:
+        if (m_sectors)
+            status = ReadSimpleTrack();
+
+        if (!m_sectors || status)
+            status = ReadCustomTrack();
+        break;
+
+    case WRITE_1SECTOR:
+        status = WriteSector(m_sector_index);
+        break;
+
+    case WRITE_TRACK:
+        status = FormatTrack();
+        break;
+
+    default:
+        status = LOST_DATA;
+        break;
+    }
+
+    TRACE("Finished command {} with status {:02x}\n", m_command, status);
+    m_status = status;
 }

@@ -75,6 +75,8 @@
 #include <optional>
 #include <variant>
 #include <thread>
+#include <numeric>
+#include <regex>
 
 #include "filesystem.hpp"
 namespace fs = ghc::filesystem;

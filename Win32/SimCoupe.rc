@@ -479,7 +479,6 @@ BEGIN
         MENUITEM "&New...\tAlt-F1",             IDM_FILE_NEW_DISK1
         MENUITEM "&Open...\tF1",                IDM_FILE_FLOPPY1_INSERT
         MENUITEM "&Close\tShift-F1",            IDM_FILE_FLOPPY1_EJECT
-        MENUITEM "&Save\tCtrl-F1",              IDM_FILE_FLOPPY1_SAVE_CHANGES
         MENUITEM SEPARATOR
         MENUITEM "Open &A:",                    IDM_FILE_FLOPPY1_DEVICE
         POPUP "&Floppy 2"
@@ -487,7 +486,6 @@ BEGIN
             MENUITEM "&New...\tAlt-F2",             IDM_FILE_NEW_DISK2
             MENUITEM "&Open...\tF2",                IDM_FILE_FLOPPY2_INSERT
             MENUITEM "&Close\tShift-F2",            IDM_FILE_FLOPPY2_EJECT
-            MENUITEM "&Save\tCtrl-F2",              IDM_FILE_FLOPPY2_SAVE_CHANGES
             MENUITEM SEPARATOR
             MENUITEM "Recent Files",                IDM_FLOPPY2_RECENT1
         END
@@ -695,7 +693,6 @@ IDT_MENU TOOLBAR 19, 18
 BEGIN
     BUTTON      IDM_FILE_NEW_DISK1
     BUTTON      IDM_FILE_FLOPPY1_INSERT
-    BUTTON      IDM_FILE_FLOPPY1_SAVE_CHANGES
     BUTTON      IDOK
     BUTTON      IDM_HELP_ABOUT
     BUTTON      IDOK
