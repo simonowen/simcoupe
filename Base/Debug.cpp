@@ -1570,7 +1570,7 @@ void DisView::SetAddress(uint16_t wAddr_, bool fForceTop_)
         if (m_fUseSymbols)
         {
             // Look-up the symbol name to use as a label
-            std::string sName = Symbol::LookupAddr(wAddr_, MAX_LABEL_LEN);
+            auto sName = Symbol::LookupAddr(wAddr_, MAX_LABEL_LEN);
 
             // Right-justify the label against the disassembly
             psz += sprintf(psz, "\ab%*s\aX", MAX_LABEL_LEN, sName.c_str());

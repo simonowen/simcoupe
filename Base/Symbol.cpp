@@ -177,28 +177,27 @@ std::optional<int> LookupSymbol(const std::string& symbol)
     return std::nullopt;
 }
 
-// Look up an address, with optional maximum length and offset to nearby symbols is no exact match
-std::string LookupAddr(uint16_t wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*=false*/)
+std::string LookupAddr(uint16_t addr, int max_len, bool allow_rom_target, bool allow_offset)
 {
     std::string symbol;
 
     // Determine if the address is currently paged as ROM, or we're executing in ROM
-    bool fROM = AddrPage(wAddr_) == ROM0 || AddrPage(wAddr_) == ROM1;
+    bool fROM = AddrPage(addr) == ROM0 || AddrPage(addr) == ROM1;
     bool fInROM = AddrPage(cpu.get_pc()) == ROM0 || AddrPage(cpu.get_pc()) == ROM1;
 
     // Select the ROM or user-defined RAM symbol table
-    auto& symtab = (fROM || fInROM) ? rom_symbols : ram_symbols;
+    auto& symtab = (fInROM || (fROM && allow_rom_target)) ? rom_symbols : ram_symbols;
 
     // Look up the address
-    auto it = symtab.find(wAddr_);
+    auto it = symtab.find(addr);
 
     // If that failed (and we're allowed) look for an offset to a nearby symbol
-    if (it == symtab.end() && fAllowOffset_)
+    if (it == symtab.end() && allow_offset)
     {
         // Search back for a nearby symbol
         for (int i = 1; i <= MAX_SYMBOL_OFFSET; i++)
         {
-            it = symtab.find(wAddr_ - i);
+            it = symtab.find(addr - i);
 
             // Stop if we've found one to use as a base
             if (it != symtab.end())
@@ -206,7 +205,7 @@ std::string LookupAddr(uint16_t wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*
         }
 
         // Allow space for +N in output
-        nMaxLen_ -= 2;
+        max_len -= 2;
     }
 
     // Entry found?
@@ -216,15 +215,15 @@ std::string LookupAddr(uint16_t wAddr_, int nMaxLen_/*=0*/, bool fAllowOffset_/*
         symbol = (*it).second;
 
         // Clip the length if required
-        if (nMaxLen_ > 0)
-            symbol = symbol.substr(0, nMaxLen_);
+        if (max_len > 0)
+            symbol = symbol.substr(0, max_len);
 
         // Add the offset to the symbol name if this isn't for the original address
-        if ((*it).first != wAddr_)
+        if ((*it).first != addr)
         {
             // Append the required offset
             symbol += '+';
-            symbol += '0' + (wAddr_ - (*it).first);
+            symbol += '0' + (addr - (*it).first);
         }
     }
 

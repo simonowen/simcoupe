@@ -45,9 +45,9 @@ static const char* const szNormal =
 "\x99" "b\xa3" "d|!\x81" "b\x9fs%h[|\5]|j%h[\x9fs,n\2]i,%m\6|"
 "\xa9[R\x99[L|R]\xa1[C]A|\x9b[DAA|CPL|SCF|CCF]]]\1|%h[j%l[\x9fs|"
 "\x9fr],%l[\x87s\1|\x87r]|%l[j\x9fi,\x87r|HALT\1]]\5|a\x87s%l[\1|\5]|"
-"\x87[RET f|\x99[POP k|\xa3[RET|EXX|JP (q)|jSP,q]]|JP f,%a\3|"
-"\x9f[JP %a\3||OUT (%p),A\2|IN A,(%p)\2|EX (SP),q|EX DE,HL|DI|EI]|CALL f,%a\3|"
-"\x99[PUSH k|CALL %a\3]|a\xa9[n\2]\x9b[|||n\2]%b\2|RST %f]\1]";
+"\x87[RET f|\x99[POP k|\xa3[RET|EXX|JP (q)|jSP,q]]|JP f,%A\3|"
+"\x9f[JP %A\3||OUT (%p),A\2|IN A,(%p)\2|EX (SP),q|EX DE,HL|DI|EI]|CALL f,%A\3|"
+"\x99[PUSH k|CALL %A\3]|a\xa9[n\2]\x9b[|||n\2]%b\2|RST %f]\1]";
 
 static const char* const szEDprefix =
 "\xb3[|\x87[!\x81[IN|OUT] [%h[\x9fr|X],](%q)\x81[|,%h[\x9fr|%o]]\2|"
@@ -102,10 +102,11 @@ static void Function(uint8_t b_, int nSymbolMax_)
     switch (b_)
     {
     case 'a':
+    case 'A':
     {
         uint16_t wAddr = (bOp2 << 8) | bOp1;
 
-        std::string sName = nSymbolMax_ ? Symbol::LookupAddr(wAddr, nSymbolMax_, true) : "";
+        auto sName = nSymbolMax_ ? Symbol::LookupAddr(wAddr, nSymbolMax_, b_ == 'A', true) : "";
 
         if (!sName.length())
             pszOut += sprintf(pszOut, fHex ? "%04X" : "%d", wAddr);
@@ -121,7 +122,7 @@ static void Function(uint8_t b_, int nSymbolMax_)
     {
         uint16_t wAddr = wPC + 2 + static_cast<signed char>(bOp1);
 
-        std::string sName = nSymbolMax_ ? Symbol::LookupAddr(wAddr, nSymbolMax_, true) : "";
+        auto sName = nSymbolMax_ ? Symbol::LookupAddr(wAddr, nSymbolMax_, true, true) : "";
 
         if (!sName.length())
             pszOut += sprintf(pszOut, fHex ? "%04X" : "%d", wAddr);
