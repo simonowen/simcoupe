@@ -605,7 +605,7 @@ std::vector<uint8_t> Drive::ReadTrack()
         if (!(status & CRC_ERROR))
         {
             auto data_start = track_data.size();
-            auto& [status, sector_data] = ReadSector();
+            auto [status, sector_data] = ReadSector();
 
             // DAM
             AddBytes(track_data, 0xa1, 3);
