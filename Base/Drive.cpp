@@ -51,6 +51,10 @@ void Drive::Reset()
 bool Drive::Insert(const std::string& disk_path)
 {
     Eject();
+
+    if (disk_path.empty())
+        return true;
+
     m_disk = Disk::Open(disk_path);
     return m_disk != nullptr;
 }

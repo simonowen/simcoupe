@@ -143,16 +143,8 @@ bool Init()
 
         pDallas->LoadState(OSD::MakeFilePath(PathType::Settings, "dallas"));
 
-        pFloppy1->Insert(GetOption(disk1));
-        pFloppy2->Insert(GetOption(disk2));
-
+        UpdateDrives();
         Tape::Insert(GetOption(tape));
-
-        auto& pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
-        pActiveAtom->Attach(GetOption(atomdisk0), 0);
-        pActiveAtom->Attach(GetOption(atomdisk1), 1);
-
-        pSDIDE->Attach(GetOption(sdidedisk), 0);
     }
 
     if (GetOption(asicdelay))
@@ -819,6 +811,49 @@ void UpdateInput()
         Input::Purge();
 
     key_matrix = Keyboard::key_matrix;
+}
+
+void UpdateDrives()
+{
+    pFloppy1->Eject();
+    pFloppy2->Eject();
+    pAtom->Detach();
+    pAtomLite->Detach();
+    pSDIDE->Detach();
+
+    switch (GetOption(drive1))
+    {
+    case drvFloppy:
+        if (!pFloppy1->Insert(GetOption(disk1)))
+            Message(MsgType::Warning, "Failed to insert disk 1:\n\n{}", GetOption(disk1));
+        break;
+    default:
+        break;
+    }
+
+    switch (GetOption(drive2))
+    {
+    case drvFloppy:
+        if (!pFloppy2->Insert(GetOption(disk2)))
+            Message(MsgType::Warning, "Failed to insert disk 2:\n\n{}", GetOption(disk2));
+        break;
+    case drvAtom:
+        if (!pAtom->Attach(GetOption(atomdisk0), 0))
+            Message(MsgType::Warning, "Failed to attach Atom disk:\n\n{}", GetOption(atomdisk0));
+        if (!pAtom->Attach(GetOption(atomdisk1), 1))
+            Message(MsgType::Warning, "Failed to attach Atom disk:\n\n{}", GetOption(atomdisk1));
+        break;
+    case drvAtomLite:
+        if (!pAtomLite->Attach(GetOption(atomdisk0), 0))
+            Message(MsgType::Warning, "Failed to attach AtomLite disk:\n\n{}", GetOption(atomdisk0));
+        if (!pAtomLite->Attach(GetOption(atomdisk1), 1))
+            Message(MsgType::Warning, "Failed to attach AtomLite disk:\n\n{}", GetOption(atomdisk1));
+        break;
+    default:
+        break;
+    }
+
+    pSDIDE->Attach(GetOption(sdidedisk), 0);
 }
 
 std::vector<COLOUR> Palette()

@@ -182,6 +182,7 @@ uint8_t Mode3Clut(int index);
 
 void FrameUpdate();
 void UpdateInput();
+void UpdateDrives();
 std::vector<COLOUR> Palette();
 bool TestStartupScreen(bool exit = false);
 void SetAutoLoad(AutoLoadType type);

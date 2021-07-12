@@ -376,27 +376,6 @@ void UpdateRecentFiles(HMENU hmenu_, int nId_, int nOffset_)
     }
 }
 
-
-bool AttachDisk(AtaAdapter& adapter, const std::string& disk_path, int nDevice_)
-{
-    if (!adapter.Attach(disk_path, nDevice_))
-    {
-        // Attempt to determine why we couldn't open the device
-        auto disk = std::make_unique<DeviceHardDisk>(disk_path);
-        if (!disk->Open(false))
-        {
-            // Access will be denied if we're running as a regular user, and without SAMdiskHelper
-            if (GetLastError() == ERROR_ACCESS_DENIED)
-                Message(MsgType::Warning, "Failed to open: {}\n\nAdminstrator access or SAMdiskHelper is required.", disk_path);
-            else
-                Message(MsgType::Warning, "Invalid or incompatible disk: {}", disk_path);
-        }
-        return false;
-    }
-
-    return true;
-}
-
 bool InsertDisk(DiskDevice& floppy, std::optional<std::string> new_path = std::nullopt, bool autoload = true)
 {
     int nDrive = (&floppy == pFloppy1.get()) ? 1 : 2;
@@ -2601,20 +2580,14 @@ INT_PTR CALLBACK Drive1PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
             if (GetOption(drive1) == drvFloppy)
             {
-                bool fImage = Button_GetCheck(GetDlgItem(hdlg_, IDR_DEVICE)) != BST_CHECKED;
-                if (fImage)
-                {
+                if (Button_GetCheck(GetDlgItem(hdlg_, IDR_DEVICE)) != BST_CHECKED)
                     SetOption(disk1, GetDlgItemText(hdlg_, IDE_FLOPPY_IMAGE));
-                }
                 else
-                {
                     SetOption(disk1, GetComboText(hdlg_, IDC_FLOPPY_DEVICE));
-                }
             }
 
-            // If the floppy is active and the disk has changed, insert the new one
             if (GetOption(drive1) == drvFloppy && Changed(disk1))
-                InsertDisk(*pFloppy1, GetOption(disk1));
+                IO::AutoLoad(AutoLoadType::Disk);
         }
         break;
     }
@@ -2803,11 +2776,6 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
                 break;
             }
 
-            // If the floppy is active and the disk has changed, insert the new one
-            if (GetOption(drive2) == drvFloppy && Changed(disk2))
-                InsertDisk(*pFloppy2, GetOption(disk2));
-
-            // If Atom boot ROM is enabled and a drive type has changed, trigger a ROM refresh
             if (GetOption(atombootrom) && (Changed(drive1) || Changed(drive2)))
                 Memory::UpdateRom();
         }
@@ -3259,18 +3227,7 @@ void DisplayOptions()
     // Display option property sheet
     if (PropertySheet(&psh) >= 1)
     {
-        // Detach current disks
-        pAtom->Detach();
-        pAtomLite->Detach();
-        pSDIDE->Detach();
-
-        // Attach new disks
-        auto& pActiveAtom = (GetOption(drive2) == drvAtom) ? pAtom : pAtomLite;
-        AttachDisk(*pActiveAtom, GetOption(atomdisk0), 0);
-        AttachDisk(*pActiveAtom, GetOption(atomdisk1), 1);
-        AttachDisk(*pSDIDE, GetOption(sdidedisk), 0);
-
-        // Save changed options to config file
+        IO::UpdateDrives();
         Options::Save();
     }
 }
