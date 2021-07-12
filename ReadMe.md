@@ -520,6 +520,7 @@ Graphics View:
 Trace View:
 ```
              Space = toggle flags display
+                 S = toggle address symbol display
 ```
 
 Debugger Command Mode:

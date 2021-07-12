@@ -546,7 +546,7 @@ bool TextView::cmdNavigate(int nKey_, int /*nMods_*/)
 bool Debugger::s_fTransparent = false;
 
 Debugger::Debugger(std::optional<int> bp_index)
-    : Dialog(nullptr, 433, 260 + 36 + 2, "")
+    : Dialog(nullptr, 500, 260 + 36 + 2, "")
 {
     // Move to the last display position, if any
     if (nDebugX | nDebugY)
@@ -1509,8 +1509,8 @@ bool Debugger::Execute(const std::string& cmdline)
 ////////////////////////////////////////////////////////////////////////////////
 // Disassembler
 
-#define MAX_LABEL_LEN  19
-#define BAR_CHAR_LEN   54
+#define MAX_LABEL_LEN  25
+#define BAR_CHAR_LEN   65
 
 uint16_t DisView::s_wAddrs[64];
 bool DisView::m_fUseSymbols = true;
@@ -1626,7 +1626,7 @@ void DisView::Draw(FrameBuffer& fb)
 
             // Add a direction arrow if we have a code target
             if (m_uCodeTarget != INVALID_TARGET)
-                fb.DrawString(nX + CHR_WIDTH * (BAR_CHAR_LEN - 1), nY, (m_uCodeTarget <= cpu.get_pc()) ? "\ak\x80" : "\ak\x81");
+                fb.DrawString(nX + CHR_WIDTH * (BAR_CHAR_LEN - 3), nY, (m_uCodeTarget <= cpu.get_pc()) ? "\ak\x80\x80\x80" : "\ak\x81\x81\x81");
         }
 
         // Check for a breakpoint at the current address.
@@ -3029,8 +3029,17 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
         int nPos = (nNumTraces - GetLines() + 1 + nLine_ + TRACE_SLOTS) % TRACE_SLOTS;
         TRACEDATA* pTD = &aTrace[nPos];
 
-        Disassemble(pTD->abInstr, pTD->wPC, szDis, sizeof(szDis));
-        psz += sprintf(psz, "%04X  %-18s", pTD->wPC, szDis);
+        Disassemble(pTD->abInstr, pTD->wPC, szDis, sizeof(szDis), 0);
+
+        if (m_use_symbols)
+        {
+            auto sName = Symbol::LookupAddr(pTD->wPC, 12);
+            psz += sprintf(psz, "\ab%16s\aX %-18s", sName.c_str(), szDis);
+        }
+        else
+        {
+            psz += sprintf(psz, " %04X            %-18s", pTD->wPC, szDis);
+        }
 
         if (nLine_ != GetLines() - 1)
         {
@@ -3101,12 +3110,12 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
             }
         }
 
-        auto colour = 'W';
+        auto colour = "W";
 
         if (nLine_ == GetLines() - 1)
         {
             fb.FillRect(nX_ - 1, nY_ - 1, m_nWidth - 112, ROW_HEIGHT - 3, YELLOW_7);
-            colour = 'k';
+            colour = "k\a0";
         }
 
         fb.DrawString(nX_, nY_, "\a{}{}", colour, sz);
@@ -3117,6 +3126,8 @@ bool TrcView::cmdNavigate(int nKey_, int nMods_)
 {
     if (nKey_ == HK_SPACE)
         m_flags = !m_flags;
+    else if (nKey_ == 's')
+        m_use_symbols = !m_use_symbols;
 
     return TextView::cmdNavigate(nKey_, nMods_);
 }

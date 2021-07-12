@@ -244,6 +244,7 @@ public:
 
 private:
     bool m_flags = false;
+    bool m_use_symbols = true;
 };
 
 
