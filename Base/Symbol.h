@@ -25,6 +25,6 @@ namespace Symbol
 void Update(const std::string& path);
 
 std::optional<int> LookupSymbol(const std::string& symbol);
-std::string LookupAddr(uint16_t addr, int max_len = 0, bool allow_rom_target = true, bool allow_offset = false);
+std::string LookupAddr(uint16_t addr, int max_len = 0, bool exec_target = true, bool allow_offset = false);
 std::string LookupPort(uint8_t port, bool input_port);
 }

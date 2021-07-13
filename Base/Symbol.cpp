@@ -26,231 +26,173 @@
 
 namespace Symbol
 {
-
 static const int MAX_SYMBOL_OFFSET = 3;
 
 typedef std::map <uint16_t, std::string> AddrToSym;
 typedef std::map <std::string, uint16_t> SymToAddr;
 
-static AddrToSym ram_symbols, rom_symbols;
 static AddrToSym port_symbols;
-static SymToAddr symbol_values;
+static AddrToSym ram_symbols, rom_symbols, samdos2_symbols;
+static SymToAddr symbol_values, rom_values, samdos2_values;
 
-
-// Read a cPickler format file, as used by pyz80 for symbols
-static void ReadcPickler(FILE* file_, AddrToSym& symtab_, SymToAddr* pValues_)
+// pyz80 symbol files use cPickler format
+static void ReadcPickler(FILE* file, AddrToSym& symtab, SymToAddr* valtab_ptr)
 {
-    char szLine[128], * psz;
-    std::string sName;
+    std::string name;
 
-    // Process each line of the file
-    while (fgets(szLine, sizeof(szLine), file_) != nullptr)
+    char line[128]{};
+    while (std::fgets(line, sizeof(line), file) != nullptr)
     {
-        // Check for a single quote around the symbol name
-        if ((psz = strchr(szLine, '\'')))
+        if (auto psz = std::strchr(line, '\''))
         {
-            // Skip the opening quote and look for the closing quote
-            char* pszEnd = strchr(++psz, '\'');
-            if (pszEnd)
+            auto end_ptr = std::strchr(++psz, '\'');
+            if (end_ptr)
             {
-                // Remove it and set the symbol name
-                *pszEnd = '\0';
-                sName = psz;
+                *end_ptr = '\0';
+                name = psz;
             }
         }
         // The symbol values are integers, with an I type marker
-        else if ((psz = strchr(szLine, 'I')))
+        else if (auto psz = std::strchr(line, 'I'); psz && !name.empty())
         {
-            auto wAddr = static_cast<uint16_t>(strtoul(psz + 1, nullptr, 0));
+            auto value = static_cast<uint16_t>(strtoul(psz + 1, nullptr, 0));
+            symtab[value] = name;
 
-            // If we have a name, set the mapping entries
-            if (sName.length())
-            {
-                symtab_[wAddr] = sName;
+            if (valtab_ptr)
+                (*valtab_ptr)[tolower(name)] = value;
 
-                if (pValues_)
-                {
-                    sName = tolower(sName);
-                    (*pValues_)[sName] = wAddr;
-                }
-
-                sName.clear();
-            }
+            name.clear();
         }
     }
 }
 
-// Read a simple addr=name format text file, as used by pyz80 for map files.
-static void ReadSimple(FILE* file_, AddrToSym& symtab_, SymToAddr* pValues_)
+// pyz80 map files use a simple addr=name format
+static void ReadSimple(FILE* file_, AddrToSym& symtab, SymToAddr* valtab_ptr)
 {
-    char szLine[128], * psz;
-
-    while (fgets(szLine, sizeof(szLine), file_) != nullptr)
+    char line[128]{};
+    while (std::fgets(line, sizeof(line), file_) != nullptr)
     {
-        // Find the address token
-        psz = strtok(szLine, " =");
-        if (psz)
+        if (auto psz = std::strtok(line, " ="))
         {
-            // Skip comments
             if (*psz == ';')
                 continue;
 
-            // Extract address value from the hex string
-            auto wAddr = static_cast<uint16_t>(strtoul(psz, nullptr, 16));
+            auto addr = static_cast<uint16_t>(std::strtoul(psz, nullptr, 16));
 
-            // Find the label name, stripping EOL to preserve empty values
-            if ((psz = strtok(nullptr, " =")) != nullptr)
-                psz[strcspn(psz, "\r\n")] = '\0';
-
-            // If found, set the mapping entries
-            if (psz)
+            if ((psz = std::strtok(nullptr, " =")) != nullptr)
             {
-                std::string sName = psz;
-                symtab_[wAddr] = sName;
+                psz[strcspn(psz, "\r\n")] = '\0';
+                symtab[addr] = psz;
 
-                // Optionally store the reverse mapping for symbol to value look-ups
-                if (pValues_ && *psz)
-                {
-                    sName = tolower(sName);
-                    (*pValues_)[sName] = wAddr;
-                }
+                if (valtab_ptr && *psz)
+                    (*valtab_ptr)[tolower(psz)] = addr;
             }
         }
     }
 }
 
-// Load a file into a given symbol table
-static bool Load(const std::string& path, AddrToSym& symtab_, SymToAddr* pValues_)
+static bool Load(const std::string& path, AddrToSym& symtab, SymToAddr* valtab_ptr = nullptr)
 {
-    // Clear any existing symbols and values
-    symtab_.clear();
+    symtab.clear();
+    if (valtab_ptr)
+        valtab_ptr->clear();
 
     unique_FILE file = fopen(path.c_str(), "r");
     if (!file)
         return false;
 
-    // Sniff the start of the file to check for cPickler format
     if (fgetc(file) == '(' || fgetc(file) == 'd')
-    {
-        ReadcPickler(file, symtab_, pValues_);
-    }
-    // Fall back a simple ADDR=NAME text file
-    else if (fseek(file, 0, SEEK_SET) != 0)
-    {
-        return false;
-    }
+        ReadcPickler(file, symtab, valtab_ptr);
+    else if (fseek(file, 0, SEEK_SET) == 0)
+        ReadSimple(file, symtab, valtab_ptr);
     else
-    {
-        ReadSimple(file, symtab_, pValues_);
-    }
+        return false;
 
     return true;
 }
 
-// Update user symbols, loading the ROM and port symbols if not already loaded
 void Update(const std::string& path)
 {
-    symbol_values.clear();
-
-    // Load ROM symbols if not already loaded
-    if (rom_symbols.empty())
-        Load(OSD::MakeFilePath(PathType::Resource, "samrom.map"), rom_symbols, &symbol_values);
-
-    // Load I/O port symbols if not already loaded
     if (port_symbols.empty())
-        Load(OSD::MakeFilePath(PathType::Resource, "samports.map"), port_symbols, nullptr);
-
-    // If a file was supplied, load RAM symbols from it
+        Load(OSD::MakeFilePath(PathType::Resource, "samports.map"), port_symbols);
+    if (rom_symbols.empty())
+        Load(OSD::MakeFilePath(PathType::Resource, "samrom.map"), rom_symbols, &rom_values);
+    if (samdos2_symbols.empty())
+        Load(OSD::MakeFilePath(PathType::Resource, "samdos2.map"), samdos2_symbols, &samdos2_values);
     if (!path.empty())
         Load(path, ram_symbols, &symbol_values);
 }
 
-// Look up the value of a given symbol (user symbols only)
 std::optional<int> LookupSymbol(const std::string& symbol)
 {
-    auto it = symbol_values.find(tolower(symbol));
-    if (it != symbol_values.end())
-    {
+    if (auto it = symbol_values.find(tolower(symbol)); it != symbol_values.end())
         return static_cast<int>((*it).second);
-    }
+    if (auto it = rom_values.find(tolower(symbol)); it != rom_values.end())
+        return static_cast<int>((*it).second);
+    if (auto it = samdos2_values.find(tolower(symbol)); it != samdos2_values.end())
+        return static_cast<int>((*it).second);
 
     return std::nullopt;
 }
 
-std::string LookupAddr(uint16_t addr, int max_len, bool allow_rom_target, bool allow_offset)
+std::string LookupAddr(uint16_t addr, int max_len, bool exec_target, bool allow_offset)
 {
-    std::string symbol;
+    bool is_rom_addr = (addr < 0x4000 && AddrPage(addr) == ROM0) || (addr >= 0xc000 && AddrPage(addr) == ROM1);
+    bool in_rom = AddrPage(cpu.get_pc()) == ROM0 || AddrPage(cpu.get_pc()) == ROM1;
 
-    // Determine if the address is currently paged as ROM, or we're executing in ROM
-    bool fROM = AddrPage(addr) == ROM0 || AddrPage(addr) == ROM1;
-    bool fInROM = AddrPage(cpu.get_pc()) == ROM0 || AddrPage(cpu.get_pc()) == ROM1;
+    bool samdos2_paged = (read_byte(0x4096) == 0x20) &&
+        std::string_view(reinterpret_cast<const char*>(AddrReadPtr(0x50af)), 6) == "SAMDOS";
+    bool is_samdos2_addr = samdos2_paged && addr >= 0x4000 && addr < 0x6000;
+    bool in_samdos2 = samdos2_paged && cpu.get_pc() >= 0x4000 && cpu.get_pc() < 0x6000;
 
-    // Select the ROM or user-defined RAM symbol table
-    auto& symtab = (fInROM || (fROM && allow_rom_target)) ? rom_symbols : ram_symbols;
+    const auto& symtab =
+        (in_samdos2 || (is_samdos2_addr && exec_target)) ? samdos2_symbols :
+        (in_rom || (is_rom_addr && exec_target)) ? rom_symbols :
+        ram_symbols;
 
-    // Look up the address
     auto it = symtab.find(addr);
-
-    // If that failed (and we're allowed) look for an offset to a nearby symbol
     if (it == symtab.end() && allow_offset)
     {
-        // Search back for a nearby symbol
         for (int i = 1; i <= MAX_SYMBOL_OFFSET; i++)
         {
             it = symtab.find(addr - i);
-
-            // Stop if we've found one to use as a base
             if (it != symtab.end())
                 break;
         }
 
-        // Allow space for +N in output
+        // Allow space for +N offset
         max_len -= 2;
     }
 
-    // Entry found?
     if (it != symtab.end())
     {
-        // Pull out the symbol string
-        symbol = (*it).second;
+        auto [base_addr, name] = *it;
+        auto symbol = name;
 
-        // Clip the length if required
         if (max_len > 0)
             symbol = symbol.substr(0, max_len);
 
-        // Add the offset to the symbol name if this isn't for the original address
-        if ((*it).first != addr)
+        if (base_addr != addr)
         {
-            // Append the required offset
             symbol += '+';
-            symbol += '0' + (addr - (*it).first);
+            symbol += '0' + (addr - base_addr);
         }
+
+        return symbol;
     }
 
-    // Return the symbol name
-    return symbol;
+    return "";
 }
 
-// Look up a port symbol for an input or output port (which may have different functions)
-std::string LookupPort(uint8_t bPort_, bool fInput_)
+std::string LookupPort(uint8_t port, bool input_port)
 {
-    std::string symbol;
+    uint16_t port_entry = input_port ? port : (0x8000 | port);
 
-    // Use as-is for input ports but set bit 15 for output port look-up
-    uint16_t wPort = fInput_ ? bPort_ : (0x8000 | bPort_);
+    auto it = port_symbols.find(port_entry);
+    if (it == port_symbols.end() && !input_port)
+        it = port_symbols.find(port);
 
-    AddrToSym::iterator it = port_symbols.find(wPort);
-
-    // If we couldn't find an output-specific port, try the common read set
-    if (it == port_symbols.end() && !fInput_)
-        it = port_symbols.find(bPort_);
-
-    if (it != port_symbols.end())
-    {
-        symbol = (*it).second;
-    }
-
-    return symbol;
+    return (it != port_symbols.end()) ? (*it).second : "";
 }
 
 } // namespace Symbol
