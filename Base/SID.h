@@ -24,7 +24,7 @@
 
 #undef SID  // TODO: fix Win32 name clash using namespace
 
-#include <resid/sid.h>
+#include "../resid-src/sid.h"
 #define SID_CLOCK_PAL   985248
 
 class SIDDevice final : public SoundDevice

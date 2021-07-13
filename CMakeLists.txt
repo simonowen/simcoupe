@@ -198,6 +198,15 @@ FetchContent_MakeAvailable(fmt)
 target_link_libraries(${PROJECT_NAME} PRIVATE fmt)
 target_include_directories(${PROJECT_NAME} PRIVATE ${fmt_SOURCE_DIR}/include)
 
+message(STATUS "Fetching github.com/simonowen/resid")
+FetchContent_Declare(
+  resid
+  GIT_REPOSITORY https://github.com/simonowen/resid.git
+  GIT_TAG 65248e7eb30e037b51ffb061374b3dbd3811308c )
+FetchContent_MakeAvailable(resid)
+target_link_libraries(${PROJECT_NAME} PRIVATE resid)
+target_include_directories(${PROJECT_NAME} PRIVATE ${resid_SOURCE_DIR})
+
 # Use bundled version of fdrawcmd.h for fdrawcmd.sys definitions.
 if (WIN32)
   target_include_directories(${PROJECT_NAME} PRIVATE Extern/fdrawcmd)
@@ -244,19 +253,6 @@ if (SPECTRUM_LIBRARY AND SPECTRUM_INCLUDE_DIR)
   set(HAVE_LIBSPECTRUM 1)
 else()
   message(STATUS "libspectrum not found (no tape/snapshot support)")
-endif()
-
-find_library(RESID_LIBRARY NAMES resid)
-find_path(RESID_INCLUDE_DIR resid/sid.h)
-if (RESID_LIBRARY AND RESID_INCLUDE_DIR)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${RESID_INCLUDE_DIR})
-  target_link_libraries(${PROJECT_NAME} PRIVATE ${RESID_LIBRARY})
-  message(STATUS "Found reSID: ${RESID_LIBRARY}")
-else()
-  message(STATUS "Using Extern/resid")
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Extern/resid)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Extern)
-  target_link_libraries(${PROJECT_NAME} PRIVATE resid)
 endif()
 
 find_library(XAUDIO2REDIST_LIBRARY NAMES xaudio2_9redist)
