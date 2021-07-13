@@ -131,3 +131,5 @@ template <typename T>
 constexpr T Round(T val, int power_of_2) {
     return val | (static_cast<T>(power_of_2) - 1);
 }
+
+std::string SimCoupeVersionString();

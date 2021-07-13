@@ -1101,12 +1101,7 @@ INT_PTR CALLBACK AboutDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM lPa
     {
     case WM_INITDIALOG:
     {
-        // Append extra details to the version string
-        auto version = GetDlgItemText(hdlg_, IDS_VERSION);
-#ifdef _WIN64
-        version += " x64";
-#endif
-        SetDlgItemText(hdlg_, IDS_VERSION, version);
+        SetDlgItemText(hdlg_, IDS_VERSION, SimCoupeVersionString());
 
         // Grab the attributes of the current GUI font
         LOGFONT lf;

@@ -42,20 +42,12 @@ static Config current_config;
 AboutDialog::AboutDialog(Window* pParent_/*=nullptr*/)
     : Dialog(pParent_, 305, 220, "About SimCoupe")
 {
-    char szVersion[128] = "SimCoupe v1.1 alpha";
-
-#if 0
-    // Append the date on beta versions, to save us updating the version number each time
-    sprintf(szVersion + strlen(szVersion), " beta ("  __DATE__ ")");
-#endif
-
     new IconControl(this, 6, 6, &sSamIcon);
-    new TextControl(this, 86, 10, szVersion, BLACK);
-    new TextControl(this, 86, 24, "http://simcoupe.org", GREY_3);
+    new TextControl(this, 86, 10, SimCoupeVersionString(), BLACK);
+    new TextControl(this, 86, 26, "http://simcoupe.org", GREY_3);
 
     int y = 46;
-
-    new TextControl(this, 41, y, "Win32/SDL/Allegro/Pocket PC versions:", BLUE_5);
+    new TextControl(this, 41, y, "Win32/SDL versions:", BLUE_5);
     new TextControl(this, 51, y + 13, "Simon Owen <simon.owen@simcoupe.org>", BLACK); y += 32;
 
 #if defined (__AMIGAOS4__)

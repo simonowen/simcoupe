@@ -3,7 +3,7 @@ project(simcoupe)
 set(PROJECT_TITLE SimCoupe)
 
 set(MAJOR_VERSION 1)
-set(MINOR_VERSION 1)
+set(MINOR_VERSION 2)
 set(PATCH_VERSION 1)
 
 if (CMAKE_TOOLCHAIN_FILE)
@@ -332,6 +332,7 @@ if (WIN32)
   endif()
 
   set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_TITLE})
+  configure_file(Win32/version.rc.in ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
 elseif (APPLE)
   set_target_properties(${PROJECT_NAME} PROPERTIES
     MACOSX_BUNDLE TRUE
