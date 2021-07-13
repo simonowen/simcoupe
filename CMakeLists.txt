@@ -189,6 +189,15 @@ FetchContent_Declare(
 FetchContent_Populate(z80)
 target_include_directories(${PROJECT_NAME} PRIVATE ${z80_SOURCE_DIR})
 
+message(STATUS "Fetching github.com/fmtlib/fmt")
+FetchContent_Declare(
+  fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+  GIT_TAG d141cdbeb0fb422a3fb7173b285fd38e0d1772dc )
+FetchContent_MakeAvailable(fmt)
+target_link_libraries(${PROJECT_NAME} PRIVATE fmt)
+target_include_directories(${PROJECT_NAME} PRIVATE ${fmt_SOURCE_DIR}/include)
+
 # Use bundled version of fdrawcmd.h for fdrawcmd.sys definitions.
 if (WIN32)
   target_include_directories(${PROJECT_NAME} PRIVATE Extern/fdrawcmd)
@@ -273,9 +282,6 @@ if (NOT MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-stdlib=libstdc++>)
   endif()
 endif()
-
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Extern/fmt)
-target_link_libraries(${PROJECT_NAME} PRIVATE fmt)
 
 ########
 
