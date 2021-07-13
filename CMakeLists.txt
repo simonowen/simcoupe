@@ -216,20 +216,15 @@ if (PNG_FOUND)
   set(HAVE_LIBPNG 1)
 endif()
 
-find_package(SAASound)
-if(SAASOUND_FOUND)
-  target_link_libraries(${PROJECT_NAME} PRIVATE SAASound::SAASound)
-else()
-  message(STATUS "Fetching github.com/stripwax/SAASound")
-  FetchContent_Declare(
-    SAASound
-    GIT_REPOSITORY https://github.com/stripwax/SAASound.git
-    GIT_TAG 11c53c7a57dc2f621ee5eabf99dd0e5b243b492d )
-  FetchContent_MakeAvailable(SAASound)
-  target_link_libraries(${PROJECT_NAME} PRIVATE SAASound)
-  # TODO: remove once upstream is compatible
-  target_include_directories(${PROJECT_NAME} PRIVATE ${saasound_SOURCE_DIR}/include)
-endif()
+message(STATUS "Fetching github.com/stripwax/SAASound")
+FetchContent_Declare(
+  SAASound
+  GIT_REPOSITORY https://github.com/stripwax/SAASound.git
+  GIT_TAG 11c53c7a57dc2f621ee5eabf99dd0e5b243b492d )
+FetchContent_MakeAvailable(SAASound)
+target_link_libraries(${PROJECT_NAME} PRIVATE SAASound)
+# TODO: remove once upstream is compatible
+target_include_directories(${PROJECT_NAME} PRIVATE ${saasound_SOURCE_DIR}/include)
 
 find_library(SPECTRUM_LIBRARY NAMES spectrum)
 find_path(SPECTRUM_INCLUDE_DIR libspectrum.h)
