@@ -77,6 +77,9 @@ struct Config
     std::string mru3;
     std::string mru4;
     std::string mru5;
+    std::string mru6;
+    std::string mru7;
+    std::string mru8;
 
     int keymapping = 1;                 // Keyboard mapping mode (0=raw, 1=Auto-detect, 2=SAM, 3=Spectrum)
     bool altforcntrl = false;           // Use Left-Alt for SAM Cntrl key?

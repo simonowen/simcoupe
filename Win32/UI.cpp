@@ -300,7 +300,7 @@ bool GetSaveLoadFile(LPOPENFILENAME lpofn_, bool fLoad_, bool fCheckExisting_ = 
 }
 
 
-constexpr auto MAX_RECENT_FILES = 6;
+constexpr auto MAX_RECENT_FILES = 9;
 static std::vector<std::string> recent_files;
 
 void RemoveRecentFile(const std::string& path)
@@ -317,13 +317,16 @@ void AddRecentFile(const std::string& path)
 {
     RemoveRecentFile(path);
     recent_files.insert(recent_files.begin(), path);
+    if (recent_files.size() > MAX_RECENT_FILES)
+        recent_files.resize(MAX_RECENT_FILES);
 }
 
 void LoadRecentFiles()
 {
     recent_files = {
         GetOption(mru0), GetOption(mru1), GetOption(mru2),
-        GetOption(mru3), GetOption(mru4), GetOption(mru5)
+        GetOption(mru3), GetOption(mru4), GetOption(mru5),
+        GetOption(mru6), GetOption(mru7), GetOption(mru8)
     };
 
     recent_files.erase(
@@ -341,38 +344,39 @@ void SaveRecentFiles()
     SetOption(mru3, recent_files[3]);
     SetOption(mru4, recent_files[4]);
     SetOption(mru5, recent_files[5]);
+    SetOption(mru6, recent_files[6]);
+    SetOption(mru7, recent_files[7]);
+    SetOption(mru8, recent_files[8]);
 }
 
-void UpdateRecentFiles(HMENU hmenu_, int nId_, int nOffset_)
+void UpdateRecentFiles(HMENU hmenu, int first_id, int items_below)
 {
     for (int i = 0; i < MAX_RECENT_FILES; i++)
-        DeleteMenu(hmenu_, nId_ + i, MF_BYCOMMAND);
+        DeleteMenu(hmenu, first_id + i, MF_BYCOMMAND);
 
     if (recent_files.empty())
     {
-        InsertMenu(hmenu_, GetMenuItemCount(hmenu_) - nOffset_, MF_STRING | MF_BYPOSITION, nId_, "Recent Files");
-        EnableMenuItem(hmenu_, nId_, MF_GRAYED);
+        InsertMenu(hmenu, GetMenuItemCount(hmenu) - items_below, MF_STRING | MF_BYPOSITION, first_id, "Recent Files");
+        EnableMenuItem(hmenu, first_id, MF_GRAYED);
+        return;
     }
-    else
+
+    int insert_pos = GetMenuItemCount(hmenu) - items_below;
+
+    for (int i = 0; i < static_cast<int>(recent_files.size()); i++)
     {
-        int nInsertPos = GetMenuItemCount(hmenu_) - nOffset_;
+        char szItem[MAX_PATH * 2], * psz = szItem;
+        psz += wsprintf(szItem, "&%d ", i + 1);
 
-        for (int i = 0; i < static_cast<int>(recent_files.size()); i++)
+        for (auto p = recent_files[i].c_str(); *p; *psz++ = *p++)
         {
-            char szItem[MAX_PATH * 2], * psz = szItem;
-            psz += wsprintf(szItem, "&%d ", i + 1);
-
-            for (auto p = recent_files[i].c_str(); *p; *psz++ = *p++)
-            {
-                if (*p == '&')
-                    *psz++ = *p;
-            }
-
-            *psz = '\0';
-            ClipPath(szItem + 3, 32);
-
-            InsertMenu(hmenu_, nInsertPos++, MF_STRING | MF_BYPOSITION, nId_ + i, szItem);
+            if (*p == '&')
+                *psz++ = *p;
         }
+
+        *psz = '\0';
+        ClipPath(szItem + 3, 32);
+        InsertMenu(hmenu, insert_pos++, MF_STRING | MF_BYPOSITION, first_id + i, szItem);
     }
 }
 
@@ -749,7 +753,7 @@ void UpdateMenuFromOptions()
 {
     HMENU hmenu = g_hmenu;
     HMENU hmenuFile = GetSubMenu(hmenu, 0);
-    HMENU hmenuFloppy2 = GetSubMenu(hmenuFile, 6);
+    HMENU hmenuFloppy2 = GetSubMenu(hmenuFile, 5);
 
     bool fFloppy1 = GetOption(drive1) == drvFloppy, fInserted1 = pFloppy1->HasDisk();
     bool fFloppy2 = GetOption(drive2) == drvFloppy, fInserted2 = pFloppy2->HasDisk();
@@ -769,7 +773,7 @@ void UpdateMenuFromOptions()
     CheckOption(IDM_FILE_FLOPPY1_DEVICE, fInserted1 && FloppyStream::IsRecognised(pFloppy1->DiskFile()));
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 2 options
-    EnableMenuItem(hmenuFile, 6, MF_BYPOSITION | (fFloppy2 ? MF_ENABLED : MF_GRAYED));
+    EnableMenuItem(hmenuFile, 5, MF_BYPOSITION | (fFloppy2 ? MF_ENABLED : MF_GRAYED));
     EnableItem(IDM_FILE_FLOPPY2_EJECT, fInserted2);
 
     CheckOption(IDM_VIEW_FULLSCREEN, GetOption(fullscreen));

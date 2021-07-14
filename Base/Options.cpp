@@ -101,6 +101,9 @@ static bool SetNamedValue(const std::string& option_name, const std::string& str
     else if (name == "mru3") SetValue(g_config.mru3, str);
     else if (name == "mru4") SetValue(g_config.mru4, str);
     else if (name == "mru5") SetValue(g_config.mru5, str);
+    else if (name == "mru6") SetValue(g_config.mru6, str);
+    else if (name == "mru7") SetValue(g_config.mru7, str);
+    else if (name == "mru8") SetValue(g_config.mru8, str);
     else if (name == "keymapping") SetValue(g_config.keymapping, str);
     else if (name == "altforcntrl") SetValue(g_config.altforcntrl, str);
     else if (name == "altgrforedit") SetValue(g_config.altgrforedit, str);
@@ -263,6 +266,9 @@ bool Save()
         ofs << "mru3=" << to_string(g_config.mru3) << std::endl;
         ofs << "mru4=" << to_string(g_config.mru4) << std::endl;
         ofs << "mru5=" << to_string(g_config.mru5) << std::endl;
+        ofs << "mru6=" << to_string(g_config.mru6) << std::endl;
+        ofs << "mru7=" << to_string(g_config.mru7) << std::endl;
+        ofs << "mru8=" << to_string(g_config.mru8) << std::endl;
         ofs << "keymapping=" << to_string(g_config.keymapping) << std::endl;
         ofs << "altforcntrl=" << to_string(g_config.altforcntrl) << std::endl;
         ofs << "altgrforedit=" << to_string(g_config.altgrforedit) << std::endl;
