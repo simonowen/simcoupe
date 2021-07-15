@@ -519,7 +519,7 @@ Graphics View:
 
 Trace View:
 ```
-             Space = toggle flags display
+             Space = toggle single/double register display
                  S = toggle address symbol display
 ```
 

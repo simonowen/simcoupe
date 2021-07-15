@@ -3091,13 +3091,17 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
                 {
                     if (CHG_H(af)) PRINT_H("A", af);
 
-                    CHK(bc, "B", "C");
-                    CHK(de, "D", "E");
-                    CHK(hl, "H", "L");
-
-                    if (m_flags)
+                    if (m_double_regs)
                     {
-                        if (CHG_L(af)) PRINT_L("F", af);
+                        if (CHG(bc)) PRINT_D("BC", bc);
+                        if (CHG(de)) PRINT_D("DE", de);
+                        if (CHG(hl)) PRINT_D("HL", hl);
+                    }
+                    else
+                    {
+                        CHK(bc, "B", "C");
+                        CHK(de, "D", "E");
+                        CHK(hl, "H", "L");
                     }
                 }
 
@@ -3125,7 +3129,7 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
 bool TrcView::cmdNavigate(int nKey_, int nMods_)
 {
     if (nKey_ == HK_SPACE)
-        m_flags = !m_flags;
+        m_double_regs = !m_double_regs;
     else if (nKey_ == 's')
         m_use_symbols = !m_use_symbols;
 

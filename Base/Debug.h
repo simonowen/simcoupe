@@ -243,7 +243,7 @@ public:
     void OnDelete() override;
 
 private:
-    bool m_flags = false;
+    bool m_double_regs = true;
     bool m_use_symbols = true;
 };
 
