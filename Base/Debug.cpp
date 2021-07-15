@@ -1570,7 +1570,7 @@ void DisView::SetAddress(uint16_t wAddr_, bool fForceTop_)
         if (m_fUseSymbols)
         {
             // Look-up the symbol name to use as a label
-            auto sName = Symbol::LookupAddr(wAddr_, MAX_LABEL_LEN);
+            auto sName = Symbol::LookupAddr(wAddr_, wAddr_, MAX_LABEL_LEN);
 
             // Right-justify the label against the disassembly
             psz += sprintf(psz, "\ab%*s\aX", MAX_LABEL_LEN, sName.c_str());
@@ -3033,7 +3033,7 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
 
         if (m_use_symbols)
         {
-            auto sName = Symbol::LookupAddr(pTD->wPC, 12);
+            auto sName = Symbol::LookupAddr(pTD->wPC, pTD->wPC, 12);
             psz += sprintf(psz, "\ab%16s\aX %-18s", sName.c_str(), szDis);
         }
         else

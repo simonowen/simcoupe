@@ -106,7 +106,7 @@ static void Function(uint8_t b_, int nSymbolMax_)
     {
         uint16_t wAddr = (bOp2 << 8) | bOp1;
 
-        auto sName = nSymbolMax_ ? Symbol::LookupAddr(wAddr, nSymbolMax_, b_ == 'A', true) : "";
+        auto sName = nSymbolMax_ ? Symbol::LookupAddr(wAddr, (b_ == 'A') ? wAddr : wPC, nSymbolMax_, true) : "";
 
         if (!sName.length())
             pszOut += sprintf(pszOut, fHex ? "%04X" : "%d", wAddr);
@@ -122,7 +122,7 @@ static void Function(uint8_t b_, int nSymbolMax_)
     {
         uint16_t wAddr = wPC + 2 + static_cast<signed char>(bOp1);
 
-        auto sName = nSymbolMax_ ? Symbol::LookupAddr(wAddr, nSymbolMax_, true, true) : "";
+        auto sName = nSymbolMax_ ? Symbol::LookupAddr(wAddr, wAddr, nSymbolMax_, true) : "";
 
         if (!sName.length())
             pszOut += sprintf(pszOut, fHex ? "%04X" : "%d", wAddr);

@@ -135,19 +135,19 @@ std::optional<int> LookupSymbol(const std::string& symbol)
     return std::nullopt;
 }
 
-std::string LookupAddr(uint16_t addr, int max_len, bool exec_target, bool allow_offset)
+std::string LookupAddr(uint16_t addr, uint16_t lookup_context, int max_len, bool allow_offset)
 {
     bool is_rom_addr = (addr < 0x4000 && AddrPage(addr) == ROM0) || (addr >= 0xc000 && AddrPage(addr) == ROM1);
-    bool in_rom = AddrPage(cpu.get_pc()) == ROM0 || AddrPage(cpu.get_pc()) == ROM1;
+    bool rom_context = AddrPage(lookup_context) == ROM0 || AddrPage(lookup_context) == ROM1;
 
     bool samdos2_paged = (read_byte(0x4096) == 0x20) &&
         std::string_view(reinterpret_cast<const char*>(AddrReadPtr(0x50af)), 6) == "SAMDOS";
     bool is_samdos2_addr = samdos2_paged && addr >= 0x4000 && addr < 0x6000;
-    bool in_samdos2 = samdos2_paged && cpu.get_pc() >= 0x4000 && cpu.get_pc() < 0x6000;
+    bool samdos2_context = samdos2_paged && lookup_context >= 0x4000 && lookup_context < 0x6000;
 
     const auto& symtab =
-        (in_samdos2 || (is_samdos2_addr && exec_target)) ? samdos2_symbols :
-        (in_rom || (is_rom_addr && exec_target)) ? rom_symbols :
+        (is_samdos2_addr && samdos2_context) ? samdos2_symbols :
+        (is_rom_addr && rom_context) ? rom_symbols :
         ram_symbols;
 
     auto it = symtab.find(addr);
