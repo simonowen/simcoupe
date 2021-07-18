@@ -132,13 +132,17 @@ bool MGTDisk::IsRecognised(Stream& stream)
 MGTDisk::MGTDisk(std::unique_ptr<Stream> stream, int num_sectors)
     : Disk(std::move(stream), DiskType::MGT), m_sectors(num_sectors)
 {
-    m_data.resize((num_sectors == DOS_DISK_SECTORS) ? DOS_IMAGE_SIZE : MGT_IMAGE_SIZE);
-
     if (m_stream->GetSize())
     {
+        m_data.resize(m_stream->GetSize());
         m_stream->Rewind();
         m_stream->Read(m_data.data(), m_data.size());
         m_stream->Close();
+        m_sectors = static_cast<int>(m_data.size() / (MGT_DISK_CYLS * MGT_DISK_HEADS * NORMAL_SECTOR_SIZE));
+    }
+    else
+    {
+        m_data.resize((num_sectors == DOS_DISK_SECTORS) ? DOS_IMAGE_SIZE : MGT_IMAGE_SIZE);
     }
 }
 
