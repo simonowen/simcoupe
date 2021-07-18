@@ -2164,7 +2164,7 @@ INT_PTR CALLBACK NewDiskDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM l
                             id.sector = 1 + ((sector + num_sectors - (cyl % num_sectors)) % num_sectors);
                             id.size = 2;
                             id.crc1 = id.crc2 = 0;
-                            
+
                             sectors.push_back(std::make_pair(id, data));
                         }
 

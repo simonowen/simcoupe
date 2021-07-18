@@ -713,8 +713,6 @@ void Out(uint16_t port, uint8_t val)
 
         else if ((port & FLOPPY_MASK) == FLOPPY2_BASE)
         {
-            TRACE("PORT OUT({:02x}) wrote {:02x}\n", port, val);
-
             switch (GetOption(drive2))
             {
             case drvFloppy:     pFloppy2->Out(port, val);  break;

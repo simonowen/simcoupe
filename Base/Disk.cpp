@@ -611,12 +611,12 @@ FileDisk::FileDisk(std::unique_ptr<Stream> stream)
 
         m_data[0] = 19;                         // CODE file type
         m_data[1] = file_size & 0xff;           // LSB of size mod 16384
-        m_data[2] = (file_size >> 8) & 0xff;    // MSB of size mod 16384
+        m_data[2] = (file_size >> 8) & 0x3f;    // MSB of size mod 16384
         m_data[3] = 0x00;                       // LSB of offset start
         m_data[4] = 0x80;                       // MSB of offset start
         m_data[5] = 0xff;                       // unused
         m_data[6] = 0xff;                       // unused
-        m_data[7] = (file_size >> 14) & 0xff;   // page count (size div 16384)
+        m_data[7] = (file_size >> 14) & 0x1f;   // page count (size div 16384)
         m_data[8] = 0x01;                       // first page
 
         m_stream->Rewind();
