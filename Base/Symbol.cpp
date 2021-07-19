@@ -140,14 +140,17 @@ std::string LookupAddr(uint16_t addr, uint16_t lookup_context, int max_len, bool
     bool is_rom_addr = (addr < 0x4000 && AddrPage(addr) == ROM0) || (addr >= 0xc000 && AddrPage(addr) == ROM1);
     bool rom_context = AddrPage(lookup_context) == ROM0 || AddrPage(lookup_context) == ROM1;
 
+    bool is_sysvars_addr = addr >= 0x4000 && addr < 0x5d00 && AddrPage(addr) == 0;
+
     bool samdos2_paged = (read_byte(0x4096) == 0x20) &&
         std::string_view(reinterpret_cast<const char*>(AddrReadPtr(0x50af)), 6) == "SAMDOS";
-    bool is_samdos2_addr = samdos2_paged && addr >= 0x4000 && addr < 0x6000;
-    bool samdos2_context = samdos2_paged && lookup_context >= 0x4000 && lookup_context < 0x6000;
+    bool is_samdos2_addr = samdos2_paged && addr >= 0x4000 && addr < 0x8000;
+    bool samdos2_context = samdos2_paged && lookup_context >= 0x4000 && lookup_context < 0x8000;
 
     const auto& symtab =
         (is_samdos2_addr && samdos2_context) ? samdos2_symbols :
         (is_rom_addr && rom_context) ? rom_symbols :
+        (is_sysvars_addr) ? rom_symbols :
         ram_symbols;
 
     auto it = symtab.find(addr);

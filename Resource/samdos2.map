@@ -1,3 +1,5 @@
+; SAMDOS2 symbols
+
 4091=rbcc
 4092=traks1
 4093=traks2
@@ -583,3 +585,20 @@
 5F7D=evfl4
 5F80=evfl5
 5F86=evfl6
+770F=sam
+7800=dchan
+7800=svbc
+7802=svde
+7804=rfdh
+7805=svhl
+7807=svix
+7809=reg1
+780B=drive
+780C=flag3
+780D=rpt
+780F=buf
+7811=nsr
+7813=fsa
+7913=dram
+7D13=fndfr
+7EFE=str
