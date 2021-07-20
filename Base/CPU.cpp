@@ -118,7 +118,18 @@ void ExecuteChunk()
         if ((~IO::State().status & STATUS_INT_MASK) && Memory::full_contention)
             cpu.on_handle_active_int();
 
-        if (cpu.get_iregp_kind() != z80::iregp::hl || Breakpoint::breakpoints.empty())
+        if (cpu.get_iregp_kind() != z80::iregp::hl)
+            continue;
+
+#ifdef _DEBUG
+        if (debug_break)
+        {
+            Debug::Start();
+            debug_break = false;
+        }
+#endif
+
+        if (Breakpoint::breakpoints.empty())
             continue;
 
         Debug::AddTraceRecord();
@@ -128,13 +139,6 @@ void ExecuteChunk()
             CheckEvents(CPU::frame_cycles);
             Debug::Start(bp_index);
         }
-#ifdef _DEBUG
-        else if (debug_break)
-        {
-            Debug::Start();
-            debug_break = false;
-        }
-#endif
     }
 }
 
