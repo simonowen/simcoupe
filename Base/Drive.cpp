@@ -348,12 +348,14 @@ void Drive::Out(uint16_t port, uint8_t val)
         switch (command)
         {
         case RESTORE:
-            TRACE("FDC: RESTORE\n");
+            if (m_regs.cyl != 0)
+                TRACE("FDC: RESTORE\n");
             m_regs.cyl = m_cyl = 0;
             break;
 
         case SEEK:
-            TRACE("FDC: SEEK to track {}\n", m_regs.data);
+            if (m_regs.data != m_regs.cyl)
+                TRACE("FDC: SEEK to track {}\n", m_regs.data);
             m_regs.dir_out = (m_regs.data > m_regs.cyl);
             m_regs.cyl = m_cyl = m_regs.data;
             break;

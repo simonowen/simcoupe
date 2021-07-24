@@ -955,7 +955,7 @@ bool Rst8Hook()
     // "NO DOS" or "Loading error"
     case 0x35:
     case 0x13:
-        if (GetOption(dosboot))
+        if (cpu.get_pc() >= 0xc000 && GetSectionPage(Section::D) == ROM1 && GetOption(dosboot))
         {
             pBootDrive = std::make_unique<Drive>();
             if (GetOption(dosdisk).empty() || !pBootDrive->Insert(GetOption(dosdisk)))
