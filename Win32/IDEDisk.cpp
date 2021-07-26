@@ -116,8 +116,8 @@ bool DeviceHardDisk::Open(bool read_only)
     }
     else
     {
-        DWORD dwRet;
-        PARTITION_INFORMATION pi;
+        DWORD dwRet{};
+        PARTITION_INFORMATION pi{};
 
         // Read the drive geometry (possibly fake) and size, checking for a disk device
         if (DeviceIoControl(m_hDevice, IOCTL_DISK_GET_PARTITION_INFO, nullptr, 0, &pi, sizeof(pi), &dwRet, nullptr))
@@ -129,8 +129,8 @@ bool DeviceHardDisk::Open(bool read_only)
             // Generate suitable identify data to report
             SetIdentifyData(nullptr);
 
-            // For safety, only deal with existing BDOS or SDIDE hard disks
-            if (IsBDOSDisk() || IsSDIDEDisk())
+            // For safety, only deal with existing BDOS or SDIDE hard disks, or disks under the BDOS limit (~53GB)
+            if (IsBDOSDisk() || IsSDIDEDisk() || m_sGeometry.uTotalSectors <= 104'858'050U)
                 return true;
         }
     }

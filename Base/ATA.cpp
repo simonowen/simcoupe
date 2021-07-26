@@ -544,10 +544,11 @@ void ATADevice::SetIdentifyData(IDENTIFYDEVICE* pid_)
 
     // Form an 8-character string from the current date, to use as firmware revision
     auto now = time(nullptr);
-    auto date_str = fmt::format(":%Y-%m-%d", fmt::localtime(now));
+    auto date_str = fmt::format("{:%Y%m%d}", fmt::localtime(now));
+    auto serial_str = fmt::format("{}.{}.{}", SIMCOUPE_MAJOR_VERSION, SIMCOUPE_MINOR_VERSION, SIMCOUPE_PATCH_VERSION);
 
     // Serial number, firmware revision and model number
-    SetIdentifyString("", &m_sIdentify.word[10], 20);
+    SetIdentifyString(serial_str, &m_sIdentify.word[10], 20);
     SetIdentifyString(date_str, &m_sIdentify.word[23], 8);
     SetIdentifyString("SimCoupe Device", &m_sIdentify.word[27], 40);
 
