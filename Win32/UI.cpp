@@ -229,15 +229,15 @@ void UI::ShowMessage(MsgType type, const std::string& message)
 
     switch (type)
     {
+    case MsgType::Info:
+        MessageBox(hwndParent, message.c_str(), pcszCaption, MB_OK | MB_ICONINFORMATION);
+        break;
+
     case MsgType::Warning:
         MessageBox(hwndParent, message.c_str(), pcszCaption, MB_OK | MB_ICONEXCLAMATION);
         break;
 
     case MsgType::Error:
-        MessageBox(hwndParent, message.c_str(), pcszCaption, MB_OK | MB_ICONSTOP);
-        break;
-
-        // Something went seriously wrong!
     case MsgType::Fatal:
         MessageBox(hwndParent, message.c_str(), pcszCaption, MB_OK | MB_ICONSTOP);
         break;

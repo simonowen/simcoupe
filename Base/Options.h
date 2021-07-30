@@ -69,6 +69,7 @@ struct Config
     bool autoload = true;               // Auto-load media inserted at the startup screen?
     bool autoboot = true;               // Auto-boot disks passed on command-line? (not saved)
     int diskerrorfreq = 0;              // 1:n transient disk read errors, for developer testing.
+    int samdiskhelper = 0;              // Last SAMDiskHelper version used.
 
     std::string inpath;                 // Default path for input files
     std::string outpath;                // Default path for output files

@@ -94,6 +94,7 @@ static bool SetNamedValue(const std::string& option_name, const std::string& str
     else if (name == "autoload") SetValue(g_config.autoload, str);
     else if (name == "autoboot") SetValue(g_config.autoboot, str);
     else if (name == "diskerrorfreq") SetValue(g_config.diskerrorfreq, str);
+    else if (name == "samdiskhelper") SetValue(g_config.samdiskhelper, str);
     else if (name == "inpath") SetValue(g_config.inpath, str);
     else if (name == "outpath") SetValue(g_config.outpath, str);
     else if (name == "mru0") SetValue(g_config.mru0, str);
@@ -260,6 +261,7 @@ bool Save()
         ofs << "tape=" << to_string(g_config.tape) << std::endl;
         ofs << "autoload=" << to_string(g_config.autoload) << std::endl;
         ofs << "diskerrorfreq=" << to_string(g_config.diskerrorfreq) << std::endl;
+        ofs << "samdiskhelper=" << to_string(g_config.samdiskhelper) << std::endl;
         ofs << "inpath=" << to_string(g_config.inpath) << std::endl;
         ofs << "outpath=" << to_string(g_config.outpath) << std::endl;
         ofs << "mru0=" << to_string(g_config.mru0) << std::endl;

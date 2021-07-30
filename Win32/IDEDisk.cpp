@@ -20,11 +20,14 @@
 
 #include "SimCoupe.h"
 #include "IDEDisk.h"
+#include "Options.h"
 
 #include <winioctl.h>
 
 // SAMdiskHelper definitions, for non-admin device access
 #define PIPENAME    "\\\\.\\pipe\\SAMdiskHelper"
+#define SAMDISKHELPER_VERSION   0x01050000
+#define FN_VERSION  1
 #define FN_OPEN     2
 
 #pragma pack(1)
@@ -39,7 +42,11 @@ struct PIPEMESSAGE
 
         struct {
             DWORD dwError;
-            DWORD64 hDevice;
+            union
+            {
+                struct { DWORD version; } Version;
+                struct { DWORD64 hDevice; } Open;
+            };
         } Output;
     };
 };
@@ -95,9 +102,23 @@ bool DeviceHardDisk::Open(bool read_only)
         if (CallNamedPipe(PIPENAME, &msg, sizeof(msg.Input), &msg, sizeof(msg.Output), &dwRead, NMPWAIT_NOWAIT))
         {
             if (dwRead == sizeof(msg.Output) && msg.Output.dwError == 0)
-                m_hDevice = reinterpret_cast<HANDLE>(msg.Output.hDevice);
+            {
+                m_hDevice = reinterpret_cast<HANDLE>(msg.Output.Open.hDevice);
+
+                memset(&msg, 0, sizeof(msg));
+                msg.Input.dwMessage = FN_VERSION;
+                if (CallNamedPipe(PIPENAME, &msg, sizeof(msg.Input), &msg, sizeof(msg.Output), &dwRead, NMPWAIT_NOWAIT) &&
+                    msg.Output.Version.version < SAMDISKHELPER_VERSION &&
+                    msg.Output.Version.version > static_cast<DWORD>(GetOption(samdiskhelper)))
+                {
+                    Message(MsgType::Info, "The installed SAMdiskHelper is outdated. Please consider upgrading to a newer version.");
+                    SetOption(samdiskhelper, SAMDISKHELPER_VERSION);
+                }
+            }
             else if (msg.Output.dwError)
+            {
                 dwError = msg.Output.dwError;
+            }
         }
     }
 
