@@ -108,6 +108,14 @@ void Drive::ModifyStatus(uint8_t set_bits, uint8_t reset_bits)
 
 void Drive::ModifyReadStatus()
 {
+    static int read_count = 0;
+    if (GetOption(diskerrorfreq) && ++read_count >= GetOption(diskerrorfreq))
+    {
+        TRACE("FDC: simulating data CRC error");
+        m_data_status |= CRC_ERROR;
+        read_count = 0;
+    }
+
     if (m_data_status & ~CRC_ERROR)
         ModifyStatus(m_data_status, BUSY);
     else
@@ -131,6 +139,15 @@ void Drive::ExecuteNext()
     case READ_1SECTOR:
     case READ_MSECTOR:
     {
+        static int read_count = 0;
+        if (GetOption(diskerrorfreq) && ++read_count >= GetOption(diskerrorfreq))
+        {
+            TRACE("FDC: simulating sector-not-found error");
+            ModifyStatus(RECORD_NOT_FOUND, BUSY);
+            read_count = 0;
+            break;
+        }
+
         if (auto id = FindSector())
         {
             auto [status, data] = ReadSector();
@@ -282,6 +299,12 @@ uint8_t Drive::In(uint16_t port)
             if (m_buffer_pos == m_buffer.size())
             {
                 ModifyStatus(0, BUSY | DRQ);
+
+                if (GetOption(diskerrorfreq) && (m_data_status & CRC_ERROR))
+                {
+                    for (size_t i = 0; i < m_buffer_pos; i += 16)
+                        m_buffer[i] ^= 0x55;
+                }
 
                 switch (m_regs.command & FDC_COMMAND_MASK)
                 {
