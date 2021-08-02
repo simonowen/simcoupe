@@ -232,8 +232,8 @@ bool SADDisk::IsRecognised(Stream& stream)
 {
     SAD_HEADER sh{};
 
-    auto valid = stream.Rewind() &&
-        stream.Read(&sh, sizeof(sh)) == sizeof(sh) &&
+    stream.Rewind();
+    auto valid = stream.Read(&sh, sizeof(sh)) == sizeof(sh) &&
         std::string_view(sh.signature, SAD_SIGNATURE.size()) == SAD_SIGNATURE &&
         sh.heads > 0 && sh.heads <= MAX_DISK_HEADS &&
         sh.cyls > 0 && sh.cyls <= MAX_DISK_CYLS &&
@@ -360,8 +360,8 @@ bool EDSKDisk::IsRecognised(Stream& stream)
 {
     EDSK_HEADER eh{};
 
-    return stream.Rewind() &&
-        stream.Read(&eh, sizeof(eh)) == sizeof(eh) &&
+    stream.Rewind();
+    return stream.Read(&eh, sizeof(eh)) == sizeof(eh) &&
         (std::string_view(eh.signature, EDSK_SIGNATURE.size()) == EDSK_SIGNATURE ||
             std::string_view(eh.signature, DSK_SIGNATURE.size()) == DSK_SIGNATURE);
 }
@@ -530,7 +530,8 @@ bool EDSKDisk::Save()
         }
     }
 
-    bool saved = m_stream->Rewind() && m_stream->Write(&eh, sizeof(eh)) == sizeof(eh);
+    m_stream->Rewind();
+    bool saved = m_stream->Write(&eh, sizeof(eh)) == sizeof(eh);
 
     for (auto cyl = 0; cyl < m_cyls; cyl++)
     {

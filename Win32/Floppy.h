@@ -59,7 +59,7 @@ public:
 
     // The normal stream functions are not used
     size_t GetSize() override { return 0; }
-    bool Rewind() override { return false; }
+    void Rewind() override { }
     size_t Read(void*, size_t) override { return 0; }
     size_t Write(const void*, size_t) override { return 0; }
 

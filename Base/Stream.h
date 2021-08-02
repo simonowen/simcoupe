@@ -35,7 +35,7 @@ public:
 
     virtual size_t GetSize() = 0;
     virtual void Close() = 0;
-    virtual bool Rewind() = 0;
+    virtual void Rewind() = 0;
     virtual size_t Read(void* buffer, size_t len) = 0;
     virtual size_t Write(const void* buffer, size_t len) = 0;
 
@@ -55,9 +55,9 @@ public:
 
     size_t GetSize() override;
     void Close() override;
-    bool Rewind() override;
-    size_t Read(void* pvBuffer_, size_t uLen_) override;
-    size_t Write(const void* pvBuffer_, size_t uLen_) override;
+    void Rewind() override;
+    size_t Read(void* buffer, size_t len) override;
+    size_t Write(const void* buffer, size_t len) override;
 
 protected:
     unique_FILE m_file;
@@ -72,9 +72,9 @@ public:
 
     size_t GetSize() override;
     void Close() override;
-    bool Rewind() override;
-    size_t Read(void* pvBuffer_, size_t uLen_) override;
-    size_t Write(const void* pvBuffer_, size_t uLen_) override;
+    void Rewind() override;
+    size_t Read(void* buffer, size_t len) override;
+    size_t Write(const void* buffer, size_t len) override;
 
 protected:
     std::vector<uint8_t> m_data;
@@ -95,7 +95,7 @@ public:
 
     size_t GetSize() override;
     void Close() override;
-    bool Rewind() override;
+    void Rewind() override;
     size_t Read(void* buffer, size_t len) override;
     size_t Write(const void* buffer, size_t len) override;
 
@@ -114,7 +114,7 @@ public:
 
     size_t GetSize() override;
     void Close() override;
-    bool Rewind() override;
+    void Rewind() override;
     size_t Read(void* buffer, size_t len) override;
     size_t Write(const void* buffer, size_t len) override;
 

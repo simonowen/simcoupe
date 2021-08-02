@@ -128,9 +128,10 @@ void FileStream::Close()
     m_mode = FileMode::Closed;
 }
 
-bool FileStream::Rewind()
+void FileStream::Rewind()
 {
-    return m_file && fseek(m_file, 0, SEEK_SET) == 0;
+    if (m_file)
+        fseek(m_file, 0, SEEK_SET);
 }
 
 size_t FileStream::Read(void* buffer, size_t len)
@@ -175,10 +176,9 @@ size_t MemStream::GetSize()
     return m_data.size();
 }
 
-bool MemStream::Rewind()
+void MemStream::Rewind()
 {
     m_pos = 0;
-    return true;
 }
 
 size_t MemStream::Read(void* buffer, size_t len)
@@ -224,12 +224,10 @@ size_t ZLibStream::GetSize()
     return m_file ? m_size : 0U;
 }
 
-bool ZLibStream::Rewind()
+void ZLibStream::Rewind()
 {
     if (m_file && m_mode == FileMode::Reading)
-        return !gzrewind(m_file);
-
-    return m_file != nullptr;
+        gzrewind(m_file);
 }
 
 size_t ZLibStream::Read(void* buffer, size_t len)
@@ -280,9 +278,9 @@ size_t ZipStream::GetSize()
     return m_size;
 }
 
-bool ZipStream::Rewind()
+void ZipStream::Rewind()
 {
-    return unzSetOffset(m_file, 0) == UNZ_OK;
+    unzSetOffset(m_file, 0);
 }
 
 size_t ZipStream::Read(void* buffer, size_t len)
