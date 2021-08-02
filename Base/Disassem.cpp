@@ -56,7 +56,7 @@ static const char* const szEDprefix =
 "\xa9[|\x91[\x83[LD|CP|IN|\xa1[OUT\x99[I|D]\2|OT]]\x99[I|D]\xa1[|R]\2]]]NOP\2";
 
 static const char* const szCBprefix =
-"%l[%i[e \xb3" "c\x87r\2]\xb3[|e %c,i\3]j\x87r,e* ci\3|e \xb3" "c\x87r%i[\2]]\3";
+"%l[%i[e \xb3" "c\x87r\2]\xb3[|e %c,i\3]j\x87r,e* \xb3" "ci\3|e \xb3" "c\x87r%i[\2]]\3";
 
 static const char* aszStrings[] =
 {
