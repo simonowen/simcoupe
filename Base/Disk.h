@@ -235,7 +235,7 @@ public:
 
 #ifdef _WIN32
 
-#include "Floppy.h"
+#include "../Win32/Floppy.h"
 
 class FloppyDisk final : public Disk
 {

@@ -132,6 +132,9 @@ elseif (BUILD_SDL)
       SDL/OSX/Credits.html
       ${CMAKE_CURRENT_BINARY_DIR}/Info-${PROJECT_TITLE}.plist)
     set_source_files_properties(${RESOURCE_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+  elseif (WIN32)
+    set(SOURCE_FILES ${SOURCE_FILES} Win32/Floppy.cpp)
+    set(HEADER_FILES ${HEADER_FILES} Win32/Floppy.h)
   endif()
 endif()
 
