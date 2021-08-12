@@ -63,20 +63,18 @@ bool IsTyping()
 void Next()
 {
     if (!IsTyping() || !CanType())
-    {
         return;
-    }
 
     auto pPage0 = PageReadPtr(0);
     if (pPage0[SYSVAR_FLAGS & MEM_PAGE_MASK] & FLAGS_NEW_KEY)
     {
         if (++s_skipped_frames == MAX_STUCK_FRAMES)
-        {
             Stop();
-        }
 
         return;
     }
+
+    s_skipped_frames = 0;
 
     auto b = static_cast<uint8_t>(s_input_text.front());
     s_input_text.erase(s_input_text.begin());
