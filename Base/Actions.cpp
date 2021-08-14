@@ -316,11 +316,11 @@ bool Do(Action action, bool pressed/*=true*/)
             break;
 
         case Action::RecordAvi:
-            AVI::Toggle(false);
+            AVI::Toggle(AVI::FULLSIZE);
             break;
 
         case Action::RecordAviHalf:
-            AVI::Toggle(true);
+            AVI::Toggle(AVI::HALFSIZE);
             break;
 
         case Action::RecordAviStop:

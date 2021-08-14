@@ -24,11 +24,13 @@
 
 namespace AVI
 {
-bool Start(bool fHalfSize_ = false);
+enum : int { HALFSIZE = 1, FULLSIZE = 0 };
+
+bool Start(int flags);
 void Stop();
-void Toggle(bool fHalfSize_ = false);
+void Toggle(int flags);
 bool IsRecording();
 
 void AddFrame(const FrameBuffer& fb);
-void AddFrame(const uint8_t* pbAudio_, unsigned int uLen_);
+void AddFrame(const uint8_t* buffer, unsigned int len);
 }
