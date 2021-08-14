@@ -128,6 +128,7 @@ elseif (BUILD_SDL)
 
     set(RESOURCE_FILES ${RESOURCE_FILES} ${MAC_ICON_FILES}
       ReadMe.md
+      Manual.md
       ChangeLog.txt
       SDL/OSX/Credits.html
       ${CMAKE_CURRENT_BINARY_DIR}/Info-${PROJECT_TITLE}.plist)
@@ -356,7 +357,7 @@ endif()
 set(RESOURCE_DIR ${CMAKE_INSTALL_FULL_DATAROOTDIR}/${PROJECT_NAME})
 
 install(DIRECTORY Resource/ DESTINATION ${RESOURCE_DIR})
-install(FILES ReadMe.md DESTINATION ${RESOURCE_DIR})
+install(FILES ReadMe.md Manual.md DESTINATION ${RESOURCE_DIR})
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 configure_file(config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
