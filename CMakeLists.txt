@@ -52,7 +52,7 @@ set(BASE_CPP_FILES
     Base/Tape.cpp Base/Util.cpp Base/Video.cpp Base/WAV.cpp Base/VoiceBox.cpp
     Base/sp0256.cpp)
 
-set(BASE_C_FILES Base/ioapi.c Base/unzip.c Extern/gl3w/src/gl3w.c)
+set(BASE_C_FILES Extern/gl3w/src/gl3w.c)
 
 set(BASE_H_FILES
     Base/Actions.h Base/ATA.h Base/AtaAdapter.h Base/Atom.h Base/AtomLite.h
@@ -60,13 +60,13 @@ set(BASE_H_FILES
     Base/Clock.h Base/CPU.h Base/Debug.h Base/Disassem.h
     Base/Disk.h Base/Drive.h Base/Events.h Base/Expr.h Base/Font.h Base/Frame.h
     Base/GIF.h Base/GUI.h Base/GUIDlg.h Base/GUIIcons.h Base/HardDisk.h
-    Base/ioapi.h Base/Joystick.h Base/Keyboard.h Base/Keyin.h Base/Main.h
+    Base/Joystick.h Base/Keyboard.h Base/Keyin.h Base/Main.h
     Base/Memory.h Base/Mouse.h Base/Options.h Base/Parallel.h Base/Paula.h
     Base/SavePNG.h Base/SAM.h Base/SAMDOS.h Base/SAMIO.h
     Base/SAMVox.h Base/SDIDE.h Base/SID.h Base/SimCoupe.h Base/Sound.h
-    Base/SSX.h Base/Stream.h Base/Symbol.h Base/Tape.h Base/unzip.h
-    Base/Util.h Base/Video.h Base/VL1772.h Base/WAV.h
-    Base/VoiceBox.h Base/sp0256.h Extern/gl3w/include/GL/gl3w.h)
+    Base/SSX.h Base/Stream.h Base/Symbol.h Base/Tape.h Base/Util.h Base/Video.h
+    Base/VL1772.h Base/WAV.h Base/VoiceBox.h Base/sp0256.h
+    Extern/gl3w/include/GL/gl3w.h)
 
 set(BASE_RUNTIME_FILES
     Resource/atom.rom Resource/atomlite.rom Resource/samcoupe.rom Resource/sp0256-al2.bin
@@ -223,6 +223,12 @@ find_package(ZLIB)
 if (ZLIB_FOUND)
   target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
   set(HAVE_LIBZ 1)
+  target_sources(${PROJECT_NAME} PRIVATE
+    Extern/zlib/contrib/minizip/ioapi.c
+    Extern/zlib/contrib/minizip/unzip.c
+    Extern/zlib/contrib/minizip/ioapi.h
+    Extern/zlib/contrib/minizip/unzip.h)
+  target_include_directories(${PROJECT_NAME} PRIVATE Extern/zlib/contrib/minizip)
 endif()
 
 find_package(BZip2)

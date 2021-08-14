@@ -68,10 +68,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
-
-#ifdef HAVE_LIBZ
-
 #ifndef NOUNCRYPT
         #define NOUNCRYPT
 #endif
@@ -140,7 +136,7 @@ typedef struct
     char  *read_buffer;         /* internal buffer for compressed data */
     z_stream stream;            /* zLib stream structure for inflate */
 
-#ifdef HAVE_LIBBZ2
+#ifdef HAVE_BZIP2
     bz_stream bstream;          /* bzLib stream structure for bziped */
 #endif
 
@@ -192,7 +188,7 @@ typedef struct
 
 #    ifndef NOUNCRYPT
     unsigned long keys[3];     /* keys defining the pseudo-random sequence */
-    const unsigned long* pcrc_32_tab;
+    const z_crc_t* pcrc_32_tab;
 #    endif
 } unz64_s;
 
@@ -204,7 +200,7 @@ typedef struct
 /* ===========================================================================
      Read a byte from a gz_stream; update next_in and avail_in. Return EOF
    for end of file.
-   IN assertion: the stream s has been sucessfully opened for reading.
+   IN assertion: the stream s has been successfully opened for reading.
 */
 
 
@@ -754,8 +750,7 @@ local unzFile unzOpenInternal (const void *path,
     us.central_pos = central_pos;
     us.pfile_in_zip_read = NULL;
     us.encrypted = 0;
-    us.pos_in_central_dir = 0;
-    us.current_file_ok = 0;
+
 
     s=(unz64_s*)ALLOC(sizeof(unz64_s));
     if( s != NULL)
@@ -787,7 +782,6 @@ extern unzFile ZEXPORT unzOpen2_64 (const void *path,
     {
         zlib_filefunc64_32_def zlib_filefunc64_32_def_fill;
         zlib_filefunc64_32_def_fill.zfile_func64 = *pzlib_filefunc_def;
-        zlib_filefunc64_32_def_fill.zopen32_file = NULL;
         zlib_filefunc64_32_def_fill.ztell32_file = NULL;
         zlib_filefunc64_32_def_fill.zseek32_file = NULL;
         return unzOpenInternal(path, &zlib_filefunc64_32_def_fill, 1);
@@ -807,9 +801,9 @@ extern unzFile ZEXPORT unzOpen64 (const void *path)
 }
 
 /*
-  Close a ZipFile opened with unzipOpen.
-  If there is files inside the .Zip opened with unzipOpenCurrentFile (see later),
-    these files MUST be closed with unzipCloseCurrentFile before call unzipClose.
+  Close a ZipFile opened with unzOpen.
+  If there is files inside the .Zip opened with unzOpenCurrentFile (see later),
+    these files MUST be closed with unzCloseCurrentFile before call unzClose.
   return UNZ_OK if there is no problem. */
 extern int ZEXPORT unzClose (unzFile file)
 {
@@ -1046,26 +1040,26 @@ local int unz64local_GetCurrentFileInfoInternal (unzFile file,
             {
                                                         uLong uL;
 
-                                                                if(file_info.uncompressed_size == (ZPOS64_T)(unsigned long)-1)
+                                                                if(file_info.uncompressed_size == MAXU32)
                                                                 {
                                                                         if (unz64local_getLong64(&s->z_filefunc, s->filestream,&file_info.uncompressed_size) != UNZ_OK)
                                                                                         err=UNZ_ERRNO;
                                                                 }
 
-                                                                if(file_info.compressed_size == (ZPOS64_T)(unsigned long)-1)
+                                                                if(file_info.compressed_size == MAXU32)
                                                                 {
                                                                         if (unz64local_getLong64(&s->z_filefunc, s->filestream,&file_info.compressed_size) != UNZ_OK)
                                                                                   err=UNZ_ERRNO;
                                                                 }
 
-                                                                if(file_info_internal.offset_curfile == (ZPOS64_T)(unsigned long)-1)
+                                                                if(file_info_internal.offset_curfile == MAXU32)
                                                                 {
                                                                         /* Relative Header offset */
                                                                         if (unz64local_getLong64(&s->z_filefunc, s->filestream,&file_info_internal.offset_curfile) != UNZ_OK)
                                                                                 err=UNZ_ERRNO;
                                                                 }
 
-                                                                if(file_info.disk_num_start == (unsigned long)-1)
+                                                                if(file_info.disk_num_start == MAXU32)
                                                                 {
                                                                         /* Disk Start Number */
                                                                         if (unz64local_getLong(&s->z_filefunc, s->filestream,&uL) != UNZ_OK)
@@ -1151,7 +1145,7 @@ extern int ZEXPORT unzGetCurrentFileInfo (unzFile file,
                                                 szFileName,fileNameBufferSize,
                                                 extraField,extraFieldBufferSize,
                                                 szComment,commentBufferSize);
-    if (err==UNZ_OK)
+    if ((err==UNZ_OK) && (pfile_info != NULL))
     {
         pfile_info->version = file_info64.version;
         pfile_info->version_needed = file_info64.version_needed;
@@ -1168,7 +1162,7 @@ extern int ZEXPORT unzGetCurrentFileInfo (unzFile file,
         pfile_info->internal_fa = file_info64.internal_fa;
         pfile_info->external_fa = file_info64.external_fa;
 
-        pfile_info->tmu_date = file_info64.tmu_date;
+        pfile_info->tmu_date = file_info64.tmu_date,
 
 
         pfile_info->compressed_size = (uLong)file_info64.compressed_size;
@@ -1229,7 +1223,7 @@ extern int ZEXPORT unzGoToNextFile (unzFile  file)
 
 /*
   Try locate the file szFileName in the zipfile.
-  For the iCaseSensitivity signification, see unzipStringFileNameCompare
+  For the iCaseSensitivity signification, see unzStringFileNameCompare
 
   return value :
   UNZ_OK if the file is found. It becomes the current file.
@@ -1429,7 +1423,7 @@ local int unz64local_CheckCurrentFileCoherencyHeader (unz64_s* s, uInt* piSizeVa
         err=UNZ_BADZIPFILE;
 
     if ((err==UNZ_OK) && (s->cur_file_info.compression_method!=0) &&
-/* #ifdef HAVE_LIBBZ2 */
+/* #ifdef HAVE_BZIP2 */
                          (s->cur_file_info.compression_method!=Z_BZIP2ED) &&
 /* #endif */
                          (s->cur_file_info.compression_method!=Z_DEFLATED))
@@ -1536,14 +1530,12 @@ extern int ZEXPORT unzOpenCurrentFile3 (unzFile file, int* method,
     }
 
     if ((s->cur_file_info.compression_method!=0) &&
-/* #ifdef HAVE_LIBBZ2 */
+/* #ifdef HAVE_BZIP2 */
         (s->cur_file_info.compression_method!=Z_BZIP2ED) &&
 /* #endif */
         (s->cur_file_info.compression_method!=Z_DEFLATED))
-    {
-        TRYFREE(pfile_in_zip_read_info);
-        return UNZ_BADZIPFILE;
-    }
+
+        err=UNZ_BADZIPFILE;
 
     pfile_in_zip_read_info->crc32_wait=s->cur_file_info.crc;
     pfile_in_zip_read_info->crc32=0;
@@ -1557,7 +1549,7 @@ extern int ZEXPORT unzOpenCurrentFile3 (unzFile file, int* method,
 
     if ((s->cur_file_info.compression_method==Z_BZIP2ED) && (!raw))
     {
-#ifdef HAVE_LIBBZ2
+#ifdef HAVE_BZIP2
       pfile_in_zip_read_info->bstream.bzalloc = (void *(*) (void *, int, int))0;
       pfile_in_zip_read_info->bstream.bzfree = (free_func)0;
       pfile_in_zip_read_info->bstream.opaque = (voidpf)0;
@@ -1802,7 +1794,7 @@ extern int ZEXPORT unzReadCurrentFile  (unzFile file, voidp buf, unsigned len)
         }
         else if (pfile_in_zip_read_info->compression_method==Z_BZIP2ED)
         {
-#ifdef HAVE_LIBBZ2
+#ifdef HAVE_BZIP2
             uLong uTotalOutBefore,uTotalOutAfter;
             const Bytef *bufBefore;
             uLong uOutThis;
@@ -2006,7 +1998,7 @@ extern int ZEXPORT unzGetLocalExtrafield (unzFile file, voidp buf, unsigned len)
 }
 
 /*
-  Close the file in zip opened with unzipOpenCurrentFile
+  Close the file in zip opened with unzOpenCurrentFile
   Return UNZ_CRCERROR if all the file was read but the CRC is not good
 */
 extern int ZEXPORT unzCloseCurrentFile (unzFile file)
@@ -2036,7 +2028,7 @@ extern int ZEXPORT unzCloseCurrentFile (unzFile file)
     pfile_in_zip_read_info->read_buffer = NULL;
     if (pfile_in_zip_read_info->stream_initialised == Z_DEFLATED)
         inflateEnd(&pfile_in_zip_read_info->stream);
-#ifdef HAVE_LIBBZ2
+#ifdef HAVE_BZIP2
     else if (pfile_in_zip_read_info->stream_initialised == Z_BZIP2ED)
         BZ2_bzDecompressEnd(&pfile_in_zip_read_info->bstream);
 #endif
@@ -2131,5 +2123,3 @@ extern int ZEXPORT unzSetOffset (unzFile file, uLong pos)
 {
     return unzSetOffset64(file,pos);
 }
-
-#endif // HAVE_LIBZ
