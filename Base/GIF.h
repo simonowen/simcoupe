@@ -24,9 +24,11 @@
 
 namespace GIF
 {
-bool Start(bool fAnimLoop_ = false);
+enum : int { LOOP = 2, HALFSIZE = 1, FULLSIZE = 0 };
+
+bool Start(int flags);
 void Stop();
-void Toggle(bool fAnimLoop_ = false);
+void Toggle(int flags);
 bool IsRecording();
 
 void AddFrame(const FrameBuffer& fb);
@@ -46,9 +48,9 @@ class BitPacker final
 {
 private:
     FILE* binfile = nullptr;
-    uint8_t buffer[260];      // holds the total buffer
+    uint8_t buffer[260]{};    // holds the total buffer
     uint8_t* pos = nullptr;   // points into buffer
-    uint16_t need = 8;         // used by AddCodeToBuffer(), see there
+    uint16_t need = 8;        // used by AddCodeToBuffer(), see there
 
     uint8_t* AddCodeToBuffer(uint32_t code, short n);
 
@@ -73,7 +75,7 @@ class GifCompressor final
     */
 {
 private:
-    BitPacker* bp = nullptr;  // object that does the packing and writing of the compression codes
+    std::unique_ptr<BitPacker> bp;  // object that does the packing and writing of the compression codes
 
     uint32_t nofdata = 0;       // number of pixels in the data stream
     uint32_t width = 0;         // width of bitmap in pixels
@@ -83,9 +85,9 @@ private:
     uint8_t pixel = 0;          // next pixel to be encoded
 
     uint16_t nbits = 0;         // current length of compression codes in bits (changes during encoding process)
-    uint16_t* axon = nullptr;   // arrays making up the stringtable
-    uint16_t* next = nullptr;
-    uint8_t* pix = nullptr;
+    std::array<uint16_t, 4096> axon{};   // arrays making up the stringtable
+    std::array<uint16_t, 4096> next{};
+    std::array<uint16_t, 4096> pix{};
     uint32_t cc = 0;            // "clear code" which signals the clearing of the string table
     uint32_t eoi = 0;           // "end-of-information code" which must be the last item of the code stream
     uint16_t freecode = 0;      // next code to be added to the string table
@@ -93,7 +95,6 @@ private:
     void FlushStringTable();
     void InitRoots();
     uint32_t DoNext();
-    uint8_t Map(uint32_t);
     uint16_t FindPixelOutlet(uint16_t headnode, uint8_t pixel);
 
 public:

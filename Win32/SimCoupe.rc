@@ -531,16 +531,26 @@ BEGIN
         POPUP "Video as &AVI"
         BEGIN
             MENUITEM "Record &Video",               IDM_RECORD_AVI_START
-            MENUITEM "Record &Half Size",           IDM_RECORD_AVI_HALF
+            MENUITEM "Record Video (50%)",          IDM_RECORD_AVI_HALF
             MENUITEM SEPARATOR
             MENUITEM "&Stop Recording",             IDM_RECORD_AVI_STOP
         END
         POPUP "Video as &GIF"
         BEGIN
-            MENUITEM "Record &Animation",           IDM_RECORD_GIF_START
+            MENUITEM "Record &Animation",           IDM_RECORD_GIF
+            MENUITEM "Record Animation (50%)",      IDM_RECORD_GIF_HALF
             MENUITEM "Record &Loop",                IDM_RECORD_GIF_LOOP
+            MENUITEM "Record Loop (50%)",           IDM_RECORD_GIF_LOOP_HALF
             MENUITEM SEPARATOR
             MENUITEM "&Stop Recording",             IDM_RECORD_GIF_STOP
+            MENUITEM SEPARATOR
+            POPUP "&Framerate"
+            BEGIN
+                MENUITEM "&50 fps",                 IDM_RECORD_GIF_FRAMERATE_50
+                MENUITEM "&25 fps",                 IDM_RECORD_GIF_FRAMERATE_25
+                MENUITEM "1&6.7 fps",               IDM_RECORD_GIF_FRAMERATE_16
+                MENUITEM "&12.5 fps",               IDM_RECORD_GIF_FRAMERATE_12
+            END
         END
         MENUITEM SEPARATOR
         POPUP "Audio as &WAV"

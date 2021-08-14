@@ -32,28 +32,30 @@
 namespace GIF
 {
 
-static uint8_t* pbCurr, * pbFirst, * pbSub;
+static std::vector<uint8_t> current_frame;
+static std::vector<uint8_t> first_frame;
+static std::vector<uint8_t> diff_frame;
 
 static fs::path gif_path;
 static unique_FILE file;
 
-static int nDelay = 0;
-static long lDelayOffset;
+static int delay_frames = 0;
+static long delay_file_offset;
 static int wl, wt, ww, wh;  // left/top/width/height for change rect
-static int nFrameSkip = 3;  // 50/2 = 25fps (FF/Chrome/Safari/Opera), 50/3 = 16.6fps (IE grrr!)
-constexpr auto WIDTH_DIVISOR = 2;
+static int frame_skip = 0;  // 50/2 = 25fps (FF/Chrome/Safari/Opera), 50/3 = 16.6fps (IE grrr!)
+static auto size_divisor = 1;
 
-enum LoopState { kNone, kIgnoreFirstChange, kWaitLoopStart, kLoopStarted };
-static LoopState nLoopState;
+enum class LoopState { None, IgnoreChange, WaitStart, Started };
+static LoopState loop_state;
 
-#define COLOUR_DEPTH    7   // 128 SAM colours
+constexpr auto COLOUR_DEPTH = 7;   // 128 SAM colours
 
 ////////////////////////////////////////////////////////////////////////////////
 
 static void WriteLogicalScreenDescriptor(const FrameBuffer& fb)
 {
-    uint16_t w = fb.Width() / WIDTH_DIVISOR;
-    uint16_t h = fb.Height();
+    auto w = fb.Width() / size_divisor;
+    auto h = fb.Height() * 2 / size_divisor;
 
     fputc(w & 0xff, file);
     fputc(w >> 8, file);
@@ -77,61 +79,57 @@ static void WriteGlobalColourTable()
     }
 }
 
-static void WriteImageDescriptor(uint16_t wLeft_, uint16_t wTop_, uint16_t wWidth_, uint16_t wHeight_)
+static void WriteImageDescriptor(int left, int top, int width, int height)
 {
-    fputc(0x2c, file);             // Image separator character = ','
+    fputc(',', file);   // image separator
 
-    fputc(wLeft_ & 0xff, file);    // left
-    fputc(wLeft_ >> 8, file);
-    fputc(wTop_ & 0xff, file);     // top
-    fputc(wTop_ >> 8, file);
-    fputc(wWidth_ & 0xff, file);   // width
-    fputc(wWidth_ >> 8, file);
-    fputc(wHeight_ & 0xff, file);  // height
-    fputc(wHeight_ >> 8, file);
+    fputc(left & 0xff, file);
+    fputc(left >> 8, file);
+    fputc(top & 0xff, file);
+    fputc(top >> 8, file);
+    fputc(width & 0xff, file);
+    fputc(width >> 8, file);
+    fputc(height & 0xff, file);
+    fputc(height >> 8, file);
 
     fputc(0x00 | (0x7 & (COLOUR_DEPTH - 1)), file); // information on the local colour table
 }
 
-static void WriteGraphicControlExtension(uint16_t wDelay_, uint8_t bTransIdx_)
+static long WriteGraphicControlExtension(int delay_ms, uint8_t trans_idx)
 {
     fputc(0x21, file);     // GIF extension code
     fputc(0xf9, file);     // graphic control label
     fputc(0x04, file);     // data length
 
-    uint8_t bFlags = 0;
-    bFlags |= (1 << 2);
-    if (bTransIdx_ != 0xff) bFlags |= 1;
-    fputc(bFlags, file);   // Bits 7-5: reserved
+    uint8_t flags = (1 << 2);
+    if (trans_idx != 0xff) flags |= (1 << 0);
+    fputc(flags, file); // Bits 7-5: reserved
                         // Bits 4-2: disposal method (0=none, 1=leave, 2=restore bkg, 3=restore prev)
                         // Bit 1: user input field
                         // Bit 0: transparent colour flag
 
-    fputc(wDelay_ & 0xff, file);   // delay time (ms)
-    fputc(wDelay_ >> 8, file);
+    auto delay_pos = ftell(file);
 
-    fputc((bFlags & 1) ? bTransIdx_ : 0x00, file); // Transparent colour index, or 0 if unused
-    fputc(0x00, file);     // Data sub-block terminator
+    fputc(delay_ms & 0xff, file);
+    fputc(delay_ms >> 8, file);
+
+    fputc((flags & 1) ? trans_idx : 0x00, file);
+    fputc(0x00, file);  // Data sub-block terminator
+
+    return delay_pos;
 }
 
-static bool WriteGraphicControlExtensionDelay(long lOffset_, uint16_t wDelay_)
+static bool WriteGraphicControlExtensionDelay(long offset, int delay_100ths)
 {
-    // Save current position
-    long lOldPos = ftell(file);
+    auto prev_pos = ftell(file);
 
-    // Seek to delay offset
-    if (lOffset_ < 0 || fseek(file, lOffset_, SEEK_SET) != 0)
-        return false;
+    if (fseek(file, offset, SEEK_SET) == 0)
+    {
+        fputc(delay_100ths & 0xff, file);
+        fputc(delay_100ths >> 8, file);
+    }
 
-    // Write delay time (in 1/100ths second)
-    fputc(wDelay_ & 0xff, file);
-    fputc(wDelay_ >> 8, file);
-
-    // Return to original position
-    if (lOldPos < 0 || fseek(file, lOldPos, SEEK_SET) != 0)
-        return false;
-
-    return true;
+    return fseek(file, prev_pos, SEEK_SET) == 0;
 }
 
 static void WriteNetscapeLoopExtension()
@@ -140,15 +138,15 @@ static void WriteNetscapeLoopExtension()
 
     fputc(0x21, file);     // GIF Extension code
     fputc(0xff, file);     // Application Extension Label
-    fputc(0x0b, file);     // Length of Application Block (eleven bytes of data to follow)
+    fputc(0x0b, file);     // Length of Application Block
 
     fwrite("NETSCAPE2.0", 11, 1, file);
 
-    fputc(0x03, file);     //Length of Data Sub-Block (three bytes of data to follow)
+    fputc(0x03, file);          // Length of Data Sub-Block
     fputc(0x01, file);
-    fputc(loops & 0xff, file);     // 2-byte loop iteration count
+    fputc(loops & 0xff, file);  // 2-byte loop iteration count
     fputc(loops >> 8, file);
-    fputc(0x00, file);     // Data sub-block terminator
+    fputc(0x00, file);          // Data sub-block terminator
 }
 
 static void WriteFileTerminator()
@@ -158,90 +156,83 @@ static void WriteFileTerminator()
 
 
 // Compare our copy of the screen with the new display contents
-static bool GetChangeRect(uint8_t* pb_, const FrameBuffer& fb)
+static bool GetChangeRect(const std::vector<uint8_t>& gif_frame, const FrameBuffer& fb)
 {
-    int l, t, r, b, w, h;
+    int l, t, r, b, x, y;
     l = t = r = b = 0;
 
-    uint16_t width = fb.Width() / WIDTH_DIVISOR;
-    uint16_t height = fb.Height();
+    auto width = fb.Width() / size_divisor;
+    auto height = fb.Height() * 2 / size_divisor;
 
-    uint8_t* pbC = pb_;
-
-    // Search down for the top-most change
-    for (h = 0; h < height; h++)
+    auto change_offset = 0;
+    for (y = 0; y < height; y++)
     {
-        auto pb = fb.GetLine(h);
+        auto pb = fb.GetLine(y / (2 / size_divisor));
 
-        // Scan the full width of the current line
-        for (w = 0; w < width; w++, pbC++, pb += WIDTH_DIVISOR)
+        for (x = 0; x < width; x++, change_offset++, pb += size_divisor)
         {
-            if (*pbC != *pb)
+            if (gif_frame [change_offset] != *pb)
             {
                 // We've found a single pixel in the change rectangle
                 // The top position is the only known valid side so far
-                l = r = w;
-                t = b = h;
+                l = r = x;
+                t = b = y;
                 goto found_top;
             }
         }
     }
 
-    // No changes found?
-    if (h == height)
+    if (y == height)
         return false;
 
 found_top:
-    pbC = pb_ + width * height - 1;
+    change_offset = width * height - 1;
 
-    // Search up for the bottom-most change
-    for (h = height - 1; h >= t; h--)
+    for (y = height - 1; y >= t; y--)
     {
-        auto pb = fb.GetLine(h);
-        pb += (width - 1) * WIDTH_DIVISOR;
+        auto pb = fb.GetLine(y / (2 / size_divisor));
+        pb += (width - 1) * size_divisor;
 
         // Scan the full width of the line, right to left
-        for (w = width - 1; w >= 0; w--, pbC--, pb -= WIDTH_DIVISOR)
+        for (x = width - 1; x >= 0; x--, change_offset--, pb -= size_divisor)
         {
-            if (*pbC != *pb)
+            if (gif_frame[change_offset] != *pb)
             {
                 // We've now found the bottom of the rectangle
-                b = h;
+                b = y;
 
                 // Update left/right extents if the change position helps us
-                if (w < l) l = w;
-                if (w > r) r = w;
+                if (x < l) l = x;
+                if (x > r) r = x;
                 goto found_bottom;
             }
         }
     }
 
 found_bottom:
-    pbC = pb_ + width * t;
+    change_offset = width * t;
 
-    // Scan within the inclusive vertical extents of the change rect
-    for (h = t; h <= b; h++, pbC += width)
+    for (y = t; y <= b; y++, change_offset += width)
     {
-        auto pb = fb.GetLine(h);
+        auto pb = fb.GetLine(y / (2 / size_divisor));
 
-        // Scan the unknown left strip
-        for (w = 0; w < l; w++)
+        for (x = 0; x < l; x++)
         {
-            if (pbC[w] != pb[w * WIDTH_DIVISOR])
+            if (gif_frame[change_offset + x] != pb[x * size_divisor])
             {
                 // Reduce the left edge to the change point
-                if (w < l) l = w;
+                if (x < l) l = x;
                 break;
             }
         }
 
         // Scan the unknown right strip
-        for (w = width - 1; w > r; w--)
+        for (x = width - 1; x > r; x--)
         {
-            if (pbC[w] != pb[w * WIDTH_DIVISOR])
+            if (gif_frame[change_offset + x] != pb[x * size_divisor])
             {
                 // Increase the right edge to the change point
-                if (w > r) r = w;
+                if (x > r) r = x;
                 break;
             }
         }
@@ -256,58 +247,58 @@ found_bottom:
 }
 
 // Update current image and determine sub-region difference to encode
-static uint8_t UpdateImage(uint8_t* pb_, const FrameBuffer& fb)
+static uint8_t UpdateImage(std::vector<uint8_t>& gif_frame, const FrameBuffer& fb)
 {
-    uint16_t width = fb.Width() / WIDTH_DIVISOR;
+    uint16_t width = fb.Width() / size_divisor;
     uint8_t abUsed[1 << COLOUR_DEPTH] = { 0 };
-    auto pbSub_ = pbSub;
+    auto pbSub_ = diff_frame.data();
 
     // Move to top-left of sub-image
-    auto pb = pb_ + (wt * width) + wl;
+    auto pb = gif_frame.data() + (wt * width) + wl;
 
     auto bColour = *pb;
     int nRun = 0, nTrans = 0;
 
     for (int y = wt; y < wt + wh; y++, pb += width)
     {
-        auto pbScr = fb.GetLine(y);
-        pbScr += (wl * WIDTH_DIVISOR);
+        auto pbScr = fb.GetLine(y / (2 / size_divisor));
+        pbScr += (wl * size_divisor);
 
-        for (int x = 0; x < ww; x++, pbScr += WIDTH_DIVISOR)
+        for (int x = 0; x < ww; x++, pbScr += size_divisor)
         {
             uint8_t bOld = pb[x], bNew = *pbScr;
             pb[x] = bNew;
             abUsed[bNew] = 1;
 #if 0
-            * pbSub_++ = bNew; // force full redraw for testing
+            *pbSub_++ = bNew; // force full redraw for testing
 #else
-            bool fMatch = (bNew == bColour);
-            bool fTrans = (bNew == bOld);
+            bool is_match = (bNew == bColour);
+            bool is_transparent = (bNew == bOld);
 
             // End of a colour run?
-            if (!fMatch && nRun > nTrans)
+            if (!is_match && nRun > nTrans)
             {
                 memset(pbSub_, bColour, nRun);
                 pbSub_ += nRun;
             }
             // End of a transparency run, or colour/transparent run of equal size?
-            else if (!fTrans && (nTrans > nRun || (!fMatch && nRun)))
+            else if (!is_transparent && (nTrans > nRun || (!is_match && nRun)))
             {
                 memset(pbSub_, 0xff, nTrans);
                 pbSub_ += nTrans;
             }
             // Continuing an existing run of either type?
-            else if (fMatch || fTrans)
+            else if (is_match || is_transparent)
             {
-                if (fMatch) nRun++;
-                if (fTrans) nTrans++;
+                if (is_match) nRun++;
+                if (is_transparent) nTrans++;
                 continue;
             }
 
             // Start a new run with this pixel
             bColour = bNew;
             nRun = 1;
-            nTrans = fTrans ? 1 : 0;
+            nTrans = is_transparent ? 1 : 0;
 #endif
         }
     }
@@ -333,21 +324,25 @@ static uint8_t UpdateImage(uint8_t* pb_, const FrameBuffer& fb)
     {
         // Replace the placeholder value with it
         for (int i = 0; i < ww * wh; i++)
-            if (pbSub[i] == 0xff)
-                pbSub[i] = bTrans;
+        {
+            if (diff_frame[i] == 0xff)
+                diff_frame[i] = bTrans;
+        }
 
         // Return the transparency position
         return bTrans;
     }
 
     // Top-left of sub-image
-    pb = pb_ + (wt * width) + wl;
+    pb = gif_frame.data() + (wt * width) + wl;
 
     // In the very unlikely event of no free palette positions, give up on transparency
     // and replace the place-holder with the original pixel colour value
     for (int i = 0; i < ww * wh; i++)
-        if (pbSub[i] == 0xff)
-            pbSub[i] = pb[width * (i / ww) + (i % ww)];
+    {
+        if (diff_frame[i] == 0xff)
+            diff_frame[i] = pb[width * (i / ww) + (i % ww)];
+    }
 
     // No transparency
     return 0xff;
@@ -355,7 +350,7 @@ static uint8_t UpdateImage(uint8_t* pb_, const FrameBuffer& fb)
 
 //////////////////////////////////////////////////////////////////////////////
 
-bool Start(bool fAnimLoop_)
+bool Start(int flags)
 {
     if (file)
         return false;
@@ -368,42 +363,37 @@ bool Start(bool fAnimLoop_)
         return false;
     }
 
-    // Reset the frame counters
-    nDelay = 0;
-    lDelayOffset = 0;
+    size_divisor = (flags & HALFSIZE) ? 2 : 1;
+    loop_state = (flags & LOOP) ? LoopState::IgnoreChange : LoopState::None;
+    frame_skip = std::min(std::max(0, GetOption(gifframeskip)), 3);
 
-    // Recording a looped animation?
-    nLoopState = fAnimLoop_ ? kIgnoreFirstChange : kNone;
+    delay_frames = 0;
+    delay_file_offset = 0;
 
-    Frame::SetStatus("Recording GIF {}", fAnimLoop_ ? "loop" : "animation");
+    Frame::SetStatus("Recording GIF {}", (flags & LOOP) ? "loop" : "animation");
     return true;
 }
 
 void Stop()
 {
-    // Ignore if we're not recording
     if (!file)
         return;
 
-    // Add any final delay to allow for identical frames at the end
-    if (lDelayOffset)
-        WriteGraphicControlExtensionDelay(lDelayOffset, nDelay * 2);
+    if (delay_file_offset)
+    {
+        WriteGraphicControlExtensionDelay(delay_file_offset, delay_frames * 2);
+        delay_file_offset = 0;
+    }
 
     WriteFileTerminator();
     file.reset();
-    file = nullptr;
-
-    delete[] pbCurr; pbCurr = nullptr;
-    delete[] pbFirst; pbFirst = nullptr;
-    delete[] pbSub; pbSub = nullptr;
-
     Frame::SetStatus("Saved {}", gif_path.string());
 }
 
-void Toggle(bool fAnimLoop_)
+void Toggle(int flags)
 {
     if (!file)
-        Start(fAnimLoop_);
+        Start(flags);
     else
         Stop();
 }
@@ -416,97 +406,75 @@ bool IsRecording()
 
 void AddFrame(const FrameBuffer& fb)
 {
-    // Fail if we're not recording
     if (!file)
         return;
 
-    // Count the frames between changes
-    nDelay++;
+    delay_frames++;
 
-    uint16_t width = fb.Width() / WIDTH_DIVISOR;
-    uint16_t height = fb.Height();
-    uint32_t size = (uint32_t)width * (uint32_t)height;
+    auto width = fb.Width() / size_divisor;
+    auto height = fb.Height() * 2 / size_divisor;
+    auto size = width * height;
 
-    // If this is the first frame, write the file headers
     if (ftell(file) == 0)
     {
-        pbCurr = new uint8_t[size];
-        pbSub = new uint8_t[size];
-        memset(pbCurr, 0xff, size);
+        current_frame.resize(size);
+        diff_frame.resize(size);
+        std::fill(current_frame.begin(), current_frame.end(), 0xff);
 
-        // File header
         fwrite("GIF89a", 6, 1, file);
-
-        // Write the image dimensions and palette
         WriteLogicalScreenDescriptor(fb);
         WriteGlobalColourTable();
-
-        // Set the animation to loop back to the start when it finishes
         WriteNetscapeLoopExtension();
     }
 
-    // GIF isn't suited to full framerate recording, so frame-skip
-    static int nFrames;
-    if ((nFrames++ % nFrameSkip))
+    static int frame_count;
+    if ((frame_count++ % (frame_skip + 1)))
         return;
 
-    // Return if there were no changes from the last frame
-    if (!GetChangeRect(pbCurr, fb))
+    if (!GetChangeRect(current_frame, fb))
         return;
 
-    // If recording a loop, force this frame to be encoded in full
-    if (nLoopState == kWaitLoopStart)
+    if (loop_state == LoopState::WaitStart)
     {
         // Invalidate the stored image and mark the whole region
-        memset(pbCurr, 0xff, size);
+        std::fill(current_frame.begin(), current_frame.end(), 0xff);
         wl = wt = 0;
         ww = width;
         wh = height;
-        nDelay = 0;
+        delay_frames = 0;
     }
 
-    // Update our copy and encode the difference in the changed region
-    auto bTrans = UpdateImage(pbCurr, fb);
+    auto trans_idx = UpdateImage(current_frame, fb);
 
-    // If recording a loop, wait for the first real change
-    if (nLoopState == kIgnoreFirstChange)
+    if (loop_state == LoopState::IgnoreChange)
     {
-        nLoopState = kWaitLoopStart;
+        loop_state = LoopState::WaitStart;
         return;
     }
-    // If recording a loop, make a copy of the first frame
-    else if (nLoopState == kWaitLoopStart)
+
+    if (loop_state == LoopState::WaitStart)
     {
-        nLoopState = kLoopStarted;
-        pbFirst = new uint8_t[size];
-        memcpy(pbFirst, pbCurr, size);
+        loop_state = LoopState::Started;
+        first_frame = current_frame;
     }
-    // If we're looking for the end of a loop, compare with the first frame
-    else if (pbFirst && !memcmp(pbFirst, pbCurr, size))
+    else if (current_frame == first_frame)
     {
-        delete[] pbFirst; pbFirst = nullptr;
         Stop();
         return;
     }
 
-    // Write any accumulated delay of identical frames to the previous header
-    if (lDelayOffset)
+    if (delay_file_offset)
     {
-        WriteGraphicControlExtensionDelay(lDelayOffset, nDelay * 2);
-        nDelay = 0;
+        WriteGraphicControlExtensionDelay(delay_file_offset, delay_frames * 2);
+        delay_frames = 0;
     }
 
-    // Write the GCE, storing its offset for the following delay
-    lDelayOffset = ftell(file) + 4;
-    WriteGraphicControlExtension(0, bTrans);
+    delay_file_offset = WriteGraphicControlExtension(0, trans_idx);
 
-    // Write the image header and changed frame data
     WriteImageDescriptor(wl, wt, ww, wh);
 
-    // Write the compressed image data
-    GifCompressor* pgc = new GifCompressor;
-    if (pgc) pgc->WriteDataBlocks(file, ww * wh, COLOUR_DEPTH);
-    delete pgc;
+    auto pgc = std::make_unique<GifCompressor>();
+    pgc->WriteDataBlocks(file, ww * wh, COLOUR_DEPTH);
 }
 
 } // namespace GIF
@@ -624,7 +592,7 @@ void BitPacker::WriteFlush()
 // Initialize a root node for each root code
 void GifCompressor::InitRoots()
 {
-    uint16_t nofrootcodes = 1 << COLOUR_DEPTH;
+    uint16_t nofrootcodes = 1 << GIF::COLOUR_DEPTH;
 
     for (uint16_t i = 0; i < nofrootcodes; i++)
     {
@@ -638,7 +606,7 @@ void GifCompressor::InitRoots()
 // The stringtable is flushed by removing the outlets of all root nodes
 void GifCompressor::FlushStringTable()
 {
-    uint16_t nofrootcodes = 1 << COLOUR_DEPTH;
+    uint16_t nofrootcodes = 1 << GIF::COLOUR_DEPTH;
 
     for (uint16_t i = 0; i < nofrootcodes; i++)
         axon[i] = 0;
@@ -670,7 +638,7 @@ uint32_t GifCompressor::DoNext()
     }
 
     // Follow the string table and the data stream to the end of the longest string that has a code
-    pixel = GIF::pbSub[curordinal];
+    pixel = GIF::diff_frame[curordinal];
 
     while ((down = FindPixelOutlet(up, pixel)) != 0)
     {
@@ -682,7 +650,7 @@ uint32_t GifCompressor::DoNext()
             return curordinal;
         }
 
-        pixel = GIF::pbSub[curordinal];
+        pixel = GIF::diff_frame[curordinal];
     }
 
     // Submit 'up' which is the code of the longest string ...
@@ -717,30 +685,18 @@ uint32_t GifCompressor::WriteDataBlocks(FILE* bf, uint32_t nof, uint16_t dd)
     nofdata = nof;              // number of pixels in data stream
 
     curordinal = 0;             // pixel #0 is next to be processed
-    pixel = GIF::pbSub[curordinal]; // get pixel #0
+    pixel = GIF::diff_frame[curordinal]; // get pixel #0
 
-    nbits = COLOUR_DEPTH + 1;       // initial size of compression codes
+    nbits = GIF::COLOUR_DEPTH + 1;  // initial size of compression codes
     cc = (1 << (nbits - 1));        // 'cc' is the lowest code requiring 'nbits' bits
     eoi = cc + 1;                   // 'end-of-information'-code
-    freecode = (uint16_t)cc + 2;        // code of the next entry to be added to the stringtable
+    freecode = static_cast<uint16_t>(cc + 2); // code of the next entry to be added to the stringtable
 
-    bp = new BitPacker(bf);     // object that does the packing of the codes and renders them to the binary file 'bf'
-    axon = new uint16_t[4096];
-    next = new uint16_t[4096];
-    pix = new uint8_t[4096];
+    bp = std::make_unique<BitPacker>(bf);     // object that does the packing of the codes and renders them to the binary file 'bf'
 
-    if (!pix || !next || !axon || !bp)
-    {
-        delete[] pix;
-        delete[] next;
-        delete[] axon;
-        delete bp;
-        return 0;
-    }
-
-    InitRoots();                // initialize the string table's root nodes
-    fputc(COLOUR_DEPTH, bf);        // Write what the GIF specification calls the "code size", which is the colour depth
-    bp->Submit(cc, nbits);      // Submit one 'cc' as the first code
+    InitRoots();                    // initialize the string table's root nodes
+    fputc(GIF::COLOUR_DEPTH, bf);   // Write what the GIF specification calls the "code size", which is the colour depth
+    bp->Submit(cc, nbits);          // Submit one 'cc' as the first code
 
     for (;;)
     {
@@ -752,26 +708,18 @@ uint32_t GifCompressor::WriteDataBlocks(FILE* bf, uint32_t nof, uint16_t dd)
             bp->WriteFlush();       // write remaining codes including this 'eoi' to the binary file
             fputc(0x00, bf);        // write an empty data block to signal the end of "raster data" section in the file
 
-            delete[] axon;
-            delete[] next;
-            delete[] pix;
-
-            uint32_t byteswritten = 2 + bp->byteswritten;
-            delete bp;
-            return byteswritten;
+            return bp->byteswritten + 2;
         }
 
         if (freecode == (1U << nbits))  // if the latest code added to the stringtable exceeds 'nbits' bits:
             nbits++;                    // increase size of compression codes by 1 bit
 
-        freecode++;
-
-        if (freecode == 0xfff)
+        if (++freecode == 0xfff)
         {
             FlushStringTable();     // avoid stringtable overflow
             bp->Submit(cc, nbits);  // tell the decoding software to flush its stringtable
             nbits = dd + 1;
-            freecode = (uint16_t)cc + 2;
+            freecode = static_cast<uint16_t>(cc + 2);
         }
     }
 }

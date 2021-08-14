@@ -792,9 +792,25 @@ void UpdateMenuFromOptions()
     EnableItem(IDM_RECORD_AVI_HALF, !AVI::IsRecording());
     EnableItem(IDM_RECORD_AVI_STOP, AVI::IsRecording());
 
-    EnableItem(IDM_RECORD_GIF_START, !GIF::IsRecording());
+    EnableItem(IDM_RECORD_GIF, !GIF::IsRecording());
+    EnableItem(IDM_RECORD_GIF_HALF, !GIF::IsRecording());
     EnableItem(IDM_RECORD_GIF_LOOP, !GIF::IsRecording());
+    EnableItem(IDM_RECORD_GIF_LOOP_HALF, !GIF::IsRecording());
     EnableItem(IDM_RECORD_GIF_STOP, GIF::IsRecording());
+
+    int giffpsid = IDM_RECORD_GIF_FRAMERATE_50;
+    switch (GetOption(gifframeskip))
+    {
+    case 1: giffpsid = IDM_RECORD_GIF_FRAMERATE_25; break;
+    case 2: giffpsid = IDM_RECORD_GIF_FRAMERATE_16; break;
+    case 3: giffpsid = IDM_RECORD_GIF_FRAMERATE_12; break;
+    default: SetOption(gifframeskip, 0); break;
+    }
+    CheckMenuRadioItem(hmenu, IDM_RECORD_GIF_FRAMERATE_50, IDM_RECORD_GIF_FRAMERATE_12, giffpsid, MF_BYCOMMAND);
+
+    HMENU hmenuRecord = GetSubMenu(hmenu, 2);
+    HMENU hmenuGif = GetSubMenu(hmenuRecord, 1);
+    EnableMenuItem(hmenuGif, 7, MF_BYPOSITION | (!GIF::IsRecording() ? MF_ENABLED : MF_GRAYED));
 
     EnableItem(IDM_RECORD_WAV_START, !WAV::IsRecording());
     EnableItem(IDM_RECORD_WAV_SEGMENT, !WAV::IsRecording());
@@ -1482,9 +1498,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_RECORD_AVI_HALF:       Actions::Do(Action::RecordAviHalf);     break;
         case IDM_RECORD_AVI_STOP:       Actions::Do(Action::RecordAviStop);     break;
 
-        case IDM_RECORD_GIF_START:      Actions::Do(Action::RecordGif);         break;
+        case IDM_RECORD_GIF:            Actions::Do(Action::RecordGif);         break;
+        case IDM_RECORD_GIF_HALF:       Actions::Do(Action::RecordGifHalf);     break;
         case IDM_RECORD_GIF_LOOP:       Actions::Do(Action::RecordGifLoop);     break;
+        case IDM_RECORD_GIF_LOOP_HALF:  Actions::Do(Action::RecordGifLoopHalf); break;
         case IDM_RECORD_GIF_STOP:       Actions::Do(Action::RecordGifStop);     break;
+
+        case IDM_RECORD_GIF_FRAMERATE_50:
+        case IDM_RECORD_GIF_FRAMERATE_25:
+        case IDM_RECORD_GIF_FRAMERATE_16:
+        case IDM_RECORD_GIF_FRAMERATE_12:
+            SetOption(gifframeskip, wId - IDM_RECORD_GIF_FRAMERATE_50);
+            break;
 
         case IDM_RECORD_WAV_START:      Actions::Do(Action::RecordWav);         break;
         case IDM_RECORD_WAV_SEGMENT:    Actions::Do(Action::RecordWavSegment);  break;
@@ -1568,7 +1593,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         }
 
         case IDM_HELP_ABOUT:    DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_ABOUT), hwnd_, AboutDlgProc, 0);   break;
-
 
         case IDM_SYSTEM_SPEED_50:
         case IDM_SYSTEM_SPEED_100:

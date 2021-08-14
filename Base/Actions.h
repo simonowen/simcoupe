@@ -30,7 +30,7 @@ enum class Action
     TogglePrinter, FlushPrinter,
     ToggleFullscreen, ToggleTV, ToggleSmoothing, ToggleMotionBlur,
     RecordAvi, RecordAviHalf, RecordAviStop,
-    RecordGif, RecordGifLoop, RecordGifStop,
+    RecordGif, RecordGifHalf, RecordGifLoop, RecordGifLoopHalf, RecordGifStop,
     RecordWav, RecordWavSegment, RecordWavStop,
     SpeedNormal, SpeedSlower, SpeedFaster, SpeedTurbo, ToggleTurbo,
     Reset, Nmi, Pause, FrameStep,

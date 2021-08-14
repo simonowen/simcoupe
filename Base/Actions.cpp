@@ -84,7 +84,9 @@ static const std::vector<ActionEntry> actions =
     { Action::RecordAviHalf, "RecordAviHalf", "Record AVI half-size" },
     { Action::RecordAviStop, "RecordAviStop", "Stop AVI Recording" },
     { Action::RecordGif, "RecordGif", "Record GIF animation" },
+    { Action::RecordGifHalf, "RecordGifHalf", "Record GIF animation (50%)" },
     { Action::RecordGifLoop, "RecordGifLoop", "Record GIF loop" },
+    { Action::RecordGifLoopHalf, "RecordGifLoopHalf", "Record GIF loop (50%)" },
     { Action::RecordGifStop, "RecordGifStop", "Stop GIF Recording" },
     { Action::RecordWav, "RecordWav", "Record WAV audio" },
     { Action::RecordWavSegment, "RecordWavSegment", "Record WAV segment" },
@@ -282,11 +284,19 @@ bool Do(Action action, bool pressed/*=true*/)
             break;
 
         case Action::RecordGif:
-            GIF::Toggle(false);
+            GIF::Toggle(GIF::FULLSIZE);
+            break;
+
+        case Action::RecordGifHalf:
+            GIF::Toggle(GIF::HALFSIZE);
             break;
 
         case Action::RecordGifLoop:
-            GIF::Toggle(true);
+            GIF::Toggle(GIF::FULLSIZE | GIF::LOOP);
+            break;
+
+        case Action::RecordGifLoopHalf:
+            GIF::Toggle(GIF::HALFSIZE | GIF::LOOP);
             break;
 
         case Action::RecordGifStop:

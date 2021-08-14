@@ -39,6 +39,8 @@ struct Config
     bool blackborder = false;           // Black border around emulated screen?
     bool tryvrr = true;                 // Try to use Variable Refresh Rate, if supported?
 
+    int gifframeskip = 0;               // GIF frameskip (0=50fps)
+
     std::string rom;                    // Custom SAM ROM path (blank for built-in v3.0)
     bool romwrite = false;              // Enable writes to ROM?
     bool atombootrom = true;            // Use Atom boot ROM if Atom/AtomLite device is connected?
