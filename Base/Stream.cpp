@@ -262,10 +262,6 @@ ZipStream::ZipStream(unzFile file, const std::string& filepath, const std::strin
     : Stream(filepath, true), m_file(file)
 {
     m_short_name = filename + " (zip)";
-
-    unz_file_info info{};
-    unzGetCurrentFileInfo(m_file, &info, nullptr, 0, nullptr, 0, nullptr, 0);
-    m_size = info.uncompressed_size;
 }
 
 void ZipStream::Close()
@@ -275,12 +271,15 @@ void ZipStream::Close()
 
 size_t ZipStream::GetSize()
 {
-    return m_size;
+    unz_file_info info{};
+    unzGetCurrentFileInfo(m_file, &info, nullptr, 0, nullptr, 0, nullptr, 0);
+    return info.uncompressed_size;
 }
 
 void ZipStream::Rewind()
 {
-    unzSetOffset(m_file, 0);
+    unzCloseCurrentFile(m_file);
+    unzOpenCurrentFile(m_file);
 }
 
 size_t ZipStream::Read(void* buffer, size_t len)

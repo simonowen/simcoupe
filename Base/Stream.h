@@ -104,7 +104,7 @@ protected:
     size_t m_size = 0;
 };
 
-struct unzFileCloser { void operator()(unzFile file) { unzCloseCurrentFile(file);  unzClose(file); } };
+struct unzFileCloser { void operator()(unzFile file) { unzCloseCurrentFile(file); unzClose(file); } };
 using unique_unzFile = unique_resource<unzFile, nullptr, unzFileCloser>;
 
 class ZipStream final : public Stream
@@ -120,7 +120,6 @@ public:
 
 protected:
     unique_unzFile m_file;
-    size_t m_size = 0;
 };
 
 #endif  // HAVE_LIBZ
