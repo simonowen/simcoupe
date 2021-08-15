@@ -11,6 +11,10 @@ if (CMAKE_TOOLCHAIN_FILE)
   include(${CMAKE_TOOLCHAIN_FILE})
 endif()
 
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
 set(BUILD_BACKEND "auto" CACHE STRING "Back-end framework for video/sound/input")
 set_property(CACHE BUILD_BACKEND PROPERTY STRINGS auto win32 sdl)
 
