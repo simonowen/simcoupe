@@ -173,6 +173,7 @@ void out_vmpr(uint8_t val);
 void out_lepr(uint8_t val);
 void out_hepr(uint8_t val);
 void out_clut(uint16_t port, uint8_t val);
+void out_border(uint8_t val);
 
 bool ScreenDisabled();
 bool ScreenMode3or4();

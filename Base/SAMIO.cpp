@@ -103,7 +103,7 @@ bool Init()
     bool fRet = true;
     Exit(true);
 
-    m_state.lpen = m_state.border = 0;
+    m_state.lpen = 0;
     m_state.keyboard = KEYBOARD_EAR_MASK;
     m_state.status = 0xff;
 
@@ -112,6 +112,7 @@ bool Init()
     out_lmpr(0);
     out_hmpr(0);
     out_vmpr(0);
+    out_border(0);
 
     key_matrix.fill(0xff);
 
@@ -337,7 +338,6 @@ void out_hepr(uint8_t val)
     UpdatePaging();
 }
 
-
 void out_clut(uint16_t port, uint8_t val)
 {
     auto clut_index = port & (NUM_CLUT_REGS - 1);
@@ -354,6 +354,35 @@ void out_clut(uint16_t port, uint8_t val)
     }
 }
 
+void out_border(uint8_t val)
+{
+    bool soff_change = ((m_state.border ^ val) & BORDER_SOFF_MASK) && (m_state.vmpr & VMPR_MDE1_MASK);
+    bool colour_change = ((m_state.border ^ val) & BORDER_COLOUR_MASK) != 0;
+
+    if (soff_change || colour_change)
+        Frame::Update();
+
+    if (soff_change)
+    {
+        if (m_state.border & BORDER_SOFF_MASK)
+        {
+            Frame::BorderChanged(val);
+        }
+        else
+        {
+            update_lpen();
+            update_hpen();
+
+            auto [b0, b1, b2, b3] = Frame::GetAsicData();
+            m_state.attr = b2;
+        }
+    }
+
+    if ((m_state.border ^ val) & BORDER_BEEP_MASK)
+        pBeeper->Out(BORDER_PORT, val);
+
+    m_state.border = val;
+}
 
 uint8_t In(uint16_t port)
 {
@@ -542,35 +571,9 @@ void Out(uint16_t port, uint8_t val)
     switch (port_low)
     {
     case BORDER_PORT:
-    {
-        bool soff_change = ((m_state.border ^ val) & BORDER_SOFF_MASK) && (m_state.vmpr & VMPR_MDE1_MASK);
-        bool colour_change = ((m_state.border ^ val) & BORDER_COLOUR_MASK) != 0;
-
-        if (soff_change || colour_change)
-            Frame::Update();
-
-        if (soff_change)
-        {
-            if (m_state.border & BORDER_SOFF_MASK)
-            {
-                Frame::BorderChanged(val);
-            }
-            else
-            {
-                update_lpen();
-                update_hpen();
-
-                auto [b0, b1, b2, b3] = Frame::GetAsicData();
-                m_state.attr = b2;
-            }
-        }
-
-        if ((m_state.border ^ val) & BORDER_BEEP_MASK)
-            pBeeper->Out(port, val);
-
-        m_state.border = val;
-    }
-    break;
+        if (m_state.border != val)
+            out_border(val);
+        break;
 
     case VMPR_PORT:
     {
