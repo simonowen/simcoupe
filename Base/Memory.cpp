@@ -55,6 +55,11 @@ namespace Memory
 bool full_contention = true;
 uint8_t *last_phys_read1, *last_phys_read2, *last_phys_write1, *last_phys_write2;
 
+uint8_t contention_mode1[CPU_CYCLES_PER_FRAME + 64];
+uint8_t contention_mode234[CPU_CYCLES_PER_FRAME + 64];
+uint8_t contention_4T[CPU_CYCLES_PER_FRAME + 64];
+const uint8_t* contention_ptr = contention_mode1;
+
 static bool fUpdateRom;
 
 static bool LoadRoms();
@@ -77,6 +82,27 @@ bool Init(bool fFirstInit_/*=false*/)
         // Stripe RAM in blocks of 0x00 every 128 bytes
         for (int i = 0; i < ROM0 * MEM_PAGE_SIZE; i += 0x100)
             memset(pMemory + i, 0x00, 0x80);
+
+        // Build memory contention tables.
+        for (unsigned t = 0; t < std::size(contention_mode1); ++t)
+        {
+            int line = t / CPU_CYCLES_PER_LINE;
+            auto line_cycle = (t + CPU_CYCLES_SCREEN_CONTENTION_OFFSET) % CPU_CYCLES_PER_LINE;
+            bool main_screen =
+                line >= TOP_BORDER_LINES &&
+                line < TOP_BORDER_LINES + GFX_SCREEN_LINES &&
+                line_cycle >= CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER;
+            bool mode1_band = !(line_cycle & 0x40);
+
+            auto mask = (main_screen || mode1_band) ? 7 : 3;
+            contention_mode1[t] = mask - ((t + 2) & mask);
+
+            mask = main_screen ? 7 : 3;
+            contention_mode234[t] = mask - ((t + 2) & mask);
+
+            mask = 3;
+            contention_4T[t] = mask - ((t + 2) & mask);
+        }
     }
 
     UpdateConfig();
@@ -95,6 +121,13 @@ void Exit(bool fReInit_/*=false*/)
 {
 }
 
+void UpdateContention()
+{
+    contention_ptr = !full_contention ? contention_4T :
+        ((IO::State().vmpr & VMPR_MODE_MASK) == VMPR_MODE_1) ? contention_mode1 :
+        IO::ScreenDisabled() ? contention_4T :
+        contention_mode234;
+}
 
 void UpdateRom()
 {

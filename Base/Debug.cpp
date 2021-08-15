@@ -102,6 +102,7 @@ namespace Debug
 bool Start(std::optional<int> bp_index)
 {
     Memory::full_contention = true;
+    Memory::UpdateContention();
 
     // Reset the last entry counters, unless we're started from a triggered breakpoint
     if (!bp_index.has_value() && nStepOutSP == -1)

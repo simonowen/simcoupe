@@ -119,11 +119,13 @@ inline void PageIn(Section section, int page)
 namespace Memory
 {
     extern bool full_contention;
+    extern const uint8_t* contention_ptr;
     extern uint8_t* last_phys_read1, * last_phys_read2, * last_phys_write1, * last_phys_write2;
 
     bool Init(bool fFirstInit_ = false);
     void Exit(bool fReInit_ = false);
 
+    void UpdateContention();
     void UpdateConfig();
     void UpdateRom();
 
@@ -142,20 +144,10 @@ namespace Memory
 
     inline int WaitStates(uint32_t frame_cycles, uint16_t addr)
     {
-        if (!afSectionContended[AddrSection(addr)])
-            return 0;
+        if (afSectionContended[AddrSection(addr)])
+            return contention_ptr[frame_cycles];
 
-        int line = frame_cycles / CPU_CYCLES_PER_LINE;
-        auto line_cycle = (frame_cycles + CPU_CYCLES_SCREEN_CONTENTION_OFFSET) % CPU_CYCLES_PER_LINE;
-        bool main_screen =
-            line >= TOP_BORDER_LINES &&
-            line < TOP_BORDER_LINES + GFX_SCREEN_LINES &&
-            line_cycle >= CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER;
-        bool mode1 = (!(line_cycle & 0x40)) && ((IO::State().vmpr & VMPR_MODE_MASK) == VMPR_MODE_1);
-
-        auto mask = (full_contention && !IO::ScreenDisabled() && (main_screen || mode1)) ? 7 : 3;
-        auto delay = (mask - ((frame_cycles + 2) & mask));
-        return delay;
+        return 0;
     }
 
     std::string PageDesc(int nPage_, bool fCompact_ = false);

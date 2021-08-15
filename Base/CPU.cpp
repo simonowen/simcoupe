@@ -75,7 +75,6 @@ bool Init(bool fFirstInit_/*=false*/)
     if (fFirstInit_)
     {
         InitEvents();
-
         AddEvent(EventType::FrameInterrupt, 0);
         AddEvent(EventType::InputUpdate, CPU_CYCLES_PER_FRAME * 3 / 4);
 

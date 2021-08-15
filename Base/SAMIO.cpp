@@ -324,6 +324,7 @@ void out_vmpr(uint8_t val)
     }
 
     m_state.vmpr = val & (VMPR_MODE_MASK | VMPR_PAGE_MASK);
+    Memory::UpdateContention();
 }
 
 void out_lepr(uint8_t val)
@@ -382,6 +383,9 @@ void out_border(uint8_t val)
         pBeeper->Out(BORDER_PORT, val);
 
     m_state.border = val;
+
+    if (soff_change)
+        Memory::UpdateContention();
 }
 
 uint8_t In(uint16_t port)
