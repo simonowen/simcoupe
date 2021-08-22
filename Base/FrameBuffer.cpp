@@ -156,6 +156,26 @@ int FrameBuffer::StringWidth(const std::string_view& str, int max_chars) const
     return m_pFont->StringWidth(str, max_chars);
 }
 
+int FrameBuffer::StringLength(const std::string_view& str) const
+{
+    bool expect_colour = false;
+    int len = 0;
+
+    for (uint8_t ch : str)
+    {
+        if (ch == '\n')
+            len = 0;
+        else if (ch == '\a')
+            expect_colour = true;
+        else if (expect_colour)
+            expect_colour = false;
+        else
+            len++;
+    }
+
+    return len;
+}
+
 void FrameBuffer::DrawString(int x, int y, const std::string_view& str)
 {
     DrawString(x, y, WHITE, str);

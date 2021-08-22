@@ -3011,6 +3011,10 @@ bool BptView::cmdNavigate(int nKey_, int nMods_)
 ////////////////////////////////////////////////////////////////////////////////
 // Trace View
 
+constexpr auto TRACE_ADDR_LABEL_LENGTH = 16;
+constexpr auto TRACE_DIS_LABEL_LENGTH = 12;
+constexpr auto TRACE_DIS_LENGTH = 18;
+
 TrcView::TrcView(Window* pParent_)
     : TextView(pParent_)
 {
@@ -3025,21 +3029,23 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
         fb.DrawString(nX_, nY_, "No instruction trace");
     else
     {
-        char szDis[32], sz[128], * psz = sz;
+        char szDis[32]{};
+        char sz[128]{}, *psz = sz;
 
         int nPos = (nNumTraces - GetLines() + 1 + nLine_ + TRACE_SLOTS) % TRACE_SLOTS;
-        TRACEDATA* pTD = &aTrace[nPos];
+        auto pTD = &aTrace[nPos];
 
-        Disassemble(pTD->abInstr, pTD->wPC, szDis, sizeof(szDis), 0);
+        Disassemble(pTD->abInstr, pTD->wPC, szDis, sizeof(szDis), m_use_symbols ? TRACE_DIS_LABEL_LENGTH : 0);
+        auto colour_len = static_cast<int>(strlen(szDis)) - fb.StringLength(szDis);
 
         if (m_use_symbols)
         {
-            auto sName = Symbol::LookupAddr(pTD->wPC, pTD->wPC, 12);
-            psz += sprintf(psz, "\ab%16s\aX %-18s", sName.c_str(), szDis);
+            auto sName = Symbol::LookupAddr(pTD->wPC, pTD->wPC, TRACE_ADDR_LABEL_LENGTH);
+            psz += sprintf(psz, "\ab%*s\aX %-*s", TRACE_ADDR_LABEL_LENGTH, sName.c_str(), TRACE_DIS_LENGTH + colour_len, szDis);
         }
         else
         {
-            psz += sprintf(psz, " %04X            %-18s", pTD->wPC, szDis);
+            psz += sprintf(psz, " %04X            %-*s", pTD->wPC, TRACE_DIS_LENGTH + colour_len, szDis);
         }
 
         if (nLine_ != GetLines() - 1)

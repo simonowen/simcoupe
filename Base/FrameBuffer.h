@@ -68,6 +68,7 @@ public:
 
     void SetFont(std::shared_ptr<Font> font);
     int StringWidth(const std::string_view& str, int max_chars=-1) const;
+    int StringLength(const std::string_view& str) const;
 
 protected:
     int m_width{};
