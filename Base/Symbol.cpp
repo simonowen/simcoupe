@@ -111,6 +111,40 @@ static bool Load(const std::string& path, AddrToSym& symtab, SymToAddr* valtab_p
     return true;
 }
 
+static bool LoadComet(AddrToSym& symtab, SymToAddr& valtab)
+{
+    symtab.clear();
+    valtab.clear();
+
+    auto mem = std::string(PageReadPtr(0x1c) + 0x1000, PageReadPtr(0x1c) + 0x1200);
+    if (mem.find("COMET Z80 assembler") == mem.npos)
+        return false;
+
+    auto sym_ptr = PageReadPtr(0x1b) + 0x3fff;
+    if (!*sym_ptr)
+        return false;
+
+    while (*sym_ptr)
+    {
+        auto len = *sym_ptr;
+        auto name = std::string(sym_ptr - len, sym_ptr);
+        std::reverse(name.begin(), name.end());
+        sym_ptr -= static_cast<size_t>(1) + len;
+
+        auto flags = sym_ptr[0];
+        if (flags == 0xff)
+        {
+            auto value = (sym_ptr[-2] << 8) | sym_ptr[-1];
+            symtab[value] = name;
+            valtab[tolower(name)] = value;
+        }
+
+        sym_ptr -= 3;
+    }
+
+    return true;
+}
+
 void Update(const std::string& path)
 {
     if (port_symbols.empty())
@@ -119,8 +153,8 @@ void Update(const std::string& path)
         Load(OSD::MakeFilePath(PathType::Resource, "samrom.map"), rom_symbols, &rom_values);
     if (samdos2_symbols.empty())
         Load(OSD::MakeFilePath(PathType::Resource, "samdos2.map"), samdos2_symbols, &samdos2_values);
-    if (!path.empty())
-        Load(path, ram_symbols, &symbol_values);
+    if (!path.empty() && !Load(path, ram_symbols, &symbol_values))
+        LoadComet(ram_symbols, symbol_values);
 }
 
 std::optional<int> LookupSymbol(const std::string& symbol)
