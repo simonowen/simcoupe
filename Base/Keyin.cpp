@@ -34,7 +34,7 @@ static int s_skipped_frames;
 
 void String(const std::string& text, bool map_chars)
 {
-    s_input_text = text + '\0'; // keep-alive end marker
+    s_input_text = text;
     s_map_chars = map_chars;
     s_skipped_frames = 0;
 }
@@ -57,22 +57,23 @@ bool CanType()
 
 bool IsTyping()
 {
+    if (s_input_text.empty())
+        return false;
+
+    if (++s_skipped_frames == MAX_STUCK_FRAMES)
+        s_input_text.clear();
+
     return !s_input_text.empty();
 }
 
 void Next()
 {
-    if (!IsTyping() || !CanType())
+    if (s_input_text.empty() || !CanType())
         return;
 
     auto pPage0 = PageReadPtr(0);
     if (pPage0[SYSVAR_FLAGS & MEM_PAGE_MASK] & FLAGS_NEW_KEY)
-    {
-        if (++s_skipped_frames == MAX_STUCK_FRAMES)
-            Stop();
-
         return;
-    }
 
     s_skipped_frames = 0;
 

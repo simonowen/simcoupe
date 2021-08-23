@@ -914,7 +914,7 @@ void SetAutoLoad(AutoLoadType type)
 
 void AutoLoad(AutoLoadType type, bool fOnlyAtStartup_/*=true*/)
 {
-    if (!GetOption(autoload) || (fOnlyAtStartup_ && !TestStartupScreen()))
+    if (!GetOption(autoload) || (fOnlyAtStartup_ && !TestStartupScreen(true)))
         return;
 
     if (type == AutoLoadType::Disk)
