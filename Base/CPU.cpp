@@ -178,6 +178,7 @@ void Reset(bool active)
     reset_asserted = active;
     if (reset_asserted)
     {
+        cpu.set_is_halted(false);
         cpu.set_iff1(false);
         cpu.set_pc(0);
         cpu.set_ir(0);
