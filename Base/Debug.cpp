@@ -1046,6 +1046,7 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         CPU::NMI();
         SetAddress(cpu.get_pc());
+        return true;
     }
 
     // zap
