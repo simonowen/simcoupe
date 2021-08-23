@@ -232,4 +232,24 @@ std::string LookupPort(uint8_t port, bool input_port)
     return (it != port_symbols.end()) ? (*it).second : "";
 }
 
+bool HasUserSymbols()
+{
+    return !ram_symbols.empty();
+}
+
+bool SaveSymbols(const std::string& path)
+{
+    unique_FILE file = fopen(path.c_str(), "wb");
+    if (!file)
+        return false;
+
+    for (auto& sym : ram_symbols)
+    {
+        auto [addr, name] = sym;
+        fputs(fmt::format("{:04X}={}\n", addr, name).c_str(), file);
+    }
+
+    return true;
+}
+
 } // namespace Symbol

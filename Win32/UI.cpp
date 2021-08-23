@@ -52,6 +52,7 @@
 #include "Options.h"
 #include "Parallel.h"
 #include "Sound.h"
+#include "Symbol.h"
 #include "Tape.h"
 #include "Video.h"
 #include "WAV.h"
@@ -775,6 +776,9 @@ void UpdateMenuFromOptions()
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 2 options
     EnableMenuItem(hmenuFile, 5, MF_BYPOSITION | (fFloppy2 ? MF_ENABLED : MF_GRAYED));
     EnableItem(IDM_FILE_FLOPPY2_EJECT, fInserted2);
+
+    Debug::UpdateSymbols();
+    EnableItem(IDM_FILE_EXPORT_SYMBOLS, fFloppy1 && fInserted1 && Symbol::HasUserSymbols());
 
     CheckOption(IDM_VIEW_FULLSCREEN, GetOption(fullscreen));
     CheckOption(IDM_VIEW_TVASPECT, GetOption(tvaspect));
@@ -1525,6 +1529,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_TOOLS_TAPE_BROWSER:    Actions::Do(Action::TapeBrowser);       break;
         case IDM_TOOLS_DEBUGGER:        Actions::Do(Action::Debugger);          break;
         case IDM_TOOLS_RASTER_DEBUG:    Actions::Do(Action::ToggleRasterDebug); break;
+        case IDM_FILE_EXPORT_SYMBOLS:   Actions::Do(Action::ExportSymbols);     break;
 
         case IDM_FILE_FLOPPY1_DEVICE:
             if (!FloppyStream::IsAvailable())

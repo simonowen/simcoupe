@@ -27,4 +27,7 @@ void Update(const std::string& path);
 std::optional<int> LookupSymbol(const std::string& symbol);
 std::string LookupAddr(uint16_t addr, uint16_t lookup_context, int max_len = 0, bool allow_offset = false);
 std::string LookupPort(uint8_t port, bool input_port);
+
+bool HasUserSymbols();
+bool SaveSymbols(const std::string& path);
 }

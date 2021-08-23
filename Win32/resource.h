@@ -166,6 +166,7 @@
 #define IDM_TOOLS_OPTIONS               40147
 #define IDM_FILE_NEW_DISK1              40155
 #define IDM_FILE_NEW_DISK2              40156
+#define IDM_FILE_EXPORT_SYMBOLS         40157
 #define IDM_VIEW_ZOOM_50                40162
 #define IDM_VIEW_ZOOM_100               40163
 #define IDM_VIEW_ZOOM_150               40164

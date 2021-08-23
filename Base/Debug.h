@@ -30,6 +30,7 @@ bool Start(std::optional<int> bp_index = std::nullopt);
 void Stop();
 void FrameEnd();
 void Refresh();
+void UpdateSymbols();
 
 void OnRet();
 void RetZHook();

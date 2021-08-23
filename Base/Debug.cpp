@@ -123,24 +123,7 @@ bool Start(std::optional<int> bp_index)
             AddTraceRecord();
         }
 
-        // Is drive 1 a floppy drive with a disk in it?
-        if (GetOption(drive1) == drvFloppy && pFloppy1->HasDisk())
-        {
-            std::string strPath = pFloppy1->DiskPath();
-
-            // Strip any file extension from the end
-            size_t nExt = strPath.rfind(".");
-            if (nExt != std::string::npos)
-                strPath = strPath.substr(0, nExt);
-
-            // Attempt to load user symbols from a corresponding .map file
-            Symbol::Update(strPath.append(".map"));
-        }
-        else
-        {
-            // Unload user symbols if there's no drive or disk
-            Symbol::Update("");
-        }
+        UpdateSymbols();
     }
 
     // Stop any existing debugger instance
@@ -179,6 +162,15 @@ void Refresh()
     {
         Debug::Start(bp_index);
     }
+}
+
+void UpdateSymbols()
+{
+    fs::path map_path;
+    if (GetOption(drive1) == drvFloppy && pFloppy1->HasDisk())
+        map_path = fs::path(pFloppy1->DiskPath()).replace_extension(".map");
+
+    Symbol::Update(map_path);
 }
 
 // Called on every RETurn, for step-out implementation
