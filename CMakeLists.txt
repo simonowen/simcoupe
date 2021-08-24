@@ -193,7 +193,7 @@ message(STATUS "Fetching github.com/kosarev/z80")
 FetchContent_Declare(
   z80
   GIT_REPOSITORY https://github.com/kosarev/z80.git
-  GIT_TAG 777e683c1135be39505310683761fbc4fc42941a )
+  GIT_TAG 33f1562cb59eb909aea2fb4a65d66622dd0a1f63 )
 FetchContent_Populate(z80)
 target_include_directories(${PROJECT_NAME} PRIVATE ${z80_SOURCE_DIR})
 

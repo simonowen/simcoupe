@@ -24,6 +24,7 @@
 
 #include "Debug.h"
 #include "Memory.h"
+#include "Options.h"
 #include "SAM.h"
 #include "SAMIO.h"
 #include "Tape.h"
@@ -74,7 +75,10 @@ struct sam_cpu : public z80::z80_cpu<sam_cpu>
 {
     using base = z80::z80_cpu<sam_cpu>;
 
-    void on_tick(unsigned t) { CPU::frame_cycles += t; }
+    void on_tick(unsigned t)
+    {
+        CPU::frame_cycles += t;
+    }
 
     void on_mreq_wait(z80::fast_u16 addr)
     {
@@ -108,6 +112,13 @@ struct sam_cpu : public z80::z80_cpu<sam_cpu>
         CPU::last_out_port = port;
         CPU::last_out_val = val;
         IO::Out(port, val);
+    }
+
+    z80::z80_variant on_get_z80_variant()
+    {
+        return GetOption(cmosz80) ?
+            z80::z80_variant::cmos :
+            z80::z80_variant::common;
     }
 
     void on_ei()

@@ -78,6 +78,7 @@ bool Init(bool fFirstInit_/*=false*/)
         AddEvent(EventType::FrameInterrupt, 0);
         AddEvent(EventType::InputUpdate, CPU_CYCLES_PER_FRAME * 3 / 4);
 
+        cpu.on_reset(false);
         fRet &= Memory::Init(true) && IO::Init();
     }
 
@@ -178,10 +179,7 @@ void Reset(bool active)
     reset_asserted = active;
     if (reset_asserted)
     {
-        cpu.set_is_halted(false);
-        cpu.set_iff1(false);
-        cpu.set_pc(0);
-        cpu.set_ir(0);
+        cpu.on_reset(true);
 
         Keyin::Stop();
         Tape::Stop();
