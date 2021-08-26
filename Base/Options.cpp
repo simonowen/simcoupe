@@ -156,6 +156,9 @@ bool Load(int argc_, char* argv_[])
     std::ifstream file(path);
     for (std::string line; std::getline(file, line); )
     {
+        if (!line.empty() && line.back() == '\r')
+            line.pop_back();
+
         std::stringstream ss(line);
         std::string key, value;
         if (std::getline(ss, key, '=') && std::getline(ss, value))
