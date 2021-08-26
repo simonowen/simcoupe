@@ -143,8 +143,7 @@ fs::path OSD::MakeFilePath(PathType type, const std::string& filename)
         fs::create_directories(path, error);
     }
 
-    if (!filename.empty())
-        path /= filename;
+    path /= filename;
 
     // Use the EXE location in portable mode, or if we can't find the resource.
     if (portable_mode || (type == PathType::Resource && !fs::exists(path)))

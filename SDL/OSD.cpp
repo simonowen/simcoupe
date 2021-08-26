@@ -129,8 +129,7 @@ fs::path OSD::MakeFilePath(PathType type, const std::string& filename)
         fs::create_directories(path, error);
     }
 
-    if (!filename.empty())
-        path /= filename;
+    path /= filename;
 
     return path;
 }
