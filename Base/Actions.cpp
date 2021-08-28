@@ -108,7 +108,7 @@ static const std::vector<ActionEntry> actions =
     { Action::Minimise, "Minimise", "Minimise window" },
     { Action::ExitApp, "ExitApp", "Exit application" },
     { Action::ToggleRasterDebug, "ToggleRasterDebug", "Toggle raster debugging" },
-    { Action::ExportSymbols, "ExportSymbols", "Export debugger symbols" },
+    { Action::ExportCometSymbols, "ExportCometSymbols", "Export Comet symbols" },
 };
 
 bool Do(Action action, bool pressed/*=true*/)
@@ -230,11 +230,11 @@ bool Do(Action action, bool pressed/*=true*/)
             GUI::Start(new ExportDialog);
             break;
 
-        case Action::ExportSymbols:
-            if (Symbol::HasUserSymbols() && GetOption(drive1) == drvFloppy && pFloppy1->HasDisk())
+        case Action::ExportCometSymbols:
+            if (Symbol::HasCometSymbols() && GetOption(drive1) == drvFloppy && pFloppy1->HasDisk())
             {
                 auto map_path = fs::path(pFloppy1->DiskPath()).replace_extension(".map").string();
-                if (Symbol::SaveSymbols(map_path))
+                if (Symbol::SaveComet(map_path))
                     Frame::SetStatus("Saved {}", map_path);
                 else
                     Frame::SetStatus("Save failed: {}", map_path);

@@ -111,18 +111,18 @@ static bool Load(const std::string& path, AddrToSym& symtab, SymToAddr* valtab_p
     return true;
 }
 
-static bool LoadComet(AddrToSym& symtab, SymToAddr& valtab)
+static bool LoadComet(AddrToSym& symtab, SymToAddr* valtab_ptr = nullptr)
 {
-    symtab.clear();
-    valtab.clear();
-
-    auto mem = std::string(PageReadPtr(0x1c) + 0x1000, PageReadPtr(0x1c) + 0x1200);
-    if (mem.find("COMET Z80 assembler") == mem.npos)
+    if (!HasCometSymbols())
         return false;
 
     auto sym_ptr = PageReadPtr(0x1b) + 0x3fff;
     if (!*sym_ptr)
         return false;
+
+    symtab.clear();
+    if (valtab_ptr)
+        valtab_ptr->clear();
 
     while (*sym_ptr)
     {
@@ -136,7 +136,8 @@ static bool LoadComet(AddrToSym& symtab, SymToAddr& valtab)
         {
             auto value = (sym_ptr[-2] << 8) | sym_ptr[-1];
             symtab[value] = name;
-            valtab[tolower(name)] = value;
+            if (valtab_ptr)
+                (*valtab_ptr)[tolower(name)] = value;
         }
 
         sym_ptr -= 3;
@@ -154,7 +155,7 @@ void Update(const std::string& path)
     if (samdos2_symbols.empty())
         Load(OSD::MakeFilePath(PathType::Resource, "samdos2.map"), samdos2_symbols, &samdos2_values);
     if (!path.empty() && !Load(path, ram_symbols, &symbol_values))
-        LoadComet(ram_symbols, symbol_values);
+        LoadComet(ram_symbols, &symbol_values);
 }
 
 std::optional<int> LookupSymbol(const std::string& symbol)
@@ -232,21 +233,33 @@ std::string LookupPort(uint8_t port, bool input_port)
     return (it != port_symbols.end()) ? (*it).second : "";
 }
 
-bool HasUserSymbols()
+bool HasCometSymbols()
 {
-    return !ram_symbols.empty();
+    auto mem = std::string(PageReadPtr(0x1c) + 0x1000, PageReadPtr(0x1c) + 0x1200);
+    auto sym_ptr = PageReadPtr(0x1b) + 0x3fff;
+    return mem.find("COMET Z80 assembler") != mem.npos && *sym_ptr;
 }
 
-bool SaveSymbols(const std::string& path)
+bool SaveComet(const std::string& path)
 {
-    unique_FILE file = fopen(path.c_str(), "wb");
-    if (!file)
+    AddrToSym symtab;
+    if (!LoadComet(symtab))
         return false;
 
-    for (auto& sym : ram_symbols)
+    try
     {
-        auto [addr, name] = sym;
-        fputs(fmt::format("{:04X}={}\n", addr, name).c_str(), file);
+        std::ofstream ofs(path, std::ofstream::out);
+
+        for (auto& sym : symtab)
+        {
+            auto [addr, name] = sym;
+            ofs << fmt::format("{:04X}={}", addr, name) << std::endl;
+        }
+    }
+    catch (...)
+    {
+        TRACE("Failed to write Comet symbols\n");
+        return false;
     }
 
     return true;

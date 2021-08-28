@@ -777,8 +777,7 @@ void UpdateMenuFromOptions()
     EnableMenuItem(hmenuFile, 5, MF_BYPOSITION | (fFloppy2 ? MF_ENABLED : MF_GRAYED));
     EnableItem(IDM_FILE_FLOPPY2_EJECT, fInserted2);
 
-    Debug::UpdateSymbols();
-    EnableItem(IDM_FILE_EXPORT_SYMBOLS, fFloppy1 && fInserted1 && Symbol::HasUserSymbols());
+    EnableItem(IDM_FILE_EXPORT_COMET, fFloppy1 && fInserted1 && Symbol::HasCometSymbols());
 
     CheckOption(IDM_VIEW_FULLSCREEN, GetOption(fullscreen));
     CheckOption(IDM_VIEW_TVASPECT, GetOption(tvaspect));
@@ -1496,7 +1495,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_FILE_NEW_DISK2:        Actions::Do(Action::NewDisk2);          break;
         case IDM_FILE_IMPORT_DATA:      Actions::Do(Action::ImportData);        break;
         case IDM_FILE_EXPORT_DATA:      Actions::Do(Action::ExportData);        break;
-        case IDM_FILE_EXIT:             Actions::Do(Action::ExitApp);   break;
+        case IDM_FILE_EXIT:             Actions::Do(Action::ExitApp);           break;
+        case IDM_FILE_EXPORT_COMET:     Actions::Do(Action::ExportCometSymbols);break;
 
         case IDM_RECORD_AVI_START:      Actions::Do(Action::RecordAvi);         break;
         case IDM_RECORD_AVI_HALF:       Actions::Do(Action::RecordAviHalf);     break;
@@ -1529,7 +1529,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         case IDM_TOOLS_TAPE_BROWSER:    Actions::Do(Action::TapeBrowser);       break;
         case IDM_TOOLS_DEBUGGER:        Actions::Do(Action::Debugger);          break;
         case IDM_TOOLS_RASTER_DEBUG:    Actions::Do(Action::ToggleRasterDebug); break;
-        case IDM_FILE_EXPORT_SYMBOLS:   Actions::Do(Action::ExportSymbols);     break;
 
         case IDM_FILE_FLOPPY1_DEVICE:
             if (!FloppyStream::IsAvailable())

@@ -492,7 +492,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "&Import Data...\tF4",         IDM_FILE_IMPORT_DATA
         MENUITEM "&Export Data...\tShift-F4",   IDM_FILE_EXPORT_DATA
-        MENUITEM "Export Sy&mbols"              IDM_FILE_EXPORT_SYMBOLS
+        MENUITEM "Export Comet Sy&mbols"        IDM_FILE_EXPORT_COMET
         MENUITEM SEPARATOR
         MENUITEM "Recent Files",                IDM_FILE_RECENT1
         MENUITEM SEPARATOR

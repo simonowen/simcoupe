@@ -26,7 +26,7 @@ enum class Action
     NewDisk1, InsertDisk1, EjectDisk1,
     NewDisk2, InsertDisk2, EjectDisk2,
     InsertTape, EjectTape, TapeBrowser,
-    Paste, ImportData, ExportData, ExportSymbols, SavePNG, SaveSSX,
+    Paste, ImportData, ExportData, ExportCometSymbols, SavePNG, SaveSSX,
     TogglePrinter, FlushPrinter,
     ToggleFullscreen, ToggleTV, ToggleSmoothing, ToggleMotionBlur,
     RecordAvi, RecordAviHalf, RecordAviStop,
