@@ -73,7 +73,10 @@ Stream::Open(const std::string& file_path, bool read_only)
             std::array<uint8_t, 2> sig;
             if ((fread(sig.data(), 1, sig.size(), file) != sig.size()) || sig != GZ_SIGNATURE)
 #endif
+            {
+                fseek(file, 0, SEEK_SET);
                 return std::make_unique<FileStream>(std::move(file), file_path, read_only);
+            }
 #ifdef HAVE_LIBZ
             else
             {
