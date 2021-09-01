@@ -35,14 +35,13 @@ namespace Tape
 static bool g_fPlaying;
 static fs::path tape_path;
 
-const uint32_t SPECTRUM_TSTATES_PER_SECOND = 3500000;
+constexpr auto SPECTRUM_TSTATES_PER_SECOND = 3'500'000;
 
 static libspectrum_tape* pTape;
-static libspectrum_byte* pbTape;
+static std::unique_ptr<libspectrum_byte[]> pbTape;
 static bool fEar;
 static libspectrum_dword tremain = 0;
 
-// Return whether the supplied filename appears to be a tape image
 bool IsRecognised(const std::string& filepath)
 {
     libspectrum_id_t type = LIBSPECTRUM_ID_UNKNOWN;
@@ -74,13 +73,11 @@ bool IsInserted()
     return pTape != nullptr;
 }
 
-// Return the full path of the inserted tape image
 std::string GetPath()
 {
     return tape_path.string();
 }
 
-// Return just the filename of the inserted tape image
 std::string GetFile()
 {
     return tape_path.filename().string();
@@ -107,19 +104,16 @@ bool Insert(const std::string& filepath)
     if (!pTape)
         return false;
 
-    pbTape = new libspectrum_byte[uSize];
-    if (pbTape) stream->Read(pbTape, uSize);
+    pbTape = std::make_unique<libspectrum_byte[]>(uSize);
+    stream->Read(pbTape.get(), uSize);
 
-    if (!pbTape || libspectrum_tape_read(pTape, pbTape, uSize, LIBSPECTRUM_ID_UNKNOWN, filepath.c_str()) != LIBSPECTRUM_ERROR_NONE)
+    if (libspectrum_tape_read(pTape, pbTape.get(), uSize, LIBSPECTRUM_ID_UNKNOWN, filepath.c_str()) != LIBSPECTRUM_ERROR_NONE)
     {
         Eject();
         return false;
     }
 
-    // Store tape path on successful insert
     tape_path = filepath;
-
-    IO::AutoLoad(AutoLoadType::Tape);
     return true;
 }
 
@@ -128,7 +122,7 @@ void Eject()
     Stop();
 
     if (pTape) libspectrum_tape_free(pTape), pTape = nullptr;
-    delete[] pbTape, pbTape = nullptr;
+    pbTape.reset();
 
     tape_path.clear();
 }
@@ -145,11 +139,11 @@ void NextEdge(uint32_t dwTime_)
     if (!Frame::TurboMode())
         pDAC->Output(fEar ? 0xa0 : 0x80);
 
-    libspectrum_dword tstates;
-    int nFlags;
+    libspectrum_dword zx_tstates{};
+    int nFlags{};
 
     // Fetch details of the next edge, and the time until it's due
-    error = libspectrum_tape_get_next_edge(&tstates, &nFlags, pTape);
+    error = libspectrum_tape_get_next_edge(&zx_tstates, &nFlags, pTape);
     if (error)
     {
         Stop();
@@ -163,20 +157,17 @@ void NextEdge(uint32_t dwTime_)
     else if (!(nFlags & LIBSPECTRUM_TAPE_FLAGS_NO_EDGE))
         fEar = !fEar;
 
-    // End of tape block?
     if ((nFlags & LIBSPECTRUM_TAPE_FLAGS_BLOCK))
     {
-        // Stop the tape as it'll restart when required
         Stop();
     }
     else
     {
         // Timings are in 3.5MHz t-states, so convert to SAM t-states
-        tstates = tstates * (CPU_CLOCK_HZ / 1000) + tremain;
-        libspectrum_dword tadd = tstates / (SPECTRUM_TSTATES_PER_SECOND / 1000);
-        tremain = tstates % (SPECTRUM_TSTATES_PER_SECOND / 1000);
+        zx_tstates = zx_tstates * (CPU_CLOCK_HZ / 100'000) + tremain;
+        auto tadd = zx_tstates / (SPECTRUM_TSTATES_PER_SECOND / 100'000);
+        tremain = zx_tstates % (SPECTRUM_TSTATES_PER_SECOND / 100'000);
 
-        // Schedule an event to activate the edge
         AddEvent(EventType::TapeEdge, dwTime_ + tadd);
     }
 }
@@ -218,16 +209,15 @@ bool LoadTrap()
     }
 
     // Skip over any metadata blocks
-    libspectrum_tape_block* block = libspectrum_tape_current_block(pTape);
+    auto block = libspectrum_tape_current_block(pTape);
     while (block && libspectrum_tape_block_metadata(block))
         block = libspectrum_tape_select_next_block(pTape);
 
-    // Nothing else to process?
     if (!block)
         return false;
 
-    libspectrum_tape_type type = libspectrum_tape_block_type(block);
-    libspectrum_tape_state_type state = libspectrum_tape_state(pTape);
+    auto type = libspectrum_tape_block_type(block);
+    auto state = libspectrum_tape_state(pTape);
 
     // Consider both ROM blocks (normal speed) and turbo blocks, as used by custom SAM tape speeds (DEVICE tX)
     if ((type != LIBSPECTRUM_TAPE_BLOCK_ROM && type != LIBSPECTRUM_TAPE_BLOCK_TURBO) || state != LIBSPECTRUM_TAPE_STATE_PILOT)
@@ -237,28 +227,24 @@ bool LoadTrap()
         return false;
     }
 
+    auto data_ptr = libspectrum_tape_block_data(block);
+    auto data_bytes = libspectrum_tape_block_data_length(block);
 
-    libspectrum_byte* pbData = libspectrum_tape_block_data(block);
-    size_t nData = libspectrum_tape_block_data_length(block);
+    auto dest_addr = cpu.get_hl();
+    int wanted_bytes = (read_byte(0x5ac8) << 16) | cpu.get_de();
 
-    // Base load address and load request size
-    auto wDest = cpu.get_hl();
-    int nWanted = (read_byte(0x5ac8) << 16) | cpu.get_de();
-
-    // Fetch block type
-    cpu.set_h(*pbData++);
-    nData--;
+    // Block type
+    cpu.set_h(*data_ptr++);
+    data_bytes--;
 
     // Spectrum header?
     if (cpu.get_h() == 0)
     {
         // Override request length 
-        nWanted = (nWanted & ~0xff) | 17;
+        wanted_bytes = (wanted_bytes & ~0xff) | 17;
     }
-    // Otherwise the type byte must match the request
     else if (cpu.get_h() != z80::get_high8(cpu.get_alt_af()))
     {
-        // Advance to next block
         libspectrum_tape_select_next_block(pTape);
 
         // Failed, exit via: RET NZ
@@ -268,16 +254,15 @@ bool LoadTrap()
         return true;
     }
 
-    // Parity byte initialised to type byte
+    // Parity initialised to type byte
     cpu.set_l(cpu.get_h());
 
     // More still to load?
-    while (nWanted >= 0)
+    while (wanted_bytes >= 0)
     {
-        // Are we out of source data?  (ToDo: support continuation blocks?)
-        if (!nData)
+        // ToDo: support continuation blocks?
+        if (!data_bytes)
         {
-            // Advance to next block
             libspectrum_tape_select_next_block(pTape);
 
             // Failed, exit via: RET NZ
@@ -287,30 +272,25 @@ bool LoadTrap()
             return true;
         }
 
-        // Read next byte and update parity
-        cpu.set_h(*pbData++);
+        // Read byte and update parity
+        cpu.set_h(*data_ptr++);
         cpu.set_l(cpu.get_l() ^ cpu.get_h());
-        nData--;
+        data_bytes--;
 
-        // Request complete?
-        if (!nWanted)
+        if (!wanted_bytes)
             break;
 
-        // Write new byte
-        write_byte(wDest, cpu.get_h());
-        wDest++;
-        nWanted--;
+        write_byte(dest_addr, cpu.get_h());
+        dest_addr++;
+        wanted_bytes--;
 
-        // Destination now in the top 16K?
-        if (wDest >= 0xc000)
+        if (dest_addr >= 0xc000)
         {
-            // Slide paging up and move pointer back
             IO::out_hmpr(IO::State().hmpr + 1);
-            wDest -= 0x4000;
+            dest_addr -= 0x4000;
         }
     }
 
-    // Advance to next block
     libspectrum_tape_select_next_block(pTape);
 
     // Exit via: LD A,L ; CP 1 ; RET
@@ -319,19 +299,17 @@ bool LoadTrap()
     return true;
 }
 
-
-// Return a string describing a give tape block
 std::string GetBlockDetails(libspectrum_tape_block* block)
 {
     std::string type;
     std::string filename;
     std::string extra;
 
-    libspectrum_byte* data = libspectrum_tape_block_data(block);
-    long length = static_cast<long>(libspectrum_tape_block_data_length(block));
+    auto data = libspectrum_tape_block_data(block);
+    auto length = static_cast<long>(libspectrum_tape_block_data_length(block));
 
     // Is there enough data to include a possible filename?
-    if (length >= 12)
+    if (length >= 10+2)
     {
         for (int i = 0; i < 10; i++)
         {
@@ -343,14 +321,13 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
     // Spectrum header length and type byte?
     if (length == 17 + 2 && data[0] == 0x00)
     {
-        // Examine Spectrum file type
         switch (data[1])
         {
         case 0:
         {
             type = "ZX BASIC";
 
-            unsigned int line = (data[15] << 8) | data[14];
+            auto line = (data[15] << 8) | data[14];
             if (line != 0xffff)
                 extra = fmt::format(" LINE {}", line);
 
@@ -364,8 +341,8 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
         {
             type = "ZX CODE";
 
-            unsigned int addr = (data[15] << 8) | data[14];
-            unsigned int len = (data[13] << 8) | data[12];
+            auto addr = (data[15] << 8) | data[14];
+            auto len = (data[13] << 8) | data[12];
             extra = fmt::format(" {},{}", addr, len);
 
             break;
@@ -374,16 +351,15 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
     }
     // SAM header length and type byte?
     // Real length is 82, but TZX spec suggests there could be up to 7-8 trailing bits, so accept 83
-    else if ((length == 80 + 2 || length == 80 + 1 + 2) && data[0] == 0x01)
+    else if ((length == 0x52 || length == 0x53) && data[0] == 0x01)
     {
-        // Examine SAM file type
         switch (data[1])
         {
         case 16:
         {
             type = "BASIC";
 
-            unsigned int line = (data[40] << 8) | data[39];
+            auto line = (data[40] << 8) | data[39];
             if (data[38] == 0)
                 extra = fmt::format(" LINE {}", line);
 
@@ -396,8 +372,8 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
         {
             type = "CODE";
 
-            unsigned int addr = TPeek(data + 32) + 16384;
-            unsigned int len = TPeek(data + 35);
+            auto addr = TPeek(data + 32) + 16384;
+            auto len = TPeek(data + 35);
             extra = fmt::format(" {},{}", addr, len);
 
             if (data[38] == 0)
@@ -410,7 +386,7 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
         {
             type = "SCREEN$";
 
-            unsigned int mode = data[17] + 1;
+            auto mode = data[17] + 1;
             extra = fmt::format(" MODE {}", mode);
             break;
         }
@@ -421,11 +397,8 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
     if (!type.empty())
     {
         ss << fmt::format("{}: '{}'", type, filename);
-
         if (!extra.empty())
-        {
             ss << " " << extra;
-        }
     }
     else
     {
@@ -436,8 +409,7 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
         case LIBSPECTRUM_TAPE_BLOCK_ROM:
         case LIBSPECTRUM_TAPE_BLOCK_TURBO:
         {
-            // Raw tape block data length
-            size_t length = libspectrum_tape_block_data_length(block);
+            auto length = libspectrum_tape_block_data_length(block);
 
             // If possible, exclude the type, sync, and checksum bytes from the length
             if (length >= 3)
@@ -473,7 +445,7 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
 
         case LIBSPECTRUM_TAPE_BLOCK_JUMP:
         {
-            int offset = libspectrum_tape_block_offset(block);
+            auto offset = libspectrum_tape_block_offset(block);
             if (offset >= 0)
                 ss << fmt::format("Forward {} blocks", offset);
             else
@@ -496,7 +468,7 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
 
         case LIBSPECTRUM_TAPE_BLOCK_ARCHIVE_INFO:
         {
-            size_t count = libspectrum_tape_block_count(block);
+            auto count = libspectrum_tape_block_count(block);
 
             for (size_t i = 0; i < count; i++)
             {
@@ -512,18 +484,18 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
 
         case LIBSPECTRUM_TAPE_BLOCK_HARDWARE:
         {
-            size_t count = libspectrum_tape_block_count(block);
+            auto count = libspectrum_tape_block_count(block);
+            bool first = true;
 
             for (size_t i = 0; i < count; i++)
             {
-                int type = libspectrum_tape_block_types(block, i);
-                int id = libspectrum_tape_block_ids(block, i);
+                auto type = libspectrum_tape_block_types(block, i);
+                auto id = libspectrum_tape_block_ids(block, i);
 
                 // Skip anything but the TZX "Computers" type
                 if (type != 0)
                     continue;
 
-                // Check for relevant computer ids
                 if (id == 9)
                     ss << "SAM Coupe";
                 else if ((id >= 0x00 && id <= 0x05) || id == 0x0e)
@@ -534,6 +506,10 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
                     ss << "Timex Sinclair";
                 else
                     ss << fmt::format("Unknown hardware ({:02x})", id);
+
+                if (!first)
+                    ss << ", ";
+                first = false;
             }
 
             break;
@@ -547,7 +523,6 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
     return ss.str();
 }
 
-
 void EiHook()
 {
     // If we're leaving the ROM tape loader, consider stopping the tape
@@ -558,7 +533,7 @@ void EiHook()
 bool RetZHook()
 {
     // If we're at LDSTRT in ROM1, consider using the loading trap
-    if (cpu.get_pc() == 0xe679 && GetSectionPage(Section::D) == ROM1 && GetOption(tapetraps))
+    if (cpu.get_pc() == 0xe679 && GetSectionPage(Section::D) == ROM1)
         return LoadTrap();
 
     return false;
@@ -569,23 +544,20 @@ void InFEHook()
     // Are we at the port read in the ROM tape edge routine?
     if (cpu.get_pc() == 0x2053)
     {
-        // Ensure the tape is playing
         Play();
 
-        // Traps enabled and accelerating loading speed?
         if (GetOption(tapetraps) && GetOption(turbotape))
         {
-            // Fetch the time until the next tape edge
-            auto dwTime = GetEventTime(EventType::TapeEdge);
+            auto event_time = GetEventTime(EventType::TapeEdge);
 
             // Simulate the edge code to advance to the next edge
             // Return to normal processing if C hits 255 (no edge found) or the ear bit has changed
-            while (dwTime > 48 && cpu.get_c() < 0xff && !((IO::State().keyboard ^ cpu.get_b()) & KEYBOARD_EAR_MASK))
+            while (event_time > 48 && cpu.get_c() < 0xff && !((IO::State().keyboard ^ cpu.get_b()) & KEYBOARD_EAR_MASK))
             {
                 cpu.set_c(cpu.get_c() + 1);
                 cpu.set_r((cpu.get_r() & 0x80) | ((cpu.get_r() + 7) & 0x7f));
                 CPU::frame_cycles += 48;
-                dwTime -= 48;
+                event_time -= 48;
                 cpu.set_pc(0x2051);
             }
         }
