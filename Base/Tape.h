@@ -28,10 +28,8 @@ bool IsInserted();
 
 std::string GetPath();
 std::string GetFile();
-#ifdef HAVE_LIBSPECTRUM
 libspectrum_tape* GetTape();
 std::string GetBlockDetails(libspectrum_tape_block* block);
-#endif
 
 bool Insert(const std::string& filepath);
 void Eject();

@@ -32,8 +32,6 @@
 namespace Tape
 {
 
-#ifdef HAVE_LIBSPECTRUM
-
 static bool g_fPlaying;
 static fs::path tape_path;
 
@@ -593,30 +591,5 @@ void InFEHook()
         }
     }
 }
-
-
-#else // HAVE_LIBSPECTRUM
-
-// Dummy implementations, rather than peppering the above with conditional code
-
-bool IsRecognised(const std::string&) { return false; }
-bool IsPlaying() { return false; }
-bool IsInserted() { return false; }
-std::string GetPath() { return ""; }
-std::string GetFile() { return ""; }
-
-bool Insert(const std::string&) { return false; }
-void Eject() { }
-void Play() { }
-void Stop() { }
-
-void NextEdge(uint32_t /*dwTime_*/) { }
-bool LoadTrap() { return false; }
-
-void EiHook() { }
-bool RetZHook() { return false; }
-void InFEHook() { }
-
-#endif // HAVE_LIBSPECTRUM
 
 } // namespace Tape

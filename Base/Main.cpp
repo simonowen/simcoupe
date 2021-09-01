@@ -46,8 +46,11 @@ namespace Main
 
 bool Init(int argc_, char* argv_[])
 {
+    if (libspectrum_init() != LIBSPECTRUM_ERROR_NONE)
+        return false;
+
     if (!Options::Load(argc_, argv_))
-        return 0;
+        return false;
 
     return OSD::Init() && Frame::Init() && CPU::Init(true) && UI::Init() && Sound::Init() && Input::Init() && Video::Init();
 }
@@ -65,6 +68,7 @@ void Exit()
     OSD::Exit();
 
     Options::Save();
+    libspectrum_end();
 }
 
 } // namespace Main

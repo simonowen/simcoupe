@@ -215,6 +215,16 @@ FetchContent_MakeAvailable(resid)
 target_link_libraries(${PROJECT_NAME} PRIVATE resid)
 target_include_directories(${PROJECT_NAME} PRIVATE ${resid_SOURCE_DIR})
 
+message(STATUS "Fetching github.com/simonowen/libspectrum")
+FetchContent_Declare(
+  spectrum
+  GIT_REPOSITORY https://github.com/simonowen/libspectrum.git
+  GIT_TAG 8bea3947a3c72132780541b268b79f96ff11bd26
+  )
+FetchContent_MakeAvailable(spectrum)
+target_link_libraries(${PROJECT_NAME} PRIVATE spectrum)
+target_include_directories(${PROJECT_NAME} PRIVATE ${spectrum_SOURCE_DIR})
+
 # Use bundled version of fdrawcmd.h for fdrawcmd.sys definitions.
 if (WIN32)
   target_include_directories(${PROJECT_NAME} PRIVATE Extern/fdrawcmd)
@@ -257,17 +267,6 @@ FetchContent_MakeAvailable(SAASound)
 target_link_libraries(${PROJECT_NAME} PRIVATE SAASound)
 # TODO: remove once upstream is compatible
 target_include_directories(${PROJECT_NAME} PRIVATE ${saasound_SOURCE_DIR}/include)
-
-find_library(SPECTRUM_LIBRARY NAMES spectrum)
-find_path(SPECTRUM_INCLUDE_DIR libspectrum.h)
-if (SPECTRUM_LIBRARY AND SPECTRUM_INCLUDE_DIR)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${SPECTRUM_INCLUDE_DIR})
-  target_link_libraries(${PROJECT_NAME} PRIVATE ${SPECTRUM_LIBRARY})
-  message(STATUS "Found libspectrum: ${SPECTRUM_LIBRARY}")
-  set(HAVE_LIBSPECTRUM 1)
-else()
-  message(STATUS "libspectrum not found (no tape/snapshot support)")
-endif()
 
 find_library(XAUDIO2REDIST_LIBRARY NAMES xaudio2_9redist)
 find_path(XAUDIO2REDIST_INCLUDE_DIR xaudio2redist.h)

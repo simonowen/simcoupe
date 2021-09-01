@@ -495,8 +495,6 @@ void EjectTape()
     }
 }
 
-#ifdef HAVE_LIBSPECTRUM
-
 void UpdateTapeToolbar(HWND hdlg_)
 {
     libspectrum_tape* tape = Tape::GetTape();
@@ -744,9 +742,6 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     return 0;
 }
 
-#endif // HAVE_LIBSPECTRUM
-
-
 #define CheckOption(id,check)   CheckMenuItem(hmenu, (id), (check) ? MF_CHECKED : MF_UNCHECKED)
 #define EnableItem(id,enable)   EnableMenuItem(hmenu, (id), (enable) ? MF_ENABLED : MF_GRAYED)
 
@@ -851,9 +846,7 @@ void UpdateMenuFromOptions()
     // Enable clipboard pasting if Unicode text data is available
     EnableItem(IDM_TOOLS_PASTE_CLIPBOARD, Keyin::CanType() && IsClipboardFormatAvailable(CF_UNICODETEXT));
 
-#ifdef HAVE_LIBSPECTRUM
     EnableItem(IDM_TOOLS_TAPE_BROWSER, true);
-#endif
 
     UpdateRecentFiles(hmenuFile, IDM_FILE_RECENT1, 2);
     UpdateRecentFiles(hmenuFloppy2, IDM_FLOPPY2_RECENT1, 0);
@@ -914,7 +907,6 @@ bool UI::DoAction(Action action, bool pressed)
             DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_NEW_DISK), g_hwnd, NewDiskDlgProc, 2);
             break;
 
-#ifdef HAVE_LIBSPECTRUM
         case Action::InsertTape:
             InsertTape(g_hwnd);
             break;
@@ -922,7 +914,7 @@ bool UI::DoAction(Action action, bool pressed)
         case Action::TapeBrowser:
             DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_TAPE_BROWSER), g_hwnd, TapeBrowseDlgProc, 2);
             break;
-#endif
+
         case Action::ImportData:
             DialogBoxParam(__hinstance, MAKEINTRESOURCE(IDD_IMPORT), g_hwnd, ImportExportDlgProc, 1);
             break;

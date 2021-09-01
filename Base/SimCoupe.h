@@ -90,9 +90,7 @@ namespace fs = ghc::filesystem;
 #include "OSD.h"        /* OS-dependent stuff */
 #include "SAM.h"        /* Various SAM constants */
 
-#ifdef HAVE_LIBSPECTRUM
 #include "libspectrum.h"
-#endif
 
 #ifdef HAVE_LIBZ
 #include "unzip.h"       /* for unzOpen, unzClose, etc.  Part of the contrib/minizip in the ZLib source package */
