@@ -2,9 +2,9 @@
 
 By Simon Owen (simon@simonowen.com)
 
-[![Linux/macOS build status](https://travis-ci.com/simonowen/simcoupe.svg?branch=master)](https://travis-ci.com/simonowen/simcoupe)
+[![Linux/macOS build status](https://travis-ci.com/simonowen/simcoupe.svg?branch=master)](https://app.travis-ci.com/github/simonowen/simcoupe)
 [![Windows build status](https://ci.appveyor.com/api/projects/status/512shikql4ctfrv9/branch/master?svg=true)](https://ci.appveyor.com/project/simonowen/simcoupe/branch/master)
-[![Linux/macOS dev branch](https://travis-ci.com/simonowen/simcoupe.svg?branch=dev)](https://travis-ci.com/simonowen/simcoupe)
+[![Linux/macOS dev branch](https://travis-ci.com/simonowen/simcoupe.svg?branch=dev)](https://app.travis-ci.com/github/simonowen/simcoupe)
 [![Windows dev branch](https://ci.appveyor.com/api/projects/status/512shikql4ctfrv9/branch/dev?svg=true)](https://ci.appveyor.com/project/simonowen/simcoupe/branch/dev)
 [![Licence](https://img.shields.io/badge/License-GPLv2-blue.svg?style=flat)](https://www.gnu.org/licenses/gpl-2.0.html)
 
@@ -13,8 +13,7 @@ By Simon Owen (simon@simonowen.com)
 ## Introduction
 
 SimCoupe emulates the SAM Coupé - a British Z80-based home computer released in
-1989 by Miles Gordon Technology. See the Links section at the end of this
-document for more information, including history and technical specifications.
+1989 by Miles Gordon Technology.
 
 This version of SimCoupe was derived from Allan Skillman's SimCoupe 0.72 for DOS
 and Unix. It has been almost completely rewritten to improve accuracy, features,
