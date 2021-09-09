@@ -3,6 +3,7 @@ version: "{build}"
 branches:
   except:
   - travis
+  - actions
 
 image:
   - Visual Studio 2017

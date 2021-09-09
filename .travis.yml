@@ -1,6 +1,7 @@
 branches:
   except:
   - appveyor
+  - actions
 
 language: cpp
 
