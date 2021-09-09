@@ -1191,7 +1191,8 @@ static MENUICON aMenuIcons[] =
     { IDM_FILE_FLOPPY2_INSERT, 1},
     { IDM_HELP_ABOUT, 4 },
     { IDM_TOOLS_OPTIONS, 6},
-    { IDM_SYSTEM_RESET, 7}
+    { IDM_SYSTEM_RESET, 7},
+    {} // end marker
 };
 
 
