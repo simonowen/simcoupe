@@ -482,6 +482,7 @@ void Drive::Out(uint16_t port, uint8_t val)
         if ((m_regs.status & DRQ) && m_buffer_pos < m_buffer.size())
         {
             m_buffer[m_buffer_pos++] = val;
+            m_status_reads_with_data = 0;
 
             if (m_buffer_pos == m_buffer.size())
             {
