@@ -269,7 +269,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE SAASound)
 target_include_directories(${PROJECT_NAME} PRIVATE ${saasound_SOURCE_DIR}/include)
 
 find_library(XAUDIO2REDIST_LIBRARY NAMES xaudio2_9redist)
-find_path(XAUDIO2REDIST_INCLUDE_DIR xaudio2redist.h)
+find_path(XAUDIO2REDIST_INCLUDE_DIR xaudio2redist/xaudio2redist.h)
 if (XAUDIO2REDIST_LIBRARY AND XAUDIO2REDIST_INCLUDE_DIR)
   target_include_directories(${PROJECT_NAME} PRIVATE ${XAUDIO2REDIST_INCLUDE_DIR})
   target_link_libraries(${PROJECT_NAME} PRIVATE ${XAUDIO2REDIST_LIBRARY})

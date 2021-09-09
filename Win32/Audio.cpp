@@ -21,7 +21,7 @@
 #include "SimCoupe.h"
 
 #ifdef HAVE_XAUDIO2REDIST
-#include <xaudio2redist.h>
+#include <xaudio2redist/xaudio2redist.h>
 #elif (_WIN32_WINNT < _WIN32_WINNT_WIN8)
 // Using XAudio 2.7 requires the DirectX SDK (install to default location):
 //  https://www.microsoft.com/en-gb/download/details.aspx?id=6812
