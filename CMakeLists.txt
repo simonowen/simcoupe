@@ -4,7 +4,7 @@ set(PROJECT_TITLE SimCoupe)
 
 set(MAJOR_VERSION 1)
 set(MINOR_VERSION 2)
-set(PATCH_VERSION 5)
+set(PATCH_VERSION 6)
 
 if (CMAKE_TOOLCHAIN_FILE)
   message(STATUS "Using toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
@@ -219,7 +219,7 @@ message(STATUS "Fetching github.com/simonowen/libspectrum")
 FetchContent_Declare(
   spectrum
   GIT_REPOSITORY https://github.com/simonowen/libspectrum.git
-  GIT_TAG 8bea3947a3c72132780541b268b79f96ff11bd26
+  GIT_TAG 1111ae84bb670c9987b1de095f8beff240ac8bd8
   )
 FetchContent_MakeAvailable(spectrum)
 target_link_libraries(${PROJECT_NAME} PRIVATE spectrum)
