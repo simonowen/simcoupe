@@ -79,8 +79,7 @@ uint16_t ATADevice::In(uint16_t wPort_)
                 if (m_data_offset == m_sector_data.size())
                 {
                     TRACE("ATA: All data read\n");
-
-                    if (--m_sRegs.bSectorCount > 0)
+                    if (m_sRegs.bCommand != 0xec && --m_sRegs.bSectorCount > 0)
                     {
                         NextSector();
 
