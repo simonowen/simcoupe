@@ -513,9 +513,9 @@ Example `UNTIL` expressions:
 
  - Break when the current value of HL changes: `hl != =hl`
  - Break at the next HALT instruction: `peek pc == 0x76`
- - Break when 123 is written to any port: `outval == 123`
+ - Break when 123 is written to any port: `outval == 0n123`
  - Break when screen mode 3 is selected: `vmode == 3`
- - Break when 12345 is top of stack: `dpeek sp == 12345`
+ - Break when hex 1234 is top of stack: `dpeek sp == 1234`
  - Break when the raster is drawing screen line 0: `sline == 0`
  - Break when A, B and IXl are equal: `(a == b) && (b == IXl)`
 
@@ -526,7 +526,7 @@ other simple breakpoints, such as step-out and step-over.
 The debugger works natively in hexadecimal, but allows values to be entered in
 other bases using an appropriate prefix or suffix:
 ```
-       Decimal:  0n12345 or 12345.
+       Decimal:  0n12345
    Hexadecimal:  1234 or 0x1234 or 1234h or $1234 or &1234 or #1234
      Character:  "a" or 'a'
         Binary:  %10101100
