@@ -213,7 +213,7 @@ bool Load(int argc_, char* argv_[])
     }
 
     if (drive_arg > 1 && g_config.autoboot)
-        IO::SetAutoLoad(AutoLoadType::Disk);
+        IO::QueueAutoLoad(AutoLoadType::Disk);
 
     return true;
 }

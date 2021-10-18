@@ -907,14 +907,16 @@ bool TestStartupScreen(bool skip_startup)
     return false;
 }
 
-void SetAutoLoad(AutoLoadType type)
+void QueueAutoLoad(AutoLoadType type)
 {
     auto_load = type;
 }
 
-void AutoLoad(AutoLoadType type, bool fOnlyAtStartup_/*=true*/)
+void AutoLoad(AutoLoadType type)
 {
-    if (!GetOption(autoload) || (fOnlyAtStartup_ && !TestStartupScreen(true)))
+    auto_load = AutoLoadType::None;
+
+    if (!GetOption(autoload) || !TestStartupScreen(true))
         return;
 
     if (type == AutoLoadType::Disk)
@@ -949,16 +951,6 @@ bool Rst8Hook()
     case 0x00:
         break;
 
-    // Copyright message
-    case 0x50:
-        // Forced boot on startup?
-        if (auto_load != AutoLoadType::None)
-        {
-            AutoLoad(auto_load, false);
-            auto_load = AutoLoadType::None;
-        }
-        break;
-
     // "NO DOS" or "Loading error"
     case 0x35:
     case 0x13:
@@ -987,8 +979,8 @@ void Rst48Hook()
     // Are we at READKEY in ROM0?
     if (cpu.get_pc() == 0x1cb2 && GetSectionPage(Section::A) == ROM0)
     {
-        if (Keyin::IsTyping())
-            TestStartupScreen(true);
+        if (auto_load != AutoLoadType::None)
+            AutoLoad(auto_load);
     }
 }
 
