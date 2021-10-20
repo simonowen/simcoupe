@@ -79,6 +79,7 @@ static bool InitWindow();
 
 static void LoadRecentFiles();
 static void SaveRecentFiles();
+static void AddRecentFile(const std::string& path);
 
 static void EjectDisk(DiskDevice& pFloppy_);
 static void EjectTape();
@@ -168,6 +169,12 @@ void ClipPath(char* pszPath_, size_t nLength_);
 bool UI::Init()
 {
     LoadRecentFiles();
+
+    if (GetOption(drive2) == drvFloppy)
+        AddRecentFile(pFloppy2->DiskPath());
+    if (GetOption(drive1) == drvFloppy)
+        AddRecentFile(pFloppy1->DiskPath());
+
     return InitWindow();
 }
 
@@ -316,10 +323,13 @@ void RemoveRecentFile(const std::string& path)
 
 void AddRecentFile(const std::string& path)
 {
-    RemoveRecentFile(path);
-    recent_files.insert(recent_files.begin(), path);
-    if (recent_files.size() > MAX_RECENT_FILES)
-        recent_files.resize(MAX_RECENT_FILES);
+    if (!path.empty())
+    {
+        RemoveRecentFile(path);
+        recent_files.insert(recent_files.begin(), path);
+        if (recent_files.size() > MAX_RECENT_FILES)
+            recent_files.resize(MAX_RECENT_FILES);
+    }
 }
 
 void LoadRecentFiles()
