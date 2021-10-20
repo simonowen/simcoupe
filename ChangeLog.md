@@ -1,12 +1,12 @@
 # SimCoupe ChangeLog
 
 ## Version 1.2.7 (2021-10-20)
-- fixed command-line disk images not auto-booting (#69)
 - fixed ATA IDENTIFY command returning too much data (#65)
+- fixed command-line disk images not auto-booting (#69)
 - fixed Win32 installer to add file associations (#66)
 - fixed command-line disks not getting added to MRU list.
 - changed Win32 installer to install x64 version if appropriate.
-- corrected documentation, which suggested default base was decimal.
+- corrected documentation, which suggested default base was decimal (#67)
 
 ## Version 1.2.6 (2021-09-10)
 - fixed read-only disk error with Pro-Dos v2 (#64)
