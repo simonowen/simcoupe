@@ -59,7 +59,6 @@ std::optional<int> Breakpoint::Hit()
                     ((Memory::last_phys_read1 >= mem->phys_addr_from && Memory::last_phys_read1 <= mem->phys_addr_to) ||
                         (Memory::last_phys_read2 >= mem->phys_addr_from && Memory::last_phys_read2 <= mem->phys_addr_to)))
                 {
-                    Memory::last_phys_read1 = Memory::last_phys_read2 = nullptr;
                     break;
                 }
 
@@ -67,7 +66,6 @@ std::optional<int> Breakpoint::Hit()
                     ((Memory::last_phys_write1 >= mem->phys_addr_from && Memory::last_phys_write1 <= mem->phys_addr_to) ||
                         (Memory::last_phys_write2 >= mem->phys_addr_from && Memory::last_phys_write2 <= mem->phys_addr_to)))
                 {
-                    Memory::last_phys_write1 = Memory::last_phys_write2 = nullptr;
                     break;
                 }
             }
@@ -79,14 +77,12 @@ std::optional<int> Breakpoint::Hit()
                 if ((port->access == AccessType::Read || port->access == AccessType::ReadWrite) &&
                     ((CPU::last_in_port & port->mask) == port->compare))
                 {
-                    CPU::last_in_port = 0;
                     break;
                 }
 
                 if ((port->access == AccessType::Write || port->access == AccessType::ReadWrite) &&
                     ((CPU::last_out_port & port->mask) == port->compare))
                 {
-                    CPU::last_out_port = 0;
                     break;
                 }
             }
@@ -118,6 +114,10 @@ std::optional<int> Breakpoint::Hit()
 
         if (bp.expr && !bp.expr.Eval())
             continue;
+
+        Memory::last_phys_read1 = Memory::last_phys_read2 = nullptr;
+        Memory::last_phys_write1 = Memory::last_phys_write2 = nullptr;
+        CPU::last_in_port = CPU::last_out_port = 0;
 
         return index;
     }
