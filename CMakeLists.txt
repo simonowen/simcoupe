@@ -133,7 +133,7 @@ elseif (BUILD_SDL)
     set(RESOURCE_FILES ${RESOURCE_FILES} ${MAC_ICON_FILES}
       ReadMe.md
       Manual.md
-      ChangeLog.txt
+      ChangeLog.md
       SDL/OSX/Credits.html
       ${CMAKE_CURRENT_BINARY_DIR}/Info-${PROJECT_TITLE}.plist)
     set_source_files_properties(${RESOURCE_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
