@@ -733,9 +733,6 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     {
         fRet = true;
 
-        // Force lower-case
-        nParam1_ = tolower(nParam1_);
-
         bool fCtrl = !!(nParam2_ & HM_CTRL);
         bool fShift = !!(nParam2_ & HM_SHIFT);
 

@@ -512,8 +512,12 @@ bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
             break;
         }
 
-        // Ctrl-letter/digit
-        else if ((nMods & HM_CTRL) && (wParam_ >= 'A' && wParam_ <= 'Z' || wParam_ >= '0' && wParam_ <= '9'))
+        // Ctrl-letter (convert to lower-case)
+        else if ((nMods & HM_CTRL) && wParam_ >= 'A' && wParam_ <= 'Z')
+            GUI::SendMessage(GM_CHAR, int(wParam_ ^ ('a' ^ 'A')), nMods);
+
+        // Ctrl-digit
+        else if ((nMods & HM_CTRL) && wParam_ >= '0' && wParam_ <= '9')
             GUI::SendMessage(GM_CHAR, int(wParam_), nMods);
 
         // Keypad digits
