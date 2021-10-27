@@ -206,7 +206,7 @@ bool IsActive()
 
 void AddTraceRecord()
 {
-    if (aTrace[nNumTraces % TRACE_SLOTS].wPC != cpu.get_pc())
+    if (aTrace[nNumTraces % TRACE_SLOTS].wPC != cpu.get_pc() && !cpu.is_halted())
     {
         TRACEDATA* p = &aTrace[(++nNumTraces) % TRACE_SLOTS];
         p->wPC = cpu.get_pc();

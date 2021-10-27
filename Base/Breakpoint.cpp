@@ -47,7 +47,7 @@ std::optional<int> Breakpoint::Hit()
         case BreakType::Execute:
             if (auto exec = std::get_if<BreakExec>(&bp.data))
             {
-                if (exec->phys_addr == pPC)
+                if (exec->phys_addr == pPC && !cpu.is_halted())
                     break;
             }
             continue;
@@ -106,7 +106,7 @@ std::optional<int> Breakpoint::Hit()
         case BreakType::Temp:
             if (auto exec = std::get_if<BreakExec>(&bp.data))
             {
-                if (exec->phys_addr == pPC || bp.expr)
+                if ((exec->phys_addr == pPC && !cpu.is_halted()) || bp.expr)
                     break;
             }
             continue;

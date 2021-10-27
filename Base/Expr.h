@@ -36,7 +36,7 @@ struct Expr
         SP, PC, SPH, SPL, PCH, PCL,
         I, R, IFF1, IFF2, IM,
 
-        EI, DI, DLine, SLine, Count,
+        EI, DI, Halted, DLine, SLine, Count,
         ROM0, ROM1, WProt, InROM, Call, AutoExec,
         LEPage, HEPage, LPage, HPage, VPage, VMode,
         InVal, OutVal,

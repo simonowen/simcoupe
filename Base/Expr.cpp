@@ -63,7 +63,7 @@ const std::vector<Expr::TokenEntry> Expr::reg_tokens
 
 const std::vector<Expr::TokenEntry> Expr::var_tokens
 {
-    {"ei", Token::EI}, {"di", Token::DI},
+    {"ei", Token::EI}, {"di", Token::DI}, {"halted", Token::Halted},
     {"dline", Token::DLine}, {"sline", Token::SLine},
     {"rom0", Token::ROM0}, {"rom1", Token::ROM1}, {"wprot", Token::WProt}, {"inrom", Token::InROM}, {"call", Token::Call}, {"autoexec", Token::AutoExec},
     {"lepage", Token::LEPage}, {"hepage", Token::HEPage}, {"lpage", Token::LPage}, {"hpage", Token::HPage}, {"vpage", Token::VPage}, {"vmode", Token::VMode},
@@ -236,6 +236,10 @@ int Expr::Eval(const std::vector<Node>& nodes)
 
             case Token::DI:
                 r = cpu.get_iff1() ? 0 : 1;
+                break;
+
+            case Token::Halted:
+                r = cpu.is_halted() ? 1 : 0;
                 break;
 
             case Token::DLine:
