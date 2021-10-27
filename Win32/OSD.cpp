@@ -160,6 +160,135 @@ bool OSD::IsHidden(const std::string& path)
     return (dwAttrs != INVALID_FILE_ATTRIBUTES) && (dwAttrs & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM));
 }
 
+static std::wstring TranslitCyrillic(std::wstring str)
+{
+    std::wstring str_out;
+
+    // Count the number or Cyrillic characters in a block, and the number of those capitalised
+    int num_chars = 0, num_caps = 0;
+
+    // Process character by character
+    for (WCHAR wch, *pwsz = str.data(); wch = *pwsz; pwsz++)
+    {
+        // Cyrillic character?
+        bool cyrillic = wch == 0x0401 || wch >= 0x0410 && wch <= 0x044f || wch == 0x0451;
+        num_chars = cyrillic ? num_chars + 1 : 0;
+
+        // Map GBP and (c) directly to SAM codes
+        if (wch == 0x00a3)  // GBP
+            str_out.push_back(0x60);
+        else if (wch == 0x00a9) // (c)
+            str_out.push_back(0x7f);
+
+        // Cyrillic?
+        else if (cyrillic)
+        {
+            // Determine XOR value to preserve case of the source character
+            char chCase = ~(wch - 0x03d0) & 0x20;
+            num_caps = chCase ? num_caps + 1 : 0;
+
+            // Is the next character Cyrillic too?
+            cyrillic = (pwsz[1] == 0x0401 || pwsz[1] >= 0x0410 && pwsz[1] <= 0x044f || pwsz[1] == 0x0451);
+
+            // If the next character is Cyrillic, match the case for any extra translit letters
+            // Otherwise if >1 character and all capitals so far, continue as capitals
+            char chCase1 = cyrillic ? (~(pwsz[1] - 0x03d0) & 0x20) :
+                (num_chars > 1 && num_chars == num_caps) ? chCase : 0;
+
+            // Special-case Cyrillic characters not in the main range
+            if (wch == 0x0401)
+            {
+                str_out.push_back('Y');
+                str_out.push_back('o' ^ chCase1);
+            }
+            else if (wch == 0x0451)
+            {
+                str_out.push_back('y');
+                str_out.push_back('o' ^ chCase1);
+            }
+            else
+            {
+                // Unicode to transliterated Latin, starting from 0x410
+                static const char* aszConv[] =
+                {
+                    "a", "b", "v", "g", "d", "e", "zh", "z",
+                    "i", "j", "k", "l", "m", "n", "o", "p",
+                    "r", "s", "t", "u", "f", "h", "c", "ch",
+                    "sh", "shh", "\"", "y", "'", "e", "yu", "ya"
+                };
+
+                // Look up the transliterated string
+                const char* psz = aszConv[(wch - 0x0410) & 0x1f];
+
+                for (char ch; (ch = *psz); psz++)
+                {
+                    // Toggle case of alphabetic characters only
+                    if (ch >= 'a' && ch <= 'z')
+                        str_out.push_back(ch ^ chCase);
+                    else
+                        str_out.push_back(ch);
+
+                    // For the remaining characters, use the case of the next character
+                    chCase = chCase1;
+                }
+            }
+        }
+        else
+        {
+            // Copy anything else as-is
+            str_out.push_back(wch);
+        }
+    }
+
+    return str_out;
+}
+
+std::string OSD::GetClipboardText()
+{
+    std::string text;
+
+    if (OpenClipboard(g_hwnd))
+    {
+        if (auto hClip = GetClipboardData(CF_UNICODETEXT))
+        {
+            if (auto pwsz = reinterpret_cast<LPCWSTR>(GlobalLock(hClip)))
+            {
+                auto wstr = TranslitCyrillic(pwsz);
+
+                // Convert to US-ASCII, stripping diacritic marks as we go
+                constexpr UINT CP_USASCII = 20127;
+                auto len = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, nullptr, 0, nullptr, nullptr);
+                std::vector<char> ascii(len);
+                len = WideCharToMultiByte(CP_USASCII, 0, wstr.c_str(), -1, ascii.data(), len, nullptr, nullptr);
+                text = ascii.data();
+
+                GlobalUnlock(hClip);
+            }
+        }
+
+        CloseClipboard();
+    }
+
+    return text;
+}
+
+void OSD::SetClipboardText(const std::string& str)
+{
+    if (OpenClipboard(g_hwnd))
+    {
+        EmptyClipboard();
+
+        if (auto ptr = GlobalAllocPtr(GMEM_ZEROINIT, str.length() + 1))
+        {
+            std::memcpy(ptr, str.c_str(), str.length() + 1);
+            GlobalUnlockPtr(ptr);
+            SetClipboardData(CF_TEXT, GlobalHandle(ptr));
+        }
+
+        CloseClipboard();
+    }
+}
+
 void OSD::DebugTrace(const std::string& str)
 {
     OutputDebugString(str.c_str());

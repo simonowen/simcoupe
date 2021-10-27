@@ -148,6 +148,24 @@ bool OSD::IsHidden(const std::string& path)
 #endif
 }
 
+std::string OSD::GetClipboardText()
+{
+    std::string text;
+
+    if (SDL_HasClipboardText() == SDL_TRUE)
+    {
+        auto ptr = SDL_GetClipboardText();
+        text = ptr;
+        SDL_free(ptr);
+    }
+
+    return text;
+}
+
+void OSD::SetClipboardText(const std::string& str)
+{
+    SDL_SetClipboardText(str.c_str());
+}
 
 void OSD::DebugTrace(const std::string& str)
 {

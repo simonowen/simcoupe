@@ -68,6 +68,8 @@ public:
 
     static fs::path MakeFilePath(PathType type, const std::string& filename = "");
     static bool IsHidden(const std::string& path);
+    static std::string GetClipboardText();
+    static void SetClipboardText(const std::string& str);
 
     static void DebugTrace(const std::string& str);
 };

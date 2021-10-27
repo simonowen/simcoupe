@@ -975,65 +975,65 @@ bool EditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             return true;
 
         default:
-            // Ctrl combination?
-            if (nParam2_ & HM_CTRL)
-            {
-                // Ctrl-A is select all
-                if (nParam1_ == 'A')
-                {
-                    m_nCaretStart = 0;
-                    m_nCaretEnd = GetText().length();
-                    return true;
-                }
-
+        {
+            if (nParam1_ != HK_BACKSPACE && nParam1_ != HK_DELETE && (nParam1_ < ' ' || nParam1_ > 0x7f))
                 break;
-            }
 
-            // No selection?
-            if (m_nCaretStart == m_nCaretEnd)
+            if (m_nCaretStart > m_nCaretEnd)
             {
-                // For backspace and delete, create a single character selection, if not at the ends
+                std::swap(m_nCaretStart, m_nCaretEnd);
+            }
+            else if (m_nCaretStart == m_nCaretEnd)
+            {
                 if (nParam1_ == HK_BACKSPACE && m_nCaretStart > 0)
                     m_nCaretStart--;
                 else if (nParam1_ == HK_DELETE && m_nCaretEnd < GetText().length())
                     m_nCaretEnd++;
             }
 
-            // Ignore anything that isn't a printable character, backspace or delete
-            if (nParam1_ != HK_BACKSPACE && nParam1_ != HK_DELETE && (nParam1_ < ' ' || nParam1_ > 0x7f))
-                break;
+            std::string start_text = GetText().substr(0, m_nCaretStart);
+            std::string end_text = GetText().substr(m_nCaretEnd);
+            std::string sel_text = GetText().substr(m_nCaretStart, m_nCaretEnd - m_nCaretStart);
+            std::string new_text;
 
-            // Active selection?
-            if (m_nCaretStart != m_nCaretEnd)
+            if (nParam2_ & HM_CTRL)
             {
-                // Ensure start < end
-                if (m_nCaretStart > m_nCaretEnd)
-                    std::swap(m_nCaretStart, m_nCaretEnd);
-
-                // Remove the selection, and set the text back
-                auto new_text = GetText().substr(0, m_nCaretStart) + GetText().substr(m_nCaretEnd);
-                Window::SetText(new_text);
-
-                // Move the end selection to the previous selection start position
-                m_nCaretEnd = m_nCaretStart;
-            }
-
-            // Only accept printable characters
-            if (nParam1_ >= ' ' && nParam1_ <= 0x7f)
-            {
-                // Only add a character if we're not at the maximum length yet
-                if (GetText().length() < MAX_EDIT_LENGTH)
+                switch (nParam1_)
                 {
-                    // Insert the new character at the caret position
-                    auto new_text = GetText().substr(0, m_nCaretStart) + static_cast<char>(nParam1_) + GetText().substr(m_nCaretEnd);
-                    m_nCaretStart = ++m_nCaretEnd;
-                    Window::SetText(new_text);
+                case 'a':
+                    m_nCaretStart = 0;
+                    m_nCaretEnd = GetText().length();
+                    return true;
+                case 'c':
+                    OSD::SetClipboardText(sel_text);
+                    return true;
+                case 'x':
+                    OSD::SetClipboardText(sel_text);
+                    break;
+                case 'v':
+                    new_text = OSD::GetClipboardText();
+                    new_text.erase(
+                        std::remove_if(new_text.begin(), new_text.end(),
+                            [](unsigned char c) { return !std::isprint(c); }),
+                        new_text.end());
+                    break;
+                default:
+                    return false;
                 }
             }
+            else if (nParam1_ >= ' ' && nParam1_ <= 0x7f)
+            {
+                new_text.push_back(nParam1_);
+            }
 
-            // Content changed
+            new_text = new_text.substr(0, MAX_EDIT_LENGTH - start_text.length() - end_text.length());
+            auto text = start_text + new_text + end_text;
+            m_nCaretStart = m_nCaretEnd = start_text.length() + new_text.length();
+
+            Window::SetText(text);
             NotifyParent();
             return true;
+        }
         }
         break;
     }
