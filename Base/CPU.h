@@ -74,6 +74,8 @@ extern bool debug_break;
 struct sam_cpu : public z80::z80_cpu<sam_cpu>
 {
     using base = z80::z80_cpu<sam_cpu>;
+    using base::sf_mask, base::zf_mask, base::yf_mask, base::hf_mask;
+    using base::xf_mask, base::pf_mask, base::nf_mask, base::cf_mask;
 
     void on_tick(unsigned t)
     {
