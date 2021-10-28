@@ -739,12 +739,7 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
         switch (nParam1_)
         {
         case HK_ESC:
-            if (m_pCommandEdit)
-            {
-                m_pCommandEdit->Destroy();
-                m_pCommandEdit = nullptr;
-            }
-            else if (nLastView != ViewType::Dis)
+            if (nLastView != ViewType::Dis)
             {
                 SetView(ViewType::Dis);
                 SetAddress(cpu.get_pc());
@@ -754,12 +749,11 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             break;
 
         case HK_RETURN:
-            if (!m_pCommandEdit)
-            {
-                m_pCommandEdit = new NumberEditControl(this, -1, m_nHeight - 16, m_nWidth + 2);
-                m_pCommandEdit->SetFont(sPropFont);
-            }
+        {
+            auto pCommand = new CommandEditControl(this, -1, m_nHeight - 16, m_nWidth + 2);
+            pCommand->SetFont(sPropFont);
             break;
+        }
 
         case 'a':
             new InputDialog(this, "New location", "Address:", OnAddressNotify);
@@ -867,27 +861,6 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
     return fRet;
 }
 
-
-void Debugger::OnNotify(Window* pWindow_, int nParam_)
-{
-    if (pWindow_ == m_pCommandEdit && nParam_ == 1)
-    {
-        auto command = m_pCommandEdit->GetText();
-
-        if (command.empty())
-        {
-            m_pCommandEdit->Destroy();
-            m_pCommandEdit = nullptr;
-        }
-        else if (Execute(command))
-        {
-            m_pCommandEdit->SetText("");
-            Refresh();
-        }
-    }
-}
-
-
 std::optional<AccessType> GetAccessParam(std::string access)
 {
     access = tolower(access);
@@ -981,6 +954,66 @@ std::optional<AccessType> ArgAccess(const std::string str, std::string& remain)
     std::swap(remain, remain2);
     return std::nullopt;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+size_t CommandEditControl::s_history_idx = 0;
+std::vector<std::string> CommandEditControl::s_history;
+
+bool CommandEditControl::OnMessage(int nMessage_, int nParam1_, int nParam2_)
+{
+    if (nMessage_ == GM_CHAR)
+    {
+        switch (nParam1_)
+        {
+        case HK_ESC:
+            Destroy();
+            return true;
+
+        case HK_UP:
+            if (s_history_idx > 0)
+                SetText(s_history[--s_history_idx]);
+            return true;
+
+        case HK_DOWN:
+            if (s_history_idx < s_history.size())
+            {
+                if (++s_history_idx < s_history.size())
+                    SetText(s_history[s_history_idx]);
+                else
+                    SetText("");
+            }
+            return true;
+
+        case HK_RETURN:
+        {
+            if (auto command = GetText(); command.empty())
+            {
+                Destroy();
+            }
+            else if (pDebugger->Execute(command))
+            {
+                s_history.erase(
+                    std::remove(s_history.begin(), s_history.end(), command),
+                    s_history.end());
+                s_history.push_back(command);
+                s_history_idx = s_history.size();
+
+                SetText("");
+                pDebugger->Refresh();
+            }
+            return true;
+        }
+
+        default:
+            break;
+        }
+    }
+
+    return NumberEditControl::OnMessage(nMessage_, nParam1_, nParam2_);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 bool Debugger::Execute(const std::string& cmdline)
 {

@@ -258,7 +258,6 @@ public:
     ~Debugger();
 
     bool OnMessage(int nMessage_, int nParam1_ = 0, int nParam2_ = 0) override;
-    void OnNotify(Window* pWindow_, int nParam_) override;
     void EraseBackground(FrameBuffer& fb) override;
     void Draw(FrameBuffer& fb) override;
 
@@ -272,12 +271,22 @@ public:
 
 protected:
     View* m_pView = nullptr;
-    EditControl* m_pCommandEdit = nullptr;
     TextControl* m_pStatus = nullptr;
 
     std::string m_sStatus{};
 
     static bool s_fTransparent;
+};
+
+class CommandEditControl : public NumberEditControl
+{
+public:
+    using NumberEditControl::NumberEditControl;
+    bool OnMessage(int nMessage_, int nParam1_ = 0, int nParam2_ = 0) override;
+
+protected:
+    static size_t s_history_idx;
+    static std::vector<std::string> s_history;
 };
 
 
