@@ -1,5 +1,11 @@
 # SimCoupe ChangeLog
 
+## Version 1.2.8 (2021-11-06)
+- improved HALT implementation to better match real Z80
+- improved behaviour of multiple breakpoints at same location (#70)
+- added clipboard support for built-in GUI text inputs (#71)
+- added basic session command history to debugger
+
 ## Version 1.2.7 (2021-10-20)
 - fixed ATA IDENTIFY command returning too much data (#65)
 - fixed command-line disk images not auto-booting (#69)
