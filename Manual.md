@@ -232,6 +232,10 @@ default mappings shown below. Under OS X, keys F9 to F12 are used by Expose and
 Dashboard, so you'll need to hold the Command key in addition to the
 combinations below to access them.
 
+Holding the Windows key and pressing F1 to F10 will generate the corresponding
+SAM function key F1 to F0. Recent versions of Windows process Win-F1 as help,
+so Win-F11 can also be used to access the SAM F1 key.
+
 ```
              F1 = Open disk 1
        Shift-F1 = Eject disk 1
@@ -254,6 +258,7 @@ combinations below to access them.
             F11 = NMI Button
             F12 = Reset button
        Ctrl-F12 = Exit application
+         Win-Fx = SAM function key Fx
 
       PrintScrn = Save SAM screenshot in PNG format
           Pause = Pause emulation

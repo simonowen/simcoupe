@@ -213,7 +213,7 @@ void Update()
     if (IsPressed(HK_LWIN) || IsPressed(HK_RWIN))
     {
         // Note: the SK_ range isn't contiguous
-        static const int anS[] = { SK_F1, SK_F2, SK_F3, SK_F4, SK_F5, SK_F6, SK_F7, SK_F8, SK_F9, SK_F0 };
+        static const int anS[] = { SK_F1, SK_F2, SK_F3, SK_F4, SK_F5, SK_F6, SK_F7, SK_F8, SK_F9, SK_F0, SK_F1 };
         bool fkey_detected{ false };
 
         for (unsigned int u = 0; u < std::size(anS); u++)
@@ -221,6 +221,9 @@ void Update()
             if (IsPressed(static_cast<eHostKey>(HK_F1 + u)))
             {
                 PressSamKey(anS[u]);
+                ReleaseKey(HK_F1 + u);
+                ReleaseKey(HK_APPS);
+                ReleaseKey(HK_RCTRL);
                 fkey_detected = true;
                 break;
             }

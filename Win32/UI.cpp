@@ -1314,8 +1314,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         // Function key?
         if (wParam_ >= VK_F1 && wParam_ <= VK_F12)
         {
-            // Ignore Windows-modified function keys unless the SAM keypad mapping is enabled
-            if ((GetAsyncKeyState(VK_LWIN) < 0 || GetAsyncKeyState(VK_RWIN) < 0) && wParam_ <= VK_F10)
+            if ((GetAsyncKeyState(VK_LWIN) < 0 || GetAsyncKeyState(VK_RWIN) < 0))
                 return 0;
 
             Actions::Key((int)wParam_ - VK_F1 + 1, fPress, fCtrl, fAlt, fShift);
