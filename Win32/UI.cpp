@@ -28,7 +28,6 @@
 #include <shellapi.h>
 #include <shlwapi.h>
 #include <shlobj.h>
-#include <VersionHelpers.h>
 
 #include "AtaAdapter.h"
 #include "AVI.h"
@@ -1487,7 +1486,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             if (fs::exists(help_path))
                 ShellExecute(hwnd_, nullptr, "notepad.exe", help_path.c_str(), "", SW_SHOWNORMAL);
             else
-                Message(MsgType::Warning, "Help not found:\n\n{}", help_path.string());
+                Message(MsgType::Warning, "Help not found:\n\n{}", help_path);
             break;
         }
 

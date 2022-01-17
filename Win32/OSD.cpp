@@ -98,7 +98,7 @@ static fs::path GetSpecialFolderPath(int csidl_)
     return path;
 }
 
-fs::path OSD::MakeFilePath(PathType type, const std::string& filename)
+std::string OSD::MakeFilePath(PathType type, const std::string& filename)
 {
     fs::path path;
 
@@ -149,7 +149,7 @@ fs::path OSD::MakeFilePath(PathType type, const std::string& filename)
     if (portable_mode || (type == PathType::Resource && !fs::exists(path)))
         path = exe_dir / filename;
 
-    return path;
+    return path.string();
 }
 
 // Return whether a file/directory is normally hidden from a directory listing

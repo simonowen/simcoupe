@@ -214,7 +214,7 @@ BrowseFloppy::BrowseFloppy(int drive, Window* pParent_/*=nullptr*/)
 
     // Browse from the location of the previous image, or the default directory if none
     auto disk_path = ((drive == 1) ? pFloppy1 : pFloppy2)->DiskPath();
-    SetPath(disk_path.empty() ? OSD::MakeFilePath(PathType::Input).string() : disk_path);
+    SetPath(disk_path.empty() ? OSD::MakeFilePath(PathType::Input) : disk_path);
 }
 
 // Handle OK being clicked when a file is selected
@@ -269,7 +269,7 @@ BrowseTape::BrowseTape(Window* pParent_/*=nullptr*/)
 {
     // Browse from the location of the previous image, or the default directory if none
     auto tape_path = Tape::GetPath();
-    SetPath(tape_path.empty() ? OSD::MakeFilePath(PathType::Input).string() : tape_path);
+    SetPath(tape_path.empty() ? OSD::MakeFilePath(PathType::Input) : tape_path);
 }
 
 // Handle OK being clicked when a file is selected
@@ -301,7 +301,7 @@ FileBrowser::FileBrowser(EditControl* pEdit_, Window* pParent_, const std::strin
     : FileDialog(caption, "", pcsFilter_, pnFilter_, pParent_), m_pEdit(pEdit_)
 {
     // Browse from the location of the previous image, or the default directory if none
-    SetPath(!pEdit_->GetText().empty() ? pEdit_->GetText() : OSD::MakeFilePath(PathType::Input).string());
+    SetPath(!pEdit_->GetText().empty() ? pEdit_->GetText() : OSD::MakeFilePath(PathType::Input));
 }
 
 // Handle OK being clicked when a file is selected

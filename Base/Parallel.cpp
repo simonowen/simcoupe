@@ -100,7 +100,7 @@ bool PrinterFile::Open()
     m_file = fopen(print_path.c_str(), "wb");
     if (!m_file)
     {
-        Frame::SetStatus("Failed to open {}", print_path.string());
+        Frame::SetStatus("Failed to open {}", print_path);
         return false;
     }
 
@@ -112,7 +112,7 @@ void PrinterFile::Close()
     if (m_file)
     {
         m_file.reset();
-        Frame::SetStatus("Saved {}", print_path.string());
+        Frame::SetStatus("Saved {}", print_path);
     }
 }
 

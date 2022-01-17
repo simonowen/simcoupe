@@ -510,7 +510,7 @@ public:
 
 public:
     std::string GetFullPath() const;
-    std::string GetPath() const { return m_path.string(); }
+    std::string GetPath() const { return m_path; }
     const char* GetFilter() const { return m_pszFilter; }
     void SetPath(const std::string& path);
     void SetFilter(const char* pcszFilter_);
@@ -523,7 +523,7 @@ public:
     static const GUI_ICON& GetFileIcon(const std::string& path_str);
 
 protected:
-    fs::path m_path;
+    std::string m_path;
     char* m_pszFilter = nullptr;
     bool m_fShowHidden = false;
 };

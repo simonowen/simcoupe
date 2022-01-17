@@ -65,7 +65,7 @@ public:
 
 protected:
     unique_FILE m_file;
-    fs::path print_path;
+    std::string print_path;
 };
 
 class MonoDACDevice : public IoDevice

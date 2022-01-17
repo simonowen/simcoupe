@@ -38,7 +38,7 @@ DiskType Disk::GetType(Stream& stream)
         return DiskType::MGT;
     else if (FileDisk::IsRecognised(stream))
     {
-        fs::path file = fs::path(stream.GetName());
+        fs::path file = stream.GetName();
         if (tolower(file.extension().string()) == ".sbt")
             return DiskType::SBT;
     }

@@ -36,7 +36,7 @@ static std::vector<uint8_t> current_frame;
 static std::vector<uint8_t> first_frame;
 static std::vector<uint8_t> diff_frame;
 
-static fs::path gif_path;
+static std::string gif_path;
 static unique_FILE file;
 
 static int delay_frames = 0;
@@ -359,7 +359,7 @@ bool Start(int flags)
     file = fopen(gif_path.c_str(), "wb+");
     if (!file)
     {
-        Frame::SetStatus("Save failed: {}", gif_path.string());
+        Frame::SetStatus("Save failed: {}", gif_path);
         return false;
     }
 
@@ -387,7 +387,7 @@ void Stop()
 
     WriteFileTerminator();
     file.reset();
-    Frame::SetStatus("Saved {}", gif_path.string());
+    Frame::SetStatus("Saved {}", gif_path);
 }
 
 void Toggle(int flags)

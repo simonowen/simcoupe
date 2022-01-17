@@ -48,18 +48,18 @@ void Exit()
 }
 
 
-fs::path UniqueOutputPath(const std::string& ext)
+std::string UniqueOutputPath(const std::string& ext)
 {
     auto output_path = OSD::MakeFilePath(PathType::Output);
 
     for (;;)
     {
-        auto path = output_path / fmt::format("simc{:04}.{}", GetOption(nextfile), ext);
+        auto path = fs::path(output_path) / fmt::format("simc{:04}.{}", GetOption(nextfile), ext);
         SetOption(nextfile, GetOption(nextfile) + 1);
 
         if (!fs::exists(path))
         {
-            return path;
+            return path.string();
         }
     }
 }

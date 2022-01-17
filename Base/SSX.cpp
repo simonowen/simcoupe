@@ -33,7 +33,7 @@ bool Save(const FrameBuffer& fb, int main_x, int main_y)
     unique_FILE file = fopen(ssx_path.c_str(), "wb");
     if (!file)
     {
-        Frame::SetStatus("Save failed: {}", ssx_path.string());
+        Frame::SetStatus("Save failed: {}", ssx_path);
         return false;
     }
 
@@ -94,7 +94,7 @@ bool Save(const FrameBuffer& fb, int main_x, int main_y)
         }
     }
 
-    Frame::SetStatus("Saved {}", ssx_path.string());
+    Frame::SetStatus("Saved {}", ssx_path);
 
     return true;
 }

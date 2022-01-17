@@ -29,7 +29,7 @@ Stream::Stream(const std::string& filepath, bool read_only)
     : m_read_only(read_only)
 {
     m_path = filepath;
-    m_short_name = m_path.filename();
+    m_short_name = fs::path(m_path).filename().string();
 }
 
 std::unique_ptr<Stream>

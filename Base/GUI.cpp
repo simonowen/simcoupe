@@ -2107,7 +2107,7 @@ void FileView::NotifyParent(int nParam_)
         // Double-clicking to open a directory?
         if (std::addressof(pItem->m_pIcon.get()) == std::addressof(sFolderIcon))
         {
-            auto path = m_path;
+            fs::path path = m_path;
 
             if (pItem->m_label == "..")
             {
@@ -2121,12 +2121,12 @@ void FileView::NotifyParent(int nParam_)
                 path = path / pItem->m_label;
             }
 
-            m_path = path;
+            m_path = path.string();
             if (!Refresh())
             {
-                auto body = fmt::format("Failed to access directory:\n\n{}", m_path.string());
+                auto body = fmt::format("Failed to access directory:\n\n{}", m_path);
                 new MsgBox(this, body, "Access Error", mbError);
-                m_path = m_path.parent_path();
+                m_path = path.parent_path().string();
             }
         }
     }
@@ -2163,15 +2163,15 @@ std::string FileView::GetFullPath() const
     if (m_path.empty() || !(pItem = GetItem()))
         return "";
 
-    return (m_path / pItem->m_label).string();
+    return (fs::path(m_path) / pItem->m_label).string();
 }
 
 // Set a new path to browse
 void FileView::SetPath(const std::string& filepath)
 {
-    auto path = fs::path(filepath);
+    fs::path path = filepath;
     auto filename = path.filename().string();
-    m_path = path.parent_path();
+    m_path = path.parent_path().string();
 
     Refresh();
 

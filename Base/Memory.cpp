@@ -167,7 +167,7 @@ static bool LoadRoms()
     auto pb1 = PageReadPtr(ROM1);
 
     // Default to the standard ROM image
-    auto rom_file = OSD::MakeFilePath(PathType::Resource, "samcoupe.rom").string();
+    auto rom_file = OSD::MakeFilePath(PathType::Resource, "samcoupe.rom");
 
     // Allow a custom ROM override
     if (!GetOption(rom).empty())

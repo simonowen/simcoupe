@@ -25,6 +25,8 @@
 #define _WIN32_WINNT _WIN32_WINNT_WIN7
 #endif
 #include <SDKDDKVer.h>
+#include <windows.h>
+#include <windowsx.h>
 #include <VersionHelpers.h>
 
 // disable stupid 'debug symbols being truncated' warning
@@ -37,10 +39,6 @@
 #include <crtdbg.h>     // used for tracking heap allocations
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)   // track allocation locations
 #endif
-
-#include <windows.h>    // TODO: remove to limit type pollution
-#include <windowsx.h>
-#include <io.h>         // for _access
 
 #include <wrl/client.h>
 using Microsoft::WRL::ComPtr;
@@ -66,7 +64,7 @@ public:
     static bool Init();
     static void Exit();
 
-    static fs::path MakeFilePath(PathType type, const std::string& filename = "");
+    static std::string MakeFilePath(PathType type, const std::string& filename = "");
     static bool IsHidden(const std::string& path);
     static std::string GetClipboardText();
     static void SetClipboardText(const std::string& str);

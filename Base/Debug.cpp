@@ -170,7 +170,7 @@ void UpdateSymbols()
     if (GetOption(drive1) == drvFloppy && pFloppy1->HasDisk())
         map_path = fs::path(pFloppy1->DiskPath()).replace_extension(".map");
 
-    Symbol::Update(map_path);
+    Symbol::Update(map_path.string());
 }
 
 // Called on every RETurn, for step-out implementation

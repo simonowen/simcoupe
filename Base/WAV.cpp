@@ -28,7 +28,7 @@
 namespace WAV
 {
 
-static fs::path wav_path;
+static std::string wav_path;
 static unique_FILE file;
 static int nFrames, nSilent = 0;
 static bool fSegment;
@@ -96,7 +96,7 @@ bool Start(bool fSegment_)
     file = fopen(wav_path.c_str(), "wb");
     if (!file)
     {
-        Frame::SetStatus("Save failed: {}", wav_path.string());
+        Frame::SetStatus("Save failed: {}", wav_path);
         return false;
     }
 
@@ -137,7 +137,7 @@ void Stop()
     // Report what happened
     if (nFrames)
     {
-        Frame::SetStatus("Saved {}", wav_path.string());
+        Frame::SetStatus("Saved {}", wav_path);
     }
     else
     {

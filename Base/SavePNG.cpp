@@ -98,7 +98,7 @@ static std::vector<uint8_t> PNGData(const FrameBuffer& fb)
 bool Save(const FrameBuffer& fb)
 {
 #ifdef HAVE_LIBPNG
-    auto png_path = Util::UniqueOutputPath("png").string();
+    auto png_path = Util::UniqueOutputPath("png");
     if (unique_FILE file = fopen(png_path.c_str(), "wb"))
     {
         if (auto png_data = PNGData(fb); !png_data.empty())

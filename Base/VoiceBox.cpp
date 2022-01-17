@@ -41,7 +41,7 @@ VoiceBoxDevice::VoiceBoxDevice() :
     }
     else if (GetOption(voicebox))
     {
-        Message(MsgType::Warning, "Error loading SP0256 allophone data:\n\n{}", rom_path.string());
+        Message(MsgType::Warning, "Error loading SP0256 allophone data:\n\n{}", rom_path);
     }
 
     Reset();

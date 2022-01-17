@@ -31,7 +31,7 @@ namespace AVI
 static std::vector<uint8_t> frame_buffer;
 static std::vector<uint8_t> resample_buffer;
 
-static fs::path avi_path;
+static std::string avi_path;
 static unique_FILE file;
 
 static uint16_t width, height;
@@ -394,7 +394,7 @@ bool Start(int flags)
     file = fopen(avi_path.c_str(), "wb+");
     if (!file)
     {
-        Frame::SetStatus("Save failed: {}", avi_path.string());
+        Frame::SetStatus("Save failed: {}", avi_path);
         return false;
     }
 
@@ -422,7 +422,7 @@ void Stop()
         TRACE("!!! AVI::Stop(): Failed to seek to end of recording\n");
 
     file.reset();
-    Frame::SetStatus("Saved {}", avi_path.string());
+    Frame::SetStatus("Saved {}", avi_path);
 }
 
 void Toggle(int flags)

@@ -29,8 +29,8 @@ public:
     static std::unique_ptr<Stream> Open(const std::string& filepath, bool read_only = false);
 
     bool WriteProtected() const { return m_read_only; }
-    std::string GetPath() const { return m_path.string(); }
-    std::string GetName() const { return !m_short_name.empty() ? m_short_name : m_path.filename().string(); }
+    std::string GetPath() const { return m_path; }
+    std::string GetName() const { return !m_short_name.empty() ? m_short_name : fs::path(m_path).filename().string(); }
     virtual fs::file_time_type LastWriteTime() const;
 
     virtual size_t GetSize() = 0;
@@ -43,7 +43,7 @@ protected:
     enum class FileMode { Closed, Reading, Writing };
     FileMode m_mode = FileMode::Reading;
 
-    fs::path m_path;
+    std::string m_path;
     std::string m_short_name;
     bool m_read_only = false;
 };

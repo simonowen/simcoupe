@@ -25,7 +25,7 @@ namespace Util
 bool Init();
 void Exit();
 
-fs::path UniqueOutputPath(const std::string& ext);
+std::string UniqueOutputPath(const std::string& ext);
 }
 
 enum class PathType { Settings, Input, Output, Resource };

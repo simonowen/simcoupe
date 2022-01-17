@@ -52,7 +52,7 @@ void OSD::Exit()
 }
 
 
-fs::path OSD::MakeFilePath(PathType type, const std::string& filename)
+std::string OSD::MakeFilePath(PathType type, const std::string& filename)
 {
     fs::path base_path;
     fs::path path;
@@ -131,7 +131,7 @@ fs::path OSD::MakeFilePath(PathType type, const std::string& filename)
 
     path /= filename;
 
-    return path;
+    return path.string();
 }
 
 

@@ -33,7 +33,7 @@ namespace Tape
 {
 
 static bool g_fPlaying;
-static fs::path tape_path;
+static std::string tape_path;
 
 constexpr auto SPECTRUM_TSTATES_PER_SECOND = 3'500'000;
 
@@ -75,12 +75,12 @@ bool IsInserted()
 
 std::string GetPath()
 {
-    return tape_path.string();
+    return tape_path;
 }
 
 std::string GetFile()
 {
-    return tape_path.filename().string();
+    return fs::path(tape_path).filename().string();
 }
 
 libspectrum_tape* GetTape()
