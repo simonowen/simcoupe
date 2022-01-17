@@ -181,8 +181,11 @@ endif()
 # Build runtime files should go with other built files.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
+check_include_file_cxx("filesystem" HAVE_STD_FILESYSTEM)
+if (NOT HAVE_STD_FILESYSTEM)
 # Use a 3rd party implementation of std::filesystem to avoid needing macOS 10.15.
-target_include_directories(${PROJECT_NAME} PRIVATE Extern/ghc)
+  target_include_directories(${PROJECT_NAME} PRIVATE Extern/ghc)
+endif()
 
 # OpenGL loader
 target_include_directories(${PROJECT_NAME} PRIVATE Extern/gl3w/include)

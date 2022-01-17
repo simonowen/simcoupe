@@ -28,3 +28,6 @@
 
 // XAudio2 compatibility redist
 #cmakedefine HAVE_XAUDIO2REDIST
+
+// std::filesystem (C++17)
+#cmakedefine HAVE_STD_FILESYSTEM

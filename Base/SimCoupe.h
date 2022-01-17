@@ -77,9 +77,15 @@
 #include <thread>
 #include <numeric>
 #include <regex>
+#include <fstream>
 
+#ifdef HAVE_STD_FILESYSTEM
+#include <filesystem>
+namespace fs = std::filesystem;
+#else
 #include "filesystem.hpp"
 namespace fs = ghc::filesystem;
+#endif
 
 #include <fmt/format.h>
 #include <fmt/chrono.h>
