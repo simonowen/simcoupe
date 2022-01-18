@@ -6,19 +6,22 @@ branches:
   - actions
 
 image:
-  - Visual Studio 2017
+  - Visual Studio 2019
 
 environment:
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
   MSBUILD_FLAGS: /verbosity:minimal /maxcpucount
   matrix:
-  - CMAKE_GENERATOR: "Visual Studio 15 2017"
+  - CMAKE_GENERATOR: "Visual Studio 16 2019"
+    ARCH: Win32
     VCPKG_TRIPLET: x86-windows
     LIBRARIES: true
-  - CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
+  - CMAKE_GENERATOR: "Visual Studio 16 2019"
+    ARCH: x64
     VCPKG_TRIPLET: x64-windows
     LIBRARIES: true
-  - CMAKE_GENERATOR: "Visual Studio 15 2017"
+  - CMAKE_GENERATOR: "Visual Studio 16 2019"
+    ARCH: Win32
     VCPKG_TRIPLET: x86-windows
     LIBRARIES: false
 
@@ -31,7 +34,7 @@ install:
 
 before_build:
   - if "%LIBRARIES%"=="false" (set CMAKE_FLAGS=) else (set CMAKE_FLAGS=-DCMAKE_TOOLCHAIN_FILE=C:/Tools/vcpkg/scripts/buildsystems/vcpkg.cmake)
-  - cmake -H. -Bbuild -G "%CMAKE_GENERATOR%" %CMAKE_FLAGS%
+  - cmake -H. -Bbuild -G "%CMAKE_GENERATOR%" -A "%ARCH%" %CMAKE_FLAGS%
 
 build_script:
   - if "%APPVEYOR_REPO_TAG%"=="true" (set CONFIGURATION=RelWithDebInfo) else (set CONFIGURATION=Debug)

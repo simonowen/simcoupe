@@ -25,7 +25,7 @@
 #elif (_WIN32_WINNT < _WIN32_WINNT_WIN8)
 // Using XAudio 2.7 requires the DirectX SDK (install to default location):
 //  https://www.microsoft.com/en-gb/download/details.aspx?id=6812
-#include <C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include\xaudio2.h>
+#include <C:\Program Files (x86)\Microsoft DirectX SDK\Include\xaudio2.h>
 #else
 #include <xaudio2.h>
 #endif
