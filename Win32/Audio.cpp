@@ -23,9 +23,7 @@
 #ifdef HAVE_XAUDIO2REDIST
 #include <xaudio2redist/xaudio2redist.h>
 #elif (_WIN32_WINNT < _WIN32_WINNT_WIN8)
-// Using XAudio 2.7 requires the DirectX SDK (install to default location):
-//  https://www.microsoft.com/en-gb/download/details.aspx?id=6812
-#include <C:\Program Files (x86)\Microsoft DirectX SDK\Include\xaudio2.h>
+#error Windows 7 support requires xaudio2redist from vcpkg
 #else
 #include <xaudio2.h>
 #endif
@@ -33,6 +31,8 @@
 #include "Audio.h"
 #include "Options.h"
 #include "Sound.h"
+
+using XAUDIO2CREATEPROC = HRESULT(__stdcall*)(_Outptr_ IXAudio2**, UINT32, XAUDIO2_PROCESSOR);
 
 constexpr auto SOUND_BUFFERS = 32;
 constexpr auto MIN_LATENCY_FRAMES = 3;
@@ -60,7 +60,7 @@ bool Audio::Init()
         return false;
     }
 
-    auto pfnXAudio2Create = reinterpret_cast<decltype(&XAudio2Create)>(
+    auto pfnXAudio2Create = reinterpret_cast<XAUDIO2CREATEPROC>(
         GetProcAddress(hinstXAudio2, "XAudio2Create"));
     if (!pfnXAudio2Create)
     {

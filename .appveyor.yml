@@ -30,7 +30,7 @@ cache:
 
 install:
   - set CMAKE_BUILD_PARALLEL_LEVEL=2
-  - vcpkg install --recurse --triplet %VCPKG_TRIPLET% zlib bzip2 libpng sdl2
+  - vcpkg install --recurse --triplet %VCPKG_TRIPLET% zlib bzip2 libpng sdl2 xaudio2redist
 
 before_build:
   - if "%LIBRARIES%"=="false" (set CMAKE_FLAGS=) else (set CMAKE_FLAGS=-DCMAKE_TOOLCHAIN_FILE=C:/Tools/vcpkg/scripts/buildsystems/vcpkg.cmake)

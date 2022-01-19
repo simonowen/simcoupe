@@ -276,21 +276,19 @@ target_link_libraries(${PROJECT_NAME} PRIVATE SAASound)
 # TODO: remove once upstream is compatible
 target_include_directories(${PROJECT_NAME} PRIVATE ${saasound_SOURCE_DIR}/include)
 
-find_library(XAUDIO2REDIST_LIBRARY NAMES xaudio2_9redist)
-find_path(XAUDIO2REDIST_INCLUDE_DIR xaudio2redist/xaudio2redist.h)
-if (XAUDIO2REDIST_LIBRARY AND XAUDIO2REDIST_INCLUDE_DIR)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${XAUDIO2REDIST_INCLUDE_DIR})
-  target_link_libraries(${PROJECT_NAME} PRIVATE ${XAUDIO2REDIST_LIBRARY})
-  message(STATUS "Found xaudio2_9redist: ${XAUDIO2REDIST_LIBRARY}")
+if (EXISTS "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/xaudio2redist/xaudio2.h")
+  target_include_directories(${PROJECT_NAME} PRIVATE ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/xaudio2redist)
+  target_link_directories(${PROJECT_NAME} PRIVATE ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib)
+  target_link_libraries(${PROJECT_NAME} PRIVATE xaudio2_9redist.lib)
+  message(STATUS "Found vcpkg xaudio2redist")
   set(HAVE_XAUDIO2REDIST 1)
 
-  get_filename_component(XAUDIO2REDIST_DIR ${XAUDIO2REDIST_LIBRARY} DIRECTORY)
   add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${XAUDIO2REDIST_DIR}/../bin/xaudio2_9redist.dll"
+        "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/xaudio2_9redist.dll"
         $<TARGET_FILE_DIR:${PROJECT_NAME}>)
 else()
-  message(STATUS "xaudio2_9redist not found")
+  message(STATUS "xaudio2redist not found")
 endif()
 
 if (NOT MSVC)
