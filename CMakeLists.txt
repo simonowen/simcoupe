@@ -165,6 +165,10 @@ add_executable(${PROJECT_NAME}
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 
+if (WIN32 AND CMAKE_SYSTEM_VERSION STREQUAL "6.1")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE _WIN32_WINNT=0x0601)
+endif()
+
 ########
 
 include(CheckCXXCompilerFlag)
