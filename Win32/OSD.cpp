@@ -168,10 +168,10 @@ static std::wstring TranslitCyrillic(std::wstring str)
     int num_chars = 0, num_caps = 0;
 
     // Process character by character
-    for (WCHAR wch, *pwsz = str.data(); wch = *pwsz; pwsz++)
+    for (WCHAR wch, *pwsz = str.data(); (wch = *pwsz); pwsz++)
     {
         // Cyrillic character?
-        bool cyrillic = wch == 0x0401 || wch >= 0x0410 && wch <= 0x044f || wch == 0x0451;
+        bool cyrillic = wch == 0x0401 || (wch >= 0x0410 && wch <= 0x044f) || wch == 0x0451;
         num_chars = cyrillic ? num_chars + 1 : 0;
 
         // Map GBP and (c) directly to SAM codes
@@ -188,7 +188,7 @@ static std::wstring TranslitCyrillic(std::wstring str)
             num_caps = chCase ? num_caps + 1 : 0;
 
             // Is the next character Cyrillic too?
-            cyrillic = (pwsz[1] == 0x0401 || pwsz[1] >= 0x0410 && pwsz[1] <= 0x044f || pwsz[1] == 0x0451);
+            cyrillic = (pwsz[1] == 0x0401 || (pwsz[1] >= 0x0410 && pwsz[1] <= 0x044f) || pwsz[1] == 0x0451);
 
             // If the next character is Cyrillic, match the case for any extra translit letters
             // Otherwise if >1 character and all capitals so far, continue as capitals

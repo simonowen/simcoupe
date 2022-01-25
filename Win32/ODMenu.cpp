@@ -27,8 +27,6 @@
 const int CXGAP = 2;            // Pixels between button and text
 const int CXTEXTMARGIN = 2;     // Pixels after hilite to start text
 const int CYTEXTMARGIN = 2;     // Pixels below hilite to start text
-const int CXBUTTONMARGIN = 2;   // Pixels wider button is than bitmap
-const int CYBUTTONMARGIN = 2;   // Pixels higher button is than bitmap
 
 
 // Structure of RT_TOOLBAR resource
@@ -59,7 +57,6 @@ OwnerDrawnMenu::OwnerDrawnMenu(HINSTANCE hinst_, int nId_, MENUICON* pIconMap_)
         m_zButton.cy = ptbd->wHeight;
 
         m_hil = nId_ ? ImageList_LoadBitmap(hinst_, MAKEINTRESOURCE(nId_), m_zButton.cx, 10, RGB(255, 0, 255)) : nullptr;
-        UnlockResource(hgres);
     }
 #endif
 }

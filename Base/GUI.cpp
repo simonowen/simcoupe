@@ -1704,21 +1704,6 @@ void ScrollBar::OnNotify(Window* pWindow_, int /*nParam_=0*/)
 
 const int ITEM_SIZE = 72;
 
-// Helper to locate matches when a filename is typed
-static bool IsPrefix(const char* pcszPrefix_, const char* pcszName_)
-{
-    // Skip any common characters at the start of the name
-    while (*pcszPrefix_ && *pcszName_ && tolower(*pcszPrefix_) == tolower(*pcszName_))
-    {
-        pcszPrefix_++;
-        pcszName_++;
-    }
-
-    // Return true if the full prefix was matched
-    return !*pcszPrefix_;
-}
-
-
 ListView::ListView(Window* pParent_, int nX_, int nY_, int nWidth_, int nHeight_, int nItemOffset_/*=0*/)
     : Window(pParent_, nX_, nY_, nWidth_, nHeight_, ctListView), m_nItemOffset(nItemOffset_)
 {

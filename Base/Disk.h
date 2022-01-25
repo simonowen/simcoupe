@@ -214,8 +214,8 @@ public:
     uint8_t FormatTrack(uint8_t cyl, uint8_t head, const std::vector<std::pair<IDFIELD, std::vector<uint8_t>>>& sectors) override;
 
 protected:
-    int m_heads = 0;
     int m_cyls = 0;
+    int m_heads = 0;
 
     std::vector<std::vector<std::pair<EDSK_SECTOR, std::vector<uint8_t>>>> m_tracks;
 };

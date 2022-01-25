@@ -38,8 +38,8 @@ struct MenuItem
 {
     MenuItem() { dwSig = SIGNATURE; szText[0] = '\0'; nImage = -1; }
 
-    bool IsOurs() const { return this && dwSig == SIGNATURE; }
-    static MenuItem* GetItem(ULONG_PTR ulp_) { MenuItem* p = reinterpret_cast<MenuItem*>(ulp_); return p->IsOurs() ? p : nullptr; }
+    bool IsOurs() const { return dwSig == SIGNATURE; }
+    static MenuItem* GetItem(ULONG_PTR ulp_) { auto p = reinterpret_cast<MenuItem*>(ulp_); return p && p->IsOurs() ? p : nullptr; }
 
     DWORD   dwSig;
     char    szText[64];

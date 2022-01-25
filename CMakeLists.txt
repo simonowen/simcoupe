@@ -85,12 +85,12 @@ if (BUILD_WIN32)
   include(HlslCompile)
 
   set(WIN_CPP_FILES
-    Win32/Audio.cpp Win32/D3D11.cpp Win32/Floppy.cpp Win32/IDEDisk.cpp
+    Win32/Audio.cpp Win32/D3D11Video.cpp Win32/Floppy.cpp Win32/IDEDisk.cpp
     Win32/Input.cpp Win32/MIDI.cpp Win32/ODMenu.cpp Win32/OSD.cpp
     Win32/UI.cpp)
 
   set(WIN_H_FILES
-    Win32/afxres.h Win32/Audio.h Win32/D3D11.h Extern/fdrawcmd/fdrawcmd.h
+    Win32/afxres.h Win32/Audio.h Win32/D3D11Video.h Extern/fdrawcmd/fdrawcmd.h
     Win32/Floppy.h Win32/IDEDisk.h Win32/Input.h Win32/MIDI.h Win32/ODMenu.h
     Win32/OSD.h Win32/resource.h Win32/UI.h)
 
@@ -223,11 +223,11 @@ FetchContent_MakeAvailable(resid)
 target_link_libraries(${PROJECT_NAME} PRIVATE resid)
 target_include_directories(${PROJECT_NAME} PRIVATE ${resid_SOURCE_DIR})
 
-message(STATUS "Fetching github.com/simonowen/libspectrum")
+message(STATUS "Fetching libspectrum from GitHub")
 FetchContent_Declare(
   spectrum
   GIT_REPOSITORY https://github.com/simonowen/libspectrum.git
-  GIT_TAG 1111ae84bb670c9987b1de095f8beff240ac8bd8
+  GIT_TAG eb93bd36f6253471bf709bb9745176d1f9c994f0
   )
 FetchContent_MakeAvailable(spectrum)
 target_link_libraries(${PROJECT_NAME} PRIVATE spectrum)
@@ -266,11 +266,11 @@ if (PNG_FOUND)
   set(HAVE_LIBPNG 1)
 endif()
 
-message(STATUS "Fetching github.com/stripwax/SAASound")
+message(STATUS "Fetching SAASound from GitHub")
 FetchContent_Declare(
   SAASound
-  GIT_REPOSITORY https://github.com/stripwax/SAASound.git
-  GIT_TAG 11c53c7a57dc2f621ee5eabf99dd0e5b243b492d )
+  GIT_REPOSITORY https://github.com/simonowen/SAASound.git
+  GIT_TAG 8a143060f0acbd28022bd959a5235b2ab2b64c01 )
 FetchContent_MakeAvailable(SAASound)
 target_link_libraries(${PROJECT_NAME} PRIVATE SAASound)
 # TODO: remove once upstream is compatible

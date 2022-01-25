@@ -19,7 +19,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "SimCoupe.h"
-#include "D3D11.h"
+#include "D3D11Video.h"
 #include "D3D11_Aspect_VS.h"
 #include "D3D11_Sample_PS.h"
 #include "D3D11_Copy_VS.h"

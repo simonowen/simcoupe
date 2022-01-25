@@ -72,7 +72,6 @@ private:
 
     std::array<uint8_t, 0x10000> m_rom{}; // 64K ROM.
 
-    int     m_cur_len{};       // Fullness of current sound buffer.
     bool    m_silent{};        // Flag: SP0256 is silent.
 
     std::vector<int16_t> m_scratch{};  // Scratch buffer for audio.
@@ -99,5 +98,4 @@ private:
     size_t m_wind_ptr{};    // resample window index
     int m_sample_frc{};     // resample frequency
     int m_rate{};           // output device frequency
-    bool m_pal_mode{};
 };

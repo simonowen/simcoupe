@@ -120,7 +120,6 @@ private:
     PSConstants m_ps_constants;
 
     bool m_allow_tearing{ false };
-    bool m_discard_relative{ false };
 
     RECT m_rSource{};
     RECT m_rTarget{};

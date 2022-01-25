@@ -51,7 +51,6 @@ static LPDIRECTINPUTDEVICE2 pdidJoystick1, pdidJoystick2;
 static HKL hkl;
 
 static bool fMouseActive;
-static POINT ptCentre;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -83,7 +82,7 @@ bool Input::Init(bool fFirstInit_/*=false*/)
     }
 
     // If we can find DirectInput 5.0 we can have joystick support, otherwise fall back on 3.0 support for NT4
-    if (fRet = SUCCEEDED(pfnDirectInputCreate(GetModuleHandle(NULL), DIRECTINPUT_VERSION, &pdi, nullptr)))
+    if ((fRet = SUCCEEDED(pfnDirectInputCreate(GetModuleHandle(NULL), DIRECTINPUT_VERSION, &pdi, nullptr))))
         InitJoysticks();
     else
         fRet = SUCCEEDED(pfnDirectInputCreate(GetModuleHandle(NULL), 0x0300, &pdi, nullptr));

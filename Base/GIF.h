@@ -78,8 +78,6 @@ private:
     std::unique_ptr<BitPacker> bp;  // object that does the packing and writing of the compression codes
 
     uint32_t nofdata = 0;       // number of pixels in the data stream
-    uint32_t width = 0;         // width of bitmap in pixels
-    uint32_t height = 0;        // height of bitmap in pixels
 
     uint32_t curordinal = 0;    // ordinal number of next pixel to be encoded
     uint8_t pixel = 0;          // next pixel to be encoded

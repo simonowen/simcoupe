@@ -250,7 +250,7 @@ void DeviceHardDisk::Unlock()
 
 bool DeviceHardDisk::ReadSector(UINT uSector_, uint8_t* pb_)
 {
-    LARGE_INTEGER liOffset = { uSector_ << 9 };
+    LARGE_INTEGER liOffset = { { uSector_ << 9 } };
     auto dwLow = static_cast<DWORD>(liOffset.QuadPart & 0xffffffff);
     auto lHigh = static_cast<LONG>(liOffset.QuadPart >> 32);
     DWORD dwSize = 1 << 9;
@@ -273,7 +273,7 @@ bool DeviceHardDisk::ReadSector(UINT uSector_, uint8_t* pb_)
 
 bool DeviceHardDisk::WriteSector(UINT uSector_, uint8_t* pb_)
 {
-    LARGE_INTEGER liOffset = { uSector_ << 9 };
+    LARGE_INTEGER liOffset{ { uSector_ << 9 } };
     auto dwLow = static_cast<DWORD>(liOffset.QuadPart & 0xffffffff);
     auto lHigh = static_cast<LONG>(liOffset.QuadPart >> 32);
     DWORD dwSize = 1 << 9;

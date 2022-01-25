@@ -34,7 +34,7 @@
 #include "Clock.h"
 #include "CPU.h"
 #include "Debug.h"
-#include "D3D11.h"
+#include "D3D11Video.h"
 #include "Drive.h"
 #include "Expr.h"
 #include "Floppy.h"
@@ -46,8 +46,8 @@
 #include "Keyin.h"
 #include "Main.h"
 #include "Memory.h"
-#include "Midi.h"
-#include "ODmenu.h"
+#include "MIDI.h"
+#include "ODMenu.h"
 #include "Options.h"
 #include "Parallel.h"
 #include "Sound.h"
@@ -97,7 +97,6 @@ static HHOOK hWinKeyHook;
 static WNDPROC pfnStaticWndProc;           // Old static window procedure (internal value)
 
 static WINDOWPLACEMENT g_wp{};
-static int nWindowDx, nWindowDy;
 
 static int nOptionPage = 0;                // Last active option property page
 static const int MAX_OPTION_PAGES = 16;    // Maximum number of option propery pages
@@ -133,19 +132,12 @@ static char szDataFilters[] =
 "Data files (*.bin;*.dat;*.raw;*.txt)\0*.bin;*.dat;*.raw;*.txt\0"
 "All files (*.*)\0*.*\0";
 
-static char szTextFilters[] =
-"Data files (*.txt)\0*.txt\0"
-"All files (*.*)\0*.*\0";
-
 static char szTapeFilters[] =
 "Tape Images (*.tzx;*.tap;*.csw)\0*.tzx;*.tap;*.csw\0"
 #ifdef HAVE_LIBZ
 "Compressed Files (gz;zip)\0*.gz;*.zip\0"
 #endif
 "All Files (*.*)\0*.*\0";
-
-static const char* aszBorders[] =
-{ "No borders", "Small borders", "Short TV area (default)", "TV visible area", "Complete scan area", nullptr };
 
 
 extern "C" int main(int argc_, char* argv_[]);
@@ -620,12 +612,12 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
         // Add first type column
         lvc.cx = 130;
-        lvc.pszText = "Type";
+        lvc.pszText = const_cast<LPSTR>("Type");
         ListView_InsertColumn(hwndList, 0, &lvc);
 
         // Add second details column
         lvc.cx = 215;
-        lvc.pszText = "Details";
+        lvc.pszText = const_cast<LPSTR>("Details");
         ListView_InsertColumn(hwndList, 1, &lvc);
 
 
@@ -676,10 +668,10 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             // Return the appropriate tooltip text
             switch (pttt->hdr.idFrom)
             {
-            case ID_TAPE_OPEN: pttt->lpszText = "Open"; break;
-            case ID_TAPE_EJECT: pttt->lpszText = "Eject"; break;
-            case ID_TAPE_TURBOLOAD: pttt->lpszText = "Fast Loading"; break;
-            case ID_TAPE_TRAPS: pttt->lpszText = "Tape Traps"; break;
+            case ID_TAPE_OPEN: pttt->lpszText = const_cast<LPSTR>("Open"); break;
+            case ID_TAPE_EJECT: pttt->lpszText = const_cast<LPSTR>("Eject"); break;
+            case ID_TAPE_TURBOLOAD: pttt->lpszText = const_cast<LPSTR>("Fast Loading"); break;
+            case ID_TAPE_TRAPS: pttt->lpszText = const_cast<LPSTR>("Tape Traps"); break;
             }
 
             return TRUE;
@@ -1679,7 +1671,7 @@ std::string GetComboText(HWND hdlg, UINT ctrl_id)
     std::vector<char> text(len + 1);
     ComboBox_GetLBText(hwndCombo, index, text.data());
 
-    auto str = text.data();
+    std::string str{ text.data() };
     return (str == "None" || str == "<None>") ? "" : str;
 }
 
@@ -1779,7 +1771,6 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
     static char szFile[MAX_PATH], szAddress[128] = "32768", szPage[128] = "1", szOffset[128] = "0", szLength[128] = "16384";
     static int nType = 0;
     static bool fImport;
-    static POINT apt[2];
 
     switch (uMsg_)
     {
@@ -1860,11 +1851,11 @@ INT_PTR CALLBACK ImportExportDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPA
                 nOffset &= 0x3fff;
             }
 
-            if (!nType && nAddress < 0 || nAddress > 540671)
+            if (!nType && (nAddress < 0 || nAddress > 540671))
                 return BadField(hdlg_, IDE_ADDRESS);
-            else if (nType == 1 && page < 0 || page > 31 || nType == 2 && page > 255)
+            else if ((nType == 1 && (page < 0 || page > 31)) || (nType == 2 && page > 255))
                 return BadField(hdlg_, IDE_PAGE);
-            else if (nType && nOffset < 0 || nOffset > 16384)
+            else if (nType && (nOffset < 0 || nOffset > 16384))
                 return BadField(hdlg_, IDE_OFFSET);
             else if (!fImport && nLength <= 0)
                 return BadField(hdlg_, IDE_LENGTH);
@@ -2837,7 +2828,7 @@ INT_PTR CALLBACK InputPageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARAM
     {
     case WM_INITDIALOG:
     {
-        static const std::vector<std::string> mappings{ "Disabled", "Automatic (default)", "SAM Coupé", "ZX Spectrum" };
+        static const std::vector<std::string> mappings{ "Disabled", "Automatic (default)", "SAM Coupe", "ZX Spectrum" };
         SetComboStrings(hdlg_, IDC_KEYBOARD_MAPPING, mappings, GetOption(keymapping));
 
         Button_SetCheck(GetDlgItem(hdlg_, IDC_ALT_FOR_CNTRL), GetOption(altforcntrl) ? BST_CHECKED : BST_UNCHECKED);
