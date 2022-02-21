@@ -1473,7 +1473,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
 
         case IDM_HELP_GENERAL:
         {
-            auto help_path = OSD::MakeFilePath(PathType::Resource, "ReadMe.md");
+            auto help_path = OSD::MakeFilePath(PathType::Resource, "Manual.md");
             if (fs::exists(help_path))
                 ShellExecute(hwnd_, nullptr, "notepad.exe", help_path.c_str(), "", SW_SHOWNORMAL);
             else
