@@ -1,5 +1,11 @@
 # SimCoupe ChangeLog
 
+## Version 1.2.9 (2022-03-12)
+- fixed read port MSB in block IN instructions (#75)
+- fixed utf-8 path issues under Windows (#74)
+- added additional Win-F11 shortcut for SAM F1 (#73)
+- Win32 help now opens Manual.md instead of ReadMe.md
+
 ## Version 1.2.8 (2021-11-06)
 - improved HALT implementation to better match real Z80
 - improved behaviour of multiple breakpoints at same location (#70)
