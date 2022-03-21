@@ -105,20 +105,25 @@ std::pair<int, int> Direct3D11Video::MouseRelative()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static bool Fail(HRESULT hr, const std::string& operation)
+static HRESULT Fail(HRESULT hr, const std::string_view& operation)
 {
     if (FAILED(hr))
     {
-        Message(MsgType::Fatal, "{} failed with {}", operation.c_str(), hr);
+        Message(MsgType::Fatal, "{} failed with {}", operation, hr);
 #ifdef _DEBUG
         __debugbreak();
 #endif
     }
 
-    return false;
+    return hr;
 }
 
 bool Direct3D11Video::Init()
+{
+    return SUCCEEDED(InitD3D11());
+}
+
+HRESULT Direct3D11Video::InitD3D11()
 {
     D3D_FEATURE_LEVEL featureLevel{};
     std::vector<D3D_FEATURE_LEVEL> featureLevels
@@ -257,7 +262,7 @@ bool Direct3D11Video::Init()
 
     OptionsChanged();
 
-    return true;
+    return S_OK;
 }
 
 HRESULT Direct3D11Video::ResizeSource(int width, int height)

@@ -20,10 +20,6 @@
 
 #pragma once
 
-#ifdef _DEBUG
-#define D3D_DEBUG_INFO
-#endif
-
 #include <dxgi1_5.h>
 #include <d3d11.h>
 #pragma comment(lib, "dxgi.lib")
@@ -59,6 +55,7 @@ protected:
         return hr;
     }
 
+    HRESULT InitD3D11();
     HRESULT ResizeSource(int width, int height);
     HRESULT ResizeTarget(int width, int height);
     HRESULT ResizeIntermediate(bool smooth);
