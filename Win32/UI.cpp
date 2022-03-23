@@ -1531,13 +1531,20 @@ void SaveWindowPosition(HWND hwnd_)
     if (fullscreen)
         Actions::Do(Action::ToggleFullscreen);
 
-    WINDOWPLACEMENT wp = { sizeof(wp) };
+    RECT rect{};
+    AdjustWindowRectEx(&rect, GetWindowStyle(hwnd_), GetMenu(hwnd_) ? TRUE : FALSE, GetWindowExStyle(hwnd_));
+
+    WINDOWPLACEMENT wp{ sizeof(wp) };
     GetWindowPlacement(hwnd_, &wp);
 
-    auto& rect = wp.rcNormalPosition;
+    auto x = wp.rcNormalPosition.left - rect.left;
+    auto y = wp.rcNormalPosition.top - rect.top;
+    auto width = (wp.rcNormalPosition.right - wp.rcNormalPosition.left) - (rect.right - rect.left);
+    auto height = (wp.rcNormalPosition.bottom - wp.rcNormalPosition.top) - (rect.bottom - rect.top);
+
     SetOption(windowpos,
         fmt::format("{},{},{},{},{}",
-            rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+            x, y, width, height,
             (wp.showCmd == SW_SHOWMAXIMIZED) ? 1 : 0));
 
     SetOption(fullscreen, fullscreen);
@@ -1549,9 +1556,11 @@ bool RestoreWindowPosition(HWND hwnd_)
     if (sscanf(GetOption(windowpos).c_str(), "%d,%d,%d,%d,%d", &x, &y, &width, &height, &maximised) != 5)
         return false;
 
-    WINDOWPLACEMENT wp{};
-    wp.length = sizeof(wp);
-    SetRect(&wp.rcNormalPosition, x, y, x + width, y + height);
+    RECT rect{ x, y, x + width, y + height };
+    AdjustWindowRectEx(&rect, GetWindowStyle(hwnd_), TRUE, GetWindowExStyle(hwnd_));
+
+    WINDOWPLACEMENT wp{ sizeof(wp) };
+    wp.rcNormalPosition = rect;
     wp.showCmd = maximised ? SW_MAXIMIZE : GetOption(fullscreen) ? SW_HIDE : SW_SHOW;
     SetWindowPlacement(hwnd_, &wp);
 
