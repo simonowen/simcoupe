@@ -449,7 +449,7 @@ void EjectDisk(DiskDevice& floppy)
 }
 
 
-bool InsertTape(HWND hwndParent_, std::optional<std::string> new_path = std::nullopt)
+bool InsertTape(HWND hwndParent_, std::optional<std::string> new_path = std::nullopt, bool autoload = true)
 {
     char szFile[MAX_PATH]{};
     auto tape_path = Tape::GetPath();
@@ -458,7 +458,7 @@ bool InsertTape(HWND hwndParent_, std::optional<std::string> new_path = std::nul
     if (new_path && (*new_path).empty())
     {
         EjectTape();
-        return true;
+        return false;
     }
 
     OPENFILENAME ofn = { sizeof(ofn) };
@@ -482,6 +482,9 @@ bool InsertTape(HWND hwndParent_, std::optional<std::string> new_path = std::nul
         return false;
     }
 
+    if (autoload)
+        IO::AutoLoad(AutoLoadType::Tape);
+
     Frame::SetStatus("{}  inserted", Tape::GetFile());
     AddRecentFile(*new_path);
     return true;
@@ -493,6 +496,7 @@ void EjectTape()
     {
         Frame::SetStatus("{}  ejected", Tape::GetFile());
         Tape::Eject();
+        IO::AutoLoad(AutoLoadType::None);
     }
 }
 
@@ -565,7 +569,6 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 {
     static HWND hwndToolbar, hwndList, hwndStatus;
     static HIMAGELIST hImageList;
-    static bool fAutoLoad;
 
     switch (uMsg_)
     {
@@ -628,9 +631,6 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         UpdateTapeToolbar(hdlg_);
         UpdateTapeBlockList(hdlg_);
 
-        // Don't auto-load on dialog exit
-        fAutoLoad = false;
-
         CentreWindow(hdlg_);
         return 1;
     }
@@ -689,22 +689,16 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             break;
 
         case IDCLOSE:
-            // Trigger auto-load if required
-            if (fAutoLoad && Tape::IsInserted())
-                IO::AutoLoad(AutoLoadType::Tape);
-
             EndDialog(hdlg_, 0);
             break;
 
         case ID_TAPE_OPEN:
-            fAutoLoad |= InsertTape(hdlg_);
-            Keyin::Stop();
+            InsertTape(hdlg_);
             UpdateTapeBlockList(hdlg_);
             break;
 
         case ID_TAPE_EJECT:
-            fAutoLoad = false;
-            Tape::Eject();
+            EjectTape();
             UpdateTapeBlockList(hdlg_);
             break;
 

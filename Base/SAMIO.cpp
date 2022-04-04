@@ -914,8 +914,11 @@ void AutoLoad(AutoLoadType type)
 {
     auto_load = AutoLoadType::None;
 
-    if (!GetOption(autoload) || !TestStartupScreen(true))
+    if (!GetOption(autoload) || type == AutoLoadType::None)
+    {
+        Keyin::Stop();
         return;
+    }
 
     if (type == AutoLoadType::Disk)
         Keyin::String("\xc9", false);
@@ -927,7 +930,13 @@ void EiHook()
 {
     // If we're leaving the ROM interrupt handler, inject any auto-typing input
     if (cpu.get_pc() == 0x005a && GetSectionPage(Section::A) == ROM0)
-        Keyin::Next();
+    {
+        if (Keyin::IsTyping())
+        {
+            TestStartupScreen(true);
+            Keyin::Next();
+        }
+    }
 
     Tape::EiHook();
 }
