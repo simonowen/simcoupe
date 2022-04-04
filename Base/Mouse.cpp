@@ -82,7 +82,7 @@ uint8_t MouseDevice::In(uint16_t /*wPort_*/)
         m_uBuffer = 1;
 
         // If it's not the ROM reading the mouse, remember the last read time
-        if (cpu.get_pc() != 0xd4d6)
+        if (cpu.get_pc() != rom_hook_addr(RomHook::MSDML))
             read_time = std::chrono::steady_clock::now();
     }
 

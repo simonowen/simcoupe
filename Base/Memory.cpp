@@ -48,6 +48,8 @@ uint8_t* apbSectionWritePtrs[4];
 uint16_t g_awMode1LineToByte[GFX_SCREEN_LINES];
 uint8_t g_abMode1ByteToLine[GFX_SCREEN_LINES];
 
+static void update_rom_hooks();
+
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace Memory
@@ -111,6 +113,7 @@ bool Init(bool fFirstInit_/*=false*/)
     if (fFirstInit_ || fUpdateRom)
     {
         LoadRoms();
+        update_rom_hooks();
         fUpdateRom = false;
     }
 
@@ -279,4 +282,99 @@ void write_to_screen_vmpr1(uint16_t addr)
 
     if (addr < (MODE34_DISPLAY_BYTES - MEM_PAGE_SIZE))
         Frame::TouchLine(((addr + MEM_PAGE_SIZE) >> 7) + TOP_BORDER_LINES);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+using byte_pattern = std::vector<std::optional<uint8_t>>;
+constexpr auto any_byte = std::nullopt;
+
+struct hook_entry
+{
+    hook_entry(int page, byte_pattern&& match, int offset = 0)
+        : page{ page }, match{ std::move(match) }, addr_offset(offset) { }
+
+    int page;
+    byte_pattern match;
+    int addr_offset;    // offset from match to address of interest
+    std::optional<uint16_t> addr;
+};
+
+std::vector<hook_entry> rom_hooks =
+{
+    // IMEXIT: pop bc; pop af; ei; ret  [@0057 in ROM 3.0]
+    hook_entry{ ROM0, byte_pattern{ 0xc1, 0xf1, 0xfb, 0xc9 }, +3 },
+
+    // WTFK: call readkey; jr z,wtfk [@0FA2 in ROM 3.0]
+    hook_entry{ ROM0, byte_pattern{ 0xcd, any_byte, any_byte, 0x28, 0xfb }, +3 },
+
+    // READKEY: rst 30; <addr>; jr z,+2; xor a; ret [@1CB2 in ROM 3.0]
+    hook_entry{ ROM0, byte_pattern{ 0xf7, any_byte, any_byte, 0x28, 0x02, 0xaf, 0xc9 }, +1 },
+
+    // BOOTNR: call BOOTEX; RST 8; defb 80; ret; [@D8DF in ROM 3.0, missing from 1.0]
+    hook_entry{ ROM1, byte_pattern{ 0xcd, any_byte, any_byte, 0xcf, 0x80, 0xc9 }, },
+
+    // MSDML: ld (hl),a; inc hl; djnz e; call nz,nn [@D4D6 in ROM 3.0, missing from <= 1.4]
+    hook_entry { ROM1, byte_pattern{ 0x77, 0x23, 0x10, 0xf8, 0xc4 } },
+
+    // LOADEXIT: ld a,l; cp 1; ret [@E739 in ROM 3.0]
+    hook_entry { ROM1, byte_pattern{ 0x7d, 0xfe, 0x01, 0xc9 } },
+
+    // LOADFAIL: xor h; ret nz; ld a,c [@E6F5 in ROM 3.0]
+    hook_entry { ROM1, byte_pattern{ 0xac, 0xc0, 0x79 } },
+
+    // SVLDCOM: ex af,af'; ld a,(bordcol); out (border),a [@E612 in ROM 3.0]
+    hook_entry { ROM1, byte_pattern{ 0x08, 0x3a, 0x4b, 0x5c, 0xd3, 0xfe } },
+
+    // LDSTRT: call nn; ret z; ld b,8 [@E678 in ROM 3.0]
+    hook_entry { ROM1, byte_pattern{ 0xcd, any_byte, any_byte, 0xc8, 0x06, 0x08 }, +4 },
+
+    // EDGLP: inc c; ret z; xor b [@2053 in ROM 3.0]
+    hook_entry { ROM0, byte_pattern{ 0x0c, 0xc8, 0xa8 } },
+};
+
+std::optional<uint16_t> rom_hook_addr(RomHook h)
+{
+    const auto& hook = rom_hooks[static_cast<int>(h)];
+    if (hook.addr && AddrPage(*hook.addr) == hook.page)
+        return hook.addr;
+
+    return std::nullopt;
+}
+
+static bool mem_match(const uint8_t* ptr, const byte_pattern& match)
+{
+    for (auto& b : match)
+    {
+        if (b.has_value() && *b != *ptr)
+            return false;
+        ptr++;
+    }
+
+    return true;
+}
+
+static void update_rom_hooks()
+{
+    for (auto& hook : rom_hooks)
+    {
+        std::vector<size_t> matches;
+
+        const auto page_ptr = PageReadPtr(hook.page);
+        size_t page_len = MEM_PAGE_SIZE - hook.match.size();
+
+        for (size_t i = 0; i < page_len; ++i)
+        {
+            if (mem_match(page_ptr + i, hook.match))
+            {
+                auto base = SectionOffset((hook.page == ROM1) ? Section::D : Section::A);
+                matches.push_back(base + i + hook.addr_offset);
+            }
+        }
+
+        if (matches.size() == 1)
+            hook.addr = static_cast<uint16_t>(matches[0]);
+        else
+            hook.addr = std::nullopt;
+    }
 }

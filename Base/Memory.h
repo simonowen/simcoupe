@@ -55,6 +55,7 @@ inline int AddrPage(uint16_t addr) { return anSectionPages[AddrSection(addr)]; }
 inline int AddrOffset(uint16_t addr) { return addr & (MEM_PAGE_SIZE - 1); }
 
 inline int GetSectionPage(Section section) { return anSectionPages[static_cast<int>(section)]; }
+constexpr int SectionOffset(Section section) { return static_cast<int>(section) * MEM_PAGE_SIZE; }
 
 inline int PageReadOffset(int page) { return anReadPages[page] * MEM_PAGE_SIZE; }
 inline int PageWriteOffset(int page) { return anWritePages[page] * MEM_PAGE_SIZE; }
@@ -152,3 +153,6 @@ namespace Memory
 
     std::string PageDesc(int nPage_, bool fCompact_ = false);
 }
+
+enum class RomHook { IMEXIT, WTFK, READKEY, BOOTNR, MSDML, LOADEXIT, LOADFAIL, SVLDCOM, LDSTRT, EDGLP };
+std::optional<uint16_t> rom_hook_addr(RomHook hook);

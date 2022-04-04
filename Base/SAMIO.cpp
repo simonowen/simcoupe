@@ -889,14 +889,19 @@ std::vector<COLOUR> Palette()
 
 bool TestStartupScreen(bool skip_startup)
 {
-    for (int i = 0; i < 20; i += 2)
+    constexpr auto max_stack_slots = 15;
+    const auto wtfk_addr = rom_hook_addr(RomHook::WTFK);
+
+    for (int i = 0; i < max_stack_slots; ++i)
     {
-        // Check for 0f78 on stack, with previous location pointing at JR Z,-5
-        if (read_word(cpu.get_sp() + i + 2) == 0x0f78 && read_word(read_word(cpu.get_sp() + i)) == 0xfb28)
+        auto stack_addr = cpu.get_sp() + i * 2;
+        auto addr = read_word(stack_addr);
+
+        if (addr == wtfk_addr)
         {
             // Optionally skip JR to exit WTFK loop at copyright message
             if (skip_startup)
-                write_word(cpu.get_sp() + i, read_word(cpu.get_sp() + i) + 2);
+                write_word(stack_addr, addr + 2);
 
             return true;
         }
@@ -929,7 +934,7 @@ void AutoLoad(AutoLoadType type)
 void EiHook()
 {
     // If we're leaving the ROM interrupt handler, inject any auto-typing input
-    if (cpu.get_pc() == 0x005a && GetSectionPage(Section::A) == ROM0)
+    if (cpu.get_pc() == rom_hook_addr(RomHook::IMEXIT))
     {
         if (Keyin::IsTyping())
         {
@@ -943,11 +948,8 @@ void EiHook()
 
 bool Rst8Hook()
 {
-    if ((cpu.get_pc() < 0x4000 && GetSectionPage(Section::A) != ROM0) ||
-        (cpu.get_pc() >= 0xc000 && GetSectionPage(Section::D) != ROM1))
-    {
+    if (AddrPage(cpu.get_pc()) != ROM0 && AddrPage(cpu.get_pc()) != ROM1)
         return false;
-    }
 
     // If a drive object exists, clean up after our boot attempt, whether or not it worked
     pBootDrive.reset();
@@ -961,14 +963,19 @@ bool Rst8Hook()
     // "NO DOS" or "Loading error"
     case 0x35:
     case 0x13:
-        if (cpu.get_pc() >= 0xc000 && GetSectionPage(Section::D) == ROM1 && GetOption(dosboot))
+        if (GetOption(dosboot))
         {
+            const auto bootnr = rom_hook_addr(RomHook::BOOTNR);
+            if (!bootnr)
+                return false;
+
             pBootDrive = std::make_unique<Drive>();
             if (GetOption(dosdisk).empty() || !pBootDrive->Insert(GetOption(dosdisk)))
                 pBootDrive->Insert(samdos_image);
 
             // Jump back to BOOTEX to try again
-            cpu.set_pc(0xd8e5);
+            auto bootex = read_word(*bootnr + 1);
+            cpu.set_pc(bootex);
             return true;
         }
         break;
@@ -988,8 +995,9 @@ bool Rst8Hook()
 
 void Rst48Hook()
 {
+
     // Are we at READKEY in ROM0?
-    if (cpu.get_pc() == 0x1cb2 && GetSectionPage(Section::A) == ROM0)
+    if (cpu.get_pc() == rom_hook_addr(RomHook::READKEY))
     {
         if (auto_load != AutoLoadType::None)
             AutoLoad(auto_load);

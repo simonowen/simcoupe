@@ -201,12 +201,16 @@ bool LoadTrap()
     if (!IsInserted())
         return false;
 
-    // If traps are disabled, try normal loading
     if (!GetOption(tapetraps))
     {
         Play();
         return false;
     }
+
+    const auto load_exit = rom_hook_addr(RomHook::LOADEXIT);
+    const auto load_fail = rom_hook_addr(RomHook::LOADFAIL);
+    if (!load_exit || !load_fail)
+        return false;
 
     // Skip over any metadata blocks
     auto block = libspectrum_tape_current_block(pTape);
@@ -249,7 +253,7 @@ bool LoadTrap()
 
         // Failed, exit via: RET NZ
         cpu.set_f(cpu.get_f() & ~(cpu.zf_mask | cpu.cf_mask));
-        cpu.set_pc(0xe6f6);
+        cpu.set_pc(*load_fail);
 
         return true;
     }
@@ -267,7 +271,7 @@ bool LoadTrap()
 
             // Failed, exit via: RET NZ
             cpu.set_f(cpu.get_f() & ~(cpu.zf_mask | cpu.cf_mask));
-            cpu.set_pc(0xe6f6);
+            cpu.set_pc(*load_fail);
 
             return true;
         }
@@ -294,7 +298,7 @@ bool LoadTrap()
     libspectrum_tape_select_next_block(pTape);
 
     // Exit via: LD A,L ; CP 1 ; RET
-    cpu.set_pc(0xe739);
+    cpu.set_pc(*load_exit);
 
     return true;
 }
@@ -525,15 +529,15 @@ std::string GetBlockDetails(libspectrum_tape_block* block)
 
 void EiHook()
 {
-    // If we're leaving the ROM tape loader, consider stopping the tape
-    if (cpu.get_pc() == 0xe612 /*&& GetOption(tapeauto)*/)
+    // If we're leaving the ROM tape loader stop the tape
+    if (cpu.get_pc() == rom_hook_addr(RomHook::SVLDCOM))
         Stop();
 }
 
 bool RetZHook()
 {
     // If we're at LDSTRT in ROM1, consider using the loading trap
-    if (cpu.get_pc() == 0xe679 && GetSectionPage(Section::D) == ROM1)
+    if (cpu.get_pc() == rom_hook_addr(RomHook::LDSTRT))
         return LoadTrap();
 
     return false;
@@ -542,13 +546,14 @@ bool RetZHook()
 void InFEHook()
 {
     // Are we at the port read in the ROM tape edge routine?
-    if (cpu.get_pc() == 0x2053)
+    if (cpu.get_pc() == rom_hook_addr(RomHook::EDGLP))
     {
         Play();
 
         if (GetOption(tapetraps) && GetOption(turbotape))
         {
             auto event_time = GetEventTime(EventType::TapeEdge);
+            auto edglp = cpu.get_pc() - 2;
 
             // Simulate the edge code to advance to the next edge
             // Return to normal processing if C hits 255 (no edge found) or the ear bit has changed
@@ -558,7 +563,7 @@ void InFEHook()
                 cpu.set_r((cpu.get_r() & 0x80) | ((cpu.get_r() + 7) & 0x7f));
                 CPU::frame_cycles += 48;
                 event_time -= 48;
-                cpu.set_pc(0x2051);
+                cpu.set_pc(edglp);
             }
         }
     }
