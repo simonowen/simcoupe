@@ -404,8 +404,6 @@ uint8_t In(uint16_t port)
     {
         Tape::InFEHook();
 
-        g_nTurbo &= ~TURBO_BOOT;
-
         auto keys = KEYBOARD_KEY_MASK;
         if (port_high == 0xff)
         {
@@ -964,6 +962,11 @@ bool Rst8Hook()
             cpu.set_pc(0xd8e5);
             return true;
         }
+        break;
+
+    // Copyright message
+    case 0x50:
+        g_nTurbo &= ~TURBO_BOOT;
         break;
 
     default:

@@ -77,6 +77,9 @@ std::chrono::steady_clock::time_point status_time;
 std::string status_text;
 std::string profile_text;
 
+constexpr auto max_boot_frames = 200;
+int boot_frames{};
+
 bool Init()
 {
     Exit();
@@ -97,6 +100,7 @@ bool Init()
     pGuiScreen = std::make_unique<FrameBuffer>(width, height * 2);
 
     Flyback();
+    boot_frames = max_boot_frames;
 
     return true;
 }
@@ -231,58 +235,56 @@ void Begin()
 
 void End()
 {
-    if (draw_frame)
+    Update();
+
+    if (GUI::IsActive())
     {
-        Update();
+        std::unique_ptr<FrameBuffer> full_frame_buffer;
+        auto pBuffer = pFrameBuffer.get();
 
-        if (GUI::IsActive())
+        if (Debug::IsActive() && !GetOption(rasterdebug))
         {
-            std::unique_ptr<FrameBuffer> full_frame_buffer;
-            auto pBuffer = pFrameBuffer.get();
-
-            if (Debug::IsActive() && !GetOption(rasterdebug))
-            {
-                full_frame_buffer = RedrawnDisplay();
-                pBuffer = full_frame_buffer.get();
-            }
-
-            for (int i = 0; i < Height(); i++)
-            {
-                auto pLine = pBuffer->GetLine(i >> 1);
-                auto width = pBuffer->Width();
-
-                memcpy(pGuiScreen->GetLine(i), pLine, width);
-            }
-
-            if (Debug::IsActive())
-                DrawRaster(*pGuiScreen);
-
-            GUI::Draw(*pGuiScreen);
-        }
-        else
-        {
-            if (save_png)
-            {
-                PNG::Save(*pFrameBuffer);
-                save_png = false;
-            }
-
-            if (save_ssx)
-            {
-                auto main_x = (SIDE_BORDER_CELLS - s_view_left) << 4;
-                auto main_y = (TOP_BORDER_LINES - s_view_top);
-                SSX::Save(*pFrameBuffer, main_x, main_y);
-                save_ssx = false;
-            }
-
-            GIF::AddFrame(*pFrameBuffer);
-            AVI::AddFrame(*pFrameBuffer);
-
-            DrawOSD(*pFrameBuffer);
+            full_frame_buffer = RedrawnDisplay();
+            pBuffer = full_frame_buffer.get();
         }
 
-        Redraw();
+        for (int i = 0; i < Height(); i++)
+        {
+            auto pLine = pBuffer->GetLine(i >> 1);
+            auto width = pBuffer->Width();
+
+            memcpy(pGuiScreen->GetLine(i), pLine, width);
+        }
+
+        if (Debug::IsActive())
+            DrawRaster(*pGuiScreen);
+
+        GUI::Draw(*pGuiScreen);
     }
+    else
+    {
+        if (save_png)
+        {
+            PNG::Save(*pFrameBuffer);
+            save_png = false;
+        }
+
+        if (save_ssx)
+        {
+            auto main_x = (SIDE_BORDER_CELLS - s_view_left) << 4;
+            auto main_y = (TOP_BORDER_LINES - s_view_top);
+            SSX::Save(*pFrameBuffer, main_x, main_y);
+            save_ssx = false;
+        }
+
+        GIF::AddFrame(*pFrameBuffer);
+        AVI::AddFrame(*pFrameBuffer);
+
+        DrawOSD(*pFrameBuffer);
+    }
+
+    if (draw_frame)
+        Redraw();
 
     Sync();
 }
@@ -336,6 +338,11 @@ void Sync()
     else
     {
         draw_frame = true;
+    }
+
+    if (boot_frames && !--boot_frames && (g_nTurbo & TURBO_BOOT))
+    {
+        g_nTurbo &= ~TURBO_BOOT;
     }
 
     static int num_frames;
