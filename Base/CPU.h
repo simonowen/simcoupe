@@ -40,6 +40,7 @@ constexpr uint8_t OP_JP = 0xc3;
 constexpr uint8_t OP_RET = 0xc9;
 constexpr uint8_t OP_CALL = 0xcd;
 constexpr uint8_t OP_JPHL = 0xe9;
+constexpr uint8_t OP_DI = 0xf3;
 
 constexpr uint8_t IX_PREFIX = 0xdd;
 constexpr uint8_t IY_PREFIX = 0xfd;

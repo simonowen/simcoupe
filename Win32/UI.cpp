@@ -125,7 +125,7 @@ static char szHDDFilters[] =
 "All Files (*.*)\0*.*\0";
 
 static char szRomFilters[] =
-"ROM images (*.rom;*.zx82)\0*.rom;*.zx82\0"
+"ROM images (*.rom;*.zx82;rom*)\0*.rom;*.zx82;rom*\0"
 "All files (*.*)\0*.*\0";
 
 static char szDataFilters[] =

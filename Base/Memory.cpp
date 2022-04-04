@@ -195,26 +195,30 @@ static bool LoadRoms()
 
     if (rom)
     {
-        size_t uRead = 0;
+        size_t bytes_read = 0;
 
         // Read the header+bootstrap code from what could be a ZX82 file (for Andy Wright's ROM images)
-        uint8_t abHeader[140];
-        rom->Read(abHeader, sizeof(abHeader));
+        constexpr auto zx82_header_size = 140;
+        std::array<uint8_t, zx82_header_size> header;
+        rom->Read(header.data(), header.size());
 
         // If we don't find the ZX82 signature, rewind to read as a plain ROM file
-        if (memcmp(abHeader, "ZX82", 4))
+        constexpr std::string_view zx82_sig{ "ZX82" };
+        if (std::memcmp(header.data(), zx82_sig.data(), zx82_sig.size()))
             rom->Rewind();
 
-        // Read both 16K ROM images
-        uRead += rom->Read(pb0, MEM_PAGE_SIZE);
-        uRead += rom->Read(pb1, MEM_PAGE_SIZE);
+        bytes_read += rom->Read(pb0, MEM_PAGE_SIZE);
+        bytes_read += rom->Read(pb1, MEM_PAGE_SIZE);
 
-        // Return if the full 32K was read
-        if (uRead == MEM_PAGE_SIZE * 2)
+        // Accept raw images or ZX82 files starting with a DI instruction.
+        constexpr size_t rom_image_size = MEM_PAGE_SIZE * 2;
+        if (bytes_read == rom_image_size &&
+            (rom->GetSize() == rom_image_size || *pb0 == OP_DI))
+        {
             return true;
+        }
     }
 
-    // Invalidate the ROM image
     memset(pb0, 0xff, MEM_PAGE_SIZE);
     memset(pb1, 0xff, MEM_PAGE_SIZE);
 
