@@ -502,22 +502,18 @@ void EjectTape()
 
 void UpdateTapeToolbar(HWND hdlg_)
 {
-    libspectrum_tape* tape = Tape::GetTape();
-    bool fInserted = tape != nullptr;
-
     HWND hwndToolbar = GetDlgItem(hdlg_, ID_TAPE_TOOLBAR);
 
     SendMessage(hwndToolbar, TB_ENABLEBUTTON, ID_TAPE_OPEN, 1);
-    SendMessage(hwndToolbar, TB_ENABLEBUTTON, ID_TAPE_EJECT, fInserted);
+    SendMessage(hwndToolbar, TB_ENABLEBUTTON, ID_TAPE_EJECT, Tape::IsInserted());
+    SendMessage(hwndToolbar, TB_ENABLEBUTTON, ID_TAPE_PLAY, Tape::IsInserted());
+    SendMessage(hwndToolbar, TB_CHANGEBITMAP, ID_TAPE_PLAY, Tape::IsPlaying() ? 1 : 0);
     SendMessage(hwndToolbar, TB_CHECKBUTTON, ID_TAPE_TURBOLOAD, GetOption(turbotape));
     SendMessage(hwndToolbar, TB_CHECKBUTTON, ID_TAPE_TRAPS, GetOption(tapetraps));
 }
 
 void UpdateTapeBlockList(HWND hdlg_)
 {
-    libspectrum_tape* tape = Tape::GetTape();
-    bool fInserted = tape != nullptr;
-
     // Show the overlay status text for an empty list
     HWND hwndStatus = GetDlgItem(hdlg_, IDS_TAPE_STATUS);
     ShowWindow(hwndStatus, SW_SHOW);
@@ -526,42 +522,43 @@ void UpdateTapeBlockList(HWND hdlg_)
     HWND hwndList = GetDlgItem(hdlg_, IDL_TAPE_BLOCKS);
     ListView_DeleteAllItems(hwndList);
 
-    if (fInserted)
+    auto tape = Tape::GetTape();
+    if (!tape)
+        return;
+
+    // Hide the status text as a tape is present
+    ShowWindow(hwndStatus, SW_HIDE);
+
+    libspectrum_tape_iterator it = nullptr;
+    libspectrum_tape_block* block = libspectrum_tape_iterator_init(&it, tape);
+    int block_idx = 0;
+
+    // Loop over all blocks in the tape
+    for (; block; block = libspectrum_tape_iterator_next(&it), block_idx++)
     {
-        // Hide the status text as a tape is present
-        ShowWindow(hwndStatus, SW_HIDE);
+        char sz[128] = "";
+        libspectrum_tape_block_description(sz, sizeof(sz), block);
 
-        libspectrum_tape_iterator it = nullptr;
-        libspectrum_tape_block* block = libspectrum_tape_iterator_init(&it, tape);
-        int block_idx = 0;
+        LVITEM lvi = {};
+        lvi.mask = LVIF_TEXT;
+        lvi.iItem = block_idx;
+        lvi.iSubItem = 0;
+        lvi.pszText = sz;
 
-        // Loop over all blocks in the tape
-        for (; block; block = libspectrum_tape_iterator_next(&it), block_idx++)
-        {
-            char sz[128] = "";
-            libspectrum_tape_block_description(sz, sizeof(sz), block);
+        // Insert the new block item, setting the first column to the type text
+        int nIndex = ListView_InsertItem(hwndList, &lvi);
 
-            LVITEM lvi = {};
-            lvi.mask = LVIF_TEXT;
-            lvi.iItem = block_idx;
-            lvi.iSubItem = 0;
-            lvi.pszText = sz;
+        // Set the second column to the block details
+        auto details = Tape::GetBlockDetails(block);
+        ListView_SetItemText(hwndList, nIndex, 1, const_cast<char*>(details.c_str()));
+    }
 
-            // Insert the new block item, setting the first column to the type text
-            int nIndex = ListView_InsertItem(hwndList, &lvi);
-
-            // Set the second column to the block details
-            auto details = Tape::GetBlockDetails(block);
-            ListView_SetItemText(hwndList, nIndex, 1, const_cast<char*>(details.c_str()));
-        }
-
-        // Fetch the current block index
-        if (block_idx > 0 && libspectrum_tape_position(&block_idx, tape) == LIBSPECTRUM_ERROR_NONE)
-        {
-            // Select the current block in the list, and ensure it's visible
-            ListView_SetItemState(hwndList, block_idx, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-            ListView_EnsureVisible(hwndList, block_idx, FALSE);
-        }
+    // Fetch the current block index
+    if (block_idx > 0 && libspectrum_tape_position(&block_idx, tape) == LIBSPECTRUM_ERROR_NONE)
+    {
+        // Select the current block in the list, and ensure it's visible
+        ListView_SetItemState(hwndList, block_idx, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+        ListView_EnsureVisible(hwndList, block_idx, FALSE);
     }
 }
 
@@ -591,6 +588,8 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         {
             { nImageListIcons + STD_FILEOPEN, ID_TAPE_OPEN, TBSTATE_ENABLED, TBSTYLE_BUTTON },
             { 5, ID_TAPE_EJECT, TBSTATE_ENABLED, TBSTYLE_BUTTON },
+            { 0, 0, 0, TBSTYLE_SEP },
+            { 0, ID_TAPE_PLAY, TBSTATE_ENABLED, TBSTYLE_BUTTON },
             { 0, 0, 0, TBSTYLE_SEP },
             { 7, ID_TAPE_TURBOLOAD, TBSTATE_ENABLED, TBSTYLE_CHECK },
             { 8, ID_TAPE_TRAPS, TBSTATE_ENABLED, TBSTYLE_CHECK }
@@ -670,6 +669,7 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
             {
             case ID_TAPE_OPEN: pttt->lpszText = const_cast<LPSTR>("Open"); break;
             case ID_TAPE_EJECT: pttt->lpszText = const_cast<LPSTR>("Eject"); break;
+            case ID_TAPE_PLAY: pttt->lpszText = const_cast<LPSTR>("Play/Pause"); break;
             case ID_TAPE_TURBOLOAD: pttt->lpszText = const_cast<LPSTR>("Fast Loading"); break;
             case ID_TAPE_TRAPS: pttt->lpszText = const_cast<LPSTR>("Tape Traps"); break;
             }
@@ -700,6 +700,13 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
         case ID_TAPE_EJECT:
             EjectTape();
             UpdateTapeBlockList(hdlg_);
+            break;
+
+        case ID_TAPE_PLAY:
+            if (Tape::IsPlaying())
+                Tape::Stop();
+            else
+                Tape::Play();
             break;
 
         case ID_TAPE_TURBOLOAD:

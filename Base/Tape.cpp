@@ -157,19 +157,12 @@ void NextEdge(uint32_t dwTime_)
     else if (!(nFlags & LIBSPECTRUM_TAPE_FLAGS_NO_EDGE))
         fEar = !fEar;
 
-    if ((nFlags & LIBSPECTRUM_TAPE_FLAGS_BLOCK))
-    {
-        Stop();
-    }
-    else
-    {
-        // Timings are in 3.5MHz t-states, so convert to SAM t-states
-        zx_tstates = zx_tstates * (CPU_CLOCK_HZ / 100'000) + tremain;
-        auto tadd = zx_tstates / (SPECTRUM_TSTATES_PER_SECOND / 100'000);
-        tremain = zx_tstates % (SPECTRUM_TSTATES_PER_SECOND / 100'000);
+    // Timings are in 3.5MHz t-states, so convert to SAM t-states
+    zx_tstates = zx_tstates * (CPU_CLOCK_HZ / 100'000) + tremain;
+    auto tadd = zx_tstates / (SPECTRUM_TSTATES_PER_SECOND / 100'000);
+    tremain = zx_tstates % (SPECTRUM_TSTATES_PER_SECOND / 100'000);
 
-        AddEvent(EventType::TapeEdge, dwTime_ + tadd);
-    }
+    AddEvent(EventType::TapeEdge, dwTime_ + tadd);
 }
 
 void Play()
