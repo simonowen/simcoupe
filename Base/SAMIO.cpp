@@ -918,7 +918,7 @@ void AutoLoad(AutoLoadType type)
 {
     auto_load = AutoLoadType::None;
 
-    if (!GetOption(autoload) || type == AutoLoadType::None)
+    if (!GetOption(autoload) || type == AutoLoadType::None || !TestStartupScreen())
     {
         Keyin::Stop();
         return;
