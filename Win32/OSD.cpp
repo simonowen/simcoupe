@@ -130,7 +130,7 @@ std::string OSD::MakeFilePath(PathType type, const std::string& filename)
 
     case PathType::Resource:
 #ifdef RESOURCE_DIR
-        path = RESOURCE_DIR;
+        path = fs::path(RESOURCE_DIR).make_preferred();
 #else
         path = exe_dir;
 #endif

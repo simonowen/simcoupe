@@ -43,7 +43,6 @@
 #include "Options.h"
 #include "Parallel.h"
 #include "Paula.h"
-#include "SAMDOS.h"
 #include "SAMVox.h"
 #include "SDIDE.h"
 #include "SID.h"
@@ -969,9 +968,16 @@ bool Rst8Hook()
             if (!bootnr)
                 return false;
 
+            auto dosdisk = GetOption(dosdisk);
+            if (dosdisk.empty())
+                dosdisk = OSD::MakeFilePath(PathType::Resource, "samdos2.sbt");
+
             pBootDrive = std::make_unique<Drive>();
-            if (GetOption(dosdisk).empty() || !pBootDrive->Insert(GetOption(dosdisk)))
-                pBootDrive->Insert(samdos_image);
+            if (!pBootDrive->Insert(dosdisk))
+            {
+                pBootDrive.reset();
+                break;
+            }
 
             // Jump back to BOOTEX to try again
             auto bootex = read_word(*bootnr + 1);

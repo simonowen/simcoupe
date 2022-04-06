@@ -96,6 +96,7 @@ Source: "{#BASE_PATH_X64}\*.dll"; DestDir: "{app}"; Flags: ignoreversion; Compon
 Source: "..\Resource\*.rom"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 Source: "..\Resource\*.bin"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 Source: "..\Resource\*.map"; DestDir: "{app}"; Flags: ignoreversion; Components: main
+Source: "..\Resource\*.sbt"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 Source: "..\ReadMe.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Manual.md"; DestDir: "{app}"; Flags: ignoreversion
 

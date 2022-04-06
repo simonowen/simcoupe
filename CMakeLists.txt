@@ -62,7 +62,7 @@ set(BASE_H_FILES
     Base/GIF.h Base/GUI.h Base/GUIDlg.h Base/GUIIcons.h Base/HardDisk.h
     Base/Joystick.h Base/Keyboard.h Base/Keyin.h Base/Main.h
     Base/Memory.h Base/Mouse.h Base/Options.h Base/Parallel.h Base/Paula.h
-    Base/SavePNG.h Base/SAM.h Base/SAMDOS.h Base/SAMIO.h
+    Base/SavePNG.h Base/SAM.h Base/SAMIO.h
     Base/SAMVox.h Base/SDIDE.h Base/SID.h Base/SimCoupe.h Base/Sound.h
     Base/SSX.h Base/Stream.h Base/Symbol.h Base/Tape.h Base/Util.h Base/Video.h
     Base/VL1772.h Base/WAV.h Base/VoiceBox.h Base/sp0256.h
@@ -70,7 +70,8 @@ set(BASE_H_FILES
 
 set(BASE_RUNTIME_FILES
     Resource/atom.rom Resource/atomlite.rom Resource/samcoupe.rom Resource/sp0256-al2.bin
-    Resource/samports.map Resource/samrom.map Resource/samdos2.map Resource/SimCoupe.bmp)
+    Resource/samports.map Resource/samrom.map Resource/samdos2.map Resource/samdos2.sbt
+    Resource/SimCoupe.bmp)
 
 set(SOURCE_FILES ${BASE_CPP_FILES} ${BASE_C_FILES})
 set(HEADER_FILES ${BASE_H_FILES})
