@@ -47,11 +47,11 @@ CAPTION "About SimCoupe"
 FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     CTEXT           "SimCoupe vX.Y.Z",IDS_VERSION,7,43,179,8
-    CTEXT           "http://simcoupe.org",ID_HOMEPAGE,7,54,179,8,SS_NOTIFY
-    LTEXT           "Win32/SDL versions:\n     Simon Owen <simon.owen@simcoupe.org>",IDC_STATIC,22,74,160,18
-    LTEXT           "Based on original DOS/X versions by:\n     Allan Skillman <allan.skillman@arm.com>",IDC_STATIC,22,96,160,18
-    LTEXT           "CPU contention and sound enhancements:\n     Dave Laundon <dave.laundon@simcoupe.org>",IDC_STATIC,22,118,160,18
-    LTEXT           "Phillips SAA 1099 sound chip emulation:\n     Dave Hooper <dave@rebuzz.org>",IDC_STATIC,22,140,160,18
+    CTEXT           "https://simonowen.com/simcoupe",ID_HOMEPAGE,7,54,179,8,SS_NOTIFY
+    LTEXT           "Win32/SDL versions:\n     Simon Owen <simon@simonowen.com>",IDC_STATIC,22,74,160,18
+    LTEXT           "Based on original DOS/X versions by:\n     Allan Skillman",IDC_STATIC,22,96,160,18
+    LTEXT           "CPU contention and sound enhancements:\n     Dave Laundon",IDC_STATIC,22,118,160,18
+    LTEXT           "Phillips SAA 1099 sound chip emulation:\n     Dave Hooper",IDC_STATIC,22,140,160,18
     ICON            IDI_MAIN,IDI_SAM,14,10,20,20,0,WS_EX_TRANSPARENT
     CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,7,37,179,1
     CONTROL         IDB_SIMCOUPE,IDC_STATIC,"Static",SS_BITMAP,58,7,100,28

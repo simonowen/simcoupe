@@ -2,7 +2,7 @@
  Initial Version: Darrell Walisser <dwaliss1@purdue.edu>
  Non-NIB-Code & other changes: Max Horn <max@quendi.de>
 
- Customised for SimCoupe by Simon Owen <simon.owen@simcoupe.org>
+ Customised for SimCoupe by Simon Owen <simon@simonowen.com>
  */
 
 #import <SDL2/SDL.h>
@@ -279,19 +279,19 @@ static void sendUserEvent (int event)
 // Help -> SimCoupe Help
 - (IBAction)helpHelp:(id)sender
 {
-    [self openResourceFile:@"ReadMe.md"];
+    [self openResourceFile:@"Manual.md"];
 }
 
 // Help -> View ChangeLog
 - (IBAction)helpChangeLog:(id)sender
 {
-    [self openResourceFile:@"ChangeLog.txt"];
+    [self openResourceFile:@"ChangeLog.md"];
 }
 
 // Help -> Homepage
 - (IBAction)helpHomepage:(id)sender
 {
-    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://simcoupe.org/"]];
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://simonowen.com/simcoupe"]];
 }
 
 @end

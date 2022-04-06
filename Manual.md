@@ -791,7 +791,7 @@ To restore the defaults settings, close SimCoupe and delete the file:
 ## Links
 
 SimCoupe Homepage:
-  http://www.simcoupe.org
+  https://simonowen.com/simcoupe
 
 SimCoupe project page:
   https://github.com/simonowen/simcoupe

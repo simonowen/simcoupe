@@ -61,7 +61,7 @@ bool OSD::Init()
     if (portable_mode)
         Options::Load(__argc, __argv);
 
-    if (FAILED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)))
+    if (FAILED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         return false;
 
     InitCommonControls();

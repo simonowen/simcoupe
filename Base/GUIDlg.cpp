@@ -44,11 +44,11 @@ AboutDialog::AboutDialog(Window* pParent_/*=nullptr*/)
 {
     new IconControl(this, 6, 6, &sSamIcon);
     new TextControl(this, 86, 10, SimCoupeVersionString(), BLACK);
-    new TextControl(this, 86, 26, "http://simcoupe.org", GREY_3);
+    new TextControl(this, 86, 26, "https://simonowen.com/simcoupe", GREY_3);
 
     int y = 46;
     new TextControl(this, 41, y, "Win32/SDL versions:", BLUE_5);
-    new TextControl(this, 51, y + 13, "Simon Owen <simon.owen@simcoupe.org>", BLACK); y += 32;
+    new TextControl(this, 51, y + 13, "Simon Owen <simon@simonowen.com>", BLACK); y += 32;
 
 #if defined (__AMIGAOS4__)
     new TextControl(this, 41, y, "AmigaOS 4 version:", BLUE_5);
@@ -57,13 +57,13 @@ AboutDialog::AboutDialog(Window* pParent_/*=nullptr*/)
 #endif
 
     new TextControl(this, 41, y, "Based on original DOS/X versions by:", BLUE_5);
-    new TextControl(this, 51, y + 13, "Allan Skillman <allan.skillman@arm.com>", BLACK); y += 32;
+    new TextControl(this, 51, y + 13, "Allan Skillman", BLACK); y += 32;
 
     new TextControl(this, 41, y, "CPU contention and sound enhancements:", BLUE_5);
-    new TextControl(this, 51, y + 13, "Dave Laundon <dave.laundon@simcoupe.org>", BLACK); y += 32;
+    new TextControl(this, 51, y + 13, "Dave Laundon", BLACK); y += 32;
 
     new TextControl(this, 41, y, "Phillips SAA 1099 sound chip emulation:", BLUE_5);
-    new TextControl(this, 51, y + 13, "Dave Hooper <dave@rebuzz.org>", BLACK); y += 32;
+    new TextControl(this, 51, y + 13, "Dave Hooper", BLACK); y += 32;
 
     new TextControl(this, 41, y + 3, "See README for additional information", RED_3);
 

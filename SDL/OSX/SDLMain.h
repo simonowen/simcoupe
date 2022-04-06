@@ -2,7 +2,7 @@
        Initial Version: Darrell Walisser <dwaliss1@purdue.edu>
        Non-NIB-Code & other changes: Max Horn <max@quendi.de>
 
- Customised for SimCoupe by Simon Owen <simon.owen@simcoupe.org>
+ Customised for SimCoupe by Simon Owen <simon@simonowen.com>
 */
 
 #import <Cocoa/Cocoa.h>
