@@ -730,13 +730,16 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     case WM_DROPFILES:
     {
         char szFile[MAX_PATH]{};
-        if (DragQueryFile(reinterpret_cast<HDROP>(wParam_), 0, szFile, sizeof(szFile)))
+        auto hDrop = reinterpret_cast<HDROP>(wParam_);
+
+        if (DragQueryFile(hDrop, 0, szFile, sizeof(szFile)))
         {
             InsertTape(hdlg_, szFile);
             UpdateTapeToolbar(hdlg_);
             UpdateTapeBlockList(hdlg_);
         }
 
+        DragFinish(hDrop);
         return 0;
     }
     }
@@ -1156,7 +1159,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
     case WM_DROPFILES:
     {
         char szFile[MAX_PATH]{};
-        if (DragQueryFile(reinterpret_cast<HDROP>(wParam_), 0, szFile, sizeof(szFile)))
+        auto hDrop = reinterpret_cast<HDROP>(wParam_);
+
+        if (DragQueryFile(hDrop, 0, szFile, sizeof(szFile)))
         {
             auto file_path = szFile;
             if (Tape::IsRecognised(file_path))
@@ -1171,6 +1176,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
             SetForegroundWindow(hwnd_);
         }
 
+        DragFinish(hDrop);
         return 0;
     }
 
