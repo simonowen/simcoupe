@@ -125,6 +125,12 @@ int Height()
     return pGuiScreen ? pGuiScreen->Height() : 1;
 }
 
+int AspectWidth()
+{
+    auto aspect_ratio = GetOption(tvaspect) ? GFX_DISPLAY_ASPECT_RATIO : 1.0f;
+    return static_cast<int>(std::round(Width() * aspect_ratio));
+}
+
 void Update()
 {
     if (!draw_frame)
@@ -340,7 +346,7 @@ void Sync()
         draw_frame = true;
     }
 
-    if (boot_frames && !--boot_frames && (g_nTurbo & TURBO_BOOT))
+    if (!GUI::IsActive() && boot_frames && !--boot_frames)
     {
         g_nTurbo &= ~TURBO_BOOT;
     }

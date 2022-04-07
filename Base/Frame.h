@@ -58,6 +58,7 @@ void SaveSSX();
 
 int Width();
 int Height();
+int AspectWidth();
 
 void SetStatus(std::string&& str);
 

@@ -20,12 +20,6 @@
 
 #pragma once
 
-#ifdef _DEBUG
-#define WINDOW_CAPTION      "SimCoupe/SDL [DEBUG]"
-#else
-#define WINDOW_CAPTION      "SimCoupe/SDL"
-#endif
-
 // This file is included from ObjC source on macOS.
 #ifdef __cplusplus
 

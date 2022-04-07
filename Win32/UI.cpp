@@ -1588,8 +1588,7 @@ bool InitWindow()
 
     g_hmenu = LoadMenu(wc.hInstance, MAKEINTRESOURCE(IDR_MENU));
 
-    auto aspect_ratio = GetOption(tvaspect) ? GFX_DISPLAY_ASPECT_RATIO : 1.0f;
-    auto width = static_cast<int>(std::round(Frame::Width() * 3 * aspect_ratio / 2));
+    auto width = Frame::AspectWidth() * 3 / 2;
     auto height = Frame::Height() * 3 / 2;
 
     int x = (GetSystemMetrics(SM_CXSCREEN) - width) / 2;

@@ -105,9 +105,6 @@ Rect SDL_GL3::DisplayRect() const
 
 bool SDL_GL3::Init()
 {
-    int width = Frame::Width();
-    int height = Frame::Height();
-
 #ifdef SDL_VIDEO_FULLSCREEN_SPACES
     SDL_SetHint(SDL_VIDEO_FULLSCREEN_SPACES, "1");
 #endif
@@ -123,14 +120,21 @@ bool SDL_GL3::Init()
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 
+    constexpr auto caption = "SimCoupe/GL3"
+#ifdef _DEBUG
+        " [DEBUG]";
+#else
+        "";
+#endif
+
     Uint32 window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
     m_window = SDL_CreateWindow(
-        WINDOW_CAPTION, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        width * 2, height * 2, window_flags);
+        caption, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        Frame::AspectWidth() * 3 / 2, Frame::Height() * 3 / 2, window_flags);
     if (!m_window)
         return false;
 
-    SDL_SetWindowMinimumSize(m_window, width / 2, height / 2);
+    SDL_SetWindowMinimumSize(m_window, Frame::Width() / 2, Frame::Height() / 2);
 
     m_context = SDL_GL_CreateContext(m_window);
     if (!m_context)
@@ -207,9 +211,7 @@ void SDL_GL3::ResizeWindow(int height) const
     if (SDL_GetWindowFlags(m_window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_MINIMIZED))
         return;
 
-    auto aspect_ratio = GetOption(tvaspect) ? GFX_DISPLAY_ASPECT_RATIO : 1.0f;
-    auto width = static_cast<int>(std::round(height * Frame::Width() * aspect_ratio / Frame::Height()));
-
+    auto width = height * Frame::AspectWidth() / Frame::Height();
     SDL_SetWindowSize(m_window, width, height);
 }
 
@@ -505,7 +507,7 @@ GLuint SDL_GL3::MakeProgram(const std::string& vertex_shader, const std::string&
 
 void SDL_GL3::SaveWindowPosition()
 {
-    if (!m_window)
+    if (!m_window || !m_rDisplay.w)
         return;
 
     SDL_SetWindowFullscreen(m_window, 0);

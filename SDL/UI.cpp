@@ -194,14 +194,16 @@ bool UI::CheckEvents()
 
 void UI::ShowMessage(MsgType type, const std::string& str)
 {
+    constexpr auto caption = "SimCoupe";
+
     if (type == MsgType::Info)
-        GUI::Start(new MsgBox(nullptr, str, WINDOW_CAPTION, mbInformation));
+        GUI::Start(new MsgBox(nullptr, str, caption, mbInformation));
     else if (type == MsgType::Warning)
-        GUI::Start(new MsgBox(nullptr, str, WINDOW_CAPTION, mbWarning));
+        GUI::Start(new MsgBox(nullptr, str, caption, mbWarning));
     else
     {
         fprintf(stderr, "error: %s\n", str.c_str());
-        GUI::Start(new MsgBox(nullptr, str, WINDOW_CAPTION, mbError));
+        GUI::Start(new MsgBox(nullptr, str, caption, mbError));
     }
 }
 

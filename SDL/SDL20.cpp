@@ -51,17 +51,21 @@ Rect SDLTexture::DisplayRect() const
 
 bool SDLTexture::Init()
 {
-    int width = Frame::Width();
-    int height = Frame::Height();
+    constexpr auto caption = "SimCoupe/SDL"
+#ifdef _DEBUG
+        " [DEBUG]";
+#else
+        "";
+#endif
 
     Uint32 window_flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
     m_window = SDL_CreateWindow(
-        WINDOW_CAPTION, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        width * 2, height * 2, window_flags);
+        caption, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        Frame::AspectWidth() * 3 / 2, Frame::Height() * 3 / 2, window_flags);
     if (!m_window)
         return false;
 
-    SDL_SetWindowMinimumSize(m_window, width / 2, height / 2);
+    SDL_SetWindowMinimumSize(m_window, Frame::Width() / 2, Frame::Height() / 2);
 
     m_renderer.reset(
         SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE));
@@ -97,9 +101,7 @@ void SDLTexture::ResizeWindow(int height) const
     if (SDL_GetWindowFlags(m_window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_MINIMIZED))
         return;
 
-    auto aspect_ratio = GetOption(tvaspect) ? GFX_DISPLAY_ASPECT_RATIO : 1.0f;
-    auto width = static_cast<int>(std::round(height * Frame::Width() * aspect_ratio / Frame::Height()));
-
+    auto width = height * Frame::AspectWidth() / Frame::Height();
     SDL_SetWindowSize(m_window, width, height);
 }
 
@@ -306,7 +308,7 @@ void SDLTexture::ResizeIntermediate(bool smooth)
 
 void SDLTexture::SaveWindowPosition()
 {
-    if (!m_window)
+    if (!m_window || !m_rDisplay.w)
         return;
 
     SDL_SetWindowFullscreen(m_window, 0);
