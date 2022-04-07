@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
+cmake_policy (SET CMP0072 NEW) # prefer GLVND for OpenGL
+
 project(simcoupe)
 set(PROJECT_TITLE SimCoupe)
 
@@ -315,8 +317,7 @@ elseif (BUILD_SDL)
 
   find_package(OpenGL)
   if (OPENGL_FOUND)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${OPENGL_INCLUDE_DIR})
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENGL_LIBRARY})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENGL_LIBRARIES})
     set(HAVE_OPENGL 1)
   endif()
 endif()
