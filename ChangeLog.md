@@ -1,5 +1,17 @@
 # SimCoupe ChangeLog
 
+## Version 1.2.10 (2022-04-07)
+- fixed clipboard paste not working on boot screen.
+- fixed broken Windows shell path auto-complete.
+- fixed various issues affecting initial SDL window size
+- improved portability of window position/size saving.
+- improved validation of ZX82 ROM containers.
+- moved samdos2 dosboot image to external resource file.
+- added support for older SAM ROM images (#77)
+- added manual play/pause to Win32 tape browser (#77)
+- added missing tape auto-load triggers.
+- added fast boot frame limit for broken or custom ROMs.
+
 ## Version 1.2.9 (2022-03-12)
 - fixed read port MSB in block IN instructions (#75)
 - fixed utf-8 path issues under Windows (#74)
