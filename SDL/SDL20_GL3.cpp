@@ -30,7 +30,7 @@
 #ifdef HAVE_OPENGL
 
 static auto aspect_vs_code = R"(
-    #version 130
+    #version 330 core
     out vec2 uv;
     uniform vec2 scale;
 
@@ -41,7 +41,7 @@ static auto aspect_vs_code = R"(
     })";
 
 static auto copy_vs_code = R"(
-    #version 130
+    #version 330 core
     out vec2 uv;
 
     void main()
@@ -51,7 +51,7 @@ static auto copy_vs_code = R"(
     })";
 
 static auto palette_fs_code = R"(
-    #version 130
+    #version 330 core
     in vec2 uv;
     out vec4 colour;
 
@@ -64,7 +64,7 @@ static auto palette_fs_code = R"(
     })";
 
 static auto sample_fs_code = R"(
-    #version 130
+    #version 330 core
     in vec2 uv;
     out vec4 colour;
 
@@ -76,7 +76,7 @@ static auto sample_fs_code = R"(
     })";
 
 static auto blend_fs_code = R"(
-    #version 130
+    #version 330 core
     in vec2 uv;
     out vec4 colour;
 
@@ -111,7 +111,7 @@ bool SDL_GL3::Init()
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
