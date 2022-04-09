@@ -48,16 +48,9 @@ Rect SDLTexture::DisplayRect() const
 
 bool SDLTexture::Init()
 {
-    constexpr auto caption = "SimCoupe/SDL"
-#ifdef _DEBUG
-        " [DEBUG]";
-#else
-        "";
-#endif
-
     Uint32 window_flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
     m_window = SDL_CreateWindow(
-        caption, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        "SimCoupe/SDL", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         Frame::AspectWidth() * 3 / 2, Frame::Height() * 3 / 2, window_flags);
     if (!m_window)
         return false;
@@ -69,6 +62,15 @@ bool SDLTexture::Init()
 
     if (!m_renderer)
         return false;
+
+    SDL_RendererInfo info{ "" };
+    SDL_GetRendererInfo(m_renderer, &info);
+
+    auto caption = fmt::format("{} ({})", SDL_GetWindowTitle(m_window), info.name);
+#ifdef _DEBUG
+    caption += " [DEBUG]";
+#endif
+    SDL_SetWindowTitle(m_window, caption.c_str());
 
     OptionsChanged();
     RestoreWindowPosition();
