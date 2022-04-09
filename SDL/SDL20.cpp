@@ -32,11 +32,8 @@ static uint32_t aulPalette[NUM_PALETTE_COLOURS];
 
 SDLTexture::SDLTexture()
 {
+    // Disable vsync for as long as we're in the same thread as emulation and sound.
     SDL_SetHint(SDL_HINT_RENDER_VSYNC, "0");
-
-#ifdef SDL_VIDEO_FULLSCREEN_SPACES
-    SDL_SetHint(SDL_VIDEO_FULLSCREEN_SPACES, "1");
-#endif
 }
 
 SDLTexture::~SDLTexture()
