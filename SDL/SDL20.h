@@ -66,6 +66,8 @@ private:
     unique_sdl_renderer m_renderer;
     unique_sdl_texture m_screen_texture;
     unique_sdl_texture m_scaled_texture;
+    unique_sdl_texture m_composed_texture;
+    unique_sdl_texture m_prev_composed_texture;
     unique_sdl_palette m_palette_texture;
 
     SDL_Rect m_rSource{};

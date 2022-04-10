@@ -224,11 +224,30 @@ void SDLTexture::Render()
     SDL_SetRenderTarget(m_renderer, m_scaled_texture);
     SDL_RenderCopy(m_renderer, m_screen_texture, nullptr, nullptr);
 
+    if (GetOption(motionblur))
+    {
+        SDL_SetRenderTarget(m_renderer, m_composed_texture);
+        SDL_RenderCopy(m_renderer, m_scaled_texture, nullptr, nullptr);
+
+        auto blend_alpha = GetOption(blurpercent) * 0xff / 100;
+        SDL_SetTextureAlphaMod(m_prev_composed_texture, blend_alpha);
+
+        if (SDL_SetTextureBlendMode(m_prev_composed_texture, SDL_BLENDMODE_BLEND) == 0)
+            SDL_RenderCopy(m_renderer, m_prev_composed_texture, nullptr, nullptr);
+        SDL_SetTextureBlendMode(m_prev_composed_texture, SDL_BLENDMODE_NONE);
+    }
+    else
+    {
+        std::swap(m_composed_texture, m_scaled_texture);
+    }
+
     // Draw to window with remaining scaling using linear sampling.
     SDL_SetRenderTarget(m_renderer, nullptr);
     SDL_RenderClear(m_renderer);
-    SDL_RenderCopy(m_renderer, m_scaled_texture, nullptr, &m_rDisplay);
+    SDL_RenderCopy(m_renderer, m_composed_texture, nullptr, &m_rDisplay);
+
     SDL_RenderPresent(m_renderer);
+    std::swap(m_composed_texture, m_prev_composed_texture);
 }
 
 void SDLTexture::ResizeSource(int source_width, int source_height)
@@ -295,6 +314,22 @@ void SDLTexture::ResizeIntermediate(bool smooth)
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 
     m_scaled_texture.reset(
+        SDL_CreateTexture(
+            m_renderer,
+            SDL_PIXELFORMAT_UNKNOWN,
+            SDL_TEXTUREACCESS_TARGET,
+            width,
+            height));
+
+    m_composed_texture.reset(
+        SDL_CreateTexture(
+            m_renderer,
+            SDL_PIXELFORMAT_UNKNOWN,
+            SDL_TEXTUREACCESS_TARGET,
+            width,
+            height));
+
+    m_prev_composed_texture.reset(
         SDL_CreateTexture(
             m_renderer,
             SDL_PIXELFORMAT_UNKNOWN,
