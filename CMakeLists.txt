@@ -208,6 +208,8 @@ FetchContent_Declare(
   fmt
   GIT_REPOSITORY https://github.com/fmtlib/fmt.git
   GIT_TAG d141cdbeb0fb422a3fb7173b285fd38e0d1772dc )
+
+set(FMT_INSTALL OFF)
 FetchContent_MakeAvailable(fmt)
 target_link_libraries(${PROJECT_NAME} PRIVATE fmt)
 target_include_directories(${PROJECT_NAME} PRIVATE ${fmt_SOURCE_DIR}/include)
@@ -217,7 +219,11 @@ FetchContent_Declare(
   resid
   GIT_REPOSITORY https://github.com/simonowen/resid.git
   GIT_TAG 65248e7eb30e037b51ffb061374b3dbd3811308c )
-FetchContent_MakeAvailable(resid)
+FetchContent_GetProperties(resid)
+if(NOT resid_POPULATED)
+  FetchContent_Populate(resid)
+  add_subdirectory(${resid_SOURCE_DIR} ${resid_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE resid)
 target_include_directories(${PROJECT_NAME} PRIVATE ${resid_SOURCE_DIR})
 
@@ -227,7 +233,11 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/simonowen/libspectrum.git
   GIT_TAG eb93bd36f6253471bf709bb9745176d1f9c994f0
   )
-FetchContent_MakeAvailable(spectrum)
+FetchContent_GetProperties(spectrum)
+if(NOT spectrum_POPULATED)
+  FetchContent_Populate(spectrum)
+  add_subdirectory(${spectrum_SOURCE_DIR} ${spectrum_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE spectrum)
 target_include_directories(${PROJECT_NAME} PRIVATE ${spectrum_SOURCE_DIR})
 
@@ -260,10 +270,17 @@ endif()
 
 message(STATUS "Fetching SAASound from GitHub")
 FetchContent_Declare(
-  SAASound
+  saasound
   GIT_REPOSITORY https://github.com/simonowen/SAASound.git
   GIT_TAG 8a143060f0acbd28022bd959a5235b2ab2b64c01 )
-FetchContent_MakeAvailable(SAASound)
+FetchContent_GetProperties(saasound)
+if(NOT saasound_POPULATED)
+  FetchContent_Populate(saasound)
+  if(SIMCOUPE_PORTABLE)
+    set(SAASOUND_EXCLUDE_FLAG EXCLUDE_FROM_ALL)
+  endif()
+  add_subdirectory(${saasound_SOURCE_DIR} ${saasound_BINARY_DIR} ${SAASOUND_EXCLUDE_FLAG})
+endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE SAASound)
 # TODO: remove once upstream is compatible
 target_include_directories(${PROJECT_NAME} PRIVATE ${saasound_SOURCE_DIR}/include)
@@ -295,9 +312,25 @@ endif()
 if (BUILD_WIN32)
   target_link_libraries(${PROJECT_NAME} PRIVATE dinput8.lib dxguid.lib)
 elseif (BUILD_SDL)
-  find_package(SDL2 REQUIRED)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIR})
-  target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARY})
+  if (SIMCOUPE_PORTABLE)
+    message(STATUS "Fetching SDL2 from GitHub")
+    FetchContent_Declare(
+      sdl2
+      GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+      GIT_TAG        release-2.0.20
+      GIT_PROGRESS   TRUE)
+    set(SDL_SHARED OFF)
+    FetchContent_GetProperties(sdl2)
+    if(NOT sdl2_POPULATED)
+      FetchContent_Populate(sdl2)
+      add_subdirectory(${sdl2_SOURCE_DIR} ${sdl2_BINARY_DIR} EXCLUDE_FROM_ALL)
+    endif()
+    target_link_libraries(${PROJECT_NAME} PRIVATE SDL2main SDL2-static)
+  else()
+    find_package(SDL2 REQUIRED)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIR})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARY})
+  endif()
   set(HAVE_LIBSDL2 1)
 
   find_package(OpenGL)
@@ -354,3 +387,5 @@ install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 configure_file(config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+include(cpack_simcoupe)
