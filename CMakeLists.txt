@@ -125,8 +125,7 @@ elseif (BUILD_SDL)
 
     set(MAC_ICON_FILES
       SDL/OSX/file_blank.icns SDL/OSX/file_dsk.icns SDL/OSX/file_mgt.icns
-      SDL/OSX/file_sad.icns SDL/OSX/file_sbt.icns SDL/OSX/SimCoupe.icns
-      SDL/OSX/Volume.icns)
+      SDL/OSX/file_sad.icns SDL/OSX/file_sbt.icns SDL/OSX/SimCoupe.icns)
 
     set(RESOURCE_FILES ${RESOURCE_FILES} ${MAC_ICON_FILES}
       ReadMe.md
