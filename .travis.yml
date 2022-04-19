@@ -32,7 +32,10 @@ matrix:
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      brew install sdl2;
+      export SDL_VERSION=2.0.20;
+      curl -LO https://github.com/libsdl-org/SDL/releases/download/release-${SDL_VERSION}/SDL2-${SDL_VERSION}.dmg;
+      hdiutil attach SDL2-${SDL_VERSION}.dmg;
+      sudo cp -r /Volumes/SDL2/SDL2.framework /Library/Frameworks;
     fi
 
 before_script:
