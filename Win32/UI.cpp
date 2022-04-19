@@ -787,7 +787,7 @@ void UpdateMenuFromOptions()
 
     CheckMenuRadioItem(hmenu, IDM_VIEW_BORDERS0, IDM_VIEW_BORDERS3, IDM_VIEW_BORDERS0 + GetOption(visiblearea), MF_BYCOMMAND);
 
-#ifndef HAVE_LIBPNG
+#ifndef HAVE_LIBZ
     EnableItem(IDM_RECORD_SCREEN_PNG, FALSE);
 #endif
 

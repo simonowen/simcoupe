@@ -11,9 +11,6 @@
 // bzip2 library for compressed files.
 #cmakedefine HAVE_LIBBZ2
 
-// PNG library for screenshot saving.
-#cmakedefine HAVE_LIBPNG
-
 // DirectInput 8 (Win32).
 #cmakedefine HAVE_DINPUT
 

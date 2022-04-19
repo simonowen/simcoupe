@@ -259,12 +259,6 @@ if (BZIP2_FOUND)
   set(HAVE_LIBBZ2 1)
 endif()
 
-find_package(PNG)
-if (PNG_FOUND)
-  target_link_libraries(${PROJECT_NAME} PRIVATE PNG::PNG)
-  set(HAVE_LIBPNG 1)
-endif()
-
 message(STATUS "Fetching SAASound from GitHub")
 FetchContent_Declare(
   SAASound

@@ -132,4 +132,24 @@ constexpr T Round(T val, int power_of_2) {
     return val | (static_cast<T>(power_of_2) - 1);
 }
 
+template <typename T> T byteswap(T x);
+
+template<>
+constexpr uint16_t byteswap<uint16_t>(uint16_t x)
+{
+    return (static_cast<uint16_t>(x & 0xff) << 8) | (x >> 8);
+}
+
+template<>
+constexpr uint32_t byteswap<uint32_t>(uint32_t x)
+{
+    return (static_cast<uint32_t>(byteswap<uint16_t>(x & 0xffff)) << 16) | byteswap<uint16_t>(x >> 16);
+}
+
+template<>
+constexpr uint64_t byteswap<uint64_t>(uint64_t x)
+{
+    return (static_cast<uint64_t>(byteswap<uint32_t>(x & 0xffffffff)) << 32) | byteswap<uint32_t>(x >> 32);
+}
+
 std::string SimCoupeVersionString();
