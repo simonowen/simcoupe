@@ -2,15 +2,7 @@ if (WIN32)
   # Compile HLSL shaders for Windows.
   function(SET_SHADER_COMPILER File Profile)
     if (NOT FXC)
-      find_program(FXC fxc
-        DOC "DirectX Shader Compiler"
-        HINTS
-          "${WINSDK_ROOT_DIR}"
-          "${WINDOWSSDK_LATEST_DIR}"
-          "$ENV{WindowsSdkDir}"
-        PATH_SUFFIXES
-          bin/x86)
-
+      find_program(FXC fxc DOC "DirectX Shader Compiler")
       if (NOT FXC)
         message(FATAL_ERROR "Cannot find DirectX Shader Compiler (fxc.exe)")
       endif()

@@ -80,7 +80,6 @@ set(HEADER_FILES ${BASE_H_FILES})
 set(RESOURCE_FILES ${BASE_RUNTIME_FILES})
 
 if (BUILD_WIN32)
-  find_package(DirectX)
   include(HlslCompile)
 
   set(WIN_CPP_FILES
@@ -294,15 +293,7 @@ endif()
 ########
 
 if (BUILD_WIN32)
-  find_package(DirectX)
-  if (DINPUT_LIBRARY AND DINPUT_INCLUDE_DIR)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${DINPUT_INCLUDE_DIR})
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${DINPUT_LIBRARY} dxguid.lib)
-    message(STATUS "Found dinput: ${DINPUT_LIBRARY}")
-    set(HAVE_DINPUT 1)
-  else()
-    message(FATAL_ERROR "DirectInput library (dinput8) not found")
-  endif()
+  target_link_libraries(${PROJECT_NAME} PRIVATE dinput8.lib dxguid.lib)
 elseif (BUILD_SDL)
   find_package(SDL2 REQUIRED)
   target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIR})

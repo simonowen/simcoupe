@@ -11,9 +11,6 @@
 // bzip2 library for compressed files.
 #cmakedefine HAVE_LIBBZ2
 
-// DirectInput 8 (Win32).
-#cmakedefine HAVE_DINPUT
-
 // Simple DirectMedia Layer v2.0
 #cmakedefine HAVE_LIBSDL2
 
