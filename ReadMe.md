@@ -2,10 +2,9 @@
 
 By Simon Owen (simon@simonowen.com)
 
-[![Linux/macOS build status](https://travis-ci.com/simonowen/simcoupe.svg?branch=master)](https://app.travis-ci.com/github/simonowen/simcoupe)
-[![Windows build status](https://ci.appveyor.com/api/projects/status/512shikql4ctfrv9/branch/master?svg=true)](https://ci.appveyor.com/project/simonowen/simcoupe/branch/master)
-[![Linux/macOS dev branch](https://travis-ci.com/simonowen/simcoupe.svg?branch=dev)](https://app.travis-ci.com/github/simonowen/simcoupe)
-[![Windows dev branch](https://ci.appveyor.com/api/projects/status/512shikql4ctfrv9/branch/dev?svg=true)](https://ci.appveyor.com/project/simonowen/simcoupe/branch/dev)
+[![Windows CI](https://github.com/simonowen/simcoupe/actions/workflows/windows-ci.yml/badge.svg)](https://github.com/simonowen/simcoupe/actions/workflows/windows-ci.yml)
+[![Linux CI](https://github.com/simonowen/simcoupe/actions/workflows/linux-ci.yml/badge.svg)](https://github.com/simonowen/simcoupe/actions/workflows/linux-ci.yml)
+[![macOS CI](https://github.com/simonowen/simcoupe/actions/workflows/macos-ci.yml/badge.svg)](https://github.com/simonowen/simcoupe/actions/workflows/macos-ci.yml)
 [![Licence](https://img.shields.io/badge/License-GPLv2-blue.svg?style=flat)](https://www.gnu.org/licenses/gpl-2.0.html)
 
 ---

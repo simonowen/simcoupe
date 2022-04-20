@@ -1,8 +1,7 @@
 .*
 !.gitignore
+!.github
 !.editorconfig
-!.travis.yml
-!.appveyor.yml
 *- Copy*
 * copy.*
 Thumbs.db

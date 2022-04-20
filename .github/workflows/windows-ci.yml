@@ -1,0 +1,33 @@
+name: Windows CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    strategy:
+      matrix:
+        config:
+          - { vs: "17 2022", arch: "Win32", triplet: "x86-windows" }
+          - { vs: "17 2022", arch: "x64", triplet: "x64-windows" }
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Visual Studio shell
+      uses: egor-tensin/vs-shell@v2
+      with:
+        arch: ${{matrix.config.arch}}
+
+    - name: Install dependencies
+      shell: cmd
+      run: vcpkg install --recurse --triplet ${{matrix.config.triplet}} zlib bzip2 xaudio2redist
+
+    - name: Configure
+      shell: cmd
+      run: cmake -B ${{github.workspace}}/build -G "Visual Studio ${{matrix.config.vs}}" -A "${{matrix.config.arch}}" -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%\scripts\buildsystems\vcpkg.cmake
+
+    - name: Build
+      shell: cmd
+      run: cmake --build ${{github.workspace}}/build

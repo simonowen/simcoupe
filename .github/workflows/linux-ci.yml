@@ -1,0 +1,30 @@
+name: Linux CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        compiler:
+          - { cc: "gcc", cxx: "g++" }
+          - { cc: "clang", cxx: "clang++" }
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y -q libsdl2-dev libaudiofile-dev dpkg-dev
+
+    - name: Configure
+      run: cmake -B ${{github.workspace}}/build
+      env:
+        CC: ${{matrix.cc}}
+        CXX: ${{matrix.cxx}}
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build
+      env:
+        MAKEFLAGS: "-j2"
