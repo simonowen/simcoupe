@@ -1,11 +1,12 @@
 ; Inno Setup install script for SimCoupe
+;
+; Note: ensure both x86 and x64 Release versions are built before running!
 
 #define X86_AND_X64
 
 #ifdef CUSTOM_BUILD
-#define BASE_PATH_X86 "..\build_x86"
-#define BASE_PATH_X64 "..\build_x64"
-#define SIGN_BUILD
+#define BASE_PATH_X86 "..\build-x86"
+#define BASE_PATH_X64 "..\build-x64"
 #else
 #define BASE_PATH_X86 "..\out\build\x86-Release"
 #define BASE_PATH_X64 "..\out\build\x64-Release"
