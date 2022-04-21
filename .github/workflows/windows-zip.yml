@@ -1,0 +1,32 @@
+name: Windows ZIP/EXE
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install x86 dependencies
+      shell: cmd
+      run: vcpkg install --recurse --triplet x86-windows zlib bzip2 xaudio2redist
+
+    - name: Install x64 dependencies
+      shell: cmd
+      run: vcpkg install --recurse --triplet x64-windows zlib bzip2 xaudio2redist
+
+    - name: Build
+      shell: powershell
+      run: .\package\make_windows_release.ps1
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: simcoupe-zip
+        path: SimCoupe-*-win_*.zip
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: simcoupe-exe
+        path: SimCoupe-*-win.exe
