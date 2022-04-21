@@ -1,0 +1,26 @@
+name: macOS DMG
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: macos-10.15
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install SDL2
+      run: |
+        curl -LO https://github.com/libsdl-org/SDL/releases/download/release-${SDL_VERSION}/SDL2-${SDL_VERSION}.dmg
+        hdiutil attach SDL2-${SDL_VERSION}.dmg
+        sudo cp -r /Volumes/SDL2/SDL2.framework /Library/Frameworks/
+      env:
+        SDL_VERSION: "2.0.20"
+
+    - name: Build DMG image
+      run: ./package/make_macos_release.sh
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: simcoupe-dmg
+        path: build-macos/*.dmg
