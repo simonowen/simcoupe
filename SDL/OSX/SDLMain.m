@@ -11,6 +11,12 @@
 
 extern int SimCoupe_main (int argc_, char* argv_[]);
 
+// For some reason Apple removed setAppleMenu from the headers in 10.4,
+// but the method is still there and works. To avoid warnings we declare
+// it ourselves.
+@interface NSApplication(SDL_Missing_Methods)
+- (void)setAppleMenu:(NSMenu *)menu;
+@end
 
 static NSString *getApplicationName(void)
 {
@@ -183,13 +189,27 @@ static void setupApplicationMenus ()
 /* Generate an SDL quite event for graceful app termination */
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
 {
-    if (SDL_GetEventState(SDL_QUIT) == SDL_ENABLE) {
-        SDL_Event event;
-        event.type = SDL_QUIT;
-        SDL_PushEvent(&event);
-    }
+    SDL_Event event;
+    event.type = SDL_QUIT;
+    SDL_PushEvent(&event);
 
     return NSTerminateCancel;
+}
+
+- (void) setupWorkingDirectory:(BOOL)shouldChdir
+{
+    if (shouldChdir)
+    {
+        char parentdir[MAXPATHLEN];
+        CFURLRef url = CFBundleCopyBundleURL(CFBundleGetMainBundle());
+        CFURLRef url2 = CFURLCreateCopyDeletingLastPathComponent(0, url);
+        if (CFURLGetFileSystemRepresentation(url2, 1, (UInt8 *)parentdir, MAXPATHLEN))
+        {
+            chdir(parentdir);    /* chdir to the binary app's parent */
+        }
+        CFRelease(url);
+        CFRelease(url2);
+    }
 }
 
 /* Pass dropped files through to SDL for processing, and ultimately on to SimCoupe */

@@ -22,10 +22,9 @@ static int gArgc;
 static char **gArgv;
 static BOOL gFinderLaunch;
 
-@interface SDLMain : NSObject
-@end
-
-/* This is needed in Tiger */
-@interface NSApplication(PrBoom)
-- (void)setAppleMenu:(NSMenu *)menu;
+@interface SDLMain : NSObject<NSApplicationDelegate>
+- (NSApplicationTerminateReply) applicationShouldTerminate:(NSApplication *)sender;
+- (void) setupWorkingDirectory:(BOOL)shouldChdir;
+- (BOOL) application:(NSApplication *)theApplication openFile:(NSString *)filename;
+- (void) applicationDidFinishLaunching: (NSNotification *) note;
 @end
