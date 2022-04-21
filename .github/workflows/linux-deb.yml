@@ -1,0 +1,21 @@
+name: Linux DEB
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y -q libsdl2-dev libaudiofile-dev dpkg-dev
+
+    - name: Build DEB package
+      run: ./package/make_linux_release.sh
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: simcoupe-deb
+        path: build-linux/_packages/*.deb
