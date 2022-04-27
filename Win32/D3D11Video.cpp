@@ -109,7 +109,7 @@ static HRESULT Fail(HRESULT hr, const std::string_view& operation)
 {
     if (FAILED(hr))
     {
-        Message(MsgType::Fatal, "{} failed with {}", operation, hr);
+        Message(MsgType::Fatal, "{} failed with {:08x}", operation, static_cast<uint32_t>(hr));
 #ifdef _DEBUG
         __debugbreak();
 #endif
@@ -125,6 +125,8 @@ bool Direct3D11Video::Init()
 
 HRESULT Direct3D11Video::InitD3D11()
 {
+    HRESULT hr{ S_OK };
+
     D3D_FEATURE_LEVEL featureLevel{};
     std::vector<D3D_FEATURE_LEVEL> featureLevels
     {
@@ -137,10 +139,11 @@ HRESULT Direct3D11Video::InitD3D11()
     createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-    auto hr =
-        D3D11CreateDevice(
+    for (auto driver_type : { D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP })
+    {
+        hr = D3D11CreateDevice(
             nullptr,
-            D3D_DRIVER_TYPE_HARDWARE,
+            driver_type,
             nullptr,
             createDeviceFlags,
             featureLevels.data(),
@@ -149,6 +152,10 @@ HRESULT Direct3D11Video::InitD3D11()
             &m_device,
             &featureLevel,
             &m_d3dContext);
+
+        if (SUCCEEDED(hr))
+            break;
+    }
     if (FAILED(hr))
         return Fail(hr, "D3D11CreateDevice");
 
