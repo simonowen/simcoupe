@@ -261,8 +261,28 @@ static uint8_t update_lpen()
         {
             auto [b0, b1, b2, b3] = Frame::GetAsicData();
 
+            uint8_t clut_bcd1{};
+            switch (ScreenMode())
+            {
+            case 1:
+            case 2:
+            {
+                uint8_t ink_bit = (b0 & 0x40) ? 1 : 0;
+                uint8_t flash_reverse = ((b2 & 0x80) && flash_phase) ? 1 : 0;
+                uint8_t clut_idx = (b2 >> ((ink_bit ^ flash_reverse) ? 0 : 3)) & 7;
+                clut_bcd1 = clut_idx & 1;
+                break;
+            }
+            case 3:
+                clut_bcd1 = ((b0 >> 1) | (b0 >> 3)) & 1;
+                break;
+            case 4:
+                clut_bcd1 = b0 & 1;
+                break;
+            }
+
             auto xpos = static_cast<uint8_t>(line_cycle - (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER));
-            auto bcd1 = (line_cycle < (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER)) ? (m_state.border & 1) : (b0 & 1);
+            auto bcd1 = (line_cycle < (CPU_CYCLES_PER_SIDE_BORDER + CPU_CYCLES_PER_SIDE_BORDER)) ? (m_state.border & 1) : (clut_bcd1 & 1);
             m_state.lpen = (xpos & 0xfc) | (m_state.lpen & LPEN_TXFMST) | bcd1;
         }
         else
