@@ -83,7 +83,8 @@ namespace IO
 IoState m_state{};
 
 auto auto_load = AutoLoadType::None;
-bool mid_frame_change;
+bool mid_frame_change = false;
+bool flash_phase = false;
 
 std::array<uint8_t, 9> key_matrix;
 
@@ -794,6 +795,12 @@ uint8_t Mode3Clut(int index)
 
 void FrameUpdate()
 {
+    IO::mid_frame_change = false;
+
+    static uint8_t flash_frame = 0;
+    if (!(++flash_frame % MODE12_FLASH_FRAMES))
+        flash_phase = !flash_phase;
+
     pFloppy1->FrameEnd();
     pFloppy2->FrameEnd();
     pAtom->FrameEnd();

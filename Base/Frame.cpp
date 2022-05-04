@@ -61,7 +61,6 @@ std::unique_ptr<FrameBuffer> pFrameBuffer;
 std::unique_ptr<FrameBuffer> pGuiScreen;
 
 bool draw_frame;
-bool flash_phase;
 bool save_png;
 bool save_ssx;
 
@@ -229,15 +228,6 @@ static void DrawRaster(FrameBuffer& fb)
     pLine1[line_offset] = pLine1[line_offset + 1] = colour;
 }
 
-
-void Begin()
-{
-    IO::mid_frame_change = false;
-
-    static uint8_t flash_frame = 0;
-    if (!(++flash_frame % MODE12_FLASH_FRAMES))
-        flash_phase = !flash_phase;
-}
 
 void End()
 {
@@ -608,7 +598,7 @@ void Mode1Line(uint8_t* pLine, int line, int from, int to)
             auto ink_idx = attr_fg(attr);
             auto paper_idx = attr_bg(attr);
 
-            if (flash_phase && (attr & 0x80))
+            if (IO::flash_phase && (attr & 0x80))
                 std::swap(ink_idx, paper_idx);
 
             auto ink = clut[ink_idx];
@@ -653,7 +643,7 @@ void Mode2Line(uint8_t* pLine, int line, int from, int to)
             auto ink_idx = attr_fg(attr);
             auto paper_idx = attr_bg(attr);
 
-            if (flash_phase && (attr & 0x80))
+            if (IO::flash_phase && (attr & 0x80))
                 std::swap(ink_idx, paper_idx);
 
             auto ink = clut[ink_idx];

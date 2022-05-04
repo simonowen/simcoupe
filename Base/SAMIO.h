@@ -128,6 +128,7 @@ enum class AutoLoadType { None, Disk, Tape };
 namespace IO
 {
 extern bool mid_frame_change;
+extern bool flash_phase;
 extern std::array<uint8_t, 9> key_matrix;
 
 struct IoState

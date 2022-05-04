@@ -149,8 +149,6 @@ void Run()
         if (g_fPaused)
             continue;
 
-        Frame::Begin();
-
         if (!Debug::IsActive() && !GUI::IsModal())
             ExecuteChunk();
 

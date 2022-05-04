@@ -38,7 +38,7 @@ bool Init();
 void Exit();
 
 void Flyback();
-void Begin();
+void DrawOSD();
 void End();
 
 void Update();
