@@ -1,5 +1,12 @@
 # SimCoupe ChangeLog
 
+## Version 1.2.11 (2022-05-04)
+- fixed main screen contention offset.
+- improved OpenGL 3 compatibility on macOS.
+- added LPEN b0 support in screen modes 1-3.
+- added WARP driver fallback for running in Windows VMs.
+- added basic motion blur support to SDL backend.
+
 ## Version 1.2.10 (2022-04-07)
 - fixed clipboard paste not working on boot screen.
 - fixed broken Windows shell path auto-complete.
