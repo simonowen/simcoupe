@@ -72,7 +72,7 @@ constexpr auto ACTUAL_FRAMES_PER_SECOND = static_cast<float>(CPU_CLOCK_HZ) / CPU
 
 constexpr auto CPU_CYCLES_INT_ACTIVE = 128;
 
-constexpr auto CPU_CYCLES_SCREEN_CONTENTION_OFFSET = 1;
+constexpr auto CPU_CYCLES_SCREEN_CONTENTION_OFFSET = 4;
 
 // CPU cycles after power-on before the ASIC responds to I/O (~49ms)
 constexpr auto CPU_CYCLES_ASIC_STARTUP = 291675;
