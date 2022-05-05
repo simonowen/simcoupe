@@ -254,7 +254,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
 
 find_package(ZLIB)
 if (ZLIB_FOUND)
-  target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
+  if (SIMCOUPE_PORTABLE)
+    target_link_libraries(${PROJECT_NAME} PRIVATE libz.a)
+  else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
+  endif()
   set(HAVE_LIBZ 1)
   target_sources(${PROJECT_NAME} PRIVATE
     Extern/zlib/contrib/minizip/ioapi.c
@@ -266,7 +270,11 @@ endif()
 
 find_package(BZip2)
 if (BZIP2_FOUND)
-  target_link_libraries(${PROJECT_NAME} PRIVATE BZip2::BZip2)
+  if (SIMCOUPE_PORTABLE)
+    target_link_libraries(${PROJECT_NAME} PRIVATE libbz2.a)
+  else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE BZip2::BZip2)
+  endif()
   set(HAVE_LIBBZ2 1)
 endif()
 

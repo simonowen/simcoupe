@@ -1,4 +1,4 @@
-name: Linux DEB
+name: Linux DEB/TAR
 
 on: [push]
 
@@ -19,3 +19,8 @@ jobs:
       with:
         name: simcoupe-deb
         path: build-linux/_packages/*.deb
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: simcoupe-tar
+        path: build-linux/*.tar.gz
