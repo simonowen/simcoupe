@@ -240,6 +240,9 @@ endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE spectrum)
 target_include_directories(${PROJECT_NAME} PRIVATE ${spectrum_SOURCE_DIR})
 
+add_subdirectory(Extern/whereami EXCLUDE_FROM_ALL)
+target_link_libraries(${PROJECT_NAME} PRIVATE whereami)
+
 # Use bundled version of fdrawcmd.h for fdrawcmd.sys definitions.
 if (WIN32)
   target_include_directories(${PROJECT_NAME} PRIVATE Extern/fdrawcmd)

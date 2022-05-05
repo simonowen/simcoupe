@@ -29,6 +29,7 @@
 #include "Main.h"
 #include "Options.h"
 #include "Parallel.h"
+#include "whereami.h"
 
 
 bool OSD::Init()
@@ -57,10 +58,13 @@ std::string OSD::MakeFilePath(PathType type, const std::string& filename)
     fs::path base_path;
     fs::path path;
 
+    std::string exe;
+    exe.resize(wai_getExecutablePath(nullptr, 0, nullptr));
+    wai_getExecutablePath(exe.data(), exe.length(), nullptr);
+    auto exe_path = fs::path(exe).remove_filename();
+
 #if defined(_WINDOWS)
-    char szPath[MAX_PATH]{};
-    GetModuleFileName(nullptr, szPath, MAX_PATH);
-    base_path = fs::path(szPath).remove_filename();
+    base_path = exe_path;
 #elif defined(__AMIGAOS4__)
     base_path = "PROGDIR:";
 #else
@@ -114,6 +118,11 @@ std::string OSD::MakeFilePath(PathType type, const std::string& filename)
         }
 #elif defined(RESOURCE_DIR) && !defined(__AMIGAOS4__)
         path = RESOURCE_DIR;
+
+        if (!fs::exists(path / filename) && fs::exists(exe_path / filename))
+        {
+            path = exe_path;
+        }
 #else
         path.clear();
 #endif
