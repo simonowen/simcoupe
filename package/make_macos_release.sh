@@ -32,6 +32,7 @@ VERSION=$(plutil -extract CFBundleShortVersionString xml1 -o - ./Info-SimCoupe.p
   sed -n "s/.*<string>\(.*\)<\/string>.*/\1/p")
 VOLNAME="SimCoupe ${VERSION}"
 VOLPATH="/Volumes/${VOLNAME}"
+DMGFILE="SimCoupe-${VERSION}-macos.dmg"
 
 hdiutil create /tmp/tmp.dmg -ov -volname "$VOLNAME" -fs HFS+ -format UDRW -srcfolder dist -noscrub
 hdiutil attach -readwrite -noverify -noautoopen /tmp/tmp.dmg
@@ -73,5 +74,5 @@ SetFile -a C "${VOLPATH}"
 
 sync
 hdiutil detach "${VOLPATH}"
-hdiutil convert /tmp/tmp.dmg -format UDZO -o SimCoupe-${VERSION}.dmg
-echo DMG: ${BUILD_DIR}/SimCoupe-${VERSION}.dmg
+hdiutil convert /tmp/tmp.dmg -format UDZO -o "${DMGFILE}"
+echo DMG: ${BUILD_DIR}/${DMGFILE}
