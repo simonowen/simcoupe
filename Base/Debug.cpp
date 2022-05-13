@@ -138,6 +138,9 @@ bool Start(std::optional<int> bp_index)
 
 void Stop()
 {
+    if (!cpu.get_iff1())
+        cpu.set_is_halted(false);
+
     if (pDebugger)
     {
         pDebugger->Destroy();
@@ -155,7 +158,8 @@ void Refresh()
     if (pDebugger)
     {
         // Set the address without forcing it to the top of the window
-        pDebugger->SetAddress((nLastView == ViewType::Dis) ? cpu.get_pc() : wLastAddr, false);
+        pDebugger->SetAddress((nLastView == ViewType::Dis) ?
+            (cpu.get_pc() - (cpu.is_halted() ? 1 : 0)) : wLastAddr, false);
     }
 
     if (auto bp_index = Breakpoint::Hit())
@@ -654,7 +658,8 @@ void Debugger::SetView(ViewType nView_)
 
         if (!m_pView)
         {
-            pNewView->SetAddress((nView_ == ViewType::Dis) ? cpu.get_pc() : wLastAddr);
+            pNewView->SetAddress((nView_ == ViewType::Dis) ?
+                (cpu.get_pc() - (cpu.is_halted() ? 1 : 0)) : wLastAddr);
         }
         else
         {
@@ -745,7 +750,12 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
                 SetAddress(cpu.get_pc());
             }
             else
+            {
+                if (sLastRegs.get_pc() != cpu.get_pc() && !cpu.get_iff1())
+                    cpu.set_is_halted(false);
+
                 fRet = false;
+            }
             break;
 
         case HK_RETURN:
@@ -1707,7 +1717,10 @@ void DisView::Draw(FrameBuffer& fb)
         fb.DrawString(nX + 72, nY + 84 + i * 12, "{:04X}", read_word(cpu.get_sp() + i * 2));
 
     fb.DrawString(nX, nY + 96, "\agIM \a{}{}", (cpu.get_int_mode() != sLastRegs.get_int_mode()) ? CHG_COL : 'X', cpu.get_int_mode());
-    fb.DrawString(nX + 18, nY + 96, "  \a{}{}I", (cpu.get_iff1() != sLastRegs.get_iff1()) ? CHG_COL : 'X', cpu.get_iff1() ? 'E' : 'D');
+    fb.DrawString(nX + 18, nY + 96, "  \a{}{}I",
+        (cpu.is_halted() && !cpu.get_iff1()) ? 'R' :
+            (cpu.get_iff1() != sLastRegs.get_iff1()) ? CHG_COL : 'X',
+        cpu.get_iff1() ? 'E' : 'D');
 
     char bIntDiff = IO::State().status ^ bLastStatus;
     auto status = IO::State().status;
