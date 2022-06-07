@@ -352,6 +352,12 @@ elseif (BUILD_SDL)
   target_include_directories(${PROJECT_NAME} PRIVATE SDL)
 endif()
 
+# GCC 8 needs explicit linkage to 'libstc++fs' to get support for the filesystem utilities
+# See https://en.cppreference.com/w/cpp/filesystem#Notes
+if ((CMAKE_CXX_COMPILER_ID MATCHES "GNU") AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9.0.0"))
+    target_link_libraries(${PROJECT_NAME} PRIVATE stdc++fs)
+endif()
+
 if (WIN32)
   if (MSVC)
     set_property(TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
