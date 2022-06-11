@@ -196,7 +196,7 @@ bool InitJoystick(LPDIRECTINPUTDEVICE2& pJoystick_)
         DIPROPDWORD diPdw = { { sizeof(diPdw), sizeof(diPdw.diph), 0, DIPH_BYOFFSET }, 10000UL * JOYSTICK_DEADZONE / 100UL };
         DIPROPRANGE diPrg = { { sizeof(diPrg), sizeof(diPrg.diph), 0, DIPH_BYOFFSET }, -100, +100 };
 
-        int anAxes[] = { DIJOFS_X, DIJOFS_Y, DIJOFS_RX, DIJOFS_RY };
+        int anAxes[] = { DIJOFS_X, DIJOFS_Y };
 
         for (size_t i = 0; i < std::size(anAxes); i++)
         {
@@ -330,10 +330,10 @@ void ReadJoystick(int nJoystick_, LPDIRECTINPUTDEVICE2 pDevice_)
     }
 
     // Set the position from the main axes
-    if (dijs.lX < 0 || dijs.lRx < 0) nPosition |= HJ_LEFT;
-    if (dijs.lX > 0 || dijs.lRx > 0) nPosition |= HJ_RIGHT;
-    if (dijs.lY < 0 || dijs.lRy < 0) nPosition |= HJ_UP;
-    if (dijs.lY > 0 || dijs.lRy > 0) nPosition |= HJ_DOWN;
+    if (dijs.lX < 0) nPosition |= HJ_LEFT;
+    if (dijs.lX > 0) nPosition |= HJ_RIGHT;
+    if (dijs.lY < 0) nPosition |= HJ_UP;
+    if (dijs.lY > 0) nPosition |= HJ_DOWN;
 
     // Consider all hat positions too
     for (size_t i = 0; i < std::size(dijs.rgdwPOV); i++)
