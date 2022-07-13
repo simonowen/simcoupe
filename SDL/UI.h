@@ -70,3 +70,4 @@ extern bool g_fActive;
 #define UE_RECORDAVI            (UE_BASE+23)
 #define UE_RECORDAVIHALF        (UE_BASE+24)
 #define UE_RECORDAVISTOP        (UE_BASE+25)
+#define UE_QUEUEFILE            (UE_BASE+26)

@@ -21,6 +21,7 @@ extern OSErr CPSSetFrontProcess( CPSProcessSerNum *psn);
 static int gArgc;
 static char **gArgv;
 static BOOL gFinderLaunch;
+static BOOL gFinishedLaunching;
 
 @interface SDLMain : NSObject<NSApplicationDelegate>
 - (NSApplicationTerminateReply) applicationShouldTerminate:(NSApplication *)sender;

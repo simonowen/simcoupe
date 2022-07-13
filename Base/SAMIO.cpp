@@ -936,9 +936,10 @@ bool TestStartupScreen(bool skip_startup)
     return false;
 }
 
-void QueueAutoLoad(AutoLoadType type)
+void QueueAutoBoot(AutoLoadType type)
 {
-    auto_load = type;
+    if (GetOption(autoboot))
+        auto_load = type;
 }
 
 void AutoLoad(AutoLoadType type)

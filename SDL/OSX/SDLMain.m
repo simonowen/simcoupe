@@ -213,12 +213,15 @@ static void setupApplicationMenus ()
 }
 
 /* Pass dropped files through to SDL for processing, and ultimately on to SimCoupe */
-- (BOOL)application:(NSApplication *)theApplication openFile:(NSString *)filename
+- (BOOL)application:(NSApplication *)theApplication openFile:(NSString *)path
 {
+    if (!gFinishedLaunching)
+        return sendUserEventData(UE_QUEUEFILE, strdup([path UTF8String]));
+
     if (SDL_GetEventState(SDL_DROPFILE) == SDL_ENABLE) {
         SDL_Event event;
         event.type = SDL_DROPFILE;
-        event.drop.file = SDL_strdup([filename UTF8String]);
+        event.drop.file = SDL_strdup([path UTF8String]);
         return (SDL_PushEvent(&event) > 0);
     }
 
@@ -229,6 +232,11 @@ static void setupApplicationMenus ()
 /* Called when the internal event loop has just started running */
 - (void) applicationDidFinishLaunching: (NSNotification *) note
 {
+    gFinishedLaunching = TRUE;
+
+    /* Set the working directory to the .app's parent directory */
+    [self setupWorkingDirectory:gFinderLaunch];
+
     /* Hand off to main application code */
     int status = SimCoupe_main(gArgc, gArgv);
 
@@ -248,13 +256,13 @@ static void setupApplicationMenus ()
 }
 
 
-static void sendUserEventData (int event, void *data)
+static BOOL sendUserEventData (int event, void *data)
 {
     SDL_Event e = {0};
     e.user.type = SDL_USEREVENT;
     e.user.code = event;
     e.user.data1 = data;
-    SDL_PushEvent(&e);
+    return SDL_PushEvent(&e) > 0;
 }
 
 static void sendUserEvent (int event)

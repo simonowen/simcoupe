@@ -116,7 +116,9 @@ bool UI::CheckEvents()
                 return false;
 
             case SDL_DROPFILE:
-                if (pFloppy1->Insert(event.drop.file))
+                if (GetOption(drive1) != drvFloppy)
+                    Message(MsgType::Warning, "Floppy drive 1 is not present");
+                else if (pFloppy1->Insert(event.drop.file))
                 {
                     Frame::SetStatus("{}  inserted into drive 1", pFloppy1->DiskFile());
                     IO::AutoLoad(AutoLoadType::Disk);
@@ -130,16 +132,19 @@ bool UI::CheckEvents()
                 switch (event.user.code)
                 {
                 case UE_OPENFILE:
+                case UE_QUEUEFILE:
                 {
-                    char* psz = reinterpret_cast<char*>(event.user.data1);
-                    TRACE("UE_OPENFILE: {}\n", psz);
+                    auto psz = reinterpret_cast<char*>(event.user.data1);
 
                     if (GetOption(drive1) != drvFloppy)
                         Message(MsgType::Warning, "Floppy drive 1 is not present");
                     else if (pFloppy1->Insert(psz))
                     {
                         Frame::SetStatus("{}  inserted into drive 1", pFloppy1->DiskFile());
-                        IO::AutoLoad(AutoLoadType::Disk);
+                        if (event.user.code == UE_QUEUEFILE)
+                            IO::QueueAutoBoot(AutoLoadType::Disk);
+                        else
+                            IO::AutoLoad(AutoLoadType::Disk);
                     }
 
                     free(psz);

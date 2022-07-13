@@ -187,7 +187,7 @@ void UpdateInput();
 void UpdateDrives();
 std::vector<COLOUR> Palette();
 bool TestStartupScreen(bool exit = false);
-void QueueAutoLoad(AutoLoadType type);
+void QueueAutoBoot(AutoLoadType type);
 void AutoLoad(AutoLoadType type);
 
 void EiHook();
