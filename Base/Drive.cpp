@@ -275,10 +275,12 @@ uint8_t Drive::In(uint16_t port)
 
         // Fail after 16 polls of the status port with no data reads.
         // SAM DICE relies uses this timeout as a synchronisation mechanism.
+        // Legend of Eshan issues READ_ADDRESS twice without reading the returned data.
         if ((m_regs.status & DRQ) && ++m_status_reads_with_data == 0x10)
         {
             ModifyStatus(LOST_DATA, BUSY | DRQ);
             m_sector_index = 0;
+            m_status_reads_with_data = 0;
         }
 
         return m_regs.status;
