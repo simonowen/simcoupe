@@ -230,7 +230,22 @@ void Drive::ExecuteNext()
         break;
 
     case WRITE_TRACK:
-        ModifyStatus(status, BUSY);
+        if (m_disk->WriteProtected())
+        {
+            ModifyStatus(WRITE_PROTECT, BUSY);
+        }
+        else if (m_state == 0)
+        {
+            m_buffer.resize(MAX_TRACK_SIZE);
+            m_buffer_pos = 0;
+
+            ModifyStatus(DRQ, 0);
+            m_state++;
+        }
+        else
+        {
+            ModifyStatus(status, BUSY);
+        }
         break;
     }
 }
@@ -435,17 +450,7 @@ void Drive::Out(uint16_t port, uint8_t val)
 
         case WRITE_TRACK:
             TRACE("FDC: WRITE_TRACK\n");
-            if (m_disk)
-            {
-                if (m_disk->WriteProtected())
-                    ModifyStatus(WRITE_PROTECT, 0);
-                else
-                {
-                    m_buffer.resize(MAX_TRACK_SIZE);
-                    m_buffer_pos = 0;
-                    ModifyStatus(BUSY | DRQ, 0);
-                }
-            }
+            ModifyStatus(BUSY, 0);
             break;
 
         case FORCE_INTERRUPT:
