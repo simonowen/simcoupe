@@ -199,7 +199,7 @@ uint8_t MGTDisk::FormatTrack(uint8_t cyl, uint8_t head,
     if (WriteProtected())
         return WRITE_PROTECT;
     else if (cyl >= MGT_DISK_CYLS || head >= MGT_DISK_HEADS || sectors.size() != m_sectors)
-        return WRITE_FAULT;
+        return WRITE_PROTECT;
 
     bool normal = true;
     int sector_mask = 0;
@@ -212,7 +212,7 @@ uint8_t MGTDisk::FormatTrack(uint8_t cyl, uint8_t head,
     }
 
     if (!normal || (sector_mask != ((1 << m_sectors) - 1)))
-        return WRITE_FAULT;
+        return WRITE_PROTECT;
 
     auto track_offset = (static_cast<size_t>(cyl) * MGT_DISK_HEADS + head) * (m_sectors * NORMAL_SECTOR_SIZE);
 
