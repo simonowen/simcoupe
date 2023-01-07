@@ -2064,8 +2064,8 @@ bool DisView::SetDataTarget()
     uint16_t wAddr12 = (bOp2 << 8) | bOp1;
     uint16_t wAddr23 = (bOp3 << 8) | bOp2;
     uint16_t wAddr = fIndex ? wAddr23 : wAddr12;
-    uint16_t wHLIXIYd = !fIndex ? cpu.get_hl() : (((bOp0 == 0xdd) ? cpu.get_ix() : cpu.get_iy()) + bOp2);
-
+    uint16_t wHLIXIYd = !fIndex ? cpu.get_hl() :
+        (((bOp0 == 0xdd) ? cpu.get_ix() : cpu.get_iy()) + static_cast<int8_t>(bOp2));
 
     // 000r0010 = LD (BC/DE),A
     // 000r1010 = LD A,(BC/DE)
