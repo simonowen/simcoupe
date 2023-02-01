@@ -1,5 +1,15 @@
 # SimCoupe ChangeLog
 
+## Version 1.2.12 (2023-02-01)
+- fixed joystick rotation axis causing unwanted movement (#80)
+- fixed booting of disks inserted during startup under macOS (#82)
+- fixed rogue No Disk error when saving from Legend of Eshan
+- fixed missing error for incompatible MGT formatting attempts (#86)
+- fixed no-disk formatting behaviour (#86)
+- fixed debugger data target display for negative index offsets (#88)
+- improved handling of DI;HALT state in debugger to reduce confusion
+- improved portable version compatibility for Linux builds
+
 ## Version 1.2.11 (2022-05-04)
 - fixed main screen contention offset.
 - improved OpenGL 3 compatibility on macOS.
