@@ -407,10 +407,9 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         int nJoystick = (p->which == nJoystick1) ? 0 : 1;
         int nDeadZone = 32768 * (!nJoystick ? GetOption(deadzone1) : GetOption(deadzone2)) / 100;
 
-        // We'll use even axes as X and odd as Y
-        if (!(p->axis & 1))
+        if (p->axis == 0)
             Joystick::SetX(nJoystick, (p->value < -nDeadZone) ? HJ_LEFT : (p->value > nDeadZone) ? HJ_RIGHT : HJ_CENTRE);
-        else
+        else if (p->axis == 1)
             Joystick::SetY(nJoystick, (p->value < -nDeadZone) ? HJ_UP : (p->value > nDeadZone) ? HJ_DOWN : HJ_CENTRE);
 
         break;
