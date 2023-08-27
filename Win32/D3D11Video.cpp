@@ -503,6 +503,15 @@ HRESULT Direct3D11Video::Render()
     if (!m_d3dContext)
         return S_FALSE;
 
+    if (m_occluded)
+    {
+        auto hr = m_swapChain->Present(0, DXGI_PRESENT_TEST);
+        if (hr == DXGI_STATUS_OCCLUDED)
+            return S_FALSE;
+
+        m_occluded = false;
+    }
+
     auto viewport = CD3D11_VIEWPORT(0.0f, 0.0f, 0.0f, 0.0f);
     viewport.Width = static_cast<float>(m_rIntermediate.right);
     viewport.Height = static_cast<float>(m_rIntermediate.bottom);
@@ -547,6 +556,10 @@ HRESULT Direct3D11Video::Render()
     else if (FAILED(hr))
     {
         return ResizeTarget(m_rTarget.right, m_rTarget.bottom);
+    }
+    else if (hr == DXGI_STATUS_OCCLUDED)
+    {
+        m_occluded = true;
     }
 
     std::swap(m_outputTex, m_prevOutputTex);
