@@ -134,7 +134,8 @@ void Stop()
             TRACE("!!! WAV::Stop(): Failed to write RIFF header\n");
     }
 
-    // Report what happened
+    file.reset();
+
     if (nFrames)
     {
         Frame::SetStatus("Saved {}", wav_path);
@@ -142,8 +143,6 @@ void Stop()
     else
     {
         Frame::SetStatus("WAV save cancelled");
-        file.reset();
-
         std::error_code error{};
         fs::remove(wav_path, error);
     }
