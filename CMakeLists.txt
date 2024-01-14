@@ -326,7 +326,7 @@ elseif (BUILD_SDL)
     FetchContent_Declare(
       sdl2
       GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-      GIT_TAG        release-2.0.20
+      GIT_TAG        15ead9a40d09a1eb9972215cceac2bf29c9b77f6  # 2.28.5
       GIT_PROGRESS   TRUE)
     set(SDL_SHARED OFF)
     FetchContent_GetProperties(sdl2)
