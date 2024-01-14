@@ -1,7 +1,13 @@
 # SimCoupe ChangeLog
 
+## Version 1.2.13 (2024-01-14)
+- fixed shifted SDL key symbols not working in debugger (#90)
+- fixed truncated WAV audio recordings due to missing close+flush
+- fixed "Pause" not clearing in Win32 caption after CPU reset (#91)
+- fixed phantom inputs on later SDL joystick axes causing issues (#80)
+
 ## Version 1.2.12 (2023-02-01)
-- fixed joystick rotation axis causing unwanted movement (#80)
+- fixed Win32 joystick rotation axis causing unwanted movement (#80)
 - fixed booting of disks inserted during startup under macOS (#82)
 - fixed rogue No Disk error when saving from Legend of Eshan
 - fixed missing error for incompatible MGT formatting attempts (#86)
