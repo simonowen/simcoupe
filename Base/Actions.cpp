@@ -124,7 +124,8 @@ bool Do(Action action, bool pressed/*=true*/)
         {
         case Action::Reset:
             // Ensure we're not paused, to avoid confusion
-            g_fPaused = false;
+            if (g_fPaused)
+                Actions::Do(Action::Pause, true);
 
             CPU::Reset(true);
             break;
