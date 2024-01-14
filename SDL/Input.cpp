@@ -186,6 +186,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
 
         TRACE("SDL_TEXTINPUT: {} (nLastKey={}, nLastMods={})\n", pEvent->text, nLastKey, nLastMods);
         Keyboard::SetKey(nLastKey, true, nLastMods, nChr);
+        GUI::SendMessage(GM_CHAR, nChr, nLastMods);
         break;
     }
 
@@ -208,7 +209,13 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
             ((pKey->mod & KMOD_LCTRL) ? HM_CTRL : 0) |
             ((pKey->mod & KMOD_LALT) ? HM_ALT : 0);
 
-        int nChr = (nKey < HK_SPACE || (nKey < HK_MIN && (pKey->mod & KMOD_CTRL))) ? nKey : 0;
+        int nChr = 0;
+        if ((nKey < HK_SPACE) ||
+            (nKey < HK_MIN && (pKey->mod & KMOD_CTRL)) ||
+            (nKey >= HK_LEFT && nKey != HK_NONE))
+        {
+            nChr = nKey;
+        }
 
         TRACE("SDL_KEY{} ({:x} -> {:x})\n", fPress ? "DOWN" : "UP", pKey->sym, nKey);
 
@@ -252,8 +259,8 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         if (GUI::IsActive())
         {
             // Pass any printable characters to the GUI
-            if (fPress && nKey)
-                GUI::SendMessage(GM_CHAR, nKey, nMods);
+            if (fPress && nChr)
+                GUI::SendMessage(GM_CHAR, nChr, nMods);
 
             break;
         }
@@ -286,16 +293,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
             Keyin::Stop();
         }
 
-        // Key press (CapsLock/NumLock are toggle keys in SDL, so we must treat any event as a press)
-        if (fPress || pKey->sym == SDLK_CAPSLOCK || pKey->sym == SDLK_NUMLOCKCLEAR)
-        {
-            Keyboard::SetKey(nKey, true, nMods, nChr);
-        }
-
-        // Key release
-        else if (!fPress)
-            Keyboard::SetKey(nKey, false);
-
+        Keyboard::SetKey(nKey, fPress, nMods, nChr);
         break;
     }
 
