@@ -205,7 +205,7 @@ message(STATUS "Fetching github.com/fmtlib/fmt")
 FetchContent_Declare(
   fmt
   GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-  GIT_TAG d141cdbeb0fb422a3fb7173b285fd38e0d1772dc )
+  GIT_TAG e69e5f977d458f2650bb346dadf2ad30c5320281 )
 
 set(FMT_INSTALL OFF)
 FetchContent_MakeAvailable(fmt)
@@ -216,7 +216,7 @@ message(STATUS "Fetching github.com/simonowen/resid")
 FetchContent_Declare(
   resid
   GIT_REPOSITORY https://github.com/simonowen/resid.git
-  GIT_TAG 65248e7eb30e037b51ffb061374b3dbd3811308c )
+  GIT_TAG 9ac2b4b5633a6c64fb02fd09a350ea857dd0c6d3 )
 FetchContent_GetProperties(resid)
 if(NOT resid_POPULATED)
   FetchContent_Populate(resid)
