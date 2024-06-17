@@ -75,7 +75,7 @@ void SDIDEDevice::Out(uint16_t wPort_, uint8_t bVal_)
         if (!m_fDataLatched)
             m_bDataLatch = bVal_;
         else
-            AtaAdapter::Out(0x0100 | m_bAddressLatch, (static_cast<uint16_t>(bVal_) << 8) | m_bDataLatch);
+            AtaAdapter::OutWord(0x0100 | m_bAddressLatch, (static_cast<uint16_t>(bVal_) << 8) | m_bDataLatch);
 
         m_fDataLatched = !m_fDataLatched;
         break;
