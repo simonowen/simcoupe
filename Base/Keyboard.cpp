@@ -360,6 +360,12 @@ void ProcessUnshiftedKeys(MAPPED_KEY* asKeys_)
 // Update a combination key table with a symbol
 static bool UpdateKeyTable(MAPPED_KEY* asKeys_, int nKey_, int nMods_, int nChar_)
 {
+    // Treat numeric keypad as base keys.
+    if (nKey_ >= HK_KP0 && nKey_ <= HK_KP9)
+    {
+        nMods_ = 0;
+    }
+
     // Convert upper-case symbols to lower-case without shift
     if (nChar_ >= 'A' && nChar_ <= 'Z')
     {
