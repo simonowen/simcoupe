@@ -13,7 +13,7 @@ jobs:
           - { cc: "clang", cxx: "clang++" }
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install dependencies
       run: sudo apt-get update && sudo apt-get install -y -q libsdl2-dev libaudiofile-dev dpkg-dev

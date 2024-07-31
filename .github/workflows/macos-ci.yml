@@ -8,10 +8,10 @@ jobs:
 
     strategy:
       matrix:
-        os: [ macos-latest, macos-11 ]
+        os: [ macos-latest, macos-12 ]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install SDL2
       run: |
