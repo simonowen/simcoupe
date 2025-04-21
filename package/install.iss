@@ -55,7 +55,7 @@ VersionInfoVersion={#MyAppVersion}
 MinVersion=6.1sp1
 
 #ifdef X86_AND_X64
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesInstallIn64BitMode=x64compatible
 #endif
 
 #ifdef SIGN_BUILD
