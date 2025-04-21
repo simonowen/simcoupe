@@ -138,14 +138,13 @@ bool DeviceHardDisk::Open(bool read_only)
     else
     {
         DWORD dwRet{};
-        PARTITION_INFORMATION pi{};
+        DWORD ab[2048]{};
+        auto pdge = reinterpret_cast<DISK_GEOMETRY_EX*>(ab);
 
-        // Read the drive geometry (possibly fake) and size, checking for a disk device
-        if (DeviceIoControl(m_hDevice, IOCTL_DISK_GET_PARTITION_INFO, nullptr, 0, &pi, sizeof(pi), &dwRet, nullptr))
+        // Read the drive geometry, checking for a disk device
+        if (DeviceIoControl(m_hDevice, IOCTL_DISK_GET_DRIVE_GEOMETRY_EX, nullptr, 0, &ab, sizeof(ab), &dwRet, nullptr))
         {
-            // Extract the disk geometry and size in sectors
-            // We round down to the nearest 1K to fix a single sector error with some CF card readers
-            m_sGeometry.uTotalSectors = static_cast<UINT>(pi.PartitionLength.QuadPart >> 9) & ~1U;
+            m_sGeometry.uTotalSectors = static_cast<UINT>(pdge->DiskSize.QuadPart / pdge->Geometry.BytesPerSector);
 
             // Generate suitable identify data to report
             SetIdentifyData(nullptr);
@@ -300,20 +299,16 @@ std::vector<std::string> DeviceHardDisk::GetDeviceList()
             continue;
 
         DWORD ab[2048]{};
-        if (!DeviceIoControl(h, IOCTL_DISK_GET_DRIVE_LAYOUT_EX, nullptr, 0, &ab, sizeof(ab), &dwRet, nullptr))
+        if (!DeviceIoControl(h, IOCTL_DISK_GET_DRIVE_GEOMETRY_EX, nullptr, 0, &ab, sizeof(ab), &dwRet, nullptr))
         {
             CloseHandle(h);
             continue;
         }
 
-        DRIVE_LAYOUT_INFORMATION_EX* pdli = reinterpret_cast<DRIVE_LAYOUT_INFORMATION_EX*>(ab);
-
-        // Require disks with at least one non-empty partition that begins at the start of the device.
-        if (pdli->PartitionCount && pdli->PartitionEntry[0].PartitionLength.QuadPart && !pdli->PartitionEntry[0].StartingOffset.QuadPart)
+        auto pdge = reinterpret_cast<DISK_GEOMETRY_EX*>(ab);
+        if (pdge->DiskSize.QuadPart > 0 && pdge->Geometry.BytesPerSector == 512)
         {
-            // Generate a user friendly abbreviation of the disk size
-            UINT uTotalSectors = static_cast<UINT>(pdli->PartitionEntry[0].PartitionLength.QuadPart >> 9) & ~1U;
-            auto size_desc = AbbreviateSize(static_cast<uint64_t>(uTotalSectors) * 512);
+            auto size_desc = AbbreviateSize(pdge->DiskSize.QuadPart);
 
             STORAGE_PROPERTY_QUERY spq = {};
             spq.QueryType = PropertyStandardQuery;
@@ -322,7 +317,9 @@ std::vector<std::string> DeviceHardDisk::GetDeviceList()
             PSTORAGE_DEVICE_DESCRIPTOR pDevDesc = reinterpret_cast<PSTORAGE_DEVICE_DESCRIPTOR>(ab);
             pDevDesc->Size = sizeof(ab);
 
-            if (DeviceIoControl(h, IOCTL_STORAGE_QUERY_PROPERTY, &spq, sizeof(spq), pDevDesc, pDevDesc->Size, &dwRet, nullptr) && pDevDesc->ProductIdOffset)
+            if (DeviceIoControl(h, IOCTL_STORAGE_QUERY_PROPERTY, &spq, sizeof(spq), pDevDesc, pDevDesc->Size, &dwRet, nullptr) &&
+                pDevDesc->ProductIdOffset &&
+                pDevDesc->BusType == BusTypeUsb)
             {
                 // Extract make/model if defined
                 const char* pcszMake = pDevDesc->VendorIdOffset ? reinterpret_cast<const char*>(pDevDesc) + pDevDesc->VendorIdOffset : "";
