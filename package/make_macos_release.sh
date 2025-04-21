@@ -5,6 +5,7 @@ BUILD_DIR=build-macos
 mkdir -p ${BUILD_DIR} && pushd ${BUILD_DIR}
 
 cmake .. \
+  -Wno-dev \
   -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
   -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \
   -DCMAKE_FIND_LIBRARY_SUFFIXES=".a"

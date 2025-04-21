@@ -5,6 +5,7 @@ BUILD_DIR=build-linux
 mkdir -p "${BUILD_DIR}" && pushd "${BUILD_DIR}"
 
 cmake .. \
+  -Wno-dev \
   -DCMAKE_FIND_LIBRARY_SUFFIXES=".a" \
   -DSIMCOUPE_PORTABLE=1
 

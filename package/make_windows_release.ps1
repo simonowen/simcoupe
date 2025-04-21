@@ -34,6 +34,7 @@ function Build-Zip {
     Push-Location $build_dir
 
     $cmake_args = @(
+        "-Wno-dev"
         "-G Ninja"
         "-DCMAKE_BUILD_TYPE=Release"
         "-DCMAKE_SYSTEM_VERSION=6.1"
