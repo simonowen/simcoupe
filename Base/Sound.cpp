@@ -230,7 +230,7 @@ int DAC::GetSamplesSoFar()
 void BeeperDevice::Out(uint16_t /*wPort_*/, uint8_t bVal_)
 {
     if (pDAC)
-        pDAC->Output((bVal_ & 0x10) ? 0xa0 : 0x80);
+        pDAC->Output((bVal_ & BORDER_BEEP_MASK) ? 0x30 : 0x00);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
