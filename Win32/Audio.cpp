@@ -41,6 +41,10 @@ static ComPtr<IXAudio2> pXAudio2;
 static IXAudio2MasteringVoice* pMasteringVoice;
 static IXAudio2SourceVoice* pSourceVoice;
 
+static HANDLE hEvent;
+static MMRESULT hTimer;
+static DWORD dwTimerPeriod;
+
 ////////////////////////////////////////////////////////////////////////////////
 
 bool Audio::Init()
@@ -97,7 +101,10 @@ bool Audio::Init()
     if (SUCCEEDED(hr))
         hr = pSourceVoice->Start();
 
-    return SUCCEEDED(hr);
+    if (FAILED(hr))
+        hEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+
+    return SUCCEEDED(hr) || hEvent;
 }
 
 void Audio::Exit()
@@ -116,11 +123,44 @@ void Audio::Exit()
     }
 
     pXAudio2.Reset();
+
+    if (hTimer)
+    {
+        timeKillEvent(hTimer);
+        hTimer = 0;
+        dwTimerPeriod = 0;
+    }
+
+    if (hEvent)
+    {
+        CloseHandle(hEvent);
+        hEvent = nullptr;
+    }
+}
+
+static void CALLBACK TimeCallback(UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR)
+{
+    SetEvent(hEvent);
 }
 
 float Audio::AddData(uint8_t* pData, int len_bytes)
 {
     XAUDIO2_VOICE_STATE state{};
+
+    if (hEvent)
+    {
+        DWORD frame_time = 1000 / (EMULATED_FRAMES_PER_SECOND * GetOption(speed) / 100);
+        if (frame_time != dwTimerPeriod)
+        {
+            if (hTimer)
+                timeKillEvent(hTimer);
+
+            hTimer = timeSetEvent(dwTimerPeriod = frame_time, 0, TimeCallback, 0, TIME_PERIODIC | TIME_CALLBACK_FUNCTION);
+        }
+
+        WaitForSingleObject(hEvent, INFINITE);
+        return 1.0f;
+    }
 
     static std::vector<uint8_t> data;
     data.insert(data.end(), pData, pData + len_bytes);
