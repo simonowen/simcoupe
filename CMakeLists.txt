@@ -5,7 +5,7 @@ set(PROJECT_TITLE SimCoupe)
 
 set(MAJOR_VERSION 1)
 set(MINOR_VERSION 2)
-set(PATCH_VERSION 13)
+set(PATCH_VERSION 14)
 
 if (CMAKE_TOOLCHAIN_FILE)
   message(STATUS "Using toolchain file: ${CMAKE_TOOLCHAIN_FILE}")

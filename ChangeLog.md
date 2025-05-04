@@ -1,5 +1,17 @@
 # SimCoupe ChangeLog
 
+## Version 1.2.13 (2025-05-04)
+- fixed emulator startup with no Win32 audio device (#97)
+- fixed key modifier use with numeric keypad (#93)
+- fixed disassembly addr mismatch from previous view (#96)
+- fixed debugger graphics view mode 1+2 crash (#94)
+- fixed crash on emulator exit with active print job
+- fixed use of Win32 disk devices with valid partition tables
+- fixed SDIDE sector writing only alternate bytes
+- fixed harsh click on first beeper use
+- fixed unused index prefix on 59 (LD E,C) disassembly
+- disabled motion blur option for now
+
 ## Version 1.2.13 (2024-01-14)
 - fixed shifted SDL key symbols not working in debugger (#90)
 - fixed truncated WAV audio recordings due to missing close+flush
