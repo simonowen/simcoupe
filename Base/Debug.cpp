@@ -2712,7 +2712,7 @@ void CMemView::Draw (FrameBuffer& fb)
 
 static const int STRIP_GAP = 8;
 unsigned int GfxView::s_uWidth = 8, GfxView::s_uZoom = 1;
-int GfxView::s_mode = 4;
+std::optional<int> GfxView::s_mode;
 
 GfxView::GfxView(Window* pParent_)
     : View(pParent_)
@@ -2723,7 +2723,8 @@ GfxView::GfxView(Window* pParent_)
     // Allocate enough space for a double-width window, at 1 byte per pixel
     m_pbData = new uint8_t[m_nWidth * m_nHeight * 2];
 
-    s_mode = IO::ScreenMode();
+    if (!s_mode.has_value())
+        s_mode = IO::ScreenMode();
 }
 
 void GfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
@@ -2732,14 +2733,14 @@ void GfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 
     View::SetAddress(wAddr_);
 
-    m_uStripWidth = s_uWidth * s_uZoom * auPPB[s_mode - 1];
+    m_uStripWidth = s_uWidth * s_uZoom * auPPB[*s_mode - 1];
     m_uStripLines = m_nHeight / s_uZoom;
     m_uStrips = (m_nWidth + STRIP_GAP + m_uStripWidth + STRIP_GAP - 1) / (m_uStripWidth + STRIP_GAP);
 
     auto pb = m_pbData;
     for (unsigned int u = 0; u < ((m_uStrips + 1) * m_uStripLines); u++)
     {
-        switch (s_mode)
+        switch (*s_mode)
         {
         case 1:
         case 2:
@@ -2792,7 +2793,7 @@ void GfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
         }
     }
 
-    auto status = fmt::format("{:04X}  Mode {}  Width {}  Zoom {}x", GetAddress(), s_mode, s_uWidth, s_uZoom);
+    auto status = fmt::format("{:04X}  Mode {}  Width {}  Zoom {}x", GetAddress(), *s_mode, s_uWidth, s_uZoom);
     pDebugger->SetStatus(status, false, sFixedFont);
 
 }
@@ -2844,7 +2845,7 @@ bool GfxView::cmdNavigate(int nKey_, int nMods_)
         // Keys 1 to 4 select the screen mode
     case '1': case '2': case '3': case '4':
         s_mode = nKey_ - '0';
-        if (s_mode < 3 && s_uWidth > 32U) s_uWidth = 32U;  // Clip width in modes 1+2
+        if (*s_mode < 3 && s_uWidth > 32U) s_uWidth = 32U;  // Clip width in modes 1+2
         break;
 
         // Toggle grid view in modes 1+2
@@ -2884,7 +2885,7 @@ bool GfxView::cmdNavigate(int nKey_, int nMods_)
     case HK_RIGHT:
         if (!fCtrl)
             wAddr++;
-        else if (s_uWidth < ((s_mode < 3) ? 32U : 128U))   // Restrict byte width to mode limit
+        else if (s_uWidth < ((*s_mode < 3) ? 32U : 128U))   // Restrict byte width to mode limit
             s_uWidth++;
         break;
 

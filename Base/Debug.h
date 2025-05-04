@@ -205,7 +205,7 @@ protected:
     uint8_t* m_pbData = nullptr;
 
     static unsigned int s_uWidth, s_uZoom;
-    static int s_mode;
+    static std::optional<int> s_mode;
 };
 
 class BptView : public View
