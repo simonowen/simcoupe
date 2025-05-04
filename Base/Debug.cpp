@@ -664,7 +664,7 @@ void Debugger::SetView(ViewType nView_)
         else
         {
             // Transfer the current address select, then replace the old one
-            pNewView->SetAddress(m_pView->GetAddress());
+            pNewView->SetAddress(m_pView->GetAddress(), true);
             m_pView->Destroy();
             m_pView = nullptr;
         }
