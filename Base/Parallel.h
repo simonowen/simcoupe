@@ -25,8 +25,6 @@
 class PrintBuffer : public IoDevice
 {
 public:
-    ~PrintBuffer() { Flush(); }
-
     uint8_t In(uint16_t wPort_) override;
     void Out(uint16_t wPort_, uint8_t bVal_) override;
     void FrameEnd() override;

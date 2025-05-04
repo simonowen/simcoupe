@@ -60,8 +60,7 @@ void PrintBuffer::Out(uint16_t wPort_, uint8_t bVal_)
             // If we've filled the buffer, write it to the stream
             if (m_uBuffer == sizeof(m_abBuffer))
             {
-                Write(m_abBuffer, m_uBuffer);
-                m_uBuffer = 0;
+                Flush();
             }
         }
 
@@ -78,10 +77,6 @@ void PrintBuffer::Flush()
         // Write the remaining data
         Write(m_abBuffer, m_uBuffer);
         m_uBuffer = 0;
-
-        // Close the device to finish the job
-        Close();
-        m_fOpen = false;
     }
 }
 
@@ -89,7 +84,10 @@ void PrintBuffer::FrameEnd()
 {
     // Flush the buffer when we've counted down to zero
     if (m_uFlushDelay && !--m_uFlushDelay)
-        Flush();
+    {
+        Close();
+        m_fOpen = false;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -111,6 +109,7 @@ void PrinterFile::Close()
 {
     if (m_file)
     {
+        Flush();
         m_file.reset();
         Frame::SetStatus("Saved {}", print_path);
     }
