@@ -33,8 +33,9 @@ struct Config
     bool fullscreen = false;            // Start in full-screen mode?
     int visiblearea = 2;                // How much of the borders to show (2=TV Visible)
     bool smooth = true;                 // Smooth image when stretching? (disables integer scaling)
+    bool allowmotionblur = false;       // Motion blur looks awful without VRR, so hide/disable for now
     bool motionblur = false;            // Motion blur to reduce animation flicker?
-    int blurpercent = 25;               // Percentage of previous frame retained with motion blur enabled
+    int blurpercent = 50;               // Percentage of previous frame retained with motion blur enabled
     int maxintensity = 255;             // Maximum colour channel intensity (0-255)
     bool blackborder = false;           // Black border around emulated screen?
     bool tryvrr = true;                 // Try to use Variable Refresh Rate, if supported?

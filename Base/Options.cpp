@@ -63,6 +63,7 @@ static bool SetNamedValue(const std::string& option_name, const std::string& str
     else if (name == "visiblearea") SetValue(g_config.visiblearea, str);
     else if (name == "smooth") SetValue(g_config.smooth, str);
     else if (name == "motionblur") SetValue(g_config.motionblur, str);
+    else if (name == "allowmotionblur") SetValue(g_config.allowmotionblur, str);
     else if (name == "blurpercent") SetValue(g_config.blurpercent, str);
     else if (name == "maxintensity") SetValue(g_config.maxintensity, str);
     else if (name == "blackborder") SetValue(g_config.blackborder, str);
@@ -235,6 +236,7 @@ bool Save()
         ofs << "visiblearea=" << to_string(g_config.visiblearea) << std::endl;
         ofs << "smooth=" << to_string(g_config.smooth) << std::endl;
         ofs << "motionblur=" << to_string(g_config.motionblur) << std::endl;
+        ofs << "allowmotionblur=" << to_string(g_config.allowmotionblur) << std::endl;
         ofs << "blurpercent=" << to_string(g_config.blurpercent) << std::endl;
         ofs << "maxintensity=" << to_string(g_config.maxintensity) << std::endl;
         ofs << "blackborder=" << to_string(g_config.blackborder) << std::endl;

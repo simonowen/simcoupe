@@ -749,6 +749,7 @@ INT_PTR CALLBACK TapeBrowseDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
 
 #define CheckOption(id,check)   CheckMenuItem(hmenu, (id), (check) ? MF_CHECKED : MF_UNCHECKED)
 #define EnableItem(id,enable)   EnableMenuItem(hmenu, (id), (enable) ? MF_ENABLED : MF_GRAYED)
+#define RemoveItem(id)          RemoveMenu(hmenu, (id), MF_BYCOMMAND)
 
 void UpdateMenuFromOptions()
 {
@@ -783,7 +784,10 @@ void UpdateMenuFromOptions()
     CheckOption(IDM_VIEW_TVASPECT, GetOption(tvaspect));
 
     CheckOption(IDM_VIEW_SMOOTH, GetOption(smooth));
-    CheckOption(IDM_VIEW_MOTIONBLUR, GetOption(motionblur));
+    if (GetOption(allowmotionblur))
+        CheckOption(IDM_VIEW_MOTIONBLUR, GetOption(motionblur));
+    else
+        RemoveItem(IDM_VIEW_MOTIONBLUR);
 
     CheckMenuRadioItem(hmenu, IDM_VIEW_BORDERS0, IDM_VIEW_BORDERS3, IDM_VIEW_BORDERS0 + GetOption(visiblearea), MF_BYCOMMAND);
 

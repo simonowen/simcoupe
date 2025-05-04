@@ -185,7 +185,8 @@ void SDL_GL3::OptionsChanged()
     if (!m_context)
         return;
 
-    auto blend_factor = GetOption(motionblur) ? (GetOption(blurpercent) / 100.0f) : 0.0f;
+    auto blur_enabled = GetOption(allowmotionblur) && GetOption(motionblur);
+    auto blend_factor = blur_enabled ? (GetOption(blurpercent) / 100.0f) : 0.0f;
     glUseProgram(m_blend_program);
     glUniform1f(glGetUniformLocation(m_blend_program, "blend_factor"), blend_factor);
 

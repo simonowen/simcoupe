@@ -44,7 +44,8 @@ Rect Direct3D11Video::DisplayRect() const
 
 void Direct3D11Video::OptionsChanged()
 {
-    auto blend_factor = GetOption(motionblur) ? (GetOption(blurpercent) / 100.0f) : 0.0f;
+    auto blur_enabled = GetOption(allowmotionblur) && GetOption(motionblur);
+    auto blend_factor = blur_enabled ? (GetOption(blurpercent) / 100.0f) : 0.0f;
     m_ps_constants.blend_factor = blend_factor;
     UpdateBuffer(m_pPSConstants.Get(), m_ps_constants);
 

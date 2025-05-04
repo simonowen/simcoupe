@@ -224,7 +224,7 @@ void SDLTexture::Render()
     SDL_SetRenderTarget(m_renderer, m_scaled_texture);
     SDL_RenderCopy(m_renderer, m_screen_texture, nullptr, nullptr);
 
-    if (GetOption(motionblur))
+    if (GetOption(allowmotionblur) && GetOption(motionblur))
     {
         SDL_SetRenderTarget(m_renderer, m_composed_texture);
         SDL_RenderCopy(m_renderer, m_scaled_texture, nullptr, nullptr);

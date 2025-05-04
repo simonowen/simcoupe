@@ -147,9 +147,12 @@ bool Do(Action action, bool pressed/*=true*/)
             break;
 
         case Action::ToggleMotionBlur:
-            SetOption(motionblur, !GetOption(motionblur));
-            Video::OptionsChanged();
-            Frame::SetStatus("Motion blur {}", GetOption(motionblur) ? "enabled" : "disabled");
+            if (GetOption(allowmotionblur))
+            {
+                SetOption(motionblur, !GetOption(motionblur));
+                Video::OptionsChanged();
+                Frame::SetStatus("Motion blur {}", GetOption(motionblur) ? "enabled" : "disabled");
+            }
             break;
 
         case Action::InsertDisk1:
