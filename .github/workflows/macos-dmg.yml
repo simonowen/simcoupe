@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   build:
-    runs-on: macos-12
+    runs-on: macos-13
 
     steps:
     - uses: actions/checkout@v4
@@ -15,7 +15,7 @@ jobs:
         hdiutil attach SDL2-${SDL_VERSION}.dmg
         sudo cp -r /Volumes/SDL2/SDL2.framework /Library/Frameworks/
       env:
-        SDL_VERSION: "2.30.5"
+        SDL_VERSION: "2.32.6"
 
     - name: Build DMG image
       run: ./package/make_macos_release.sh
