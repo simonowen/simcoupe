@@ -382,8 +382,8 @@ bool SendGuiMouseMessage(int nMessage_, POINT* ppt_)
 
 bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_)
 {
-    // Mouse button decoder table, from the lower 3 bits of the Windows message values
-    static int anMouseButtons[] = { 2, 1, 1, 0, 3, 3, 0, 2 };
+    // Mouse button decoder table, from the lower 4 bits of the Windows message values
+    static int anMouseButtons[16] = { 2, 1, 1, 1, 3, 3, 3, 2, 2 };
 
     int x = GET_X_LPARAM(lParam_);
     int y = GET_Y_LPARAM(lParam_);
@@ -432,6 +432,8 @@ bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
     case WM_RBUTTONDOWN:
     case WM_MBUTTONDOWN:
     case WM_LBUTTONDBLCLK:
+    case WM_RBUTTONDBLCLK:
+    case WM_MBUTTONDBLCLK:
     {
         // The GUI gets first chance to process the message
         if (GUI::IsActive())
@@ -443,7 +445,7 @@ bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
         // If the mouse is already active, pass on button presses
         else if (fMouseActive)
         {
-            pMouse->SetButton(anMouseButtons[uMsg_ & 0x7], true);
+            pMouse->SetButton(anMouseButtons[uMsg_ & 0xf], true);
         }
 
         // If the mouse interface is enabled and being read by something other than the ROM, a left-click acquires it
@@ -469,7 +471,7 @@ bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
 
         // Pass the button release through to the mouse module
         else if (fMouseActive)
-            pMouse->SetButton(anMouseButtons[uMsg_ & 0x7], false);
+            pMouse->SetButton(anMouseButtons[uMsg_ & 0xf], false);
 
         break;
     }
