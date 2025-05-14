@@ -50,6 +50,7 @@ struct Config
     int mainmem = 512;                  // Main memory size in K (256 or 512)
     int externalmem = 1;                // External memory size in MB (0-4)
     bool cmosz80 = false;               // CMOS rather than NMOS Z80? (affects OUT (C),X)
+    bool im2random = false;             // Randomise bus value for IM2 vector address.
     int speed = 100;                    // Emulation speed (50-1000%)
 
     int drive1 = 1;                     // Drive 1 type (0=none, 1=floppy, 2=Atom, 3=AtomLite, 4=SDIDE)

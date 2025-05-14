@@ -249,6 +249,7 @@ uint16_t GetPrevInstruction(uint16_t wAddr_)
 void cmdStep(int nCount_ = 1, bool fCtrl_ = false)
 {
     void* pPhysAddr = nullptr;
+    Expr expr;
     uint8_t bOpcode;
     uint16_t wPC;
 
@@ -259,25 +260,18 @@ void cmdStep(int nCount_ = 1, bool fCtrl_ = false)
     // This is much friendlier than single-stepping NOPs up to the next interrupt!
     if (nCount_ == 1 && bOpcode == OP_HALT && cpu.get_iff1() && !fCtrl_)
     {
-        // For IM 2, form the address of the handler and break there
-        if (cpu.get_int_mode() == 2)
-            pPhysAddr = AddrReadPtr(read_word((cpu.get_i() << 8) | 0xff));
-
-        // IM 0 and IM1 both use the handler at 0x0038
-        else
-            pPhysAddr = AddrReadPtr(IM1_INTERRUPT_HANDLER);
+        expr = Expr::Compile("DI");
     }
 
     // If an address has been set, execute up to it
-    if (pPhysAddr)
-        Breakpoint::AddTemp(pPhysAddr);
+    if (pPhysAddr || expr)
+        Breakpoint::AddTemp(pPhysAddr, expr);
 
     // Otherwise execute the requested number of instructions
     else
     {
         Expr::count = nCount_;
-        auto expr = Expr::Counter;
-        Breakpoint::AddTemp(nullptr, expr);
+        Breakpoint::AddTemp(nullptr, Expr::Counter);
     }
 
     Debug::Stop();
@@ -378,7 +372,7 @@ static bool OnAddressNotify(const Expr& expr)
 // Notify handler for Execute Until expression
 static bool OnUntilNotify(const Expr& expr)
 {
-    Breakpoint::AddTemp(nullptr, expr);
+    Breakpoint::AddUntil(expr);
     Debug::Stop();
     return false;
 }
@@ -558,13 +552,13 @@ Debugger::Debugger(std::optional<int> bp_index)
         auto& bp = Breakpoint::breakpoints[*bp_index];
         std::stringstream ss;
 
-        if (bp.type != BreakType::Temp)
-        {
-            ss << fmt::format("\aYBreakpoint {} hit:  {}", *bp_index, to_string(bp));
-        }
-        else if (bp.expr && bp.expr.str != "(counter)")
+        if (bp.type == BreakType::Until)
         {
             ss << fmt::format("\aYUNTIL condition met:  {}", bp.expr.str);
+        }
+        else if (bp.type != BreakType::Temp)
+        {
+            ss << fmt::format("\aYBreakpoint {} hit:  {}", *bp_index, to_string(bp));
         }
 
         SetStatus(ss.str(), true, sPropFont);
@@ -572,6 +566,7 @@ Debugger::Debugger(std::optional<int> bp_index)
     }
 
     Breakpoint::RemoveType(BreakType::Temp);
+    Breakpoint::RemoveType(BreakType::Until);
 
     // Clear step-out stack watch
     nStepOutSP = -1;
@@ -1201,7 +1196,7 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         if (auto expr = Expr::Compile(remain))
         {
-            Breakpoint::AddTemp(nullptr, expr);
+            Breakpoint::AddUntil(expr);
             Debug::Stop();
             return false;
         }

@@ -157,6 +157,19 @@ struct sam_cpu : public z80::z80_cpu<sam_cpu>
 
         base::on_rst(nn);
     }
+
+    z80::fast_u8 on_get_int_vector()
+    {
+        if (!GetOption(im2random))
+        {
+            return base::on_get_int_vector();
+        }
+
+        static uint8_t last_busval{ 0xff };
+        constexpr uint8_t step{ 37 };
+        last_busval += step;
+        return last_busval;
+    }
 };
 
 extern sam_cpu cpu;

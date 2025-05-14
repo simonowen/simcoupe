@@ -77,6 +77,7 @@ static bool SetNamedValue(const std::string& option_name, const std::string& str
     else if (name == "mainmem") SetValue(g_config.mainmem, str);
     else if (name == "externalmem") SetValue(g_config.externalmem, str);
     else if (name == "cmosz80") SetValue(g_config.cmosz80, str);
+    else if (name == "im2random") SetValue(g_config.im2random, str);
     else if (name == "speed") SetValue(g_config.speed, str);
     else if (name == "drive1") SetValue(g_config.drive1, str);
     else if (name == "drive2") SetValue(g_config.drive2, str);
@@ -250,6 +251,7 @@ bool Save()
         ofs << "mainmem=" << to_string(g_config.mainmem) << std::endl;
         ofs << "externalmem=" << to_string(g_config.externalmem) << std::endl;
         ofs << "cmosz80=" << to_string(g_config.cmosz80) << std::endl;
+        ofs << "im2random=" << to_string(g_config.im2random) << std::endl;
         ofs << "speed=" << to_string(g_config.speed) << std::endl;
         ofs << "drive1=" << to_string(g_config.drive1) << std::endl;
         ofs << "drive2=" << to_string(g_config.drive2) << std::endl;
