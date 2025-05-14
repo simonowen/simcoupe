@@ -1,6 +1,6 @@
 # SimCoupe ChangeLog
 
-## Version 1.2.13 (2025-05-04)
+## Version 1.2.14 (2025-05-04)
 - fixed emulator startup with no Win32 audio device (#97)
 - fixed key modifier use with numeric keypad (#93)
 - fixed disassembly addr mismatch from previous view (#96)
