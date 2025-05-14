@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14..3.24)
+cmake_minimum_required(VERSION 3.18...3.31)
 
 project(simcoupe)
 set(PROJECT_TITLE SimCoupe)
@@ -197,8 +197,9 @@ message(STATUS "Fetching github.com/kosarev/z80")
 FetchContent_Declare(
   z80
   GIT_REPOSITORY https://github.com/kosarev/z80.git
-  GIT_TAG 1e25746267d18ddc4684a5359effd6bb4bccc042 )
-FetchContent_Populate(z80)
+  GIT_TAG 1e25746267d18ddc4684a5359effd6bb4bccc042
+  SOURCE_SUBDIR non-existent-directory )
+FetchContent_MakeAvailable(z80)
 target_include_directories(${PROJECT_NAME} PRIVATE ${z80_SOURCE_DIR})
 
 message(STATUS "Fetching github.com/fmtlib/fmt")
@@ -216,12 +217,10 @@ message(STATUS "Fetching github.com/simonowen/resid")
 FetchContent_Declare(
   resid
   GIT_REPOSITORY https://github.com/simonowen/resid.git
-  GIT_TAG 9ac2b4b5633a6c64fb02fd09a350ea857dd0c6d3 )
-FetchContent_GetProperties(resid)
-if(NOT resid_POPULATED)
-  FetchContent_Populate(resid)
-  add_subdirectory(${resid_SOURCE_DIR} ${resid_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
+  GIT_TAG 9ac2b4b5633a6c64fb02fd09a350ea857dd0c6d3
+  SOURCE_SUBDIR non-existent-directory )
+FetchContent_MakeAvailable(resid)
+add_subdirectory(${resid_SOURCE_DIR} ${resid_BINARY_DIR} EXCLUDE_FROM_ALL)
 target_link_libraries(${PROJECT_NAME} PRIVATE resid)
 target_include_directories(${PROJECT_NAME} PRIVATE ${resid_SOURCE_DIR})
 
@@ -230,12 +229,9 @@ FetchContent_Declare(
   spectrum
   GIT_REPOSITORY https://github.com/simonowen/libspectrum.git
   GIT_TAG eb93bd36f6253471bf709bb9745176d1f9c994f0
-  )
-FetchContent_GetProperties(spectrum)
-if(NOT spectrum_POPULATED)
-  FetchContent_Populate(spectrum)
-  add_subdirectory(${spectrum_SOURCE_DIR} ${spectrum_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
+  SOURCE_SUBDIR non-existent-directory )
+FetchContent_MakeAvailable(spectrum)
+add_subdirectory(${spectrum_SOURCE_DIR} ${spectrum_BINARY_DIR} EXCLUDE_FROM_ALL)
 target_link_libraries(${PROJECT_NAME} PRIVATE spectrum)
 target_include_directories(${PROJECT_NAME} PRIVATE ${spectrum_SOURCE_DIR})
 
@@ -281,15 +277,13 @@ message(STATUS "Fetching SAASound from GitHub")
 FetchContent_Declare(
   saasound
   GIT_REPOSITORY https://github.com/simonowen/SAASound.git
-  GIT_TAG 8a143060f0acbd28022bd959a5235b2ab2b64c01 )
-FetchContent_GetProperties(saasound)
-if(NOT saasound_POPULATED)
-  FetchContent_Populate(saasound)
-  if(SIMCOUPE_PORTABLE)
-    set(SAASOUND_EXCLUDE_FLAG EXCLUDE_FROM_ALL)
-  endif()
-  add_subdirectory(${saasound_SOURCE_DIR} ${saasound_BINARY_DIR} ${SAASOUND_EXCLUDE_FLAG})
+  GIT_TAG 8a143060f0acbd28022bd959a5235b2ab2b64c01
+  SOURCE_SUBDIR non-existent-directory )
+if(SIMCOUPE_PORTABLE)
+  set(SAASOUND_EXCLUDE_FLAG EXCLUDE_FROM_ALL)
 endif()
+FetchContent_MakeAvailable(saasound)
+add_subdirectory(${saasound_SOURCE_DIR} ${saasound_BINARY_DIR} ${SAASOUND_EXCLUDE_FLAG})
 target_link_libraries(${PROJECT_NAME} PRIVATE SAASound)
 # TODO: remove once upstream is compatible
 target_include_directories(${PROJECT_NAME} PRIVATE ${saasound_SOURCE_DIR}/include)
@@ -327,13 +321,11 @@ elseif (BUILD_SDL)
       sdl2
       GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
       GIT_TAG        15ead9a40d09a1eb9972215cceac2bf29c9b77f6  # 2.28.5
-      GIT_PROGRESS   TRUE)
+      GIT_PROGRESS   TRUE
+      SOURCE_SUBDIR  non-existent-directory )
     set(SDL_SHARED OFF)
-    FetchContent_GetProperties(sdl2)
-    if(NOT sdl2_POPULATED)
-      FetchContent_Populate(sdl2)
-      add_subdirectory(${sdl2_SOURCE_DIR} ${sdl2_BINARY_DIR} EXCLUDE_FROM_ALL)
-    endif()
+    FetchContent_MakeAvailable(sdl2)
+    add_subdirectory(${sdl2_SOURCE_DIR} ${sdl2_BINARY_DIR} EXCLUDE_FROM_ALL)
     target_link_libraries(${PROJECT_NAME} PRIVATE SDL2main SDL2-static)
   else()
     find_package(SDL2 REQUIRED)
@@ -369,15 +361,6 @@ if ((CMAKE_CXX_COMPILER_ID MATCHES "GNU") AND (CMAKE_CXX_COMPILER_VERSION VERSIO
 endif()
 
 if (WIN32)
-  if (MSVC)
-    set_property(TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-      VS_GLOBAL_EnableCppCoreCheck true
-      VS_GLOBAL_CodeAnalysisRuleSet CppCoreCheckRules.ruleset
-      VS_GLOBAL_RunCodeAnalysis true)
-  endif()
-
   set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_TITLE})
   configure_file(Win32/version.rc.in ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
 elseif (APPLE)
