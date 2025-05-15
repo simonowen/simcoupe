@@ -78,6 +78,11 @@ void ResizeWindow(int height)
     s_pVideo->ResizeWindow(height);
 }
 
+Rect DisplayRect()
+{
+    return s_pVideo->DisplayRect();
+}
+
 std::pair<int, int> MouseRelative()
 {
     return s_pVideo->MouseRelative();

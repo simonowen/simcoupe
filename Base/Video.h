@@ -31,6 +31,7 @@ void Exit();
 
 void NativeToSam(int& x, int& y);
 void ResizeWindow(int height);
+Rect DisplayRect();
 std::pair<int, int> MouseRelative();
 
 void OptionsChanged();

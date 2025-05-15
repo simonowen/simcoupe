@@ -789,6 +789,16 @@ void UpdateMenuFromOptions()
     else
         RemoveItem(IDM_VIEW_MOTIONBLUR);
 
+    auto zoom_id{ 0 };
+    auto rect{ Video::DisplayRect() };
+    auto scale_units{ Frame::Height() / 2 };
+    if ((rect.h % scale_units) == 0)
+    {
+        auto zoom_index = (rect.h / scale_units);
+        zoom_id = IDM_VIEW_ZOOM_50 + zoom_index - 1;
+    }
+    CheckMenuRadioItem(hmenu, IDM_VIEW_ZOOM_50, IDM_VIEW_ZOOM_500, zoom_id, MF_BYCOMMAND);
+
     CheckMenuRadioItem(hmenu, IDM_VIEW_BORDERS0, IDM_VIEW_BORDERS3, IDM_VIEW_BORDERS0 + GetOption(visiblearea), MF_BYCOMMAND);
 
 #ifndef HAVE_LIBZ
