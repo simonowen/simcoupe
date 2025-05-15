@@ -1249,10 +1249,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         Input::Purge();
         break;
 
-
-    case WM_ERASEBKGND:
-        return 1;
-
     case WM_SYSCOMMAND:
         // Is this an Alt-key combination?
         if ((wParam_ & 0xfff0) == SC_KEYMENU)
@@ -1587,6 +1583,7 @@ bool InitWindow()
     wc.hInstance = __hinstance;
     wc.hIcon = LoadIcon(__hinstance, MAKEINTRESOURCE(IDI_MAIN));
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wc.hbrBackground = GetStockBrush(BLACK_BRUSH);
     wc.lpszClassName = "SimCoupeClass";
     RegisterClass(&wc);
 
