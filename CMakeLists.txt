@@ -276,8 +276,8 @@ endif()
 message(STATUS "Fetching SAASound from GitHub")
 FetchContent_Declare(
   saasound
-  GIT_REPOSITORY https://github.com/simonowen/SAASound.git
-  GIT_TAG 8a143060f0acbd28022bd959a5235b2ab2b64c01
+  GIT_REPOSITORY https://github.com/stripwax/SAASound.git
+  GIT_TAG 7ceef2af64e7411cc723cb465f060bb856459eea
   SOURCE_SUBDIR non-existent-directory )
 if(SIMCOUPE_PORTABLE)
   set(SAASOUND_EXCLUDE_FLAG EXCLUDE_FROM_ALL)
