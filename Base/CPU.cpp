@@ -56,6 +56,9 @@ sam_cpu cpu;
 bool g_fBreak, g_fPaused;
 int g_nTurbo;
 
+constexpr auto max_boot_frames{ 200 };
+int boot_frames;
+
 #ifdef _DEBUG
 bool debug_break;
 #endif
@@ -140,6 +143,9 @@ void ExecuteChunk()
             Debug::Start(bp_index);
         }
     }
+
+    if (boot_frames > 0 && !--boot_frames)
+        g_nTurbo &= ~TURBO_BOOT;
 }
 
 void Run()
@@ -172,7 +178,10 @@ void Run()
 void Reset(bool active)
 {
     if (GetOption(fastreset) && reset_asserted && !active)
+    {
         g_nTurbo |= TURBO_BOOT;
+        boot_frames = max_boot_frames;
+    }
 
     reset_asserted = active;
     if (reset_asserted)

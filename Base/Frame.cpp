@@ -76,9 +76,6 @@ std::chrono::steady_clock::time_point status_time;
 std::string status_text;
 std::string profile_text;
 
-constexpr auto max_boot_frames = 200;
-int boot_frames{};
-
 bool Init()
 {
     Exit();
@@ -99,8 +96,6 @@ bool Init()
     pGuiScreen = std::make_unique<FrameBuffer>(width, height * 2);
 
     Flyback();
-    boot_frames = max_boot_frames;
-
     return true;
 }
 
@@ -334,11 +329,6 @@ void Sync()
     else
     {
         draw_frame = true;
-    }
-
-    if (!GUI::IsActive() && boot_frames && !--boot_frames)
-    {
-        g_nTurbo &= ~TURBO_BOOT;
     }
 
     static int num_frames;
