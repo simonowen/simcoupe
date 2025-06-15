@@ -444,7 +444,7 @@ Debugger Command Mode:
  flag +|- sz5h3vnc = set and/or reset flag bits
               bc N = clear breakpoint N (* for all)
               bd N = disable breakpoint N
-              bd N = enable breakpoint N
+              be N = enable breakpoint N
                exx = exchange BC/DE/HL with BC'/DE'/HL'
           ex de,hl = exchange DE with HL
             ld R,N = load register R with value N
