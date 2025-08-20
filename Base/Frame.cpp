@@ -375,7 +375,8 @@ void DrawOSD(FrameBuffer& fb)
 
         if (GetOption(drive1))
         {
-            uint8_t bColour = pFloppy1->IsLightOn() ? FLOPPY_LED_COLOUR : LED_OFF_COLOUR;
+            bool atom_active = pAtomLiteLeft->IsActive();
+            uint8_t bColour = pFloppy1->IsLightOn() ? FLOPPY_LED_COLOUR : (atom_active ? ATOMLITE_LED_COLOUR : LED_OFF_COLOUR);
             fb.FillRect(x, y, 14, 2, bColour);
         }
 

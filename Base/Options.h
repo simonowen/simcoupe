@@ -66,6 +66,8 @@ struct Config
 
     std::string disk1;                  // Floppy disk image in drive 1
     std::string disk2;                  // Floppy disk image in drive 2
+    std::string atomdiskleft0;          // Atom Lite primary disk (left bay)
+    std::string atomdiskleft1;          // Atom Lite secondary disk (left bay)
     std::string atomdisk0;              // Atom disk 0
     std::string atomdisk1;              // Atom disk 1
     std::string sdidedisk;              // Hard disk image for SD IDE interface

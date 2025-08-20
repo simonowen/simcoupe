@@ -90,6 +90,8 @@ static bool SetNamedValue(const std::string& option_name, const std::string& str
     else if (name == "tapetraps") SetValue(g_config.tapetraps, str);
     else if (name == "disk1") SetValue(g_config.disk1, str);
     else if (name == "disk2") SetValue(g_config.disk2, str);
+    else if (name == "atomdiskleft0") SetValue(g_config.atomdiskleft0, str);
+    else if (name == "atomdiskleft1") SetValue(g_config.atomdiskleft1, str);
     else if (name == "atomdisk0") SetValue(g_config.atomdisk0, str);
     else if (name == "atomdisk1") SetValue(g_config.atomdisk1, str);
     else if (name == "sdidedisk") SetValue(g_config.sdidedisk, str);
@@ -267,6 +269,8 @@ bool Save()
         ofs << "tapetraps=" << to_string(g_config.tapetraps) << std::endl;
         ofs << "disk1=" << to_string(g_config.disk1) << std::endl;
         ofs << "disk2=" << to_string(g_config.disk2) << std::endl;
+        ofs << "atomdiskleft0=" << to_string(g_config.atomdiskleft0) << std::endl;
+        ofs << "atomdiskleft1=" << to_string(g_config.atomdiskleft1) << std::endl;
         ofs << "atomdisk0=" << to_string(g_config.atomdisk0) << std::endl;
         ofs << "atomdisk1=" << to_string(g_config.atomdisk1) << std::endl;
         ofs << "sdidedisk=" << to_string(g_config.sdidedisk) << std::endl;

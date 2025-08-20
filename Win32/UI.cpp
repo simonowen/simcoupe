@@ -2513,7 +2513,10 @@ INT_PTR CALLBACK Drive1PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
         if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
         {
-            SetOption(drive1, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE)));
+            if (auto type{ ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE)) }; type != -1)
+            {
+                SetOption(drive1, type);
+            }
 
             if (GetOption(drive1) == drvFloppy)
             {
@@ -2684,7 +2687,10 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
         if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
         {
-            SetOption(drive2, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE)));
+            if (auto type{ ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE)) }; type != -1)
+            {
+                SetOption(drive2, type);
+            }
 
             bool fImage = Button_GetCheck(GetDlgItem(hdlg_, IDR_DEVICE)) != BST_CHECKED;
             bool fImage2 = Button_GetCheck(GetDlgItem(hdlg_, IDR_DEVICE2)) != BST_CHECKED;

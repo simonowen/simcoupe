@@ -55,6 +55,7 @@ std::unique_ptr<DiskDevice> pFloppy1;
 std::unique_ptr<DiskDevice> pFloppy2;
 std::unique_ptr<DiskDevice> pBootDrive;
 std::unique_ptr<AtaAdapter> pAtom;
+std::unique_ptr<AtaAdapter> pAtomLiteLeft;  // left bay
 std::unique_ptr<AtaAdapter> pAtomLite;
 std::unique_ptr<AtaAdapter> pSDIDE;
 
@@ -121,6 +122,7 @@ bool Init()
         pFloppy1 = std::make_unique<Drive>();
         pFloppy2 = std::make_unique<Drive>();
         pAtom = std::make_unique<AtomDevice>();
+        pAtomLiteLeft = std::make_unique<AtomLiteDevice>();
         pAtomLite = std::make_unique<AtomLiteDevice>();
         pSDIDE = std::make_unique<SDIDEDevice>();
 
@@ -162,6 +164,7 @@ bool Init()
     pFloppy1->Reset();
     pFloppy2->Reset();
     pAtom->Reset();
+    pAtomLiteLeft->Reset();
     pAtomLite->Reset();
     pSDIDE->Reset();
 
@@ -212,6 +215,7 @@ void Exit(bool reinit)
         pBootDrive.reset();
 
         pAtom.reset();
+        pAtomLiteLeft.reset();
         pAtomLite.reset();
         pSDIDE.reset();
     }
@@ -543,7 +547,8 @@ uint8_t In(uint16_t port)
         {
             switch (GetOption(drive1))
             {
-            case drvFloppy: return (pBootDrive ? pBootDrive : pFloppy1)->In(port); break;
+            case drvFloppy:     return (pBootDrive ? pBootDrive : pFloppy1)->In(port); break;
+            case drvAtomLite:   return pAtomLiteLeft->In(port); break;
             default: break;
             }
         }
@@ -735,7 +740,8 @@ void Out(uint16_t port, uint8_t val)
         {
             switch (GetOption(drive1))
             {
-            case drvFloppy: (pBootDrive ? pBootDrive : pFloppy1)->Out(port, val); break;
+            case drvFloppy:     (pBootDrive ? pBootDrive : pFloppy1)->Out(port, val); break;
+            case drvAtomLite:   pAtomLiteLeft->Out(port, val); break;
             default: break;
             }
         }
@@ -828,6 +834,7 @@ void FrameUpdate()
     pFloppy1->FrameEnd();
     pFloppy2->FrameEnd();
     pAtom->FrameEnd();
+    pAtomLiteLeft->FrameEnd();
     pAtomLite->FrameEnd();
     pPrinterFile->FrameEnd();
 
@@ -851,6 +858,7 @@ void UpdateDrives()
     pFloppy1->Eject();
     pFloppy2->Eject();
     pAtom->Detach();
+    pAtomLiteLeft->Detach();
     pAtomLite->Detach();
     pSDIDE->Detach();
 
@@ -859,6 +867,12 @@ void UpdateDrives()
     case drvFloppy:
         if (!pFloppy1->Insert(GetOption(disk1)))
             Message(MsgType::Warning, "Failed to insert disk 1:\n\n{}", GetOption(disk1));
+        break;
+    case drvAtomLite:
+        if (!pAtomLiteLeft->Attach(GetOption(atomdiskleft0), 0))
+            Message(MsgType::Warning, "Failed to attach AtomLite0 disk:\n\n{}", GetOption(atomdiskleft0));
+        if (!pAtomLiteLeft->Attach(GetOption(atomdiskleft1), 1))
+            Message(MsgType::Warning, "Failed to attach AtomLite0 disk:\n\n{}", GetOption(atomdiskleft1));
         break;
     default:
         break;

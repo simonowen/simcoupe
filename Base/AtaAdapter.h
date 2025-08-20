@@ -51,4 +51,4 @@ private:
     std::unique_ptr<HardDisk> m_pDisk1;
 };
 
-extern std::unique_ptr<AtaAdapter> pAtom, pAtomLite, pSDIDE;
+extern std::unique_ptr<AtaAdapter> pAtom, pAtomLiteLeft, pAtomLite, pSDIDE;
