@@ -68,18 +68,22 @@ uint8_t MouseDevice::In(uint16_t /*wPort_*/)
     }
 
     // Read the next byte
-    uint8_t bRet = reinterpret_cast<uint8_t*>(&m_sMouse)[m_uBuffer++];
+    size_t offset = m_uBuffer++ % sizeof(m_sMouse);
+    uint8_t bRet = reinterpret_cast<uint8_t*>(&m_sMouse)[offset];
 
     // Has the full buffer been read?
-    if (m_uBuffer == sizeof(m_sMouse))
+    if (offset == sizeof(m_sMouse) - 1)
     {
+        m_sMouse.bX256 = m_sMouse.bX16 = m_sMouse.bX1 = 0;
+        m_sMouse.bY256 = m_sMouse.bY16 = m_sMouse.bY1 = 0;
+
         // Subtract the read values from the overall tracked changes
         m_nDeltaX -= m_nReadX;
         m_nDeltaY -= m_nReadY;
         m_nReadX = m_nReadY = 0;
 
         // Move back to the start of the data, but stay strobed
-        m_uBuffer = 1;
+        m_uBuffer++;
 
         // If it's not the ROM reading the mouse, remember the last read time
         if (cpu.get_pc() != rom_hook_addr(RomHook::MSDML))
@@ -87,10 +91,10 @@ uint8_t MouseDevice::In(uint16_t /*wPort_*/)
     }
 
     // Cancel any pending reset event, and schedule a fresh one
-    if (m_uBuffer) CancelEvent(EventType::MouseReset);
+    CancelEvent(EventType::MouseReset);
     AddEvent(EventType::MouseReset, CPU::frame_cycles + MOUSE_RESET_TIME);
 
-    return bRet;
+    return 0xf0 | bRet;
 }
 
 
