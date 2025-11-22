@@ -110,6 +110,12 @@ std::string OSD::MakeFilePath(PathType type, const std::string& filename)
         break;
 
     case PathType::Resource:
+        if (!GetOption(respath).empty())
+        {
+            path = GetOption(respath);
+            break;
+        }
+
 #if defined(__APPLE__) && defined(HAVE_LIBSDL2)
         // Resources path in the app bundle
         if (auto pBasePath = SDL_GetBasePath())

@@ -733,6 +733,7 @@ the configuration file:
 
     -inpath <path>          Default path for input files
     -outpath <path>         Default path for output files
+    -respath <path>         Default path for resource files
 
     -keymapping <int>       Keyboard mapping: 0=none, 1=auto, 2=SAM, 3=ZX
     -altforcntrl <bool>     Use Left-Alt for SAM Cntrl key (default=no)

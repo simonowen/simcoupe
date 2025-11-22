@@ -79,6 +79,7 @@ struct Config
 
     std::string inpath;                 // Default path for input files
     std::string outpath;                // Default path for output files
+    std::string respath;                // Default path for resource files
     std::string mru0;                   // Most recently used files
     std::string mru1;
     std::string mru2;

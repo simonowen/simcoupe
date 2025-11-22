@@ -125,6 +125,7 @@ auto set_named_value(const std::string& option_name, const std::string& str) -> 
     else if (name == "samdiskhelper") { set_value(g_config.samdiskhelper, str); }
     else if (name == "inpath") { set_value(g_config.inpath, str); }
     else if (name == "outpath") { set_value(g_config.outpath, str); }
+    else if (name == "respath") { set_value(g_config.respath, str); }
     else if (name == "mru0") { set_value(g_config.mru0, str); }
     else if (name == "mru1") { set_value(g_config.mru1, str); }
     else if (name == "mru2") { set_value(g_config.mru2, str); }
@@ -312,6 +313,7 @@ auto Save() -> bool
         write_option(ofs, "samdiskhelper", g_config.samdiskhelper, defaults.samdiskhelper);
         write_option(ofs, "inpath", g_config.inpath, defaults.inpath);
         write_option(ofs, "outpath", g_config.outpath, defaults.outpath);
+        write_option(ofs, "respath", g_config.respath, defaults.respath);
         write_option(ofs, "mru0", g_config.mru0, defaults.mru0);
         write_option(ofs, "mru1", g_config.mru1, defaults.mru1);
         write_option(ofs, "mru2", g_config.mru2, defaults.mru2);
