@@ -739,6 +739,7 @@ the configuration file:
     -altgrforedit <bool>    Use Alt-Gr for SAM Edit key (default=yes)
     -mouse <bool>           Mouse interface enabled (default=no)
     -mouseesc <bool>        Esc to release mouse capture (default=yes)
+    -keyin <string>         Type text at startup (default=none)
 
     -joytype1 <int>         Joystick 1: 0=none, 1=Joy1, 2=Joy2, 3=Kempston
     -joytype2 <int>         Joystick 2: 0=none, 1=Joy1, 2=Joy2, 3=Kempston

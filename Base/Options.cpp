@@ -139,6 +139,7 @@ auto set_named_value(const std::string& option_name, const std::string& str) -> 
     else if (name == "altgrforedit") { set_value(g_config.altgrforedit, str); }
     else if (name == "mouse") { set_value(g_config.mouse, str); }
     else if (name == "mouseesc") { set_value(g_config.mouseesc, str); }
+    else if (name == "keyin") { set_value(g_config.keyin, str); }
     else if (name == "joydev1") { set_value(g_config.joydev1, str); }
     else if (name == "joydev2") { set_value(g_config.joydev2, str); }
     else if (name == "joytype1") { set_value(g_config.joytype1, str); }
@@ -249,7 +250,9 @@ bool Load(int argc_, char* argv_[])
         }
     }
 
-    if (drive_arg > 1)
+    if (!g_config.keyin.empty())
+        IO::QueueAutoBoot(AutoLoadType::Keyin);
+    else if (drive_arg > 1)
         IO::QueueAutoBoot(AutoLoadType::Disk);
 
     return true;

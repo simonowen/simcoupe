@@ -22,7 +22,8 @@
 
 namespace Keyin
 {
-void String(const std::string& text, bool map_chars = true);
+void String(std::string_view text);
+void EscapedString(std::string_view text);
 void Next();
 void Stop();
 

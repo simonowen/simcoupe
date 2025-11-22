@@ -26,16 +26,65 @@ namespace Keyin
 {
 constexpr uint8_t FLAGS_NEW_KEY = 0x20;
 constexpr auto MAX_STUCK_FRAMES = 500;
+constexpr auto copyright_sym = 0x7f;
 
 static std::string s_input_text;
-static bool s_map_chars = true;
 static int s_skipped_frames;
 
 
-void String(const std::string& text, bool map_chars)
+void String(std::string_view text)
 {
-    s_input_text = text;
-    s_map_chars = map_chars;
+    std::string str;
+    str.reserve(text.size());
+
+    for (auto ch : text)
+    {
+        if (ch == '\n')
+        {
+            str += '\r';
+        }
+        else if (ch == '\t' || ch == copyright_sym)
+        {
+            str += ch;
+        }
+        else if (std::isprint(static_cast<uint8_t>(ch)))
+        {
+            str += ch;
+        }
+    }
+
+    s_input_text = std::move(str);
+    s_skipped_frames = 0;
+}
+
+void EscapedString(std::string_view text)
+{
+    std::string str;
+    str.reserve(text.size());
+
+    for (size_t i = 0; i < text.size(); ++i)
+    {
+        if (text[i] == '\\' && i + 1 < text.size())
+        {
+            switch (text[++i])
+            {
+            case 'r':
+            case 'n':
+                str += '\r';
+                continue;
+            case 't':
+                str += '\t';
+                continue;
+            case '\\':
+                str += '\\';
+                continue;
+            }
+        }
+
+        str += text[i];
+    }
+
+    s_input_text = std::move(str);
     s_skipped_frames = 0;
 }
 
@@ -80,16 +129,8 @@ void Next()
     auto b = static_cast<uint8_t>(s_input_text.front());
     s_input_text.erase(s_input_text.begin());
 
-    if (s_map_chars)
-    {
-        b = (b == '\n') ? '\r' : (b < ' ' && b >= 0x80 && b != '\t') ? 0 : b;
-    }
-
-    if (b)
-    {
-        pPage0[SYSVAR_LAST_K & MEM_PAGE_MASK] = b;
-        pPage0[SYSVAR_FLAGS & MEM_PAGE_MASK] |= FLAGS_NEW_KEY;
-    }
+    pPage0[SYSVAR_LAST_K & MEM_PAGE_MASK] = b;
+    pPage0[SYSVAR_FLAGS & MEM_PAGE_MASK] |= FLAGS_NEW_KEY;
 }
 
 } // namespace Keyin

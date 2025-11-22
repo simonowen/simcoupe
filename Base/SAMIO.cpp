@@ -962,18 +962,23 @@ void QueueAutoBoot(AutoLoadType type)
 
 void AutoLoad(AutoLoadType type)
 {
-    auto_load = AutoLoadType::None;
+    auto keyin_str = GetOption(keyin);
+    SetOption(keyin, "");
 
-    if (!GetOption(autoload) || type == AutoLoadType::None || !TestStartupScreen())
+    if (GetOption(autoload) && keyin_str.empty())
     {
-        Keyin::Stop();
-        return;
+        if (type == AutoLoadType::Disk)
+            keyin_str = "BOOT\\n";
+        else if (type == AutoLoadType::Tape)
+            keyin_str = "LOAD\"\"\\n";
     }
 
-    if (type == AutoLoadType::Disk)
-        Keyin::String("\xc9", false);
-    else if (type == AutoLoadType::Tape)
-        Keyin::String("\xc7", false);
+    if (!keyin_str.empty() && TestStartupScreen())
+    {
+        Keyin::EscapedString(keyin_str);
+    }
+
+    auto_load = AutoLoadType::None;
 }
 
 void EiHook()
@@ -1058,7 +1063,6 @@ bool Rst8Hook()
 
 void Rst48Hook()
 {
-
     // Are we at READKEY in ROM0?
     if (cpu.get_pc() == rom_hook_addr(RomHook::READKEY))
     {
