@@ -372,7 +372,7 @@ static bool OnAddressNotify(const Expr& expr)
 // Notify handler for Execute Until expression
 static bool OnUntilNotify(const Expr& expr)
 {
-    Breakpoint::AddUntil(expr);
+    Breakpoint::AddTemp(nullptr, expr);
     Debug::Stop();
     return false;
 }
@@ -552,7 +552,8 @@ Debugger::Debugger(std::optional<int> bp_index)
         auto& bp = Breakpoint::breakpoints[*bp_index];
         std::stringstream ss;
 
-        if (bp.type == BreakType::Until)
+        if (bp.type == BreakType::Until ||
+            (bp.type == BreakType::Temp && bp.expr && bp.expr.str != "(counter)"))
         {
             ss << fmt::format("\aYUNTIL condition met:  {}", bp.expr.str);
         }
@@ -566,7 +567,6 @@ Debugger::Debugger(std::optional<int> bp_index)
     }
 
     Breakpoint::RemoveType(BreakType::Temp);
-    Breakpoint::RemoveType(BreakType::Until);
 
     // Clear step-out stack watch
     nStepOutSP = -1;
@@ -1196,7 +1196,7 @@ bool Debugger::Execute(const std::string& cmdline)
     {
         if (auto expr = Expr::Compile(remain))
         {
-            Breakpoint::AddUntil(expr);
+            Breakpoint::AddTemp(nullptr, expr);
             Debug::Stop();
             return false;
         }
