@@ -38,7 +38,8 @@ bool OSD::Init()
     SetErrorMode(SEM_FAILCRITICALERRORS);
 #endif
 
-    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
+    auto subsystems = SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER | SDL_INIT_JOYSTICK;
+    if (SDL_Init(subsystems) < 0)
     {
         Message(MsgType::Error, "SDL init failed: {}", SDL_GetError());
         return false;
