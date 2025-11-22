@@ -230,7 +230,57 @@
 - moved ROM images to external files.
 
 ## Version 1.1 alpha 1 (2015-04-09)
-- ?
+- added tape loading from TAP/TZX/CSW files, with flash and trap features
+- added SID interface emulation with traditional 6581 or newer 8580 chip
+- added video recording to AVI (MS-RLE) or GIF, and audio recording to WAV
+- added support for Atom Lite+ interface with installed DALLAS chip
+- added persistent DALLAS NVRAM (8K) support
+- added support for Blue Alpha Sampler, SAMVoc and Paula DACs
+- added support for Velesoft Kempston joystick interface
+- added manual speed control between 50% and 1000%
+- added ROM-based auto-typing of clipboard text [Win32]
+- added D3D9 [Win32] and SDL2 [Mac and Linux] accelerated video support
+- added ROM symbol support to debugger, with user symbols from [disk1].map
+- added command-line input mode mode to debugger for more complex commands
+- added execution, memory access, I/O, and interrupt breakpoints
+- added pulsing dot at current raster position when debugger is active
+- added code tracing feature, showing path leading to current instruction
+- added timing measurement to aid consistent comparison of code alternatives
+- added support for runtime RAM and ROM configuration changes without reset
+- added complete ATTR port (FF) emulation, used by some Spectrum software
+- added undocumented bit 3+5 flag behaviour to SCF/CCF
+- added optional NMOS/CMOS Z80 support, for OUT (C),0/255 difference
+- added automatic keyboard layout switching when Spectrum ROM is present
+- added LBA28, 8-bit mode, and slave support to ATA device emulation
+- added HDF v1.1 support, with extended IDENTIFY fields
+- added SAMDiskHelper support for non-admin access to HDD/CF devices [Win32]
+- added per-user settings with portable mode for legacy behaviour [Win32]
+- fixed NMI erroneously clearing IFF2
+- fixed missing R increment on interrupt acknowledgement
+- fixed HEPR bug which could lead to an invalid paging configuration
+- fixed video re-sync audio glitches by syncing to audio clock instead
+- fixed intensity of border artefacts, which were previously too bright
+- fixed DAC sample origin not being zero, which reduced playback quality
+- fixed SAMDAC/EDDAC to only output new samples when strobed
+- fixed output from simultaneous use of DACs on both parallel ports
+- fixed FDC registers not being writable without a disk in the drive
+- fixed FDC multi-sector reading, which caused SAM Mines disk error
+- fixed FDC to use 2 bit size codes, matching WD17xx behaviour
+- fixed corruption in SBT images over 400K due to repeated directory sector
+- fixed invalid CHS geometry on disks over 8GB
+- fixed data import/export sometimes clipping to 16K
+- fixed failed writes to HDD/CF volumes under Vista or later [Win32]
+- changed full-screen option to use the current/native display mode
+- changed window click to capture mouse only if SAM software is using it
+- changed options to use larger and simplified property pages [Win32]
+- changed SBT virtual images to contain auto-executing code files
+- changed built-in SAMDOS2 image to enable drive 2 and disable border flash
+- changed debugger to use hex input by default, matching displayed values
+- removed support for Win9x and W2K due to limited API and tool support
+- removed support for SDF and TD0 disk images, and SAD image creation
+- removed SD-IDE and YAMOD.ATBUS interfaces, and Atom boot ROM patching
+- removed support for user-defined function key mappings [Win32]
+- removed support for real printer devices [Win32]
 
 ## Version 1.0 (2006-07-21)
 - added SDL port (OpenGL and regular) for Linux, BeOS, QNX, etc.
@@ -285,7 +335,7 @@
 - fixed key-bounce issues by deferring input until mid-frame
 - fixed digit input on Czech keyboards, which require a shift modifier
 - fixed AltGr being seen as Ctrl-Alt on some Win9x setups
-- fixed Ctrl-<digit> access to symbols [thanks Edwin Blink]
+- fixed Ctrl-digit access to symbols [thanks Edwin Blink]
 - fixed incorrect SAM palette spread, which made dark colours too bright
 - fixed the PNG screenshot palette being too dark
 - fixed pixel format colour issues by calculating them from bit masks
