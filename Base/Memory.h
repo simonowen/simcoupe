@@ -154,5 +154,5 @@ namespace Memory
     std::string PageDesc(int nPage_, bool fCompact_ = false);
 }
 
-enum class RomHook { IMEXIT, WTFK, READKEY, BOOTNR, MSDML, LOADEXIT, LOADFAIL, SVLDCOM, LDSTRT, EDGLP };
+enum class RomHook { IMEXIT, WTFK, READKEY, BOOTNR, MSDML, LOADEXIT, LOADFAIL, SVLDCOM, LDSTRT, EDGLP, DOSERR };
 std::optional<uint16_t> rom_hook_addr(RomHook hook);

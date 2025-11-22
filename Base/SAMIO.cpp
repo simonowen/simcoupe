@@ -987,6 +987,12 @@ void EiHook()
             Keyin::Next();
         }
     }
+    // If this is an unprocessed error, stop any auto-typing
+    else if (cpu.get_pc() == rom_hook_addr(RomHook::DOSERR) &&
+             cpu.get_a() != 0 && (cpu.get_f() & cpu.cf_mask) != 0)
+    {
+        Keyin::Stop();
+    }
 
     Tape::EiHook();
 }
@@ -1003,6 +1009,11 @@ bool Rst8Hook()
     {
     // No error
     case 0x00:
+        break;
+
+    // Ignore Nonsense in BASIC errors, also shared with chained command handlers.
+    // Any real errors are handled in the EI hook above.
+    case 0x1d:
         break;
 
     // "NO DOS" or "Loading error"

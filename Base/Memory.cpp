@@ -331,6 +331,9 @@ std::vector<hook_entry> rom_hooks =
 
     // EDGLP: inc c; ret z; xor b [@2053 in ROM 3.0]
     hook_entry { ROM0, byte_pattern{ 0x0c, 0xc8, 0xa8 } },
+
+    // DOSERR: ld sp,hl; ei; ld hl,(doser) [@3835 in ROM 3.0]
+    hook_entry { ROM0, byte_pattern{ 0xf9, 0xfb, 0x2a, 0xc0, 0x5b }, +2 },
 };
 
 std::optional<uint16_t> rom_hook_addr(RomHook h)
