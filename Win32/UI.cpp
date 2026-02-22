@@ -766,8 +766,8 @@ void UpdateMenuFromOptions()
         fmt::format("&Close {}", fInserted2 ? pFloppy2->DiskFile() : "").c_str());
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 1 options
-    EnableItem(IDM_FILE_NEW_DISK1, fFloppy1 && !GUI::IsActive());
-    EnableItem(IDM_FILE_FLOPPY1_INSERT, fFloppy1 && !GUI::IsActive());
+    EnableItem(IDM_FILE_NEW_DISK1, fFloppy1);
+    EnableItem(IDM_FILE_FLOPPY1_INSERT, fFloppy1);
     EnableItem(IDM_FILE_FLOPPY1_EJECT, fInserted1);
 
     // Only enable the floppy device menu item if it's supported
