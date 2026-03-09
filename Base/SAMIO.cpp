@@ -839,9 +839,7 @@ void FrameUpdate()
     pPrinterFile->FrameEnd();
 
     Input::Update();
-
-    if (!Frame::TurboMode())
-        Sound::FrameUpdate();
+    Sound::FrameUpdate(Frame::TurboMode());
 }
 
 void UpdateInput()
