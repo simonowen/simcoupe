@@ -169,6 +169,7 @@ auto set_named_value(const std::string& option_name, const std::string& str) -> 
     else if (name == "breakonexec") { set_value(g_config.breakonexec, str); }
     else if (name == "fkeys") { set_value(g_config.fkeys, str); }
     else if (name == "rasterdebug") { set_value(g_config.rasterdebug, str); }
+    else if (name == "exitonhalt") { set_value(g_config.exitonhalt, str); }
     else
     {
         return false;
