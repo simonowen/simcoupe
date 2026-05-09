@@ -65,6 +65,7 @@ extern uint8_t last_in_val, last_out_val;
 }
 
 extern bool g_fBreak, g_fPaused;
+extern bool g_fQuit;
 extern int g_nTurbo;
 
 #ifdef _DEBUG
@@ -156,6 +157,22 @@ struct sam_cpu : public z80::z80_cpu<sam_cpu>
             return;
 
         base::on_rst(nn);
+    }
+
+    void on_halt()
+    {
+        // Batch-mode: quit cleanly when the Z80 executes HALT with
+        // interrupts disabled. A HALT with IFF1=0 can never be woken
+        // by a maskable interrupt, so it is an unambiguous "we are done"
+        // signal from the Z80 program. Without -exitonhalt, behaviour is
+        // unchanged: the Z80 enters its normal HALT state and waits for
+        // the next interrupt.
+        if (GetOption(exitonhalt) && !base::on_get_iff1())
+        {
+            g_fQuit = true;
+            g_fBreak = true;
+        }
+        base::on_halt();
     }
 
     z80::fast_u8 on_get_int_vector()

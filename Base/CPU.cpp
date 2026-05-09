@@ -54,6 +54,7 @@ sam_cpu cpu;
 
 
 bool g_fBreak, g_fPaused;
+bool g_fQuit;
 int g_nTurbo;
 
 constexpr auto max_boot_frames{ 200 };
@@ -150,7 +151,7 @@ void ExecuteChunk()
 
 void Run()
 {
-    while (UI::CheckEvents())
+    while (!g_fQuit && UI::CheckEvents())
     {
         if (g_fPaused)
             continue;

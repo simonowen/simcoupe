@@ -142,6 +142,7 @@ static bool SetNamedValue(const std::string& option_name, const std::string& str
     else if (name == "breakonexec") SetValue(g_config.breakonexec, str);
     else if (name == "fkeys") SetValue(g_config.fkeys, str);
     else if (name == "rasterdebug") SetValue(g_config.rasterdebug, str);
+    else if (name == "exitonhalt") SetValue(g_config.exitonhalt, str);
     else
     {
         return false;
