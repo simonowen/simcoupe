@@ -30,6 +30,7 @@
 #include "Frame.h"
 #include "GUI.h"
 #include "Input.h"
+#include "Keyin.h"
 #include "Options.h"
 #include "Sound.h"
 #include "SDL20.h"
@@ -178,6 +179,7 @@ bool UI::CheckEvents()
                 case UE_RECORDGIFLOOP:      Actions::Do(Action::RecordGifLoop);   break;
                 case UE_RECORDWAV:          Actions::Do(Action::RecordWav);       break;
                 case UE_RECORDWAVSEGMENT:   Actions::Do(Action::RecordWavSegment); break;
+                case UE_PASTE:              Actions::Do(Action::Paste);           break;
 
                 default:
                     TRACE("Unhandled user event ({})\n", event.type);
@@ -240,4 +242,9 @@ bool UI::DoAction(Action action, bool pressed)
 
     // Action processed
     return true;
+}
+
+extern "C" bool sim_can_paste(void)
+{
+    return Keyin::CanType();
 }

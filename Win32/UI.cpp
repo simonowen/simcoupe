@@ -960,13 +960,6 @@ bool UI::DoAction(Action action, bool pressed)
             return false;
         }
 
-        case Action::Paste:
-        {
-            auto text = OSD::GetClipboardText();
-            Keyin::String(text);
-            break;
-        }
-
         // Not processed
         default:
             return false;
