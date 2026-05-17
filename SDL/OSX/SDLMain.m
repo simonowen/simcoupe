@@ -7,7 +7,7 @@
 
 #import <SDL2/SDL.h>
 #import "SDLMain.h"
-#include "../UI.h"      // For UE_* user event definitions
+#include "../UI.h"      // UE_* user event codes and sim_can_paste bridge
 
 extern int SimCoupe_main (int argc_, char* argv_[]);
 
@@ -118,6 +118,17 @@ static void setupApplicationMenus ()
     [item setKeyEquivalentModifierMask:(NSEventModifierFlagShift|NSEventModifierFlagCommand)];
     
     item = [[NSMenuItem alloc] initWithTitle:@"File" action:nil keyEquivalent:@""];
+    [item setSubmenu:menu];
+    [[NSApp mainMenu] addItem:item];
+    [item release];
+    [menu release];
+
+    /* Create the Edit menu */
+    menu = [[NSMenu alloc] initWithTitle:@"Edit"];
+
+    [menu addItemWithTitle:@"Paste" action:@selector(editPaste:) keyEquivalent:@"v"];
+
+    item = [[NSMenuItem alloc] initWithTitle:@"Edit" action:nil keyEquivalent:@""];
     [item setSubmenu:menu];
     [[NSApp mainMenu] addItem:item];
     [item release];
@@ -271,6 +282,22 @@ static void sendUserEvent (int event)
 }
 
 
+// NSMenuValidation: grey out Paste when SAM cannot accept keys or
+// the clipboard has no text.
+- (BOOL)validateMenuItem:(NSMenuItem *)item
+{
+    if ([item action] == @selector(editPaste:))
+    {
+        if (!sim_can_paste())
+            return NO;
+        NSPasteboard *pb = [NSPasteboard generalPasteboard];
+        if (![pb availableTypeFromArray:@[NSPasteboardTypeString]])
+            return NO;
+        return YES;
+    }
+    return YES;
+}
+
 - (IBAction)appPreferences:(id)sender { sendUserEvent(UE_OPTIONS); }
 - (IBAction)systemPause:(id)sender { sendUserEvent(UE_PAUSE); }
 - (IBAction)systemNMI:(id)sender { sendUserEvent(UE_NMIBUTTON); }
@@ -281,6 +308,7 @@ static void sendUserEvent (int event)
 - (IBAction)viewRatio54:(id)sender { sendUserEvent(UE_TOGGLETV); }
 - (IBAction)fileImportData:(id)sender { sendUserEvent(UE_IMPORTDATA); }
 - (IBAction)fileExportData:(id)sender { sendUserEvent(UE_EXPORTDATA); }
+- (IBAction)editPaste:(id)sender { sendUserEvent(UE_PASTE); }
 
 
 - (IBAction)openDocument:(id)sender

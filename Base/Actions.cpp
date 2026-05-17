@@ -29,6 +29,7 @@
 #include "GUI.h"
 #include "GUIDlg.h"
 #include "Input.h"
+#include "Keyin.h"
 #include "Options.h"
 #include "Parallel.h"
 #include "Sound.h"
@@ -373,6 +374,10 @@ bool Do(Action action, bool pressed/*=true*/)
         case Action::SpeedNormal:
             SetOption(speed, 100);
             Frame::SetStatus("100% Speed");
+            break;
+
+        case Action::Paste:
+            Keyin::String(OSD::GetClipboardText());
             break;
 
             // Not processed

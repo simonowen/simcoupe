@@ -71,3 +71,14 @@ extern bool g_fActive;
 #define UE_RECORDAVIHALF        (UE_BASE+24)
 #define UE_RECORDAVISTOP        (UE_BASE+25)
 #define UE_QUEUEFILE            (UE_BASE+26)
+#define UE_PASTE                (UE_BASE+27)
+
+// C-callable bridge: returns true if the SAM can currently accept paste.
+// Called from validateMenuItem: in SDL/OSX/SDLMain.m.
+#ifdef __cplusplus
+extern "C" {
+#endif
+bool sim_can_paste(void);
+#ifdef __cplusplus
+}
+#endif
