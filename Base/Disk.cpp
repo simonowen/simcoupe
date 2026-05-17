@@ -79,7 +79,6 @@ Disk::Open(const std::vector<uint8_t>& mem_file, const std::string& file_desc)
 Disk::Disk(std::unique_ptr<Stream> stream, DiskType type)
     : m_type(type), m_busy_frames(0), m_stream(std::move(stream))
 {
-    m_last_write_time = m_stream->LastWriteTime();
 }
 
 void Disk::Close()
@@ -188,7 +187,6 @@ bool MGTDisk::Save()
     auto saved = m_stream->Write(m_data.data(), m_data.size()) == m_data.size();
     m_stream->Close();
 
-    m_last_write_time = m_stream->LastWriteTime();
     m_modified = false;
     return saved;
 }
@@ -319,7 +317,6 @@ bool SADDisk::Save()
         m_stream->Write(m_data.data(), m_data.size()) == m_data.size();
     m_stream->Close();
 
-    m_last_write_time = m_stream->LastWriteTime();
     m_modified = false;
     return saved;
 }
@@ -565,7 +562,6 @@ bool EDSKDisk::Save()
     }
 
     m_stream->Close();
-    m_last_write_time = m_stream->LastWriteTime();
     m_modified = false;
     return saved;
 }
@@ -791,7 +787,6 @@ void FloppyDisk::Close()
 
 bool FloppyDisk::Save()
 {
-    m_last_write_time = m_stream->LastWriteTime();
     m_modified = false;
     return true;
 }

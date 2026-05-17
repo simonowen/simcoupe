@@ -55,6 +55,7 @@ std::unique_ptr<DiskDevice> pFloppy1;
 std::unique_ptr<DiskDevice> pFloppy2;
 std::unique_ptr<DiskDevice> pBootDrive;
 std::unique_ptr<AtaAdapter> pAtom;
+std::unique_ptr<AtaAdapter> pAtomLiteLeft;  // left bay
 std::unique_ptr<AtaAdapter> pAtomLite;
 std::unique_ptr<AtaAdapter> pSDIDE;
 
@@ -121,6 +122,7 @@ bool Init()
         pFloppy1 = std::make_unique<Drive>();
         pFloppy2 = std::make_unique<Drive>();
         pAtom = std::make_unique<AtomDevice>();
+        pAtomLiteLeft = std::make_unique<AtomLiteDevice>();
         pAtomLite = std::make_unique<AtomLiteDevice>();
         pSDIDE = std::make_unique<SDIDEDevice>();
 
@@ -162,6 +164,7 @@ bool Init()
     pFloppy1->Reset();
     pFloppy2->Reset();
     pAtom->Reset();
+    pAtomLiteLeft->Reset();
     pAtomLite->Reset();
     pSDIDE->Reset();
 
@@ -212,6 +215,7 @@ void Exit(bool reinit)
         pBootDrive.reset();
 
         pAtom.reset();
+        pAtomLiteLeft.reset();
         pAtomLite.reset();
         pSDIDE.reset();
     }
@@ -543,7 +547,8 @@ uint8_t In(uint16_t port)
         {
             switch (GetOption(drive1))
             {
-            case drvFloppy: return (pBootDrive ? pBootDrive : pFloppy1)->In(port); break;
+            case drvFloppy:     return (pBootDrive ? pBootDrive : pFloppy1)->In(port); break;
+            case drvAtomLite:   return pAtomLiteLeft->In(port); break;
             default: break;
             }
         }
@@ -735,7 +740,8 @@ void Out(uint16_t port, uint8_t val)
         {
             switch (GetOption(drive1))
             {
-            case drvFloppy: (pBootDrive ? pBootDrive : pFloppy1)->Out(port, val); break;
+            case drvFloppy:     (pBootDrive ? pBootDrive : pFloppy1)->Out(port, val); break;
+            case drvAtomLite:   pAtomLiteLeft->Out(port, val); break;
             default: break;
             }
         }
@@ -828,13 +834,12 @@ void FrameUpdate()
     pFloppy1->FrameEnd();
     pFloppy2->FrameEnd();
     pAtom->FrameEnd();
+    pAtomLiteLeft->FrameEnd();
     pAtomLite->FrameEnd();
     pPrinterFile->FrameEnd();
 
     Input::Update();
-
-    if (!Frame::TurboMode())
-        Sound::FrameUpdate();
+    Sound::FrameUpdate(Frame::TurboMode());
 }
 
 void UpdateInput()
@@ -851,6 +856,7 @@ void UpdateDrives()
     pFloppy1->Eject();
     pFloppy2->Eject();
     pAtom->Detach();
+    pAtomLiteLeft->Detach();
     pAtomLite->Detach();
     pSDIDE->Detach();
 
@@ -859,6 +865,12 @@ void UpdateDrives()
     case drvFloppy:
         if (!pFloppy1->Insert(GetOption(disk1)))
             Message(MsgType::Warning, "Failed to insert disk 1:\n\n{}", GetOption(disk1));
+        break;
+    case drvAtomLite:
+        if (!pAtomLiteLeft->Attach(GetOption(atomdiskleft0), 0))
+            Message(MsgType::Warning, "Failed to attach AtomLite0 disk:\n\n{}", GetOption(atomdiskleft0));
+        if (!pAtomLiteLeft->Attach(GetOption(atomdiskleft1), 1))
+            Message(MsgType::Warning, "Failed to attach AtomLite0 disk:\n\n{}", GetOption(atomdiskleft1));
         break;
     default:
         break;
@@ -948,18 +960,23 @@ void QueueAutoBoot(AutoLoadType type)
 
 void AutoLoad(AutoLoadType type)
 {
-    auto_load = AutoLoadType::None;
+    auto keyin_str = GetOption(keyin);
+    SetOption(keyin, "");
 
-    if (!GetOption(autoload) || type == AutoLoadType::None || !TestStartupScreen())
+    if (GetOption(autoload) && keyin_str.empty())
     {
-        Keyin::Stop();
-        return;
+        if (type == AutoLoadType::Disk)
+            keyin_str = "BOOT\\n";
+        else if (type == AutoLoadType::Tape)
+            keyin_str = "LOAD\"\"\\n";
     }
 
-    if (type == AutoLoadType::Disk)
-        Keyin::String("\xc9", false);
-    else if (type == AutoLoadType::Tape)
-        Keyin::String("\xc7", false);
+    if (!keyin_str.empty() && TestStartupScreen())
+    {
+        Keyin::EscapedString(keyin_str);
+    }
+
+    auto_load = AutoLoadType::None;
 }
 
 void EiHook()
@@ -972,6 +989,12 @@ void EiHook()
             TestStartupScreen(true);
             Keyin::Next();
         }
+    }
+    // If this is an unprocessed error, stop any auto-typing
+    else if (cpu.get_pc() == rom_hook_addr(RomHook::DOSERR) &&
+             cpu.get_a() != 0 && (cpu.get_f() & cpu.cf_mask) != 0)
+    {
+        Keyin::Stop();
     }
 
     Tape::EiHook();
@@ -989,6 +1012,11 @@ bool Rst8Hook()
     {
     // No error
     case 0x00:
+        break;
+
+    // Ignore Nonsense in BASIC errors, also shared with chained command handlers.
+    // Any real errors are handled in the EI hook above.
+    case 0x1d:
         break;
 
     // "NO DOS" or "Loading error"
@@ -1033,7 +1061,6 @@ bool Rst8Hook()
 
 void Rst48Hook()
 {
-
     // Are we at READKEY in ROM0?
     if (cpu.get_pc() == rom_hook_addr(RomHook::READKEY))
     {

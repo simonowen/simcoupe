@@ -66,6 +66,8 @@ struct Config
 
     std::string disk1;                  // Floppy disk image in drive 1
     std::string disk2;                  // Floppy disk image in drive 2
+    std::string atomdiskleft0;          // Atom Lite primary disk (left bay)
+    std::string atomdiskleft1;          // Atom Lite secondary disk (left bay)
     std::string atomdisk0;              // Atom disk 0
     std::string atomdisk1;              // Atom disk 1
     std::string sdidedisk;              // Hard disk image for SD IDE interface
@@ -77,6 +79,7 @@ struct Config
 
     std::string inpath;                 // Default path for input files
     std::string outpath;                // Default path for output files
+    std::string respath;                // Default path for resource files
     std::string mru0;                   // Most recently used files
     std::string mru1;
     std::string mru2;
@@ -92,6 +95,7 @@ struct Config
     bool altgrforedit = true;           // Use Right-Alt for SAM Edit key?
     bool mouse = true;                  // Mouse interface connected?
     bool mouseesc = true;               // Relase mouse capture if Esc is pressed?
+    std::string keyin;                  // Auto-type input on startup? (not saved)
 
     std::string joydev1;                // Joystick 1 device
     std::string joydev2;                // Joystick 2 device number

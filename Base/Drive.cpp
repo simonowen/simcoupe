@@ -98,7 +98,7 @@ void Drive::ModifyStatus(uint8_t set_bits, uint8_t reset_bits)
     {
         m_motor_off_frames = FLOPPY_MOTOR_TIMEOUT;
 
-        if (!(m_regs.status & MOTOR_ON) && m_disk && m_disk->StreamChanged())
+        if (!(m_regs.status & MOTOR_ON) && m_disk)
             Insert(m_disk->GetPath());
     }
 

@@ -23,7 +23,7 @@
 
 #include "SAMIO.h"
 
-constexpr auto MOUSE_RESET_TIME = usecs_to_tstates(30);
+constexpr auto MOUSE_RESET_TIME = usecs_to_tstates(38);
 constexpr auto MOUSE_ACTIVE_TIME = std::chrono::seconds(1);
 
 // Mouse buffer format, as read

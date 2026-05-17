@@ -402,7 +402,7 @@ bool Expr::Factor(const char*& p, int flags)
 
         matched = true;
 
-        for (; isalnum(*p2) || *p2 == '_'; p2++);
+        for (; isalnum(*p2) || *p2 == '_' || *p2 == '.'; p2++);
         if (*p2 == '\'') p2++;
 
         TokenEntry token{};

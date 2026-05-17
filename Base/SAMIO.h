@@ -125,7 +125,7 @@ struct COLOUR
     uint8_t red, green, blue;
 };
 
-enum class AutoLoadType { None, Disk, Tape };
+enum class AutoLoadType { None, Disk, Tape, Keyin };
 
 namespace IO
 {

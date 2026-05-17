@@ -59,7 +59,7 @@ void Sound::Exit()
     Audio::Exit();
 }
 
-void Sound::FrameUpdate()
+void Sound::FrameUpdate(bool turbo)
 {
     static bool fSidUsed = false;
     static bool sp0256_used = false;
@@ -86,6 +86,9 @@ void Sound::FrameUpdate()
     // Add the frame to any recordings
     WAV::AddFrame(pbSampleBuffer, nSize);
     AVI::AddFrame(pbSampleBuffer, nSize);
+
+    if (turbo)
+        return;
 
     if (SAMPLE_BITS == 16 && SAMPLE_CHANNELS == 2)
         nSize = AdjustSpeed(pbSampleBuffer, nSize, GetOption(speed));

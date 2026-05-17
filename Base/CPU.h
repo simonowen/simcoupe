@@ -137,6 +137,18 @@ struct sam_cpu : public z80::z80_cpu<sam_cpu>
         base::on_ret();
     }
 
+    void on_reti()
+    {
+        Debug::OnRet();
+        base::on_reti();
+    }
+
+    void on_retn()
+    {
+        Debug::OnRet();
+        base::on_retn();
+    }
+
     void on_ret_cc(z80::condition cc)
     {
         if (cc == z80::condition::z)

@@ -37,7 +37,7 @@ class Sound
 public:
     static bool Init();
     static void Exit();
-    static void FrameUpdate();
+    static void FrameUpdate(bool turbo);
 };
 
 class SoundDevice : public IoDevice

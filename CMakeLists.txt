@@ -161,6 +161,9 @@ add_executable(${PROJECT_NAME}
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 
+target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:-Wno-deprecated-declarations>)
+
 if (WIN32 AND CMAKE_SYSTEM_VERSION STREQUAL "6.1")
   target_compile_definitions(${PROJECT_NAME} PRIVATE _WIN32_WINNT=0x0601)
 endif()

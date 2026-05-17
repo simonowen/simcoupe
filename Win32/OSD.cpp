@@ -129,6 +129,12 @@ std::string OSD::MakeFilePath(PathType type, const std::string& filename)
         break;
 
     case PathType::Resource:
+        if (!GetOption(respath).empty())
+        {
+            path = GetOption(respath);
+            break;
+        }
+
 #ifdef RESOURCE_DIR
         path = fs::path(RESOURCE_DIR).make_preferred();
 #else

@@ -766,8 +766,8 @@ void UpdateMenuFromOptions()
         fmt::format("&Close {}", fInserted2 ? pFloppy2->DiskFile() : "").c_str());
 
     // Grey the sub-menu for disabled drives, and update the status/text of the other Drive 1 options
-    EnableItem(IDM_FILE_NEW_DISK1, fFloppy1 && !GUI::IsActive());
-    EnableItem(IDM_FILE_FLOPPY1_INSERT, fFloppy1 && !GUI::IsActive());
+    EnableItem(IDM_FILE_NEW_DISK1, fFloppy1);
+    EnableItem(IDM_FILE_FLOPPY1_INSERT, fFloppy1);
     EnableItem(IDM_FILE_FLOPPY1_EJECT, fInserted1);
 
     // Only enable the floppy device menu item if it's supported
@@ -2513,7 +2513,10 @@ INT_PTR CALLBACK Drive1PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
         if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
         {
-            SetOption(drive1, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE)));
+            if (auto type{ ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE)) }; type != -1)
+            {
+                SetOption(drive1, type);
+            }
 
             if (GetOption(drive1) == drvFloppy)
             {
@@ -2684,7 +2687,10 @@ INT_PTR CALLBACK Drive2PageDlgProc(HWND hdlg_, UINT uMsg_, WPARAM wParam_, LPARA
     {
         if (reinterpret_cast<LPPSHNOTIFY>(lParam_)->hdr.code == PSN_APPLY)
         {
-            SetOption(drive2, ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE)));
+            if (auto type{ ComboBox_GetCurSel(GetDlgItem(hdlg_, IDC_DEVICE_TYPE)) }; type != -1)
+            {
+                SetOption(drive2, type);
+            }
 
             bool fImage = Button_GetCheck(GetDlgItem(hdlg_, IDR_DEVICE)) != BST_CHECKED;
             bool fImage2 = Button_GetCheck(GetDlgItem(hdlg_, IDR_DEVICE2)) != BST_CHECKED;

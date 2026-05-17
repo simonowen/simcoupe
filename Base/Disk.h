@@ -139,7 +139,6 @@ public:
     std::string GetPath() { return m_stream->GetPath(); }
     std::string GetFile() { return m_stream->GetName(); }
     bool WriteProtected() const { return m_stream->WriteProtected(); }
-    bool StreamChanged() const { return m_stream->LastWriteTime() != m_last_write_time; }
 
     virtual void Close();
     virtual bool Save() = 0;
@@ -157,7 +156,6 @@ protected:
     DiskType m_type = DiskType::Unknown;
     int m_busy_frames = 0;
     bool m_modified = false;
-    fs::file_time_type m_last_write_time{};
 
     std::unique_ptr<Stream> m_stream;
     std::vector<uint8_t> m_data;
