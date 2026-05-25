@@ -21,8 +21,8 @@ jobs:
     - name: Configure
       run: cmake -B ${{github.workspace}}/build
       env:
-        CC: ${{matrix.cc}}
-        CXX: ${{matrix.cxx}}
+        CC: ${{matrix.compiler.cc}}
+        CXX: ${{matrix.compiler.cxx}}
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build
