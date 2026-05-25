@@ -195,6 +195,40 @@ endif()
 target_include_directories(${PROJECT_NAME} PRIVATE Extern/gl3w/include)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_DL_LIBS})
 
+message(STATUS "Fetching github.com/madler/zlib")
+FetchContent_Declare(
+  zlib
+  GIT_REPOSITORY https://github.com/madler/zlib.git
+  GIT_TAG 51b7f2abdade71cd9bb0e7a373ef2610ec6f9daf
+  SOURCE_SUBDIR non-existent-directory)
+FetchContent_MakeAvailable(zlib)
+set(HAVE_LIBZ 1)
+
+if (NOT SIMCOUPE_PORTABLE)
+  find_package(ZLIB)
+endif()
+
+if (NOT ZLIB_FOUND)
+  message(STATUS "Building zlib from source")
+  set(ZLIB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+  add_subdirectory(${zlib_SOURCE_DIR} ${zlib_BINARY_DIR} EXCLUDE_FROM_ALL)
+  add_library(ZLIB::ZLIB ALIAS zlibstatic)
+
+  set(ZLIB_FOUND 1)
+  set(ZLIB_INCLUDE_DIR ${zlib_SOURCE_DIR})
+  set(ZLIB_INCLUDE_DIRS ${zlib_SOURCE_DIR})
+  set(ZLIB_LIBRARY zlibstatic)
+  set(ZLIB_LIBRARIES zlibstatic)
+endif()
+
+set(minizip_SOURCE_DIR ${zlib_SOURCE_DIR}/contrib/minizip)
+add_library(minizip STATIC)
+target_sources(minizip PRIVATE ${minizip_SOURCE_DIR}/unzip.c ${minizip_SOURCE_DIR}/ioapi.c)
+target_include_directories(minizip PUBLIC ${minizip_SOURCE_DIR})
+target_link_libraries(minizip PUBLIC ZLIB::ZLIB)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE minizip)
+
 # Z80 core
 message(STATUS "Fetching github.com/kosarev/z80")
 FetchContent_Declare(
@@ -249,22 +283,6 @@ endif()
 set(CMAKE_THREAD_PREFER_PTHREAD pthread)
 find_package(Threads REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
-
-find_package(ZLIB)
-if (ZLIB_FOUND)
-  if (SIMCOUPE_PORTABLE)
-    target_link_libraries(${PROJECT_NAME} PRIVATE libz.a)
-  else()
-    target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
-  endif()
-  set(HAVE_LIBZ 1)
-  target_sources(${PROJECT_NAME} PRIVATE
-    Extern/zlib/contrib/minizip/ioapi.c
-    Extern/zlib/contrib/minizip/unzip.c
-    Extern/zlib/contrib/minizip/ioapi.h
-    Extern/zlib/contrib/minizip/unzip.h)
-  target_include_directories(${PROJECT_NAME} PRIVATE Extern/zlib/contrib/minizip)
-endif()
 
 find_package(BZip2)
 if (BZIP2_FOUND)
