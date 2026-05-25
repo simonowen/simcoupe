@@ -41,7 +41,7 @@ function Build-Zip {
     )
 
     if (Test-Path $vcpkg_toolchain -PathType Leaf) {
-        $cmake_args += "-DCMAKE_TOOLCHAIN_FILE=`"$vcpkg_toolchain`""
+        $cmake_args += "-DCMAKE_TOOLCHAIN_FILE=$vcpkg_toolchain"
     }
 
     &cmake .. @cmake_args
