@@ -23,6 +23,7 @@
 
 #include "Frame.h"
 #include "GUI.h"
+#include "Input.h"
 #include "Options.h"
 #include "UI.h"
 
@@ -75,6 +76,11 @@ bool SDLTexture::Init()
     OptionsChanged();
     RestoreWindowPosition();
     SDL_ShowWindow(m_window);
+
+    int x{}, y{};
+    SDL_GetWindowPosition(m_window, &x, &y);
+    if (x == 0 && y == 0)
+        Input::AcquireMouse();
 
     return true;
 }

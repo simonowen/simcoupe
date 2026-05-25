@@ -85,7 +85,7 @@ Rect DisplayRect()
 
 std::pair<int, int> MouseRelative()
 {
-    return s_pVideo->MouseRelative();
+    return s_pVideo ? s_pVideo->MouseRelative() : std::make_pair(0, 0);
 }
 
 } // namespace Video
