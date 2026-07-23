@@ -19,7 +19,12 @@ jobs:
     - uses: actions/upload-artifact@v7
       with:
         name: simcoupe-zip
-        path: SimCoupe-*-win_*.zip
+        path: SimCoupe-*-win_x??.zip
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: simcoupe-debug
+        path: SimCoupe-*-win_x??-debug.zip
 
     - uses: actions/upload-artifact@v7
       with:

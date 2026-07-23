@@ -46,20 +46,34 @@ function Build-Zip {
     }
 
     &cmake .. @cmake_args
+    if ($LASTEXITCODE -ne 0) {
+        throw "CMake configure failed for $target_arch build (exit code $LASTEXITCODE)."
+    }
+
     &cmake --build .
+    if ($LASTEXITCODE -ne 0) {
+        throw "CMake build failed for $target_arch build (exit code $LASTEXITCODE)."
+    }
 
     if ($CodeSign) {
         sign.bat SimCoupe.exe
     }
 
     if (Get-Command 7z -ErrorAction SilentlyContinue) {
-        $version = (Get-Item SimCoupe.exe).VersionInfo.FileVersion
-        $version = $version.Substring(0, $version.LastIndexOf('.'))
+        $version = (Get-Item SimCoupe.exe).VersionInfo.FileVersion -replace '\.[^.]+$'
         $zipfile = Join-Path .. "SimCoupe-${version}-win_${target_arch}.zip"
+        $symbols = Join-Path .. "SimCoupe-${version}-win_${target_arch}-debug.zip"
 
         Remove-Item $zipfile -ErrorAction SilentlyContinue
         &7z a $zipfile -bsp0 -bso0 SimCoupe.exe *.dll ..\ReadMe.md ..\Manual.md ..\License.* ..\Resource\* '-x!..\Resource\SimCoupe.bmp'
         &7z l $zipfile
+
+        $pdb_files = @(Resolve-Path -Relative (Get-ChildItem -Path . -Filter *.pdb -File))
+        if ($pdb_files) {
+            Remove-Item $symbols -ErrorAction SilentlyContinue
+            7z a $symbols -bsp0 -bso0 @pdb_files
+            7z l $symbols
+        }
     } else {
         Write-Warning '7zip is required for ZIP creation'
     }
@@ -86,7 +100,9 @@ try {
         Write-Warning 'Inno Setup 6.x is required for EXE installer'
     }
 
-    Get-ChildItem -File SimCoupe-* | Sort-Object LastWriteTime | Select-Object -Last 3
+    $latest = Get-ChildItem -File SimCoupe-* | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    $version = $latest.BaseName -replace '^.*-(\d+\.\d+\.\d+)-.*','$1'
+    Get-ChildItem -File "*-${version}-*"
 }
 finally {
     Set-Location $prev_pwd

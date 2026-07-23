@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18...3.31)
+cmake_minimum_required(VERSION 3.28...4.3)
 
 project(simcoupe)
 set(PROJECT_TITLE SimCoupe)
@@ -309,7 +309,15 @@ target_link_libraries(${PROJECT_NAME} PRIVATE SAASound)
 # TODO: remove once upstream is compatible
 target_include_directories(${PROJECT_NAME} PRIVATE ${saasound_SOURCE_DIR}/include)
 
-if (NOT MSVC)
+if (MSVC)
+  target_compile_options(${PROJECT_NAME} PRIVATE $<$<NOT:$<CONFIG:MinSizeRel>>:/Zi>)
+  target_link_options(${PROJECT_NAME} PRIVATE $<$<NOT:$<CONFIG:MinSizeRel>>:/DEBUG>)
+  set_target_properties(${PROJECT_NAME} PROPERTIES
+    PDB_NAME "${PROJECT_TITLE}"
+    COMPILE_PDB_NAME "${PROJECT_TITLE}"
+    PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+else()
   CHECK_CXX_COMPILER_FLAG("-stdlib=libc++" COMPILER_SUPPORTS_STDLIBCXX)
   if (COMPILER_SUPPORTS_STDLIBCXX AND NOT APPLE)
     target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-stdlib=libstdc++>)
