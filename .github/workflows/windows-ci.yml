@@ -4,13 +4,13 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-2025-vs2026
 
     strategy:
       matrix:
         config:
-          - { vs: "17 2022", arch: "Win32", triplet: "x86-windows" }
-          - { vs: "17 2022", arch: "x64", triplet: "x64-windows" }
+          - { vs: "18 2026", arch: "Win32" }
+          - { vs: "18 2026", arch: "x64" }
 
     steps:
     - uses: actions/checkout@v7
