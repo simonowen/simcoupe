@@ -1,0 +1,9 @@
+{
+    "builtin-baseline": "2475cc332a47b3a63bb3de58293bdab7726613ca",
+    "dependencies": [
+        {
+            "name": "xaudio2redist",
+            "platform": "windows"
+        }
+    ]
+}

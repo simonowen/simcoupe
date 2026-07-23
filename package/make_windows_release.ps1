@@ -38,6 +38,7 @@ function Build-Zip {
         "-G Ninja"
         "-DCMAKE_BUILD_TYPE=Release"
         "-DCMAKE_SYSTEM_VERSION=6.1"
+        "-DVCPKG_MANIFEST_DIR=../package"
     )
 
     if (Test-Path $vcpkg_toolchain -PathType Leaf) {

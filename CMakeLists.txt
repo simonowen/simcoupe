@@ -309,21 +309,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE SAASound)
 # TODO: remove once upstream is compatible
 target_include_directories(${PROJECT_NAME} PRIVATE ${saasound_SOURCE_DIR}/include)
 
-if (EXISTS "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/xaudio2redist/xaudio2.h")
-  target_include_directories(${PROJECT_NAME} PRIVATE ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/xaudio2redist)
-  target_link_directories(${PROJECT_NAME} PRIVATE ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib)
-  target_link_libraries(${PROJECT_NAME} PRIVATE xaudio2_9redist.lib)
-  message(STATUS "Found vcpkg xaudio2redist")
-  set(HAVE_XAUDIO2REDIST 1)
-
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/xaudio2_9redist.dll"
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>)
-else()
-  message(STATUS "xaudio2redist not found")
-endif()
-
 if (NOT MSVC)
   CHECK_CXX_COMPILER_FLAG("-stdlib=libc++" COMPILER_SUPPORTS_STDLIBCXX)
   if (COMPILER_SUPPORTS_STDLIBCXX AND NOT APPLE)
@@ -335,6 +320,17 @@ endif()
 
 if (BUILD_WIN32)
   target_link_libraries(${PROJECT_NAME} PRIVATE dinput8.lib dxguid.lib)
+
+  find_package(xaudio2redist CONFIG)
+  if (xaudio2redist_FOUND)
+    message(STATUS "Found xaudio2redist")
+    target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::XAudio2Redist)
+    set(HAVE_XAUDIO2REDIST 1)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:Microsoft::XAudio2Redist>"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
+  endif()
 elseif (BUILD_SDL)
   if (SIMCOUPE_PORTABLE)
     message(STATUS "Fetching SDL2 from GitHub")

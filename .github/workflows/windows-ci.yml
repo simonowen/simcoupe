@@ -15,19 +15,20 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Set up vcpkg
+      uses: lukka/run-vcpkg@v11
+
     - name: Set up Visual Studio shell
       uses: egor-tensin/vs-shell@v2
       with:
         arch: ${{matrix.config.arch}}
 
-    - name: Install dependencies
-      shell: cmd
-      run: vcpkg install --recurse --triplet ${{matrix.config.triplet}} zlib bzip2 xaudio2redist
-
     - name: Configure
-      shell: cmd
-      run: cmake -B ${{github.workspace}}/build -G "Visual Studio ${{matrix.config.vs}}" -A "${{matrix.config.arch}}" -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%\scripts\buildsystems\vcpkg.cmake
+      shell: powershell
+      run: >
+        cmake -B ${{github.workspace}}/build
+        -G "Visual Studio ${{matrix.config.vs}}"
+        -A "${{matrix.config.arch}}"
 
     - name: Build
-      shell: cmd
       run: cmake --build ${{github.workspace}}/build

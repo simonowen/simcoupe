@@ -9,13 +9,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install x86 dependencies
-      shell: cmd
-      run: vcpkg install --recurse --triplet x86-windows zlib bzip2 xaudio2redist
-
-    - name: Install x64 dependencies
-      shell: cmd
-      run: vcpkg install --recurse --triplet x64-windows zlib bzip2 xaudio2redist
+    - name: Set up vcpkg
+      uses: lukka/run-vcpkg@v11
 
     - name: Build
       shell: powershell
