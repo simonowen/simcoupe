@@ -111,12 +111,12 @@ static void setupApplicationMenus ()
     [menu addItemWithTitle:@"Save As" action:nil keyEquivalent:@""];
 
     [menu addItem:[NSMenuItem separatorItem]];
-    
+
     item = [menu addItemWithTitle:@"Import Data" action:@selector(fileImportData:) keyEquivalent:@"i"];
     [item setKeyEquivalentModifierMask:(NSEventModifierFlagShift|NSEventModifierFlagCommand)];
     item = [menu addItemWithTitle:@"Export Data" action:@selector(fileExportData:) keyEquivalent:@"e"];
     [item setKeyEquivalentModifierMask:(NSEventModifierFlagShift|NSEventModifierFlagCommand)];
-    
+
     item = [[NSMenuItem alloc] initWithTitle:@"File" action:nil keyEquivalent:@""];
     [item setSubmenu:menu];
     [[NSApp mainMenu] addItem:item];
@@ -136,7 +136,7 @@ static void setupApplicationMenus ()
 
     /* Create the View menu */
     menu = [[NSMenu alloc] initWithTitle:@"View"];
-    
+
     [menu addItemWithTitle:@"Fullscreen" action:@selector(viewFullscreen:) keyEquivalent:@"f"];
     [menu addItem:[NSMenuItem separatorItem]];
     [menu addItemWithTitle:@"5:4 Aspect Ratio" action:@selector(viewRatio54:) keyEquivalent:@"5"];
@@ -150,7 +150,7 @@ static void setupApplicationMenus ()
 
     /* Create the System menu */
     menu = [[NSMenu alloc] initWithTitle:@"System"];
-    
+
     [menu addItemWithTitle:@"Pause" action:@selector(systemPause:) keyEquivalent:@"p"];
     [menu addItem:[NSMenuItem separatorItem]];
     [menu addItemWithTitle:@"Generate NMI" action:@selector(systemNMI:) keyEquivalent:@"n"];
@@ -263,7 +263,7 @@ static void setupApplicationMenus ()
 {
     NSString *myBundle = [[NSBundle mainBundle] bundlePath];
     NSString *fullpath = [NSString stringWithFormat:@"%@/Contents/Resources/%@",myBundle, fileName];
-    [[NSWorkspace sharedWorkspace] openFile:fullpath ];
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:fullpath]];
 }
 
 
