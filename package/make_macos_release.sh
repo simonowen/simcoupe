@@ -1,8 +1,8 @@
-#!/bin/sh
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 BUILD_DIR=build-macos
-mkdir -p ${BUILD_DIR} && pushd ${BUILD_DIR}
+mkdir -p "${BUILD_DIR}" && pushd "${BUILD_DIR}"
 
 cmake .. \
   -Wno-dev \
@@ -12,7 +12,7 @@ cmake .. \
 
 rm -rf SimCoupe.app SimCoupe*.dmg
 
-make -j$(getconf _NPROCESSORS_ONLN)
+make -j"$(getconf _NPROCESSORS_ONLN)"
 
 otool -l SimCoupe.app/Contents/MacOS/SimCoupe | grep minos
 otool -L SimCoupe.app/Contents/MacOS/SimCoupe
@@ -20,14 +20,23 @@ otool -L SimCoupe.app/Contents/MacOS/SimCoupe
 install_name_tool -add_rpath @executable_path/../Frameworks \
   SimCoupe.app/Contents/MacOS/SimCoupe
 
-mkdir SimCoupe.app/Contents/Frameworks
-cp -r /Library/Frameworks/SDL2.framework SimCoupe.app/Contents/Frameworks
-cp -r _deps/saasound-build/SAASound.framework SimCoupe.app/Contents/Frameworks
+mkdir -p SimCoupe.app/Contents/Frameworks
+ditto /Library/Frameworks/SDL2.framework SimCoupe.app/Contents/Frameworks/SDL2.framework
+ditto _deps/saasound-build/SAASound.framework SimCoupe.app/Contents/Frameworks/SAASound.framework
 
 rm -rf dist
 mkdir -p dist/.background
-cp -r SimCoupe.app dist/
+ditto SimCoupe.app dist/SimCoupe.app
 cp ../package/dmg_bkg.png dist/.background/
+
+if [ -n "${DEVELOPER_ID:-}" ]; then
+    codesign --deep --force --verify --verbose --timestamp --sign "Developer ID Application: ${DEVELOPER_ID}" --options runtime ./dist/SimCoupe.app/Contents/Frameworks/*
+    codesign --force --verify --verbose --timestamp --sign "Developer ID Application: ${DEVELOPER_ID}" --options runtime ./dist/SimCoupe.app
+    ditto -c -k --keepParent ./dist/SimCoupe.app SimCoupe.zip
+    xcrun notarytool submit SimCoupe.zip --keychain-profile NotaryProfile --wait
+    xcrun stapler staple ./dist/SimCoupe.app
+    spctl -vvv --assess --type exec ./dist/SimCoupe.app
+fi
 
 VERSION=$(plutil -extract CFBundleShortVersionString xml1 -o - ./Info-SimCoupe.plist | \
   sed -n "s/.*<string>\(.*\)<\/string>.*/\1/p")
@@ -35,9 +44,19 @@ VOLNAME="SimCoupe ${VERSION}"
 VOLPATH="/Volumes/${VOLNAME}"
 DMGFILE="SimCoupe-${VERSION}-macos.dmg"
 
-hdiutil create /tmp/tmp.dmg -ov -volname "$VOLNAME" -fs HFS+ -format UDRW -srcfolder dist -noscrub
-hdiutil attach -readwrite -noverify -noautoopen /tmp/tmp.dmg
-sleep 3
+COUNT=0
+MAX_RETRIES=5
+sync
+until hdiutil create tmp.dmg -ov -volname "$VOLNAME" -fs HFS+ -format UDRW -srcfolder dist -noscrub; do
+    echo "Retrying hdiutil create...($((++COUNT)))"
+    if [[ $COUNT -ge $MAX_RETRIES ]]; then
+        echo "DMG image creation failed."
+        exit 1
+    fi
+    sleep 5
+done
+hdiutil attach -readwrite -noverify -noautoopen tmp.dmg
+sleep 5
 
 osascript << EOT
   tell application "Finder"
@@ -75,5 +94,15 @@ SetFile -a C "${VOLPATH}"
 
 sync
 hdiutil detach "${VOLPATH}"
-hdiutil convert /tmp/tmp.dmg -format UDZO -o "${DMGFILE}"
-echo DMG: ${BUILD_DIR}/${DMGFILE}
+hdiutil convert tmp.dmg -format UDZO -o "${DMGFILE}"
+rm -f tmp.dmg
+
+if [ -n "${DEVELOPER_ID:-}" ]; then
+    codesign --force --verify --verbose --timestamp --sign "Developer ID Application: ${DEVELOPER_ID}" --options runtime "${DMGFILE}"
+    xcrun notarytool submit "${DMGFILE}" --keychain-profile NotaryProfile --wait
+    xcrun stapler staple "${DMGFILE}"
+    spctl -vvv --assess --type open --context context:primary-signature "${DMGFILE}"
+fi
+
+popd>/dev/null
+echo DMG: "${BUILD_DIR}/${DMGFILE}"
