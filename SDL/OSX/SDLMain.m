@@ -368,6 +368,12 @@ static int CustomApplicationMain (int argc, char **argv)
             if (!CPSSetFrontProcess(&PSN))
                 [NSApplication sharedApplication];
 
+    /* Disable press-and-hold for keys, to suppress accents popup menu */
+    CFPreferencesSetAppValue(CFSTR("ApplePressAndHoldEnabled"),
+                             kCFBooleanFalse,
+                             kCFPreferencesCurrentApplication);
+    CFPreferencesAppSynchronize(kCFPreferencesCurrentApplication);
+
     /* Set up the menubar */
     setupApplicationMenus();
 
