@@ -37,7 +37,6 @@ struct Config
     bool motionblur = false;            // Motion blur to reduce animation flicker?
     int blurpercent = 50;               // Percentage of previous frame retained with motion blur enabled
     int maxintensity = 255;             // Maximum colour channel intensity (0-255)
-    bool blackborder = false;           // Black border around emulated screen?
     bool tryvrr = true;                 // Try to use Variable Refresh Rate, if supported?
 
     int gifframeskip = 0;               // GIF frameskip (0=50fps)

@@ -88,8 +88,7 @@ bool SDLTexture::Init()
 
 void SDLTexture::OptionsChanged()
 {
-    uint8_t fill_intensity = GetOption(blackborder) ? 0 : 25;
-    SDL_SetRenderDrawColor(m_renderer, fill_intensity, fill_intensity, fill_intensity, 0xff);
+    SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 0xff);
 
     m_rSource.w = m_rSource.h = 0;
     m_rTarget.w = m_rTarget.h = 0;

@@ -89,7 +89,6 @@ auto set_named_value(const std::string& option_name, const std::string& str) -> 
     else if (name == "allowmotionblur") { set_value(g_config.allowmotionblur, str); }
     else if (name == "blurpercent") { set_value(g_config.blurpercent, str); }
     else if (name == "maxintensity") { set_value(g_config.maxintensity, str); }
-    else if (name == "blackborder") { set_value(g_config.blackborder, str); }
     else if (name == "tryvrr") { set_value(g_config.tryvrr, str); }
     else if (name == "gifframeskip") { set_value(g_config.gifframeskip, str); }
     else if (name == "rom") { set_value(g_config.rom, str); }
@@ -279,7 +278,6 @@ auto Save() -> bool
         write_option(ofs, "allowmotionblur", g_config.allowmotionblur, defaults.allowmotionblur);
         write_option(ofs, "blurpercent", g_config.blurpercent, defaults.blurpercent);
         write_option(ofs, "maxintensity", g_config.maxintensity, defaults.maxintensity);
-        write_option(ofs, "blackborder", g_config.blackborder, defaults.blackborder);
         write_option(ofs, "tryvrr", g_config.tryvrr, defaults.tryvrr);
         write_option(ofs, "gifframeskip", g_config.gifframeskip, defaults.gifframeskip);
         write_option(ofs, "rom", g_config.rom, defaults.rom);

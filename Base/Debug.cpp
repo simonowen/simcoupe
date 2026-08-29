@@ -2772,7 +2772,6 @@ void GfxView::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
                 auto b = read_byte(wAddr_++);
 
                 // To keep things simple, draw only the odd pixels
-                
                 memset(pb, IO::Mode3Clut((b & 0x30) >> 4), s_uZoom); pb += s_uZoom;
                 memset(pb, IO::Mode3Clut((b & 0x03) >> 0), s_uZoom); pb += s_uZoom;
             }

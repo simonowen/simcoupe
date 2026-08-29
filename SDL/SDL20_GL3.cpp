@@ -196,8 +196,7 @@ void SDL_GL3::OptionsChanged()
     glUseProgram(m_blend_program);
     glUniform1f(glGetUniformLocation(m_blend_program, "blend_factor"), blend_factor);
 
-    auto fill_intensity = GetOption(blackborder) ? 0.0f : 0.01f;
-    glClearColor(fill_intensity, fill_intensity, fill_intensity, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     m_rSource.w = m_rSource.h = 0;
     m_rTarget.w = m_rTarget.h = 0;

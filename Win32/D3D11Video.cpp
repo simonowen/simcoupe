@@ -538,8 +538,7 @@ HRESULT Direct3D11Video::Render()
     viewport.Height = static_cast<float>(m_rTarget.bottom);
     m_d3dContext->RSSetViewports(1, &viewport);
 
-    auto fill_intensity = GetOption(blackborder) ? 0.0f : 0.01f;
-    FLOAT fill_colour[]{ fill_intensity, fill_intensity, fill_intensity, 1.0f };
+    FLOAT fill_colour[]{ 0.0f, 0.0f, 0.0f, 1.0f };
 
     // Finally, render to the aspect correct area in the back buffer.
     m_d3dContext->OMSetRenderTargets(1, m_swapChainRTV.GetAddressOf(), nullptr);
