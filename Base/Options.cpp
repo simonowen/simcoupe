@@ -57,7 +57,7 @@ void set_value(T& value, const std::string& str)
 {
     if constexpr (std::is_same_v<T, bool>)
     {
-        value = (str == "1");
+        value = (str == "1" || str == "true" || str == "yes");
     }
     else if constexpr (std::is_same_v<T, int>)
     {
