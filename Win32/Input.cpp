@@ -521,6 +521,10 @@ bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
         else if ((nMods & HM_CTRL) && wParam_ >= '0' && wParam_ <= '9')
             GUI::SendMessage(GM_CHAR, int(wParam_), nMods);
 
+        // Function keys
+        else if (wParam_ >= VK_F1 && wParam_ <= VK_F12)
+            GUI::SendMessage(GM_CHAR, HK_F1 + static_cast<int>(wParam_) - VK_F1, nMods);
+
         // Keypad digits
         else if (wParam_ >= VK_NUMPAD0 && wParam_ <= VK_NUMPAD9)
             GUI::SendMessage(GM_CHAR, HK_KP0 + static_cast<int>(wParam_) - VK_NUMPAD0, nMods);
@@ -545,9 +549,9 @@ bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
 
         // Not processed here, but may come back through decoded as WM_CHAR
         else
-            return true;
+            return false;
 
-        return false;
+        return true;
     }
     }
 

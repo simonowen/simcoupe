@@ -227,10 +227,9 @@ the numeric keypad on your keyboard. You'll need to have Numlock enabled for
 these keys to be recognised. Don't forget that when SAM software refers to
 function keys, you must use the numeric keypad instead!
 
-F1 to F12 keys on your keyboard are used for emulator functions, with the
-default mappings shown below. Under OS X, keys F9 to F12 are used by Expose and
-Dashboard, so you'll need to hold the Command key in addition to the
-combinations below to access them.
+F1 to F12 keys are used for emulator functions, except when the debugger is
+active. Under macOS some function keys may be used for system functions, and
+require the Command key to be held in addition to the function key.
 
 Holding the Windows key and pressing F1 to F10 will generate the corresponding
 SAM function key F1 to F0. Recent versions of Windows process Win-F1 as help,
@@ -371,10 +370,10 @@ Keys active in all views:
                N = number view
                T = text view
                V = change VMPR page
-        Keypad-0 = toggle ROM0
-        Keypad-1 = toggle ROM1
-        Keypad-2 = toggle RAM write-protection
-        Keypad-3 = toggle external RAM
+       F1 or KP0 = toggle ROM0
+       F2 or KP1 = toggle ROM1
+       F3 or KP2 = toggle RAM write-protection
+       F4 or KP3 = toggle external RAM
           Ctrl-T = toggle debugger transparency
              Esc = exit debugger, or return to disassembly view
 ```
@@ -383,13 +382,16 @@ Disassembly View:
 ```
                S = toggle symbol display
                U = execute until condition is met
-        Keypad-7 = single step 1 instruction
-        Keypad-8 = step over instruction
-        Keypad-9 = step out of function
-        Keypad-4 = step 10 instructions (10000)
-    Keypad-4/5/6 = step 10/100/1000 instructions
+   F11/KP7/Space = single step 1 instruction
+         F10/KP8 = step over instruction
+      Ctrl-Space = step over instruction
+ Ctrl-F11 or KP9 = step out of function
+     Shift-Space = step out of function
+        F5/F6/F7 = step 10/100/1000 instructions
+     KP4/KP5/KP6 = step 10/100/1000 instructions
+   Ctrl-F5/F6/F7 = step 10K/100K/1M instructions
     Ctrl-KP4/5/6 = step 10K/100K/1M instructions
-   Ctrl-Keypad-8 = step over with code timing (no ints, border contention)
+    Ctrl-F10/KP8 = step over with code timing (no ints, border contention)
       Left/Right = scroll 1 byte
          Up/Down = scroll 1 instruction
        PgUp/PgDn = scroll 1 page

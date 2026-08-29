@@ -447,15 +447,39 @@ void View::SetAddress(uint16_t wAddr_, bool /*fForceTop_*/)
 bool View::cmdNavigate(int nKey_, int nMods_)
 {
     auto ctrl = (nMods_ == HM_CTRL);
+    auto shift = (nMods_ == HM_SHIFT);
 
     switch (nKey_)
     {
-    case HK_KP7:  cmdStep(1, nMods_ != HM_NONE); break;
-    case HK_KP8:  cmdStepOver(ctrl); break;
-    case HK_KP9:  cmdStepOut();     break;
-    case HK_KP4:  cmdStep(ctrl ? 10'000 : 10);      break;
-    case HK_KP5:  cmdStep(ctrl ? 100'000 : 100);     break;
-    case HK_KP6:  cmdStep(ctrl ? 1'000'000 : 1000);    break;
+    case HK_KP7:
+        cmdStep(1, nMods_ != HM_NONE);
+        break;
+    case HK_F10:
+    case HK_KP8:
+        cmdStepOver(ctrl);
+        break;
+    case HK_F11:
+        if (!shift)
+        {
+            cmdStep(1, ctrl);
+            break;
+        }
+        [[fallthrough]];
+    case HK_KP9:
+        cmdStepOut();
+        break;
+    case HK_F5:
+    case HK_KP4:
+        cmdStep(ctrl ? 10'000 : 10);
+        break;
+    case HK_F6:
+    case HK_KP5:
+        cmdStep(ctrl ? 100'000 : 100);
+        break;
+    case HK_F7:
+    case HK_KP6:
+        cmdStep(ctrl ? 1'000'000 : 1000);
+        break;
 
     default:      return false;
     }
@@ -840,18 +864,22 @@ bool Debugger::OnMessage(int nMessage_, int nParam1_, int nParam2_)
             new InputDialog(this, "Execute until", "Expression:", OnUntilNotify);
             break;
 
+        case HK_F1:
         case HK_KP0:
             IO::out_lmpr(IO::State().lmpr ^ LMPR_ROM0_OFF);
             break;
 
+        case HK_F2:
         case HK_KP1:
             IO::out_lmpr(IO::State().lmpr ^ LMPR_ROM1);
             break;
 
+        case HK_F3:
         case HK_KP2:
             IO::out_lmpr(IO::State().lmpr ^ LMPR_WPROT);
             break;
 
+        case HK_F4:
         case HK_KP3:
             IO::out_hmpr(IO::State().hmpr ^ HMPR_MCNTRL_MASK);
             break;

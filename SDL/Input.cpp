@@ -239,6 +239,13 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
             fKeyboardActive = !fKeyboardActive;
         }
 
+        if (GUI::IsActive())
+        {
+            if (fPress && nChr)
+                GUI::SendMessage(GM_CHAR, nChr, nMods);
+            break;
+        }
+
         // Check for the Windows key, for use as a modifier
         bool fWin = pKeyStates[SDL_SCANCODE_LGUI] || pKeyStates[SDL_SCANCODE_RGUI];
         if (!fWin)
@@ -254,15 +261,6 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
                 auto height = Frame::Height() * scale_2x / 2;
                 Video::ResizeWindow(height);
             }
-        }
-
-        if (GUI::IsActive())
-        {
-            // Pass any printable characters to the GUI
-            if (fPress && nChr)
-                GUI::SendMessage(GM_CHAR, nChr, nMods);
-
-            break;
         }
 
         // Some additional function keys

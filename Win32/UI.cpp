@@ -1316,6 +1316,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         // Function key?
         if (wParam_ >= VK_F1 && wParam_ <= VK_F12)
         {
+            if (GUI::IsActive())
+                return 0;
+
             if ((GetAsyncKeyState(VK_LWIN) < 0 || GetAsyncKeyState(VK_RWIN) < 0))
                 return 0;
 
