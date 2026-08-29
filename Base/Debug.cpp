@@ -210,9 +210,14 @@ bool IsActive()
 
 void AddTraceRecord()
 {
-    if (aTrace[nNumTraces % TRACE_SLOTS].wPC != cpu.get_pc() && !cpu.is_halted())
+    if (!cpu.is_halted())
     {
-        TRACEDATA* p = &aTrace[(++nNumTraces) % TRACE_SLOTS];
+        if (aTrace[nNumTraces % TRACE_SLOTS].wPC != cpu.get_pc())
+        {
+            nNumTraces = (nNumTraces + 1) % TRACE_SLOTS;
+        }
+
+        TRACEDATA* p = &aTrace[nNumTraces];
         p->wPC = cpu.get_pc();
         p->abInstr[0] = read_byte(p->wPC);
         p->abInstr[1] = read_byte(p->wPC + 1);
@@ -3113,9 +3118,9 @@ void TrcView::DrawLine(FrameBuffer& fb, int nX_, int nY_, int nLine_)
             else if (CHG(bc) && CHG(de) && CHG(hl))
             {
                 psz += sprintf(psz, "\agBC\aX->%04X \agDE\aX->%04X \agHL\aX->%04X",
-                    static_cast<unsigned>(cpu.get_bc()),
-                    static_cast<unsigned>(cpu.get_de()),
-                    static_cast<unsigned>(cpu.get_hl()));
+                    static_cast<unsigned>(p1->regs.get_bc()),
+                    static_cast<unsigned>(p1->regs.get_de()),
+                    static_cast<unsigned>(p1->regs.get_hl()));
             }
             else
             {
