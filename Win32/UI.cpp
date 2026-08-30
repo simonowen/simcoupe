@@ -1218,18 +1218,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lPara
         }
         break;
 
-        // Mouse has been moved
     case WM_MOUSEMOVE:
     {
-        static POINT ptLast;
-        POINT pt = { GET_X_LPARAM(lParam_), GET_Y_LPARAM(lParam_) };
-        ClientToScreen(hwnd_, &pt);
-
-        if ((pt.x != ptLast.x || pt.y != ptLast.y) && !Input::IsMouseAcquired())
+        if (!Input::IsMouseAcquired())
         {
             fHideCursor = false;
             ulMouseTimer = SetTimer(g_hwnd, MOUSE_TIMER_ID, MOUSE_HIDE_TIME, nullptr);
-            ptLast = pt;
         }
 
         return 0;

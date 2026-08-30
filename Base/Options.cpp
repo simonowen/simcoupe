@@ -139,6 +139,7 @@ auto set_named_value(const std::string& option_name, const std::string& str) -> 
     else if (name == "altgrforedit") { set_value(g_config.altgrforedit, str); }
     else if (name == "mouse") { set_value(g_config.mouse, str); }
     else if (name == "mouseesc") { set_value(g_config.mouseesc, str); }
+    else if (name == "mousemult") { set_value(g_config.mousemult, str); }
     else if (name == "keyin") { set_value(g_config.keyin, str); }
     else if (name == "joydev1") { set_value(g_config.joydev1, str); }
     else if (name == "joydev2") { set_value(g_config.joydev2, str); }
@@ -326,6 +327,7 @@ auto Save() -> bool
         write_option(ofs, "altforcntrl", g_config.altforcntrl, defaults.altforcntrl);
         write_option(ofs, "altgrforedit", g_config.altgrforedit, defaults.altgrforedit);
         write_option(ofs, "mouse", g_config.mouse, defaults.mouse);
+        write_option(ofs, "mousemult", g_config.mousemult, defaults.mousemult);
         write_option(ofs, "mouseesc", g_config.mouseesc, defaults.mouseesc);
         write_option(ofs, "joydev1", g_config.joydev1, defaults.joydev1);
         write_option(ofs, "joydev2", g_config.joydev2, defaults.joydev2);

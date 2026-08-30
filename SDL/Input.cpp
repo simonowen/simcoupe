@@ -25,12 +25,11 @@
 #include "GUI.h"
 #include "Input.h"
 #include "Keyin.h"
-#include "SAMIO.h"
 #include "Joystick.h"
 #include "Keyboard.h"
 #include "Options.h"
 #include "Mouse.h"
-#include "UI.h"
+#include "Video.h"
 
 //#define USE_JOYPOLLING
 
@@ -81,6 +80,7 @@ bool Input::Init()
 
 void Input::Exit()
 {
+    AcquireMouse(false);
     if (pJoystick1) { SDL_JoystickClose(pJoystick1); pJoystick1 = nullptr; nJoystick1 = -1; }
     if (pJoystick2) { SDL_JoystickClose(pJoystick2); pJoystick2 = nullptr; nJoystick2 = -1; }
 }
@@ -96,13 +96,10 @@ void Input::AcquireMouse(bool active)
     if (fMouseActive == active)
         return;
 
-    if (GetOption(mouse))
-    {
-        SDL_ShowCursor(active ? SDL_DISABLE : SDL_ENABLE);
-        Video::MouseRelative();
-        SDL_CaptureMouse(active ? SDL_TRUE : SDL_FALSE);
-    }
-
+    const auto mouse_active = active && GetOption(mouse);
+    SDL_SetRelativeMouseMode(mouse_active ? SDL_TRUE : SDL_FALSE);
+    SDL_ShowCursor(mouse_active ? SDL_DISABLE : SDL_ENABLE);
+    SDL_FlushEvent(SDL_MOUSEMOTION);
     fMouseActive = active;
 }
 
@@ -300,8 +297,7 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         int x = pEvent_->motion.x;
         int y = pEvent_->motion.y;
 
-        bool hide_cursor = fMouseActive && !GUI::IsActive();
-        SDL_ShowCursor(hide_cursor ? SDL_DISABLE : SDL_ENABLE);
+        SDL_ShowCursor(fMouseActive ? SDL_DISABLE : SDL_ENABLE);
 
         // Mouse in use by the GUI?
         if (GUI::IsActive())
@@ -311,11 +307,12 @@ bool Input::FilterEvent(SDL_Event* pEvent_)
         }
         else if (fMouseActive)
         {
-            auto [dx, dy] = Video::MouseRelative();
+            const int dx = pEvent_->motion.xrel;
+            const int dy = pEvent_->motion.yrel;
             if (dx || dy)
             {
                 TRACE("Mouse: {} {}\n", dx, -dy);
-                pMouse->Move(dx, -dy);
+                pMouse->MoveNative(dx, -dy);
             }
         }
         break;

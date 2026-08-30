@@ -47,7 +47,6 @@ public:
     bool Init() override;
     Rect DisplayRect() const override;
     void ResizeWindow(int height) const override;
-    std::pair<int, int> MouseRelative() override;
     void OptionsChanged() override;
     void Update(const FrameBuffer& fb) override;
 

@@ -217,31 +217,6 @@ void SDL_GL3::ResizeWindow(int height) const
     SDL_SetWindowSize(m_window, width, height);
 }
 
-std::pair<int, int> SDL_GL3::MouseRelative()
-{
-    SDL_Point mouse{};
-    SDL_GetMouseState(&mouse.x, &mouse.y);
-
-    SDL_Point centre{ m_rTarget.w / 2, m_rTarget.h / 2 };
-    auto dx = mouse.x - centre.x;
-    auto dy = mouse.y - centre.y;
-
-    auto pix_x = static_cast<float>(m_rDisplay.w) / Frame::Width() * 2;
-    auto pix_y = static_cast<float>(m_rDisplay.h) / Frame::Height() * 2;
-
-    auto dx_sam = static_cast<int>(dx / pix_x);
-    auto dy_sam = static_cast<int>(dy / pix_y);
-
-    if (dx_sam || dy_sam)
-    {
-        auto x_remain = static_cast<int>(std::fmod(dx, pix_x));
-        auto y_remain = static_cast<int>(std::fmod(dy, pix_y));
-        SDL_WarpMouseInWindow(nullptr, centre.x + x_remain, centre.y + y_remain);
-    }
-
-    return { dx_sam, dy_sam };
-}
-
 void SDL_GL3::UpdatePalette()
 {
     auto palette = IO::Palette();

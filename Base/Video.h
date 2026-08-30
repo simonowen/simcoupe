@@ -24,7 +24,6 @@
 
 namespace Video
 {
-constexpr auto background_fill_percent = 10;
 
 bool Init();
 void Exit();
@@ -32,7 +31,6 @@ void Exit();
 void NativeToSam(int& x, int& y);
 void ResizeWindow(int height);
 Rect DisplayRect();
-std::pair<int, int> MouseRelative();
 
 void OptionsChanged();
 void Update(const FrameBuffer& fb);
@@ -47,7 +45,6 @@ public:
     virtual bool Init() = 0;
     virtual Rect DisplayRect() const = 0;
     virtual void ResizeWindow(int height) const = 0;
-    virtual std::pair<int, int> MouseRelative() = 0;
     virtual void OptionsChanged() = 0;
     virtual void Update(const FrameBuffer& fb) = 0;
 };

@@ -94,6 +94,7 @@ struct Config
     bool altgrforedit = true;           // Use Right-Alt for SAM Edit key?
     bool mouse = true;                  // Mouse interface connected?
     bool mouseesc = true;               // Relase mouse capture if Esc is pressed?
+    int mousemult = 30;                 // Mouse sensitivity multiplier (5-200%)
     std::string keyin;                  // Auto-type input on startup? (not saved)
 
     std::string joydev1;                // Joystick 1 device

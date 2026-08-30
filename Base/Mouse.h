@@ -48,12 +48,14 @@ public:
 
 public:
     void Move(int nDeltaX_, int nDeltaY_);
+    void MoveNative(int nDeltaX_, int nDeltaY_);
     void SetButton(int nButton_, bool fPressed_ = true);
     bool IsActive() const;
 
 protected:
     int m_nDeltaX = 0, m_nDeltaY = 0;   // System change in X and Y since last read
     int m_nReadX = 0, m_nReadY = 0;     // Read change in X and Y
+    float m_dxError = 0.0f, m_dyError = 0.0f; // Fractional movement
     uint8_t m_bButtons = 0;             // Current button states
     std::optional<std::chrono::steady_clock::time_point> read_time;  // When the mouse was last read
 

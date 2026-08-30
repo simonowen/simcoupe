@@ -77,33 +77,6 @@ void Direct3D11Video::ResizeWindow(int height) const
         SWP_SHOWWINDOW | SWP_NOMOVE);
 }
 
-std::pair<int, int> Direct3D11Video::MouseRelative()
-{
-    POINT ptMouse{};
-    GetCursorPos(&ptMouse);
-    ScreenToClient(m_hwnd, &ptMouse);
-
-    POINT ptCentre{ m_rDisplay.x + m_rDisplay.w / 2, m_rDisplay.y + m_rDisplay.h / 2 };
-    auto dx = ptMouse.x - ptCentre.x;
-    auto dy = ptMouse.y - ptCentre.y;
-
-    auto pix_x = static_cast<float>(m_rDisplay.w) / Frame::Width() * 2;
-    auto pix_y = static_cast<float>(m_rDisplay.h) / Frame::Height() * 2;
-
-    auto dx_sam = static_cast<int>(dx / pix_x);
-    auto dy_sam = static_cast<int>(dy / pix_y);
-
-    if (dx_sam || dy_sam)
-    {
-        ptCentre.x += static_cast<int>(std::fmod(dx, pix_x));;
-        ptCentre.y += static_cast<int>(std::fmod(dy, pix_y));;
-        ClientToScreen(m_hwnd, &ptCentre);
-        SetCursorPos(ptCentre.x, ptCentre.y);
-    }
-
-    return { dx_sam, dy_sam };
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 
 static HRESULT Fail(HRESULT hr, const std::string_view& operation)
@@ -428,7 +401,7 @@ HRESULT Direct3D11Video::UpdatePalette()
         sam_palette.begin(), sam_palette.end(), std::back_inserter(d3d_palette),
         [&](COLOUR& c) {
             return RGB2Native(
-                c.red, c.green, c.blue, 0x000000ff, 0x0000ff00, 0x00ff0000) | 0xff000000; 
+                c.red, c.green, c.blue, 0x000000ff, 0x0000ff00, 0x00ff0000) | 0xff000000;
         });
 
     CD3D11_TEXTURE1D_DESC td(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, static_cast<UINT>(d3d_palette.size()));

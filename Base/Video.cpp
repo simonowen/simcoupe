@@ -23,7 +23,6 @@
 
 #include "Frame.h"
 #include "GUI.h"
-#include "Options.h"
 #include "UI.h"
 
 namespace Video
@@ -81,11 +80,6 @@ void ResizeWindow(int height)
 Rect DisplayRect()
 {
     return s_pVideo->DisplayRect();
-}
-
-std::pair<int, int> MouseRelative()
-{
-    return s_pVideo ? s_pVideo->MouseRelative() : std::make_pair(0, 0);
 }
 
 } // namespace Video

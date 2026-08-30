@@ -741,6 +741,7 @@ the configuration file:
     -altforcntrl <bool>     Use Left-Alt for SAM Cntrl key (default=no)
     -altgrforedit <bool>    Use Alt-Gr for SAM Edit key (default=yes)
     -mouse <bool>           Mouse interface enabled (default=no)
+    -mousemult <int>        Mouse sensitivity multiplier 5-200 (default=30)
     -mouseesc <bool>        Esc to release mouse capture (default=yes)
     -keyin <string>         Type text at startup (default=none)
 

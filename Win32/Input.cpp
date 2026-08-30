@@ -38,6 +38,7 @@
 #include "Mouse.h"
 #include "Options.h"
 #include "UI.h"
+#include "Video.h"
 
 typedef HRESULT(WINAPI* PFNDIRECTINPUTCREATE) (HINSTANCE, DWORD, LPDIRECTINPUTA*, LPUNKNOWN);
 
@@ -51,6 +52,7 @@ static LPDIRECTINPUTDEVICE2 pdidJoystick1, pdidJoystick2;
 static HKL hkl;
 
 static bool fMouseActive;
+static bool fIgnoreNextMouseMove;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -94,6 +96,7 @@ bool Input::Init(bool fFirstInit_/*=false*/)
 
         Keyboard::Init();
         fMouseActive = false;
+        fIgnoreNextMouseMove = false;
     }
 
     return fRet;
@@ -254,18 +257,23 @@ void Input::AcquireMouse(bool fAcquire_)
     if (fMouseActive && GetOption(mouse))
     {
         RECT r;
-        GetWindowRect(g_hwnd, &r);
+        GetClientRect(g_hwnd, &r);
+        MapWindowPoints(g_hwnd, HWND_DESKTOP, reinterpret_cast<POINT*>(&r), 2);
 
-        // Calculate the centre position and move the cursor there
-        //ptCentre.x = r.left + (r.right - r.left) / 2;
-        //ptCentre.y = r.top + (r.bottom - r.top) / 2;
-        //SetCursorPos(ptCentre.x, ptCentre.y);
+        auto rect = Video::DisplayRect();
+        POINT centre{ rect.x + rect.w / 2, rect.y + rect.h / 2 };
+        ClientToScreen(g_hwnd, &centre);
+        SetCursorPos(centre.x, centre.y);
+        fIgnoreNextMouseMove = true;
 
         // Confine the cursor to the client area so fast mouse movements don't escape
         ClipCursor(&r);
     }
     else
+    {
+        fIgnoreNextMouseMove = false;
         ClipCursor(nullptr);
+    }
 }
 
 
@@ -418,11 +426,29 @@ bool Input::FilterMessage(HWND hwnd_, UINT uMsg_, WPARAM wParam_, LPARAM lParam_
         }
         else if (fMouseActive)
         {
-            auto [dx, dy] = Video::MouseRelative();
+            auto rect = Video::DisplayRect();
+            if (!rect.w || !rect.h)
+                break;
+
+            POINT centre{ rect.x + rect.w / 2, rect.y + rect.h / 2 };
+            if (fIgnoreNextMouseMove && x == centre.x && y == centre.y)
+            {
+                fIgnoreNextMouseMove = false;
+                break;
+            }
+
+            const int dx = x - centre.x;
+            const int dy = y - centre.y;
+
             if (dx || dy)
             {
+                POINT screen_centre = centre;
+                ClientToScreen(hwnd_, &screen_centre);
+                fIgnoreNextMouseMove = true;
+                SetCursorPos(screen_centre.x, screen_centre.y);
+
                 TRACE("Mouse: {} {}\n", dx, -dy);
-                pMouse->Move(dx, -dy);
+                pMouse->MoveNative(dx, -dy);
             }
         }
         break;

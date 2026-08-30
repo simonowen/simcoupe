@@ -161,12 +161,6 @@ void GUI::Draw(FrameBuffer& fb)
     {
         fb.SetFont(s_pGUI->GetFont());
         s_pGUI->Draw(fb);
-
-        // Use hardware cursor on Win32, software cursor on everything else (for now).
-#ifndef WIN32
-        fb.DrawImage(s_nX, s_nY, ICON_SIZE, ICON_SIZE,
-            reinterpret_cast<const uint8_t*>(sMouseCursor.abData), sMouseCursor.abPalette);
-#endif
     }
 }
 

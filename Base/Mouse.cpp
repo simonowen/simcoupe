@@ -30,6 +30,21 @@
 #include "Events.h"
 #include "Options.h"
 
+#include <cmath>
+
+namespace
+{
+
+int ScaleDeltaAxis(int delta, float scale, float& error)
+{
+    auto scaled = (static_cast<float>(delta) * scale) + error;
+    int integral = (scaled >= 0.0f) ? static_cast<int>(std::floor(scaled)) : static_cast<int>(std::ceil(scaled));
+    error = scaled - integral;
+    return integral;
+}
+
+} // namespace
+
 
 MouseDevice::MouseDevice()
 {
@@ -103,6 +118,19 @@ void MouseDevice::Move(int nDeltaX_, int nDeltaY_)
 {
     m_nDeltaX += nDeltaX_;
     m_nDeltaY += nDeltaY_;
+
+    constexpr auto limit = 127;
+    m_nDeltaX = std::clamp(m_nDeltaX, -limit, limit);
+    m_nDeltaY = std::clamp(m_nDeltaY, -limit, limit);
+}
+
+void MouseDevice::MoveNative(int nDeltaX_, int nDeltaY_)
+{
+    auto scale = std::clamp(GetOption(mousemult), 5, 200) / 100.0f;
+    auto dx = ScaleDeltaAxis(nDeltaX_, scale, m_dxError);
+    auto dy = ScaleDeltaAxis(nDeltaY_, scale, m_dyError);
+    if (dx || dy)
+        Move(dx, dy);
 }
 
 // Press or release a mouse button
