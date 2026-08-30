@@ -1,5 +1,17 @@
 # SimCoupe ChangeLog
 
+## Version 1.2.17 (2026-08-31)
+
+- fixed macOS Gatekeeper issues by code-signing app
+- fixed macOS showing accent popup for held keys (#113)
+- fixed macOS shake-to-locate mouse issue (#114)
+- fixed instruction trace showing wrong register values (#111)
+- fixed issue disabling breakpoints when more than 22 were set
+- fixed window border colour being too light (#115)
+- fixed use of "yes" as boolean value on command-line (#112)
+- added alternative debugger key mappings
+- added PDB file generation to aid debugging Windows builds
+
 ## Version 1.2.16 (2026-05-25)
 
 - fixed bpu breakpoints being deleted on trigger (#99)
